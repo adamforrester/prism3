@@ -504,7 +504,8 @@ const classifyPair = (p, emission, mode) => {
  *    detect a blanked workspace: that case is covered, and covered better, by the
  *    `controls > 0 || readOnlyNote > 0` assertion in the loop, which names the condition instead of
  *    proxying it through a count.
- *  - `SWEEP_NODE_FLOOR` (8000) — well below a healthy full sweep's total (printed every run) and well
+ *  - `SWEEP_NODE_FLOOR` (5000; 8000 until S7 and S10 together moved Shape's and Layout's text out of the legacy
+ *    sweep) — well below a healthy full sweep's total (printed every run) and well
  *    above what a sweep of nothing-but-chrome states totals, so it catches every state rendering only
  *    its chrome — which the per-state floor clears once per state and structurally cannot catch in
  *    aggregate.
@@ -516,8 +517,8 @@ const classifyPair = (p, emission, mode) => {
  *    keeps having to convert into a failure.
  */
 const STATE_NODE_FLOOR = 12;
-const SWEEP_NODE_FLOOR = 5000;   // 8000 until UI redesign S7 and S9.2 moved Shape, Elevation and Motion out of the legacy sweep (sections 1g and 1h measure them)
-const SWEEP_STATE_FLOOR = 8;
+const SWEEP_NODE_FLOOR = 4000;   // 8000 until UI redesign S7, S9.2 and S10 moved Shape, Elevation, Motion and Layout out of the legacy sweep (sections 1g, 1h and 1i measure them)
+const SWEEP_STATE_FLOOR = 4;   // 2 brands × 2 modes × 1 page: since S10 the web's one legacy page is Size & radius (the Button options, until S8)
 /** The same "did it look?" floor for the form-control walk added by #1031, and the reason it is a
  *  SWEEP total and not a per-state one is recorded at the assertion: zero fields is legitimate in a
  *  derived mode, where the read-only note replaces every editor, so the per-state range starts at 0 and
@@ -526,7 +527,7 @@ const SWEEP_STATE_FLOOR = 8;
  *  by name. No measured corpus size is written in here: that literal drifts as the studio grows or
  *  retires controls — this is the site #1232 fixed, the count belongs in the live output, not frozen in
  *  a comment beside a passing assertion. */
-const SWEEP_FIELD_FLOOR = 120;   // 250 until UI redesign S5.2 moved the Interactive page's selects out of the legacy sweep; 200 until S9.2 moved Elevation's and Motion's
+const SWEEP_FIELD_FLOOR = 6;   // 250 until UI redesign S5.2 moved the Interactive page's selects out of the legacy sweep; 200 until S9.2 moved Elevation's and Motion's, and S10 Layout's breakpoint fields and grid selects (Size & radius's Button options are what is left)
 /** The brand menu's own minimum, asserted per open (#1031). The popover carried Name and Namespace until UI
  *  redesign S3 moved them to Brand › Identity (chrome, measured by `test:chrome` in both themes, and by the
  *  Brand section below); what it still carries is `.bm-ta` once the import box is open, so one control is
@@ -607,6 +608,15 @@ const gotoType = async (page) => {
     if ((await page.locator(sel).getAttribute('aria-expanded')) !== 'true') await hooks.click(page.locator(sel));
   }
   await hooks.need(page, '[data-p3="weights-matrix"]');
+  await page.evaluate(() => document.fonts.ready);
+};
+
+/** Open Layout through the tab row (UI redesign S10: it left the Pages menu for the two panes) and wait for its levers
+ *  and its preview to draw. */
+const gotoLayout = async (page) => {
+  await hooks.click(page.locator('[data-p3="tab-layout"]'));
+  await hooks.need(page, '[data-p3="layout-levers"]');
+  await hooks.need(page, '[data-p3="layout-style-guide"] .psec');
   await page.evaluate(() => document.fonts.ready);
 };
 
@@ -721,12 +731,14 @@ for (const brand of BRANDS) {
     `${brand}: its committed emission (packages/engine/out/${brand.toLowerCase()}.tokens.json) loads with its modes — the oracle paired specimens are checked against (#1652)`);
 
   const pages = await railLabels(page);
-  // Floor 2: Palettes (S2), Preview (S3: its Style guide is Brand's preview), Surfaces & fills (S4a), Interactive
-  // (S5.2), Typography (S6.2), and Elevation and Motion (S9.2) left the menu. The web offers Size & radius and Layout.
-  ok(pages.length >= 2, `${brand}: the Pages menu offers ${pages.length} destinations`);
+  // Floor 1: Palettes (S2), Preview (S3: its Style guide is Brand's preview), Surfaces & fills (S4a), Interactive
+  // (S5.2), Typography (S6.2), Elevation and Motion (S9.2) and Layout (S10) left the menu. The web offers Size & radius
+  // (the Button options, S7) alone.
+  ok(pages.length >= 1, `${brand}: the Pages menu offers ${pages.length} destinations`);
   for (const gone of ['Elevation', 'Motion'])
     hooks.absent(ok, { seen: pages.length > 0, state: 'the Pages menu\'s rows' }, !pages.includes(gone), `${brand}: the Pages menu no longer offers ${gone}, which moved to Depth & motion in the two panes (S9.2)`);
   hooks.absent(ok, { seen: pages.length > 0, state: 'the Pages menu\'s rows' }, !pages.includes('Typography'), `${brand}: the Pages menu no longer offers Typography, which moved to the two panes (S6.2)`);
+  hooks.absent(ok, { seen: pages.length > 0, state: 'the Pages menu\'s rows' }, !pages.includes('Layout'), `${brand}: the Pages menu no longer offers Layout, which moved to the two panes (S10)`);
 
   // MODE IS THE OUTER AXIS, and that is load-bearing rather than a loop-order preference.
   //
@@ -2035,16 +2047,106 @@ for (const brand of BRANDS) {
     ok(rows.length > 0 && off.length === 0, `${where}: every Scale row is the emitted style at its emitted desktop and mobile size, with its weights${off.length ? ` — ${off.slice(0, 3).join(' | ')}` : ''}`);
   }
   await chooseMode(page, 'light');
-  await gotoRail(page, '[data-p3="rail-page-layout"]');
-  // S6.3 (owner decision Q71): Layout no longer draws the fluid read-out; Type's Scale holds what it showed.
-  const layoutFluid = await page.evaluate(() => ({ frame: !!document.querySelector('[data-p3="legacy-frame"]'),
-    marked: document.querySelectorAll('[data-p3="legacy-frame"] [data-sg-section]').length, list: document.querySelectorAll('[data-p3="legacy-frame"] .fz-list').length }));
-  hooks.absent(ok, { seen: layoutFluid.frame, state: 'the legacy Layout page' }, layoutFluid.marked === 0 && layoutFluid.list === 0,
+  await gotoLayout(page);
+  // S6.3 (owner decision Q71): Layout no longer draws the fluid read-out; Type's Scale holds what it showed. Since S10
+  // Layout is a moved page, so this reads its preview, which draws Breakpoints, Grid and Containers and nothing of Type's.
+  const layoutFluid = await page.evaluate(() => ({ frame: !!document.querySelector('[data-p3="layout-style-guide"] .psec'),
+    marked: document.querySelectorAll('[data-p3="preview-body"] :is([data-sg-section="type-scale"], [data-sg-section="type-fluid"])').length, list: document.querySelectorAll('[data-p3="preview-body"] .fz-list').length }));
+  hooks.absent(ok, { seen: layoutFluid.frame, state: 'the Layout preview' }, layoutFluid.marked === 0 && layoutFluid.list === 0,
     `${brand} / Layout: draws no fluid read-out (S6.3 moved it to Type's Scale)${layoutFluid.marked || layoutFluid.list ? ` — ${layoutFluid.marked} shared section(s), ${layoutFluid.list} fz-list(s)` : ''}`);
   const errs = drain();
   ok(errs.length === 0, `${brand} / Type and Layout: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
 }
+
+// =============================================================================================
+// 1i. Layout — moved to the two panes (UI redesign S10), its preview against each brand's emission
+// =============================================================================================
+// The Layout preview draws Breakpoints, Grid and Containers (`preview/sections/`). Per corpus brand and per mode,
+// against the brand's COMMITTED EMISSION, never the page:
+//   · the sections are exactly the listed ones, in order, each a specimen root on the emission's `background.primary`
+//     in that mode, and each carries the marker only its module stamps;
+//   · every breakpoint the emission carries (`breakpoint.<bp>`) is drawn, at its emitted px; every grid's columns,
+//     gutter and margin read the emitted `grid.<bp>.*` (an alias followed to its space step); the two container
+//     widths read `container.max` and `container.narrow`;
+//   · every text node clears its floor (the legibility probe), and inline ink is marked a specimen.
+console.log(`\nLayout — the moved page, against each brand's emission\n${'='.repeat(78)}`);
+const SG_LAYOUT = '[data-p3="preview-body"] [data-p3="layout-style-guide"]';
+/** The Layout preview's sections, by title, in order, with the marker each module stamps. Literal (S10). */
+const EXPECT_LAYOUT_SECTIONS = ['Breakpoints', 'Grid', 'Containers'];
+const EXPECT_LAYOUT_MARKER = { Breakpoints: 'breakpoints', Grid: 'grid', Containers: 'containers' };
+/** The emitted layout tokens of `brand`: `{ bp: px }`, `{ bp: { columns, gutter, margin } }` (px), and the containers. */
+const emittedLayout = async (brand) => {
+  const tree = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
+  const rootKey = Object.keys(tree)[0];
+  const root = tree[rootKey];
+  const at = (path) => path.split('.').reduce((n, k) => n?.[k], root);
+  const px = (v, hops = 0) => {
+    if (typeof v === 'number') return v;
+    if (typeof v === 'string' && v.startsWith('{') && hops < 8) return px(at(v.slice(1, -1).replace(`${rootKey}.`, ''))?.$value, hops + 1);
+    return typeof v === 'string' ? parseFloat(v) : NaN;
+  };
+  const bps = Object.fromEntries(Object.entries(root.breakpoint ?? {}).filter(([k]) => !k.startsWith('$')).map(([k, v]) => [k, px(v.$value)]));
+  const grid = Object.fromEntries(Object.entries(root.grid ?? {}).filter(([k]) => !k.startsWith('$')).map(([k, v]) => [k, { columns: px(v.columns?.$value), gutter: px(v.gutter?.$value), margin: px(v.margin?.$value) }]));
+  return { bps, grid, max: px(root.container?.max?.$value), narrow: px(root.container?.narrow?.$value) };
+};
+let layoutStates = 0;
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  const emission = await loadEmission(brand);
+  const want = await emittedLayout(brand);
+  ok(Object.keys(want.bps).length >= 2 && Object.keys(want.grid).length === Object.keys(want.bps).length && want.max > 0,
+    `${brand} / Layout: the emission carries ${Object.keys(want.bps).length} breakpoints, a grid for each, and the containers (the oracle)`);
+  await gotoLayout(page);
+  const modes = (await page.locator('[data-p3="mode-option"]').evaluateAll((ns) => ns.map((n) => n.dataset.mode)));
+  for (const mode of modes) {
+    await chooseMode(page, mode);
+    const where = `${brand} / Layout / ${mode}`;
+    layoutStates++;
+    const errs = drain();
+    ok(errs.length === 0, `${where}: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+    const got = await readSections(page, SG_LAYOUT);
+    ok(JSON.stringify(got.sections.map((x) => x.name)) === JSON.stringify(EXPECT_LAYOUT_SECTIONS),
+      `${where}: the preview draws exactly ${EXPECT_LAYOUT_SECTIONS.join(', ')}, in order — drew ${got.sections.map((x) => x.name).join(', ')}`);
+    const page0 = emission?.role('background.primary', mode)?.hex;
+    for (const name of EXPECT_LAYOUT_SECTIONS) {
+      const x = got.sections.find((y) => y.name === name);
+      ok(!!x && x.root && x.ground === page0, `${where}: section ${name} is a specimen root on the emission's background.primary ${page0}${!x ? ' — not drawn' : !x.root ? ' — not a specimen root' : x.ground !== page0 ? ` — on ${x.ground}` : ''}`);
+    }
+    checkSharedMarkers(where, got, EXPECT_LAYOUT_MARKER);
+    const shown = await page.evaluate((sel) => {
+      const h = document.querySelector(sel);
+      const read = (attr) => Object.fromEntries([...h.querySelectorAll(`[data-${attr}]`)].map((n) => [n.dataset[attr], parseFloat(n.textContent)]));
+      const cont = Object.fromEntries([...h.querySelectorAll('[data-p3="layout-container"]')].map((r) => [r.dataset.token, parseFloat(r.querySelector('.lyv-val')?.textContent ?? '')]));
+      return { bps: read('bppx'), cols: read('bpcol'), gut: read('bpgut'), mar: read('bpmar'), cont };
+    }, SG_LAYOUT);
+    const off = [];
+    for (const [bp, px] of Object.entries(want.bps)) if (shown.bps[bp] !== px) off.push(`breakpoint.${bp} shows ${shown.bps[bp]}, emits ${px}`);
+    for (const [bp, g] of Object.entries(want.grid)) {
+      if (shown.cols[bp] !== g.columns) off.push(`grid.${bp}.columns shows ${shown.cols[bp]}, emits ${g.columns}`);
+      if (shown.gut[bp] !== g.gutter) off.push(`grid.${bp}.gutter shows ${shown.gut[bp]}, emits ${g.gutter}`);
+      if (shown.mar[bp] !== g.margin) off.push(`grid.${bp}.margin shows ${shown.mar[bp]}, emits ${g.margin}`);
+    }
+    if (shown.cont['container.max'] !== want.max) off.push(`container.max shows ${shown.cont['container.max']}, emits ${want.max}`);
+    if (shown.cont['container.narrow'] !== want.narrow) off.push(`container.narrow shows ${shown.cont['container.narrow']}, emits ${want.narrow}`);
+    const extra = Object.keys(shown.bps).filter((bp) => !(bp in want.bps));
+    ok(off.length === 0 && extra.length === 0, `${where}: every breakpoint, grid and container value reads the emission's${off.length || extra.length ? ` — ${[...off, ...extra.map((b) => `${b} drawn, not emitted`)].slice(0, 4).join(' | ')}` : ''}`);
+    await settle(page, where);
+    const probe = await page.evaluate(LEGIBILITY_PROBE, SG_LAYOUT);
+    assertParsed(where, probe.unparsed);
+    ok(probe.rootFound, `${where}: the Layout preview was measured`);
+    const rows = probe.text;
+    nodesMeasured += rows.length;
+    ok(rows.length >= STATE_NODE_FLOOR, `${where}: the contrast probe measured ${rows.length} text nodes in the Layout preview (floor ${STATE_NODE_FLOOR})`);
+    for (const r of rows) if (r.ratio < worstRatio) { worstRatio = r.ratio; worstWhere = `${where} — ${r.cls} "${r.text}"`; }
+    const under = rows.filter((r) => r.ratio < CONTRAST_FLOOR);
+    ok(under.length === 0, `${where}: every one of ${rows.length} text nodes clears ${CONTRAST_FLOOR}:1${under.length ? ` — ${under.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1`).join(' | ')}` : ''}`);
+    const unmarked = rows.filter((r) => r.inlineInk && !r.specimen);
+    ok(unmarked.length === 0, `${where}: every node inked by an inline style is marked data-specimen at its render site${unmarked.length ? ` — ${unmarked.slice(0, 3).map((u) => `${u.cls} "${u.text}"`).join(' | ')}` : ''}`);
+  }
+  await ctx.close();
+}
+ok(layoutStates >= 2 * BRANDS.length, `Layout: ${layoutStates} brand × mode states measured against the emission (floor ${2 * BRANDS.length})`);
 ok(typePreviewStates >= BRANDS.length * 2, `the Type sweep visited ${typePreviewStates} brand × mode states (floor ${BRANDS.length * 2})`);
 ok(typeSampleLines >= BRANDS.length * 2 * 2 * 5, `the type sample check read ${typeSampleLines} lines on the Type preview and the Style guide (floor ${BRANDS.length * 2 * 2 * 5})`);
 
@@ -2511,32 +2613,18 @@ for (const brand of BRANDS) {
   }
   await chooseMode(page, 'light');
 
-  // --- 2b. a select must not jump the page while scrolled (#485) --------------------------------
+  // --- 2b. a select must not jump the page while scrolled (#485): RETIRED in UI redesign S10 ----------------------
   //
-  // `applyFull()` → `renderWorkspace()` does `workspace.innerHTML = ''`, which resets scroll as a side
-  // effect; #485 fixed it once for every current AND future caller by saving/restoring around the
-  // teardown. Color moved to the two panes (S2, S4a, S5.2), so the jump is driven on Layout, the first legacy
-  // page that draws a select (Type and Size & radius draw chips and fields), by its first select with a choice.
-  await gotoRail(page, '[data-p3="rail-page-layout"]');
-  const selIdx = await page.evaluate(() => [...document.querySelectorAll('[data-p3="legacy-page"] select')].findIndex((s) => s.options.length >= 3));
-  ok(selIdx >= 0, `${brand}: the Layout page has a select with a choice to drive (#485)`);
-  // A missing select fails above by name; it must not then take the run down as a locator timeout.
-  if (selIdx >= 0) {
-  const surfSel = page.locator('[data-p3="legacy-page"] select').nth(selIdx);
-  const opts = await surfSel.evaluate((s) => [...s.options].map((o) => o.value));
-  const cur = await surfSel.inputValue();
-  const target = opts.find((o) => o !== cur);
-  const height = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
-  ok(height > 400, `${brand}: the Layout page is scrollable (${height}px of travel) — the jump is observable`);
-  await page.evaluate(() => window.scrollTo(0, 400));
-  await page.waitForFunction(() => window.scrollY === 400);
-  await surfSel.selectOption(target);
-  // Wait on the EDIT having landed IN THE REBUILT SECTION — `applyFull()` replaces the whole
-  // workspace, so this condition is only true once the new DOM exists. Not a timer, and not a read of
-  // the pre-rebuild element, which would already hold the new value and prove nothing.
-  await page.waitForFunction(([t, i]) => document.querySelectorAll('[data-p3="legacy-page"] select')[i]?.value === t, [target, selIdx]);
-  const scrollY = await page.evaluate(() => window.scrollY);
-  ok(Math.abs(scrollY - 400) <= 2, `${brand}: changing a select holds the scroll position (400 → ${scrollY}) (#485)`);
+  // `applyFull()` → `renderWorkspace()` did `workspace.innerHTML = ''`, which reset scroll as a side effect; #485 fixed it
+  // by saving and restoring around the teardown, and this drove it on the first legacy page that drew a select (Layout,
+  // then Motion). S9.2 moved Motion and S10 moved Layout into the two panes, which never run that tier: the web's one
+  // legacy page left, Size & radius (the Button options until S8), draws radios and a slider and no select. So there is
+  // nothing for the drive to change. RETIRED, NOT DELETED: the check below holds the reason true, so a legacy page that
+  // draws a select again fails here by name and the drive comes back on it.
+  for (const label of await railLabels(page)) {
+    await gotoPage(page, label);
+    const n = await page.evaluate(() => [...document.querySelectorAll('[data-p3="legacy-page"] select')].filter((s) => s.options.length >= 3).length);
+    ok(n === 0, `${brand}: #485's select-jump drive is retired because no legacy page draws a select with a choice — ${label} draws ${n}; re-host #485 there`);
   }
 
   // --- 2c. the export actually writes a file ----------------------------------------------------
@@ -3924,6 +4012,11 @@ for (const brand of BRANDS) {
   await hooks.need(page, '[data-p3="depth-style-guide"] [data-p3="token-pill"]');
   await walkPills();
   pages.push('Depth & motion');
+  // Layout (UI redesign S10): the breakpoint, grid and container pills the legacy Layout page drew, in its preview now.
+  await gotoLayout(page);
+  await hooks.need(page, '[data-p3="layout-style-guide"] [data-p3="token-pill"]');
+  await walkPills();
+  pages.push('Layout');
 
   const where = `#1147 / ${brand}`;
   const sample = (rows, fmt) => rows.slice(0, 3).map(fmt).join(' | ');
@@ -4272,7 +4365,10 @@ console.log(`\nThe link palette lever (#1496)\n${'='.repeat(78)}`);
 // WHAT THIS GATES. The Layout page surfaces the RESOLVED per-breakpoint columns (a readout) and lets
 // the author OVERRIDE a breakpoint's column count. Both must agree with what the engine EMITS as the
 // Figma grid styles (#1480) — the readout reads `theme.layout.grid`, the same data `buildFigmaGridStyles`
-// ships from, so it cannot drift. This drives the built dist and proves it end to end.
+// ships from, so it cannot drift. This drives the built dist and proves it end to end. Since UI redesign S10
+// the readout is the Layout preview's Grid section (`preview/sections/grid.ts`, each breakpoint's Columns value,
+// `data-bpcol`) and the override is the levers' per-breakpoint Columns value picker (`bp-cols-pick`); the scenario,
+// its oracle and both mutations moved with them unchanged.
 //
 // INDEPENDENCE (docs/34 shape 1). EXPECTED is the ENGINE'S OWN EMITTED artifact —
 // `packages/engine/out/figma/aurora/grid-styles.json`, the grid styles a brand actually ships — NOT a
@@ -4282,7 +4378,7 @@ console.log(`\nThe link palette lever (#1496)\n${'='.repeat(78)}`);
 //
 // MUTATION REGISTER (docs/34: a gate that cannot see its subject cannot fail). Applied to the SUBJECT,
 // re-run, the named assertion confirmed among the failures, then reverted:
-//   M1 (readout-vs-emission tie) `paintPerBreakpointGrid`'s `String(g.columns)` → `String(ly.baseColumns)`
+//   M1 (readout-vs-emission tie) `gridSection`'s `String(g.columns)` → `String(ly.baseColumns)`
 //      (re-derive the readout in the UI from the base instead of the resolved grid). xs shows 12, not the
 //      emitted 4, so the READOUT arm diverges from the emitted grid value BY NAME.
 //   M2 (override application) `buildLayout`'s `resolveColumns(overrides[b.name], cols(i))` → `cols(i)`
@@ -4296,7 +4392,7 @@ if (BRANDS.includes('aurora')) {
   ok(Object.keys(EMITTED).length >= 5, `#1532: the aurora grid-styles oracle carries ${Object.keys(EMITTED).length} breakpoints (from the emitted artifact, not a re-derivation)`);
 
   const { ctx, page, drain } = await openBrand('aurora');
-  await gotoRail(page, '[data-p3="rail-page-layout"]');
+  await gotoLayout(page);
   // ACTUAL — the resolved columns the readout shows, keyed by breakpoint (from the `data-bpcol` cells).
   const readout = () => page.evaluate(() =>
     Object.fromEntries([...document.querySelectorAll('[data-bpcol]')].map((c) => [c.dataset.bpcol, Number(c.textContent)])));
@@ -4310,8 +4406,9 @@ if (BRANDS.includes('aurora')) {
 
   // (b) OVERRIDE moves exactly one breakpoint. md's ladder value is 12; pin it to 6 (a curated, distinct
   // count) and confirm md's readout becomes 6 while every OTHER breakpoint keeps its emitted ladder value.
-  await page.locator('[data-bpsel="md"]').selectOption('6');
-  // apply() repaints synchronously on the select's change; the bounded, non-throwing wait lets a slow
+  await hooks.click(page.locator('[data-p3="bp-cols-pick"][data-bp="md"]'));
+  await hooks.click(page.locator('[data-p3="value-picker-value"][data-value="6"]'));
+  // The pick rebuilds and repaints by subscription; the bounded, non-throwing wait lets a slow
   // repaint land WITHOUT hanging the suite if the override is broken — so a regression fails cleanly by
   // name at the ok() below rather than as a wait timeout.
   await page.waitForFunction(() => document.querySelector('[data-bpcol="md"]')?.textContent === '6', undefined, { timeout: 4000 }).catch(() => {});

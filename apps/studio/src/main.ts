@@ -108,7 +108,6 @@ const MODE_LABEL: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-l
 // (elevation/size/layout/motion) → look at the whole (Preview) → write something out (Components).
 const NAV = [
   { key: 'sizeRadius', label: 'Size & radius', sub: 'Button options' },   // S7: the Button options only (D5 B); the sub is DRAFT
-  { key: 'layout', label: 'Layout', sub: 'Breakpoints & containers' },
   // #259 — the style-guide step, after Apply theme: it documents the variables Apply wrote, so it follows the
   // authoring pages and Preview. Figma-only for the `components` reason below — it draws on the canvas.
   // Placement and label are proposed, owner to confirm (docs/45).
@@ -396,20 +395,6 @@ const selectEl = (mods: string | Mix = ''): HTMLSelectElement => el(
   // mix(), which is the one shape that legitimately crosses (#770).
   typeof mods === 'string' ? (mods ? `select ${mods}` : 'select') : mix('select', mods.cls),
 ) as HTMLSelectElement;
-/** A number `<input>` (doc 24 C2). The `.num` base owns the shared field cosmetics (border, radius,
- *  background, padding); the caller passes a context class for width/size and wires its own `onchange`.
- *  That context class comes from the CALLER's scope by design, so the pairing is a mix() — the base
- *  owns cosmetics, the context class owns width, and neither overrides the other (#770). */
-const numberField = (o: { value: string | number; min?: number | string; max?: number | string; step?: number | string; className?: string; title?: string }): HTMLInputElement => {
-  const inp = el('input', o.className ? mix('num', o.className) : 'num') as HTMLInputElement;
-  inp.type = 'number';
-  if (o.min != null) inp.min = String(o.min);
-  if (o.max != null) inp.max = String(o.max);
-  if (o.step != null) inp.step = String(o.step);
-  inp.value = String(o.value);
-  if (o.title) inp.title = o.title;
-  return inp;
-};
 /** A range `<input>` (doc 24 C5b). Just the element construction (type/bounds/value/class) — the
  *  readout + wiring stay per-site, since the surrounding layouts genuinely differ (a `.slider-top`
  *  readout, a `.knob-val`, an auto-pruning knob, a label-as-readout). `className` may be omitted for
@@ -1290,7 +1275,6 @@ const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void =
 const PAGE_COPY: Record<LegacyPageKey, [string, string]> = {
   // UI redesign S7: the page keeps only the Button options, under its own title (owner decision D5 B). The lede is DRAFT.
   sizeRadius: ['Size & radius.', 'Button icon placement, label size and weight, and minimum width. Density and radius are set on Shape.'],
-  layout: ['Layout.', 'Breakpoints, grid columns, and container widths — the responsive frame the system lays out within.'],
   // #718. The lede states the role rather than the feature, because that is the fact this page exists
   // to convey: the write is how the anatomy schema is proven to materialize, not a component library
   // the brand ships. Naming the one def and the member count keeps it from reading as a catalog.
@@ -1379,36 +1363,6 @@ const renderGeneratedNote = (): HTMLElement => {
 /** Bespoke editors for the object/list levers renderControl can't edit (it only shows them read-only).
  *  Rendered alongside the manifest-advanced slider/enum controls in the (always-visible) extras panel. */
 
-/** The breakpoints controls (the editable px list + add/remove) — just the control node now, so the
- *  layout page can pair it with the ruler/table preview beside it (#264). `commit` redraws its own list
- *  locally (count/order may change) then `apply()` — which rebuilds the theme + repaints the layout
- *  previews via the page's refreshers — but never `applyFull`, which would lose focus/scroll mid-edit. */
-const renderBreakpointsControls = (): HTMLElement => {
-  const listEl = el('div', 'adv-bplist');
-  const commit = (arr: number[]): void => {
-    const clean = [...new Set(arr.filter((n) => Number.isFinite(n) && n >= 0))].sort((a, b) => a - b);
-    setPath(brandState, 'layout.breakpoints', clean); draw(); apply();
-  };
-  const draw = (): void => {
-    listEl.innerHTML = '';
-    const bps = (brandState.layout?.breakpoints ?? theme.layout.breakpoints.map((b) => b.px)) as number[];
-    bps.forEach((px, i) => {
-      const cell = el('div', 'adv-bp');
-      const inp = numberField({ className: 'adv-num', value: String(px) });
-      inp.onchange = () => { const next = [...bps]; next[i] = Number(inp.value); commit(next); };
-      // #559 — hit-min adds an out-of-flow ::before hit box only; adv-x's painted box is untouched
-      const rm = el('button', mix('adv-x', 'hit-min'), '×') as HTMLButtonElement;
-      rm.onclick = () => commit(bps.filter((_, j) => j !== i));
-      cell.append(inp, rm); listEl.append(cell);
-    });
-    const add = el('button', 'adv-add', '+ Add') as HTMLButtonElement;
-    add.onclick = () => { const bps2 = (brandState.layout?.breakpoints ?? theme.layout.breakpoints.map((b) => b.px)) as number[]; commit([...bps2, (Math.max(0, ...bps2) + 256)]); };
-    listEl.append(add);
-  };
-  draw();
-  return listEl;
-};
-
 // ---- focused pages (docs/23 §7) -------------------------------------------
 // (The `renderScreen` scaffold, hero → sections → volatile specimens, went with its last two pages, Elevation and
 // Motion, in UI redesign S9.2.)
@@ -1477,57 +1431,6 @@ const controlSplitPage = (host: HTMLElement, pageKey: LegacyPageKey, blocks: () 
   setVolatile(previews, () => { refreshers.forEach((r) => r()); });
   paintVolatile();
 };
-/** A compact labeled slider for the split pages — value read-out updates live on drag; the theme commits
- *  on release (`change` → apply()), which repaints the previews via the registered refreshers. Not the
- *  full-width `.knob` slider (overkill here, per #264/#265). */
-const csSlider = (key: string, label: string, min: number, max: number, step: number, unit: string, get: () => number): HTMLElement => {
-  const f = el('div', 'cs-ctl');
-  const top = el('div', 'cs-ctl-top');
-  const val = el('span', 'cs-ctl-val mono', `${get()}${unit}`);
-  top.append(el('span', 'cs-ctl-lab', label), val);
-  const input = rangeInput({ className: 'cs-range', min, max, step, value: get() });
-  input.oninput = () => { val.textContent = `${input.value}${unit}`; };
-  input.onchange = () => { setPath(brandState, key, Number(input.value)); apply(); };
-  f.append(top, input);
-  return f;
-};
-/** A compact labeled enum picker for the split pages (curated choices → a select). Commits on change. */
-const csPicker = (key: string, label: string, choices: Array<[string, string]>, cur: string, onCommit?: () => void): HTMLElement => {
-  const sel = selectEl('cap');
-  for (const [value, text] of choices) sel.append(optionEl(value, text, value === cur));
-  sel.onchange = () => { setPath(brandState, key, sel.value); if (onCommit) onCommit(); else apply(); };
-  const f = el('div', 'cs-ctl'); f.append(el('span', 'cs-ctl-lab', label), sel);
-  return f;
-};
-
-// Layout — breakpoints, grid columns, container caps (docs #264).
-const LAYOUT_COLUMN_CHOICES = [4, 6, 8, 12, 16, 24];   // curated grid systems — no odd/awkward counts (#264)
-const renderLayoutPage = (host: PageHost): void => controlSplitPage(host, 'layout', () => {
-  // Grid columns — a curated step-picker (4/6/8/12/16/24, no awkward counts). Numeric key → coerce on commit.
-  const colSel = selectEl('cap');
-  const curCols = (brandState.layout?.columns ?? theme.layout.baseColumns) as number;
-  for (const c of LAYOUT_COLUMN_CHOICES) colSel.append(optionEl(String(c), `${c} columns`, c === curCols));
-  colSel.onchange = () => { setPath(brandState, 'layout.columns', Number(colSel.value)); apply(); };
-  const colsCtl = el('div', 'cs-ctl'); colsCtl.append(el('span', 'cs-ctl-lab', 'Grid columns'), colSel);
-
-  const caps = el('div', 'cs-ctl-stack');
-  caps.append(
-    csSlider('layout.containerMax', 'Container max', 960, 1920, 40, 'px', () => (brandState.layout?.containerMax ?? theme.layout.containerMax) as number),
-    csSlider('layout.containerNarrow', 'Content container', 480, 960, 20, 'px', () => (brandState.layout?.containerNarrow ?? theme.layout.containerNarrow) as number),
-  );
-  return [
-    { title: 'Breakpoints', sub: `Min-width floors (px, ascending) — names auto-assign from the count: ${theme.layout.breakpoints.map((x) => x.name).join(' / ')}.`, controls: renderBreakpointsControls(), stack: true, paint: paintBreakpointsPreview },
-    // "Responsive type sizing" left Layout in UI redesign S6.3 (owner decision Q71): Type › Scale limits is its one
-    // home, with a link back to these breakpoints.
-    { title: 'Grid columns', sub: 'Base column count for the design grid (16 / 24 for dense-data brands). Each breakpoint gets a 4/8/… ladder up to this base.', controls: colsCtl, paint: paintColumnsPreview },
-    // The resolved per-breakpoint grid — the same `theme.layout.grid` the Figma grid-style emitter ships
-    // from (#1480/#1532/#1593), so the readout cannot drift from what a brand exports. Columns, gutter and
-    // margin are each editable per breakpoint (an override wins over the ladder); gutter/margin snap to the
-    // spacing scale so they keep aliasing the space tokens.
-    { title: 'Per-breakpoint grid', sub: 'The columns, gutter and margin the engine emits for each breakpoint — one Figma grid style each. Each follows its ladder by default; override a breakpoint to pin its value. Gutter and margin snap to the spacing scale, reaching down to 4px.', controls: perBreakpointColsNote(), stack: true, paint: paintPerBreakpointGrid },
-    { title: 'Container caps', sub: 'Content-width caps — layout is fluid below the cap. The content container is the narrower reading-measure column (~65–75ch).', controls: caps, stack: true, paint: paintContainersPreview },
-  ];
-});
 
 /** Which background role the Style guide's specimens are previewed on. Module state so it survives a repaint,
  *  like `currentMode`. The legacy Preview page that held it, with its three views, is gone (UI redesign S3):
@@ -2070,160 +1973,6 @@ const paintButtonLayoutPreview = (into: HTMLElement): void => {
 // The control heights, the spacing steps and the building blocks moved to the Shape preview in UI redesign S7
 // (`preview/sections/control-heights.ts`, `spacing.ts`, `shape-building-blocks.ts`).
 
-/** The layout specimen: the responsive-grid axis — breakpoints (min-widths) with their column/gutter/
- *  margin grid, a base-column preview strip, and the container caps as proportional bars. The layout
- *  levers (breakpoints / columns / containers, all in the Advanced panel) have no other visible payoff.
- *  Reads `theme.layout` (not per-mode — layout composes with colour modes as a separate Figma axis). */
-// Layout previews, split so each can sit beside its own control (docs #264): the breakpoints ruler+table,
-// the base-column strip, the container-cap bars, and the fluid-type scaling list (#361). Each fills a
-// caller-owned node so `apply()` repaints it in place (the control next to it stays put — never rebuilt
-// mid-drag).
-const paintBreakpointsPreview = (into: HTMLElement): void => {
-  const ly = theme.layout;
-  into.innerHTML = '';
-  // A proportional min-width ruler — the breakpoints on a shared axis, so the steps read spatially.
-  const ruler = el('div', 'ly-ruler');
-  const rulerMax = Math.max(...ly.breakpoints.map((b) => b.px), 1) * 1.06;
-  for (const b of ly.breakpoints) {
-    const tick = el('div', 'ly-tick'); tick.style.left = `${(b.px / rulerMax) * 100}%`;
-    tick.append(el('span', 'ly-tick-name', b.name), el('span', 'ly-tick-px mono', `${b.px}px`));
-    ruler.append(tick);
-  }
-  into.append(ruler);
-  const table = el('table', 'ly-table');
-  const head = el('tr');
-  head.append(el('th', undefined, 'Breakpoint'), el('th', undefined, 'Token'), el('th', undefined, 'Min-width'), el('th', undefined, 'Columns'), el('th', undefined, 'Gutter'), el('th', undefined, 'Margin'));
-  table.append(head);
-  for (const g of ly.grid) {
-    const bp = ly.breakpoints.find((b) => b.name === g.bp);
-    const tr = el('tr');
-    const pillCell = el('td'); pillCell.append(tokenPill(`breakpoint.${g.bp}`));
-    tr.append(el('td', 'mono', g.bp), pillCell, el('td', 'mono', `${bp?.px ?? 0}px`), el('td', 'mono', String(g.columns)), el('td', 'mono', `${g.gutterPx}px`), el('td', 'mono', `${g.marginPx}px`));
-    table.append(tr);
-  }
-  // Six columns of tabular data have a real min-content width, and the split layout's preview pane is
-  // only ~392px at 1100px wide — where the table used to push the whole DOCUMENT into a horizontal
-  // scroll. Scrolling it inside its own pane is the same treatment Preview's token tables use
-  // (`pv-tscroll`), and it is what doc 26 asks of wide content: the table scrolls, the page never does.
-  const scroll = el('div', 'ly-tscroll'); scroll.append(table);
-  into.append(scroll);
-};
-const paintColumnsPreview = (into: HTMLElement): void => {
-  const ly = theme.layout;
-  into.innerHTML = '';
-  into.append(el('div', 'ly-cap', `${ly.baseColumns}-column base grid`));
-  const cols = el('div', 'ly-cols');
-  for (let i = 0; i < ly.baseColumns; i++) cols.append(el('div', 'ly-col'));
-  into.append(cols);
-};
-// The control-column copy for the editable per-breakpoint grid — says what an override does and that
-// unsetting it (choosing “Auto”) returns the breakpoint to the ladder.
-const perBreakpointColsNote = (): HTMLElement => el('p', 'ic-modenote',
-  'Each breakpoint’s columns default to the base ladder (smallest 4, next 8, up to the base); gutter and '
-  + 'margin default to their own ladders. Override one to pin its value for that breakpoint only; choose Auto '
-  + 'to return it to the ladder. Columns are held to 4–24. Gutter and margin snap to the spacing scale — the '
-  + 'menu runs down to 4px — so each stays a real spacing step and keeps aliasing the space tokens.');
-// The resolved per-breakpoint grid, read STRAIGHT from `theme.layout.grid` — the same derivation the Figma
-// grid-style emitter consumes (#1480), so this readout is the source of truth and cannot disagree with what
-// a brand ships. Columns carry an editable override select (Auto = the ladder value); gutter/margin are
-// read-only. Lives in the volatile region, so committing an override repaints it with the re-resolved grid.
-const paintPerBreakpointGrid = (into: HTMLElement): void => {
-  const ly = theme.layout;
-  const overrides = (brandState.layout?.columnOverrides ?? {}) as Record<string, number>;
-  // The spacing steps a gutter/margin override may snap to (#1593) — the brand's OWN resolved scale, so
-  // the offered px are exactly the ones that alias `space/*`. Reaches down to space/050 = 4px (and 025/0),
-  // which is how a 4px mobile gutter becomes reachable instead of flooring at the derived 16px.
-  const spaceSteps = theme.dims.space.map((s) => s.px);
-  into.innerHTML = '';
-  const table = el('table', 'ly-table');
-  const head = el('tr');
-  head.append(el('th', undefined, 'Breakpoint'), el('th', undefined, 'Columns'), el('th', undefined, 'Gutter'), el('th', undefined, 'Margin'), el('th', undefined, 'Override'));
-  table.append(head);
-  // A per-breakpoint gutter/margin editor — a resolved readout (`data-bpgut`/`data-bpmar`, straight off the
-  // engine's grid like the columns readout) above a select of spacing steps (Auto = the derived ladder).
-  // Mirrors the columns override write: a set value persists the px, Auto drops the entry, and an empty map
-  // is removed rather than left as `{}`. Gutter/margin snap to the ladder (the value MUST be a space step so
-  // it can alias `space/*`), which is why the options ARE the spacing scale rather than a free number input.
-  const gapEditor = (bp: string, field: 'gutterOverrides' | 'marginOverrides', resolvedPx: number, roAttr: 'bpgut' | 'bpmar', selAttr: 'bpgutsel' | 'bpmarsel'): HTMLElement => {
-    const cur = ((brandState.layout?.[field] ?? {}) as Record<string, number>)[bp];
-    const ro = el('div', 'mono', `${resolvedPx}px`); ro.dataset[roAttr] = bp;
-    const sel = selectEl('cap'); sel.dataset[selAttr] = bp;
-    sel.append(optionEl('auto', 'Auto', cur === undefined));
-    for (const px of spaceSteps) sel.append(optionEl(String(px), `${px}px`, cur === px));
-    sel.onchange = () => {
-      const next = { ...((brandState.layout?.[field] ?? {}) as Record<string, number>) };
-      if (sel.value === 'auto') delete next[bp]; else next[bp] = Number(sel.value);
-      if (Object.keys(next).length) setPath(brandState, `layout.${field}`, next);
-      else if (brandState.layout) delete (brandState.layout as Record<string, unknown>)[field];
-      apply();
-    };
-    const cell = el('td'); cell.append(ro, sel);
-    return cell;
-  };
-  for (const g of ly.grid) {
-    const tr = el('tr');
-    // The RESOLVED column count — the readout, straight off the engine's grid. `data-bpcol` names the row
-    // so the smoke suite can read it back per breakpoint.
-    const colCell = el('td', 'mono', String(g.columns));
-    colCell.dataset.bpcol = g.bp;
-    // The override editor — Auto (the ladder) plus the curated column counts. `data-bpsel` names the control.
-    const sel = selectEl('cap');
-    sel.dataset.bpsel = g.bp;
-    const cur = overrides[g.bp];
-    sel.append(optionEl('auto', 'Auto', cur === undefined));
-    for (const c of LAYOUT_COLUMN_CHOICES) sel.append(optionEl(String(c), String(c), cur === c));
-    sel.onchange = () => {
-      const next = { ...((brandState.layout?.columnOverrides ?? {}) as Record<string, number>) };
-      if (sel.value === 'auto') delete next[g.bp]; else next[g.bp] = Number(sel.value);
-      // Keep brandState clean: an empty override map is dropped rather than persisted as `{}`.
-      if (Object.keys(next).length) setPath(brandState, 'layout.columnOverrides', next);
-      else if (brandState.layout) delete (brandState.layout as { columnOverrides?: Record<string, number> }).columnOverrides;
-      apply();
-    };
-    const editCell = el('td'); editCell.append(sel);
-    tr.append(el('td', 'mono', g.bp), colCell,
-      gapEditor(g.bp, 'gutterOverrides', g.gutterPx, 'bpgut', 'bpgutsel'),
-      gapEditor(g.bp, 'marginOverrides', g.marginPx, 'bpmar', 'bpmarsel'),
-      editCell);
-    table.append(tr);
-  }
-  const scroll = el('div', 'ly-tscroll'); scroll.append(table);
-  into.append(scroll);
-};
-const paintContainersPreview = (into: HTMLElement): void => {
-  const ly = theme.layout;
-  into.innerHTML = '';
-  const cont = el('div', 'ly-cont');
-  // Scale against the widest VIEWPORT the system targets, not against containerMax. Normalising by
-  // containerMax made that bar 100% by construction, so the Container max slider could never move its
-  // own preview — the one thing the specimen is beside it to show. The top breakpoint is the honest
-  // reference (it is what "fluid" fills), and it is real data on this same page; the `max` guard keeps
-  // the bars inside the track if a brand caps content wider than its largest breakpoint.
-  const viewport = Math.max(...ly.breakpoints.map((b) => b.px), ly.containerMax, 1);
-  // The bar goes inside its own TRACK. Its width is a percentage, and a percentage resolves against
-  // the containing block — which was the whole row, including the 150px label the bar does not get to
-  // use. Only the 100% bar was wide enough to overflow, so only it was flex-shrunk (to the 330px that
-  // was actually free); every narrower bar rendered at its true fraction of the full 492px row. The
-  // arithmetic was right and the reference was wrong, which inflated every ratio the specimen exists
-  // to show by 492/330 ≈ 1.5 — a 720-on-1440 reading column drew at 75%, not 50%.
-  const bar = (path: string, px: number, label: string): HTMLElement => {
-    const row = el('div', 'ly-cont-row');
-    const track = el('div', 'ly-cont-track');
-    const b = el('div', 'ly-cont-bar');
-    b.style.width = `${Math.max(6, Math.min(100, (px / viewport) * 100))}%`;
-    track.append(b);
-    const lab = el('div', 'ly-cont-lab'); lab.append(tokenPill(path), el('span', 'ly-cont-val mono', label));
-    row.append(lab, track);
-    return row;
-  };
-  // `container.fluid` is the DEFAULT container and was the one member of the family with no row. Shown
-  // at the full track, which is what it means: no cap — so the two capped bars read as caps against it.
-  cont.append(bar('container.fluid', viewport, '100%'),
-    bar('container.max', ly.containerMax, `${ly.containerMax}px`),
-    bar('container.narrow', ly.containerNarrow, `${ly.containerNarrow}px`));
-  into.append(el('div', 'ly-cap', `Relative widths at a ${viewport}px viewport — the widest breakpoint.`));
-  into.append(cont);
-};
 
 // The inverse-surface + icon specimens were retired here (#69): the inverse column is now a first-class
 // row in every interactive matrix section (Fill · inverse / Text · inverse / On-fill · inverse), and the
@@ -2527,8 +2276,8 @@ const chromedWorkspace = (ws: HTMLElement): PageHost => {
  *  page inherits the right answer instead of needing a decision.
  *
  *  Pages fail it unconditionally:
- *   • `layout` — nothing layout-related exists in `ModeLevers` or carries a `*ByMode` field. It is
- *     mode-invariant outright, not merely primitive.
+ *   • (`layout` was one until UI redesign S10 moved Layout into the two panes: nothing layout-related exists in
+ *     `ModeLevers` or carries a `*ByMode` field; its preview header carries the mode control for the ground.)
  *   • `palettes` — a ramp is mode-invariant, and choosing which STEP a mode lands on is a Surfaces
  *     concern, not a Palettes one (see the in-function measurement below).
  *   • (`typography` was a third until UI redesign S6.2 moved Type into the two panes.)
@@ -2543,7 +2292,6 @@ const chromedWorkspace = (ws: HTMLElement): PageHost => {
  *  the code directly beneath it. #718's `components` page is the case it predicted — a page with no
  *  mode axis at all, which arrived and inherited a bar it has nothing to drive. */
 const pageHasModeVaryingControl = (): boolean => {
-  if (page === 'layout') return false;
   // #718 — the component build takes no mode input. `build-components` carries no payload (the def is
   // compiled into the plugin) and the write binds variables BY NAME, so every mode resolves from the
   // variables already in the file rather than from anything this page could scope. Nothing on the page
@@ -2597,7 +2345,6 @@ const chromeHeight = (): number => parseFloat(document.documentElement.style.get
  *  host the chrome mounter produced. */
 const PAGE_RENDERERS: Record<LegacyPageKey, PageRenderer> = {
   sizeRadius: renderSizeRadiusPage,
-  layout: renderLayoutPage,
   styleGuide: renderStyleGuidePage,
   components: renderComponentsPage,
 };
