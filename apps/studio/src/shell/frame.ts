@@ -14,9 +14,9 @@
  * `test-shell-imports.ts` (a test, run by `npm test`) fails any file under `shell/` that names one.
  *
  * WHAT EACH PAGE SHOWS. A legacy page (`pages.ts`, `status: 'legacy'`) shows its legacy page in the
- * full-width legacy frame under the tab row, pinned light (D1, D2); Depth & motion carries a local switch
- * between its two legacy pages (D8). A moved page (`status: 'new'`: Color › Palettes from S2, Brand from S3, Surfaces & fills
- * from S4a, Interactive from S5.2, Type from S6.2, Shape from S7) shows the two panes: its levers module draws the levers pane and its preview module the preview body (`NEW_PAGES`
+ * full-width legacy frame under the tab row, pinned light (D1, D2). (Depth & motion's local switch between its two
+ * legacy pages, D8, went when S9.2 moved the page.) A moved page (`status: 'new'`: Color › Palettes from S2, Brand from S3, Surfaces & fills
+ * from S4a, Interactive from S5.2, Type from S6.2, Shape from S7, Depth & motion from S9.2, Layout from S10) shows the two panes: its levers module draws the levers pane and its preview module the preview body (`NEW_PAGES`
  * below), each mounted once per visit and released, subscriptions included, when the place changes.
  *
  * S1.3 fills the preview header and adds Inspect (`preview.ts`): the title of the page's one home view
@@ -46,7 +46,7 @@
  * becomes a select, only the top row stays sticky, and the bar's text buttons drop to their glyphs.
  */
 import { page, searchHits, searchQuery, setPage, setSearch, subscribe } from '../state/store';
-import { INSPECT, LEGACY_LABEL, TABS, homeOf, isNewPage, legacyOf, newPageOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type LegacyPageKey, type NewPageKey, type Place, type TabId } from './pages';
+import { INSPECT, TABS, homeOf, isNewPage, legacyOf, newPageOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type NewPageKey, type Place, type TabId } from './pages';
 import { glyph, h, hook } from './dom';
 import { inspectMenu, modeControl, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
 import { mountActivity, type ActivityLend } from './activity';
@@ -62,8 +62,12 @@ import { mountInteractiveLevers } from '../domains/color-interactive';
 import { mountInteractivePreview } from '../preview/interactive';
 import { mountTypeLevers } from '../domains/type';
 import { mountTypePreview } from '../preview/type';
+import { mountDepthLevers } from '../domains/depth';
+import { mountDepthPreview } from '../preview/depth';
 import { mountShapeLevers } from '../domains/shape';
 import { mountShapePreview } from '../preview/shape';
+import { mountLayoutLevers } from '../domains/layout';
+import { mountLayoutPreview } from '../preview/layout';
 import { cancelEasedScroll, dropEdits, revealSection, takeSectionEdit, trackLeverSections } from '../preview/follow-edit';
 
 /** The moved pages (S2 on): what each draws in the levers pane and in the preview body. A slice that moves
@@ -82,7 +86,9 @@ const NEW_PAGES: Record<NewPageKey, {
   fills: { levers: mountFillsLevers, preview: mountSurfacesPreview },
   interactive: { levers: mountInteractiveLevers, preview: mountInteractivePreview },
   type: { levers: mountTypeLevers, preview: mountTypePreview },
+  depth: { levers: mountDepthLevers, preview: mountDepthPreview },
   shape: { levers: mountShapeLevers, preview: mountShapePreview },
+  layout: { levers: mountLayoutLevers, preview: mountLayoutPreview },
 };
 
 /** The product's name, as the studio's top bar shows it (owner, 2026-10-04). */
@@ -254,10 +260,9 @@ export const mountFrame = (app: HTMLElement, opts: {
   const legacy = hook(h('main', 'p3-legacy'), 'legacy-frame');
   legacy.id = PANEL_ID;
   legacy.dataset.theme = 'light';
-  const switchRow = h('div', 'p3-switchrow');
   const legacyPage = hook(h('div', 'p3-legacy-page'), 'legacy-page');
   legacyPage.id = LEGACY_PAGE_ID;
-  legacy.append(switchRow, legacyPage);
+  legacy.append(legacyPage);
 
   const panes = hook(h('div', 'p3-panes'), 'panes');
   const levers = hook(h('section', 'p3-levers'), 'levers-pane');
@@ -379,8 +384,6 @@ export const mountFrame = (app: HTMLElement, opts: {
   // ── selection ───────────────────────────────────────────────────────────────────────────────────
   let subFor: TabId | null = null;
   let subTabs: HTMLButtonElement[] = [];
-  let switchFor: string | null = null;
-  let switchTabs: HTMLButtonElement[] = [];
 
   /** Select a place. A moved page is the store's page itself; a legacy place shows its first legacy page
    *  unless it already shows the current one. */
@@ -420,34 +423,6 @@ export const mountFrame = (app: HTMLElement, opts: {
     });
     seg.append(...subTabs);
     subRow.append(seg);
-  };
-
-  /** D8: a place with two legacy pages gets a local switch, labeled with their names, in the frame. */
-  const buildSwitch = (pages: readonly LegacyPageKey[]): void => {
-    const want = pages.length > 1 ? pages.join(' ') : null;
-    if (want === switchFor) return;
-    switchFor = want;
-    switchRow.replaceChildren();
-    switchTabs = [];
-    if (!want) return;
-    const seg = hook(h('div', 'p3-seg p3-switchseg'), 'legacy-switch');
-    seg.setAttribute('role', 'tablist');
-    seg.setAttribute('aria-label', `${TABS.find((t) => t.id === place?.tab)?.label ?? ''} pages`);
-    switchTabs = pages.map((k) => {
-      const b = tabButton('p3-seg-tab', `p3-switch-${kebab(k)}`, `legacy-switch-${kebab(k)}`, LEGACY_LABEL[k] ?? k, LEGACY_PAGE_ID);
-      b.onclick = () => { if (page !== k) setPage(k); };
-      return b;
-    });
-    seg.addEventListener('keydown', (e) => {
-      const to = nextTab(switchTabs, e.target as HTMLElement, e.key);
-      if (!to) return;
-      e.preventDefault();
-      to.focus();
-      const k = pages[switchTabs.indexOf(to as HTMLButtonElement)];
-      if (page !== k) setPage(k);
-    });
-    seg.append(...switchTabs);
-    switchRow.append(seg);
   };
 
   // ── the moved page in the two panes (S2 on) ─────────────────────────────────────────────────────
@@ -497,7 +472,6 @@ export const mountFrame = (app: HTMLElement, opts: {
     domSelect.value = place?.tab ?? '';
     buildSubRow();
     select(subTabs, place?.sub ? subTabs[TABS.find((t) => t.id === place!.tab)!.subs!.findIndex((s) => s.id === place!.sub)] : null);
-    buildSwitch(isLegacy ? pages : []);
     // The moved page's levers and preview are mounted once per visit, and released when the place changes.
     const moved = place ? newPageOf(place) : null;
     if (moved !== mounted) {
@@ -518,7 +492,6 @@ export const mountFrame = (app: HTMLElement, opts: {
       }
       mounted = moved;
     }
-    select(switchTabs, switchTabs.find((b) => b.id === `p3-switch-${kebab(page)}`) ?? null);
 
     // The legacy frame is the panel the tabs control. With nothing selected (a page no tab shows, such as
     // the plugin's Style guide) it is a plain region.
@@ -548,7 +521,7 @@ export const mountFrame = (app: HTMLElement, opts: {
     }
   };
 
-  // A page change from anywhere: a tab, the switch, the Pages menu, a brand load.
+  // A page change from anywhere: a tab, the Pages menu, a Continue button, a brand load.
   cleanups.push(subscribe('page', () => {
     const was = place;
     place = placeOfPage(page, host, place);

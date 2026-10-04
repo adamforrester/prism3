@@ -4,9 +4,10 @@
  *  Button binds under the brand's Control shape) and a tag (`radius.round`, as Tag binds it), each at the control
  *  height its definition uses in the previewed mode, each named by its token.
  *
- *  BUILT FOR DEPTH TO JOIN (D18 asks for a radius-and-shadow sample; S9 adds the shadow). The panel is the one
- *  element a shadow would sit on: `shadow` paints it when given, and nothing else here changes. The heading and
- *  description are DRAFT, pending the owner, and S9 renames them when the shadow joins.
+ *  RADIUS AND SHADOW (D18 B asks for one radius-and-shadow sample; S7 drew the radius, S9.2 added the shadow). The
+ *  panel is the one element a shadow sits on: it takes `shadow.sm`, the step the preview spec's Card binds, resolved for
+ *  the previewed mode, and names it by its token beside `radius.xl`. The heading and description are DRAFT (S9.2
+ *  renamed them to cover the shadow), pending the owner.
  *
  *  Drawn in the brand's own colors on the chosen ground (D2 A): the panel in `background.secondary`, the controls on it
  *  in `background.primary`, every edge `border.primary`; on the Style guide's Inverse ground, the inverse counterparts.
@@ -20,8 +21,11 @@ import { el, hook, palSection, specimen, tokenPillSpan, type SgCtx } from './kit
 import { radiusIn, shapeRef, shapeSample } from './radius';
 import { heightsIn } from './control-heights';
 
-/** The section's copy. DRAFT, pending the owner. */
-export const RADIUS_SAMPLE = { title: 'Radius sample', desc: 'The brand’s radius on a panel, a field, a button and a tag.' };
+/** The section's copy. DRAFT, pending the owner (S9.2 widened S7's draft, "Radius sample" / "The brand’s radius on a
+ *  panel, a field, a button and a tag.", to cover the shadow). */
+export const RADIUS_SAMPLE = { title: 'Radius and shadow sample', desc: 'The brand’s radius on a panel, a field, a button and a tag, and its shadow on the panel.' };
+/** The shadow step the panel takes: the preview spec's Card binding (`packages/engine/preview.ts`). */
+export const SAMPLE_SHADOW = 'shadow.sm';
 
 export const radiusSampleSection = (c: SgCtx, o: {
   dims: Theme['dims']; modes: readonly string[]; mode: string; shape: ControlShape; copy: { title: string; desc: string };
@@ -38,7 +42,7 @@ export const radiusSampleSection = (c: SgCtx, o: {
   panel.style.background = c.paint(c.cur, `${pre}background.secondary`);
   panel.style.borderColor = c.paint(c.cur, `${pre}border.primary`);
   panel.style.borderRadius = `${px('radius.xl')}px`;
-  if (o.shadow) panel.style.boxShadow = o.shadow;
+  if (o.shadow) panel.style.boxShadow = o.shadow;   // the resolved CSS for the previewed mode
   const item = (ref: string, cls: string, height: number, role: string): HTMLElement => {
     const wrap = hook(el('div', 'shp-item'), role);
     wrap.dataset.ref = ref;
@@ -52,7 +56,9 @@ export const radiusSampleSection = (c: SgCtx, o: {
   const row = el('div', 'shp-items');
   row.append(item('radius.sm', 'shp-field', h('md'), 'radius-sample-field'), item(shapeRef(o.shape), 'shp-button', h('md'), 'radius-sample-button'),
     item('radius.round', 'shp-tag', h('sm'), 'radius-sample-tag'));
-  panel.append(row, tokenPillSpan('radius.xl'));
+  const pills = el('div', 'shp-pills');
+  pills.append(tokenPillSpan('radius.xl'), ...(o.shadow ? [hook(tokenPillSpan(SAMPLE_SHADOW), 'radius-sample-shadow')] : []));
+  panel.append(row, pills);
   sec.append(panel);
   return sec;
 };

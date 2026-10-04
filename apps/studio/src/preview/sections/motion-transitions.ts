@@ -1,90 +1,91 @@
-/** The motion specimen (#114, redesigned #292 "trace the curve"; UI redesign S9.1 lifted it from `main.ts`'s
- *  `renderMotionSpecimen`, unchanged in output): one large stage per semantic transition
- *  (default/enter/exit/emphasized) — the ghost line is the easing curve's shape, the dot traces it over the
- *  resolved duration. Motion can't show in the static component preview, so the tempo lever had no payoff;
- *  here it does — the traces re-run on every re-render (i.e. the moment you change the tempo), plus a Replay.
- *  A Playback control uniformly divides all four durations for legibility only: it never changes the
- *  `${ms}ms` label (always the real resolved token value) or the curve shape, and it preserves the ratio
- *  between transitions (exit stays 2× faster than default, etc.) at any speed. `prefers-reduced-motion` is
- *  honored (dot shown at its resting position, no animation), nodding to the engine's derived reduced ramp.
- *  The legacy Motion page draws it; the Depth & motion page (S9.2) will draw the same code.
+/** The four transitions, traced (#114, redesigned #292 "trace the curve"; UI redesign S9.1 lifted the legacy
+ *  `renderMotionSpecimen` here, and S9.2 drew it in the Depth & motion preview's Motion section, owner decisions D7 A
+ *  and D9 A): one stage per semantic transition (default, enter, exit, emphasized). The ghost line is the curve the
+ *  transition's role uses IN THE MODE IN VIEW (`curveOfRole`: the mode's re-point, else the brand's; #2046, which the
+ *  legacy specimen and concept v6 both missed by reading the transition's fixed default curve), and the dot traces it
+ *  over the mode's duration.
+ *
+ *  WHEN IT PLAYS is the caller's (`preview/depth.ts`): once after a Motion edit and on Play or Replay, at real speed, and
+ *  never by itself under reduced motion. This module draws the dots at rest and hands back `play`. The Slow motion
+ *  choice divides playback for legibility only: the `‹ms›ms` label is always the real token value, and the ratio between
+ *  transitions holds at any speed. It is view state, held by the caller, and its select is marked view-only (#574): it
+ *  edits no token in any mode.
  *
  *  Stamps its root with the shared-section marker (`data-sg-section="motion-transitions"`, `kit.ts`'s header).
- *  WHAT IT IS HANDED. The resolved motion axis, the mode in view, and the playback state: the divisor the
- *  caller holds (view state, never a token) and what to do when it changes. Nothing here reads the session. */
+ *  WHAT IT IS HANDED. The resolved motion axis, the mode in view, the playback state and the block's copy. Nothing here
+ *  reads the session. */
 import type { Theme } from '@prism3/engine/theme';
-import { el, palSection, tokenPillBadged, tokenPillWrapping, viewOnly } from './kit';
-import { motionStageSvg } from './motion-curves';
+import { el, hook, subHead, tokenPillBadged, tokenPillWrapping, viewOnly } from './kit';
+import { curveOfRole, motionStageSvg } from './motion-curves';
 
-/** The playback divisors the select offers, real speed first. */
+/** The playback divisors the Slow motion select offers, real speed first (D9: Off, 1/2, 1/4, 1/8). */
 export const MOTION_SLOWMO_OPTIONS = [1, 2, 4, 8];
+
+export type TransitionsCopy = {
+  readonly title: string; readonly desc: string;
+  readonly play: string; readonly replay: string; readonly slow: string; readonly off: string; readonly reduced: string;
+};
 
 export const motionTransitionsSection = (
   mo: Theme['motion'], mode: string,
-  playback: { slowmo: number; onSlowmo: (v: number) => void },
-): HTMLElement => {
-  const motionSlowmo = playback.slowmo;
-  // D — reflect the given mode's per-mode tempo (modeLevers.tempo) when it deviates, so the ramp
-  // re-runs at the mode's speed here rather than only in the export (the #158 lesson). Duration is the
-  // mode-varying part; easing/transitions are tempo-invariant. Falls back to the global ramp.
-  const moByMode = mo.motionByMode?.[mode];
-  const durOf = (role: string): number => (moByMode?.duration ?? mo.duration)[role] ?? 0;
-  const tempoLabel = moByMode?.tempo ?? mo.tempo;
-  const wrap = palSection('Motion', `The semantic transitions at tempo '${tempoLabel}' — each stage traces the resolved duration + easing curve. Playback below is a legibility aid only (the ms label is always the real token value); reduce-motion is honored (the engine also derives a reduced ramp).`);
+  playback: { slowmo: number; onSlowmo: (v: number) => void; played: boolean; reduced: boolean; onPlay: () => void },
+  copy: TransitionsCopy,
+): { node: HTMLElement; play: () => void } => {
+  const durOf = (role: string): number => (mo.motionByMode?.[mode]?.duration ?? mo.duration)[role] ?? 0;
+  const wrap = hook(el('div', 'dm-block'), 'depth-transitions');
   wrap.dataset.sgSection = 'motion-transitions';   // the shared-section marker (`kit.ts`'s header)
+  wrap.append(subHead(copy.title), el('p', 'dm-desc', copy.desc));
 
-  const toolbar = el('div', 'mo-toolbar');
-  const slowmoLabel = el('label', 'mo-slowmo');
-  slowmoLabel.append(document.createTextNode('Playback '));
-  // View-only: this hands the caller a new divisor, a view variable, and the caller repaints. It edits no
-  // token in any mode, so it must not make the specimen read "Editing · All modes" (#574).
-  const select = viewOnly(el('select', 'mo-slowmo-sel')) as HTMLSelectElement;
+  const bar = el('div', 'mo-toolbar');
+  const btn = hook(el('button', 'mo-replay', playback.played ? copy.replay : copy.play), 'motion-play') as HTMLButtonElement;
+  btn.type = 'button';
+  const slowLabel = el('label', 'mo-slowmo');
+  slowLabel.append(document.createTextNode(`${copy.slow} `));
+  const select = hook(viewOnly(el('select', 'mo-slowmo-sel')), 'motion-slowmo') as HTMLSelectElement;
   for (const v of MOTION_SLOWMO_OPTIONS) {
-    const opt = el('option', undefined, v === 1 ? 'real speed' : `1/${v}×`) as HTMLOptionElement;
+    const opt = el('option', undefined, v === 1 ? copy.off : `1/${v}`) as HTMLOptionElement;
     opt.value = String(v);
-    if (v === motionSlowmo) opt.selected = true;
+    if (v === playback.slowmo) opt.selected = true;
     select.append(opt);
   }
   select.onchange = () => { playback.onSlowmo(Number(select.value) || 1); };
-  slowmoLabel.append(select);
-  toolbar.append(slowmoLabel);
-  wrap.append(toolbar);
+  slowLabel.append(select);
+  bar.append(btn, slowLabel);
+  wrap.append(bar);
+  if (playback.reduced) wrap.append(hook(el('p', 'dm-desc', copy.reduced), 'motion-reduced'));
 
   const grid = el('div', 'mo-grid');
   const dots: { el: HTMLElement; anim: string }[] = [];
   for (const t of mo.transitions) {
     const ms = durOf(t.duration);
-    const playMs = ms * motionSlowmo;
-    const curveBez = mo.easing[t.easing] ?? mo.easing.standard;
-    const bez = `cubic-bezier(${curveBez.join(', ')})`;
-    const anim = `mo-trace-x ${playMs}ms linear both, mo-trace-y ${playMs}ms ${bez} both`;
-
-    const col = el('div', 'mo-col');
+    const playMs = ms * playback.slowmo;
+    const curve = curveOfRole(mo, mode, t.name);
+    const curveBez = mo.easing[curve] ?? mo.easing.standard;
+    const anim = `mo-trace-x ${playMs}ms linear both, mo-trace-y ${playMs}ms cubic-bezier(${curveBez.join(', ')}) both`;
+    const col = hook(el('div', 'mo-col'), 'transition');
+    col.dataset.transition = t.name;
+    col.dataset.curve = curve;
     const stage = el('div', 'mo-stage');
     stage.append(motionStageSvg(curveBez));
-    const dot = el('div', 'mo-dot');
-    dot.style.animation = anim;
+    const dot = hook(el('div', 'mo-dot'), 'transition-dot');
     stage.append(dot);
     dots.push({ el: dot, anim });
     col.append(stage);
-
     const meta = el('div', 'mo-colmeta');
     meta.append(el('div', 'mo-colname', t.name));
-    const metaRow = el('div', 'spec-metarow');
-    // The card IS `motion.transition.<name>` and showed only its two PARTS — the composite that binds
-    // them was the one token on the card without a pill. Named first, then what it resolves to.
-    metaRow.append(tokenPillWrapping(`motion.transition.${t.name}`), el('span', 'mo-meta mono', `${ms}ms · ${t.easing}`), tokenPillBadged(`motion.duration.${t.duration}`), tokenPillBadged(`motion.easing.${t.easing}`));
-    meta.append(metaRow);
-    if (motionSlowmo > 1) meta.append(el('div', 'mo-playnote mono', `playing at ${playMs}ms (1/${motionSlowmo}×)`));
-    meta.append(el('div', 'mo-coldesc', t.desc));
+    const row = el('div', 'spec-metarow');
+    // The card IS `motion.transition.<name>`: the composite first, then the two parts it binds, the duration and the role.
+    row.append(tokenPillWrapping(`motion.transition.${t.name}`), el('span', 'mo-meta mono', `${ms}ms · ${curve}`),
+      tokenPillBadged(`motion.duration.${t.duration}`), tokenPillBadged(`motion.easing-role.${t.name}`));
+    meta.append(row, el('div', 'mo-coldesc', t.desc));
     col.append(meta);
     grid.append(col);
   }
   wrap.append(grid);
-
-  const replay = el('button', 'mo-replay', 'Replay') as HTMLButtonElement;
-  // Re-trigger by clearing the animation, forcing a reflow between so the browser restarts the keyframes.
-  replay.onclick = () => { for (const d of dots) { d.el.style.animation = 'none'; void d.el.offsetWidth; d.el.style.animation = d.anim; } };
-  wrap.append(replay);
-  return wrap;
+  /** Play every trace once: clear the animation, force a reflow so the browser restarts the keyframes, set it again. */
+  const play = (): void => {
+    for (const d of dots) { d.el.style.animation = 'none'; void d.el.offsetWidth; d.el.style.animation = d.anim; }
+  };
+  btn.onclick = () => { playback.onPlay(); play(); btn.textContent = copy.replay; };
+  return { node: wrap, play };
 };

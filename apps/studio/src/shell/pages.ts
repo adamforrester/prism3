@@ -17,7 +17,7 @@
  * LEGACY PAGES. Until a domain slice moves a page, it shows one or more legacy pages in the full-width
  * legacy frame (D1). `legacy` names them, in the order the frame offers them; plan §4's table is the
  * source. A slice moves a page by emptying its list and setting its `status` to `new` (S2: Color › Palettes; S3: Brand;
- * S4a: Color › Surfaces & fills; S5.2: Color › Interactive; S6.2: Type; S7: Shape);
+ * S4a: Color › Surfaces & fills; S5.2: Color › Interactive; S6.2: Type; S7: Shape; S9.2: Depth & motion; S10: Layout);
  * S13 deletes both fields. The store's `page` then holds the moved page's id (`NewPageKey`). `PageKey`, the legacy page
  * keys the store's `page` holds, is DERIVED from these lists (plus the Figma menu's Style guide), so a
  * slice that empties a list takes the key out of the type, and `NAV` in `main.ts` (checked against
@@ -55,6 +55,11 @@ export const SCALE_DESC = 'The size of each heading style on desktop and mobile,
 export const SCALE_LIMITS_DESC = 'Where the heading scale starts and stops, and whether headings scale between mobile and desktop.';
 export const WEIGHTS_DESC = 'The weight behind each name, the weights each text type ships, and its italic and link styles.';
 export const SPACING_DESC = 'The step each line height and letter spacing name uses, and how far each text type moves from it.';
+/** The Depth & motion sections' copy (S9.2), each shared by the levers section and the preview section that pairs with
+ *  it (owner decision Q23; Shadow tint pairs with the preview's Elevation). APPROVED (owner, 2026-10-04). */
+export const ELEVATION_DESC = 'How soft the shadows are. Dark modes get lighter shadows automatically.';
+export const MOTION_DESC = 'How fast things move, and the curve each kind of motion follows.';
+export const SHADOW_TINT_DESC = 'Shifts the shadow color off pure black, toward a hue.';
 /** The Shape sections' copy (S7), each shared by the levers section and the preview section that pairs with it
  *  (Q23; Base radius pairs with the preview's Radius, `PREVIEW_HEADING`). Density's and Radius' are APPROVED (owner,
  *  2026-10-04); Base radius' is DRAFT, pending the owner (the approved draft named "an optional 1px corner", which
@@ -62,6 +67,15 @@ export const SPACING_DESC = 'The step each line height and letter spacing name u
 export const DENSITY_DESC = 'How tall controls are. Each component sets its own padding.';
 export const RADIUS_DESC = 'How round corners are, and the shape of buttons and other pill-able controls.';
 export const BASE_RADIUS_DESC = 'The medium radius at standard softness. Every other radius size is a multiple of it.';
+
+/** The Layout sections' copy (S10), each shared by the levers section and the preview section it pairs with (owner
+ *  decision Q23). APPROVED (owner, S10 scope). */
+export const BREAKPOINTS_DESC = 'Where each layout starts. Names follow the count.';
+export const GRID_DESC = 'Columns, gutter and margin for each breakpoint. Auto follows the default steps.';
+export const CONTAINERS_DESC = 'Content stretches up to the maximum width. The content container is narrower, for long text.';
+/** Layout's labels the levers and the preview both draw (S10; D16, D17: "Maximum width" for containerMax, and
+ *  containerNarrow keeps "Content container"). APPROVED (owner, S10 scope). */
+export const LAYOUT_LABELS = { columns: 'Columns', gutter: 'Gutter', margin: 'Margin', max: 'Maximum width', narrow: 'Content container' } as const;
 
 /** Which host a legacy page list applies to. Components maps to a different legacy page per host (§4). */
 export type Host = 'web' | 'figma';
@@ -269,26 +283,34 @@ export const DOMAINS = [
     legacy: [],
   },
   {
-    // D8: two legacy pages under one tab, behind a local switch labeled with their names, until S9. A
-    // switch rather than both pages stacked, because each legacy page owns the one live painter (§4).
+    // S9.2: moved. One page and one preview for both topics (V4, owner decision v5 Q3): Elevation then Motion. The
+    // intro and the two section descriptions are APPROVED (owner, 2026-10-04); each lever section and the preview
+    // section it pairs with share their heading and description (Q23). Shadow tint stays its own advanced section
+    // here, the manifest's tier, but the levers draw it INSIDE Elevation behind its own Show advanced (owner decision
+    // D8 A), so its edits reveal the preview's Elevation, the lever section they are made in (QA-B9).
     id: 'depth', label: 'Depth & motion', home: 'depth', intro: 'Shadow character, then motion tempo. One preview holds both.',
     sections: [
-      { title: 'Elevation', rows: [{ ctl: 'slider', keys: ['shadow.softness'], drive: 'elev' }] },
-      { title: 'Motion', rows: [{ ctl: 'enum', keys: ['motionPersonality.tempo'], drive: 'motion' }, { ctl: 'easing', schemaOnly: ['motionPersonality.easingRoles'] }] },
-      { title: 'Shadow tint', advanced: true, rows: [{ ctl: 'tint', keys: ['shadow.tint'], drive: 'elev' }] },
+      { title: 'Elevation', desc: ELEVATION_DESC, rows: [{ ctl: 'slider', keys: ['shadow.softness'], drive: 'elev' }] },
+      { title: 'Motion', desc: MOTION_DESC, rows: [{ ctl: 'enum', keys: ['motionPersonality.tempo'], drive: 'motion' }, { ctl: 'easing', schemaOnly: ['motionPersonality.easingRoles'] }] },
+      { title: 'Shadow tint', desc: SHADOW_TINT_DESC, advanced: true, rows: [{ ctl: 'tint', keys: ['shadow.tint'], drive: 'elev' }] },
     ],
-    status: 'legacy',
-    legacy: ['elevation', 'motion'],
+    // Its levers are `domains/depth.ts`, its preview `preview/depth.ts`.
+    status: 'new',
+    legacy: [],
   },
   {
-    id: 'layout', label: 'Layout', home: 'layout', intro: 'Breakpoints, the column grid and content widths.',
+    // S10: the intro is v6's with "column" taken out (owner decision D11: "columns" is for the grid only); the section
+    // descriptions are the owner's, and each is also its preview section's (Q23). APPROVED (owner, S10 scope, D11–D17).
+    id: 'layout', label: 'Layout', home: 'layout', intro: 'Breakpoints, the grid and content widths.',
     sections: [
-      { title: 'Breakpoints', rows: [{ ctl: 'breakpoints', keys: ['layout.breakpoints'] }] },
-      { title: 'Grid', rows: [{ ctl: 'columns', keys: ['layout.columns'] }, { ctl: 'gridOverrides', schemaOnly: ['layout.columnOverrides'] }] },
-      { title: 'Containers', rows: [{ ctl: 'slider', keys: ['layout.containerMax'] }, { ctl: 'slider', keys: ['layout.containerNarrow'] }] },
+      { title: 'Breakpoints', desc: BREAKPOINTS_DESC, rows: [{ ctl: 'breakpoints', keys: ['layout.breakpoints'] }] },
+      // D12: each breakpoint's gutter and margin sit beside its columns, as Auto or a spacing step. Schema inputs.
+      { title: 'Grid', desc: GRID_DESC, rows: [{ ctl: 'columns', keys: ['layout.columns'] }, { ctl: 'gridOverrides', schemaOnly: ['layout.columnOverrides', 'layout.gutterOverrides', 'layout.marginOverrides'] }] },
+      { title: 'Containers', desc: CONTAINERS_DESC, rows: [{ ctl: 'slider', keys: ['layout.containerMax'] }, { ctl: 'slider', keys: ['layout.containerNarrow'] }] },
     ],
-    status: 'legacy',
-    legacy: ['layout'],
+    // S10: moved. Its levers are `domains/layout.ts`, its preview `preview/layout.ts`.
+    status: 'new',
+    legacy: [],
   },
   {
     // The web has no Components page (it is Figma-only), so the web tab shows the Buttons block on the
@@ -338,9 +360,6 @@ export type PageKey = LegacyPageKey | NewPageKey;
 
 /** A place the tab row can select: a tab, or a Color sub-page. */
 export type Place = { readonly tab: TabId; readonly sub?: ColorSubId };
-
-/** The legacy page labels the Depth & motion switch shows (D8: the two legacy page names). */
-export const LEGACY_LABEL: Partial<Record<LegacyPageKey, string>> = { elevation: 'Elevation', motion: 'Motion' };
 
 const domainOf = (id: TabId): Domain => DOMAINS.find((d) => d.id === id)!;
 const subsOf = (d: Domain): readonly PageData[] | null => ('subpages' in d ? d.subpages : null);

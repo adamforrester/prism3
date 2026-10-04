@@ -98,12 +98,8 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
  * box, so a control already past the floor (.toggle's 38px width) gets no hit-area padding it
  * doesn't need — the pseudo exactly overlays it on that axis instead of narrowing it to 24px.
  * --hit-dx/--hit-dy (CSS px, default 0 = centered) bias the box off-center for a host packed too
- * tightly to expand symmetrically without eating a neighboring target's edge. .adv-x is why these
- * exist: only 2px of clearance to its OWN input on one side vs. 8px to the next breakpoint cell on
- * the other — 22.77px of whitespace total, 1.23px short of the 24px floor even before any bias, so
- * some encroachment on a neighbor's box is unavoidable. Biased fully toward the roomier side (see
- * .adv-x below), measured live (#559) at zero overlap into the paired input and ~1.2px into the
- * FAR edge of the next cell's input — never the input this button's own row belongs to. */
+ * tightly to expand symmetrically without eating a neighboring target's edge. The legacy Layout page's
+ * breakpoint remove button (.adv-x, #559) was why these exist; it left with that page in UI redesign S10. */
 .hit-min{position:relative}
 .hit-min::before{content:'';position:absolute;top:50%;left:50%;width:max(24px,100%);height:max(24px,100%);transform:translate(calc(-50% + var(--hit-dx,0px)),calc(-50% + var(--hit-dy,0px)))}
 #app{max-width:1200px;margin:0 auto;padding:0 40px 120px}
@@ -523,9 +519,6 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .type-editor{margin-bottom:8px}
 .te-font{width:100%;margin-top:8px;padding:7px 9px;border:1px solid var(--line2);border-radius:var(--r-xs);font:inherit;background:var(--paper)}
 .te-wrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
-/* The number-input component (doc 24 C2) — .num owns the shared field cosmetics; the context classes
-   below carry only width / size / alignment deltas. */
-.num{padding:6px 8px;border:1px solid var(--line2);border-radius:var(--r-xs);font:inherit;background:var(--paper);color:var(--ink)}
 .te-weight{width:88px;font-variant-numeric:tabular-nums;text-align:right}
 .te-cat-wrap{overflow-x:auto;margin-top:12px}
 .te-cat{border-collapse:collapse;width:100%;font-size:12.5px}
@@ -660,7 +653,36 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .mo-coldesc{font-size:11.5px;color:var(--muted)}
 .mo-replay{margin-top:14px;border:1px solid var(--line2);background:var(--panel);border-radius:var(--r-sm);padding:7px 14px;font:inherit;font-size:12.5px;color:var(--ink2);cursor:pointer}
 .mo-replay:hover{border-color:var(--ink);color:var(--ink)}
-@media (prefers-reduced-motion:reduce){.mo-dot{animation:none!important;left:88.636%!important;top:11.364%!important}}
+/* S9.2: the Depth & motion preview's traces never play by themselves under reduced motion (owner decision D9 A); Play
+   plays them once on request. So the old rule that froze every dot at its end under reduced motion is gone: it would
+   have swallowed the one play the viewer asked for. */
+/* S9.2: the Depth & motion preview (preview/depth.ts). Each block sits inside its section's specimen ground, so its
+   ink is the brand's (--ink, --ink2) and its edges the brand's lines. */
+.dm-block{margin-top:22px}
+.dm-block:first-child{margin-top:0}
+.dm-block .sub-lab{margin:0 0 6px}
+.dm-desc{margin:0 0 10px;font-size:12px;line-height:1.5;color:var(--ink2)}
+.dm-sub{margin-top:18px}
+.dm-sub .sub-lab{margin:0 0 6px}
+.dm-block .sh-list{background:none;padding:18px 6px 6px;margin-top:0;gap:30px}
+.dm-block .sh-apart{margin-top:6px;padding-top:18px;border-top:1px dashed var(--line2);border-radius:0}
+.dm-block .sh-card{border-radius:10px}
+.dm-block .sh-lab{color:var(--ink)}
+.sh-css{font-size:10px;color:var(--ink2);max-width:150px;text-align:center;line-height:1.4;word-break:break-word}
+.dm-block .sh-tintcap{color:var(--ink2)}
+.dm-block .sh-tintnote{color:var(--ink2)}
+.dm-block .mo-toolbar{justify-content:flex-start;align-items:center;gap:14px;padding-top:0;margin:0 0 6px}
+.dm-block .mo-replay{margin-top:0}
+.dm-block .mo-slowmo{color:var(--ink2)}
+.mo-ramp-dur{min-width:150px}
+.mo-bar{display:block;height:6px;margin-top:4px;border-radius:3px;background:var(--ink2)}
+.mo-spin{display:flex;align-items:flex-start;gap:12px;margin-top:14px;padding-top:12px;border-top:1px dashed var(--line2)}
+.mo-spin .mo-ramp-foot{margin-top:0;flex-wrap:wrap}
+.mo-spin .dm-desc{margin:4px 0 0}
+.mo-spin-loop{flex:none;width:18px;height:18px;margin-top:2px;border-radius:50%;border:2px solid var(--line2);border-top-color:var(--ink)}
+.mo-ez-roles{display:flex;flex-wrap:wrap;gap:4px}
+.mo-ez-role{font-size:10.5px;line-height:1.4;padding:1px 6px;border:1px solid var(--line2);border-radius:999px;color:var(--ink2)}
+.dm-block .mo-ramp-note,.dm-block .mo-meta,.dm-block .mo-coldesc,.dm-block .mo-ez-bez,.dm-block .mo-spring-nums{color:var(--ink2)}
 .radius-spec{margin-bottom:8px}
 .rad-list{display:flex;flex-wrap:wrap;gap:24px;border-radius:var(--r-sm);padding:24px 20px;background:var(--paper);margin-top:14px}
 .rad-cell{display:flex;flex-direction:column;align-items:center;gap:9px;min-width:72px}
@@ -740,58 +762,31 @@ input.toggle:disabled{opacity:.5;cursor:default}
 /* Advanced object/list bespoke editors (responsive type, breakpoints, emphasized easing). */
 .adv-row{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:12.5px;color:var(--ink2)}
 .adv-row-lab{min-width:150px}
-.adv-num{width:88px;padding:5px 7px;font-size:12px}
-.adv-unit{font-size:11px;color:var(--faint)}
-.adv-bplist{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.adv-bp{display:flex;align-items:center;gap:2px}
-/* --hit-dx:4px (see .hit-min above) shifts the 24px hit box entirely rightward, into the 8px flex
-   gap toward the NEXT breakpoint cell rather than the 2px gap to this button's own input — measured
-   live to land at 0px overlap on the paired input, ~1.2px on the far edge of the next cell's input. */
-.adv-x{border:none;background:none;color:var(--faint);cursor:pointer;font-size:15px;line-height:1;padding:0 2px;--hit-dx:4px}
-.adv-x:hover{color:#a12}
-.adv-add{border:1px dashed var(--line2);background:none;color:var(--muted);cursor:pointer;font:inherit;font-size:12px;border-radius:var(--r-xs);padding:5px 10px}
-/* Layout specimen — breakpoint/grid table + column preview + container bars. */
-.layout-spec{margin-bottom:8px}
-.ly-table{border-collapse:collapse;width:100%;font-size:12px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:16px}
-/* 7px/8px is .ctable's padding. At 12px the six columns plus nowrap headers overran the 492px preview
-   pane and clipped the Margin column — the 12px header fixed one wrap by creating a worse defect. */
-.ly-table th,.ly-table td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right}
-.ly-table th:first-child,.ly-table td:first-child{text-align:left}
-/* Header typography matches .ctable — 12px/700, sentence case. It was 11px/600 and, uniquely in the
-   whole app, text-transform: lowercase — a third header treatment beside .mtbl-tbl's 9.5px uppercase
-   and .ctable's 12px sentence case, on a table that is doing exactly .ctable's job (dense, read-only).
-   Measured across all nine pages before changing it — the Typography pass produced a casing FALSE
-   positive by comparing textContent, so this compares the computed textTransform instead.
-   The right-aligned numerics and the bordered shell stay: those are earning their difference. */
-.ly-table th{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:normal;background:var(--panel);white-space:nowrap}
-.ly-table tr:last-child td{border-bottom:none}
-/* The table's scroll pane. margin-bottom moves off .ly-table onto the wrapper so the spacing below the
-   table is unchanged; the table keeps width:100% and simply overflows this box when it must. */
-.ly-tscroll{overflow-x:auto;margin-bottom:16px}
-.ly-tscroll>.ly-table{margin-bottom:0}
-.ly-cap{font-size:11.5px;color:var(--muted);margin:0 2px 8px}
-.ly-ruler{position:relative;height:44px;margin:2px 2px 22px;border-bottom:2px solid var(--line2)}
-.ly-tick{position:absolute;bottom:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding-left:5px}
-.ly-tick::before{content:'';position:absolute;left:0;bottom:0;width:2px;height:11px;background:var(--ink2)}
-.ly-tick-name{font-size:10.5px;font-weight:640;color:var(--ink2);line-height:1}
-.ly-tick-px{font-size:9.5px;color:var(--faint);line-height:1}
-.ly-cols{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;height:44px;margin-bottom:18px}
-.ly-col{background:var(--ink);opacity:.14;border-radius:3px}
-.ly-cont{display:flex;flex-direction:column;gap:8px}
-.ly-cont-row{display:flex;align-items:center;gap:12px}
-/* 172px, not 150: at 150 the widest pill (container.narrow, 115px) plus its value left no room, so the
-   two ran together — "container.narrow720px" was literally the row's text content. */
-.ly-cont-lab{font-size:11.5px;color:var(--muted);min-width:172px;display:flex;align-items:center;gap:7px}
-/* margin-left:auto right-aligns the three values into a column against the track, instead of letting
-   each one start wherever its pill happens to end (100% / 1440px / 720px read ragged otherwise). */
-.ly-cont-val{flex:none;margin-left:auto}
-/* The track is what a bar's percentage resolves against. Without it, 100% meant the whole row —
-   including the label — and only the bar wide enough to overflow got shrunk back to reality. */
-.ly-cont-track{flex:1;min-width:0}
-.ly-cont-bar{height:16px;background:var(--ink);opacity:.55;border-radius:3px}
-/* fluid is the uncapped default — drawn as an outline so it reads as "no cap" rather than as a third
-   solid bar competing with the two that ARE caps. */
-.ly-cont-row:first-child .ly-cont-bar{background:transparent;opacity:1;border:1px dashed var(--line2)}
+/* Layout preview (UI redesign S10, D14): the ranges strip, each breakpoint's column bars on a gray margin, the
+   container bars, and the label-first rows. The tints and the gray arrive inline (brand content, specimens); the
+   label ink comes from the ground's own custom properties. */
+.lyv-hint{margin:0 0 10px;font-size:12px;color:var(--muted)}
+.lyv-strip{display:flex;height:32px;border-radius:4px;overflow:hidden}
+.lyv-range{display:flex;align-items:center;padding:0 6px;min-width:0;overflow:hidden;white-space:nowrap;font-size:12px;font-weight:700}
+.lyv-ticks{position:relative;height:18px;margin:4px 0 12px;font-size:11px;color:var(--muted)}
+.lyv-tick{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
+.lyv-tick-first{transform:none}
+.lyv-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px 16px}
+.lyv-lab{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;min-width:0}
+.lyv-name{display:grid;gap:3px;min-width:0}
+.lyv-label{font-size:12.5px;font-weight:700;color:var(--ink)}
+.lyv-val{flex:none;font-size:12px;color:var(--ink2)}
+.lyv-sub{font-size:11.5px;color:var(--muted)}
+.lyv-bprow{display:grid;gap:8px;padding:12px 0;border-top:1px solid var(--line)}
+.lyv-bprow:first-of-type{border-top:none;padding-top:0}
+.lyv-bphead{display:flex;align-items:baseline;gap:8px}
+.lyv-cols{display:grid;height:36px;border-radius:4px;box-sizing:border-box}
+.lyv-col{display:block;min-width:0;border-radius:2px}
+.lyv-vals{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 16px}
+.lyv-cont{display:grid;gap:6px;padding:10px 0;border-top:1px solid var(--line)}
+.lyv-cont:first-of-type{border-top:none;padding-top:0}
+.lyv-track{display:block;height:20px;border-radius:4px;overflow:hidden}
+.lyv-bar{display:block;height:100%;border-radius:4px}
 /* Controls-beside-previews pages (#264 Layout, #265 Size & radius): each control sits next to its live
    preview, so a change is visible without scrolling. The control column is fixed-narrow (no full-width
    sliders); the preview takes the rest and wraps under the controls on a narrow viewport. */
@@ -800,11 +795,6 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .cs-ctl-col{display:flex;flex-direction:column;gap:16px;min-width:0}
 .cs-preview{min-width:0}
 .cs-ctl-stack{display:flex;flex-direction:column;gap:18px}
-.cs-ctl{display:flex;flex-direction:column;gap:8px}
-.cs-ctl-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
-.cs-ctl-lab{font-weight:600;font-size:13px;color:var(--ink)}
-.cs-ctl-val{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px}
-.cs-range{width:100%;accent-color:var(--ink)}
 .gradient-spec{margin-bottom:8px}
 .gr-list{display:flex;flex-wrap:wrap;gap:22px;border:1px solid var(--line);border-radius:var(--r);padding:24px;background:var(--panel)}
 .gr-cell{display:flex;flex-direction:column;gap:10px}
@@ -1451,6 +1441,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .shp-shape.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .shp-bar{width:112px;border:1px solid transparent}
 .shp-panel{display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:20px;border:1px solid transparent;margin-top:14px;max-width:520px}
+.shp-pills{display:flex;flex-wrap:wrap;gap:6px}
 .shp-items{display:flex;flex-wrap:wrap;align-items:flex-start;gap:16px}
 .shp-item{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 .shp-field{width:180px;border:1px solid transparent}
@@ -1546,7 +1537,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
    ly-table pushed the page 57px, ctable was silently clipped by an ancestor (worse — the cells
    were unreadable rather than reachable). display:block turns each into its own scroll box, so
    the table scrolls and the page does not. Applied only here; both fit unaided at 640+. */
-@media(max-width:480px){#app,.shell{padding:0 12px 64px}.hero h1{font-size:24px}.lab-hex{display:none}.ctable,.ly-table{display:block;overflow-x:auto}}
+@media(max-width:480px){#app,.shell{padding:0 12px 64px}.hero h1{font-size:24px}.lab-hex{display:none}.ctable{display:block;overflow-x:auto}}
 /* Plugin resize grip (#144) — plugin-only; a Figma iframe has no window chrome of its own.
    touch-action:none so the pointer capture owns the gesture instead of the page scrolling. */
 .resize-grip{position:fixed;right:0;bottom:0;width:16px;height:16px;z-index:60;cursor:nwse-resize;touch-action:none;color:var(--faint)}
