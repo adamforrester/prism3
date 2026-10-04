@@ -504,13 +504,13 @@
       "type": "string",
       "enum": ["rounded", "pill", "boxed", "hairline"],
       "default": "rounded",
-      "description": "OPTIONAL. Corner shape for pill-able controls (button, icon-button). 'boxed' is sharp (radius.none, 0px); 'hairline' is a fixed 1px edge (radius.hairline, implies the hairline rung); 'rounded' follows corner softness (radius.md); 'pill' is a full height ÷ 2 (radius.capsule). Default 'rounded'."
+      "description": "OPTIONAL. Corner shape for pill-able controls (button, icon-button). 'boxed' is sharp (radius.none, 0px); 'hairline' is a fixed 1px edge (radius.hairline, implies the hairline rung); 'rounded' follows radius softness (radius.md); 'pill' is a full height ÷ 2 (radius.capsule). Default 'rounded'."
     },
     "buttonIcons": { "type": "string", "enum": ["attached", "edges"], "default": "attached", "description": "OPTIONAL. Button icons: 'attached' beside the label, or 'edges' with the label centered between them." },
     "buttonContentSize": { "type": "string", "enum": ["match", "smaller"], "default": "match", "description": "OPTIONAL. 'smaller': a medium button takes the small label and icon." },
     "buttonLabelWeight": { "type": "string", "enum": ["default", "emphasis"], "default": "emphasis", "description": "OPTIONAL. 'default': buttons bind type.label.*.default." },
     "buttonMinWidthMultiplier": { "type": "number", "default": 2.25, "minimum": 1, "maximum": 4, "description": "OPTIONAL. Button min width = height × this, rounded up to 8px." },
-    "radiusScale": { "oneOf": [ { "type": "number", "default": 1, "description": "OPTIONAL. Corner softness: 0 = sharp, 1 = default, 2 = soft. Default 1." }, { "type": "string", "enum": ["sharp", "modest", "standard", "soft", "round"], "description": "Named stop — sharp 0 · modest 0.5 · standard 1 · soft 1.5 · round 2." } ] },
+    "radiusScale": { "oneOf": [ { "type": "number", "default": 1, "description": "OPTIONAL. Radius softness: 0 = sharp, 1 = default, 2 = soft. Default 1." }, { "type": "string", "enum": ["sharp", "modest", "standard", "soft", "round"], "description": "Named stop — sharp 0 · modest 0.5 · standard 1 · soft 1.5 · round 2." } ] },
     "baseMd": { "type": "number", "default": 4, "description": "OPTIONAL. The radius.md anchor (px) at scale 1. Default 4." },
     "radiusHairline": { "type": "boolean", "default": false, "deprecated": true, "description": "RETIRED (#2053): accepted so existing brand files still load, but it changes nothing. `radius.hairline` (a fixed 1px corner) is always emitted. It was the opt-in for that rung: the scaled ramp rides an even 2px sub-grid, so 1px is otherwise unreachable from radiusScale/baseMd." },
     "personality": {

@@ -68,7 +68,7 @@ minimal — read both, they are the reference):
 | `status` | `{ success/warning/danger/info: {l,c,h,chroma} }` | the brand *specifies* status hues; omit any (or all) to let the engine synthesize + carve a danger red |
 | `surfaces` | `{ light: { base: 50 } }` | the page is a **tinted off-white**, not pure white (the contrast floor moves with it) |
 | `density` | `comfortable` \| `compact` \| `spacious` | a dense tool vs a roomy reading product |
-| `radiusScale` | number, or a named stop: `sharp` \| `modest` \| `standard` \| `soft` \| `round` | corner softness |
+| `radiusScale` | number, or a named stop: `sharp` \| `modest` \| `standard` \| `soft` \| `round` | radius softness |
 | `controlShape` | `rounded` \| `pill` | pill-able controls (buttons) read as full **pills** (height ÷ 2) rather than rounded — a brand-identity choice, orthogonal to softness |
 | `buttonIcons` | `attached` \| `edges` | the brand pins button icons to the button's **edges** (Locked to edges), with the label centered in the space between them and the button still growing with a long label; `attached` (Attached to label, default) keeps them beside the label. Buttons only, not icon buttons |
 | `buttonMinWidthMultiplier` | number, 1–4 (default `2.25`) | a button's minimum width is its height × this, rounded up to the 8px grid (88/104/128px at 36/44/56px heights by default) — raise it for wider short-label buttons (`2.5` gives 96/112/144px) |

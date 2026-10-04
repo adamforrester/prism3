@@ -100,14 +100,14 @@ export const leverManifest: Lever[] = [
     description: 'Optional. Set how far each engaged link state — hover, pressed, visited — steps from the resting link, one state at a time, as a count of ramp steps. An unset state keeps the tuned walk; the resting link and its focus follow the link palette. Each step is held to the link’s contrast floor, so it respaces a state without dropping the link below 4.5:1.' },
 
   // ---- FORM ----
-  { key: 'radiusScale', group: 'form', label: 'Corner softness', control: 'slider', default: 1, min: 0, max: 2, step: 0.5,
+  { key: 'radiusScale', group: 'form', label: 'Radius softness', control: 'slider', default: 1, min: 0, max: 2, step: 0.5,
     description: 'How rounded corners are: 0 is sharp, 1 is the default, 2 is soft. Every corner radius scales with it.' },
   { key: 'density', group: 'form', label: 'Density', control: 'enum', default: 'comfortable',
     options: enumOpts(['comfortable', 'Comfortable'], ['compact', 'Compact'], ['spacious', 'Spacious']),
     description: 'Sets control heights, and moves each component’s padding and gaps one step on the spacing scale. Token names stay the same; their values change. Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.' },
   { key: 'controlShape', group: 'form', label: 'Control shape', control: 'enum', default: 'rounded',
     options: enumOpts(['boxed', 'Boxed'], ['hairline', 'Hairline'], ['rounded', 'Rounded'], ['pill', 'Pill']),
-    description: 'The corner shape of buttons and other controls that can round fully. Boxed is sharp (0px). Hairline is a 1px corner. Rounded follows corner softness. Pill rounds the ends fully, whatever the softness.' },
+    description: 'The corner shape of buttons and other controls that can round fully. Boxed is sharp (0px). Hairline is a 1px corner. Rounded follows radius softness. Pill rounds the ends fully, whatever the softness.' },
   // The button levers (#1667). Labels and option labels are the owner's exact words.
   { key: 'buttonIcons', group: 'form', label: 'Button icons', control: 'enum', default: 'attached',
     options: enumOpts(['attached', 'Attached to label'], ['edges', 'Locked to edges']),
@@ -122,7 +122,7 @@ export const leverManifest: Lever[] = [
   { key: 'buttonMinWidthMultiplier', group: 'form', label: 'Button minimum width', control: 'slider', default: 2.25, min: 1, max: 4, step: 0.25, unit: '× height',
     description: 'A button is at least its height times this wide, rounded up to the 8px grid, so a short label never makes a stubby button.' },
   { key: 'baseMd', group: 'form', label: 'Base radius', control: 'slider', advanced: true, default: 4, min: 2, max: 12, step: 1, unit: 'px',
-    description: 'The medium corner radius, in px, at corner softness 1. The other corner radii scale from it.' },
+    description: 'The medium radius at standard softness. Every other radius size is a multiple of it.' },
   { key: 'radiusHairline', group: 'form', label: 'Hairline radius', control: 'toggle', advanced: true, default: false,
     description: 'Retired. radius.hairline, a fixed 1px corner, is always emitted, so this setting changes nothing.',
     deprecated: 'Always on since #2053: radius.hairline is emitted for every brand. Accepted so existing brand files still load.' },
