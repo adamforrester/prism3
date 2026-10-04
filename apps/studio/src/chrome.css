@@ -859,6 +859,20 @@
 .p3-vpick-sample { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p3-text); line-height: var(--p3-lh-compact); }
 .p3-vpick-sample[data-wrap="true"] { white-space: normal; }
 .p3-vpick-why { grid-column: 1 / -1; color: var(--p3-text-2); }
+/* ── Layout (S10): the breakpoint list, each breakpoint's columns, gutter and margin, and the pickers' samples ────── */
+.p3-bplist { display: grid; gap: var(--p3-space-100); }
+.p3-bprow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--p3-space-100); align-items: center; justify-items: start; }
+.p3-bprow > .p3-text-input { justify-self: stretch; }
+.p3-bp-unit, .p3-bp-note { color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: nowrap; }
+.p3-lgrid { display: grid; gap: var(--p3-space-200); }
+.p3-lgrid-bp { display: grid; gap: var(--p3-space-100); min-width: 0; margin: 0; padding: var(--p3-space-150) 0 0; border: 0; border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-lgrid-name { display: flex; align-items: baseline; gap: var(--p3-space-100); padding: 0; float: left; width: 100%; }
+.p3-lgrid-name + * { clear: both; }
+.p3-lrow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--p3-space-150); align-items: center; }
+.p3-lrow > .p3-btn.p3-pick { min-width: 0; white-space: normal; }
+.p3-lsamp-cols { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--p3-space-025); height: var(--p3-space-200); }
+.p3-lsamp-bar { display: block; min-width: 0; }
+.p3-lsamp-gap { display: block; height: var(--p3-space-200); }
 /* The type-ahead (#113): page DOM under the field, so it scrolls and takes the chrome's theme in Figma's iframe. */
 .p3-combo { position: relative; min-width: 0; }
 .p3-combo-list {

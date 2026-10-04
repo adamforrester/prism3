@@ -125,7 +125,10 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   'src/domains/type.ts', 'src/preview/type.ts', 'src/preview/sections/type-sample.ts', 'src/preview/sections/faces.ts',
   // S6.3: the value picker, and the Type preview's Scale, Line height and letter spacing, and Building blocks sections.
   // (S6.3 retired S6.1's type-ramp.ts and type-fluid.ts, folded into Scale.)
-  'src/ui/value-picker.ts', 'src/preview/sections/type-scale.ts', 'src/preview/sections/line-spacing.ts', 'src/preview/sections/building-blocks.ts'];
+  'src/ui/value-picker.ts', 'src/preview/sections/type-scale.ts', 'src/preview/sections/line-spacing.ts', 'src/preview/sections/building-blocks.ts',
+  // S10: Layout (its levers, its preview, its writes) and the preview's Breakpoints, Grid and Containers sections.
+  'src/domains/layout.ts', 'src/preview/layout.ts', 'src/state/layout-input.ts', 'src/preview/sections/layout-kit.ts',
+  'src/preview/sections/breakpoints.ts', 'src/preview/sections/grid.ts', 'src/preview/sections/containers.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {
@@ -565,8 +568,9 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   //      literal, a template's literal head, or a head narrowed by an enclosing `if (X === 'lit')`) and must
   //      not be a Type key. A key that does not resolve must be on `UNRESOLVED_OK`, by function and key text,
   //      with the reason it cannot carry a Type key.
-  //   3. FED: the generic lever renderer (`renderControl` and its wrappers) and the Size & radius `csSlider`/
-  //      `csPicker` write whatever key they are handed, so none is handed a Type one: no `typography.*` key
+  //   3. FED: the generic lever renderer (`renderControl` and its wrappers) writes whatever key it is handed, so
+  //      none is handed a Type one (`csSlider` and `csPicker` were two more until S10 retired them with Layout's
+  //      legacy page, their only caller): no `typography.*` key
   //      literal, `leversFor('typography')`, or variable built from either, reaches them. This is what makes
   //      rule 2's `UNRESOLVED_OK` entries true rather than asserted.
   // ORACLE: the Type mode fields are literals here, and every member of the engine's `ModeLevers` type must be
@@ -588,8 +592,6 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     const UNRESOLVED_OK: Record<string, string> = {
       'renderControl:lever.key': 'the generic lever knob; rule 3 holds that no Type lever is handed to it',
       'renderPerModeSelect:key': 'its callers are PER_MODE_SELECTS, the radius, density and tempo selects',
-      'csSlider:key': 'Size & radius sliders; rule 3 holds that no caller passes a Type key',
-      'csPicker:key': 'Size & radius pickers; rule 3 holds that no caller passes a Type key',
       'renderShadowEditor:path': 'the shadow editor; `path` is built from `shadow.`',
     };
     // A one-file program, so an identifier resolves to ITS declaration through the checker. Matching variables by
@@ -719,9 +721,8 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     ok(stale.length === 0, `every UNRESOLVED_OK entry still names a write in src/main.ts${stale.length ? ` — no longer found: ${stale.join(', ')}` : ''}`);
 
     // Rule 3: what the generic renderer is fed.
-    // `csSlider`/`csPicker` too (review of #2017): each ends in `setPath(brandState, key, …)`, so a Type key handed
-    // to either is a Type write, and their `UNRESOLVED_OK` entries rest on this check rather than on a claim.
-    const FEEDS = new Set(['renderControl', 'leverControl', 'leverSection', 'csLeverStack', 'renderPerModeSelect', 'csSlider', 'csPicker']);
+    // `csSlider`/`csPicker` were fed here too (review of #2017) until S10 retired both with Layout's legacy page.
+    const FEEDS = new Set(['renderControl', 'leverControl', 'leverSection', 'csLeverStack', 'renderPerModeSelect']);
     /** Does `e` name a Type lever: a `typography.*` key literal, `leversFor('typography')`, or a variable whose
      *  own initializer does (one level, resolved by the checker)? */
     const typeLever = (e: ts.Node, depth = 0): boolean => {
@@ -742,7 +743,7 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
       ts.forEachChild(n, visitFeeds);
     };
     visitFeeds(sf);
-    ok(fed.length === 0, `src/main.ts hands no Type key to a writer that writes whatever it is handed (the generic lever renderer, csSlider, csPicker)${fed.length ? ` — ${fed.slice(0, 3).join(' | ')}` : ''}`);
+    ok(fed.length === 0, `src/main.ts hands no Type key to a writer that writes whatever it is handed (the generic lever renderer)${fed.length ? ` — ${fed.slice(0, 3).join(' | ')}` : ''}`);
   }
   ok(imports(mainSrc, 'main.ts').some((i) => i.spec === './state/type-input'), 'src/main.ts imports its Type writes from ./state/type-input');
 }

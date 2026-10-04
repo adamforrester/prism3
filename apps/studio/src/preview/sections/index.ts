@@ -18,6 +18,10 @@ import { lineSpacingSection } from './line-spacing';
 import { buildingBlocksSection } from './building-blocks';
 import { typeSampleSection, typeSamplePicks, TYPE_SAMPLE_DISPLAY } from './type-sample';
 import { facesSection } from './faces';
+import { breakpointsSection } from './breakpoints';
+import { gridSection } from './grid';
+import { containersSection, containerReference } from './containers';
+import { layoutCtx, type LayoutCtx } from './layout-kit';
 import type { SgCtx } from './kit';
 
 export { backgroundSection, foregroundSection, textColorSection, borderSection, iconSection };
@@ -36,6 +40,9 @@ export { weightsByFaceSection, typeScaleSection, SCALE_SAMPLE_CAP, MERGE_TITLE, 
 /** The type sample (#1942, S6.2): Brand's Style guide draws it first, and the Type preview too (owner decision
  *  Q67). The Type preview's Faces section (S6.2). Read-only. */
 export { typeSampleSection, typeSamplePicks, TYPE_SAMPLE_DISPLAY, facesSection };
+/** The Layout preview's sections (UI redesign S10): Breakpoints, Grid and Containers, and the context they draw with.
+ *  Read-only. */
+export { breakpointsSection, gridSection, containersSection, containerReference, layoutCtx, type LayoutCtx };
 /** The five, in order, by the title each section draws. */
 export const COLOR_SECTIONS: ReadonlyArray<readonly [string, (c: SgCtx) => HTMLElement]> = [
   ['Background', backgroundSection], ['Foreground', foregroundSection], ['Text color', textColorSection], ['Border', borderSection], ['Icon', iconSection],

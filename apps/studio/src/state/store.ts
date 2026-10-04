@@ -32,7 +32,7 @@ import { resolvePreview } from '@prism3/engine/resolve-preview';
 import type { ResolvedPreview } from '@prism3/engine/resolve-preview';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import { provenanceOf, noOrigin, type Origin, type Provenance } from '../provenance';
-import type { PageKey } from '../shell/pages';
+import type { PageKey, TabId } from '../shell/pages';
 
 export type Mode = ResolvedPreview['modes'][number];
 
@@ -110,8 +110,9 @@ export type HostTopic =
  *  wholesale load). `origin`: the provenance was reassigned. `mode`: the mode being viewed. `page`: the
  *  rail destination. `search`: the settings search query. `search:hits`: how many settings it matched on
  *  the page in view. `identity`: the brand's name or namespace moved WITHOUT a rebuild (`syncIdentity`, UI
- *  redesign S3), so whatever shows the name repaints without a re-resolve. Plus the host topics above. */
-export type Topic = 'brand' | 'origin' | 'mode' | 'page' | 'search' | 'search:hits' | 'identity' | HostTopic;
+ *  redesign S3), so whatever shows the name repaints without a re-resolve. `tab`: a page asked for a TAB by its id
+ *  (`requestTab`, UI redesign S10), which the frame turns into that tab's page on this host. Plus the host topics above. */
+export type Topic = 'brand' | 'origin' | 'mode' | 'page' | 'tab' | 'search' | 'search:hits' | 'identity' | HostTopic;
 const subscribers = new Map<Topic, Set<() => void>>();
 
 /** Call `fn` whenever `topic` is invalidated. Returns the unsubscribe. */
@@ -242,6 +243,14 @@ export const clearOrigin = (): void => {
 
 export const setCurrentMode = (m: Mode): void => { currentMode = m; invalidate('mode'); };
 export const setPage = (k: PageKey): void => { page = k; invalidate('page'); };
+/** The tab a page asked for, read by the `tab` topic's subscriber (the frame) while it is notified, and null
+ *  otherwise. */
+export let tabRequest: TabId | null = null;
+/** Open a TAB, as a click on it would (UI redesign S10, the scope's T8). A Continue button that names the next
+ *  tab's legacy page key lands on whichever tab first shows that page, and on the web Shape and Components show the
+ *  same legacy page, so Layout's Continue to Components would open Shape; and a plugin page key the web lacks lands
+ *  nowhere. The frame knows the host and the tab's page there, so it routes the request (`frame.ts`). */
+export const requestTab = (t: TabId): void => { tabRequest = t; try { invalidate('tab'); } finally { tabRequest = null; } };
 
 // ---- settings search (UI redesign S1.2, the owner's QA note Q3) -------------------------------------
 // View state, like the page and the mode: never part of the brand. The search field writes the query;

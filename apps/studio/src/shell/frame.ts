@@ -16,7 +16,7 @@
  * WHAT EACH PAGE SHOWS. A legacy page (`pages.ts`, `status: 'legacy'`) shows its legacy page in the
  * full-width legacy frame under the tab row, pinned light (D1, D2); Depth & motion carries a local switch
  * between its two legacy pages (D8). A moved page (`status: 'new'`: Color › Palettes from S2, Brand from S3, Surfaces & fills
- * from S4a, Interactive from S5.2, Type from S6.2) shows the two panes: its levers module draws the levers pane and its preview module the preview body (`NEW_PAGES`
+ * from S4a, Interactive from S5.2, Type from S6.2, Layout from S10) shows the two panes: its levers module draws the levers pane and its preview module the preview body (`NEW_PAGES`
  * below), each mounted once per visit and released, subscriptions included, when the place changes.
  *
  * S1.3 fills the preview header and adds Inspect (`preview.ts`): the title of the page's one home view
@@ -39,7 +39,7 @@
  * stylesheet may not hold a raw length and a media or container query needs one. Under it the tab row
  * becomes a select, only the top row stays sticky, and the bar's text buttons drop to their glyphs.
  */
-import { page, searchHits, searchQuery, setPage, setSearch, subscribe } from '../state/store';
+import { page, searchHits, searchQuery, setPage, setSearch, subscribe, tabRequest } from '../state/store';
 import { INSPECT, LEGACY_LABEL, TABS, homeOf, isNewPage, legacyOf, newPageOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type LegacyPageKey, type NewPageKey, type Place, type TabId } from './pages';
 import { glyph, h, hook } from './dom';
 import { inspectMenu, modeControl, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
@@ -56,6 +56,8 @@ import { mountInteractiveLevers } from '../domains/color-interactive';
 import { mountInteractivePreview } from '../preview/interactive';
 import { mountTypeLevers } from '../domains/type';
 import { mountTypePreview } from '../preview/type';
+import { mountLayoutLevers } from '../domains/layout';
+import { mountLayoutPreview } from '../preview/layout';
 import { cancelEasedScroll, dropEdits, revealSection, takeSectionEdit, trackLeverSections } from '../preview/follow-edit';
 
 /** The moved pages (S2 on): what each draws in the levers pane and in the preview body. A slice that moves
@@ -74,6 +76,7 @@ const NEW_PAGES: Record<NewPageKey, {
   fills: { levers: mountFillsLevers, preview: mountSurfacesPreview },
   interactive: { levers: mountInteractiveLevers, preview: mountInteractivePreview },
   type: { levers: mountTypeLevers, preview: mountTypePreview },
+  layout: { levers: mountLayoutLevers, preview: mountLayoutPreview },
 };
 
 /** The frame width at or below which it lays out as one narrow column (concept v6's `appNarrow`). */
@@ -523,6 +526,10 @@ export const mountFrame = (app: HTMLElement, opts: {
       backBtn.setAttribute('aria-label', backLabel.textContent);   // the name holds when narrow hides the words
     }
   };
+
+  // A tab asked for by a page (S10, T8: Layout's Continue to Components), routed as a click on that tab, so it lands on
+  // the tab's own page on this host and never on another tab that shows the same legacy page.
+  cleanups.push(subscribe('tab', () => { if (tabRequest) go(placeOfTab(tabRequest)); }));
 
   // A page change from anywhere: a tab, the switch, the Pages menu, a brand load.
   cleanups.push(subscribe('page', () => {

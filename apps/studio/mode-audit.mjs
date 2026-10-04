@@ -234,6 +234,7 @@ hooks.absent(ok, { seen: stages.length > 0, state: 'the Pages menu\'s rows' }, s
 hooks.absent(ok, { seen: stages.length > 0, state: 'the Pages menu\'s rows' }, stages.every((x) => x.key !== 'rail-page-surfaces'), 'the Pages menu no longer offers Surfaces & fills, which moved to the two panes (S4a)');
 hooks.absent(ok, { seen: stages.length > 0, state: 'the Pages menu\'s rows' }, stages.every((x) => x.key !== 'rail-page-interactive'), 'the Pages menu no longer offers Interactive, which moved to the two panes (S5.2)');
 hooks.absent(ok, { seen: stages.length > 0, state: 'the Pages menu\'s rows' }, stages.every((x) => x.key !== 'rail-page-typography'), 'the Pages menu no longer offers Typography, which moved to the two panes (S6.2)');
+hooks.absent(ok, { seen: stages.length > 0, state: 'the Pages menu\'s rows' }, stages.every((x) => x.key !== 'rail-page-layout'), 'the Pages menu no longer offers Layout, which moved to the two panes (S10)');
 const tally = { EDITS: 0, displays: 0, inert: 0 };
 const claims = [];
 const noBar = [];

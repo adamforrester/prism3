@@ -17,7 +17,7 @@
  * LEGACY PAGES. Until a domain slice moves a page, it shows one or more legacy pages in the full-width
  * legacy frame (D1). `legacy` names them, in the order the frame offers them; plan §4's table is the
  * source. A slice moves a page by emptying its list and setting its `status` to `new` (S2: Color › Palettes; S3: Brand;
- * S4a: Color › Surfaces & fills; S5.2: Color › Interactive; S6.2: Type);
+ * S4a: Color › Surfaces & fills; S5.2: Color › Interactive; S6.2: Type; S10: Layout);
  * S13 deletes both fields. The store's `page` then holds the moved page's id (`NewPageKey`). `PageKey`, the legacy page
  * keys the store's `page` holds, is DERIVED from these lists (plus the Figma menu's Style guide), so a
  * slice that empties a list takes the key out of the type, and `NAV` in `main.ts` (checked against
@@ -47,6 +47,15 @@ export const SCALE_DESC = 'The size of each heading style on desktop and mobile,
 export const SCALE_LIMITS_DESC = 'Where the heading scale starts and stops, and whether headings scale between mobile and desktop.';
 export const WEIGHTS_DESC = 'The weight behind each name, the weights each text type ships, and its italic and link styles.';
 export const SPACING_DESC = 'The step each line height and letter spacing name uses, and how far each text type moves from it.';
+
+/** The Layout sections' copy (S10), each shared by the levers section and the preview section it pairs with (owner
+ *  decision Q23). APPROVED (owner, S10 scope). */
+export const BREAKPOINTS_DESC = 'Where each layout starts. Names follow the count.';
+export const GRID_DESC = 'Columns, gutter and margin for each breakpoint. Auto follows the default steps.';
+export const CONTAINERS_DESC = 'Content stretches up to the maximum width. The content container is narrower, for long text.';
+/** Layout's labels the levers and the preview both draw (S10; D16, D17: "Maximum width" for containerMax, and
+ *  containerNarrow keeps "Content container"). APPROVED (owner, S10 scope). */
+export const LAYOUT_LABELS = { columns: 'Columns', gutter: 'Gutter', margin: 'Margin', max: 'Maximum width', narrow: 'Content container' } as const;
 
 /** Which host a legacy page list applies to. Components maps to a different legacy page per host (§4). */
 export type Host = 'web' | 'figma';
@@ -257,14 +266,18 @@ export const DOMAINS = [
     legacy: ['elevation', 'motion'],
   },
   {
-    id: 'layout', label: 'Layout', home: 'layout', intro: 'Breakpoints, the column grid and content widths.',
+    // S10: the intro is v6's with "column" taken out (owner decision D11: "columns" is for the grid only); the section
+    // descriptions are the owner's, and each is also its preview section's (Q23). APPROVED (owner, S10 scope, D11–D17).
+    id: 'layout', label: 'Layout', home: 'layout', intro: 'Breakpoints, the grid and content widths.',
     sections: [
-      { title: 'Breakpoints', rows: [{ ctl: 'breakpoints', keys: ['layout.breakpoints'] }] },
-      { title: 'Grid', rows: [{ ctl: 'columns', keys: ['layout.columns'] }, { ctl: 'gridOverrides', schemaOnly: ['layout.columnOverrides'] }] },
-      { title: 'Containers', rows: [{ ctl: 'slider', keys: ['layout.containerMax'] }, { ctl: 'slider', keys: ['layout.containerNarrow'] }] },
+      { title: 'Breakpoints', desc: BREAKPOINTS_DESC, rows: [{ ctl: 'breakpoints', keys: ['layout.breakpoints'] }] },
+      // D12: each breakpoint's gutter and margin sit beside its columns, as Auto or a spacing step. Schema inputs.
+      { title: 'Grid', desc: GRID_DESC, rows: [{ ctl: 'columns', keys: ['layout.columns'] }, { ctl: 'gridOverrides', schemaOnly: ['layout.columnOverrides', 'layout.gutterOverrides', 'layout.marginOverrides'] }] },
+      { title: 'Containers', desc: CONTAINERS_DESC, rows: [{ ctl: 'slider', keys: ['layout.containerMax'] }, { ctl: 'slider', keys: ['layout.containerNarrow'] }] },
     ],
-    status: 'legacy',
-    legacy: ['layout'],
+    // S10: moved. Its levers are `domains/layout.ts`, its preview `preview/layout.ts`.
+    status: 'new',
+    legacy: [],
   },
   {
     // The web has no Components page (it is Figma-only), so the web tab shows the Buttons block on the
