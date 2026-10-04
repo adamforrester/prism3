@@ -2744,6 +2744,28 @@
 /**
  * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
  *
+ * 0.225.0 — folded 2026-10-04 from 3 change notes, newest merge first.
+ *
+ * [engine-fo01-coverage-fallback-warn-2034 · minor · 4e432fe4] An override whose ground is neither a role in its mode nor a ramp step is now warned. The override pass still re-rates the pick on the page base, as before, but it adds an `OverrideWarning` with `unresolved: true` that names the role and the ground it could not find. It is no longer silent (#2034). No input reaches this today: every ground the engine writes is a role or a step, and 5,726 override cases across the corpus produced none. So no emitted artifact moves.
+ *
+ * [engine-2053-radius-hairline-always · minor · 0f869e7a] radius.hairline (1px, aliasing core.dimension.1) is always emitted (#2053, owner 2026-10-04). It was
+ * opt-in through radiusHairline (#1362), or implied by controlShape: 'hairline' (#1371); radiusScale now
+ * pushes it for every brand, the NB fixture included, so a 1px corner is always reachable and the Studio
+ * switch could read Off while a control shape used it. radiusHairline is still ACCEPTED in brand input, so
+ * existing brand files load, but it changes nothing: a note says so, the lever manifest marks it
+ * deprecated, and the schema marks it deprecated. controlShape: 'hairline' still binds radius.hairline.
+ * Every emitted brand gains one radius token and one Figma variable. CONTRACT 14.1.0 to 14.2.0 (MINOR):
+ * radius.hairline joins the guaranteed surface.
+ *
+ * [engine-1985-surface-base-strict · minor · 7729217e] surfaces.<mode>.base and inverseBase refuse unknown keywords and steps that are not on the palette's ramp
+ * (#1985, owner 2026-10-03, option A): a typo must never silently pick a color. 'grey' used to resolve to
+ * neutral.025 and 333 to neutral.350; both now throw, naming the key and, for an off-ramp number, the nearest
+ * real step. This is the check the four tier inputs got in #1972, now one check over all six surface anchors,
+ * and the tier messages name the nearest step too. Minor, not major: ENGINE major is refused below 1.0, what is
+ * refused was already resolving to an unintended color, and no corpus brand, fixture, gate case or Studio
+ * control relied on snapping (1,688 resolutions measured, 0 off the ramp). No token path moves, so
+ * CONTRACT_VERSION does not.
+ *
  * 0.224.0 — folded 2026-10-03 from 2 change notes, newest merge first.
  *
  * [engine-override-floor-ground-2025 · minor · 38e40092] An override is re-rated against its real ground when that ground is a palette step (#2025). A floor-measured role (foreground.*, text.link.*, icon.link.*, interactive.<c>.fill.*) names the contrast floor, a ramp step such as neutral.050, as its ground. The override pass looked that ground up among roles only and fell back to the page base, so an overridden floor role recorded its contrast on the page, a shortfall that existed only on the floor raised no warning, and the #1510 link clamp cleared the page instead of the floor. Across a sweep of every link override on six corpus brands, 4,810 link values were emitted below their contract on the floor (worst 2.66:1), each recording a ratio that cleared it. The ground is now read off the theme's ramps. Minor, not patch: no committed artifact moves, because no corpus brand overrides a floor-measured role, but a brand that does now emits a different link value and may gain a warning.
@@ -4490,7 +4512,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.224.0';
+export const ENGINE_VERSION = '0.225.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

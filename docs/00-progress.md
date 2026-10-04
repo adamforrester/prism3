@@ -7,6 +7,367 @@
 
 ---
 
+## (2026-10-04) — The floor-ground test covers dark, a second floor step and HC, and an unresolved override ground is warned (#2034)
+
+**STATUS: PR open from `engine/fo01-coverage-fallback-warn-2034`.** These are the follow-ups from the orchestrator's review of #2032 (#2025). ENGINE is a minor bump (`engine: minor`) for the new warning. No emitted artifact moves, because no input reaches the warning. `token-contract --check` reports the contract unchanged, so CONTRACT_VERSION stays put.
+
+**Correcting #2032's record.** #2032's change note and PR body named `foreground.*`, `text.link.*`, `icon.link.*` and `interactive.<c>.fill.*` as the roles whose override ratios moved from the page to the floor step. The list was short. Each of these roles also has a step ground, so its override ratio, and any warning, moved too:
+- `text.secondary`, `text.tertiary`, `text.<status>`, `text.brand`;
+- `icon.secondary`, `icon.tertiary`, `icon.<status>`, `icon.brand`;
+- `disabled.text`, `disabled.icon`.
+
+Measured on `text.brand` overridden to `neutral.600`, in light mode:
+- prism3 (`#5b5c5f`): 6.69 on the page `#ffffff` before #2032, 5.51 on `neutral.050` `#e9e9e9` now;
+- aurora: 6.65 → 5.48, measured by the orchestrator;
+- harbor: 5.55 → 4.88, measured by the orchestrator.
+
+FO-01b pins the prism3 number.
+
+**What changed.**
+- `test.ts` FO-01b adds three override arms. Each expected value is a literal hex, tied as a precondition to the primitive in `out/<brand>.tokens.json`, and each ratio is computed with the shared `contrast`. The engine's ground lookup is never read.
+  - prism3 dark: `foreground.brand` on `neutral.900` `#171718`, under a `#0d0d0e` page.
+  - harbor light: `foreground.brand` on `neutral.100` `#dcdbdb`, under a `#e9e9e8` page. Harbor's floor is a different step from prism3's.
+  - prism3 light: `text.brand` on `neutral.050` `#e9e9e9`.
+  Each arm also asserts that the floor and the page give different ratios for the pick, so the arm can't pass vacuously.
+- **The HC arm is not an override arm.** HC modes are generate-only, so an override there throws before the override pass runs. FO-01b therefore checks two things in prism3 hc-dark: that the derived `foreground.brand` records its ratio on `neutral.900` `#171718` rather than the `#000000` page, and that an HC override is refused. This departs from the brief, which asked for an HC override arm.
+- `modes.ts`: the override pass's ground lookup moves into an exported `overrideGroundRgb`. Before, it fell back to the page base silently when an `against` was neither a role nor a ramp step. Now that fallback adds an `OverrideWarning` with `against` set to the missing ground and `unresolved: true`, so the role and the ground are both named. `test.ts` FO-02 drives the function directly. An unknown ground warns and returns the page, and a role ground and a step ground warn nothing.
+
+**Warn, not throw.** I measured the fallback first: 11 brands (the 10 corpus brands, NB included, plus prism3), every overridable role, in light and dark, against each palette step. That gave 5,726 override cases, 132 refused for other reasons, and **0** that reached the fallback. A throw would have been safe for the corpus. The warning is kept for two reasons. A miss here would be the engine's defect, not the brand's, and a throw would refuse a brand for it. And the warning stays on the structured `warnings` channel rather than `theme.notes`, whose strings ship to MCP and Studio, where any new copy would be the owner's call.
+
+Mutations, each failing by name:
+- `overrideGroundRgb`'s `warnings.push` dropped → both `FO-02: … falls back to the page AND warns …` arms (2);
+- the step branch dropped, so a step ground falls back to the page → the three `FO-01b` override arms, FO-01's four arms, and `FO-02: a role ground and a ramp-step ground resolve without a warning` (8).
+
+**Trap for whoever re-verifies this.** Since FO-02 calls `overrideGroundRgb` directly, it would still pass if the override loop stopped calling it. The loop is covered by the step-branch mutation: dropping that branch inside the function fails FO-01 and FO-01b through the real override pass, which only happens if the loop goes through the function.
+
+---
+
+## (2026-10-04) — radius.hairline is always emitted, and the radiusHairline switch is retired (#2053)
+
+**Status:** ENGINE `0.225.0` (`engine: minor` change note). CONTRACT 14.1.0 → **14.2.0** (MINOR,
+`radius.hairline` joins the guaranteed surface; baseline accepted with `token-contract --accept` after the
+bump). `regen` gives every emitted brand one radius token and one Figma variable. `modes.ts` untouched (Lane 1
+is on #2034 there). `apps/studio` untouched; one test literal added in `apps/plugin` (below).
+
+### What changed
+
+Owner decision 2026-10-04. `radius.hairline` → `{core.dimension.1}` (1px) used to be opt-in: it existed only
+with `radiusHairline: true` or under `controlShape: 'hairline'`. The Studio's "Hairline radius" switch could
+therefore read Off while a control shape used the 1px corner. Now:
+
+- **`radiusScale` pushes the rung for every brand.** The `hairline` parameter is gone from `radiusScale` and
+  `buildDims`. That's deliberate: the NB legacy fixture builds its dims through `buildDims` directly, not
+  `brandTheme`, and NB is a contract-corpus member. Flipping a flag inside `brandTheme` alone would have left
+  NB without the rung, and the contract would have classed it brand-dependent, not guaranteed.
+- **`radiusHairline` is still ACCEPTED** (schema unchanged in type, with `"deprecated": true` and a retirement
+  description), so existing brand files load. It changes nothing, and a brand that sets it gets a note saying
+  so.
+- **The lever manifest marks it deprecated** through a new optional `Lever.deprecated` field. That's
+  additive, and readers that ignore it see the lever as before.
+- **`controlShape: 'hairline'` still binds `radius.hairline`**, now by construction, as `boxed` always had
+  `radius.none`.
+
+### Keep it in the manifest, or drop it? Kept, for now
+
+docs/30 versions the token-name surface, not the input schema. Removing an input field is a schema change:
+with `additionalProperties: false`, a brand file still carrying `radiusHairline` would fail validation. So the
+schema keeps accepting it, the safe default the brief named. The **manifest** is presentation, and dropping
+the lever there is the Studio's move, not the engine's:
+- `apps/studio/src/shell/pages.ts` still places `radiusHairline` (Shape › Corner base);
+- `test-pages.ts` fails a manifest lever with no home.
+
+So it stays, marked deprecated, until S7 (Shape) removes the switch and drops it in the same change.
+
+### `lint-ramp-steps`: one declared omission, not a Studio edit
+
+The gate holds that every radius rung the engine emits is drawn by the Studio's `RADIUS_STEPS`, or declared as
+omitted with a reason. Once the hairline was always emitted, it failed, as it should. The Studio ramp never
+drew the hairline, even while it was opt-in, and S7 redraws the radius controls. So the gate's `omits` gains
+`hairline`, the same mechanism the #1852 container rungs use (deferred to #1881, UI lane), and S7 removes the
+entry when it renders the rung.
+
+### Not a one-line Studio removal
+
+The legacy toggle is drawn in two places, `main.ts:1700` (`csLeverStack([…, 'radiusHairline'])`) and
+`pages.ts:242`, and test-pages ties them to the manifest. Left for S7, as routed. The legacy page's sub-copy
+("the opt-in 1px hairline") is now stale; S7's page replaces it.
+
+### Tests that had to change, and why
+
+- **L-03 and #1852's "scaled ladder"** picked out the ladder with `!r.pill`. The hairline is a sentinel that
+  isn't a pill, so it now has to be excluded by name, as the pills are by `pill`.
+- **#1852's per-brand Figma radius list** gains `hairline`: one new variable per brand, which is what this
+  change emits.
+- **#1812's tree-blind pairs** gain `controlShape: 'hairline'`. It now moves only the materialized defs, as
+  `boxed` and `pill` do. The plugin test's cover literal gains the same pair: one entry in
+  `apps/plugin/test-write-components.ts`, which the engine arm reads and refuses if it's missing.
+  `radiusHairline` itself is held by a new arm instead: every value of a deprecated lever must leave the tree
+  unmoved, and the retired set is the literal `[radiusHairline]`.
+- **The MCP summary exemplar** moved from `radiusHairline` to `strictInteractiveContrast`. The retired
+  description no longer opens with a tag-only sentence, so it stopped exercising the tag-carry case.
+
+### Mutations
+
+| Mutation | Fails |
+|---|---|
+| back to opt-in (`main`'s `scale.ts` and `theme.ts`) | 24, including `L-03b (#2053): a brand with radiusHairline: false still emits radius.hairline …`, `L-03b: radius.hairline is present at every scale …` (×5), `#2053: the retired lever radiusHairline changes nothing — … (MOVED by true)`, `#1296/#1718 prism3 emits every guaranteed contract path (567/568; missing radius.hairline)`, and the 11 per-brand Figma lists |
+| the rung deleted from committed `out/prism3.tokens.json` | `L-03b (#2053): prism3.tokens.json emits radius.hairline = 1px aliasing {pds3.core.dimension.1} (got nothing)` |
+| `controlShape: hairline` bound to `radius.sm` | 7, e.g. `controlShape: button@medium hairline binds radius/hairline … (radius/sm)` |
+
+---
+
+## (2026-10-04) — Type: emptying italics, or returning links to the default, removes the key (#2006)
+
+**STATUS: branch `ui/2006-empty-italics-links`.** UI write change; the emission does not move. No ENGINE bump,
+`CONTRACT_VERSION` unchanged, `regen` moves no committed artifact. The engine gains one `export` keyword
+(`TYPE_LINK_DEFAULT` in `theme.ts`, so the Studio reads the default rather than restating it). **Fixes #2006.**
+
+### What changed
+
+`setItalic` (and the italic chips, which compose it) now UNSETS `typography.italics` when the list empties, the
+way `italicDefault`, a category's `weights` and a zero nudge already did. `setLink` UNSETS `typography.links`
+when the list equals the engine's default (body and caption, compared as a set), and still writes `[]` when it
+empties. Ticking a type then unticking it now leaves the brand byte-identical to the one loaded, for both keys.
+
+### The diagnosis that changed the fix
+
+The issue read the two lists as the same shape. They are not. The engine reads an absent `italics` as `[]`
+(`t.italics ?? []`), but an absent `links` as its default (`t.links ?? TYPE_LINK_DEFAULT`, body and caption).
+So `[]` is the only way to say "no underlined links". Deleting it on empty would have brought 10 to 16 link
+composites back on every example brand. Measured with `brandTheme` + `buildTree` on prism3, aurora and harbor:
+
+| brand | `italics: []` vs absent | `links: []` vs absent | `links` = default vs absent |
+|---|---|---|---|
+| prism3 | identical | DIFFERENT (0 vs 16 link composites) | identical |
+| aurora | identical | DIFFERENT (0 vs 10) | identical |
+| harbor | identical | DIFFERENT (0 vs 10) | identical |
+
+The owner's coordinator decided the rule (2026-10-03): keep `[]` for none, unset at the default. Both rules
+are emission-identical by measurement. Also, a brand that never set `links` is drawn with {body, caption}, so
+"tick then untick" there writes the default list, not `[]`. Unsetting only on empty would not have fixed it.
+
+### Equivalence against `origin/main`
+
+A throwaway driver (not committed) ran every `setItalic`, `setLink` and `setItalicStyle` call, over every
+category, every caller set (all 128 subsets) and both directions, on all three example brands, through the
+`origin/main` module and the new one. 40,476 writes were byte-identical. 228 differed, all of them an emptied
+`italics` or a `links` list equal to the default, which is exactly the change. None differed anywhere else.
+
+### Tests
+
+`test-type-input.ts`. Three existing arms changed because the bytes did: setItalic(body, off) on the last
+italic category (`italics` now unset, not `[]`), the matching setItalicStyle(body, only) arm, and the section
+title. The `links: []` arm keeps its bytes, and its label now says "none". New, on aurora (which sets neither key): italics tick
+then untick, the Upright + italic then Upright chips, links tick a third category then untick, each against a
+deep clone of the brand as loaded; and unticking every link writes `[]` with zero link composites. The default
+is typed in the test as a literal (body, caption), not imported (docs/34).
+
+### Trap for whoever re-verifies
+
+`setPath(…, undefined)` leaves an own `undefined` property, which `JSON.stringify` drops. Byte identity here
+is on the serialized brand, which is what persists, so `'italics' in brandState.typography` can still be true.
+This is how the existing `italicDefault` and `weights` unsets work too.
+
+---
+
+## (2026-10-04) — lint-ratio-truth recomputes ratios measured against a palette step (#1986)
+
+**STATUS: PR open from `gate/1986-ratio-truth-palette-ground`.** Gate only: no engine change, no ENGINE bump, no emitted artifact moves.
+
+**What was wrong.** Arm C accepted an `against` shaped like a palette step (`neutral.050`, the contrast floor) and then `continue`d, so arm A never recomputed it. Every floor-measured ratio was taken on trust: foreground inks, links and `interactive.<c>.fill.*`. That was 1,640 ratios per run in the corpus and 7,544 in the declared-surface and override sweep.
+
+**What changed.** The gate reads the step's hex off `theme.palettes`, the emitted ramp primitive. That is data, not the engine's ground lookup, and it is used as the ground in both of arm A's branches. A step-shaped `against` that is on no ramp now fails instead of being skipped. FLOOR 5 fails the gate if palette-step recomputes drop below about 1,000 in the corpus or vanish from the sweep. The summary line now reports the palette-step count.
+
+**Counts.**
+- Before, on origin/main: 40,248 ratios recomputed and 175 below-minimum roles, all confessed.
+- After: 49,432 (+9,184, of which 1,640 are in the corpus and 7,544 in the sweep) and 344 below-minimum roles, all confessed.
+
+**It found a real defect first.** On the main of the time, the fixed gate failed 22 rows in its own override sweep. Each was an overridden floor role that recorded its contrast on the page, not the floor: for example, `foreground.brand` at `neutral.500` recorded 4.56 and measured 3.76 on `#e9e9ea`. That was the engine bug #2025, fixed in #2032, which also measured 4,810 link values emitted below contract through the same line. This PR waited for that merge and lands green on top of it. Nothing was loosened or skipped.
+
+**Mutations, each failing by name.**
+- `foreground.brand`'s recorded ratio +0.25 in `modes.ts` → 25 arm-A lines, for example `corpus:nb (legacy fixture, nbds.* dialect)/light: 'foreground.brand' records ratio 4.87 against 'neutral.050', but the emitted colors measure 4.62`. The same mutation passes origin/main's gate (40,248 recomputed, clean). That is the gap this closes.
+- Arm C back to the pre-#1986 skip → FLOOR 5: `only 0 ratio(s) recomputed on a palette-step ground (0 in the corpus, 0 in the sweep)`.
+
+**Not covered: #2026.** This gate proves a ratio is true for the step the role names. It cannot tell whether that step is the right one. With a declared `surfaces.<mode>.secondary`, the floor should follow the tier. #1972's mutation (b) leaves it behind at `neutral.050`, every ratio stays honest, and this gate stays green. The check that ties the floor to `background.secondary` is #2026.
+
+**Trap for whoever re-verifies this.** To measure the before count, run origin/main's version of the gate (`git show origin/main:packages/engine/lint-ratio-truth.ts` into a temporary file next to it) against the same engine. The branch changes only the gate, so the engine half is identical.
+
+---
+
+## (2026-10-03) — UI redesign S6.3: Type › Scale, Scale limits, Weights and styles, Line height and letter spacing; the lent region and Layout's Responsive type sizing retired
+
+**STATUS: branch `ui/s63-type-scale`.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. The last of S6's three PRs (S6.1 #1992, S6.2 #2013). The spec is the S6 scoping report (§3, §4, §6 "S6.3" and its traps, §7) and the owner's decisions of 2026-10-02 (Q62–Q77, with Q22–Q24, Q53, Q54, Q57–Q59 and QA-B2, QA-B9). Copy marked APPROVED there is used verbatim; every new string below was APPROVED by the owner on 2026-10-03 (#2036, B1–B7). **Closes #831** (the style count repaints with the store) and **#2010** (Weights and styles names no Semantics tab and no "rungs").
+
+**What the user sees.** The temporary "Scale and weights" region S6.2 lent from the legacy page is gone. In its place, after Font families:
+- **Scale.** The three scale chips (the manifest's Compact / Default / Expressive); a chip the engine would refuse, because a size you set would collide at that scale (#353, a trial build), is disabled with the reason, and **Release pinned sizes** shows while any is. A line counts the sizes set individually. The **#1802 line** (Q72): a text style the preview uses that this brand does not make (a low display ceiling, a declined weight) is named, with "The preview shows a fallback." Behind Scale's own **Show 1 advanced**: **Individual sizes**, every heading size (display, title, eyebrow) with a **Desktop** and a **Mobile** control side by side (Q63 option A), sizes outside the range listed as such.
+- Behind the page's **Show 12 advanced** (Q69; the count is the three sections' rows, as Palettes counts its own):
+  - **Scale limits:** "Headings scale between mobile and desktop" (Q70, a switch), the min and max viewport, and "Depends on Layout: breakpoints"; the largest display size (each option priced in px); the title floor chips 18px / 16px; the caption floor 11px / 10px and the size floor 10px / 8px, new here (no surface edited them before), with the 8px warning.
+  - **Weights and styles:** one row per weight (Subtle … Max), each opening the value picker; the order warning; the weights matrix (each text type × each weight, plus Link), its locks disabled with the reason, each text type's style count beside it; the italic chips Upright / Upright + italic / Italic only per text type (Q6); **Pin a font style** (Q64; the legacy "Pin a font cut", in Q70's words).
+  - **Line height and letter spacing** (Q64): the step each name uses; previewing another mode, that mode's swap of a name for another; each text type's "one step looser / tighter" nudge, with the names it lands on.
+- **The value picker** (Q65 option A, new `ui/value-picker.ts`, the step picker's frame): a size, a weight, a line height or a letter spacing opens the list of every value it may take, each with a live sample at that value, the current one checked; a value that would break the order is listed disabled with the reason ("Lighter than emphasis (500). Weights stay in order.") and writes nothing. Arrow keys, Home, End, Escape, focus back to the button on close.
+- **Labels read first** (QA-B2): every S6.3 control shows its plain label, then its token in mono under it (`font.weight-role.strong`, `type.title.md`, `font.line-height-role.normal`). S6.2's Font families controls keep their token-first order: the shared styling PR flips those.
+- **Which mode a control edits** (Q22, Q62 option A): per-mode values (a weight, a heading's desktop size, a line height or letter spacing swap) write the brand value previewing Light and `modeLevers.dark.*` previewing Dark, shown as "Auto: follows Light (‹value›)" with Return to Auto. Brand-wide values (the scale and limits, which weights and styles ship, the pins, each name's step, the nudges, a heading's mobile size) write the same bytes from Light and Dark (Q54). Derived modes disable every control (Q59), the advanced sections included.
+- **The preview** (§3, previewed mode only, gray containers): Type sample; Font families; **Scale** (every style, one row per text type and size, its sample capped at 44px as v6 caps it, desktop and mobile px, line height, letter spacing and the weights it ships; then "Sizes that merge on mobile"); **Weights and styles** (the S6.1 "Weight roles by font family" table, now the previewed mode's weights and families, plus each text type's italic and link styles); **Line height and letter spacing** (each name's step in that mode, swaps shown, what uses it, a specimen); **Building blocks** (Q73: the fixed size, line height and letter spacing steps, read-only). Each heading and description is its lever section's (Q23); Scale limits pairs with Scale (`PREVIEW_HEADING`).
+- **The edit-reveal** (#2015) runs on Type: `domains/type.ts` notes the edit (`noteSectionEdit`) before it rebuilds, so a Scale edit eases the preview to Scale, a limit to Scale, a weight to Weights and styles.
+- **Layout** no longer draws "Responsive type sizing" or its fluid read-out (Q71, C10 = yes). Type is its one home.
+
+### Diagnosis and structure
+
+- **New modules:** `ui/value-picker.ts`; `preview/sections/type-scale.ts` (`data-sg-section="type-scale"`), `line-spacing.ts`, `building-blocks.ts`. **Retired:** `preview/sections/type-ramp.ts` and `type-fluid.ts` (folded into Scale).
+- **`state/type-input.ts`** gains `setCaptionFloor` and `setSizeFloor` (each UNSETS its default), and `setItalicStyle` / `italicStyleOf`, which compose the two legacy italic writes in the order the legacy page needed them (the boxes were exclusive) and nothing else. Every other write is S6.1's, unchanged.
+- **`main.ts` 6,103 → 5,142 lines.** Retired: `renderTypeLent`, the heading sizes (`renderTypeSizes`, the size tables, `sizeCell`), `stepCell`, the weight table and roles, the leading and tracking bindings and the per-mode tables' Type caller, the category table, the font-style pins, the size and line height ladders, Layout's `renderResponsiveControls` and `paintFluidPreview`. `renderRepointTable` STAYS (Motion's easing table, S9); its line height and letter spacing branch is now dead and goes with it in S9. `PageLends.typeStyles` is gone.
+- **#831.** The page repaints whole on `brand`, so the style count, the nudges' landing names and the chips' clash state are read fresh after every edit. The nudges, links and pins still commit through the store's `rebuild()` only, as `apply()` did; the legacy lent region on `origin/main` already repainted on `brand`, so the bytes match it.
+
+**Behavior-neutral, measured.** An equivalence driver (scratch, not committed) drove every kept legacy control, previewing Light and Dark, on each corpus brand (prism3, aurora, harbor), on `origin/main`'s lent region and Layout page (`101f6270`) and on the new page: the scale chips away and back, the ceiling, the title floor, desktop and mobile sizes and their resets, a pin left for Release (exercised where a chip clashed), each weight a step and reset, every unlocked matrix cell and Link both ways, every italic chip transition (as the legacy boxes reach it), two pins typed and cleared, each line height and letter spacing name a step and back, every Dark swap and back to Auto, every nudge ±1 and back, the fluid switch and both viewports. **1,078/1,078 persisted brands byte-identical after each edit**, 0 page errors. The traps held: an emptied `italics` or `links` is `[]`; `responsive.fluid` is always written; nudges, links and pins commit through one `rebuild()`.
+
+- **`lint-ramp-steps` reads `domains/type.ts` too.** The gate parses the studio's authored step lists from named files; with the Type controls gone from `main.ts`, `TYPE_GROUP_ORDER`'s consumption and `WEIGHT_STEPS` read STALE. The file is added to its list, and `PER_MODE_SIZE_GROUPS` (imported from the engine, iterated into `type.${g}.${v}` by Individual sizes) is classified exempt with that reason. The comparison is unchanged.
+
+### Design calls (the most conservative option that reuses a pattern; for the owner)
+
+1. **Three Show advanced folds:** Font families' (S6.2's, unchanged), Scale's (Individual sizes), and the page's (the three advanced sections, Palettes' pattern, counted by rows: "Show 12 advanced").
+2. ~~The 16px title floor stays live under Compact.~~ Reversed by the owner (B8b, 2026-10-03): it is disabled under Compact, with the reason (see below).
+3. **A heading's Mobile size is brand-wide** (`sizeOverrides`, no mode): editable previewing Dark too (Q54), with "Mobile sizes apply to every mode." The legacy table offered it on the base column only.
+4. **Weights now stay in order:** the picker disables a weight past its neighbor (Q65), where the legacy stepper allowed a crossing with a warning. The order warning stays for a brand that arrives crossed.
+5. **Line height and letter spacing per mode:** each row keeps its step picker (brand-wide) and, previewing Dark, adds a swap select under it.
+6. **The Scale preview groups by style** (one row per text type and size, weights listed), as v6's Scale board does, replacing the per-composite ramp.
+7. **Pin a font style keeps the legacy hooks and placeholder** ("Derived from weight").
+
+### Tests
+
+- **Counts** (against `origin/main` `101f6270`): `test` type-input 68 → 78, repaint-guard 160 → 165, page-data 76 → 76; `test:smoke` 4,052 → 4,080; `test:chrome` 12,926 → 13,084; `test:verdict` 299 → 299.
+- **Unit (`test-type-input`)**: the caption and size floors (`setCaptionFloor(11) leaves the brand byte-identical`), the italic chips' writes as literals from prism3's lists, the lock string in Q70's words.
+- **`test-shell-imports`**: the four new modules scanned, the Type preview's six shared pieces, `main.ts` drawing no Scale, Weights and styles, Building blocks or fluid read-out of its own.
+- **`test:smoke`**: 1f's sections and markers, and Scale held to the emission (every style once, desktop and mobile px, weights at their numbers); Layout draws no fluid read-out; #388 on the new scale and title floor chips; #1639/#1681 on the matrix; #1296 on the italic chips; the pin on the new rows; **a round trip per italics chip through the exported DTCG `fontStyle`**.
+- **`test:chrome`**: section 20 (the new specimens, Q59 over every advanced control on a floor of 150, the face scan and a Q70 plain-words scan with every fold open); 20b (every S6.3 lever once; Q23 pairs and copy literals; QA-B2 order; Q65 refusal; #831; Q22 Dark weight, size and swap; Q54 nudge; the floors and the 8px warning; the pinned "Italic only"; `typography.responsive is drawn on Type only`); section 21's Type reveal; #1031 moved to Layout's legacy fields.
+
+**Mutations, each after a `wip:` commit, restored with `git checkout -- <file>`, each failing by name:**
+- "Italic only" mapped to `italics` (`setItalicStyle` writing `setItalic` for `only`): smoke `italics chip "Italic only" on caption exports fontStyle italic with no upright style (… md.default-italic* …)`.
+- The caption floor's default written as `11` instead of unset (`setCaptionFloor`): unit `setCaptionFloor(11) leaves the brand byte-identical (11 is the default: the key is unset)`.
+- Layout's "Responsive type sizing" section left in (`renderLayoutPage`): chrome `typography.responsive is drawn on Type only — also on Layout (title "Responsive type sizing", the fluid switch or the viewport fields) (web)`. (The figma host reads the plugin's build, which the mutation run did not rebuild.)
+- The label emphasis lock dropped (`categoryWeightLock`'s required-weight branch): unit `categoryWeightLock(label, emphasis) refuses: label keeps emphasis (Every text type ships at least one weight. …)`.
+- A Dark weight edit writing the brand value (`setWeightRole('light', …)` in `weightRows`): chrome `previewing Dark, a weight edit writes modeLevers.dark.weights.strong and not the brand value — wrote modeLevers undefined, typography.weightRoles {"emphasis":500,"strong":700}`.
+- Type's `noteSectionEdit()` removed from `edit`: chrome `QA-B9: editing the type scale on Type brings the preview's Scale section into view, on the same page (… scrollTop 0 of 7735 …)`, and the same for the caption floor and a weight tick.
+
+### Copy: APPROVED (owner, 2026-10-03)
+
+Section descriptions (levers and preview, Q23): Scale "The size of each heading style on desktop and mobile, and the scale they step along."; Scale limits "Where the heading scale starts and stops, and whether headings scale between mobile and desktop."; Weights and styles "The weight behind each name, the weights each text type ships, and its italic and link styles."; Line height and letter spacing "The step each line height and letter spacing name uses, and how far each text type moves from it."; Building blocks "The fixed size, line height and letter spacing steps every brand shares. Read-only."
+
+Scale: "Type scale"; info "How far apart the heading sizes step. Body, label, caption and code stay put."; the clash "Some sizes you set would clash at this scale. Release them to switch."; "‹n› size(s) is/are set individually. They keep their size when the scale moves."; the #1802 line "One text style the preview uses is not in this brand: ‹paths›. The preview shows a fallback." (plural "‹n› text styles … are …"); "Individual sizes", info "Set any heading size directly. Desktop is the size on wide screens; Mobile is the size on phones, while headings scale between them."; "Desktop", "Mobile"; "Mobile sizes apply to every mode."; "Outside the range · ‹px›px"; picker hints "Sizes stay in order, largest first, on the size ladder." and "A mobile size is at most its desktop size, and stays in order with its neighbors."; "Follow the scale again"; refusals "Below the ‹type› floor, ‹px›px.", "Not above ‹style› (‹px›px). Sizes stay in order.", "Not below ‹style› (‹px›px). Sizes stay in order.", "Below ‹style› on mobile (‹px›px). Sizes stay in order.", "Above ‹style› on mobile (‹px›px). Sizes stay in order.", "Larger than its desktop size, ‹px›px."; row labels "Display md" (text type and size).
+
+Scale limits: fluid info "Display, title and eyebrow sizes shrink smoothly from desktop to mobile between these two screen widths. Body text keeps one size."; "On" / "Off"; "Min viewport, px", "Max viewport, px" (§7); "Depends on Layout: breakpoints" (§7); "Largest display size", info "The largest display size the brand makes. Display sizes above it are left out."; options "display.‹size› · ‹px›px"; "Smallest title size", info "16px adds a title at body size. The Compact scale already places a title at 16px, so the engine refuses 16px with it."; "Smallest caption size", info "10px adds a fine-print caption, for dense legal, footer or product details."; "Smallest type size", info "8px adds the smallest caption and moves the size ladder down to 8px."; the 8px warning "8px is below the sizes the contrast floors were set for. Use it only for fine print that has an accessible alternative."
+
+Weights and styles: "Weights", info "The weight number behind each name. The names read in order, from subtle to max."; names "Subtle" … "Max"; picker hint "Each weight stays between the names before and after it."; "Return to the default"; refusals "Lighter than ‹name› (‹n›). Weights stay in order.", "Heavier than ‹name› (‹n›). Weights stay in order."; the order warning "A weight now reads lighter than the name before it. The names read in order, from subtle to max."; "Weights each text type ships", info "Each weight a text type ships is a text style at every size. Link adds an underlined style for each."; "Text type"; "Link"; "‹n› styles"; the lock "Every text type ships at least one weight. Tick another before clearing this one." (was "Every category ships …"); "Italic styles", info "Upright ships no italic. Upright + italic adds an italic style for each weight. Italic only makes italic the one style."; the pinned reason "This text type pins a font style. Clear the pin first: Italic only sets the style from the weight."; "Pin a font style", info "Set one weight’s font style exactly as Figma names it, such as Light Condensed: a width a weight number can’t reach. The font family is the one the text type uses."; field name "Font style for ‹type›, ‹weight›"; the stale pin "Pinned to ‹family›, but this text type now uses ‹family›. Enter the style again to pin it to ‹family›, or the pin is dropped at export."; "No text type has a font family to pin a style to."; "Not listed: ‹types›, set to Italic only. A pinned style would replace the italic."
+
+Line height and letter spacing: "Line height", "Letter spacing"; infos "The step each line height name uses. Every text style with that name moves with it." and the same for letter spacing; "Editing ‹mode›, the mode the preview shows. A swap uses another name’s step in ‹mode› only; the steps apply to every mode."; picker hint "The names stay in order, so a step past a neighbor is unavailable."; refusals "Below ‹name› (‹value›). The names stay in order." / "Above …"; samples "Line height sets the space between the lines of a paragraph, so a long passage reads evenly." and "Letter spacing"; "One step looser or tighter", info "Moves a text type’s line height or letter spacing along the names, for every size it ships. Larger headings start tighter."; options "Default", "‹n› step(s) looser", "‹n› step(s) tighter"; "Uses ‹names›".
+
+The value picker: "Close"; its group name "Pick a value for ‹name› in ‹mode›".
+
+Preview: Scale's heads "Style", "Sample", "Desktop", "Mobile", "Line height", "Letter spacing", "Weights"; "Same"; "Sizes that merge on mobile." (legacy words) then "‹styles› all land on ‹px›px. Distinct on desktop, the same on a phone."; Weights and styles' sub-heads "Weights", "Italic and link styles", heads "Name", "Weight", "Text type", "Italic", "Link", "Yes" / "No"; Line height and letter spacing heads "Name", "Step", "Used by", "Specimen", "Not used", a swap shown as "‹value› (‹name›)"; Building blocks sub-heads "Size", "Line height", "Letter spacing", heads "Step", "Used by", "Specimen", "Mobile only", "Not used".
+
+### Found, not fixed (filed)
+
+- `size-labels.ts`' `sizeColumnHeader` has no caller left, and `renderRepointTable`'s line height and letter spacing branch is dead: #2038.
+- `test:chrome`'s figma host reads the plugin's built `ui.html`, which a studio-only rebuild leaves stale: #2037.
+- The weights matrix's lock reasons carry engine prose with code (`buttonLabelWeight`, `type.label.*.emphasis`): noted on #2005.
+
+### After review (on #2036, after #2041 merged in)
+
+- **One label-and-token helper.** S6.3's own `labelToken(label, token)` is gone: every S6.3 row goes through #2041's `tokenLabel(token, label, forId?)` (`ui/lever-kit.ts`), each call converted to its argument order. `test:chrome` section 22's QA-B2 arm now requires Type's size, weight, line height and letter spacing rows among the row types it reads (every Show advanced open on Type), and adds a check that the mono line under a label is a token path and the label is not, so a call with its arguments swapped fails there by name.
+- **Scale's Show advanced stays openable in a derived mode,** so Individual sizes can be read; every control it opens stays disabled (Q59). The derived-mode arm leaves the two disclosures (info buttons, Scale's fold) out of its "every control disabled" count and adds `Q59: previewing HC light, Scale's Show advanced opens Individual sizes read-only …`. Font families' Show advanced is unchanged (S6.2's arm holds it disabled).
+- **Mutations, after a `wip:` commit, each failing by name:** one call with `tokenLabel`'s arguments swapped (the weight rows) → chrome `QA-B2: web light: in every row the mono line under the label is a token path and the label is not — [["type-weight","font.weight-role.subtle","Subtle"],…]` (and `web dark`, and 20b's `QA-B2: web: the weight control reads its label first and its token under it …`); Scale's fold disabled again in derived modes → chrome `Q59: previewing HC light, Scale's Show advanced opens Individual sizes read-only: the fold is live and every control inside it is disabled (fold disabled true, …)`.
+
+### Owner answers (2026-10-03, #2036)
+
+- **All S6.3 copy (B1–B7) APPROVED; design calls c, e, f and g approved;** the Scale fold and the page-level fold are kept, for the owner to see in the preview.
+- **Font families is not advanced** ("that's a major brand lever"): S6.2's Font families fold is gone. Apply to all ("Set every text type to" / "Apply to all") and the remove button on an unused family are always shown, in the same order, with the same behavior and bytes; they stay disabled in derived modes (Q59). S6.2's arms on that fold are replaced by `owner (2026-10-03): ‹host›: Font families sits outside Show advanced: Apply to all is drawn in it, in no fold`. The page's two folds read "Hide 1 advanced" and "Hide 12 advanced".
+- **B8b: the 16px smallest title is disabled under Compact,** in the scale chips' disabled pattern, with the approved info text's sentence as its reason: "The Compact scale already places a title at 16px, so the engine refuses 16px with it." A brand that arrives with both set keeps the chip live, so it can move back to 18px.
+- **#388 re-pointed, not deleted.** With 16px disabled, the smoke test's path to an engine refusal moved to the one Type still reaches: a display size set individually (display md, the first value its picker offers), then the largest display size lowered to display.sm. The engine refuses the pinned size (`typography.sizes.display.md: … trimmed by displayCeiling`); the bar surfaces it, survives navigating to Motion, and clears when the ceiling goes back. The ceiling select does not trial-build, as before.
+- **Found while re-pointing #388, fixed here:** the desktop size picker offered a size below a mobile size set individually, which the engine refuses (`sizeOverrides …: mobile 40px is larger than desktop 36px`). It is now disabled, with the reason "Smaller than its mobile size, ‹px›px." (APPROVED, owner, 2026-10-03). Bytes for every accepted edit are unchanged.
+- **Mutations, after a `wip:` commit, each failing by name:** the Font families fold put back → chrome `owner (2026-10-03): web: Font families sits outside Show advanced: Apply to all is drawn in it, in no fold ({"title":"Font families","folds":2,"all":true,"inFold":true})`; 16px re-enabled under Compact → chrome `B8b: under the Compact scale the 16px smallest title is disabled with its reason ({"off":false,"why":""})`.
+
+---
+
+## (2026-10-03) — Studio shared styling pass: label before token, one select and step-button style, rows 24px apart, 40px swatches, a filled Continue, and the dashed Add custom mode (QA-B2, B5, B8, B11, B18, I12, R1)
+
+**STATUS: branch `ui/shared-styling`, pushed for review; no PR yet.** UI only. No engine change and no emitted artifact moves, so ENGINE stays at 0.225.0 and `CONTRACT_VERSION` is unchanged. No brand byte moves: the pass adds no write path, and Add custom mode keeps its handler unchanged.
+
+**What changed, in the shared pieces, so the rebuilt pages (S6.3's Type, S4f's Surfaces & fills) inherit it.**
+- **QA-B2, label first.** `tokenLabel(token, label, forId?)` in `ui/lever-kit.ts` is now the one helper that draws a control's name and its token: the label first, the token under it in mono. Surfaces & fills' fields and fill rows, the scrim and focus rows, Interactive's rows and Type's family and library rows all draw through it. It reverses #1980's "token first" and Type's Q68 order; `test:chrome`'s Q68 arms now assert the new order (renamed QA-B2).
+- **QA-B5 and QA-B18, one control.** In the levers pane, every select and every step-picker button is 40px tall (`ctl-h`; the selects were 36), sets its text at 12px (`fs-12`), and starts the text at the left. The step button's label takes the free width, so its ratio and caret sit at the far right, 12px in, where the select's caret already sat (`chrome.css`).
+- **QA-B8.** Rows stand `space.300` apart (24px) in every row list: the fill rows, the field grid's rows, Interactive's sets and state rows, and Type's family and library rows. The fill rows were at `space.100`, the field grid at `space.150`.
+- **QA-B11.** The row swatch is 40×40 (`--p3-swatch-h`, the mockup's `core.dimension.40` row, now in `SHELL_VARS`), and the row's spacing goes up one step (150 → 200).
+- **QA-I12.** Continue (`.p3-next`, on every levers page) takes Apply Theme's inverse fill, its edge and its ink, glyph included. One CSS rule, with no page edits.
+- **QA-R1.** Brand's Add custom mode is `addRowButton` (#2019): the full-width dashed add row, with its note under it. Same hook, same write, same focus move to the new name.
+- **Dedupe.** `chrome.css`'s second copy of `.p3-jump`, `.p3-jump[hidden]`, `.p3-jump-link` and its `:focus-visible` is gone. A driver read 15 computed properties on every jump node, focused link included, on both pages: identical to `origin/main`.
+- **Fold-in (#2015).** The scroll's two motion variables are read from the one composite the engine emits for them, `motion.transition.default` (`#duration`, `#timingFunction`), so they cannot drift apart. `chrome/tokens.mjs`'s `resolve` takes a `path#member`; `--p3-transition-dur` and `--p3-transition-ease` replace `--p3-dur-normal` and the `ease` row in the product map. They still resolve to `200ms` and `cubic-bezier(0.2, 0, 0, 1)`, and section 21's easing arms pass unchanged.
+- **Not here:** Type's `noteSectionEdit()` hookup belongs to S6.3, which owns Type's lever sections.
+
+**Design calls (conservative, each reusing a pattern; for the owner to overturn).** (1) The fields' name takes the fill rows' label style (14px, emphasis, primary ink) instead of the 12px secondary field label, so every name reads alike (QA-B1's row pattern). (2) QA-B5 and B18 apply to every select in the levers pane, not only those in rows: the owner asked for consistency, and a row-only rule would leave two select sizes on one panel. (3) "Row padding up one step" is read as the row's internal spacing (150 → 200), because the rows have no padding to step up. (4) "Row gap 150 → 300" is applied to every row list. The lists were at 100 or 150, so every one lands on 300. (5) Type's family rows have no swatch, and gain none. (6) Type's "Return to Auto" beside a family select stays a 36px button: it is neither a select nor a step-picker button.
+
+**Copy.** No new visible string.
+
+**Proof.** The brand bytes: a driver clicks Add custom mode twice on `origin/main`'s build and on this branch's, and the persisted `prism3:brandInput` is identical byte for byte at each step (focus lands on the new name in both). The write suites (`test-fills-input.ts` 1011, `test-interactive-input.ts` 51, `test-type-input.ts` 68, `test-brand-input.ts` 30) pass untouched. `test:chrome` gains section 22, on both hosts and in both chrome themes, read from the rendered layout against the token tree (`space.300`, `core.dimension.40`, `core.font.size.12`, the inverse fill and ink per theme), never `chrome.css`. It asserts the following. The token sits below its label in each row type: fill rows, fields, Interactive rows, and Type families and faces, each represented. Every select and step button in the levers pane has one height, a caret within 16px of its right edge, left-set text and 12px text, on all four pages, with Brand's custom-mode select included. Rows are 24px apart on three pages. Every swatch is 40×40. Continue is filled on all four pages. Add custom mode is dashed, full width and unfilled, and still adds a mode and focuses its name. 13112 → 13167 assertions.
+
+Mutations, each after a `wip:` commit, each failing by name: token above label → `QA-B2: … in every row type the token sits below its label …`; the step button's caret after its text → `QA-B5: … has its caret within 16px of its right edge` (caret 137px in); row gap 150 → `QA-B8: … rows stand space.300 (24px) apart …` (read 12); swatch 32 → `QA-B11: … every swatch is 40×40` (read 32×32); Continue unfilled → `QA-I12: … Continue is the filled primary button …`.
+
+**Trap for whoever re-verifies this.** A swatch mutation written as `var(--p3-space-400)` does not build: it leaves `--p3-swatch-h` unread, and the build refuses a mapped variable nothing reads. The suite then runs against the previous `dist`, and its failures belong to the mutation before. Mutate to `calc(var(--p3-swatch-h) - var(--p3-space-100))` instead. Check the build's exit status before reading the suite.
+
+---
+
+## (2026-10-03) — surfaces base and inverseBase refuse unknown keywords and off-ramp steps (#1985)
+
+**Status:** ENGINE `0.225.0` (`engine: minor` change note), CONTRACT unchanged. `regen` moves no
+committed artifact. Engine only: `apps/studio` and `apps/plugin` untouched.
+
+### What changed
+
+Owner decision 2026-10-03, option A. `surfaces.<mode>.base` and `inverseBase` refuse an unknown keyword
+(`'grey'`, `'300'` as a string) and a step that isn't on the palette's ramp (`333`, `1234`, or
+`{ palette: 'primary', step: 901 }`). The error names the key and, for an off-ramp number, the nearest real
+step: `333` → 350, `1234` → 950, `901` on primary → 900. `'white'`, `'black'` and real steps are accepted as
+before. The four tier inputs got this check in #1972. It's now one loop over all six surface anchors in
+`brandTheme`, so the tier messages name the nearest step as well. The tests only ever asserted the key and
+"ramp", so they're unaffected.
+
+**Why `brandTheme` and not the schema.** `json-schema-lite` skips `allOf`/`oneOf`, so the schema route means
+teaching the validator those keywords. That would tighten every other `allOf` field in the schema at once,
+which is a separate change with its own blast radius. The tiers already set the `brandTheme` precedent, and
+it covers inputs that never go through the schema (the Studio and the MCP build themes directly). Left as is.
+
+### Measured before changing behavior
+
+A temporary recorder in the validation loop, never committed, logged every `base`/`inverseBase` that
+`brandTheme` resolved while these ran:
+- `regen --check`, `test.ts`, `lint-ratio-truth`, `mcp-test`, `token-contract --check`, `nb-regression` and
+  `lint-lever-sweep`;
+- the Studio unit suites `test-fills-input`, `test-store`, `test-brand-input`, `test-provenance` and
+  `test-export-settings`.
+
+That was **1,688 resolutions, 33 distinct values, 0 off the ramp or unknown**. Every value was `white`,
+`black`, a neutral step from 25 to 950, or a `{ palette, step }` band on a real step. The Studio's surface
+pickers are built from the theme's own ramp steps, so they can't produce an off-ramp value.
+
+### Version class: minor
+
+ENGINE major is refused while below 1.0 (`changes/README.md`; going to 1.0 is the owner's call). The values
+now refused were already resolving to a color nobody chose, so this turns a silent mis-resolution into a
+named error rather than removing a working capability. No measured input relied on it. CONTRACT versions
+token names, and none moves.
+
+### Mutations
+
+| Mutation | Fails |
+|---|---|
+| `base` and `inverseBase` dropped from the check | 18 `#1985` arms, e.g. `#1985: surfaces.dark.base = 333 is refused by name, naming the nearest step 350 (got: "")` |
+| the nearest step always the ramp's first | 10 `#1985` arms, e.g. `… naming the nearest step 350 (got: "… the nearest step is 25 …")` |
+
+### Found, not fixed
+
+`surfaces.<mode>.floorStep` snaps the same way (`333` becomes `neutral.350`, silently). The decision covers
+`base` and `inverseBase` only, so it is filed as its own issue (#2033).
+
+---
+
 ## (2026-10-03) — An override is re-rated against its real ground when that ground is a palette step (#2025)
 
 **STATUS: PR open from `engine/override-floor-ground-2025`.** Engine, plus one Studio test fixture. ENGINE minor via `packages/engine/changes/engine-override-floor-ground-2025.md`. No emitted artifact moves, and `CONTRACT_VERSION` is unchanged.
