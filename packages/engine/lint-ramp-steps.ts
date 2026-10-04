@@ -119,9 +119,25 @@ const HERE = import.meta.dirname;
  *  S6.1, which moved the typography group list with the Type writes (`state/type-input.ts`,
  *  `TYPE_GROUP_ORDER` and `BULK_CATS`), and S6.3, which moved every Type control to the new page
  *  (`domains/type.ts`: `WEIGHT_STEPS`, and the loops that iterate `TYPE_GROUP_ORDER` into `type.${g}`). A file
- *  is listed by path, so a constant that moves to an unlisted file reads as STALE below, by name. */
-const STUDIO_FILES = ['../../apps/studio/src/main.ts', '../../apps/studio/src/preview/palettes.ts', '../../apps/studio/src/state/type-input.ts', '../../apps/studio/src/domains/type.ts'];
-const STUDIO_LABEL = 'apps/studio/src/main.ts, apps/studio/src/preview/palettes.ts, apps/studio/src/state/type-input.ts or apps/studio/src/domains/type.ts';
+ *  is listed by path, so a constant that moves to an unlisted file reads as STALE below, by name.
+ *
+ *  S7 (Shape) RETIRED `RADIUS_STEPS`, this gate's first subject, and listed the files that replaced it. The radius
+ *  sizes are no longer an authored list: the Shape preview reads the ladder itself (`theme.dims.radius`, with the
+ *  mode's own values), so the container sizes (#1852, #1881) and the 1px hairline (#2053) render with nothing to keep
+ *  in step, and their four declared omissions went with the list (arm C would otherwise have flagged them STALE
+ *  once the constant was gone, and arm D UNKNOWN). Retiring the ENTRY is not retiring the coverage, by the docs/34
+ *  test: what the entry compared (an authored list against the ladder) has no authored side left, and the
+ *  property it stood for, "every rung the engine emits is drawn", is now held where it can be measured, as drawn:
+ *  `test:smoke`'s Shape section reads every `radius.*` the committed emission carries, per mode, against the rows
+ *  the preview draws. The new modules are listed here so a hand list revived in any of them (a `RADIUS_STEPS` in
+ *  `radius.ts`, say) is discovered and reads UNCLASSIFIED, by name, rather than slipping past a scan that never
+ *  read the file. */
+const STUDIO_FILES = ['../../apps/studio/src/main.ts', '../../apps/studio/src/preview/palettes.ts', '../../apps/studio/src/state/type-input.ts', '../../apps/studio/src/domains/type.ts',
+  '../../apps/studio/src/domains/shape.ts', '../../apps/studio/src/state/shape-input.ts', '../../apps/studio/src/preview/shape.ts',
+  '../../apps/studio/src/preview/sections/radius.ts', '../../apps/studio/src/preview/sections/control-heights.ts', '../../apps/studio/src/preview/sections/spacing.ts',
+  '../../apps/studio/src/preview/sections/shape-building-blocks.ts', '../../apps/studio/src/preview/sections/radius-sample.ts'];
+/** The files, for a failure message: every one of them, so the message names where the scan looked. */
+const STUDIO_LABEL = STUDIO_FILES.map((f) => f.replace('../../', '')).join(', ');
 
 /** One corpus member. `tree` is the brand's committed DTCG tree where one exists, else `null` — a
  *  synthetic lever probe has no emitted artifact, and a ramp whose oracle needs one says so by
@@ -168,24 +184,8 @@ type Ramp =
  * in the source that is missing from here, so a new authored ramp is a decision rather than an
  * omission. This is `lint-schema-classification`'s posture, for the same reason.
  */
+// `RADIUS_STEPS` stood first here until UI redesign S7 retired it with the hand list it checked; see STUDIO_FILES.
 const RAMPS: Ramp[] = [
-  {
-    name: 'RADIUS_STEPS',
-    label: 'the corner-radius ramp',
-    source: 'theme.dims.radius (packages/engine/scale.ts, radiusScale)',
-    ladder: (b) => b.theme.dims.radius.map((s) => s.name),
-    // The container rungs (#1852). Deferred, not declined: rendering them is a studio edit, and it needs a
-    // value source as well as a list entry, since `rp.dims` holds only preview-bound refs (#1177). Tracked
-    // in #1881, which also removes these three entries.
-    omits: {
-      xl: 'container corner added by #1852; the studio ramp renders it in #1881 (apps/studio/src belongs to the UI redesign lane)',
-      '2xl': 'container corner added by #1852; the studio ramp renders it in #1881 (apps/studio/src belongs to the UI redesign lane)',
-      '3xl': 'container corner added by #1852; the studio ramp renders it in #1881 (apps/studio/src belongs to the UI redesign lane)',
-      // #2053: the 1px sentinel is emitted for every brand now. The studio ramp never drew it, even while it was
-      // opt-in; S7 (Shape) redraws the radius controls and renders it there.
-      hairline: 'the 1px sentinel, always emitted since #2053; the studio ramp renders it in S7, Shape (apps/studio/src belongs to the UI redesign lane)',
-    },
-  },
   {
     name: 'SHADOW_STEPS',
     label: 'the elevation ramp',

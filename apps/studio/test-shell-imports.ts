@@ -125,7 +125,12 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   'src/domains/type.ts', 'src/preview/type.ts', 'src/preview/sections/type-sample.ts', 'src/preview/sections/faces.ts',
   // S6.3: the value picker, and the Type preview's Scale, Line height and letter spacing, and Building blocks sections.
   // (S6.3 retired S6.1's type-ramp.ts and type-fluid.ts, folded into Scale.)
-  'src/ui/value-picker.ts', 'src/preview/sections/type-scale.ts', 'src/preview/sections/line-spacing.ts', 'src/preview/sections/building-blocks.ts'];
+  'src/ui/value-picker.ts', 'src/preview/sections/type-scale.ts', 'src/preview/sections/line-spacing.ts', 'src/preview/sections/building-blocks.ts',
+  // S7: Shape (its levers, its preview, its writes), the generated "used by" index, and the Shape preview's sections and
+  // the Style guide's radius sample.
+  'src/domains/shape.ts', 'src/preview/shape.ts', 'src/state/shape-input.ts', 'src/preview/used-by.ts',
+  'src/preview/sections/radius.ts', 'src/preview/sections/control-heights.ts', 'src/preview/sections/spacing.ts',
+  'src/preview/sections/shape-building-blocks.ts', 'src/preview/sections/radius-sample.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {

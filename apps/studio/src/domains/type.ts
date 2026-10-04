@@ -66,8 +66,8 @@ import { choice, leverBlock, leverOf, selectField, stateLine, subLine, switchBut
 import type { PageLends } from '../preview/brand';
 
 const PAGE = DOMAINS.find((d) => d.id === 'type') as PageData;
-/** The page the Continue button opens: the next tab, Shape, by the store's page key (its legacy page until S7). */
-const NEXT = { label: 'Shape', page: 'sizeRadius' } as const;
+/** The page the Continue button opens: the next tab, Shape, by the store's page key (moved in S7). */
+const NEXT = { label: 'Shape', page: 'shape' } as const;
 
 /** Code's opt-out (owner decision Q75, APPROVED: today's wording, the em dash kept). */
 export const CODE_NONE = 'None — no code styles';
