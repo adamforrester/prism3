@@ -118,10 +118,11 @@ const HERE = import.meta.dirname;
  *  which moved the alpha/opacity steps with the Palettes preview (`preview/palettes.ts`, `ALPHA_STEPS`), and
  *  S6.1, which moved the typography group list with the Type writes (`state/type-input.ts`,
  *  `TYPE_GROUP_ORDER` and `BULK_CATS`), and S6.3, which moved every Type control to the new page
- *  (`domains/type.ts`: `WEIGHT_STEPS`, and the loops that iterate `TYPE_GROUP_ORDER` into `type.${g}`). A file
+ *  (`domains/type.ts`: `WEIGHT_STEPS`, and the loops that iterate `TYPE_GROUP_ORDER` into `type.${g}`), and S9.1,
+ *  which moved the elevation ramp with its specimen (`preview/sections/shadow-ramp.ts`, `SHADOW_STEPS`). A file
  *  is listed by path, so a constant that moves to an unlisted file reads as STALE below, by name. */
-const STUDIO_FILES = ['../../apps/studio/src/main.ts', '../../apps/studio/src/preview/palettes.ts', '../../apps/studio/src/state/type-input.ts', '../../apps/studio/src/domains/type.ts'];
-const STUDIO_LABEL = 'apps/studio/src/main.ts, apps/studio/src/preview/palettes.ts, apps/studio/src/state/type-input.ts or apps/studio/src/domains/type.ts';
+const STUDIO_FILES = ['../../apps/studio/src/main.ts', '../../apps/studio/src/preview/palettes.ts', '../../apps/studio/src/state/type-input.ts', '../../apps/studio/src/domains/type.ts', '../../apps/studio/src/preview/sections/shadow-ramp.ts'];
+const STUDIO_LABEL = 'apps/studio/src/main.ts, apps/studio/src/preview/palettes.ts, apps/studio/src/state/type-input.ts, apps/studio/src/domains/type.ts or apps/studio/src/preview/sections/shadow-ramp.ts';
 
 /** One corpus member. `tree` is the brand's committed DTCG tree where one exists, else `null` — a
  *  synthetic lever probe has no emitted artifact, and a ramp whose oracle needs one says so by
@@ -181,6 +182,9 @@ const RAMPS: Ramp[] = [
       xl: 'container corner added by #1852; the studio ramp renders it in #1881 (apps/studio/src belongs to the UI redesign lane)',
       '2xl': 'container corner added by #1852; the studio ramp renders it in #1881 (apps/studio/src belongs to the UI redesign lane)',
       '3xl': 'container corner added by #1852; the studio ramp renders it in #1881 (apps/studio/src belongs to the UI redesign lane)',
+      // #2053: the 1px sentinel is emitted for every brand now. The studio ramp never drew it, even while it was
+      // opt-in; S7 (Shape) redraws the radius controls and renders it there.
+      hairline: 'the 1px sentinel, always emitted since #2053; the studio ramp renders it in S7, Shape (apps/studio/src belongs to the UI redesign lane)',
     },
   },
   {

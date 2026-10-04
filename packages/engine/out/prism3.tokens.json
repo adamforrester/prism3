@@ -22573,6 +22573,19 @@
             "px": 999
           }
         }
+      },
+      "hairline": {
+        "$type": "dimension",
+        "$value": "{pds3.core.dimension.1}",
+        "$description": "radius hairline — 1px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "pds3.core.dimension.1",
+            "px": 1,
+            "radiusScale": 1
+          }
+        }
       }
     },
     "border-width": {
@@ -23087,7 +23100,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.224.0",
+      "version": "0.225.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

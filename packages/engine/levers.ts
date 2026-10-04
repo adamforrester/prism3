@@ -50,6 +50,9 @@ export type Lever = {
   options?: { value: string | number; label: string }[];
   // list/object (informational item hint):
   itemLabel?: string;
+  /** Present on a lever that is retired but still ACCEPTED in brand input (#2053): the note says what to do
+   *  instead. Additive and optional, so a reader that ignores it still reads the lever as before. */
+  deprecated?: string;
   /** Named stops a slider also accepts (#471) — `{ soft: 1.5 }`, so `radiusScale: 'soft'` is legal
    *  input. Present only on the six sliders where a word genuinely names a design intent; a bare
    *  quantity like `disabledMin` has none, deliberately. Emitted from `SLIDER_STOPS` rather than
@@ -121,7 +124,8 @@ export const leverManifest: Lever[] = [
   { key: 'baseMd', group: 'form', label: 'Radius anchor', control: 'slider', advanced: true, default: 4, min: 2, max: 12, step: 1, unit: 'px',
     description: 'The radius.md value (px) at scale 1.' },
   { key: 'radiusHairline', group: 'form', label: 'Hairline radius', control: 'toggle', advanced: true, default: false,
-    description: 'Opt-in (off by default). On adds a fixed 1px radius.hairline for near-sharp brands — the scaled ramp only reaches even values, so this is the way to a 1px corner.' },
+    description: 'Retired. radius.hairline, a fixed 1px corner, is always emitted, so this setting changes nothing.',
+    deprecated: 'Always on since #2053: radius.hairline is emitted for every brand. Accepted so existing brand files still load.' },
 
   // ---- TYPE ----
   { key: 'typography.typeScale', group: 'type', label: 'Type scale', control: 'enum', default: 'default',

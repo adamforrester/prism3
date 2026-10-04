@@ -1897,10 +1897,8 @@ export const PILL_RADIUS_RUNG = 'radius.capsule';
 export const BOXED_RADIUS_RUNG = 'radius.none';
 
 /** The rung a pill-able control binds under `controlShape: hairline` (#1371) — the fixed 1px sentinel
- *  (#1362). `radius.hairline` is OPT-IN: it exists only when the brand's `radiusHairline` lever is on, so
- *  selecting `controlShape: hairline` IMPLIES that rung — `brandTheme` provisions `radius.hairline`
- *  whenever the control shape needs it (theme.ts), which is what keeps this rewrite always resolvable
- *  rather than dangling against a brand that never opted in. */
+ *  (#1362). Every brand emits `radius.hairline` since #2053 (`radiusScale` pushes it unconditionally), so
+ *  this rewrite always resolves, as `boxed`'s `radius.none` always has. */
 export const HAIRLINE_RADIUS_RUNG = 'radius.hairline';
 
 /** The rung each shape repoints the ROUNDED rung (`radius.md`) to on a pill-able def. `rounded` is `null`
@@ -1935,9 +1933,8 @@ export const isPillable = (def: ComponentDef): boolean => !!def.anatomy?.derived
  *
  * EACH SHAPE NAMES A RELATIONSHIP, NOT A RAW RADIUS (#1371). The four values are one selector reaching four
  * rungs by ref: `rounded` tracks the softness ramp, `pill` is the unconditional height ÷ 2, `boxed` is the
- * always-present sharp floor, and `hairline` is the opt-in 1px sentinel. `boxed`'s `radius.none` always
- * exists, so it is valid for any brand; `hairline`'s `radius.hairline` is provisioned by `brandTheme`
- * whenever `controlShape: hairline` is chosen (see `HAIRLINE_RADIUS_RUNG`), so this rewrite never dangles.
+ * always-present sharp floor, and `hairline` is the always-present 1px sentinel (#2053). Both rungs exist
+ * for every brand, so neither rewrite can dangle (see `HAIRLINE_RADIUS_RUNG`).
  *
  * WHY IT KEYS ON THE ROUNDED RUNG (`radius.md`) RATHER THAN THE LITERAL KEY `radius` (#1353). Before the
  * icon-button `shape` axis, both pill-able defs bound their corner radius through a token key spelled

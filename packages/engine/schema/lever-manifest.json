@@ -313,7 +313,8 @@
       "control": "toggle",
       "advanced": true,
       "default": false,
-      "description": "Opt-in (off by default). On adds a fixed 1px radius.hairline for near-sharp brands — the scaled ramp only reaches even values, so this is the way to a 1px corner."
+      "description": "Retired. radius.hairline, a fixed 1px corner, is always emitted, so this setting changes nothing.",
+      "deprecated": "Always on since #2053: radius.hairline is emitted for every brand. Accepted so existing brand files still load."
     },
     {
       "key": "typography.typeScale",

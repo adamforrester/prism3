@@ -228,7 +228,9 @@ export type ModeOverrides = Record<string, PrimitiveRef>;   // rolePath -> primi
 // `against` is set only when the miss is on a ground OTHER than the role's own `against`: the page fill's
 // `background.tertiary` tier (#1773), or a role's SECOND contracted pair (`AlsoAgainst`, #1745), naming that
 // pair's partner. A warning without it is about the role's own `against`, as it always was.
-export type OverrideWarning = { role: string; ratio: number; min: number; against?: string };
+// `unresolved` (#2034) marks an override whose `against` is neither a role in the mode nor a ramp step:
+// `against` names that ground, and `ratio` is the pick measured on the page base it fell back to.
+export type OverrideWarning = { role: string; ratio: number; min: number; against?: string; unresolved?: true };
 // A contract a role carries beyond its own `against` (#1773): the page interactive fill's second ground,
 // `background.tertiary`. `tree.ts` counts each into `modeChecks` / `modePass` beside the per-role checks.
 export type TierCheck = { role: string; against: string; ratio: number; min: number };
@@ -592,6 +594,29 @@ export const engineGrounds = (roles: Record<string, ResolvedRole>): Set<string> 
  *  the blast radius in the very message that has to justify a refusal. */
 export const groundDependentsOf = (roles: Record<string, ResolvedRole>, g: string): string[] =>
   Object.keys(roles).filter((k) => roles[k].against === g || roles[k].legibleFor === g).sort();
+
+/**
+ * The ground an OVERRIDE is re-rated against (#2025, #2034): `self`, a role in this mode, or a
+ * `<palette>.<step>` on this theme's ramps (the contrast floor names one). Anything else falls back to
+ * the page base, and that fallback is WARNED, naming the role and the ground it could not find, with
+ * `unresolved: true`. Unreachable from any input today: every `against` the engine writes is a role or
+ * a step, which `lint-ratio-truth` arm C holds across the corpus and its sweep. Warned rather than
+ * thrown because the miss would be the engine's defect, not the brand's, and a throw would refuse a
+ * brand for it. Exported so `test.ts` FO-02 can hand it a ground no input can reach.
+ */
+export const overrideGroundRgb = (
+  rolePath: string, against: string, min: number, self: RGB,
+  rgbByRole: ReadonlyMap<string, RGB>, ramps: ReadonlyMap<string, Step[]>, page: RGB, warnings: OverrideWarning[],
+): RGB => {
+  if (against === 'self') return self;
+  const role = rgbByRole.get(against);
+  if (role) return role;
+  const dot = against.lastIndexOf('.');
+  const step = dot < 0 ? undefined : ramps.get(against.slice(0, dot))?.find((s) => s.key === against.slice(dot + 1))?.rgb;
+  if (step) return step;
+  warnings.push({ role: rolePath, ratio: contrast(self, page), min, against, unresolved: true });
+  return page;
+};
 
 const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<string, Step[]>): ModeResult => {
   const ns = theme.namespace;
@@ -2214,11 +2239,6 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // the same set.
   const overridden = new Set<string>();
   const ov = withFillStateTwins(withIconTwins(theme.overrides?.[mode], roles, theme.iconContrast));
-  // A `<palette>.<step>` ground (the contrast floor) resolved on this theme's ramps — see `againstRgb`.
-  const stepRgbOf = (ref: string): RGB | undefined => {
-    const dot = ref.lastIndexOf('.');
-    return dot < 0 ? undefined : ramps.get(ref.slice(0, dot))?.find((s) => s.key === ref.slice(dot + 1))?.rgb;
-  };
   if (ov) {
     for (const [rolePath, ref] of Object.entries(ov)) {
       const existing = roles[rolePath];
@@ -2272,7 +2292,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       // it off the ramp. Falling through to the page base re-rated every overridden floor role on white:
       // a ratio the tree does not contain, no warning for a floor-only shortfall, and the link clamp
       // just below clearing white instead of the floor (4,810 sub-contract links in the sweep, #2025).
-      const againstRgb = existing.against === 'self' ? newRgb : (rgbByRole.get(existing.against) ?? stepRgbOf(existing.against) ?? baseRgb);
+      const againstRgb = overrideGroundRgb(rolePath, existing.against, existing.min, newRgb, rgbByRole, ramps, baseRgb, warnings);
       // ---- the LINK floor guard (#1510) ----
       // The general override layer WARNS-not-blocks: a hand-tuned FOREGROUND ink may dip below its bar
       // by the author's choice — applied, emitted, recorded as a warning (the posture just above). A LINK

@@ -17,7 +17,7 @@ import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimen
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, type Theme } from './theme';
 import { nbTheme } from './nb-fixture';
-import { resolveAllModes, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS, pureExtremeInk } from './modes';
+import { resolveAllModes, overrideGroundRgb, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS, pureExtremeInk } from './modes';
 import { groundsOf } from './grounds';
 import { INVERSE_GAPS, INVERSE_GAP_PATHS } from './inverse-coverage';
 import { isInverseRole } from './inverse-roles';
@@ -1030,6 +1030,74 @@ for (const b of brands) {
     ok(l.against === 'neutral.050' && onRgb(l.hex, FLOOR) >= 4.5,
       `FO-01: a text.link.default override at neutral.${s.key} is clamped to clear 4.5:1 on the floor ${FLOOR} (emitted ${l.hex} at ${onRgb(l.hex, FLOOR).toFixed(2)})`);
   }
+}
+
+// FO-01b (#2034) — FO-01 beyond the sparsest brand's light mode: the DARK floor, a brand whose floor is
+// a DIFFERENT step, an HC mode, and one of the roles #2032's note left unnamed. Same independence as
+// FO-01: every expected value is a literal hex, tied as a precondition to the committed ramp in
+// `out/<brand>.tokens.json` (the emitted primitive, not the engine's ground lookup), and every ratio is
+// the shared `contrast` primitive over two literals. BY-NAME MUTATION: revert `overrideGroundRgb`'s step
+// branch → the prism3/dark, harbor/light and text.brand arms fail by name.
+{
+  const outHex = (file: string, path: string): string | undefined => {
+    let o: any = JSON.parse(readFileSync(resolve(HERE, 'out', file), 'utf8'));
+    for (const k of path.split('.')) o = o?.[k];
+    return typeof o?.$value === 'string' ? o.$value.toLowerCase() : undefined;
+  };
+  const onRgb = (fg: string, bg: string) => contrast(hexToRgb(fg), hexToRgb(bg));
+  type BRole = { hex: string; ratio: number; min: number; against: string };
+  const modeOf = (input: BrandInput, mode: string) => resolveAllModes(brandTheme(input)).find((m) => m.mode === mode)!;
+  const PRISM3 = () => structuredClone(exampleBrands()['prism3']) as BrandInput;
+  const HARBOR = () => structuredClone(exampleBrands()['harbor']) as BrandInput;
+  const ARMS: Array<{ label: string; input: () => BrandInput; mode: 'light' | 'dark'; role: string; step: string; floorRef: string; floor: string; page: string; file: string; path: string }> = [
+    { label: 'prism3/dark (neutral.900 floor)', input: PRISM3, mode: 'dark', role: 'foreground.brand', step: '400', floorRef: 'neutral.900', floor: '#171718', page: '#0d0d0e', file: 'prism3.tokens.json', path: 'pds3.core.palette.neutral.900' },
+    { label: 'harbor/light (neutral.100 floor)', input: HARBOR, mode: 'light', role: 'foreground.brand', step: '500', floorRef: 'neutral.100', floor: '#dcdbdb', page: '#e9e9e8', file: 'harbor.tokens.json', path: 'hds.core.palette.neutral.100' },
+    // One of the roles #2032's change note did not name (#2034 item 3): 6.69 on the page before, 5.51 on the floor now.
+    { label: 'prism3/light text.brand', input: PRISM3, mode: 'light', role: 'text.brand', step: '600', floorRef: 'neutral.050', floor: '#e9e9e9', page: '#ffffff', file: 'prism3.tokens.json', path: 'pds3.core.palette.neutral.050' },
+  ];
+  for (const a of ARMS) {
+    const base = modeOf(a.input(), a.mode).roles as Record<string, BRole>;
+    ok(outHex(a.file, a.path) === a.floor && base[a.role]?.against === a.floorRef && base['background.primary']?.hex.toLowerCase() === a.page,
+      `FO-01b ${a.label}: '${a.role}' is measured on ${a.floorRef} at ${a.floor} (out/${a.file}: ${outHex(a.file, a.path)}) under a ${a.page} page (precondition)`);
+    const o = (modeOf({ ...a.input(), overrides: { [a.mode]: { [a.role]: { palette: 'neutral', step: a.step } } } } as BrandInput, a.mode).roles as Record<string, BRole>)[a.role];
+    ok(Math.abs(o.ratio - onRgb(o.hex, a.floor)) < 1e-9,
+      `FO-01b ${a.label}: '${a.role}' overridden to neutral.${a.step} records its contrast on ${a.floor} (records ${o.ratio.toFixed(2)}, measures ${onRgb(o.hex, a.floor).toFixed(2)} on the floor, ${onRgb(o.hex, a.page).toFixed(2)} on the page)`);
+    ok(Math.abs(onRgb(o.hex, a.floor) - onRgb(o.hex, a.page)) > 0.1, `FO-01b ${a.label}: the floor and the page give different ratios for the pick (non-vacuous)`);
+  }
+  // HC: overrides are refused in a generate-only mode, so the override pass never runs there. What HC
+  // can hold is the same promise by derivation: its floor-measured role records its ratio on the floor
+  // step, not on the HC page (#000000).
+  const hc = modeOf(PRISM3(), 'hc-dark').roles as Record<string, BRole>;
+  const hcFg = hc['foreground.brand'];
+  ok(hcFg?.against === 'neutral.900' && outHex('prism3.tokens.json', 'pds3.core.palette.neutral.900') === '#171718' && hc['background.primary']?.hex.toLowerCase() === '#000000',
+    'FO-01b prism3/hc-dark: foreground.brand is measured on neutral.900 at #171718 under a #000000 page (precondition)');
+  ok(!!hcFg && Math.abs(hcFg.ratio - onRgb(hcFg.hex, '#171718')) < 1e-9 && Math.abs(onRgb(hcFg.hex, '#171718') - onRgb(hcFg.hex, '#000000')) > 0.1,
+    `FO-01b prism3/hc-dark: foreground.brand records its contrast on the floor #171718 (records ${hcFg?.ratio.toFixed(2)}, measures ${hcFg && onRgb(hcFg.hex, '#171718').toFixed(2)} on the floor, ${hcFg && onRgb(hcFg.hex, '#000000').toFixed(2)} on the page)`);
+  let hcThrew = '';
+  try { resolveAllModes(brandTheme({ ...PRISM3(), overrides: { 'hc-dark': { 'foreground.brand': { palette: 'neutral', step: '400' } } } } as BrandInput)); } catch (e) { hcThrew = (e as Error).message; }
+  ok(hcThrew.includes('generate-only'), `FO-01b prism3/hc-dark: an override in an HC mode is refused, so no HC ratio passes through the override pass (threw: "${hcThrew.slice(0, 80)}")`);
+}
+
+// FO-02 (#2034) — the override pass's page FALLBACK is warned, never silent. No input reaches it today
+// (every `against` the engine writes is a role or a ramp step; 5,726 override cases across the corpus
+// measured 0 hits), so it is driven through `overrideGroundRgb` directly, the function the override
+// loop calls, with a ground nothing can resolve. EXPECTED is authored here: the warning names the role
+// and the ground, carries `unresolved: true`, and the page is returned; a role ground and a step ground
+// warn nothing. BY-NAME MUTATION: drop the `warnings.push` in `overrideGroundRgb` → the first arm fails.
+{
+  const t = brandTheme(MINIMAL_BRAND);
+  const ramps = new Map(t.palettes.map((p) => [p.palette, p.steps] as const));
+  const PAGE = hexToRgb('#ffffff'), PICK = hexToRgb('#73767a');
+  const ws: Array<{ role: string; against?: string; unresolved?: true; ratio: number; min: number }> = [];
+  const got = overrideGroundRgb('foreground.brand', 'nowhere.999', 3, PICK, new Map(), ramps, PAGE, ws as any);
+  ok(ws.length === 1 && ws[0].role === 'foreground.brand' && ws[0].against === 'nowhere.999' && ws[0].unresolved === true && hex(got) === '#ffffff',
+    `FO-02: an override whose ground is neither a role nor a ramp step falls back to the page AND warns, naming the role and the ground (warnings: ${JSON.stringify(ws)})`);
+  ok(Math.abs((ws[0]?.ratio ?? 0) - contrast(PICK, PAGE)) < 1e-9 && ws[0]?.min === 3, 'FO-02: the unresolved warning records the pick as measured on the page it fell back to, and the role\'s min');
+  const quiet: typeof ws = [];
+  const onRole = overrideGroundRgb('foreground.brand', 'background.secondary', 3, PICK, new Map([['background.secondary', hexToRgb('#e9e9ea')]]), ramps, PAGE, quiet as any);
+  const onStep = overrideGroundRgb('foreground.brand', 'neutral.050', 3, PICK, new Map(), ramps, PAGE, quiet as any);
+  ok(quiet.length === 0 && hex(onRole) === '#e9e9ea' && hex(onStep) === '#e9e9ea',
+    `FO-02: a role ground and a ramp-step ground resolve without a warning (role ${hex(onRole)}, step ${hex(onStep)}, warnings ${quiet.length})`);
 }
 
 // IT-01 (#1617) — an outline / text control's GLYPH follows its LABEL under a per-mode override. The
@@ -6838,7 +6906,8 @@ arm: {
 
 // L-03: radiusScale is weakly monotone (none ≤ sm ≤ md ≤ lg ≤ xl ≤ 2xl ≤ 3xl) for any scale ≥ 0 — small
 // scales legitimately snap rungs together, but a rung is never SMALLER than its predecessor.
-// A non-monotone input (negative scale) trips the gate.
+// A non-monotone input (negative scale) trips the gate. "The ladder" is the scaled rungs: the pills and the
+// fixed 1px hairline sentinel (always present since #2053) are excluded by what they are, not by position.
 {
   // Every call is wrapped (#1852 review): `radiusScale` THROWS on a non-monotone ladder, and an unwrapped
   // throw here aborted the whole suite before any later block ran, so a rung that ignored the lever surfaced
@@ -6848,18 +6917,18 @@ arm: {
   };
   for (const s of [0, 0.25, 0.5, 1, 1.5, 2]) {
     const got = rampOrError(s);
-    const ladder = typeof got === 'string' ? [] : got.filter((r) => !r.pill);
+    const ladder = typeof got === 'string' ? [] : got.filter((r) => !r.pill && r.name !== 'hairline');
     const mono = typeof got !== 'string' && ladder.every((r, i) => i === 0 || r.px >= ladder[i - 1].px);
     ok(mono, `L-03: radiusScale(${s}) is weakly monotone (${typeof got === 'string' ? `threw: ${got}` : ladder.map((r) => r.px).join('≤')})`);
   }
-  ok(radiusScale(0).filter((r) => !r.pill).every((r) => r.px === 0), 'L-03: scale=0 collapses the ladder to all-sharp by design (equality allowed)');
-  ok(radiusScale(0.25).filter((r) => !r.pill).map((r) => r.px).join(',') === '0,0,2,2,2,4,4', 'L-03: a small scale quantises onto the 2px sub-grid (none=sm=0, md=lg=xl=2, 2xl=3xl=4) — a documented resolution limit, not a bug');
+  ok(radiusScale(0).filter((r) => !r.pill && r.name !== 'hairline').every((r) => r.px === 0), 'L-03: scale=0 collapses the ladder to all-sharp by design (equality allowed)');
+  ok(radiusScale(0.25).filter((r) => !r.pill && r.name !== 'hairline').map((r) => r.px).join(',') === '0,0,2,2,2,4,4', 'L-03: a small scale quantises onto the 2px sub-grid (none=sm=0, md=lg=xl=2, 2xl=3xl=4) — a documented resolution limit, not a bug');
   // The gate itself is a construction-time tripwire: RADIUS_LADDER factors are
   // monotone and Math.max(0,·)/snap2 preserve that for any scale ≥ 0, so no scalar
   // input can violate it — it guards a FUTURE non-monotone ladder edit. Assert the
   // property holds at the extremes rather than trying to force the (unreachable) throw.
   const absurd = rampOrError(1000);
-  ok(typeof absurd !== 'string' && absurd.filter((r) => !r.pill).every((r, i, a) => i === 0 || r.px >= a[i - 1].px),
+  ok(typeof absurd !== 'string' && absurd.filter((r) => !r.pill && r.name !== 'hairline').every((r, i, a) => i === 0 || r.px >= a[i - 1].px),
     `L-03: monotonicity holds even at an absurd scale (gate never false-trips a valid ladder)${typeof absurd === 'string' ? ` — threw: ${absurd}` : ''}`);
 }
 
@@ -6889,7 +6958,7 @@ arm: {
     for (const rung of ['xl', '2xl', '3xl'])
       ok(got.find((r) => r.name === rung)?.px === want[rung],
         `#1852 container rung: radius.${rung} at radiusScale ${scale} is ${want[rung]}px (got ${got.find((r) => r.name === rung)?.px})`);
-    const ladder = got.filter((r) => !r.pill).map((r) => `${r.name}=${r.px}`).join(' ');
+    const ladder = got.filter((r) => !r.pill && r.name !== 'hairline').map((r) => `${r.name}=${r.px}`).join(' ');
     const wantLadder = Object.entries(want).map(([n, px]) => `${n}=${px}`).join(' ');
     ok(ladder === wantLadder, `#1852 container rung: the scaled ladder at radiusScale ${scale} is ${wantLadder}, in that order (got ${ladder})`);
   }
@@ -6930,8 +6999,9 @@ arm: {
     // Every Figma radius mode file carries both rungs at the brand's px, in ladder order after `lg`.
     for (const file of buildFigmaDims(theme).radius) {
       const names = file.variables.map((v) => v.name.slice(`${root}/radius/`.length));
-      ok(names.join(',') === 'none,sm,md,lg,xl,2xl,3xl,round,capsule',
-        `#1852 container rung: ${id}'s Figma radius (${file.$mode}) lists none,sm,md,lg,xl,2xl,3xl,round,capsule (got ${names.join(',')})`);
+      // `hairline` closes the list since #2053: the 1px sentinel is emitted for every brand, after the pills.
+      ok(names.join(',') === 'none,sm,md,lg,xl,2xl,3xl,round,capsule,hairline',
+        `#1852 container rung: ${id}'s Figma radius (${file.$mode}) lists none,sm,md,lg,xl,2xl,3xl,round,capsule,hairline (got ${names.join(',')})`);
       for (const rung of ['xl', '2xl', '3xl'] as const) {
         const v = file.variables.find((x) => x.name === `${root}/radius/${rung}`);
         ok(v?.value === want[rung] && v?.alias?.name === `${root}/core/dimension/${want[rung]}`,
@@ -6961,15 +7031,14 @@ arm: {
   }
 }
 
-// L-03b: the RADIUS SENTINELS (#1362) — round / capsule / hairline — are PRESENT, FIXED and UNSCALED,
-// and hairline is OPT-IN. Before #1362 nothing gated the pills for PRESENCE: L-03 above filters `!r.pill`
+// L-03b: the RADIUS SENTINELS (#1362) — round / capsule / hairline — are PRESENT, FIXED and UNSCALED.
+// hairline was opt-in until #2053 (owner, 2026-10-04): every brand now emits it, whatever `radiusHairline` says. Before #1362 nothing gated the pills for PRESENCE: L-03 above filters `!r.pill`
 // and never looks at the pills themselves, so deleting a `ramp.push(...)` in `radiusScale` would have gone
 // silently green. That is the docs/34 finding this closes. The oracle is the FIXED contract of a sentinel
 // — its px does NOT move with `scale`, and 1px is UNREACHABLE from the even 2px scaled ladder — so it is
 // independent of the scaled-rung arithmetic (which these assertions deliberately do not recompute).
 {
   const root = 'prism';
-  const opt = (h: boolean, s = 1) => radiusScale(s, 4, 128, 999, h);
   const find = (steps: ReturnType<typeof radiusScale>, name: string) => steps.find((r) => r.name === name);
 
   // (a) round + capsule are ALWAYS present, marked pill, and FIXED across the whole scale range — a pill
@@ -6982,32 +7051,39 @@ arm: {
       `L-03b: radius.capsule sentinel present, pill, fixed at 999px (scale=${s}, got ${find(r, 'capsule')?.px})`);
   }
 
-  // (b) hairline is ABSENT by default (opt-in) — this is what keeps the corpus byte-identical.
-  ok(radiusScale(1).every((r) => r.name !== 'hairline'), 'L-03b: radius.hairline is ABSENT unless opted in (default off → corpus byte-identical)');
-
-  // (c) opted in, hairline is a FIXED 1px rung, NOT a pill, and UNSCALED — and 1px is unreachable from the
-  //     even 2px sub-grid at ANY scale, which is the whole reason the sentinel exists. Removing the hairline
-  //     push in scale.ts fails every one of these BY NAME.
+  // (b) hairline is ALWAYS present (#2053), a FIXED 1px rung, NOT a pill, and UNSCALED — and 1px is
+  //     unreachable from the even 2px sub-grid at ANY scale, which is the whole reason the sentinel exists.
   for (const s of [0, 0.25, 0.5, 1, 2]) {
-    const hr = find(opt(true, s), 'hairline');
-    ok(hr?.px === 1 && !hr.pill, `L-03b: radius.hairline = 1px, unscaled and non-pill (scale=${s}, got ${hr?.px}, pill=${hr?.pill})`);
-    ok(opt(true, s).filter((r) => !r.pill && r.name !== 'hairline' && r.name !== 'none').every((r) => r.px % 2 === 0),
+    const hr = find(radiusScale(s), 'hairline');
+    ok(hr?.px === 1 && !hr.pill, `L-03b: radius.hairline is present at every scale, 1px, unscaled and non-pill (scale=${s}, got ${hr?.px}, pill=${hr?.pill})`);
+    ok(radiusScale(s).filter((r) => !r.pill && r.name !== 'hairline' && r.name !== 'none').every((r) => r.px % 2 === 0),
       `L-03b: the scaled ladder stays EVEN at scale=${s} — 1px is reachable ONLY via the hairline sentinel, never the ramp`);
   }
 
-  // (d) opting in perturbs NOTHING but the one appended rung — the scaled ladder + pills are byte-identical
-  //     to the non-opted ramp, because the sentinel is pushed PAST the ladder exactly as the pills are.
-  ok(JSON.stringify(opt(false)) === JSON.stringify(opt(true).filter((r) => r.name !== 'hairline')),
-    'L-03b: opting into hairline leaves every other rung byte-identical (the sentinel only appends)');
+  // (e1) #2053 — EVERY CORPUS BRAND EMITS radius.hairline = 1px aliasing its core.dimension.1, read from the
+  //      COMMITTED out/<brand>.tokens.json (the emission a consumer gets), never from the ramp in memory. The
+  //      brands are whatever the directory holds, with a floor, so an emptied or renamed glob fails by count.
+  const tokenFiles = readdirSync(resolve(HERE, './out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f));
+  ok(tokenFiles.length >= 5, `L-03b (#2053): the committed emission has at least five brands' tokens to read (found ${tokenFiles.join(', ')})`);
+  for (const f of tokenFiles) {
+    const tree = JSON.parse(readFileSync(resolve(HERE, './out', f), 'utf8'));
+    const r = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+    const h = tree[r]?.radius?.hairline;
+    ok(h?.$extensions?.prism3?.px === 1 && h?.$value === `{${r}.core.dimension.1}`,
+      `L-03b (#2053): ${f} emits radius.hairline = 1px aliasing {${r}.core.dimension.1} (got ${h ? `${h.$value}, ${h.$extensions?.prism3?.px}px` : 'nothing'})`);
+  }
 
-  // (e) end to end — a brand that opts in EMITS radius.hairline aliasing {…dimension.1} (1 is on the grid,
-  //     so it aliases like a real rung, not a literal); one that does not emits no such rung. Reads the
-  //     built tree, so this is the emitted contract rather than the in-memory ramp.
-  const optedTree = buildTree(brandTheme({ id: 'hair', primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 }, radiusHairline: true } as unknown as BrandInput)).tree[root].radius;
-  const plainTree = buildTree(brandTheme({ id: 'plain', primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 } } as unknown as BrandInput)).tree[root].radius;
-  ok(optedTree.hairline?.$extensions?.prism3?.px === 1 && optedTree.hairline?.$value === `{${root}.core.dimension.1}`,
-    `L-03b: an opted-in brand emits radius.hairline = 1px aliasing dimension.1 (got ${optedTree.hairline?.$value}, px ${optedTree.hairline?.$extensions?.prism3?.px})`);
-  ok(plainTree.hairline === undefined, 'L-03b: a brand that does not opt in emits NO radius.hairline (corpus byte-identical)');
+  // (e2) #2053 — `radiusHairline` is still ACCEPTED and changes NOTHING: false, true and unset build the
+  //      identical radius group, and false still emits the hairline. Reads the built tree.
+  const seed = { primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 } };
+  const radiusWith = (extra: object) => buildTree(brandTheme({ id: 'hair', ...seed, ...extra } as unknown as BrandInput)).tree[root].radius;
+  const off = radiusWith({ radiusHairline: false }), on = radiusWith({ radiusHairline: true }), unset = radiusWith({});
+  ok(off.hairline?.$extensions?.prism3?.px === 1 && off.hairline?.$value === `{${root}.core.dimension.1}`,
+    `L-03b (#2053): a brand with radiusHairline: false still emits radius.hairline = 1px aliasing dimension.1 (got ${off.hairline?.$value})`);
+  ok(JSON.stringify(off) === JSON.stringify(on) && JSON.stringify(on) === JSON.stringify(unset),
+    'L-03b (#2053): radiusHairline false, true and unset build the identical radius group — the retired lever changes nothing');
+  ok(validateBrandInput({ id: 'hair', ...seed, radiusHairline: false } as any).length === 0 && validateBrandInput({ id: 'hair', ...seed, radiusHairline: true } as any).length === 0,
+    'L-03b (#2053): radiusHairline is still ACCEPTED by the schema, so existing brand files keep loading');
 }
 
 // L-05: pxOf is rem-aware (a rem leaf scales by 16, not truncated as px), and deref reports
@@ -8770,8 +8846,9 @@ arm: {
   //
   // Sensitivity, so the no-op arm cannot pass by measuring a constant (docs/34 shape 4): every
   // (lever, non-default value) PAIR must MOVE this tree, except the pairs listed in `TREE_BLIND_PAIRS`.
-  // Pairs, not levers: `controlShape` moves the tree at `hairline` but not at `boxed` or `pill`, so a
-  // lever-level "some value moves it" check would have let a wrong `pill` default through. The listed
+  // Pairs, not levers: before #2053 `controlShape` moved the tree at `hairline` but not at `boxed` or `pill`, so a
+  // lever-level "some value moves it" check would have let a wrong `pill` default through. A RETIRED lever
+  // (`deprecated` in the manifest, #2053) is held to the opposite claim in its own arm below: it moves nothing. The listed
   // pairs are resolved only when a component is materialized (they emit no token), so
   // `apps/plugin/test-write-components.ts` runs the same no-op check through `materializeForBrand` and
   // asserts each listed pair moves it. The list is literal and checked both ways: a listed pair that
@@ -8784,7 +8861,9 @@ arm: {
       ['buttonContentSize', 'smaller'],
       ['buttonIcons', 'edges'],
       ['buttonMinWidthMultiplier', 1], ['buttonMinWidthMultiplier', 4],
-      ['controlShape', 'boxed'], ['controlShape', 'pill'],
+      // `hairline` joined `boxed` and `pill` with #2053: the rung is always emitted now, so the shape moves only the
+      // materialized defs (its radius binding), as the other two do.
+      ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
     ];
     const pairName = ([k, v]: [string, unknown]): string => `${k}=${JSON.stringify(v)}`;
     const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
@@ -8839,13 +8918,24 @@ arm: {
         : l.control === 'slider' ? [l.min, l.max].filter((v) => v !== undefined && v !== l.default)
         : l.control === 'palette-ref' ? ['neutral', 'accent'].filter((v) => v !== l.default)
         : [];
-    // A refusal (the engine throws) is loud, so it is not counted as blind.
-    const blind = withDefault.flatMap((l) => altsOf(l).map((v) => [l.key, v] as [string, unknown]))
+    // A refusal (the engine throws) is loud, so it is not counted as blind. Retired levers are held below instead.
+    const blind = withDefault.filter((l) => !l.deprecated).flatMap((l) => altsOf(l).map((v) => [l.key, v] as [string, unknown]))
       .filter(([k, v]) => { try { return treeOf(setIn(sBase, k, v)) === sTree; } catch { return false; } })
       .map(pairName).sort();
     const listed = TREE_BLIND_PAIRS.map(pairName).sort();
     ok(JSON.stringify(blind) === JSON.stringify(listed),
       `#1812: exactly the listed tree-blind (lever, value) pairs (${listed.join(', ')}) leave the emitted tree unmoved (got: ${blind.join(', ') || 'none'})`);
+    // #2053 — A RETIRED LEVER CHANGES NOTHING: every alternative value of a `deprecated` lever leaves the emitted
+    // tree unmoved. The retired set is a literal here, so a lever marked deprecated quietly fails by name, and one
+    // marked deprecated while it still does something fails the unmoved check.
+    const retired = withDefault.filter((l) => l.deprecated).map((l) => l.key).sort();
+    ok(JSON.stringify(retired) === JSON.stringify(['radiusHairline']),
+      `#2053: the retired levers are exactly [radiusHairline] (got ${JSON.stringify(retired)})`);
+    for (const l of withDefault.filter((x) => x.deprecated)) {
+      const moved = altsOf(l).filter((v) => { try { return treeOf(setIn(sBase, l.key, v)) !== sTree; } catch { return true; } });
+      ok(altsOf(l).length > 0 && moved.length === 0,
+        `#2053: the retired lever ${l.key} changes nothing — ${altsOf(l).map((v) => JSON.stringify(v)).join(', ')} leave the emitted tree unmoved${moved.length ? ` (MOVED by ${moved.map((v) => JSON.stringify(v)).join(', ')})` : ''}`);
+    }
     const pluginTest = readFileSync(resolve(HERE, '../../apps/plugin/test-write-components.ts'), 'utf8');
     const uncovered = TREE_BLIND_PAIRS.filter(([k, v]) => !pluginTest.includes(`['${k}', ${typeof v === 'string' ? `'${v}'` : v}]`)).map(pairName);
     ok(pluginTest.includes('#1812 each tree-blind (lever, value) pair moves the materialized defs') && uncovered.length === 0,
@@ -12332,8 +12422,10 @@ arm: {
     ok(tooLong.length === 0, `MCP: every inline schema description summary is at most 200 chars — split a longer first sentence (over: ${tooLong.join(', ') || 'none'})`);
     // Literal summaries: a status tag carries on to the first real sentence, and `e.g.` / `mobile?` are
     // not sentence ends.
-    ok(inline?.properties?.radiusHairline?.description === 'OPTIONAL, OPT-IN (off by default). `true` adds a fixed, unscaled `radius.hairline` = 1px sentinel alongside the pills.',
-      `MCP: radiusHairline's inline summary is its tag plus first sentence (got: ${inline?.properties?.radiusHairline?.description})`);
+    // The exemplar was radiusHairline until #2053 retired it; its description no longer opens with a tag-only
+    // sentence, so the tag-carry case moved to strictInteractiveContrast, which still does.
+    ok(inline?.properties?.strictInteractiveContrast?.description === "OPTIONAL, OPT-IN (off by default). Off keeps primary's vivid brand ink on the inverse filled button (AA at rest; transient hover/pressed an accepted exemption).",
+      `MCP: strictInteractiveContrast's inline summary is its tag plus first sentence (got: ${inline?.properties?.strictInteractiveContrast?.description})`);
     ok(inline?.properties?.id?.description === "Brand identifier (e.g. 'aurora').",
       `MCP: an \`e.g.\` does not end a summary (got: ${inline?.properties?.id?.description})`);
     ok(inline?.properties?.typography?.properties?.sizeOverrides?.description === 'OPTIONAL. Opt-in per-rung DESKTOP/MOBILE size override (#1587): group -> rung -> { desktop?, mobile? }.',
@@ -12355,8 +12447,8 @@ arm: {
     ok(Object.keys(surfaces?.$defs ?? {}).join(',') === 'neutralSurfaceSpec,surfaceMode,surfaceSpec',
       `MCP: describe follows $ref transitively (surfaces → surfaceMode → neutralSurfaceSpec + surfaceSpec; got ${Object.keys(surfaces?.$defs ?? {}).join(',')})`);
     const hairline = (callTool('list_levers', { describe: ['radiusHairline'] }, brandSchema).structuredContent as any)?.described?.properties?.radiusHairline?.description ?? '';
-    ok(/near-sharp 1px corner/.test(hairline) && /radiusScale\/baseMd/.test(hairline),
-      'MCP: radiusHairline\'s full description carries its when-to-use cue and its relation to radiusScale/baseMd (#1760 restored it)');
+    ok(/is always emitted/.test(hairline) && /radiusScale\/baseMd/.test(hairline),
+      'MCP: radiusHairline\'s full description (past its first sentence) says the rung is always emitted and how it relates to radiusScale/baseMd (#1760, retired #2053)');
     const ghost = callTool('list_levers', { describe: ['radiusHairline', 'notAField'] }, brandSchema);
     ok(ghost.isError === true && /notAField/.test(ghost.content[0].text) && /"radiusHairline"/.test(ghost.content[0].text),
       'MCP: describe on an unknown field is a tool error that names it and lists the valid fields');
@@ -13155,21 +13247,19 @@ arm: {
       }
     }
 
-    // THE HAIRLINE↔RUNG COUPLING (#1371). `hairline` repoints a control's corner to `radius.hairline` — an
-    // OPT-IN rung (#1362) that exists only with `radiusHairline` on — so choosing the shape must PROVISION
-    // the rung, or the projected `radius/hairline` binding dangles against a brand that never opted in.
-    // `brandTheme` couples them: `controlShape: hairline` IMPLIES the rung. Read the EMITTED tree (the
-    // contract a consumer sees), so this is independent of `applyControlShape`. `boxed`'s `radius.none` is
-    // always present, so it provisions NOTHING — the asymmetry is the point.
+    // THE HAIRLINE↔RUNG COUPLING (#1371). `hairline` repoints a control's corner to `radius.hairline`, so the
+    // rung must exist or the projected `radius/hairline` binding dangles. Since #2053 every brand emits it, so
+    // the coupling holds by construction, as `boxed`'s `radius.none` always did. Read the EMITTED tree (the
+    // contract a consumer sees), so this is independent of `applyControlShape`.
     {
       const seedHue = { primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 } };
       const radiusOf = (input: object) => { const t = buildTree(brandTheme(input as unknown as BrandInput)).tree; return (t as any)[Object.keys(t)[0]].radius; };
       const hairShape = radiusOf({ id: 'cshair', ...seedHue, controlShape: 'hairline' });
       ok(hairShape.hairline?.$extensions?.prism3?.px === 1 && /\.core\.dimension\.1}$/.test(hairShape.hairline?.$value ?? ''),
-        `controlShape: hairline IMPLIES the hairline rung — a brand setting ONLY controlShape:hairline (radiusHairline unset) still emits radius.hairline = 1px (got ${hairShape.hairline?.$value})`);
+        `controlShape: hairline has its rung — a brand setting controlShape:hairline (radiusHairline unset) emits radius.hairline = 1px (got ${hairShape.hairline?.$value})`);
       const boxedShape = radiusOf({ id: 'csbox', ...seedHue, controlShape: 'boxed' });
-      ok(boxedShape.hairline === undefined && boxedShape.none?.$extensions?.prism3?.px === 0,
-        `controlShape: boxed provisions NOTHING — radius.none is always emitted (0px) and no hairline rung appears (got hairline=${JSON.stringify(boxedShape.hairline)})`);
+      ok(boxedShape.hairline?.$extensions?.prism3?.px === 1 && boxedShape.none?.$extensions?.prism3?.px === 0,
+        `controlShape: boxed has radius.none (0px), and the hairline rung is emitted under it too, as under every shape since #2053 (got hairline=${JSON.stringify(boxedShape.hairline?.$value)})`);
       // The enum values are ACCEPTED by the schema (both halves gate the theme-schema/enumLevers edits): a
       // valid off-ramp validates clean, and garbage is still rejected — so reverting the enum widening fails
       // the acceptance arm by name rather than silently narrowing what a brand may write.

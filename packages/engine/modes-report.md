@@ -1142,6 +1142,7 @@ Radius — scale `1`:
 | radius.3xl | 16 |
 | radius.round | 128 (pill) |
 | radius.capsule | 999 (pill) |
+| radius.hairline | 1 |
 
 Component sizes — t-shirt, density `comfortable` (control heights; each component states its own padding and gaps as `space.*` steps, which density moves one step):
 
@@ -2308,6 +2309,7 @@ Radius — scale `1`:
 | radius.3xl | 16 |
 | radius.round | 128 (pill) |
 | radius.capsule | 999 (pill) |
+| radius.hairline | 1 |
 
 Component sizes — t-shirt, density `comfortable` (control heights; each component states its own padding and gaps as `space.*` steps, which density moves one step):
 
@@ -3476,6 +3478,7 @@ Radius — scale `2`:
 | radius.3xl | 32 |
 | radius.round | 128 (pill) |
 | radius.capsule | 999 (pill) |
+| radius.hairline | 1 |
 
 Component sizes — t-shirt, density `comfortable` (control heights; each component states its own padding and gaps as `space.*` steps, which density moves one step):
 
@@ -4643,6 +4646,7 @@ Radius — scale `1`:
 | radius.3xl | 16 |
 | radius.round | 128 (pill) |
 | radius.capsule | 999 (pill) |
+| radius.hairline | 1 |
 
 Component sizes — t-shirt, density `comfortable` (control heights; each component states its own padding and gaps as `space.*` steps, which density moves one step):
 
