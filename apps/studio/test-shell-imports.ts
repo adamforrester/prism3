@@ -129,7 +129,9 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   // S9.1: the Elevation and Motion writes, and the two legacy pages' read-only pieces, shared.
   'src/state/depth-motion-input.ts', 'src/preview/sections/shadow-ramp.ts', 'src/preview/sections/shadow-tint.ts',
   'src/preview/sections/duration-ramp.ts', 'src/preview/sections/motion-curves.ts', 'src/preview/sections/springs.ts',
-  'src/preview/sections/motion-transitions.ts'];
+  'src/preview/sections/motion-transitions.ts',
+  // S9.2: Depth & motion (its levers and its preview).
+  'src/domains/depth.ts', 'src/preview/depth.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {
@@ -592,7 +594,7 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     /** A variable-key write that is not Type, by `<enclosing function>:<key text>`, and why. */
     const UNRESOLVED_OK: Record<string, string> = {
       'renderControl:lever.key': 'the generic lever knob; rule 3 holds that no Type lever is handed to it',
-      'renderPerModeSelect:key': 'its default write; its callers are PER_MODE_SELECTS, the radius and density selects (tempo passes its own write, S9.1)',
+      'renderPerModeSelect:key': 'its default write; its callers are PER_MODE_SELECTS, the radius and density selects (tempo\'s left with the Motion page, S9.2)',
       'csSlider:key': 'Size & radius sliders; rule 3 holds that no caller passes a Type key',
       'csPicker:key': 'Size & radius pickers; rule 3 holds that no caller passes a Type key',
     };
@@ -760,54 +762,62 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     visitFeeds(sf);
     ok(fed.length === 0, `src/main.ts hands no Type key to a writer that writes whatever it is handed (the generic lever renderer, csSlider, csPicker)${fed.length ? ` — ${fed.slice(0, 3).join(' | ')}` : ''}`);
   }
-  ok(imports(mainSrc, 'main.ts').some((i) => i.spec === './state/type-input'), 'src/main.ts imports its Type writes from ./state/type-input');
+  // S9.2 retired `renderRepointTable`, the last Type writer `main.ts` held (its line height and letter spacing branch was
+  // already dead, #2038), so `main.ts` imports no Type write at all: the AST arm above holds that it makes none.
+  ok(!imports(mainSrc, 'main.ts').some((i) => i.spec === './state/type-input'), 'src/main.ts imports no Type write (./state/type-input): it has none left to make');
 }
 
-// ── Depth & motion's preview pieces and writes, out of `main.ts` (UI redesign S9.1) ───────────────────
-// The legacy Elevation and Motion pages draw their read-only pieces from `preview/sections/` (the elevation ramp,
-// the tint read-out, the duration ramp, the curve set, springs and the traced transitions), so the Depth & motion
-// page (S9.2) draws the same code; and every shadow, tempo and easing write goes through
-// `state/depth-motion-input.ts` (the keyed and direct write checks are in the AST arm above). Subject: `main.ts`,
-// read from disk, comments stripped. Oracle: the literal renderer names, each piece's own title or markup as the
-// legacy renderers wrote it, and the literal state writes. A copy pasted back into `main.ts` fails by what it
-// draws; the smoke suite holds each drawn piece to its marker.
+// ── Depth & motion's preview pieces and writes (UI redesign S9.1, S9.2) ─────────────────────────────────────────
+// S9.1 lifted the legacy Elevation and Motion pages' read-only pieces into `preview/sections/` (the shadow steps, the
+// shadow color, the durations, the curves, springs and the traced transitions) and their writes into
+// `state/depth-motion-input.ts`; S9.2 retired the two pages, so the Depth & motion preview (`preview/depth.ts`) is the
+// one that draws the pieces, and the Depth & motion levers (`domains/depth.ts`) the one that writes. Subject: `main.ts`,
+// `preview/depth.ts` and `domains/depth.ts`, read from disk, comments stripped. Oracle: the literal renderer names, each
+// piece's own markup as the legacy renderers wrote it, and the literal state writes. A copy pasted back into `main.ts`
+// fails by what it draws; the smoke suite holds each drawn piece to its marker on the new page.
 {
   const strip = (src: string): string => src.replace(/^\s*(\/\/|\*).*$/gm, '');
   const mainSrc = readFileSync(MAIN, 'utf8');
   const mainCode = strip(mainSrc);
+  const depthCode = strip(readFileSync(join(SRC, 'preview/depth.ts'), 'utf8'));
+  const leversSrc = readFileSync(join(SRC, 'domains/depth.ts'), 'utf8');
+  const leversCode = strip(leversSrc);
   const idx = readFileSync(join(SRC, 'preview/sections/index.ts'), 'utf8');
   for (const [fn, file, what] of [
-    ['shadowRampSection', 'shadow-ramp', 'the elevation ramp'],
-    ['shadowTintReadout', 'shadow-tint', 'the tint read-out'],
-    ['durationRampSection', 'duration-ramp', 'the duration ramp'],
-    ['motionCurvesSection', 'motion-curves', 'the curve set'],
+    ['shadowRampSection', 'shadow-ramp', 'the shadow steps'],
+    ['shadowTintSection', 'shadow-tint', 'the shadow color'],
+    ['durationRampSection', 'duration-ramp', 'the durations'],
+    ['motionCurvesSection', 'motion-curves', 'the curves'],
     ['springsSection', 'springs', 'the Springs section'],
     ['motionTransitionsSection', 'motion-transitions', 'the traced transitions'],
   ] as const) {
-    ok(new RegExp(`\\b${fn}\\(`).test(mainCode), `src/main.ts draws ${what} through the shared ${fn}()`);
+    ok(new RegExp(`\\b${fn}\\(`).test(depthCode), `src/preview/depth.ts draws ${what} through the shared ${fn}()`);
+    ok(!new RegExp(`\\b${fn}\\b`).test(mainCode), `src/main.ts no longer draws ${what} (${fn}): the legacy Elevation and Motion pages are gone`);
     ok(idx.includes(`from './${file}'`), `preview/sections/index.ts exports ${what} from ./${file}`);
   }
   const OWN: Array<[RegExp, string]> = [
-    [/palSection\(\s*'Elevation ramp'|'sh-list'|'sh-card'/, "its own elevation ramp (palSection('Elevation ramp', …) or the sh-list markup)"],
-    [/'sh-tintout'|'sh-tintblock'|In a shadow · 12%/, "its own tint read-out (the sh-tintout markup or \"In a shadow · 12%\")"],
-    [/palSection\(\s*'Duration ramp'|'mo-ms-strip'|'mo-ramp-foot'/, "its own duration ramp (palSection('Duration ramp', …) or the mo-ms-strip markup)"],
-    [/subHead\(\s*'The curve set'|'mo-ez-strip'|'mo-ez-card'/, "its own curve set (subHead('The curve set') or the mo-ez-strip markup)"],
+    [/palSection\(\s*'Elevation ramp'|'sh-list'|'sh-card'/, "its own shadow steps (palSection('Elevation ramp', …) or the sh-list markup)"],
+    [/'sh-tintout'|'sh-tintblock'|In a shadow · 12%/, "its own shadow color (the sh-tintout markup or \"In a shadow · 12%\")"],
+    [/palSection\(\s*'Duration ramp'|'mo-ms-strip'|'mo-ramp-foot'/, "its own durations (palSection('Duration ramp', …) or the mo-ms-strip markup)"],
+    [/subHead\(\s*'The curve set'|'mo-ez-strip'|'mo-ez-card'/, "its own curves (subHead('The curve set') or the mo-ez-strip markup)"],
     [/palSection\(\s*'Springs'|'mo-spring-grid'/, "its own Springs section (palSection('Springs', …) or the mo-spring-grid markup)"],
     [/palSection\(\s*'Motion'|'mo-grid'|'mo-stage'|createElementNS\(/, "its own traced transitions (palSection('Motion', …), the mo-grid markup, or an SVG stage)"],
   ];
   for (const [re, what] of OWN) {
-    const m = re.exec(mainCode);
-    ok(!m, `src/main.ts draws no Depth & motion preview piece of its own: ${what.split(' (')[0].replace(/^its own /, '')}${m ? ` — main.ts carries ${what}, found "${m[0]}": the Depth & motion page would drift from the legacy ones` : ''}`);
+    for (const [file, code] of [['src/main.ts', mainCode], ['src/preview/depth.ts', depthCode]] as const) {
+      const m = re.exec(code);
+      ok(!m, `${file} draws no Depth & motion preview piece of its own: ${what.split(' (')[0].replace(/^its own /, '')}${m ? ` — it carries ${what}, found "${m[0]}": the piece belongs in preview/sections/` : ''}`);
+    }
   }
-  // The generic renderers write whatever key they are handed (`renderControl`'s default is `setPath(brandState,
-  // lever.key, …)`), so the AST arm cannot see a depth lever that reaches one without its state write. The two
-  // that do are named here, with the write each must carry. Literal.
-  for (const [re, what] of [
-    [/renderControl\(\s*softness\s*,\s*apply\s*,\s*\([^)]*\)\s*=>\s*\{\s*setShadowSoftness\('light'/, "Elevation's softness knob passes setShadowSoftness('light', …) to renderControl"],
-    [/leverSection\(\s*'Tempo'[^;]*setTempo\('light'/, "Motion's Tempo section passes setTempo('light', …) to leverSection"],
-    [/renderPerModeSelect\(\s*lever\s*,\s*'tempo'[^;]*setTempo\(currentMode/, "the per-mode tempo select passes setTempo(currentMode, …) to renderPerModeSelect"],
-  ] as const) ok(re.test(mainCode), `src/main.ts: ${what}`);
-  ok(imports(mainSrc, 'main.ts').some((i) => i.spec === './state/depth-motion-input'), 'src/main.ts imports its Elevation and Motion writes from ./state/depth-motion-input');
+  // `main.ts` writes no Elevation or Motion value any more (the AST arm above holds what it writes), and imports no
+  // depth write. The new page writes only through the state module: it names no generic writer (`setPath`,
+  // `setModeLever`), so a write that bypassed `state/depth-motion-input.ts`'s byte rules would have to be spelled here.
+  ok(!imports(mainSrc, 'main.ts').some((i) => i.spec === './state/depth-motion-input'), 'src/main.ts imports no Elevation or Motion write (./state/depth-motion-input): it has none left to make');
+  ok(imports(leversSrc, 'depth.ts').some((i) => i.spec === '../state/depth-motion-input'), 'src/domains/depth.ts imports its writes from ../state/depth-motion-input');
+  const generic = /\b(setPath|setModeLever)\s*\(/.exec(leversCode);
+  ok(!generic, `src/domains/depth.ts writes only through state/depth-motion-input.ts${generic ? ` — it calls ${generic[1]}() itself` : ''}`);
+  for (const w of ['setShadow', 'setTempo', 'setEasingRole'])
+    ok(new RegExp(`\\b${w}\\(`).test(leversCode), `src/domains/depth.ts writes through ${w}()`);
 }
 
 console.log(`\n${executed - failed}/${executed} repaint-guard assertions passed.`);

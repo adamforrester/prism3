@@ -157,14 +157,17 @@ export const sliderReadout = (L: Lever, v: number): string => {
   return `${Number(v).toFixed(dp)}${unit}${stop ? ` · ${stop}` : ''}`;
 };
 
-/** A slider over the manifest's range and step, named, with its readout as the value text. */
-export const slider = (key: string, role: string, label: string, onInput: (v: number) => void): {
+/** A slider over the manifest's range and step, named, with its readout as the value text. A key that is one part
+ *  of an object lever (Depth & motion's tint hue and amount, S9.2) hands its own range in `part`, with the id
+ *  suffix that keeps the two sliders apart; its readout is the value and the unit. */
+export const slider = (key: string, role: string, label: string, onInput: (v: number) => void,
+  part?: { readonly id: string; readonly min: number; readonly max: number; readonly step: number; readonly unit?: string }): {
   el: HTMLInputElement; set: (v: number) => void;
 } => {
-  const L = leverOf(key)!;
+  const L: Lever = part ? { ...leverOf(key)!, min: part.min, max: part.max, step: part.step, unit: part.unit, stops: undefined } : leverOf(key)!;
   const el = hook(h('input', 'p3-range'), role);
   el.type = 'range';
-  el.id = `p3-${slug(key)}`;
+  el.id = part ? `p3-${slug(key)}-${part.id}` : `p3-${slug(key)}`;
   el.min = String(L.min ?? 0); el.max = String(L.max ?? 1); el.step = String(L.step ?? 1);
   el.setAttribute('aria-label', label);
   el.addEventListener('input', () => { el.setAttribute('aria-valuetext', sliderReadout(L, Number(el.value))); onInput(Number(el.value)); });
