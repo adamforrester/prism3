@@ -101,7 +101,7 @@ export const leverManifest: Lever[] = [
 
   // ---- FORM ----
   { key: 'radiusScale', group: 'form', label: 'Radius softness', control: 'slider', default: 1, min: 0, max: 2, step: 0.5,
-    description: 'How rounded corners are: 0 is sharp, 1 is the default, 2 is soft. Every corner radius scales with it.' },
+    description: 'How round every radius size is, from sharp (0) to round (2). The pill sizes and the 1px radius stay fixed.' },
   { key: 'density', group: 'form', label: 'Density', control: 'enum', default: 'comfortable',
     options: enumOpts(['comfortable', 'Comfortable'], ['compact', 'Compact'], ['spacious', 'Spacious']),
     description: 'Sets control heights, and moves each component’s padding and gaps one step on the spacing scale. Token names stay the same; their values change. Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.' },
@@ -130,7 +130,7 @@ export const leverManifest: Lever[] = [
   // ---- TYPE ----
   { key: 'typography.typeScale', group: 'type', label: 'Type scale', control: 'enum', default: 'default',
     options: enumOpts(['compact', 'Compact'], ['default', 'Default'], ['expressive', 'Expressive']),
-    description: 'How far apart the heading sizes step. Body, label, caption and code stay put.' },
+    description: 'Moves every heading size one step up or down the size ladder. Body, label, caption and code stay put.' },
   { key: 'typography.families', group: 'type', label: 'Font families', control: 'object',
     description: 'The font family each text type uses, and whether it is a variable font. A single family name gets a system fallback stack added. Setting code to none ships no code styles.' },
   { key: 'typography.weightRoles', group: 'type', label: 'Weights', control: 'object', advanced: true,
@@ -171,7 +171,7 @@ export const leverManifest: Lever[] = [
 
   // ---- LAYOUT ----
   { key: 'layout.breakpoints', group: 'layout', label: 'Breakpoints', control: 'list', advanced: true, itemLabel: 'min-width (px)',
-    description: 'The screen width where each layout starts, smallest first. The first is always 0px. Names follow the count: up to five run sm to 2xl, six or seven run xs to 3xl. The default is 0, 768, 1024, 1440 and 1920.' },
+    description: 'The screen width where each layout starts, smallest first. Studio keeps the first at 0px. Names follow the count: up to five start at sm, six run xs to 2xl, and seven run xs to 3xl. The default is 0, 768, 1024, 1440 and 1920.' },
   { key: 'layout.columns', group: 'layout', label: 'Grid columns', control: 'slider', advanced: true, default: 12, min: 4, max: 24, step: 1,
     description: 'How many columns the grid has on the widest breakpoints. Smaller breakpoints step up to it: 4, then 8, then this count.' },
   { key: 'layout.containerMax', group: 'layout', label: 'Maximum width', control: 'slider', advanced: true, default: 1440, min: 960, max: 1920, step: 40, unit: 'px',
