@@ -51,17 +51,13 @@ import {
   tokenPillSpan, withInverseBadge, VIEW_ONLY, type SgRole,
 } from './preview/sections/kit';
 import {
-  COLOR_SECTIONS, disabledSection, interactiveSection, typeSampleSection, radiusSampleSection, RADIUS_SAMPLE,
-  shadowRampSection, shadowTintReadout, durationRampSection, motionCurvesSection, springsSection, motionTransitionsSection,
+  COLOR_SECTIONS, disabledSection, interactiveSection, typeSampleSection, radiusSampleSection, RADIUS_SAMPLE, SAMPLE_SHADOW,
 } from './preview/sections/index';
-// The Elevation and Motion writes (UI redesign S9.1): every shadow, tempo and easing edit the two legacy pages make.
-import { setShadow, setShadowSoftness, setShadowTint, shadowOverride, authoredTint, setTempo, setEasingRole, type ShadowKey } from './state/depth-motion-input';
 // The brand's Control shape, for the Style guide's radius sample (UI redesign S7, owner decision D18 B).
 import { brandControlShape } from './state/shape-input';
-// The Type writes (UI redesign S6.1) moved to `state/type-input.ts`, and every Type control to `domains/type.ts`
-// (S6.2, S6.3). The one left here is the per-mode swap `renderRepointTable` still draws for two ladders' rows: the
-// table stays for Motion's easing roles until S9, and its line height and letter spacing callers are gone.
-import { setRepoint } from './state/type-input';
+// The Elevation and Motion writes moved to `state/depth-motion-input.ts` (UI redesign S9.1), and every Elevation and
+// Motion control to `domains/depth.ts` (S9.2); the Type writes to `state/type-input.ts` and every Type control to
+// `domains/type.ts` (S6.1 to S6.3). Nothing here writes either any more.
 import {
   needsOverwriteConfirm, isDirty, isUnrecoverable,
   type Origin,
@@ -76,7 +72,7 @@ import {
 import {
   BRANDS, brandState, provenance, bootProvenance, theme, lastGoodInput, rp, currentMode, lastError, page,
   firstRun, rebuild, ensureThemeFresh, loadInput, clearOrigin, setCurrentMode, setPage,
-  getPath, setPath, getModeLever, setModeLever, subscribe, invalidate, searchQuery, searchHits, setSearchHits,
+  getPath, setPath, subscribe, invalidate, searchQuery, searchHits, setSearchHits,
   type Mode, type PageKey,
 } from './state/store';
 
@@ -97,10 +93,9 @@ const NEW_BRAND = (): BrandInput => ({
 // Liveness is by control TYPE, not a per-key allowlist: sliders, enums, palette-refs, and
 // toggles all have real handlers (a bad value just surfaces the error bar, never crashes —
 // rebuild() is try/caught). Object/list levers (families, surfaces, brand colors) all got their
-// bespoke editors (#97) — this generic path is what's left over: baseMd, disabledMin, and
-// radiusScale/density/shadow.softness/motionPersonality.tempo on Light, where a bespoke per-mode
-// editor takes over everywhere else. density/motion/shadow all have live preview specimens now
-// (#99) — paintSizePreview, motionTransitionsSection, shadowRampSection (`preview/sections/`, S9.1).
+// bespoke editors (#97) — this generic path is what's left over: baseMd, and radiusScale/density on
+// Light, where a bespoke per-mode editor takes over everywhere else. (Shadow softness and tempo left with
+// the Elevation and Motion pages in UI redesign S9.2: `domains/depth.ts` draws them.)
 const LIVE_CONTROLS = new Set(['slider', 'enum', 'palette-ref', 'toggle']);
 
 const MODE_LABEL: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light', 'hc-dark': 'HC dark', wireframe: 'Wireframe' };
@@ -112,9 +107,7 @@ const MODE_LABEL: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-l
 // composes in: primitives → how they're applied (surfaces / interactive) → type → form
 // (elevation/size/layout/motion) → look at the whole (Preview) → write something out (Components).
 const NAV = [
-  { key: 'elevation', label: 'Elevation', sub: 'Shadows' },
   { key: 'sizeRadius', label: 'Size & radius', sub: 'Button options' },   // S7: the Button options only (D5 B); the sub is DRAFT
-  { key: 'motion', label: 'Motion', sub: 'Tempo & easing' },
   // #259 — the style-guide step, after Apply theme: it documents the variables Apply wrote, so it follows the
   // authoring pages and Preview. Figma-only for the `components` reason below — it draws on the canvas.
   // Placement and label are proposed, owner to confirm (docs/45).
@@ -158,21 +151,9 @@ const isView = (s: (typeof NAV)[number]): boolean => 'view' in s && s.view === t
 const isFirstView = (nav: readonly (typeof NAV)[number][], i: number): boolean =>
   isView(nav[i]) && !nav.slice(0, i).some(isView);
 
-// Which page a lever belongs to. The manifest groups levers under a few axes; the focused pages slice
-// finer. Palette colour primitives get a bespoke UI, so they're excluded from the generic knob render.
-// Status hues are edited inline on Palettes ramps (they're advanced + colour-control, so they filter
-// out of every generic panel anyway). The `color` + `advanced` groups split by key across pages.
-const PRIMITIVE_KEYS = new Set(['primary', 'neutral.hue', 'neutral.chroma', 'neutral.anchor', 'brandColors']);
-const pageOfLever = (l: Lever): PageKey => {
-  if (l.group === 'type') return 'type';   // Type, moved (S6.2)
-  if (l.group === 'motion') return 'motion';
-  if (l.group === 'elevation') return 'elevation';
-  if (l.group === 'layout') return 'layout';
-  if (l.group === 'form') return 'sizeRadius';   // radiusScale, density, + advanced grid/space dims
-  if (l.key === 'gradients' || l.key === 'surfaces') return 'fills';   // Color › Surfaces & fills, moved (S4a)
-  return 'interactive';   // remaining colour/advanced: action palette, interactive treatment, disabled, icon, inverse, neutralEmphasis, interactivePalettes
-};
-const leversFor = (key: PageKey): Lever[] => leverManifest.filter((l) => !l.advanced && !PRIMITIVE_KEYS.has(l.key) && pageOfLever(l) === key);
+// `pageOfLever` and `leversFor`, the routing table only the Motion page read (#958), went with that page in UI redesign
+// S9.2: every page now names its levers, and `test-pages.ts` plus `test:chrome`'s rendered coverage hold that each
+// manifest lever has a home that draws it.
 const leverByKey = (k: string): Lever | undefined => leverManifest.find((l) => l.key === k);
 
 // ---- engine read-model -----------------------------------------------------
@@ -654,16 +635,8 @@ const SECTION_MODE_SCOPE: Record<string, ModeScope> = {
   // which mode they edit.)
   // (Size & radius' Corner radius, Density & size, Spacing grid and Primitive scales left with the Shape page in UI
   // redesign S7; its Buttons section has no entry, #1912.)
-  // Elevation
-  'Shadow': 'per-mode', 'Elevation ramp': 'shared',
-  // Motion
-  // Easing is 'shared', not 'per-mode', and the audit is what caught the difference. Its per-mode
-  // control is a COLUMN-PER-MODE table (#522), so it edits every mode at once and its markup is
-  // identical whichever mode the bar holds — the bar does not scope it. With `hasControls` true the
-  // three-state badge renders "Editing · All modes", which is exactly the case #437 proposed that
-  // label for. Marking it 'per-mode' claimed the bar scoped an editor it has no effect on.
-  'Tempo': 'per-mode', 'Easing': 'shared', 'Motion': 'shared',
-  'Duration ramp': 'shared', 'Springs': 'shared',
+  // (Elevation and Motion left the mode bar's pages in UI redesign S9.2: Depth & motion draws the two panes, where
+  // each control says which mode it edits.)
   // Preview — read-only end to end
   'Background': 'shared', 'Foreground': 'shared', 'Text color': 'shared', 'Border': 'shared',
   'Icon': 'shared', 'Disabled': 'shared', 'Interactive': 'shared',
@@ -767,8 +740,8 @@ const pfield = (label: string, control: HTMLElement, right = false): HTMLElement
  *  guard that is not written.
  *
  *  `write` is what a change writes, and it defaults to `setPath(brandState, lever.key, v)`. A lever whose writes
- *  moved to a domain state module passes that module's write (UI redesign S9.1: Elevation's softness and Motion's
- *  tempo, through `state/depth-motion-input.ts`), which writes the same bytes. */
+ *  moved to a domain state module may pass that module's write, which must write the same bytes (UI redesign S9.1
+ *  added the seam for Elevation's softness and Motion's tempo, whose controls left with their pages in S9.2). */
 const renderControl = (lever: Lever, commit: () => void = apply, write: (v: unknown) => void = (v) => { setPath(brandState, lever.key, v); }): HTMLElement => {
   const live = LIVE_CONTROLS.has(lever.control);
   // Which control this lever gets is the descriptor's call (`levers/controls.ts`, #1675), not this
@@ -819,32 +792,9 @@ const renderControl = (lever: Lever, commit: () => void = apply, write: (v: unkn
 // The per-mode `modeLevers` read/write helpers — `getModeLever`, `setModeLever`, `pruneModeLevers` —
 // live in `state/store.ts`, with the prune-to-byte-identical invariant they exist to keep.
 
-/** A per-mode enum select with a natural "Auto" (follows the global lever). Shared by the radius / motion
- *  tempo / density controls — outside the base mode they edit `modeLevers[mode].<key>` instead of the
- *  global. A hand-authored value that matches no discrete option is surfaced as its own "(custom)" option
- *  rather than silently reading as Auto. `parse` maps the selected string to the stored value. `write` is what a
- *  change writes (`undefined` for Auto); tempo passes `state/depth-motion-input.ts`'s (UI redesign S9.1). */
-const renderPerModeSelect = (lever: Lever, key: string, opts: [string, string][], globalOf: () => string, parse: (s: string) => unknown, autoNote: string,
-  write: (v: unknown) => void = (v) => { setModeLever(currentMode, key, v); }): HTMLElement => {
-  const cur = getModeLever(currentMode, key);
-  const sel = selectEl('sm fill');
-  sel.append(optionEl('', `Auto — follows global (${globalOf()})`, cur == null));
-  let matched = false;
-  for (const [v, label] of opts) { const on = String(cur) === v; matched ||= on; sel.append(optionEl(v, label, on)); }
-  if (cur != null && !matched) sel.append(optionEl(String(cur), `${cur} (custom)`, true));
-  sel.onchange = () => { write(sel.value === '' ? undefined : parse(sel.value)); applyFull(); };
-  const desc = `${lever.description} — per ${MODE_LABEL[currentMode] ?? currentMode}; “Auto” follows the global ${autoNote}.`;
-  return knob(lever.label, sel, desc);
-};
-const TEMPO_OPTS: [string, string][] = [['snappy', 'Snappy'], ['standard', 'Standard'], ['relaxed', 'Relaxed']];
-const renderPerModeTempo = (lever: Lever): HTMLElement =>
-  renderPerModeSelect(lever, 'tempo', TEMPO_OPTS, () => String(brandState.motionPersonality?.tempo ?? (lever.default as string) ?? 'standard'), (s) => s, 'tempo',
-    (v) => { setTempo(currentMode, v as string | undefined); });
-/** The levers that carry a per-mode "Auto" select outside the base mode, by lever key. (Radius softness and density
- *  left with the Shape page in UI redesign S7: `domains/shape.ts` edits the previewed mode, Q22.) */
-const PER_MODE_SELECTS: Record<string, (lever: Lever) => HTMLElement> = {
-  'motionPersonality.tempo': renderPerModeTempo,
-};
+// `renderPerModeSelect` and `PER_MODE_SELECTS`, the per-mode "Auto — follows global" selects for radius softness,
+// density and tempo, are gone: S7 moved radius and density to Shape and S9.2 tempo to Depth & motion, where each
+// control edits the previewed mode (Q22).
 
 /** The all-modes contrast table (Pair · a mode column each · dot + ratio). Shared by the Preview master
  *  table and the per-page section tables (docs/23 §3) — one authoritative renderer, re-sliced by the
@@ -1311,7 +1261,8 @@ const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void =
   host.append(ground(typeSampleSection(c, theme.typography, cur, { ink: surf.ink })));
   // The radius sample (UI redesign S7, owner decision D18 B), shared from `preview/sections/`: the brand's radius on a
   // panel, a field, a button and a tag, in the previewed mode, on the chosen ground. S9 adds the shadow to its panel.
-  host.append(ground(radiusSampleSection(c, { dims: theme.dims, modes: theme.modes, mode: cur, shape: brandControlShape(), copy: RADIUS_SAMPLE, inverse: surf.key.startsWith('inverse.') })));
+  host.append(ground(radiusSampleSection(c, { dims: theme.dims, modes: theme.modes, mode: cur, shape: brandControlShape(), copy: RADIUS_SAMPLE, inverse: surf.key.startsWith('inverse.'),
+    shadow: rp.shadows[SAMPLE_SHADOW]?.[cur] })));   // D18 B's shadow half (S9.2): the panel's elevation, for the mode in view
   // The five shared color sections, in the Style guide's order, each on the chosen ground.
   for (const [, section] of COLOR_SECTIONS) host.append(ground(section(c)));
 
@@ -1322,10 +1273,8 @@ const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void =
 };
 
 const PAGE_COPY: Record<LegacyPageKey, [string, string]> = {
-  elevation: ['Elevation.', 'The shadow ramp — blur/offset softness and an optional brand-hued tint on the shadow base. Dark modes get a reduced set automatically.'],
   // UI redesign S7: the page keeps only the Button options, under its own title (owner decision D5 B). The lede is DRAFT.
   sizeRadius: ['Size & radius.', 'Button icon placement, label size and weight, and minimum width. Density and radius are set on Shape.'],
-  motion: ['Motion.', 'Tempo (the duration ramp) and the expressive easing curve. Reduce-motion is derived.'],
   // #718. The lede states the role rather than the feature, because that is the fact this page exists
   // to convey: the write is how the anatomy schema is proven to materialize, not a component library
   // the brand ships. Naming the one def and the member count keeps it from reading as a catalog.
@@ -1414,94 +1363,19 @@ const renderGeneratedNote = (): HTMLElement => {
 /** Bespoke editors for the object/list levers renderControl can't edit (it only shows them read-only).
  *  Rendered alongside the manifest-advanced slider/enum controls in the (always-visible) extras panel. */
 
-// The Easing section: the curve set is the shared `motionCurvesSection` (UI redesign S9.1); under it, the Easing
-// per mode table, which stays here until S9.2 replaces it.
-const renderEasingEditor = (): HTMLElement => {
-  const wrap = motionCurvesSection(theme.motion.easing);
-  // Per-mode re-point (#522). The curves themselves stay mode-invariant primitives — a mode swaps
-  // which curve a ROLE resolves to, the same contract as the leading and tracking ladders, in the same
-  // table. `calm` is the case this exists for: the engine describes it as a soft onset for long or
-  // involuntary motion, which is exactly the substitution a dark or reduced-intensity mode wants.
-  if (rp.modes.length > 1) {
-    const m = theme.motion;
-    const curve = (k: string) => `cubic-bezier(${(m.easing[k] ?? []).join(', ')})`;
-    // Rows carry the curve NAME, options carry its numbers — the two arrays are already separate, so
-    // this needs no extra formatter. The first pass printed the bezier in every cell: it never said
-    // which curve a role resolves to (the whole point of the row), repeated a 24-character string
-    // three times across, and clipped the last column. The numbers live on the worth line under each
-    // select, and on the curve cards directly above.
-    wrap.append(renderRepointTable(
-      'Easing per mode',
-      m.easingRoles.map((r) => ({ key: r.role, val: r.curve, base: r.curve })),
-      (v) => String(v),
-      'easings',
-      Object.keys(m.easing).map((k) => ({ key: k, val: curve(k) })),
-      'Role',
-      (role, c2) => setEasingRole('light', role, c2),
-    ));
-  }
-  return wrap;
-};
-
-// The duration ramp (`durationRampSection`) and Springs (`springsSection`) live in `preview/sections/` (UI redesign
-// S9.1), drawn by the Motion page below.
-
 // ---- focused pages (docs/23 §7) -------------------------------------------
-// Each editing page composes through one scaffold: hero → sections (or a read-only note on a derived
-// mode) → the volatile contextual specimens for that axis. The heavy global preview lives on its own
-// Preview tab (3a); these are the tight, single-axis specimens that stay with their editor.
+// (The `renderScreen` scaffold, hero → sections → volatile specimens, went with its last two pages, Elevation and
+// Motion, in UI redesign S9.2.)
 
-/** The shared screen scaffold. `sections` builds the controls/editors; `specimens` returns the
- *  contextual specimen nodes, repainted on every edit. A derived mode (HC / wireframe) is auto-derived
- *  + read-only, so the controls are replaced by an explanatory note — the specimens still render it. */
-const renderScreen = (
-  host: HTMLElement, key: LegacyPageKey,
-  sections: (h: HTMLElement) => void,
-  specimens: () => Array<HTMLElement | null>,
-): void => {
-  const [title, lede] = PAGE_COPY[key];
-  host.append(hero(title, lede));
-  if (DERIVED_MODES.has(currentMode)) host.append(renderGeneratedNote());
-  else sections(host);
-  const vol = el('div', 'stage-vol');
-  host.append(vol);
-  setVolatile([vol], () => { vol.innerHTML = ''; for (const s of specimens()) if (s) vol.append(s); });
-  paintVolatile();
-};
-// Elevation — the shadow ramp (softness + tint live together in the bespoke editor).
-const renderElevationPage = (host: PageHost): void => renderScreen(host, 'elevation', (h) => {
-  h.append(renderShadowEditor(leverByKey('shadow.softness')));
-}, () => [shadowRampSection(rp.shadows, currentMode)]);
-
-// Size & radius — component sizing (density) + corner radius; both go per-mode outside Light.
-// Render one lever's control, honouring the per-mode ramp variants (radius / density / tempo go per-mode
-// outside Light). Shared by the geometry/motion pages so each concept `.psec` composes the same way.
-const leverControl = (key: string, perMode: boolean, commit?: () => void, write?: (v: unknown) => void): HTMLElement | null => {
+// Render one lever's control (the Button options left on Size & radius, which edit every mode).
+const leverControl = (key: string): HTMLElement | null => {
   const l = leverByKey(key); if (!l) return null;
-  // The three per-mode variants already commit through `applyFull` (see `renderPerModeSelect`), which
-  // is why #800 was never visible outside Light: there, changing the tempo re-renders the page and the
-  // Duration ramp comes back current. Only the global control had it.
-  // Outside the base mode these three add an "Auto — follows global" entry. A choice set with an Auto
-  // entry stays a select (#1675), so they keep the per-mode selects; chips are the base mode's control.
-  const perModeSelect = perMode ? PER_MODE_SELECTS[key] : undefined;
-  if (perModeSelect) return perModeSelect(l);
-  return renderControl(l, commit, write);
+  return renderControl(l);
 };
-/** A `.psec` concept section built from a set of lever keys (doc 26). Returns null when none of its
- *  levers resolve, so an empty concept never renders an empty panel. `commit` is handed to every
- *  control in the section — see `renderControl`. `writeOf` names a key's write where it is not the generic one. */
-const leverSection = (title: string, sub: string, keys: string[], perMode: boolean, commit?: () => void, writeOf?: (key: string) => ((v: unknown) => void) | undefined): HTMLElement | null => {
-  const sec = palSection(title, sub); let any = false;
-  for (const k of keys) { const c = leverControl(k, perMode, commit, writeOf?.(k)); if (c) { sec.append(c); any = true; } }
-  return any ? sec : null;
-};
-
-// Size & radius — grouped by concept (doc 26): corner radius, density/size, spacing grid. Each control
-// block sits beside its live preview (#265, shared scaffold with Layout). radius + density stay per-mode
-// outside Light — the controls reuse `leverControl(key, perMode)`, so that semantics is unchanged.
-const csLeverStack = (keys: string[], perMode: boolean): HTMLElement => {
+// Size & radius: each control block sits beside its live preview (#265, shared scaffold with Layout).
+const csLeverStack = (keys: string[]): HTMLElement => {
   const stack = el('div', 'cs-ctl-stack');
-  for (const k of keys) { const c = leverControl(k, perMode); if (c) stack.append(c); }
+  for (const k of keys) { const c = leverControl(k); if (c) stack.append(c); }
   return stack;
 };
 // UI redesign S7 moved Density, radius, Control shape, the spacing steps and the building blocks to the Shape page
@@ -1511,7 +1385,7 @@ const csLeverStack = (keys: string[], perMode: boolean): HTMLElement => {
 const renderSizeRadiusPage = (host: PageHost): void => controlSplitPage(host, 'sizeRadius', () => [
   // The button levers (#1667) are GLOBAL brand levers, so `false`. The labels are the owner's exact words and live
   // in `levers.ts`; this block only groups them beside their specimen.
-  { title: 'Buttons', sub: 'Button icon placement, the medium label and icon size, the label weight, and minimum width. Applies to buttons, not icon buttons.', controls: csLeverStack(['buttonIcons', 'buttonContentSize', 'buttonLabelWeight', 'buttonMinWidthMultiplier'], false), paint: paintButtonLayoutPreview },
+  { title: 'Buttons', sub: 'Button icon placement, the medium label and icon size, the label weight, and minimum width. Applies to buttons, not icon buttons.', controls: csLeverStack(['buttonIcons', 'buttonContentSize', 'buttonLabelWeight', 'buttonMinWidthMultiplier']), paint: paintButtonLayoutPreview },
 ]);
 
 // ---- controls-beside-previews pages (docs #264 / #265) --------------------
@@ -1557,36 +1431,6 @@ const controlSplitPage = (host: HTMLElement, pageKey: LegacyPageKey, blocks: () 
   setVolatile(previews, () => { refreshers.forEach((r) => r()); });
   paintVolatile();
 };
-// Motion — Tempo (per-mode outside Light) + the Easing curve, each its own concept section.
-const renderMotionPage = (host: PageHost): void => renderScreen(host, 'motion', (h) => {
-  const perMode = currentMode !== 'light';
-  // The section head no longer restates the knob's own description verbatim — both said "scales the
-  // duration ramp" and "reduce-motion is derived", three lines apart. The head says what the section
-  // governs; the knob keeps the multipliers.
-  // #800 — TEMPO COMMITS FULLY, and this is the one page where that is not over-reach.
-  //
-  // `apply()` recomputes the theme and repaints the VOLATILE region; on a `renderScreen` page the
-  // volatile region is the `.stage-vol` specimen box and nothing else. Every other section here is
-  // built once per `renderWorkspace` and never touched again. Three of the four sections below are
-  // read-only renderings OF THE TEMPO — the Duration ramp's six durations, its ms primitives, its
-  // stagger and its `tempo '…'` label — so a tempo edit that commits through `apply()` repaints the
-  // one section that does not display the ramp and leaves the three that do showing the previous
-  // tempo's numbers. Measured before it was fixed: three successive edits (snappy → relaxed →
-  // standard) all left `[40, 80, 160, 240, 400, 640]` on screen. Not stale by one commit — stale
-  // since the last full render, which is what a single-edit measurement could not tell apart.
-  //
-  // `applyFull()` re-renders the page region by region (#771), so the ramp is rebuilt from the
-  // resolved theme and every unchanged region is kept. It is also what the per-mode tempo select has
-  // always done, which is why this was only ever visible in the base mode.
-  // Light's tempo writes through `state/depth-motion-input.ts` (UI redesign S9.1); outside Light the per-mode
-  // select (`renderPerModeTempo`) does.
-  const tempo = leverSection('Tempo', 'The overall motion speed for this brand. Per-mode outside Light.', leversFor('motion').map((l) => l.key), perMode, applyFull,
-    (k) => (k === 'motionPersonality.tempo' ? (v) => { setTempo('light', v as string); } : undefined));
-  if (tempo) h.append(hook(tempo, 'section-tempo'));
-  h.append(durationRampSection(theme.motion, currentMode));
-  h.append(renderEasingEditor());
-  h.append(springsSection(theme.motion.spring));
-}, () => [motionTransitionsSection(theme.motion, currentMode, { slowmo: motionSlowmo, onSlowmo: (v) => { motionSlowmo = v; paintVolatile(); } })]);
 
 /** Which background role the Style guide's specimens are previewed on. Module state so it survives a repaint,
  *  like `currentMode`. The legacy Preview page that held it, with its three views, is gone (UI redesign S3):
@@ -2038,202 +1882,6 @@ subscribe('host:styleguide', () => syncStyleGuideRow());
 // `WEIGHT_NAME`) live in `ui/fonts.ts` (UI redesign S6.1). The Type controls and the fixed ladders the legacy
 // Typography page drew here moved to `domains/type.ts` and `preview/sections/` (UI redesign S6.3).
 
-/** One per-mode re-point table. Rows are RUNGS; a cell names the rung that mode substitutes — never
- *  a number, because a mode may not redefine a primitive (the ladders are on Primitives). Selects,
- *  not steppers: re-pointing is an enum choice with an Auto state, and doc 26 puts 3+ options in a
- *  select. Same geometry tokens as the size and weight tables so all four line up on one grid. */
-const renderRepointTable = (
-  caption: string,
-  steps: { key: string; val: number | string; base?: string }[],
-  fmt: (v: number | string) => string,
-  modeField: 'lineHeights' | 'letterSpacings' | 'easings',
-  // The ladders re-point a rung at ANOTHER RUNG, so rows and options are the same set. Easing does
-  // not: rows are the four motion ROLES and options are the six CURVES (#522). Hence the seam —
-  // `options` defaults to `steps`, and `base` names the row's baseline target when it is not the row's
-  // own key (role `default` resolves to curve `standard`), which is what the self-map skip and the
-  // worth read-out must both key on rather than on the row name.
-  options?: { key: string; val: number | string }[],
-  // The ladders' rows ARE rungs; easing's are motion roles. A header reading "Rung" over a column of
-  // role names is the kind of wrong only a screenshot catches.
-  rowLabel = 'Rung',
-  // When the baseline binding lives in ANOTHER table (the two ladders), Light is a read-out and this
-  // stays undefined. Easing has no such table — its role→curve mapping was engine-fixed — so it passes
-  // a writer and Light becomes a select like every other column. Without this a mode could deviate
-  // from a baseline nobody could set: you could change Dark but not Light, which is backwards.
-  setBaseline?: (rowKey: string, curve: string | undefined) => void,
-): HTMLElement => {
-  const opts = options ?? steps;
-  const modes = rp.modes;
-  const box = el('div', 'mtbl');
-  box.append(el('p', 'mtbl-cap', caption));
-  const scroll = el('div', 'mtbl-scroll');
-  const tbl = el('table', 'mtbl-tbl');
-  const thead = el('thead'), htr = el('tr');
-  htr.append(el('th', 'mtbl-stick', rowLabel));
-  for (const m of modes) {
-    const th = el('th', 'mtbl-mode');
-    th.append(document.createTextNode(MODE_LABEL[m] ?? m));
-    if (m === 'light') th.append(el('span', 'mtbl-ro', ' baseline'));
-    else if (!modeIsEditable(m)) th.append(el('span', 'mtbl-ro', ' auto'));   // #423
-    htr.append(th);
-  }
-  htr.append(el('th', 'mtbl-fill'));
-  thead.append(htr); tbl.append(thead);
-  const tb = el('tbody');
-  for (const s of steps) {
-    const tr = el('tr');
-    const nameCell = el('td', 'mtbl-stick');
-    nameCell.append(el('span', 'mtbl-name mono', s.key));
-    tr.append(nameCell);
-    for (const m of modes) {
-      const td = el('td', 'mtbl-mode');
-      if (m === 'light' && setBaseline) {
-        // Light IS the baseline, and here it is settable: this select writes the brand-wide binding
-        // every other column is a substitution for.
-        const sel = selectEl('sm');
-        for (const t of opts) sel.append(optionEl(t.key, t.key, (s.base ?? s.key) === t.key));
-        sel.setAttribute('aria-label', `${s.key} baseline`);
-        sel.onchange = () => { setBaseline(s.key, sel.value); applyFull(); };
-        td.append(sel);
-        const worth = opts.find((t) => t.key === (s.base ?? s.key));
-        if (worth) td.append(el('span', 'mtbl-worth mono', fmt(worth.val)));
-      } else if (m === 'light') {
-        // Light IS the baseline, so its cell can only ever resolve to the row's own rung. Showing the
-        // VALUE rather than repeating the name earns the cell its width: it is the number every other
-        // cell in the row is a substitution for.
-        const self = el('span', 'mtbl-selfval mono', fmt(s.val));
-        self.title = `The baseline. Change which ladder step ${s.key} binds in the table above — it is one binding, shared by every mode.`;
-        td.append(self);
-      } else if (!modeIsEditable(m)) {
-        // #423 — a derived mode holds no levers, so it can only ever resolve to the rung itself.
-        // Reading, not a select: the select's write reached the engine and printed its internal
-        // "generate-only and not customizable" string at the user.
-        const self = el('span', 'mtbl-selfval mono', fmt(s.val));
-        self.title = `${MODE_LABEL[m] ?? m} is auto-derived from Light and Dark — it keeps the ${s.key} rung and accepts no per-mode re-point.`;
-        td.append(self);
-      } else {
-        const ov = getModeLever(m, `${modeField}.${s.key}`) as string | undefined;
-        // A set cell carries the same "pinned" weight the stepper tables give `.mval.pin`, so a scan
-        // down the column finds the overrides without reading every label.
-        const sel = selectEl(ov ? 'sm set' : 'sm');
-        // Rung NAMES only, no values. A closed select renders the same text it lists, and the shared
-        // column width ellipsised "relaxed · 1.65×" down to "relaxed · 1..." — truncating the one
-        // thing a cell must always say. The values are one column to the left, on every row.
-        sel.append(optionEl('', 'Auto', !ov));
-        for (const t of opts) {
-          if (t.key === (s.base ?? s.key)) continue;           // a self-map is a no-op; don't offer it
-          sel.append(optionEl(t.key, t.key, ov === t.key));
-        }
-        sel.setAttribute('aria-label', `${s.key} in ${MODE_LABEL[m] ?? m}`);
-        sel.onchange = () => {
-          // The two type ladders write through `state/type-input.ts`; Motion's easing through `state/depth-motion-input.ts`.
-          if (modeField === 'easings') setEasingRole(m, s.key, sel.value || undefined);
-          else setRepoint(m, modeField, s.key, sel.value);
-          applyFull();
-        };
-        td.append(sel);
-        // #388 — the VALUE this rung is worth in this mode, under the select. The complaint that opened
-        // #377 was that a cell reading "rung tight → rung snug" re-points a rung into its own axis and
-        // never says what it MEANS; the honest reading is "in Dark, tight = 1.15". It goes on a second
-        // LINE rather than into the option text because a closed select renders exactly what it lists,
-        // and "relaxed · 1.65×" ellipsised to "relaxed · 1..." at this column width — truncating the one
-        // thing the cell must always say. Height is the affordable axis here; width is not.
-        const worth = opts.find((t) => t.key === (ov ?? s.base ?? s.key));
-        if (worth) td.append(el('span', 'mtbl-worth mono' + (ov ? ' set' : ''), fmt(worth.val)));
-      }
-      tr.append(td);
-    }
-    tr.append(el('td', 'mtbl-fill'));
-    tb.append(tr);
-  }
-  tbl.append(tb); scroll.append(tbl); box.append(scroll);
-  return box;
-};
-
-/** #97 + #114 tidy — the Shadow group. Gathers every shadow control under one heading: the
- *  `shadow.softness` blur dial (a generic slider lever, passed in so it leaves the geometry panel)
- *  and the `shadow.tint = {hue, amount}` object editor (hue-shifts the base off pure black; amount 0 =
- *  pure black, higher = a richer brand-hued near-black). Reads the resolved default (`theme.shadow.tint`)
- *  when the brand hasn't set one; the elevation specimen recolors live. */
-const renderShadowEditor = (softness?: Lever): HTMLElement => {
-  // D (shadow) — outside the base mode, softness + tint go per-mode (modeLevers[mode].shadow); the
-  // slider shows the EFFECTIVE value (override ?? global) and moving it creates an override, with a
-  // "↺ Auto" reset that clears it (blank-slider has no natural Auto state, so the reset is explicit).
-  const perMode = currentMode !== 'light';
-  const modeLabel = MODE_LABEL[currentMode] ?? currentMode;
-  const wrap = palSection('Shadow', perMode
-    ? `Blur softness + tint for ${modeLabel} — “Auto” follows the global shadow; a value overrides this mode (crisper/softer, warmer/cooler). The light↔dark reduction still applies on top.`
-    : 'Blur softness (crisp/product → soft/marketing) and a hue-shift of the shadow base off pure black. Tint amount 0 = pure black; higher = a richer, brand-hued near-black.');
-  const gTint = theme.shadow.tint;         // resolved global tint (what a mode inherits under Auto)
-  const gSoft = theme.shadow.softness;     // resolved global softness
-  const panel = wrap;                       // knobs append straight into the .psec (no nested .panel)
-  if (perMode) {
-    // A per-mode slider: effective = override ?? global; moving it writes modeLevers[mode].shadow.<path>
-    // via the shared setModeLever (prunes to byte-identical). Dragging back to EXACTLY the global value
-    // clears the override (no redundant "== global" override lingers), and the ↺ Auto reset clears it too.
-    const mkPer = (label: string, min: number, max: number, step: number, unit: string, key: ShadowKey, global: number): void => {
-      const ov = shadowOverride(currentMode, key);
-      const eff = ov ?? global;
-      const knob = el('div', 'knob');
-      const head = el('div', 'sh-knob-head');
-      head.append(el('label', 'knob-label', label));
-      const auto = el('button', 'sh-auto') as HTMLButtonElement;
-      const setAuto = (overriding: boolean): void => { auto.textContent = overriding ? '↺ Auto' : `Auto (${global}${unit})`; auto.className = overriding ? 'sh-auto on' : 'sh-auto'; auto.disabled = !overriding; };
-      setAuto(ov !== undefined);
-      auto.onclick = () => { setShadow(currentMode, key, undefined, global); applyFull(); };
-      head.append(auto);
-      knob.append(head);
-      const input = rangeInput({ min, max, step, value: eff });
-      const val = el('span', 'knob-val', `${eff}${unit}${ov !== undefined ? '' : ' · auto'}`);
-      input.oninput = () => {
-        // Landing back on the global prunes the override (`state/depth-motion-input.ts`).
-        const overriding = setShadow(currentMode, key, Number(input.value), global);
-        val.textContent = `${input.value}${unit}${overriding ? '' : ' · auto'}`;
-        // update the ↺ Auto reset in place (no full re-render, so dragging stays smooth).
-        setAuto(overriding);
-        apply();
-        refreshTintReadout?.();   // #305 — stable-head control, so repaint it rather than re-render
-      };
-      const body = el('div', 'knob-body'); body.append(input, val);
-      knob.append(body);
-      panel.append(knob);
-    };
-    const sLever = softness;
-    mkPer(sLever?.label ?? 'Shadow softness', (sLever?.min as number) ?? 0, (sLever?.max as number) ?? 2, (sLever?.step as number) ?? 0.1, '', 'softness', gSoft);
-    mkPer('Tint hue', 0, 360, 1, '°', 'tint.hue', gTint.hue);
-    mkPer('Tint amount', 0, 1, 0.05, '', 'tint.amount', gTint.amount);
-  } else {
-    const cur = authoredTint();
-    // the blur dial, pulled out of the geometry panel; it writes through the Elevation state module
-    if (softness) panel.append(renderControl(softness, apply, (v) => { setShadowSoftness('light', v as number); }));
-    const mk = (key: 'hue' | 'amount', label: string, min: number, max: number, step: number, unit: string): void => {
-      const knob = el('div', 'knob');
-      knob.append(el('label', 'knob-label', label));
-      const input = rangeInput({ min, max, step, value: cur?.[key] ?? gTint[key] });
-      const val = el('span', 'knob-val', `${input.value}${unit}`);
-      input.oninput = () => {
-        setShadowTint('light', key, Number(input.value));   // ONE key: a partial tint stays partial
-        val.textContent = `${input.value}${unit}`;
-        apply();
-        refreshTintReadout?.();   // #305 — stable-head control, so repaint it rather than re-render
-      };
-      const body = el('div', 'knob-body'); body.append(input, val);
-      knob.append(body);
-      panel.append(knob);
-    };
-    mk('hue', 'Tint hue', 0, 360, 1, '°');
-    mk('amount', 'Tint amount', 0, 1, 0.05, '');
-  }
-  const readout = shadowTintReadout(() => ({ shadow: theme.shadow, mode: currentMode }));
-  refreshTintReadout = readout.refresh;
-  panel.append(readout.node);
-  return wrap;
-};
-
-/** #305 — the tint read-out (`shadowTintReadout`, `preview/sections/shadow-tint.ts`, UI redesign S9.1) is refreshed
- *  IMPERATIVELY, not by re-render: the shadow editor lives in the stable head, so the slider handlers call this. */
-let refreshTintReadout: (() => void) | null = null;
-
 // `TYPE_GROUP_ORDER` lives in `state/type-input.ts`; the Type preview's sections in `preview/sections/` (UI redesign
 // S6.1 to S6.3), drawn by `preview/type.ts`.
 
@@ -2319,16 +1967,12 @@ const paintButtonLayoutPreview = (into: HTMLElement): void => {
   into.append(list);
 };
 
-// The elevation ramp specimen (`shadowRampSection`, with `SHADOW_STEPS`) lives in `preview/sections/shadow-ramp.ts`
-// (UI redesign S9.1), drawn by the Elevation page.
+// The shadow steps (`shadowRampSection`, with `SHADOW_STEPS`) live in `preview/sections/shadow-ramp.ts` (UI redesign
+// S9.1), drawn by the Depth & motion preview (S9.2).
 
 // The control heights, the spacing steps and the building blocks moved to the Shape preview in UI redesign S7
 // (`preview/sections/control-heights.ts`, `spacing.ts`, `shape-building-blocks.ts`).
 
-// The motion specimen (`motionTransitionsSection`) and the curve plot it draws (`motionStageSvg`) live in
-// `preview/sections/` (UI redesign S9.1), drawn by the Motion page. The playback divisor is VIEW state, so it
-// stays here, where it survives a repaint, and the section is handed it.
-let motionSlowmo = 4;   // uniform playback divisor for the trace (#292) — never touches the ms label, the curve, or the ratio between transitions
 
 // The inverse-surface + icon specimens were retired here (#69): the inverse column is now a first-class
 // row in every interactive matrix section (Fill · inverse / Text · inverse / On-fill · inverse), and the
@@ -2546,6 +2190,8 @@ const mountView = (view: RootView, body: () => HTMLElement): void => {
         // S3: Brand's preview is the Style guide, lent the same way until a slice replaces it.
         // S6.2 lent Type's levers the legacy Text styles controls; S6.3 replaced them, so only the fonts are lent.
         lend: { styleGuide: renderPreviewStyleGuide, fonts: () => host },
+        // The product mark's logo, `styles.css`'s fixed gradient, lent like the views above.
+        logo: () => el('span', 'logo'),
       });
     }
     chromeHost = frame.head;
@@ -2698,9 +2344,7 @@ const chromeHeight = (): number => parseFloat(document.documentElement.style.get
  *  until it is registered here, and registered as a `PageRenderer`, which can only be called with a
  *  host the chrome mounter produced. */
 const PAGE_RENDERERS: Record<LegacyPageKey, PageRenderer> = {
-  elevation: renderElevationPage,
   sizeRadius: renderSizeRadiusPage,
-  motion: renderMotionPage,
   styleGuide: renderStyleGuidePage,
   components: renderComponentsPage,
 };
@@ -4176,7 +3820,7 @@ const renderStartScreen = (): HTMLElement => {
   const view = hook(el('div', 'startview'), 'start-screen');
   const col = hook(el('div', 'start-col'), 'start-column');
   const mark = el('div', 'start-mark');
-  mark.append(el('span', 'logo'), el('span', 'wordmark', 'Prism3'), el('span', 'studio', 'Theme studio'));
+  mark.append(el('span', 'logo'), el('span', 'wordmark', 'Prism3 Studio'));
   col.append(mark);
   col.append(hook(el('h1', 'start-h', 'Start a new brand.'), 'start-heading'));
   col.append(el('p', 'start-lede', 'One brand color is enough — the engine grows a full, contrast-checked system you can steer. Pick a starting point.'));

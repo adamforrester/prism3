@@ -20,8 +20,8 @@
  * `sections/` may write one (`test-shell-imports.ts`). Two lever headings were renamed away from their preview section by the
  * owner (Q26: "Background fills"; Q44: "Foreground fills", the fills the Foreground section draws), and
  * `PREVIEW_HEADING` names their pair, as it does Type's Scale limits (S6.3), whose preview is the Scale section, and Shape's
- * Base radius (S7), whose preview is the Radius section. A lever
- * section with no preview section (Fields) reveals nothing.
+ * Base radius (S7), whose preview is the Radius section. Scrim and Fields (S4f) are headed as their preview sections
+ * are, so they need no row. A lever section with no preview section reveals nothing.
  *
  * EASED, ON THE STUDIO'S OWN MOTION TOKENS (QA-B9, QA-B17). `scrollTo({ behavior: 'smooth' })` takes neither a
  * duration nor a curve, so the scroll is stepped here, one position per animation frame, along the chrome's

@@ -140,7 +140,6 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .brandmark{display:flex;align-items:center;gap:11px}
 .logo{width:18px;height:18px;border-radius:var(--r-xs);background:conic-gradient(from 210deg,#5e4bc3,#0088be,#2f6833,#a13731,#5e4bc3)}
 .wordmark{font-weight:640;letter-spacing:-0.02em;font-size:16px}
-.studio{color:var(--muted);font-size:13px;border-left:1px solid var(--line2);padding-left:11px}
 .barmenu-wrap{position:relative}
 .barbtn{display:flex;align-items:center;gap:9px;font:inherit;font-weight:560;border:1px solid var(--line2);background:var(--panel);padding:8px 13px;border-radius:var(--r-sm);font-size:13.5px;cursor:pointer;color:var(--ink);white-space:nowrap}
 .barbtn.open,.barbtn:hover{border-color:var(--ink2)}
@@ -654,7 +653,36 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .mo-coldesc{font-size:11.5px;color:var(--muted)}
 .mo-replay{margin-top:14px;border:1px solid var(--line2);background:var(--panel);border-radius:var(--r-sm);padding:7px 14px;font:inherit;font-size:12.5px;color:var(--ink2);cursor:pointer}
 .mo-replay:hover{border-color:var(--ink);color:var(--ink)}
-@media (prefers-reduced-motion:reduce){.mo-dot{animation:none!important;left:88.636%!important;top:11.364%!important}}
+/* S9.2: the Depth & motion preview's traces never play by themselves under reduced motion (owner decision D9 A); Play
+   plays them once on request. So the old rule that froze every dot at its end under reduced motion is gone: it would
+   have swallowed the one play the viewer asked for. */
+/* S9.2: the Depth & motion preview (preview/depth.ts). Each block sits inside its section's specimen ground, so its
+   ink is the brand's (--ink, --ink2) and its edges the brand's lines. */
+.dm-block{margin-top:22px}
+.dm-block:first-child{margin-top:0}
+.dm-block .sub-lab{margin:0 0 6px}
+.dm-desc{margin:0 0 10px;font-size:12px;line-height:1.5;color:var(--ink2)}
+.dm-sub{margin-top:18px}
+.dm-sub .sub-lab{margin:0 0 6px}
+.dm-block .sh-list{background:none;padding:18px 6px 6px;margin-top:0;gap:30px}
+.dm-block .sh-apart{margin-top:6px;padding-top:18px;border-top:1px dashed var(--line2);border-radius:0}
+.dm-block .sh-card{border-radius:10px}
+.dm-block .sh-lab{color:var(--ink)}
+.sh-css{font-size:10px;color:var(--ink2);max-width:150px;text-align:center;line-height:1.4;word-break:break-word}
+.dm-block .sh-tintcap{color:var(--ink2)}
+.dm-block .sh-tintnote{color:var(--ink2)}
+.dm-block .mo-toolbar{justify-content:flex-start;align-items:center;gap:14px;padding-top:0;margin:0 0 6px}
+.dm-block .mo-replay{margin-top:0}
+.dm-block .mo-slowmo{color:var(--ink2)}
+.mo-ramp-dur{min-width:150px}
+.mo-bar{display:block;height:6px;margin-top:4px;border-radius:3px;background:var(--ink2)}
+.mo-spin{display:flex;align-items:flex-start;gap:12px;margin-top:14px;padding-top:12px;border-top:1px dashed var(--line2)}
+.mo-spin .mo-ramp-foot{margin-top:0;flex-wrap:wrap}
+.mo-spin .dm-desc{margin:4px 0 0}
+.mo-spin-loop{flex:none;width:18px;height:18px;margin-top:2px;border-radius:50%;border:2px solid var(--line2);border-top-color:var(--ink)}
+.mo-ez-roles{display:flex;flex-wrap:wrap;gap:4px}
+.mo-ez-role{font-size:10.5px;line-height:1.4;padding:1px 6px;border:1px solid var(--line2);border-radius:999px;color:var(--ink2)}
+.dm-block .mo-ramp-note,.dm-block .mo-meta,.dm-block .mo-coldesc,.dm-block .mo-ez-bez,.dm-block .mo-spring-nums{color:var(--ink2)}
 .radius-spec{margin-bottom:8px}
 .rad-list{display:flex;flex-wrap:wrap;gap:24px;border-radius:var(--r-sm);padding:24px 20px;background:var(--paper);margin-top:14px}
 .rad-cell{display:flex;flex-direction:column;align-items:center;gap:9px;min-width:72px}
@@ -1105,6 +1133,12 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .sg-scrimcard{padding:0;overflow:hidden}
 .sg-scrimdim{width:100%;flex:1;display:flex;align-items:center;justify-content:center}
 .sg-scrimpanel{border-radius:var(--r-sm);padding:14px 20px;box-shadow:0 6px 18px rgba(0,0,0,.22)}
+/* Surfaces & fills' Fields section (UI redesign S4f, #2016): a field on its ground, its border role around its fill
+   role and its text. The colors are painted inline at the render site (`preview/sections/fields.ts`). */
+.sg-fcard{justify-content:space-between}
+.sg-field{align-self:stretch;margin-top:auto;border:1px solid;border-radius:var(--r-sm)}
+.sg-field-fill{padding:8px 10px;border-radius:var(--r-sm);min-width:0}
+.sg-field-t{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;line-height:1.4}
 .sg-ico svg{width:26px;height:26px;display:block}
 .sg-lab{font-weight:640;font-size:14px;line-height:1.2}
 .sg-sub{font-size:12px;opacity:.9}
@@ -1404,6 +1438,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .shp-shape.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .shp-bar{width:112px;border:1px solid transparent}
 .shp-panel{display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:20px;border:1px solid transparent;margin-top:14px;max-width:520px}
+.shp-pills{display:flex;flex-wrap:wrap;gap:6px}
 .shp-items{display:flex;flex-wrap:wrap;align-items:flex-start;gap:16px}
 .shp-item{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
 .shp-field{width:180px;border:1px solid transparent}
@@ -1484,8 +1519,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
    containing block, so both panels align to the row's right edge — the one edge that is always
    flush with the viewport gutter, whatever the buttons ahead of them are doing. */
 @media(max-width:640px){#app,.shell{padding:0 16px 72px}.barmenu-wrap{position:static}.brandmenu{max-width:calc(100vw - 24px)}.hero h1{font-size:28px;letter-spacing:-0.02em}.lede{font-size:15px;margin-top:14px}.lab{padding:0 3px}}
-/* The start screen's mark: the descriptor goes first, then the wordmark, as the column narrows. */
-@media(max-width:560px){.studio{display:none}}
+/* The start screen's mark: the wordmark goes as the column narrows, and the logo stays. */
 @media(max-width:380px){.wordmark{display:none}}
 .navmenu{width:300px;max-height:calc(100vh - 130px);overflow-y:auto}
 .nav-item{display:flex;width:100%;text-align:left;border:0;background:none;font:inherit;padding:9px 8px;border-radius:var(--r-xs);cursor:pointer;color:var(--ink2)}

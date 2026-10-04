@@ -54,6 +54,10 @@ const GLYPHS = {
   search: '<circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10.4 10.4l3.6 3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
   // S3: concept v6's warning triangle, for a state line that warns (the namespace placeholder, T2).
   warn: '<path d="M8 1.8l6.6 11.7H1.4z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 6.3v3.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11.6" r="0.9" fill="currentColor"/>',
+  // S4f (QA-B12): a closed and an open padlock, for Surfaces & fills' icon pairing button: locked while icons follow
+  // their text, unlocked while they are set on their own. The same body; only the shackle differs.
+  lock: '<rect x="3.2" y="7.2" width="9.6" height="6.6" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.4 7.2V5.2a2.6 2.6 0 0 1 5.2 0v2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+  unlock: '<rect x="3.2" y="7.2" width="9.6" height="6.6" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.4 7.2V5.2a2.6 2.6 0 0 1 5.1-.7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
 } as const;
 export type Glyph = keyof typeof GLYPHS;
 

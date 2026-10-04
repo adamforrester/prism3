@@ -46,6 +46,13 @@
 .p3-bar-slot { display: contents; }
 .p3-bar-main { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); position: relative; }
 .p3-spacer { flex: 1 1 auto; }
+/* The product mark (studio only, owner 2026-10-04): the logo, then the name, ahead of the brand switcher. Not a
+   control, so no edge. The logo is `styles.css`'s `.logo`, a fixed gradient no rule here may draw. */
+.p3-mark {
+  display: inline-flex; align-items: center; gap: var(--p3-space-100); flex: none; padding-right: var(--p3-space-200);
+  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong);
+  letter-spacing: var(--p3-ls-snug); line-height: var(--p3-lh-compact); white-space: nowrap;
+}
 
 /* Buttons: a page-colored fill and an edge that clears 3:1 on the bar (B1). */
 .p3-btn, .p3-brand {
@@ -249,8 +256,6 @@
 /* ── the legacy frame (D1) ───────────────────────────────────────────────────────────────── */
 /* No background: the legacy page draws on the legacy body's ground, as it always has. */
 .p3-legacy { display: block; }
-.p3-switchrow { display: flex; padding: var(--p3-space-300) var(--p3-space-300) 0; }
-.p3-switchrow:empty { display: none; }
 
 /* ── the two panes (shown from the first moved page, S2) ─────────────────────────────────── */
 /* The tab row and the preview's title row share ONE grid row (Q2), so the two dividers sit at one y
@@ -362,6 +367,11 @@
    edge, radius and padding; only its ground moves, and its specimens stay on the brand's page. The card is
    pinned light, so this reads the light value in either chrome theme. */
 .p3-legacy-card .p3-sgsec { background: var(--p3-levers-bg); }
+/* QA-I2, on Surfaces & fills (S4f): a ratio badge's mark in the chrome's status icon colors, a pass in the success
+   icon and a miss in the danger icon, from the chrome theme `preview/badge-marks.ts` stamps on the mark (the one that
+   contrasts most with the ground under it). An unstamped mark (no theme reaches 3:1 there) keeps the badge's ink. */
+.p3-marks .sg-ratio-mk[data-theme] { color: var(--p3-ok-icon); }
+.p3-marks .sg-ratio-no .sg-ratio-mk[data-theme] { color: var(--p3-bad-icon); }
 
 /* ── narrow (Q7): one column, one sticky top row, the tabs as a select ───────────────────── */
 .p3-frame[data-w="narrow"] .p3-head { display: contents; }
@@ -370,6 +380,9 @@
   gap: var(--p3-space-075); padding: var(--p3-space-025) var(--p3-space-150);
 }
 .p3-frame[data-w="narrow"] .p3-bar-main { flex-wrap: wrap; gap: var(--p3-space-075); }
+/* Narrow keeps the logo and drops the name; the mark's accessible name still says it. */
+.p3-frame[data-w="narrow"] .p3-mark { padding-right: var(--p3-space-050); }
+.p3-frame[data-w="narrow"] .p3-mark-name { display: none; }
 .p3-frame[data-w="narrow"] :is(.p3-btn, .p3-brand) { min-height: var(--p3-ctl-h-xs); font-size: var(--p3-fs-12); }
 .p3-frame[data-w="narrow"] .p3-brand { padding: 0 var(--p3-space-100); }
 .p3-frame[data-w="narrow"] .p3-btn-icon { min-width: var(--p3-ctl-h-xs); }
@@ -382,9 +395,8 @@
 .p3-frame[data-w="narrow"] .p3-search[data-open="true"] { flex: 1 1 auto; }
 .p3-frame[data-w="narrow"] .p3-nav:has(.p3-search[data-open="true"]) .p3-domrow { display: none; }
 .p3-frame[data-w="narrow"] .p3-subnav { padding: var(--p3-space-150); }
-.p3-frame[data-w="narrow"] :is(.p3-subnav, .p3-switchrow) .p3-seg { display: flex; width: 100%; }
+.p3-frame[data-w="narrow"] .p3-subnav .p3-seg { display: flex; width: 100%; }
 .p3-frame[data-w="narrow"] .p3-seg-tab { padding: 0 var(--p3-space-150); }
-.p3-frame[data-w="narrow"] .p3-switchrow { padding: var(--p3-space-150) var(--p3-space-150) 0; }
 .p3-frame[data-w="narrow"] .p3-notices { padding: var(--p3-space-100) var(--p3-space-150) 0; }
 .p3-frame[data-layout="panes"][data-w="narrow"] {
   grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
@@ -726,6 +738,12 @@
 .p3-field { display: grid; gap: var(--p3-space-050); min-width: 0; align-content: start; }
 .p3-field-wide { grid-column: 1 / -1; }
 .p3-field-label { color: var(--p3-text-2); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
+/* Depth & motion (S9.2): a slider's name with its readout on one line; a per-mode control's Auto line or its Return to
+   Auto, one shown; a curve drawn in a value picker row (D10), stroked in the row's ink. */
+.p3-slider-head { display: flex; align-items: baseline; gap: var(--p3-space-100); }
+.p3-autorow { display: flex; align-items: center; flex-wrap: wrap; gap: var(--p3-space-100); }
+.p3-autorow > [hidden] { display: none; }
+.p3-curve { display: block; width: var(--p3-ctl-h); height: var(--p3-ctl-h); }
 .p3-fieldpair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--p3-space-100); }
 .p3-fillrows { display: grid; gap: var(--p3-space-300); }
 .p3-fillrows[hidden], .p3-fillrow-wrap[hidden] { display: none; }
@@ -752,7 +770,13 @@
 .p3-pick-ratio[data-below="true"] { color: var(--p3-bad-text); }
 .p3-pick-ratio[data-below="true"] .p3-ico { color: var(--p3-bad-icon); }
 .p3-btn.p3-pick[aria-expanded="true"] { border-color: var(--p3-ctl-edge); }
-.p3-gedit { display: grid; gap: var(--p3-space-150); padding-top: var(--p3-space-150); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
+/* S4f (QA-B15, QA-B16): the gradients list. Each gradient is set apart from the next by its divider with a step
+   more room on both sides than S4a gave it, and Add gradient by a divider of its own and more room above it. */
+.p3-glist { display: grid; }
+.p3-gedit { display: grid; gap: var(--p3-space-150); padding-block: var(--p3-space-300); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-gadd { padding-top: var(--p3-space-400); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
+/* QA-B13: the gradients switch at the top right of its lever's header. */
+.p3-lever-head > .p3-switch { margin-inline-start: auto; }
 .p3-gbar { height: var(--p3-gbar-h); border-radius: var(--p3-radius-lg); outline: var(--p3-bw-hairline) solid var(--p3-line-1); outline-offset: calc(-1 * var(--p3-bw-hairline)); }
 .p3-gstop { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) minmax(0, var(--p3-step-w)) auto; gap: var(--p3-space-100); align-items: center; }
 .p3-gstop > .p3-btn-icon { min-height: var(--p3-ctl-h); min-width: var(--p3-ctl-h); }
@@ -764,6 +788,17 @@
 .p3-rows-sub[hidden], .p3-icon-pair[hidden] { display: none; }
 .p3-icon-pair { display: grid; gap: var(--p3-space-100); justify-items: start; }
 .p3-icon-pair-note { margin: 0; line-height: var(--p3-lh-cozy); }
+/* S4f: the Background fills sub-headings (QA-B7) at the rows' sub-heading size; the first opens the block, so it
+   takes no divider. The contrast floor row's name and its info button share a line (QA-B6). */
+.p3-rows-sub.p3-rows-sub-first { margin-top: 0; padding-top: 0; border-top: none; }
+/* A6 (owner, 2026-10-03): the scrim's wash fills its swatch, over the swatch's checkerboard (`.p3-checker`). */
+.p3-scrim-wash { display: block; width: 100%; height: 100%; border-radius: inherit; }
+/* The preview's scrim card: the same checkerboard under the wash, the card's size and corners kept. */
+.p3-legacy-card .sg-scrimcard.p3-checker { background-size: var(--p3-space-150) var(--p3-space-150); }
+.p3-fill-nameline { display: flex; align-items: center; gap: var(--p3-space-050); min-width: 0; }
+.p3-fillrow.p3-fillrow-wide { grid-template-columns: auto minmax(0, 1fr); }
+.p3-fillrow-wide > .p3-pick { grid-column: 2; justify-self: start; max-width: 100%; }
+.p3-fillrow-wide > .p3-pick .p3-btn-label { white-space: normal; text-align: start; }
 .p3-jump { display: flex; flex-wrap: wrap; gap: var(--p3-space-100) var(--p3-space-200); }
 .p3-jump[hidden] { display: none; }
 .p3-jump-label { display: inline-flex; align-items: center; min-height: var(--p3-hit-min); }   /* QA-B17: "Jump to:", on the links' line */
@@ -805,8 +840,7 @@
    drawn on. A mark it does not stamp (no theme reaches 3:1 there, as on a mid-gray page) keeps the badge's ink. */
 .p3-ipv .sg-tlab { min-width: 0; }
 .p3-ipv .sg-foothint { flex-wrap: wrap; max-width: 100%; }
-.p3-ipv .sg-ratio-mk[data-theme] { color: var(--p3-ok-icon); }
-.p3-ipv .sg-ratio-no .sg-ratio-mk[data-theme] { color: var(--p3-bad-icon); }
+/* The marks' colors are the shared `.p3-marks` rule (S4f), which the card also carries. */
 
 /* ── Type (S6.2): the library, Add face with its type-ahead, the face for each text type ──────────── */
 .p3-facehead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--p3-space-150); }

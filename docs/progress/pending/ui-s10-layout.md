@@ -58,15 +58,24 @@ specimen grounds every host, theme and mode; each tint label at 4.5:1 or above (
 once with no Show advanced; Q23 pairs; the approved copy literally; D16's retired words absent; the first breakpoint
 fixed at 0; D13 driven in the browser and read back from the persisted brand; the 2 and 7 limits; Return to Auto
 deleting the emptied map; T10 (the Maximum width slider moves its own bar) and the QA-B9 reveal; T8 on both hosts;
-#2047 on a hand-written input; Q59 in HC light and HC dark. Moved: `LEGACY_PAGES` − layout; #1031's dark-field check
-now reads Motion's easing selects; #2036's "typography.responsive is drawn on Type only" now reads Layout's two panes;
-section 22 (QA-B2, B5, I12) covers Layout's rows, pickers and Continue. `test:smoke`: #1532 moved to the new hooks
-(the readout is the preview's Grid `data-bpcol`, the override the `bp-cols-pick` value picker), oracle
-`out/figma/aurora/grid-styles.json` and M1/M2 unchanged; new 1i checks every brand × mode's Layout preview against the
-brand's emission (breakpoints, grid columns, gutter, margin, containers) and the legibility probe; the Pages menu
-floor drops to 3 with an absence check for Layout. **#485's select-jump test gets a new host, Motion** (the easing
-table's Light baseline, six curves): not a retirement, because the defect lives in the legacy tier (`applyFull()`
-emptying the workspace), which every remaining legacy page still runs through until S9.
+#2047 on a hand-written input; Q59 in HC light and HC dark. Moved: `LEGACY_PAGES` − layout (after S9.2 it is `['components']`); #2036's "typography.responsive is drawn on Type
+only" now reads Layout's two panes; section 22 (QA-B2, B5, I12) covers Layout's rows, pickers and Continue; Layout's
+chrome section is numbered 25 (S9.2 took 23, S7 24). `test:smoke`: #1532 moved to the new hooks (the readout is the
+preview's Grid `data-bpcol`, the override the `bp-cols-pick` value picker), oracle `out/figma/aurora/grid-styles.json`
+and M1/M2 unchanged; new 1i (S7 has 1g, S9.2 1h) checks every brand × mode's Layout preview against the brand's emission
+(breakpoints, grid columns, gutter, margin, containers) and the legibility probe; the Pages menu now offers Size &
+radius alone (floor 1, with absence checks for Elevation, Motion, Typography and Layout, in mode-audit too); the legacy
+sweep's floors follow (states 4, text nodes 4000, form controls 6); #1147's pill walk reads Layout's preview, as it
+reads Depth & motion's.
+
+**Two legacy-tier checks retired, by name, with the reason held true.** After S9.2 and S10 the web's one legacy page is
+Size & radius (the Button options until S8): radios and a slider, no select and no text field.
+- **#485 (a select must not jump the page while scrolled):** its defect lived in the legacy tier (`applyFull()` emptying
+  the workspace), and no legacy page draws a select to drive it with. Smoke now asserts, on every page the Pages menu
+  offers, that no legacy page draws a select with a choice, so one that comes back fails by name and the drive returns.
+- **#1031 (a legacy field keeps light UA ink in a dark theme):** re-hosted on the Components tab. In the plugin that is
+  the Components page, whose Build set select is measured as before; on the web it is retired, with an assertion that
+  the page draws no text field or select.
 
 **Mutations, each after a `wip:` commit, each failing by name** (then restored):
 
