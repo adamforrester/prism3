@@ -2360,6 +2360,85 @@ console.log(`\nThe step picker — on its fixture\n${'='.repeat(78)}`);
 }
 
 // =============================================================================================
+// THE GLIDE LOG (#2042): an eased scroll read on frame time, never on the wall clock.
+//
+//   `easedScrollTo` (`preview/follow-edit.ts`) takes one step per animation frame and reads time only from the
+//   frame's timestamp. #2015 measured its glides by sampling scrollTop from a recorder started after the edit
+//   returned, against `performance.now()`, so each check depended on how fast the machine drew: under load the
+//   recorder joined late and frames came late, and "the glide lasts …" measured 66ms against a 200ms tween.
+//
+//   So the page's animation frames run on a virtual clock here: each frame is exactly FRAME_MS after the one
+//   before it, whatever the wall clock did in between. Every `scrollTo` on the two panes is logged, from before
+//   the edit, with the frame time it ran in (null when it ran outside a frame, in the edit itself). Only the
+//   frame timestamp is virtual: Playwright's `page.clock` would also fake every timer, `Date` and
+//   `performance.now` the studio runs on, which nothing here needs. The log is the same on a busy machine as on
+//   an idle one: how many steps a glide takes, the frame time from its first step to its last, and whether
+//   each step lies on the declared curve.
+// =============================================================================================
+/** One virtual animation frame, in ms: a whole number, so frame times add up exactly. */
+const FRAME_MS = 16;
+/** Put `page`'s animation frames on the virtual clock and start the glide log. Once per page. */
+const installGlideLog = (page) => page.evaluate((frame) => {
+  if (window.__glide) return;
+  const raf = window.requestAnimationFrame.bind(window);
+  let real = null, n = 0, at = null;
+  // Every callback in one real frame shares its timestamp, so a new timestamp is the next virtual frame.
+  window.requestAnimationFrame = (cb) => raf((now) => {
+    if (now !== real) { real = now; n++; }
+    at = n * frame;
+    try { cb(at); } finally { at = null; }
+  });
+  window.__glide = [];
+  const scrollTo = Element.prototype.scrollTo;
+  Element.prototype.scrollTo = function (...a) {
+    const pane = this.getAttribute?.('data-p3');
+    if (pane === 'preview-body' || pane === 'levers-pane') {
+      const o = a[0] && typeof a[0] === 'object' ? a[0] : null;
+      window.__glide.push({ pane, top: Math.round(o ? o.top : a[1]), behavior: o ? o.behavior ?? 'auto' : 'auto', at });
+    }
+    return scrollTo.apply(this, a);
+  };
+}, FRAME_MS);
+/** Take the glide log so far, and empty it. */
+const takeGlideLog = (page) => page.evaluate(() => window.__glide.splice(0));
+/** A CSS `cubic-bezier(x1, y1, x2, y2)` as the progress function it names, solved here by bisection (the
+ *  test's own, not `follow-edit.ts`'s). */
+const cubicBezier = (css) => {
+  const [x1, y1, x2, y2] = /cubic-bezier\(([^)]*)\)/.exec(css)[1].split(',').map(Number);
+  const at = (p1, p2, t) => 3 * p1 * t * (1 - t) ** 2 + 3 * p2 * t * t * (1 - t) + t ** 3;
+  return (x) => {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 50; i++) { const m = (lo + hi) / 2; if (at(x1, x2, m) < x) lo = m; else hi = m; }
+    return at(y1, y2, (lo + hi) / 2);
+  };
+};
+/** `pane`'s steps in a glide log: how many, what each asked for, the positions strictly between the first and
+ *  the last, the frame time from the first step to the last and to the one before it, and whether every step
+ *  ran in an animation frame. Given a declared `dur` (ms) and `ease` (a CSS cubic-bezier), also the steps off
+ *  that curve by more than 1px, as [frame time, position, the curve's position]. */
+const glideOf = (log, pane, dur = null, ease = null) => {
+  const s = log.filter((x) => x.pane === pane);
+  const asked = s.map((x) => x.behavior);
+  if (!s.length) return { steps: 0, asked, between: 0, span: null, before: null, inFrames: false, instant: false, offCurve: [] };
+  const from = s[0].top, to = s[s.length - 1].top, t0 = s[0].at;
+  const inFrames = s.every((x) => x.at !== null);
+  const curve = ease ? cubicBezier(ease) : null;
+  const want = (x) => (x.at - t0 >= dur ? to : Math.round(from + (to - from) * curve((x.at - t0) / dur)));
+  return {
+    steps: s.length, asked, from, to,
+    between: new Set(s.map((x) => x.top).filter((t) => (t - from) * (t - to) < 0)).size,
+    span: inFrames ? s[s.length - 1].at - t0 : null,
+    before: inFrames && s.length >= 2 ? s[s.length - 2].at - t0 : null,
+    inFrames, instant: s.every((x) => x.behavior === 'instant'),
+    offCurve: inFrames && curve ? s.filter((x) => Math.abs(x.top - want(x)) > 1).map((x) => [x.at - t0, x.top, want(x)]) : [],
+  };
+};
+/** One step, taken in the edit itself rather than in an animation frame: a scroll that lands at once. */
+const atOnce = (g) => g.steps === 1 && !g.inFrames;
+
+// =============================================================================================
 // 15. THE Q4 TRIAL (QA note Q4, for the owner's decision): an EDIT reveals the palette it changes; focus,
 //     scrolling and the mode never move the preview (V1 still holds for them)
 // =============================================================================================
@@ -2385,18 +2464,12 @@ console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
   await page.evaluate(() => { const l = document.querySelector('[data-p3="levers-pane"]'); l.scrollTop = l.scrollHeight; });
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   ok((await state('primary')).top === bottom, `Q4: scrolling the levers does not move the preview (scrollTop ${(await state('primary')).top}, was ${bottom})`);
-  // An edit does, and smoothly (owner, 2026-10-01; eased on the chrome's motion tokens since QA-B9). A recorder
-  // on the preview body's `scrollTo` notes the behavior each step of a reveal asks for, and `frames()` samples the body's scrollTop on every animation frame until
-  // it has held still for ten frames: a smooth reveal passes through positions between start and end.
-  await page.evaluate(() => {
-    window.__reveals = [];
-    const o = Element.prototype.scrollTo;
-    Element.prototype.scrollTo = function (...a) {
-      if (this.matches('[data-p3="preview-body"]')) window.__reveals.push(a[0] && typeof a[0] === 'object' ? a[0].behavior ?? 'auto' : 'auto');
-      return o.apply(this, a);
-    };
-  });
-  const reveals = () => page.evaluate(() => window.__reveals.splice(0));
+  // An edit does, and smoothly (owner, 2026-10-01; eased on the chrome's motion tokens since QA-B9). The glide
+  // log (#2042, above) records each step of a reveal, the behavior it asks for and its position, from before
+  // the edit and on frame time; `frames()` samples the body's scrollTop on every animation frame until it has
+  // held still for ten frames, which is how the checks wait for a reveal to finish.
+  await installGlideLog(page);
+  const reveals = async () => glideOf(await takeGlideLog(page), 'preview-body');
   const frames = () => page.evaluate(() => new Promise((res) => {
     const b = document.querySelector('[data-p3="preview-body"]');
     const tops = [Math.round(b.scrollTop)];
@@ -2420,8 +2493,8 @@ console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
   const r1 = await reveals();
   // QA-B9: the glide is stepped, one \`instant\` position per frame on the chrome's motion tokens, never the
   // browser's \`smooth\` (which takes no duration or curve).
-  ok(r1.length >= 2 && r1.every((x) => x === 'instant'), `Q4: without reduced motion the reveal steps its own eased glide, one instant position per frame — asked ${JSON.stringify(r1)}`);
-  ok(between(t1, bottom) >= 2, `Q4: without reduced motion the preview passes through positions on its way (${between(t1, bottom)} in-between positions over ${t1.length} frames, ${t1[0]} → ${t1[t1.length - 1]})`);
+  ok(r1.steps >= 2 && r1.instant && r1.inFrames, `Q4: without reduced motion the reveal steps its own eased glide, one instant position per frame — asked ${JSON.stringify(r1.asked)}`);
+  ok(r1.between >= 2, `Q4: without reduced motion the preview passes through positions on its way (${r1.between} in-between positions over ${r1.steps} steps, ${r1.from} → ${r1.to}; it settled at ${t1[t1.length - 1]})`);
   // And the primary hex, from the bottom again, reveals the primary ramp.
   await toBottom();
   await page.locator('[data-p3="primary-hex"]').fill('#2244aa');
@@ -2441,7 +2514,7 @@ console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
   const t3 = await frames();
   const r3 = await reveals();
   ok(e3.inView && e3.top < bottom2, `Q4: under reduced motion the neutral ramp is in view right after the edit (in view ${e3.inView}, scrollTop ${e3.top}, was ${bottom2})`);
-  ok(r3.length === 1 && r3[0] === 'instant', `Q4: under reduced motion the reveal asks for one instant scroll — asked ${JSON.stringify(r3)}`);
+  ok(atOnce(r3) && r3.instant, `Q4: under reduced motion the reveal asks for one instant scroll, in the edit itself — asked ${JSON.stringify(r3.asked)}${r3.inFrames ? ', in a frame' : ''}`);
   ok(between(t3, e3.top) === 0 && t3[t3.length - 1] === e3.top, `Q4: under reduced motion the preview does not move after the jump (${JSON.stringify([...new Set(t3)])})`);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   // The mode does not move it.
@@ -4603,10 +4676,14 @@ for (const host of ['web', 'figma']) {
 //     Independence (docs/34): which preview section a lever section pairs with is typed here as the owner's
 //     decisions state it (Q23 headings, Q26 and Q44 for the two renamed ones), never read from
 //     `follow-edit.ts`'s table; the motion values are the default theme's `motion.transition.default` as
-//     literals; every position is read from the rendered layout.
+//     literals; every position is read from the rendered layout. A glide is read from the glide log (#2042,
+//     above section 15), on frame time: its duration and curve against those literals, never a wall-clock
+//     measurement, so a busy machine reads the same glide as an idle one.
 //
 //     Mutations this fails by name: drop the reveal on Surfaces & fills → `QA-B9: editing a Border step on
-//     Surfaces & fills brings the preview's Border section into view …`; ignore reduced motion →
+//     Surfaces & fills brings the preview's Border section into view …`; the duration token at 0 →
+//     `QA-B9: both panes scroll on the chrome's default transition …` and `QA-B9: the glide lasts the default
+//     transition's 200ms …`; ignore reduced motion →
 //     `QA-B9: under reduced motion the reveal lands at once …`; reveal on focus → `QA-B9: focusing a lever …
 //     does not move the preview …`; no restore → `QA-I11: back on Surfaces & fills, both panes are where they
 //     were …`; a wrong label → `QA-B17: … the jump links' visible label reads "Jump to:" …`.
@@ -4617,6 +4694,7 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
   const PAIRS_FILLS = { 'Background fills': 'Background', Foreground: 'Foreground', 'Foreground fills': 'Foreground', 'Text color': 'Text color', Border: 'Border', Icon: 'Icon', Gradients: 'Gradients' };
   /** `motion.transition.default` of the default theme: `motion.duration.normal` and `motion.easing.standard`. */
   const MOTION = { dur: '200ms', ease: 'cubic-bezier(0.2, 0, 0, 1)' };
+  const MOTION_MS = 200;
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
   try {
     /** The preview section headed `title`: its box against the body's, and where the body is. */
@@ -4630,23 +4708,28 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
         inView: !!r && r.top >= b.top - 1 && r.top < b.bottom - 40, view: body.dataset.view, place: document.querySelector('[data-p3="frame"]')?.dataset.place };
     }, title);
     const setTop = (hook, y) => page.evaluate(([h, v]) => { const n = document.querySelector(`[data-p3="${h}"]`); n.scrollTop = v; return Math.round(n.scrollTop); }, [hook, y]);
-    /** Every animation frame's scrollTop of a pane, and the time it took, until it has held still for ten frames. */
-    const frames = (which) => page.evaluate((w) => new Promise((res) => {
-      const b = document.querySelector(w === 'levers' ? '[data-p3="levers-pane"]' : '[data-p3="preview-body"]');
-      const tops = [Math.round(b.scrollTop)];
-      const t0 = performance.now();
-      let still = 0, moved = null, settled = null;
-      const tick = (now) => {
-        const t = Math.round(b.scrollTop);
-        if (t !== tops[tops.length - 1]) { still = 0; moved ??= now; settled = now; } else still++;
-        tops.push(t);
-        if (still >= 10 || tops.length > 400) res({ tops, ms: moved === null ? 0 : Math.round(settled - moved + 16), t0 }); else requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    }), which);
+    /** Every animation frame's scrollTop of a pane, until it has held still for ten frames (how a check waits
+     *  for a scroll to finish), with the glide log of each pane taken since the last call (what it checks). */
+    const frames = async (which) => {
+      const tops = await page.evaluate((w) => new Promise((res) => {
+        const b = document.querySelector(w === 'levers' ? '[data-p3="levers-pane"]' : '[data-p3="preview-body"]');
+        const t = [Math.round(b.scrollTop)];
+        let still = 0;
+        const tick = () => {
+          const y = Math.round(b.scrollTop);
+          still = y === t[t.length - 1] ? still + 1 : 0;
+          t.push(y);
+          if (still >= 10 || t.length > 400) res(t); else requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      }), which);
+      const g = glideOf(await takeGlideLog(page), which === 'levers' ? 'levers-pane' : 'preview-body', MOTION_MS, MOTION.ease);
+      return { tops, g };
+    };
     const between = (tops) => new Set(tops.filter((t) => t !== tops[0] && t !== tops[tops.length - 1])).size;
     const lands = (s) => s.inView && (Math.abs(s.rel - s.pad) <= 2 || s.top >= s.max - 1);
 
+    await installGlideLog(page);
     await goPlace(page, 'color-fills');
     // The panes read the chrome's default transition.
     const tok = await page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"], [data-p3="preview-body"]')]
@@ -4662,22 +4745,28 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
     const opened = await sec(PAIRS_FILLS.Border);
     ok(opened.top === 0, `QA-B9: opening a step picker is not an edit, and does not move the preview (scrollTop ${opened.top}, was 0)`);
+    await takeGlideLog(page);
     await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"][aria-pressed="false"]').first());
     const fa = await frames('preview');
     const a1 = await sec(PAIRS_FILLS.Border);
     ok(lands(a1), `QA-B9: editing a Border step on Surfaces & fills brings the preview's Border section into view, its top ${a1.pad}px under the body's (top at ${a1.rel}px, scrollTop ${a1.top}, in view ${a1.inView})`);
-    ok(between(fa.tops) >= 2, `QA-B9: without reduced motion the Surfaces & fills reveal glides through positions on its way (${between(fa.tops)} in-between over ${fa.tops.length} frames, ${fa.tops[0]} → ${fa.tops[fa.tops.length - 1]})`);
-    ok(fa.ms >= 120 && fa.ms <= 800, `QA-B9: the glide lasts about the default transition's ${MOTION.dur} (${fa.ms}ms from first move to settled)`);
+    ok(fa.g.between >= 2, `QA-B9: without reduced motion the Surfaces & fills reveal glides through positions on its way (${fa.g.between} in-between over ${fa.g.steps} steps, ${fa.g.from} → ${fa.g.to})`);
+    // #2042: the duration on frame time, not the wall clock. The glide's last step is the first frame at or
+    // past the declared duration after its first, and every step lies on the declared curve.
+    ok(fa.g.inFrames && fa.g.before !== null && fa.g.before < MOTION_MS && fa.g.span >= MOTION_MS && fa.g.offCurve.length === 0,
+      `QA-B9: the glide lasts the default transition's ${MOTION.dur}, on ${MOTION.ease}: its last step is the first frame at or past ${MOTION.dur} after its first (${fa.g.steps} steps, in frames ${fa.g.inFrames}; last at ${fa.g.span}ms, the one before at ${fa.g.before}ms; off the curve ${JSON.stringify(fa.g.offCurve.slice(0, 3))})`);
     ok(a1.view === 'surfaces' && a1.place === 'color-fills', `QA-B9: an edit on Surfaces & fills never changes the preview's page or view (V1) — ${a1.place} / ${a1.view}`);
 
-    // (c) Under reduced motion it lands at once: in place when the edit returns, and no frame between.
+    // (c) Under reduced motion it lands at once: in place when the edit returns, in one step taken in the edit
+    // itself, and no frame between.
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await setTop('preview-body', 0);
+    await takeGlideLog(page);
     await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"][aria-pressed="false"]').first());
     const c1 = await sec(PAIRS_FILLS.Border);
     const fc = await frames('preview');
-    ok(lands(c1) && between(fc.tops) === 0 && fc.tops.every((t) => t === c1.top),
-      `QA-B9: under reduced motion the reveal lands at once, with no frame between (at ${c1.rel}px, frames ${JSON.stringify([...new Set(fc.tops)])})`);
+    ok(lands(c1) && atOnce(fc.g) && between(fc.tops) === 0 && fc.tops.every((t) => t === c1.top),
+      `QA-B9: under reduced motion the reveal lands at once, with no frame between (at ${c1.rel}px, ${fc.g.steps} step(s), in frames ${fc.g.inFrames}, frames ${JSON.stringify([...new Set(fc.tops)])})`);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.keyboard.press('Escape');
 
@@ -4703,6 +4792,7 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     ok(lab.name === 'Sections on this page', `QA-B17: the jump links' landmark keeps its accessible name "Sections on this page" ("${lab.name}")`);
     const jumpTo = async (i) => {
       await setTop('levers-pane', 0);
+      await takeGlideLog(page);
       await hooks.click(page.locator('[data-p3="fills-jump-link"]').nth(i));
       const f = await frames('levers');
       const j = await page.evaluate((k) => {
@@ -4715,10 +4805,10 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     };
     const ja = await jumpTo(4);
     ok(Math.abs(ja.j.rel) <= 2 && ja.j.focus === 'p3-lsec-fills-4', `QA-B17: the Border jump link lands its section at the top of the levers pane, and focuses it (${JSON.stringify(ja.j)})`);
-    ok(between(ja.f.tops) >= 2, `QA-B17: without reduced motion a jump link glides through positions on its way (${between(ja.f.tops)} in-between over ${ja.f.tops.length} frames)`);
+    ok(ja.f.g.between >= 2, `QA-B17: without reduced motion a jump link glides through positions on its way (${ja.f.g.between} in-between over ${ja.f.g.steps} steps)`);
     await page.emulateMedia({ reducedMotion: 'reduce' });
     const jb = await jumpTo(3);
-    ok(Math.abs(jb.j.rel) <= 2 && between(jb.f.tops) === 0, `QA-B17: under reduced motion a jump link lands at once (top at ${jb.j.rel}px, frames ${JSON.stringify([...new Set(jb.f.tops)])})`);
+    ok(Math.abs(jb.j.rel) <= 2 && atOnce(jb.f.g) && between(jb.f.tops) === 0, `QA-B17: under reduced motion a jump link lands at once (top at ${jb.j.rel}px, ${jb.f.g.steps} step(s), in frames ${jb.f.g.inFrames}, frames ${JSON.stringify([...new Set(jb.f.tops)])})`);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
 
     // (e) Both panes keep their place per page, for the session: Surfaces & fills → Palettes → back.
@@ -4745,11 +4835,12 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     ok(b0.found && !b0.inView, `QA-B9: on Interactive the preview's Links section starts below the fold, so the reveal can move (${JSON.stringify(b0)})`);
     const lk = page.locator('[data-p3="levers-pane"] [data-p3="link-palette-select"]');
     const opts = await lk.evaluate((s) => [...s.options].filter((o) => !o.selected && !o.disabled).map((o) => o.value));
+    await takeGlideLog(page);
     await lk.selectOption(opts[0]);
     const fb = await frames('preview');
     const b1 = await sec('Links');
     ok(lands(b1), `QA-B9: editing the link palette on Interactive brings the preview's Links section into view, its top ${b1.pad}px under the body's or the preview at its end (top at ${b1.rel}px, scrollTop ${b1.top} of ${b1.max})`);
-    ok(between(fb.tops) >= 2, `QA-B9: without reduced motion the Interactive reveal glides through positions on its way (${between(fb.tops)} in-between over ${fb.tops.length} frames)`);
+    ok(fb.g.between >= 2, `QA-B9: without reduced motion the Interactive reveal glides through positions on its way (${fb.g.between} in-between over ${fb.g.steps} steps)`);
     ok(b1.view === 'interactive' && b1.place === 'color-interactive', `QA-B9: an edit on Interactive never changes the preview's page or view (V1) — ${b1.place} / ${b1.view}`);
     const ilab = await page.evaluate(() => ({ text: document.querySelector('[data-p3="interactive-jump"] [data-p3="jump-label"]')?.textContent ?? null, name: document.querySelector('[data-p3="interactive-jump"]')?.getAttribute('aria-label') ?? null }));
     ok(ilab.text === 'Jump to:' && ilab.name === 'Button sets', `QA-B17: on Interactive the jump links' visible label reads "Jump to:", and the landmark keeps "Button sets" (${JSON.stringify(ilab)})`);
@@ -4761,6 +4852,7 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     const typeEdit = async (what, sel, want) => {
       await setTop('preview-body', 0);
       const t0 = await sec(want);
+      await takeGlideLog(page);
       await hooks.click(page.locator(sel));
       const f = await frames('preview');
       const t1 = await sec(want);
@@ -4769,7 +4861,7 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
       return f;
     };
     const ft = await typeEdit('the type scale', '[data-p3="type-scale-compact"]', 'Scale');
-    ok(between(ft.tops) >= 2, `QA-B9: without reduced motion the Type reveal glides through positions on its way (${between(ft.tops)} in-between over ${ft.tops.length} frames)`);
+    ok(ft.g.between >= 2, `QA-B9: without reduced motion the Type reveal glides through positions on its way (${ft.g.between} in-between over ${ft.g.steps} steps)`);
     await typeEdit('the type scale back', '[data-p3="type-scale-default"]', 'Scale');
     await typeEdit('the caption floor (Scale limits)', '[data-p3="caption-floor-10"]', 'Scale');
     await typeEdit('the caption floor back', '[data-p3="caption-floor-11"]', 'Scale');
