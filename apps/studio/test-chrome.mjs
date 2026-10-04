@@ -4508,6 +4508,32 @@ for (const host of ['web', 'figma']) {
     await hooks.click(page.locator('[data-p3="type-scale-default"]'));
     await page.waitForFunction(() => document.querySelector('[data-p3="type-scale-default"]')?.getAttribute('aria-checked') === 'true');
     ok((await page.evaluate(() => document.querySelector('[data-p3="title-floor-16"]')?.disabled)) === false, 'B8b: back on the Default scale the 16px smallest title is selectable again');
+    // #2044 (owner, 2026-10-04): with display md set individually, on desktop or on mobile, a largest display size
+    // below it is disabled with the approved reason, and every one at or above md stays live. EXPECTED typed here:
+    // the ceiling order and the reason's words, never read from the page's module (docs/34).
+    {
+      const ORDER = ['sm', 'md', 'lg', 'xl', '2xl', '3xl'];
+      const REASON = 'Smaller than display md, which you set individually.';
+      const ceil = () => page.evaluate(() => [...document.querySelectorAll('[data-p3="type-ceiling"] option')].map((o) => ({ v: o.value, off: o.disabled, why: o.title })));
+      const firstFree = () => page.evaluate(() => document.querySelector('[data-p3="value-picker"] [data-p3="value-picker-value"]:not([aria-disabled="true"]):not([aria-pressed="true"])')?.getAttribute('data-value') ?? null);
+      const pCeil = await persisted(page);
+      for (const [vp, btn] of [['desktop', '[data-p3="type-size-desktop"][data-group="display"][data-variant="md"]'], ['mobile', '[data-p3="type-size-mobile"][data-group="display"][data-variant="md"]']]) {
+        await hooks.click(page.locator(btn));
+        await hooks.need(page, '[data-p3="value-picker"]');
+        const to = await firstFree();
+        await pick(btn, to);
+        await close();
+        await page.waitForFunction(() => document.querySelector('[data-p3="type-ceiling"] option[value="sm"]')?.disabled === true, null, { timeout: 5000 }).catch(() => {});
+        const got = await ceil();
+        const want = ORDER.map((v) => (v === 'sm' ? { v, off: true, why: REASON } : { v, off: false, why: '' }));
+        ok(JSON.stringify(got) === JSON.stringify(want),
+          `#2044: with display md set on ${vp} (${to}px), display.sm is disabled with "${REASON}" and md to 3xl stay live (${JSON.stringify(got)})`);
+        await reset(btn);
+        await close();
+        ok(JSON.stringify(await persisted(page)) === JSON.stringify(pCeil), `#2044: releasing display md's ${vp} size returns the brand to its bytes`);
+        ok((await ceil()).every((o) => !o.off), `#2044: with no display size set, every largest display size is live again (${vp})`);
+      }
+    }
     // A text type that pins a font style cannot be Italic only: the chip is disabled with the reason.
     const pinIn = page.locator('[data-p3="pin-cut-row"][data-cat="body"][data-role="default"] [data-p3="pin-cut-input"]');
     await pinIn.fill('Medium');

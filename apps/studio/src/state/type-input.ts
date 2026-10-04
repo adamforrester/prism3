@@ -30,7 +30,7 @@
  */
 import {
   brandTheme, typefaceSlug, derivedRungFor, shiftRung, REQUIRED_WEIGHT_ROLES, PER_MODE_SIZE_GROUPS,
-  LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TYPE_LINK_DEFAULT,
+  LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, DISPLAY_VARIANTS, TYPE_LINK_DEFAULT,
 } from '@prism3/engine/theme';
 import type { BrandInput, Theme, TypographyInput, PerModeSizeGroup, FacePin } from '@prism3/engine/theme';
 import { brandState, theme, getPath, setPath, setModeLever } from './store';
@@ -231,6 +231,21 @@ export const shapeBlocked = (key: string, cur: string): boolean => {
 };
 /** The display ceiling, written as the rung name the select holds. */
 export const setDisplayCeiling = (v: string): void => { setPath(brandState, 'typography.displayCeiling', v); };
+/** The ceilings the engine would refuse because they trim a display size set individually (#2044), each mapped
+ *  to the largest such size: the one the reason names. A display size counts as set wherever the engine reads
+ *  one: `typography.sizes.display`, a desktop or mobile `sizeOverrides.display` endpoint, and any mode's
+ *  `modeLevers[mode].typeSizes.display`. The engine's own rule, no trial build: `displayCeiling` keeps the
+ *  display rungs up to its position in `DISPLAY_VARIANTS` and refuses a size set on any rung above it. */
+export const ceilingBlocked = (): Map<string, string> => {
+  const set = new Set<string>(Object.keys(brandState.typography?.sizes?.display ?? {}));
+  for (const [v, ov] of Object.entries(brandState.typography?.sizeOverrides?.display ?? {}))
+    if (ov?.desktop !== undefined || ov?.mobile !== undefined) set.add(v);
+  for (const lev of Object.values(brandState.modeLevers ?? {}))
+    for (const v of Object.keys(lev?.typeSizes?.display ?? {})) set.add(v);
+  const order: readonly string[] = DISPLAY_VARIANTS;
+  const top = Math.max(-1, ...[...set].map((v) => order.indexOf(v)));
+  return new Map(top < 0 ? [] : order.slice(0, top).map((c) => [c, order[top]]));
+};
 /** Each display rung's px at the largest ceiling (`widest`), from one trial build; empty if it fails. */
 export const ceilingPx = (widest: unknown): Map<string, number> => {
   try {
