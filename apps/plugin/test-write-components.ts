@@ -4738,7 +4738,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     ['buttonContentSize', 'smaller'],
     ['buttonIcons', 'edges'],
     ['buttonMinWidthMultiplier', 1], ['buttonMinWidthMultiplier', 4],
-    ['controlShape', 'boxed'], ['controlShape', 'pill'],
+    ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
   ];
   const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
   const setIn = (o: any, key: string, v: unknown): any => {

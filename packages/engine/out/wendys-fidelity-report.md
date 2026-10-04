@@ -8,7 +8,7 @@
 ## Headline
 
 - **Anchor reproduction** — provided `primary` `#C8102E` vs generated `primary.500` `#c8102e`: **ΔE00 0.00** (≈0 confirms exact-anchor preservation).
-- **Aliases**: 1412/1412 resolve · **mode contrast contracts**: 896/896 hold.
+- **Aliases**: 1413/1413 resolve · **mode contrast contracts**: 896/896 hold.
 - **`primary` on white**: the engine measures **5.88:1** (clears small-text AA). The engine measures every contract, so if the brief's prose states a different figure, the *measured* value governs — a stale contrast claim in the source can't propagate.
 - Palettes generated: primary, neutral, secondary, tertiary, success, warning, info, danger · danger draws from `danger`.
 - x-prism3 levers: root=wds.
@@ -133,7 +133,7 @@ Observed spacing (often a t-shirt scale) vs the engine's numbered-multiplier `sp
 
 ## 4. Radius parity
 
-Observed radius vs the engine's small **bounded** set (`none/sm/md/lg/xl/2xl/3xl/round/capsule`) — radius is genuinely semantic (docs/00). Matched by px:
+Observed radius vs the engine's small **bounded** set (`none/sm/md/lg/xl/2xl/3xl/round/capsule/hairline`) — radius is genuinely semantic (docs/00). Matched by px:
 
 | observed | px | engine token at same px | note |
 |---|---|---|---|
@@ -147,7 +147,7 @@ Observed radius vs the engine's small **bounded** set (`none/sm/md/lg/xl/2xl/3xl
 | `3xl` | 24 | — | no bounded-set equivalent |
 | `rounded` | 9999 | — | no bounded-set equivalent |
 
-- Engine radius (`none=0, sm=2, md=4, lg=6, xl=8, 2xl=12, 3xl=16, round=128, capsule=999`) at scale 1. To shift the form factor, set `radiusScale` in the `x-prism3` block (e.g. `2` for softer corners).
+- Engine radius (`none=0, sm=2, md=4, lg=6, xl=8, 2xl=12, 3xl=16, round=128, capsule=999, hairline=1`) at scale 1. To shift the form factor, set `radiusScale` in the `x-prism3` block (e.g. `2` for softer corners).
 
 ## 5. Elevation parity
 

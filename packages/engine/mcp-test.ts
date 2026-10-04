@@ -230,7 +230,8 @@ await new Promise((r) => setTimeout(r, 3000));
   ok(nonLever.includes('modeLevers'), 'journey ①: the per-mode override layer is discoverable');
   // ①b The inline schema summarizes; `describe` returns the full text for the fields the agent names (#1760).
   const described = (await server.callJson('list_levers', { describe: ['radiusHairline'] })).payload.described;
-  ok(/near-sharp 1px corner/.test(described?.properties?.radiusHairline?.description ?? ''),
+  // Matched past the first sentence, so only the full text passes (#2053 retired the lever; the text says so).
+  ok(/is always emitted/.test(described?.properties?.radiusHairline?.description ?? ''),
     'journey ①b: list_levers describe returns a field\'s full description over the wire');
 
   // ② Generate from a brief, the way an agent working from prose would.

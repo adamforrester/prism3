@@ -115,6 +115,19 @@
       "description": "999px corner radius",
       "value": 999,
       "alias": null
+    },
+    {
+      "name": "wds/radius/hairline",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "1px corner radius",
+      "value": 1,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/core/dimension/1"
+      }
     }
   ]
 }

@@ -610,10 +610,9 @@ export type BrandInput = {
   radiusScale?: number;              // 0=sharp … 1=default … 2=soft, default 1
   baseMd?: number;                   // radius.md anchor (px) at scale 1, default 4
   controlShape?: ControlShape;       // 'rounded' (default) | 'pill' | 'boxed' | 'hairline' — corner shape for pill-able controls (#1371)
-  /** OPT-IN 1px hairline radius (#1362). The scaled ramp rides an even 2px sub-grid (`snap2`), so 1px is
-   *  unreachable from `radiusScale` / `baseMd`; `true` adds a fixed, unscaled `radius.hairline` = 1px
-   *  sentinel alongside the pills for near-sharp brands (New Balance uses 1px as its dominant corner).
-   *  Off by default — omitting it leaves every rung byte-identical. */
+  /** RETIRED (#2053, owner 2026-10-04). `radius.hairline` (1px) is always emitted, so this changes nothing.
+   *  Still ACCEPTED, so brand files that set it keep loading; a note says it is ignored. It was the opt-in
+   *  for that rung (#1362): the scaled ramp rides an even 2px sub-grid, so 1px is otherwise unreachable. */
   radiusHairline?: boolean;
   /** Button-family FORM levers (#1667) — materialized into the button defs before projection
    *  (`applyButtonLayout`); they emit no token and move no token name. `buttonIcons`: 'attached' (default,
@@ -667,7 +666,7 @@ export type BrandInputAuthored =
  *  px is already fed in by the space extras at base 4, 6 and 8, so deleting either of those lines
  *  changes no committed output. A guard nothing can exercise is a guard nothing can notice the loss of,
  *  which is `docs/34`'s shape 14 — so the seam is opened here rather than the guard left unfalsifiable. */
-export const buildDims =(baseUnit: number, spaceBase: number, density: Density, rScale: number, baseMd: number, extras: number[] = [], hairline = false): Dims => {
+export const buildDims =(baseUnit: number, spaceBase: number, density: Density, rScale: number, baseMd: number, extras: number[] = []): Dims => {
   // Space is `mult × spaceBase`; the dimension grid is `baseUnit`-stepped. At a non-default spaceBase the
   // half-steps (1.5×/0.25×/0.75×) land OFF the grid (e.g. spaceBase 12 → space.150 = 18px, absent from the
   // baseUnit-4 grid), so `space.<k> → {dimension.<px>}` would dangle (#274). Feed every space px into the
@@ -736,7 +735,7 @@ export const buildDims =(baseUnit: number, spaceBase: number, density: Density, 
       ...[...controls, ...(density === 'spacious' ? controlSizes('comfortable') : [])]
         .flatMap((c) => [c.height, c.width, c.dot, c.inset, c.track, c.thumb, (c.height - c.dot) / 2])]),
     space,
-    radius: radiusScale(rScale, baseMd, 128, 999, hairline),
+    radius: radiusScale(rScale, baseMd, 128, 999),
     sizes: componentSizes(density, spaceBase),
     icons: iconSizes(),
     controls,
@@ -2686,23 +2685,20 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const density = input.density ?? 'comfortable';
   const rScale = input.radiusScale ?? 1;
   const baseMd = input.baseMd ?? 4;
-  // OPT-IN 1px hairline sentinel (#1362) — off by default, so absent it changes nothing. IMPLIED by
-  // `controlShape: hairline` (#1371): that shape repoints a pill-able control's corner to `radius.hairline`
-  // (`applyControlShape`), and the rung must EXIST for the binding to resolve rather than dangle against a
-  // brand that never opted in — so choosing the shape provisions the rung. Mechanical rung-resolution, not a
-  // second lever the user must find: `radius.none` (`boxed`) is always emitted and needs no such coupling.
-  const radiusHairline = (input.radiusHairline ?? false) || input.controlShape === 'hairline';
+  // The 1px hairline sentinel (#1362) is ALWAYS emitted since #2053 (owner, 2026-10-04): `radiusScale` pushes
+  // it for every brand, so `controlShape: hairline` (#1371) always has its rung to bind, as `boxed` always has
+  // `radius.none`. `radiusHairline` is still ACCEPTED, so existing brand files load, but changes nothing.
   // Per-mode radius levers (Phase D): a customizable mode overriding `radius` re-derives its radius
   // ramp via the SAME radiusScale(value, baseMd, 128) buildDims uses (same baseMd). Only a mode whose
   // re-derived ramp DIFFERS from the global baseline gets an entry (no-diff suppression — mirrors the
   // tempo lever below); an override that equals the global scale stays byte-identical.
   const modeLevers = input.modeLevers ?? {};
   const radiusByMode: Record<string, RadiusStep[]> = {};
-  const baseRadiusJson = JSON.stringify(radiusScale(rScale, baseMd, 128, 999, radiusHairline));   // == dims.radius, the baseline every mode inherits
+  const baseRadiusJson = JSON.stringify(radiusScale(rScale, baseMd, 128, 999));   // == dims.radius, the baseline every mode inherits
   for (const [m, lev] of Object.entries(modeLevers)) {
     // The hairline sentinel is brand-level and unscaled, so it rides every mode's ramp identically —
     // pass it here too, and a per-mode `radius` override still no-diffs on it (1px is mode-invariant).
-    if (lev?.radius !== undefined) diffAssign(radiusByMode, m, radiusScale(lev.radius, baseMd, 128, 999, radiusHairline), baseRadiusJson);
+    if (lev?.radius !== undefined) diffAssign(radiusByMode, m, radiusScale(lev.radius, baseMd, 128, 999), baseRadiusJson);
   }
   // Per-mode DENSITY levers (Phase D): a customizable mode overriding `density` re-derives its component
   // -size tier via the SAME componentSizes(density, spaceBase) buildDims uses. Only a mode whose density
@@ -2719,8 +2715,8 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     }
   }
   notes.push(`dimensions: ${baseUnit}px grid, ${spaceBase}px spacing rhythm, '${density}' density (sets component sizes), radius scale ${rScale} (base radius ${baseMd}px).`);
-  // Hairline provenance: the opt-in lever is #1362; `controlShape: hairline` implies it (#1371).
-  if (radiusHairline) notes.push(`radius: adds radius.hairline, a fixed 1px corner the even 2px scale can't reach${input.radiusHairline ? '' : ' — controlShape hairline turns it on'}; the scaled radii are unchanged.`);
+  // #2053: the lever is retired. A brand file that still sets it is told it changes nothing.
+  if (input.radiusHairline !== undefined) notes.push(`radius: radiusHairline is retired — radius.hairline (1px) is always emitted, so the setting changes nothing.`);
   notes.push(`motion: '${input.motionPersonality?.tempo ?? 'standard'}' tempo sets the durations; reduced-motion variants keep informational motion and set vestibular motion to 0.`);
   // Per-mode MOTION TEMPO (Phase D): a customizable mode overriding `tempo` re-derives its duration ramp
   // (+ reduce-motion + stagger) via the SAME buildMotion the baseline uses, just at the mode's tempo.
@@ -3120,7 +3116,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     neutralEmphasis, strictInteractiveContrast, interactivePalettes,
     actionAnchorStep: input.actionAnchorStep, destructiveAnchorStep: input.destructiveAnchorStep,
     linkStateRungs: input.linkStateRungs,
-    dims: { ...buildDims(baseUnit, spaceBase, density, rScale, baseMd, [], radiusHairline), ...(Object.keys(radiusByMode).length ? { radiusByMode } : {}), ...(Object.keys(sizesByMode).length ? { sizesByMode, controlsByMode } : {}) },
+    dims: { ...buildDims(baseUnit, spaceBase, density, rScale, baseMd, []), ...(Object.keys(radiusByMode).length ? { radiusByMode } : {}), ...(Object.keys(sizesByMode).length ? { sizesByMode, controlsByMode } : {}) },
     motion,
     typography,
     shadow,

@@ -5027,7 +5027,13 @@ export const ENGINE_VERSION = '0.224.0';
  * count never forces a contract move again. No DEPRECATIONS entry — a demotion has no replacement path, the
  * name itself is what the 5-and-6-floor brands still emit. Nothing is added or retyped. (#1479)
  */
-export const CONTRACT_VERSION = '14.1.0';
+/**
+ * 14.2.0 (#2053, owner 2026-10-04): MINOR. `radius.hairline` (1px, aliasing `core.dimension.1`) joins the
+ * guaranteed surface. It was opt-in (`radiusHairline`, #1362) and so brand-dependent; every brand now emits
+ * it, the NB fixture included, because `radiusScale` pushes it unconditionally. An added path cannot break a
+ * reference. Nothing is removed or retyped. `radiusHairline` stays accepted in brand input and changes nothing.
+ */
+export const CONTRACT_VERSION = '14.2.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
