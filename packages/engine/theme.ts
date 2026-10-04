@@ -1358,7 +1358,7 @@ export const weightAvailability = (typography: Typography): Partial<Record<TypeG
 // links inherit the surrounding text's size + weight). Underline is baked
 // (textDecoration isn't Figma-bindable — a separate text style); the link COLOUR
 // stays `text.link.*` and is applied alongside.
-const TYPE_LINK_DEFAULT: TypeGroup[] = ['body', 'caption'];
+export const TYPE_LINK_DEFAULT: readonly TypeGroup[] = ['body', 'caption'];
 const TYPE_TRACK_DEFAULT: Record<TypeGroup, string> = {
   display: 'tight', title: 'snug', label: 'normal', eyebrow: 'wider',
   body: 'normal', caption: 'normal', code: 'normal',
