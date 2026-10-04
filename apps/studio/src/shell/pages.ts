@@ -17,7 +17,7 @@
  * LEGACY PAGES. Until a domain slice moves a page, it shows one or more legacy pages in the full-width
  * legacy frame (D1). `legacy` names them, in the order the frame offers them; plan §4's table is the
  * source. A slice moves a page by emptying its list and setting its `status` to `new` (S2: Color › Palettes; S3: Brand;
- * S4a: Color › Surfaces & fills; S5.2: Color › Interactive; S6.2: Type);
+ * S4a: Color › Surfaces & fills; S5.2: Color › Interactive; S6.2: Type; S7: Shape);
  * S13 deletes both fields. The store's `page` then holds the moved page's id (`NewPageKey`). `PageKey`, the legacy page
  * keys the store's `page` holds, is DERIVED from these lists (plus the Figma menu's Style guide), so a
  * slice that empties a list takes the key out of the type, and `NAV` in `main.ts` (checked against
@@ -55,6 +55,13 @@ export const SCALE_DESC = 'The size of each heading style on desktop and mobile,
 export const SCALE_LIMITS_DESC = 'Where the heading scale starts and stops, and whether headings scale between mobile and desktop.';
 export const WEIGHTS_DESC = 'The weight behind each name, the weights each text type ships, and its italic and link styles.';
 export const SPACING_DESC = 'The step each line height and letter spacing name uses, and how far each text type moves from it.';
+/** The Shape sections' copy (S7), each shared by the levers section and the preview section that pairs with it
+ *  (Q23; Base radius pairs with the preview's Radius, `PREVIEW_HEADING`). Density's and Radius' are APPROVED (owner,
+ *  2026-10-04); Base radius' is DRAFT, pending the owner (the approved draft named "an optional 1px corner", which
+ *  #2053 retired). */
+export const DENSITY_DESC = 'How tall controls are. Each component sets its own padding.';
+export const RADIUS_DESC = 'How round corners are, and the shape of buttons and other pill-able controls.';
+export const BASE_RADIUS_DESC = 'The medium radius at standard softness. Every other radius size is a multiple of it.';
 
 /** Which host a legacy page list applies to. Components maps to a different legacy page per host (§4). */
 export type Host = 'web' | 'figma';
@@ -247,14 +254,19 @@ export const DOMAINS = [
     legacy: [],
   },
   {
+    // S7: the owner's names (E2, 2026-10-04: "Radius" in names and headings, overriding D16's swap to "corner"); the
+    // intro, Density's and Radius' descriptions are APPROVED, Base radius' is DRAFT. `radiusHairline` has no row: the
+    // engine retired it (#2053, `Lever.deprecated` in the manifest), and `test-pages.ts` holds that a deprecated
+    // lever has no home rather than reading a hand list.
     id: 'shape', label: 'Shape', home: 'shape', intro: 'Control heights and corners. Padding is set per component.',
     sections: [
-      { title: 'Density', rows: [{ ctl: 'enum', keys: ['density'], drive: 'size' }] },
-      { title: 'Corners', rows: [{ ctl: 'slider', keys: ['radiusScale'], drive: 'radius' }, { ctl: 'enum', keys: ['controlShape'], drive: 'shape' }] },
-      { title: 'Corner base', advanced: true, rows: [{ ctl: 'slider', keys: ['baseMd'], drive: 'radius' }, { ctl: 'toggle', keys: ['radiusHairline'], drive: 'radius' }] },
+      { title: 'Density', desc: DENSITY_DESC, rows: [{ ctl: 'chips', keys: ['density'], drive: 'size' }] },
+      { title: 'Radius', desc: RADIUS_DESC, rows: [{ ctl: 'slider', keys: ['radiusScale'], drive: 'radius' }, { ctl: 'chips', keys: ['controlShape'], drive: 'shape' }] },
+      { title: 'Base radius', desc: BASE_RADIUS_DESC, advanced: true, rows: [{ ctl: 'valuePicker', keys: ['baseMd'], drive: 'radius' }] },
     ],
-    status: 'legacy',
-    legacy: ['sizeRadius'],
+    // S7: moved. Its levers are `domains/shape.ts`, its preview `preview/shape.ts`.
+    status: 'new',
+    legacy: [],
   },
   {
     // D8: two legacy pages under one tab, behind a local switch labeled with their names, until S9. A
@@ -280,7 +292,9 @@ export const DOMAINS = [
   },
   {
     // The web has no Components page (it is Figma-only), so the web tab shows the Buttons block on the
-    // legacy Size & radius page until S8 (§4).
+    // legacy Size & radius page until S8 (§4). S7 moved Shape off that page; in the plugin, whose Components tab
+    // shows its own page, the Button options are reached through the Pages menu until S8 (owner decision D4 B),
+    // under the page's own title, "Size & radius" (D5 B).
     id: 'components', label: 'Components', home: 'comps', intro: 'Button options, and the 26 component sets the engine defines.',
     sections: [
       {
@@ -378,6 +392,14 @@ export const placeOfPage = (page: PageKey, host: Host, keep: Place | null): Plac
   if (isNewPage(page)) return PLACES.find((p) => newPageOf(p) === page) ?? null;
   if (keep && legacyOf(keep, host).includes(page)) return keep;
   return PLACES.find((p) => legacyOf(p, host).includes(page)) ?? null;
+};
+
+/** The page a tab opens on this host: its moved page, or its first legacy page (S7: "Continue to Depth & motion"
+ *  and Shape's "See Components" route by tab, so a later slice moving that tab needs no edit at the caller, and
+ *  Components lands on its own legacy page per host). */
+export const pageOfTab = (id: TabId, host: Host): PageKey => {
+  const p = placeOfTab(id);
+  return newPageOf(p) ?? legacyOf(p, host)[0];
 };
 
 /** Stable id for a place, used in element ids and hooks: `brand`, `color-palettes`. */

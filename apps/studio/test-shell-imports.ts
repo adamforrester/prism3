@@ -131,7 +131,12 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   // S9.1: the Elevation and Motion writes, and the two legacy pages' read-only pieces, shared.
   'src/state/depth-motion-input.ts', 'src/preview/sections/shadow-ramp.ts', 'src/preview/sections/shadow-tint.ts',
   'src/preview/sections/duration-ramp.ts', 'src/preview/sections/motion-curves.ts', 'src/preview/sections/springs.ts',
-  'src/preview/sections/motion-transitions.ts'];
+  'src/preview/sections/motion-transitions.ts',
+  // S7: Shape (its levers, its preview, its writes), the generated "used by" index, and the Shape preview's sections and
+  // the Style guide's radius sample.
+  'src/domains/shape.ts', 'src/preview/shape.ts', 'src/state/shape-input.ts', 'src/preview/used-by.ts',
+  'src/preview/sections/radius.ts', 'src/preview/sections/control-heights.ts', 'src/preview/sections/spacing.ts',
+  'src/preview/sections/shape-building-blocks.ts', 'src/preview/sections/radius-sample.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {
