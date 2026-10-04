@@ -246,6 +246,23 @@ export const ceilingBlocked = (): Map<string, string> => {
   const top = Math.max(-1, ...[...set].map((v) => order.indexOf(v)));
   return new Map(top < 0 ? [] : order.slice(0, top).map((c) => [c, order[top]]));
 };
+/** Whether the 18px title floor is refused because title 2xs is set individually (#2054). Only the 16px floor
+ *  makes title 2xs, and the engine refuses a size set on a rung the brand does not make. It counts as set
+ *  wherever the engine reads one: `typography.sizes.title`, a desktop or mobile `sizeOverrides.title` endpoint,
+ *  and any mode's `modeLevers[mode].typeSizes.title`. The engine's own rule, no trial build. */
+export const titleFloorBlocked = (): boolean => {
+  const ty = brandState.typography;
+  const ov = ty?.sizeOverrides?.title?.['2xs'];
+  return ty?.sizes?.title?.['2xs'] !== undefined || ov?.desktop !== undefined || ov?.mobile !== undefined
+    || Object.values(brandState.modeLevers ?? {}).some((lev) => lev?.typeSizes?.title?.['2xs'] !== undefined);
+};
+/** The heading sizes whose mobile size is set individually, as `<group> <size>` in group order (#2055). The
+ *  engine refuses a mobile size (`sizeOverrides.<group>.<size>.mobile`) while `responsive.fluid` is off, so
+ *  turning it off is refused while any is set. The engine's own rule, no trial build. A desktop endpoint
+ *  is not counted: it builds either way. */
+export const fluidBlocked = (): string[] =>
+  PER_MODE_SIZE_GROUPS.flatMap((g) => Object.entries(brandState.typography?.sizeOverrides?.[g] ?? {})
+    .filter(([, ov]) => ov?.mobile !== undefined).map(([v]) => `${g} ${v}`));
 /** Each display rung's px at the largest ceiling (`widest`), from one trial build; empty if it fails. */
 export const ceilingPx = (widest: unknown): Map<string, number> => {
   try {

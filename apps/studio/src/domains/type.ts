@@ -49,7 +49,7 @@ import { isDerived } from '../state/verdict';
 import {
   TYPE_GROUP_ORDER, addLibraryFace, inLibrary, removeLibraryFace, setAllFamilies, setFamily,
   setTypeScale, shapeBlocked, releasePinnedSizes, pinnedSizeCount, rowsOf, widestRowsOf, brandSizePin, modeSizePin, viewportPin,
-  setSizePin, setMobileSize, setFluid, setResponsiveViewport, setDisplayCeiling, ceilingPx, ceilingBlocked, setTitleFloor, setCaptionFloor, setSizeFloor,
+  setSizePin, setMobileSize, setFluid, setResponsiveViewport, setDisplayCeiling, ceilingPx, ceilingBlocked, titleFloorBlocked, fluidBlocked, setTitleFloor, setCaptionFloor, setSizeFloor,
   setWeightRole, toggleCategoryWeight, categoryWeightLock, setLink, setItalicStyle, italicStyleOf, setFacePin,
   setRungBinding, setRepoint, setShift, nudgeSteps, resolvedRungs, type ItalicStyle, type RungField,
 } from '../state/type-input';
@@ -66,8 +66,8 @@ import { choice, leverBlock, leverOf, selectField, stateLine, subLine, switchBut
 import type { PageLends } from '../preview/brand';
 
 const PAGE = DOMAINS.find((d) => d.id === 'type') as PageData;
-/** The page the Continue button opens: the next tab, Shape, by the store's page key (its legacy page until S7). */
-const NEXT = { label: 'Shape', page: 'sizeRadius' } as const;
+/** The page the Continue button opens: the next tab, Shape, by the store's page key (moved in S7). */
+const NEXT = { label: 'Shape', page: 'shape' } as const;
 
 /** Code's opt-out (owner decision Q75, APPROVED: today's wording, the em dash kept). */
 export const CODE_NONE = 'None — no code styles';
@@ -132,6 +132,10 @@ export const S63 = {
   // Scale limits
   fluidLabel: 'Headings scale between mobile and desktop',   // APPROVED (Q70)
   fluidTip: 'Display, title and eyebrow sizes shrink smoothly from desktop to mobile between these two screen widths. Body text keeps one size.',
+  /** Off, while a mobile size is set individually (#2055). DRAFT, pending the owner's approval. */
+  fluidPinned: (sizes: readonly string[]): string => sizes.length === 1
+    ? `Removes the mobile size of ${sizes[0]}, which you set individually.`
+    : `Removes the mobile sizes of ${sizes.slice(0, -1).join(', ')} and ${sizes[sizes.length - 1]}, which you set individually.`,
   minVp: 'Min viewport, px',
   maxVp: 'Max viewport, px',
   dependsLayout: 'Depends on Layout: breakpoints',
@@ -143,6 +147,8 @@ export const S63 = {
   titleFloorTip: '16px adds a title at body size. The Compact scale already places a title at 16px, so the engine refuses 16px with it.',
   /** The 16px chip's reason under Compact: the approved info text's second sentence (owner, B8b). */
   titleFloorCompact: 'The Compact scale already places a title at 16px, so the engine refuses 16px with it.',
+  /** The 18px chip's reason while title 2xs is set individually (#2054). DRAFT, pending the owner's approval. */
+  titleFloorPinned: 'Leaves out title 2xs, which you set individually.',
   captionFloorLabel: 'Smallest caption size',
   captionFloorTip: '10px adds a fine-print caption, for dense legal, footer or product details.',
   sizeFloorLabel: 'Smallest type size',
@@ -709,11 +715,17 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     const out: Item[] = [];
     const ty = theme.typography;
     // Headings scale between mobile and desktop (owner decision Q70's words): `responsive.fluid`, ALWAYS written
-    // (the legacy bytes), and the viewport pair the clamp() runs between.
+    // (the legacy bytes), and the viewport pair the clamp() runs between. Turning it off while a mobile size is
+    // set individually is the engine's refusal, so the switch is disabled there with that reason (#2055), as the
+    // 16px title chip is under Compact. A brand that arrives off with a mobile size set is already refused, and
+    // its switch stays live: turning it on is the way out (B8b's rule).
     {
       const b = leverBlock('typography.responsive', { label: S63.fluidLabel, desc: S63.fluidTip, group: true });
       const sw = switchButton('p3-type-fluid', S63.fluidLabel, 'type-fluid', { on: 'On', off: 'Off' }, (on) => edit('typography.responsive', () => setFluid(on)));
-      sw.set(brandState.typography?.responsive?.fluid ?? ty.fluid);
+      const fluidOn = brandState.typography?.responsive?.fluid ?? ty.fluid;
+      sw.set(fluidOn);
+      const mobiles = fluidOn ? fluidBlocked() : [];
+      if (mobiles.length) { sw.el.disabled = true; sw.el.title = S63.fluidPinned(mobiles); }
       const pair = h('div', 'p3-fieldpair');
       for (const [key, label, fallback] of [['minViewport', S63.minVp, ty.minViewport], ['maxViewport', S63.maxVp, ty.maxViewport]] as const) {
         const f = h('div', 'p3-field');
@@ -767,13 +779,20 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     };
     // The title floor. 16px under the Compact scale is the engine's refusal (Compact already places a title at
     // 16px), so the chip is disabled there with that reason (owner, B8b, 2026-10-03), as a clashing scale chip is.
-    // A brand that arrives with both set keeps its 16px chip live, so it can move back to 18px.
+    // A brand that arrives with both set keeps its 16px chip live, so it can move back to 18px. And 18px while
+    // title 2xs is set individually is the engine's refusal too (only 16px makes title 2xs), so the 18px chip is
+    // disabled there with that reason (#2054). A brand that arrives on 18px with title 2xs set keeps its 18px
+    // chip live by the same rule; 16px is its way out.
     const floor16 = (getPath(brandState, 'typography.titleFloor') ?? 18) === 16;
     chips('typography.titleFloor', S63.titleFloorLabel, S63.titleFloorTip, 'title-floor', [{ v: '18', l: '18px' }, { v: '16', l: '16px' }],
       floor16 ? '16' : '18', (v) => setTitleFloor(v === '16'));
     if (getPath(brandState, 'typography.typeScale') === 'compact' && !floor16) {
       const chip = el.querySelector<HTMLButtonElement>('[data-p3="title-floor-16"]');
       if (chip) { chip.disabled = true; chip.title = S63.titleFloorCompact; }
+    }
+    if (floor16 && titleFloorBlocked()) {
+      const chip = el.querySelector<HTMLButtonElement>('[data-p3="title-floor-18"]');
+      if (chip) { chip.disabled = true; chip.title = S63.titleFloorPinned; }
     }
     chips('typography.captionFloor', S63.captionFloorLabel, S63.captionFloorTip, 'caption-floor', [{ v: '11', l: '11px' }, { v: '10', l: '10px' }],
       (getPath(brandState, 'typography.captionFloor') ?? 11) === 10 ? '10' : '11', (v) => setCaptionFloor(v === '10' ? 10 : 11));
