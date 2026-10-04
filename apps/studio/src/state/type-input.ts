@@ -15,9 +15,13 @@
  * THE MODE A WRITE TARGETS IS AN ARGUMENT, as in `fills-input.ts` and `interactive-input.ts`. `'light'` writes
  * the brand-wide value; any other mode writes `modeLevers[mode]` through the store's pruning helper.
  *
- * THREE BYTE-LEVEL TRAPS, KEPT ON PURPOSE (the S6 scoping report; changing any is a behavior change):
- *   · an emptied `italics` or `links` list is written `[]`, while an emptied `italicDefault`, a category's
- *     `weights` and a zero nudge are UNSET;
+ * THE EMPTIED LISTS (#2006). An emptied `italics`, `italicDefault`, a category's `weights` and a zero nudge
+ * are UNSET, so a tick then untick leaves the brand byte-identical. `links` is the exception, because the
+ * engine reads an absent `links` as its default (`TYPE_LINK_DEFAULT`, body and caption), not as none: an
+ * emptied `links` is written `[]` (the only way to say "no underlined links"), and a list equal to the
+ * default, as a set, is UNSET. Both rules leave the emitted tokens unchanged.
+ *
+ * TWO BYTE-LEVEL TRAPS, KEPT ON PURPOSE (the S6 scoping report; changing either is a behavior change):
  *   · `responsive.fluid` is always written, `true` included, even where the default is already true;
  *   · the italic, link and weight toggles take the set they toggle from the CALLER, which read it from the
  *     theme its controls were drawn from. The link toggle repaints through `apply()`, so a second link click
@@ -26,7 +30,7 @@
  */
 import {
   brandTheme, typefaceSlug, derivedRungFor, shiftRung, REQUIRED_WEIGHT_ROLES, PER_MODE_SIZE_GROUPS,
-  LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, DISPLAY_VARIANTS,
+  LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, DISPLAY_VARIANTS, TYPE_LINK_DEFAULT,
 } from '@prism3/engine/theme';
 import type { BrandInput, Theme, TypographyInput, PerModeSizeGroup, FacePin } from '@prism3/engine/theme';
 import { brandState, theme, getPath, setPath, setModeLever } from './store';
@@ -125,21 +129,27 @@ export const setItalicDefault = (g: string, on: boolean, current: ReadonlySet<st
   const next = toggled(g, on, current);
   setPath(brandState, 'typography.italicDefault', next.length ? next : undefined);
 };
-/** The -italic variants. An emptied list is written `[]`, not unset (the legacy page's bytes). */
+/** The -italic variants. An emptied list UNSETS `typography.italics` (#2006; the engine reads absent as none). */
 export const setItalic = (g: string, on: boolean, current: ReadonlySet<string>): void => {
-  setPath(brandState, 'typography.italics', toggled(g, on, current));
+  const next = toggled(g, on, current);
+  setPath(brandState, 'typography.italics', next.length ? next : undefined);
 };
-/** The underlined-link variants. An emptied list is written `[]`, not unset (the legacy page's bytes). */
+/** Whether `list` holds exactly the engine's default link categories, in any order. */
+const isLinkDefault = (list: readonly string[]): boolean =>
+  list.length === TYPE_LINK_DEFAULT.length && TYPE_LINK_DEFAULT.every((x) => list.includes(x));
+/** The underlined-link variants. A list equal to the engine's default UNSETS `typography.links` (#2006); an
+ *  emptied list is written `[]`, because the engine reads an absent `links` as the default, not as none. */
 export const setLink = (g: string, on: boolean, current: ReadonlySet<string>): void => {
-  setPath(brandState, 'typography.links', toggled(g, on, current));
+  const next = toggled(g, on, current);
+  setPath(brandState, 'typography.links', isLinkDefault(next) ? undefined : next);
 };
 
 /** A text type's italic style, as the three chips name it (owner decision Q6): `'upright'` (no italic styles),
  *  `'both'` (each weight also ships an -italic variant) or `'only'` (italic is the only cut, #1296). Composed of
  *  the two legacy writes and nothing else, in the order the legacy page needed them (the two boxes were
  *  exclusive, so moving between `both` and `only` cleared one before setting the other). `italicG` and
- *  `italicDefG` are the sets the control was drawn from. The traps hold: an emptied `italics` is `[]`, an
- *  emptied `italicDefault` is unset, and a chip that is already on writes nothing. */
+ *  `italicDefG` are the sets the control was drawn from. An emptied `italics` or `italicDefault` is unset
+ *  (#2006), and a chip that is already on writes nothing. */
 export type ItalicStyle = 'upright' | 'both' | 'only';
 export const italicStyleOf = (g: string, italicG: ReadonlySet<string>, italicDefG: ReadonlySet<string>): ItalicStyle =>
   italicDefG.has(g) ? 'only' : italicG.has(g) ? 'both' : 'upright';

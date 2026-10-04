@@ -10,9 +10,10 @@
  * This holds each write where no DOM is needed, so one can fail here by name before the browser suites run.
  *
  * INDEPENDENT OF WHAT IT CHECKS (docs/34). Every expected write is a JSON literal typed here, from the legacy
- * page's own bytes, INCLUDING ITS TRAPS (an emptied `italics` or `links` list is `[]`, an emptied
- * `italicDefault` is unset, a zero nudge leaves `{}`, `responsive.fluid` is written even when true, a removed
- * last library face leaves `[]`). The readers' expectations are worked out by hand from the ladders
+ * page's own bytes, INCLUDING ITS TRAPS (an emptied `italicDefault` is unset, a zero nudge leaves `{}`, `responsive.fluid` is written even when true, a removed
+ * last library face leaves `[]`), and #2006's rule for the two lists it changed: an emptied `italics` is unset,
+ * an emptied `links` is `[]` (none), and a `links` list back at the engine's default is unset. That default is
+ * typed here as a literal (body and caption), never imported from the engine. The readers' expectations are worked out by hand from the ladders
  * (`LINE_HEIGHT_KEYS` has seven rungs, body derives `normal`, the fourth), never from the module. "The engine
  * takes it" is the engine's own `brandTheme`, and "it resolves to the edit" reads the engine's composites. A
  * cleared edit is held against the brand as it was loaded, serialized, so pruning is checked byte for byte.
@@ -113,10 +114,10 @@ ok(T.categoryWeightLock('display', 'strong', new Set(['strong'])) === 'Every tex
 ok(T.categoryWeightLock('display', 'strong', new Set(['emphasis', 'strong'])) === undefined && T.categoryWeightLock('label', 'default', new Set(['emphasis'])) === undefined,
   'categoryWeightLock allows an untick with another weight left, and a tick');
 
-console.log('\n4. Italics and links: the legacy bytes, [] for an emptied list, unset for italic default');
+console.log('\n4. Italics and links: an emptied italics or italic default is unset; links [] is none, links at the default is unset (#2006)');
 reset();
 T.setItalic('body', false, new Set(['body']));
-ok(ty() === with3({ italics: [] }) && takes(), `setItalic(body, off) on the last italic category writes italics [] — not unset (${ty()})`);
+ok(ty() === with3({ italics: undefined }) && !('italics' in JSON.parse(ty())) && takes(), `setItalic(body, off) on the last italic category UNSETS italics (#2006) (${ty()})`);
 reset();
 T.setItalic('title', true, new Set(['body']));
 ok(ty() === with3({ italics: ['title', 'body'] }), `setItalic(title, on) writes the list in category order (${JSON.stringify((store.brandState.typography as any).italics)})`);
@@ -130,7 +131,7 @@ T.setLink('body', true, new Set());
 ok(ty() === with3({ links: ['body'] }) && takes() && engine().composites.some((c) => c.group === 'body' && c.link),
   'setLink(body, on) writes links ["body"] and the engine ships body link variants');
 T.setLink('body', false, new Set(['body']));
-ok(ty() === with3({ links: [] }), `setLink(body, off) on the last one writes links [] — not unset (${ty()})`);
+ok(ty() === with3({ links: [] }), `setLink(body, off) on the last one writes links [] — none, not unset (${ty()})`);
 reset();
 T.setLink('display', true, new Set());
 T.setLink('title', true, new Set());
@@ -152,8 +153,8 @@ ok(ty() === with3({ links: ['title'] }), `a second link toggle reads the set the
   ok(ty() === with3({ italics: ['body', 'caption'] }) && takes(), `setItalicStyle(caption, both) writes italics ["body","caption"] in text-type order (${ty()})`);
   reset();
   T.setItalicStyle('body', 'only', ...sets());
-  ok(ty() === with3({ italicDefault: ['display', 'title', 'body'], italics: [] }) && takes(),
-    `setItalicStyle(body, only) clears body's italic first ([] left, the legacy bytes), then makes it italic only (${ty()})`);
+  ok(ty() === with3({ italicDefault: ['display', 'title', 'body'], italics: undefined }) && !('italics' in JSON.parse(ty())) && takes(),
+    `setItalicStyle(body, only) clears body's italic first (italics UNSET, #2006), then makes it italic only (${ty()})`);
   T.setItalicStyle('body', 'both', ...sets());
   ok(ty() === with3({ italicDefault: ['display', 'title'], italics: ['body'] }) && takes(),
     `setItalicStyle(body, both) from Italic only puts body back in italics and out of italicDefault (${ty()})`);
@@ -161,6 +162,47 @@ ok(ty() === with3({ links: ['title'] }), `a second link toggle reads the set the
   T.setItalicStyle('display', 'upright', ...sets());
   ok(ty() === with3({ italicDefault: ['title'] }) && takes() && engine().composites.filter((c) => c.group === 'display').every((c) => !c.italic && !c.italicDefault),
     `setItalicStyle(display, upright) takes display out of italicDefault, and the engine ships display upright (${ty()})`);
+}
+
+// #2006: a tick then an untick leaves the brand byte-identical to the one loaded. Each arm compares against a
+// deep clone taken before the first edit. aurora sets neither `italics` nor `links`, so the engine's defaults
+// apply: no italics, and links on body and caption.
+{
+  const LINK_DEFAULT = ['body', 'caption'];   // the engine's default link categories, typed here (docs/34)
+  const linkSet = (): Set<string> => new Set(engine().composites.filter((c) => c.link).map((c) => c.group));
+  const italicSets = (): [Set<string>, Set<string>] => {
+    const t = engine();
+    return [new Set(t.composites.filter((c) => c.italic).map((c) => c.group)), new Set(t.composites.filter((c) => c.italicDefault).map((c) => c.group))];
+  };
+  reset('aurora');
+  let before = JSON.stringify(structuredClone(store.brandState));
+  T.setItalic('caption', true, new Set());
+  ok(JSON.stringify((store.brandState.typography as any).italics) === '["caption"]', `setItalic(caption, on) on aurora writes italics ["caption"] (${ty()})`);
+  T.setItalic('caption', false, new Set(['caption']));
+  ok(JSON.stringify(store.brandState) === before, `italics tick then untick leaves aurora byte-identical to the brand as loaded (${ty()})`);
+
+  reset('aurora');
+  before = JSON.stringify(structuredClone(store.brandState));
+  T.setItalicStyle('caption', 'both', ...italicSets());
+  ok(JSON.stringify((store.brandState.typography as any).italics) === '["caption"]', `setItalicStyle(caption, both) on aurora writes italics ["caption"] (${ty()})`);
+  T.setItalicStyle('caption', 'upright', ...italicSets());
+  ok(JSON.stringify(store.brandState) === before, `the italic chips Upright + italic then Upright leave aurora byte-identical to the brand as loaded (${ty()})`);
+
+  reset('aurora');
+  before = JSON.stringify(structuredClone(store.brandState));
+  ok(JSON.stringify([...linkSet()].sort()) === JSON.stringify(LINK_DEFAULT), `aurora as loaded ships links on body and caption, the default (${[...linkSet()]})`);
+  T.setLink('title', true, linkSet());
+  ok(JSON.stringify((store.brandState.typography as any).links) === '["title","body","caption"]' && takes(),
+    `setLink(title, on) on a default brand writes links ["title","body","caption"] (${ty()})`);
+  T.setLink('title', false, linkSet());
+  ok(JSON.stringify(store.brandState) === before, `links tick a third category then untick it leaves aurora byte-identical to the brand as loaded (${ty()})`);
+
+  reset('aurora');
+  T.setLink('body', false, linkSet());
+  ok(JSON.stringify((store.brandState.typography as any).links) === '["caption"]', `setLink(body, off) on a default brand writes links ["caption"] (${ty()})`);
+  T.setLink('caption', false, linkSet());
+  ok(JSON.stringify((store.brandState.typography as any).links) === '[]' && takes() && linkSet().size === 0,
+    `unticking every link writes links [] and the engine emits zero link composites — no underlined links (${ty()})`);
 }
 
 console.log('\n5. Line height and letter spacing: bindings, per-mode swaps, nudges');

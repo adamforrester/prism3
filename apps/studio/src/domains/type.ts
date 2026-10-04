@@ -31,8 +31,8 @@
  * every control on the page (Q59, Q74), under S4a's line.
  *
  * BEHAVIOR-NEUTRAL (the S2 rule). Every write goes through `state/type-input.ts`, which writes what the legacy page
- * wrote, byte for byte on the persisted brand, its traps included (an emptied `italics` or `links` list is `[]`,
- * `responsive.fluid` is always written). Two writers are new, for limits no surface edited before: the caption
+ * wrote, byte for byte on the persisted brand, its traps included (`responsive.fluid` is always written), except
+ * #2006: an emptied `italics`, or a `links` list back at the engine's default, is unset. Two writers are new, for limits no surface edited before: the caption
  * and size floors, each UNSET at its default.
  *
  * HOW IT REPAINTS: by store subscription only (plan §5): `brand`, `mode`, and `fonts` (the host's font list, lent
