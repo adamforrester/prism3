@@ -4,6 +4,9 @@
  * the Agent chip (`agent-link-ui.ts`), which it places in the top bar's `bar-agent` slot (IA-3). Mounted here
  * rather than inside the studio's body, so the web build carries none of it.
  */
+// The component catalog, computed from the definitions this bundle carries, provided BEFORE the studio evaluates
+// (an import's body runs in import order), so the studio's Components page reads it from its first render (S8.1).
+import './component-catalog';
 import '../../../studio/src/entry';
 import { mountAgentLink } from '../agent-link-ui';
 

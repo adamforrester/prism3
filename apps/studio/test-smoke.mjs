@@ -2245,8 +2245,12 @@ for (const brand of BRANDS) {
     ok(got.paint.length >= 20 && offPaint.length === 0, `${where}: every sample is painted its role's emitted hex (${got.paint.length} read)${offPaint.length ? ` — ${offPaint.slice(0, 3).join(' | ')}` : ''}`);
     // The rows against the emission, by group.
     const rows = await page.evaluate((sel) => Object.fromEntries(['radius-row', 'height-row', 'space-row', 'border-width-row', 'icon-size-row'].map((hk) =>
-      [hk, [...document.querySelectorAll(`${sel} [data-p3="${hk}"]`)].map((r) => [r.dataset.step, r.querySelector('[data-p3="token-pill"]')?.textContent ?? '',
-        Number(/(\d+(?:\.\d+)?)px/.exec(r.querySelector('[data-p3="shape-row-label"]')?.textContent ?? '')?.[1])])])), SG_SHAPE);
+      [hk, [...document.querySelectorAll(`${sel} [data-p3="${hk}"]`)].map((r) => {
+        const label = r.querySelector('[data-p3="shape-row-label"]')?.textContent ?? '';
+        // A pill size reads "Pill", no px (#2078): its value is read off the sample it draws instead.
+        const px = label === 'Pill' ? /^(\d+(?:\.\d+)?)px$/.exec(r.querySelector('.shp-sw')?.style.borderRadius ?? '')?.[1] : /(\d+(?:\.\d+)?)px/.exec(label)?.[1];
+        return [r.dataset.step, r.querySelector('[data-p3="token-pill"]')?.textContent ?? '', Number(px), label];
+      })])), SG_SHAPE);
     const against = (label, hk, prefix, suffix, want) => {
       const drawn = rows[hk];
       const missing = want.filter(([k]) => !drawn.some(([s]) => s === k)).map(([k]) => `${prefix}${k}${suffix}`);
@@ -2259,6 +2263,12 @@ for (const brand of BRANDS) {
       ok(off.length === 0, `${where}: each ${label} row is its emitted value in ${mode}${off.length ? ` — ${off.slice(0, 3).join(' | ')}` : ''}`);
     };
     against('Radius', 'radius-row', 'radius.', '', dims.radius(mode));
+    // #2078 (owner, 2026-10-04, per #1177): the two pill sizes read "Pill", by which size each is (oracle: the names
+    // round and capsule, literal), in every mode, wireframe's 0px included; every other size reads its px.
+    const PILL_SIZES = ['round', 'capsule'];
+    const offLabel = rows['radius-row'].filter(([s, , v, label]) => (PILL_SIZES.includes(s) ? label !== 'Pill' : label !== `${v}px`)).map(([s, , , label]) => `radius.${s} reads "${label}"`);
+    ok(PILL_SIZES.every((p) => rows['radius-row'].some(([s]) => s === p)) && offLabel.length === 0,
+      `${where}: Radius labels radius.round and radius.capsule "Pill" and every other size its px${offLabel.length ? ` — ${offLabel.join(' | ')}` : ''}`);
     against('Density', 'height-row', 'size.', '.height', dims.height(mode));
     against('Spacing', 'space-row', 'space.', '', dims.space());
     against('Building blocks (border widths)', 'border-width-row', 'border-width.', '', dims.border());
@@ -2962,6 +2972,21 @@ const waitChecked = (page, sel, want) => page.waitForFunction(([s, w]) => (docum
   .then(() => true, () => false);
 /** The brand as persisted, whole (`localStorage`, a store no control paints). */
 const persistedBrand = (page) => page.evaluate(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input ?? null; } catch { return null; } });
+/** The persisted brand, as stored: the bytes the Auto-chip rule (#2078) holds unchanged. */
+const persistedRaw = (page) => page.evaluate(() => { try { return localStorage.getItem('prism3:brandInput'); } catch { return null; } });
+/** THE AUTO-CHIP RULE (owner-decided, 2026-10-04; one rule for S7's density and S9.2's tempo, #2078). Previewing a
+ *  mode on Auto, the checked chip is Light's value, the one the mode already follows; choosing it writes nothing, so a
+ *  mode never pins Light's own value while it follows it. `chip` is that chip; a write, if one comes, lands within a
+ *  repaint, so the wait ends at the first change and only an unchanged store waits it out. */
+const autoChipWritesNothing = async (page, chip) => {
+  const before = await persistedRaw(page);
+  await hooks.click(chip);
+  await page.waitForFunction((was) => { try { return localStorage.getItem('prism3:brandInput') !== was; } catch { return false; } }, before, { timeout: 1500 }).catch(() => {});
+  const after = await persistedRaw(page);
+  let dark = null;
+  try { dark = JSON.parse(after)?.input?.modeLevers?.dark ?? null; } catch { /* reported below as changed */ }
+  return { same: before !== null && after === before, dark };
+};
 
 const TEMPO = '[data-p3="lever-motion-personality-tempo"]';
 /** Each tempo's label, read from the committed `schema/lever-manifest.json` (the oracle for what Auto names). */
@@ -3021,6 +3046,10 @@ for (const brand of BRANDS) {
     const label = LEVER_TEMPO_LABEL(lightTempo);
     ok(autoLine === `Auto: follows Light (${label})`, `Q22: ${brand}: previewing Dark under Auto, the tempo says "Auto: follows Light (${label})" (says ${JSON.stringify(autoLine)})`);
     await checkShown(`${brand}/Dark/Auto`, lightTempo);
+    // The Auto-chip rule (#2078): on Auto, Light's tempo chip is the checked one; choosing it writes nothing.
+    const onAuto = (await persistedBrand(page))?.modeLevers?.dark?.tempo === undefined && await waitChecked(page, TEMPO, lightTempo);
+    const t = await autoChipWritesNothing(page, page.locator(`${TEMPO} [role="radio"][data-value="${lightTempo}"]`));
+    ok(onAuto && t.same, `Auto chip (#2078): ${brand}: previewing Dark on Auto, choosing the tempo chip Dark already follows (Light's ${lightTempo}) writes nothing — prism3:brandInput ${!onAuto ? 'was not on Auto first' : t.same ? 'byte-identical' : `changed, modeLevers.dark ${JSON.stringify(t.dark)}`}`);
     await chooseMode(page, 'light');
   }
 
@@ -3208,6 +3237,60 @@ ok(chipGroupsChecked >= CHIP_LEVERS.length * 2, `${chipGroupsChecked} chip group
   ok(wrap && wrap.over <= 1, `at 380px the Button content size chips fit or wrap with no overflow (${wrap?.rows} row(s), ${wrap?.over}px over)`);
   await ctx.close();
 }
+
+// =============================================================================================
+// 3b. The Button options on Size & radius: the shared specimen, and the slider writes per step (UI redesign S8.1)
+// =============================================================================================
+// S8.1 lifted the button specimen into `preview/sections/button-layout.ts` and the four Button option writes into
+// `state/button-input.ts`. Held here, on the legacy page that draws both until S8.2:
+//   · per corpus brand, the specimen is the shared module's: exactly one `data-sg-section="button-layout"` on the page,
+//     and it is the specimen's own root (three size rows, each a short and two widened buttons), so a specimen
+//     `main.ts` drew for itself carries no marker and fails by name;
+//   · the minimum-width slider WRITES ON EVERY STEP (the legacy bytes, the S8 report's trap): each `input` event,
+//     with no `change` after it, leaves the dragged value in the persisted brand. Read from `localStorage`, a store
+//     the slider does not paint, and the values are literals on the lever's 0.25 grid.
+// That choosing a chip's DEFAULT writes it (rather than unsetting it) is held by 3b's chip drive above, which checks
+// every option back to the default and reads the value written.
+//
+// Mutation this fails by name: the slider committing on release (`input.onchange` for `input.oninput` in
+// `renderControl`) → `Prism3 / Button minimum width: dragging to 2.5 writes 2.5 on that step (wrote null)`.
+console.log(`\nButton options on Size & radius (S8.1)\n${'='.repeat(78)}`);
+let buttonSpecimens = 0, minWidthSteps = 0;
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  await gotoRail(page, '[data-p3="rail-page-size-radius"]');
+  const where = `${brand} / Button options`;
+  const spec = await page.evaluate(() => {
+    const lp = document.querySelector('[data-p3="legacy-page"]');
+    const marked = [...(lp?.querySelectorAll('[data-sg-section="button-layout"]') ?? [])];
+    const lists = [...(lp?.querySelectorAll('.btnl-list') ?? [])];
+    const root = marked[0];
+    return { marked: marked.length, lists: lists.length, rootIsList: !!root && root.classList.contains('btnl-list'),
+      rows: root ? root.querySelectorAll(':scope > .btnl-row').length : 0, buttons: root ? root.querySelectorAll('.btnl-btn').length : 0 };
+  });
+  ok(spec.lists === 1 && spec.marked === 1 && spec.rootIsList,
+    `${where}: the button specimen is the shared module's (data-sg-section="button-layout")${spec.lists !== 1 ? ` — ${spec.lists} specimen(s) drawn` : spec.marked !== 1 || !spec.rootIsList ? ` — ${spec.marked} marker(s), on ${spec.rootIsList ? 'the specimen' : 'something other than the specimen'}: drawn by something other than preview/sections/` : ''}`);
+  ok(spec.rows === 3 && spec.buttons === 9, `${where}: the specimen draws three sizes, three buttons each (${spec.rows} rows, ${spec.buttons} buttons)`);
+  if (spec.marked === 1) buttonSpecimens++;
+  if (brand === BRANDS[0]) {
+    const lever = leverOf('buttonMinWidthMultiplier');
+    const sel = `[data-p3="legacy-page"] input[type="range"][min="${lever.min}"][max="${lever.max}"]`;
+    ok((await page.locator(sel).count()) === 1, `${where}: the page draws one Button minimum width slider (${lever.min} to ${lever.max})`);
+    for (const v of [2.5, 2.75, 3, 1, 4, 2.25]) {
+      await page.evaluate(([s, x]) => { const n = document.querySelector(s); n.value = String(x); n.dispatchEvent(new Event('input', { bubbles: true })); }, [sel, v]);
+      await page.waitForFunction(([k, x]) => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.[k] === x; } catch { return false; } }, ['buttonMinWidthMultiplier', v], { timeout: 1500 }).catch(() => {});
+      const wrote = await persistedAt(page, 'buttonMinWidthMultiplier');
+      minWidthSteps++;
+      ok(wrote === v, `${brand} / Button minimum width: dragging to ${v} writes ${v} on that step (wrote ${wrote})`);
+    }
+    const label = await page.evaluate(() => document.querySelector('[data-p3="legacy-page"] [data-sg-section="button-layout"] .btnl-lab')?.textContent ?? '');
+    ok(/min \d+px/.test(label), `${where}: the specimen repaints with the slider (its first row reads "${label}")`);
+  }
+  const errs = drain();
+  ok(errs.length === 0, `${where}: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+ok(buttonSpecimens === BRANDS.length && minWidthSteps >= 6, `the Button options check met ${buttonSpecimens} specimens (one per brand) and ${minWidthSteps} slider steps (floor 6)`);
 
 // =============================================================================================
 // 3c. Lever chips on Color › Interactive — the new markup (UI redesign S5.2)
@@ -3475,6 +3558,17 @@ for (const brand of BRANDS) {
     ok(String(await persistedAt(page, c.key)) === next, `${where}: ArrowRight from ${cur} writes ${next} to the brand`);
     const foc = await page.evaluate((s) => document.activeElement?.closest(s) !== null && document.activeElement?.dataset.value, c.group);
     ok(foc === next, `${where}: after the arrow key, focus is on the chip it chose (${foc})`);
+  }
+  // The Auto-chip rule (#2078), on the first brand: previewing Dark on Auto, Light's density chip is the checked one;
+  // choosing it writes nothing.
+  if (brand === BRANDS[0]) {
+    await chooseMode(page, 'dark');
+    const lightDensity = String((await persistedAt(page, 'density')) ?? leverOf('density').default);
+    const g = await page.evaluate(readNewChips, SHAPE_CHIPS[0].group);
+    const onAuto = (await persistedBrand(page))?.modeLevers?.dark?.density === undefined && g.checked.length === 1 && g.checked[0] === lightDensity;
+    const d = await autoChipWritesNothing(page, page.locator(`${SHAPE_CHIPS[0].group} button[role="radio"][data-value="${lightDensity}"]`));
+    ok(onAuto && d.same, `Auto chip (#2078): ${brand}: previewing Dark on Auto, choosing the density chip Dark already follows (Light's ${lightDensity}) writes nothing — prism3:brandInput ${!onAuto ? `was not on Auto with Light's chip checked first (checked ${g.checked.join(', ') || 'none'})` : d.same ? 'byte-identical' : `changed, modeLevers.dark ${JSON.stringify(d.dark)}`}`);
+    await chooseMode(page, 'light');
   }
   const errs = drain();
   ok(errs.length === 0, `${brand}: rendering and driving Shape's chips raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
