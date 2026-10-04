@@ -242,6 +242,17 @@
  * is "soft"`; no fallback to the select → `web light 1280 / brand, 5 modes: every mode is choosable in the
  * preview header, none clipped — {…"clipped":["custom-1"]…}`.
  *
+ * S7 ADDS (section 24; Shape moved to the two panes, so it left LEGACY_PAGES and EXPECT_LEGACY): its levers represented
+ * once each by the keys the owner placed (D1 A), with the retired Hairline radius switch absent (#2053); the preview's
+ * Density, Radius, Spacing and Building blocks on the brand's page color in every mode, each sample in the brand's own
+ * roles (D2 A); the approved copy and the Q23 pairs (Base radius with Radius); D6's "Medium button · 44px" labels and
+ * every emitted radius size drawn in order (#1881); the previewed mode (Q22) with Auto following LIGHT for a Dark-based
+ * custom mode (scope finding 7), brand-wide values from Dark (Q54), every control held in each derived mode with the
+ * preview still drawn (Q59); the routes by tab (Continue to Depth & motion; See Components per host) and the plugin's
+ * Pages-menu way to the Button options (D4 B, D5 B); the reveal (QA-B9); and the chrome at every width. Moved to new
+ * hooks: the keyboard check (section 5) now lands on Shape's levers; the Search check (section 6) runs on Shape's
+ * levers by their hooks; the mode-strip sync (section 9) runs on Depth & motion, the first legacy page with a strip.
+ *
  * NOT COVERED: right-to-left layout (the product ships no RTL locale; new CSS uses logical-friendly
  * flex and grid, §9.1), and text-only zoom.
  *
@@ -338,18 +349,18 @@ const ALIGN_TOLERANCE = 0.5;
 const WIDTHS = [{ w: 1280, h: 900 }, { w: 640, h: 900 }, { w: 380, h: 420 }];
 
 /** The places not moved yet. A domain slice that moves a place removes it here, in the same change. */
-const LEGACY_PAGES = ['shape', 'depth', 'layout', 'components'];
+const LEGACY_PAGES = ['depth', 'layout', 'components'];
 /** The places a slice has moved into the two panes (S2: Color › Palettes; S3: Brand; S4a: Color › Surfaces & fills;
- *  S5.2: Color › Interactive; S6.2: Type). A slice that moves a place adds it here in the same change; a place in both
- *  lists, or in neither, fails by name. */
-const NEW_PAGES = ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type'];
+ *  S5.2: Color › Interactive; S6.2: Type; S7: Shape). A slice that moves a place adds it here in the same change; a place
+ *  in both lists, or in neither, fails by name. */
+const NEW_PAGES = ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type', 'shape'];
 
 /** Plan §4's table: the legacy page(s) each place shows, by the Pages menu hook's suffix, per host. */
 const EXPECT_LEGACY = {
   web: {
-    shape: ['size-radius'], depth: ['elevation', 'motion'], layout: ['layout'], components: ['size-radius'] },
+    depth: ['elevation', 'motion'], layout: ['layout'], components: ['size-radius'] },
   figma: {
-    shape: ['size-radius'], depth: ['elevation', 'motion'], layout: ['layout'], components: ['components'] },
+    depth: ['elevation', 'motion'], layout: ['layout'], components: ['components'] },
 };
 /** How each place is reached in the tab row: its tab's hook, then its sub-page's when it has one. */
 const PLACE_CLICKS = {
@@ -407,9 +418,13 @@ const BRAND_LEVERS_CONTROLS = ['[data-p3="brand-name"]', '[data-p3="brand-namesp
  *  face for each text type, Show advanced; the way on to Shape). The lent legacy region is `INSPECT_LEGACY`'s. */
 const TYPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="face-add-input"]', '[data-p3="face-add"]', '[data-p3="family-select"]',
   '[data-p3="family-all-apply"]', '[data-p3="scale-advanced"]', '[data-p3="type-continue"]'];
+/** Shape in the two panes (S7): the controls its levers must render, by hook (Density's chips and the way to
+ *  Components, Radius' slider and Control shape chips, Show advanced, the way on to Depth & motion). */
+const SHAPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="density-choice-comfortable"]', '[data-p3="shape-see-components"]',
+  '[data-p3="radius-scale-slider"]', '[data-p3="control-shape-choice-rounded"]', '[data-p3="shape-advanced"]', '[data-p3="shape-continue"]'];
 /** Each moved place's levers, by place. */
 const LEVERS_CONTROLS = { 'color-palettes': PALETTES_LEVERS_CONTROLS, brand: BRAND_LEVERS_CONTROLS, 'color-fills': FILLS_LEVERS_CONTROLS,
-  'color-interactive': INTERACTIVE_LEVERS_CONTROLS, type: TYPE_LEVERS_CONTROLS };
+  'color-interactive': INTERACTIVE_LEVERS_CONTROLS, type: TYPE_LEVERS_CONTROLS, shape: SHAPE_LEVERS_CONTROLS };
 /** The preview header: the mode choice and Inspect. The mode choice is the radios, or, where they do not all fit
  *  (640, or a brand with more modes, S3 review), the select of the same modes: either one represents it (an
  *  inner list is any-of). Section 17 holds which one shows and that no option is ever clipped. */
@@ -467,7 +482,9 @@ const INSPECT_LEGACY = ['[data-p3="inspect-contrast-table"]', '[data-p3="inspect
   // S5.2: Color › Interactive's preview, the same way. Its specimens are held to the brand's page color in section 19.
   '[data-p3="interactive-style-guide"]',
   // S6.2: Type's preview, the same way (section 20). (S6.2 also lent its levers a legacy region, retired in S6.3.)
-  '[data-p3="type-style-guide"]'];
+  '[data-p3="type-style-guide"]',
+  // S7: Shape's preview, the same way (section 24).
+  '[data-p3="shape-style-guide"]'];
 
 // ── servers: the studio, and the plugin with Figma's theme stubbed ──────────────────────────────────
 const STUDIO = HERE;
@@ -1052,8 +1069,11 @@ console.log(`\nBehavior\n${'='.repeat(78)}`);
   await page.locator('[data-p3="tab-type"]').focus();
   await page.keyboard.press('ArrowRight');
   await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'shape');
-  const k = await page.evaluate(() => ({ focus: document.activeElement?.getAttribute('data-p3'), sel: document.querySelector('[data-p3="tab-shape"]')?.getAttribute('aria-selected'), shows: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage }));
-  ok(k.focus === 'tab-shape' && k.sel === 'true' && k.shows === 'size-radius', `ArrowRight on Type selects Shape, keeps focus on it, and shows its legacy page (${JSON.stringify(k)})`);
+  // S7: Shape is a moved page, so the key lands on its two panes (its levers), not a legacy page.
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="shape-levers"]'), null, { timeout: 5000 }).catch(() => {});
+  const k = await page.evaluate(() => ({ focus: document.activeElement?.getAttribute('data-p3'), sel: document.querySelector('[data-p3="tab-shape"]')?.getAttribute('aria-selected'),
+    shows: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage ?? null, levers: !!document.querySelector('[data-p3="shape-levers"]') }));
+  ok(k.focus === 'tab-shape' && k.sel === 'true' && k.shows === null && k.levers, `ArrowRight on Type selects Shape, keeps focus on it, and shows its levers in the two panes (${JSON.stringify(k)})`);
 
   // The theme menu, open: its own chrome, measured (light and, after choosing it, dark).
   await hooks.click(page.locator('[data-p3="theme-toggle"]'));
@@ -1091,9 +1111,10 @@ console.log(`\nBehavior\n${'='.repeat(78)}`);
 console.log(`\nSearch (Q3)\n${'='.repeat(78)}`);
 const manifest = JSON.parse(readFileSync(join(REPO, 'packages/engine/schema/lever-manifest.json'), 'utf8'));
 const labelOf = (key) => manifest.levers.find((l) => l.key === key)?.label;
-const RADIUS = labelOf('radiusScale');
-const DENSITY = labelOf('density');
-ok(!!RADIUS && !!DENSITY, `the manifest names the radius lever ("${RADIUS}") and the density lever ("${DENSITY}")`);
+// S7: Shape moved to the two panes, so the search runs on its levers, found by their hooks (the radius softness and
+// density levers; the studio names radius softness in its own words, E2, so the label is not the manifest's).
+const RADIUS = '[data-p3="lever-radius-scale"]';
+const DENSITY = '[data-p3="lever-density"]';
 for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) {
   const { ctx, page } = await open({ host: 'web', theme: 'light', w, h });
   await goPlace(page, 'shape');
@@ -1106,13 +1127,13 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) {
   ok(focused === 'search-input', `${where}: opening search focuses its field (focus on ${focused})`);
   const field = await page.evaluate(() => { const n = document.querySelector('[data-p3="search-input"]'); n.dataset.cid = 'same'; return true; });
   await page.keyboard.type('radius', { delay: 20 });
-  const r = await page.evaluate((labels) => {
+  const r = await page.evaluate((sels) => {
     const input = document.querySelector('[data-p3="search-input"]');
-    const knobs = [...document.querySelectorAll('[data-p3="legacy-page"] .knob')];
+    const blocks = [...document.querySelectorAll('[data-p3="levers-pane"] .p3-lever')];
     const vis = (k) => k.getBoundingClientRect().height > 0;
-    const named = (l) => knobs.find((k) => k.querySelector('.knob-label, .chips-legend')?.textContent.trim() === l);
+    const at = (sel) => document.querySelector(`[data-p3="levers-pane"] ${sel}`);
     return { value: input.value, same: input.dataset.cid === 'same', status: document.querySelector('[data-p3="search-status"]')?.textContent,
-      visible: knobs.filter(vis).length, radius: !!named(labels[0]) && vis(named(labels[0])), density: named(labels[1]) ? vis(named(labels[1])) : null };
+      visible: blocks.filter(vis).length, radius: !!at(sels[0]) && vis(at(sels[0])), density: at(sels[1]) ? vis(at(sels[1])) : null };
   }, [RADIUS, DENSITY]);
   ok(field && r.value === 'radius', `search: the field reads "radius" after typing it (${where}: read "${r.value}")`);
   ok(r.same, `${where}: the field is the same element after typing (never rebuilt)`);
@@ -1412,8 +1433,10 @@ for (const theme of ['light', 'dark']) {
   await hooks.click(page.locator('[data-p3="mode-option"][data-mode="dark"]'));
   const a = await modeState(page);
   ok(a.radios.find((r) => r.mode === 'dark')?.checked === 'true', `${where}: choosing Dark in the mode control checks it`);
-  // Shape, the first legacy page with a mode strip (Type edits every mode as columns and draws none, #416).
-  await goPlace(page, 'shape');
+  // Depth & motion, the first legacy page with a mode strip (Type and, since S7, Shape moved to the two panes and
+  // draw none; their levers edit the mode the preview shows, Q22). The slice that moves Depth & motion moves this check to
+  // the next legacy page that still draws a strip (the Size & radius page left for Buttons draws none: they are brand-wide).
+  await goPlace(page, 'depth');
   await page.waitForFunction(() => document.querySelector('[data-p3="legacy-page"] [data-p3="mode-tab"].on [data-p3="mode-tab-name"]')?.textContent === 'Dark', null, { timeout: 5000 }).catch(() => {});
   const a2 = await modeState(page);
   ok(a2.legacy === 'Dark', `mode control: choosing Dark makes the legacy page draw Dark (${where}: the legacy mode strip shows "${a2.legacy}")`);
@@ -1909,8 +1932,9 @@ const groundsOf = (page) => page.evaluate(() => {
 });
 /** The Style guide's specimen roots, by section title, in order: each section `renderPreviewStyleGuide` draws on a
  *  ground (S3; modeled on S2's `EXPECT_SPECIMENS`). Literal (orchestrator review of #1939). The type sample opens
- *  it (#1942, owner decision Q67, S6.2). */
-const STYLE_GUIDE_ROOTS = ['Type sample', 'Background', 'Foreground', 'Text color', 'Border', 'Icon', 'Disabled', 'Interactive'];
+ *  it (#1942, owner decision Q67, S6.2), and the radius sample follows it (owner decision D18 B, S7; its heading is
+ *  DRAFT). */
+const STYLE_GUIDE_ROOTS = ['Type sample', 'Radius sample', 'Background', 'Foreground', 'Text color', 'Border', 'Icon', 'Disabled', 'Interactive'];
 /** Each moved place's preview, with the specimens it must draw, by name. */
 const SPECIMEN_PLACES = { 'color-palettes': ['palettes', EXPECT_SPECIMENS], brand: ['brand', STYLE_GUIDE_ROOTS] };
 for (const host of ['web', 'figma']) {
@@ -5144,6 +5168,408 @@ for (const [host, theme] of [['web', 'light'], ['web', 'dark'], ['figma', 'light
   } catch (e) {
     ok(false, `QA-R1: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
+}
+
+// =============================================================================================
+// 24. Shape (S7): the two panes, Density, Radius and Base radius represented once each; the preview's Density, Radius,
+//     Spacing and Building blocks on the brand's page color, drawn in the brand's own roles (D2); the approved copy and
+//     the Q23 pairs; the previewed mode (Q22) with Auto following LIGHT, a custom mode included (scope finding 7);
+//     brand-wide values from any mode (Q54); every control held in a derived mode with the preview still drawn (Q59);
+//     D6's height labels; the retired hairline switch gone (#2053); the routes by tab; the plugin reaching the Button
+//     options through the Pages menu (D4 B) under "Size & radius" (D5 B); and the chrome on Shape.
+//
+//     Independence (docs/34): the lever keys, the hooks, the copy, the pairs, the expected writes and the button sizes
+//     are literals typed here from the owner's decisions and the legacy page's bytes; the page colors, the sample roles
+//     and the heights come from the committed emission; every write is read back from the PERSISTED brand.
+//
+//     Mutations this fails by name: the base radius row dropped from `domains/shape.ts` → `Shape: every lever pages.ts
+//     places renders once — missing lever-base-md …`; a Dark radius softness edit written to Light → `previewing Dark, a
+//     radius softness edit writes modeLevers.dark.radius and not the brand value …`; Auto naming a custom mode's base →
+//     `a custom mode based on Dark, on Auto, says it follows Light …`; the samples painted on the studio's gray →
+//     `D2: … every radius sample is filled with the brand's foreground.secondary …`; D6's label dropped → `D6: … the
+//     Medium button height reads "Medium button · 44px" …`; the hairline switch drawn back → `#2053: … no Hairline radius
+//     switch …`.
+// =============================================================================================
+console.log(`\nShape (S7)\n${'='.repeat(78)}`);
+/** The lever keys the owner's D1 A places on Shape, by hook (represented, not counted). `radiusHairline` is retired. */
+const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-control-shape', 'lever-base-md'];
+/** The preview's sections, in order (D1 A). Literal. */
+const EXPECT_SHAPE_SPECIMENS = ['Density', 'Radius', 'Spacing', 'Building blocks'];
+/** Q23: each lever section, in order, and the preview section it pairs with (Base radius with Radius, D1 A). */
+const SHAPE_PAIRS = [['Density', 'Density'], ['Radius', 'Radius'], ['Base radius', 'Radius']];
+/** The approved copy (owner, 2026-10-04), verbatim. */
+const SHAPE_COPY = {
+  intro: 'Control heights and corners. Padding is set per component.',
+  Density: 'How tall controls are. Each component sets its own padding.',
+  Radius: 'How round corners are, and the shape of buttons and other pill-able controls.',
+  densityMode: 'Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.',
+  spacing: 'The 8px rhythm is the same for every brand. Steps below 8px are for fine adjustments.',
+  blocks: 'Fixed sizes every brand shares: border widths, icon sizes and the 4px grid.',
+  usedByNone: 'No component uses this yet.',
+  padding: 'Padding is set per component.', paddingLink: 'See Components',
+  next: 'Continue to Depth & motion',
+};
+/** The Button definition's three sizes and the control heights they bind (D6). Literal. */
+const BUTTON_HEIGHTS = [['sm', 'Small'], ['md', 'Medium'], ['lg', 'Large']];
+/** A role's hex per mode, from the committed emission (the same reading as `EMITTED`, for any role). */
+const EMITTED_ROLE = (() => {
+  const out = join(REPO, 'packages/engine/out');
+  const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
+  const root = Object.keys(base).find((k) => !k.startsWith('$'));
+  const leafAt = (tree, path) => path.split('.').reduce((n, k) => n?.[k], tree);
+  const trees = {};
+  const withOverlay = (mode) => {
+    if (mode === 'light') return base;
+    if (trees[mode]) return trees[mode];
+    const t = structuredClone(base);
+    const ov = JSON.parse(readFileSync(join(out, `prism3.${mode}.overlay.tokens.json`), 'utf8'));
+    const put = (src, dst) => { for (const [k, v] of Object.entries(src)) { if (k.startsWith('$')) continue; if (v && typeof v === 'object' && '$value' in v) dst[k] = v; else put(v, dst[k] ??= {}); } };
+    put(ov, t);
+    return (trees[mode] = t);
+  };
+  const resolve = (tree, path, seen = 0) => {
+    const v = leafAt(tree, path)?.$value;
+    if (typeof v !== 'string' || seen > 20) return null;
+    const m = /^\{(.+)\}$/.exec(v);
+    return m ? resolve(tree, m[1], seen + 1) : v.toLowerCase();
+  };
+  return (role, mode) => resolve(withOverlay(mode), `${root}.color.${role}`);
+})();
+const shapeRgb = (hx) => (hx ? `rgb(${parseInt(hx.slice(1, 3), 16)}, ${parseInt(hx.slice(3, 5), 16)}, ${parseInt(hx.slice(5, 7), 16)})` : null);
+ok(['foreground.secondary', 'border.primary'].every((r) => /^#[0-9a-f]{6}$/.test(EMITTED_ROLE(r, 'light') ?? '') && /^#[0-9a-f]{6}$/.test(EMITTED_ROLE(r, 'dark') ?? '')),
+  `the oracle resolves foreground.secondary and border.primary in Light and Dark from the emission (${['light', 'dark'].map((m) => `${EMITTED_ROLE('foreground.secondary', m)}/${EMITTED_ROLE('border.primary', m)}`).join(', ')})`);
+/** The emission's control height for a size step, in px (Light; the default theme sets no per-mode density). */
+const HEIGHT_PX = (step) => OUT[OUT_ROOT]?.size?.[step]?.height?.$extensions?.prism3?.px;
+/** Open the page's Show advanced, so Base radius is drawn. */
+const openShapeAdvanced = async (page) => {
+  await hooks.need(page, '[data-p3="shape-advanced"]');
+  if ((await page.locator('[data-p3="shape-advanced"]').getAttribute('aria-expanded')) !== 'true') await hooks.click(page.locator('[data-p3="shape-advanced"]'));
+  await hooks.need(page, '[data-p3="lever-base-md"]');
+};
+// Specimen grounds, Q24's gray containers and D2's sample colors: both hosts, both themes, every mode.
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const { ctx, page } = await open({ host, theme, w: 1280, h: 900 });
+    try {
+      await goPlace(page, 'shape');
+      await hooks.need(page, '[data-p3="shape-style-guide"]');
+      for (const [mode] of EXPECT_MODES) {
+        if (host === 'figma' && mode.startsWith('hc')) continue;
+        await chooseMode(page, mode);
+        const where = `${host} ${theme} 1280, previewing ${mode}`;
+        const g = await sectionGrounds(page, 'shape-style-guide');
+        const want = EMITTED[mode];
+        for (const name of EXPECT_SHAPE_SPECIMENS) {
+          const r = g.roots.find((x) => x.name === name);
+          ok(!!r && r.root && r.ground === want, `specimen ground: shape ${where}: ${name} is a specimen root on background.primary ${want}${
+            !r ? ' — not drawn' : !r.root ? ` — not a specimen root, on ${r.ground === g.card ? `the chrome card (${r.ground})` : r.ground}` : r.ground !== want ? ` — ${r.ground === g.card ? `is the chrome card (${r.ground})` : `is ${r.ground}`}` : ''}`);
+        }
+        const unlisted = g.roots.filter((x) => !EXPECT_SHAPE_SPECIMENS.includes(x.name)).map((x) => x.name);
+        ok(unlisted.length === 0, `specimen ground: shape ${where}: every section ground drawn is a listed specimen${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
+        const offGray = g.sections.filter((x) => x.bg !== LEVERS_GRAY).map((x) => `${x.name} on ${x.bg}`);
+        ok(g.sections.length >= EXPECT_SHAPE_SPECIMENS.length && offGray.length === 0,
+          `Q24 section containers: shape ${where}: every section container is the levers panel's gray ${LEVERS_GRAY} (${g.sections.length} read)${offGray.length ? ` — ${offGray.join(', ')}` : ''}`);
+        // D2 A: every radius sample and control-shape sample is drawn in the brand's own roles for the mode.
+        const fill = shapeRgb(EMITTED_ROLE('foreground.secondary', mode)), edge = shapeRgb(EMITTED_ROLE('border.primary', mode));
+        const sw = await page.evaluate(() => [...document.querySelectorAll('[data-p3="shape-style-guide"] :is([data-p3="radius-row"] .shp-sw, [data-p3="control-shape"] .shp-bar)')]
+          .map((n) => ({ bg: getComputedStyle(n).backgroundColor, edge: getComputedStyle(n).borderTopColor })));
+        const off = sw.filter((x) => x.bg !== fill || x.edge !== edge);
+        ok(sw.length >= 14 && off.length === 0, `D2: shape ${where}: every radius sample is filled with the brand's foreground.secondary (${fill}) and edged with border.primary (${edge}) for the mode (${sw.length} read)${off.length ? ` — ${JSON.stringify(off.slice(0, 2))}` : ''}`);
+      }
+    } catch (e) {
+      ok(false, `S7 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+}
+// Represented, on both hosts: each lever once, the hairline switch gone, the copy and the pairs, D6's labels, the plain
+// words, and the radius sizes drawn from the ladder (the container sizes and the 1px hairline included, #1881, #2053).
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'shape');
+    await openShapeAdvanced(page);
+    const r = await page.evaluate(() => {
+      const pane = document.querySelector('[data-p3="levers-pane"]');
+      const pv = document.querySelector('[data-p3="shape-style-guide"]');
+      return {
+        levers: [...pane.querySelectorAll('[data-p3^="lever-"]')].map((n) => n.getAttribute('data-p3')).filter((k) => k !== 'lever-info' && k !== 'lever-section'),
+        intro: pane.querySelector('.p3-intro')?.textContent ?? null,
+        lsec: [...pane.querySelectorAll('[data-p3="lever-section"]')].map((x) => [x.querySelector('.p3-lsec-title')?.textContent ?? null, x.querySelector('.p3-lsec-desc')?.textContent ?? null]),
+        psec: [...pv.querySelectorAll('.psec')].map((x) => [x.querySelector('.psec-t')?.textContent ?? null, x.querySelector('.psec-d')?.textContent ?? null]),
+        hairline: { block: [...pane.querySelectorAll('[data-p3^="lever-"]')].filter((n) => /hairline/.test(n.getAttribute('data-p3'))).length, switches: pane.querySelectorAll('[role="switch"]').length, words: /hairline radius/i.test(pane.textContent) },
+        radius: [...pv.querySelectorAll('[data-p3="radius-row"]')].map((x) => x.dataset.step),
+        heights: Object.fromEntries([...pv.querySelectorAll('[data-p3="height-row"]')].map((x) => [x.dataset.step, x.querySelector('[data-p3="shape-row-label"]')?.textContent ?? null])),
+        used: [...pv.querySelectorAll('[data-p3="radius-row"]')].map((x) => [x.dataset.step, x.querySelector('[data-p3="shape-row-used-by"]')?.textContent ?? null]),
+        shapes: [...pv.querySelectorAll('[data-p3="control-shape"]')].map((x) => [x.dataset.shape, x.getAttribute('aria-current')]),
+        pad: [pane.querySelector('[data-p3="shape-padding"] .p3-sub')?.textContent ?? null, pane.querySelector('[data-p3="shape-see-components"]')?.textContent ?? null],
+        next: pane.querySelector('[data-p3="shape-continue"]')?.textContent ?? null,
+      };
+    });
+    const count = (k) => r.levers.filter((x) => x === k).length;
+    const missing = SHAPE_LEVERS.filter((k) => count(k) !== 1).map((k) => `${k} ×${count(k)}`);
+    const extra = [...new Set(r.levers.filter((k) => !SHAPE_LEVERS.includes(k)))];
+    ok(missing.length === 0 && extra.length === 0, `Shape: every lever pages.ts places renders once (${SHAPE_LEVERS.length}, ${host})${missing.length ? ` — missing ${missing.join(', ')}` : ''}${extra.length ? ` — also drawn ${extra.join(', ')}` : ''}`);
+    hooks.absent(ok, { seen: count('lever-control-shape') === 1, state: 'Shape\'s levers' }, r.hairline.block === 0 && r.hairline.switches === 0 && !r.hairline.words,
+      `#2053: ${host}: Shape draws no Hairline radius switch (hairline lever blocks ${r.hairline.block}, switches ${r.hairline.switches}, words ${r.hairline.words})`);
+    ok(r.intro === SHAPE_COPY.intro, `${host}: Shape's intro reads "${SHAPE_COPY.intro}" ("${r.intro}")`);
+    ok(JSON.stringify(r.lsec.map(([t]) => t)) === JSON.stringify(SHAPE_PAIRS.map(([t]) => t)), `${host}: Shape's lever sections, in order: ${SHAPE_PAIRS.map(([t]) => t).join(', ')} — drew ${r.lsec.map(([t]) => t).join(', ')}`);
+    ok(JSON.stringify(r.psec.map(([t]) => t)) === JSON.stringify(EXPECT_SHAPE_SPECIMENS), `${host}: Shape's preview sections, in order: ${EXPECT_SHAPE_SPECIMENS.join(', ')} — drew ${r.psec.map(([t]) => t).join(', ')}`);
+    for (const [title, want] of SHAPE_PAIRS) {
+      const lev = r.lsec.find(([t]) => t === title), pre = r.psec.find(([t]) => t === want);
+      ok(!!lev && !!pre && (title !== want || lev[1] === pre[1]), `Q23: ${host}: the lever section "${title}" pairs with the preview's "${want}"${title === want ? ', one description on both sides' : ''} — levers ${JSON.stringify(lev)}, preview ${JSON.stringify(pre)}`);
+      if (SHAPE_COPY[title]) ok(lev?.[1] === SHAPE_COPY[title], `${host}: "${title}" reads "${SHAPE_COPY[title]}" (${JSON.stringify(lev?.[1])})`);
+    }
+    ok(r.psec.find(([t]) => t === 'Spacing')?.[1] === SHAPE_COPY.spacing && r.psec.find(([t]) => t === 'Building blocks')?.[1] === SHAPE_COPY.blocks,
+      `${host}: the read-only Spacing and Building blocks sections carry the approved descriptions (${JSON.stringify(r.psec.slice(2))})`);
+    ok(JSON.stringify(r.pad) === JSON.stringify([SHAPE_COPY.padding, SHAPE_COPY.paddingLink]) && r.next === SHAPE_COPY.next,
+      `${host}: the way to Components reads "${SHAPE_COPY.padding} ${SHAPE_COPY.paddingLink}" and Continue "${SHAPE_COPY.next}" (${JSON.stringify(r.pad)}, "${r.next}")`);
+    // The radius sizes are the emission's, all of them, in its order (#1881's container sizes and #2053's hairline).
+    const emitted = Object.keys(OUT[OUT_ROOT]?.radius ?? {}).filter((k) => !k.startsWith('$'));
+    ok(emitted.length >= 10 && JSON.stringify(r.radius) === JSON.stringify(emitted),
+      `${host}: the Radius section draws every radius size the emission carries, in order (${emitted.join(', ')}) — drew ${r.radius.join(', ')}`);
+    for (const [step, size] of BUTTON_HEIGHTS) {
+      const want = `${size} button · ${HEIGHT_PX(step)}px`;
+      ok(r.heights[step] === want, `D6: ${host}: the ${size} button height reads "${want}" (${JSON.stringify(r.heights[step])})`);
+    }
+    ok(r.used.find(([s]) => s === 'md')?.[1]?.includes('Button') && r.used.find(([s]) => s === 'xl')?.[1] === SHAPE_COPY.usedByNone,
+      `${host}: "used by" names Button on radius.md under the default Control shape, and the fallback "${SHAPE_COPY.usedByNone}" where nothing binds a size (${JSON.stringify(r.used.slice(2, 5))})`);
+    ok(JSON.stringify(r.shapes) === JSON.stringify([['boxed', null], ['hairline', null], ['rounded', 'true'], ['pill', null]]), `${host}: the four control shapes, Rounded marked current (${JSON.stringify(r.shapes)})`);
+    // D16 and E2's plain words: no "ramp", "ladder", "face", "band", "rung", "muted" or "column" in Shape's visible copy,
+    // and "Radius" (not "Corners") in the headings. Token pills taken out.
+    const PLAIN = /\b(ramps?|ladders?|faces?|bands?|rungs?|muted|columns?)\b/i;
+    const words = await page.evaluate((src) => {
+      const re = new RegExp(src, 'i');
+      const out = [];
+      for (const root of [document.querySelector('[data-p3="levers-pane"]'), document.querySelector('[data-p3="preview-body"]')]) {
+        const c = root.cloneNode(true);
+        for (const t of c.querySelectorAll('[data-p3="token-pill"], .p3-fill-tok')) t.remove();
+        const w = document.createTreeWalker(c, NodeFilter.SHOW_TEXT);
+        for (let n = w.nextNode(); n; n = w.nextNode()) if (re.test(n.textContent)) out.push(n.textContent.trim().slice(0, 80));
+        for (const e of c.querySelectorAll('[aria-label], [title], [placeholder]')) for (const a of ['aria-label', 'title', 'placeholder']) { const v = e.getAttribute(a); if (v && re.test(v)) out.push(`${a} "${v.slice(0, 80)}"`); }
+      }
+      return out;
+    }, PLAIN.source);
+    ok(words.length === 0, `D16: ${host}: no "ramp", "ladder", "face", "band", "rung", "muted" or "column" in Shape's visible copy${words.length ? ` — found ${words.slice(0, 4).map((x) => `"${x}"`).join(', ')}` : ''}`);
+    ok(!r.lsec.concat(r.psec).some(([t]) => /corner/i.test(t ?? '')), `E2: ${host}: no Shape heading says "corner" (${JSON.stringify(r.lsec.concat(r.psec).map(([t]) => t))})`);
+    ok(errors.length === 0, `${host} Shape levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S7 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// Edits (Q22): Light writes the brand value, the default included; previewing Dark, Density and Radius softness write
+// modeLevers.dark.* and leave the brand value alone, shown as "Auto: follows Light (…)" until set, with Return to Auto;
+// a custom mode based on Dark follows LIGHT on Auto; Control shape and Base radius write the same bytes from Dark as
+// from Light (Q54). Each write read back from the PERSISTED brand.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'shape');
+    await openShapeAdvanced(page);
+    const view0 = (await previewView(page)).view;
+    const p0 = await persisted(page);
+    const chip = async (hk, want) => {
+      await hooks.click(page.locator(`[data-p3="${hk}"]`));
+      await page.waitForFunction((h) => document.querySelector(`[data-p3="${h}"]`)?.getAttribute('aria-checked') === 'true', hk, { timeout: 5000 }).catch(() => {});
+      return want;
+    };
+    // Light: density, the default written back.
+    await chip('density-choice-compact');
+    ok((await persisted(page))?.density === 'compact', `shape: in Light, Compact writes density: compact (${(await persisted(page))?.density})`);
+    await chip('density-choice-comfortable');
+    const pc = await persisted(page);
+    ok(pc?.density === 'comfortable' && JSON.stringify(pc) === JSON.stringify({ ...p0, density: 'comfortable' }), `shape: back to Comfortable writes density: comfortable, not unset (the legacy bytes) (${pc?.density})`);
+    // Light: radius softness, by the keyboard.
+    await page.locator('[data-p3="radius-scale-slider"]').focus();
+    await page.keyboard.press('ArrowRight');
+    await page.waitForFunction(() => document.querySelector('[data-p3="radius-scale-slider"]')?.value === '1.5', null, { timeout: 5000 }).catch(() => {});
+    ok((await persisted(page))?.radiusScale === 1.5, `shape: in Light, ArrowRight on radius softness writes radiusScale: 1.5 (${(await persisted(page))?.radiusScale})`);
+    await page.keyboard.press('ArrowLeft');
+    await page.waitForFunction(() => document.querySelector('[data-p3="radius-scale-slider"]')?.value === '1', null, { timeout: 5000 }).catch(() => {});
+    const focusKept = await page.evaluate(() => document.activeElement?.getAttribute('data-p3'));
+    ok(focusKept === 'radius-scale-slider', `shape: the slider keeps its focus through its own edits (focus on ${focusKept})`);
+    const pL = await persisted(page);
+    // Light: Control shape, then Base radius through its picker; their bytes noted, then undone.
+    await chip('control-shape-choice-pill');
+    const pShape = await persisted(page);
+    ok(pShape?.controlShape === 'pill', `shape: Pill writes controlShape: pill (${pShape?.controlShape})`);
+    await chip('control-shape-choice-rounded');
+    await hooks.click(page.locator('[data-p3="base-radius-pick"]'));
+    await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="6"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="base-radius-pick"] .p3-btn-label')?.textContent === '6px', null, { timeout: 5000 }).catch(() => {});
+    const pBase = await persisted(page);
+    ok(pBase?.baseMd === 6, `shape: the Base radius picker's 6px writes baseMd: 6 (${pBase?.baseMd})`);
+    const md6 = await page.evaluate(() => document.querySelector('[data-p3="shape-style-guide"] [data-p3="radius-row"][data-step="md"] [data-p3="shape-row-label"]')?.textContent);
+    ok(md6 === `${6 * (p0?.radiusScale ?? 1)}px`, `shape: the preview's radius.md follows the base radius at once (${md6})`);
+    await page.keyboard.press('Escape');
+    // Dark.
+    await chooseMode(page, 'dark');
+    const auto = await page.evaluate(() => ({ d: document.querySelector('[data-p3="density-auto"]')?.textContent ?? null, r: document.querySelector('[data-p3="radius-scale-auto"]')?.textContent ?? null,
+      line: document.querySelector('[data-p3="shape-density-mode"]')?.textContent ?? null }));
+    ok(auto.d === 'Auto: follows Light (Comfortable)' && auto.r === 'Auto: follows Light (1.0 · standard)', `Q22: previewing Dark, Density and Radius softness read Auto, following Light (${JSON.stringify(auto)})`);
+    ok(auto.line === SHAPE_COPY.densityMode, `previewing Dark, the Density lever keeps the decided sentence ("${auto.line}")`);
+    await chip('density-choice-spacious');
+    const p1 = await persisted(page);
+    ok(p1?.modeLevers?.dark?.density === 'spacious' && p1?.density === pBase?.density,
+      `previewing Dark, a density edit writes modeLevers.dark.density and not the brand value — wrote modeLevers ${JSON.stringify(p1?.modeLevers)}, density ${JSON.stringify(p1?.density)}`);
+    const darkMd = await page.evaluate(() => document.querySelector('[data-p3="shape-style-guide"] [data-p3="height-row"][data-step="md"] [data-p3="shape-row-label"]')?.textContent);
+    ok(darkMd === 'Medium button · 56px', `previewing Dark at Spacious, the preview's Medium button reads 56px (${darkMd})`);
+    await page.locator('[data-p3="radius-scale-slider"]').focus();
+    await page.keyboard.press('ArrowRight');
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="radius-scale-reset"]'), null, { timeout: 5000 }).catch(() => {});
+    const p2 = await persisted(page);
+    ok(p2?.modeLevers?.dark?.radius === 1.5 && p2?.radiusScale === pBase?.radiusScale,
+      `previewing Dark, a radius softness edit writes modeLevers.dark.radius and not the brand value — wrote modeLevers ${JSON.stringify(p2?.modeLevers)}, radiusScale ${JSON.stringify(p2?.radiusScale)}`);
+    // Brand-wide from Dark (Q54): Control shape writes the same bytes as from Light.
+    await chip('control-shape-choice-pill');
+    ok((await persisted(page))?.controlShape === 'pill' && JSON.stringify((await persisted(page))?.modeLevers) === JSON.stringify(p2?.modeLevers), 'Q54: previewing Dark, Pill writes controlShape: pill and no per-mode value');
+    await chip('control-shape-choice-rounded');
+    await hooks.click(page.locator('[data-p3="density-reset"]'));
+    await hooks.click(page.locator('[data-p3="radius-scale-reset"]'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="radius-scale-auto"]'), null, { timeout: 5000 }).catch(() => {});
+    ok(JSON.stringify(await persisted(page)) === JSON.stringify({ ...pBase, controlShape: 'rounded' }), 'Q22: Return to Auto on both prunes modeLevers: the persisted brand is the one before Dark');
+    // A custom mode based on Dark, with Dark's own density set: on Auto it follows LIGHT, not Dark (scope finding 7).
+    await chip('density-choice-compact');
+    await goPlace(page, 'brand');
+    await hooks.click(page.locator('[data-p3="custom-mode-add"]'));
+    await hooks.need(page, '[data-p3="custom-mode-base"]');
+    await page.locator('[data-p3="custom-mode-base"]').last().selectOption('dark');
+    const custom = await page.evaluate(() => [...document.querySelectorAll('[data-p3="custom-mode-name"]')].pop()?.value);
+    await goPlace(page, 'shape');
+    const cm = (await persisted(page))?.customModes?.at(-1)?.name ?? custom;
+    await chooseAnyMode(page, cm);
+    const ca = await page.evaluate(() => document.querySelector('[data-p3="density-auto"]')?.textContent ?? null);
+    ok(ca === 'Auto: follows Light (Comfortable)', `a custom mode based on Dark, on Auto, says it follows Light, not Dark's Compact (${cm}: "${ca}")`);
+    ok((await previewView(page)).view === view0, `V1 edit: Shape's edits never move the preview's home (${view0})`);
+    ok(errors.length === 0, `shape edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S7 Shape edits: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// Q59: in each derived mode every control on Shape is disabled, the advanced one included, under the derived line, and
+// the preview is still drawn. Enumerated from the DOM: every button and input in a lever section but the info toggletips
+// and the way to Components (it only navigates).
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'brand');
+    await hooks.click(page.locator('[data-p3="mode-on-wireframe"]'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="wireframe"], [data-p3="mode-select"] option[value="wireframe"]'));
+    await goPlace(page, 'shape');
+    await openShapeAdvanced(page);
+    for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']]) {
+      await chooseAnyMode(page, mode);
+      await page.waitForFunction((l) => document.querySelector('[data-p3="shape-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
+      const d = await page.evaluate(() => {
+        const pane = document.querySelector('[data-p3="levers-pane"]');
+        const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"], [data-p3="shape-see-components"]'));
+        return { n: ctls.length, enabled: ctls.filter((n) => !n.disabled).map((n) => n.getAttribute('data-p3') ?? n.tagName), hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
+          line: document.querySelector('[data-p3="shape-derived"]')?.textContent ?? null,
+          preview: [...document.querySelectorAll('[data-p3="shape-style-guide"] .psec-t')].map((t) => t.textContent),
+          radius: [...document.querySelectorAll('[data-p3="shape-style-guide"] [data-p3="radius-row"] [data-p3="shape-row-label"]')].map((t) => t.textContent) };
+      });
+      ok(d.line === `${label} is auto-derived — read-only. Edit Light or Dark and it follows.`, `Q59: previewing ${label}, the derived line shows on Shape ("${d.line}")`);
+      ok(d.n >= 9 && d.enabled.length === 0, `Q59: previewing ${label}, every control on Shape is disabled, Base radius included (${d.n - d.enabled.length}/${d.n})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
+      for (const hk of ['density-choice-compact', 'radius-scale-slider', 'control-shape-choice-pill', 'base-radius-pick']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Shape is among those held disabled`);
+      ok(JSON.stringify(d.preview) === JSON.stringify(EXPECT_SHAPE_SPECIMENS), `Q59: previewing ${label}, the Shape preview is still drawn (${d.preview.join(', ')})`);
+      if (mode === 'wireframe') ok(d.radius.length >= 10 && d.radius.every((t) => /^0px/.test(t)), `previewing Wireframe, every radius size reads 0px, as the emission draws wireframe (${d.radius.join(', ')})`);
+    }
+    ok(errors.length === 0, `shape derived: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S7 derived modes: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// The routes by tab, on both hosts: Continue lands on Depth & motion's page; See Components lands on Components, the
+// Size & radius page on the web and the components page in the plugin (§4). The plugin reaches the Button options
+// through the Pages menu (D4 B), under "Size & radius" (D5 B). Type's Continue lands on Shape's levers.
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'type');
+    await hooks.click(page.locator('[data-p3="type-continue"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'shape', null, { timeout: 5000 }).catch(() => {});
+    const t = await page.evaluate(() => ({ place: document.querySelector('[data-p3="frame"]')?.dataset.place, levers: !!document.querySelector('[data-p3="shape-levers"]') }));
+    ok(t.place === 'shape' && t.levers, `${host}: Type's Continue opens Shape's levers (${JSON.stringify(t)})`);
+    await hooks.click(page.locator('[data-p3="shape-continue"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'depth', null, { timeout: 5000 }).catch(() => {});
+    const c = await page.evaluate(() => ({ place: document.querySelector('[data-p3="frame"]')?.dataset.place, shows: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage ?? null }));
+    ok(c.place === 'depth' && c.shows === 'elevation', `${host}: "Continue to Depth & motion" opens the Depth & motion tab on its first page (${JSON.stringify(c)})`);
+    await goPlace(page, 'shape');
+    await hooks.click(page.locator('[data-p3="shape-see-components"]'));
+    const want = host === 'web' ? 'size-radius' : 'components';
+    await page.waitForFunction((w) => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage === w, want, { timeout: 5000 }).catch(() => {});
+    const s = await page.evaluate(() => ({ place: document.querySelector('[data-p3="frame"]')?.dataset.place, shows: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage ?? null }));
+    ok(s.place === 'components' && s.shows === want, `${host}: See Components opens the Components tab on its ${want} page (${JSON.stringify(s)})`);
+    if (host === 'figma') {
+      await hooks.click(page.locator('[data-p3="pages-menu"]'));
+      await hooks.click(page.locator('[data-p3="rail-page-size-radius"]'));
+      await page.waitForFunction(() => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage === 'size-radius', null, { timeout: 5000 }).catch(() => {});
+      const b = await page.evaluate(() => ({ shows: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage ?? null, title: document.querySelector('[data-p3="legacy-page"] [data-p3="page-title"]')?.textContent ?? null,
+        buttons: !!document.querySelector('[data-p3="legacy-page"] [data-p3="lever-button-icons"]'), density: !!document.querySelector('[data-p3="legacy-page"] [data-p3="lever-density"]') }));
+      ok(b.shows === 'size-radius' && b.title === 'Size & radius.' && b.buttons && !b.density,
+        `D4 B, D5 B: in the plugin the Pages menu reaches the Button options on "Size & radius", and the page holds no Shape lever (${JSON.stringify(b)})`);
+    }
+    ok(errors.length === 0, `${host} Shape routes: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S7 routes ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// QA-B9: an edit on Shape eases the preview to the section its lever section pairs with (Q23): Density to Density,
+// radius softness to Radius, and Base radius to Radius too (D1 A). From the preview's far end, so each reveal moves.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'shape');
+    await openShapeAdvanced(page);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const reveal = async (what, act, want) => {
+      await page.evaluate(() => { const b = document.querySelector('[data-p3="preview-body"]'); b.scrollTop = b.scrollHeight; });
+      await act();
+      await page.waitForTimeout(120);
+      const s = await page.evaluate((t) => {
+        const body = document.querySelector('[data-p3="preview-body"]');
+        const head = [...body.querySelectorAll('[data-p3="section-title"]')].find((n) => n.textContent === t);
+        const b = body.getBoundingClientRect(), r = head?.closest('.psec')?.getBoundingClientRect();
+        return { found: !!r, rel: r ? Math.round(r.top - b.top) : null, inView: !!r && r.top >= b.top - 1 && r.top < b.bottom - 40, place: document.querySelector('[data-p3="frame"]')?.dataset.place };
+      }, want);
+      ok(s.found && s.inView && s.place === 'shape', `QA-B9: editing ${what} on Shape brings the preview's ${want} section into view, on the same page (${JSON.stringify(s)})`);
+    };
+    await reveal('Density', () => hooks.click(page.locator('[data-p3="density-choice-compact"]')), 'Density');
+    await reveal('radius softness', async () => { await page.locator('[data-p3="radius-scale-slider"]').focus(); await page.keyboard.press('ArrowRight'); }, 'Radius');
+    await reveal('Base radius', async () => { await hooks.click(page.locator('[data-p3="base-radius-pick"]')); await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="8"]')); }, 'Radius');
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    ok(errors.length === 0, `shape reveal: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S7 reveal: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// The chrome on Shape: both hosts, both themes, 1280, 640 and 380 (the Settings pane, then the Preview pane when
+// narrow). Continue is the filled primary button (QA-I12).
+for (const { w, h } of WIDTHS) {
+  for (const host of ['web', 'figma']) {
+    for (const theme of ['light', 'dark']) {
+      const { ctx, page, errors } = await open({ host, theme, w, h });
+      try {
+        await goPlace(page, 'shape');
+        const where = `${host} ${theme} ${w} / shape`;
+        const narrow = w <= 560;
+        const m = await measure(page, where, host, w);
+        check(m, where, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR);
+        if (w === 1280) {
+          const n = await page.evaluate(() => { const b = document.querySelector('[data-p3="shape-continue"]'); const cs = getComputedStyle(b); return { bg: cs.backgroundColor, ink: getComputedStyle(b.querySelector('span')).color }; });
+          ok(n.bg === STYLE.fill[theme] && n.ink === STYLE.ink[theme], `QA-I12: ${where}: Continue is the filled primary button (${JSON.stringify(n)})`);
+        }
+        if (SHOTS) await page.screenshot({ path: join(SHOTS, `s7-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}.png`) });
+        if (narrow) {
+          await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+          const mp = await measure(page, `${where} / preview`, host, w);
+          check(mp, `${where} / preview`, columnOf(host, w), { ...PLACE_FLOOR, controls: 6, text: 4, fonts: 4 }, { state: 'preview' });
+        }
+        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `S7 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      } finally { await ctx.close(); }
+    }
+  }
 }
 
 hooks.report(ok);

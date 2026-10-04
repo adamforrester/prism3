@@ -228,8 +228,9 @@ ok(stages.length > 0, `the rail offers ${stages.length} destination(s) to audit`
 // has no mode strip to audit: the mode control is in its preview header). The first Color page still legacy
 // is the one the menu must offer, and Palettes must be gone from it, with the menu's own rows as the proof.
 // Surfaces & fills followed in S4a and Interactive in S5.2, so the menu offers no Color page at all; Type followed
-// in S6.2, so the first legacy page it offers is Elevation, and Size & radius (Shape) is among them.
-ok(stages.some((x) => x.key === hooks.role('[data-p3="rail-page-size-radius"]')), 'the Pages menu offers the first legacy tab\'s page, Size & radius (Shape)');
+// in S6.2, so the first legacy page it offers is Elevation. Shape followed in S7; Size & radius stays in the menu,
+// holding only the Button options until S8 (owner decisions D4 B, D5 B).
+ok(stages.some((x) => x.key === hooks.role('[data-p3="rail-page-size-radius"]')), 'the Pages menu offers Size & radius, the Button options\' page until S8');
 hooks.absent(ok, { seen: stages.length > 0, state: 'the Pages menu\'s rows' }, stages.every((x) => x.key !== 'rail-page-palettes'), 'the Pages menu no longer offers Palettes, which moved to the two panes (S2)');
 hooks.absent(ok, { seen: stages.length > 0, state: 'the Pages menu\'s rows' }, stages.every((x) => x.key !== 'rail-page-surfaces'), 'the Pages menu no longer offers Surfaces & fills, which moved to the two panes (S4a)');
 hooks.absent(ok, { seen: stages.length > 0, state: 'the Pages menu\'s rows' }, stages.every((x) => x.key !== 'rail-page-interactive'), 'the Pages menu no longer offers Interactive, which moved to the two panes (S5.2)');
@@ -446,10 +447,9 @@ const probeSection = async (c) => {
  * exception cannot outlive its bug, and the fixing PR has to delete the row in the same change.
  */
 const KNOWN_BADGE_GAPS = [
-  // #1912: SECTION_MODE_SCOPE has no entry for these two, so `attachModeBadges` skips them: Control shape and
-  // Buttons are global levers (`csLeverStack(…, false)`). (Interactive's Links row left with the page in UI
-  // redesign S5.2: the two panes say which mode a row edits, and the mode strip is not there to badge.)
-  { page: 'Size & radius', name: 'Control shape', expected: 'all-modes', renders: null, issue: 1912 },
+  // #1912: SECTION_MODE_SCOPE has no entry for Buttons, so `attachModeBadges` skips it: the Button options are
+  // global levers (`csLeverStack(…, false)`). (Interactive's Links row left with the page in UI redesign S5.2, and
+  // Control shape's with Shape in S7: the two panes say which mode a row edits, and there is no mode strip to badge.)
   { page: 'Size & radius', name: 'Buttons', expected: 'all-modes', renders: null, issue: 1912 },
 ];
 const knownGapFor = (c) => KNOWN_BADGE_GAPS.find((k) =>
