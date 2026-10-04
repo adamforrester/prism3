@@ -2998,6 +2998,19 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     if (!pb) throw new Error(`surfaces.${where}: palette '${spec.palette}' is not a declared palette (have: ${palettes.map((p) => p.palette).join(', ')}). A surface band names neutral (a bare step number), the brand (primary), or a custom brandColor — not an undeclared name.`);
     if (STATUS_ROLE_SET.has(pb.role)) throw new Error(`surfaces.${where}: palette '${spec.palette}' is a STATUS palette (role '${pb.role}') — a page band in a semantic status color would use it decoratively, which #898 excludes. Use neutral, the brand, or a custom palette.`);
   };
+  // A value that must name a step on `pal`'s ramp, refused by name otherwise. A finite number off the ramp
+  // names the nearest real step; anything else is not a `noun`. `alts` is what else the key accepts.
+  const neutralPal = palettes.find((p) => p.role === 'neutral');
+  const requireStep = (where: string, value: unknown, num: unknown, pal: typeof neutralPal, noun: string, alts: string): void => {
+    const steps = (pal?.steps ?? []).map((st) => st.num);
+    if (typeof num === 'number' && steps.includes(num)) return;
+    const ramp = `a step on the ${pal?.palette ?? 'neutral'} ramp (${steps.join(', ')})`;
+    if (typeof num === 'number' && Number.isFinite(num) && steps.length) {
+      const nearest = steps.reduce((a, b) => (Math.abs(b - num) < Math.abs(a - num) ? b : a));
+      throw new Error(`surfaces.${where}: ${JSON.stringify(value)} is not on the ${pal!.palette} ramp; the nearest step is ${nearest}. Use ${alts}${ramp}.`);
+    }
+    throw new Error(`surfaces.${where}: ${JSON.stringify(value)} is not ${noun}. Use ${alts}${ramp}.`);
+  };
   for (const [mode, sf] of Object.entries(input.surfaces ?? {})) {
     for (const key of ['base', 'secondary', 'tertiary'] as const) {
       if (sf?.[key] != null && typeof sf[key] === 'object') {
@@ -3013,17 +3026,15 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     for (const key of ['base', 'inverseBase', 'secondary', 'tertiary', 'inverseSecondary', 'inverseTertiary'] as const) {
       const spec: unknown = sf?.[key];
       if (spec == null || spec === 'white' || spec === 'black') continue;
-      const pal = typeof spec === 'object' ? palettes.find((p) => p.palette === (spec as SurfaceStep).palette) : palettes.find((p) => p.role === 'neutral');
+      const pal = typeof spec === 'object' ? palettes.find((p) => p.palette === (spec as SurfaceStep).palette) : neutralPal;
       const num = typeof spec === 'object' ? (spec as SurfaceStep).step : spec;
-      const steps = (pal?.steps ?? []).map((st) => st.num);
-      if (typeof num === 'number' && steps.includes(num)) continue;
-      const ramp = `a step on the ${pal?.palette ?? 'neutral'} ramp (${steps.join(', ')})`;
-      if (typeof num === 'number' && Number.isFinite(num) && steps.length) {
-        const nearest = steps.reduce((a, b) => (Math.abs(b - num) < Math.abs(a - num) ? b : a));
-        throw new Error(`surfaces.${mode}.${key}: ${JSON.stringify(spec)} is not on the ${pal!.palette} ramp; the nearest step is ${nearest}. Use 'white', 'black', or ${ramp}.`);
-      }
-      throw new Error(`surfaces.${mode}.${key}: ${JSON.stringify(spec)} is not a surface. Use 'white', 'black', or ${ramp}.`);
+      requireStep(`${mode}.${key}`, spec, num, pal, 'a surface', "'white', 'black', or ");
     }
+    // `floorStep` is held to the same rule (#2033, owner go-ahead 2026-10-04): it decides what every
+    // floor-gated role is measured against, and `modeConfigs` resolves it with `n()`, which snaps, so `333`
+    // used to become neutral.350 with no error. It always indexes the NEUTRAL ramp, whatever the page or the
+    // inverse band is on, and it has no white/black form.
+    if (sf?.floorStep != null) requireStep(`${mode}.floorStep`, sf.floorStep, sf.floorStep, neutralPal, 'a step number', '');
     if (sf?.secondary !== undefined) {
       notes.push(`surfaces: the ${mode} second tier is ${surfaceLabel(sf.secondary)}, not the default — ${sf.floorStep !== undefined ? `the contrast floor stays at neutral.${sf.floorStep}` : 'the contrast floor moves with it'}.`);
     }

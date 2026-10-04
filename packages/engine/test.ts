@@ -4707,6 +4707,27 @@ arm: {
           ok(refusal(withSurf(mode, 'inverseBase', { palette: 'primary', step: 900 })) === '',
             `#1985: surfaces.${mode}.inverseBase = { palette: 'primary', step: 900 } is still accepted`);
         }
+        // #2033 (owner go-ahead, 2026-10-04): `floorStep` gets the same check. It indexes the neutral ramp and has
+        // no white/black form. Measured before the change: across every corpus brand, fixture, gate case and the
+        // Studio unit suites, every floorStep set was a real step (100, 200, 300, 800); none relied on snapping.
+        // EXPECTED is typed: the refused value and the nearest step its message must name (null: not a number).
+        const FLOOR_REFUSED: Array<[unknown, string | null]> = [[333, '350'], [1234, '950'], ['300', null], ['grey', null]];
+        for (const mode of ['light', 'dark'] as const) {
+          for (const [v, nearest] of FLOOR_REFUSED) {
+            const msg = refusal(withSurf(mode, 'floorStep', v));
+            ok(msg.includes(`surfaces.${mode}.floorStep`) && msg.includes('neutral ramp') && (nearest === null ? msg.includes('is not a step number') : msg.includes(`the nearest step is ${nearest}.`)),
+              `#2033: surfaces.${mode}.floorStep = ${JSON.stringify(v)} is refused by name${nearest ? `, naming the nearest step ${nearest}` : ''} (got: "${msg.slice(0, 140)}")`);
+          }
+          // A real step is accepted UNCHANGED: text.secondary is measured against exactly that step.
+          const FLOOR_ACCEPTED: Array<[number, string]> = [[300, 'neutral.300'], [25, 'neutral.025'], [950, 'neutral.950']];
+          for (const [v, floor] of FLOOR_ACCEPTED) {
+            const input = withSurf(mode, 'floorStep', v);
+            const msg = refusal(input);
+            const against = msg === '' ? (resolveAllModes(brandTheme(input)).find((m) => m.mode === mode)!.roles as Roles)['text.secondary']?.against : undefined;
+            ok(msg === '' && against === floor,
+              `#2033: surfaces.${mode}.floorStep = ${v} is still accepted, and text.secondary is measured against ${floor} (got: "${msg.slice(0, 120)}", against ${against})`);
+          }
+        }
       }
     }
 

@@ -9,8 +9,11 @@ today's stops, D15, D17). FIRST_CLASS: no Show advanced. Derived modes disable e
 preview (Q59). The preview is concept v6's V11 (D14): the ranges to scale in primary tints, each breakpoint's columns
 as tinted bars on a gray margin, the containers to scale against the widest breakpoint (T10), label first and token
 under each (QA-B2). Edits ease the preview to their section (`noteSectionEdit`, QA-B9). Continue opens the Components
-tab on either host (T8): a new store request, `requestTab`, which the frame routes as a click on the tab, because the
-web's Components and Shape show the same legacy page and `setPage('sizeRadius')` lands on Shape.
+tab on either host (T8), routed by tab through S7's `pageOfTab(tab, host)`. (S10 first added a store request,
+`requestTab`, for the same need, because before S7 the web's Shape and Components showed the same legacy page and
+`setPage('sizeRadius')` landed on Shape. Merging S7 unified the two onto `pageOfTab`: it is pure, already tested by
+S7's routing, needs no new store topic, and once Shape moved, Components is the only tab that shows `sizeRadius` on
+the web.)
 
 **Retired from `main.ts`** (each confirmed by name first): `renderBreakpointsControls`, `csSlider`, `csPicker` (dead),
 `LAYOUT_COLUMN_CHOICES`, `renderLayoutPage`, `paintBreakpointsPreview`, `paintColumnsPreview`,
@@ -52,7 +55,7 @@ deleting the emptied map; T10 (the Maximum width slider moves its own bar) and t
 now reads Motion's easing selects; #2036's "typography.responsive is drawn on Type only" now reads Layout's two panes;
 section 22 (QA-B2, B5, I12) covers Layout's rows, pickers and Continue. `test:smoke`: #1532 moved to the new hooks
 (the readout is the preview's Grid `data-bpcol`, the override the `bp-cols-pick` value picker), oracle
-`out/figma/aurora/grid-styles.json` and M1/M2 unchanged; new 1h checks every brand × mode's Layout preview against the
+`out/figma/aurora/grid-styles.json` and M1/M2 unchanged; new 1i checks every brand × mode's Layout preview against the
 brand's emission (breakpoints, grid columns, gutter, margin, containers) and the legibility probe; the Pages menu
 floor drops to 3 with an absence check for Layout. **#485's select-jump test gets a new host, Motion** (the easing
 table's Light baseline, six curves): not a retirement, because the defect lives in the legacy tier (`applyFull()`
@@ -62,7 +65,7 @@ emptying the workspace), which every remaining legacy page still runs through un
 
 | Mutation | Fails with |
 |---|---|
-| the Grid readout taken from the base column count (`gridSection`: `String(g.columns)` → `String(ly.baseColumns)`) | smoke `#1532: the per-breakpoint readout equals the engine's EMITTED grid columns [xs:4 sm:8 md:12 lg:12 xl:12 2xl:12] — DIVERGED: xs shows 12, emits 4; sm shows 12, emits 8` (#1532 M1, carried over), and 1h's `‹brand› / Layout / ‹mode›: every breakpoint, grid and container value reads the emission's` |
+| the Grid readout taken from the base column count (`gridSection`: `String(g.columns)` → `String(ly.baseColumns)`) | smoke `#1532: the per-breakpoint readout equals the engine's EMITTED grid columns [xs:4 sm:8 md:12 lg:12 xl:12 2xl:12] — DIVERGED: xs shows 12, emits 4; sm shows 12, emits 8` (#1532 M1, carried over), and 1i's `‹brand› / Layout / ‹mode›: every breakpoint, grid and container value reads the emission's` |
 | the last gutter override back to Auto leaves `{}` | unit `setGapOverride(gutter, md, auto) on the last entry deletes layout.gutterOverrides` |
 | the first breakpoint's field left editable | chrome `Layout: the first breakpoint is fixed at 0 (web)` and `(figma)` |
 | D13's re-keying removed | unit `D13: adding a breakpoint keeps md's 6 columns on the 768px breakpoint, now sm` (and six more D13 arms) |

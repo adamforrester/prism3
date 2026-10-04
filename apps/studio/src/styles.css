@@ -1389,6 +1389,26 @@ input.toggle:disabled{opacity:.5;cursor:default}
 /* The one specimen on the page that must WRAP — leading is invisible on a single line, so this
    deliberately does not inherit .mtbl-spec-t's nowrap+ellipsis. */
 .ltbl-samp{font-size:13px;color:var(--ink2);line-height:inherit;max-width:52ch}
+/* Shape (UI redesign S7): the Shape preview's and the Style guide radius sample's shapes, drawn in the brand's
+   roles (fill, edge and radius set inline from the mode's values; owner decision D2 A). */
+.shp-who{min-width:180px}
+.shp-label{display:block;margin-bottom:4px}
+.shp-sw{width:44px;height:44px;border:1px solid transparent}
+.shp-hbar{width:120px;border:1px solid transparent;border-radius:4px}
+.shp-wbar{height:12px;border:1px solid transparent;border-radius:2px}
+.shp-wbar.zero{width:0;border:0;border-left:1px dashed var(--line2)}
+.shp-line{width:120px;height:0;border-top-style:solid}
+.shp-icon{border:1px solid transparent;border-radius:2px}
+.shp-shapes{display:flex;flex-wrap:wrap;gap:16px;margin-top:10px}
+.shp-shape{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:10px 12px;border:1px solid transparent;border-radius:var(--r-sm)}
+.shp-shape.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.shp-bar{width:112px;border:1px solid transparent}
+.shp-panel{display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:20px;border:1px solid transparent;margin-top:14px;max-width:520px}
+.shp-items{display:flex;flex-wrap:wrap;align-items:flex-start;gap:16px}
+.shp-item{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.shp-field{width:180px;border:1px solid transparent}
+.shp-button{width:112px;border:1px solid transparent}
+.shp-tag{width:64px;border:1px solid transparent}
 .wr-row{display:grid;grid-template-columns:96px 168px 1fr auto;gap:14px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
 .wr-row:first-of-type{border-top:0}
 .wr-name{font-size:13px;font-weight:640}

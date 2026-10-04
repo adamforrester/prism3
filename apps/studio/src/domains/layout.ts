@@ -28,13 +28,13 @@
  * redrawn whole, keeping focus on the element that had it. It never names a legacy repaint tier and never imports
  * `main.ts` (`test-shell-imports.ts`).
  */
-import { brandState, currentMode, lastError, rebuild, requestTab, searchQuery, setSearchHits, subscribe, theme } from '../state/store';
+import { brandState, currentMode, lastError, rebuild, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import { isDerived } from '../state/verdict';
 import {
   COLUMN_CHOICES, MAX_BREAKPOINTS, MIN_BREAKPOINTS, addBreakpoint, autoGrid, breakpointsOf, editBreakpoint, overrideOf,
   namesFor, removeBreakpoint, setColumnOverride, setColumns, setContainer, setGapOverride, type BreakpointResult, type ContainerKey, type GapField,
 } from '../state/layout-input';
-import { DOMAINS, LAYOUT_LABELS, type PageData, type Section } from '../shell/pages';
+import { DOMAINS, LAYOUT_LABELS, pageOfTab, type Host, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
 import { addRowButton, leverBlock, leverOf, slider, sliderReadout, stateLine, textField, tokenLabel, type LeverBlock } from '../ui/lever-kit';
@@ -42,6 +42,8 @@ import { noteSectionEdit } from '../preview/follow-edit';
 import { valuePicker, type PickerValue, type ValuePickerOpts } from '../ui/value-picker';
 
 const PAGE = DOMAINS.find((d) => d.id === 'layout') as PageData;
+/** The host this bundle runs in (the build's define, as Shape reads it), for routing Continue by tab. */
+const hostKind = (): Host => (PRISM3_HOST === 'figma' ? 'figma' : 'web');
 
 /** The page's copy, APPROVED by the owner (S10 scope, D11–D17), verbatim. */
 export const LAYOUT_COPY = {
@@ -315,12 +317,12 @@ export const mountLayoutLevers = (host: HTMLElement, cleanups: (() => void)[]): 
     const derived = derivedLine();
     const parts: HTMLElement[] = [h('p', 'p3-intro', PAGE.intro), ...(derived ? [derived] : [])];
     PAGE.sections.forEach((s, i) => { const x = BUILDERS[s.title]?.(s, i); if (x) { parts.push(x.el); items.push(...x.items); } });
-    // T8: Continue opens the Components TAB on either host (the web's Buttons block on its legacy page until S8; the
-    // plugin's Components page), routed by the tab, never by a legacy page key.
+    // T8: Continue opens the Components TAB on either host (the web's Buttons page until S8; the plugin's Components
+    // page), routed by the tab through `pageOfTab` (S7's), never by a hard-coded legacy page key.
     const next = hook(h('button', 'p3-btn p3-btn-page p3-next'), 'layout-continue');
     next.type = 'button';
     next.append(h('span', 'p3-btn-label', LAYOUT_COPY.next), glyph('chevr'));
-    next.onclick = () => requestTab('components');
+    next.onclick = () => setPage(pageOfTab('components', hostKind()));
     const nr = h('div', 'p3-nextrow');
     nr.append(next);
     parts.push(nr);
