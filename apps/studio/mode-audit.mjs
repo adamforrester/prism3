@@ -73,6 +73,15 @@
  * aurora and prism3 measured identically at the time of #1887. It is deleted with the mode strip it audits
  * (S13), and its CI step goes with it.
  *
+ * NOTHING TO READ, RECORDED BY NAME (UI redesign S9.2, owner decision 2026-10-04, option B). After S7 and S9.2 the
+ * only legacy page that draws a mode strip is Size & radius, left with the Button options, and its one section,
+ * Buttons, carries no mode-scope badge: that is #1912's last row in `KNOWN_BADGE_GAPS`, kept unbadged until S8 or S13
+ * retires the page and this audit. So no legacy section renders `mode-scope-badge`, and the badge read and the hook
+ * guard on that hook have nothing to read. The run says so by name ("mode-scope badge read: NOTHING TO READ …") and
+ * drops that one hook from the guard ONLY while every measured section renders no badge and every one of them is a
+ * known gap. The moment any legacy section renders a badge, the read runs and checks it as before, and the hook is
+ * guarded again; a section that should be badged and is not still fails `--check-badges` by name.
+ *
  * VERDICTS
  *   EDITS    — the control set/labels differ between modes. The bar is an EDITING SCOPE here.
  *   displays — only previews/readouts re-resolve. The bar is CONTEXT: useful, but not scoping an edit.
@@ -517,6 +526,16 @@ await browser.close();
 server.close();
 
 // Last, so a badge mismatch above still reaches it: the audit's own instrument (#1829).
+// The record above (header, "NOTHING TO READ"): only while no measured section renders a badge and every one is a
+// known gap. Anything else leaves the hook guarded and the read running.
+const badged = claims.filter((c) => c.badge !== null);
+const unexcused = claims.filter((c) => c.badge === null && !knownGapFor(c));
+if (claims.length > 0 && badged.length === 0 && unexcused.length === 0) {
+  const at = hooks.used.indexOf('mode-scope-badge');
+  if (at >= 0) hooks.used.splice(at, 1);
+  console.log(`\nmode-scope badge read: NOTHING TO READ — no legacy section renders a mode-scope badge (${claims.map((c) => `${c.page} / ${c.name}`).join(', ')}: `
+    + `each a known gap, ${[...new Set(claims.map((c) => `#${knownGapFor(c).issue}`))].join(', ')}). The badge read and its hook guard resume the moment one renders (S9.2, owner option B).`);
+} else console.log(`\nmode-scope badge read: ${badged.length} badged section(s) read and checked; the hook stays guarded.`);
 hooks.report(ok);
 if (failures.length) {
   console.log(`\nThe audit's instrument failed ${failures.length} check(s), so its table above is not a measurement.`);
