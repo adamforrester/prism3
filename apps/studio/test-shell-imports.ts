@@ -624,152 +624,188 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     const UNRESOLVED_OK: Record<string, string> = {
       'renderControl:lever.key': 'the generic lever knob; rule 3 holds that no Type lever is handed to it',
     };
-    // A one-file program, so an identifier resolves to ITS declaration through the checker. Matching variables by
-    // name was wrong the first time: an unrelated `l` elsewhere in the file tainted every `l`.
-    const host = ts.createCompilerHost({ noResolve: true, noLib: true });
-    const getSourceFile = host.getSourceFile;
-    host.getSourceFile = (f, v) => (f === MAIN ? ts.createSourceFile(MAIN, mainSrc, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS) : getSourceFile(f, v));
-    const program = ts.createProgram([MAIN], { noResolve: true, noLib: true, allowJs: false }, host);
-    const sf = program.getSourceFile(MAIN)!;
-    const checker = program.getTypeChecker();
-    /** The initializer of the variable `id` refers to, or null. */
-    const initOf = (id: ts.Identifier): ts.Expression | null => {
-      const d = checker.getSymbolAtLocation(id)?.valueDeclaration;
-      return d && ts.isVariableDeclaration(d) && d.initializer ? d.initializer : null;
-    };
-    const at = (n: ts.Node): string => `line ${sf.getLineAndCharacterOfPosition(n.getStart()).line + 1}: ${n.getText().replace(/\s+/g, ' ').slice(0, 90)}`;
-    const strip = (e: ts.Expression): ts.Expression => {
-      for (;;) {
-        if (ts.isParenthesizedExpression(e) || ts.isNonNullExpression(e) || ts.isAsExpression(e)) e = e.expression;
-        else return e;
-      }
-    };
-    /** The member chain under `e`, outermost last: `brandState.typography.sizes` → ['brandState', 'typography', 'sizes']. */
-    const chain = (e: ts.Expression): string[] => {
-      e = strip(e);
-      if (ts.isIdentifier(e)) return [e.text];
-      if (ts.isPropertyAccessExpression(e)) return [...chain(e.expression), e.name.text];
-      if (ts.isElementAccessExpression(e)) {
-        const k = e.argumentExpression;
-        return [...chain(e.expression), ts.isStringLiteralLike(k) ? k.text : '[?]'];
-      }
-      // `(brandState.typography ??= {})` is itself a write, caught where it stands; through it, the chain continues.
-      if (ts.isBinaryExpression(e) && e.operatorToken.kind === ts.SyntaxKind.QuestionQuestionEqualsToken) return chain(e.left);
-      return ['?'];
-    };
-    /** The identifier at the root of a member chain, or null. */
-    const rootId = (e: ts.Expression): ts.Identifier | null => {
-      e = strip(e);
-      if (ts.isIdentifier(e)) return e;
-      if (ts.isPropertyAccessExpression(e) || ts.isElementAccessExpression(e)) return rootId(e.expression);
-      if (ts.isBinaryExpression(e) && e.operatorToken.kind === ts.SyntaxKind.QuestionQuestionEqualsToken) return rootId(e.left);
-      return null;
-    };
-    /** The member chain under `e` with ONE alias spliced in at its root: through `const t = brandState.typography`
-     *  `t.x` is `brandState.typography.x`, and through `const bs = brandState` `bs.typography.x` is too (review of
-     *  #2017: an alias of `brandState` itself escaped when only aliases of `brandState.typography` were followed). */
-    const brandRooted = (e: ts.Expression): string[] => {
-      const c = chain(e);
-      if (c[0] === 'brandState') return c;
-      const r = rootId(e);
-      const init = r ? initOf(r) : null;
-      return init ? [...chain(init), ...c.slice(1)] : c;
-    };
-    const isTypeTarget = (e: ts.Expression): boolean => { const c = brandRooted(e); return c[0] === 'brandState' && c[1] === 'typography'; };
-    /** `brandState` itself, directly or through one alias. */
-    const isBrandState = (e: ts.Expression): boolean => brandRooted(e).join('.') === 'brandState';
-    const ASSIGN = new Set([ts.SyntaxKind.EqualsToken, ts.SyntaxKind.PlusEqualsToken, ts.SyntaxKind.MinusEqualsToken,
-      ts.SyntaxKind.AsteriskEqualsToken, ts.SyntaxKind.SlashEqualsToken, ts.SyntaxKind.QuestionQuestionEqualsToken,
-      ts.SyntaxKind.BarBarEqualsToken, ts.SyntaxKind.AmpersandAmpersandEqualsToken]);
-    const MUTATORS = new Set(['push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse', 'fill', 'set', 'delete', 'clear', 'add']);
-    const enclosingFn = (n: ts.Node): string => {
-      for (let p: ts.Node | undefined = n.parent; p; p = p.parent) {
-        if ((ts.isArrowFunction(p) || ts.isFunctionExpression(p)) && ts.isVariableDeclaration(p.parent) && ts.isIdentifier(p.parent.name)
-          && ts.isVariableStatement(p.parent.parent.parent) && p.parent.parent.parent.parent === sf) return p.parent.name.text;
-        if (ts.isFunctionDeclaration(p) && p.name && p.parent === sf) return p.name.text;
-      }
-      return '(top level)';
-    };
-    /** `X === 'lit'` (either side) in an `if` or `?:` whose TRUE branch holds `n`: the literal, or null. */
-    const narrowed = (n: ts.Node, id: string): string | null => {
-      for (let p: ts.Node | undefined = n, c: ts.Node | undefined; p; c = p, p = p.parent) {
-        const cond = ts.isIfStatement(p) && c === p.thenStatement ? p.expression : ts.isConditionalExpression(p) && c === p.whenTrue ? p.condition : null;
-        if (cond && ts.isBinaryExpression(cond) && [ts.SyntaxKind.EqualsEqualsEqualsToken, ts.SyntaxKind.EqualsEqualsToken].includes(cond.operatorToken.kind)) {
-          const [l, r] = [strip(cond.left), strip(cond.right)];
-          if (ts.isIdentifier(l) && l.text === id && ts.isStringLiteralLike(r)) return r.text;
-          if (ts.isIdentifier(r) && r.text === id && ts.isStringLiteralLike(l)) return l.text;
+    /** Every write in one file, by the rules above. `main.ts` is held to all of them; `domains/depth.ts` (#2078) to the
+     *  direct Depth & motion rule, since its keyed writes are already refused outright below (it names no `setPath`). */
+    const scan = (FILE: string, TEXT: string) => {
+      // A one-file program, so an identifier resolves to ITS declaration through the checker. Matching variables by
+      // name was wrong the first time: an unrelated `l` elsewhere in the file tainted every `l`.
+      const host = ts.createCompilerHost({ noResolve: true, noLib: true });
+      const getSourceFile = host.getSourceFile;
+      host.getSourceFile = (f, v) => (f === FILE ? ts.createSourceFile(FILE, TEXT, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS) : getSourceFile(f, v));
+      const program = ts.createProgram([FILE], { noResolve: true, noLib: true, allowJs: false }, host);
+      const sf = program.getSourceFile(FILE)!;
+      const checker = program.getTypeChecker();
+      /** The initializer of the variable `id` refers to, or null. */
+      const initOf = (id: ts.Identifier): ts.Expression | null => {
+        const d = checker.getSymbolAtLocation(id)?.valueDeclaration;
+        return d && ts.isVariableDeclaration(d) && d.initializer ? d.initializer : null;
+      };
+      const at = (n: ts.Node): string => `line ${sf.getLineAndCharacterOfPosition(n.getStart()).line + 1}: ${n.getText().replace(/\s+/g, ' ').slice(0, 90)}`;
+      const strip = (e: ts.Expression): ts.Expression => {
+        for (;;) {
+          if (ts.isParenthesizedExpression(e) || ts.isNonNullExpression(e) || ts.isAsExpression(e)) e = e.expression;
+          else return e;
         }
-      }
-      return null;
-    };
-    /** The statically known prefix of a key, or null. */
-    const keyPrefix = (k: ts.Expression, site: ts.Node): string | null => {
-      k = strip(k);
-      if (ts.isStringLiteralLike(k)) return k.text;
-      if (ts.isTemplateExpression(k)) {
-        if (k.head.text) return k.head.text;
-        const first = strip(k.templateSpans[0].expression);
-        const lit = ts.isIdentifier(first) ? narrowed(site, first.text) : null;
-        return lit === null ? null : lit + k.templateSpans[0].literal.text;
-      }
-      return null;
-    };
-    const direct: string[] = [], keyed: string[] = [], unresolved: string[] = [];
-    // The Depth & motion writes (UI redesign S9.1), held by the same visitor: no write into `brandState.shadow` or
-    // `brandState.motionPersonality`, and no keyed write on `shadow.*`, `motionPersonality.*` or the mode fields
-    // `tempo`, `easings` and `shadow`. Literal: the legacy pages' write targets, as the scoping report lists them.
-    const DEPTH_PATH_ROOTS = new Set(['shadow', 'motionPersonality']);
-    const DEPTH_MODE_FIELDS = new Set(['tempo', 'easings', 'shadow']);
-    const isDepthTarget = (e: ts.Expression): boolean => { const c = brandRooted(e); return c[0] === 'brandState' && DEPTH_PATH_ROOTS.has(c[1]); };
-    const depthDirect: string[] = [], depthKeyed: string[] = [];
-    // The Button option writes (UI redesign S8.1), held by the same visitor: no write onto `brandState.buttonIcons`,
-    // `.buttonContentSize`, `.buttonLabelWeight` or `.buttonMinWidthMultiplier`, and no keyed write on those keys. All
-    // four are brand-wide (no `ModeLevers` field), so there is no mode field to hold. Literal: the levers' keys.
-    const BUTTON_KEYS = new Set(['buttonIcons', 'buttonContentSize', 'buttonLabelWeight', 'buttonMinWidthMultiplier']);
-    const isButtonTarget = (e: ts.Expression): boolean => { const c = brandRooted(e); return c[0] === 'brandState' && BUTTON_KEYS.has(c[1]); };
-    const buttonDirect: string[] = [], buttonKeyed: string[] = [];
-    const seenOk = new Set<string>();
-    const visit = (n: ts.Node): void => {
-      if (ts.isBinaryExpression(n) && ASSIGN.has(n.operatorToken.kind) && isTypeTarget(n.left)) direct.push(at(n));
-      if (ts.isBinaryExpression(n) && ASSIGN.has(n.operatorToken.kind) && isDepthTarget(n.left)) depthDirect.push(at(n));
-      if (ts.isDeleteExpression(n) && isDepthTarget(n.expression)) depthDirect.push(at(n));
-      if (ts.isBinaryExpression(n) && ASSIGN.has(n.operatorToken.kind) && isButtonTarget(n.left)) buttonDirect.push(at(n));
-      if (ts.isDeleteExpression(n) && isButtonTarget(n.expression)) buttonDirect.push(at(n));
-      if (ts.isDeleteExpression(n) && isTypeTarget(n.expression)) direct.push(at(n));
-      if ((ts.isPrefixUnaryExpression(n) || ts.isPostfixUnaryExpression(n))
-        && [ts.SyntaxKind.PlusPlusToken, ts.SyntaxKind.MinusMinusToken].includes(n.operator) && isTypeTarget(n.operand)) direct.push(at(n));
-      if (ts.isCallExpression(n)) {
-        const callee = n.expression.getText();
-        const [a0, a1] = n.arguments;
-        if (callee === 'Object.assign' && a0 && (isTypeTarget(a0)
-          || (isBrandState(a0) && n.arguments.slice(1).some((a) => ts.isObjectLiteralExpression(a) && a.properties.some((pr) => pr.name?.getText() === 'typography'))))) direct.push(at(n));
-        if (ts.isPropertyAccessExpression(n.expression) && MUTATORS.has(n.expression.name.text) && isTypeTarget(n.expression.expression)) direct.push(at(n));
-        const keyedCall = (callee === 'setPath' && a0 && isBrandState(a0)) ? 'path' : callee === 'setModeLever' ? 'mode' : null;
-        if (callee === 'setPath' && a0 && isTypeTarget(a0)) direct.push(at(n));
-        if (keyedCall && a1) {
-          const pre = keyPrefix(a1, n);
-          if (pre === null) {
-            const id = `${enclosingFn(n)}:${strip(a1).getText()}`;
-            if (UNRESOLVED_OK[id]) seenOk.add(id); else unresolved.push(`${at(n)} (${id})`);
-          } else {
-            const seg = pre.split('.')[0];
-            const isType = keyedCall === 'path' ? seg === 'typography' : TYPE_MODE_FIELDS.has(seg);
-            if (isType) keyed.push(at(n));
-            if (keyedCall === 'path' ? DEPTH_PATH_ROOTS.has(seg) : DEPTH_MODE_FIELDS.has(seg)) depthKeyed.push(at(n));
-            if (keyedCall === 'path' && BUTTON_KEYS.has(seg)) buttonKeyed.push(at(n));
+      };
+      /** The member chain under `e`, outermost last: `brandState.typography.sizes` → ['brandState', 'typography', 'sizes']. */
+      const chain = (e: ts.Expression): string[] => {
+        e = strip(e);
+        if (ts.isIdentifier(e)) return [e.text];
+        if (ts.isPropertyAccessExpression(e)) return [...chain(e.expression), e.name.text];
+        if (ts.isElementAccessExpression(e)) {
+          const k = e.argumentExpression;
+          return [...chain(e.expression), ts.isStringLiteralLike(k) ? k.text : '[?]'];
+        }
+        // `(brandState.typography ??= {})` is itself a write, caught where it stands; through it, the chain continues.
+        if (ts.isBinaryExpression(e) && e.operatorToken.kind === ts.SyntaxKind.QuestionQuestionEqualsToken) return chain(e.left);
+        return ['?'];
+      };
+      /** The identifier at the root of a member chain, or null. */
+      const rootId = (e: ts.Expression): ts.Identifier | null => {
+        e = strip(e);
+        if (ts.isIdentifier(e)) return e;
+        if (ts.isPropertyAccessExpression(e) || ts.isElementAccessExpression(e)) return rootId(e.expression);
+        if (ts.isBinaryExpression(e) && e.operatorToken.kind === ts.SyntaxKind.QuestionQuestionEqualsToken) return rootId(e.left);
+        return null;
+      };
+      /** The member chain under `e` with ONE alias spliced in at its root: through `const t = brandState.typography`
+       *  `t.x` is `brandState.typography.x`, and through `const bs = brandState` `bs.typography.x` is too (review of
+       *  #2017: an alias of `brandState` itself escaped when only aliases of `brandState.typography` were followed). */
+      const brandRooted = (e: ts.Expression): string[] => {
+        const c = chain(e);
+        if (c[0] === 'brandState') return c;
+        const r = rootId(e);
+        const init = r ? initOf(r) : null;
+        return init ? [...chain(init), ...c.slice(1)] : c;
+      };
+      const isTypeTarget = (e: ts.Expression): boolean => { const c = brandRooted(e); return c[0] === 'brandState' && c[1] === 'typography'; };
+      /** `brandState` itself, directly or through one alias. */
+      const isBrandState = (e: ts.Expression): boolean => brandRooted(e).join('.') === 'brandState';
+      const ASSIGN = new Set([ts.SyntaxKind.EqualsToken, ts.SyntaxKind.PlusEqualsToken, ts.SyntaxKind.MinusEqualsToken,
+        ts.SyntaxKind.AsteriskEqualsToken, ts.SyntaxKind.SlashEqualsToken, ts.SyntaxKind.QuestionQuestionEqualsToken,
+        ts.SyntaxKind.BarBarEqualsToken, ts.SyntaxKind.AmpersandAmpersandEqualsToken]);
+      const MUTATORS = new Set(['push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse', 'fill', 'set', 'delete', 'clear', 'add']);
+      const enclosingFn = (n: ts.Node): string => {
+        for (let p: ts.Node | undefined = n.parent; p; p = p.parent) {
+          if ((ts.isArrowFunction(p) || ts.isFunctionExpression(p)) && ts.isVariableDeclaration(p.parent) && ts.isIdentifier(p.parent.name)
+            && ts.isVariableStatement(p.parent.parent.parent) && p.parent.parent.parent.parent === sf) return p.parent.name.text;
+          if (ts.isFunctionDeclaration(p) && p.name && p.parent === sf) return p.name.text;
+        }
+        return '(top level)';
+      };
+      /** `X === 'lit'` (either side) in an `if` or `?:` whose TRUE branch holds `n`: the literal, or null. */
+      const narrowed = (n: ts.Node, id: string): string | null => {
+        for (let p: ts.Node | undefined = n, c: ts.Node | undefined; p; c = p, p = p.parent) {
+          const cond = ts.isIfStatement(p) && c === p.thenStatement ? p.expression : ts.isConditionalExpression(p) && c === p.whenTrue ? p.condition : null;
+          if (cond && ts.isBinaryExpression(cond) && [ts.SyntaxKind.EqualsEqualsEqualsToken, ts.SyntaxKind.EqualsEqualsToken].includes(cond.operatorToken.kind)) {
+            const [l, r] = [strip(cond.left), strip(cond.right)];
+            if (ts.isIdentifier(l) && l.text === id && ts.isStringLiteralLike(r)) return r.text;
+            if (ts.isIdentifier(r) && r.text === id && ts.isStringLiteralLike(l)) return l.text;
           }
         }
-      }
-      ts.forEachChild(n, visit);
+        return null;
+      };
+      /** The statically known prefix of a key, or null. */
+      const keyPrefix = (k: ts.Expression, site: ts.Node): string | null => {
+        k = strip(k);
+        if (ts.isStringLiteralLike(k)) return k.text;
+        if (ts.isTemplateExpression(k)) {
+          if (k.head.text) return k.head.text;
+          const first = strip(k.templateSpans[0].expression);
+          const lit = ts.isIdentifier(first) ? narrowed(site, first.text) : null;
+          return lit === null ? null : lit + k.templateSpans[0].literal.text;
+        }
+        return null;
+      };
+      const direct: string[] = [], keyed: string[] = [], unresolved: string[] = [];
+      // The Depth & motion writes (UI redesign S9.1), held by the same visitor: no write into `brandState.shadow` or
+      // `brandState.motionPersonality`, and no keyed write on `shadow.*`, `motionPersonality.*` or the mode fields
+      // `tempo`, `easings` and `shadow`. Literal: the legacy pages' write targets, as the scoping report lists them.
+      const DEPTH_PATH_ROOTS = new Set(['shadow', 'motionPersonality']);
+      const DEPTH_MODE_FIELDS = new Set(['tempo', 'easings', 'shadow']);
+      const isDepthTarget = (e: ts.Expression): boolean => { const c = brandRooted(e); return c[0] === 'brandState' && DEPTH_PATH_ROOTS.has(c[1]); };
+      const depthDirect: string[] = [], depthKeyed: string[] = [];
+      // The Shape writes (UI redesign S7; #2078), the same way: S7 moved Density, radius softness, Control shape and the
+      // base radius to `domains/shape.ts`, writing through `state/shape-input.ts`, so `main.ts` writes none of them, by
+      // any operator, and makes no keyed write on those keys or the mode fields `density` and `radius`. Literal: the
+      // legacy Size & radius page's write targets, as #2078 lists them.
+      const SHAPE_PATH_ROOTS = new Set(['density', 'radiusScale', 'controlShape', 'baseMd']);
+      const SHAPE_MODE_FIELDS = new Set(['density', 'radius']);
+      /** `brandState.<shape key>`, or `brandState.modeLevers.<m>.density|radius`, directly or through one alias. */
+      const isShapeTarget = (e: ts.Expression): boolean => {
+        const c = brandRooted(e);
+        return c[0] === 'brandState' && (SHAPE_PATH_ROOTS.has(c[1]) || (c[1] === 'modeLevers' && SHAPE_MODE_FIELDS.has(c[3])));
+      };
+      const shapeDirect: string[] = [], shapeKeyed: string[] = [];
+      // The Button option writes (UI redesign S8.1), the same way: no write onto `brandState.buttonIcons`,
+      // `.buttonContentSize`, `.buttonLabelWeight` or `.buttonMinWidthMultiplier`, by any operator, and no keyed write on
+      // those keys. All four are brand-wide (no `ModeLevers` field), so there is no mode field to hold. Literal: the
+      // levers' keys.
+      const BUTTON_KEYS = new Set(['buttonIcons', 'buttonContentSize', 'buttonLabelWeight', 'buttonMinWidthMultiplier']);
+      const isButtonTarget = (e: ts.Expression): boolean => { const c = brandRooted(e); return c[0] === 'brandState' && BUTTON_KEYS.has(c[1]); };
+      const buttonDirect: string[] = [], buttonKeyed: string[] = [];
+      const seenOk = new Set<string>();
+      const visit = (n: ts.Node): void => {
+        if (ts.isBinaryExpression(n) && ASSIGN.has(n.operatorToken.kind) && isTypeTarget(n.left)) direct.push(at(n));
+        if (ts.isBinaryExpression(n) && ASSIGN.has(n.operatorToken.kind) && isDepthTarget(n.left)) depthDirect.push(at(n));
+        if (ts.isDeleteExpression(n) && isDepthTarget(n.expression)) depthDirect.push(at(n));
+        if (ts.isBinaryExpression(n) && ASSIGN.has(n.operatorToken.kind) && isShapeTarget(n.left)) shapeDirect.push(at(n));
+        if (ts.isDeleteExpression(n) && isShapeTarget(n.expression)) shapeDirect.push(at(n));
+        if (ts.isBinaryExpression(n) && ASSIGN.has(n.operatorToken.kind) && isButtonTarget(n.left)) buttonDirect.push(at(n));
+        if (ts.isDeleteExpression(n) && isButtonTarget(n.expression)) buttonDirect.push(at(n));
+        if (ts.isCallExpression(n) && n.expression.getText() === 'Object.assign' && n.arguments[0] && (isButtonTarget(n.arguments[0])
+          || (isBrandState(n.arguments[0]) && n.arguments.slice(1).some((a) => ts.isObjectLiteralExpression(a) && a.properties.some((pr) => BUTTON_KEYS.has(pr.name?.getText() ?? '')))))) buttonDirect.push(at(n));
+        if ((ts.isPrefixUnaryExpression(n) || ts.isPostfixUnaryExpression(n))
+          && [ts.SyntaxKind.PlusPlusToken, ts.SyntaxKind.MinusMinusToken].includes(n.operator) && isShapeTarget(n.operand)) shapeDirect.push(at(n));
+        if (ts.isDeleteExpression(n) && isTypeTarget(n.expression)) direct.push(at(n));
+        if ((ts.isPrefixUnaryExpression(n) || ts.isPostfixUnaryExpression(n))
+          && [ts.SyntaxKind.PlusPlusToken, ts.SyntaxKind.MinusMinusToken].includes(n.operator) && isTypeTarget(n.operand)) direct.push(at(n));
+        if (ts.isCallExpression(n)) {
+          const callee = n.expression.getText();
+          const [a0, a1] = n.arguments;
+          if (callee === 'Object.assign' && a0 && (isTypeTarget(a0)
+            || (isBrandState(a0) && n.arguments.slice(1).some((a) => ts.isObjectLiteralExpression(a) && a.properties.some((pr) => pr.name?.getText() === 'typography'))))) direct.push(at(n));
+          if (ts.isPropertyAccessExpression(n.expression) && MUTATORS.has(n.expression.name.text) && isTypeTarget(n.expression.expression)) direct.push(at(n));
+          if (callee === 'Object.assign' && a0 && (isShapeTarget(a0)
+            || (isBrandState(a0) && n.arguments.slice(1).some((a) => ts.isObjectLiteralExpression(a) && a.properties.some((pr) => SHAPE_PATH_ROOTS.has(pr.name?.getText() ?? '')))))) shapeDirect.push(at(n));
+          const keyedCall = (callee === 'setPath' && a0 && isBrandState(a0)) ? 'path' : callee === 'setModeLever' ? 'mode' : null;
+          if (callee === 'setPath' && a0 && isTypeTarget(a0)) direct.push(at(n));
+          if (keyedCall && a1) {
+            const pre = keyPrefix(a1, n);
+            if (pre === null) {
+              const id = `${enclosingFn(n)}:${strip(a1).getText()}`;
+              if (UNRESOLVED_OK[id]) seenOk.add(id); else unresolved.push(`${at(n)} (${id})`);
+            } else {
+              const seg = pre.split('.')[0];
+              const isType = keyedCall === 'path' ? seg === 'typography' : TYPE_MODE_FIELDS.has(seg);
+              if (isType) keyed.push(at(n));
+              if (keyedCall === 'path' ? DEPTH_PATH_ROOTS.has(seg) : DEPTH_MODE_FIELDS.has(seg)) depthKeyed.push(at(n));
+              const ml = keyedCall === 'path' && seg === 'modeLevers' ? pre.split('.')[2] : undefined;
+              if (keyedCall === 'path' ? SHAPE_PATH_ROOTS.has(seg) || (ml !== undefined && SHAPE_MODE_FIELDS.has(ml)) : SHAPE_MODE_FIELDS.has(seg)) shapeKeyed.push(at(n));
+              if (keyedCall === 'path' && BUTTON_KEYS.has(seg)) buttonKeyed.push(at(n));
+            }
+          }
+        }
+        ts.forEachChild(n, visit);
+      };
+      visit(sf);
+      return { sf, at, initOf, direct, keyed, unresolved, depthDirect, depthKeyed, shapeDirect, shapeKeyed, buttonDirect, buttonKeyed, seenOk };
     };
-    visit(sf);
+    const { sf, at, initOf, direct, keyed, unresolved, depthDirect, depthKeyed, shapeDirect, shapeKeyed, buttonDirect, buttonKeyed, seenOk } = scan(MAIN, mainSrc);
     ok(direct.length === 0, `src/main.ts writes nothing into brandState.typography itself${direct.length ? ` — ${direct.slice(0, 3).join(' | ')}: the write belongs in state/type-input.ts` : ''}`);
     ok(keyed.length === 0, `src/main.ts makes no keyed Type write (setPath into typography.*, or setModeLever on a Type mode field)${keyed.length ? ` — ${keyed.slice(0, 3).join(' | ')}` : ''}`);
     ok(unresolved.length === 0, `every keyed write in src/main.ts resolves to a non-Type key, or is listed with its reason${unresolved.length ? ` — unresolved and unlisted: ${unresolved.slice(0, 3).join(' | ')}` : ''}`);
     ok(depthDirect.length === 0, `src/main.ts writes nothing into brandState.shadow or brandState.motionPersonality itself${depthDirect.length ? ` — ${depthDirect.slice(0, 3).join(' | ')}: the write belongs in state/depth-motion-input.ts` : ''}`);
     ok(depthKeyed.length === 0, `src/main.ts makes no keyed Elevation or Motion write (setPath into shadow.* or motionPersonality.*, or setModeLever on tempo, easings or shadow)${depthKeyed.length ? ` — ${depthKeyed.slice(0, 3).join(' | ')}: the write belongs in state/depth-motion-input.ts` : ''}`);
+    ok(shapeDirect.length === 0, `src/main.ts writes nothing into a Shape lever itself (density, radiusScale, controlShape, baseMd, modeLevers.*.density or .radius)${shapeDirect.length ? ` — ${shapeDirect.slice(0, 3).join(' | ')}: the write belongs in state/shape-input.ts` : ''}`);
+    ok(shapeKeyed.length === 0, `src/main.ts makes no keyed Shape write (setPath into density, radiusScale, controlShape, baseMd or modeLevers.*.density/.radius, or setModeLever on density or radius)${shapeKeyed.length ? ` — ${shapeKeyed.slice(0, 3).join(' | ')}: the write belongs in state/shape-input.ts` : ''}`);
     ok(buttonDirect.length === 0, `src/main.ts writes no Button option onto brandState itself${buttonDirect.length ? ` — ${buttonDirect.slice(0, 3).join(' | ')}: the write belongs in state/button-input.ts` : ''}`);
     ok(buttonKeyed.length === 0, `src/main.ts makes no keyed Button option write (setPath on buttonIcons, buttonContentSize, buttonLabelWeight or buttonMinWidthMultiplier)${buttonKeyed.length ? ` — ${buttonKeyed.slice(0, 3).join(' | ')}: the write belongs in state/button-input.ts` : ''}`);
+    // `domains/depth.ts` under the same visitor (#2078): the regex below refuses its `setPath`/`setModeLever` calls,
+    // but a direct `brandState.shadow = …` (any assignment operator, `delete`, or through one alias) names neither and passed.
+    const DEPTH_LEVERS = join(SRC, 'domains/depth.ts');
+    const dl = scan(DEPTH_LEVERS, readFileSync(DEPTH_LEVERS, 'utf8'));
+    ok(dl.depthDirect.length === 0, `src/domains/depth.ts writes nothing into brandState.shadow or brandState.motionPersonality itself${dl.depthDirect.length ? ` — ${dl.depthDirect.slice(0, 3).join(' | ')}: the write belongs in state/depth-motion-input.ts` : ''}`);
     const stale = Object.keys(UNRESOLVED_OK).filter((k) => !seenOk.has(k));
     ok(stale.length === 0, `every UNRESOLVED_OK entry still names a write in src/main.ts${stale.length ? ` — no longer found: ${stale.join(', ')}` : ''}`);
 
@@ -799,6 +835,19 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     };
     visitFeeds(sf);
     ok(fed.length === 0, `src/main.ts hands no Type key to a writer that writes whatever it is handed (the generic lever renderer)${fed.length ? ` — ${fed.slice(0, 3).join(' | ')}` : ''}`);
+    // The Shape keys the same way (#2078): a Shape key literal handed to one of them is a Shape write the keyed rule
+    // cannot see, because the key reaches `setPath` as a variable.
+    const SHAPE_KEY = /^(density|radiusScale|controlShape|baseMd)$|^modeLevers\.[^.]+\.(density|radius)$/;
+    const shapeFed: string[] = [];
+    const visitShapeFeeds = (n: ts.Node): void => {
+      if (ts.isCallExpression(n) && FEEDS.has(n.expression.getText())) {
+        const look = (x: ts.Node): void => { if (ts.isStringLiteralLike(x) && SHAPE_KEY.test(x.text)) shapeFed.push(at(n)); else ts.forEachChild(x, look); };
+        n.arguments.forEach(look);
+      }
+      ts.forEachChild(n, visitShapeFeeds);
+    };
+    visitShapeFeeds(sf);
+    ok(shapeFed.length === 0, `src/main.ts hands no Shape key to a writer that writes whatever it is handed (the generic lever renderer)${shapeFed.length ? ` — ${shapeFed.slice(0, 3).join(' | ')}` : ''}`);
   }
   // S9.2 retired `renderRepointTable`, the last Type writer `main.ts` held (its line height and letter spacing branch was
   // already dead, #2038), so `main.ts` imports no Type write at all: the AST arm above holds that it makes none.
