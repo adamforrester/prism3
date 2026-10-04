@@ -82,6 +82,23 @@ export const leverBlock = (key: string, opts: { label?: string; group?: boolean;
   };
 };
 
+/** An info button and the toggletip it opens, as a lever's head draws them, for a control INSIDE a lever that has
+ *  its own note (S4f, QA-B6: Surfaces & fills' contrast floor row). The same classes and the same hook as the
+ *  lever's (`lever-info`): it opens help and edits nothing. The caller places the tip. */
+export const infoTip = (id: string, label: string, text: string): { button: HTMLButtonElement; tip: HTMLElement } => {
+  const button = hook(h('button', 'p3-btn p3-btn-ghost p3-btn-icon p3-info'), 'lever-info');
+  button.type = 'button';
+  button.setAttribute('aria-label', `About ${label}`);
+  button.setAttribute('aria-expanded', 'false');
+  button.setAttribute('aria-controls', id);
+  button.append(glyph('info'));
+  const tip = h('p', 'p3-tip', text);
+  tip.id = id;
+  tip.hidden = true;
+  button.onclick = () => { const open = tip.hidden; tip.hidden = !open; button.setAttribute('aria-expanded', String(open)); };
+  return { button, tip };
+};
+
 /** A plain note under a control (`hint`), or a warning. */
 export const stateLine = (text: string, kind: 'hint' | 'warn' = 'hint'): HTMLElement => {
   const p = h('p', kind === 'hint' ? 'p3-state p3-state-hint' : 'p3-state p3-state-warn');
@@ -157,14 +174,17 @@ export const sliderReadout = (L: Lever, v: number): string => {
   return `${Number(v).toFixed(dp)}${unit}${stop ? ` · ${stop}` : ''}`;
 };
 
-/** A slider over the manifest's range and step, named, with its readout as the value text. */
-export const slider = (key: string, role: string, label: string, onInput: (v: number) => void): {
+/** A slider over the manifest's range and step, named, with its readout as the value text. A key that is one part
+ *  of an object lever (Depth & motion's tint hue and amount, S9.2) hands its own range in `part`, with the id
+ *  suffix that keeps the two sliders apart; its readout is the value and the unit. */
+export const slider = (key: string, role: string, label: string, onInput: (v: number) => void,
+  part?: { readonly id: string; readonly min: number; readonly max: number; readonly step: number; readonly unit?: string }): {
   el: HTMLInputElement; set: (v: number) => void;
 } => {
-  const L = leverOf(key)!;
+  const L: Lever = part ? { ...leverOf(key)!, min: part.min, max: part.max, step: part.step, unit: part.unit, stops: undefined } : leverOf(key)!;
   const el = hook(h('input', 'p3-range'), role);
   el.type = 'range';
-  el.id = `p3-${slug(key)}`;
+  el.id = part ? `p3-${slug(key)}-${part.id}` : `p3-${slug(key)}`;
   el.min = String(L.min ?? 0); el.max = String(L.max ?? 1); el.step = String(L.step ?? 1);
   el.setAttribute('aria-label', label);
   el.addEventListener('input', () => { el.setAttribute('aria-valuetext', sliderReadout(L, Number(el.value))); onInput(Number(el.value)); });

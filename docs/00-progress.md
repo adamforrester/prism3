@@ -7,6 +7,732 @@
 
 ---
 
+## (2026-10-04) — UI redesign S10: Layout › Breakpoints, Grid, Containers in the two panes; settings stay with their breakpoint (#2045); off-list column counts shown as they are (#2047)
+
+**What moved.** Layout leaves the legacy frame for the two panes (`domains/layout.ts`, `preview/layout.ts`,
+`state/layout-input.ts`, and `preview/sections/breakpoints.ts`, `grid.ts`, `containers.ts`, `layout-kit.ts`). Three
+lever sections, each headed and described as its preview section (Q23): **Breakpoints** (the list, the first fixed at
+0px, Remove ‹name› on the others, Add breakpoint; two to seven, D13), **Grid** (Grid columns, then each breakpoint's
+Columns, Gutter and Margin, Auto or a value, D12) and **Containers** (Maximum width and Content container sliders over
+today's stops, D15, D17). FIRST_CLASS: no Show advanced. Derived modes disable every control and still draw the
+preview (Q59). The preview is concept v6's V11 (D14): the ranges to scale in primary tints, each breakpoint's columns
+as tinted bars on a gray margin, the containers to scale against the widest breakpoint (T10), label first and token
+under each (QA-B2). Edits ease the preview to their section (`noteSectionEdit`, QA-B9). Continue opens the Components
+tab on either host (T8), routed by tab through S7's `pageOfTab(tab, host)`. (S10 first added a store request,
+`requestTab`, for the same need, because before S7 the web's Shape and Components showed the same legacy page and
+`setPage('sizeRadius')` landed on Shape. Merging S7 unified the two onto `pageOfTab`: it is pure, already tested by
+S7's routing, needs no new store topic, and once Shape moved, Components is the only tab that shows `sizeRadius` on
+the web.)
+
+**Retired from `main.ts`** (each confirmed by name first): `renderBreakpointsControls`, `csSlider`, `csPicker` (dead),
+`LAYOUT_COLUMN_CHOICES`, `renderLayoutPage`, `paintBreakpointsPreview`, `paintColumnsPreview`,
+`perBreakpointColsNote`, `paintPerBreakpointGrid`, `paintContainersPreview`, `PAGE_COPY.layout`, the layout arm of
+`pageHasModeVaryingControl`, the `NAV` row and the `PAGE_RENDERERS` row. `numberField` and the `.num`, `.adv-*`
+(breakpoint list), `.ly-*` and `.cs-ctl*`/`.cs-range` rules lost their only callers with them and went too.
+`test-shell-imports.ts`' Type-write guard dropped its `csSlider`/`csPicker` entries, which named writers that no
+longer exist (the guard's own staleness arm caught it).
+
+**D13, the one intended byte change (fixes #2045).** The engine names breakpoints from their count, and the three
+override maps are keyed by name, so adding or removing a breakpoint used to move every per-breakpoint setting to
+another width. `state/layout-input.ts` now re-keys each map through the change: a setting follows its breakpoint to
+its new name; an edited breakpoint keeps its settings; a setting on a removed breakpoint (Remove, or an edit onto
+another's width) is dropped, and the page says "Removed ‹name›: its column, gutter and margin settings went with it."
+The names come from the engine itself (`namesFor` resolves the boot example with only the breakpoints swapped), never a
+copy of `bpNames`. The engine is unchanged.
+
+**A breakpoint's field, cleared or refused.** Emptying a breakpoint's field (or typing something that is not a width,
+or a negative one) and leaving it puts the breakpoint's previous width back in the field; nothing is written and no
+line is shown (owner-approved). An edit that would merge the last two breakpoints into one (typing the first's 0 into
+the second, at two) is refused the same way: `editBreakpoint` writes nothing and returns `refused`, and the field shows
+its previous width again, so the list never drops below two (D13's two to seven). At three or more, an edit onto
+another's width still merges the two, the first in the old order surviving, and the dropped line says so.
+
+**Equivalence against the legacy writes** (transcribed from `main` `d0a306fb`): 6 bases (prism3, aurora, harbor, and
+each with column, gutter and margin overrides), 476 sequences per base (every single op over every stop and value,
+each override to a value and back to Auto, and 150 random sequences of 1–8 ops: add, remove, edit, duplicate, columns,
+overrides, containers), **2,856 runs: 2,433 byte-identical; 423 differ only in D13's re-keying (623 breakpoint steps on
+a brand carrying overrides), with the breakpoint list and every other byte identical; 0 unexpected.** An emptied
+override map is deleted, never `{}`, as before.
+
+**Two technical calls, flagged for the owner.** (1) An edited breakpoint keeps its settings. D13 says a setting
+"stays with the width it was set on"; read literally, editing md from 768 to 800 would drop md's settings, and the
+approved line only speaks of removal, so the edit keeps them. One line in `editBreakpoint` if the owner reads it the
+other way. (2) An override keyed by a name no breakpoint has (only an agent or the old page could write one) is dropped
+on the next breakpoint change, silently: it applies to no width, and kept it would attach to whichever breakpoint next
+takes the name, the move D13 rules out.
+
+**Tests.** `test-pages`: MOVED + layout (FIRST_CLASS literal unchanged). `test-layout-input.ts` (new, 23): every write,
+D13 by name against the engine's own grid at each width, the emptied map deleted. `test:chrome` section 23 (new):
+specimen grounds every host, theme and mode; each tint label at 4.5:1 or above (D14); the four manifest keys rendered
+once with no Show advanced; Q23 pairs; the approved copy literally; D16's retired words absent; the first breakpoint
+fixed at 0; D13 driven in the browser and read back from the persisted brand; the 2 and 7 limits; Return to Auto
+deleting the emptied map; T10 (the Maximum width slider moves its own bar) and the QA-B9 reveal; T8 on both hosts;
+#2047 on a hand-written input; Q59 in HC light and HC dark. Moved: `LEGACY_PAGES` − layout (after S9.2 it is `['components']`); #2036's "typography.responsive is drawn on Type
+only" now reads Layout's two panes; section 22 (QA-B2, B5, I12) covers Layout's rows, pickers and Continue; Layout's
+chrome section is numbered 25 (S9.2 took 23, S7 24). `test:smoke`: #1532 moved to the new hooks (the readout is the
+preview's Grid `data-bpcol`, the override the `bp-cols-pick` value picker), oracle `out/figma/aurora/grid-styles.json`
+and M1/M2 unchanged; new 1i (S7 has 1g, S9.2 1h) checks every brand × mode's Layout preview against the brand's emission
+(breakpoints, grid columns, gutter, margin, containers) and the legibility probe; the Pages menu now offers Size &
+radius alone (floor 1, with absence checks for Elevation, Motion, Typography and Layout, in mode-audit too); the legacy
+sweep's floors follow (states 4, text nodes 4000, form controls 6); #1147's pill walk reads Layout's preview, as it
+reads Depth & motion's.
+
+**Two legacy-tier checks retired, by name, with the reason held true.** After S9.2 and S10 the web's one legacy page is
+Size & radius (the Button options until S8): radios and a slider, no select and no text field.
+- **#485 (a select must not jump the page while scrolled):** its defect lived in the legacy tier (`applyFull()` emptying
+  the workspace), and no legacy page draws a select to drive it with. Smoke now asserts, on every page the Pages menu
+  offers, that no legacy page draws a select with a choice, so one that comes back fails by name and the drive returns.
+- **#1031 (a legacy field keeps light UA ink in a dark theme):** re-hosted on the Components tab. In the plugin that is
+  the Components page, whose Build set select is measured as before; on the web it is retired, with an assertion that
+  the page draws no text field or select.
+
+**Mutations, each after a `wip:` commit, each failing by name** (then restored):
+
+| Mutation | Fails with |
+|---|---|
+| the Grid readout taken from the base column count (`gridSection`: `String(g.columns)` → `String(ly.baseColumns)`) | smoke `#1532: the per-breakpoint readout equals the engine's EMITTED grid columns [xs:4 sm:8 md:12 lg:12 xl:12 2xl:12] — DIVERGED: xs shows 12, emits 4; sm shows 12, emits 8` (#1532 M1, carried over), and 1i's `‹brand› / Layout / ‹mode›: every breakpoint, grid and container value reads the emission's` |
+| the last gutter override back to Auto leaves `{}` | unit `setGapOverride(gutter, md, auto) on the last entry deletes layout.gutterOverrides` |
+| the first breakpoint's field left editable | chrome `Layout: the first breakpoint is fixed at 0 (web)` and `(figma)` |
+| `editBreakpoint`'s two-breakpoint refusal removed (the merge allowed) | unit `D13: at two breakpoints, an edit onto the other's width is refused and the list is unchanged (two to seven)` and chrome `Layout: at two breakpoints, typing 0 into the second is refused and the field keeps its width (two to seven)` |
+| D13's re-keying removed | unit `D13: adding a breakpoint keeps md's 6 columns on the 768px breakpoint, now sm` (and six more D13 arms) |
+| Responsive type sizing drawn back on Layout | chrome `typography.responsive is drawn on Type only — also on Layout (levers title "Responsive type sizing", …) (web)` and `(figma)` |
+| an off-list column count shown as the first offered value | chrome `#2047: a brand's 10 grid columns (off the offered list) read 10 on the base and 10 on md, as the input says, …` |
+
+Each chrome mutation's run failed only the named assertions.
+
+UI only: no ENGINE or CONTRACT bump.
+
+### Copy for owner approval (DRAFT)
+
+Every other string on the page is the owner's approved copy. These are not approved yet; the recommendation is to
+approve them as written.
+
+```
+Breakpoints (info):     The screen width where each layout starts, smallest first. The first is always 0px. Names follow the count: up to five run sm to 2xl, six or seven run xs to 3xl.
+Grid columns (info):    How many columns the grid has on the widest breakpoints. Smaller breakpoints step up to it: 4, then 8, then this count.
+Maximum width (info):   The widest content gets. Below this width, content fills the screen.
+Content container (info): A narrower width for long text, so lines stay a readable length.
+Columns picker hint:    Column counts the grid can use. Any whole number from 4 to 24 works; these are the common ones.
+Gutter/margin hint:     Gutter and margin use the spacing steps, so each stays a spacing token.
+At seven breakpoints:   Seven breakpoints at most, xs to 3xl.
+Picker titles:          ‹bp› columns · ‹bp› gutter · ‹bp› margin
+Preview, fluid row:     Full width
+Screen-reader only:     ‹bp›, px (a breakpoint's field) · ‹name›: ‹value›. Pick a value (a picker button)
+```
+
+---
+
+## (2026-10-04) — UI redesign S9.2: Depth & motion in the two panes, one preview for both (the legacy Elevation and Motion pages retired)
+
+**STATUS: branch `ui/s92-depth-motion`, PR #2063. All its copy APPROVED (owner, 2026-10-04), D18 B's widened sample heading and `shadow.sm` included.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. The second of S9's two PRs (S9.1, #2058, lifted the writes and the preview pieces). Owner decisions applied: V4 and v5 Q3 (one page, one preview, Elevation then Motion), D7 A (every extra kept, read-only), D8 A (Shadow tint inside Elevation behind its own Show advanced), D9 A (play once after a Motion edit and on Play or Replay, Slow motion, never by itself under reduced motion), D10 A (the value picker per role, each curve drawn), D15 (tempo chips, easing pickers, sliders with today's named stops), D16 (plain words; "Blur:offset dial" kept where it was, in the softness tooltip), Q22 (edits target the previewed mode), Q59 (derived modes read-only, preview drawn), T9 (the spinner's turn apart, as a loop). Fixes #2046. Closes #958.
+
+**What moved.**
+- **`domains/depth.ts`**, the levers: Elevation (the softness slider on the manifest's range and named stops; Show 1 advanced opens Shadow tint's hue and amount sliders), Motion (the tempo chips; "Easing for ‹role›" per role, a value picker listing the six curves, each drawn), Continue to Layout. Every control edits the previewed mode: Light writes the brand value, Dark or a custom mode `modeLevers[mode].*`, shown "Auto: follows Light (‹value›)" until set and Return to Auto once set. Auto names LIGHT's value in every mode, a dark-based custom mode included (the engine resolves these levers from the brand, never a custom mode's base; scope finding 7). A slider updates in place (Palettes' shape-and-sync pattern), so a drag survives every repaint. Writes go only through `state/depth-motion-input.ts`, unchanged.
+- **`preview/depth.ts`**, the preview: Elevation (the seven shadows as cards in the brand's page color, `inset` set apart, each with its token and CSS; the shadow color at full strength and as painted) and Motion (the six curves with the roles that use each IN THE PREVIEWED MODE; the durations with a bar each, the stagger, the spinner's turn apart, the millisecond building blocks; springs; the four transitions traced along the previewed mode's curve per role). Both sections are specimen roots on the brand's `background.primary` in Q24's gray containers, paired with their lever sections (Q23).
+- **The six S9.1 pieces in `preview/sections/` are redrawn for the new page**, each keeping its marker: `shadowRampSection`, `shadowTintSection` (was `shadowTintReadout`, refreshed by hand on the legacy page; now drawn fresh on each repaint), `durationRampSection`, `motionCurvesSection` (now also exports `curveOfRole`), `springsSection`, `motionTransitionsSection` (now returns `play`).
+- **Retired from `main.ts`** (4,849 → about 4,510 lines): the Elevation and Motion pages, `renderScreen`, `leverSection`, `renderEasingEditor`, `renderRepointTable` and its `setRepoint` import (#2038's second bullet), `renderShadowEditor`, `refreshTintReadout`, `motionSlowmo`, `renderPerModeTempo`, `TEMPO_OPTS`, tempo's `PER_MODE_SELECTS` row, `pageOfLever`/`leversFor`/`PRIMITIVE_KEYS` (Motion was their last caller: #958), the two `PAGE_COPY` rows, the two `NAV` rows, the eight `SECTION_MODE_SCOPE` rows. `renderPerModeSelect` and `PER_MODE_SELECTS` are deleted too: S7 (#2064) removed their radius and density callers, and this landed second. Legacy CSS (`mo-*`, `sh-*`) stays for S13, except the reduced-motion rule that froze every trace dot, which would have swallowed the one play D9 promises on request.
+- **The frame**: `NEW_PAGES.depth`; D8's two-item switch, `LEGACY_LABEL` and its chrome CSS deleted (no user left).
+
+**#2046, both halves.** A one-mode brand picks a curve per role (the legacy table sat inside `rp.modes.length > 1`); the traced transitions draw the previewed mode's curve per role (they drew each transition's fixed default curve, which also ignored the brand's own `easingRoles`). Held by smoke 3d against the EXPORTED DTCG's `motion.easing-role.*` per mode, and by smoke 1h against each corpus brand's committed emission.
+
+**Equivalence (the S2 rule), measured.** A Playwright driver over a build of `origin/main` (`9f955e4c`, the legacy pages) and of this branch (the new page) makes the same semantic edits and records the persisted brand after each: prism3, aurora and harbor in Light and Dark, a dark-based custom mode, and a one-mode brand (Start blank). Every shadow slider to max, min, middle and back to where it was drawn; outside Light each shadow key set and then Auto; each tempo, then Auto; every curve for every role, then Auto. Where a mode picks Light's own curve, the legacy table offered no such option and its Auto stands for it, so the base side picks Auto there. **357 steps: 333 byte-identical (303 of them edits that moved the brand), 0 page errors on either side. The 24 that differ are the one-mode brand's easing picks, 4 roles × 6 curves, which `main` cannot make at all (#2046) and which now write `motionPersonality.easingRoles.<role>`.** Light's easing still writes the default curve rather than unsetting (#2051, kept for this comparison).
+
+### Tests
+
+- **`test:chrome`**: `LEGACY_PAGES` loses `depth`, `NEW_PAGES` gains it, `EXPECT_LEGACY` loses its two pages, D8's switch assertions are gone (replaced by "no place draws a local switch"), `DEPTH_LEVERS_CONTROLS` added, the depth preview joins `INSPECT_LEGACY`, the value picker's buttons are classified (`p3-vpick`, first measured open here). New **section 23**: specimen grounds and Q24 on both hosts, both themes, every mode; every lever once, Shadow tint only behind Elevation's fold (D8 A); the Q23 pairs; the approved copy, literal; the easing rows, label first, token under (QA-B2); the six curves in the picker, drawn (D10); one home for both (V4); Slow motion's four choices; D16's plain words on the page; Continue lands on Layout; Q22's writes for softness, tint and tempo read back from the persisted brand, landing on Light's value clears, Return to Auto; a dark-based custom mode's Auto names Light's value; Q59 in HC light; D9 with and without reduced motion; the chrome probe with Shadow tint and a picker open at 1280, 640 and 380.
+- **`test:smoke`**: **1h** is the moved page against each corpus brand's emission (the sections, each piece's marker in its section, the durations at their emitted ms with the spinner's turn not among them, each trace on its role's emitted curve, each curve's role tags, and the preview's legibility). **#800** moved to the new chips and Durations block, its oracle unchanged (`DURATION_BASE` × `TEMPO_FACTOR` read from the engine source), and drives Dark too: **#1854's tempo half** (a Dark edit writes `modeLevers.dark.tempo`, never the brand value; Return to Auto). Tempo's #1675 row moved to the new-markup chips (3c). New **3d**: per-mode easing and the one-mode brand through the export. #388's "error stays after navigating" goes to Depth & motion. The legacy sweep's floors follow the two pages out (states 28 → 8, text nodes 8,000 → 6,000, fields 200 → 120; 1h measures what left).
+- **`test:verdict`**: #1994's demo edit clicks the Depth tab and its tempo chip (its `.catch` still fails by name as `edited false`).
+- **`test-shell-imports`**: `MUST_SCAN` adds the two new modules; the S9.1 arm follows the pieces (`preview/depth.ts` draws all six through the shared functions; neither it nor `main.ts` carries a copy; `main.ts` imports no depth or Type write; `domains/depth.ts` writes only through `setShadow`, `setTempo` and `setEasingRole`, never `setPath` or `setModeLever`).
+- **`test-pages`**: `MOVED` + `depth`. The existing "Motion section declares a home view" mutation stays green.
+- `lint-ramp-steps` needs no change: `SHADOW_STEPS` stays in `preview/sections/shadow-ramp.ts`.
+
+**Mutations, each after a `wip:` commit, diff checked non-empty, restored with `git checkout -- <file>`, each failing by name:**
+- A Dark softness edit written to Light (`setShadow('light', …)` in `domains/depth.ts`): chrome `Q22: previewing Dark, a softness edit writes modeLevers.dark.shadow.softness and not the brand value (dark null, brand {…"softness":2})`, and `… a set softness offers Return to Auto in place of the Auto line`.
+- A custom mode's Auto from its base's override (tempo's Auto reading `tempoOverride(base)` for a dark-based custom mode): chrome `Q22: previewing custom-1 (based on Dark), Auto names Light's value, not its base's override — says "Auto: follows Light (Relaxed)", want "Auto: follows Light (Standard)"`.
+- The traced transitions reading the brand's curve per role instead of the previewed mode's: smoke `#2046: prism3: previewing Dark, the traced emphasized transition draws the exported dark curve [0.4,0,0.6,1] (draws [0.4,0.14,0.3,1])`.
+- Autoplay under reduced motion (the `!reduced` guard dropped in `preview/depth.ts`): chrome `D9: under reduced motion, a Motion edit plays nothing, and the button still says Play ([…running mo-trace-y…], "Replay")`.
+- The spinner's turn drawn as a duration step: smoke `T9: prism3 / Depth & motion / light: the spinner's turn is drawn apart from the duration steps, as a loop … — in the table true, apart null`, and `… the durations table lists the emission's steps, in order, the spinner's turn not among them — drew …, spin`, every brand and mode.
+- Motion given its own home, rendered (a `motion` view added and made Depth & motion's home): chrome `V1 home: web depth shows motion ("Motion"), want depth ("Depth & motion")` on both hosts, and `V4: web: one preview holds both, under the page's one home (title "Motion", view motion)`; `test-pages` also fails `every view is some page's home — view that is no page's home: depth`. The pages.ts-only mutation ("Motion section declares a home view") stays green, as before.
+
+### Landing after S7 (#2064)
+
+- **D18 B's shadow half.** S7 drew the Style guide's radius sample and left its panel a `shadow` input. The panel now draws `shadow.sm` (the step the preview spec's Card binds) resolved for the previewed mode, with a `shadow.sm` pill beside `radius.xl`, so one sample carries both. Its heading and description widen to cover it, APPROVED (owner, 2026-10-04): "Radius and shadow sample" / "The brand’s radius on a panel, a field, a button and a tag, and its shadow on the panel." Smoke holds the panel's computed shadow, layer by layer, to each brand's emitted `shadow.sm` in Light and Dark, and fails by name if it is missing (`D18 B: … the radius sample's panel draws the emitted shadow.sm for this mode, and names it`).
+- **The mode-strip sync check** (the mode control and a legacy page's strip writing the same mode) moved from the legacy Depth & motion page, which S7 had given it, to the web's Components tab: the Size & radius page S7 left for the Button options still draws a strip (`pageHasModeVaryingControl` exempts only Layout, the plugin's Components and moved pages). The slice that moves that page retires the check, saying so.
+- **Continue to Layout** routes through S7's `pageOfTab('layout', host)`. S7's own "Continue to Depth & motion" check now expects the moved page's levers rather than the legacy Elevation page.
+- **Smoke labels:** S7's Shape is 1g, so Depth & motion is 1h. The legacy sweep's text-node floor drops again (6,000 → 5,000: Shape left it too), and #1147's pill walk visits the Depth & motion preview, where the shadow, duration, easing and spring pills live now.
+- **`mode-audit`: nothing to read, recorded by name (owner option B).** The only legacy page left with a mode strip is Size & radius (the Button options), and its one section, Buttons, carries no mode-scope badge (#1912's last `KNOWN_BADGE_GAPS` row, left unbadged until S8 or S13 retires the page and the audit). So no legacy section renders `mode-scope-badge`, and the audit's hook guard reported it unrendered. The audit now says `mode-scope badge read: NOTHING TO READ …` and drops that one hook from its guard ONLY while every measured section is badgeless and a known gap; the reason is in its header. Mutation (`'Buttons': 'shared'` back in `SECTION_MODE_SCOPE`): the read runs (`1 badged section(s) read and checked; the hook stays guarded`) and checks it, failing by name on the now-stale row (`STALE known gap #1912: Size & radius / Buttons … did not occur`).
+
+### Held, not built
+
+- **#485 (coordinator note).** PR #2060 (S10) re-hosts test-smoke's #485 select-jump test on the legacy Motion page's Easing per mode table. This PR retires that table. Whichever merges second gives #485 a new host or records its retirement with the reason (its defect lives in the legacy tier); it is not deleted silently.
+
+### Traps
+
+- **Picking Light's own curve in a mode is Auto.** The legacy table never offered the self-map; the picker lists all six curves (D10), so choosing Light's clears the override instead of writing a no-op one.
+- **The preview's "Motion edit" is a change in what the traces draw, in the same mode**, read on the `brand` topic. A mode change, a mount, Slow motion and an Elevation edit play nothing.
+- **Hooks used only in a section after `hooks.report` are reported unrendered.** Section 23 sits before the report.
+
+---
+
+## (2026-10-04) — UI redesign S4f: Color › Surfaces & fills — the owner's QA rebuild (Background rows, Scrim, Fields preview, white grounds, the lock, gradients, marks)
+
+**STATUS: PR #2040, branch `ui/s4f-surfaces-rebuild`, cut from `origin/main` at `c8825795` (S4e, #2001), with `main` merged in at `af875310` (S5.3 #2019, #2031) again at `243d201f` (the shared styling pass #2041, the engine's #1985/#2035, the fold #2039), and at `d0a306fb` (S6.3, #2036).** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. Builds the owner's QA decisions of 2026-10-02 for Color › Surfaces & fills (QA-B1, B3, B6, B7, B10, B12 to B16, QA-I10's Surfaces half, QA-I2 extended), #2016 (Q80) and #1971 (Q81).
+
+### What the user sees on Color › Surfaces & fills
+
+**Levers.**
+
+- **Background fills (QA-B1, B3, B7).** The controls are rows in the Foreground rows' pattern: a swatch, the name with its token under it, then the step picker. Two sub-sections at the rows' sub-heading size: **"Default background fills"** (Primary, the old "Page", which is `background.primary`; Secondary; Tertiary; the Contrast floor as a row) and **"Inverse background fills"** (the inverse fill's palette select first, then Inverse primary, Inverse secondary, Inverse tertiary). Every pick writes exactly what the control it replaces wrote (Proof).
+- **Contrast floor (QA-B1, B6).** A row with its own info button: "The background most text, icon and fill colors are checked against for contrast. Auto uses background.secondary." Its control is now the step picker on the neutral ramp (it was a select). Its button reads S4e's Auto label unchanged ("Auto · follows background.secondary (‹step›)" or "Auto · ‹step›"), or the step set. The row is wide: that label is too long to share a line with the name, so the button takes the line under it.
+- **Scrim (QA-B10).** Its own read-only section, after Background fills: "The overlay that dims the page behind a modal. It isn't editable." Background fills' description loses its scrim clause and is the owner's Q26 intro again: "The base page planes and their inverse counterparts." The jump links go from 8 to 9.
+- **Icon (QA-I10, QA-B12).** The pairing note and button sit in the icon contrast lever's own block, as Color › Interactive drew that lever: its manifest name ("Icon contrast floor"), an info button whose text is Interactive's approved Icons description (`ICONS_DESC`), then the note and the button. The button carries a padlock that follows the state: shut while icons are paired, open while unpaired. The glyph is inline SVG in `currentColor`, aria-hidden, the same mechanism as every other chrome glyph (`lock` and `unlock` in `shell/dom.ts`); the button keeps its words as its name. The Q52/Q60/Q61 strings and dialog are unchanged.
+- **Gradients (QA-B13 to B16).** The on/off switch sits at the top right of the block's header. The levers draw no gradient bar (the preview shows each gradient). Each gradient editor has 24px (`space-300`) on both sides of its divider, and Add gradient has a divider of its own with 32px (`space-400`) above the button.
+
+**Preview.**
+
+- **Scrim (QA-B10)** and **Fields (#2016, Q80)** are new sections, each its own shared module with its own marker (`sections/scrim.ts`, `sections/fields.ts`). Fields: "Form field fills, borders and text, in every state." It draws a field at rest, hovered (each with its placeholder) and filled (entered text in the ground's primary ink), on the page and then on the inverse fill, each field its border role around its fill role, with the token chips and their badges. The default fill is `core.palette.transparent`, which the engine resolves with black's hex and no alpha, so the section reads the role's path and paints `transparent`. The levers' Fields edit now reveals it (QA-B9), with no `PREVIEW_HEADING` row: the headings match.
+- **#1971 (Q81).** Background and Foreground sit in white containers (`#ffffff`, `whiteGround` in `sections/kit.ts`) with no ratio badges: they are drawn with a `badges: false` context. Every other section stays on the page color with its badges. The Style guide (Brand) is unchanged: its Background keeps the scrim and the page ground.
+- **Badge marks (QA-I2, extended), one rule for both previews.** A pass mark takes the chrome's success icon color and a miss its danger icon color. Each mark is stamped with the chrome theme whose color contrasts more with the composited ground it is actually drawn on. Where neither theme reaches 3:1, the mark keeps the badge's ink. `preview/badge-marks.ts` holds the rule: the same algorithm as #2019's `markColors`, line for line, written as a module so the two can share it. #2019 merged while this was in progress, so the merge commit unifies them: `preview/interactive.ts` calls `themeBadgeMarks` (its own copy of the rule, `markColors` and `groundUnder`, is gone), its card carries `p3-marks`, and the two `.p3-ipv` mark rules in `chrome.css` are dropped for the shared `.p3-marks` rule. #2019's own QA-I2 arms in `test:chrome` hold Interactive's marks after the change.
+
+### The decisions inside this, and why
+
+- **The Primary row is the same picker with a new label.** It keeps its hook, id and write (`setSurfaceBase`). The tiers and the band step keep theirs. Only the floor changes control, and the driver below holds its writes.
+- **The floor uses the step picker, not the select.** The owner's row pattern ends in the step picker, as Q45 already did for Page and the band step. The key → `Number` write gives the same number the select's value gave.
+- **The lever block "Background fills" (name and info) stays above the two sub-headings.** It carries the approved info text and the lever's hook. QA-B7 asked not to repeat "Background fills". The sub-sections no longer do, but the lever name still sits under the section title. Removing that name line is held for the owner.
+- **The icon contrast block on Surfaces & fills uses the manifest key's hook (`lever-icon-contrast`).** #2019 homed `iconContrast` on this section's row in `pages.ts`, so the block is now its home's control.
+- **Only Background and Foreground are white.** That is Q81's literal. Scrim is not a contrast check, but it stays on the page like every other non-ground section.
+
+- **The icon rows' locks read `lockedTo()`, as before.** The rebuild moved only the pairing control; every icon row is still drawn by the shared `row()`, whose lock and "Follows text.X" come from `lockedTo()` in `state/fills-input.ts`, never a list here. So #2031's wider `ALWAYS_FOLLOWS` (19 locked, 12 editable while unpaired) reaches these rows with no change. The padlock follows `iconsPaired()`, the state its button toggles.
+- **Folded-in nit (orchestrator, from #2001):** `test-fills-input.ts`'s floor-label case labelled prism3 Dark as "Page Black (as loaded)", but the engine resolves that page to `neutral.950` (the committed emission's `background.primary` in dark). The case's name now says so; its expected values are unchanged and still computed independently.
+
+### A6 (owner, 2026-10-03): the scrim over a checkerboard
+
+The scrim preview stays on the page color, and the scrim's wash now sits over the chrome's existing transparency checkerboard (`.p3-checker`, built from `--p3-fill-2` and `--p3-bg-page`, the one Palettes' alpha swatches use): in the levers, the swatch is the checkerboard with the wash filling it (`.p3-scrim-wash`); in the preview, the Scrim card (now drawn in `sections/scrim.ts`, so the Style guide's own scrim card is untouched) is the checkerboard under the wash and the modal panel. No raw color and no new string. `test:chrome` reads it from the render, both chrome themes, Light and Dark previewed: the element under the wash paints a gradient of two colors or more, and the wash on it is translucent and covers it. QA-B14's "no gradient in the levers" now counts linear and radial gradients only (the engine's two kinds), so the checkerboard's conic pattern is not a gradient preview; mutation (g)'s bar is still caught. Mutation, both `p3-checker` classes removed: `✗ A6 web light, previewing light: the scrim's swatch in the levers draws its wash over a checkered ground — read {"found":true,"checkered":false,"image":"none","wash":"rgba(0, 0, 0, 0.4)",…}`, and the preview card's twin, in each theme and mode.
+
+### The merge of S6.3 (#2036)
+
+- **`preview/follow-edit.ts`:** `PREVIEW_HEADING` keeps S6.3's `'Scale limits': 'Scale'` (Scrim and Fields need no row); the header comment names both.
+- **`preview/sections/index.ts`:** exports the union: Scrim and Fields, with S6.3's Scale, Weights and styles, Line height and letter spacing and Building blocks. `type-ramp` and `type-fluid` stay retired.
+- **`test-shell-imports.ts`:** `MUST_SCAN` and the marker list carry both sides' files (S6.3's value picker, type-scale, line-spacing, building-blocks; S4f's scrim, fields, badge-marks).
+- **`test-chrome.mjs`:** section 22 keeps every arm from both sides. Row kinds are the union: S6.3's size, weight, line height and letter spacing rows, and S4f's `background-row`. S6.3's new swapped-order arm (the mono line is a token path and the label is not) reads only names that have a token, as the below-label and mono arms do; the floor's token-less name is held by its own arm. No section number collided: the S4f arms are inside section 18.
+- **Equivalence, argued rather than re-run:** between the last equivalence baseline (`243d201f`, 1,092/1,092) and `d0a306fb`, S6.3 changed nothing in the Surfaces & fills write path. There is no engine source change (only `packages/engine/lint-ramp-steps.ts`, a lint that is not bundled), and no change to `state/fills-input.ts`, `state/store.ts`, `domains/color-fills.ts`, `persist-local.ts`, `write-adapter.ts`, `ui/step-picker.ts` or `ui/lever-kit.ts` (`git diff --stat 243d201f d0a306fb` over those paths). This branch's only source change since that run is A6, which changes a read-only swatch's markup and writes nothing.
+
+### The merge of the shared styling pass (#2041)
+
+- **`domains/color-fills.ts`.** `main` restyled the OLD Background fills code (`sel`, `tokenField` over the new `tokenLabel`, `pickButton`, `openPicker`). S4f's `surfRow`/`tierRow` replace all four, so they are dropped (no caller is left), and the import is the union in use (`infoTip` and `tokenLabel`). Each Background row's name and token is now `tokenLabel(token, label, id)`, the one place QA-B2's order lives. The contrast floor row has an info button and no token, so it keeps its own wrapper: its label first, the info button beside it.
+- **`test-chrome.mjs`.** Both sides' arms are kept; the two conflicting comments resolve to `main`'s (name first) and S4f's (the palette select's plain label, the floor and icon info arms). Section 22 now covers S4f's rows. QA-B2 checks that Background fills' six token rows, Scrim and the Fields rows are read, by token, and that the only name without a token is the contrast floor row (by role). QA-B5/B18 read the floor's picker (`surface-floor-pick`). QA-B8 reads the gaps in `surface-default-rows`, `surface-inverse-rows` and `field-rows`. QA-B11 already reads every `.p3-fill-sw`. Two of section 22's arms read the OLD Background markup and are updated, not deleted. The required row kinds now name `background-row` (a name inside the surfaces lever's rows) where they named `fill-field` (the name-over-select fields those controls were). The mono-token arm reads only names that have a token, since the floor row has none and is held by its own arm.
+- **Equivalence, re-run against the new `main` (`243d201f`).** The merge brings an engine change, #1985/#2035 (surfaces base and inverseBase refuse unknown keywords and off-ramp steps), so the driver ran again against `main`'s new build instead of arguing that nothing moved: **1,092 of 1,092 persisted brands byte-identical** (prism3 366, aurora 365, harbor 361), and 1,080 of them moved the brand. It is 108 edits fewer than the first run because #2031 locks 12 more icon rows while unpaired (tertiary and the subtle icons), and the driver drives only enabled rows. One attempt stalled in the middle of prism3 when the container restarted; the driver now guards every step with a 60 s timeout, and the re-run finished with none tripped.
+
+### Proof
+
+- **Equivalence (scratch driver, not committed):** every kept control, in Light then Dark, on prism3, aurora and harbor, was driven in lockstep on `c8825795`'s built studio and on this branch's (before the merge of `main`). The persisted brand (`prism3:brandInput`, raw bytes) was compared after each edit: **1,200 of 1,200 byte-identical**, with 0 page errors. The edits: Primary 24 (a mid step, Black, White, a light step), Secondary and Tertiary 36 (two steps, then Auto), the floor 18 (the select on `main`, the picker here, the same number, then Auto), the inverse palette 16, the inverse tiers 68 (each palette's step, tier steps on two palettes, Auto), every enabled row picker 948 (a step, and Auto on every other row), Unpair, Pair with Cancel and with the dialog 17, and gradients 73 (switch off and on, add, kind, a stop's step and palette, interpolation, add stop, position, angle, rename, remove). 1,188 of the 1,200 edits moved the persisted brand; the other 12 re-wrote a value already set, alike on both sides.
+- **`test:chrome`** 13,112 → 13,269 (against `main` at `af875310`). The S4f block covers: Background fills' seven rows by role and order, each a swatch, name, token and picker; the two APPROVED sub-headings; the floor and icon info texts; Scrim in its own section and not in Background fills; Q23 pairs (Background fills↔Background, Scrim, Fields); #1971 grounds (white for Background and Foreground, page for the rest) and no badges on the two grounds; the lock's shackle path per state, aria-hidden, the name its words; the gradients switch in the header at the top right; no element in the levers paints a gradient of two or more colors; the 24px and 32px room around the dividers; the Fields edit-reveal; and a Page sweep. The sweep covers 44 Page states (White, every neutral step, Black; Light and Dark). Each themed mark reads 3:1 or more in its theme's color on its composited ground, and no worse than the other theme. An unthemed mark is in the badge's ink, and only where neither theme reaches 3:1. Q59 (every control disabled in HC and wireframe) still holds, the header switch and the floor picker included.
+- **`test:smoke`** 4,091 → 4,283 (against `af875310`). Per corpus brand and mode: the Scrim and Fields roots and markers; Background without the scrim; Fields' chips (literal); white grounds with no badges for Background and Foreground; Fields paints every opaque field role, page and inverse, each held to the emission's hex; Q23 descriptions read off both panes for the seven pairs. The S4c and S4e arms drive the floor through its picker.
+- **`test-shell-imports`** 160 → 181. Surfaces & fills draws each shared section through its renderer by name, and none itself. `scrim.ts` and `fields.ts` stamp their own markers, and the new files are scanned.
+- **`audit:modes`** passes; other unit suites unchanged (`test-fills-input` 1,011, `test-pages` 76).
+
+### Mutations (each after a `wip:` commit, restored with `git checkout -- <file>`; the studio rebuilt, the plugin bundle not, so the web host's line is the named one)
+
+| Mutation | Failure |
+|---|---|
+| (a) the Primary row writes `surfaces.<mode>.secondary` instead of `base` | smoke: `✗ S4c prism3: previewing dark, the base control writes surfaces.dark.base = 100 and leaves surfaces.light as it was — wrote surfaces {"light":{"base":"white"},"dark":{"secondary":100}}`, per brand and mode |
+| (b) the scrim row also drawn inside Background fills | chrome: `✗ web: QA-B10: the scrim is in its own Scrim section, not in Background fills — in "Background fills", and still drawn inside Background fills`, `✗ web: Surfaces & fills renders the scrim.default row once — rendered 2` |
+| (c) the padlock stays shut when unpaired | chrome: `✗ web QA-B12: unpaired, the pairing button draws the open padlock, decorative, beside its words — read {…"shackle":"M5.4 7.2V5.2a2.6 2.6 0 0 1 5.2 0v2"…}` |
+| (d) the Fields preview section not drawn | chrome: `✗ specimen ground: surfaces & fills web light 1280, previewing light: Fields is a specimen root on background.primary #ffffff — not drawn`, per theme and mode |
+| (e) the ground sections drawn with badges | chrome: `✗ #1971 surfaces & fills web light 1280, previewing light: the Foreground section shows no contrast badge (Q81) — 16 drawn`, per theme and mode. **Background has no graded role** (every `background.*` is measured against itself), so a badge context draws none there; (e2) holds Background's half by its ground: Background on the page → `✗ specimen ground: surfaces & fills web light 1280, previewing dark: Background is a specimen root on white #ffffff (#1971) — is #0d0d0e` |
+| (f) the marks pick from the light theme only | chrome: `✗ QA-I2 sweep: every badge mark on Surfaces & fills reads at 3:1 or more in the better chrome theme's status icon color, or keeps the badge's ink where neither theme reaches 3:1 — light Page white: a ok mark left unthemed where a theme reaches 5.03:1 … (1404 in all)` |
+| (g) a gradient bar drawn in the levers again | chrome: `✗ web QA-B14: the levers draw no gradient (the preview shows them) — drawn by gradient-bar, gradient-bar` |
+
+The section-18 and section-21 mutations ran against a scratch slice of `test-chrome.mjs` (its setup plus those sections, generated, not committed). Its only other failures were the hook guard's "used but never rendered" lines for the sections it left out.
+
+### Traps
+
+- **The scrim's levers swatch is a CSS gradient:** one wash laid over the page as `linear-gradient(wash, wash), page`. A "no gradient in the levers" check that matches `gradient(` alone flags it, so the check counts a gradient as two distinct colors or more.
+- **`chooseAnyMode` is declared in section 19,** after section 18 runs, so a section-18 case that calls it dies in the temporal dead zone. Use `showMode`.
+- **The transparent field fill has black's hex.** The engine's candidate for `core.palette.transparent` is `BLACK` with no alpha on the resolved role, so `paint()` returns `#000000`. Read the path.
+- **A badge mark's theme is read from the render.** `themeBadgeMarks` runs after the card is in the document, every paint.
+
+### Copy
+
+**APPROVED (owner, 2026-10-03), as built:** "Default background fills", "Inverse background fills", "Primary", the floor tooltip, "Scrim" and its description, "Fields" and its description, `ICONS_DESC`, the Q52/Q60/Q61 strings.
+
+**APPROVED (owner, 2026-10-03), the strings first shipped as draft:**
+
+- "Inverse fill palette" (the palette select's visible label; it was the select's accessible name already)
+- "Inverse primary" (the brief's name for the `inverse.background.primary` row, which was "Inverse fill")
+- "Contrast floor" as a row label (unchanged words, now a row)
+- The Fields preview's state names "Rest", "Hover", "Filled", its sample texts "Placeholder" and "Entered text", and its sub-headings "Base" and "Inverse" (the Background section's own words)
+- The accessible names "Primary, ‹mode›: … Pick a step" and "Inverse primary, ‹mode›: … Pick a step" (was "Page, …" and "Inverse fill step, …")
+
+### Design calls (owner, 2026-10-03: all OK, the "Background fills" line kept)
+
+- The floor row's control is the step picker (the row pattern), and the row is wide: its button sits under the name.
+- The "Background fills" lever name line stays above the two new sub-headings, because it carries the approved info text.
+- The icon contrast block's info text is `ICONS_DESC`, and its name is the manifest's "Icon contrast floor"; the note and button follow, unchanged.
+- The Fields preview's states: Rest, Hover (each with the placeholder) and Filled (the ground's primary ink). There is no focus state, because the focus ring has its own section.
+- Scrim sits on the page color, not white (Q81 names only Background and Foreground).
+
+### Out of scope, found here (not fixed)
+
+- The plugin at 800px clips the levers pane's right edge on Surfaces & fills (on `main` too).
+- `test-shell-imports.ts` carries the "one Style guide, two pages" block twice, word for word (both copies updated here).
+- `.p3-gbar` and the `gbar-h` chrome token are now unused.
+
+---
+
+## (2026-10-04) — The product is "Prism3 Studio": the studio's top bar, the start screen and the plugin's name
+
+**STATUS: branch `ui/studio-mark`.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged.
+
+### What changed (owner decisions, 2026-10-04)
+
+- **The studio's top bar starts with the product mark**: the existing logo (`styles.css`'s `.logo`, the conic-gradient square) and "Prism3 Studio", ahead of the brand switcher. Built in the new chrome (`shell/frame.ts`, `chrome.css`), not the legacy `renderBar`. It goes nowhere, so it is not a control: a `role="img"` with the accessible name "Prism3 Studio", the logo `aria-hidden`. The name is set in `--p3-text` on `--p3-bar-bg`, a pair `chrome/spec.mjs` already declares at 4.5:1, so `lint:contrast` needed no new row.
+- **Narrow**: at the chrome's narrow tier (`data-w="narrow"`, frame width ≤ 560) the bar keeps the logo and drops the name; the accessible name still carries it. The start screen drops its wordmark at 380px; the chrome has no 380 tier and may not hold a raw length for a media query, and at 380 the bar is already wrapping its icon buttons, so the name goes with the bar's other words at the narrow tier.
+- **The plugin's bar draws no mark**: Figma's own title bar names the plugin, and its width is tight. Owner-confirmed on 2026-10-04 (O2).
+- **The plugin is named "Prism3 Studio"** in `apps/plugin/manifest.json`; `id` unchanged (`prism3-theming-plugin`), since Figma keys an installed plugin and its stored data by it. The plugin UI's `<title>` and the studio page's `<title>` (was "Prism3 — web dashboard") say "Prism3 Studio" too.
+- **The start screen's mark** reads logo + "Prism3 Studio" (was "Prism3" + a "Theme studio" descriptor). The descriptor's `.studio` rule and its 560px rule went with it; nothing else on the start screen moved.
+
+### Why the logo is lent, not drawn by `chrome.css`
+
+`chrome.css` may hold no raw color (the build's `[raw]` check), and the logo is a fixed five-stop conic gradient with no token behind it: its hues are an example brand's, and `[brand]` refuses a chrome color that resolves through a brand palette anyway. The shell's `h()` refuses a class outside `p3-`, so the shell cannot wear `.logo` itself. So `main.ts` lends the frame a `logo` renderer, the same way it lends Inspect and Brand their legacy views, and there is still one definition of the logo for the start screen and the bar.
+
+### Left alone, deliberately
+
+Plugin strings that say "Prism3" mean the engine or its output, not the plugin's name, and changing them would be new copy: "not created by Prism3" (preflight), "No existing Prism3 theme in this file", "run Prism3 commands" (Agent link), "⚠ Prism3 partial build" (a Figma node name), "no Prism3 stamp". Token namespaces, package names and engine names are untouched.
+
+### Gates and their independence
+
+- `test-chrome.mjs` §1, every host × theme × width: the studio's bar draws the mark once, first in the bar and ahead of the brand switcher, reading "Prism3 Studio" as text and as its accessible name, not a control, the logo drawn; the name shown wide (and measured at 4.5:1 on the bar) and dropped narrow. The plugin's bar draws none (`hooks.absent`, with the plugin's top bar as proof it looked). Every expected value is a literal in the test.
+- `apps/plugin/test-manifest.ts` (new, in the plugin's `npm test`): `name` is "Prism3 Studio" and `id` is "prism3-theming-plugin", both literals, the manifest parsed from disk.
+- Mutations, each after a `wip:` commit, each failing by name: the mark not appended (`product mark … draws the product mark once`), the mark placed after the bar's legacy controls (`… the mark is first in the top bar`), the name back to "Prism3" (`… reads "Prism3 Studio"`), the mark drawn in the plugin too (`… the plugin's top bar draws no product mark`), the name in `--p3-text-2` (`… is measured on the top bar at 4.5:1`, dark), the narrow rule dropped (`… the name is dropped at narrow widths`), the manifest name back to "Prism3" (`the plugin is named "Prism3 Studio"`) and the id changed (`the plugin keeps its id`).
+
+---
+
+## (2026-10-04) — UI redesign S7: Shape in the two panes; every radius size drawn from the ladder, the hairline switch gone
+
+**STATUS: branch `ui/s7-shape`.** UI only, plus the scope of two engine gates (no engine code, no emitted artifact
+moves, no ENGINE bump, `CONTRACT_VERSION` unchanged). The spec is the S7/S9/S10 scoping report ("S7: Shape", headline
+findings 1–4 and 7, T1–T11) and the owner's answers of 2026-10-04 (D1 A, D2 A, D4 B, D5 B, D6 yes, D15, D16, D18 B,
+E1, E2). **Closes #1881** (the container radius sizes render), **#1444** (density's effect is legible), **#2048** (the
+hairline switch can no longer contradict the emission: it is gone) and **#1189** (folded into `lint-ramp-values`);
+**#1854's density half** is now held (a Dark density edit writes `modeLevers.dark.density`, by name); #1912's Control
+shape row is retired with the legacy section.
+
+**What the user sees.** Shape is a page of its own in the two panes (it was the legacy Size & radius page):
+- **Levers.** The intro "Control heights and corners. Padding is set per component." **Density**: the three chips, then
+  "Padding is set per component." and **See Components**. **Radius**: the radius softness slider over the manifest's
+  named stops (sharp … round), then the four **Control shape** chips. Behind **Show 1 advanced**, **Base radius**: a value
+  picker over 2–12px, each value with a live corner sample (D15). Last, **Continue to Depth & motion**.
+- **No Hairline radius switch.** The engine always emits `radius.hairline` (#2053); the lever is `deprecated` in the
+  manifest, and nothing in the studio draws or writes it.
+- **The previewed mode** (Q22): Density and radius softness edit the mode the preview shows. Outside Light they read
+  "Auto: follows Light (‹value›)" until set, with **Return to Auto**; Density keeps the decided sentence ("Spacing
+  follows the brand's density, not the mode's …"). A custom mode follows **Light**, not its base mode, because that is
+  what the engine resolves (scope finding 7). Control shape and Base radius are brand-wide (Q54). HC light, HC dark and
+  wireframe hold every control disabled under S4a's line, and the preview is still drawn (Q59).
+- **The preview** (D1 A), each section on the brand's page color in a gray container, every sample in the brand's own
+  roles (D2 A: `foreground.secondary` fill, `border.primary` edge): **Density** (every control height for the mode,
+  "Medium button · 44px" where a button binds it (D6), and what binds each height); **Radius** (every radius size the
+  engine emits, read from `theme.dims.radius`, so `xl`, `2xl`, `3xl` and `hairline` are drawn, each with its value in the
+  mode and the component definitions that use it; wireframe draws every radius at 0, as the emission does; then the four
+  control shapes at the medium height, the brand's marked); **Spacing** and **Building blocks** (read-only: border widths,
+  icon sizes, the 4px grid). Base radius reveals the Radius section (`PREVIEW_HEADING`), and every edit eases the preview
+  to its section (QA-B9).
+- **Brand's Style guide** gains a **radius sample** after the type sample (D18 B): a panel at `radius.xl` holding a field
+  (`radius.sm`), a button (the radius Button binds under the brand's Control shape) and a tag (`radius.round`), each at
+  its definition's control height. Built so S9 can add the shadow (a `shadow` option paints the panel).
+- **The Button options** stay on the legacy page, which keeps its title "Size & radius" (D5 B) and now holds only them.
+  The web's Components tab shows it; in the plugin it is reached through the Pages menu until S8 (D4 B).
+- **Routes by tab.** Type's Continue opens Shape; Shape's Continue opens the Depth & motion tab, and See Components the
+  Components tab, through `pageOfTab(tab, host)` in `pages.ts`, so the page each host shows is the data's answer.
+
+### Diagnosis and structure
+
+- **New:** `domains/shape.ts`, `state/shape-input.ts`, `preview/shape.ts`; `preview/sections/radius.ts`,
+  `control-heights.ts`, `spacing.ts`, `shape-building-blocks.ts` (its own file: Type's `building-blocks.ts` shares only
+  the heading), `radius-sample.ts`, each stamping its `data-sg-section`.
+- **"Used by" is data, not an import (T4).** `preview/used-by.ts` is GENERATED by `apps/studio/gen-used-by.ts` from the
+  engine's 26 definitions and its own `applyControlShape` (so a pill brand's buttons read `radius.capsule`), and
+  `test-used-by.ts` fails while it is stale (the `regen --check` shape). The web bundle never imports a definition.
+- **`main.ts` 4,849 → 4,644 lines (on `main` after S9.1).** Retired: `RADIUS_STEPS`, `paintRadiusPreview`, `paintControlShapePreview`,
+  `paintSizePreview`, `paintSpacingPreview`, `paintPrimitivesPreview`, the two notes, the radius and density per-mode
+  selects (`PER_MODE_SELECTS` keeps tempo), four of the page's five blocks, and the four `SECTION_MODE_SCOPE` rows.
+  `renderSizeRadiusPage` keeps Buttons; `paintButtonLayoutPreview` keeps its literal `rp.dims['radius.md']` until S8
+  (#2049).
+- **The slider survives its own edits.** The levers panel repaints whole on `brand`, except while the radius softness
+  slider's own edit runs: then it updates its readout and Auto state in place, so a drag is not cut. Any other brand
+  change (a chip clicked while the slider still has focus) repaints the whole panel; the equivalence driver found the
+  first version, keyed on focus, leaving the chips stale.
+
+### Two engine gates re-scoped, not weakened (docs/34)
+
+- **`lint-ramp-steps`.** Its `RADIUS_STEPS` entry and the four `omits` that pointed at #1881 and S7 go with the hand list
+  they checked. The property the entry stood for ("every rung the engine emits is drawn") has no authored side left to
+  compare; it is now held as drawn, by `test:smoke`'s Shape section against the committed emission (every `radius.*`,
+  per mode, at its emitted px). `STUDIO_FILES` gains the eight Shape modules, so a hand list revived in any of them is
+  discovered and fails UNCLASSIFIED by name (measured below).
+- **`lint-ramp-values`.** Its subject, a ramp resolving rungs through `rp.dims`, no longer exists for radius: the
+  preview reads the ladder itself. The scan WIDENS from `main.ts` to every `apps/studio/src` file (the redesign moves
+  code out of `main.ts`, so a scan pinned there would watch less each slice), and arm C keeps the legacy Buttons
+  specimen's literal read. The floor that failed on 0 interpolated reads (0 now being the truth) becomes a liveness
+  floor: `main.ts` and the radius module read by name, and a planted fixture found by both detectors. #1189 is folded:
+  a ramp whose special-case discovery reads nothing has its arm-A findings skipped.
+
+### `radiusHairline`'s home: none, held by the manifest
+
+`pages.ts` no longer places it, and `test-pages` reads the manifest's `deprecated` flag (#2053's `Lever.deprecated`):
+a retired lever is excluded from "every lever has a home" and fails if a row places it. No hand list, so the next
+retirement needs no edit to the test.
+
+### Behavior-neutral, measured
+
+An equivalence driver (scratch, not committed) drove the legacy Size & radius page on a build of `origin/main`
+(`4e432fe4`) and the Shape page on this branch with the same semantic steps, per corpus brand (prism3, aurora, harbor),
+in Light, Dark and a Dark-based custom mode: every density chip and Auto, every radius softness stop (0, 0.5, 1, 1.5, 2)
+and Auto, every Control shape, Base radius 2, 7, 12 and back, and the hairline switch on and off. **165 of 177 persisted
+brands byte-identical**, 0 page errors. The 12 that differ are intended: 6 are the retired hairline switch (`main` writes
+`radiusHairline: true`, then `false`; the branch has no switch, so writes nothing), and 6 are "pin Light's own density
+while the mode is on Auto" (`main`'s select could write `modeLevers.<mode>.density: 'comfortable'` from Auto; the
+branch's chips cannot, as Type's selects cannot pin Light's family (Q62); pinning it takes another value first). The
+traps held: the Light default is written (`density: 'comfortable'`, `radiusScale: 1`, `controlShape: 'rounded'`,
+`baseMd: 4`), Auto prunes `modeLevers` to the byte, a mode value equal to Light's is written as a value.
+
+### Tests
+
+- **Counts** (against `origin/main` `4e432fe4`, measured before merging S9.1 in): `test` repaint-guard 165 → 174, page-data 76 → 78, new shape-input 20
+  and used-by 19; `test:smoke` 4,119 → 4,330; `test:chrome` 13,347 → 14,217; `test:verdict` unchanged.
+- **Moved to new hooks, their oracles kept (T7):** #1675's chips for Density and Control shape (smoke 3d, manifest
+  options, the persisted write, ArrowRight); the per-mode density sentence (counted on Shape, floor one per brand); the
+  keyboard check (ArrowRight on Type lands on Shape's levers); the Search check (on Shape's levers, by hook); the
+  mode-strip sync (on Depth & motion, the first legacy page with a strip); #1912's audit row.
+- **`test:chrome` section 24:** specimen grounds and Q24 containers in every mode on both hosts; D2's sample colors
+  against the emission; every lever once (D1 A) and no hairline switch; the approved copy and the Q23 pairs; D6's labels
+  against the emitted heights; every emitted radius size in order; D16's plain words; Q22 writes in Light and Dark, Auto
+  following Light for a Dark-based custom mode, Q54 from Dark; Q59 over every control in each derived mode, the preview
+  still drawn and wireframe at 0px; the routes by tab and the plugin's Pages-menu way to "Size & radius"; the reveal; the
+  chrome at 1280, 640 and 380.
+- **`test:smoke` 1g:** per brand and mode, the four sections on the emission's page color with their markers, every
+  sample its emitted hex, and Radius, Density, Spacing, border widths and icon sizes against the emission.
+
+**Mutations, each in a detached worktree at the branch's `wip:` commit, restored with `git checkout -- .`, each failing
+by name:**
+
+| Mutation | Fails with |
+|---|---|
+| Dark radius softness written to Light (`setRadiusScale` ignoring the mode) | unit `previewing Dark, setRadiusScale writes modeLevers.dark.radius and leaves radiusScale alone`; chrome `previewing Dark, a radius softness edit writes modeLevers.dark.radius and not the brand value — wrote … radiusScale 1.5` |
+| Auto naming a Dark-based custom mode's base (`densityIn('dark')` in the Auto line) | chrome `a custom mode based on Dark, on Auto, says it follows Light, not Dark's Compact (custom-1: "Auto: follows Light (Compact)")`, alone |
+| The radius list from a hand list (`RADIUS_STEPS` without xl, 2xl, 3xl, hairline) | smoke `‹brand› / Shape / ‹mode›: Radius draws every radius.* the emission carries … — missing radius.xl, radius.2xl, radius.3xl, radius.hairline` (every brand and mode); chrome `the Radius section draws every radius size the emission carries, in order` |
+| The samples painted the studio's gray | chrome `D2: shape ‹host› ‹theme› 1280, previewing ‹mode›: every radius sample is filled with the brand's foreground.secondary …`; smoke `every sample is painted its role's emitted hex … foreground.secondary background #e4e4e7` |
+| D6's label dropped | chrome `D6: ‹host›: the Medium button height reads "Medium button · 44px" ("44px")` (and Small, Large) |
+| The hairline switch drawn back (row in `pages.ts` + a builder) | test-pages `a retired lever has no home — retired levers placed: radiusHairline → Shape › Base radius`; chrome `#2053: ‹host›: Shape draws no Hairline radius switch` and `Shape: every lever pages.ts places renders once — also drawn lever-radius-hairline` |
+| An interpolated `rp.dims` read in `radius.ts` | `lint-ramp-values` `UNDECLARED RAMP — apps/studio/src/** reads rp.dims with an interpolated 'radius.*' key` |
+| `RADIUS_STEPS` revived in `radius.ts` | `lint-ramp-steps` `UNCLASSIFIED — … declares RADIUS_STEPS` |
+| TextField's radius moved to `radius.md` in its definition | test-used-by `the committed index matches the component definitions — stale: radius.rounded.radius.md, …` |
+| The derived-mode disable removed | chrome `Q59: previewing HC light, every control on Shape is disabled … (0/9)` (and HC dark, Wireframe) |
+| `noteSectionEdit()` removed from Shape's edit | chrome `QA-B9: editing Density on Shape brings the preview's Density section into view` (and radius softness, Base radius) |
+
+### Copy for owner approval (DRAFT; every other string is APPROVED or the manifest's)
+
+```
+Base radius (section description, levers and preview pairing):
+  The medium radius at standard softness. Every other radius size is a multiple of it.
+Radius softness (lever label; the manifest's is "Corner softness", E2 puts "radius" in names):
+  Radius softness
+Density (info):
+  Sets every control height, and moves each component’s padding and gaps one step on the spacing scale.
+Radius softness (info):
+  How round every radius size is, from sharp (0) to round (2). The pill sizes and the 1px radius stay fixed.
+Control shape (info):
+  The shape of buttons and icon buttons. Boxed is square, hairline is a 1px radius, rounded follows radius softness, and pill is fully round at any height.
+Base radius (info):
+  The medium radius at standard softness, from 2 to 12px. Every other radius size is a multiple of it.
+Base radius picker hint:
+  The medium radius at standard softness. The other sizes scale from it.
+Preview table heads:          Size · Used by · Sample (Radius) · Height · Used by · Sample (Density) · Step · Sample (Spacing, Grid) · Width · Sample (Border width) · Size · Sample (Icon size)
+Preview sub-heads:            Control shape · Border width · Icon size · Grid
+Radius row label:             ‹n›px, and ‹n›px · pill for the two pill sizes (round, capsule)
+Height row label (no button): ‹n›px   (a height a button binds reads the approved "‹Size› button · ‹n›px")
+The 1px radius row:           no note of its own: "1px", radius.hairline, and its "used by" (under Hairline shape: Button, IconButton)
+Control shape, current:       ‹Shape› · selected   (the legacy specimen's words, kept)
+Style guide radius sample:    Radius sample
+                              The brand’s radius on a panel, a field, a button and a tag.
+Legacy page lede (D5 B keeps the title "Size & radius."):
+                              Button icon placement, label size and weight, and minimum width. Density and radius are set on Shape.
+Pages menu subtitle:          Button options
+Screen-reader only:           Base radius: ‹n›px. Pick a value (the picker button) · Radius softness, ‹Mode› (the slider)
+```
+Recommendation: approve as written. The tooltips replace the manifest's descriptions on this page only; the engine's own wording is #2050.
+
+### Design calls made the conservative way, for the owner to see
+
+1. **Auto on a chip.** Under Auto the chip of the value the mode follows is the checked one, and choosing it again writes
+   nothing (Type's Q62 selects leave Light's own value out of the list for the same reason).
+2. **The radius sample sits second in the Style guide**, after the type sample, so the two brand-character samples lead.
+3. **See Components sits in Density's lever**, under the chips, where the approved line says where padding is set.
+4. **The samples' roles:** the scope's proposal (`foreground.secondary` fill, `border.primary` edge); the Style guide
+   sample's controls take the page color on a `background.secondary` panel, so they read against it.
+
+---
+
+## (2026-10-04) — Type: the 18px smallest title and the fluid switch can't drop a size you set individually (#2054, #2055)
+
+**STATUS: branch `ui/2054-2055-type-refusals`, PR held: copy pending.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. **Fixes #2054, Fixes #2055.** The three reason strings are drafts and the owner's to approve.
+
+### What changed
+
+Both fixes follow #2044's pattern: the control the engine would refuse is disabled up front, with the reason in its title.
+
+- **#2054.** On Type, the "18px" smallest-title chip is disabled while title 2xs is set individually. Draft reason: "Leaves out title 2xs, which you set individually."
+- **#2055.** The "Headings scale between mobile and desktop" switch is disabled while it is on and a heading has a mobile size set individually. Draft reason: "Removes the mobile size of ‹size›, which you set individually." With more than one size, it reads "Removes the mobile sizes of ‹a› and ‹b›, which you set individually." Sizes are named as `<group> <size>`, in group order (display, title, eyebrow).
+
+Turning the switch on is never refused. A brand that already arrives in a refused state keeps the current option live, so it can move out (B8b's rule):
+- the 18px chip is only disabled while 16px is current;
+- the switch is only disabled while it is on.
+
+Nothing a still-offered control writes has changed: the fix only sets `disabled` and `title`.
+
+### Diagnosis, and why no trial build
+
+Each refusal is a pure function of what the brand sets, so `state/type-input.ts` applies the engine's rule directly, as `ceilingBlocked()` does.
+
+- **#2054, `titleFloorBlocked()`.** Title 2xs exists only with `titleFloor: 16`, and the engine refuses a size set on a rung the brand doesn't make. It reads a set size from:
+  - `typography.sizes.title`;
+  - a desktop or mobile `sizeOverrides.title` endpoint;
+  - any mode's `modeLevers[mode].typeSizes.title`.
+
+  `titleFloorBlocked()` checks all three for `2xs`.
+- **#2055, `fluidBlocked()`.** A `sizeOverrides.<group>.<size>.mobile` endpoint needs responsive typography, because the engine throws "a mobile override needs responsive typography". A desktop endpoint builds either way. `fluidBlocked()` lists the heading sizes (`PER_MODE_SIZE_GROUPS`) with a mobile endpoint.
+
+### Gates and their independence
+
+- **`test-type-input.ts`.** The expected values are typed in the test, never read from the module. The engine is a second witness each time.
+  - #2054: nothing set, and a title xl pin, are not blocked, and 18px builds. A 2xs size set brand-wide, on mobile, and in Dark only is blocked, and 18px throws in `brandTheme`.
+  - #2055: nothing set, a desktop pin, and a desktop `sizeOverrides` endpoint are not blocked, and fluid off builds. One mobile size, and two in either order (always listed in group order), are blocked, and fluid off throws.
+- **`test-chrome.mjs`** drives the real controls through the value picker.
+  - #2054 runs on the Expressive scale with the 16px floor. On Default, title 2xs (16px) has no other value to pick: xs is 18px and the floor is 16px. For title 2xs set in Light, and then in Dark only, the 18px chip is disabled with the exact reason. A forced click writes nothing. Releasing the size makes the chip live again. Back on 18px and Default, the brand returns to its bytes.
+  - #2055: with display md set on mobile, and then with title sm added, the switch is disabled with each reason. A forced click writes nothing. Releasing both makes it live again and returns the brand to its bytes.
+  - A mobile size on title 2xs has no free value in the picker either (at most its desktop 16px, at least the 16px floor), so that case is covered by the unit arm only.
+- **Mutations.** Each was run after a `wip:` commit, and each failed by name; the table is in the PR.
+
+### #388's smoke test: re-pointed a third time, not weakened
+
+With #2044, #2054 and #2055 guarded, no Type control is left that makes an edit the engine refuses. Each guard closed the path §2d used, which is why it moved twice before.
+
+`test-smoke.mjs` §2d now uses a test-only hook, `window.__prism3TestEdit(path, value)`, in `entry.ts` step 8. It is defined only on web, and only when the page is opened with `?p3-test-hooks`. It runs `setPath` on `brandState` and then `rebuild()`, the same two steps a control's edit takes. So the engine's refusal and the error bar are real; only the control is not.
+
+The flow:
+1. The hand-written seed (16px floor, Default scale, title 2xs at 16px) is stored.
+2. The page is opened with the parameter.
+3. The hook removes `typography.titleFloor`, and the engine refuses `typography.sizes.title.2xs`.
+4. Undo is the real 16px chip, which stays live because it is the way out.
+
+Every assertion stands: the bar is quiet, then shown, names the field, survives navigating to Motion, and clears on undo. Two assertions are added: the hook exists with the parameter, and it is absent without it.
+
+**A stored refused brand was not used.** On web, a saved brand the engine refuses boots the empty state with the #1989 notice, not the error bar. That route would test a different surface.
+
+### Traps for whoever is next
+
+- **A synthetic click reaches a disabled button's `onclick`.** `dispatchEvent(new MouseEvent('click'))` from `page.evaluate` ran `choice()`'s handler on a disabled chip and wrote the refused edit. The chrome arm first used it to get past the hook guard, and so failed with the fix in place. A real click is never delivered to a disabled button. Use `hooks.click(locator, { force: true })`, as Q65 does.
+- **The plugin bundle also carries the hook's code.** It is behind `PRISM3_HOST !== 'figma'`, so it never runs there.
+
+---
+
+## (2026-10-04) — test:chrome reads the scroll glides on frame time, not the wall clock (#2042)
+
+**STATUS: branch `test/2042-glide-deterministic`.** Test only: `apps/studio/test-chrome.mjs`. No source change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. **Fixes #2042.**
+
+### Diagnosis
+
+#2015's `QA-B9: the glide lasts about the default transition's 200ms` failed once at 66ms while three test runs shared the machine. The glide itself was never short. `easedScrollTo` reads time only from the animation frame's timestamp, so its last step can't come before 200ms of frame time. The *measurement* was short, almost certainly. A recorder started after the edit's click returned, sampled `scrollTop` once per frame and timed "first move to settled". Under load, that `page.evaluate` round trip can arrive after the glide has started, so the recorder sees only its tail. The mutation runs here show the lag directly: with reduced motion ignored, a position read "right after the edit" was already four frames into the glide (scrollTop 2193 of a 3024 → 865 glide). The same late recorder backed the four "glides through positions on its way" checks (Q4, QA-B9 on Surfaces & fills, Interactive and Type, and QA-B17), which needed at least two in-between positions in whatever tail it caught. They were one bad scheduling run from the same failure.
+
+### The approach: a glide log on a virtual frame clock
+
+A helper above section 15, `installGlideLog`, does two things in the page:
+
+- It wraps `requestAnimationFrame` so every frame's callbacks get a **virtual timestamp**, exactly 16ms after the previous frame, whatever the wall clock did. All callbacks in one real frame share one timestamp.
+- It logs **every `scrollTo` on the two panes** from before the edit: the position asked for, the behavior, and the virtual frame time it ran in. The time is null when the step ran outside a frame, in the edit itself.
+
+`glideOf` reads one pane's log. A 200ms glide then takes the same steps on any machine, and the checks are:
+
+- **Duration:** the last step is the first frame at or past 200ms after the first step. Measured: the step before it at 192ms, the last at 208ms, with 12 positions in between. A temporary debug line printed these in the mutation runs, which ran under the same load as the load test.
+- **Easing:** every step lies within 1px of `cubic-bezier(0.2, 0, 0, 1)` at its own frame time. The test solves the curve with its own bisection, not `follow-edit.ts`'s Newton solver.
+- **In-between positions:** at least two.
+- **Reduced motion:** exactly one step, taken in the edit rather than in a frame. This is the stronger form of "lands at once". The old form compared a position read after the click with a later sample. A glide that finished before the read (200ms, under load) passed it, so a reduced-motion mutation could have gone green on a busy machine.
+
+`frames()` stays, but only to wait until a pane has held still. It no longer feeds a timing check.
+
+**Why not `page.clock`, and why not only (a).** `page.clock` fakes every timer, `Date` and `performance.now` in the page, so the whole section would run on a clock the test has to pump. The glide reads only the frame timestamp, so only that is made virtual. Reading the declared tokens alone (option (a)) was already done by `QA-B9: both panes scroll on the chrome's default transition`. It can't see a source that ignores the token, and "intermediate positions exist" would still have depended on frame spacing. The token check stays, and the frame-time checks add what it couldn't see.
+
+**Trap for whoever is next.** The virtual clock covers only the timestamp passed to `requestAnimationFrame`. If `easedScrollTo` ever times itself with `performance.now()` instead, the duration check silently goes back to wall-clock time. It would still pass when the machine is idle and flake under load again. The duration-0 mutation still fails either way.
+
+### Gates and their independence
+
+- Expected values are the test's own literals: `MOTION` (200ms, `cubic-bezier(0.2, 0, 0, 1)`) and the test's own Bézier solver. Positions come from the log, which records what the page asked the browser to do.
+- **Load test:** four `test:chrome` runs, each alongside at least two concurrent `npx tsx packages/engine/test.ts` loops on a 4-core machine (load average 7 to 14). Run 4 had four loops, because the first three runs' pair was still going. The mutation runs below added more load during the first three. Every scroll-follow check passed in all four runs. Runs 1, 3 and 4 were 13353/13353. Run 2 was 13352/13353: its one failure is #2073, outside the scroll-follow sections. Before this change, the 66ms failure needed only three runs sharing the machine.
+- Mutations, each after a `wip:` commit, restored with `git checkout -- <file>`, each failing by name:
+
+| Mutation | Fails with |
+|---|---|
+| The duration token at 0 (`--p3-transition-dur` emitted as `0ms`, in `chrome/tokens.mjs`) | `✗ QA-B9: both panes scroll on the chrome's default transition, 200ms and cubic-bezier(0.2, 0, 0, 1) — read [["0ms",…]]`, `✗ QA-B9: the glide lasts the default transition's 200ms, on cubic-bezier(0.2, 0, 0, 1): … (1 steps, in frames false; …)`, the four "glides through positions on its way" checks (Q4, Surfaces & fills, Interactive, Type) and QA-B17's, and `✗ Q4: without reduced motion the reveal steps its own eased glide …` |
+| Reduced motion ignored (`reducedMotion()` returns false in `preview/follow-edit.ts`) | `✗ QA-B9: under reduced motion the reveal lands at once, with no frame between (… 15 step(s), in frames true …)`, `✗ QA-B17: under reduced motion a jump link lands at once (…)`, `✗ Q4: under reduced motion the reveal asks for one instant scroll, in the edit itself …`, and Q4's two other reduced-motion checks |
+| The reveal no-ops (`revealSection` returns before scrolling) | `✗ QA-B9: editing a Border step on Surfaces & fills brings the preview's Border section into view …`, `✗ QA-B9: the glide lasts the default transition's 200ms … (0 steps …)`, `✗ QA-B9: under reduced motion the reveal lands at once …`, the Interactive and the six Type reveal checks, and their glide checks |
+
+An unrelated flake turned up in load run 2: the chrome audit's `a write running` read the spinner's "…" partway through its fade to transparent (2.85:1). It's the same wall-clock class in a different section, so it's filed as #2073 rather than fixed here.
+
+---
+
+## (2026-10-04) — test:chrome refuses a stale plugin bundle, and the studio README describes the two kinds of page (#2037, #2011)
+
+**STATUS: branch `test/chrome-ui-freshness-2037`.** Test infrastructure and docs only. No engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. **Fixes #2037 and #2011.**
+
+### #2037: the figma host can no longer test an old UI
+
+`test:chrome` serves `apps/plugin/dist/ui.html` as its figma host, and the plugin build inlines `apps/studio/src` into that file. So after a studio-only rebuild, the figma arm measured the previous UI and reported on it as if it were the current one. That hit two hand-run mutation batteries (S4e's info-text mutation, S6.3's one-home mutation). `npm run verify` was never affected, because it builds both bundles first.
+
+The suite now checks at startup that `dist/ui.html` is at least as new as every file under a literal list of source roots: `apps/studio/src`, `apps/studio/chrome`, `apps/plugin/src` and `packages/engine`. If any is newer, it exits before launching a browser and names the newest file plus the rebuild command.
+
+**A check, not a build-first, because that is how `verify.ts` orders builds.** There, `build-web` and `build-plugin` are their own gates, and every browser suite declares `after` on them and never builds itself. A build inside `test:chrome` would build the plugin twice per verify, and a build failure would be reported under the `chrome` gate's name.
+
+**The roots are literal, not esbuild's input set.** The plugin build writes no metafile, so this suite can't read the exact inputs. The list errs wide. It includes `packages/engine` because the studio bundles the engine, so an engine-only edit leaves the figma arm just as stale. A root wider than the bundle only costs a rebuild that wasn't needed (for example, an edit to `apps/plugin/src/main.ts`, which is the main thread's file, not the iframe's). A root that is missing or holds no files fails by name, rather than letting the walk compare nothing and pass (docs/34 shape 9).
+
+Mutations, each failing by name with `✗ ui.html freshness: …`:
+- `touch apps/studio/src/entry.ts`, then a studio-only rebuild: names `apps/studio/src/entry.ts`.
+- A nested file (`apps/studio/src/shell/activity.ts`): names it.
+- `touch packages/engine/color.ts`: names it.
+- A root renamed to one that doesn't exist: `source root apps/studio/no-such-dir is missing or holds no files`. The first draft let `readdirSync` throw a raw `ENOENT` stack here, which fails but not by name, so the walk now catches it and reports it.
+- Rebuilding the plugin clears the check: 13353/13353 chrome assertions pass.
+
+**Trap for whoever is next.** The check compares mtimes. A `git checkout` or rebase that rewrites a source file stamps it with the current time, so `test:chrome` refuses until the plugin is rebuilt. That is correct (the bundle really is older than the checked-out source), but it will show up after every branch switch.
+
+**Same gap, other host, not covered here.** The web host serves `apps/studio/dist/main.js`, and nothing checks that file's freshness either. The issue named only `ui.html`, and the bite it recorded was the figma arm's. Filed as #2067.
+
+### #2011: "Driving it headlessly" no longer lists pages
+
+`apps/studio/README.md` still said Palettes, Typography and Layout show no mode bar. That stopped being true one slice at a time as the redesign moved pages into the two panes. The section now describes the two kinds of page, and points to `src/shell/pages.ts` (`status: 'new' | 'legacy'`) as the place that says which kind a page is, so it doesn't go stale as pages move:
+- **Moved pages** carry the mode control in every preview header. In a derived mode their controls stay on screen, read-only, under a state line.
+- **Legacy pages** keep the #268 mode strip, shown only where a mode-varying control exists. In a derived mode they drop their editors for the read-only note.
+
+The ordering trap and its rule are kept, and restated for both kinds of page. Layout is described with no special case, so the text holds before and after #2060 moves it.
+
+---
+
+## (2026-10-04) — surfaces floorStep refuses a step that is not on the neutral ramp (#2033)
+
+**Status:** ENGINE `0.226.0` (`engine: minor` change note), CONTRACT unchanged. `regen` moves no
+committed artifact. Engine only: `apps/studio` and `apps/plugin` untouched.
+
+### What changed
+
+Owner go-ahead 2026-10-04: `surfaces.<mode>.floorStep` gets the treatment `base` and `inverseBase` got in
+#1985. `modeConfigs` resolves it with `n()`, which snaps to the nearest neutral step, so `333` used to become
+`neutral.350` and `1234` `neutral.950` with no error, silently moving every floor-gated role
+(`text.secondary`, links, `foreground.*`, the interactive fills, disabled text). Now `brandTheme` refuses
+an off-ramp number by name, naming the nearest real step (`333` → 350, `1234` → 950), and a non-number by
+name (`'300'`, `'grey'`). Real steps are accepted unchanged: `text.secondary` is measured against exactly
+that step.
+
+**Which ramp.** `floorStep` always indexes the NEUTRAL ramp. `modeConfigs` resolves it with `n()` whatever
+the page or the inverse band is on, and it has no `white`/`black` form, so the message offers neutral steps
+only.
+
+**One helper, not two copies.** #1985's nearest-step refusal is now `requireStep` in `brandTheme`, shared by
+the six surface anchors and `floorStep`. The anchor messages are byte-identical to before.
+
+### Measured before changing behavior
+
+A temporary recorder, never committed and removed before the fix, logged every `floorStep` that
+`brandTheme` saw, and every one `modeConfigs` resolved, while these ran:
+- `regen --check`, `test.ts`, `lint-ratio-truth`, `mcp-test`, `nb-regression`, `token-contract --check`,
+  `lint-lever-sweep` and `lint-voice` (its `NOTE_SWEEP` sets `floorStep`);
+- the Studio unit suites `test-provenance`, `test-export-settings`, `test-store`, `test-brand-input`,
+  `test-fills-input`, `test-interactive-input`, `test-type-input`, `test-depth-motion-input`,
+  `test-lever-controls`, `test-pages` and `test-verdict-count`.
+
+That was **1,984 records, 14 with a `floorStep` set, 4 distinct values (100, 200, 300, 800), 0 off the
+ramp**. Every record saw the same neutral ramp (25 to 950). The Studio's contrast-floor select is built from
+the theme's own neutral steps (`neutralStepOptions`), so it can't write an off-ramp value.
+
+### Version class: minor
+
+ENGINE major is refused while below 1.0 (`changes/README.md`; going to 1.0 is the owner's call). The values
+now refused were already resolving to a floor nobody chose, so this turns a silent mis-resolution into a
+named error rather than removing a working capability. No measured input relied on it. CONTRACT versions
+token names, and none moves.
+
+### Mutations
+
+| Mutation | Fails |
+|---|---|
+| the `floorStep` check removed | 8, all `#2033` arms, e.g. `#2033: surfaces.light.floorStep = 333 is refused by name, naming the nearest step 350 (got: "")` |
+| the nearest step always the ramp's first | 14: 4 `#2033` arms and 10 `#1985` arms (the shared helper), e.g. `… naming the nearest step 350 (got: "… the nearest step is 25 …")` |
+
+### A trap for whoever measures this way next
+
+A recorder that names `node:fs` in `packages/engine/` breaks the plugin build, which refuses `node:`
+builtins in `dist/main.js`. Measure with the plugin unbuilt, or remove the recorder before building it.
+
+---
+
+## (2026-10-04) — Type: the largest display size can't trim a size you set individually (#2044)
+
+**STATUS: branch `ui/2044-ceiling-disable`.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. **Fixes #2044.**
+
+### What changed
+
+On Type › Scale limits, the "Largest display size" select now offers a ceiling below a display size set individually as a disabled option, with the reason the owner approved on 2026-10-04: "Smaller than display ‹size›, which you set individually." ‹size› is the largest display size set individually, because that's the one the brand must reach. A size counts as set wherever the engine reads one: `typography.sizes.display`, a desktop or mobile `typography.sizeOverrides.display` endpoint, or any mode's `modeLevers[mode].typeSizes.display`. A brand whose current ceiling is already refused keeps that option live, so it can move out (B8b's rule). Every option still offered writes what it wrote before.
+
+### Diagnosis, and why no trial build
+
+The engine trims display rungs by position before it computes any size (`DISPLAY_VARIANTS`, `i > ceilingIdx`), and then refuses any size set on a rung that was trimmed. So which ceilings it refuses is a pure function of which display rungs have a size set. `ceilingBlocked()` in `state/type-input.ts` applies that rule directly: no trial build per option, so the select costs nothing extra on a repaint. `selectField` gained an optional `off` reason per option (disabled, with the reason in its title, the same form as the scale chips' clash and B8b's 16px chip).
+
+### Gates and their independence
+
+- `test-type-input.ts`: the expected refused set comes from the pins and a ceiling order typed in the test, never from the module. The engine is a second witness: each refused ceiling throws in `brandTheme`, and each other one builds. Covers a desktop pin, a mobile pin, a Dark-only pin, two pins (the larger names the reason), and a pin on `sm` (nothing refused).
+- `test-chrome.mjs`: with display md pinned on desktop, then on mobile, through the real value picker, `display.sm` is disabled with the exact approved text and md to 3xl stay live; releasing the pin returns the brand to its bytes.
+- Mutations, each after a `wip:` commit, each failing by name: drop the disable (`#2044: with display md set on desktop …` and `… on mobile …`), the wrong reason text (the same two), and `ceilingBlocked` ignoring mobile pins (`ceilingBlocked, display md set on mobile …`).
+- Equivalence: a throwaway driver imported `origin/main`'s `type-input.ts` beside this branch's and wrote every offered ceiling on all three example brands, with no pin and with display md pinned on desktop, on mobile and in Dark. **63/63 enabled ceilings wrote the same bytes; 9 disabled.**
+
+### #388's smoke test: re-pointed, not weakened
+
+S6.3 had pointed `test-smoke.mjs` §2d at exactly this refusal. It now stores a **hand-written brand input** (this context's brand with the 16px title floor, the Default scale, and title 2xs set at 16px, which the engine takes), reloads, and makes a real edit on Type: the 18px smallest title. The engine refuses `typography.sizes.title.2xs`, and every assertion stands as before: the bar is quiet, then shown, names the field (`typography.sizes.title.2xs`), survives navigating to Motion, and clears on undo. The context's own brand is then restored. A mutation of the field regex failed on all three brands with the real engine message in the bar.
+
+**Trap for whoever is next.** This fix did *not* close the last path to an engine refusal on Type. Two remain, both the same class as #2044, and both are filed: the 18px title floor with title 2xs set (#2054, which the smoke test now uses) and turning off fluid headings with a mobile size set (#2055). When both are guarded, §2d needs a home that doesn't rely on an unguarded control, most likely a test-only hook.
+
+---
+
+## (2026-10-04) — UI redesign S9.1: Depth & motion groundwork (the Elevation and Motion writes DOM-free, their preview pieces shared)
+
+**STATUS: branch `ui/s91-depth-motion-groundwork`, behavior-neutral, no visible change, no new strings.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. The first of S9's two PRs (the S7/S9/S10 scoping report's split, as S5.1 and S6.1 did: lift and extract, then the move in S9.2). Nothing here is an owner call; D7–D10, D15 and D16 (2026-10-04) shape S9.2, not this.
+
+**What moved.**
+- **The legacy Elevation and Motion writes are DOM-free**, in `state/depth-motion-input.ts`: `setShadow(mode, key, v, brandValue)` with `setShadowSoftness` and `setShadowTint` over it, `setTempo(mode, v)`, `setEasingRole(mode, role, curve)`, and the readers `brandShadowValue`, `shadowOverride`, `authoredTint`, `brandTempo`, `tempoOverride`, `easingOverride`. `'light'` writes the brand value; any other mode writes `modeLevers[mode]` through the store's pruning helper. The legacy pages call them in place and repaint through the tier they always used: `apply()` for the shadow sliders, `applyFull()` for tempo (#800), the shadow Auto reset and easing.
+- **How the generic controls reach them.** Light's softness and tempo were drawn by the generic lever knob, which wrote `setPath(brandState, lever.key, …)`. `renderControl` takes an optional `write` (default: that same `setPath`), threaded through `leverControl` and `leverSection`; `renderPerModeSelect` takes one too (default: `setModeLever(currentMode, key, …)`), which the per-mode tempo select passes. Every other lever keeps the default.
+- **The read-only pieces are shared**, in `preview/sections/`, each lifted unchanged in output and stamping #1964's marker as a literal in its own module: `shadowRampSection` (`shadow-ramp`, with `SHADOW_STEPS`), `shadowTintReadout` (`shadow-tint`, on the read-out block inside the Shadow section; it returns `{ node, refresh }` because the legacy page refreshes it imperatively, #305), `durationRampSection` (`duration-ramp`), `motionCurvesSection` (`motion-curves`, with `motionStageSvg`; the legacy page appends its Easing per mode table under it), `springsSection` (`springs`) and `motionTransitionsSection` (`motion-transitions`; the playback divisor is view state, so `main.ts` keeps it and hands it in). Each is handed the resolved axis and the mode; none reads the session. `tokenPillWrapping` and `VIEW_ONLY`/`viewOnly` moved to `kit.ts` with them.
+- `renderRepointTable` stays: it is Motion's easing table until S9.2. Its easing cells write through `setEasingRole`.
+- `main.ts`: 5,142 → 4,849 lines.
+
+**Behavior-neutral, measured.** A Playwright driver over a build of `origin/main` (`d0a306fb`, and again after rebasing onto `d162c5d0`) and of this branch, prism3, aurora and harbor, Light and Dark: every control on both legacy pages (softness, tint hue and amount, each slider to its max, min, middle and back to where it was drawn, which lands on the brand value outside Light; the three Auto resets, each after a fresh override; the three tempo chips; the per-mode tempo select through every option and Auto; every cell of the Easing per mode table, Light and Dark columns, through every option and Auto; the playback select), plus a hue-only edit on a fresh brand per corpus member (the partial tint). **504 of 504 snapshots byte-identical in the persisted brand, and the legacy frame's HTML byte-identical once the `data-sg-section` attributes are removed** (492 edits, 416 of which moved the persisted brand), 0 page errors on either side. Harbor, which authors no shadow, persisted `{"tint":{"hue":200}}` on both builds.
+
+### Tests
+
+- New **`test-depth-motion-input.ts`** (35 assertions, in `npm test`): each write against a JSON literal of the legacy bytes, the traps included (a Light hue-only edit on harbor leaves `{"tint":{"hue":200}}`; Light softness is appended after the tint and written even at the default; a Dark slider landing on the brand value clears and prunes; a Dark tint keeps its hue when the amount lands; Light's easing writes `default: standard` rather than unsetting); each Auto against the brand as loaded, serialized; the readers; the engine taking each edit and resolving it (`shadow`, `shadowByMode.dark`, `motion.tempo`, `motionByMode.dark.tempo`, `easingRoles`, `easingRolesByMode.dark`). The corpus values it relies on are restated as literals in section 0.
+- **`test-shell-imports`** 165 → 202: `MUST_SCAN` adds the seven new modules; the marker arm holds the six new markers; the AST write arm also holds that `main.ts` writes nothing into `brandState.shadow` or `brandState.motionPersonality` and makes no keyed write on `shadow.*`, `motionPersonality.*` or the mode fields `tempo`, `easings`, `shadow` (`renderShadowEditor:path` leaves `UNRESOLVED_OK`, which the stale check required); a new arm holds that `main.ts` draws the six pieces through the shared functions, keeps no copy (by title or markup), hands the softness knob, the Tempo section and the per-mode tempo select their state writes, and imports `./state/depth-motion-input`.
+- **`test:smoke`** 4,119 → 4,204 (section 1g): per corpus brand, Light and Dark, `checkSharedMarkers` on the legacy Elevation page (Elevation ramp) and the legacy Motion page (Duration ramp, Easing, Springs, Motion), each marker drawn exactly once, and the tint read-out carrying `shadow-tint` inside the Shadow section. Run on the `origin/main` build, section 1g fails 72 of its 85 assertions, so it is not vacuous.
+- **`lint-ramp-steps`** reads `preview/sections/shadow-ramp.ts` too, where `SHADOW_STEPS` now lives (a bare `const`, exported below it, so the `const NAME = [` parse still finds it).
+
+**Mutations, each after a `wip:` commit, diff checked non-empty, restored with `git checkout -- <file>`, each failing by name:**
+- Light's tint written whole (`setPath(brandState, 'shadow.tint', { hue, amount, [key]: v })`) instead of key by key: unit `setShadowTint(light, hue, 200) leaves the brand byte-identical to legacy (partial tint): shadow is {"tint":{"hue":200}} ({"tint":{"hue":200,"amount":0.15}})`.
+- A Dark shadow edit not cleared on landing on the brand value (`overriding = v !== undefined`): unit `setShadowSoftness(dark) landing on the brand value 1 clears the override: byte-identical to the brand as loaded`, and three more.
+- `main.ts` drawing its own Springs section (`palSection('Springs', …)` with its own grid) instead of `springsSection()`: shell-imports `src/main.ts draws the Springs section through the shared springsSection()` and `src/main.ts draws no Depth & motion preview piece of its own: Springs section — … found "palSection('Springs'"`; smoke `prism3 / motion / Light: the Springs section is the shared module's (data-sg-section="springs") — its root carries no marker: drawn by something other than preview/sections/`, on every brand and mode (12 failures).
+
+### Traps
+
+- **The two generic renderers write whatever key they are handed**, so the AST arm cannot tell a depth lever that reaches one without its state write. The shell-imports arm names the three call sites and the write each must carry; a new depth lever routed through the generic knob needs a line there.
+- **Light's tint and softness defaults differ in kind.** In Light every slider writes, the default included, and there is no clear-on-landing; outside Light, landing on the brand value clears. `setShadow` keeps both, keyed on the mode.
+- **The brand value a Dark slider lands against is the one it was drawn with** (`theme.shadow` at render), passed in by the caller as the legacy closure captured it; the default reads the resolved theme, which is the same value unless the brand is mid-error.
+
+---
+
 ## (2026-10-04) — The floor-ground test covers dark, a second floor step and HC, and an unresolved override ground is warned (#2034)
 
 **STATUS: PR open from `engine/fo01-coverage-fallback-warn-2034`.** These are the follow-ups from the orchestrator's review of #2032 (#2025). ENGINE is a minor bump (`engine: minor`) for the new warning. No emitted artifact moves, because no input reaches the warning. `token-contract --check` reports the contract unchanged, so CONTRACT_VERSION stays put.

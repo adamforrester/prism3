@@ -12,18 +12,30 @@ import { disabledSection } from './disabled';
 import { BUILT_IN_SECTION_COLUMNS, interactiveSection, type InteractiveSectionOptions } from './interactive';
 import { linksSection } from './links';
 import { focusRingSection } from './focus-ring';
+import { scrimSection } from './scrim';
+import { fieldsSection } from './fields';
 import { weightsByFaceSection } from './weights-by-face';
 import { typeScaleSection, SCALE_SAMPLE_CAP, MERGE_TITLE } from './type-scale';
 import { lineSpacingSection } from './line-spacing';
 import { buildingBlocksSection } from './building-blocks';
 import { typeSampleSection, typeSamplePicks, TYPE_SAMPLE_DISPLAY } from './type-sample';
 import { facesSection } from './faces';
+import { breakpointsSection } from './breakpoints';
+import { gridSection } from './grid';
+import { containersSection, containerReference } from './containers';
+import { layoutCtx, type LayoutCtx } from './layout-kit';
 import { shadowRampSection } from './shadow-ramp';
-import { shadowTintReadout } from './shadow-tint';
-import { durationRampSection } from './duration-ramp';
-import { motionCurvesSection, motionStageSvg } from './motion-curves';
+import { shadowTintSection } from './shadow-tint';
+import { durationRampSection, type DurationsCopy } from './duration-ramp';
+import { curveOfRole, motionCurvesSection, motionStageSvg } from './motion-curves';
 import { springsSection } from './springs';
-import { motionTransitionsSection, MOTION_SLOWMO_OPTIONS } from './motion-transitions';
+import { motionTransitionsSection, MOTION_SLOWMO_OPTIONS, type TransitionsCopy } from './motion-transitions';
+import { radiusSection, USED_BY_NONE } from './radius';
+import { controlHeightsSection, buttonHeightLabel } from './control-heights';
+import { spacingSection, SPACING_PREVIEW } from './spacing';
+import { shapeBuildingBlocksSection, SHAPE_BUILDING_BLOCKS } from './shape-building-blocks';
+import { radiusSampleSection, RADIUS_SAMPLE, SAMPLE_SHADOW } from './radius-sample';
+import { buttonLayoutSection, BUTTON_SIZES } from './button-layout';
 import type { SgCtx } from './kit';
 
 export { backgroundSection, foregroundSection, textColorSection, borderSection, iconSection };
@@ -35,6 +47,9 @@ export { linksSection };
 /** The Focus ring section (UI redesign S4c), shared so Color › Surfaces & fills can draw it after Border
  *  (owner decision Q30). Read-only. */
 export { focusRingSection };
+/** Color › Surfaces & fills' Scrim and Fields sections (UI redesign S4f: QA-B10; #2016, Q80), shared modules so each
+ *  carries its own marker. Only Surfaces & fills draws them; the Style guide's Background keeps its scrim. */
+export { scrimSection, fieldsSection };
 /** The Type preview's sections (UI redesign S6.1 lifted Weights and styles out of `main.ts`; S6.3 replaced the full
  *  type ramp and Layout's fluid read-out with Scale, and added Line height and letter spacing and the read-only
  *  Building blocks). Read-only. */
@@ -42,10 +57,22 @@ export { weightsByFaceSection, typeScaleSection, SCALE_SAMPLE_CAP, MERGE_TITLE, 
 /** The type sample (#1942, S6.2): Brand's Style guide draws it first, and the Type preview too (owner decision
  *  Q67). The Type preview's Faces section (S6.2). Read-only. */
 export { typeSampleSection, typeSamplePicks, TYPE_SAMPLE_DISPLAY, facesSection };
-/** The legacy Elevation and Motion pages' read-only pieces (UI redesign S9.1), shared so the Depth & motion page
- *  (S9.2) draws the same code: the elevation ramp, the tint read-out, the duration ramp, the curve set, springs and
- *  the traced transitions. Read-only. */
-export { shadowRampSection, shadowTintReadout, durationRampSection, motionCurvesSection, motionStageSvg, springsSection, motionTransitionsSection, MOTION_SLOWMO_OPTIONS };
+/** The Layout preview's sections (UI redesign S10): Breakpoints, Grid and Containers, and the context they draw with.
+ *  Read-only. */
+export { breakpointsSection, gridSection, containersSection, containerReference, layoutCtx, type LayoutCtx };
+/** The Depth & motion preview's pieces (UI redesign S9.1 lifted them out of the legacy Elevation and Motion pages;
+ *  S9.2 redrew them for the one Depth & motion preview, their caller now): the shadow steps and the shadow color in
+ *  Elevation; the curves, the durations (with the spinner's turn and the building blocks), springs and the traced
+ *  transitions in Motion. Read-only. */
+export { shadowRampSection, shadowTintSection, durationRampSection, motionCurvesSection, motionStageSvg, curveOfRole, springsSection, motionTransitionsSection, MOTION_SLOWMO_OPTIONS };
+export type { DurationsCopy, TransitionsCopy };
+/** The Shape preview's sections (UI redesign S7): Density's control heights, Radius, and the read-only Spacing and
+ *  Building blocks. The radius sample is the Style guide's (owner decision D18 B). Read-only. */
+export { radiusSection, USED_BY_NONE, controlHeightsSection, buttonHeightLabel, spacingSection, SPACING_PREVIEW, shapeBuildingBlocksSection, SHAPE_BUILDING_BLOCKS,
+  radiusSampleSection, RADIUS_SAMPLE, SAMPLE_SHADOW };
+/** The button-layout specimen (UI redesign S8.1, lifted from the legacy Size & radius page's Buttons block, unchanged in
+ *  output), so the Components page (S8.2) draws the same code. Read-only. */
+export { buttonLayoutSection, BUTTON_SIZES };
 /** The five, in order, by the title each section draws. */
 export const COLOR_SECTIONS: ReadonlyArray<readonly [string, (c: SgCtx) => HTMLElement]> = [
   ['Background', backgroundSection], ['Foreground', foregroundSection], ['Text color', textColorSection], ['Border', borderSection], ['Icon', iconSection],

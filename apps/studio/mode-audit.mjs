@@ -73,6 +73,15 @@
  * aurora and prism3 measured identically at the time of #1887. It is deleted with the mode strip it audits
  * (S13), and its CI step goes with it.
  *
+ * NOTHING TO READ, RECORDED BY NAME (UI redesign S9.2, owner decision 2026-10-04, option B). After S7 and S9.2 the
+ * only legacy page that draws a mode strip is Size & radius, left with the Button options, and its one section,
+ * Buttons, carries no mode-scope badge: that is #1912's last row in `KNOWN_BADGE_GAPS`, kept unbadged until S8 or S13
+ * retires the page and this audit. So no legacy section renders `mode-scope-badge`, and the badge read and the hook
+ * guard on that hook have nothing to read. The run says so by name ("mode-scope badge read: NOTHING TO READ …") and
+ * drops that one hook from the guard ONLY while every measured section renders no badge and every one of them is a
+ * known gap. The moment any legacy section renders a badge, the read runs and checks it as before, and the hook is
+ * guarded again; a section that should be badged and is not still fails `--check-badges` by name.
+ *
  * VERDICTS
  *   EDITS    — the control set/labels differ between modes. The bar is an EDITING SCOPE here.
  *   displays — only previews/readouts re-resolve. The bar is CONTEXT: useful, but not scoping an edit.
@@ -228,12 +237,16 @@ ok(stages.length > 0, `the rail offers ${stages.length} destination(s) to audit`
 // has no mode strip to audit: the mode control is in its preview header). The first Color page still legacy
 // is the one the menu must offer, and Palettes must be gone from it, with the menu's own rows as the proof.
 // Surfaces & fills followed in S4a and Interactive in S5.2, so the menu offers no Color page at all; Type followed
-// in S6.2, so the first legacy page it offers is Elevation, and Size & radius (Shape) is among them.
-ok(stages.some((x) => x.key === hooks.role('[data-p3="rail-page-size-radius"]')), 'the Pages menu offers the first legacy tab\'s page, Size & radius (Shape)');
+// in S6.2, so the first legacy page it offers is Elevation. Shape followed in S7; Size & radius stays in the menu,
+// holding only the Button options until S8 (owner decisions D4 B, D5 B).
+ok(stages.some((x) => x.key === hooks.role('[data-p3="rail-page-size-radius"]')), 'the Pages menu offers Size & radius, the Button options\' page until S8');
 hooks.absent(ok, { seen: stages.length > 0, state: 'the Pages menu\'s rows' }, stages.every((x) => x.key !== 'rail-page-palettes'), 'the Pages menu no longer offers Palettes, which moved to the two panes (S2)');
 hooks.absent(ok, { seen: stages.length > 0, state: 'the Pages menu\'s rows' }, stages.every((x) => x.key !== 'rail-page-surfaces'), 'the Pages menu no longer offers Surfaces & fills, which moved to the two panes (S4a)');
 hooks.absent(ok, { seen: stages.length > 0, state: 'the Pages menu\'s rows' }, stages.every((x) => x.key !== 'rail-page-interactive'), 'the Pages menu no longer offers Interactive, which moved to the two panes (S5.2)');
 hooks.absent(ok, { seen: stages.length > 0, state: 'the Pages menu\'s rows' }, stages.every((x) => x.key !== 'rail-page-typography'), 'the Pages menu no longer offers Typography, which moved to the two panes (S6.2)');
+hooks.absent(ok, { seen: stages.length > 0, state: 'the Pages menu\'s rows' }, stages.every((x) => x.key !== 'rail-page-layout'), 'the Pages menu no longer offers Layout, which moved to the two panes (S10)');
+for (const [key, name] of [['rail-page-elevation', 'Elevation'], ['rail-page-motion', 'Motion']])
+  hooks.absent(ok, { seen: stages.length > 0, state: 'the Pages menu\'s rows' }, stages.every((x) => x.key !== key), `the Pages menu no longer offers ${name}, which moved to Depth & motion in the two panes (S9.2)`);
 const tally = { EDITS: 0, displays: 0, inert: 0 };
 const claims = [];
 const noBar = [];
@@ -446,10 +459,9 @@ const probeSection = async (c) => {
  * exception cannot outlive its bug, and the fixing PR has to delete the row in the same change.
  */
 const KNOWN_BADGE_GAPS = [
-  // #1912: SECTION_MODE_SCOPE has no entry for these two, so `attachModeBadges` skips them: Control shape and
-  // Buttons are global levers (`csLeverStack(…, false)`). (Interactive's Links row left with the page in UI
-  // redesign S5.2: the two panes say which mode a row edits, and the mode strip is not there to badge.)
-  { page: 'Size & radius', name: 'Control shape', expected: 'all-modes', renders: null, issue: 1912 },
+  // #1912: SECTION_MODE_SCOPE has no entry for Buttons, so `attachModeBadges` skips it: the Button options are
+  // global levers (`csLeverStack(…, false)`). (Interactive's Links row left with the page in UI redesign S5.2, and
+  // Control shape's with Shape in S7: the two panes say which mode a row edits, and there is no mode strip to badge.)
   { page: 'Size & radius', name: 'Buttons', expected: 'all-modes', renders: null, issue: 1912 },
 ];
 const knownGapFor = (c) => KNOWN_BADGE_GAPS.find((k) =>
@@ -517,6 +529,16 @@ await browser.close();
 server.close();
 
 // Last, so a badge mismatch above still reaches it: the audit's own instrument (#1829).
+// The record above (header, "NOTHING TO READ"): only while no measured section renders a badge and every one is a
+// known gap. Anything else leaves the hook guarded and the read running.
+const badged = claims.filter((c) => c.badge !== null);
+const unexcused = claims.filter((c) => c.badge === null && !knownGapFor(c));
+if (claims.length > 0 && badged.length === 0 && unexcused.length === 0) {
+  const at = hooks.used.indexOf('mode-scope-badge');
+  if (at >= 0) hooks.used.splice(at, 1);
+  console.log(`\nmode-scope badge read: NOTHING TO READ — no legacy section renders a mode-scope badge (${claims.map((c) => `${c.page} / ${c.name}`).join(', ')}: `
+    + `each a known gap, ${[...new Set(claims.map((c) => `#${knownGapFor(c).issue}`))].join(', ')}). The badge read and its hook guard resume the moment one renders (S9.2, owner option B).`);
+} else console.log(`\nmode-scope badge read: ${badged.length} badged section(s) read and checked; the hook stays guarded.`);
 hooks.report(ok);
 if (failures.length) {
   console.log(`\nThe audit's instrument failed ${failures.length} check(s), so its table above is not a measurement.`);

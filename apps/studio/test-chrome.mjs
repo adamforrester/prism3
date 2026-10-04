@@ -7,7 +7,8 @@
  *
  * It drives BOTH built bundles: the studio's `dist/main.js` and the plugin's `dist/ui.html` (loaded
  * top-level, with Figma's theme stubbed the way `apps/plugin/test-start-screen.mjs` stubs it). So it runs
- * after both builds. A separate suite from `test:smoke` because the axes differ: smoke sweeps page × mode ×
+ * after both builds, and refuses at startup if `dist/ui.html` is older than any file it is built from (#2037):
+ * a studio-only rebuild would otherwise leave the figma host testing the old UI. A separate suite from `test:smoke` because the axes differ: smoke sweeps page × mode ×
  * brand over the legacy pages; this sweeps host × theme × width over the chrome around them.
  *
  * ── what it holds, each as a literal floor ─────────────────────────────────────────────────────
@@ -38,6 +39,10 @@
  *   · BEHAVIOR: the tab row navigates by click and by arrow key; the theme toggle applies and persists;
  *     the plugin follows Figma's theme live; search (Q3) types in order, keeps its caret, filters, and
  *     closes back to its icon.
+ *
+ * THE PRODUCT MARK (owner, 2026-10-04), in section 1, every host × theme × width: the studio's top bar starts with
+ * the mark, once, ahead of the brand switcher; it reads "Prism3 Studio" as text and as its accessible name, is not a
+ * control, and its name is shown wide (measured at 4.5:1) and dropped narrow, the logo kept. The plugin's bar has none.
  *
  * ── independence (docs/34) ─────────────────────────────────────────────────────────────────────
  *
@@ -181,6 +186,26 @@
  *   row`; the columns reordered → `… the levers draw the columns in the owner's order …`; a jump link aimed at the
  *   wrong group → `… the jump link "Neutral" resolves to its own column group (neutral) …`.
  *
+ * S4f ADDS (section 18; the owner's QA of 2026-10-02 on Color › Surfaces & fills, #2016, #1971):
+ *   · BACKGROUND FILLS AS ROWS (QA-B1, QA-B3, QA-B7): its seven rows by role, in order, each a swatch, its name with
+ *     its token, and its step picker, Primary first (was "Page"), the contrast floor a row with no token; the two
+ *     APPROVED sub-headings; the floor's APPROVED info text (QA-B6); the icon contrast block's info text, Interactive's
+ *     Icons description (QA-I10). All literal.
+ *   · SCRIM (QA-B10): its own lever section and preview section, its copy APPROVED, the scrim row not in Background fills.
+ *   · FIELDS (#2016, Q80): a preview section on the page, and an edit in the levers' Fields reveals it (QA-B9's rule).
+ *   · #1971 (Q81): Background and Foreground on white (literal `#ffffff`) with no badge, every other section on the
+ *     emission's `background.primary` with its badges; Q23 pairs for Background fills, Scrim and Fields.
+ *   · THE LOCK (QA-B12): the pairing button's padlock is the shut shackle while paired and the open one while not
+ *     (path data literal), aria-hidden, the button named by its words.
+ *   · GRADIENTS (QA-B13 to QA-B16): the switch in its block's header at the top right; no element in the levers paints
+ *     a gradient of two colors or more; 24px or more each side of a gradient's divider, and Add gradient's own divider.
+ *   · A6 (owner, 2026-10-03): the scrim's wash, in the levers' swatch and the preview's card, over a checkered ground
+ *     (a gradient of two colors or more, read from the render), both chrome themes, Light and Dark.
+ *   · MARKS (QA-I2): a Page sweep, Light and Dark, every Page the picker offers: each mark themed reads 3:1 or more on
+ *     its composited ground in that theme's status icon color, and no worse than the other theme; an unthemed mark is
+ *     the badge's ink, only where neither theme reaches 3:1.
+ *   S4f mutations, each failing by name: see `docs/progress/pending/ui-s4f-surfaces-rebuild.md`.
+ *
  * S5.3 ADDS (section 19b; the owner's QA on Color › Interactive, evening 2026-10-02), and section 19 follows it: the
  * Icons section is gone from the levers and the preview (QA-I10), so 9 keys, 3 specimen sections; Add button set
  * opens its form first (QA-I4); the Q52 re-pair case drives Surfaces & fills' Pair button, its lever gone.
@@ -241,6 +266,17 @@
  * is "soft"`; no fallback to the select → `web light 1280 / brand, 5 modes: every mode is choosable in the
  * preview header, none clipped — {…"clipped":["custom-1"]…}`.
  *
+ * S7 ADDS (section 24; Shape moved to the two panes, so it left LEGACY_PAGES and EXPECT_LEGACY): its levers represented
+ * once each by the keys the owner placed (D1 A), with the retired Hairline radius switch absent (#2053); the preview's
+ * Density, Radius, Spacing and Building blocks on the brand's page color in every mode, each sample in the brand's own
+ * roles (D2 A); the approved copy and the Q23 pairs (Base radius with Radius); D6's "Medium button · 44px" labels and
+ * every emitted radius size drawn in order (#1881); the previewed mode (Q22) with Auto following LIGHT for a Dark-based
+ * custom mode (scope finding 7), brand-wide values from Dark (Q54), every control held in each derived mode with the
+ * preview still drawn (Q59); the routes by tab (Continue to Depth & motion; See Components per host) and the plugin's
+ * Pages-menu way to the Button options (D4 B, D5 B); the reveal (QA-B9); and the chrome at every width. Moved to new
+ * hooks: the keyboard check (section 5) now lands on Shape's levers; the Search check (section 6) runs on Shape's
+ * levers by their hooks; the mode-strip sync (section 9) runs on Depth & motion, the first legacy page with a strip.
+ *
  * NOT COVERED: right-to-left layout (the product ships no RTL locale; new CSS uses logical-friendly
  * flex and grid, §9.1), and text-only zoom.
  *
@@ -289,8 +325,8 @@
  *   · `→` appended to the Back label → `… every chrome text element draws in the embedded Inter — … Back to Palett drew DejaVu Sans (device), Inter`.
  */
 import { createServer } from 'node:http';
-import { mkdirSync, readFileSync } from 'node:fs';
-import { dirname, extname, join, resolve } from 'node:path';
+import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { hookGuard } from './test-hooks.mjs';
@@ -337,18 +373,18 @@ const ALIGN_TOLERANCE = 0.5;
 const WIDTHS = [{ w: 1280, h: 900 }, { w: 640, h: 900 }, { w: 380, h: 420 }];
 
 /** The places not moved yet. A domain slice that moves a place removes it here, in the same change. */
-const LEGACY_PAGES = ['shape', 'depth', 'layout', 'components'];
+const LEGACY_PAGES = ['components'];
 /** The places a slice has moved into the two panes (S2: Color › Palettes; S3: Brand; S4a: Color › Surfaces & fills;
- *  S5.2: Color › Interactive; S6.2: Type). A slice that moves a place adds it here in the same change; a place in both
- *  lists, or in neither, fails by name. */
-const NEW_PAGES = ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type'];
+ *  S5.2: Color › Interactive; S6.2: Type; S7: Shape; S9.2: Depth & motion; S10: Layout). A slice that moves a place adds it
+ *  here in the same change; a place in both lists, or in neither, fails by name. */
+const NEW_PAGES = ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout'];
 
 /** Plan §4's table: the legacy page(s) each place shows, by the Pages menu hook's suffix, per host. */
 const EXPECT_LEGACY = {
   web: {
-    shape: ['size-radius'], depth: ['elevation', 'motion'], layout: ['layout'], components: ['size-radius'] },
+    components: ['size-radius'] },
   figma: {
-    shape: ['size-radius'], depth: ['elevation', 'motion'], layout: ['layout'], components: ['components'] },
+    components: ['components'] },
 };
 /** How each place is reached in the tab row: its tab's hook, then its sub-page's when it has one. */
 const PLACE_CLICKS = {
@@ -362,11 +398,9 @@ const PLACE_CLICKS = {
   layout: ['[data-p3="tab-layout"]'],
   components: ['[data-p3="tab-components"]'],
 };
-/** D8: the Depth & motion switch is labeled with the two legacy page names. */
-const DEPTH_SWITCH_LABELS = ['Elevation', 'Motion'];
 
 /** Each column's controls, by hook, on the opening page (Color › Palettes). Wide is 1280 and 640; narrow is
- *  380. Away from Color the sub-pages are not drawn; on Depth & motion the local switch is (`expectFor`). */
+ *  380. Away from Color the sub-pages are not drawn (`expectFor`). (D8's Depth & motion switch went with S9.2.) */
 const TABS = ['[data-p3="tab-brand"]', '[data-p3="tab-color"]', '[data-p3="tab-type"]', '[data-p3="tab-shape"]', '[data-p3="tab-depth"]', '[data-p3="tab-layout"]', '[data-p3="tab-components"]'];
 const COLOR_SUBS = ['[data-p3="color-sub-palettes"]', '[data-p3="color-sub-fills"]', '[data-p3="color-sub-interactive"]'];
 const BAR = ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="search-open"]'];
@@ -378,7 +412,6 @@ const EXPECT_CONTROLS = {
   'figma wide': [...BAR, ...FIGMA_BAR, ...TABS, ...COLOR_SUBS],
   'figma narrow': [...BAR, ...FIGMA_BAR, '[data-p3="tab-select"]', ...COLOR_SUBS],
 };
-const DEPTH_SWITCH = ['[data-p3="legacy-switch-elevation"]', '[data-p3="legacy-switch-motion"]'];
 /** Color › Palettes in the two panes (S2): the levers it must render on the Settings side, by hook, and the
  *  preview header's controls. Narrow shows one pane (the Settings one at boot) and the pane toggle. */
 const PALETTES_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="primary-hex"]', '[data-p3="brand-color-name"]', '[data-p3="brand-color-remove"]',
@@ -387,7 +420,7 @@ const PALETTES_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="primary-h
 /** Color › Surfaces & fills in the two panes (S4a): the controls its levers must render, by hook. The page draws
  *  the default theme's two gradients, so their editors' controls are here too. Since S4c one set of surface
  *  controls, for the previewed mode (owner decision Q22). */
-const FILLS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="surface-base-pick"]', '[data-p3="surface-floor"]',
+const FILLS_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="surface-base-pick"]', '[data-p3="surface-floor-pick"]',
   '[data-p3="surface-band-palette"]', '[data-p3="surface-band-step-pick"]', '[data-p3="surface-secondary-pick"]', '[data-p3="surface-tertiary-pick"]',
   '[data-p3="surface-inverse-secondary-pick"]', '[data-p3="surface-inverse-tertiary-pick"]', '[data-p3="fill-pick"]', '[data-p3="fills-jump-link"]', '[data-p3="icons-unpair"]',
   '[data-p3="gradients-switch"]', '[data-p3="gradient-name"]', '[data-p3="gradient-remove"]', '[data-p3="gradient-kind"]', '[data-p3="gradient-angle"]',
@@ -406,9 +439,17 @@ const BRAND_LEVERS_CONTROLS = ['[data-p3="brand-name"]', '[data-p3="brand-namesp
  *  face for each text type, Show advanced; the way on to Shape). The lent legacy region is `INSPECT_LEGACY`'s. */
 const TYPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="face-add-input"]', '[data-p3="face-add"]', '[data-p3="family-select"]',
   '[data-p3="family-all-apply"]', '[data-p3="scale-advanced"]', '[data-p3="type-continue"]'];
+/** Shape in the two panes (S7): the controls its levers must render, by hook (Density's chips and the way to
+ *  Components, Radius' slider and Control shape chips, Show advanced, the way on to Depth & motion). */
+const SHAPE_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="density-choice-comfortable"]', '[data-p3="shape-see-components"]',
+  '[data-p3="radius-scale-slider"]', '[data-p3="control-shape-choice-rounded"]', '[data-p3="shape-advanced"]', '[data-p3="shape-continue"]'];
+/** Depth & motion in the two panes (S9.2), previewing Light: the softness slider, Elevation's Show advanced, the tempo
+ *  chips, an easing picker button per role, the way on to Layout. The rest is section 23's. */
+const DEPTH_LEVERS_CONTROLS = ['[data-p3="lever-info"]', '[data-p3="shadow-softness"]', '[data-p3="depth-tint-advanced"]',
+  '[data-p3="tempo-snappy"]', '[data-p3="easing-pick"]', '[data-p3="depth-continue"]'];
 /** Each moved place's levers, by place. */
 const LEVERS_CONTROLS = { 'color-palettes': PALETTES_LEVERS_CONTROLS, brand: BRAND_LEVERS_CONTROLS, 'color-fills': FILLS_LEVERS_CONTROLS,
-  'color-interactive': INTERACTIVE_LEVERS_CONTROLS, type: TYPE_LEVERS_CONTROLS };
+  'color-interactive': INTERACTIVE_LEVERS_CONTROLS, type: TYPE_LEVERS_CONTROLS, shape: SHAPE_LEVERS_CONTROLS, depth: DEPTH_LEVERS_CONTROLS };
 /** The preview header: the mode choice and Inspect. The mode choice is the radios, or, where they do not all fit
  *  (640, or a brand with more modes, S3 review), the select of the same modes: either one represents it (an
  *  inner list is any-of). Section 17 holds which one shows and that no option is ever clipped. */
@@ -418,7 +459,7 @@ const expectFor = (column, place, state = 'page') => {
   const narrow = column.endsWith('narrow');
   const base = EXPECT_CONTROLS[column].filter((h) => place.startsWith('color-') || !COLOR_SUBS.includes(h));
   const levers = LEVERS_CONTROLS[place];
-  if (!levers) return [...base, ...(place === 'depth' ? DEPTH_SWITCH : [])];
+  if (!levers) return base;
   // A moved place. Narrow, on the Preview pane (Inspect opens there), the tab row and the levers are hidden.
   if (narrow && state !== 'page') return [...base.filter((x) => !['[data-p3="tab-select"]', '[data-p3="search-open"]', ...COLOR_SUBS].includes(x)), ...PANE_TOGGLE, ...(state === 'preview' ? PREVIEW_HEAD : [])];
   if (narrow) return [...base, ...levers, ...PANE_TOGGLE];
@@ -453,7 +494,9 @@ const CONTROL_KINDS = [['p3-brand', 'brand switcher'], ['p3-verdict', 'verdict']
   // S11: the Activity drawer's bar row (its own toggle) and each operation row's header.
   ['p3-drawer-bar', 'drawer bar'], ['p3-op-head', 'operation row'],
   // S5.2: Color › Interactive's jump links to its column groups.
-  ['p3-jump-link', 'jump link']];
+  ['p3-jump-link', 'jump link'],
+  // S6.3's value picker, first measured open on Depth & motion (S9.2): each value is a button of its own.
+  ['p3-vpick', 'picker value']];
 /** Legacy views Inspect lends a host to until their slices replace them (S1.3): pinned light and drawn in
  *  `styles.css`, so outside the chrome, like the legacy page. Named literally, by hook. */
 const INSPECT_LEGACY = ['[data-p3="inspect-contrast-table"]', '[data-p3="inspect-token-list"]',
@@ -466,7 +509,14 @@ const INSPECT_LEGACY = ['[data-p3="inspect-contrast-table"]', '[data-p3="inspect
   // S5.2: Color › Interactive's preview, the same way. Its specimens are held to the brand's page color in section 19.
   '[data-p3="interactive-style-guide"]',
   // S6.2: Type's preview, the same way (section 20). (S6.2 also lent its levers a legacy region, retired in S6.3.)
-  '[data-p3="type-style-guide"]'];
+  '[data-p3="type-style-guide"]',
+  // S10: Layout's preview, the same way (section 25).
+  '[data-p3="layout-style-guide"]',
+  // S7: Shape's preview, the same way (section 24).
+  '[data-p3="shape-style-guide"]',
+
+  // S9.2: Depth & motion's preview, the same way (section 23).
+  '[data-p3="depth-style-guide"]'];
 
 // ── servers: the studio, and the plugin with Figma's theme stubbed ──────────────────────────────────
 const STUDIO = HERE;
@@ -474,6 +524,47 @@ let pluginHtml;
 try { pluginHtml = readFileSync(join(REPO, 'apps/plugin/dist/ui.html'), 'utf8'); } catch {
   console.error('✗ apps/plugin/dist/ui.html is missing: run `npm run -w @prism3/plugin build` first.');
   process.exit(1);
+}
+// ── the figma host's bundle must be at least as new as what it is built from (#2037) ─────────────────
+// `dist/ui.html` is the plugin build's output, and it inlines `apps/studio/src` whole. A studio-only
+// rebuild leaves it stale, and the figma arm then measures the old UI and reports it as this one: it bit
+// S4e's info-text mutation and S6.3's one-home mutation. `npm run verify` orders `build-plugin` before this
+// suite, so the case is a hand run.
+// A CHECK, NOT A BUILD, to match verify.ts: builds are their own gates and every browser suite is ordered
+// `after` them. Building here would build the plugin twice per verify, and report a build failure as this
+// suite's.
+// THE ROOTS ARE LITERAL, and they are what the UI bundle compiles from: the studio app and its chrome CSS,
+// the plugin's iframe entry and the modules it imports, and the engine the studio bundles. The build writes
+// no metafile, so the exact input set is not readable here. A root wider than the bundle only costs a
+// rebuild that was not needed (`main.ts` is the main thread's, not the iframe's). A narrower one would let
+// the stale case through. Every root must exist and hold files, so a renamed directory fails here rather
+// than scanning nothing and passing (docs/34 shape 9).
+const UI_SOURCE_ROOTS = ['apps/studio/src', 'apps/studio/chrome', 'apps/plugin/src', 'packages/engine'];
+{
+  const builtAt = statSync(join(REPO, 'apps/plugin/dist/ui.html')).mtimeMs;
+  let newest = { at: -Infinity, file: '' };
+  for (const root of UI_SOURCE_ROOTS) {
+    let files = 0;
+    let ents = [];
+    try { ents = readdirSync(join(REPO, root), { recursive: true, withFileTypes: true }); } catch { /* reported below, by name */ }
+    for (const ent of ents) {
+      if (!ent.isFile()) continue;
+      const file = join(ent.parentPath, ent.name);
+      if (file.includes(`${sep}node_modules${sep}`)) continue;
+      files++;
+      const at = statSync(file).mtimeMs;
+      if (at > newest.at) newest = { at, file };
+    }
+    if (files === 0) {
+      console.error(`✗ ui.html freshness: source root ${root} is missing or holds no files, so nothing was compared. Fix UI_SOURCE_ROOTS in test-chrome.mjs.`);
+      process.exit(1);
+    }
+  }
+  if (newest.at > builtAt) {
+    console.error(`✗ ui.html freshness: apps/plugin/dist/ui.html is older than ${relative(REPO, newest.file)}, so the figma host would test the old UI. ` +
+      'Run `npm run -w @prism3/plugin build`, then this suite again.');
+    process.exit(1);
+  }
 }
 const FIGMA = {
   light: { cls: 'figma-light', vars: { '--figma-color-bg': '#ffffff', '--figma-color-text': '#000000e5' } },
@@ -854,6 +945,42 @@ for (const host of ['web', 'figma']) {
       ok(m.theme === (host === 'web' ? 'system' : theme), `${where}: <html data-theme> is "${m.theme}"`);
       check(m, where, column);
       report(m, where);
+      // The product mark (owner, 2026-10-04): the studio's bar starts with the logo and "Prism3 Studio", ahead of
+      // the brand switcher; narrow keeps the logo and drops the name, which the mark's accessible name keeps. The
+      // plugin's bar has none (Figma's title bar names the plugin). Expected values are the literals here.
+      const mk = await page.evaluate(() => {
+        const bar = document.querySelector('[data-p3="top-bar"]');
+        const marks = [...document.querySelectorAll('[data-p3="product-mark"]')];
+        const mark = marks[0] ?? null;
+        const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).display !== 'none'; };
+        const box = (n) => { const r = n.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom }; };
+        const sw = document.querySelector('[data-p3="brand-switcher"]');
+        const name = mark?.querySelector('.p3-mark-name') ?? null;
+        const logo = mark?.querySelector('.logo') ?? null;
+        return {
+          bar: !!bar, n: marks.length, first: !!mark && bar?.firstElementChild === mark,
+          inBar: !!mark && !!bar?.contains(mark),
+          mark: mark ? box(mark) : null, switcher: sw ? box(sw) : null,
+          text: (name?.textContent ?? '').trim(), label: mark?.getAttribute('aria-label') ?? null, role: mark?.getAttribute('role') ?? null,
+          nameShown: vis(name), logoShown: vis(logo), logoHidden: logo?.getAttribute('aria-hidden') === 'true',
+          control: !!mark && (mark.matches('button, a[href], [tabindex]') || !!mark.querySelector('button, a[href], [tabindex]')),
+        };
+      });
+      if (host === 'web') {
+        const ahead = !!mk.mark && !!mk.switcher && (mk.mark.bottom <= mk.switcher.top + 0.5 || mk.mark.right <= mk.switcher.left + 0.5);
+        ok(mk.n === 1 && mk.inBar, `product mark ${where}: the studio's top bar draws the product mark once (${mk.n} found${mk.inBar ? '' : ', none in the top bar'})`);
+        ok(mk.first && ahead, `product mark ${where}: the mark is first in the top bar, ahead of the brand switcher (${JSON.stringify({ first: mk.first, mark: mk.mark, switcher: mk.switcher })})`);
+        ok(mk.text === 'Prism3 Studio' && mk.label === 'Prism3 Studio' && mk.role === 'img', `product mark ${where}: the mark reads "Prism3 Studio", as text and as its accessible name (${JSON.stringify({ text: mk.text, label: mk.label, role: mk.role })})`);
+        ok(mk.logoShown && mk.logoHidden && !mk.control, `product mark ${where}: the logo is drawn and hidden from assistive tech, and the mark is not a control (${JSON.stringify({ logo: mk.logoShown, hidden: mk.logoHidden, control: mk.control })})`);
+        const narrow = column.endsWith('narrow');
+        ok(mk.nameShown === !narrow, `product mark ${where}: the name is ${narrow ? 'dropped at narrow widths (the logo stays)' : 'shown'} (${mk.nameShown ? 'shown' : 'hidden'})`);
+        if (!narrow) {
+          const t = m.text.find((x) => x.el.startsWith('span.p3-mark-name'));
+          ok(!!t && t.r >= TEXT_MIN, `product mark ${where}: "Prism3 Studio" is measured on the top bar at ${TEXT_MIN}:1 (${t ? `${t.r}:1` : 'not measured'})`);
+        }
+      } else {
+        hooks.absent(ok, { seen: mk.bar, state: 'the plugin\'s top bar' }, mk.n === 0, `product mark ${where}: the plugin's top bar draws no product mark (${mk.n} found)`);
+      }
       for (const t of m.text) lows.text = Math.min(lows.text, t.r);
       for (const e of m.edges) lows.edge = Math.min(lows.edge, e.r);
       for (const c of m.controls) lows.target = Math.min(lows.target, c.w, c.h);
@@ -920,16 +1047,9 @@ for (const host of ['web', 'figma']) {
       const shows = await page.evaluate(() => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage);
       if (NEW_PAGES.includes(place)) ok(shows === undefined, `${where}: a moved place names no legacy page — names "${shows}"`);
       else ok(shows === want[0], `${where}: the tab row lands on legacy page "${want[0]}" (plan §4) — shows "${shows}"`);
-      if (want.length > 1) {
-        // D8: the local switch, its labels, and the second page through it.
-        const labels = (await page.locator('[data-p3="legacy-switch"] [role="tab"]').allTextContents()).map((s) => s.trim());
-        ok(JSON.stringify(labels) === JSON.stringify(DEPTH_SWITCH_LABELS), `${where}: the local switch reads ${JSON.stringify(DEPTH_SWITCH_LABELS)} — read ${JSON.stringify(labels)}`);
-        await hooks.click(page.locator('[data-p3="legacy-switch-motion"]'));
-        await page.waitForFunction((p) => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage === p, want[1]);
-        ok(true, `${where}: the switch's second item shows "${want[1]}"`);
-        const sel = await page.evaluate(() => [...document.querySelectorAll('[role="tab"][aria-selected="true"]')].map((t) => t.textContent.trim()));
-        ok(sel.includes('Depth & motion') && sel.includes('Motion'), `${where}: the tab and the switch both stay selected (${sel.join(', ')})`);
-      }
+      // D8's local switch between two legacy pages went with S9.2 (Depth & motion moved): no place shows one.
+      hooks.absent(ok, { seen: !!(await page.locator('[data-p3="frame"]').count()), state: 'the frame' }, (await page.locator('.p3-switchseg, [role="tablist"][aria-label$=" pages"]:not(.p3-subseg)').count()) === 0,
+        `${where}: no place draws a local switch between legacy pages (D8's, retired in S9.2)`);
       const m = await measure(page, where, host, 1280);
       check(m, where, columnOf(host, 1280), PLACE_FLOOR);
     }
@@ -976,9 +1096,11 @@ for (const theme of ['light', 'dark']) {
 console.log(`\n#1031 — legacy fields in a dark theme\n${'='.repeat(78)}`);
 for (const host of ['web', 'figma']) {
   const { ctx, page } = await open({ host, theme: 'dark', w: 1280, h: 900 });
-  // Legacy fields: Color moved to the two panes in S2, S4a and S5.2 and Type in S6.2 (S6.3 retired the legacy region
-  // Type's levers lent), so this reads Layout, still a legacy page, whose grid columns are a legacy select.
-  await goPlace(page, 'layout');
+  // Legacy fields: every tab but Components moved to the two panes (S9.2 moved Depth & motion, S10 Layout), so this reads
+  // the Components tab's legacy page. In the plugin that is Components, whose Build set select is a legacy field. On the
+  // web it is Size & radius (the Button options until S8), which draws radios and a slider and no text field or
+  // select: there the check is RETIRED, held true below, so a legacy field that comes back is measured again.
+  await goPlace(page, 'components');
   await hooks.need(page, '[data-p3="legacy-page"]');
   const f = await page.evaluate(() => {
     const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s.trim()); const p = m ? m[1].split(/[,\s/]+/).filter(Boolean).map(Number) : [0, 0, 0, 0]; return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
@@ -992,9 +1114,10 @@ for (const host of ['web', 'figma']) {
       return { name: n.getAttribute('data-p3') ?? n.className, value: n.value, scheme: cs.colorScheme, r: Math.floor(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 100) / 100 };
     }) };
   });
-  const where = `${host} dark / Layout`;
+  const where = `${host} dark / Components`;
   ok(/\bdark\b/.test(f.doc), `${where}: the document resolves a dark color-scheme ("${f.doc}") — the premise this check is about`);
-  ok(f.fields.length >= 1, `${where}: measured ${f.fields.length} legacy field(s) (floor 1)`);
+  if (host === 'figma') ok(f.fields.length >= 1, `${where}: measured ${f.fields.length} legacy field(s) (floor 1)`);
+  else ok(f.fields.length === 0, `${where}: #1031 is retired on the web because its one legacy page draws no text field or select — measured ${f.fields.length}; hold them to the floor below`);
   const bad = f.fields.filter((x) => /\bdark\b/.test(x.scheme) || x.r < TEXT_MIN);
   ok(bad.length === 0, `${where}: every legacy field resolves a light color-scheme and inks its value at ${TEXT_MIN}:1${bad.length ? ` — ${bad.map((x) => `${x.name} "${x.value}" ${x.scheme} ${x.r}:1`).join(' | ')}` : ''}`);
   await ctx.close();
@@ -1010,8 +1133,11 @@ console.log(`\nBehavior\n${'='.repeat(78)}`);
   await page.locator('[data-p3="tab-type"]').focus();
   await page.keyboard.press('ArrowRight');
   await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'shape');
-  const k = await page.evaluate(() => ({ focus: document.activeElement?.getAttribute('data-p3'), sel: document.querySelector('[data-p3="tab-shape"]')?.getAttribute('aria-selected'), shows: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage }));
-  ok(k.focus === 'tab-shape' && k.sel === 'true' && k.shows === 'size-radius', `ArrowRight on Type selects Shape, keeps focus on it, and shows its legacy page (${JSON.stringify(k)})`);
+  // S7: Shape is a moved page, so the key lands on its two panes (its levers), not a legacy page.
+  await page.waitForFunction(() => !!document.querySelector('[data-p3="shape-levers"]'), null, { timeout: 5000 }).catch(() => {});
+  const k = await page.evaluate(() => ({ focus: document.activeElement?.getAttribute('data-p3'), sel: document.querySelector('[data-p3="tab-shape"]')?.getAttribute('aria-selected'),
+    shows: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage ?? null, levers: !!document.querySelector('[data-p3="shape-levers"]') }));
+  ok(k.focus === 'tab-shape' && k.sel === 'true' && k.shows === null && k.levers, `ArrowRight on Type selects Shape, keeps focus on it, and shows its levers in the two panes (${JSON.stringify(k)})`);
 
   // The theme menu, open: its own chrome, measured (light and, after choosing it, dark).
   await hooks.click(page.locator('[data-p3="theme-toggle"]'));
@@ -1049,9 +1175,10 @@ console.log(`\nBehavior\n${'='.repeat(78)}`);
 console.log(`\nSearch (Q3)\n${'='.repeat(78)}`);
 const manifest = JSON.parse(readFileSync(join(REPO, 'packages/engine/schema/lever-manifest.json'), 'utf8'));
 const labelOf = (key) => manifest.levers.find((l) => l.key === key)?.label;
-const RADIUS = labelOf('radiusScale');
-const DENSITY = labelOf('density');
-ok(!!RADIUS && !!DENSITY, `the manifest names the radius lever ("${RADIUS}") and the density lever ("${DENSITY}")`);
+// S7: Shape moved to the two panes, so the search runs on its levers, found by their hooks (the radius softness and
+// density levers; the studio names radius softness in its own words, E2, so the label is not the manifest's).
+const RADIUS = '[data-p3="lever-radius-scale"]';
+const DENSITY = '[data-p3="lever-density"]';
 for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) {
   const { ctx, page } = await open({ host: 'web', theme: 'light', w, h });
   await goPlace(page, 'shape');
@@ -1064,13 +1191,13 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) {
   ok(focused === 'search-input', `${where}: opening search focuses its field (focus on ${focused})`);
   const field = await page.evaluate(() => { const n = document.querySelector('[data-p3="search-input"]'); n.dataset.cid = 'same'; return true; });
   await page.keyboard.type('radius', { delay: 20 });
-  const r = await page.evaluate((labels) => {
+  const r = await page.evaluate((sels) => {
     const input = document.querySelector('[data-p3="search-input"]');
-    const knobs = [...document.querySelectorAll('[data-p3="legacy-page"] .knob')];
+    const blocks = [...document.querySelectorAll('[data-p3="levers-pane"] .p3-lever')];
     const vis = (k) => k.getBoundingClientRect().height > 0;
-    const named = (l) => knobs.find((k) => k.querySelector('.knob-label, .chips-legend')?.textContent.trim() === l);
+    const at = (sel) => document.querySelector(`[data-p3="levers-pane"] ${sel}`);
     return { value: input.value, same: input.dataset.cid === 'same', status: document.querySelector('[data-p3="search-status"]')?.textContent,
-      visible: knobs.filter(vis).length, radius: !!named(labels[0]) && vis(named(labels[0])), density: named(labels[1]) ? vis(named(labels[1])) : null };
+      visible: blocks.filter(vis).length, radius: !!at(sels[0]) && vis(at(sels[0])), density: at(sels[1]) ? vis(at(sels[1])) : null };
   }, [RADIUS, DENSITY]);
   ok(field && r.value === 'radius', `search: the field reads "radius" after typing it (${where}: read "${r.value}")`);
   ok(r.same, `${where}: the field is the same element after typing (never rebuilt)`);
@@ -1370,8 +1497,12 @@ for (const theme of ['light', 'dark']) {
   await hooks.click(page.locator('[data-p3="mode-option"][data-mode="dark"]'));
   const a = await modeState(page);
   ok(a.radios.find((r) => r.mode === 'dark')?.checked === 'true', `${where}: choosing Dark in the mode control checks it`);
-  // Shape, the first legacy page with a mode strip (Type edits every mode as columns and draws none, #416).
-  await goPlace(page, 'shape');
+  // The legacy page with a mode strip: on the web, Components shows the Size & radius page S7 left for the Button
+  // options, which still draws one (`pageHasModeVaryingControl` exempts only Layout, the plugin's Components and moved
+  // pages). Type, Shape (S7) and Depth & motion (S9.2) moved to the two panes and draw none: their levers edit the mode
+  // the preview shows (Q22). S9.2 moved this check here from Depth & motion; the slice that moves the last legacy page
+  // with a strip retires it, saying so.
+  await goPlace(page, 'components');
   await page.waitForFunction(() => document.querySelector('[data-p3="legacy-page"] [data-p3="mode-tab"].on [data-p3="mode-tab-name"]')?.textContent === 'Dark', null, { timeout: 5000 }).catch(() => {});
   const a2 = await modeState(page);
   ok(a2.legacy === 'Dark', `mode control: choosing Dark makes the legacy page draw Dark (${where}: the legacy mode strip shows "${a2.legacy}")`);
@@ -1867,8 +1998,9 @@ const groundsOf = (page) => page.evaluate(() => {
 });
 /** The Style guide's specimen roots, by section title, in order: each section `renderPreviewStyleGuide` draws on a
  *  ground (S3; modeled on S2's `EXPECT_SPECIMENS`). Literal (orchestrator review of #1939). The type sample opens
- *  it (#1942, owner decision Q67, S6.2). */
-const STYLE_GUIDE_ROOTS = ['Type sample', 'Background', 'Foreground', 'Text color', 'Border', 'Icon', 'Disabled', 'Interactive'];
+ *  it (#1942, owner decision Q67, S6.2), and the radius sample follows it (owner decision D18 B, S7; its heading is
+ *  DRAFT). */
+const STYLE_GUIDE_ROOTS = ['Type sample', 'Radius and shadow sample', 'Background', 'Foreground', 'Text color', 'Border', 'Icon', 'Disabled', 'Interactive'];
 /** Each moved place's preview, with the specimens it must draw, by name. */
 const SPECIMEN_PLACES = { 'color-palettes': ['palettes', EXPECT_SPECIMENS], brand: ['brand', STYLE_GUIDE_ROOTS] };
 for (const host of ['web', 'figma']) {
@@ -2318,6 +2450,85 @@ console.log(`\nThe step picker — on its fixture\n${'='.repeat(78)}`);
 }
 
 // =============================================================================================
+// THE GLIDE LOG (#2042): an eased scroll read on frame time, never on the wall clock.
+//
+//   `easedScrollTo` (`preview/follow-edit.ts`) takes one step per animation frame and reads time only from the
+//   frame's timestamp. #2015 measured its glides by sampling scrollTop from a recorder started after the edit
+//   returned, against `performance.now()`, so each check depended on how fast the machine drew: under load the
+//   recorder joined late and frames came late, and "the glide lasts …" measured 66ms against a 200ms tween.
+//
+//   So the page's animation frames run on a virtual clock here: each frame is exactly FRAME_MS after the one
+//   before it, whatever the wall clock did in between. Every `scrollTo` on the two panes is logged, from before
+//   the edit, with the frame time it ran in (null when it ran outside a frame, in the edit itself). Only the
+//   frame timestamp is virtual: Playwright's `page.clock` would also fake every timer, `Date` and
+//   `performance.now` the studio runs on, which nothing here needs. The log is the same on a busy machine as on
+//   an idle one: how many steps a glide takes, the frame time from its first step to its last, and whether
+//   each step lies on the declared curve.
+// =============================================================================================
+/** One virtual animation frame, in ms: a whole number, so frame times add up exactly. */
+const FRAME_MS = 16;
+/** Put `page`'s animation frames on the virtual clock and start the glide log. Once per page. */
+const installGlideLog = (page) => page.evaluate((frame) => {
+  if (window.__glide) return;
+  const raf = window.requestAnimationFrame.bind(window);
+  let real = null, n = 0, at = null;
+  // Every callback in one real frame shares its timestamp, so a new timestamp is the next virtual frame.
+  window.requestAnimationFrame = (cb) => raf((now) => {
+    if (now !== real) { real = now; n++; }
+    at = n * frame;
+    try { cb(at); } finally { at = null; }
+  });
+  window.__glide = [];
+  const scrollTo = Element.prototype.scrollTo;
+  Element.prototype.scrollTo = function (...a) {
+    const pane = this.getAttribute?.('data-p3');
+    if (pane === 'preview-body' || pane === 'levers-pane') {
+      const o = a[0] && typeof a[0] === 'object' ? a[0] : null;
+      window.__glide.push({ pane, top: Math.round(o ? o.top : a[1]), behavior: o ? o.behavior ?? 'auto' : 'auto', at });
+    }
+    return scrollTo.apply(this, a);
+  };
+}, FRAME_MS);
+/** Take the glide log so far, and empty it. */
+const takeGlideLog = (page) => page.evaluate(() => window.__glide.splice(0));
+/** A CSS `cubic-bezier(x1, y1, x2, y2)` as the progress function it names, solved here by bisection (the
+ *  test's own, not `follow-edit.ts`'s). */
+const cubicBezier = (css) => {
+  const [x1, y1, x2, y2] = /cubic-bezier\(([^)]*)\)/.exec(css)[1].split(',').map(Number);
+  const at = (p1, p2, t) => 3 * p1 * t * (1 - t) ** 2 + 3 * p2 * t * t * (1 - t) + t ** 3;
+  return (x) => {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 50; i++) { const m = (lo + hi) / 2; if (at(x1, x2, m) < x) lo = m; else hi = m; }
+    return at(y1, y2, (lo + hi) / 2);
+  };
+};
+/** `pane`'s steps in a glide log: how many, what each asked for, the positions strictly between the first and
+ *  the last, the frame time from the first step to the last and to the one before it, and whether every step
+ *  ran in an animation frame. Given a declared `dur` (ms) and `ease` (a CSS cubic-bezier), also the steps off
+ *  that curve by more than 1px, as [frame time, position, the curve's position]. */
+const glideOf = (log, pane, dur = null, ease = null) => {
+  const s = log.filter((x) => x.pane === pane);
+  const asked = s.map((x) => x.behavior);
+  if (!s.length) return { steps: 0, asked, between: 0, span: null, before: null, inFrames: false, instant: false, offCurve: [] };
+  const from = s[0].top, to = s[s.length - 1].top, t0 = s[0].at;
+  const inFrames = s.every((x) => x.at !== null);
+  const curve = ease ? cubicBezier(ease) : null;
+  const want = (x) => (x.at - t0 >= dur ? to : Math.round(from + (to - from) * curve((x.at - t0) / dur)));
+  return {
+    steps: s.length, asked, from, to,
+    between: new Set(s.map((x) => x.top).filter((t) => (t - from) * (t - to) < 0)).size,
+    span: inFrames ? s[s.length - 1].at - t0 : null,
+    before: inFrames && s.length >= 2 ? s[s.length - 2].at - t0 : null,
+    inFrames, instant: s.every((x) => x.behavior === 'instant'),
+    offCurve: inFrames && curve ? s.filter((x) => Math.abs(x.top - want(x)) > 1).map((x) => [x.at - t0, x.top, want(x)]) : [],
+  };
+};
+/** One step, taken in the edit itself rather than in an animation frame: a scroll that lands at once. */
+const atOnce = (g) => g.steps === 1 && !g.inFrames;
+
+// =============================================================================================
 // 15. THE Q4 TRIAL (QA note Q4, for the owner's decision): an EDIT reveals the palette it changes; focus,
 //     scrolling and the mode never move the preview (V1 still holds for them)
 // =============================================================================================
@@ -2343,18 +2554,12 @@ console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
   await page.evaluate(() => { const l = document.querySelector('[data-p3="levers-pane"]'); l.scrollTop = l.scrollHeight; });
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   ok((await state('primary')).top === bottom, `Q4: scrolling the levers does not move the preview (scrollTop ${(await state('primary')).top}, was ${bottom})`);
-  // An edit does, and smoothly (owner, 2026-10-01; eased on the chrome's motion tokens since QA-B9). A recorder
-  // on the preview body's `scrollTo` notes the behavior each step of a reveal asks for, and `frames()` samples the body's scrollTop on every animation frame until
-  // it has held still for ten frames: a smooth reveal passes through positions between start and end.
-  await page.evaluate(() => {
-    window.__reveals = [];
-    const o = Element.prototype.scrollTo;
-    Element.prototype.scrollTo = function (...a) {
-      if (this.matches('[data-p3="preview-body"]')) window.__reveals.push(a[0] && typeof a[0] === 'object' ? a[0].behavior ?? 'auto' : 'auto');
-      return o.apply(this, a);
-    };
-  });
-  const reveals = () => page.evaluate(() => window.__reveals.splice(0));
+  // An edit does, and smoothly (owner, 2026-10-01; eased on the chrome's motion tokens since QA-B9). The glide
+  // log (#2042, above) records each step of a reveal, the behavior it asks for and its position, from before
+  // the edit and on frame time; `frames()` samples the body's scrollTop on every animation frame until it has
+  // held still for ten frames, which is how the checks wait for a reveal to finish.
+  await installGlideLog(page);
+  const reveals = async () => glideOf(await takeGlideLog(page), 'preview-body');
   const frames = () => page.evaluate(() => new Promise((res) => {
     const b = document.querySelector('[data-p3="preview-body"]');
     const tops = [Math.round(b.scrollTop)];
@@ -2378,8 +2583,8 @@ console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
   const r1 = await reveals();
   // QA-B9: the glide is stepped, one \`instant\` position per frame on the chrome's motion tokens, never the
   // browser's \`smooth\` (which takes no duration or curve).
-  ok(r1.length >= 2 && r1.every((x) => x === 'instant'), `Q4: without reduced motion the reveal steps its own eased glide, one instant position per frame — asked ${JSON.stringify(r1)}`);
-  ok(between(t1, bottom) >= 2, `Q4: without reduced motion the preview passes through positions on its way (${between(t1, bottom)} in-between positions over ${t1.length} frames, ${t1[0]} → ${t1[t1.length - 1]})`);
+  ok(r1.steps >= 2 && r1.instant && r1.inFrames, `Q4: without reduced motion the reveal steps its own eased glide, one instant position per frame — asked ${JSON.stringify(r1.asked)}`);
+  ok(r1.between >= 2, `Q4: without reduced motion the preview passes through positions on its way (${r1.between} in-between positions over ${r1.steps} steps, ${r1.from} → ${r1.to}; it settled at ${t1[t1.length - 1]})`);
   // And the primary hex, from the bottom again, reveals the primary ramp.
   await toBottom();
   await page.locator('[data-p3="primary-hex"]').fill('#2244aa');
@@ -2399,7 +2604,7 @@ console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
   const t3 = await frames();
   const r3 = await reveals();
   ok(e3.inView && e3.top < bottom2, `Q4: under reduced motion the neutral ramp is in view right after the edit (in view ${e3.inView}, scrollTop ${e3.top}, was ${bottom2})`);
-  ok(r3.length === 1 && r3[0] === 'instant', `Q4: under reduced motion the reveal asks for one instant scroll — asked ${JSON.stringify(r3)}`);
+  ok(atOnce(r3) && r3.instant, `Q4: under reduced motion the reveal asks for one instant scroll, in the edit itself — asked ${JSON.stringify(r3.asked)}${r3.inFrames ? ', in a frame' : ''}`);
   ok(between(t3, e3.top) === 0 && t3[t3.length - 1] === e3.top, `Q4: under reduced motion the preview does not move after the jump (${JSON.stringify([...new Set(t3)])})`);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   // The mode does not move it.
@@ -2671,9 +2876,20 @@ console.log(`\nColor › Surfaces & fills (S4a)\n${'='.repeat(78)}`);
 /** EXPECTED, by name (represented, not counted; docs/34): the specimen roots the default theme's Surfaces &
  *  fills preview draws, each a section of the Style guide on the brand's page color, plus its gradients (the
  *  default theme ships two). Literal: the owner's decision Q5 names the five sections. */
-const EXPECT_FILLS_SPECIMENS = ['Background', 'Foreground', 'Text color', 'Border', 'Focus ring', 'Icon', 'Gradients'];
+const EXPECT_FILLS_SPECIMENS = ['Background', 'Scrim', 'Foreground', 'Text color', 'Border', 'Focus ring', 'Icon', 'Fields', 'Gradients'];
+/** #1971 (owner decision Q81, S4f): the sections that are themselves grounds, Background and Foreground, sit in WHITE
+ *  containers and carry no ratio badge; every other section checks contrast against the page and sits on its color.
+ *  Literal, the owner's word: white, `#ffffff`, in every mode. Scrim (QA-B10) and Fields (#2016) are S4f's. */
+const FILLS_WHITE_SECTIONS = ['Background', 'Foreground'];
+const WHITE = '#ffffff';
 /** The manifest keys v6 homes on Surfaces & fills, with their hooks. R2: every lever on this page is shown. */
-const FILLS_LEVERS = [['surfaces', '[data-p3="lever-surfaces"]'], ['gradients', '[data-p3="lever-gradients"]']];
+const FILLS_LEVERS = [['surfaces', '[data-p3="lever-surfaces"]'], ['gradients', '[data-p3="lever-gradients"]'],
+  // S4f (QA-I10): the Icon section's pairing control is the icon contrast lever's block, as Interactive drew it.
+  ['iconContrast', '[data-p3="lever-icon-contrast"]']];
+/** S4f (QA-B1): Background fills' rows, by the role each names: the three page tiers (Primary was "Page", QA-B3),
+ *  the contrast floor (a setting, named by its input), and the inverse fill's three tiers. Literal. */
+const SURFACE_ROW_ROLES = ['background.primary', 'background.secondary', 'background.tertiary', 'surfaces.floorStep',
+  'inverse.background.primary', 'inverse.background.secondary', 'inverse.background.tertiary'];
 /** The override rows, by role: concept v6's five bold fills, then what the legacy page carried (the surface
  *  tiers and the text inks). Literal; each must render its row once. No link row (S4c, owner decision Q28:
  *  links are edited on Interactive only), so a `text.link.default` row fails below as an unlisted row. */
@@ -2742,6 +2958,7 @@ const fillsGrounds = (page) => page.evaluate(() => {
   const grounds = [...(host?.querySelectorAll('.sg-ground') ?? [])];
   return { card: host ? hex(groundOf(host)) : null, roots: grounds.map((g) => ({ name: g.closest('.psec')?.querySelector('.psec-t')?.textContent ?? '?', root: g.getAttribute('data-p3') === 'specimen', ground: hex(groundOf(g)) })),
     sections: [...(host?.querySelectorAll('.psec') ?? [])].map((x) => ({ name: x.querySelector('.psec-t')?.textContent ?? '?', bg: hex(groundOf(x)) })),
+    badges: Object.fromEntries([...(host?.querySelectorAll('.psec') ?? [])].map((x) => [x.querySelector('.psec-t')?.textContent ?? '?', x.querySelectorAll('[data-p3="ratio-badge"]').length])),
     levers: hex(groundOf(document.querySelector('[data-p3="levers-pane"]'))) };
 });
 /** Q24 (S4c): each section container in the preview takes the levers panel's gray. EXPECTED from the TOKEN, not
@@ -2764,9 +2981,16 @@ for (const host of ['web', 'figma']) {
       const want = EMITTED[mode];
       for (const name of EXPECT_FILLS_SPECIMENS) {
         const r = g.roots.find((x) => x.name === name);
-        ok(!!r && r.root && r.ground === want, `specimen ground: surfaces & fills ${where}: ${name} is a specimen root on background.primary ${want}${
-          !r ? ' — not drawn' : !r.root ? ` — not a specimen root, on ${r.ground === g.card ? `the chrome card (${r.ground})` : r.ground}` : r.ground !== want ? ` — ${r.ground === g.card ? `is the chrome card (${r.ground})` : `is ${r.ground}`}` : ''}`);
+        // #1971: Background and Foreground on white, the rest on the page.
+        const white = FILLS_WHITE_SECTIONS.includes(name);
+        const on = white ? WHITE : want;
+        ok(!!r && r.root && r.ground === on, `specimen ground: surfaces & fills ${where}: ${name} is a specimen root on ${white ? `white ${WHITE} (#1971)` : `background.primary ${want}`}${
+          !r ? ' — not drawn' : !r.root ? ` — not a specimen root, on ${r.ground === g.card ? `the chrome card (${r.ground})` : r.ground}` : r.ground !== on ? ` — ${r.ground === g.card && !white ? `is the chrome card (${r.ground})` : `is ${r.ground}`}` : ''}`);
       }
+      // #1971: no ratio badge in a section that is a ground; at least one in each section on the page that grades a role.
+      const badgesBy = g.badges;
+      for (const name of FILLS_WHITE_SECTIONS) ok(badgesBy[name] === 0, `#1971 surfaces & fills ${where}: the ${name} section shows no contrast badge (Q81) — ${badgesBy[name]} drawn`);
+      for (const name of ['Text color', 'Border', 'Icon', 'Fields']) ok(badgesBy[name] > 0, `#1971 surfaces & fills ${where}: the ${name} section, on the page, shows its contrast badges — ${badgesBy[name]} drawn`);
       const unlisted = g.roots.filter((x) => !EXPECT_FILLS_SPECIMENS.includes(x.name)).map((x) => x.name);
       ok(unlisted.length === 0, `specimen ground: surfaces & fills ${where}: every section ground drawn is a listed specimen${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
       const offGray = g.sections.filter((x) => x.bg !== LEVERS_GRAY).map((x) => `${x.name} on ${x.bg}`);
@@ -2791,14 +3015,23 @@ for (const host of ['web', 'figma']) {
     strayRows: [...document.querySelectorAll('[data-p3="levers-pane"] .p3-fillrow')].map((n) => n.dataset.role).filter((r) => !roles.includes(r)),
     fieldRows: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="field-rows"] .p3-fillrow')].map((n) => n.dataset.role),
     scrim: { rows: document.querySelectorAll('[data-p3="levers-pane"] [data-p3="scrim-row"]').length, read: document.querySelector('[data-p3="levers-pane"] [data-p3="scrim-readout"]')?.textContent ?? null,
-      controls: document.querySelectorAll(`[data-p3="levers-pane"] [data-p3="scrim-row"] :is(${q})`).length },
+      controls: document.querySelectorAll(`[data-p3="levers-pane"] [data-p3="scrim-row"] :is(${q})`).length,
+      // QA-B10: which lever section holds it, by that section's own title.
+      section: document.querySelector('[data-p3="levers-pane"] [data-p3="scrim-row"]')?.closest('.p3-lsec')?.querySelector('.p3-lsec-title')?.textContent ?? null,
+      inBackground: [...document.querySelectorAll('[data-p3="levers-pane"] .p3-lsec')].filter((x) => x.querySelector('.p3-lsec-title')?.textContent === 'Background fills')
+        .some((x) => !!x.querySelector('[data-p3="scrim-row"], [data-role="scrim.default"]') || x.textContent.includes('scrim.default')) },
+    // QA-B1: Background fills' rows, in order, each with its name, its token and its picker.
+    surfRows: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="lever-surfaces"] [data-p3="surface-row"]')].map((r) => ({
+      role: r.dataset.role, label: r.querySelector('.p3-fill-label')?.textContent ?? null, token: r.querySelector('.p3-fill-tok')?.textContent ?? null,
+      swatch: !!r.querySelector('.p3-fill-sw'), pick: r.querySelector('.p3-pick')?.getAttribute('data-p3') ?? null })),
+    surfSubs: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="lever-surfaces"] .p3-rows-sub')].map((n) => n.textContent),
     // Q50: the icon rows, as drawn while the default theme's icons match text.
     icons: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="icon-rows"] .p3-fillrow [data-p3="fill-pick"]')].map((b) => ({ role: b.dataset.role, disabled: b.disabled, text: b.querySelector('.p3-btn-label')?.textContent ?? '' })),
     pairNote: document.querySelector('[data-p3="levers-pane"] [data-p3="icons-paired"] p')?.textContent ?? null,
     unpair: document.querySelector('[data-p3="levers-pane"] [data-p3="icons-unpair"]')?.textContent ?? null,
     focus: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="focus-row"]')].map((n) => ({ role: n.dataset.role, controls: n.querySelectorAll(q).length })),
     jumps: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="fills-jump-link"]')].map((a) => ({ text: a.textContent, to: document.querySelector(a.getAttribute('href'))?.querySelector('.p3-lsec-title')?.textContent ?? null })),
-  }), [FILLS_LEVERS.map(([, hk]) => hk), [...FOREGROUND_ROW_ROLES, ...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...BORDER_ROW_ROLES, ...ICON_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES], DERIVED_CONTROL_QUERY]);
+  }), [FILLS_LEVERS.map(([, hk]) => hk), [...SURFACE_ROW_ROLES, ...FOREGROUND_ROW_ROLES, ...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...BORDER_ROW_ROLES, ...ICON_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES], DERIVED_CONTROL_QUERY]);
   // The scrim, read-only (S4c): one row, no control, its primitive and opacity in Light, from the emission's own
   // alias and that primitive's alpha.
   const scrimAlias = String(OUT[OUT_ROOT]?.color?.scrim?.default?.$value ?? '').slice(1, -1).split('.');
@@ -2806,9 +3039,24 @@ for (const host of ['web', 'figma']) {
   const scrimAlpha = OUT[OUT_ROOT]?.core?.palette?.[scrimPal]?.[scrimStep]?.$extensions?.prism3?.alpha;
   const wantScrim = `${scrimPal} ${scrimStep} · ${Math.round(scrimAlpha * 100)}%`;
   ok(c.scrim.rows === 1 && c.scrim.controls === 0 && c.scrim.read === wantScrim,
-    `${host}: Background fills shows the scrim once, read-only, as "${wantScrim}" — ${c.scrim.rows} row(s), ${c.scrim.controls} control(s), read ${JSON.stringify(c.scrim.read)}`);
+    `${host}: Surfaces & fills shows the scrim once, read-only, as "${wantScrim}" — ${c.scrim.rows} row(s), ${c.scrim.controls} control(s), read ${JSON.stringify(c.scrim.read)}`);
+  ok(c.scrim.section === 'Scrim' && !c.scrim.inBackground,
+    `${host}: QA-B10: the scrim is in its own Scrim section, not in Background fills — in ${JSON.stringify(c.scrim.section)}${c.scrim.inBackground ? ', and still drawn inside Background fills' : ''}`);
+  // QA-B1, QA-B3, QA-B7 (APPROVED): the two sub-headings, then the rows in the Foreground rows' pattern (a swatch, the name
+  // with its token under it, the step picker), the page tiers named Primary (was "Page"), Secondary, Tertiary, then the
+  // contrast floor (no token: a setting); the inverse fill's three tiers. The inverse names are the brief's (DRAFT).
+  const WANT_SURF_ROWS = [
+    ['background.primary', 'Primary', 'background.primary', 'surface-base-pick'], ['background.secondary', 'Secondary', 'background.secondary', 'surface-secondary-pick'],
+    ['background.tertiary', 'Tertiary', 'background.tertiary', 'surface-tertiary-pick'], ['surfaces.floorStep', 'Contrast floor', null, 'surface-floor-pick'],
+    ['inverse.background.primary', 'Inverse primary', 'inverse.background.primary', 'surface-band-step-pick'],
+    ['inverse.background.secondary', 'Inverse secondary', 'inverse.background.secondary', 'surface-inverse-secondary-pick'],
+    ['inverse.background.tertiary', 'Inverse tertiary', 'inverse.background.tertiary', 'surface-inverse-tertiary-pick'],
+  ].map(([role, label, token, pick]) => ({ role, label, token, swatch: true, pick }));
+  ok(JSON.stringify(c.surfRows) === JSON.stringify(WANT_SURF_ROWS), `${host}: QA-B1/QA-B3: Background fills draws its rows in the Foreground pattern, Primary first — read ${JSON.stringify(c.surfRows)}`);
+  ok(JSON.stringify(c.surfSubs) === JSON.stringify(['Default background fills', 'Inverse background fills']),
+    `${host}: QA-B7: Background fills' sub-sections are "Default background fills" and "Inverse background fills" — read ${JSON.stringify(c.surfSubs)}`);
   for (const [key, hk] of FILLS_LEVERS) ok(c.levers[hk] === 1, `${host}: Surfaces & fills lever ${key} renders its hook ${hooks.role(hk)} once — rendered ${c.levers[hk]}`);
-  for (const r of [...FOREGROUND_ROW_ROLES, ...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...BORDER_ROW_ROLES, ...ICON_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES]) ok(c.rows[r] === 1, `${host}: Surfaces & fills renders the ${r} row once — rendered ${c.rows[r]}`);
+  for (const r of [...SURFACE_ROW_ROLES, ...FOREGROUND_ROW_ROLES, ...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...BORDER_ROW_ROLES, ...ICON_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES]) ok(c.rows[r] === 1, `${host}: Surfaces & fills renders the ${r} row once — rendered ${c.rows[r]}`);
   // The focus rings (S4d, #1966): read-only rows, no control.
   ok(JSON.stringify(c.focus) === JSON.stringify([{ role: 'border.focus', controls: 0 }, { role: 'inverse.border.focus', controls: 0 }]), `${host}: Border shows border.focus and inverse.border.focus read-only — read ${JSON.stringify(c.focus)}`);
   // Q50, paired (the default theme's iconContrast is "text"): every icon row is disabled and says which text role it
@@ -2818,7 +3066,7 @@ for (const host of ['web', 'figma']) {
   ok(c.icons.length === ICON_ROW_ROLES.length && badLock.length === 0, `${host}: paired, each of the ${ICON_ROW_ROLES.length} icon rows is locked and reads "Follows text.X"${badLock.length ? ` — not: ${badLock.slice(0, 4).map((r) => `${r} ${JSON.stringify(c.icons.find((x) => x.role === r))}`).join(', ')}` : ''}`);
   ok(c.pairNote === 'Icons follow their text color. Unpair them to set icons on their own.' && c.unpair === 'Unpair icons from text', `${host}: the Icon section's note and button are the approved copy — read ${JSON.stringify([c.pairNote, c.unpair])}`);
   // Jump links (Q49): one per section, each to its own section, in order.
-  ok(JSON.stringify(c.jumps.map((j) => j.text)) === JSON.stringify(c.jumps.map((j) => j.to)) && c.jumps.length === 8, `${host}: a jump link to each of the 8 sections, each naming its target — read ${JSON.stringify(c.jumps)}`);
+  ok(JSON.stringify(c.jumps.map((j) => j.text)) === JSON.stringify(c.jumps.map((j) => j.to)) && c.jumps.length === 9, `${host}: a jump link to each of the 9 sections, each naming its target — read ${JSON.stringify(c.jumps)}`);
   ok(JSON.stringify([...c.fieldRows].sort()) === JSON.stringify([...FIELD_ROW_ROLES].sort()), `${host}: the Fields section holds exactly the emitted field roles' rows — holds ${JSON.stringify(c.fieldRows)}`);
   // The approved copy (S4c, owner decisions Q26, Q27, Q29; Q23 for "Text color"), read as rendered. Literal.
   const copy = await page.evaluate(() => ({
@@ -2839,8 +3087,8 @@ for (const host of ['web', 'figma']) {
     subs: [...document.querySelectorAll('[data-p3="fills-levers"] .p3-rows-sub')].map((n) => n.textContent),
     // The token a surface control names, read off the label its select is named by (`for`), so it is the
     // control's own label and not text elsewhere in the block.
-    tokens: Object.fromEntries(['surface-base-pick', 'surface-secondary-pick', 'surface-tertiary-pick', 'surface-band-palette', 'surface-inverse-secondary-pick',
-      'surface-inverse-tertiary-pick', 'surface-floor'].map((hk) => {
+    tokens: Object.fromEntries(['surface-base-pick', 'surface-secondary-pick', 'surface-tertiary-pick', 'surface-band-step-pick', 'surface-band-palette', 'surface-inverse-secondary-pick',
+      'surface-inverse-tertiary-pick', 'surface-floor-pick'].map((hk) => {
       const sel = document.querySelector(`[data-p3="fills-levers"] [data-p3="${hk}"]`);
       const lab = sel?.id ? document.querySelector(`[data-p3="fills-levers"] label[for="${sel.id}"]`) : null;
       return [hk, lab?.querySelector('.p3-fill-tok')?.textContent ?? null];
@@ -2851,27 +3099,46 @@ for (const host of ['web', 'figma']) {
       const lab = sel?.id ? document.querySelector(`[data-p3="fills-levers"] label[for="${sel.id}"]`) : null;
       return lab?.querySelector('.p3-fill-label')?.textContent ?? null;
     }),
-    // The Inverse fill control's own name, over its token (the owner's rename of "band" to "fill", 2026-10-02).
+    // The inverse fill's palette select, by its own label (the owner's rename of "band" to "fill", 2026-10-02; S4f DRAFT).
     inverseName: (() => {
       const sel = document.querySelector('[data-p3="fills-levers"] [data-p3="surface-band-palette"]');
       const lab = sel?.id ? document.querySelector(`[data-p3="fills-levers"] label[for="${sel.id}"]`) : null;
-      return lab?.querySelector('.p3-fill-label')?.textContent ?? null;
+      return lab?.textContent ?? null;
+    })(),
+    // QA-B6: the contrast floor row's own info text, the toggletip its info button controls.
+    floorTip: (() => {
+      const info = document.querySelector('[data-p3="fills-levers"] [data-p3="surface-row"][data-role="surfaces.floorStep"] [data-p3="lever-info"]');
+      const id = info?.getAttribute('aria-controls');
+      return id ? document.getElementById(id)?.textContent ?? null : null;
+    })(),
+    // QA-I10: the icon contrast block's info text, its toggletip.
+    iconTip: (() => {
+      const info = document.querySelector('[data-p3="fills-levers"] [data-p3="lever-icon-contrast"] [data-p3="lever-info"]');
+      const id = info?.getAttribute('aria-controls');
+      return id ? document.getElementById(id)?.textContent ?? null : null;
     })(),
   }));
   // The owner's direction (S4c): Page names background.primary and the Inverse band inverse.background.primary,
   // the grounds `surfaces.<mode>.base` and `.inverseBase` set (#956); the contrast floor is a setting. Literal.
   // S4e (#1972, Q41): the four tiers name the tokens their inputs set.
+  // S4f (QA-B1): Inverse primary's step picker names inverse.background.primary; the palette select above it names none.
   const WANT_TOKENS = { 'surface-base-pick': 'background.primary', 'surface-secondary-pick': 'background.secondary', 'surface-tertiary-pick': 'background.tertiary',
-    'surface-band-palette': 'inverse.background.primary', 'surface-inverse-secondary-pick': 'inverse.background.secondary',
-    'surface-inverse-tertiary-pick': 'inverse.background.tertiary', 'surface-floor': null };
+    'surface-band-step-pick': 'inverse.background.primary', 'surface-band-palette': null, 'surface-inverse-secondary-pick': 'inverse.background.secondary',
+    'surface-inverse-tertiary-pick': 'inverse.background.tertiary', 'surface-floor-pick': null };
   ok(JSON.stringify(copy.tokens) === JSON.stringify(WANT_TOKENS), `${host}: each surface control names the token it sets, the floor none — read ${JSON.stringify(copy.tokens)}`);
   ok(JSON.stringify(copy.tierNames) === JSON.stringify(['Secondary', 'Tertiary', 'Inverse secondary', 'Inverse tertiary']),
-    `${host}: the four tier controls are named Secondary, Tertiary, Inverse secondary, Inverse tertiary (S4e, draft) — read ${JSON.stringify(copy.tierNames)}`);
-  ok(copy.inverseName === 'Inverse fill', `${host}: the inverse.background.primary control is named "Inverse fill" (the owner's rename, 2026-10-02) — read ${JSON.stringify(copy.inverseName)}`);
+    `${host}: the four tier controls are named Secondary, Tertiary, Inverse secondary, Inverse tertiary (#2001, approved) — read ${JSON.stringify(copy.tierNames)}`);
+  ok(copy.inverseName === 'Inverse fill palette', `${host}: the inverse fill's palette select is named "Inverse fill palette" (S4f, draft; "fill", the owner's rename) — read ${JSON.stringify(copy.inverseName)}`);
+  ok(copy.floorTip === 'The background most text, icon and fill colors are checked against for contrast. Auto uses background.secondary.',
+    `${host}: QA-B6: the contrast floor's info text is the owner's — read ${JSON.stringify(copy.floorTip)}`);
+  ok(copy.iconTip === 'The icon color set by the icon contrast floor: matches text at 4.5:1, or held to the 3:1 non-text floor.',
+    `${host}: QA-I10: the icon contrast block carries Interactive's Icons description (ICONS_DESC) — read ${JSON.stringify(copy.iconTip)}`);
   const FILLS_COPY = {
     intro: 'Background and foreground fills, text, fields and gradients: the colors every page is built on.',
-    titles: ['Background fills', 'Foreground', 'Foreground fills', 'Text color', 'Border', 'Icon', 'Fields', 'Gradients'],
-    'Background fills': 'The base page planes, their inverse counterparts, and the scrim that dims them behind a modal.',
+    titles: ['Background fills', 'Scrim', 'Foreground', 'Foreground fills', 'Text color', 'Border', 'Icon', 'Fields', 'Gradients'],
+    // S4f (QA-B10): the scrim left Background fills, so its description is the owner's Q26 intro; Scrim's is APPROVED.
+    'Background fills': 'The base page planes and their inverse counterparts.',
+    Scrim: "The overlay that dims the page behind a modal. It isn't editable.",
     // Q44: the APPROVED heading with the preview's Foreground description (Q23); Border and Icon take the preview's (Q23).
     Foreground: 'Content surfaces placed ON the page — the neutral and inverse ladders, plus semantic fills in bold and subtle weights, each paired with its on-surface text.',
     Border: 'Neutral separators, the focus ring, and semantic borders — their own category, not a surface.',
@@ -2884,13 +3151,18 @@ for (const host of ['web', 'figma']) {
   const FG_LABELS = [['foreground.primary', 'Primary'], ['foreground.secondary', 'Secondary'], ['foreground.tertiary', 'Tertiary'],
     ['inverse.foreground.primary', 'Primary'], ['inverse.foreground.secondary', 'Secondary'], ['inverse.foreground.tertiary', 'Tertiary']];
   ok(JSON.stringify(copy.fgLabels) === JSON.stringify(FG_LABELS), `${host}: the Foreground section's rows are labeled Primary, Secondary, Tertiary (Q44) — read ${JSON.stringify(copy.fgLabels)}`);
-  ok(JSON.stringify(copy.subs) === JSON.stringify(['Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse']), `${host}: Foreground, Foreground fills, Text color, Border and Icon each head their inverse rows "Inverse" — read ${JSON.stringify(copy.subs)}`);
+  // S4f (QA-B7): Background fills' two sub-headings come first, the APPROVED words.
+  ok(JSON.stringify(copy.subs) === JSON.stringify(['Default background fills', 'Inverse background fills', 'Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse']),
+    `${host}: Background fills heads its two groups (QA-B7), and Foreground, Foreground fills, Text color, Border and Icon each head their inverse rows "Inverse" — read ${JSON.stringify(copy.subs)}`);
   ok(copy.intro === FILLS_COPY.intro, `${host}: the Surfaces & fills intro is the owner's (Q27) — read ${JSON.stringify(copy.intro)}`);
   ok(JSON.stringify(copy.titles) === JSON.stringify(FILLS_COPY.titles), `${host}: the Surfaces & fills sections are ${FILLS_COPY.titles.join(', ')} — read ${JSON.stringify(copy.titles)}`);
-  for (const t of ['Background fills', 'Foreground', 'Text color', 'Border', 'Icon', 'Fields']) ok(copy.descs[t] === FILLS_COPY[t], `${host}: the ${t} intro is the owner's — read ${JSON.stringify(copy.descs[t])}`);
-  // Q23: the levers' Foreground and Text color descriptions are the preview sections' own, read off both sides
-  // as rendered, so an edit to one side alone fails here as well as against the literal above.
-  for (const t of ['Foreground', 'Text color']) ok(copy.previewDescs[t] === FILLS_COPY[t], `${host}: the preview's ${t} description is the one the levers copy (Q23) — read ${JSON.stringify(copy.previewDescs[t])}`);
+  for (const t of ['Background fills', 'Scrim', 'Foreground', 'Text color', 'Border', 'Icon', 'Fields']) ok(copy.descs[t] === FILLS_COPY[t], `${host}: the ${t} intro is the owner's — read ${JSON.stringify(copy.descs[t])}`);
+  // Q23: the levers' descriptions are the preview sections' own, read off both sides as rendered, so an edit to one
+  // side alone fails here as well as against the literal above. Background fills pairs with the preview's
+  // Background (Q26's rename); since S4f Scrim (QA-B10) and Fields (#2016) have preview sections of their own.
+  for (const [t, pv] of [['Background fills', 'Background'], ['Scrim', 'Scrim'], ['Foreground', 'Foreground'], ['Text color', 'Text color'], ['Border', 'Border'], ['Icon', 'Icon'], ['Fields', 'Fields']]) {
+    ok(copy.previewDescs[pv] === FILLS_COPY[t], `${host}: the preview's ${pv} description is the one the levers' ${t} copies (Q23) — read ${JSON.stringify(copy.previewDescs[pv])}`);
+  }
   ok(copy.surfacesName === 'Background fills' && copy.modeHeads === 0, `${host}: the surfaces lever is named Background fills, with no per-mode subheading (Q22, Q26) — read ${JSON.stringify(copy.surfacesName)}, ${copy.modeHeads} mode subheading(s)`);
   // The Background fills info text is the owner's (approved verbatim, 2026-10-02), the Studio's own for this page
   // and not the engine manifest's description, which stays as it is for MCP and the emission. Literal.
@@ -2957,8 +3229,9 @@ for (const host of ['web', 'figma']) {
     step: document.querySelector('[data-p3="levers-pane"] [data-p3="surface-band-step-pick"]')?.getAttribute('aria-label') ?? null,
     palette: document.querySelector('[data-p3="levers-pane"] [data-p3="surface-band-palette"]')?.getAttribute('aria-label') ?? null,
   }));
-  ok(/^Inverse fill step, Light: /.test(fillNames.step ?? '') && fillNames.palette === 'Inverse fill palette, Light',
-    `${host}: the inverse.background.primary controls' accessible names say "Inverse fill" (Q58) — read ${JSON.stringify(fillNames)}`);
+  // S4f: the step picker is the Inverse primary row's, named by its visible label (WCAG 2.5.3); the palette select says "fill".
+  ok(/^Inverse primary, Light: /.test(fillNames.step ?? '') && fillNames.palette === 'Inverse fill palette, Light',
+    `${host}: the inverse.background.primary controls' accessible names are "Inverse primary" and "Inverse fill palette" (Q58) — read ${JSON.stringify(fillNames)}`);
   // Light, the proof the read below sees controls that CAN be enabled: the Unpair button is, and most controls are.
   const light = await fillsControls(page);
   const lightUnpair = light.find((c) => c.hook === 'icons-unpair');
@@ -3164,6 +3437,168 @@ for (const host of ['web', 'figma']) {
   ok(a?.iconContrast === 'text' && a?.overrides === undefined,
     `Q61: Pair icons on Surfaces & fills writes iconContrast "text" and clears the icon override (iconContrast ${JSON.stringify(a?.iconContrast)}, overrides ${JSON.stringify(a?.overrides)})`);
   ok(errors.length === 0, `Q61 re-pair with an override: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+// =============================================================================================
+// S4f (the owner's QA of 2026-10-02 on Surfaces & fills): the lock on the icon pairing button follows the state
+// (QA-B12); the gradients switch in its block's header (QA-B13), no gradient drawn in the levers (QA-B14), room around
+// the gradients' dividers (QA-B15, QA-B16); and the badge marks (QA-I2) read on whatever Page the brand sets.
+// THE ORACLES: the padlock's two shackles are literals typed here; "a gradient drawn" is any element in the levers whose
+// computed background is a CSS gradient, read from the render, whatever its hook; the marks are held to the composited
+// ground each is drawn on, computed HERE, and to the chrome themes' own success and danger icon colors, read off probe
+// elements stamped with each theme, never off the module that picks.
+// =============================================================================================
+{
+  /** The shut and the open shackle, as drawn (`lock` and `unlock` in `shell/dom.ts`), by their path data. Literal. */
+  const SHUT = 'M5.4 7.2V5.2a2.6 2.6 0 0 1 5.2 0v2';
+  const OPEN = 'M5.4 7.2V5.2a2.6 2.6 0 0 1 5.1-.7';
+  for (const host of ['web', 'figma']) {
+    const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+    await goPlace(page, 'color-fills');
+    const lock = () => page.evaluate(() => {
+      const b = document.querySelector('[data-p3="levers-pane"] :is([data-p3="icons-unpair"], [data-p3="icons-pair"])');
+      const svg = b?.querySelector('svg');
+      return { hook: b?.getAttribute('data-p3') ?? null, name: b?.textContent?.trim() ?? null, label: b?.getAttribute('aria-label'),
+        hidden: svg?.getAttribute('aria-hidden') ?? null, shackle: svg?.querySelectorAll('path')[0]?.getAttribute('d') ?? null,
+        drawn: svg ? Math.round(svg.getBoundingClientRect().width) : 0, inBlock: !!b?.closest('[data-p3="lever-icon-contrast"]') };
+    });
+    const p0 = await lock();
+    ok(p0.hook === 'icons-unpair' && p0.shackle === SHUT && p0.hidden === 'true' && p0.name === 'Unpair icons from text' && p0.label === null && p0.drawn > 0 && p0.inBlock,
+      `${host} QA-B12: paired, the pairing button draws the shut padlock, decorative, beside its words, in the icon contrast block — read ${JSON.stringify(p0)}`);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="icons-unpair"]'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-pane"] [data-p3="icons-pair"]'), null, { timeout: 5000 }).catch(() => {});
+    const p1 = await lock();
+    ok(p1.hook === 'icons-pair' && p1.shackle === OPEN && p1.hidden === 'true' && p1.name === 'Pair icons with text' && p1.label === null && p1.drawn > 0,
+      `${host} QA-B12: unpaired, the pairing button draws the open padlock, decorative, beside its words — read ${JSON.stringify(p1)}`);
+    // Gradients (QA-B13, QA-B14, QA-B15, QA-B16).
+    const gr = await page.evaluate(() => {
+      const blk = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-gradients"]');
+      const head = blk?.querySelector('.p3-lever-head');
+      const sw = blk?.querySelector('[data-p3="gradients-switch"]');
+      const hb = head?.getBoundingClientRect(), sb = sw?.getBoundingClientRect();
+      // A gradient DRAWN is a linear or radial CSS gradient (the engine's two kinds) between two colors or more. The
+      // scrim's swatch sits on the chrome's transparency checkerboard (A6), a conic pattern, and is not one.
+      const colors = (bg) => new Set((bg.match(/rgba?\([^)]*\)|#[0-9a-f]{3,8}\b/gi) ?? []).map((x) => x.replace(/\s+/g, '')));
+      const painted = [...document.querySelectorAll('[data-p3="levers-pane"] *')].filter((n) => { const bg = getComputedStyle(n).backgroundImage; return /(linear|radial)-gradient\(/.test(bg) && colors(bg).size >= 2; })
+        .map((n) => n.getAttribute('data-p3') ?? n.className?.baseVal ?? n.className);
+      const eds = [...(blk?.querySelectorAll('[data-p3="gradient-editor"]') ?? [])];
+      const box = (n) => n.getBoundingClientRect();
+      // Room on each side of a divider: from the last control of one gradient to the next's divider, and from that
+      // divider to the next gradient's first control. Then from Add gradient's divider down to the button.
+      const ctl = (e) => [...e.querySelectorAll('input, select, button')].filter((x) => box(x).height > 0);
+      const sides = eds.slice(1).map((e, i) => {
+        const prevCtl = ctl(eds[i]), line = box(e).top, first = ctl(e)[0];
+        return { above: Math.round(line - Math.max(...prevCtl.map((x) => box(x).bottom))), below: Math.round(box(first).top - line) };
+      });
+      const addRow = blk?.querySelector('[data-p3="gradient-add-row"]'), add = blk?.querySelector('[data-p3="gradient-add"]');
+      const last = eds[eds.length - 1];
+      return {
+        inHead: !!sw && sw.closest('.p3-lever-head') === head, right: hb && sb ? Math.round(hb.right - sb.right) : null, top: hb && sb ? Math.round(sb.top - hb.top) : null,
+        painted, n: eds.length, sides,
+        addLine: addRow ? getComputedStyle(addRow).borderTopStyle : null,
+        addAbove: addRow && add ? Math.round(box(add).top - box(addRow).top) : null,
+        addBelowLast: addRow && last ? Math.round(box(addRow).top - Math.max(...ctl(last).map((x) => box(x).bottom))) : null,
+      };
+    });
+    ok(gr.inHead && gr.right !== null && gr.right <= 1 && gr.top !== null && gr.top <= 12, `${host} QA-B13: the gradients switch sits at the top right of its block's header — read ${JSON.stringify({ inHead: gr.inHead, right: gr.right, top: gr.top })}`);
+    ok(gr.painted.length === 0, `${host} QA-B14: the levers draw no gradient (the preview shows them)${gr.painted.length ? ` — drawn by ${gr.painted.join(', ')}` : ''}`);
+    // S4a gave 8px above a divider and 12px under it; QA-B16 asks for more on both sides: 24px (the scale's 300) each.
+    ok(gr.n >= 2 && gr.sides.length === gr.n - 1 && gr.sides.every((x) => x.above >= 24 && x.below >= 24),
+      `${host} QA-B16: each gradient is set apart from the next by its divider, 24px or more on both sides — read ${JSON.stringify(gr.sides)} (${gr.n} gradients)`);
+    ok(gr.addLine === 'solid' && gr.addAbove >= 32 && gr.addBelowLast >= 24,
+      `${host} QA-B15: Add gradient has its own divider, with more room above the button (${gr.addAbove}px) than the gradients have (24px), and room below the last gradient (${gr.addBelowLast}px) — divider ${gr.addLine}`);
+    ok(errors.length === 0, `${host} S4f lock and gradients: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    await ctx.close();
+  }
+}
+// A6 (owner, 2026-10-03): the scrim's wash sits over a checkered ground, in the levers' swatch and the preview's card, so
+// it reads as translucent: both chrome themes, Light and Dark previewed. THE ORACLE is the render: the element under
+// the wash paints a CSS gradient of two colors or more as its background image (a checkerboard is a conic or repeated
+// gradient), and the wash on it is a translucent color (alpha under 1) that covers it.
+for (const theme of ['light', 'dark']) {
+  const { ctx, page, errors } = await open({ host: 'web', theme, w: 1280, h: 900 });
+  await goPlace(page, 'color-fills');
+  for (const mode of ['light', 'dark']) {
+    await showMode(page, mode);
+    const got = await page.evaluate(() => {
+      const colors = (bg) => new Set((bg.match(/rgba?\([^)]*\)|#[0-9a-f]{3,8}\b/gi) ?? []).map((x) => x.replace(/\s+/g, '')));
+      const read = (under, wash) => {
+        const u = document.querySelector(under), w = u?.querySelector(wash);
+        if (!u || !w) return { found: false };
+        const bg = getComputedStyle(u).backgroundImage, wb = getComputedStyle(w).backgroundColor;
+        const a = /rgba\([^)]*,\s*([0-9.]+)\)/.exec(wb);
+        const U = u.getBoundingClientRect(), W = w.getBoundingClientRect();
+        return { found: true, checkered: /gradient\(/.test(bg) && colors(bg).size >= 2, image: bg.slice(0, 90), wash: wb, translucent: !!a && Number(a[1]) > 0 && Number(a[1]) < 1,
+          covers: W.width >= U.width - 2 && W.height >= U.height * 0.5 };
+      };
+      return { levers: read('[data-p3="levers-pane"] [data-p3="scrim-swatch"]', '[data-p3="scrim-wash"]'),
+        preview: read('[data-p3="preview-body"] [data-p3="scrim-checker"]', '[data-p3="scrim-wash"]') };
+    });
+    for (const [where, r] of Object.entries(got)) {
+      ok(r.found && r.checkered && r.translucent && r.covers,
+        `A6 web ${theme}, previewing ${mode}: the scrim's ${where === 'levers' ? 'swatch in the levers' : 'card in the preview'} draws its wash over a checkered ground — read ${JSON.stringify(r)}`);
+    }
+  }
+  ok(errors.length === 0, `A6 web ${theme}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+// QA-I2 on Surfaces & fills: a Page sweep. Every Page the picker offers in Light and in Dark (white, every neutral step,
+// black), and every ratio badge's mark in the preview: a mark stamped with a chrome theme is drawn in that theme's
+// success (pass) or danger (miss) icon color, at 3:1 or more against the ground it is ACTUALLY on, and that theme reads
+// at least as well there as the other; a mark left unstamped is in the badge's own ink, and only where neither theme
+// reaches 3:1. Both kinds of ground must be met (a stamped mark on a light ground and on a dark one), or the sweep proves nothing.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  await goPlace(page, 'color-fills');
+  const MARKS = () => {
+    const card = document.querySelector('[data-p3="preview-body"] [data-p3="surfaces-style-guide"]');
+    const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+    const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+    const groundOf = (el) => { let acc = null; for (let n = el; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return acc; } } return acc ? over(acc, { r: 255, g: 255, b: 255, a: 1 }) : { r: 255, g: 255, b: 255, a: 1 }; };
+    const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+    const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+    // The themes' icon colors, from probe elements stamped with each theme, as computed colors.
+    const theme = (t) => { const s = document.createElement('span'); s.dataset.theme = t; card.append(s); s.style.color = 'var(--p3-ok-icon)'; const ok = parse(getComputedStyle(s).color); s.style.color = 'var(--p3-bad-icon)'; const bad = parse(getComputedStyle(s).color); s.remove(); return { ok, bad }; };
+    const T = { light: theme('light'), dark: theme('dark') };
+    return [...card.querySelectorAll('.sg-ratio-mk')].map((mk) => {
+      const kind = mk.closest('[data-below="true"]') ? 'bad' : 'ok';
+      const g = groundOf(mk);
+      const col = parse(getComputedStyle(mk).color);
+      const badge = parse(getComputedStyle(mk.closest('.sg-ratio')).color);
+      const best = Math.max(ratio(T.light[kind], g), ratio(T.dark[kind], g));
+      return { kind, stamped: mk.dataset.theme ?? null, r: ratio(col, g), best, other: mk.dataset.theme ? ratio(T[mk.dataset.theme === 'light' ? 'dark' : 'light'][kind], g) : null,
+        themed: mk.dataset.theme ? Math.abs(ratio(col, T[mk.dataset.theme][kind]) - 1) < 0.01 : null, ink: Math.abs(ratio(col, badge) - 1) < 0.01, dark: lum(g) < 0.18 };
+    });
+  };
+  let states = 0, stamped = 0, fallback = 0, onDark = 0, onLight = 0;
+  const bad = [];
+  for (const mode of ['light', 'dark']) {
+    await showMode(page, mode);
+    await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="surface-base-pick"]'));
+    await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+    const steps = await page.locator('[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step));
+    ok(steps.length >= 12 && steps.includes('white') && steps.includes('black'), `QA-I2 sweep: previewing ${mode}, the Page picker offers white, the neutral steps and black (${steps.length})`);
+    for (const st of steps) {
+      await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-step"][data-step="${st}"]`));
+      await page.waitForFunction((k) => document.querySelector('[data-p3="levers-pane"] [data-p3="step-picker"] [aria-pressed="true"]')?.dataset.step === k, st, { timeout: 5000 }).catch(() => {});
+      const ms = await page.evaluate(MARKS);
+      states++;
+      for (const m of ms) {
+        if (m.stamped) {
+          stamped++; if (m.dark) onDark++; else onLight++;
+          if (!(m.themed && m.r >= 3 && m.r + 1e-6 >= m.other)) bad.push(`${mode} Page ${st}: a ${m.kind} mark themed ${m.stamped} reads ${m.r.toFixed(2)}:1 on its ground (the other theme ${m.other?.toFixed(2)}:1, drawn in its theme's color: ${m.themed})`);
+        } else {
+          fallback++;
+          if (!(m.ink && m.best < 3)) bad.push(`${mode} Page ${st}: a ${m.kind} mark left unthemed ${m.ink ? '' : 'is not in the badge ink, and '}where a theme reaches ${m.best.toFixed(2)}:1`);
+        }
+      }
+    }
+    await page.keyboard.press('Escape');
+  }
+  console.log(`  QA-I2 sweep: ${states} Page states, ${stamped} themed marks (${onLight} on light grounds, ${onDark} on dark), ${fallback} in the badge ink`);
+  ok(states >= 24 && stamped > 0 && onDark > 0 && onLight > 0, `QA-I2 sweep: the Page sweep met themed marks on light and on dark grounds (${states} states, ${onLight} light, ${onDark} dark)`);
+  ok(bad.length === 0, `QA-I2 sweep: every badge mark on Surfaces & fills reads at 3:1 or more in the better chrome theme's status icon color, or keeps the badge's ink where neither theme reaches 3:1${bad.length ? ` — ${bad.slice(0, 3).join(' | ')} (${bad.length} in all)` : ''}`);
+  ok(errors.length === 0, `QA-I2 sweep: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }
 // The step picker, mounted (V9): it opens under its row on the current step, a pick writes the step and keeps
@@ -4510,6 +4945,83 @@ for (const host of ['web', 'figma']) {
         ok((await ceil()).every((o) => !o.off), `#2044: with no display size set, every largest display size is live again (${vp})`);
       }
     }
+    // #2054: on the 16px smallest title with title 2xs set individually, brand-wide or in Dark only, the 18px chip
+    // is disabled with its reason, and clicking it writes nothing. #2055: with a mobile size set individually, the
+    // fluid switch is disabled with its reason, naming every such size, and clicking it writes nothing. EXPECTED
+    // typed here: the reasons' words, never read from the page's module (docs/34). Both reasons are DRAFTS
+    // pending the owner's approval; a change to either is a change to this arm.
+    // On Default, title 2xs sits at the 16px title floor with xs at 18px, so its picker offers no other value; on
+    // Expressive xs is 20px, so 18px is free. A mobile size on title 2xs is the same squeeze (at most its desktop
+    // 16px, at least the floor 16px), so the unit arm covers mobile and this one covers brand-wide and Dark.
+    {
+      const R18 = 'Leaves out title 2xs, which you set individually.';
+      const chip18 = () => page.evaluate(() => { const b = document.querySelector('[data-p3="title-floor-18"]'); return { off: b?.disabled, why: b?.title }; });
+      const firstFree = () => page.evaluate(() => document.querySelector('[data-p3="value-picker"] [data-p3="value-picker-value"]:not([aria-disabled="true"]):not([aria-pressed="true"])')?.getAttribute('data-value') ?? null);
+      const pFloor = await persisted(page);
+      await hooks.click(page.locator('[data-p3="type-scale-expressive"]'));
+      await page.waitForFunction(() => document.querySelector('[data-p3="type-scale-expressive"]')?.getAttribute('aria-checked') === 'true');
+      await hooks.click(page.locator('[data-p3="title-floor-16"]'));
+      await page.waitForFunction(() => document.querySelector('[data-p3="title-floor-16"]')?.getAttribute('aria-checked') === 'true');
+      ok(JSON.stringify(await chip18()) === JSON.stringify({ off: false, why: '' }), `#2054: on 16px with no title 2xs set, the 18px chip is live (${JSON.stringify(await chip18())})`);
+      const btn = '[data-p3="type-size-desktop"][data-group="title"][data-variant="2xs"]';
+      for (const mode of ['light', 'dark']) {
+        await chooseMode(page, mode);
+        await hooks.click(page.locator(btn));
+        await hooks.need(page, '[data-p3="value-picker"]');
+        const to = await firstFree();
+        ok(to !== null, `#2054: title 2xs's size offers another value in ${mode} (${to})`);
+        await pick(btn, to);
+        await close();
+        await page.waitForFunction(() => document.querySelector('[data-p3="title-floor-18"]')?.disabled === true, null, { timeout: 5000 }).catch(() => {});
+        const got = await chip18();
+        ok(got.off === true && got.why === R18, `#2054: with title 2xs set in ${mode} (${to}px), the 18px smallest title is disabled with "${R18}" (${JSON.stringify(got)})`);
+        const before = JSON.stringify(await persisted(page));
+        // force: Playwright holds a disabled button not actionable; the point is that a click on it writes nothing.
+        await hooks.click(page.locator('[data-p3="title-floor-18"]'), { force: true });
+        await page.waitForTimeout(80);
+        ok(JSON.stringify(await persisted(page)) === before && (await page.locator('[data-p3="title-floor-16"]').getAttribute('aria-checked')) === 'true',
+          `#2054: clicking the disabled 18px chip writes nothing (${mode})`);
+        await reset(btn);
+        await close();
+        await page.waitForFunction(() => document.querySelector('[data-p3="title-floor-18"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+        ok((await chip18()).off === false, `#2054: releasing title 2xs's size in ${mode} makes the 18px chip live again`);
+      }
+      await chooseMode(page, 'light');
+      await hooks.click(page.locator('[data-p3="title-floor-18"]'));
+      await page.waitForFunction(() => document.querySelector('[data-p3="title-floor-18"]')?.getAttribute('aria-checked') === 'true');
+      await hooks.click(page.locator('[data-p3="type-scale-default"]'));
+      await page.waitForFunction(() => document.querySelector('[data-p3="type-scale-default"]')?.getAttribute('aria-checked') === 'true');
+      ok(JSON.stringify(await persisted(page)) === JSON.stringify(pFloor), `#2054: back on 18px and the Default scale, the brand returns to its bytes`);
+
+      const sw = () => page.evaluate(() => { const b = document.querySelector('[data-p3="type-fluid"]'); return { on: b?.getAttribute('aria-checked'), off: b?.disabled, why: b?.title }; });
+      ok(JSON.stringify(await sw()) === JSON.stringify({ on: 'true', off: false, why: '' }), `#2055: with no mobile size set, the fluid switch is on and live (${JSON.stringify(await sw())})`);
+      const pFluid = await persisted(page);
+      const md = '[data-p3="type-size-mobile"][data-group="display"][data-variant="md"]';
+      const sm = '[data-p3="type-size-mobile"][data-group="title"][data-variant="sm"]';
+      const steps = [
+        [md, 'Removes the mobile size of display md, which you set individually.', 'display md'],
+        [sm, 'Removes the mobile sizes of display md and title sm, which you set individually.', 'display md and title sm'],
+      ];
+      for (const [btn, why, what] of steps) {
+        await hooks.click(page.locator(btn));
+        await hooks.need(page, '[data-p3="value-picker"]');
+        const to = await firstFree();
+        await pick(btn, to);
+        await close();
+        await page.waitForFunction((w) => document.querySelector('[data-p3="type-fluid"]')?.title === w, why, { timeout: 5000 }).catch(() => {});
+        const got = await sw();
+        ok(JSON.stringify(got) === JSON.stringify({ on: 'true', off: true, why }), `#2055: with ${what} set on mobile, the fluid switch is disabled with "${why}" (${JSON.stringify(got)})`);
+        const before = JSON.stringify(await persisted(page));
+        // force: Playwright holds a disabled button not actionable; the point is that a click on it writes nothing.
+        await hooks.click(page.locator('[data-p3="type-fluid"]'), { force: true });
+        await page.waitForTimeout(80);
+        ok(JSON.stringify(await persisted(page)) === before && (await sw()).on === 'true', `#2055: clicking the disabled fluid switch writes nothing (${what})`);
+      }
+      for (const [btn] of steps) { await reset(btn); await close(); }
+      await page.waitForFunction(() => document.querySelector('[data-p3="type-fluid"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      ok(JSON.stringify(await sw()) === JSON.stringify({ on: 'true', off: false, why: '' }), `#2055: releasing both mobile sizes makes the fluid switch live again (${JSON.stringify(await sw())})`);
+      ok(JSON.stringify(await persisted(page)) === JSON.stringify(pFluid), '#2055: releasing both mobile sizes returns the brand to its bytes');
+    }
     // A text type that pins a font style cannot be Italic only: the chip is disabled with the reason.
     const pinIn = page.locator('[data-p3="pin-cut-row"][data-cat="body"][data-role="default"] [data-p3="pin-cut-input"]');
     await pinIn.fill('Medium');
@@ -4528,8 +5040,9 @@ for (const host of ['web', 'figma']) {
     ok(false, `S6.3 Type edits: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
 }
-// typography.responsive has one home (owner decision Q71): Type › Scale limits draws it, and the legacy Layout page,
-// which drew "Responsive type sizing" and its fluid read-out (#361), no longer does. Both hosts.
+// typography.responsive has one home (owner decision Q71): Type › Scale limits draws it, and Layout, whose legacy page
+// drew "Responsive type sizing" and its fluid read-out (#361), no longer does. Both hosts. Since S10 Layout is a moved
+// page, so this reads its two panes, the levers and the preview, where the legacy page was.
 for (const host of ['web', 'figma']) {
   const { ctx, page } = await open({ host, theme: 'light', w: 1280, h: 900 });
   try {
@@ -4537,13 +5050,16 @@ for (const host of ['web', 'figma']) {
     await openTypeAdvanced(page);
     const onType = await page.evaluate(() => document.querySelectorAll('[data-p3="levers-pane"] [data-p3="lever-typography-responsive"]').length);
     await goPlace(page, 'layout');
-    await hooks.need(page, '[data-p3="legacy-page"]');
+    await hooks.need(page, '[data-p3="layout-levers"]');
+    await hooks.need(page, '[data-p3="layout-style-guide"]');
     const onLayout = await page.evaluate(() => {
-      const lp = document.querySelector('[data-p3="legacy-page"]');
       const out = [];
-      for (const t of lp.querySelectorAll('[data-p3="section-title"], .cs-title, h2, h3')) if (/responsive type|fluid/i.test(t.textContent)) out.push(`title "${t.textContent.trim()}"`);
-      if (lp.querySelector('[data-sg-section="type-fluid"], [data-sg-section="type-scale"]')) out.push('the fluid read-out');
-      if (/Fluid heading sizing|Min viewport|Max viewport/.test(lp.textContent)) out.push('the fluid switch or the viewport fields');
+      for (const [name, lp] of [['levers', document.querySelector('[data-p3="levers-pane"]')], ['preview', document.querySelector('[data-p3="preview-body"]')]]) {
+        for (const t of lp.querySelectorAll('[data-p3="section-title"], .p3-lsec-title, .cs-title, h2, h3')) if (/responsive type|fluid|scale between/i.test(t.textContent)) out.push(`${name} title "${t.textContent.trim()}"`);
+        if (lp.querySelector('[data-p3="lever-typography-responsive"]')) out.push(`the ${name}' typography.responsive lever`);
+        if (lp.querySelector('[data-sg-section="type-fluid"], [data-sg-section="type-scale"]')) out.push(`the ${name}' fluid read-out`);
+        if (/Fluid heading sizing|Headings scale between|Min viewport|Max viewport/.test(lp.textContent)) out.push(`the ${name}' fluid switch or viewport fields`);
+      }
       return out;
     });
     ok(onType === 1 && onLayout.length === 0, `typography.responsive is drawn on Type only${onType !== 1 ? ` — drawn ${onType} time(s) on Type` : ''}${onLayout.length ? ` — also on Layout (${onLayout.join(', ')})` : ''} (${host})`);
@@ -4561,10 +5077,14 @@ for (const host of ['web', 'figma']) {
 //     Independence (docs/34): which preview section a lever section pairs with is typed here as the owner's
 //     decisions state it (Q23 headings, Q26 and Q44 for the two renamed ones), never read from
 //     `follow-edit.ts`'s table; the motion values are the default theme's `motion.transition.default` as
-//     literals; every position is read from the rendered layout.
+//     literals; every position is read from the rendered layout. A glide is read from the glide log (#2042,
+//     above section 15), on frame time: its duration and curve against those literals, never a wall-clock
+//     measurement, so a busy machine reads the same glide as an idle one.
 //
 //     Mutations this fails by name: drop the reveal on Surfaces & fills → `QA-B9: editing a Border step on
-//     Surfaces & fills brings the preview's Border section into view …`; ignore reduced motion →
+//     Surfaces & fills brings the preview's Border section into view …`; the duration token at 0 →
+//     `QA-B9: both panes scroll on the chrome's default transition …` and `QA-B9: the glide lasts the default
+//     transition's 200ms …`; ignore reduced motion →
 //     `QA-B9: under reduced motion the reveal lands at once …`; reveal on focus → `QA-B9: focusing a lever …
 //     does not move the preview …`; no restore → `QA-I11: back on Surfaces & fills, both panes are where they
 //     were …`; a wrong label → `QA-B17: … the jump links' visible label reads "Jump to:" …`.
@@ -4572,9 +5092,10 @@ for (const host of ['web', 'figma']) {
 console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembered scroll\n${'='.repeat(78)}`);
 {
   /** The lever section → the preview section it reveals, as the owner decided them (typed, not imported). */
-  const PAIRS_FILLS = { 'Background fills': 'Background', Foreground: 'Foreground', 'Foreground fills': 'Foreground', 'Text color': 'Text color', Border: 'Border', Icon: 'Icon', Gradients: 'Gradients' };
+  const PAIRS_FILLS = { 'Background fills': 'Background', Scrim: 'Scrim', Foreground: 'Foreground', 'Foreground fills': 'Foreground', 'Text color': 'Text color', Border: 'Border', Icon: 'Icon', Fields: 'Fields', Gradients: 'Gradients' };
   /** `motion.transition.default` of the default theme: `motion.duration.normal` and `motion.easing.standard`. */
   const MOTION = { dur: '200ms', ease: 'cubic-bezier(0.2, 0, 0, 1)' };
+  const MOTION_MS = 200;
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
   try {
     /** The preview section headed `title`: its box against the body's, and where the body is. */
@@ -4588,23 +5109,28 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
         inView: !!r && r.top >= b.top - 1 && r.top < b.bottom - 40, view: body.dataset.view, place: document.querySelector('[data-p3="frame"]')?.dataset.place };
     }, title);
     const setTop = (hook, y) => page.evaluate(([h, v]) => { const n = document.querySelector(`[data-p3="${h}"]`); n.scrollTop = v; return Math.round(n.scrollTop); }, [hook, y]);
-    /** Every animation frame's scrollTop of a pane, and the time it took, until it has held still for ten frames. */
-    const frames = (which) => page.evaluate((w) => new Promise((res) => {
-      const b = document.querySelector(w === 'levers' ? '[data-p3="levers-pane"]' : '[data-p3="preview-body"]');
-      const tops = [Math.round(b.scrollTop)];
-      const t0 = performance.now();
-      let still = 0, moved = null, settled = null;
-      const tick = (now) => {
-        const t = Math.round(b.scrollTop);
-        if (t !== tops[tops.length - 1]) { still = 0; moved ??= now; settled = now; } else still++;
-        tops.push(t);
-        if (still >= 10 || tops.length > 400) res({ tops, ms: moved === null ? 0 : Math.round(settled - moved + 16), t0 }); else requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    }), which);
+    /** Every animation frame's scrollTop of a pane, until it has held still for ten frames (how a check waits
+     *  for a scroll to finish), with the glide log of each pane taken since the last call (what it checks). */
+    const frames = async (which) => {
+      const tops = await page.evaluate((w) => new Promise((res) => {
+        const b = document.querySelector(w === 'levers' ? '[data-p3="levers-pane"]' : '[data-p3="preview-body"]');
+        const t = [Math.round(b.scrollTop)];
+        let still = 0;
+        const tick = () => {
+          const y = Math.round(b.scrollTop);
+          still = y === t[t.length - 1] ? still + 1 : 0;
+          t.push(y);
+          if (still >= 10 || t.length > 400) res(t); else requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      }), which);
+      const g = glideOf(await takeGlideLog(page), which === 'levers' ? 'levers-pane' : 'preview-body', MOTION_MS, MOTION.ease);
+      return { tops, g };
+    };
     const between = (tops) => new Set(tops.filter((t) => t !== tops[0] && t !== tops[tops.length - 1])).size;
     const lands = (s) => s.inView && (Math.abs(s.rel - s.pad) <= 2 || s.top >= s.max - 1);
 
+    await installGlideLog(page);
     await goPlace(page, 'color-fills');
     // The panes read the chrome's default transition.
     const tok = await page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"], [data-p3="preview-body"]')]
@@ -4616,32 +5142,58 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     await setTop('preview-body', 0);
     const a0 = await sec(PAIRS_FILLS.Border);
     ok(a0.found && !a0.inView, `QA-B9: on Surfaces & fills the preview's Border section starts below the fold, so the reveal can move (${JSON.stringify(a0)})`);
-    await hooks.click(page.locator('#p3-lsec-fills-4 [data-p3="fill-pick"]').first());
+    await hooks.click(page.locator('#p3-lsec-fills-5 [data-p3="fill-pick"]').first());
     await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
     const opened = await sec(PAIRS_FILLS.Border);
     ok(opened.top === 0, `QA-B9: opening a step picker is not an edit, and does not move the preview (scrollTop ${opened.top}, was 0)`);
+    await takeGlideLog(page);
     await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"][aria-pressed="false"]').first());
     const fa = await frames('preview');
     const a1 = await sec(PAIRS_FILLS.Border);
     ok(lands(a1), `QA-B9: editing a Border step on Surfaces & fills brings the preview's Border section into view, its top ${a1.pad}px under the body's (top at ${a1.rel}px, scrollTop ${a1.top}, in view ${a1.inView})`);
-    ok(between(fa.tops) >= 2, `QA-B9: without reduced motion the Surfaces & fills reveal glides through positions on its way (${between(fa.tops)} in-between over ${fa.tops.length} frames, ${fa.tops[0]} → ${fa.tops[fa.tops.length - 1]})`);
-    ok(fa.ms >= 120 && fa.ms <= 800, `QA-B9: the glide lasts about the default transition's ${MOTION.dur} (${fa.ms}ms from first move to settled)`);
+    ok(fa.g.between >= 2, `QA-B9: without reduced motion the Surfaces & fills reveal glides through positions on its way (${fa.g.between} in-between over ${fa.g.steps} steps, ${fa.g.from} → ${fa.g.to})`);
+    // #2042: the duration on frame time, not the wall clock. The glide's last step is the first frame at or
+    // past the declared duration after its first, and every step lies on the declared curve.
+    ok(fa.g.inFrames && fa.g.before !== null && fa.g.before < MOTION_MS && fa.g.span >= MOTION_MS && fa.g.offCurve.length === 0,
+      `QA-B9: the glide lasts the default transition's ${MOTION.dur}, on ${MOTION.ease}: its last step is the first frame at or past ${MOTION.dur} after its first (${fa.g.steps} steps, in frames ${fa.g.inFrames}; last at ${fa.g.span}ms, the one before at ${fa.g.before}ms; off the curve ${JSON.stringify(fa.g.offCurve.slice(0, 3))})`);
     ok(a1.view === 'surfaces' && a1.place === 'color-fills', `QA-B9: an edit on Surfaces & fills never changes the preview's page or view (V1) — ${a1.place} / ${a1.view}`);
 
-    // (c) Under reduced motion it lands at once: in place when the edit returns, and no frame between.
+    // (b2) #2016 (Q80): Fields has a preview section now, so a field step picked eases the preview's Fields section into
+    // view, as Border's does. Section 8 of the levers is Fields (Background fills, Scrim, Foreground, Foreground fills,
+    // Text color, Border, Icon, Fields), read by its title so a reorder fails here by name.
+    await page.keyboard.press('Escape');
+    await setTop('preview-body', 0);
+    const f0 = await sec(PAIRS_FILLS.Fields);
+    const fieldsSec = await page.evaluate(() => [...document.querySelectorAll('[data-p3="fills-levers"] .p3-lsec')].find((x) => x.querySelector('.p3-lsec-title')?.textContent === 'Fields')?.id ?? null);
+    ok(f0.found && !f0.inView && !!fieldsSec, `#2016: on Surfaces & fills the preview draws a Fields section, below the fold, and the levers a Fields section (${JSON.stringify(f0)}, levers #${fieldsSec})`);
+    if (fieldsSec) {
+      await hooks.click(page.locator(`#${fieldsSec} [data-p3="fill-pick"]`).nth(1));
+      await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+      await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"][aria-pressed="false"]').first());
+      await frames('preview');
+      const f1 = await sec(PAIRS_FILLS.Fields);
+      ok(lands(f1), `#2016: editing a Fields step on Surfaces & fills brings the preview's Fields section into view (top at ${f1.rel}px, scrollTop ${f1.top}, in view ${f1.inView})`);
+      await page.keyboard.press('Escape');
+    }
+    await hooks.click(page.locator('#p3-lsec-fills-5 [data-p3="fill-pick"]').first());
+    await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+
+    // (c) Under reduced motion it lands at once: in place when the edit returns, in one step taken in the edit
+    // itself, and no frame between.
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await setTop('preview-body', 0);
+    await takeGlideLog(page);
     await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="step-picker-step"][aria-pressed="false"]').first());
     const c1 = await sec(PAIRS_FILLS.Border);
     const fc = await frames('preview');
-    ok(lands(c1) && between(fc.tops) === 0 && fc.tops.every((t) => t === c1.top),
-      `QA-B9: under reduced motion the reveal lands at once, with no frame between (at ${c1.rel}px, frames ${JSON.stringify([...new Set(fc.tops)])})`);
+    ok(lands(c1) && atOnce(fc.g) && between(fc.tops) === 0 && fc.tops.every((t) => t === c1.top),
+      `QA-B9: under reduced motion the reveal lands at once, with no frame between (at ${c1.rel}px, ${fc.g.steps} step(s), in frames ${fc.g.inFrames}, frames ${JSON.stringify([...new Set(fc.tops)])})`);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.keyboard.press('Escape');
 
     // (d) Focusing a lever (by Tab and by focus()), and changing the mode, never move the preview.
     await setTop('preview-body', 0);
-    await page.locator('#p3-lsec-fills-5 [data-p3="icons-unpair"], #p3-lsec-fills-5 [data-p3="icons-pair"]').first().focus();
+    await page.locator('#p3-lsec-fills-6 [data-p3="icons-unpair"], #p3-lsec-fills-6 [data-p3="icons-pair"]').first().focus();
     await page.keyboard.press('Tab');
     await page.keyboard.press('Shift+Tab');
     const d1 = await frames('preview');
@@ -4661,6 +5213,7 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     ok(lab.name === 'Sections on this page', `QA-B17: the jump links' landmark keeps its accessible name "Sections on this page" ("${lab.name}")`);
     const jumpTo = async (i) => {
       await setTop('levers-pane', 0);
+      await takeGlideLog(page);
       await hooks.click(page.locator('[data-p3="fills-jump-link"]').nth(i));
       const f = await frames('levers');
       const j = await page.evaluate((k) => {
@@ -4671,12 +5224,12 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
       }, i);
       return { f, j };
     };
-    const ja = await jumpTo(4);
-    ok(Math.abs(ja.j.rel) <= 2 && ja.j.focus === 'p3-lsec-fills-4', `QA-B17: the Border jump link lands its section at the top of the levers pane, and focuses it (${JSON.stringify(ja.j)})`);
-    ok(between(ja.f.tops) >= 2, `QA-B17: without reduced motion a jump link glides through positions on its way (${between(ja.f.tops)} in-between over ${ja.f.tops.length} frames)`);
+    const ja = await jumpTo(5);
+    ok(Math.abs(ja.j.rel) <= 2 && ja.j.focus === 'p3-lsec-fills-5', `QA-B17: the Border jump link lands its section at the top of the levers pane, and focuses it (${JSON.stringify(ja.j)})`);
+    ok(ja.f.g.between >= 2, `QA-B17: without reduced motion a jump link glides through positions on its way (${ja.f.g.between} in-between over ${ja.f.g.steps} steps)`);
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    const jb = await jumpTo(3);
-    ok(Math.abs(jb.j.rel) <= 2 && between(jb.f.tops) === 0, `QA-B17: under reduced motion a jump link lands at once (top at ${jb.j.rel}px, frames ${JSON.stringify([...new Set(jb.f.tops)])})`);
+    const jb = await jumpTo(4);
+    ok(Math.abs(jb.j.rel) <= 2 && atOnce(jb.f.g) && between(jb.f.tops) === 0, `QA-B17: under reduced motion a jump link lands at once (top at ${jb.j.rel}px, ${jb.f.g.steps} step(s), in frames ${jb.f.g.inFrames}, frames ${JSON.stringify([...new Set(jb.f.tops)])})`);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
 
     // (e) Both panes keep their place per page, for the session: Surfaces & fills → Palettes → back.
@@ -4703,11 +5256,12 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     ok(b0.found && !b0.inView, `QA-B9: on Interactive the preview's Links section starts below the fold, so the reveal can move (${JSON.stringify(b0)})`);
     const lk = page.locator('[data-p3="levers-pane"] [data-p3="link-palette-select"]');
     const opts = await lk.evaluate((s) => [...s.options].filter((o) => !o.selected && !o.disabled).map((o) => o.value));
+    await takeGlideLog(page);
     await lk.selectOption(opts[0]);
     const fb = await frames('preview');
     const b1 = await sec('Links');
     ok(lands(b1), `QA-B9: editing the link palette on Interactive brings the preview's Links section into view, its top ${b1.pad}px under the body's or the preview at its end (top at ${b1.rel}px, scrollTop ${b1.top} of ${b1.max})`);
-    ok(between(fb.tops) >= 2, `QA-B9: without reduced motion the Interactive reveal glides through positions on its way (${between(fb.tops)} in-between over ${fb.tops.length} frames)`);
+    ok(fb.g.between >= 2, `QA-B9: without reduced motion the Interactive reveal glides through positions on its way (${fb.g.between} in-between over ${fb.g.steps} steps)`);
     ok(b1.view === 'interactive' && b1.place === 'color-interactive', `QA-B9: an edit on Interactive never changes the preview's page or view (V1) — ${b1.place} / ${b1.view}`);
     const ilab = await page.evaluate(() => ({ text: document.querySelector('[data-p3="interactive-jump"] [data-p3="jump-label"]')?.textContent ?? null, name: document.querySelector('[data-p3="interactive-jump"]')?.getAttribute('aria-label') ?? null }));
     ok(ilab.text === 'Jump to:' && ilab.name === 'Button sets', `QA-B17: on Interactive the jump links' visible label reads "Jump to:", and the landmark keeps "Button sets" (${JSON.stringify(ilab)})`);
@@ -4719,6 +5273,7 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     const typeEdit = async (what, sel, want) => {
       await setTop('preview-body', 0);
       const t0 = await sec(want);
+      await takeGlideLog(page);
       await hooks.click(page.locator(sel));
       const f = await frames('preview');
       const t1 = await sec(want);
@@ -4727,7 +5282,7 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
       return f;
     };
     const ft = await typeEdit('the type scale', '[data-p3="type-scale-compact"]', 'Scale');
-    ok(between(ft.tops) >= 2, `QA-B9: without reduced motion the Type reveal glides through positions on its way (${between(ft.tops)} in-between over ${ft.tops.length} frames)`);
+    ok(ft.g.between >= 2, `QA-B9: without reduced motion the Type reveal glides through positions on its way (${ft.g.between} in-between over ${ft.g.steps} steps)`);
     await typeEdit('the type scale back', '[data-p3="type-scale-default"]', 'Scale');
     await typeEdit('the caption floor (Scale limits)', '[data-p3="caption-floor-10"]', 'Scale');
     await typeEdit('the caption floor back', '[data-p3="caption-floor-11"]', 'Scale');
@@ -4785,14 +5340,19 @@ const readNames = (page) => page.evaluate(() => [...document.querySelectorAll('[
   const kind = n.closest('[data-p3="family-row"]') ? 'type-family' : n.closest('[data-p3="face-row"]') ? 'type-face' : n.closest('[data-p3="interactive-levers"]') ? 'interactive-row'
     : n.closest('[data-p3="type-size-row"]') ? 'type-size' : n.closest('[data-p3="weight-row"]') ? 'type-weight'
     : n.closest('[data-p3="lh-row"]') ? 'type-line-height' : n.closest('[data-p3="ls-row"]') ? 'type-letter-spacing'
-    : n.closest('.p3-fillrow') ? 'fill-row' : n.closest('.p3-field') ? 'fill-field' : 'other';
-  return { kind, token: tok?.textContent ?? null, label: lab?.textContent ?? null, below: !!L && !!T && T.top >= L.bottom - 0.5,
+    : n.closest('[data-p3="layout-levers"]') ? 'layout-row'
+    // S4f (QA-B1): Background fills' controls are rows now, inside the surfaces lever; a name in a `.p3-field` is the
+    // shape they had before.
+    : n.closest('[data-p3="lever-surfaces"] .p3-fillrow') ? 'background-row' : n.closest('.p3-fillrow') ? 'fill-row' : n.closest('.p3-field') ? 'fill-field' : 'other';
+  return { kind, role: n.closest('.p3-fillrow')?.dataset.role ?? null, token: tok?.textContent ?? null, label: lab?.textContent ?? null, below: !!L && !!T && T.top >= L.bottom - 0.5,
     labTop: L ? Math.round(L.top) : null, tokTop: T ? Math.round(T.top) : null, tokFont: tok ? getComputedStyle(tok).fontFamily : null };
 }));
 /** Every select and step-picker button drawn in the levers pane: height, font size, alignment and where its caret is. */
 /** The step-picker buttons, by hook (literal, so the hook guard reads them). */
 const PICK_SEL = ['fill-pick', 'int-pick', 'surface-base-pick', 'surface-secondary-pick', 'surface-tertiary-pick', 'surface-band-step-pick',
-  'surface-inverse-secondary-pick', 'surface-inverse-tertiary-pick'].map((x) => `button[data-p3="${x}"]`).join(', ');
+  'surface-inverse-secondary-pick', 'surface-inverse-tertiary-pick', 'surface-floor-pick',
+  // S10: Layout's value pickers.
+  'layout-columns-pick', 'bp-cols-pick', 'bp-gutter-pick', 'bp-margin-pick'].map((x) => `button[data-p3="${x}"]`).join(', ');
 const readControls = (page) => page.evaluate((PICKS) => {
   const pane = document.querySelector('[data-p3="levers-pane"]');
   // The chrome's selects. (Type's lent legacy region was excluded until S6.3 replaced it; every select is chrome now.)
@@ -4823,7 +5383,8 @@ const readRowGaps = (page) => page.evaluate(() => {
   const pairs = (list, nodes, isRow = () => true) => { const v = nodes.filter((n) => n.offsetParent); for (let i = 1; i < v.length; i++) if (isRow(v[i - 1]) && isRow(v[i])) out.push([list, +(v[i].getBoundingClientRect().top - v[i - 1].getBoundingClientRect().bottom).toFixed(2)]); };
   const pane = document.querySelector('[data-p3="levers-pane"]');
   // Surfaces & fills: a section's rows, each a row and the picker under it when open (none open here).
-  for (const box of pane.querySelectorAll('[data-p3="foreground-rows"], [data-p3="text-rows"], [data-p3="border-rows"]')) pairs(box.getAttribute('data-p3'), [...box.children], (n) => !!n.querySelector(':scope > .p3-fillrow'));
+  // S4f: Background fills' two row lists (QA-B1) and the Fields rows join them.
+  for (const box of pane.querySelectorAll('[data-p3="surface-default-rows"], [data-p3="surface-inverse-rows"], [data-p3="foreground-rows"], [data-p3="text-rows"], [data-p3="border-rows"], [data-p3="field-rows"]')) pairs(box.getAttribute('data-p3'), [...box.children], (n) => !!n.querySelector(':scope > .p3-fillrow'));
   // Interactive: a set's rest rows, and the state rows under each.
   const g = pane.querySelector('[data-p3="int-row-group"]');
   if (g) {
@@ -4843,7 +5404,8 @@ for (const [host, theme] of [['web', 'light'], ['web', 'dark'], ['figma', 'light
   const where = `${host} ${theme}`;
   try {
     const names = [], ctls = [], gaps = [], swatches = [], nexts = [];
-    for (const place of ['color-fills', 'color-interactive', 'type', 'brand']) {
+    // Brand last: the QA-R1 check below reads its Add custom mode where the loop leaves the page.
+    for (const place of ['color-fills', 'color-interactive', 'type', 'layout', 'brand']) {
       await goPlace(page, place);
       // Type (S6.3): every Show advanced open, so its size, weight, line height and letter spacing rows are read.
       if (place === 'type') await openTypeAdvanced(page);
@@ -4858,30 +5420,42 @@ for (const [host, theme] of [['web', 'light'], ['web', 'dark'], ['figma', 'light
       swatches.push(...await page.evaluate(() => [...document.querySelectorAll('[data-p3="levers-pane"] .p3-fill-sw')].filter((n) => n.offsetParent)
         .map((n) => { const r = n.getBoundingClientRect(); return [+r.width.toFixed(2), +r.height.toFixed(2)]; })));
       nexts.push(await page.evaluate((p) => {
-        const b = document.querySelector('[data-p3="levers-pane"] :is([data-p3="fills-continue"], [data-p3="interactive-continue"], [data-p3="type-continue"], [data-p3="brand-continue"])');
+        const b = document.querySelector('[data-p3="levers-pane"] :is([data-p3="fills-continue"], [data-p3="interactive-continue"], [data-p3="type-continue"], [data-p3="brand-continue"], [data-p3="layout-continue"])');
         if (!b) return { place: p, found: false };
         const cs = getComputedStyle(b), lab = b.querySelector('span');
         return { place: p, found: true, bg: cs.backgroundColor, ink: getComputedStyle(lab ?? b).color, edge: cs.borderTopColor, text: b.textContent };
       }, place));
     }
     // QA-B2: each row type is represented, and in each the token sits below its label, in mono.
-    const kinds = ['fill-row', 'fill-field', 'interactive-row', 'type-family', 'type-face', 'type-size', 'type-weight', 'type-line-height', 'type-letter-spacing'];
+    // S4f: Surfaces & fills' Background fills controls, which were fields, are rows (QA-B1): that kind is required in their place.
+    const kinds = ['fill-row', 'background-row', 'interactive-row', 'type-family', 'type-face', 'type-size', 'type-weight', 'type-line-height', 'type-letter-spacing', 'layout-row'];
     const missing = kinds.filter((k) => !names.some((n) => n.kind === k));
-    ok(missing.length === 0, `QA-B2: ${where}: every row type draws a name and token (fill rows, Surfaces & fills fields, Interactive rows, Type families and faces, and Type's sizes, weights, line heights and letter spacings) — missing ${JSON.stringify(missing)}`);
-    const above = names.filter((n) => !n.below);
+    ok(missing.length === 0, `QA-B2: ${where}: every row type draws a name and token (fill rows, Background fills rows, Interactive rows, Type families and faces, and Type's sizes, weights, line heights and letter spacings) — missing ${JSON.stringify(missing)}`);
+    // S4f: Background fills' rows (QA-B1), the Scrim row (QA-B10) and the Fields rows are among those read, by token.
+    const S4F_TOKENS = ['background.primary', 'background.secondary', 'background.tertiary', 'inverse.background.primary', 'inverse.background.secondary',
+      'inverse.background.tertiary', 'scrim.default', 'field.fill', 'field.border.rest', 'inverse.field.placeholder'];
+    const notRead = S4F_TOKENS.filter((t) => !names.some((n) => n.place === 'color-fills' && n.token === t));
+    ok(notRead.length === 0, `QA-B2: ${where}: Surfaces & fills' Background fills, Scrim and Fields rows are read as name-and-token rows${notRead.length ? ` — not read: ${notRead.join(', ')}` : ''}`);
+    // The contrast floor row is a setting with no token (S4f): the one name drawn without one, by role. The arms below
+    // read only names that have a token.
+    const tokenless = names.filter((n) => n.token === null);
+    ok(tokenless.every((n) => n.role === 'surfaces.floorStep') && tokenless.length <= 1,
+      `QA-B2: ${where}: only the contrast floor row draws a name with no token under it — read ${JSON.stringify(tokenless.map((n) => [n.place, n.role, n.label]))}`);
+    const tokened = names.filter((n) => n.token !== null);
+    const above = tokened.filter((n) => !n.below);
     ok(names.length >= 20 && above.length === 0,
       `QA-B2: ${where}: in every row type the token sits below its label, so the label is read first (${names.length} read)${above.length ? ` — ${JSON.stringify(above.slice(0, 3))}` : ''}`);
     // …and the two are the right way round: the mono line reads as a token path (dotted, no spaces), the label
     // above it does not. A call that hands the label and the token in the wrong order fails here.
     const PATH = /^[a-z0-9*-]+(\.[a-z0-9*-]+)+$/;
-    const swapped = names.filter((n) => !PATH.test(n.token ?? '') || PATH.test(n.label ?? ''));
+    const swapped = tokened.filter((n) => !PATH.test(n.token ?? '') || PATH.test(n.label ?? ''));
     ok(swapped.length === 0, `QA-B2: ${where}: in every row the mono line under the label is a token path and the label is not${swapped.length ? ` — ${JSON.stringify(swapped.slice(0, 3).map((n) => [n.kind, n.label, n.token]))}` : ''}`);
-    const notMono = names.filter((n) => !/JetBrains Mono|P3 Chrome Mono/.test(n.tokFont ?? ''));
+    const notMono = tokened.filter((n) => !/JetBrains Mono|P3 Chrome Mono/.test(n.tokFont ?? ''));
     ok(notMono.length === 0, `QA-B2: ${where}: every token under a label is set in the chrome's mono${notMono.length ? ` — ${JSON.stringify(notMono.slice(0, 2))}` : ''}`);
     // QA-B5, QA-B18: selects and step-picker buttons, each page represented.
     const placesWith = (k) => [...new Set(ctls.filter((c) => c.kind === k).map((c) => c.place))];
-    ok(placesWith('select').length === 4 && placesWith('pick').length === 2 && ctls.some((c) => c.hook === 'custom-mode-base'),
-      `QA-B5: ${where}: selects are read on all four pages and step-picker buttons on Surfaces & fills and Interactive (selects on ${JSON.stringify(placesWith('select'))}, picks on ${JSON.stringify(placesWith('pick'))})`);
+    ok(placesWith('select').length === 4 && JSON.stringify(placesWith('pick')) === '["color-fills","color-interactive","layout"]' && ctls.some((c) => c.hook === 'custom-mode-base'),
+      `QA-B5: ${where}: selects are read on the four pages that draw one and picker buttons on Surfaces & fills, Interactive and Layout (selects on ${JSON.stringify(placesWith('select'))}, picks on ${JSON.stringify(placesWith('pick'))})`);
     const hs = [...new Set(ctls.map((c) => c.h))];
     ok(ctls.length >= 20 && Math.max(...hs) - Math.min(...hs) <= 0.5,
       `QA-B5: ${where}: every select and step-picker button in a levers pane has one height (${ctls.length} read, heights ${JSON.stringify(hs)})${hs.length > 1 ? ` — e.g. ${JSON.stringify(ctls.filter((c) => c.h !== hs[0]).slice(0, 2))}` : ''}`);
@@ -4901,7 +5475,7 @@ for (const [host, theme] of [['web', 'light'], ['web', 'dark'], ['figma', 'light
     ok(swatches.length >= 20 && offSw.length === 0, `QA-B11: ${where}: every swatch is ${STYLE.swatch}×${STYLE.swatch} (core.dimension.40; ${swatches.length} read)${offSw.length ? ` — ${JSON.stringify(offSw.slice(0, 3))}` : ''}`);
     // QA-I12: Continue, on each page, is the filled primary button: the inverse fill, its edge and its ink.
     const offNext = nexts.filter((n) => !n.found || n.bg !== STYLE.fill[theme] || n.edge !== STYLE.fill[theme] || n.ink !== STYLE.ink[theme]);
-    ok(nexts.length === 4 && offNext.length === 0,
+    ok(nexts.length === 5 && offNext.length === 0,
       `QA-I12: ${where}: Continue is the filled primary button on every levers page (fill ${STYLE.fill[theme]}, ink ${STYLE.ink[theme]})${offNext.length ? ` — ${JSON.stringify(offNext)}` : ''}`);
     // QA-R1: Add custom mode is the dashed add row, the list's full width, beside Interactive's (one helper).
     const add = await page.evaluate(() => {
@@ -4933,6 +5507,977 @@ for (const [host, theme] of [['web', 'light'], ['web', 'dark'], ['figma', 'light
   } catch (e) {
     ok(false, `QA-R1: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
+}
+
+// =============================================================================================
+// 23. Depth & motion (S9.2): the page in the two panes, its preview, the previewed mode, the playback
+//
+//     Independence (docs/34): the copy, the hooks, the pairs, the curves and the expected writes are literals typed
+//     here from the owner's decisions (V4, D7–D10, D15, D16, Q22, Q23, Q59) and the legacy pages' bytes; the grounds
+//     come from the committed emission; every write is read back from the PERSISTED brand (`prism3:brandInput`).
+//
+//     Mutations this fails by name: a Dark softness edit written to Light → `Q22: previewing Dark, a softness edit
+//     writes modeLevers.dark.shadow.softness and not the brand value …`; a custom mode's Auto from its base's
+//     override → `Q22: previewing custom-1 (based on Dark), Auto names Light's value …`; the traces playing under
+//     reduced motion → `D9: under reduced motion, a Motion edit plays nothing …`; a section drawn on the chrome card →
+//     `specimen ground: depth … is the chrome card`.
+// =============================================================================================
+console.log(`\nDepth & motion (S9.2)\n${'='.repeat(78)}`);
+/** The preview's two sections (V4), each a specimen root on the brand's page; and each lever section with the preview
+ *  section it pairs with (Q23; Shadow tint is drawn inside Elevation, D8 A, so it pairs with Elevation too). */
+const EXPECT_DEPTH_SPECIMENS = ['Elevation', 'Motion'];
+/** The APPROVED copy (owner, 2026-10-04), literal. */
+const DEPTH_COPY = {
+  intro: 'Shadow character, then motion tempo. One preview holds both.',
+  Elevation: 'How soft the shadows are. Dark modes get lighter shadows automatically.',
+  Motion: 'How fast things move, and the curve each kind of motion follows.',
+  tint: 'Shifts the shadow color off pure black, toward a hue.',
+  note: 'Shadows paint this color at 10–14% opacity, so the hue reads far subtler than on the swatch.',
+  hint: 'The six curves are fixed. Each role picks one.',
+  durations: 'Each duration at this tempo, and its reduced-motion value.',
+  spin: 'A loop, not a step: the same at every tempo.',
+  springs: 'Physics presets for platforms that animate with springs. Read-only.',
+  blocks: 'Every millisecond value the durations use.',
+  reduced: 'Reduced motion is on: playing once on request.',
+  next: 'Continue to Layout',
+  slow: ['Off', '1/2', '1/4', '1/8'],
+};
+/** Each lever, by hook, drawn once (represented, not counted); Shadow tint's only behind Elevation's Show advanced. */
+const DEPTH_LEVERS = ['lever-shadow-softness', 'lever-motion-personality-tempo', 'lever-motion-personality-easing-roles'];
+const EASING_ROLES = ['default', 'enter', 'exit', 'emphasized'];
+const CURVES = ['linear', 'standard', 'decelerate', 'accelerate', 'expressive', 'calm'];
+const openDepth = async (page) => {
+  await goPlace(page, 'depth');
+  await hooks.need(page, '[data-p3="depth-levers"]');
+  // The preview is drawn at every width; at 380 it sits on the hidden pane, so it is waited for attached.
+  await hooks.need(page, '[data-p3="depth-style-guide"] .psec', { state: 'attached' });
+};
+/** Choose a mode in the preview header: its radio, or, where the modes do not all fit, the select of the same modes. */
+const chooseModeAny = async (page, mode) => {
+  if (await page.locator('[data-p3="mode-select"]').isVisible()) await page.locator('[data-p3="mode-select"]').selectOption(mode);
+  else await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
+  await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true'
+    || document.querySelector('[data-p3="mode-select"]')?.value === m, mode, { timeout: 5000 }).catch(() => {});
+};
+const openTint = async (page) => {
+  const sel = '[data-p3="depth-tint-advanced"]';
+  await hooks.need(page, sel);
+  if ((await page.locator(sel).getAttribute('aria-expanded')) !== 'true') await hooks.click(page.locator(sel));
+  await hooks.need(page, '[data-p3="shadow-tint-hue"]');
+};
+/** Move a slider to `v` the way a drag does: the value, then `input`. */
+const slide = (page, hk, v) => page.evaluate(([h, x]) => { const n = document.querySelector(`[data-p3="${h}"]`); n.value = String(x); n.dispatchEvent(new Event('input', { bubbles: true })); }, [hk, v]);
+/** Every dot the traces draw, and the animation each runs now. */
+const dotAnims = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="depth-style-guide"] [data-p3="transition-dot"]')].map((d) => d.style.animation || ''));
+
+// Specimen grounds and Q24's gray containers: both hosts, both themes, every mode.
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const { ctx, page } = await open({ host, theme, w: 1280, h: 900 });
+    try {
+      await openDepth(page);
+      for (const [mode] of EXPECT_MODES) {
+        if (host === 'figma' && mode.startsWith('hc')) continue;
+        await chooseMode(page, mode);
+        const where = `${host} ${theme} 1280, previewing ${mode}`;
+        const g = await sectionGrounds(page, 'depth-style-guide');
+        const want = EMITTED[mode];
+        for (const name of EXPECT_DEPTH_SPECIMENS) {
+          const r = g.roots.find((x) => x.name === name);
+          ok(!!r && r.root && r.ground === want, `specimen ground: depth ${where}: ${name} is a specimen root on background.primary ${want}${
+            !r ? ' — not drawn' : !r.root ? ` — not a specimen root, on ${r.ground === g.card ? `the chrome card (${r.ground})` : r.ground}` : r.ground !== want ? ` — ${r.ground === g.card ? `is the chrome card (${r.ground})` : `is ${r.ground}`}` : ''}`);
+        }
+        const unlisted = g.roots.filter((x) => !EXPECT_DEPTH_SPECIMENS.includes(x.name)).map((x) => x.name);
+        ok(unlisted.length === 0, `specimen ground: depth ${where}: every section ground drawn is a listed specimen${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
+        const offGray = g.sections.filter((x) => x.bg !== LEVERS_GRAY).map((x) => `${x.name} on ${x.bg}`);
+        ok(g.sections.length === EXPECT_DEPTH_SPECIMENS.length && offGray.length === 0,
+          `Q24 section containers: depth ${where}: every section container is the levers panel's gray ${LEVERS_GRAY} (${g.sections.length} read)${offGray.length ? ` — ${offGray.join(', ')}` : ''}`);
+      }
+    } catch (e) {
+      ok(false, `S9.2 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+}
+
+// Represented, on both hosts: every lever once (Shadow tint only behind Elevation's Show advanced); the Q23 pairs; the
+// approved copy; the easing rows by plain name first, token under (QA-B2); one home, V4's one preview; the Slow motion
+// choice; Continue to Layout lands on the Layout tab; the owner's plain words (D16) everywhere on the page.
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  try {
+    await openDepth(page);
+    const before = await page.evaluate(() => ({ tint: document.querySelectorAll('[data-p3="levers-pane"] [data-p3="lever-shadow-tint"]').length }));
+    ok(before.tint === 0, `D8: ${host}: Shadow tint is behind Elevation's Show advanced until it is opened (${before.tint} drawn)`);
+    await openTint(page);
+    const r = await page.evaluate((levers) => {
+      const pane = document.querySelector('[data-p3="levers-pane"]');
+      const prev = document.querySelector('[data-p3="depth-style-guide"]');
+      const secs = [...pane.querySelectorAll('[data-p3="lever-section"]')].map((s) => [s.querySelector('.p3-lsec-title')?.textContent ?? null, s.querySelector('.p3-lsec-desc')?.textContent ?? null]);
+      const psecs = [...prev.querySelectorAll('.psec')].map((s) => [s.querySelector('.psec-t')?.textContent ?? null, s.querySelector('.psec-d')?.textContent ?? null]);
+      const tint = pane.querySelector('[data-p3="lever-shadow-tint"]');
+      return {
+        counts: [...levers, 'lever-shadow-tint'].map((hk) => pane.querySelectorAll(`[data-p3="${hk}"]`).length), secs, psecs,
+        tintIn: tint?.closest('[data-p3="lever-section"]')?.querySelector('.p3-lsec-title')?.textContent ?? null, tintInFold: !!tint?.closest('.p3-advbody'),
+        tintDesc: tint?.textContent.includes('Shifts the shadow color off pure black, toward a hue.') ?? false,
+        intro: pane.querySelector('.p3-intro')?.textContent ?? null, next: document.querySelector('[data-p3="depth-continue"]')?.textContent.trim() ?? null,
+        rows: [...pane.querySelectorAll('[data-p3="easing-row"]')].map((row) => ({ role: row.dataset.role, first: row.querySelector('.p3-fill-name')?.firstElementChild?.className ?? null,
+          label: row.querySelector('.p3-fill-label')?.textContent ?? null, tok: row.querySelector('.p3-fill-tok')?.textContent ?? null })),
+        title: document.querySelector('[data-p3="preview-title"]')?.textContent ?? null, view: document.querySelector('[data-p3="preview-body"]')?.dataset.view ?? null,
+        slow: [...(prev.querySelector('[data-p3="motion-slowmo"]')?.options ?? [])].map((o) => o.textContent),
+        notes: prev.textContent,
+      };
+    }, DEPTH_LEVERS);
+    ok(r.counts.every((n) => n === 1), `${host}: every Depth & motion lever draws its hook once (${[...DEPTH_LEVERS, 'lever-shadow-tint'].map((h, i) => `${h} ${r.counts[i]}`).join(', ')})`);
+    ok(r.tintIn === 'Elevation' && r.tintInFold && r.tintDesc, `D8 A: ${host}: Shadow tint sits inside Elevation, behind its own Show advanced, with its approved line (in ${r.tintIn}, fold ${r.tintInFold}, line ${r.tintDesc})`);
+    const wantSecs = [['Elevation', DEPTH_COPY.Elevation], ['Motion', DEPTH_COPY.Motion]];
+    ok(JSON.stringify(r.secs) === JSON.stringify(wantSecs) && JSON.stringify(r.psecs) === JSON.stringify(wantSecs),
+      `Q23: ${host}: the lever sections and the preview sections are Elevation then Motion, one heading and description each — levers ${JSON.stringify(r.secs)}, preview ${JSON.stringify(r.psecs)}`);
+    ok(r.intro === DEPTH_COPY.intro && r.next === DEPTH_COPY.next, `${host}: the approved intro and Continue read "${r.intro}" and "${r.next}"`);
+    ok(JSON.stringify(r.rows.map((x) => x.role)) === JSON.stringify(EASING_ROLES) && r.rows.every((x) => x.first === 'p3-fill-label' && x.label === `Easing for ${x.role}` && x.tok === `motion.easing-role.${x.role}`),
+      `D10, QA-B2: ${host}: an easing row per role, "Easing for ‹role›" first, its motion.easing-role token under it — ${JSON.stringify(r.rows)}`);
+    ok(r.title === 'Depth & motion' && r.view === 'depth', `V4: ${host}: one preview holds both, under the page's one home (title "${r.title}", view ${r.view})`);
+    ok(JSON.stringify(r.slow) === JSON.stringify(DEPTH_COPY.slow), `D9: ${host}: Slow motion offers ${DEPTH_COPY.slow.join(', ')} (offers ${r.slow.join(', ')})`);
+    for (const k of ['note', 'durations', 'spin', 'springs', 'blocks']) ok(r.notes.includes(DEPTH_COPY[k]), `D7: ${host}: the preview says the approved "${DEPTH_COPY[k]}"`);
+    // The six curves in the picker (D10), each drawn.
+    await hooks.click(page.locator('[data-p3="easing-pick"][data-role="exit"]'));
+    await hooks.need(page, '[data-p3="value-picker"]');
+    const pk = await page.evaluate(() => {
+      const p = document.querySelector('[data-p3="value-picker"]');
+      return { hint: p.querySelector('.p3-picker-hint')?.textContent ?? null, curves: [...p.querySelectorAll('[data-p3="value-picker-value"]')].map((b) => ({ c: b.querySelector('[data-curve]')?.dataset.curve ?? null, drawn: !!b.querySelector('svg path') })) };
+    });
+    ok(pk.hint === DEPTH_COPY.hint && JSON.stringify(pk.curves.map((x) => x.c)) === JSON.stringify(CURVES) && pk.curves.every((x) => x.drawn),
+      `D10: ${host}: the easing picker lists the six curves, each drawn, under "${DEPTH_COPY.hint}" — ${JSON.stringify(pk)}`);
+    await page.keyboard.press('Escape');
+    // D16: plain words. Never "ramp", "ladder", "band", "rung", "face", "muted" or "column" in the page's visible copy
+    // (levers and preview, the toggletips included, token pills aside); "Blur:offset dial" may stay where it is.
+    const PLAIN = /\b(ramps?|ladders?|bands?|rungs?|faces?|muted|columns?)\b/i;
+    const words = await page.evaluate((src) => {
+      const re = new RegExp(src, 'i');
+      const out = [];
+      for (const root of [document.querySelector('[data-p3="levers-pane"]'), document.querySelector('[data-p3="preview-body"]')]) {
+        const c = root.cloneNode(true);
+        for (const t of c.querySelectorAll('[data-p3="token-pill"], .p3-fill-tok')) t.remove();
+        const w = document.createTreeWalker(c, NodeFilter.SHOW_TEXT);
+        for (let n = w.nextNode(); n; n = w.nextNode()) if (re.test(n.textContent)) out.push(n.textContent.trim().slice(0, 80));
+        for (const e of c.querySelectorAll('[aria-label], [title], [placeholder]')) for (const a of ['aria-label', 'title', 'placeholder']) { const v = e.getAttribute(a); if (v && re.test(v)) out.push(`${a} "${v.slice(0, 80)}"`); }
+      }
+      return out;
+    }, PLAIN.source);
+    ok(words.length === 0, `D16 plain words: ${host}: no "ramp", "ladder", "band", "rung", "face", "muted" or "column" on Depth & motion${words.length ? ` — found ${words.slice(0, 4).map((x) => `"${x}"`).join(', ')}` : ''}`);
+    await hooks.click(page.locator('[data-p3="depth-continue"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'layout', null, { timeout: 5000 }).catch(() => {});
+    const place = await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.place ?? null);
+    ok(place === 'layout', `${host}: Continue to Layout opens the Layout tab (on ${place})`);
+    ok(errors.length === 0, `${host} Depth & motion: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S9.2 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+
+// Q22 (the previewed mode) and Q59 (derived modes): web. Light writes the brand value; previewing Dark the same
+// control writes modeLevers.dark.*, says "Auto: follows Light (‹value›)" until set and offers Return to Auto once it
+// is; a slider landing on Light's value clears the override (the legacy bytes). A custom mode based on Dark names
+// LIGHT's value under Auto (the engine resolves from the brand, not the base). HC light disables every control.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await openDepth(page);
+    await openTint(page);
+    const b0 = await persisted(page);
+    // Light: the brand value.
+    await slide(page, 'shadow-softness', 1.4);
+    await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput')).input.shadow?.softness === 1.4; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
+    const b1 = await persisted(page);
+    ok(b1?.shadow?.softness === 1.4 && !b1?.modeLevers?.light, `Q22: previewing Light, a softness edit writes shadow.softness (persisted ${JSON.stringify(b1?.shadow ?? null)})`);
+    await slide(page, 'shadow-tint-hue', 200);
+    const b1b = await persisted(page);
+    ok(b1b?.shadow?.tint?.hue === 200 && JSON.stringify(b1b?.shadow?.tint) === JSON.stringify({ ...(b0?.shadow?.tint ?? {}), hue: 200 }),
+      `Q22: previewing Light, a tint hue edit writes shadow.tint.hue alone (persisted ${JSON.stringify(b1b?.shadow?.tint ?? null)}, was ${JSON.stringify(b0?.shadow?.tint ?? null)})`);
+    // Dark: the mode's override.
+    await chooseMode(page, 'dark');
+    await openTint(page);
+    const autoOf = (hk) => page.evaluate((h) => { const a = document.querySelector(`[data-p3="${h}-auto"]`); const r = document.querySelector(`[data-p3="${h}-reset"]`); return { auto: a && !a.hidden ? a.textContent : null, reset: !!r && !r.hidden }; }, hk);
+    const a0 = await autoOf('shadow-softness');
+    ok(a0.auto === 'Auto: follows Light (1.4 · soft)' && !a0.reset, `Q22: previewing Dark, softness under Auto says "Auto: follows Light (1.4 · soft)", no Return to Auto (${JSON.stringify(a0)})`);
+    await slide(page, 'shadow-softness', 2);
+    const b2 = await persisted(page);
+    ok(b2?.modeLevers?.dark?.shadow?.softness === 2 && b2?.shadow?.softness === 1.4,
+      `Q22: previewing Dark, a softness edit writes modeLevers.dark.shadow.softness and not the brand value (dark ${JSON.stringify(b2?.modeLevers?.dark ?? null)}, brand ${JSON.stringify(b2?.shadow ?? null)})`);
+    const a1 = await autoOf('shadow-softness');
+    ok(a1.auto === null && a1.reset, `Q22: previewing Dark, a set softness offers Return to Auto in place of the Auto line (${JSON.stringify(a1)})`);
+    await slide(page, 'shadow-softness', 1.4);
+    const b3 = await persisted(page);
+    ok(b3?.modeLevers?.dark?.shadow?.softness === undefined, `Q22: previewing Dark, a slider landing on Light's value clears the override (the legacy bytes; dark ${JSON.stringify(b3?.modeLevers?.dark ?? null)})`);
+    await slide(page, 'shadow-tint-amount', 0.5);
+    await hooks.click(page.locator('[data-p3="shadow-tint-amount-reset"]'));
+    const b4 = await persisted(page);
+    ok(b4?.modeLevers?.dark?.shadow === undefined && JSON.stringify(b4?.shadow) === JSON.stringify(b3?.shadow),
+      `Q22: previewing Dark, Return to Auto clears the tint amount and leaves the brand value (dark ${JSON.stringify(b4?.modeLevers?.dark ?? null)})`);
+    await hooks.click(page.locator('[data-p3="tempo-relaxed"]'));
+    await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput')).input.modeLevers?.dark?.tempo === 'relaxed'; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
+    const b5 = await persisted(page);
+    ok(b5?.modeLevers?.dark?.tempo === 'relaxed' && b5?.motionPersonality?.tempo === b4?.motionPersonality?.tempo,
+      `Q22: previewing Dark, a tempo edit writes modeLevers.dark.tempo and not the brand value (dark ${JSON.stringify(b5?.modeLevers?.dark ?? null)})`);
+    // A custom mode based on Dark: Auto names Light's value, never Dark's override (the engine resolves from the brand).
+    await goPlace(page, 'brand');
+    await hooks.click(page.locator('[data-p3="custom-mode-add"]'));
+    await hooks.need(page, '[data-p3="custom-mode-base"]');
+    await page.locator('[data-p3="custom-mode-base"]').selectOption('dark');
+    await openDepth(page);
+    await openTint(page);
+    await chooseModeAny(page, 'custom-1');
+    const t = await autoOf('tempo');
+    const lightTempo = { snappy: 'Snappy', standard: 'Standard', relaxed: 'Relaxed' }[b5?.motionPersonality?.tempo ?? 'standard'];
+    ok(t.auto === `Auto: follows Light (${lightTempo})`, `Q22: previewing custom-1 (based on Dark), Auto names Light's value, not its base's override — says ${JSON.stringify(t.auto)}, want "Auto: follows Light (${lightTempo})" (Dark is relaxed)`);
+    // Q59: a derived mode draws the preview and disables every control.
+    await chooseModeAny(page, 'hc-light');
+    const d = await page.evaluate(() => {
+      const pane = document.querySelector('[data-p3="levers-pane"]');
+      const ctl = [...pane.querySelectorAll('.p3-lsec :is(button, input, select)')].filter((n) => !n.classList.contains('p3-info') && n.dataset.p3 !== 'depth-tint-advanced');
+      return { n: ctl.length, enabled: ctl.filter((n) => !n.disabled).map((n) => n.dataset.p3), line: !!document.querySelector('[data-p3="depth-derived"]'),
+        preview: document.querySelectorAll('[data-p3="depth-style-guide"] .psec').length };
+    });
+    ok(d.n >= 10 && d.enabled.length === 0 && d.line && d.preview === 2,
+      `Q59: previewing HC light, every control on Depth & motion is disabled under the derived line, and the preview is drawn — ${d.n} controls, enabled ${JSON.stringify(d.enabled)}, line ${d.line}, ${d.preview} preview sections`);
+    ok(errors.length === 0, `Q22/Q59 Depth & motion: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S9.2 Q22/Q59: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+
+// D9: when the traces play. Nothing plays at mount or after an Elevation edit; a Motion edit plays them once, at real
+// speed (Off); Slow motion divides the playback and writes nothing to the brand (#574). Under reduced motion a Motion
+// edit plays nothing, the section says so, and Play plays them once on request. Web.
+for (const reduced of [false, true]) {
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    if (reduced) await page.emulateMedia({ reducedMotion: 'reduce' });
+    await openDepth(page);
+    const tag = reduced ? 'under reduced motion' : 'without reduced motion';
+    const mount = await dotAnims(page);
+    ok(mount.length === 4 && mount.every((a) => !a), `D9: ${tag}, the four traces are at rest when the page opens (${JSON.stringify(mount)})`);
+    await slide(page, 'shadow-softness', 0.4);
+    const elev = await dotAnims(page);
+    ok(elev.every((a) => !a), `D9: ${tag}, an Elevation edit plays nothing (${JSON.stringify(elev)})`);
+    const line = await page.evaluate(() => document.querySelector('[data-p3="motion-reduced"]')?.textContent ?? null);
+    ok(reduced ? line === DEPTH_COPY.reduced : line === null, `D9: ${tag}, the reduced-motion line is ${reduced ? `"${DEPTH_COPY.reduced}"` : 'not drawn'} (${JSON.stringify(line)})`);
+    await hooks.click(page.locator('[data-p3="tempo-relaxed"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="tempo-relaxed"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 }).catch(() => {});
+    const after = await dotAnims(page);
+    const label = await page.evaluate(() => document.querySelector('[data-p3="motion-play"]')?.textContent ?? null);
+    if (reduced) ok(after.every((a) => !a) && label === 'Play', `D9: under reduced motion, a Motion edit plays nothing, and the button still says Play (${JSON.stringify(after)}, "${label}")`);
+    else ok(after.length === 4 && after.every((a) => /mo-trace-y/.test(a) && /\d+ms cubic-bezier/.test(a)) && label === 'Replay', `D9: without reduced motion, a Motion edit plays the four traces once, and the button says Replay (${JSON.stringify(after)}, "${label}")`);
+    // Real speed: the emphasized trace runs its relaxed duration (moderate 300 × 1.3 = 390ms) at Off.
+    const brand0 = JSON.stringify(await persisted(page));
+    await hooks.click(page.locator('[data-p3="motion-play"]'));
+    const played = await dotAnims(page);
+    ok(played.every((a) => /mo-trace-y/.test(a)) && played.some((a) => /\b390ms cubic-bezier\(0\.4, 0\.14/.test(a)), `D9: ${tag}, Play plays every trace once, at real speed (${JSON.stringify(played)})`);
+    await page.locator('[data-p3="motion-slowmo"]').selectOption('4');
+    await hooks.click(page.locator('[data-p3="motion-play"]'));
+    const slow = await dotAnims(page);
+    ok(slow.some((a) => /\b1560ms cubic-bezier\(0\.4, 0\.14/.test(a)), `D9: ${tag}, Slow motion 1/4 plays the same trace four times slower (${JSON.stringify(slow)})`);
+    ok(JSON.stringify(await persisted(page)) === brand0, `#574: ${tag}, Play and Slow motion write nothing to the brand`);
+    ok(errors.length === 0, `D9 ${tag}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S9.2 D9 reduced=${reduced}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// The chrome probe on Depth & motion: both hosts, both themes, 1280, 640 and 380, Shadow tint and a picker open.
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    for (const { w, h } of WIDTHS) {
+      const { ctx, page } = await open({ host, theme, w, h });
+      try {
+        await openDepth(page);
+        await openTint(page);
+        await hooks.click(page.locator('[data-p3="easing-pick"][data-role="default"]'));
+        await hooks.need(page, '[data-p3="value-picker"]');
+        const where = `${host} ${theme} ${w} / depth (tint and a picker open)`;
+        const m = await measure(page, where, host, w);
+        check(m, where, columnOf(host, w), PLACE_FLOOR);
+        if (SHOTS) await page.screenshot({ path: join(SHOTS, `s92-${host}-${theme}-${w}-depth.png`) });
+      } catch (e) {
+        ok(false, `S9.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      } finally { await ctx.close(); }
+    }
+  }
+}
+
+// =============================================================================================
+// 25. S10: Layout — moved to the two panes. Specimens on the page color, its levers represented with no Show
+//     advanced (FIRST_CLASS), the Q23 pairs, the approved copy, the first breakpoint fixed at 0, D13's re-keying and
+//     its one line, the 2–7 limits, every control read-only in a derived mode (Q59), the preview ink on the tints
+//     (D14), Continue to Components on either host (T8), and a column count off the list shown as it is (#2047).
+//
+//     Independence (docs/34): the lever keys are read from the committed `schema/lever-manifest.json` (group `layout`),
+//     the page grounds from the committed emission (`EMITTED`), the copy and the expected writes are literals typed
+//     here, and every write is read back from the brand the web host persists, never from the page.
+//
+//     Mutations this fails by name: the first breakpoint's field left editable → `Layout: the first breakpoint is fixed
+//     at 0 …`; Continue routed by the legacy page key → `T8: web: Continue to Components lands on the Components tab …`;
+//     a lever behind a Show advanced → `Layout: … renders its hook … once, with no Show advanced`.
+// =============================================================================================
+console.log(`\nLayout (S10)\n${'='.repeat(78)}`);
+/** The manifest keys homed on Layout, from the committed manifest (its `layout` group), never from the page. */
+const LAYOUT_MANIFEST = JSON.parse(readFileSync(join(REPO, 'packages/engine/schema/lever-manifest.json'), 'utf8')).levers.filter((l) => l.group === 'layout').map((l) => l.key);
+ok(LAYOUT_MANIFEST.length === 4, `the committed manifest homes ${LAYOUT_MANIFEST.length} levers in its layout group (want 4: breakpoints, columns, the two containers) — ${LAYOUT_MANIFEST.join(', ')}`);
+/** The preview's sections, by title, and the lever sections they pair with (Q23). Literal. */
+const EXPECT_LAYOUT_SECTIONS = ['Breakpoints', 'Grid', 'Containers'];
+/** The approved copy (owner, S10 scope), literal. */
+const LAYOUT_APPROVED = {
+  intro: 'Breakpoints, the grid and content widths.',
+  Breakpoints: 'Where each layout starts. Names follow the count.',
+  Grid: 'Columns, gutter and margin for each breakpoint. Auto follows the default steps.',
+  Containers: 'Content stretches up to the maximum width. The content container is narrower, for long text.',
+  first: 'Always 0px.', add: 'Add breakpoint', next: 'Continue to Components',
+  hints: ['To scale. Each color is the range one layout covers.', 'Bars are columns; the gray is the margin.', 'To scale against the widest breakpoint, 1920px.'],
+  labels: ['Grid columns', 'Maximum width', 'Content container'],
+};
+/** Words D16 retires from Layout's visible copy (and Q53's "face", "band", "rung", "muted"). Literal. */
+const LAYOUT_BANNED = /\b(face|band|rung|muted|floors?|reading measure|reading-measure|content column|min-width)\b/i;
+const layoutRead = (page) => page.evaluate(() => {
+  const pane = document.querySelector('[data-p3="levers-pane"]');
+  const body = document.querySelector('[data-p3="preview-body"]');
+  const vis = (n) => !!n && n.offsetParent !== null;
+  const secs = [...pane.querySelectorAll('[data-p3="lever-section"]')].map((x) => ({ title: x.querySelector('.p3-lsec-title')?.textContent, desc: x.querySelector('.p3-lsec-desc')?.textContent ?? '' }));
+  const psecs = [...body.querySelectorAll('[data-p3="layout-style-guide"] .psec')].map((x) => ({ title: x.querySelector('[data-p3="section-title"]')?.textContent, desc: x.querySelector('[data-p3="section-description"]')?.textContent ?? '' }));
+  const bpRows = [...pane.querySelectorAll('[data-p3="bp-row"]')].map((r) => ({ bp: r.dataset.bp, value: r.querySelector('input')?.value, disabled: r.querySelector('input')?.disabled,
+    note: r.querySelector('[data-p3="bp-first-note"]')?.textContent ?? null, remove: r.querySelector('[data-p3="bp-remove"]')?.textContent ?? null }));
+  return {
+    intro: pane.querySelector('.p3-intro')?.textContent, secs, psecs, bpRows,
+    adv: [...pane.querySelectorAll('button')].filter((b) => /advanced/i.test(b.textContent)).length,
+    add: vis(pane.querySelector('[data-p3="bp-add"]')) ? pane.querySelector('[data-p3="bp-add"]').textContent : null,
+    limit: pane.querySelector('[data-p3="bp-limit"]')?.textContent ?? null,
+    dropped: pane.querySelector('[data-p3="bp-dropped"]')?.textContent ?? null,
+    next: pane.querySelector('[data-p3="layout-continue"]')?.textContent,
+    labels: [...pane.querySelectorAll('.p3-lever-name')].map((n) => n.textContent),
+    hints: [...body.querySelectorAll('.lyv-hint')].map((n) => n.textContent),
+    text: `${pane.innerText}\n${body.innerText}`,
+  };
+});
+const layoutPersisted = (page) => page.evaluate(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.layout ?? null; } catch { return null; } });
+// Specimen grounds: both hosts, both chrome themes, every mode.
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const { ctx, page } = await open({ host, theme, w: 1280, h: 900 });
+    try {
+      await goPlace(page, 'layout');
+      for (const [mode] of EXPECT_MODES) {
+        if (host === 'figma' && mode.startsWith('hc')) continue;
+        await chooseMode(page, mode);
+        const where = `${host} ${theme} 1280, previewing ${mode}`;
+        const g = await groundsIn(page, 'layout-style-guide');
+        const want = EMITTED[mode];
+        for (const name of EXPECT_LAYOUT_SECTIONS) {
+          const r = g.roots.find((x) => x.name === name);
+          ok(!!r && r.root && r.ground === want, `specimen ground: layout ${where}: ${name} is a specimen root on background.primary ${want}${
+            !r ? ' — not drawn' : !r.root ? ` — not a specimen root, on ${r.ground}` : r.ground !== want ? ` — is ${r.ground}` : ''}`);
+        }
+        const unlisted = g.roots.filter((x) => !EXPECT_LAYOUT_SECTIONS.includes(x.name)).map((x) => x.name);
+        ok(unlisted.length === 0, `specimen ground: layout ${where}: every section ground drawn is a listed specimen${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
+        // D14: a label on a tint takes the ink that has the more contrast on that tint, so it reads in every mode.
+        const inks = await page.evaluate(() => {
+          const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim()); const p = m ? m[1].split(/[,\s/]+/).filter(Boolean).map(Number) : [0, 0, 0]; return p; };
+          const lum = (p) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(p[0]) + 0.7152 * f(p[1]) + 0.0722 * f(p[2]); };
+          const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+          return [...document.querySelectorAll('[data-p3="layout-range"]')].map((n) => { const cs = getComputedStyle(n); return { bp: n.dataset.bp, r: +ratio(parse(cs.color), parse(cs.backgroundColor)).toFixed(2) }; });
+        });
+        const low = inks.filter((x) => x.r < TEXT_MIN);
+        ok(inks.length >= 5 && low.length === 0, `D14: layout ${where}: each range's name clears ${TEXT_MIN}:1 on its tint (${inks.map((x) => `${x.bp} ${x.r}`).join(', ')})${low.length ? ` — below: ${low.map((x) => x.bp).join(', ')}` : ''}`);
+      }
+    } catch (e) {
+      ok(false, `S10 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+}
+// Represented, the copy, the pairs, the first breakpoint, and Continue: both hosts.
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'layout');
+    await hooks.need(page, '[data-p3="layout-levers"]');
+    for (const k of LAYOUT_MANIFEST) {
+      const n = await page.locator(`[data-p3="levers-pane"] [data-p3="${kebabHook(k)}"]`).count();
+      ok(n === 1, `Layout: ${host}: lever ${k} renders its hook ${kebabHook(k)} once, with no Show advanced (FIRST_CLASS) — rendered ${n}`);
+    }
+    const r = await layoutRead(page);
+    ok(r.adv === 0, `Layout: ${host}: the levers draw no Show advanced (FIRST_CLASS, Q4) — ${r.adv} found`);
+    ok(r.intro === LAYOUT_APPROVED.intro, `Layout: ${host}: the intro is the approved one — "${r.intro}"`);
+    ok(JSON.stringify(r.secs.map((x) => x.title)) === JSON.stringify(EXPECT_LAYOUT_SECTIONS) && r.secs.every((x) => x.desc === LAYOUT_APPROVED[x.title]),
+      `Layout: ${host}: the lever sections are ${EXPECT_LAYOUT_SECTIONS.join(', ')}, each with its approved description — ${JSON.stringify(r.secs)}`);
+    ok(JSON.stringify(r.psecs) === JSON.stringify(r.secs), `Q23: Layout: ${host}: the preview's sections are the lever sections, one heading and description on both sides — preview ${JSON.stringify(r.psecs)}`);
+    ok(JSON.stringify(r.hints) === JSON.stringify(LAYOUT_APPROVED.hints), `Layout: ${host}: the preview's hints are the approved ones — ${JSON.stringify(r.hints)}`);
+    ok(LAYOUT_APPROVED.labels.every((l) => r.labels.includes(l)), `Layout: ${host}: the labels read ${LAYOUT_APPROVED.labels.join(', ')} (D17) — ${JSON.stringify(r.labels)}`);
+    ok(!LAYOUT_BANNED.test(r.text), `D16: Layout: ${host}: no retired word in the visible copy${LAYOUT_BANNED.test(r.text) ? ` — "${r.text.match(LAYOUT_BANNED)[0]}"` : ''}`);
+    const first = r.bpRows[0];
+    ok(r.bpRows.length === 5 && first?.value === '0' && first.disabled === true && first.note === LAYOUT_APPROVED.first && first.remove === null,
+      `Layout: the first breakpoint is fixed at 0 (${host}): its field reads 0, is disabled, says "${LAYOUT_APPROVED.first}" and has no Remove — ${JSON.stringify(first)}`);
+    ok(r.bpRows.slice(1).every((x) => x.disabled === false && x.remove === `Remove ${x.bp}`) && r.add === LAYOUT_APPROVED.add && r.next === LAYOUT_APPROVED.next,
+      `Layout: ${host}: every other breakpoint is editable with "Remove ‹name›", and the list ends on "${LAYOUT_APPROVED.add}"; Continue reads "${LAYOUT_APPROVED.next}" — ${JSON.stringify(r.bpRows.slice(1))}, add ${r.add}, next ${r.next}`);
+    // T8: Continue opens the Components tab on this host (the web: its Buttons page until S8; the plugin: Components).
+    await hooks.click(page.locator('[data-p3="layout-continue"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'components', null, { timeout: 5000 }).catch(() => {});
+    const landed = await page.evaluate(() => ({ place: document.querySelector('[data-p3="frame"]')?.dataset.place, legacy: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage,
+      selected: document.querySelector('[data-p3="tab-row"] [role="tab"][aria-selected="true"]')?.getAttribute('data-p3') }));
+    const wantLegacy = host === 'web' ? 'size-radius' : 'components';
+    ok(landed.place === 'components' && landed.legacy === wantLegacy && landed.selected === 'tab-components',
+      `T8: ${host}: Continue to Components lands on the Components tab, showing ${wantLegacy} — landed ${JSON.stringify(landed)}`);
+    ok(errors.length === 0, `Layout ${host}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S10 Layout ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// D13 (#2045), the limits, the pickers' writes, a slider, and the reveal (QA-B9): web, read back from the persisted brand.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'layout');
+    await hooks.need(page, '[data-p3="layout-levers"]');
+    // T10, QA-B9, first, on the default breakpoints (widest 1920px, so 1440 → 1400 is inside the track): the maximum
+    // width slider moves its own bar, and the edit eases the preview to Containers.
+    await page.evaluate(() => { document.querySelector('[data-p3="preview-body"]').scrollTop = 0; });
+    const barW = () => page.evaluate(() => document.querySelector('[data-p3="layout-container"][data-token="container.max"] [data-p3="layout-container-bar"]')?.getBoundingClientRect().width ?? null);
+    const w0 = await barW();
+    await page.locator('[data-p3="container-max-range"]').focus();
+    await page.keyboard.press('ArrowLeft');
+    await page.waitForFunction(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput')).input.layout.containerMax === 1400; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(600);
+    const w1 = await barW();
+    const seen = await page.evaluate(() => { const b = document.querySelector('[data-p3="preview-body"]'); const sec = document.querySelector('[data-p3="layout-style-guide"] [data-sg-section="containers"]'); if (!b || !sec) return null; const R = b.getBoundingClientRect(), r = sec.getBoundingClientRect(); return { top: b.scrollTop, inView: r.top < R.bottom && r.bottom > R.top }; });
+    ok((await layoutPersisted(page))?.containerMax === 1400 && w0 !== null && w1 !== null && w1 < w0,
+      `T10: the Maximum width slider writes 1400 and moves its own bar, drawn against the widest breakpoint (${w0} → ${w1}px)`);
+    ok(!!seen && seen.inView && seen.top > 0, `QA-B9: a Containers edit eases the preview to its Containers section — ${JSON.stringify(seen)}`);
+    const pick = async (role, bp, value) => {
+      await hooks.click(page.locator(`[data-p3="${role}"][data-bp="${bp}"]`));
+      await hooks.click(page.locator(`[data-p3="value-picker-value"][data-value="${value}"]`));
+      await page.waitForFunction(([r, b]) => document.querySelector(`[data-p3="${r}"][data-bp="${b}"]`)?.dataset.set === 'true', [role, bp], { timeout: 5000 }).catch(() => {});
+      // The picker stays open after a pick (Type's, Q65); Close puts it away.
+      await hooks.click(page.locator('[data-p3="value-picker-close"]'));
+    };
+    await pick('bp-cols-pick', 'md', '6');
+    ok(JSON.stringify((await layoutPersisted(page))?.columnOverrides) === '{"md":6}', `Layout: md's columns set to 6 write columnOverrides {"md":6} — ${JSON.stringify(await layoutPersisted(page))}`);
+    await hooks.click(page.locator('[data-p3="bp-add"]'));
+    await page.waitForFunction(() => document.querySelectorAll('[data-p3="bp-row"]').length === 6, null, { timeout: 5000 }).catch(() => {});
+    let L = await layoutPersisted(page);
+    ok(JSON.stringify(L?.breakpoints) === '[0,768,1024,1440,1920,2176]' && JSON.stringify(L?.columnOverrides) === '{"sm":6}',
+      `D13: adding a breakpoint keeps the 6 columns on the 768px breakpoint, renamed sm — ${JSON.stringify(L)}`);
+    await hooks.click(page.locator('[data-p3="bp-add"]'));
+    await page.waitForFunction(() => document.querySelectorAll('[data-p3="bp-row"]').length === 7, null, { timeout: 5000 }).catch(() => {});
+    const at7 = await layoutRead(page);
+    ok(at7.add === null && !!at7.limit, `Layout: at seven breakpoints Add breakpoint gives way to the limit line — add ${JSON.stringify(at7.add)}, limit ${JSON.stringify(at7.limit)}`);
+    // Remove the 768px breakpoint (sm now): its setting goes, and one line says so.
+    await hooks.click(page.locator('[data-p3="bp-remove"][data-bp="sm"]'));
+    await page.waitForFunction(() => document.querySelectorAll('[data-p3="bp-row"]').length === 6, null, { timeout: 5000 }).catch(() => {});
+    L = await layoutPersisted(page);
+    const after = await layoutRead(page);
+    ok(JSON.stringify(L?.breakpoints) === '[0,1024,1440,1920,2176,2432]' && L?.columnOverrides === undefined
+      && after.dropped === 'Removed sm: its column, gutter and margin settings went with it.',
+      `D13: removing it drops its setting (the map deleted, never {}) and says so in one line — ${JSON.stringify(L)}, "${after.dropped}"`);
+    // Down to two: Remove gives way on both.
+    for (let n = 6; n > 2; n--) {
+      await hooks.click(page.locator('[data-p3="bp-remove"]').last());
+      await page.waitForFunction((k) => document.querySelectorAll('[data-p3="bp-row"]').length === k, n - 1, { timeout: 5000 }).catch(() => {});
+    }
+    const at2 = await layoutRead(page);
+    ok(at2.bpRows.length === 2 && at2.bpRows.every((x) => x.remove === null) && at2.add === LAYOUT_APPROVED.add,
+      `Layout: at two breakpoints neither offers Remove, and Add breakpoint is back — ${JSON.stringify(at2.bpRows)}`);
+    // D13's two to seven: at two, typing the first's 0 into the second would merge them into one. Refused: nothing is
+    // written and the field keeps its width, as an emptied or non-number field does.
+    {
+      const before = await layoutPersisted(page);
+      const second = page.locator('[data-p3="bp-row"]').nth(1).locator('[data-p3="bp-input"]');
+      const was = await second.inputValue();
+      await second.fill('0');
+      await second.press('Enter');
+      await page.waitForTimeout(300);
+      const after2 = await layoutPersisted(page);
+      const shown = await page.evaluate(() => [...document.querySelectorAll('[data-p3="bp-row"] [data-p3="bp-input"]')].map((n) => n.value));
+      ok(JSON.stringify(after2?.breakpoints) === JSON.stringify(before?.breakpoints) && after2?.breakpoints?.length === 2 && shown.length === 2 && shown[1] === was,
+        `Layout: at two breakpoints, typing 0 into the second is refused and the field keeps its width (two to seven) — persisted ${JSON.stringify(after2?.breakpoints)}, fields ${JSON.stringify(shown)}`);
+    }
+    // A gutter to a step and back to Auto: the emptied map is deleted.
+    const bp0 = at2.bpRows[1].bp;
+    await pick('bp-gutter-pick', bp0, '4');
+    ok(JSON.stringify((await layoutPersisted(page))?.gutterOverrides) === `{"${bp0}":4}`, `Layout: ${bp0}'s gutter set to 4px writes gutterOverrides {"${bp0}":4} — ${JSON.stringify(await layoutPersisted(page))}`);
+    await hooks.click(page.locator(`[data-p3="bp-gutter-pick"][data-bp="${bp0}"]`));
+    await hooks.click(page.locator('[data-p3="value-picker-reset"]'));
+    await page.waitForFunction((b) => document.querySelector(`[data-p3="bp-gutter-pick"][data-bp="${b}"]`)?.dataset.set !== 'true', bp0, { timeout: 5000 }).catch(() => {});
+    await hooks.click(page.locator('[data-p3="value-picker-close"]'));
+    L = await layoutPersisted(page);
+    ok(!!L && !('gutterOverrides' in L), `Layout: Return to Auto on the last gutter deletes gutterOverrides, never {} — ${JSON.stringify(L)}`);
+    ok(errors.length === 0, `Layout edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S10 Layout edits: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// #2047: a column count off the offered list (any whole number 4–24 is legal) is shown as it is, base and per breakpoint.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    /** The hand-written input (#2047's "done when"): 10 is legal (4–24) and on no offered list. */
+    const INPUT_LAYOUT = { columns: 10, columnOverrides: { md: 10 } };
+    await page.evaluate((lay) => {
+      const blob = JSON.parse(localStorage.getItem('prism3:brandInput'));
+      blob.input.layout = lay;
+      localStorage.setItem('prism3:brandInput', JSON.stringify(blob));
+    }, INPUT_LAYOUT);
+    await page.reload({ waitUntil: 'networkidle' });
+    await hooks.need(page, '[data-p3="frame"]');
+    await goPlace(page, 'layout');
+    await hooks.need(page, '[data-p3="layout-columns-pick"]');
+    const cols = await page.evaluate(() => ({ base: document.querySelector('[data-p3="layout-columns-pick"]')?.textContent, md: document.querySelector('[data-p3="bp-cols-pick"][data-bp="md"]')?.textContent }));
+    await hooks.click(page.locator('[data-p3="layout-columns-pick"]'));
+    const listed = await page.evaluate(() => [...document.querySelectorAll('[data-p3="value-picker-value"]')].map((b) => ({ v: b.dataset.value, cur: b.getAttribute('aria-pressed') })));
+    const want = String(INPUT_LAYOUT.columns), wantMd = String(INPUT_LAYOUT.columnOverrides.md);
+    ok(cols.base === want && cols.md === wantMd && listed.some((x) => x.v === want && x.cur === 'true'),
+      `#2047: a brand's ${want} grid columns (off the offered list) read ${want} on the base and ${wantMd} on md, as the input says, and the picker lists ${want} as current — ${JSON.stringify(cols)}, ${JSON.stringify(listed)}`);
+    ok(errors.length === 0, `#2047: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#2047: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// Q59: previewing a derived mode, every control on Layout is disabled under the derived line; the preview still draws.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'layout');
+    await hooks.need(page, '[data-p3="layout-levers"]');
+    /** Five breakpoint fields and four Removes, Add, Grid columns, 15 per-breakpoint pickers, two sliders. */
+    const LAYOUT_DERIVED_FLOOR = 27;
+    for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark']]) {
+      await chooseAnyMode(page, mode);
+      await page.waitForFunction((l) => document.querySelector('[data-p3="layout-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
+      const d = await page.evaluate(() => {
+        const pane = document.querySelector('[data-p3="levers-pane"]');
+        const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"]'));
+        return { n: ctls.length, enabled: ctls.filter((n) => !n.disabled).map((n) => n.getAttribute('data-p3') ?? n.tagName), hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
+          line: document.querySelector('[data-p3="layout-derived"]')?.textContent ?? null, sections: document.querySelectorAll('[data-p3="layout-style-guide"] .psec').length };
+      });
+      ok(d.line === `${label} is auto-derived — read-only. Edit Light or Dark and it follows.`, `Q59: previewing ${label}, the derived line shows on Layout ("${d.line}")`);
+      ok(d.n >= LAYOUT_DERIVED_FLOOR && d.enabled.length === 0, `Q59: previewing ${label}, every control on Layout is disabled (${d.n - d.enabled.length}/${d.n}, floor ${LAYOUT_DERIVED_FLOOR})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
+      for (const hk of ['bp-input', 'bp-remove', 'bp-add', 'layout-columns-pick', 'bp-cols-pick', 'bp-gutter-pick', 'bp-margin-pick', 'container-max-range', 'container-narrow-range'])
+        ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Layout is among those held disabled`);
+      ok(d.sections === 3, `Q59: previewing ${label}, the Layout preview still draws its three sections (${d.sections})`);
+    }
+    await chooseAnyMode(page, 'light');
+    const back = await page.evaluate(() => ({ line: !!document.querySelector('[data-p3="layout-derived"]'), add: document.querySelector('[data-p3="bp-add"]')?.disabled, pick: document.querySelector('[data-p3="layout-columns-pick"]')?.disabled }));
+    ok(!back.line && back.add === false && back.pick === false, `Q59: back in Light, Layout's derived line is gone and its controls are editable (${JSON.stringify(back)})`);
+    ok(errors.length === 0, `Layout derived: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S10 derived modes: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+
+// =============================================================================================
+// 24. Shape (S7): the two panes, Density, Radius and Base radius represented once each; the preview's Density, Radius,
+//     Spacing and Building blocks on the brand's page color, drawn in the brand's own roles (D2); the approved copy and
+//     the Q23 pairs; the previewed mode (Q22) with Auto following LIGHT, a custom mode included (scope finding 7);
+//     brand-wide values from any mode (Q54); every control held in a derived mode with the preview still drawn (Q59);
+//     D6's height labels; the retired hairline switch gone (#2053); the routes by tab; the plugin reaching the Button
+//     options through the Pages menu (D4 B) under "Size & radius" (D5 B); and the chrome on Shape.
+//
+//     Independence (docs/34): the lever keys, the hooks, the copy, the pairs, the expected writes and the button sizes
+//     are literals typed here from the owner's decisions and the legacy page's bytes; the page colors, the sample roles
+//     and the heights come from the committed emission; every write is read back from the PERSISTED brand.
+//
+//     Mutations this fails by name: the base radius row dropped from `domains/shape.ts` → `Shape: every lever pages.ts
+//     places renders once — missing lever-base-md …`; a Dark radius softness edit written to Light → `previewing Dark, a
+//     radius softness edit writes modeLevers.dark.radius and not the brand value …`; Auto naming a custom mode's base →
+//     `a custom mode based on Dark, on Auto, says it follows Light …`; the samples painted on the studio's gray →
+//     `D2: … every radius sample is filled with the brand's foreground.secondary …`; D6's label dropped → `D6: … the
+//     Medium button height reads "Medium button · 44px" …`; the hairline switch drawn back → `#2053: … no Hairline radius
+//     switch …`.
+// =============================================================================================
+console.log(`\nShape (S7)\n${'='.repeat(78)}`);
+/** The lever keys the owner's D1 A places on Shape, by hook (represented, not counted). `radiusHairline` is retired. */
+const SHAPE_LEVERS = ['lever-density', 'lever-radius-scale', 'lever-control-shape', 'lever-base-md'];
+/** The preview's sections, in order (D1 A). Literal. */
+const EXPECT_SHAPE_SPECIMENS = ['Density', 'Radius', 'Spacing', 'Building blocks'];
+/** Q23: each lever section, in order, and the preview section it pairs with (Base radius with Radius, D1 A). */
+const SHAPE_PAIRS = [['Density', 'Density'], ['Radius', 'Radius'], ['Base radius', 'Radius']];
+/** The approved copy (owner, 2026-10-04), verbatim. */
+const SHAPE_COPY = {
+  intro: 'Control heights and corners. Padding is set per component.',
+  Density: 'How tall controls are. Each component sets its own padding.',
+  Radius: 'How round corners are, and the shape of buttons and other pill-able controls.',
+  densityMode: 'Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.',
+  spacing: 'The 8px rhythm is the same for every brand. Steps below 8px are for fine adjustments.',
+  blocks: 'Fixed sizes every brand shares: border widths, icon sizes and the 4px grid.',
+  usedByNone: 'No component uses this yet.',
+  padding: 'Padding is set per component.', paddingLink: 'See Components',
+  next: 'Continue to Depth & motion',
+};
+/** The Button definition's three sizes and the control heights they bind (D6). Literal. */
+const BUTTON_HEIGHTS = [['sm', 'Small'], ['md', 'Medium'], ['lg', 'Large']];
+/** A role's hex per mode, from the committed emission (the same reading as `EMITTED`, for any role). */
+const EMITTED_ROLE = (() => {
+  const out = join(REPO, 'packages/engine/out');
+  const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
+  const root = Object.keys(base).find((k) => !k.startsWith('$'));
+  const leafAt = (tree, path) => path.split('.').reduce((n, k) => n?.[k], tree);
+  const trees = {};
+  const withOverlay = (mode) => {
+    if (mode === 'light') return base;
+    if (trees[mode]) return trees[mode];
+    const t = structuredClone(base);
+    const ov = JSON.parse(readFileSync(join(out, `prism3.${mode}.overlay.tokens.json`), 'utf8'));
+    const put = (src, dst) => { for (const [k, v] of Object.entries(src)) { if (k.startsWith('$')) continue; if (v && typeof v === 'object' && '$value' in v) dst[k] = v; else put(v, dst[k] ??= {}); } };
+    put(ov, t);
+    return (trees[mode] = t);
+  };
+  const resolve = (tree, path, seen = 0) => {
+    const v = leafAt(tree, path)?.$value;
+    if (typeof v !== 'string' || seen > 20) return null;
+    const m = /^\{(.+)\}$/.exec(v);
+    return m ? resolve(tree, m[1], seen + 1) : v.toLowerCase();
+  };
+  return (role, mode) => resolve(withOverlay(mode), `${root}.color.${role}`);
+})();
+const shapeRgb = (hx) => (hx ? `rgb(${parseInt(hx.slice(1, 3), 16)}, ${parseInt(hx.slice(3, 5), 16)}, ${parseInt(hx.slice(5, 7), 16)})` : null);
+ok(['foreground.secondary', 'border.primary'].every((r) => /^#[0-9a-f]{6}$/.test(EMITTED_ROLE(r, 'light') ?? '') && /^#[0-9a-f]{6}$/.test(EMITTED_ROLE(r, 'dark') ?? '')),
+  `the oracle resolves foreground.secondary and border.primary in Light and Dark from the emission (${['light', 'dark'].map((m) => `${EMITTED_ROLE('foreground.secondary', m)}/${EMITTED_ROLE('border.primary', m)}`).join(', ')})`);
+/** The emission's control height for a size step, in px (Light; the default theme sets no per-mode density). */
+const HEIGHT_PX = (step) => OUT[OUT_ROOT]?.size?.[step]?.height?.$extensions?.prism3?.px;
+/** Open the page's Show advanced, so Base radius is drawn. */
+const openShapeAdvanced = async (page) => {
+  await hooks.need(page, '[data-p3="shape-advanced"]');
+  if ((await page.locator('[data-p3="shape-advanced"]').getAttribute('aria-expanded')) !== 'true') await hooks.click(page.locator('[data-p3="shape-advanced"]'));
+  await hooks.need(page, '[data-p3="lever-base-md"]');
+};
+// Specimen grounds, Q24's gray containers and D2's sample colors: both hosts, both themes, every mode.
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const { ctx, page } = await open({ host, theme, w: 1280, h: 900 });
+    try {
+      await goPlace(page, 'shape');
+      await hooks.need(page, '[data-p3="shape-style-guide"]');
+      for (const [mode] of EXPECT_MODES) {
+        if (host === 'figma' && mode.startsWith('hc')) continue;
+        await chooseMode(page, mode);
+        const where = `${host} ${theme} 1280, previewing ${mode}`;
+        const g = await sectionGrounds(page, 'shape-style-guide');
+        const want = EMITTED[mode];
+        for (const name of EXPECT_SHAPE_SPECIMENS) {
+          const r = g.roots.find((x) => x.name === name);
+          ok(!!r && r.root && r.ground === want, `specimen ground: shape ${where}: ${name} is a specimen root on background.primary ${want}${
+            !r ? ' — not drawn' : !r.root ? ` — not a specimen root, on ${r.ground === g.card ? `the chrome card (${r.ground})` : r.ground}` : r.ground !== want ? ` — ${r.ground === g.card ? `is the chrome card (${r.ground})` : `is ${r.ground}`}` : ''}`);
+        }
+        const unlisted = g.roots.filter((x) => !EXPECT_SHAPE_SPECIMENS.includes(x.name)).map((x) => x.name);
+        ok(unlisted.length === 0, `specimen ground: shape ${where}: every section ground drawn is a listed specimen${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
+        const offGray = g.sections.filter((x) => x.bg !== LEVERS_GRAY).map((x) => `${x.name} on ${x.bg}`);
+        ok(g.sections.length >= EXPECT_SHAPE_SPECIMENS.length && offGray.length === 0,
+          `Q24 section containers: shape ${where}: every section container is the levers panel's gray ${LEVERS_GRAY} (${g.sections.length} read)${offGray.length ? ` — ${offGray.join(', ')}` : ''}`);
+        // D2 A: every radius sample and control-shape sample is drawn in the brand's own roles for the mode.
+        const fill = shapeRgb(EMITTED_ROLE('foreground.secondary', mode)), edge = shapeRgb(EMITTED_ROLE('border.primary', mode));
+        const sw = await page.evaluate(() => [...document.querySelectorAll('[data-p3="shape-style-guide"] :is([data-p3="radius-row"] .shp-sw, [data-p3="control-shape"] .shp-bar)')]
+          .map((n) => ({ bg: getComputedStyle(n).backgroundColor, edge: getComputedStyle(n).borderTopColor })));
+        const off = sw.filter((x) => x.bg !== fill || x.edge !== edge);
+        ok(sw.length >= 14 && off.length === 0, `D2: shape ${where}: every radius sample is filled with the brand's foreground.secondary (${fill}) and edged with border.primary (${edge}) for the mode (${sw.length} read)${off.length ? ` — ${JSON.stringify(off.slice(0, 2))}` : ''}`);
+      }
+    } catch (e) {
+      ok(false, `S7 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+}
+// Represented, on both hosts: each lever once, the hairline switch gone, the copy and the pairs, D6's labels, the plain
+// words, and the radius sizes drawn from the ladder (the container sizes and the 1px hairline included, #1881, #2053).
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'shape');
+    await openShapeAdvanced(page);
+    const r = await page.evaluate(() => {
+      const pane = document.querySelector('[data-p3="levers-pane"]');
+      const pv = document.querySelector('[data-p3="shape-style-guide"]');
+      return {
+        levers: [...pane.querySelectorAll('[data-p3^="lever-"]')].map((n) => n.getAttribute('data-p3')).filter((k) => k !== 'lever-info' && k !== 'lever-section'),
+        intro: pane.querySelector('.p3-intro')?.textContent ?? null,
+        lsec: [...pane.querySelectorAll('[data-p3="lever-section"]')].map((x) => [x.querySelector('.p3-lsec-title')?.textContent ?? null, x.querySelector('.p3-lsec-desc')?.textContent ?? null]),
+        psec: [...pv.querySelectorAll('.psec')].map((x) => [x.querySelector('.psec-t')?.textContent ?? null, x.querySelector('.psec-d')?.textContent ?? null]),
+        hairline: { block: [...pane.querySelectorAll('[data-p3^="lever-"]')].filter((n) => /hairline/.test(n.getAttribute('data-p3'))).length, switches: pane.querySelectorAll('[role="switch"]').length, words: /hairline radius/i.test(pane.textContent) },
+        radius: [...pv.querySelectorAll('[data-p3="radius-row"]')].map((x) => x.dataset.step),
+        heights: Object.fromEntries([...pv.querySelectorAll('[data-p3="height-row"]')].map((x) => [x.dataset.step, x.querySelector('[data-p3="shape-row-label"]')?.textContent ?? null])),
+        used: [...pv.querySelectorAll('[data-p3="radius-row"]')].map((x) => [x.dataset.step, x.querySelector('[data-p3="shape-row-used-by"]')?.textContent ?? null]),
+        rlabels: [...pv.querySelectorAll('[data-p3="radius-row"]')].map((x) => [x.dataset.step, x.querySelector('[data-p3="shape-row-label"]')?.textContent ?? null]),
+        shapes: [...pv.querySelectorAll('[data-p3="control-shape"]')].map((x) => [x.dataset.shape, x.getAttribute('aria-current')]),
+        pad: [pane.querySelector('[data-p3="shape-padding"] .p3-sub')?.textContent ?? null, pane.querySelector('[data-p3="shape-see-components"]')?.textContent ?? null],
+        next: pane.querySelector('[data-p3="shape-continue"]')?.textContent ?? null,
+      };
+    });
+    const count = (k) => r.levers.filter((x) => x === k).length;
+    const missing = SHAPE_LEVERS.filter((k) => count(k) !== 1).map((k) => `${k} ×${count(k)}`);
+    const extra = [...new Set(r.levers.filter((k) => !SHAPE_LEVERS.includes(k)))];
+    ok(missing.length === 0 && extra.length === 0, `Shape: every lever pages.ts places renders once (${SHAPE_LEVERS.length}, ${host})${missing.length ? ` — missing ${missing.join(', ')}` : ''}${extra.length ? ` — also drawn ${extra.join(', ')}` : ''}`);
+    hooks.absent(ok, { seen: count('lever-control-shape') === 1, state: 'Shape\'s levers' }, r.hairline.block === 0 && r.hairline.switches === 0 && !r.hairline.words,
+      `#2053: ${host}: Shape draws no Hairline radius switch (hairline lever blocks ${r.hairline.block}, switches ${r.hairline.switches}, words ${r.hairline.words})`);
+    ok(r.intro === SHAPE_COPY.intro, `${host}: Shape's intro reads "${SHAPE_COPY.intro}" ("${r.intro}")`);
+    ok(JSON.stringify(r.lsec.map(([t]) => t)) === JSON.stringify(SHAPE_PAIRS.map(([t]) => t)), `${host}: Shape's lever sections, in order: ${SHAPE_PAIRS.map(([t]) => t).join(', ')} — drew ${r.lsec.map(([t]) => t).join(', ')}`);
+    ok(JSON.stringify(r.psec.map(([t]) => t)) === JSON.stringify(EXPECT_SHAPE_SPECIMENS), `${host}: Shape's preview sections, in order: ${EXPECT_SHAPE_SPECIMENS.join(', ')} — drew ${r.psec.map(([t]) => t).join(', ')}`);
+    for (const [title, want] of SHAPE_PAIRS) {
+      const lev = r.lsec.find(([t]) => t === title), pre = r.psec.find(([t]) => t === want);
+      ok(!!lev && !!pre && (title !== want || lev[1] === pre[1]), `Q23: ${host}: the lever section "${title}" pairs with the preview's "${want}"${title === want ? ', one description on both sides' : ''} — levers ${JSON.stringify(lev)}, preview ${JSON.stringify(pre)}`);
+      if (SHAPE_COPY[title]) ok(lev?.[1] === SHAPE_COPY[title], `${host}: "${title}" reads "${SHAPE_COPY[title]}" (${JSON.stringify(lev?.[1])})`);
+    }
+    ok(r.psec.find(([t]) => t === 'Spacing')?.[1] === SHAPE_COPY.spacing && r.psec.find(([t]) => t === 'Building blocks')?.[1] === SHAPE_COPY.blocks,
+      `${host}: the read-only Spacing and Building blocks sections carry the approved descriptions (${JSON.stringify(r.psec.slice(2))})`);
+    ok(JSON.stringify(r.pad) === JSON.stringify([SHAPE_COPY.padding, SHAPE_COPY.paddingLink]) && r.next === SHAPE_COPY.next,
+      `${host}: the way to Components reads "${SHAPE_COPY.padding} ${SHAPE_COPY.paddingLink}" and Continue "${SHAPE_COPY.next}" (${JSON.stringify(r.pad)}, "${r.next}")`);
+    // The radius sizes are the emission's, all of them, in its order (#1881's container sizes and #2053's hairline).
+    const emitted = Object.keys(OUT[OUT_ROOT]?.radius ?? {}).filter((k) => !k.startsWith('$'));
+    ok(emitted.length >= 10 && JSON.stringify(r.radius) === JSON.stringify(emitted),
+      `${host}: the Radius section draws every radius size the emission carries, in order (${emitted.join(', ')}) — drew ${r.radius.join(', ')}`);
+    // #2078 (owner, 2026-10-04, per #1177): the pill sizes read "Pill", not "‹n›px · pill" (oracle: their names, literal).
+    const pillRows = r.rlabels.filter(([s]) => s === 'round' || s === 'capsule');
+    ok(pillRows.length === 2 && pillRows.every(([, l]) => l === 'Pill') && r.rlabels.filter(([s]) => s !== 'round' && s !== 'capsule').every(([, l]) => /^\d+(\.\d+)?px$/.test(l ?? '')),
+      `#2078: ${host}: Radius labels radius.round and radius.capsule "Pill", and every other size its px (${r.rlabels.map(([s, l]) => `${s} "${l}"`).join(', ')})`);
+    for (const [step, size] of BUTTON_HEIGHTS) {
+      const want = `${size} button · ${HEIGHT_PX(step)}px`;
+      ok(r.heights[step] === want, `D6: ${host}: the ${size} button height reads "${want}" (${JSON.stringify(r.heights[step])})`);
+    }
+    ok(r.used.find(([s]) => s === 'md')?.[1]?.includes('Button') && r.used.find(([s]) => s === 'xl')?.[1] === SHAPE_COPY.usedByNone,
+      `${host}: "used by" names Button on radius.md under the default Control shape, and the fallback "${SHAPE_COPY.usedByNone}" where nothing binds a size (${JSON.stringify(r.used.slice(2, 5))})`);
+    ok(JSON.stringify(r.shapes) === JSON.stringify([['boxed', null], ['hairline', null], ['rounded', 'true'], ['pill', null]]), `${host}: the four control shapes, Rounded marked current (${JSON.stringify(r.shapes)})`);
+    // D16 and E2's plain words: no "ramp", "ladder", "face", "band", "rung", "muted" or "column" in Shape's visible copy,
+    // and "Radius" (not "Corners") in the headings. Token pills taken out.
+    const PLAIN = /\b(ramps?|ladders?|faces?|bands?|rungs?|muted|columns?)\b/i;
+    const words = await page.evaluate((src) => {
+      const re = new RegExp(src, 'i');
+      const out = [];
+      for (const root of [document.querySelector('[data-p3="levers-pane"]'), document.querySelector('[data-p3="preview-body"]')]) {
+        const c = root.cloneNode(true);
+        for (const t of c.querySelectorAll('[data-p3="token-pill"], .p3-fill-tok')) t.remove();
+        const w = document.createTreeWalker(c, NodeFilter.SHOW_TEXT);
+        for (let n = w.nextNode(); n; n = w.nextNode()) if (re.test(n.textContent)) out.push(n.textContent.trim().slice(0, 80));
+        for (const e of c.querySelectorAll('[aria-label], [title], [placeholder]')) for (const a of ['aria-label', 'title', 'placeholder']) { const v = e.getAttribute(a); if (v && re.test(v)) out.push(`${a} "${v.slice(0, 80)}"`); }
+      }
+      return out;
+    }, PLAIN.source);
+    ok(words.length === 0, `D16: ${host}: no "ramp", "ladder", "face", "band", "rung", "muted" or "column" in Shape's visible copy${words.length ? ` — found ${words.slice(0, 4).map((x) => `"${x}"`).join(', ')}` : ''}`);
+    ok(!r.lsec.concat(r.psec).some(([t]) => /corner/i.test(t ?? '')), `E2: ${host}: no Shape heading says "corner" (${JSON.stringify(r.lsec.concat(r.psec).map(([t]) => t))})`);
+    ok(errors.length === 0, `${host} Shape levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S7 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// Edits (Q22): Light writes the brand value, the default included; previewing Dark, Density and Radius softness write
+// modeLevers.dark.* and leave the brand value alone, shown as "Auto: follows Light (…)" until set, with Return to Auto;
+// a custom mode based on Dark follows LIGHT on Auto; Control shape and Base radius write the same bytes from Dark as
+// from Light (Q54). Each write read back from the PERSISTED brand.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'shape');
+    await openShapeAdvanced(page);
+    const view0 = (await previewView(page)).view;
+    const p0 = await persisted(page);
+    const chip = async (hk, want) => {
+      await hooks.click(page.locator(`[data-p3="${hk}"]`));
+      await page.waitForFunction((h) => document.querySelector(`[data-p3="${h}"]`)?.getAttribute('aria-checked') === 'true', hk, { timeout: 5000 }).catch(() => {});
+      return want;
+    };
+    // Light: density, the default written back.
+    await chip('density-choice-compact');
+    ok((await persisted(page))?.density === 'compact', `shape: in Light, Compact writes density: compact (${(await persisted(page))?.density})`);
+    await chip('density-choice-comfortable');
+    const pc = await persisted(page);
+    ok(pc?.density === 'comfortable' && JSON.stringify(pc) === JSON.stringify({ ...p0, density: 'comfortable' }), `shape: back to Comfortable writes density: comfortable, not unset (the legacy bytes) (${pc?.density})`);
+    // Light: radius softness, by the keyboard.
+    await page.locator('[data-p3="radius-scale-slider"]').focus();
+    await page.keyboard.press('ArrowRight');
+    await page.waitForFunction(() => document.querySelector('[data-p3="radius-scale-slider"]')?.value === '1.5', null, { timeout: 5000 }).catch(() => {});
+    ok((await persisted(page))?.radiusScale === 1.5, `shape: in Light, ArrowRight on radius softness writes radiusScale: 1.5 (${(await persisted(page))?.radiusScale})`);
+    await page.keyboard.press('ArrowLeft');
+    await page.waitForFunction(() => document.querySelector('[data-p3="radius-scale-slider"]')?.value === '1', null, { timeout: 5000 }).catch(() => {});
+    const focusKept = await page.evaluate(() => document.activeElement?.getAttribute('data-p3'));
+    ok(focusKept === 'radius-scale-slider', `shape: the slider keeps its focus through its own edits (focus on ${focusKept})`);
+    const pL = await persisted(page);
+    // Light: Control shape, then Base radius through its picker; their bytes noted, then undone.
+    await chip('control-shape-choice-pill');
+    const pShape = await persisted(page);
+    ok(pShape?.controlShape === 'pill', `shape: Pill writes controlShape: pill (${pShape?.controlShape})`);
+    await chip('control-shape-choice-rounded');
+    await hooks.click(page.locator('[data-p3="base-radius-pick"]'));
+    await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="6"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="base-radius-pick"] .p3-btn-label')?.textContent === '6px', null, { timeout: 5000 }).catch(() => {});
+    const pBase = await persisted(page);
+    ok(pBase?.baseMd === 6, `shape: the Base radius picker's 6px writes baseMd: 6 (${pBase?.baseMd})`);
+    const md6 = await page.evaluate(() => document.querySelector('[data-p3="shape-style-guide"] [data-p3="radius-row"][data-step="md"] [data-p3="shape-row-label"]')?.textContent);
+    ok(md6 === `${6 * (p0?.radiusScale ?? 1)}px`, `shape: the preview's radius.md follows the base radius at once (${md6})`);
+    await page.keyboard.press('Escape');
+    // Dark.
+    await chooseMode(page, 'dark');
+    const auto = await page.evaluate(() => ({ d: document.querySelector('[data-p3="density-auto"]')?.textContent ?? null, r: document.querySelector('[data-p3="radius-scale-auto"]')?.textContent ?? null,
+      line: document.querySelector('[data-p3="shape-density-mode"]')?.textContent ?? null }));
+    ok(auto.d === 'Auto: follows Light (Comfortable)' && auto.r === 'Auto: follows Light (1.0 · standard)', `Q22: previewing Dark, Density and Radius softness read Auto, following Light (${JSON.stringify(auto)})`);
+    ok(auto.line === SHAPE_COPY.densityMode, `previewing Dark, the Density lever keeps the decided sentence ("${auto.line}")`);
+    await chip('density-choice-spacious');
+    const p1 = await persisted(page);
+    ok(p1?.modeLevers?.dark?.density === 'spacious' && p1?.density === pBase?.density,
+      `previewing Dark, a density edit writes modeLevers.dark.density and not the brand value — wrote modeLevers ${JSON.stringify(p1?.modeLevers)}, density ${JSON.stringify(p1?.density)}`);
+    const darkMd = await page.evaluate(() => document.querySelector('[data-p3="shape-style-guide"] [data-p3="height-row"][data-step="md"] [data-p3="shape-row-label"]')?.textContent);
+    ok(darkMd === 'Medium button · 56px', `previewing Dark at Spacious, the preview's Medium button reads 56px (${darkMd})`);
+    await page.locator('[data-p3="radius-scale-slider"]').focus();
+    await page.keyboard.press('ArrowRight');
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="radius-scale-reset"]'), null, { timeout: 5000 }).catch(() => {});
+    const p2 = await persisted(page);
+    ok(p2?.modeLevers?.dark?.radius === 1.5 && p2?.radiusScale === pBase?.radiusScale,
+      `previewing Dark, a radius softness edit writes modeLevers.dark.radius and not the brand value — wrote modeLevers ${JSON.stringify(p2?.modeLevers)}, radiusScale ${JSON.stringify(p2?.radiusScale)}`);
+    // Brand-wide from Dark (Q54): Control shape writes the same bytes as from Light.
+    await chip('control-shape-choice-pill');
+    ok((await persisted(page))?.controlShape === 'pill' && JSON.stringify((await persisted(page))?.modeLevers) === JSON.stringify(p2?.modeLevers), 'Q54: previewing Dark, Pill writes controlShape: pill and no per-mode value');
+    await chip('control-shape-choice-rounded');
+    await hooks.click(page.locator('[data-p3="density-reset"]'));
+    await hooks.click(page.locator('[data-p3="radius-scale-reset"]'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="radius-scale-auto"]'), null, { timeout: 5000 }).catch(() => {});
+    ok(JSON.stringify(await persisted(page)) === JSON.stringify({ ...pBase, controlShape: 'rounded' }), 'Q22: Return to Auto on both prunes modeLevers: the persisted brand is the one before Dark');
+    // A custom mode based on Dark, with Dark's own density set: on Auto it follows LIGHT, not Dark (scope finding 7).
+    await chip('density-choice-compact');
+    await goPlace(page, 'brand');
+    await hooks.click(page.locator('[data-p3="custom-mode-add"]'));
+    await hooks.need(page, '[data-p3="custom-mode-base"]');
+    await page.locator('[data-p3="custom-mode-base"]').last().selectOption('dark');
+    const custom = await page.evaluate(() => [...document.querySelectorAll('[data-p3="custom-mode-name"]')].pop()?.value);
+    await goPlace(page, 'shape');
+    const cm = (await persisted(page))?.customModes?.at(-1)?.name ?? custom;
+    await chooseAnyMode(page, cm);
+    const ca = await page.evaluate(() => document.querySelector('[data-p3="density-auto"]')?.textContent ?? null);
+    ok(ca === 'Auto: follows Light (Comfortable)', `a custom mode based on Dark, on Auto, says it follows Light, not Dark's Compact (${cm}: "${ca}")`);
+    ok((await previewView(page)).view === view0, `V1 edit: Shape's edits never move the preview's home (${view0})`);
+    ok(errors.length === 0, `shape edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S7 Shape edits: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// Q59: in each derived mode every control on Shape is disabled, the advanced one included, under the derived line, and
+// the preview is still drawn. Enumerated from the DOM: every button and input in a lever section but the info toggletips
+// and the way to Components (it only navigates).
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'brand');
+    await hooks.click(page.locator('[data-p3="mode-on-wireframe"]'));
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="wireframe"], [data-p3="mode-select"] option[value="wireframe"]'));
+    await goPlace(page, 'shape');
+    await openShapeAdvanced(page);
+    for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']]) {
+      await chooseAnyMode(page, mode);
+      await page.waitForFunction((l) => document.querySelector('[data-p3="shape-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
+      const d = await page.evaluate(() => {
+        const pane = document.querySelector('[data-p3="levers-pane"]');
+        const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"], [data-p3="shape-see-components"]'));
+        return { n: ctls.length, enabled: ctls.filter((n) => !n.disabled).map((n) => n.getAttribute('data-p3') ?? n.tagName), hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
+          line: document.querySelector('[data-p3="shape-derived"]')?.textContent ?? null,
+          preview: [...document.querySelectorAll('[data-p3="shape-style-guide"] .psec-t')].map((t) => t.textContent),
+          radius: [...document.querySelectorAll('[data-p3="shape-style-guide"] [data-p3="radius-row"]')].map((r) => [r.dataset.step, r.querySelector('[data-p3="shape-row-label"]')?.textContent ?? null,
+            r.querySelector('.shp-sw')?.style.borderRadius ?? null]) };
+      });
+      ok(d.line === `${label} is auto-derived — read-only. Edit Light or Dark and it follows.`, `Q59: previewing ${label}, the derived line shows on Shape ("${d.line}")`);
+      ok(d.n >= 9 && d.enabled.length === 0, `Q59: previewing ${label}, every control on Shape is disabled, Base radius included (${d.n - d.enabled.length}/${d.n})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
+      for (const hk of ['density-choice-compact', 'radius-scale-slider', 'control-shape-choice-pill', 'base-radius-pick']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Shape is among those held disabled`);
+      ok(JSON.stringify(d.preview) === JSON.stringify(EXPECT_SHAPE_SPECIMENS), `Q59: previewing ${label}, the Shape preview is still drawn (${d.preview.join(', ')})`);
+      // Every size is drawn at 0px, as the emission draws wireframe; the two pill sizes still read "Pill" (#2078: the
+      // label is which size it is, not its px).
+      if (mode === 'wireframe') ok(d.radius.length >= 10 && d.radius.every(([step, label, br]) => br === '0px' && label === (['round', 'capsule'].includes(step) ? 'Pill' : '0px')),
+        `previewing Wireframe, every radius size is drawn at 0px, as the emission draws wireframe, and reads 0px but for the two pill sizes, which read "Pill" (${d.radius.map(([s, l, b]) => `${s} "${l}" ${b}`).join(', ')})`);
+    }
+    ok(errors.length === 0, `shape derived: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S7 derived modes: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// The routes by tab, on both hosts: Continue lands on Depth & motion's page; See Components lands on Components, the
+// Size & radius page on the web and the components page in the plugin (§4). The plugin reaches the Button options
+// through the Pages menu (D4 B), under "Size & radius" (D5 B). Type's Continue lands on Shape's levers.
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'type');
+    await hooks.click(page.locator('[data-p3="type-continue"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'shape', null, { timeout: 5000 }).catch(() => {});
+    const t = await page.evaluate(() => ({ place: document.querySelector('[data-p3="frame"]')?.dataset.place, levers: !!document.querySelector('[data-p3="shape-levers"]') }));
+    ok(t.place === 'shape' && t.levers, `${host}: Type's Continue opens Shape's levers (${JSON.stringify(t)})`);
+    await hooks.click(page.locator('[data-p3="shape-continue"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'depth', null, { timeout: 5000 }).catch(() => {});
+    // S9.2 moved Depth & motion into the two panes: the tab is its own page now, and no legacy page shows.
+    const c = await page.evaluate(() => ({ place: document.querySelector('[data-p3="frame"]')?.dataset.place, shows: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage ?? null, levers: !!document.querySelector('[data-p3="depth-levers"]') }));
+    ok(c.place === 'depth' && c.shows === null && c.levers, `${host}: "Continue to Depth & motion" opens the Depth & motion tab's levers (${JSON.stringify(c)})`);
+    await goPlace(page, 'shape');
+    await hooks.click(page.locator('[data-p3="shape-see-components"]'));
+    const want = host === 'web' ? 'size-radius' : 'components';
+    await page.waitForFunction((w) => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage === w, want, { timeout: 5000 }).catch(() => {});
+    const s = await page.evaluate(() => ({ place: document.querySelector('[data-p3="frame"]')?.dataset.place, shows: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage ?? null }));
+    ok(s.place === 'components' && s.shows === want, `${host}: See Components opens the Components tab on its ${want} page (${JSON.stringify(s)})`);
+    if (host === 'figma') {
+      await hooks.click(page.locator('[data-p3="pages-menu"]'));
+      await hooks.click(page.locator('[data-p3="rail-page-size-radius"]'));
+      await page.waitForFunction(() => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage === 'size-radius', null, { timeout: 5000 }).catch(() => {});
+      const b = await page.evaluate(() => ({ shows: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage ?? null, title: document.querySelector('[data-p3="legacy-page"] [data-p3="page-title"]')?.textContent ?? null,
+        buttons: !!document.querySelector('[data-p3="legacy-page"] [data-p3="lever-button-icons"]'), density: !!document.querySelector('[data-p3="legacy-page"] [data-p3="lever-density"]') }));
+      ok(b.shows === 'size-radius' && b.title === 'Size & radius.' && b.buttons && !b.density,
+        `D4 B, D5 B: in the plugin the Pages menu reaches the Button options on "Size & radius", and the page holds no Shape lever (${JSON.stringify(b)})`);
+    }
+    ok(errors.length === 0, `${host} Shape routes: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S7 routes ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// QA-B9: an edit on Shape eases the preview to the section its lever section pairs with (Q23): Density to Density,
+// radius softness to Radius, and Base radius to Radius too (D1 A). From the preview's far end, so each reveal moves.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'shape');
+    await openShapeAdvanced(page);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const reveal = async (what, act, want) => {
+      await page.evaluate(() => { const b = document.querySelector('[data-p3="preview-body"]'); b.scrollTop = b.scrollHeight; });
+      await act();
+      await page.waitForTimeout(120);
+      const s = await page.evaluate((t) => {
+        const body = document.querySelector('[data-p3="preview-body"]');
+        const head = [...body.querySelectorAll('[data-p3="section-title"]')].find((n) => n.textContent === t);
+        const b = body.getBoundingClientRect(), r = head?.closest('.psec')?.getBoundingClientRect();
+        return { found: !!r, rel: r ? Math.round(r.top - b.top) : null, inView: !!r && r.top >= b.top - 1 && r.top < b.bottom - 40, place: document.querySelector('[data-p3="frame"]')?.dataset.place };
+      }, want);
+      ok(s.found && s.inView && s.place === 'shape', `QA-B9: editing ${what} on Shape brings the preview's ${want} section into view, on the same page (${JSON.stringify(s)})`);
+    };
+    await reveal('Density', () => hooks.click(page.locator('[data-p3="density-choice-compact"]')), 'Density');
+    await reveal('radius softness', async () => { await page.locator('[data-p3="radius-scale-slider"]').focus(); await page.keyboard.press('ArrowRight'); }, 'Radius');
+    await reveal('Base radius', async () => { await hooks.click(page.locator('[data-p3="base-radius-pick"]')); await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="8"]')); }, 'Radius');
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    ok(errors.length === 0, `shape reveal: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S7 reveal: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// The chrome on Shape: both hosts, both themes, 1280, 640 and 380 (the Settings pane, then the Preview pane when
+// narrow). Continue is the filled primary button (QA-I12).
+for (const { w, h } of WIDTHS) {
+  for (const host of ['web', 'figma']) {
+    for (const theme of ['light', 'dark']) {
+      const { ctx, page, errors } = await open({ host, theme, w, h });
+      try {
+        await goPlace(page, 'shape');
+        const where = `${host} ${theme} ${w} / shape`;
+        const narrow = w <= 560;
+        const m = await measure(page, where, host, w);
+        check(m, where, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR);
+        if (w === 1280) {
+          const n = await page.evaluate(() => { const b = document.querySelector('[data-p3="shape-continue"]'); const cs = getComputedStyle(b); return { bg: cs.backgroundColor, ink: getComputedStyle(b.querySelector('span')).color }; });
+          ok(n.bg === STYLE.fill[theme] && n.ink === STYLE.ink[theme], `QA-I12: ${where}: Continue is the filled primary button (${JSON.stringify(n)})`);
+        }
+        if (SHOTS) await page.screenshot({ path: join(SHOTS, `s7-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}.png`) });
+        if (narrow) {
+          await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+          const mp = await measure(page, `${where} / preview`, host, w);
+          check(mp, `${where} / preview`, columnOf(host, w), { ...PLACE_FLOOR, controls: 6, text: 4, fonts: 4 }, { state: 'preview' });
+        }
+        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `S7 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      } finally { await ctx.close(); }
+    }
+  }
 }
 
 hooks.report(ok);

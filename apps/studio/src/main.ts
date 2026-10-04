@@ -22,18 +22,14 @@
 import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput, Theme } from '@prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast, composite } from '@prism3/engine/color';
-import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, ICON_SIZES, sizeRefPx, densitySpacingStep } from '@prism3/engine/scale';
+import type { ButtonContentSize, ButtonIcons, ButtonLabelWeight } from '@prism3/engine/scale';
 import { leverManifest, leverGroups } from '@prism3/engine/levers';
 import type { Lever } from '@prism3/engine/levers';
-import { previewSpec } from '@prism3/engine/preview';
 import { resolveAllModes } from '@prism3/engine/modes';
 import { parseDesignMd, toDesignMd } from '@prism3/engine/design-md';
 import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '@prism3/engine/standard-design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
 import { ENGINE_VERSION } from '@prism3/engine/version';
-import { componentDefs } from '@prism3/engine/components/index';
-import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
-import { BUTTON_SPACING } from '@prism3/engine/button-spacing';
 import { hostCommit, type HostCommit } from './write-adapter';
 import { initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type DetailKey, type OpKey } from './state/host-session';
 import type { StyleGuideOptionsMsg } from './write-adapter';
@@ -52,15 +48,19 @@ import {
   tokenPillSpan, withInverseBadge, VIEW_ONLY, type SgRole,
 } from './preview/sections/kit';
 import {
-  COLOR_SECTIONS, disabledSection, interactiveSection, typeSampleSection,
-  shadowRampSection, shadowTintReadout, durationRampSection, motionCurvesSection, springsSection, motionTransitionsSection,
+  COLOR_SECTIONS, disabledSection, interactiveSection, typeSampleSection, radiusSampleSection, RADIUS_SAMPLE, SAMPLE_SHADOW,
+  buttonLayoutSection,
 } from './preview/sections/index';
-// The Elevation and Motion writes (UI redesign S9.1): every shadow, tempo and easing edit the two legacy pages make.
-import { setShadow, setShadowSoftness, setShadowTint, shadowOverride, authoredTint, setTempo, setEasingRole, type ShadowKey } from './state/depth-motion-input';
-// The Type writes (UI redesign S6.1) moved to `state/type-input.ts`, and every Type control to `domains/type.ts`
-// (S6.2, S6.3). The one left here is the per-mode swap `renderRepointTable` still draws for two ladders' rows: the
-// table stays for Motion's easing roles until S9, and its line height and letter spacing callers are gone.
-import { setRepoint } from './state/type-input';
+// The Button option writes and the reader the button specimen is drawn from (UI redesign S8.1).
+import { buttonLayout, setButtonContentSize, setButtonIcons, setButtonLabelWeight, setButtonMinWidth } from './state/button-input';
+// The component catalog: the plugin's, computed from the definitions it bundles, or the web's generated copy (S8.1).
+import { buildableSets, unbuildableSets, providedCatalog, type Catalog } from './state/component-catalog';
+import { COMPONENT_CATALOG_DATA } from './state/component-catalog-data';
+// The brand's Control shape, for the Style guide's radius sample (UI redesign S7, owner decision D18 B).
+import { brandControlShape } from './state/shape-input';
+// The Elevation and Motion writes moved to `state/depth-motion-input.ts` (UI redesign S9.1), and every Elevation and
+// Motion control to `domains/depth.ts` (S9.2); the Type writes to `state/type-input.ts` and every Type control to
+// `domains/type.ts` (S6.1 to S6.3). Nothing here writes either any more.
 import {
   needsOverwriteConfirm, isDirty, isUnrecoverable,
   type Origin,
@@ -75,7 +75,7 @@ import {
 import {
   BRANDS, brandState, provenance, bootProvenance, theme, lastGoodInput, rp, currentMode, lastError, page,
   firstRun, rebuild, ensureThemeFresh, loadInput, clearOrigin, setCurrentMode, setPage,
-  getPath, setPath, getModeLever, setModeLever, subscribe, invalidate, searchQuery, searchHits, setSearchHits,
+  getPath, setPath, subscribe, invalidate, searchQuery, searchHits, setSearchHits,
   type Mode, type PageKey,
 } from './state/store';
 
@@ -96,10 +96,9 @@ const NEW_BRAND = (): BrandInput => ({
 // Liveness is by control TYPE, not a per-key allowlist: sliders, enums, palette-refs, and
 // toggles all have real handlers (a bad value just surfaces the error bar, never crashes —
 // rebuild() is try/caught). Object/list levers (families, surfaces, brand colors) all got their
-// bespoke editors (#97) — this generic path is what's left over: baseMd, disabledMin, and
-// radiusScale/density/shadow.softness/motionPersonality.tempo on Light, where a bespoke per-mode
-// editor takes over everywhere else. density/motion/shadow all have live preview specimens now
-// (#99) — paintSizePreview, motionTransitionsSection, shadowRampSection (`preview/sections/`, S9.1).
+// bespoke editors (#97) — this generic path is what's left over: baseMd, and radiusScale/density on
+// Light, where a bespoke per-mode editor takes over everywhere else. (Shadow softness and tempo left with
+// the Elevation and Motion pages in UI redesign S9.2: `domains/depth.ts` draws them.)
 const LIVE_CONTROLS = new Set(['slider', 'enum', 'palette-ref', 'toggle']);
 
 const MODE_LABEL: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light', 'hc-dark': 'HC dark', wireframe: 'Wireframe' };
@@ -111,10 +110,7 @@ const MODE_LABEL: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-l
 // composes in: primitives → how they're applied (surfaces / interactive) → type → form
 // (elevation/size/layout/motion) → look at the whole (Preview) → write something out (Components).
 const NAV = [
-  { key: 'elevation', label: 'Elevation', sub: 'Shadows' },
-  { key: 'sizeRadius', label: 'Size & radius', sub: 'Size, density, corner radius' },
-  { key: 'layout', label: 'Layout', sub: 'Breakpoints & containers' },
-  { key: 'motion', label: 'Motion', sub: 'Tempo & easing' },
+  { key: 'sizeRadius', label: 'Size & radius', sub: 'Button options' },   // S7: the Button options only (D5 B); the sub is DRAFT
   // #259 — the style-guide step, after Apply theme: it documents the variables Apply wrote, so it follows the
   // authoring pages and Preview. Figma-only for the `components` reason below — it draws on the canvas.
   // Placement and label are proposed, owner to confirm (docs/45).
@@ -158,21 +154,9 @@ const isView = (s: (typeof NAV)[number]): boolean => 'view' in s && s.view === t
 const isFirstView = (nav: readonly (typeof NAV)[number][], i: number): boolean =>
   isView(nav[i]) && !nav.slice(0, i).some(isView);
 
-// Which page a lever belongs to. The manifest groups levers under a few axes; the focused pages slice
-// finer. Palette colour primitives get a bespoke UI, so they're excluded from the generic knob render.
-// Status hues are edited inline on Palettes ramps (they're advanced + colour-control, so they filter
-// out of every generic panel anyway). The `color` + `advanced` groups split by key across pages.
-const PRIMITIVE_KEYS = new Set(['primary', 'neutral.hue', 'neutral.chroma', 'neutral.anchor', 'brandColors']);
-const pageOfLever = (l: Lever): PageKey => {
-  if (l.group === 'type') return 'type';   // Type, moved (S6.2)
-  if (l.group === 'motion') return 'motion';
-  if (l.group === 'elevation') return 'elevation';
-  if (l.group === 'layout') return 'layout';
-  if (l.group === 'form') return 'sizeRadius';   // radiusScale, density, + advanced grid/space dims
-  if (l.key === 'gradients' || l.key === 'surfaces') return 'fills';   // Color › Surfaces & fills, moved (S4a)
-  return 'interactive';   // remaining colour/advanced: action palette, interactive treatment, disabled, icon, inverse, neutralEmphasis, interactivePalettes
-};
-const leversFor = (key: PageKey): Lever[] => leverManifest.filter((l) => !l.advanced && !PRIMITIVE_KEYS.has(l.key) && pageOfLever(l) === key);
+// `pageOfLever` and `leversFor`, the routing table only the Motion page read (#958), went with that page in UI redesign
+// S9.2: every page now names its levers, and `test-pages.ts` plus `test:chrome`'s rendered coverage hold that each
+// manifest lever has a home that draws it.
 const leverByKey = (k: string): Lever | undefined => leverManifest.find((l) => l.key === k);
 
 // ---- engine read-model -----------------------------------------------------
@@ -414,20 +398,6 @@ const selectEl = (mods: string | Mix = ''): HTMLSelectElement => el(
   // mix(), which is the one shape that legitimately crosses (#770).
   typeof mods === 'string' ? (mods ? `select ${mods}` : 'select') : mix('select', mods.cls),
 ) as HTMLSelectElement;
-/** A number `<input>` (doc 24 C2). The `.num` base owns the shared field cosmetics (border, radius,
- *  background, padding); the caller passes a context class for width/size and wires its own `onchange`.
- *  That context class comes from the CALLER's scope by design, so the pairing is a mix() — the base
- *  owns cosmetics, the context class owns width, and neither overrides the other (#770). */
-const numberField = (o: { value: string | number; min?: number | string; max?: number | string; step?: number | string; className?: string; title?: string }): HTMLInputElement => {
-  const inp = el('input', o.className ? mix('num', o.className) : 'num') as HTMLInputElement;
-  inp.type = 'number';
-  if (o.min != null) inp.min = String(o.min);
-  if (o.max != null) inp.max = String(o.max);
-  if (o.step != null) inp.step = String(o.step);
-  inp.value = String(o.value);
-  if (o.title) inp.title = o.title;
-  return inp;
-};
 /** A range `<input>` (doc 24 C5b). Just the element construction (type/bounds/value/class) — the
  *  readout + wiring stay per-site, since the surrounding layouts genuinely differ (a `.slider-top`
  *  readout, a `.knob-val`, an auto-pruning knob, a label-as-readout). `className` may be omitted for
@@ -666,19 +636,10 @@ const SECTION_MODE_SCOPE: Record<string, ModeScope> = {
   // which mode they edit, and its Backgrounds, Foreground fills and Text sections went with the legacy page.)
   // (Interactive left the mode bar's pages in UI redesign S5.2: it draws the two panes, where the rows say
   // which mode they edit.)
-  // Size & radius
-  'Corner radius': 'per-mode', 'Density & size': 'per-mode', 'Spacing grid': 'shared',
-  'Primitive scales': 'shared',
-  // Elevation
-  'Shadow': 'per-mode', 'Elevation ramp': 'shared',
-  // Motion
-  // Easing is 'shared', not 'per-mode', and the audit is what caught the difference. Its per-mode
-  // control is a COLUMN-PER-MODE table (#522), so it edits every mode at once and its markup is
-  // identical whichever mode the bar holds — the bar does not scope it. With `hasControls` true the
-  // three-state badge renders "Editing · All modes", which is exactly the case #437 proposed that
-  // label for. Marking it 'per-mode' claimed the bar scoped an editor it has no effect on.
-  'Tempo': 'per-mode', 'Easing': 'shared', 'Motion': 'shared',
-  'Duration ramp': 'shared', 'Springs': 'shared',
+  // (Size & radius' Corner radius, Density & size, Spacing grid and Primitive scales left with the Shape page in UI
+  // redesign S7; its Buttons section has no entry, #1912.)
+  // (Elevation and Motion left the mode bar's pages in UI redesign S9.2: Depth & motion draws the two panes, where
+  // each control says which mode it edits.)
   // Preview — read-only end to end
   'Background': 'shared', 'Foreground': 'shared', 'Text color': 'shared', 'Border': 'shared',
   'Icon': 'shared', 'Disabled': 'shared', 'Interactive': 'shared',
@@ -782,8 +743,8 @@ const pfield = (label: string, control: HTMLElement, right = false): HTMLElement
  *  guard that is not written.
  *
  *  `write` is what a change writes, and it defaults to `setPath(brandState, lever.key, v)`. A lever whose writes
- *  moved to a domain state module passes that module's write (UI redesign S9.1: Elevation's softness and Motion's
- *  tempo, through `state/depth-motion-input.ts`), which writes the same bytes. */
+ *  moved to a domain state module may pass that module's write, which must write the same bytes (UI redesign S9.1
+ *  added the seam for Elevation's softness and Motion's tempo, whose controls left with their pages in S9.2). */
 const renderControl = (lever: Lever, commit: () => void = apply, write: (v: unknown) => void = (v) => { setPath(brandState, lever.key, v); }): HTMLElement => {
   const live = LIVE_CONTROLS.has(lever.control);
   // Which control this lever gets is the descriptor's call (`levers/controls.ts`, #1675), not this
@@ -834,39 +795,9 @@ const renderControl = (lever: Lever, commit: () => void = apply, write: (v: unkn
 // The per-mode `modeLevers` read/write helpers — `getModeLever`, `setModeLever`, `pruneModeLevers` —
 // live in `state/store.ts`, with the prune-to-byte-identical invariant they exist to keep.
 
-/** A per-mode enum select with a natural "Auto" (follows the global lever). Shared by the radius / motion
- *  tempo / density controls — outside the base mode they edit `modeLevers[mode].<key>` instead of the
- *  global. A hand-authored value that matches no discrete option is surfaced as its own "(custom)" option
- *  rather than silently reading as Auto. `parse` maps the selected string to the stored value. `write` is what a
- *  change writes (`undefined` for Auto); tempo passes `state/depth-motion-input.ts`'s (UI redesign S9.1). */
-const renderPerModeSelect = (lever: Lever, key: string, opts: [string, string][], globalOf: () => string, parse: (s: string) => unknown, autoNote: string,
-  write: (v: unknown) => void = (v) => { setModeLever(currentMode, key, v); }): HTMLElement => {
-  const cur = getModeLever(currentMode, key);
-  const sel = selectEl('sm fill');
-  sel.append(optionEl('', `Auto — follows global (${globalOf()})`, cur == null));
-  let matched = false;
-  for (const [v, label] of opts) { const on = String(cur) === v; matched ||= on; sel.append(optionEl(v, label, on)); }
-  if (cur != null && !matched) sel.append(optionEl(String(cur), `${cur} (custom)`, true));
-  sel.onchange = () => { write(sel.value === '' ? undefined : parse(sel.value)); applyFull(); };
-  const desc = `${lever.description} — per ${MODE_LABEL[currentMode] ?? currentMode}; “Auto” follows the global ${autoNote}.`;
-  return knob(lever.label, sel, desc);
-};
-const RADIUS_SCALE_OPTS: [string, string][] = [['0', '0 · sharp'], ['0.5', '0.5'], ['1', '1 · default'], ['1.5', '1.5'], ['2', '2 · soft']];
-const TEMPO_OPTS: [string, string][] = [['snappy', 'Snappy'], ['standard', 'Standard'], ['relaxed', 'Relaxed']];
-const DENSITY_OPTS: [string, string][] = [['compact', 'Compact'], ['comfortable', 'Comfortable'], ['spacious', 'Spacious']];
-const renderPerModeRadius = (lever: Lever): HTMLElement =>
-  renderPerModeSelect(lever, 'radius', RADIUS_SCALE_OPTS, () => String(brandState.radiusScale ?? (lever.default as number) ?? 1), Number, 'corner softness');
-const renderPerModeTempo = (lever: Lever): HTMLElement =>
-  renderPerModeSelect(lever, 'tempo', TEMPO_OPTS, () => String(brandState.motionPersonality?.tempo ?? (lever.default as string) ?? 'standard'), (s) => s, 'tempo',
-    (v) => { setTempo(currentMode, v as string | undefined); });
-const renderPerModeDensity = (lever: Lever): HTMLElement => hook(
-  renderPerModeSelect(lever, 'density', DENSITY_OPTS, () => String(brandState.density ?? (lever.default as string) ?? 'comfortable'), (s) => s, 'density'), 'per-mode-density');
-/** The levers that carry a per-mode "Auto" select outside the base mode, by lever key. */
-const PER_MODE_SELECTS: Record<string, (lever: Lever) => HTMLElement> = {
-  radiusScale: renderPerModeRadius,
-  density: renderPerModeDensity,
-  'motionPersonality.tempo': renderPerModeTempo,
-};
+// `renderPerModeSelect` and `PER_MODE_SELECTS`, the per-mode "Auto — follows global" selects for radius softness,
+// density and tempo, are gone: S7 moved radius and density to Shape and S9.2 tempo to Depth & motion, where each
+// control edits the previewed mode (Q22).
 
 /** The all-modes contrast table (Pair · a mode column each · dot + ratio). Shared by the Preview master
  *  table and the per-page section tables (docs/23 §3) — one authoritative renderer, re-sliced by the
@@ -1331,6 +1262,10 @@ const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void =
   // The type sample first, before Background (#1942, owner decision Q67), shared with the Type preview: a few of
   // the brand's text styles in its faces, in the previewed mode, inked for the chosen ground.
   host.append(ground(typeSampleSection(c, theme.typography, cur, { ink: surf.ink })));
+  // The radius sample (UI redesign S7, owner decision D18 B), shared from `preview/sections/`: the brand's radius on a
+  // panel, a field, a button and a tag, in the previewed mode, on the chosen ground. S9 adds the shadow to its panel.
+  host.append(ground(radiusSampleSection(c, { dims: theme.dims, modes: theme.modes, mode: cur, shape: brandControlShape(), copy: RADIUS_SAMPLE, inverse: surf.key.startsWith('inverse.'),
+    shadow: rp.shadows[SAMPLE_SHADOW]?.[cur] })));   // D18 B's shadow half (S9.2): the panel's elevation, for the mode in view
   // The five shared color sections, in the Style guide's order, each on the chosen ground.
   for (const [, section] of COLOR_SECTIONS) host.append(ground(section(c)));
 
@@ -1341,10 +1276,8 @@ const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void =
 };
 
 const PAGE_COPY: Record<LegacyPageKey, [string, string]> = {
-  elevation: ['Elevation.', 'The shadow ramp — blur/offset softness and an optional brand-hued tint on the shadow base. Dark modes get a reduced set automatically.'],
-  sizeRadius: ['Size & radius.', 'Component sizing (control height, driven by density) and corner radius. Both go per-mode outside Light. Each component sets its own padding, and density moves it one step on the spacing scale.'],
-  layout: ['Layout.', 'Breakpoints, grid columns, and container widths — the responsive frame the system lays out within.'],
-  motion: ['Motion.', 'Tempo (the duration ramp) and the expressive easing curve. Reduce-motion is derived.'],
+  // UI redesign S7: the page keeps only the Button options, under its own title (owner decision D5 B). The lede is DRAFT.
+  sizeRadius: ['Size & radius.', 'Button icon placement, label size and weight, and minimum width. Density and radius are set on Shape.'],
   // #718. The lede states the role rather than the feature, because that is the fact this page exists
   // to convey: the write is how the anatomy schema is proven to materialize, not a component library
   // the brand ships. Naming the one def and the member count keeps it from reading as a catalog.
@@ -1433,167 +1366,33 @@ const renderGeneratedNote = (): HTMLElement => {
 /** Bespoke editors for the object/list levers renderControl can't edit (it only shows them read-only).
  *  Rendered alongside the manifest-advanced slider/enum controls in the (always-visible) extras panel. */
 
-/** The breakpoints controls (the editable px list + add/remove) — just the control node now, so the
- *  layout page can pair it with the ruler/table preview beside it (#264). `commit` redraws its own list
- *  locally (count/order may change) then `apply()` — which rebuilds the theme + repaints the layout
- *  previews via the page's refreshers — but never `applyFull`, which would lose focus/scroll mid-edit. */
-const renderBreakpointsControls = (): HTMLElement => {
-  const listEl = el('div', 'adv-bplist');
-  const commit = (arr: number[]): void => {
-    const clean = [...new Set(arr.filter((n) => Number.isFinite(n) && n >= 0))].sort((a, b) => a - b);
-    setPath(brandState, 'layout.breakpoints', clean); draw(); apply();
-  };
-  const draw = (): void => {
-    listEl.innerHTML = '';
-    const bps = (brandState.layout?.breakpoints ?? theme.layout.breakpoints.map((b) => b.px)) as number[];
-    bps.forEach((px, i) => {
-      const cell = el('div', 'adv-bp');
-      const inp = numberField({ className: 'adv-num', value: String(px) });
-      inp.onchange = () => { const next = [...bps]; next[i] = Number(inp.value); commit(next); };
-      // #559 — hit-min adds an out-of-flow ::before hit box only; adv-x's painted box is untouched
-      const rm = el('button', mix('adv-x', 'hit-min'), '×') as HTMLButtonElement;
-      rm.onclick = () => commit(bps.filter((_, j) => j !== i));
-      cell.append(inp, rm); listEl.append(cell);
-    });
-    const add = el('button', 'adv-add', '+ Add') as HTMLButtonElement;
-    add.onclick = () => { const bps2 = (brandState.layout?.breakpoints ?? theme.layout.breakpoints.map((b) => b.px)) as number[]; commit([...bps2, (Math.max(0, ...bps2) + 256)]); };
-    listEl.append(add);
-  };
-  draw();
-  return listEl;
-};
-
-// The Easing section: the curve set is the shared `motionCurvesSection` (UI redesign S9.1); under it, the Easing
-// per mode table, which stays here until S9.2 replaces it.
-const renderEasingEditor = (): HTMLElement => {
-  const wrap = motionCurvesSection(theme.motion.easing);
-  // Per-mode re-point (#522). The curves themselves stay mode-invariant primitives — a mode swaps
-  // which curve a ROLE resolves to, the same contract as the leading and tracking ladders, in the same
-  // table. `calm` is the case this exists for: the engine describes it as a soft onset for long or
-  // involuntary motion, which is exactly the substitution a dark or reduced-intensity mode wants.
-  if (rp.modes.length > 1) {
-    const m = theme.motion;
-    const curve = (k: string) => `cubic-bezier(${(m.easing[k] ?? []).join(', ')})`;
-    // Rows carry the curve NAME, options carry its numbers — the two arrays are already separate, so
-    // this needs no extra formatter. The first pass printed the bezier in every cell: it never said
-    // which curve a role resolves to (the whole point of the row), repeated a 24-character string
-    // three times across, and clipped the last column. The numbers live on the worth line under each
-    // select, and on the curve cards directly above.
-    wrap.append(renderRepointTable(
-      'Easing per mode',
-      m.easingRoles.map((r) => ({ key: r.role, val: r.curve, base: r.curve })),
-      (v) => String(v),
-      'easings',
-      Object.keys(m.easing).map((k) => ({ key: k, val: curve(k) })),
-      'Role',
-      (role, c2) => setEasingRole('light', role, c2),
-    ));
-  }
-  return wrap;
-};
-
-// The duration ramp (`durationRampSection`) and Springs (`springsSection`) live in `preview/sections/` (UI redesign
-// S9.1), drawn by the Motion page below.
-
 // ---- focused pages (docs/23 §7) -------------------------------------------
-// Each editing page composes through one scaffold: hero → sections (or a read-only note on a derived
-// mode) → the volatile contextual specimens for that axis. The heavy global preview lives on its own
-// Preview tab (3a); these are the tight, single-axis specimens that stay with their editor.
+// (The `renderScreen` scaffold, hero → sections → volatile specimens, went with its last two pages, Elevation and
+// Motion, in UI redesign S9.2.)
 
-/** The shared screen scaffold. `sections` builds the controls/editors; `specimens` returns the
- *  contextual specimen nodes, repainted on every edit. A derived mode (HC / wireframe) is auto-derived
- *  + read-only, so the controls are replaced by an explanatory note — the specimens still render it. */
-const renderScreen = (
-  host: HTMLElement, key: LegacyPageKey,
-  sections: (h: HTMLElement) => void,
-  specimens: () => Array<HTMLElement | null>,
-): void => {
-  const [title, lede] = PAGE_COPY[key];
-  host.append(hero(title, lede));
-  if (DERIVED_MODES.has(currentMode)) host.append(renderGeneratedNote());
-  else sections(host);
-  const vol = el('div', 'stage-vol');
-  host.append(vol);
-  setVolatile([vol], () => { vol.innerHTML = ''; for (const s of specimens()) if (s) vol.append(s); });
-  paintVolatile();
-};
-// Elevation — the shadow ramp (softness + tint live together in the bespoke editor).
-const renderElevationPage = (host: PageHost): void => renderScreen(host, 'elevation', (h) => {
-  h.append(renderShadowEditor(leverByKey('shadow.softness')));
-}, () => [shadowRampSection(rp.shadows, currentMode)]);
-
-// Size & radius — component sizing (density) + corner radius; both go per-mode outside Light.
-// Render one lever's control, honouring the per-mode ramp variants (radius / density / tempo go per-mode
-// outside Light). Shared by the geometry/motion pages so each concept `.psec` composes the same way.
-const leverControl = (key: string, perMode: boolean, commit?: () => void, write?: (v: unknown) => void): HTMLElement | null => {
-  const l = leverByKey(key); if (!l) return null;
-  // The three per-mode variants already commit through `applyFull` (see `renderPerModeSelect`), which
-  // is why #800 was never visible outside Light: there, changing the tempo re-renders the page and the
-  // Duration ramp comes back current. Only the global control had it.
-  // Outside the base mode these three add an "Auto — follows global" entry. A choice set with an Auto
-  // entry stays a select (#1675), so they keep the per-mode selects; chips are the base mode's control.
-  const perModeSelect = perMode ? PER_MODE_SELECTS[key] : undefined;
-  if (perModeSelect) return perModeSelect(l);
-  return renderControl(l, commit, write);
-};
-/** A `.psec` concept section built from a set of lever keys (doc 26). Returns null when none of its
- *  levers resolve, so an empty concept never renders an empty panel. `commit` is handed to every
- *  control in the section — see `renderControl`. `writeOf` names a key's write where it is not the generic one. */
-const leverSection = (title: string, sub: string, keys: string[], perMode: boolean, commit?: () => void, writeOf?: (key: string) => ((v: unknown) => void) | undefined): HTMLElement | null => {
-  const sec = palSection(title, sub); let any = false;
-  for (const k of keys) { const c = leverControl(k, perMode, commit, writeOf?.(k)); if (c) { sec.append(c); any = true; } }
-  return any ? sec : null;
-};
-
-// Size & radius — grouped by concept (doc 26): corner radius, density/size, spacing grid. Each control
-// block sits beside its live preview (#265, shared scaffold with Layout). radius + density stay per-mode
-// outside Light — the controls reuse `leverControl(key, perMode)`, so that semantics is unchanged.
-const csLeverStack = (keys: string[], perMode: boolean): HTMLElement => {
+// The Button options left on Size & radius, which edit every mode: each lever's generic knob, handed its write from
+// `state/button-input.ts` (UI redesign S8.1), which writes the bytes the knob's default `setPath` wrote (the default
+// included, the slider per step). The Components page (S8.2) writes through the same module.
+const BUTTON_OPTION_WRITES: ReadonlyArray<readonly [string, (v: unknown) => void]> = [
+  ['buttonIcons', (v) => setButtonIcons(v as ButtonIcons)],
+  ['buttonContentSize', (v) => setButtonContentSize(v as ButtonContentSize)],
+  ['buttonLabelWeight', (v) => setButtonLabelWeight(v as ButtonLabelWeight)],
+  ['buttonMinWidthMultiplier', (v) => setButtonMinWidth(v as number)],
+];
+const buttonOptionStack = (): HTMLElement => {
   const stack = el('div', 'cs-ctl-stack');
-  for (const k of keys) { const c = leverControl(k, perMode); if (c) stack.append(c); }
+  for (const [k, write] of BUTTON_OPTION_WRITES) { const l = leverByKey(k); if (l) stack.append(renderControl(l, apply, write)); }
   return stack;
 };
-/** Same shape as `spacingFixedNote`: a read-only scale still gets a control column that says why it is
- *  empty, rather than an empty column that reads as a rendering bug. */
-const primitiveScalesNote = (): HTMLElement => el('p', 'ic-modenote',
-  'Nothing to set here. The dimension grid is the fixed 4px-step ladder every geometry token resolves '
-  + 'onto — border widths and icon sizes are named aliases onto it, and radius, spacing and component '
-  + 'sizes land on its steps. Change those on the sections above; this is what they land on.');
-
-/** The Spacing grid section has no controls by design — both its levers were removed. Says why, rather
- *  than leaving an empty control column that reads as a rendering bug. */
-const spacingFixedNote = (): HTMLElement => el('p', 'ic-modenote',
-  'The 8px rhythm is fixed for every brand. Changing the base would rename spacing values rather than '
-  + 'unlock them — 4px is still available as space.050 — and the numbered scale only means “n× base” '
-  + 'across brands if the base is the same across brands.');
-
-const renderSizeRadiusPage = (host: PageHost): void => controlSplitPage(host, 'sizeRadius', () => {
-  const perMode = currentMode !== 'light';
-  return [
-    { title: 'Corner radius', sub: 'The corner-radius ramp — its anchor (radius.md at scale 1), the softness dial that scales the whole ramp, and the opt-in 1px hairline the even sub-grid cannot otherwise reach.', controls: csLeverStack(['baseMd', 'radiusScale', 'radiusHairline'], perMode), paint: paintRadiusPreview },
-    // controlShape is a GLOBAL brand lever (not per-mode) — `csLeverStack([…], false)` renders the plain
-    // enum select. It sits beside corner softness on purpose: both shape the corner, but orthogonally
-    // (softness scales the ramp; pill overrides it with height ÷ 2 for pill-able controls).
-    { title: 'Control shape', sub: 'Corner shape for pill-able controls (button, icon-button). Boxed is sharp; hairline is a fixed 1px edge; rounded follows corner softness; pill is a full height ÷ 2, whatever the softness.', controls: csLeverStack(['controlShape'], false), paint: paintControlShapePreview },
-    // The button levers (#1667) are GLOBAL brand levers like controlShape, so `false` again. The labels are
-    // the owner's exact words and live in `levers.ts`; this block only groups them beside their specimen.
-    { title: 'Buttons', sub: 'Button icon placement, the medium label and icon size, the label weight, and minimum width. Applies to buttons, not icon buttons.', controls: csLeverStack(['buttonIcons', 'buttonContentSize', 'buttonLabelWeight', 'buttonMinWidthMultiplier'], false), paint: paintButtonLayoutPreview },
-    // Per mode, the note says what a mode's own density does and does not move (owner, 2026-09-29, docs/28
-    // §5.4.3); the sentence is the density lever's own, so the knob and the section read the same.
-    { title: 'Density & size', sub: perMode
-      ? 'Component sizing — control height per step. Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.'
-      : 'Component sizing — control height per step. The density name stays stable; the heights shift, and each component’s padding and gaps move one step on the spacing scale.', controls: csLeverStack(['density'], perMode), paint: paintSizePreview },
-    // No controls: the rhythm and the fine grid base are FIXED (scale.ts SPACE_BASE / GRID_BASE). The
-    // specimen stays — the scale is still worth reading — and the note says why there is nothing to set,
-    // which is more use than a section that quietly vanished.
-    { title: 'Spacing grid', sub: 'The spacing rhythm — space.100 = 1× an 8px base, fixed for every brand.', controls: spacingFixedNote(), stack: true, paint: paintSpacingPreview },
-    // These three scales are emitted, aliased by half the system, and were visible NOWHERE in the
-    // dashboard — a user could only find them in Preview's token list. Nothing here is settable, which
-    // is exactly why they had no home: the page is organized around levers, and a scale with no lever
-    // fell through. Read-only is the point — see what exists, and what the names resolve to.
-    { title: 'Primitive scales', sub: 'The raw grid the geometry aliases resolve onto — fixed for every brand, and read-only. Radius, spacing and component sizes all land on dimension steps.', controls: primitiveScalesNote(), stack: true, paint: paintPrimitivesPreview },
-  ];
-});
+// UI redesign S7 moved Density, radius, Control shape, the spacing steps and the building blocks to the Shape page
+// (`domains/shape.ts`, `preview/shape.ts`). The Button options stay here, under the page's own title (owner decision
+// D5 B), until S8 moves them to Components; the web's Components tab shows this page, and the plugin reaches it
+// through the Pages menu (D4 B).
+const renderSizeRadiusPage = (host: PageHost): void => controlSplitPage(host, 'sizeRadius', () => [
+  // The button levers (#1667) are GLOBAL brand levers, so `false`. The labels are the owner's exact words and live
+  // in `levers.ts`; this block only groups them beside their specimen.
+  { title: 'Buttons', sub: 'Button icon placement, the medium label and icon size, the label weight, and minimum width. Applies to buttons, not icon buttons.', controls: buttonOptionStack(), paint: paintButtonLayoutPreview },
+]);
 
 // ---- controls-beside-previews pages (docs #264 / #265) --------------------
 // Layout and Size & radius put each control NEXT TO its own live preview, so a change is visible without
@@ -1638,88 +1437,6 @@ const controlSplitPage = (host: HTMLElement, pageKey: LegacyPageKey, blocks: () 
   setVolatile(previews, () => { refreshers.forEach((r) => r()); });
   paintVolatile();
 };
-/** A compact labeled slider for the split pages — value read-out updates live on drag; the theme commits
- *  on release (`change` → apply()), which repaints the previews via the registered refreshers. Not the
- *  full-width `.knob` slider (overkill here, per #264/#265). */
-const csSlider = (key: string, label: string, min: number, max: number, step: number, unit: string, get: () => number): HTMLElement => {
-  const f = el('div', 'cs-ctl');
-  const top = el('div', 'cs-ctl-top');
-  const val = el('span', 'cs-ctl-val mono', `${get()}${unit}`);
-  top.append(el('span', 'cs-ctl-lab', label), val);
-  const input = rangeInput({ className: 'cs-range', min, max, step, value: get() });
-  input.oninput = () => { val.textContent = `${input.value}${unit}`; };
-  input.onchange = () => { setPath(brandState, key, Number(input.value)); apply(); };
-  f.append(top, input);
-  return f;
-};
-/** A compact labeled enum picker for the split pages (curated choices → a select). Commits on change. */
-const csPicker = (key: string, label: string, choices: Array<[string, string]>, cur: string, onCommit?: () => void): HTMLElement => {
-  const sel = selectEl('cap');
-  for (const [value, text] of choices) sel.append(optionEl(value, text, value === cur));
-  sel.onchange = () => { setPath(brandState, key, sel.value); if (onCommit) onCommit(); else apply(); };
-  const f = el('div', 'cs-ctl'); f.append(el('span', 'cs-ctl-lab', label), sel);
-  return f;
-};
-
-// Layout — breakpoints, grid columns, container caps (docs #264).
-const LAYOUT_COLUMN_CHOICES = [4, 6, 8, 12, 16, 24];   // curated grid systems — no odd/awkward counts (#264)
-const renderLayoutPage = (host: PageHost): void => controlSplitPage(host, 'layout', () => {
-  // Grid columns — a curated step-picker (4/6/8/12/16/24, no awkward counts). Numeric key → coerce on commit.
-  const colSel = selectEl('cap');
-  const curCols = (brandState.layout?.columns ?? theme.layout.baseColumns) as number;
-  for (const c of LAYOUT_COLUMN_CHOICES) colSel.append(optionEl(String(c), `${c} columns`, c === curCols));
-  colSel.onchange = () => { setPath(brandState, 'layout.columns', Number(colSel.value)); apply(); };
-  const colsCtl = el('div', 'cs-ctl'); colsCtl.append(el('span', 'cs-ctl-lab', 'Grid columns'), colSel);
-
-  const caps = el('div', 'cs-ctl-stack');
-  caps.append(
-    csSlider('layout.containerMax', 'Container max', 960, 1920, 40, 'px', () => (brandState.layout?.containerMax ?? theme.layout.containerMax) as number),
-    csSlider('layout.containerNarrow', 'Content container', 480, 960, 20, 'px', () => (brandState.layout?.containerNarrow ?? theme.layout.containerNarrow) as number),
-  );
-  return [
-    { title: 'Breakpoints', sub: `Min-width floors (px, ascending) — names auto-assign from the count: ${theme.layout.breakpoints.map((x) => x.name).join(' / ')}.`, controls: renderBreakpointsControls(), stack: true, paint: paintBreakpointsPreview },
-    // "Responsive type sizing" left Layout in UI redesign S6.3 (owner decision Q71): Type › Scale limits is its one
-    // home, with a link back to these breakpoints.
-    { title: 'Grid columns', sub: 'Base column count for the design grid (16 / 24 for dense-data brands). Each breakpoint gets a 4/8/… ladder up to this base.', controls: colsCtl, paint: paintColumnsPreview },
-    // The resolved per-breakpoint grid — the same `theme.layout.grid` the Figma grid-style emitter ships
-    // from (#1480/#1532/#1593), so the readout cannot drift from what a brand exports. Columns, gutter and
-    // margin are each editable per breakpoint (an override wins over the ladder); gutter/margin snap to the
-    // spacing scale so they keep aliasing the space tokens.
-    { title: 'Per-breakpoint grid', sub: 'The columns, gutter and margin the engine emits for each breakpoint — one Figma grid style each. Each follows its ladder by default; override a breakpoint to pin its value. Gutter and margin snap to the spacing scale, reaching down to 4px.', controls: perBreakpointColsNote(), stack: true, paint: paintPerBreakpointGrid },
-    { title: 'Container caps', sub: 'Content-width caps — layout is fluid below the cap. The content container is the narrower reading-measure column (~65–75ch).', controls: caps, stack: true, paint: paintContainersPreview },
-  ];
-});
-
-// Motion — Tempo (per-mode outside Light) + the Easing curve, each its own concept section.
-const renderMotionPage = (host: PageHost): void => renderScreen(host, 'motion', (h) => {
-  const perMode = currentMode !== 'light';
-  // The section head no longer restates the knob's own description verbatim — both said "scales the
-  // duration ramp" and "reduce-motion is derived", three lines apart. The head says what the section
-  // governs; the knob keeps the multipliers.
-  // #800 — TEMPO COMMITS FULLY, and this is the one page where that is not over-reach.
-  //
-  // `apply()` recomputes the theme and repaints the VOLATILE region; on a `renderScreen` page the
-  // volatile region is the `.stage-vol` specimen box and nothing else. Every other section here is
-  // built once per `renderWorkspace` and never touched again. Three of the four sections below are
-  // read-only renderings OF THE TEMPO — the Duration ramp's six durations, its ms primitives, its
-  // stagger and its `tempo '…'` label — so a tempo edit that commits through `apply()` repaints the
-  // one section that does not display the ramp and leaves the three that do showing the previous
-  // tempo's numbers. Measured before it was fixed: three successive edits (snappy → relaxed →
-  // standard) all left `[40, 80, 160, 240, 400, 640]` on screen. Not stale by one commit — stale
-  // since the last full render, which is what a single-edit measurement could not tell apart.
-  //
-  // `applyFull()` re-renders the page region by region (#771), so the ramp is rebuilt from the
-  // resolved theme and every unchanged region is kept. It is also what the per-mode tempo select has
-  // always done, which is why this was only ever visible in the base mode.
-  // Light's tempo writes through `state/depth-motion-input.ts` (UI redesign S9.1); outside Light the per-mode
-  // select (`renderPerModeTempo`) does.
-  const tempo = leverSection('Tempo', 'The overall motion speed for this brand. Per-mode outside Light.', leversFor('motion').map((l) => l.key), perMode, applyFull,
-    (k) => (k === 'motionPersonality.tempo' ? (v) => { setTempo('light', v as string); } : undefined));
-  if (tempo) h.append(hook(tempo, 'section-tempo'));
-  h.append(durationRampSection(theme.motion, currentMode));
-  h.append(renderEasingEditor());
-  h.append(springsSection(theme.motion.spring));
-}, () => [motionTransitionsSection(theme.motion, currentMode, { slowmo: motionSlowmo, onSlowmo: (v) => { motionSlowmo = v; paintVolatile(); } })]);
 
 /** Which background role the Style guide's specimens are previewed on. Module state so it survives a repaint,
  *  like `currentMode`. The legacy Preview page that held it, with its three views, is gone (UI redesign S3):
@@ -1728,84 +1445,20 @@ const renderMotionPage = (host: PageHost): void => renderScreen(host, 'motion', 
 let sgSurface = 'background.primary';
 
 /**
- * Which defs can actually be materialized, ASKED rather than listed (#804).
+ * Which component sets the Components page offers, and why the rest are not offered: the catalog (UI redesign
+ * S8.1), computed by `state/component-catalog.ts`'s `catalogOf`, whose header carries the reasoning that stood here
+ * (#804's "asked, not listed", #869's declared `notStandalone`, #1623's unit).
  *
- * It projects each def and keeps the ones that do not throw, so the answer is the projector's and not a
- * second copy of it. The alternative — a literal array, or a `!!def.anatomy && !!def.figmaProperties`
- * predicate — is the mistake this very control already made once: `renderComponentsPage` carried the
- * claim *"Button is the only def of the five that has one"*, true when written and false since #734,
- * #741 and #796, because a count in a comment has an expiry date that nothing checks. The plugin's
- * `main.ts` had the twin claim and fixed it the same way (#742/#787). A predicate would rot more slowly
- * and still rot: it restates `figmaAnatomySet`'s preconditions from outside, so a third requirement
- * added there would leave this list confidently wrong.
+ * WHERE IT COMES FROM, PER HOST. The plugin computes it from the definitions it bundles, in its own iframe entry
+ * (`apps/plugin/src/ui/component-catalog.ts`), and provides it before this module evaluates. The web reads the copy
+ * generated at build time (`component-catalog-data.ts`, T1), and never imports the definitions: the import that
+ * stood here, gated on `PRISM3_HOST`, still carried three of them (Button, IconButton and Icon) into the web bundle,
+ * because their modules' top-level code is not provably side-effect-free, so the gate eliminated the reference but not
+ * the modules. `vercel-ignore-check.mjs` now fails by name when a definition module reaches the web bundle.
  *
- * The member count comes free and is worth carrying: it is the only honest per-def cost estimate, since
- * a run is ~162ms per member (#700) and the defs span 4 to 648 — a single "about 105 seconds" note
- * would be wrong by two orders of magnitude for three of the four.
- *
- * The throw is the SIGNAL, not an error to report: `figmaAnatomySet` throws precisely when a def has no
- * `anatomy` or no `figmaProperties`, which is the definition of not-materializable. A def missing here is
- * expected rather than broken, and the page says so instead of listing them as failures.
- *
- * TWO REASONS TO BE MISSING, AND THE SECOND IS NOT A THROW (#869). This comment used to name `focus-ring`
- * and `field-message` as the throwing pair, which was true at #795 and false from the moment #795's own
- * work gave `focus-ring` a `figmaProperties` block: it has projected cleanly ever since — 2 members, 0
- * binding errors — and this filter therefore *offered* it. Building it produced a 100×100 white frame with
- * the right token at 1px, because its members bind no geometry (`notStandalone` on the def has the
- * measurement). So the second reason is a DECLARED one: a def stating `figmaProperties.notStandalone`
- * cannot render standalone and is withheld, quoting its own string. Asking the projector is still right
- * for the first reason and cannot reach the second — a plan that renders nothing is structurally
- * indistinguishable from one that renders, which is why the answer had to be declared rather than
- * inferred. Note what this comment's own history demonstrates: it warns two paragraphs later that a count
- * in a comment expires unchecked, and the same is true of a NAMED LIST. `missing` is derived; the names in
- * this prose are not, and that is the one thing here nothing gates.
- *
- * Computed ONCE at module scope, not per render: the defs are compiled in and brand-invariant, so this
- * cannot change while the app is running.
- *
- * GATED ON `PRISM3_HOST`, WHICH IS ABOUT THE WEB BUNDLE RATHER THAN CORRECTNESS. The control is Figma-only
- * (`commit.isFigma` returns early below), so on web the answer is unused — but the import graph does not
- * know that. Measured: importing `figmaAnatomySet` and `componentDefs` unconditionally put 35KB gzip of
- * projector and every component def into the *web* bundle, a 20% increase over a 140KB baseline, for a
- * control that page can never reach. Behind the define, esbuild eliminates the defs and most of the
- * projector: 147KB. Both fields come from the one gated expression because a second ungated reference to
- * `componentDefs` would defeat it — which is why `missing` is derived here rather than at the call site.
- *
- * It does NOT eliminate all of it: ~18KB of `anatomy-figma.ts` survives, because that module's top-level
- * template constants are not provably side-effect-free. That is why `anatomy-figma.ts`, `component-schema.ts`
- * and `eval.ts` came OFF the exclusion list in `vercel-ignore.sh` in the same PR — a change to any of them
- * can now change the deployed site, so treating them as Figma-only would be a #474 stale deploy. Dead-code
- * elimination is a size optimization, not a dependency boundary.
+ * The web never draws this page (`railNav()` omits it), so the web's copy is unread until S8.2 lists the sets there.
  */
-const COMPONENT_CATALOGUE: {
-  /** `components` marks a def built as separate top-level components (`emitAsComponents`, icon) rather
-   *  than one set of variants, so the picker counts it in the right unit (#1623). */
-  readonly buildable: readonly { id: string; name: string; members: number; components: boolean }[];
-  /** Not offered, each WITH its own reason — see the second-reason paragraph above. `reason` is the def's
-   *  own `notStandalone` string where it declared one, and `null` where the projector threw. */
-  readonly missing: readonly { name: string; reason: string | null }[];
-} =
-  PRISM3_HOST === 'figma'
-    ? (() => {
-        const buildable = componentDefs.flatMap((d) => {
-          // Checked BEFORE projecting, not after: the projection succeeds for exactly the def this
-          // excludes, so a post-hoc filter would spend the work and then discard a valid-looking plan.
-          if (d.figmaProperties?.notStandalone) return [];
-          try {
-            return [{ id: d.id, name: d.name, members: figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }).length, components: d.figmaProperties?.emitAsComponents === true }];
-          } catch {
-            return [];
-          }
-        });
-        const ids = new Set(buildable.map((b) => b.id));
-        return {
-          buildable,
-          missing: componentDefs
-            .filter((d) => !ids.has(d.id))
-            .map((d) => ({ name: d.name, reason: d.figmaProperties?.notStandalone ?? null })),
-        };
-      })()
-    : { buildable: [], missing: [] };
+const componentCatalog = (): Catalog => (PRISM3_HOST === 'figma' ? providedCatalog() ?? [] : COMPONENT_CATALOG_DATA);
 
 /** The file-setup button's label (#1558). Placement and wording are a design call the owner confirms at
  *  review, so the one string a reviewer changes lives here rather than inline — "Set up file" or "Scaffold
@@ -1817,13 +1470,13 @@ const FILE_SETUP_LABEL = 'Set up file';
  *
  * THE MOVE IS A DEMOTION. The control sat beside **Apply Theme**, which is the terminal action of
  * the theme flow and the thing a designer runs after every knob change. A build takes tens of seconds
- * at ~162ms per member (#700) and materializes a fraction of the catalogue, so a slot next to Apply
+ * at ~162ms per member (#700) and materializes a fraction of the catalog, so a slot next to Apply
  * claimed a parity that does not exist. Rail item, marked internal, is where a materialization proof
  * belongs — see `NAV` for the framing and docs/28 / docs/14 §3.1 for why it is kept runnable at all.
  *
  * "A fraction", not "one of five": the claim here used to be *"Button is the only def of the five that
  * has one"* and the control was named for Button on that basis. It was true when written and false since
- * #734, #741 and #796 — four defs project today. It is now `COMPONENT_CATALOGUE` (derived, above) in both the
+ * #734, #741 and #796 — four defs project today. It is now `componentCatalog()` (derived, above) in both the
  * picker and this prose, which is the same fix the plugin's twin comment took (#742/#787): a count in a
  * comment has an expiry date that nothing checks, so state the property and point at the derivation.
  *
@@ -1913,14 +1566,15 @@ const renderComponentsPage = (host: PageHost): void => {
   sec.append(note);
 
   // WHICH DEFS ARE MISSING, AND WHY, said plainly rather than by omission. A designer who knows the
-  // catalogue has seven components and sees four here would otherwise reasonably read it as a bug. The
+  // catalog has seven components and sees four here would otherwise reasonably read it as a bug. The
   // requirement is ours, not Figma's (#795), which is the honest way to put it.
   //
   // ONE SENTENCE PER REASON, NOT ONE FOR THE GROUP (#869). This block said "a set needs a declared size
   // axis to project" about every absent def, which was one cause stated as the only cause — and by the
   // time #869 was filed it was the wrong cause for the def a designer was most likely to ask about.
   // A def declaring `notStandalone` gets its own string; the rest keep the projector sentence.
-  const { buildable, missing } = COMPONENT_CATALOGUE;
+  const catalog = componentCatalog();
+  const buildable = buildableSets(catalog), missing = unbuildableSets(catalog);
   const declared = missing.filter((m) => m.reason);
   const threw = missing.filter((m) => !m.reason).map((m) => m.name);
   if (threw.length) {
@@ -1938,7 +1592,7 @@ const renderComponentsPage = (host: PageHost): void => {
     const gap = el('p', 'cw-note');
     // The def's own words, verbatim apart from the machine-readable lead. A paraphrase would be a second
     // copy of a claim the def is the authority on, and this page has already had one of those go stale
-    // (see `COMPONENT_CATALOGUE`).
+    // (see `componentCatalog`).
     //
     // The `<id>:` prefix is STRIPPED, and it has to be: the schema requires the string to lead with the
     // def's id so a gate can tell an admission from a mention, and this heading already carries the def's
@@ -1966,7 +1620,7 @@ const renderComponentsPage = (host: PageHost): void => {
   // for a rule identical to one that exists.
   const sel = selectEl('cap');
   for (const b of buildable) {
-    const unit = b.components ? 'component' : 'variant';
+    const unit = b.unit === 'components' ? 'component' : 'variant';
     const opt = el('option', undefined, `${b.name} — ${b.members} ${unit}${b.members === 1 ? '' : 's'}`) as HTMLOptionElement;
     opt.value = b.id;
     if (b.id === 'button') opt.selected = true;
@@ -2171,622 +1825,26 @@ subscribe('host:styleguide', () => syncStyleGuideRow());
 // `WEIGHT_NAME`) live in `ui/fonts.ts` (UI redesign S6.1). The Type controls and the fixed ladders the legacy
 // Typography page drew here moved to `domains/type.ts` and `preview/sections/` (UI redesign S6.3).
 
-/** One per-mode re-point table. Rows are RUNGS; a cell names the rung that mode substitutes — never
- *  a number, because a mode may not redefine a primitive (the ladders are on Primitives). Selects,
- *  not steppers: re-pointing is an enum choice with an Auto state, and doc 26 puts 3+ options in a
- *  select. Same geometry tokens as the size and weight tables so all four line up on one grid. */
-const renderRepointTable = (
-  caption: string,
-  steps: { key: string; val: number | string; base?: string }[],
-  fmt: (v: number | string) => string,
-  modeField: 'lineHeights' | 'letterSpacings' | 'easings',
-  // The ladders re-point a rung at ANOTHER RUNG, so rows and options are the same set. Easing does
-  // not: rows are the four motion ROLES and options are the six CURVES (#522). Hence the seam —
-  // `options` defaults to `steps`, and `base` names the row's baseline target when it is not the row's
-  // own key (role `default` resolves to curve `standard`), which is what the self-map skip and the
-  // worth read-out must both key on rather than on the row name.
-  options?: { key: string; val: number | string }[],
-  // The ladders' rows ARE rungs; easing's are motion roles. A header reading "Rung" over a column of
-  // role names is the kind of wrong only a screenshot catches.
-  rowLabel = 'Rung',
-  // When the baseline binding lives in ANOTHER table (the two ladders), Light is a read-out and this
-  // stays undefined. Easing has no such table — its role→curve mapping was engine-fixed — so it passes
-  // a writer and Light becomes a select like every other column. Without this a mode could deviate
-  // from a baseline nobody could set: you could change Dark but not Light, which is backwards.
-  setBaseline?: (rowKey: string, curve: string | undefined) => void,
-): HTMLElement => {
-  const opts = options ?? steps;
-  const modes = rp.modes;
-  const box = el('div', 'mtbl');
-  box.append(el('p', 'mtbl-cap', caption));
-  const scroll = el('div', 'mtbl-scroll');
-  const tbl = el('table', 'mtbl-tbl');
-  const thead = el('thead'), htr = el('tr');
-  htr.append(el('th', 'mtbl-stick', rowLabel));
-  for (const m of modes) {
-    const th = el('th', 'mtbl-mode');
-    th.append(document.createTextNode(MODE_LABEL[m] ?? m));
-    if (m === 'light') th.append(el('span', 'mtbl-ro', ' baseline'));
-    else if (!modeIsEditable(m)) th.append(el('span', 'mtbl-ro', ' auto'));   // #423
-    htr.append(th);
-  }
-  htr.append(el('th', 'mtbl-fill'));
-  thead.append(htr); tbl.append(thead);
-  const tb = el('tbody');
-  for (const s of steps) {
-    const tr = el('tr');
-    const nameCell = el('td', 'mtbl-stick');
-    nameCell.append(el('span', 'mtbl-name mono', s.key));
-    tr.append(nameCell);
-    for (const m of modes) {
-      const td = el('td', 'mtbl-mode');
-      if (m === 'light' && setBaseline) {
-        // Light IS the baseline, and here it is settable: this select writes the brand-wide binding
-        // every other column is a substitution for.
-        const sel = selectEl('sm');
-        for (const t of opts) sel.append(optionEl(t.key, t.key, (s.base ?? s.key) === t.key));
-        sel.setAttribute('aria-label', `${s.key} baseline`);
-        sel.onchange = () => { setBaseline(s.key, sel.value); applyFull(); };
-        td.append(sel);
-        const worth = opts.find((t) => t.key === (s.base ?? s.key));
-        if (worth) td.append(el('span', 'mtbl-worth mono', fmt(worth.val)));
-      } else if (m === 'light') {
-        // Light IS the baseline, so its cell can only ever resolve to the row's own rung. Showing the
-        // VALUE rather than repeating the name earns the cell its width: it is the number every other
-        // cell in the row is a substitution for.
-        const self = el('span', 'mtbl-selfval mono', fmt(s.val));
-        self.title = `The baseline. Change which ladder step ${s.key} binds in the table above — it is one binding, shared by every mode.`;
-        td.append(self);
-      } else if (!modeIsEditable(m)) {
-        // #423 — a derived mode holds no levers, so it can only ever resolve to the rung itself.
-        // Reading, not a select: the select's write reached the engine and printed its internal
-        // "generate-only and not customizable" string at the user.
-        const self = el('span', 'mtbl-selfval mono', fmt(s.val));
-        self.title = `${MODE_LABEL[m] ?? m} is auto-derived from Light and Dark — it keeps the ${s.key} rung and accepts no per-mode re-point.`;
-        td.append(self);
-      } else {
-        const ov = getModeLever(m, `${modeField}.${s.key}`) as string | undefined;
-        // A set cell carries the same "pinned" weight the stepper tables give `.mval.pin`, so a scan
-        // down the column finds the overrides without reading every label.
-        const sel = selectEl(ov ? 'sm set' : 'sm');
-        // Rung NAMES only, no values. A closed select renders the same text it lists, and the shared
-        // column width ellipsised "relaxed · 1.65×" down to "relaxed · 1..." — truncating the one
-        // thing a cell must always say. The values are one column to the left, on every row.
-        sel.append(optionEl('', 'Auto', !ov));
-        for (const t of opts) {
-          if (t.key === (s.base ?? s.key)) continue;           // a self-map is a no-op; don't offer it
-          sel.append(optionEl(t.key, t.key, ov === t.key));
-        }
-        sel.setAttribute('aria-label', `${s.key} in ${MODE_LABEL[m] ?? m}`);
-        sel.onchange = () => {
-          // The two type ladders write through `state/type-input.ts`; Motion's easing through `state/depth-motion-input.ts`.
-          if (modeField === 'easings') setEasingRole(m, s.key, sel.value || undefined);
-          else setRepoint(m, modeField, s.key, sel.value);
-          applyFull();
-        };
-        td.append(sel);
-        // #388 — the VALUE this rung is worth in this mode, under the select. The complaint that opened
-        // #377 was that a cell reading "rung tight → rung snug" re-points a rung into its own axis and
-        // never says what it MEANS; the honest reading is "in Dark, tight = 1.15". It goes on a second
-        // LINE rather than into the option text because a closed select renders exactly what it lists,
-        // and "relaxed · 1.65×" ellipsised to "relaxed · 1..." at this column width — truncating the one
-        // thing the cell must always say. Height is the affordable axis here; width is not.
-        const worth = opts.find((t) => t.key === (ov ?? s.base ?? s.key));
-        if (worth) td.append(el('span', 'mtbl-worth mono' + (ov ? ' set' : ''), fmt(worth.val)));
-      }
-      tr.append(td);
-    }
-    tr.append(el('td', 'mtbl-fill'));
-    tb.append(tr);
-  }
-  tbl.append(tb); scroll.append(tbl); box.append(scroll);
-  return box;
-};
-
-/** #97 + #114 tidy — the Shadow group. Gathers every shadow control under one heading: the
- *  `shadow.softness` blur dial (a generic slider lever, passed in so it leaves the geometry panel)
- *  and the `shadow.tint = {hue, amount}` object editor (hue-shifts the base off pure black; amount 0 =
- *  pure black, higher = a richer brand-hued near-black). Reads the resolved default (`theme.shadow.tint`)
- *  when the brand hasn't set one; the elevation specimen recolors live. */
-const renderShadowEditor = (softness?: Lever): HTMLElement => {
-  // D (shadow) — outside the base mode, softness + tint go per-mode (modeLevers[mode].shadow); the
-  // slider shows the EFFECTIVE value (override ?? global) and moving it creates an override, with a
-  // "↺ Auto" reset that clears it (blank-slider has no natural Auto state, so the reset is explicit).
-  const perMode = currentMode !== 'light';
-  const modeLabel = MODE_LABEL[currentMode] ?? currentMode;
-  const wrap = palSection('Shadow', perMode
-    ? `Blur softness + tint for ${modeLabel} — “Auto” follows the global shadow; a value overrides this mode (crisper/softer, warmer/cooler). The light↔dark reduction still applies on top.`
-    : 'Blur softness (crisp/product → soft/marketing) and a hue-shift of the shadow base off pure black. Tint amount 0 = pure black; higher = a richer, brand-hued near-black.');
-  const gTint = theme.shadow.tint;         // resolved global tint (what a mode inherits under Auto)
-  const gSoft = theme.shadow.softness;     // resolved global softness
-  const panel = wrap;                       // knobs append straight into the .psec (no nested .panel)
-  if (perMode) {
-    // A per-mode slider: effective = override ?? global; moving it writes modeLevers[mode].shadow.<path>
-    // via the shared setModeLever (prunes to byte-identical). Dragging back to EXACTLY the global value
-    // clears the override (no redundant "== global" override lingers), and the ↺ Auto reset clears it too.
-    const mkPer = (label: string, min: number, max: number, step: number, unit: string, key: ShadowKey, global: number): void => {
-      const ov = shadowOverride(currentMode, key);
-      const eff = ov ?? global;
-      const knob = el('div', 'knob');
-      const head = el('div', 'sh-knob-head');
-      head.append(el('label', 'knob-label', label));
-      const auto = el('button', 'sh-auto') as HTMLButtonElement;
-      const setAuto = (overriding: boolean): void => { auto.textContent = overriding ? '↺ Auto' : `Auto (${global}${unit})`; auto.className = overriding ? 'sh-auto on' : 'sh-auto'; auto.disabled = !overriding; };
-      setAuto(ov !== undefined);
-      auto.onclick = () => { setShadow(currentMode, key, undefined, global); applyFull(); };
-      head.append(auto);
-      knob.append(head);
-      const input = rangeInput({ min, max, step, value: eff });
-      const val = el('span', 'knob-val', `${eff}${unit}${ov !== undefined ? '' : ' · auto'}`);
-      input.oninput = () => {
-        // Landing back on the global prunes the override (`state/depth-motion-input.ts`).
-        const overriding = setShadow(currentMode, key, Number(input.value), global);
-        val.textContent = `${input.value}${unit}${overriding ? '' : ' · auto'}`;
-        // update the ↺ Auto reset in place (no full re-render, so dragging stays smooth).
-        setAuto(overriding);
-        apply();
-        refreshTintReadout?.();   // #305 — stable-head control, so repaint it rather than re-render
-      };
-      const body = el('div', 'knob-body'); body.append(input, val);
-      knob.append(body);
-      panel.append(knob);
-    };
-    const sLever = softness;
-    mkPer(sLever?.label ?? 'Shadow softness', (sLever?.min as number) ?? 0, (sLever?.max as number) ?? 2, (sLever?.step as number) ?? 0.1, '', 'softness', gSoft);
-    mkPer('Tint hue', 0, 360, 1, '°', 'tint.hue', gTint.hue);
-    mkPer('Tint amount', 0, 1, 0.05, '', 'tint.amount', gTint.amount);
-  } else {
-    const cur = authoredTint();
-    // the blur dial, pulled out of the geometry panel; it writes through the Elevation state module
-    if (softness) panel.append(renderControl(softness, apply, (v) => { setShadowSoftness('light', v as number); }));
-    const mk = (key: 'hue' | 'amount', label: string, min: number, max: number, step: number, unit: string): void => {
-      const knob = el('div', 'knob');
-      knob.append(el('label', 'knob-label', label));
-      const input = rangeInput({ min, max, step, value: cur?.[key] ?? gTint[key] });
-      const val = el('span', 'knob-val', `${input.value}${unit}`);
-      input.oninput = () => {
-        setShadowTint('light', key, Number(input.value));   // ONE key: a partial tint stays partial
-        val.textContent = `${input.value}${unit}`;
-        apply();
-        refreshTintReadout?.();   // #305 — stable-head control, so repaint it rather than re-render
-      };
-      const body = el('div', 'knob-body'); body.append(input, val);
-      knob.append(body);
-      panel.append(knob);
-    };
-    mk('hue', 'Tint hue', 0, 360, 1, '°');
-    mk('amount', 'Tint amount', 0, 1, 0.05, '');
-  }
-  const readout = shadowTintReadout(() => ({ shadow: theme.shadow, mode: currentMode }));
-  refreshTintReadout = readout.refresh;
-  panel.append(readout.node);
-  return wrap;
-};
-
-/** #305 — the tint read-out (`shadowTintReadout`, `preview/sections/shadow-tint.ts`, UI redesign S9.1) is refreshed
- *  IMPERATIVELY, not by re-render: the shadow editor lives in the stable head, so the slider handlers call this. */
-let refreshTintReadout: (() => void) | null = null;
-
 // `TYPE_GROUP_ORDER` lives in `state/type-input.ts`; the Type preview's sections in `preview/sections/` (UI redesign
 // S6.1 to S6.3), drawn by `preview/type.ts`.
 
-/** The radius preview: the whole corner-radius ramp, HOLISTICALLY — a swatch per step (the actual corner)
- *  labeled with its px and the component(s) that consume it (button→md, input→sm, card→lg, badge→round).
- *  Fills a caller-owned node so `apply()` repaints it beside the radius controls (#265). Reads each rung's
- *  px from `rp.dims` (live per lever), with two SENTINELS special-cased: `none` = 0, and `capsule` = a full
- *  pill labeled `full` rather than a literal px (#1177). `capsule` is a 999px "clamp me to a pill" marker,
- *  not a corner anyone reads as 999 — and it is not in `rp.dims` at all (no preview-spec component binds it
- *  until `controlShape: pill`), so printing its stored px would both misrepresent the behaviour and require
- *  a source the ramp does not carry. The CONTROL SHAPE panel below is the specimen that shows what `pill`
- *  actually does; this ramp only needs to name the rung and read as a pill. */
-const RADIUS_STEPS = ['none', 'sm', 'md', 'lg', 'round', 'capsule'];
-const paintRadiusPreview = (into: HTMLElement): void => {
-  into.innerHTML = '';
-  const consumers: Record<string, Set<string>> = {};
-  for (const c of previewSpec.components) for (const v of c.variants) {
-    const rref = v.bindings.radius;
-    if (rref?.startsWith('radius.')) (consumers[rref.slice(7)] ??= new Set<string>()).add(c.id);
-  }
-  // D — reflect the current mode's per-mode radius ramp (modeLevers.radius) when it deviates, so the
-  // change is visible here rather than off in the export (the #158 lesson). Falls back to the global.
-  const byMode = theme.dims.radiusByMode?.[currentMode];
-  const list = el('div', 'rad-list');
-  for (const step of RADIUS_STEPS) {
-    // `capsule` is the PILL SENTINEL, special-cased like `none`: it has no meaningful ramp px (its 999
-    // means "clamp to a pill at any height"), and it is absent from `rp.dims`, so it is drawn as a pill
-    // and labeled `full` rather than read as a number (#1177). Every other rung reads `rp.dims` as before.
-    const isCapsule = step === 'capsule';
-    const overridePx = byMode?.find((s) => s.name === step)?.px;
-    const px = step === 'none' ? 0 : (overridePx ?? rp.dims[`radius.${step}`] ?? 0);
-    const cell = el('div', 'rad-cell');
-    const sw = el('div', 'rad-sw');
-    sw.style.borderRadius = isCapsule ? '26px' : `${Math.min(px, 26)}px`;   // cap so `round`/`capsule` read as a pill without overflowing the swatch
-    const cons = [...(consumers[step] ?? [])];
-    const label = isCapsule ? `${step} · full` : `${step} · ${px}px`;
-    cell.append(sw, el('div', 'rad-lab mono', label), tokenPill(`radius.${step}`), el('div', 'rad-cons', cons.length ? cons.join(', ') : '—'));
-    list.append(cell);
-  }
-  into.append(list);
-};
+// The radius ramp and the Control shape specimen moved to the Shape preview in UI redesign S7 (`preview/sections/
+// radius.ts`), reading the ladder itself (`theme.dims.radius`) rather than a hand list resolved through `rp.dims`.
 
-/** The controlShape specimen: four control silhouettes — BOXED (sharp), HAIRLINE (1px), ROUNDED (the
- *  current `radius.md`) and PILL (height ÷ 2) — with the brand's current choice marked. Each names a
- *  RELATIONSHIP to a rung, not a raw radius (#1371). Reuses the `.rad-*` scaffold and the `.rad-sw` swatch
- *  (widened inline into a control bar), so the shape difference reads without new CSS. The lever is global
- *  across pill-able controls (button + icon-button today); the button is the representative silhouette
- *  because it is the control a designer pictures when they say "pill". */
-const paintControlShapePreview = (into: HTMLElement): void => {
-  into.innerHTML = '';
-  const cur = String(getPath(brandState, 'controlShape') ?? 'rounded');
-  const roundedPx = rp.dims['radius.md'] ?? 0;
-  // The bar is 52px tall so the TRUE radius.md renders un-clamped across the whole slider range —
-  // radius.md maxes at 24px (baseMd 12 × radiusScale 2), and 24 < 52/2, so the drawn corner always equals
-  // the caption's px. A shorter bar would clamp a soft-brand corner (a 24px radius on a 32px bar reads as a
-  // near-pill) and the label would then contradict the shape (the nit on the first cut of this preview).
-  // `pill` draws at 999 — the capsule sentinel — which clamps to half the bar and reads as a full pill;
-  // the caption names the rung, not the number. `boxed` is a fixed 0px (radius.none, always present) and
-  // `hairline` a fixed 1px (radius.hairline, the #1362 sentinel), so both are drawn from constants rather
-  // than `rp.dims` — neither is bound by a preview-spec component, so `rp.dims` would fall through to 0
-  // (the #1177 trap `lint-ramp-steps.ts` gates a STEPS list against; this shape list is not one).
-  const shapes = [
-    { key: 'boxed', label: 'Boxed', radiusPx: 0, ref: 'radius.none', note: 'radius.none · 0px, sharp' },
-    { key: 'hairline', label: 'Hairline', radiusPx: 1, ref: 'radius.hairline', note: 'radius.hairline · 1px, fixed' },
-    { key: 'rounded', label: 'Rounded', radiusPx: roundedPx, ref: 'radius.md', note: `radius.md · ${roundedPx}px` },
-    { key: 'pill', label: 'Pill', radiusPx: 999, ref: 'radius.capsule', note: 'radius.capsule · height ÷ 2, any height' },
-  ];
-  const list = el('div', 'rad-list rad-shapes');
-  for (const s of shapes) {
-    const on = s.key === cur;
-    // #1477 — the selected card is a class toggle (`.rad-shapes .rad-cell.on`), an INSET ring on a
-    // panel ground per the #439 pattern, not the outset `outline` that collided with the preview.
-    const cell = el('div', 'rad-cell' + (on ? ' on' : ''));
-    const bar = el('div', 'rad-sw');
-    bar.style.width = '112px';
-    bar.style.height = '52px';
-    bar.style.borderRadius = `${s.radiusPx}px`;
-    cell.append(bar, el('div', 'rad-lab mono', `${s.label}${on ? ' · selected' : ''}`), tokenPill(s.ref), el('div', 'rad-cons', s.note));
-    list.append(cell);
-  }
-  into.append(list);
-};
-
-/** The button-layout specimen (#1667): per size, a short-label button at its derived minimum width, and two
- *  WIDENED buttons — leading + trailing icons, and trailing only — so "Locked to edges" is visible: the icons
- *  sit at the edges and the label centers in the space between them, which puts a trailing-only label
- *  slightly left of the button's center. The same construction as the Figma build: floor = height ×
- *  multiplier rounded up to 8 (`buttonMinWidth`), padding split by side (#326), and under "Locked to edges"
- *  each icon absolutely positioned at the visual padding with its side padded by that padding + icon + gap,
- *  so the button still hugs a longer label. Under "One step
- *  smaller" the medium size takes small's label size and icon, and every label takes the weight "Button label
- *  weight" picks (#1752). Geometry and weight only, in the page ink — the
- *  colors are the Colors page's job. Mode-aware like `paintSizePreview`. */
-const BUTTON_SIZES: { size: string; step: string; icon: string; label: string }[] = [
-  { size: 'Small', step: 'sm', icon: 'xs', label: 'sm' },
-  { size: 'Medium', step: 'md', icon: 'sm', label: 'md' },
-  { size: 'Large', step: 'lg', icon: 'md', label: 'lg' },
-];
+/** The button-layout specimen (#1667) lives in `preview/sections/button-layout.ts` (UI redesign S8.1), with its sizes
+ *  (`BUTTON_SIZES`), so the Components page (S8.2) draws the same code. The legacy page hands it the brand's Button
+ *  options, the mode in view and the corner, which is still the base `radius.md` (#2049, fixed in S8.2). */
 const paintButtonLayoutPreview = (into: HTMLElement): void => {
   into.innerHTML = '';
-  const edges = (getPath(brandState, 'buttonIcons') ?? 'attached') === 'edges';
-  const smaller = (getPath(brandState, 'buttonContentSize') ?? 'match') === 'smaller';
-  const mult = Number(getPath(brandState, 'buttonMinWidthMultiplier') ?? DEFAULT_MIN_WIDTH_MULTIPLIER);
-  // #1752 — the label's weight is the brand's number for the role "Button label weight" picks, in the mode in view.
-  const labelRole = (getPath(brandState, 'buttonLabelWeight') ?? 'emphasis') === 'default' ? 'default' : 'emphasis';
-  // Both lists carry every weight role (the engine maps `WEIGHT_ROLE_ORDER`), so the role is always found.
-  const labelWeight = (theme.typography.weightRolesByMode?.[currentMode] ?? theme.typography.weightRoles).find((w) => w.role === labelRole)!.value;
-  const sizes = theme.dims.sizesByMode?.[currentMode] ?? theme.dims.sizes;
-  const radius = rp.dims['radius.md'] ?? 4;
-  // Button's spacing is its own spec's (the spacing model): its comfortable `space.*` steps, moved one step for
-  // the brand's density, exactly as the Figma build materializes them. The brand's BASELINE density — a Figma
-  // component binds one space variable per side, so a mode's own density moves its heights, not this.
-  // Read from the data-only `button-spacing.ts`, never from `componentDefs`: an ungated reference to the defs
-  // would pull every def's prose into the web bundle (`COMPONENT_CATALOGUE`).
-  const spacePx = sizeRefPx(theme.dims.sizes);
-  const list = el('div', 'btnl-list');
-  for (const b of BUTTON_SIZES) {
-    const h = sizes.find((x) => x.name === b.step);
-    if (!h) continue;
-    const at = (k: string): number => { const key = `size.${b.size.toLowerCase()}.${k}`; return spacePx(densitySpacingStep(key, (BUTTON_SPACING as Record<string, string>)[key], theme.dims.density)) ?? 0; };
-    const z = { height: h.height, padX: at('padding-x'), padXVisual: at('padding-x-visual'), gap: at('gap') };
-    const off = smaller && b.step === 'md';
-    const iconPx = ICON_SIZES.find((i) => i.name === (off ? 'xs' : b.icon))?.px ?? 16;
-    const labelPx = theme.typography.composites.find((c) => c.group === 'label' && c.variant === (off ? 'sm' : b.label))?.sizePx ?? 14;
-    const floor = buttonMinWidth(z.height, mult);
-    const wide = Math.max(floor, 240);
-    const button = (text: string, lead: boolean, trail: boolean, width?: number): HTMLElement => {
-      const btn = el('div', 'btnl-btn');
-      btn.style.height = `${z.height}px`;
-      btn.style.minWidth = `${floor}px`;
-      btn.style.borderRadius = `${radius}px`;
-      btn.style.gap = `${z.gap}px`;
-      const reserve = z.padXVisual + iconPx + z.gap;
-      btn.style.paddingLeft = `${lead ? (edges ? reserve : z.padXVisual) : z.padX}px`;
-      btn.style.paddingRight = `${trail ? (edges ? reserve : z.padXVisual) : z.padX}px`;
-      if (width !== undefined) btn.style.width = `${width}px`;
-      const glyph = (side: 'left' | 'right'): HTMLElement => {
-        const g = el('span', 'btnl-icon' + (edges ? ' btnl-pinned' : ''));
-        g.style.width = g.style.height = `${iconPx}px`;
-        if (edges) g.style[side] = `${z.padXVisual}px`;
-        return g;
-      };
-      const label = el('span', 'btnl-label', text);
-      label.style.fontSize = `${labelPx}px`;
-      label.style.fontWeight = String(labelWeight);
-      if (lead) btn.append(glyph('left'));
-      btn.append(label);
-      if (trail) btn.append(glyph('right'));
-      return btn;
-    };
-    const row = el('div', 'btnl-row');
-    row.append(
-      el('div', 'btnl-lab mono', `${b.size} · ${z.height}px high · min ${floor}px${off ? ' · small label & icon' : ''}`),
-      button('OK', false, false),
-      button('Continue', true, true, wide),
-      button('Continue', false, true, wide),
-    );
-    list.append(row);
-  }
-  into.append(list);
+  into.append(buttonLayoutSection(buttonLayout(), theme, currentMode, rp.dims['radius.md'] ?? 4));
 };
 
-// The elevation ramp specimen (`shadowRampSection`, with `SHADOW_STEPS`) lives in `preview/sections/shadow-ramp.ts`
-// (UI redesign S9.1), drawn by the Elevation page.
+// The shadow steps (`shadowRampSection`, with `SHADOW_STEPS`) live in `preview/sections/shadow-ramp.ts` (UI redesign
+// S9.1), drawn by the Depth & motion preview (S9.2).
 
-/** The control-size preview: the component-size tier (sm→xl) as mini control boxes at their resolved
- *  height, so the DENSITY lever has a visible payoff (the preview components bind the space scale
- *  directly, not `size.*`, so nothing else shows the size tier). Heights only: each component states its
- *  own padding (the spacing model), shown on the button specimen. Mode-aware (D): reflects
- *  the current mode's per-mode density (`theme.dims.sizesByMode`) when it deviates, else the global tier.
- *  Fills a caller-owned node so it repaints beside the density control (#265). */
-const paintSizePreview = (into: HTMLElement): void => {
-  into.innerHTML = '';
-  const byMode = theme.dims.sizesByMode?.[currentMode];
-  const sizes = byMode ?? theme.dims.sizes;
-  const list = el('div', 'sz-list');
-  for (const z of sizes) {
-    const cell = el('div', 'sz-cell');
-    const box = el('div', 'sz-box', z.name);
-    box.style.height = `${z.height}px`;
-    box.style.padding = '0 8px';
-    cell.append(box, el('div', 'sz-lab mono', `${z.name} · ${z.height}px`), tokenPill(`size.${z.name}.height`));
-    list.append(cell);
-  }
-  into.append(list);
-};
+// The control heights, the spacing steps and the building blocks moved to the Shape preview in UI redesign S7
+// (`preview/sections/control-heights.ts`, `spacing.ts`, `shape-building-blocks.ts`).
 
-/** The spacing preview (#265): the resolved space.* ramp as proportional bars — the spacing rhythm has no
- *  other visible payoff (preview components bind space refs but don't show the ladder). Read-only from
- *  `rp.dims` (no engine change). Derives its steps from the ACTUAL resolved keys (sorted by scale), not a
- *  hardcoded list — the resolved model only carries the steps the preview binds, so a fixed list would
- *  show phantom 0px rows. `space.100` (= 1×) is the rhythm anchor. */
-const paintSpacingPreview = (into: HTMLElement): void => {
-  into.innerHTML = '';
-  // Read the SCALE off the theme, not `rp.dims`. `rp.dims` is consumption-driven — it holds only the
-  // dimension refs the preview COMPONENTS happen to bind — so this specimen rendered whichever four
-  // steps a component used (`space.100/150/200/300`) out of the eighteen the engine emits, under a
-  // heading that says "the spacing rhythm". A scale specimen has to show the scale; which steps some
-  // component consumes is a different question, and not this section's.
-  const steps = theme.dims.space.map((s) => ({ ref: `space.${s.key}`, px: s.px }));
-  const list = el('div', 'sp-list');
-  for (const { ref: k, px } of steps) {
-    const cell = el('div', 'sp-cell');
-    // TRUE px, not a percentage of the pane. The old `Math.max(2, (px/maxPx)*100)%` floored at 2
-    // PERCENT — about 10px — so `space.0` and `space.025` (0px and 2px) drew identically and nothing
-    // in the ramp was to scale. The whole ladder tops out at 96px and this section is now full width,
-    // so the honest rendering fits: 8px is 8px, and 0 is nothing.
-    const bar = el('div', 'sp-bar'); bar.style.width = `${px}px`;
-    if (px === 0) addClass(bar, 'zero');
-    // `tokenPill`, not mono text. The path was already visible here — but Corner radius and
-    // Density & size, on this same page, name theirs with the shared pill, so one of three specimens
-    // was saying the same kind of thing in a different component (doc 26: reuse the kit).
-    const lab = el('div', 'sp-lab');
-    lab.append(tokenPill(k), el('span', 'sp-px mono', `${px}px`));
-    cell.append(lab, bar);
-    list.append(cell);
-  }
-  into.append(list);
-};
-
-/** The three primitive scales that had no home (review, 2026-08-04): `dimension.*` (36), the raw grid
- *  every geometry alias resolves onto; `border-width.*` (4) and `icon.size.*` (5), both named aliases
- *  onto it. All read-only — read off the theme, not `rp.dims`, for the reason the spacing specimen
- *  was fixed: `rp.dims` holds only what preview COMPONENTS bind, which is a different question. */
-const paintPrimitivesPreview = (into: HTMLElement): void => {
-  into.innerHTML = '';
-  const scale = (label: string, rows: Array<{ ref: string; px: number }>, wrapCls: string): HTMLElement => {
-    const box = el('div', 'pv-scale');
-    box.append(el('div', 'pv-scale-t', label));
-    const list = el('div', wrapCls);
-    for (const { ref, px } of rows) {
-      const cell = el('div', 'pv-cell');
-      cell.append(tokenPill(ref), el('span', 'sp-px mono', `${px}px`));
-      list.append(cell);
-    }
-    box.append(list);
-    return box;
-  };
-  // border-width and icon.size are ALIASES onto the grid, so they are shown next to it rather than as
-  // separate scales — the point is that they resolve onto the same ladder.
-  const BW: Array<[string, number]> = [['none', 0], ['hairline', 1], ['thick', 2], ['heavy', 4]];
-  // Two columns inside the now-full-width section: the 36-step grid is long and wants its own column,
-  // while border-width (4) and icon size (5) are short alias lists that read better stacked beside it
-  // than strung out underneath a list three times their length.
-  //
-  // The grid uses `pv-rows` — ONE column — for the same reason the alias lists do. It previously had a
-  // wrapping variant of its own, which reflowed 36 steps into three ragged columns and destroyed the
-  // one property the specimen exists to show: that this is a monotonic ladder. A reader checks a scale
-  // by running an eye down it, and wrapping turns "is the next step bigger" into a column-order puzzle.
-  // Long is correct here; the section is a reference, not a summary.
-  const cols = el('div', 'pv-cols');
-  const left = el('div', 'pv-col'); const right = el('div', 'pv-col');
-  left.append(scale(`Dimension grid — ${theme.dims.grid.length} steps`, theme.dims.grid.map((px) => ({ ref: `dimension.${px}`, px })), 'pv-rows'));
-  right.append(
-    scale('Border width', BW.map(([k, px]) => ({ ref: `border-width.${k}`, px })), 'pv-rows'),
-    scale('Icon size', theme.dims.icons.map((i) => ({ ref: `icon.size.${i.name}`, px: i.px })), 'pv-rows'),
-  );
-  cols.append(left, right);
-  into.append(cols);
-};
-
-/** The layout specimen: the responsive-grid axis — breakpoints (min-widths) with their column/gutter/
- *  margin grid, a base-column preview strip, and the container caps as proportional bars. The layout
- *  levers (breakpoints / columns / containers, all in the Advanced panel) have no other visible payoff.
- *  Reads `theme.layout` (not per-mode — layout composes with colour modes as a separate Figma axis). */
-// Layout previews, split so each can sit beside its own control (docs #264): the breakpoints ruler+table,
-// the base-column strip, the container-cap bars, and the fluid-type scaling list (#361). Each fills a
-// caller-owned node so `apply()` repaints it in place (the control next to it stays put — never rebuilt
-// mid-drag).
-const paintBreakpointsPreview = (into: HTMLElement): void => {
-  const ly = theme.layout;
-  into.innerHTML = '';
-  // A proportional min-width ruler — the breakpoints on a shared axis, so the steps read spatially.
-  const ruler = el('div', 'ly-ruler');
-  const rulerMax = Math.max(...ly.breakpoints.map((b) => b.px), 1) * 1.06;
-  for (const b of ly.breakpoints) {
-    const tick = el('div', 'ly-tick'); tick.style.left = `${(b.px / rulerMax) * 100}%`;
-    tick.append(el('span', 'ly-tick-name', b.name), el('span', 'ly-tick-px mono', `${b.px}px`));
-    ruler.append(tick);
-  }
-  into.append(ruler);
-  const table = el('table', 'ly-table');
-  const head = el('tr');
-  head.append(el('th', undefined, 'Breakpoint'), el('th', undefined, 'Token'), el('th', undefined, 'Min-width'), el('th', undefined, 'Columns'), el('th', undefined, 'Gutter'), el('th', undefined, 'Margin'));
-  table.append(head);
-  for (const g of ly.grid) {
-    const bp = ly.breakpoints.find((b) => b.name === g.bp);
-    const tr = el('tr');
-    const pillCell = el('td'); pillCell.append(tokenPill(`breakpoint.${g.bp}`));
-    tr.append(el('td', 'mono', g.bp), pillCell, el('td', 'mono', `${bp?.px ?? 0}px`), el('td', 'mono', String(g.columns)), el('td', 'mono', `${g.gutterPx}px`), el('td', 'mono', `${g.marginPx}px`));
-    table.append(tr);
-  }
-  // Six columns of tabular data have a real min-content width, and the split layout's preview pane is
-  // only ~392px at 1100px wide — where the table used to push the whole DOCUMENT into a horizontal
-  // scroll. Scrolling it inside its own pane is the same treatment Preview's token tables use
-  // (`pv-tscroll`), and it is what doc 26 asks of wide content: the table scrolls, the page never does.
-  const scroll = el('div', 'ly-tscroll'); scroll.append(table);
-  into.append(scroll);
-};
-const paintColumnsPreview = (into: HTMLElement): void => {
-  const ly = theme.layout;
-  into.innerHTML = '';
-  into.append(el('div', 'ly-cap', `${ly.baseColumns}-column base grid`));
-  const cols = el('div', 'ly-cols');
-  for (let i = 0; i < ly.baseColumns; i++) cols.append(el('div', 'ly-col'));
-  into.append(cols);
-};
-// The control-column copy for the editable per-breakpoint grid — says what an override does and that
-// unsetting it (choosing “Auto”) returns the breakpoint to the ladder.
-const perBreakpointColsNote = (): HTMLElement => el('p', 'ic-modenote',
-  'Each breakpoint’s columns default to the base ladder (smallest 4, next 8, up to the base); gutter and '
-  + 'margin default to their own ladders. Override one to pin its value for that breakpoint only; choose Auto '
-  + 'to return it to the ladder. Columns are held to 4–24. Gutter and margin snap to the spacing scale — the '
-  + 'menu runs down to 4px — so each stays a real spacing step and keeps aliasing the space tokens.');
-// The resolved per-breakpoint grid, read STRAIGHT from `theme.layout.grid` — the same derivation the Figma
-// grid-style emitter consumes (#1480), so this readout is the source of truth and cannot disagree with what
-// a brand ships. Columns carry an editable override select (Auto = the ladder value); gutter/margin are
-// read-only. Lives in the volatile region, so committing an override repaints it with the re-resolved grid.
-const paintPerBreakpointGrid = (into: HTMLElement): void => {
-  const ly = theme.layout;
-  const overrides = (brandState.layout?.columnOverrides ?? {}) as Record<string, number>;
-  // The spacing steps a gutter/margin override may snap to (#1593) — the brand's OWN resolved scale, so
-  // the offered px are exactly the ones that alias `space/*`. Reaches down to space/050 = 4px (and 025/0),
-  // which is how a 4px mobile gutter becomes reachable instead of flooring at the derived 16px.
-  const spaceSteps = theme.dims.space.map((s) => s.px);
-  into.innerHTML = '';
-  const table = el('table', 'ly-table');
-  const head = el('tr');
-  head.append(el('th', undefined, 'Breakpoint'), el('th', undefined, 'Columns'), el('th', undefined, 'Gutter'), el('th', undefined, 'Margin'), el('th', undefined, 'Override'));
-  table.append(head);
-  // A per-breakpoint gutter/margin editor — a resolved readout (`data-bpgut`/`data-bpmar`, straight off the
-  // engine's grid like the columns readout) above a select of spacing steps (Auto = the derived ladder).
-  // Mirrors the columns override write: a set value persists the px, Auto drops the entry, and an empty map
-  // is removed rather than left as `{}`. Gutter/margin snap to the ladder (the value MUST be a space step so
-  // it can alias `space/*`), which is why the options ARE the spacing scale rather than a free number input.
-  const gapEditor = (bp: string, field: 'gutterOverrides' | 'marginOverrides', resolvedPx: number, roAttr: 'bpgut' | 'bpmar', selAttr: 'bpgutsel' | 'bpmarsel'): HTMLElement => {
-    const cur = ((brandState.layout?.[field] ?? {}) as Record<string, number>)[bp];
-    const ro = el('div', 'mono', `${resolvedPx}px`); ro.dataset[roAttr] = bp;
-    const sel = selectEl('cap'); sel.dataset[selAttr] = bp;
-    sel.append(optionEl('auto', 'Auto', cur === undefined));
-    for (const px of spaceSteps) sel.append(optionEl(String(px), `${px}px`, cur === px));
-    sel.onchange = () => {
-      const next = { ...((brandState.layout?.[field] ?? {}) as Record<string, number>) };
-      if (sel.value === 'auto') delete next[bp]; else next[bp] = Number(sel.value);
-      if (Object.keys(next).length) setPath(brandState, `layout.${field}`, next);
-      else if (brandState.layout) delete (brandState.layout as Record<string, unknown>)[field];
-      apply();
-    };
-    const cell = el('td'); cell.append(ro, sel);
-    return cell;
-  };
-  for (const g of ly.grid) {
-    const tr = el('tr');
-    // The RESOLVED column count — the readout, straight off the engine's grid. `data-bpcol` names the row
-    // so the smoke suite can read it back per breakpoint.
-    const colCell = el('td', 'mono', String(g.columns));
-    colCell.dataset.bpcol = g.bp;
-    // The override editor — Auto (the ladder) plus the curated column counts. `data-bpsel` names the control.
-    const sel = selectEl('cap');
-    sel.dataset.bpsel = g.bp;
-    const cur = overrides[g.bp];
-    sel.append(optionEl('auto', 'Auto', cur === undefined));
-    for (const c of LAYOUT_COLUMN_CHOICES) sel.append(optionEl(String(c), String(c), cur === c));
-    sel.onchange = () => {
-      const next = { ...((brandState.layout?.columnOverrides ?? {}) as Record<string, number>) };
-      if (sel.value === 'auto') delete next[g.bp]; else next[g.bp] = Number(sel.value);
-      // Keep brandState clean: an empty override map is dropped rather than persisted as `{}`.
-      if (Object.keys(next).length) setPath(brandState, 'layout.columnOverrides', next);
-      else if (brandState.layout) delete (brandState.layout as { columnOverrides?: Record<string, number> }).columnOverrides;
-      apply();
-    };
-    const editCell = el('td'); editCell.append(sel);
-    tr.append(el('td', 'mono', g.bp), colCell,
-      gapEditor(g.bp, 'gutterOverrides', g.gutterPx, 'bpgut', 'bpgutsel'),
-      gapEditor(g.bp, 'marginOverrides', g.marginPx, 'bpmar', 'bpmarsel'),
-      editCell);
-    table.append(tr);
-  }
-  const scroll = el('div', 'ly-tscroll'); scroll.append(table);
-  into.append(scroll);
-};
-const paintContainersPreview = (into: HTMLElement): void => {
-  const ly = theme.layout;
-  into.innerHTML = '';
-  const cont = el('div', 'ly-cont');
-  // Scale against the widest VIEWPORT the system targets, not against containerMax. Normalising by
-  // containerMax made that bar 100% by construction, so the Container max slider could never move its
-  // own preview — the one thing the specimen is beside it to show. The top breakpoint is the honest
-  // reference (it is what "fluid" fills), and it is real data on this same page; the `max` guard keeps
-  // the bars inside the track if a brand caps content wider than its largest breakpoint.
-  const viewport = Math.max(...ly.breakpoints.map((b) => b.px), ly.containerMax, 1);
-  // The bar goes inside its own TRACK. Its width is a percentage, and a percentage resolves against
-  // the containing block — which was the whole row, including the 150px label the bar does not get to
-  // use. Only the 100% bar was wide enough to overflow, so only it was flex-shrunk (to the 330px that
-  // was actually free); every narrower bar rendered at its true fraction of the full 492px row. The
-  // arithmetic was right and the reference was wrong, which inflated every ratio the specimen exists
-  // to show by 492/330 ≈ 1.5 — a 720-on-1440 reading column drew at 75%, not 50%.
-  const bar = (path: string, px: number, label: string): HTMLElement => {
-    const row = el('div', 'ly-cont-row');
-    const track = el('div', 'ly-cont-track');
-    const b = el('div', 'ly-cont-bar');
-    b.style.width = `${Math.max(6, Math.min(100, (px / viewport) * 100))}%`;
-    track.append(b);
-    const lab = el('div', 'ly-cont-lab'); lab.append(tokenPill(path), el('span', 'ly-cont-val mono', label));
-    row.append(lab, track);
-    return row;
-  };
-  // `container.fluid` is the DEFAULT container and was the one member of the family with no row. Shown
-  // at the full track, which is what it means: no cap — so the two capped bars read as caps against it.
-  cont.append(bar('container.fluid', viewport, '100%'),
-    bar('container.max', ly.containerMax, `${ly.containerMax}px`),
-    bar('container.narrow', ly.containerNarrow, `${ly.containerNarrow}px`));
-  into.append(el('div', 'ly-cap', `Relative widths at a ${viewport}px viewport — the widest breakpoint.`));
-  into.append(cont);
-};
-
-// The motion specimen (`motionTransitionsSection`) and the curve plot it draws (`motionStageSvg`) live in
-// `preview/sections/` (UI redesign S9.1), drawn by the Motion page. The playback divisor is VIEW state, so it
-// stays here, where it survives a repaint, and the section is handed it.
-let motionSlowmo = 4;   // uniform playback divisor for the trace (#292) — never touches the ms label, the curve, or the ratio between transitions
 
 // The inverse-surface + icon specimens were retired here (#69): the inverse column is now a first-class
 // row in every interactive matrix section (Fill · inverse / Text · inverse / On-fill · inverse), and the
@@ -3004,6 +2062,8 @@ const mountView = (view: RootView, body: () => HTMLElement): void => {
         // S3: Brand's preview is the Style guide, lent the same way until a slice replaces it.
         // S6.2 lent Type's levers the legacy Text styles controls; S6.3 replaced them, so only the fonts are lent.
         lend: { styleGuide: renderPreviewStyleGuide, fonts: () => host },
+        // The product mark's logo, `styles.css`'s fixed gradient, lent like the views above.
+        logo: () => el('span', 'logo'),
       });
     }
     chromeHost = frame.head;
@@ -3088,8 +2148,8 @@ const chromedWorkspace = (ws: HTMLElement): PageHost => {
  *  page inherits the right answer instead of needing a decision.
  *
  *  Pages fail it unconditionally:
- *   • `layout` — nothing layout-related exists in `ModeLevers` or carries a `*ByMode` field. It is
- *     mode-invariant outright, not merely primitive.
+ *   • (`layout` was one until UI redesign S10 moved Layout into the two panes: nothing layout-related exists in
+ *     `ModeLevers` or carries a `*ByMode` field; its preview header carries the mode control for the ground.)
  *   • `palettes` — a ramp is mode-invariant, and choosing which STEP a mode lands on is a Surfaces
  *     concern, not a Palettes one (see the in-function measurement below).
  *   • (`typography` was a third until UI redesign S6.2 moved Type into the two panes.)
@@ -3104,7 +2164,6 @@ const chromedWorkspace = (ws: HTMLElement): PageHost => {
  *  the code directly beneath it. #718's `components` page is the case it predicted — a page with no
  *  mode axis at all, which arrived and inherited a bar it has nothing to drive. */
 const pageHasModeVaryingControl = (): boolean => {
-  if (page === 'layout') return false;
   // #718 — the component build takes no mode input. `build-components` carries no payload (the def is
   // compiled into the plugin) and the write binds variables BY NAME, so every mode resolves from the
   // variables already in the file rather than from anything this page could scope. Nothing on the page
@@ -3157,10 +2216,7 @@ const chromeHeight = (): number => parseFloat(document.documentElement.style.get
  *  until it is registered here, and registered as a `PageRenderer`, which can only be called with a
  *  host the chrome mounter produced. */
 const PAGE_RENDERERS: Record<LegacyPageKey, PageRenderer> = {
-  elevation: renderElevationPage,
   sizeRadius: renderSizeRadiusPage,
-  layout: renderLayoutPage,
-  motion: renderMotionPage,
   styleGuide: renderStyleGuidePage,
   components: renderComponentsPage,
 };
@@ -4636,7 +3692,7 @@ const renderStartScreen = (): HTMLElement => {
   const view = hook(el('div', 'startview'), 'start-screen');
   const col = hook(el('div', 'start-col'), 'start-column');
   const mark = el('div', 'start-mark');
-  mark.append(el('span', 'logo'), el('span', 'wordmark', 'Prism3'), el('span', 'studio', 'Theme studio'));
+  mark.append(el('span', 'logo'), el('span', 'wordmark', 'Prism3 Studio'));
   col.append(mark);
   col.append(hook(el('h1', 'start-h', 'Start a new brand.'), 'start-heading'));
   col.append(el('p', 'start-lede', 'One brand color is enough — the engine grows a full, contrast-checked system you can steer. Pick a starting point.'));

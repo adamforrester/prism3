@@ -14,6 +14,7 @@
  *   5. mount the plugin's resize grip (Figma only);
  *   6. `build()` — the first render. Everything above must precede it.
  *   7. on web, if step 1 refused the saved brand, the notice offering to export or clear it (#1989).
+ *   8. on web, only when the page is opened with `?p3-test-hooks`, the smoke suite's edit hook (#388).
  * The font probe's canvas used to be made at import too; it is now made on first use, in `main.ts`.
  */
 import { brandTheme } from '@prism3/engine/theme';
@@ -24,7 +25,7 @@ import type { Origin } from './provenance';
 import { clearInput, persistInput, restoreInput, type LocalStore } from './persist-local';
 import { hook } from './shell/dom';
 import { initTheme } from './shell/theme';
-import { BRANDS, BOOT_BRAND, initSession, setPersist, subscribe } from './state/store';
+import { BRANDS, BOOT_BRAND, brandState, initSession, rebuild, setPersist, setPath, subscribe } from './state/store';
 import { commit, handleHostMessage, mountApp, installStyles, mountResizeGrip, build } from './main';
 // The chrome stylesheet, as TEXT rather than as a separate emitted asset (#769) — see step 4 below for
 // what that buys and what it costs.
@@ -166,4 +167,17 @@ if (refused) {
   // had already persisted over the refused one. Every load assigns a new provenance (`loadInput`), which
   // invalidates `origin`, so this hears each one whichever control made it.
   offOrigin = subscribe('origin', dismiss);
+}
+
+// ---- 8. the smoke suite's edit hook (#388) -------------------------------------------------------------
+// Web only, and only when the page is opened with `?p3-test-hooks`. `test-smoke.mjs` §2d checks that an edit the
+// engine refuses shows the error bar on a page other than Color. Every Type control now refuses up front what the
+// engine would refuse (#2044, #2054, #2055), so no control is left to make that edit. This writes one path into the
+// brand and rebuilds, the same two steps a control's edit takes, so the refusal and the bar that shows it are the
+// real ones. Without the parameter nothing is defined.
+if (PRISM3_HOST !== 'figma' && new URLSearchParams(location.search).has('p3-test-hooks')) {
+  (window as unknown as { __prism3TestEdit: (path: string, value: unknown) => void }).__prism3TestEdit = (path, value) => {
+    setPath(brandState, path, value);
+    rebuild();
+  };
 }
