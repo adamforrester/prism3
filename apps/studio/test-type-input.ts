@@ -229,6 +229,37 @@ store.rebuild();
 ok(JSON.stringify([...T.ceilingPx('3xl')]) === '[["sm",48],["md",64],["lg",80],["xl",96],["2xl",128],["3xl",160]]', `ceilingPx(3xl) prices every display rung from one trial build (${JSON.stringify([...T.ceilingPx('3xl')])})`);
 ok(JSON.stringify(T.rowsOf(store.theme, 'display').map((r) => r.variant)) === '["md","sm"]' && JSON.stringify(T.widestRowsOf()?.get('display')?.map((r) => r.variant)) === '["3xl","2xl","xl","lg","md","sm"]',
   'under the md ceiling the live rows are md, sm, and widestRowsOf still lists all six, largest first');
+// #2044: a ceiling below a display size set individually is refused, so the select disables it. EXPECTED from the
+// pins and the ceiling order typed here, never from the module: the refused ceilings are every rung strictly below
+// the largest pinned one. The engine is the second witness: each refused ceiling throws, each other one builds.
+{
+  const ORDER = ['sm', 'md', 'lg', 'xl', '2xl', '3xl'];
+  const below = (pinned: string): string[] => ORDER.slice(0, ORDER.indexOf(pinned));
+  const builds = (c: string): boolean => { try { brandTheme({ ...structuredClone(store.brandState), typography: { ...structuredClone(store.brandState.typography), displayCeiling: c as never } }); return true; } catch { return false; } };
+  const check = (what: string, pinned: string | null): void => {
+    const want = pinned ? below(pinned) : [];
+    const got = T.ceilingBlocked();
+    ok(JSON.stringify([...got.keys()]) === JSON.stringify(want) && [...got.values()].every((v) => v === pinned),
+      `ceilingBlocked, ${what}: refuses ${JSON.stringify(want)}, each naming ${pinned} (${JSON.stringify([...got])})`);
+    ok(ORDER.every((c) => builds(c) === !want.includes(c)), `ceilingBlocked, ${what}: the engine refuses exactly those ceilings and builds the rest`);
+  };
+  reset();
+  check('no size set', null);
+  T.setSizePin(null, 'display', 'md', 72);
+  check('display md set on desktop', 'md');
+  reset();
+  T.setMobileSize('display', 'md', 40);
+  check('display md set on mobile', 'md');
+  reset();
+  T.setSizePin('dark', 'display', 'md', 72);
+  check('display md set in Dark only', 'md');
+  T.setSizePin(null, 'display', 'lg', 80);
+  check('display md (Dark) and lg (desktop) set: the largest names the reason', 'lg');
+  reset();
+  T.setSizePin(null, 'display', 'sm', 40);
+  check('display sm set: nothing is below it', null);
+  reset();
+}
 reset('harbor');
 T.setFluid(true);
 ok(JSON.stringify(store.brandState.typography) === '{"typeScale":"compact","responsive":{"fluid":true}}', `setFluid(on) on a brand with no responsive input WRITES fluid true (the legacy bytes) (${JSON.stringify(store.brandState.typography)})`);
