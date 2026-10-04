@@ -5920,6 +5920,7 @@ for (const host of ['web', 'figma']) {
         radius: [...pv.querySelectorAll('[data-p3="radius-row"]')].map((x) => x.dataset.step),
         heights: Object.fromEntries([...pv.querySelectorAll('[data-p3="height-row"]')].map((x) => [x.dataset.step, x.querySelector('[data-p3="shape-row-label"]')?.textContent ?? null])),
         used: [...pv.querySelectorAll('[data-p3="radius-row"]')].map((x) => [x.dataset.step, x.querySelector('[data-p3="shape-row-used-by"]')?.textContent ?? null]),
+        rlabels: [...pv.querySelectorAll('[data-p3="radius-row"]')].map((x) => [x.dataset.step, x.querySelector('[data-p3="shape-row-label"]')?.textContent ?? null]),
         shapes: [...pv.querySelectorAll('[data-p3="control-shape"]')].map((x) => [x.dataset.shape, x.getAttribute('aria-current')]),
         pad: [pane.querySelector('[data-p3="shape-padding"] .p3-sub')?.textContent ?? null, pane.querySelector('[data-p3="shape-see-components"]')?.textContent ?? null],
         next: pane.querySelector('[data-p3="shape-continue"]')?.textContent ?? null,
@@ -5947,6 +5948,10 @@ for (const host of ['web', 'figma']) {
     const emitted = Object.keys(OUT[OUT_ROOT]?.radius ?? {}).filter((k) => !k.startsWith('$'));
     ok(emitted.length >= 10 && JSON.stringify(r.radius) === JSON.stringify(emitted),
       `${host}: the Radius section draws every radius size the emission carries, in order (${emitted.join(', ')}) — drew ${r.radius.join(', ')}`);
+    // #2078 (owner, 2026-10-04, per #1177): the pill sizes read "Pill", not "‹n›px · pill" (oracle: their names, literal).
+    const pillRows = r.rlabels.filter(([s]) => s === 'round' || s === 'capsule');
+    ok(pillRows.length === 2 && pillRows.every(([, l]) => l === 'Pill') && r.rlabels.filter(([s]) => s !== 'round' && s !== 'capsule').every(([, l]) => /^\d+(\.\d+)?px$/.test(l ?? '')),
+      `#2078: ${host}: Radius labels radius.round and radius.capsule "Pill", and every other size its px (${r.rlabels.map(([s, l]) => `${s} "${l}"`).join(', ')})`);
     for (const [step, size] of BUTTON_HEIGHTS) {
       const want = `${size} button · ${HEIGHT_PX(step)}px`;
       ok(r.heights[step] === want, `D6: ${host}: the ${size} button height reads "${want}" (${JSON.stringify(r.heights[step])})`);
@@ -6085,13 +6090,17 @@ for (const host of ['web', 'figma']) {
         return { n: ctls.length, enabled: ctls.filter((n) => !n.disabled).map((n) => n.getAttribute('data-p3') ?? n.tagName), hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
           line: document.querySelector('[data-p3="shape-derived"]')?.textContent ?? null,
           preview: [...document.querySelectorAll('[data-p3="shape-style-guide"] .psec-t')].map((t) => t.textContent),
-          radius: [...document.querySelectorAll('[data-p3="shape-style-guide"] [data-p3="radius-row"] [data-p3="shape-row-label"]')].map((t) => t.textContent) };
+          radius: [...document.querySelectorAll('[data-p3="shape-style-guide"] [data-p3="radius-row"]')].map((r) => [r.dataset.step, r.querySelector('[data-p3="shape-row-label"]')?.textContent ?? null,
+            r.querySelector('.shp-sw')?.style.borderRadius ?? null]) };
       });
       ok(d.line === `${label} is auto-derived — read-only. Edit Light or Dark and it follows.`, `Q59: previewing ${label}, the derived line shows on Shape ("${d.line}")`);
       ok(d.n >= 9 && d.enabled.length === 0, `Q59: previewing ${label}, every control on Shape is disabled, Base radius included (${d.n - d.enabled.length}/${d.n})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
       for (const hk of ['density-choice-compact', 'radius-scale-slider', 'control-shape-choice-pill', 'base-radius-pick']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Shape is among those held disabled`);
       ok(JSON.stringify(d.preview) === JSON.stringify(EXPECT_SHAPE_SPECIMENS), `Q59: previewing ${label}, the Shape preview is still drawn (${d.preview.join(', ')})`);
-      if (mode === 'wireframe') ok(d.radius.length >= 10 && d.radius.every((t) => /^0px/.test(t)), `previewing Wireframe, every radius size reads 0px, as the emission draws wireframe (${d.radius.join(', ')})`);
+      // Every size is drawn at 0px, as the emission draws wireframe; the two pill sizes still read "Pill" (#2078: the
+      // label is which size it is, not its px).
+      if (mode === 'wireframe') ok(d.radius.length >= 10 && d.radius.every(([step, label, br]) => br === '0px' && label === (['round', 'capsule'].includes(step) ? 'Pill' : '0px')),
+        `previewing Wireframe, every radius size is drawn at 0px, as the emission draws wireframe, and reads 0px but for the two pill sizes, which read "Pill" (${d.radius.map(([s, l, b]) => `${s} "${l}" ${b}`).join(', ')})`);
     }
     ok(errors.length === 0, `shape derived: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
