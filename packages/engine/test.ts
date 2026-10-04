@@ -5305,6 +5305,20 @@ arm: {
         'D(a0): setting the baseline still does not touch any curve primitive');
       ok(threw(() => brandTheme({ ...base, motionPersonality: { easingRoles: { default: 'nope' } } } as unknown as BrandInput)),
         'D(a0): an unknown baseline curve is rejected');
+      // #2062: each transition's $description names the curve its easing ROLE resolves to, not the transition's
+      // fixed default. EXPECTED is read off the emitted easing-role leaf's own alias, never from the engine's
+      // map, on both the stock brand and the re-pointed one; a precondition holds that the re-point moved.
+      const stock = buildTree(brandTheme(base as unknown as BrandInput)).tree[root].motion;
+      ok(stock['easing-role'].default.$value !== mb['easing-role'].default.$value,
+        `#2062 precondition: easingRoles.default: 'calm' moves the default role off its stock curve (${stock['easing-role'].default.$value} → ${mb['easing-role'].default.$value})`);
+      for (const [label, mo] of [['stock', stock], ["easingRoles.default: 'calm'", mb]] as const) {
+        const wrong = Object.keys(mo.transition).filter((name) => {
+          const curve = /\.motion\.easing\.([a-z0-9-]+)\}$/.exec(mo['easing-role'][name]?.$value ?? '')?.[1];
+          return !curve || !String(mo.transition[name].$description ?? '').endsWith(` + ${curve})`);
+        });
+        ok(Object.keys(mo.transition).length >= 4 && wrong.length === 0,
+          `#2062: on the ${label} brand, every motion.transition.* description names the curve its easing role resolves to (${Object.keys(mo.transition).length} transitions)${wrong.length ? ` — wrong: ${wrong.map((n) => `${n} says "${mo.transition[n].$description}", role → ${mo['easing-role'][n]?.$value}`).join('; ')}` : ''}`);
+      }
     }
     // no-diff suppression, matching every other axis
     // A self-map is now role → ITS OWN BASELINE CURVE rather than a literal `x: 'x'`, because curves are

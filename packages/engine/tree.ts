@@ -968,7 +968,11 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   }
   // Transitions now name the ROLE, not the curve, so a per-mode re-point reaches every consumer of
   // `motion.transition.*` for free — the same way they already inherit per-mode duration.
-  for (const t of m.transitions) motion.transition[t.name] = transitionLeaf(`${root}.motion.duration.${t.duration}`, `${root}.motion.easing-role.${t.name}`, `motion ${t.name} — ${t.desc} (${t.duration} + ${t.easing})`);
+  // The description names the curve the ROLE resolves to (#2062), not the transition's fixed default: with
+  // `motionPersonality.easingRoles.default: 'calm'`, `transition.default` aliases a role that draws `calm`, and
+  // saying `standard` named a curve the token does not use. A mode's own re-point is on the easing-role leaf.
+  const roleCurve = new Map(m.easingRoles.map((r) => [r.role, r.curve]));
+  for (const t of m.transitions) motion.transition[t.name] = transitionLeaf(`${root}.motion.duration.${t.duration}`, `${root}.motion.easing-role.${t.name}`, `motion ${t.name} — ${t.desc} (${t.duration} + ${roleCurve.get(t.name) ?? t.easing})`);
   motion.stagger = durSemantic(m.stagger, `stagger standard — ${m.stagger}ms between siblings`, (mm) => mm.stagger, (mode, mv) => `motion tempo lever override — ${mode} (stagger → ${mv}ms)`);
 
   // ---- typography axis — primitive tier (Phase 1) ----
