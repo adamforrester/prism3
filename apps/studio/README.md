@@ -72,20 +72,35 @@ makes obvious, and that a third probe will hit on its first run.
 
 - **Mechanism.** `currentMode` is a single module-level global, and its persistence across
   navigation is a deliberate design decision, not an accident of the implementation — see
-  `../../docs/23-dashboard-ia-and-component-system.md` §7. Separately, the mode bar renders **only on
-  pages that carry a mode-varying control** (#268): today that is 6 of the 9 rail pages, so Palettes,
-  Typography and Layout show no bar at all. Those three still render *through* whatever mode is
-  selected. The bar's absence means "nothing here is edited per mode", never "mode does not apply".
-- **Symptom.** A probe that loops pages on the outside and modes on the inside reads each bar-less
-  page in whichever mode the *previous* page happened to leave behind — so its results are ordering
-  artefacts. Worse, it does not look like an ordering bug: arrive at Typography or Layout from a
-  **derived** mode (HC light / HC dark / Wireframe) and those pages drop their editors entirely for
-  the read-only "auto-derived" note, so the probe reports a blank page with no controls. That is the
-  app being correct. The first draft of `test-smoke.mjs` did exactly this and reported two false
-  defects on its first run.
-- **Rule.** Select the mode on a page that **has** the bar, then walk every page carrying it; repeat
-  per mode. That is also the sequence a person performs, and it is the difference between covering
-  *every page in every mode* and covering *every page that offers a mode bar*.
+  `../../docs/23-dashboard-ia-and-component-system.md` §7. The UI redesign is moving pages one slice
+  at a time, so a page is one of two kinds, and each kind offers the mode differently. Which kind a
+  page is lives in `src/shell/pages.ts` (`status: 'new'` or `'legacy'`). Read it there, not from a
+  list in this file.
+  - **Moved pages** draw the two panes (levers beside a preview). Every one carries the **mode
+    control** in its preview header (`mode-option` hooks, derived modes hatched), whether or not
+    anything on it is edited per mode. In a **derived** mode (HC light / HC dark / Wireframe) their
+    controls stay on screen but go read-only, under an "auto-derived — read-only" state line.
+  - **Legacy pages** still render in the full-width legacy frame. Their old mode strip (`mode-tab`
+    hooks) appears **only on pages that carry a mode-varying control** (#268). A strip-less legacy
+    page still renders *through* whatever mode is selected. The strip's absence means "nothing here
+    is edited per mode", never "mode does not apply". In a derived mode a legacy page drops its
+    editors entirely for the read-only "auto-derived" note.
+
+  Both controls set the same `currentMode`, so a choice made on either kind of page carries to the
+  other.
+- **Symptom.** A probe that loops pages on the outside and modes on the inside reads each page that
+  offers no mode choice of its own in whichever mode the *previous* page happened to leave behind,
+  so its results are ordering artefacts. Worse, it does not look like an ordering bug. Arrive at a
+  strip-less legacy page from a derived mode and it shows the note in place of its editors, so the
+  probe reports a blank page with no controls. Arrive at a moved page the same way and every field
+  is read-only, so the probe reports controls that will not take an edit. Both are the app being
+  correct. The first draft of `test-smoke.mjs` did exactly this and reported two false defects on
+  its first run.
+- **Rule.** Select the mode explicitly before reading a page, then walk the pages in that mode;
+  repeat per mode. On a moved page, select through its own mode control. Across the legacy pages,
+  pick the mode on one that has the strip, then walk the rest. That is also the sequence a person
+  performs, and it is the difference between covering *every page in every mode* and covering
+  *every page that offers a mode choice*.
 
 Two smaller traps worth inheriting rather than rediscovering:
 
