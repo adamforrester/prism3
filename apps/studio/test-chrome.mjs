@@ -4510,6 +4510,83 @@ for (const host of ['web', 'figma']) {
         ok((await ceil()).every((o) => !o.off), `#2044: with no display size set, every largest display size is live again (${vp})`);
       }
     }
+    // #2054: on the 16px smallest title with title 2xs set individually, brand-wide or in Dark only, the 18px chip
+    // is disabled with its reason, and clicking it writes nothing. #2055: with a mobile size set individually, the
+    // fluid switch is disabled with its reason, naming every such size, and clicking it writes nothing. EXPECTED
+    // typed here: the reasons' words, never read from the page's module (docs/34). Both reasons are DRAFTS
+    // pending the owner's approval; a change to either is a change to this arm.
+    // On Default, title 2xs sits at the 16px title floor with xs at 18px, so its picker offers no other value; on
+    // Expressive xs is 20px, so 18px is free. A mobile size on title 2xs is the same squeeze (at most its desktop
+    // 16px, at least the floor 16px), so the unit arm covers mobile and this one covers brand-wide and Dark.
+    {
+      const R18 = 'Leaves out title 2xs, which you set individually.';
+      const chip18 = () => page.evaluate(() => { const b = document.querySelector('[data-p3="title-floor-18"]'); return { off: b?.disabled, why: b?.title }; });
+      const firstFree = () => page.evaluate(() => document.querySelector('[data-p3="value-picker"] [data-p3="value-picker-value"]:not([aria-disabled="true"]):not([aria-pressed="true"])')?.getAttribute('data-value') ?? null);
+      const pFloor = await persisted(page);
+      await hooks.click(page.locator('[data-p3="type-scale-expressive"]'));
+      await page.waitForFunction(() => document.querySelector('[data-p3="type-scale-expressive"]')?.getAttribute('aria-checked') === 'true');
+      await hooks.click(page.locator('[data-p3="title-floor-16"]'));
+      await page.waitForFunction(() => document.querySelector('[data-p3="title-floor-16"]')?.getAttribute('aria-checked') === 'true');
+      ok(JSON.stringify(await chip18()) === JSON.stringify({ off: false, why: '' }), `#2054: on 16px with no title 2xs set, the 18px chip is live (${JSON.stringify(await chip18())})`);
+      const btn = '[data-p3="type-size-desktop"][data-group="title"][data-variant="2xs"]';
+      for (const mode of ['light', 'dark']) {
+        await chooseMode(page, mode);
+        await hooks.click(page.locator(btn));
+        await hooks.need(page, '[data-p3="value-picker"]');
+        const to = await firstFree();
+        ok(to !== null, `#2054: title 2xs's size offers another value in ${mode} (${to})`);
+        await pick(btn, to);
+        await close();
+        await page.waitForFunction(() => document.querySelector('[data-p3="title-floor-18"]')?.disabled === true, null, { timeout: 5000 }).catch(() => {});
+        const got = await chip18();
+        ok(got.off === true && got.why === R18, `#2054: with title 2xs set in ${mode} (${to}px), the 18px smallest title is disabled with "${R18}" (${JSON.stringify(got)})`);
+        const before = JSON.stringify(await persisted(page));
+        // force: Playwright holds a disabled button not actionable; the point is that a click on it writes nothing.
+        await hooks.click(page.locator('[data-p3="title-floor-18"]'), { force: true });
+        await page.waitForTimeout(80);
+        ok(JSON.stringify(await persisted(page)) === before && (await page.locator('[data-p3="title-floor-16"]').getAttribute('aria-checked')) === 'true',
+          `#2054: clicking the disabled 18px chip writes nothing (${mode})`);
+        await reset(btn);
+        await close();
+        await page.waitForFunction(() => document.querySelector('[data-p3="title-floor-18"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+        ok((await chip18()).off === false, `#2054: releasing title 2xs's size in ${mode} makes the 18px chip live again`);
+      }
+      await chooseMode(page, 'light');
+      await hooks.click(page.locator('[data-p3="title-floor-18"]'));
+      await page.waitForFunction(() => document.querySelector('[data-p3="title-floor-18"]')?.getAttribute('aria-checked') === 'true');
+      await hooks.click(page.locator('[data-p3="type-scale-default"]'));
+      await page.waitForFunction(() => document.querySelector('[data-p3="type-scale-default"]')?.getAttribute('aria-checked') === 'true');
+      ok(JSON.stringify(await persisted(page)) === JSON.stringify(pFloor), `#2054: back on 18px and the Default scale, the brand returns to its bytes`);
+
+      const sw = () => page.evaluate(() => { const b = document.querySelector('[data-p3="type-fluid"]'); return { on: b?.getAttribute('aria-checked'), off: b?.disabled, why: b?.title }; });
+      ok(JSON.stringify(await sw()) === JSON.stringify({ on: 'true', off: false, why: '' }), `#2055: with no mobile size set, the fluid switch is on and live (${JSON.stringify(await sw())})`);
+      const pFluid = await persisted(page);
+      const md = '[data-p3="type-size-mobile"][data-group="display"][data-variant="md"]';
+      const sm = '[data-p3="type-size-mobile"][data-group="title"][data-variant="sm"]';
+      const steps = [
+        [md, 'Removes the mobile size of display md, which you set individually.', 'display md'],
+        [sm, 'Removes the mobile sizes of display md and title sm, which you set individually.', 'display md and title sm'],
+      ];
+      for (const [btn, why, what] of steps) {
+        await hooks.click(page.locator(btn));
+        await hooks.need(page, '[data-p3="value-picker"]');
+        const to = await firstFree();
+        await pick(btn, to);
+        await close();
+        await page.waitForFunction((w) => document.querySelector('[data-p3="type-fluid"]')?.title === w, why, { timeout: 5000 }).catch(() => {});
+        const got = await sw();
+        ok(JSON.stringify(got) === JSON.stringify({ on: 'true', off: true, why }), `#2055: with ${what} set on mobile, the fluid switch is disabled with "${why}" (${JSON.stringify(got)})`);
+        const before = JSON.stringify(await persisted(page));
+        // force: Playwright holds a disabled button not actionable; the point is that a click on it writes nothing.
+        await hooks.click(page.locator('[data-p3="type-fluid"]'), { force: true });
+        await page.waitForTimeout(80);
+        ok(JSON.stringify(await persisted(page)) === before && (await sw()).on === 'true', `#2055: clicking the disabled fluid switch writes nothing (${what})`);
+      }
+      for (const [btn] of steps) { await reset(btn); await close(); }
+      await page.waitForFunction(() => document.querySelector('[data-p3="type-fluid"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
+      ok(JSON.stringify(await sw()) === JSON.stringify({ on: 'true', off: false, why: '' }), `#2055: releasing both mobile sizes makes the fluid switch live again (${JSON.stringify(await sw())})`);
+      ok(JSON.stringify(await persisted(page)) === JSON.stringify(pFluid), '#2055: releasing both mobile sizes returns the brand to its bytes');
+    }
     // A text type that pins a font style cannot be Italic only: the chip is disabled with the reason.
     const pinIn = page.locator('[data-p3="pin-cut-row"][data-cat="body"][data-role="default"] [data-p3="pin-cut-input"]');
     await pinIn.fill('Medium');

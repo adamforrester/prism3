@@ -2295,15 +2295,17 @@ for (const brand of BRANDS) {
   // displaying the value the engine had refused. Every assertion here is on a page that is NOT the
   // Color page, which is the whole point — a check run on Palettes would have passed on the defect.
   //
-  // THE REPRO (#2044, re-pointed a second time). S6.3 drove this through a display size set individually and then
-  // the largest display size lowered below it; #2044 disables that ceiling up front, as B8b disabled the 16px title
-  // floor under Compact before it. So the precondition is now a HAND-WRITTEN BRAND INPUT, typed here and stored the
-  // way the studio stores a brand, then reloaded: the brand as loaded, with the 16px title floor on, the Default
-  // scale, and title 2xs set individually at 16px. The engine takes that brand. The refused edit is a real one on
-  // Type: the 18px smallest title, which drops title 2xs while a size is still set on it, so the engine refuses
-  // `typography.sizes.title.2xs` ("not enabled by titleFloor"). The 18px chip does not check that yet, and the
-  // fluid switch does not check a mobile size set individually either (#2054, #2055). When both are guarded,
-  // this test needs a home that does not depend on a control missing its check (a test-only hook).
+  // THE REPRO (#2054, #2055, re-pointed a third time). S6.3 drove this through a display size set individually and
+  // then the largest display size lowered below it. #2044 disabled that ceiling up front, and #2054 and #2055 did the
+  // same for the 18px smallest title and the fluid switch, so the Type page has no control left that makes an edit the
+  // engine refuses. The trigger is now the studio's test-only edit hook, `window.__prism3TestEdit`, defined only on web
+  // and only when the page is opened with `?p3-test-hooks` (entry.ts, step 8). It writes one path and rebuilds, the
+  // two steps a control's edit takes, so the engine's refusal and the bar that shows it are the real ones; only the
+  // control is not. The precondition is a HAND-WRITTEN BRAND INPUT, stored the way the studio stores a brand: the
+  // 16px title floor on, the Default scale, and title 2xs set individually at 16px. The engine takes that brand. The
+  // hook then removes the title floor, which drops title 2xs while a size is still set on it, so the engine refuses
+  // `typography.sizes.title.2xs` ("not enabled by titleFloor"). Undo is a real control: the 16px chip, which puts
+  // the floor back.
   //
   // Brand-agnostic on purpose: the seed is written over whatever this context's brand is, and put back after.
   const stored0 = await page.evaluate(() => { try { return localStorage.getItem('prism3:brandInput'); } catch { return null; } });
@@ -2313,8 +2315,11 @@ for (const brand of BRANDS) {
   delete ty0.typeScale;   // Compact refuses the 16px title floor (B8b), so the seed is on the Default scale
   seed.input.typography = { ...ty0, titleFloor: 16, sizes: { ...(ty0.sizes ?? {}), title: { ...(ty0.sizes?.title ?? {}), '2xs': 16 } } };
   await page.evaluate((raw) => localStorage.setItem('prism3:brandInput', raw), JSON.stringify(seed));
-  await page.reload();
+  const plainUrl = page.url();
+  const hookUrl = new URL(plainUrl); hookUrl.searchParams.set('p3-test-hooks', '');
+  await page.goto(hookUrl.href);
   await gotoType(page);
+  ok(await page.evaluate(() => typeof window.__prism3TestEdit === 'function'), `${brand}: the page opened with ?p3-test-hooks has the test edit hook`);
   ok((await page.locator('[data-p3="title-floor-16"]').getAttribute('aria-checked')) === 'true', `${brand}: the hand-written brand loads with the 16px smallest title`);
   ok((await page.locator('[data-p3="type-size-desktop"][data-group="title"][data-variant="2xs"]').getAttribute('data-set')) === 'true', `${brand}: the hand-written brand loads with title 2xs set individually`);
 
@@ -2325,7 +2330,7 @@ for (const brand of BRANDS) {
   const clean = await errState();
   ok(clean.present && !clean.shown, `${brand}: the error surface is mounted and quiet before the refused edit`);
 
-  await hooks.click(page.locator('[data-p3="title-floor-18"]'));
+  await page.evaluate(() => window.__prism3TestEdit('typography.titleFloor', undefined));
   // Wait on the BAR, not on a timer — this condition is the assertion's subject, so a hang here fails
   // loudly as the defect it is rather than passing on a measurement taken too early.
   const surfaced = await page.waitForFunction(() => {
@@ -2354,8 +2359,9 @@ for (const brand of BRANDS) {
   ok(cleared, `${brand}: undoing the refused edit clears the bar`);
   // Put this context's own brand back, so the sections below run on it.
   await page.evaluate((raw) => localStorage.setItem('prism3:brandInput', raw), stored0);
-  await page.reload();
+  await page.goto(plainUrl);
   await gotoType(page);
+  ok(await page.evaluate(() => typeof window.__prism3TestEdit === 'undefined'), `${brand}: without ?p3-test-hooks the page has no test edit hook`);
 
   // --- 2e. the weight checkboxes refuse what the engine refuses (#1639, #1681) ----------------------
   // The engine refuses a category with no weight, and a label without `emphasis`. The studio's
