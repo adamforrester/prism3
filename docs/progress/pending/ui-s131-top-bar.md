@@ -106,6 +106,8 @@ Mutations for the dots and the dialog scope (each on a `git archive` copy of `a6
 - **Activity's running dot in the icon ink**: `28b figma light 1280: tile dots: Agent "on" and Activity "run" draw in the ok green rgb(56, 146, 94) (Agent rgb(56, 146, 94), Activity rgb(247, 247, 247))`, and the same for dark.
 - **The export body rule unscoped** (`.p3-bardlg-body, .p3-dialog-body`): `28c web light 1280: dialog scope: no rule of the export dialog reaches an element named as the start window's (body grid, 2 tracks "268.797px 268.797px"; scrim static, z auto)`, and the same for figma.
 
+**`test:chrome` F2 follows D-RED A.** Its warning case (dark, `⚠ 2 pages skipped`) now expects the green `warn` dot, and its failure case (light) still expects the red `bad` dot. The first verify after the #2152 merge failed on exactly that, which is the old expectation meeting the new rule. The same run also stopped once on a `TimeoutError` clicking Q52's `icons-pair`. That did not recur in the next standalone run or in the next verify (18708/18708, then 68/68), so I am treating it as a flake, not a defect: noted here, not filed.
+
 **Held:**
 - **The plugin from 561 to about 1000px.** The bar wraps at the wide tier, so Export can start the second row. The owner named 1280 and 380 for the plugin; its window opens at 1280.
 - **Where the agent link's status now shows** (the old popover's two lines), above.
