@@ -125,6 +125,13 @@ export const PRODUCT_VARS = [
   // (the shared styling pass; #2015 read `motion.duration.normal` and the mockup's `ease` row separately).
   ['transition-dur', 'motion.transition.default#duration', 'motion.transition.default#duration', T, 'the eased scroll of the edit-reveal and the jump links'],
   ['transition-ease', 'motion.transition.default#timingFunction', 'motion.transition.default#timingFunction', E, 'the eased scroll\'s curve'],
+  // F1 A (owner, 2026-10-05): a disabled text field takes Prism3's own disabled text field skin, the three roles the
+  // engine's text field definition binds (`packages/engine/components/text-field.ts`: `disabled.fill`, `disabled.border`
+  // and the ON-FILL ink, since the field always has a fill). It sits on no surface, so no `inverse.*` set. Same role in
+  // both themes; the dark overlay moves the value. Contrast-exempt as inactive (INACTIVE, below).
+  ['disabled-fill', 'color.disabled.fill', 'color.disabled.fill', C, 'a disabled text field\'s fill (F1 A)'],
+  ['disabled-edge', 'color.disabled.border', 'color.disabled.border', C, 'a disabled text field\'s edge (F1 A)'],
+  ['disabled-ink', 'color.disabled.on-fill', 'color.disabled.on-fill', C, 'a disabled text field\'s value (F1 A)'],
 ];
 export const PRODUCT_FOR = (mode) => PRODUCT_VARS.map(([n, l, d, k]) => [n, mode === 'light' ? l : d, k]);
 
@@ -160,6 +167,8 @@ export const SHELL_VARS = [
   'transition-dur', 'transition-ease',
   // QA-B11: the fill rows' swatch, as tall as a row's label and token (the mockup's 40px swatch row).
   'swatch-h',
+  // F1 A: a disabled text field in Prism3's disabled skin.
+  'disabled-fill', 'disabled-edge', 'disabled-ink',
 ];
 
 // Mapped color variables that carry no contrast duty: a hairline that splits regions, a hover wash.
@@ -170,3 +179,11 @@ export const SHELL_VARS = [
 // brand swatch. It is never a control's boundary; every control edge is a declared pair at 3:1. S1.2 maps
 // no hover wash: a hover shows an edge (a declared pair) or the inset fill (`fill-1`, paired with text).
 export const DECORATIVE = ['line-1'];
+
+// Mapped color variables that paint only an INACTIVE control (owner decision F1 A, 2026-10-05). WCAG 2.2 exempts a
+// user interface component that is not available for user interaction from SC 1.4.3 (text) and SC 1.4.11 (non-text),
+// so these take part in no PAIRS entry. A name listed here is exempt from the [pairs] "in no declared pair" check, and
+// only from that. It is not a free pass: the build refuses an INACTIVE name whose token is not a `color.disabled.*`
+// role in either theme, so a live color cannot be parked here; and `test:chrome` exempts a drawn node only when it is
+// really disabled, and then holds it to these exact Prism3 roles, read from the emission.
+export const INACTIVE = ['disabled-fill', 'disabled-edge', 'disabled-ink'];
