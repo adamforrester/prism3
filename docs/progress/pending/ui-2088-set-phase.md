@@ -6,7 +6,7 @@
 
 **One function, both readers.** `firstPhase()` in `apps/studio/src/main.ts` answers for the drawer's `componentPhase` and for `componentPendingText`, whose comment says the two read the same words. The pending-pill reader has no live caller for the component build since S8.2 retired the page's pill; it moved with the drawer rather than keep the stale string.
 
-**The check (`test:verdict`, `#2088`).** Both arms read the phase line BEFORE any `component-progress` is posted, the only window the line exists in. A panel build of Tag must read exactly "Building the Tag set…" and must have posted `tag`; an agent's `build-components` with no progress must read exactly "Building the set…". The expected strings are literals, never read from the catalog the code reads.
+**The check (`test:verdict`, `#2088`).** Both arms read the phase line BEFORE any `component-progress` is posted, the only window the line exists in. Panel builds of Button and then Tag, on one page, must read exactly "Building the Button set…" and then "Building the Tag set…", having posted `button` and then `tag`; an agent's `build-components` with no progress must read exactly "Building the set…". The expected strings are literals, never read from the catalog the code reads.
 
 **Mutations, after a `wip:` commit, restored with `git checkout -- <file>`:**
 - `firstPhase` back to the literal "Building the Button set…": both arms fail by name, `✗ #2088 a panel build of Tag reads exactly "Building the Tag set…" before its first boundary — posted ["tag"], read ["Building the Button set…"]` and `✗ #2088 an agent's build reads exactly "Building the set…" before its first boundary — read ["Building the Button set…"]`.
