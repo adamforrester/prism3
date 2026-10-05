@@ -2088,6 +2088,13 @@ const resolveGap = (override: number | undefined, ladder: number, field: string,
 
 const buildLayout = (input: BrandInput['layout'] = {}): LayoutAxis => {
   const floors = input.breakpoints ?? [0, 768, 1024, 1440, 1920];
+  // #2132 (owner decision 2026-10-05, F4 A: refuse). Breakpoints are mobile-first min-widths, so the first
+  // is the layout for every width below the second: a first floor of 320 leaves screens under 320px with
+  // no layout. The studio locks the field at 0, so only a hand-written brief or saved file reaches this.
+  // The wording is the owner's, approved on #2132, with the value as entered. An EMPTY list has no first
+  // value to name and is not this rule (#2137).
+  if (floors.length > 0 && floors[0] !== 0)
+    throw new Error(`The first breakpoint must be 0px. This brand starts at ${floors[0]}px.`);
   const base = input.columns ?? 12;
   const n = floors.length;
   const names = bpNames(n);
