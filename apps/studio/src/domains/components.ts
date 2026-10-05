@@ -71,6 +71,9 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
   let sliding = false;
 
   const edit = (key: string, write: () => void): void => {
+    // A derived mode is read-only (Q59), and that is enforced here, at the write, not only by the controls' DOM
+    // `disabled` flag: a scripted `input` still reaches a disabled slider (#2096). Every write on this page passes here.
+    if (isDerived(currentMode)) return;
     lastEdited = key;
     write();
     noteSectionEdit();   // QA-B9: the edit, and only an edit, reveals its preview section

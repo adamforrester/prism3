@@ -71,13 +71,16 @@
  *      tables, a height change moves the rows below; a new category starts a new row.
  *  24. THE REVIEW OF f3bb76cd: a bracket with its parts named otherwise, and a file with no spacing set, counted; one
  *      verdict per specimen; a new table taller than its row pushing the row below down.
- *  25. THE BUILD STYLE GUIDES PAGE (UI redesign S11.2): the catalog the page is offered (`catalogFor`), its 22 titles typed
+ *  25. REM ON AND OFF (#2153): every dimension and font-variable table, planned and drawn, with REM on and with REM off
+ *      (first drawn, and redrawn from on): its exact column list, a REM cell under every REM column, and no REM cell and
+ *      no cell past the last column when REM is off. The column lists are literals, one per table and setting.
+ *  26. THE BUILD STYLE GUIDES PAGE (UI redesign S11.2): the catalog the page is offered (`catalogFor`), its 22 titles typed
  *      here; every variable listed under the table that drew it, read back off each drawn frame's own row record; the
  *      later-phase variables with no table; the text styles last; `isSetUp` needing both cell sets and both pages.
- *  26. A RUN TABLE BY TABLE: its list first, then each table drawing and done.
- *  27. ONE FAILED TABLE (owner decision P6): the host refusing the Accent table fails that table with its words, the run
+ *  27. A RUN TABLE BY TABLE: its list first, then each table drawing and done.
+ *  28. ONE FAILED TABLE (owner decision P6): the host refusing the Accent table fails that table with its words, the run
  *      draws the other 21, the verdict is "⚠ 21 drawn, 1 failed", and a redraw by the table's key draws it alone.
- *  28. CANCEL (owner decision P7): a stop read after table 3 ends the run there, deletes no superseded table (the control
+ *  29. CANCEL (owner decision P7): a stop read after table 3 ends the run there, deletes no superseded table (the control
  *      run to the end does), and the verdict says where it stopped; a stop after the last table is no stop.
  *
  * INDEPENDENCE (docs/34): expected values are literals written here. The ratios (19.42, 18.13, 21) and the
@@ -190,6 +193,10 @@
  *     table…", "18: toggled off, the two columns are gone…"; (title cell) the edit not preserved → "20: a hand-edited title
  *     survives a rerun…"; the title column left in the fingerprint → "20: a superseded table whose only change is a
  *     retitled row is deleted, unedited"; the humanizer returning the raw path → "20: humanized: …" and four more.
+ *   - (#2153) REM forced on, `const lengths = true && …` in `planVariableTables` → "25: REM off: the plan's columns are
+ *     each table's exact list", "25: REM off: every planned cell has no REM" and their four drawn arms fail, and nothing
+ *     outside 25 does; REM forced off, `const lengths = false && …` → the four "25: REM on…" arms fail, with 11 arms
+ *     of 16, 17, 19 and 23.
  *
  * THE SHIM IGNORES A RESIZE THE HOST IGNORES: a FIXED text inside an instance keeps its main component's width under
  * `resize` (live, 2026-09-28). Before the shim modeled it, every width assertion passed over one-word-a-line text.
@@ -944,7 +951,14 @@ const fullFile = async (variables = prism3Variables()): Promise<Shim & { fc: N; 
 const setsNamed = (pages: N[], name: string): N[] => pages.flatMap((p) => p.findAllWithCriteria({ types: ['COMPONENT_SET'] })).filter((n) => n.name.toLowerCase() === name.toLowerCase());
 const tablesOn = (p: N): N[] => p.findAll((n) => n.type === 'FRAME' && !!n.pluginData['prism3-style-guide']);
 const tableFrame = (p: N, title: string): N | undefined => tablesOn(p).find((n) => n.name === `Style guide — ${title}`);
-const gridOf = (wrap: N): N => wrap.children.find((c) => c.name === 'Table')!;
+/** A table's grid. A missing table or grid is a named failure and an empty frame, never a throw (#2153): a fault that
+ *  loses a table must not stop the suite before the checks after it report. */
+const gridOf = (wrap: N | undefined): N => {
+  const g = wrap?.children.find((c) => c.name === 'Table');
+  if (g) return g;
+  ok(false, `gridOf: ${wrap ? `"${wrap.name}" has no Table grid` : 'a table the check expected is not drawn'}`);
+  return new N('FRAME');
+};
 const cellAt = (grid: N, r: number, c: number): N | undefined => grid.children.find((k) => k.gridRow === r && k.gridCol === c);
 const textIn = (n: N | undefined): string => (n?.findAll((k) => k.type === 'TEXT') ?? []).map((t) => t.characters).join(' | ');
 const rowOf = (grid: N, token: string): number => grid.children.find((k) => k.gridCol === 0 && textIn(k) === token)?.gridRow ?? -1;
@@ -2509,7 +2523,94 @@ const main = async (): Promise<void> => {
       `24: a new 80-step table lands at the end of the dimension row, ${ramp?.height}px tall, and the font row moves to 160px below it, y ${RAMP_H + 160} (${[...new Set(fontBefore.map((w) => w.y))].join(', ')})`);
   }
 
-  console.log('25. the Build style guides page: what the file holds, and whether Set up file has run (S11.2)');
+  console.log('25. REM on and REM off on every dimension and font-variable table (#2153)');
+  {
+    // THE EXPECTED COLUMNS ARE LITERALS, one list per table and per setting, read off the fixture's collections and modes
+    // (`phase2Variables`): density's two modes, type-sets' desktop and mobile, Default everywhere else. A length table
+    // (dimension, font size, line height, letter spacing) has a REM column after each Value column when REM is on; a
+    // family or a weight never has one. Never built from the planner's or the drawer's own column lists.
+    const ONE_ON = ['Token', 'Default', 'Value', 'REM', 'Description'];
+    const ONE_OFF = ['Token', 'Default', 'Value', 'Description'];
+    const REM_ON: Record<string, string[]> = {
+      'Density': ['Token', 'compact', 'Value', 'REM', 'comfortable', 'Value', 'REM', 'Description'],
+      'Dimension': ONE_ON, 'Step': ONE_ON, 'Size': ONE_ON, 'Space': ONE_ON, 'Radius': ONE_ON,
+      'Font size (core)': ONE_ON,
+      'Font size (type-sets)': ['Token', 'desktop', 'Value', 'REM', 'mobile', 'Value', 'REM', 'Description'],
+      'Line height': ONE_ON, 'Letter spacing': ONE_ON,
+      'Font family': ONE_OFF, 'Font weight': ONE_OFF,
+    };
+    const REM_OFF: Record<string, string[]> = {
+      'Density': ['Token', 'compact', 'Value', 'comfortable', 'Value', 'Description'],
+      'Dimension': ONE_OFF, 'Step': ONE_OFF, 'Size': ONE_OFF, 'Space': ONE_OFF, 'Radius': ONE_OFF,
+      'Font size (core)': ONE_OFF,
+      'Font size (type-sets)': ['Token', 'desktop', 'Value', 'mobile', 'Value', 'Description'],
+      'Line height': ONE_OFF, 'Letter spacing': ONE_OFF,
+      'Font family': ONE_OFF, 'Font weight': ONE_OFF,
+    };
+    const TITLES = JSON.stringify(Object.keys(REM_ON).sort());
+    const REM_CELL = /^(-?\d+(\.\d+)?rem|—)$/;
+    const ANY_REM = /^-?\d+(\.\d+)?rem$/;
+    const same = (a: readonly string[] | undefined, b: readonly string[]): boolean => JSON.stringify(a) === JSON.stringify(b);
+
+    // THE PLAN: the planner's columns, and every cell's `rem`: set on a length table with REM on, unset otherwise.
+    const fx = phase2Variables();
+    const catalog: SgCatalog = { collections: fx.cols, variables: fx.vars, textStyles: fx.styles };
+    for (const [setting, rem, want] of [['on', undefined, REM_ON], ['off', false, REM_OFF]] as const) {
+      const plan = planStyleGuide(catalog, contract, rem === false ? { rem } : {});
+      const tables = plan.tables.filter((t) => t.type !== 'typography');
+      ok(JSON.stringify(tables.map((t) => t.title).sort()) === TITLES, `25: REM ${setting}: the plan has the 12 dimension and font-variable tables (${tables.map((t) => t.title).join(', ')})`);
+      const wrongCols = tables.filter((t) => !same(t.columns, want[t.title] ?? [])).map((t) => `${t.title}: ${t.columns.join(' · ')}`);
+      ok(wrongCols.length === 0, `25: REM ${setting}: the plan's columns are each table's exact list${wrongCols.length ? ` (${wrongCols.join(' / ')})` : ''}`);
+      const wrongCells = tables.flatMap((t) => {
+        const hasRem = (want[t.title] ?? []).includes('REM');
+        return t.rows.flatMap((r) => r.cells.filter((c) => hasRem ? !(typeof c.rem === 'string' && REM_CELL.test(c.rem)) : c.rem !== undefined)
+          .map((c) => `${t.title} ${r.token} ${c.modeName}: ${String(c.rem)}`));
+      });
+      const cellCount = tables.reduce((n, t) => n + t.rows.reduce((m, r) => m + r.cells.length, 0), 0);
+      ok(cellCount > 0 && wrongCells.length === 0, `25: REM ${setting}: every planned cell ${setting === 'on' ? 'of a length table has its REM, and no family or weight cell has one' : 'has no REM'} (${cellCount} cells${wrongCells.length ? `; ${wrongCells.slice(0, 4).join(' / ')}` : ''})`);
+    }
+
+    // THE DRAWN TABLES: the header row, and every body row's cells. With REM on, each REM column's cell reads REM (or
+    // "—"); with REM off, no cell sits past the header's last column and no cell reads REM. Drawn first-time with REM
+    // on, then first-time with REM off, then REM on redrawn with REM off (the toggle a designer makes).
+    const drawnTables = (sh: { prim: N; sem: N }): N[] => [...tablesOn(sh.prim), ...tablesOn(sh.sem)].filter((w) => w.name !== 'Style guide — Text styles');
+    const titleOf = (w: N): string => w.name.replace('Style guide — ', '');
+    const checkDrawn = (sh: { prim: N; sem: N }, setting: 'on' | 'off', how: string): void => {
+      const want = setting === 'on' ? REM_ON : REM_OFF;
+      const ws = drawnTables(sh);
+      ok(JSON.stringify(ws.map(titleOf).sort()) === TITLES, `25: REM ${setting}, ${how}: the 12 dimension and font-variable tables are drawn (${ws.map(titleOf).join(', ')})`);
+      const wrongHeads = ws.filter((w) => !same(headerRow(w), want[titleOf(w)] ?? [])).map((w) => `${titleOf(w)}: ${headerRow(w).join(' · ')}`);
+      ok(wrongHeads.length === 0, `25: REM ${setting}, ${how}: each table's header row is its exact column list${wrongHeads.length ? ` (${wrongHeads.join(' / ')})` : ''}`);
+      const wrongCells: string[] = [];
+      let bodyRows = 0;
+      for (const w of ws) {
+        const cols = want[titleOf(w)] ?? [];
+        const g = gridOf(w);
+        const rows = [...new Set(g.children.map((k) => k.gridRow!).filter((r) => r > 0))];
+        bodyRows += rows.length;
+        for (const r of rows) {
+          const cells = g.children.filter((k) => k.gridRow === r);
+          for (const k of cells) if (k.gridCol! >= cols.length) wrongCells.push(`${titleOf(w)} row ${r}: a cell in column ${k.gridCol} past "${cols[cols.length - 1]}" reads "${textIn(k)}"`);
+          cols.forEach((name, c) => {
+            const t = textIn(cellAt(g, r, c));
+            if (name === 'REM' && !REM_CELL.test(t)) wrongCells.push(`${titleOf(w)} row ${r}: its REM cell reads "${t}"`);
+            if (name !== 'REM' && ANY_REM.test(t)) wrongCells.push(`${titleOf(w)} row ${r}: its ${name} cell reads "${t}"`);
+          });
+        }
+      }
+      ok(bodyRows > 0 && wrongCells.length === 0, `25: REM ${setting}, ${how}: ${setting === 'on' ? 'every row has a REM cell under each REM column' : 'no row has a REM cell'}, and no cell sits outside its column (${bodyRows} rows${wrongCells.length ? `; ${wrongCells.slice(0, 4).join(' / ')}` : ''})`);
+    };
+    const on = await phase2File();
+    await draw(on.api, contract);
+    checkDrawn(on, 'on', 'first draw');
+    const off = await phase2File();
+    await draw(off.api, contract, { rem: false });
+    checkDrawn(off, 'off', 'first draw');
+    await draw(on.api, contract, { rem: false });
+    checkDrawn(on, 'off', 'redrawn from REM on');
+  }
+
+  console.log('26. the Build style guides page: what the file holds, and whether Set up file has run (S11.2)');
   {
     // THE TABLES THE PAGE OFFERS, typed here: the prism3 file's 22, in draw order (section 14 counts the same run).
     const PRISM3_TITLES = ['Core — base', 'Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha',
@@ -2518,13 +2619,13 @@ const main = async (): Promise<void> => {
     const cat = catalogFor({ collections: f25.cols, variables: f25.vars }, contract, isSetUp(f25.api.root));
     ok(JSON.stringify(cat.tables.map((t) => t.title)) === JSON.stringify(PRISM3_TITLES) && cat.tables.every((t) => t.kind === 'color')
       && cat.tables.filter((t) => t.page === 'Semantic tokens').length === 11 && cat.tables.filter((t) => t.page === 'Primitive tokens').length === 11,
-      `25: the page is offered the 22 tables in draw order, all color, 11 on each token page, named without "↳" (${cat.tables.slice(0, 3).map((t) => `${t.title}@${t.page}`).join(', ')}…)`);
+      `26: the page is offered the 22 tables in draw order, all color, 11 on each token page, named without "↳" (${cat.tables.slice(0, 3).map((t) => `${t.title}@${t.page}`).join(', ')}…)`);
     ok(JSON.stringify(cat.collections.map((c) => `${c.name}:${c.modes.join('/')}:${c.items.length}`)) === JSON.stringify(['core:Default:164', 'color:light/dark/hc-light/hc-dark:268', 'legacy:Value:4']),
-      `25: every collection, its modes and every variable in it (${cat.collections.map((c) => `${c.name} ${c.items.length}`).join(', ')})`);
+      `26: every collection, its modes and every variable in it (${cat.collections.map((c) => `${c.name} ${c.items.length}`).join(', ')})`);
     const item = (n: string) => cat.collections.flatMap((c) => c.items).find((i) => i.name === n);
     ok(cat.tables[item('pds3/color/text/primary')!.table]?.title === 'Text' && cat.tables[item('pds3/core/palette/primary/500')!.table]?.title === 'Primary'
       && item('pds3/core/palette/white')?.value === '#FFFFFF' && item('pds3/color/background/secondary')?.value === '#E9E9E9' && item('pds3/core/palette/transparent')?.value === '#000000 · 0%',
-      `25: a variable names the table it is drawn in, and its value in the default mode (text/primary in ${cat.tables[item('pds3/color/text/primary')!.table]?.title}; white ${item('pds3/core/palette/white')?.value})`);
+      `26: a variable names the table it is drawn in, and its value in the default mode (text/primary in ${cat.tables[item('pds3/color/text/primary')!.table]?.title}; white ${item('pds3/core/palette/white')?.value})`);
     // THE TREE AGREES WITH THE RUN: draw the file, then read each drawn table's rows back off the frame's own record
     // (the variable IDs the executor wrote), never off the plan. Every variable sits under the table that drew it.
     await draw(f25.api, contract);
@@ -2538,29 +2639,29 @@ const main = async (): Promise<void> => {
       }
     }
     ok(wrong.length === 0 && cat.collections.flatMap((c) => c.items).every((i) => i.table >= 0),
-      `25: every drawn row's variable is listed under the table that drew it (${wrong.length} not: ${wrong.slice(0, 3).join(', ')})`);
-    ok(cat.setUp === true, '25: the file with both cell sets and both token pages is set up');
+      `26: every drawn row's variable is listed under the table that drew it (${wrong.length} not: ${wrong.slice(0, 3).join(', ')})`);
+    ok(cat.setUp === true, '26: the file with both cell sets and both token pages is set up');
     const bare = makeShim([page('Cover'), page(PRIM), page(SEM)], [], []);
     const fc25 = page(FC);
     const noPages = makeShim([page('Cover'), fc25], [], []);
     await ensureStyleGuideCells(noPages.api, fc25);
     ok(isSetUp(bare.api.root) === false && isSetUp(noPages.api.root) === false,
-      `25: pages without the cell sets, or the cell sets without the pages, are not set up (${isSetUp(bare.api.root)}, ${isSetUp(noPages.api.root)})`);
+      `26: pages without the cell sets, or the cell sets without the pages, are not set up (${isSetUp(bare.api.root)}, ${isSetUp(noPages.api.root)})`);
     // PHASE 2'S FILE: a later-phase variable is listed with table -1, and a text style under the text-style table.
     const f25b = await phase2File();
     const cat2 = catalogFor({ collections: f25b.cols, variables: f25b.vars, textStyles: f25b.styles }, contract, true);
     const all2 = cat2.collections.flatMap((c) => c.items);
     const ts = cat2.collections.find((c) => c.textStyles);
     ok(ts?.name === 'Text styles' && ts.items.length === 63 && ts.items.every((i) => cat2.tables[i.table]?.title === 'Text styles' && cat2.tables[i.table]?.kind === 'text'),
-      `25: the 63 text styles are listed last, as "Text styles", each under the text-style table (${ts?.items.length})`);
+      `26: the 63 text styles are listed last, as "Text styles", each under the text-style table (${ts?.items.length})`);
     const later = all2.filter((i) => i.table < 0).map((i) => i.name);
     ok(later.includes('pds3/opacity/50') && later.includes('pds3/opacity/0') && !later.includes('pds3/space/050') && all2.some((i) => i.name === 'pds3/space/050'),
-      `25: an opacity is listed with no table, a space with one (${later.length} with none: ${later.slice(0, 3).join(', ')}…)`);
+      `26: an opacity is listed with no table, a space with one (${later.length} with none: ${later.slice(0, 3).join(', ')}…)`);
     ok(cat2.tables.some((t) => t.kind === 'dimension' && t.title === 'Space') && cat2.tables.some((t) => t.kind === 'font' && /^Font size/.test(t.title)),
-      `25: the page's four kinds: Space is spacing and size, Font size a font variable (${[...new Set(cat2.tables.map((t) => t.kind))].join(', ')})`);
+      `26: the page's four kinds: Space is spacing and size, Font size a font variable (${[...new Set(cat2.tables.map((t) => t.kind))].join(', ')})`);
   }
 
-  console.log('26. a run table by table: its list, then each table drawing and done (S11.2, owner decision P1)');
+  console.log('27. a run table by table: its list, then each table drawing and done (S11.2, owner decision P1)');
   {
     const f26 = await fullFile();
     const events: string[] = [];
@@ -2568,10 +2669,10 @@ const main = async (): Promise<void> => {
     await draw(f26.api, contract, {}, { onPlan: (ts) => { listed = ts.map((t) => t.title); }, onTable: (e) => events.push(`${e.index}:${e.status}`) });
     const want = Array.from({ length: 22 }, (_, i) => [`${i}:drawing`, `${i}:done`]).flat();
     ok(listed.length === 22 && listed[0] === 'Core — base' && listed[21] === 'Legacy' && JSON.stringify(events) === JSON.stringify(want),
-      `26: the run lists its 22 tables first, then each one drawing and then done, in order (${events.slice(0, 4).join(', ')}… ${events.length} moves)`);
+      `27: the run lists its 22 tables first, then each one drawing and then done, in order (${events.slice(0, 4).join(', ')}… ${events.length} moves)`);
   }
 
-  console.log('27. one failed table does not stop the run, and Draw it again redraws that table alone (S11.2, owner decision P6)');
+  console.log('28. one failed table does not stop the run, and Draw it again redraws that table alone (S11.2, owner decision P6)');
   {
     const f27 = await fullFile();
     // THE HOST REFUSES ONE TABLE: binding any Accent step throws, as a host refusing a write would.
@@ -2588,12 +2689,12 @@ const main = async (): Promise<void> => {
     const failedT = r.tables.filter((t) => t.status === 'failed');
     ok(failedT.length === 1 && failedT[0].title === 'Accent' && (failedT[0] as Extract<TableOutcome, { status: 'failed' }>).reason === 'Accent refused'
       && r.tables.filter((t) => t.status === 'created').length === 21,
-      `27: the Accent table fails with the host's words, and the run goes on to draw the other 21 (${r.tables.map((t) => t.status).filter((x) => x !== 'created').join(', ')}; ${r.tables.filter((t) => t.status === 'created').length} created)`);
+      `28: the Accent table fails with the host's words, and the run goes on to draw the other 21 (${r.tables.map((t) => t.status).filter((x) => x !== 'created').join(', ')}; ${r.tables.filter((t) => t.status === 'created').length} created)`);
     ok(events[accent * 2] === '3:drawing' && events[accent * 2 + 1] === '3:failed(Accent refused)' && events[accent * 2 + 2] === '4:drawing' && events.length === 44,
-      `27: the Accent table's moves read drawing, then failed with its reason, and the next table starts (${events.slice(6, 9).join(', ')})`);
+      `28: the Accent table's moves read drawing, then failed with its reason, and the next table starts (${events.slice(6, 9).join(', ')})`);
     const v = styleGuideSummary(r);
     ok(!v.ok && v.headline === '⚠ 21 drawn, 1 failed' && v.summary.startsWith('Accent: Accent refused. '),
-      `27: the verdict is "⚠ 21 drawn, 1 failed", not a pass, and the summary opens on the failed table and its reason (${v.headline}; ${v.summary.slice(0, 40)}…)`);
+      `28: the verdict is "⚠ 21 drawn, 1 failed", not a pass, and the summary opens on the failed table and its reason (${v.headline}; ${v.summary.slice(0, 40)}…)`);
     // DRAW IT AGAIN: the host now takes the binding, and the page redraws the one table by its key.
     refuse = false;
     const others = [...tablesOn(f27.prim), ...tablesOn(f27.sem)].filter((w) => w.pluginData['prism3-style-guide'] !== keys[accent]);
@@ -2603,12 +2704,12 @@ const main = async (): Promise<void> => {
     const acc = tableFrame(f27.prim, 'Accent');
     ok(r2.tables.length === 1 && r2.tables[0].title === 'Accent' && r2.tables[0].status !== 'failed' && JSON.stringify(again) === JSON.stringify(['0:drawing', '0:done'])
       && styleGuideSummary(r2).headline === '✓ style guide: 1 table' && !!acc && acc.findAll((n) => boundId(n.fills) !== undefined).length === 20,
-      `27: Draw it again draws Accent alone, its 20 swatches bound this time (${r2.tables.map((t) => `${t.title} ${t.status}`).join(', ')}; ${styleGuideSummary(r2).headline})`);
+      `28: Draw it again draws Accent alone, its 20 swatches bound this time (${r2.tables.map((t) => `${t.title} ${t.status}`).join(', ')}; ${styleGuideSummary(r2).headline})`);
     ok(tablesOn(f27.prim).filter((w) => w.name === 'Style guide — Accent').length === 1 && [...prints].every(([w, p]) => w.pluginData['prism3-style-guide-print'] === p),
-      `27: there is one Accent table, and no other table moved (${[...prints].filter(([w, p]) => w.pluginData['prism3-style-guide-print'] !== p).length} changed)`);
+      `28: there is one Accent table, and no other table moved (${[...prints].filter(([w, p]) => w.pluginData['prism3-style-guide-print'] !== p).length} changed)`);
   }
 
-  console.log('28. Cancel stops after the table being drawn, and deletes nothing (S11.2, owner decision P7)');
+  console.log('29. Cancel stops after the table being drawn, and deletes nothing (S11.2, owner decision P7)');
   {
     const f28 = await fullFile();
     await draw(f28.api, contract);
@@ -2618,19 +2719,19 @@ const main = async (): Promise<void> => {
     let done = 0;
     const r = await draw(f28.api, contract, {}, { onTable: (e) => { if (e.status === 'done') done++; }, stop: () => done >= 3 });
     ok(r.tables.length === 3 && JSON.stringify(r.stopped) === JSON.stringify({ done: 3, total: 21 }) && done === 3,
-      `28: a stop read after the third table ends the run there: 3 of 21 reached (${r.tables.length} outcomes; ${JSON.stringify(r.stopped)})`);
+      `29: a stop read after the third table ends the run there: 3 of 21 reached (${r.tables.length} outcomes; ${JSON.stringify(r.stopped)})`);
     ok(r.deleted.length === 0 && r.stale.length === 0 && !!tableFrame(f28.prim, 'Legacy'),
-      `28: a stopped run judges no superseded table: the emptied Legacy table stays (deleted ${r.deleted.length}, stale ${r.stale.length})`);
+      `29: a stopped run judges no superseded table: the emptied Legacy table stays (deleted ${r.deleted.length}, stale ${r.stale.length})`);
     const v = styleGuideSummary(r);
     ok(v.ok && v.headline === '✓ style guide: 3 tables' && v.summary.includes('Stopped after table 3 of 21. The tables already drawn stay'),
-      `28: the verdict counts the 3 tables and says where it stopped (${v.headline}; ${v.summary.slice(0, 120)})`);
+      `29: the verdict counts the 3 tables and says where it stopped (${v.headline}; ${v.summary.slice(0, 120)})`);
     // The control: the same file, run to the end, deletes the Legacy table, so the stop is what kept it.
     const full = await draw(f28.api, contract);
-    ok(!full.stopped && full.deleted.includes('Style guide — Legacy'), `28: run to the end, the same file deletes the Legacy table (${full.deleted.join(', ')})`);
+    ok(!full.stopped && full.deleted.includes('Style guide — Legacy'), `29: run to the end, the same file deletes the Legacy table (${full.deleted.join(', ')})`);
     // A stop read after the LAST table is no stop.
     let n = 0;
     const last = await draw(f28.api, contract, {}, { onTable: (e) => { if (e.status === 'done') n++; }, stop: () => n >= 21 });
-    ok(!last.stopped && last.tables.length === 21, `28: a stop that turns true only after the last table is not a stop (${JSON.stringify(last.stopped)})`);
+    ok(!last.stopped && last.tables.length === 21, `29: a stop that turns true only after the last table is not a stop (${JSON.stringify(last.stopped)})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
