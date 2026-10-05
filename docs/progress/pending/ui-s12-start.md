@@ -37,7 +37,7 @@
 - Blank before the examples (round 1): chrome `the cards run color, examples, the neutral default, import (S8)`;
 - (round 2, N1 A) the separate card put back: chrome `the cards run color (with Blank), examples, import (S8, N1 A) — ["Start from your color","Explore an example","Start with a neutral default","Import a design.md"]` and `"Start blank" sits inside the color card (N1 A) — in card 2`;
 - (round 2, N1 A) "Start blank" styled as primary: chrome `"Start blank" is the secondary action, on the card's own ground, not the primary fill — {"blank":"rgb(13, 13, 14)","go":"rgb(13, 13, 14)",…}`;
-- the color card's old darker border (round 2): chrome `every card draws the same border — ["rgb(141, 142, 144)|1px","rgb(219, 219, 220)|1px",…]`;
+- the color card's old darker border (round 2): chrome `every card draws the same border — ["rgb(141, 142, 144)|1px","rgb(219, 219, 220)|1px","rgb(219, 219, 220)|1px"]`;
 - Upload moved back below the box: chrome `the import card's heading row holds its title and then "↑ Upload…" — holds ["Import a design.md"]`;
 - Import left enabled when the box is empty: chrome `with the box empty, Import is disabled and still named "Import" — {"disabled":false,…}`;
 - the old import description: chrome `the import card says "Already have a design.md? Paste it or upload it to load the full brand." (X1)`;
