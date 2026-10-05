@@ -446,7 +446,20 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
       const caret = el.tagName === 'SELECT' ? null : parse(cs.caretColor, el, 'caret-color');
       // A transparent caret on an editable field is an invisible caret (1:1), not "no caret".
       const editable = el.tagName !== 'SELECT' && !el.readOnly && !el.disabled;
+      // OFF (F1 A): really disabled, `:disabled` or `aria-disabled="true"`, never by class or hook; with its colors and
+      // whether focus takes, so Node can hold an exempted field to the exemption's conditions.
+      const off = el.matches(':disabled') || el.getAttribute('aria-disabled') === 'true';
+      let focusable = null;
+      if (off) {
+        const prev = document.activeElement;
+        el.focus();
+        focusable = document.activeElement === el;
+        if (focusable) { el.blur(); prev?.focus?.(); }
+      }
       fields.push({
+        off, focusable, disabledProp: el.disabled === true, ariaDisabled: el.getAttribute('aria-disabled') === 'true',
+        fill: cs.backgroundColor, ink: cs.color,
+        edges: ['Top', 'Right', 'Bottom', 'Left'].map((x) => [cs[`border${x}Color`], cs[`border${x}Style`]]),
         ratio: round(ratio(over({ ...col, a: col.a * op }, ground), ground)),
         caretRatio: !editable || !caret ? null : round(ratio(over({ ...caret, a: caret.a * op }, ground), ground)),
         op: round(op), cls: name(el), text: `[${el.tagName === 'INPUT' ? el.type : el.tagName.toLowerCase()}] "${String(el.value ?? '').slice(0, 20)}"`,
@@ -459,7 +472,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
     }
     scratch?.remove();
     const legacy = document.querySelector('[data-p3="legacy-frame"]');
-    return { text, fields, unparsed, legacyScheme: legacy ? getComputedStyle(legacy).colorScheme : null };
+    return { text, fields, unparsed, legacyScheme: legacy ? getComputedStyle(legacy).colorScheme : null, scheme: getComputedStyle(document.documentElement).colorScheme };
   };
 
   // The bars, AUTHORED here as WCAG states them — not imported from the studio suite, so a change to one
@@ -468,6 +481,42 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
   const isLarge = (r) => r.px >= 24 || (r.px >= 18.66 && r.weight >= 700);
   const barOf = (r) => (r.specimen ? SPECIMEN_FLOOR : isLarge(r) ? LARGE_TEXT_MIN : TEXT_MIN);
   const caretBarOf = (f) => (f.specimen ? SPECIMEN_FLOOR : CARET_MIN);
+  /**
+   * THE CONTRAST EXEMPTION FOR INACTIVE FIELDS (owner decision F1 A, 2026-10-05). WCAG 2.2 exempts a component that
+   * is not available for user interaction from SC 1.4.3 and 1.4.11, and the owner decided that a disabled text field
+   * in the chrome draws Prism3's own disabled text field skin exactly, under the text bar on purpose (about 3.05:1).
+   * The full exemption lives in `apps/studio/test-chrome.mjs` (`checkExempt`); this is the same rule on this walk. A
+   * chrome field is exempt only when it is REALLY DISABLED (`:disabled` or `aria-disabled="true"`, never a class or
+   * hook) and under its bar; each exempted one is asserted, by name, to carry the disabled property or `aria-disabled`,
+   * to take no focus, and to draw `color.disabled.fill`, a solid `color.disabled.border` edge and `color.disabled.on-fill`
+   * ink for the chrome theme, read here from the committed default theme emission, never from the CSS.
+   */
+  const PRISM3_DISABLED = (() => {
+    const out = resolve(REPO, 'packages/engine/out');
+    const base = JSON.parse(readFileSync(resolve(out, 'prism3.tokens.json'), 'utf8'));
+    const root = Object.keys(base).find((k) => !k.startsWith('$'));
+    const leafAt = (tree, path) => path.split('.').reduce((n, k) => n?.[k], tree);
+    const dark = structuredClone(base);
+    const put = (src, dst) => { for (const [k, v] of Object.entries(src)) { if (k.startsWith('$')) continue; if (v && typeof v === 'object' && '$value' in v) dst[k] = v; else put(v, dst[k] ??= {}); } };
+    put(JSON.parse(readFileSync(resolve(out, 'prism3.dark.overlay.tokens.json'), 'utf8')), dark);
+    const hex = (tree, path, seen = 0) => {
+      const v = leafAt(tree, path)?.$value;
+      if (typeof v !== 'string' || seen > 20) return null;
+      const m = /^\{(.+)\}$/.exec(v);
+      return m ? hex(tree, m[1], seen + 1) : v.toLowerCase();
+    };
+    const skin = (tree) => ({ fill: hex(tree, `${root}.color.disabled.fill`), edge: hex(tree, `${root}.color.disabled.border`), ink: hex(tree, `${root}.color.disabled.on-fill`) });
+    return { light: skin(base), dark: skin(dark) };
+  })();
+  const hexOfRgb = (x) => {
+    const m = /^rgba?\(([^)]+)\)$/.exec((x ?? '').trim());
+    if (!m) return null;
+    const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
+    if (p.length > 3 && p[3] !== 1) return null;
+    return `#${p.slice(0, 3).map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
+  };
+  /** Every field exemption granted this run: [where, hook]. Floored on the Layout tab after the sweep, and printed. */
+  const FIELD_EXEMPTIONS = [];
   // Non-empty floors. A state that measured almost nothing fails naming itself rather than passing as
   // "every one of 0 nodes clears 4.5:1" — #779's first defect, which this file would otherwise repeat.
   const STATE_TEXT_FLOOR = 10;
@@ -555,7 +604,18 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
     const textUnder = m.text.filter((r) => r.ratio < barOf(r));
     ok(textUnder.length === 0, `${where}: every one of ${m.text.length} text nodes meets its bar (chrome ${TEXT_MIN}:1, ${LARGE_TEXT_MIN}:1 large; specimens ${SPECIMEN_FLOOR}:1)${
       textUnder.length ? ` — ${textUnder.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (${u.px}px/${u.weight}, op ${u.op}, needs ${barOf(u)}:1)`).join(' | ')}` : ''}`);
-    const fieldUnder = m.fields.filter((f) => f.ratio < barOf(f) || (f.caretRatio !== null && f.caretRatio < caretBarOf(f)));
+    const under = m.fields.filter((f) => f.ratio < barOf(f) || (f.caretRatio !== null && f.caretRatio < caretBarOf(f)));
+    const exempt = under.filter((f) => f.off && !f.specimen);
+    const want = PRISM3_DISABLED[m.scheme];
+    for (const f of exempt) {
+      FIELD_EXEMPTIONS.push([where, f.hook ?? f.cls]);
+      ok((f.disabledProp || f.ariaDisabled) && f.focusable === false,
+        `${where}: the exempted field ${f.cls} ${f.text} is disabled and takes no focus (disabled ${f.disabledProp}, aria-disabled ${f.ariaDisabled}, took focus ${f.focusable})`);
+      const got = { fill: hexOfRgb(f.fill), edge: [...new Set(f.edges.map(([c]) => hexOfRgb(c)))].join(' '), style: [...new Set(f.edges.map(([, st]) => st))].join(' '), ink: hexOfRgb(f.ink) };
+      ok(!!want && got.fill === want.fill && got.edge === want.edge && got.style === 'solid' && got.ink === want.ink,
+        `${where}: the exempted field ${f.cls} ${f.text} draws Prism3's disabled roles for the ${m.scheme} chrome: fill color.disabled.fill ${want?.fill}, a solid edge color.disabled.border ${want?.edge}, ink color.disabled.on-fill ${want?.ink} (drew ${JSON.stringify(got)})`);
+    }
+    const fieldUnder = under.filter((f) => !exempt.includes(f));
     ok(fieldUnder.length === 0, `${where}: every one of ${m.fields.length} form control(s) inks its value at its text bar and its caret at ${CARET_MIN}:1${
       fieldUnder.length ? ` — ${fieldUnder.slice(0, 3).map((u) => `${u.cls} ${u.text} at ${u.ratio}:1 (needs ${barOf(u)}:1), caret ${u.caretRatio ?? 'n/a'}:1 (needs ${caretBarOf(u)}:1)`).join(' | ')}` : ''}`);
     // The marker audit, as in the studio sweep: inside the SHARED UI (`#app`), inline ink is what
@@ -656,6 +716,12 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
   ok(pagesSeen.has(hooks.role('[data-p3="rail-page-style-guide"]')), `the plugin's one Pages menu page, the Style guide, was measured (saw ${[...pagesSeen].join(', ') || 'no pages'})`);
   ok(textTotal >= SWEEP_TEXT_FLOOR, `measured ${textTotal} text nodes across the panel sweep (floor ${SWEEP_TEXT_FLOOR})`);
   ok(fieldTotal >= SWEEP_FIELD_FLOOR, `measured ${fieldTotal} form controls across the panel sweep (floor ${SWEEP_FIELD_FLOOR})`);
+  // F1 A, counted: Layout's first breakpoint field is disabled by design (D13), so every Layout tab measured must exempt it.
+  const layoutTags = [];
+  for (const scheme of ['light', 'dark']) for (const theme of ['light', 'dark']) layoutTags.push(`${scheme} scheme / Figma ${theme} / Layout`);
+  const missed = layoutTags.filter((t) => !FIELD_EXEMPTIONS.some(([w, hk]) => w === t && hk === 'bp-input'));
+  ok(missed.length === 0, `every Layout tab measured exempted its disabled first breakpoint field from the field bar (F1 A) — exempted ${FIELD_EXEMPTIONS.length}${missed.length ? `; none in ${missed.join(', ')}` : ''}`);
+  console.log(`  Contrast exemption (inactive fields, WCAG 2.2 SC 1.4.3; F1 A): ${FIELD_EXEMPTIONS.length} field(s) exempted in ${new Set(FIELD_EXEMPTIONS.map(([w]) => w)).size} state(s).`);
   console.log(`  ${pagesSeen.size} rail page(s) and ${tabsSeen.size} tabs × 2 schemes × 2 Figma themes, plus the start moment at both sizes: ${textTotal} text nodes, ${fieldTotal} form controls.`);
   console.log(`  Lowest chrome text: ${worst.ratio}:1 — ${worst.where}`);
   console.log(`  Unparsed colors: ${unparsedTotal} (every one fails by name).`);

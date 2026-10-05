@@ -282,7 +282,20 @@ const LEGIBILITY_PROBE = (rootSel) => {
     // of #1777): it is measured as the ground against itself, 1:1, and fails the caret bar. Only a field
     // that takes no typing — read-only or disabled — has no caret to lose.
     const editable = el.tagName !== 'SELECT' && !el.readOnly && !el.disabled;
+    // OFF (F1 A): the field is really disabled, `:disabled` or `aria-disabled="true"`, never by class or hook. What Node
+    // needs to hold an exempted one to the exemption's conditions rides along: its colors, and whether focus takes.
+    const off = el.matches(':disabled') || el.getAttribute('aria-disabled') === 'true';
+    let focusable = null;
+    if (off) {
+      const prev = document.activeElement;
+      el.focus();
+      focusable = document.activeElement === el;
+      if (focusable) { el.blur(); prev?.focus?.(); }
+    }
     fields.push({
+      off, focusable, disabledProp: el.disabled === true, ariaDisabled: el.getAttribute('aria-disabled') === 'true',
+      fill: cs.backgroundColor, ink: cs.color,
+      edges: ['Top', 'Right', 'Bottom', 'Left'].map((x) => [cs[`border${x}Color`], cs[`border${x}Style`]]),
       ratio: round(ratio(over({ ...col, a: col.a * op }, ground), ground)),
       caretRatio: !editable || !caret ? null : round(ratio(over({ ...caret, a: caret.a * op }, ground), ground)),
       cls: name(el),
@@ -297,7 +310,7 @@ const LEGIBILITY_PROBE = (rootSel) => {
     });
   }
   scratch?.remove();
-  return { text, fields, unparsed, rootFound: true };
+  return { text, fields, unparsed, rootFound: true, scheme: getComputedStyle(document.documentElement).colorScheme };
 };
 
 /**
@@ -363,6 +376,58 @@ const CHROME_CARET_MIN = 3;
 
 const caretBarOf = (f) => (f.specimen ? CONTRAST_FLOOR : CHROME_CARET_MIN);
 const fieldFails = (f) => f.ratio < barOf(f) || (f.caretRatio !== null && f.caretRatio !== undefined && f.caretRatio < caretBarOf(f));
+/**
+ * THE CONTRAST EXEMPTION FOR INACTIVE FIELDS (owner decision F1 A, 2026-10-05). WCAG 2.2 exempts a user interface
+ * component that is not available for user interaction from SC 1.4.3 and SC 1.4.11, and the owner decided that a
+ * disabled text field in the chrome draws Prism3's own disabled text field skin exactly, which sits under the text
+ * bar on purpose (about 3.05:1). `test:chrome` carries the full exemption (its header, and `checkExempt`); this is
+ * the same rule on this suite's form-control walk. A chrome field (never a specimen) is exempt from its bar only
+ * when it is REALLY DISABLED (`:disabled` or `aria-disabled="true"`, never a class or hook) and under its bar; and
+ * each exempted field is still asserted, by name, to carry the disabled property or `aria-disabled`, to take no
+ * focus, and to draw `color.disabled.fill`, a solid `color.disabled.border` edge and `color.disabled.on-fill` ink
+ * for the chrome theme, read from the committed default theme emission (`PRISM3_DISABLED`), never from the CSS.
+ */
+const PRISM3_DISABLED = await (async () => {
+  const out = join(ROOT, '..', '..', 'packages', 'engine', 'out');   // OUT_DIR, which is declared below this
+  const base = JSON.parse(await readFile(join(out, 'prism3.tokens.json'), 'utf8'));
+  const root = Object.keys(base).find((k) => !k.startsWith('$'));
+  const leafAt = (tree, path) => path.split('.').reduce((n, k) => n?.[k], tree);
+  const dark = structuredClone(base);
+  const put = (src, dst) => { for (const [k, v] of Object.entries(src)) { if (k.startsWith('$')) continue; if (v && typeof v === 'object' && '$value' in v) dst[k] = v; else put(v, dst[k] ??= {}); } };
+  put(JSON.parse(await readFile(join(out, 'prism3.dark.overlay.tokens.json'), 'utf8')), dark);
+  const hex = (tree, path, seen = 0) => {
+    const v = leafAt(tree, path)?.$value;
+    if (typeof v !== 'string' || seen > 20) return null;
+    const m = /^\{(.+)\}$/.exec(v);
+    return m ? hex(tree, m[1], seen + 1) : v.toLowerCase();
+  };
+  const skin = (tree) => ({ fill: hex(tree, `${root}.color.disabled.fill`), edge: hex(tree, `${root}.color.disabled.border`), ink: hex(tree, `${root}.color.disabled.on-fill`) });
+  return { light: skin(base), dark: skin(dark) };
+})();
+const hexOfRgb = (s) => {
+  const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim());
+  if (!m) return null;
+  const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
+  if (p.length > 3 && p[3] !== 1) return null;
+  return `#${p.slice(0, 3).map((x) => Math.round(x).toString(16).padStart(2, '0')).join('')}`;
+};
+/** Every field exemption granted this run: [where, hook]. Printed after the sweep, and floored per brand there. */
+const FIELD_EXEMPTIONS = [];
+/** The fields under their bars that the exemption does not cover; each one it does cover is asserted here. */
+const fieldsUnderBar = (probe, where) => {
+  const under = probe.fields.filter(fieldFails);
+  const exempt = under.filter((f) => f.off && !f.specimen);
+  const want = PRISM3_DISABLED[probe.scheme];
+  for (const f of exempt) {
+    FIELD_EXEMPTIONS.push([where, f.hook ?? f.cls]);
+    ok((f.disabledProp || f.ariaDisabled) && f.focusable === false,
+      `${where}: the exempted field ${f.cls} ${f.text} is disabled and takes no focus (disabled ${f.disabledProp}, aria-disabled ${f.ariaDisabled}, took focus ${f.focusable})`);
+    const got = { fill: hexOfRgb(f.fill), edge: [...new Set(f.edges.map(([c]) => hexOfRgb(c)))].join(' '), style: [...new Set(f.edges.map(([, st]) => st))].join(' '), ink: hexOfRgb(f.ink) };
+    ok(!!want && got.fill === want.fill && got.edge === want.edge && got.style === 'solid' && got.ink === want.ink,
+      `${where}: the exempted field ${f.cls} ${f.text} draws Prism3's disabled roles for the ${probe.scheme} chrome: fill color.disabled.fill ${want?.fill}, a solid edge color.disabled.border ${want?.edge}, ink color.disabled.on-fill ${want?.ink} (drew ${JSON.stringify(got)})`);
+  }
+  return under.filter((f) => !exempt.includes(f));
+};
 const describeField = (u) => `${u.cls} ${u.text} at ${u.ratio}:1, caret ${u.caretRatio}:1 (${u.px}px/${u.weight}, op ${u.op}; needs ${barOf(u)}:1, caret ${caretBarOf(u)}:1)`;
 
 /**
@@ -921,7 +986,7 @@ for (const brand of BRANDS) {
 
       // --- rendered contrast, form controls (#1031) ---------------------------------------------
       // No per-state floor (a place may draw no field); "did it look?" is the sweep total below.
-      const fieldsUnder = probe.fields.filter(fieldFails);
+      const fieldsUnder = fieldsUnderBar(probe, where);
       for (const f of probe.fields) if (f.ratio < worstRatio) { worstRatio = f.ratio; worstWhere = `${where} — ${f.cls} ${f.text}`; }
       for (const f of probe.fields) if (!f.specimen && f.ratio < worstField) { worstField = f.ratio; worstFieldWhere = `${where} — ${f.cls} ${f.text}`; }
       ok(fieldsUnder.length === 0, `${where}: every one of ${probe.fields.length} form control(s) inks its value at its text bar (${CHROME_TEXT_MIN}:1, ${CHROME_LARGE_TEXT_MIN}:1 large) and its caret at ${CHROME_CARET_MIN}:1${
@@ -1021,7 +1086,7 @@ for (const brand of BRANDS) {
           `${where}: exempt ${r.pair.claim} is distinct from its row's rest fill — the one thing #1281 keeps gated (${rest ? `${hexOf(r.pair.fill)} vs rest ${hexOf(rest.r.pair.fill)}` : 'NO rest specimen in its row'})`);
       }
     }
-    const fieldsUnder = probe.fields.filter(fieldFails);
+    const fieldsUnder = fieldsUnderBar(probe, where);
     ok(fieldsUnder.length === 0, `${where}: every one of ${probe.fields.length} form control(s) inks its value at its text bar and its caret at ${CHROME_CARET_MIN}:1${fieldsUnder.length ? ` — ${fieldsUnder.slice(0, 3).map(describeField).join(' | ')}` : ''}`);
     // Each Style guide ground on the page: the brand's own background.primary for this mode, from its emission.
     // Each Style guide section, named by its title: its specimen root (the ground it draws on) and that ground,
@@ -1093,6 +1158,10 @@ ok(modeCells.size > 0 && [...modeCells].every((k) => exemptCells.has(k)),
     [...modeCells].filter((k) => !exemptCells.has(k)).length ? ` — none in ${[...modeCells].filter((k) => !exemptCells.has(k)).join(', ')}` : ''}`);
 ok(fieldsMeasured >= SWEEP_FIELD_FLOOR,
   `the sweep measured ${fieldsMeasured} form controls in total (floor ${SWEEP_FIELD_FLOOR})`);
+// F1 A, counted: Layout's first breakpoint field is disabled by design (D13), so every brand's sweep must exempt it.
+ok(BRANDS.every((b) => FIELD_EXEMPTIONS.some(([w, hk]) => w.startsWith(`${b} / layout /`) && hk === 'bp-input')),
+  `every brand's sweep exempted Layout's disabled first breakpoint field from the field bar (F1 A) — exempted ${FIELD_EXEMPTIONS.length}; none for ${BRANDS.filter((b) => !FIELD_EXEMPTIONS.some(([w, hk]) => w.startsWith(`${b} / layout /`) && hk === 'bp-input')).join(', ') || 'no brand'}`);
+console.log(`\n  Contrast exemption (inactive fields, WCAG 2.2 SC 1.4.3; F1 A): ${FIELD_EXEMPTIONS.length} field(s) exempted in ${new Set(FIELD_EXEMPTIONS.map(([w]) => w)).size} state(s).`);
 
 console.log(`\n  ${statesVisited} page × mode states, ${nodesMeasured} text nodes, ${fieldsMeasured} form controls measured.`);
 console.log(`  Lowest rendered contrast anywhere: ${worstRatio}:1 (specimen floor ${CONTRAST_FLOOR.toFixed(1)}:1)`);
@@ -2531,7 +2600,7 @@ for (const brand of BRANDS) {
     ok(chromeUnder.length === 0, `${where}: every one of ${chrome.length} chrome text nodes meets WCAG 1.4.3 (${CHROME_TEXT_MIN}:1, ${CHROME_LARGE_TEXT_MIN}:1 large)${chromeUnder.length ? ` — ${chromeUnder.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (needs ${barOf(u)}:1)`).join(' | ')}` : ''}`);
     const unmarked = probe.text.filter((r) => r.inlineInk && !r.specimen);
     ok(unmarked.length === 0, `${where}: every node inked by an inline style is marked data-specimen at its render site${unmarked.length ? ` — ${unmarked.slice(0, 3).map((u) => `${u.cls} "${u.text}"`).join(' | ')}` : ''}`);
-    const fieldsUnder = probe.fields.filter(fieldFails);
+    const fieldsUnder = fieldsUnderBar(probe, where);
     ok(probe.fields.length >= 1 && fieldsUnder.length === 0, `${where}: every one of ${probe.fields.length} form control(s) in the preview inks its value at its text bar${fieldsUnder.length ? ` — ${fieldsUnder.slice(0, 3).map(describeField).join(' | ')}` : ''}`);
   }
   await ctx.close();
