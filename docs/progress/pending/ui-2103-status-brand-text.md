@@ -2,7 +2,7 @@
 
 **STATUS: branch `ui/2103-status-brand-text`.** UI and tests only. No engine change, no emitted artifact moves, no ENGINE bump, and `CONTRACT_VERSION` is unchanged. No new strings. Fixes #2103.
 
-DECISION RECORD PENDING (replaces T-FONT A)
+**Owner decision FS1 A (2026-10-05):** "✓ Installed" is drawn in the brand's `text.success`, and "⚠ Not installed" in the brand's `text.warning`, for the mode on screen. This replaces T-FONT A (#2125), which drew ⚠ in the studio's text color. The owner's reason: Prism3's tokens already carry status colors that pass on the brand's own page, so the studio's fixed `--ok` / `--warn` colors shouldn't be used there.
 
 **The owner's direction (2026-10-05).** The Type preview's font status sits on the BRAND's page color, but "✓ Installed" was colored with the studio chrome's fixed `--ok` (3.87:1 on the corpus's dark pages), and "⚠ Not installed" with the ground's `--ink` (#2091). The tokens already have passing status colors, so both labels now use them: ✓ takes the brand's `color.text.success` and ⚠ takes `color.text.warning`, for the mode on screen. Over the corpus pages those measure 4.99:1 to 11.65:1. The emission contract-checks each against `neutral.050` / `neutral.900` (`neutral.100` in harbor's light modes), min 4.5:1, 7:1 in high contrast; the smoke and chrome checks below measure each against the brand's page color directly.
 

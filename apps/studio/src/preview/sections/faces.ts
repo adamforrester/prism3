@@ -38,6 +38,8 @@ export const facesSection = (c: SgCtx, ty: Theme['typography'], mode: string, co
     // #2103: the status is painted in the brand's own status text role for the mode on screen, as the specimen beside
     // it is painted in text.primary: `text.success` for a face that is there, `text.warning` for one that is not. The
     // engine gates both against the brand's page, which the studio's fixed --ok/--warn could not promise.
+    // Owner decision FS1 A (2026-10-05): ✓ in text.success and ⚠ in text.warning, for the mode on screen. It replaces
+    // T-FONT A (#2125), which drew ⚠ in the studio's text color.
     const role = st.ok ? 'text.success' : 'text.warning';
     const stat = c.painted(specimen(el('span', `tf-stat ${st.ok ? 'ok' : 'no'}`, st.label)), role, 'color');
     stat.style.color = c.paint(c.cur, role);
