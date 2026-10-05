@@ -5203,12 +5203,20 @@ arm: {
   ok(!threw(() => buildTree(brandTheme(failing))), 'A1(b): buildTree emits a contrast-failing override without throwing');
 
   // (c) rejections: generate-only / absent modes throw in brandTheme; a malformed ref throws at resolve.
-  ok(threw(() => brandTheme({ ...base, overrides: { 'hc-light': { [roleKey]: { palette: 'primary', step: '600' } } } } as unknown as BrandInput)),
-    'A1(c): override targeting hc-light (generate-only) throws');
-  ok(threw(() => brandTheme({ ...base, overrides: { wireframe: { [roleKey]: { palette: 'primary', step: '600' } } } } as unknown as BrandInput)),
-    'A1(c): override targeting wireframe (not in the mode set) throws');
-  ok(threw(() => brandTheme({ ...base, modes: ['light'], overrides: { dark: { [roleKey]: { palette: 'primary', step: '600' } } } } as unknown as BrandInput)),
-    'A1(c): override targeting a mode this brand does not generate throws');
+  // #2108: each mode refusal is matched by its FIELD, its MODE and its REASON, not by "something threw".
+  // `brandTheme` carries three copy-pasted pairs of these (overrides, modeAnchors, modeLevers), and a branch
+  // throwing its sibling's message still throws. BY-NAME MUTATIONS: each branch made to throw its sibling's
+  // message fails its own arm here; under the old `threw()` arms the whole suite stayed green.
+  const msgA1 = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const a1Hc = msgA1(() => brandTheme({ ...base, overrides: { 'hc-light': { [roleKey]: { palette: 'primary', step: '600' } } } } as unknown as BrandInput));
+  ok(a1Hc.startsWith("overrides: mode 'hc-light' is generate-only"),
+    `A1(c): override targeting hc-light is refused by the overrides refusal, as generate-only (got "${a1Hc.slice(0, 90)}")`);
+  const a1Wf = msgA1(() => brandTheme({ ...base, overrides: { wireframe: { [roleKey]: { palette: 'primary', step: '600' } } } } as unknown as BrandInput));
+  ok(a1Wf.startsWith("overrides: mode 'wireframe' is not in this brand's modes"),
+    `A1(c): override targeting wireframe (not in the mode set) is refused by the overrides refusal, as absent (got "${a1Wf.slice(0, 90)}")`);
+  const a1Abs = msgA1(() => brandTheme({ ...base, modes: ['light'], overrides: { dark: { [roleKey]: { palette: 'primary', step: '600' } } } } as unknown as BrandInput));
+  ok(a1Abs.startsWith("overrides: mode 'dark' is not in this brand's modes"),
+    `A1(c): override targeting a mode this brand does not generate is refused by the overrides refusal, as absent (got "${a1Abs.slice(0, 90)}")`);
   ok(threw(() => resolveAllModes(brandTheme({ ...base, overrides: { dark: { [roleKey]: { palette: 'nope', step: '600' } } } } as unknown as BrandInput))),
     'A1(c): an unknown palette in an override throws (malformed input)');
   ok(threw(() => resolveAllModes(brandTheme({ ...base, overrides: { dark: { [roleKey]: { palette: 'primary', step: '999' } } } } as unknown as BrandInput))),
@@ -5252,10 +5260,17 @@ arm: {
   ok(onFill.ratio >= onFill.min, `A2b(b): on-fill still clears its contrast min after the re-anchor (${onFill.ratio.toFixed(2)} >= ${onFill.min})`);
 
   // (c) validation: a per-mode anchor on a generate-only or absent mode throws (customizable modes only).
-  ok(threw(() => brandTheme({ ...base, modeAnchors: { 'hc-light': { primary: 500 } } } as unknown as BrandInput)),
-    'A2b(c): modeAnchors on hc-light (generate-only) throws');
-  ok(threw(() => brandTheme({ ...base, modes: ['light'], modeAnchors: { dark: { primary: 500 } } } as unknown as BrandInput)),
-    'A2b(c): modeAnchors on a mode this brand does not generate throws');
+  // #2108: each mode refusal is matched by its FIELD, its MODE and its REASON, not by "something threw".
+  // `brandTheme` carries three copy-pasted pairs of these (overrides, modeAnchors, modeLevers), and a branch
+  // throwing its sibling's message still throws. BY-NAME MUTATIONS: each branch made to throw its sibling's
+  // message fails its own arm here; under the old `threw()` arms the whole suite stayed green.
+  const msgA2b = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const a2Hc = msgA2b(() => brandTheme({ ...base, modeAnchors: { 'hc-light': { primary: 500 } } } as unknown as BrandInput));
+  ok(a2Hc.startsWith("modeAnchors: mode 'hc-light' is generate-only"),
+    `A2b(c): modeAnchors on hc-light is refused by the modeAnchors refusal, as generate-only (got "${a2Hc.slice(0, 90)}")`);
+  const a2Abs = msgA2b(() => brandTheme({ ...base, modes: ['light'], modeAnchors: { dark: { primary: 500 } } } as unknown as BrandInput));
+  ok(a2Abs.startsWith("modeAnchors: mode 'dark' is not in this brand's modes"),
+    `A2b(c): modeAnchors on a mode this brand does not generate is refused by the modeAnchors refusal, as absent (got "${a2Abs.slice(0, 90)}")`);
 
   // (d) an absent map is a byte-identical no-op (the primary guard).
   ok(JSON.stringify(buildTree(brandTheme(base)).tree) === JSON.stringify(buildTree(brandTheme({ ...base, modeAnchors: {} } as unknown as BrandInput)).tree),
@@ -5423,9 +5438,17 @@ arm: {
     `D(b): buildFigmaDims emits a dark radius file with radius/md → dimension/0 (value ${figMd?.value})`);
 
   // (c) validation throws — generate-only mode (hc-light/wireframe), a mode not generated, out-of-range.
-  ok(threw(() => brandTheme({ ...base, modes: ['light', 'dark', 'hc-light', 'hc-dark'], modeLevers: { 'hc-light': { radius: 0 } } } as unknown as BrandInput)), 'D(c): modeLevers on hc-light (generate-only) throws');
-  ok(threw(() => brandTheme({ ...base, modes: ['light', 'wireframe'], modeLevers: { wireframe: { radius: 0 } } } as unknown as BrandInput)), 'D(c): modeLevers on wireframe (generate-only) throws');
-  ok(threw(() => brandTheme({ ...base, modes: ['light'], modeLevers: { dark: { radius: 0 } } } as unknown as BrandInput)), 'D(c): modeLevers on a mode this brand does not generate throws');
+  // #2108: each mode refusal is matched by its FIELD, its MODE and its REASON, not by "something threw".
+  // `brandTheme` carries three copy-pasted pairs of these (overrides, modeAnchors, modeLevers), and a branch
+  // throwing its sibling's message still throws. BY-NAME MUTATIONS: each branch made to throw its sibling's
+  // message fails its own arm here; under the old `threw()` arms the whole suite stayed green.
+  const msgD = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const dHc = msgD(() => brandTheme({ ...base, modes: ['light', 'dark', 'hc-light', 'hc-dark'], modeLevers: { 'hc-light': { radius: 0 } } } as unknown as BrandInput));
+  ok(dHc.startsWith("modeLevers: mode 'hc-light' is generate-only"), `D(c): modeLevers on hc-light is refused by the modeLevers refusal, as generate-only (got "${dHc.slice(0, 90)}")`);
+  const dWf = msgD(() => brandTheme({ ...base, modes: ['light', 'wireframe'], modeLevers: { wireframe: { radius: 0 } } } as unknown as BrandInput));
+  ok(dWf.startsWith("modeLevers: mode 'wireframe' is generate-only"), `D(c): modeLevers on wireframe is refused by the modeLevers refusal, as generate-only (got "${dWf.slice(0, 90)}")`);
+  const dAbs = msgD(() => brandTheme({ ...base, modes: ['light'], modeLevers: { dark: { radius: 0 } } } as unknown as BrandInput));
+  ok(dAbs.startsWith("modeLevers: mode 'dark' is not in this brand's modes"), `D(c): modeLevers on a mode this brand does not generate is refused by the modeLevers refusal, as absent (got "${dAbs.slice(0, 90)}")`);
   ok(threw(() => brandTheme({ ...base, modeLevers: { dark: { radius: 3 } } } as unknown as BrandInput)), 'D(c): a radius lever above 2 throws');
   ok(threw(() => brandTheme({ ...base, modeLevers: { dark: { radius: -1 } } } as unknown as BrandInput)), 'D(c): a radius lever below 0 throws');
 
@@ -7484,6 +7507,32 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     ok(thr(() => tBrand('soE4', { sizeOverrides: { display: { xl: { mobile: 45 } } } } as any)), '[#1587] an off-ladder viewport override throws');
     ok(thr(() => tBrand('soE5', { sizeOverrides: { display: { zzz: { desktop: 96 } } } } as any)), '[#1587] a viewport override on a rung the brand does not ship throws rather than no-opping');
     ok(thr(() => tBrand('soE6', { responsive: { fluid: false }, sizeOverrides: { display: { xl: { mobile: 40 } } } } as any)), '[#1587] a mobile override with responsive off throws (no mobile endpoint to pin)');
+    // #2068 — an EMPTY or REVERSED fluid range is refused (owner decision 2026-10-05). `fluidClamp` divides
+    // by maxViewport − minViewport: 800/800 emitted `-Infinityrem + Infinityvw` and 1280/375 a clamp() that
+    // shrinks as the viewport grows, and both built clean. EXPECTED is the owner-approved sentence, typed
+    // here literally, with the two values as entered: one wording for both arms. Refused with fluid off too
+    // (owner decision Q16 = a). BY-NAME MUTATION: delete the refusal in `buildTypography` → the equal, the
+    // inverted, the as-entered and the fluid-off arms fail.
+    const vpMsg = (id: string, responsive: Record<string, unknown>) => msgOf(() => tBrand(id, { responsive } as any));
+    const VP_EQ = 'The minimum viewport (800px) must be smaller than the maximum viewport (800px).';
+    const VP_INV = 'The minimum viewport (1280px) must be smaller than the maximum viewport (375px).';
+    ok(vpMsg('vpEq', { fluid: true, minViewport: 800, maxViewport: 800 }) === VP_EQ,
+      `[#2068] an equal viewport pair (800/800) is refused with the approved wording (got "${vpMsg('vpEq', { fluid: true, minViewport: 800, maxViewport: 800 })}")`);
+    ok(vpMsg('vpInv', { fluid: true, minViewport: 1280, maxViewport: 375 }) === VP_INV,
+      `[#2068] an inverted viewport pair (1280/375) is refused with the approved wording (got "${vpMsg('vpInv', { fluid: true, minViewport: 1280, maxViewport: 375 })}")`);
+    ok(vpMsg('vpDec', { fluid: true, minViewport: 400.5, maxViewport: 400 }) === 'The minimum viewport (400.5px) must be smaller than the maximum viewport (400px).',
+      `[#2068] the message carries the values as entered, not rounded (got "${vpMsg('vpDec', { fluid: true, minViewport: 400.5, maxViewport: 400 })}")`);
+    ok(vpMsg('vpOff', { fluid: false, minViewport: 1280, maxViewport: 375 }) === VP_INV,
+      `[#2068] the refusal holds with fluid off too (owner decision Q16 = a) — the pair is what the fluid regime reads (got "${vpMsg('vpOff', { fluid: false, minViewport: 1280, maxViewport: 375 })}")`);
+    // The default range still builds, implicitly and stated explicitly, and its emitted clamps are finite.
+    ok(!thr(() => tBrand('vpDef', {} as any)) && !thr(() => tBrand('vpDefX', { responsive: { fluid: true, minViewport: 375, maxViewport: 1280 } } as any)),
+      '[#2068] the default 375/1280 range builds, omitted and stated explicitly');
+    {
+      const emitted = JSON.stringify(buildTree(brandTheme(tInput('vpTree', { responsive: { fluid: true, minViewport: 375, maxViewport: 1280 } }))).tree);
+      const clamps = emitted.match(/clamp\([^)]*\)/g) ?? [];
+      ok(clamps.length > 0 && clamps.every((c) => !/Infinity|NaN/.test(c)),
+        `[#2068] at 375/1280 the tree emits ${clamps.length} clamp() value(s), all finite (non-vacuous: at least one is emitted)`);
+    }
     // validateBrandInput ACCEPTS a well-formed override (returns an empty error array, never throws) and
     // REJECTS a malformed one at the schema layer.
     ok(validateBrandInput(tInput('soV', { sizeOverrides: { display: { xl: { mobile: 40 } } } })).length === 0,
@@ -8049,6 +8098,20 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   // 2-tier (NB-style minimal): smallest 4, top = base
   const two = lyBrand('ly2', { breakpoints: [0, 1024] }).layout;
   ok(two.grid[0].columns === 4 && two.grid[1].columns === two.baseColumns, '2-tier ladder = [4, base]');
+  // #2132 — a first breakpoint that isn't 0px is refused (owner decision 2026-10-05, F4 A). EXPECTED is the
+  // owner-approved sentence, typed here literally, with the value as entered. The 0 arms are the default and
+  // the explicit [0, …] lists above, which already build; the default is asserted again here so this block
+  // states both of the decision's arms. BY-NAME MUTATION: delete the refusal in `buildLayout` → the three
+  // refusal arms fail.
+  const bpMsg = (id: string, breakpoints: number[]) => { try { lyBrand(id, { breakpoints }); return ''; } catch (e) { return (e as Error).message; } };
+  ok(bpMsg('bp0', [0, 768, 1024]) === '' && lyBrand('bpDef', {}).layout.breakpoints[0].px === 0,
+    '[#2132] a first breakpoint of 0px builds, stated explicitly and by default');
+  ok(bpMsg('bp320', [320, 768]) === 'The first breakpoint must be 0px. This brand starts at 320px.',
+    `[#2132] a first breakpoint of 320px is refused with the approved wording (got "${bpMsg('bp320', [320, 768])}")`);
+  ok(bpMsg('bp1', [1, 768, 1024]) === 'The first breakpoint must be 0px. This brand starts at 1px.',
+    `[#2132] the smallest non-zero first breakpoint (1px) is refused too, so the rule is "not 0" and not a threshold (got "${bpMsg('bp1', [1, 768, 1024])}")`);
+  ok(bpMsg('bpDec', [0.5, 768]) === 'The first breakpoint must be 0px. This brand starts at 0.5px.',
+    `[#2132] the message carries the value as entered, not rounded (got "${bpMsg('bpDec', [0.5, 768])}")`);
 }
 
 // ------------------------------------------------- gradient invariants (opt-in)
