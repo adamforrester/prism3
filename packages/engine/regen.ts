@@ -118,12 +118,18 @@ const check = (): void => {
   const outSnap = join(tmp, 'out');
   const schemaSnap = join(tmp, 'schema');
   const engineSnap = join(tmp, 'engine');
+  // `keep` carries each file's mtime through the snapshot and back. The restore is byte-identical either
+  // way, but without it every restored file looks newly written, and the browser suites' bundle-freshness
+  // checks (#2067, #2071) read mtimes: `icon-glyphs.ts` is imported into the studio bundle, so a `--check`
+  // run after a build made `dist/main.js` look stale and smoke refused it in CI (#2102). "Never leaves the
+  // tree dirty" has to cover mtimes now that something reads them.
+  const keep = { recursive: true, preserveTimestamps: true };
   try {
-    cpSync(outDir, outSnap, { recursive: true });
+    cpSync(outDir, outSnap, keep);
     mkdirSync(schemaSnap, { recursive: true });
-    for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) cpSync(join(schemaDir, f), join(schemaSnap, f));
+    for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) cpSync(join(schemaDir, f), join(schemaSnap, f), keep);
     mkdirSync(engineSnap, { recursive: true });
-    for (const f of ENGINE_ARTIFACTS) cpSync(join(here, f), join(engineSnap, f));
+    for (const f of ENGINE_ARTIFACTS) cpSync(join(here, f), join(engineSnap, f), keep);
 
     regenerate();
 
@@ -152,9 +158,9 @@ const check = (): void => {
 
     // Restore the committed state either way — the gate reports, it never rewrites.
     rmSync(outDir, { recursive: true, force: true });
-    cpSync(outSnap, outDir, { recursive: true });
-    for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) cpSync(join(schemaSnap, f), join(schemaDir, f));
-    for (const f of ENGINE_ARTIFACTS) cpSync(join(engineSnap, f), join(here, f));
+    cpSync(outSnap, outDir, keep);
+    for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) cpSync(join(schemaSnap, f), join(schemaDir, f), keep);
+    for (const f of ENGINE_ARTIFACTS) cpSync(join(engineSnap, f), join(here, f), keep);
 
     const checked = after.size + SCHEMA_ARTIFACTS.length + MAINTAINER_ARTIFACTS.length + ENGINE_ARTIFACTS.length;
     if (!drifted.length && !added.length && !removed.length) {
