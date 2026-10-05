@@ -7041,7 +7041,7 @@ const DESTRUCTIVE = (() => {
 })();
 ok(Object.values(DESTRUCTIVE).every((d) => /^#[0-9a-f]{6}$/.test(d.fill ?? '') && /^#[0-9a-f]{6}$/.test(d.on ?? '')),
   `S5: the oracle resolved Prism3's destructive fill and on-fill from the emission (${JSON.stringify(DESTRUCTIVE)})`);
-const rgbOf = (hx) => `rgb(${parseInt(hx.slice(1, 3), 16)}, ${parseInt(hx.slice(3, 5), 16)}, ${parseInt(hx.slice(5, 7), 16)})`;
+const startRgb = (hx) => `rgb(${parseInt(hx.slice(1, 3), 16)}, ${parseInt(hx.slice(3, 5), 16)}, ${parseInt(hx.slice(5, 7), 16)})`;
 const START_SIZES = [{ w: 1280, h: 900 }, { w: 380, h: 420 }];
 /** A first run on `host`: the web with nothing saved, the plugin in a file with no brand. Waits for the frame's width
  *  tier to match the viewport before anything is read. */
@@ -7195,7 +7195,7 @@ for (const { w, h } of START_SIZES) {
         ok(s.guardTitle === 'Replace harbor-edited with the aurora example?', `${where}: the guard's title is "Replace ‹brand› with ‹choice›?" (S10) — "${s.guardTitle}"`);
         ok(s.guardBody === '3 edits to harbor-edited are not saved to a file. Export or apply first to keep them.', `${where}: the guard's body names the 3 edits (S10) — "${s.guardBody}"`);
         const want = DESTRUCTIVE[theme];
-        ok(s.discardStyle?.bg === rgbOf(want.fill) && s.discardStyle?.ink === rgbOf(want.on) && s.discardStyle?.edge === rgbOf(want.fill),
+        ok(s.discardStyle?.bg === startRgb(want.fill) && s.discardStyle?.ink === startRgb(want.on) && s.discardStyle?.edge === startRgb(want.fill),
           `${where}: Discard wears Prism3's destructive button: fill ${want.fill}, label ${want.on} (S5) — ${JSON.stringify(s.discardStyle)}`);
         const mg = await measure(page, `${where} / guard`, host, w);
         check(mg, `${where} / guard`, columnOf(host, w), w <= 560 ? INSPECT_NARROW_FLOOR : PLACE_FLOOR,
