@@ -40,7 +40,7 @@
 import { brandState, currentMode, lastError, rebuild, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import { isDerived } from '../state/verdict';
 import {
-  BORDER_ROWS, FIELD_ROWS, FILL_ROWS, FOCUS_ROLES, floorAutoLabel, FOREGROUND_ROWS, ICON_ROWS, PAIR_ICONS_CONFIRM, TEXT_ROWS, addGradient, addStop, bandOf, bandPalettes, editGradient, gradStopHex,
+  BORDER_ROWS, FIELD_ROWS, FILL_ROWS, FOCUS_ROLES, floorAutoLabel, floorAutoShortLabel, FOREGROUND_ROWS, ICON_ROWS, PAIR_ICONS_CONFIRM, TEXT_ROWS, addGradient, addStop, bandOf, bandPalettes, editGradient, gradStopHex,
   iconOverrideCount, iconsPaired, lockedTo, overrideOf, pageKeyOf, pageSteps, pairIcons, paletteOf, readGradients, removeGradient, removeStop, renameGradient, rolesIn,
   setBandPalette, setBandStep, setCenter, setGradientsOn, setRowOverride, setStopPalette, setStopPosition, setStopStep,
   SCRIM_ROLE, SURFACE_TOKENS, setInverseTier, setSurfaceBase, setSurfaceFloor, setSurfaceTier, stepHex, stepOfPath, stepsOf, surfaceSourceOf, tierOf, unpairIcons, washReadOf,
@@ -117,12 +117,11 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
      *  picker under the row while it is open. `key` is the picker's slot in `openRole`. `info` adds the row's own
      *  info button beside its name, its note drawn under the row (QA-B6). */
     const surfRow = (o: { key: string; id: string; hk: string; label: string; token: string | null; rowRole: string; hex: string; now: string;
-      info?: string; picker: Omit<StepPickerOpts, 'modeLabel' | 'onClose' | 'role'> & { role?: string } }): HTMLElement => {
+      full?: string; info?: string; picker: Omit<StepPickerOpts, 'modeLabel' | 'onClose' | 'role'> & { role?: string } }): HTMLElement => {
       const wrap = h('div', 'p3-fillrow-wrap');
       // Every row is the one grid: swatch, name, and the picker on the right (#2179: the contrast floor's picker sat
-      // under its name). The floor's Auto label names the tier it follows, longer than the other rows' labels, so its
-      // row caps the picker's column and the label ends in an ellipsis, on one line (`p3-fillrow-long`).
-      const row = hook(h('div', o.info ? 'p3-fillrow p3-fillrow-long' : 'p3-fillrow'), 'surface-row');
+      // under its name).
+      const row = hook(h('div', 'p3-fillrow'), 'surface-row');
       row.dataset.role = o.rowRole;
       const sw = h('span', 'p3-fill-sw');
       sw.dataset.content = '';
@@ -150,7 +149,10 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       btn.id = o.id;
       const open = openRole === o.key && editable;
       btn.setAttribute('aria-expanded', String(open));
-      btn.setAttribute('aria-label', `${o.label}, ${modeLabel(currentMode)}: ${o.now}. Pick a step`);
+      // `full`, when given, is the longer wording the short label stands for (the floor's "follows" sentence, FL1 A):
+      // the accessible name and the tooltip say it whole.
+      btn.setAttribute('aria-label', `${o.label}, ${modeLabel(currentMode)}: ${o.full ?? o.now}. Pick a step`);
+      if (o.full) btn.title = o.full;
       btn.append(h('span', 'p3-btn-label', o.now), glyph('chev'));
       btn.disabled = !editable;
       btn.onclick = () => {
@@ -227,7 +229,8 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     def.append(surfRow({
       key: 'surface:floor', id: 'p3-surf-floor', hk: 'surface-floor-pick', label: 'Contrast floor', token: null, rowRole: FLOOR_ROW,
       hex: (floorAt && stepHex(floorAt.palette, floorAt.step)) ?? roles[SURFACE_TOKENS.secondary]?.hex ?? '#ffffff',
-      now: floorKey != null ? `${nPal} ${floorKey}` : floorAutoLabel(m),
+      now: floorKey != null ? `${nPal} ${floorKey}` : floorAutoShortLabel(m),
+      full: floorKey != null ? `${nPal} ${floorKey}` : floorAutoLabel(m),
       info: FLOOR_INFO,
       picker: {
         role: 'Contrast floor', palettes: [rampOf(nPal)], current: floorAt,

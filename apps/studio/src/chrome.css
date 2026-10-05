@@ -818,10 +818,6 @@
 /* The preview's scrim card: the same checkerboard under the wash, the card's size and corners kept. */
 .p3-legacy-card .sg-scrimcard.p3-checker { background-size: var(--p3-space-150) var(--p3-space-150); }
 .p3-fill-nameline { display: flex; align-items: center; gap: var(--p3-space-050); min-width: 0; }
-/* #2179: the contrast floor's row is the rows' grid, its picker on the right. Its Auto label is longer than the other
-   rows', so the picker's column is capped and the label ends in an ellipsis, on one line at the pickers' one height
-   (QA-B5); the name beside it keeps its room. */
-.p3-fillrow.p3-fillrow-long { grid-template-columns: auto minmax(0, 1fr) minmax(0, 50%); }
 .p3-jump { display: flex; flex-wrap: wrap; gap: var(--p3-space-100) var(--p3-space-200); }
 .p3-jump[hidden] { display: none; }
 .p3-jump-label { display: inline-flex; align-items: center; min-height: var(--p3-hit-min); }   /* QA-B17: "Jump to:", on the links' line */

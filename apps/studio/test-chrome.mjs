@@ -349,6 +349,9 @@
  * #2179 ADDS: the Contrast floor row in Default background fills draws its picker on the right, beside its name, its
  * right edge on the other three rows' picker edge, every brand × mode at 1280 and 380 (web). Mutation: the floor row's
  * `p3-fillrow` class dropped → `#2179 web 1280 prism3 / light: the Contrast floor's picker ends at the other rows' picker edge …`.
+ * FL1 A (#2197): on Auto the floor's label reads "Auto · ‹step›" (prism3: the emission's floor), its tooltip and accessible
+ * name keep the full sentence, and the label is not cut off. Mutation: the long label back as the visible one →
+ * `#2179 web 1280 prism3 / light: FL1 A: the Contrast floor's Auto label reads "Auto · ‹step›" …`.
  */
 import { createServer } from 'node:http';
 import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -3722,7 +3725,10 @@ for (const host of ['web', 'figma']) {
   ok(brands.length >= 2, `#2179: the start screen offers the corpus brands (found ${brands.length}: ${brands.join(', ')})`);
   const FLOOR_ROW_PROBE = () => [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="surface-default-rows"] [data-p3="surface-row"]')].map((r) => {
     const box = (n) => { const b = n?.getBoundingClientRect(); return b && b.width > 0 ? { top: b.top, bottom: b.bottom, left: b.left, right: b.right } : null; };
-    return { role: r.dataset.role, label: box(r.querySelector('.p3-fill-label')), name: box(r.querySelector('.p3-fill-label')?.closest('.p3-fill-name') ?? r.querySelector('.p3-fill-label')), pick: box(r.querySelector('.p3-pick')) };
+    const pk = r.querySelector('.p3-pick'), lab = pk?.querySelector('.p3-btn-label');
+    return { role: r.dataset.role, label: box(r.querySelector('.p3-fill-label')), name: box(r.querySelector('.p3-fill-label')?.closest('.p3-fill-name') ?? r.querySelector('.p3-fill-label')), pick: box(pk),
+      text: lab?.textContent ?? null, aria: pk?.getAttribute('aria-label') ?? null, title: pk?.getAttribute('title') ?? null,
+      scroll: lab ? [lab.scrollWidth, lab.clientWidth] : null };
   });
   let measured = 0;
   for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 800 }]) {
@@ -3762,6 +3768,20 @@ for (const host of ['web', 'figma']) {
         ok(floor.pick.top < floor.label.bottom, `${where}: the Contrast floor's picker starts on its name's line, not under it (picker top ${floor.pick.top.toFixed(1)}, label bottom ${floor.label.bottom.toFixed(1)})`);
         const theirs = [...new Set(others.map(besideOf))];
         ok(theirs.length === 1 && besideOf(floor) === theirs[0], `${where}: the Contrast floor's picker sits beside its name exactly as the other rows' do (floor ${besideOf(floor) ? 'beside' : 'under'}; others ${theirs.map((b) => (b ? 'beside' : 'under')).join(', ')})`);
+        // FL1 A (owner, #2197): on Auto the button shows "Auto · ‹palette› ‹step›", the step as the picker names steps; the
+        // full sentence ("Auto · follows background.secondary (‹step›)" when it follows the tier) is its tooltip and is
+        // in its accessible name. For prism3 the step is the committed emission's floor (`EMITTED_FLOOR`), not the page's.
+        const auto = /^Auto\b/.test(floor.title ?? '');
+        if (auto) {
+          const step = (/^Auto · ([a-z0-9-]+ [0-9]+)$/.exec(floor.text ?? '') ?? [])[1] ?? null;
+          const want = brand === 'prism3' && EMITTED_FLOOR[mode]?.step ? `Auto · ${EMITTED_FLOOR[mode].step.split('.').join(' ')}` : null;
+          ok(step !== null && (want === null || floor.text === want), `${where}: FL1 A: the Contrast floor's Auto label reads "Auto · ‹step›"${want ? ` (${JSON.stringify(want)}, the emission's floor)` : ''} — read ${JSON.stringify(floor.text)}`);
+          ok(step !== null && (floor.title === `Auto · follows background.secondary (${step})` || floor.title === `Auto · ${step}`),
+            `${where}: FL1 A: the Contrast floor's tooltip is the full sentence for the same step — read ${JSON.stringify(floor.title)}`);
+        }
+        ok(!!floor.title && /^Contrast floor, [^:]+: /.test(floor.aria ?? '') && (floor.aria ?? '').endsWith(`: ${floor.title}. Pick a step`),
+          `${where}: FL1 A: the Contrast floor's accessible name keeps the full sentence — read ${JSON.stringify(floor.aria)} (tooltip ${JSON.stringify(floor.title)})`);
+        ok(!!floor.scroll && floor.scroll[0] <= floor.scroll[1], `${where}: FL1 A: the Contrast floor's label fits its button on one line, not cut off (scrollWidth ${floor.scroll?.[0]}, clientWidth ${floor.scroll?.[1]})`);
       }
       ok(errors.length === 0, `#2179 web ${w} ${brand}: 0 uncaught errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       await ctx.close();

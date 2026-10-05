@@ -141,6 +141,14 @@ export const floorAutoLabel = (mode: SurfaceMode): string => {
   const secKey = sec ? `${sec.palette}.${sec.step}` : roles[SURFACE_TOKENS.secondary]?.path?.split('.').pop();
   return floor === secKey ? `Auto · follows ${SURFACE_TOKENS.secondary} (${shown(floor)})` : `Auto · ${shown(floor)}`;
 };
+/** The floor picker's visible Auto label (owner decision FL1 A, #2197): "Auto · ‹step›", the step the Auto floor is
+ *  on, named as the picker names steps. `floorAutoLabel`'s full sentence stays the button's accessible name and
+ *  tooltip, so the tier it follows is still said. */
+export const floorAutoShortLabel = (mode: SurfaceMode): string => {
+  const roles = brandState.surfaces?.[mode]?.floorStep == null ? rolesIn(mode) : autoFloorRoles(mode);
+  const floor = roles['foreground.brand']?.against;
+  return floor ? `Auto · ${floor.split('.').join(' ')}` : 'Auto';
+};
 /** `mode`'s roles as the engine resolves them with `surfaces.<mode>.floorStep` removed: the brand Auto would leave.
  *  One extra resolve per theme, only while a floor is set, cached by the theme object as `resolvedModes` is. */
 let autoFloor: { theme: unknown; mode: string; roles: Record<string, FillRole | undefined> } | null = null;
