@@ -415,6 +415,7 @@ const SELF_CHECK: { sample: string; expectRule: string | null }[] = [
   { sample: 'Just click here to continue.', expectRule: 'just' },            // capitalized, sentence-initial
   { sample: 'The ratio sits just below the floor.', expectRule: null },       // exactly/barely — §2's own example, must NOT trip
   { sample: 'It clears just above the 4.5 floor.', expectRule: null },        // same exception, different direction
+  { sample: 'Built just now', expectRule: null },                             // the time sense (S8.2), a moment ago
   { sample: 'Please note the derived value.', expectRule: 'filler' },
   { sample: 'Note that this is derived from the ramp.', expectRule: 'filler' },
   { sample: 'Oops, something went wrong.', expectRule: 'apology' },

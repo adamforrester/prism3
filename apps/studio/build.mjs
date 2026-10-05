@@ -27,7 +27,9 @@ const options = {
   bundle: true,
   format: 'esm',
   loader: { '.css': 'text' },
-  define: { PRISM3_HOST: "'web'", PRISM3_BUILD: "'local'" },
+  // PRISM3_TEST_HOOKS (#2098): `true` only here, the local `dist/` the smoke suite drives. `build-site.mjs`, the
+  // deployed bundle, says `false`, so `?p3-test-hooks` cannot turn the hook on in production (`test-prod-bundle.ts`).
+  define: { PRISM3_HOST: "'web'", PRISM3_BUILD: "'local'", PRISM3_TEST_HOOKS: 'true' },
   plugins: [chromeCss()],
   logLevel: 'info',
 };

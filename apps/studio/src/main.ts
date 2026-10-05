@@ -22,22 +22,16 @@
 import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput, Theme } from '@prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast, composite } from '@prism3/engine/color';
-import type { ButtonContentSize, ButtonIcons, ButtonLabelWeight } from '@prism3/engine/scale';
-import { leverManifest, leverGroups } from '@prism3/engine/levers';
-import type { Lever } from '@prism3/engine/levers';
 import { resolveAllModes } from '@prism3/engine/modes';
 import { parseDesignMd, toDesignMd } from '@prism3/engine/design-md';
 import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '@prism3/engine/standard-design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
-import { ENGINE_VERSION } from '@prism3/engine/version';
 import { hostCommit, type HostCommit } from './write-adapter';
 import { initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type DetailKey, type OpKey } from './state/host-session';
 import type { StyleGuideOptionsMsg } from './write-adapter';
-import { buildChip, buildTitle } from './build-identity';
 import { emToPercentLabel } from './em-percent';
-import { describeControl, paletteRefOptions, leverHook, type ControlOption } from './levers/controls';
 import { mountFrame, type Frame } from './shell/frame';
-import { isNewPage, type LegacyPageKey } from './shell/pages';
+import { isNewPage, pageOfTab, type LegacyPageKey } from './shell/pages';
 import type { ActivityReading, OpReading } from './shell/activity';
 import type { FigmaAction } from './shell/figma';
 import { glyph, pendingLabel, setBusy } from './shell/dom';
@@ -49,13 +43,10 @@ import {
 } from './preview/sections/kit';
 import {
   COLOR_SECTIONS, disabledSection, interactiveSection, typeSampleSection, radiusSampleSection, RADIUS_SAMPLE, SAMPLE_SHADOW,
-  buttonLayoutSection,
 } from './preview/sections/index';
-// The Button option writes and the reader the button specimen is drawn from (UI redesign S8.1).
-import { buttonLayout, setButtonContentSize, setButtonIcons, setButtonLabelWeight, setButtonMinWidth } from './state/button-input';
-// The component catalog: the plugin's, computed from the definitions it bundles, or the web's generated copy (S8.1).
-import { buildableSets, unbuildableSets, providedCatalog, type Catalog } from './state/component-catalog';
-import { COMPONENT_CATALOG_DATA } from './state/component-catalog-data';
+// The component catalog, which the set build asks whether a set can be built (UI redesign S8.2: the Components page
+// itself lists it, from `preview/components.ts`; the Button options moved to `domains/components.ts`).
+import { componentCatalog } from './state/component-catalog';
 // The brand's Control shape, for the Style guide's radius sample (UI redesign S7, owner decision D18 B).
 import { brandControlShape } from './state/shape-input';
 // The Elevation and Motion writes moved to `state/depth-motion-input.ts` (UI redesign S9.1), and every Elevation and
@@ -92,15 +83,6 @@ const NEW_BRAND = (): BrandInput => ({
   neutral: { hue: 262, chroma: 0.006, auto: true },   // neutral hue auto-follows primary (262 = primary.h → identical ramp; now live-linked)
 });
 
-// Every ATOMIC control is live — it edits brandState and re-runs the engine on change.
-// Liveness is by control TYPE, not a per-key allowlist: sliders, enums, palette-refs, and
-// toggles all have real handlers (a bad value just surfaces the error bar, never crashes —
-// rebuild() is try/caught). Object/list levers (families, surfaces, brand colors) all got their
-// bespoke editors (#97) — this generic path is what's left over: baseMd, and radiusScale/density on
-// Light, where a bespoke per-mode editor takes over everywhere else. (Shadow softness and tempo left with
-// the Elevation and Motion pages in UI redesign S9.2: `domains/depth.ts` draws them.)
-const LIVE_CONTROLS = new Set(['slider', 'enum', 'palette-ref', 'toggle']);
-
 const MODE_LABEL: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light', 'hc-dark': 'HC dark', wireframe: 'Wireframe' };
 
 // ---- stages ----------------------------------------------------------------
@@ -110,21 +92,15 @@ const MODE_LABEL: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-l
 // composes in: primitives → how they're applied (surfaces / interactive) → type → form
 // (elevation/size/layout/motion) → look at the whole (Preview) → write something out (Components).
 const NAV = [
-  { key: 'sizeRadius', label: 'Size & radius', sub: 'Button options' },   // S7: the Button options only (D5 B); the sub is DRAFT
+  // UI redesign S8.2 moved the Button options (Size & radius's last block) and the component build (the Components
+  // page) to the Components tab (`domains/components.ts`, `preview/components.ts`), so their two rows are gone. What is
+  // left is the plugin's Style guide, until S11.2 moves it into the Figma menu; the web offers no destination, so it
+  // draws no Pages menu (owner decision G19 A).
   // #259 — the style-guide step, after Apply theme: it documents the variables Apply wrote, so it follows the
-  // authoring pages and Preview. Figma-only for the `components` reason below — it draws on the canvas.
+  // authoring pages and Preview. Figma-only: it draws on the canvas, so the web rail omits it (docs/23 §7's rule for a
+  // destination that only makes sense in the Figma channel).
   // Placement and label are proposed, owner to confirm (docs/45).
   { key: 'styleGuide', label: 'Style guide', sub: 'Token tables on the Figma canvas', view: true, figmaOnly: true },
-  // #718 — the component write's destination, and A DEMOTION RATHER THAN A PROMOTION. The natural
-  // reading of "components get their own rail item" is that the capability graduated; here it is the
-  // reverse. The control is leaving a first-class slot beside Apply precisely because it is not
-  // first-class: it is the anatomy schema's materialization proof (docs/28, docs/14 §3.1), kept
-  // runnable so the schema has a consumer that can refute it, not a capability a client is offered.
-  //
-  // `figmaOnly` follows the rule docs/23 §7 already settled for the deferred Output group: a
-  // destination that only makes sense in the Figma channel is present in the plugin host and omitted
-  // from the web rail, rather than rendered inert there. Both NAV consumers read `railNav()`.
-  { key: 'components', label: 'Components', sub: 'Internal — build the Button set', view: true, figmaOnly: true },
 ] as const satisfies readonly { key: LegacyPageKey; label: string; sub: string; view?: boolean; figmaOnly?: boolean }[];
 /** THE OTHER DIRECTION (#1846). `satisfies` above makes every rail row name a `PageKey`; this makes every
  *  `PageKey` have a rail row. `PageKey` used to be DERIVED from `NAV`, so the second half held by
@@ -156,8 +132,7 @@ const isFirstView = (nav: readonly (typeof NAV)[number][], i: number): boolean =
 
 // `pageOfLever` and `leversFor`, the routing table only the Motion page read (#958), went with that page in UI redesign
 // S9.2: every page now names its levers, and `test-pages.ts` plus `test:chrome`'s rendered coverage hold that each
-// manifest lever has a home that draws it.
-const leverByKey = (k: string): Lever | undefined => leverManifest.find((l) => l.key === k);
+// manifest lever has a home that draws it. (`leverByKey`, their last reader's lookup, went with the Button options in S8.2.)
 
 // ---- engine read-model -----------------------------------------------------
 // `theme`, `rp`, `lastGoodInput` and `lastError`, with `rebuild()` and its last-good rule, live in
@@ -177,11 +152,11 @@ let volatileHosts: readonly HTMLElement[] = [];
  *  WHY THE DECLARATION EXISTS. `renderWorkspace` no longer destroys the page; it builds the next page
  *  detached and KEEPS every live region whose content is unchanged (that is the whole of #771). A page
  *  renderer's painter closes over nodes it built in that detached tree — `vol` in `renderScreen`, the
- *  `.cs-preview` boxes in `controlSplitPage`.
+ *  `.cs-preview` boxes in the retired `controlSplitPage`.
  *  If the reconcile keeps the LIVE region those nodes correspond to, the freshly-assigned painter is
  *  left writing into a tree that was never attached, and every later `apply()` paints into nothing.
  *
- *  That is not a hypothetical: it is the same failure `renderComponentsPage` already guards against in
+ *  That is not a hypothetical: it is the same failure the retired Components page guarded against in
  *  the other direction ("a page that skips the assignment leaves the previous page's closure live, and
  *  the next `apply()` paints specimens into nodes this render already detached"). #771 gave that failure
  *  a second door, so it gets a mechanism rather than a second comment. Declaring a host makes its region
@@ -302,7 +277,7 @@ const UTILITIES = ['mono', 'faint'] as const;
  *  `installStyles` enforces exactly that, so this list cannot silently grow a name that carries a
  *  declaration. Adding a name here whose rule keys on it alone fails at boot. */
 const STATES = [
-  'active', 'arow-lead', 'authored', 'bad', 'cap', 'cs-nudge', 'cur', 'dark', 'derived', 'dia', 'disabled',
+  'active', 'authored', 'bad', 'cap', 'cs-nudge', 'cur', 'dark', 'derived', 'dia', 'disabled',
   'fill', 'fixed', 'inline', 'is-anchor', 'is-pressed', 'mtbl-spec', 'no', 'none', 'note', 'ok',
   'on', 'open', 'pin', 'primary', 'r', 'ro', 'set', 'sg-inv', 'sg-l', 'sg-r', 'sg-t', 'show-hex',
   'slider', 'sm', 'stuck', 'unbound', 'unknown', 'warn', 'yes', 'zero',
@@ -398,19 +373,6 @@ const selectEl = (mods: string | Mix = ''): HTMLSelectElement => el(
   // mix(), which is the one shape that legitimately crosses (#770).
   typeof mods === 'string' ? (mods ? `select ${mods}` : 'select') : mix('select', mods.cls),
 ) as HTMLSelectElement;
-/** A range `<input>` (doc 24 C5b). Just the element construction (type/bounds/value/class) — the
- *  readout + wiring stay per-site, since the surrounding layouts genuinely differ (a `.slider-top`
- *  readout, a `.knob-val`, an auto-pruning knob, a label-as-readout). `className` may be omitted for
- *  the knob-context sliders styled by the `.knob input[type=range]` descendant rule. */
-const rangeInput = (o: { value: string | number; min?: number | string; max?: number | string; step?: number | string; className?: string }): HTMLInputElement => {
-  const inp = el('input', o.className) as HTMLInputElement;
-  inp.type = 'range';
-  if (o.min != null) inp.min = String(o.min);
-  if (o.max != null) inp.max = String(o.max);
-  if (o.step != null) inp.step = String(o.step);
-  inp.value = String(o.value);
-  return inp;
-};
 /** The on/off toggle switch (doc 24 C3) — a `.toggle` checkbox paired with its On/Off `.knob-val`
  *  readout, returned as a `knobBody`. `onToggle(checked)` fires after the readout updates; the caller
  *  runs its own `apply()` / `applyFull()`. */
@@ -508,34 +470,6 @@ const knob = (label: string | null, body: Node | Node[], desc: string): HTMLElem
   wrap.append(hook(el('p', 'knob-desc', desc), 'control-description'));
   return wrap;
 };
-/** Segmented chips for a 2-4-option enum lever (#1675): a native radio group, so arrow keys, focus
- *  and the screen-reader announcement come from the platform. The `<legend>` is the lever label and
- *  the chips are the radios' labels. The selected chip is filled AND carries a check mark and a
- *  heavier weight, so the state does not rest on color alone.
- *
- *  `checked` is set as a PROPERTY, never as the attribute, the same way `optionEl` sets `selected`.
- *  That keeps a freshly built group's `outerHTML` identical to the live one, so the region reconcile
- *  (#771) keeps the live group when nothing else changed. When something else in the region changed, the
- *  region is swapped, and `renderWorkspace` focuses the same chip in the new group.
- *
- *  The radio `name` is the lever key, not a counter, for the same reason: a counter would make every
- *  rebuilt group differ from the live one. One lever renders at most once per page. */
-const chipGroup = (key: string, legend: string, options: readonly ControlOption[], cur: unknown, onPick: (value: string | number) => void): HTMLFieldSetElement => {
-  const fs = hook(el('fieldset', 'chips') as HTMLFieldSetElement, leverHook(key));
-  fs.append(el('legend', 'chips-legend', legend));
-  const row = el('div', 'chips-row');
-  for (const o of options) {
-    const opt = el('label', 'chips-opt');
-    const input = el('input', 'chips-in') as HTMLInputElement;
-    input.type = 'radio'; input.name = `lever:${key}`; input.value = String(o.value);
-    input.checked = String(o.value) === String(cur);
-    input.onchange = () => { if (input.checked) onPick(o.value); };
-    opt.append(input, el('span', 'chips-face', o.label));
-    row.append(opt);
-  }
-  fs.append(row);
-  return fs;
-};
 // The COMMIT host (docs/22 #110) — distinct from the preview: "materialise this theme".
 // On web it's inert (the export bar downloads); in the Figma plugin it posts the BrandInput to
 // the main thread (→ #108 applyWritePlan) and receives the #109 read-back seed summary on boot.
@@ -617,10 +551,10 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
 // ===========================================================================
 
 // A per-role section container with a heading.
-/** Which sections answer to the mode bar. MEASURED, not asserted — every entry comes from
- *  `npm run -w @prism3/studio audit:modes`, which switches Light→Dark and diffs each section. That
- *  script also GATES this map (`--check-badges`), so a section whose behaviour changes, or whose
- *  title is renamed out from under an entry, fails rather than silently losing its badge.
+/** Which sections answer to the mode bar. MEASURED, not asserted — every entry came from
+ *  `mode-audit.mjs`, which switched Light→Dark and diffed each section, and gated this map
+ *  (`--check-badges`) on the web's legacy pages until UI redesign S8.3 deleted it with the last of them.
+ *  The web draws no legacy page now; the map goes with the mode strip in S13.
  *
  *  Two states, not three (#439). The audit distinguishes `displays` (the preview re-resolves, the
  *  control does not) from `inert` (nothing changes), and that split is real and worth keeping in the
@@ -657,7 +591,7 @@ const SECTION_MODE_SCOPE: Record<string, ModeScope> = {
 // `SPECIMEN` and `specimen()` live in `preview/sections/kit.ts` (UI redesign S4a), so the shared Style guide
 // sections mark their specimens with the same attribute this file does. `specimenPair` (#1652) and
 // `legibleInkOn` (#555) moved there in UI redesign S5.1 with the Interactive section, their only reader.
-/** Value editors only — what the three-state badge and `mode-audit.mjs` both mean by "a control".
+/** Value editors only — what the three-state badge (and `mode-audit.mjs`, until S8.3) meant by "a control".
  *  `button` is excluded because the buttons in these sections play a motion preview or expand a
  *  disclosure; `[data-view-only]` because a playback speed is not a token. */
 const TOKEN_CONTROL_SEL =
@@ -732,65 +666,9 @@ const pfield = (label: string, control: HTMLElement, right = false): HTMLElement
 // Generic lever controls + the bespoke editors the focused pages compose from
 // ===========================================================================
 
-/** `commit` is the path this control takes when it changes, and it defaults to `apply()` — recompute
- *  the theme, repaint the volatile region, keep focus. That is right for a control whose page owns a
- *  painter for everything the edit changes. A caller passes `applyFull` instead when the edit's
- *  visible consequences are drawn by a page SECTION, which no painter owns — see `renderMotionPage`
- *  and #800.
- *
- *  A `slider` commits on `oninput`, i.e. once per pixel of drag, so `applyFull` is not a sane commit
- *  for one. Nothing here prevents it; no caller does it, and this says so rather than implying a
- *  guard that is not written.
- *
- *  `write` is what a change writes, and it defaults to `setPath(brandState, lever.key, v)`. A lever whose writes
- *  moved to a domain state module may pass that module's write, which must write the same bytes (UI redesign S9.1
- *  added the seam for Elevation's softness and Motion's tempo, whose controls left with their pages in S9.2). */
-const renderControl = (lever: Lever, commit: () => void = apply, write: (v: unknown) => void = (v) => { setPath(brandState, lever.key, v); }): HTMLElement => {
-  const live = LIVE_CONTROLS.has(lever.control);
-  // Which control this lever gets is the descriptor's call (`levers/controls.ts`, #1675), not this
-  // function's. A 2-4-option enum is chips; the rest keep the controls they had.
-  const d = describeControl(lever);
-  let body: HTMLElement;
-
-  if (d.kind === 'chips') {
-    // The same write and the same commit the select made; only the control differs.
-    const cur = getPath(brandState, lever.key) ?? lever.default;
-    return knob(null, chipGroup(lever.key, lever.label, d.options, cur, (v) => { write(v); commit(); }), lever.description);
-  } else if (lever.control === 'slider') {
-    const input = rangeInput({ min: lever.min, max: lever.max, step: lever.step, value: (getPath(brandState, lever.key) ?? lever.default ?? lever.min ?? 0) as number });
-    input.disabled = !live;
-    const val = el('span', 'knob-val', `${input.value}${lever.unit ?? ''}`);
-    if (live) input.oninput = () => { write(Number(input.value)); val.textContent = `${input.value}${lever.unit ?? ''}`; commit(); };
-    body = knobBody(input, val);
-  } else if (lever.control === 'palette-ref' && live) {
-    const sel = selectEl('sm');
-    const palettes = paletteRefOptions(lever.key, (brandState.brandColors ?? []).map((b) => b.name));
-    const cur = String(getPath(brandState, lever.key) ?? lever.default ?? 'primary');
-    for (const p of palettes) sel.append(optionEl(p, p, p === cur));
-    sel.onchange = () => { write(sel.value); commit(); };
-    body = sel;
-  } else if (lever.control === 'enum') {
-    const sel = selectEl('sm');
-    const cur = getPath(brandState, lever.key) ?? lever.default;
-    for (const o of lever.options ?? []) sel.append(optionEl(String(o.value), o.label, o.value === cur));
-    sel.disabled = !live;
-    if (live) sel.onchange = () => { write(sel.value); commit(); };
-    body = sel;
-  } else if (lever.control === 'toggle') {
-    // Boolean axis. `checked` reads truthy — so `gradients` renders "on" whether it's `true`
-    // or an explicit gradient array (the array is only reset if the user toggles off). Toggling
-    // writes a plain boolean: on → the default (single gradient / inverse inks), off → false.
-    body = toggleField(!!(getPath(brandState, lever.key) ?? lever.default), (checked) => { write(checked); commit(); });
-  } else {
-    const v = getPath(brandState, lever.key) ?? lever.default;
-    let text: string;
-    if (Array.isArray(v)) text = v.map((it: any) => it?.name).filter(Boolean).join(', ') || `${v.length} item(s)`;
-    else if (v && typeof v === 'object') text = 'configured';
-    else text = String(v ?? lever.itemLabel ?? '—');
-    body = el('div', 'knob-val ro', text);
-  }
-  return knob(lever.label, body, lever.description);
-};
+// `renderControl`, the generic lever knob, went in UI redesign S8.2 with its last caller (the Button options, now the
+// levers kit's chips and slider on Components, `domains/components.ts`); the descriptor it read stays in
+// `levers/controls.ts` (`describeControl`, #1675) for the levers kit.
 
 // The per-mode `modeLevers` read/write helpers — `getModeLever`, `setModeLever`, `pruneModeLevers` —
 // live in `state/store.ts`, with the prune-to-byte-identical invariant they exist to keep.
@@ -1276,13 +1154,8 @@ const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void =
 };
 
 const PAGE_COPY: Record<LegacyPageKey, [string, string]> = {
-  // UI redesign S7: the page keeps only the Button options, under its own title (owner decision D5 B). The lede is DRAFT.
-  sizeRadius: ['Size & radius.', 'Button icon placement, label size and weight, and minimum width. Density and radius are set on Shape.'],
-  // #718. The lede states the role rather than the feature, because that is the fact this page exists
-  // to convey: the write is how the anatomy schema is proven to materialize, not a component library
-  // the brand ships. Naming the one def and the member count keeps it from reading as a catalog.
+  // (Size & radius's and Components' ledes went with the pages, UI redesign S8.2.)
   styleGuide: ['Style guide.', 'Token tables drawn from this file’s variables: each palette as a scale on Primitive tokens, each role family on Semantic tokens. One column per mode, each swatch bound to its variable and drawn on the ground its contrast is measured against. Run it after Apply Theme.'],
-  components: ['Components.', 'Internal — the Button set, written onto the Figma canvas from the component definition. One definition carries the anatomy this needs, so one component builds: 648 variants across intent, appearance, size, state, and the two icon slots. This is how the definition format is proven to materialize, not a component library the brand ships.'],
 };
 
 
@@ -1370,73 +1243,9 @@ const renderGeneratedNote = (): HTMLElement => {
 // (The `renderScreen` scaffold, hero → sections → volatile specimens, went with its last two pages, Elevation and
 // Motion, in UI redesign S9.2.)
 
-// The Button options left on Size & radius, which edit every mode: each lever's generic knob, handed its write from
-// `state/button-input.ts` (UI redesign S8.1), which writes the bytes the knob's default `setPath` wrote (the default
-// included, the slider per step). The Components page (S8.2) writes through the same module.
-const BUTTON_OPTION_WRITES: ReadonlyArray<readonly [string, (v: unknown) => void]> = [
-  ['buttonIcons', (v) => setButtonIcons(v as ButtonIcons)],
-  ['buttonContentSize', (v) => setButtonContentSize(v as ButtonContentSize)],
-  ['buttonLabelWeight', (v) => setButtonLabelWeight(v as ButtonLabelWeight)],
-  ['buttonMinWidthMultiplier', (v) => setButtonMinWidth(v as number)],
-];
-const buttonOptionStack = (): HTMLElement => {
-  const stack = el('div', 'cs-ctl-stack');
-  for (const [k, write] of BUTTON_OPTION_WRITES) { const l = leverByKey(k); if (l) stack.append(renderControl(l, apply, write)); }
-  return stack;
-};
-// UI redesign S7 moved Density, radius, Control shape, the spacing steps and the building blocks to the Shape page
-// (`domains/shape.ts`, `preview/shape.ts`). The Button options stay here, under the page's own title (owner decision
-// D5 B), until S8 moves them to Components; the web's Components tab shows this page, and the plugin reaches it
-// through the Pages menu (D4 B).
-const renderSizeRadiusPage = (host: PageHost): void => controlSplitPage(host, 'sizeRadius', () => [
-  // The button levers (#1667) are GLOBAL brand levers, so `false`. The labels are the owner's exact words and live
-  // in `levers.ts`; this block only groups them beside their specimen.
-  { title: 'Buttons', sub: 'Button icon placement, the medium label and icon size, the label weight, and minimum width. Applies to buttons, not icon buttons.', controls: buttonOptionStack(), paint: paintButtonLayoutPreview },
-]);
-
-// ---- controls-beside-previews pages (docs #264 / #265) --------------------
-// Layout and Size & radius put each control NEXT TO its own live preview, so a change is visible without
-// scrolling to a specimen block far below. Built like the Palettes page: controls are stable and only the
-// preview sub-nodes repaint (via `refreshers` → paintVolatile), so a slider/select is never rebuilt
-// mid-interaction. `controlSplitPage` is the shared scaffold both pages compose from.
-/** `controls: null` STACKS the block — description under the heading, specimen full-width below.
- *  The two-column split earns its keep when a setting sits beside the thing it changes; with no
- *  setting it just reserves an empty left column and squeezes the specimen into ~490px. Blocks that
- *  DO have controls can opt in with `stack: true` where the specimen needs the width more than the
- *  adjacency (Layout's breakpoint table and the fluid-type list both overran the narrow column). */
-type SplitBlock = { title: string; sub: string; controls: HTMLElement | null; stack?: boolean; paint: (into: HTMLElement) => void };
-/** The shared scaffold: hero → (derived-mode note, or) one `.cs-split` section per block (controls beside a
- *  preview node) → a page-local `paintVolatile` that repaints only the preview nodes on every `apply()`. */
-const controlSplitPage = (host: HTMLElement, pageKey: LegacyPageKey, blocks: () => SplitBlock[]): void => {
-  const [title, lede] = PAGE_COPY[pageKey];
-  host.append(hero(title, lede));
-  // A derived mode renders a note and no previews — so there is nothing to repaint, and this branch
-  // has to SAY so. Returning without assigning left the PREVIOUS page's painter live, which is the
-  // exact hazard `renderComponentsPage` documents; harmless while every commit rebuilt the page from
-  // scratch, and not harmless now that a commit repaints through the painter (#771).
-  if (DERIVED_MODES.has(currentMode)) { host.append(renderGeneratedNote()); setVolatile([], () => {}); return; }
-  const refreshers: Array<() => void> = [];
-  const previews: HTMLElement[] = [];
-  for (const b of blocks()) {
-    const sec = palSection(b.title, b.sub);
-    const preview = el('div', 'cs-preview');
-    if (!b.controls || b.stack) {
-      if (b.controls) sec.append(b.controls);
-      addClass(preview, 'cs-preview-full');
-      sec.append(preview);
-    } else {
-      const split = el('div', 'cs-split');
-      const ctlCol = el('div', 'cs-ctl-col'); ctlCol.append(b.controls);
-      split.append(ctlCol, preview);
-      sec.append(split);
-    }
-    host.append(sec);
-    previews.push(preview);
-    refreshers.push(() => b.paint(preview));
-  }
-  setVolatile(previews, () => { refreshers.forEach((r) => r()); });
-  paintVolatile();
-};
+// The Button options and their specimen moved to the Components tab in UI redesign S8.2 (`domains/components.ts`,
+// `preview/components.ts`), and with them went the last caller of `controlSplitPage` (and `SplitBlock`), the controls-
+// beside-previews scaffold Layout and Size & radius composed from: Layout left in S10, Size & radius here.
 
 /** Which background role the Style guide's specimens are previewed on. Module state so it survives a repaint,
  *  like `currentMode`. The legacy Preview page that held it, with its three views, is gone (UI redesign S3):
@@ -1444,307 +1253,18 @@ const controlSplitPage = (host: HTMLElement, pageKey: LegacyPageKey, blocks: () 
  *  list are Inspect's (S1.3). */
 let sgSurface = 'background.primary';
 
-/**
- * Which component sets the Components page offers, and why the rest are not offered: the catalog (UI redesign
- * S8.1), computed by `state/component-catalog.ts`'s `catalogOf`, whose header carries the reasoning that stood here
- * (#804's "asked, not listed", #869's declared `notStandalone`, #1623's unit).
- *
- * WHERE IT COMES FROM, PER HOST. The plugin computes it from the definitions it bundles, in its own iframe entry
- * (`apps/plugin/src/ui/component-catalog.ts`), and provides it before this module evaluates. The web reads the copy
- * generated at build time (`component-catalog-data.ts`, T1), and never imports the definitions: the import that
- * stood here, gated on `PRISM3_HOST`, still carried three of them (Button, IconButton and Icon) into the web bundle,
- * because their modules' top-level code is not provably side-effect-free, so the gate eliminated the reference but not
- * the modules. `vercel-ignore-check.mjs` now fails by name when a definition module reaches the web bundle.
- *
- * The web never draws this page (`railNav()` omits it), so the web's copy is unread until S8.2 lists the sets there.
- */
-const componentCatalog = (): Catalog => (PRISM3_HOST === 'figma' ? providedCatalog() ?? [] : COMPONENT_CATALOG_DATA);
+// The component catalog's host accessor (`componentCatalog`) moved to `state/component-catalog.ts` in UI redesign S8.2,
+// beside the catalog it reads; the Components page lists it (`preview/components.ts`).
 
-/** The file-setup button's label (#1558). Placement and wording are a design call the owner confirms at
- *  review, so the one string a reviewer changes lives here rather than inline — "Set up file" or "Scaffold
- *  pages" were the two proposals; this is the default. Shipped UI text: US-English + `docs/voice-standard.md`. */
+/** The file-setup action's label (#1558), the Figma menu's item: since UI redesign S8.2 the menu is its only control
+ *  (owner decision G8 A), and its result shows in the Activity drawer. Shipped UI text: US-English +
+ *  `docs/voice-standard.md`. */
 const FILE_SETUP_LABEL = 'Set up file';
 
-/**
- * The Components page (#718) — the new home of the component write, moved off the primary action bar.
- *
- * THE MOVE IS A DEMOTION. The control sat beside **Apply Theme**, which is the terminal action of
- * the theme flow and the thing a designer runs after every knob change. A build takes tens of seconds
- * at ~162ms per member (#700) and materializes a fraction of the catalog, so a slot next to Apply
- * claimed a parity that does not exist. Rail item, marked internal, is where a materialization proof
- * belongs — see `NAV` for the framing and docs/28 / docs/14 §3.1 for why it is kept runnable at all.
- *
- * "A fraction", not "one of five": the claim here used to be *"Button is the only def of the five that
- * has one"* and the control was named for Button on that basis. It was true when written and false since
- * #734, #741 and #796 — four defs project today. It is now `componentCatalog()` (derived, above) in both the
- * picker and this prose, which is the same fix the plugin's twin comment took (#742/#787): a count in a
- * comment has an expiry date that nothing checks, so state the property and point at the derivation.
- *
- * The three internal/experimental statements are deliberately different rather than one repeated
- * label, because each answers a different question a designer would actually ask here: the rail sub
- * says WHAT it is, the notice says WHY it is not offered as a feature and what it costs to run, and
- * the button's `title` says the ORDER — the one fact a build's result cannot recover, since the set
- * binds variables by name and a build into an unthemed file misses every binding.
- *
- * Reached only in the plugin: `railNav()` omits it on web, and `PAGE_RENDERERS` never fires for a page
- * that has no rail row. `commit.isFigma` is re-checked here regardless — this function is exported into
- * the map by name, so a future caller reaching it directly would otherwise render a control whose
- * `postComponents` is inert.
- */
-const renderComponentsPage = (host: PageHost): void => {
-  const [title, lede] = PAGE_COPY.components;
-  host.append(hero(title, lede));
-  // Every other page renderer assigns `paintVolatile`, and it is MODULE state — so a page that skips
-  // the assignment leaves the previous page's closure live, and the next `apply()` paints specimens
-  // into nodes this render already detached. Nothing here varies with a lever (the def and its variant
-  // count are brand-invariant), so the correct value is a no-op — but it has to be assigned to BE one.
-  // Declaring NO volatile hosts alongside it is the other half of the same statement (#771): this page
-  // has nothing that repaints, so every one of its regions is eligible to be kept.
-  setVolatile([], () => {});
-  if (!commit.isFigma) return;
-
-  // FILE SETUP (#1558) — ABOVE the component build, because it lays the skeleton the build then fills: it
-  // scaffolds the file's pages (Cover, dividers, section headers, Foundations, Sandbox) and builds the two
-  // template assets onto File Components, so a build has a page to land on. Its own section rather than a
-  // control in the build's row, for the #652 reason every canvas write here is its own action — a distinct
-  // designer choice with its own trigger and its own verdict slot (`fileSetupState`). The label and this
-  // placement are the owner's to confirm at review (#1558); `FILE_SETUP_LABEL` is the one string to change.
-  const fsSec = palSection(FILE_SETUP_LABEL, 'Lays the file’s page skeleton and builds its template assets.');
-  const fsNote = el('p', 'cw-note');
-  fsNote.append(
-    el('b', undefined, 'Internal — experimental. '),
-    document.createTextNode(
-      'This creates the file’s pages — Cover, section headers, Foundations and the Sandbox — and builds the '
-      + 'two template assets onto the File Components page, so a component build has somewhere to land. It is '
-      + 'idempotent: a re-run adds no page already present and rebuilds no asset already there. Known limits '
-      + 'are tracked on #1554.',
-    ),
-  );
-  fsSec.append(fsNote);
-
-  const fsRow = hook(el('div', 'fs-row'), 'file-setup-row');
-  fileSetupRow = fsRow;
-  const fsBtn = hook(el('button', 'barbtn') as HTMLButtonElement, 'file-setup-button');
-  fileSetupBtn = fsBtn;
-  // One line, under the ~90 the plugin register allows. It states the one fact a re-run needs — that this
-  // never duplicates — because the build's `title` beside it already carries the order the two run in.
-  fsBtn.title = 'Creates the file’s pages and template assets. Safe to re-run — it never duplicates a page.';
-  fsBtn.onclick = () => {
-    // `openDetail` cleared for the same reason the build clears it: the previous run's detail is stale the
-    // instant a new one starts, and the shared row is chrome, so the bar has to be told the row is gone.
-    runFileSetup();
-  };
-  fsRow.append(fsBtn);
-  // Staged, like the build's row: this page is built DETACHED and reconciled in (#771), so the initial sync
-  // runs against a row not yet in the document — see `syncComponentRow`'s header for why the caller says so.
-  syncFileSetupRow({ staged: true });
-  fsSec.append(fsRow);
-  host.append(fsSec);
-
-  const sec = palSection('Build a component set', 'Writes one component set onto the current Figma page.');
-
-  // The internal notice. States the mechanism and the cost, per the voice standard: what it is for, what
-  // it costs, and what it does not do — so a designer who runs it is not surprised, and one who skips it
-  // is not missing a feature.
-  //
-  // THE COST IS NOW PER DEF rather than one number in this sentence. It used to read "a full run writes
-  // 648 variants … roughly 105 seconds", which was a measurement of Button stated as a property of the
-  // action — off by two orders of magnitude for a 4-member def. The per-member rate is the part that
-  // transfers (#700), so the rate lives here and the multiplication lives in the picker beside each def.
-  const note = el('p', 'cw-note');
-  note.append(
-    el('b', undefined, 'Internal — experimental. '),
-    document.createTextNode(
-      'This exists to prove the component definition format can materialize, so it is not a supported '
-      + 'way to get components into a file. Each variant takes about 162ms to write, in short bursts '
-      + 'that leave Figma stuttering rather than frozen — so the cost is the variant count beside each '
-      + 'set below. Figma then reconciles the new nodes after the result lands: that settle was measured '
-      + 'at 1m10s on the 648-variant Button run, and it is not something this plugin can shorten. Known '
-      + 'limits are tracked on #718.',
-    ),
-  );
-  sec.append(note);
-
-  // WHICH DEFS ARE MISSING, AND WHY, said plainly rather than by omission. A designer who knows the
-  // catalog has seven components and sees four here would otherwise reasonably read it as a bug. The
-  // requirement is ours, not Figma's (#795), which is the honest way to put it.
-  //
-  // ONE SENTENCE PER REASON, NOT ONE FOR THE GROUP (#869). This block said "a set needs a declared size
-  // axis to project" about every absent def, which was one cause stated as the only cause — and by the
-  // time #869 was filed it was the wrong cause for the def a designer was most likely to ask about.
-  // A def declaring `notStandalone` gets its own string; the rest keep the projector sentence.
-  const catalog = componentCatalog();
-  const buildable = buildableSets(catalog), missing = unbuildableSets(catalog);
-  const declared = missing.filter((m) => m.reason);
-  const threw = missing.filter((m) => !m.reason).map((m) => m.name);
-  if (threw.length) {
-    const gap = el('p', 'cw-note');
-    gap.append(
-      document.createTextNode(
-        `${threw.join(', ')} ${threw.length === 1 ? 'is' : 'are'} not offered here yet. The projector `
-        + 'cannot build a Figma set from the definition yet, which is a limit in our own projector rather '
-        + 'than something Figma cannot hold.',
-      ),
-    );
-    sec.append(gap);
-  }
-  for (const m of declared) {
-    const gap = el('p', 'cw-note');
-    // The def's own words, verbatim apart from the machine-readable lead. A paraphrase would be a second
-    // copy of a claim the def is the authority on, and this page has already had one of those go stale
-    // (see `componentCatalog`).
-    //
-    // The `<id>:` prefix is STRIPPED, and it has to be: the schema requires the string to lead with the
-    // def's id so a gate can tell an admission from a mention, and this heading already carries the def's
-    // display name — so rendered raw it reads "FocusRing — focus-ring: a ring is…", naming the same
-    // component twice in six words. The prefix is addressed to `figmaPropertyErrors`, not to a designer.
-    // Removed by a leading-anchored replace rather than a split, so a colon later in the sentence is safe.
-    const prose = (m.reason as string).replace(/^\S+:\s*/, '');
-    gap.append(el('b', undefined, `${m.name} — `), document.createTextNode(prose));
-    sec.append(gap);
-  }
-
-  const row = hook(el('div', 'cw-row'), 'components-row');
-  componentRow = row;
-
-  // A PICKER, NOT A BUTTON PER DEF. Four sets today and Arc 2 adds more, so a control per def would grow
-  // the page every time a def earns a `figmaProperties` block. The select is also what carries the cost:
-  // the member count sits in each option, because that is the number a designer needs BEFORE choosing —
-  // Button is ~105s and FieldLabel is under a second, and a picker that hid that would make the two look
-  // like equivalent choices.
-  //
-  // Defaults to Button, matching what this page has always built, so the familiar action is the one
-  // already selected rather than one the designer has to find.
-  // `cap` rather than a new `cw-*` class: the only styling this needs is a width cap, which `.select.cap`
-  // already is (`styles.css`), and a new pairing would mean a new `ALLOWED` entry in `lint-classes.mjs`
-  // for a rule identical to one that exists.
-  const sel = selectEl('cap');
-  for (const b of buildable) {
-    const unit = b.unit === 'components' ? 'component' : 'variant';
-    const opt = el('option', undefined, `${b.name} — ${b.members} ${unit}${b.members === 1 ? '' : 's'}`) as HTMLOptionElement;
-    opt.value = b.id;
-    if (b.id === 'button') opt.selected = true;
-    sel.append(opt);
-  }
-  componentSel = hook(sel, 'components-def-picker');
-  sel.title = 'Which set to build. The variant count is the cost — about 162ms each.';
-  row.append(sel);
-
-  // NAMED FOR THE ACTION, NOT THE DEF, which is a change and the reason is that the def is now a
-  // selection beside it. The label read "Build Button set" because Button was the only def that could be
-  // built and a generic label would have promised four components it could not deliver (#718). With a
-  // picker the specificity moved into the picker, and a label naming one def would contradict it.
-  const compBtn = hook(el('button', 'barbtn') as HTMLButtonElement, 'components-build');
-  componentBtn = compBtn;
-  // One line, under the ~90 the plugin register allows. It states the ORDER because that is the fact a
-  // designer cannot recover from the result: the set binds variables by name, so a build into an
-  // unthemed file misses every binding.
-  compBtn.title = 'Builds the selected set on this page. Apply Theme first — it binds those variables.';
-  // `componentProgress` clears here as well as on the result (#684) — belt and braces on purpose. The
-  // result handler is the normal path, but a build that THROWS in the main thread before the executor
-  // returns posts a failed result, and one that never answers at all posts nothing; without this line a
-  // fraction from the abandoned run would be the first thing the next build's pill shows.
-  //
-  // `renderBar()` still runs even though the control is no longer IN the bar: the bar hosts the boot
-  // read-back pill and the theme write's own status, and `openDetail` is cleared here — the shared
-  // detail row is chrome, so the bar has to be told the row it was showing is gone.
-  compBtn.onclick = () => {
-    // Read at CLICK time, not at render: the select is a live DOM node and this page does not re-render
-    // on its change, so a value captured during render would build whatever was selected when the page
-    // was drawn — the defect being that it would look right for the default and wrong for every change.
-    const def = sel.value;
-    setHost({ componentState: 'pending', componentProgress: null, openDetail: null });
-    hostChanged(); syncComponentRow();
-    commit.postComponents(def);
-  };
-  row.append(compBtn);
-  // Every state-dependent part of this row written by the ONE function that owns them, on the render
-  // path as well as on the message path (#870). Setting the label and the disabled flags inline here and
-  // syncing them there would be two derivations of one state, so a fix to either could leave the other
-  // saying "Building…" — which is the defect this ticket is.
-  //
-  // `staged` because this page is built DETACHED and reconciled in (#771) — see the function's header for
-  // why the attachment test belongs to the caller rather than to it.
-  syncComponentRow({ staged: true });
-  sec.append(row);
-  host.append(sec);
-};
-
-/** The Components page's own status row, refreshed in place (#870).
- *
- *  WHY IN PLACE RATHER THAN `renderWorkspace()`. The `component-result` handler used to call only
- *  `renderBar()` + `syncApplyDetail()`, both of which are CHROME — so the bar's pill showed the verdict
- *  while this row, which is page content, kept whatever the last page render had put there. A designer who
- *  started a build here and stayed here saw `… Building…`, disabled, permanently: the state machine had
- *  already moved on, and only the paint was stale. Verified by reproducing all five terminating conditions
- *  against the built plugin bundle, and confirmed to be paint-only rather than state — navigating away and
- *  back recovered the button every time, which is why the field report's only known recovery was a restart.
- *
- *  The obvious repair — add `renderWorkspace()` beside the other two — trades this defect for a subtler
- *  one. Measured: a full page render rebuilds the picker, whose `<option>` carries `selected` for Button,
- *  so a build of any other def would report its verdict and silently reset the selection to Button. The
- *  designer's next click would then build the wrong set. So the row is SYNCED, like the chrome's own
- *  `syncApplyDetail` and for the same reason: the parts that depend on `componentState` are written, and
- *  the picker, which does not, is left alone.
- *
- *  `staged` IS THE PARAMETER AND IT HAD TO BE, which the first version of this got wrong in a way worth
- *  recording. The two callers ask different questions of the same nodes. A build's own render calls this
- *  while the page is still STAGED — `renderWorkspace` builds the tree detached and reconciles it in
- *  (#771) — so the row is legitimately not in the document yet. The message path calls it about a row that
- *  is supposed to be on screen, where a detached row means the designer has navigated away and writing a
- *  verdict into it would report a delivery that nobody can see. One `isConnected` guard cannot serve both:
- *  applied to the render path it skipped the initial sync entirely and shipped a BLANK button, measured in
- *  the built bundle. So the caller says which it is, and only the message path requires attachment. Its
- *  callers still refresh the chrome, which is where a verdict stays legible after navigating away — that
- *  division is #483's and is unchanged. */
-let componentRow: HTMLElement | null = null;
-let componentSel: HTMLSelectElement | null = null;
-let componentBtn: HTMLButtonElement | null = null;
-const syncComponentRow = (opts: { staged?: true } = {}): void => {
-  const row = componentRow;
-  if (!row || !componentSel || !componentBtn) return;
-  if (!opts.staged && !row.isConnected) return;
-  const pending = host.componentState === 'pending';
-  componentBtn.textContent = pending ? '… Building…' : '⊞ Build set';
-  // Disabled while in flight is both the signal and the guard, same call the Apply button makes: a second
-  // click would post a concurrent build over the same page.
-  componentBtn.disabled = pending;
-  componentSel.disabled = pending;
-  // The pill is REPLACED rather than written to, because pending and verdict are different elements — a
-  // `.bar-seed` span versus an `.applystat` disclosure button — so this cannot be a text swap. Removing
-  // the old one first is what keeps a verdict from landing beside the pending text it supersedes.
-  row.querySelector(':scope > .bar-seed, :scope > .applystat')?.remove();
-  if (host.componentState) row.prepend(renderApplyStatus(host.componentState, 'components'));
-};
-
-// A verdict's page row (#870). Outside any chrome guard on purpose: each row's own `isConnected` test
-// answers "is it on screen" for itself (see `staged` above).
-subscribe('host:components', () => syncComponentRow());
-
-/** The file-setup row's status, refreshed in place (#1558). The same mechanism as `syncComponentRow`, and
- *  for the same reasons: the `file-setup-result` handler is on the message path and this row is page
- *  content, so a verdict that reached only the chrome would leave the button frozen at "… Setting up…".
- *  Simpler than the build's because file-setup has no picker to leave untouched and no progress to render —
- *  the button label and disabled flag plus the verdict pill are the whole of it. `staged` carries the same
- *  meaning: the render path calls it before the row is reconciled in, the message path about a live one. */
-let fileSetupRow: HTMLElement | null = null;
-let fileSetupBtn: HTMLButtonElement | null = null;
-const syncFileSetupRow = (opts: { staged?: true } = {}): void => {
-  const row = fileSetupRow;
-  if (!row || !fileSetupBtn) return;
-  if (!opts.staged && !row.isConnected) return;
-  const pending = host.fileSetupState === 'pending';
-  fileSetupBtn.textContent = pending ? '… Setting up…' : `⊞ ${FILE_SETUP_LABEL}`;
-  // Disabled while in flight is both the signal and the guard, same call the build and Apply buttons make:
-  // a second click would post a concurrent scaffold over the same file.
-  fileSetupBtn.disabled = pending;
-  // Pill REPLACED, not written to — pending (`.bar-seed`) and verdict (`.applystat`) are different
-  // elements, so removing the old one first keeps a verdict from landing beside the pending text.
-  row.querySelector(':scope > .bar-seed, :scope > .applystat')?.remove();
-  if (host.fileSetupState) row.prepend(renderApplyStatus(host.fileSetupState, 'filesetup'));
-};
-
-subscribe('host:filesetup', () => syncFileSetupRow());
+// The Components page (#718), its component-row and file-setup-row plumbing (`syncComponentRow`, `syncFileSetupRow`
+// and their two subscriptions) went in UI redesign S8.2: the build is the Components tab's (`preview/components.ts`,
+// through `lend.sets`, which `runBuild` below backs), Set up file is the Figma menu's alone (G8 A), and both results
+// show in the Activity drawer, which already had their rows (S11).
 
 /** The style-guide button's label (#259). Proposed, owner to confirm — the one string a reviewer changes. */
 const STYLE_GUIDE_LABEL = 'Draw style guide';
@@ -1755,8 +1275,8 @@ const STYLE_GUIDE_LABEL = 'Draw style guide';
  * the button alone does the common case. The specimen is chosen from each token's role unless Display style
  * overrides it (owner decision 8).
  *
- * Figma-only (`railNav()` omits it on web), and `commit.isFigma` is re-checked for the `renderComponentsPage`
- * reason. Nothing here repaints with a lever, so its volatile set is empty, as on Components.
+ * Figma-only (`railNav()` omits it on web), and `commit.isFigma` is re-checked, since a direct caller would otherwise
+ * draw a control whose `postStyleGuide` is inert. Nothing here repaints with a lever, so its volatile set is empty.
  */
 const renderStyleGuidePage = (host: PageHost): void => {
   const [title, lede] = PAGE_COPY.styleGuide;
@@ -1806,7 +1326,9 @@ const renderStyleGuidePage = (host: PageHost): void => {
   host.append(sec);
 };
 
-/** The style-guide row's status, refreshed in place (#259) — `syncFileSetupRow`'s mechanism, its own slot. */
+/** The style-guide row's status, refreshed in place (#259): the build's and file setup's old row mechanism (#870), in
+ *  its own slot. `staged` is true on the render path, where the row is built detached and reconciled in (#771); the
+ *  message path writes only into a row that is on screen. */
 let styleGuideRow: HTMLElement | null = null;
 let styleGuideBtn: HTMLButtonElement | null = null;
 const syncStyleGuideRow = (opts: { staged?: true } = {}): void => {
@@ -1831,13 +1353,8 @@ subscribe('host:styleguide', () => syncStyleGuideRow());
 // The radius ramp and the Control shape specimen moved to the Shape preview in UI redesign S7 (`preview/sections/
 // radius.ts`), reading the ladder itself (`theme.dims.radius`) rather than a hand list resolved through `rp.dims`.
 
-/** The button-layout specimen (#1667) lives in `preview/sections/button-layout.ts` (UI redesign S8.1), with its sizes
- *  (`BUTTON_SIZES`), so the Components page (S8.2) draws the same code. The legacy page hands it the brand's Button
- *  options, the mode in view and the corner, which is still the base `radius.md` (#2049, fixed in S8.2). */
-const paintButtonLayoutPreview = (into: HTMLElement): void => {
-  into.innerHTML = '';
-  into.append(buttonLayoutSection(buttonLayout(), theme, currentMode, rp.dims['radius.md'] ?? 4));
-};
+// The button-layout specimen (#1667) is `preview/sections/button-layout.ts`'s, drawn by the Components preview since UI
+// redesign S8.2, with the engine's corner for the brand's Control shape in the previewed mode (#2049).
 
 // The shadow steps (`shadowRampSection`, with `SHADOW_STEPS`) live in `preview/sections/shadow-ramp.ts` (UI redesign
 // S9.1), drawn by the Depth & motion preview (S9.2).
@@ -1905,7 +1422,7 @@ let chromeHost: HTMLElement;      // the sticky header, measured into --chrome-h
  *     way this list is trying to be — a post-render pass over the workspace DOM, which its own header
  *     defends on exactly these grounds ("a pass over the rendered DOM cannot be forgotten by code that
  *     does not know it exists"). They carry no cross-render refresh, so there is no forgettable second
- *     obligation to declare, and their placement rules are coupled to `mode-audit.mjs --check-badges`.
+ *     obligation to declare, and their placement rules were gated by `mode-audit.mjs --check-badges` until S8.3 deleted it.
  *     Declaring them would move working code for symmetry, and into #771's lane.
  *
  *   • The SEED / RESTORE / APPLY pills (#480, #722) render INSIDE `renderBar()`, which IS the
@@ -2061,7 +1578,8 @@ const mountView = (view: RootView, body: () => HTMLElement): void => {
         figma: commit.isFigma ? figmaActions : null,
         // S3: Brand's preview is the Style guide, lent the same way until a slice replaces it.
         // S6.2 lent Type's levers the legacy Text styles controls; S6.3 replaced them, so only the fonts are lent.
-        lend: { styleGuide: renderPreviewStyleGuide, fonts: () => host },
+        // S8.2: the Components page's set builds, lent so that page never imports this file.
+        lend: { styleGuide: renderPreviewStyleGuide, fonts: () => host, sets: { busy: componentBusy, lastOf: (id) => host.setBuilds.get(id), run: runBuild } },
         // The product mark's logo, `styles.css`'s fixed gradient, lent like the views above.
         logo: () => el('span', 'logo'),
       });
@@ -2164,12 +1682,7 @@ const chromedWorkspace = (ws: HTMLElement): PageHost => {
  *  the code directly beneath it. #718's `components` page is the case it predicted — a page with no
  *  mode axis at all, which arrived and inherited a bar it has nothing to drive. */
 const pageHasModeVaryingControl = (): boolean => {
-  // #718 — the component build takes no mode input. `build-components` carries no payload (the def is
-  // compiled into the plugin) and the write binds variables BY NAME, so every mode resolves from the
-  // variables already in the file rather than from anything this page could scope. Nothing on the page
-  // reads `currentMode`, so a switcher here would change no rendered value — the Palettes case exactly,
-  // reached without needing to measure it, because there is no per-mode value to measure.
-  if (page === 'components') return false;
+  // (#718's Components page, which took no mode input, moved to the two panes in UI redesign S8.2.)
   // A moved page (Color › Palettes from UI redesign S2) draws no legacy workspace, so it has no strip:
   // its preview header carries the mode control.
   if (isNewPage(page)) return false;
@@ -2216,9 +1729,7 @@ const chromeHeight = (): number => parseFloat(document.documentElement.style.get
  *  until it is registered here, and registered as a `PageRenderer`, which can only be called with a
  *  host the chrome mounter produced. */
 const PAGE_RENDERERS: Record<LegacyPageKey, PageRenderer> = {
-  sizeRadius: renderSizeRadiusPage,
   styleGuide: renderStyleGuidePage,
-  components: renderComponentsPage,
 };
 /** Attach the mode badge to every section on the page, in ONE post-render pass.
  *
@@ -3376,6 +2887,7 @@ const activityReading = (): ActivityReading => {
 const applyBusy = (): boolean => host.applyState === 'pending' || agentRunning('apply');
 const pruneBusy = (): boolean => !!host.pruneBusy || agentRunning('prune');
 const fileSetupBusy = (): boolean => host.fileSetupState === 'pending' || agentRunning('filesetup');
+const componentBusy = (): boolean => host.componentState === 'pending' || agentRunning('components');
 
 /**
  * THE FILE'S BRAND DID NOT RESOLVE (#1989), so Apply Theme and Prune stale are off until a brand does.
@@ -3443,17 +2955,30 @@ const runPrune = (): void => {
 const runFileSetup = (): void => {
   if (fileSetupBusy()) return;
   setHost({ fileSetupState: 'pending', openDetail: null });
-  hostChanged(); syncFileSetupRow();
+  hostChanged();
   commit.postFileSetup();
+};
+/** Build a component set (UI redesign S8.2): the Components preview's Build button, lent as `lend.sets.run`. Refuses
+ *  while a build runs, the panel's or an agent's (the one re-fire guard, #1956 decision 4), and for a set the catalog
+ *  does not offer (owner decision G4 A: a set that can't be built is never posted, whatever asked). Remembers the set
+ *  it posted (`componentDef`), so the verdict that answers it is recorded against that set (G9). `componentProgress`
+ *  clears as well as on the result (#684): a build that throws before the executor returns posts a failed result, and
+ *  one that never answers posts nothing, so a fraction from an abandoned run must not lead the next one. */
+const runBuild = (id: string): void => {
+  if (componentBusy()) return;
+  if (!componentCatalog().some((e) => e.id === id && e.buildable)) return;
+  setHost({ componentState: 'pending', componentProgress: null, openDetail: null, componentDef: id });
+  hostChanged();
+  commit.postComponents(id);
 };
 /** Prune is unavailable while a prune runs AND while a theme apply runs, panel or agent: a prune reads the
  *  same variables an apply writes, so overlapping the two would race a delete against a create. */
 const pruneBlocked = (): boolean => pruneBusy() || applyBusy();
 const PRUNE_HINT = 'Removes the styles, modes and variables this config no longer emits. Shows the count before deleting, and names the modes.';
 
-/** The Figma menu's items (`shell/figma.ts`), plugin only. Labels are today's: the bar's two controls, the
- *  file-setup button, and the two pages whose writes need options first (concept v6's "Build set…" and
- *  "Style guide…"), which open those pages. */
+/** The Figma menu's items (`shell/figma.ts`), plugin only. Labels are today's: the bar's two controls, Set up file
+ *  (whose only control this is since S8.2, G8 A), and the two writes that need options first (concept v6's "Build
+ *  set…" and "Style guide…"), which open where those options are: the Components tab, and the Style guide page. */
 /** The busy labels are the pending labels the panel already used (#1948), without their leading "…",
  *  which `pendingLabel` draws as the spinner's cell. An agent's prune does not say whether it is a dry run,
  *  so its busy label is the item's own. */
@@ -3463,7 +2988,8 @@ const figmaActions = (): FigmaAction[] => [
   { id: 'prune', label: 'Prune stale', busy: host.pruneBusy === 'preview' ? 'Checking…' : host.pruneBusy === 'delete' ? 'Removing…' : pruneBusy() ? 'Prune stale' : null,
     disabled: pruneBlocked() || !!restoreFailure, hint: restoreFailure ? RESTORE_OFF_HINT : PRUNE_HINT, run: runPrune },
   { id: 'file-setup', label: FILE_SETUP_LABEL, busy: fileSetupBusy() ? 'Setting up…' : null, disabled: false, run: runFileSetup },
-  { id: 'build', label: 'Build set…', busy: null, disabled: false, run: () => setPage('components') },
+  // S8.2 (owner decision G2 A): Build set… opens the Components tab, where the set is chosen and built.
+  { id: 'build', label: 'Build set…', busy: null, disabled: false, run: () => setPage(pageOfTab('components', commit.isFigma ? 'figma' : 'web')) },
   { id: 'style-guide', label: 'Style guide…', busy: null, disabled: false, run: () => setPage('styleGuide') },
 ];
 
@@ -3542,7 +3068,7 @@ function renderBar(): void {
     applyBtn.onclick = runApply;
 
     // The component write's trigger USED TO SIT HERE (#483), a second action beside Apply. #718 moved it
-    // to the Components rail page, and the move is a demotion — see `renderComponentsPage`. Apply is the
+    // to the Components rail page, and UI redesign S8.2 to the Components tab's preview. Apply is the
     // only write that belongs in the primary bar: it is the terminal action of the theme flow, runs after
     // every knob change, and answers in well under a second.
     //
@@ -3566,8 +3092,11 @@ function renderBar(): void {
   actions.append(eWrap);
 
   // Pages — the old rail, as a menu (D1, D5). The tab row navigates now; this keeps every legacy page
-  // reachable by its old name until its domain slice retires it, and S13 removes the menu.
+  // reachable by its old name until its domain slice retires it, and S13 removes the menu. A host with no destination
+  // left draws none (owner decision G19 A): the web since S8.2, whose last legacy page moved to Components; the plugin
+  // keeps it for the Style guide until S11.2.
   const nWrap = el('div', 'barmenu-wrap');
+  if (!railNav().length) navMenuOpen = false;
   const nav = hook(el('button', 'p3-btn p3-btn-collapse') as HTMLButtonElement, 'pages-menu');
   nav.type = 'button';
   nav.append(glyph('pages'), el('span', 'p3-btn-label', 'Pages'), glyph('chev'));
@@ -3580,7 +3109,7 @@ function renderBar(): void {
   };
   nWrap.append(nav);
   if (navMenuOpen) nWrap.append(pinLight(renderNavMenu()));
-  actions.append(nWrap);
+  if (railNav().length) actions.append(nWrap);
   // The Figma menu (S1.4, plugin only), then Apply Theme, the one inverse-filled control, last.
   if (frame?.figma) actions.append(frame.figma);
   if (applyBtn) actions.append(applyBtn);
@@ -3658,22 +3187,8 @@ const renderNavMenu = (): HTMLElement => {
     menu.append(it);
   });
   menu.append(el('p', 'rail-note', 'Ordered the way a theme composes — palettes first, then how they’re applied to surfaces and interaction, then type and form.'));
-  // The page states which build it is (#474). `/dist/main.js` is served from an invariant URL, so a
-  // cached bundle is indistinguishable from a fresh one by looking at it — a shipped change was
-  // reported missing and took a local rebuild plus a pixel measurement to clear. Engine version
-  // answers "what code produced these tokens"; the commit answers "is this deploy current", and only
-  // the second one was ever in doubt. Selectable, because the first thing anyone does is paste it.
-  // It sat at the foot of the rail, and came into the menu with it (S1.2).
-  //
-  // The two readings moved to `build-identity.ts` in #836, unchanged for the web and extended for the
-  // plugin, where the field used to be the literal `plugin` in every checkout. That made this the one
-  // chip that could have said which tree Figma was running and did not — and it was the OTHER field,
-  // `engine 0.21.0`, that eventually caught it on 2026-08-26. Both sentences below are now asserted in
-  // `test-build-identity.ts`; inline in this file they were unreachable by any test.
-  const stamp = hook(el('p', 'rail-build'), 'build-stamp');
-  stamp.append(el('span', undefined, `engine ${ENGINE_VERSION}`), el('span', 'rail-build-b', buildChip(PRISM3_BUILD)));
-  stamp.title = buildTitle(PRISM3_BUILD);
-  menu.append(stamp);
+  // The build stamp (#474) stood here until UI redesign S8.2; it is at the foot of the Inspect menu now, on both hosts
+  // (owner decision C3 A), since the web has no Pages menu (G19).
   return menu;
 };
 

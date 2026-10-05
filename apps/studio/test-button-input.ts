@@ -21,6 +21,11 @@ import { brandTheme, type BrandInput } from '@prism3/engine/theme';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import * as store from './src/state/store';
 import * as B from './src/state/button-input';
+import { buildTree } from '@prism3/engine/tree';
+import { componentDefs } from '@prism3/engine/components/index';
+import { applyControlShape } from '@prism3/engine/anatomy-figma';
+import type { ControlShape } from '@prism3/engine/scale';
+import { buttonCornerPx } from './src/preview/sections/button-layout';
 
 let executed = 0, failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -108,6 +113,55 @@ ok(JSON.stringify(B.buttonLayout()) === '{"edges":true,"smaller":true,"mult":3.5
 reset('prism3');
 B.setButtonMinWidth(2.25);
 ok(B.buttonLayout().mult === 2.25 && typeof B.buttonLayout().mult === 'number', 'a written 2.25 reads as the number 2.25');
+
+console.log('\n5. The button specimen\'s corner is the engine\'s (#2049, UI redesign S8.2, owner decision G7 A)');
+// SUBJECT: `buttonCornerPx`, which the Components preview draws each button's corner with (the "used by" index for the
+// radius size, `radiusIn` for its value in the mode). ORACLE, independent of both: the engine's own `applyControlShape`
+// run on the Button definition here (the radius size a build binds for each Control shape), and that size's px and the
+// button's height IN THE MODE read off the brand's DTCG emission (`buildTree`, the tree `regen` writes), clamped to half
+// the height, which is what CSS and Figma both draw for a larger corner (so Pill is fully round). Every corpus brand,
+// every shape, every mode each ships, every size; plus a planted brand whose Dark has its own radius softness and
+// density, the case no corpus brand exercises.
+//
+// Mutations this fails by name: the corner read from `radius.md` whatever the shape (#2049) → `aurora / pill / light /
+// md: the corner is 8px; the engine binds radius.capsule, 22px`; the corner read from Light in every mode →
+// `aurora with its own Dark / rounded / dark / md: the corner is 8px; the engine binds radius.md, 2px`.
+const buttonDef = componentDefs.find((d) => d.id === 'button')!;
+const SHAPES: ControlShape[] = ['rounded', 'pill', 'boxed', 'hairline'];
+const cornerBrands: [string, BrandInput][] = [
+  ...(['prism3', 'aurora', 'harbor'] as const).map((id) => [id, structuredClone(brands[id])] as [string, BrandInput]),
+  ['aurora with its own Dark', { ...structuredClone(brands.aurora), modeLevers: { dark: { radius: 0.5, density: 'compact' } } } as BrandInput],
+];
+let corners = 0;
+const seen: Record<string, number> = {};
+for (const [name, input] of cornerBrands) {
+  const theme = brandTheme(input);
+  const { tree } = buildTree(theme);
+  const root = tree[Object.keys(tree)[0]];
+  const base = theme.modes[0];
+  const pxIn = (leaf: { $extensions?: { prism3?: { px?: number; modes?: Record<string, { px?: number }> } } } | undefined, mode: string): number | undefined =>
+    (mode !== base ? leaf?.$extensions?.prism3?.modes?.[mode]?.px : undefined) ?? leaf?.$extensions?.prism3?.px;
+  for (const shape of SHAPES) {
+    const ref = String(applyControlShape(buttonDef, shape).tokens.radius);
+    for (const mode of theme.modes) {
+      for (const step of ['sm', 'md', 'lg']) {
+        const h = pxIn(root.size?.[step]?.height, mode);
+        const r = pxIn(root.radius?.[ref.slice('radius.'.length)], mode);
+        if (h === undefined || r === undefined) { ok(false, `${name} / ${shape} / ${mode} / ${step}: the emission carries ${ref} and size.${step}.height`); continue; }
+        const want = Math.min(r, h / 2);
+        const got = buttonCornerPx(theme.dims, theme.modes, mode, shape, h);
+        corners++;
+        seen[`${name}|${shape}|${mode}|${step}`] = got;
+        if (got !== want) ok(false, `${name} / ${shape} / ${mode} / ${step}: the corner is ${got}px; the engine binds ${ref}, ${want}px`);
+      }
+    }
+  }
+}
+ok(corners >= 4 * 4 * 3 * 4, `every brand × shape × mode × size compared against the emission (${corners}, floor ${4 * 4 * 3 * 4})`);
+ok(seen['aurora|rounded|light|md'] === 8 && seen['aurora|pill|light|md'] === 22 && seen['aurora|boxed|light|md'] === 0 && seen['aurora|hairline|light|md'] === 1,
+  `literal: aurora's medium button in Light is 8px rounded, 22px pill (44px high), 0px boxed, 1px hairline (${['rounded', 'pill', 'boxed', 'hairline'].map((x) => seen[`aurora|${x}|light|md`]).join(', ')})`);
+ok(seen['aurora with its own Dark|rounded|dark|md'] === 2 && seen['aurora with its own Dark|pill|dark|md'] === 18,
+  `literal: with Dark's own softness (0.5) and density (compact), Dark's medium button is 2px rounded and 18px pill (36px high) (${seen['aurora with its own Dark|rounded|dark|md']}, ${seen['aurora with its own Dark|pill|dark|md']})`);
 
 console.log(`\n${executed - failed}/${executed} Button option write assertions passed.`);
 if (failed) process.exit(1);

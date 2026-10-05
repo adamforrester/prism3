@@ -16,7 +16,8 @@
  * WHAT EACH PAGE SHOWS. A legacy page (`pages.ts`, `status: 'legacy'`) shows its legacy page in the
  * full-width legacy frame under the tab row, pinned light (D1, D2). (Depth & motion's local switch between its two
  * legacy pages, D8, went when S9.2 moved the page.) A moved page (`status: 'new'`: Color › Palettes from S2, Brand from S3, Surfaces & fills
- * from S4a, Interactive from S5.2, Type from S6.2, Shape from S7, Depth & motion from S9.2, Layout from S10) shows the two panes: its levers module draws the levers pane and its preview module the preview body (`NEW_PAGES`
+ * from S4a, Interactive from S5.2, Type from S6.2, Shape from S7, Depth & motion from S9.2, Layout from S10, Components
+ * from S8.2) shows the two panes: its levers module draws the levers pane and its preview module the preview body (`NEW_PAGES`
  * below), each mounted once per visit and released, subscriptions included, when the place changes.
  *
  * S1.3 fills the preview header and adds Inspect (`preview.ts`): the title of the page's one home view
@@ -68,6 +69,8 @@ import { mountShapeLevers } from '../domains/shape';
 import { mountShapePreview } from '../preview/shape';
 import { mountLayoutLevers } from '../domains/layout';
 import { mountLayoutPreview } from '../preview/layout';
+import { mountComponentsLevers } from '../domains/components';
+import { mountComponentsPreview } from '../preview/components';
 import { cancelEasedScroll, dropEdits, revealSection, takeSectionEdit, trackLeverSections } from '../preview/follow-edit';
 
 /** The moved pages (S2 on): what each draws in the levers pane and in the preview body. A slice that moves
@@ -89,6 +92,7 @@ const NEW_PAGES: Record<NewPageKey, {
   depth: { levers: mountDepthLevers, preview: mountDepthPreview },
   shape: { levers: mountShapeLevers, preview: mountShapePreview },
   layout: { levers: mountLayoutLevers, preview: mountLayoutPreview },
+  components: { levers: mountComponentsLevers, preview: mountComponentsPreview },
 };
 
 /** The product's name, as the studio's top bar shows it (owner, 2026-10-04). */

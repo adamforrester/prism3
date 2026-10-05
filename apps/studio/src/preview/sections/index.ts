@@ -35,7 +35,7 @@ import { controlHeightsSection, buttonHeightLabel } from './control-heights';
 import { spacingSection, SPACING_PREVIEW } from './spacing';
 import { shapeBuildingBlocksSection, SHAPE_BUILDING_BLOCKS } from './shape-building-blocks';
 import { radiusSampleSection, RADIUS_SAMPLE, SAMPLE_SHADOW } from './radius-sample';
-import { buttonLayoutSection, BUTTON_SIZES } from './button-layout';
+import { buttonLayoutSection, buttonCornerPx, BUTTON_SIZES, BUTTON_FILL, BUTTON_INK, type ButtonLayoutCopy } from './button-layout';
 import type { SgCtx } from './kit';
 
 export { backgroundSection, foregroundSection, textColorSection, borderSection, iconSection };
@@ -70,9 +70,10 @@ export type { DurationsCopy, TransitionsCopy };
  *  Building blocks. The radius sample is the Style guide's (owner decision D18 B). Read-only. */
 export { radiusSection, USED_BY_NONE, controlHeightsSection, buttonHeightLabel, spacingSection, SPACING_PREVIEW, shapeBuildingBlocksSection, SHAPE_BUILDING_BLOCKS,
   radiusSampleSection, RADIUS_SAMPLE, SAMPLE_SHADOW };
-/** The button-layout specimen (UI redesign S8.1, lifted from the legacy Size & radius page's Buttons block, unchanged in
- *  output), so the Components page (S8.2) draws the same code. Read-only. */
-export { buttonLayoutSection, BUTTON_SIZES };
+/** The button-layout specimen (UI redesign S8.1 lifted it from the legacy Size & radius page; S8.2 draws it on
+ *  Components with the engine's corner and the brand's action colors, #2049). Read-only. */
+export { buttonLayoutSection, buttonCornerPx, BUTTON_SIZES, BUTTON_FILL, BUTTON_INK };
+export type { ButtonLayoutCopy };
 /** The five, in order, by the title each section draws. */
 export const COLOR_SECTIONS: ReadonlyArray<readonly [string, (c: SgCtx) => HTMLElement]> = [
   ['Background', backgroundSection], ['Foreground', foregroundSection], ['Text color', textColorSection], ['Border', borderSection], ['Icon', iconSection],
