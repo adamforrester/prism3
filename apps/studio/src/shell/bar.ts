@@ -165,7 +165,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
 
   // The dialogs sit in a layer of their own after the controls, outside every wrap, so a scrim click is never read
   // as a click inside a menu's wrap (#723).
-  const layer = h('div', 'p3-dialog-layer');
+  const layer = h('div', 'p3-bardlg-layer');
 
   // ── paint ──────────────────────────────────────────────────────────────────────────────────────
   let wasOpen = false;
@@ -315,13 +315,13 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
   // ── the dialogs ──────────────────────────────────────────────────────────────────────────────────
   /** A modal on a scrim: the head (its title and Close), then its body. A click on the scrim, and Escape, close it. */
   const dialog = (role: string, title: string, close: () => void): { scrim: HTMLElement; dlg: HTMLElement } => {
-    const scrim = h('div', 'p3-scrim');
-    const dlg = hook(h('div', 'p3-dialog'), role);
+    const scrim = h('div', 'p3-bardlg-scrim');
+    const dlg = hook(h('div', 'p3-bardlg'), role);
     dlg.setAttribute('role', 'dialog');
     dlg.setAttribute('aria-modal', 'true');
     dlg.setAttribute('aria-label', title);
-    const head = h('div', 'p3-dialog-head');
-    head.append(h('h2', 'p3-dialog-title', title));
+    const head = h('div', 'p3-bardlg-head');
+    head.append(h('h2', 'p3-bardlg-title', title));
     const x = hook(h('button', 'p3-btn p3-btn-ghost p3-btn-icon'), 'dialog-close');
     x.type = 'button';
     x.setAttribute('aria-label', 'Close');
@@ -339,9 +339,9 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     const { scrim, dlg } = dialog('export-dialog', 'Export', act.closeExport);
     // Two columns: the settings on the left, what they produce on the right (#720's verify item: a preview you have
     // to scroll to is not a preview). One column at narrow widths, the preview after the settings.
-    const body = h('div', 'p3-dialog-body p3-export-body');
-    const left = h('div', 'p3-dialog-col');
-    const right = h('div', 'p3-dialog-col p3-export-out');
+    const body = h('div', 'p3-bardlg-body p3-export-body');
+    const left = h('div', 'p3-bardlg-col');
+    const right = h('div', 'p3-bardlg-col p3-export-out');
     const seg = h('div', 'p3-seg p3-export-seg');
     for (const a of x.artifacts) {
       const b = hook(h('button', 'p3-seg-tab', a.label), 'export-artifact');
@@ -350,7 +350,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
       b.onclick = () => act.artifact(a.id);
       seg.append(b);
     }
-    left.append(seg, h('p', 'p3-dialog-desc', x.desc));
+    left.append(seg, h('p', 'p3-bardlg-desc', x.desc));
     if (x.settings.length) {
       left.append(h('div', 'p3-menu-div'));
       for (const s of x.settings) {
@@ -365,14 +365,14 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
           b.onclick = () => act.setting(s.key, o.value);
           sseg.append(b);
         }
-        row.append(sseg, h('p', 'p3-dialog-note', s.desc));
+        row.append(sseg, h('p', 'p3-bardlg-note', s.desc));
         left.append(row);
       }
-    } else if (x.none) left.append(h('p', 'p3-dialog-note', x.none));
+    } else if (x.none) left.append(h('p', 'p3-bardlg-note', x.none));
     for (const blk of x.right) {
       if (blk.kind === 'cap') right.append(h('div', 'p3-menu-cap', blk.text));
       else if (blk.kind === 'files') { const p = h('p', 'p3-export-files', blk.text); if (blk.title) p.title = blk.title; right.append(p); }
-      else if (blk.kind === 'note') { const p = h('p', 'p3-dialog-note', blk.text); if (blk.hook) hook(p, blk.hook); right.append(p); }
+      else if (blk.kind === 'note') { const p = h('p', 'p3-bardlg-note', blk.text); if (blk.hook) hook(p, blk.hook); right.append(p); }
       else {
         // One block per file, its name above it: the text has to stay the bytes the download writes.
         const box = h('div', 'p3-export-prevs');
@@ -385,7 +385,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     }
     body.append(left, right);
     dlg.append(body);
-    const foot = h('div', 'p3-dialog-foot');
+    const foot = h('div', 'p3-bardlg-foot');
     const cancel = hook(h('button', 'p3-btn p3-btn-page', 'Cancel'), 'dialog-cancel');
     cancel.type = 'button';
     cancel.onclick = act.closeExport;
@@ -397,14 +397,14 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     dlg.append(foot);
     // Import, a slot: the same conversation as export (#723).
     if (x.imports.length) {
-      const imp = h('div', 'p3-dialog-import');
+      const imp = h('div', 'p3-bardlg-import');
       imp.append(h('div', 'p3-menu-cap', 'Import'));
       for (const slot of x.imports) {
         const b = hook(h('button', 'p3-menu-item', `↑ ${slot.label}…`), 'export-import');
         b.type = 'button';
         b.setAttribute('aria-expanded', String(v.importOpen));
         b.onclick = () => act.toggleImport();
-        imp.append(b, h('p', 'p3-dialog-note', slot.desc));
+        imp.append(b, h('p', 'p3-bardlg-note', slot.desc));
       }
       if (v.importOpen) imp.append(importBox(v));
       dlg.append(imp);
@@ -415,10 +415,10 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
   /** The prune review (#1521): the main thread's sentence, Cancel, and the destructive action named by its outcome. */
   const pruneDialog = (p: NonNullable<BarView['prune']>): HTMLElement => {
     const { scrim, dlg } = dialog('prune-dialog', 'Prune stale items', act.closePrune);
-    const body = h('div', 'p3-dialog-col');
-    body.append(h('p', 'p3-dialog-desc', p.summary));
+    const body = h('div', 'p3-bardlg-col');
+    body.append(h('p', 'p3-bardlg-desc', p.summary));
     dlg.append(body);
-    const foot = h('div', 'p3-dialog-foot');
+    const foot = h('div', 'p3-bardlg-foot');
     const cancel = hook(h('button', 'p3-btn p3-btn-page', 'Cancel'), 'dialog-cancel');
     cancel.type = 'button';
     cancel.onclick = act.closePrune;

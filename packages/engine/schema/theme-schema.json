@@ -478,7 +478,7 @@
       "additionalProperties": false,
       "description": "OPTIONAL. Layout axis — breakpoints, a 12-col grid (per-breakpoint overridable), gutter/margin aliasing the spacing scale, fluid containers + a max cap.",
       "properties": {
-        "breakpoints": { "type": "array", "items": { "type": "number" }, "description": "Min-width floors (px), ascending. Auto-named sm/md/lg/xl/2xl. Default [0,768,1024,1440,1920]." },
+        "breakpoints": { "type": "array", "items": { "type": "number" }, "description": "Min-width floors (px), ascending. The first must be 0. Auto-named sm/md/lg/xl/2xl. Default [0,768,1024,1440,1920]." },
         "columns": { "type": "number", "default": 12, "description": "Base column count (12 default; 16/24 for dense-data brands). Emitted as a 4/8/…/base ladder per breakpoint — a design grid, not the code contract." },
         "columnOverrides": { "type": "object", "additionalProperties": { "type": "number" }, "description": "OPTIONAL. Per-breakpoint column overrides (bp → count). Wins over the ladder; unset keeps it. Rounded + clamped to 4..24 on emit." },
         "gutterOverrides": { "type": "object", "additionalProperties": { "type": "number" }, "description": "OPTIONAL. Per-breakpoint gutter overrides (bp → px). Wins over the ladder; unset keeps it. Must be a spacing step (aliases space/*), down to 4px; off-ladder throws." },

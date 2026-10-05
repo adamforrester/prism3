@@ -63,7 +63,7 @@ export const LAYOUT_COPY = {
 export const LAYOUT_DRAFT = {
   // Not draft any more: the lever's own description, word for word (#2070; #2089 corrected "six or seven run xs to
   // 3xl", which is wrong for six). `test-lever-tips.ts` holds it to `lever-manifest.json`; keep it a literal (docs/34).
-  breakpointsTip: 'The screen width where each layout starts, smallest first. Studio keeps the first at 0px. Names follow the count: up to five start at sm, six run xs to 2xl, and seven run xs to 3xl. The default is 0, 768, 1024, 1440 and 1920.',
+  breakpointsTip: 'The screen width where each layout starts, smallest first. The first is always 0px. Names follow the count: up to five start at sm, six run xs to 2xl, and seven run xs to 3xl. The default is 0, 768, 1024, 1440 and 1920.',
   columnsTip: 'How many columns the grid has on the widest breakpoints. Smaller breakpoints step up to it: 4, then 8, then this count.',
   maxTip: 'The widest content gets. Below this width, content fills the screen.',
   narrowTip: 'A narrower width for long text, so lines stay a readable length.',

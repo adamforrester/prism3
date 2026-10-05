@@ -10,10 +10,10 @@
 
 **Removed, each by name once nothing called it:** `renderBar`, `renderBrandMenu`, `renderImportBox`, `renderOverwriteConfirm` (its sentence is `overwriteText`), `renderExportDialog`, `renderPruneDialog`, `barHost`, `outsideBound`, `globalErrHost`; in `styles.css`, every `.exdlg*` rule (with its two `@media (max-width:720px)` blocks), `.bm-field`, `.bm-lab`, `.bm-in` (and `.bm-in.bad`), `.bm-hint`, `.bm-item`, `.bm-dot`, `.bm-import`, `.bm-ta`, `.bm-err`, `.bm-load`, `.bm-file`, `.bm-import-row`, `.bm-confirm-row`, `.bm-upload`, `.bm-cancel`, `.bm-confirm`; in `chrome.css`, the `.barmenu-wrap .brandmenu` hang rule and the notices row's legacy padding. Kept, with their last user named: `.errbar` (the web's refused-saved-brand boot card, `entry.ts`, #1999), `.barbtn` (that card and the Style guide's draw button), `.seg`/`.seg-b` (Inspect's token list).
 
-**Chrome tokens:** two product rows, `l-col` (`core.dimension.72`: the brand menu is four columns, 288px, concept's popover; the export dialog twelve, 864px) and `scrim` (`color.scrim.default`, listed decorative: nothing is read on it, the dialog draws its own ground). The brand menu is fixed at its static position under the switcher, so its height is held to the window and it scrolls rather than run off a 420px-tall plugin (#1925's second item, now held by `test:chrome` §27).
+**Chrome tokens:** two product rows, `l-col` (`core.dimension.72`: the brand menu is four columns, 288px, concept's popover; the export dialog twelve, 864px) and `scrim` (`color.scrim.default`, listed decorative: nothing is read on it, the dialog draws its own ground). The brand menu is fixed at its static position under the switcher, so its height is held to the window and it scrolls rather than run off a 420px-tall plugin (#1925's second item, now held by `test:chrome` §28).
 
 **Gates:**
-- `test:chrome` **section 27**, both hosts, both themes, 1280, 640 and 380: the brand menu (import box open), the export dialog and the error strip, each measured by the probe as chrome (text 4.5:1, edges and glyphs 3:1, 24px targets, the embedded font, no shadows, no inline values; the probe no longer skips the notices row or the bar's popovers, only the plugin's Pages menu list); the strip's ground follows the theme (literal luminance lines), full width, right under the bar; the menu inside the window and the dialog one column at the narrow tier; and **the brand menu by keyboard** (Enter opens it on the current example, Arrow Down, End and Home move, Escape closes it back to the switcher; Escape closes the dialog back to Export). The probe also measures `textarea` as a field and classifies `p3-textarea`.
+- `test:chrome` **section 28** (27 until #2144 took that number), both hosts, both themes, 1280, 640 and 380: the brand menu (import box open), the export dialog and the error strip, each measured by the probe as chrome (text 4.5:1, edges and glyphs 3:1, 24px targets, the embedded font, no shadows, no inline values; the probe no longer skips the notices row or the bar's popovers, only the plugin's Pages menu list); the strip's ground follows the theme (literal luminance lines), full width, right under the bar; the menu inside the window and the dialog one column at the narrow tier; and **the brand menu by keyboard** (Enter opens it on the current example, Arrow Down, End and Home move, Escape closes it back to the switcher; Escape closes the dialog back to Export). The probe also measures `textarea` as a field and classifies `p3-textarea`.
 - `test:smoke` §2d: **the strip in dark**, the bug being fixed: its rendered ground dark (below 0.2), its line 4.5:1 and its glyph 3:1, and the light theme's strip on a light ground; #388's checks unchanged (quiet before, shown after the refused edit, naming the field, kept across navigation, cleared on undo). The #1031 brand-menu arm now holds that each control's color-scheme **agrees with its measured ground** in either direction (it held "light only" while the menu was pinned light).
 - `test-shell-imports.ts` scans `shell/bar.ts` and `shell/notices.ts` by name; `renderBar` stays on its literal tier list.
 - Every existing behavior test kept its oracle and its hooks (the hooks are the same names: `brand-switcher`, `brand-menu`, `brand-menu-example`, `brand-menu-new`, `brand-menu-import`, `import-text`, `import-load`, `overwrite-*`, `export-open`, `export-dialog`, `dialog-confirm`, `prune-dialog`, `error-bar`): the plugin's `test:start` (the start-screen re-entry from "+ New brand", the brand menu measured in both themes) and `test:verdict` (the prune review, Export after a failed restore, the #1989 error line) pass unchanged.
@@ -53,7 +53,7 @@
   - row 2: Pages ▾ and Figma ▾, then Apply Theme on the right (a row break and a second spacer that only the narrow tier draws).
 
 **Gates for the menu bar:**
-- `test:chrome` §27, both hosts, both themes, at 1280, 640 and 380:
+- `test:chrome` §28, both hosts, both themes, at 1280, 640 and 380:
   - the DOM order per host;
   - no divider (no separator element, no edge on a non-control, no thin filled element);
   - the white-with-▾ menus;
@@ -62,7 +62,7 @@
   - one row at web 640, and row membership at plugin 380;
   - the alignment;
   - Contrast's tooltip shown on hover inside the window.
-- `test:chrome` §27b:
+- `test:chrome` §28b:
   - Contrast's mark per verdict, using `test-verdict-count.ts`'s two-mode fixture on the web, "2 of 884 below floor, 2 modes" and the count 2;
   - the plugin Theme menu's three choices, its default, a choice posted to the main thread, and the choice remembered across a reload;
   - "agent link on" in Activity's name.
@@ -74,7 +74,7 @@
 - **The theme menu put back after Export** (`bar.ts`'s order): 16 failures. Example: `S13.1 web light 1280: bar order: product-mark, brand-switcher, verdict, theme-toggle, activity-open, export-open (product-mark, brand-switcher, verdict, activity-open, export-open, theme-toggle)`, and `… bar alignment: the bar's last control on its top row (theme-toggle) ends at the page content's right edge (1248 vs 1248, the preview header), and it is Export`.
 - **A divider after the mark** (`border-right` on `.p3-mark`): 12 failures, every host, theme and width. Example: `S13.1 web light 1280: bar dividers: none between the bar's items (product-mark border-right)`.
 - **The labels kept at the narrow tier** (the narrow `.p3-tile-label` rule dropped): 26 failures. Examples: `S13.1 web light 380: bar tiles: verdict is borderless (true) with its glyph (true), its label dropped ("Contrast"), …` and `T7 figma light 380: the Agent tile sits in the top bar's Agent slot, named "Agent, off", not pressed, no dot, its label dropped ({… "label":"Agent" …})`.
-- **Contrast's mark always the check** (`preview.ts`): 9 failures. Example: `27b web light 1280: Contrast: pairs below floor, so its mark is the warning glyph and the count below floor ({"state":"fail","check":true,"warn":false,"count":null,"tip":"2 of 884 below floor, 2 modes",…})`.
+- **Contrast's mark always the check** (`preview.ts`): 9 failures. Example (the section was 27b then, now 28b): `27b web light 1280: Contrast: pairs below floor, so its mark is the warning glyph and the count below floor ({"state":"fail","check":true,"warn":false,"count":null,"tip":"2 of 884 below floor, 2 modes",…})`.
 - **The Agent dot drawn while off** (`.p3-agent-dot { display: block }`): 12 failures. Example: `T7 figma light 1280: the Agent tile sits in the top bar's Agent slot, named "Agent, off", not pressed, no dot, labelled "Agent" ({… "dot":true …})`, plus `… the published off state clears the dot and the pressed state`.
 - **The theme choice not kept** (`main.ts`'s `set-theme-pref` case emptied): `test-theme-pref.ts` failed 4 checks, for example `a choice is kept in clientStorage under prism3:theme (kept undefined)` and `the next ui-ready sends the kept choice back (sent [])`.
 

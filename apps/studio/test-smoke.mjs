@@ -639,8 +639,9 @@ const settle = async (page, where) => {
  *  `scheme` emulates the OS light/dark preference (#1031). Defaults to Playwright's own default so
  *  every existing caller is unchanged; only section 4 passes it, and what it is there to measure is
  *  that the answer does NOT depend on it. */
-const openBrand = async (brand, scheme) => {
+const openBrand = async (brand, scheme, { interInstalled = false } = {}) => {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 1200 }, acceptDownloads: true, ...(scheme ? { colorScheme: scheme } : {}) });
+  if (interInstalled) await ctx.addInitScript(INTER_INSTALLED);
   const page = await ctx.newPage();
   await hooks.watch(page);
   const drain = watchErrors(page);
@@ -762,17 +763,34 @@ const KNOWN_CONTRAST_GAPS = [];
 const knownGapOf = (place, r) => KNOWN_CONTRAST_GAPS.find((k) => k.place === place && k.cls === r.cls && k.text === r.text && r.ratio >= k.atLeast);
 const gapSeen = new Map(KNOWN_CONTRAST_GAPS.map((k) => [k, { drawn: 0, under: 0 }]));
 /**
- * THE TYPE PAGE'S FONT STATUS, HELD TO THE CHROME TEXT BAR IN EVERY BRAND × MODE (#2091, owner T-FONT A). The label
- * "⚠ Not installed" is studio text on the BRAND's page color, so its ratio moves with the brand and the mode; it
- * was `--warn` at 3.84–4.16:1 on the dark grounds. The general chrome check above already counts it, but only when
- * it is drawn, and it is drawn only where a brand face does not resolve on the device. So this one is asserted
- * EXERCISED, per brand and mode, by its own class and text (literals, not read from `ui/fonts.ts`): a state that
- * drew no such label fails as not exercised rather than passing vacuously (docs/34: represented, not counted). CI
- * and a bare container lack the corpus faces; a machine that has all of them installed fails here by name, which
- * is the truth about that run: it did not check the label.
+ * THE TYPE PAGE'S FONT STATUS, BOTH LABELS, IN THE BRAND'S OWN STATUS TEXT ROLES, IN EVERY BRAND × MODE (#2091, #2103).
+ * The labels are studio text on the BRAND's page color, so their ratio moves with the brand and the mode: "⚠ Not
+ * installed" was `--warn` at 3.84–4.16:1 on the dark pages (#2091), and "✓ Installed" the chrome's `--ok` at 3.87:1
+ * (#2103). Since #2103 each is painted inline in the brand's role for the mode on screen, `text.success` for ✓ and
+ * `text.warning` for ⚠, so each is held here to 4.5:1 on the page AND to the emission's hex for its role (EXPECTED is
+ * the committed emission, never the studio's resolver). Classes, texts and roles are literals, not read from
+ * `ui/fonts.ts` or `faces.ts`.
+ *
+ * BOTH ARMS ARE EXERCISED, NOT ASSUMED (docs/34: represented, not counted). ⚠ is drawn wherever a brand face does not
+ * resolve on the device; ✓ only where one does, which in CI and a bare container is nowhere. So this sweep runs with
+ * `INTER_INSTALLED`: an init script, in this test only, that answers the studio's canvas font probe as though Inter
+ * were installed. Every corpus brand uses Inter and also a face that stays absent (JetBrains Mono), so each state
+ * draws both labels, and a state that drew either one zero times fails as NOT EXERCISED. The stub changes no shipped
+ * code: it widens `measureText` for the probe's exact font string (`72px "Inter", <base>`), which is all
+ * `fontAvailable` reads.
  */
-const FONT_STATUS = { place: 'type', cls: 'span.tf-stat.no', text: '⚠ Not installed' };
-const fontStatusSeen = new Map();   // `${brand} / ${mode}` -> { drawn, worst }
+const FONT_STATUS = { place: 'type', labels: [
+  { cls: 'span.tf-stat.ok', text: '✓ Installed', role: 'text.success' },
+  { cls: 'span.tf-stat.no', text: '⚠ Not installed', role: 'text.warning' },
+] };
+const INTER_INSTALLED = () => {
+  const measure = CanvasRenderingContext2D.prototype.measureText;
+  CanvasRenderingContext2D.prototype.measureText = function (t) {
+    const m = measure.call(this, t);
+    return /^72px "?Inter"?, (monospace|sans-serif|serif)$/.test(this.font) ? { width: m.width + 10 } : m;
+  };
+};
+const fontStatusSeen = new Map();   // `${brand} / ${mode} / ${text}` -> { drawn, worst }
 /** The chrome surfaces whose home is the legacy WORKSPACE (`CHROME_SURFACES` in `src/main.ts`, `home: 'workspace'`),
  *  typed here. The roster is published per VIEW, and the app view still promises the legacy mode strip because the
  *  plugin's Style guide draws it; on the web the workspace is drawn by no place (each state below asserts that no legacy
@@ -780,7 +798,7 @@ const fontStatusSeen = new Map();   // `${brand} / ${mode}` -> { drawn, worst }
 const WORKSPACE_SURFACES = ['mode-strip'];
 const sweptPlaces = new Set();
 for (const brand of BRANDS) {
-  const { ctx, page, drain } = await openBrand(brand);
+  const { ctx, page, drain } = await openBrand(brand, undefined, { interInstalled: true });
   const boot = drain();
   ok(boot.length === 0, `${brand}: boots clean — 0 console errors${boot.length ? ` (${boot[0]})` : ''}`);
   const emission = await loadEmission(brand);
@@ -882,11 +900,22 @@ for (const brand of BRANDS) {
         gapSeen.get(k).under += mine.filter((r) => r.ratio < barOf(r)).length;
       }
       if (place === FONT_STATUS.place) {
-        const st = chrome.filter((r) => r.cls === FONT_STATUS.cls && r.text === FONT_STATUS.text);
-        fontStatusSeen.set(`${brand} / ${mode}`, { drawn: st.length, worst: st.length ? Math.min(...st.map((r) => r.ratio)) : null });
-        const stUnder = st.filter((r) => r.ratio < CHROME_TEXT_MIN);
-        ok(stUnder.length === 0, `${where}: the font status ${FONT_STATUS.cls} "${FONT_STATUS.text}" clears ${CHROME_TEXT_MIN}:1 on the brand's page color in all ${st.length} place(s) drawn (#2091)${
-          stUnder.length ? ` — ${stUnder.slice(0, 3).map((u) => `${u.ratio}:1 (op ${u.op})`).join(' | ')}` : ''}`);
+        // Specimen-marked since #2103 (painted inline in a brand role), so read from every row, not the chrome rows.
+        const drawn = await page.evaluate(() => [...document.querySelectorAll('[data-p3="preview-body"] span.tf-stat')]
+          .map((n) => ({ text: n.textContent, role: n.dataset.sgRole ?? null, color: getComputedStyle(n).color })));
+        for (const lab of FONT_STATUS.labels) {
+          const st = rows.filter((r) => r.cls === lab.cls && r.text === lab.text);
+          fontStatusSeen.set(`${brand} / ${mode} / ${lab.text}`, { drawn: st.length, worst: st.length ? Math.min(...st.map((r) => r.ratio)) : null });
+          const stUnder = st.filter((r) => r.ratio < CHROME_TEXT_MIN);
+          ok(stUnder.length === 0, `${where}: the font status ${lab.cls} "${lab.text}" clears ${CHROME_TEXT_MIN}:1 on the brand's page color in all ${st.length} place(s) drawn (#2091, #2103)${
+            stUnder.length ? ` — ${stUnder.slice(0, 3).map((u) => `${u.ratio}:1 (op ${u.op})`).join(' | ')}` : ''}`);
+          const want = emission?.role(lab.role, mode)?.hex ?? null;
+          const wantRgb = want ? `rgb(${parseInt(want.slice(1, 3), 16)}, ${parseInt(want.slice(3, 5), 16)}, ${parseInt(want.slice(5, 7), 16)})` : null;
+          const mine = drawn.filter((d) => d.text === lab.text);
+          const off = mine.filter((d) => d.color !== wantRgb);
+          ok(want !== null && off.length === 0, `${where}: the font status "${lab.text}" is drawn in the brand's ${lab.role} ${want} in all ${mine.length} place(s) (#2103)${
+            off.length ? ` — drawn ${[...new Set(off.map((d) => `${d.color} (role ${d.role})`))].join(', ')}` : ''}`);
+        }
       }
       const chromeUnder = chrome.filter((r) => r.ratio < barOf(r) && !knownGapOf(place, r));
       ok(chromeUnder.length === 0, `${where}: every one of ${chrome.length} chrome text nodes meets WCAG 1.4.3 (${CHROME_TEXT_MIN}:1, ${CHROME_LARGE_TEXT_MIN}:1 large), known gaps aside${
@@ -932,14 +961,14 @@ for (const brand of BRANDS) {
   await ctx.close();
 }
 
-{
-  const cells = [...fontStatusSeen.keys()];
-  const unseen = cells.filter((c) => fontStatusSeen.get(c).drawn === 0);
-  const worst = Math.min(...[...fontStatusSeen.values()].filter((v) => v.drawn).map((v) => v.worst));
+for (const lab of FONT_STATUS.labels) {
+  const cells = [...fontStatusSeen.keys()].filter((k) => k.endsWith(` / ${lab.text}`));
+  const unseen = cells.filter((c) => fontStatusSeen.get(c).drawn === 0).map((c) => c.slice(0, -(lab.text.length + 3)));
+  const worst = Math.min(...cells.map((c) => fontStatusSeen.get(c)).filter((v) => v.drawn).map((v) => v.worst));
   ok(cells.length >= BRANDS.length * 2 && unseen.length === 0,
-    `the font status "${FONT_STATUS.text}" was drawn, and so measured, on the Type page in every brand × mode swept (${cells.length - unseen.length} of ${cells.length}, lowest ${Number.isFinite(worst) ? `${worst}:1` : 'none'})${
-      unseen.length ? ` — NOT EXERCISED in ${unseen.slice(0, 4).join(', ')}${unseen.length > 4 ? ', …' : ''}: every brand face resolved on this machine, so #2091's check measured nothing there` : ''}`);
-  console.log(`  font status "${FONT_STATUS.text}" (#2091): drawn in ${cells.length - unseen.length} of ${cells.length} brand × mode states, lowest ${Number.isFinite(worst) ? `${worst}:1` : 'none'}`);
+    `the font status "${lab.text}" was drawn, and so measured, on the Type page in every brand × mode swept (${cells.length - unseen.length} of ${cells.length}, lowest ${Number.isFinite(worst) ? `${worst}:1` : 'none'})${
+      unseen.length ? ` — NOT EXERCISED in ${unseen.slice(0, 4).join(', ')}${unseen.length > 4 ? ', …' : ''}: the label was never drawn there, so its check measured nothing` : ''}`);
+  console.log(`  font status "${lab.text}" (#2091, #2103): drawn in ${cells.length - unseen.length} of ${cells.length} brand × mode states, lowest ${Number.isFinite(worst) ? `${worst}:1` : 'none'}`);
 }
 for (const [k, seen] of gapSeen) {
   if (seen.drawn === 0) console.log(`  known gap #${k.issue} (${k.place} / ${k.cls} "${k.text}"): not drawn on this machine, so not exercised`);

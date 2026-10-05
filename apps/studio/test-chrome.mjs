@@ -17,7 +17,8 @@
  *   · EDGES AND INDICATORS at 3:1: each control's drawn edge against what is outside it (B1), a selected
  *     tab's underline, and every glyph against its ground.
  *   · FOCUS RINGS: every chrome control reached by Tab draws a ring at least 2px wide, at 3:1 against what
- *     is outside the control.
+ *     is outside the control, and (#2144, owner decision FR1 A) in Prism3's `color.border.focus`, 2px outside it.
+ *     The expected hex is the emission's, walked here (`FOCUS_HEX`); section 27 reads every place's whole tab order.
  *   · TARGETS: every chrome control is at least 24 × 24.
  *   · FONTS DRAWN: CDP `CSS.getPlatformFontsForNode` on every chrome text element — the embedded Inter
  *     (`isCustomFont`), never a device face. Not `document.fonts.check()`, which answers true for a face
@@ -298,7 +299,7 @@
  * corpus brand) and asserts no legacy page is drawn and the mode agrees on each: section 4's web arm (#1031 is measured
  * on the plugin's Style guide alone) and section 9's legacy mode-strip hold.
  *
- * S13.1 ADDS (section 27; owner decisions G18 A and N-2 A: the brand menu, Export's dialog and the error line leave the
+ * S13.1 ADDS (section 28; owner decisions G18 A and N-2 A: the brand menu, Export's dialog and the error line leave the
  * legacy `renderBar` for the chrome, `shell/bar.ts` and `shell/notices.ts`), on both hosts, both themes, at 1280, 640
  * and 380: each piece measured by the probe as chrome (the probe no longer skips the notices row or the bar's popovers;
  * only the plugin's Pages menu list, legacy until S11.2, stays out); the error strip's ground follows the theme, it is
@@ -819,18 +820,28 @@ const fontsDrawn = async (page) => {
   return out;
 };
 
-/** Tab through the chrome from the top of the page, reading the ring each control draws. */
-const focusRings = async (page) => {
-  await page.evaluate(() => { document.activeElement?.blur(); window.scrollTo(0, 0); });
+/** Tab through the chrome from the top of the page, reading the ring each control draws: its width, its color as
+ *  drawn (`hex`, the computed color, never a variable name), where it sits (`offset`: the outline's offset, or for a
+ *  tab's `::before` ring how far it reaches past the tab's own box), and its contrast against what is outside it.
+ *
+ *  `all` (#2144's sweep): go on past the first legacy region instead of stopping there, skipping brand content
+ *  (`[data-content]`) and the lent legacy views (`skipIn`), until Tab comes back to a control it already read. */
+const focusRings = async (page, { all = false, max = 30, skipIn = [], onRing = null } = {}) => {
+  await page.evaluate(() => { document.activeElement?.blur(); window.scrollTo(0, 0); for (const n of document.querySelectorAll('[data-fring]')) n.removeAttribute('data-fring'); });
   await page.keyboard.press('Tab');
   const seen = [];
-  for (let i = 0; i < 30; i++) {
-    const r = await page.evaluate(() => {
+  for (let i = 0; i < max; i++) {
+    const r = await page.evaluate(([all, skipIn, pinned]) => {
       const el = document.activeElement;
       if (!el || el === document.body) return { done: false, skip: true };
-      // Tab has left the chrome for a legacy page, or for the Style guide lent into Brand's preview (S3), which
-      // draws in `styles.css` like the legacy page it came from.
-      if (el.closest('[data-p3="legacy-page"], [data-p3="brand-style-guide"]')) return { done: true };
+      if (all) {
+        // Back where the sweep started: every stop was read once.
+        if (el.hasAttribute('data-fring')) return { done: true };
+        el.setAttribute('data-fring', '');
+        if (el.closest(['[data-content]', '[data-p3="legacy-page"]', ...skipIn].join(', '))) return { done: false, skip: true, skipped: true };
+      } else if (el.closest('[data-p3="legacy-page"], [data-p3="brand-style-guide"]')) return { done: true };
+      // (Not `all`: Tab has left the chrome for a legacy page, or for the Style guide lent into Brand's preview
+      // (S3), which draws in `styles.css` like the legacy page it came from.)
       const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s.trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
       const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
       const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
@@ -839,23 +850,72 @@ const focusRings = async (page) => {
       const cs = getComputedStyle(el);
       let width = cs.outlineStyle !== 'none' ? parseFloat(cs.outlineWidth) : 0;
       let color = width ? cs.outlineColor : null;
+      let kind = width ? 'outline' : null;
+      let offset = width ? parseFloat(cs.outlineOffset) : null;
       if (!width) {   // a tab draws its ring on ::before, inside the row's scroll box
         const b = getComputedStyle(el, '::before');
-        if (b.content !== 'none' && b.display !== 'none' && b.visibility !== 'hidden' && parseFloat(b.opacity) > 0 && b.borderTopStyle !== 'none') { width = parseFloat(b.borderTopWidth); color = b.borderTopColor; }
+        if (b.content !== 'none' && b.display !== 'none' && b.visibility !== 'hidden' && parseFloat(b.opacity) > 0 && b.borderTopStyle !== 'none') {
+          width = parseFloat(b.borderTopWidth); color = b.borderTopColor; kind = 'before';
+          // How far the ring reaches past the tab's own box on each side (its inline inset is negative).
+          offset = Math.min(-parseFloat(b.left), -parseFloat(b.right));
+        }
       }
       const c = color ? parse(color) : null;
+      const hex = c ? `#${[c.r, c.g, c.b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}${c.a < 1 ? Math.round(c.a * 255).toString(16).padStart(2, '0') : ''}` : null;
       // A ring drawn inside the control's box (a negative outline offset: the two scrolling panes, S2) is seen
       // against the control's own ground; every other ring against what is outside it.
-      const g = groundOf(width && parseFloat(cs.outlineOffset) < 0 ? el : el.parentElement);
+      const g = groundOf(width && kind === 'outline' && offset < 0 ? el : el.parentElement);
+      const box = el.getBoundingClientRect();
       return { hook: el.getAttribute('data-p3') ?? `${el.tagName.toLowerCase()}.${el.className}`, inFrame: !!el.closest('[data-p3="frame"]'),
-        width, r: c ? Math.floor(ratio(over(c, g), g) * 100) / 100 : 0 };
-    });
+        pinnedLight: !!el.closest(pinned.join(', ')), width, hex, kind, offset, box: { x: box.x, y: box.y, w: box.width, h: box.height }, r: c ? Math.floor(ratio(over(c, g), g) * 100) / 100 : 0 };
+    }, [all, skipIn, INSPECT_LEGACY]);
     if (r.done) break;
-    if (!r.skip && r.inFrame) seen.push(r);
+    if (r.skipped) seen.skipped = (seen.skipped ?? 0) + 1;
+    if (!r.skip && r.inFrame) { seen.push(r); if (onRing) await onRing(r); }
     await page.keyboard.press('Tab');
   }
+  await page.evaluate(() => { for (const n of document.querySelectorAll('[data-fring]')) n.removeAttribute('data-fring'); });
   return seen;
 };
+
+// ── the focus ring's color (#2144) ───────────────────────────────────────────────────────────────
+/** Owner decision FR1 A (2026-10-05): every chrome focus ring draws in Prism3's `color.border.focus`, 2px wide and
+ *  2px outside the control. THE EXPECTED HEX IS READ FROM THE EMISSION, here, with this file's own alias walk: not
+ *  from `chrome.css`, not from `chrome/spec.mjs`'s row, and not through `chrome/tokens.mjs`'s `resolve`, which is
+ *  the resolver the build writes `--p3-focus-ring` with. A second walk is the point (docs/34, shape 2): a resolver
+ *  that went wrong would otherwise agree with itself. The path, the width and the offset are literals. */
+const FOCUS_RING_TOKEN = 'color.border.focus';
+const FOCUS_OFFSET = 2;
+/** Rings drawn INSIDE the control on purpose, by hook: the two scrolling panes, whose ring sits inside their edge
+ *  (S2) because outside it would be clipped by the frame. Their ring is held to the color and the width, and to
+ *  sitting fully inside (an offset of minus its width). */
+const INNER_RINGS = ['levers-pane', 'preview-body'];
+const FOCUS_HEX = (() => {
+  const out = join(REPO, 'packages', 'engine', 'out');
+  const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
+  const dark = JSON.parse(readFileSync(join(out, 'prism3.dark.overlay.tokens.json'), 'utf8'));
+  const at = (tree, path) => path.split('.').reduce((n, k) => (n && typeof n === 'object' ? n[k] : undefined), tree);
+  const leaf = (mode, path) => { const o = mode === 'dark' ? at(dark, path) : undefined; const l = o?.$value !== undefined ? o : at(base, path); if (l?.$value === undefined) throw new Error(`#2144: no token at ${path} in the ${mode} emission`); return l; };
+  const walk = (mode, path, hops = 0) => {
+    const v = leaf(mode, path).$value;
+    const m = typeof v === 'string' && /^\{([^}]+)\}$/.exec(v);
+    if (m && hops < 16) return walk(mode, m[1], hops + 1);
+    if (typeof v !== 'string' || !/^#[0-9a-f]{6}$/i.test(v)) throw new Error(`#2144: ${FOCUS_RING_TOKEN} resolves to ${JSON.stringify(v)} in ${mode}, not an opaque hex`);
+    return v.toLowerCase();
+  };
+  return { light: walk('light', `pds3.${FOCUS_RING_TOKEN}`), dark: walk('dark', `pds3.${FOCUS_RING_TOKEN}`) };
+})();
+/** Every way a measured ring can miss #2144's contract, for the mode its chrome draws in. Empty when it holds. */
+const ringMisses = (r, mode) => {
+  const miss = [];
+  if (r.hex !== FOCUS_HEX[mode]) miss.push(`color ${r.hex}, want ${FOCUS_RING_TOKEN} ${FOCUS_HEX[mode]}`);
+  if (!(r.width >= FOCUS_WIDTH_MIN)) miss.push(`${r.width}px wide, want ${FOCUS_WIDTH_MIN}px or more`);
+  if (INNER_RINGS.includes(r.hook)) { if (!(r.kind === 'outline' && r.offset <= -r.width)) miss.push(`an inner ring at offset ${r.offset}px, want -${r.width}px or less`); }
+  else if (!(r.offset >= FOCUS_OFFSET)) miss.push(`${r.kind ?? 'no ring'} at ${r.offset}px outside, want ${FOCUS_OFFSET}px or more`);
+  if (!(r.r >= NONTEXT_MIN)) miss.push(`${r.r}:1 against what is outside it, want ${NONTEXT_MIN}:1`);
+  return miss;
+};
+const ringReport = (bad) => bad.slice(0, 4).map(({ r, miss }) => `${r.hook}: ${miss.join(', ')}`).join(' | ');
 
 const columnOf = (host, w) => `${host} ${w <= 560 ? 'narrow' : 'wide'}`;
 /** A running write's "…" (`.p3-spin`, chrome.css) fades to transparent after a 300 ms delay, and PROBE measures
@@ -1023,6 +1083,8 @@ for (const host of ['web', 'figma']) {
       const badRing = rings.filter((r) => r.width < FOCUS_WIDTH_MIN || r.r < NONTEXT_MIN);
       ok(badRing.length === 0, `${where}: every focused chrome control draws a ring at least ${FOCUS_WIDTH_MIN}px wide at ${NONTEXT_MIN}:1${badRing.length ? ` — ${badRing.slice(0, 4).map((r) => `focus ${r.hook} ${r.width}px ${r.r}:1`).join(' | ')}` : ''}`);
       for (const r of rings) lows.focus = Math.min(lows.focus, r.r);
+      const offRing = rings.map((r) => ({ r, miss: ringMisses(r, r.pinnedLight ? 'light' : theme) })).filter((x) => x.miss.length);
+      ok(offRing.length === 0, `${where}: #2144 every focused chrome control draws its ring in ${FOCUS_RING_TOKEN} (${FOCUS_HEX[theme]}), at least ${FOCUS_WIDTH_MIN}px wide, ${FOCUS_OFFSET}px outside, at ${NONTEXT_MIN}:1${offRing.length ? ` — ${ringReport(offRing)}` : ''}`);
       // S3: Brand, the second moved page, in the same column: its levers, then (narrow) its Preview pane, then
       // the rings Tab draws through its levers.
       await goPlace(page, 'brand');
@@ -1056,6 +1118,8 @@ for (const host of ['web', 'figma']) {
       const badBrandRing = brandRings.filter((r) => r.width < FOCUS_WIDTH_MIN || r.r < NONTEXT_MIN);
       ok(badBrandRing.length === 0, `${where} / brand: every focused control draws a ring at least ${FOCUS_WIDTH_MIN}px wide at ${NONTEXT_MIN}:1${badBrandRing.length ? ` — ${badBrandRing.slice(0, 4).map((r) => `focus ${r.hook} ${r.width}px ${r.r}:1`).join(' | ')}` : ''}`);
       for (const r of brandRings) lows.focus = Math.min(lows.focus, r.r);
+      const offBrandRing = brandRings.map((r) => ({ r, miss: ringMisses(r, r.pinnedLight ? 'light' : theme) })).filter((x) => x.miss.length);
+      ok(offBrandRing.length === 0, `${where} / brand: #2144 every focused control draws its ring in ${FOCUS_RING_TOKEN} (${FOCUS_HEX[theme]}), at least ${FOCUS_WIDTH_MIN}px wide, ${FOCUS_OFFSET}px outside, at ${NONTEXT_MIN}:1${offBrandRing.length ? ` — ${ringReport(offBrandRing)}` : ''}`);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       await ctx.close();
     }
@@ -1198,7 +1262,7 @@ console.log(`\nBehavior\n${'='.repeat(78)}`);
   ok(before === 'light', `the plugin starts on Figma's light theme (data-theme "${before}")`);
   ok(bar !== 'rgb(233, 233, 233)', `the plugin follows Figma to dark live: the top bar repaints (${bar})`);
   // Since the owner's top-bar decision (2026-10-05) the plugin offers a Theme menu too, on Match Figma by default,
-  // which is what the live follow above shows; §27b holds its choices.
+  // which is what the live follow above shows; §28b holds its choices.
   const toggle = await page.evaluate(() => document.querySelector('[data-p3="theme-toggle"]')?.getAttribute('aria-label') ?? null);
   ok(toggle === 'Theme: Match Figma', `the plugin's Theme menu starts on Match Figma ("${toggle}")`);
   await ctx.close();
@@ -5147,6 +5211,27 @@ for (const host of ['web', 'figma']) {
       ok(JSON.stringify(await sw()) === JSON.stringify({ on: 'true', off: false, why: '' }), `#2055: releasing both mobile sizes makes the fluid switch live again (${JSON.stringify(await sw())})`);
       ok(JSON.stringify(await persisted(page)) === JSON.stringify(pFluid), '#2055: releasing both mobile sizes returns the brand to its bytes');
     }
+    // #2068: a viewport pair the engine refuses is put back rather than written, with the engine's own sentence as
+    // the warning under the fields, and the error bar stays quiet. EXPECTED typed here: the owner-approved sentence
+    // with the values entered, never read from the page's module (docs/34).
+    {
+      const vp = (k) => page.locator(k === 'min' ? '[data-p3="type-min-viewport"]' : '[data-p3="type-max-viewport"]');
+      const line = () => page.evaluate(() => document.querySelector('[data-p3="type-viewport-refused"]')?.textContent?.trim() ?? null);
+      const bar = () => page.evaluate(() => { const e = document.querySelector('[data-p3="error-bar"]'); return !!e && !e.hidden && !!e.textContent?.trim(); });
+      ok((await line()) === null, `#2068: on the 375/1280 default, no viewport refusal is shown (${await line()})`);
+      const before = JSON.stringify(await persisted(page));
+      for (const [k, v, back, why, what] of [
+        ['min', '1280', '375', 'The minimum viewport (1280px) must be smaller than the maximum viewport (1280px).', 'min equal to max'],
+        ['max', '320', '1280', 'The minimum viewport (375px) must be smaller than the maximum viewport (320px).', 'max below min'],
+      ]) {
+        await vp(k).fill(v);
+        await vp(k).evaluate((e) => e.blur());
+        await page.waitForFunction(() => !!document.querySelector('[data-p3="type-viewport-refused"]'), null, { timeout: 5000 }).catch(() => {});
+        ok((await line()) === why, `#2068: ${what}, the refusal reads "${why}" (${await line()})`);
+        ok((await vp(k).inputValue()) === back, `#2068: ${what}, the field is put back to ${back} (${await vp(k).inputValue()})`);
+        ok(JSON.stringify(await persisted(page)) === before && !(await bar()), `#2068: ${what}, nothing is written and the error bar stays quiet`);
+      }
+    }
     // A text type that pins a font style cannot be Italic only: the chip is disabled with the reason.
     const pinIn = page.locator('[data-p3="pin-cut-row"][data-cat="body"][data-role="default"] [data-p3="pin-cut-input"]');
     await pinIn.fill('Medium');
@@ -5235,6 +5320,136 @@ for (const host of ['web', 'figma']) {
     ok(errors.length === 0, `#1993 (${host}): no page errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } finally {
     await ctx.close();
+  }
+}
+
+// =============================================================================================
+// 20d. #2103: the plugin's font status, on the brand's page, in the brand's own status text roles. The figma host's
+//      labels are the host-list arm of `faceStatus` ("✓ N styles", "✓ Figma has it", "⚠ Figma lacks it"), which
+//      `test:smoke` never draws: the web has no host list. Each is painted in the brand's `text.success` (✓) or
+//      `text.warning` (⚠) for the mode on screen, on the brand's page color, which the studio does not own.
+//
+//      For every brand × mode the plugin offers, on the Type place: each label clears 4.5:1 on the ground it is drawn
+//      on, and is drawn in the emission's hex for its role. EXPECTED is the committed emission
+//      (`packages/engine/out/<brand>.tokens.json`), resolved here in Node, never the studio's resolver or CSS. The
+//      labels, their classes and roles are literals here, not read from `ui/fonts.ts` or `faces.ts`.
+//
+//      BOTH ARMS ARE EXERCISED, NOT ASSUMED (docs/34: represented, not counted). The host's font list is fed in this
+//      test only, by the `font-list` message the plugin's main thread sends, posted twice per state: Inter with 36
+//      styles ("✓ 36 styles"), then Inter with no count ("✓ Figma has it"). Every corpus brand also sets a face the
+//      list leaves out (JetBrains Mono), so "⚠ Figma lacks it" is drawn in both. A label drawn zero times in any
+//      brand × mode fails as NOT EXERCISED. No shipped code changes.
+//
+//      Mutation (#2103): the label painted in the old fixed colors (`stat.style.color = st.ok ? 'var(--ok)' :
+//      'var(--ink)'` in `faces.ts`, both bundles rebuilt) fails this section by name.
+// =============================================================================================
+console.log(`\n#2103 — the plugin's font status, in the brand's status text roles on its page\n${'='.repeat(78)}`);
+/** The figma host's three labels, literal. `lists` names which of the two posted font lists draw it. */
+const FIGMA_FONT_STATUS = [
+  { cls: 'tf-stat ok', text: '✓ 36 styles', role: 'text.success', lists: ['styles'] },
+  { cls: 'tf-stat ok', text: '✓ Figma has it', role: 'text.success', lists: ['bare'] },
+  { cls: 'tf-stat no', text: '⚠ Figma lacks it', role: 'text.warning', lists: ['styles', 'bare'] },
+];
+const FIGMA_FONT_LISTS = { styles: { families: ['Inter'], styles: [36] }, bare: { families: ['Inter'], styles: [0] } };
+/** A brand's role hex in a mode, from its committed emission: the leaf's per-mode value, its aliases followed. */
+const emittedRole = (brand) => {
+  let tree;
+  try { tree = JSON.parse(readFileSync(join(REPO, 'packages/engine/out', `${brand.toLowerCase()}.tokens.json`), 'utf8')); } catch { return null; }
+  const rootKey = Object.keys(tree).find((k) => !k.startsWith('$'));
+  const at = (path) => path.split('.').reduce((n, s) => n?.[s], tree[rootKey]);
+  const modes = at('color.interactive.primary.on-fill')?.$extensions?.prism3?.figma?.modes ?? [];
+  const inMode = (leaf, mode) => (mode !== modes[0] && leaf.$extensions?.prism3?.modes?.[mode]) || { $value: leaf.$value };
+  return (key, mode) => {
+    const leaf = at(`color.${key}`);
+    if (!leaf || !modes.includes(mode)) return null;
+    let v = inMode(leaf, mode).$value;
+    for (let hops = 0; typeof v === 'string' && v.startsWith('{') && hops < 8; hops++) {
+      const target = at(v.slice(1, -1).replace(`${rootKey}.`, ''));
+      if (!target) return null;
+      v = inMode(target, mode).$value;
+    }
+    return typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : null;
+  };
+};
+/** Every font status label in the Type preview: its text, class, drawn color and the ratio on its composited ground. */
+const FONT_STATUS_PROBE = () => {
+  const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+  const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+  const groundOf = (el) => { let acc = null; for (let n = el; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return acc; } } return acc ? over(acc, { r: 255, g: 255, b: 255, a: 1 }) : { r: 255, g: 255, b: 255, a: 1 }; };
+  const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+  const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  const hex = (c) => `#${[c.r, c.g, c.b].map((x) => Math.round(x).toString(16).padStart(2, '0')).join('')}`;
+  return [...document.querySelectorAll('[data-p3="preview-body"] span.tf-stat')].map((n) => {
+    const cs = getComputedStyle(n);
+    const g = groundOf(n);
+    const fg = parse(cs.color) ?? { r: 0, g: 0, b: 0, a: 1 };
+    return { text: n.textContent, cls: n.className, color: hex(fg), ground: hex(g), ratio: Math.floor(ratio(over(fg, g), g) * 100) / 100,
+      visible: n.getClientRects().length > 0 && cs.visibility !== 'hidden' };
+  });
+};
+const figmaStatusSeen = new Map();   // `${brand} / ${mode} / ${text}` -> { drawn, worst }
+{
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: 'light' });
+  const page = await ctx.newPage();
+  await hooks.watch(page);
+  await page.goto(`${ORIGIN}/plugin?figma=light`, { waitUntil: 'load' });
+  await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'restore-input-empty' } }, '*'));
+  await hooks.need(page, '[data-p3="start-example"]');
+  const brands = (await page.locator('[data-p3="start-example"]').allTextContents()).map((n) => n.trim());
+  await ctx.close();
+  ok(brands.length >= 2, `#2103 (figma): the plugin's start screen offers the corpus brands (found ${brands.length}: ${brands.join(', ')})`);
+  for (const brand of brands) {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: 'light' });
+    const page = await ctx.newPage();
+    await hooks.watch(page);
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(`uncaught: ${e.message}`));
+    try {
+      await page.goto(`${ORIGIN}/plugin?figma=light`, { waitUntil: 'load' });
+      await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'restore-input-empty' } }, '*'));
+      await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: brand }));
+      await hooks.need(page, '[data-p3="frame"]');
+      await goPlace(page, 'type');
+      const role = emittedRole(brand);
+      ok(role !== null, `#2103 (figma) ${brand}: its committed emission (packages/engine/out/${brand.toLowerCase()}.tokens.json) loads — the oracle the labels are checked against`);
+      const modes = await page.locator('[data-p3="mode-option"]').evaluateAll((ns) => ns.map((n) => n.dataset.mode));
+      ok(modes.length >= 2, `#2103 (figma) ${brand}: the mode control offers ${modes.length} modes (${modes.join(', ')})`);
+      for (const mode of modes) {
+        await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
+        await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
+        const drawn = [];
+        for (const [list, msg] of Object.entries(FIGMA_FONT_LISTS)) {
+          await page.evaluate((m) => window.postMessage({ pluginMessage: { type: 'font-list', ...m } }, '*'), msg);
+          const allowed = FIGMA_FONT_STATUS.filter((l) => l.lists.includes(list)).map((l) => l.text);
+          await page.waitForFunction((a) => { const s = [...document.querySelectorAll('[data-p3="preview-body"] span.tf-stat')]; return s.length > 0 && s.every((n) => a.includes(n.textContent)); }, allowed, WAIT).catch(() => {});
+          drawn.push(...(await page.evaluate(FONT_STATUS_PROBE)).filter((d) => d.visible));
+        }
+        const where = `#2103 (figma) ${brand} / type / ${mode}`;
+        for (const lab of FIGMA_FONT_STATUS) {
+          const mine = drawn.filter((d) => d.text === lab.text && d.cls === lab.cls);
+          figmaStatusSeen.set(`${brand} / ${mode} / ${lab.text}`, { drawn: mine.length, worst: mine.length ? Math.min(...mine.map((d) => d.ratio)) : null });
+          const under = mine.filter((d) => d.ratio < 4.5);
+          ok(under.length === 0, `${where}: the font status "${lab.text}" clears 4.5:1 on the brand's page color in all ${mine.length} place(s) drawn${
+            under.length ? ` — ${[...new Set(under.map((u) => `${u.ratio}:1 (${u.color} on ${u.ground})`))].slice(0, 3).join(' | ')}` : ''}`);
+          const want = role?.(lab.role, mode) ?? null;
+          const off = mine.filter((d) => d.color !== want);
+          ok(want !== null && off.length === 0, `${where}: the font status "${lab.text}" is drawn in the brand's ${lab.role} ${want} in all ${mine.length} place(s)${
+            off.length ? ` — drawn ${[...new Set(off.map((d) => d.color))].join(', ')}` : ''}`);
+        }
+      }
+      ok(errors.length === 0, `#2103 (figma) ${brand}: no page errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `#2103 (figma) ${brand}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+  for (const lab of FIGMA_FONT_STATUS) {
+    const cells = [...figmaStatusSeen.keys()].filter((k) => k.endsWith(` / ${lab.text}`));
+    const unseen = cells.filter((c) => figmaStatusSeen.get(c).drawn === 0).map((c) => c.slice(0, -(lab.text.length + 3)));
+    const worst = Math.min(...cells.map((c) => figmaStatusSeen.get(c)).filter((v) => v.drawn).map((v) => v.worst));
+    ok(cells.length >= brands.length * 2 && unseen.length === 0,
+      `#2103 (figma): the font status "${lab.text}" was drawn, and so measured, on the Type page in every brand × mode (${cells.length - unseen.length} of ${cells.length}, lowest ${Number.isFinite(worst) ? `${worst}:1` : 'none'})${
+        unseen.length ? ` — NOT EXERCISED in ${unseen.slice(0, 4).join(', ')}${unseen.length > 4 ? ', …' : ''}: the label was never drawn there, so its check measured nothing` : ''}`);
+    console.log(`  font status "${lab.text}" (figma, #2103): drawn in ${cells.length - unseen.length} of ${cells.length} brand × mode states, lowest ${Number.isFinite(worst) ? `${worst}:1` : 'none'}`);
   }
 }
 
@@ -6871,6 +7086,22 @@ for (const host of ['web', 'figma']) {
       ok(d.n >= 7 && d.enabled.length === 0 && d.link, `Q59: previewing ${label}, every control on Components is disabled (${d.n - d.enabled.length}/${d.n}), the way to Shape left live (${d.link})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
       for (const hk of ['button-icons-choice-edges', 'button-content-size-choice-smaller', 'button-label-weight-choice-default', 'button-min-width-slider']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Components is among those held disabled`);
       ok(JSON.stringify(d.preview) === JSON.stringify(COMPONENTS_PAIRS.map(([, t]) => t)) && d.buttons === 9, `Q59: previewing ${label}, the Components preview is still drawn (${d.preview.join(', ')}; ${d.buttons} buttons)`);
+      // #2096: the write itself is refused, not only the DOM's disabled flag. A scripted `input` on the disabled
+      // minimum-width slider (which a disabled flag does not stop) leaves the persisted brand byte-identical. The value
+      // is one the slider's range holds and the brand does not, so a write that got through would show.
+      const before = await page.evaluate(() => localStorage.getItem('prism3:brandInput'));
+      const slid = await page.evaluate(() => {
+        const n = document.querySelector('[data-p3="button-min-width-slider"]');
+        if (!n) return null;
+        const v = Number(n.value) === 3.75 ? 3.5 : 3.75;
+        n.value = String(v);
+        n.dispatchEvent(new Event('input', { bubbles: true }));
+        return v;
+      });
+      await page.waitForTimeout(150);
+      const after = await page.evaluate(() => localStorage.getItem('prism3:brandInput'));
+      ok(slid !== null && before !== null && after === before,
+        `#2096: previewing ${label}, a scripted input on the minimum-width slider writes nothing (prism3:brandInput byte-identical${slid === null ? ', slider not found' : after === before ? '' : `, buttonMinWidthMultiplier now ${JSON.parse(after ?? '{}')?.input?.buttonMinWidthMultiplier}`})`);
     }
     ok(errors.length === 0, `components derived: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
@@ -7034,7 +7265,7 @@ for (const { w, h } of WIDTHS) {
 }
 
 // =============================================================================================
-// 27. S13.1 (owner decisions G18 A, N-2 A): the top bar's last old-code pieces in the new chrome — the brand menu,
+// 28. S13.1 (owner decisions G18 A, N-2 A): the top bar's last old-code pieces in the new chrome — the brand menu,
 //     Export's dialog and the error strip — on both hosts, both themes, at 1280, 640 and 380. Each is measured as
 //     rendered with the probe every other section uses (text 4.5:1, edges and glyphs 3:1, targets, the embedded
 //     face, no shadows, no inline values), and three things are held directly:
@@ -7055,9 +7286,9 @@ for (const { w, h } of WIDTHS) {
 //     (Agent too, on the plugin: T7 A) their label shown above the narrow tier and dropped at it, their names unchanged, their tooltip drawn on hover;
 //     Apply Theme the only filled control (none on the web); the web at 640 on one row; the plugin at 380 on two rows,
 //     the file's actions on the second; and, at 1280 and 380, the top row's last control at the page content's right
-//     edge within 1px (on the web, Export). 27b holds Contrast's mark per verdict and the plugin's Theme choice.
+//     edge within 1px (on the web, Export). 28b holds Contrast's mark per verdict and the plugin's Theme choice.
 // =============================================================================================
-console.log('\n27. S13.1: the brand menu, Export and the error strip in the chrome');
+console.log('\n28. S13.1: the brand menu, Export and the error strip in the chrome');
 const S131_REFUSED = { root: 'rf', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true },
   id: 'refused-brand', overrides: { light: { 'background.secondary': { palette: 'neutral', step: '200' } } } };
 const DARK_GROUND_MAX = 0.2;
@@ -7100,7 +7331,7 @@ const BAR_PROBE = () => {
   const HOOKS = ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'pages-menu', 'figma-open', 'apply-to-figma'];
   const order = HOOKS.filter((k) => q(k)).sort((a, b) => all.indexOf(q(a)) - all.indexOf(q(b)));
   // Dividers: a separator element, an edge on anything that is not a control, or a thin filled bar.
-  const inside = (n) => n.closest('button, select, [role="menu"], .p3-menu, [role="dialog"], .p3-scrim, .p3-tile-tip, .p3-seg');
+  const inside = (n) => n.closest('button, select, [role="menu"], .p3-menu, [role="dialog"], .p3-bardlg-scrim, .p3-tile-tip, .p3-seg');
   const dividers = [];
   for (const n of bar.querySelectorAll('*')) {
     if (!shown(n)) continue;
@@ -7221,7 +7452,7 @@ for (const { w, h } of WIDTHS) {
         await hooks.need(page, '[data-p3="export-dialog"]');
         const md = await measure(page, `${where} / export dialog`, host, w);
         check(md, `${where} / export dialog`, column, narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: EXPORT_HOOKS });
-        const cols = await page.evaluate(() => getComputedStyle(document.querySelector('[data-p3="export-dialog"] .p3-dialog-body')).gridTemplateColumns.split(' ').length);
+        const cols = await page.evaluate(() => getComputedStyle(document.querySelector('[data-p3="export-dialog"] .p3-bardlg-body')).gridTemplateColumns.split(' ').length);
         ok(cols === (narrow ? 1 : 2), `${where} / export dialog: ${narrow ? 'one column at the narrow tier' : 'two columns, the settings beside the preview'} (${cols})`);
         if (SHOTS) await page.screenshot({ path: join(SHOTS, `s131-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-export.png`) });
         await page.keyboard.press('Escape');
@@ -7259,7 +7490,7 @@ for (const { w, h } of WIDTHS) {
 }
 
 // =============================================================================================
-// 27b. The owner's "A · Menu bar" (2026-10-05), two behaviors held directly, both hosts, both themes:
+// 28b. The owner's "A · Menu bar" (2026-10-05), two behaviors held directly, both hosts, both themes:
 //   · CONTRAST'S MARK FOLLOWS THE VERDICT: a check and no count while every pair passes; a warning glyph and the
 //     count below floor once an edit puts pairs below it. The web's edit is test-verdict-count.ts's two-mode
 //     fixture, whose count is derived by hand there: 2 of 884, 2 modes. The plugin's is a restore of a one-mode
@@ -7269,7 +7500,7 @@ for (const { w, h } of WIDTHS) {
 //     reload, comes back (the main thread's `theme-pref` reply, which `apps/plugin/test-theme-pref.ts` holds) as the
 //     checked choice and the chrome's theme.
 // =============================================================================================
-console.log('\n27b. The menu bar: Contrast per verdict, the plugin Theme menu');
+console.log('\n28b. The menu bar: Contrast per verdict, the plugin Theme menu');
 const LOW_FIXTURE = {
   light: { 'text.secondary': { palette: 'neutral', step: '100' }, 'icon.secondary': { palette: 'neutral', step: '550' } },
   dark: { 'text.secondary': { palette: 'neutral', step: '900' }, 'icon.secondary': { palette: 'neutral', step: '450' } },
@@ -7286,7 +7517,7 @@ const CONTRAST_PROBE = () => {
 for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
     for (const { w, h } of [WIDTHS[0], WIDTHS[2]]) {
-      const where = `27b ${host} ${theme} ${w}`;
+      const where = `28b ${host} ${theme} ${w}`;
       const { ctx, page, errors } = await open({ host, theme, w, h, query: '?p3-test-hooks' });
       try {
         const c0 = await page.evaluate(CONTRAST_PROBE);
@@ -7348,6 +7579,125 @@ for (const host of ['web', 'figma']) {
       } finally { await ctx.close(); }
     }
   }
+}
+
+// =============================================================================================
+// 28c. The export dialog's rules reach no other dialog (the owner's demo, 2026-10-05). The S12 start window (#2142) and
+//      its guard use `p3-dialog-*` and `p3-scrim`; the export dialog's own two-column body once turned the start window
+//      into two columns. Its rules now carry their own `p3-bardlg-*` names. Held: with the export dialog open, "+ New
+//      brand" opens the start window in the same page, and the start window's body lays its cards out in one column
+//      (a single computed grid track), both hosts, 1280. Until the start window exists (S12 not merged), there is nothing
+//      to compare against, and the section says so instead of passing.
+// =============================================================================================
+console.log('\n28c. The export dialog and the start window, in one page');
+for (const host of ['web', 'figma']) {
+  const where = `28c ${host} light 1280`;
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  try {
+    await hooks.click(page.locator('[data-p3="export-open"]'));
+    await hooks.need(page, '[data-p3="export-dialog"]');
+    // The scrim covers the bar, so "+ New brand" is reached the way a script would: the brand menu, then its item.
+    await page.evaluate(() => document.querySelector('[data-p3="brand-switcher"]')?.click());
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="brand-menu-new"]'), null, { timeout: 3000 }).catch(() => {});
+    await page.evaluate(() => document.querySelector('[data-p3="brand-menu-new"]')?.click());
+    await page.waitForTimeout(200);
+    const st = await page.evaluate(() => {
+      const col = document.querySelector('[data-p3="start-column"]');
+      const exp = document.querySelector('[data-p3="export-dialog"] .p3-bardlg-body');
+      const tracks = (n) => (n ? getComputedStyle(n).gridTemplateColumns.split(' ').filter(Boolean).length : null);
+      return { start: !!col, startTracks: tracks(col), exportOpen: !!exp, exportTracks: tracks(exp) };
+    });
+    if (!st.start) console.log(`  ${where}: no start window in this build (S12, #2142, not merged): nothing to compare yet`);
+    else {
+      ok(st.exportOpen, `${where}: the export dialog is still open under the start window (${JSON.stringify(st)})`);
+      ok(st.startTracks === 1, `${where}: dialog scope: the start window's body lays its cards out in one column with the export dialog open (${st.startTracks} tracks; ${JSON.stringify(st)})`);
+    }
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+
+// =============================================================================================
+// 27. #2144 (owner decision FR1 A, 2026-10-05): every chrome focus ring, on every place, both hosts, both themes, draws
+//     in Prism3's `color.border.focus`, at least 2px wide, 2px outside the control, at 3:1 against what is outside it
+// =============================================================================================
+// Section 1 reads the rings Tab reaches from the top of the opening page and of Brand, 30 stops at most. This walks the
+// whole tab order of every place, at 1280, until Tab comes back to where it started, skipping brand content and the lent
+// legacy views (their rings are the brand's, or `styles.css`'s legacy ones). The expected color is `FOCUS_HEX`, read
+// from the emission. The floors are literals, set under the counts measured when this landed (printed per run), so a
+// sweep that reached less fails naming its count; the named controls must each be reached and measured.
+//
+// Mutations, each failing by name (#2144):
+//   · Continue's ring back on the text color (`.p3-next:focus-visible { outline-color: var(--p3-text) }` in chrome.css)
+//     → `#2144 … every focused chrome control draws its ring in color.border.focus … palettes-continue: color #0d0d0e …`.
+//   · another chrome variable on a brand path (`ctl-edge` on `core.palette.primary.600`) → the build's
+//     `[brand] chrome var --p3-ctl-edge (light) resolves through brand token pds3.core.palette.primary.600`.
+//   · BRAND_ALLOW widened to a pattern → the build's `[brand] self-check: brandLeaks no longer refuses a sibling name …`.
+console.log(`\n#2144 — every chrome focus ring on ${FOCUS_RING_TOKEN} (light ${FOCUS_HEX.light}, dark ${FOCUS_HEX.dark})\n${'='.repeat(78)}`);
+/** The least number of chrome rings the whole sweep must read, per host (both themes). */
+const FOCUS_SWEEP_FLOOR = { web: 820, figma: 870 };
+/** The least each place must read, every host and theme (the fewest measured when this landed: 19, Shape and Components). */
+const FOCUS_PLACE_FLOOR = 15;
+/** The lent legacy views the sweep skips: all of INSPECT_LEGACY but Components' preview, whose one focusable control is
+ *  the plugin's set radio. Its ring is drawn by `styles.css` (`.cset-radio`), on the chrome's variables since #2144, so
+ *  it is read here; anything else that turns focusable in that view is read too, and must hold the same contract. */
+const FOCUS_SWEEP_SKIP = INSPECT_LEGACY.filter((h) => h !== '[data-p3="components-style-guide"]');
+/** Controls the sweep must reach and measure, by hook: Continue, a chip, a text field, a tab, and one of each other
+ *  kind the issue names. The plugin adds its own bar control and the Components set radio (`styles.css`). */
+const FOCUS_SWEEP_NEEDS = {
+  web: ['[data-p3="palettes-continue"]', '[data-p3="density-choice-comfortable"]', '[data-p3="brand-name"]', '[data-p3="primary-hex"]',
+    '[data-p3="tab-color"]', '[data-p3="color-sub-palettes"]', '[data-p3="neutral-chroma-slider"]', '[data-p3="export-open"]', '[data-p3="search-open"]',
+    '[data-p3="mode-option"]', '[data-p3="inspect-open"]'],
+  figma: ['[data-p3="palettes-continue"]', '[data-p3="density-choice-comfortable"]', '[data-p3="brand-name"]', '[data-p3="primary-hex"]',
+    '[data-p3="tab-color"]', '[data-p3="color-sub-palettes"]', '[data-p3="neutral-chroma-slider"]', '[data-p3="export-open"]', '[data-p3="search-open"]',
+    '[data-p3="mode-option"]', '[data-p3="inspect-open"]', '[data-p3="apply-to-figma"]', '[data-p3="components-def-option"]'],
+};
+/** The focused controls photographed for review when a screenshot directory is given: [hook, file name part]. */
+const FOCUS_SHOTS = [['palettes-continue', 'continue'], ['density-choice-comfortable', 'chip'], ['brand-name', 'text-field'], ['tab-color', 'tab']];
+let focusSwept = 0;
+for (const host of ['web', 'figma']) {
+  let hostTotal = 0;
+  for (const theme of ['light', 'dark']) {
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    const where = `#2144 ${host} ${theme} 1280`;
+    try {
+      const reached = new Set();
+      const bad = [];
+      const counts = [];
+      const shot = new Set();
+      for (const place of NEW_PAGES) {
+        await goPlace(page, place);
+        const rings = await focusRings(page, { all: true, max: 600, skipIn: FOCUS_SWEEP_SKIP, onRing: async (r) => {
+          const name = FOCUS_SHOTS.find(([hk]) => hk === r.hook)?.[1];
+          if (!SHOTS || !name || shot.has(name)) return;
+          shot.add(name);
+          const pad = 24;
+          await page.screenshot({ path: join(SHOTS, `focus-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${name}.png`),
+            clip: { x: Math.max(0, r.box.x - pad), y: Math.max(0, r.box.y - pad), width: r.box.w + 2 * pad, height: r.box.h + 2 * pad } });
+        } });
+        counts.push(`${place} ${rings.length}${rings.skipped ? ` (+${rings.skipped} skipped)` : ''}`);
+        ok(rings.length >= FOCUS_PLACE_FLOOR, `${where} / ${place}: the sweep read ${rings.length} chrome focus rings (floor ${FOCUS_PLACE_FLOOR})`);
+        for (const r of rings) {
+          reached.add(r.hook);
+          // A lent legacy view is pinned light whatever the chrome's theme (INSPECT_LEGACY), so a ring inside one is
+          // the light ring.
+          const miss = ringMisses(r, r.pinnedLight ? 'light' : theme);
+          if (miss.length) bad.push({ r: { ...r, hook: `${place} ${r.hook}` }, miss });
+          lows.focus = Math.min(lows.focus, r.r);
+        }
+        hostTotal += rings.length;
+        focusSwept += rings.length;
+      }
+      console.log(`  ${where}: ${counts.join(', ')}`);
+      ok(bad.length === 0, `${where}: every focused chrome control draws its ring in ${FOCUS_RING_TOKEN} (${FOCUS_HEX[theme]}), at least ${FOCUS_WIDTH_MIN}px wide, ${FOCUS_OFFSET}px outside, at ${NONTEXT_MIN}:1${bad.length ? ` — ${bad.length} miss: ${ringReport(bad)}` : ''}`);
+      for (const want of FOCUS_SWEEP_NEEDS[host]) ok(reached.has(hooks.role(want)), `${where}: the sweep reaches ${want} and reads its ring`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+  console.log(`  #2144 ${host}: ${hostTotal} rings read, light and dark`);
+  ok(hostTotal >= FOCUS_SWEEP_FLOOR[host], `#2144 ${host}: the sweep read ${hostTotal} chrome focus rings across every place, light and dark (floor ${FOCUS_SWEEP_FLOOR[host]})`);
 }
 
 hooks.report(ok);
