@@ -1,7 +1,7 @@
 /**
  * The guard on the browser suites' `data-p3` hooks (F1).
  *
- * `test-smoke.mjs` and `mode-audit.mjs` here, and `apps/plugin/test-build-verdict.mjs` and
+ * `test-smoke.mjs` and `test-chrome.mjs` here (and `mode-audit.mjs` until UI redesign S8.3 deleted it), and `apps/plugin/test-build-verdict.mjs` and
  * `apps/plugin/test-start-screen.mjs`, LOCATE every element by a `data-p3="<role>"` attribute that
  * `src/main.ts` mints through `hook()`. Class names and section titles are free to change in a redesign;
  * the hooks are the contract that does not. A contract nobody checks rots quietly, and a hook that stops

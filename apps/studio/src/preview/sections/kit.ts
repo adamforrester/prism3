@@ -84,7 +84,7 @@ export const legibleInkOn = (bgHex: string, dark = '#191920', light = '#f7f7f7')
 export const palSection = (title: string, sub: string): HTMLElement => {
   const sec = el('div', 'psec');
   // `section-head` rather than a hook on `sec`: several sections carry their own role (`section-backgrounds`,
-  // `section-duration-ramp`), and a hook is one value. `mode-audit.mjs` finds every section as its head's parent.
+  // `section-duration-ramp`), and a hook is one value. The suites find every section as its head's parent.
   const head = hook(el('div', 'psec-head'), 'section-head');
   const txt = el('div', 'psec-txt');
   txt.append(hook(el('h3', 'psec-t', title), 'section-title'), hook(el('p', 'psec-d', sub), 'section-description'));

@@ -1,8 +1,8 @@
 /**
  * A browser suite's bundle must be at least as new as what it is built from (#2037, #2067).
  *
- * The browser suites drive BUILT bundles, not sources: `test-chrome.mjs`, `test-smoke.mjs` and
- * `mode-audit.mjs` load `apps/studio/dist/main.js`, and `test-chrome.mjs`'s figma host also loads
+ * The browser suites drive BUILT bundles, not sources: `test-chrome.mjs` and `test-smoke.mjs` load
+ * `apps/studio/dist/main.js` (as `mode-audit.mjs` did until UI redesign S8.3 deleted it), and `test-chrome.mjs`'s figma host also loads
  * `apps/plugin/dist/ui.html`. A rebuild of one bundle after an edit leaves the other stale, and a suite
  * driving a stale bundle measures the old UI and reports it as this one. #2037 bit S4e's info-text mutation
  * and S6.3's one-home mutation that way, on `ui.html`. `npm run verify` orders both builds before every
