@@ -62,7 +62,7 @@ const res = await build({
   write: false,
   metafile: true,
   logLevel: 'silent',
-  define: { PRISM3_HOST: "'web'", PRISM3_BUILD: "'check'" },
+  define: { PRISM3_HOST: "'web'", PRISM3_BUILD: "'check'", PRISM3_TEST_HOOKS: 'false' },   // as the deployed bundle (#2098)
 });
 
 // The engine's location, as a LITERAL — which is the one thing here that can go stale without
