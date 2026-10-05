@@ -44,7 +44,10 @@ await build({
   loader: { '.css': 'text' },
   // `src/entry.ts` imports the virtual `p3:chrome-css` (UI redesign S1.1); only this plugin resolves it.
   plugins: [chromeCss()],
-  define: { PRISM3_HOST: "'web'", PRISM3_BUILD: JSON.stringify(buildId) },
+  // PRISM3_TEST_HOOKS is `false` here, and only `build.mjs` (the local `dist/`) says `true` (#2098): the deployed
+  // bundle carries no test hook at all, which `test-prod-bundle.ts` checks by running this file. The one option
+  // that differs from `build.mjs` on purpose, beside PRISM3_BUILD.
+  define: { PRISM3_HOST: "'web'", PRISM3_BUILD: JSON.stringify(buildId), PRISM3_TEST_HOOKS: 'false' },
   sourcemap: true,
   logLevel: 'info',
 });
