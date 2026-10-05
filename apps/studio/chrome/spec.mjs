@@ -52,7 +52,7 @@ export const PAIRS = [
   ['text-2', 'bg-page', 4.5, 'secondary text on the page'],
   ['text-2', 'levers-bg', 4.5, 'secondary text on the levers panel (intro, tabs)'],
   ['text-2', 'fill-1', 4.5, 'secondary text on an inset (tags, derived hatch, unselected segment)'],
-  ['inv-text', 'inv-bg', 4.5, 'Apply Theme'], ['inv-text', 'inv-bg-2', 4.5, 'Apply Theme, hover'],
+  ['inv-text', 'inv-bg', 4.5, 'Apply Theme and Continue'], ['inv-text', 'inv-bg-2', 4.5, 'Apply Theme and Continue, hover'],
   ['bad-text', 'bg-page', 4.5, 'danger text on the page'], ['bad-text', 'fill-1', 4.5, 'danger text on an inset (error cause)'],
   // B1 edges
   ['edge', 'bg-page', 3, 'control edge on the page, a card or a menu'],

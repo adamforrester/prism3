@@ -603,6 +603,9 @@
 .p3-text-input.p3-value { font-family: var(--p3-font-mono); }
 .p3-text-input:hover { border-color: var(--p3-field-edge-hover); }
 .p3-text-input:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
+/* A text field that cannot change (Layout's first breakpoint, D13; any field a derived mode locks) takes the chrome's
+   can't-change edge, dashed, as a fixed check box, a locked value picker and a disabled button do (#2098 item 6). */
+.p3-text-input:disabled { border-style: dashed; cursor: not-allowed; }
 /* Personality: the engine's words as chips; a chosen one takes the selected edge and shows its check. */
 .p3-chips { display: flex; flex-wrap: wrap; gap: var(--p3-space-100); }
 .p3-btn.p3-chip { min-height: var(--p3-ctl-h-xs); padding: 0 var(--p3-space-150); gap: var(--p3-space-050); font-weight: var(--p3-fw-default); }

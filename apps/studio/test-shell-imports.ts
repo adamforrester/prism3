@@ -746,6 +746,13 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
       const BUTTON_KEYS = new Set(['buttonIcons', 'buttonContentSize', 'buttonLabelWeight', 'buttonMinWidthMultiplier']);
       const isButtonTarget = (e: ts.Expression): boolean => { const c = brandRooted(e); return c[0] === 'brandState' && BUTTON_KEYS.has(c[1]); };
       const buttonDirect: string[] = [], buttonKeyed: string[] = [];
+      // The Layout writes (UI redesign S10; #2098 item 6), the same way: S10 moved Breakpoints, Grid and Containers to
+      // `domains/layout.ts`, writing through `state/layout-input.ts`, so `main.ts` writes nothing under
+      // `brandState.layout`, by any operator, `delete`, `Object.assign` or an in-place mutator (`.push` on its
+      // breakpoints), and makes no keyed write on `layout.*`. Layout is brand-wide (no `ModeLevers` field), so there is
+      // no mode field to hold. Literal: the brand input's `layout` key, the root every Layout lever's key starts with.
+      const isLayoutTarget = (e: ts.Expression): boolean => { const c = brandRooted(e); return c[0] === 'brandState' && c[1] === 'layout'; };
+      const layoutDirect: string[] = [], layoutKeyed: string[] = [];
       const seenOk = new Set<string>();
       const visit = (n: ts.Node): void => {
         if (ts.isBinaryExpression(n) && ASSIGN.has(n.operatorToken.kind) && isTypeTarget(n.left)) direct.push(at(n));
@@ -755,6 +762,14 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
         if (ts.isDeleteExpression(n) && isShapeTarget(n.expression)) shapeDirect.push(at(n));
         if (ts.isBinaryExpression(n) && ASSIGN.has(n.operatorToken.kind) && isButtonTarget(n.left)) buttonDirect.push(at(n));
         if (ts.isDeleteExpression(n) && isButtonTarget(n.expression)) buttonDirect.push(at(n));
+        if (ts.isBinaryExpression(n) && ASSIGN.has(n.operatorToken.kind) && isLayoutTarget(n.left)) layoutDirect.push(at(n));
+        if (ts.isDeleteExpression(n) && isLayoutTarget(n.expression)) layoutDirect.push(at(n));
+        if ((ts.isPrefixUnaryExpression(n) || ts.isPostfixUnaryExpression(n))
+          && [ts.SyntaxKind.PlusPlusToken, ts.SyntaxKind.MinusMinusToken].includes(n.operator) && isLayoutTarget(n.operand)) layoutDirect.push(at(n));
+        if (ts.isCallExpression(n) && n.expression.getText() === 'Object.assign' && n.arguments[0] && (isLayoutTarget(n.arguments[0])
+          || (isBrandState(n.arguments[0]) && n.arguments.slice(1).some((a) => ts.isObjectLiteralExpression(a) && a.properties.some((pr) => pr.name?.getText() === 'layout'))))) layoutDirect.push(at(n));
+        if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && MUTATORS.has(n.expression.name.text) && isLayoutTarget(n.expression.expression)) layoutDirect.push(at(n));
+        if (ts.isCallExpression(n) && n.expression.getText() === 'setPath' && n.arguments[0] && isLayoutTarget(n.arguments[0])) layoutDirect.push(at(n));
         if (ts.isCallExpression(n) && n.expression.getText() === 'Object.assign' && n.arguments[0] && (isButtonTarget(n.arguments[0])
           || (isBrandState(n.arguments[0]) && n.arguments.slice(1).some((a) => ts.isObjectLiteralExpression(a) && a.properties.some((pr) => BUTTON_KEYS.has(pr.name?.getText() ?? '')))))) buttonDirect.push(at(n));
         if ((ts.isPrefixUnaryExpression(n) || ts.isPostfixUnaryExpression(n))
@@ -785,15 +800,16 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
               const ml = keyedCall === 'path' && seg === 'modeLevers' ? pre.split('.')[2] : undefined;
               if (keyedCall === 'path' ? SHAPE_PATH_ROOTS.has(seg) || (ml !== undefined && SHAPE_MODE_FIELDS.has(ml)) : SHAPE_MODE_FIELDS.has(seg)) shapeKeyed.push(at(n));
               if (keyedCall === 'path' && BUTTON_KEYS.has(seg)) buttonKeyed.push(at(n));
+              if (keyedCall === 'path' && seg === 'layout') layoutKeyed.push(at(n));
             }
           }
         }
         ts.forEachChild(n, visit);
       };
       visit(sf);
-      return { sf, at, initOf, direct, keyed, unresolved, depthDirect, depthKeyed, shapeDirect, shapeKeyed, buttonDirect, buttonKeyed, seenOk };
+      return { sf, at, initOf, direct, keyed, unresolved, depthDirect, depthKeyed, shapeDirect, shapeKeyed, buttonDirect, buttonKeyed, layoutDirect, layoutKeyed, seenOk };
     };
-    const { sf, at, initOf, direct, keyed, unresolved, depthDirect, depthKeyed, shapeDirect, shapeKeyed, buttonDirect, buttonKeyed, seenOk } = scan(MAIN, mainSrc);
+    const { sf, at, initOf, direct, keyed, unresolved, depthDirect, depthKeyed, shapeDirect, shapeKeyed, buttonDirect, buttonKeyed, layoutDirect, layoutKeyed, seenOk } = scan(MAIN, mainSrc);
     ok(direct.length === 0, `src/main.ts writes nothing into brandState.typography itself${direct.length ? ` — ${direct.slice(0, 3).join(' | ')}: the write belongs in state/type-input.ts` : ''}`);
     ok(keyed.length === 0, `src/main.ts makes no keyed Type write (setPath into typography.*, or setModeLever on a Type mode field)${keyed.length ? ` — ${keyed.slice(0, 3).join(' | ')}` : ''}`);
     ok(unresolved.length === 0, `every keyed write in src/main.ts resolves to a non-Type key, or is listed with its reason${unresolved.length ? ` — unresolved and unlisted: ${unresolved.slice(0, 3).join(' | ')}` : ''}`);
@@ -803,6 +819,8 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     ok(shapeKeyed.length === 0, `src/main.ts makes no keyed Shape write (setPath into density, radiusScale, controlShape, baseMd or modeLevers.*.density/.radius, or setModeLever on density or radius)${shapeKeyed.length ? ` — ${shapeKeyed.slice(0, 3).join(' | ')}: the write belongs in state/shape-input.ts` : ''}`);
     ok(buttonDirect.length === 0, `src/main.ts writes no Button option onto brandState itself${buttonDirect.length ? ` — ${buttonDirect.slice(0, 3).join(' | ')}: the write belongs in state/button-input.ts` : ''}`);
     ok(buttonKeyed.length === 0, `src/main.ts makes no keyed Button option write (setPath on buttonIcons, buttonContentSize, buttonLabelWeight or buttonMinWidthMultiplier)${buttonKeyed.length ? ` — ${buttonKeyed.slice(0, 3).join(' | ')}: the write belongs in state/button-input.ts` : ''}`);
+    ok(layoutDirect.length === 0, `src/main.ts writes nothing into brandState.layout itself${layoutDirect.length ? ` — ${layoutDirect.slice(0, 3).join(' | ')}: the write belongs in state/layout-input.ts` : ''}`);
+    ok(layoutKeyed.length === 0, `src/main.ts makes no keyed Layout write (setPath into layout.*)${layoutKeyed.length ? ` — ${layoutKeyed.slice(0, 3).join(' | ')}: the write belongs in state/layout-input.ts` : ''}`);
     // `domains/depth.ts` under the same visitor (#2078): the regex below refuses its `setPath`/`setModeLever` calls,
     // but a direct `brandState.shadow = …` (any assignment operator, `delete`, or through one alias) names neither and passed.
     const DEPTH_LEVERS = join(SRC, 'domains/depth.ts');
@@ -860,6 +878,18 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     };
     visitShapeFeeds(sf);
     ok(shapeFed.length === 0, `src/main.ts hands no Shape key to a writer that writes whatever it is handed (the generic lever renderer)${shapeFed.length ? ` — ${shapeFed.slice(0, 3).join(' | ')}` : ''}`);
+    // The Layout keys the same way (#2098 item 6): a `layout.*` key literal handed to the generic renderer is a Layout
+    // write the keyed rule cannot see, because the key reaches `setPath` as a variable.
+    const layoutFed: string[] = [];
+    const visitLayoutFeeds = (n: ts.Node): void => {
+      if (ts.isCallExpression(n) && FEEDS.has(n.expression.getText())) {
+        const look = (x: ts.Node): void => { if (ts.isStringLiteralLike(x) && /^layout(\.|$)/.test(x.text)) layoutFed.push(at(n)); else ts.forEachChild(x, look); };
+        n.arguments.forEach(look);
+      }
+      ts.forEachChild(n, visitLayoutFeeds);
+    };
+    visitLayoutFeeds(sf);
+    ok(layoutFed.length === 0, `src/main.ts hands no Layout key to a writer that writes whatever it is handed (the generic lever renderer)${layoutFed.length ? ` — ${layoutFed.slice(0, 3).join(' | ')}` : ''}`);
   }
   // S9.2 retired `renderRepointTable`, the last Type writer `main.ts` held (its line height and letter spacing branch was
   // already dead, #2038), so `main.ts` imports no Type write at all: the AST arm above holds that it makes none.
