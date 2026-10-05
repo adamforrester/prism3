@@ -64,10 +64,10 @@ export const PAIRS = [
   ['field-edge-hover', 'levers-bg', 3, 'edge on hover on the levers panel'],
   // Added by the product (S1.2): a top-bar control's edge on hover. The mockup drew a hover wash there.
   ['field-edge-hover', 'bar-bg', 3, 'edge on hover on the top bar'],
-  ['ctl-edge', 'bg-page', 3, 'selected chip edge; focus ring on the page'],
-  ['ctl-edge', 'levers-bg', 3, 'focus ring on the levers panel'],
-  ['ctl-edge', 'bar-bg', 3, 'focus ring and pressed edge on the top bar'],
-  ['ctl-edge', 'fill-1', 3, 'focus ring and selected edge on an inset'],
+  ['ctl-edge', 'bg-page', 3, 'selected chip edge on the page'],
+  ['ctl-edge', 'levers-bg', 3, 'selected chip edge on the levers panel'],
+  ['ctl-edge', 'bar-bg', 3, 'pressed edge on the top bar'],
+  ['ctl-edge', 'fill-1', 3, 'selected edge on an inset'],
   ['text', 'bg-page', 3, 'selected tab underline in the preview'],
   ['text', 'levers-bg', 3, 'selected tab underline on the levers panel'],
   ['line-2', 'bg-page', 3, 'slider rail; menu and dialog edge'], ['icon', 'bg-page', 3, 'slider fill'],
@@ -125,6 +125,18 @@ export const PRODUCT_VARS = [
   // (the shared styling pass; #2015 read `motion.duration.normal` and the mockup's `ease` row separately).
   ['transition-dur', 'motion.transition.default#duration', 'motion.transition.default#duration', T, 'the eased scroll of the edit-reveal and the jump links'],
   ['transition-ease', 'motion.transition.default#timingFunction', 'motion.transition.default#timingFunction', E, 'the eased scroll\'s curve'],
+  // #2144 (owner decision FR1 A, 2026-10-05): every chrome focus ring draws in Prism3's focus color. It resolves
+  // through `core.palette.primary`, so `brandLeaks` lets it through by this name only (BRAND_ALLOW, `tokens.mjs`).
+  ['focus-ring', 'color.border.focus', 'color.border.focus', C, 'every chrome focus ring (#2144)'],
+];
+/** Pairs the product adds beyond the mockup's PAIRS, for PRODUCT_VARS rows the mockup never maps (`build-v6.mjs` reads
+ *  PAIRS and would refuse a name it has no row for). Same shape as PAIRS; the product build evaluates both. */
+export const PRODUCT_PAIRS = [
+  // #2144 (owner decision FR1 A): every chrome focus ring, 2px outside the control, on each ground it sits on.
+  ['focus-ring', 'bg-page', 3, 'focus ring on the page'],
+  ['focus-ring', 'levers-bg', 3, 'focus ring on the levers panel'],
+  ['focus-ring', 'bar-bg', 3, 'focus ring on the top bar'],
+  ['focus-ring', 'fill-1', 3, 'focus ring on an inset'],
 ];
 export const PRODUCT_FOR = (mode) => PRODUCT_VARS.map(([n, l, d, k]) => [n, mode === 'light' ? l : d, k]);
 
@@ -136,7 +148,7 @@ export const SHELL_VARS = [
   // S1.3: the verdict's and the mode control's status dots, Health's glyphs
   'ok-icon', 'bad-icon', 'dot',
   // edges (B1), hover and focus
-  'edge', 'edge-bar', 'field-edge-hover', 'ctl-edge', 'focus-width', 'focus-offset',
+  'edge', 'edge-bar', 'field-edge-hover', 'ctl-edge', 'focus-ring', 'focus-width', 'focus-offset',
   // the inverse fill: Apply, and nothing else
   'inv-bg', 'inv-bg-2', 'inv-text',
   // geometry

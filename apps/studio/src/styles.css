@@ -720,7 +720,8 @@ label.cset-head{cursor:pointer}
 .cset-spacing{font-size:11.5px}
 .cset-off .cset-name{color:var(--muted);font-weight:560}
 .cset-reason{color:var(--ink2)}
-.cset-radio:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+/* The plugin's set radios sit in the chrome's Components preview, so their ring is the chrome's (#2144). */
+.cset-radio:focus-visible{outline:var(--p3-focus-width) solid var(--p3-focus-ring);outline-offset:var(--p3-focus-offset)}
 /* Spacing ramp preview (#265) — the space.* steps as proportional bars (spacing has no other payoff). */
 .sp-list{display:flex;flex-direction:column;gap:7px;border-radius:var(--r-sm);padding:22px 20px;background:var(--paper);margin-top:14px}
 /* Label and bar on ONE row. Stacked, the 18 steps ran ~950px tall while the bars — now drawn at their
