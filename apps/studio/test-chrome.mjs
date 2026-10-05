@@ -44,6 +44,18 @@
  * the mark, once, ahead of the brand switcher; it reads "Prism3 Studio" as text and as its accessible name, is not a
  * control, and its name is shown wide (measured at 4.5:1) and dropped narrow, the logo kept. The plugin's bar has none.
  *
+ * S12 ADDS (section 27), on both hosts, both themes, at 1280 and 380 (the frame's `data-w` waited on): THE START WINDOW
+ * over the studio, every owner decision against a literal typed in the section: the heading per host (G17), no Close on
+ * the first run and Close when reopened (S9, S10), the cards in the order color, examples, neutral default, import (S8),
+ * "Start from this color" (S1), the color starting at the working brand's primary (G14), a bad hex refused in words
+ * (S3), the empty paste (S2), import errors that open "Line ‹n›: " only when the line is known (S7), the wrong file type
+ * (S6), the guard over 3 edits opening ON TOP of the start (S4) with focus on Cancel (S5), its approved words (S10),
+ * Discard drawn in Prism3's destructive fill and on-fill (oracle: the committed emission, S5), Cancel and Escape back to
+ * the start, Close back to the brand byte-identical with its origin kept, and the brand menu's paste and upload showing
+ * the same words as the start's for the same input (one shared check). The chrome probe runs in the first-run, reopened
+ * and guard states; the start's example dots are `data-content`, so the old start-screen exemption from the inline-value
+ * check is gone.
+ *
  * ── independence (docs/34) ─────────────────────────────────────────────────────────────────────
  *
  * Every color here is read from the RENDER (computed, composited styles), never from `chrome/spec.mjs`'s
@@ -759,7 +771,6 @@ const PROBE = (opt) => {
   for (const el of document.querySelectorAll('[style]')) {
     if (el.closest('[data-content]') || (skipLegacy && legacyPage?.contains(el))) continue;
     if (opt.inspectLegacy.some((sel) => el.closest(sel))) continue;
-    if (el.closest('[data-p3="start-screen"]')) continue;
     const props = [...el.style].filter((p) => !p.startsWith('--'));
     if (props.length) inline.push(`${label(el)} sets ${props.slice(0, 4).join(', ')}`);
   }
@@ -6988,6 +6999,261 @@ for (const { w, h } of WIDTHS) {
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
         ok(false, `S8.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      } finally { await ctx.close(); }
+    }
+  }
+}
+
+// =============================================================================================
+// 27. The start window (UI redesign S12): today's four cards, restyled, in a window over the studio, on both hosts,
+//     in both themes, at 1280 and 380. Every decision the owner made for it, each against a literal typed here.
+// =============================================================================================
+console.log(`\nThe start window (S12)\n${'='.repeat(78)}`);
+/** The owner's decisions, as literals (S1, S3, S5, S6, S7, S8, S10, G13, G14, G15, G17). */
+const START = {
+  heading: { web: 'Start a brand', figma: 'Start a brand in this file' },                   // G17
+  order: ['Start from your color', 'Explore an example', 'Start with a neutral default', 'Import a design.md'],   // S8
+  go: 'Start from this color',                                                                  // S1
+  badHex: 'Enter a hex color as #rrggbb.',                                                      // S3
+  emptyPaste: 'Paste a design.md brief or choose a file first.',                                // S2
+  fileType: 'Choose a .md, .markdown or .txt file.',                                            // S6
+  close: 'Close',                                                                                // S10
+};
+/** A brief with a repeated key on line 3 (the opening --- is line 1), and one with no primary, which names no line. */
+const DUP_KEY_BRIEF = '---\nid: dup\nid: again\n---\n';
+const NO_LINE_BRIEF = '---\nid: x\nneutral: { hue: 1, chroma: 0.01 }\n---\n';
+/** Prism3's destructive button at rest (S5): `color.interactive.destructive.fill.rest` and `.on-fill`, per theme, from the
+ *  committed emission and its dark overlay, never from the chrome's variable map. */
+const DESTRUCTIVE = (() => {
+  const out = join(REPO, 'packages/engine/out');
+  const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
+  const root = Object.keys(base).find((k) => !k.startsWith('$'));
+  const ov = JSON.parse(readFileSync(join(out, 'prism3.dark.overlay.tokens.json'), 'utf8'));
+  const at = (tree, path) => path.split('.').reduce((n, k) => n?.[k], tree);
+  const res = (theme, path, depth = 0) => {
+    const v = (theme === 'dark' ? at(ov, path)?.$value : undefined) ?? at(base, path)?.$value;
+    if (typeof v !== 'string' || depth > 20) return null;
+    const m = /^\{(.+)\}$/.exec(v);
+    return m ? res(theme, m[1], depth + 1) : v.toLowerCase();
+  };
+  return Object.fromEntries(['light', 'dark'].map((t) => [t, {
+    fill: res(t, `${root}.color.interactive.destructive.fill.rest`), on: res(t, `${root}.color.interactive.destructive.on-fill`) }]));
+})();
+ok(Object.values(DESTRUCTIVE).every((d) => /^#[0-9a-f]{6}$/.test(d.fill ?? '') && /^#[0-9a-f]{6}$/.test(d.on ?? '')),
+  `S5: the oracle resolved Prism3's destructive fill and on-fill from the emission (${JSON.stringify(DESTRUCTIVE)})`);
+const rgbOf = (hx) => `rgb(${parseInt(hx.slice(1, 3), 16)}, ${parseInt(hx.slice(3, 5), 16)}, ${parseInt(hx.slice(5, 7), 16)})`;
+const START_SIZES = [{ w: 1280, h: 900 }, { w: 380, h: 420 }];
+/** A first run on `host`: the web with nothing saved, the plugin in a file with no brand. Waits for the frame's width
+ *  tier to match the viewport before anything is read. */
+const openFirstRun = async ({ host, theme, w, h }) => {
+  const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: theme });
+  const page = await ctx.newPage();
+  await hooks.watch(page);
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(`uncaught: ${e.message}`));
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(`console.error: ${m.text()}`); });
+  if (host === 'web') await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
+  else {
+    await page.goto(`${ORIGIN}/plugin?figma=${theme}`, { waitUntil: 'load' });
+    await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'restore-input-empty' } }, '*'));
+  }
+  await hooks.need(page, '[data-p3="start-screen"]');
+  await page.waitForFunction((tier) => document.querySelector('[data-p3="frame"]')?.dataset.w === tier, w <= 560 ? 'narrow' : 'wide');
+  await page.evaluate(() => document.fonts.ready);
+  return { ctx, page, errors };
+};
+/** Everything a designer can read about the start, from the rendered DOM. */
+const readStartWindow = (page) => page.evaluate(() => {
+  const q = (s) => document.querySelector(s);
+  const dlg = q('[data-p3="start-screen"]');
+  const guard = q('[data-p3="start-guard"]');
+  const a = document.activeElement;
+  return {
+    open: !!dlg, role: dlg?.getAttribute('role'), modal: dlg?.getAttribute('aria-modal'),
+    labelled: !!dlg && document.getElementById(dlg.getAttribute('aria-labelledby') ?? '')?.textContent === q('[data-p3="start-heading"]')?.textContent,
+    heading: q('[data-p3="start-heading"]')?.textContent ?? null,
+    close: q('[data-p3="start-close"]')?.textContent ?? null,
+    order: [...document.querySelectorAll('[data-p3="start-path"]')].map((c) => c.querySelector('h3')?.textContent ?? ''),
+    go: q('[data-p3="start-go"]')?.textContent ?? null,
+    hex: q('[data-p3="start-hex"]')?.value ?? null,
+    behindHex: q('[data-p3="primary-hex"]')?.value ?? null,
+    colorErr: q('[data-p3="start-color-error"]')?.textContent ?? null,
+    importErr: q('[data-p3="start-import-error"]')?.textContent ?? null,
+    startInert: !!dlg?.closest('[inert]'),
+    frameInert: !!q('[data-p3="frame-head"]')?.closest('[inert]'),
+    guard: !!guard,
+    guardTitle: q('[data-p3="start-guard-title"]')?.textContent ?? null,
+    guardBody: q('[data-p3="start-guard-body"]')?.textContent ?? null,
+    discard: q('[data-p3="start-guard-discard"]')?.textContent ?? null,
+    guardOnTop: (() => {
+      if (!guard) return false;
+      const r = guard.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return !!hit && guard.contains(hit);
+    })(),
+    discardStyle: (() => { const d = q('[data-p3="start-guard-discard"]'); if (!d) return null; const cs = getComputedStyle(d); return { bg: cs.backgroundColor, ink: cs.color, edge: cs.borderTopColor }; })(),
+    focus: a?.getAttribute('data-p3') ?? a?.tagName ?? null,
+    focusInStart: !!a && !!dlg?.contains(a),
+    focusInGuard: !!a && !!guard?.contains(a),
+    brand: q('[data-p3="brand-switcher"]')?.textContent ?? null,
+  };
+});
+/** The web's saved brand, the bytes a reload restores. Null in the plugin. */
+const savedBrand = (page) => page.evaluate(() => { try { return localStorage.getItem('prism3:brandInput'); } catch { return null; } });
+
+for (const { w, h } of START_SIZES) {
+  for (const host of ['web', 'figma']) {
+    for (const theme of ['light', 'dark']) {
+      const where = `S12 ${host} ${theme} ${w}`;
+      const { ctx, page, errors } = await openFirstRun({ host, theme, w, h });
+      try {
+        // ── the first run ────────────────────────────────────────────────────────────────────────
+        let s = await readStartWindow(page);
+        ok(s.open && s.role === 'dialog' && s.modal === 'true' && s.labelled, `${where}: the start is a modal window over the studio, named by its heading (G10 A)`);
+        ok(s.heading === START.heading[host], `${where}: the heading reads "${START.heading[host]}" (G17) — reads "${s.heading}"`);
+        ok(s.close === null, `${where}: the first run offers no Close (G15 A, S9) — found "${s.close}"`);
+        ok(JSON.stringify(s.order) === JSON.stringify(START.order), `${where}: the cards run color, examples, the neutral default, import (S8) — ${JSON.stringify(s.order)}`);
+        ok(s.go === START.go, `${where}: the color card's button reads "${START.go}" (S1) — reads "${s.go}"`);
+        ok(!!s.hex && s.hex.toLowerCase() === (s.behindHex ?? '').toLowerCase(), `${where}: the color starts at the working brand's primary (G14): ${s.hex}, the primary behind is ${s.behindHex}`);
+        ok(s.frameInert && s.focusInStart, `${where}: the studio behind is inert and focus is in the window (${s.focus})`);
+        // The chrome probe, in this state: the window's text, edges, targets, fonts and inline values.
+        const m = await measure(page, `${where} / start`, host, w);
+        check(m, `${where} / start`, columnOf(host, w), w <= 560 ? INSPECT_NARROW_FLOOR : PLACE_FLOOR,
+          { only: ['[data-p3="start-go"]', '[data-p3="start-hex"]', '[data-p3="start-example"]', '[data-p3="start-blank"]', '[data-p3="start-upload"]', '[data-p3="start-import"]'] });
+        // Focus stays in the window, and every stop draws a ring.
+        const rings = await focusRings(page);
+        const ringHooks = new Set(rings.map((r) => r.hook));
+        for (const want of ['start-hex', 'start-go', 'start-example', 'start-blank', 'start-upload', 'start-import']) ok(ringHooks.has(want), `${where}: Tab reaches ${want} inside the window`);
+        const weakRings = rings.filter((r) => r.width < 2 || r.r < NONTEXT_MIN);
+        ok(weakRings.length === 0, `${where}: every stop in the window draws a ring at least 2px wide at ${NONTEXT_MIN}:1${weakRings.length ? ` — ${weakRings.slice(0, 3).map((r) => `${r.hook} ${r.width}px ${r.r}:1`).join(' | ')}` : ''}`);
+        s = await readStartWindow(page);
+        ok(s.focusInStart, `${where}: thirty Tabs later focus is still in the window (${s.focus})`);
+        await page.keyboard.press('Escape'); await page.keyboard.press('Escape');
+        ok((await readStartWindow(page)).open, `${where}: Escape does not close the first run`);
+
+        // ── S3: a bad hex is refused, in words ─────────────────────────────────────────────────────
+        const before = await savedBrand(page);
+        await page.fill('[data-p3="start-hex"]', '#12345');
+        await hooks.click(page.locator('[data-p3="start-go"]'));
+        s = await readStartWindow(page);
+        ok(s.open && s.colorErr === START.badHex, `${where}: a bad hex is refused with "${START.badHex}" (S3) — "${s.colorErr}", window ${s.open ? 'open' : 'closed'}`);
+        ok(s.focus === 'start-hex' && (await savedBrand(page)) === before, `${where}: the refused hex loads nothing and focus goes to the field (${s.focus})`);
+
+        // ── S7: import errors name their line; S2: an empty box asks for a brief; S6: the wrong file type ──────────
+        await hooks.click(page.locator('[data-p3="start-import"]'));
+        ok((await readStartWindow(page)).importErr === START.emptyPaste, `${where}: Import with an empty box says "${START.emptyPaste}" (S2)`);
+        await page.fill('[data-p3="start-paste"]', DUP_KEY_BRIEF);
+        await hooks.click(page.locator('[data-p3="start-import"]'));
+        const dupErr = (await readStartWindow(page)).importErr ?? '';
+        ok(dupErr.startsWith('Line 3: ') && /duplicate key 'id'/.test(dupErr) && !/at line/.test(dupErr), `${where}: a repeated key on line 3 says "Line 3: …" (S7) — "${dupErr}"`);
+        await page.fill('[data-p3="start-paste"]', NO_LINE_BRIEF);
+        await hooks.click(page.locator('[data-p3="start-import"]'));
+        const noLine = (await readStartWindow(page)).importErr ?? '';
+        ok(noLine.length > 0 && !/^Line \d+:/.test(noLine), `${where}: an error with no line drops the "Line ‹n›: " prefix (S7) — "${noLine}"`);
+        await page.setInputFiles('[data-p3="start-file"]', { name: 'brief.png', mimeType: 'image/png', buffer: Buffer.from([137, 80, 78, 71]) });
+        await page.waitForFunction(() => (document.querySelector('[data-p3="start-import-error"]')?.textContent ?? '').length > 0);
+        const typeErr = (await readStartWindow(page)).importErr;
+        ok(typeErr === START.fileType, `${where}: a file of another type says "${START.fileType}" (S6) — "${typeErr}"`);
+
+        // ── a path out: the first example, with no guard (nothing to lose) ─────────────────────────────
+        await page.fill('[data-p3="start-hex"]', '#336699');
+        await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: 'harbor' }));
+        s = await readStartWindow(page);
+        ok(!s.open && !s.guard && (s.brand ?? '').includes('harbor'), `${where}: on the first run an example loads at once, no guard (brand "${s.brand}")`);
+
+        // ── three edits, then "+ New brand" (G15, S9, S10) ──────────────────────────────────────────────
+        await goPlace(page, 'brand');
+        await page.fill('[data-p3="brand-name"]', 'harbor-edited');
+        await hooks.click(page.locator('[data-p3="mode-on-wireframe"]'));   // harbor is light and dark: Wireframe on is one edit
+        await goPlace(page, 'color-palettes');
+        await page.fill('[data-p3="primary-hex"]', '#336699');
+        await page.locator('[data-p3="primary-hex"]').press('Enter');
+        const edited = await savedBrand(page);
+        const reopen = async () => {
+          await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+          await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
+          await hooks.need(page, '[data-p3="start-screen"]');
+        };
+        await reopen();
+        s = await readStartWindow(page);
+        ok(s.close === START.close, `${where}: reopened, the start offers "${START.close}" (S9, S10) — "${s.close}"`);
+        ok((s.hex ?? '').toLowerCase() === '#336699', `${where}: reopened, the color starts at the edited primary #336699 (G14) — ${s.hex}`);
+        ok(s.heading === START.heading[host], `${where}: reopened, the heading is the same (G17)`);
+        const mr = await measure(page, `${where} / reopened`, host, w);
+        check(mr, `${where} / reopened`, columnOf(host, w), w <= 560 ? INSPECT_NARROW_FLOOR : PLACE_FLOOR,
+          { only: ['[data-p3="start-close"]', '[data-p3="start-go"]', '[data-p3="start-hex"]', '[data-p3="start-example"]', '[data-p3="start-blank"]', '[data-p3="start-upload"]', '[data-p3="start-import"]'] });
+
+        // The guard opens ON TOP of the start (S4), with focus on Cancel (S5).
+        const aurora = page.locator('[data-p3="start-example"]').filter({ hasText: 'aurora' });
+        await hooks.click(aurora);
+        await hooks.need(page, '[data-p3="start-guard"]');
+        s = await readStartWindow(page);
+        ok(s.guard && s.open && s.startInert && s.guardOnTop, `${where}: the guard opens on top of the start window, which stays open behind it (S4) — start ${s.open ? 'open' : 'closed'}, inert ${s.startInert}, on top ${s.guardOnTop}`);
+        ok(s.focus === 'start-guard-cancel', `${where}: focus starts on Cancel (S5) — on ${s.focus}`);
+        ok(s.guardTitle === 'Replace harbor-edited with the aurora example?', `${where}: the guard's title is "Replace ‹brand› with ‹choice›?" (S10) — "${s.guardTitle}"`);
+        ok(s.guardBody === '3 edits to harbor-edited are not saved to a file. Export or apply first to keep them.', `${where}: the guard's body names the 3 edits (S10) — "${s.guardBody}"`);
+        ok(s.discard === 'Discard 3 edits', `${where}: a start path over 3 unsaved edits asks first ("Discard 3 edits") — "${s.discard}"`);
+        const want = DESTRUCTIVE[theme];
+        ok(s.discardStyle?.bg === rgbOf(want.fill) && s.discardStyle?.ink === rgbOf(want.on) && s.discardStyle?.edge === rgbOf(want.fill),
+          `${where}: Discard wears Prism3's destructive button: fill ${want.fill}, label ${want.on} (S5) — ${JSON.stringify(s.discardStyle)}`);
+        const mg = await measure(page, `${where} / guard`, host, w);
+        check(mg, `${where} / guard`, columnOf(host, w), w <= 560 ? INSPECT_NARROW_FLOOR : PLACE_FLOOR,
+          { only: ['[data-p3="start-guard-cancel"]', '[data-p3="start-guard-discard"]', '[data-p3="start-close"]', '[data-p3="start-go"]'] });
+        for (let i = 0; i < 6; i++) await page.keyboard.press('Tab');
+        ok((await readStartWindow(page)).focusInGuard, `${where}: Tab stays in the guard`);
+        // Cancel returns to the start, focus on the example that asked (S4).
+        await hooks.click(page.locator('[data-p3="start-guard-cancel"]'));
+        s = await readStartWindow(page);
+        ok(!s.guard && s.open && !s.startInert && s.focus === 'start-example', `${where}: Cancel returns to the start window, focus on the example (S4) — guard ${s.guard}, start ${s.open ? 'open' : 'closed'}, focus ${s.focus}`);
+        ok((s.brand ?? '').includes('harbor-edited') && (await savedBrand(page)) === edited, `${where}: Cancel loads nothing (brand "${s.brand}")`);
+        // Escape in the guard is Cancel too.
+        await hooks.click(aurora);
+        await hooks.need(page, '[data-p3="start-guard"]');
+        await page.keyboard.press('Escape');
+        s = await readStartWindow(page);
+        ok(!s.guard && s.open, `${where}: Escape in the guard returns to the start`);
+
+        // Close returns to the brand you left, unchanged, focus on the brand switcher (G15, S9).
+        await hooks.click(page.locator('[data-p3="start-close"]'));
+        s = await readStartWindow(page);
+        ok(!s.open && (s.brand ?? '').includes('harbor-edited') && s.focus === 'brand-switcher', `${where}: Close returns to the brand you left, focus on the brand switcher (brand "${s.brand}", focus ${s.focus})`);
+        ok((await savedBrand(page)) === edited, `${where}: Close leaves the saved brand byte-identical`);
+        // The origin came back with it: the brand menu's own guard still names the brand's edits.
+        await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+        await hooks.click(page.locator('[data-p3="brand-menu-example"]').filter({ hasText: 'prism3' }));
+        ok(await page.locator('[data-p3="overwrite-confirm"]').count() === 1, `${where}: after Close, the brand menu still asks before replacing the edited brand (the origin is kept)`);
+        await hooks.click(page.locator('[data-p3="overwrite-cancel"]'));
+
+        // The two pastes share one check: the brand menu shows the same words for the same briefs (S7, the S12 trap).
+        await hooks.click(page.locator('[data-p3="brand-menu-import"]'));
+        await page.fill('[data-p3="import-text"]', DUP_KEY_BRIEF);
+        await hooks.click(page.locator('[data-p3="import-load"]'));
+        ok((await page.locator('[data-p3="import-error"]').textContent()) === dupErr, `${where}: the brand menu's paste says what the start's says, "${dupErr}"`);
+        await page.fill('[data-p3="import-text"]', '');
+        await hooks.click(page.locator('[data-p3="import-load"]'));
+        ok((await page.locator('[data-p3="import-error"]').textContent()) === START.emptyPaste, `${where}: the brand menu's empty paste says "${START.emptyPaste}"`);
+        await page.setInputFiles('[data-p3="import-file"]', { name: 'brief.png', mimeType: 'image/png', buffer: Buffer.from([137, 80, 78, 71]) });
+        await page.waitForFunction((t) => document.querySelector('[data-p3="import-error"]')?.textContent === t, START.fileType, { timeout: 3000 }).catch(() => {});
+        ok((await page.locator('[data-p3="import-error"]').textContent()) === START.fileType, `${where}: the brand menu's upload says "${START.fileType}" for another type (S6)`);
+        await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+
+        // Escape closes a reopened start; then Discard loads the choice.
+        await reopen();
+        await page.keyboard.press('Escape');
+        ok(!(await readStartWindow(page)).open, `${where}: Escape closes a reopened start`);
+        await reopen();
+        await hooks.click(aurora);
+        await hooks.click(page.locator('[data-p3="start-guard-discard"]'));
+        s = await readStartWindow(page);
+        ok(!s.open && !s.guard && (s.brand ?? '').includes('aurora'), `${where}: Discard loads the choice and closes both windows (brand "${s.brand}")`);
+        // A clean brand: a start path loads at once.
+        await reopen();
+        await hooks.click(page.locator('[data-p3="start-blank"]'));
+        s = await readStartWindow(page);
+        ok(!s.open && !s.guard, `${where}: with nothing to lose, "Start blank" loads at once`);
+        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
       } finally { await ctx.close(); }
     }
   }

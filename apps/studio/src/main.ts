@@ -2336,10 +2336,10 @@ const renderImportBox = (): HTMLElement => {
   ta.value = importText;                                   // M-17: restore across re-renders
   ta.oninput = () => { importText = ta.value; };           // a mode-toggle mid-paste won't lose it
   box.append(ta);
-  if (importErr) box.append(el('p', 'bm-err', importErr));
+  if (importErr) box.append(hook(el('p', 'bm-err', importErr), 'import-error'));
   const row = el('div', 'bm-import-row');
   const up = el('label', 'bm-upload');
-  const fi = el('input', 'bm-file') as HTMLInputElement;
+  const fi = hook(el('input', 'bm-file') as HTMLInputElement, 'import-file');
   fi.type = 'file'; fi.accept = IMPORT_ACCEPT;
   fi.onchange = async () => {
     const f = fi.files?.[0]; if (!f) return;

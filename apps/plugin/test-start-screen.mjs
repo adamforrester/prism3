@@ -150,7 +150,7 @@ console.log('1. a file with NO stored brand surfaces the start screen');
   await post(page, { type: 'restore-input-empty' });
   ok(await waitStart(page, true), 'restore-input-empty puts the panel on the start screen');
   const s = await readStart(page);
-  ok(s.heading === 'Start a new brand.', `the heading is the web's: "${s.heading}"`);
+  ok(s.heading === 'Start a brand in this file', `the heading is the plugin's (owner decision G17): "${s.heading}"`);
   ok(s.fromColor, 'path 1 — start from your color');
   ok(s.startBlank, 'path 2 — start blank');
   ok(s.chips.length >= 2, `path 3 — example chips (${s.chips.join(', ')})`);

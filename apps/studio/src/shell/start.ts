@@ -162,6 +162,7 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
   const swatch = hook(h('input', 'p3-color-input'), 'start-color');
   swatch.type = 'color'; swatch.value = start;
   swatch.setAttribute('aria-label', 'Brand color');
+  swatch.setAttribute('data-content', '');   // it shows a color value, as the Palettes picker does
   const hexIn = hook(h('input', 'p3-hex-input'), 'start-hex');
   hexIn.type = 'text'; hexIn.value = start; hexIn.spellcheck = false; hexIn.autocomplete = 'off';
   hexIn.setAttribute('aria-label', 'Brand color hex');
