@@ -51,9 +51,9 @@
  *      titles, and not a pass; a renamed group's old table named as staying until an unfiltered run;
  *  14. YIELDING (#1778), with a counting `yieldTo`: a progress reading per table, a yield after every table, and at
  *      least 12 yields inside the 124-row Inverse table, never more than 10 rows apart;
- *  15. ONE RUN AT A TIME (#1785, through #1957's `run-guard.ts`): the guard holds `style-guide` through a run's
- *      yields, so a second request at its third yield finds it busy and is not run, and exactly one set of tables
- *      results. (`test-agent-link.ts` drives the same guard through `main.ts`'s two real entry points.)
+ *  15. ONE RUN AT A TIME (#1785), through the plugin's run guard (#1957, `run-guard.ts`): a run asked for while
+ *      another is mid-yield is refused, and exactly one set of tables results. (`test-agent-link.ts` drives the same
+ *      guard through `main.ts`'s two real entry points.)
  *  16–19. PHASE 2 (#259), on the prism3 emission's dimension and font variables and its 63 text styles, plus a
  *      mode-varying `density` and a `metrics` ramp stored out of order: a table per collection and type on the right
  *      page; spacing bars, brackets and radius swatches at the value with their width or corner bound and each mode
@@ -196,7 +196,7 @@ import { dirname, join } from 'node:path';
 import { ensureStyleGuideCells } from './src/style-guide-cells';
 import type { CellsApi } from './src/style-guide-cells';
 import { planStyleGuide, runStyleGuide, styleGuideSummary, contrastText, humanizeName, varKind, sizeByPadding } from './src/style-guide';
-import { createRunGuard } from './src/run-guard';
+import { createRunGuard, busyMessage } from './src/run-guard';
 import type { StyleGuideApi, SgCatalog, SgTable, TableOutcome, StyleGuideResult, StyleGuideRun, StyleGuideOptions, StyleGuideProgress } from './src/style-guide';
 import { parseDesignMd } from '@prism3/engine/design-md';
 import { brandTheme } from '@prism3/engine/theme';
@@ -1851,34 +1851,35 @@ const main = async (): Promise<void> => {
       `14: the 124-row Inverse table yields while its rows are placed, never more than 10 rows apart (${rowsAt.length} yields, largest gap ${Math.max(0, ...gaps)} rows)`);
   }
 
-  console.log('15. one run at a time, from either entry point (#1785, #1957)');
+  console.log('15. one run at a time, through the run guard (#1785, #1957)');
   {
-    // The run guard `main.ts` routes the panel and the agent link through (`run-guard.ts`, #1957). A run draws the
-    // prism3 file holding `style-guide`; at its third yield, mid-table, a second request asks the same guard, the way
-    // `main.ts`'s `guarded` does: busy first, and run only if not.
+    // The guard `main.ts` routes the panel and the agent link through, used the way its `guarded` uses it: `busy`
+    // checked, then `run`, with no await between. A run draws the prism3 file; at its third yield, mid-table, a
+    // second run is asked for through the same guard.
     const guard = createRunGuard();
+    const request = <T>(fn: () => Promise<T>): Promise<{ ran: true; value: T } | { ran: false; message: string }> => {
+      if (guard.busy('style-guide')) return Promise.resolve({ ran: false, message: busyMessage('style-guide') });
+      let value!: T;
+      return guard.run('style-guide', async () => { value = await fn(); }).then(() => ({ ran: true as const, value }));
+    };
     const f15 = await fullFile();
-    let busyAtYield: boolean | null = null;
-    let secondRan = false;
+    const hold: { second?: ReturnType<typeof request<StyleGuideResult>> } = {};
     let yields = 0;
     const yieldTo = async (): Promise<void> => {
-      if (++yields === 3) {
-        busyAtYield = guard.busy('style-guide');
-        if (!busyAtYield) await guard.run('style-guide', async () => { secondRan = true; await draw(f15.api, contract); });
-      }
+      if (++yields === 3) hold.second = request(() => draw(f15.api, contract));
       await fastYield();
     };
-    let first: StyleGuideResult | null = null;
-    await guard.run('style-guide', async () => { first = await draw(f15.api, contract, {}, { yieldTo }); });
-    ok(busyAtYield === true && !secondRan,
-      `15: a run asked for while another is mid-yield finds the guard busy and is not run (busy ${busyAtYield}, ran ${secondRan})`);
+    const first = await request(() => draw(f15.api, contract, {}, { yieldTo }));
+    const second = await hold.second;
+    ok(first.ran && second?.ran === false && second.message === 'Style guide is already running. Try again when it finishes.',
+      `15: a run asked for while another is mid-yield is refused, in the guard's words (${JSON.stringify(second && (second.ran ? 'ran' : second.message))})`);
     const wraps = [...tablesOn(f15.prim), ...tablesOn(f15.sem)];
     const keys = new Set(wraps.map((w) => w.pluginData['prism3-style-guide']));
-    const firstResult = first as StyleGuideResult | null;
     ok(wraps.length === 22 && keys.size === 22 && wraps.every((w) => w.children.filter((c) => c.name === 'Table').length === 1)
-      && firstResult !== null && firstResult.tables.length === 22 && firstResult.tables.every((t) => t.status === 'created'),
+      && first.ran && first.value.tables.length === 22 && first.value.tables.every((t) => t.status === 'created'),
       `15: exactly one set of tables results: 22, each key once, each with one grid (${wraps.length} tables, ${keys.size} keys)`);
-    ok(!guard.busy('style-guide'), '15: once that run reports, the guard is released and the next is let through');
+    const third = await request(() => draw(f15.api, contract, { collections: ['legacy'] }));
+    ok(third.ran && !guard.busy('style-guide'), '15: once that run reports, the next is let through');
   }
 
   console.log('16. phase 2: dimension tables (#259)');

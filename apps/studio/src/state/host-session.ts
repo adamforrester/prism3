@@ -115,9 +115,8 @@ export interface HostSession {
    *  be in. Kept beside it, `componentState === 'pending'` still means exactly "in flight" and this only
    *  says how far. */
   readonly componentProgress: { phase: 'build' | 'wire' | 'retry'; done: number; total: number } | null;
-  /** How far the in-flight style-guide run has got (#1778): `done` of `total` tables, `null` between runs and
-   *  before the first reading. A sibling of `styleGuideState`, not a variant of it, for the `componentProgress`
-   *  reason: a reading is not a verdict. */
+  /** How far the panel's in-flight style-guide run has got (#1778): `done` of `total` tables, `null` between runs
+   *  and before the first reading. A sibling of `styleGuideState` for the `componentProgress` reason: not a verdict. */
   readonly styleGuideProgress: { done: number; total: number } | null;
   /** The set the panel's own pending build is for (UI redesign S8.2), `null` when the panel has no build out. The
    *  wire's `component-result` does not name its set, so the panel remembers the one it posted, and the verdict that
@@ -167,8 +166,9 @@ export interface HostSession {
    *  verdict is recorded as the agent's. `agent-finished` clears the slot. A command that ends with no
    *  verdict (its handler threw) leaves the operation's slot as it was. `progress` is the agent build's
    *  own reading, which the panel's `componentProgress` does not take: that one is accepted only while
-   *  the panel's own build is pending. */
-  readonly agentRun: { readonly id: string; readonly op: OpKey; readonly settled: boolean; readonly progress: { phase: 'build' | 'wire' | 'retry'; done: number; total: number } | null } | null;
+   *  the panel's own build is pending. An agent's style guide reads phase `table`, its `done` of `total`
+   *  tables (#1778, owner decision Q19 b), which the page row and the drawer show as a panel run's. */
+  readonly agentRun: { readonly id: string; readonly op: OpKey; readonly settled: boolean; readonly progress: { phase: 'build' | 'wire' | 'retry' | 'table'; done: number; total: number } | null } | null;
   /** The last write the main thread declined because a run of the same operation was already going
    *  (#1957), `null` until one is. `n` counts them, so the drawer can tell a second refusal from the first
    *  when the words are the same. A refusal is not a verdict: it settles no run and fills no verdict slot.
@@ -224,8 +224,7 @@ const settleAgent = (s: HostSession, m: HostMessage): HostSession => {
  * The next session after a host message. Pure: no DOM, no repaint, no brand-session write.
  *
  * Returns the SAME object when the message is refused or carries no host state: a `restore-input`
- * whose blob `brandTheme` rejects, a `component-progress` outside a pending build, a `style-guide-progress`
- * outside a pending style-guide run, and
+ * whose blob `brandTheme` rejects, a `component-progress` outside a pending build, and
  * `restore-input-empty` (its effect is on the brand session, in `main.ts`). Every accepted message
  * returns a new object, so `topicsFor` and `brandEffectFor` can tell a refusal from an acceptance by identity.
  */
@@ -249,7 +248,10 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     }
     case 'agent-progress': {
       const r = s.agentRun;
-      if (!r || r.id !== m.id || r.settled || r.op !== 'components') return s;
+      if (!r || r.id !== m.id || r.settled) return s;
+      // The reading must be the run's own kind: a build's phases on a build, a table count on a style guide.
+      const own = r.op === 'components' ? m.phase !== 'table' : r.op === 'styleguide' && m.phase === 'table';
+      if (!own) return s;
       return { ...s, agentRun: { ...r, progress: { phase: m.phase, done: m.done, total: m.total } } };
     }
     case 'agent-finished':
@@ -282,7 +284,6 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     case 'file-setup-result':
       return { ...s, fileSetupState: { ok: m.ok, headline: m.headline, summary: m.summary }, openDetail: m.ok ? null : 'filesetup' };
     case 'style-guide-result':
-      // The progress clears with the verdict, as the component build's does (#1778).
       return { ...s, styleGuideState: { ok: m.ok, headline: m.headline, summary: m.summary }, openDetail: m.ok ? null : 'styleguide', styleGuideProgress: null };
     case 'component-progress':
       // Accepted only while the build is in flight. A boundary message still queued behind the verdict
@@ -290,7 +291,8 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       if (s.componentState !== 'pending') return s;
       return { ...s, componentProgress: { phase: m.phase, done: m.done, total: m.total } };
     case 'style-guide-progress':
-      // #1778. Accepted only while the panel's own run is in flight, for the `component-progress` reason above.
+      // #1778. The `component-progress` rule: accepted only while the panel's own run is in flight, so a reading
+      // still queued behind the verdict cannot bring a finished run's count back.
       if (s.styleGuideState !== 'pending') return s;
       return { ...s, styleGuideProgress: { done: m.done, total: m.total } };
     case 'prune-result':

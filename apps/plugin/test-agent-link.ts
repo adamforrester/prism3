@@ -41,11 +41,12 @@
  *   · busy/sink: a `refused` that reaches the agent's sink fails the command with its code (mutation: the
  *     dispatcher's refusal check removed → busy/sink fails). busy/titles: `run-guard.ts`'s TITLE equals the
  *     drawer's OP_TITLE (mutation: one title changed in either file → busy/titles fails) (#1995)
+ *   · one-run: the STYLE GUIDE through the same guard, with the real `styleGuide` held mid-yield (#1778): a
+ *     style guide asked for from the panel or the link while the other's run draws is refused with `busy`
+ *     and the owner's words, the drawing run's verdict lands once, and the next click runs (#1785) (mutation:
+ *     `ACTIONS.styleGuide` not wrapped in `guarded` → one-run/agent and one-run/panel fail, by name)
  *   · foreign: on a file holding content Prism3 did not make, apply-theme from the panel and from the agent
  *     both refuse the whole write, name each collision in the same verdict, and change nothing (#1884)
- *   · one-run: a style guide asked for from the panel or the link while the other's run is mid-yield is refused
- *     through the run guard (`run-guard.ts`, #1957) with busy and its words, and the run in flight still
- *     reports its one verdict (#1785)
  *   · claim-before-run: the id is in `claimed` while its handler runs
  *   · order: two commands sent together run in send order, one per poll
  *   · no-rerun: a claimed command is never run again, even with its result gone
@@ -309,12 +310,12 @@ section('style-guide — tables reach the handler; a table reading is progress, 
   ok(rpx.ok === true && JSON.stringify(got) === '{"retired":["pixels"]}', `style-guide: pixels "yes" is accepted and ignored, not refused (${rpx.ok}; ${JSON.stringify(got)})`);
 }
 
-/* ── one style-guide run at a time (#1785, through #1957's run guard) ──────────────────────────────── */
+/* ── one style-guide run at a time (#1785) ──────────────────────────────────────────────────────────── */
 section('one-run — a style guide asked for from one entry point while the other\'s run draws is refused with busy (#1785, #1957)');
 {
   // A file the real `styleGuide` can run over: one color variable, the two cell sets, no token page (so its one table
   // is a named skip). What matters is that the run YIELDS: `realYield` is a 0ms `setTimeout`, held here apart from the
-  // poll's 1000ms one, so a run stays mid-yield until `release()` — through `main.ts`'s own run guard, not a stub.
+  // poll's 1000ms one, so a run stays mid-yield until `release()` — through `main.ts`'s own guard, not a stub.
   const held: (() => void)[] = [];
   const pollTimeout = g.setTimeout as unknown as (fn: () => void, ms?: number) => number;
   g.setTimeout = ((fn: () => void, ms?: number) => { if (!ms) { held.push(fn); return 0; } return pollTimeout(fn, ms); }) as unknown as typeof setTimeout;
@@ -330,11 +331,13 @@ section('one-run — a style guide asked for from one entry point while the othe
     setBoundVariableForPaint: (p: unknown) => p,
   };
   r0.findAllWithCriteria = () => [{ name: '_style-guide-swatches', type: 'COMPONENT_SET', children: [] }, { name: '_style-guide-text-cells', type: 'COMPONENT_SET', children: [] }];
-  const BUSY = 'Style guide is already running. Try again when it finishes.';
-  const results_ = () => posted.filter((m) => m.type === 'style-guide-result');
-  const refusals = (agentFlag: boolean) => posted.filter((m) => m.type === 'refused' && m.agent === agentFlag);
-  const isRefusal = (m: any, agentFlag: boolean) =>
-    JSON.stringify(m) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'style-guide', agent: agentFlag, message: BUSY });
+  type Verdict = { type?: string; ok?: boolean; headline?: string; summary?: string };
+  const results_ = (): Verdict[] => posted.filter((m) => m.type === 'style-guide-result');
+  // Main's run guard (#1957, `run-guard.ts`) is the one guard: its refusal and its words, for this operation.
+  const SG_BUSY = 'Style guide is already running. Try again when it finishes.';
+  const sgRefusals = (agentFlag: boolean) => posted.filter((m) => m.type === 'refused' && m.agent === agentFlag);
+  const isSgRefusal = (m: any, agentFlag: boolean) =>
+    JSON.stringify(m) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'style-guide', agent: agentFlag, message: SG_BUSY });
 
   // THE PANEL FIRST: a click starts a run, which holds at its yield; the agent link then asks for one.
   posted.length = 0;
@@ -343,36 +346,36 @@ section('one-run — a style guide asked for from one entry point while the othe
   const { id: a1 } = await send('style-guide', {});
   await tick();
   const r1 = (await read(a1)) as AgentResult;
-  ok(heldPanel > 0 && r1.ok === false && r1.error?.code === 'busy' && r1.error?.message === BUSY,
+  const ar = sgRefusals(true);
+  ok(heldPanel > 0 && r1.ok === false && r1.error?.code === 'busy' && r1.error?.message === SG_BUSY && ar.length === 1 && isSgRefusal(ar[0], true),
     `one-run/agent: a style guide asked for over the link while the panel's run is mid-yield is refused with busy (${r1.error?.code}: ${r1.error?.message})`);
-  ok(results_().length === 0 && refusals(true).length === 1 && isRefusal(refusals(true)[0], true),
-    'one-run/agent: the panel is told an agent\'s style guide was refused, and no verdict lands over its own run');
+  ok(results_().length === 0 && !posted.some((m) => m.type === 'agent-started' && m.id === a1), 'one-run/agent: the refusal is no verdict over the panel\'s run, and the agent\'s run never started');
   await release();
   const p1 = results_();
-  ok(p1.length === 1, `one-run: the panel's run then finishes and reports (${p1.map((m) => m.headline).join(', ')})`);
+  ok(p1.length === 1, `one-run: the panel's run then finishes and reports once (${p1.map((m) => m.headline).join(', ')})`);
 
   // THE AGENT FIRST: a command starts a run, which holds at its yield; a click then asks for one.
   posted.length = 0;
   const { id: a2 } = await send('style-guide', {});
   await tick();
-  ok(held.length > 0 && posted.some((m) => m.type === 'agent-started' && m.id === a2) && results_().length === 0,
-    'one-run/panel: the agent\'s style guide is held mid-yield');
+  ok(held.length > 0 && posted.some((m) => m.type === 'agent-started' && m.id === a2 && m.cmd === 'style-guide'),
+    'one-run/panel: an agent\'s run is held mid-yield, and the panel is told it started (its button goes busy on that)');
   await toUi({ type: 'style-guide', options: {} });
-  const pr = refusals(false);
-  ok(pr.length === 1 && isRefusal(pr[0], false) && results_().length === 0,
-    `one-run/panel: a click while the agent's run is mid-yield is refused with busy (${pr.map((m) => m.message).join(', ')})`);
+  const pr = sgRefusals(false);
+  ok(pr.length === 1 && isSgRefusal(pr[0], false) && results_().length === 0,
+    `one-run/panel: a click while the agent's run is mid-yield is refused with busy, and posts no verdict (${pr[0]?.message})`);
   await release();
   await tick();
   const r2 = (await read(a2)) as AgentResult;
-  const v2 = r2.result?.verdict as { type?: string; headline?: string } | null;
-  ok(v2?.type === 'style-guide-result' && results_().some((m) => m.headline === v2.headline),
-    `one-run: the agent's run then finishes, and its verdict reaches the panel (${v2?.headline})`);
+  const v2 = r2.result?.verdict as Verdict | null;
+  ok(v2?.type === 'style-guide-result' && results_().length === 1 && results_()[0].headline === v2.headline,
+    `one-run: the agent's run then finishes, and its one verdict reaches the panel (${v2?.headline})`);
 
-  // And the guard is released: a click runs.
+  // And the guard is open again: a click runs.
   posted.length = 0;
   await toUi({ type: 'style-guide', options: {} });
   await release();
-  ok(results_().length === 1 && refusals(false).length === 0, 'one-run: once both have reported, the next click runs');
+  ok(results_().length === 1 && !posted.some((m) => m.type === 'refused'), 'one-run: once both have reported, the next click runs');
 
   host.loadAllPagesAsync = saved.load; host.variables = saved.vars; r0.findAllWithCriteria = saved.find;
   g.setTimeout = pollTimeout as unknown as typeof setTimeout;

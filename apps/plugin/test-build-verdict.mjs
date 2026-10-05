@@ -713,6 +713,32 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   ok(done.button === '▦ Draw style guide' && done.disabled === false, `#259 the verdict re-enables the control on the page — read "${done.button}", disabled ${done.disabled}`);
   ok(done.verdict.length === 1 && done.verdict[0].includes('✓ style guide: 22 tables'), `#259 exactly one verdict pill on the page's row, in the headline's words — read ${JSON.stringify(done.verdict)}`);
 
+  // #1785: a run the AGENT LINK started, which the panel did not click for. While it runs (`agent-started` until its
+  // verdict lands) the page's button is busy, so a click cannot start a second run over it: the rule the other writes
+  // already follow (owner decision #4 on #1956). The main thread's run guard (#1957) refuses a second run regardless.
+  await post(page, { type: 'agent-started', id: 'sg1', cmd: 'style-guide' });
+  await page.waitForFunction(() => document.querySelector('[data-p3="style-guide-draw"]')?.textContent === '… Drawing…', null, { timeout: 3000 }).catch(() => {});
+  const agentRun = await readSg();
+  ok(agentRun.button === '… Drawing…' && agentRun.disabled === true,
+    `#1785 an agent-link style guide in flight makes the page's button busy, disabled — read "${agentRun.button}", disabled ${agentRun.disabled}`);
+  // Owner decision Q19 b: the agent's table readings (the dispatcher's `agent-progress`, phase `table`) count on the
+  // page's row and on the Activity drawer's Style guide row, in the panel run's words.
+  await post(page, { type: 'agent-progress', id: 'sg1', progress: { at: '2026-10-05T00:00:00.000Z', phase: 'table', done: 6, total: 22, chunkMs: 900 } });
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-pill"]')].some((n) => n.textContent === 'Drawing table 7 of 22…'), null, { timeout: 3000 }).catch(() => {});
+  const agentCount = await page.evaluate(() => ({
+    row: [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-pill"]')].map((n) => n.textContent),
+    drawer: [...document.querySelectorAll('[data-p3="activity-op"][data-op="styleguide"] [data-p3="op-progress"]')].map((n) => n.textContent),
+  }));
+  ok(JSON.stringify(agentCount.row) === JSON.stringify(['Drawing table 7 of 22…']),
+    `Q19 an agent-link style guide counts its tables on the page's row — read ${JSON.stringify(agentCount.row)}`);
+  ok(JSON.stringify(agentCount.drawer) === JSON.stringify(['Drawing table 7 of 22…']),
+    `Q19 an agent-link style guide counts its tables on the Activity drawer's Style guide row — read ${JSON.stringify(agentCount.drawer)}`);
+  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 1 table', summary: '1 table updated in place — no token changes' });
+  await post(page, { type: 'agent-finished', id: 'sg1', cmd: 'style-guide' });
+  await page.waitForFunction(() => document.querySelector('[data-p3="style-guide-draw"]')?.textContent === '▦ Draw style guide', null, { timeout: 5000 }).catch(() => {});
+  const agentDone = await readSg();
+  ok(agentDone.disabled === false && agentDone.verdict.length === 1 && agentDone.verdict[0].includes('✓ style guide: 1 table'), `#1785 the agent's verdict ends it on the page's row — read ${JSON.stringify(agentDone.verdict)}`);
+
   // The Tables field with a line break splits on line breaks ONLY, so a title with a comma in it survives.
   const custom = page.locator('[data-p3="style-guide-customize"]');
   if (!(await custom.evaluate((d) => d.open))) await hooks.click(custom.locator('summary'));

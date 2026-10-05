@@ -101,8 +101,7 @@ export const firstRun = (): boolean => provenance.origin.kind === 'none';
  *   - `host`: a fact the chrome bar shows — the boot read-back, a restore refusal, a prune, any verdict.
  *   - `host:detail`: a verdict landed, so which detail is open (and what it says) may have moved.
  *   - `host:components`, `host:filesetup`, `host:styleguide`: that action's verdict, which its page row shows.
- *   - `host:progress`: the in-flight component build's fraction, or the style guide's table count (#1778) — a text
- *     swap, never a re-render.
+ *   - `host:progress`: the in-flight component build's fraction — a text swap, never a re-render.
  *   - `fonts`: the families the host can load, which the Typography page reads. */
 export type HostTopic =
   | 'host' | 'host:detail' | 'host:components' | 'host:filesetup' | 'host:styleguide' | 'host:progress' | 'fonts';
