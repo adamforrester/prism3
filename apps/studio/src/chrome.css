@@ -367,6 +367,9 @@
 /* A legacy view inside Inspect: pinned light (D2), on its own page-colored container, inset like the
    chrome's own cards (Health, the Decisions log) so its toolbar does not sit on the container's edge. */
 .p3-legacy-card { min-width: 0; padding: var(--p3-space-300); border-radius: var(--p3-radius-xl); background: var(--p3-bg-page); }
+/* #1993: the Type preview's availability marks (● ○), in the table and its key, are drawn in the chrome's embedded
+   face, which carries them. The legacy card's text stack (`styles.css`'s --sans) would hand them to a device font. */
+.p3-legacy-card .tpw-mark.yes, .p3-legacy-card .tpw-mark.no, .p3-legacy-card .tpw-key { font-family: var(--p3-font-ui); }
 /* Q24: a Color preview's section container on the levers panel's gray. The section keeps `styles.css`'s
    edge, radius and padding; only its ground moves, and its specimens stay on the brand's page. The card is
    pinned light, so this reads the light value in either chrome theme. */

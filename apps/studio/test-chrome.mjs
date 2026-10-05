@@ -5197,6 +5197,51 @@ for (const host of ['web', 'figma']) {
 }
 
 // =============================================================================================
+// 20c. #1993: the Type preview's availability marks (● ○), in the Weights table and its key, are drawn by the
+//      embedded UI face. The section sits in the legacy card, whose text stack is the device's, so without
+//      `chrome.css`'s rule the marks fall to a device font; and `[glyphs]` (the build) only proves the face HAS them.
+//
+//      Independence (docs/34): which face drew each mark is read by CDP (`CSS.getPlatformFontsForNode`), never
+//      from computed `font-family`; the face name is this file's `UI_FONT` literal. Represented, not counted: the
+//      prism3 example must draw at least one ● and one ○ in the table and both in the key, or the check fails
+//      rather than passing on nothing.
+//
+//      Mutations this fails by name: drop the `.tpw-mark` / `.tpw-key` rule from `chrome.css` →
+//      `#1993 (web): every availability mark is drawn by Inter, never a device font …`.
+// =============================================================================================
+console.log(`\n#1993 — the Type preview's availability marks, drawn by the embedded face\n${'='.repeat(78)}`);
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'type');
+    await page.waitForSelector('[data-sg-section="weights-by-face"] .tpw-mark');
+    await page.evaluate(() => document.fonts.ready);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('DOM.enable');
+    await cdp.send('CSS.enable');
+    const { root } = await cdp.send('DOM.getDocument', { depth: -1 });
+    const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId,
+      selector: '[data-sg-section="weights-by-face"] .tpw-mark.yes, [data-sg-section="weights-by-face"] .tpw-mark.no, [data-sg-section="weights-by-face"] .tpw-key' });
+    const marks = [];
+    for (const nodeId of nodeIds) {
+      const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId });
+      const { outerHTML } = await cdp.send('DOM.getOuterHTML', { nodeId });
+      marks.push({ el: outerHTML, off: fonts.filter((f) => f.familyName !== UI_FONT || !f.isCustomFont).map((f) => `${f.familyName}${f.isCustomFont ? '' : ' (device)'}`) });
+    }
+    await cdp.detach();
+    const has = (cls, glyph) => marks.some((m) => m.el.includes(`class="${cls}"`) && m.el.includes(`>${glyph}<`));
+    ok(has('tpw-mark yes', '●') && has('tpw-mark no', '○') && has('tpw-key', '●') && has('tpw-key', '○'),
+      `#1993 (${host}): the Weights table draws a ● and a ○, and its key both (found ${marks.length} marks)`);
+    const off = marks.filter((m) => m.off.length);
+    ok(marks.length > 0 && off.length === 0,
+      `#1993 (${host}): every availability mark is drawn by ${UI_FONT}, never a device font${off.length ? ` — ${off.slice(0, 3).map((m) => `${m.el.slice(0, 50)} drew ${m.off.join(', ')}`).join('; ')}` : ''}`);
+    ok(errors.length === 0, `#1993 (${host}): no page errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } finally {
+    await ctx.close();
+  }
+}
+
+// =============================================================================================
 // 21. QA-B9, QA-B17, QA-I11 (owner decisions, 2026-10-02): an edit on Surfaces & fills and Interactive eases the
 //     preview to its section, on the chrome's motion tokens, and jumps under reduced motion; nothing but an edit
 //     moves it, and no edit changes its page; the jump links ease the same way under "Jump to:"; each page keeps
