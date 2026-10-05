@@ -108,7 +108,10 @@ export const S63 = {
   toAuto: 'Return to Auto',
   // Scale
   scaleLabel: 'Type scale',
-  scaleTip: 'How far apart the heading sizes step. Body, label, caption and code stay put.',
+  // The lever's own description, word for word (#2070, owner 2026-10-04; #2089). `test-lever-tips.ts` holds it to
+  // `lever-manifest.json`, so keep it a literal here: importing the lever text would make that test compare a value
+  // with itself (docs/34).
+  scaleTip: 'Moves every heading size one step up or down the size ladder. Body, label, caption and code stay put.',
   scaleClash: 'Some sizes you set would clash at this scale. Release them to switch.',
   release: 'Release pinned sizes',
   pinned: (n: number): string => `${n} ${n === 1 ? 'size is' : 'sizes are'} set individually. They keep their size when the scale moves.`,

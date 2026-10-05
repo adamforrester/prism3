@@ -10,7 +10,7 @@
  *
  * INDEPENDENT OF WHAT IT CHECKS (docs/34). Every expected write is a literal typed here: the breakpoint list, which
  * name each setting lands under, the map deleted rather than left `{}`. The names are the engine's, written out by hand
- * from its documented rule (up to five breakpoints run sm…2xl, six or seven run xs…3xl), never read from the module's
+ * from its documented rule (up to five breakpoints run sm…2xl, six xs…2xl, seven xs…3xl), never read from the module's
  * `namesFor`; and "the setting stays with its breakpoint" is checked against the ENGINE's own resolution (`brandTheme`'s
  * grid at that width), never the module's opinion of itself.
  *

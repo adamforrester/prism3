@@ -14,7 +14,7 @@
  *     offers only `theme.dims.space`, and nothing here invents a value.
  *
  * D13: A PER-BREAKPOINT SETTING STAYS WITH ITS BREAKPOINT (fixes #2045). The engine names breakpoints from their
- * COUNT (`bpNames` in `packages/engine/theme.ts`: up to five run sm…2xl, six or seven run xs…3xl), and the three
+ * COUNT (`bpNames` in `packages/engine/theme.ts`: up to five run sm…2xl, six xs…2xl, seven xs…3xl), and the three
  * override maps are keyed by that name. So adding or removing a breakpoint renamed the others and every setting
  * silently landed on a different width. Here a breakpoint change re-keys each map: each setting follows the
  * breakpoint it was set on to that breakpoint's new name. A breakpoint whose width is edited keeps its settings (it
