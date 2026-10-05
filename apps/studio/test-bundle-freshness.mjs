@@ -15,16 +15,23 @@
  * metafile, so the exact input set is not readable here. A root wider than the bundle only costs a rebuild
  * that was not needed. A narrower one would let the stale case through. Every root must exist and hold
  * files, so a renamed directory fails here rather than scanning nothing and passing (docs/34 shape 9).
+ *
+ * A ROOT MAY BE ONE FILE (#2098): each bundle's build script shapes it from outside every source directory,
+ * so an edit to one left the stale case through. A file root is compared as itself, and a missing one fails
+ * by name, for the same reason an empty directory does.
  */
 import { readdirSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 
-/** What `apps/studio/dist/main.js` compiles from: the studio app, its chrome CSS, and the engine it bundles. */
-export const STUDIO_SOURCE_ROOTS = ['apps/studio/src', 'apps/studio/chrome', 'packages/engine'];
+/** What `apps/studio/dist/main.js` compiles from: the studio app, its chrome CSS, the engine it bundles, and the
+ *  build script that sets its defines. */
+export const STUDIO_SOURCE_ROOTS = ['apps/studio/src', 'apps/studio/chrome', 'packages/engine', 'apps/studio/build.mjs'];
 /** What `apps/plugin/dist/ui.html` compiles from: the studio app it inlines whole, its chrome CSS, the plugin's
- *  iframe entry and the modules it imports, and the engine. `apps/plugin/src` is wider than the iframe (its
- *  `main.ts` is the main thread's), which only costs an unneeded rebuild. */
-export const PLUGIN_UI_SOURCE_ROOTS = ['apps/studio/src', 'apps/studio/chrome', 'apps/plugin/src', 'packages/engine'];
+ *  iframe entry and the modules it imports, the engine, the build script, and the strip it runs over component
+ *  prose. `apps/plugin/src` is wider than the iframe (its `main.ts` is the main thread's), which only costs an
+ *  unneeded rebuild. */
+export const PLUGIN_UI_SOURCE_ROOTS = ['apps/studio/src', 'apps/studio/chrome', 'apps/plugin/src', 'packages/engine',
+  'apps/plugin/build.mjs', 'apps/plugin/strip-maintainer-prose.mjs'];
 
 /**
  * Exit the suite, by name, when `bundle` is missing or older than any file under `roots`. `repo` is the
@@ -42,7 +49,14 @@ export function assertBundleFresh({ repo, bundle, roots, label, effect, build })
   for (const root of roots) {
     let files = 0;
     let ents = [];
-    try { ents = readdirSync(join(repo, root), { recursive: true, withFileTypes: true }); } catch { /* reported below, by name */ }
+    let one = null;
+    try { one = statSync(join(repo, root)); } catch { /* reported below, by name */ }
+    if (one?.isFile()) {
+      files = 1;
+      if (one.mtimeMs > newest.at) newest = { at: one.mtimeMs, file: join(repo, root) };
+    } else if (one) {
+      try { ents = readdirSync(join(repo, root), { recursive: true, withFileTypes: true }); } catch { /* reported below, by name */ }
+    }
     for (const ent of ents) {
       if (!ent.isFile()) continue;
       const file = join(ent.parentPath, ent.name);
