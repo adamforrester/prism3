@@ -2744,6 +2744,13 @@
 /**
  * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
  *
+ * 0.227.1 — folded 2026-10-05 from 1 change note, newest merge first.
+ *
+ * [notes-2114-unresolved-ground · patch · a4ec4243] An override whose ground is neither a role nor a ramp step now names that ground in the warning's own
+ * `unresolved` field (a string) instead of in `against` with `unresolved: true` (#2097 item 3, #2114).
+ * `against` on an OverrideWarning keeps its one meaning, a second ground the miss is on, so lint-ratio-truth
+ * would no longer read this warning as a confession for a pair that does not exist. No emitted artifact moves.
+ *
  * 0.227.0 — folded 2026-10-04 from 1 change note, newest merge first.
  *
  * [engine-lever-copy-2050 · minor · 2dbe9e55] Plain words for the shape, motion, layout and type lever names and descriptions (#2050, #2005), and the
@@ -4531,7 +4538,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.227.0';
+export const ENGINE_VERSION = '0.227.1';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
