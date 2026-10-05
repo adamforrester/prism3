@@ -234,6 +234,35 @@ console.log('\n4. "+ New brand" surfaces the start screen (it used to load a neu
   await page.close();
 }
 
+// ── §4b — "+ New brand" before the host answers (UI redesign S12, the #1197 / #1200 trap) ──────────────
+// Reopening the start changes no origin, so the identity guard still reads "nothing chosen" until the designer picks a
+// path. Both orders the host can answer in are held: an empty file turns the reopened start into the first run (no
+// Close, nothing to go back to), and a file with a brand loads it and closes the start.
+console.log('\n4b. "+ New brand" before the host answers, then either answer');
+{
+  const { page, errors } = await openPanel();
+  await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
+  await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
+  ok(await waitStart(page, true), 'the start reopens before the host has answered');
+  ok(await page.locator('[data-p3="start-close"]').count() === 1, 'and, reopened, it offers Close');
+  await post(page, { type: 'restore-input-empty' });
+  await page.waitForFunction(() => !document.querySelector('[data-p3="start-close"]'), null, { timeout: 4000 }).catch(() => {});
+  const s = await readStart(page);
+  ok(s.start && await page.locator('[data-p3="start-close"]').count() === 0, 'an empty file then makes it the first run: the start stays, with no Close');
+  ok(errors.length === 0, `no console errors (${errors.slice(0, 1).join('') || 'none'})`);
+  await page.close();
+}
+{
+  const { page } = await openPanel();
+  await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
+  await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
+  await waitStart(page, true);
+  await post(page, { type: 'restore-input', input: NB_BRAND });
+  ok(await waitStart(page, false), 'a file with a brand then loads it, and the start closes');
+  ok(((await readStart(page)).brandSel ?? '').includes('restored-brand'), 'the file\'s brand is the working brand');
+  await page.close();
+}
+
 // ── §5 — the paths actually leave the start screen ─────────────────────────────────────────────
 console.log('\n5. each path lands in the editor');
 {
