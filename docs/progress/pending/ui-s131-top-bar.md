@@ -80,6 +80,14 @@
 
 The clean run on the same head: `test:chrome` 18161/18161.
 
+**After the owner's approval: merging #2151 (focus rings), and a class clash with S12 (#2142).**
+- **Merge.** `chrome/spec.mjs` keeps main's `focus-ring` row and `PRODUCT_PAIRS` beside this branch's `l-col` and `scrim` rows, and `chrome/esbuild-plugin.mjs` keeps main's `PAIRS as MOCKUP_PAIRS, PRODUCT_PAIRS` import and spread. Every chrome focus ring is on `--p3-focus-ring`, including this branch's import box (`.p3-textarea`), which had been written on `--p3-ctl-edge`. #2144's sweep is `test:chrome` section 27, so this branch's sections are now **28 and 28b**.
+- **The clash.** The S12 start window and its guard (#2142) use `p3-dialog`, `p3-dialog-head`, `-title`, `-body`, `-foot` and `p3-scrim`, the same names as the export and prune dialogs. So the export dialog's two-column body rule split the start window into two columns; the owner hit it in a demo build. The export and prune dialogs now carry their own names, **`p3-bardlg-*`** (`p3-bardlg`, `-head`, `-title`, `-body`, `-col`, `-desc`, `-note`, `-foot`, `-import`, `-layer`, and `p3-bardlg-scrim`). So no rule of theirs reaches a start-window element, and no S12 rule reaches theirs. The export scrim stays at z-index 50, under S12's.
+- **`test:chrome` §28c**, both hosts at 1280:
+  - with the export dialog open, an element carrying the start window's class names is laid out by none of its rules: one track at most, and not the export scrim's z-index;
+  - once the start window exists (#2142), "+ New brand" opens it over the open export dialog, and its body must be a single grid track. Until #2142 merges, that half says so instead of passing.
+  - Mutation, the body rule unscoped (`.p3-bardlg-body, .p3-dialog-body { … }`): MUT_G_PLACEHOLDER
+
 **Held:**
 - **The plugin from 561 to about 1000px.** The bar wraps at the wide tier, so Export can start the second row. The owner named 1280 and 380 for the plugin; its window opens at 1280.
 - **Where the agent link's status now shows** (the old popover's two lines), above.

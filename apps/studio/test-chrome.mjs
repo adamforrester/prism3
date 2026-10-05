@@ -7616,9 +7616,11 @@ for (const host of ['web', 'figma']) {
     ok(probeTracks <= 1 && probe.scrimZ !== '50',
       `${where}: dialog scope: no rule of the export dialog reaches an element named as the start window's (body ${probe.bodyDisplay}, ${probeTracks} tracks "${probe.bodyTracks}"; scrim ${probe.scrimPosition}, z ${probe.scrimZ})`);
     // The scrim covers the bar, so "+ New brand" is reached the way a script would: the brand menu, then its item.
-    await page.evaluate(() => document.querySelector('[data-p3="brand-switcher"]')?.click());
-    await page.waitForFunction(() => !!document.querySelector('[data-p3="brand-menu-new"]'), null, { timeout: 3000 }).catch(() => {});
-    await page.evaluate(() => document.querySelector('[data-p3="brand-menu-new"]')?.click());
+    // A dispatched click, so it does not land on the scrim (a pointer click there closes the dialog).
+    await hooks.need(page, '[data-p3="brand-switcher"]');
+    await page.locator('[data-p3="brand-switcher"]').dispatchEvent('click');
+    await hooks.need(page, '[data-p3="brand-menu-new"]');
+    await page.locator('[data-p3="brand-menu-new"]').dispatchEvent('click');
     await page.waitForTimeout(200);
     const st = await page.evaluate(() => {
       const col = document.querySelector('[data-p3="start-column"]');
