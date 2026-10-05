@@ -11,7 +11,7 @@
 - `test-chrome.mjs`: no `setViewportSize`. Each state opens a new context at its final viewport, and `frame.ts` sets `data-w` synchronously when it mounts. So the tier is right before any measurement, and `goPlace`'s read of the tier has nothing to race. Left as is.
 - No other resize route (`resizeTo`, CDP device metrics) appears in either suite.
 
-**Mutation, after a `wip:` commit, restored with `git checkout -- <file>`.** The wait was dropped, and `data-w="wide"` was set on the frame before measuring, which is the stale tier #2090's investigation forced. Result: `prism3 / Interactive at 380: every chip group fits its panel (0 overflow, frame tier wide)`, once per brand. The 0 overflow is the latent part: without the tier in the assertion, this run passed.
+**Mutation, after a `wip:` commit, restored with `git checkout -- <file>`.** The wait was dropped, and `data-w="wide"` was set on the frame before measuring, which is the stale tier #2090's investigation forced. Result: `prism3 / Interactive at 380: every chip group fits its panel (0 overflow, frame tier wide)`, the only failure (the Interactive drive runs on the first corpus brand). The 0 overflow is the latent part: without the tier in the assertion, this run passed.
 
 ### Traps
 - **The overflow count alone can't catch this race on Interactive.** The wide tier happens to fit there too, so only the tier assertion fails. That is why the tier is required rather than just printed.
