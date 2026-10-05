@@ -256,9 +256,10 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   'apply-result': (m) => verdict('apply-result', m, '✓ applied', '✗ apply failed'),
   // The default says "built" without a count, because an older host that sends no headline sends no
   // counts to put in one either.
-  // `completed` (S8.2, C1): a boolean from the host, or, from an older host that sends none, `ok` (a clean build ran to
-  // the end; anything else is read as a build that did not).
-  'component-result': (m) => ({ ...verdict('component-result', m, '✓ built', '✗ build failed'), completed: typeof m.completed === 'boolean' ? m.completed : !!m.ok }),
+  // `completed` (S8.2, C1): required of the host (`messages.ts`), and never inferred from `ok`. Only a literal `true`
+  // reads as a build that ran to the end. A malformed value is not dropped (a dropped terminal result leaves the
+  // panel on "Building…", #870); it reads as a build that did not finish, the claim that needs no evidence.
+  'component-result': (m) => ({ ...verdict('component-result', m, '✓ built', '✗ build failed'), completed: m.completed === true }),
   'file-setup-result': (m) => verdict('file-setup-result', m, '✓ file set up', '✗ setup failed'),   // #1558
   'style-guide-result': (m) => verdict('style-guide-result', m, '✓ style guide written', '✗ style guide failed'),   // #259
   'component-progress': (m) => {

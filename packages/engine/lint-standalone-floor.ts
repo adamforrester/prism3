@@ -49,8 +49,9 @@
  * EXPECTED is the DEF's declaration — the presence or absence of `figmaProperties.notStandalone`, read
  * off the def and nothing else. ACTUAL is measured from the PROJECTED PLAN, walked here, by asking of
  * each node: does anything give this node an extent? The two never touch. In particular this file does
- * NOT call `notStandalone`, `COMPONENT_CATALOGUE`, or the plugin's refusal branch — all three read the
- * same field, so any of them would make the check agree with itself.
+ * NOT call `notStandalone`, the studio's component catalog (`catalogOf` in
+ * `apps/studio/src/state/component-catalog.ts`), or the plugin's refusal branch — all three read the same
+ * field, so any of them would make the check agree with itself.
  *
  * ── WHY A RULE OVER SIX MECHANISMS RATHER THAN "IS IT focus-ring" ───────────────────────────────
  *

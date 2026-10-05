@@ -1073,31 +1073,67 @@ for (const b of brands) {
     'FO-01b prism3/hc-dark: foreground.brand is measured on neutral.900 at #171718 under a #000000 page (precondition)');
   ok(!!hcFg && Math.abs(hcFg.ratio - onRgb(hcFg.hex, '#171718')) < 1e-9 && Math.abs(onRgb(hcFg.hex, '#171718') - onRgb(hcFg.hex, '#000000')) > 0.1,
     `FO-01b prism3/hc-dark: foreground.brand records its contrast on the floor #171718 (records ${hcFg?.ratio.toFixed(2)}, measures ${hcFg && onRgb(hcFg.hex, '#171718').toFixed(2)} on the floor, ${hcFg && onRgb(hcFg.hex, '#000000').toFixed(2)} on the page)`);
+  // The refusal is matched by its FIELD and its MODE, not by the word 'generate-only': theme.ts carries three
+  // copies of this refusal (overrides, modeAnchors, modeLevers), and the overrides branch throwing a sibling's
+  // message would still say 'generate-only' (#2097 item 2).
+  // BY-NAME MUTATIONS (#2097 item 2), on `brandTheme`'s overrides refusal in theme.ts:
+  //   · `&& m !== 'hc-dark'` on its condition (HC accepts the override) → this arm is the ONLY failure in the
+  //     suite. A1(c) holds hc-light, not hc-dark, so without this arm nothing would see it.
+  //   · `if (false)` (every generate-only mode accepts) → this arm and A1(c).
+  //   · the overrides branch throwing the `modeAnchors:` message → this arm only; the old `includes('generate-only')` passed it.
   let hcThrew = '';
   try { resolveAllModes(brandTheme({ ...PRISM3(), overrides: { 'hc-dark': { 'foreground.brand': { palette: 'neutral', step: '400' } } } } as BrandInput)); } catch (e) { hcThrew = (e as Error).message; }
-  ok(hcThrew.includes('generate-only'), `FO-01b prism3/hc-dark: an override in an HC mode is refused, so no HC ratio passes through the override pass (threw: "${hcThrew.slice(0, 80)}")`);
+  ok(hcThrew.startsWith("overrides: mode 'hc-dark' is generate-only"), `FO-01b prism3/hc-dark: an override in an HC mode is refused by the overrides refusal, naming hc-dark, so no HC ratio passes through the override pass (threw: "${hcThrew.slice(0, 80)}")`);
 }
 
 // FO-02 (#2034) — the override pass's page FALLBACK is warned, never silent. No input reaches it today
 // (every `against` the engine writes is a role or a ramp step; 5,726 override cases across the corpus
 // measured 0 hits), so it is driven through `overrideGroundRgb` directly, the function the override
 // loop calls, with a ground nothing can resolve. EXPECTED is authored here: the warning names the role
-// and the ground, carries `unresolved: true`, and the page is returned; a role ground and a step ground
-// warn nothing. BY-NAME MUTATION: drop the `warnings.push` in `overrideGroundRgb` → the first arm fails.
+// and names the ground in `unresolved`, and the page is returned. The two resolving branches are FO-02b's,
+// below. BY-NAME MUTATION: drop the `warnings.push` in `overrideGroundRgb` → the first arm fails.
 {
   const t = brandTheme(MINIMAL_BRAND);
   const ramps = new Map(t.palettes.map((p) => [p.palette, p.steps] as const));
   const PAGE = hexToRgb('#ffffff'), PICK = hexToRgb('#73767a');
-  const ws: Array<{ role: string; against?: string; unresolved?: true; ratio: number; min: number }> = [];
+  const ws: Array<{ role: string; against?: string; unresolved?: string; ratio: number; min: number }> = [];
   const got = overrideGroundRgb('foreground.brand', 'nowhere.999', 3, PICK, new Map(), ramps, PAGE, ws as any);
-  ok(ws.length === 1 && ws[0].role === 'foreground.brand' && ws[0].against === 'nowhere.999' && ws[0].unresolved === true && hex(got) === '#ffffff',
+  ok(ws.length === 1 && ws[0].role === 'foreground.brand' && ws[0].unresolved === 'nowhere.999' && hex(got) === '#ffffff',
     `FO-02: an override whose ground is neither a role nor a ramp step falls back to the page AND warns, naming the role and the ground (warnings: ${JSON.stringify(ws)})`);
+  // #2097 item 3: `against` on a warning means a SECOND ground the miss is on, and `lint-ratio-truth` keys a
+  // warning carrying one as a second-pair confession (`<role> @ <against>`). The unresolved ground is the
+  // role's own, so the warning must not carry one. BY-NAME MUTATION: push the ground as `against` as well → this arm fails.
+  ok(ws.length === 1 && !('against' in ws[0]),
+    `FO-02: the unresolved warning carries no \`against\`, which lint-ratio-truth would read as a second-pair confession for a pair that does not exist (warnings: ${JSON.stringify(ws)})`);
   ok(Math.abs((ws[0]?.ratio ?? 0) - contrast(PICK, PAGE)) < 1e-9 && ws[0]?.min === 3, 'FO-02: the unresolved warning records the pick as measured on the page it fell back to, and the role\'s min');
-  const quiet: typeof ws = [];
-  const onRole = overrideGroundRgb('foreground.brand', 'background.secondary', 3, PICK, new Map([['background.secondary', hexToRgb('#e9e9ea')]]), ramps, PAGE, quiet as any);
-  const onStep = overrideGroundRgb('foreground.brand', 'neutral.050', 3, PICK, new Map(), ramps, PAGE, quiet as any);
-  ok(quiet.length === 0 && hex(onRole) === '#e9e9ea' && hex(onStep) === '#e9e9ea',
-    `FO-02: a role ground and a ramp-step ground resolve without a warning (role ${hex(onRole)}, step ${hex(onStep)}, warnings ${quiet.length})`);
+}
+
+// FO-02b (#2097 item 1) — FO-02's two RESOLVING branches, told apart. FO-02's quiet arm read a role ground
+// and a step ground that were both #e9e9ea, and handed the step call an EMPTY role map, so a branch that
+// returned the other branch's ground passed: measured, both cross-wirings below left FO-02 green. So here
+// the role ground, the step ground and the page are three different colours, BOTH calls get the same
+// populated role map, and the step's expected hex is the EMITTED primitive in `out/prism3.tokens.json`
+// (a precondition ties the literal to it), never the ramp `overrideGroundRgb` reads.
+// BY-NAME MUTATIONS, each green under FO-02 alone: the role branch returning the floor step
+// (`if (role) return <neutral.050>`) fails the role arm; the step branch returning a role from the map
+// (`if (step) return rgbByRole.values().next().value`) fails the step arm.
+{
+  const ROLE = '#c8d2dc', STEP = '#e9e9e9', PAGE_HEX = '#ffffff';
+  let o: any = JSON.parse(readFileSync(resolve(HERE, 'out', 'prism3.tokens.json'), 'utf8'));
+  for (const k of 'pds3.core.palette.neutral.050'.split('.')) o = o?.[k];
+  const emitted = typeof o?.$value === 'string' ? o.$value.toLowerCase() : undefined;
+  ok(emitted === STEP && new Set([ROLE, STEP, PAGE_HEX]).size === 3,
+    `FO-02b: prism3's neutral.050 emits ${STEP} (out/prism3.tokens.json: ${emitted}), and the role ground, the step ground and the page are three different colors (precondition)`);
+  const t = brandTheme(structuredClone(exampleBrands()['prism3']) as BrandInput);
+  const ramps = new Map(t.palettes.map((p) => [p.palette, p.steps] as const));
+  const PICK = hexToRgb('#73767a');
+  const byRole = new Map([['background.secondary', hexToRgb(ROLE)]]);
+  const quiet: Array<{ role: string }> = [];
+  const onRole = overrideGroundRgb('foreground.brand', 'background.secondary', 3, PICK, byRole, ramps, hexToRgb(PAGE_HEX), quiet as any);
+  const onStep = overrideGroundRgb('foreground.brand', 'neutral.050', 3, PICK, byRole, ramps, hexToRgb(PAGE_HEX), quiet as any);
+  ok(hex(onRole) === ROLE, `FO-02b: a role ground resolves to that role's color, ${ROLE} — not the floor step (${STEP}) or the page (${PAGE_HEX}); got ${hex(onRole)}`);
+  ok(hex(onStep) === STEP, `FO-02b: a ramp-step ground resolves to the emitted step, ${STEP} — not a role from the map (${ROLE}) or the page (${PAGE_HEX}); got ${hex(onStep)}`);
+  ok(quiet.length === 0, `FO-02b: neither resolving branch warns (warnings ${JSON.stringify(quiet)})`);
 }
 
 // IT-01 (#1617) — an outline / text control's GLYPH follows its LABEL under a per-mode override. The

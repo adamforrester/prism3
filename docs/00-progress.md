@@ -7,6 +7,168 @@
 
 ---
 
+## (2026-10-04) — plain words for the shape, motion, layout and type levers, and transitions that name their real curve (#2050, #2005, #2062)
+
+**Status:** DRAFT COPY, held for owner approval (the PR is titled DO NOT MERGE). ENGINE `0.227.0`
+(`engine: minor`, not the briefed patch; see below). CONTRACT unchanged
+(`token-contract --check`). No lever key moves. `regen` moves only `schema/lever-manifest.json`.
+
+### What changed
+
+- **#2050 and #2005: lever names and descriptions** in `packages/engine/levers.ts`, for 23 levers across
+  Shape, Depth & motion, Layout and Type. No PR existed for #2005 (the typography sibling), so it's included.
+  Also the three `REQUIRED_WEIGHT_ROLES` lock reasons, which #2005's follow-up comment added. They had named
+  code (`type.label.*.emphasis`, `buttonLabelWeight`) in a tooltip.
+- **#2062:** each `motion.transition.*` `$description` names the curve its easing role resolves to, not the
+  transition's fixed default. `easingRoles.default: 'calm'` now emits `(normal + calm)`, not
+  `(normal + standard)`. No corpus brand sets `easingRoles`, so no artifact moves.
+
+### Where the words come from
+
+The Studio already shows its own wording for these levers, so the engine's text follows it rather than
+coining a parallel vocabulary:
+- **Type:** approved copy on `main` (`TYPE_COPY`, `S63` in `domains/type.ts`).
+- **Layout:** the drafts in #2060 (`LAYOUT_DRAFT`).
+- **Depth & motion:** the drafts in #2063 (`DEPTH_COPY`).
+- **Shape:** S7 has no PR yet. The page still shows the manifest's text, so the owner's rules apply directly
+  ("Base radius", "corners").
+
+Two strings are kept verbatim on purpose: "Blur:offset dial" (owner), and density's last sentence (approved
+copy, pinned by the smoke suite's `PER_MODE_DENSITY_SENTENCE`). A mechanical check confirms none of these
+words appear in the new strings: face, band, rung, muted, ramp, ladder, leading, tracking, category, cut,
+weight role, fluid, pill-able. "column" appears only in the layout grid's lever.
+
+### Version class: minor, not the briefed patch
+
+The brief asked for `engine: patch`. `lint-emission-version` refuses it: `schema/lever-manifest.json` is a
+committed artifact and it moves, and "anything that moves the emission is a behavior change, and the class
+for that is `minor`" (#1807). So the note declares `minor`.
+
+**A trap for whoever re-checks this:** run before committing, the same gate reported "nothing emitted moved,
+so no bump was owed" and accepted `patch`. That pass was vacuous: the gate diffs the committed branch against
+its base, and nothing was committed yet. Only a run on the committed tree means anything.
+
+### Studio follow-ups (UI lane, not touched here)
+
+These are the Studio's own strings that still name the old wording:
+- `apps/studio/src/size-labels.ts`: "the Responsive type lever scales it…". The lever is now labeled
+  "Headings scale between mobile and desktop".
+- `apps/studio/src/main.ts`: the legacy Layout page's own "Container max" and "Base column count…". S10
+  (#2060) replaces that page.
+
+The frozen concept mockups under `docs/superpowers/ui-redesign/` quote the old manifest and are left as
+historical design artifacts.
+
+---
+
+## (2026-10-04) — UI redesign S8.1: Components groundwork (the Button option writes DOM-free, the button specimen shared, the component catalog computed once and kept out of the web bundle)
+
+**STATUS: branch `ui/s81-components-groundwork`, behavior-neutral, no visible change, no new strings.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. The first of S8's three PRs (the S8/S12/S13 scoping report's plan §4: groundwork, then the move in S8.2, then the web's legacy sweep in S8.3). Nothing here is an owner call; G1 to G9, G19 and O1 shape S8.2, not this.
+
+**What moved.**
+- **The Button option writes are DOM-free**, in `state/button-input.ts`: `setButtonIcons`, `setButtonContentSize`, `setButtonLabelWeight`, `setButtonMinWidth`, and the reader `buttonLayout()` the specimen draws from. All four are brand-wide, so none takes a mode. The legacy Size & radius page hands each to the generic knob (`renderControl(l, apply, write)`, the seam S9.1 added) from one table, `BUTTON_OPTION_WRITES`; `leverControl` and `csLeverStack`, which only that block called, are gone.
+- **The button specimen is shared**, in `preview/sections/button-layout.ts` (`buttonLayoutSection`, with `BUTTON_SIZES`), lifted unchanged in output and stamping `data-sg-section="button-layout"` on its root. It is handed the four options, the theme, the mode and the corner; the legacy caller still hands it `rp.dims['radius.md']`, so **#2049 is untouched** (S8.2, owner decision G7), and `lint-ramp-values` arm C keeps its literal read in `main.ts`.
+- **The component catalog is one pure function**, `state/component-catalog.ts`'s `catalogOf(defs, project)`: per set its id, name, category and summary, whether it builds and why not (the definition's own `notStandalone` string, or `null` when the projector throws), its member count and unit (`variants`, or `components` for Icon and Spinner), and the sets it nests (read off the projected plans the way `build-deps.ts` reads them, direct nests only). It imports only types. The plugin computes it in its own iframe entry (`apps/plugin/src/ui/component-catalog.ts`, imported before the studio's entry) and provides it; the web reads a copy generated at build time (`apps/studio/gen-component-catalog.ts --write` → `src/state/component-catalog-data.ts`, T1). The legacy Components page reads it through `componentCatalog()`, unchanged in what it draws.
+- `main.ts`: 4,033 → 3,905 lines.
+
+**The diagnosis that changed the plan: three definitions were already in the web bundle.** `COMPONENT_CATALOGUE` was gated on `PRISM3_HOST === 'figma'`, and the gate removed the reference but not the modules: `components/button.ts`, `icon-button.ts` and `icon.ts` (and 50 KB of `anatomy-figma.ts`) have top-level code esbuild cannot prove side-effect-free (`values: [...ICON_NAMES]`, the intent variants built by a call), so they shipped to every web visitor. Measured on `origin/main`'s metafile: 70,625 + 50,987 + 29,421 bytes of definition in the web output. Moving the import into the plugin's own entry takes the web bundle from 458,616 to 381,999 bytes gzip (−76.6 KB) and from 48 bundled engine files to 19. The plugin's `ui.html` grows by 1.9 KB of comments and is otherwise the same code. `vercel-ignore.sh` keeps `anatomy-figma.ts`, `component-schema.ts` and `eval.ts` off its skip list anyway (a wrong exclusion skips a deploy; a wrong inclusion costs a build), and says why.
+
+**Behavior-neutral, measured.** A Playwright driver over a build of `origin/main` (`627345eb`) and of this branch, prism3, aurora and harbor, every mode each offers (Light, Dark, HC light, HC dark): each Button option chip to each value and back to its default, and the minimum-width slider through every 0.25 step from 1.25 to 4, then 1, then 2.25, each by an `input` event alone. **255 of 255 snapshots byte-identical in the persisted brand, and the legacy page's HTML byte-identical once the `data-sg-section` attributes are removed** (120 driven edits in Light and Dark, every one of which moved the persisted brand; in HC light and HC dark both builds draw the generated note and no control, so the 120 steps attempted there find nothing to drive on either side), 0 page errors on either side. In the plugin build, the Components page's HTML is byte-identical (26 sets in the picker) and so is Size & radius's once markers are stripped.
+
+### Tests
+
+- New **`test-button-input.ts`** (25, in `npm test`): each write against a JSON literal of the legacy bytes, the default included (`"buttonIcons":"attached"` is written, on each corpus brand, not unset), a change of mind rewriting in place, the slider's steps one write each, the reader's fallbacks as literals, and the engine taking each edit and refusing an off-list value.
+- New **`test-component-catalog.ts`** (148, in `npm test`): the committed web copy against a fresh computation (the `regen --check` shape); against the projector run here per definition (member counts), the plugin's own `planTargets`/`defForTarget` (nested sets) and the definitions' fields; literal arms (Button 432 variants nesting Icon, FocusRing and Spinner; Icon and Spinner in components; CheckboxGroup nests CheckboxRow directly); the two not-offered reasons on planted definitions, the declared one withheld before projecting.
+- **`vercel-ignore-check.mjs`** (`check:ignore`) asks a second question of its metafile: **no `packages/engine/components/*.ts` module contributes bytes to the web output**, with a floor that the detector finds Button in a planted bundle that imports the definitions. On `origin/main` it fails, naming the three.
+- **`test-shell-imports`** 255 → 276: `MUST_SCAN` adds the four new studio modules; the marker arm holds `button-layout`; the AST write arm holds that `main.ts` writes no Button option onto `brandState` and makes no keyed write on the four keys; a new arm holds that `main.ts` draws the specimen through `buttonLayoutSection()`, keeps no copy of its markup, hands each knob its setter, imports `./state/button-input`, and that neither `main.ts` nor the catalog modules import a definition or the projector, and that the plugin entry provides the catalog before the studio evaluates.
+- **`test:smoke`** section 3b (Button options on Size & radius): per corpus brand, the specimen is the shared module's (one marker, on the specimen's root, three sizes of three buttons); on the first brand the minimum-width slider writes on every `input` step (literals 2.5, 2.75, 3, 1, 4, 2.25, read from `localStorage`). That a chip's default is written is held by 3b's existing chip drive.
+
+**Mutations, each after a `wip:` commit, diff checked non-empty, restored with `git checkout -- <file>`, each failing by name:**
+- `setButtonIcons('attached')` unsetting the key: unit `setButtonIcons(attached) leaves the brand byte-identical to legacy (the default is written): prism3 gains "buttonIcons":"attached"` (and aurora, harbor, and the change-of-mind check).
+- The slider committing on release (`input.onchange` for `input.oninput` in `renderControl`): smoke `prism3 / Button minimum width: dragging to 2.5 writes 2.5 on that step (wrote null)`, six steps.
+- `componentDefs` imported into `main.ts` behind the old `PRISM3_HOST` gate: `check:ignore` `web bundle carries no component definition module — found packages/engine/components/button.ts (70625 bytes), …icon-button.ts (50987 bytes), …icon.ts (29421 bytes)` (the original leak, reproduced), and shell-imports `src/main.ts imports no component definition or projector at run time — line 59`.
+- The generated copy stale (Button's `members` 432 → 648): `the committed catalog matches the component definitions — stale: button.members`, and `button: the catalog says 648 members, the projector builds 432`.
+- The count hard-coded in `catalogOf` and the copy regenerated from it: `button: the catalog says 648 members, the projector builds 432`.
+- `buttonIcons` written with `setPath` in `main.ts`'s table: shell-imports `src/main.ts makes no keyed Button option write … line 1377` and `src/main.ts hands the buttonIcons knob its write, setButtonIcons()`.
+
+### For S8.2
+
+- **The new page reads `componentCatalog()`'s two sources as they are**: on the plugin `providedCatalog()`, on the web `COMPONENT_CATALOG_DATA`. Both are `Catalog` (`state/component-catalog.ts`); `nests` holds ids, so names come from the catalog itself. Spacing at the current density is not in it (the scope listed it for the sets table; it is a function of the brand, not of the definition).
+- **Draw the specimen with `buttonLayoutSection`** and hand it the corrected corner (G7); `lint-ramp-values` arm C then loses its last literal read, and has to be retired or re-scoped in that PR.
+- **Write through `state/button-input.ts`**; the shell-imports arm's setter-table regex names `main.ts`'s table and moves with it.
+- **Never import a definition into `apps/studio/src`, gated or not.** The gate does not keep the modules out; `check:ignore` fails by name if one gets in.
+
+### Traps
+
+- **An import gated on `PRISM3_HOST` is not a dependency boundary.** esbuild drops the dead reference and keeps any imported module whose top-level code it cannot prove pure. Only an import the web entry never reaches keeps a module out, which is why the plugin computes the catalog in its own entry.
+- **The plugin's provider must evaluate before the studio's entry**, so its import comes first in `apps/plugin/src/ui/entry.ts`; shell-imports holds the order. Without it the plugin's Components page lists no set (`test:verdict` fails at the first build).
+- **The catalog projects with the plugin's swap target** (`icon/FPO-default-icon`, restated as `CATALOG_SWAP_TARGET` and held equal to `build-deps.ts`'s); legacy's `FPO-default-icon` gave the same counts but no Icon in any set's nests.
+- **It is "catalog", not "catalogue"**, in identifiers and file names too: the unminified bundles keep both, and `lint-us-english` scans them. The scope report's `state/component-catalogue.ts` shipped as `state/component-catalog.ts` for that reason.
+
+---
+
+## (2026-10-04) — UI: the pill radii read "Pill", the Auto-chip rule tested, and Shape and depth write guards (S7/S9.2 follow-ups)
+
+**STATUS: branch `ui/2078-shape-depth-followups`. Fixes #2078.** UI and studio tests only: no engine change, no emitted
+artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. The four items owed from the reviews of S7 (#2064) and
+S9.2 (#2063), all owner-decided on 2026-10-04.
+
+**1. The pill sizes read "Pill"** (owner, 2026-10-04, per #1177; APPROVED copy). The Shape preview's Radius rows for
+`radius.round` and `radius.capsule` read "Pill" where they read "‹n›px · pill". The label comes from which size the row
+is (the engine marks the two pill sizes on the ladder), never from its px, so wireframe, which draws every radius at
+0px, still labels them "Pill" (the old label read "0px · pill" there). Every other size still reads its px. The tests
+name the two sizes literally: smoke 1g (every brand, in each mode the mode strip offers, against the emission; a pill row's value is now read off
+the sample it draws, since its label carries no px) and chrome section 24 (both hosts at 1280, and the wireframe arm:
+every size drawn at 0px, reading 0px but for the two pills).
+
+**2. The Auto-chip rule, owner-decided (2026-10-04), one rule for S7's density and S9.2's tempo.** Previewing a mode on
+Auto, the checked chip is Light's value, the one the mode already follows, and choosing it writes nothing: a mode
+never pins Light's own value while it follows it; another value pins it, and Return to Auto unpins. S7 recorded this
+as a conservative call for the owner to see ("Auto on a chip"); it is now decided, and tested. Two arms in
+`test:smoke`, each holding `prism3:brandInput` byte-identical across the click: density on Shape (3d, first brand)
+and tempo on Depth & motion (#800's Dark block, every brand with a Dark mode). Each first checks the mode is on Auto
+with Light's chip checked, so neither passes on a store it never put in that state. Where the rule lives:
+`choice()` in `ui/lever-kit.ts` calls back only for a chip that is not already checked.
+
+**3. Write guards** (`test-shell-imports`, four new assertions):
+- **`main.ts` makes no Shape write**, held by the AST write arm S6 and S9.1 built: no direct write (any assignment
+  operator, `delete`, `++`/`--`, `Object.assign`, or through one alias) into `brandState.density`, `.radiusScale`,
+  `.controlShape`, `.baseMd` or `brandState.modeLevers.‹m›.density|radius`; no keyed write (`setPath` into those keys
+  or `modeLevers.‹m›.density|radius`, `setModeLever` on `density` or `radius`); and no Shape key literal handed to the
+  generic writers (`renderControl`, `leverControl`, `csLeverStack`; S10 retired `csSlider` and `csPicker`), whose key reaches
+  `setPath` as a variable. Oracle: the key names, literal, as #2078 lists them.
+- **`domains/depth.ts` is under the same visitor.** The arm is now a per-file `scan()`; `main.ts` is held to every rule,
+  and `domains/depth.ts` to the direct Depth & motion rule. Its keyed writes were already refused (the regex that it
+  names no `setPath` or `setModeLever`), but a direct `brandState.shadow = …` named neither and passed.
+
+**4. `radiusHairline` is deprecated, kept accepted, and stays in the manifest.** The engine always emits
+`radius.hairline` (#2053), so the lever changes nothing, and S7 retired its switch. It is not dropped, on #2059's
+reading of `docs/30-versioning-and-compatibility.md`: docs/30 versions the token-name surface, and retiring this lever
+moves no token name, so the question is the input's. The brand-input schema is `additionalProperties: false`, so
+removing the field would fail validation for every brand file that still carries it, a break for authors with no
+token-name benefit; accepted and inert (`deprecated: true` in `theme-schema.json`, a decisions-log note that it is
+retired) is the safe default. #2059 left the manifest to the Studio and expected S7 to drop the lever there, because
+`test-pages` then failed on a manifest lever with no home. S7 instead made `test-pages` read the manifest's
+`deprecated` flag (a retired lever is excluded from "every lever has a home" and fails if a row places it), so
+keeping the lever, marked `deprecated`, costs nothing and keeps the manifest describing every key the input accepts.
+Dropping it waits for an input change that is breaking for its own reasons.
+
+**Mutations, each after the `wip:` commit, restored with `git checkout -- <file>`, each failing by name and alone:**
+
+| Mutation | Fails with |
+|---|---|
+| The label from the px (`r.px >= 128 ? PILL_LABEL : …` in `radius.ts`) | chrome `previewing Wireframe, every radius size is drawn at 0px, as the emission draws wireframe, and reads 0px but for the two pill sizes, which read "Pill" (… round "0px" 0px, capsule "0px" 0px, …)`. Smoke stays green, correctly: it visits the mode strip's Light and Dark, where a pill's px is a pill's. |
+| The chip calls back even when checked (the `aria-checked` guard dropped in `choice()`) | smoke `Auto chip (#2078): prism3: previewing Dark on Auto, choosing the density chip Dark already follows (Light's comfortable) writes nothing — prism3:brandInput changed, modeLevers.dark {"density":"comfortable"}` and, on prism3, aurora and harbor, `… the tempo chip Dark already follows (Light's relaxed) … changed, modeLevers.dark {"tempo":"relaxed"}`: 4 failures, no others |
+| `setPath(brandState, 'density', 'compact')` planted in `main.ts` | shell-imports `src/main.ts makes no keyed Shape write (…) — line …: setPath(brandState, 'density', 'compact')` |
+| `brandState.modeLevers!.dark!.radius = 2; csLeverStack(['baseMd'])` planted in `main.ts` | shell-imports `src/main.ts writes nothing into a Shape lever itself (…)` and `src/main.ts hands no Shape key to a writer that writes whatever it is handed (…) — csLeverStack(['baseMd'])` |
+| `(brandState as any).shadow = undefined` planted in `domains/depth.ts` | shell-imports `src/domains/depth.ts writes nothing into brandState.shadow or brandState.motionPersonality itself — line …: (brandState as any).shadow = undefined` |
+
+**Counts** (measured on the cut from `cb8fea63`, before merging S10 in): `test` shell-imports 248 → 252;
+`test:smoke` 4,443, ten new arms (one Pill arm per brand and strip mode, 3 × 2; the density arm; the tempo arm on each
+of three brands); `test:chrome` 15,132, two new (the Pill arm on each host; the wireframe arm is rewritten, not added).
+
+---
+
 ## (2026-10-04) — UI redesign S10: Layout › Breakpoints, Grid, Containers in the two panes; settings stay with their breakpoint (#2045); off-list column counts shown as they are (#2047)
 
 **What moved.** Layout leaves the legacy frame for the two panes (`domains/layout.ts`, `preview/layout.ts`,

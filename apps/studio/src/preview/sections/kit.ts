@@ -195,6 +195,9 @@ export type SgCtx = {
   readonly paint: (m: string, k: string) => string;
   /** Below its floor in mode `m`. */
   readonly fails: (m: string, k: string) => boolean;
+  /** What role `k` is measured against in mode `m`, as a hex (another role, or a palette step), or null for a role
+   *  measured against itself. Surfaces & fills paints the Foreground section's ground with it (#1971). */
+  readonly againstHex: (m: string, k: string) => string | null;
   /** The token chip for a role, as one node or two: the pill, then (on Surfaces & fills) its ratio badge. */
   readonly chip: (k: string, label?: string, m?: string) => HTMLElement[];
   /** The token pill alone, never a badge (the Text color section's token column, owner decision Q46). */
@@ -202,6 +205,10 @@ export type SgCtx = {
   /** The ratio badge for a role in mode `m`, or null: on the Style guide (no badges), or for a role measured
    *  against itself. The Text color section draws one per column (Q46). */
   readonly badge: (k: string, m?: string) => HTMLElement | null;
+  /** The ratio badge for the pairing a card DRAWS (#1971, Q13(a), the owner's 2026-10-05 rule): ink role `ink` on fill
+   *  role `fill` in mode `m`, measured on those two hexes, held to the ink's own floor, and sat beside chip `chip`.
+   *  Null without badges, as `badge` is. */
+  readonly onFillBadge: (ink: string, fill: string, chip: string, m?: string) => HTMLElement | null;
   readonly pills: (...nodes: HTMLElement[]) => HTMLElement;
   readonly grid: (cols: number, cards: HTMLElement[]) => HTMLElement;
   /** Mark a painted node with the role and the property it paints, so a test can read its computed color
@@ -223,6 +230,24 @@ export const ratioBadge = (k: string, r: SgRole | undefined, againstHex: string 
   b.append(el('span', 'sg-ratio-n', fmtRatio(r.ratio)));
   if (floor !== null) b.append(el('span', 'sg-ratio-mk', below ? '✗' : '✓'));
   b.title = `${fmtRatio(r.ratio)} against ${r.against}${againstHex ? ` (${againstHex})` : ''}${floor !== null ? `, floor ${floor}:1${below ? ', below floor' : ''}` : ', no floor'}`;
+  return b;
+};
+
+/** The badge for a pairing a card draws (#1971, Q13(a)): ink on fill, as painted, rather than a role against what
+ *  the engine measures it on. It carries the pair (`data-pair="<ink> on <fill>"`) so a test can find the card's two
+ *  painted nodes and measure them itself; its role is the chip it sits beside. */
+export const onFillRatioBadge = (chip: string, ink: string, fill: string, inkRole: SgRole | undefined, fillRole: SgRole | undefined): HTMLElement | null => {
+  if (!inkRole || !fillRole) return null;
+  const ratio = contrast(hexToRgb(inkRole.hex), hexToRgb(fillRole.hex));
+  const floor = inkRole.min > 0 ? inkRole.min : null;
+  const below = floor !== null && ratio + 1e-9 < floor;
+  const b = hook(el('span', below ? 'sg-ratio sg-ratio-no' : 'sg-ratio'), 'ratio-badge');
+  b.dataset.role = chip;
+  b.dataset.pair = `${ink} on ${fill}`;
+  if (below) b.dataset.below = 'true';
+  b.append(el('span', 'sg-ratio-n', fmtRatio(ratio)));
+  if (floor !== null) b.append(el('span', 'sg-ratio-mk', below ? '✗' : '✓'));
+  b.title = `${fmtRatio(ratio)}, ${ink} on ${fill} (${inkRole.hex} on ${fillRole.hex})${floor !== null ? `, floor ${floor}:1${below ? ', below floor' : ''}` : ''}`;
   return b;
 };
 
@@ -269,6 +294,8 @@ export const sgContext = (o: {
     const r = role(m, k);
     return ratioBadge(k, r, againstHex(m, r));
   };
+  const onFillBadge = (ink: string, fill: string, chipRole: string, m: string = cur): HTMLElement | null =>
+    (o.badges ? onFillRatioBadge(chipRole, ink, fill, role(m, ink), role(m, fill)) : null);
   const chip = (k: string, label?: string, m: string = cur): HTMLElement[] => {
     const pill = sgPill(k, label, m);
     const b = badge(k, m);
@@ -282,7 +309,7 @@ export const sgContext = (o: {
     if (m !== cur) n.dataset.sgMode = m;
     return n;
   };
-  return { cur, opp: o.opp, modeLabel: o.modeLabel, role, paint, fails, chip, pill: sgPill, badge, pills, grid, painted };
+  return { cur, opp: o.opp, modeLabel: o.modeLabel, role, paint, fails, againstHex: (m: string, k: string) => againstHex(m, role(m, k)), chip, pill: sgPill, badge, onFillBadge, pills, grid, painted };
 };
 
 /** Re-home a built section's SPECIMENS onto the mode's own canvas: the specimens render the mode's colors,
@@ -293,13 +320,17 @@ export const sgContext = (o: {
  *
  *  The ground is a SPECIMEN ROOT (`data-p3="specimen"`, plan §9.1): on the Page surface it is the brand's
  *  own `background.primary` for the previewed mode, never the chrome's card, and `test:chrome` and
- *  `test:smoke` measure what it composites to. */
-export const ground = (c: SgCtx, sec: HTMLElement, surf: SgSurface): HTMLElement => {
+ *  `test:smoke` measure what it composites to.
+ *
+ *  `bgHex` paints the ground a color other than the surface's own while keeping the surface's ink and border set:
+ *  Surfaces & fills draws its Foreground section on the contrast floor this way (the owner's #1971), the step the
+ *  page's inks are measured against, so the page's set is the one made for it. */
+export const ground = (c: SgCtx, sec: HTMLElement, surf: SgSurface, bgHex?: string): HTMLElement => {
   const g = hook(el('div', 'sg-ground'), 'specimen');
   const head = sec.querySelector('.psec-head');
   while (sec.lastChild && sec.lastChild !== head) g.prepend(sec.lastChild);
   const { cur, paint } = c;
-  const bg = paint(cur, surf.key);
+  const bg = bgHex ?? paint(cur, surf.key);
   // A tiered ground keeps the secondary ink for supporting text; the inverse band has only its one
   // on-color role, so everything inside uses that.
   const support = surf.tiered ? paint(cur, 'text.secondary') : paint(cur, surf.ink);
@@ -313,21 +344,6 @@ export const ground = (c: SgCtx, sec: HTMLElement, surf: SgSurface): HTMLElement
   // BOTH supporting inks map to the AA-gated tier (#355): `--faint` is 10.5px token pills that need 4.5:1.
   g.style.setProperty('--muted', support);
   g.style.setProperty('--faint', support);
-  sec.append(g);
-  return sec;
-};
-
-/** A section's specimens on WHITE, not on the brand's page (S4f, the owner's #1971, Q81): the grounds other colors
- *  are measured against (Surfaces & fills' Background and Foreground sections) need no page under them, and carry
- *  no ratio badge. The ground is still the section's specimen root (`data-p3="specimen"`), painted `#ffffff`, the
- *  owner's word, in every mode; nothing is re-scoped, so the section's own ink, lines and pills keep the light-pinned
- *  host's, which are made for a white ground. */
-export const WHITE_GROUND = '#ffffff';
-export const whiteGround = (sec: HTMLElement): HTMLElement => {
-  const g = hook(el('div', 'sg-ground'), 'specimen');
-  const head = sec.querySelector('.psec-head');
-  while (sec.lastChild && sec.lastChild !== head) g.prepend(sec.lastChild);
-  g.style.background = WHITE_GROUND;
   sec.append(g);
   return sec;
 };
