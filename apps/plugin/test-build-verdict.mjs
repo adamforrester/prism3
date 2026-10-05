@@ -894,24 +894,31 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 // `component-progress` is posted, which is the only window the line exists in. The expected strings are literals,
 // the copy under test, never read from the catalog the code reads.
 //
+// The panel arm builds TWO sets on one page, Button then Tag, and reads each one's line exactly: one set alone
+// lets a line hard-coded to that set's name pass (the original "always Button" was that shape), and the second
+// build is what catches a line reading the PREVIOUS set rather than the current one.
+//
 // MUTATIONS, each failing here by name:
-//   · `firstPhase` back to the literal "Building the Button set…" → `#2088 a panel build of Tag …` and `#2088 an agent's build …`.
-//   · `firstPhase` ignoring `componentDef` → `#2088 a panel build of Tag …`.
+//   · `firstPhase` returning the literal "Building the Tag set…" for any named build → `#2088 a panel build of Button …`.
+//   · `firstPhase` returning the literal "Building the Button set…" for any named build → `#2088 a panel build of Tag …`.
+//   · `firstPhase` naming the previous set (`[...host.setBuilds.keys()].at(-1)`) → both panel lines.
 {
   const { page, errors } = await openPanel();
   const phaseOf = () => page.evaluate(() => [...document.querySelectorAll('[data-p3="activity-op"][data-op="components"] [data-p3="op-progress"] b')].map((n) => n.textContent));
   const running = () => page.waitForFunction(() => document.querySelector('[data-p3="activity-op"][data-op="components"]')?.dataset.state === 'running', null, { timeout: 5000 }).catch(() => {});
 
-  await hooks.click(page.locator('[data-p3="components-def-option"][value="tag"]'));
-  await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 }).catch(() => {});
-  await running();
-  await page.waitForFunction(() => window.__builds.length > 0, null, { timeout: 3000 }).catch(() => {});
-  const own = await phaseOf();
-  const posted = JSON.stringify(await builds(page));
-  ok(posted === '["tag"]' && own.length === 1 && own[0] === 'Building the Tag set…',
-    `#2088 a panel build of Tag reads exactly "Building the Tag set…" before its first boundary — posted ${posted}, read ${JSON.stringify(own)}`);
-  await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: "set 'tag'" });
-  await idleAgain(page);
+  for (const [id, name, sent] of [['button', 'Button', '["button"]'], ['tag', 'Tag', '["button","tag"]']]) {
+    await hooks.click(page.locator(`[data-p3="components-def-option"][value="${id}"]`));
+    await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 }).catch(() => {});
+    await running();
+    await page.waitForFunction((n) => window.__builds.length >= n, sent === '["button"]' ? 1 : 2, { timeout: 3000 }).catch(() => {});
+    const own = await phaseOf();
+    const posted = JSON.stringify(await builds(page));
+    ok(posted === sent && own.length === 1 && own[0] === `Building the ${name} set…`,
+      `#2088 a panel build of ${name} reads exactly "Building the ${name} set…" before its first boundary — posted ${posted}, read ${JSON.stringify(own)}`);
+    await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: `set '${id}'` });
+    await idleAgain(page);
+  }
 
   await post(page, { type: 'agent-started', id: 'p1', cmd: 'build-components' });
   await running();
