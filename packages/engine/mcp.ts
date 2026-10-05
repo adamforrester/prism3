@@ -28,7 +28,7 @@
  *                         invented-token rate, primitive-leak rate, contrast-contract compliance.
  *   • export_theme     — generates a brand and WRITES its artifacts (tokens.json, ai-metadata.json,
  *                        figma/) to a directory, returning a manifest rather than the content.
- *   • validate_brand   — a `BrandInput` → schema errors (or ok), without generating.
+ *   • validate_brand   — a `BrandInput` → schema errors and the engine's input refusals (or ok), without generating.
  *
  * The knob CATALOGUE derives from the lever manifest (list_levers); the input SHAPE is
  * `theme-schema.json` (the manifest is presentation, the schema is the precise OKLCH-aware
@@ -371,7 +371,7 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'validate_brand',
     title: 'Validate a brand input',
-    description: 'Validate a BrandInput against the engine schema WITHOUT generating. Returns { valid, errors } — a fast pre-flight before theme_brand. Takes the same brand object as theme_brand\'s `brand` argument; see that tool for the full input schema.',
+    description: 'Validate a BrandInput against the engine schema and the engine\'s own input refusals, WITHOUT generating tokens. Returns { valid, errors } — a fast pre-flight before theme_brand. Takes the same brand object as theme_brand\'s `brand` argument; see that tool for the full input schema.',
     inputSchema: { type: 'object', description: 'A BrandInput — the same shape as theme_brand\'s `brand` property.' },
     outputSchema: {
       type: 'object',
@@ -569,6 +569,15 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
 
   if (name === 'validate_brand') {
     const errors = validateBrandInput(args);
+    // #2146: the schema is not the whole contract. `brandTheme` refuses inputs the schema accepts (a first
+    // breakpoint that isn't 0, a viewport range that is empty or reversed, #2132 and #2068), so a brand this
+    // tool called valid could then fail `theme_brand`. Run only on a schema-valid input: a malformed one
+    // would reach `brandTheme` in a shape it does not guard and fail with a TypeError instead of a reason.
+    // Reported as the engine states it, so the agent reads the same sentence `theme_brand` would give.
+    if (errors.length === 0) {
+      try { brandTheme(args as BrandInput); }
+      catch (e) { errors.push((e as Error).message); }
+    }
     return structured({ valid: errors.length === 0, errors });
   }
 

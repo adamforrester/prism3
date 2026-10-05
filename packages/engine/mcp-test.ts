@@ -219,6 +219,41 @@ await new Promise((r) => setTimeout(r, 3000));
     'conformance: structuredContent and the text block carry identical data');
 }
 
+// ---------------------------------------------- #2146: validate_brand reports the engine's own refusals
+// The schema is not the whole contract: `brandTheme` refuses inputs the schema accepts, and `validate_brand`
+// called them valid while `theme_brand` then refused them. EXPECTED is each refusal's owner-approved sentence,
+// typed here literally. BY-NAME MUTATION: drop the `brandTheme` call from the `validate_brand` handler → the
+// two refusal arms fail; the valid-brand and malformed-input arms do not.
+{
+  const B = { id: 'x', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  const bp = (await server.callJson('validate_brand', { ...B, layout: { breakpoints: [320, 768] } })).payload;
+  ok(bp.valid === false && bp.errors.length === 1 && bp.errors[0] === 'The first breakpoint must be 0px. This brand starts at 320px.',
+    `#2146 validate_brand reports the first-breakpoint refusal (#2132), not just the schema (got ${JSON.stringify(bp)})`);
+  const vp = (await server.callJson('validate_brand', { ...B, typography: { responsive: { fluid: true, minViewport: 1280, maxViewport: 375 } } })).payload;
+  ok(vp.valid === false && vp.errors.length === 1 && vp.errors[0] === 'The minimum viewport (1280px) must be smaller than the maximum viewport (375px).',
+    `#2146 validate_brand reports the viewport-range refusal (#2068), not just the schema (got ${JSON.stringify(vp)})`);
+  const good = (await server.callJson('validate_brand', B)).payload;
+  ok(good.valid === true && good.errors.length === 0, `#2146 a brand the engine builds is still valid, with no errors (got ${JSON.stringify(good)})`);
+  // A schema-invalid input is NOT handed to brandTheme: it would fail there with a TypeError rather than a
+  // reason. So its errors are the schema's alone, and none reads like a crash.
+  const bad = (await server.callJson('validate_brand', { id: 'nope' })).payload;
+  ok(bad.valid === false && bad.errors.length > 0 && !bad.errors.some((e: string) => /TypeError|Cannot read|is not a function|undefined/.test(e)),
+    `#2146 a schema-invalid input reports schema errors only, never a brandTheme crash (got ${JSON.stringify(bad.errors).slice(0, 200)})`);
+}
+
+// ---------------------------------------- #2146 item 2: the breakpoint prose says the first is always 0
+// Owner-approved wording (Q26 a), read over the wire an agent uses: the lever description in `list_levers`,
+// and the schema description `list_levers describe` returns. BY-NAME MUTATIONS: restore either old sentence
+// → its arm fails.
+{
+  const levers = JSON.stringify((await server.callJson('list_levers')).payload.levers);
+  ok(levers.includes('smallest first. The first is always 0px. Names follow') && !levers.includes('Studio keeps the first at 0px'),
+    '#2146 the layout.breakpoints lever description says "The first is always 0px." (Q26 a)');
+  const schemaBp = (await server.callJson('list_levers', { describe: ['layout'] })).payload.described?.properties?.layout?.properties?.breakpoints?.description ?? '';
+  ok(schemaBp.includes('ascending. The first must be 0. Auto-named'),
+    `#2146 the schema's layout.breakpoints description says "The first must be 0." (Q26 a; got "${schemaBp}")`);
+}
+
 // ----------------------------------------------------------------- 3. JOURNEY
 // The end-to-end an agent performs. Each step consumes the PREVIOUS step's output, so this fails if
 // the tools stop composing — which no per-tool assertion can detect.

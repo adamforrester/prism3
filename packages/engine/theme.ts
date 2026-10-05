@@ -2101,9 +2101,13 @@ const buildLayout = (input: BrandInput['layout'] = {}): LayoutAxis => {
   // #2132 (owner decision 2026-10-05, F4 A: refuse). Breakpoints are mobile-first min-widths, so the first
   // is the layout for every width below the second: a first floor of 320 leaves screens under 320px with
   // no layout. The studio locks the field at 0, so only a hand-written brief or saved file reaches this.
-  // The wording is the owner's, approved on #2132, with the value as entered. An EMPTY list has no first
-  // value to name and is not this rule (#2137).
-  if (floors.length > 0 && floors[0] !== 0)
+  // The wording is the owner's, approved on #2132, with the value as entered.
+  //
+  // #2137 (owner decision 2026-10-05, Q22 a: refuse). An EMPTY list built a brand with no layout at all, and
+  // has no first value for the message above to name, so it is refused first, in its own approved wording.
+  if (floors.length === 0)
+    throw new Error('The brand needs at least one breakpoint, starting at 0px.');
+  if (floors[0] !== 0)
     throw new Error(`The first breakpoint must be 0px. This brand starts at ${floors[0]}px.`);
   const base = input.columns ?? 12;
   const n = floors.length;
