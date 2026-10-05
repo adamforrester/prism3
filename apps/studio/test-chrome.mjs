@@ -56,7 +56,8 @@
  * the start, Close back to the brand byte-identical with its origin kept, and the brand menu's paste and upload showing
  * the same words as the start's for the same input (one shared check). The chrome probe runs in the first-run, reopened
  * and guard states; the start's example dots are `data-content`, so the old start-screen exemption from the inline-value
- * check is gone.
+ * check is gone. Every start path (color, Blank, an example, paste, upload) is held to the guard over 1 edit and to no guard
+ * over 0, on both hosts and themes (the review of #2142).
  *
  * ── independence (docs/34) ─────────────────────────────────────────────────────────────────────
  *
@@ -7347,6 +7348,68 @@ for (const { w, h } of START_SIZES) {
         ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
       } finally { await ctx.close(); }
     }
+  }
+}
+
+// ── Every start path goes through the guard (review of #2142: the color and paste paths could skip it unseen) ──────
+// One edit to a loaded brand: each of the five paths must ask first ("Discard 1 edit"), and Cancel must leave the
+// brand as it was. Nothing to lose: each path must load at once, no guard. Both hosts, both themes, at 1280.
+const START_PATHS = (() => {
+  const brief = readFileSync(join(REPO, 'packages/engine/examples/harbor.design.md'), 'utf8');
+  return [
+    ['color', async (page) => { await page.fill('[data-p3="start-hex"]', '#336699'); await hooks.click(page.locator('[data-p3="start-go"]')); }],
+    ['Blank', async (page) => { await hooks.click(page.locator('[data-p3="start-blank"]')); }],
+    ['an example', async (page) => { await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: 'aurora' })); }],
+    ['paste', async (page) => { await page.fill('[data-p3="start-paste"]', brief); await hooks.click(page.locator('[data-p3="start-import"]')); }],
+    ['upload', async (page) => { await page.setInputFiles('[data-p3="start-file"]', join(REPO, 'packages/engine/examples/harbor.design.md')); }],
+  ];
+})();
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const where = `S12 guard, every path, ${host} ${theme}`;
+    const { ctx, page, errors } = await openFirstRun({ host, theme, w: 1280, h: 900 });
+    try {
+      const reopen = async () => {
+        await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+        await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
+        await hooks.need(page, '[data-p3="start-screen"]');
+      };
+      const outcome = async () => {
+        await page.waitForFunction(() => !!document.querySelector('[data-p3="start-guard"]') || !document.querySelector('[data-p3="start-screen"]'), null, { timeout: 4000 }).catch(() => {});
+        return readStartWindow(page);
+      };
+      // Load harbor, then make exactly one edit: its name.
+      await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: 'harbor' }));
+      await goPlace(page, 'brand');
+      await page.fill('[data-p3="brand-name"]', 'harbor-one-edit');
+      const edited = await savedBrand(page);
+      await reopen();
+      for (const [path, run] of START_PATHS) {
+        await run(page);
+        const s = await outcome();
+        ok(s.guard && s.discard === 'Discard 1 edit', `${where}: the ${path} path over 1 unsaved edit asks first ("Discard 1 edit") — ${s.guard ? `"${s.discard}"` : `loaded without asking (brand "${s.brand}")`}`);
+        if (!s.guard) { await reopen(); continue; }
+        await hooks.click(page.locator('[data-p3="start-guard-cancel"]'));
+        const back = await readStartWindow(page);
+        ok(!back.guard && back.open && (back.brand ?? '').includes('harbor-one-edit') && (await savedBrand(page)) === edited,
+          `${where}: Cancel on the ${path} path keeps the edited brand and the start open (brand "${back.brand}")`);
+      }
+      // Nothing to lose: every path loads at once. Each load leaves a clean brand for the next.
+      await hooks.click(page.locator('[data-p3="start-close"]'));
+      await reopen();
+      await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: 'harbor' }));
+      await hooks.click(page.locator('[data-p3="start-guard-discard"]'));
+      for (const [path, run] of START_PATHS) {
+        await reopen();
+        await run(page);
+        const s = await outcome();
+        ok(!s.guard && !s.open, `${where}: with 0 edits, the ${path} path loads at once, no guard (guard ${s.guard}, start ${s.open ? 'open' : 'closed'})`);
+        if (s.guard) await hooks.click(page.locator('[data-p3="start-guard-discard"]'));
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
   }
 }
 
