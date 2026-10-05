@@ -1090,16 +1090,21 @@ for (const b of brands) {
 // (every `against` the engine writes is a role or a ramp step; 5,726 override cases across the corpus
 // measured 0 hits), so it is driven through `overrideGroundRgb` directly, the function the override
 // loop calls, with a ground nothing can resolve. EXPECTED is authored here: the warning names the role
-// and the ground, carries `unresolved: true`, and the page is returned; a role ground and a step ground
-// warn nothing. BY-NAME MUTATION: drop the `warnings.push` in `overrideGroundRgb` → the first arm fails.
+// and names the ground in `unresolved`, and the page is returned. The two resolving branches are FO-02b's,
+// below. BY-NAME MUTATION: drop the `warnings.push` in `overrideGroundRgb` → the first arm fails.
 {
   const t = brandTheme(MINIMAL_BRAND);
   const ramps = new Map(t.palettes.map((p) => [p.palette, p.steps] as const));
   const PAGE = hexToRgb('#ffffff'), PICK = hexToRgb('#73767a');
-  const ws: Array<{ role: string; against?: string; unresolved?: true; ratio: number; min: number }> = [];
+  const ws: Array<{ role: string; against?: string; unresolved?: string; ratio: number; min: number }> = [];
   const got = overrideGroundRgb('foreground.brand', 'nowhere.999', 3, PICK, new Map(), ramps, PAGE, ws as any);
-  ok(ws.length === 1 && ws[0].role === 'foreground.brand' && ws[0].against === 'nowhere.999' && ws[0].unresolved === true && hex(got) === '#ffffff',
+  ok(ws.length === 1 && ws[0].role === 'foreground.brand' && ws[0].unresolved === 'nowhere.999' && hex(got) === '#ffffff',
     `FO-02: an override whose ground is neither a role nor a ramp step falls back to the page AND warns, naming the role and the ground (warnings: ${JSON.stringify(ws)})`);
+  // #2097 item 3: `against` on a warning means a SECOND ground the miss is on, and `lint-ratio-truth` keys a
+  // warning carrying one as a second-pair confession (`<role> @ <against>`). The unresolved ground is the
+  // role's own, so the warning must not carry one. BY-NAME MUTATION: push the ground as `against` as well → this arm fails.
+  ok(ws.length === 1 && !('against' in ws[0]),
+    `FO-02: the unresolved warning carries no \`against\`, which lint-ratio-truth would read as a second-pair confession for a pair that does not exist (warnings: ${JSON.stringify(ws)})`);
   ok(Math.abs((ws[0]?.ratio ?? 0) - contrast(PICK, PAGE)) < 1e-9 && ws[0]?.min === 3, 'FO-02: the unresolved warning records the pick as measured on the page it fell back to, and the role\'s min');
 }
 
