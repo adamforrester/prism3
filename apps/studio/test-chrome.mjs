@@ -17,7 +17,8 @@
  *   · EDGES AND INDICATORS at 3:1: each control's drawn edge against what is outside it (B1), a selected
  *     tab's underline, and every glyph against its ground.
  *   · FOCUS RINGS: every chrome control reached by Tab draws a ring at least 2px wide, at 3:1 against what
- *     is outside the control.
+ *     is outside the control, and (#2144, owner decision FR1 A) in Prism3's `color.border.focus`, 2px outside it.
+ *     The expected hex is the emission's, walked here (`FOCUS_HEX`); section 27 reads every place's whole tab order.
  *   · TARGETS: every chrome control is at least 24 × 24.
  *   · FONTS DRAWN: CDP `CSS.getPlatformFontsForNode` on every chrome text element — the embedded Inter
  *     (`isCustomFont`), never a device face. Not `document.fonts.check()`, which answers true for a face
@@ -886,18 +887,28 @@ const fontsDrawn = async (page) => {
   return out;
 };
 
-/** Tab through the chrome from the top of the page, reading the ring each control draws. */
-const focusRings = async (page) => {
-  await page.evaluate(() => { document.activeElement?.blur(); window.scrollTo(0, 0); });
+/** Tab through the chrome from the top of the page, reading the ring each control draws: its width, its color as
+ *  drawn (`hex`, the computed color, never a variable name), where it sits (`offset`: the outline's offset, or for a
+ *  tab's `::before` ring how far it reaches past the tab's own box), and its contrast against what is outside it.
+ *
+ *  `all` (#2144's sweep): go on past the first legacy region instead of stopping there, skipping brand content
+ *  (`[data-content]`) and the lent legacy views (`skipIn`), until Tab comes back to a control it already read. */
+const focusRings = async (page, { all = false, max = 30, skipIn = [], onRing = null } = {}) => {
+  await page.evaluate(() => { document.activeElement?.blur(); window.scrollTo(0, 0); for (const n of document.querySelectorAll('[data-fring]')) n.removeAttribute('data-fring'); });
   await page.keyboard.press('Tab');
   const seen = [];
-  for (let i = 0; i < 30; i++) {
-    const r = await page.evaluate(() => {
+  for (let i = 0; i < max; i++) {
+    const r = await page.evaluate(([all, skipIn, pinned]) => {
       const el = document.activeElement;
       if (!el || el === document.body) return { done: false, skip: true };
-      // Tab has left the chrome for a legacy page, or for the Style guide lent into Brand's preview (S3), which
-      // draws in `styles.css` like the legacy page it came from.
-      if (el.closest('[data-p3="legacy-page"], [data-p3="brand-style-guide"]')) return { done: true };
+      if (all) {
+        // Back where the sweep started: every stop was read once.
+        if (el.hasAttribute('data-fring')) return { done: true };
+        el.setAttribute('data-fring', '');
+        if (el.closest(['[data-content]', '[data-p3="legacy-page"]', ...skipIn].join(', '))) return { done: false, skip: true, skipped: true };
+      } else if (el.closest('[data-p3="legacy-page"], [data-p3="brand-style-guide"]')) return { done: true };
+      // (Not `all`: Tab has left the chrome for a legacy page, or for the Style guide lent into Brand's preview
+      // (S3), which draws in `styles.css` like the legacy page it came from.)
       const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s.trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
       const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
       const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
@@ -906,23 +917,72 @@ const focusRings = async (page) => {
       const cs = getComputedStyle(el);
       let width = cs.outlineStyle !== 'none' ? parseFloat(cs.outlineWidth) : 0;
       let color = width ? cs.outlineColor : null;
+      let kind = width ? 'outline' : null;
+      let offset = width ? parseFloat(cs.outlineOffset) : null;
       if (!width) {   // a tab draws its ring on ::before, inside the row's scroll box
         const b = getComputedStyle(el, '::before');
-        if (b.content !== 'none' && b.display !== 'none' && b.visibility !== 'hidden' && parseFloat(b.opacity) > 0 && b.borderTopStyle !== 'none') { width = parseFloat(b.borderTopWidth); color = b.borderTopColor; }
+        if (b.content !== 'none' && b.display !== 'none' && b.visibility !== 'hidden' && parseFloat(b.opacity) > 0 && b.borderTopStyle !== 'none') {
+          width = parseFloat(b.borderTopWidth); color = b.borderTopColor; kind = 'before';
+          // How far the ring reaches past the tab's own box on each side (its inline inset is negative).
+          offset = Math.min(-parseFloat(b.left), -parseFloat(b.right));
+        }
       }
       const c = color ? parse(color) : null;
+      const hex = c ? `#${[c.r, c.g, c.b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}${c.a < 1 ? Math.round(c.a * 255).toString(16).padStart(2, '0') : ''}` : null;
       // A ring drawn inside the control's box (a negative outline offset: the two scrolling panes, S2) is seen
       // against the control's own ground; every other ring against what is outside it.
-      const g = groundOf(width && parseFloat(cs.outlineOffset) < 0 ? el : el.parentElement);
+      const g = groundOf(width && kind === 'outline' && offset < 0 ? el : el.parentElement);
+      const box = el.getBoundingClientRect();
       return { hook: el.getAttribute('data-p3') ?? `${el.tagName.toLowerCase()}.${el.className}`, inFrame: !!el.closest('[data-p3="frame"]'),
-        width, r: c ? Math.floor(ratio(over(c, g), g) * 100) / 100 : 0 };
-    });
+        pinnedLight: !!el.closest(pinned.join(', ')), width, hex, kind, offset, box: { x: box.x, y: box.y, w: box.width, h: box.height }, r: c ? Math.floor(ratio(over(c, g), g) * 100) / 100 : 0 };
+    }, [all, skipIn, INSPECT_LEGACY]);
     if (r.done) break;
-    if (!r.skip && r.inFrame) seen.push(r);
+    if (r.skipped) seen.skipped = (seen.skipped ?? 0) + 1;
+    if (!r.skip && r.inFrame) { seen.push(r); if (onRing) await onRing(r); }
     await page.keyboard.press('Tab');
   }
+  await page.evaluate(() => { for (const n of document.querySelectorAll('[data-fring]')) n.removeAttribute('data-fring'); });
   return seen;
 };
+
+// ── the focus ring's color (#2144) ───────────────────────────────────────────────────────────────
+/** Owner decision FR1 A (2026-10-05): every chrome focus ring draws in Prism3's `color.border.focus`, 2px wide and
+ *  2px outside the control. THE EXPECTED HEX IS READ FROM THE EMISSION, here, with this file's own alias walk: not
+ *  from `chrome.css`, not from `chrome/spec.mjs`'s row, and not through `chrome/tokens.mjs`'s `resolve`, which is
+ *  the resolver the build writes `--p3-focus-ring` with. A second walk is the point (docs/34, shape 2): a resolver
+ *  that went wrong would otherwise agree with itself. The path, the width and the offset are literals. */
+const FOCUS_RING_TOKEN = 'color.border.focus';
+const FOCUS_OFFSET = 2;
+/** Rings drawn INSIDE the control on purpose, by hook: the two scrolling panes, whose ring sits inside their edge
+ *  (S2) because outside it would be clipped by the frame. Their ring is held to the color and the width, and to
+ *  sitting fully inside (an offset of minus its width). */
+const INNER_RINGS = ['levers-pane', 'preview-body'];
+const FOCUS_HEX = (() => {
+  const out = join(REPO, 'packages', 'engine', 'out');
+  const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
+  const dark = JSON.parse(readFileSync(join(out, 'prism3.dark.overlay.tokens.json'), 'utf8'));
+  const at = (tree, path) => path.split('.').reduce((n, k) => (n && typeof n === 'object' ? n[k] : undefined), tree);
+  const leaf = (mode, path) => { const o = mode === 'dark' ? at(dark, path) : undefined; const l = o?.$value !== undefined ? o : at(base, path); if (l?.$value === undefined) throw new Error(`#2144: no token at ${path} in the ${mode} emission`); return l; };
+  const walk = (mode, path, hops = 0) => {
+    const v = leaf(mode, path).$value;
+    const m = typeof v === 'string' && /^\{([^}]+)\}$/.exec(v);
+    if (m && hops < 16) return walk(mode, m[1], hops + 1);
+    if (typeof v !== 'string' || !/^#[0-9a-f]{6}$/i.test(v)) throw new Error(`#2144: ${FOCUS_RING_TOKEN} resolves to ${JSON.stringify(v)} in ${mode}, not an opaque hex`);
+    return v.toLowerCase();
+  };
+  return { light: walk('light', `pds3.${FOCUS_RING_TOKEN}`), dark: walk('dark', `pds3.${FOCUS_RING_TOKEN}`) };
+})();
+/** Every way a measured ring can miss #2144's contract, for the mode its chrome draws in. Empty when it holds. */
+const ringMisses = (r, mode) => {
+  const miss = [];
+  if (r.hex !== FOCUS_HEX[mode]) miss.push(`color ${r.hex}, want ${FOCUS_RING_TOKEN} ${FOCUS_HEX[mode]}`);
+  if (!(r.width >= FOCUS_WIDTH_MIN)) miss.push(`${r.width}px wide, want ${FOCUS_WIDTH_MIN}px or more`);
+  if (INNER_RINGS.includes(r.hook)) { if (!(r.kind === 'outline' && r.offset <= -r.width)) miss.push(`an inner ring at offset ${r.offset}px, want -${r.width}px or less`); }
+  else if (!(r.offset >= FOCUS_OFFSET)) miss.push(`${r.kind ?? 'no ring'} at ${r.offset}px outside, want ${FOCUS_OFFSET}px or more`);
+  if (!(r.r >= NONTEXT_MIN)) miss.push(`${r.r}:1 against what is outside it, want ${NONTEXT_MIN}:1`);
+  return miss;
+};
+const ringReport = (bad) => bad.slice(0, 4).map(({ r, miss }) => `${r.hook}: ${miss.join(', ')}`).join(' | ');
 
 const columnOf = (host, w) => `${host} ${w <= 560 ? 'narrow' : 'wide'}`;
 /** A running write's "…" (`.p3-spin`, chrome.css) fades to transparent after a 300 ms delay, and PROBE measures
@@ -1192,6 +1252,8 @@ for (const host of ['web', 'figma']) {
       const badRing = rings.filter((r) => r.width < FOCUS_WIDTH_MIN || r.r < NONTEXT_MIN);
       ok(badRing.length === 0, `${where}: every focused chrome control draws a ring at least ${FOCUS_WIDTH_MIN}px wide at ${NONTEXT_MIN}:1${badRing.length ? ` — ${badRing.slice(0, 4).map((r) => `focus ${r.hook} ${r.width}px ${r.r}:1`).join(' | ')}` : ''}`);
       for (const r of rings) lows.focus = Math.min(lows.focus, r.r);
+      const offRing = rings.map((r) => ({ r, miss: ringMisses(r, r.pinnedLight ? 'light' : theme) })).filter((x) => x.miss.length);
+      ok(offRing.length === 0, `${where}: #2144 every focused chrome control draws its ring in ${FOCUS_RING_TOKEN} (${FOCUS_HEX[theme]}), at least ${FOCUS_WIDTH_MIN}px wide, ${FOCUS_OFFSET}px outside, at ${NONTEXT_MIN}:1${offRing.length ? ` — ${ringReport(offRing)}` : ''}`);
       // S3: Brand, the second moved page, in the same column: its levers, then (narrow) its Preview pane, then
       // the rings Tab draws through its levers.
       await goPlace(page, 'brand');
@@ -1225,6 +1287,8 @@ for (const host of ['web', 'figma']) {
       const badBrandRing = brandRings.filter((r) => r.width < FOCUS_WIDTH_MIN || r.r < NONTEXT_MIN);
       ok(badBrandRing.length === 0, `${where} / brand: every focused control draws a ring at least ${FOCUS_WIDTH_MIN}px wide at ${NONTEXT_MIN}:1${badBrandRing.length ? ` — ${badBrandRing.slice(0, 4).map((r) => `focus ${r.hook} ${r.width}px ${r.r}:1`).join(' | ')}` : ''}`);
       for (const r of brandRings) lows.focus = Math.min(lows.focus, r.r);
+      const offBrandRing = brandRings.map((r) => ({ r, miss: ringMisses(r, r.pinnedLight ? 'light' : theme) })).filter((x) => x.miss.length);
+      ok(offBrandRing.length === 0, `${where} / brand: #2144 every focused control draws its ring in ${FOCUS_RING_TOKEN} (${FOCUS_HEX[theme]}), at least ${FOCUS_WIDTH_MIN}px wide, ${FOCUS_OFFSET}px outside, at ${NONTEXT_MIN}:1${offBrandRing.length ? ` — ${ringReport(offBrandRing)}` : ''}`);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       await ctx.close();
     }
@@ -7393,6 +7457,89 @@ for (const { w, h } of WIDTHS) {
       } finally { await ctx.close(); }
     }
   }
+}
+
+// =============================================================================================
+// 27. #2144 (owner decision FR1 A, 2026-10-05): every chrome focus ring, on every place, both hosts, both themes, draws
+//     in Prism3's `color.border.focus`, at least 2px wide, 2px outside the control, at 3:1 against what is outside it
+// =============================================================================================
+// Section 1 reads the rings Tab reaches from the top of the opening page and of Brand, 30 stops at most. This walks the
+// whole tab order of every place, at 1280, until Tab comes back to where it started, skipping brand content and the lent
+// legacy views (their rings are the brand's, or `styles.css`'s legacy ones). The expected color is `FOCUS_HEX`, read
+// from the emission. The floors are literals, set under the counts measured when this landed (printed per run), so a
+// sweep that reached less fails naming its count; the named controls must each be reached and measured.
+//
+// Mutations, each failing by name (#2144):
+//   · Continue's ring back on the text color (`.p3-next:focus-visible { outline-color: var(--p3-text) }` in chrome.css)
+//     → `#2144 … every focused chrome control draws its ring in color.border.focus … palettes-continue: color #0d0d0e …`.
+//   · another chrome variable on a brand path (`ctl-edge` on `core.palette.primary.600`) → the build's
+//     `[brand] chrome var --p3-ctl-edge (light) resolves through brand token pds3.core.palette.primary.600`.
+//   · BRAND_ALLOW widened to a pattern → the build's `[brand] self-check: brandLeaks no longer refuses a sibling name …`.
+console.log(`\n#2144 — every chrome focus ring on ${FOCUS_RING_TOKEN} (light ${FOCUS_HEX.light}, dark ${FOCUS_HEX.dark})\n${'='.repeat(78)}`);
+/** The least number of chrome rings the whole sweep must read, per host (both themes). */
+const FOCUS_SWEEP_FLOOR = { web: 820, figma: 870 };
+/** The least each place must read, every host and theme (the fewest measured when this landed: 19, Shape and Components). */
+const FOCUS_PLACE_FLOOR = 15;
+/** The lent legacy views the sweep skips: all of INSPECT_LEGACY but Components' preview, whose one focusable control is
+ *  the plugin's set radio. Its ring is drawn by `styles.css` (`.cset-radio`), on the chrome's variables since #2144, so
+ *  it is read here; anything else that turns focusable in that view is read too, and must hold the same contract. */
+const FOCUS_SWEEP_SKIP = INSPECT_LEGACY.filter((h) => h !== '[data-p3="components-style-guide"]');
+/** Controls the sweep must reach and measure, by hook: Continue, a chip, a text field, a tab, and one of each other
+ *  kind the issue names. The plugin adds its own bar control and the Components set radio (`styles.css`). */
+const FOCUS_SWEEP_NEEDS = {
+  web: ['[data-p3="palettes-continue"]', '[data-p3="density-choice-comfortable"]', '[data-p3="brand-name"]', '[data-p3="primary-hex"]',
+    '[data-p3="tab-color"]', '[data-p3="color-sub-palettes"]', '[data-p3="neutral-chroma-slider"]', '[data-p3="export-open"]', '[data-p3="search-open"]',
+    '[data-p3="mode-option"]', '[data-p3="inspect-open"]'],
+  figma: ['[data-p3="palettes-continue"]', '[data-p3="density-choice-comfortable"]', '[data-p3="brand-name"]', '[data-p3="primary-hex"]',
+    '[data-p3="tab-color"]', '[data-p3="color-sub-palettes"]', '[data-p3="neutral-chroma-slider"]', '[data-p3="export-open"]', '[data-p3="search-open"]',
+    '[data-p3="mode-option"]', '[data-p3="inspect-open"]', '[data-p3="apply-to-figma"]', '[data-p3="components-def-option"]'],
+};
+/** The focused controls photographed for review when a screenshot directory is given: [hook, file name part]. */
+const FOCUS_SHOTS = [['palettes-continue', 'continue'], ['density-choice-comfortable', 'chip'], ['brand-name', 'text-field'], ['tab-color', 'tab']];
+let focusSwept = 0;
+for (const host of ['web', 'figma']) {
+  let hostTotal = 0;
+  for (const theme of ['light', 'dark']) {
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    const where = `#2144 ${host} ${theme} 1280`;
+    try {
+      const reached = new Set();
+      const bad = [];
+      const counts = [];
+      const shot = new Set();
+      for (const place of NEW_PAGES) {
+        await goPlace(page, place);
+        const rings = await focusRings(page, { all: true, max: 600, skipIn: FOCUS_SWEEP_SKIP, onRing: async (r) => {
+          const name = FOCUS_SHOTS.find(([hk]) => hk === r.hook)?.[1];
+          if (!SHOTS || !name || shot.has(name)) return;
+          shot.add(name);
+          const pad = 24;
+          await page.screenshot({ path: join(SHOTS, `focus-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${name}.png`),
+            clip: { x: Math.max(0, r.box.x - pad), y: Math.max(0, r.box.y - pad), width: r.box.w + 2 * pad, height: r.box.h + 2 * pad } });
+        } });
+        counts.push(`${place} ${rings.length}${rings.skipped ? ` (+${rings.skipped} skipped)` : ''}`);
+        ok(rings.length >= FOCUS_PLACE_FLOOR, `${where} / ${place}: the sweep read ${rings.length} chrome focus rings (floor ${FOCUS_PLACE_FLOOR})`);
+        for (const r of rings) {
+          reached.add(r.hook);
+          // A lent legacy view is pinned light whatever the chrome's theme (INSPECT_LEGACY), so a ring inside one is
+          // the light ring.
+          const miss = ringMisses(r, r.pinnedLight ? 'light' : theme);
+          if (miss.length) bad.push({ r: { ...r, hook: `${place} ${r.hook}` }, miss });
+          lows.focus = Math.min(lows.focus, r.r);
+        }
+        hostTotal += rings.length;
+        focusSwept += rings.length;
+      }
+      console.log(`  ${where}: ${counts.join(', ')}`);
+      ok(bad.length === 0, `${where}: every focused chrome control draws its ring in ${FOCUS_RING_TOKEN} (${FOCUS_HEX[theme]}), at least ${FOCUS_WIDTH_MIN}px wide, ${FOCUS_OFFSET}px outside, at ${NONTEXT_MIN}:1${bad.length ? ` — ${bad.length} miss: ${ringReport(bad)}` : ''}`);
+      for (const want of FOCUS_SWEEP_NEEDS[host]) ok(reached.has(hooks.role(want)), `${where}: the sweep reaches ${want} and reads its ring`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+  console.log(`  #2144 ${host}: ${hostTotal} rings read, light and dark`);
+  ok(hostTotal >= FOCUS_SWEEP_FLOOR[host], `#2144 ${host}: the sweep read ${hostTotal} chrome focus rings across every place, light and dark (floor ${FOCUS_SWEEP_FLOOR[host]})`);
 }
 
 hooks.report(ok);

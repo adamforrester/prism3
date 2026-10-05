@@ -75,7 +75,7 @@
 /* Export and Pages: the word at full width, the glyph alone when narrow (the accessible name stays). */
 .p3-btn-collapse > .p3-ico:first-child { display: none; }
 :is(.p3-btn, .p3-brand, .p3-pill, .p3-seg-tab, .p3-select, .p3-menu-item, .p3-verdict):focus-visible {
-  outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset);
+  outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset);
 }
 
 /* The brand switcher: the brand's swatch, its name, a chevron. */
@@ -195,7 +195,7 @@
 .p3-tab:focus-visible { outline: none; }
 .p3-tab:focus-visible::before {
   content: ""; position: absolute; inset: var(--p3-space-150) calc(-1 * var(--p3-space-075)); pointer-events: none;
-  border: var(--p3-focus-width) solid var(--p3-ctl-edge); border-radius: var(--p3-radius-lg);
+  border: var(--p3-focus-width) solid var(--p3-focus-ring); border-radius: var(--p3-radius-lg);
 }
 .p3-domrow { display: none; }
 .p3-selwrap { position: relative; display: block; flex: 1 1 auto; min-width: 0; }
@@ -223,7 +223,7 @@
 .p3-search-input::-webkit-search-cancel-button { appearance: none; }
 .p3-frame[data-w="narrow"] .p3-search-close { min-width: var(--p3-ctl-h-xs); min-height: var(--p3-ctl-h-xs); }
 .p3-search-input:hover { border-color: var(--p3-field-edge-hover); }
-.p3-search-input:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
+.p3-search-input:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 .p3-search-status { flex: none; color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: nowrap; }
 .p3-search-status:empty { display: none; }
 /* A setting the query does not match, and a section with none that do, on a legacy page. */
@@ -294,7 +294,7 @@
    duration and curve. A scroll takes no CSS curve, so `preview/follow-edit.ts` reads these and steps it. */
 :is(.p3-levers, .p3-preview-body) { --p3-scroll-dur: var(--p3-transition-dur); --p3-scroll-ease: var(--p3-transition-ease); }
 /* The two panes scroll, so a keyboard can focus them; their ring sits inside their edge (S2). */
-:is(.p3-levers, .p3-preview-body):focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: calc(-1 * var(--p3-focus-width)); }
+:is(.p3-levers, .p3-preview-body):focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: calc(-1 * var(--p3-focus-width)); }
 
 /* ── the preview header (S1.3): title, the mode control and Inspect, on one row (Q2) ─────── */
 .p3-preview-title {
@@ -570,7 +570,7 @@
 .p3-hex-input:not(.p3-name-input) { text-transform: uppercase; }
 .p3-name-input { font-family: var(--p3-font-ui); }
 .p3-colorfield-meta { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; padding: 0 var(--p3-space-150); color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: nowrap; }
-:is(.p3-color-input, .p3-hex-input, .p3-range, .p3-step, .p3-addrow):focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
+:is(.p3-color-input, .p3-hex-input, .p3-range, .p3-step, .p3-addrow):focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 /* A slider: the native range, filled in the icon color, a full target's height. */
 .p3-range { width: 100%; height: var(--p3-hit-min); margin: 0; accent-color: var(--p3-icon); cursor: pointer; }
 .p3-choice { display: flex; width: 100%; }
@@ -606,7 +606,7 @@
 .p3-text-input.p3-value { font-family: var(--p3-font-mono); }
 /* No hover on a disabled field: it cannot be edited, so nothing answers the pointer (owner, 2026-10-05). */
 .p3-text-input:hover:not(:disabled) { border-color: var(--p3-field-edge-hover); }
-.p3-text-input:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
+.p3-text-input:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 /* A text field that cannot change (Layout's first breakpoint, D13; any field a derived mode locks) takes Prism3's own
    disabled text field skin, exactly: the fill, the edge and the on-fill ink its text field definition binds (owner
    decision F1 A, 2026-10-05). Contrast-exempt as an inactive component (WCAG 2.2 SC 1.4.3, 1.4.11); test:chrome
@@ -829,8 +829,8 @@
 .p3-jump[hidden] { display: none; }
 .p3-jump-label { display: inline-flex; align-items: center; min-height: var(--p3-hit-min); }   /* QA-B17: "Jump to:", on the links' line */
 .p3-jump-link { display: inline-flex; align-items: center; min-height: var(--p3-hit-min); color: var(--p3-text); font-weight: var(--p3-fw-emphasis); text-decoration: underline; text-underline-offset: var(--p3-space-025); }
-.p3-jump-link:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); border-radius: var(--p3-radius-md); }
-.p3-lsec:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); border-radius: var(--p3-radius-md); }
+.p3-jump-link:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); border-radius: var(--p3-radius-md); }
+.p3-lsec:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); border-radius: var(--p3-radius-md); }
 
 /* Values and code in the chrome are set in the chrome's monospace face. */
 .p3-value { font-family: var(--p3-font-mono); }
@@ -840,7 +840,7 @@
 .p3-icols { display: grid; gap: var(--p3-space-500); }
 .p3-icol { display: grid; gap: var(--p3-space-300); padding-top: var(--p3-space-200); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-icol[hidden], .p3-irow-group[hidden], .p3-icol-add[hidden] { display: none; }
-.p3-icol:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); border-radius: var(--p3-radius-md); }
+.p3-icol:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); border-radius: var(--p3-radius-md); }
 .p3-icol-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--p3-space-100); }
 .p3-icol-title { margin: 0; font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
 .p3-irow-group { display: grid; gap: var(--p3-space-300); }
@@ -914,7 +914,7 @@
   font-family: var(--p3-font-ui); font-size: var(--p3-fs-12);
 }
 .p3-vpick:hover { border-color: var(--p3-field-edge-hover); }
-.p3-vpick:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
+.p3-vpick:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 .p3-vpick[aria-pressed="true"] { border: var(--p3-bw-thick) solid var(--p3-ctl-edge); padding: calc(var(--p3-space-075) - var(--p3-bw-hairline)) calc(var(--p3-space-100) - var(--p3-bw-hairline)); font-weight: var(--p3-fw-emphasis); }
 .p3-vpick[aria-disabled="true"] { border-style: dashed; cursor: not-allowed; }
 .p3-vpick-key { display: flex; align-items: center; gap: var(--p3-space-050); font-family: var(--p3-font-mono); }
