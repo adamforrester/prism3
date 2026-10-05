@@ -49,7 +49,7 @@ import { isDerived } from '../state/verdict';
 import {
   TYPE_GROUP_ORDER, addLibraryFace, inLibrary, removeLibraryFace, setAllFamilies, setFamily,
   setTypeScale, shapeBlocked, releasePinnedSizes, pinnedSizeCount, rowsOf, widestRowsOf, brandSizePin, modeSizePin, viewportPin,
-  setSizePin, setMobileSize, setFluid, setResponsiveViewport, setDisplayCeiling, ceilingPx, ceilingBlocked, titleFloorBlocked, fluidBlocked, setTitleFloor, setCaptionFloor, setSizeFloor,
+  setSizePin, setMobileSize, setFluid, setResponsiveViewport, viewportRefusal, setDisplayCeiling, ceilingPx, ceilingBlocked, titleFloorBlocked, fluidBlocked, setTitleFloor, setCaptionFloor, setSizeFloor,
   setWeightRole, toggleCategoryWeight, categoryWeightLock, setLink, setItalicStyle, italicStyleOf, setFacePin,
   setRungBinding, setRepoint, setShift, nudgeSteps, resolvedRungs, type ItalicStyle, type RungField,
 } from '../state/type-input';
@@ -736,7 +736,15 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
         const lab = h('label', 'p3-field-label', label);
         lab.htmlFor = id;
         const t = textField(id, `type-${key === 'minViewport' ? 'min' : 'max'}-viewport`, {
-          onCommit: (v) => { if (String(getPath(brandState, `typography.responsive.${key}`) ?? fallback) === v) return; edit('typography.responsive', () => { setResponsiveViewport(key, Number(v)); }); },
+          // A pair the engine refuses (#2068) is put back rather than written, as Layout puts back a refused
+          // breakpoint, and says why in the engine's own sentence, as a warning under the fields.
+          onCommit: (v, fld) => {
+            const was = String(getPath(brandState, `typography.responsive.${key}`) ?? fallback);
+            if (was === v) return;
+            const refused = viewportRefusal(key, Number(v));
+            if (refused) { fld.value = was; b.setState(hook(stateLine(refused, 'warn'), 'type-viewport-refused')); return; }
+            edit('typography.responsive', () => { setResponsiveViewport(key, Number(v)); });
+          },
         });
         t.el.inputMode = 'numeric';
         t.set(String(getPath(brandState, `typography.responsive.${key}`) ?? fallback));
