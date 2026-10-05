@@ -160,6 +160,8 @@ export const SHELL_VARS = [
   'transition-dur', 'transition-ease',
   // QA-B11: the fill rows' swatch, as tall as a row's label and token (the mockup's 40px swatch row).
   'swatch-h',
+  // S11.2: the Build style guides page's switch, concept v6's track and knob.
+  'track-w', 'track-h', 'thumb', 'thumb-inset',
 ];
 
 // Mapped color variables that carry no contrast duty: a hairline that splits regions, a hover wash.

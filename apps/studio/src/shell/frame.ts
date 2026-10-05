@@ -47,11 +47,12 @@
  * becomes a select, only the top row stays sticky, and the bar's text buttons drop to their glyphs.
  */
 import { page, searchHits, searchQuery, setPage, setSearch, subscribe } from '../state/store';
-import { INSPECT, TABS, homeOf, isNewPage, legacyOf, newPageOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type NewPageKey, type Place, type TabId } from './pages';
+import { INSPECT, TABS, homeOf, isMenuPage, isNewPage, legacyOf, newPageOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type NewPageKey, type Place, type TabId } from './pages';
 import { glyph, h, hook } from './dom';
 import { inspectMenu, modeControl, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
 import { mountActivity, type ActivityLend } from './activity';
 import { figmaMenu, type FigmaSource } from './figma';
+import { mountStyleGuides, type StyleGuidesLend } from './style-guides';
 import { THEME_CHOICES, setThemePref, themePref, type ThemePref } from './theme';
 import { mountPalettesLevers } from '../domains/color-palettes';
 import { mountPalettesPreview } from '../preview/palettes';
@@ -172,6 +173,8 @@ export const mountFrame = (app: HTMLElement, opts: {
   readonly lend: PageLends;
   /** The product logo (`styles.css`'s `.logo`), for the studio's product mark. The plugin draws no mark. */
   readonly logo: () => HTMLElement;
+  /** The Build style guides page's reads and writes (S11.2), or null where there is no Figma file. */
+  readonly styleGuides: StyleGuidesLend | null;
 }): Frame => {
   const { host } = opts;
   const cleanups: (() => void)[] = [];
@@ -326,13 +329,18 @@ export const mountFrame = (app: HTMLElement, opts: {
 
   // ── Activity (F2), the Figma menu and the Agent chip's slot (S1.4) ───────────────────────────────
   // The drawer sits last in the frame, pinned to the bottom edge, under whichever region shows the page.
-  const activity = mountActivity({ host, lend: opts.activity, narrow: () => root.dataset.w === 'narrow' }, cleanups);
+  // S11.2 (P1, variant 1): while the Build style guides page shows its run, the drawer does not open by itself for it.
+  const activity = mountActivity({ host, lend: opts.activity, narrow: () => root.dataset.w === 'narrow', quiet: (k) => k === 'styleguide' && isMenuPage(page) }, cleanups);
   const figma = host === 'figma' && opts.figma ? figmaMenu(opts.figma, cleanups) : null;
   const agent = host === 'figma' ? hook(h('div', 'p3-agent-slot'), 'bar-agent') : null;
 
   // The Activity status line rides in the top bar, which is always drawn, on the bar's own ground.
   bar.append(activity.live);
-  root.append(head, legacy, panes, inspect, activity.drawer);
+  // The Build style guides page (S11.2): a full-width page of the shell's own, shown in the `page` layout.
+  const menuPage = hook(h('main', 'p3-sgpage'), 'menu-page');
+  menuPage.id = 'p3-menu-page';
+  menuPage.tabIndex = -1;
+  root.append(head, legacy, panes, menuPage, inspect, activity.drawer);
   app.append(root);
 
   // The verdict, on the bar (lent to `renderBar`, which places it after the brand switcher).
@@ -380,7 +388,7 @@ export const mountFrame = (app: HTMLElement, opts: {
     previewBody.scrollTop = previewBack;
     const back = opener && opener.isConnected && opener.getClientRects().length ? opener : null;
     opener = null;
-    if (refocus) (back ?? (root.dataset.layout === 'panes' ? previewTitle : legacy)).focus?.();
+    if (refocus) (back ?? (root.dataset.layout === 'panes' ? previewTitle : root.dataset.layout === 'page' ? menuPage : legacy)).focus?.();
   }
   previewTitle.tabIndex = -1;
   legacy.tabIndex = -1;
@@ -457,17 +465,28 @@ export const mountFrame = (app: HTMLElement, opts: {
     previewBody.replaceChildren();
     mounted = null;
   };
-  cleanups.push(unmountPanes);
+  cleanups.push(unmountPanes, () => { for (const c of menuCleanups ?? []) c(); menuCleanups = null; });
   // QA-B9: record which lever section each interaction is in. Records only; an edit handler turns a record
   // into a note, and nothing else moves the preview (V1).
   cleanups.push(trackLeverSections(levers));
 
   let lastLayout: string | null = null;
+  // The menu page, mounted while it is the page and released, subscriptions included, when it is not.
+  let menuCleanups: (() => void)[] | null = null;
   const render = (): void => {
-    const pages = place ? legacyOf(place, host) : isNewPage(page) ? [] : [page];
+    const onMenu = isMenuPage(page) && !!opts.styleGuides;
+    const pages = place ? legacyOf(place, host) : isNewPage(page) || isMenuPage(page) ? [] : [page];
     const isLegacy = pages.length > 0;
     // Written only when the layout a place calls for changes, never on every render.
-    const layout = isLegacy ? 'legacy' : 'panes';
+    const layout = onMenu ? 'page' : isLegacy ? 'legacy' : 'panes';
+    if (onMenu && !menuCleanups) {
+      menuCleanups = [];
+      mountStyleGuides(menuPage, opts.styleGuides!, () => root.dataset.w === 'narrow', menuCleanups);
+    } else if (!onMenu && menuCleanups) {
+      for (const c of menuCleanups) c();
+      menuCleanups = null;
+      menuPage.replaceChildren();
+    }
     if (layout !== lastLayout) { root.dataset.layout = layout; lastLayout = layout; }
     root.dataset.pane = pane;
     for (const b of paneButtons) b.setAttribute('aria-pressed', String(b === paneButtons[pane === 'settings' ? 0 : 1]));
@@ -477,7 +496,7 @@ export const mountFrame = (app: HTMLElement, opts: {
     buildSubRow();
     select(subTabs, place?.sub ? subTabs[TABS.find((t) => t.id === place!.tab)!.subs!.findIndex((s) => s.id === place!.sub)] : null);
     // The moved page's levers and preview are mounted once per visit, and released when the place changes.
-    const moved = place ? newPageOf(place) : null;
+    const moved = place && !onMenu ? newPageOf(place) : null;
     if (moved !== mounted) {
       unmountPanes();
       if (moved) {
