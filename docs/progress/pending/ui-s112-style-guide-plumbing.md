@@ -33,3 +33,17 @@
 | the table list posted to every sink but the panel's | "events/panel: …", "events/agent: … (style-guide-tables, …)" |
 
 **Trap for whoever tests this next.** `realYield` is a 0ms `setTimeout`. A suite that holds those to stop a run between tables must let the run REACH its first yield before releasing: a call to `ACTIONS.styleGuide` returns before its first `await` resolves, so a release loop that checks for held yields straight away finds none and exits, and the awaited run then hangs the process ("unsettled top-level await"). `test-style-guide-page.ts`'s `release` settles first.
+
+### Review round (independent review of #2161)
+
+- **Merged with main.** #2170 (#2153) took section 25 of `test-style-guide.ts` for its REM tests. This PR's sections are now 26–29, in the header, in `main()` and in every label. The tables above use the new numbers.
+- **`isSetUp`'s requirements, each tested on its own.** The reviewer dropped each of the four checks in turn. Three survived both suites: the swatch set, the text-cell set and the Primitive tokens page. Only "sets, no pages" covered any of them, and it did so through the pages pair. Three arms in `test-style-guide-page.ts` now meet every requirement but one: `catalog/setup/swatches`, `catalog/setup/text-cells` and `catalog/setup/primitive-page`.
+- **A rethrow fails by name.** With `throw e` in the per-table catch, section 28 crashed the suite with an uncaught "Error: Accent refused". Its `draw` is now wrapped, and a throw is a named ✗.
+- **Copy.** The owner approved this PR's four new strings, as the orchestrator noted on #2161.
+
+| Mutation (after a `wip:` commit, restored from HEAD) | Fails |
+|---|---|
+| `isSetUp` without `!!sets[SWATCH_SET]` | "catalog/setup/swatches: both pages and the text-cell set, but no swatch set, is not set up (true)" |
+| `isSetUp` without `!!sets[TEXT_CELL_SET]` | "catalog/setup/text-cells: both pages and the swatch set, but no text-cell set, is not set up (true)" |
+| `isSetUp` without `pages.has(PRIMITIVE_PAGE)` | "catalog/setup/primitive-page: both cell sets and Semantic tokens, but no Primitive tokens page, is not set up (true)" |
+| `throw e` in the per-table catch | "28: the run survives a table the host refuses, and does not throw (it threw "Accent refused")", then three more 28 arms |
