@@ -76,7 +76,8 @@ import { nbTheme } from '@prism3/engine/nb-fixture';
 import { exampleBrands } from '@prism3/engine/emit-brandinput';
 // #1605 — the brand materialization `main.ts` projects through, plus NB's real input and emitted styles.
 import { materializeForBrand } from './src/brand-def';
-import { prebuildDependencies, missingDependencies, DependencyBuildError, SWAP_TARGET as PLUGIN_SWAP_TARGET } from './src/build-deps';
+import { leverManifest } from '@prism3/engine/levers';
+import { prebuildDependencies, missingDependencies, DependencyBuildError, SWAP_TARGET as PLUGIN_SWAP_TARGET, labelAfterBuilds } from './src/build-deps';
 import { parseDesignMd } from '@prism3/engine/design-md';
 import { buildFigmaTextStyles } from '@prism3/engine/emit-figma-font';
 // #1608 — the brand's COLOR emission, the host-side oracle for the outline-hover arm.
@@ -114,7 +115,7 @@ const pinned = (cond: boolean, issue: string, label: string): void => {
 
 // ---- the in-memory components shim --------------------------------------------------------
 import {
-  makeShim, burnMs, varValue, fontKey,
+  makeShim, varValue, fontKey,
   SHIM_ROOT, SHIM_GAP, SHIM_STROKE, SHIM_COORD, STYLE_FONT,
 } from './component-shim';
 import type { Node, Page, ShimOpts, FileNode, FontName } from './component-shim';
@@ -145,7 +146,7 @@ const run = (plans: AnatomyPlan[], opts: ShimOpts = {}, apply: ComponentApplyOpt
  *  REPORTING cadence and calling it yielding: deleting `await yieldTo()` from `breathe` left the suite
  *  fully green (mutation M6, verified). A report and a yield are two facts, so they are recorded by two
  *  callbacks that cannot substitute for one another, and asserted to agree. */
-const instrumented = async (plans: AnatomyPlan[], opts: ShimOpts = {}, chunk?: number, burnYield = 0) => {
+const instrumented = async (plans: AnatomyPlan[], opts: ShimOpts = {}, chunk?: number, onYield?: () => void) => {
   const yieldCalls = { n: 0 };
   const yields: string[] = [];
   const progress: ComponentProgress[] = [];
@@ -156,11 +157,12 @@ const instrumented = async (plans: AnatomyPlan[], opts: ShimOpts = {}, chunk?: n
     // `breathe`, so the two arrays are index-parallel.
     onProgress: (p) => { progress.push({ ...p }); yields.push(`${p.phase}:${p.done}/${p.total}`); },
     // The ONLY witness that control was handed back. Nothing else in this file increments it.
-    // `burnYield` charges the YIELD's own duration, which is the third clock rule: `breathe` re-stamps
-    // AFTER awaiting, so a yield that took 40ms must not be billed to the chunk that follows it. Live,
-    // that time is the host doing its own work — the entire point of yielding — so counting it as chunk
-    // cost would make every chunk look worse the more politely the executor behaved.
-    yieldTo: () => { yieldCalls.n++; if (burnYield) burnMs(burnYield); return Promise.resolve(); },
+    // `onYield` charges the YIELD's own duration (on the timing block's virtual clock, #1800), which is the
+    // third clock rule: `breathe` re-stamps AFTER awaiting, so a yield that took 40ms must not be billed to
+    // the chunk that follows it. Live, that time is the host doing its own work — the entire point of
+    // yielding — so counting it as chunk cost would make every chunk look worse the more politely the
+    // executor behaved.
+    yieldTo: () => { yieldCalls.n++; onYield?.(); return Promise.resolve(); },
   });
   return { r, yields, progress, yieldCalls: yieldCalls.n };
 };
@@ -1017,6 +1019,108 @@ ok(withDup.misses.some((m) => m.includes('UNREADABLE') && m.includes('share a na
 ok(withDup.properties.length === 0 && withDup.refs === 0,
   'and no properties are declared on a poisoned set, so the single cause is not buried under consequences');
 
+// ---- #1780: a set whose variant AXES differ from the plan's is refused, never appended into ----------
+// The live case: `veil` gained a `direction` axis, every planned member name was new, nothing matched by
+// name, nothing read STALE, and 30 members were appended beside 6 on the old axis list — a set Figma then
+// reports as broken. Each fixture below rewrites the MEMBER NAMES of a built set, because the names are
+// what a set's axes are (the shim derives its definitions from them, as the host does). Every expectation
+// is a literal typed here, not read back from the executor or the plan.
+// GUARDED: a set on two axis lists THROWS here (as the host does), and a throw out of an assertion's own
+// probe would stop the suite and hide every arm after it. So a refused read comes back as one entry saying so.
+const axisVariants = (s: Node): string[] => {
+  try {
+    const d = s.componentPropertyDefinitions as Record<string, { type: string }>;
+    return Object.keys(d).filter((k) => d[k].type === 'VARIANT').sort();
+  } catch (e) { return [`THROWS: ${(e as Error).message}`]; }
+};
+const renameMembers = (s: Node, f: (name: string) => string, only?: number): void =>
+  (s.children as Node[]).forEach((m, i) => { if (only === undefined || i < only) m.name = f(String(m.name)); });
+const AXES_NOW = '[appearance, leading icon, size, state, trailing icon]';
+
+// (a) AN AXIS GAINED — the existing set predates `size` (Tag gaining `type`, `veil` gaining `direction`).
+const gainedPage: Page = { children: [] };
+await run(grid, { ...full(), page: gainedPage });
+const gainedSet = gainedPage.children[0];
+renameMembers(gainedSet, (n) => n.replace('size=medium, ', ''));
+const gainedBefore = [...(gainedSet.children as Node[])];
+const gainedNames = gainedBefore.map((m) => String(m.name));
+// REACHABLE: the fixture really is a clean set on the OLD axis list, so the refusal below is about the
+// axis change and not about a set that was already unreadable.
+ok(JSON.stringify(axisVariants(gainedSet)) === JSON.stringify(['appearance', 'leading icon', 'state', 'trailing icon'])
+  && gainedNames[0] === 'appearance=filled, state=rest, leading icon=true, trailing icon=false',
+  `#1780 fixture: the existing set is readable and varies by 4 axes, without size (${axisVariants(gainedSet).join(', ')}; ${gainedNames[0]})`);
+const rGained = await run(grid, { ...full(), page: gainedPage });
+ok(rGained.set === null && rGained.added === 0 && rGained.variants === 0,
+  `#1780 an axis gained: the build is REFUSED and builds nothing (set=${rGained.set}, added=${rGained.added}, variants=${rGained.variants})`);
+ok(JSON.stringify(rGained.misses) === JSON.stringify([
+  "set -> AXES CHANGED: 'button' on this page varies by [appearance, leading icon, state, trailing icon], and this build varies by [appearance, leading icon, size, state, trailing icon]. " +
+  'Nothing was added to it, because members on two axis lists leave a set Figma reports as broken. ' +
+  'Rename the existing set (its instances keep pointing at it) and build again to get a new set beside it.',
+]), `#1780 ...and says so in ONE miss naming both axis lists and the remedy (${rGained.misses.length}: ${rGained.misses[0]?.slice(0, 120)})`);
+ok(JSON.stringify(rGained.axesChanged) === JSON.stringify({ set: 'button', existing: [['appearance', 'leading icon', 'state', 'trailing icon']], planned: ['appearance', 'leading icon', 'size', 'state', 'trailing icon'] }),
+  `#1780 ...and carries the two lists as data for the verdict (${JSON.stringify(rGained.axesChanged)})`);
+// THE OLD SET UNTOUCHED, by identity: an instance tracks its main component by id, so the same 21 node
+// objects under the same 21 names is the claim that nothing placed from it was orphaned.
+ok((gainedSet.children as Node[]).length === 21
+  && (gainedSet.children as Node[]).every((c, i) => c === gainedBefore[i] && c.name === gainedNames[i]),
+  `#1780 the old set is UNTOUCHED — the same 21 members under the same names, nothing appended (${(gainedSet.children as Node[]).length} members)`);
+ok(gainedPage.children.length === 1 && JSON.stringify(axisVariants(gainedSet)) === JSON.stringify(['appearance', 'leading icon', 'state', 'trailing icon']),
+  `#1780 ...no second set and no loose component on the page, and the old set still reads cleanly (${gainedPage.children.length} node)`);
+ok(rGained.misses.length !== rGained.skipped
+  && componentHeadline(rGained.added, rGained.skipped, rGained.misses.length - rGained.skipped - rGained.stale, rGained.stale) === '✗ nothing built',
+  `#1780 the refusal reaches the pill as a failure, not as '✓ already built' (${componentHeadline(rGained.added, rGained.skipped, rGained.misses.length - rGained.skipped - rGained.stale, rGained.stale)})`);
+
+// (a') THE REMEDY THE MISS STATES IS TRUE: rename the old set and build again, and a fresh set lands beside
+// it while the old one keeps every member it had.
+gainedSet.name = 'button (earlier axes)';
+const rAfterRename = await run(grid, { ...full(), page: gainedPage });
+ok(rAfterRename.set === 'button' && rAfterRename.added === 21 && rAfterRename.axesChanged === undefined
+  && gainedPage.children.length === 2 && (gainedSet.children as Node[]).every((c, i) => c === gainedBefore[i]),
+  `#1780 after renaming the old set aside, the build makes a fresh 21-member set beside it and leaves the old one as it was (set=${rAfterRename.set}, added=${rAfterRename.added}, ${gainedPage.children.length} nodes)`);
+
+// (b) AN AXIS RENAMED — `genre` renamed `type`: the same count of axes, one name different.
+const renamedPage: Page = { children: [] };
+await run(grid, { ...full(), page: renamedPage });
+const renamedSet = renamedPage.children[0];
+renameMembers(renamedSet, (n) => n.replace('appearance=', 'genre='));
+const renamedBefore = [...(renamedSet.children as Node[])];
+const rRenamed = await run(grid, { ...full(), page: renamedPage });
+ok(rRenamed.set === null && rRenamed.added === 0
+  && rRenamed.misses.length === 1 && rRenamed.misses[0].startsWith(`set -> AXES CHANGED: 'button' on this page varies by [genre, leading icon, size, state, trailing icon], and this build varies by ${AXES_NOW}.`),
+  `#1780 an axis renamed: refused, naming the old name and the new (${rRenamed.misses[0]?.slice(0, 140)})`);
+ok((renamedSet.children as Node[]).length === 21 && (renamedSet.children as Node[]).every((c, i) => c === renamedBefore[i]) && renamedPage.children.length === 1,
+  `#1780 ...and the old set is untouched (${(renamedSet.children as Node[]).length} members, ${renamedPage.children.length} node on the page)`);
+
+// (c) ALREADY MIXED — the live file's state after the first bad build: some members on the old list, the
+// rest on the new. Refused too, rather than appended into a set that is already broken.
+const mixedPage: Page = { children: [] };
+await run(grid, { ...full(), page: mixedPage });
+const mixedSet = mixedPage.children[0];
+renameMembers(mixedSet, (n) => n.replace('size=medium, ', ''), 6);
+const mixedDefs = axisVariants(mixedSet);
+ok(mixedDefs.length === 1 && mixedDefs[0] === 'THROWS: in get_componentPropertyDefinitions: Component set has existing errors',
+  `#1780 fixture: members on two axis lists poison the definitions getter, as the live set did (${mixedDefs.join(', ')})`);
+const mixedBefore = [...(mixedSet.children as Node[])];
+const rMixed = await run(grid, { ...full(), page: mixedPage });
+ok(rMixed.set === null && rMixed.added === 0 && rMixed.misses.length === 1
+  && rMixed.misses[0].startsWith(`set -> AXES CHANGED: 'button' on this page varies by [appearance, leading icon, state, trailing icon] and ${AXES_NOW}, and this build varies by ${AXES_NOW}.`),
+  `#1780 an already-mixed set: refused, naming BOTH lists its members carry (${rMixed.misses[0]?.slice(0, 160)})`);
+ok((mixedSet.children as Node[]).length === 21 && (mixedSet.children as Node[]).every((c, i) => c === mixedBefore[i]),
+  `#1780 ...and nothing is appended to it (${(mixedSet.children as Node[]).length} members)`);
+
+// (d) A VALUE ADDED ON THE SAME AXES IS NOT AN AXIS CHANGE. The incremental path: a set built with three
+// states, then the full seven. It must still append the 12 new members, or every def that gains a state or
+// a size would split its set.
+const threeStates = new Set(['rest', 'hover', 'focus-visible']);
+const partial = grid.filter((p) => [...threeStates].some((st) => planComponentName(p).includes(`state=${st},`)));
+ok(partial.length === 9, `#1780 fixture: the partial set is 3 appearances × 3 states (${partial.length})`);
+const valuePage: Page = { children: [] };
+await run(partial, { ...full(), page: valuePage });
+const rValue = await run(grid, { ...full(), page: valuePage });
+ok(rValue.set === 'button' && rValue.added === 12 && rValue.skipped === 9 && rValue.axesChanged === undefined
+  && (valuePage.children[0].children as Node[]).length === 21 && valuePage.children.length === 1,
+  `#1780 a value added on the same axes still APPENDS into the existing set (added=${rValue.added}, skipped=${rValue.skipped}, ${(valuePage.children[0].children as Node[]).length} members, ${valuePage.children.length} node)`);
+
 // ---- #701: the wire pass REUSES what the build pass built, instead of re-finding it ----------
 // The cold wire pass cost 46,375ms of a ~151s live run doing 2,592 `findOne` calls at ~18ms each, on a
 // scenegraph Figma was still reconciling. The fix is to not search: `build` registers each child it makes
@@ -1230,7 +1334,17 @@ ok(reRun.yieldCalls === reRun.progress.length && reRun.yieldCalls > 0,
 // and the strongest assertion available is `chunkMs >= 0`, which no clock rule can fail. A rule about WHEN a
 // clock starts cannot be gated by a harness in which no clock advances. So the harness charges deliberate,
 // opt-in cost to the three windows the re-stamps exclude (`ShimOpts.burn`, and `instrumented`'s
-// `burnYield`), which makes the rule reachable using the very calls the source comments already name.
+// `onYield`), which makes the rule reachable using the very calls the source comments already name. And a
+// fourth, INSIDE a chunk (`burn.member`, #1848), because every exclusion asserts `=== 0` and a `chunkMs`
+// that never measured anything is also 0 (docs/34 shape 4): only a cost the chunk must CARRY can fail it.
+//
+// ON A VIRTUAL CLOCK (#1800). The burns used to hold the thread on the real clock, and every assertion here
+// was a wall-clock bound: the chunk after a 40ms yield had to come in under 20ms of REAL time for five
+// members of shim work. Under CPU load (several lanes running `verify` at once) that work alone crossed
+// 20ms and the arm failed with the exclusion intact. The property is about which window a cost is billed
+// to, not how fast the host is, so the runs below swap `Date.now` — the clock the executor reads — for one
+// that moves ONLY when a burn advances it. The executor's own work then costs exactly 0ms, a burn costs
+// exactly its size, and every expectation is a literal. Nothing here depends on the machine.
 //
 // EACH BURN GETS A POSITIVE CONTROL, and that is not belt-and-braces: "the first chunk is 0ms" also passes
 // when the burn silently never happened — a renamed shim method, an `opts.burn` that stopped being threaded
@@ -1244,31 +1358,63 @@ const BURN = 120;
 const YIELD_BURN = 40;
 const firstOf = (ps: ComponentProgress[], ph: string): number => ps.find((p) => p.phase === ph)!.chunkMs;
 
+/** Runs `fn` with `Date.now` replaced by a clock that moves only through `advance` (#1800), and restores
+ *  the real one however `fn` exits. `reads` counts the executor's reads; the test reads `t` directly, so
+ *  its own bookkeeping never counts as one. Sequential by construction: every run below is awaited before
+ *  the next starts, so no other code is reading the clock while it is swapped. */
+const onVirtualClock = async <T>(fn: (clock: { advance: (ms: number) => void; at: () => number; reads: () => number }) => Promise<T>): Promise<T> => {
+  const realNow = Date.now;
+  let t = 0, reads = 0;
+  Date.now = () => { reads++; return t; };
+  try { return await fn({ advance: (ms) => { t += ms; }, at: () => t, reads: () => reads }); }
+  finally { Date.now = realNow; }
+};
+/** One chunk-5 run over the grid on a virtual clock, with the named burns and an optional per-yield cost.
+ *  `advanced` is how far the burns moved the clock; `reads` is how often the executor looked at it. */
+const timed = (burn?: ShimOpts['burn'], yieldMs = 0) => onVirtualClock(async (clock) => {
+  const run = await instrumented(grid, { ...fullFor(grid), page: { children: [] }, burn, advance: clock.advance }, 5,
+    yieldMs ? () => clock.advance(yieldMs) : undefined);
+  return { ...run, advanced: clock.at(), reads: clock.reads() };
+});
+
+// The two shim-charged burns, one run each, keyed by the burn's own name: the controls below MAP over these
+// keys, so a burn cannot be added here without a control.
+const burnRuns = { setup: await timed({ setup: BURN }), combine: await timed({ combine: BURN }), member: await timed({ member: BURN }) };
+
 // 1. PRE-BUILD-LOOP SETUP. `planSetLayout`, three `getLocal*Async` fetches, `loadAllPagesAsync()` and a
 //    document-wide `findAllWithCriteria` run before the first member is touched. Charged to the last of
 //    them. Live this was measured at 121ms in chunk 1 against 1ms in its neighbours.
-const burnSetupPage: Page = { children: [] };
-const burnSetup = await instrumented(grid, { ...full(), page: burnSetupPage, burn: { setup: BURN } }, 5);
-ok(firstOf(burnSetup.progress, 'build') < BURN / 2,
-  `the first build chunk excludes the ${BURN}ms of setup that preceded the loop (${firstOf(burnSetup.progress, 'build')}ms)`);
+ok(firstOf(burnRuns.setup.progress, 'build') === 0,
+  `the first build chunk excludes the ${BURN}ms of setup that preceded the loop (${firstOf(burnRuns.setup.progress, 'build')}ms)`);
 
 // 2. BETWEEN THE LOOPS. `combineAsVariants`, the measured layout pass, the `resize`, the definitions read
 //    and one `addComponentProperty` per property sit between the build loop's last boundary and the wire
 //    loop's first. #684 does not name this loop at all, which is why the gap was here twice.
-const burnCombinePage: Page = { children: [] };
-const burnCombine = await instrumented(grid, { ...full(), page: burnCombinePage, burn: { combine: BURN } }, 5);
-ok(firstOf(burnCombine.progress, 'wire') < BURN / 2,
-  `the first wire chunk excludes the ${BURN}ms of set-level work between the loops (${firstOf(burnCombine.progress, 'wire')}ms)`);
+ok(firstOf(burnRuns.combine.progress, 'wire') === 0,
+  `the first wire chunk excludes the ${BURN}ms of set-level work between the loops (${firstOf(burnRuns.combine.progress, 'wire')}ms)`);
 
 // 3. THE YIELD ITSELF. `breathe` re-stamps AFTER awaiting, so the yield's own duration is never billed to
 //    the chunk after it. Live, that time is the host doing the work yielding exists to let it do — so
 //    counting it would make every chunk look worse the more politely the executor behaved, and would push
-//    the calibration toward a smaller `CHUNK` for having yielded more often.
-const burnYieldPage: Page = { children: [] };
-const burnYield = await instrumented(grid, { ...full(), page: burnYieldPage }, 5, YIELD_BURN);
-const secondBuild = burnYield.progress.filter((p) => p.phase === 'build')[1].chunkMs;
-ok(secondBuild < YIELD_BURN / 2,
+//    the calibration toward a smaller `CHUNK` for having yielded more often. Re-stamping BEFORE the await
+//    bills the whole 40ms to the next chunk, so this reads 40, not "a bit over 20".
+const ybRun = await timed(undefined, YIELD_BURN);
+const secondBuild = ybRun.progress.filter((p) => p.phase === 'build')[1].chunkMs;
+ok(secondBuild === 0,
   `a chunk excludes the ${YIELD_BURN}ms yield that preceded it (2nd build chunk ${secondBuild}ms)`);
+
+// 4. INSIDE A CHUNK, the converse the three above cannot stand in for (#1848). Each of them asserts `=== 0`,
+//    and a `breathe` that reported `chunkMs: 0 * (now - mark)` satisfied all three and the whole plugin
+//    suite. So the first member's `createComponentFromNode` is charged 120ms, which is work the first build
+//    chunk does, and that chunk must report exactly 120. The other four build chunks and all five wire
+//    chunks report 0, so the cost is billed to its own chunk and nowhere else. Literals, 5 per phase, as
+//    pinned above.
+const memberBuild = burnRuns.member.progress.filter((p) => p.phase === 'build').map((p) => p.chunkMs);
+const memberWire = burnRuns.member.progress.filter((p) => p.phase === 'wire').map((p) => p.chunkMs);
+ok(memberBuild[0] === 120,
+  `chunkMs === BURN: the first build chunk carries the ${BURN}ms its own first member build cost (${memberBuild[0]}ms)`);
+ok(JSON.stringify(memberBuild) === '[120,0,0,0,0]' && JSON.stringify(memberWire) === '[0,0,0,0,0]',
+  `the member burn is billed to that one chunk and no other (build ${JSON.stringify(memberBuild)}, wire ${JSON.stringify(memberWire)})`);
 
 // THE POSITIVE CONTROLS, ONE PER BURN AND DERIVED FROM THE BURN LIST SO THERE CANNOT BE TWO OF THREE.
 // Each burn is proven VISIBLE — otherwise the exclusions above are satisfied by a burn that never ran, which
@@ -1280,34 +1426,29 @@ ok(secondBuild < YIELD_BURN / 2,
 // two hand-written blocks: adding a fourth burn without a control is then a missing key, not a missing
 // paragraph someone has to notice.
 //
-// A burn's cost is excluded from every `chunkMs` by the very re-stamp under test, so the witness is WALL
-// CLOCK, measured as the DELTA against an un-burned baseline. The delta rather than a bare `>= BURN`: an
-// absolute bound is also satisfiable by a slow machine, and what needs proving is that the burn is the
-// difference between the two runs.
-const timeRun = async (burn?: ShimOpts['burn']): Promise<number> => {
-  const t0 = Date.now();
-  await instrumented(grid, { ...fullFor(grid), page: { children: [] }, burn }, 5);
-  return Date.now() - t0;
-};
-const ctlBase = await timeRun();
-for (const key of ['setup', 'combine'] as const) {
-  const elapsed = await timeRun({ [key]: BURN });
-  ok(elapsed - ctlBase >= BURN * 0.5,
-    `CONTROL: the ${key} burn really costs wall-clock this harness can measure (${elapsed}ms vs ${ctlBase}ms un-burned, +${elapsed - ctlBase}ms)`);
+// A burn's cost is excluded from every `chunkMs` by the very re-stamp under test, so the witness is the
+// CLOCK ITSELF: how far the run moved it, read off the virtual clock and never off a report. And one more
+// control the virtual clock needs that the real one did not: the executor must be READING it. An executor
+// that moved to another clock would see none of these burns, and every exclusion above would pass at 0ms
+// for a reason that has nothing to do with the re-stamps.
+for (const key of Object.keys(burnRuns) as (keyof typeof burnRuns)[]) {
+  ok(burnRuns[key].advanced === BURN,
+    `CONTROL: the ${key} burn really moves the clock the executor reads (+${burnRuns[key].advanced}ms of ${BURN})`);
+  // Named for what it checks: the executor READS this clock. Whether it prices a chunk on it is case 4's
+  // assertion, since reads alone are satisfied by the `elapsedMs` read with `chunkMs` pinned at 0 (#1848).
+  ok(burnRuns[key].reads > 0,
+    `CONTROL: the executor reads that clock (${burnRuns[key].reads} reads during the ${key}-burned run)`);
 }
-const ctlNoBurn = await instrumented(grid, { ...fullFor(grid), page: { children: [] } }, 5);
-ok(ctlNoBurn.progress.length > 0 && firstOf(ctlNoBurn.progress, 'build') >= 0,
-  'CONTROL: the un-burned run reports as usual, so the burn is the only difference between them');
-// And the yield burn: 10 boundaries at 40ms each is ~400ms of wall clock that `chunkMs` must not have
-// absorbed — so the SUM of every reported chunk stays far below the run's own duration.
-const ybT0 = Date.now();
-const ybRun = await instrumented(grid, { ...fullFor(grid), page: { children: [] } }, 5, YIELD_BURN);
-const ybElapsed = Date.now() - ybT0;
+const ctlNoBurn = await timed();
+ok(ctlNoBurn.progress.length > 0 && ctlNoBurn.advanced === 0 && ctlNoBurn.progress.every((p) => p.chunkMs === 0 && p.elapsedMs === 0),
+  `CONTROL: the un-burned run reports as usual with the clock standing still, so the burn is the only difference between them (${ctlNoBurn.progress.length} reports, +${ctlNoBurn.advanced}ms)`);
+// And the yield burn: 10 boundaries (5 per phase, pinned above) at 40ms each is 400ms of clock that `chunkMs`
+// must not have absorbed — so the SUM of every reported chunk is 0.
 const ybReported = ybRun.progress.reduce((a, p) => a + p.chunkMs, 0);
-ok(ybElapsed >= YIELD_BURN * ybRun.yieldCalls * 0.5,
-  `CONTROL: ${ybRun.yieldCalls} yields at ${YIELD_BURN}ms cost real wall-clock (${ybElapsed}ms elapsed)`);
-ok(ybReported < ybElapsed / 2,
-  `and the reported chunk time is a fraction of it, so yield time is excluded rather than redistributed (${ybReported}ms reported of ${ybElapsed}ms elapsed)`);
+ok(ybRun.yieldCalls === 10 && ybRun.advanced === 400,
+  `CONTROL: ${ybRun.yieldCalls} yields at ${YIELD_BURN}ms move the clock 400ms (+${ybRun.advanced}ms)`);
+ok(ybReported === 0,
+  `and none of it is reported as chunk time, so yield time is excluded rather than redistributed (${ybReported}ms reported of ${ybRun.advanced}ms)`);
 
 // ---- #684 follow-up: `elapsedMs` INCLUDES the yields, which is why it exists -------------------
 // THE ONE TIMING FIELD THIS HARNESS CAN GATE BY VALUE. Every `chunkMs` is 0 here because the shim is
@@ -1325,26 +1466,27 @@ for (const ph of ['build', 'wire'] as const) {
   const ps = ybRun.progress.filter((p) => p.phase === ph);
   const last = ps[ps.length - 1];
   const sumChunks = ps.reduce((a, p) => a + p.chunkMs, 0);
-  // n-1 yields inside the window: the last boundary's yield lands after its own report (see `elapsedMs`).
-  const want = YIELD_BURN * (ps.length - 1) * 0.5;
-  ok(last.elapsedMs - sumChunks >= want,
-    `${ph}: elapsedMs spans the ${ps.length - 1} yields inside the phase that chunkMs excludes ` +
-    `(${last.elapsedMs}ms elapsed − ${sumChunks}ms of chunks = ${last.elapsedMs - sumChunks}ms of yielding, ≥ ${want}ms)`);
+  // 5 reports per phase and 4 yields inside the window, written out: the last boundary's yield lands after
+  // its own report (see `elapsedMs`). 4 × 40ms.
+  const want = 160;
+  ok(last.elapsedMs - sumChunks === want,
+    `${ph}: elapsedMs spans the 4 yields inside the phase that chunkMs excludes ` +
+    `(${last.elapsedMs}ms elapsed − ${sumChunks}ms of chunks = ${last.elapsedMs - sumChunks}ms of yielding, want ${want}ms)`);
   // MONOTONIC AND PER-PHASE. A cumulative field must never go backwards, and each phase must start its own
-  // count from ~0 — if `phaseStart` were stamped once at the top of the run, the wire phase's first reading
+  // count from 0 — if `phaseStart` were stamped once at the top of the run, the wire phase's first reading
   // would already carry the entire build phase and this would catch it.
   ok(ps.every((p, i) => i === 0 || p.elapsedMs >= ps[i - 1].elapsedMs),
     `${ph}: elapsedMs is cumulative and never decreases across the phase`);
-  ok(ps[0].elapsedMs < YIELD_BURN,
-    `${ph}: the phase's FIRST reading starts near zero, so the clock was re-stamped at this loop head rather than at the run's (${ps[0].elapsedMs}ms)`);
+  ok(ps[0].elapsedMs === 0,
+    `${ph}: the phase's FIRST reading starts at zero, so the clock was re-stamped at this loop head rather than at the run's (${ps[0].elapsedMs}ms)`);
 }
 // The un-burned control: with a free yield, elapsed and total agree — so the assertions above are reading
 // the burn and not some constant offset the executor adds regardless.
 for (const ph of ['build', 'wire'] as const) {
   const ps = ctlNoBurn.progress.filter((p) => p.phase === ph);
   const last = ps[ps.length - 1];
-  ok(last.elapsedMs - ps.reduce((a, p) => a + p.chunkMs, 0) < YIELD_BURN / 2,
-    `CONTROL: ${ph} with a free yield shows almost no gap between elapsed and Σ chunkMs (${last.elapsedMs - ps.reduce((a, p) => a + p.chunkMs, 0)}ms)`);
+  ok(last.elapsedMs - ps.reduce((a, p) => a + p.chunkMs, 0) === 0,
+    `CONTROL: ${ph} with a free yield shows no gap between elapsed and Σ chunkMs (${last.elapsedMs - ps.reduce((a, p) => a + p.chunkMs, 0)}ms)`);
 }
 
 // A run with NO options is the production call shape — it must still complete, and must yield without
@@ -3417,7 +3559,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   // MAIN.TS RUNS IT, before the parent's own build.
   const pre = mainSrc.indexOf('await prebuildDependencies(def,');
-  const own = mainSrc.indexOf('await buildOne(def, reports)');
+  const own = mainSrc.indexOf('await buildOne(def, reports, landed)');   // #1750: the call now passes `landed`
   ok(pre >= 0 && own > pre, '#1633 main.ts pre-builds the nests before building the def it was asked for');
 }
 
@@ -3634,7 +3776,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const valueStyles = [...new Set(taPlans.map((p) => textOf(p.root)?.textStyle))];
   ok(valueStyles.length === 1 && !!valueStyles[0], `textarea rows: the value text sets in exactly one style (${valueStyles.join(', ')})`);
   const VALUE = valueStyles[0]!;
-  const PAD_Y = varValue('size/md/padding-y');   // what the shim binds the control's block padding to
+  // What the shim binds the control's block padding to: textarea's own comfortable step, `space.100` (the spacing
+  // model moved it off `size.md.padding-y`, pixel-identical in a brand; the shim's synthetic value is per name).
+  const PAD_Y = varValue('space/100');
   type Metrics = NonNullable<ShimOpts['styleMetrics']>[string];
   const lineOf = (m: Metrics): number => (m.lineHeight.unit === 'PIXELS' ? m.lineHeight.value! : (m.lineHeight.value! / 100) * m.fontSize);
 
@@ -4300,6 +4444,331 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       && !/repaired/.test(componentHeadline(rf.added, rf.skipped, rf.misses.length - rf.skipped - rf.stale, rf.stale, rf.refsRelinked)),
       `#1679f a slot re-pointed at another property is overwritten as before but not counted as repaired (${repointed || 'no candidate'}; pill ${componentHeadline(rf.added, rf.skipped, rf.misses.length - rf.skipped - rf.stale, rf.stale, rf.refsRelinked)}; ${rf.misses.filter((m) => !/SKIPPED|already/i.test(m)).slice(0, 2).join(' | ')}; refsRelinked=${String(rf.refsRelinked)}, ${unset(page.children[0] as Node | undefined)} unset after)`);
   }
+}
+
+// =============================================================================================
+// TAG'S MINIMUM WIDTH = 1.5 × ITS HEIGHT, TO THE NEAREST 8 (owner decision L, 2026-09-29): A ONE-LETTER TAG IS 64
+// =============================================================================================
+// The floor is computed, so Figma receives it as a LITERAL per size, written by `applyMinWidthRatio` inside
+// `materializeForBrand` from the brand's heights (no brand here: the comfortable ladder, medium 44 → 64). Built
+// through the REAL executor into the shim with `layoutModel`, at the px of the variables the medium member binds
+// (`varPx`: the synthetic hash would put them anywhere from 8 to 32). A one-letter label measures 6px in the shim,
+// so the label row is 12 + 6 + 12 = 30px, far under the floor: the member is 64 wide only because the literal floor
+// holds it there. EXPECTED is the literal 64 × 44 and the literal 30. Mutation by name: drop `applyMinWidthRatio`
+// from `materializeForBrand`, or put `minWidthRatio` back to a bound height, and `tag min width` fails.
+{
+  const NB_MD = { 'size/md/height': 44, 'space/150': 12, 'space/100': 8, 'space/075': 6, 'space/0': 0, 'icon/size/md': 24 };
+  const base = componentDefs.find((d) => d.id === 'tag')!;
+  const oneLetter: ComponentDef = { ...base, figmaProperties: { ...base.figmaProperties!, texts: { label: { part: 'label', default: 'T' } } } };
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+  const plans = [...project(oneLetter), ...project(componentDefs.find((d) => d.id === 'focus-ring')!)];
+  const f = fullFor(plans);
+  const page: Page = { children: [] };
+  const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, layoutModel: true, varPx: NB_MD });
+  const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+  await prebuildDependencies(oneLetter, { defs: componentDefs, project, host: shim as any, build });
+  const r = await build(oneLetter);
+  const set = page.children.find((c) => c.name === 'tag' && c.type === 'COMPONENT_SET') as Node | undefined;
+  const member = ((set?.children as Node[] | undefined) ?? []).find((m) => m.name === 'type=select, selection=unselected, size=medium, state=rest');
+  const row = ((member?.children as Node[] | undefined) ?? []).find((c) => c.name === 'content');
+  // The label sits one row further in since the spacing model: content → labelCheck → label.
+  const labelCheck = ((row?.children as Node[] | undefined) ?? []).find((c) => c.name === 'labelCheck');
+  const label = ((labelCheck?.children as Node[] | undefined) ?? []).find((c) => c.name === 'label');
+  ok(r.misses.length === 0 && label?.characters === 'T' && (row?.width as number) === 30 && (member?.width as number) === 64 && (member?.height as number) === 44,
+    `tag min width: a one-letter medium tag is 64 × 44 — 1.5 × its 44px height, to the nearest 8 — held by the literal floor over a 30px label row (member ${String(member?.width)} × ${String(member?.height)}, row ${String(row?.width)}, label '${String(label?.characters)}'; ${r.misses[0] ?? '0 misses'})`);
+}
+
+// =============================================================================================
+// #1781 — A NEST RESOLVES INSIDE ITS OWN DEF'S SET, NEVER BY MEMBER NAME ACROSS SETS
+// =============================================================================================
+// The live rebuild: stale sets renamed aside (`__old__<name>`), then rebuilt. `checkbox-group`'s rows
+// nested `switch-row/size=small`, `radio-group/size=large` and `__old__radio-group/size=large`; later
+// `checkbox-row`'s control nested `radio-control/selection=unchecked, size=small, state=rest`. Each is the
+// right MEMBER NAME in the wrong SET, and each built with no miss, because both executors matched the name
+// inside the named set and then looked it up again across the whole file, where every set's `size=small`
+// shares one key.
+//
+// THE FILE reproduces that: `checkbox-control` and `radio-control` carry their real member names (which
+// overlap exactly where the rows point), the three rows and two groups carry their real `size=*` names, and
+// a renamed `__old__checkbox-row` and `__old__radio-group` sit beside them. Built in BOTH document orders,
+// because a last-wins lookup is only wrong for whichever set the search returns last — one order alone
+// would let `radio-row` pass by luck while `checkbox-row` fails, or the reverse.
+//
+// THE ORACLE is the host: each built instance's `mainComponent` (and its `parent`, the set), recorded by
+// the shim when `createInstance` was called on that object. The expectation is the plan's own
+// `nestTarget` and `nestVariant`, compared axis by axis here rather than through `nestVariantMatch`, which
+// is the executor's matcher.
+//
+// Mutations by name (recorded in the PR): restore `compByName.get(hit)` as the member lookup, or let the set
+// match on a prefix (`__old__`), and `#1781 nests resolve to their own set` fails.
+{
+  const SET_IDS = ['checkbox-control', 'radio-control', 'switch-control', 'field-label', 'checkbox-row', 'radio-row', 'switch-row', 'checkbox-group', 'radio-group'];
+  const defOf = (id: string): ComponentDef => componentDefs.find((d) => d.id === id)!;
+  const project = (id: string): AnatomyPlan[] => figmaAnatomySet(defOf(id), { swapTarget: SWAP });
+  const membersOf = (id: string): string[] => project(id).map(planComponentName);
+  const baseFile: FileNode[] = [
+    ...SET_IDS.map((id) => ({ name: id, type: 'COMPONENT_SET' as const, variants: membersOf(id) })),
+    { name: '__old__checkbox-row', type: 'COMPONENT_SET', variants: membersOf('checkbox-row') },
+    { name: '__old__radio-group', type: 'COMPONENT_SET', variants: membersOf('radio-group') },
+  ];
+
+  // REACHABILITY FIRST — every assertion below is vacuous if the names do not actually collide.
+  const ctlName = 'selection=unchecked, size=small, state=rest';
+  ok(membersOf('checkbox-control').includes(ctlName) && membersOf('radio-control').includes(ctlName),
+    `#1781 reachable: checkbox-control and radio-control share the member name ${ctlName}`);
+  const rowSets = ['checkbox-row', 'radio-row', 'switch-row', 'radio-group', 'checkbox-group'];
+  ok(['size=small', 'size=medium'].every((n) => rowSets.every((id) => membersOf(id).includes(n)))
+    && ['checkbox-row', 'radio-row', 'radio-group', '__old__radio-group'].every((id) => baseFile.find((f) => f.name === id)?.type === 'COMPONENT_SET' && (baseFile.find((f) => f.name === id) as { variants: string[] }).variants.includes('size=large')),
+    `#1781 reachable: ${rowSets.join(', ')} all carry size=small | size=medium, and size=large is in checkbox-row, radio-row, radio-group and __old__radio-group (switch-row has no large)`);
+
+  type Inst = { part: string; member: string; set: string; main: string; parentType: string };
+  // Keyed MEMBER then PART: a nest `follow`s its parent's axes, so `control` wants `size=small` in one member
+  // and `size=large` in another.
+  const planNests = (plans: AnatomyPlan[]) => {
+    const out = new Map<string, { target: string; variant: Record<string, string> }>();
+    for (const p of plans) {
+      const walk = (n: { name: string; nestTarget?: string; nestVariant?: Record<string, string>; children?: unknown[] }): void => {
+        if (n.nestTarget) out.set(`${planComponentName(p)}|${n.name}`, { target: n.nestTarget, variant: n.nestVariant ?? {} });
+        for (const c of (n.children ?? []) as (typeof n)[]) walk(c);
+      };
+      walk(p.root as unknown as Parameters<typeof walk>[0]);
+    }
+    return out;
+  };
+  const builtInstances = (page: Page): Inst[] => {
+    const out: Inst[] = [];
+    for (const set of page.children) for (const m of (set.children as Node[] | undefined) ?? []) {
+      const walk = (n: Node): void => {
+        const main = (n as { mainComponent?: { name: string; parent?: { name: string; type: string } } }).mainComponent;
+        if (n.type === 'INSTANCE' && main) out.push({ part: String(n.name), member: String(m.name), set: String(main.parent?.name), parentType: String(main.parent?.type), main: main.name });
+        for (const c of (n.children as Node[] | undefined) ?? []) walk(c);
+      };
+      for (const c of (m.children as Node[] | undefined) ?? []) walk(c);
+    }
+    return out;
+  };
+  const buildAgainst = async (id: string, fileNodes: FileNode[]) => {
+    const plans = project(id);
+    const f = fullFor(plans);
+    const page: Page = { children: [] };
+    // The nest targets are SETS in this file, never plain components — so the set path is the one taken.
+    const r = await run(plans, { ...f, comps: (f.comps ?? []).filter((c) => !SET_IDS.includes(c)), fileNodes, page });
+    return { plans, r, page };
+  };
+
+  for (const [label, file] of [['forward', baseFile], ['reversed', [...baseFile].reverse()]] as const) {
+    const wrong: string[] = [];
+    let checked = 0;
+    let planned = 0;
+    const nestMisses: string[] = [];
+    for (const id of ['checkbox-row', 'radio-row', 'switch-row', 'checkbox-group', 'radio-group']) {
+      const { plans, r, page } = await buildAgainst(id, file);
+      const nests = planNests(plans);
+      nestMisses.push(...r.misses.filter((m) => /\.nest(Target|Variant) ->/.test(m)).map((m) => `${id}: ${m}`));
+      // Every nested instance the PLAN declares, counted off the plan, so a nest dropped by a miss cannot pass
+      // by building nothing.
+      const countNests = (n: { nestTarget?: string; children?: unknown[] }): number => (n.nestTarget ? 1 : 0) + ((n.children ?? []) as (typeof n)[]).reduce((a, c) => a + countNests(c), 0);
+      planned += plans.reduce((a, p) => a + countNests(p.root as unknown as { nestTarget?: string; children?: unknown[] }), 0);
+      for (const inst of builtInstances(page)) {
+        const want = nests.get(`${inst.member}|${inst.part}`);
+        if (!want) continue; // a swap instance, not a nest
+        checked++;
+        const coord = new Map(inst.main.split(', ').map((kv) => kv.split('=') as [string, string]));
+        const coordOk = coord.size === Object.keys(want.variant).length && Object.entries(want.variant).every(([k, v]) => coord.get(k) === v);
+        if (inst.parentType !== 'COMPONENT_SET' || inst.set !== want.target || !coordOk)
+          wrong.push(`${id}/${inst.member} ${inst.part} -> ${inst.set}/${inst.main} (want ${want.target}/${Object.entries(want.variant).map(([k, v]) => `${k}=${v}`).join(', ')})`);
+      }
+    }
+    ok(checked > 0 && checked === planned && wrong.length === 0 && nestMisses.length === 0,
+      `#1781 nests resolve to their own set (${label} file order): every row's control and every group's rows and label is a member of the set its def names — ${checked}/${planned} nested instances checked; ${wrong.length ? `WRONG SET: ${wrong.slice(0, 4).join(' | ')}` : 'none wrong'}; ${nestMisses.length ? `misses: ${nestMisses.slice(0, 2).join(' | ')}` : 'no nest misses'}`);
+  }
+
+  // AMBIGUOUS: two sets under the exact name `checkbox-row`. Reported by name, nothing nested — neither is
+  // picked, because nothing but document order could choose between them.
+  const twoRows: FileNode[] = [...baseFile, { name: 'checkbox-row', type: 'COMPONENT_SET', variants: membersOf('checkbox-row') }];
+  const amb = await buildAgainst('checkbox-group', twoRows);
+  const ambMiss = amb.r.misses.filter((m) => m.includes('.nestTarget -> checkbox-row'));
+  const ambRows = builtInstances(amb.page).filter((i) => i.set === 'checkbox-row' || i.set === '__old__checkbox-row');
+  ok(ambMiss.length > 0 && ambMiss.every((m) => m.includes('found 2 COMPONENT_SETs named checkbox-row') && m.includes('nothing built')) && ambRows.length === 0,
+    `#1781 two sets named exactly checkbox-row are reported by name and no row is nested from either (${ambMiss.length} misses, ${ambRows.length} rows built; ${ambMiss[0] ?? 'NO MISS'})`);
+
+  // MISSING: the named set is gone and only the renamed-aside copy remains. The `__old__` set does NOT stand
+  // in for it; the four-way diagnosis reports the target as absent.
+  const onlyOld = baseFile.filter((f) => f.name !== 'checkbox-row');
+  const gone = await buildAgainst('checkbox-group', onlyOld);
+  const goneMiss = gone.r.misses.filter((m) => m.includes('.nestTarget -> checkbox-row'));
+  const goneRows = builtInstances(gone.page).filter((i) => i.set === '__old__checkbox-row');
+  ok(goneMiss.length > 0 && goneMiss.every((m) => m.includes('not in this file')) && goneRows.length === 0,
+    `#1781 with checkbox-row missing, __old__checkbox-row is not used in its place and the miss names the target (${goneMiss.length} misses, ${goneRows.length} rows from __old__; ${goneMiss[0] ?? 'NO MISS'})`);
+}
+
+// ---- #1750: a new set lands beside the page's content, never on top of it ------------------------------
+// Live: every set built onto `↳ Buttons` landed at (0,0) and covered the one before it. Every position below
+// is a literal. The one number the shim decides — the `button` set's measured box — is pinned first as a
+// literal guard, so the arithmetic after it is stated rather than re-derived from what the run wrote.
+{
+  const destructive = figmaAnatomySet(byId('button-destructive')!, { swapTarget: SWAP });
+  const at = (n: Node): string => `${String(n.x)},${String(n.y)}`;
+  const box = (n: Node): string => `${String(n.width)}x${String(n.height)}`;
+
+  // (a) THE FIRST SET ON AN EMPTY PAGE stays where the combine puts it, as before.
+  const pg: Page = { children: [] };
+  await run(grid, { ...full(), page: pg });
+  const first = pg.children[0];
+  ok(at(first) === '0,0' && box(first) === '780x120',
+    `#1750 the first set on an empty page stays at 0,0; its box is pinned here as the input to the arms below (${at(first)}, ${box(first)})`);
+
+  // (b) TWO DEFS ON ONE PAGE, in the taxonomy's order (`↳ Buttons`: button, then button-destructive): the
+  // second lands 160 right of the first (780 + 160 = 940), top-aligned.
+  const rDestructive = await run(destructive, { ...fullFor(destructive), page: pg });
+  const second = pg.children[1];
+  ok(rDestructive.set === 'button-destructive' && second.name === 'button-destructive' && at(second) === '940,0',
+    `#1750 the second set on a page lands beside the first, 160px clear and top-aligned, at 940,0 (got ${String(second?.name)} at ${second ? at(second) : '—'})`);
+
+  // (c) WHAT SHARES THE ROW PUSHES IT RIGHT; WHAT SITS ABOVE DOES NOT. A header-wide frame above the sets
+  // (bottom edge at -80, where `page-header.ts` puts it) and a designer's note in the row at 900..1300.
+  // Expected x: the note's right edge, 1300, + 160 = 1460 — not the header's 5000 + 160.
+  const pg2: Page = { children: [] };
+  await run(grid, { ...full(), page: pg2 });
+  pg2.children.push({ type: 'FRAME', name: 'header-like', x: 0, y: -400, width: 5000, height: 320 } as Node);
+  pg2.children.push({ type: 'FRAME', name: 'note', x: 900, y: 60, width: 400, height: 100 } as Node);
+  await run(destructive, { ...fullFor(destructive), page: pg2 });
+  const placed = pg2.children.find((n) => n.name === 'button-destructive')!;
+  ok(at(placed) === '1460,0',
+    `#1750 a node in the set's row pushes it right (1300 + 160), a node wholly above it does not (got ${at(placed)})`);
+  // NO TWO TOP-LEVEL NODES OVERLAP — the property a designer sees, checked over every pair on the page.
+  const rect = (n: Node) => ({ x: Number(n.x), y: Number(n.y), r: Number(n.x) + Number(n.width), b: Number(n.y) + Number(n.height) });
+  const overlaps: string[] = [];
+  pg2.children.forEach((a, i) => pg2.children.slice(i + 1).forEach((b) => {
+    const p = rect(a), q = rect(b);
+    if (p.x < q.r && q.x < p.r && p.y < q.b && q.y < p.b) overlaps.push(`${String(a.name)} × ${String(b.name)}`);
+  }));
+  ok(pg2.children.length === 4 && overlaps.length === 0,
+    `#1750 no two of the page's ${pg2.children.length} top-level nodes overlap (${overlaps.join(', ') || 'none'})`);
+
+  // (c') A NODE THAT STARTS ABOVE THE ROW AND REACHES INTO IT still shares the row. A frame at x 1000..2900,
+  // y -500..500: its top edge is above the sets' top (0), its bottom is inside the new set's row. Expected
+  // x: 2900 + 160 = 3060. A check that counted only nodes whose TOP edge falls inside the row would miss it
+  // and land the set at 940,0, over the frame.
+  const pgTall: Page = { children: [] };
+  await run(grid, { ...full(), page: pgTall });
+  pgTall.children.push({ type: 'FRAME', name: 'tall', x: 1000, y: -500, width: 1900, height: 1000 } as Node);
+  await run(destructive, { ...fullFor(destructive), page: pgTall });
+  const pastTall = pgTall.children.find((n) => n.name === 'button-destructive')!;
+  ok(at(pastTall) === '3060,0',
+    `#1750 a node that starts above the row and extends into it still pushes the set right (2900 + 160 = 3060), at 3060,0 (got ${at(pastTall)})`);
+
+  // (d) CONTENT BUT NO SET YET: top-aligned with the content, right of it. Frame at 100..600, y 40 → 760,40.
+  const pg3: Page = { children: [{ type: 'FRAME', name: 'intro', x: 100, y: 40, width: 500, height: 300 } as Node] };
+  await run(grid, { ...full(), page: pg3 });
+  const onContent = pg3.children.find((n) => n.name === 'button')!;
+  ok(at(onContent) === '760,40', `#1750 on a page with content and no set, the set lands right of it, top-aligned, at 760,40 (got ${at(onContent)})`);
+
+  // (e) A REBUILD NEVER MOVES A SET: the designer's placement wins, as it does for the page header.
+  first.x = 5000;
+  first.y = 7000;
+  const rAgain = await run(grid, { ...full(), page: pg });
+  ok(rAgain.set === 'button' && rAgain.added === 0 && at(first) === '5000,7000' && at(second) === '940,0',
+    `#1750 a rebuild leaves a set the designer moved where they put it, and its sibling where it was (button at ${at(first)}, button-destructive at ${at(second)})`);
+}
+
+// ---- #1750: page headers are placed after ALL of a run's builds, once per page ------------------------
+// `labelAfterBuilds` is the ordering `main.ts` runs its builds under. A header measures its content once, so
+// labeling after the first build (`checkbox-control`) would never cover the `checkbox-row` built next.
+{
+  const log: string[] = [];
+  const out = await labelAfterBuilds<string, string>(async (landed) => {
+    for (const [def, page] of [['checkbox-control', 'Checkbox'], ['checkbox-row', 'Checkbox'], ['focus-ring', 'Focus Ring'], ['checkbox-group', 'Checkbox']]) {
+      log.push(`build ${def}`);
+      landed(page, page);
+    }
+    return 'done';
+  }, async (page) => { log.push(`label ${page}`); });
+  ok(out === 'done' && log.join(' | ') === 'build checkbox-control | build checkbox-row | build focus-ring | build checkbox-group | label Checkbox | label Focus Ring',
+    `#1750 every build runs before any page is labeled, and each page is labeled once, in first-landing order (${log.join(' | ')})`);
+
+  const log2: string[] = [];
+  let thrown = '';
+  try {
+    await labelAfterBuilds<string, void>(async (landed) => {
+      log2.push('build checkbox-control');
+      landed('Checkbox', 'Checkbox');
+      log2.push('build checkbox-row');
+      throw new Error('row failed');
+    }, async (page) => { log2.push(`label ${page}`); });
+  } catch (e) { thrown = (e as Error).message; }
+  ok(thrown === 'row failed' && log2.join(' | ') === 'build checkbox-control | build checkbox-row | label Checkbox',
+    `#1750 a throw still labels the pages whose builds returned, and the original error propagates (${thrown}; ${log2.join(' | ')})`);
+
+  // AND `main.ts` RUNS ITS BUILDS UNDER IT. `main.ts` cannot be imported, so this reads its code lines (the
+  // SWAP_TARGET precedent above): the only call to `placeHeader(` is the label passed to `labelAfterBuilds`.
+  // Name-anchored (docs/34 shape 9): a rename of either function makes this fail, not pass.
+  const headerCalls = mainCode.split('\n').filter((l) => /\bplaceHeader\(/.test(l) && !/const placeHeader\b/.test(l));
+  ok(headerCalls.length === 1 && /\}, \(\{ page, defId \}\) => placeHeader\(page, defId\)\);/.test(headerCalls[0]) && /await labelAfterBuilds\(/.test(mainCode),
+    `#1750 main.ts places headers only as the label of labelAfterBuilds, never inside a build (${headerCalls.length} call site(s): ${headerCalls.map((l) => l.trim()).join(' / ')})`);
+}
+
+
+// ── #1812: every lever's manifest default is what the COMPONENT MATERIALIZER does with the lever unset ──
+// The engine half of this check (`packages/engine/test.ts`, #1812) runs the token emission both ways. A
+// lever the token tree cannot see is resolved here instead, when a def is materialized for a brand: the
+// button settings (`brandButtonLayout`'s `?? DEFAULT_BUTTON_LAYOUT`) and `controlShape`'s `boxed`/`pill`
+// (`?? 'rounded'`). SUBJECT = `leverManifest[].default`. ORACLE = `materializeForBrand` over every
+// component def, for a base brand with the lever UNSET and with it set to the manifest default. The
+// expected side is the materializer's own output, never the manifest.
+//
+// Bases: a literal minimal brand (the three required fields), aurora (`actionPalette: accent`, sharp
+// corners) and nb-redesign (the owner's NB shape: hairline controls, edge-locked button icons). Three,
+// not every brief: each materialization runs one `brandTheme` per def, and this arm is the slowest in
+// the file at three.
+//
+// Sensitivity (docs/34 shape 4): every (lever, value) PAIR the engine arm lists as TREE-BLIND must move
+// this materialization, or the no-op check above measured nothing for that value. Pairs, not levers:
+// `controlShape` moves the tree at `hairline` but not at `boxed` or `pill`, and a wrong `pill` default
+// is visible only here. The list is a literal copy of the engine arm's `TREE_BLIND_PAIRS`, deliberately
+// not imported: the engine arm fails if its list goes stale, and this one fails if a listed pair stops
+// reaching the defs.
+//
+// TRAP (2026-09-30): a main merge once resolved this whole block away (the conflict resolver matched on
+// an import it shared with main's new block) and verify stayed 67/67 green with the arm gone, because a
+// deleted arm fails nothing inside itself. So the ENGINE arm (`packages/engine/test.ts`, #1812) reads this
+// file and fails by name unless the sensitivity assertion below and every pair literal are present.
+{
+  const TREE_BLIND_PAIRS: [string, unknown][] = [
+    ['buttonContentSize', 'smaller'],
+    ['buttonIcons', 'edges'],
+    ['buttonMinWidthMultiplier', 1], ['buttonMinWidthMultiplier', 4],
+    ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
+  ];
+  const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
+  const setIn = (o: any, key: string, v: unknown): any => {
+    const c = structuredClone(o); const ps = key.split('.'); let a = c;
+    for (const p of ps.slice(0, -1)) a = a[p] ??= {};
+    a[ps[ps.length - 1]] = v; return c;
+  };
+  const materialized = (input: BrandInput): string => JSON.stringify(componentDefs.map((d) => materializeForBrand(d, input)));
+  const brief = (f: string): BrandInput => parseDesignMd(readFileSync(new URL(`../../packages/engine/examples/${f}`, import.meta.url), 'utf8')).input;
+  const minimal = { id: 'minimal-1812', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } } as BrandInput;
+  const bases: [string, BrandInput][] = [['minimal', minimal], ['aurora', brief('aurora.design.md')], ['nb-redesign', brief('nb-redesign.design.md')]];
+  const baseOut = new Map(bases.map(([id, b]) => [id, materialized(b)]));
+  const withDefault = leverManifest.filter((l) => l.default !== undefined);
+  const drift: string[] = [];
+  const unexercised: string[] = [];
+  for (const l of withDefault) {
+    let exercised = 0;
+    for (const [id, base] of bases) {
+      if (getIn(base, l.key) !== undefined) continue;
+      exercised++;
+      if (materialized(setIn(base, l.key, l.default)) !== baseOut.get(id)) drift.push(`${l.key}=${JSON.stringify(l.default)} on ${id}`);
+    }
+    if (!exercised) unexercised.push(l.key);
+  }
+  ok(unexercised.length === 0, `#1812 every lever with a manifest default is left unset by at least one base brand${unexercised.length ? ` — NEVER UNSET: ${unexercised.join(', ')}` : ''}`);
+  ok(drift.length === 0, `#1812 every lever's manifest default is what materializeForBrand does with the lever unset${drift.length ? ` — DIFFERS: ${drift.join('; ')}` : ''}`);
+
+  const blindUnmoved = TREE_BLIND_PAIRS.filter(([key, v]) => materialized(setIn(minimal, key, v)) === baseOut.get('minimal'))
+    .map(([key, v]) => `${key}=${JSON.stringify(v)}`);
+  ok(blindUnmoved.length === 0, `#1812 each tree-blind (lever, value) pair moves the materialized defs${blindUnmoved.length ? ` — UNMOVED: ${blindUnmoved.join(', ')}` : ''}`);
 }
 
 if (failed) process.exit(1);

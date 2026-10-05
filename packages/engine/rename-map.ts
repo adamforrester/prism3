@@ -140,7 +140,9 @@ export type VarRename = {
 };
 
 /** A collection to migrate. Authored, not derived — see the header. `since` is an `ENGINE_VERSION`
- *  (a collection name is invisible to the contract), unlike `VarRename.since`. */
+ *  (a collection name is invisible to the contract), unlike `VarRename.since`. A PR adding an entry
+ *  writes the placeholder {{ENGINE_VERSION}} as the whole single-quoted string, here and in `test.ts`'s
+ *  `EXPECTED_COLLECTION_SINCE`, and the fold fills in the version it assigns (#1816). */
 export type CollectionRename = { from: string; to: string; since: string };
 
 export type RenameMap = { collections: CollectionRename[]; variables: VarRename[] };

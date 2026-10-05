@@ -40,6 +40,7 @@ import {
 } from './src/prune-figma';
 import type { PruneInput, PruneApi, StyleKind, StyleNames, FileStyles } from './src/prune-figma';
 import type { BrandInput, Theme } from '@prism3/engine/theme';
+import { dead, dieOnRemove, removeOnce } from './removal-shim';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -62,27 +63,48 @@ const fileStyles = (partial: Partial<FileStyles>): FileStyles =>
 // Objects the executor deletes through `.remove()` (and, for modes, `removeMode`). A removed collection is
 // modelled as taking its variables with it (Figma's cascade), so a "survivor" is a live object in a live
 // collection.
+//
+// A REMOVED OBJECT IS DEAD, as it is in the host: reading any property of it but `id` and `removed` throws
+// the host's own error. The helpers live in `removal-shim.ts` (moved there unchanged, so `test-mcp-paste.ts`
+// models the same host); its header holds the live failure they reproduce.
 class RVar {
   removed = false;
-  constructor(public id: string, public name: string, public variableCollectionId: string) {}
-  remove(): void { this.removed = true; }
+  constructor(public id: string, public name: string, public variableCollectionId: string) {
+    dieOnRemove(this, 'variable', ['name', 'variableCollectionId']);
+  }
+  remove(): void { removeOnce(this, 'variable'); }
 }
 class RColl {
   removed = false;
-  constructor(public id: string, public name: string, public modes: { modeId: string; name: string }[] = [{ modeId: `${id}:m0`, name: 'Mode 1' }]) {}
-  removeMode(modeId: string): void { this.modes = this.modes.filter((m) => m.modeId !== modeId); }
-  remove(): void { this.removed = true; }
+  /** The variables a removed collection takes with it — wired by the shim that owns both. */
+  cascade: { removed: boolean }[] = [];
+  constructor(public id: string, public name: string, public modes: { modeId: string; name: string }[] = [{ modeId: `${id}:m0`, name: 'Mode 1' }]) {
+    dieOnRemove(this, 'variable collection', ['name', 'modes']);
+  }
+  removeMode(modeId: string): void {
+    if (this.removed) throw dead('variable collection', this.id, 'removeMode');
+    this.modes = this.modes.filter((m) => m.modeId !== modeId);
+  }
+  remove(): void { removeOnce(this, 'variable collection'); for (const v of this.cascade) v.removed = true; }
 }
+let styleSeq = 0;
 class RStyle {
   removed = false;
+  id = `S:${(++styleSeq).toString(16).padStart(4, '0')},`;
   /** Written by the REAL `applyGridStylePlan` (`s.description = row.description`), which is what makes the
    *  descriptions the #1577 arm is tested against the ENGINE's own rather than strings typed here. */
   description = '';
-  constructor(public name: string) {}
-  remove(): void { this.removed = true; }
+  constructor(public name: string) {
+    dieOnRemove(this, 'style', ['name', 'description']);
+  }
+  remove(): void { removeOnce(this, 'style'); }
 }
 class PruneShim {
-  constructor(public colls: RColl[], public vars: RVar[], public styles: Record<StyleKind, RStyle[]>) {}
+  constructor(public colls: RColl[], public vars: RVar[], public styles: Record<StyleKind, RStyle[]>) {
+    for (const c of colls) c.cascade = vars.filter((v) => v.variableCollectionId === c.id);
+  }
+  /** A live collection by name — the lookup a test makes AFTER a prune, which must skip the dead ones. */
+  coll(name: string): RColl | undefined { return this.colls.find((c) => !c.removed && c.name === name); }
   async getLocalVariableCollectionsAsync(): Promise<RColl[]> { return this.colls; }
   async getLocalVariablesAsync(): Promise<RVar[]> { return this.vars; }
   async getLocalTextStylesAsync(): Promise<RStyle[]> { return this.styles.text; }
@@ -90,10 +112,7 @@ class PruneShim {
   async getLocalPaintStylesAsync(): Promise<RStyle[]> { return this.styles.paint; }
   async getLocalGridStylesAsync(): Promise<RStyle[]> { return this.styles.grid; }
   /** Live = not removed, in a collection that is not removed (the cascade). */
-  liveVarNames(): Set<string> {
-    const deadColl = new Set(this.colls.filter((c) => c.removed).map((c) => c.id));
-    return new Set(this.vars.filter((v) => !v.removed && !deadColl.has(v.variableCollectionId)).map((v) => v.name));
-  }
+  liveVarNames(): Set<string> { return new Set(this.vars.filter((v) => !v.removed).map((v) => v.name)); }
   liveCollNames(): Set<string> { return new Set(this.colls.filter((c) => !c.removed).map((c) => c.name)); }
   liveStyleNames(kind: StyleKind): Set<string> { return new Set(this.styles[kind].filter((s) => !s.removed).map((s) => s.name)); }
 }
@@ -348,6 +367,111 @@ ok(noRoot.modes.length > 0 && noRoot.styles.length > 0,
   'root empty does NOT disable the mode + style arms — neither namespace is built from the brand root');
 
 // =============================================================================================
+// READ-AFTER-REMOVE — the live failure. A confirmed prune on a real Figma test file (engine 0.202.0)
+// removed 1 variable, 6 modes and exactly ONE text style, then stopped with
+// `prune failed: in get_name: The style with id "S:…" does not exist`: the style loop read `.name` off the
+// style it had just removed. The shim above now throws the same way; this arm pins both halves — that the
+// shim is dead after `remove()` (else the arm below is vacuous), and that the executor never touches a
+// removed object. Every expected value is a literal typed here. It runs BEFORE the synthetic executor arm
+// below, whose unguarded `await` would otherwise end the run on the throw before this arm could name it.
+// =============================================================================================
+{
+  const caught = (read: () => unknown): string => { try { read(); return ''; } catch (e) { return (e as Error).message; } };
+  const deadStyle = new RStyle('probe/style');
+  deadStyle.remove();
+  ok(/^in get_name: The style with id "S:[0-9a-f]{4}," does not exist$/.test(caught(() => deadStyle.name)),
+    `shim premise: reading .name off a removed style throws the host's error ("${caught(() => deadStyle.name)}")`);
+  const deadVar = new RVar('VariableID:9:1', 'probe/var', 'VariableCollectionId:9:0');
+  deadVar.remove();
+  ok(caught(() => deadVar.name) === 'in get_name: The variable with id "VariableID:9:1" does not exist',
+    `shim premise: reading .name off a removed variable throws the host's error ("${caught(() => deadVar.name)}")`);
+  const deadColl = new RColl('VariableCollectionId:9:0', 'probe');
+  deadColl.remove();
+  ok(caught(() => deadColl.name) === 'in get_name: The variable collection with id "VariableCollectionId:9:0" does not exist',
+    `shim premise: reading .name off a removed collection throws the host's error ("${caught(() => deadColl.name)}")`);
+
+  // Removed items are interleaved with survivors in every list, so a loop that reads a dead object on its
+  // way to a live one is exercised, not only the last-item case.
+  const color = new RColl('C:1', 'color');
+  const stale = new RColl('C:2', 'color.stale');
+  const rafVars = [
+    new RVar('V:1', 'nbds/color/old-a', 'C:1'),
+    new RVar('V:2', 'nbds/color/keep', 'C:1'),
+    new RVar('V:3', 'nbds/color/old-b', 'C:1'),
+    new RVar('V:4', 'nbds/color/old-c', 'C:1'),
+    new RVar('V:5', 'nbds/color/stale/x', 'C:2'),
+  ];
+  const rafShim = new PruneShim([color, stale], rafVars, {
+    text: [new RStyle('display/2xl'), new RStyle('display/xl'), new RStyle('body/old'), new RStyle('body/md')],
+    effect: [new RStyle('shadow/old'), new RStyle('shadow/md')],
+    paint: [new RStyle('gradient/old')],
+    grid: [new RStyle('Grid / xs'), new RStyle('Grid / md')],
+  });
+  let rafRes: Awaited<ReturnType<typeof applyPrunePlan>> | undefined;
+  const thrown = await applyPrunePlan(
+    {
+      variables: [{ collection: 'color', names: ['nbds/color/old-a', 'nbds/color/old-b', 'nbds/color/old-c'] }],
+      collections: ['color.stale'],
+      modes: [],
+      styles: [
+        { kind: 'text', names: ['display/2xl', 'body/old'], byProvenance: [] },
+        { kind: 'effect', names: ['shadow/old'], byProvenance: [] },
+        { kind: 'paint', names: ['gradient/old'], byProvenance: [] },
+        { kind: 'grid', names: ['Grid / xs'], byProvenance: [] },
+      ],
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies PruneApi
+    rafShim as any as PruneApi,
+  ).then((r) => { rafRes = r; return ''; }, (e: Error) => e.message);
+  ok(thrown === '',
+    `read-after-remove: a confirmed prune of 5 styles across 4 kinds, 3 variables and 1 collection completes without touching a removed object${thrown ? ` (threw "${thrown}")` : ''}`);
+  ok(rafRes?.styles === 5 && rafRes?.variables === 3 && rafRes?.collections === 1 && rafRes?.modes === 0,
+    `read-after-remove: the counts are 5 styles, 3 variables, 1 collection, 0 modes (got ${rafRes ? `${rafRes.styles}/${rafRes.variables}/${rafRes.collections}/${rafRes.modes}` : 'no result'})`);
+  ok(rafRes?.misses.length === 0, `read-after-remove: no misses (${rafRes ? rafRes.misses.join(', ') || 'none' : 'no result'})`);
+  ok([...rafShim.liveVarNames()].sort().join(',') === 'nbds/color/keep',
+    `read-after-remove: only the kept variable is live, the stale collection's went with it (${[...rafShim.liveVarNames()].sort().join(',')})`);
+  ok([...rafShim.liveCollNames()].join(',') === 'color', `read-after-remove: only the owned collection is live (${[...rafShim.liveCollNames()].join(',')})`);
+  ok([...rafShim.liveStyleNames('text')].join(',') === 'display/xl,body/md'
+    && [...rafShim.liveStyleNames('effect')].join(',') === 'shadow/md'
+    && rafShim.liveStyleNames('paint').size === 0
+    && [...rafShim.liveStyleNames('grid')].join(',') === 'Grid / md',
+    'read-after-remove: every planned style is gone in every kind, and every other style is live');
+
+  // --- duplicate groups: an object two plan groups both name is removed ONCE, the second naming a miss ---
+  // Two text groups name `display/2xl`; two variable groups for `color` name `nbds/color/old`. The shim's
+  // second `remove()` throws, as the host has nothing left to remove, so an executor without the
+  // removed-once guard throws here rather than double-counting quietly.
+  const dupVars = [new RVar('V:11', 'nbds/color/old', 'C:11'), new RVar('V:12', 'nbds/color/keep', 'C:11')];
+  const dupStyles = [new RStyle('display/2xl'), new RStyle('display/xl')];
+  const dupShim = new PruneShim([new RColl('C:11', 'color')], dupVars, { text: dupStyles, effect: [], paint: [], grid: [] });
+  let dupRes: Awaited<ReturnType<typeof applyPrunePlan>> | undefined;
+  const dupThrown = await applyPrunePlan(
+    {
+      variables: [
+        { collection: 'color', names: ['nbds/color/old'] },
+        { collection: 'color', names: ['nbds/color/old'] },
+      ],
+      collections: [],
+      modes: [],
+      styles: [
+        { kind: 'text', names: ['display/2xl'], byProvenance: [] },
+        { kind: 'text', names: ['display/2xl'], byProvenance: [] },
+      ],
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies PruneApi
+    dupShim as any as PruneApi,
+  ).then((r) => { dupRes = r; return ''; }, (e: Error) => e.message);
+  ok(dupThrown === '',
+    `duplicate groups: a style named by two text groups and a variable named by two groups for one collection are each removed without a second remove()${dupThrown ? ` (threw "${dupThrown}")` : ''}`);
+  ok(dupRes?.styles === 1 && dupRes?.variables === 1,
+    `duplicate groups: each is counted once — 1 style, 1 variable (got ${dupRes ? `${dupRes.styles}/${dupRes.variables}` : 'no result'})`);
+  ok(dupRes?.misses.join(',') === 'var:color/nbds/color/old,text-style:display/2xl',
+    `duplicate groups: the second naming of each is a miss, "var:color/nbds/color/old,text-style:display/2xl" (got "${dupRes ? dupRes.misses.join(',') : 'no result'}")`);
+  ok(dupStyles[0].removed && !dupStyles[1].removed && dupVars[0].removed && !dupVars[1].removed,
+    'duplicate groups: the named style and variable are gone, and their neighbors are live');
+}
+
+// =============================================================================================
 // EXECUTOR — deletes EXACTLY the plan, and nothing else. Driven on the synthetic file above.
 // =============================================================================================
 const shim = new PruneShim(
@@ -373,12 +497,12 @@ ok(liveVars.has('my-brand/foo'),
   'executor: the foreign stranded collection’s variable survives with it (its collection was not removed)');
 // Modes: the layout collection is left holding exactly the plan's two, one `sm`, and the survivor is the
 // copy the writer claims — so the next apply writes into the mode the designer's layers resolve through.
-const liveLayout = shim.colls.find((c) => c.name === 'layout')!;
+const liveLayout = shim.coll('layout')!;
 ok(liveLayout.modes.map((m) => m.name).join(',') === 'sm,md',
   `executor: the shrunk collection is left holding exactly the plan's modes (${liveLayout.modes.map((m) => m.name).join(',')})`);
 ok(liveLayout.modes.map((m) => m.modeId).join(',') === 'lay-xs-renamed,lay-md',
   `executor: the surviving \`sm\` is the copy \`claimModes\` claimed, by id (${liveLayout.modes.map((m) => m.modeId).join(',')}) — removing the other one is what makes the name unambiguous again`);
-ok(shim.colls.find((c) => c.name === 'radius')!.modes.length === 1,
+ok(shim.coll('radius')!.modes.length === 1,
   'executor: the untouched collection keeps its one mode — Figma refuses to remove a collection’s last mode, and the detector never asked');
 for (const kind of STYLE_KINDS) {
   const live = shim.liveStyleNames(kind);
@@ -400,6 +524,7 @@ ok(missRes.variables === 0 && missRes.collections === 0 && missRes.modes === 0 &
   `executor records a miss for every named item absent from the file (${missRes.misses.length} misses), never throws`);
 ok(missRes.misses.some((m) => m.startsWith('mode:layout/')) && missRes.misses.some((m) => m.startsWith('grid-style:')),
   `misses name the KIND as well as the item, so a mode miss and a grid-style miss are distinguishable (${missRes.misses.filter((m) => !m.startsWith('var:')).slice(0, 3).join(', ')})`);
+
 
 // =============================================================================================
 // REAL-PLAN ARM — the shipped NB plans, so `root` and the `<root>/…` names are the engine's own.
@@ -586,9 +711,14 @@ class ShrinkVar {
   hiddenFromPublishing = false;
   removed = false;
   valuesByMode: Record<string, unknown> = {};
-  constructor(public id: string, public name: string, public variableCollectionId: string) {}
-  setValueForMode(modeId: string, value: unknown): void { this.valuesByMode[modeId] = value; }
-  remove(): void { this.removed = true; }
+  constructor(public id: string, public name: string, public variableCollectionId: string) {
+    dieOnRemove(this, 'variable', ['name', 'variableCollectionId', 'scopes', 'description', 'hiddenFromPublishing', 'valuesByMode']);
+  }
+  setValueForMode(modeId: string, value: unknown): void {
+    if (this.removed) throw dead('variable', this.id, 'setValueForMode');
+    this.valuesByMode[modeId] = value;
+  }
+  remove(): void { removeOnce(this, 'variable'); }
 }
 /** One shim satisfying BOTH ports — `VariablesApi` for the write, `PruneApi` for the delete. Deliberately
  *  one object: the whole point of this arm is that the prune reads the file the write produced. */

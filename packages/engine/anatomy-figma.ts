@@ -23,9 +23,9 @@
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
 import type { AxisKind, ComponentDef, PartDef, SizingMode } from './component-schema';
-import { axisKindOf, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
-import type { ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight } from './scale';
-import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER } from './scale';
+import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
+import type { ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight, Density } from './scale';
+import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth, visibleGapStep } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
 // nothing back from here (no cycle); `theme.ts` already bundles into the plugin alongside this file.
@@ -1272,12 +1272,22 @@ export const figmaAnatomyPlan = (
     // A NODE-VISIBILITY BOOLEAN part (#1331) is EMITTED at every member — the boolean flips its `visible`
     // in place, so the node has to exist for there to be anything to toggle. This leads `present()` because
     // the part is also `optional` (the mechanism requires it) and may be one of the hardcoded slot names,
-    // both of which the lines below would otherwise DROP it on. `figmaPropertyErrors` refuses a boolean on
-    // a `when`-gated part, so no second presence mechanism contends here. The ONE composition it admits is
-    // a boolean over several `presentWhen`-gated parts that PARTITION an axis between them (switch-control's
-    // check/X under `State icon`): such a part falls through to its variant gate below, and the boolean
-    // still has exactly one node to toggle at every member (the partition is `figmaPropertyErrors`' check).
-    if (booleanParts.has(name) && !a.parts[name]?.presentWhen) return true;
+    // both of which the lines below would otherwise DROP it on.
+    //
+    // A VARIANT gate composes with it, and it is evaluated HERE, before those lines, so an optional or
+    // slot-named boolean part is never dropped ahead of its own gate. ONE path for both users (the #1743
+    // merge of #1765): Tag's check (one part, present only at `type=select × selection=selected`) and
+    // switch-control's `State icon` (the check at `selection=on`, the X at `selection=off`). AND across axes,
+    // and an axis the caller did not supply reads as ABSENT — the same rule the variant-gated branch below
+    // applies. `figmaPropertyErrors` refuses a boolean on a STATE gate (`when`, or `presentWhen`'s `state`
+    // key) and a boolean whose parts could both build at one member, so neither reaches this line.
+    if (booleanParts.has(name)) {
+      for (const [axis, values] of Object.entries(a.parts[name]?.presentWhen ?? {})) {
+        const v = axisValue(axis);
+        if (v === undefined || !values.includes(v)) return false;
+      }
+      return true;
+    }
     // The replaced part yields its cell — one node in one position, not two fighting for it. Figma
     // builds every variant as its own tree, so there is nothing to hide: the `pending` variant simply
     // has a spinner where the leading visual would otherwise be.
@@ -1306,9 +1316,7 @@ export const figmaAnatomyPlan = (
     // measured symptom: `state=focus-visible` emitted a plan byte-identical to `rest` in all 108 rows,
     // because the ring was not a part at all and nothing else distinguishes focus.
     if (p?.kind === 'absolute') return !!p.when && p.when === state;
-    // A boolean part that passed its variant gate is BUILT even though it is `optional` (the boolean
-    // requires that) — its visibility is the boolean's, not this function's.
-    return !p?.optional || booleanParts.has(name);
+    return !p?.optional;
   };
 
   /* WHERE A TRAVELING CHILD PUTS ITS PARENT'S DISTRIBUTION (#990). A switch's thumb declares
@@ -1461,6 +1469,8 @@ export const figmaAnatomyPlan = (
       if (p.height) bound.height = varOf(p.height);
       // A token-bound height FLOOR: the row still hugs, and measures max(floor, tallest child).
       if (p.minHeight) bound.minHeight = varOf(p.minHeight);
+      // A token-bound width FLOOR (`minWidthKey`): the row still hugs, and measures max(floor, content).
+      if (p.minWidthKey) bound.minWidth = varOf(p.minWidthKey);
       // A SQUARE box binds one key to both axes (IconButton's control). The same two-axes-one-variable
       // shape a slot's artboard uses, and legal for the same reason — the executor unlocks the node's
       // aspect ratio before binding, so the second write does not displace the first. Mutually exclusive
@@ -1498,7 +1508,9 @@ export const figmaAnatomyPlan = (
         // which is why this is additive rather than a redefinition of padding-x.
         const inlineVisual = p.padding.inlineVisual ?? p.padding.inlineLabel;
         bound.paddingLeft = varOf(leadingFilled ? inlineVisual : p.padding.inlineLabel);
-        bound.paddingRight = varOf(trailingFilled ? inlineVisual : p.padding.inlineLabel);
+        // A def that names its trailing side's own key (`inlineEnd`, Tag's dismissible row: 0 against the ×
+        // slot) takes it there; the validator refuses it beside `inlineVisual`, so the two never compete.
+        bound.paddingRight = varOf(p.padding.inlineEnd ?? (trailingFilled ? inlineVisual : p.padding.inlineLabel));
         // A PINNED cell's side (#1667) trades its binding for the literal reserve: the pinned node is out of
         // flow, so the padding holds its room. Keyed off `pin`, and off the CELL being filled (the caller's
         // slot or an overlay that took it), the same question the two lines above ask.
@@ -1885,10 +1897,8 @@ export const PILL_RADIUS_RUNG = 'radius.capsule';
 export const BOXED_RADIUS_RUNG = 'radius.none';
 
 /** The rung a pill-able control binds under `controlShape: hairline` (#1371) — the fixed 1px sentinel
- *  (#1362). `radius.hairline` is OPT-IN: it exists only when the brand's `radiusHairline` lever is on, so
- *  selecting `controlShape: hairline` IMPLIES that rung — `brandTheme` provisions `radius.hairline`
- *  whenever the control shape needs it (theme.ts), which is what keeps this rewrite always resolvable
- *  rather than dangling against a brand that never opted in. */
+ *  (#1362). Every brand emits `radius.hairline` since #2053 (`radiusScale` pushes it unconditionally), so
+ *  this rewrite always resolves, as `boxed`'s `radius.none` always has. */
 export const HAIRLINE_RADIUS_RUNG = 'radius.hairline';
 
 /** The rung each shape repoints the ROUNDED rung (`radius.md`) to on a pill-able def. `rounded` is `null`
@@ -1923,9 +1933,8 @@ export const isPillable = (def: ComponentDef): boolean => !!def.anatomy?.derived
  *
  * EACH SHAPE NAMES A RELATIONSHIP, NOT A RAW RADIUS (#1371). The four values are one selector reaching four
  * rungs by ref: `rounded` tracks the softness ramp, `pill` is the unconditional height ÷ 2, `boxed` is the
- * always-present sharp floor, and `hairline` is the opt-in 1px sentinel. `boxed`'s `radius.none` always
- * exists, so it is valid for any brand; `hairline`'s `radius.hairline` is provisioned by `brandTheme`
- * whenever `controlShape: hairline` is chosen (see `HAIRLINE_RADIUS_RUNG`), so this rewrite never dangles.
+ * always-present sharp floor, and `hairline` is the always-present 1px sentinel (#2053). Both rungs exist
+ * for every brand, so neither rewrite can dangle (see `HAIRLINE_RADIUS_RUNG`).
  *
  * WHY IT KEYS ON THE ROUNDED RUNG (`radius.md`) RATHER THAN THE LITERAL KEY `radius` (#1353). Before the
  * icon-button `shape` axis, both pill-able defs bound their corner radius through a token key spelled
@@ -2075,6 +2084,67 @@ export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (
   return { ...def, tokens, anatomy: { ...a, parts } };
 };
 
+// ── SPACING DENSITY (the spacing model, 2026-09-29) ─────────────────────────────────────────────────
+//
+// "Size is for size, space is for space": a def states its own padding and gaps as `space.*` steps at
+// COMFORTABLE density, and names them in `densitySpacing`. Density moves them BY RULE, one step along the
+// space ladder (`densitySpace`), materialized before projection for `applyControlShape`'s reason — the
+// projector stays a pure function of its def. It replaces the density window padding used to ride on as
+// `size.<rung>.padding-*`; heights keep that window.
+
+/**
+ * Materialize a def's spacing for a brand's density. Identity at `comfortable` and for a def that names no
+ * `densitySpacing` (it returns the same object, so every comfortable plan is byte-identical). At `compact`
+ * every named key's step moves ONE STEP DOWN the space ladder, at `spacious` ONE STEP UP, clamped at the
+ * ladder's ends, and a GAP never below `GAP_FLOOR_PX` (`densitySpacingStep`). Keys off the list are
+ * untouched, which is how a 0px inset stays 0 at every density. Then each `visibleGaps` layer gap is
+ * rewritten from its moved visible gap less its fixed inset (`visibleGapStep`), so the floor lands on what
+ * the eye sees and never on the layer gap.
+ *
+ * Per-mode density (`modeLevers.<mode>.density`) does NOT reach this: a Figma component binds one `space/*`
+ * variable per side, and the space collection is density-free, so a mode that runs a different density
+ * moves its heights (`size.*.height` carries the per-mode value) and keeps the brand's baseline spacing.
+ */
+export const applySpacingDensity = (def: ComponentDef, density: Density): ComponentDef => {
+  if (density === 'comfortable' || !def.densitySpacing?.length) return def;
+  const tokens = { ...def.tokens };
+  for (const k of densitySpacingKeys(def)) {
+    const ref = tokens[k];
+    if (ref === undefined) throw new Error(`${def.id}: densitySpacing names '${k}', which is not a slot in tokens`);
+    tokens[k] = densitySpacingStep(k, ref, density);
+  }
+  // A layer gap under a fixed inset (`visibleGaps`, the dismissible Tag): what is left of the visible gap,
+  // now that it has taken its step and its floor, once the inset is taken off. Never floored itself.
+  for (const g of visibleGapKeys(def)) tokens[g.gap] = visibleGapStep(tokens[g.visible], tokens[g.inset]);
+  return { ...def, tokens };
+};
+
+/**
+ * Materialize every `minWidthRatio` floor into the per-size literal `minWidth` (Tag, owner 2026-09-29: 1.5 ×
+ * the height, rounded to the nearest 8px). Figma binds a variable, not an expression, so the floor reaches
+ * Figma the way Button's does (#1667): a literal per size, written from the brand's resolved heights (`px`),
+ * which a brand change reaches on a rebuild. Identity for a def with no ratio floor. THROWS when a size's
+ * height does not resolve, Button's reason: a missing floor at one size is the silent-loss shape.
+ */
+export const applyMinWidthRatio = (def: ComponentDef, px: (ref: string) => number | undefined): ComponentDef => {
+  const a = def.anatomy;
+  if (!a || !Object.values(a.parts).some((p) => p.minWidthRatio !== undefined)) return def;
+  const sizes = densitySizeValues(def);
+  const parts: Record<string, PartDef> = {};
+  for (const [name, p] of Object.entries(a.parts)) {
+    if (p.minWidthRatio === undefined) { parts[name] = p; continue; }
+    const minWidth = Object.fromEntries(sizes.map((v) => {
+      const ref = def.tokens[p.height!.replace('{size}', v)];
+      const h = ref === undefined ? undefined : px(ref);
+      if (h === undefined) throw new Error(`${def.id}: part '${name}' at size '${v}' floors at ${p.minWidthRatio} × its height, and the height ${ref ?? '(unbound)'} does not resolve`);
+      return [v, ratioMinWidth(h, p.minWidthRatio!)];
+    }));
+    const { minWidthRatio: _r, ...rest } = p;
+    parts[name] = { ...rest, minWidth };
+  }
+  return { ...def, anatomy: { ...a, parts } };
+};
+
 // ── WEIGHT INTENT (#1602) ───────────────────────────────────────────────────────────────────────
 //
 // A component that varies by weight declares an INTENT — `regular`, `bold` — and the BRAND decides
@@ -2218,6 +2288,10 @@ export const applyWeightIntent = (def: ComponentDef, avail: WeightAvailability):
  *  anchored — `color.inverse.interactive.*` is never AUTHORED (the projector's surface rewrite
  *  supplies it), so a def that authored one would pass through untouched rather than half-rewritten. */
 const OUTLINE_OVERLAY_REF = /^color\.interactive\.([^.]+)\.overlay\.([^.]+)$/;
+/** A page-ground SUBTLE FILL a def binds by name: Tag's selected tint, `color.interactive.primary.subtle-fill.selected`
+ *  (owner, 2026-09-29). Emitted under `overlay-neutral` (that one leaf) and `solid-tint` (the family), and under
+ *  `none` not at all — so under `none` the entry is DROPPED, the same way a wash is. */
+const OUTLINE_SUBTLE_REF = /^color\.interactive\.([^.]+)\.subtle-fill\.([^.]+)$/;
 
 /**
  * Materialize a def for a brand's `outlineInteraction` lever (#1608), BEFORE projection — the third
@@ -2237,7 +2311,8 @@ const OUTLINE_OVERLAY_REF = /^color\.interactive\.([^.]+)\.overlay\.([^.]+)$/;
  *                         falls through to its `fill` slot — none for outline/text (no hover wash, the
  *                         intended "no hover expression"), the rest fill for a field. Dropping rather
  *                         than binding transparent is what makes this a non-event on the host: no
- *                         variable is asked for, so there is nothing to miss.
+ *                         variable is asked for, so there is nothing to miss. A bound SUBTLE FILL (Tag's
+ *                         selected tint, 2026-09-29) is dropped the same way: `none` emits none of them.
  *
  * `solid-tint` binds `color.interactive.<color>.subtle-fill.<state>` — the TINTED WASH VARIABLE, whose value in
  * each mode is the category's fill variable aliased at the opacity step the engine chose (#1614, `settleSolidTint`),
@@ -2249,9 +2324,11 @@ const OUTLINE_OVERLAY_REF = /^color\.interactive\.([^.]+)\.overlay\.([^.]+)$/;
  */
 export const applyOutlineInteraction = (def: ComponentDef, method: Theme['outlineInteraction']): ComponentDef => {
   if (method === 'overlay-neutral') return def;
-  if (!Object.values(def.tokens).some((ref) => OUTLINE_OVERLAY_REF.test(ref))) return def;
+  const touched = (ref: string) => OUTLINE_OVERLAY_REF.test(ref) || (method === 'none' && OUTLINE_SUBTLE_REF.test(ref));
+  if (!Object.values(def.tokens).some(touched)) return def;
   const tokens: Record<string, string> = {};
   for (const [k, ref] of Object.entries(def.tokens)) {
+    if (method === 'none' && OUTLINE_SUBTLE_REF.test(ref)) continue;
     const m = OUTLINE_OVERLAY_REF.exec(ref);
     if (!m) { tokens[k] = ref; continue; }
     const role = outlineFillRole(method, m[1], m[2]);
@@ -2913,6 +2990,54 @@ export const nestVariantMatch = (wanted: Record<string, string>, members: readon
 export const nestVariantMatchSrc = (): string => nestVariantMatch.toString();
 
 /**
+ * WHICH COMPONENT A `nest-fixed` / `nest-exposed` PART INSTANTIATES, when its target is a SET (#1781).
+ *
+ * THE MEMBER COMES OUT OF THE NAMED SET'S OWN CHILDREN, and nowhere else. Both executors used to take the
+ * member NAME `nestVariantMatch` returned (`size=small`, `selection=unchecked, size=small, state=rest`) and
+ * look it up again in the document-wide COMPONENT map. A set's members are named by coordinate alone, so
+ * that map holds every set's `size=small` under one key and keeps whichever the search returned last. The
+ * set was found correctly and then thrown away: `checkbox-group` nested `switch-row/size=small`, `radio-group`
+ * nested `__old__radio-group/size=large`, and `checkbox-row` nested `radio-control`, which carries exactly
+ * the member names `checkbox-control` does. Every one of those built and reported success, because a member
+ * of the wrong set is still a valid component with the right name.
+ *
+ * THE SET IS FOUND BY EXACT NAME, never by containment or prefix. A set renamed aside (`__old__checkbox-row`)
+ * is a different set, and a rename is exactly how a stale copy is kept alive during a rebuild. TWO sets under
+ * the exact name are AMBIGUOUS and are refused: there is no property that says which one the def means, and
+ * every rule for choosing (first found, last found) is document order, the #656 shape one level up.
+ *
+ * RETURNS `null` when no set carries the name (the caller's four-way `nestMissAdvice` diagnosis takes over),
+ * `{ member }` on a resolution, and `{ miss }` otherwise — the miss WITHOUT the part name, which each caller
+ * prefixes. One function decides AND words the outcome for both executors, so they cannot drift in either.
+ *
+ * SHIPPED AS SOURCE to the paste payload (`resolveNestMemberSrc`), so it closes over nothing in this module:
+ * `match` and `unmatched` are `nestVariantMatch` and `nestVariantMissAdvice`, passed in, because a free
+ * reference to a module binding reads a name the bundler is free to rename. Same constraints as
+ * `nestVariantMissAdvice`: no template literal, no `?.`, no `??`. And written for bytes, because every byte
+ * of it ships in every paste chunk's shell (see `SET_CHUNK_BYTES`).
+ */
+export const resolveNestMember = <C extends { name?: string; type?: string; createInstance?: unknown }>(
+  sets: readonly { name?: string; children?: readonly C[] }[],
+  target: string,
+  wanted: Record<string, string>,
+  match: (wanted: Record<string, string>, members: readonly string[]) => string | null,
+  unmatched: (wanted: Record<string, string>, members: readonly string[]) => string,
+): { member: C; miss?: undefined } | { miss: string } | null => {
+  const named = sets.filter((s) => s.name === target);
+  if (!named.length) return null;
+  if (named.length > 1) return { miss: '.nestTarget -> ' + target + ' (found ' + named.length + ' COMPONENT_SETs named ' + target + '; nothing built — a nest resolves only inside the one set its def names. Rename or remove the stale copy, then rebuild)' };
+  const kids = named[0].children || [];
+  const members = kids.map((c) => c.name || '');
+  const hit = match(wanted, members);
+  const member = hit ? kids.filter((c) => c.name === hit)[0] : undefined;
+  if (member && member.type === 'COMPONENT' && member.createInstance) return { member };
+  return { miss: '.nestVariant -> ' + target + ' (' + (hit ? 'matched member ' + hit + ' of ' + target + ' is not a component; nothing built' : unmatched(wanted, members)) + ')' };
+};
+
+/** `resolveNestMember` as source, for the paste payload. See `nestVariantMissAdviceSrc` for why. */
+export const resolveNestMemberSrc = (): string => resolveNestMember.toString();
+
+/**
  * WHAT A MISSING SWAP TARGET ACTUALLY IS, in the message the designer reads (#1212 residue, #1280 PR-C,
  * #1288).
  *
@@ -3129,13 +3254,18 @@ const compByName=new Map(comps.map(c=>[c.name,c]));
 // A SECOND criteria call, sets only (#681). Two calls rather than one widened call for the reason the
 // executor's port states: the COMPONENT map is instantiated from and a ComponentSetNode has no
 // createInstance, so one map per node type keeps each read honest about what it holds.
+// A LIST, not a name->set map (#1781): a map keeps one set per name and drops the rest, and two sets under
+// the exact name a def targets is an ambiguity to REPORT. \`resolveNestMember\` filters it by exact name.
 const compSets=figma.root.findAllWithCriteria({types:['COMPONENT_SET']});
-const setByName=new Map(compSets.map(s=>[s.name,s]));
 // The two shared miss helpers, shipped as SOURCE rather than as baked strings: both take runtime
 // arguments (the coordinate, the member list) that only exist in the live file. One definition, in
 // anatomy-figma.ts, called by both executors — which is what stops the wording drifting.
 const nestVariantMatch=${nestVariantMatchSrc()};
 const nestVariantMissAdvice=${nestVariantMissAdviceSrc()};
+// WHICH member a nest instantiates, decided ONCE for both executors (#1781): out of the named set's own
+// children, never re-looked-up by member name across the file, and never from a set whose name only
+// contains or prefixes the target. Shipped as source for the same reason as the two helpers above.
+const resolveNestMember=${resolveNestMemberSrc()};
 // THE SWAP MISS, FOUR WAYS (#1288) — the same table the plugin's two \`INSTANCE_SWAP\` consumers report
 // through, reaching this payload by the OTHER of the two mechanisms in this preamble. The helpers above
 // ship their SOURCE because they take runtime arguments; these four sentences take only the target, so
@@ -3163,8 +3293,10 @@ for(const [t,names] of seenTail) if(names.length>1) misses.push('AMBIGUOUS varia
 /**
  * THE RESERVED-LINES WRITE (textarea's `rows`), spliced into `PAYLOAD_BUILD`'s child loop ONLY for a
  * payload whose plans carry `minLines` — so every other payload is byte-identical. That is a budget
- * decision, measured: Button's #536 probe grid packed to 41,983 of `SET_CHUNK_BYTES`' 42,000, and these
- * lines unconditional pushed it into a second chunk. Applied by the PARENT after the append, because a
+ * decision: shell bytes ship in every chunk of every set, so an unconditional line costs chunks everywhere.
+ * (When it was made, Button's #536 probe grid packed to 41,983 of `SET_CHUNK_BYTES`' 42,000 and had to stay
+ * one chunk. Since #1798 the grid may split, and the gate that fails is the indivisible unit, one variant
+ * plus the shell, held to 90% of the budget in `test.ts`.) Applied by the PARENT after the append, because a
  * minimum size belongs to an auto-layout CHILD. The count is the plan's; the line height is the host's,
  * read off the node its style was just applied to — `PIXELS` as is, `PERCENT` of the font size. `AUTO`
  * has no number to multiply, so it is reported rather than guessed. Frozen at paste, like the ring inset.
@@ -3180,8 +3312,9 @@ const PAYLOAD_MIN_LINES = `    if(c.minLines){
 const hasMinLines = (n: FigmaNodePlan): boolean => n.minLines !== undefined || n.children.some(hasMinLines);
 /**
  * THE PINNED ICONS (#1667, "Locked to edges"), spliced in after the flow pass ONLY for a payload whose plans
- * carry a `pin` — the `MIN_LINES_SLOT` budget decision again: unconditional, these lines pushed Button's #536
- * probe grid into a second chunk. TWO splices, because the width the end pin is measured off must be FINAL:
+ * carry a `pin` — the `MIN_LINES_SLOT` budget decision again: unconditional, these lines would ship in every
+ * chunk of every set (the #536 probe grid's one-chunk rule, when this was written; see `SET_CHUNK_BYTES` for
+ * the #1798 rule that replaced it). TWO splices, because the width the end pin is measured off must be FINAL:
  * the reserved sides (`paddingPx`) are written before the children (the `layoutMode` branch); each pinned
  * child leaves the flow the moment it is appended (`PIN_LIFT_SLOT`, in the child loop), so it never counts
  * in the hug; and each pin is placed LAST (`PIN_SLOT`, after the ring's pass, whose own lift is the other
@@ -3206,8 +3339,8 @@ const hasPin = (n: FigmaNodePlan): boolean => n.pin !== undefined || n.children.
 /**
  * THE CORNER PIN (textarea's resize grip), spliced after the flow pass ONLY for a payload whose plans carry
  * `cornerInset` — the reserved-lines slot's budget reason, unchanged: an unconditional addition to
- * `PAYLOAD_BUILD` pushes Button's probe grid into a second chunk. After the flow pass because the corner is
- * measured on the parent's FINAL size. The inset is the variable's VALUE (`x`/`y` take no binding), the glyph
+ * `PAYLOAD_BUILD` ships in every chunk of every set and eats the indivisible-unit headroom (#1798). After
+ * the flow pass because the corner is measured on the parent's FINAL size. The inset is the variable's VALUE (`x`/`y` take no binding), the glyph
  * keeps its own artboard, and `MAX`/`MAX` keeps it in the corner when the instance is resized. Written through
  * a variable so the statement is not byte-identical to the ring's lift, which a test mutates by `replace`.
  * Lockstep with the plugin executor (`write-components.ts`).
@@ -3229,9 +3362,9 @@ const PAYLOAD_CORNER = `  for(const c of n.children){
 const hasCorner = (n: FigmaNodePlan): boolean => n.cornerInset !== undefined || n.children.some(hasCorner);
 /**
  * THE ROOT'S BUILD WIDTH (#1757, `placementWidth`), spliced into the \`layoutMode\` branch ONLY for a payload
- * whose plans carry one — the `MIN_LINES_SLOT` budget decision again, since Button's #536 probe grid sits
- * within bytes of `SET_CHUNK_BYTES`. The resize comes BEFORE the five layout writes: Figma switches a resized
- * axis to FIXED, so the modes the plan states are written after it and stand. Read back, like every write
+ * whose plans carry one — the `MIN_LINES_SLOT` budget decision again: shell bytes ship in every chunk and
+ * count against the indivisible-unit headroom (#1798). The resize comes BEFORE the five layout writes:
+ * Figma switches a resized axis to FIXED, so the modes the plan states are written after it and stand. Read back, like every write
  * here. Lockstep with the plugin executor (`write-components.ts`).
  */
 const PLACEMENT_SLOT = '__PLACEMENT__';
@@ -3239,8 +3372,9 @@ const PAYLOAD_PLACEMENT = `    if(n.placementWidth){node.resize(n.placementWidth
 const hasPlacement = (n: FigmaNodePlan): boolean => n.placementWidth !== undefined || n.children.some(hasPlacement);
 /**
  * THE GRADIENT FILL (#1318, the veil's directional washes), spliced ONLY into a payload whose plans carry a
- * `gradientFill` — the `MIN_LINES_SLOT` budget decision once more, and more pressing: the #536 probe grid has
- * single-digit bytes of margin, so an unconditional line here would push Button into a second chunk. TWO
+ * `gradientFill` — the `MIN_LINES_SLOT` budget decision once more: an unconditional line here would ship in
+ * every chunk of every set. (Written when the #536 probe grid had single-digit bytes of margin under a
+ * one-chunk rule; #1798 replaced that rule with the indivisible-unit headroom and a tested split.) TWO
  * splices. The write sits beside the solid fill: each stop is bound through `createVariableAlias` onto the
  * stop itself (`setBoundVariableForPaint` takes only a solid), and a stop whose variable the file lacks is
  * reported and leaves the node CLEAR rather than half a gradient — #1387's rule for an unresolvable fill.
@@ -3360,24 +3494,12 @@ const build=async(n)=>{
     const nested=compByName.get(n.nestTarget);
     // A SET the def named a coordinate in (#681). Checked only when the plain-component lookup missed:
     // a component and a set can share a name, and the component needs no coordinate to be unambiguous.
-    const set=!nested&&n.nestVariant?setByName.get(n.nestTarget):undefined;
-    if(set){
-      // Resolve the def's coordinate against the MEMBERS' own names, axis by axis. \`nestVariantMatch\`
-      // returns null for no match AND for more than one — an under-specified coordinate is refused, not
-      // resolved by taking the first, because every rule for choosing is creation order (#656).
-      const members=(set.children||[]).map(c=>c.name);
-      const hit=nestVariantMatch(n.nestVariant,members);
-      // THE FIFTH MISS: the file has the set, the def named a coordinate, no member carries it. Nothing
-      // is built — nesting the first child here is the #656 error \`nesting\` exists to stop, and a valid
-      // wrong ring looks like a success.
-      if(!hit){misses.push(n.name+'.nestVariant -> '+n.nestTarget+' ('+nestVariantMissAdvice(n.nestVariant,members)+')');return null;}
-      // The MEMBER is instantiated, never the set — Figma has no instance-of-a-set. The member is a plain
-      // component, which is why the COMPONENT search above already holds it under its variant coordinate:
-      // the members were always findable, and nothing knew which to ask for until the def said.
-      const member=compByName.get(hit);
-      if(!member){misses.push(n.name+'.nestVariant -> '+n.nestTarget+' (matched member '+hit+' is not instantiable; nothing built — the COMPONENT_SET and COMPONENT searches disagree about this file)');return null;}
-      node=member.createInstance();
-    }
+    // THE SET AND ITS MEMBER, resolved together (#1781): out of the named set's own children, never by member
+    // name across the file. null = no set of that name; else a member, or a miss to report and build nothing.
+    const res=!nested&&n.nestVariant?resolveNestMember(compSets,n.nestTarget,n.nestVariant,nestVariantMatch,nestVariantMissAdvice):null;
+    if(res&&res.miss){misses.push(n.name+res.miss);return null;}
+    // The MEMBER is instantiated, never the set — Figma has no instance-of-a-set.
+    if(res){node=res.member.createInstance();}
     else if(!nested){
       // DIAGNOSE before reporting (#681): a second search, by name across every node type, so the miss
       // can say what is actually in the file. Only on the failure path — the happy path pays nothing.
@@ -3601,8 +3723,9 @@ ${GRADIENT_SLOT}
     // when the plan carries it (a \`crossAxisFill\` part); every other child keeps Figma's \`INHERIT\`.
     //
     // And a filling nest's own FIXED mode beside it (#1751): without it a stretched instance hugs — see the
-    // plan field. On the SAME line and unguarded (\`Object.assign\` skips an undefined source) because the
-    // #536 probe grid sits within bytes of its single-chunk budget, and a guard on a line of its own costs 25.
+    // plan field. On the SAME line and unguarded (\`Object.assign\` skips an undefined source) because a
+    // guard on a line of its own costs 25 bytes in every chunk's shell. (Chosen when the #536 probe grid had to
+    // stay one chunk; #1798 replaced that rule with the indivisible-unit headroom and a tested split.)
     if(c.layoutAlign)kid.layoutAlign=c.layoutAlign;Object.assign(kid,c.instanceSizing);
 ${MIN_LINES_SLOT}
 ${PIN_LIFT_SLOT}
@@ -4319,6 +4442,30 @@ if(!set&&!FIRST){
   misses.push('set -> '+SET_NAME+' NOT FOUND on this page (chunk '+(CHUNK+1)+' of '+TOTAL+' appends into the set chunk 1 creates — paste the chunks in order)');
   return {set:null,chunk:CHUNK+1,of:TOTAL,added:0,variants:0,misses};
 }
+// #1780 — A SET WHOSE VARIANT AXES DIFFER FROM THE PLAN'S IS REFUSED, NOT ADDED INTO (#1809 ports the
+// plugin's refusal here). A name match says nothing about the axes: when a def gains, loses or renames an
+// axis every planned member name is new, SKIP BY NAME below skips nothing, and every member lands in the
+// old set beside members on the other axis list — a set Figma reports as broken. So refuse and write
+// nothing. Read off the MEMBER NAMES, as the plugin's \`memberAxisLists\` does: the definitions getter
+// throws on exactly the mixed set this check most needs to read. Only coordinate-shaped names count, so a
+// designer's hand-made copy does not refuse the build. AXIS NAMES ONLY: a new VALUE on an existing axis is
+// the append path this payload has always had.
+// ON EVERY CHUNK, not only FIRST. On a set chunk 1 made from this plan the check passes (every member
+// carries every axis key). But when chunk 1 was refused, chunk 2 finds the OLD set by name, and without
+// the check there it would append into it — the defect, one chunk later.
+// The miss is the plugin's string, character for character; test.ts compares the two.
+// COMPACT, as the rest of this body is: every byte here ships in every chunk. Measured at #1809: the first,
+// indented spelling of these two blocks cost 1,511 bytes of shell and this one 1,176, and icon-button's set
+// packs into 16 chunks either way, from 14.
+if(set){const L=new Map();for(const c of set.children){const g=String(c.name).split(', ');if(g.every(s=>s.includes('='))){const l=g.map(s=>s.slice(0,s.indexOf('='))).sort();L.set(l.join(),l);}}
+const existing=[...L.values()],planned=EXPECTED_AXES.slice().sort(),sh=l=>'['+l.join(', ')+']';
+if(existing.some(l=>l.join()!==planned.join())){misses.push("set -> AXES CHANGED: '"+SET_NAME+"' on this page varies by "+existing.map(sh).join(' and ')+', and this build varies by '+sh(planned)+'. Nothing was added to it, because members on two axis lists leave a set Figma reports as broken. Rename the existing set (its instances keep pointing at it) and build again to get a new set beside it.');
+return {set:null,chunk:CHUNK+1,of:TOTAL,added:0,variants:0,axesChanged:{set:SET_NAME,existing,planned},misses};}}
+// #1750 — WHAT IS ALREADY ON THE PAGE, read BEFORE the build loop appends this chunk's members to it. Only
+// when this chunk CREATES the set, which is chunk 1 (a later chunk that finds no set returned above); a set
+// that already exists keeps its position, the "designer's placement wins" rule. Hidden nodes count.
+const created=!set;
+const prior=created?figma.currentPage.children.map(n=>({t:n.type,x:n.x||0,y:n.y||0,w:n.width||0,h:n.height||0})):[];
 // SKIP BY NAME. \`combineAsVariants\` accepts a DUPLICATE member name silently, and the set it returns
 // then THROWS on \`componentPropertyDefinitions\` and \`variantGroupProperties\` while
 // \`addComponentProperty\` still succeeds — so a re-run without this produces a set that looks buildable
@@ -4401,6 +4548,18 @@ if(colW.length&&rowH.length)set.resize(wantW,wantH);
 const boxMiss=[];
 if(colW.length&&rowH.length&&(Math.round(set.width)<Math.round(wantW)||Math.round(set.height)<Math.round(wantH)))
   boxMiss.push('set -> BOX '+Math.round(set.width)+'x'+Math.round(set.height)+' does not contain its '+members.length+' members ('+Math.round(wantW)+'x'+Math.round(wantH)+' needed; appending does NOT grow the frame)');
+// #1750 — PLACE A NEW SET CLEAR OF THE PAGE'S CONTENT, the plugin's \`placeNewSet\` rule: an empty page
+// leaves the set at the origin; otherwise top-aligned with the sets already there (or with all content when
+// there is none), then 160 (the plugin's SET_GAP, a placeholder) right of everything that overlaps the
+// set's row. A node wholly above or below the row does not push it. AFTER the resize, because the row is
+// the set's height. Written again here rather than shared: the paste script cannot import the plugin, and
+// test.ts compares the two placements.
+// THE ROW IS CHUNK 1'S HEIGHT. Later chunks grow the set down and right from where this put it, and do not
+// move it; the plugin places once, at the finished height. So a node below chunk 1's rows but inside the
+// finished set's can be covered here where the plugin would have pushed the set past it (#1856).
+// NO POSITION READ-BACK, unlike the plugin: the stub stores x/y as plain fields, so the read-back could not
+// fail in any gate, and it would cost bytes in every chunk.
+if(created&&prior.length){const S=prior.filter(b=>b.t==='COMPONENT_SET'),y=Math.min(...(S.length?S:prior).map(b=>b.y)),B=prior.filter(b=>b.y<y+set.height&&b.y+b.h>y);set.x=Math.max(...(B.length?B:prior).map(b=>b.x+b.w))+160;set.y=y;}
 // READ BACK the definitions, GUARDED. A duplicate member name poisons this getter (see above), so an
 // unguarded read throws with no indication of which member caused it — and takes the whole paste's
 // report with it, including the misses already collected.
@@ -4500,6 +4659,19 @@ return {set:set.name,id:set.id,chunk:CHUNK+1,of:TOTAL,added:fresh.length,variant
  * 42,000 rather than 45,000 because 42,040 is the largest payload with a *proven* live paste behind it,
  * and the remaining ~3KB is the margin for what the byte count cannot see (transport framing, and the
  * one variant whose label is longer than any measured here).
+ *
+ * WHAT THE BUDGET BOUNDS, AND WHAT IT DOES NOT (#1798). It bounds one CALL, so the number that can break
+ * a paste is the INDIVISIBLE UNIT: one variant plus the shell every chunk carries. A shell that grows
+ * costs chunks, not correctness. `test.ts` gates that unit by name at 37,800 (90% of this budget) across
+ * the registry, and runs the #536 probe grid split across chunks to prove a split builds what one chunk
+ * does. Measured at #1798: the shell was ~27.8KB of the probe grid's 41,827, and the worst unit was
+ * textarea's 32,090 (76.4%). The other transport is `use_figma`, whose `code` parameter declares
+ * `maxLength: 50000` (read off the tool schema, 2026-09-30). `apps/plugin/mcp-paste.ts` packs to its own
+ * `SCRIPT_CEILING` (45,000) minus the step bundle, not to this constant. The budget stays at 42,000: the
+ * `figma_execute` ceiling it protects was never measured as a rejection point, so nothing here proves it
+ * looser. A one-time preamble chunk for the shared helpers was also ruled out: every call is a fresh
+ * plugin run, so a later chunk could only reach code an earlier one stored by evaluating text read back
+ * out of the file.
  */
 export const SET_CHUNK_BYTES = 42_000;
 
@@ -4653,15 +4825,54 @@ ${PAYLOAD_CHUNK_RETURN}
     groups = next;
   }
 
-  // The LAST chunk declares the properties, so it carries `PROPS_ALL`/`REFS_ALL` and is heavier than the
-  // packing loop assumed. It is also the chunk most likely to be short, so this normally costs nothing —
-  // but if it does overflow, split one variant off the end rather than ship a chunk over budget.
-  const lastGroup = groups[groups.length - 1];
-  if (lastGroup.length > 1 && emit(lastGroup, groups.length - 1, groups.length, true).length > budgetBytes)
-    groups.push([lastGroup.pop()!]);
-
-  return groups.map((slice, i) => {
-    const js = emit(slice, i, groups.length, i === groups.length - 1);
-    return { index: i, total: groups.length, variants: slice.map((c) => c.name), js, bytes: js.length };
+  // RE-MEASURE THE CHUNKS THAT SHIP, AND MOVE A VARIANT ON UNTIL EVERY ONE FITS (#1814). Packing works from
+  // an estimate, and two things it cannot see change a chunk after it is packed:
+  //  - THE LAST chunk declares the properties, so it carries `PROPS_ALL`/`REFS_ALL` and is heavier than the
+  //    packing loop assumed. Measured at #1814: the textarea set packed at 124 budgets, 30,000 to 42,000 in
+  //    97-byte steps, needs a move at 14 of them, each time off the last chunk.
+  //  - A MOVE ADDS A CHUNK, so `TOTAL` can gain a digit, which widens every chunk's header by a byte.
+  // This loop used to move one variant off the last chunk and never measure again. Now every chunk is
+  // emitted as it will ship, at its final index and total; the first multi-variant chunk over budget
+  // passes its last variant to the front of the next chunk (or to a new last chunk), and the whole set is
+  // measured again. Plan order is kept. A single-variant chunk over budget stays, as the packing loop
+  // allows: it cannot be split, and its own `bytes` reports it.
+  //
+  // THE DIGIT HAS PUSHED NO CHUNK OVER IN ANY CASE MEASURED, and the reason is one byte nobody wrote
+  // down: the estimate charges a comma for every variant, and a chunk of k variants ships k - 1. So each
+  // packed chunk measures at least one byte under its estimate, and that byte absorbs the wider `TOTAL`.
+  // The loop, `settleChunks` below, does not rely on it.
+  return settleChunks(groups, budgetBytes, (slice, i, total, last) => {
+    const js = emit(slice, i, total, last);
+    return { index: i, total, variants: slice.map((c) => c.name), js, bytes: js.length };
   });
+};
+
+/**
+ * THE RE-MEASURE LOOP `planSetChunks` ends with (#1814), apart from it so `test.ts` can drive it with a
+ * made-up `ship` and reach the branch real sets never do: a move out of a MIDDLE chunk. Its variant goes to
+ * the FRONT of the next chunk, so plan order holds; a move out of the last chunk starts a new one.
+ *
+ * `ship` measures one chunk as it will ship, at its final index, total and last-ness. Each pass ships every
+ * chunk, returns them if every chunk of more than one item fits, and otherwise moves the last item of the
+ * first chunk that does not. A single-item chunk is never split: it cannot be, and taking its item would
+ * leave an empty chunk. Each pass moves one item one chunk later, so the loop ends; the bound turns a bug
+ * into an error instead of a hang. `groups` is moved in place.
+ */
+export const settleChunks = <T, C extends { bytes: number }>(
+  groups: T[][],
+  budgetBytes: number,
+  ship: (slice: T[], index: number, total: number, last: boolean) => C,
+): C[] => {
+  const items = groups.reduce((n, g) => n + g.length, 0);
+  const bound = items * (items + 1);
+  for (let pass = 0; ; pass++) {
+    const out = groups.map((slice, i) => ship(slice, i, groups.length, i === groups.length - 1));
+    const i = out.findIndex((c, k) => groups[k].length > 1 && c.bytes > budgetBytes);
+    if (i < 0) return out;
+    if (pass >= bound)
+      throw new Error(`settleChunks: chunk ${i + 1} of ${out.length} still measures ${out[i].bytes} bytes against a ${budgetBytes}-byte budget after ${pass} moves`);
+    const moved = groups[i].pop()!;
+    if (i === groups.length - 1) groups.push([moved]);
+    else groups[i + 1].unshift(moved);
+  }
 };

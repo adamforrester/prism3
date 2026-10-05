@@ -185,14 +185,12 @@ for (const b of brands) {
   // component sizes (component tier — density acts here)
   const sizeDensity = data.size[Object.keys(data.size)[0]].height.$extensions.prism3.density;
   txt.push(`\n— COMPONENT SIZES (density: ${sizeDensity}) —`);
-  html.push(`<h3>Component sizes <span class="muted">density: ${sizeDensity} · height + paired padding</span></h3><div class="sizes">`);
+  html.push(`<h3>Component sizes <span class="muted">density: ${sizeDensity} · control heights</span></h3><div class="sizes">`);
   for (const k of Object.keys(data.size)) {
     const h = pxOf(tree, data.size[k].height);
-    const px2 = pxOf(tree, data.size[k]['padding-x']);
-    const py = pxOf(tree, data.size[k]['padding-y']);
-    txt.push(`  size.${k.padEnd(3)} height ${String(h).padStart(2)}px · pad ${px2}×${py}px`);
-    // a mock control: fixed-width box at the real height, with real inset shown as an inner fill
-    html.push(`<div class="scell"><div class="control" style="height:${h}px;padding:${py}px ${px2}px"><div class="ctext">${k}</div></div><small>${h}h · ${px2}×${py}</small></div>`);
+    txt.push(`  size.${k.padEnd(3)} height ${String(h).padStart(2)}px`);
+    // a mock control at the real height (each component states its own padding, so none is shown here)
+    html.push(`<div class="scell"><div class="control" style="height:${h}px;padding:0 8px"><div class="ctext">${k}</div></div><small>${h}h</small></div>`);
   }
   html.push('</div>');
 
@@ -401,6 +399,12 @@ for (const b of brands) {
   // Dogfoods B1a/B1b: the SAME model the plugin/playground render from. Chips are
   // light mode; the overlay shows each declared contract's ratio + pass across all 4 modes.
   const rp = resolvePreview(themeFor[id]);
+  // The chips below claim to render from the preview spec, and `typeCss` reads the tree directly, so a
+  // bound style this brand does not emit would render in the page's default face with no sign (#1720).
+  // This page is generated over a fixed set of brands, so a miss here stops the build by name.
+  if (rp.unresolvedType.length) {
+    throw new Error(`visualize: '${id}' does not emit the type styles the preview spec binds: ${rp.unresolvedType.join(', ')}`);
+  }
   const cAt = (p: string, mode = 'light'): string => rp.colors[p]?.[mode as keyof (typeof rp.colors)[string]] ?? '#000';
   const dpx = (p: string): number => pxOf(tree, at(data, p));
   const typeCss = (p: string): string => {

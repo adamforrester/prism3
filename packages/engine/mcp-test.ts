@@ -171,9 +171,11 @@ await new Promise((r) => setTimeout(r, 3000));
     'conformance: every tool name matches the allowed character set and length');
   ok((list.tools ?? []).every((t: any) => t.title && t.annotations), 'conformance: every tool carries a title + annotations');
   // The size ceiling that keeps discovery affordable — the schema must be inlined once, not per tool.
-  // A new lever fits by COMPRESSION, not by raising this (#1368 `faces`); kept in lockstep with test.ts.
+  // 60,000 is our own ceiling, not raised (#1368). Since #1760 it fails 5,000 chars BEFORE that wall,
+  // room for ~20 more levers, and the inline schema carries one-line summaries so a lever's full prose
+  // never counts here. Kept in lockstep with test.ts, which also holds the per-summary cap.
   const listChars = JSON.stringify(list.tools ?? []).length;
-  ok(listChars < 60_000, `conformance: tools/list stays affordable to fetch (${listChars.toLocaleString()} chars)`);
+  ok(listChars <= 55_000, `conformance: tools/list keeps 5,000 chars of headroom under its 60,000 ceiling (${listChars.toLocaleString()} chars; fails above 55,000)`);
 
   // Per-request version negotiation, which is how a stateless server learns the version at all.
   const good = await server.reply(server.send('tools/list', { _meta: { [V]: '2026-07-28' } }));
@@ -197,6 +199,18 @@ await new Promise((r) => setTimeout(r, 3000));
   // Dual support: the older handshake still works and echoes a version we still speak.
   const initOld = await resultOf('initialize', { protocolVersion: '2024-11-05' });
   ok(initOld?.protocolVersion === '2024-11-05', 'conformance: initialize still answers a 2024-11-05 client with its own version');
+  // #1867: Claude Code asks for 2025-11-25. Answering 2026-07-28 (a revision with no handshake) made it
+  // refuse to connect; over real stdio, an in-between revision must get 2024-11-05 back.
+  const initClaudeCode = await resultOf('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'claude-code', version: '2' } });
+  ok(initClaudeCode?.protocolVersion === '2024-11-05',
+    `#1867 conformance: initialize from a 2025-11-25 client (Claude Code) answers 2024-11-05 over stdio (got ${initClaudeCode?.protocolVersion})`);
+  const init0618 = await resultOf('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'probe', version: '1' } });
+  ok(init0618?.protocolVersion === '2024-11-05',
+    `#1867 conformance: initialize from a 2025-06-18 client answers 2024-11-05 over stdio (got ${init0618?.protocolVersion})`);
+  // A handshake can never usefully answer 2026-07-28, even when a confused client asks for it.
+  const init0728 = await resultOf('initialize', { protocolVersion: '2026-07-28', capabilities: {}, clientInfo: { name: 'probe', version: '1' } });
+  ok(init0728?.protocolVersion === '2024-11-05',
+    `#1867 conformance: initialize asking for 2026-07-28 (a revision with no handshake) still answers 2024-11-05 (got ${init0728?.protocolVersion})`);
 
   // structuredContent must AGREE with the text block, or a client reading one sees different data
   // from a client reading the other.
@@ -214,6 +228,11 @@ await new Promise((r) => setTimeout(r, 3000));
   ok(levers.required.includes('id'), 'journey ①: list_levers tells the agent `id` is required');
   const nonLever = levers.nonLeverFields.map((f: any) => f.key);
   ok(nonLever.includes('modeLevers'), 'journey ①: the per-mode override layer is discoverable');
+  // ①b The inline schema summarizes; `describe` returns the full text for the fields the agent names (#1760).
+  const described = (await server.callJson('list_levers', { describe: ['radiusHairline'] })).payload.described;
+  // Matched past the first sentence, so only the full text passes (#2053 retired the lever; the text says so).
+  ok(/is always emitted/.test(described?.properties?.radiusHairline?.description ?? ''),
+    'journey ①b: list_levers describe returns a field\'s full description over the wire');
 
   // ② Generate from a brief, the way an agent working from prose would.
   const brief = ['---', 'id: journey', 'primary: { l: 0.58, c: 0.17, h: 265 }', 'neutral: { hue: 265, chroma: 0.008 }',

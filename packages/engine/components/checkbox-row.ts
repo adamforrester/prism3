@@ -87,7 +87,7 @@
  *
  * ── THE RUNG OFFSET, WHERE I MET IT (#756, `docs/28` §5.2, `docs/40` §7 step 2) ─────────────────
  *
- * `size.small.gap → size.sm.gap` and `size.small.min-height → size.sm.height`, with `medium → md` by
+ * `size.small.min-height → size.sm.height`, with `medium → md` by
  * the default rule rather than by this def's judgment. The def's enum is the consumer's vocabulary
  * (`small/medium/large`) and the ref is the engine's tier (`sm/md/lg`); the engine's names win. Same
  * offset the other six defs carry, recorded here because the rule is that the author records it where
@@ -167,6 +167,9 @@ export const checkboxRow: ComponentDef = {
   // `selection` axis — it EXPOSES the control's — so the bare slot is the only key it needs.
   paintKeys: ['{slot}'],
 
+  // The spacing this spec states at comfortable, which density moves one step along the space ladder.
+  densitySpacing: ['size.{size}.gap'],
+
   tokens: {
     // ── THE ROW'S OWN PAINT IS ONE INK: THE LABEL (#1226 step 2). Every color binding for the painted
     // box — the unchecked border, the checked/indeterminate fills, the glyph ink, the focus ring, the
@@ -193,12 +196,13 @@ export const checkboxRow: ComponentDef = {
     'pad-y': 'space.150',
     'pad-x': 'space.0',
 
-    // ── THE CONTROL-TO-LABEL GAP and the ROW'S FLOOR. `min-height` is the code projection's floor (48
+    // ── THE CONTROL-TO-LABEL GAP and the ROW'S FLOOR. The gap is this spec's own `space.*` step at
+    // comfortable (8/8/12px, the spacing model), which density moves one step (`densitySpacing`). `min-height` is the code projection's floor (48
     // at medium on nb); Figma has no floor, so the row hugs its children and the key stays bound only
     // for code (see `codeOnly`).
-    'size.small.gap': 'size.sm.gap',
-    'size.medium.gap': 'size.md.gap',
-    'size.large.gap': 'size.lg.gap',
+    'size.small.gap': 'space.100',
+    'size.medium.gap': 'space.100',
+    'size.large.gap': 'space.150',
     'size.small.min-height': 'size.sm.height',
     'size.medium.min-height': 'size.md.height',
     'size.large.min-height': 'size.lg.height',

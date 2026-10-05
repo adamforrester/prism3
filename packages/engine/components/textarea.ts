@@ -37,12 +37,10 @@
  *
  * ── THE RUNG OFFSET, WHERE I MET IT (#756, `docs/28` §5.2, `docs/40` §7 step 2) ──────────────────
  *
- * `size.small.pad-x → size.sm.padding-x` and its two siblings: the def's enum is the component
- * vocabulary (`small/medium/large`), the ref is the engine's tier (`sm/md/lg`), and the engine's
- * names win. This is **not a new offset** — it is `text-field`'s exactly, inherited along with the
- * substrate it belongs to, and it agrees on every value. Recorded because the rule is that the
- * author records it where they meet it, and "the parent already did" is how the next def stops
- * doing so. Default `medium` → `md`, per the rule rather than this def's judgment.
+ * The size ladder is padding only, and since the spacing model (2026-09-29) padding is this def's own
+ * `space.*` steps (text-field's, value for value) rather than a rung of the shared `size.*` tier, so no
+ * rung name is met here any more. It was `size.small.pad-x → size.sm.padding-x` and its siblings, where
+ * the engine's names won. Default `medium`, the projected `md` field.
  *
  * ── WHY `size` IS IN `props` AT ALL, WHEN THE BRIEF INHERITS IT ─────────────────────────────────
  *
@@ -165,6 +163,10 @@ export const textarea: ComponentDef = {
   // templates cannot coexist).
   paintKeys: ['{status}.{slot}.{state}', '{slot}.{state}', '{slot}'],
 
+  // The spacing this spec states at comfortable, which density moves one step along the space ladder
+  // (the spacing model, 2026-09-29). `root-gap` stays put: the field stack's spacing is not a density call.
+  densitySpacing: ['pad-x', 'pad-y', 'size.{size}.pad-x', 'size.{size}.pad-y'],
+
   // INPUT CHROME ONLY, same composition call as the substrate — label and message color/type live in
   // `field-label` / `field-message` and are composed, not re-declared here.
   //
@@ -210,7 +212,8 @@ export const textarea: ComponentDef = {
     'border': 'color.field.border.rest',
     'border.hover': 'color.field.border.hover',
     'border.focus-visible': 'color.border.focus',
-    'border.read-only': 'color.border.secondary',
+    // read-only keeps the editable field's boundary (owner decision, 2026-09-29, #1710) — text-field's binding.
+    'border.read-only': 'color.field.border.rest',
     // The status-led border swaps — text-field's keys and roles exactly (#1623 sign-off, C1/TA-4): each
     // non-default status binds its own border role PER non-disabled state, so the boundary persists
     // through hover, focus and read-only. `pending` is unbound (as on text-field); `default` binds none.
@@ -248,8 +251,8 @@ export const textarea: ComponentDef = {
     // Geometry. Padding only — see the header. The BARE keys are the projected `md` rung (text-field's
     // shape); the `size.{small,medium,large}.*` keys below are the code-API ladder, not projected.
     'radius': 'radius.sm',
-    'pad-x': 'size.md.padding-x',
-    'pad-y': 'size.md.padding-y',
+    'pad-x': 'space.200',
+    'pad-y': 'space.100',
     // The stack spacing between label, control and message — text-field's.
     'root-gap': 'space.100',
     // 1px field hairline, text-field's edge weight.
@@ -273,12 +276,12 @@ export const textarea: ComponentDef = {
     'counter-type': 'type.caption.md.default',
     'indicator': 'color.text.secondary',
     'disabled.indicator': 'color.disabled.text',
-    'size.small.pad-x': 'size.sm.padding-x',
-    'size.small.pad-y': 'size.sm.padding-y',
-    'size.medium.pad-x': 'size.md.padding-x',
-    'size.medium.pad-y': 'size.md.padding-y',
-    'size.large.pad-x': 'size.lg.padding-x',
-    'size.large.pad-y': 'size.lg.padding-y',
+    'size.small.pad-x': 'space.200',
+    'size.small.pad-y': 'space.075',
+    'size.medium.pad-x': 'space.200',
+    'size.medium.pad-y': 'space.100',
+    'size.large.pad-x': 'space.300',
+    'size.large.pad-y': 'space.100',
   },
 
   // ── ANATOMY — text-field's column, with a control that HUGS its reserved rows ──────────────────
@@ -489,7 +492,7 @@ export const textarea: ComponentDef = {
       '3.3.2 Labels or Instructions (the "Shift+Enter for a new line" hint whenever Enter submits)',
       '1.3.5 Identify Input Purpose / 1.3.1 Info and Relationships (inherited substrate wiring)',
       '3.3.1 Error Identification / 3.3.3 Error Suggestion (over-limit states the overage and how to fix it)',
-      '1.4.3 Contrast / 1.4.11 Non-text Contrast / 2.4.13 Focus Appearance / 4.1.2 Name Role Value',
+      '1.4.3 Contrast / 1.4.11 Non-text Contrast (field boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance / 4.1.2 Name Role Value',
       '2.5.8 Target Size — intent: the resize handle is the browser\'s own control, sized by the browser, so this def does not set its target. The 16px grip drawn in Figma is decorative, not the target',
     ],
     keyboard: 'Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract aria-multiline advertises and the default. submitOnEnter inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.',
@@ -572,6 +575,7 @@ export const textarea: ComponentDef = {
     ],
     // KB textarea brief §13.
     evolution: [
+      'READ-ONLY KEEPS THE EDITABLE FIELD\'S BOUNDARY (owner decision, 2026-09-29, #1710). The read-only member binds `field.border.rest`, the same border as the rest and filled members, in every mode. The earlier `border.secondary` binding measured 2.69–2.81:1 on `background.secondary` in light, below the 1.4.11 floor, and `field.border.rest` is already the quietest neutral step that clears 3:1 there, so no fainter read-only edge can pass. Read-only is carried by its semantics (aria-readonly; still focusable and submitted) and by the affordances its member does not draw (no caret, no hover wash), not by a fainter edge.',
       'AUTO-GROW IS BECOMING THE COMPOSER DEFAULT, with maxRows-plus-scroll as the safety valve, learned after early systems shipped unbounded growth (KB textarea brief §13).',
       'CSS `field-sizing: content` IS RETIRING JAVASCRIPT AUTO-GROW, moving the measurement off the main thread into the browser engine — the largest near-term implementation change, with support still to verify (see `notes.unverified`).',
       'SOFT LIMITS OVER HARD maxlength: allow the overflow, flag it, block submit, rather than truncating silently.',

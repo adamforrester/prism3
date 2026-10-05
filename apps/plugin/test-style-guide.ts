@@ -49,9 +49,9 @@
  *      titles, and not a pass; a renamed group's old table named as staying until an unfiltered run;
  *  14. YIELDING (#1778), with a counting `yieldTo`: a progress reading per table, a yield after every table, and at
  *      least 12 yields inside the 124-row Inverse table, never more than 10 rows apart;
- *  15. ONE RUN AT A TIME (#1785): a run asked for from the agent link while a panel run is mid-yield is refused, naming
- *      the panel's run, and exactly one set of tables results. (`test-agent-link.ts` drives the same gate through
- *      `main.ts`'s two real entry points.)
+ *  15. ONE RUN AT A TIME (#1785), through the plugin's run guard (#1957, `run-guard.ts`): a run asked for while
+ *      another is mid-yield is refused, and exactly one set of tables results. (`test-agent-link.ts` drives the same
+ *      guard through `main.ts`'s two real entry points.)
  *
  * INDEPENDENCE (docs/34): expected values are literals written here. The ratios (19.42, 18.13, 21) and the
  * failing 3.27 (neutral/400 on white, computed by hand from the WCAG formula), 6.44 (foreground.brand on
@@ -167,7 +167,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { ensureStyleGuideCells } from './src/style-guide-cells';
 import type { CellsApi } from './src/style-guide-cells';
-import { planStyleGuide, runStyleGuide, styleGuideSummary, contrastText, createStyleGuideGate, styleGuideBusy } from './src/style-guide';
+import { planStyleGuide, runStyleGuide, styleGuideSummary, contrastText } from './src/style-guide';
+import { createRunGuard, busyMessage } from './src/run-guard';
 import type { StyleGuideApi, SgCatalog, SgTable, TableOutcome, StyleGuideResult, StyleGuideRun, StyleGuideOptions, StyleGuideProgress } from './src/style-guide';
 import { parseDesignMd } from '@prism3/engine/design-md';
 import { brandTheme } from '@prism3/engine/theme';
@@ -691,7 +692,7 @@ const main = async (): Promise<void> => {
     const prim = plan.tables.filter((t) => t.kind === 'primitive');
     ok(JSON.stringify(prim.map((t) => t.title)) === JSON.stringify(['Core — base', 'Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha', 'Legacy']), '3: primitive tables per palette');
     ok(prim.every((t) => t.page === PRIM), '3: primitive tables go on ↳ Primitive tokens');
-    ok(sem.reduce((n, t) => n + t.rows.length, 0) === 267 && prim.filter((t) => t.title !== 'Legacy').reduce((n, t) => n + t.rows.length, 0) === 164, '3: every color variable is a row (267 + 164)');
+    ok(sem.reduce((n, t) => n + t.rows.length, 0) === 268 && prim.filter((t) => t.title !== 'Legacy').reduce((n, t) => n + t.rows.length, 0) === 164, '3: every color variable is a row (268 + 164)');
     const text = byTitle('semantic', 'Text')!;
     ok(JSON.stringify(text.columns) === JSON.stringify(['Token', 'light', 'Value', 'Contrast', 'dark', 'Value', 'Contrast', 'hc-light', 'Value', 'Contrast', 'hc-dark', 'Value', 'Contrast', 'Description']), '3: a specimen, value and contrast column per mode');
     ok(JSON.stringify(byTitle('primitive', 'Neutral')!.columns) === JSON.stringify(['Token', 'Default', 'Value', 'Description']), '3: a primitive table has no contrast column');
@@ -911,7 +912,7 @@ const main = async (): Promise<void> => {
     ok(byTitle('semantic', 'Text')!.description === '23 text roles in color, per mode, each measured against the ground it is contracted for', '8: Text header: every role measured');
     ok(byTitle('semantic', 'Scrim')!.description === '1 scrim role in color, per mode', '8: Scrim header: no role is measured, so it does not say so');
     ok(byTitle('primitive', 'Legacy')!.description === '4 primitive colors in legacy', '8: Legacy header: nothing references it, so it does not say so');
-    ok(byTitle('primitive', 'Primary')!.description === '20 primitive colors in core, 19 referenced by a semantic role', '8: Primary header counts its referenced steps');
+    ok(byTitle('primitive', 'Primary')!.description === '20 primitive colors in core, each referenced by a semantic role', '8: Primary header counts its referenced steps');
     ok(byTitle('primitive', 'Accent')!.description === '20 primitive colors in core', '8: Accent header: no role references it, so it does not say so');
     ok(byTitle('semantic', 'Foreground')!.description === '13 foreground roles in color, per mode, 5 measured against the ground they are contracted for', '8: Foreground header counts its measured roles');
 
@@ -1000,16 +1001,17 @@ const main = async (): Promise<void> => {
     ok(prim.name === 'Style guide — Primary — nbds' && pTitle.characters === 'Primary — nbds', `9: an earlier run's title is rewritten to name its root (${prim.name} / ${pTitle.characters})`);
     ok(nTitle.characters === 'Grays' && neu.name === 'Style guide — Neutral — nbds', '9: a title the designer typed is kept');
 
-    // A swatch member with layers and no paint anywhere: nothing binds, and the verdict says how many — 74
-    // prism3 roles draw the plain swatch, in four modes: 296.
+    // A swatch member with layers and no paint anywhere: nothing binds, and the verdict says how many — 75
+    // prism3 roles draw the plain swatch, in four modes: 300. (74 and 296 on main; the #1743 merge adds
+    // `interactive.primary.subtle-fill.selected`, one plain-swatch role, and 267 semantic rows become 268.)
     const fc = page(FC), sgc = page('Style Guide Components'), sem = page(SEM);
     const sw = ownerSet('_style-guide-swatches', ['type=Default', 'type=Text'], true);
     const def = sw.children[0]; def.fills = []; const grp = new N('GROUP'); grp.name = 'Group'; def.appendChild(grp);
     sgc.appendChild(sw); sgc.appendChild(ownerSet('_style-guide-text-cells', ['color=dark, textAlign=left, type=header, padding=default', 'color=white, textAlign=left, type=default, padding=default'], false));
     const u = await draw(makeShim([fc, sgc, sem], prism3Variables().cols, prism3Variables().vars).api, contract, { collections: ['color'] });
     const us = styleGuideSummary(u);
-    ok(u.unbound === 296 && !us.ok && us.headline === '⚠ 296 swatches unbound', `9: unbound swatches are not a pass — headline "${us.headline}"`);
-    ok(us.summary.includes('296 swatches in type=Default have no layer that takes a fill'), '9: the summary counts them per variant');
+    ok(u.unbound === 300 && !us.ok && us.headline === '⚠ 300 swatches unbound', `9: unbound swatches are not a pass — headline "${us.headline}"`);
+    ok(us.summary.includes('300 swatches in type=Default have no layer that takes a fill'), '9: the summary counts them per variant');
 
     // Named values first in the file's order, then the numeric steps ascending.
     const named = { collections: cols, variables: [...vars, ...['white', 'black'].map((n, i) => ({ id: `VariableID:legacy:n${i}`, name: `legacy/ramp/${n}`, variableCollectionId: 'VariableCollectionId:legacy', resolvedType: 'COLOR', description: '', valuesByMode: { 'legacy:0': { r: 1, g: 1, b: 1, a: 1 } } }))] };
@@ -1412,32 +1414,35 @@ const main = async (): Promise<void> => {
       `14: the 124-row Inverse table yields while its rows are placed, never more than 10 rows apart (${rowsAt.length} yields, largest gap ${Math.max(0, ...gaps)} rows)`);
   }
 
-  console.log('15. one run at a time, from either entry point (#1785)');
+  console.log('15. one run at a time, through the run guard (#1785, #1957)');
   {
-    // The gate `main.ts` routes the panel and the agent link through. A panel run draws the prism3 file; at its third
-    // yield, mid-table, the agent link asks for a run through the same gate.
-    const gate = createStyleGuideGate();
+    // The guard `main.ts` routes the panel and the agent link through, used the way its `guarded` uses it: `busy`
+    // checked, then `run`, with no await between. A run draws the prism3 file; at its third yield, mid-table, a
+    // second run is asked for through the same guard.
+    const guard = createRunGuard();
+    const request = <T>(fn: () => Promise<T>): Promise<{ ran: true; value: T } | { ran: false; message: string }> => {
+      if (guard.busy('style-guide')) return Promise.resolve({ ran: false, message: busyMessage('style-guide') });
+      let value!: T;
+      return guard.run('style-guide', async () => { value = await fn(); }).then(() => ({ ran: true as const, value }));
+    };
     const f15 = await fullFile();
-    const hold: { second?: ReturnType<typeof gate.run<StyleGuideResult>> } = {};
+    const hold: { second?: ReturnType<typeof request<StyleGuideResult>> } = {};
     let yields = 0;
     const yieldTo = async (): Promise<void> => {
-      if (++yields === 3) hold.second = gate.run('agent', () => draw(f15.api, contract));
+      if (++yields === 3) hold.second = request(() => draw(f15.api, contract));
       await fastYield();
     };
-    const first = await gate.run('panel', () => draw(f15.api, contract, {}, { yieldTo }));
+    const first = await request(() => draw(f15.api, contract, {}, { yieldTo }));
     const second = await hold.second;
-    ok(first.ran && second?.ran === false && second.running === 'panel',
-      `15: a run asked for from the agent link while a panel run is mid-yield is refused, naming the panel's run (${JSON.stringify(second && { ran: second.ran, running: second.ran ? null : second.running })})`);
-    const busy = styleGuideBusy('panel');
-    ok(!busy.ok && busy.headline === '✗ already drawing' && busy.summary.startsWith('A style guide started from the panel is still drawing, so this request was not run')
-      && styleGuideBusy('agent').summary.startsWith('A style guide started from the agent link is still drawing'), `15: the refusal says which run is still drawing: "${busy.headline}" — ${busy.summary.slice(0, 80)}…`);
+    ok(first.ran && second?.ran === false && second.message === 'Style guide is already running. Try again when it finishes.',
+      `15: a run asked for while another is mid-yield is refused, in the guard's words (${JSON.stringify(second && (second.ran ? 'ran' : second.message))})`);
     const wraps = [...tablesOn(f15.prim), ...tablesOn(f15.sem)];
     const keys = new Set(wraps.map((w) => w.pluginData['prism3-style-guide']));
     ok(wraps.length === 22 && keys.size === 22 && wraps.every((w) => w.children.filter((c) => c.name === 'Table').length === 1)
       && first.ran && first.value.tables.length === 22 && first.value.tables.every((t) => t.status === 'created'),
       `15: exactly one set of tables results: 22, each key once, each with one grid (${wraps.length} tables, ${keys.size} keys)`);
-    const third = await gate.run('agent', () => draw(f15.api, contract, { collections: ['legacy'] }));
-    ok(third.ran && gate.running() === null, '15: once that run reports, the next is let through, from either entry point');
+    const third = await request(() => draw(f15.api, contract, { collections: ['legacy'] }));
+    ok(third.ran && !guard.busy('style-guide'), '15: once that run reports, the next is let through');
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }

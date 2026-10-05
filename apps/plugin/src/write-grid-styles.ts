@@ -23,6 +23,7 @@
  * (see `apps/plugin/test-write-grid-styles.ts`); the real `figma` object structurally satisfies it.
  */
 import type { GridStylePlan } from '@prism3/engine/write-plan';
+import { markOwned, type Markable } from './provenance';
 
 // The Grid Style node's `layoutGrids` is WRITE-ONLY here (the executor assigns it; it never reads it
 // back), and Figma's real `GridStyle.layoutGrids` is a `readonly LayoutGrid[]` superset (it also
@@ -30,7 +31,7 @@ import type { GridStylePlan } from '@prism3/engine/write-plan';
 // `figma` fail to satisfy the port, so — as in `write-styles.ts` — it is `readonly unknown[]`
 // (assignable-from our shape, satisfied-by Figma's); the value we WRITE is validated by `GridStylePlan`.
 /** Minimal Grid Style surface — mutable name/description + a write-only layoutGrids array. */
-export interface GridStyleNode {
+export interface GridStyleNode extends Markable {
   name: string;
   description: string;
   layoutGrids: readonly unknown[];
@@ -57,6 +58,7 @@ export const applyGridStylePlan = async (plan: GridStylePlan, api: GridStylesApi
   for (const row of plan) {
     let s = byName.get(row.name);
     if (!s) { s = api.createGridStyle(); s.name = row.name; byName.set(row.name, s); created++; }
+    markOwned(s);   // the ownership mark (#1884), created or reused — see `provenance.ts`
     s.description = row.description;
     s.layoutGrids = row.layoutGrids;
   }

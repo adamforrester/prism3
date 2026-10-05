@@ -17,6 +17,8 @@
  *   • list_levers      — the lever manifest: what an agent can turn (labels, groups, knob
  *                        types, enums, defaults, ranges). The presentation catalogue, the
  *                        same one the plugin + playground render from (continuity by source).
+ *                        With `describe`, the named fields' full schema prose, which the
+ *                        inline `theme_brand` schema summarizes (#1760).
  *   • theme_brand      — a `BrandInput` (shape = `schema/theme-schema.json`) → the DTCG token
  *                        tree + `.ai.json` agent metadata + per-mode contrast-contract results
  *                        + the decisions log. The generate-and-verify payoff over one call.
@@ -69,6 +71,11 @@ export const PROTOCOL_VERSIONS = ['2026-07-28', '2024-11-05'] as const;
 export const LATEST_PROTOCOL_VERSION = PROTOCOL_VERSIONS[0];
 /** Retained for the older handshake's reply. */
 export const PROTOCOL_VERSION = LATEST_PROTOCOL_VERSION;
+/** What `initialize` answers when the client asks for a version this server does not speak (#1867).
+ *  A client that sends `initialize` is on a pre-2026 revision, because `2026-07-28` removed the
+ *  handshake. So the answer is the newest HANDSHAKE revision we speak, never `2026-07-28`: Claude Code
+ *  asks for `2025-11-25`, and answering `2026-07-28` made it refuse to connect. */
+export const HANDSHAKE_PROTOCOL_VERSION = '2024-11-05';
 
 /** `_meta` keys the 2026-07-28 revision defines. Spelled out rather than string-literalled at each
  *  use so a typo cannot silently produce an unread field. */
@@ -146,6 +153,73 @@ export const manifestRootKeys = (manifest: unknown): Set<string> => {
  *  in the DEFAULT set (see `DEFAULT_THEME_SECTIONS`); it is listed here so a caller can drop it. */
 export const THEME_SECTIONS = ['tokens', 'aiMetadata', 'notes'] as const;
 
+/** A status tag a schema description opens with ("OPTIONAL.", "OPTIONAL, OPT-IN (off by default).",
+ *  "OPTIONAL (Phase A1)."). It says whether a field may be left out, not what the field is, so a summary
+ *  never stops at one. */
+const STATUS_TAG = /^(OPTIONAL|OPT-IN)\b[^.]*\.$/;
+
+/** Where each sentence of a description ends: a `.` followed by whitespace and a character that is not
+ *  lowercase, or by the end of the string. `e.g.` and `i.e.` are not ends ("(e.g. 'aurora')"), and a
+ *  decimal point never is (it is not followed by whitespace). A `?` is not an end either: the schema uses
+ *  it for optional keys (`{ desktop?, mobile? }`), never to ask a question. */
+const sentenceEnds = (d: string): number[] => {
+  const ends: number[] = [];
+  const re = /\.(?=\s+[^\sa-z]|\s*$)/g;
+  for (let m = re.exec(d); m; m = re.exec(d)) {
+    if (/(?:^|[^A-Za-z])(?:e\.g|i\.e)\.$/.test(d.slice(0, m.index + 1))) continue;
+    ends.push(m.index + 1);
+  }
+  return ends;
+};
+
+/** The inline summary of one schema description: its first sentence, plus any status tag in front of
+ *  it. Always a PREFIX of the full text. Compaction truncates and never rewrites, so the summary and the
+ *  full description cannot disagree, and no prose is authored twice. */
+export const summarizeDescription = (d: string): string => {
+  let start = 0;
+  for (const end of sentenceEnds(d)) {
+    if (!STATUS_TAG.test(d.slice(start, end).trim())) return d.slice(0, end);
+    start = end;
+  }
+  return d;
+};
+
+/** The brand schema as `tools/list` inlines it (#1760): every `description` cut to its summary, and
+ *  every other keyword (types, enums, ranges, defaults, `required`, `$defs`, `$ref`, `$id`) left exactly
+ *  as the file has it. Validation is unchanged because nothing but prose moves, and the full prose stays
+ *  one call away: `list_levers` with `describe`.
+ *
+ *  WHY, measured on the schema as #1759 left it: the inlined schema was 52,589 of `tools/list`'s 59,969
+ *  characters, and 32,333 of those were description prose (191 descriptions). Structure alone was about
+ *  17,000. So prose was the part growing, and the part every lever had been trimming to fit. Moving it
+ *  out takes the list to 42,314 (measured). A new lever then costs its structure plus a one-line summary
+ *  (`test.ts` caps a summary at 200 characters). Its full description, however long, costs nothing
+ *  here. */
+export const compactSchema = (schema: unknown): unknown => {
+  if (Array.isArray(schema)) return schema.map(compactSchema);
+  if (!schema || typeof schema !== 'object') return schema;
+  return Object.fromEntries(Object.entries(schema as Record<string, unknown>).map(([k, v]) =>
+    [k, k === 'description' && typeof v === 'string' ? summarizeDescription(v) : compactSchema(v)]));
+};
+
+/** Every `$defs` entry a schema fragment reaches through `$ref: "#/$defs/<name>"`, followed transitively,
+ *  so a described field brings the full text of the shapes it is built from (`surfaces` → `surfaceMode`
+ *  → `surfaceSpec`). */
+export const referencedDefs = (fragment: unknown, defs: Record<string, unknown>): Record<string, unknown> => {
+  const out: Record<string, unknown> = {};
+  const walk = (o: unknown): void => {
+    if (Array.isArray(o)) { o.forEach(walk); return; }
+    if (!o || typeof o !== 'object') return;
+    for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
+      const m = k === '$ref' && typeof v === 'string' ? /^#\/\$defs\/(.+)$/.exec(v) : null;
+      if (m && defs[m[1]] !== undefined && !(m[1] in out)) { out[m[1]] = defs[m[1]]; walk(defs[m[1]]); }
+      else walk(v);
+    }
+  };
+  walk(fragment);
+  return Object.fromEntries(Object.keys(out).sort().map((k) => [k, out[k]]));
+};
+
 /** Tool catalogue.
  *
  *  `theme_brand` takes `{ brand, include }` rather than a bare BrandInput. The old shape is still
@@ -161,10 +235,20 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'list_levers',
     title: 'List brand controls',
-    description: 'List the complete BrandInput surface an agent can set: the lever catalogue (grouped, labeled, typed, with enums, defaults and UI ranges — the same manifest the Figma plugin and web playground render from) PLUS the non-lever fields the manifest does not carry (identity, mode set, and the per-mode override layers). Call this first to learn what theme_brand accepts.',
-    inputSchema: { type: 'object', additionalProperties: false },
+    description: 'List the complete BrandInput surface an agent can set: the lever catalog (grouped, labeled, typed, with enums, defaults and UI ranges — the same manifest the Figma plugin and web playground render from) PLUS the non-lever fields the manifest does not carry (identity, mode set, and the per-mode override layers). Call this first to learn what theme_brand accepts. Pass `describe` with field names to get those fields\' full schema descriptions instead.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        describe: { type: 'array', items: { type: 'string' }, description: 'BrandInput field names (e.g. ["typography", "radiusHairline"]). Returns each field\'s schema entry with every description in full, plus the $defs it references, instead of the catalog.' },
+      },
+      additionalProperties: false,
+    },
+    // Two result shapes, one schema: a client validates every result against it, and a `describe` call
+    // returns `described` alone. `anyOf` over the two `required` sets keeps the root an object (what
+    // MCP asks of an outputSchema) while still requiring all three catalog fields on a catalog call.
     outputSchema: {
       type: 'object',
+      anyOf: [{ required: ['levers', 'nonLeverFields', 'required'] }, { required: ['described'] }],
       properties: {
         levers: { type: 'object', description: 'The lever manifest — UI presentation contract.' },
         nonLeverFields: {
@@ -172,19 +256,20 @@ export const toolDefs = (brandSchema: unknown) => [
           items: { type: 'object', properties: { key: { type: 'string' }, required: { type: 'boolean' }, description: { type: 'string' } }, required: ['key', 'required'] },
         },
         required: { type: 'array', items: { type: 'string' }, description: 'Fields theme_brand will reject a call without.' },
+        described: { type: 'object', description: 'With `describe`: { properties, $defs }, the named fields\' full schema.' },
       },
-      required: ['levers', 'nonLeverFields', 'required'],
     },
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   },
   {
     name: 'theme_brand',
     title: 'Generate a design-token system',
-    description: 'Generate a full design-token system from a brand input, and verify it. Returns the contrast-contract results (every declared a11y pair, computed on the resolved colors across all modes), alias integrity, and the decisions log by default. The DTCG token tree and the .ai.json agent metadata are OPT-IN via `include` because they are large — for a four-mode brand they measure roughly 890,000 and 590,000 characters respectively (~370,000 tokens combined). Arguments: { brand, include }. Call list_levers to see the controls, or validate_brand to check an input first.',
+    description: 'Generate a full design-token system from a brand input, and verify it. Returns the contrast-contract results (every declared a11y pair, computed on the resolved colors across all modes), alias integrity, and the decisions log by default. The DTCG token tree and the .ai.json agent metadata are OPT-IN via `include` because they are large — for a four-mode brand they measure roughly 890,000 and 590,000 characters respectively (~370,000 tokens combined). Arguments: { brand, include }. Call list_levers to see the controls, or validate_brand to check an input first. Each field description in the `brand` schema below is a one-line summary; list_levers with `describe` returns the full text.',
     inputSchema: {
       type: 'object',
       properties: {
-        brand: brandSchema,
+        // Compacted (#1760): prose cut to one-line summaries, every other keyword verbatim.
+        brand: compactSchema(brandSchema),
         include: {
           type: 'array', description: 'Sections to return, replacing the default ["notes"]. Add "tokens" and/or "aiMetadata" for the large payloads; pass [] for the verification result alone.',
           items: { type: 'string', enum: [...THEME_SECTIONS] },
@@ -239,8 +324,8 @@ export const toolDefs = (brandSchema: unknown) => [
     inputSchema: {
       type: 'object',
       properties: {
-        brief: { type: 'string', description: 'A design.md document. MUST open with a --- YAML frontmatter fence on the first line.' },
-        include: { type: 'array', items: { type: 'string', enum: [...THEME_SECTIONS] }, description: 'Extra sections to return; same meaning as theme_brand.' },
+        brief: { type: 'string', description: 'A design.md document. It must open with a --- YAML frontmatter fence on the first line.' },
+        include: { type: 'array', items: { type: 'string', enum: [...THEME_SECTIONS] }, description: 'Sections to return, replacing the default ["notes"]; same meaning as theme_brand.' },
       },
       required: ['brief'],
       additionalProperties: false,
@@ -298,8 +383,8 @@ export const toolDefs = (brandSchema: unknown) => [
 ];
 
 /** Sections included when the caller does not say. `notes` is the decisions log — every gap the
- *  engine filled on the brand's behalf, including the ones it explicitly flags for human
- *  confirmation ("action color defaults to the PRIMARY brand palette — CONFIRM this hue…").
+ *  engine filled on the brand's behalf, including the ones a person should look at ("action: follows
+ *  the primary palette (the default) — buttons and links take the brand hue; …").
  *
  *  It was opt-in until now, grouped with `tokens` and `aiMetadata` under "withheld by default".
  *  That grouping was by CATEGORY when the only thing justifying it is COST, and the measured costs
@@ -455,6 +540,22 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
   }
 
   if (name === 'list_levers') {
+    // `describe` returns the prose `tools/list` summarizes (#1760): the named fields exactly as the
+    // schema file has them, so every field stays describable in full however the inline copy is cut.
+    if (args?.describe !== undefined) {
+      const props = ((brandSchema as { properties?: Record<string, unknown> } | undefined)?.properties) ?? {};
+      const want = args.describe;
+      if (!Array.isArray(want) || want.length === 0 || !want.every((k: unknown) => typeof k === 'string')) {
+        return text({ error: 'list_levers `describe` must be a non-empty array of BrandInput field names' }, true);
+      }
+      const unknownKeys = (want as string[]).filter((k) => !Object.prototype.hasOwnProperty.call(props, k));
+      if (unknownKeys.length) {
+        return text({ error: `unknown BrandInput field(s): ${unknownKeys.join(', ')}`, fields: Object.keys(props) }, true);
+      }
+      const properties = Object.fromEntries((want as string[]).map((k) => [k, props[k]]));
+      const defs = referencedDefs(properties, ((brandSchema as { $defs?: Record<string, unknown> }).$defs) ?? {});
+      return structured({ described: { properties, ...(Object.keys(defs).length ? { $defs: defs } : {}) } });
+    }
     const levers = buildLeverManifest();
     // The manifest ALONE was the bug: it is the UI catalogue, not the input contract. Shipping the
     // non-lever fields beside it makes this tool's promise ("what theme_brand accepts") true.
@@ -493,7 +594,9 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     // exactly the case the spec says to report with isError so the client can feed it back.
     try { parsed = parseDesignMd(args.brief); }
     catch (e) { return text({ error: `could not parse the design.md brief: ${(e as Error).message}` }, true); }
-    const result = themePayload(parsed.input, Array.isArray(args.include) ? args.include : []);
+    // Same default as theme_brand (#1868): the description promises the same payload, and an empty
+    // default silently dropped the decisions log from every call that named no sections.
+    const result = themePayload(parsed.input, Array.isArray(args.include) ? args.include : [...DEFAULT_THEME_SECTIONS]);
     if (result.isError) return result;
     // Report what the brief RESOLVED to. A brief is lossy by nature, and an agent cannot correct a
     // misreading it never sees — this is the field that makes the round trip debuggable.
@@ -537,10 +640,13 @@ export const handleRpc = (req: RpcRequest, brandSchema: unknown, io?: ExportIo):
       return ok({ protocolVersions: [...PROTOCOL_VERSIONS], capabilities: CAPABILITIES, serverInfo: SERVER_INFO });
 
     // 2024-11-05 — removed by the newer revision, kept answering so pinned clients still work.
-    // Echoes the client's version when we speak it, else our newest, which is what that spec asks.
+    // Echoes the client's version when it is a handshake revision we speak. Otherwise it answers
+    // HANDSHAKE_PROTOCOL_VERSION, never `2026-07-28` (#1867). The spec's MUST is "another version it
+    // supports"; its SHOULD says the latest, which we read as the latest a handshake client can use,
+    // because `2026-07-28` has no `initialize` and a client that sent one cannot use that answer.
     case 'initialize': {
       const want = req.params?.protocolVersion;
-      const version = typeof want === 'string' && (PROTOCOL_VERSIONS as readonly string[]).includes(want) ? want : LATEST_PROTOCOL_VERSION;
+      const version = typeof want === 'string' && want !== LATEST_PROTOCOL_VERSION && (PROTOCOL_VERSIONS as readonly string[]).includes(want) ? want : HANDSHAKE_PROTOCOL_VERSION;
       return ok({ protocolVersion: version, capabilities: CAPABILITIES, serverInfo: SERVER_INFO });
     }
     case 'notifications/initialized':

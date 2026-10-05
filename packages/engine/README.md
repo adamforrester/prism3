@@ -71,6 +71,47 @@ Note: `buildTree` (the DTCG generator) lives in the **pure** `tree.ts` (no `node
 Node ≥ 20. No `npm install` needed — the color math is self-contained
 (`color.ts`), so the engine runs without a network.
 
+## Connect an agent (MCP)
+
+The engine ships an MCP server, `mcp.ts`. It speaks MCP over stdio, supports protocol versions
+`2026-07-28` and `2024-11-05`, and has no dependencies. You need Node 20 or later and a clone of
+this repo. There is no `npm install`; `npx` fetches `tsx` on first run.
+
+Register it with Claude Code, using the absolute path to your clone. Run this from the project you
+want to use it in, or add `--scope user` to make it available everywhere:
+
+```bash
+claude mcp add prism3 -- npx --yes tsx@4 /path/to/prism3/packages/engine/mcp.ts
+```
+
+Other stdio clients take the same command. For example, in a `mcpServers` config:
+
+```json
+{ "mcpServers": { "prism3": { "command": "npx", "args": ["--yes", "tsx@4", "/path/to/prism3/packages/engine/mcp.ts"] } } }
+```
+
+To check it by hand, run `npx --yes tsx@4 packages/engine/mcp.ts` from the repo root. It prints a
+ready line on stderr naming the six tools, then waits for JSON-RPC on stdin.
+
+| Tool | What it does |
+|---|---|
+| `list_levers` | Lists what a brand input can set, with labels, types, options and defaults. Call it first. |
+| `validate_brand` | Checks a brand input against the schema without generating anything. |
+| `theme_brand` | Generates a token system from a brand input and verifies it. By default it returns the contrast results and the decisions log. `include` replaces that default: pass `["notes", "tokens"]` to get the token tree and keep the log. |
+| `theme_from_brief` | Does the same from a design.md brief (YAML frontmatter plus prose), and reports the brand input it derived. |
+| `score_consumption` | Scores generated output against a brand's tokens: invented tokens, primitive leaks, and contrast for the pairs you give it. |
+| `export_theme` | Writes `tokens.json`, `ai-metadata.json` and a `figma/` folder, and returns a list of what it wrote. |
+
+`export_theme` writes relative to the directory the client starts the server in; in Claude Code
+that is the directory you launched `claude` from. Some desktop clients start servers in `/`, where
+the write fails; set the server's working directory in the client's config if it offers one. It
+refuses absolute paths and `..`. Use it instead of `theme_brand` with `include: ["tokens"]` when you
+want the files: a four-mode token tree is close to a megabyte.
+
+What it doesn't do:
+- It doesn't write to Figma. That goes through the Figma plugin's agent link (`apps/plugin/README.md`).
+- It has no hosted endpoint yet, so a client that can only reach a URL can't connect (#1859).
+
 ## Files
 
 - `color.ts` — sRGB ↔ OKLCH, sRGB → CIELAB, CIEDE2000, WCAG contrast + dual-side window, gamut-aware max chroma. No deps.
@@ -87,7 +128,7 @@ Node ≥ 20. No `npm install` needed — the color math is self-contained
 - `levers.ts` — the **lever manifest** (docs/08 §4): the presentation contract for the `BrandInput` knobs (group/label/description/control/default/ranges/enum options; 38 levers, 20 `advanced`). **Pure — no `node:*`** (the plugin/playground/MCP bundle it into a browser/Figma sandbox). The Figma plugin, web playground, and MCP tool schema all render from it, so the surfaces stay in continuity. `test.ts` asserts it never drifts from `theme-schema.json` (keys resolve, enums + defaults match, every required field bar host-supplied `id` is a lever).
 - `emit-levers.ts` — the I/O shell that writes `schema/lever-manifest.json` from the pure `levers.ts` (kept separate for sandbox portability). Run: `npx tsx packages/engine/emit-levers.ts`.
 - `preview.ts` — the **preview spec** (docs/08 §7 B1a): a portable, data-only description of sample components (8 components / 25 variants — button + states, input, card, alert per semantic, nav item, badge, type specimen), each binding UI props to semantic token paths + the contrast pairs to overlay. **Pure — no `node:*`.** The Figma plugin and web playground render the same live preview from it. `test.ts` gates it — every referenced token path must resolve to a real leaf in the emitted token tree (binding-validity) and no contract over-claims the engine guarantee. Shell: `emit-preview.ts` → `schema/preview-spec.json`.
-- `resolve-preview.ts` — the **resolved-preview projection** (docs/08 §7 B1b): `resolvePreview(theme)`, the runtime read-model the surfaces consume — the preview spec projected to **concrete colors per mode** + **live contrast results** (each contract computed on the real resolved fg-on-bg, per mode, pass/fail — the overlay). **Pure — no `node:*`** (resolves via `resolveAllModes`, which carries each role's `hex`; not `buildTree`). `test.ts` asserts every declared contract holds on the resolved colors in all 4 modes. A per-live-theme read-model, not a committed artifact.
+- `resolve-preview.ts` — the **resolved-preview projection** (docs/08 §7 B1b): `resolvePreview(theme)`, the runtime read-model the surfaces consume — the preview spec projected to **concrete colors per mode** + **live contrast results** (each contract computed on the real resolved fg-on-bg, per mode, pass/fail — the overlay). **Pure — no `node:*`** (resolves via `resolveAllModes`, which carries each role's `hex`; not `buildTree`). `test.ts` asserts every declared contract holds on the resolved colors in all 4 modes. A per-live-theme read-model, not a committed artifact. A type binding the brand does not emit (a brand may decline `strong` in display/title since #1632, and `displayCeiling: 'sm' | 'md'` drops `display.lg`) is left out of `type` and named in `unresolvedType`, never resolved to a default (#1720).
 - `fidelity.ts` — the full-parity fidelity report builder (`cli.ts --fidelity`): diffs every observed value against the generated system (color ΔE00, typography, spacing, radius, elevation) — the Decision-A regression artifact (§11.3). Pure + brand-agnostic. The committed `out/wendys-fidelity-report.md` is generated by `cli.ts ./examples/wendys.design.md --fidelity`.
 - `ai-metadata.ts` — generates `out/<id>.ai.json`, the agent-readable metadata sidecar, validated against the versioned JSON Schema `schema/ai-metadata.schema.json` (the sidecar's `$schema` is the schema's `$id`). Every token in the tree has one entry. Tiers: **color** (full field set — `meaning`, `when_to_use`, `avoid_when`, `usage_limit` on the large-text-only inks, the relations `sits_on` / `carries` (legibility, measured in every mode) and `tracks` (companion roles, no contrast implied), `contrast_with` with a `requirement` sentence the reader can check against `tokens.json`, and `mode_overrides`), **typography** (`type.*` styles and the `core.font.*` roles), **layout** and **motion** (thin entries for the space, size, radius, border-width, focus-ring, icon, control, grid and motion roles), **gradient** when a brand opts in, and **primitives** (`meaning`, `tier`, `consume`, and `aliased_by`, the reverse index of which tokens resolve to it, **computed transitively** across multi-hop alias chains). The sidecar is the payload channel of `docs/voice-standard.md` §4: its only RFC 2119 keyword is the contract `requirement`, and `lint-voice.ts` enforces that. All fields generated/contract-true; keeps `tokens.json` DTCG-pure.
 - `visualize.ts` — renders `out/tokens.html`, a single self-contained visual style guide read back from the emitted DTCG (every axis: color, semantic roles, dimension, typography rendered live, shadow, motion with animated easing curves, layout, opt-in gradients, opacity, border-width). No deps; also prints a plain-text taxonomy.
@@ -235,12 +276,19 @@ organized by Curtis's three tiers (knowledge-base 02/22/24):
   `.025/.050/.075` sub-steps. The number means "n× base" invariantly across
   brands — the white-label-honest encoding. Density-free.
 - **`radius`** — a small bounded, genuinely-semantic set, so t-shirt naming
-  holds: `none/sm/md/lg/round`. One scalar `radius.scale` drives it (`1` = sharp
-  `2/4/6`; `2` = soft `4/8/12`; `0` collapses all but the pill).
+  holds: `none/sm/md/lg/xl/2xl/3xl`, plus the fixed pills `round`/`capsule`. One
+  scalar `radius.scale` drives it (`1` = `2/4/6/8/12/16`; `2` = soft
+  `4/8/12/16/24/32`; `0` collapses all but the pills). `xl`/`2xl`/`3xl` are the
+  container corners — card, panel, sheet, dialog (#1852).
 - **`size`** — *component* tier, t-shirt (`xs…xl`). Each size is a **contract**
-  binding a control height **and** paired padding drawn from the shared scales,
-  so a `md` button/input/select agree. This is the layer **`density`** acts on:
-  `compact` resolves `size.md` to smaller metrics while the name stays `md`.
+  for a control height, so a `md` button/input/select agree. Dimensions only:
+  "size is for size, space is for space". This is the layer **`density`** acts on:
+  `compact` resolves `size.md` to a shorter height while the name stays `md`.
+- **Component spacing** — every padding and gap is a `space.*` step that the
+  component's own def states at comfortable density (`densitySpacing`); there
+  are no per-component spacing tokens. Density moves each step one position
+  along the space scale — down at `compact`, up at `spacious`, clamped at the
+  ends (`densitySpace` in `scale.ts`, `docs/28` §5.4).
 
 Two bases by design: a **4px fine grid** backs radius/borders; an **8px rhythm**
 backs spacing (Prism2's split). NB is a *fidelity test*, not the taxonomy

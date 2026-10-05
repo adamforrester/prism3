@@ -58,12 +58,17 @@ const aliasFigName = (aliasStr: string): string => {
  *  order, then leading-zero string keys (`"025"`,`"050"`,`"075"`) in insertion order — so `space`'s
  *  sub-steps landed after `1200` in the emitted (hence Figma-created) order. Purely reorders: maps over a
  *  COPY, never mutates the input, never touches a key's value/scope/alias. Non-numeric keys (named rungs
- *  like `radius.none`, t-shirt keys like `size.md`) `parseFloat` to NaN and compare EQUAL, so a stable
+ *  like `radius.none`, t-shirt keys like `size.md` or `radius.2xl` / `radius.3xl`) are not numbers and compare EQUAL, so a stable
  *  sort leaves every named collection in its insertion order — byte-identical output for those. */
 const byNumericKey = (keys: string[]): string[] =>
   [...keys].sort((a, b) => {
-    const na = parseFloat(a);
-    const nb = parseFloat(b);
+    // WHOLE-KEY numeric, not `parseFloat` (#1852): `parseFloat('2xl')` is 2 and `parseFloat('3xl')` is 3, so
+    // the first t-shirt keys with a leading digit sorted AHEAD of `none` as if they were numbers. A key is a
+    // magnitude only when all of it is one; every numeric key these collections carry (`0`, `025`, `1200`)
+    // still is.
+    const num = (k: string): number => (/^\d+(\.\d+)?$/.test(k) ? Number(k) : NaN);
+    const na = num(a);
+    const nb = num(b);
     const aNum = Number.isFinite(na);
     const bNum = Number.isFinite(nb);
     if (aNum && bNum) return na - nb;
@@ -104,11 +109,12 @@ export type FigmaDimsCollections = {
 // into a `dimension/…` (or `space/…`) primitive so the geometric scale is shared.
 //   dimension    → fine-grid primitives (REF TIER, hidden from publishing).
 //   space        → spacing rhythm, aliased. Scope: GAP.
-//   radius       → t-shirt ramp (none/sm/md/lg/round). Scope: CORNER_RADIUS.
-//   size         → component tier — one FLOAT per (t-shirt, prop) pair. `<t>/height`
-//                  aliases dimension (WIDTH_HEIGHT scope); `<t>/padding-x` and
-//                  `<t>/padding-y` alias space (GAP scope). Names use `/` between
-//                  t-shirt and prop (`md/height`), matching the colour/font convention.
+//   radius       → t-shirt ramp (none/sm/md/lg/xl/2xl/3xl + the round/capsule pills). Scope: CORNER_RADIUS.
+//   size         → component tier — one FLOAT per (t-shirt, prop) pair. `<t>/height` and
+//                  `md/min-height` alias dimension (WIDTH_HEIGHT scope). Dimensions only:
+//                  padding and gaps bind `space/*` directly (the spacing model, 2026-09-29).
+//                  Names use `/` between t-shirt and prop (`md/height`), matching the
+//                  colour/font convention.
 //   icon         → artboard ladder (#324), its own collection (not a `size/` sub-branch)
 //                  since an icon size is chosen independently of its control. Scope: WIDTH_HEIGHT.
 //   control      → control-box ladder (#900) — `<rung>/height` (a checkbox square, a radio circle,
@@ -222,22 +228,21 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     ...radiusModes.map((mode) => ({ $collection: 'radius', $mode: mode, variables: radiusVarsFor(mode) })),
   ];
 
-  // size — nested { <tShirt>: { height, padding-x, padding-y } }. Emit one FLOAT
-  // per leaf; height aliases dimension, padding aliases space.
+  // size — nested { <tShirt>: { height } }, plus `md.min-height`. Emit one FLOAT per leaf, aliasing
+  // dimension. No padding: a component binds its spacing from `space/*` (the spacing model).
   const sizeVars: FigmaVar[] = [];
   for (const t of byNumericKey(Object.keys(brand.size))) {
     // `min-height` (#1437) is the interactive target-size floor, present on `md` only; the `if (!leaf)`
-    // guard skips it on the other rungs. It is a HEIGHT (aliases the dimension grid), so it takes the
-    // height scopes, not the padding ones.
-    for (const prop of ['height', 'min-height', 'padding-x', 'padding-x-visual', 'padding-y', 'gap']) {
+    // guard skips it on the other rungs. It is a HEIGHT (aliases the dimension grid), like `height`.
+    for (const prop of ['height', 'min-height']) {
       const leaf = brand.size[t][prop];
       if (!leaf) continue;
       const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
       sizeVars.push({
         name: ns(`size/${t}/${prop}`),
         resolvedType: 'FLOAT',
-        scopes: prop === 'height' || prop === 'min-height' ? SIZE_HEIGHT_SCOPES : SIZE_PADDING_SCOPES,
-        description: figmaSizeDescription(prop, pxFromValue(tree, leaf.$value), brand.size[t]['padding-x'] ? pxFromValue(tree, brand.size[t]['padding-x'].$value) : undefined),
+        scopes: SIZE_HEIGHT_SCOPES,
+        description: figmaSizeDescription(prop, pxFromValue(tree, leaf.$value)),
         value: pxFromValue(tree, leaf.$value),
         alias: isAlias ? { type: 'VARIABLE_ALIAS', name: aliasFigName(leaf.$value) } : null,
       });

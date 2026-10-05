@@ -134,9 +134,10 @@ export type ModeLevers = {
   // composes for free.
   shadow?: { softness?: number; tint?: { hue?: number; amount?: number } };
   // Per-mode DENSITY — a different component-size tier (compact/comfortable/spacious) for this mode. The
-  // dimension analog of the tempo enum: re-derives `sizes` (control heights + paired padding) via the
-  // same componentSizes the baseline uses. The `space.*` reference scale is density-free, so it doesn't
-  // change; only the component tier does. e.g. a `touch` custom mode runs `spacious`.
+  // dimension analog of the tempo enum: re-derives `sizes` (control heights) via the same componentSizes
+  // the baseline uses. The `space.*` reference scale is density-free, so it doesn't change; only the
+  // component tier does. A component's padding is its own `space.*` step, moved by the BRAND's density at
+  // materialization (the spacing model), so a mode's own density moves heights only. e.g. a `touch` mode.
   density?: Density;
   // Per-mode TYPE SIZE (#328) — `{ display: { '3xl': 96 } }` reads "in this mode, display.3xl is 96px".
   // Unlike the leading/tracking re-points above it names a NUMBER, not a rung key, and that asymmetry
@@ -173,7 +174,7 @@ export type Dims = {
   radiusByMode?: Record<string, RadiusStep[]>;
   // Per-mode component-size tiers (Phase D) — only modes whose `modeLevers.density` deviates the
   // baseline; each re-derived via the SAME componentSizes(density, spaceBase) buildDims uses. A size
-  // sub-leaf (height / padding-x / padding-y) whose px differs from light carries a per-mode override.
+  // height whose px differs from light carries a per-mode override.
   // Absent when no modeLevers.density → byte-identical.
   sizesByMode?: Record<string, SizeStep[]>;
   // Per-mode CONTROL tiers (#900) — the same seam, for the same reason. A mode running a different
@@ -249,8 +250,9 @@ export type Theme = {
   roleToPalette: Record<Role, string>;
   roleAnchorStep: Record<Role, number>;
   // The palette the LINK role draws from (#1496). Resolved to a concrete palette name: `input.linkPalette`
-  // when set, else the action palette (so an unset `linkPalette` is byte-identical to pre-#1496 output —
-  // links follow interactive color). `link` is not a `Role` (the semantic-role machinery does not gain a
+  // when set, else the palette the action role resolved to, `roleToPalette.action` (so an unset
+  // `linkPalette` is byte-identical to pre-#1496 output — links follow interactive color, including a
+  // `roleColors.action` rebase, #1895). `link` is not a `Role` (the semantic-role machinery does not gain a
   // member), just the resolved input `modes.ts` reads to derive `linkBase`.
   linkPalette: string;
   // The fill/ink anchor step for the link palette (#1496), computed exactly like `roleAnchorStep.action`
@@ -371,10 +373,17 @@ export type InverseSurfaceSpec = SurfaceSpec | SurfaceStep;
 // contrast they did not have, and zero warnings — the flag is computed from the stale ratio, so
 // allow-and-flag degraded to allow-and-silently-lie. `base` never had that defect precisely because
 // it was always declared here; this gives the inverse band the same footing.
-export type SurfacesConfig = {
-  light?: { base?: SurfaceSpec; floorStep?: number; inverseBase?: InverseSurfaceSpec };
-  dark?:  { base?: SurfaceSpec; floorStep?: number; inverseBase?: InverseSurfaceSpec };
+//
+// The second and third TIERS of both ladders are declarable too (#1972), for the same reason: each is a
+// ground that other roles are measured against. Unset, a tier is the ladder's own step off its anchor.
+// The page tiers take the page's type (neutral-only) and the inverse tiers the inverse band's. A declared
+// `secondary` also carries the contrast floor with it unless `floorStep` names one (see `modeConfigs`).
+export type SurfaceMode = {
+  base?: SurfaceSpec; floorStep?: number; inverseBase?: InverseSurfaceSpec;
+  secondary?: SurfaceSpec; tertiary?: SurfaceSpec;
+  inverseSecondary?: InverseSurfaceSpec; inverseTertiary?: InverseSurfaceSpec;
 };
+export type SurfacesConfig = { light?: SurfaceMode; dark?: SurfaceMode };
 
 // ---- canonical status hues (engine-supplied; a brand need not specify them) ----
 const STATUS_DEFAULTS: Record<'success' | 'warning' | 'danger' | 'info', OKLCH & { chroma: number }> = {
@@ -457,8 +466,9 @@ export type BrandInput = {
    *  here (e.g. an accent, or even neutral). The engine FLAGS this decision in
    *  notes so it's an explicit, confirmable choice — never a silent assumption. */
   actionPalette?: string;
-  /** Which palette drives the LINK colour (#1496). Defaults to FOLLOWING the action palette — an unset
-   *  `linkPalette` resolves to whatever `actionPalette` resolves to, so existing brands are byte-identical.
+  /** Which palette drives the LINK colour (#1496). Defaults to FOLLOWING the action colour — an unset
+   *  `linkPalette` resolves to whatever palette the action role resolves to: `actionPalette`, or
+   *  `roleColors.action` when that rebases it (#1895).
    *  Set it to point links at `primary`, `neutral`, or a `brandColors` entry INDEPENDENTLY of the action
    *  palette (a brand whose CTA colour is not the right link colour). Whatever the choice, the link ink is
    *  still rated up to its own contrast floor. When the chosen palette is not colour-distinct from body
@@ -600,10 +610,9 @@ export type BrandInput = {
   radiusScale?: number;              // 0=sharp … 1=default … 2=soft, default 1
   baseMd?: number;                   // radius.md anchor (px) at scale 1, default 4
   controlShape?: ControlShape;       // 'rounded' (default) | 'pill' | 'boxed' | 'hairline' — corner shape for pill-able controls (#1371)
-  /** OPT-IN 1px hairline radius (#1362). The scaled ramp rides an even 2px sub-grid (`snap2`), so 1px is
-   *  unreachable from `radiusScale` / `baseMd`; `true` adds a fixed, unscaled `radius.hairline` = 1px
-   *  sentinel alongside the pills for near-sharp brands (New Balance uses 1px as its dominant corner).
-   *  Off by default — omitting it leaves every rung byte-identical. */
+  /** RETIRED (#2053, owner 2026-10-04). `radius.hairline` (1px) is always emitted, so this changes nothing.
+   *  Still ACCEPTED, so brand files that set it keep loading; a note says it is ignored. It was the opt-in
+   *  for that rung (#1362): the scaled ramp rides an even 2px sub-grid, so 1px is otherwise unreachable. */
   radiusHairline?: boolean;
   /** Button-family FORM levers (#1667) — materialized into the button defs before projection
    *  (`applyButtonLayout`); they emit no token and move no token name. `buttonIcons`: 'attached' (default,
@@ -657,7 +666,7 @@ export type BrandInputAuthored =
  *  px is already fed in by the space extras at base 4, 6 and 8, so deleting either of those lines
  *  changes no committed output. A guard nothing can exercise is a guard nothing can notice the loss of,
  *  which is `docs/34`'s shape 14 — so the seam is opened here rather than the guard left unfalsifiable. */
-export const buildDims =(baseUnit: number, spaceBase: number, density: Density, rScale: number, baseMd: number, extras: number[] = [], hairline = false): Dims => {
+export const buildDims =(baseUnit: number, spaceBase: number, density: Density, rScale: number, baseMd: number, extras: number[] = []): Dims => {
   // Space is `mult × spaceBase`; the dimension grid is `baseUnit`-stepped. At a non-default spaceBase the
   // half-steps (1.5×/0.25×/0.75×) land OFF the grid (e.g. spaceBase 12 → space.150 = 18px, absent from the
   // baseUnit-4 grid), so `space.<k> → {dimension.<px>}` would dangle (#274). Feed every space px into the
@@ -726,7 +735,7 @@ export const buildDims =(baseUnit: number, spaceBase: number, density: Density, 
       ...[...controls, ...(density === 'spacious' ? controlSizes('comfortable') : [])]
         .flatMap((c) => [c.height, c.width, c.dot, c.inset, c.track, c.thumb, (c.height - c.dot) / 2])]),
     space,
-    radius: radiusScale(rScale, baseMd, 128, 999, hairline),
+    radius: radiusScale(rScale, baseMd, 128, 999),
     sizes: componentSizes(density, spaceBase),
     icons: iconSizes(),
     controls,
@@ -1301,9 +1310,9 @@ export const TYPE_WEIGHTS_DEFAULT: Record<TypeGroup, WeightRoleName[]> = {
  * the form controls bind those composites by name. A brand may still ADD weights to either.
  */
 export const REQUIRED_WEIGHT_ROLES: Partial<Record<TypeGroup, { role: WeightRoleName; why: string }>> = {
-  label: { role: 'emphasis', why: 'the tag and badge bind type.label.*.emphasis by name, and so does the button unless buttonLabelWeight is \'default\'' },
-  body: { role: 'default', why: 'the text field, select, textarea and the checkbox, radio and switch rows bind type.body.*.default by name' },
-  caption: { role: 'default', why: 'the textarea and field message bind type.caption.md.default by name' },
+  label: { role: 'emphasis', why: 'tags and badges use it, and so do buttons unless their label weight is Default' },
+  body: { role: 'default', why: 'text fields, selects, text areas, and checkbox, radio and switch rows use it' },
+  caption: { role: 'default', why: 'text areas and field messages use it' },
 };
 /**
  * #1752 — the weight role `buttonLabelWeight: 'default'` makes the button label bind, and the category it
@@ -1348,7 +1357,7 @@ export const weightAvailability = (typography: Typography): Partial<Record<TypeG
 // links inherit the surrounding text's size + weight). Underline is baked
 // (textDecoration isn't Figma-bindable — a separate text style); the link COLOUR
 // stays `text.link.*` and is applied alongside.
-const TYPE_LINK_DEFAULT: TypeGroup[] = ['body', 'caption'];
+export const TYPE_LINK_DEFAULT: readonly TypeGroup[] = ['body', 'caption'];
 const TYPE_TRACK_DEFAULT: Record<TypeGroup, string> = {
   display: 'tight', title: 'snug', label: 'normal', eyebrow: 'wider',
   body: 'normal', caption: 'normal', code: 'normal',
@@ -2261,8 +2270,13 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   if (!modes.includes('light')) throw new Error('modes must include "light" (the required base mode)');
   // Note only the default (light/dark/HC) opt-out; wireframe is an opt-IN addition, noted separately.
   const stdModes = modes.filter((m) => m !== 'wireframe');
-  if (stdModes.length < ALL_MODES.length) notes.push(`modes: generating ${stdModes.join(', ')} only (dark/HC opt-out)`);
-  if (modes.includes('wireframe')) notes.push('modes: wireframe generated (grayscale — non-neutral roles → equivalent neutral; radius → 0)');
+  // Note copy (#1883): every string pushed to `notes` ships — `theme.notes`, the MCP `theme_brand`
+  // result, the emitted tree's `decisions`, and the studio's Decisions log — so it is written to the
+  // voice standard's UI register: what the engine decided, then why, with no issue numbers, no
+  // all-caps, no maintainer jargon. Provenance stays in the comments beside each push. `lint-voice.ts`
+  // (DECISIONS LOG arm) renders every producer below and fails any note that drifts back.
+  if (stdModes.length < ALL_MODES.length) notes.push(`modes: ${stdModes.join(', ')} only — the brand turns off ${ALL_MODES.filter((m) => !stdModes.includes(m)).join(', ')}.`);
+  if (modes.includes('wireframe')) notes.push('modes: wireframe added — a grayscale mode: each color role takes its neutral equivalent, and every radius is 0.');
   // User-added custom modes (Phase C1) — each `{ name, base }` LIVE-INHERITS a customizable
   // built-in (`base` = light/dark only): it re-derives exactly like its base each build (a cloned
   // descriptor, same kind/family/mins, new name), then its own overrides/modeAnchors deviate it.
@@ -2287,7 +2301,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // The full mode list: built-ins first, customs appended (canonical order). A fresh array so the
   // shared ALL_MODES constant is never mutated when `input.modes` was omitted.
   const modesAll: ModeName[] = customNames.length ? [...modes, ...customNames] : modes;
-  if (customModes.length) notes.push(`customModes: ${customModes.map((cm) => `${cm.name} (live-inherits ${cm.base})`).join(', ')} — each re-derives like its base every build; customizable via overrides/modeAnchors`);
+  if (customModes.length) notes.push(`custom modes: ${customModes.map((cm) => `${cm.name} (based on ${cm.base})`).join(', ')} — each rebuilds from its base on every build; overrides and modeAnchors adjust it.`);
   // Per-mode colour overrides (Phase A1) — customizable modes only. A mode this brand doesn't
   // generate can't carry overrides; the generate-only built-ins (hc-light/hc-dark/wireframe) are
   // baseline-only (a later phase makes HC/wireframe customizable). Malformed palette/step refs
@@ -2300,7 +2314,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     if (!CUSTOMIZABLE_MODES.includes(m))
       throw new Error(`overrides: mode '${m}' is generate-only and not customizable — only ${CUSTOMIZABLE_MODES.join('/')} accept overrides`);
   }
-  if (Object.keys(input.overrides ?? {}).length) notes.push(`overrides: per-mode color overrides applied for ${Object.keys(input.overrides!).join(', ')} (roles repointed to specific primitive steps; tuned picks that miss a contrast min are warned, not blocked)`);
+  if (Object.keys(input.overrides ?? {}).length) notes.push(`overrides: color overrides in ${Object.keys(input.overrides!).join(', ')} — those roles point at the chosen ramp steps; a pick below its contrast floor is warned, not blocked.`);
   // Per-mode interactive anchors (A2b) — same customizable-mode rule as overrides. An anchor
   // re-derives the whole interactive column for that mode (still floor-gated via `chromatic`).
   for (const m of Object.keys(input.modeAnchors ?? {}) as ModeName[]) {
@@ -2309,7 +2323,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     if (!CUSTOMIZABLE_MODES.includes(m))
       throw new Error(`modeAnchors: mode '${m}' is generate-only and not customizable — only ${CUSTOMIZABLE_MODES.join('/')} accept per-mode anchors`);
   }
-  if (Object.keys(input.modeAnchors ?? {}).length) notes.push(`modeAnchors: per-mode interactive anchors for ${Object.keys(input.modeAnchors!).join(', ')} (a column's fill re-anchored per mode; still floor-gated)`);
+  if (Object.keys(input.modeAnchors ?? {}).length) notes.push(`modeAnchors: an interactive fill anchored per mode in ${Object.keys(input.modeAnchors!).join(', ')} — the contrast floor still applies.`);
   // Per-mode LEVER overrides (Phase D) — a customizable mode may override a non-colour axis lever
   // (radius, tempo, density, and the other ModeLevers axes — NOT typeScale, see ModeLevers). SAME customizable-mode rule as
   // overrides/modeAnchors: the mode must be generated AND customizable (light/dark/custom); the
@@ -2371,7 +2385,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
       throw new Error(`modeLevers: mode '${m}' density '${lev.density}' is invalid — must be one of ${DENSITY_VALUES.join('/')}`);
   }
   const leverModes = Object.entries(input.modeLevers ?? {}).filter(([, l]) => l && (l.radius !== undefined || l.families || l.weights || l.lineHeights || l.letterSpacings || l.tempo || l.shadow || l.density)).map(([m]) => m);
-  if (leverModes.length) notes.push(`modeLevers: per-mode lever overrides for ${leverModes.join(', ')} (radius / font family / font weight / line-height / letter-spacing / motion tempo / shadow / density re-derived per mode via the same helpers as the baseline; a mode deviates the global lever, the composite/token set is untouched)`);
+  if (leverModes.length) notes.push(`modeLevers: global levers overridden in ${leverModes.join(', ')} (radius, font family, weight, line height, letter spacing, motion tempo, shadow, density) — rebuilt the same way as the base; the token set is unchanged.`);
 
   // #332 — GLOBAL lever validation (enum + declared numeric range), covering every lever the modeLevers
   // checks above did NOT already cover for its own per-mode counterpart (tempo/density/shadow.softness
@@ -2460,9 +2474,9 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
       throw new Error(`${path}: ${JSON.stringify(value)} is out of range — must be a finite number in [${min}, ${max}]`);
   }
 
-  if (root !== 'prism') notes.push(`namespace: tokens emit under '${root}.*' (custom, not the 'prism' default)`);
+  if (root !== 'prism') notes.push(`namespace: tokens emit under '${root}.*' instead of the default 'prism.*'.`);
   const anchorStep = autoPlaceStep(input.primary.l);
-  notes.push(`primary anchor (h${input.primary.h}) pinned exactly at step ${anchorStep}`);
+  notes.push(`primary: the brand color is pinned at step ${anchorStep} (hue ${input.primary.h}) — the ramp is built around it.`);
 
   // M-03: a pinned anchor whose chroma is out of sRGB gamut can't be rendered exactly — the
   // engine clamps toward the boundary, which silently nudges lightness AND hue (independent-
@@ -2472,7 +2486,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const gamutNote = (name: string, o: { l: number; c: number; h: number }) => {
     if (inGamut(o)) return;
     const mc = Math.round(maxChroma(o.l, o.h, o.c) * 1000) / 1000;
-    notes.push(`anchor '${name}' (L${o.l} C${o.c} h${o.h}) is OUT of sRGB gamut — max renderable chroma at this L/hue is ~${mc}; it ships clamped toward the boundary, so its lightness and hue may drift. Lower its chroma to ~${mc} for an exact match.`);
+    notes.push(`anchor '${name}' (oklch ${o.l} ${o.c} ${o.h}) is outside the sRGB gamut — sRGB shows at most ${mc} chroma (±0.0005) at this lightness and hue, so it ships clamped and its lightness and hue can shift. A chroma at least 0.0005 below ${mc} ships exactly.`);
   };
   gamutNote('primary', input.primary);
   for (const bc of input.brandColors ?? []) gamutNote(bc.name, bc.oklch);
@@ -2488,8 +2502,8 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const neutralSteps = nAnchor
     ? generateRamp({ hue: nAnchor.h, chroma: nAnchor.c, anchor: { oklch: nAnchor, stepNum: autoPlaceStep(nAnchor.l) } })
     : generateRamp({ hue: nHue, chroma: input.neutral.chroma });
-  if (nAnchor) notes.push(`neutral pinned around a pre-defined gray (L${nAnchor.l}) at step ${autoPlaceStep(nAnchor.l)} — ramp built from the anchor, not the hue/chroma cast`);
-  else if (input.neutral.auto) notes.push(`neutral hue auto-follows the brand primary (H${Math.round(input.primary.h)}) — recoloring the brand re-tracks the cast`);
+  if (nAnchor) notes.push(`neutral: pinned to the brand's gray (lightness ${nAnchor.l}) at step ${autoPlaceStep(nAnchor.l)} — the ramp is built from that gray, not from a hue and chroma.`);
+  else if (input.neutral.auto) notes.push(`neutral: the grays follow the primary hue (${Math.round(input.primary.h)}) — change the brand color and the grays follow.`);
 
   const palettes: PaletteBuild[] = [
     { palette: 'primary', role: 'brand', description: 'Brand primary', steps: generateRamp({ hue: input.primary.h, chroma: input.primary.c, anchor: { oklch: input.primary, stepNum: anchorStep } }) },
@@ -2511,7 +2525,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   }
   for (const bc of input.brandColors ?? []) {
     palettes.push({ palette: bc.name, role: 'brand', description: `Brand ${bc.name}`, steps: generateRamp({ hue: bc.oklch.h, chroma: bc.oklch.c, anchor: { oklch: bc.oklch, stepNum: autoPlaceStep(bc.oklch.l) } }) });
-    notes.push(`brand color '${bc.name}' (h${bc.oklch.h}) added`);
+    notes.push(`brand color: '${bc.name}' added (hue ${bc.oklch.h}).`);
   }
 
   const status = (k: 'success' | 'warning' | 'info') => {
@@ -2523,8 +2537,8 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     // a full accessible ramp, not one measured swatch), but it means a measured status colour
     // won't round-trip exactly, so say so rather than imply the swatch is reproduced.
     notes.push(supplied
-      ? `${k}: brand-supplied hue ${s.h} — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)`
-      : `${k}: engine default hue ${s.h}`);
+      ? `${k}: the brand's hue ${s.h} — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.`
+      : `${k}: default hue ${s.h} — status.${k} is not set.`);
     return { palette: k, role: k as Role, description: `${k} status`, steps: statusRamp(s.h, s.chroma) };
   };
   palettes.push(status('success'), status('warning'), status('info'));
@@ -2535,8 +2549,8 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     throw new Error(`actionPalette '${actionPalette}' is not a defined palette (have: ${palettes.map((p) => p.palette).join(', ')})`);
   }
   notes.push(actionPalette === 'primary'
-    ? `action color defaults to the PRIMARY brand palette — CONFIRM this hue is the intended interactive color for this brand`
-    : `action color is decoupled: uses palette '${actionPalette}', NOT the primary brand palette — explicit brand decision`);
+    ? `action: the primary palette, by default — actionPalette is not set.`
+    : `action: uses the '${actionPalette}' palette instead of primary, as the brand sets.`);
 
   // ---- danger carve ----
   const roleToPalette: Record<Role, string> = {
@@ -2547,7 +2561,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     // pass below sets roleToPalette.danger; skip the carve/synth so no orphan danger ramp is minted.
   } else if (input.status?.danger) {
     palettes.push({ palette: 'danger', role: 'danger', description: 'danger status (brand-supplied)', steps: statusRamp(input.status.danger.h, input.status.danger.chroma) });
-    notes.push(`danger: brand-supplied hue ${input.status.danger.h}`);
+    notes.push(`danger: the brand's hue ${input.status.danger.h}.`);
   } else if (inRedTerritory(input.primary.h, input.primary.c)) {
     // The brand's own colour IS a saturated red — seed danger FROM the primary ramp rather than
     // synthesising a near-duplicate red. But mint it as its own `danger` palette (a deep copy of
@@ -2558,7 +2572,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     // and it makes the red case consistent with the carve case (which already mints `danger`).
     const primarySteps = palettes.find((p) => p.palette === 'primary')!.steps;
     palettes.push({ palette: 'danger', role: 'danger', description: 'danger status (seeded from the red brand primary — its own ramp so danger stays re-pointable)', steps: primarySteps.map((s) => ({ ...s, oklch: { ...s.oklch }, rgb: { ...s.rgb } })) });
-    notes.push(`danger: primary hue ${input.primary.h} (chroma ${input.primary.c}) is a saturated red → danger seeds from the primary ramp, minted as its own palette (semantic tokens alias palette.danger.*, so danger stays independently re-pointable)`);
+    notes.push(`danger: the primary (hue ${input.primary.h}, chroma ${input.primary.c}) is a saturated red, so danger reuses its ramp as a separate palette — danger can still be repointed on its own.`);
   } else {
     // Primary is not a saturated red, so carve a dedicated danger red the brand never gave us.
     const d = STATUS_DEFAULTS.danger;
@@ -2567,13 +2581,13 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     // for danger (a near-grey can't signal destruction), even though its hue is in the window.
     const hueIsRed = hueDist(input.primary.h, STATUS_DEFAULTS.danger.h) <= 20;
     notes.push(hueIsRed
-      ? `danger: primary hue ${input.primary.h} is red-ish but its chroma ${input.primary.c} is below the ${RED_CHROMA_FLOOR} floor to read as danger → carved a dedicated saturated red at hue ${d.h} (a near-gray warm primary can't signal destructive actions)`
-      : `danger: primary hue ${input.primary.h} is NOT red → carved a dedicated danger red at hue ${d.h}`);
+      ? `danger: the primary (hue ${input.primary.h}) is reddish, but its chroma ${input.primary.c} is below the ${RED_CHROMA_FLOOR} floor for danger — a separate red at hue ${d.h} carries destructive actions.`
+      : `danger: the primary (hue ${input.primary.h}) is not red, so danger gets its own red at hue ${d.h}.`);
   }
   // Knife-edge note (M-05): flag when the primary hue sits within 3° of the ±20° red boundary —
   // a small hue shift would flip danger between reuse-primary and carve-red.
   if (Math.abs(hueDist(input.primary.h, STATUS_DEFAULTS.danger.h) - 20) <= 3 && input.primary.c >= RED_CHROMA_FLOOR)
-    notes.push(`danger: primary hue ${input.primary.h} is near the red-territory boundary (±20° of ${STATUS_DEFAULTS.danger.h}) — a small hue shift would flip the danger strategy`);
+    notes.push(`danger: the primary hue ${input.primary.h} sits near the edge of red (±20° of ${STATUS_DEFAULTS.danger.h}) — a small hue change switches danger between the primary's ramp and its own red.`);
 
   // ---- roleColors: general semantic-role rebasing (docs/21) ----
   // Re-base any rebasable role on a declared palette (the general form of actionPalette).
@@ -2596,10 +2610,10 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     if (!palettes.some((p) => p.palette === pal))
       throw new Error(`roleColors.${r} → '${pal}' is not a defined palette (have: ${palettes.map((p) => p.palette).join(', ')})`);
     roleToPalette[r] = pal;
-    notes.push(`roleColors: ${r} re-based on palette '${pal}' — the ${r} family regenerates on that ramp, re-gated (explicit brand decision)`);
+    notes.push(`roleColors: ${r} uses the '${pal}' palette, as the brand sets — every ${r} role rebuilds on that ramp and is contrast-checked again.`);
     const want = CANONICAL_HUE[r], got = paletteHue(pal);
     if (want !== undefined && got !== null && hueDist(got, want) > 40)
-      notes.push(`roleColors: ${r} → '${pal}' hue ${Math.round(got)}° is far from the canonical ${r} hue ${want}° (Δ${Math.round(hueDist(got, want))}°) — CONFIRM the ${r} signal still reads; contrast holds but the color may mislead`);
+      notes.push(`roleColors: '${pal}' (hue ${Math.round(got)}°) is ${Math.round(hueDist(got, want))}° from the usual ${r} hue (${want}°) — contrast holds, but the color may not read as ${r}.`);
   }
 
   // ---- interactive palettes (docs/20 §3): N opt-in `interactive.<name>.*` columns ----
@@ -2618,7 +2632,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     let entries: { name?: string; palette: string; anchorStep?: number }[];
     if (input.interactivePalettes !== undefined) {
       if (input.accentPalette !== undefined)
-        notes.push(`interactivePalettes is set → the legacy accentPalette '${input.accentPalette}' is IGNORED (interactivePalettes wins)`);
+        notes.push(`interactivePalettes: set, so accentPalette '${input.accentPalette}' is not used — interactivePalettes replaces it.`);
       entries = input.interactivePalettes;
     } else if (input.accentPalette !== undefined) {
       // Back-compat: a bare accentPalette is exactly one 'accent' interactive column (docs/20 §3),
@@ -2645,7 +2659,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
       seen.add(name);
       const anchor = e.anchorStep ?? interactiveStepFor(e.palette);
       resolved.push({ name, palette: e.palette, anchorStep: anchor, anchorPinned: e.anchorStep !== undefined });
-      notes.push(`interactive column '${name}' → palette '${e.palette}' (fill step ${anchor}) → a full interactive.${name}.* column`);
+      notes.push(`interactive column: '${name}' on the '${e.palette}' palette, fill at step ${anchor} — adds the full interactive.${name}.* set.`);
     }
     return resolved;
   })();
@@ -2660,7 +2674,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   for (let i = palettes.length - 1; i >= 0; i--) {
     const p = palettes[i];
     if ((p.palette === 'success' || p.palette === 'warning' || p.palette === 'info') && !usedPalettes.has(p.palette)) {
-      notes.push(`${p.palette}: rebased via roleColors → the synthesized ${p.palette} ramp is dropped (no role uses it)`);
+      notes.push(`${p.palette}: rebased by roleColors, so the ${p.palette} ramp is dropped — no role uses it.`);
       palettes.splice(i, 1);
     }
   }
@@ -2671,23 +2685,20 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const density = input.density ?? 'comfortable';
   const rScale = input.radiusScale ?? 1;
   const baseMd = input.baseMd ?? 4;
-  // OPT-IN 1px hairline sentinel (#1362) — off by default, so absent it changes nothing. IMPLIED by
-  // `controlShape: hairline` (#1371): that shape repoints a pill-able control's corner to `radius.hairline`
-  // (`applyControlShape`), and the rung must EXIST for the binding to resolve rather than dangle against a
-  // brand that never opted in — so choosing the shape provisions the rung. Mechanical rung-resolution, not a
-  // second lever the user must find: `radius.none` (`boxed`) is always emitted and needs no such coupling.
-  const radiusHairline = (input.radiusHairline ?? false) || input.controlShape === 'hairline';
+  // The 1px hairline sentinel (#1362) is ALWAYS emitted since #2053 (owner, 2026-10-04): `radiusScale` pushes
+  // it for every brand, so `controlShape: hairline` (#1371) always has its rung to bind, as `boxed` always has
+  // `radius.none`. `radiusHairline` is still ACCEPTED, so existing brand files load, but changes nothing.
   // Per-mode radius levers (Phase D): a customizable mode overriding `radius` re-derives its radius
   // ramp via the SAME radiusScale(value, baseMd, 128) buildDims uses (same baseMd). Only a mode whose
   // re-derived ramp DIFFERS from the global baseline gets an entry (no-diff suppression — mirrors the
   // tempo lever below); an override that equals the global scale stays byte-identical.
   const modeLevers = input.modeLevers ?? {};
   const radiusByMode: Record<string, RadiusStep[]> = {};
-  const baseRadiusJson = JSON.stringify(radiusScale(rScale, baseMd, 128, 999, radiusHairline));   // == dims.radius, the baseline every mode inherits
+  const baseRadiusJson = JSON.stringify(radiusScale(rScale, baseMd, 128, 999));   // == dims.radius, the baseline every mode inherits
   for (const [m, lev] of Object.entries(modeLevers)) {
     // The hairline sentinel is brand-level and unscaled, so it rides every mode's ramp identically —
     // pass it here too, and a per-mode `radius` override still no-diffs on it (1px is mode-invariant).
-    if (lev?.radius !== undefined) diffAssign(radiusByMode, m, radiusScale(lev.radius, baseMd, 128, 999, radiusHairline), baseRadiusJson);
+    if (lev?.radius !== undefined) diffAssign(radiusByMode, m, radiusScale(lev.radius, baseMd, 128, 999), baseRadiusJson);
   }
   // Per-mode DENSITY levers (Phase D): a customizable mode overriding `density` re-derives its component
   // -size tier via the SAME componentSizes(density, spaceBase) buildDims uses. Only a mode whose density
@@ -2703,9 +2714,10 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
       controlsByMode[m] = controlSizes(lev.density);
     }
   }
-  notes.push(`dimension axis: ${baseUnit}px grid, ${spaceBase}px space rhythm, density '${density}' (drives component sizes), radius scale ${rScale} (baseMd ${baseMd}px)`);
-  if (radiusHairline) notes.push(`radius: hairline sentinel ON${input.radiusHairline ? '' : ' (implied by controlShape: hairline #1371)'} — a fixed, unscaled radius.hairline = 1px alongside the pills (#1362, opt-in), reachable where the even 2px sub-grid cannot go; the scaled ramp is unchanged.`);
-  notes.push(`motion: tempo '${input.motionPersonality?.tempo ?? 'standard'}' scales the duration ramp; easing roles + springs + composite transitions generated; reduce-motion variants derived (informational preserved, vestibular → 0)`);
+  notes.push(`dimensions: ${baseUnit}px grid, ${spaceBase}px spacing rhythm, '${density}' density (sets component sizes), radius scale ${rScale} (base radius ${baseMd}px).`);
+  // #2053: the lever is retired. A brand file that still sets it is told it changes nothing.
+  if (input.radiusHairline !== undefined) notes.push(`radius: radiusHairline is retired — radius.hairline (1px) is always emitted, so the setting changes nothing.`);
+  notes.push(`motion: '${input.motionPersonality?.tempo ?? 'standard'}' tempo sets the durations; reduced-motion variants keep informational motion and set vestibular motion to 0.`);
   // Per-mode MOTION TEMPO (Phase D): a customizable mode overriding `tempo` re-derives its duration ramp
   // (+ reduce-motion + stagger) via the SAME buildMotion the baseline uses, just at the mode's tempo.
   // Only a mode whose tempo DIFFERS from the baseline gets an entry (no-diff suppression) → byte-identical
@@ -2738,10 +2750,10 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   }
   if (Object.keys(easingRolesByMode).length) {
     motion.easingRolesByMode = easingRolesByMode;
-    notes.push(`motion easing re-points: ${Object.entries(easingRolesByMode).map(([m, r]) => `${m} (${Object.entries(r).map(([k, v]) => `${k}→${v}`).join(', ')})`).join('; ')} — the role points at a different curve in that mode; the curve primitives stay mode-invariant.`);
+    notes.push(`motion: easing roles use a different curve per mode — ${Object.entries(easingRolesByMode).map(([m, r]) => `${m} (${Object.entries(r).map(([k, v]) => `${k} → ${v}`).join(', ')})`).join('; ')}; the curves themselves are the same in every mode.`);
   }
   const shadow = buildShadow(input.neutral.hue, input.shadow);
-  notes.push(`shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness ${shadow.softness}; tinted base (hue ${shadow.tint.hue}, amount ${shadow.tint.amount}${shadow.tint.amount === 0 ? ' = pure black' : ''}). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.`);
+  notes.push(`shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness ${shadow.softness}; tinted to hue ${shadow.tint.hue} at ${shadow.tint.amount}${shadow.tint.amount === 0 ? ' (pure black)' : ''}. Full shadows in light, reduced in dark, where surface lightness carries elevation.`);
   // Per-mode SHADOW (Phase D): a customizable mode overriding `shadow` re-derives its ramp via the SAME
   // buildShadow the baseline uses, at the mode's (softness/tint merged over the global). The APPEARANCE
   // decides the layer-set — a dark or dark-based custom mode gets the reduced dark layers; light/light-
@@ -2780,12 +2792,13 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   if (Object.keys(shadowByMode).length) shadow.shadowByMode = shadowByMode;
   const gradient = buildGradient(input.gradients, palettes, root);
   if (gradient.gradients.length) {
-    notes.push(`gradient: ${gradient.gradients.length} brand gradient(s) [${gradient.gradients.map((g) => `${g.name} ${g.kind}${g.kind === 'linear' ? ` ${g.angle}°` : ''} ${g.stops.length}-stop`).join(', ')}] — OPT-IN. DTCG composite spine, stop colors alias the ramp; kind/angle/${gradient.gradients[0].interpolation} interpolation in \$extensions (DTCG omits them — issue #101). OKLCH-interpolated + ${gradient.gradients[0].sampled.length}-stop sRGB pre-sample for Figma (sRGB-only); materializes as a Figma Paint Style (only stop colors bind). Worst-case-stop contrast computed for text-on-gradient.`);
+    // Kind, angle and interpolation sit in $extensions because DTCG has no field for them (#101).
+    notes.push(`gradient: ${gradient.gradients.length} brand gradient(s) — ${gradient.gradients.map((g) => `${g.name} (${g.kind}${g.kind === 'linear' ? ` ${g.angle}°` : ''}, ${g.stops.length} stops)`).join(', ')}. Stops alias the color ramps and blend in ${gradient.gradients[0].interpolation}; Figma gets a ${gradient.gradients[0].sampled.length}-stop sRGB version. Contrast for text on a gradient is computed at its worst-contrast stop.`);
   } else {
-    notes.push('gradient: none (opt-in axis; brand declared no gradients — the field-common default).');
+    notes.push('gradient: none — the brand declares no gradients, and none are added by default.');
   }
   const layout = buildLayout(input.layout);
-  notes.push(`layout: ${layout.breakpoints.length} breakpoints (${layout.breakpoints.map((b) => `${b.name} ${b.px}`).join(', ')}); grid base ${layout.baseColumns} cols (ladder ${layout.grid.map((g) => g.columns).join('/')}); gutter/margin alias the spacing scale (${layout.grid.map((g) => g.gutterPx).join('/')} · ${layout.grid.map((g) => g.marginPx).join('/')}); container max ${layout.containerMax}px + narrow ${layout.containerNarrow}px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with color light/dark.`);
+  notes.push(`layout: ${layout.breakpoints.length} breakpoints (${layout.breakpoints.map((b) => `${b.name} ${b.px}`).join(', ')}); ${layout.baseColumns}-column grid (${layout.grid.map((g) => g.columns).join('/')} by breakpoint); gutters ${layout.grid.map((g) => g.gutterPx).join('/')}px and margins ${layout.grid.map((g) => g.marginPx).join('/')}px, from the spacing scale; containers max ${layout.containerMax}px, narrow ${layout.containerNarrow}px.`);
   // #1752 — `buttonLabelWeight: 'default'` puts the `default` role in the label category (the identity
   // otherwise). Before the build, so the composites, the Figma text styles and `weightAvailability` all
   // see it: the button's rebound label style then names a style the brand emits.
@@ -2945,25 +2958,28 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // The "requested Npx but effective Mpx" note is gone with the px ceiling (#328): a rung-named
   // ceiling cannot disagree with what ships, because it never compared against a shifted size.
   const capNote = dispSizes.length === 0
-    ? ` — NOTE: display tier fully trimmed; composite count is below the 15–25 norm`
+    ? '; the display tier is empty, so the style count is below the usual 15–25'
     : '';
   const varFams = typography.families.filter((f) => f.variable).map((f) => f.group);
-  notes.push(`typography: curated rem size ladder (${typography.sizesPx.length} steps, ${typography.sizesPx[0]}–${typography.sizesPx[typography.sizesPx.length - 1]}px — NOT ratio-derived; covers all bases, clean values); weight roles ${typography.weightRoles.map((w) => w.role).join('/')} → ${typography.weightRoles.map((w) => w.value).join('/')}; families ${typography.families.map((f) => `${f.group}=${f.stack[0]}`).join(', ')}${varFams.length ? ` (variable: ${varFams.join('/')})` : ''}; typeScale '${typography.typeScale}'. ${typography.composites.length} semantic composites (title/display sizes shifted by typeScale; display capped at rung '${reqCeiling}' (${effCap}px); title tier ${(input.typography?.titleFloor ?? 18) === 16 ? 'includes' : 'omits'} title.2xs${(input.typography?.captionFloor ?? 11) === 10 || (input.typography?.sizeFloor ?? 10) === 8 ? `; caption tier adds ${[(input.typography?.sizeFloor ?? 10) === 8 ? 'caption.xs (8px)' : '', (input.typography?.captionFloor ?? 11) === 10 ? 'caption.sm (10px)' : ''].filter(Boolean).join(' + ')}` : ''})${capNote}. ${typography.fluid ? `responsive: ${typography.composites.filter((c) => c.sizeMinPx !== c.sizePx).length} fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() ${typography.minViewport}–${typography.maxViewport}px + Figma desktop/mobile modes)` : 'responsive: OFF (all sizes static)'}. Line-height unitless multiplier in \$value; px-from-ratio materialization for Figma in \$extensions.`);
-  // ESCAPE HATCH FLAG (#1363). 8px is below every practical legibility floor and below the size range
-  // this system's contrast ratios were reasoned about, so an opted-in sub-10px rung is FLAGGED here the
+  // The mobile shrink follows the fluid-display curve researched for the type ladder (docs record the
+  // source); the line-height ratio and its Figma px materialization are format facts, not decisions,
+  // so the note leaves them out.
+  notes.push(`typography: ${typography.sizesPx.length}-step size ladder (${typography.sizesPx[0]}–${typography.sizesPx[typography.sizesPx.length - 1]}px), a fixed set rather than a ratio; weights ${typography.weightRoles.map((w) => w.role).join('/')} → ${typography.weightRoles.map((w) => w.value).join('/')}; families ${typography.families.map((f) => `${f.group} ${f.stack[0]}`).join(', ')}${varFams.length ? ` (variable: ${varFams.join('/')})` : ''}; '${typography.typeScale}' type scale. ${typography.composites.length} text styles: title and display sizes follow the type scale, display tops out at '${reqCeiling}' (${effCap}px), title.2xs is ${(input.typography?.titleFloor ?? 18) === 16 ? 'included' : 'left out'}${(input.typography?.captionFloor ?? 11) === 10 || (input.typography?.sizeFloor ?? 10) === 8 ? `, caption adds ${[(input.typography?.sizeFloor ?? 10) === 8 ? 'caption.xs (8px)' : '', (input.typography?.captionFloor ?? 11) === 10 ? 'caption.sm (10px)' : ''].filter(Boolean).join(' and ')}` : ''}${capNote}. ${typography.fluid ? `${typography.composites.filter((c) => c.sizeMinPx !== c.sizePx).length} styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from ${typography.minViewport} to ${typography.maxViewport}px and desktop and mobile Figma modes.` : 'Sizes are fixed at every viewport.'}`);
+  // Sub-10px flag (#1363). 8px is below every practical legibility floor and below the size range
+  // this system's contrast ratios were reasoned about, so an opted-in sub-10px rung is flagged here the
   // way `actionPalette` flags a decoupled action colour — a deliberate, recorded exception rather than a
   // rung reachable by accident. Off by default, so absent it this note never appears.
   if ((input.typography?.sizeFloor ?? 10) === 8)
-    notes.push(`typography: ESCAPE HATCH — typography.sizeFloor:8 pushes the size ladder to an 8px floor and ships caption.xs = 8px. 8px sits BELOW the size range this system's contrast ratios were reasoned about and below every practical legibility floor; it is a deliberately opted-in exception (off by default), not a rung a brand reaches by accident. Ship it only for genuine fine print (legal, footnotes, dense product attributes) that has an accessible alternative.`);
+    notes.push(`typography: sizeFloor 8 extends the size ladder to 8px and adds caption.xs at 8px — below the sizes this system's contrast ratios were reasoned about, and below practical legibility. Off by default; use it only for fine print (legal, footnotes, dense product attributes) that has an accessible alternative.`);
   const dStrat = normalizeDisabledStrategy(input.disabledStrategy);
   const dMin = normalizeDisabledMin(input.disabledStrategy, input.disabledMin);
   notes.push(dStrat === 'full'
-    ? `disabled: 'full' — disabled text/icon clears a fixed 4.5:1 (AA text) on the floor. Legibility is guaranteed, so the disabled AFFORDANCE rests on the fill / border / cursor / aria-disabled rather than on dimming — confirm a disabled control still reads as disabled.`
-    : `disabled: 'reduced' (default) — disabled text/icon clears ${dMin}:1 on the floor: visibly dimmed but legible. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.`);
+    ? `disabled: 'full' — disabled text and icons clear 4.5:1 (AA text) against the contrast floor, so dimming does not mark them and a disabled control may not read as disabled; the fill, border, cursor and aria-disabled carry that state.`
+    : `disabled: 'reduced' (default) — disabled text and icons clear ${dMin}:1 against the contrast floor: dimmed but legible, never below 3:1, without the WCAG 1.4.3/1.4.11 inactive-component exemption. disabledStrategy 'full' raises them to 4.5:1.`);
   const oInt = input.outlineInteraction ?? 'overlay-neutral';
   notes.push(oInt === 'overlay-neutral'
-    ? `interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (interactive.<color>.subtle-fill.{hover,pressed,selected}: the control's own fill at an opacity step) or 'none' to opt out.`
-    : `interactive overlays: '${oInt}' — no translucent overlay tokens; outline/text hover uses ${oInt === 'solid-tint' ? 'interactive.<color>.subtle-fill.*, the control\'s own fill at an opacity step' : 'no hover expression'}`);
+    ? `interactive overlays: 'overlay-neutral' (default) — outline and text controls, rows and menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-checked on the blended surface. 'solid-tint' uses the control's own fill at an opacity step instead; 'none' adds no hover.`
+    : `interactive overlays: '${oInt}' — no translucent overlay tokens; outline and text controls hover with ${oInt === 'solid-tint' ? 'interactive.<color>.subtle-fill.*, the control\'s own fill at an opacity step' : 'no change'}.`);
 
   // ---- surface confirmation + validation ----
   // #898: the INVERSE band alone may name a NON-neutral palette via `{ palette, step }` (a brand-navy dark
@@ -2982,20 +2998,55 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     if (!pb) throw new Error(`surfaces.${where}: palette '${spec.palette}' is not a declared palette (have: ${palettes.map((p) => p.palette).join(', ')}). A surface band names neutral (a bare step number), the brand (primary), or a custom brandColor — not an undeclared name.`);
     if (STATUS_ROLE_SET.has(pb.role)) throw new Error(`surfaces.${where}: palette '${spec.palette}' is a STATUS palette (role '${pb.role}') — a page band in a semantic status color would use it decoratively, which #898 excludes. Use neutral, the brand, or a custom palette.`);
   };
-  for (const [mode, sf] of Object.entries(input.surfaces ?? {})) {
-    if (sf?.base != null && typeof sf.base === 'object') {
-      throw new Error(`surfaces.${mode}.base does not accept a palette band — only the inverse band may (#898). The page ground is neutral-only: use 'white', 'black', or a neutral step number.`);
+  // A value that must name a step on `pal`'s ramp, refused by name otherwise. A finite number off the ramp
+  // names the nearest real step; anything else is not a `noun`. `alts` is what else the key accepts.
+  const neutralPal = palettes.find((p) => p.role === 'neutral');
+  const requireStep = (where: string, value: unknown, num: unknown, pal: typeof neutralPal, noun: string, alts: string): void => {
+    const steps = (pal?.steps ?? []).map((st) => st.num);
+    if (typeof num === 'number' && steps.includes(num)) return;
+    const ramp = `a step on the ${pal?.palette ?? 'neutral'} ramp (${steps.join(', ')})`;
+    if (typeof num === 'number' && Number.isFinite(num) && steps.length) {
+      const nearest = steps.reduce((a, b) => (Math.abs(b - num) < Math.abs(a - num) ? b : a));
+      throw new Error(`surfaces.${where}: ${JSON.stringify(value)} is not on the ${pal!.palette} ramp; the nearest step is ${nearest}. Use ${alts}${ramp}.`);
     }
-    checkSurfacePalette(sf?.inverseBase, `${mode}.inverseBase`);
+    throw new Error(`surfaces.${where}: ${JSON.stringify(value)} is not ${noun}. Use ${alts}${ramp}.`);
+  };
+  for (const [mode, sf] of Object.entries(input.surfaces ?? {})) {
+    for (const key of ['base', 'secondary', 'tertiary'] as const) {
+      if (sf?.[key] != null && typeof sf[key] === 'object') {
+        throw new Error(`surfaces.${mode}.${key} does not accept a palette band — only the inverse band may (#898). The page ground is neutral-only: use 'white', 'black', or a neutral step number.`);
+      }
+    }
+    for (const key of ['inverseBase', 'inverseSecondary', 'inverseTertiary'] as const) checkSurfacePalette(sf?.[key], `${mode}.${key}`);
+    // EVERY SURFACE ANCHOR is checked here, as well as in the schema, because the schema alone does not hold:
+    // `json-schema-lite` skips `allOf`/`oneOf`, so `'grey'` passes it, and the resolver would snap it, or an
+    // off-ramp step, to a step nobody chose. A surface names white, black, or a real step on its palette's ramp.
+    // The four tiers got this in #1972; `base` and `inverseBase` in #1985 (owner, 2026-10-03, option A: a typo
+    // must never silently pick a color). Off the ramp, the message names the nearest real step.
+    for (const key of ['base', 'inverseBase', 'secondary', 'tertiary', 'inverseSecondary', 'inverseTertiary'] as const) {
+      const spec: unknown = sf?.[key];
+      if (spec == null || spec === 'white' || spec === 'black') continue;
+      const pal = typeof spec === 'object' ? palettes.find((p) => p.palette === (spec as SurfaceStep).palette) : neutralPal;
+      const num = typeof spec === 'object' ? (spec as SurfaceStep).step : spec;
+      requireStep(`${mode}.${key}`, spec, num, pal, 'a surface', "'white', 'black', or ");
+    }
+    // `floorStep` is held to the same rule (#2033, owner go-ahead 2026-10-04): it decides what every
+    // floor-gated role is measured against, and `modeConfigs` resolves it with `n()`, which snaps, so `333`
+    // used to become neutral.350 with no error. It always indexes the NEUTRAL ramp, whatever the page or the
+    // inverse band is on, and it has no white/black form.
+    if (sf?.floorStep != null) requireStep(`${mode}.floorStep`, sf.floorStep, sf.floorStep, neutralPal, 'a step number', '');
+    if (sf?.secondary !== undefined) {
+      notes.push(`surfaces: the ${mode} second tier is ${surfaceLabel(sf.secondary)}, not the default — ${sf.floorStep !== undefined ? `the contrast floor stays at neutral.${sf.floorStep}` : 'the contrast floor moves with it'}.`);
+    }
     if (sf?.base !== undefined && sf.base !== 'white' && sf.base !== 'black') {
-      notes.push(`${mode} primary surface is NON-default (${surfaceLabel(sf.base)}) — CONFIRM this is the page color; the contrast floor moves with it${sf.floorStep ? ` (floor neutral.${sf.floorStep})` : ''}`);
-    } else if (sf?.floorStep !== undefined) {
-      notes.push(`${mode} contrast floor overridden to neutral.${sf.floorStep}`);
+      notes.push(`surfaces: the ${mode} page is ${surfaceLabel(sf.base)}, not the default${sf.secondary !== undefined ? '' : ` — the contrast floor moves with it${sf.floorStep ? ` (floor neutral.${sf.floorStep})` : ''}`}.`);
+    } else if (sf?.floorStep !== undefined && sf?.secondary === undefined) {
+      notes.push(`surfaces: the ${mode} contrast floor is set to neutral.${sf.floorStep}.`);
     }
     // A brand/custom inverse band re-derives ~60 roles against it and flags any that miss (#898);
-    // surface it so the author confirms the band and its knock-on contrast, same as `base` above.
+    // surface it so the author sees the band and its knock-on contrast, same as `base` above.
     if (typeof sf?.inverseBase === 'object') {
-      notes.push(`${mode} inverse band is a BRAND surface (${surfaceLabel(sf.inverseBase)}) — CONFIRM contrast; every role gated against the band re-derives and any that miss its floor are flagged (#898)`);
+      notes.push(`surfaces: the ${mode} inverse band is a brand color (${surfaceLabel(sf.inverseBase)}) — every role on it is re-derived, and any that miss its contrast floor are flagged.`);
     }
   }
 
@@ -3009,25 +3060,31 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const actionAnchorStep = actionPalette === 'primary' ? anchorStep
     : actionBrandColor ? autoPlaceStep(actionBrandColor.oklch.l)
     : 500;
-  if (actionBrandColor) notes.push(`action anchored at accent '${actionPalette}' step ${actionAnchorStep} (its pinned lightness) — the brand's own shade, nudged only if it fails AA on the floor`);
+  if (actionBrandColor) notes.push(`action: anchored at '${actionPalette}' step ${actionAnchorStep}, the brand's own shade — moved only if it misses 3:1 (7:1 in high contrast) against the contrast floor or background.tertiary.`);
 
   // ---- link palette (#1496) ----
-  // Links DEFAULT to following the action palette: an unset `linkPalette` resolves to `actionPalette`, so
-  // the resolved name AND anchor step below equal the action's, and modes.ts reproduces today's `linkBase`
-  // byte-for-byte. A brand may point links at a different palette — primary, neutral, or a brandColors
+  // Links DEFAULT to following the action colour: an unset `linkPalette` resolves to the palette the action
+  // role RESOLVED to (`roleToPalette.action`, final after the roleColors pass above), not the `actionPalette`
+  // lever. The two differ when `roleColors.action` rebases action, and links followed the lever there,
+  // leaving them on primary under an accent CTA (#1895; owner decision 2026-10-01: links follow the action
+  // color, roleColors.action included). Following the resolved name makes modes.ts take its
+  // `linkFollowsAction` path, so the link anchors exactly as the action does. A brand may point links at a different palette — primary, neutral, or a brandColors
   // entry — without moving the rest of interactive colour. The link ink is still rated up to its own
   // contrast floor in modes.ts regardless of the palette (the a11y floor always holds, #1510).
-  const linkPalette = input.linkPalette ?? actionPalette;
+  const linkPalette = input.linkPalette ?? roleToPalette.action;
   if (!palettes.some((p) => p.palette === linkPalette))
     throw new Error(`linkPalette '${linkPalette}' is not a defined palette (have: ${palettes.map((p) => p.palette).join(', ')})`);
   const linkBrandColor = (input.brandColors ?? []).find((b) => b.name === linkPalette);
   const linkAnchorStep = linkPalette === 'primary' ? anchorStep
     : linkBrandColor ? autoPlaceStep(linkBrandColor.oklch.l)
     : 500;
+  // Compared against the RESOLVED action palette, not the `actionPalette` lever (#1895, owner 2026-10-01):
+  // with `roleColors.action` set the two differ, and the note must say whether links match the color the
+  // action fill actually uses.
   if (input.linkPalette !== undefined)
-    notes.push(linkPalette === actionPalette
-      ? `link color: explicitly set to '${linkPalette}', the same palette as actions — links follow interactive color`
-      : `link color is decoupled: links use palette '${linkPalette}', NOT the action palette '${actionPalette}' — explicit brand decision (#1496)`);
+    notes.push(linkPalette === roleToPalette.action
+      ? `link color: '${linkPalette}', the same palette as the action color, as the brand sets.`
+      : `link color: links use the '${linkPalette}' palette instead of the action color '${roleToPalette.action}', as the brand sets.`);
   // WCAG 1.4.1 (Use of Color) — WARN, don't force (#1496, owner 2026-09-17). Body text (`text.primary`)
   // draws from the neutral ramp; if the link ink is not COLOUR-distinct from it, colour alone cannot tell a
   // link from surrounding text and the link must be underlined. Distinctness is measured HUE+CHROMA only,
@@ -3041,13 +3098,18 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const midStep = (steps: Step[]) => (steps.find((s) => s.num === 500) ?? steps[Math.floor(steps.length / 2)]).rgb;
   const linkColorDistinct = deltaE2000(midStep(rampSteps(linkPalette)), midStep(rampSteps(roleToPalette.neutral))) >= 7;
   if (!linkColorDistinct)
-    notes.push(`link a11y (WCAG 1.4.1, Use of Color): the link palette '${linkPalette}' is not color-distinct from body text — links need an underline so they are not signaled by color alone. Set an underlined link role via \`typography.links\`. Warned, not forced (#1496).`);
+    // The studio's link advisory reads this note by its `WCAG 1.4.1` (apps/studio/src/main.ts), so the
+    // citation stays verbatim.
+    notes.push(`links: the '${linkPalette}' palette is too close in color to body text for WCAG 1.4.1 (Use of Color) — links need an underline; typography.links adds an underlined link style. Warned, not forced.`);
 
+  // The inverse surface context has no lever since #895.
   const neutralEmphasis = input.neutralEmphasis ?? 'subtle';
-  notes.push(`neutral interactive emphasis: '${neutralEmphasis}'${neutralEmphasis === 'strong' ? ' — bold near-black/white neutral fill' : ' (light-gray, default)'}; inverse surface-context: always generated (#895 removed the lever)`);
+  notes.push(`neutral interactive emphasis: '${neutralEmphasis}'${neutralEmphasis === 'strong' ? ' — a bold near-black or near-white fill' : ' (default) — a light gray fill'}; inverse-surface variants are always generated.`);
 
+  // Provenance: strict on is #1389 (destructive joined 2026-09-24); off keeps the colored on-fill of
+  // #1244/#1384.
   const strictInteractiveContrast = input.strictInteractiveContrast ?? false;
-  notes.push(`strict interactive contrast: ${strictInteractiveContrast ? "ON — inverse primary and destructive on-fill are the neutral extreme, AA-clean in every state (#1389/B4a, destructive 2026-09-24)" : "off — inverse primary and destructive carry their colored on-fill (brand / danger, #1244/#1384); rest clears AA, transient hover/pressed may dip"}`);
+  notes.push(`strict interactive contrast: ${strictInteractiveContrast ? 'on — text on inverse primary and destructive fills is the neutral extreme, clearing AA in every state.' : 'off (default) — text on inverse primary and destructive fills keeps its brand or danger color; rest clears AA, and hover and pressed can dip below it.'}`);
 
   return {
     id: input.id, root, namespace: `${root}.${CORE_TIER}.palette`, colorFormat: 'hex', modes: modesAll, palettes, roleToPalette, notes,
@@ -3065,7 +3127,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     neutralEmphasis, strictInteractiveContrast, interactivePalettes,
     actionAnchorStep: input.actionAnchorStep, destructiveAnchorStep: input.destructiveAnchorStep,
     linkStateRungs: input.linkStateRungs,
-    dims: { ...buildDims(baseUnit, spaceBase, density, rScale, baseMd, [], radiusHairline), ...(Object.keys(radiusByMode).length ? { radiusByMode } : {}), ...(Object.keys(sizesByMode).length ? { sizesByMode, controlsByMode } : {}) },
+    dims: { ...buildDims(baseUnit, spaceBase, density, rScale, baseMd, []), ...(Object.keys(radiusByMode).length ? { radiusByMode } : {}), ...(Object.keys(sizesByMode).length ? { sizesByMode, controlsByMode } : {}) },
     motion,
     typography,
     shadow,
@@ -3123,11 +3185,13 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     layout: buildLayout({ containerMax: 1920 }),                     // NB caps at 1920 + narrow 720
     gradient: { gradients: [] },                                     // NB ships no gradients (it had none)
     notes: [
-      'NB regression: measured anchors; brand red also serves as danger (NB brand hue is its danger hue).',
-      `dimension axis: ${baseUnit}px grid, 8px space rhythm (numbered scale), comfortable density, radius scale 1 (baseMd ${baseMd}px).`,
-      'typography: curated rem size ladder (22 steps, 10–160px); weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900.',
-      'shadow: 6-step ramp + inset, 2-layer, pure-black (NB dialect); mode-aware lift-primary (reduced in dark, NOT NB\'s heavier inverse — the field-correct choice).',
-      'layout: 5 breakpoints (engine default) + 12-col grid (4/8/12 ladder) + container max 1920 / narrow 720 (NB caps); gutter/margin alias the spacing scale.',
+      // The regression fixture's own record. Its dark shadows are reduced, not the reference system's
+      // heavier inverse shadows: lift-primary is the field's common choice.
+      'reference brand: anchors measured from the shipped system; the brand red also serves as danger, since the brand hue is its danger hue.',
+      `dimensions: ${baseUnit}px grid, 8px spacing rhythm (numbered scale), 'comfortable' density, radius scale 1 (base radius ${baseMd}px).`,
+      'typography: 22-step size ladder (10–160px); weights subtle/default/emphasis/strong/max → 300/400/600/700/900.',
+      'shadow: 6 steps plus inset, two layers, pure black as the reference ships; full in light and reduced in dark, rather than the reference\'s heavier dark shadows.',
+      'layout: 5 breakpoints (the default); 12-column grid (4/8/12 by breakpoint); containers max 1920px, narrow 720px, as the reference caps them; gutters and margins from the spacing scale.',
     ],
   };
 };

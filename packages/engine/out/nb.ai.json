@@ -1,5 +1,5 @@
 {
-  "$schema": "prism3-ai-metadata/0.3",
+  "$schema": "prism3-ai-metadata/0.4",
   "brand": "nb",
   "generated": true,
   "note": "Agent-readable metadata, companion to nb.tokens.json. Every token in that tree has one entry here, keyed by its path below the brand root; color roles drop the leading `color.` segment. Tiers: `color` (semantic color roles), `typography` (type styles and font roles), `layout` (space, size, radius, border-width, focus-ring, icon, control and grid roles), `motion` (motion roles), `gradient` when the brand has one, and `primitives` (the raw values the roles resolve to). A primitive carries `aliased_by`, every token that resolves to it directly or through another alias, recomputed on every build. On a color role, `sits_on` names the grounds an ink or edge is placed on and `carries` the inks placed on a ground; both are measured in every mode. `tracks` names companion roles and implies no contrast. `contrast_with` is the role's contrast contract: `requirement` states it as a check that resolves both roles in every mode, and `ratio` is the light-mode measurement. `usage_limit` marks an ink that is for large text, icons and non-essential text only. Field definitions: the JSON Schema whose `$id` is this file's `$schema`.",
@@ -778,7 +778,7 @@
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.550}",
-        "dark": "{nbds.core.palette.red.550}",
+        "dark": "{nbds.core.palette.red.500}",
         "hc-light": "{nbds.core.palette.red.700}",
         "hc-dark": "{nbds.core.palette.red.300}"
       },
@@ -801,7 +801,7 @@
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.650}",
-        "dark": "{nbds.core.palette.red.450}",
+        "dark": "{nbds.core.palette.red.400}",
         "hc-light": "{nbds.core.palette.red.800}",
         "hc-dark": "{nbds.core.palette.red.200}"
       },
@@ -821,7 +821,7 @@
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.750}",
-        "dark": "{nbds.core.palette.red.350}",
+        "dark": "{nbds.core.palette.red.300}",
         "hc-light": "{nbds.core.palette.red.900}",
         "hc-dark": "{nbds.core.palette.red.100}"
       },
@@ -837,19 +837,19 @@
     "interactive.primary.fill.focused": {
       "$description": "primary interactive fill — focused, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `interactive.primary.on-fill`, which is gated against `interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in dark mode.",
+      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `interactive.primary.on-fill`, which is gated against `interactive.primary.fill.rest` only.",
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
-        "light": "{nbds.core.palette.red.650}",
-        "dark": "{nbds.core.palette.red.450}",
-        "hc-light": "{nbds.core.palette.red.800}",
-        "hc-dark": "{nbds.core.palette.red.200}"
+        "light": "{nbds.core.palette.red.550}",
+        "dark": "{nbds.core.palette.red.500}",
+        "hc-light": "{nbds.core.palette.red.700}",
+        "hc-dark": "{nbds.core.palette.red.300}"
       },
       "contrast_with": [
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 6.82,
+          "ratio": 4.62,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -857,19 +857,19 @@
     "interactive.primary.fill.selected": {
       "$description": "primary interactive fill — selected, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows when selected / active. The label stays `interactive.primary.on-fill`, which is gated against `interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in dark mode.",
+      "when_to_use": "The fill of a filled primary interactive element that is selected. It is the same color as the rest fill, so selection has to show by other means: a check or mark, a thumb position, or an outline. The label stays `interactive.primary.on-fill`, which is gated against `interactive.primary.fill.rest` only.",
       "avoid_when": "Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
-        "light": "{nbds.core.palette.red.750}",
-        "dark": "{nbds.core.palette.red.350}",
-        "hc-light": "{nbds.core.palette.red.900}",
-        "hc-dark": "{nbds.core.palette.red.100}"
+        "light": "{nbds.core.palette.red.550}",
+        "dark": "{nbds.core.palette.red.500}",
+        "hc-light": "{nbds.core.palette.red.700}",
+        "hc-dark": "{nbds.core.palette.red.300}"
       },
       "contrast_with": [
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 9.94,
+          "ratio": 4.62,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -881,7 +881,7 @@
       "avoid_when": "Do not use on the page or on outline controls — use `interactive.primary.text.*`.",
       "mode_overrides": {
         "light": "{nbds.core.palette.white}",
-        "dark": "{nbds.core.palette.neutral.025}",
+        "dark": "{nbds.core.palette.white}",
         "hc-light": "{nbds.core.palette.white}",
         "hc-dark": "{nbds.core.palette.black}"
       },
@@ -1144,7 +1144,7 @@
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.550}",
-        "dark": "{nbds.core.palette.red.550}",
+        "dark": "{nbds.core.palette.red.500}",
         "hc-light": "{nbds.core.palette.red.700}",
         "hc-dark": "{nbds.core.palette.red.300}"
       },
@@ -1167,7 +1167,7 @@
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.650}",
-        "dark": "{nbds.core.palette.red.450}",
+        "dark": "{nbds.core.palette.red.400}",
         "hc-light": "{nbds.core.palette.red.800}",
         "hc-dark": "{nbds.core.palette.red.200}"
       },
@@ -1187,7 +1187,7 @@
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.750}",
-        "dark": "{nbds.core.palette.red.350}",
+        "dark": "{nbds.core.palette.red.300}",
         "hc-light": "{nbds.core.palette.red.900}",
         "hc-dark": "{nbds.core.palette.red.100}"
       },
@@ -1203,19 +1203,19 @@
     "interactive.destructive.fill.focused": {
       "$description": "destructive interactive fill — focused, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `interactive.destructive.on-fill`, which is gated against `interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in dark mode.",
+      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `interactive.destructive.on-fill`, which is gated against `interactive.destructive.fill.rest` only.",
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
-        "light": "{nbds.core.palette.red.650}",
-        "dark": "{nbds.core.palette.red.450}",
-        "hc-light": "{nbds.core.palette.red.800}",
-        "hc-dark": "{nbds.core.palette.red.200}"
+        "light": "{nbds.core.palette.red.550}",
+        "dark": "{nbds.core.palette.red.500}",
+        "hc-light": "{nbds.core.palette.red.700}",
+        "hc-dark": "{nbds.core.palette.red.300}"
       },
       "contrast_with": [
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 6.82,
+          "ratio": 4.62,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -1223,19 +1223,19 @@
     "interactive.destructive.fill.selected": {
       "$description": "destructive interactive fill — selected, clears 3:1 on background.secondary",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows when selected / active. The label stays `interactive.destructive.on-fill`, which is gated against `interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in dark mode.",
+      "when_to_use": "The fill of a filled destructive interactive element that is selected. It is the same color as the rest fill, so selection has to show by other means: a check or mark, a thumb position, or an outline. The label stays `interactive.destructive.on-fill`, which is gated against `interactive.destructive.fill.rest` only.",
       "avoid_when": "Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
-        "light": "{nbds.core.palette.red.750}",
-        "dark": "{nbds.core.palette.red.350}",
-        "hc-light": "{nbds.core.palette.red.900}",
-        "hc-dark": "{nbds.core.palette.red.100}"
+        "light": "{nbds.core.palette.red.550}",
+        "dark": "{nbds.core.palette.red.500}",
+        "hc-light": "{nbds.core.palette.red.700}",
+        "hc-dark": "{nbds.core.palette.red.300}"
       },
       "contrast_with": [
         {
           "token": "background.secondary",
           "min": "3:1",
-          "ratio": 9.94,
+          "ratio": 4.62,
           "requirement": "MUST clear 3:1 against `background.secondary` in every mode."
         }
       ]
@@ -1247,7 +1247,7 @@
       "avoid_when": "Do not use on the page or on outline controls — use `interactive.destructive.text.*`.",
       "mode_overrides": {
         "light": "{nbds.core.palette.white}",
-        "dark": "{nbds.core.palette.neutral.025}",
+        "dark": "{nbds.core.palette.white}",
         "hc-light": "{nbds.core.palette.white}",
         "hc-dark": "{nbds.core.palette.black}"
       },
@@ -1552,22 +1552,22 @@
       "when_to_use": "The fill of a filled neutral interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `interactive.neutral.on-fill`, which is gated against `interactive.neutral.fill.rest` only.",
       "avoid_when": "Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
       "mode_overrides": {
-        "light": "{nbds.core.palette.neutral.250}",
-        "dark": "{nbds.core.palette.neutral.750}",
-        "hc-light": "{nbds.core.palette.neutral.250}",
-        "hc-dark": "{nbds.core.palette.neutral.750}"
+        "light": "{nbds.core.palette.neutral.150}",
+        "dark": "{nbds.core.palette.neutral.850}",
+        "hc-light": "{nbds.core.palette.neutral.150}",
+        "hc-dark": "{nbds.core.palette.neutral.850}"
       }
     },
     "interactive.neutral.fill.selected": {
       "$description": "neutral interactive fill — selected, clears 0:1 on background.secondary",
       "meaning": "Interactivity / actions",
-      "when_to_use": "The fill of a filled neutral interactive element — buttons, controls, selectable rows when selected / active. The label stays `interactive.neutral.on-fill`, which is gated against `interactive.neutral.fill.rest` only.",
+      "when_to_use": "The fill of a filled neutral interactive element that is selected. It is the same color as the rest fill, so selection has to show by other means: a check or mark, a thumb position, or an outline. The label stays `interactive.neutral.on-fill`, which is gated against `interactive.neutral.fill.rest` only.",
       "avoid_when": "Do not use for another intent (use `interactive.primary.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.neutral.text.*` or `interactive.neutral.border.*`).",
       "mode_overrides": {
-        "light": "{nbds.core.palette.neutral.350}",
-        "dark": "{nbds.core.palette.neutral.650}",
-        "hc-light": "{nbds.core.palette.neutral.350}",
-        "hc-dark": "{nbds.core.palette.neutral.650}"
+        "light": "{nbds.core.palette.neutral.150}",
+        "dark": "{nbds.core.palette.neutral.850}",
+        "hc-light": "{nbds.core.palette.neutral.150}",
+        "hc-dark": "{nbds.core.palette.neutral.850}"
       }
     },
     "interactive.neutral.on-fill": {
@@ -2025,9 +2025,9 @@
       ]
     },
     "inverse.interactive.primary.fill.hover": {
-      "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.3:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+      "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill.",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows on pointer hover. The label stays `inverse.interactive.primary.on-fill`, which is gated against `inverse.interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows on pointer hover. The label stays `inverse.interactive.primary.on-fill`, which is gated against `inverse.interactive.primary.fill.rest` only. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.hover`. Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.100}",
@@ -2045,9 +2045,9 @@
       ]
     },
     "inverse.interactive.primary.fill.pressed": {
-      "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 2.5:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+      "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill.",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows while pressed. The label stays `inverse.interactive.primary.on-fill`, which is gated against `inverse.interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows while pressed. The label stays `inverse.interactive.primary.on-fill`, which is gated against `inverse.interactive.primary.fill.rest` only. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.pressed`. Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.200}",
@@ -2065,9 +2065,9 @@
       ]
     },
     "inverse.interactive.primary.fill.focused": {
-      "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill. The label on it measures about 3.3:1, below its 4.5:1 floor.",
+      "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill.",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `inverse.interactive.primary.on-fill`, which is gated against `inverse.interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `inverse.interactive.primary.on-fill`, which is gated against `inverse.interactive.primary.fill.rest` only. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.focused`. Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.100}",
@@ -2085,9 +2085,9 @@
       ]
     },
     "inverse.interactive.primary.fill.selected": {
-      "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill. The label on it measures about 2.5:1, below its 4.5:1 floor.",
+      "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill.",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows when selected / active. The label stays `inverse.interactive.primary.on-fill`, which is gated against `inverse.interactive.primary.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The fill of a filled primary interactive element — buttons, controls, selectable rows when selected / active. The label stays `inverse.interactive.primary.on-fill`, which is gated against `inverse.interactive.primary.fill.rest` only. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.selected`. Do not use for another intent (use `interactive.neutral.*` or `interactive.destructive.*`), or for outline/text appearances (use `interactive.primary.text.*` or `interactive.primary.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.200}",
@@ -2105,13 +2105,13 @@
       ]
     },
     "inverse.interactive.primary.on-fill": {
-      "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes",
+      "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The label / icon placed on a filled primary interactive element. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.on-fill`. Do not use on the page or on outline controls — use `interactive.primary.text.*`.",
       "mode_overrides": {
-        "light": "{nbds.core.palette.red.500}",
-        "dark": "{nbds.core.palette.red.500}",
+        "light": "{nbds.core.palette.red.650}",
+        "dark": "{nbds.core.palette.red.350}",
         "hc-light": "{nbds.core.palette.black}",
         "hc-dark": "{nbds.core.palette.white}"
       },
@@ -2122,7 +2122,7 @@
         {
           "token": "inverse.interactive.primary.fill.rest",
           "min": "4.5:1",
-          "ratio": 4.58,
+          "ratio": 8.29,
           "requirement": "MUST clear 4.5:1 against `inverse.interactive.primary.fill.rest` in every mode."
         }
       ]
@@ -2395,9 +2395,9 @@
       ]
     },
     "inverse.interactive.destructive.fill.hover": {
-      "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.3:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+      "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill.",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows on pointer hover. The label stays `inverse.interactive.destructive.on-fill`, which is gated against `inverse.interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows on pointer hover. The label stays `inverse.interactive.destructive.on-fill`, which is gated against `inverse.interactive.destructive.fill.rest` only. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.hover`. Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.100}",
@@ -2415,9 +2415,9 @@
       ]
     },
     "inverse.interactive.destructive.fill.pressed": {
-      "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 2.5:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+      "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill.",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows while pressed. The label stays `inverse.interactive.destructive.on-fill`, which is gated against `inverse.interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows while pressed. The label stays `inverse.interactive.destructive.on-fill`, which is gated against `inverse.interactive.destructive.fill.rest` only. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.pressed`. Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.200}",
@@ -2435,9 +2435,9 @@
       ]
     },
     "inverse.interactive.destructive.fill.focused": {
-      "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill. The label on it measures about 3.3:1, below its 4.5:1 floor.",
+      "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill.",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `inverse.interactive.destructive.on-fill`, which is gated against `inverse.interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows when keyboard-focused. The label stays `inverse.interactive.destructive.on-fill`, which is gated against `inverse.interactive.destructive.fill.rest` only. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.focused`. Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.100}",
@@ -2455,9 +2455,9 @@
       ]
     },
     "inverse.interactive.destructive.fill.selected": {
-      "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill. The label on it measures about 2.5:1, below its 4.5:1 floor.",
+      "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill.",
       "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows when selected / active. The label stays `inverse.interactive.destructive.on-fill`, which is gated against `inverse.interactive.destructive.fill.rest` only; on this fill it drops below 4.5:1 in light and dark modes. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
+      "when_to_use": "The fill of a filled destructive interactive element — buttons, controls, selectable rows when selected / active. The label stays `inverse.interactive.destructive.on-fill`, which is gated against `inverse.interactive.destructive.fill.rest` only. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.selected`. Do not use for a non-destructive intent (use `interactive.primary.*` or `interactive.neutral.*`), or for outline/text appearances (use `interactive.destructive.text.*` or `interactive.destructive.border.*`).",
       "mode_overrides": {
         "light": "{nbds.core.palette.neutral.200}",
@@ -2475,13 +2475,13 @@
       ]
     },
     "inverse.interactive.destructive.on-fill": {
-      "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes",
+      "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes",
       "meaning": "Interactivity / actions (inverse ground)",
       "when_to_use": "The label / icon placed on a filled destructive interactive element. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.on-fill`. Do not use on the page or on outline controls — use `interactive.destructive.text.*`.",
       "mode_overrides": {
-        "light": "{nbds.core.palette.red.500}",
-        "dark": "{nbds.core.palette.red.500}",
+        "light": "{nbds.core.palette.red.650}",
+        "dark": "{nbds.core.palette.red.350}",
         "hc-light": "{nbds.core.palette.black}",
         "hc-dark": "{nbds.core.palette.white}"
       },
@@ -2492,7 +2492,7 @@
         {
           "token": "inverse.interactive.destructive.fill.rest",
           "min": "4.5:1",
-          "ratio": 4.58,
+          "ratio": 8.29,
           "requirement": "MUST clear 4.5:1 against `inverse.interactive.destructive.fill.rest` in every mode."
         }
       ]
@@ -4286,7 +4286,7 @@
       "avoid_when": "Do not use on standard surfaces — use `text.primary` or `text.secondary`.",
       "mode_overrides": {
         "light": "{nbds.core.palette.white}",
-        "dark": "{nbds.core.palette.black}",
+        "dark": "{nbds.core.palette.white}",
         "hc-light": "{nbds.core.palette.white}",
         "hc-dark": "{nbds.core.palette.black}"
       },
@@ -4949,7 +4949,7 @@
       "avoid_when": "Do not use on standard surfaces — use `icon.primary` or `icon.secondary`.",
       "mode_overrides": {
         "light": "{nbds.core.palette.white}",
-        "dark": "{nbds.core.palette.black}",
+        "dark": "{nbds.core.palette.white}",
         "hc-light": "{nbds.core.palette.white}",
         "hc-dark": "{nbds.core.palette.black}"
       },
@@ -6272,9 +6272,9 @@
       "avoid_when": "Do not use as success ink or fill — use `text.success` or `foreground.success`.",
       "mode_overrides": {
         "light": "{nbds.core.palette.green.500}",
-        "dark": "{nbds.core.palette.green.500}",
-        "hc-light": "{nbds.core.palette.green.500}",
-        "hc-dark": "{nbds.core.palette.green.450}"
+        "dark": "{nbds.core.palette.green.450}",
+        "hc-light": "{nbds.core.palette.green.550}",
+        "hc-dark": "{nbds.core.palette.green.400}"
       },
       "contrast_with": [
         {
@@ -6291,16 +6291,16 @@
       "when_to_use": "Validation/state borders for warning (e.g. invalid fields).",
       "avoid_when": "Do not use as warning ink or fill — use `text.warning` or `foreground.warning`.",
       "mode_overrides": {
-        "light": "{nbds.core.palette.amber.500}",
+        "light": "{nbds.core.palette.amber.550}",
         "dark": "{nbds.core.palette.amber.500}",
-        "hc-light": "{nbds.core.palette.amber.500}",
-        "hc-dark": "{nbds.core.palette.amber.500}"
+        "hc-light": "{nbds.core.palette.amber.600}",
+        "hc-dark": "{nbds.core.palette.amber.450}"
       },
       "contrast_with": [
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 4.5,
+          "ratio": 5.44,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -6312,9 +6312,9 @@
       "avoid_when": "Do not use as danger ink or fill — use `text.danger` or `foreground.danger`.",
       "mode_overrides": {
         "light": "{nbds.core.palette.red.500}",
-        "dark": "{nbds.core.palette.red.500}",
-        "hc-light": "{nbds.core.palette.red.500}",
-        "hc-dark": "{nbds.core.palette.red.500}"
+        "dark": "{nbds.core.palette.red.400}",
+        "hc-light": "{nbds.core.palette.red.600}",
+        "hc-dark": "{nbds.core.palette.red.450}"
       },
       "contrast_with": [
         {
@@ -6535,6 +6535,34 @@
           "ratio": 5.05,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
+      ]
+    },
+    "interactive.primary.subtle-fill.selected": {
+      "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the selected background of a selectable control or an outline/text control)",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The primary selected tint: the primary fill at a set opacity, laid over `background.primary`, behind a control the user selects in place (a select tag) or an outline or text primary control in its selected state. The label keeps the control's own ink; the recorded ratio is `interactive.primary.text.pressed` on the tint.",
+      "avoid_when": "Do not use as an opaque fill (use `interactive.primary.fill.*`) or for another intent (use `interactive.neutral.*` or `interactive.destructive.*`).",
+      "mode_overrides": {
+        "light": {
+          "color": "{nbds.color.interactive.primary.fill.rest}",
+          "opacity": "{nbds.opacity.30}"
+        },
+        "dark": {
+          "color": "{nbds.color.interactive.primary.fill.rest}",
+          "opacity": "{nbds.opacity.30}"
+        },
+        "hc-light": {
+          "color": "{nbds.color.interactive.primary.fill.rest}",
+          "opacity": "{nbds.opacity.30}"
+        },
+        "hc-dark": {
+          "color": "{nbds.color.interactive.primary.fill.rest}",
+          "opacity": "{nbds.opacity.30}"
+        }
+      },
+      "tracks": [
+        "interactive.primary.fill.rest",
+        "interactive.primary.text.pressed"
       ]
     }
   },
@@ -7533,6 +7561,24 @@
       "when_to_use": "Corner rounding of surfaces and controls.",
       "resolves_to": "{nbds.core.dimension.6}"
     },
+    "radius.xl": {
+      "$description": "radius xl — 8px",
+      "meaning": "Corner-radius role — xl",
+      "when_to_use": "Corner rounding of surfaces and controls.",
+      "resolves_to": "{nbds.core.dimension.8}"
+    },
+    "radius.2xl": {
+      "$description": "radius 2xl — 12px",
+      "meaning": "Corner-radius role — 2xl",
+      "when_to_use": "Corner rounding of surfaces and controls.",
+      "resolves_to": "{nbds.core.dimension.12}"
+    },
+    "radius.3xl": {
+      "$description": "radius 3xl — 16px",
+      "meaning": "Corner-radius role — 3xl",
+      "when_to_use": "Corner rounding of surfaces and controls.",
+      "resolves_to": "{nbds.core.dimension.16}"
+    },
     "radius.round": {
       "$description": "radius round — 128px (pill)",
       "meaning": "Corner-radius role — round",
@@ -7544,6 +7590,12 @@
       "meaning": "Corner-radius role — capsule",
       "when_to_use": "Corner rounding of surfaces and controls.",
       "resolves_to": "999px"
+    },
+    "radius.hairline": {
+      "$description": "radius hairline — 1px",
+      "meaning": "Corner-radius role — hairline",
+      "when_to_use": "Corner rounding of surfaces and controls.",
+      "resolves_to": "{nbds.core.dimension.1}"
     },
     "border-width.none": {
       "$description": "border-width none — 0px",
@@ -7599,89 +7651,17 @@
       "when_to_use": "The height of a button, field or other control at the xs size step. Take every dimension of one control from the same step.",
       "resolves_to": "{nbds.core.dimension.28}"
     },
-    "size.xs.padding-x": {
-      "$description": "size.xs horizontal inset — 8px (density: comfortable)",
-      "meaning": "Control size step xs — padding-x",
-      "when_to_use": "The padding-x of a button, field or other control at the xs size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{nbds.space.100}"
-    },
-    "size.xs.padding-x-visual": {
-      "$description": "size.xs horizontal inset on the visual side — 6px (an icon's own box adds apparent space, so it insets less than the 8px label side)",
-      "meaning": "Control size step xs — padding-x-visual",
-      "when_to_use": "The padding-x-visual of a button, field or other control at the xs size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{nbds.space.075}"
-    },
-    "size.xs.padding-y": {
-      "$description": "size.xs vertical inset — 4px (density: comfortable)",
-      "meaning": "Control size step xs — padding-y",
-      "when_to_use": "The padding-y of a button, field or other control at the xs size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{nbds.space.050}"
-    },
-    "size.xs.gap": {
-      "$description": "size.xs label↔visual gap — 4px (density: comfortable)",
-      "meaning": "Control size step xs — gap",
-      "when_to_use": "The gap of a button, field or other control at the xs size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{nbds.space.050}"
-    },
     "size.sm.height": {
       "$description": "size.sm control height — 36px (density: comfortable)",
       "meaning": "Control size step sm — height",
       "when_to_use": "The height of a button, field or other control at the sm size step. Take every dimension of one control from the same step.",
       "resolves_to": "{nbds.core.dimension.36}"
     },
-    "size.sm.padding-x": {
-      "$description": "size.sm horizontal inset — 16px (density: comfortable)",
-      "meaning": "Control size step sm — padding-x",
-      "when_to_use": "The padding-x of a button, field or other control at the sm size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{nbds.space.200}"
-    },
-    "size.sm.padding-x-visual": {
-      "$description": "size.sm horizontal inset on the visual side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
-      "meaning": "Control size step sm — padding-x-visual",
-      "when_to_use": "The padding-x-visual of a button, field or other control at the sm size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{nbds.space.150}"
-    },
-    "size.sm.padding-y": {
-      "$description": "size.sm vertical inset — 6px (density: comfortable)",
-      "meaning": "Control size step sm — padding-y",
-      "when_to_use": "The padding-y of a button, field or other control at the sm size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{nbds.space.075}"
-    },
-    "size.sm.gap": {
-      "$description": "size.sm label↔visual gap — 8px (density: comfortable)",
-      "meaning": "Control size step sm — gap",
-      "when_to_use": "The gap of a button, field or other control at the sm size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{nbds.space.100}"
-    },
     "size.md.height": {
       "$description": "size.md control height — 44px (density: comfortable)",
       "meaning": "Control size step md — height",
       "when_to_use": "The height of a button, field or other control at the md size step. Take every dimension of one control from the same step.",
       "resolves_to": "{nbds.core.dimension.44}"
-    },
-    "size.md.padding-x": {
-      "$description": "size.md horizontal inset — 16px (density: comfortable)",
-      "meaning": "Control size step md — padding-x",
-      "when_to_use": "The padding-x of a button, field or other control at the md size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{nbds.space.200}"
-    },
-    "size.md.padding-x-visual": {
-      "$description": "size.md horizontal inset on the visual side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
-      "meaning": "Control size step md — padding-x-visual",
-      "when_to_use": "The padding-x-visual of a button, field or other control at the md size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{nbds.space.150}"
-    },
-    "size.md.padding-y": {
-      "$description": "size.md vertical inset — 8px (density: comfortable)",
-      "meaning": "Control size step md — padding-y",
-      "when_to_use": "The padding-y of a button, field or other control at the md size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{nbds.space.100}"
-    },
-    "size.md.gap": {
-      "$description": "size.md label↔visual gap — 8px (density: comfortable)",
-      "meaning": "Control size step md — gap",
-      "when_to_use": "The gap of a button, field or other control at the md size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{nbds.space.100}"
     },
     "size.md.min-height": {
       "$description": "size.md.min-height — interactive target-size floor (WCAG 2.2 SC 2.5.5): max(size.md.height 44, 44) = 44px",
@@ -7695,59 +7675,11 @@
       "when_to_use": "The height of a button, field or other control at the lg size step. Take every dimension of one control from the same step.",
       "resolves_to": "{nbds.core.dimension.56}"
     },
-    "size.lg.padding-x": {
-      "$description": "size.lg horizontal inset — 24px (density: comfortable)",
-      "meaning": "Control size step lg — padding-x",
-      "when_to_use": "The padding-x of a button, field or other control at the lg size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{nbds.space.300}"
-    },
-    "size.lg.padding-x-visual": {
-      "$description": "size.lg horizontal inset on the visual side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
-      "meaning": "Control size step lg — padding-x-visual",
-      "when_to_use": "The padding-x-visual of a button, field or other control at the lg size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{nbds.space.200}"
-    },
-    "size.lg.padding-y": {
-      "$description": "size.lg vertical inset — 8px (density: comfortable)",
-      "meaning": "Control size step lg — padding-y",
-      "when_to_use": "The padding-y of a button, field or other control at the lg size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{nbds.space.100}"
-    },
-    "size.lg.gap": {
-      "$description": "size.lg label↔visual gap — 12px (density: comfortable)",
-      "meaning": "Control size step lg — gap",
-      "when_to_use": "The gap of a button, field or other control at the lg size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{nbds.space.150}"
-    },
     "size.xl.height": {
       "$description": "size.xl control height — 68px (density: comfortable)",
       "meaning": "Control size step xl — height",
       "when_to_use": "The height of a button, field or other control at the xl size step. Take every dimension of one control from the same step.",
       "resolves_to": "{nbds.core.dimension.68}"
-    },
-    "size.xl.padding-x": {
-      "$description": "size.xl horizontal inset — 24px (density: comfortable)",
-      "meaning": "Control size step xl — padding-x",
-      "when_to_use": "The padding-x of a button, field or other control at the xl size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{nbds.space.300}"
-    },
-    "size.xl.padding-x-visual": {
-      "$description": "size.xl horizontal inset on the visual side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
-      "meaning": "Control size step xl — padding-x-visual",
-      "when_to_use": "The padding-x-visual of a button, field or other control at the xl size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{nbds.space.200}"
-    },
-    "size.xl.padding-y": {
-      "$description": "size.xl vertical inset — 16px (density: comfortable)",
-      "meaning": "Control size step xl — padding-y",
-      "when_to_use": "The padding-y of a button, field or other control at the xl size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{nbds.space.200}"
-    },
-    "size.xl.gap": {
-      "$description": "size.xl label↔visual gap — 12px (density: comfortable)",
-      "meaning": "Control size step xl — gap",
-      "when_to_use": "The gap of a button, field or other control at the xl size step. Take every dimension of one control from the same step.",
-      "resolves_to": "{nbds.space.150}"
     },
     "control.size.sm.height": {
       "$description": "control.size.sm — 16px box edge for a square control's own dimension: a checkbox square or a radio circle (density: comfortable). A square control reads this on both axes. A switch's track is not square and reads `track`/`width` instead.",
@@ -8197,9 +8129,7 @@
         "color.foreground.danger-subtle",
         "color.icon.link.pressed",
         "color.interactive.destructive.fill.pressed",
-        "color.interactive.destructive.fill.selected",
         "color.interactive.primary.fill.pressed",
-        "color.interactive.primary.fill.selected",
         "color.inverse.foreground.brand-subtle",
         "color.inverse.foreground.danger-subtle",
         "color.text.link.pressed"
@@ -8241,11 +8171,9 @@
       "aliased_by": [
         "color.icon.link.hover",
         "color.interactive.destructive.border.pressed",
-        "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.icon.pressed",
         "color.interactive.destructive.text.pressed",
-        "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
         "color.inverse.interactive.destructive.border.pressed",
         "color.inverse.interactive.destructive.icon.pressed",
@@ -8301,10 +8229,16 @@
         "color.icon.link.default",
         "color.icon.link.focused",
         "color.interactive.destructive.border.hover",
+        "color.interactive.destructive.fill.focused",
+        "color.interactive.destructive.fill.pressed",
         "color.interactive.destructive.fill.rest",
+        "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.icon.hover",
         "color.interactive.destructive.text.hover",
+        "color.interactive.primary.fill.focused",
+        "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.rest",
+        "color.interactive.primary.fill.selected",
         "color.inverse.icon.brand",
         "color.inverse.icon.danger",
         "color.inverse.interactive.destructive.border.hover",
@@ -8329,14 +8263,10 @@
         "color.icon.danger-subtle",
         "color.icon.link.hover",
         "color.interactive.destructive.border.rest",
-        "color.interactive.destructive.fill.pressed",
-        "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.icon.rest",
         "color.interactive.destructive.text.rest",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.border.rest",
-        "color.interactive.primary.fill.pressed",
-        "color.interactive.primary.fill.selected",
         "color.interactive.primary.icon.hover",
         "color.interactive.primary.icon.rest",
         "color.interactive.primary.text.hover",
@@ -8349,11 +8279,13 @@
         "color.inverse.icon.link.hover",
         "color.inverse.interactive.destructive.border.rest",
         "color.inverse.interactive.destructive.icon.rest",
+        "color.inverse.interactive.destructive.on-fill",
         "color.inverse.interactive.destructive.text.rest",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.icon.hover",
         "color.inverse.interactive.primary.icon.rest",
+        "color.inverse.interactive.primary.on-fill",
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.link.default",
@@ -8371,9 +8303,12 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.danger",
         "color.interactive.destructive.border.rest",
+        "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.icon.rest",
         "color.interactive.destructive.text.rest",
+        "color.interactive.primary.fill.hover",
         "color.inverse.interactive.destructive.border.rest",
         "color.inverse.interactive.destructive.icon.rest",
         "color.inverse.interactive.destructive.text.rest"
@@ -8386,6 +8321,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.danger",
         "color.border.focus",
         "color.icon.brand",
         "color.icon.brand-subtle",
@@ -8393,11 +8329,7 @@
         "color.icon.danger-subtle",
         "color.icon.link.default",
         "color.icon.link.focused",
-        "color.interactive.destructive.fill.focused",
-        "color.interactive.destructive.fill.hover",
         "color.interactive.primary.border.rest",
-        "color.interactive.primary.fill.focused",
-        "color.interactive.primary.fill.hover",
         "color.interactive.primary.icon.rest",
         "color.interactive.primary.text.rest",
         "color.inverse.border.focus",
@@ -8431,12 +8363,16 @@
         "color.border.danger",
         "color.icon.brand-subtle",
         "color.icon.danger-subtle",
+        "color.interactive.destructive.fill.focused",
+        "color.interactive.destructive.fill.rest",
+        "color.interactive.destructive.fill.selected",
+        "color.interactive.primary.fill.focused",
+        "color.interactive.primary.fill.rest",
+        "color.interactive.primary.fill.selected",
         "color.inverse.border.brand",
         "color.inverse.border.danger",
         "color.inverse.icon.brand-subtle",
         "color.inverse.icon.danger-subtle",
-        "color.inverse.interactive.destructive.on-fill",
-        "color.inverse.interactive.primary.on-fill",
         "color.inverse.text.brand-subtle",
         "color.inverse.text.danger-subtle",
         "color.text.brand-subtle",
@@ -8455,9 +8391,13 @@
         "color.foreground.danger",
         "color.icon.link.default",
         "color.icon.link.focused",
+        "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.rest",
+        "color.interactive.destructive.fill.selected",
         "color.interactive.primary.border.rest",
+        "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.rest",
+        "color.interactive.primary.fill.selected",
         "color.interactive.primary.icon.rest",
         "color.interactive.primary.text.rest",
         "color.inverse.border.focus",
@@ -8485,6 +8425,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.danger",
         "color.icon.brand",
         "color.icon.danger",
         "color.interactive.destructive.border.rest",
@@ -8510,13 +8451,11 @@
       "aliased_by": [
         "color.icon.link.hover",
         "color.interactive.destructive.border.rest",
-        "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.icon.rest",
         "color.interactive.destructive.text.rest",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.border.rest",
-        "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
         "color.interactive.primary.icon.hover",
         "color.interactive.primary.icon.rest",
@@ -8532,11 +8471,13 @@
         "color.inverse.icon.link.hover",
         "color.inverse.interactive.destructive.border.rest",
         "color.inverse.interactive.destructive.icon.rest",
+        "color.inverse.interactive.destructive.on-fill",
         "color.inverse.interactive.destructive.text.rest",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.icon.hover",
         "color.inverse.interactive.primary.icon.rest",
+        "color.inverse.interactive.primary.on-fill",
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.brand-subtle",
@@ -8562,10 +8503,14 @@
         "color.icon.link.default",
         "color.icon.link.focused",
         "color.interactive.destructive.border.hover",
+        "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.rest",
+        "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.icon.hover",
         "color.interactive.destructive.text.hover",
+        "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.rest",
+        "color.interactive.primary.fill.selected",
         "color.inverse.icon.brand",
         "color.inverse.icon.danger",
         "color.inverse.interactive.destructive.border.hover",
@@ -8589,13 +8534,11 @@
         "color.icon.link.pressed",
         "color.interactive.destructive.border.hover",
         "color.interactive.destructive.fill.pressed",
-        "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.icon.hover",
         "color.interactive.destructive.text.hover",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.fill.pressed",
-        "color.interactive.primary.fill.selected",
         "color.interactive.primary.icon.hover",
         "color.interactive.primary.icon.pressed",
         "color.interactive.primary.text.hover",
@@ -8625,11 +8568,9 @@
       "aliased_by": [
         "color.icon.link.hover",
         "color.interactive.destructive.border.pressed",
-        "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.icon.pressed",
         "color.interactive.destructive.text.pressed",
-        "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
         "color.inverse.interactive.destructive.border.pressed",
         "color.inverse.interactive.destructive.icon.pressed",
@@ -8675,9 +8616,7 @@
         "color.foreground.danger-subtle",
         "color.icon.link.pressed",
         "color.interactive.destructive.fill.pressed",
-        "color.interactive.destructive.fill.selected",
         "color.interactive.primary.fill.pressed",
-        "color.interactive.primary.fill.selected",
         "color.inverse.foreground.brand-subtle",
         "color.inverse.foreground.danger-subtle",
         "color.text.link.pressed"
@@ -8783,6 +8722,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.success",
         "color.icon.success",
         "color.inverse.icon.success",
         "color.inverse.text.success",
@@ -8826,6 +8766,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.success",
         "color.inverse.icon.success-subtle",
         "color.inverse.text.success-subtle"
       ]
@@ -8994,6 +8935,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.warning",
         "color.icon.warning",
         "color.icon.warning-subtle",
         "color.inverse.icon.warning",
@@ -9026,6 +8968,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.warning",
         "color.inverse.icon.warning-subtle",
         "color.inverse.text.warning-subtle"
       ]
@@ -9037,6 +8980,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.warning",
         "color.icon.warning",
         "color.inverse.icon.warning",
         "color.inverse.text.warning",
@@ -9150,7 +9094,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.foreground.tertiary",
+        "color.interactive.neutral.fill.focused",
         "color.interactive.neutral.fill.rest",
+        "color.interactive.neutral.fill.selected",
         "color.inverse.foreground.tertiary"
       ]
     },
@@ -9180,7 +9126,6 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.secondary",
-        "color.interactive.neutral.fill.focused",
         "color.interactive.neutral.fill.hover",
         "color.inverse.border.secondary",
         "color.inverse.disabled.border",
@@ -9209,7 +9154,6 @@
       "aliased_by": [
         "color.field.placeholder",
         "color.interactive.neutral.fill.pressed",
-        "color.interactive.neutral.fill.selected",
         "color.inverse.border.tertiary",
         "color.inverse.disabled.on-fill",
         "color.inverse.field.placeholder",
@@ -9329,7 +9273,6 @@
         "color.disabled.on-fill",
         "color.field.placeholder",
         "color.interactive.neutral.fill.pressed",
-        "color.interactive.neutral.fill.selected",
         "color.inverse.field.placeholder",
         "color.inverse.icon.secondary",
         "color.inverse.text.secondary"
@@ -9360,7 +9303,6 @@
         "color.border.primary",
         "color.disabled.border",
         "color.disabled.fill",
-        "color.interactive.neutral.fill.focused",
         "color.interactive.neutral.fill.hover"
       ]
     },
@@ -9393,7 +9335,9 @@
       "aliased_by": [
         "color.background.tertiary",
         "color.foreground.secondary",
+        "color.interactive.neutral.fill.focused",
         "color.interactive.neutral.fill.rest",
+        "color.interactive.neutral.fill.selected",
         "color.inverse.background.tertiary",
         "color.inverse.foreground.secondary"
       ]
@@ -9466,7 +9410,6 @@
         "color.icon.on-danger",
         "color.icon.on-success",
         "color.icon.primary",
-        "color.interactive.destructive.on-fill",
         "color.interactive.neutral.border.hover",
         "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.border.rest",
@@ -9477,7 +9420,6 @@
         "color.interactive.neutral.text.hover",
         "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
-        "color.interactive.primary.on-fill",
         "color.inverse.background.primary",
         "color.inverse.border.tertiary",
         "color.inverse.icon.primary",
@@ -9946,7 +9888,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "border-width.hairline"
+        "border-width.hairline",
+        "radius.hairline"
       ]
     },
     "core.dimension.2": {
@@ -9983,8 +9926,6 @@
         "border-width.heavy",
         "control.size.md.inset",
         "radius.md",
-        "size.xs.gap",
-        "size.xs.padding-y",
         "space.050"
       ]
     },
@@ -10004,8 +9945,6 @@
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
         "radius.lg",
-        "size.sm.padding-y",
-        "size.xs.padding-x-visual",
         "space.075"
       ]
     },
@@ -10016,11 +9955,7 @@
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
         "control.size.sm.dot",
-        "size.lg.padding-y",
-        "size.md.gap",
-        "size.md.padding-y",
-        "size.sm.gap",
-        "size.xs.padding-x",
+        "radius.xl",
         "space.100"
       ]
     },
@@ -10040,10 +9975,7 @@
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
         "control.size.lg.dot",
-        "size.lg.gap",
-        "size.md.padding-x-visual",
-        "size.sm.padding-x-visual",
-        "size.xl.gap",
+        "radius.2xl",
         "space.150"
       ]
     },
@@ -10058,11 +9990,7 @@
         "grid.sm.gutter",
         "grid.sm.margin",
         "icon.size.xs",
-        "size.lg.padding-x-visual",
-        "size.md.padding-x",
-        "size.sm.padding-x",
-        "size.xl.padding-x-visual",
-        "size.xl.padding-y",
+        "radius.3xl",
         "space.200"
       ]
     },
@@ -10100,8 +10028,6 @@
         "grid.md.margin",
         "grid.xl.gutter",
         "icon.size.md",
-        "size.lg.padding-x",
-        "size.xl.padding-x",
         "space.300"
       ]
     },

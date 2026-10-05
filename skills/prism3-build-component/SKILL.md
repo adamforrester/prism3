@@ -164,6 +164,20 @@ gap while its fill changes across nine intent×appearance coordinates. Anatomy r
 **binding keys** in `tokens`, never raw token refs, so a `{size}` in a key expands over the
 size axis and one indirection keeps the def brand-invariant.
 
+**Spacing: size is for size, space is for space** (`docs/28` §5.4). Bind a height to the shared
+`size.<rung>.height`, so a medium button, field and tag line up. Bind every padding and gap to a
+`space.*` step your spec states per size at COMFORTABLE density (`'size.medium.padding-x':
+'space.200'`), and list those keys in `densitySpacing` (`'size.{size}.padding-x'`). Density then
+moves each listed step one position along the space scale before projection
+(`applySpacingDensity`: down at compact, up at spacious, clamped at the ends). Leave a spacing
+off the list when it must not move: a 0 inset, a stack gap the spec fixes. When the cell after
+a gap carries a fixed inset of its own, the eye reads the gap plus the inset: state that visible
+distance as the density-following gap, and name the three keys in `visibleGaps` so the layer gap
+is derived as visible minus inset, never below 0 (the dismissible Tag's label row). Never mint a
+per-component spacing token. Two orderings hold at every density, and `packages/engine/test.ts` asserts them per
+def as literal rules, so add yours there: a gap is tighter than the padding beside it (#325),
+and an icon-side inset sits between them (#326: gap < icon-side padding < label-side padding).
+
 ## 2. Materialized anatomy — the part tree
 
 Every part declares a `kind` from a closed vocabulary (`packages/engine/component-schema.ts`,
@@ -292,6 +306,24 @@ whose actual value comes from the host, not from the plan.
   Button and compact density — so in shipped prose, SC 2.5.5 is stated as intent, not as a
   guarantee for every size. See `packages/engine/components/select.ts` and
   `packages/engine/components/text-field.ts`.
+- **Selection → a tint and a 2px outline, at a constant label weight (the system pattern, owner decision
+  2026-09-28).** A control the user selects and deselects in place — Tag's select type today; a segmented
+  control, a selectable card or a list option next — shows its selected state as a subtle tint plus a bold
+  outline, and neither of the two moves its box. Bind the tint to `color.interactive.primary.subtle-fill.selected`
+  in the `overlay` paint slot: the primary fill at an opacity step, emitted by every brand whose
+  `outlineInteraction` is not `none` (owner, 2026-09-29). It is brand-dependent in the token contract. On a
+  `none` brand `applyOutlineInteraction` drops the binding, and the selected state is the outline and the
+  check alone.
+  Bind the outline to `color.interactive.primary.border.*` at `border-width.thick` (2px), through a
+  `{selection}`-keyed `strokeWidth`, so the unselected member keeps `border-width.hairline`; both executors draw
+  the stroke inside the box, so the thicker outline adds no width. Keep the label's type binding the same at
+  both selection values — no bold on select, so the label keeps its width — and keep its ink the unselected
+  neutral one: the primary ink misses 4.5:1 on the tint (lowest 2.70:1). Add a check mark only where the
+  component's brief calls for one, and never let the tint be the only cue. A check mark present only while
+  selected is a flow cell of its own, so the selected member is one glyph and one gap wider than the
+  unselected one, and a row of them reflows on toggle unless the component reserves that width (Tag does not:
+  the owner let it widen, 2026-09-29). At hover and pressed the tint holds and the outline steps to
+  `interactive.primary.border.hover` / `.pressed`. See `packages/engine/components/tag.ts`.
 - **Glyph ink binds an icon role, never a text role (#1471).** A `vector` or an icon `slot` paints from an
   `icon.*` role (`color.icon.primary`, or the interactive `icon.*` twin the engine mints beside `text.*`),
   never a `text.*` role — even where the two resolve to the same value. The label beside the glyph keeps
@@ -311,8 +343,8 @@ no duplicating prop.
 
 **Axis and state names are closed vocabularies.** `VARIANT_AXES` in
 `packages/engine/component-schema.ts` closes the axis names (the validator refuses any other, and
-`lint-axis-values` holds its register to them), and `STATES` closes the state names — it has no
-`selected`, for example. Axis values stay open. A component that seems to need a new name (a tooltip
+`lint-axis-values` holds its register to them), and `STATES` in
+`packages/engine/component-schema.ts` closes the state names — it has no `selected`, for example. Axis values stay open. A component that seems to need a new name (a tooltip
 `placement` axis, a `selected` state for a tag or a segmented control) is asking for a schema change,
 which is an owner decision: flag it in the PR with the case for it, and never add it to either list
 to clear a validator error.
@@ -345,13 +377,17 @@ container's geometry?
   row rather than against the box edge. `select` and `text-field` use booleans for their icons (and
   text-field for `showMessage`) — see `packages/engine/components/select.ts` and
   `packages/engine/components/text-field.ts`.
-- **One boolean over several parts (the list form).** `part` takes a list when one toggle governs nodes
-  that never coexist: `switch-control`'s `State icon` is `{ part: ['onGlyph', 'offGlyph'], default: true,
-  figmaName: 'State icon' }`, the check at `selection=on` and the X at `selection=off`. A boolean part
-  normally carries no `presentWhen`; `figmaPropertyErrors` admits it only when the boolean targets two or
-  more parts, ALL gated on ONE shared variant axis, whose values their gates partition (every value
-  covered, none twice). A single gated part, an uncovered or doubled value, a mixed gated/ungated list and
-  any `when`-gated part are refused. See `packages/engine/components/switch-control.ts`.
+- **A boolean over variant-gated parts.** A boolean's part may also carry a `presentWhen` gate on variant
+  axes: the gate decides which members build the node, and the boolean toggles it there. `part` takes a list
+  when one toggle governs nodes that never coexist — `switch-control`'s `State icon` is `{ part: ['onGlyph',
+  'offGlyph'], default: true, figmaName: 'State icon' }`, the check at `selection=on` and the X at
+  `selection=off`. One part is enough when the node belongs to some members only — Tag's `Check icon` is
+  present only on a selected select tag. `figmaPropertyErrors` refuses three shapes: a `when`-gated part or a
+  `presentWhen` on `state` (a boolean composes with a variant gate only); two targeted parts that both build
+  at one member, including an ungated part beside a gated one (the gates must be disjoint, so the boolean
+  drives one node per member); and gates that no member of the set builds (`excludeCoordinates` removed every
+  such member). The gates need not cover an axis: a member with no node has nothing to toggle. See
+  `packages/engine/components/switch-control.ts` and `packages/engine/components/tag.ts`.
 - **Variant axis (Button only).** Presence is a true/false variant axis (`figmaProperties.slotAxes`, with
   `booleans` stated-empty) only when it drives edge-hugging asymmetric padding. On Button the #326 slot-aware
   inset sets the container's `paddingLeft = leading ? inlineVisual : inlineLabel` per side, and a boolean's
@@ -368,7 +404,7 @@ fact (#1699). Put the code default first.
 **A sparse grid.** A variant set is the full cross product of its axes unless the def says otherwise. When
 one axis value has no meaning at a value of another (Badge's count and dot have no `subtle` emphasis), list
 the missing coordinates in `figmaProperties.excludeCoordinates` as partial coordinates —
-`[{ genre: ['count', 'dot'], emphasis: ['subtle'] }]` — instead of projecting members that cannot honor the
+`[{ type: ['count', 'dot'], emphasis: ['subtle'] }]` — instead of projecting members that cannot honor the
 value. The validator refuses an entry naming an axis or value the set does not have, an exclusion that
 empties the set or leaves a declared value on no member, and one that removes the first member or the code
 default. `packages/engine/components/badge.ts` is the worked example.
@@ -380,7 +416,7 @@ so a new def fails by name until you add it — or, for a floor list, stays unco
 
 | Gate | What to add |
 |---|---|
-| `lint-hit-target` | an interactive control in `INTERACTIVE` with the key of its hit-target binding; anything else in `EXCLUDED` with its reason. A def in neither fails. |
+| `lint-hit-target` | an interactive control in `INTERACTIVE` with the key of its hit-target binding; anything else in `EXCLUDED` with its reason. A def in neither fails. A part inside the control that is, or may be, a target of its own (Tag's × slot) carries `innerTarget: true` in the def and goes in `INNER_TARGETS`; a marked part not listed there, an entry naming an unmarked part, and a nested interactive control not listed there each fail. |
 | `lint-rung-names` | a def with a size axis in `MUST_COVER`. No size axis → `NO_SIZE_AXIS` with the reason (it fails until admitted); a ladder in `props` only → `LADDER_STATED_ONCE`; size reaching only nested parts → `SIZE_BY_FOLLOW_ONLY`. A default that is not the `md` rung is an owner exception (`HOST_DEFAULT_DEFS`, `ICON_OFFSET_DEFS`), not yours to add. |
 | `lint-axis-values` | each (def, axis) pair in `AXIS_VALUE_SETS`: join a set's `defs`, or declare a new set with its `relation` to the canonical one and a reason. Order counts. |
 | `lint-standalone-floor` | a def that projects a Figma set in `MUST_PROJECT`. |
@@ -435,25 +471,29 @@ component page, titled from the page's primary def's name and described by its `
 
 `ENGINE_VERSION` answers *"what code produced this?"* and bumps on any observable change,
 including the projected component surface (#1252): a designer who meets a new variant axis, or
-864 members where there were 432, has met a different engine. Two gates force the bump, and each
+864 members where there were 432, has met a different engine. A PR declares the bump and never
+picks the number: it adds a change note, `packages/engine/changes/<slug>.md`, with `engine: minor`
+(the class for any behavior change; `patch` only when no committed artifact moves) as its front matter and the changelog prose as its body. `fold.ts` assigns the
+version after the merge (#1807). Do not edit `ENGINE_VERSION`. Two gates force the note, and each
 sees a different part of a def:
 
 - **`lint-emission-version`** watches everything under `packages/engine/out`, and the docs
   projection commits `out/components/**` there. So a new def's page, and any edit to a shipped
   documentation field (`summary`, `description`, `props`, `docs`, `accessibility`, `ai`, and the
   rest), moves `out/components/*` and forces the bump.
-- **`lint-component-surface`** reads the projected plans, and its `--accept` refuses until
-  `ENGINE_VERSION` has moved forward. A new def is a moved surface (no set → N members). `planStamp`
+- **`lint-component-surface`** reads the projected plans, and its `--accept` refuses until a
+  change note declaring the bump is in the tree. A new def is a moved surface (no set → N members). `planStamp`
   hashes the whole plan, and every plan carries the def's `codeOnly` list, so one `codeOnly` edit
   moves every member's digest at the same count; diff the plans before reading a whole-def move as a
   layout or paint change.
 - **Nothing forces a bump for `notes` or a part's `note`.** The maintainer record is in
   `MAINTAINER_ARTIFACTS`, outside the watched set, and no plan carries a part `note`.
 
-A new def therefore takes a MINOR bump in `packages/engine/version.ts` with its reason. After the
-bump, `npx tsx packages/engine/regen.ts` restamps `out/**`, and
-`npx tsx packages/engine/token-contract.ts --check` then asks for a stamp-only `--accept`. A
-skill-only change like this file bumps nothing.
+A new def therefore takes a change note declaring `engine: minor`, with its reason as the prose.
+Run `npx tsx packages/engine/regen.ts` as usual; the version stamps in `out/**` stay where they are
+until the fold restamps them. The token-contract baseline records no engine version, so
+`npx tsx packages/engine/token-contract.ts --check` stays clean and needs no `--accept`. A
+skill-only change like this file needs no note.
 
 `CONTRACT_VERSION` answers *"can my app still resolve the names it references?"* and covers the
 guaranteed **token-name** surface only. A component id, prop name or variant value is not a
@@ -477,7 +517,7 @@ one until that arc builds it.
    no entry leads with the name of an axis or state the def projects.
 5. Every naming choice matches the settled canon in §6.
 6. The def is in every gate list in §7, its docs page and JSON entry are regenerated, both baselines
-   are accepted after the ENGINE bump, and `npm run verify` is all-PASS with no SKIP.
+   are accepted after the change note is added, and `npm run verify` is all-PASS with no SKIP.
 7. A mutation of the def fails a surface gate by name, and each brief decision's own arm fails by name.
-8. A `docs/00-progress.md` entry carries the diagnosis, the decisions held for the owner, and any trap,
-   written as part of the work.
+8. A progress entry, `docs/progress/pending/<slug>.md`, carries the diagnosis, the decisions held for
+   the owner, and any trap, written as part of the work. The fold moves it into `docs/00-progress.md`.

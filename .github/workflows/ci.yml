@@ -87,7 +87,7 @@ jobs:
       # guarantees compose: regen proves the committed emission matches the emitter that produced it,
       # so the merge-base tree is a faithful witness rather than a stale copy.
       #
-      # THE FIRST OF THE THREE GATES IN THIS FILE THAT NEED GIT HISTORY — see `fetch-depth: 0` on the
+      # THE FIRST OF THE GATES IN THIS FILE THAT NEED GIT HISTORY (four since #1807) — see `fetch-depth: 0` on the
       # checkout above. (This line read "the only gate" until #1252 added the third; the comment below
       # already called itself "the second", so the count had been wrong since the second one landed.)
       # It FAILS rather than skips when it cannot find a base ref: a check that downgrades "cannot run"
@@ -249,6 +249,15 @@ jobs:
       - name: Plugin start-moment suite (#1197)
         run: npm run -w @prism3/plugin test:start
 
+      # UI redesign S1.2: the new shell's chrome, measured as rendered, in both hosts — text at 4.5:1,
+      # edges and indicators at 3:1, focus rings, 24px targets, the fonts actually drawn (CDP), no
+      # shadows, no runtime inline values, no horizontal scroll at 640, controls represented by hook,
+      # the IA-2 layer order, the Q2 header line, and the legacy frame map. A separate suite from smoke
+      # because its axes are host × theme × width, not page × mode × brand. AFTER BOTH BUILDS: it drives
+      # the studio's dist/main.js and the plugin's dist/ui.html. The browser comes from the verdict step.
+      - name: New shell chrome suite (UI redesign S1.2)
+        run: npm run -w @prism3/studio test:chrome
+
       # TokenPress's own 263 assertions, ported from vitest onto tsx (the suite it arrived with). It
       # runs the exporter end to end against Figma-shaped fixtures, so it is the only thing here that
       # can catch a regression in the OUT direction (Figma -> DTCG). Its runner asserts a per-file
@@ -312,7 +321,8 @@ jobs:
       # in shipped text (#617). Sibling to the US-English gate above, not merged into it — different
       # exemption sets (an allow-set for "just", a context rule for "!"), different failure messages
       # — but wired in the SAME position for the SAME reason: its scope includes the built
-      # `apps/studio/dist/*.js` bundle, so it has to run after the web build too.
+      # `apps/studio/dist/*.js` bundle, so it has to run after the web build too. Its client-name arm
+      # (#1824) also reads `apps/plugin/dist` raw, so "Build plugin" is load-bearing for it as well.
       - name: Voice lint gate (shipped text)
         run: npx --yes tsx@4 packages/engine/lint-voice.ts
 
@@ -438,6 +448,13 @@ jobs:
       # a restatement of the file (docs/34 shape 1). Fails on 0 matched headings rather than passing
       # over nothing (shape 9). States plainly what it does NOT check: that an entry is correct,
       # present, dated accurately, or matches what shipped — one structural property only.
+      #
+      # Since #1807 a PR carries its entry as `docs/progress/pending/<slug>.md` and `fold.ts` moves it
+      # into the log, so this gate also checks each fragment's shape and that every folded entry sits
+      # in the log in MERGE order at its landing day, and that every PR but a fold adds a fragment —
+      # which makes it the fourth gate here that reads
+      # git HISTORY (`git log --first-parent`), covered by the job-level `fetch-depth: 0` above. It
+      # refuses a shallow clone rather than missing folded fragments silently.
       - name: docs/00-progress.md stays newest-entry-first
         run: npx --yes tsx@4 packages/engine/lint-progress-order.ts
 

@@ -13,7 +13,7 @@
  * sandbox bundle. `emit-dtcg.ts` re-exports `buildTree` for existing importers.
  */
 import { bandPhrase } from './figma-description';
-import { RGB, contrast, hex, hexToRgb } from './color';
+import { RGB, contrast, hex, hexToRgb, emittedAlpha } from './color';
 import { Step } from './ramp';
 import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, FacePin, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER, SPIN_ROLE } from './theme';
 import { SizeStep, ControlSizeStep, controlRadius, AAA_TARGET_PX } from './scale';
@@ -27,9 +27,11 @@ const rgbStr = ({ r, g, b }: RGB) => `rgb(${r}, ${g}, ${b})`;
 const colorValue = (rgb: RGB, fmt: 'rgb' | 'hex') => (fmt === 'hex' ? hex(rgb) : rgbStr(rgb));
 const rgbFromHex = (h: string): RGB => ({ r: parseInt(h.slice(1, 3), 16), g: parseInt(h.slice(3, 5), 16), b: parseInt(h.slice(5, 7), 16) });
 const colorValueFromHex = (h: string, fmt: 'rgb' | 'hex') => (fmt === 'hex' ? h : rgbStr(rgbFromHex(h)));
-const alphaHex = (a: number) => Math.round(a * 255).toString(16).padStart(2, '0');
+// The alpha is quantized by `emittedAlpha` (color.ts) in both dialects — the one rule `modes.ts` also
+// composites through (#1782), so the engine measures a translucent wash at the alpha written here.
+const alphaHex = (a: number) => Math.round(emittedAlpha(a, 'hex') * 255).toString(16).padStart(2, '0');
 const alphaColorValue = (rgb: RGB, a: number, fmt: 'rgb' | 'hex') =>
-  fmt === 'hex' ? `${hex(rgb)}${alphaHex(a)}` : `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${round(a, 2)})`;
+  fmt === 'hex' ? `${hex(rgb)}${alphaHex(a)}` : `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${emittedAlpha(a, 'rgb')})`;
 // Shared opacity/alpha step set (percent). Ramps use 5–90; the opacity scale full.
 const ALPHA_STEPS = OPACITY_STEPS;
 
@@ -624,22 +626,15 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     if (Object.keys(modeOverrides).length) leaf.$extensions.prism3.modes = modeOverrides;
     radius[r.name] = leaf;
   }
-  // component tier: each size binds a height + paired padding from the shared
-  // scales, so a `md` control is identical across components. DENSITY acts here.
-  const spacePad = (px: number, name: string): Token => {
-    const key = spaceKeyOf.get(px);
-    return key ? dimAlias(`${root}.space.${key}`, name, { px }) : dimLeaf(px, name);
-  };
-  // component tier is MODE-VARYING on the density lever (Phase D — same seam as radius): a customizable
-  // mode may run a different density, re-deriving `sizes`. A size sub-leaf (height / padding-x / padding-y)
-  // whose per-mode px DIFFERS from light carries a `$extensions.prism3.modes.<mode>` override — height
-  // aliases the dimension grid on-grid (else literal); padding aliases the space scale on-scale (else
-  // literal), mirroring their light branches. Absent maps ⇒ byte-identical.
+  // component tier: each size is a control HEIGHT, shared so a `md` control is the same height across
+  // components. DENSITY acts here. Dimensions only (the spacing model, 2026-09-29): padding and gaps are
+  // `space.*` steps a component's def states itself, and density moves them one step (`scale.ts`).
+  //
+  // The tier is MODE-VARYING on the density lever (Phase D — same seam as radius): a customizable mode may
+  // run a different density, re-deriving `sizes`. A height whose per-mode px DIFFERS from light carries a
+  // `$extensions.prism3.modes.<mode>` override aliasing the dimension grid on-grid (else a literal),
+  // mirroring its light branch. Absent maps ⇒ byte-identical.
   const sizesByMode = theme.dims.sizesByMode ?? {};
-  const spaceModeOverride = (px: number, note: string): Record<string, unknown> => {
-    const key = spaceKeyOf.get(px);
-    return key ? { $value: `{${root}.space.${key}}`, px, note } : { $value: `${px}px`, px, note };
-  };
   // Build the per-mode override map for one size sub-leaf (a rung whose per-mode px differs from light).
   const sizeModes = (sizeName: string, field: string, ownPx: number, pick: (z: SizeStep) => number, ov: (px: number, note: string) => Record<string, unknown>): Record<string, unknown> | undefined => {
     const modeOverrides: Record<string, unknown> = {};
@@ -655,25 +650,9 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     const heightLeaf = gridSet.has(z.height)
       ? dimAlias(`${root}.${CORE_TIER}.dimension.${z.height}`, `size.${z.name} control height — ${z.height}px (density: ${theme.dims.density})`, { px: z.height, density: theme.dims.density })
       : dimLeaf(z.height, `size.${z.name} control height — ${z.height}px`);
-    const padXLeaf = spacePad(z.padX, `size.${z.name} horizontal inset — ${z.padX}px (density: ${theme.dims.density})`);
-    const padYLeaf = spacePad(z.padY, `size.${z.name} vertical inset — ${z.padY}px (density: ${theme.dims.density})`);
     const hMods = sizeModes(z.name, 'height', z.height, (s) => s.height, gridStepOverride);
-    const pxMods = sizeModes(z.name, 'padding-x', z.padX, (s) => s.padX, spaceModeOverride);
-    const pyMods = sizeModes(z.name, 'padding-y', z.padY, (s) => s.padY, spaceModeOverride);
-    // gap rides the same per-mode density seam as padding — a mode at a different density re-derives
-    // its ladder, so its gap moves with its padX (#325).
-    // #326 — the visual-side inset, additive: `padding-x` keeps its meaning (the label side) so no
-    // existing binding moves, and this is opt-in until the anatomy block maps which side is which.
-    const padXVisLeaf = spacePad(z.padXVisual, `size.${z.name} horizontal inset on the visual side — ${z.padXVisual}px (an icon's own box adds apparent space, so it insets less than the ${z.padX}px label side)`);
-    const pxvMods = sizeModes(z.name, 'padding-x-visual', z.padXVisual, (s) => s.padXVisual, spaceModeOverride);
-    if (pxvMods) padXVisLeaf.$extensions.prism3.modes = pxvMods;
-    const gapLeaf = spacePad(z.gap, `size.${z.name} label↔visual gap — ${z.gap}px (density: ${theme.dims.density})`);
-    const gMods = sizeModes(z.name, 'gap', z.gap, (s) => s.gap, spaceModeOverride);
-    if (gMods) gapLeaf.$extensions.prism3.modes = gMods;
     if (hMods) heightLeaf.$extensions.prism3.modes = hMods;
-    if (pxMods) padXLeaf.$extensions.prism3.modes = pxMods;
-    if (pyMods) padYLeaf.$extensions.prism3.modes = pyMods;
-    size[z.name] = { height: heightLeaf, 'padding-x': padXLeaf, 'padding-x-visual': padXVisLeaf, 'padding-y': padYLeaf, gap: gapLeaf };
+    size[z.name] = { height: heightLeaf };
   }
 
   // ── size.md.min-height — the INTERACTIVE TARGET-SIZE FLOOR (#1437, WCAG 2.2 SC 2.5.5 Enhanced) ────
@@ -989,7 +968,11 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   }
   // Transitions now name the ROLE, not the curve, so a per-mode re-point reaches every consumer of
   // `motion.transition.*` for free — the same way they already inherit per-mode duration.
-  for (const t of m.transitions) motion.transition[t.name] = transitionLeaf(`${root}.motion.duration.${t.duration}`, `${root}.motion.easing-role.${t.name}`, `motion ${t.name} — ${t.desc} (${t.duration} + ${t.easing})`);
+  // The description names the curve the ROLE resolves to (#2062), not the transition's fixed default: with
+  // `motionPersonality.easingRoles.default: 'calm'`, `transition.default` aliases a role that draws `calm`, and
+  // saying `standard` named a curve the token does not use. A mode's own re-point is on the easing-role leaf.
+  const roleCurve = new Map(m.easingRoles.map((r) => [r.role, r.curve]));
+  for (const t of m.transitions) motion.transition[t.name] = transitionLeaf(`${root}.motion.duration.${t.duration}`, `${root}.motion.easing-role.${t.name}`, `motion ${t.name} — ${t.desc} (${t.duration} + ${roleCurve.get(t.name) ?? t.easing})`);
   motion.stagger = durSemantic(m.stagger, `stagger standard — ${m.stagger}ms between siblings`, (mm) => mm.stagger, (mode, mv) => `motion tempo lever override — ${mode} (stagger → ${mv}ms)`);
 
   // ---- typography axis — primitive tier (Phase 1) ----
@@ -1263,6 +1246,9 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
 
   let modeChecks = 0, modePass = 0;
   for (const mr of modes) for (const r of Object.values(mr.roles)) if (r.min > 0) { modeChecks++; if (r.ratio >= r.min) modePass++; }
+  // A role's second ground (#1773): the page interactive fill against `background.tertiary`. Counted like a
+  // role, so a pinned anchor that misses the tier fails the mode contract the way a missed override does.
+  for (const mr of modes) for (const c of mr.tierChecks ?? []) { modeChecks++; if (c.ratio >= c.min) modePass++; }
   // A role's SECOND pair (`alsoAgainst`, #1745) is a contract too, so it counts here — this count is what
   // `cli.ts` and `emit-dtcg.ts` exit on and what the fidelity report prints. Measured from the two final hex
   // values: the engine stores no ratio for the pair, and its warning lives only in `ModeResult.warnings`,

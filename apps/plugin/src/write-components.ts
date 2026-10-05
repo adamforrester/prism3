@@ -54,7 +54,7 @@
  * assertion instead, because with no caller the port could have drifted out of satisfaction with the
  * whole suite green; the trigger retired it rather than leaving two mechanisms for one guarantee.
  */
-import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities } from '@prism3/engine/anatomy-figma';
+import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, resolveNestMember, swapMissAdvice, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, planComponentName, planStamp, glyphLayerOpacities } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan, FigmaNodePlan, SwapFound } from '@prism3/engine/anatomy-figma';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { tailOf } from '@prism3/engine/figma-names';
@@ -94,7 +94,14 @@ export interface CompRef { id: string; name: string; createInstance(): CompNode 
  *  matching against Figma's property order is not. `defaultVariant` is deliberately NOT in this port —
  *  Figma offers it, and reading it is `#656`: its value is the set's first child, an artifact of creation
  *  order. A port that cannot name it cannot accidentally fall back to it. */
-export interface CompSetRef { id: string; name: string; children?: readonly { name?: string }[] }
+export interface CompSetRef { id: string; name: string; children?: readonly CompMemberRef[] }
+
+/** A MEMBER of a set, as its set's own `children` hand it back (#1781). The member is instantiated from
+ *  HERE — out of the set the def named — and never re-looked-up by name in the document-wide COMPONENT
+ *  map, where every set's `size=small` shares one key. `type` because a set's child is only instantiable
+ *  when Figma says it is a COMPONENT; `createInstance` optional because the port cannot promise it of a
+ *  child that is not. */
+export interface CompMemberRef { name?: string; type?: string; createInstance?(): CompNode }
 
 /** The four PER-SIDE stroke-weight keys the real host binds a `strokeWeight` variable onto (#1332). */
 const STROKE_WEIGHT_SIDES = ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight'];
@@ -324,7 +331,7 @@ export interface ComponentsApi {
    *
    *  TWO SEARCHES, not one widened search, and the reason is the cast each one licenses (#681). The
    *  `COMPONENT` search's results are cast to `CompRef` and INSTANTIATED; the `COMPONENT_SET` search's are
-   *  cast to `CompSetRef` and read for their children's names. A single `types: ['COMPONENT',
+   *  cast to `CompSetRef` and read for their children — names to match, members to instantiate (#1781). A single `types: ['COMPONENT',
    *  'COMPONENT_SET']` call would return a union and put a `ComponentSetNode` — which has no
    *  `createInstance` — inside the map the swap path instantiates from. One criteria list per cast keeps
    *  each cast true at its own call site, which is the property the original comment here was making.
@@ -373,6 +380,11 @@ export interface CompPageTarget {
   readonly id: string;
   appendChild(child: CompNode): void;
   findOne(predicate: (node: CompNode) => boolean): unknown;
+  /** The page's TOP-LEVEL nodes, read once before a new set is built so it can be placed clear of them
+   *  (#1750). `unknown[]` for the variance reason `root.findAllWithCriteria` gives: a `PageNode`'s
+   *  `SceneNode` union does not satisfy `CompNode`, and only `type`/`x`/`y`/`width`/`height` are read.
+   *  Optional so a target without it places the set where the combine left it, as before #1750. */
+  readonly children?: readonly unknown[];
 }
 
 /** What the component executor did — surfaced to the UI + asserted by the harness. Deliberately the
@@ -501,6 +513,12 @@ export type ComponentApplyResult = {
    *  produced — `undefined` for the normal COMPONENT_SET path. Present is what tells the verdict it has
    *  no set to describe (the set-derived fields above are all 0/empty in this mode). */
   emittedComponents?: string[];
+  /** #1780 — present when the build REFUSED because the page already holds a set of this name whose members
+   *  vary by a different axis list: `existing` is each distinct list the set's members carry (two when the
+   *  set is already mixed), `planned` the list this build would write, all sorted. `set` is then `null` and
+   *  nothing was written. Kept as data rather than left to the miss prose, so the verdict does not have to
+   *  parse its own sentence to say which set was left alone. */
+  axesChanged?: { set: string; existing: string[][]; planned: string[] };
   /** Non-fatal: a name that did not resolve, a write Figma discarded, a read-back that disagreed. */
   misses: string[];
 };
@@ -732,6 +750,76 @@ const planHalf = (stamp: string): string => stamp.split('|')[1] ?? '';
 /** The engine-version half, for the report only. `'unknown'` rather than `''` so the miss line reads as
  *  a fact about the member instead of as a missing interpolation. */
 const engineHalf = (stamp: string): string => stamp.split('|')[0] || 'unknown';
+
+/**
+ * THE AXIS LISTS AN EXISTING SET'S MEMBERS CARRY (#1780), one entry per distinct list, each sorted.
+ *
+ * READ OFF THE MEMBER NAMES, not off `componentPropertyDefinitions`, and the choice is forced rather than
+ * tidy. Figma derives a set's variant axes FROM its member names, so the names are the source and the
+ * definitions a view of them. And the view THROWS ("Component set has existing errors") on exactly the
+ * set this check most needs to read: one whose members already disagree on the axis list (#1780's live
+ * state, 6 members on `value × intensity` beside 30 on `value × intensity × direction`). A definitions read
+ * would need a member-name fallback for that case anyway, which is two ways to answer one question.
+ *
+ * ONLY COORDINATE-SHAPED NAMES COUNT (every `, `-separated segment has an `=`). A child named anything else
+ * is a designer's hand-made copy, which the layout pass already reports as `NOT A GENERATED VARIANT` and
+ * leaves in place; counting it here would refuse every build over a set someone had added a copy to.
+ */
+const memberAxisLists = (set: CompSet): string[][] => {
+  const lists = new Map<string, string[]>();
+  for (const c of set.children ?? []) {
+    const segs = String(c.name ?? '').split(', ');
+    if (!segs.every((s) => s.includes('='))) continue;
+    const list = segs.map((s) => s.slice(0, s.indexOf('='))).sort();
+    lists.set(list.join(','), list);
+  }
+  return [...lists.values()];
+};
+
+/**
+ * THE GAP BETWEEN SIBLING SETS ON A PAGE, in px (#1750). A PLACEHOLDER: it is the spacing the owner used when
+ * laying out the master file by hand (left to right, top-aligned, 160 apart), and the issue records that the
+ * owner has not picked the final number. A page position is not a bindable field, so there is no variable to
+ * bind it to — the same reason `page-header.ts`'s `HEADER_GAP` is a literal.
+ */
+export const SET_GAP = 160;
+
+/** A top-level node's box on a page, as `placeNewSet` reads it. */
+export type PageBox = { type?: string; x: number; y: number; width: number; height: number };
+
+/** The boxes of a page's top-level nodes, VISIBLE OR NOT: a hidden node is still somewhere a set could be
+ *  dropped on top of, and showing it again would reveal the overlap. */
+const pageBoxes = (page: CompPageTarget): PageBox[] =>
+  ((page.children ?? []) as { type?: string; x?: number; y?: number; width?: number; height?: number }[]).map((n) => ({
+    type: n.type, x: n.x ?? 0, y: n.y ?? 0, width: n.width ?? 0, height: n.height ?? 0,
+  }));
+
+/**
+ * WHERE A NEW SET GOES ON A PAGE THAT ALREADY HAS CONTENT (#1750) — `null` on an empty page, which leaves the
+ * set where the combine put it (the origin), exactly as before.
+ *
+ * TOP-ALIGNED WITH THE SETS ALREADY THERE, then RIGHT OF EVERYTHING IN ITS ROW, `SET_GAP` clear. The row is
+ * the band the new set will occupy (`y` to `y + height`); anything overlapping that band vertically pushes it
+ * right. A node wholly above or below the band does not: the page header sits `HEADER_GAP` above the content
+ * and is often wider than one small set, and pushing a `checkbox-row` past a 1000px header would strand it
+ * far from the `checkbox-control` beside it. So the result never overlaps any node on the page, and the sets
+ * read left to right in the order they were built — which is the taxonomy's order (`file-taxonomy.ts`)
+ * whenever a family is built as one run (dependencies first) or in the order the page lists them.
+ *
+ * `y` is the top of the existing COMPONENT_SETs, or of all content when the page has no set yet.
+ *
+ * A SET THAT ALREADY EXISTS IS NEVER PASSED HERE: a rebuild keeps the set a designer may have moved, the
+ * "designer's placement wins" rule `page-header.ts` follows for the header.
+ */
+export const placeNewSet = (existing: readonly PageBox[], height: number): { x: number; y: number } | null => {
+  if (existing.length === 0) return null;
+  const sets = existing.filter((b) => b.type === 'COMPONENT_SET');
+  const y = Math.min(...(sets.length ? sets : existing).map((b) => b.y));
+  const band = existing.filter((b) => b.y < y + height && b.y + b.height > y);
+  // An empty band happens only when every node there has zero height; then everything counts.
+  const x = Math.max(...(band.length ? band : existing).map((b) => b.x + b.width)) + SET_GAP;
+  return { x, y };
+};
 
 /**
  * THE BUILD'S OWN REPORT, LEFT ON THE SET (#1579).
@@ -1396,7 +1484,7 @@ const writeComponentSet = async (
   // type-filtered call returns only that type, and a plan binds FLOAT dimensions and COLOR paints.
   //
   // THE VARIABLE MAP IS KEYED BY TAIL, THE OTHER THREE BY NAME (#1097), and the asymmetry is real rather
-  // than an inconsistency to tidy. Variables carry the brand namespace (`nbds/size/md/gap`); styles do
+  // than an inconsistency to tidy. Variables carry the brand namespace (`nbds/size/md/height`); styles do
   // not (`label/md/emphasis` — a style drops both the root and the tier), and a component's name is not
   // a token path at all. A plan's bound variable names are root-relative — see `figmaVarName` for why the
   // plan stays brand-agnostic — so this is the place the two spaces meet on the plugin side.
@@ -1426,12 +1514,17 @@ const writeComponentSet = async (
   // The SET map (#681). A second criteria call rather than a widened one — see the port's note on why
   // each cast needs its own criteria list. Sets only: a `nest-fixed` part resolves a MEMBER out of one,
   // and this is the only lookup in this file whose results are never instantiated directly.
-  const setByName = new Map((api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly CompSetRef[]).map((s) => [s.name, s] as const));
+  //
+  // A LIST, NOT A NAME→SET MAP (#1781). A map keyed by name keeps one set per name and drops the rest
+  // silently, which is the one fact a nest must not lose: two sets under the exact name a def targets is
+  // an ambiguity to report, not a tie to break by document order. `resolveNestMember` filters it by exact
+  // name per nest, so a set renamed aside (`__old__checkbox-row`) never answers for `checkbox-row`.
+  const compSets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly CompSetRef[];
 
   /** WHAT THE FILE HOLDS under a name `compByName` came back empty for (#1280 PR-C). The same second
    *  search the nest path runs, and on the same terms: by name, every type, on the FAILURE PATH ONLY —
    *  a cold build does 2,592 subtree searches already (#701) and this must not add one per member to the
-   *  happy path. Reads `api.root.findAll` rather than `setByName`, even though a COMPONENT_SET could be
+   *  happy path. Reads `api.root.findAll` rather than `compSets`, even though a COMPONENT_SET could be
    *  answered from the map: the map cannot tell an INSTANCE from a FRAME from nothing at all, and three
    *  of the four rows below need exactly that distinction. */
   const swapFound = (name: string): SwapFound => {
@@ -1477,35 +1570,27 @@ const writeComponentSet = async (
       // `nestVariant` against a file that has flattened its ring to a component still resolves rather
       // than reporting a coordinate the file no longer has axes for.
       const nested = n.nestTarget ? compByName.get(n.nestTarget) : undefined;
-      const set = !nested && n.nestTarget && n.nestVariant ? setByName.get(n.nestTarget) : undefined;
-      if (set) {
-        // RESOLVE THE DEF'S COORDINATE against the members' own names. `nestVariantMatch` compares axis by
-        // axis and returns null on "no match" AND on "more than one match" — see its own note for why the
-        // second is refused rather than resolved by picking the first.
-        const members = (set.children ?? []).map((c) => c.name ?? '');
-        const hit = nestVariantMatch(n.nestVariant!, members);
-        if (!hit) {
-          // THE FIFTH MISS. A different sentence from the four below because it is a different mistake:
-          // those four are "the file does not hold what this needs", this is "the def asks for a member
-          // this set does not have". Nothing is nested — nesting the set's first child here would be
-          // #656 exactly, and a valid wrong ring looks like a success.
-          misses.push(`${n.name}.nestVariant -> ${n.nestTarget} (${nestVariantMissAdvice(n.nestVariant!, members)})`);
-          return null;
-        }
-        // The MEMBER is what gets instantiated, not the set — Figma has no "instance of a set", and the
-        // member is a plain COMPONENT, which is why the existing criteria search finds it under its
-        // variant coordinate. That is the same lookup whose blindness to the set's own name WAS #681: the
-        // members were always there, and nothing knew which one to ask for. Now the def says.
-        const member = compByName.get(hit);
-        if (!member) {
-          // Unreachable in a coherent file — `hit` came from this set's children, and a set's children ARE
-          // components, so the criteria search has them. Reported rather than asserted because the two
-          // lookups are independent reads of a live document, and a host that disagrees with itself should
-          // say so in the channel this build has rather than throw away 647 other members.
-          misses.push(`${n.name}.nestVariant -> ${n.nestTarget} (matched member ${hit} is not instantiable; nothing built — the COMPONENT_SET and COMPONENT searches disagree about this file)`);
-          return null;
-        }
-        node = wr(member.createInstance());
+      // THE SET AND ITS MEMBER, resolved together and only together (#1781) — see `resolveNestMember`, which
+      // this executor and the paste payload share, decision AND wording. The member comes out of the named
+      // set's own `children`. It used to be re-looked-up by NAME in `compByName`, where `size=small` is every
+      // set's `size=small` and the last one searched wins: that is how a group's rows became `switch-row`'s
+      // and a row's control became `radio-control`'s, each building as a success. The set is matched by EXACT
+      // name, so `__old__checkbox-row` never answers for `checkbox-row`, and two sets under the exact name are
+      // reported rather than picked between.
+      //
+      // `null` means no set carries the name, and the four-way diagnosis below takes over. A `miss` covers
+      // the three ways a named set can still fail to yield a member: AMBIGUOUS (two sets, against
+      // `nestTarget` — the FILE is the problem), the FIFTH MISS (the def's coordinate matches no member, or
+      // more than one — `nestVariantMatch` refuses both, #656), and a matched child that is not a COMPONENT.
+      // Nothing is nested in any of them: a valid wrong member looks like a success.
+      const res = !nested && n.nestTarget && n.nestVariant ? resolveNestMember(compSets, n.nestTarget, n.nestVariant, nestVariantMatch, nestVariantMissAdvice) : null;
+      if (res && res.miss !== undefined) {
+        misses.push(`${n.name}${res.miss}`);
+        return null;
+      }
+      if (res) {
+        // The MEMBER is what gets instantiated, not the set — Figma has no "instance of a set".
+        node = wr(res.member.createInstance!());
       } else if (!nested) {
         // DIAGNOSE, then report (#681). The criteria lookup above cannot tell "absent" from "present at a
         // type this search does not match", so the miss it produced said "not in this file" of a node the
@@ -2097,6 +2182,48 @@ const writeComponentSet = async (
   // it. This is the one behaviour the single-shot paste payload does not have and a plugin needs, since
   // a designer can press the button twice.
   let set = dest.findOne((n) => n.type === 'COMPONENT_SET' && n.name === component) as CompSet | null;
+  // #1780 — A SET WHOSE VARIANT AXES DIFFER FROM THE PLAN'S IS REFUSED, NOT ADDED INTO. Find-or-create
+  // above matches by NAME, and a name match says nothing about the axes: when a def gains, loses or renames
+  // an axis (`veil` gaining `direction`, a `genre` axis renamed `type`), every planned member name is new,
+  // so nothing matches `have`, nothing reads STALE, and every member was appended into the old set beside
+  // members on a different axis list. Figma reports that set as broken — its definitions getter throws —
+  // so the old set lost its properties AND the new members never got theirs.
+  //
+  // REFUSE, and write NOTHING: no member built, no member appended, no report stamped on the old set. The
+  // same posture as #827's STALE branch (report rather than repair), for the same reason: the one repair
+  // that keeps a single set — rebuilding the old members onto the new axes — replaces the component nodes
+  // and orphans every instance placed from them. The miss names both axis lists and the remedy the owner
+  // has been applying by hand: rename the old set, whose instances keep pointing at it by id, and build
+  // again — find-or-create then misses by name and a fresh set is combined beside it.
+  //
+  // AXIS NAMES ONLY, NOT VALUES. A new VALUE on an existing axis is the incremental path this executor has
+  // always supported — measured live: appending `state=pressed` to a `state=rest|hover` set extends that
+  // axis (the COMBINE note below) — and refusing it would split a set every time a def gained a state or
+  // a size. A value the plan no longer carries leaves its members as `NOT A GENERATED VARIANT` strays,
+  // which the layout pass already reports. Only a differing axis LIST leaves members Figma cannot reconcile.
+  //
+  // NOT in `emitAsComponents` mode (#1012): there is no set, so there is nothing to find by name here.
+  if (set && !opts.emitAsComponents) {
+    const planned = axes.split(',').slice().sort();
+    const existing = memberAxisLists(set);
+    if (existing.some((l) => l.join(',') !== planned.join(','))) {
+      const show = (l: readonly string[]): string => `[${l.join(', ')}]`;
+      misses.push(
+        `set -> AXES CHANGED: '${component}' on this page varies by ${existing.map(show).join(' and ')}, and this build varies by ${show(planned)}. ` +
+        'Nothing was added to it, because members on two axis lists leave a set Figma reports as broken. ' +
+        'Rename the existing set (its instances keep pointing at it) and build again to get a new set beside it.',
+      );
+      return {
+        set: null, id: '', variants: 0, added: 0, skipped: 0, stale: 0, size: [0, 0], grid: [rows, cols], axes: [], properties: [],
+        refs: 0, wiredMembers: 0, refsRetained: 0, refsKnownAbsent: 0, refsSearched: 0, refsRepaired: 0, boundRepaired: 0,
+        setReresolved: 0, boundSearched: 0, axesChanged: { set: component, existing, planned }, misses,
+      };
+    }
+  }
+  // #1750 — WHAT IS ALREADY ON THE PAGE, read BEFORE the build loop: every member it builds is appended to
+  // `dest` until the combine gathers it, and those must not count as content to place the set beside.
+  // Only when this run will CREATE the set; an existing set keeps its position.
+  const priorContent = !set && !opts.emitAsComponents ? pageBoxes(dest) : [];
   // THE EXISTING MEMBERS BY NAME — a Map rather than the Set this was, because the skip branch now needs
   // the NODE and not just the fact of it: name-matching is what #827 is about, and the stamp it compares
   // instead lives on the member. `c.name` can be undefined on the port, so the entries are filtered
@@ -2389,6 +2516,20 @@ const writeComponentSet = async (
   const boxMiss: string[] = [];
   if (colW.length && rowH.length && (Math.round(set.width ?? 0) < Math.round(wantW) || Math.round(set.height ?? 0) < Math.round(wantH)))
     boxMiss.push(`set -> BOX ${Math.round(set.width ?? 0)}x${Math.round(set.height ?? 0)} does not contain its ${members.length} members (${Math.round(wantW)}x${Math.round(wantH)} needed; appending does NOT grow the frame)`);
+  // #1750 — PLACE A NEW SET CLEAR OF THE PAGE'S CONTENT. The combine drops every new set at the origin, so the
+  // second set built onto `↳ Buttons` covered the first, and a designer opening the page saw only the last.
+  // AFTER the resize, because which nodes share the set's row depends on its height. A set's `x`/`y` moves
+  // the set and not its members (theirs are relative to it), so this touches nothing the layout pass wrote.
+  if (createdSet) {
+    const at = placeNewSet(priorContent, set.height ?? wantH);
+    if (at) {
+      const s = wr(set);
+      s.x = at.x;
+      s.y = at.y;
+      if (s.x !== at.x || s.y !== at.y)
+        boxMiss.push(`set -> POSITION set to ${at.x},${at.y} beside the page's other content, reads ${String(s.x)},${String(s.y)}`);
+    }
+  }
 
   /** #1574 — THE SET ITSELF, RE-RESOLVED FRESH FROM THE DESTINATION PAGE AT EACH USE.
    *

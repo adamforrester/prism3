@@ -14,7 +14,7 @@ working principles apply to humans as much as to agents.
 | Read | For |
 |---|---|
 | [`CLAUDE.md`](CLAUDE.md) | Repo conventions + the four working principles. Non-optional — agents load this automatically, so you should know what it told them. |
-| [`docs/00-progress.md`](docs/00-progress.md) | The durable state log — status, decisions and why, most recent first. **Read the latest entries before starting anything**; the arc moves fast and your question may already be answered. |
+| [`docs/00-progress.md`](docs/00-progress.md) | The durable state log — status, decisions and why, most recent first. **Read the latest entries before starting anything**; the arc moves fast and your question may already be answered. Entries merged since the last fold are still in [`docs/progress/pending/`](docs/progress/pending/), so read that directory first. |
 | The lane doc for your work | `07-e2e-journey` (the pipeline + portable-core architecture), `18`/`22` (plugin), `11` (multi-brand north star), `23`–`26` (dashboard IA + UI conventions). Index in [`docs/`](docs/). |
 
 The one architectural idea to hold: **the engine core is pure and dependency-free, and
@@ -34,6 +34,159 @@ else broken, open a finding and keep going.
 
 The PR template's Gates block is the load-bearing part — fill it in with real numbers,
 not ticks.
+
+**A PR writes its own files, never the shared lines (#1807).** Every PR used to write the same
+four places: the top of `docs/00-progress.md`, `ENGINE_VERSION`, the changelog above it, and the
+version stamp in every emitted tree. So every open PR conflicted with every other, and merges ran
+one at a time. Now:
+
+- **The progress entry** is `docs/progress/pending/<slug>.md`, where the slug is your branch name
+  with `/` turned into `-`. It holds one entry headed `## (YYYY-MM-DD) — <title>`, in the log's
+  usual shape. **Every PR carries one, except a fold** (owner decision, 2026-09-30):
+  `lint-progress-order.ts` fails a PR that adds no fragment, and a heading written straight into
+  the log does not count. Outside a fold, **any** change to the log fails, including an edit to an
+  existing entry; a correction travels as a fragment of its own ("Correction to <date> <title>").
+  A **pure** fold is exempt because it
+  consumes fragments rather than adding one: it deletes pending files, every entry it consumed reached
+  the log, and it touches nothing but the log, the pending directories, `version.ts`, `out/` and the
+  rename stamps it fills (below). A fold PR that also fixes a semantic conflict carries a fragment for
+  the fix.
+- **The engine bump**, when one is owed, is a change note, `packages/engine/changes/<slug>.md`:
+
+  ```
+  ---
+  engine: minor          # patch | minor | major
+  ---
+  The changelog prose that used to go into version.ts. Write {{ENGINE_VERSION}} where the number goes.
+  ```
+
+  It declares the class and never picks a number. **The class:** `minor` for any behavior change;
+  `patch` only when no committed artifact and no projected component surface moves (`regen --check`
+  clean before and after, `lint-component-surface.ts` baseline unchanged); `major` is
+  refused while `ENGINE_VERSION` is below 1.0, because going to 1.0 is the owner's decision. The fold
+  takes the highest class in the batch. **Do not edit `ENGINE_VERSION`, its changelog, the version
+  stamps in `out/`, or a note another PR merged.** `lint-emission-version.ts` fails a PR that is not a fold for editing
+  the constant or its changelog, and both version gates accept the note as the bump. Run `regen.ts`
+  as usual; your `out/` diff carries your real changes under the old stamp, and the fold restamps.
+- **A rename rule's `since`** (#1816) is the other version number a PR used to write. A PR that adds an
+  entry to `MATERIALIZATION_RENAMES`, `MATERIALIZATION_DELETIONS` or `COLLECTION_RENAMES` stamps it
+  `since: '{{ENGINE_VERSION}}'`, and writes the same quoted placeholder in `test.ts`'s table for it
+  (`EXPECTED_SINCE` or `EXPECTED_COLLECTION_SINCE`). **The same diff adds a change note**; another PR's
+  pending note does not count, because the fold may consume it before your PR merges. The fold fills
+  both stamps with the version it assigns. **An existing stamp never changes**, in a fold or out of
+  one: a rule whose change needs a new stamp is a new rule, with a new id, the placeholder and a note.
+  A fold only fills placeholders; it adds no stamp of its own. `lint-emission-version.ts`'s RENAME
+  STAMPS arm fails each of these by name. In those three files the quoted placeholder is reserved for
+  stamps, because the fold replaces every one: a test fixture that needs it builds it by concatenation.
+- **`CONTRACT_VERSION` is unchanged by this.** A PR that moves the guaranteed token-name surface still
+  bumps it itself and runs `token-contract.ts --accept`. Contract bumps are rare and carry real
+  baseline content, so two of them *should* meet.
+
+Both directories carry a `README.md` with the format. The fold, below, is the one writer of the
+shared lines.
+
+**A branch that has not merged `main` since #1807 landed can pass locally and fail in CI.** Locally
+its merge base predates the FOLD MARKER, so `lint-emission-version.ts` prints "not yet in force" for
+the one-writer check. CI tests the merge with the current `main`, where it is in force. Merge `main`
+before trusting a local green.
+
+**`npm run verify` on a plain checkout of `main` is red by design.** There, HEAD is its own base, so
+`lint-progress-order.ts` finds no diff to hold an entry in and fails CARRIES AN ENTRY rather than
+printing a pass it did not check. CI's push run on `main` skips that one arm by
+`GITHUB_EVENT_NAME=push`. To check `main`'s health locally, do the same:
+`GITHUB_EVENT_NAME=push npm run verify`. Or read `main`'s latest push run in CI.
+
+### Reverting a merged PR that has not been folded yet
+
+`git revert` of such a PR deletes its change note and its fragment, and both gates fail that by name:
+a deleted note outside a fold is ONE WRITER, and a deleted fragment whose entry never reached the log
+is FOLDED ENTRIES. That is on purpose, because the history of what merged should survive the revert.
+So revert the code and **keep** the reverted PR's two files:
+
+1. `git revert --no-commit <merge-sha>`, then restore the two files it deleted, reading them rather
+   than checking them out: `git show <merge-sha>:<path> > <path>` for the note and the fragment.
+2. Add your own fragment saying what was reverted and why, and, since the revert moves the emission
+   back, your own note (`minor`).
+3. The next fold writes both: the change, then its revert, under one version.
+
+A PR that was already folded reverts like any other PR, with its own fragment and note.
+
+### How to fold
+
+Run this after landing a batch of PRs. Today it is run by hand, with no bot and no token. A fold is
+one small PR that conflicts with no ordinary PR, because no ordinary PR writes any line it writes.
+Keep one fold open at a time.
+
+```bash
+git fetch origin main
+git worktree add /tmp/p3-fold -b fold/$(date -u +%F) origin/main && cd /tmp/p3-fold && npm ci
+npx tsx fold.ts --dry-run      # the plan: the version, and the entries in merge order
+npx tsx fold.ts                # writes version.ts, the log and the stamps; deletes what it folded
+git add -A && git commit -m "Fold: ENGINE_VERSION <new>"
+npm run verify
+```
+
+Then push and open the PR. What the fold does, in order:
+
+1. With nothing pending, it prints "nothing to fold" and exits 0, so a second run is harmless.
+2. It refuses unless the tree is clean and HEAD is a commit of `origin/main`.
+3. It orders every pending file by the first-parent commit on `main` that added it, which is merge
+   order.
+4. It assigns **one version per fold**: the current `ENGINE_VERSION` bumped once, by the highest class
+   any note declares. With no notes the version does not move.
+5. It writes the constant and a changelog section under the FOLD MARKER in `version.ts`, newest merge
+   first. Then it puts the fragments at the top of the log, newest merge first, each dated with the UTC
+   day it landed. It fills in `{{ENGINE_VERSION}}` in both, and in every pending rename stamp (#1816).
+6. It deletes the folded files and, when the version moved, runs `regen.ts` to restamp the corpus.
+
+**The fold PR's CI is the semantic-conflict net.** Two PRs can merge cleanly and still leave `main` red:
+both set `EXPECTED_ARTIFACTS` to the same new number, two regens do not add up to the regen of both,
+or two accepted baselines interact. The fold PR's run is the first run of every gate over `main` plus
+the whole batch, so fix such a break **in the fold PR**, before the version and the log move on.
+`main`'s own push CI also runs on every merge, so a red `main` shows up there first.
+
+What to check before you push the fold:
+
+- **`token-contract.ts --check` needs nothing from a fold.** The contract baseline records no engine
+  version (#1817), so moving `ENGINE_VERSION` leaves it clean. Run `--accept` only if a folded PR
+  really moved the contract, which that PR should already have done.
+- **Rename stamps need nothing by hand.** A PR that added a rename rule stamped it with the quoted
+  placeholder, and the fold fills it (#1816). The dry run lists each file and count under "rename
+  stamps". The fold refuses a pending stamp when no note is pending, since the version would not move.
+  RENAME STAMPS in `lint-emission-version.ts` fails the fold PR if a placeholder is left, is filled with
+  another version, or if the fold adds or changes a stamp itself.
+- **A refusal is information.** The fold refuses on a malformed file, a pending file no merge added,
+  or landing dates that run backwards. It writes nothing when it refuses. Fix the cause; do not
+  hand-write the fold's output, because `lint-emission-version.ts` and `lint-progress-order.ts` check
+  that output against git.
+
+### Converting an open PR from the old convention
+
+A PR opened before #1807 landed converts at its next merge of `main`, and that merge is its last
+conflict on these lines. Move your text into the new files **before** you resolve anything, because
+resolving takes `main`'s side of the lines your text is on.
+
+1. **On your branch, before merging:** copy your progress entry, unchanged, into
+   `docs/progress/pending/<slug>.md`. Copy your changelog prose out of `version.ts` into
+   `packages/engine/changes/<slug>.md` under `engine: minor` (or `patch`, if your change moved no
+   committed artifact). **One file per entry:** a branch that wrote two progress entries or two
+   changelog entries adds `<slug>.md` and `<slug>-2.md` in each directory. Where the entry or the
+   prose cites the number you had claimed, write `{{ENGINE_VERSION}}` instead, but never at the start
+   of a line: `{{ENGINE_VERSION}} — …` becomes a changelog heading once folded, and NOTE SHAPE refuses
+   it. Commit.
+2. `git merge origin/main`, then resolve:
+   - **`docs/00-progress.md`:** keep `main`'s side and drop your old entry from the top. It is in the
+     fragment now.
+   - **`version.ts`:** keep `main`'s `ENGINE_VERSION` line and `main`'s changelog, and drop your old
+     entry there. Keep any other edit of yours in the file, such as a `CONTRACT_VERSION` bump, its
+     changelog or a `DEPRECATIONS` row. Those are still per-PR.
+   - **Version stamps in `out/` and `components.ai.json`:** take either side. The next step rewrites
+     them.
+   - **`schema/token-contract.json`:** if you re-accepted it only to restamp `engineVersion`, keep
+     `main`'s copy. A real contract change keeps its bump and gets a fresh `--accept` after step 3.
+3. `npx tsx packages/engine/regen.ts`, commit, then `npm run verify`. Your `out/` now carries
+   `main`'s stamp with your real changes, and `lint-emission-version.ts` reports your note as the
+   bump. It fails by name if an edit to `ENGINE_VERSION` or its changelog survived the resolution.
 
 ---
 
@@ -94,7 +247,9 @@ a check that always has something to say is one nobody reads.
 
 Its `GATES` array is the **fifth** authored statement of what the gates are, beside this section,
 `CLAUDE.md` §4, the PR template and `ci.yml` — and `lint-doc-gates.ts` compares it against `ci.yml` in
-**both** directions, joined on each step's `- name:` verbatim. That is what makes `ci.yml` checkable
+**both** directions, joined on each step's `- name:` verbatim, and then compares each joined pair's
+command word for word (#1919): a flag dropped from one of the two files fails by name. A flag dropped
+from both does not, because the two copies then agree. That is what makes `ci.yml` checkable
 at all: this file's other three comparisons take `ci.yml` as ground truth, so before #789 a gate
 *missing* from `ci.yml` left four artifacts in perfect agreement and fired nothing. Measured, not
 assumed — deleting the `lint-paint.ts` step from `ci.yml` left the previous gate exiting 0. Its
@@ -115,6 +270,9 @@ npx tsx packages/engine/regen.ts --check            # no committed artifact has 
 npx tsx packages/engine/token-contract.ts --check   # the token-NAME contract hasn't broken (#464)
 npx tsx packages/engine/lint-skills.ts              # shipped skills still make true claims
 npx tsx packages/engine/lint-doc-gates.ts           # this checklist stays in sync with ci.yml (#613)
+                                                    # and names no RETIRED gate: a deleted gate's line
+                                                    # names no ci.yml step, so only RETIRED_GATES, a
+                                                    # literal register, sees it left behind (S8.3)
 npx tsx packages/engine/lint-layout-claims.ts       # the docs describe the repo that EXISTS (#670), both
                                                     # directions: every claimed path resolves — from the
                                                     # doc's own directory, against `git ls-files` — and
@@ -170,8 +328,13 @@ npx tsx packages/engine/lint-description-claims.ts   # every `N:1` / `~N:1` / `N
                                                     # step number was false on two ramps, and every
                                                     # dark / HC overlay carried light-mode sentences
 npx tsx packages/engine/lint-emission-version.ts
-                                                    # the emission moved only with
-                                                    # ENGINE_VERSION (#1141's miss). Reads GIT,
+                                                    # the emission moved only with a declared
+                                                    # engine bump — an added change note, or a
+                                                    # fold's forward version (#1807) — and only a
+                                                    # fold writes ENGINE_VERSION, its changelog, or
+                                                    # deletes a note; a fold's version is the exact
+                                                    # next one and keeps every note's prose
+                                                    # (#1141's miss). Reads GIT,
                                                     # because every in-tree copy of the version
                                                     # is STAMPED FROM the constant and therefore
                                                     # agrees with it at every commit — including
@@ -182,7 +345,8 @@ npx tsx packages/engine/lint-emission-version.ts
                                                     # oracle and an unresolvable one FAILS
 npx tsx packages/engine/lint-component-surface.ts
                                                     # the PROJECTED COMPONENT SURFACE moved only
-                                                    # with ENGINE_VERSION (#1252). The gate above
+                                                    # with a declared engine bump (#1252; since
+                                                    # #1807 an added change note). The gate above
                                                     # is scoped to `out/` and component payloads
                                                     # are not committed there — the plugin builds
                                                     # them from the defs — so a def change that
@@ -257,7 +421,11 @@ npx tsx packages/engine/lint-progress-order.ts       # docs/00-progress.md stays
                                                     # in 24 hours across two lanes is what filed this. EXPECTED = sorted(dates,
                                                     # descending), a real transformation of the parsed headings, never a restatement
                                                     # of the file (docs/34 shape 1). Fails on 0 matched headings rather than passing
-                                                    # over nothing (shape 9)
+                                                    # over nothing (shape 9). Since #1807 also: every pending fragment is one
+                                                    # well-formed entry, and every folded one is in the log at its landing day in
+                                                    # MERGE order (#1104's same-day order, which the date sort ties), read from
+                                                    # `git log --first-parent` with its own code, never fold.ts's;
+                                                    # and every PR but a fold ADDS a fragment
 npx tsx packages/engine/lint-payload-manifest.ts     # every emitted artifact is classified payload or ours
                                                     # (#674). The manifest is AUTHORED, never regenerated:
                                                     # built from a scan it would classify each new artifact
@@ -874,6 +1042,12 @@ npx tsx packages/engine/lint-hit-target.ts          # every interactive control 
                                                     # spacious regression) and both exceptions asserted
                                                     # actually below the floor (a lift fails by name).
                                                     # Every def is represented (measured or excluded).
+                                                    # Targets INSIDE a control too (#1741): each
+                                                    # INNER_TARGETS part (Tag's × slot) is measured at
+                                                    # the floor through its own `size` binding, and a
+                                                    # nested interactive control not listed there fails.
+                                                    # The def marks such a part `innerTarget`, and the
+                                                    # marks and the list are compared both ways.
 npx tsx packages/engine/lint-lever-sweep.ts         # no lever setting silently deletes a guaranteed
                                                     # path or a component binding (#957). Sweeps every
                                                     # toggle + enum option, ONE AT A TIME, over minimal +
@@ -975,6 +1149,17 @@ npm run test:smoke   -w @prism3/studio      # the headless DOM/interaction suite
                                             #   once (playwright is an apps/studio devDependency; the
                                             #   engine core stays dependency-free and buildless)
 npm run check:ignore -w @prism3/studio      # Vercel ignore list still matches the real bundle
+npm run test:chrome  -w @prism3/studio      # the new shell's chrome, measured as RENDERED (UI redesign
+                                            #   S1.2): host × theme × width over BOTH bundles, so run
+                                            #   it AFTER the web and plugin builds. Text 4.5:1, edges
+                                            #   and indicators 3:1, focus rings, 24px targets, the
+                                            #   fonts drawn (CDP, not document.fonts.check), no
+                                            #   shadows, no runtime inline values outside
+                                            #   [data-content], no horizontal scroll at 640, controls
+                                            #   represented by hook, the IA-2 layer order, and the
+                                            #   legacy frame map. Its colors are read from the render;
+                                            #   lint:contrast reads the declaration — partners, not
+                                            #   copies. Same one-off browser as test:smoke
 npm run lint:contrast -w @prism3/studio     # studio chrome clears its own contrast floors — STATIC, the
                                             #   token VALUES. Its complement is test:smoke above, which
                                             #   measures what RENDERS; neither subsumes the other (a
@@ -1005,8 +1190,16 @@ npm run test:start -w @prism3/plugin     # the plugin's START MOMENT (#1197): "+
                                         # that is the one a too-eager trigger breaks. Written
                                         # positively (the editor rendered, the brand chip names the
                                         # restored brand) so "nothing rendered at all" cannot pass as
-                                        # "hydrated". Needs the same one-off `npx playwright install
-                                        # chromium` as test:smoke
+                                        # "hydrated". ALSO the plugin bundle's RENDERED-LEGIBILITY pass
+                                        # (§8, #1041) — the only gate that measures dist/ui.html: the
+                                        # shell's resolved color-scheme must not name dark (the arm that
+                                        # fails if #1031's `light dark` opt-in returns), and every text
+                                        # node and form control at the bars test:smoke holds the web
+                                        # bundle to, in both emulated schemes × Figma's stubbed light
+                                        # and dark themes, on every rail page this host offers (the
+                                        # plugin-only Components page included) and the brand menu.
+                                        # Needs the same one-off `npx playwright install chromium` as
+                                        # test:smoke
 npm run test:roundtrip -w @prism3/plugin # THE COMPONENT ROUND-TRIP (#874): build every projected def,
                                         # read the result back out of the host, diff it against the
                                         # plan that built it. docs/14 §4 specified this on 2026-07-03
@@ -1291,7 +1484,7 @@ Keeping these separate is what stops the backlog from drifting out of sync with 
 
 | Kind of thing | Home |
 |---|---|
-| **What shipped, what was decided and why** | `docs/00-progress.md` — narrative history, most recent first, append-only. It records *what happened*; it is not a to-do list. |
+| **What shipped, what was decided and why** | `docs/00-progress.md` — narrative history, most recent first, append-only. It records *what happened*; it is not a to-do list. A PR adds its entry as `docs/progress/pending/<slug>.md`, and the fold moves it into the log (§2). |
 | **Actionable backlog** | **GitHub issues.** Anything someone could pick up belongs here, not in doc prose. |
 | **Ideas not yet scoped** | `docs/27-future-ideas.md` — discovery-level, deliberately not issues yet. An idea graduates to an issue when it's actionable. |
 | **Architecture, models, specs** | The numbered docs in `docs/`. Add a new numbered file only for a genuinely new topic area; append, don't renumber. |

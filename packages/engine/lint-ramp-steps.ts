@@ -62,6 +62,14 @@
  *                          curated subset. But it must be a DECISION, not an oversight — the posture
  *                          `lint-context-nodes` takes with `LEAF_OK`. A rung added to the engine and
  *                          forgotten in the studio fails here rather than quietly never rendering.
+ *   C  STALE OMISSION    — an `omits` entry for a rung the authored list now SHOWS. Arm B alone is
+ *                          one-directional (docs/34, the #387 shape): once the studio lists the rung,
+ *                          the declaration is a false record and the clean line's "every rung the
+ *                          studio omits is declared" is printed over it. Added with #1852, whose
+ *                          container rungs sit in `omits` until #1881 renders them.
+ *   D  UNKNOWN OMISSION  — an `omits` entry naming no rung of any exercised brand's ladder: a typo, or
+ *                          a rung the engine removed. It excuses nothing, so it is an entry nobody can
+ *                          check.
  *
  * ── WHAT THIS DOES NOT CHECK, stated rather than implied ───────────────────────────────────────
  *
@@ -106,8 +114,31 @@ import { nbTheme } from './nb-fixture.ts';
 import { readExampleBrand } from './emit-dtcg.ts';
 
 const HERE = import.meta.dirname;
-const STUDIO = join(HERE, '../../apps/studio/src/main.ts');
-const STUDIO_LABEL = 'apps/studio/src/main.ts';
+/** The studio sources the authored step arrays live in. `main.ts` held all of them until UI redesign S2,
+ *  which moved the alpha/opacity steps with the Palettes preview (`preview/palettes.ts`, `ALPHA_STEPS`), and
+ *  S6.1, which moved the typography group list with the Type writes (`state/type-input.ts`,
+ *  `TYPE_GROUP_ORDER` and `BULK_CATS`), and S6.3, which moved every Type control to the new page
+ *  (`domains/type.ts`: `WEIGHT_STEPS`, and the loops that iterate `TYPE_GROUP_ORDER` into `type.${g}`), and S9.1,
+ *  which moved the elevation ramp with its specimen (`preview/sections/shadow-ramp.ts`, `SHADOW_STEPS`). A file
+ *  is listed by path, so a constant that moves to an unlisted file reads as STALE below, by name.
+ *
+ *  S7 (Shape) RETIRED `RADIUS_STEPS`, this gate's first subject, and listed the files that replaced it. The radius
+ *  sizes are no longer an authored list: the Shape preview reads the ladder itself (`theme.dims.radius`, with the
+ *  mode's own values), so the container sizes (#1852, #1881) and the 1px hairline (#2053) render with nothing to keep
+ *  in step, and their four declared omissions went with the list (arm C would otherwise have flagged them STALE
+ *  once the constant was gone, and arm D UNKNOWN). Retiring the ENTRY is not retiring the coverage, by the docs/34
+ *  test: what the entry compared (an authored list against the ladder) has no authored side left, and the
+ *  property it stood for, "every rung the engine emits is drawn", is now held where it can be measured, as drawn:
+ *  `test:smoke`'s Shape section reads every `radius.*` the committed emission carries, per mode, against the rows
+ *  the preview draws. The new modules are listed here so a hand list revived in any of them (a `RADIUS_STEPS` in
+ *  `radius.ts`, say) is discovered and reads UNCLASSIFIED, by name, rather than slipping past a scan that never
+ *  read the file. */
+const STUDIO_FILES = ['../../apps/studio/src/main.ts', '../../apps/studio/src/preview/palettes.ts', '../../apps/studio/src/state/type-input.ts', '../../apps/studio/src/domains/type.ts',
+  '../../apps/studio/src/preview/sections/shadow-ramp.ts', '../../apps/studio/src/domains/shape.ts', '../../apps/studio/src/state/shape-input.ts', '../../apps/studio/src/preview/shape.ts',
+  '../../apps/studio/src/preview/sections/radius.ts', '../../apps/studio/src/preview/sections/control-heights.ts', '../../apps/studio/src/preview/sections/spacing.ts',
+  '../../apps/studio/src/preview/sections/shape-building-blocks.ts', '../../apps/studio/src/preview/sections/radius-sample.ts'];
+/** The files, for a failure message: every one of them, so the message names where the scan looked. */
+const STUDIO_LABEL = STUDIO_FILES.map((f) => f.replace('../../', '')).join(', ');
 
 /** One corpus member. `tree` is the brand's committed DTCG tree where one exists, else `null` — a
  *  synthetic lever probe has no emitted artifact, and a ramp whose oracle needs one says so by
@@ -154,13 +185,8 @@ type Ramp =
  * in the source that is missing from here, so a new authored ramp is a decision rather than an
  * omission. This is `lint-schema-classification`'s posture, for the same reason.
  */
+// `RADIUS_STEPS` stood first here until UI redesign S7 retired it with the hand list it checked; see STUDIO_FILES.
 const RAMPS: Ramp[] = [
-  {
-    name: 'RADIUS_STEPS',
-    label: 'the corner-radius ramp',
-    source: 'theme.dims.radius (packages/engine/scale.ts, radiusScale)',
-    ladder: (b) => b.theme.dims.radius.map((s) => s.name),
-  },
   {
     name: 'SHADOW_STEPS',
     label: 'the elevation ramp',
@@ -171,7 +197,8 @@ const RAMPS: Ramp[] = [
     },
   },
   {
-    name: 'ALPHA_STEPS_UI',
+    // `ALPHA_STEPS_UI` in `main.ts` until UI redesign S2; now the Palettes preview's `ALPHA_STEPS`.
+    name: 'ALPHA_STEPS',
     label: 'the alpha/opacity ramp',
     source: "the emitted tree's `opacity` node (tree.ts ALPHA_STEPS, module-private)",
     ladder: (b) => opacityKeys(b.tree),
@@ -194,11 +221,18 @@ const RAMPS: Ramp[] = [
   {
     name: 'BULK_CATS',
     exempt:
-      'not an authored list — it is `TYPE_GROUP_ORDER.filter((g) => g !== \'code\')`, computed inside a ' +
-      'function from a list this gate already checks. It has no content of its own to drift, so checking ' +
+      'not an authored list — it is `TYPE_GROUP_ORDER.filter((g) => g !== \'code\')`, computed from a ' +
+      'list this gate already checks. It has no content of its own to drift, so checking ' +
       'it would be asserting a filter of a checked list against the same ladder (docs/34 shape 2). The ' +
       'consumption anchor sees it because it IS iterated into a token path; that is the anchor working, ' +
       'and this is the human answer it asks for.',
+  },
+  {
+    name: 'PER_MODE_SIZE_GROUPS',
+    exempt:
+      'not an authored list — it is imported from the engine (`@prism3/engine/theme`, the keys of ' +
+      '`HEADING_SIZE_FLOOR`), so the studio holds no copy of its own to drift. The consumption anchor sees it ' +
+      'because Type\'s Individual sizes iterate it into `type.${g}.${v}` (UI redesign S6.3).',
   },
   {
     name: 'WEIGHT_STEPS',
@@ -289,7 +323,7 @@ const discoverByConsumption = (src: string): { name: string; prefix: string }[] 
   return [...out].map(([name, prefix]) => ({ name, prefix }));
 };
 
-const src = readFileSync(STUDIO, 'utf8');
+const src = STUDIO_FILES.map((f) => readFileSync(join(HERE, f), 'utf8')).join('\n');
 
 const corpus: Brand[] = [
   { id: 'nb', theme: nbTheme(), tree: readTree('nb') },
@@ -375,11 +409,13 @@ for (const ramp of RAMPS) {
 
   let exercised = 0;
   const undeclared = new Set<string>();
+  const everyRung = new Set<string>();
   for (const b of corpus) {
     const ladder = ramp.ladder(b);
     if (ladder === null) continue; // this brand cannot answer for this ramp — counted below, not hidden
     exercised++;
     const rungs = new Set(ladder);
+    for (const r of ladder) everyRung.add(r);
 
     // ARM A — an authored step the ladder does not have. This is #1177.
     for (const step of steps) {
@@ -413,6 +449,21 @@ for (const ramp of RAMPS) {
         `\`omits\` with the reason. A rung added to the engine and forgotten in the studio never renders.`,
     );
   }
+  // ARMS C + D — the omissions themselves, checked in the other direction (#1852 review).
+  for (const rung of Object.keys(ramp.omits ?? {})) {
+    if (steps.includes(rung)) {
+      failures.push(
+        `STALE OMISSION — \`${ramp.name}\`'s \`omits\` declares '${rung}', but ${STUDIO_LABEL}'s list now ` +
+          `shows it. The declaration no longer describes the studio: remove it from \`omits\`.`,
+      );
+    } else if (exercised && !everyRung.has(rung)) {
+      failures.push(
+        `UNKNOWN OMISSION — \`${ramp.name}\`'s \`omits\` declares '${rung}', which is not a rung of ` +
+          `${ramp.source} for any of the ${exercised} theme(s) compared. A typo, or a rung the engine ` +
+          `removed: it excuses nothing, so remove it or fix the name.`,
+      );
+    }
+  }
   const omitted = ramp.omits ? ` · ${Object.keys(ramp.omits).length} declared omission(s)` : '';
   lines.push(`  ${ramp.name.padEnd(15)} ${String(steps.length).padStart(2)} steps ⊆ ${ramp.source} — ${exercised} theme(s)${omitted}`);
 }
@@ -433,6 +484,6 @@ if (failures.length) {
 
 console.log(
   `\n  ✓ clean — every authored ramp step resolves to a real rung of its ladder, and every rung the ` +
-    `studio omits is declared. Note the limit: this proves the NAME exists in the ladder, not that the ` +
+    `studio omits is declared, and every declared omission is a real rung the studio does not show. Note the limit: this proves the NAME exists in the ladder, not that the ` +
     `map the ramp reads carries a value for it.`,
 );

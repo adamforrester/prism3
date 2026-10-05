@@ -332,8 +332,9 @@ export const themeCleanupScript = (input: BrandInput, opts: ThemeOpts = {}): Scr
 
 /* ── components ────────────────────────────────────────────────────────────────────────────────────── */
 
-/** Every def the plugin's picker offers — the studio's `COMPONENT_CATALOGUE` rule: not `notStandalone`,
- *  and the projector does not throw. */
+/** Every def the plugin's picker offers — the component catalog's rule (`catalogOf` in
+ *  `apps/studio/src/state/component-catalog.ts`, which the plugin provides through `providedCatalog`): not
+ *  `notStandalone`, and the projector does not throw. */
 export const buildableDefs = (input: BrandInput): ComponentDef[] =>
   componentDefs.filter((d) => {
     if (d.figmaProperties?.notStandalone) return false;

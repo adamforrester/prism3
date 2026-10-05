@@ -16,58 +16,6 @@
       }
     },
     {
-      "name": "wds/size/xs/padding-x",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Horizontal padding, label side — 8px",
-      "value": 8,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "wds/space/100"
-      }
-    },
-    {
-      "name": "wds/size/xs/padding-x-visual",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Horizontal padding, icon side — 6px (the icon's box adds space; label side is 8px)",
-      "value": 6,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "wds/space/075"
-      }
-    },
-    {
-      "name": "wds/size/xs/padding-y",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Vertical padding — 4px",
-      "value": 4,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "wds/space/050"
-      }
-    },
-    {
-      "name": "wds/size/xs/gap",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Gap between label and icon — 4px",
-      "value": 4,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "wds/space/050"
-      }
-    },
-    {
       "name": "wds/size/sm/height",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -78,58 +26,6 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "wds/core/dimension/36"
-      }
-    },
-    {
-      "name": "wds/size/sm/padding-x",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Horizontal padding, label side — 16px",
-      "value": 16,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "wds/space/200"
-      }
-    },
-    {
-      "name": "wds/size/sm/padding-x-visual",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Horizontal padding, icon side — 12px (the icon's box adds space; label side is 16px)",
-      "value": 12,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "wds/space/150"
-      }
-    },
-    {
-      "name": "wds/size/sm/padding-y",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Vertical padding — 6px",
-      "value": 6,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "wds/space/075"
-      }
-    },
-    {
-      "name": "wds/size/sm/gap",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Gap between label and icon — 8px",
-      "value": 8,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "wds/space/100"
       }
     },
     {
@@ -159,58 +55,6 @@
       }
     },
     {
-      "name": "wds/size/md/padding-x",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Horizontal padding, label side — 16px",
-      "value": 16,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "wds/space/200"
-      }
-    },
-    {
-      "name": "wds/size/md/padding-x-visual",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Horizontal padding, icon side — 12px (the icon's box adds space; label side is 16px)",
-      "value": 12,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "wds/space/150"
-      }
-    },
-    {
-      "name": "wds/size/md/padding-y",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Vertical padding — 8px",
-      "value": 8,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "wds/space/100"
-      }
-    },
-    {
-      "name": "wds/size/md/gap",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Gap between label and icon — 8px",
-      "value": 8,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "wds/space/100"
-      }
-    },
-    {
       "name": "wds/size/lg/height",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -224,58 +68,6 @@
       }
     },
     {
-      "name": "wds/size/lg/padding-x",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Horizontal padding, label side — 24px",
-      "value": 24,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "wds/space/300"
-      }
-    },
-    {
-      "name": "wds/size/lg/padding-x-visual",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Horizontal padding, icon side — 16px (the icon's box adds space; label side is 24px)",
-      "value": 16,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "wds/space/200"
-      }
-    },
-    {
-      "name": "wds/size/lg/padding-y",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Vertical padding — 8px",
-      "value": 8,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "wds/space/100"
-      }
-    },
-    {
-      "name": "wds/size/lg/gap",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Gap between label and icon — 12px",
-      "value": 12,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "wds/space/150"
-      }
-    },
-    {
       "name": "wds/size/xl/height",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -286,58 +78,6 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "wds/core/dimension/68"
-      }
-    },
-    {
-      "name": "wds/size/xl/padding-x",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Horizontal padding, label side — 24px",
-      "value": 24,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "wds/space/300"
-      }
-    },
-    {
-      "name": "wds/size/xl/padding-x-visual",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Horizontal padding, icon side — 16px (the icon's box adds space; label side is 24px)",
-      "value": 16,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "wds/space/200"
-      }
-    },
-    {
-      "name": "wds/size/xl/padding-y",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Vertical padding — 16px",
-      "value": 16,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "wds/space/200"
-      }
-    },
-    {
-      "name": "wds/size/xl/gap",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "GAP"
-      ],
-      "description": "Gap between label and icon — 12px",
-      "value": 12,
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "wds/space/150"
       }
     }
   ]

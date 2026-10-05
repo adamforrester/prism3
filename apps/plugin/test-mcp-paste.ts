@@ -30,6 +30,10 @@
  *     plugin's, and the merged ledger is what lets a second run's pre-flight pass (without it, it refuses)
  *   · pre-flight: a foreign same-named collection is reported and nothing is written
  *   · cleanup: removes what the run made, keeps a foreign collection and a designer's style, by name
+ *   · shim premise: a removed style, variable or collection is dead, and a collection's removal kills its
+ *     variables — without it the next arm is vacuous
+ *   · cleanup read-after-remove/<live|ledger> (#1790): a hand-built file, literal expectations — the step
+ *     reads nothing off an object it removed, and reports and leaves exactly what it should
  *   · pack: the transport encoding round-trips every example brand's plans
  *   · components: dependency order, every script compiles, the `loadAllPagesAsync` adapter
  *   · size: every script for every example brand is ≤ SCRIPT_CEILING
@@ -39,6 +43,7 @@ import type { BrandInput } from '@prism3/engine/theme';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import { runApplyTheme, themePlans } from './src/apply-theme';
 import { pack, unpack, componentFigma } from './src/mcp-steps';
+import { deadOnRemove } from './removal-shim';
 import type { StepReport, Ledger } from './src/mcp-steps';
 import {
   themeScripts, themeCleanupScript, componentScripts, componentCleanupScripts, number, buildOrder, compareReadback,
@@ -65,7 +70,10 @@ type Opts = { refuseSharedData?: boolean };
  *     wrapper reach the host and pass;
  *   · shared plugin data can be REFUSED (`refuseSharedData`), which is the ledger fallback's whole premise;
  *   · a font-family write re-resolves the text styles bound to it and throws on a face this RUN has not
- *     loaded (#680) — with `runScript` starting every script as a fresh run, which is what `use_figma` is.
+ *     loaded (#680) — with `runScript` starting every script as a fresh run, which is what `use_figma` is;
+ *   · a REMOVED style, variable or collection is DEAD (#1790, `removal-shim.ts`): any read or write of it
+ *     but `id` and `removed` throws the host's error, so a second `remove()` throws too, and removing a
+ *     collection kills its variables — including the objects an executor fetched before the removal.
  */
 class FileShim {
   collections: any[] = [];
@@ -95,14 +103,21 @@ class FileShim {
   createVariableCollection(name: string): any {
     const shim = this;
     const data = new Map<string, string>();
-    const c: any = {
+    const c: any = deadOnRemove({
       id: this.id('VariableCollectionId'), name, modes: [{ modeId: this.id('mode'), name: 'Mode 1' }], data,
       renameMode(modeId: string, n: string) { const m = this.modes.find((x: any) => x.modeId === modeId); if (!m) throw new Error('no mode'); m.name = n; },
       addMode(n: string) { const modeId = shim.id('mode'); this.modes.push({ modeId, name: n }); return modeId; },
       removeMode(modeId: string) { this.modes = this.modes.filter((m: any) => m.modeId !== modeId); },
-      remove() { shim.collections = shim.collections.filter((x) => x !== c); shim.vars = shim.vars.filter((v) => v.variableCollectionId !== c.id); },
+      // The cascade: the host removes a collection's variables with it, and a variable object an executor
+      // read before the removal is then as dead as the collection.
+      remove() {
+        c.removed = true;
+        for (const v of shim.vars) if (v.variableCollectionId === c.id) v.removed = true;
+        shim.collections = shim.collections.filter((x) => x !== c);
+        shim.vars = shim.vars.filter((v) => !v.removed);
+      },
       ...this.shared(data),
-    };
+    }, 'variable collection');
     this.minted.add(c);
     this.collections.push(c);
     return c;
@@ -110,7 +125,7 @@ class FileShim {
   createVariable(name: string, collection: any, resolvedType: VarType): any {
     if (!this.minted.has(collection)) throw new Error('in createVariable: Expected a VariableCollection node');
     const shim = this;
-    const v: any = {
+    const v: any = deadOnRemove({
       id: this.id('VariableID'), name, variableCollectionId: collection.id, resolvedType, scopes: ['ALL_SCOPES'], description: '',
       hiddenFromPublishing: false, valuesByMode: {} as Record<string, unknown>,
       setValueForMode(modeId: string, value: any) {
@@ -129,8 +144,8 @@ class FileShim {
         }
         this.valuesByMode[modeId] = value;
       },
-      remove() { shim.vars = shim.vars.filter((x) => x !== v); },
-    };
+      remove() { v.removed = true; shim.vars = shim.vars.filter((x) => x !== v); },
+    }, 'variable');
     this.vars.push(v);
     return v;
   }
@@ -142,12 +157,12 @@ class FileShim {
   async getLocalTextStylesAsync() { return [...this.styles.text]; }
   private style(kind: 'effect' | 'paint' | 'grid' | 'text'): any {
     const shim = this;
-    const s: any = {
+    const s: any = deadOnRemove({
       id: this.id(`S:${kind}`), name: '', description: '', boundVariables: {} as Record<string, unknown>,
       ...(kind === 'text' ? { fontName: { family: 'Inter', style: 'Regular' }, fontSize: 12 } : {}),
       setBoundVariable(field: string, v: any) { if (v) this.boundVariables[field] = { type: 'VARIABLE_ALIAS', id: v.id }; else delete this.boundVariables[field]; },
-      remove() { shim.styles[kind] = shim.styles[kind].filter((x) => x !== s); },
-    };
+      remove() { s.removed = true; shim.styles[kind] = shim.styles[kind].filter((x) => x !== s); },
+    }, 'style');
     this.styles[kind].push(s);
     return s;
   }
@@ -311,10 +326,11 @@ for (const [id, input] of PARITY) { await section(`parity/${id}`, async () => {
   const mode = target && Object.keys(target.valuesByMode).find((m) => typeof target.valuesByMode[m] === 'number');
   if (target && mode) target.valuesByMode[mode] = (target.valuesByMode[mode] as number) + 7;
   const goneStyle = B.styles.text[0];
+  const goneName: string | undefined = goneStyle?.name;   // read BEFORE remove(): a removed style is dead
   goneStyle?.remove();
   const dirty = compareReadback(p, await runAll(readbacks(input), B));
   ok(!!target && dirty.findings.some((x) => x.category === 'value' && x.name === target.name), `readback/${id}: a changed value is reported by name (${target?.name ?? 'no FLOAT variable to change'})`);
-  ok(!!goneStyle && dirty.findings.some((x) => x.category === 'missing text style' && x.name === goneStyle.name), `readback/${id}: a deleted text style is reported by name (${goneStyle?.name ?? 'no text style to delete'})`);
+  ok(!!goneName && dirty.findings.some((x) => x.category === 'missing text style' && x.name === goneName), `readback/${id}: a deleted text style is reported by name (${goneName ?? 'no text style to delete'})`);
 }); }
 
 /* ── re-theme: one brand over another ───────────────────────────────────────────────────────────────── */
@@ -429,6 +445,105 @@ await section('cleanup', async () => {
   ok(B.root.getSharedPluginData('prism3', 'brandInput') === '', `cleanup/${id}: the persisted brand is cleared`);
   ok(((r.kept as string[]) ?? []).some((k) => k.includes('designer tokens')), `cleanup/${id}: the result says what it kept and why`);
 });
+
+/* ── cleanup, read-after-remove (#1790) ─────────────────────────────────────────────────────────────── */
+// The shim premise first: without it every arm below is vacuous, since a shim that let a dead object be
+// read would pass the old read-after-remove ordering. Messages are the host's, typed here.
+await section('shim premise', async () => {
+  const caught = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const F = fresh();
+  const c = F.createVariableCollection('probe');
+  const v = F.createVariable('probe/v', c, 'FLOAT');
+  const s = F.createTextStyle();
+  s.name = 'probe/style';
+  s.remove();
+  ok(caught(() => s.name) === `in get_name: The style with id "${s.id}" does not exist`, `shim premise: reading .name off a removed style throws the host's error ("${caught(() => s.name)}")`);
+  ok(caught(() => s.remove()) === `in get_remove: The style with id "${s.id}" does not exist`, `shim premise: a second remove() of a style throws ("${caught(() => s.remove())}")`);
+  c.remove();
+  ok(caught(() => c.name) === `in get_name: The variable collection with id "${c.id}" does not exist`, `shim premise: reading .name off a removed collection throws the host's error ("${caught(() => c.name)}")`);
+  ok(caught(() => v.variableCollectionId) === `in get_variableCollectionId: The variable with id "${v.id}" does not exist`,
+    `shim premise: removing a collection kills its variables, so a variable fetched before it is dead ("${caught(() => v.variableCollectionId)}")`);
+  ok(F.vars.length === 0 && F.collections.length === 0 && F.styles.text.length === 0, 'shim premise: removed objects leave the file\'s lists');
+});
+
+// A hand-built file, every name and expectation typed here. Stamped collections are INTERLEAVED with kept
+// ones, so the loop reaches a kept collection AFTER a removed one and walks past the removed one's dead
+// variables; styles are removed in all four kinds, with survivors between them. Run twice — on a host with
+// shared plugin data (the live collections) and on one that refuses it (the ledger's wrappers, `real`).
+const RAR_REMOVED = [
+  'collection acme color (2 variables)',
+  'collection acme space (3 variables)',
+  'text style display/lg',
+  'text style body/sm',
+  'effect style shadow/sm',
+  'effect style shadow/md',
+  'paint style gradient/brand',
+  'grid style Grid / md',
+];
+const RAR_KEPT = [
+  'collection designer tokens: no Prism3 stamp',
+  "collection acme mixed: 1 variables outside 'acme/' (e.g. other/y)",
+  "text style body/md: description is not the engine's",
+  "grid style Grid / lg: description is not the engine's",
+];
+for (const mode of ['live', 'ledger'] as const) { await section(`cleanup read-after-remove/${mode}`, async () => {
+  const tag = `cleanup read-after-remove/${mode}`;
+  const B = fresh({ refuseSharedData: mode === 'ledger' });
+  const ledger: Ledger = { root: {}, collections: {} };
+  const coll = (name: string, stamped: boolean, varNames: string[]) => {
+    const c = B.createVariableCollection(name);
+    if (stamped) {
+      const owned = JSON.stringify([c.modes[0].modeId]);
+      if (mode === 'live') c.setSharedPluginData('prism3', 'modes:owned', owned);
+      else ledger.collections[c.id] = { name, data: { 'prism3/modes:owned': owned } };
+    }
+    for (const n of varNames) B.createVariable(n, c, 'FLOAT');
+  };
+  coll('acme color', true, ['acme/color/a', 'acme/color/b']);
+  coll('designer tokens', false, ['mine/one']);
+  coll('acme space', true, ['acme/space/1', 'acme/space/2', 'acme/space/3']);
+  coll('acme mixed', true, ['acme/x', 'other/y']);
+  const style = (make: () => any, name: string, description: string) => { const s = make(); s.name = name; s.description = description; };
+  style(() => B.createTextStyle(), 'display/lg', 'display lg');
+  style(() => B.createTextStyle(), 'display/xl', 'display xl');
+  style(() => B.createTextStyle(), 'body/md', 'hand-written by a designer');
+  style(() => B.createTextStyle(), 'body/sm', 'body sm');
+  style(() => B.createEffectStyle(), 'shadow/sm', 'Elevation 1 of 3 — light mode');
+  style(() => B.createEffectStyle(), 'shadow/custom', 'Elevation 2 of 3 — light mode');
+  style(() => B.createEffectStyle(), 'shadow/md', 'Elevation 2 of 3 — light mode');
+  style(() => B.createPaintStyle(), 'gradient/brand', 'gradient brand — linear 90°, 2 stops, oklch interpolation');
+  style(() => B.createGridStyle(), 'Grid / md', '12-column grid for md — 24px gutter, 32px margin. A static copy of the layout variables.');
+  style(() => B.createGridStyle(), 'Grid / lg', 'a designer\'s own grid');
+  if (mode === 'live') B.root.setSharedPluginData('prism3', 'brandInput', '{"stale":true}');
+  else ledger.root['prism3/brandInput'] = '{"stale":true}';
+
+  // The emitted cleanup script, bundle and call as `themeCleanupScript` assembles them, with its data line
+  // swapped for this file's literal plan (the same `pack` transport the generator uses).
+  const data = {
+    step: 0, of: 0, label: 'clean up theme', root: 'acme', ...(mode === 'ledger' ? { ledger } : {}),
+    styles: { text: ['display/lg', 'body/md', 'body/sm'], effect: ['shadow/sm', 'shadow/md'], paint: ['gradient/brand'], grid: ['Grid / md', 'Grid / lg'] },
+  };
+  const emitted = themeCleanupScript(PARITY[1][1]).js;
+  const js = emitted.replace(/^const __D=[^\n]*\n/, () => `const __D=${J(pack(data))};\n`);
+  ok(js !== emitted && js.startsWith(`const __D=${J(pack(data))};\n`), `${tag}: the emitted cleanup script carries this file's literal plan`);
+
+  let r: StepReport | undefined;
+  const thrown = await runScript(js, B).then((x) => { r = x; return ''; }, (e: Error) => e.message);
+  ok(thrown === '', `${tag}: a cleanup of 2 collections, 5 variables and 6 styles across 4 kinds completes without touching a removed object${thrown ? ` (threw "${thrown}")` : ''}`);
+  ok(r?.shared.mode === mode, `${tag}: the step ran in ${mode} mode (${r?.shared.mode ?? 'no result'})`);
+  ok(J(r?.removed) === J(RAR_REMOVED), `${tag}: it reports exactly the 2 collections and 6 styles it removed, by name (got ${J(r?.removed)})`);
+  ok(J(r?.kept) === J(RAR_KEPT), `${tag}: it reports exactly the 2 collections and 2 styles it kept, with the reason (got ${J(r?.kept)})`);
+  ok(J(B.collections.map((c) => c.name)) === J(['designer tokens', 'acme mixed']), `${tag}: the surviving collections are the unstamped one and the mixed one (${B.collections.map((c) => c.name).join(', ')})`);
+  ok(J(B.vars.map((v) => v.name)) === J(['mine/one', 'acme/x', 'other/y']), `${tag}: the surviving variables are the kept collections' 3, the removed collections' 5 went with them (${B.vars.map((v) => v.name).join(', ')})`);
+  ok(J((['text', 'effect', 'paint', 'grid'] as const).map((k) => B.styles[k].map((s) => s.name))) === J([['display/xl', 'body/md'], ['shadow/custom'], [], ['Grid / lg']]),
+    `${tag}: the surviving styles are the unplanned and designer-described ones, in every kind`);
+  if (mode === 'live') ok(B.root.getSharedPluginData('prism3', 'brandInput') === '', `${tag}: the persisted brand is cleared`);
+  else {
+    const out = r?.ledger as Ledger | undefined;
+    ok(!!out && out.root['prism3/brandInput'] === '' && J(Object.values(out.collections).map((c) => c.name)) === J(['acme mixed']),
+      `${tag}: the returned ledger clears the persisted brand and drops the removed collections' stamps (left: ${out ? Object.values(out.collections).map((c) => c.name).join(', ') : 'no ledger'})`);
+  }
+}); }
 
 /* ── pack ───────────────────────────────────────────────────────────────────────────────────────────── */
 for (const [id, input] of ALL_BRANDS) { await section(`pack/${id}`, async () => {

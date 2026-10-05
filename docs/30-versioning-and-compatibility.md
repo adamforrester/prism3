@@ -27,6 +27,37 @@ cry wolf on every brand tweak or stay silent through a rename. Separating them l
 `ENGINE_VERSION` starts at `0.1.0` and `CONTRACT_VERSION` at `1.0.0`. The inversion is intentional
 rather than a typo: **the code is young, the names are settled.**
 
+### Decided (2026-09-30, #1807): a PR declares the engine bump in a change note, and a fold assigns one version per batch
+
+Every PR used to write `ENGINE_VERSION`, the changelog above it, the stamp in every emitted tree and
+the top of `docs/00-progress.md`. So every open PR conflicted with every other, lanes reserved version
+numbers to avoid colliding, and `main`'s sequence landed with gaps and out of order.
+
+> **A PR never edits `ENGINE_VERSION`.** A PR that owes a bump adds a change note,
+> `packages/engine/changes/<slug>.md`, whose front matter declares the class
+> (`engine: patch|minor|major`) and whose body is the changelog prose. After a batch of merges,
+> `fold.ts` assigns **one version per fold**, at the highest class declared, writes the changelog,
+> deletes the notes and restamps the corpus.
+
+What this changes about the rule above, stated plainly, because the owner accepted it as a cost:
+
+- **A version names a fold, which may cover several PRs.** It names a state that existed on `main`
+  and was stamped into every emitted tree. One number per note would mint numbers no build ran as.
+- **`main` briefly runs new behavior under the previous number.** Between a merge and the next fold,
+  the MCP `serverInfo.version` and the studio's stamp read the older version. The plugin's staleness
+  stamp pairs the version with `planStamp`, and `planStamp` still moves, so a stale member is still
+  detected.
+- **Nothing about `CONTRACT_VERSION` moves.** A contract bump is rare and carries real baseline content,
+  so a PR still makes it, with its `--accept`, and two concurrent ones should meet.
+
+The two version gates keep their subjects and take the note as the bump: `lint-emission-version.ts`
+asks whether the diff adds a note declaring one, and `lint-component-surface.ts` asks the same of its
+arm B and its `--accept`. A fold still passes by the forward-only version rule (#1271). The first gate
+also holds the version line to one writer: a PR that is not a fold fails for editing the constant, its
+changelog or a pending note, and a fold fails unless its version is exactly the next one and every
+note it deleted appears under it. The semantic-conflict net is the fold PR's own CI, the first run of
+every gate over `main` plus the whole batch. How to fold: `CONTRIBUTING.md` §2.
+
 ### Decided (2026-09-02, #1252): the ENGINE surface is everything a consumer can observe — emitted trees AND the projected component surface; `out/` movement is one trigger, not the definition
 
 It had gone unstated and two merged PRs answered it opposite ways on the same shape.
@@ -281,6 +312,17 @@ materialized for the setting, binds something the setting doesn't emit. Its head
 not sweep: sliders, structured levers and combinations. `typography.weights`, the structured lever
 that removes paths, is covered by the `minimal-weights` and `minimal-weight-swap` corpus members instead (#1632, #1639, above).
 
+### The spacing tokens leave the size tier (14.0.0, the spacing model)
+
+The owner's spacing model (`docs/28` §5.4, 2026-09-29) removes the shared size scale's spacing:
+`size.{xs,sm,md,lg,xl}.{padding-x,padding-x-visual,padding-y,gap}`, 20 guaranteed paths, from DTCG, the
+Figma `size` collection and every other emission. `size.*` keeps the heights and `size.md.min-height`. A
+guaranteed removal with no replacement path, so MAJOR: `CONTRACT_VERSION` 13.2.0 → 14.0.0, accepted with
+`token-contract.ts --accept` after the bump. The owner confirmed there are zero consumers. No
+`DEPRECATIONS` entry: there is no one path to point at. The migration is to bind the `space.*` step the
+component's spec names (a medium Button: `space.200` on the label side, `space.150` on the icon side,
+`space.100` between), moved one step for a compact or spacious brand.
+
 ## Change classification
 
 | change to the guaranteed set | level | why |
@@ -319,6 +361,18 @@ npx tsx packages/engine/token-contract.ts --accept    # rewrite the baseline (re
 than remembered, and an under-bump (minor for a breaking change) is rejected just as firmly as no
 bump at all.
 
+Both modes also compare the **numbers**, not only the paths (#1768). `CONTRACT_VERSION` must never sit
+below the baseline's `contractVersion`: the baseline only records a version an `--accept` saw, so a
+lower constant is a revert, a merge resolution or a hand edit, and a consumer pinned to the higher
+number would read a lower one for the same surface. `--check` fails that by name and `--accept`
+refuses it. The same arm fails a constant raised **above** the baseline when no guaranteed path moved:
+a bump with nothing to record, which `--accept` already refused while `--check` reported "unchanged".
+
+**An over-bump over a real change is not flagged.** A MAJOR for an added path, or a jump of two
+majors for one removal, passes: the rule above is "at least the increment the diff requires", and an
+over-bump costs a consumer a needless review, never a silent miss. Tightening that to "exactly" is a
+policy change for this document, not a gate edit.
+
 **The baseline must never become a `regen.ts` artifact.** `regen` rewrites every generated file and
 `regen --check` proves the committed copies match. Run that way, deleting a token would rewrite the
 baseline to agree with the deletion, and *both* gates would go green. #281's lesson was **no gate
@@ -328,6 +382,14 @@ reads the committed artifact**; this is the next one along:
 > second copy of the output.**
 
 `--accept` is therefore a separate, deliberate act, and the only thing that ever writes that file.
+
+**The baseline records no `ENGINE_VERSION` (#1807).** It used to carry an `engineVersion` field,
+stamped from the constant. The field recorded nothing the contract promises, and its only effect was
+to fail `--check` with "informational fields only" on every engine bump. So every bumping PR ran an
+`--accept` that recorded no contract change, and rewrote the line next to `contractVersion`, where any
+two such PRs conflicted. An engine bump now leaves the baseline alone and needs no `--accept`.
+`--check` refuses a baseline that still carries the field, by name, and `--accept` writes it without
+one. `lint-component-surface.ts` keeps its own baseline free of the field for the same reason.
 
 One consequence worth knowing about: the US-English gate imports its scope from `regen.ts`, so
 keeping this artifact out of regen also kept it out of that gate. It is named explicitly in

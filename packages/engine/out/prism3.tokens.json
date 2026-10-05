@@ -6149,9 +6149,9 @@
               "min": 4.5,
               "modes": {
                 "dark": {
-                  "$value": "{pds3.core.palette.black}",
-                  "aliasOf": "pds3.core.palette.black",
-                  "contrast": 4.6,
+                  "$value": "{pds3.core.palette.white}",
+                  "aliasOf": "pds3.core.palette.white",
+                  "contrast": 4.57,
                   "against": "foreground.success",
                   "min": 4.5
                 },
@@ -6243,9 +6243,9 @@
               "min": 4.5,
               "modes": {
                 "dark": {
-                  "$value": "{pds3.core.palette.black}",
-                  "aliasOf": "pds3.core.palette.black",
-                  "contrast": 4.6,
+                  "$value": "{pds3.core.palette.white}",
+                  "aliasOf": "pds3.core.palette.white",
+                  "contrast": 4.57,
                   "against": "foreground.danger",
                   "min": 4.5
                 },
@@ -7268,9 +7268,9 @@
               "min": 4.5,
               "modes": {
                 "dark": {
-                  "$value": "{pds3.core.palette.black}",
-                  "aliasOf": "pds3.core.palette.black",
-                  "contrast": 4.6,
+                  "$value": "{pds3.core.palette.white}",
+                  "aliasOf": "pds3.core.palette.white",
+                  "contrast": 4.57,
                   "against": "foreground.success",
                   "min": 4.5
                 },
@@ -7362,9 +7362,9 @@
               "min": 4.5,
               "modes": {
                 "dark": {
-                  "$value": "{pds3.core.palette.black}",
-                  "aliasOf": "pds3.core.palette.black",
-                  "contrast": 4.6,
+                  "$value": "{pds3.core.palette.white}",
+                  "aliasOf": "pds3.core.palette.white",
+                  "contrast": 4.57,
                   "against": "foreground.danger",
                   "min": 4.5
                 },
@@ -7707,9 +7707,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{pds3.core.palette.primary.550}",
-                      "aliasOf": "pds3.core.palette.primary.550",
-                      "contrast": 3.03,
+                      "$value": "{pds3.core.palette.primary.500}",
+                      "aliasOf": "pds3.core.palette.primary.500",
+                      "contrast": 3.91,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -7756,9 +7756,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{pds3.core.palette.primary.450}",
-                      "aliasOf": "pds3.core.palette.primary.450",
-                      "contrast": 4.65,
+                      "$value": "{pds3.core.palette.primary.400}",
+                      "aliasOf": "pds3.core.palette.primary.400",
+                      "contrast": 5.51,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -7805,9 +7805,9 @@
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{pds3.core.palette.primary.350}",
-                      "aliasOf": "pds3.core.palette.primary.350",
-                      "contrast": 6.46,
+                      "$value": "{pds3.core.palette.primary.300}",
+                      "aliasOf": "pds3.core.palette.primary.300",
+                      "contrast": 7.58,
                       "against": "neutral.900",
                       "min": 3
                     },
@@ -7843,35 +7843,35 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{pds3.core.palette.primary.700}",
+              "$value": "{pds3.core.palette.primary.600}",
               "$description": "primary interactive fill — focused, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "pds3.core.palette.primary.700",
-                  "contrast": 9.2,
+                  "aliasOf": "pds3.core.palette.primary.600",
+                  "contrast": 6.44,
                   "against": "neutral.050",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{pds3.core.palette.primary.450}",
-                      "aliasOf": "pds3.core.palette.primary.450",
-                      "contrast": 4.65,
+                      "$value": "{pds3.core.palette.primary.500}",
+                      "aliasOf": "pds3.core.palette.primary.500",
+                      "contrast": 3.91,
                       "against": "neutral.900",
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{pds3.core.palette.primary.750}",
-                      "aliasOf": "pds3.core.palette.primary.750",
-                      "contrast": 10.79,
+                      "$value": "{pds3.core.palette.primary.650}",
+                      "aliasOf": "pds3.core.palette.primary.650",
+                      "contrast": 7.72,
                       "against": "neutral.050",
                       "min": 7,
                       "description": "primary interactive fill — focused, clears 7:1 on background.secondary"
                     },
                     "hc-dark": {
-                      "$value": "{pds3.core.palette.primary.200}",
-                      "aliasOf": "pds3.core.palette.primary.200",
-                      "contrast": 10.06,
+                      "$value": "{pds3.core.palette.primary.300}",
+                      "aliasOf": "pds3.core.palette.primary.300",
+                      "contrast": 7.58,
                       "against": "neutral.900",
                       "min": 7,
                       "description": "primary interactive fill — focused, clears 7:1 on background.secondary"
@@ -7892,35 +7892,35 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{pds3.core.palette.primary.800}",
+              "$value": "{pds3.core.palette.primary.600}",
               "$description": "primary interactive fill — selected, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "pds3.core.palette.primary.800",
-                  "contrast": 12.42,
+                  "aliasOf": "pds3.core.palette.primary.600",
+                  "contrast": 6.44,
                   "against": "neutral.050",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{pds3.core.palette.primary.350}",
-                      "aliasOf": "pds3.core.palette.primary.350",
-                      "contrast": 6.46,
+                      "$value": "{pds3.core.palette.primary.500}",
+                      "aliasOf": "pds3.core.palette.primary.500",
+                      "contrast": 3.91,
                       "against": "neutral.900",
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{pds3.core.palette.primary.850}",
-                      "aliasOf": "pds3.core.palette.primary.850",
-                      "contrast": 13.92,
+                      "$value": "{pds3.core.palette.primary.650}",
+                      "aliasOf": "pds3.core.palette.primary.650",
+                      "contrast": 7.72,
                       "against": "neutral.050",
                       "min": 7,
                       "description": "primary interactive fill — selected, clears 7:1 on background.secondary"
                     },
                     "hc-dark": {
-                      "$value": "{pds3.core.palette.primary.100}",
-                      "aliasOf": "pds3.core.palette.primary.100",
-                      "contrast": 13.04,
+                      "$value": "{pds3.core.palette.primary.300}",
+                      "aliasOf": "pds3.core.palette.primary.300",
+                      "contrast": 7.58,
                       "against": "neutral.900",
                       "min": 7,
                       "description": "primary interactive fill — selected, clears 7:1 on background.secondary"
@@ -7953,9 +7953,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{pds3.core.palette.neutral.025}",
-                    "aliasOf": "pds3.core.palette.neutral.025",
-                    "contrast": 5.53,
+                    "$value": "{pds3.core.palette.white}",
+                    "aliasOf": "pds3.core.palette.white",
+                    "contrast": 4.58,
                     "against": "interactive.primary.fill.rest",
                     "min": 4.5
                   },
@@ -8582,6 +8582,71 @@
                 }
               }
             }
+          },
+          "subtle-fill": {
+            "selected": {
+              "$type": "color",
+              "$value": "#1e1eff4d",
+              "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the selected background of a selectable control or an outline/text control)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "tint": {
+                    "color": "{pds3.color.interactive.primary.fill.rest}",
+                    "opacity": "{pds3.opacity.30}"
+                  },
+                  "contrast": 8.41,
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "interactive.primary.text.pressed",
+                  "modes": {
+                    "dark": {
+                      "$value": "#3d68fc4d",
+                      "tint": {
+                        "color": "{pds3.color.interactive.primary.fill.rest}",
+                        "opacity": "{pds3.opacity.30}"
+                      },
+                      "contrast": 6.87,
+                      "against": "background.primary",
+                      "contrastModel": "ink-on-composite",
+                      "legibleFor": "interactive.primary.text.pressed"
+                    },
+                    "hc-light": {
+                      "$value": "#1914e24d",
+                      "tint": {
+                        "color": "{pds3.color.interactive.primary.fill.rest}",
+                        "opacity": "{pds3.opacity.30}"
+                      },
+                      "contrast": 8.13,
+                      "against": "background.primary",
+                      "contrastModel": "ink-on-composite",
+                      "legibleFor": "interactive.primary.text.pressed"
+                    },
+                    "hc-dark": {
+                      "$value": "#86a7f74d",
+                      "tint": {
+                        "color": "{pds3.color.interactive.primary.fill.rest}",
+                        "opacity": "{pds3.opacity.30}"
+                      },
+                      "contrast": 8.17,
+                      "against": "background.primary",
+                      "contrastModel": "ink-on-composite",
+                      "legibleFor": "interactive.primary.text.pressed"
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable: in each mode it aliases the fill variable in `tint.color` at the opacity variable in `tint.opacity`"
+                  }
+                }
+              }
+            }
           }
         },
         "destructive": {
@@ -8735,35 +8800,35 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{pds3.core.palette.danger.600}",
+              "$value": "{pds3.core.palette.danger.500}",
               "$description": "destructive interactive fill — focused, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "pds3.core.palette.danger.600",
-                  "contrast": 5.59,
+                  "aliasOf": "pds3.core.palette.danger.500",
+                  "contrast": 3.76,
                   "against": "neutral.050",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{pds3.core.palette.danger.400}",
-                      "aliasOf": "pds3.core.palette.danger.400",
-                      "contrast": 5.41,
+                      "$value": "{pds3.core.palette.danger.500}",
+                      "aliasOf": "pds3.core.palette.danger.500",
+                      "contrast": 3.92,
                       "against": "neutral.900",
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{pds3.core.palette.danger.800}",
-                      "aliasOf": "pds3.core.palette.danger.800",
-                      "contrast": 11.67,
+                      "$value": "{pds3.core.palette.danger.700}",
+                      "aliasOf": "pds3.core.palette.danger.700",
+                      "contrast": 8.24,
                       "against": "neutral.050",
                       "min": 7,
                       "description": "destructive interactive fill — focused, clears 7:1 on background.secondary"
                     },
                     "hc-dark": {
-                      "$value": "{pds3.core.palette.danger.200}",
-                      "aliasOf": "pds3.core.palette.danger.200",
-                      "contrast": 9.95,
+                      "$value": "{pds3.core.palette.danger.300}",
+                      "aliasOf": "pds3.core.palette.danger.300",
+                      "contrast": 7.46,
                       "against": "neutral.900",
                       "min": 7,
                       "description": "destructive interactive fill — focused, clears 7:1 on background.secondary"
@@ -8784,35 +8849,35 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{pds3.core.palette.danger.700}",
+              "$value": "{pds3.core.palette.danger.500}",
               "$description": "destructive interactive fill — selected, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "pds3.core.palette.danger.700",
-                  "contrast": 8.24,
+                  "aliasOf": "pds3.core.palette.danger.500",
+                  "contrast": 3.76,
                   "against": "neutral.050",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{pds3.core.palette.danger.300}",
-                      "aliasOf": "pds3.core.palette.danger.300",
-                      "contrast": 7.46,
+                      "$value": "{pds3.core.palette.danger.500}",
+                      "aliasOf": "pds3.core.palette.danger.500",
+                      "contrast": 3.92,
                       "against": "neutral.900",
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{pds3.core.palette.danger.900}",
-                      "aliasOf": "pds3.core.palette.danger.900",
-                      "contrast": 15.01,
+                      "$value": "{pds3.core.palette.danger.700}",
+                      "aliasOf": "pds3.core.palette.danger.700",
+                      "contrast": 8.24,
                       "against": "neutral.050",
                       "min": 7,
                       "description": "destructive interactive fill — selected, clears 7:1 on background.secondary"
                     },
                     "hc-dark": {
-                      "$value": "{pds3.core.palette.danger.100}",
-                      "aliasOf": "pds3.core.palette.danger.100",
-                      "contrast": 13.04,
+                      "$value": "{pds3.core.palette.danger.300}",
+                      "aliasOf": "pds3.core.palette.danger.300",
+                      "contrast": 7.46,
                       "against": "neutral.900",
                       "min": 7,
                       "description": "destructive interactive fill — selected, clears 7:1 on background.secondary"
@@ -8845,9 +8910,9 @@
                 "min": 4.5,
                 "modes": {
                   "dark": {
-                    "$value": "{pds3.core.palette.black}",
-                    "aliasOf": "pds3.core.palette.black",
-                    "contrast": 4.6,
+                    "$value": "{pds3.core.palette.white}",
+                    "aliasOf": "pds3.core.palette.white",
+                    "contrast": 4.57,
                     "against": "interactive.destructive.fill.rest",
                     "min": 4.5
                   },
@@ -9609,31 +9674,31 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{pds3.core.palette.neutral.250}",
+              "$value": "{pds3.core.palette.neutral.150}",
               "$description": "neutral interactive fill — focused, clears 0:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "pds3.core.palette.neutral.250",
-                  "contrast": 1.71,
+                  "aliasOf": "pds3.core.palette.neutral.150",
+                  "contrast": 1.3,
                   "against": "neutral.050",
                   "modes": {
                     "dark": {
-                      "$value": "{pds3.core.palette.neutral.750}",
-                      "aliasOf": "pds3.core.palette.neutral.750",
-                      "contrast": 1.53,
+                      "$value": "{pds3.core.palette.neutral.850}",
+                      "aliasOf": "pds3.core.palette.neutral.850",
+                      "contrast": 1.11,
                       "against": "neutral.900"
                     },
                     "hc-light": {
-                      "$value": "{pds3.core.palette.neutral.250}",
-                      "aliasOf": "pds3.core.palette.neutral.250",
-                      "contrast": 1.71,
+                      "$value": "{pds3.core.palette.neutral.150}",
+                      "aliasOf": "pds3.core.palette.neutral.150",
+                      "contrast": 1.3,
                       "against": "neutral.050"
                     },
                     "hc-dark": {
-                      "$value": "{pds3.core.palette.neutral.750}",
-                      "aliasOf": "pds3.core.palette.neutral.750",
-                      "contrast": 1.53,
+                      "$value": "{pds3.core.palette.neutral.850}",
+                      "aliasOf": "pds3.core.palette.neutral.850",
+                      "contrast": 1.11,
                       "against": "neutral.900"
                     }
                   },
@@ -9652,31 +9717,31 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{pds3.core.palette.neutral.350}",
+              "$value": "{pds3.core.palette.neutral.150}",
               "$description": "neutral interactive fill — selected, clears 0:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "pds3.core.palette.neutral.350",
-                  "contrast": 2.32,
+                  "aliasOf": "pds3.core.palette.neutral.150",
+                  "contrast": 1.3,
                   "against": "neutral.050",
                   "modes": {
                     "dark": {
-                      "$value": "{pds3.core.palette.neutral.650}",
-                      "aliasOf": "pds3.core.palette.neutral.650",
-                      "contrast": 2.21,
+                      "$value": "{pds3.core.palette.neutral.850}",
+                      "aliasOf": "pds3.core.palette.neutral.850",
+                      "contrast": 1.11,
                       "against": "neutral.900"
                     },
                     "hc-light": {
-                      "$value": "{pds3.core.palette.neutral.350}",
-                      "aliasOf": "pds3.core.palette.neutral.350",
-                      "contrast": 2.32,
+                      "$value": "{pds3.core.palette.neutral.150}",
+                      "aliasOf": "pds3.core.palette.neutral.150",
+                      "contrast": 1.3,
                       "against": "neutral.050"
                     },
                     "hc-dark": {
-                      "$value": "{pds3.core.palette.neutral.650}",
-                      "aliasOf": "pds3.core.palette.neutral.650",
-                      "contrast": 2.21,
+                      "$value": "{pds3.core.palette.neutral.850}",
+                      "aliasOf": "pds3.core.palette.neutral.850",
+                      "contrast": 1.11,
                       "against": "neutral.900"
                     }
                   },
@@ -10762,35 +10827,35 @@
         },
         "success": {
           "$type": "color",
-          "$value": "{pds3.core.palette.success.500}",
+          "$value": "{pds3.core.palette.success.550}",
           "$description": "success border — SC 1.4.11 non-text contrast, 3:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "pds3.core.palette.success.500",
-              "contrast": 4.57,
+              "aliasOf": "pds3.core.palette.success.550",
+              "contrast": 5.51,
               "against": "background.primary",
               "min": 3,
               "modes": {
                 "dark": {
-                  "$value": "{pds3.core.palette.success.500}",
-                  "aliasOf": "pds3.core.palette.success.500",
-                  "contrast": 4.25,
+                  "$value": "{pds3.core.palette.success.450}",
+                  "aliasOf": "pds3.core.palette.success.450",
+                  "contrast": 5.03,
                   "against": "background.primary",
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{pds3.core.palette.success.500}",
-                  "aliasOf": "pds3.core.palette.success.500",
-                  "contrast": 4.57,
+                  "$value": "{pds3.core.palette.success.600}",
+                  "aliasOf": "pds3.core.palette.success.600",
+                  "contrast": 6.7,
                   "against": "background.primary",
                   "min": 4.5,
                   "description": "success border — SC 1.4.11 non-text contrast, 4.5:1"
                 },
                 "hc-dark": {
-                  "$value": "{pds3.core.palette.success.500}",
-                  "aliasOf": "pds3.core.palette.success.500",
-                  "contrast": 4.6,
+                  "$value": "{pds3.core.palette.success.450}",
+                  "aliasOf": "pds3.core.palette.success.450",
+                  "contrast": 5.44,
                   "against": "background.primary",
                   "min": 4.5,
                   "description": "success border — SC 1.4.11 non-text contrast, 4.5:1"
@@ -10811,35 +10876,35 @@
         },
         "warning": {
           "$type": "color",
-          "$value": "{pds3.core.palette.warning.500}",
+          "$value": "{pds3.core.palette.warning.550}",
           "$description": "warning border — SC 1.4.11 non-text contrast, 3:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "pds3.core.palette.warning.500",
-              "contrast": 4.54,
+              "aliasOf": "pds3.core.palette.warning.550",
+              "contrast": 5.49,
               "against": "background.primary",
               "min": 3,
               "modes": {
                 "dark": {
-                  "$value": "{pds3.core.palette.warning.500}",
-                  "aliasOf": "pds3.core.palette.warning.500",
-                  "contrast": 4.27,
+                  "$value": "{pds3.core.palette.warning.450}",
+                  "aliasOf": "pds3.core.palette.warning.450",
+                  "contrast": 5.01,
                   "against": "background.primary",
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{pds3.core.palette.warning.500}",
-                  "aliasOf": "pds3.core.palette.warning.500",
-                  "contrast": 4.54,
+                  "$value": "{pds3.core.palette.warning.600}",
+                  "aliasOf": "pds3.core.palette.warning.600",
+                  "contrast": 6.72,
                   "against": "background.primary",
                   "min": 4.5,
                   "description": "warning border — SC 1.4.11 non-text contrast, 4.5:1"
                 },
                 "hc-dark": {
-                  "$value": "{pds3.core.palette.warning.500}",
-                  "aliasOf": "pds3.core.palette.warning.500",
-                  "contrast": 4.62,
+                  "$value": "{pds3.core.palette.warning.400}",
+                  "aliasOf": "pds3.core.palette.warning.400",
+                  "contrast": 6.36,
                   "against": "background.primary",
                   "min": 4.5,
                   "description": "warning border — SC 1.4.11 non-text contrast, 4.5:1"
@@ -10860,35 +10925,35 @@
         },
         "danger": {
           "$type": "color",
-          "$value": "{pds3.core.palette.danger.500}",
+          "$value": "{pds3.core.palette.danger.550}",
           "$description": "danger border — SC 1.4.11 non-text contrast, 3:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "pds3.core.palette.danger.500",
-              "contrast": 4.57,
+              "aliasOf": "pds3.core.palette.danger.550",
+              "contrast": 5.55,
               "against": "background.primary",
               "min": 3,
               "modes": {
                 "dark": {
-                  "$value": "{pds3.core.palette.danger.500}",
-                  "aliasOf": "pds3.core.palette.danger.500",
-                  "contrast": 4.25,
+                  "$value": "{pds3.core.palette.danger.450}",
+                  "aliasOf": "pds3.core.palette.danger.450",
+                  "contrast": 4.97,
                   "against": "background.primary",
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{pds3.core.palette.danger.500}",
-                  "aliasOf": "pds3.core.palette.danger.500",
-                  "contrast": 4.57,
+                  "$value": "{pds3.core.palette.danger.600}",
+                  "aliasOf": "pds3.core.palette.danger.600",
+                  "contrast": 6.78,
                   "against": "background.primary",
                   "min": 4.5,
                   "description": "danger border — SC 1.4.11 non-text contrast, 4.5:1"
                 },
                 "hc-dark": {
-                  "$value": "{pds3.core.palette.danger.500}",
-                  "aliasOf": "pds3.core.palette.danger.500",
-                  "contrast": 4.6,
+                  "$value": "{pds3.core.palette.danger.400}",
+                  "aliasOf": "pds3.core.palette.danger.400",
+                  "contrast": 6.34,
                   "against": "background.primary",
                   "min": 4.5,
                   "description": "danger border — SC 1.4.11 non-text contrast, 4.5:1"
@@ -12664,7 +12729,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{pds3.core.palette.neutral.100}",
-                "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.3:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+                "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -12678,24 +12743,21 @@
                         "aliasOf": "pds3.core.palette.neutral.900",
                         "contrast": 16.72,
                         "against": "inverse.background.primary",
-                        "min": 3,
-                        "description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.9:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more)."
+                        "min": 3
                       },
                       "hc-light": {
                         "$value": "{pds3.core.palette.neutral.100}",
                         "aliasOf": "pds3.core.palette.neutral.100",
                         "contrast": 15.18,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       },
                       "hc-dark": {
                         "$value": "{pds3.core.palette.neutral.900}",
                         "aliasOf": "pds3.core.palette.neutral.900",
                         "contrast": 17.92,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       }
                     },
                     "figma": {
@@ -12714,7 +12776,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{pds3.core.palette.neutral.200}",
-                "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 2.5:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+                "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -12728,24 +12790,21 @@
                         "aliasOf": "pds3.core.palette.neutral.800",
                         "contrast": 13.01,
                         "against": "inverse.background.primary",
-                        "min": 3,
-                        "description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 3:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more)."
+                        "min": 3
                       },
                       "hc-light": {
                         "$value": "{pds3.core.palette.neutral.200}",
                         "aliasOf": "pds3.core.palette.neutral.200",
                         "contrast": 11.65,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       },
                       "hc-dark": {
                         "$value": "{pds3.core.palette.neutral.800}",
                         "aliasOf": "pds3.core.palette.neutral.800",
                         "contrast": 13.94,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       }
                     },
                     "figma": {
@@ -12764,7 +12823,7 @@
               "focused": {
                 "$type": "color",
                 "$value": "{pds3.core.palette.neutral.100}",
-                "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill. The label on it measures about 3.3:1, below its 4.5:1 floor.",
+                "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -12778,24 +12837,21 @@
                         "aliasOf": "pds3.core.palette.neutral.900",
                         "contrast": 16.72,
                         "against": "inverse.background.primary",
-                        "min": 3,
-                        "description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill. The label on it measures about 3.9:1, below its 4.5:1 floor."
+                        "min": 3
                       },
                       "hc-light": {
                         "$value": "{pds3.core.palette.neutral.100}",
                         "aliasOf": "pds3.core.palette.neutral.100",
                         "contrast": 15.18,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       },
                       "hc-dark": {
                         "$value": "{pds3.core.palette.neutral.900}",
                         "aliasOf": "pds3.core.palette.neutral.900",
                         "contrast": 17.92,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       }
                     },
                     "figma": {
@@ -12814,7 +12870,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{pds3.core.palette.neutral.200}",
-                "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill. The label on it measures about 2.5:1, below its 4.5:1 floor.",
+                "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -12828,24 +12884,21 @@
                         "aliasOf": "pds3.core.palette.neutral.800",
                         "contrast": 13.01,
                         "against": "inverse.background.primary",
-                        "min": 3,
-                        "description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill. The label on it measures about 3:1, below its 4.5:1 floor."
+                        "min": 3
                       },
                       "hc-light": {
                         "$value": "{pds3.core.palette.neutral.200}",
                         "aliasOf": "pds3.core.palette.neutral.200",
                         "contrast": 11.65,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       },
                       "hc-dark": {
                         "$value": "{pds3.core.palette.neutral.800}",
                         "aliasOf": "pds3.core.palette.neutral.800",
                         "contrast": 13.94,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       }
                     },
                     "figma": {
@@ -12864,20 +12917,20 @@
             },
             "on-fill": {
               "$type": "color",
-              "$value": "{pds3.core.palette.primary.500}",
-              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes",
+              "$value": "{pds3.core.palette.primary.650}",
+              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "pds3.core.palette.primary.500",
-                  "contrast": 4.58,
+                  "aliasOf": "pds3.core.palette.primary.650",
+                  "contrast": 9.38,
                   "against": "inverse.interactive.primary.fill.rest",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{pds3.core.palette.primary.500}",
-                      "aliasOf": "pds3.core.palette.primary.500",
-                      "contrast": 4.58,
+                      "$value": "{pds3.core.palette.primary.350}",
+                      "aliasOf": "pds3.core.palette.primary.350",
+                      "contrast": 7.58,
                       "against": "inverse.interactive.primary.fill.rest",
                       "min": 4.5
                     },
@@ -13558,7 +13611,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{pds3.core.palette.neutral.100}",
-                "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.3:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+                "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -13572,24 +13625,21 @@
                         "aliasOf": "pds3.core.palette.neutral.900",
                         "contrast": 16.72,
                         "against": "inverse.background.primary",
-                        "min": 3,
-                        "description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.9:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more)."
+                        "min": 3
                       },
                       "hc-light": {
                         "$value": "{pds3.core.palette.neutral.100}",
                         "aliasOf": "pds3.core.palette.neutral.100",
                         "contrast": 15.18,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       },
                       "hc-dark": {
                         "$value": "{pds3.core.palette.neutral.900}",
                         "aliasOf": "pds3.core.palette.neutral.900",
                         "contrast": 17.92,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       }
                     },
                     "figma": {
@@ -13608,7 +13658,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{pds3.core.palette.neutral.200}",
-                "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 2.5:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+                "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -13622,24 +13672,21 @@
                         "aliasOf": "pds3.core.palette.neutral.800",
                         "contrast": 13.01,
                         "against": "inverse.background.primary",
-                        "min": 3,
-                        "description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 3.1:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more)."
+                        "min": 3
                       },
                       "hc-light": {
                         "$value": "{pds3.core.palette.neutral.200}",
                         "aliasOf": "pds3.core.palette.neutral.200",
                         "contrast": 11.65,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       },
                       "hc-dark": {
                         "$value": "{pds3.core.palette.neutral.800}",
                         "aliasOf": "pds3.core.palette.neutral.800",
                         "contrast": 13.94,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       }
                     },
                     "figma": {
@@ -13658,7 +13705,7 @@
               "focused": {
                 "$type": "color",
                 "$value": "{pds3.core.palette.neutral.100}",
-                "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill. The label on it measures about 3.3:1, below its 4.5:1 floor.",
+                "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -13672,24 +13719,21 @@
                         "aliasOf": "pds3.core.palette.neutral.900",
                         "contrast": 16.72,
                         "against": "inverse.background.primary",
-                        "min": 3,
-                        "description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill. The label on it measures about 3.9:1, below its 4.5:1 floor."
+                        "min": 3
                       },
                       "hc-light": {
                         "$value": "{pds3.core.palette.neutral.100}",
                         "aliasOf": "pds3.core.palette.neutral.100",
                         "contrast": 15.18,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       },
                       "hc-dark": {
                         "$value": "{pds3.core.palette.neutral.900}",
                         "aliasOf": "pds3.core.palette.neutral.900",
                         "contrast": 17.92,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       }
                     },
                     "figma": {
@@ -13708,7 +13752,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{pds3.core.palette.neutral.200}",
-                "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill. The label on it measures about 2.5:1, below its 4.5:1 floor.",
+                "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -13722,24 +13766,21 @@
                         "aliasOf": "pds3.core.palette.neutral.800",
                         "contrast": 13.01,
                         "against": "inverse.background.primary",
-                        "min": 3,
-                        "description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill. The label on it measures about 3.1:1, below its 4.5:1 floor."
+                        "min": 3
                       },
                       "hc-light": {
                         "$value": "{pds3.core.palette.neutral.200}",
                         "aliasOf": "pds3.core.palette.neutral.200",
                         "contrast": 11.65,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       },
                       "hc-dark": {
                         "$value": "{pds3.core.palette.neutral.800}",
                         "aliasOf": "pds3.core.palette.neutral.800",
                         "contrast": 13.94,
                         "against": "inverse.background.primary",
-                        "min": 4.5,
-                        "description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill."
+                        "min": 4.5
                       }
                     },
                     "figma": {
@@ -13758,20 +13799,20 @@
             },
             "on-fill": {
               "$type": "color",
-              "$value": "{pds3.core.palette.danger.500}",
-              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes",
+              "$value": "{pds3.core.palette.danger.650}",
+              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "pds3.core.palette.danger.500",
-                  "contrast": 4.57,
+                  "aliasOf": "pds3.core.palette.danger.650",
+                  "contrast": 8.27,
                   "against": "inverse.interactive.destructive.fill.rest",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{pds3.core.palette.danger.500}",
-                      "aliasOf": "pds3.core.palette.danger.500",
-                      "contrast": 4.6,
+                      "$value": "{pds3.core.palette.danger.350}",
+                      "aliasOf": "pds3.core.palette.danger.350",
+                      "contrast": 7.42,
                       "against": "inverse.interactive.destructive.fill.rest",
                       "min": 4.5
                     },
@@ -22470,6 +22511,45 @@
           }
         }
       },
+      "xl": {
+        "$type": "dimension",
+        "$value": "{pds3.core.dimension.8}",
+        "$description": "radius xl — 8px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "pds3.core.dimension.8",
+            "px": 8,
+            "radiusScale": 1
+          }
+        }
+      },
+      "2xl": {
+        "$type": "dimension",
+        "$value": "{pds3.core.dimension.12}",
+        "$description": "radius 2xl — 12px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "pds3.core.dimension.12",
+            "px": 12,
+            "radiusScale": 1
+          }
+        }
+      },
+      "3xl": {
+        "$type": "dimension",
+        "$value": "{pds3.core.dimension.16}",
+        "$description": "radius 3xl — 16px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "pds3.core.dimension.16",
+            "px": 16,
+            "radiusScale": 1
+          }
+        }
+      },
       "round": {
         "$type": "dimension",
         "$value": "{pds3.core.dimension.128}",
@@ -22491,6 +22571,19 @@
           "prism3": {
             "generated": true,
             "px": 999
+          }
+        }
+      },
+      "hairline": {
+        "$type": "dimension",
+        "$value": "{pds3.core.dimension.1}",
+        "$description": "radius hairline — 1px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "pds3.core.dimension.1",
+            "px": 1,
+            "radiusScale": 1
           }
         }
       }
@@ -22609,54 +22702,6 @@
               "density": "comfortable"
             }
           }
-        },
-        "padding-x": {
-          "$type": "dimension",
-          "$value": "{pds3.space.100}",
-          "$description": "size.xs horizontal inset — 8px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "pds3.space.100",
-              "px": 8
-            }
-          }
-        },
-        "padding-x-visual": {
-          "$type": "dimension",
-          "$value": "{pds3.space.075}",
-          "$description": "size.xs horizontal inset on the visual side — 6px (an icon's own box adds apparent space, so it insets less than the 8px label side)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "pds3.space.075",
-              "px": 6
-            }
-          }
-        },
-        "padding-y": {
-          "$type": "dimension",
-          "$value": "{pds3.space.050}",
-          "$description": "size.xs vertical inset — 4px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "pds3.space.050",
-              "px": 4
-            }
-          }
-        },
-        "gap": {
-          "$type": "dimension",
-          "$value": "{pds3.space.050}",
-          "$description": "size.xs label↔visual gap — 4px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "pds3.space.050",
-              "px": 4
-            }
-          }
         }
       },
       "sm": {
@@ -22672,54 +22717,6 @@
               "density": "comfortable"
             }
           }
-        },
-        "padding-x": {
-          "$type": "dimension",
-          "$value": "{pds3.space.200}",
-          "$description": "size.sm horizontal inset — 16px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "pds3.space.200",
-              "px": 16
-            }
-          }
-        },
-        "padding-x-visual": {
-          "$type": "dimension",
-          "$value": "{pds3.space.150}",
-          "$description": "size.sm horizontal inset on the visual side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "pds3.space.150",
-              "px": 12
-            }
-          }
-        },
-        "padding-y": {
-          "$type": "dimension",
-          "$value": "{pds3.space.075}",
-          "$description": "size.sm vertical inset — 6px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "pds3.space.075",
-              "px": 6
-            }
-          }
-        },
-        "gap": {
-          "$type": "dimension",
-          "$value": "{pds3.space.100}",
-          "$description": "size.sm label↔visual gap — 8px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "pds3.space.100",
-              "px": 8
-            }
-          }
         }
       },
       "md": {
@@ -22733,54 +22730,6 @@
               "aliasOf": "pds3.core.dimension.44",
               "px": 44,
               "density": "comfortable"
-            }
-          }
-        },
-        "padding-x": {
-          "$type": "dimension",
-          "$value": "{pds3.space.200}",
-          "$description": "size.md horizontal inset — 16px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "pds3.space.200",
-              "px": 16
-            }
-          }
-        },
-        "padding-x-visual": {
-          "$type": "dimension",
-          "$value": "{pds3.space.150}",
-          "$description": "size.md horizontal inset on the visual side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "pds3.space.150",
-              "px": 12
-            }
-          }
-        },
-        "padding-y": {
-          "$type": "dimension",
-          "$value": "{pds3.space.100}",
-          "$description": "size.md vertical inset — 8px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "pds3.space.100",
-              "px": 8
-            }
-          }
-        },
-        "gap": {
-          "$type": "dimension",
-          "$value": "{pds3.space.100}",
-          "$description": "size.md label↔visual gap — 8px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "pds3.space.100",
-              "px": 8
             }
           }
         },
@@ -22810,54 +22759,6 @@
               "density": "comfortable"
             }
           }
-        },
-        "padding-x": {
-          "$type": "dimension",
-          "$value": "{pds3.space.300}",
-          "$description": "size.lg horizontal inset — 24px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "pds3.space.300",
-              "px": 24
-            }
-          }
-        },
-        "padding-x-visual": {
-          "$type": "dimension",
-          "$value": "{pds3.space.200}",
-          "$description": "size.lg horizontal inset on the visual side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "pds3.space.200",
-              "px": 16
-            }
-          }
-        },
-        "padding-y": {
-          "$type": "dimension",
-          "$value": "{pds3.space.100}",
-          "$description": "size.lg vertical inset — 8px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "pds3.space.100",
-              "px": 8
-            }
-          }
-        },
-        "gap": {
-          "$type": "dimension",
-          "$value": "{pds3.space.150}",
-          "$description": "size.lg label↔visual gap — 12px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "pds3.space.150",
-              "px": 12
-            }
-          }
         }
       },
       "xl": {
@@ -22871,54 +22772,6 @@
               "aliasOf": "pds3.core.dimension.68",
               "px": 68,
               "density": "comfortable"
-            }
-          }
-        },
-        "padding-x": {
-          "$type": "dimension",
-          "$value": "{pds3.space.300}",
-          "$description": "size.xl horizontal inset — 24px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "pds3.space.300",
-              "px": 24
-            }
-          }
-        },
-        "padding-x-visual": {
-          "$type": "dimension",
-          "$value": "{pds3.space.200}",
-          "$description": "size.xl horizontal inset on the visual side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "pds3.space.200",
-              "px": 16
-            }
-          }
-        },
-        "padding-y": {
-          "$type": "dimension",
-          "$value": "{pds3.space.200}",
-          "$description": "size.xl vertical inset — 16px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "pds3.space.200",
-              "px": 16
-            }
-          }
-        },
-        "gap": {
-          "$type": "dimension",
-          "$value": "{pds3.space.150}",
-          "$description": "size.xl label↔visual gap — 12px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "pds3.space.150",
-              "px": 12
             }
           }
         }
@@ -23247,7 +23100,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.199.0",
+      "version": "0.227.1",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
@@ -23255,24 +23108,24 @@
       "root": "pds3",
       "colorFormat": "hex",
       "decisions": [
-        "namespace: tokens emit under 'pds3.*' (custom, not the 'prism' default)",
-        "primary anchor (h266.75) pinned exactly at step 600",
-        "brand color 'accent' (h289.32) added",
-        "success: brand-supplied hue 155 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)",
-        "warning: brand-supplied hue 70 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)",
-        "info: brand-supplied hue 230 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)",
-        "action color defaults to the PRIMARY brand palette — CONFIRM this hue is the intended interactive color for this brand",
-        "danger: brand-supplied hue 25",
-        "dimension axis: 4px grid, 8px space rhythm, density 'comfortable' (drives component sizes), radius scale 1 (baseMd 4px)",
-        "motion: tempo 'standard' scales the duration ramp; easing roles + springs + composite transitions generated; reduce-motion variants derived (informational preserved, vestibular → 0)",
-        "shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness 1; tinted base (hue 266.75, amount 0.35). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.",
-        "gradient: 2 brand gradient(s) [brand linear 135° 2-stop, glow radial 2-stop] — OPT-IN. DTCG composite spine, stop colors alias the ramp; kind/angle/oklch interpolation in $extensions (DTCG omits them — issue #101). OKLCH-interpolated + 5-stop sRGB pre-sample for Figma (sRGB-only); materializes as a Figma Paint Style (only stop colors bind). Worst-case-stop contrast computed for text-on-gradient.",
-        "layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32 · 16/24/24/32/48); container max 1440px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with color light/dark.",
-        "typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/500/600/900; families display=Playfair Display, title=Playfair Display, body=Inter, label=Inter, caption=Inter, eyebrow=Inter, code=JetBrains Mono; typeScale 'default'. 63 semantic composites (title/display sizes shifted by typeScale; display capped at rung '3xl' (160px); title tier omits title.2xs). responsive: 21 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 375–1280px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.",
-        "disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.",
-        "interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (interactive.<color>.subtle-fill.{hover,pressed,selected}: the control's own fill at an opacity step) or 'none' to opt out.",
-        "neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: always generated (#895 removed the lever)",
-        "strict interactive contrast: off — inverse primary and destructive carry their colored on-fill (brand / danger, #1244/#1384); rest clears AA, transient hover/pressed may dip"
+        "namespace: tokens emit under 'pds3.*' instead of the default 'prism.*'.",
+        "primary: the brand color is pinned at step 600 (hue 266.75) — the ramp is built around it.",
+        "brand color: 'accent' added (hue 289.32).",
+        "success: the brand's hue 155 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.",
+        "warning: the brand's hue 70 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.",
+        "info: the brand's hue 230 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.",
+        "action: the primary palette, by default — actionPalette is not set.",
+        "danger: the brand's hue 25.",
+        "dimensions: 4px grid, 8px spacing rhythm, 'comfortable' density (sets component sizes), radius scale 1 (base radius 4px).",
+        "motion: 'standard' tempo sets the durations; reduced-motion variants keep informational motion and set vestibular motion to 0.",
+        "shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness 1; tinted to hue 266.75 at 0.35. Full shadows in light, reduced in dark, where surface lightness carries elevation.",
+        "gradient: 2 brand gradient(s) — brand (linear 135°, 2 stops), glow (radial, 2 stops). Stops alias the color ramps and blend in oklch; Figma gets a 5-stop sRGB version. Contrast for text on a gradient is computed at its worst-contrast stop.",
+        "layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); 12-column grid (4/8/12/12/12 by breakpoint); gutters 16/16/24/24/32px and margins 16/24/24/32/48px, from the spacing scale; containers max 1440px, narrow 720px.",
+        "typography: 22-step size ladder (10–160px), a fixed set rather than a ratio; weights subtle/default/emphasis/strong/max → 300/400/500/600/900; families display Playfair Display, title Playfair Display, body Inter, label Inter, caption Inter, eyebrow Inter, code JetBrains Mono; 'default' type scale. 63 text styles: title and display sizes follow the type scale, display tops out at '3xl' (160px), title.2xs is left out. 21 styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from 375 to 1280px and desktop and mobile Figma modes.",
+        "disabled: 'reduced' (default) — disabled text and icons clear 3:1 against the contrast floor: dimmed but legible, never below 3:1, without the WCAG 1.4.3/1.4.11 inactive-component exemption. disabledStrategy 'full' raises them to 4.5:1.",
+        "interactive overlays: 'overlay-neutral' (default) — outline and text controls, rows and menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-checked on the blended surface. 'solid-tint' uses the control's own fill at an opacity step instead; 'none' adds no hover.",
+        "neutral interactive emphasis: 'subtle' (default) — a light gray fill; inverse-surface variants are always generated.",
+        "strict interactive contrast: off (default) — text on inverse primary and destructive fills keeps its brand or danger color; rest clears AA, and hover and pressed can dip below it."
       ]
     }
   }

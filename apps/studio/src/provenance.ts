@@ -173,6 +173,8 @@ export type SeedOutcome =
       readonly contractOk: boolean;
       /** The read-back detail, for whoever renders this (#533 owns where). */
       readonly detail: string;
+      /** How many contract checks failed, 0 when `contractOk` (the Activity drawer's short verdict, S11). */
+      readonly failed: number;
     }
   /** The read-back itself threw — a real failure, distinct from all of the above. */
   | { readonly state: 'error'; readonly message: string };
@@ -201,11 +203,11 @@ export const isSeedFailure = (o: SeedOutcome): boolean =>
  * theme over a file whose contents were never established.
  */
 export const joinSeed = (
-  read: { present: boolean; ok: boolean; detail: string },
+  read: { present: boolean; ok: boolean; detail: string; failed?: number },
   recovered: boolean,
 ): SeedOutcome =>
   read.present
-    ? { state: 'present', recovered, contractOk: read.ok, detail: read.detail }
+    ? { state: 'present', recovered, contractOk: read.ok, detail: read.detail, failed: read.failed ?? 0 }
     : read.ok
       ? { state: 'absent' }
       : { state: 'error', message: read.detail };

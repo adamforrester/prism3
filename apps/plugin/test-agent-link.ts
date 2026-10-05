@@ -22,9 +22,31 @@
  *   · stale: a command already queued at switch-on is answered `stale` and not run
  *   · routes/<cmd>: the UI message and the agent command reach the same `ACTIONS` entry
  *   · parity/<cmd>: the agent's `result.verdict` is byte-for-byte what the UI path posted
+ *   · brackets/<cmd>: the panel is told the agent's command started and finished, around its verdict (S11)
+ *     (mutation: the dispatcher's `onStart` call removed → every `brackets/<cmd>` fails, by name)
+ *   · brackets/throw: a handler that throws still sends agent-finished, so the panel's row cannot stick
+ *     (mutation: `onFinish` moved out of the `finally`, after the try → `brackets/throw` fails, by name)
  *   · envelope: every field of the result envelope, for every command
- *   · one-run: a style guide asked for from the panel or the link while the other's run is mid-yield is refused by
- *     name, the refusal reaches only the side that asked, and an agent's run shows on the panel (#1785)
+ *   · busy/panel, busy/agent, busy/agent-first: a second apply-theme sent while one is running, by the
+ *     panel or an agent, is refused with `busy` and the owner's words, and the running write's verdict is
+ *     byte-for-byte the baseline's (#1957). busy/release: the hold ends with the run, even one that threw.
+ *     (mutations: the guard's `busy` check removed from `guarded` → busy/panel and busy/agent-first fail;
+ *     the dispatcher's `refuse` removed → busy/agent fails; the `delete` moved out of the `finally` →
+ *     busy/release fails, each by name)
+ *   · busy/keying: while an apply runs, a different operation still runs (mutation: one hold shared by
+ *     every operation → busy/keying fails). busy/preview: a prune preview, from the panel or an agent, is not
+ *     refused while a delete runs, and a second delete is (mutations: `writes` true for a preview, or the
+ *     panel's prune confirm read as always true → busy/preview's preview arms fail; the delete unguarded →
+ *     its control arm fails).
+ *   · busy/sink: a `refused` that reaches the agent's sink fails the command with its code (mutation: the
+ *     dispatcher's refusal check removed → busy/sink fails). busy/titles: `run-guard.ts`'s TITLE equals the
+ *     drawer's OP_TITLE (mutation: one title changed in either file → busy/titles fails) (#1995)
+ *   · one-run: the STYLE GUIDE through the same guard, with the real `styleGuide` held mid-yield (#1778): a
+ *     style guide asked for from the panel or the link while the other's run draws is refused with `busy`
+ *     and the owner's words, the drawing run's verdict lands once, and the next click runs (#1785) (mutation:
+ *     `ACTIONS.styleGuide` not wrapped in `guarded` → one-run/agent and one-run/panel fail, by name)
+ *   · foreign: on a file holding content Prism3 did not make, apply-theme from the panel and from the agent
+ *     both refuse the whole write, name each collision in the same verdict, and change nothing (#1884)
  *   · claim-before-run: the id is in `claimed` while its handler runs
  *   · order: two commands sent together run in send order, one per poll
  *   · no-rerun: a claimed command is never run again, even with its result gone
@@ -42,6 +64,9 @@ import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { storeResult } from './src/agent-link';
 import { envelope, sendSnippet, readSnippet, linkSnippet } from './agent-snippets';
 import { agentLinkStatusText } from './src/agent-link-ui';
+import { createRunGuard, TITLE } from './src/run-guard';
+import { createDispatcher } from './src/agent-dispatch';
+import { OP_TITLE } from '../studio/src/shell/activity';
 
 let failed = 0;
 let executed = 0;
@@ -74,6 +99,9 @@ const mailboxKeys = () => [...store.keys()].filter((x) => x.startsWith(`${MAILBO
 
 const posted: any[] = [];
 const empty = async () => [];
+/** While set, `held` waits on it: the busy arms hold a write mid-run this way (#1957). */
+let gate: Promise<void> | null = null;
+const held = async () => { if (gate) await gate; return []; };
 const host: Record<string, unknown> = {
   showUI: () => undefined,
   ui: { postMessage: (m: unknown) => { posted.push(m); }, onmessage: null as null | ((m: unknown) => void), resize: () => undefined },
@@ -215,6 +243,11 @@ for (const c of CASES) {
   ok(!!toPanel && JSON.stringify(toPanel) === JSON.stringify(isPreview ? { ...uiVerdict, pillOnly: true } : uiVerdict),
     `pills/${c.cmd}: the panel gets the agent's verdict${isPreview ? ', marked pill-only' : ''}`);
   if (isPreview) ok(!('pillOnly' in uiVerdict), 'pills/prune: the panel\'s own preview is not pill-only (its dialog still opens)');
+  // BRACKETS (UI redesign S11): the panel hears that the agent's command started and finished, around its
+  // verdict, so the Activity drawer can show the run as the agent's. The UI path posts neither.
+  const at = (type: string): number => posted.findIndex((m) => m.type === type && (type === c.verdictType || (m.id === id && m.cmd === c.cmd)));
+  ok(at('agent-started') >= 0 && at('agent-started') < at(c.verdictType) && at(c.verdictType) < at('agent-finished'),
+    `brackets/${c.cmd}: the panel gets agent-started, then the verdict, then agent-finished, naming the command`);
 }
 // The readback also carries the component census; on a file with no component pages every page is absent.
 {
@@ -253,11 +286,11 @@ section('style-guide — tables reach the handler; a table reading is progress, 
 }
 
 /* ── one style-guide run at a time (#1785) ──────────────────────────────────────────────────────────── */
-section('one-run — a style guide asked for from one entry point while the other\'s run draws is refused by name (#1785)');
+section('one-run — a style guide asked for from one entry point while the other\'s run draws is refused with busy (#1785, #1957)');
 {
   // A file the real `styleGuide` can run over: one color variable, the two cell sets, no token page (so its one table
   // is a named skip). What matters is that the run YIELDS: `realYield` is a 0ms `setTimeout`, held here apart from the
-  // poll's 1000ms one, so a run stays mid-yield until `release()` — through `main.ts`'s own gate, not a stub.
+  // poll's 1000ms one, so a run stays mid-yield until `release()` — through `main.ts`'s own guard, not a stub.
   const held: (() => void)[] = [];
   const pollTimeout = g.setTimeout as unknown as (fn: () => void, ms?: number) => number;
   g.setTimeout = ((fn: () => void, ms?: number) => { if (!ms) { held.push(fn); return 0; } return pollTimeout(fn, ms); }) as unknown as typeof setTimeout;
@@ -273,8 +306,13 @@ section('one-run — a style guide asked for from one entry point while the othe
     setBoundVariableForPaint: (p: unknown) => p,
   };
   r0.findAllWithCriteria = () => [{ name: '_style-guide-swatches', type: 'COMPONENT_SET', children: [] }, { name: '_style-guide-text-cells', type: 'COMPONENT_SET', children: [] }];
-  type Verdict = { type?: string; ok?: boolean; headline?: string; summary?: string; busy?: boolean };
+  type Verdict = { type?: string; ok?: boolean; headline?: string; summary?: string };
   const results_ = (): Verdict[] => posted.filter((m) => m.type === 'style-guide-result');
+  // Main's run guard (#1957, `run-guard.ts`) is the one guard: its refusal and its words, for this operation.
+  const SG_BUSY = 'Style guide is already running. Try again when it finishes.';
+  const sgRefusals = (agentFlag: boolean) => posted.filter((m) => m.type === 'refused' && m.agent === agentFlag);
+  const isSgRefusal = (m: any, agentFlag: boolean) =>
+    JSON.stringify(m) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'style-guide', agent: agentFlag, message: SG_BUSY });
 
   // THE PANEL FIRST: a click starts a run, which holds at its yield; the agent link then asks for one.
   posted.length = 0;
@@ -283,37 +321,36 @@ section('one-run — a style guide asked for from one entry point while the othe
   const { id: a1 } = await send('style-guide', {});
   await tick();
   const r1 = (await read(a1)) as AgentResult;
-  const v1 = r1.result?.verdict as Verdict | null;
-  ok(heldPanel > 0 && r1.ok === false && v1?.busy === true && v1.headline === '✗ already drawing' && /^A style guide started from the panel is still drawing, so this request was not run/.test(v1.summary ?? ''),
-    `one-run/agent: a style guide asked for over the link while the panel's run is mid-yield is refused, naming the panel's run (${v1?.headline}: ${String(v1?.summary).slice(0, 60)})`);
-  ok(results_().length === 0, 'one-run/agent: the refusal goes to the agent alone — the panel still shows its own run, with no verdict over it');
+  const ar = sgRefusals(true);
+  ok(heldPanel > 0 && r1.ok === false && r1.error?.code === 'busy' && r1.error?.message === SG_BUSY && ar.length === 1 && isSgRefusal(ar[0], true),
+    `one-run/agent: a style guide asked for over the link while the panel's run is mid-yield is refused with busy (${r1.error?.code}: ${r1.error?.message})`);
+  ok(results_().length === 0 && !posted.some((m) => m.type === 'agent-started' && m.id === a1), 'one-run/agent: the refusal is no verdict over the panel\'s run, and the agent\'s run never started');
   await release();
   const p1 = results_();
-  ok(p1.length === 1 && !p1[0].busy, `one-run: the panel's run then finishes and reports (${p1.map((m) => m.headline).join(', ')})`);
+  ok(p1.length === 1, `one-run: the panel's run then finishes and reports once (${p1.map((m) => m.headline).join(', ')})`);
 
   // THE AGENT FIRST: a command starts a run, which holds at its yield; a click then asks for one.
   posted.length = 0;
   const { id: a2 } = await send('style-guide', {});
   await tick();
-  const first = posted.find((m) => m.type === 'style-guide-progress');
-  ok(held.length > 0 && first?.done === 0 && first?.total === 1,
-    `one-run/panel: an agent's run posts its readings to the panel too, the first (done 0) before its first table, so the panel's row goes pending (${JSON.stringify(first)})`);
+  ok(held.length > 0 && posted.some((m) => m.type === 'agent-started' && m.id === a2 && m.cmd === 'style-guide'),
+    'one-run/panel: an agent\'s run is held mid-yield, and the panel is told it started (its button goes busy on that)');
   await toUi({ type: 'style-guide', options: {} });
-  const b = results_();
-  ok(b.length === 1 && b[0].busy === true && b[0].headline === '✗ already drawing' && /^A style guide started from the agent link is still drawing/.test(b[0].summary ?? ''),
-    `one-run/panel: a click while the agent's run is mid-yield is refused, naming the agent link's run (${b.map((m) => m.headline).join(', ')})`);
+  const pr = sgRefusals(false);
+  ok(pr.length === 1 && isSgRefusal(pr[0], false) && results_().length === 0,
+    `one-run/panel: a click while the agent's run is mid-yield is refused with busy, and posts no verdict (${pr[0]?.message})`);
   await release();
   await tick();
   const r2 = (await read(a2)) as AgentResult;
   const v2 = r2.result?.verdict as Verdict | null;
-  ok(v2?.type === 'style-guide-result' && !v2.busy && results_().some((m) => !m.busy && m.headline === v2.headline),
-    `one-run: the agent's run then finishes, and its verdict reaches the panel (${v2?.headline})`);
+  ok(v2?.type === 'style-guide-result' && results_().length === 1 && results_()[0].headline === v2.headline,
+    `one-run: the agent's run then finishes, and its one verdict reaches the panel (${v2?.headline})`);
 
-  // And the gate is open again: a click runs.
+  // And the guard is open again: a click runs.
   posted.length = 0;
   await toUi({ type: 'style-guide', options: {} });
   await release();
-  ok(results_().length === 1 && !results_()[0].busy, 'one-run: once both have reported, the next click runs');
+  ok(results_().length === 1 && !posted.some((m) => m.type === 'refused'), 'one-run: once both have reported, the next click runs');
 
   host.loadAllPagesAsync = saved.load; host.variables = saved.vars; r0.findAllWithCriteria = saved.find;
   g.setTimeout = pollTimeout as unknown as typeof setTimeout;
@@ -330,6 +367,69 @@ for (const r of results) {
   ok(r.ok === (r.result?.verdict as { ok?: boolean } | null)?.ok, `envelope/${r.cmd}: ok is the verdict's own ok (${r.ok})`);
 }
 
+/* ── foreign file ───────────────────────────────────────────────────────────────────────────────────── */
+section('foreign — apply-theme refuses the whole write on content Prism3 did not make, from either caller (#1884)');
+{
+  // A file someone else built: a `color` collection with no Prism3 stamp, a same-named variable of another
+  // type inside it, and an effect style under one of Prism3's names with the designer's own description.
+  // Every object records any property write, and every writing method records its call, so a write the
+  // pre-flight lets through is counted here whichever executor makes it.
+  const writes: string[] = [];
+  const rec = <T extends object>(label: string, o: T): T =>
+    new Proxy(o, { set: (t, p, v) => { writes.push(`${label}.${String(p)}`); (t as Record<string | symbol, unknown>)[p] = v; return true; } });
+  const write = (what: string) => () => { writes.push(what); throw new Error(`test host: ${what} is a write`); };
+  const col = rec('collection color', {
+    id: 'VariableCollectionId:9:1', name: 'color', modes: [{ modeId: '9:0', name: 'Mode 1' }],
+    renameMode: write('renameMode'), addMode: write('addMode'),
+    getSharedPluginData: () => '', setSharedPluginData: write('collection setSharedPluginData'),
+  });
+  const v = rec('variable', {
+    id: 'VariableID:9:2', name: 'ads/color/background/primary', variableCollectionId: col.id, resolvedType: 'STRING',
+    scopes: [], description: '', hiddenFromPublishing: false, valuesByMode: { '9:0': 'hand-typed' },
+    setValueForMode: write('setValueForMode'),
+  });
+  const style = rec('effect style', {
+    name: 'shadow/xs', description: 'Card shadow, our own', effects: [],
+    getSharedPluginData: () => '', setSharedPluginData: write('style setSharedPluginData'),
+  });
+  const saved = { ...host };
+  Object.assign(host, {
+    variables: {
+      getLocalVariableCollectionsAsync: async () => [col], getLocalVariablesAsync: async () => [v],
+      createVariableCollection: write('createVariableCollection'), createVariable: write('createVariable'),
+      createVariableAlias: write('createVariableAlias'),
+    },
+    getLocalEffectStylesAsync: async () => [style],
+    createEffectStyle: write('createEffectStyle'), createPaintStyle: write('createPaintStyle'),
+    createGridStyle: write('createGridStyle'), createTextStyle: write('createTextStyle'),
+    loadFontAsync: async () => undefined,
+  });
+  try {
+    const SUMMARY = 'Nothing was written. 3 conflicts with existing content: collection "color" already in this file, not created by Prism3; ' +
+      'variable "ads/color/background/primary" is STRING in "color"; Prism3 writes COLOR; ' +
+      'effect style "shadow/xs" already in this file, not created by Prism3';
+    posted.length = 0;
+    await toUi({ type: 'apply-theme', input: brand });
+    const uiVerdict = posted.filter((m) => m.type === 'apply-result').pop();
+    ok(uiVerdict?.ok === false && uiVerdict.headline === '✗ 3 conflicts' && String(uiVerdict.summary).startsWith(SUMMARY),
+      `foreign/panel: the Apply button's verdict is "✗ 3 conflicts" and names each one (${String(uiVerdict?.headline)}: ${String(uiVerdict?.summary).slice(0, 60)}…)`);
+    const { id } = await send('apply-theme', { input: brand });
+    await tick();
+    const r = (await read(id)) as AgentResult;
+    ok(r.ok === false && !!uiVerdict && JSON.stringify(r.result?.verdict) === JSON.stringify(uiVerdict),
+      'foreign/agent: the agent\'s apply-theme gets the same refusal, byte for byte');
+    const data = r.result?.data as { conflicts?: { kind: string; name: string }[] } | undefined;
+    ok(JSON.stringify(data?.conflicts?.map((c) => `${c.kind} ${c.name}`)) ===
+      JSON.stringify(['collection color', 'variable ads/color/background/primary', 'effect style shadow/xs']),
+    'foreign/agent: the structured data lists every conflict, not only the capped summary');
+    ok(writes.length === 0 && !store.has(k('prism3', 'brandInput')),
+      `foreign: neither caller wrote anything — no variable, style or stamp, and no persisted brand (${writes.slice(0, 3).join(', ') || 'none'})`);
+  } finally {
+    for (const key of Object.keys(host)) if (!(key in saved)) delete host[key];
+    Object.assign(host, saved);
+  }
+}
+
 /* ── claim-before-run ───────────────────────────────────────────────────────────────────────────────── */
 section('claim-before-run');
 {
@@ -339,6 +439,161 @@ section('claim-before-run');
   await tick();
   duringCall = null;
   ok(claimedDuring, 'the id is in `claimed` while its handler runs');
+}
+
+/* ── brackets/throw ─────────────────────────────────────────────────────────────────────────────────── */
+section('brackets/throw — a handler that throws still tells the panel the run finished');
+{
+  // The spy's `duringCall` runs inside the ACTIONS entry the dispatcher calls, so throwing from it is the
+  // handler throwing. Without `agent-finished` the panel's Activity row stays on "Running", tagged Agent.
+  posted.length = 0;
+  const { id } = await send('apply-theme', { input: brand });
+  duringCall = () => { throw new Error('test host: the handler threw'); };
+  await tick();
+  duringCall = null;
+  const r = (await read(id)) as AgentResult;
+  ok(r.ok === false && r.error?.code === 'handler-threw', `brackets/throw: the command fails as handler-threw (${r.error?.code})`);
+  const at = (type: string): number => posted.findIndex((m) => m.type === type && m.id === id && m.cmd === 'apply-theme');
+  ok(at('agent-started') >= 0 && at('agent-started') < at('agent-finished'),
+    'brackets/throw: the panel still gets agent-started, then agent-finished, naming the command');
+  ok(!posted.some((m) => m.type === 'apply-result'), 'brackets/throw: and no verdict, so the drawer restores the row\'s previous result');
+}
+
+/* ── busy ───────────────────────────────────────────────────────────────────────────────────────────── */
+section('busy — a second write of an operation, while one is running, is refused with busy (#1957)');
+{
+  const BUSY = 'Apply Theme is already running. Try again when it finishes.';
+  /** Hold the host's text-style read, so a write that reaches it waits there until `release()`. */
+  const hold = (): (() => Promise<void>) => {
+    let open!: () => void;
+    gate = new Promise<void>((r) => { open = r; });
+    return async () => { gate = null; open(); for (let i = 0; i < 40; i++) await settle(); };
+  };
+  // An apply's first host read is the text styles, in its font preload; it needs `loadFontAsync` to get
+  // that far (this host has none, so an apply otherwise fails before its first await).
+  const savedHost = { getLocalTextStylesAsync: host.getLocalTextStylesAsync, loadFontAsync: host.loadFontAsync };
+  Object.assign(host, { getLocalTextStylesAsync: held, loadFontAsync: async () => undefined });
+  const refusals = (agentFlag: boolean) => posted.filter((m) => m.type === 'refused' && m.agent === agentFlag);
+  const isRefusal = (m: any, agentFlag: boolean) =>
+    JSON.stringify(m) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'apply-theme', agent: agentFlag, message: BUSY });
+  // The baseline: a lone panel apply, nothing else running.
+  posted.length = 0;
+  await toUi({ type: 'apply-theme', input: brand });
+  const baseline = JSON.stringify(posted.filter((m) => m.type === 'apply-result').pop());
+  ok(baseline !== undefined && !posted.some((m) => m.type === 'refused'), 'busy/baseline: a lone apply posts its verdict and is not refused');
+
+  // The panel's apply is running; the panel sends a second one.
+  posted.length = 0;
+  let release = hold();
+  await toUi({ type: 'apply-theme', input: brand });
+  ok(!posted.some((m) => m.type === 'apply-result'), 'busy/panel: the first apply is held mid-write');
+  await toUi({ type: 'apply-theme', input: brand });
+  const pr = refusals(false);
+  ok(pr.length === 1 && isRefusal(pr[0], false), `busy/panel: the second apply is refused with busy and the owner's words (${pr[0]?.message})`);
+  await release();
+  const pv = posted.filter((m) => m.type === 'apply-result');
+  ok(pv.length === 1 && JSON.stringify(pv[0]) === baseline, `busy/panel: the first write is unaffected: one verdict, the baseline's (${pv.length})`);
+
+  // The panel's apply is running; an agent sends one.
+  posted.length = 0;
+  release = hold();
+  await toUi({ type: 'apply-theme', input: brand });
+  const { id } = await send('apply-theme', { input: brand });
+  await tick();
+  const r = (await read(id)) as AgentResult;
+  ok(r.ok === false && r.error?.code === 'busy' && r.error?.message === BUSY, `busy/agent: the agent's apply fails as busy (${r.error?.code})`);
+  const ar = refusals(true);
+  ok(ar.length === 1 && isRefusal(ar[0], true), 'busy/agent: the panel is told an agent\'s apply was refused');
+  ok(!posted.some((m) => m.type === 'agent-started' && m.id === id), 'busy/agent: and never that it started');
+  await release();
+  const av = posted.filter((m) => m.type === 'apply-result');
+  ok(av.length === 1 && JSON.stringify(av[0]) === baseline, 'busy/agent: the panel\'s write is unaffected');
+
+  // An agent's apply is running; the panel sends one.
+  posted.length = 0;
+  release = hold();
+  const first = await send('apply-theme', { input: brand });
+  await tick();
+  ok(posted.some((m) => m.type === 'agent-started' && m.id === first.id) && !posted.some((m) => m.type === 'apply-result'),
+    'busy/agent-first: the agent\'s apply is held mid-write');
+  await toUi({ type: 'apply-theme', input: brand });
+  const fr = refusals(false);
+  ok(fr.length === 1 && isRefusal(fr[0], false), 'busy/agent-first: the panel\'s apply is refused with busy');
+  await release();
+  for (let i = 0; i < 400 && timers.size === 0; i++) await settle();
+  const fa = (await read(first.id)) as AgentResult;
+  ok(fa.error?.code !== 'busy' && JSON.stringify(fa.result?.verdict) === baseline, 'busy/agent-first: the agent\'s write is unaffected: its verdict is the baseline\'s');
+
+  // Released however it ended: a new apply runs.
+  posted.length = 0;
+  await toUi({ type: 'apply-theme', input: brand });
+  ok(!posted.some((m) => m.type === 'refused') && posted.filter((m) => m.type === 'apply-result').length === 1, 'busy/release: once the run ends, the next apply runs');
+  // A write that throws releases too: the hold is dropped in a `finally`.
+  const g2 = createRunGuard();
+  await g2.run('apply-theme', async () => { throw new Error('test: the write threw'); }).catch(() => undefined);
+  ok(!g2.busy('apply-theme'), 'busy/release: a write that threw releases the operation');
+
+  // KEYING (#1995): the hold is per operation. While an apply is held, a file setup still runs.
+  posted.length = 0;
+  release = hold();
+  await toUi({ type: 'apply-theme', input: brand });
+  await toUi({ type: 'file-setup' });
+  ok(!posted.some((m) => m.type === 'refused') && posted.some((m) => m.type === 'file-setup-result') && !posted.some((m) => m.type === 'apply-result'),
+    'busy/keying: while an apply is running, a file setup still runs and is not refused');
+  await release();
+
+  // PREVIEW (#1995): a prune preview writes nothing, so it is never refused, even while a prune delete runs.
+  // The prune reads the file's collections, so that read holds the delete here.
+  const vars = host.variables as Record<string, unknown>;
+  const savedCollections = vars.getLocalVariableCollectionsAsync;
+  vars.getLocalVariableCollectionsAsync = held;
+  posted.length = 0;
+  release = hold();
+  await toUi({ type: 'prune', input: brand, confirm: true });
+  ok(!posted.some((m) => m.type === 'prune-result'), 'busy/preview: the prune delete is held mid-run');
+  await toUi({ type: 'prune', input: brand, confirm: true });
+  ok(posted.filter((m) => m.type === 'refused').length === 1 &&
+    JSON.stringify(posted.find((m) => m.type === 'refused')) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'prune', agent: false, message: 'Prune stale is already running. Try again when it finishes.' }),
+    'busy/preview: a second prune delete is refused (the control for the preview arms)');
+  posted.length = 0;
+  await toUi({ type: 'prune', input: brand, confirm: false });
+  const pv2 = await send('prune', { input: brand, confirm: false });
+  await tick();
+  ok(!posted.some((m) => m.type === 'refused'), 'busy/preview: a prune preview from the panel, and one from an agent, are not refused while a delete runs');
+  await release();
+  for (let i = 0; i < 400 && timers.size === 0; i++) await settle();
+  const pa = (await read(pv2.id)) as AgentResult;
+  ok(posted.filter((m) => m.type === 'prune-result').length >= 2 && pa.error?.code !== 'busy' && !!pa.result,
+    `busy/preview: both previews run to a verdict, and the agent's is not busy (${pa.error?.code ?? 'no error'})`);
+  vars.getLocalVariableCollectionsAsync = savedCollections;
+  Object.assign(host, savedHost);
+}
+
+/* ── busy/sink + busy/titles ────────────────────────────────────────────────────────────────────────── */
+section('busy/sink, busy/titles — a refusal reaching the agent\'s sink fails the command; the two title tables agree (#1995)');
+{
+  // The dispatcher declines before the guarded call, so this path is unreachable through main.ts. Driven here
+  // with a handler that posts the refusal itself, the way the guard would if `refuse` were ever bypassed.
+  const MSG = 'Apply Theme is already running. Try again when it finishes.';
+  const noop = async () => undefined;
+  const d = createDispatcher({
+    actions: {
+      applyTheme: async (_input: unknown, sink: { post(m: unknown): void }) => { sink.post({ type: 'refused', code: 'busy', cmd: 'apply-theme', agent: true, message: MSG }); },
+      buildComponents: noop, fileSetup: noop, styleGuide: noop, prune: noop, seedFromFile: noop,
+    } as unknown as Parameters<typeof createDispatcher>[0]['actions'],
+    status: async () => ({}),
+    census: async () => null,
+  });
+  const r = await d(envelope('apply-theme', { input: brand }), 'mailbox');
+  ok(r.ok === false && r.error?.code === 'busy' && r.error?.message === MSG,
+    `busy/sink: a refusal that reaches the agent's sink fails the command with its code (${r.ok}, ${r.error?.code})`);
+
+  // Each table read from its own file; the key pairing written out here.
+  const PAIRS: [keyof typeof TITLE, keyof typeof OP_TITLE][] = [
+    ['apply-theme', 'apply'], ['build-components', 'components'], ['file-setup', 'filesetup'], ['style-guide', 'styleguide'], ['prune', 'prune'],
+  ];
+  ok(PAIRS.length === Object.keys(TITLE).length && PAIRS.every(([w, o]) => TITLE[w] === OP_TITLE[o]),
+    `busy/titles: run-guard.ts's TITLE matches the drawer's OP_TITLE for every write (${PAIRS.filter(([w, o]) => TITLE[w] !== OP_TITLE[o]).map(([w]) => w).join(', ') || 'all equal'})`);
 }
 
 /* ── order ──────────────────────────────────────────────────────────────────────────────────────────── */

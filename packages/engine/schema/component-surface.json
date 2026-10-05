@@ -1,5 +1,5 @@
 {
-  "note": "AUTHORED BASELINE, never a regen artifact (see lint-component-surface.ts). Rewritten only by an explicit `npx tsx packages/engine/lint-component-surface.ts --accept`, which refuses unless ENGINE_VERSION has already moved — a gate allowed to rewrite what it reads has no memory. Per def: the member count of the DEFAULT Figma projection and a sha256 over its sorted `planComponentName|planStamp` rows. `null` means the def declares no figmaProperties and projects no set. Mostly brand-independent: figmaAnatomySet takes a def and no theme. The exception is a def with weightIntent (#1602), whose weight axis resolves per brand — for those, extra `<id>@<scenario>` rows record the surface under canonical availability scenarios (body-emphasis = NB's bold→emphasis, body-single = the axis collapse), so a change to the resolution or collapse rule moves a row. Likewise a def binding the interactive overlay wash (#1608) carries `<id>@outline-solid-tint` and `<id>@outline-none` rows — its outline/text hover fill under the other two outlineInteraction methods. The button family (#1667) carries `<id>@button-default`, `<id>@button-edges` and `<id>@button-smaller` rows — its derived minimum width, the Locked to edges layout and the One step smaller medium content, against the default-density heights. It records no engine version of its own on purpose — a pure value change bumps the engine and moves no component surface. A failure here is a CHANGED projection: read the diff, decide whether the change was intended, bump ENGINE_VERSION, then accept.",
+  "note": "AUTHORED BASELINE, never a regen artifact (see lint-component-surface.ts). Rewritten only by an explicit `npx tsx packages/engine/lint-component-surface.ts --accept`, which refuses unless an engine bump is already declared (a change note in packages/engine/changes/, #1807) — a gate allowed to rewrite what it reads has no memory. Per def: the member count of the DEFAULT Figma projection and a sha256 over its sorted `planComponentName|planStamp` rows. `null` means the def declares no figmaProperties and projects no set. Mostly brand-independent: figmaAnatomySet takes a def and no theme. The exception is a def with weightIntent (#1602), whose weight axis resolves per brand — for those, extra `<id>@<scenario>` rows record the surface under canonical availability scenarios (body-emphasis = NB's bold→emphasis, body-single = the axis collapse), so a change to the resolution or collapse rule moves a row. Likewise a def binding the interactive overlay wash (#1608) carries `<id>@outline-solid-tint` and `<id>@outline-none` rows — its outline/text hover fill under the other two outlineInteraction methods. The button family (#1667) carries `<id>@button-default`, `<id>@button-edges` and `<id>@button-smaller` rows — its derived minimum width, the Locked to edges layout and the One step smaller medium content, against the default-density heights. It records no engine version of its own on purpose — a pure value change bumps the engine and moves no component surface. A failure here is a CHANGED projection: read the diff, decide whether the change was intended, add a change note declaring the bump, then accept.",
   "defs": {
     "icon": {
       "members": 44,
@@ -11,99 +11,99 @@
     },
     "button": {
       "members": 432,
-      "sha256": "c7e6fbbea5466a2172c839431eabeb070108c8bc6c360622b638d0d1e132d554"
+      "sha256": "b0f5a3be60e0100f99682bf4962854d79cc5a977ed94f5b8e4630f8dc3d4cc78"
     },
     "button@outline-solid-tint": {
       "members": 432,
-      "sha256": "3c282124f23b308dbeb568a2d77e20d9fea41d5fcd37ec1709826b8974c91174"
+      "sha256": "bc1fe29687882d0b416854c88f6ed5c1dbe9ea543e75e1d2173ecf3f4fa6782c"
     },
     "button@outline-none": {
       "members": 432,
-      "sha256": "df6a86dc739ffddb945823bab1e30fd254aa4f958cbc77835e6bded5ad3d1140"
+      "sha256": "a55fe115034ebb58050c73c41f0486158fdb98f155820f56afc28e01f68ba1c8"
     },
     "button@button-default": {
       "members": 432,
-      "sha256": "2ffbbe9dfd1cabaf77dbd71f1d472292a7cfebf24c0ad7c11e6a04de74edc4b9"
+      "sha256": "ef553493c8ab4196cbbdfba2eb6dcb5a06b6fdd87532570bd909016d62e5f053"
     },
     "button@button-edges": {
       "members": 432,
-      "sha256": "52a1fb379c380823883ade213decc6bc951013575d1ac252cde2e04b40479936"
+      "sha256": "362325643ea86f3102316656b82428502f7fb35f7eeb80061f9de24e6ccd4401"
     },
     "button@button-smaller": {
       "members": 432,
-      "sha256": "3eea601cbcdc820b9c52e49c1997f6ca8c01f4d35ff42e84a35924a9c00d0dd6"
+      "sha256": "368dcb73cf36ca45975d160fdbe9fce4dbf4ecc919a0283f2d940da1837233b6"
     },
     "button@button-label-default": {
       "members": 432,
-      "sha256": "dec7c67d486556d2a4ddb4cc534afa2150cfd8dac04f58acda595ce6f16eb945"
+      "sha256": "6b246da45cba5c093057a623f7c65e57a755b33d6d4370e7502aa0c13829de9b"
     },
     "button@button-smaller-label-default": {
       "members": 432,
-      "sha256": "42b13e9a95e4fccc697bf22d386bc7933725347ba75bc25d2e24425145548cab"
+      "sha256": "6b144314a73b79da3ff6eea287d917ce5cd3c729902b542b3f980a518c1744cb"
     },
     "button-destructive": {
       "members": 432,
-      "sha256": "e80c58c6b24c6ab298110f619cc43455428546e89c37ce5d0ca49cc6763208b5"
+      "sha256": "284cfb6d954f07eab5b3ffc3f4503b519f68d875e652e69714f1176a134e7a00"
     },
     "button-destructive@outline-solid-tint": {
       "members": 432,
-      "sha256": "90ab7c063c29af5698d09194f76569d6909f6e803d864b5a4bb99b242e82a627"
+      "sha256": "572907fef0981059cdcb20d7e1f2734cb78dc97ae1f0c32b4185b58dd88c6c28"
     },
     "button-destructive@outline-none": {
       "members": 432,
-      "sha256": "a159a13af7145bd74b2520580c2112bb277b1b9e746d6194566d3be76014a504"
+      "sha256": "0a8ea805d99697ccdb60b4b1e1d3e94e785396babc329f607187b2ef42b89108"
     },
     "button-destructive@button-default": {
       "members": 432,
-      "sha256": "0a1b8e0b979e509e8b4abc69e9ea1ce743a62e8f8c2839d43d3a52f94993732f"
+      "sha256": "f6d87ae9749d822daa9cdc954fd89407ab29f4d22da838d56163768b61c054d0"
     },
     "button-destructive@button-edges": {
       "members": 432,
-      "sha256": "3f6b5c4a23ffc6acd5458de181d4271882d1447edcca7b7affca96cceef883ca"
+      "sha256": "305b3339c39f6eda56f03f89d0c6e516d07c924dc4eade5d5cc89c26b543169a"
     },
     "button-destructive@button-smaller": {
       "members": 432,
-      "sha256": "d218225ae8baf1c9f42366351c6aca36e3c23a451a1c59a03f5e5c65235b2f2c"
+      "sha256": "5fc82d2ba91742dfaf6cbced36953a623bfb8da45f07f5b18371cced8d3ca851"
     },
     "button-destructive@button-label-default": {
       "members": 432,
-      "sha256": "a6e7979dd1d019c39005e4d58684ee8396037ebce4fc0a37a1c5e871f553d1b8"
+      "sha256": "85f5c059cfc548b8a3fe08180f47a735dad70e83bf8e3577383c28cec855360a"
     },
     "button-destructive@button-smaller-label-default": {
       "members": 432,
-      "sha256": "069f2567fd0510792f648716e6dc95be1acb7e1aa22de4d1c5d9da8a933e7dbf"
+      "sha256": "ec2453d396041d9e30e758790224d6798cc546ddf611b1d27e5aa3ef38449235"
     },
     "button-neutral": {
       "members": 432,
-      "sha256": "ee1f482dfb5b44ea13f3256a388c51e303fd5547b2d34e33c179e83e83fecf5c"
+      "sha256": "ce43ff97f665b29e08634fac205076acc07339cd2fcd181f47829c33691b419e"
     },
     "button-neutral@outline-solid-tint": {
       "members": 432,
-      "sha256": "5b3475cc843c4f450de6a4f6b29105841185762f1ebf0733d55b07c42cfe977a"
+      "sha256": "74dc648394fbd3bf56f661adee81116ccf045787bcd64eb012016ba183886432"
     },
     "button-neutral@outline-none": {
       "members": 432,
-      "sha256": "97957c6521e4a56b5ed6f37d81a7d33040f3983f1943a7ae7c750da1e50a850c"
+      "sha256": "147c6babce771942cc4f5e8419243868436c56e409878466b324e4673f33d37c"
     },
     "button-neutral@button-default": {
       "members": 432,
-      "sha256": "13df7ff5d4ecd33edfa801ddc12728fee8ff25da747021bd562863b208abee30"
+      "sha256": "f32ac6f81feab66a912eac8c1759f411f9e6379b1f6e8028172555a9323ee66c"
     },
     "button-neutral@button-edges": {
       "members": 432,
-      "sha256": "ebd43eb7fbad7ca4c88648595ca887e8d0ba64590f0e849de78b338a85c3cca4"
+      "sha256": "1541a884aebc344d4ef143096eaf40f03555af84f5ab2d3ffd994092df673d6c"
     },
     "button-neutral@button-smaller": {
       "members": 432,
-      "sha256": "ea720aaab7fe935ced663068abdd1d5266fde4298ef32de1b642622db7bc4418"
+      "sha256": "2c3c77e30f777ae05e684077c5f9788ddb19003f89225ef16e7791144f070830"
     },
     "button-neutral@button-label-default": {
       "members": 432,
-      "sha256": "8ffc25c43a674b214f34af17a7421b0c09f321dceebaf8af0eabb25c20aeccce"
+      "sha256": "879da2ea61719fc6e4057c3b5687cf7362b7c28699037280c647d737077fb558"
     },
     "button-neutral@button-smaller-label-default": {
       "members": 432,
-      "sha256": "a3427794cfc2728c9dd602ad23a55c1f72dd705e46bd04f6cff965c303373c05"
+      "sha256": "cc6a3f70457b4a32b0ba344cf599a4dcbb6dda8f792f8dbc94c262e4a48427e2"
     },
     "icon-button": {
       "members": 216,
@@ -159,27 +159,27 @@
     },
     "text-field": {
       "members": 24,
-      "sha256": "77303aa593bd6a3bdc51a0fe3950fb078228f9b5960ea6625b77c413932220a2"
+      "sha256": "919cb97d41c226bb3a532d9aaf7e6b2c288f0c3d10615b6bfee64f581a070aee"
     },
     "text-field@outline-solid-tint": {
       "members": 24,
-      "sha256": "bef291130dff90d46ca001391ec3b0a5bac60bca2448e5518d662d470d10ba0e"
+      "sha256": "9ce6a7012530e0b2ae3512f757f8a202a27be779002da2d4c2c6bf8a5fc1ead4"
     },
     "text-field@outline-none": {
       "members": 24,
-      "sha256": "df3186b83928a67ac361752bb42c02c43dcf9748e405a1776b0e0d3c618e33fc"
+      "sha256": "8ca4765ce635ef5d1056c9379867f8e44d096ebb5a425eda5a20154c78ff58c5"
     },
     "textarea": {
       "members": 24,
-      "sha256": "2c481f39ba2d17f270edb7c6a42aa53fd6d38c988b2e2ac41133004c877d2e61"
+      "sha256": "b5c8b8576e9a436dffd0130f5a284e76d2358414fa96eafb8a59a9dea5870f9e"
     },
     "textarea@outline-solid-tint": {
       "members": 24,
-      "sha256": "ce83ba2f722b71a6c79ce9a5d1d8d8da90916760db38d5e81adcd4bef9ea5432"
+      "sha256": "2a97e84afc3e17ac0e77aee5aab69153531215f3b388979b7a3cdb76d123d2a9"
     },
     "textarea@outline-none": {
       "members": 24,
-      "sha256": "2fd8f6be5649772f30124750f1f0e694b09cc542a9d6884d30b5d1b063c489b8"
+      "sha256": "c63726ce4511090d3fc3694d9dad0598ba5b6821019d7e46ea52e43a4990ec80"
     },
     "checkbox-control": {
       "members": 54,
@@ -187,7 +187,7 @@
     },
     "checkbox-row": {
       "members": 3,
-      "sha256": "8d973f85d61df9ac09f32e31f91f919393db17ea8aff437f60807751fb4002f4"
+      "sha256": "68896162b4c2a93f79a1858ed1fd891acb5c87e1dc4132958ceaa4b0ddada999"
     },
     "checkbox-group": {
       "members": 3,
@@ -199,7 +199,7 @@
     },
     "radio-row": {
       "members": 3,
-      "sha256": "e0f50af969290c2197305a89b86e7ac28a18b4280cff8d2097eea85cf80fb3de"
+      "sha256": "14fb37404bf769beee03fc052518a8d66fca1db7ed830fd5f28dd68132e5e020"
     },
     "radio-group": {
       "members": 3,
@@ -211,19 +211,19 @@
     },
     "switch-row": {
       "members": 2,
-      "sha256": "2300f02b49191794bc83806464dd8cca9cbbfacda24fd81a322b07edd4ac9e7c"
+      "sha256": "0e2a1fbbad31e2727ea0a8a55d7fc94e64e78c8a2c71b7e89db367db33212a48"
     },
     "select": {
       "members": 24,
-      "sha256": "88390aabbd95e1167f31997bf6c8b419495151d55223e0d8300cf291bb766947"
+      "sha256": "88ccb10fcd656b70e1062feb805c990ede9ce09d9c703f9cfa8395011e030303"
     },
     "select@outline-solid-tint": {
       "members": 24,
-      "sha256": "819106c5f96117c5ed26b06b840882ca8a45ffbe1ab52e47b69804c2afe38839"
+      "sha256": "0593a5534e630130c8fd292a840a19f10f45ab321846ae58c012eeae9f69e914"
     },
     "select@outline-none": {
       "members": 24,
-      "sha256": "a24436c9f43477309a51bf881059e568f0d71963ae9ad3207b21784417556ea0"
+      "sha256": "b3992e9a54ae69d7616828ce4cdab75c2f80620f7490292f85990ce7991f3170"
     },
     "veil": {
       "members": 30,
@@ -239,19 +239,19 @@
     },
     "badge": {
       "members": 20,
-      "sha256": "5c30fe6e79178bca45c17b89a4a62e5688b7726b7907dfc75aa0ae2e810a4666"
+      "sha256": "f946c45819e0024cb04c2488173378419968ec864b6141753539f05f82e4b750"
     },
     "tag": {
-      "members": 30,
-      "sha256": "8ff2f34e65198a45c2bc7db53059f8184cd13c7d3aec787acdc497ef42af6ee2"
+      "members": 45,
+      "sha256": "8900bcff2d77cac647786cf0b78104ea7b4ffba7c8edecc80f2e2a009d66e3ac"
     },
     "tag@outline-solid-tint": {
-      "members": 30,
-      "sha256": "c8becd9a4cf34ccc25fafd3f4ec47c884d331eb61c5b652b53a3cfafc7a019be"
+      "members": 45,
+      "sha256": "afa2e4483016aed58cc50240217455e7c3d5ba3c3dc7d1284ea415e8b5714cc7"
     },
     "tag@outline-none": {
-      "members": 30,
-      "sha256": "2d0e2cb266ad9a66b2298f6a7f6da55d8e01cb6cee73c102b81b8eda9b448b61"
+      "members": 45,
+      "sha256": "3d14dcbdaecd9716a9a65c17abd6db299cd1dded1d63fcd6398919dcf5f85a5c"
     }
   }
 }

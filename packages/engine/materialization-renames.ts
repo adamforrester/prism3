@@ -119,7 +119,9 @@ export const varKey = (collection: string, name: string): VarKey => `${collectio
 export type MaterializationRule = {
   /** Stable, and used in every report line — a rule is identified by this in both checks. */
   id: string;
-  /** The `ENGINE_VERSION` that made the change. */
+  /** The `ENGINE_VERSION` that made the change. A PR adding a rule cannot know it, so it writes the
+   *  placeholder {{ENGINE_VERSION}} as the whole single-quoted string, here and in `test.ts`'s
+   *  `EXPECTED_SINCE`, and the fold fills in the version it assigns (#1816, `fold-stamps.ts`). */
   since: string;
   /** What moved and why, to `INVERSE_GAPS`' standard: enough that a reader can weigh the decision. */
   why: string;
@@ -234,11 +236,11 @@ export const MATERIALIZATION_RENAMES: MaterializationRule[] = [
     since: '0.50.0',
     why:
       'The shipped brands took per-brand root namespaces: aurora `prism/*` -> `ads/*`, harbor '
-      + '`prism/*` -> `hds/*` and wendys `prism/*` -> `wds/*`, following the `<brand>ds` convention New '
-      + 'Balance has always used (`nbds`). '
+      + '`prism/*` -> `hds/*` and the third example brand `prism/*` -> `wds/*`, following the `<brand>ds` '
+      + 'convention the reference brand has always used (`nbds`). '
       + '`prism` and `pds3` are now RESERVED for a future canonical default theme, so no named brand may '
       + 'declare either — all three had been sitting on `prism` by inheriting the engine default rather '
-      + 'than by choosing it, wendys because the standard dialect had no way to declare one at all. Only the FIRST SEGMENT moves: every token name below the root is '
+      + 'than by choosing it, the third because the standard dialect had no way to declare one at all. Only the FIRST SEGMENT moves: every token name below the root is '
       + 'byte-identical, which is why `token-contract.ts --check` reports the guaranteed surface unchanged '
       + '(the contract is keyed below the configurable root). For a Figma file this is still a rename of '
       + 'every variable the brand owns, which is exactly what this register exists to record.',
@@ -288,6 +290,43 @@ export const MATERIALIZATION_RENAMES: MaterializationRule[] = [
     // stops the walk and `planVariableRenames` then reports it, rather than spinning.
     domain: (collection, name, root) => collection === 'color' && name.startsWith(`${root}/color/appearance/`),
     map: (_collection, name, root) => `${root}/color/${name.slice(`${root}/color/appearance/`.length)}`,
+  },
+];
+
+/**
+ * A name DELETED from the emission, with no image — the register a pure removal is recorded in.
+ *
+ * Until the spacing model (2026-09-29) every name that left the Figma emission either moved (a rule above,
+ * or the contract's `DEPRECATIONS`) or was replaced by the same key arriving from elsewhere (#1148). A
+ * deletion with nothing in its place had no record, so it could only surface as an UNACCOUNTED REMOVAL —
+ * the conversation this gate exists to force. The conversation is had once, here, with the owner's decision
+ * named in `why`, and after it the removal is accounted for by id rather than by a rule claiming an image
+ * that does not exist (which would be contradicted, and should be).
+ *
+ * The same discipline as a rule: stated literally, never as "what the emitter no longer does" (`docs/34`
+ * shape 11), evaluated over the WHOLE before-set, and CONTRADICTED when a name it claims is still emitted
+ * while the emission moved. A deleted name needs no apply-side step: the plugin's prune removes a variable
+ * the engine stopped emitting.
+ */
+export type MaterializationDeletion = {
+  id: string;
+  /** As `MaterializationRule.since`: a new deletion writes the quoted placeholder and the fold fills it (#1816). */
+  since: string;
+  why: string;
+  domain: (collection: string, name: string, root: string) => boolean;
+};
+
+export const MATERIALIZATION_DELETIONS: MaterializationDeletion[] = [
+  {
+    id: 'size-spacing-removed-spacing-model',
+    since: '0.206.0',
+    why:
+      'The spacing model (owner, 2026-09-29, `docs/28` §5.4): "size is for size, space is for space". The '
+      + 'shared size scale stopped emitting its spacing, `<root>/size/<rung>/{padding-x,padding-x-visual,'
+      + 'padding-y,gap}`, 20 variables per brand. Nothing replaces them: each component binds the `space/*` '
+      + 'step its own spec states. CONTRACT 14.0.0 records the same removal on the token-name side.',
+    domain: (collection, name, root) =>
+      collection === 'size' && new RegExp(`^${root}/size/(xs|sm|md|lg|xl)/(padding-x|padding-x-visual|padding-y|gap)$`).test(name),
   },
 ];
 
@@ -352,6 +391,8 @@ const account = (
   /** Renames the CONTRACT already records — see `accountFor`'s header for why they belong in this
    *  accounting and why they deliberately do not reach the contradiction arms. */
   contractClaims: readonly Claim[] = [],
+  /** Pure deletions — see `MaterializationDeletion`. Default empty so existing callers read unchanged. */
+  deletions: readonly MaterializationDeletion[] = [],
 ): Accounting => {
   const removed = [...before].filter((k) => !after.has(k)).sort();
   const added = [...after].filter((k) => !before.has(k)).sort();
@@ -435,6 +476,19 @@ const account = (
     claimedTo.add(c.to);
   }
 
+  // ── PURE DELETIONS, over the whole before-set like a rule. A deletion has no image, so its one
+  // contradiction is the name still being emitted; it joins `claimedFrom`, so a key a rule also claims
+  // fails as multiply claimed — one operation, one record.
+  for (const key of (walk === 'whole-set' ? before : removed)) {
+    const { collection, name } = parse(key);
+    for (const d of deletions) {
+      if (!d.domain(collection, name, root)) continue;
+      claimedFrom.set(key, [...(claimedFrom.get(key) ?? []), `delete:${d.id}`]);
+      if (after.has(key) && moved)
+        contradicted.push({ rule: `delete:${d.id}`, from: key, to: key, contradiction: 'still emitted — the deletion says it left and it did not' });
+    }
+  }
+
   const unaccountedRemovals = removed.filter((k) => !claimedFrom.has(k));
   const unaccountedAdditions = added.filter((k) => !claimedTo.has(k));
   const multiplyClaimed = removed
@@ -490,7 +544,8 @@ export const accountFor = (
   parse: (key: VarKey) => { collection: string; name: string },
   root: string,
   contractClaims: readonly Claim[] = [],
-): Accounting => account(before, after, rules, parse, root, 'whole-set', contractClaims);
+  deletions: readonly MaterializationDeletion[] = [],
+): Accounting => account(before, after, rules, parse, root, 'whole-set', contractClaims, deletions);
 
 /**
  * TOTAL means: nothing left unclaimed, no claim contradicted, no key claimed twice. Used by both the

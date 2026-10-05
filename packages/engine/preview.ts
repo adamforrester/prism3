@@ -58,7 +58,7 @@ export const previewSpec: PreviewSpec = {
         // #1281 WIDENED THE SECOND HALF, and the reason is the two-rung state interval. Pressed now
         // sits FOUR rungs from rest rather than two, and in dark mode the fill walks toward the light
         // end — so the one rest-derived ink loses its now-lighter pressed fill in three corpus cells:
-        // harbor/primary 2.62, wendys/primary 2.54, wendys/destructive 2.41, all against the 3 bar.
+        // harbor/primary 2.62, and 2.54 / 2.41 on another corpus brand's primary / destructive, all against the 3 bar.
         // Put to the owner with those numbers and DECIDED: pressed is exempt, because what a pressed
         // state has to communicate is DISTINCTION FROM REST, and the alternative was either a smaller
         // interval (the thing #1281 exists to fix) or a stateful on-fill family (the thing the

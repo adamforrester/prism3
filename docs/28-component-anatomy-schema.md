@@ -140,6 +140,10 @@ three have since shipped.
    into label-side and visual-side. Shipped as `prism.size.<step>.padding-x-visual` in
    the emitted tree, alongside the original `padding-x`.
 
+Items 1 and 3, and the `padding-x` / `padding-y` they extended, were **removed** by §5.4 (2026-09-29):
+the `size.*` tier holds heights only, and each component states its padding and gaps as `space.*`
+steps in its own def. The two orderings those tokens carried (#325, #326) are now rules over the defs.
+
 A fourth, optional and still not built: a **min-width multiplier** — derived, not a
 token, would need a home if the engine adopts Spectrum's `height × multiplier`
 behaviour.
@@ -605,6 +609,97 @@ What that means for a component def:
 - **Id lists hold ids.** `ai.commonPartners` and the `composition` id lists hold only registered def ids.
   A component that is not built yet goes in `composition.planned`; a described pattern goes in
   `composition.replacesPatterns`.
+
+### 5.4 Decided (2026-09-29): size is for size, space is for space — a component states its own spacing, and density moves it one step
+
+The owner's model, in their words: *"size is for size, space is for space."*
+
+**The rule for choosing.** A **dimension** — how big a box is — binds `size.*`: a control's height and
+minimum height per rung, shared so a medium button, field and tag line up, plus the control geometry
+(`control.size.*`) and the icon artboards (`icon.size.*`), which stay where they are. **Spacing** — any
+padding or gap — binds `space.*`, the one spacing vocabulary. If the value is the distance between two
+things, or between a thing and its container's edge, it is `space.*`.
+
+**Where a component's spacing lives: in its spec, not in a token name.** Each def states its padding and
+gaps per size as `space.*` steps at COMFORTABLE density (`'size.medium.padding-x': 'space.200'`) and names
+those keys in `densitySpacing`. The shared scale's `size.{xs,sm,md,lg,xl}.{padding-x,padding-x-visual,
+padding-y,gap}` are removed from every emission — a MAJOR contract bump, 13.2.0 → 14.0.0, with no
+consumers (`docs/30`). The seven non-Tag components that bound them (button and its two siblings,
+text-field, textarea, select, and the checkbox, radio and switch rows) were converted to the `space.*`
+steps those tokens resolved to, pixel-identical at comfortable. Tag took new values from the owner's
+mockup.
+
+**Density follows by rule.** At generation time (`applySpacingDensity`, before projection) compact moves
+each named step **one step down** the space ladder and spacious **one step up**. A step is one position in
+the ladder as `scale.ts` writes it — `0, 025, 050, 075, 100, 150, 200, 250, 300, 400, …` — so 16px goes to
+12 at compact and 20 at spacious, and 24px to 20 and 32. **The ends clamp:** compact at `space.0` stays
+`space.0`, spacious at `space.1200` stays `space.1200`. A spacing that must not move (Tag's 0 inset before
+the dismissible × slot, a field's stack gap) stays off the list. Heights keep their own density window.
+This rule replaces the window padding used to ride on, so compact and spacious spacing moved for the
+existing components; the per-component table is in the PR and `docs/00-progress.md`.
+
+**The orderings moved to the specs.** #325 (a gap is tighter than the padding beside it) and #326
+(Button's icon-side inset sits between: gap < icon-side padding < label-side padding) are no longer
+properties of a shared scale. They are literal rules in `test.ts` over every def that states those values,
+checked at every density after the step rule, with a scope arm that fails when a def states a gap beside a
+padding and has no rule. At the time of writing none is violated.
+
+**Why not per-component tokens.** The alternative was a token per component per size per spacing
+(`button.md.padding-x`, `tag.sm.check-gap`, …): about 100 tokens, bought for a clarity the spec already
+gives, since the def names every value with its reason beside it. The field's consensus is to use
+component tokens sparingly — for the handful of values a brand actually retunes — and the one retune this
+model does need, density, is a rule rather than a column of tokens. Revisitable per brand later, if a brand
+needs to override one component's spacing without editing its spec.
+
+**What does not move with it.** A mode that runs its own density (`modeLevers.<mode>.density`) moves its
+heights; a Figma component binds one `space/*` variable per side and the space collection is
+density-free, so its spacing stays at the brand's baseline density. Decided below (§5.4.3).
+
+#### 5.4.1 Decided (2026-09-29): no gap goes below 4px at any density
+
+The step rule clamps every GAP a def states (icon→label, label→check, a row's control→label, Button's gap)
+at a 4px minimum after the step (`GAP_FLOOR_PX`, `densitySpacingStep`). Paddings are not floored. A
+density-following key is a gap when its last segment is `gap` or ends in `-gap`, and the validator refuses a
+gap under the floor at comfortable. The one value it moves in the corpus is compact small Tag's label→check,
+2 → 4px; the #325/#326 orderings still hold everywhere with it (compact small Tag: both gaps 4, padding-x 6).
+
+#### 5.4.2 Decided (2026-09-29): the density step rule stands as written
+
+Accepted with its consequences for the converted components, including the two whose direction reads
+against intuition: compact small spacing grows (Button padding-x 8 → 12px, gap 4 → 6px; the rows' small gap
+4 → 6px), because the old rung window gave compact small half the padding; and spacious large block padding
+shrinks from 16 to 12px on Button and the fields. The per-component table is in `docs/00-progress.md`
+(2026-09-29, the spacing model) and #1792.
+
+#### 5.4.3 Decided (2026-09-29): per-mode density changes heights only
+
+The per-mode density lever stays. A Figma component binds one `space/*` variable per side and the space
+collection is density-free, so a mode cannot carry its own spacing without per-component tokens, which §5.4
+rejects. The studio says so wherever it sets a per-mode density, in the density lever's own description:
+
+> Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.
+
+#### 5.4.4 Decided (2026-09-29): a dismissible tag's label row takes a fixed 4px inset, and the gap floor holds the distance the eye reads
+
+From live QA on a real Figma file, dismissible tags only. The label-and-check row (`labelCheck`) takes a
+4px leading inset (`space.050`), FIXED at every density, and the content row's icon→label gap drops to
+match — at comfortable, 6 → 2, 8 → 4 and 12 → 4 at small, medium and large. The eye reads the two
+together: icon→label is 6 / 8 / 8, and with no leading icon the label sits padding-x + 4 from the left
+edge (12 / 16 / 20). A dismissible tag is 4px wider (small, 20px label, no icon: 8 + 4 + 20 + 0 + 36 =
+68). A select tag does not change.
+
+**Density.** The def states the VISIBLE icon→label (`size.{size}.dismissible.visible-gap`, 6 / 8 / 8) as
+its density-following gap, and the layer gap is derived from it: visible − 4, never below 0
+(`ComponentDef.visibleGaps`, `visibleGapStep`, written by `applySpacingDensity`). So §5.4.1's 4px floor
+applies to the visible distance, not to the layer gap — a 2px layer gap at comfortable small, and 0 at
+compact small, are intended. The #325 ordering reads the same sum (content gap + inset < padding-x) and
+holds at every size and density:
+
+| density | layer gap + inset = visible (small · medium · large) | padding-x |
+|---|---|---|
+| compact | 0+4=4 · 2+4=6 · 2+4=6 | 6 · 8 · 12 |
+| comfortable | 2+4=6 · 4+4=8 · 4+4=8 | 8 · 12 · 16 |
+| spacious | 4+4=8 · 8+4=12 · 8+4=12 | 12 · 16 · 20 |
 
 ---
 

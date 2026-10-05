@@ -402,6 +402,14 @@ export const runReadbackStyles = async (raw: unknown): Promise<StepReport> => {
  *
  * Everything kept is returned with its reason. Not `applyPrunePlan`, and on purpose: that executor removes
  * collections by NAME, which would take a same-named collection nobody stamped along with the stamped one.
+ *
+ * NOTHING IS READ OFF AN OBJECT AFTER ITS `remove()` (#1790, the shape #1791 fixed in `applyPrunePlan`). The
+ * host invalidates a removed style, variable or collection, and reading any property of it throws (`in
+ * get_name: The style with id "…" does not exist`). Removing a collection removes its variables too, so the
+ * variable list read up front holds dead objects once the first collection goes. Every name, id, stamp,
+ * description and collection id this step matches on or reports is therefore read ONCE, before the first
+ * delete, and each object is removed at most once (each appears once in its snapshot). The mcp-paste shim
+ * throws the same way, which is what keeps this ordering pinned.
  */
 export const runCleanupTheme = async (raw: unknown): Promise<StepReport> => {
   const d = unpack(raw) as StepBase & { root: string; styles: Record<StyleKind, string[]> };
@@ -409,31 +417,37 @@ export const runCleanupTheme = async (raw: unknown): Promise<StepReport> => {
   const r = base(d, 'cleanup-theme', shared, ledger);
   const removed: string[] = [];
   const kept: string[] = [];
-  const cols = (await host.variables.getLocalVariableCollectionsAsync()) as (VarCollection & { real?: { remove(): void }; remove?(): void })[];
-  const vars = await host.variables.getLocalVariablesAsync();
-  for (const c of cols) {
-    const members = vars.filter((v) => v.variableCollectionId === c.id);
-    const foreign = members.filter((v) => v.name.split('/')[0] !== d.root);
-    if (ownedModeIds(c).length === 0) { kept.push(`collection ${c.name}: no Prism3 stamp`); continue; }
-    if (foreign.length) { kept.push(`collection ${c.name}: ${foreign.length} variables outside '${d.root}/' (e.g. ${foreign[0].name})`); continue; }
-    (c.real ?? c).remove?.();
-    removed.push(`collection ${c.name} (${members.length} variables)`);
-    if (ledger) delete ledger.collections[c.id];
-  }
-  const getters: Record<StyleKind, () => Promise<{ name: string; description: string; remove?(): void }[]>> = {
+  type Removable = { remove?(): void };
+  const cols = ((await host.variables.getLocalVariableCollectionsAsync()) as (VarCollection & { real?: Removable } & Removable)[])
+    .map((c) => ({ obj: c.real ?? c, id: c.id, name: c.name, stamped: ownedModeIds(c).length > 0 }));
+  const vars = (await host.variables.getLocalVariablesAsync()).map((v) => ({ name: v.name, collectionId: v.variableCollectionId }));
+  const getters: Record<StyleKind, () => Promise<({ name: string; description: string } & Removable)[]>> = {
     text: () => host.getLocalTextStylesAsync(),
     effect: () => host.getLocalEffectStylesAsync(),
     paint: () => host.getLocalPaintStylesAsync(),
     grid: () => host.getLocalGridStylesAsync(),
   };
+  const styles: { kind: StyleKind; obj: Removable; name: string; description: string }[] = [];
   for (const kind of Object.keys(getters) as StyleKind[]) {
-    const planned = new Set(d.styles[kind] ?? []);
-    for (const s of await getters[kind]()) {
-      if (!planned.has(s.name)) continue;
-      if (!isEngineDescription(kind, s.description ?? '', [...planned])) { kept.push(`${kind} style ${s.name}: description is not the engine's`); continue; }
-      s.remove?.();
-      removed.push(`${kind} style ${s.name}`);
-    }
+    for (const s of await getters[kind]()) styles.push({ kind, obj: s, name: s.name, description: s.description ?? '' });
+  }
+
+  for (const c of cols) {
+    const members = vars.filter((v) => v.collectionId === c.id);
+    const foreign = members.filter((v) => v.name.split('/')[0] !== d.root);
+    if (!c.stamped) { kept.push(`collection ${c.name}: no Prism3 stamp`); continue; }
+    if (foreign.length) { kept.push(`collection ${c.name}: ${foreign.length} variables outside '${d.root}/' (e.g. ${foreign[0].name})`); continue; }
+    c.obj.remove?.();
+    removed.push(`collection ${c.name} (${members.length} variables)`);
+    if (ledger) delete ledger.collections[c.id];
+  }
+  const plannedOf = new Map((Object.keys(getters) as StyleKind[]).map((k) => [k, new Set(d.styles[k] ?? [])] as const));
+  for (const s of styles) {
+    const planned = plannedOf.get(s.kind)!;
+    if (!planned.has(s.name)) continue;
+    if (!isEngineDescription(s.kind, s.description, [...planned])) { kept.push(`${s.kind} style ${s.name}: description is not the engine's`); continue; }
+    s.obj.remove?.();
+    removed.push(`${s.kind} style ${s.name}`);
   }
   host.root.setSharedPluginData('prism3', 'brandInput', '');
   r.removed = removed;

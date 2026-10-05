@@ -87,7 +87,7 @@ Counter reads "240 / 280" or "40 characters remaining"; over-limit reads "12 cha
   - 3.3.2 Labels or Instructions (the "Shift+Enter for a new line" hint whenever Enter submits)
   - 1.3.5 Identify Input Purpose / 1.3.1 Info and Relationships (inherited substrate wiring)
   - 3.3.1 Error Identification / 3.3.3 Error Suggestion (over-limit states the overage and how to fix it)
-  - 1.4.3 Contrast / 1.4.11 Non-text Contrast / 2.4.13 Focus Appearance / 4.1.2 Name Role Value
+  - 1.4.3 Contrast / 1.4.11 Non-text Contrast (field boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance / 4.1.2 Name Role Value
   - 2.5.8 Target Size — intent: the resize handle is the browser's own control, sized by the browser, so this def does not set its target. The 16px grip drawn in Figma is decorative, not the target
 - **Keyboard:** Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract aria-multiline advertises and the default. submitOnEnter inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.
 - **Focus:** :focus-visible with the field ring (`focus.ring.offset-field`, 0 offset). An inset indicator for large surfaces is not built. forwardRef must reach the \<textarea> itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on PROGRAMMATIC value changes (a reset, or AI-inserted text), which is the common auto-grow bug.

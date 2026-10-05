@@ -87,8 +87,14 @@ decision recorded there is correct prose forever and is not this file's subject 
 | a brand that narrows `typography.weights` drops the styles for the weights it doesn't use, and those paths are brand-dependent | 2026-09-24 | `docs/30-versioning-and-compatibility.md` | #1632 |
 | every type category keeps a weight, label keeps `emphasis`, and eyebrow and code may swap theirs | 2026-09-26 | `docs/30-versioning-and-compatibility.md` | #1639 |
 | body and caption keep `default`, the same way label keeps `emphasis` | 2026-09-26 | `docs/30-versioning-and-compatibility.md` | #1681 |
+| size is for size, space is for space — a component states its own spacing, and density moves it one step | 2026-09-29 | `docs/28-component-anatomy-schema.md` §5.4 | — |
+| no gap goes below 4px at any density | 2026-09-29 | `docs/28-component-anatomy-schema.md` §5.4.1 | — |
+| the density step rule stands as written | 2026-09-29 | `docs/28-component-anatomy-schema.md` §5.4.2 | — |
+| per-mode density changes heights only | 2026-09-29 | `docs/28-component-anatomy-schema.md` §5.4.3 | — |
+| a dismissible tag's label row takes a fixed 4px inset, and the gap floor holds the distance the eye reads | 2026-09-29 | `docs/28-component-anatomy-schema.md` §5.4.4 | — |
 | the style guide documents every color collection — primitives on Primitive tokens, roles on Semantic tokens — with modes side by side, a bound swatch drawn on its ground, a contrast column from the engine's contract, in-place reruns that delete a superseded table only when it is unedited, and cell components built or adopted on File Components | 2026-09-28 | `docs/45-style-guide-generator.md` §2 | #259 |
 | each style-guide table's header matches its table's width, not the page, and the grid follows the owner's examples — HUG tracks 2px apart, every text cell FILL, text on one line, and a fixed-size specimen chosen by role that sits on a ground only where it must (none on a palette row) — so a table dragged wider reflows; one style-guide run at a time, a second refused | 2026-09-29 | `docs/45-style-guide-generator.md` §2 | #259 |
+| a PR declares the engine bump in a change note, and a fold assigns one version per batch | 2026-09-30 | `docs/30-versioning-and-compatibility.md` | #1807 |
 
 ## Known gaps, named rather than silent
 

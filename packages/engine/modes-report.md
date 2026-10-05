@@ -2,11 +2,11 @@
 
 # Theme: nb (nbds.* / rgb)
 
-- NB regression: measured anchors; brand red also serves as danger (NB brand hue is its danger hue).
-- dimension axis: 4px grid, 8px space rhythm (numbered scale), comfortable density, radius scale 1 (baseMd 4px).
-- typography: curated rem size ladder (22 steps, 10–160px); weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900.
-- shadow: 6-step ramp + inset, 2-layer, pure-black (NB dialect); mode-aware lift-primary (reduced in dark, NOT NB's heavier inverse — the field-correct choice).
-- layout: 5 breakpoints (engine default) + 12-col grid (4/8/12 ladder) + container max 1920 / narrow 720 (NB caps); gutter/margin alias the spacing scale.
+- reference brand: anchors measured from the shipped system; the brand red also serves as danger, since the brand hue is its danger hue.
+- dimensions: 4px grid, 8px spacing rhythm (numbered scale), 'comfortable' density, radius scale 1 (base radius 4px).
+- typography: 22-step size ladder (10–160px); weights subtle/default/emphasis/strong/max → 300/400/600/700/900.
+- shadow: 6 steps plus inset, two layers, pure black as the reference ships; full in light and reduced in dark, rather than the reference's heavier dark shadows.
+- layout: 5 breakpoints (the default); 12-column grid (4/8/12 by breakpoint); containers max 1920px, narrow 720px, as the reference caps them; gutters and margins from the spacing scale.
 
 Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 
@@ -58,8 +58,8 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.primary.fill.rest | red.550 | 4.62 | 3 | ✅ |
 | interactive.primary.fill.hover | red.650 | 6.82 | 3 | ✅ |
 | interactive.primary.fill.pressed | red.750 | 9.94 | 3 | ✅ |
-| interactive.primary.fill.focused | red.650 | 6.82 | 3 | ✅ |
-| interactive.primary.fill.selected | red.750 | 9.94 | 3 | ✅ |
+| interactive.primary.fill.focused | red.550 | 4.62 | 3 | ✅ |
+| interactive.primary.fill.selected | red.550 | 4.62 | 3 | ✅ |
 | interactive.primary.on-fill | white | 5.62 | 4.5 | ✅ |
 | interactive.primary.text.rest | red.550 | 5.62 | 4.5 | ✅ |
 | interactive.primary.icon.rest | red.550 | 5.62 | 4.5 | ✅ |
@@ -73,8 +73,8 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.destructive.fill.rest | red.550 | 4.62 | 3 | ✅ |
 | interactive.destructive.fill.hover | red.650 | 6.82 | 3 | ✅ |
 | interactive.destructive.fill.pressed | red.750 | 9.94 | 3 | ✅ |
-| interactive.destructive.fill.focused | red.650 | 6.82 | 3 | ✅ |
-| interactive.destructive.fill.selected | red.750 | 9.94 | 3 | ✅ |
+| interactive.destructive.fill.focused | red.550 | 4.62 | 3 | ✅ |
+| interactive.destructive.fill.selected | red.550 | 4.62 | 3 | ✅ |
 | interactive.destructive.on-fill | white | 5.62 | 4.5 | ✅ |
 | interactive.destructive.text.rest | red.600 | 4.98 | 4.5 | ✅ |
 | interactive.destructive.icon.rest | red.600 | 4.98 | 4.5 | ✅ |
@@ -88,8 +88,8 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.neutral.fill.rest | neutral.150 | — | — | · |
 | interactive.neutral.fill.hover | neutral.250 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.350 | — | — | · |
-| interactive.neutral.fill.focused | neutral.250 | — | — | · |
-| interactive.neutral.fill.selected | neutral.350 | — | — | · |
+| interactive.neutral.fill.focused | neutral.150 | — | — | · |
+| interactive.neutral.fill.selected | neutral.150 | — | — | · |
 | interactive.neutral.on-fill | neutral.950 | 12.33 | 4.5 | ✅ |
 | interactive.neutral.text.rest | neutral.950 | 19.44 | 4.5 | ✅ |
 | interactive.neutral.icon.rest | neutral.950 | 19.44 | 4.5 | ✅ |
@@ -111,7 +111,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.primary.fill.pressed | neutral.200 | 10.75 | 3 | ✅ |
 | inverse.interactive.primary.fill.focused | neutral.100 | 14.13 | 3 | ✅ |
 | inverse.interactive.primary.fill.selected | neutral.200 | 10.75 | 3 | ✅ |
-| inverse.interactive.primary.on-fill | red.500 | 4.58 | 4.5 | ✅ |
+| inverse.interactive.primary.on-fill | red.650 | 8.29 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | red.450 | 5.05 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | red.350 | 6.97 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | red.250 | 9.42 | 3 | ✅ |
@@ -126,7 +126,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.destructive.fill.pressed | neutral.200 | 10.75 | 3 | ✅ |
 | inverse.interactive.destructive.fill.focused | neutral.100 | 14.13 | 3 | ✅ |
 | inverse.interactive.destructive.fill.selected | neutral.200 | 10.75 | 3 | ✅ |
-| inverse.interactive.destructive.on-fill | red.500 | 4.58 | 4.5 | ✅ |
+| inverse.interactive.destructive.on-fill | red.650 | 8.29 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.rest | red.400 | 4.92 | 3 | ✅ |
 | inverse.interactive.destructive.border.hover | red.300 | 6.68 | 3 | ✅ |
 | inverse.interactive.destructive.border.pressed | red.200 | 8.91 | 3 | ✅ |
@@ -268,7 +268,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | border.tertiary | neutral.600 | — | — | · |
 | border.brand | red.500 | 4.58 | 3 | ✅ |
 | border.success | green.500 | 4.89 | 3 | ✅ |
-| border.warning | amber.500 | 4.50 | 3 | ✅ |
+| border.warning | amber.550 | 5.44 | 3 | ✅ |
 | border.danger | red.500 | 4.58 | 3 | ✅ |
 | border.info | info.500 | 4.56 | 3 | ✅ |
 | border.focus | red.550 | 5.62 | 3 | ✅ |
@@ -281,6 +281,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.border.danger | red.500 | 4.24 | 3 | ✅ |
 | inverse.border.info | info.500 | 4.27 | 3 | ✅ |
 | inverse.border.focus | red.450 | 5.05 | 3 | ✅ |
+| interactive.primary.subtle-fill.selected | red.550 | — | — | · |
 
 ## nb — color mode: dark
 
@@ -327,12 +328,12 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.foreground.danger-subtle | red.100 | — | — | · |
 | inverse.foreground.info-subtle | info.100 | — | — | · |
 | foreground.danger | red.550 | 3.20 | 3 | ✅ |
-| interactive.primary.fill.rest | red.550 | 3.20 | 3 | ✅ |
-| interactive.primary.fill.hover | red.450 | 4.66 | 3 | ✅ |
-| interactive.primary.fill.pressed | red.350 | 6.44 | 3 | ✅ |
-| interactive.primary.fill.focused | red.450 | 4.66 | 3 | ✅ |
-| interactive.primary.fill.selected | red.350 | 6.44 | 3 | ✅ |
-| interactive.primary.on-fill | neutral.025 | 5.24 | 4.5 | ✅ |
+| interactive.primary.fill.rest | red.500 | 3.92 | 3 | ✅ |
+| interactive.primary.fill.hover | red.400 | 5.52 | 3 | ✅ |
+| interactive.primary.fill.pressed | red.300 | 7.50 | 3 | ✅ |
+| interactive.primary.fill.focused | red.500 | 3.92 | 3 | ✅ |
+| interactive.primary.fill.selected | red.500 | 3.92 | 3 | ✅ |
+| interactive.primary.on-fill | white | 4.58 | 4.5 | ✅ |
 | interactive.primary.text.rest | red.450 | 5.05 | 4.5 | ✅ |
 | interactive.primary.icon.rest | red.450 | 5.05 | 4.5 | ✅ |
 | interactive.primary.text.hover | red.350 | 6.97 | 4.5 | ✅ |
@@ -342,12 +343,12 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.primary.border.rest | red.450 | 5.05 | 3 | ✅ |
 | interactive.primary.border.hover | red.350 | 6.97 | 3 | ✅ |
 | interactive.primary.border.pressed | red.250 | 9.42 | 3 | ✅ |
-| interactive.destructive.fill.rest | red.550 | 3.20 | 3 | ✅ |
-| interactive.destructive.fill.hover | red.450 | 4.66 | 3 | ✅ |
-| interactive.destructive.fill.pressed | red.350 | 6.44 | 3 | ✅ |
-| interactive.destructive.fill.focused | red.450 | 4.66 | 3 | ✅ |
-| interactive.destructive.fill.selected | red.350 | 6.44 | 3 | ✅ |
-| interactive.destructive.on-fill | neutral.025 | 5.24 | 4.5 | ✅ |
+| interactive.destructive.fill.rest | red.500 | 3.92 | 3 | ✅ |
+| interactive.destructive.fill.hover | red.400 | 5.52 | 3 | ✅ |
+| interactive.destructive.fill.pressed | red.300 | 7.50 | 3 | ✅ |
+| interactive.destructive.fill.focused | red.500 | 3.92 | 3 | ✅ |
+| interactive.destructive.fill.selected | red.500 | 3.92 | 3 | ✅ |
+| interactive.destructive.on-fill | white | 4.58 | 4.5 | ✅ |
 | interactive.destructive.text.rest | red.400 | 4.92 | 4.5 | ✅ |
 | interactive.destructive.icon.rest | red.400 | 4.92 | 4.5 | ✅ |
 | interactive.destructive.text.hover | red.300 | 6.68 | 4.5 | ✅ |
@@ -360,8 +361,8 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.neutral.fill.rest | neutral.850 | — | — | · |
 | interactive.neutral.fill.hover | neutral.750 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.650 | — | — | · |
-| interactive.neutral.fill.focused | neutral.750 | — | — | · |
-| interactive.neutral.fill.selected | neutral.650 | — | — | · |
+| interactive.neutral.fill.focused | neutral.850 | — | — | · |
+| interactive.neutral.fill.selected | neutral.850 | — | — | · |
 | interactive.neutral.on-fill | neutral.025 | 14.91 | 4.5 | ✅ |
 | interactive.neutral.text.rest | neutral.025 | 18.11 | 4.5 | ✅ |
 | interactive.neutral.icon.rest | neutral.025 | 18.11 | 4.5 | ✅ |
@@ -383,7 +384,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.primary.fill.pressed | neutral.800 | 12.94 | 3 | ✅ |
 | inverse.interactive.primary.fill.focused | neutral.900 | 16.74 | 3 | ✅ |
 | inverse.interactive.primary.fill.selected | neutral.800 | 12.94 | 3 | ✅ |
-| inverse.interactive.primary.on-fill | red.500 | 4.58 | 4.5 | ✅ |
+| inverse.interactive.primary.on-fill | red.350 | 7.52 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | red.550 | 5.24 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | red.650 | 7.72 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | red.750 | 11.26 | 3 | ✅ |
@@ -398,7 +399,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.destructive.fill.pressed | neutral.800 | 12.94 | 3 | ✅ |
 | inverse.interactive.destructive.fill.focused | neutral.900 | 16.74 | 3 | ✅ |
 | inverse.interactive.destructive.fill.selected | neutral.800 | 12.94 | 3 | ✅ |
-| inverse.interactive.destructive.on-fill | red.500 | 4.58 | 4.5 | ✅ |
+| inverse.interactive.destructive.on-fill | red.350 | 7.52 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.rest | red.600 | 4.98 | 3 | ✅ |
 | inverse.interactive.destructive.border.hover | red.700 | 7.29 | 3 | ✅ |
 | inverse.interactive.destructive.border.pressed | red.800 | 10.30 | 3 | ✅ |
@@ -470,7 +471,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | text.on-success | neutral.025 | 4.56 | 4.5 | ✅ |
 | text.on-warning | black | 4.67 | 4.5 | ✅ |
 | text.on-danger | neutral.025 | 5.24 | 4.5 | ✅ |
-| text.on-info | black | 4.61 | 4.5 | ✅ |
+| text.on-info | white | 4.56 | 4.5 | ✅ |
 | text.link.default | red.450 | 4.66 | 4.5 | ✅ |
 | text.link.hover | red.350 | 6.44 | 4.5 | ✅ |
 | text.link.visited | red.150 | 11.50 | 4.5 | ✅ |
@@ -493,7 +494,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | icon.on-success | neutral.025 | 4.56 | 4.5 | ✅ |
 | icon.on-warning | black | 4.67 | 4.5 | ✅ |
 | icon.on-danger | neutral.025 | 5.24 | 4.5 | ✅ |
-| icon.on-info | black | 4.61 | 4.5 | ✅ |
+| icon.on-info | white | 4.56 | 4.5 | ✅ |
 | icon.link.default | red.450 | 4.66 | 4.5 | ✅ |
 | icon.link.hover | red.350 | 6.44 | 4.5 | ✅ |
 | icon.link.visited | red.150 | 11.50 | 4.5 | ✅ |
@@ -539,9 +540,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | border.secondary | neutral.500 | 4.23 | 3 | ✅ |
 | border.tertiary | neutral.300 | — | — | · |
 | border.brand | red.500 | 4.24 | 3 | ✅ |
-| border.success | green.500 | 3.97 | 3 | ✅ |
+| border.success | green.450 | 4.73 | 3 | ✅ |
 | border.warning | amber.500 | 4.32 | 3 | ✅ |
-| border.danger | red.500 | 4.24 | 3 | ✅ |
+| border.danger | red.400 | 5.98 | 3 | ✅ |
 | border.info | info.500 | 4.27 | 3 | ✅ |
 | border.focus | red.450 | 5.05 | 3 | ✅ |
 | inverse.border.primary | neutral.200 | — | — | · |
@@ -553,6 +554,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.border.danger | red.500 | 4.27 | 3 | ✅ |
 | inverse.border.info | info.500 | 4.25 | 3 | ✅ |
 | inverse.border.focus | red.550 | 5.24 | 3 | ✅ |
+| interactive.primary.subtle-fill.selected | red.500 | — | — | · |
 
 ## nb — color mode: hc-light
 
@@ -602,8 +604,8 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.primary.fill.rest | red.700 | 8.25 | 7 | ✅ |
 | interactive.primary.fill.hover | red.800 | 11.66 | 7 | ✅ |
 | interactive.primary.fill.pressed | red.900 | 14.98 | 7 | ✅ |
-| interactive.primary.fill.focused | red.800 | 11.66 | 7 | ✅ |
-| interactive.primary.fill.selected | red.900 | 14.98 | 7 | ✅ |
+| interactive.primary.fill.focused | red.700 | 8.25 | 7 | ✅ |
+| interactive.primary.fill.selected | red.700 | 8.25 | 7 | ✅ |
 | interactive.primary.on-fill | white | 10.03 | 4.5 | ✅ |
 | interactive.primary.text.rest | red.650 | 8.29 | 7 | ✅ |
 | interactive.primary.icon.rest | red.650 | 8.29 | 7 | ✅ |
@@ -617,8 +619,8 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.destructive.fill.rest | red.700 | 8.25 | 7 | ✅ |
 | interactive.destructive.fill.hover | red.800 | 11.66 | 7 | ✅ |
 | interactive.destructive.fill.pressed | red.900 | 14.98 | 7 | ✅ |
-| interactive.destructive.fill.focused | red.800 | 11.66 | 7 | ✅ |
-| interactive.destructive.fill.selected | red.900 | 14.98 | 7 | ✅ |
+| interactive.destructive.fill.focused | red.700 | 8.25 | 7 | ✅ |
+| interactive.destructive.fill.selected | red.700 | 8.25 | 7 | ✅ |
 | interactive.destructive.on-fill | white | 10.03 | 4.5 | ✅ |
 | interactive.destructive.text.rest | red.650 | 8.29 | 7 | ✅ |
 | interactive.destructive.icon.rest | red.650 | 8.29 | 7 | ✅ |
@@ -632,8 +634,8 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.neutral.fill.rest | neutral.150 | — | — | · |
 | interactive.neutral.fill.hover | neutral.250 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.350 | — | — | · |
-| interactive.neutral.fill.focused | neutral.250 | — | — | · |
-| interactive.neutral.fill.selected | neutral.350 | — | — | · |
+| interactive.neutral.fill.focused | neutral.150 | — | — | · |
+| interactive.neutral.fill.selected | neutral.150 | — | — | · |
 | interactive.neutral.on-fill | black | 13.32 | 4.5 | ✅ |
 | interactive.neutral.text.rest | black | 21.00 | 7 | ✅ |
 | interactive.neutral.icon.rest | black | 21.00 | 7 | ✅ |
@@ -811,9 +813,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | border.secondary | neutral.700 | 9.84 | 4.5 | ✅ |
 | border.tertiary | neutral.950 | — | — | · |
 | border.brand | red.500 | 4.58 | 4.5 | ✅ |
-| border.success | green.500 | 4.89 | 4.5 | ✅ |
-| border.warning | amber.500 | 4.50 | 4.5 | ✅ |
-| border.danger | red.500 | 4.58 | 4.5 | ✅ |
+| border.success | green.550 | 5.89 | 4.5 | ✅ |
+| border.warning | amber.600 | 6.63 | 4.5 | ✅ |
+| border.danger | red.600 | 6.85 | 4.5 | ✅ |
 | border.info | info.500 | 4.56 | 4.5 | ✅ |
 | border.focus | red.700 | 10.03 | 4.5 | ✅ |
 | inverse.border.primary | neutral.500 | — | — | · |
@@ -825,6 +827,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.border.danger | red.500 | 4.58 | 4.5 | ✅ |
 | inverse.border.info | info.500 | 4.61 | 4.5 | ✅ |
 | inverse.border.focus | red.350 | 7.52 | 4.5 | ✅ |
+| interactive.primary.subtle-fill.selected | red.700 | — | — | · |
 
 ## nb — color mode: hc-dark
 
@@ -874,8 +877,8 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.primary.fill.rest | red.300 | 7.50 | 7 | ✅ |
 | interactive.primary.fill.hover | red.200 | 10.01 | 7 | ✅ |
 | interactive.primary.fill.pressed | red.100 | 13.04 | 7 | ✅ |
-| interactive.primary.fill.focused | red.200 | 10.01 | 7 | ✅ |
-| interactive.primary.fill.selected | red.100 | 13.04 | 7 | ✅ |
+| interactive.primary.fill.focused | red.300 | 7.50 | 7 | ✅ |
+| interactive.primary.fill.selected | red.300 | 7.50 | 7 | ✅ |
 | interactive.primary.on-fill | black | 8.77 | 4.5 | ✅ |
 | interactive.primary.text.rest | red.350 | 7.52 | 7 | ✅ |
 | interactive.primary.icon.rest | red.350 | 7.52 | 7 | ✅ |
@@ -889,8 +892,8 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.destructive.fill.rest | red.300 | 7.50 | 7 | ✅ |
 | interactive.destructive.fill.hover | red.200 | 10.01 | 7 | ✅ |
 | interactive.destructive.fill.pressed | red.100 | 13.04 | 7 | ✅ |
-| interactive.destructive.fill.focused | red.200 | 10.01 | 7 | ✅ |
-| interactive.destructive.fill.selected | red.100 | 13.04 | 7 | ✅ |
+| interactive.destructive.fill.focused | red.300 | 7.50 | 7 | ✅ |
+| interactive.destructive.fill.selected | red.300 | 7.50 | 7 | ✅ |
 | interactive.destructive.on-fill | black | 8.77 | 4.5 | ✅ |
 | interactive.destructive.text.rest | red.350 | 7.52 | 7 | ✅ |
 | interactive.destructive.icon.rest | red.350 | 7.52 | 7 | ✅ |
@@ -904,8 +907,8 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | interactive.neutral.fill.rest | neutral.850 | — | — | · |
 | interactive.neutral.fill.hover | neutral.750 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.650 | — | — | · |
-| interactive.neutral.fill.focused | neutral.750 | — | — | · |
-| interactive.neutral.fill.selected | neutral.650 | — | — | · |
+| interactive.neutral.fill.focused | neutral.850 | — | — | · |
+| interactive.neutral.fill.selected | neutral.850 | — | — | · |
 | interactive.neutral.on-fill | white | 16.00 | 4.5 | ✅ |
 | interactive.neutral.text.rest | white | 21.00 | 7 | ✅ |
 | interactive.neutral.icon.rest | white | 21.00 | 7 | ✅ |
@@ -1083,9 +1086,9 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | border.secondary | neutral.250 | 10.09 | 4.5 | ✅ |
 | border.tertiary | neutral.025 | — | — | · |
 | border.brand | red.500 | 4.58 | 4.5 | ✅ |
-| border.success | green.450 | 5.11 | 4.5 | ✅ |
-| border.warning | amber.500 | 4.67 | 4.5 | ✅ |
-| border.danger | red.500 | 4.58 | 4.5 | ✅ |
+| border.success | green.400 | 6.05 | 4.5 | ✅ |
+| border.warning | amber.450 | 5.54 | 4.5 | ✅ |
+| border.danger | red.450 | 5.45 | 4.5 | ✅ |
 | border.info | info.500 | 4.61 | 4.5 | ✅ |
 | border.focus | red.300 | 8.77 | 4.5 | ✅ |
 | inverse.border.primary | neutral.500 | — | — | · |
@@ -1097,6 +1100,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.border.danger | red.500 | 4.58 | 4.5 | ✅ |
 | inverse.border.info | info.500 | 4.56 | 4.5 | ✅ |
 | inverse.border.focus | red.650 | 8.29 | 4.5 | ✅ |
+| interactive.primary.subtle-fill.selected | red.300 | — | — | · |
 
 ## nb — dimension axis
 
@@ -1133,39 +1137,43 @@ Radius — scale `1`:
 | radius.sm | 2 |
 | radius.md | 4 |
 | radius.lg | 6 |
+| radius.xl | 8 |
+| radius.2xl | 12 |
+| radius.3xl | 16 |
 | radius.round | 128 (pill) |
 | radius.capsule | 999 (pill) |
+| radius.hairline | 1 |
 
-Component sizes — t-shirt, density `comfortable` (height + paired padding from the shared scales):
+Component sizes — t-shirt, density `comfortable` (control heights; each component states its own padding and gaps as `space.*` steps, which density moves one step):
 
-| size | height | padding-x | padding-y |
-|---|---|---|---|
-| size.xs | 28px | 8px | 4px |
-| size.sm | 36px | 16px | 6px |
-| size.md | 44px | 16px | 8px |
-| size.lg | 56px | 24px | 8px |
-| size.xl | 68px | 24px | 16px |
+| size | height |
+|---|---|
+| size.xs | 28px |
+| size.sm | 36px |
+| size.md | 44px |
+| size.lg | 56px |
+| size.xl | 68px |
 
 # Theme: prism3 (pds3.* / hex)
 
-- namespace: tokens emit under 'pds3.*' (custom, not the 'prism' default)
-- primary anchor (h266.75) pinned exactly at step 600
-- brand color 'accent' (h289.32) added
-- success: brand-supplied hue 155 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)
-- warning: brand-supplied hue 70 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)
-- info: brand-supplied hue 230 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)
-- action color defaults to the PRIMARY brand palette — CONFIRM this hue is the intended interactive color for this brand
-- danger: brand-supplied hue 25
-- dimension axis: 4px grid, 8px space rhythm, density 'comfortable' (drives component sizes), radius scale 1 (baseMd 4px)
-- motion: tempo 'standard' scales the duration ramp; easing roles + springs + composite transitions generated; reduce-motion variants derived (informational preserved, vestibular → 0)
-- shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness 1; tinted base (hue 266.75, amount 0.35). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.
-- gradient: 2 brand gradient(s) [brand linear 135° 2-stop, glow radial 2-stop] — OPT-IN. DTCG composite spine, stop colors alias the ramp; kind/angle/oklch interpolation in $extensions (DTCG omits them — issue #101). OKLCH-interpolated + 5-stop sRGB pre-sample for Figma (sRGB-only); materializes as a Figma Paint Style (only stop colors bind). Worst-case-stop contrast computed for text-on-gradient.
-- layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32 · 16/24/24/32/48); container max 1440px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with color light/dark.
-- typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/500/600/900; families display=Playfair Display, title=Playfair Display, body=Inter, label=Inter, caption=Inter, eyebrow=Inter, code=JetBrains Mono; typeScale 'default'. 63 semantic composites (title/display sizes shifted by typeScale; display capped at rung '3xl' (160px); title tier omits title.2xs). responsive: 21 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 375–1280px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.
-- disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.
-- interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (interactive.<color>.subtle-fill.{hover,pressed,selected}: the control's own fill at an opacity step) or 'none' to opt out.
-- neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: always generated (#895 removed the lever)
-- strict interactive contrast: off — inverse primary and destructive carry their colored on-fill (brand / danger, #1244/#1384); rest clears AA, transient hover/pressed may dip
+- namespace: tokens emit under 'pds3.*' instead of the default 'prism.*'.
+- primary: the brand color is pinned at step 600 (hue 266.75) — the ramp is built around it.
+- brand color: 'accent' added (hue 289.32).
+- success: the brand's hue 155 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.
+- warning: the brand's hue 70 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.
+- info: the brand's hue 230 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.
+- action: the primary palette, by default — actionPalette is not set.
+- danger: the brand's hue 25.
+- dimensions: 4px grid, 8px spacing rhythm, 'comfortable' density (sets component sizes), radius scale 1 (base radius 4px).
+- motion: 'standard' tempo sets the durations; reduced-motion variants keep informational motion and set vestibular motion to 0.
+- shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness 1; tinted to hue 266.75 at 0.35. Full shadows in light, reduced in dark, where surface lightness carries elevation.
+- gradient: 2 brand gradient(s) — brand (linear 135°, 2 stops), glow (radial, 2 stops). Stops alias the color ramps and blend in oklch; Figma gets a 5-stop sRGB version. Contrast for text on a gradient is computed at its worst-contrast stop.
+- layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); 12-column grid (4/8/12/12/12 by breakpoint); gutters 16/16/24/24/32px and margins 16/24/24/32/48px, from the spacing scale; containers max 1440px, narrow 720px.
+- typography: 22-step size ladder (10–160px), a fixed set rather than a ratio; weights subtle/default/emphasis/strong/max → 300/400/500/600/900; families display Playfair Display, title Playfair Display, body Inter, label Inter, caption Inter, eyebrow Inter, code JetBrains Mono; 'default' type scale. 63 text styles: title and display sizes follow the type scale, display tops out at '3xl' (160px), title.2xs is left out. 21 styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from 375 to 1280px and desktop and mobile Figma modes.
+- disabled: 'reduced' (default) — disabled text and icons clear 3:1 against the contrast floor: dimmed but legible, never below 3:1, without the WCAG 1.4.3/1.4.11 inactive-component exemption. disabledStrategy 'full' raises them to 4.5:1.
+- interactive overlays: 'overlay-neutral' (default) — outline and text controls, rows and menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-checked on the blended surface. 'solid-tint' uses the control's own fill at an opacity step instead; 'none' adds no hover.
+- neutral interactive emphasis: 'subtle' (default) — a light gray fill; inverse-surface variants are always generated.
+- strict interactive contrast: off (default) — text on inverse primary and destructive fills keeps its brand or danger color; rest clears AA, and hover and pressed can dip below it.
 
 Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws from `danger`.
 
@@ -1217,8 +1225,8 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.primary.fill.rest | primary.600 | 6.44 | 3 | ✅ |
 | interactive.primary.fill.hover | primary.700 | 9.20 | 3 | ✅ |
 | interactive.primary.fill.pressed | primary.800 | 12.42 | 3 | ✅ |
-| interactive.primary.fill.focused | primary.700 | 9.20 | 3 | ✅ |
-| interactive.primary.fill.selected | primary.800 | 12.42 | 3 | ✅ |
+| interactive.primary.fill.focused | primary.600 | 6.44 | 3 | ✅ |
+| interactive.primary.fill.selected | primary.600 | 6.44 | 3 | ✅ |
 | interactive.primary.on-fill | white | 7.82 | 4.5 | ✅ |
 | interactive.primary.text.rest | primary.600 | 7.82 | 4.5 | ✅ |
 | interactive.primary.icon.rest | primary.600 | 7.82 | 4.5 | ✅ |
@@ -1232,8 +1240,8 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.destructive.fill.rest | danger.500 | 3.76 | 3 | ✅ |
 | interactive.destructive.fill.hover | danger.600 | 5.59 | 3 | ✅ |
 | interactive.destructive.fill.pressed | danger.700 | 8.24 | 3 | ✅ |
-| interactive.destructive.fill.focused | danger.600 | 5.59 | 3 | ✅ |
-| interactive.destructive.fill.selected | danger.700 | 8.24 | 3 | ✅ |
+| interactive.destructive.fill.focused | danger.500 | 3.76 | 3 | ✅ |
+| interactive.destructive.fill.selected | danger.500 | 3.76 | 3 | ✅ |
 | interactive.destructive.on-fill | white | 4.57 | 4.5 | ✅ |
 | interactive.destructive.text.rest | danger.600 | 4.90 | 4.5 | ✅ |
 | interactive.destructive.icon.rest | danger.600 | 4.90 | 4.5 | ✅ |
@@ -1247,8 +1255,8 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.neutral.fill.rest | neutral.150 | — | — | · |
 | interactive.neutral.fill.hover | neutral.250 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.350 | — | — | · |
-| interactive.neutral.fill.focused | neutral.250 | — | — | · |
-| interactive.neutral.fill.selected | neutral.350 | — | — | · |
+| interactive.neutral.fill.focused | neutral.150 | — | — | · |
+| interactive.neutral.fill.selected | neutral.150 | — | — | · |
 | interactive.neutral.on-fill | neutral.950 | 12.35 | 4.5 | ✅ |
 | interactive.neutral.text.rest | neutral.950 | 19.43 | 4.5 | ✅ |
 | interactive.neutral.icon.rest | neutral.950 | 19.43 | 4.5 | ✅ |
@@ -1270,7 +1278,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.primary.fill.pressed | neutral.200 | 10.78 | 3 | ✅ |
 | inverse.interactive.primary.fill.focused | neutral.100 | 14.04 | 3 | ✅ |
 | inverse.interactive.primary.fill.selected | neutral.200 | 10.78 | 3 | ✅ |
-| inverse.interactive.primary.on-fill | primary.500 | 4.58 | 4.5 | ✅ |
+| inverse.interactive.primary.on-fill | primary.650 | 9.38 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | primary.450 | 5.04 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | primary.350 | 7.01 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | primary.250 | 9.46 | 3 | ✅ |
@@ -1285,7 +1293,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.destructive.fill.pressed | neutral.200 | 10.78 | 3 | ✅ |
 | inverse.interactive.destructive.fill.focused | neutral.100 | 14.04 | 3 | ✅ |
 | inverse.interactive.destructive.fill.selected | neutral.200 | 10.78 | 3 | ✅ |
-| inverse.interactive.destructive.on-fill | danger.500 | 4.57 | 4.5 | ✅ |
+| inverse.interactive.destructive.on-fill | danger.650 | 8.27 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.rest | danger.400 | 4.85 | 3 | ✅ |
 | inverse.interactive.destructive.border.hover | danger.300 | 6.70 | 3 | ✅ |
 | inverse.interactive.destructive.border.pressed | danger.200 | 8.93 | 3 | ✅ |
@@ -1426,9 +1434,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | border.secondary | neutral.400 | 3.28 | 3 | ✅ |
 | border.tertiary | neutral.600 | — | — | · |
 | border.brand | primary.500 | 4.58 | 3 | ✅ |
-| border.success | success.500 | 4.57 | 3 | ✅ |
-| border.warning | warning.500 | 4.54 | 3 | ✅ |
-| border.danger | danger.500 | 4.57 | 3 | ✅ |
+| border.success | success.550 | 5.51 | 3 | ✅ |
+| border.warning | warning.550 | 5.49 | 3 | ✅ |
+| border.danger | danger.550 | 5.55 | 3 | ✅ |
 | border.info | info.500 | 4.55 | 3 | ✅ |
 | border.focus | primary.600 | 7.82 | 3 | ✅ |
 | inverse.border.primary | neutral.800 | — | — | · |
@@ -1440,6 +1448,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.border.danger | danger.500 | 4.25 | 3 | ✅ |
 | inverse.border.info | info.500 | 4.27 | 3 | ✅ |
 | inverse.border.focus | primary.450 | 5.04 | 3 | ✅ |
+| interactive.primary.subtle-fill.selected | primary.600 | — | — | · |
 
 ## prism3 — color mode: dark
 
@@ -1486,12 +1495,12 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.foreground.danger-subtle | danger.100 | — | — | · |
 | inverse.foreground.info-subtle | info.100 | — | — | · |
 | foreground.danger | danger.500 | 3.92 | 3 | ✅ |
-| interactive.primary.fill.rest | primary.550 | 3.03 | 3 | ✅ |
-| interactive.primary.fill.hover | primary.450 | 4.65 | 3 | ✅ |
-| interactive.primary.fill.pressed | primary.350 | 6.46 | 3 | ✅ |
-| interactive.primary.fill.focused | primary.450 | 4.65 | 3 | ✅ |
-| interactive.primary.fill.selected | primary.350 | 6.46 | 3 | ✅ |
-| interactive.primary.on-fill | neutral.025 | 5.53 | 4.5 | ✅ |
+| interactive.primary.fill.rest | primary.500 | 3.91 | 3 | ✅ |
+| interactive.primary.fill.hover | primary.400 | 5.51 | 3 | ✅ |
+| interactive.primary.fill.pressed | primary.300 | 7.58 | 3 | ✅ |
+| interactive.primary.fill.focused | primary.500 | 3.91 | 3 | ✅ |
+| interactive.primary.fill.selected | primary.500 | 3.91 | 3 | ✅ |
+| interactive.primary.on-fill | white | 4.58 | 4.5 | ✅ |
 | interactive.primary.text.rest | primary.450 | 5.04 | 4.5 | ✅ |
 | interactive.primary.icon.rest | primary.450 | 5.04 | 4.5 | ✅ |
 | interactive.primary.text.hover | primary.350 | 7.01 | 4.5 | ✅ |
@@ -1504,9 +1513,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.destructive.fill.rest | danger.500 | 3.92 | 3 | ✅ |
 | interactive.destructive.fill.hover | danger.400 | 5.41 | 3 | ✅ |
 | interactive.destructive.fill.pressed | danger.300 | 7.46 | 3 | ✅ |
-| interactive.destructive.fill.focused | danger.400 | 5.41 | 3 | ✅ |
-| interactive.destructive.fill.selected | danger.300 | 7.46 | 3 | ✅ |
-| interactive.destructive.on-fill | black | 4.60 | 4.5 | ✅ |
+| interactive.destructive.fill.focused | danger.500 | 3.92 | 3 | ✅ |
+| interactive.destructive.fill.selected | danger.500 | 3.92 | 3 | ✅ |
+| interactive.destructive.on-fill | white | 4.57 | 4.5 | ✅ |
 | interactive.destructive.text.rest | danger.400 | 4.85 | 4.5 | ✅ |
 | interactive.destructive.icon.rest | danger.400 | 4.85 | 4.5 | ✅ |
 | interactive.destructive.text.hover | danger.300 | 6.70 | 4.5 | ✅ |
@@ -1519,8 +1528,8 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.neutral.fill.rest | neutral.850 | — | — | · |
 | interactive.neutral.fill.hover | neutral.750 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.650 | — | — | · |
-| interactive.neutral.fill.focused | neutral.750 | — | — | · |
-| interactive.neutral.fill.selected | neutral.650 | — | — | · |
+| interactive.neutral.fill.focused | neutral.850 | — | — | · |
+| interactive.neutral.fill.selected | neutral.850 | — | — | · |
 | interactive.neutral.on-fill | neutral.025 | 15.00 | 4.5 | ✅ |
 | interactive.neutral.text.rest | neutral.025 | 18.13 | 4.5 | ✅ |
 | interactive.neutral.icon.rest | neutral.025 | 18.13 | 4.5 | ✅ |
@@ -1542,7 +1551,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.primary.fill.pressed | neutral.800 | 13.01 | 3 | ✅ |
 | inverse.interactive.primary.fill.focused | neutral.900 | 16.72 | 3 | ✅ |
 | inverse.interactive.primary.fill.selected | neutral.800 | 13.01 | 3 | ✅ |
-| inverse.interactive.primary.on-fill | primary.500 | 4.58 | 4.5 | ✅ |
+| inverse.interactive.primary.on-fill | primary.350 | 7.58 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | primary.600 | 7.30 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | primary.700 | 10.43 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | primary.800 | 14.07 | 3 | ✅ |
@@ -1557,7 +1566,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.destructive.fill.pressed | neutral.800 | 13.01 | 3 | ✅ |
 | inverse.interactive.destructive.fill.focused | neutral.900 | 16.72 | 3 | ✅ |
 | inverse.interactive.destructive.fill.selected | neutral.800 | 13.01 | 3 | ✅ |
-| inverse.interactive.destructive.on-fill | danger.500 | 4.60 | 4.5 | ✅ |
+| inverse.interactive.destructive.on-fill | danger.350 | 7.42 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.rest | danger.600 | 4.90 | 3 | ✅ |
 | inverse.interactive.destructive.border.hover | danger.700 | 7.23 | 3 | ✅ |
 | inverse.interactive.destructive.border.pressed | danger.800 | 10.24 | 3 | ✅ |
@@ -1626,9 +1635,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | text.danger-subtle | danger.350 | 6.87 | 3 | ✅ |
 | text.info-subtle | info.350 | 6.98 | 3 | ✅ |
 | text.on-brand | neutral.025 | 5.53 | 4.5 | ✅ |
-| text.on-success | black | 4.60 | 4.5 | ✅ |
+| text.on-success | white | 4.57 | 4.5 | ✅ |
 | text.on-warning | black | 4.62 | 4.5 | ✅ |
-| text.on-danger | black | 4.60 | 4.5 | ✅ |
+| text.on-danger | white | 4.57 | 4.5 | ✅ |
 | text.on-info | black | 4.62 | 4.5 | ✅ |
 | text.link.default | primary.450 | 4.65 | 4.5 | ✅ |
 | text.link.hover | primary.350 | 6.46 | 4.5 | ✅ |
@@ -1649,9 +1658,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | icon.danger-subtle | danger.350 | 6.87 | 3 | ✅ |
 | icon.info-subtle | info.350 | 6.98 | 3 | ✅ |
 | icon.on-brand | neutral.025 | 5.53 | 4.5 | ✅ |
-| icon.on-success | black | 4.60 | 4.5 | ✅ |
+| icon.on-success | white | 4.57 | 4.5 | ✅ |
 | icon.on-warning | black | 4.62 | 4.5 | ✅ |
-| icon.on-danger | black | 4.60 | 4.5 | ✅ |
+| icon.on-danger | white | 4.57 | 4.5 | ✅ |
 | icon.on-info | black | 4.62 | 4.5 | ✅ |
 | icon.link.default | primary.450 | 4.65 | 4.5 | ✅ |
 | icon.link.hover | primary.350 | 6.46 | 4.5 | ✅ |
@@ -1698,9 +1707,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | border.secondary | neutral.500 | 4.26 | 3 | ✅ |
 | border.tertiary | neutral.250 | — | — | · |
 | border.brand | primary.500 | 4.24 | 3 | ✅ |
-| border.success | success.500 | 4.25 | 3 | ✅ |
-| border.warning | warning.500 | 4.27 | 3 | ✅ |
-| border.danger | danger.500 | 4.25 | 3 | ✅ |
+| border.success | success.450 | 5.03 | 3 | ✅ |
+| border.warning | warning.450 | 5.01 | 3 | ✅ |
+| border.danger | danger.450 | 4.97 | 3 | ✅ |
 | border.info | info.500 | 4.27 | 3 | ✅ |
 | border.focus | primary.450 | 5.04 | 3 | ✅ |
 | inverse.border.primary | neutral.200 | — | — | · |
@@ -1712,6 +1721,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.border.danger | danger.500 | 4.27 | 3 | ✅ |
 | inverse.border.info | info.500 | 4.24 | 3 | ✅ |
 | inverse.border.focus | primary.600 | 7.30 | 3 | ✅ |
+| interactive.primary.subtle-fill.selected | primary.500 | — | — | · |
 
 ## prism3 — color mode: hc-light
 
@@ -1761,8 +1771,8 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.primary.fill.rest | primary.650 | 7.72 | 7 | ✅ |
 | interactive.primary.fill.hover | primary.750 | 10.79 | 7 | ✅ |
 | interactive.primary.fill.pressed | primary.850 | 13.92 | 7 | ✅ |
-| interactive.primary.fill.focused | primary.750 | 10.79 | 7 | ✅ |
-| interactive.primary.fill.selected | primary.850 | 13.92 | 7 | ✅ |
+| interactive.primary.fill.focused | primary.650 | 7.72 | 7 | ✅ |
+| interactive.primary.fill.selected | primary.650 | 7.72 | 7 | ✅ |
 | interactive.primary.on-fill | white | 9.38 | 4.5 | ✅ |
 | interactive.primary.text.rest | primary.600 | 7.82 | 7 | ✅ |
 | interactive.primary.icon.rest | primary.600 | 7.82 | 7 | ✅ |
@@ -1776,8 +1786,8 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.destructive.fill.rest | danger.700 | 8.24 | 7 | ✅ |
 | interactive.destructive.fill.hover | danger.800 | 11.67 | 7 | ✅ |
 | interactive.destructive.fill.pressed | danger.900 | 15.01 | 7 | ✅ |
-| interactive.destructive.fill.focused | danger.800 | 11.67 | 7 | ✅ |
-| interactive.destructive.fill.selected | danger.900 | 15.01 | 7 | ✅ |
+| interactive.destructive.fill.focused | danger.700 | 8.24 | 7 | ✅ |
+| interactive.destructive.fill.selected | danger.700 | 8.24 | 7 | ✅ |
 | interactive.destructive.on-fill | white | 10.01 | 4.5 | ✅ |
 | interactive.destructive.text.rest | danger.650 | 8.27 | 7 | ✅ |
 | interactive.destructive.icon.rest | danger.650 | 8.27 | 7 | ✅ |
@@ -1791,8 +1801,8 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.neutral.fill.rest | neutral.150 | — | — | · |
 | interactive.neutral.fill.hover | neutral.250 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.350 | — | — | · |
-| interactive.neutral.fill.focused | neutral.250 | — | — | · |
-| interactive.neutral.fill.selected | neutral.350 | — | — | · |
+| interactive.neutral.fill.focused | neutral.150 | — | — | · |
+| interactive.neutral.fill.selected | neutral.150 | — | — | · |
 | interactive.neutral.on-fill | black | 13.35 | 4.5 | ✅ |
 | interactive.neutral.text.rest | black | 21.00 | 7 | ✅ |
 | interactive.neutral.icon.rest | black | 21.00 | 7 | ✅ |
@@ -1970,9 +1980,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | border.secondary | neutral.700 | 9.89 | 4.5 | ✅ |
 | border.tertiary | neutral.950 | — | — | · |
 | border.brand | primary.500 | 4.58 | 4.5 | ✅ |
-| border.success | success.500 | 4.57 | 4.5 | ✅ |
-| border.warning | warning.500 | 4.54 | 4.5 | ✅ |
-| border.danger | danger.500 | 4.57 | 4.5 | ✅ |
+| border.success | success.600 | 6.70 | 4.5 | ✅ |
+| border.warning | warning.600 | 6.72 | 4.5 | ✅ |
+| border.danger | danger.600 | 6.78 | 4.5 | ✅ |
 | border.info | info.500 | 4.55 | 4.5 | ✅ |
 | border.focus | primary.650 | 9.38 | 4.5 | ✅ |
 | inverse.border.primary | neutral.500 | — | — | · |
@@ -1984,6 +1994,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.border.danger | danger.500 | 4.60 | 4.5 | ✅ |
 | inverse.border.info | info.500 | 4.62 | 4.5 | ✅ |
 | inverse.border.focus | primary.350 | 7.58 | 4.5 | ✅ |
+| interactive.primary.subtle-fill.selected | primary.650 | — | — | · |
 
 ## prism3 — color mode: hc-dark
 
@@ -2033,8 +2044,8 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.primary.fill.rest | primary.300 | 7.58 | 7 | ✅ |
 | interactive.primary.fill.hover | primary.200 | 10.06 | 7 | ✅ |
 | interactive.primary.fill.pressed | primary.100 | 13.04 | 7 | ✅ |
-| interactive.primary.fill.focused | primary.200 | 10.06 | 7 | ✅ |
-| interactive.primary.fill.selected | primary.100 | 13.04 | 7 | ✅ |
+| interactive.primary.fill.focused | primary.300 | 7.58 | 7 | ✅ |
+| interactive.primary.fill.selected | primary.300 | 7.58 | 7 | ✅ |
 | interactive.primary.on-fill | black | 8.88 | 4.5 | ✅ |
 | interactive.primary.text.rest | primary.350 | 7.58 | 7 | ✅ |
 | interactive.primary.icon.rest | primary.350 | 7.58 | 7 | ✅ |
@@ -2048,8 +2059,8 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.destructive.fill.rest | danger.300 | 7.46 | 7 | ✅ |
 | interactive.destructive.fill.hover | danger.200 | 9.95 | 7 | ✅ |
 | interactive.destructive.fill.pressed | danger.100 | 13.04 | 7 | ✅ |
-| interactive.destructive.fill.focused | danger.200 | 9.95 | 7 | ✅ |
-| interactive.destructive.fill.selected | danger.100 | 13.04 | 7 | ✅ |
+| interactive.destructive.fill.focused | danger.300 | 7.46 | 7 | ✅ |
+| interactive.destructive.fill.selected | danger.300 | 7.46 | 7 | ✅ |
 | interactive.destructive.on-fill | black | 8.75 | 4.5 | ✅ |
 | interactive.destructive.text.rest | danger.350 | 7.42 | 7 | ✅ |
 | interactive.destructive.icon.rest | danger.350 | 7.42 | 7 | ✅ |
@@ -2063,8 +2074,8 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.neutral.fill.rest | neutral.850 | — | — | · |
 | interactive.neutral.fill.hover | neutral.750 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.650 | — | — | · |
-| interactive.neutral.fill.focused | neutral.750 | — | — | · |
-| interactive.neutral.fill.selected | neutral.650 | — | — | · |
+| interactive.neutral.fill.focused | neutral.850 | — | — | · |
+| interactive.neutral.fill.selected | neutral.850 | — | — | · |
 | interactive.neutral.on-fill | white | 16.07 | 4.5 | ✅ |
 | interactive.neutral.text.rest | white | 21.00 | 7 | ✅ |
 | interactive.neutral.icon.rest | white | 21.00 | 7 | ✅ |
@@ -2242,9 +2253,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | border.secondary | neutral.250 | 10.11 | 4.5 | ✅ |
 | border.tertiary | neutral.025 | — | — | · |
 | border.brand | primary.500 | 4.58 | 4.5 | ✅ |
-| border.success | success.500 | 4.60 | 4.5 | ✅ |
-| border.warning | warning.500 | 4.62 | 4.5 | ✅ |
-| border.danger | danger.500 | 4.60 | 4.5 | ✅ |
+| border.success | success.450 | 5.44 | 4.5 | ✅ |
+| border.warning | warning.400 | 6.36 | 4.5 | ✅ |
+| border.danger | danger.400 | 6.34 | 4.5 | ✅ |
 | border.info | info.500 | 4.62 | 4.5 | ✅ |
 | border.focus | primary.300 | 8.88 | 4.5 | ✅ |
 | inverse.border.primary | neutral.500 | — | — | · |
@@ -2256,6 +2267,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.border.danger | danger.500 | 4.57 | 4.5 | ✅ |
 | inverse.border.info | info.500 | 4.55 | 4.5 | ✅ |
 | inverse.border.focus | primary.600 | 7.82 | 4.5 | ✅ |
+| interactive.primary.subtle-fill.selected | primary.300 | — | — | · |
 
 ## prism3 — dimension axis
 
@@ -2292,41 +2304,45 @@ Radius — scale `1`:
 | radius.sm | 2 |
 | radius.md | 4 |
 | radius.lg | 6 |
+| radius.xl | 8 |
+| radius.2xl | 12 |
+| radius.3xl | 16 |
 | radius.round | 128 (pill) |
 | radius.capsule | 999 (pill) |
+| radius.hairline | 1 |
 
-Component sizes — t-shirt, density `comfortable` (height + paired padding from the shared scales):
+Component sizes — t-shirt, density `comfortable` (control heights; each component states its own padding and gaps as `space.*` steps, which density moves one step):
 
-| size | height | padding-x | padding-y |
-|---|---|---|---|
-| size.xs | 28px | 8px | 4px |
-| size.sm | 36px | 16px | 6px |
-| size.md | 44px | 16px | 8px |
-| size.lg | 56px | 24px | 8px |
-| size.xl | 68px | 24px | 16px |
+| size | height |
+|---|---|
+| size.xs | 28px |
+| size.sm | 36px |
+| size.md | 44px |
+| size.lg | 56px |
+| size.xl | 68px |
 
 # Theme: aurora (ads.* / hex)
 
-- namespace: tokens emit under 'ads.*' (custom, not the 'prism' default)
-- primary anchor (h285) pinned exactly at step 550
-- anchor 'accent' (L0.55 C0.15 h235) is OUT of sRGB gamut — max renderable chroma at this L/hue is ~0.117; it ships clamped toward the boundary, so its lightness and hue may drift. Lower its chroma to ~0.117 for an exact match.
-- brand color 'accent' (h235) added
-- success: engine default hue 145
-- warning: engine default hue 75
-- info: engine default hue 245
-- action color is decoupled: uses palette 'accent', NOT the primary brand palette — explicit brand decision
-- danger: primary hue 285 is NOT red → carved a dedicated danger red at hue 27
-- dimension axis: 4px grid, 8px space rhythm, density 'comfortable' (drives component sizes), radius scale 2 (baseMd 4px)
-- motion: tempo 'snappy' scales the duration ramp; easing roles + springs + composite transitions generated; reduce-motion variants derived (informational preserved, vestibular → 0)
-- shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness 1.3; tinted base (hue 285, amount 0.5). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.
-- gradient: 2 brand gradient(s) [brand linear 135° 2-stop, glow radial 2-stop] — OPT-IN. DTCG composite spine, stop colors alias the ramp; kind/angle/oklch interpolation in $extensions (DTCG omits them — issue #101). OKLCH-interpolated + 5-stop sRGB pre-sample for Figma (sRGB-only); materializes as a Figma Paint Style (only stop colors bind). Worst-case-stop contrast computed for text-on-gradient.
-- layout: 6 breakpoints (xs 0, sm 480, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32/32 · 16/24/24/32/48/48); container max 1280px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with color light/dark.
-- typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/500/700/900; families display=Clash Display, title=Clash Display, body=Inter, label=Inter, caption=Inter, eyebrow=Clash Display, code=JetBrains Mono (variable: display/title/body/label/caption/eyebrow); typeScale 'expressive'. 38 semantic composites (title/display sizes shifted by typeScale; display capped at rung 'xl' (112px); title tier includes title.2xs). responsive: 11 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 360–1440px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.
-- disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.
-- interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (interactive.<color>.subtle-fill.{hover,pressed,selected}: the control's own fill at an opacity step) or 'none' to opt out.
-- action anchored at accent 'accent' step 500 (its pinned lightness) — the brand's own shade, nudged only if it fails AA on the floor
-- neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: always generated (#895 removed the lever)
-- strict interactive contrast: off — inverse primary and destructive carry their colored on-fill (brand / danger, #1244/#1384); rest clears AA, transient hover/pressed may dip
+- namespace: tokens emit under 'ads.*' instead of the default 'prism.*'.
+- primary: the brand color is pinned at step 550 (hue 285) — the ramp is built around it.
+- anchor 'accent' (oklch 0.55 0.15 235) is outside the sRGB gamut — sRGB shows at most 0.117 chroma (±0.0005) at this lightness and hue, so it ships clamped and its lightness and hue can shift. A chroma at least 0.0005 below 0.117 ships exactly.
+- brand color: 'accent' added (hue 235).
+- success: default hue 145 — status.success is not set.
+- warning: default hue 75 — status.warning is not set.
+- info: default hue 245 — status.info is not set.
+- action: uses the 'accent' palette instead of primary, as the brand sets.
+- danger: the primary (hue 285) is not red, so danger gets its own red at hue 27.
+- dimensions: 4px grid, 8px spacing rhythm, 'comfortable' density (sets component sizes), radius scale 2 (base radius 4px).
+- motion: 'snappy' tempo sets the durations; reduced-motion variants keep informational motion and set vestibular motion to 0.
+- shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness 1.3; tinted to hue 285 at 0.5. Full shadows in light, reduced in dark, where surface lightness carries elevation.
+- gradient: 2 brand gradient(s) — brand (linear 135°, 2 stops), glow (radial, 2 stops). Stops alias the color ramps and blend in oklch; Figma gets a 5-stop sRGB version. Contrast for text on a gradient is computed at its worst-contrast stop.
+- layout: 6 breakpoints (xs 0, sm 480, md 768, lg 1024, xl 1440, 2xl 1920); 12-column grid (4/8/12/12/12/12 by breakpoint); gutters 16/16/24/24/32/32px and margins 16/24/24/32/48/48px, from the spacing scale; containers max 1280px, narrow 720px.
+- typography: 22-step size ladder (10–160px), a fixed set rather than a ratio; weights subtle/default/emphasis/strong/max → 300/400/500/700/900; families display Clash Display, title Clash Display, body Inter, label Inter, caption Inter, eyebrow Clash Display, code JetBrains Mono (variable: display/title/body/label/caption/eyebrow); 'expressive' type scale. 38 text styles: title and display sizes follow the type scale, display tops out at 'xl' (112px), title.2xs is included. 11 styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from 360 to 1440px and desktop and mobile Figma modes.
+- disabled: 'reduced' (default) — disabled text and icons clear 3:1 against the contrast floor: dimmed but legible, never below 3:1, without the WCAG 1.4.3/1.4.11 inactive-component exemption. disabledStrategy 'full' raises them to 4.5:1.
+- interactive overlays: 'overlay-neutral' (default) — outline and text controls, rows and menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-checked on the blended surface. 'solid-tint' uses the control's own fill at an opacity step instead; 'none' adds no hover.
+- action: anchored at 'accent' step 500, the brand's own shade — moved only if it misses 3:1 (7:1 in high contrast) against the contrast floor or background.tertiary.
+- neutral interactive emphasis: 'subtle' (default) — a light gray fill; inverse-surface variants are always generated.
+- strict interactive contrast: off (default) — text on inverse primary and destructive fills keeps its brand or danger color; rest clears AA, and hover and pressed can dip below it.
 
 Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws from `danger`.
 
@@ -2378,8 +2394,8 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.primary.fill.rest | accent.500 | 3.76 | 3 | ✅ |
 | interactive.primary.fill.hover | accent.600 | 5.65 | 3 | ✅ |
 | interactive.primary.fill.pressed | accent.700 | 8.27 | 3 | ✅ |
-| interactive.primary.fill.focused | accent.600 | 5.65 | 3 | ✅ |
-| interactive.primary.fill.selected | accent.700 | 8.27 | 3 | ✅ |
+| interactive.primary.fill.focused | accent.500 | 3.76 | 3 | ✅ |
+| interactive.primary.fill.selected | accent.500 | 3.76 | 3 | ✅ |
 | interactive.primary.on-fill | white | 4.56 | 4.5 | ✅ |
 | interactive.primary.text.rest | accent.500 | 4.56 | 4.5 | ✅ |
 | interactive.primary.icon.rest | accent.500 | 4.56 | 4.5 | ✅ |
@@ -2393,8 +2409,8 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.destructive.fill.rest | danger.500 | 3.76 | 3 | ✅ |
 | interactive.destructive.fill.hover | danger.600 | 5.57 | 3 | ✅ |
 | interactive.destructive.fill.pressed | danger.700 | 8.23 | 3 | ✅ |
-| interactive.destructive.fill.focused | danger.600 | 5.57 | 3 | ✅ |
-| interactive.destructive.fill.selected | danger.700 | 8.23 | 3 | ✅ |
+| interactive.destructive.fill.focused | danger.500 | 3.76 | 3 | ✅ |
+| interactive.destructive.fill.selected | danger.500 | 3.76 | 3 | ✅ |
 | interactive.destructive.on-fill | white | 4.56 | 4.5 | ✅ |
 | interactive.destructive.text.rest | danger.600 | 4.89 | 4.5 | ✅ |
 | interactive.destructive.icon.rest | danger.600 | 4.89 | 4.5 | ✅ |
@@ -2408,8 +2424,8 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.neutral.fill.rest | neutral.150 | — | — | · |
 | interactive.neutral.fill.hover | neutral.250 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.350 | — | — | · |
-| interactive.neutral.fill.focused | neutral.250 | — | — | · |
-| interactive.neutral.fill.selected | neutral.350 | — | — | · |
+| interactive.neutral.fill.focused | neutral.150 | — | — | · |
+| interactive.neutral.fill.selected | neutral.150 | — | — | · |
 | interactive.neutral.on-fill | neutral.950 | 12.36 | 4.5 | ✅ |
 | interactive.neutral.text.rest | neutral.950 | 19.43 | 4.5 | ✅ |
 | interactive.neutral.icon.rest | neutral.950 | 19.43 | 4.5 | ✅ |
@@ -2431,7 +2447,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.primary.fill.pressed | neutral.200 | 10.81 | 3 | ✅ |
 | inverse.interactive.primary.fill.focused | neutral.100 | 14.05 | 3 | ✅ |
 | inverse.interactive.primary.fill.selected | neutral.200 | 10.81 | 3 | ✅ |
-| inverse.interactive.primary.on-fill | accent.500 | 4.56 | 4.5 | ✅ |
+| inverse.interactive.primary.on-fill | accent.650 | 8.30 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | accent.450 | 4.87 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | accent.350 | 6.80 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | accent.250 | 9.23 | 3 | ✅ |
@@ -2446,7 +2462,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.destructive.fill.pressed | neutral.200 | 10.81 | 3 | ✅ |
 | inverse.interactive.destructive.fill.focused | neutral.100 | 14.05 | 3 | ✅ |
 | inverse.interactive.destructive.fill.selected | neutral.200 | 10.81 | 3 | ✅ |
-| inverse.interactive.destructive.on-fill | danger.500 | 4.56 | 4.5 | ✅ |
+| inverse.interactive.destructive.on-fill | danger.650 | 8.22 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.rest | danger.400 | 4.86 | 3 | ✅ |
 | inverse.interactive.destructive.border.hover | danger.300 | 6.65 | 3 | ✅ |
 | inverse.interactive.destructive.border.pressed | danger.200 | 8.94 | 3 | ✅ |
@@ -2589,7 +2605,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | border.brand | primary.500 | 4.58 | 3 | ✅ |
 | border.success | success.500 | 4.59 | 3 | ✅ |
 | border.warning | warning.500 | 4.59 | 3 | ✅ |
-| border.danger | danger.500 | 4.56 | 3 | ✅ |
+| border.danger | danger.550 | 5.55 | 3 | ✅ |
 | border.info | info.500 | 4.56 | 3 | ✅ |
 | border.focus | accent.500 | 4.56 | 3 | ✅ |
 | inverse.border.primary | neutral.800 | — | — | · |
@@ -2601,6 +2617,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.border.danger | danger.500 | 4.26 | 3 | ✅ |
 | inverse.border.info | info.500 | 4.26 | 3 | ✅ |
 | inverse.border.focus | accent.450 | 4.87 | 3 | ✅ |
+| interactive.primary.subtle-fill.selected | accent.500 | — | — | · |
 
 ## aurora — color mode: dark
 
@@ -2650,9 +2667,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.primary.fill.rest | accent.500 | 3.92 | 3 | ✅ |
 | interactive.primary.fill.hover | accent.400 | 5.34 | 3 | ✅ |
 | interactive.primary.fill.pressed | accent.300 | 7.32 | 3 | ✅ |
-| interactive.primary.fill.focused | accent.400 | 5.34 | 3 | ✅ |
-| interactive.primary.fill.selected | accent.300 | 7.32 | 3 | ✅ |
-| interactive.primary.on-fill | black | 4.60 | 4.5 | ✅ |
+| interactive.primary.fill.focused | accent.500 | 3.92 | 3 | ✅ |
+| interactive.primary.fill.selected | accent.500 | 3.92 | 3 | ✅ |
+| interactive.primary.on-fill | white | 4.56 | 4.5 | ✅ |
 | interactive.primary.text.rest | accent.450 | 4.87 | 4.5 | ✅ |
 | interactive.primary.icon.rest | accent.450 | 4.87 | 4.5 | ✅ |
 | interactive.primary.text.hover | accent.350 | 6.80 | 4.5 | ✅ |
@@ -2665,9 +2682,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.destructive.fill.rest | danger.500 | 3.92 | 3 | ✅ |
 | interactive.destructive.fill.hover | danger.400 | 5.41 | 3 | ✅ |
 | interactive.destructive.fill.pressed | danger.300 | 7.42 | 3 | ✅ |
-| interactive.destructive.fill.focused | danger.400 | 5.41 | 3 | ✅ |
-| interactive.destructive.fill.selected | danger.300 | 7.42 | 3 | ✅ |
-| interactive.destructive.on-fill | black | 4.60 | 4.5 | ✅ |
+| interactive.destructive.fill.focused | danger.500 | 3.92 | 3 | ✅ |
+| interactive.destructive.fill.selected | danger.500 | 3.92 | 3 | ✅ |
+| interactive.destructive.on-fill | white | 4.56 | 4.5 | ✅ |
 | interactive.destructive.text.rest | danger.400 | 4.86 | 4.5 | ✅ |
 | interactive.destructive.icon.rest | danger.400 | 4.86 | 4.5 | ✅ |
 | interactive.destructive.text.hover | danger.300 | 6.65 | 4.5 | ✅ |
@@ -2680,8 +2697,8 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.neutral.fill.rest | neutral.850 | — | — | · |
 | interactive.neutral.fill.hover | neutral.750 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.650 | — | — | · |
-| interactive.neutral.fill.focused | neutral.750 | — | — | · |
-| interactive.neutral.fill.selected | neutral.650 | — | — | · |
+| interactive.neutral.fill.focused | neutral.850 | — | — | · |
+| interactive.neutral.fill.selected | neutral.850 | — | — | · |
 | interactive.neutral.on-fill | neutral.025 | 14.99 | 4.5 | ✅ |
 | interactive.neutral.text.rest | neutral.025 | 18.13 | 4.5 | ✅ |
 | interactive.neutral.icon.rest | neutral.025 | 18.13 | 4.5 | ✅ |
@@ -2703,7 +2720,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.primary.fill.pressed | neutral.800 | 13.00 | 3 | ✅ |
 | inverse.interactive.primary.fill.focused | neutral.900 | 16.71 | 3 | ✅ |
 | inverse.interactive.primary.fill.selected | neutral.800 | 13.00 | 3 | ✅ |
-| inverse.interactive.primary.on-fill | accent.500 | 4.60 | 4.5 | ✅ |
+| inverse.interactive.primary.on-fill | accent.350 | 7.36 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | accent.550 | 5.31 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | accent.650 | 7.75 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | accent.750 | 11.16 | 3 | ✅ |
@@ -2718,7 +2735,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.destructive.fill.pressed | neutral.800 | 13.00 | 3 | ✅ |
 | inverse.interactive.destructive.fill.focused | neutral.900 | 16.71 | 3 | ✅ |
 | inverse.interactive.destructive.fill.selected | neutral.800 | 13.00 | 3 | ✅ |
-| inverse.interactive.destructive.on-fill | danger.500 | 4.60 | 4.5 | ✅ |
+| inverse.interactive.destructive.on-fill | danger.350 | 7.44 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.rest | danger.600 | 4.89 | 3 | ✅ |
 | inverse.interactive.destructive.border.hover | danger.700 | 7.22 | 3 | ✅ |
 | inverse.interactive.destructive.border.pressed | danger.800 | 10.27 | 3 | ✅ |
@@ -2786,11 +2803,11 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | text.warning-subtle | warning.350 | 6.85 | 3 | ✅ |
 | text.danger-subtle | danger.350 | 6.88 | 3 | ✅ |
 | text.info-subtle | info.350 | 6.95 | 3 | ✅ |
-| text.on-brand | black | 4.59 | 4.5 | ✅ |
+| text.on-brand | white | 4.58 | 4.5 | ✅ |
 | text.on-success | white | 4.59 | 4.5 | ✅ |
 | text.on-warning | white | 4.59 | 4.5 | ✅ |
-| text.on-danger | black | 4.60 | 4.5 | ✅ |
-| text.on-info | black | 4.61 | 4.5 | ✅ |
+| text.on-danger | white | 4.56 | 4.5 | ✅ |
+| text.on-info | white | 4.56 | 4.5 | ✅ |
 | text.link.default | accent.400 | 5.34 | 4.5 | ✅ |
 | text.link.hover | accent.300 | 7.32 | 4.5 | ✅ |
 | text.link.visited | accent.100 | 12.95 | 4.5 | ✅ |
@@ -2809,11 +2826,11 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | icon.warning-subtle | warning.350 | 6.85 | 3 | ✅ |
 | icon.danger-subtle | danger.350 | 6.88 | 3 | ✅ |
 | icon.info-subtle | info.350 | 6.95 | 3 | ✅ |
-| icon.on-brand | black | 4.59 | 4.5 | ✅ |
+| icon.on-brand | white | 4.58 | 4.5 | ✅ |
 | icon.on-success | white | 4.59 | 4.5 | ✅ |
 | icon.on-warning | white | 4.59 | 4.5 | ✅ |
-| icon.on-danger | black | 4.60 | 4.5 | ✅ |
-| icon.on-info | black | 4.61 | 4.5 | ✅ |
+| icon.on-danger | white | 4.56 | 4.5 | ✅ |
+| icon.on-info | white | 4.56 | 4.5 | ✅ |
 | icon.link.default | accent.500 | 3.92 | 3 | ✅ |
 | icon.link.hover | accent.400 | 5.34 | 3 | ✅ |
 | icon.link.visited | accent.200 | 9.82 | 3 | ✅ |
@@ -2859,9 +2876,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | border.secondary | neutral.500 | 4.28 | 3 | ✅ |
 | border.tertiary | neutral.300 | — | — | · |
 | border.brand | primary.500 | 4.25 | 3 | ✅ |
-| border.success | success.500 | 4.23 | 3 | ✅ |
-| border.warning | warning.500 | 4.23 | 3 | ✅ |
-| border.danger | danger.500 | 4.26 | 3 | ✅ |
+| border.success | success.450 | 5.07 | 3 | ✅ |
+| border.warning | warning.450 | 4.99 | 3 | ✅ |
+| border.danger | danger.450 | 4.95 | 3 | ✅ |
 | border.info | info.500 | 4.26 | 3 | ✅ |
 | border.focus | accent.450 | 4.87 | 3 | ✅ |
 | inverse.border.primary | neutral.200 | — | — | · |
@@ -2873,6 +2890,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.border.danger | danger.500 | 4.26 | 3 | ✅ |
 | inverse.border.info | info.500 | 4.26 | 3 | ✅ |
 | inverse.border.focus | accent.550 | 5.31 | 3 | ✅ |
+| interactive.primary.subtle-fill.selected | accent.500 | — | — | · |
 
 ## aurora — color mode: hc-light
 
@@ -2922,8 +2940,8 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.primary.fill.rest | accent.700 | 8.27 | 7 | ✅ |
 | interactive.primary.fill.hover | accent.800 | 11.47 | 7 | ✅ |
 | interactive.primary.fill.pressed | accent.900 | 14.80 | 7 | ✅ |
-| interactive.primary.fill.focused | accent.800 | 11.47 | 7 | ✅ |
-| interactive.primary.fill.selected | accent.900 | 14.80 | 7 | ✅ |
+| interactive.primary.fill.focused | accent.700 | 8.27 | 7 | ✅ |
+| interactive.primary.fill.selected | accent.700 | 8.27 | 7 | ✅ |
 | interactive.primary.on-fill | white | 10.03 | 4.5 | ✅ |
 | interactive.primary.text.rest | accent.650 | 8.30 | 7 | ✅ |
 | interactive.primary.icon.rest | accent.650 | 8.30 | 7 | ✅ |
@@ -2937,8 +2955,8 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.destructive.fill.rest | danger.700 | 8.23 | 7 | ✅ |
 | interactive.destructive.fill.hover | danger.800 | 11.70 | 7 | ✅ |
 | interactive.destructive.fill.pressed | danger.900 | 15.03 | 7 | ✅ |
-| interactive.destructive.fill.focused | danger.800 | 11.70 | 7 | ✅ |
-| interactive.destructive.fill.selected | danger.900 | 15.03 | 7 | ✅ |
+| interactive.destructive.fill.focused | danger.700 | 8.23 | 7 | ✅ |
+| interactive.destructive.fill.selected | danger.700 | 8.23 | 7 | ✅ |
 | interactive.destructive.on-fill | white | 9.99 | 4.5 | ✅ |
 | interactive.destructive.text.rest | danger.650 | 8.22 | 7 | ✅ |
 | interactive.destructive.icon.rest | danger.650 | 8.22 | 7 | ✅ |
@@ -2952,8 +2970,8 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.neutral.fill.rest | neutral.150 | — | — | · |
 | interactive.neutral.fill.hover | neutral.250 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.350 | — | — | · |
-| interactive.neutral.fill.focused | neutral.250 | — | — | · |
-| interactive.neutral.fill.selected | neutral.350 | — | — | · |
+| interactive.neutral.fill.focused | neutral.150 | — | — | · |
+| interactive.neutral.fill.selected | neutral.150 | — | — | · |
 | interactive.neutral.on-fill | black | 13.36 | 4.5 | ✅ |
 | interactive.neutral.text.rest | black | 21.00 | 7 | ✅ |
 | interactive.neutral.icon.rest | black | 21.00 | 7 | ✅ |
@@ -3131,9 +3149,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | border.secondary | neutral.700 | 9.85 | 4.5 | ✅ |
 | border.tertiary | neutral.950 | — | — | · |
 | border.brand | primary.500 | 4.58 | 4.5 | ✅ |
-| border.success | success.500 | 4.59 | 4.5 | ✅ |
-| border.warning | warning.500 | 4.59 | 4.5 | ✅ |
-| border.danger | danger.500 | 4.56 | 4.5 | ✅ |
+| border.success | success.600 | 6.67 | 4.5 | ✅ |
+| border.warning | warning.600 | 6.72 | 4.5 | ✅ |
+| border.danger | danger.600 | 6.76 | 4.5 | ✅ |
 | border.info | info.500 | 4.56 | 4.5 | ✅ |
 | border.focus | accent.700 | 10.03 | 4.5 | ✅ |
 | inverse.border.primary | neutral.500 | — | — | · |
@@ -3145,6 +3163,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.border.danger | danger.500 | 4.60 | 4.5 | ✅ |
 | inverse.border.info | info.500 | 4.61 | 4.5 | ✅ |
 | inverse.border.focus | accent.350 | 7.36 | 4.5 | ✅ |
+| interactive.primary.subtle-fill.selected | accent.700 | — | — | · |
 
 ## aurora — color mode: hc-dark
 
@@ -3194,8 +3213,8 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.primary.fill.rest | accent.300 | 7.32 | 7 | ✅ |
 | interactive.primary.fill.hover | accent.200 | 9.82 | 7 | ✅ |
 | interactive.primary.fill.pressed | accent.100 | 12.95 | 7 | ✅ |
-| interactive.primary.fill.focused | accent.200 | 9.82 | 7 | ✅ |
-| interactive.primary.fill.selected | accent.100 | 12.95 | 7 | ✅ |
+| interactive.primary.fill.focused | accent.300 | 7.32 | 7 | ✅ |
+| interactive.primary.fill.selected | accent.300 | 7.32 | 7 | ✅ |
 | interactive.primary.on-fill | black | 8.59 | 4.5 | ✅ |
 | interactive.primary.text.rest | accent.350 | 7.36 | 7 | ✅ |
 | interactive.primary.icon.rest | accent.350 | 7.36 | 7 | ✅ |
@@ -3209,8 +3228,8 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.destructive.fill.rest | danger.300 | 7.42 | 7 | ✅ |
 | interactive.destructive.fill.hover | danger.200 | 9.97 | 7 | ✅ |
 | interactive.destructive.fill.pressed | danger.100 | 12.98 | 7 | ✅ |
-| interactive.destructive.fill.focused | danger.200 | 9.97 | 7 | ✅ |
-| interactive.destructive.fill.selected | danger.100 | 12.98 | 7 | ✅ |
+| interactive.destructive.fill.focused | danger.300 | 7.42 | 7 | ✅ |
+| interactive.destructive.fill.selected | danger.300 | 7.42 | 7 | ✅ |
 | interactive.destructive.on-fill | black | 8.70 | 4.5 | ✅ |
 | interactive.destructive.text.rest | danger.350 | 7.44 | 7 | ✅ |
 | interactive.destructive.icon.rest | danger.350 | 7.44 | 7 | ✅ |
@@ -3224,8 +3243,8 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | interactive.neutral.fill.rest | neutral.850 | — | — | · |
 | interactive.neutral.fill.hover | neutral.750 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.650 | — | — | · |
-| interactive.neutral.fill.focused | neutral.750 | — | — | · |
-| interactive.neutral.fill.selected | neutral.650 | — | — | · |
+| interactive.neutral.fill.focused | neutral.850 | — | — | · |
+| interactive.neutral.fill.selected | neutral.850 | — | — | · |
 | interactive.neutral.on-fill | white | 16.06 | 4.5 | ✅ |
 | interactive.neutral.text.rest | white | 21.00 | 7 | ✅ |
 | interactive.neutral.icon.rest | white | 21.00 | 7 | ✅ |
@@ -3403,9 +3422,9 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | border.secondary | neutral.250 | 10.14 | 4.5 | ✅ |
 | border.tertiary | neutral.025 | — | — | · |
 | border.brand | primary.500 | 4.59 | 4.5 | ✅ |
-| border.success | success.500 | 4.58 | 4.5 | ✅ |
-| border.warning | warning.500 | 4.58 | 4.5 | ✅ |
-| border.danger | danger.500 | 4.60 | 4.5 | ✅ |
+| border.success | success.450 | 5.48 | 4.5 | ✅ |
+| border.warning | warning.400 | 6.37 | 4.5 | ✅ |
+| border.danger | danger.400 | 6.35 | 4.5 | ✅ |
 | border.info | info.500 | 4.61 | 4.5 | ✅ |
 | border.focus | accent.300 | 8.59 | 4.5 | ✅ |
 | inverse.border.primary | neutral.500 | — | — | · |
@@ -3417,6 +3436,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.border.danger | danger.500 | 4.56 | 4.5 | ✅ |
 | inverse.border.info | info.500 | 4.56 | 4.5 | ✅ |
 | inverse.border.focus | accent.650 | 8.30 | 4.5 | ✅ |
+| interactive.primary.subtle-fill.selected | accent.300 | — | — | · |
 
 ## aurora — dimension axis
 
@@ -3453,40 +3473,44 @@ Radius — scale `2`:
 | radius.sm | 4 |
 | radius.md | 8 |
 | radius.lg | 12 |
+| radius.xl | 16 |
+| radius.2xl | 24 |
+| radius.3xl | 32 |
 | radius.round | 128 (pill) |
 | radius.capsule | 999 (pill) |
+| radius.hairline | 1 |
 
-Component sizes — t-shirt, density `comfortable` (height + paired padding from the shared scales):
+Component sizes — t-shirt, density `comfortable` (control heights; each component states its own padding and gaps as `space.*` steps, which density moves one step):
 
-| size | height | padding-x | padding-y |
-|---|---|---|---|
-| size.xs | 28px | 8px | 4px |
-| size.sm | 36px | 16px | 6px |
-| size.md | 44px | 16px | 8px |
-| size.lg | 56px | 24px | 8px |
-| size.xl | 68px | 24px | 16px |
+| size | height |
+|---|---|
+| size.xs | 28px |
+| size.sm | 36px |
+| size.md | 44px |
+| size.lg | 56px |
+| size.xl | 68px |
 
 # Theme: harbor (hds.* / hex)
 
-- namespace: tokens emit under 'hds.*' (custom, not the 'prism' default)
-- primary anchor (h195) pinned exactly at step 600
-- anchor 'primary' (L0.46 C0.08 h195) is OUT of sRGB gamut — max renderable chroma at this L/hue is ~0.079; it ships clamped toward the boundary, so its lightness and hue may drift. Lower its chroma to ~0.079 for an exact match.
-- success: brand-supplied hue 150 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)
-- warning: brand-supplied hue 70 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)
-- info: engine default hue 245
-- action color defaults to the PRIMARY brand palette — CONFIRM this hue is the intended interactive color for this brand
-- danger: brand-supplied hue 27
-- dimension axis: 4px grid, 8px space rhythm, density 'comfortable' (drives component sizes), radius scale 1 (baseMd 4px)
-- motion: tempo 'relaxed' scales the duration ramp; easing roles + springs + composite transitions generated; reduce-motion variants derived (informational preserved, vestibular → 0)
-- shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness 1; tinted base (hue 65, amount 0.15). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.
-- gradient: none (opt-in axis; brand declared no gradients — the field-common default).
-- layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32 · 16/24/24/32/48); container max 1440px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with color light/dark.
-- typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900; families display=Inter, title=Inter, body=Inter, label=Inter, caption=Inter, eyebrow=Inter, code=JetBrains Mono; typeScale 'compact'. 39 semantic composites (title/display sizes shifted by typeScale; display capped at rung '3xl' (144px); title tier omits title.2xs). responsive: 10 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 375–1280px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.
-- disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.
-- interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (interactive.<color>.subtle-fill.{hover,pressed,selected}: the control's own fill at an opacity step) or 'none' to opt out.
-- light primary surface is NON-default (neutral.50) — CONFIRM this is the page color; the contrast floor moves with it
-- neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: always generated (#895 removed the lever)
-- strict interactive contrast: off — inverse primary and destructive carry their colored on-fill (brand / danger, #1244/#1384); rest clears AA, transient hover/pressed may dip
+- namespace: tokens emit under 'hds.*' instead of the default 'prism.*'.
+- primary: the brand color is pinned at step 600 (hue 195) — the ramp is built around it.
+- anchor 'primary' (oklch 0.46 0.08 195) is outside the sRGB gamut — sRGB shows at most 0.079 chroma (±0.0005) at this lightness and hue, so it ships clamped and its lightness and hue can shift. A chroma at least 0.0005 below 0.079 ships exactly.
+- success: the brand's hue 150 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.
+- warning: the brand's hue 70 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.
+- info: default hue 245 — status.info is not set.
+- action: the primary palette, by default — actionPalette is not set.
+- danger: the brand's hue 27.
+- dimensions: 4px grid, 8px spacing rhythm, 'comfortable' density (sets component sizes), radius scale 1 (base radius 4px).
+- motion: 'relaxed' tempo sets the durations; reduced-motion variants keep informational motion and set vestibular motion to 0.
+- shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness 1; tinted to hue 65 at 0.15. Full shadows in light, reduced in dark, where surface lightness carries elevation.
+- gradient: none — the brand declares no gradients, and none are added by default.
+- layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); 12-column grid (4/8/12/12/12 by breakpoint); gutters 16/16/24/24/32px and margins 16/24/24/32/48px, from the spacing scale; containers max 1440px, narrow 720px.
+- typography: 22-step size ladder (10–160px), a fixed set rather than a ratio; weights subtle/default/emphasis/strong/max → 300/400/600/700/900; families display Inter, title Inter, body Inter, label Inter, caption Inter, eyebrow Inter, code JetBrains Mono; 'compact' type scale. 39 text styles: title and display sizes follow the type scale, display tops out at '3xl' (144px), title.2xs is left out. 10 styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from 375 to 1280px and desktop and mobile Figma modes.
+- disabled: 'reduced' (default) — disabled text and icons clear 3:1 against the contrast floor: dimmed but legible, never below 3:1, without the WCAG 1.4.3/1.4.11 inactive-component exemption. disabledStrategy 'full' raises them to 4.5:1.
+- interactive overlays: 'overlay-neutral' (default) — outline and text controls, rows and menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-checked on the blended surface. 'solid-tint' uses the control's own fill at an opacity step instead; 'none' adds no hover.
+- surfaces: the light page is neutral.50, not the default — the contrast floor moves with it.
+- neutral interactive emphasis: 'subtle' (default) — a light gray fill; inverse-surface variants are always generated.
+- strict interactive contrast: off (default) — text on inverse primary and destructive fills keeps its brand or danger color; rest clears AA, and hover and pressed can dip below it.
 
 Palettes: primary, neutral, success, warning, info, danger. Danger draws from `danger`.
 
@@ -3538,8 +3562,8 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.primary.fill.rest | primary.600 | 4.91 | 3 | ✅ |
 | interactive.primary.fill.hover | primary.700 | 7.21 | 3 | ✅ |
 | interactive.primary.fill.pressed | primary.800 | 10.11 | 3 | ✅ |
-| interactive.primary.fill.focused | primary.700 | 7.21 | 3 | ✅ |
-| interactive.primary.fill.selected | primary.800 | 10.11 | 3 | ✅ |
+| interactive.primary.fill.focused | primary.600 | 4.91 | 3 | ✅ |
+| interactive.primary.fill.selected | primary.600 | 4.91 | 3 | ✅ |
 | interactive.primary.on-fill | white | 6.79 | 4.5 | ✅ |
 | interactive.primary.text.rest | primary.600 | 5.59 | 4.5 | ✅ |
 | interactive.primary.icon.rest | primary.600 | 5.59 | 4.5 | ✅ |
@@ -3550,12 +3574,12 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.primary.border.rest | primary.600 | 5.59 | 3 | ✅ |
 | interactive.primary.border.hover | primary.700 | 8.20 | 3 | ✅ |
 | interactive.primary.border.pressed | primary.800 | 11.49 | 3 | ✅ |
-| interactive.destructive.fill.rest | danger.500 | 3.31 | 3 | ✅ |
-| interactive.destructive.fill.hover | danger.600 | 4.92 | 3 | ✅ |
-| interactive.destructive.fill.pressed | danger.700 | 7.24 | 3 | ✅ |
-| interactive.destructive.fill.focused | danger.600 | 4.92 | 3 | ✅ |
-| interactive.destructive.fill.selected | danger.700 | 7.24 | 3 | ✅ |
-| interactive.destructive.on-fill | white | 4.57 | 4.5 | ✅ |
+| interactive.destructive.fill.rest | danger.550 | 4.04 | 3 | ✅ |
+| interactive.destructive.fill.hover | danger.650 | 5.97 | 3 | ✅ |
+| interactive.destructive.fill.pressed | danger.750 | 8.73 | 3 | ✅ |
+| interactive.destructive.fill.focused | danger.550 | 4.04 | 3 | ✅ |
+| interactive.destructive.fill.selected | danger.550 | 4.04 | 3 | ✅ |
+| interactive.destructive.on-fill | white | 5.59 | 4.5 | ✅ |
 | interactive.destructive.text.rest | danger.650 | 5.25 | 4.5 | ✅ |
 | interactive.destructive.icon.rest | danger.650 | 5.25 | 4.5 | ✅ |
 | interactive.destructive.text.hover | danger.750 | 7.67 | 4.5 | ✅ |
@@ -3568,8 +3592,8 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.neutral.fill.rest | neutral.150 | — | — | · |
 | interactive.neutral.fill.hover | neutral.250 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.350 | — | — | · |
-| interactive.neutral.fill.focused | neutral.250 | — | — | · |
-| interactive.neutral.fill.selected | neutral.350 | — | — | · |
+| interactive.neutral.fill.focused | neutral.150 | — | — | · |
+| interactive.neutral.fill.selected | neutral.150 | — | — | · |
 | interactive.neutral.on-fill | neutral.950 | 12.36 | 4.5 | ✅ |
 | interactive.neutral.text.rest | neutral.950 | 15.98 | 4.5 | ✅ |
 | interactive.neutral.icon.rest | neutral.950 | 15.98 | 4.5 | ✅ |
@@ -3591,7 +3615,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.primary.fill.pressed | neutral.200 | 10.79 | 3 | ✅ |
 | inverse.interactive.primary.fill.focused | neutral.100 | 14.05 | 3 | ✅ |
 | inverse.interactive.primary.fill.selected | neutral.200 | 10.79 | 3 | ✅ |
-| inverse.interactive.primary.on-fill | primary.500 | 4.58 | 4.5 | ✅ |
+| inverse.interactive.primary.on-fill | primary.650 | 8.28 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | primary.450 | 5.00 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | primary.350 | 6.91 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | primary.250 | 9.34 | 3 | ✅ |
@@ -3606,7 +3630,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.destructive.fill.pressed | neutral.200 | 10.79 | 3 | ✅ |
 | inverse.interactive.destructive.fill.focused | neutral.100 | 14.05 | 3 | ✅ |
 | inverse.interactive.destructive.fill.selected | neutral.200 | 10.79 | 3 | ✅ |
-| inverse.interactive.destructive.on-fill | danger.500 | 4.57 | 4.5 | ✅ |
+| inverse.interactive.destructive.on-fill | danger.650 | 8.25 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.rest | danger.400 | 4.82 | 3 | ✅ |
 | inverse.interactive.destructive.border.hover | danger.300 | 6.62 | 3 | ✅ |
 | inverse.interactive.destructive.border.pressed | danger.200 | 8.91 | 3 | ✅ |
@@ -3747,9 +3771,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | border.secondary | neutral.450 | 3.20 | 3 | ✅ |
 | border.tertiary | neutral.650 | — | — | · |
 | border.brand | primary.500 | 3.77 | 3 | ✅ |
-| border.success | success.500 | 3.79 | 3 | ✅ |
-| border.warning | warning.500 | 3.79 | 3 | ✅ |
-| border.danger | danger.500 | 3.76 | 3 | ✅ |
+| border.success | success.550 | 4.53 | 3 | ✅ |
+| border.warning | warning.550 | 4.58 | 3 | ✅ |
+| border.danger | danger.550 | 4.60 | 3 | ✅ |
 | border.info | info.500 | 3.75 | 3 | ✅ |
 | border.focus | primary.600 | 5.59 | 3 | ✅ |
 | inverse.border.primary | neutral.800 | — | — | · |
@@ -3761,6 +3785,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.border.danger | danger.500 | 4.25 | 3 | ✅ |
 | inverse.border.info | info.500 | 4.26 | 3 | ✅ |
 | inverse.border.focus | primary.450 | 5.00 | 3 | ✅ |
+| interactive.primary.subtle-fill.selected | primary.600 | — | — | · |
 
 ## harbor — color mode: dark
 
@@ -3807,12 +3832,12 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.foreground.danger-subtle | danger.100 | — | — | · |
 | inverse.foreground.info-subtle | info.100 | — | — | · |
 | foreground.danger | danger.500 | 3.92 | 3 | ✅ |
-| interactive.primary.fill.rest | primary.550 | 3.19 | 3 | ✅ |
-| interactive.primary.fill.hover | primary.450 | 4.61 | 3 | ✅ |
-| interactive.primary.fill.pressed | primary.350 | 6.37 | 3 | ✅ |
-| interactive.primary.fill.focused | primary.450 | 4.61 | 3 | ✅ |
-| interactive.primary.fill.selected | primary.350 | 6.37 | 3 | ✅ |
-| interactive.primary.on-fill | neutral.025 | 5.23 | 4.5 | ✅ |
+| interactive.primary.fill.rest | primary.500 | 3.91 | 3 | ✅ |
+| interactive.primary.fill.hover | primary.400 | 5.46 | 3 | ✅ |
+| interactive.primary.fill.pressed | primary.300 | 7.44 | 3 | ✅ |
+| interactive.primary.fill.focused | primary.500 | 3.91 | 3 | ✅ |
+| interactive.primary.fill.selected | primary.500 | 3.91 | 3 | ✅ |
+| interactive.primary.on-fill | white | 4.58 | 4.5 | ✅ |
 | interactive.primary.text.rest | primary.450 | 5.00 | 4.5 | ✅ |
 | interactive.primary.icon.rest | primary.450 | 5.00 | 4.5 | ✅ |
 | interactive.primary.text.hover | primary.350 | 6.91 | 4.5 | ✅ |
@@ -3825,9 +3850,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.destructive.fill.rest | danger.500 | 3.92 | 3 | ✅ |
 | interactive.destructive.fill.hover | danger.400 | 5.38 | 3 | ✅ |
 | interactive.destructive.fill.pressed | danger.300 | 7.39 | 3 | ✅ |
-| interactive.destructive.fill.focused | danger.400 | 5.38 | 3 | ✅ |
-| interactive.destructive.fill.selected | danger.300 | 7.39 | 3 | ✅ |
-| interactive.destructive.on-fill | black | 4.60 | 4.5 | ✅ |
+| interactive.destructive.fill.focused | danger.500 | 3.92 | 3 | ✅ |
+| interactive.destructive.fill.selected | danger.500 | 3.92 | 3 | ✅ |
+| interactive.destructive.on-fill | white | 4.57 | 4.5 | ✅ |
 | interactive.destructive.text.rest | danger.400 | 4.82 | 4.5 | ✅ |
 | interactive.destructive.icon.rest | danger.400 | 4.82 | 4.5 | ✅ |
 | interactive.destructive.text.hover | danger.300 | 6.62 | 4.5 | ✅ |
@@ -3840,8 +3865,8 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.neutral.fill.rest | neutral.850 | — | — | · |
 | interactive.neutral.fill.hover | neutral.750 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.650 | — | — | · |
-| interactive.neutral.fill.focused | neutral.750 | — | — | · |
-| interactive.neutral.fill.selected | neutral.650 | — | — | · |
+| interactive.neutral.fill.focused | neutral.850 | — | — | · |
+| interactive.neutral.fill.selected | neutral.850 | — | — | · |
 | interactive.neutral.on-fill | neutral.025 | 14.96 | 4.5 | ✅ |
 | interactive.neutral.text.rest | neutral.025 | 18.11 | 4.5 | ✅ |
 | interactive.neutral.icon.rest | neutral.025 | 18.11 | 4.5 | ✅ |
@@ -3863,7 +3888,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.primary.fill.pressed | neutral.800 | 12.96 | 3 | ✅ |
 | inverse.interactive.primary.fill.focused | neutral.900 | 16.70 | 3 | ✅ |
 | inverse.interactive.primary.fill.selected | neutral.800 | 12.96 | 3 | ✅ |
-| inverse.interactive.primary.on-fill | primary.500 | 4.58 | 4.5 | ✅ |
+| inverse.interactive.primary.on-fill | primary.350 | 7.47 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | primary.600 | 6.33 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | primary.700 | 9.29 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | primary.800 | 13.02 | 3 | ✅ |
@@ -3878,7 +3903,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.destructive.fill.pressed | neutral.800 | 12.96 | 3 | ✅ |
 | inverse.interactive.destructive.fill.focused | neutral.900 | 16.70 | 3 | ✅ |
 | inverse.interactive.destructive.fill.selected | neutral.800 | 12.96 | 3 | ✅ |
-| inverse.interactive.destructive.on-fill | danger.500 | 4.60 | 4.5 | ✅ |
+| inverse.interactive.destructive.on-fill | danger.350 | 7.46 | 4.5 | ✅ |
 | inverse.interactive.destructive.border.rest | danger.600 | 4.92 | 3 | ✅ |
 | inverse.interactive.destructive.border.hover | danger.700 | 7.24 | 3 | ✅ |
 | inverse.interactive.destructive.border.pressed | danger.800 | 10.32 | 3 | ✅ |
@@ -3949,8 +3974,8 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | text.on-brand | neutral.025 | 5.23 | 4.5 | ✅ |
 | text.on-success | white | 4.60 | 4.5 | ✅ |
 | text.on-warning | white | 4.60 | 4.5 | ✅ |
-| text.on-danger | black | 4.60 | 4.5 | ✅ |
-| text.on-info | black | 4.61 | 4.5 | ✅ |
+| text.on-danger | white | 4.57 | 4.5 | ✅ |
+| text.on-info | white | 4.56 | 4.5 | ✅ |
 | text.link.default | primary.450 | 4.61 | 4.5 | ✅ |
 | text.link.hover | primary.350 | 6.37 | 4.5 | ✅ |
 | text.link.visited | primary.150 | 11.37 | 4.5 | ✅ |
@@ -3972,8 +3997,8 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | icon.on-brand | neutral.025 | 5.23 | 4.5 | ✅ |
 | icon.on-success | white | 4.60 | 4.5 | ✅ |
 | icon.on-warning | white | 4.60 | 4.5 | ✅ |
-| icon.on-danger | black | 4.60 | 4.5 | ✅ |
-| icon.on-info | black | 4.61 | 4.5 | ✅ |
+| icon.on-danger | white | 4.57 | 4.5 | ✅ |
+| icon.on-info | white | 4.56 | 4.5 | ✅ |
 | icon.link.default | primary.450 | 4.61 | 4.5 | ✅ |
 | icon.link.hover | primary.350 | 6.37 | 4.5 | ✅ |
 | icon.link.visited | primary.150 | 11.37 | 4.5 | ✅ |
@@ -4019,9 +4044,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | border.secondary | neutral.500 | 4.23 | 3 | ✅ |
 | border.tertiary | neutral.250 | — | — | · |
 | border.brand | primary.500 | 4.24 | 3 | ✅ |
-| border.success | success.500 | 4.22 | 3 | ✅ |
-| border.warning | warning.500 | 4.22 | 3 | ✅ |
-| border.danger | danger.500 | 4.25 | 3 | ✅ |
+| border.success | success.450 | 5.06 | 3 | ✅ |
+| border.warning | warning.450 | 5.02 | 3 | ✅ |
+| border.danger | danger.450 | 4.94 | 3 | ✅ |
 | border.info | info.500 | 4.26 | 3 | ✅ |
 | border.focus | primary.450 | 5.00 | 3 | ✅ |
 | inverse.border.primary | neutral.200 | — | — | · |
@@ -4033,6 +4058,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.border.danger | danger.500 | 4.26 | 3 | ✅ |
 | inverse.border.info | info.500 | 4.25 | 3 | ✅ |
 | inverse.border.focus | primary.600 | 6.33 | 3 | ✅ |
+| interactive.primary.subtle-fill.selected | primary.500 | — | — | · |
 
 ## harbor — color mode: hc-light
 
@@ -4082,8 +4108,8 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.primary.fill.rest | primary.700 | 7.21 | 7 | ✅ |
 | interactive.primary.fill.hover | primary.800 | 10.11 | 7 | ✅ |
 | interactive.primary.fill.pressed | primary.900 | 12.95 | 7 | ✅ |
-| interactive.primary.fill.focused | primary.800 | 10.11 | 7 | ✅ |
-| interactive.primary.fill.selected | primary.900 | 12.95 | 7 | ✅ |
+| interactive.primary.fill.focused | primary.700 | 7.21 | 7 | ✅ |
+| interactive.primary.fill.selected | primary.700 | 7.21 | 7 | ✅ |
 | interactive.primary.on-fill | white | 9.96 | 4.5 | ✅ |
 | interactive.primary.text.rest | primary.650 | 8.28 | 7 | ✅ |
 | interactive.primary.icon.rest | primary.650 | 8.28 | 7 | ✅ |
@@ -4097,8 +4123,8 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.destructive.fill.rest | danger.700 | 7.24 | 7 | ✅ |
 | interactive.destructive.fill.hover | danger.800 | 10.32 | 7 | ✅ |
 | interactive.destructive.fill.pressed | danger.900 | 13.20 | 7 | ✅ |
-| interactive.destructive.fill.focused | danger.800 | 10.32 | 7 | ✅ |
-| interactive.destructive.fill.selected | danger.900 | 13.20 | 7 | ✅ |
+| interactive.destructive.fill.focused | danger.700 | 7.24 | 7 | ✅ |
+| interactive.destructive.fill.selected | danger.700 | 7.24 | 7 | ✅ |
 | interactive.destructive.on-fill | white | 10.01 | 4.5 | ✅ |
 | interactive.destructive.text.rest | danger.650 | 8.25 | 7 | ✅ |
 | interactive.destructive.icon.rest | danger.650 | 8.25 | 7 | ✅ |
@@ -4112,8 +4138,8 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.neutral.fill.rest | neutral.150 | — | — | · |
 | interactive.neutral.fill.hover | neutral.250 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.350 | — | — | · |
-| interactive.neutral.fill.focused | neutral.250 | — | — | · |
-| interactive.neutral.fill.selected | neutral.350 | — | — | · |
+| interactive.neutral.fill.focused | neutral.150 | — | — | · |
+| interactive.neutral.fill.selected | neutral.150 | — | — | · |
 | interactive.neutral.on-fill | black | 13.36 | 4.5 | ✅ |
 | interactive.neutral.text.rest | black | 21.00 | 7 | ✅ |
 | interactive.neutral.icon.rest | black | 21.00 | 7 | ✅ |
@@ -4291,9 +4317,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | border.secondary | neutral.700 | 9.85 | 4.5 | ✅ |
 | border.tertiary | neutral.950 | — | — | · |
 | border.brand | primary.500 | 4.58 | 4.5 | ✅ |
-| border.success | success.500 | 4.60 | 4.5 | ✅ |
-| border.warning | warning.500 | 4.60 | 4.5 | ✅ |
-| border.danger | danger.500 | 4.57 | 4.5 | ✅ |
+| border.success | success.600 | 6.70 | 4.5 | ✅ |
+| border.warning | warning.600 | 6.72 | 4.5 | ✅ |
+| border.danger | danger.600 | 6.80 | 4.5 | ✅ |
 | border.info | info.500 | 4.56 | 4.5 | ✅ |
 | border.focus | primary.700 | 9.96 | 4.5 | ✅ |
 | inverse.border.primary | neutral.500 | — | — | · |
@@ -4305,6 +4331,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.border.danger | danger.500 | 4.60 | 4.5 | ✅ |
 | inverse.border.info | info.500 | 4.61 | 4.5 | ✅ |
 | inverse.border.focus | primary.350 | 7.47 | 4.5 | ✅ |
+| interactive.primary.subtle-fill.selected | primary.700 | — | — | · |
 
 ## harbor — color mode: hc-dark
 
@@ -4354,8 +4381,8 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.primary.fill.rest | primary.300 | 7.44 | 7 | ✅ |
 | interactive.primary.fill.hover | primary.200 | 9.93 | 7 | ✅ |
 | interactive.primary.fill.pressed | primary.100 | 13.01 | 7 | ✅ |
-| interactive.primary.fill.focused | primary.200 | 9.93 | 7 | ✅ |
-| interactive.primary.fill.selected | primary.100 | 13.01 | 7 | ✅ |
+| interactive.primary.fill.focused | primary.300 | 7.44 | 7 | ✅ |
+| interactive.primary.fill.selected | primary.300 | 7.44 | 7 | ✅ |
 | interactive.primary.on-fill | black | 8.72 | 4.5 | ✅ |
 | interactive.primary.text.rest | primary.350 | 7.47 | 7 | ✅ |
 | interactive.primary.icon.rest | primary.350 | 7.47 | 7 | ✅ |
@@ -4369,8 +4396,8 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.destructive.fill.rest | danger.300 | 7.39 | 7 | ✅ |
 | interactive.destructive.fill.hover | danger.200 | 9.95 | 7 | ✅ |
 | interactive.destructive.fill.pressed | danger.100 | 13.00 | 7 | ✅ |
-| interactive.destructive.fill.focused | danger.200 | 9.95 | 7 | ✅ |
-| interactive.destructive.fill.selected | danger.100 | 13.00 | 7 | ✅ |
+| interactive.destructive.fill.focused | danger.300 | 7.39 | 7 | ✅ |
+| interactive.destructive.fill.selected | danger.300 | 7.39 | 7 | ✅ |
 | interactive.destructive.on-fill | black | 8.67 | 4.5 | ✅ |
 | interactive.destructive.text.rest | danger.350 | 7.46 | 7 | ✅ |
 | interactive.destructive.icon.rest | danger.350 | 7.46 | 7 | ✅ |
@@ -4384,8 +4411,8 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | interactive.neutral.fill.rest | neutral.850 | — | — | · |
 | interactive.neutral.fill.hover | neutral.750 | — | — | · |
 | interactive.neutral.fill.pressed | neutral.650 | — | — | · |
-| interactive.neutral.fill.focused | neutral.750 | — | — | · |
-| interactive.neutral.fill.selected | neutral.650 | — | — | · |
+| interactive.neutral.fill.focused | neutral.850 | — | — | · |
+| interactive.neutral.fill.selected | neutral.850 | — | — | · |
 | interactive.neutral.on-fill | white | 16.03 | 4.5 | ✅ |
 | interactive.neutral.text.rest | white | 21.00 | 7 | ✅ |
 | interactive.neutral.icon.rest | white | 21.00 | 7 | ✅ |
@@ -4563,9 +4590,9 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | border.secondary | neutral.250 | 10.06 | 4.5 | ✅ |
 | border.tertiary | neutral.025 | — | — | · |
 | border.brand | primary.500 | 4.58 | 4.5 | ✅ |
-| border.success | success.500 | 4.56 | 4.5 | ✅ |
-| border.warning | warning.500 | 4.56 | 4.5 | ✅ |
-| border.danger | danger.500 | 4.60 | 4.5 | ✅ |
+| border.success | success.450 | 5.47 | 4.5 | ✅ |
+| border.warning | warning.400 | 6.35 | 4.5 | ✅ |
+| border.danger | danger.400 | 6.31 | 4.5 | ✅ |
 | border.info | info.500 | 4.61 | 4.5 | ✅ |
 | border.focus | primary.300 | 8.72 | 4.5 | ✅ |
 | inverse.border.primary | neutral.500 | — | — | · |
@@ -4577,6 +4604,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.border.danger | danger.500 | 4.57 | 4.5 | ✅ |
 | inverse.border.info | info.500 | 4.56 | 4.5 | ✅ |
 | inverse.border.focus | primary.650 | 8.28 | 4.5 | ✅ |
+| interactive.primary.subtle-fill.selected | primary.300 | — | — | · |
 
 ## harbor — dimension axis
 
@@ -4613,16 +4641,20 @@ Radius — scale `1`:
 | radius.sm | 2 |
 | radius.md | 4 |
 | radius.lg | 6 |
+| radius.xl | 8 |
+| radius.2xl | 12 |
+| radius.3xl | 16 |
 | radius.round | 128 (pill) |
 | radius.capsule | 999 (pill) |
+| radius.hairline | 1 |
 
-Component sizes — t-shirt, density `comfortable` (height + paired padding from the shared scales):
+Component sizes — t-shirt, density `comfortable` (control heights; each component states its own padding and gaps as `space.*` steps, which density moves one step):
 
-| size | height | padding-x | padding-y |
-|---|---|---|---|
-| size.xs | 28px | 8px | 4px |
-| size.sm | 36px | 16px | 6px |
-| size.md | 44px | 16px | 8px |
-| size.lg | 56px | 24px | 8px |
-| size.xl | 68px | 24px | 16px |
+| size | height |
+|---|---|
+| size.xs | 28px |
+| size.sm | 36px |
+| size.md | 44px |
+| size.lg | 56px |
+| size.xl | 68px |
 

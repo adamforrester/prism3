@@ -39,6 +39,7 @@
  * harness drives it with a shim; the real `figma` structurally satisfies it.
  */
 import type { TextStylePlan } from '@prism3/engine/write-plan';
+import { resolveFontStyle } from './write-text-styles';
 import type { FontName } from './write-text-styles';
 
 /** The minimal `figma` font + text-style surface the preload needs. */
@@ -57,7 +58,9 @@ export type FaceOrigin = 'theme' | 'file' | 'crossed';
 export type FontPreloadResult = {
   /** faces successfully loaded, so the write that follows cannot fail on them. */
   loaded: number;
-  /** faces attempted (loaded + failed) — `loaded + unavailable.length + crossedMisses`. */
+  /** distinct resolved faces passed to `loadFontAsync` (loaded + failed loads). Not `loaded + unavailable
+   *  + crossedMisses`: a resolver miss is reported without a load, and a repeat of a failed face is
+   *  reported again under its own origin without a second load. */
   attempted: number;
   /** NAMED faces that would not load: the theme asks for a typeface this Figma does not have, or the
    *  file already uses one. Reportable — a brand is about to lose type it asked for. */
@@ -127,6 +130,21 @@ export const facesToPreload = (
  * A face the host's font list does not contain is not attempted (the list, when offered, is the cheaper
  * and quieter answer); a host that offers no list has every candidate attempted instead, so a missing
  * capability degrades to more work rather than to less coverage.
+ *
+ * "DOES NOT CONTAIN" MEANS UNDER ANY SPELLING (#1789). Each candidate's style is resolved against its
+ * family's real style list with `resolveFontStyle` — the #499 resolver the text-style pass uses — and the
+ * RESOLVED face is what gets loaded. An exact `family|style` test here reported `Playfair Display|Semi
+ * Bold Italic` unavailable on a Figma whose Playfair ships `SemiBold Italic`, while the text-style pass,
+ * resolving the same row, wrote the style correctly: the warning contradicted the apply it sat in. Only a
+ * resolver `undefined` (the family lacks the weight under every spelling, or the family is absent) is a
+ * miss. Every origin resolves the same way — the origin decides whether a miss is REPORTED, never how a
+ * face is looked up. Two candidates that resolve to one face load it once; if that load fails, each
+ * named candidate among them is still reported, whichever candidate made the attempt.
+ *
+ * The verdict's "N font styles name-resolved" stays the text-style pass's count alone. It counts STYLES
+ * whose baked name was corrected; this resolves candidate FACES (file and crossed pairs included, and a
+ * theme face the text-style pass will resolve again), so adding the two would count one correction twice
+ * in a unit the sentence does not name.
  */
 export const preloadFonts = async (
   plan: TextStylePlan,
@@ -139,13 +157,30 @@ export const preloadFonts = async (
     /* the file's styles are unreadable — the theme's own faces still load, which is strictly better
      * than loading nothing. Deliberately not fatal: this runs before a write that must still happen. */
   }
-  const candidates = facesToPreload(plan, existing);
+  return loadPreloadCandidates(facesToPreload(plan, existing), api);
+};
 
-  // The host's real (family, style) pairs, when it offers them.
-  let available: Set<string> | undefined;
+/**
+ * The loading half of `preloadFonts`, over an explicit candidate list. Exported so a test can feed an
+ * order `facesToPreload` never produces: nothing below may rely on named candidates coming first.
+ */
+export const loadPreloadCandidates = async (
+  candidates: readonly { face: FontName; origin: FaceOrigin }[],
+  api: Pick<FontPreloadApi, 'loadFontAsync' | 'listAvailableFontsAsync'>,
+): Promise<FontPreloadResult> => {
+  // The host's real styles per family, when it offers the list. Keyed by family because the resolver
+  // needs a family's whole style list, not a membership test on one spelling (#1789).
+  let stylesByFamily: Map<string, string[]> | undefined;
   try {
     const list = await api.listAvailableFontsAsync?.();
-    if (list) available = new Set(list.map((f) => key(f.fontName)));
+    if (list) {
+      stylesByFamily = new Map();
+      for (const { fontName } of list) {
+        const styles = stylesByFamily.get(fontName.family);
+        if (styles) styles.push(fontName.style);
+        else stylesByFamily.set(fontName.family, [fontName.style]);
+      }
+    }
   } catch {
     /* no list — fall through to attempting every candidate */
   }
@@ -156,24 +191,46 @@ export const preloadFonts = async (
   const unavailable: FontPreloadResult['unavailable'] = [];
   const byOrigin: Record<FaceOrigin, number> = { theme: 0, file: 0, crossed: 0 };
 
+  /** resolved face → the outcome of its one load. Two spellings of one face load it once, and a repeat
+   *  inherits the outcome: a failure is still REPORTED under the repeat's own origin. Holding the outcome,
+   *  not just "seen", is what keeps this independent of candidate order — a named face whose load failed
+   *  first under a crossed candidate must not vanish from the report. */
+  const tried = new Map<string, { ok: true } | { ok: false; reason: string }>();
+
   for (const { face, origin } of candidates) {
     byOrigin[origin]++;
-    if (available && !available.has(key(face))) {
-      // Known absent from this Figma. A crossed pair missing is the ordinary case; a named one missing
-      // is the same fact `write-text-styles` reports as skip-with-warning, recorded here too so the
-      // warning does not depend on the text-style pass reaching that row.
-      if (origin === 'crossed') crossedMisses++;
-      else unavailable.push({ face: key(face), origin, reason: 'not available in this Figma' });
-      continue;
+    // Resolve against the family's real styles (#1789). No list in hand: the candidate stands as named
+    // and the load itself is the test, exactly as before.
+    let toLoad = face;
+    if (stylesByFamily) {
+      const styles = stylesByFamily.get(face.family);
+      const style = styles && resolveFontStyle(styles, face.style);
+      if (!style) {
+        // Known absent from this Figma under every spelling. A crossed pair missing is the ordinary
+        // case; a named one missing is the same fact `write-text-styles` reports as skip-with-warning,
+        // recorded here too so the warning does not depend on the text-style pass reaching that row.
+        // The face is reported as ASKED FOR, not as some near-miss the resolver considered.
+        if (origin === 'crossed') crossedMisses++;
+        else unavailable.push({ face: key(face), origin, reason: 'not available in this Figma' });
+        continue;
+      }
+      toLoad = { family: face.family, style };
     }
-    attempted++;
-    try {
-      await api.loadFontAsync(face);
-      loaded++;
-    } catch (e) {
-      if (origin === 'crossed') crossedMisses++;
-      else unavailable.push({ face: key(face), origin, reason: (e as Error)?.message ?? 'load failed' });
+    let outcome = tried.get(key(toLoad));
+    if (!outcome) {
+      attempted++;
+      try {
+        await api.loadFontAsync(toLoad);
+        loaded++;
+        outcome = { ok: true };
+      } catch (e) {
+        outcome = { ok: false, reason: (e as Error)?.message ?? 'load failed' };
+      }
+      tried.set(key(toLoad), outcome);
     }
+    if (outcome.ok) continue;
+    if (origin === 'crossed') crossedMisses++;
+    else unavailable.push({ face: key(face), origin, reason: outcome.reason });
   }
 
   return { loaded, attempted, unavailable, crossedMisses, byOrigin };

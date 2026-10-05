@@ -100,6 +100,11 @@ export type ShimOpts = {
    *  answer different questions: `insetValue` reaches the not-a-number case, and this gives the ring's two
    *  halves DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
   varOverrides?: Record<string, unknown>;
+  /** Per-NAME px a variable carries into a BOUND dimension (`boundVariables.<field>.value`), in place of the
+   *  synthetic `varValue`. The hash is small (8–32px) and differs per name, which is what catches a wrong
+   *  binding, and it cannot exercise a FLOOR: Tag's minimum width is its own height rung, and at the hash's 8px
+   *  no content is ever narrower than the floor, so the floor never binds. Names not listed keep the hash. */
+  varPx?: Record<string, number>;
   /** Nodes in the file that are NOT plain components (#681). Kept separate from `comps` so every
    *  existing case reads unchanged: `comps` still means "a plain COMPONENT of this name". */
   fileNodes?: FileNode[];
@@ -149,11 +154,22 @@ export type ShimOpts = {
    *  about WHEN the clock starts. Everything else here is synchronous, so every `chunkMs` is 0 and the
    *  strongest available assertion is `>= 0`, which no clock rule can fail. `setup` burns inside
    *  `loadAllPagesAsync` (pre-build-loop work) and `combine` inside `combineAsVariants` (between-loops
-   *  work); the yield's own burn is injected at `yieldTo` by `instrumented`. Busy-wait rather than a
-   *  timer because `Date.now()` is what the executor reads, and a `setTimeout` would advance the clock
-   *  while handing control away — which is the very thing being distinguished. Opt-in per run, so only
-   *  the one block below pays for it. */
-  burn?: { setup?: number; combine?: number };
+   *  work); the yield's own burn is injected at `yieldTo` by `instrumented`. Those three are costs a
+   *  chunk must EXCLUDE. `member` is the converse (#1848): it burns inside the FIRST
+   *  `createComponentFromNode` only, which is mid-chunk work, so the first build chunk must INCLUDE it.
+   *  Without it, a `chunkMs` stuck at a constant 0 passed every exclusion. Opt-in per run, so only
+   *  the one block that asks pays for it.
+   *
+   *  CHARGED ON A VIRTUAL CLOCK, through `advance` (#1800). It used to be a busy-wait on the real clock,
+   *  and then every assertion about it was a wall-clock bound: the chunk after the burn had to come in
+   *  under half the burn, so a loaded CPU that slowed the chunk's own work failed it with the exclusion
+   *  intact. `Date.now()` is what the executor reads, so the test swaps in a clock that moves only when
+   *  a burn advances it; the executor's work then costs 0ms and every reading is exact. A burn without
+   *  `advance` throws rather than falling back to a busy-wait, so no run silently goes back to measuring
+   *  the machine. */
+  burn?: { setup?: number; combine?: number; member?: number };
+  /** Advances the run's virtual clock by `ms`. Required when `burn` is set; see `burn`. */
+  advance?: (ms: number) => void;
   /**
    * A CALL COUNTER ON THE HOST BOUNDARY — every subtree `findOne` a node actually receives (#701).
    *
@@ -382,13 +398,22 @@ export type ShimOpts = {
   abortAfterCombine?: boolean;
 };
 
-/** A blocking burn. Deliberately holds the thread: the executor measures with `Date.now()`, so cost it
- *  cannot observe is cost this harness cannot charge. */
-export const burnMs = (ms: number): void => { const t0 = Date.now(); while (Date.now() - t0 < ms) { /* hold */ } };
 
 export const makeShim = (opts: ShimOpts = {}) => {
   const names = new Set(opts.vars ?? []);
   const page = opts.page;
+  /** Charges a `burn` to the run's virtual clock (#1800). No busy-wait fallback: see `ShimOpts.burn`. */
+  const charge = (ms: number): void => {
+    if (!opts.advance) throw new Error('ShimOpts.burn needs ShimOpts.advance: a burn is charged to a virtual clock, never by holding the thread');
+    opts.advance(ms);
+  };
+  let memberBurned = false;
+  /** Copy an instance's `mainComponent` onto a twin the host installs in its place (#1781) — same
+   *  non-enumerable shape `createInstance` gives it, so a relocated instance still reads back its source. */
+  const carryMain = (from: Node, to: Node): void => {
+    const m = (from as Record<string, unknown>).mainComponent;
+    if (m !== undefined) Object.defineProperty(to, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: m });
+  };
   /**
    * FIGMA'S FONT-LOADED STATE — per plugin RUN, and the host behavior no shim modelled (#680).
    *
@@ -444,7 +469,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
    * TAIL, via `figma-names.ts`'s `tailOf`. That is the only reason one plan can bind into a `prism/` file
    * and an `nbds/` one.
    *
-   * So the shim presents `<root>/size/md/gap` while `opts.vars` holds the plan's `size/md/gap`, and the
+   * So the shim presents `<root>/size/md/height` while `opts.vars` holds the plan's `size/md/height`, and the
    * root is `zzclient` — DELIBERATELY FOREIGN, a root no corpus brand uses. `prism/` would work here and
    * prove less: it cannot tell tail-keyed resolution apart from a read path that happens to recognise the
    * engine's own default. A foreign root fails on anything that spells one.
@@ -476,7 +501,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
     });
   };
   const mkVar = (name: string) => ({
-    id: `V:${name}`, name: `${SHIM_ROOT}/${name}`, value: varValue(name), resolveForConsumer: () => ({ value: resolvedValue(name) }),
+    id: `V:${name}`, name: `${SHIM_ROOT}/${name}`, value: opts.varPx?.[name] ?? varValue(name), resolveForConsumer: () => ({ value: resolvedValue(name) }),
     get valuesByMode(): Record<string, unknown> { return varValues.get(name) ?? {}; },
     setValueForMode: (modeId: string, value: unknown): void => rewriteVar(name, modeId, value),
   });
@@ -569,7 +594,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
     // THE LITERAL WIDTH FLOOR (`minWidth`, #1343a), under `layoutModel`: a 320 control holds the field's
     // column at 320 on the host, so a wider-or-narrower nested message does not move the field's width.
     const floor = opts.layoutModel && typeof node.minWidth === 'number' ? node.minWidth : 0;
-    return Math.max(floor, padX(node) + hug + strokeX(node));
+    // THE BOUND WIDTH FLOOR (`minWidthKey`, 2026-09-28): a `minWidth` bound to a variable holds the frame at
+    // least that wide, as the host does — Tag's floor is its own height rung, so a one-letter tag is square.
+    const bvW = (node.boundVariables as Record<string, { value?: number }>).minWidth?.value;
+    const boundFloor = opts.layoutModel && typeof bvW === 'number' ? bvW : 0;
+    return Math.max(floor, boundFloor, padX(node) + hug + strokeX(node));
   };
 
   const mkNode = (type: string): Node => {
@@ -1160,7 +1189,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
       loadedFonts.add(fontKey(fn));
     },
     // Zero-cost unless a run asks for the burn (`opts.burn.setup`). This is the last of the pre-build-loop
-    loadAllPagesAsync: async () => { if (opts.burn?.setup) burnMs(opts.burn.setup); },
+    loadAllPagesAsync: async () => { if (opts.burn?.setup) charge(opts.burn.setup); },
     // WHAT A CRITERIA SEARCH ACTUALLY RETURNS (#681). `types: ['COMPONENT']` matches `ComponentNode`
     // only, so this honors the criteria rather than ignoring them — the previous flat map returned every
     // entry as a bare COMPONENT whatever it was, which is exactly why the live defect could not be
@@ -1174,10 +1203,21 @@ export const makeShim = (opts: ShimOpts = {}) => {
     root: {
       findAllWithCriteria: (criteria?: { types?: string[] }) => {
         const types = criteria?.types ?? ['COMPONENT'];
-        const mkRef = (name: string, i: number, main?: Node) => ({
-          name, id: `73:${37 + i}`,
+        // `owner` is the node this component sits in — the SET it is a member of, or the page for a plain
+        // component. It is what the instance's `mainComponent.parent` reads back (#1781), and it is recorded
+        // HERE, by the host, at the moment `createInstance` is called on THIS object — never derived from the
+        // name the executor asked for, which is the lookup under test.
+        const PAGE_OWNER = { name: 'Page 1', type: 'PAGE' };
+        const mkRef = (name: string, i: number, main?: Node, owner: { name: string; type: string } = PAGE_OWNER) => ({
+          name, id: `73:${37 + i}`, type: 'COMPONENT',
           createInstance: () => {
             const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; inst.findOne = () => null;
+            // WHICH COMPONENT THIS IS AN INSTANCE OF, in Figma's own shape (`InstanceNode.mainComponent`, whose
+            // `parent` is the COMPONENT_SET for a variant). A plain descriptor — no live back-references, so a
+            // node tree still serializes — and NON-ENUMERABLE, so spreading or diffing a node's own keys does
+            // not grow a field the executor never wrote. The read-back reads it to tell `checkbox-row/size=small`
+            // from `switch-row/size=small`, which share every other property this shim models.
+            Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: { name, type: 'COMPONENT', parent: { ...owner } } });
             // An instance measures what its MAIN measures (`layoutModel`, a member this run built).
             // A FILLED instance (#1751) measures the width its parent gives it, and is as tall as its main
             // laid out at that width — so a message that wraps in a narrower field reads taller here too.
@@ -1216,8 +1256,15 @@ export const makeShim = (opts: ShimOpts = {}) => {
             return inst;
           },
         });
-        const found: { name: string; id: string; createInstance: () => Node; children?: { name: string }[] }[] = [];
+        const found: { name: string; id: string; type: string; createInstance?: () => Node; children?: ReturnType<typeof mkRef>[] }[] = [];
         let seq = 0;
+        // A SET, carrying its members AS COMPONENTS (#1781) — the same objects a COMPONENT search returns for
+        // them, each knowing which set it belongs to. Was `children: [{ name }]`: names only, which was enough
+        // while the executor matched a name here and then instantiated whatever `compByName` held under it —
+        // and that re-lookup across every set in the file is the defect. A set whose children cannot be
+        // instantiated would make the fixed executor's success path unreachable, so the shim now answers the
+        // question the real host answers: a ComponentSetNode's children ARE ComponentNodes.
+        const mkSet = (name: string, members: ReturnType<typeof mkRef>[]) => ({ name, id: `73:${37 + seq++}`, type: 'COMPONENT_SET', children: members });
         for (const name of opts.comps ?? []) if (types.includes('COMPONENT')) found.push(mkRef(name, seq++));
         for (const fn of opts.fileNodes ?? []) {
           if (fn.type === 'COMPONENT_SET') {
@@ -1226,17 +1273,20 @@ export const makeShim = (opts: ShimOpts = {}) => {
             // and then see an empty member list, so every coordinate reported the fifth miss and the
             // success path was unreachable while looking exercised: the assertions about a wrong
             // coordinate would all have passed against a shim that had no right answer to give.
-            if (types.includes('COMPONENT_SET')) found.push({ ...mkRef(fn.name, seq++), children: fn.variants.map((v) => ({ name: v })) });
+            const owner = { name: fn.name, type: 'COMPONENT_SET' };
+            const members = fn.variants.map((v) => mkRef(v, seq++, undefined, owner));
+            if (types.includes('COMPONENT_SET')) found.push(mkSet(fn.name, members));
             // The members, under their variant coordinates — the names a COMPONENT search really returns.
-            if (types.includes('COMPONENT')) for (const v of fn.variants) found.push(mkRef(v, seq++));
+            if (types.includes('COMPONENT')) for (const m of members) found.push(m);
           } else if (types.includes(fn.type)) found.push(mkRef(fn.name, seq++));
         }
         if (opts.liveRoot) for (const n of page?.children ?? []) {
           const live = (n.children as Node[] | undefined) ?? [];
-          const kids = live.map((c) => ({ name: String(c.name) }));
           if (n.type === 'COMPONENT_SET') {
-            if (types.includes('COMPONENT_SET')) found.push({ ...mkRef(String(n.name), seq++), children: kids });
-            if (types.includes('COMPONENT')) live.forEach((c) => found.push(mkRef(String(c.name), seq++, c)));
+            const owner = { name: String(n.name), type: 'COMPONENT_SET' };
+            const members = live.map((c) => mkRef(String(c.name), seq++, c, owner));
+            if (types.includes('COMPONENT_SET')) found.push(mkSet(String(n.name), members));
+            if (types.includes('COMPONENT')) for (const m of members) found.push(m);
           } else if (n.type === 'COMPONENT' && types.includes('COMPONENT')) found.push(mkRef(String(n.name), seq++));
         }
         return found;
@@ -1317,12 +1367,17 @@ export const makeShim = (opts: ShimOpts = {}) => {
     // shim model a host where a converted frame is never a component — and `isExposedInstance`'s precondition
     // is stated in exactly those terms. So the one gap hid the other: a containment rule modelled against a
     // node that never becomes a container could only ever refuse.
-    createComponentFromNode: (n: Node) => { n.type = 'COMPONENT'; return n; },
+    createComponentFromNode: (n: Node) => {
+      // Inside the build loop, once per built member; the burn is charged on the first one only, so it
+      // lands in exactly one chunk (#1848).
+      if (opts.burn?.member && !memberBurned) { memberBurned = true; charge(opts.burn.member); }
+      n.type = 'COMPONENT'; return n;
+    },
     combineAsVariants: (members: Node[], parent?: unknown) => {
       // Between the build loop's last boundary and the wire loop's first — the window the wire re-stamp
       // excludes. Charged here rather than in `resize` or `addComponentProperty` because this is the
       // single most expensive of the set-level calls live.
-      if (opts.burn?.combine) burnMs(opts.burn.combine);
+      if (opts.burn?.combine) charge(opts.burn.combine);
       // #913: refuses AFTER every member is built, named and on the page — the large regime, and the one
       // call in the run whose failure strands the most. Figma's own message for the case it rejects.
       if (opts.refuse?.combine) { hostRefusing = true; throw new Error('in combineAsVariants: The nodes must all have the same parent'); }
@@ -1392,6 +1447,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
           // guaranteed failure. This is the host relocating a node it already accepted the write for, which
           // is not a plugin-API write and is not what the rule governs.
           (t as Record<string, unknown>)._exposed = (n as Record<string, unknown>)._exposed;
+          carryMain(n, t);   // #1781 — a relocated instance is still an instance of the same component
           if (n.layoutMode !== undefined) (t as Record<string, unknown>).layoutMode = n.layoutMode;
           for (const kid of (n.children as Node[]) ?? []) (t.appendChild as (c: Node) => void)(twinOf(kid));
           // DETACH the original: its ref setter now throws Figma's own message, the #1337 symptom.
@@ -1440,6 +1496,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
         // `visible=∅` divergence on the settled set and make this mode unfaithful to the host.
         (t as Record<string, unknown>).visible = (n as Record<string, unknown>).visible;
         (t as Record<string, unknown>)._exposed = (n as Record<string, unknown>)._exposed;
+        carryMain(n, t);   // #1781 — same as `twinOf`
         if (n.layoutMode !== undefined) (t as Record<string, unknown>).layoutMode = n.layoutMode;
         for (const kid of (n.children as Node[]) ?? []) (t.appendChild as (c: Node) => void)(twinAttached(kid));
         return t;
@@ -1497,6 +1554,16 @@ export const makeShim = (opts: ShimOpts = {}) => {
         const kids = set.children as Node[];
         const kidNames = kids.map((m) => String(m.name));
         if (new Set(kidNames).size !== kidNames.length) throw new Error('in get_componentPropertyDefinitions: Component set has existing errors');
+        // #1780 — MEMBERS ON TWO AXIS LISTS poison the getter the same way, measured live: 6 `veil` members on
+        // `value × intensity` beside 30 on `value × intensity × direction` read "Component set has existing
+        // errors". Modeled over COORDINATE-SHAPED names only (every segment has an `=`): what the host does
+        // with a hand-named child is not measured, and the stray-member case in `test-write-components.ts`
+        // relies on that child being read as it always was.
+        const lists = new Set(kidNames
+          .map((n) => n.split(', '))
+          .filter((segs) => segs.every((s) => s.includes('=')))
+          .map((segs) => segs.map((s) => s.slice(0, s.indexOf('='))).sort().join(',')));
+        if (lists.size > 1) throw new Error('in get_componentPropertyDefinitions: Component set has existing errors');
         const out: Record<string, { type: string; defaultValue?: unknown; variantOptions?: string[] }> = {};
         for (const n of kidNames)
           for (const kv of n.split(', ')) {

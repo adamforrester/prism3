@@ -6684,13 +6684,13 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.600}",
+              "$value": "{wds.core.palette.primary.500}",
               "$description": "primary interactive fill — focused, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.600",
-                  "contrast": 6.82,
+                  "aliasOf": "wds.core.palette.primary.500",
+                  "contrast": 4.85,
                   "against": "neutral.050",
                   "min": 3,
                   "figma": {
@@ -6708,13 +6708,13 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.700}",
+              "$value": "{wds.core.palette.primary.500}",
               "$description": "primary interactive fill — selected, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.700",
-                  "contrast": 9.41,
+                  "aliasOf": "wds.core.palette.primary.500",
+                  "contrast": 4.85,
                   "against": "neutral.050",
                   "min": 3,
                   "figma": {
@@ -7056,6 +7056,36 @@
                 }
               }
             }
+          },
+          "subtle-fill": {
+            "selected": {
+              "$type": "color",
+              "$value": "#c8102e4d",
+              "$description": "primary interactive subtle fill — selected (the primary fill at opacity.30; translucent, the selected background of a selectable control or an outline/text control)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "tint": {
+                    "color": "{wds.color.interactive.primary.fill.rest}",
+                    "opacity": "{wds.opacity.30}"
+                  },
+                  "contrast": 6.64,
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "interactive.primary.text.pressed",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable: in each mode it aliases the fill variable in `tint.color` at the opacity variable in `tint.opacity`"
+                  }
+                }
+              }
+            }
           }
         },
         "destructive": {
@@ -7134,13 +7164,13 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{wds.core.palette.danger.600}",
+              "$value": "{wds.core.palette.danger.500}",
               "$description": "destructive interactive fill — focused, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.danger.600",
-                  "contrast": 5.57,
+                  "aliasOf": "wds.core.palette.danger.500",
+                  "contrast": 3.78,
                   "against": "neutral.050",
                   "min": 3,
                   "figma": {
@@ -7158,13 +7188,13 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{wds.core.palette.danger.700}",
+              "$value": "{wds.core.palette.danger.500}",
               "$description": "destructive interactive fill — selected, clears 3:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.danger.700",
-                  "contrast": 8.23,
+                  "aliasOf": "wds.core.palette.danger.500",
+                  "contrast": 3.78,
                   "against": "neutral.050",
                   "min": 3,
                   "figma": {
@@ -7581,13 +7611,13 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{wds.core.palette.neutral.250}",
+              "$value": "{wds.core.palette.neutral.150}",
               "$description": "neutral interactive fill — focused, clears 0:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.neutral.250",
-                  "contrast": 1.71,
+                  "aliasOf": "wds.core.palette.neutral.150",
+                  "contrast": 1.3,
                   "against": "neutral.050",
                   "figma": {
                     "collection": "color",
@@ -7604,13 +7634,13 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{wds.core.palette.neutral.350}",
+              "$value": "{wds.core.palette.neutral.150}",
               "$description": "neutral interactive fill — selected, clears 0:1 on background.secondary",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.neutral.350",
-                  "contrast": 2.32,
+                  "aliasOf": "wds.core.palette.neutral.150",
+                  "contrast": 1.3,
                   "against": "neutral.050",
                   "figma": {
                     "collection": "color",
@@ -8171,13 +8201,13 @@
         },
         "success": {
           "$type": "color",
-          "$value": "{wds.core.palette.success.500}",
+          "$value": "{wds.core.palette.success.550}",
           "$description": "success border — SC 1.4.11 non-text contrast, 3:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "wds.core.palette.success.500",
-              "contrast": 4.55,
+              "aliasOf": "wds.core.palette.success.550",
+              "contrast": 5.51,
               "against": "background.primary",
               "min": 3,
               "figma": {
@@ -9161,7 +9191,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{wds.core.palette.neutral.100}",
-                "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.5:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+                "$description": "primary interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9185,7 +9215,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{wds.core.palette.neutral.200}",
-                "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 2.7:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+                "$description": "primary interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9209,7 +9239,7 @@
               "focused": {
                 "$type": "color",
                 "$value": "{wds.core.palette.neutral.100}",
-                "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill. The label on it measures about 3.5:1, below its 4.5:1 floor.",
+                "$description": "primary interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9233,7 +9263,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{wds.core.palette.neutral.200}",
-                "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill. The label on it measures about 2.7:1, below its 4.5:1 floor.",
+                "$description": "primary interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9257,13 +9287,13 @@
             },
             "on-fill": {
               "$type": "color",
-              "$value": "{wds.core.palette.primary.450}",
-              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes",
+              "$value": "{wds.core.palette.primary.600}",
+              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.primary.450",
-                  "contrast": 4.8,
+                  "aliasOf": "wds.core.palette.primary.600",
+                  "contrast": 8.28,
                   "against": "inverse.interactive.primary.fill.rest",
                   "min": 4.5,
                   "figma": {
@@ -9611,7 +9641,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{wds.core.palette.neutral.100}",
-                "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill. The label on it drops to about 3.3:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+                "$description": "destructive interactive fill on an inverse surface — hover — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9635,7 +9665,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{wds.core.palette.neutral.200}",
-                "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill. The label on it drops to about 2.5:1 in this brief state (exempt by default; the strict interactive contrast setting keeps it at 4.5:1 or more).",
+                "$description": "destructive interactive fill on an inverse surface — pressed — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9659,7 +9689,7 @@
               "focused": {
                 "$type": "color",
                 "$value": "{wds.core.palette.neutral.100}",
-                "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill. The label on it measures about 3.3:1, below its 4.5:1 floor.",
+                "$description": "destructive interactive fill on an inverse surface — focused — 2 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9683,7 +9713,7 @@
               "selected": {
                 "$type": "color",
                 "$value": "{wds.core.palette.neutral.200}",
-                "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill. The label on it measures about 2.5:1, below its 4.5:1 floor.",
+                "$description": "destructive interactive fill on an inverse surface — selected — 4 neutral rungs off the white / black rest fill.",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9707,13 +9737,13 @@
             },
             "on-fill": {
               "$type": "color",
-              "$value": "{wds.core.palette.danger.500}",
-              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on the white / black rest fill, or the max-contrast extreme in the high-contrast modes",
+              "$value": "{wds.core.palette.danger.650}",
+              "$description": "Ink on the destructive inverse fill — the danger step clearing 4.5:1 on every state of the white / black fill, rest through selected, or the max-contrast extreme in the high-contrast modes",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.danger.500",
-                  "contrast": 4.59,
+                  "aliasOf": "wds.core.palette.danger.650",
+                  "contrast": 8.22,
                   "against": "inverse.interactive.destructive.fill.rest",
                   "min": 4.5,
                   "figma": {
@@ -15015,6 +15045,45 @@
           }
         }
       },
+      "xl": {
+        "$type": "dimension",
+        "$value": "{wds.core.dimension.8}",
+        "$description": "radius xl — 8px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "wds.core.dimension.8",
+            "px": 8,
+            "radiusScale": 1
+          }
+        }
+      },
+      "2xl": {
+        "$type": "dimension",
+        "$value": "{wds.core.dimension.12}",
+        "$description": "radius 2xl — 12px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "wds.core.dimension.12",
+            "px": 12,
+            "radiusScale": 1
+          }
+        }
+      },
+      "3xl": {
+        "$type": "dimension",
+        "$value": "{wds.core.dimension.16}",
+        "$description": "radius 3xl — 16px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "wds.core.dimension.16",
+            "px": 16,
+            "radiusScale": 1
+          }
+        }
+      },
       "round": {
         "$type": "dimension",
         "$value": "{wds.core.dimension.128}",
@@ -15036,6 +15105,19 @@
           "prism3": {
             "generated": true,
             "px": 999
+          }
+        }
+      },
+      "hairline": {
+        "$type": "dimension",
+        "$value": "{wds.core.dimension.1}",
+        "$description": "radius hairline — 1px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "wds.core.dimension.1",
+            "px": 1,
+            "radiusScale": 1
           }
         }
       }
@@ -15154,54 +15236,6 @@
               "density": "comfortable"
             }
           }
-        },
-        "padding-x": {
-          "$type": "dimension",
-          "$value": "{wds.space.100}",
-          "$description": "size.xs horizontal inset — 8px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "wds.space.100",
-              "px": 8
-            }
-          }
-        },
-        "padding-x-visual": {
-          "$type": "dimension",
-          "$value": "{wds.space.075}",
-          "$description": "size.xs horizontal inset on the visual side — 6px (an icon's own box adds apparent space, so it insets less than the 8px label side)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "wds.space.075",
-              "px": 6
-            }
-          }
-        },
-        "padding-y": {
-          "$type": "dimension",
-          "$value": "{wds.space.050}",
-          "$description": "size.xs vertical inset — 4px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "wds.space.050",
-              "px": 4
-            }
-          }
-        },
-        "gap": {
-          "$type": "dimension",
-          "$value": "{wds.space.050}",
-          "$description": "size.xs label↔visual gap — 4px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "wds.space.050",
-              "px": 4
-            }
-          }
         }
       },
       "sm": {
@@ -15217,54 +15251,6 @@
               "density": "comfortable"
             }
           }
-        },
-        "padding-x": {
-          "$type": "dimension",
-          "$value": "{wds.space.200}",
-          "$description": "size.sm horizontal inset — 16px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "wds.space.200",
-              "px": 16
-            }
-          }
-        },
-        "padding-x-visual": {
-          "$type": "dimension",
-          "$value": "{wds.space.150}",
-          "$description": "size.sm horizontal inset on the visual side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "wds.space.150",
-              "px": 12
-            }
-          }
-        },
-        "padding-y": {
-          "$type": "dimension",
-          "$value": "{wds.space.075}",
-          "$description": "size.sm vertical inset — 6px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "wds.space.075",
-              "px": 6
-            }
-          }
-        },
-        "gap": {
-          "$type": "dimension",
-          "$value": "{wds.space.100}",
-          "$description": "size.sm label↔visual gap — 8px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "wds.space.100",
-              "px": 8
-            }
-          }
         }
       },
       "md": {
@@ -15278,54 +15264,6 @@
               "aliasOf": "wds.core.dimension.44",
               "px": 44,
               "density": "comfortable"
-            }
-          }
-        },
-        "padding-x": {
-          "$type": "dimension",
-          "$value": "{wds.space.200}",
-          "$description": "size.md horizontal inset — 16px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "wds.space.200",
-              "px": 16
-            }
-          }
-        },
-        "padding-x-visual": {
-          "$type": "dimension",
-          "$value": "{wds.space.150}",
-          "$description": "size.md horizontal inset on the visual side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "wds.space.150",
-              "px": 12
-            }
-          }
-        },
-        "padding-y": {
-          "$type": "dimension",
-          "$value": "{wds.space.100}",
-          "$description": "size.md vertical inset — 8px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "wds.space.100",
-              "px": 8
-            }
-          }
-        },
-        "gap": {
-          "$type": "dimension",
-          "$value": "{wds.space.100}",
-          "$description": "size.md label↔visual gap — 8px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "wds.space.100",
-              "px": 8
             }
           }
         },
@@ -15355,54 +15293,6 @@
               "density": "comfortable"
             }
           }
-        },
-        "padding-x": {
-          "$type": "dimension",
-          "$value": "{wds.space.300}",
-          "$description": "size.lg horizontal inset — 24px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "wds.space.300",
-              "px": 24
-            }
-          }
-        },
-        "padding-x-visual": {
-          "$type": "dimension",
-          "$value": "{wds.space.200}",
-          "$description": "size.lg horizontal inset on the visual side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "wds.space.200",
-              "px": 16
-            }
-          }
-        },
-        "padding-y": {
-          "$type": "dimension",
-          "$value": "{wds.space.100}",
-          "$description": "size.lg vertical inset — 8px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "wds.space.100",
-              "px": 8
-            }
-          }
-        },
-        "gap": {
-          "$type": "dimension",
-          "$value": "{wds.space.150}",
-          "$description": "size.lg label↔visual gap — 12px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "wds.space.150",
-              "px": 12
-            }
-          }
         }
       },
       "xl": {
@@ -15416,54 +15306,6 @@
               "aliasOf": "wds.core.dimension.68",
               "px": 68,
               "density": "comfortable"
-            }
-          }
-        },
-        "padding-x": {
-          "$type": "dimension",
-          "$value": "{wds.space.300}",
-          "$description": "size.xl horizontal inset — 24px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "wds.space.300",
-              "px": 24
-            }
-          }
-        },
-        "padding-x-visual": {
-          "$type": "dimension",
-          "$value": "{wds.space.200}",
-          "$description": "size.xl horizontal inset on the visual side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "wds.space.200",
-              "px": 16
-            }
-          }
-        },
-        "padding-y": {
-          "$type": "dimension",
-          "$value": "{wds.space.200}",
-          "$description": "size.xl vertical inset — 16px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "wds.space.200",
-              "px": 16
-            }
-          }
-        },
-        "gap": {
-          "$type": "dimension",
-          "$value": "{wds.space.150}",
-          "$description": "size.xl label↔visual gap — 12px (density: comfortable)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "wds.space.150",
-              "px": 12
             }
           }
         }
@@ -15792,7 +15634,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.199.0",
+      "version": "0.227.1",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
@@ -15800,25 +15642,25 @@
       "root": "wds",
       "colorFormat": "hex",
       "decisions": [
-        "namespace: tokens emit under 'wds.*' (custom, not the 'prism' default)",
-        "primary anchor (h22.32) pinned exactly at step 500",
-        "brand color 'secondary' (h233.18) added",
-        "brand color 'tertiary' (h18.01) added",
-        "success: brand-supplied hue 142.51 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)",
-        "warning: brand-supplied hue 48.48 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)",
-        "info: engine default hue 245",
-        "action color defaults to the PRIMARY brand palette — CONFIRM this hue is the intended interactive color for this brand",
-        "danger: brand-supplied hue 21.95",
-        "dimension axis: 4px grid, 8px space rhythm, density 'comfortable' (drives component sizes), radius scale 1 (baseMd 4px)",
-        "motion: tempo 'standard' scales the duration ramp; easing roles + springs + composite transitions generated; reduce-motion variants derived (informational preserved, vestibular → 0)",
-        "shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness 1; tinted base (hue 249.14, amount 0.15). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.",
-        "gradient: none (opt-in axis; brand declared no gradients — the field-common default).",
-        "layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32 · 16/24/24/32/48); container max 1440px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with color light/dark.",
-        "typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900; families display=wendysFresh, title=wendysFresh, body=Roboto, label=wendysFresh, caption=Roboto, eyebrow=wendysFresh, code=JetBrains Mono; typeScale 'default'. 39 semantic composites (title/display sizes shifted by typeScale; display capped at rung '3xl' (160px); title tier omits title.2xs). responsive: 11 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 375–1280px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.",
-        "disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.",
-        "interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (interactive.<color>.subtle-fill.{hover,pressed,selected}: the control's own fill at an opacity step) or 'none' to opt out.",
-        "neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: always generated (#895 removed the lever)",
-        "strict interactive contrast: off — inverse primary and destructive carry their colored on-fill (brand / danger, #1244/#1384); rest clears AA, transient hover/pressed may dip"
+        "namespace: tokens emit under 'wds.*' instead of the default 'prism.*'.",
+        "primary: the brand color is pinned at step 500 (hue 22.32) — the ramp is built around it.",
+        "brand color: 'secondary' added (hue 233.18).",
+        "brand color: 'tertiary' added (hue 18.01).",
+        "success: the brand's hue 142.51 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.",
+        "warning: the brand's hue 48.48 — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.",
+        "info: default hue 245 — status.info is not set.",
+        "action: the primary palette, by default — actionPalette is not set.",
+        "danger: the brand's hue 21.95.",
+        "dimensions: 4px grid, 8px spacing rhythm, 'comfortable' density (sets component sizes), radius scale 1 (base radius 4px).",
+        "motion: 'standard' tempo sets the durations; reduced-motion variants keep informational motion and set vestibular motion to 0.",
+        "shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness 1; tinted to hue 249.14 at 0.15. Full shadows in light, reduced in dark, where surface lightness carries elevation.",
+        "gradient: none — the brand declares no gradients, and none are added by default.",
+        "layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); 12-column grid (4/8/12/12/12 by breakpoint); gutters 16/16/24/24/32px and margins 16/24/24/32/48px, from the spacing scale; containers max 1440px, narrow 720px.",
+        "typography: 22-step size ladder (10–160px), a fixed set rather than a ratio; weights subtle/default/emphasis/strong/max → 300/400/600/700/900; families display wendysFresh, title wendysFresh, body Roboto, label wendysFresh, caption Roboto, eyebrow wendysFresh, code JetBrains Mono; 'default' type scale. 39 text styles: title and display sizes follow the type scale, display tops out at '3xl' (160px), title.2xs is left out. 11 styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from 375 to 1280px and desktop and mobile Figma modes.",
+        "disabled: 'reduced' (default) — disabled text and icons clear 3:1 against the contrast floor: dimmed but legible, never below 3:1, without the WCAG 1.4.3/1.4.11 inactive-component exemption. disabledStrategy 'full' raises them to 4.5:1.",
+        "interactive overlays: 'overlay-neutral' (default) — outline and text controls, rows and menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-checked on the blended surface. 'solid-tint' uses the control's own fill at an opacity step instead; 'none' adds no hover.",
+        "neutral interactive emphasis: 'subtle' (default) — a light gray fill; inverse-surface variants are always generated.",
+        "strict interactive contrast: off (default) — text on inverse primary and destructive fills keeps its brand or danger color; rest clears AA, and hover and pressed can dip below it."
       ]
     }
   }

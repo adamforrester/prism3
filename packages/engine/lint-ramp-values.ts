@@ -69,10 +69,10 @@
  *   B  STALE SENTINEL    — a rung special-cased AND present in `rp.dims`. Either the sentinel outlived
  *                          its reason, or this file's discovery over-collected. See above: this arm is
  *                          the reason the discovery can be trusted.
- *   C  LITERAL KEY       — a `rp.dims['<ref>']` read with a spelled-out key (today
- *                          `paintControlShapePreview`'s `rp.dims['radius.md']`) whose ref the map does
- *                          not carry. Same defect, no loop to catch it, and one `?? 0` away from the
- *                          same silent 0.
+ *   C  LITERAL KEY       — a `rp.dims['<ref>']` read with a spelled-out key whose ref the map does not
+ *                          carry. Same defect, no loop to catch it, and one `?? 0` away from the same
+ *                          silent 0. (Its last subject, the legacy button specimen's `rp.dims['radius.md']`,
+ *                          went in S8.2; the arm stays as a tripwire, see the S8.2 section below.)
  *
  * ── THE FLOORS ─────────────────────────────────────────────────────────────────────────────────
  *
@@ -95,11 +95,50 @@
  * (`paintSizePreview` reads `theme.dims.sizes`): those derive their steps from the map they read, so
  * there is no second list to drift — the reason #1179's issue called that shape the deeper fix.
  *
- * PURE-ADJACENT — reads one source file and runs the engine + the real preview resolver in memory.
+ * ── UI REDESIGN S7: THE RADIUS RAMP LEFT THE MAP, AND THE SCOPE WIDENED (docs/34) ──────────────
+ *
+ * S7 (Shape) retired `paintRadiusPreview` and its `RADIUS_STEPS`, this gate's one declared ramp. The Shape
+ * preview reads the radius ladder itself (`theme.dims.radius`, each size at the mode's own value), never
+ * `rp.dims`, so the #1177 mechanism this gate guards (a rung absent from a map narrower than the ladder) no
+ * longer exists for radius: there is one map, and it IS the ladder. That the preview draws every rung at its
+ * emitted value is held where it can be measured, as drawn, by `test:smoke`'s Shape section against the
+ * committed emission.
+ *
+ * The gate is RE-SCOPED, not retired, because its other arms still have subjects: arm C's literal read (the
+ * legacy Buttons specimen's `rp.dims['radius.md']`, until S8), and the UNDECLARED RAMP floor, the arm that makes
+ * a second ramp resolving through `rp.dims` fail until it is declared. Both now read EVERY studio source file
+ * (`apps/studio/src/**`), not `main.ts` alone: the redesign moves code out of `main.ts` slice by slice, and a scan
+ * pinned to the file the code is leaving would watch less with every slice while still printing clean (shape 10).
+ *
+ * THE FLOOR CHANGED SHAPE, and for a stated reason. It used to fail on 0 interpolated reads, because 0 then meant a
+ * rotted scan. Now 0 is the expected state, so 0 cannot be the alarm. What proves the scan is alive instead: it
+ * must read `main.ts` and the Shape preview's radius module by name, a planted fixture must be found by both
+ * detectors (an interpolated read and a literal read), and the file count is printed. A scan that stopped reading
+ * files, or whose patterns stopped matching, fails by name; a studio with no ramp in the map passes, which is the
+ * truth. And #1189 is folded in: when a ramp's special-case discovery finds nothing while rungs sit outside the map,
+ * its arm-A findings are skipped, because a scan just declared unreadable is not evidence.
+ *
+ * ── UI REDESIGN S8.2: ARM C LOST ITS LAST LITERAL READ, AND IS KEPT AS A TRIPWIRE (docs/34) ──────────
+ *
+ * S8.2 moved the button specimen to the Components page and fixed #2049 there: each button's corner is now the radius
+ * size the engine binds for the brand's Control shape, at its value in the previewed mode (`buttonCornerPx` in
+ * `apps/studio/src/preview/sections/button-layout.ts`, read off the ladder, never off `rp.dims`), so the legacy
+ * caller's `rp.dims['radius.md']`, arm C's last subject, is gone. The studio reads `rp.dims` by a literal key nowhere.
+ *
+ * KEPT, NOT RETIRED, for the reason S7 kept the undeclared-ramp floor: the arm costs nothing, its detector is proven
+ * alive on every run by the planted fixture (a pattern that stopped matching fails by name), and a new literal read is
+ * exactly the #1177 shape it exists for, one `?? 0` from a silent zero. Zero literal reads is the expected state now,
+ * printed as such, and is the truth rather than a blind spot: the fixture, not the count, is what proves the scan
+ * looked. What the corner's VALUE should be is held where it can be measured against an independent oracle, not here:
+ * `apps/studio/test-button-input.ts` against the engine's `applyControlShape` and the brand's emission, and
+ * `test:smoke` against the corner as drawn. `MUST_READ` keeps `main.ts` and the radius module; `button-layout.ts` is
+ * read with every other studio file.
+ *
+ * PURE-ADJACENT — reads the studio's source files and runs the engine + the real preview resolver in memory.
  */
 
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
 import type { Theme } from './theme.ts';
 import { brandTheme } from './theme.ts';
 import { nbTheme } from './nb-fixture.ts';
@@ -108,8 +147,18 @@ import { resolvePreview } from './resolve-preview.ts';
 import { previewSpec } from './preview.ts';
 
 const HERE = import.meta.dirname;
-const STUDIO = join(HERE, '../../apps/studio/src/main.ts');
-const STUDIO_LABEL = 'apps/studio/src/main.ts';
+const STUDIO_SRC = join(HERE, '../../apps/studio/src');
+const REPO = join(HERE, '../..');
+/** Every studio source file (S7 widened the scan from `main.ts` alone; see the header). */
+const studioFiles = (dir: string): string[] => readdirSync(dir).flatMap((n) => {
+  const p = join(dir, n);
+  return statSync(p).isDirectory() ? studioFiles(p) : /\.ts$/.test(n) && !/\.d\.ts$/.test(n) ? [p] : [];
+});
+const FILES = studioFiles(STUDIO_SRC);
+const STUDIO_LABEL = 'apps/studio/src/**';
+/** The files the scan must read, by name, so a misdirected or empty scan cannot pass: the legacy page module and
+ *  the module that replaced the radius ramp. */
+const MUST_READ = ['apps/studio/src/main.ts', 'apps/studio/src/preview/sections/radius.ts'];
 
 /**
  * A ramp that resolves its rungs through `rp.dims`. Declared, and the declaration is CHECKED against
@@ -119,7 +168,9 @@ const STUDIO_LABEL = 'apps/studio/src/main.ts';
  * own body — see the independence crux in the header.
  */
 const RAMPS: { fn: string; steps: string; prefix: string; label: string }[] = [
-  { fn: 'paintRadiusPreview', steps: 'RADIUS_STEPS', prefix: 'radius', label: 'the corner-radius ramp' },
+  // `paintRadiusPreview` / `RADIUS_STEPS` stood here until UI redesign S7 moved the radius sizes off `rp.dims`
+  // entirely (the header's S7 section). No studio ramp resolves through the map today; the floor below holds that a
+  // new one is declared here before it can pass.
 ];
 
 /** The body of a top-level `const <name> = (…) => {…};` arrow function, by brace depth. Text, because
@@ -162,7 +213,7 @@ const interpolatedReads = (src: string): { prefix: string; index: number }[] =>
 const literalReads = (src: string): string[] =>
   [...new Set([...src.matchAll(/rp\.dims\['([^']+)'\]/g)].map((m) => m[1]))].sort();
 
-const src = readFileSync(STUDIO, 'utf8');
+const src = FILES.map((f) => readFileSync(f, 'utf8')).join('\n');
 
 const corpus: { id: string; theme: Theme }[] = [
   { id: 'nb', theme: nbTheme() },
@@ -179,15 +230,21 @@ const corpus: { id: string; theme: Theme }[] = [
 const failures: string[] = [];
 const lines: string[] = [];
 
+// ---- FLOOR: the scan is alive (S7; see the header) ---------------------------------------------
+const read = new Set(FILES.map((f) => relative(REPO, f).split('\\').join('/')));
+for (const f of MUST_READ) {
+  if (!read.has(f)) failures.push(`FLOOR: the scan did not read ${f}, so it is not looking where the studio's ramps live — a moved or misdirected scan reporting a clean zero (#986).`);
+}
+{
+  // A planted fixture each detector must find, so a pattern that stopped matching fails by name rather than reading
+  // as "the studio has no ramps".
+  const FIXTURE = 'const x = rp.dims[`radius.${step}`] ?? 0; const y = rp.dims[\'radius.md\'];';
+  if (interpolatedReads(FIXTURE).length !== 1) failures.push('FLOOR: the interpolated-read detector does not find the planted `rp.dims[`radius.${step}`]`, so a ramp reading the map would pass unseen.');
+  if (literalReads(FIXTURE).join() !== 'radius.md') failures.push(`FLOOR: the literal-read detector does not find the planted \`rp.dims['radius.md']\` (found ${literalReads(FIXTURE).join(', ') || 'nothing'}), so arm C is watching nothing.`);
+}
+lines.push(`  scanned                   ${FILES.length} studio source files (${STUDIO_LABEL})`);
 // ---- FLOOR: every interpolated rp.dims read belongs to a declared ramp -------------------------
 const reads = interpolatedReads(src);
-if (!reads.length) {
-  failures.push(
-    `FLOOR: found 0 interpolated \`rp.dims[\\\`<prefix>.\${…}\\\`]\` reads in ${STUDIO_LABEL}. Either the ` +
-      `studio stopped resolving ramps through the preview map — which is the finding — or this scan ` +
-      `rotted and is reporting a confident clean zero (#986).`,
-  );
-}
 const declaredPrefixes = new Set(RAMPS.map((r) => r.prefix));
 for (const r of reads) {
   if (!declaredPrefixes.has(r.prefix)) {
@@ -251,7 +308,9 @@ for (const ramp of RAMPS) {
     failures.push(`FLOOR: \`${ramp.fn}\` was compared against 0 themes, so a clean result is silence.`);
   }
 
-  for (const [step, brands] of [...unresolved].sort()) {
+  // #1189: a scan just declared unreadable (the floor above) is not evidence, so its arm-A findings are not
+  // reported; the floor's remedy, then a re-run, surfaces any real one.
+  for (const [step, brands] of outsideMap && !special.size ? [] : [...unresolved].sort()) {
     failures.push(
       `UNRESOLVED RUNG — ${STUDIO_LABEL}'s \`${ramp.steps}\` lists '${step}', and ${ramp.label} resolves ` +
         `it through \`rp.dims['${ramp.prefix}.${step}']\`, which carries no value for it (${brands.join(', ')}) ` +

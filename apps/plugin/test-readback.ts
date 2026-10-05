@@ -67,6 +67,9 @@ const shim = new VariablesShim();
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: shim satisfies VariablesApi
 const api = shim as any;
 
+// The opacity axis first, as Apply Theme does: since 2026-09-29 an overlay-neutral brand carries one tinted wash
+// (`color/interactive/primary/subtle-fill/selected`), which aliases an `opacity/<n>` variable (#1646).
+await applyFloatPlan(buildFloatWritePlan(nbThemeFrom(nbMeasured)).filter((p) => p.name === 'opacity'), api);
 await applyWritePlan(plan, api);
 const snap = await readFigmaVariables(api);
 const verdict = verifyReadback(snap, { modes: ['light', 'dark', 'hc-light', 'hc-dark'] });

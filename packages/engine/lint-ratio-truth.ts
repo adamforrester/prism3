@@ -51,10 +51,27 @@
  *   B. CONFESSION— a role below its `min` is named in `warnings`. "Generated output always complies"
  *                  is not achievable against every ground a user may declare (no ink is 4.5:1 on
  *                  mid-grey), so the promise that CAN be kept is: it complies, or it says so.
- *   C. RESOLUTION— every `against` names a role that exists. This is the arm that would have caught
- *                  nine `against` strings still pointing at the pre-#892 `text.on-inverse` after it
- *                  became a group: they resolved to nothing, fell back to the page surface, and no
- *                  compiler complained because an `against` is data, not a reference.
+ *   C. RESOLUTION— every `against` names a role that exists, or a step on one of this theme's ramps.
+ *                  This is the arm that would have caught nine `against` strings still pointing at
+ *                  the pre-#892 `text.on-inverse` after it became a group: they resolved to nothing,
+ *                  fell back to the page surface, and no compiler complained because an `against`
+ *                  is data, not a reference.
+ *
+ *                  A PALETTE-STEP ground is the contrast floor (`cfg.floorName`, e.g. `neutral.050`):
+ *                  foreground inks, links and `interactive.<c>.fill.*` are measured on it, and it is a
+ *                  ramp primitive, not a role. Until #1986 this arm SKIPPED any `against` shaped like
+ *                  a step, so arm A never recomputed those ratios at all: 1,640 corpus ratios and
+ *                  7,544 sweep ratios per run taken on trust. The step's hex is now read off
+ *                  `theme.palettes` (the emitted primitive) — data, not the engine's ground lookup —
+ *                  and a step-shaped `against` that is on no ramp fails here rather than being
+ *                  skipped. Turning it on found #2025 on day one: the override pass re-rated every
+ *                  overridden floor role on the page, 22 rows in this sweep recording a ratio the
+ *                  tree did not contain. That is fixed (#2032); this arm is what holds it.
+ *
+ *                  NOT covered, and filed as #2026: whether the floor step is the RIGHT step. With a
+ *                  declared `surfaces.<mode>.secondary`, the floor follows the tier; a floor left
+ *                  behind at `neutral.050` leaves every ratio here honest for the step it names, so
+ *                  this gate stays green. Tying the floor to `background.secondary` is another check.
  *   D. REFUSAL   — a ground that HAS a declarative input is rejected by the override layer, and the
  *                  rejection names that input. Added after a mutation showed deleting the refusal
  *                  left arms A-C entirely clean: they build themes through `surfaces`, so they never
@@ -145,6 +162,9 @@ const OVERRIDE_CASES = (): Array<{ label: string; ground: string; input: BrandIn
 
 const failures: string[] = [];
 let checked = 0, confessions = 0, alsoChecked = 0, alsoConfessions = 0;
+// Of `checked`, the rows whose ground is a palette STEP (#1986), and of those, the corpus's. Counted apart
+// so the floor below can hold the resolution itself, not just the total it is folded into.
+let checkedOnStep = 0, corpusOnStep = 0;
 
 /** A ground that is a palette STEP (`neutral.050`) rather than a role — a real, intentional form. */
 const isPaletteStep = (s: string): boolean => /^[a-z][a-z0-9-]*\.\d+$/.test(s);
@@ -156,10 +176,19 @@ const isPaletteStep = (s: string): boolean => /^[a-z][a-z0-9-]*\.\d+$/.test(s);
 type OverrideCtx = { ground: string; baseline: Record<string, { hex: string }> };
 
 const sweep = (label: string, theme: ReturnType<typeof brandTheme>, ctx?: OverrideCtx): void => {
+  // A palette-step ground's colour, read off the THEME'S RAMPS by name (#1986): `<palette>.<key>` → that
+  // step's own `hex`, the value its primitive emits. Never the floor the engine measured against — the
+  // lookup is by the name the role REPORTS, so a role whose recorded ground and real ground came apart
+  // is measured against the one it names, which is the claim this gate holds.
+  const stepHex = new Map(theme.palettes.flatMap((p) => p.steps.map((s) => [`${p.palette}.${s.key}`, s.hex] as const)));
   for (const m of resolveAllModes(theme)) {
     const roles = m.roles as Record<string, { hex: string; against?: string; ratio?: number; min?: number; alpha?: number; model: string; legibleFor?: string; alsoAgainst?: { against: string; min: number } }>;
     // A warning that carries `against` is about a role's SECOND pair (arm F), so it does not confess the
     // role's own pair — keyed apart, or a shortfall on one pair would silently excuse the other.
+    // An override's UNRESOLVED-ground warning (#2034) names that ground in `unresolved`, never in `against`
+    // (#2097 item 3), so it is keyed with the role's own pair, which is the ground it is about. Before that
+    // it carried the ground in `against` and was read here as a second-pair confession for a pair that
+    // does not exist. Arm C still reports the row itself, since its `against` resolves to nothing.
     const warned = new Set((m.warnings ?? []).filter((w) => w.against == null).map((w) => w.role));
     const warnedAlso = new Set((m.warnings ?? []).filter((w) => w.against != null).map((w) => `${w.role} @ ${w.against}`));
     for (const [key, r] of Object.entries(roles)) {
@@ -189,12 +218,19 @@ const sweep = (label: string, theme: ReturnType<typeof brandTheme>, ctx?: Overri
       if (!against || against === 'self') continue;
 
       // ARM C — the `against` resolves. Checked before the others because a dangling ground makes
-      // every number downstream of it meaningless rather than merely wrong.
-      if (!(against in roles)) {
-        if (!isPaletteStep(against))
-          failures.push(`${label}/${m.mode}: '${key}' is measured against '${against}', which is not a role in this mode — the lookup falls back to the page surface, so its ratio describes a ground it was never on.`);
+      // every number downstream of it meaningless rather than merely wrong. A palette STEP is a real,
+      // intentional form (the page contrast floor names one), and it resolves to that step on the
+      // theme's ramps. Until #1986 the form was accepted and the row then `continue`d here, so arm A
+      // never recomputed it: 1,640 contrast-gated corpus ratios on the floor were taken on trust.
+      let groundHex: string;
+      if (against in roles) groundHex = roles[against].hex;
+      else if (!isPaletteStep(against)) {
+        failures.push(`${label}/${m.mode}: '${key}' is measured against '${against}', which is not a role in this mode — the lookup falls back to the page surface, so its ratio describes a ground it was never on.`);
         continue;
-      }
+      } else if (!stepHex.has(against)) {
+        failures.push(`${label}/${m.mode}: '${key}' is measured against the palette step '${against}', which is not a step on any of this theme's ramps — its ratio describes a ground the tree does not emit.`);
+        continue;
+      } else groundHex = stepHex.get(against)!;
       // ARM E — the DECLARED model and the shape it implies agree (#963). Checked here, before the
       // model is used to pick a recomputation, so a mislabelled role fails loudly instead of being
       // measured the wrong way and reported as a ratio error. Both directions.
@@ -236,12 +272,13 @@ const sweep = (label: string, theme: ReturnType<typeof brandTheme>, ctx?: Overri
       // 1,296 ratios per run that used to be taken on trust.
       let truth: number;
       if (r.model === 'ink-on-composite') {
-        const washed = composite(hexToRgb(roles[against].hex), hexToRgb(r.hex), r.alpha!);
+        const washed = composite(hexToRgb(groundHex), hexToRgb(r.hex), r.alpha!);
         truth = contrast(hexToRgb(roles[r.legibleFor!].hex), washed);
       } else {
-        truth = contrast(hexToRgb(r.hex), hexToRgb(roles[against].hex));
+        truth = contrast(hexToRgb(r.hex), hexToRgb(groundHex));
       }
       checked++;
+      if (!(against in roles)) { checkedOnStep++; if (label.startsWith('corpus:')) corpusOnStep++; }
       // How the failure READS has to differ, because the two models fail differently and a reader
       // debugging one should not be handed the other's sentence.
       const how = r.model === 'ink-on-composite'
@@ -341,10 +378,16 @@ if (checked < 2000)
 if (alsoChecked === 0 || alsoConfessions === 0)
   failures.push(`arm F saw ${alsoChecked} second pair(s) and ${alsoConfessions} below its minimum — it needs at least one of each, or the \`alsoAgainst\` confession is unproven. Check that a role still carries \`alsoAgainst\` and that CASES still holds a band its second pair cannot clear.`);
 
+// FLOOR 5 — arm A must recompute palette-step grounds, in the corpus AND in the sweep (#1986). Zero
+// means the floor moved off a ramp step (or the step lookup broke) and the 9,184 floor-grounded ratios
+// per run are back to being taken on trust — the exact state this arm was skipping before #1986.
+if (corpusOnStep < 1000 || checkedOnStep === corpusOnStep)
+  failures.push(`only ${checkedOnStep} ratio(s) recomputed on a palette-step ground (${corpusOnStep} in the corpus, ${checkedOnStep - corpusOnStep} in the sweep) — about 1,640 and 7,544 are expected. The floor-measured roles' \`against\` no longer resolves to a ramp step, so their ratios are not being checked.`);
+
 if (confessions === 0)
   failures.push(`arm B never fired: no case produced a role below its minimum, so "complies or confesses" was never tested. CASES needs a ground the ramp genuinely cannot serve (a mid-grey base is the reliable one).`);
 
-console.log(`Prism3 reported-ratio truth — ${checked} gated ratio(s) recomputed from final colors across ${corpus().length} corpus brand(s) + ${CASES.length} declared-surface case(s); ${confessions} below-minimum role(s), all confessed; ${alsoChecked} second pair(s), ${alsoConfessions} below minimum and confessed`);
+console.log(`Prism3 reported-ratio truth — ${checked} gated ratio(s) recomputed from final colors across ${corpus().length} corpus brand(s) + ${CASES.length} declared-surface case(s), ${checkedOnStep} of them on a palette-step ground (${corpusOnStep} in the corpus); ${confessions} below-minimum role(s), all confessed; ${alsoChecked} second pair(s), ${alsoConfessions} below minimum and confessed`);
 
 if (failures.length) {
   console.error(`\n❌ ${failures.length} ratio-truth failure(s):\n`);

@@ -8,6 +8,7 @@
   "exports": {
     "./anatomy-figma": "./anatomy-figma.ts",
     "./anatomy-readback": "./anatomy-readback.ts",
+    "./button-spacing": "./button-spacing.ts",
     "./color": "./color.ts",
     "./component-schema": "./component-schema.ts",
     "./components/button": "./components/button.ts",
@@ -36,6 +37,7 @@
     "./theme": "./theme.ts",
     "./tree": "./tree.ts",
     "./version": "./version.ts",
+    "./vocabulary": "./vocabulary.ts",
     "./write-plan": "./write-plan.ts",
     "./schema/example-brands.json": "./schema/example-brands.json",
     "./schema/nb-measured.json": "./schema/nb-measured.json"

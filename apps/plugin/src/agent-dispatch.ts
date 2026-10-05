@@ -119,6 +119,16 @@ type Deps = {
    *  show a button's (the owner's call). Progress readings are not forwarded: the panel only counts a build
    *  it started itself. */
   forward?(m: MainToUi): void;
+  /** A valid command as it starts and as it finishes, whatever its outcome (UI redesign S11). The panel's
+   *  Activity drawer shows an agent's command running the way it shows a button's; the forwarded verdict
+   *  alone cannot say when it began, or that a command which threw has ended. Reports only: neither
+   *  writes to the file, and a throw from either never fails the command. */
+  onStart?(id: string, cmd: AgentCmd): void;
+  onFinish?(id: string, cmd: AgentCmd): void;
+  /** A valid command the plugin declines before it runs (#1957): a write whose operation is already
+   *  running. Asked before `onStart`, so a declined command is never shown as running; what it returns is
+   *  the error the agent gets and the message the panel is sent. */
+  refuse?(c: ValidCommand): { message: string; post: MainToUi } | null;
 };
 
 /** Per-command routes into the table. The ONLY place a command meets a handler — see the header. */
@@ -191,6 +201,11 @@ export const createDispatcher = (deps: Deps) => {
       return failedResult({ id: parsed.id ?? '', cmd: parsed.cmd, transport, engineVersion: ENGINE_VERSION, at: startedAt }, parsed.error);
     }
     const c = parsed.command;
+    const refused = deps.refuse?.(c) ?? null;
+    if (refused) {
+      try { deps.forward?.(refused.post); } catch { /* a reader; see `forward` */ }
+      return failedResult({ id: c.id, cmd: c.cmd, transport, engineVersion: ENGINE_VERSION, at: startedAt }, { code: 'busy', message: refused.message });
+    }
     const verdicts: MainToUi[] = [];
     const progress: AgentProgress[] = [];
     const data: Record<string, unknown> = {};
@@ -217,6 +232,7 @@ export const createDispatcher = (deps: Deps) => {
       if (logs.length < LOG_CAP) logs.push(line); else logsDropped++;
       deps.onLog?.(c.id, line);
     };
+    try { deps.onStart?.(c.id, c.cmd); } catch { /* a reader; see `forward` */ }
     try {
       await teeConsole(onLine, () => ROUTES[c.cmd](c, deps.actions, sink, deps));
     } catch (e) {
@@ -226,8 +242,20 @@ export const createDispatcher = (deps: Deps) => {
         finishedAt: now().toISOString(),
         ...(progress.length ? { progress } : {}),
       };
+    } finally {
+      try { deps.onFinish?.(c.id, c.cmd); } catch { /* a reader; see `forward` */ }
     }
     if (logsDropped) logs.push(`… ${logsDropped} more lines not kept`);
+    // A refusal that reached this sink (#1995) is the command's outcome, not a verdict: it carries no `ok`,
+    // so the check below would read it as a success. `refuse` above declines first today; this is the
+    // backstop if a guarded call is ever reached without it.
+    const refusal = verdicts.find((v): v is Extract<MainToUi, { type: 'refused' }> => v.type === 'refused');
+    if (refusal) {
+      return {
+        ...failedResult({ id: c.id, cmd: c.cmd, transport, engineVersion: ENGINE_VERSION, at: startedAt }, { code: refusal.code, message: refusal.message }),
+        finishedAt: now().toISOString(),
+      };
+    }
     // One terminal verdict per action is the handlers' own invariant (#908); if more than one arrived,
     // the LAST is what the panel would be showing, and every one of them must be ok for the command to be.
     const verdict = verdicts.length ? verdicts[verdicts.length - 1] : null;
