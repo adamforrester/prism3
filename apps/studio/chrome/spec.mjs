@@ -79,6 +79,10 @@ export const PAIRS = [
   ['ok-icon', 'bar-bg', 3, 'verdict dot on the top bar'], ['ok-icon', 'bg-page', 3, 'check in a badge'], ['ok-icon', 'fill-1', 3, 'check in a status pill'],
   ['bad-icon', 'bar-bg', 3, 'failure dot on the top bar'], ['bad-icon', 'bg-page', 3, 'refused-field outline'], ['bad-icon', 'fill-1', 3, 'error glyph in a pill or card'],
   ['warn-icon', 'bg-page', 3, 'warning glyph'], ['warn-icon', 'fill-1', 3, 'warning glyph in a pill'],
+  // Added by the product (S12, owner decision S5): the guard's Discard, Prism3's destructive button, on the window.
+  ['danger-on', 'danger-fill', 4.5, 'Discard: the destructive button\'s label on its fill'],
+  ['danger-fill', 'bg-page', 3, 'Discard: the destructive button\'s fill against the window'],
+  ['danger-edge-hover', 'bg-page', 3, 'Discard: its edge on hover'],
   ['text', 'fill-2', 3, 'progress fill on its track'], ['icon', 'fill-2', 3, 'spinner arc on its track'],
 ];
 
@@ -125,6 +129,16 @@ export const PRODUCT_VARS = [
   // (the shared styling pass; #2015 read `motion.duration.normal` and the mockup's `ease` row separately).
   ['transition-dur', 'motion.transition.default#duration', 'motion.transition.default#duration', T, 'the eased scroll of the edit-reveal and the jump links'],
   ['transition-ease', 'motion.transition.default#timingFunction', 'motion.transition.default#timingFunction', E, 'the eased scroll\'s curve'],
+  // S12: the start window's width unit, from the dimension grid: the window is five of these (640px, the mockup's) and
+  // the guard over it three and three quarters (480px).
+  ['dlg-unit', 'core.dimension.128', 'core.dimension.128', D, 'the start window\'s and the guard\'s widths'],
+  // S12 (owner decision S5): the guard's Discard wears Prism3's destructive button, the Button.Destructive component's
+  // default (filled) appearance: its fill and its on-fill ink at rest, from the same tokens in both themes. Hover moves
+  // the edge to the destructive border's hover step, the way the outline appearance carries state: the filled hover
+  // step under the on-fill ink measures 3.31:1 in dark (filed), below the 4.5:1 text floor.
+  ['danger-fill', 'color.interactive.destructive.fill.rest', 'color.interactive.destructive.fill.rest', C, 'the destructive button\'s fill (S5)'],
+  ['danger-on', 'color.interactive.destructive.on-fill', 'color.interactive.destructive.on-fill', C, 'the destructive button\'s label (S5)'],
+  ['danger-edge-hover', 'color.interactive.destructive.border.hover', 'color.interactive.destructive.border.hover', C, 'the destructive button\'s edge on hover (S5)'],
 ];
 export const PRODUCT_FOR = (mode) => PRODUCT_VARS.map(([n, l, d, k]) => [n, mode === 'light' ? l : d, k]);
 
@@ -160,6 +174,9 @@ export const SHELL_VARS = [
   'transition-dur', 'transition-ease',
   // QA-B11: the fill rows' swatch, as tall as a row's label and token (the mockup's 40px swatch row).
   'swatch-h',
+  // S12: the start window and its guard: the scrim, the window's width unit and its card padding, and the guard's
+  // destructive Discard (S5).
+  'overlay-pressed', 'dlg-unit', 'space-250', 'danger-fill', 'danger-on', 'danger-edge-hover',
 ];
 
 // Mapped color variables that carry no contrast duty: a hairline that splits regions, a hover wash.
@@ -169,4 +186,6 @@ export const SHELL_VARS = [
 // hairline (`border.primary`) that splits the bar, the tab row, the sub-nav and the two panes, and rings the
 // brand swatch. It is never a control's boundary; every control edge is a declared pair at 3:1. S1.2 maps
 // no hover wash: a hover shows an edge (a declared pair) or the inset fill (`fill-1`, paired with text).
-export const DECORATIVE = ['line-1'];
+// S12 lists a second: the start window's scrim (`overlay-pressed`, concept v6's), a wash over the studio behind the
+// window. Nothing is read on it; the window it holds is opaque.
+export const DECORATIVE = ['line-1', 'overlay-pressed'];
