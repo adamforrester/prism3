@@ -5150,6 +5150,27 @@ for (const host of ['web', 'figma']) {
       ok(JSON.stringify(await sw()) === JSON.stringify({ on: 'true', off: false, why: '' }), `#2055: releasing both mobile sizes makes the fluid switch live again (${JSON.stringify(await sw())})`);
       ok(JSON.stringify(await persisted(page)) === JSON.stringify(pFluid), '#2055: releasing both mobile sizes returns the brand to its bytes');
     }
+    // #2068: a viewport pair the engine refuses is put back rather than written, with the engine's own sentence as
+    // the warning under the fields, and the error bar stays quiet. EXPECTED typed here: the owner-approved sentence
+    // with the values entered, never read from the page's module (docs/34).
+    {
+      const vp = (k) => page.locator(k === 'min' ? '[data-p3="type-min-viewport"]' : '[data-p3="type-max-viewport"]');
+      const line = () => page.evaluate(() => document.querySelector('[data-p3="type-viewport-refused"]')?.textContent?.trim() ?? null);
+      const bar = () => page.evaluate(() => { const e = document.querySelector('[data-p3="error-bar"]'); return !!e && !e.hidden && !!e.textContent?.trim(); });
+      ok((await line()) === null, `#2068: on the 375/1280 default, no viewport refusal is shown (${await line()})`);
+      const before = JSON.stringify(await persisted(page));
+      for (const [k, v, back, why, what] of [
+        ['min', '1280', '375', 'The minimum viewport (1280px) must be smaller than the maximum viewport (1280px).', 'min equal to max'],
+        ['max', '320', '1280', 'The minimum viewport (375px) must be smaller than the maximum viewport (320px).', 'max below min'],
+      ]) {
+        await vp(k).fill(v);
+        await vp(k).evaluate((e) => e.blur());
+        await page.waitForFunction(() => !!document.querySelector('[data-p3="type-viewport-refused"]'), null, { timeout: 5000 }).catch(() => {});
+        ok((await line()) === why, `#2068: ${what}, the refusal reads "${why}" (${await line()})`);
+        ok((await vp(k).inputValue()) === back, `#2068: ${what}, the field is put back to ${back} (${await vp(k).inputValue()})`);
+        ok(JSON.stringify(await persisted(page)) === before && !(await bar()), `#2068: ${what}, nothing is written and the error bar stays quiet`);
+      }
+    }
     // A text type that pins a font style cannot be Italic only: the chip is disabled with the reason.
     const pinIn = page.locator('[data-p3="pin-cut-row"][data-cat="body"][data-role="default"] [data-p3="pin-cut-input"]');
     await pinIn.fill('Medium');
