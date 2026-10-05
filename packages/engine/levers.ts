@@ -171,7 +171,7 @@ export const leverManifest: Lever[] = [
 
   // ---- LAYOUT ----
   { key: 'layout.breakpoints', group: 'layout', label: 'Breakpoints', control: 'list', advanced: true, itemLabel: 'min-width (px)',
-    description: 'The screen width where each layout starts, smallest first. Studio keeps the first at 0px. Names follow the count: up to five start at sm, six run xs to 2xl, and seven run xs to 3xl. The default is 0, 768, 1024, 1440 and 1920.' },
+    description: 'The screen width where each layout starts, smallest first. The first is always 0px. Names follow the count: up to five start at sm, six run xs to 2xl, and seven run xs to 3xl. The default is 0, 768, 1024, 1440 and 1920.' },
   { key: 'layout.columns', group: 'layout', label: 'Grid columns', control: 'slider', advanced: true, default: 12, min: 4, max: 24, step: 1,
     description: 'How many columns the grid has on the widest breakpoints. Smaller breakpoints step up to it: 4, then 8, then this count.' },
   { key: 'layout.containerMax', group: 'layout', label: 'Maximum width', control: 'slider', advanced: true, default: 1440, min: 960, max: 1920, step: 40, unit: 'px',
