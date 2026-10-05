@@ -1093,11 +1093,34 @@ for (const b of brands) {
   ok(ws.length === 1 && ws[0].role === 'foreground.brand' && ws[0].against === 'nowhere.999' && ws[0].unresolved === true && hex(got) === '#ffffff',
     `FO-02: an override whose ground is neither a role nor a ramp step falls back to the page AND warns, naming the role and the ground (warnings: ${JSON.stringify(ws)})`);
   ok(Math.abs((ws[0]?.ratio ?? 0) - contrast(PICK, PAGE)) < 1e-9 && ws[0]?.min === 3, 'FO-02: the unresolved warning records the pick as measured on the page it fell back to, and the role\'s min');
-  const quiet: typeof ws = [];
-  const onRole = overrideGroundRgb('foreground.brand', 'background.secondary', 3, PICK, new Map([['background.secondary', hexToRgb('#e9e9ea')]]), ramps, PAGE, quiet as any);
-  const onStep = overrideGroundRgb('foreground.brand', 'neutral.050', 3, PICK, new Map(), ramps, PAGE, quiet as any);
-  ok(quiet.length === 0 && hex(onRole) === '#e9e9ea' && hex(onStep) === '#e9e9ea',
-    `FO-02: a role ground and a ramp-step ground resolve without a warning (role ${hex(onRole)}, step ${hex(onStep)}, warnings ${quiet.length})`);
+}
+
+// FO-02b (#2097 item 1) — FO-02's two RESOLVING branches, told apart. FO-02's quiet arm read a role ground
+// and a step ground that were both #e9e9ea, and handed the step call an EMPTY role map, so a branch that
+// returned the other branch's ground passed: measured, both cross-wirings below left FO-02 green. So here
+// the role ground, the step ground and the page are three different colours, BOTH calls get the same
+// populated role map, and the step's expected hex is the EMITTED primitive in `out/prism3.tokens.json`
+// (a precondition ties the literal to it), never the ramp `overrideGroundRgb` reads.
+// BY-NAME MUTATIONS, each green under FO-02 alone: the role branch returning the floor step
+// (`if (role) return <neutral.050>`) fails the role arm; the step branch returning a role from the map
+// (`if (step) return rgbByRole.values().next().value`) fails the step arm.
+{
+  const ROLE = '#c8d2dc', STEP = '#e9e9e9', PAGE_HEX = '#ffffff';
+  let o: any = JSON.parse(readFileSync(resolve(HERE, 'out', 'prism3.tokens.json'), 'utf8'));
+  for (const k of 'pds3.core.palette.neutral.050'.split('.')) o = o?.[k];
+  const emitted = typeof o?.$value === 'string' ? o.$value.toLowerCase() : undefined;
+  ok(emitted === STEP && new Set([ROLE, STEP, PAGE_HEX]).size === 3,
+    `FO-02b: prism3's neutral.050 emits ${STEP} (out/prism3.tokens.json: ${emitted}), and the role ground, the step ground and the page are three different colors (precondition)`);
+  const t = brandTheme(structuredClone(exampleBrands()['prism3']) as BrandInput);
+  const ramps = new Map(t.palettes.map((p) => [p.palette, p.steps] as const));
+  const PICK = hexToRgb('#73767a');
+  const byRole = new Map([['background.secondary', hexToRgb(ROLE)]]);
+  const quiet: Array<{ role: string }> = [];
+  const onRole = overrideGroundRgb('foreground.brand', 'background.secondary', 3, PICK, byRole, ramps, hexToRgb(PAGE_HEX), quiet as any);
+  const onStep = overrideGroundRgb('foreground.brand', 'neutral.050', 3, PICK, byRole, ramps, hexToRgb(PAGE_HEX), quiet as any);
+  ok(hex(onRole) === ROLE, `FO-02b: a role ground resolves to that role's color, ${ROLE} — not the floor step (${STEP}) or the page (${PAGE_HEX}); got ${hex(onRole)}`);
+  ok(hex(onStep) === STEP, `FO-02b: a ramp-step ground resolves to the emitted step, ${STEP} — not a role from the map (${ROLE}) or the page (${PAGE_HEX}); got ${hex(onStep)}`);
+  ok(quiet.length === 0, `FO-02b: neither resolving branch warns (warnings ${JSON.stringify(quiet)})`);
 }
 
 // IT-01 (#1617) — an outline / text control's GLYPH follows its LABEL under a per-mode override. The
