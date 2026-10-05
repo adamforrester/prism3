@@ -7378,28 +7378,33 @@ for (const host of ['web', 'figma']) {
         await page.waitForFunction(() => !!document.querySelector('[data-p3="start-guard"]') || !document.querySelector('[data-p3="start-screen"]'), null, { timeout: 4000 }).catch(() => {});
         return readStartWindow(page);
       };
-      // Load harbor, then make exactly one edit: its name.
-      await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: 'harbor' }));
-      await goPlace(page, 'brand');
-      await page.fill('[data-p3="brand-name"]', 'harbor-one-edit');
-      const edited = await savedBrand(page);
-      await reopen();
+      // A fresh harbor (through the guard when there is one to clear), so each path starts from the same state.
+      const loadHarbor = async () => {
+        if (!(await readStartWindow(page)).open) await reopen();
+        await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: 'harbor' }));
+        if ((await outcome()).guard) await hooks.click(page.locator('[data-p3="start-guard-discard"]'));
+      };
+      // Before EACH path: harbor with exactly one edit (its name), so a path that skips the guard fails alone rather
+      // than leaving the next path a clean brand.
+      let edited = null;
       for (const [path, run] of START_PATHS) {
+        await loadHarbor();
+        await goPlace(page, 'brand');
+        await page.fill('[data-p3="brand-name"]', 'harbor-one-edit');
+        edited = await savedBrand(page);
+        await reopen();
         await run(page);
         const s = await outcome();
         ok(s.guard && s.discard === 'Discard 1 edit', `${where}: the ${path} path over 1 unsaved edit asks first ("Discard 1 edit") — ${s.guard ? `"${s.discard}"` : `loaded without asking (brand "${s.brand}")`}`);
-        if (!s.guard) { await reopen(); continue; }
+        if (!s.guard) continue;
         await hooks.click(page.locator('[data-p3="start-guard-cancel"]'));
         const back = await readStartWindow(page);
         ok(!back.guard && back.open && (back.brand ?? '').includes('harbor-one-edit') && (await savedBrand(page)) === edited,
           `${where}: Cancel on the ${path} path keeps the edited brand and the start open (brand "${back.brand}")`);
       }
-      // Nothing to lose: every path loads at once. Each load leaves a clean brand for the next.
-      await hooks.click(page.locator('[data-p3="start-close"]'));
-      await reopen();
-      await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: 'harbor' }));
-      await hooks.click(page.locator('[data-p3="start-guard-discard"]'));
+      // Nothing to lose: every path loads at once, each from a freshly loaded harbor.
       for (const [path, run] of START_PATHS) {
+        await loadHarbor();
         await reopen();
         await run(page);
         const s = await outcome();
