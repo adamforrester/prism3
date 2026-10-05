@@ -183,6 +183,13 @@
     },
     {
       "date": "2026-09-29",
+      "issue": 259,
+      "title": "each table's header spans its table, and its grid hugs and reflows like the owner's examples",
+      "doc": "docs/45-style-guide-generator.md",
+      "section": null
+    },
+    {
+      "date": "2026-09-29",
       "issue": null,
       "title": "size is for size, space is for space — a component states its own spacing, and density moves it one step",
       "doc": "docs/28-component-anatomy-schema.md",

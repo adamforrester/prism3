@@ -47,7 +47,7 @@ const plain = (s: HostSession): unknown => ({ ...s, hostFontStyles: [...s.hostFo
 
 /** Every kind the UI's handler receives, written out here rather than read from the code under test. */
 const KINDS = [
-  'apply-result', 'component-result', 'file-setup-result', 'style-guide-result', 'component-progress',
+  'apply-result', 'component-result', 'file-setup-result', 'style-guide-result', 'component-progress', 'style-guide-progress',
   'prune-result', 'seed-info', 'restore-input', 'restore-input-empty', 'restore-input-error', 'font-list',
   'agent-started', 'agent-progress', 'agent-finished', 'refused',
 ] as const;
@@ -67,7 +67,7 @@ ok(typeof (globalThis as { document?: unknown }).document === 'undefined', 'prem
 const init = initialHostSession();
 ok(same(plain(init), {
   seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, componentState: null,
-  fileSetupState: null, styleGuideState: null, componentProgress: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
+  fileSetupState: null, styleGuideState: null, componentProgress: null, styleGuideProgress: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
   pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], agentRun: null, refused: null,
 }), 'initial session: every slot empty');
 
@@ -109,6 +109,27 @@ for (const c of verdictCases) {
   ok(late.next === verdict.next && late.topics.length === 0, 'component-progress: a late reading after the verdict is dropped and invalidates nothing');
   const idle = step(init, { kind: 'component-progress', phase: 'build', done: 1, total: 2, chunkMs: 0 });
   ok(idle.next === init, 'component-progress: ignored when no build is pending');
+}
+// #1778: the style guide's table count, the same rule against its own slot.
+{
+  const pending: HostSession = { ...init, styleGuideState: 'pending' };
+  const prog = step(pending, { kind: 'style-guide-progress', done: 6, total: 22 });
+  ok(same(prog.next.styleGuideProgress, { done: 6, total: 22 }) && same(prog.topics, ['host:progress']),
+    'style-guide-progress: records done and total while pending, and invalidates host:progress only');
+  const verdict = step(prog.next, { kind: 'style-guide-result', ok: true, headline: '✓ style guide: 22 tables', summary: 's' });
+  ok(verdict.next.styleGuideProgress === null, 'style-guide-progress: the verdict clears it');
+  const late = step(verdict.next, { kind: 'style-guide-progress', done: 22, total: 22 });
+  ok(late.next === verdict.next && late.topics.length === 0, 'style-guide-progress: a late reading after the verdict is dropped and invalidates nothing');
+}
+// Owner decision Q19 b: an agent's style guide keeps its table count; a reading of the other kind is dropped.
+{
+  const sg = step(init, { kind: 'agent-started', id: 's1', cmd: 'style-guide' }).next;
+  const t = step(sg, { kind: 'agent-progress', id: 's1', phase: 'table', done: 6, total: 22 });
+  ok(same(t.next.agentRun?.progress, { phase: 'table', done: 6, total: 22 }) && same(t.topics, ['host:progress']),
+    'agent-progress: an agent style guide records its table count and invalidates host:progress');
+  ok(step(sg, { kind: 'agent-progress', id: 's1', phase: 'build', done: 1, total: 2 }).next === sg, 'agent-progress: a build reading on a style-guide run is dropped');
+  const bc = step(init, { kind: 'agent-started', id: 'b9', cmd: 'build-components' }).next;
+  ok(step(bc, { kind: 'agent-progress', id: 'b9', phase: 'table', done: 1, total: 2 }).next === bc, 'agent-progress: a table reading on a build run is dropped');
 }
 
 // ---- the per-set build ledger (UI redesign S8.2, owner decisions G9 A and C1 A) ------------------------------

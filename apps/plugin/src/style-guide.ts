@@ -41,6 +41,8 @@ import { HEADER_VARIANT } from './page-header';
 import { TAXONOMY, allLeaves, leafPageName } from './file-taxonomy';
 import { findCellSets, pickVariant, SWATCH_SET, TEXT_CELL_SET } from './style-guide-cells';
 import type { CellNode } from './style-guide-cells';
+import { realYield } from './write-components';
+import type { YieldFn } from './write-components';
 
 // ── The catalog: what the plan reads ───────────────────────────────────────────────────────────────
 export interface SgMode { modeId: string; name: string }
@@ -130,7 +132,12 @@ export interface SgTable {
   rows: SgRow[];
 }
 
-export interface SgPlan { tables: SgTable[]; notes: string[] }
+export interface SgPlan {
+  tables: SgTable[];
+  notes: string[];
+  /** The `tables` filter's names that match no table (#1778), as given. Each is also said in `notes`. */
+  unmatched: string[];
+}
 
 type RGBA = { r: number; g: number; b: number; a: number };
 const isRgba = (v: unknown): v is RGBA =>
@@ -284,7 +291,7 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
   const format = options.valueFormat ?? 'hex';
   const wantTypes = (options.types ?? [...PHASE_TYPES]).map((t) => t.toLowerCase());
   for (const t of wantTypes) if (!(PHASE_TYPES as readonly string[]).includes(t)) notes.push(`${t}: not in this phase — color only`);
-  if (!wantTypes.includes('color')) return { tables: [], notes };
+  if (!wantTypes.includes('color')) return narrow([], notes, options.tables);
 
   const ix: Index = {
     byId: new Map(catalog.variables.map((v) => [v.id, v])),
@@ -424,7 +431,30 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
       });
     }
   }
-  return { tables, notes };
+  return narrow(tables, notes, options.tables);
+};
+
+/**
+ * THE TABLES FILTER (#1778): keep the tables named, each by its title as drawn ("Primary — nbds") or its key, in
+ * any case. A name that matches nothing is reported by name, with the titles this run could draw, so a typo is
+ * never a silent no-op. Applied after the plan is built, so a title means what it means in an unfiltered run.
+ */
+const TITLES_LISTED = 8;
+const narrow = (tables: SgTable[], notes: string[], want: readonly string[] | undefined): SgPlan => {
+  if (!want) return { tables, notes, unmatched: [] };
+  const hit = (t: SgTable, name: string): boolean => {
+    const n = name.trim().toLowerCase();
+    return t.title.toLowerCase() === n || t.key.toLowerCase() === n;
+  };
+  const unmatched = [...new Set(want)].filter((name) => !tables.some((t) => hit(t, name)));
+  if (unmatched.length) {
+    // The first TITLES_LISTED titles, then a count: the owner's file draws 43, which is no longer a note.
+    const titles = tables.map((t) => t.title);
+    const listed = titles.length > TITLES_LISTED ? `${titles.slice(0, TITLES_LISTED).join(', ')} and ${titles.length - TITLES_LISTED} more` : titles.join(', ');
+    const here = tables.length ? `the tables this run can draw are ${listed}` : 'this run draws no tables';
+    notes.push(`No table is titled or keyed ${unmatched.map((n) => `"${n}"`).join(', ')}; ${here}`);
+  }
+  return { tables: tables.filter((t) => want.some((name) => hit(t, name))), notes, unmatched };
 };
 
 /** A ground or ink the contract names — a role key (`background.primary`) in this collection first, then a
@@ -505,7 +535,7 @@ export interface SgNode extends CellNode {
   gridRowGap?: unknown;
   gridColumnGap?: unknown;
   gridColumnSizes?: { type: string; value?: number }[];
-  readonly gridRowSizes?: readonly { type: string; value?: number }[];
+  gridRowSizes?: { type: string; value?: number }[];
   readonly componentProperties?: Record<string, { type?: string; value?: unknown }>;
   appendChildAt?(node: unknown, row: number, column: number): void;
   setPluginData?(key: string, value: string): void;
@@ -571,7 +601,34 @@ export interface StyleGuideResult {
   notes: string[];
   /** Named, recoverable misses: fonts, a header set, a variant approximated, a node with nothing to bind. */
   misses: string[];
+  /** The `tables` filter's names that match no table (#1778). Not a pass: the designer asked for a table
+   *  this run could not find. */
+  unmatched: string[];
 }
+
+/** A progress reading (#1778): `done` of `total` tables drawn, the last one's title and what it cost. */
+export interface StyleGuideProgress { done: number; total: number; title: string; tableMs: number }
+
+/** How the executor shares the host's thread (#1778) — never part of `StyleGuideOptions`, which crosses the
+ *  bridge: these are the caller's, the way `ComponentApplyOptions` carries the component writer's. */
+export interface StyleGuideRun {
+  /** How control returns to the host. Defaults to the component writer's `realYield`, a `setTimeout(0)`. */
+  yieldTo?: YieldFn;
+  /** Called before the first table (`done: 0`) and after each. Synchronous: it posts and returns. */
+  onProgress?: (p: StyleGuideProgress) => void;
+}
+
+/**
+ * Cells written between two yields to the host (#1778). A full run on the owner's file drew 41 tables in about
+ * 4.7 minutes, ~8,800 cells by the plan's count (the prism3 emission's 4,394, twice for two roots): ~32ms a cell,
+ * everything included. 28 cells is ~0.9s, under the second where a stall reads as a stutter rather than a
+ * freeze, the component writer's budget (`CHUNK`). Rows are placed whole: a table yields every
+ * `max(1, floor(28 / columns))` rows, so every 2 rows of a four-mode semantic table (14 columns) and every 7
+ * rows of a one-mode palette (4 columns), and once more after the table. The per-cell cost is an average over
+ * a run that also sized columns by hand, which this build no longer does, not a measurement per phase: the
+ * live run's `tableMs` readings are what to calibrate this against.
+ */
+export const CELLS_PER_YIELD = 28;
 
 /** Read the file's collections and variables into the plan's catalog, keeping the host objects by id. */
 export const readCatalog = async (vars: StyleGuideApi['variables']): Promise<{ catalog: SgCatalog; collectionById: Map<string, unknown>; variableById: Map<string, unknown> }> => {
@@ -588,6 +645,8 @@ const fontKeyOf = (f: { family: string; style: string }): string => `${f.family}
 const PLACEHOLDER_PAINT = { type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 0, g: 0, b: 0 } };
 const WHITE = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 1, g: 1, b: 1 } }];
 const TABLE_GAP = 160;
+/** The gap between a table's tracks, rows and columns alike: the owner's examples' 2px (owner decision, 2026-09-29). */
+const TRACK_GAP = 2;
 const PART_KEY = 'prism3-style-guide-part';
 /** The header text a run wrote, so the next run can tell its own words from a designer's. */
 const TITLE_KEY = 'prism3-style-guide-title';
@@ -601,9 +660,6 @@ const PRINT_KEY = 'prism3-style-guide-print';
  *  duplicate and the id does not, so the frame id tells the generator's own frame from a designer's copy of it; the
  *  page id tells a table left on its page from one moved to another page at the same x and y. */
 const MARK_KEY = 'prism3-style-guide-mark';
-/** The widest a description column grows, in px, padding included — the only text that wraps. */
-export const DESC_WRAP = 360;
-
 const AUTO_LAYOUT = new Set(['HORIZONTAL', 'VERTICAL']);
 /** Set a node's horizontal sizing where the host allows it: HUG and FILL throw on a node outside auto layout. */
 const sizing = (n: SgNode, v: 'HUG' | 'FILL' | 'FIXED'): boolean => {
@@ -708,15 +764,18 @@ const fingerprintOf = async (wrap: SgNode): Promise<string> => {
   return `${fnv(s, false)}${fnv(s, true)}`;
 };
 
-/** Give a cell its column's width, keeping its height hugging its content. */
+/** Give a node a FIXED width, keeping its height hugging its content — the header's fallback where FILL is refused. */
 const setWidth = (n: SgNode, w: number): void => {
   sizing(n, 'FIXED');
   n.resize?.(w, n.height ?? 0);
   try { n.layoutSizingVertical = 'HUG'; } catch { /* a root outside auto layout keeps its height */ }
 };
 
-/** Run the plan into the file. Never throws for a missing optional piece; the host throwing is the caller's. */
-export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | null, options: StyleGuideOptions = {}): Promise<StyleGuideResult> => {
+/** Run the plan into the file. Never throws for a missing optional piece; the host throwing is the caller's.
+ *  Yields to the host after every table and every `CELLS_PER_YIELD` cells within one (#1778): a full run held
+ *  Figma and the panel for its whole ~4.7 minutes before it did. */
+export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | null, options: StyleGuideOptions = {}, run: StyleGuideRun = {}): Promise<StyleGuideResult> => {
+  const yieldTo = run.yieldTo ?? realYield;
   await api.loadAllPagesAsync();
   const { catalog, collectionById, variableById } = await readCatalog(api.variables);
   const plan = planStyleGuide(catalog, contract, options);
@@ -729,7 +788,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const textCells = sets[TEXT_CELL_SET] as SgNode | undefined;
   if (!swatches || !textCells) {
     for (const t of plan.tables) skip(t, 'no-cells');
-    return { tables: out, stale: [], replaced: [], deleted: [], kept: [], unbound: 0, notes: plan.notes, misses };
+    return { tables: out, stale: [], replaced: [], deleted: [], kept: [], unbound: 0, notes: plan.notes, misses, unmatched: plan.unmatched };
   }
   const allSets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly SgNode[];
   const headerSet = allSets.find((n) => n.name === SECTION_HEADER_SET) ?? allSets.find((n) => isTemplateSet(n.name, SECTION_HEADER_SET));
@@ -777,7 +836,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   // A text cell HUGS its words, never clips them (live, 2026-09-28: the owner's cells are a fixed 120px, and
   // "nbds/core/palette/primary/02" was cut off inside it). Every text node sizes to its words with truncation
   // off; every auto-layout frame from the inside out hugs; a root outside auto layout is widened to its content.
-  // Nothing wraps here: a width set before the grid's columns are sized is a guess (see the grid below).
+  // Nothing wraps, ever (owner decision, 2026-09-29): the cell then FILLs a HUG track, which takes this width.
   const fit = (inst: SgNode): void => {
     for (const t of textNodes(inst)) {
       t.textTruncation = 'DISABLED';
@@ -791,21 +850,6 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       if (kids.length) inst.resize?.(Math.max(...kids.map((k) => num(k.x) * 2 + (k.width ?? 0))), inst.height ?? 0);
     }
   };
-  // Wrap a text to its cell. In an auto-layout cell: HEIGHT, then FILL, so the text takes the cell's width less its
-  // padding (live, 2026-09-28: on a TEXT inside an INSTANCE, FIXED + HEIGHT + `resize(296, h)` is ignored and the
-  // text keeps its main component's width, 29px in the owner's cell, one word a line; HEIGHT then FILL gives 296).
-  // FIXED + resize only where the parent is not auto layout, since FILL needs one.
-  const wrapTo = (t: SgNode, w: number): void => {
-    const parent = t.parent as SgNode | null | undefined;
-    if (parent && AUTO_LAYOUT.has(String(parent.layoutMode))) {
-      t.textAutoResize = 'HEIGHT';
-      if (sizing(t, 'FILL')) return;
-    }
-    sizing(t, 'FIXED');
-    t.textAutoResize = 'HEIGHT';
-    t.resize?.(w, t.height ?? 20);
-  };
-
   const textCell = async (type: 'default' | 'header' | 'value alias', color: string, text: string, alias?: string | null): Promise<SgNode | null> => {
     const v = variantOf(textCells, { type, color, textalign: 'left', padding: 'default' }, `type=${type}, color=${color}`);
     if (!v?.createInstance) return null;
@@ -818,9 +862,36 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     return inst;
   };
 
-  // The specimen: a ground frame bound to the ground variable (or plain white), the swatch inside it bound to
-  // the token, and BOTH pinned to the column's mode so the binding resolves in that mode, live.
+  // THE SPECIMEN DEPENDS ON THE ROLE (owner decision 13, 2026-09-29, #259). The swatch member is the one the row's
+  // display names (`autoDisplay`, or the Display override): letters for a text role, an outlined shape for a border,
+  // the glyph for an icon, the checkerboard for a translucent value, the filled square otherwise. Its paint (the
+  // stroke, for a border) is bound to the token, it pins the column's mode, and it keeps its component's size,
+  // FIXED on both axes: it never stretches with the column.
+  //   • A SEMANTIC row draws it on a GROUND: a frame bound to the ground variable the contrast column measures
+  //     against (or plain white where the role has none), pinned to the same mode. The ground is the grid cell and
+  //     FILLs its track, so the ground reaches the cell's edges.
+  //   • A PRIMITIVE (palette) row has no ground: nothing is measured against one, so the swatch is the cell itself.
   const unboundIn = new Map<string, number>();
+  const swatchOf = (row: SgRow, cell: SgCell, collection: unknown): { inst: SgNode; w: number; h: number } | null => {
+    const v = variantOf(swatches, { type: row.display }, `type=${row.display}`);
+    if (!v?.createInstance) return null;
+    const inst = v.createInstance() as SgNode;
+    const target = bindTarget(inst, row.display);
+    const variable = variableById.get(row.variableId);
+    if (target && variable) {
+      const paint = api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', variable);
+      if (row.display === 'border') target.strokes = [paint];
+      else target.fills = [paint];
+    } else unboundIn.set(String(v.name), (unboundIn.get(String(v.name)) ?? 0) + 1);
+    inst.setExplicitVariableModeForCollection?.(collection, cell.modeId);
+    return { inst, w: num(v.width), h: num(v.height) };
+  };
+  /** FIXED at the member's own size — set once the swatch is in its parent, which the host requires. */
+  const keepSize = ({ inst, w, h }: { inst: SgNode; w: number; h: number }): void => {
+    sizing(inst, 'FIXED');
+    try { inst.layoutSizingVertical = 'FIXED'; } catch { /* a host that refuses it leaves the instance as created */ }
+    if (w > 0 && h > 0) inst.resize?.(w, h);
+  };
   const specimen = (row: SgRow, cell: SgCell, collection: unknown): SgNode => {
     const ground = api.createFrame();
     ground.name = 'Ground';
@@ -831,19 +902,8 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     const groundVariable = cell.groundId ? variableById.get(cell.groundId) : undefined;
     ground.fills = groundVariable ? [api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', groundVariable)] : WHITE;
     ground.setExplicitVariableModeForCollection?.(collection, cell.modeId);
-    const v = variantOf(swatches, { type: row.display }, `type=${row.display}`);
-    if (v?.createInstance) {
-      const inst = v.createInstance() as SgNode;
-      const target = bindTarget(inst, row.display);
-      const variable = variableById.get(row.variableId);
-      if (target && variable) {
-        const paint = api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', variable);
-        if (row.display === 'border') target.strokes = [paint];
-        else target.fills = [paint];
-      } else unboundIn.set(String(v.name), (unboundIn.get(String(v.name)) ?? 0) + 1);
-      inst.setExplicitVariableModeForCollection?.(collection, cell.modeId);
-      ground.appendChild?.(inst);
-    }
+    const sw = swatchOf(row, cell, collection);
+    if (sw) { ground.appendChild?.(sw.inst); keepSize(sw); }
     return ground;
   };
 
@@ -864,9 +924,11 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
 
   const headerColor = options.header === 'light' ? 'white' : 'dark';
   const drawnOn = new Set<SgPage>();
-  for (const t of plan.tables) {
+  /** Every table this run drew, and how much taller it is than before (0 for a new one). */
+  const drawn: { frame: SgNode; page: SgPage; created: boolean; delta: number }[] = [];
+  const drawTable = async (t: SgTable): Promise<void> => {
     const page = pages.get(t.page);
-    if (!page) { skip(t, 'no-page'); continue; }
+    if (!page) { skip(t, 'no-page'); return; }
     const collection = collectionById.get(t.collectionId);
 
     let wrap = framesOn(page).find((n) => n.getPluginData?.(TABLE_KEY) === t.key) ?? null;
@@ -915,6 +977,8 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       }
     }
 
+    // The table's height before this run, which a filtered run's re-stack moves the tables below it by (#1778).
+    const before = created ? 0 : num(wrap.height);
     // The grid is rebuilt every run: the values are static text, refreshed here.
     for (const c of (wrap.children ?? []) as SgNode[]) if (c.getPluginData?.(PART_KEY) === 'table') c.remove?.();
     const grid = api.createFrame();
@@ -924,66 +988,93 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     grid.layoutMode = 'GRID';
     grid.gridRowCount = t.rows.length + 1;
     grid.gridColumnCount = t.columns.length;
-    grid.gridRowGap = 0;
-    grid.gridColumnGap = 0;
-    for (const s of grid.gridColumnSizes ?? []) s.type = 'HUG';
-    for (const s of grid.gridRowSizes ?? []) s.type = 'HUG';
+    // A 2px gap between tracks, both ways, as in the owner's examples (owner decision, 2026-09-29, #259).
+    grid.gridRowGap = TRACK_GAP;
+    grid.gridColumnGap = TRACK_GAP;
+    // THE OWNER'S GRID MODEL (owner decision, 2026-09-29, #259), measured live on their "↳ Style Guide Examples":
+    // every column and row track HUGs, every cell FILLs its track on both axes, and every text hugs its words on
+    // one line. A track takes its widest cell's content, and a designer who drags the grid wider widens the
+    // tracks and every cell follows. This replaces #1749's FIXED column widths and its wrapped descriptions:
+    // nothing wraps, so the description column is its longest line. The tracks are ASSIGNED, not mutated in
+    // place, since a host getter may hand back a copy; mutated where the assignment throws.
+    const hugTracks = (key: 'gridColumnSizes' | 'gridRowSizes', n: number): void => {
+      try { grid[key] = Array.from({ length: n }, () => ({ type: 'HUG' })); }
+      catch { for (const s of grid[key] ?? []) s.type = 'HUG'; }
+    };
+    hugTracks('gridColumnSizes', t.columns.length);
+    hugTracks('gridRowSizes', t.rows.length + 1);
     grid.layoutSizingHorizontal = 'HUG';
     grid.layoutSizingVertical = 'HUG';
     wrap.appendChild?.(grid);
 
-    const placed: { n: SgNode; r: number; c: number }[] = [];
-    const place = (n: SgNode | null, r: number, c: number): void => { if (n) { grid.appendChildAt?.(n, r, c); placed.push({ n, r, c }); } };
+    // A cell FILLs its track, both axes: a text cell hugs its words (`fit`), and the track takes that width; the
+    // specimen's ground fills the track too, so the ground reaches the cell's edges however wide the column is. A
+    // palette row's swatch is the one cell that does not: it keeps its component's size (decision 13).
+    const place = (n: SgNode | null, r: number, c: number): void => {
+      if (!n) return;
+      grid.appendChildAt?.(n, r, c);
+      sizing(n, 'FILL');
+      try { n.layoutSizingVertical = 'FILL'; } catch { /* a host that refuses it leaves the cell hugging */ }
+    };
     for (let c = 0; c < t.columns.length; c++) place(await textCell('header', headerColor, t.columns[c]), 0, c);
+    // YIELD WITHIN A BIG TABLE (#1778): whole rows at a time, about `CELLS_PER_YIELD` cells between yields.
+    const rowsPerYield = Math.max(1, Math.floor(CELLS_PER_YIELD / t.columns.length));
     for (let r = 0; r < t.rows.length; r++) {
       const row = t.rows[r];
       let c = 0;
       place(await textCell('default', 'white', row.token), r + 1, c++);
       for (const cell of row.cells) {
-        place(specimen(row, cell, collection), r + 1, c++);
+        if (t.kind === 'primitive') {
+          // A palette row: the swatch alone, at its own size, in the cell (decision 13).
+          const sw = swatchOf(row, cell, collection);
+          if (sw) { grid.appendChildAt?.(sw.inst, r + 1, c); keepSize(sw); }
+          c++;
+        } else place(specimen(row, cell, collection), r + 1, c++);
         const chip = options.aliases !== false && cell.alias;
         place(await textCell(chip ? 'value alias' : 'default', 'white', cell.value, cell.alias), r + 1, c++);
         if (t.kind === 'semantic') place(await textCell('default', 'white', contrastText(cell.contrast)), r + 1, c++);
       }
       if (options.description !== false) place(await textCell('default', 'white', row.description || '—'), r + 1, c++);
+      if ((r + 1) % rowsPerYield === 0) await yieldTo();
     }
-    // COLUMNS FROM CONTENT, THEN TEXT FROM COLUMNS (live, 2026-09-28: a text switched to HEIGHT before its column
-    // was sized kept a 29px width — one word a line, 430px rows — and a mode header wrapped inside a 115px cell).
-    // Every cell was measured hugging its words above; each column is fixed from those measures; only then is a
-    // cell given its column's width, and a text that does not fit wrapped to the column less whatever else its cell
-    // holds. A column is its widest cell — so a swatch column is the wider of the specimen and its header, and a
-    // mode name never wraps — and the description column stops at `DESC_WRAP`.
-    const natural = placed.map((p) => p.n.width ?? 0);
-    const widths = t.columns.map(() => 0);
-    placed.forEach((p, i) => { widths[p.c] = Math.max(widths[p.c], natural[i]); });
-    if (options.description !== false) widths[t.columns.length - 1] = Math.min(widths[t.columns.length - 1], DESC_WRAP);
-    try { grid.gridColumnSizes = widths.map((value) => ({ type: 'FIXED', value })); }
-    catch { (grid.gridColumnSizes ?? []).forEach((s, c) => { s.type = 'FIXED'; s.value = widths[c]; }); }
-    placed.forEach((p, i) => {
-      const col = widths[p.c];
-      setWidth(p.n, col);
-      if (natural[i] <= col) return;
-      const texts = textNodes(p.n);
-      const main = byName(p.n, 'Text') ?? texts[0];
-      if (main) wrapTo(main, Math.max(1, col - (natural[i] - (main.width ?? 0))));
-    });
-    // Read back: a grid that did not keep its tracks is named, so a live run shows it rather than a misdrawn table.
-    const kept = grid.gridColumnSizes ?? [];
-    if (kept.length !== widths.length || kept.some((s, c) => s.type !== 'FIXED' || !near(Number(s.value), widths[c]))) {
-      misses.push(`${t.title}: the grid did not keep its column widths, so its cells may not line up`);
+    // Read back: a grid that did not keep its hugging tracks is named, so a live run shows it rather than a
+    // misdrawn table.
+    const hugs = (ts: readonly { type: string }[] | undefined, n: number): boolean => (ts ?? []).length === n && (ts ?? []).every((s) => s.type === 'HUG');
+    if (!hugs(grid.gridColumnSizes, t.columns.length) || !hugs(grid.gridRowSizes, t.rows.length + 1)) {
+      misses.push(`${t.title}: the grid did not keep its hugging tracks, so a column may not fit its widest cell`);
     }
+    // THE HEADER SPANS ITS TABLE, NOT THE PAGE (owner decision, 2026-09-29, #259). The `_Section-header` instance
+    // arrives at its component's width (2,517px in the owner's file), and the wrap hugs its widest child, so every
+    // table was page-wide around a 732px grid. The header FILLs the wrap, so the wrap hugs the grid and the header
+    // takes that width. FILL, not FIXED + resize: the host has ignored `resize` on an instance's FIXED text
+    // (live, 2026-09-28), and FILL follows the grid when a rerun widens it. FIXED at the grid's width only where
+    // the host refuses FILL. Set on every run, so a table drawn before this rule takes it on its next rerun.
+    const header = ((wrap.children ?? []) as SgNode[]).find((c) => c.getPluginData?.(PART_KEY) === 'header');
+    if (header && !sizing(header, 'FILL')) setWidth(header, grid.width ?? 0);
+    if (header && !near(num(wrap.width), num(grid.width))) misses.push(`${t.title}: the header did not take the table's width, so the table is ${Math.round(num(wrap.width))}px wide around a ${Math.round(num(grid.width))}px grid`);
 
     const after = snapshotOf(t);
-    const before = (() => { try { return JSON.parse(wrap.getPluginData?.(ROWS_KEY) || '{}') as RowsSnapshot; } catch { return {}; } })();
+    const was = (() => { try { return JSON.parse(wrap.getPluginData?.(ROWS_KEY) || '{}') as RowsSnapshot; } catch { return {}; } })();
     wrap.setPluginData?.(ROWS_KEY, JSON.stringify(after));
     // Stamped last, once the table holds everything this run writes: the frame it was written on, and what it holds.
     wrap.setPluginData?.(MARK_KEY, `${String(page.id)}|${String(wrap.id)}`);
     wrap.setPluginData?.(PRINT_KEY, await fingerprintOf(wrap));
     out.push(created
       ? { key: t.key, title: t.title, page: t.page, status: 'created', rows: t.rows.length }
-      : { key: t.key, title: t.title, page: t.page, status: 'updated', rows: t.rows.length, diff: diffRows(before, after) });
+      : { key: t.key, title: t.title, page: t.page, status: 'updated', rows: t.rows.length, diff: diffRows(was, after) });
     if (created) anchor(page).y += (wrap.height ?? 0) + TABLE_GAP;
     drawnOn.add(page);
+    drawn.push({ frame: wrap, page, created, delta: created ? 0 : num(wrap.height) - before });
+  };
+  // ONE TABLE AT A TIME, YIELDING BETWEEN THEM (#1778): the host repaints, the panel's pill counts up, and a
+  // designer can scroll while the rest draw.
+  if (plan.tables.length) run.onProgress?.({ done: 0, total: plan.tables.length, title: '', tableMs: 0 });
+  for (let i = 0; i < plan.tables.length; i++) {
+    const t = plan.tables[i];
+    const started = Date.now();
+    await drawTable(t);
+    run.onProgress?.({ done: i + 1, total: plan.tables.length, title: t.title, tableMs: Date.now() - started });
+    await yieldTo();
   }
 
   const recordOf = (n: SgNode): { x: number; y: number } | null => {
@@ -995,7 +1086,9 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   // SUPERSEDED TABLES (owner decision, 2026-09-28: "delete superseded tables if unedited"). A table an earlier run
   // wrote that this run does not draw — its group is gone (stale), or it is now drawn as narrower tables (replaced).
   // Only tables this run could have drawn are candidates: its types, and its collections (by ID, the key's second
-  // field) when filtered. Checked before the re-stack, so the stack closes over a deleted table.
+  // field) when filtered. A run filtered to named TABLES (#1778) covers only those, and draws every one of them, so
+  // it has no candidate at all: the tables it skipped are not stale, and an earlier build's wider table is not
+  // replaced by one narrow table drawn alone. Checked before the re-stack, so the stack closes over a deleted table.
   const planned = new Set(plan.tables.map((t) => t.key));
   const types = new Set((options.types ?? [...PHASE_TYPES]).map((t) => t.toLowerCase()));
   const wantIds = options.collections ? new Set(catalog.collections.filter((c) => options.collections!.some((w) => w.toLowerCase() === c.name.toLowerCase())).map((c) => c.id)) : null;
@@ -1034,6 +1127,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     if (!k || planned.has(k)) continue;
     const [type, colId] = k.split('|');
     if (!types.has(type) || (wantIds && !wantIds.has(colId))) continue;
+    if (options.tables) continue;
     // A key that is an ANCESTOR of a planned one is a table this run now draws as narrower tables — an earlier
     // build drew one table per root where a collection holds two (`…|nbds` → `…|nbds/color/text`).
     if ([...planned].some((q) => q.startsWith(`${k}/`))) replaced.push(String(f.name));
@@ -1047,14 +1141,48 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     } else kept.push({ name: String(f.name), reason: v === 'unedited' ? 'not-removable' : v });
   }
 
+  // A FILTERED run that draws a table for the first time, where the same collection still holds a table the
+  // generator no longer draws — a group renamed, drawn under its new title — says the old table stays: it judges
+  // no superseded table, so without this note the designer would see both and not know why.
+  const notes = [...plan.notes];
+  if (options.tables) {
+    const newCols = new Set(out.filter((o) => o.status === 'created').map((o) => plan.tables.find((t) => t.key === o.key)?.collectionId));
+    const everyKey = new Set(planStyleGuide(catalog, contract, { ...options, tables: undefined }).tables.map((t) => t.key));
+    const left = api.root.children.flatMap((p) => framesOn(p)).filter((f) => {
+      const k = f.getPluginData?.(TABLE_KEY) || '';
+      return !!k && !everyKey.has(k) && newCols.has(k.split('|')[1]);
+    }).map((f) => String(f.name));
+    if (left.length) notes.push(`${left.join(', ')} ${left.length === 1 ? 'stays' : 'stay'} in place: the generator no longer draws ${left.length === 1 ? 'it' : 'them'}, and a run filtered to named tables deletes nothing. The next run without a Tables filter decides whether to delete ${left.length === 1 ? 'it' : 'them'}`);
+  }
+
   // RE-STACK (live, 2026-09-28: "Primary — nbds" grew on a rerun to span y 1,013 → ~10,400 and ran over
   // "Neutral — nbds", still at 3,585). The generator's own tables on each page it drew on are re-flowed in their
   // order down the page, TABLE_GAP apart, from the topmost. A table is where the generator left it while it sits at
   // the position recorded then; one that does not was moved by a designer and is left alone. A table from before the
   // record has none, and is taken as the generator's while it keeps the stack's x. A deleted table's place counts
   // as the top when it was higher, so deleting the first table does not leave a gap above the rest.
+  //
+  // A FILTERED run (#1778) does not re-flow: it draws a few tables on a page it did not lay out, so it only keeps
+  // them from overlapping. Each table below a drawn one, in that table's column, moves by exactly the drawn table's
+  // change in height — and only while it sits where the generator left it (its position record matches). No other
+  // gap on the page closes, a table a designer moved stays put, and a table from before the record is neither
+  // moved nor recorded. A table it moves has its record moved with it, so the next run still reads it as where the
+  // generator left it rather than as moved by hand.
   const byY = (a: SgNode, b: SgNode): number => num(a.y) - num(b.y);
-  for (const p of drawnOn) {
+  const leftAt = (n: SgNode): boolean => { const a = recordOf(n); return !!a && near(num(n.x), a.x) && near(num(n.y), a.y); };
+  if (options.tables) for (const p of drawnOn) {
+    const grown = drawn.filter((d) => d.page === p && !d.created && !near(d.delta, 0));
+    if (!grown.length) continue;
+    const ours = (p.children as readonly SgNode[]).filter((n) => n.type === 'FRAME' && !!n.getPluginData?.(TABLE_KEY));
+    const y0 = new Map(ours.map((n) => [n, num(n.y)]));
+    for (const n of ours.filter(leftAt)) {
+      const shift = grown.filter((d) => d.frame !== n && near(num(d.frame.x), num(n.x)) && (y0.get(d.frame) ?? 0) < (y0.get(n) ?? 0)).reduce((s, d) => s + d.delta, 0);
+      if (near(shift, 0)) continue;
+      n.y = num(n.y) + shift;
+      n.setPluginData?.(AT_KEY, `${num(n.x)},${num(n.y)}`);
+    }
+  }
+  else for (const p of drawnOn) {
     const ours = (p.children as readonly SgNode[]).filter((n) => n.type === 'FRAME' && !!n.getPluginData?.(TABLE_KEY));
     const left = ours.filter((n) => { const a = recordOf(n); return !!a && near(num(n.x), a.x) && near(num(n.y), a.y); });
     const unrecorded = ours.filter((n) => !recordOf(n));
@@ -1075,7 +1203,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
 
   const unbound = [...unboundIn.values()].reduce((a, b) => a + b, 0);
   for (const [variant, n] of unboundIn) misses.push(`${n} ${n === 1 ? 'swatch' : 'swatches'} in ${variant} have no layer that takes a fill, so they show the component's own color`);
-  return { tables: out, stale, replaced, deleted, kept, unbound, notes: plan.notes, misses };
+  return { tables: out, stale, replaced, deleted, kept, unbound, notes, misses, unmatched: plan.unmatched };
 };
 
 /**
@@ -1104,14 +1232,16 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
   const upd = r.tables.filter((t): t is Extract<TableOutcome, { status: 'updated' }> => t.status === 'updated');
   const skipped = r.tables.filter((t): t is Extract<TableOutcome, { status: 'skipped' }> => t.status === 'skipped');
   const parts: string[] = [];
-  if (made.length) parts.push(`${made.length} tables created (${made.slice(0, 3).map((t) => t.title).join(', ')}${made.length > 3 ? '…' : ''})`);
+  // A filtered run (#1778) often draws one table, so every count here agrees with its number.
+  const tables = (n: number): string => `${n} table${n === 1 ? '' : 's'}`;
+  if (made.length) parts.push(`${tables(made.length)} created (${made.slice(0, 3).map((t) => t.title).join(', ')}${made.length > 3 ? '…' : ''})`);
   if (upd.length) {
     const changes = upd.flatMap((t) => {
       const d = t.diff;
       const bits = [d.added.length && `${d.added.length} added`, d.removed.length && `${d.removed.length} removed`, d.changed.length && `${d.changed.length} changed`, d.renamed.length && `${d.renamed.length} renamed`].filter(Boolean);
       return bits.length ? [`${t.title}: ${bits.join(', ')}`] : [];
     });
-    parts.push(`${upd.length} tables updated in place — ${changes.length ? changes.join('; ') : 'no token changes'}`);
+    parts.push(`${tables(upd.length)} updated in place — ${changes.length ? changes.join('; ') : 'no token changes'}`);
   }
   const noCells = skipped.filter((t) => t.reason === 'no-cells');
   if (noCells.length) parts.push(`${noCells.length} tables skipped — this file has no style-guide cell sets, and Set up file adds them`);
@@ -1142,10 +1272,12 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
   // A partial run is not a pass: a skipped table is a page the designer expected and does not have, and an
   // unbound swatch is a specimen that does not show its token, so the pill says so and the detail opens on it.
   // Every form fits the 24-char pill at any count below 1000.
-  const ok = skipped.length === 0 && r.unbound === 0;
-  const headline = drawn === 0 ? (skipped.length ? '✗ style guide skipped' : '✓ style guide: 0 tables')
+  // A table the designer named that no table matches (#1778) is the same: they asked for something not drawn.
+  const ok = skipped.length === 0 && r.unbound === 0 && r.unmatched.length === 0;
+  const headline = drawn === 0 ? (skipped.length ? '✗ style guide skipped' : r.unmatched.length ? '✗ no table matched' : '✓ style guide: 0 tables')
     : skipped.length ? `⚠ ${drawn} drawn, ${skipped.length} skipped`
+    : r.unmatched.length ? `⚠ ${drawn} drawn, ${r.unmatched.length} not found`
     : r.unbound ? `⚠ ${r.unbound} swatches unbound`
-    : r.deleted.length ? `✓ ${drawn} tables, ${r.deleted.length} deleted` : `✓ style guide: ${drawn} tables`;
+    : r.deleted.length ? `✓ ${tables(drawn)}, ${r.deleted.length} deleted` : `✓ style guide: ${tables(drawn)}`;
   return { ok, headline: headline.length > 24 ? (ok ? '✓ style guide written' : '⚠ style guide partial') : headline, summary: parts.join('. ') || 'No color variables in this file' };
 };
