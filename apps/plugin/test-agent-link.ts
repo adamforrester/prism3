@@ -283,6 +283,31 @@ section('style-guide — tables reach the handler; a table reading is progress, 
     && JSON.stringify((r.progress ?? []).map((p) => `${p.phase} ${p.done}/${p.total} ${p.chunkMs}ms`)) === JSON.stringify(['table 0/2 0ms', 'table 1/2 12ms', 'table 2/2 7ms']),
     `style-guide: each table reading streams as progress phase "table", and the verdict is the result alone (${JSON.stringify(r.progress?.map((p) => p.phase))})`);
   ok(!posted.some((m) => m.type === 'style-guide-progress'), 'style-guide: an agent run\'s table readings are not forwarded to the panel as verdicts');
+
+  // #259 phase 2: the dimension, font-variable and text-style options reach the handler as sent.
+  const p2args = { types: ['dimension', 'typography'], pixels: false, rem: true, dimensionDisplay: 'line', fontDisplay: 'letterSpacing', paragraphSpacing: true, textDecoration: false, titleCell: true };
+  actions.styleGuide = async (...a: unknown[]) => {
+    got = a[0];
+    (a[1] as { post(m: unknown): void }).post({ type: 'style-guide-result', ok: true, headline: '✓ style guide: 1 table', summary: '' });
+  };
+  const p2 = await send('style-guide', p2args);
+  await tick();
+  await read(p2.id);
+  actions.styleGuide = orig;
+  // `pixels` IS RETIRED (owner decision 20): accepted and ignored, never passed on as an option; the handler gets
+  // `retired: ['pixels']`, which the run's notes say was ignored. Typed literally here.
+  ok(JSON.stringify(got) === '{"types":["dimension","typography"],"rem":true,"dimensionDisplay":"line","fontDisplay":"letterSpacing","paragraphSpacing":true,"textDecoration":false,"titleCell":true,"retired":["pixels"]}',
+    `style-guide: the phase-2 options reach the handler as sent, and a retired pixels arrives as retired, not as an option (${JSON.stringify(got)})`);
+  // Any value of it is accepted, so an older caller that sent a string is not refused either.
+  actions.styleGuide = async (...a: unknown[]) => {
+    got = a[0];
+    (a[1] as { post(m: unknown): void }).post({ type: 'style-guide-result', ok: true, headline: '✓ style guide: 1 table', summary: '' });
+  };
+  const px = await send('style-guide', { pixels: 'yes' });
+  await tick();
+  const rpx = (await read(px.id)) as AgentResult;
+  actions.styleGuide = orig;
+  ok(rpx.ok === true && JSON.stringify(got) === '{"retired":["pixels"]}', `style-guide: pixels "yes" is accepted and ignored, not refused (${rpx.ok}; ${JSON.stringify(got)})`);
 }
 
 /* ── one style-guide run at a time (#1785) ──────────────────────────────────────────────────────────── */
@@ -656,6 +681,14 @@ section('failures — answered, never silent');
   await tick();
   const rf = (await read(sf.id)) as AgentResult;
   ok(rf.ok === false && rf.error?.code === 'bad-args' && calls.length === 0, 'style-guide with valueFormat cmyk → bad-args');
+  for (const [args, what, re] of [[{ dimensionDisplay: 'bar' }, 'dimensionDisplay bar', /args\.dimensionDisplay/], [{ dimensionDisplay: 'radius' }, 'dimensionDisplay radius (removed: one spacing style per run)', /args\.dimensionDisplay/], [{ fontDisplay: 'color' }, 'fontDisplay color', /args\.fontDisplay/],
+    [{ rem: 'yes' }, 'rem as a string', /args\.rem/], [{ textDecoration: 1 }, 'textDecoration as a number', /args\.textDecoration/], [{ titleCell: 'on' }, 'titleCell as a string', /args\.titleCell/]] as const) {
+    calls.length = 0;
+    const sb = await send('style-guide', args);
+    await tick();
+    const rb = (await read(sb.id)) as AgentResult;
+    ok(rb.ok === false && rb.error?.code === 'bad-args' && re.test(rb.error.message) && calls.length === 0, `style-guide with ${what} → bad-args, and the style guide is not run`);
+  }
   for (const [tables, what] of [['Primary — nbds', 'a string'], [[], 'an empty list'], [['Primary — nbds', ''], 'an empty name'], [['Primary — nbds', '   '], 'a name of spaces alone']] as const) {
     calls.length = 0;
     const st = await send('style-guide', { tables });

@@ -1157,7 +1157,7 @@ const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void =
 
 const PAGE_COPY: Record<LegacyPageKey, [string, string]> = {
   // (Size & radius's and Components' ledes went with the pages, UI redesign S8.2.)
-  styleGuide: ['Style guide.', 'Token tables drawn from this file’s variables: each palette as a scale on Primitive tokens, each role family on Semantic tokens. One column per mode, each swatch bound to its variable and drawn on the ground its contrast is measured against. Run it after Apply Theme.'],
+  styleGuide: ['Style guide.', 'Token tables drawn from this file’s variables and text styles: colors, dimensions, font variables and text styles, each scale on Primitive tokens and each role on Semantic tokens. One column per mode, each specimen bound to its variable; a color role’s swatch sits on the ground its contrast is measured against. Run it after Apply Theme.'],
 };
 
 
@@ -1272,8 +1272,9 @@ const FILE_SETUP_LABEL = 'Set up file';
 const STYLE_GUIDE_LABEL = 'Draw style guide';
 
 /**
- * The Style guide page (#259, phase 1: color) — the step after Apply theme. One button draws the color tables
- * from the file's own variables; the per-type options fold away under Customize, every one with a default, so
+ * The Style guide page (#259, phases 1–2: color, dimension, font variables, text styles) — the step after Apply
+ * theme. One button draws the token tables from the file's own variables and text styles; the per-type options
+ * fold away under Customize, every one with a default, so
  * the button alone does the common case. The specimen is chosen from each token's role unless Display style
  * overrides it (owner decision 8).
  *
@@ -1286,7 +1287,7 @@ const renderStyleGuidePage = (host: PageHost): void => {
   setVolatile([], () => {});
   if (!commit.isFigma) return;
 
-  const sec = palSection('Color tables', 'Draws or updates one table per palette and one per role family.');
+  const sec = palSection('Token tables', 'Draws or updates one table per palette, role family, dimension collection and font-variable kind, and one for the text styles.');
   const note = el('p', 'cw-note');
   note.append(document.createTextNode('Needs the pages and cell components Set up file adds. A rerun updates each table in place.'));
   sec.append(note);
@@ -1294,9 +1295,9 @@ const renderStyleGuidePage = (host: PageHost): void => {
   // CUSTOMIZE — folded by default: every option has a default, so the button alone draws the common case.
   const det = hook(el('details', 'contracts') as HTMLDetailsElement, 'style-guide-customize');
   const sum = el('summary', 'contracts-sum');
-  sum.append(el('span', 'contracts-t', 'Customize'), el('span', 'contracts-hint', 'value format · header · display style · columns · tables'));
+  sum.append(el('span', 'contracts-t', 'Customize'), el('span', 'contracts-hint', 'value format · header · display style · units · columns · tables'));
   det.append(sum);
-  const pick = <K extends 'valueFormat' | 'header' | 'display'>(key: K, opts: [string, string][], fallback: string): HTMLSelectElement => {
+  const pick = <K extends 'valueFormat' | 'header' | 'display' | 'dimensionDisplay' | 'fontDisplay'>(key: K, opts: [string, string][], fallback: string): HTMLSelectElement => {
     const s = selectEl();
     for (const [v, t] of opts) s.append(optionEl(v, t, (styleGuideOptions[key] ?? fallback) === v));
     s.onchange = () => { (styleGuideOptions as Record<string, unknown>)[key] = s.value; };
@@ -1307,8 +1308,17 @@ const renderStyleGuidePage = (host: PageHost): void => {
     knob('Table header', pick('header', [['dark', 'Dark'], ['light', 'Light']], 'dark'), 'The header row’s fill.'),
     hook(knob('Display style', pick('display', [['auto', 'From each token’s role'], ['default', 'Generic'], ['text', 'Text color'], ['border', 'Border color'], ['icon', 'Icon color'], ['transparency', 'Transparency']], 'auto'),
       'The specimen each row draws. By default a text role draws “Aa”, a border role an outline, an icon role a diamond, and a translucent value a checkerboard.'), 'style-guide-display'),
-    knob('Aliases', toggleField(styleGuideOptions.aliases ?? true, (on) => { styleGuideOptions.aliases = on; }), 'Show the primitive each value aliases, as a chip beside it.'),
+    // #259 phase 2: the dimension and font-variable specimens, the REM column, and the text-style columns.
+    hook(knob('Dimension display', pick('dimensionDisplay', [['filled', 'Filled bar'], ['line', 'Bracket']], 'filled'),
+      'One style for every dimension row, drawn at its value. A radius draws a rounded corner either way.'), 'style-guide-dimension-display'),
+    hook(knob('Font variable display', pick('fontDisplay', [['auto', 'From each variable’s kind'], ['generic', 'Generic'], ['family', 'Family'], ['size', 'Size'], ['weight', 'Weight'], ['letterSpacing', 'Letter spacing'], ['lineHeight', 'Line height']], 'auto'),
+      '“Abc 123” with one property bound to the variable. By default each variable binds the property it is for.'), 'style-guide-font-display'),
+    hook(knob('REM', toggleField(styleGuideOptions.rem ?? true, (on) => { styleGuideOptions.rem = on; }), 'Add a REM column beside each length, at a 16px base.'), 'style-guide-rem'),
+    knob('Aliases', toggleField(styleGuideOptions.aliases ?? true, (on) => { styleGuideOptions.aliases = on; }), 'Show the variable each value aliases, as a chip beside it.'),
     knob('Description', toggleField(styleGuideOptions.description ?? true, (on) => { styleGuideOptions.description = on; }), 'Add a column with each variable’s description.'),
+    hook(knob('Paragraph spacing', toggleField(styleGuideOptions.paragraphSpacing ?? false, (on) => { styleGuideOptions.paragraphSpacing = on; }), 'Add a paragraph-spacing column to the text-style table.'), 'style-guide-paragraph-spacing'),
+    knob('Text decoration', toggleField(styleGuideOptions.textDecoration ?? false, (on) => { styleGuideOptions.textDecoration = on; }), 'Add a text-decoration column to the text-style table.'),
+    hook(knob('Title cell', toggleField(styleGuideOptions.titleCell ?? false, (on) => { styleGuideOptions.titleCell = on; }), 'Add a leading Name column to every table, “Text Primary” for text/primary. An edited name is kept on the next run.'), 'style-guide-title-cell'),
     hook(knob('Tables', tablesField(), 'Draws only the tables named, by title (Primary — nbds): one a line, or several on one line separated by commas. A title with a comma in it goes on a line of its own. Empty draws every table.'), 'style-guide-tables'),
   );
   sec.append(det);
@@ -1317,7 +1327,7 @@ const renderStyleGuidePage = (host: PageHost): void => {
   styleGuideRow = row;
   const btn = hook(el('button', 'barbtn') as HTMLButtonElement, 'style-guide-draw');
   styleGuideBtn = btn;
-  btn.title = 'Draws the color tables from this file’s variables. Safe to re-run — it updates tables in place.';
+  btn.title = 'Draws the token tables from this file’s variables and text styles. Safe to re-run — it updates tables in place.';
   btn.onclick = () => {
     setHost({ styleGuideState: 'pending', styleGuideProgress: null, openDetail: null });
     hostChanged(); syncStyleGuideRow();
@@ -2494,7 +2504,7 @@ const barActions: BarActions = {
  *  restart at 1, which reads as a build that failed and started over. Naming the phase makes the reset
  *  the expected thing it is.
  *
- *  Before the first boundary reports there is no fraction to show, so this is the pre-#684 string — which
+ *  Before the first boundary reports there is no fraction to show, so this is `firstPhase` (#2088) — which
  *  is also what a host build older than this one leaves on screen for the whole build.
  *
  *  NOT SUBJECT TO THE 24-CHAR PILL BUDGET, unlike the headlines in `apply-summary.ts`: pending renders as
@@ -2502,7 +2512,7 @@ const barActions: BarActions = {
  *  verdict. The longest string here is "Wiring references… 648 of 648" at 29 characters. */
 const componentPendingText = (): string => {
   const p = host.componentProgress;
-  if (!p) return 'Building the Button set…';
+  if (!p) return firstPhase();
   // #1679: the reference back-off's waits. Owner's wording, and no fraction — a pass count is not progress
   // through the set, and the waits grow, so "3 of 6" would suggest the pause is half over when it is not.
   if (p.phase === 'retry') return 'Retrying property links…';
@@ -2615,10 +2625,19 @@ const closeOpenDetail = (): void => { if (host.openDetail === null) return; setH
 /** The static pending texts, one per write that has one: the page rows' pills and the Activity drawer's
  *  phase line read the same words. */
 const PENDING_TEXT = { apply: 'Writing to Figma…', filesetup: 'Setting up file…', styleguide: 'Drawing the style guide…' } as const;
+/** The phase line before a build's first boundary reports (#2088). A build the panel started names its set,
+ *  by the catalog's display name for the id it posted (`componentDef`); one an agent started is a set the panel
+ *  was not told, so the line names none (the owner's wording, 2026-10-05). Before #2088 this said "Button"
+ *  whatever was building, a leftover from when Button was the only set (#718). */
+const firstPhase = (): string => {
+  const id = host.componentState === 'pending' ? host.componentDef : null;
+  const name = id === null ? undefined : componentCatalog().find((e) => e.id === id)?.name;
+  return name ? `Building the ${name} set…` : 'Building the set…';
+};
 /** The component build's phase and progress, from either reading (the panel's or the agent's). The words
  *  are `componentPendingText`'s, with the fraction moved to the progress bar. */
 const componentPhase = (p: HostSession['componentProgress']): Pick<OpReading, 'phase' | 'progress'> =>
-  !p ? { phase: 'Building the Button set…', progress: null }
+  !p ? { phase: firstPhase(), progress: null }
     : p.phase === 'retry' ? { phase: 'Retrying property links…', progress: null }
       : { phase: p.phase === 'build' ? 'Building members…' : 'Wiring references…', progress: { done: p.done, total: p.total } };
 const IDLE: OpReading = { state: 'idle', ref: null, verdict: null, summary: null, phase: null, progress: null, agent: false };

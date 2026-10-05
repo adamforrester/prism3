@@ -191,13 +191,21 @@ export const parseCommand = (raw: unknown): ParsedCommand => {
       if (!oneOf(args.header, ['dark', 'light'])) return fail('bad-args', 'style-guide takes args.header: dark or light');
       if (!oneOf(args.display, ['auto', 'default', 'text', 'icon', 'border', 'transparency'])) return fail('bad-args', 'style-guide takes args.display: auto, default, text, icon, border or transparency');
       if (!flag(args.aliases) || !flag(args.description)) return fail('bad-args', 'style-guide takes args.aliases and args.description as booleans');
+      // #259 phase 2: the dimension, font-variable and text-style options.
+      if (!oneOf(args.dimensionDisplay, ['auto', 'filled', 'line'])) return fail('bad-args', 'style-guide takes args.dimensionDisplay: filled or line (auto means filled)');
+      if (!oneOf(args.fontDisplay, ['auto', 'generic', 'family', 'size', 'weight', 'letterSpacing', 'lineHeight'])) return fail('bad-args', 'style-guide takes args.fontDisplay: auto, generic, family, size, weight, letterSpacing or lineHeight');
+      if (!flag(args.rem) || !flag(args.paragraphSpacing) || !flag(args.textDecoration)) return fail('bad-args', 'style-guide takes args.rem, args.paragraphSpacing and args.textDecoration as booleans');
+      if (!flag(args.titleCell)) return fail('bad-args', 'style-guide takes args.titleCell as a boolean');
       // An empty list would draw nothing and match nothing, so it is refused rather than read as "every table";
       // so is a name of spaces alone, which the filter's trim would turn into an empty one.
       if (args.tables !== undefined && (!strings(args.tables) || !args.tables.length || args.tables.some((t) => !t.trim()))) return fail('bad-args', "style-guide takes args.tables: a non-empty array of table titles or keys, e.g. ['Primary — nbds']");
       const opts: StyleGuideOptions = {};
-      for (const k of ['collections', 'types', 'valueFormat', 'header', 'display', 'aliases', 'description', 'tables'] as const) {
+      for (const k of ['collections', 'types', 'valueFormat', 'header', 'display', 'aliases', 'description', 'tables', 'rem', 'dimensionDisplay', 'fontDisplay', 'paragraphSpacing', 'textDecoration', 'titleCell'] as const) {
         if (args[k] !== undefined) (opts as Record<string, unknown>)[k] = args[k];
       }
+      // `pixels` IS RETIRED (owner decision 20): accepted with any value and ignored, so an older caller does not
+      // break, and the run's notes say it was ignored. Never passed on as an option.
+      if (args.pixels !== undefined) opts.retired = ['pixels'];
       return { ok: true, command: { ...base, cmd: 'style-guide', args: opts } };
     }
     case 'status':
