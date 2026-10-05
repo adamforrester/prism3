@@ -322,7 +322,8 @@ for (const vp of [{ width: 1280, height: 900 }, { width: 500, height: 560 }, { w
   ok(!m.clippedTop, `${at}: the column is not clipped by the centering`);
   ok(m.reachable, `${at}: the whole column is scrollable into view`);
   ok(m.controlsInView, `${at}: every control sits inside the viewport width`);
-  ok(m.cards === 4, `${at}: all four paths render (${m.cards})`);
+  // Three cards since the owner's answer N1 A: "Start blank" is the color card's secondary action, so four paths in three.
+  ok(m.cards === 3, `${at}: all four paths render in three cards (${m.cards})`);
   await page.close();
 }
 

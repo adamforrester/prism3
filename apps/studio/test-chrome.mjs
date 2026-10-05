@@ -46,7 +46,8 @@
  *
  * S12 ADDS (section 27), on both hosts, both themes, at 1280 and 380 (the frame's `data-w` waited on): THE START WINDOW
  * over the studio, every owner decision against a literal typed in the section: the heading per host (G17), no Close on
- * the first run and Close when reopened (S9, S10), the cards in the order color, examples, neutral default, import (S8),
+ * the first run and Close when reopened (S9, S10), the cards in the order color (with "Start blank" as its secondary action, N1 A),
+ * examples, import (S8),
  * "Start from this color" (S1), the color starting at the working brand's primary (G14), a bad hex refused in words
  * (S3), Import disabled while the paste box is empty and named in both states, every card's border equal, Upload on the
  * import card's heading row and its X1 description (the owner's review of #2142), the brand menu's empty paste (S2), import errors that open "Line ‹n›: " only when the line is known (S7), the wrong file type
@@ -7013,7 +7014,8 @@ console.log(`\nThe start window (S12)\n${'='.repeat(78)}`);
 /** The owner's decisions, as literals (S1, S3, S5, S6, S7, S8, S10, G13, G14, G15, G17). */
 const START = {
   heading: { web: 'Start a brand', figma: 'Start a brand in this file' },                   // G17
-  order: ['Start from your color', 'Explore an example', 'Start with a neutral default', 'Import a design.md'],   // S8
+  order: ['Start from your color', 'Explore an example', 'Import a design.md'],   // S8, then N1 A (Blank folded into the color card)
+  colorDesc: 'Your primary brand color; everything else takes smart defaults you can tune. No color yet? Start blank with a neutral gray.',   // N1 A
   go: 'Start from this color',                                                                  // S1
   badHex: 'Enter a hex color as #rrggbb.',                                                      // S3
   emptyPaste: 'Paste a design.md brief or choose a file first.',                                // S2
@@ -7107,6 +7109,10 @@ const readStartWindow = (page) => page.evaluate(() => {
       const rb = b.getBoundingClientRect(), rt = t.getBoundingClientRect(); return rb.top >= rt.bottom && Math.abs(rb.right - rt.right) < 1; })(),
     uploadAbovePaste: (() => { const u = q('[data-p3="start-upload"]'), t = q('[data-p3="start-paste"]'); return !!u && !!t && u.getBoundingClientRect().bottom <= t.getBoundingClientRect().top; })(),
     importDisabled: q('[data-p3="start-import"]')?.disabled ?? null,
+    // N1 A: "Start blank" is the color card's secondary action, beside "Start from this color".
+    colorDesc: document.querySelector('[data-p3="start-path"] .p3-start-desc')?.textContent ?? null,
+    blankCard: (() => { const b = q('[data-p3="start-blank"]'); const cards = [...document.querySelectorAll('[data-p3="start-path"]')]; return b ? cards.indexOf(b.closest('[data-p3="start-path"]')) : -2; })(),
+    blankFill: (() => { const b = q('[data-p3="start-blank"]'), g = q('[data-p3="start-go"]'); return b && g ? { blank: getComputedStyle(b).backgroundColor, go: getComputedStyle(g).backgroundColor, page: getComputedStyle(b.closest('[data-p3="start-path"]')).backgroundColor } : null; })(),
   };
 });
 /** The web's saved brand, the bytes a reload restores. Null in the plugin. */
@@ -7123,13 +7129,17 @@ for (const { w, h } of START_SIZES) {
         ok(s.open && s.role === 'dialog' && s.modal === 'true' && s.labelled, `${where}: the start is a modal window over the studio, named by its heading (G10 A)`);
         ok(s.heading === START.heading[host], `${where}: the heading reads "${START.heading[host]}" (G17) — reads "${s.heading}"`);
         ok(s.close === null, `${where}: the first run offers no Close (G15 A, S9) — found "${s.close}"`);
-        ok(JSON.stringify(s.order) === JSON.stringify(START.order), `${where}: the cards run color, examples, the neutral default, import (S8) — ${JSON.stringify(s.order)}`);
+        ok(JSON.stringify(s.order) === JSON.stringify(START.order), `${where}: the cards run color (with Blank), examples, import (S8, N1 A) — ${JSON.stringify(s.order)}`);
         // The owner's review of #2142: one edge for all four cards; Upload on the import card's heading row; X1's words.
-        ok(s.cardEdges.length === 4 && new Set(s.cardEdges).size === 1, `${where}: all four cards draw the same border — ${JSON.stringify(s.cardEdges)}`);
+        ok(s.cardEdges.length === 3 && new Set(s.cardEdges).size === 1, `${where}: every card draws the same border — ${JSON.stringify(s.cardEdges)}`);
         ok(JSON.stringify(s.importHead) === JSON.stringify(['Import a design.md', 'start-upload']),
           `${where}: the import card's heading row holds its title and then "↑ Upload…" — holds ${JSON.stringify(s.importHead)}`);
         ok(s.uploadAbovePaste && s.importBelowPaste, `${where}: Upload sits above the paste box, Import below it at its right edge (upload above ${s.uploadAbovePaste}, import below ${s.importBelowPaste})`);
         ok(s.importDesc === START.importDesc, `${where}: the import card says "${START.importDesc}" (X1) — says "${s.importDesc}"`);
+        ok(s.colorDesc === START.colorDesc, `${where}: the color card says "${START.colorDesc}" (N1 A) — says "${s.colorDesc}"`);
+        ok(s.blankCard === 0, `${where}: "Start blank" sits inside the color card (N1 A) — in card ${s.blankCard}`);
+        ok(!!s.blankFill && s.blankFill.blank === s.blankFill.page && s.blankFill.blank !== s.blankFill.go,
+          `${where}: "Start blank" is the secondary action, on the card's own ground, not the primary fill — ${JSON.stringify(s.blankFill)}`);
         ok(s.go === START.go, `${where}: the color card's button reads "${START.go}" (S1) — reads "${s.go}"`);
         ok(!!s.hex && s.hex.toLowerCase() === (s.behindHex ?? '').toLowerCase(), `${where}: the color starts at the working brand's primary (G14): ${s.hex}, the primary behind is ${s.behindHex}`);
         ok(s.frameInert && s.focusInStart, `${where}: the studio behind is inert and focus is in the window (${s.focus})`);

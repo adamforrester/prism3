@@ -994,9 +994,6 @@
 .p3-start-row > .p3-start-go { margin-left: auto; }
 .p3-start-row > .p3-colorfield { flex: 0 1 auto; }
 .p3-colorfield[data-refused="true"] { border-color: var(--p3-bad-icon); }
-.p3-start-split { grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: var(--p3-space-200); }
-.p3-frame[data-w="narrow"] .p3-start-split { grid-template-columns: minmax(0, 1fr); row-gap: var(--p3-space-150); }
-.p3-frame[data-w="narrow"] .p3-start-split > .p3-btn { justify-self: start; }
 .p3-frame[data-w="narrow"] .p3-start-row > .p3-start-go { margin-left: 0; }
 .p3-start-chips { display: flex; flex-wrap: wrap; gap: var(--p3-space-100); margin-top: var(--p3-space-150); }
 .p3-btn.p3-start-chip { border-radius: var(--p3-radius-pill); padding: 0 var(--p3-space-150) 0 var(--p3-space-100); font-weight: var(--p3-fw-default); }

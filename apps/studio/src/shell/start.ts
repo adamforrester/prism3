@@ -8,7 +8,8 @@
  * `load`), so this file names no legacy repaint (`test-shell-imports.ts`). What each card starts a brand from, the
  * hex check and the import check are `state/start-input.ts`'s, shared with the brand menu.
  *
- * THE OWNER'S DECISIONS IT DRAWS. The order is color, examples, the neutral default, import (S8). The color card
+ * THE OWNER'S DECISIONS IT DRAWS. The order is color, examples, import (S8), and "Start blank" is the color card's
+ * secondary action (N1 A, the owner's review of #2142). The color card
  * starts at the working brand's primary (G14) and its button reads "Start from this color" (S1); a hex that is not
  * #rrggbb is refused in words (S3). The import card has "↑ Upload…" on its heading row and a paste box below, whose
  * Import button is disabled until the box holds text (S2, the owner's review of #2142),
@@ -156,7 +157,8 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
   };
 
   // ── 1. from a color (G14: the working brand's primary; S1, S3) ───────────────────────────────────
-  const c1 = card('Start from your color', 'Your primary brand color; everything else takes smart defaults you can tune.', 'p3-start-card');
+  // The owner's answer N1 A (review of #2142): the neutral default is this card's secondary action, not a card of its own.
+  const c1 = card('Start from your color', 'Your primary brand color; everything else takes smart defaults you can tune. No color yet? Start blank with a neutral gray.', 'p3-start-card');
   const row1 = h('div', 'p3-start-row');
   const field = h('div', 'p3-colorfield');
   const start = hex(oklchToRgb(brandState.primary));
@@ -169,7 +171,10 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
   hexIn.setAttribute('aria-label', 'Brand color hex');
   field.append(swatch, hexIn);
   const go = button('p3-btn p3-btn-primary p3-start-go', 'start-go', 'Start from this color');
-  row1.append(field, go);
+  // "Start blank" (G13: a neutral gray), the secondary action beside the primary one.
+  const blank = button('p3-btn p3-btn-page', 'start-blank', 'Start blank');
+  blank.onclick = () => pick({ input: BLANK_BRAND(), origin: { kind: 'new' } }, blank);
+  row1.append(field, go, blank);
   const err1 = errLine('start-color-error', 'p3-start-color-error');
   const showHexError = (on: boolean): void => {
     err1.textContent = on ? HEX_ERROR : '';
@@ -201,13 +206,7 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
   }
   c2.el.append(chips);
 
-  // ── 3. the neutral default (G13: a neutral gray) ───────────────────────────────────────────────
-  const c3 = card('Start with a neutral default', 'An unopinionated starting theme — jump in and set your color later.', 'p3-start-card p3-start-split');
-  const blank = button('p3-btn p3-btn-page', 'start-blank', 'Start blank');
-  blank.onclick = () => pick({ input: BLANK_BRAND(), origin: { kind: 'new' } }, blank);
-  c3.el.append(blank);
-
-  // ── 4. import a design.md: paste it (S2), or upload it ─────────────────────────────────────────
+  // ── 3. import a design.md: paste it (S2), or upload it ─────────────────────────────────────────
   // The owner's review of #2142: Upload sits at the end of the heading row; the paste box, set further down, is the
   // alternative, and its Import belongs to it.
   const c4 = card('Import a design.md', 'Already have a design.md? Paste it or upload it to load the full brand.', 'p3-start-card p3-start-import');
@@ -255,8 +254,8 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
   };
   c4.el.append(paste, row4, err4);
 
-  // S8: color, examples, the neutral default, import.
-  body.append(c1.el, c2.el, c3.el, c4.el);
+  // S8, then N1 A: color (with Blank), examples, import.
+  body.append(c1.el, c2.el, c4.el);
   dlg.append(head, body);
   scrim.addEventListener('keydown', (e) => {
     if (guard) return;
