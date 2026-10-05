@@ -1229,17 +1229,11 @@ label.cset-head{cursor:pointer}
    #360/#369/#388, measured again here at 829px vs the shared 798px grid. An explicit px cap clamps
    the intrinsic contribution; the pill already ellipsizes and carries the full path in its title attribute. */
 .mtbl-mode .tpill{max-width:124px}
-/* NOT a contrast verdict, despite the ok/no class names — this renders the font-status column
-   ("✓ 36 styles" / "⚠ Figma lacks it" in the plugin, "✓ Installed" / "⚠ Not installed" on web).
-   Do not fold it into the verdict palette.
-   #2091 (owner, T-FONT A): the ⚠ status is inked with the ground's own text color, glyph and words
-   alike, and the ⚠ alone says it is a warning. It is drawn on the BRAND's page color (the Type
-   preview's ground re-scopes --ink to the mode's text.primary), which the studio does not own: --warn
-   measured 3.84–4.16:1 on the corpus's dark grounds, under the 4.5:1 its 11px words need. The glyph
-   could have kept --warn only if it held 3:1 on every brand ground, and a fixed amber cannot promise
-   that on a page color a designer authors (a mid-tone page takes it near 1:1), so it takes the ink
-   too. test:smoke's Type sweep holds the label to 4.5:1 on every brand and mode. */
-.tf-stat.ok{color:var(--ok)}.tf-stat.no{color:var(--ink)}
+/* The font-status column ("✓ 36 styles" / "⚠ Figma lacks it" in the plugin, "✓ Installed" / "⚠ Not installed" on
+   web) takes no color here: `preview/sections/faces.ts` paints it inline in the brand's text.success or text.warning
+   for the mode on screen (#2103), on the BRAND's page color, which the studio does not own. Before that, ✓ was the
+   chrome's fixed --ok (3.87:1 on the corpus's dark pages) and ⚠ the ground's --ink (#2091). test:smoke's Type sweep
+   holds both labels to 4.5:1 and to the emission's hex for their role, in every brand and mode. */
 /* The specimen's own caveat, shown only when Figma can load a face this device cannot render — so
    "Ag 123" is the fallback while the status column truthfully reads ✓. Faint and inline beside the
    specimen because it qualifies THAT cell; promoting it would read as an error, which it is not. */
