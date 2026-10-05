@@ -70,11 +70,13 @@
  * draws exactly those three roles, read from the committed emission (`checkExempt`, above `check`). Each run
  * prints how many nodes it exempted; section 2 fails a Layout sweep that exempted none, and plants a canary there
  * (the same field, not disabled) that must fail its floor. Mutations, each failing by name:
- *   · the first breakpoint field not disabled, its colors kept → `… every chrome field inks its value at 4.5:1 —
- *     input[bp-input] "Base, px" 3.05:1` (and the floor `… exempted 0 disabled node(s) …`).
- *   · the exemption widened to the field's class → `… the exemption canary, … is not exempted and fails 4.5:1`.
- *   · the field's ink on `disabled.text` → `… the exempted input[bp-input] … draws Prism3's disabled roles …` and
- *     `F1 A: Layout: … draws Prism3's disabled text field …`.
+ *   · the first breakpoint field not disabled, its colors kept → `web light 1280 / layout: every chrome field inks
+ *     its value at 4.5:1 — input[bp-input] "sm, px" 3.05:1`, its edge at 1.8:1, and `… the contrast audit exempted
+ *     0 disabled node(s) …`, on both hosts and both themes (22 failures).
+ *   · the exemption widened to the field's class → `… the exemption canary, … is not exempted and fails 4.5:1 —
+ *     {…"exempted":true}`, on both hosts and both themes, and nothing else (4 failures).
+ *   · the field's ink on `disabled.text` → `… the exempted input[bp-input] "sm, px" draws Prism3's disabled roles for
+ *     light …` and `F1 A: Layout: web light: … draws Prism3's disabled text field …` (8 failures).
  *
  * NOTHING FORCED (S2). S1.2 and S1.3 set the frame's `data-layout="panes"` themselves for the Q2 check and
  * the preview-header checks, because no page rendered the two panes. S2 moved Color › Palettes, the opening
