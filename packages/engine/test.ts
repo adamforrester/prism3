@@ -5203,12 +5203,20 @@ arm: {
   ok(!threw(() => buildTree(brandTheme(failing))), 'A1(b): buildTree emits a contrast-failing override without throwing');
 
   // (c) rejections: generate-only / absent modes throw in brandTheme; a malformed ref throws at resolve.
-  ok(threw(() => brandTheme({ ...base, overrides: { 'hc-light': { [roleKey]: { palette: 'primary', step: '600' } } } } as unknown as BrandInput)),
-    'A1(c): override targeting hc-light (generate-only) throws');
-  ok(threw(() => brandTheme({ ...base, overrides: { wireframe: { [roleKey]: { palette: 'primary', step: '600' } } } } as unknown as BrandInput)),
-    'A1(c): override targeting wireframe (not in the mode set) throws');
-  ok(threw(() => brandTheme({ ...base, modes: ['light'], overrides: { dark: { [roleKey]: { palette: 'primary', step: '600' } } } } as unknown as BrandInput)),
-    'A1(c): override targeting a mode this brand does not generate throws');
+  // #2108: each mode refusal is matched by its FIELD, its MODE and its REASON, not by "something threw".
+  // `brandTheme` carries three copy-pasted pairs of these (overrides, modeAnchors, modeLevers), and a branch
+  // throwing its sibling's message still throws. BY-NAME MUTATIONS: each branch made to throw its sibling's
+  // message fails its own arm here; under the old `threw()` arms the whole suite stayed green.
+  const msgA1 = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const a1Hc = msgA1(() => brandTheme({ ...base, overrides: { 'hc-light': { [roleKey]: { palette: 'primary', step: '600' } } } } as unknown as BrandInput));
+  ok(a1Hc.startsWith("overrides: mode 'hc-light' is generate-only"),
+    `A1(c): override targeting hc-light is refused by the overrides refusal, as generate-only (got "${a1Hc.slice(0, 90)}")`);
+  const a1Wf = msgA1(() => brandTheme({ ...base, overrides: { wireframe: { [roleKey]: { palette: 'primary', step: '600' } } } } as unknown as BrandInput));
+  ok(a1Wf.startsWith("overrides: mode 'wireframe' is not in this brand's modes"),
+    `A1(c): override targeting wireframe (not in the mode set) is refused by the overrides refusal, as absent (got "${a1Wf.slice(0, 90)}")`);
+  const a1Abs = msgA1(() => brandTheme({ ...base, modes: ['light'], overrides: { dark: { [roleKey]: { palette: 'primary', step: '600' } } } } as unknown as BrandInput));
+  ok(a1Abs.startsWith("overrides: mode 'dark' is not in this brand's modes"),
+    `A1(c): override targeting a mode this brand does not generate is refused by the overrides refusal, as absent (got "${a1Abs.slice(0, 90)}")`);
   ok(threw(() => resolveAllModes(brandTheme({ ...base, overrides: { dark: { [roleKey]: { palette: 'nope', step: '600' } } } } as unknown as BrandInput))),
     'A1(c): an unknown palette in an override throws (malformed input)');
   ok(threw(() => resolveAllModes(brandTheme({ ...base, overrides: { dark: { [roleKey]: { palette: 'primary', step: '999' } } } } as unknown as BrandInput))),
@@ -5252,10 +5260,17 @@ arm: {
   ok(onFill.ratio >= onFill.min, `A2b(b): on-fill still clears its contrast min after the re-anchor (${onFill.ratio.toFixed(2)} >= ${onFill.min})`);
 
   // (c) validation: a per-mode anchor on a generate-only or absent mode throws (customizable modes only).
-  ok(threw(() => brandTheme({ ...base, modeAnchors: { 'hc-light': { primary: 500 } } } as unknown as BrandInput)),
-    'A2b(c): modeAnchors on hc-light (generate-only) throws');
-  ok(threw(() => brandTheme({ ...base, modes: ['light'], modeAnchors: { dark: { primary: 500 } } } as unknown as BrandInput)),
-    'A2b(c): modeAnchors on a mode this brand does not generate throws');
+  // #2108: each mode refusal is matched by its FIELD, its MODE and its REASON, not by "something threw".
+  // `brandTheme` carries three copy-pasted pairs of these (overrides, modeAnchors, modeLevers), and a branch
+  // throwing its sibling's message still throws. BY-NAME MUTATIONS: each branch made to throw its sibling's
+  // message fails its own arm here; under the old `threw()` arms the whole suite stayed green.
+  const msgA2b = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const a2Hc = msgA2b(() => brandTheme({ ...base, modeAnchors: { 'hc-light': { primary: 500 } } } as unknown as BrandInput));
+  ok(a2Hc.startsWith("modeAnchors: mode 'hc-light' is generate-only"),
+    `A2b(c): modeAnchors on hc-light is refused by the modeAnchors refusal, as generate-only (got "${a2Hc.slice(0, 90)}")`);
+  const a2Abs = msgA2b(() => brandTheme({ ...base, modes: ['light'], modeAnchors: { dark: { primary: 500 } } } as unknown as BrandInput));
+  ok(a2Abs.startsWith("modeAnchors: mode 'dark' is not in this brand's modes"),
+    `A2b(c): modeAnchors on a mode this brand does not generate is refused by the modeAnchors refusal, as absent (got "${a2Abs.slice(0, 90)}")`);
 
   // (d) an absent map is a byte-identical no-op (the primary guard).
   ok(JSON.stringify(buildTree(brandTheme(base)).tree) === JSON.stringify(buildTree(brandTheme({ ...base, modeAnchors: {} } as unknown as BrandInput)).tree),
@@ -5423,9 +5438,17 @@ arm: {
     `D(b): buildFigmaDims emits a dark radius file with radius/md → dimension/0 (value ${figMd?.value})`);
 
   // (c) validation throws — generate-only mode (hc-light/wireframe), a mode not generated, out-of-range.
-  ok(threw(() => brandTheme({ ...base, modes: ['light', 'dark', 'hc-light', 'hc-dark'], modeLevers: { 'hc-light': { radius: 0 } } } as unknown as BrandInput)), 'D(c): modeLevers on hc-light (generate-only) throws');
-  ok(threw(() => brandTheme({ ...base, modes: ['light', 'wireframe'], modeLevers: { wireframe: { radius: 0 } } } as unknown as BrandInput)), 'D(c): modeLevers on wireframe (generate-only) throws');
-  ok(threw(() => brandTheme({ ...base, modes: ['light'], modeLevers: { dark: { radius: 0 } } } as unknown as BrandInput)), 'D(c): modeLevers on a mode this brand does not generate throws');
+  // #2108: each mode refusal is matched by its FIELD, its MODE and its REASON, not by "something threw".
+  // `brandTheme` carries three copy-pasted pairs of these (overrides, modeAnchors, modeLevers), and a branch
+  // throwing its sibling's message still throws. BY-NAME MUTATIONS: each branch made to throw its sibling's
+  // message fails its own arm here; under the old `threw()` arms the whole suite stayed green.
+  const msgD = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  const dHc = msgD(() => brandTheme({ ...base, modes: ['light', 'dark', 'hc-light', 'hc-dark'], modeLevers: { 'hc-light': { radius: 0 } } } as unknown as BrandInput));
+  ok(dHc.startsWith("modeLevers: mode 'hc-light' is generate-only"), `D(c): modeLevers on hc-light is refused by the modeLevers refusal, as generate-only (got "${dHc.slice(0, 90)}")`);
+  const dWf = msgD(() => brandTheme({ ...base, modes: ['light', 'wireframe'], modeLevers: { wireframe: { radius: 0 } } } as unknown as BrandInput));
+  ok(dWf.startsWith("modeLevers: mode 'wireframe' is generate-only"), `D(c): modeLevers on wireframe is refused by the modeLevers refusal, as generate-only (got "${dWf.slice(0, 90)}")`);
+  const dAbs = msgD(() => brandTheme({ ...base, modes: ['light'], modeLevers: { dark: { radius: 0 } } } as unknown as BrandInput));
+  ok(dAbs.startsWith("modeLevers: mode 'dark' is not in this brand's modes"), `D(c): modeLevers on a mode this brand does not generate is refused by the modeLevers refusal, as absent (got "${dAbs.slice(0, 90)}")`);
   ok(threw(() => brandTheme({ ...base, modeLevers: { dark: { radius: 3 } } } as unknown as BrandInput)), 'D(c): a radius lever above 2 throws');
   ok(threw(() => brandTheme({ ...base, modeLevers: { dark: { radius: -1 } } } as unknown as BrandInput)), 'D(c): a radius lever below 0 throws');
 
