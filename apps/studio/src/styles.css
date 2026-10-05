@@ -162,8 +162,8 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 /* #718 — the Components page's internal notice and its control row.
    --muted on --paper, NOT --faint: at 13px this is a paragraph to read rather than a caption to
    glance at, and lint:contrast holds --muted on --paper (the worse of the two grounds) to 4.5:1.
-   Modeled on .sl-note / .tf-note, which are the same shape — an inset explanatory block inside a
-   .psec — so this adds a rule and not a third pattern. The bold lifts only the "Internal —
+   Modeled on .sl-note, which is the same shape — an inset explanatory block inside a
+   .psec — so this adds a rule and not a new pattern. The bold lifts only the "Internal —
    experimental." lead-in to --ink2, which lint:contrast also holds at 4.5:1 on both grounds. */
 .cw-note{font-size:13px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 13px;line-height:1.55;margin:14px 0 0}
 .cw-note b{color:var(--ink2);font-weight:640}
@@ -499,51 +499,6 @@ input.toggle:disabled{opacity:.5;cursor:default}
    is an offset ring, a different shape from the selected fill. Chips wrap on a narrow panel. */
 .chips{border:0;margin:0;padding:0;min-width:0}
 .chips-legend{padding:0;font-weight:600;font-size:13.5px;color:var(--ink)}
-.chips-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.chips-opt{position:relative;display:inline-flex}
-.chips-in{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
-.chips-face{display:inline-flex;align-items:center;gap:5px;min-height:28px;padding:4px 12px;border:1px solid var(--chip-edge);border-radius:999px;background:var(--panel);color:var(--ink);font-size:12.5px;line-height:1.3;font-variant-numeric:tabular-nums}
-.chips-in:hover + .chips-face{border-color:var(--ink)}
-.chips-in:checked + .chips-face{background:var(--ink);border-color:var(--ink);color:var(--panel);font-weight:600}
-.chips-in:checked + .chips-face::before{content:'\2713';content:'\2713' / ''}
-.chips-in:focus-visible + .chips-face{outline:2px solid var(--ink2);outline-offset:2px}
-/* In a matrix lead row the legend takes the place of the small caption a select is given there. */
-.sf-ctlblock .chips-legend{font-size:9.5px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)}
-.sf-ctlblock .chips-row{margin-top:6px}
-.type-editor{margin-bottom:8px}
-.te-font{width:100%;margin-top:8px;padding:7px 9px;border:1px solid var(--line2);border-radius:var(--r-xs);font:inherit;background:var(--paper)}
-.te-wrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.te-weight{width:88px;font-variant-numeric:tabular-nums;text-align:right}
-.te-cat-wrap{overflow-x:auto;margin-top:12px}
-.te-cat{border-collapse:collapse;width:100%;font-size:12.5px}
-.te-cat th,.te-cat td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
-.te-cat th{font-size:11px;font-weight:600;color:var(--muted);text-transform:lowercase;letter-spacing:0.02em}
-.te-cat tr:last-child td{border-bottom:none}
-.te-cat th:first-child,.te-cat td:first-child,.te-cat th:nth-child(2),.te-cat td:nth-child(2){text-align:left}
-.te-cat-name{color:var(--ink);font-size:12px}
-.te-c{width:1%}
-.te-cat input[type=checkbox]{width:15px;height:15px;accent-color:var(--ink);cursor:pointer}
-.te-cbwrap{position:relative;display:inline-flex;align-items:center;justify-content:center}
-.te-warn{position:absolute;top:-7px;right:-9px;font-size:10px;line-height:1;pointer-events:none}
-.te-cat td.unavail input[type=checkbox]{opacity:.32}
-.te-cat td.unavail{background:repeating-linear-gradient(-45deg,transparent,transparent 4px,rgba(120,120,130,.06) 4px,rgba(120,120,130,.06) 5px)}
-.te-cat-note{margin:10px 2px 0;font-size:11.5px;line-height:1.5;color:var(--faint)}
-/* D (typography) — per-mode notes + shared read-only markers. */
-.te-order-warn{margin:10px 2px 0;font-size:12px;color:#a12;line-height:1.5}
-.te-shared-note{margin:4px 2px 10px;font-size:12px;color:var(--faint);line-height:1.5}
-.te-shared-ro{margin:6px 0 0;font-size:13.5px;font-weight:560;color:var(--ink2)}
-.te-cat select:disabled,.te-cat input:disabled{opacity:.55;cursor:not-allowed}
-/* D (typography) — the per-mode leading/tracking ramps (read-only chips in Light, inputs in a mode). */
-.te-shared-ro-note{margin:4px 2px 10px;font-size:12px;color:var(--faint);line-height:1.5}
-.te-ramp{display:flex;flex-wrap:wrap;gap:8px}
-.te-ramp-cell{display:flex;flex-direction:column;gap:4px;min-width:74px}
-.te-ramp-key{font-size:11px;color:var(--muted)}
-.te-ramp-in{width:74px;padding:5px 7px;font-size:12px}
-.te-ramp-ro{font-size:13px;color:var(--ink2);padding:5px 0}
-/* D (shadow) — per-mode softness/tint: the knob header carries an Auto/reset affordance. */
-.sh-knob-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
-.sh-auto{font:inherit;font-size:11px;color:var(--muted);background:none;border:none;padding:0;cursor:default}
-.sh-auto.on{color:var(--ink2);cursor:pointer;text-decoration:underline}
 /* #305 tint read-out — the tint color at full opacity beside the same color at a mid-ramp 12%.
    The checkerboard under the 12% chip is what makes a translucent near-black legible as translucent;
    on a flat panel it would just read as a slightly different flat gray. */
@@ -575,8 +530,6 @@ input.toggle:disabled{opacity:.5;cursor:default}
    is actually exhaustive — the title attribute was carrying content the view is supposed to SHOW. */
 .toktable td.mcol .tok-hexv{white-space:normal;word-break:break-word}
 .toktable td.pair{white-space:nowrap;width:1%}
-.type-spec{margin-bottom:8px}
-.shadow-spec{margin-bottom:8px}
 .sh-list{display:flex;flex-wrap:wrap;gap:28px;border-radius:var(--r-sm);padding:24px 20px;background:var(--paper);margin-top:14px}
 .sh-cell .tpill{margin-top:2px}
 .sh-cell{display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -1104,45 +1057,9 @@ label.cset-head{cursor:pointer}
 .tpill[data-sgtip]:hover::after{content:attr(data-sgtip);position:absolute;z-index:40;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);background:#111417;color:#f2f4f5;font-family:var(--mono);font-size:11px;font-weight:500;white-space:nowrap;padding:6px 9px;border-radius:7px;box-shadow:0 6px 20px rgba(0,0,0,.28);pointer-events:none}
 .tpill[data-sgtip]:hover::before{content:"";position:absolute;z-index:40;left:50%;bottom:calc(100% + 3px);transform:translateX(-50%);border:5px solid transparent;border-top-color:#111417;pointer-events:none}
 @media(max-width:760px){.sg-g3,.sg-g5{grid-template-columns:repeat(2,1fr)}}
-/* Heading sizes — shape cards, range, and the per-size table (#328 follow-through) */
-/* Label + description, then controls. The gap under the description is what was missing: the cards
-   sat hard against the heading with the explanation stranded below them. */
-.tsz-field{margin-top:22px}
-.tsz-field:first-of-type{margin-top:6px}
-.tsz-flabel{display:block;font-weight:600;font-size:13.5px;color:var(--ink)}
-.tsz-fdesc{margin:3px 0 12px;font-size:12.5px;color:var(--muted);line-height:1.5;max-width:72ch}
+/* Heading sizes — the per-size table (#328 follow-through) */
 
-/* Option cards: a select cannot carry a sentence per option, and the shape is a foundational choice
-   made once. Deviation from doc 26 (3+ options → select) — the rule that earns it is in doc 24. */
-.shape-cards{display:grid;gap:9px;grid-template-columns:repeat(auto-fit,minmax(184px,1fr));width:100%}
-.shape-card{text-align:left;font:inherit;cursor:pointer;background:var(--paper);border:1px solid var(--line2);border-radius:var(--r-sm);padding:12px 13px 13px;display:flex;flex-direction:column;gap:3px}
-.shape-card:hover:not(:disabled){border-color:var(--muted)}
-.shape-card:focus-visible{outline:2px solid var(--ink2);outline-offset:1px}
-.shape-card.on{border-color:var(--ink);background:var(--panel);box-shadow:0 0 0 1px var(--ink)}
-.shape-card:disabled{opacity:.5;cursor:not-allowed}
-.shape-card b{font-size:13px;color:var(--ink)}
-.shape-card.on b::after{content:' ✓';font-size:11px}
-.shape-blurb{font-size:11.5px;color:var(--muted);line-height:1.4}
-.shape-nums{font-size:10.5px;color:var(--faint);margin-top:2px}
-.shape-blocked{grid-column:1/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink2);background:var(--paper);border:1px solid var(--line2);border-radius:var(--r-sm);padding:9px 11px}
-.shape-release{font:inherit;font-size:12px;padding:4px 10px;border:1px solid var(--line2);border-radius:var(--r-xs);background:var(--panel);color:var(--ink);cursor:pointer}
-.shape-release:hover{border-color:var(--muted)}
-.shape-release:focus-visible{outline:2px solid var(--ink2);outline-offset:1px}
-
-/* Range — the two fields align on their CONTROLS, not their labels, so the select and the toggle
-   sit on one line however tall the labels wrap. */
-.range-row{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start;width:100%}
-.range-f{display:flex;flex-direction:column;gap:6px}
-.range-f > .pfk{line-height:1.2}
-.range-f .select{min-width:158px}
-.range-tg{display:flex;align-items:center;min-height:31px}
-.range-tglab{font-size:12.5px;color:var(--ink);white-space:nowrap}
-
-.szt-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.szt-headlab{font-size:13px;font-weight:620;color:var(--ink)}
-.szt-badge{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:100px;background:var(--paper);border:1px solid var(--line2);color:var(--ink2)}
 .mtbl{margin-top:18px}
-.mtbl-cap{margin:0 0 7px;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 /* Wide tables scroll in their own container so the page body never does (doc 26). The size column is
    pinned so the names survive that scroll. A trailing FILLER column absorbs any slack, which is what
    keeps the size column and every mode column at a fixed width whether the brand has one mode or six
@@ -1161,68 +1078,16 @@ label.cset-head{cursor:pointer}
 .mtbl-fill.mtbl-spec{padding:6px 12px !important;min-width:150px}
 .mtbl-spec-t{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink2);font-size:14px}
 .mtbl-name{font-size:12.5px;font-weight:600;color:var(--ink)}
-/* Out-of-range rows stay VISIBLE rather than disappearing — a size the ramp could have is a fact
-   worth showing, and its absence from the table was reading as "this brand has no lg display". */
-.mtbl-off td{background:repeating-linear-gradient(135deg,transparent,transparent 5px,rgba(24,24,27,.028) 5px,rgba(24,24,27,.028) 10px)}
-.mtbl-off .mtbl-stick{background:var(--panel)}
-.mtbl-off .mtbl-name{color:var(--faint);text-decoration:line-through;text-decoration-thickness:1px}
-.mtbl-offval{font-size:12.5px;color:var(--faint)}
-/* Light's cell in a re-point table: it can only name itself, so it is text rather than a select. */
-.mtbl-selfval{font-size:12.5px;color:var(--muted);white-space:nowrap}
-/* What a rung is WORTH in this mode (#388) — a second line under the per-mode select, not option text.
-   display:block is what keeps it off the select's line, so the column width is untouched; the .set tier
-   matches the select's own set-state so a scan down a column finds the overrides in one pass.
-   (No backticks in this stylesheet — it is a template literal; see #366.) */
-.mtbl-worth{display:block;margin-top:3px;font-size:11px;color:var(--faint);white-space:nowrap}
-.mtbl-worth.set{color:var(--ink2);font-weight:600}
 /* A select's intrinsic min-width is its WIDEST OPTION, and the table is auto-layout, so a long rung
    label silently pushed the mode column past the shared token (166px against the stepper tables'
    148px) and broke the down-page column parity these tables exist to hold. Clamp the control to the
    column and let the closed select ellipsis instead. 24px is the cell's horizontal padding. */
 .mtbl-mode .select{width:calc(var(--tbl-col-mode) - 24px);min-width:0;text-overflow:ellipsis}
 .mtbl-mode .select.set{font-weight:650;border-color:var(--ink2)}
-.mtbl-ro{font-size:10px;color:var(--faint);font-weight:400;text-transform:none;letter-spacing:0}
-/* #1587 — the two viewport endpoints stacked in the base column: a Desktop stepper over a Mobile
-   stepper, each under a small caption. Captions sit ABOVE their stepper (display:block) so the fixed
-   mode-column width is untouched — the same width discipline .mtbl-mode .select documents above.
-   (No backticks in this stylesheet — it is a template literal; see #366.) */
-.mtbl-vpstack{display:flex;flex-direction:column;gap:2px}
-.mtbl-vplab{display:block;font-size:10px;color:var(--faint);font-weight:400;line-height:1.3}
-/* The stepper states the constraint: a disabled −/+ means this size has no room that way, where a
-   filtered dropdown just omitted the option and never said why. */
-.mcell{display:inline-flex;align-items:center;gap:4px}
-.mstep{font:inherit;font-size:13px;line-height:1;width:22px;height:24px;border:1px solid var(--line2);border-radius:var(--r-xs);background:var(--paper);color:var(--ink);cursor:pointer;flex:none}
-.mstep:hover:not(:disabled){border-color:var(--muted)}
-.mstep:disabled{opacity:.32;cursor:not-allowed}
-.mstep:focus-visible{outline:2px solid var(--ink2);outline-offset:1px}
-.mval{font-size:12.5px;min-width:32px;text-align:center;color:var(--muted)}
-.mval.pin{color:var(--ink);font-weight:650}
-.mreset{font:inherit;font-size:12px;line-height:1;width:20px;height:24px;border:1px solid transparent;border-radius:var(--r-xs);background:none;color:var(--faint);cursor:pointer;flex:none}
-.mreset:hover{color:var(--ink2)}
-.mreset:focus-visible{outline:2px solid var(--ink2);outline-offset:1px}
-.mreset-sp{display:inline-block;width:20px;flex:none}
 
-/* Typography Preview tab — read-only specimens at size, in every mode. */
-.tp-fam{font-size:12.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
-/* Same 112px / 148px as the tables, from the shared tokens, so the page reads on one grid even
-   where the content is a specimen rather than a control. */
-
-/* Typography — the four tier tabs (#272, resplit in #388 part B) */
-.tabnote{font-size:12.5px;color:var(--faint);margin:10px 0 0}
 /* #415 — the three-card binding grid (.tf-grid/.tf-card/.tf-role/.tf-desc) is gone with the three
    family roles it was sized for; seven categories read as a table on the tab's shared grid. Deleted
    rather than left inert, which is the .errbar-global lesson from #388. */
-/* The bulk-set: one action for the single-face brand, which the collapse would otherwise make a
-   seven-field chore. flex:none on the button keeps its intrinsic width out of the row's sizing —
-   the trap #369/#388 kept hitting. */
-.tf-bulk{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:2px 0 0}
-.tf-bulklab{font-size:12.5px;color:var(--ink2);font-weight:560}
-/* #558 — .tf-addbtn's base padding/font-size (7px 16px / 13px) is tuned to match .tf-in (36.1px),
-   its OTHER pairing below in "Add face". Here it instead sits beside .select.sm (33.4px, the compact
-   variant — correct and unchanged everywhere else it's used standalone). Scoped so only this row's
-   button drops to .select.sm's own padding-block (6px) and font-size (12.5px), landing both controls
-   at the same 33.4px rather than inventing a third height for the row. */
-.tf-bulk .tf-addbtn{padding:6px 16px;font-size:12.5px}
 .tf-in{width:100%;padding:7px 9px;border:1px solid var(--line2);border-radius:var(--r-xs);font:inherit;font-size:13px;background:var(--paper);color:var(--ink);min-width:0}
 .tf-stat{font-size:11px;font-weight:600}
 /* A token pill is white-space:nowrap, so its full single-line width is its MIN-CONTENT contribution
@@ -1235,96 +1100,7 @@ label.cset-head{cursor:pointer}
    for the mode on screen (#2103), on the BRAND's page color, which the studio does not own. Before that, ✓ was the
    chrome's fixed --ok (3.87:1 on the corpus's dark pages) and ⚠ the ground's --ink (#2091). test:smoke's Type sweep
    holds both labels to 4.5:1 and to the emission's hex for their role, in every brand and mode. */
-/* The specimen's own caveat, shown only when Figma can load a face this device cannot render — so
-   "Ag 123" is the fallback while the status column truthfully reads ✓. Faint and inline beside the
-   specimen because it qualifies THAT cell; promoting it would read as an error, which it is not. */
-.tf-fbnote{margin-left:8px;font-size:11px;color:var(--faint);white-space:nowrap;vertical-align:2px}
-/* The specimen is display:block in this table, which would push the note onto its own line. Only
-   inside .mtbl-spec, and only so the note can sit BESIDE "Ag 123" as approved — measured at 560px
-   (a narrow plugin panel) with no cell overflow and no horizontal scroll beyond the pre-existing 146px. */
-.mtbl-spec .tf-prev{display:inline-block;vertical-align:baseline}
-/* line-height must exceed the font's em box (~1.2) or descenders clip */
-.tf-prev{border-top:1px solid var(--line);padding-top:10px;font-size:26px;line-height:1.4;overflow:hidden;white-space:nowrap}
-/* #415 — the resolved face per category on Text styles: a READING, not a control. Same type
-   treatment as .cs-name so the row's two identity cells sit on one baseline. */
-.cs-face{font-size:12.5px;font-weight:600;color:var(--ink);line-height:1.3;overflow-wrap:anywhere}
-.tf-note{font-size:12.5px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 13px;line-height:1.55;margin:14px 0 0}
-.tf-note b{color:var(--ink2)}
-.tf-note.warn{background:#fff8ed;border-color:#f0d9b5;color:#7a5320}
-.tf-note.warn b{color:#5c3d16}
-/* Typeface library (#269) — the primitive tier as full-width rows: identity left, the
-   derived facts in the middle, specimen right. Full-width rather than cards because the
-   list grows with the brand and the fallback stack needs the horizontal room. */
-/* The typeface library as a table (#363), on the same column grid as the rung tables above. */
-/* The ONE table on this tab whose Face column is not the shared 112px: the token path now reads as a
-   subtitle under the face name, and font.typeface.jetbrains-mono is 190px on one line. Scoped by class
-   rather than by moving --tbl-col-name, because that token holds this tab's four tables on one column
-   grid (#363/#404) and three of them are read-only ladders with nothing to widen FOR. Two measured
-   costs, both accepted: this table's mode columns now start at 552 where the ladders' start at 448, so
-   the Face column is the only one that no longer lines up down the page; and in a 560px plugin panel
-   the container's existing horizontal overflow goes 146px → 186px, +40. The pinned column is what makes
-   the second one tolerable — scrolled fully right, the face name and its path are still both visible.
-   The alternative was a four-line path pill in a 112px cell (tried; less readable than an elided one). */
-.tf-libtbl .mtbl-stick{width:216px;min-width:216px}
-/* Both were capped at 88px for the 112px column; at 216 they can use it. Still capped rather than
-   free: the cell is auto-layout, so an uncapped nowrap pill would push the column past 216 on a long
-   slug — the intrinsic-width trap .mtbl-mode .tpill documents. 192 = 216 − 24 of cell padding, which
-   fits every realistic path on one line (jetbrains-mono 190); a longer one elides from the FRONT,
-   keeping the slug that identifies it, and carries the full path in its title. */
-.tf-libname{display:block;font-size:12.5px;font-weight:650;color:var(--ink);max-width:192px;line-height:1.3;overflow-wrap:anywhere}
-.tf-vf{display:block;margin-top:3px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
-.tf-libpath{display:block;margin-top:5px}
-.tf-libpath .tpill{max-width:192px}
-.tf-usedby{font-size:11.5px;color:var(--ink2);display:block;max-width:124px;line-height:1.35;overflow-wrap:anywhere}
-/* An unbound face is a real state since #287, not an error — muted, never warning-colored. */
-.tf-usedby.unbound{color:var(--faint);font-style:italic}
-.tf-fall{display:block;margin-top:4px;font-size:11px;color:var(--faint);line-height:1.5;overflow-wrap:anywhere}
-.mtbl-spec .tf-prev{border-top:0;padding-top:0;font-size:22px;line-height:1.25}
-.tf-derivenote{font-size:12px;color:var(--faint);line-height:1.55;margin:11px 0 0}
-/* Staging a face (#287 follow-up). The remove control sits in the FILL column so no fixed-width cell
-   grows past its token — that is what keeps the tier tables on one 112/148/148 grid. */
-.tf-rm{float:right;border:none;background:none;color:var(--faint);cursor:pointer;font-size:16px;line-height:1;padding:0 2px;margin-left:8px}
-.tf-rm:hover{color:var(--ink)}
-.tf-add{display:flex;align-items:center;gap:8px;margin-top:12px}
-.tf-addin{flex:0 1 260px;width:auto;min-width:0}
-/* #113 follow-up — the font combobox. The datalist this replaces was browser CHROME: dark in
-   Figma's iframe, flipped UP over the field, and unscrollable at 2,334 options. Page DOM instead, on
-   the .brandmenu popover model (max-height + overflow-y:auto), which is what makes it themeable,
-   positionable and scrollable at all. The wrapper carries .tf-addin's flex basis because the INPUT is
-   now nested inside it — leaving it on the input alone would collapse the field to content width. */
-.tf-combo{position:relative;flex:0 1 260px;min-width:0}
-.tf-combo .tf-addin{flex:none;width:100%}
-.tf-cbolist{position:absolute;top:calc(100% + 4px);left:0;right:0;max-height:264px;overflow-y:auto;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-sm);padding:4px;z-index:20;box-shadow:0 12px 32px -8px rgba(24,24,27,.20),0 4px 12px -4px rgba(24,24,27,.12);overscroll-behavior:contain}
-/* Names render in the UI face by design (owner call): the host list mixes locally-installed families
-   with Figma CLOUD fonts, and networkAccess:none means a cloud face would fall back and read as
-   broken. One face is honest; a half-working specimen is not. */
-.tf-cbo{padding:6px 9px;border-radius:var(--r-xs);font-size:13px;color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tf-cbo:hover,.tf-cbo.on{background:var(--paper)}
-.tf-cbo.on{box-shadow:inset 0 0 0 1px var(--line2)}
-.tf-adderr{font-size:12px;color:var(--danger);margin:8px 0 0}
-/* #405 — the add-face SUBMIT CTA, modeled on .bm-load (the app's existing inline solid button) so it
-   reads as "commit this" rather than borrowing .adv-add's dashed reveal look. flex:none keeps its
-   intrinsic width out of the row's sizing, the trap #369/#388 kept hitting. White on --ink is
-   17.72:1. */
-.tf-addbtn{flex:none;border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:var(--r-xs);padding:7px 16px;font:inherit;font-size:13px;font-weight:560;cursor:pointer}
-.tf-addbtn:hover{background:#000;border-color:#000}
-.tf-unbound{font-size:11.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;line-height:1.45}
 .sl-note{font-size:12.5px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 13px;line-height:1.5;margin:12px 0 0}
-/* position:relative makes the ladder the offsetParent, so a row's offsetTop is relative to
-   it — without it the open-on-first-in-use-rung scroll overshoots to the bottom. */
-/* #404 — the size ladder moved onto the shared table, so the bespoke row grid, the dimming, the
-   levered-rung dot and the three-key legend are all gone. Everything they styled went with them
-   rather than being left as dead rules (the .errbar-global lesson from #388). Two survive:
-   .sl-samp is the big Ag specimen, and .sl-tall keeps the 460px scroll box the 22 full-size rows
-   still need — .mtbl-scroll only handles the horizontal axis. */
-.sl-samp{line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sl-tall{max-height:460px;overflow-y:auto}
-/* The header has to STICK here and nowhere else: this is the only tier table that scrolls
-   vertically, and 22 rows of full-size specimens scroll the column labels away within one row.
-   The corner cell outranks the rest because .mtbl-stick is already sticky on the left axis —
-   without the bump it slides under its own row headers at the intersection. */
-.sl-tall thead th{position:sticky;top:0;z-index:2}
-.sl-tall thead .mtbl-stick{z-index:4}
 /* The availability marks, carried over from the deleted primitive weight scale (#362) — the mark
    vocabulary is unchanged, only its home. tpw-samp overrides the shared specimen size down, since
    this cell holds a mark beside it in a face column rather than owning a full-width row.
@@ -1337,18 +1113,6 @@ label.cset-head{cursor:pointer}
    needs its own text-legible tier distinct from "no"'s --faint; --muted is the next tier up. */
 .tpw-mark.unknown{color:var(--muted)}
 .tpw-samp{display:inline;font-size:15px}
-/* #422 — the weight-roles-per-mode specimen. Same "Ag 123" sample as the by-face table's .tpw-samp,
-   but a second LINE under the stepper/reading rather than inline beside it — matching .mtbl-worth's
-   "second line under the per-mode control" pattern, since the stepper's four glyphs already fill most
-   of the 148px column and an inline specimen would wrap mid-cell instead of stacking cleanly. */
-.wt-spec{display:block;margin-top:4px}
-/* Leading & tracking rungs in the shared table format (#363). The value control is width-BOUNDED, not
-   auto: a control that sizes to its content is what breaks column parity in an auto-layout table.
-   #388 swapped the number input for a ladder select and the bound has to come with it — a closed
-   select's intrinsic width is its WIDEST OPTION (#360's trap), so left auto it would be sized by
-   whichever label happens to be longest today (-0.015em) and would silently re-size the column the
-   day a ladder label grows. 124px is measured against that widest label, not picked. */
-.ltbl-sel{width:124px;max-width:100%}
 .ltbl-who{font-size:11px;color:var(--ink2);display:block;max-width:124px;line-height:1.35}
 .ltbl-who.none{color:var(--faint);font-style:italic}
 /* The one specimen on the page that must WRAP — leading is invisible on a single line, so this
@@ -1375,64 +1139,8 @@ label.cset-head{cursor:pointer}
 .shp-field{width:180px;border:1px solid transparent}
 .shp-button{width:112px;border:1px solid transparent}
 .shp-tag{width:64px;border:1px solid transparent}
-.wr-row{display:grid;grid-template-columns:96px 168px 1fr auto;gap:14px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
-.wr-row:first-of-type{border-top:0}
-.wr-name{font-size:13px;font-weight:640}
-.wr-samp{font-size:20px;line-height:1.4;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.cs-wrap{overflow-x:auto}
-.cs-table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
-.cs-table th{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left;padding:0 9px 10px;white-space:nowrap}
-.cs-table th.cs-c,.cs-table td.cs-c{text-align:center}
-.cs-table td{padding:9px;border-top:1px solid var(--line);vertical-align:middle}
-.cs-name{font-size:12px;font-weight:640}
-.cs-count{font-size:10.5px;color:var(--faint)}
-.cs-table input[type=checkbox]{width:15px;height:15px;accent-color:var(--ink);cursor:pointer;margin:0}
-/* 11 columns in an 850px content column — keep the selects tight so the table fits without
-   relying on the horizontal scroll, which hides the italic/link toggles at the right edge. */
-.cs-table td{padding:9px 6px}
-.cs-table th{padding:0 6px 10px}
-.cs-table .select{max-width:100px}
-/* 92px was measured against the old word-form labels ("2 tighter", "much tighter") before #411
-   replaced them with signed deltas. The widest label today is "default" (the zero case; every other
-   value is a short +N/-N), well inside this box, so there is slack rather than a tight fit — this
-   table still has only ~8px of slack per nudge column before it exceeds the 800px pane and .cs-wrap
-   starts scrolling the LINK column out of sight, but the value control itself is no longer the
-   constraint that set 92px. Left wide rather than re-measured down: shrinking it is a real change,
-   not a comment fix. */
-.cs-table .select.cs-nudge{max-width:92px}
-/* #1467 — the facePin (Pin a cut) section. The style input reuses .tf-in's field treatment; capped so
-   it reads as one control in the Style-pin column rather than stretching the full table width. The
-   stale-pin note reuses .tf-adderr (danger ink) but sits under the field it qualifies. */
-.pincut .pincut-in{max-width:240px}
-.pincut .pincut-stale{max-width:280px;line-height:1.45;white-space:normal}
 .fz-list{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-top:4px}
-.fz-row{display:grid;grid-template-columns:150px 96px 1fr;gap:12px;padding:9px 13px;border-top:1px solid var(--line);align-items:center;font-size:12px}
-.fz-row:first-child{border-top:0}
-.fz-name{font-size:11px}
-.fz-pair{font-size:11px;color:var(--muted)}
-.fz-bar{position:relative;height:7px;background:var(--paper);border-radius:4px;border:1px solid var(--line)}
-.fz-fill{position:absolute;top:0;bottom:0;background:var(--ink2);border-radius:4px;opacity:.75}
-.fz-clamp{font-size:10px;color:var(--faint);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fz-warn{font-size:12.5px;background:#fff8ed;border:1px solid #f0d9b5;color:#7a5320;border-radius:var(--r-sm);padding:10px 13px;line-height:1.5;margin:10px 0 0}
-.tr-block{margin-top:34px}.tr-block:first-of-type{margin-top:4px}
-.tr-band{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 13px;margin-bottom:6px}
-.tr-band-n{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink2)}
-.tr-band-c{font-size:10.5px;color:var(--muted)}
-.tr-band-d{font-size:11.5px;color:var(--faint)}
-.tr-row{display:grid;gap:6px;padding:14px 0;border-top:1px solid var(--line)}
-.tr-row:first-of-type{border-top:0}
-.tr-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.tr-attr{font-size:10.5px;color:var(--faint)}
-/* true size; padding keeps descenders inside the clip box even at tight leading */
-.tr-samp{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-bottom:.24em;margin-top:2px}
-/* Per-mode ramp columns — one per mode, side by side. Scrolls horizontally rather than wrapping: a
-   wrapped column reads as a new row, which is the confusion the side-by-side table exists to remove.
-   min-width:0 on the column is what actually lets the sample's ellipsis work inside a grid track. */
-.tr-modes{display:grid;gap:14px;overflow-x:auto;padding-bottom:2px}
-.tr-mode{min-width:0;border-left:1px solid var(--line);padding-left:11px}
-.tr-mode:first-child{border-left:0;padding-left:0}
-.tr-mode-n{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink2);margin-bottom:2px}
-@media(max-width:760px){.tf-bulk{align-items:stretch;flex-direction:column}}
 /* minmax(0,1fr), not a bare 1fr — a grid item's automatic minimum is min-content, so a bare
    1fr track never clamps and the widest child drags the whole column past the viewport.
    The desktop rule above already uses the idiom; the collapse override had lost it (#144). */
