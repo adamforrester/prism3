@@ -683,9 +683,9 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   // found by its own hook.
   await page.locator('[data-p3="style-guide-dimension-display"] select').selectOption('line');
   await page.locator('[data-p3="style-guide-font-display"] select').selectOption('weight');
-  await page.locator('[data-p3="style-guide-rem"] input').click({ force: true });
-  await page.locator('[data-p3="style-guide-paragraph-spacing"] input').click({ force: true });
-  await page.locator('[data-p3="style-guide-title-cell"] input').click({ force: true });
+  await hooks.click(page.locator('[data-p3="style-guide-rem"] input'), { force: true });
+  await hooks.click(page.locator('[data-p3="style-guide-paragraph-spacing"] input'), { force: true });
+  await hooks.click(page.locator('[data-p3="style-guide-title-cell"] input'), { force: true });
   // #1778: the Tables field — titles separated by commas on one line, sent as a list, blanks dropped.
   await page.locator('[data-p3="style-guide-tables"] textarea').fill('Primary — nbds,  Text — pds3, ');
   const clicked = await hooks.click(page.locator('[data-p3="style-guide-draw"]'), { timeout: 4000 }).then(() => true, () => false);
@@ -715,9 +715,9 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 
   // The Tables field with a line break splits on line breaks ONLY, so a title with a comma in it survives.
   const custom = page.locator('[data-p3="style-guide-customize"]');
-  if (!(await custom.evaluate((d) => d.open))) await custom.locator('summary').click();
+  if (!(await custom.evaluate((d) => d.open))) await hooks.click(custom.locator('summary'));
   await page.locator('[data-p3="style-guide-tables"] textarea').fill('Brand, legacy — nbds\nText — pds3\n');
-  await page.locator('[data-p3="style-guide-draw"]').click({ timeout: 4000 }).catch(() => {});
+  await hooks.click(page.locator('[data-p3="style-guide-draw"]'), { timeout: 4000 }).catch(() => {});
   await page.waitForFunction(() => window.__sent.length > 1, null, { timeout: 3000 }).catch(() => {});
   const lines = await readSg();
   ok(JSON.stringify(lines.sent[1]?.options?.tables) === JSON.stringify(['Brand, legacy — nbds', 'Text — pds3']),
