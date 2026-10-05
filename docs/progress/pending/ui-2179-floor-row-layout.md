@@ -6,9 +6,11 @@
 
 On Color › Surfaces & fills, Default background fills, the Primary, Secondary and Tertiary rows put their step picker on the right of the row. The Contrast floor row put it on its own line under the name. That was deliberate in S4f (#2040): the floor row took a `p3-fillrow-wide` class, a two-column grid with the picker in column 2 of a second line, because its Auto label ("Auto · follows background.secondary (neutral 050)") is much longer than the other rows' labels.
 
-Now the floor row is the rows' own three-column grid (`p3-fillrow`), and `p3-fillrow-wide` is gone. The long label still needs room, so the floor row keeps one modifier, `p3-fillrow-long`. It caps the picker's column at `fit-content(50%)` and lets the label wrap inside the button, so the name keeps its room. The picker's right edge lands on the other pickers' edge.
+Now the floor row uses the same three-column grid as the other rows (`p3-fillrow`), and `p3-fillrow-wide` is gone. The long label still needs room, so the floor row keeps one modifier, `p3-fillrow-long`. It sets the picker's column to `minmax(0, 50%)`, so the name keeps its room, and the picker's right edge lands on the other pickers' edge.
 
-At 380 the other rows stay side by side (no rule stacks them), so the floor row does too. There, "Contrast floor" wraps to two lines beside a three-line picker. The issue asked for the same layout at 380 as the other rows, and this is that layout, but a shorter Auto label would read better. That is a copy decision for the owner, not part of this fix.
+**The tradeoff, for the owner.** The first try let the label wrap inside the button. The full verify failed it on QA-B5: every picker in a levers pane must be one height (40), and the wrapped floor picker was 55. So the label stays on one line and ends in an ellipsis, using the button's existing rule: "Auto · follows background.…" at 1280. The accessible name still carries the whole label, but the step it follows is cut off on screen. A shorter Auto label would avoid the cut. That is a copy decision, so it is left to the owner and not made here.
+
+At 380 the other rows stay side by side, because no rule stacks them, so the floor row does too. "Contrast floor" wraps to two lines beside its picker.
 
 ### Test, in `test:chrome`
 
