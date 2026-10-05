@@ -270,6 +270,9 @@ npx tsx packages/engine/regen.ts --check            # no committed artifact has 
 npx tsx packages/engine/token-contract.ts --check   # the token-NAME contract hasn't broken (#464)
 npx tsx packages/engine/lint-skills.ts              # shipped skills still make true claims
 npx tsx packages/engine/lint-doc-gates.ts           # this checklist stays in sync with ci.yml (#613)
+                                                    # and names no RETIRED gate: a deleted gate's line
+                                                    # names no ci.yml step, so only RETIRED_GATES, a
+                                                    # literal register, sees it left behind (S8.3)
 npx tsx packages/engine/lint-layout-claims.ts       # the docs describe the repo that EXISTS (#670), both
                                                     # directions: every claimed path resolves — from the
                                                     # doc's own directory, against `git ls-files` — and
@@ -1163,20 +1166,6 @@ npm run lint:contrast -w @prism3/studio     # studio chrome clears its own contr
                                             #   legal token faded through opacity is invisible to this
                                             #   one, and a token used in a state no sweep visits is
                                             #   invisible to that one)
-npm run audit:modes -w @prism3/studio -- --check-badges
-                                            # the mode audit's INSTRUMENT (#1897) and its BADGES
-                                            #   (#1887). Run it AFTER build, same browser as test:smoke.
-                                            #   It exits 1 when a hook it names never rendered, a
-                                            #   page's section heads and titles disagree in count, or
-                                            #   no control label was read; and, through the flag, when
-                                            #   a badge disagrees with the measurement, an editable
-                                            #   badge has no control that provably moves the brand, or
-                                            #   a known gap (#1912) has gone stale. Three hooks
-                                            #   (section-head, section-title, mode-scope-badge) are
-                                            #   read by it alone, so nothing else notices one dropped.
-                                            #   REMOVED AT S13, with mode-audit.mjs and the mode strip
-                                            #   it audits: drop this line, its ci.yml step and its
-                                            #   verify.ts row in that PR
 npm run typecheck -w @prism3/plugin      # BOTH contexts — main (no DOM) and ui (no figma.*)
 npm run test      -w @prism3/plugin      # write / readback / persist / float / styles shims
 npm run build     -w @prism3/plugin      # dist/main.js must contain 0 `node:` builtins — asserted by

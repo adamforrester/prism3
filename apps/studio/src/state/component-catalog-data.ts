@@ -15,6 +15,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "foundations",
     "summary": "Glyph from the icon set at 16/20/24/32px. Decorative unless labeled; never interactive.",
     "unit": "components",
+    "spacing": [],
     "buildable": true,
     "reason": null,
     "members": 44,
@@ -26,6 +27,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "foundations",
     "summary": "Keyboard-focus ring nested by focusable components. Build first; don't place alone.",
     "unit": "variants",
+    "spacing": [],
     "buildable": true,
     "reason": null,
     "members": 2,
@@ -37,6 +39,56 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "form",
     "summary": "Triggers an action in place. For navigation, use a link.",
     "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.small.padding-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.medium.padding-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.large.padding-x",
+        "ref": "space.300"
+      },
+      {
+        "key": "size.small.padding-x-visual",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.medium.padding-x-visual",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.large.padding-x-visual",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.small.padding-y",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.medium.padding-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.padding-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.gap",
+        "ref": "space.150"
+      }
+    ],
     "buildable": true,
     "reason": null,
     "members": 432,
@@ -52,6 +104,56 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "form",
     "summary": "Triggers a destructive action — delete, remove — in the destructive color.",
     "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.small.padding-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.medium.padding-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.large.padding-x",
+        "ref": "space.300"
+      },
+      {
+        "key": "size.small.padding-x-visual",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.medium.padding-x-visual",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.large.padding-x-visual",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.small.padding-y",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.medium.padding-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.padding-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.gap",
+        "ref": "space.150"
+      }
+    ],
     "buildable": true,
     "reason": null,
     "members": 432,
@@ -67,6 +169,56 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "form",
     "summary": "Triggers an action with no brand emphasis — toolbars, dense rows.",
     "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.small.padding-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.medium.padding-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.large.padding-x",
+        "ref": "space.300"
+      },
+      {
+        "key": "size.small.padding-x-visual",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.medium.padding-x-visual",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.large.padding-x-visual",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.small.padding-y",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.medium.padding-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.padding-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.gap",
+        "ref": "space.150"
+      }
+    ],
     "buildable": true,
     "reason": null,
     "members": 432,
@@ -82,6 +234,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "form",
     "summary": "Icon-only action. Needs an accessible name.",
     "unit": "variants",
+    "spacing": [],
     "buildable": true,
     "reason": null,
     "members": 216,
@@ -97,6 +250,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "form",
     "summary": "Icon-only destructive action. Needs an accessible name.",
     "unit": "variants",
+    "spacing": [],
     "buildable": true,
     "reason": null,
     "members": 216,
@@ -112,6 +266,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "form",
     "summary": "Icon-only action with no brand emphasis. Needs an accessible name.",
     "unit": "variants",
+    "spacing": [],
     "buildable": true,
     "reason": null,
     "members": 216,
@@ -127,6 +282,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "form",
     "summary": "Visible label that names a field, with an optional required marker.",
     "unit": "variants",
+    "spacing": [],
     "buildable": true,
     "reason": null,
     "members": 24,
@@ -138,6 +294,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "feedback",
     "summary": "Helper or validation caption below a field; status sets its icon and ink.",
     "unit": "variants",
+    "spacing": [],
     "buildable": true,
     "reason": null,
     "members": 4,
@@ -149,6 +306,44 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "form",
     "summary": "Single-line text field: label, input, and helper or validation message.",
     "unit": "variants",
+    "spacing": [
+      {
+        "key": "pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.medium.pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.large.pad-x",
+        "ref": "space.300"
+      },
+      {
+        "key": "size.small.pad-y",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.medium.pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.pad-y",
+        "ref": "space.100"
+      }
+    ],
     "buildable": true,
     "reason": null,
     "members": 24,
@@ -165,6 +360,40 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "form",
     "summary": "Multi-line text field: label, input area, and helper or validation message.",
     "unit": "variants",
+    "spacing": [
+      {
+        "key": "pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.medium.pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.large.pad-x",
+        "ref": "space.300"
+      },
+      {
+        "key": "size.small.pad-y",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.medium.pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.pad-y",
+        "ref": "space.100"
+      }
+    ],
     "buildable": true,
     "reason": null,
     "members": 24,
@@ -180,6 +409,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "form",
     "summary": "Checkbox box with check/dash glyph and focus ring. Nested by Checkbox.Row; no label.",
     "unit": "variants",
+    "spacing": [],
     "buildable": true,
     "reason": null,
     "members": 54,
@@ -193,6 +423,20 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "form",
     "summary": "Labeled checkbox for a staged on/off choice. The whole row is the hit target.",
     "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.small.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.gap",
+        "ref": "space.150"
+      }
+    ],
     "buildable": true,
     "reason": null,
     "members": 3,
@@ -206,6 +450,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "form",
     "summary": "Labeled stack of Checkbox rows. Owns the value array, required and validation.",
     "unit": "variants",
+    "spacing": [],
     "buildable": true,
     "reason": null,
     "members": 3,
@@ -220,6 +465,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "form",
     "summary": "Outlined radio ring; dot and brand ring on select. Nested by Radio.Row; no label.",
     "unit": "variants",
+    "spacing": [],
     "buildable": true,
     "reason": null,
     "members": 30,
@@ -233,6 +479,20 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "form",
     "summary": "One labeled option inside a Radio.Group. The whole row is the hit target.",
     "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.small.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.gap",
+        "ref": "space.150"
+      }
+    ],
     "buildable": true,
     "reason": null,
     "members": 3,
@@ -246,6 +506,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "form",
     "summary": "Labeled stack of Radio rows. Owns the shared name, one value and validation.",
     "unit": "variants",
+    "spacing": [],
     "buildable": true,
     "reason": null,
     "members": 3,
@@ -260,6 +521,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "form",
     "summary": "Switch track, thumb, state glyph and focus ring. Nested by Switch.Row; no label.",
     "unit": "variants",
+    "spacing": [],
     "buildable": true,
     "reason": null,
     "members": 24,
@@ -273,6 +535,16 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "form",
     "summary": "Labeled switch for a setting that applies immediately. Label leads, switch trails.",
     "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.small.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      }
+    ],
     "buildable": true,
     "reason": null,
     "members": 2,
@@ -286,6 +558,20 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "form",
     "summary": "Closed control for picking one value from a known set. The menu is the platform's.",
     "unit": "variants",
+    "spacing": [
+      {
+        "key": "pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "gap",
+        "ref": "space.100"
+      }
+    ],
     "buildable": true,
     "reason": null,
     "members": 24,
@@ -302,6 +588,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "foundations",
     "summary": "Wash over media so text stays legible, solid or fading from one edge. Verify contrast.",
     "unit": "variants",
+    "spacing": [],
     "buildable": true,
     "reason": null,
     "members": 30,
@@ -313,6 +600,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "foundations",
     "summary": "Empty media frame locked to 1:1, 4:3 or 16:9. Drop an image fill onto it.",
     "unit": "variants",
+    "spacing": [],
     "buildable": true,
     "reason": null,
     "members": 3,
@@ -324,6 +612,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "foundations",
     "summary": "Indeterminate loading indicator on the icon ladder. Announces \"Loading\" unless its host hides it.",
     "unit": "components",
+    "spacing": [],
     "buildable": true,
     "reason": null,
     "members": 4,
@@ -335,6 +624,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "foundations",
     "summary": "A static status label, count or dot. Nothing to click, and color is never the only signal.",
     "unit": "variants",
+    "spacing": [],
     "buildable": true,
     "reason": null,
     "members": 20,
@@ -346,6 +636,68 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "category": "foundations",
     "summary": "An interactive token a user toggles or removes. A static label is a badge.",
     "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.small.padding-x",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.medium.padding-x",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.large.padding-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.small.select.gap",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.medium.select.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.select.gap",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.small.dismissible.visible-gap",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.medium.dismissible.visible-gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.dismissible.visible-gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.check-gap",
+        "ref": "space.050"
+      },
+      {
+        "key": "size.medium.check-gap",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.large.check-gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.select.padding-end",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.medium.select.padding-end",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.large.select.padding-end",
+        "ref": "space.200"
+      }
+    ],
     "buildable": true,
     "reason": null,
     "members": 45,

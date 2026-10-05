@@ -300,12 +300,6 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .stage-t b{font-weight:600;font-size:13.5px}
 .stage-t small{color:var(--faint);font-size:11.5px}
 .rail-note{color:var(--muted);font-size:12px;line-height:1.6;margin:22px 8px 0;padding-top:20px;border-top:1px solid var(--line)}
-/* Build identity (#474) — quiet by default, legible when you go looking for it. */
-.rail-build{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;color:var(--faint);font-size:11px;margin:12px 8px 0;user-select:text}
-/* `overflow-wrap:anywhere` because since #836 this field holds a checkout's directory name, not a fixed
-   literal — `p3-buildid` fits the 210px rail and a longer branch name does not, and a flex item's default
-   `min-width:auto` lets an unbreakable token overflow the rail rather than wrap inside it. */
-.rail-build-b{font-family:var(--mono,ui-monospace,SFMono-Regular,Menlo,monospace);color:var(--muted);overflow-wrap:anywhere}
 
 .hero{padding:6px 0 4px}
 .hero h1{margin:0;font-size:40px;font-weight:660;letter-spacing:-0.03em;line-height:1.08}
@@ -582,14 +576,6 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .toktable td.mcol .tok-hexv{white-space:normal;word-break:break-word}
 .toktable td.pair{white-space:nowrap;width:1%}
 .type-spec{margin-bottom:8px}
-.ts-list{display:flex;flex-direction:column;gap:22px;padding:14px 0 2px}
-.ts-row{display:flex;flex-direction:column;gap:8px;min-width:0}
-.ts-meta{font-size:11.5px;color:var(--faint)}
-.ts-sample{color:var(--ink);letter-spacing:-0.02em;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* Type-specimen variants strip — the weights each group ships + italic/link/size-range (the type sub-levers). */
-.ts-variants{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin-top:2px}
-.ts-var{font-size:14px;color:var(--ink2);line-height:1.2}
-.ts-var-range{font-size:11px;color:var(--faint);align-self:center}
 .shadow-spec{margin-bottom:8px}
 .sh-list{display:flex;flex-wrap:wrap;gap:28px;border-radius:var(--r-sm);padding:24px 20px;background:var(--paper);margin-top:14px}
 .sh-cell .tpill{margin-top:2px}
@@ -704,15 +690,37 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .sz-cell{display:flex;flex-direction:column;align-items:center;gap:9px}
 .sz-box{display:flex;align-items:center;justify-content:center;min-width:44px;background:var(--ink);color:var(--panel);border-radius:6px;font-size:12px;font-weight:560}
 .sz-lab{font-size:11px;color:var(--muted);white-space:nowrap}
-/* #1667 button-layout specimen — geometry only, in the page ink. `.btnl-pinned` is Locked to edges: the icon
-   is out of flow at the visual padding, and the button pads that side by padding + icon + gap (set inline). */
-.btnl-list{display:flex;flex-direction:column;gap:18px;border-radius:var(--r-sm);padding:24px 20px;background:var(--paper);margin-top:14px}
+/* #1667 button-layout specimen. Since UI redesign S8.2 the buttons are drawn in the brand's action colors (set
+   inline, G7) directly on the section's ground, the brand's page; `--ink`/`--panel` below are only the fallback.
+   `.btnl-pinned` is Locked to edges: the icon is out of flow at the visual padding, and the button pads that side
+   by padding + icon + gap (set inline). */
+.btnl-list{display:flex;flex-direction:column;gap:18px;padding:8px 0 0;margin-top:6px}
 .btnl-row{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
 .btnl-lab{flex:0 0 100%;font-size:11px;color:var(--muted)}
 .btnl-btn{position:relative;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;max-width:100%;background:var(--ink);color:var(--panel);font-weight:600;white-space:nowrap}
 .btnl-icon{flex:none;border-radius:2px;background:currentColor;opacity:.7}
 .btnl-label{flex:none}
 .btnl-icon.btnl-pinned{position:absolute;top:50%;transform:translateY(-50%)}
+/* UI redesign S8.2 — the Components preview's Component sets list, on the section's ground in the ground's own inks
+   (`--ink`, `--muted`, `--line`). A set that can't be built is grayed by its text tier, never by opacity, so its
+   reason stays legible. The Build button is the preview's build bar, in the chrome (`chrome.css`, `.p3-buildbar`). */
+.cset{display:flex;flex-direction:column;gap:12px;margin-top:6px}
+.cset-list{display:flex;flex-direction:column;gap:0;margin:0;padding:0;list-style:none;border-top:1px solid var(--line)}
+.cset-item{padding:12px 0;border-bottom:1px solid var(--line)}
+.cset-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;font-size:14px;color:var(--ink)}
+label.cset-head{cursor:pointer}
+.cset-radio{align-self:center;width:18px;height:18px;margin:0;accent-color:var(--ink)}
+.cset-name{font-weight:650}
+.cset-parts,.cset-last{font-size:12px;color:var(--muted)}
+.cset-last{margin-left:auto}
+.cset-body{display:flex;flex-direction:column;gap:3px;margin-top:4px}
+.cset-radio~.cset-name{margin-left:2px}
+.cset-summary,.cset-meta,.cset-spacing,.cset-reason,.cset-note{margin:0;font-size:12.5px;line-height:1.5;color:var(--muted)}
+.cset-summary{color:var(--ink2)}
+.cset-spacing{font-size:11.5px}
+.cset-off .cset-name{color:var(--muted);font-weight:560}
+.cset-reason{color:var(--ink2)}
+.cset-radio:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 /* Spacing ramp preview (#265) — the space.* steps as proportional bars (spacing has no other payoff). */
 .sp-list{display:flex;flex-direction:column;gap:7px;border-radius:var(--r-sm);padding:22px 20px;background:var(--paper);margin-top:14px}
 /* Label and bar on ONE row. Stacked, the 18 steps ran ~950px tall while the bars — now drawn at their
@@ -912,88 +920,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .bg-floor{display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
 .bg-floor-lab{font-size:12.5px;font-weight:560;color:var(--muted)}
 .bg-floor .select{margin-left:auto}
-/* Interactive matrix (#69) — global-behavior caption, per-palette section header, slot rows, states. */
-.gcap{margin:8px 0 2px;padding:0 2px}
-.gcap-t{margin:0;font-size:12.5px;font-weight:680;text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}
-.gcap-d{margin:4px 0 0;color:var(--faint);font-size:12.5px;line-height:1.5;max-width:660px}
 .psec-h{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.arow{padding:26px 2px}
-.arow+.arow{border-top:1px solid var(--line)}
-.arow-main{display:grid;grid-template-columns:56px minmax(0,1fr) 300px;gap:20px;align-items:start}
-.arow-lead .arow-main{grid-template-columns:minmax(0,1fr) 300px}
-.asw{width:56px;height:56px;flex:none;border-radius:var(--r-sm);border:1px solid var(--line2)}
-.amid{min-width:0;display:flex;flex-direction:column;gap:9px;align-items:flex-start}
-.alabel{font-size:14px;font-weight:640;line-height:1.2;color:var(--ink)}
-.amid .sf-ctlblock{width:100%}
-.amid .select{max-width:300px}
-.amid .tpill{line-height:1.4}
-.adesc{font-size:11.5px;color:var(--faint);line-height:1.45;max-width:340px}
-.aex{width:300px;justify-self:end;display:flex;flex-direction:column;align-items:stretch;gap:8px}
-.aex .cbadge{align-self:flex-end}
-/* Its own display:flex, no longer inherited from .aex: the two-up row is now nested INSIDE the .aex
-   column rather than sharing an element with it, so the column can stack a contrast receipt beneath. */
-.aex-two{display:flex;flex-direction:row;gap:14px}
-.aex-spec{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px;align-items:center}
-.exbox{width:100%;min-height:72px;border-radius:var(--r-sm);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;padding:14px 16px;overflow:hidden}
-/* #555 — background is set inline per element (exGround, mode-resolved); this is only the fallback
-   for the instant before JS runs, and the border override for the (now inline-dark) box. */
-.exbox.dark{background:#0d0d10;border-color:transparent}
-/* #576 — the outline edge is a custom property, not the inline `border` shorthand `exOutline` used to
-   set. An inline shorthand beats `.ibtn:hover`, so a stateful border set that way could never move; the
-   states now ride the same var-fallback chain the background already uses. `--ibtn-bw` is set by
-   `exOutline` alone, so every other specimen falls back to 0 and a filled button grows no border. */
-.ibtn{display:inline-flex;align-items:center;gap:7px;border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:600;white-space:nowrap;background:var(--ibtn-bg);border:var(--ibtn-bw,0) solid var(--ibtn-bd,transparent)}
-.ibtn:hover{background:var(--ibtn-hbg,var(--ibtn-bg));border-color:var(--ibtn-hbd,var(--ibtn-bd,transparent))}
-.ibtn.is-pressed,.ibtn.is-pressed:hover{background:var(--ibtn-pbg,var(--ibtn-hbg,var(--ibtn-bg)));border-color:var(--ibtn-pbd,var(--ibtn-hbd,var(--ibtn-bd,transparent)))}
-.ibtn svg{width:16px;height:16px}
-.ilink{font-size:15px;font-weight:600;text-decoration:underline;text-underline-offset:3px;color:var(--ilink-fg)}
-.ilink:hover{color:var(--ilink-hfg,var(--ilink-fg))}
-.ilink.is-pressed,.ilink.is-pressed:hover{color:var(--ilink-pfg,var(--ilink-hfg,var(--ilink-fg)))}
-/* #291 — live hover/pressed on interactive examples: :hover is CSS-native; pressed is click-to-pin
-   (see wirePress) since a bare :active vanishes on mouse-up, too fleeting to evaluate a color. */
-.pinnable{cursor:pointer}
-.pinnable.is-pressed{outline:2px solid var(--ink2);outline-offset:2px}
-.inote{display:inline-flex;align-items:center;gap:7px;font-size:14px}
-.inote-ic{display:inline-flex}
-.inote-ic svg{width:17px;height:17px}
-.astates{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line2);margin-left:76px}
-.astates-h{font-family:var(--mono);font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
-.astates-g{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.astate{border:1px solid var(--line);border-radius:var(--r-xs);background:var(--paper);padding:11px 12px;display:flex;flex-direction:column;gap:9px}
-.astate-h{display:flex;align-items:center;gap:10px}
-.astate-sw{width:30px;height:30px;border-radius:6px;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
-.astate-n{font-size:12.5px;font-weight:600;color:var(--ink)}
-.astate .select{width:100%;font-size:12px;padding:6px 9px;padding-right:26px}
-/* .aex-two had its own grid-column:1/-1 here; it is now nested inside .aex, which carries the span,
-   so the nested copy applied to a non-grid child and did nothing. */
-@media(max-width:900px){.arow-main{grid-template-columns:56px 1fr}.arow-lead .arow-main{grid-template-columns:1fr}.aex{width:100%;grid-column:1/-1}.astates-g{grid-template-columns:1fr}.astates{margin-left:0}}
-/* #560 — between the 900px stack breakpoint and #app's 1200px cap, .arow-main's middle (mid) column is
-   exactly viewport minus 800px (the 56px swatch + two 20px gaps + 300px .aex are fixed; the mid column
-   absorbs 100% of any remaining slack via minmax(0,1fr), so the relationship is 1:1). The two longest
-   token paths in the system AT THE TIME (…on-inverse.fill.rest / …on-inverse.text.rest, 49 characters,
-   both 325px at the pill's font) needed the mid column at 327px (325 + the pill's 1px+1px border) to
-   render unclipped — which needs
-   viewport 1127px or wider. Below that, from ~1114px up to ~1126px, those two are the ONLY pills that
-   still clip (every shorter path already fits); 1120px sits inside that narrow band. Trimming the .aex
-   example column by 12px in this same band moves the cure threshold down to viewport 1115px, which
-   covers the whole 1114-1126px band with margin — the pill needs 7 more px, this gives it 12. Scoped to
-   .arow:not(.arow-lead) because lead rows (Action palette, Button emphasis, ...) use a different grid
-   template with no swatch column and never carry a pill — touching .arow-lead's copy of .aex would only
-   leave dead space in its 300px track, so it stays out of the selector rather than being ignored by
-   coincidence. Below 900px this is moot (.aex already goes full-width); above 1200px #app's own
-   max-width caps further viewport growth from helping anyway, so the band stops there.
-
-   THE 325px IS A COMMIT-PINNED MEASUREMENT AND HAS SINCE BEEN OUTGROWN — flagged, not fixed here.
-   #576 gave the outline edge states AFTER this was written, and `…destructive.on-inverse.border.pressed`
-   (55 characters) was longer than either path measured above from that moment on. #891's rename takes
-   the longest to `color.interactive.destructive.inverse.border.pressed` at 52 characters — still 3
-   longer than the 49 this comment measured, so the true requirement is ABOVE 327px and this rule is a
-   partial cure at some viewports in the band. The rename can only have helped: every path in the family
-   shrank by exactly 3 characters, so the threshold moved down, never up. Re-measuring needs a browser at
-   the pill's font and is filed rather than guessed — a px number invented here would be the exact defect
-   this file has been fixing all week. Filed as #902, which also proposes asserting it in the smoke
-   suite against the longest path READ FROM THE TREE, so the calibration cannot rot a third time. */
-@media(min-width:901px) and (max-width:1199px){.arow:not(.arow-lead) .arow-main{grid-template-columns:56px minmax(0,1fr) 288px}.arow:not(.arow-lead) .aex{width:288px}}
 /* Surfaces & fills — full-width rows (Layout A, #68): controls LEFT · whitespace · example RIGHT, contrast below */
 /* The identity track is 256px, not 168px, because the token PATH has to be readable. At 168px three of
    the page's thirteen paths elided — and #289's rtl elision keeps the tail, so
@@ -1113,6 +1040,9 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .sg-ground{margin-top:14px;padding:18px 18px 20px;border-radius:var(--r);border:1px solid var(--line);
   color:var(--ink);transition:background .12s ease}
 .sg-ground .sub-t{color:var(--muted)}
+/* #1971: the line naming a ground that is not the page (Surfaces & fills' Foreground, on the contrast floor). */
+.sg-floor-lab{margin:0;font-size:13px;line-height:1.5;color:var(--muted)}
+.sg-floor-lab + .sub-lab{margin-top:12px}
 .sg-grid{display:grid;gap:14px;margin-top:2px}
 .sg-g3{grid-template-columns:repeat(3,1fr)}.sg-g5{grid-template-columns:repeat(5,1fr)}
 .sg-cw{display:flex;flex-direction:column;gap:8px;min-width:0}
@@ -1301,9 +1231,15 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .mtbl-mode .tpill{max-width:124px}
 /* NOT a contrast verdict, despite the ok/no class names — this renders the font-status column
    ("✓ 36 styles" / "⚠ Figma lacks it" in the plugin, "✓ Installed" / "⚠ Not installed" on web).
-   An unloadable face is a WARNING, not a failure, so --warn is deliberate. Do not fold it into
-   the verdict palette. */
-.tf-stat.ok{color:var(--ok)}.tf-stat.no{color:var(--warn)}
+   Do not fold it into the verdict palette.
+   #2091 (owner, T-FONT A): the ⚠ status is inked with the ground's own text color, glyph and words
+   alike, and the ⚠ alone says it is a warning. It is drawn on the BRAND's page color (the Type
+   preview's ground re-scopes --ink to the mode's text.primary), which the studio does not own: --warn
+   measured 3.84–4.16:1 on the corpus's dark grounds, under the 4.5:1 its 11px words need. The glyph
+   could have kept --warn only if it held 3:1 on every brand ground, and a fixed amber cannot promise
+   that on a page color a designer authors (a mid-tone page takes it near 1:1), so it takes the ink
+   too. test:smoke's Type sweep holds the label to 4.5:1 on every brand and mode. */
+.tf-stat.ok{color:var(--ok)}.tf-stat.no{color:var(--ink)}
 /* The specimen's own caveat, shown only when Figma can load a face this device cannot render — so
    "Ag 123" is the fallback while the status column truthfully reads ✓. Faint and inline beside the
    specimen because it qualifies THAT cell; promoting it would read as an error, which it is not. */

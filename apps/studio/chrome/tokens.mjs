@@ -198,13 +198,14 @@ export function brandLeaks(modes, vars) {
 //            installed, fonttools packs GPOS differently: the output is valid but not byte-identical.
 //   codes    the previous file's cmap, plus each code point the check names. #1924 added U+2192, U+2197,
 //            U+21B3, U+2248, U+2264, U+26A0, U+2713 and U+2717. The subsetter also keeps U+2265, which
-//            its layout closure retains.
+//            its layout closure retains. #1993 added U+25CB and U+25CF, the Type preview's availability marks.
 //   run      export SOURCE_DATE_EPOCH=1790812800
 //            fonttools varLib.instancer 'Inter[opsz,wght].ttf' opsz=14 -o inter-wght.ttf
 //            pyftsubset inter-wght.ttf --unicodes-file=codes.txt --name-IDs=0,1,2,3,4,5,6,14 \
 //              --layout-features=calt,ccmp,dnom,frac,locl,numr,pnum,tnum,kern,mark,mkmk \
 //              --flavor=woff2 --output-file=inter-latin-wght-normal.woff2
-//   result   47,924 B, sha256 1e27343f046840d6b2eaaced05d8e70afd6fc4c265a9e6ebd51ff9390fbb8322, 239 code points.
+//   result   47,996 B, sha256 65adc23c5728f9e50476b9ce2beeeb824d2f7e733906464cde8aac160418c46c, 241 code points.
+//            (#1924's file, 47,924 B and sha256 1e27343f…8322, reproduces byte for byte from its 239 codes.)
 // Pinning opsz at 14, its default, and keeping those features and name IDs matches the fontsource file it
 // replaced. Shaped with HarfBuzz, every code point of the old file draws the same outlines at the same
 // positions, at seven weights and four feature sets.

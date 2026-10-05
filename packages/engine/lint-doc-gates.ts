@@ -120,6 +120,10 @@
  * with a command is now compared word for word; the rules (what counts as the invocation, the one
  * normalization, what is refused, and the both-files drop it cannot see) sit beside `runnerArgvDiff`.
  *
+ * ARM 6 — A RETIRED GATE (UI redesign S8.3). Arms 1-5 compare what CI runs against the docs; a line for a
+ * gate that was DELETED names no step, so all five pass over it. `RETIRED_GATES` is a literal register of
+ * deleted gates' tokens, and none may appear in `ci.yml`, `verify.ts` or the three checklist regions.
+ *
  * WHY IMPORTING `verify.ts` IS SAFE: it runs its gates only under a main-module guard, so importing
  * `GATES` costs nothing. It does run its own self-checks at import time, which is deliberate — this
  * gate then fails if the runner's checks are broken, rather than reporting on a list produced by a
@@ -668,6 +672,30 @@ export const findGaps = (steps: Step[], docs: { label: string; lines: string[] }
   return findings;
 };
 
+// ---- ARM 6: a RETIRED gate is named in none of the five places (UI redesign S8.3) ------------------
+/**
+ * The five comparisons above all ask "is every gate CI runs named everywhere?". None asks the converse of a
+ * gate that was DELETED: a checklist line for a gate that no longer exists names no `ci.yml` step, so every
+ * arm passes over it, and a contributor following the checklist runs a command that fails (or worse, a
+ * script that still exists and gates nothing). Measured when S8.3 deleted `mode-audit.mjs` (#1897): with its
+ * `audit:modes` line left in CONTRIBUTING.md §3, this file printed "clean".
+ *
+ * A REGISTER, NOT A SCAN FOR "ANY COMMAND NOT IN CI": the regions also name commands that are not gates
+ * (`npm run verify`, `regen.ts` before `--check`), so the general converse would need an exception list as
+ * long as the regions. Each row is a literal written when its gate is deleted, never read from the files it
+ * checks (`docs/34`), and it names the slice that retired it. The five places are the ones the plan names:
+ * `ci.yml` and `verify.ts` whole, and the three checklist regions.
+ */
+export const RETIRED_GATES: readonly { token: string; retired: string }[] = [
+  { token: 'audit:modes', retired: '`mode-audit.mjs`, deleted in UI redesign S8.3 (#1897): the web has no legacy page or mode strip left to audit' },
+  { token: 'mode-audit', retired: '`mode-audit.mjs`, deleted in UI redesign S8.3 (#1897): the web has no legacy page or mode strip left to audit' },
+];
+export type RetiredFinding = { place: string; line: number; token: string; retired: string };
+/** Every line of every place that names a retired gate's token. */
+export const retiredMentions = (places: { label: string; lines: string[] }[], retired: typeof RETIRED_GATES): RetiredFinding[] =>
+  places.flatMap((pl) => pl.lines.flatMap((l, i) => retired.filter((r) => l.includes(r.token))
+    .map((r) => ({ place: pl.label, line: i + 1, token: r.token, retired: r.retired }))));
+
 // ---- SELF-CHECK: can the gate still see what it claims to, and can it still fail? ------------------
 // Every sample below drives `parseSteps`/`gateTokensOf`/`findGaps` directly — the functions the real
 // run below also calls — never a reimplementation of the parsing or matching logic. Each sample is
@@ -977,6 +1005,14 @@ if (!/unexpected indentation/.test(refusal(SAMPLE_YAML.replace('        run: npm
 if (!/duplicate key/.test(refusal(SAMPLE_YAML.replace('        run: npm ci', '        run: npm ci\n        run: npm ci')))) selfFails.push('the strict YAML parse accepts a duplicate key');
 if (!/unclosed double-quoted/.test(refusal(SAMPLE_YAML.replace('"Sample gate: has a colon"', '"Sample gate: has a colon')))) selfFails.push('the strict YAML parse accepts an unclosed quote');
 
+// 7. ARM 6 — a retired gate's token is found in a place, and a place without it is clean.
+{
+  const R = [{ token: 'audit:Sample', retired: 'the sample audit' }];
+  const hit = retiredMentions([{ label: 'sample §3', lines: ['npm run test -w @prism3/sample', 'npm run audit:Sample -w @prism3/sample'] }], R);
+  if (hit.length !== 1 || hit[0].line !== 2 || hit[0].place !== 'sample §3') selfFails.push('arm 6 does not find a retired gate named in a checklist (it cannot fail)');
+  if (retiredMentions([{ label: 'sample §3', lines: ['npm run test -w @prism3/sample'] }], R).length) selfFails.push('arm 6 flags a checklist that names no retired gate (false positive)');
+}
+
 if (selfFails.length) {
   console.error("\n❌ the doc/CI gate-sync check's own detection is broken — it cannot see what it claims to:\n");
   for (const f of selfFails) console.error(`    ${f}`);
@@ -1159,6 +1195,20 @@ if (lostPointers.length) {
   console.error('  every step — but a summary that no longer points at the authority is how it drifted to');
   console.error('  4 gates against CI\'s 21. Keep the pointers, or move the README into GATE_REGIONS and');
   console.error('  accept the full enumeration.');
+  process.exit(1);
+}
+// ARM 6, on the real files: `ci.yml` and `verify.ts` whole, and the three checklist regions.
+const retiredFound = retiredMentions([
+  { label: '.github/workflows/ci.yml', lines: ciText.split('\n') },
+  { label: 'verify.ts', lines: readFileSync(resolve(repo, 'verify.ts'), 'utf8').split('\n') },
+  ...realDocs.map((d) => ({ label: d.label, lines: d.lines })),
+], RETIRED_GATES);
+console.log(`    retired: ${RETIRED_GATES.length} retired gate token(s) checked against ${realDocs.length + 2} place(s)`);
+if (retiredFound.length) {
+  console.error(`\n❌ ${retiredFound.length} line(s) still name a RETIRED gate:\n`);
+  for (const f of retiredFound) console.error(`    ${f.place} (line ${f.line} of its region) names "${f.token}" — retired: ${f.retired}`);
+  console.error('\n  A deleted gate leaves every other arm green (it names no ci.yml step to compare). Remove the line,');
+  console.error('  or, if the gate came back, delete its row from RETIRED_GATES in the same PR.');
   process.exit(1);
 }
 if (findings.length) {
