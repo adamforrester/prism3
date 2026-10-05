@@ -121,7 +121,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       const wrap = h('div', 'p3-fillrow-wrap');
       // Every row is the one grid: swatch, name, and the picker on the right (#2179: the contrast floor's picker sat
       // under its name). The floor's Auto label names the tier it follows, longer than the other rows' labels, so its
-      // row caps the picker's column and lets the label wrap inside the button (`p3-fillrow-long`).
+      // row caps the picker's column and the label ends in an ellipsis, on one line (`p3-fillrow-long`).
       const row = hook(h('div', o.info ? 'p3-fillrow p3-fillrow-long' : 'p3-fillrow'), 'surface-row');
       row.dataset.role = o.rowRole;
       const sw = h('span', 'p3-fill-sw');
