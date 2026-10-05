@@ -754,12 +754,25 @@ const offeredPlaces = async (page) => {
  * it. Its node only draws where the brand's faces are missing from the device (CI, a bare container), so a run that
  * never draws it says so by name rather than calling the row stale.
  */
-const KNOWN_CONTRAST_GAPS = [
-  // #2091: the Type preview's font status, `--warn` on the brand's page color, 3.84–4.16:1 in the corpus (needs 4.5:1).
-  { place: 'type', cls: 'span.tf-stat.no', text: '⚠ Not installed', atLeast: 3, issue: 2091 },
-];
+// EMPTY since #2091 closed its one row (the Type preview's font status, inked with the ground's text color). The
+// mechanism stays: a planted row `{ place, cls, text, atLeast, issue }` still excuses its exact node and still fails
+// as STALE once that node clears its bar (both re-proven by planting the #2091 row against the fix and against its
+// mutation, in that PR).
+const KNOWN_CONTRAST_GAPS = [];
 const knownGapOf = (place, r) => KNOWN_CONTRAST_GAPS.find((k) => k.place === place && k.cls === r.cls && k.text === r.text && r.ratio >= k.atLeast);
 const gapSeen = new Map(KNOWN_CONTRAST_GAPS.map((k) => [k, { drawn: 0, under: 0 }]));
+/**
+ * THE TYPE PAGE'S FONT STATUS, HELD TO THE CHROME TEXT BAR IN EVERY BRAND × MODE (#2091, owner T-FONT A). The label
+ * "⚠ Not installed" is studio text on the BRAND's page color, so its ratio moves with the brand and the mode; it
+ * was `--warn` at 3.84–4.16:1 on the dark grounds. The general chrome check above already counts it, but only when
+ * it is drawn, and it is drawn only where a brand face does not resolve on the device. So this one is asserted
+ * EXERCISED, per brand and mode, by its own class and text (literals, not read from `ui/fonts.ts`): a state that
+ * drew no such label fails as not exercised rather than passing vacuously (docs/34: represented, not counted). CI
+ * and a bare container lack the corpus faces; a machine that has all of them installed fails here by name, which
+ * is the truth about that run: it did not check the label.
+ */
+const FONT_STATUS = { place: 'type', cls: 'span.tf-stat.no', text: '⚠ Not installed' };
+const fontStatusSeen = new Map();   // `${brand} / ${mode}` -> { drawn, worst }
 /** The chrome surfaces whose home is the legacy WORKSPACE (`CHROME_SURFACES` in `src/main.ts`, `home: 'workspace'`),
  *  typed here. The roster is published per VIEW, and the app view still promises the legacy mode strip because the
  *  plugin's Style guide draws it; on the web the workspace is drawn by no place (each state below asserts that no legacy
@@ -868,6 +881,13 @@ for (const brand of BRANDS) {
         gapSeen.get(k).drawn += mine.length;
         gapSeen.get(k).under += mine.filter((r) => r.ratio < barOf(r)).length;
       }
+      if (place === FONT_STATUS.place) {
+        const st = chrome.filter((r) => r.cls === FONT_STATUS.cls && r.text === FONT_STATUS.text);
+        fontStatusSeen.set(`${brand} / ${mode}`, { drawn: st.length, worst: st.length ? Math.min(...st.map((r) => r.ratio)) : null });
+        const stUnder = st.filter((r) => r.ratio < CHROME_TEXT_MIN);
+        ok(stUnder.length === 0, `${where}: the font status ${FONT_STATUS.cls} "${FONT_STATUS.text}" clears ${CHROME_TEXT_MIN}:1 on the brand's page color in all ${st.length} place(s) drawn (#2091)${
+          stUnder.length ? ` — ${stUnder.slice(0, 3).map((u) => `${u.ratio}:1 (op ${u.op})`).join(' | ')}` : ''}`);
+      }
       const chromeUnder = chrome.filter((r) => r.ratio < barOf(r) && !knownGapOf(place, r));
       ok(chromeUnder.length === 0, `${where}: every one of ${chrome.length} chrome text nodes meets WCAG 1.4.3 (${CHROME_TEXT_MIN}:1, ${CHROME_LARGE_TEXT_MIN}:1 large), known gaps aside${
         chromeUnder.length ? ` — ${chromeUnder.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (${u.px}px/${u.weight}, op ${u.op}, needs ${barOf(u)}:1)`).join(' | ')}` : ''}`);
@@ -912,6 +932,15 @@ for (const brand of BRANDS) {
   await ctx.close();
 }
 
+{
+  const cells = [...fontStatusSeen.keys()];
+  const unseen = cells.filter((c) => fontStatusSeen.get(c).drawn === 0);
+  const worst = Math.min(...[...fontStatusSeen.values()].filter((v) => v.drawn).map((v) => v.worst));
+  ok(cells.length >= BRANDS.length * 2 && unseen.length === 0,
+    `the font status "${FONT_STATUS.text}" was drawn, and so measured, on the Type page in every brand × mode swept (${cells.length - unseen.length} of ${cells.length}, lowest ${Number.isFinite(worst) ? `${worst}:1` : 'none'})${
+      unseen.length ? ` — NOT EXERCISED in ${unseen.slice(0, 4).join(', ')}${unseen.length > 4 ? ', …' : ''}: every brand face resolved on this machine, so #2091's check measured nothing there` : ''}`);
+  console.log(`  font status "${FONT_STATUS.text}" (#2091): drawn in ${cells.length - unseen.length} of ${cells.length} brand × mode states, lowest ${Number.isFinite(worst) ? `${worst}:1` : 'none'}`);
+}
 for (const [k, seen] of gapSeen) {
   if (seen.drawn === 0) console.log(`  known gap #${k.issue} (${k.place} / ${k.cls} "${k.text}"): not drawn on this machine, so not exercised`);
   else ok(seen.under > 0, `known contrast gap #${k.issue} (${k.place} / ${k.cls} "${k.text}") still occurs — STALE if not: drawn ${seen.drawn} time(s), ${seen.under} below the chrome bar. Delete the row from KNOWN_CONTRAST_GAPS with the fix`);
@@ -3248,10 +3277,17 @@ const readNewChips = (sel) => {
   hooks.absent(ok, { seen: on === 'true', state: 'the Full contrast switch, on' }, r1.found === 0,
     `${brand} / Interactive / disabledMin: under Full contrast the floor chips are not drawn (QA-I8) — ${r1.found} drawn, switch ${on}`);
   ok((await persistedAt(page, 'disabledStrategy')) === 'full', `${brand} / Interactive / disabledStrategy: the Full contrast switch on writes "full" (wrote ${JSON.stringify(await persistedAt(page, 'disabledStrategy'))})`);
-  // At 380 the page's chips stay inside the panel (long labels wrap onto a second row).
+  // At 380 the page's chips stay inside the panel (long labels wrap onto a second row). The frame's width tier
+  // (`data-w`) is set by a ResizeObserver at the next rendering step, which can come after `setViewportSize`
+  // resolves (#2095, the race #2090 fixed for Button options), so wait on the tier and require it: measured in the
+  // wide tier, this check would be passing on the two-pane layout squeezed to 380, not the narrow one.
   await page.setViewportSize({ width: 380, height: 900 });
-  const over = await page.evaluate(() => [...document.querySelectorAll('[data-p3="interactive-levers"] [role="radiogroup"]')].map((g) => g.scrollWidth - g.clientWidth).filter((x) => x > 1).length);
-  ok(over === 0, `${brand} / Interactive at 380: every chip group fits its panel (${over} overflow)`);
+  await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow', null, { timeout: 5000 }).catch(() => {});
+  const { tier, over } = await page.evaluate(() => ({
+    tier: document.querySelector('[data-p3="frame"]')?.dataset.w,
+    over: [...document.querySelectorAll('[data-p3="interactive-levers"] [role="radiogroup"]')].map((g) => g.scrollWidth - g.clientWidth).filter((x) => x > 1).length,
+  }));
+  ok(tier === 'narrow' && over === 0, `${brand} / Interactive at 380: every chip group fits its panel (${over} overflow, frame tier ${tier})`);
   const errs = drain();
   ok(errs.length === 0, `${brand}: driving the Interactive chips raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();

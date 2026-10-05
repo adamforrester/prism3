@@ -279,7 +279,7 @@ const UTILITIES = ['mono', 'faint'] as const;
  *  `installStyles` enforces exactly that, so this list cannot silently grow a name that carries a
  *  declaration. Adding a name here whose rule keys on it alone fails at boot. */
 const STATES = [
-  'active', 'arow-lead', 'authored', 'bad', 'cap', 'cs-nudge', 'cur', 'dark', 'derived', 'dia', 'disabled',
+  'active', 'authored', 'bad', 'cap', 'cs-nudge', 'cur', 'dark', 'derived', 'dia', 'disabled',
   'fill', 'fixed', 'inline', 'is-anchor', 'is-pressed', 'mtbl-spec', 'no', 'none', 'note', 'ok',
   'on', 'open', 'pin', 'primary', 'r', 'ro', 'set', 'sg-inv', 'sg-l', 'sg-r', 'sg-t', 'show-hex',
   'slider', 'sm', 'stuck', 'unbound', 'unknown', 'warn', 'yes', 'zero',

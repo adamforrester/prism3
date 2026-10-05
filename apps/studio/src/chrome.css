@@ -444,6 +444,9 @@
 /* A legacy view inside Inspect: pinned light (D2), on its own page-colored container, inset like the
    chrome's own cards (Health, the Decisions log) so its toolbar does not sit on the container's edge. */
 .p3-legacy-card { min-width: 0; padding: var(--p3-space-300); border-radius: var(--p3-radius-xl); background: var(--p3-bg-page); }
+/* #1993: the Type preview's availability marks (● ○), in the table and its key, are drawn in the chrome's embedded
+   face, which carries them. The legacy card's text stack (`styles.css`'s --sans) would hand them to a device font. */
+.p3-legacy-card .tpw-mark.yes, .p3-legacy-card .tpw-mark.no, .p3-legacy-card .tpw-key { font-family: var(--p3-font-ui); }
 /* Q24: a Color preview's section container on the levers panel's gray. The section keeps `styles.css`'s
    edge, radius and padding; only its ground moves, and its specimens stay on the brand's page. The card is
    pinned light, so this reads the light value in either chrome theme. */
@@ -685,6 +688,9 @@
 .p3-text-input.p3-value { font-family: var(--p3-font-mono); }
 .p3-text-input:hover { border-color: var(--p3-field-edge-hover); }
 .p3-text-input:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
+/* A text field that cannot change (Layout's first breakpoint, D13; any field a derived mode locks) takes the chrome's
+   can't-change edge, dashed, as a fixed check box, a locked value picker and a disabled button do (#2098 item 6). */
+.p3-text-input:disabled { border-style: dashed; cursor: not-allowed; }
 /* Personality: the engine's words as chips; a chosen one takes the selected edge and shows its check. */
 .p3-chips { display: flex; flex-wrap: wrap; gap: var(--p3-space-100); }
 .p3-btn.p3-chip { min-height: var(--p3-ctl-h-xs); padding: 0 var(--p3-space-150); gap: var(--p3-space-050); font-weight: var(--p3-fw-default); }

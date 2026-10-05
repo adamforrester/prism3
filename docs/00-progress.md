@@ -7,6 +7,402 @@
 
 ---
 
+## (2026-10-05) — #2114's warning-shape change gets its engine change note
+
+#2114 (#2097 item 3) changed the exported `OverrideWarning`: an unresolved override ground moved from `against` plus `unresolved: true` into `unresolved` as a string. No committed artifact moved, so `regen --check` and `lint-emission-version` both stayed green and nothing asked for a note. But `CONTRIBUTING.md` reserves "no note" for changes that owe no bump. A behavior change owes a bump, and `patch` is permitted here because no artifact moves; #2034, which introduced this warning with the same reach, declared a `minor`. Without a note, the 0.225.0 changelog would still describe `unresolved: true` and nothing would record the change.
+
+This PR adds `packages/engine/changes/notes-2114-unresolved-ground.md` (`engine: patch`), and corrects the "no ENGINE bump" line in #2114's own pending entry.
+
+**The trap for whoever reviews the next shape change:** both version gates read `out/` only. A change to an exported engine type that no emitter serializes passes both of them, so the reviewer has to ask whether a note is owed.
+
+---
+
+## (2026-10-05) — UI: Color › Surfaces & fills, the Background and Foreground previews follow the previewed mode (#1971)
+
+**STATUS: branch `ui/1971-preview-grounds`, cut from `origin/main` at `69f09a3e` (S4f, #2040).** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. The follow-up S4f named: the owner's confirmed grounds for #1971 (relayed on #2040, 2026-10-03), which replace S4f's white containers (Q81).
+
+### What the user sees on Color › Surfaces & fills
+
+- **Background** sits on `background.primary` for the previewed mode, like every contrast-checking section: in Dark, the dark page. It was white in every mode.
+- **Foreground** sits on the **contrast floor** for the previewed mode: the step `foreground.brand` is measured against (its `against`), for example `neutral.050` in prism3 Light, `neutral.100` in harbor Light, `neutral.900` in Dark. A line at the top of its ground names that step: "On the contrast floor (neutral.050)". It was white in every mode.
+- **Foreground carries its contrast badges again** (GR2, the owner, 2026-10-04): it now sits on the floor its fills are measured against, so each badge describes the surface shown. Background keeps Q81's no-badge rule. The badge marks are themed by `badge-marks.ts`'s contrast-chosen rule on the floor, as on every other ground (the QA-I2 sweep now reads Foreground's marks too).
+- **Each Subtle and Inverse card badges what it draws** (Q13(a), the owner, 2026-10-05, from the orchestrator's review): its text on its own fill. The Subtle cards' `text.X` badge measured `text.X` against the floor, the engine's contract, while the card draws it on `foreground.X-subtle` (prism3 Light `text.brand`: 6.44 against the floor, 5.69 on its fill). Inverse tertiary's badge measured the fill against the page while it sits on the floor; each Inverse card's badge is now its label (`inverse.text.primary`) on its plane, the three cards alike. Bold is unchanged: its fill against the floor and its on-color text against its fill are the pairs it draws. Each such badge is held to the ink's own floor (4.5 or 7). Neutral cards still carry no badge; their label sits on the plane too, which the same rule would cover, held for the owner.
+- **Foreground's description changes on Surfaces & fills only** (the owner's final wording, 2026-10-05, superseding GR3): "Content surfaces, shown on the contrast floor they're measured against." It is `FOREGROUND_FILLS_DESC` in `shell/pages.ts`, shared by the levers' Foreground section and the preview's (Q23), and handed to `foregroundSection(c, { desc })` the way Background's is. The Style guide (Brand) keeps "Content surfaces placed ON the page…", since it still draws Foreground on the page.
+- Everything else on the page is unchanged. The Style guide is otherwise unchanged too: it never used the white grounds.
+
+### How
+
+- `sections/kit.ts`: `ground()` takes an optional `bgHex`, which paints the ground a color other than its surface's own while keeping that surface's ink and border set. The Foreground ground is the Page surface's set on the floor's hex: the floor is what the page's inks are measured against, so that set is the one made for it. `whiteGround` and `WHITE_GROUND` are gone (no caller is left). `SgCtx` gains `againstHex(m, k)`, the context's existing resolver for a role's `against` (a role or a palette step), now exposed.
+- `preview/surfaces.ts`: Background through `ground(plain, …, page)`; Foreground through `ground(c, foregroundSection(c, { desc: FOREGROUND_FILLS_DESC }), page, floorHex)` (a badge context), then the label (`FLOOR_GROUND_LABEL`, hook `ground-label`) prepended inside its ground. Its ink is `--muted`, the ground's `text.secondary`, which is AA-gated against the floor, and it is chrome to the smoke sweep (no inline ink), so it is held to 4.5:1 there.
+- `styles.css`: `.sg-floor-lab` (13px, `--muted`), and 12px between it and the first sub-heading.
+- `sections/kit.ts` (Q13(a)): `onFillRatioBadge` and the context's `onFillBadge(ink, fill, chip)` measure a drawn pairing on its two hexes and stamp it `data-pair="<ink> on <fill>"`; `surfaceCard` takes `inkBadge` (the plane's chip carries its ink-on-plane badge), and the Subtle cards' text chip carries `onFillBadge`. With badges off (the Style guide) both draw exactly what they drew.
+
+### Proof
+
+- **`test:smoke`**, every corpus brand × mode, against the committed emission (`loadEmission`, `emittedPalette`), never the studio's resolver: Background and every other section on the emission's `background.primary`; Foreground on the emission's floor, `foreground.brand`'s `against` in that mode, resolved as a role or a palette step to its hex; the Foreground ground carries the label naming that step (literal wording) and no other section carries one. A sweep-wide arm holds that the corpus has at least one cell where the floor differs from the page, so a Foreground on the page can fail.
+- **`test:chrome`** section 18, web and figma hosts, light and dark chrome, every previewed mode prism3 has: the same grounds from `EMITTED_FLOOR` (a new oracle: `foreground.brand`'s `against` in the base tree or under the mode's overlay, resolved to a hex), the same label arm, and an oracle arm that the floor differs from the page in at least one mode. The no-badge arm now names Background alone; Foreground's literal description is the owner's final sentence (2026-10-05, superseding GR3); the QA-I2 marks sweep covers Foreground's marks on the floor.
+- **GR2, both suites:** the Foreground section badges each bold fill (`foreground.{brand,danger,success,warning,info}`, literal), and each badge prints the WCAG ratio computed in the test from the role's emitted hex against the emitted floor hex, after checking that the emission measures that role against the floor. Smoke runs it for every brand × mode; chrome for both hosts, both themes, every mode. Smoke's "every chip of a graded role carries its badge" arm no longer exempts Foreground.
+- **Q13(a), both suites:** for every Subtle and Inverse card in Foreground (`ON_FILL_CARDS`, literal: the three Inverse planes with `inverse.text.primary`, the five subtle fills with `text.X`), the test reads the card's rendered fill and label colors, holds each to the emission's hex for the role it paints, and checks the badge prints the WCAG ratio it computes from those two. Smoke covers every brand × mode and asserts it measured 8 cards per state; chrome both hosts, both themes, every mode. Smoke's generic badge arm (role against its `against`) skips `data-pair` badges, which this arm holds.
+
+### Mutations (each after a `wip:` commit, restored with `git checkout -- <file>`, the studio and plugin rebuilt)
+
+| Mutation | Failure |
+|---|---|
+| (a) both grounds back to white (`'#ffffff'` passed to `ground()` for Background and Foreground) | smoke: `✗ prism3 / Surfaces & fills / dark: section Background is a specimen root on the emission's background.primary #0d0d0e — on #ffffff`, `✗ prism3 / Surfaces & fills / light: section Foreground is a specimen root on the emission's contrast floor neutral.050 #e9e9e9 (#1971) — on #ffffff`, and every brand × mode (38 in all, harbor's `neutral.100` included); chrome: `✗ specimen ground: surfaces & fills web light 1280, previewing dark: Background is a specimen root on background.primary #0d0d0e — is the chrome card (#ffffff)`, and its Foreground twin, both hosts, both themes (18) |
+| (b) the floor label not drawn | smoke: `✗ prism3 / Surfaces & fills / light: section Foreground names its ground "On the contrast floor (neutral.050)" — read null`, every brand × mode; chrome: `✗ #1971 surfaces & fills web light 1280, previewing light: the Foreground section names its ground "On the contrast floor (neutral.050)" — read null`, both hosts, both themes, every mode (12) |
+| (c) Foreground on the page instead of the floor | smoke: `✗ prism3 / Surfaces & fills / dark: section Foreground is a specimen root on the emission's contrast floor neutral.900 #171718 (#1971) — on #0d0d0e`, every brand × mode; chrome: `✗ specimen ground: surfaces & fills web light 1280, previewing dark: Foreground is a specimen root on the contrast floor neutral.900 #171718 (#1971) — is #0d0d0e` (12) |
+| (d) GR2: Foreground's badges off again (`foregroundSection(plain, …)`) | smoke: `✗ prism3 / Surfaces & fills / light: the Foreground section, on the contrast floor, badges each bold fill with its emitted ratio against that floor (GR2) — foreground.brand: no badge drawn | …`, with `✗ … every chip of a role measured against another carries its ratio badge — no badge: … foreground.brand, text.on-brand, …`, every brand × mode (48); chrome: `✗ #1971 GR2 surfaces & fills web light 1280, previewing light: the Foreground section, on the contrast floor, badges each bold fill with its emitted ratio against that floor — foreground.brand: no badge drawn | …`, both hosts, both themes, every mode (12) |
+| (e) Q13(a): the drawn-pairing badge measured against the floor again (`onFillBadge` handed the ink's `against`, the floor, instead of the fill) | smoke: `✗ prism3 / Surfaces & fills / hc-light: every Subtle and Inverse card in Foreground badges its text on its own fill, as drawn (#1971 Q13(a)) — text.brand on foreground.brand-subtle prints 9.20:1, the drawn #1408c6 on #d0dcf9 measures 8.132:1 | …`, and `… / light: … inverse.text.primary on inverse.foreground.primary prints 18.13:1, the drawn #f7f7f7 on #171718 measures 16.723:1 | …`, every brand × mode; chrome: `✗ #1971 Q13(a) surfaces & fills web light 1280, previewing hc-light: every Subtle and Inverse card in Foreground badges its text on its own fill, as drawn — text.brand on foreground.brand-subtle prints 9.20:1, …`, both hosts, both themes, every mode (12) |
+
+Run (a)'s chrome run then died later, in an unrelated section, on a 30 s click timeout (`fill-row-icon-brand`'s picker) while another worktree's suite ran on the machine; the unmutated run passed it, and (b) and (c) ran past it. It looks like #2080's load flake, not this change.
+
+### Copy
+
+**APPROVED (owner, 2026-10-04), as built:**
+
+- **GR1: "On the contrast floor (‹step›)"**, the line at the top of the Foreground preview's ground, for example "On the contrast floor (neutral.050)". ‹step› is the palette step the engine measures `foreground.*` against in the previewed mode.
+- **Foreground description: "Content surfaces, shown on the contrast floor they're measured against."** (APPROVED, owner 2026-10-05), on Surfaces & fills (levers and preview). It supersedes GR3 ("Content surfaces and fills, shown on the contrast floor their text is checked against: the neutral and inverse steps, and bold and subtle status fills, each with its text.", approved 2026-10-04), which shipped in `f7a4d003`.
+
+### Design calls (owner, 2026-10-04)
+
+- **GR2 = A:** Foreground carries its contrast badges on the floor. Background keeps none (Q81).
+- **Q13(a) = a (2026-10-05):** a card whose text sits on its fill badges that pairing as drawn: Subtle and Inverse. Bold keeps its badges.
+- **GR3 = B:** Foreground's description changes where the Surfaces & fills preview draws it, not on the Style guide.
+
+### Traps
+
+- **A fill's per-mode `against` can live on the base leaf, not the overlay.** A mode's overlay carries only leaves whose value varies, so `foreground.danger` in prism3 Dark keeps `against: neutral.900` in the base leaf's `$extensions.prism3.modes.dark`; the overlay-merged tree still shows the light `neutral.050`. `EMITTED_FLOOR` reads the base's per-mode entry first (its first draft read the merged tree and failed four fills in Dark).
+
+- **The floor is a palette step, not a role.** `foreground.brand`'s `against` is `neutral.050` (or `neutral.900`), so the oracle resolves it under `core.palette`, after trying it as a color role.
+- **In Light, prism3's page is `#ffffff`.** A Foreground mutated back to white fails only where the floor is not white, which is every mode of every corpus brand today; the "floor differs from the page" arms keep the check from going vacuous if that changes.
+
+---
+
+## (2026-10-05) — an override's unresolved-ground warning names its ground in its own field (#2097 item 3)
+
+**STATUS: branch `engine/2097-unresolved-ground-field`.** No emitted artifact moves, `CONTRACT_VERSION` unchanged. The exported `OverrideWarning` shape changes, so the ENGINE patch is declared by a follow-up note (`notes-2114-unresolved-ground.md`); this PR shipped without one. **Item 3 of #2097.**
+
+### What was wrong
+
+#2034 made `overrideGroundRgb` warn when an override's ground is neither a role nor a ramp step. The warning carried that ground in `against`, plus `unresolved: true`. But `against` on an `OverrideWarning` already meant something else: a SECOND ground the miss is on (the `background.tertiary` tier, #1773, or an `alsoAgainst` partner, #1745). `lint-ratio-truth` keys any warning carrying `against` as a second-pair confession (`<role> @ <against>`), so it would have read this one as a confession for a pair that doesn't exist.
+
+### The fix
+
+`unresolved` now holds the ground's name (`unresolved: 'nowhere.999'`), and the warning carries no `against`. So it is keyed with the role's own pair, the ground it is about, and `against` means one thing again. `lint-ratio-truth` needs no logic change, only a comment saying how it reads this warning. Arm C still reports the row itself, since the role's `against` resolves to nothing.
+
+**Why no change note.** `ModeResult.warnings` is read only by `lint-ratio-truth` and `test.ts` (swept: no emitter, MCP, studio or plugin reader). This warning fires only on a fallback no input reaches: 0 hits in 5,726 corpus override cases (#2056). So no value, artifact or consumer-visible output moves.
+
+### Mutations, each failing FO-02 by name
+
+All 3125 assertion sites ran under each mutation, the same as unmutated.
+
+- **w1**, push the ground as `against` as well: `❌ FO-02: the unresolved warning carries no \`against\`, which lint-ratio-truth would read as a second-pair confession for a pair that does not exist`
+- **w2**, restore the pre-fix shape (`against, unresolved: true`): that arm, plus `❌ FO-02: an override whose ground is neither a role nor a ramp step falls back to the page AND warns, naming the role and the ground`
+
+---
+
+## (2026-10-05) — FO-01b's HC arm gets its own mutations, and names the refusal it holds (#2097 item 2)
+
+**STATUS: branch `test/2097-hc-arm-mutation`.** Test only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. **Item 2 of #2097.**
+
+### What the mutations showed
+
+FO-01b's HC arm (#2034) asserts that an override in `hc-dark` is refused. It had no mutation of its own. Three mutations of `brandTheme`'s overrides refusal in `theme.ts`, run against the arm as it stood:
+
+- **hB:** `&& m !== 'hc-dark'` on the refusal's condition, so HC accepts the override. The arm fails, and it is the **only** failure in the suite. `A1(c)` holds `hc-light`, not `hc-dark`, so this arm is necessary, not just sufficient.
+- **hA:** `if (false)`, so every generate-only mode accepts. The arm fails, and so does `A1(c)`.
+- **hC:** the overrides branch throws the `modeAnchors:` message instead of its own. **The whole suite stayed green** (135270 passed, 0 failed), this arm included. It matched `includes('generate-only')`, and `theme.ts` carries three copies of that refusal (overrides, modeAnchors, modeLevers), each saying the same words. `A1(c)` only checks that something throws.
+
+### The fix
+
+The arm now matches the overrides refusal by its field and its mode, `startsWith("overrides: mode 'hc-dark' is generate-only")`, and its comment records the three mutations.
+
+### Mutations against the tightened arm, each failing it by name
+
+All 3121 assertion sites ran under each mutation, the same as unmutated.
+
+- **hA:** `❌ FO-01b prism3/hc-dark: an override in an HC mode is refused by the overrides refusal, naming hc-dark, …` plus `❌ A1(c)`
+- **hB:** the same FO-01b line, alone
+- **hC:** the same FO-01b line, alone, showing `(threw: "modeAnchors: mode 'hc-dark' is generate-only …")`
+
+**Trap for whoever is next.** The two sibling refusals (`modeAnchors`, `modeLevers`) are held by `A2b(c)` and `D(c)`, which also only check that something throws. The same slip in either branch would pass. Out of scope here; filed as #2108.
+
+---
+
+## (2026-10-05) — test:chrome holds the running write's "…" at full color while it measures (#2073)
+
+**Status:** test-only. ENGINE unchanged (no change note: nothing emitted moves). CONTRACT unchanged.
+Only `apps/studio/test-chrome.mjs` changes.
+
+### What changed
+
+`measure()` now holds the busy label's "…" (`span.p3-spin`) at the start of its `p3-spin-hide` fade
+while the chrome audit reads the page, then puts the animation back as it found it: running, paused or
+finished, at the same time. Only the span's own animation is held; the arc's spin on `::before` keeps
+turning. Every measured state gets the same hold, not just "a write running".
+
+**What the audit claims now:** the "…" at its full color clears 4.5:1. The fading and transparent states
+are deliberately not audited. The fade is the spinner's exit, and the full-color "…" is the claim. This is
+a call about how the test measures, made by the orchestrator and open to the owner's overrule. The two
+other options were weighed and left: wait for the fade to finish and skip fully transparent text (the "…"
+would then not be measured at all while a write runs), or exempt the "…" while it fades (treats it as
+decorative). Both change what the audit claims.
+
+### The diagnosis
+
+The fade starts 300 ms after the busy label appears (`3 × --p3-dur-fast`, 100 ms each) and runs 100 ms.
+On an idle machine the audit reads the "…" about 83 ms in, before the fade, at 18.13:1. Under load it can
+land inside the 300 to 400 ms window, which is the 2.85:1 the issue reports. Held at fixed times with the
+real `measure`/`check` (figma light 1280, the code before this change): t=330 and t=350 pass, t=370 fails
+at 2.53:1, t=400 (finished) fails at 1:1. With the hold, all four pass.
+
+### A trap for whoever re-checks this
+
+**The audit does not skip transparent text.** `PROBE`'s text loop measures any element with a text node,
+and `shown()` drops only `display: none`, `visibility: hidden` and `opacity: 0`. A text color's alpha is
+never checked, so a fully transparent "…" composites to its ground and scores 1:1. The obvious fix,
+"wait for `getAnimations()` to finish, then measure", therefore turns a sometimes-failure into an
+always-failure. The audit only ever passed on the "…" because it measured early.
+
+### Mutation
+
+The probe pauses the fade at t=370 before the "a write running" audit. Without the hold:
+`✗ figma light 1280 / a write running, fade held at t=370: every chrome text node clears 4.5:1 (3:1 large) — text span.p3-spin "…" 2.53:1`.
+With the hold, the same held time passes, and the fade is back at t=370, paused, after the measure.
+
+**A color mutation must be pale against the inverse ground, not the page.** The "…" sits on the primary
+button (`--p3-inv-bg`: near-black in light, near-white in dark). In review, `.p3-spin { color: var(--p3-line-1) }`
+passed all 15280 assertions, and `main`'s audit passed it too. The mutation was applied, but a page-ground
+hairline color is high contrast on the inverse ground: 14.04:1 in light, 10.95:1 in dark. `color: var(--p3-text-2)`
+is effective. With the hold, `test:chrome` fails 6 of 15280, all by name, for example
+`✗ figma light 1280 / a write running: every chrome text node clears 4.5:1 (3:1 large) — text span.p3-spin "…" 3.52:1`
+(3.6:1 in dark).
+
+---
+
+## (2026-10-05) — four comments point at the component catalog, not the retired COMPONENT_CATALOGUE (#2081)
+
+**Status:** comments only, in four files: `packages/engine/button-spacing.ts`,
+`packages/engine/lint-standalone-floor.ts`, `apps/plugin/mcp-paste.ts`, `apps/studio/gen-used-by.ts`. No code,
+emitted or bundle change; no ENGINE bump.
+
+### What changed
+
+S8.1 replaced `main.ts`'s `COMPONENT_CATALOGUE` with `catalogOf` and `providedCatalog` in
+`apps/studio/src/state/component-catalog.ts`, which the plugin's iframe entry
+(`apps/plugin/src/ui/component-catalog.ts`) supplies. Four comments outside that PR still named the old one.
+Each now points at the current names. The rule each describes is unchanged: not `notStandalone`, and the
+projector doesn't throw.
+
+`button-spacing.ts` is also sharpened, as the issue asked. It used to say an ungated reference to the
+definitions pulls their prose into the web bundle. S8.1 measured that a reference **gated** on
+`PRISM3_HOST === 'figma'` did too: Button, IconButton and Icon survived it. That's why the catalog is computed
+outside the web bundle, and why `vercel-ignore-check.mjs` now fails by name when a definition module adds
+bytes to it. `gen-used-by.ts` gets the same correction ("one reference, gated or not").
+
+### Left alone, on purpose
+
+- `apps/studio/src/state/component-catalog.ts:10` records that its reasoning "moved here from `main.ts`'s
+  `COMPONENT_CATALOGUE`". That's history, and it's correct.
+- `docs/00-progress.md` keeps its two historical mentions; it's the log, and is never edited here.
+
+---
+
+## (2026-10-05) — every suite that drives the studio bundle refuses a stale one, naming the newer source (#2067)
+
+**Status:** test and tooling only: `apps/studio`'s three browser suites, one shared module, and
+`regen.ts --check`'s copies. No studio source or emitted change; no ENGINE bump.
+
+### What changed
+
+#2037 made `test-chrome.mjs` refuse a stale `apps/plugin/dist/ui.html`. The web host's bundle,
+`apps/studio/dist/main.js`, had the same gap, and three suites drive it:
+- `test-smoke.mjs` (`test:smoke`);
+- `mode-audit.mjs` (a `verify` gate);
+- `test-chrome.mjs`'s web arm.
+
+A studio edit followed by a plugin-only rebuild left each one measuring the old UI.
+
+The check now lives in one module, `apps/studio/test-bundle-freshness.mjs` (`assertBundleFresh`), with the
+literal source roots per bundle (`STUDIO_SOURCE_ROOTS`, `PLUGIN_UI_SOURCE_ROOTS`). All three suites call it
+for `main.js` at startup, before serving anything. `test-chrome.mjs`'s existing `ui.html` check moved onto the
+same module, with the same roots and the same message, so the two can't drift.
+
+### What the check found on its first CI run: `regen --check` moved every artifact's mtime
+
+The first CI run failed with `✗ main.js freshness: apps/studio/dist/main.js is older than
+packages/engine/icon-glyphs.ts`. Nothing had edited that file. `regen --check` regenerates every artifact in
+place, compares the bytes, then restores its snapshot, and none of those copies kept timestamps. So a clean
+check left `icon-glyphs.ts` (which compiles into both bundles), `schema/*` and `out/**` all newer than the
+bundles. `verify.ts` runs `regen --check` before the builds, which is why local runs were green. ci.yml also
+runs it after them, in the artifact-count step.
+
+The fix is in the gate, not the check: every snapshot and restore copy now passes `preserveTimestamps: true`.
+That makes the gate's own claim ("it reports, it never rewrites") true of mtimes too. Reordering ci.yml would
+have left a hand-run `--check` after a build tripping the same refusal, and dropping generated files from
+the roots would let a real `icon-glyphs.ts` change through.
+
+**A trap for whoever re-verifies this:** the failure only shows when `regen --check` runs between a build and
+a suite. `npm run verify` never orders it that way, so a green local verify says nothing about this case.
+
+### Mutations
+
+| Mutation | Result |
+|---|---|
+| touch `apps/studio/src/main.ts`, rebuild only the plugin | all three suites exit 1: `✗ main.js freshness: apps/studio/dist/main.js is older than apps/studio/src/main.ts, so this suite would test the old UI.` (`test-chrome.mjs`: "so the web host would test the old UI") |
+| touch it, rebuild only the studio | `test-chrome.mjs` exits 1: `✗ ui.html freshness: apps/plugin/dist/ui.html is older than apps/studio/src/main.ts, so the figma host would test the old UI.`, as before the move |
+| `regen.ts` without `preserveTimestamps`; build the studio, run `regen --check`, then the check | exit 1: `✗ main.js freshness: apps/studio/dist/main.js is older than packages/engine/icon-glyphs.ts, so this suite would test the old UI.`, CI's failure reproduced. With the fix: passes. |
+| both bundles fresh | `test-smoke` starts its sweep; `mode-audit` completes with exit 0 |
+
+### Not covered here
+
+The plugin's `test-build-verdict.mjs` and `test-start-screen.mjs` drive `ui.html` with no check. They're out of
+this issue's studio-bundle scope, so they're filed as #2101; the shared module makes each a one-line
+call.
+
+---
+
+## (2026-10-05) — UI: the Type scale and Breakpoints tooltips say their lever's description word for word (#2089)
+
+**STATUS: branch `ui/2089-tooltip-copy`. Fixes #2089.** UI and studio tests only: no engine change, no emitted
+artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. No new wording: both tooltips now carry the
+owner-approved lever descriptions #2070 landed in `packages/engine/levers.ts`, copied exactly.
+
+**What changed.** `S63.scaleTip` (`domains/type.ts`) read "How far apart the heading sizes step. …"; it now reads the
+owner's 2026-10-04 wording, "Moves every heading size one step up or down the size ladder. Body, label, caption and
+code stay put." `LAYOUT_DRAFT.breakpointsTip` (`domains/layout.ts`) said six or seven breakpoints run xs to 3xl, which
+is wrong for six (`bpNames()` names six xs to 2xl); it now reads the `layout.breakpoints` description in full,
+including "Studio keeps the first at 0px" and the default list. The issue suggested a shorter variant that kept the
+Studio's "The first is always 0px"; the brief for this fix was an exact copy of the approved lever text, so the
+tooltip takes the lever's sentence and its closing "The default is …" sentence too. The key stays in `LAYOUT_DRAFT`
+to keep the diff to the string; its comment now says this one entry is approved text.
+
+**The test, and why it is independent (docs/34).** `apps/studio/test-lever-tips.ts` (in `npm test`) reads
+`packages/engine/schema/lever-manifest.json` from disk at test time and asserts each tooltip literal equals its
+lever's `description`. The tooltips stay literals on purpose, with a comment beside each: importing the lever text
+into the tooltip would make the test compare a value with itself. A missing lever key fails rather than skips.
+
+**Mutations, each failing by name:** "one step" → "two steps" in `scaleTip` → `Type scale tooltip is
+typography.typeScale's description, word for word`; "six run xs to 2xl" → "six run xs to 3xl" in `breakpointsTip`
+→ `Breakpoints tooltip is layout.breakpoints's description, word for word`.
+
+**Two comments corrected with it.** `state/layout-input.ts:17` and `test-layout-input.ts:13` paraphrased the same
+wrong rule ("six or seven run xs…3xl") in code comments; both now say six run xs…2xl. Comments only, no behavior.
+
+---
+
+## (2026-10-05) — UI redesign S8.2: Components moves to the two panes (the Button options, the button specimen with the engine's corner, the set list and the build, on both hosts)
+
+**STATUS: branch `ui/s82-components`. The copy is APPROVED (owner, 2026-10-05), with the four follow-ups below (C1 to C4, all A; C5 A is no change, the engine's wording filed separately).** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. The second of S8's three PRs (the scoping report's plan §4). **S8.3 must merge right after this one** (what it carries is at the end). Fixes #2049 and #2086.
+
+**What moved, by the owner's decisions of 2026-10-04 (G1 to G9, G19, O1, all A).**
+- **Components is a moved page on both hosts** (`pages.ts` `status: 'new'`, `legacy: []`; `domains/components.ts`, `preview/components.ts`; `NEW_PAGES.components`). It was the last tab with a legacy page: `LegacyPageKey` is now `styleGuide` alone.
+- **Button options at Components › Button** (G6): the way to Shape › Density (the brand's density as the readout, "Set it in Shape › Density"), then Button icons, Button label & icon and Button label weight as the levers kit's chips, and Button minimum width as its slider. Every write goes through S8.1's `state/button-input.ts`: the default written rather than unset, the slider per `input` step. All four are brand-wide, so they write the same bytes from any editable mode (Q54); a derived mode holds every control (Q59) and the preview is still drawn.
+- **The button specimen fixes #2049** (G7): each button's corner is the radius size the engine binds for the brand's Control shape (rounded keeps `radius.md`, pill `radius.capsule`, boxed `radius.none`, hairline `radius.hairline`), at its value in the previewed mode, clamped to half the button's height, which is what CSS and Figma both draw (Pill is fully round at any height). One function, `buttonCornerPx` (`preview/sections/button-layout.ts`). The buttons are filled with `interactive.primary.fill.rest` and labeled in `interactive.primary.on-fill` for the mode, on the brand's `background.primary`.
+- **The set list** (G2, G4, G5, G9): every set the engine defines, with its summary, category, part count, what it contains and its spacing at the brand's density; the intro counts the sets from the catalog. In the plugin the list is a choice of set with one Build button under it ("Build ‹Name›", busy "Building…", the engine Button's `isPending`), its two plain facts (it builds what the set contains first and switches Figma to the set's page; Apply Theme first), and each set's result from this session ("Built just now", "Built with problems", "Build failed", "Not built in this session"; C1 below). On the web the list is read-only, with "Building sets needs the Figma plugin." A set that can't be built is listed, grayed, with its reason, and not offered: none today, held on planted definitions. The build refuses an unbuildable set itself (`runBuild` asks the catalog), whatever asked.
+- **The Figma menu's "Build set…" opens the Components tab** (`pageOfTab('components', host)`); results stay in the Activity drawer. **Set up file is the Figma menu's alone** (G8): the Components page has no row for it. **No "Internal — experimental"** anywhere (G3). **The web draws no Pages menu** (G19): it has no page left to offer; the plugin keeps it for the Style guide until S11.2. **Badge and Tag sit under Components** (O1): `file-taxonomy.ts`'s two "pending the owner's call" comments now record the decision.
+- **The spacing at your density** needed one field the S8.1 catalog did not carry: each set's density-following spacing keys and their comfortable steps (`CatalogEntry.spacing`, `spacingOf`), restated from `component-schema.ts`'s `densitySpacingKeys` because the web bundle must not carry the schema module. The px are the brand's to compute (`densitySpacingStep`, then the space ladder), so the catalog holds steps, never px. The web's generated copy is regenerated.
+- **Per-set results need the set the panel posted**, which `component-result` does not carry: `HostSession` gains `componentDef` (the panel's pending build's set) and `setBuilds` (each set's last result this session), recorded only for the panel's own builds (C1 below for the three results). An agent's build carries no set id over the wire, so it is not attributed to a set (it still shows in the drawer); filed as #2087.
+
+**The owner's follow-ups on the PR (2026-10-05; C1 to C4, all A).**
+- **C1, "Build failed" is its own result.** A build that stops before the set exists reads "Build failed"; "Built with problems" stays for a build that ran to the end with issues. Told apart by the build's own verdict, never by the headline's prose: `component-result` gains `completed` (the set was made, `r.set !== null`; `false` on the unknown-def, not-standalone and catch posts), it is REQUIRED on `MainToUi` (the plugin and panel ship in one bundle, so a post without it is a type error), and the bridge reads only a literal `true` as completed, never inferring it from `ok` (a malformed value is not dropped, which would leave the panel on "Building…", #870; it reads as a build that did not finish), and `HostSession.setBuilds` records `'ok' | 'issues' | 'failed'` (`ok`, else `completed ? 'issues' : 'failed'`). Of the seven terminating conditions, the clean and idempotent builds read "Built just now", the build with misses "Built with problems", and the errored build, unknown def, not-standalone refusal and #913's partial write "Build failed".
+- **C2, the spacing lines show padding and gap only.** Each size on its own short line, token names kept, px values ("Small: padding-x 16 · padding-y 6 · gap 8"); the full list stays in Inspect › Tokens. **"Padding and gap" is exactly these names, after a key's `size.<size>.` lead: `padding-x`, `padding-y`, `pad-x`, `pad-y`, `gap`** (`SPACING_SHOWN`, `component-sets.ts`). Left out, of the ten names the corpus's density-following keys use: `padding-x-visual` (Button's visual padding), `select.gap`, `select.padding-end`, `check-gap` and `dismissible.visible-gap` (per-part gaps and paddings). Tag shows padding-x alone, its gap being the dismissible part's.
+- **C3, the build stamp (#474) is at the foot of the Inspect menu,** in small text (12px under the items' 14px), on both hosts: the plugin's Pages menu showed it too, so it left that menu with it. Its text is unchanged (`engine <version>`, the build chip, the full reading in its title); not a menu item (`role="none"`), so the arrow keys pass it by. `.rail-build`'s two rules went with their last user. Fixes #2086.
+- **C4, the build bar (plugin only).** "Build ‹Name›" and its two hints sit in a bar that is the preview stack's last child, sticky to the preview's bottom edge: in view at any scroll position, and at the end of the scroll it sits in the flow under the last set, so it never covers it (the list's padding is the bar's own place in the flow, not a spacer). Focus order is the set's choice then the Build button; the Activity drawer opens over it. The bar is on the page ground with the controls' edge, no shadow: on the toolbar ground the hints read 4.17:1 in the plugin's dark theme (`test:start` caught it).
+
+ `renderComponentsPage`; `componentRow`/`componentSel`/`componentBtn`, `syncComponentRow`, `fileSetupRow`/`fileSetupBtn`, `syncFileSetupRow` and their two `subscribe` calls (the build's state is the new page's `host`/`host:components` subscription; Set up file's is the Figma menu's and the drawer's); `paintButtonLayoutPreview`; what S7 left of `renderSizeRadiusPage`, with `controlSplitPage` and `SplitBlock` (no other caller); `BUTTON_OPTION_WRITES`/`buttonOptionStack` (moved to `domains/components.ts`); `renderControl`, the generic lever knob, with `LIVE_CONTROLS`, `chipGroup`, `rangeInput` and `leverByKey` (their last caller was the Button options); `componentCatalog()` moved to `state/component-catalog.ts`; `PAGE_COPY.sizeRadius` and `.components`; the `NAV` rows `sizeRadius` and `components`; their `PAGE_RENDERERS` rows; `pageHasModeVaryingControl`'s `components` case. `main.ts`: 3,905 → 3,436 lines. `BUTTON_SIZES` stays where S8.1 put it, in the shared specimen.
+
+**Behavior-neutral where it must be, measured.** The S8.1 equivalence driver, re-pointed: every Button option chip to each value and back to its default, and the minimum-width slider through every 0.25 step from 1.25 to 4, then 1, then 2.25, each by an `input` event alone, on prism3, aurora and harbor, in Light, Dark, HC light and HC dark, on a build of `origin/main` (`b5008fe8`, the legacy Size & radius page) and of this branch (the Components tab). **255 of 255 snapshots byte-identical in the persisted brand**: 120 driven edits in Light and Dark on each side; in HC light and HC dark the 120 steps find nothing to drive on either side (main draws the derived note, this branch holds the controls disabled, Q59). 0 page errors on either side.
+
+### Tests
+
+- **`test-pages`**: `MOVED` + `components`. The keyless `densityLink` and `sets` rows pass as `identity`'s does.
+- **`test-shell-imports`** 276 → 292: `MUST_SCAN` + the three new modules; S8.1's arm re-pointed at the new page (the specimen drawn by `preview/components.ts` through `buttonLayoutSection()`, each chip handed its setter from the page's table, the slider through `setButtonMinWidth()`, no `setPath` on the page, no definition or projector imported by any of the six modules, `main.ts` no longer importing the writes); the AST direct-write arm runs on `domains/components.ts` too. `UNRESOLVED_OK` is empty (its one entry was `renderControl`'s write), and rule 3 ("what the generic renderer is fed") has no subject, recorded rather than left vacuous: it fails if `main.ts` declares a `(lever: Lever)` writer that `FEEDS` does not name.
+- **`test-host-session`** + 7: the per-set ledger, against literals (a clean verdict for the panel's `tag` build records `tag → ok`, one with misses that ran to the end `badge → issues`, one that stopped `tag → failed`, a later build replaces, an agent's build records nothing, a declined panel build forgets its set). `test-write-adapter`: `completed` carried, and an absent one NOT read off `ok`.
+- **`test-component-catalog`** + 41: each set's spacing against the schema's own `densitySpacingKeys` and the definition's `tokens`; what the page says of each set (`setsView`) against literals (Button "432 parts", Icon "44 components", "Contains Icon, FocusRing, Spinner", Button's three spacing lines at comfortable and at compact, the four result lines); G4 on the planted definitions (listed, not offered, its reason with the id lead stripped, and never named by the Build button). **C2's arm (section 7) holds the lines to the engine's own density output**: `applySpacingDensity(def, density)`, the def a build projects, over the schema's expansion, at comfortable, compact and spacious, for every definition, with the shown names typed as the decision words them and every name in the corpus classified shown or hidden, so a new spacing name fails until it is placed.
+- **`test-button-input`** + 3: **#2049's oracle is the engine, not the studio**: for prism3, aurora, harbor and a planted aurora whose Dark has its own radius softness and density, every Control shape × mode × size, `buttonCornerPx` against the radius size `applyControlShape` binds on the Button definition, at its px and the button's height in that mode from the brand's own emission (`buildTree`). 192 corners, plus literals (aurora's medium button 8 / 22 / 0 / 1px; the planted Dark's 2px rounded and 18px pill).
+- **`test:chrome`** section 26 (new) and moves: `LEGACY_PAGES` is empty, `NEW_PAGES` + `components`, `EXPECT_LEGACY` empty; the web's bar has no Pages menu (the plugin's keeps it, offering the Style guide alone). Section 26: specimen grounds on `background.primary` and Q24 grays, both hosts, both themes, every mode; G7's colors from the emission; rendered coverage (each of the four levers once); the intro's count against the committed component docs (`out/components/*.md`); the Q23 pairs; the web drawing no build control, no Figma menu and no Pages menu; the plugin's Build button naming the chosen set and renaming in place; Set up file nowhere on the page; no "Internal"/"experimental"; Q59; QA-B9; Q54 from Dark; the chrome at every width. **C3:** on both hosts the Inspect menu ends with the stamp, `engine <version>` against `packages/engine/version.ts` read as text, smaller than the items, and the plugin's Pages menu draws none. **C4:** the plugin's bar in view and on top (the browser's hit test at its center) at the top, middle and end of the scroll, at 1280 and in the 380 Preview pane, the last set ending above it at the end, Tab from the chosen set reaching the Build button, the Activity drawer over it. **Re-hosted:** the Figma menu's "Build set…" now asserted to open the Components tab; the page-row verdict that opens the drawer, on the Style guide's row (Set up file has none); **#1031 on the plugin's Style guide Customize selects, and RETIRED, held, on the web** (no legacy page left there). **Retired by name, held:** the legacy mode strip's sync check S9.2 moved onto Size & radius (no place shows a legacy page with a strip; every place is visited in Dark and a strip drawn anywhere fails).
+- **`test:smoke`**: section 3e (new): the three chips (manifest options and labels, the brand's value checked, every option written including the default, ArrowRight), the shared specimen, the slider per step (literals 2.5, 2.75, 3, 1, 4, 2.25), the preview's text at the chrome bar and each button label at `interactive.primary.on-fill`'s own contract from the emission, the 380 wrap, and **#2049 as drawn**: every corpus brand × Control shape × Light and Dark × size, the computed corner against the emission's px for the size the engine binds, clamped to half the emitted height. #1675's legacy radio-chip section and S8.1's section on Size & radius are retired with their page.
+- **`test:verdict`**: re-hosted on the Components tab. The conditions, #913's two regimes, the picker's choice surviving its verdict (and being the set posted), the off-page verdict and two builds back to back now read the Build button (busy, not disabled) and the set's result line, and the drawer's row; the nine verdict literals are unchanged. **C1:** each condition posts `completed` as `main.ts` does and types the line it must produce; #913's two regimes now read "Build failed". #870's second defect (the page's own fraction) is retired with the row, held: the page shows no fraction beside the drawer's. #1845's Set up file arm drives the Figma menu item. S11's page-row reveal clicks the Style guide's row. #1890's arm measures on the Style guide page (the one page left whose document scrolls under the sticky head).
+- **`test-build-completed`** (new, in the plugin's `test`): `main.ts`'s own `completed: r.set !== null`, from REAL builds rather than a hand-built message. It installs `component-shim.ts` plus a page list as the global `figma`, imports `main.ts` as `test-agent-link` does, and posts the panel's `build-components`: a fresh Badge build makes its set (`completed: true`, `ok: false` since the shim binds no variables); Badge again after its members were renamed off the `type` axis is refused by the executor (#1780, `set: null`) through the same success-path post (`completed: false`); an unknown def (`completed: false`). A build posted while the last one is still settling is `refused` by the run guard, so the harness repeats the post until it is taken.
+- **`test:start`**: the sweep measures the moved tabs too, and holds that the Components tab (the plugin-only build controls) and the Style guide page were measured.
+- **`lint-ramp-values`**: arm C lost its last literal read (`rp.dims['radius.md']`); kept as a tripwire with its planted fixture, the docs/34 reasoning in its header. The corner's value is held by `test-button-input` and `test:smoke`.
+
+- **`lint-voice`**: "Built just now" tripped the "just" rule; `prose-rules.ts`'s `JUST_ALLOWED` takes `now` (the time sense, a moment ago, the exactly/barely reading §2 allows), with a self-check sample, the gate's stated remedy (widen the allow-set, never narrow the scan). Removing `now` fails the run on `Built just now` by name.
+
+**Kept green until S8.3 by the minimum (G19 removed the web's Pages menu):** `test:smoke` section 1's legacy sweep records NOTHING TO SWEEP, by name, holding that the web offers no Pages menu; its state count is held at 0, so a legacy page that comes back fails. `mode-audit.mjs` records NOTHING TO AUDIT and exits 0 only when the top bar rendered and offers no Pages menu.
+
+**Mutations, each after a `wip:` commit, diff checked non-empty, restored with `git checkout -- <file>`, each failing by name:**
+- The corner read from `radius.md` whatever the Control shape (#2049): unit `prism3 / pill / light / md: the corner is 4px; the engine binds radius.capsule, 22px` (146 failures), and smoke `#2049: aurora / boxed / dark / Medium: the button's corner is 8px; the engine binds radius.none, 0px` (108).
+- The corner read from Light in every mode: unit `aurora with its own Dark / rounded / dark / md: the corner is 8px; the engine binds radius.md, 2px` (no corpus brand has a per-mode radius, so the planted brand is what sees it).
+- A set that can't be built offered for building (`offered: true` in `setsView`): `G4: a set that can't be built is listed and not offered — planted-declared offered true, …` and `G4: the Build button never names a set that can't be built`.
+- The web drawing the Build row: chrome `G5: web: the Components page draws no build control — Build 1, …`.
+- "Build set…" routed to Layout: chrome `Figma menu figma light 1280: Build set… opens the components tab and writes nothing — nothing opened: place "layout", …` (six columns).
+- A component definition imported into `domains/components.ts`: `check:ignore` `web bundle carries no component definition module — found packages/engine/components/button.ts (70625 bytes), …` (all 23 modules), and shell-imports `src/domains/components.ts imports no component definition or projector at run time — line 37`.
+- A Set up file button drawn on the Components page: chrome `G8: web: no Set up file control or words on the Components page (controls 1, words true)` and the same for figma.
+- The `buttonMinWidthMultiplier` builder dropped from `domains/components.ts`, `pages.ts` untouched: chrome `Components: every lever pages.ts places renders once (4, web) — missing lever-button-min-width-multiplier ×0`, and Q59's `the button-min-width-slider control … is among those held disabled`.
+- The build posting Button rather than the chosen set: verdict `the picker's selection is the set posted: 'tag' — posted ["button"]` and `the verdict lands on 'tag', not on Button`.
+
+**C1 to C4's mutations, the same way:**
+- C1, `completed: true` hard-coded on `main.ts`'s success-path post: `test-build-completed` `C1: a build the executor refused (#1780) posts completed: false (ok false, completed true, "✗ nothing built")`.
+- C1, a build that stopped read as one with problems (`m.ok ? 'ok' : 'issues'` in the reducer): unit `C1: a build that stopped before the set records tag → failed, replacing its clean result ([["tag","issues"],…])`; verdict `errored build: the set's line on the page reads "Build failed" — read "Built with problems"`, the same for unknown def, not buildable standalone and the partial write, and `the small regime … says the build failed (it stopped before the set, C1)` and the large regime (6).
+- C2, the visual padding shown (`padding-x-visual` added to `SPACING_SHOWN`): `C2: button at comfortable shows the engine's padding and gap px (…)` for every definition carrying it at each density, and the literal `spacing at comfortable: Button's three sizes in px` (11).
+- C2, the spacing read at comfortable whatever the density (`spacePx(s.ref)`): `C2: button at compact shows the engine's padding and gap px (…)` and every other definition at compact and spacious, and `spacing at compact: one step down the ladder, gaps floored at 4` (21).
+- C3, the stamp left out of the Inspect menu: chrome `C3: web: the Inspect menu ends with the build stamp, "engine 0.226.0" and the build chip …`, the same for figma, the two `the stamp is smaller text` checks, and the hook guard's `build-stamp … never appeared` (5).
+- The smoke 380 check's wait made vacuous? `flex-wrap: nowrap` planted on `.p3-clevers .p3-choice`: smoke `at 380px every Button option chip group fits the levers panel (3 groups, 1 overflow, frame tier narrow)`, so the wait leaves the check able to fail.
+- C4, `position: sticky` dropped from `.p3-buildbar`: chrome `C4: figma 1280 at the top: the build bar is in view at the foot of the preview and on top at its center … bar [4079,4149] in [113,700]`, and at the middle, and both at 380 (4).
+- Re-homed with the bar: the web drawing it (`if (plugin)` → `if (true)` in `preview/components.ts`): chrome `G5: web: the Components page draws no build control — Build 1, …`; the bar's button posting Button, not the chosen set: verdict `the picker's selection is the set posted: 'tag' — posted ["button"]` and `the verdict lands on 'tag', not on Button`.
+
+### For S8.3 (merge right after this)
+
+- **Move `test:smoke`'s page × mode × brand sweep onto the tab hooks** (plan §9.2): section 1 is a placeholder now. Bring back `SWEEP_STATE_FLOOR` over the tabs, and with it the per-state DOM, contrast, paired-specimen, form-control and mode-agreement checks it ran per legacy page; re-derive `SWEEP_NODE_FLOOR` and `SWEEP_FIELD_FLOOR` from the tabs.
+- **Delete `mode-audit.mjs` and its CI step** (#1897) in the five places the plan names: `ci.yml`, `verify.ts`, `CLAUDE.md` §4, `CONTRIBUTING.md` §3, the PR template (`lint-doc-gates` holds them together). Close **#1912** (its Buttons row left with the page).
+- Drop the retired-check placeholders this PR left on the web: `test:smoke` section 2b's #485 note, `test:chrome` section 4's web arm and the legacy mode-strip hold, once the sweep on the tabs covers what they hold.
+- `placeOfPage`'s `keep` rule has no case left (S13 deletes `legacy`).
+
+### Traps
+
+- **`component-result` names no set.** The per-set line is right only because the panel remembers what it posted; an agent's build is not attributed. Do not derive the set from the verdict's prose.
+- **The chosen set is module state in `preview/components.ts`**, never the DOM, and a host message only syncs the Build button and the result lines in place (#870). A repaint of the list on `host` would move a designer's focus off the radio they are on.
+- **A family prefix (`[data-p3^="file-setup"]`) is refused by the hook guard** unless it ends in `-` and a member is named literally; an absence check for a hook the suite no longer names goes by words or by role.
+- **The build stamp (#474) is in the Inspect menu now (C3), not a menu item.** Anything that walks the menu's items (`[role="menuitem"]`) passes it by, as it should; a check that counts the menu's children counts it. The drawer's first phase line still names Button for any set: #2088.
+- **The 380 chip check raced the frame's width tier (the CI smoke failure on #2090, run 37243855639 attempt 1, and on #2094).** `data-w` is set by a ResizeObserver in `shell/frame.ts`, which runs at the next rendering step, after `setViewportSize` resolves. About one run in ten, `test:smoke` 3e's `at 380px every Button option chip group fits the levers panel` measured the wide layout's 42% column at 380 and saw all three groups overflow ([77, 83, 27] px). A designer never sees it: the observer runs before paint. The check now waits on `data-w === 'narrow'` (5 s) and requires it, naming `frame tier` in its message (the coordinator's investigation: 2 of 9 full suites and about 2 in 20 isolated probes reproduced it; 20 of 20 probes passed patched). Interactive's 380 check has the same race and is filed on its own. #2080 is a different mechanism and is not fixed here.
+- **`completed` is not `ok`.** The idempotent re-run is `ok` with a miss per skipped member; a build with misses is `completed` and not `ok`. Reading "failed" off `!ok` calls the build with misses a failure, which is what C1 exists to stop.
+
+---
+
+## (2026-10-05) — FO-02 tells a role ground from a step ground (#2097 item 1)
+
+**STATUS: branch `test/2097-fo02-branches`.** Test only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. **Item 1 of #2097.**
+
+### The gap, measured
+
+FO-02 (#2034) drives `overrideGroundRgb` directly. Its quiet arm resolved a role ground and a step ground that were both `#e9e9ea`, and it handed the step call an **empty** role map. So it could not tell which branch answered. Two cross-wirings of `overrideGroundRgb`, run against FO-02 as it stood, each left every FO-02 assertion green:
+
+- **mA**, the role branch returns the floor step: `if (role) return ramps.get('neutral')?.find((s) => s.key === '050')?.rgb ?? role;`. Caught only by the #1745 exit gate.
+- **mB**, the step branch returns a role from the map: `if (step) return rgbByRole.values().next().value ?? step;`. Caught only by FO-01 and FO-01b, through real builds.
+
+Both were caught somewhere, but not by the arm written to hold this function's branches, which is the necessity half of docs/34 shape 19.
+
+### The fix
+
+FO-02b replaces FO-02's quiet arm:
+- The role ground (`#c8d2dc`), the step ground and the page (`#ffffff`) are three different colors.
+- Both calls get the same populated role map.
+- The step's expected hex is a literal, `#e9e9e9`, tied by a precondition to prism3's emitted `neutral.050` in `out/prism3.tokens.json`. It is never read off the ramp the function reads.
+- Three named arms: role, step, and neither warns.
+
+FO-02's fallback arms (the warning, its ratio and min) are unchanged.
+
+### Mutations, each failing FO-02b by name
+
+All 3124 assertion sites ran under each mutation, against 3124 unmutated, so neither run was truncated.
+
+- **mA:** `❌ FO-02b: a role ground resolves to that role's color, #c8d2dc — not the floor step (#e9e9e9) or the page (#ffffff); got #e9e9e9`
+- **mB:** `❌ FO-02b: a ramp-step ground resolves to the emitted step, #e9e9e9 — not a role from the map (#c8d2dc) or the page (#ffffff); got #c8d2dc`
+
+---
+
 ## (2026-10-04) — plain words for the shape, motion, layout and type levers, and transitions that name their real curve (#2050, #2005, #2062)
 
 **Status:** DRAFT COPY, held for owner approval (the PR is titled DO NOT MERGE). ENGINE `0.227.0`

@@ -5207,6 +5207,51 @@ for (const host of ['web', 'figma']) {
 }
 
 // =============================================================================================
+// 20c. #1993: the Type preview's availability marks (● ○), in the Weights table and its key, are drawn by the
+//      embedded UI face. The section sits in the legacy card, whose text stack is the device's, so without
+//      `chrome.css`'s rule the marks fall to a device font; and `[glyphs]` (the build) only proves the face HAS them.
+//
+//      Independence (docs/34): which face drew each mark is read by CDP (`CSS.getPlatformFontsForNode`), never
+//      from computed `font-family`; the face name is this file's `UI_FONT` literal. Represented, not counted: the
+//      prism3 example must draw at least one ● and one ○ in the table and both in the key, or the check fails
+//      rather than passing on nothing.
+//
+//      Mutations this fails by name: drop the `.tpw-mark` / `.tpw-key` rule from `chrome.css` →
+//      `#1993 (web): every availability mark is drawn by Inter, never a device font …`.
+// =============================================================================================
+console.log(`\n#1993 — the Type preview's availability marks, drawn by the embedded face\n${'='.repeat(78)}`);
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'type');
+    await page.waitForSelector('[data-sg-section="weights-by-face"] .tpw-mark');
+    await page.evaluate(() => document.fonts.ready);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('DOM.enable');
+    await cdp.send('CSS.enable');
+    const { root } = await cdp.send('DOM.getDocument', { depth: -1 });
+    const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId,
+      selector: '[data-sg-section="weights-by-face"] .tpw-mark.yes, [data-sg-section="weights-by-face"] .tpw-mark.no, [data-sg-section="weights-by-face"] .tpw-key' });
+    const marks = [];
+    for (const nodeId of nodeIds) {
+      const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId });
+      const { outerHTML } = await cdp.send('DOM.getOuterHTML', { nodeId });
+      marks.push({ el: outerHTML, off: fonts.filter((f) => f.familyName !== UI_FONT || !f.isCustomFont).map((f) => `${f.familyName}${f.isCustomFont ? '' : ' (device)'}`) });
+    }
+    await cdp.detach();
+    const has = (cls, glyph) => marks.some((m) => m.el.includes(`class="${cls}"`) && m.el.includes(`>${glyph}<`));
+    ok(has('tpw-mark yes', '●') && has('tpw-mark no', '○') && has('tpw-key', '●') && has('tpw-key', '○'),
+      `#1993 (${host}): the Weights table draws a ● and a ○, and its key both (found ${marks.length} marks)`);
+    const off = marks.filter((m) => m.off.length);
+    ok(marks.length > 0 && off.length === 0,
+      `#1993 (${host}): every availability mark is drawn by ${UI_FONT}, never a device font${off.length ? ` — ${off.slice(0, 3).map((m) => `${m.el.slice(0, 50)} drew ${m.off.join(', ')}`).join('; ')}` : ''}`);
+    ok(errors.length === 0, `#1993 (${host}): no page errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } finally {
+    await ctx.close();
+  }
+}
+
+// =============================================================================================
 // 21. QA-B9, QA-B17, QA-I11 (owner decisions, 2026-10-02): an edit on Surfaces & fills and Interactive eases the
 //     preview to its section, on the chrome's motion tokens, and jumps under reduced motion; nothing but an edit
 //     moves it, and no edit changes its page; the jump links ease the same way under "Jump to:"; each page keeps
@@ -5980,6 +6025,7 @@ const layoutRead = (page) => page.evaluate(() => {
   const secs = [...pane.querySelectorAll('[data-p3="lever-section"]')].map((x) => ({ title: x.querySelector('.p3-lsec-title')?.textContent, desc: x.querySelector('.p3-lsec-desc')?.textContent ?? '' }));
   const psecs = [...body.querySelectorAll('[data-p3="layout-style-guide"] .psec')].map((x) => ({ title: x.querySelector('[data-p3="section-title"]')?.textContent, desc: x.querySelector('[data-p3="section-description"]')?.textContent ?? '' }));
   const bpRows = [...pane.querySelectorAll('[data-p3="bp-row"]')].map((r) => ({ bp: r.dataset.bp, value: r.querySelector('input')?.value, disabled: r.querySelector('input')?.disabled,
+    edge: r.querySelector('input') ? getComputedStyle(r.querySelector('input')).borderTopStyle : null,
     note: r.querySelector('[data-p3="bp-first-note"]')?.textContent ?? null, remove: r.querySelector('[data-p3="bp-remove"]')?.textContent ?? null }));
   return {
     intro: pane.querySelector('.p3-intro')?.textContent, secs, psecs, bpRows,
@@ -6052,6 +6098,11 @@ for (const host of ['web', 'figma']) {
       `Layout: the first breakpoint is fixed at 0 (${host}): its field reads 0, is disabled, says "${LAYOUT_APPROVED.first}" and has no Remove — ${JSON.stringify(first)}`);
     ok(r.bpRows.slice(1).every((x) => x.disabled === false && x.remove === `Remove ${x.bp}`) && r.add === LAYOUT_APPROVED.add && r.next === LAYOUT_APPROVED.next,
       `Layout: ${host}: every other breakpoint is editable with "Remove ‹name›", and the list ends on "${LAYOUT_APPROVED.add}"; Continue reads "${LAYOUT_APPROVED.next}" — ${JSON.stringify(r.bpRows.slice(1))}, add ${r.add}, next ${r.next}`);
+    // #2098 item 6: the fixed first field must not look like an editable one. It takes the chrome's can't-change edge,
+    // dashed (a fixed check box, a locked value picker, a disabled button), and every editable field keeps a solid one.
+    // Read as computed on the rendered field, so a rule that stops matching fails here by name.
+    ok(first?.edge === 'dashed' && r.bpRows.slice(1).every((x) => x.edge === 'solid'),
+      `Layout: ${host}: the fixed first breakpoint field draws a dashed edge, and every editable one a solid edge — ${JSON.stringify(r.bpRows.map((x) => [x.bp, x.edge]))}`);
     // T8: Continue opens the Components tab on this host, its own two panes since S8.2 on both hosts.
     await hooks.click(page.locator('[data-p3="layout-continue"]'));
     await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'components', null, { timeout: 5000 }).catch(() => {});
