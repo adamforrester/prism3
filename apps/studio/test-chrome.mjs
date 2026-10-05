@@ -7572,6 +7572,32 @@ for (const host of ['web', 'figma']) {
           const on = await actName();
           ok(off[0] === 'Activity' && off[1] === 'Activity' && on[0] === 'Activity, agent link on' && on[1] === 'Activity, agent link on',
             `${where}: Activity's name and tooltip add "agent link on" while the link is on (off ${JSON.stringify(off)}, on ${JSON.stringify(on)})`);
+          // The tile dots (the owner's QA, 2026-10-05): with the link on and a write running (Apply Theme posted, no main
+          // thread to answer), both dots are drawn. Each sits at its glyph's top right at the same offset (within 1px), and
+          // each draws in the ok green (Activity's running ring by its edge). The web shows no tile dot in any state: it
+          // has no agent link and runs no write.
+          await hooks.click(page.locator('[data-p3="apply-to-figma"]'));
+          await page.waitForFunction(() => document.querySelector('[data-p3="activity-open"] .p3-status-dot')?.dataset.state === 'run', null, { timeout: 3000 }).catch(() => {});
+          const dots = await page.evaluate(() => {
+            // The ok green, resolved by the chrome's own ok-dot class on a node read and removed at once.
+            const g = document.createElement('div'); g.className = 'p3-dot p3-dot-ok'; document.body.append(g);
+            const okColor = getComputedStyle(g).backgroundColor; g.remove();
+            return ['agent-toggle', 'activity-open'].map((k) => {
+              const b = document.querySelector(`[data-p3="${k}"]`), d = b?.querySelector('.p3-tile-mark > .p3-dot'), ic = b?.querySelector('.p3-tile-mark > svg.p3-ico');
+              const dr = d?.getBoundingClientRect(), ir = ic?.getBoundingClientRect(), cs = d ? getComputedStyle(d) : null;
+              const ring = d?.dataset.state === 'run';
+              return { k, shown: !!dr && dr.width > 0 && cs.display !== 'none', state: d?.dataset.state ?? (b?.dataset.on === 'true' ? 'on' : 'off'),
+                dx: dr && ir ? Math.round((dr.right - ir.right) * 10) / 10 : null, dy: dr && ir ? Math.round((dr.top - ir.top) * 10) / 10 : null,
+                color: cs ? (ring ? cs.borderTopColor : cs.backgroundColor) : null, okColor, name: b?.getAttribute('aria-label') };
+            });
+          });
+          const [ag, ac] = dots;
+          ok(ag.shown && ac.shown && ag.dx !== null && Math.abs(ag.dx - ac.dx) <= 1 && Math.abs(ag.dy - ac.dy) <= 1 && ag.dy <= 0 && ag.dx >= 0,
+            `${where}: tile dots: Agent's and Activity's dots sit at their glyph's top right at one offset (Agent ${ag.dx},${ag.dy}; Activity ${ac.dx},${ac.dy}; ${JSON.stringify(dots.map((d) => [d.k, d.shown, d.state]))})`);
+          ok(ag.color === ag.okColor && ac.color === ac.okColor,
+            `${where}: tile dots: Agent "on" and Activity "${ac.state}" draw in the ok green ${ag.okColor} (Agent ${ag.color}, Activity ${ac.color})`);
+          ok(ag.name === 'Agent, on' && /^Activity, agent link on, 1 running$/.test(ac.name ?? ''),
+            `${where}: tile dots: the names still carry the state ("${ag.name}", "${ac.name}")`);
           await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), { ...AGENT_ON, on: false, since: null });
         }
       } catch (e) {
@@ -7623,12 +7649,14 @@ for (const host of ['web', 'figma']) {
     await page.locator('[data-p3="brand-menu-new"]').dispatchEvent('click');
     await page.waitForTimeout(200);
     const st = await page.evaluate(() => {
-      const col = document.querySelector('[data-p3="start-column"]');
+      // The S12 start window only (a `p3-dialog` over the app view); the legacy start screen, which replaces the frame
+      // and the export dialog with it, carries the same hook and is not the case.
+      const col = document.querySelector('.p3-dialog [data-p3="start-column"]');
       const exp = document.querySelector('[data-p3="export-dialog"] .p3-bardlg-body');
       const tracks = (n) => (n ? getComputedStyle(n).gridTemplateColumns.split(' ').filter(Boolean).length : null);
       return { start: !!col, startTracks: tracks(col), exportOpen: !!exp, exportTracks: tracks(exp) };
     });
-    if (!st.start) console.log(`  ${where}: no start window in this build (S12, #2142, not merged): nothing to compare yet`);
+    if (!st.start) console.log(`  ${where}: no start window in this build (S12, #2142, not merged): the legacy start screen replaced the frame, so there is nothing to compare yet`);
     else {
       ok(st.exportOpen, `${where}: the export dialog is still open under the start window (${JSON.stringify(st)})`);
       ok(st.startTracks === 1, `${where}: dialog scope: the start window's body lays its cards out in one column with the export dialog open (${st.startTracks} tracks; ${JSON.stringify(st)})`);
