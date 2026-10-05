@@ -1250,6 +1250,10 @@ const FILLS_GROUNDS = ['Background'];
  *  section and print the ratio of the role's EMITTED hex against the EMITTED floor (the ground the section shows).
  *  Literal: the five bold fills. */
 const FLOOR_BADGED = ['brand', 'danger', 'success', 'warning', 'info'].map((s) => `foreground.${s}`);
+/** #1971 Q13(a) (owner, 2026-10-05): the Foreground cards whose badge describes the text drawn on the card's own fill,
+ *  as [fill, text]: the three Inverse cards (their label) and the five Subtle cards. Literal. */
+const ON_FILL_CARDS = [...['primary', 'secondary', 'tertiary'].map((t) => [`inverse.foreground.${t}`, 'inverse.text.primary']),
+  ...['brand', 'danger', 'success', 'warning', 'info'].map((s) => [`foreground.${s}-subtle`, `text.${s}`])];
 /** #1971 (owner, 2026-10-03): the section that sits on the CONTRAST FLOOR, the step `foreground.*` is measured against,
  *  rather than on the page; every other section, Background included, sits on the page. Literal. Its ground's hex is
  *  the EMISSION's: `foreground.brand`'s `against` in the mode, resolved as a role or a palette step from the committed
@@ -1299,7 +1303,7 @@ const readSections = (page, hostSel) => page.evaluate((sel) => {
   // A badge inside the Text color grid reports its COLUMN, by its cell's position (0: the page's mode, 1: the
   // opposite mode, 2: the token column), never by anything the section writes about it (S4d, Q46).
   const colOf = (b) => { const cell = b.closest('.sg-tc'); const grid = cell?.parentElement?.classList.contains('sg-tcg') ? cell.parentElement : null; return grid ? [...grid.children].indexOf(cell) % 3 : null; };
-  const badges = [...(host?.querySelectorAll('[data-p3="ratio-badge"]') ?? [])].map((b) => ({ role: b.dataset.role, text: b.querySelector('.sg-ratio-n')?.textContent ?? '', below: b.dataset.below === 'true', mark: b.querySelector('.sg-ratio-mk')?.textContent ?? '', col: colOf(b), section: b.closest('.psec')?.querySelector('.psec-t')?.textContent ?? null }));
+  const badges = [...(host?.querySelectorAll('[data-p3="ratio-badge"]') ?? [])].map((b) => ({ role: b.dataset.role, text: b.querySelector('.sg-ratio-n')?.textContent ?? '', below: b.dataset.below === 'true', mark: b.querySelector('.sg-ratio-mk')?.textContent ?? '', col: colOf(b), section: b.closest('.psec')?.querySelector('.psec-t')?.textContent ?? null, pair: b.dataset.pair ?? null }));
   // The Text color section's graded inks, by row: the token in the third column, and the column of each badge in that row.
   const tcRows = [...(host?.querySelectorAll('.sg-tcg') ?? [])].flatMap((g) => {
     const cells = [...g.children].slice(3);
@@ -1406,7 +1410,7 @@ const checkSwatches = (where, got, emission, mode, modes) => {
   ok(oppCells > 0, `${where}: the swatch check read the Text color section's second column (${oppCells} cell(s) held to ${opp})`);
 };
 const floor2 = (r) => Math.floor(r * 100) / 100;
-let fillsStates = 0, fillsBadges = 0, fillsPaint = 0, sgStates = 0, floorDiffers = 0;
+let fillsStates = 0, fillsBadges = 0, fillsPaint = 0, sgStates = 0, floorDiffers = 0, fillsDrawnPairs = 0;
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
   const emission = await loadEmission(brand);
@@ -1464,6 +1468,31 @@ for (const brand of BRANDS) {
       if (!(Math.abs(parseFloat(b.text) - floor2(want)) <= 0.011)) offFloor.push(`${role} prints ${b.text}, the emitted ${r.hex} on the floor ${floor0} measures ${want.toFixed(3)}:1`);
     }
     ok(offFloor.length === 0, `${where}: the Foreground section, on the contrast floor, badges each bold fill with its emitted ratio against that floor (GR2)${offFloor.length ? ` — ${offFloor.join(' | ')}` : ''}`);
+    // #1971 Q13(a) (owner, 2026-10-05): every Subtle and Inverse card in Foreground badges what it DRAWS, its text on
+    // its fill. Read off the render: the card's own fill and label colors, each held to the emission's hex for the role
+    // it paints, and the ratio computed HERE from those two, never from the badge's own claim or the floor.
+    const drawn = await page.evaluate((sel) => [...(document.querySelector(sel)?.querySelectorAll('.psec') ?? [])]
+      .filter((x) => x.querySelector('.psec-t')?.textContent === 'Foreground')
+      .flatMap((x) => [...x.querySelectorAll('.sg-cw')]).map((cw) => {
+        const card = cw.querySelector('.sg-card'), lab = card?.querySelector('.sg-lab');
+        const b = cw.querySelector('[data-p3="ratio-badge"][data-pair]');
+        return { fillRole: card?.dataset.sgRole ?? null, inkRole: lab?.dataset.sgRole ?? null, fill: card ? getComputedStyle(card).backgroundColor : null,
+          ink: lab ? getComputedStyle(lab).color : null, badge: b ? b.querySelector('.sg-ratio-n')?.textContent ?? '' : null };
+      }), SG_FILLS);
+    const offDrawn = [];
+    for (const [fillRole, inkRole] of ON_FILL_CARDS) {
+      const d = drawn.find((x) => x.fillRole === fillRole);
+      if (!d) { offDrawn.push(`${fillRole}: card not drawn`); continue; }
+      if (d.inkRole !== inkRole) { offDrawn.push(`${fillRole}: its text is ${d.inkRole}, not ${inkRole}`); continue; }
+      if (d.badge === null) { offDrawn.push(`${fillRole}: no badge of its drawn pairing`); continue; }
+      const fillHex = rgbHex(d.fill), inkHex = rgbHex(d.ink);
+      const wantFill = emission?.role(fillRole, mode)?.hex, wantInk = emission?.role(inkRole, mode)?.hex;
+      if (fillHex !== wantFill || inkHex !== wantInk) { offDrawn.push(`${inkRole} on ${fillRole}: renders ${inkHex} on ${fillHex}, the emission says ${wantInk} on ${wantFill}`); continue; }
+      const want = wcag(hexRgb(inkHex), hexRgb(fillHex));
+      if (!(Math.abs(parseFloat(d.badge) - floor2(want)) <= 0.011)) offDrawn.push(`${inkRole} on ${fillRole} prints ${d.badge}, the drawn ${inkHex} on ${fillHex} measures ${want.toFixed(3)}:1`);
+      fillsDrawnPairs++;
+    }
+    ok(offDrawn.length === 0, `${where}: every Subtle and Inverse card in Foreground badges its text on its own fill, as drawn (#1971 Q13(a))${offDrawn.length ? ` — ${offDrawn.join(' | ')}` : ''}`);
     // #2016: the Fields section paints every opaque field role, page and inverse (the swatch check below holds each to its hex).
     const fieldsPaint = new Set(got.paint.filter((n) => n.section === 'Fields').map((n) => n.role));
     const unpaintedFields = MUST_PAINT_FIELDS.filter((r) => !fieldsPaint.has(r));
@@ -1492,6 +1521,8 @@ for (const brand of BRANDS) {
     const offBadge = [];
     const opp = oppositeMode(mode, modes);
     for (const b of got.badges) {
+      // A badge of a card's drawn pairing (#1971 Q13(a)) is held by its own arm above, against the card as rendered.
+      if (b.pair) continue;
       // A Text color badge in the second column is that column's mode's (Q46), by its position.
       const bm = b.col === 1 ? opp : mode;
       const r = emission?.role(b.role, bm);
@@ -1572,6 +1603,7 @@ for (const brand of BRANDS) {
   await ctx.close();
 }
 ok(fillsStates >= BRANDS.length * 2, `the Surfaces & fills sweep visited ${fillsStates} brand × mode states (floor ${BRANDS.length * 2})`);
+ok(fillsDrawnPairs >= BRANDS.length * 2 * 8, `the drawn-pairing badge arm measured ${fillsDrawnPairs} Subtle and Inverse cards (#1971 Q13(a); floor ${BRANDS.length * 2 * 8})`);
 // #1971: the floor check can tell the floor from the page only where they differ; the corpus must give it such a cell.
 ok(floorDiffers > 0, `the Surfaces & fills sweep met a contrast floor that differs from the page in ${floorDiffers} brand × mode state(s), so a Foreground on the page fails`);
 ok(sgStates >= BRANDS.length * 2, `the Style guide sweep visited ${sgStates} brand × mode states (floor ${BRANDS.length * 2})`);

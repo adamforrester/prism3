@@ -205,6 +205,10 @@ export type SgCtx = {
   /** The ratio badge for a role in mode `m`, or null: on the Style guide (no badges), or for a role measured
    *  against itself. The Text color section draws one per column (Q46). */
   readonly badge: (k: string, m?: string) => HTMLElement | null;
+  /** The ratio badge for the pairing a card DRAWS (#1971, Q13(a), the owner's 2026-10-05 rule): ink role `ink` on fill
+   *  role `fill` in mode `m`, measured on those two hexes, held to the ink's own floor, and sat beside chip `chip`.
+   *  Null without badges, as `badge` is. */
+  readonly onFillBadge: (ink: string, fill: string, chip: string, m?: string) => HTMLElement | null;
   readonly pills: (...nodes: HTMLElement[]) => HTMLElement;
   readonly grid: (cols: number, cards: HTMLElement[]) => HTMLElement;
   /** Mark a painted node with the role and the property it paints, so a test can read its computed color
@@ -226,6 +230,24 @@ export const ratioBadge = (k: string, r: SgRole | undefined, againstHex: string 
   b.append(el('span', 'sg-ratio-n', fmtRatio(r.ratio)));
   if (floor !== null) b.append(el('span', 'sg-ratio-mk', below ? '✗' : '✓'));
   b.title = `${fmtRatio(r.ratio)} against ${r.against}${againstHex ? ` (${againstHex})` : ''}${floor !== null ? `, floor ${floor}:1${below ? ', below floor' : ''}` : ', no floor'}`;
+  return b;
+};
+
+/** The badge for a pairing a card draws (#1971, Q13(a)): ink on fill, as painted, rather than a role against what
+ *  the engine measures it on. It carries the pair (`data-pair="<ink> on <fill>"`) so a test can find the card's two
+ *  painted nodes and measure them itself; its role is the chip it sits beside. */
+export const onFillRatioBadge = (chip: string, ink: string, fill: string, inkRole: SgRole | undefined, fillRole: SgRole | undefined): HTMLElement | null => {
+  if (!inkRole || !fillRole) return null;
+  const ratio = contrast(hexToRgb(inkRole.hex), hexToRgb(fillRole.hex));
+  const floor = inkRole.min > 0 ? inkRole.min : null;
+  const below = floor !== null && ratio + 1e-9 < floor;
+  const b = hook(el('span', below ? 'sg-ratio sg-ratio-no' : 'sg-ratio'), 'ratio-badge');
+  b.dataset.role = chip;
+  b.dataset.pair = `${ink} on ${fill}`;
+  if (below) b.dataset.below = 'true';
+  b.append(el('span', 'sg-ratio-n', fmtRatio(ratio)));
+  if (floor !== null) b.append(el('span', 'sg-ratio-mk', below ? '✗' : '✓'));
+  b.title = `${fmtRatio(ratio)}, ${ink} on ${fill} (${inkRole.hex} on ${fillRole.hex})${floor !== null ? `, floor ${floor}:1${below ? ', below floor' : ''}` : ''}`;
   return b;
 };
 
@@ -272,6 +294,8 @@ export const sgContext = (o: {
     const r = role(m, k);
     return ratioBadge(k, r, againstHex(m, r));
   };
+  const onFillBadge = (ink: string, fill: string, chipRole: string, m: string = cur): HTMLElement | null =>
+    (o.badges ? onFillRatioBadge(chipRole, ink, fill, role(m, ink), role(m, fill)) : null);
   const chip = (k: string, label?: string, m: string = cur): HTMLElement[] => {
     const pill = sgPill(k, label, m);
     const b = badge(k, m);
@@ -285,7 +309,7 @@ export const sgContext = (o: {
     if (m !== cur) n.dataset.sgMode = m;
     return n;
   };
-  return { cur, opp: o.opp, modeLabel: o.modeLabel, role, paint, fails, againstHex: (m: string, k: string) => againstHex(m, role(m, k)), chip, pill: sgPill, badge, pills, grid, painted };
+  return { cur, opp: o.opp, modeLabel: o.modeLabel, role, paint, fails, againstHex: (m: string, k: string) => againstHex(m, role(m, k)), chip, pill: sgPill, badge, onFillBadge, pills, grid, painted };
 };
 
 /** Re-home a built section's SPECIMENS onto the mode's own canvas: the specimens render the mode's colors,

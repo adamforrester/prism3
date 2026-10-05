@@ -41,10 +41,10 @@ export const BUTTON_SETS_DESC = 'Each button set is a full set of fill, text, bo
  *  Background section there (Q23): the owner's Q26 intro, APPROVED, now that the scrim has its own section
  *  (QA-B10). The Style guide's own Background section keeps its longer sentence, scrim included. */
 export const BACKGROUND_FILLS_DESC = 'The base page planes and their inverse counterparts.';
-/** Surfaces & fills' Foreground copy (#1971, GR3; APPROVED, owner 2026-10-04), shared by the levers' Foreground section
+/** Surfaces & fills' Foreground copy (#1971; APPROVED, owner 2026-10-05, superseding GR3), shared by the levers' Foreground section
  *  and the preview's Foreground section there (Q23). That preview section sits on the contrast floor, not the page, so
  *  its sentence says so. The Style guide's own Foreground section keeps its sentence ("placed ON the page"). */
-export const FOREGROUND_FILLS_DESC = 'Content surfaces and fills, shown on the contrast floor their text is checked against: the neutral and inverse steps, and bold and subtle status fills, each with its text.';
+export const FOREGROUND_FILLS_DESC = "Content surfaces, shown on the contrast floor they're measured against.";
 /** The Scrim copy (S4f, QA-B10, APPROVED), shared by the levers' Scrim section and the preview's (Q23). */
 export const SCRIM_DESC = "The overlay that dims the page behind a modal. It isn't editable.";
 /** The Fields copy (Q29, APPROVED), shared by the levers' Fields section and, since S4f (#2016, Q80), the preview's. */
