@@ -2744,6 +2744,26 @@
 /**
  * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
  *
+ * 0.228.0 — folded 2026-10-05 from 2 change notes, newest merge first.
+ *
+ * [engine-2068-viewport-range-refusal · minor · 647c5b5c] Typography refuses an empty or reversed viewport range (#2068). `fluidClamp`
+ * divides by maxViewport - minViewport, so a brand with minViewport equal to maxViewport emitted
+ * `-Infinityrem + Infinityvw` (invalid CSS, the declaration dropped) and one with minViewport above
+ * maxViewport emitted a clamp() that shrinks type as the viewport widens. Both built without an error.
+ * `buildTypography` now throws when minViewport >= maxViewport, whether or not `fluid` is on (owner
+ * decisions 2026-10-05: refuse, and Q16 = a). The message is the owner's approved wording, one sentence for
+ * both cases: "The minimum viewport (<min>px) must be smaller than the maximum viewport (<max>px)." No
+ * committed artifact moves: every committed brand's range is valid, with minViewport below maxViewport.
+ * Offering the refusal up front in the studio is the UI lane's follow-up.
+ *
+ * [engine-2132-first-breakpoint-zero · minor · 1016b106] Layout refuses a first breakpoint that isn't 0px (#2132). Breakpoints are mobile-first min-widths, so
+ * the first is the layout for every width below the second, and a first floor of 320 left screens under
+ * 320px with no layout. `buildLayout` now throws when `layout.breakpoints[0]` is not 0, with the owner's
+ * approved wording: "The first breakpoint must be 0px. This brand starts at <n>px." (owner decision
+ * 2026-10-05, F4 A). Narrowing what the engine accepts is a behavior change, so this is a minor bump with no
+ * contract change. No committed artifact moves: every corpus and example brand starts at 0. Showing the
+ * refusal on the studio's import is the UI lane's follow-up.
+ *
  * 0.227.1 — folded 2026-10-05 from 1 change note, newest merge first.
  *
  * [notes-2114-unresolved-ground · patch · a4ec4243] An override whose ground is neither a role nor a ramp step now names that ground in the warning's own
@@ -4538,7 +4558,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.227.1';
+export const ENGINE_VERSION = '0.228.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
