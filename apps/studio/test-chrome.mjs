@@ -7068,6 +7068,22 @@ for (const host of ['web', 'figma']) {
       ok(d.n >= 7 && d.enabled.length === 0 && d.link, `Q59: previewing ${label}, every control on Components is disabled (${d.n - d.enabled.length}/${d.n}), the way to Shape left live (${d.link})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
       for (const hk of ['button-icons-choice-edges', 'button-content-size-choice-smaller', 'button-label-weight-choice-default', 'button-min-width-slider']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Components is among those held disabled`);
       ok(JSON.stringify(d.preview) === JSON.stringify(COMPONENTS_PAIRS.map(([, t]) => t)) && d.buttons === 9, `Q59: previewing ${label}, the Components preview is still drawn (${d.preview.join(', ')}; ${d.buttons} buttons)`);
+      // #2096: the write itself is refused, not only the DOM's disabled flag. A scripted `input` on the disabled
+      // minimum-width slider (which a disabled flag does not stop) leaves the persisted brand byte-identical. The value
+      // is one the slider's range holds and the brand does not, so a write that got through would show.
+      const before = await page.evaluate(() => localStorage.getItem('prism3:brandInput'));
+      const slid = await page.evaluate(() => {
+        const n = document.querySelector('[data-p3="button-min-width-slider"]');
+        if (!n) return null;
+        const v = Number(n.value) === 3.75 ? 3.5 : 3.75;
+        n.value = String(v);
+        n.dispatchEvent(new Event('input', { bubbles: true }));
+        return v;
+      });
+      await page.waitForTimeout(150);
+      const after = await page.evaluate(() => localStorage.getItem('prism3:brandInput'));
+      ok(slid !== null && before !== null && after === before,
+        `#2096: previewing ${label}, a scripted input on the minimum-width slider writes nothing (prism3:brandInput byte-identical${slid === null ? ', slider not found' : after === before ? '' : `, buttonMinWidthMultiplier now ${JSON.parse(after ?? '{}')?.input?.buttonMinWidthMultiplier}`})`);
     }
     ok(errors.length === 0, `components derived: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
