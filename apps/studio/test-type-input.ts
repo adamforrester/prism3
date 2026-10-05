@@ -356,6 +356,36 @@ ok(JSON.stringify(T.rowsOf(store.theme, 'display').map((r) => r.variant)) === '[
   check('title sm set before display md: group order, not the order set', ['display md', 'title sm']);
   reset();
 }
+// #2068: a minimum viewport not below the maximum is the engine's refusal, so the field puts it back with the
+// engine's sentence. EXPECTED: the sentences typed here, never read from the module or the engine. The engine is
+// the second witness: it throws that same sentence for the pair, and builds the pair the helper lets through.
+{
+  const thrown = (min: number, max: number): string | null => {
+    try { brandTheme({ ...structuredClone(store.brandState), typography: { ...structuredClone(store.brandState.typography), responsive: { ...structuredClone(store.brandState.typography?.responsive), minViewport: min, maxViewport: max } } }); return null; }
+    catch (e) { return (e as Error).message; }
+  };
+  const check = (what: string, key: 'minViewport' | 'maxViewport', n: number, min: number, max: number, want: string | null): void => {
+    let got: string | null;
+    try { got = T.viewportRefusal(key, n); } catch (e) { got = `threw: ${(e as Error).message}`; }
+    ok(got === want, `viewportRefusal, ${what}: ${JSON.stringify(want)} (got ${JSON.stringify(got)})`);
+    ok(thrown(min, max) === want, `viewportRefusal, ${what}: the engine ${want ? 'throws the same sentence' : 'builds'} (got ${JSON.stringify(thrown(min, max))})`);
+  };
+  reset();
+  store.rebuild();
+  check('the 375/1280 default, min at 375', 'minViewport', 375, 375, 1280, null);
+  check('the 375/1280 default, max at 1280', 'maxViewport', 1280, 375, 1280, null);
+  check('min equal to the default max', 'minViewport', 1280, 1280, 1280, 'The minimum viewport (1280px) must be smaller than the maximum viewport (1280px).');
+  check('max inverted below the default min', 'maxViewport', 320, 375, 320, 'The minimum viewport (375px) must be smaller than the maximum viewport (320px).');
+  T.setResponsiveViewport('maxViewport', 800);
+  check('min equal to a set max of 800', 'minViewport', 800, 800, 800, 'The minimum viewport (800px) must be smaller than the maximum viewport (800px).');
+  check('min at 1280 over a set max of 800: inverted', 'minViewport', 1280, 1280, 800, 'The minimum viewport (1280px) must be smaller than the maximum viewport (800px).');
+  T.setResponsiveViewport('minViewport', 375);
+  check('max at 375 under a set min of 375, inverted from 1280', 'maxViewport', 375, 375, 375, 'The minimum viewport (375px) must be smaller than the maximum viewport (375px).');
+  T.setResponsiveViewport('maxViewport', 1280);
+  check('min at 1280.5 over a set max of 1280: the value as entered', 'minViewport', 1280.5, 1280.5, 1280, 'The minimum viewport (1280.5px) must be smaller than the maximum viewport (1280px).');
+  check('min at 400 under a set max of 1280', 'minViewport', 400, 400, 1280, null);
+  reset();
+}
 reset('harbor');
 T.setFluid(true);
 ok(JSON.stringify(store.brandState.typography) === '{"typeScale":"compact","responsive":{"fluid":true}}', `setFluid(on) on a brand with no responsive input WRITES fluid true (the legacy bytes) (${JSON.stringify(store.brandState.typography)})`);
