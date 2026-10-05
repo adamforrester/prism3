@@ -1,6 +1,6 @@
 ## (2026-10-05) — an override's unresolved-ground warning names its ground in its own field (#2097 item 3)
 
-**STATUS: branch `engine/2097-unresolved-ground-field`.** No emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. **Item 3 of #2097.**
+**STATUS: branch `engine/2097-unresolved-ground-field`.** No emitted artifact moves, `CONTRACT_VERSION` unchanged. The exported `OverrideWarning` shape changes, so the ENGINE patch is declared by a follow-up note (`notes-2114-unresolved-ground.md`); this PR shipped without one. **Item 3 of #2097.**
 
 ### What was wrong
 
