@@ -848,9 +848,29 @@ const focusRings = async (page) => {
 };
 
 const columnOf = (host, w) => `${host} ${w <= 560 ? 'narrow' : 'wide'}`;
+/** A running write's "…" (`.p3-spin`, chrome.css) fades to transparent after a 300 ms delay, and PROBE measures
+ *  text whatever its alpha: a "…" caught mid-fade scores 2.5 to 2.9:1 and a faded one 1:1. When the audit landed
+ *  in that window depended on machine speed (#2073). The fade is the spinner's exit, and the "…" at its full
+ *  color is the claim, so the fading and transparent states are deliberately not audited: each measure holds the
+ *  "…" at the fade's start and puts it back as it found it. Only the span's own animation (the fade); the arc's,
+ *  on `::before`, is left running. */
+const holdSpin = (page, hold) => page.evaluate((hold) => {
+  for (const s of document.querySelectorAll('.p3-spin')) {
+    for (const a of s.getAnimations()) {
+      if (hold) { a.p3Held = { t: a.currentTime, state: a.playState }; a.pause(); a.currentTime = 0; continue; }
+      const was = a.p3Held;
+      if (!was) continue;
+      delete a.p3Held;
+      if (was.state === 'finished') a.finish();
+      else { a.currentTime = was.t; if (was.state === 'running') a.play(); }
+    }
+  }
+}, hold);
 const measure = async (page, where, host, w) => {
+  await holdSpin(page, true);
   const m = await page.evaluate(PROBE, { legacyPages: LEGACY_PAGES, kinds: CONTROL_KINDS, inspectLegacy: INSPECT_LEGACY, monoAlias: MONO_ALIAS });
   const fonts = await fontsDrawn(page);
+  await holdSpin(page, false);
   return { ...m, fonts };
 };
 
