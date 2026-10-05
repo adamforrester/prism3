@@ -2684,7 +2684,14 @@ const main = async (): Promise<void> => {
     };
     const events: string[] = [];
     const keys: string[] = [];
-    const r = await draw(f27.api, contract, {}, { onPlan: (ts) => { keys.push(...ts.map((t) => t.key)); }, onTable: (e) => events.push(`${e.index}:${e.status}${e.reason ? `(${e.reason})` : ''}`) });
+    // A run that rethrows the host's error is this section's defect, so it fails here by name rather than crashing the suite.
+    let r: StyleGuideResult;
+    try {
+      r = await draw(f27.api, contract, {}, { onPlan: (ts) => { keys.push(...ts.map((t) => t.key)); }, onTable: (e) => events.push(`${e.index}:${e.status}${e.reason ? `(${e.reason})` : ''}`) });
+    } catch (e) {
+      ok(false, `28: the run survives a table the host refuses, and does not throw (it threw "${(e as Error)?.message}")`);
+      r = { tables: [], stale: [], replaced: [], deleted: [], kept: [], unbound: 0, notes: [], misses: [], unmatched: [] };
+    }
     const accent = 3;
     const failedT = r.tables.filter((t) => t.status === 'failed');
     ok(failedT.length === 1 && failedT[0].title === 'Accent' && (failedT[0] as Extract<TableOutcome, { status: 'failed' }>).reason === 'Accent refused'

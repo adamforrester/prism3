@@ -15,7 +15,9 @@
  * Arms, by name:
  *   · catalog/request: the page's request is answered with one `style-guide-catalog`, its tables and items literal
  *   · catalog/setup: Set up file has run only with both cell sets AND both token pages (owner decision P8)
- *     (mutation: `isSetUp` stops reading the pages → catalog/setup's "sets, no pages" arm fails)
+ *     (mutation: `isSetUp` stops reading the pages → catalog/setup's "sets, no pages" arm fails). And each requirement
+ *     alone, the others met: catalog/setup/swatches, catalog/setup/text-cells, catalog/setup/primitive-page (review of
+ *     #2161: dropping any one of those three checks survived both suites before these arms).
  *   · catalog/error: a read that throws is answered with an empty catalog and the host's words, never silence
  *   · events/panel: a panel run posts its table list, then each table's move, all before its verdict
  *     (mutation: `onPlan` not wired in `main.ts` → events/panel fails)
@@ -39,14 +41,15 @@ const PRIM = '↳ Primitive tokens';
 const SEM = '↳ Semantic tokens';
 const pageNode = (name: string) => ({ name, type: 'PAGE', children: [] as unknown[], appendChild: () => undefined, findAllWithCriteria: () => [] });
 const SETS = [{ name: '_style-guide-swatches', type: 'COMPONENT_SET', children: [] }, { name: '_style-guide-text-cells', type: 'COMPONENT_SET', children: [] }];
-const file = { sets: true, pages: [] as string[], throwOnRead: false };
+/** Which cell sets the file holds: both, one of the two, or none. */
+const file = { sets: true as boolean | 'swatch' | 'text', pages: [] as string[], throwOnRead: false };
 const root = {
   name: 'style guide page test file',
   type: 'DOCUMENT',
   get children() { return file.pages.map(pageNode); },
   getSharedPluginData: () => '',
   setSharedPluginData: () => undefined,
-  findAllWithCriteria: () => (file.sets ? SETS : []),
+  findAllWithCriteria: () => (file.sets === true ? SETS : file.sets === 'swatch' ? [SETS[0]] : file.sets === 'text' ? [SETS[1]] : []),
 };
 const cols = [
   { id: 'C:ramp', name: 'ramp', modes: [{ modeId: 'r:0', name: 'Value' }], defaultModeId: 'r:0' },
@@ -131,7 +134,7 @@ section('catalog — what the page is told before a run');
   ok(c?.setUp === true && JSON.stringify(c?.notes) === JSON.stringify(['No saved brand in this file, so the contrast column reads "—" — Apply theme saves one', 'Not drawn until a later phase: 1 opacity variable']),
     `catalog/request: set up, and the planner's notes for an unfiltered run (${JSON.stringify(c?.notes)})`);
 
-  const setUpWith = async (sets: boolean, pages: string[]): Promise<unknown> => {
+  const setUpWith = async (sets: boolean | 'swatch' | 'text', pages: string[]): Promise<unknown> => {
     file.sets = sets; file.pages = pages;
     posted.length = 0;
     await toMain({ type: 'style-guide-catalog-request' });
@@ -144,6 +147,13 @@ section('catalog — what the page is told before a run');
   const all = await setUpWith(true, ['Cover', SEM, PRIM]);
   ok(none === false && setsOnly === false && onePage === false && pagesOnly === false && all === true,
     `catalog/setup: set up only with both cell sets and both token pages — none ${none}, sets, no pages ${setsOnly}, one page ${onePage}, pages, no sets ${pagesOnly}, both ${all}`);
+  // Each requirement on its own (review of #2161): every other one met, this one missing.
+  const noText = await setUpWith('swatch', ['Cover', PRIM, SEM]);
+  ok(noText === false, `catalog/setup/text-cells: both pages and the swatch set, but no text-cell set, is not set up (${noText})`);
+  const noSwatch = await setUpWith('text', ['Cover', PRIM, SEM]);
+  ok(noSwatch === false, `catalog/setup/swatches: both pages and the text-cell set, but no swatch set, is not set up (${noSwatch})`);
+  const noPrim = await setUpWith(true, ['Cover', SEM]);
+  ok(noPrim === false, `catalog/setup/primitive-page: both cell sets and Semantic tokens, but no Primitive tokens page, is not set up (${noPrim})`);
 
   file.throwOnRead = true;
   posted.length = 0;
