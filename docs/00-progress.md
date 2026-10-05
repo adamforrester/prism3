@@ -7,6 +7,541 @@
 
 ---
 
+## (2026-10-05) — typography refuses an empty or reversed viewport range (#2068)
+
+**STATUS: branch `engine/2068-viewport-range-refusal`.** `ENGINE_VERSION` → **0.228.0** (minor, a change note). No emitted artifact moves; `CONTRACT_VERSION` unchanged. **Fixes #2068** (engine side).
+
+### What changed
+
+`fluidClamp` (`tree.ts`) interpolates a fluid size between `typography.responsive.minViewport` and `maxViewport`, and divides by their difference. Nothing checked the pair:
+- **800/800** emitted `clamp(2.25rem, -Infinityrem + Infinityvw, 3rem)`, which is invalid CSS, so the browser drops the whole declaration.
+- **1280/375** emitted a clamp() whose size shrinks as the viewport grows.
+
+Both built clean.
+
+`buildTypography` (`theme.ts`) now throws when `minViewport >= maxViewport`, with the owner's approved wording (2026-10-05), one sentence for both the equal and the inverted pair:
+
+> The minimum viewport (‹min›px) must be smaller than the maximum viewport (‹max›px).
+
+‹min› and ‹max› are the values as entered. The refusal holds **with `fluid` off too**, which is owner decision Q16 = (a). The pair is what the fluid regime reads, so a brand that turned fluid on later would otherwise inherit the bad range.
+
+**Wording history.** The first push carried two drafted messages for the owner's review, one per arm, each prefixed `typography.responsive:`. The approved sentence replaced both before merge.
+
+### Tests
+
+In the `[#1587]` sizeOverrides block of `test.ts`, which has the `tBrand` / `msgOf` helpers. Each expected message is the approved sentence typed as a literal and compared exactly:
+- equal (800/800), refused;
+- inverted (1280/375), refused;
+- the values as entered (400.5/400 gives `400.5px`, not rounded);
+- inverted with `fluid: false`, still refused;
+- the default range builds, both omitted and stated explicitly as 375/1280;
+- at 375/1280 the emitted tree's clamp() values are all finite. A floor requires at least one to be emitted, so the arm can't pass over an empty set.
+
+### Out of scope
+
+- **Offering the refusal up front in the studio** (`apps/studio/src/state/type-input.ts`, like #2054 / #2055) is the UI lane's follow-up.
+
+---
+
+## (2026-10-05) — Correction to 2026-10-05 FO-02 tells a role ground from a step ground (#2097 item 1)
+
+The entry says the role-branch mutation **mA** (`if (role) return ramps.get('neutral')?.find((s) => s.key === '050')?.rgb ?? role;`) was "caught only by the #1745 exit gate". **That is wrong.** Against FO-02 as it then stood, mA failed three arms: **L-06** (an inverse link family is independently settable), **IT-01** (the carried icon is re-rated against its own `against`), and the **#1745 exit gate**.
+
+Re-measured on 2026-10-05 with every failure line printed. FO-02b now catches mA as well, so today it fails four:
+
+```
+❌ L-06: an INVERSE link family is independently settable (got 550, pinned 025)
+❌ FO-02b: a role ground resolves to that role's color, #c8d2dc — not the floor step (#e9e9e9) or the page (#ffffff); got #e9e9e9
+❌ IT-01: the carried icon is re-rated against its own `against`
+❌ #1745 exit gate: an override sinking the label on the bold neutral fill …
+Prism3 engine tests: 135274 passed, 4 failed
+```
+
+**How it happened.** The original run printed failure lines through a keyword filter (`grep -E "landed|exit|FO-0|passed|…"`). The #1745 line passed because it contains the word "exit", and the L-06 and IT-01 lines were dropped. The harness had already reported `3 failure line(s)`, and only one was shown. That mismatch was the signal, and it went unread.
+
+**What stands.** The entry's conclusion is unchanged: FO-02, the arm written to hold these two branches, was green under both mutations, and FO-02b closes that. The mB row was complete as written: it reported 7 failure lines, and all 7 were FO-01 and FO-01b.
+
+---
+
+## (2026-10-05) — layout refuses a first breakpoint that isn't 0px (#2132)
+
+**STATUS: branch `engine/2132-first-breakpoint-zero`.** `ENGINE_VERSION` → **0.228.0** (minor, a change note). No emitted artifact moves; `CONTRACT_VERSION` unchanged. **Fixes #2132** (engine side).
+
+### What changed
+
+Breakpoints are mobile-first min-widths, smallest first, so the first is the layout for every width below the second. A first floor of 320 leaves screens under 320px with no layout. The studio locks that field at 0px ("Always 0px."), so only a hand-written brief or saved file could reach another value. The engine accepted it silently, and the studio then showed the stored value beside "Always 0px.", which was false (found in #2120's review).
+
+`buildLayout` (`theme.ts`) now throws when `layout.breakpoints[0]` is not 0, with the owner's approved wording (2026-10-05, decision F4 A), the value as entered:
+
+> The first breakpoint must be 0px. This brand starts at ‹n›px.
+
+Swept before landing: every committed brand, fixture and brief (`examples/*.design.md`, the test fixtures, the studio's and plugin's sources) starts at 0, so nothing that built before is refused.
+
+### Tests
+
+In the layout block of `test.ts`, beside `lyBrand`. Each expected message is the approved sentence as a literal, compared exactly:
+- 0 builds, stated explicitly (`[0, 768, 1024]`) and by default;
+- 320 is refused;
+- 1 is refused, so the rule is "not 0" rather than a threshold;
+- 0.5 is refused, and the message carries `0.5px` as entered, not rounded.
+
+Mutation, deleting the refusal: the three refusal arms fail by name, the 0 arm stays green, and all 3129 assertion sites ran.
+
+### Not this rule
+
+**An empty `breakpoints` list builds**, with no breakpoints at all (measured: `layout: { breakpoints: [] }` gives an empty layout and no error). The approved message names a first value, and an empty list has none, so the refusal skips it (`floors.length > 0`). Filed as #2137.
+
+**Showing the refusal on the studio's import** (`Line ‹n›: …` under the S7 template) is the UI lane's follow-up.
+
+---
+
+## (2026-10-05) — the per-mode refusal tests name the refusal they hold (#2108)
+
+**STATUS: branch `test/2108-mode-refusal-messages`.** Test only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. **Fixes #2108.**
+
+### The gap, measured
+
+`brandTheme` (`theme.ts`) carries three copy-pasted pairs of per-mode refusals, one pair each for `overrides`, `modeAnchors` and `modeLevers`: "mode is not in this brand's modes", and "mode is generate-only". Their tests (`A1(c)`, `A2b(c)`, `D(c)`) asserted only that **something** threw. Six mutations, each making one branch throw the next family's message (overrides → modeAnchors → modeLevers → overrides), run against the tests as they stood:
+
+| branch | old tests |
+|---|---|
+| overrides, absent | **whole suite green** (135274 passed, 0 failed) |
+| overrides, generate-only | caught only by FO-01b's `hc-dark` arm (#2113) |
+| modeAnchors, absent | **whole suite green** |
+| modeAnchors, generate-only | **whole suite green** |
+| modeLevers, absent | **whole suite green** |
+| modeLevers, generate-only | **whole suite green** |
+
+A user would be told the wrong field, and nothing would notice.
+
+### The fix
+
+The eight mode-refusal arms of `A1(c)`, `A2b(c)` and `D(c)` now check that the message starts with its own field, its mode and its reason. For example, `"modeLevers: mode 'hc-light' is generate-only"` and `"overrides: mode 'dark' is not in this brand's modes"`. The other arms in those blocks (a malformed palette or step, the radius range) are unchanged.
+
+### Mutations against the new tests, each failing by name
+
+All 3125 assertion sites ran under every mutation, the same as unmutated.
+
+- **overrides, absent:** both `A1(c)` absent arms, e.g. `(got "modeAnchors: mode 'dark' is not in this brand's modes (light)")`
+- **overrides, generate-only:** `A1(c)` hc-light, plus FO-01b
+- **modeAnchors, absent:** `A2b(c)` absent
+- **modeAnchors, generate-only:** `A2b(c)` hc-light
+- **modeLevers, absent:** `D(c)` absent
+- **modeLevers, generate-only:** `D(c)` hc-light and wireframe
+
+---
+
+## (2026-10-05) — Surfaces & fills: the Neutral cards badge their text on their own fill
+
+**STATUS: branch `ui/neutral-badge`.** UI and tests only. No engine change, no emitted artifact moves, no ENGINE bump, and `CONTRACT_VERSION` is unchanged. No new copy.
+
+**The owner's decision (2026-10-05).** On Color › Surfaces & fills, the Foreground section's three Neutral cards (`foreground.primary`, `.secondary`, `.tertiary`, each with its label in `text.primary`) now carry a contrast badge for what they draw: the label's ink on the card's own fill. Subtle and Inverse already did this (#2084, #1971 Q13(a)). The Neutral cards take the Inverse cards' exact call, `surfaceCard(…, inkBadge = true)`, which puts `onFillBadge(ink, fill, chip)` beside the plane's pill. Every corpus brand emits the three neutral fills `against: self`, so their chips had no badge of their own before, and none is lost. The badge's ratio is measured on the two role hexes, as the Subtle and Inverse badges are.
+
+**The check (`test:smoke`, Surfaces & fills, every brand × mode).** `every Neutral card in Foreground badges its text on its own fill, its badge naming that pair`. For each Neutral card (a literal list, `NEUTRAL_ON_FILL`), the badge must exist, and its `data-pair` must read `text.primary on foreground.<t>`. The card's rendered fill and label colors must equal the emission's hexes for those roles, and the printed ratio must match the ratio computed in the test from those two rendered colors. The existing Subtle/Inverse arm checks that a badge exists but not its pair. A pair written fill-on-ink prints the same ratio, so only the Neutral arm can see it. A sweep-wide floor (`the Neutral on-fill badge arm measured N Neutral cards`) fails a run that measured none.
+
+**Mutations, after a `wip:` commit, restored with `git checkout -- <file>`:**
+- Neutral cards back to `surfaceCard(c, k, n, 'text.primary')`: 13 failures, all this arm, one per brand × mode, for example `✗ prism3 / Surfaces & fills / light: every Neutral card in Foreground badges its text on its own fill, its badge naming that pair — foreground.primary: no badge of its drawn pairing | …`, plus the floor `✗ the Neutral on-fill badge arm measured 0 Neutral cards (floor 18)`.
+- `surfaceCard`'s badge called fill-on-ink (`c.onFillBadge(k, inkRole, k)`): 13 failures, all this arm, for example `✗ prism3 / Surfaces & fills / light: every Neutral card in Foreground badges its text on its own fill, its badge naming that pair — foreground.primary: its badge's pair is "foreground.primary on text.primary", not "text.primary on foreground.primary" | …`. The Subtle and Inverse arm stayed green under it.
+
+---
+
+## (2026-10-05) — test:chrome's stale-bundle check also watches the plugin's build script and its prose strip (#2098 item 1)
+
+**STATUS: branch `test/2098-freshness-roots`, PR #2110 open.** Test harness only: no product code changes, no emitted artifact moves, ENGINE stays at 0.228.0 and `CONTRACT_VERSION` is unchanged. Part of #2098.
+
+**What was wrong.** The browser suites refuse to start on a bundle older than its sources, so they never test an old UI. Since #2102 they share one check, `assertBundleFresh` in `apps/studio/test-bundle-freshness.mjs`, over literal source directories. Three build scripts shape a bundle from outside every directory, so an edit to any of them let a stale bundle through:
+- `apps/plugin/build.mjs`, for `apps/plugin/dist/ui.html`;
+- `apps/plugin/strip-maintainer-prose.mjs`, which that build runs over component prose, also for `ui.html`;
+- `apps/studio/build.mjs`, which sets `main.js`'s defines.
+
+**What changed.**
+- A root may now be one file. It is compared as itself, and a missing one fails by name, as an empty directory does (docs/34 shape 9).
+- `PLUGIN_UI_SOURCE_ROOTS` gains the plugin's two files, and `STUDIO_SOURCE_ROOTS` gains `apps/studio/build.mjs`. So `test-smoke.mjs` is covered too.
+- The build's other inputs were already covered. The chrome CSS plugin both builds import is under `apps/studio/chrome`, and `src/ui/index.html` is under `apps/plugin/src`.
+
+This PR's first version added an inline check to `test-chrome.mjs`. #2102 replaced that check with the shared module, so the inline edit was dropped in the merge.
+
+**Mutations, each failing by name (exit 1):**
+- `touch apps/plugin/build.mjs`, no rebuild → `✗ ui.html freshness: apps/plugin/dist/ui.html is older than apps/plugin/build.mjs`.
+- `touch apps/plugin/strip-maintainer-prose.mjs` → the same line, naming that file.
+- `touch apps/studio/build.mjs` → `✗ main.js freshness: apps/studio/dist/main.js is older than apps/studio/build.mjs`, from both `test-chrome.mjs` and `test-smoke.mjs`.
+- A root renamed to `apps/plugin/build-gone.mjs` → `✗ ui.html freshness: source root apps/plugin/build-gone.mjs is missing or holds no files`.
+
+**Controls.**
+- With `main`'s roots and `build.mjs` touched, the check passes. That is the stale case getting through before this PR.
+- With the file-root arm removed, a file root refuses as "holds no files". That is the behavior #2110's review found on `main`.
+
+**Trap for whoever re-verifies this.** Each touch leaves its bundle older than the file, so the next run refuses. Rebuild that bundle before running anything else.
+
+---
+
+## (2026-10-05) — The studio README names which pages go read-only in a derived mode (#2098 item 2)
+
+**STATUS: branch `docs/2098-readme-derived-pages`, PR #2111 open.** Docs only: no code changes, no emitted artifact moves, ENGINE stays at 0.228.0 and `CONTRACT_VERSION` is unchanged. Part of #2098 (see #1984).
+
+**What changed.** `apps/studio/README.md`'s section on why a sweep must loop modes outside pages had said only that a derived mode is hatched. It also still described two kinds of page.
+
+Since #2090 (S8.2) moved Components, every page is `status: 'new'`. The `'legacy'` kind is still in the type, but no page uses it. The section now says that, and drops its legacy-page bullet and the legacy halves of the symptom and the rule.
+
+It names the seven pages that keep their controls on screen, read-only, under an "auto-derived — read-only" state line in a derived mode: Surfaces & fills, Interactive, Type, Shape, Depth & motion, Layout and Components. Brand and Palettes show no line and stay editable, since nothing they set varies by mode.
+
+**How it was checked.**
+- **Live, before #2090.** A throwaway Playwright probe (not committed) opened prism3, aurora and harbor in HC light. For each page it read the state line and how many controls were enabled. The six then-moved pages showed the line with almost every control disabled (Fills 1 of 154 enabled, Layout 1 of 33). Brand and Palettes showed no line, with their controls enabled.
+- **Components, after the merge.** It was checked in code. `components.ts` draws `components-derived` in a derived mode, and `test-chrome.mjs` asserts that line.
+- **The derived-state hooks.** Each of the seven has one in `src/domains/` (`isDerived`), and neither Brand nor Palettes does.
+
+---
+
+## (2026-10-05) — lint-ratio-truth reads a palette step's color from the emission, not the emitter's input (#2097 item 4)
+
+**STATUS: branch `gate/2097-ratio-truth-reads-out`.** Gate only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. **Item 4 of #2097.**
+
+### The gap, measured
+
+Since #1986, arm A recomputes every ratio measured on a palette-step ground (the contrast floor). It read the step's color from `theme.palettes`, which is the emitter's **input**. Its lookup was independent of the engine's ground lookup, but its data was not. So an emitter that wrote a step's primitive wrong agreed with itself here. Measured: with `primitiveLeaf` in `tree.ts` emitting every `050` step at 90% of its color (rounded, so it is a valid color), the gate as it was reported **clean**: exit 0, all 49432 ratios "matching".
+
+### The fix
+
+The step's color now comes from the emission:
+- **Corpus brands with a committed tree** (`COMMITTED_TREES`: `nb`, `aurora`, `harbor`, `wendys`, named literally) read `out/<brand>.tokens.json`.
+- **Every other case** (the `minimal-*` corpus fixtures, the declared-surface sweep and the override sweep, none of which has a committed tree) reads its own `buildTree` output.
+- `theme.palettes` still names WHICH ramps exist, and never supplies a value.
+- Each `$value` is parsed as `#rrggbb` or `rgb(r, g, b)`. nb's `colorFormat` is `rgb`, so all 121 of its steps use the second form. Anything else fails by name.
+- **A new floor (6):** every `COMMITTED_TREES` name must be read, and must contribute at least one checked row. A renamed corpus id or a moved file fails by name instead of quietly falling back to an in-memory build (docs/34 shape 9).
+
+Same coverage as before: 49432 ratios, 9184 on a step ground, 1640 of those in the corpus. 656 rows are now read from the four committed trees. The run takes 2.1s, up from 1.8s.
+
+### Mutations
+
+- **L1, the emitter writes a step wrong** (`tree.ts`, every `050` step at 90%, rounded). Old gate: clean. New gate: `❌ 6157 ratio-truth failure(s)`, for example `corpus:minimal (required fields only)/light: 'foreground.brand' records ratio 4.10 against 'neutral.050', but the emitted colors measure 3.29`.
+- **L2, a committed tree is wrong** (`out/aurora.tokens.json`'s `neutral.050` set to `#c9c9ca`). Old gate: clean. New gate: `❌ 142 ratio-truth failure(s)`, for example `corpus:aurora (engine-native brief)/light: 'foreground.brand' records ratio 5.29 against 'neutral.050', but the emitted colors measure 3.88`. A committed tree drifting from the live emitter is also `regen --check`'s subject, so L2 shows what this gate now reads, not a hole only it closes.
+- **L3, a `COMMITTED_TREES` name drifts** (`harbor` → `harbour`). `❌ COMMITTED_TREES names 'harbour', but no corpus brand read out/harbour.tokens.json`.
+- **First L1 attempt, unrounded.** It produced non-integer channels, which `colorValue` rendered as malformed hex. It failed by name, but on the new parse guard (`the emitted tree has no readable color at prism.core.palette.neutral.050`) rather than on the ratio. Kept as evidence for the guard, and redone rounded to test the ratio.
+
+**Not covered, unchanged:** a ROLE ground's color still comes from `resolveAllModes`, not from the emission. #2097 scoped this item to steps.
+
+---
+
+## (2026-10-05) — A test checks that the chrome's eased scroll follows `motion.transition.default` when its alias is repointed (#2098 item 4)
+
+**STATUS: branch `chrome/2098-motion-transition-alias`, PR open.** Test only: no product code changes, no emitted artifact moves, ENGINE stays at 0.228.0 and `CONTRACT_VERSION` is unchanged. Part of #2098.
+
+**The read had already moved.** #2098 item 4 says `chrome/spec.mjs` reads `motion.duration.normal` and `easing-role.default`. That was true when #2041 was reviewed. On `main`, #2041 (243d201f) already reads `motion.transition.default#duration` and `#timingFunction`, and `chrome/tokens.mjs`'s `resolve` follows a member's alias. What was still missing is a gate that tells the two reads apart. Over the committed emission they agree, because the composite points at exactly `duration.normal` and `easing-role.default`. So test-chrome.mjs's QA-B9 arm, with its literals `200ms` and `cubic-bezier(0.2, 0, 0, 1)`, passes either way.
+
+**What changed.** `apps/studio/test-chrome-motion.ts` is new, and it runs in `npm run -w @prism3/studio test`. In each chrome theme it:
+- takes the rows `shellRows` hands the build;
+- clones the merged tree;
+- adds fixture leaves (345ms; a curve of 0.11, 0.22, 0.33, 0.44), each one alias hop away, as the emission's are;
+- repoints the composite's two members at them;
+- asserts `cssOf` builds exactly those values.
+
+The expected values are literals the emission never carries. A control checks that, over the unmodified emission, the same rows read the engine's own values.
+
+**Mutations, each failing by name:**
+- `transition-dur` read directly from `motion.duration.normal` → `light: --p3-transition-dur follows the repointed duration (want 345ms, got 200ms)`, and the same in dark;
+- `transition-ease` read directly from `motion.easing-role.default` → the `-ease` arm in both themes;
+- `resolve` not following a member's alias → both arms in both themes.
+
+**Trap for whoever is next.** That last mutation first crashed the suite (`value.join is not a function`) instead of failing an arm. The test now catches a throwing read and reports it as the value it got, so a broken resolver fails by name like the rest.
+
+---
+
+## (2026-10-05) — Studio: the Type preview's ● and ○ are drawn by the embedded Inter, and back in the glyph check (#1993)
+
+**Status:** studio only: the embedded Inter subset (two code points added), `chrome.css` (one rule),
+`weights-by-face.ts` (the key's marks in spans, same words), `glyphs.mjs` (the `NOT_CHROME` entry gone), the
+recipe comment in `tokens.mjs`, and one `test:chrome` block. No ENGINE bump (no emitted artifact moves).
+CONTRACT unchanged. No new words.
+
+### What was wrong
+
+The Weights table in the Type preview marks each weight ● (ships it) or ○ (may not), and its key repeats both.
+S6.1 kept `weights-by-face.ts` out of the `[glyphs]` build check (`NOT_CHROME`), because the embedded Inter subset
+had neither glyph. Measured by CDP before this change, every mark was drawn by a device font (DejaVu Sans in the
+test container): the section sits in the legacy card, whose text stack is `styles.css`'s `--sans`.
+
+### The fix, in two halves
+
+- **The face carries them.** Inter itself has U+25CF and U+25CB, so this re-subsets it by the recipe beside
+  `CHROME_FONTS` in `tokens.mjs`, with those two added. The recipe first reproduced #1924's committed file byte for
+  byte (sha256 `1e27343f…8322`), so the only difference in the new file is the two code points. The source font's
+  sha256 matched the recipe. Every one of the 239 earlier code points keeps its outline, advance and variations,
+  compared glyph by glyph. The new file is 47,996 B (72 B more), with 241 code points.
+- **The marks are drawn by it.** One `chrome.css` rule gives `.tpw-mark.yes`, `.tpw-mark.no` and the key's
+  `.tpw-key` spans the chrome's UI face, inside `.p3-legacy-card`. The key's sentence stays one string literal,
+  split at ● and ○ only so each mark gets a span. Its `textContent` is unchanged, and its words still draw in the
+  card's own stack.
+
+`weights-by-face.ts` leaves `NOT_CHROME`, so `[glyphs]` reads its literals again.
+
+### What the eye sees
+
+The same filled and hollow circles. Inter's ○ is a little larger than DejaVu's, which shows in the key, and the
+section is 1px shorter. The ? mark (an unknown family) is untouched.
+
+### Checks, and the mutations that fail them by name
+
+- **`[glyphs]`, the build.** With the old subset back and the file in scope, the studio build fails with
+  `[glyphs] U+25CB (○) is not in the embedded face … weights-by-face.ts:62`, and the same for U+25CF (●).
+- **`test:chrome`, new block 20c.** By CDP, on web and in the plugin, every mark in the table and key is drawn by
+  `Inter` as a custom font, and at least one ● and one ○ are drawn in each (represented, not counted). Dropping the
+  `chrome.css` rule fails `#1993 (web): every availability mark is drawn by Inter, never a device font …`.
+  `[glyphs]` cannot see this half: it proves the face HAS a glyph, not that the page asks the face for it.
+
+---
+
+## (2026-10-05) — UI: a Layout write guard on main.ts, a dashed edge on a fixed text field, and PAIRS names Continue (#2098 items 5, 6)
+
+**STATUS: branch `ui/2098-layout-continue`. Part of #2098 (UI-lane items 5 and 6, from the reviews of #2041 and
+S10 #2060).** UI and studio tests only: no engine change, no emitted artifact moves, no ENGINE bump,
+`CONTRACT_VERSION` unchanged, no new visible wording.
+
+**1. `main.ts` keeps no Layout writes** (`test-shell-imports`, four new assertions), the same AST arm S9.1 and
+#2083 built for Depth & motion, Shape and the Button options. S10 moved Breakpoints, Grid and Containers to
+`domains/layout.ts`, writing through `state/layout-input.ts`. Now held: no direct write under `brandState.layout`
+(any assignment operator, `delete`, `++`/`--`, `Object.assign`, an in-place mutator such as `.push` on its
+breakpoints, or `setPath` rooted at `brandState.layout`, directly or through one alias); no keyed write (`setPath`
+into `layout.*`); and no `layout.*` key literal handed to the generic renderer (`renderControl`); and no import of `./state/layout-input` at all (review of #2120: the AST arms see only a write spelled in `main.ts`, so a call into `setColumns` or `addBreakpoint` slipped past them). Layout has no
+`ModeLevers` field, so there is no mode field to hold. Oracle: the literal `layout` root.
+
+**2. The fixed first breakpoint field no longer looks editable.** `.p3-text-input:disabled` takes a dashed edge and a
+not-allowed cursor. That is the chrome's existing can't-change edge, not a new design: a fixed check box
+(`.p3-check-fixed`), a locked value picker (`.p3-vpick[aria-disabled]`), a locked mode check and a disabled button
+already draw it. It also applies to text fields a derived mode locks, which had the same problem. `test:chrome`'s Layout
+block reads each breakpoint field's computed `border-top-style`: dashed on the first, solid on every editable one.
+
+**3. PAIRS names Continue.** `chrome/spec.mjs` described `inv-text` on `inv-bg` / `inv-bg-2` as "Apply Theme" only;
+Continue (`.p3-next`, QA-I12) draws in the same pair, so the entries now read "Apply Theme and Continue". This is the
+build-time checker's description, not visible copy.
+
+**Held for the owner (not in this PR).** Item 5's ring color: Continue's focus ring is `ctl-edge`, the same color as
+its `inv-bg` fill, so only the 2px offset separates it. The issue names the problem but not the fix (another color, a
+two-tone ring, or a wider offset are all visual choices). Item 6's first-field value: on a hand-written brand whose
+first breakpoint isn't 0, the disabled field shows that value beside "Always 0px." Showing 0 would misstate the
+brand, and dropping or rewording the note needs new copy. Both are listed on #2098.
+
+**Mutations, each failing by name:** `brandState.layout!.breakpoints!.push(320)` or `brandState.layout = {}` added to
+`main.ts` → `src/main.ts writes nothing into brandState.layout itself`; `setPath(brandState, 'layout.columns', 12)`
+→ `src/main.ts makes no keyed Layout write (setPath into layout.*)`; `import { setColumns, addBreakpoint } from './state/layout-input'` plus both calls → `src/main.ts imports no Layout write (./state/layout-input): it has none left to make`; the `.p3-text-input:disabled` rule removed →
+`Layout: web: the fixed first breakpoint field draws a dashed edge, and every editable one a solid edge` (and the
+figma arm).
+
+---
+
+## (2026-10-05) — Studio: `size-labels.ts` and its test are removed, the last of S6.3's dead code (#2038)
+
+**Status:** studio only (`apps/studio/src/size-labels.ts` and `apps/studio/test-size-labels.ts` deleted, one
+entry out of the studio `test` script, two comments). No ENGINE bump (no emitted artifact moves). CONTRACT
+unchanged. No visible change.
+
+### What changed
+
+#2038 named two pieces of dead code left after S6.3 retired the legacy Type page:
+
+- **`sizeColumnHeader`** in `apps/studio/src/size-labels.ts`. Only its own unit test called it. With it
+  gone, the module's two other exports, `SIZE_BASE_LABEL` and `SIZE_BASE_TITLE`, had no reader but that
+  same test, so the whole module goes, with `test-size-labels.ts` and its entry in the studio `test` script.
+  Two comments that cited `size-labels.ts` as precedent for a pure, tsx-testable module now cite
+  `provenance.ts` alone.
+- **`renderRepointTable`'s line height and letter spacing branch** in `main.ts`. Already gone: S9.2 (#2063)
+  removed `renderRepointTable` whole. `setRepoint` stays, because `domains/type.ts` calls it.
+
+### How "dead" was established, not assumed
+
+A search over `apps/`, `packages/`, `tools/`, `skills/` and the root scripts, tests included, finds no
+reference to `sizeColumnHeader`, `SizeColumnHeader`, `SIZE_BASE_LABEL`, `SIZE_BASE_TITLE` or
+`size-labels` after the change. Before it, the only references were the module, its test, the `test`
+script, and the two comments. The bundles agree from the other side: `apps/studio/dist/main.js` and
+`apps/plugin/dist/{main.js,ui.html}` carried the tooltip copy ("One base size —") zero times even BEFORE the
+change, because esbuild had already tree-shaken a module nothing bundled imports.
+
+### What the test guarded, and why losing it is safe
+
+`test-size-labels.ts` held #1586's rule: a type-size table's base column must not read "Light". The legacy
+size table it guarded is gone, and nothing renders `SIZE_BASE_LABEL` or `SIZE_BASE_TITLE`, so the test was
+checking a module no screen draws.
+
+---
+
+## (2026-10-05) — Studio: the dead legacy Interactive CSS is removed (#1976)
+
+**Status:** `apps/studio/src/styles.css` and one `STATES` entry in `apps/studio/src/main.ts`. No ENGINE
+bump (no emitted artifact moves). CONTRACT unchanged. No visible change.
+
+### What changed
+
+S5.2 (#1974) retired the legacy Interactive page and left its stylesheet behind. This removes it: the
+matrix caption (`.gcap`, `.gcap-t`, `.gcap-d`), the slot rows (`.arow`, `.arow-main`, `.arow-lead`, `.asw`,
+`.amid`, `.alabel`, `.adesc`), the example column (`.aex`, `.aex-two`, `.aex-spec`, `.exbox`), the live
+specimens (`.ibtn`, `.ilink`, `.pinnable`, `.inote`, `.inote-ic`), the states grid (`.astates*`,
+`.astate*`), both of the block's `@media` rules, and their comments. `arow-lead` leaves `STATES`, since
+no markup wears it.
+
+`.psec-h` sat in the same block and stays. It is not Interactive-only (the palette section head), and
+`attachModeBadges` in `main.ts` still queries it, so whether it is dead belongs to a sweep of that code,
+not to this one.
+
+### How "dead" was established, not assumed
+
+- **Source and bundles.** A word-bounded search over `apps/`, `packages/`, `tools/` and `skills/`, tests
+  included, finds none of the removed classes outside `styles.css`. The rebuilt bundles carry none of them, and the `--ibtn-*` / `--ilink-*` custom properties the
+  rules read are set nowhere.
+- **The rendered DOM.** A scratch Playwright preload (not committed) watched every page `test:chrome` and
+  `test:smoke` opened, with a MutationObserver, for a node matching any removed selector. Zero hits. A
+  positive control (`[data-p3]`) was seen on every page.
+
+### Moot, not fixed
+
+The removed `@media(min-width:901px)` rule's comment recorded a stale 325px calibration (#902, since closed).
+The rule and the rows it sized are gone, so the calibration has nothing left to measure.
+
+---
+
+## (2026-10-05) — Smoke: the Interactive page's 380 check waits on the frame's width tier (#2095)
+
+**STATUS: branch `ui/2095-interactive-380-wait`.** Tests only. No studio source change, no engine change, no emitted artifact moves, no ENGINE bump, and `CONTRACT_VERSION` is unchanged. Fixes #2095.
+
+**The race.** The frame's width tier (`data-w`, narrow or wide) is set by a ResizeObserver in `shell/frame.ts`. Its callback runs at the next rendering step, which can come after Playwright's `setViewportSize` resolves. A check that measures right after the resize can see the wide two-pane layout squeezed to 380px. #2090 fixed this for the Button options check, which flaked about 1 run in 10. The Interactive page's 380 check in `test-smoke.mjs` had the same shape, and was latent: forced wide, it still measured 0 overflow, so it passed in either tier.
+
+**The fix.** After the resize, the check waits on the tier as a real condition, not a duration. It reads the tier with the measurement, prints it in the assertion, and requires it to be `narrow`. So a run measured in the wide tier fails by name, rather than passing on a layout a designer never sees at 380.
+
+**Every other resize, swept.**
+- `test-smoke.mjs`: two `setViewportSize` calls. The Interactive one is fixed here. Button options (Components) already waits and requires `narrow` (#2090), so it is left as is.
+- `test-chrome.mjs`: no `setViewportSize`. Each state opens a new context at its final viewport, and `frame.ts` sets `data-w` synchronously when it mounts. So the tier is right before any measurement, and `goPlace`'s read of the tier has nothing to race. Left as is.
+- No other resize route (`resizeTo`, CDP device metrics) appears in either suite.
+
+**Mutation, after a `wip:` commit, restored with `git checkout -- <file>`.** The wait was dropped, and `data-w="wide"` was set on the frame before measuring, which is the stale tier #2090's investigation forced. Result: `prism3 / Interactive at 380: every chip group fits its panel (0 overflow, frame tier wide)`, the only failure (the Interactive drive runs on the first corpus brand). The 0 overflow is the latent part: without the tier in the assertion, this run passed.
+
+### Traps
+- **The overflow count alone can't catch this race on Interactive.** The wide tier happens to fit there too, so only the tier assertion fails. That is why the tier is required rather than just printed.
+
+---
+
+## (2026-10-05) — Type: the font status "⚠ Not installed" takes the ground's text color (#2091)
+
+**STATUS: branch `ui/2091-font-status-ink`.** UI and tests only. No engine change, no emitted artifact moves, no ENGINE bump, and `CONTRACT_VERSION` is unchanged. No new strings. Fixes #2091.
+
+**The owner's decision (2026-10-05, T-FONT A).** The Type preview's font status keeps its ⚠ symbol, and its words use the studio's normal text color. Inside the Type preview's ground that color is `--ink`, which `ground()` in `preview/sections/kit.ts` re-scopes to the mode's `text.primary`. So the label now reads at the brand's own body-text contrast: the lowest in the corpus is 15.98:1 (harbor light), against 3.84–4.16:1 before. `.tf-stat.no` moved from `var(--warn)` to `var(--ink)`. The label string, its span and its class are unchanged.
+
+**The glyph takes the text color too, not a warning tint.** The owner allowed the ⚠ to keep `--warn` only if it passed 3:1 as a graphical object on every brand ground in every mode. On the corpus it would (lowest 3.84:1, harbor dark). But the ground is the page color of whatever brand the designer authors, which the studio does not own, and a fixed amber cannot promise 3:1 there: a mid-tone page color takes it to about 1:1. Keeping the tint would also have needed a new carve-out in `test:smoke`'s probe. The probe measures every element that owns a text node, so it holds a lone "⚠" in its own span to the 4.5:1 text bar, and that bar is exactly what `--warn` fails. So the ⚠ alone says "warning", and the one span keeps one ink.
+
+**`KNOWN_CONTRAST_GAPS` is empty, and the mechanism stays.** The #2091 row was deleted. Both arms were re-proven by planting that row again: against the fix it fails as STALE, and against the mutation it excuses the general chrome check while the new check still fails.
+
+**The new check (`test:smoke` section 1, `FONT_STATUS`).** On the Type place, for every brand × mode, the font status (`span.tf-stat.no` "⚠ Not installed", a literal not read from `ui/fonts.ts`) must clear 4.5:1 wherever it is drawn. After the sweep, it must have been drawn in every brand × mode state swept. The label shows only where a brand face does not resolve on the device. That is true in CI and in a bare container, which drew it in 12 of 12 states (3 brands × 4 modes, 116 nodes). A machine with every corpus face installed fails by name with "NOT EXERCISED", because on that machine the check measured nothing. The general chrome check already covered this node, but only when it was drawn, so it could not tell an unmeasured run from a passing one.
+
+**Mutations, after a `wip:` commit, restored with `git checkout -- <file>`:**
+- `.tf-stat.no{color:var(--warn)}`: 14 failures, 7 of them the new check by name, for example `harbor / type / dark: the font status span.tf-stat.no "⚠ Not installed" clears 4.5:1 on the brand's page color in all 9 place(s) drawn (#2091) — 3.84:1`. The other 7 are the general chrome check on the same states.
+- The same mutation with the #2091 row planted back in `KNOWN_CONTRAST_GAPS`: 7 failures, all the new check. The planted row still excuses the general check.
+- The fix with the row planted: `known contrast gap #2091 (type / span.tf-stat.no "⚠ Not installed") still occurs — STALE if not: drawn 116 time(s), 0 below the chrome bar`.
+
+### Traps
+- **"✓ Installed" is still `--ok` on the same ground** (3.87:1 on the dark grounds, computed from the emission). It is drawn only on a machine that has the brand's faces, so neither CI nor this container ever measures it. The decision covered the warning only, so it is filed as #2103 rather than changed here.
+
+---
+
+## (2026-10-05) — UI redesign S8.3: the web's page sweep moves onto the tabs, and `mode-audit.mjs` is deleted
+
+**STATUS: branch `ui/s83-sweep-on-tabs`, stacked on S8.2 (#2090); merge right after it.** UI gates and docs only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged, no visible change and no new strings (the four shipped comments in `main.ts`/`kit.ts` that named the audit are reworded; they reach the bundle, so they stay US English). The third of S8's PRs, and the first half of S13 pulled forward: S8.2 removed the web's last legacy page and its Pages menu (G19 A), which left `test:smoke`'s sweep and the mode audit with nothing to walk. Fixes #1912.
+
+**`test:smoke` section 1 is the sweep again, on the tab row.** Every place a designer can reach (`SWEEP_PLACES`: Brand, Color › Palettes, Surfaces & fills, Interactive, Type, Shape, Depth & motion, Layout, Components), in every mode the preview header offers, on every corpus brand: 3 × 4 × 9 = 108 states, about 35 s. Per state, what the legacy sweep held each page to: 0 console errors; the frame shows the place and the preview names its view; the levers pane carries controls (a derived mode holds them, never removes them, Q59); every declared chrome surface outside the legacy workspace is mounted; the error bar is hidden; no horizontal overflow; **no legacy page drawn**; **mode agreement** (the mode chosen once in the preview header is the one mode every place marks, in its radios and its select); the rendered contrast of every text node and form control in the whole document; the paired specimens against the engine's contracts (#1652). The places are a literal, and the rendered tab row and Color's sub-row are the other side: they must agree both ways, per brand, so a place dropped from the list fails as "not walked" and a tab the studio grows fails until the sweep walks it.
+
+**The floors, re-derived from what the new pages render (measured, then set as minimums):** `SWEEP_STATE_FLOOR` 4 → 36 (2 brands × 2 modes × 9 places, the per-axis minimums; 108 measured); `SWEEP_NODE_FLOOR` 4000 → 10000 (about 53,000 measured in total; chrome-only states, the frame head, total under 1,500 across the corpus); `SWEEP_FIELD_FLOOR` 6 → 100 (492 measured). `STATE_NODE_FLOOR` stays 12 (the sparsest state measured 190). **The floors are literals, and the suite says so by name:** it reads its own source and refuses any of the four not declared once as an integer literal, so a floor derived from the count it floors fails before anything is measured.
+
+**Two things the restored sweep found, neither fixed here:**
+- **#2091 (filed):** the Type preview's font status "⚠ Not installed" (`.tf-stat.no`, `--warn` on the brand's page color) renders at 3.84–4.16:1 in prism3, aurora and harbor, against 4.5:1. Machine-dependent (it shows only where the brand faces are missing, as in CI). The fix is a color choice on a ground the studio does not own, which is the owner's, so it is held as `KNOWN_CONTRAST_GAPS`'s one row: #1887's `KNOWN_BADGE_GAPS` shape carried over from the deleted audit. A row excuses only its exact node (place, class, text) at 3:1 or above, and fails the run as STALE once its node is drawn and clears its bar; a run that never draws it says so by name.
+- **The app view's chrome roster still promises `mode-strip`** (`CHROME_SURFACES`, `home: 'workspace'`), which only a legacy page mounts; the plugin's Style guide still draws it. On the web no place draws a legacy page, so the sweep leaves the workspace's surfaces (`WORKSPACE_SURFACES`, typed) out of the mounted check exactly while it also asserts no legacy page is drawn. S13 deletes the strip and the surface.
+
+**`mode-audit.mjs` is deleted with its CI step (#1897)** in the five places: `ci.yml`, `verify.ts` (69 → 68 gates; no file states the count), `CLAUDE.md` §4, `CONTRIBUTING.md` §3 and the PR template; with it the `audit:modes` script, and the studio README's and `docs/26`'s present-tense claims. **`lint-doc-gates.ts` could not see a leftover line** (measured: the `audit:modes` line put back in CONTRIBUTING.md §3 printed "clean", because a deleted gate names no `ci.yml` step for any arm to compare). **Arm 6** is new: `RETIRED_GATES`, a literal register of deleted gates' tokens, none of which may appear in `ci.yml`, `verify.ts` or the three checklist regions, with a self-check that it finds a planted line and passes a clean one.
+
+**Where each of the audit's checks went:**
+- **Mode agreement** (the mode strip marks the chosen mode, on every page): `test:smoke` section 1, per state, now against the preview header's radios and select.
+- **"The web offers no Pages menu"** (its S8.2 NOTHING TO AUDIT path, with the top bar rendered as proof): `test:smoke` section 1, per brand, through `absent()` with the top bar as proof; and every place the tab row offers is walked.
+- **The per-mode measurement (EDITS / displays / inert) and `--check-badges`** (each legacy section's mode-scope badge against it, derived modes #545, placement #562, the editability proof against the persisted brand #574): **retired**. They measured the legacy mode strip and its badges, and the web draws neither. The questions they answered are held on the moved pages by their own sections: the levers edit the mode the preview shows (Q22) and brand-wide values write the same bytes from any editable mode (Q54) in `test:chrome` sections 16 to 26, every control held in a derived mode with the preview still drawn (Q59) in the same sections, and each page's writes against the persisted brand in its `state/*-input.ts` unit suite and `test:smoke`'s per-page drives.
+- **`KNOWN_BADGE_GAPS` (#1912):** its last row (Buttons) left with Size & radius in S8.2, so #1912 closes; the shape lives on as `KNOWN_CONTRAST_GAPS`.
+- **The instrument's own checks** (its hook guard, section heads against titles #1831, the `.knob` label floor): **retired** with the instrument. `section-head` and `section-title` are still read by `test:smoke` and `test:chrome`; `mode-scope-badge` is now read by no suite, and renders on no web surface (S9.2's NOTHING TO READ); S13 deletes the badges with the strip.
+
+**The S8.2 placeholders, replaced:** `test:smoke` §2b's #485 note (retired by name, held by the sweep's "no legacy page" per state), `test:chrome` §4's web arm (#1031 is measured on the plugin's Style guide alone; the web has no legacy field) and §9's legacy mode-strip hold (no legacy page, and so no strip, is drawn on any place; mode agreement is per state).
+
+**Mutations, each after a `wip:` commit, diff checked non-empty, restored with `git checkout -- <file>`:**
+- Depth & motion dropped from `SWEEP_PLACES`: `prism3: the sweep walks every place the tab row offers, and only those (9 offered) — not walked: depth` (and aurora, harbor).
+- A contrast failure planted on Components (`.p3-clevers .p3-readout { color: var(--p3-fill-1) }`): `prism3 / components / light: every one of 181 chrome text nodes meets WCAG 1.4.3 … span.p3-readout "Comfortable" at 1.21:1` (48 failures, every brand and mode).
+- `SWEEP_STATE_FLOOR` derived from the sweep (`let … = 0`, then `= statesVisited` before the assertion): `SWEEP_STATE_FLOOR is declared once, as an integer literal, never derived from what it floors (docs/34) — declared 2 time(s): "0", "statesVisited"`.
+- A reference to the audit left in each of the five places, one at a time: `lint-doc-gates` `CONTRIBUTING.md §3 (The gates) (line 976 of its region) names "audit:modes" — retired: …`, and the same for `CLAUDE.md §4`, the PR template's §Gates, `verify.ts` (`mode-audit`) and `ci.yml` (`mode-audit`).
+
+### Traps
+
+- **A raw hex in `chrome.css` fails the build** (the chrome plugin's `[raw]` scan), and the suite then drives the PREVIOUS `dist/main.js`: a mutation planted that way ran green against the old bundle. Check the build's exit before reading a browser suite's verdict.
+- **`KNOWN_CONTRAST_GAPS` is machine-dependent by design:** on a machine with the brand faces installed, #2091's node never draws and the row is reported "not exercised", not stale.
+- **`placeOfPage`'s `keep` rule still has no case** (S13 deletes `legacy`).
+
+---
+
+## (2026-10-05) — Studio: the dead legacy type-specimen CSS (.ts-*) is removed (#2012)
+
+**Status:** `apps/studio/src/styles.css` only. No ENGINE bump (no emitted artifact moves). CONTRACT unchanged. No visible change.
+
+### What changed
+
+`apps/studio/src/styles.css` loses the eight-line legacy type-specimen block: `.ts-list`, `.ts-row`,
+`.ts-sample`, `.ts-variants`, `.ts-var` and `.ts-var-range`, which #2012 names, plus `.ts-meta`, which sat
+inside the same block with no user either, and the block's one comment. The legacy Type page that drew
+them was already gone before S6.2.
+
+### How "dead" was established, not assumed
+
+- **Source and bundles.** A word-bounded search (`ts-meta` must not match `cw-row` or `weights-row`) over
+  `apps/`, `packages/`, `tools/` and `skills/`, tests included, finds each class only in `styles.css`. No
+  source builds a `ts-` class name by concatenation. The rebuilt `apps/studio/dist/main.js` and
+  `apps/plugin/dist/{main.js,ui.html}` carry none of them.
+- **The rendered DOM.** The repo has no unused-selector check, so a scratch Playwright preload (not
+  committed) watched every page `test:chrome` and `test:smoke` opened, with a MutationObserver, for a node
+  matching any removed selector. Zero hits in both suites. A positive control (`[data-p3]`) was seen on
+  every page, so the observer was attached and reporting.
+- **No visual change.** The 225 `test:chrome` screenshots were taken before and after the removal and
+  compared.
+
+### Trap for whoever re-verifies
+
+A plain `grep ts-row` finds `components-row` and `weights-row` in the tests and the studio. Bound the
+search on both sides with `[^a-zA-Z0-9_-]`, or the class looks used when it is not.
+
+---
+
+## (2026-10-05) — UI: the smoke suite's test hook is gated on a build define and left out of the deployed bundle (#2098 item 3)
+
+**STATUS: branch `ui/2098-test-hooks-prod`. Part of #2098 (item 3, from the review of #2074).** UI build and studio
+tests only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged, no visible
+wording.
+
+**The defect.** `entry.ts` step 8 defines `window.__prism3TestEdit` when the page is opened with `?p3-test-hooks`, so
+`test-smoke.mjs` §2d can make an edit no control makes any more. The block shipped in the production web bundle too,
+so anyone could turn it on in the deployed Studio with a URL.
+
+**The fix: a build define.** `PRISM3_TEST_HOOKS` (declared in `prism3-host.d.ts`) is `true` only in `build.mjs`, the
+local `dist/` the smoke suite drives, and `false` in `build-site.mjs` (Vercel's build command),
+`vercel-ignore-check.mjs` (which describes the deployed bundle) and `apps/plugin/build.mjs` (the hook was already
+web-only; the define is there so no bare identifier is left). Step 8's condition reads it before the URL.
+
+**What "the prod bundle lacks it" means, measured.** esbuild without minification folds the gate to `if (false) { … }`
+but keeps the block's text. The deploy does not minify, and `build-site.mjs`'s header says it must match the local
+build it is developed against, so this PR does not turn minification on to delete the text. The result in the
+deployed `main.js`: the string `p3-test-hooks` is gone (nothing a visitor sends can turn the hook on), and
+`__prism3TestEdit` appears once, as the body of the dead `if (false)` branch. The deployed sourcemap still carries
+`entry.ts`'s source text, as it always has (`build-site.mjs` ships the source deliberately); that is not code that runs.
+
+**The test, and why it is independent (docs/34).** `apps/studio/test-prod-bundle.ts` (in `npm test`) runs the real
+`build-site.mjs` as a child process and reads the `public/dist/main.js` it writes, so it never restates the build's
+options. Its oracle is two literal strings. It first asserts both still appear in `entry.ts`'s code (comments
+stripped), so a renamed parameter can't make the absence check vacuous; then that the deployed bundle has no
+`p3-test-hooks`, and no `__prism3TestEdit` anywhere but directly under `if (false) {`. The smoke suite (§2d)
+separately holds the local `dist/` to having the hook.
+
+**Mutations, each failing by name:** `PRISM3_TEST_HOOKS: 'false'` → `'true'` in `build-site.mjs` → `the deployed
+bundle (build-site.mjs) carries no "p3-test-hooks"` and `… carries no reachable "__prism3TestEdit"`; the
+`PRISM3_TEST_HOOKS &&` clause removed from `entry.ts` → the same two.
+
+---
+
 ## (2026-10-05) — #2114's warning-shape change gets its engine change note
 
 #2114 (#2097 item 3) changed the exported `OverrideWarning`: an unresolved override ground moved from `against` plus `unresolved: true` into `unresolved` as a string. No committed artifact moved, so `regen --check` and `lint-emission-version` both stayed green and nothing asked for a note. But `CONTRIBUTING.md` reserves "no note" for changes that owe no bump. A behavior change owes a bump, and `patch` is permitted here because no artifact moves; #2034, which introduced this warning with the same reach, declared a `minor`. Without a note, the 0.225.0 changelog would still describe `unresolved: true` and nothing would record the change.
