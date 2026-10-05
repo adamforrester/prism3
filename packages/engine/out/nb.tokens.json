@@ -20384,6 +20384,45 @@
           }
         }
       },
+      "xl": {
+        "$type": "dimension",
+        "$value": "{nbds.core.dimension.8}",
+        "$description": "radius xl — 8px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "nbds.core.dimension.8",
+            "px": 8,
+            "radiusScale": 1
+          }
+        }
+      },
+      "2xl": {
+        "$type": "dimension",
+        "$value": "{nbds.core.dimension.12}",
+        "$description": "radius 2xl — 12px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "nbds.core.dimension.12",
+            "px": 12,
+            "radiusScale": 1
+          }
+        }
+      },
+      "3xl": {
+        "$type": "dimension",
+        "$value": "{nbds.core.dimension.16}",
+        "$description": "radius 3xl — 16px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "nbds.core.dimension.16",
+            "px": 16,
+            "radiusScale": 1
+          }
+        }
+      },
       "round": {
         "$type": "dimension",
         "$value": "{nbds.core.dimension.128}",
@@ -20405,6 +20444,19 @@
           "prism3": {
             "generated": true,
             "px": 999
+          }
+        }
+      },
+      "hairline": {
+        "$type": "dimension",
+        "$value": "{nbds.core.dimension.1}",
+        "$description": "radius hairline — 1px",
+        "$extensions": {
+          "prism3": {
+            "role": "semantic",
+            "aliasOf": "nbds.core.dimension.1",
+            "px": 1,
+            "radiusScale": 1
           }
         }
       }
@@ -20921,7 +20973,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.216.0",
+      "version": "0.227.1",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
@@ -20929,11 +20981,11 @@
       "root": "nbds",
       "colorFormat": "rgb",
       "decisions": [
-        "NB regression: measured anchors; brand red also serves as danger (NB brand hue is its danger hue).",
-        "dimension axis: 4px grid, 8px space rhythm (numbered scale), comfortable density, radius scale 1 (baseMd 4px).",
-        "typography: curated rem size ladder (22 steps, 10–160px); weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900.",
-        "shadow: 6-step ramp + inset, 2-layer, pure-black (NB dialect); mode-aware lift-primary (reduced in dark, NOT NB's heavier inverse — the field-correct choice).",
-        "layout: 5 breakpoints (engine default) + 12-col grid (4/8/12 ladder) + container max 1920 / narrow 720 (NB caps); gutter/margin alias the spacing scale."
+        "reference brand: anchors measured from the shipped system; the brand red also serves as danger, since the brand hue is its danger hue.",
+        "dimensions: 4px grid, 8px spacing rhythm (numbered scale), 'comfortable' density, radius scale 1 (base radius 4px).",
+        "typography: 22-step size ladder (10–160px); weights subtle/default/emphasis/strong/max → 300/400/600/700/900.",
+        "shadow: 6 steps plus inset, two layers, pure black as the reference ships; full in light and reduced in dark, rather than the reference's heavier dark shadows.",
+        "layout: 5 breakpoints (the default); 12-column grid (4/8/12 by breakpoint); containers max 1920px, narrow 720px, as the reference caps them; gutters and margins from the spacing scale."
       ]
     }
   }

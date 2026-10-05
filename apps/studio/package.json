@@ -5,13 +5,13 @@
   "type": "module",
   "description": "Prism3 theme studio \u2014 the DOM host that renders theming knobs (from the lever manifest) + a live component preview and per-mode contrast overlay (from previewSpec + resolvePreview). One of the two rendering hosts over the engine core (docs/08, docs/09).",
   "scripts": {
-    "dev": "esbuild src/main.ts --bundle --format=esm --outdir=dist --loader:.css=text --define:PRISM3_HOST=\"'web'\" --define:PRISM3_BUILD=\"'local'\" --servedir=. --serve=127.0.0.1:5173",
-    "build": "esbuild src/main.ts --bundle --format=esm --outdir=dist --loader:.css=text --define:PRISM3_HOST=\"'web'\" --define:PRISM3_BUILD=\"'local'\" --sourcemap",
+    "dev": "node build.mjs --dev",
+    "build": "node build.mjs",
     "build:site": "node build-site.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "npx tsx test-provenance.ts && npx tsx test-export-settings.ts && npx tsx test-build-identity.ts && npx tsx test-size-labels.ts && npx tsx test-em-percent.ts && npx tsx test-outline-roles.ts && npx tsx test-write-adapter.ts",
+    "test": "npx tsx test-provenance.ts && npx tsx test-export-settings.ts && npx tsx test-build-identity.ts && npx tsx test-em-percent.ts && npx tsx test-outline-roles.ts && npx tsx test-write-adapter.ts && npx tsx test-store.ts && npx tsx test-host-session.ts && npx tsx test-lever-controls.ts && npx tsx test-shell-imports.ts && npx tsx test-pages.ts && npx tsx test-brand-input.ts && npx tsx test-fills-input.ts && npx tsx test-interactive-input.ts && npx tsx test-type-input.ts && npx tsx test-layout-input.ts && npx tsx test-depth-motion-input.ts && npx tsx test-shape-input.ts && npx tsx test-used-by.ts && npx tsx test-button-input.ts && npx tsx test-component-catalog.ts && npx tsx test-verdict-count.ts && npx tsx test-lever-tips.ts && npx tsx test-prod-bundle.ts && npx tsx test-chrome-motion.ts",
     "test:smoke": "node test-smoke.mjs",
-    "audit:modes": "node mode-audit.mjs",
+    "test:chrome": "node test-chrome.mjs",
     "lint:contrast": "node lint-contrast.mjs",
     "check:ignore": "node vercel-ignore-check.mjs"
   },

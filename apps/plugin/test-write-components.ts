@@ -76,6 +76,7 @@ import { nbTheme } from '@prism3/engine/nb-fixture';
 import { exampleBrands } from '@prism3/engine/emit-brandinput';
 // #1605 — the brand materialization `main.ts` projects through, plus NB's real input and emitted styles.
 import { materializeForBrand } from './src/brand-def';
+import { leverManifest } from '@prism3/engine/levers';
 import { prebuildDependencies, missingDependencies, DependencyBuildError, SWAP_TARGET as PLUGIN_SWAP_TARGET, labelAfterBuilds } from './src/build-deps';
 import { parseDesignMd } from '@prism3/engine/design-md';
 import { buildFigmaTextStyles } from '@prism3/engine/emit-figma-font';
@@ -114,7 +115,7 @@ const pinned = (cond: boolean, issue: string, label: string): void => {
 
 // ---- the in-memory components shim --------------------------------------------------------
 import {
-  makeShim, burnMs, varValue, fontKey,
+  makeShim, varValue, fontKey,
   SHIM_ROOT, SHIM_GAP, SHIM_STROKE, SHIM_COORD, STYLE_FONT,
 } from './component-shim';
 import type { Node, Page, ShimOpts, FileNode, FontName } from './component-shim';
@@ -145,7 +146,7 @@ const run = (plans: AnatomyPlan[], opts: ShimOpts = {}, apply: ComponentApplyOpt
  *  REPORTING cadence and calling it yielding: deleting `await yieldTo()` from `breathe` left the suite
  *  fully green (mutation M6, verified). A report and a yield are two facts, so they are recorded by two
  *  callbacks that cannot substitute for one another, and asserted to agree. */
-const instrumented = async (plans: AnatomyPlan[], opts: ShimOpts = {}, chunk?: number, burnYield = 0) => {
+const instrumented = async (plans: AnatomyPlan[], opts: ShimOpts = {}, chunk?: number, onYield?: () => void) => {
   const yieldCalls = { n: 0 };
   const yields: string[] = [];
   const progress: ComponentProgress[] = [];
@@ -156,11 +157,12 @@ const instrumented = async (plans: AnatomyPlan[], opts: ShimOpts = {}, chunk?: n
     // `breathe`, so the two arrays are index-parallel.
     onProgress: (p) => { progress.push({ ...p }); yields.push(`${p.phase}:${p.done}/${p.total}`); },
     // The ONLY witness that control was handed back. Nothing else in this file increments it.
-    // `burnYield` charges the YIELD's own duration, which is the third clock rule: `breathe` re-stamps
-    // AFTER awaiting, so a yield that took 40ms must not be billed to the chunk that follows it. Live,
-    // that time is the host doing its own work — the entire point of yielding — so counting it as chunk
-    // cost would make every chunk look worse the more politely the executor behaved.
-    yieldTo: () => { yieldCalls.n++; if (burnYield) burnMs(burnYield); return Promise.resolve(); },
+    // `onYield` charges the YIELD's own duration (on the timing block's virtual clock, #1800), which is the
+    // third clock rule: `breathe` re-stamps AFTER awaiting, so a yield that took 40ms must not be billed to
+    // the chunk that follows it. Live, that time is the host doing its own work — the entire point of
+    // yielding — so counting it as chunk cost would make every chunk look worse the more politely the
+    // executor behaved.
+    yieldTo: () => { yieldCalls.n++; onYield?.(); return Promise.resolve(); },
   });
   return { r, yields, progress, yieldCalls: yieldCalls.n };
 };
@@ -1332,7 +1334,17 @@ ok(reRun.yieldCalls === reRun.progress.length && reRun.yieldCalls > 0,
 // and the strongest assertion available is `chunkMs >= 0`, which no clock rule can fail. A rule about WHEN a
 // clock starts cannot be gated by a harness in which no clock advances. So the harness charges deliberate,
 // opt-in cost to the three windows the re-stamps exclude (`ShimOpts.burn`, and `instrumented`'s
-// `burnYield`), which makes the rule reachable using the very calls the source comments already name.
+// `onYield`), which makes the rule reachable using the very calls the source comments already name. And a
+// fourth, INSIDE a chunk (`burn.member`, #1848), because every exclusion asserts `=== 0` and a `chunkMs`
+// that never measured anything is also 0 (docs/34 shape 4): only a cost the chunk must CARRY can fail it.
+//
+// ON A VIRTUAL CLOCK (#1800). The burns used to hold the thread on the real clock, and every assertion here
+// was a wall-clock bound: the chunk after a 40ms yield had to come in under 20ms of REAL time for five
+// members of shim work. Under CPU load (several lanes running `verify` at once) that work alone crossed
+// 20ms and the arm failed with the exclusion intact. The property is about which window a cost is billed
+// to, not how fast the host is, so the runs below swap `Date.now` — the clock the executor reads — for one
+// that moves ONLY when a burn advances it. The executor's own work then costs exactly 0ms, a burn costs
+// exactly its size, and every expectation is a literal. Nothing here depends on the machine.
 //
 // EACH BURN GETS A POSITIVE CONTROL, and that is not belt-and-braces: "the first chunk is 0ms" also passes
 // when the burn silently never happened — a renamed shim method, an `opts.burn` that stopped being threaded
@@ -1346,31 +1358,63 @@ const BURN = 120;
 const YIELD_BURN = 40;
 const firstOf = (ps: ComponentProgress[], ph: string): number => ps.find((p) => p.phase === ph)!.chunkMs;
 
+/** Runs `fn` with `Date.now` replaced by a clock that moves only through `advance` (#1800), and restores
+ *  the real one however `fn` exits. `reads` counts the executor's reads; the test reads `t` directly, so
+ *  its own bookkeeping never counts as one. Sequential by construction: every run below is awaited before
+ *  the next starts, so no other code is reading the clock while it is swapped. */
+const onVirtualClock = async <T>(fn: (clock: { advance: (ms: number) => void; at: () => number; reads: () => number }) => Promise<T>): Promise<T> => {
+  const realNow = Date.now;
+  let t = 0, reads = 0;
+  Date.now = () => { reads++; return t; };
+  try { return await fn({ advance: (ms) => { t += ms; }, at: () => t, reads: () => reads }); }
+  finally { Date.now = realNow; }
+};
+/** One chunk-5 run over the grid on a virtual clock, with the named burns and an optional per-yield cost.
+ *  `advanced` is how far the burns moved the clock; `reads` is how often the executor looked at it. */
+const timed = (burn?: ShimOpts['burn'], yieldMs = 0) => onVirtualClock(async (clock) => {
+  const run = await instrumented(grid, { ...fullFor(grid), page: { children: [] }, burn, advance: clock.advance }, 5,
+    yieldMs ? () => clock.advance(yieldMs) : undefined);
+  return { ...run, advanced: clock.at(), reads: clock.reads() };
+});
+
+// The two shim-charged burns, one run each, keyed by the burn's own name: the controls below MAP over these
+// keys, so a burn cannot be added here without a control.
+const burnRuns = { setup: await timed({ setup: BURN }), combine: await timed({ combine: BURN }), member: await timed({ member: BURN }) };
+
 // 1. PRE-BUILD-LOOP SETUP. `planSetLayout`, three `getLocal*Async` fetches, `loadAllPagesAsync()` and a
 //    document-wide `findAllWithCriteria` run before the first member is touched. Charged to the last of
 //    them. Live this was measured at 121ms in chunk 1 against 1ms in its neighbours.
-const burnSetupPage: Page = { children: [] };
-const burnSetup = await instrumented(grid, { ...full(), page: burnSetupPage, burn: { setup: BURN } }, 5);
-ok(firstOf(burnSetup.progress, 'build') < BURN / 2,
-  `the first build chunk excludes the ${BURN}ms of setup that preceded the loop (${firstOf(burnSetup.progress, 'build')}ms)`);
+ok(firstOf(burnRuns.setup.progress, 'build') === 0,
+  `the first build chunk excludes the ${BURN}ms of setup that preceded the loop (${firstOf(burnRuns.setup.progress, 'build')}ms)`);
 
 // 2. BETWEEN THE LOOPS. `combineAsVariants`, the measured layout pass, the `resize`, the definitions read
 //    and one `addComponentProperty` per property sit between the build loop's last boundary and the wire
 //    loop's first. #684 does not name this loop at all, which is why the gap was here twice.
-const burnCombinePage: Page = { children: [] };
-const burnCombine = await instrumented(grid, { ...full(), page: burnCombinePage, burn: { combine: BURN } }, 5);
-ok(firstOf(burnCombine.progress, 'wire') < BURN / 2,
-  `the first wire chunk excludes the ${BURN}ms of set-level work between the loops (${firstOf(burnCombine.progress, 'wire')}ms)`);
+ok(firstOf(burnRuns.combine.progress, 'wire') === 0,
+  `the first wire chunk excludes the ${BURN}ms of set-level work between the loops (${firstOf(burnRuns.combine.progress, 'wire')}ms)`);
 
 // 3. THE YIELD ITSELF. `breathe` re-stamps AFTER awaiting, so the yield's own duration is never billed to
 //    the chunk after it. Live, that time is the host doing the work yielding exists to let it do — so
 //    counting it would make every chunk look worse the more politely the executor behaved, and would push
-//    the calibration toward a smaller `CHUNK` for having yielded more often.
-const burnYieldPage: Page = { children: [] };
-const burnYield = await instrumented(grid, { ...full(), page: burnYieldPage }, 5, YIELD_BURN);
-const secondBuild = burnYield.progress.filter((p) => p.phase === 'build')[1].chunkMs;
-ok(secondBuild < YIELD_BURN / 2,
+//    the calibration toward a smaller `CHUNK` for having yielded more often. Re-stamping BEFORE the await
+//    bills the whole 40ms to the next chunk, so this reads 40, not "a bit over 20".
+const ybRun = await timed(undefined, YIELD_BURN);
+const secondBuild = ybRun.progress.filter((p) => p.phase === 'build')[1].chunkMs;
+ok(secondBuild === 0,
   `a chunk excludes the ${YIELD_BURN}ms yield that preceded it (2nd build chunk ${secondBuild}ms)`);
+
+// 4. INSIDE A CHUNK, the converse the three above cannot stand in for (#1848). Each of them asserts `=== 0`,
+//    and a `breathe` that reported `chunkMs: 0 * (now - mark)` satisfied all three and the whole plugin
+//    suite. So the first member's `createComponentFromNode` is charged 120ms, which is work the first build
+//    chunk does, and that chunk must report exactly 120. The other four build chunks and all five wire
+//    chunks report 0, so the cost is billed to its own chunk and nowhere else. Literals, 5 per phase, as
+//    pinned above.
+const memberBuild = burnRuns.member.progress.filter((p) => p.phase === 'build').map((p) => p.chunkMs);
+const memberWire = burnRuns.member.progress.filter((p) => p.phase === 'wire').map((p) => p.chunkMs);
+ok(memberBuild[0] === 120,
+  `chunkMs === BURN: the first build chunk carries the ${BURN}ms its own first member build cost (${memberBuild[0]}ms)`);
+ok(JSON.stringify(memberBuild) === '[120,0,0,0,0]' && JSON.stringify(memberWire) === '[0,0,0,0,0]',
+  `the member burn is billed to that one chunk and no other (build ${JSON.stringify(memberBuild)}, wire ${JSON.stringify(memberWire)})`);
 
 // THE POSITIVE CONTROLS, ONE PER BURN AND DERIVED FROM THE BURN LIST SO THERE CANNOT BE TWO OF THREE.
 // Each burn is proven VISIBLE — otherwise the exclusions above are satisfied by a burn that never ran, which
@@ -1382,34 +1426,29 @@ ok(secondBuild < YIELD_BURN / 2,
 // two hand-written blocks: adding a fourth burn without a control is then a missing key, not a missing
 // paragraph someone has to notice.
 //
-// A burn's cost is excluded from every `chunkMs` by the very re-stamp under test, so the witness is WALL
-// CLOCK, measured as the DELTA against an un-burned baseline. The delta rather than a bare `>= BURN`: an
-// absolute bound is also satisfiable by a slow machine, and what needs proving is that the burn is the
-// difference between the two runs.
-const timeRun = async (burn?: ShimOpts['burn']): Promise<number> => {
-  const t0 = Date.now();
-  await instrumented(grid, { ...fullFor(grid), page: { children: [] }, burn }, 5);
-  return Date.now() - t0;
-};
-const ctlBase = await timeRun();
-for (const key of ['setup', 'combine'] as const) {
-  const elapsed = await timeRun({ [key]: BURN });
-  ok(elapsed - ctlBase >= BURN * 0.5,
-    `CONTROL: the ${key} burn really costs wall-clock this harness can measure (${elapsed}ms vs ${ctlBase}ms un-burned, +${elapsed - ctlBase}ms)`);
+// A burn's cost is excluded from every `chunkMs` by the very re-stamp under test, so the witness is the
+// CLOCK ITSELF: how far the run moved it, read off the virtual clock and never off a report. And one more
+// control the virtual clock needs that the real one did not: the executor must be READING it. An executor
+// that moved to another clock would see none of these burns, and every exclusion above would pass at 0ms
+// for a reason that has nothing to do with the re-stamps.
+for (const key of Object.keys(burnRuns) as (keyof typeof burnRuns)[]) {
+  ok(burnRuns[key].advanced === BURN,
+    `CONTROL: the ${key} burn really moves the clock the executor reads (+${burnRuns[key].advanced}ms of ${BURN})`);
+  // Named for what it checks: the executor READS this clock. Whether it prices a chunk on it is case 4's
+  // assertion, since reads alone are satisfied by the `elapsedMs` read with `chunkMs` pinned at 0 (#1848).
+  ok(burnRuns[key].reads > 0,
+    `CONTROL: the executor reads that clock (${burnRuns[key].reads} reads during the ${key}-burned run)`);
 }
-const ctlNoBurn = await instrumented(grid, { ...fullFor(grid), page: { children: [] } }, 5);
-ok(ctlNoBurn.progress.length > 0 && firstOf(ctlNoBurn.progress, 'build') >= 0,
-  'CONTROL: the un-burned run reports as usual, so the burn is the only difference between them');
-// And the yield burn: 10 boundaries at 40ms each is ~400ms of wall clock that `chunkMs` must not have
-// absorbed — so the SUM of every reported chunk stays far below the run's own duration.
-const ybT0 = Date.now();
-const ybRun = await instrumented(grid, { ...fullFor(grid), page: { children: [] } }, 5, YIELD_BURN);
-const ybElapsed = Date.now() - ybT0;
+const ctlNoBurn = await timed();
+ok(ctlNoBurn.progress.length > 0 && ctlNoBurn.advanced === 0 && ctlNoBurn.progress.every((p) => p.chunkMs === 0 && p.elapsedMs === 0),
+  `CONTROL: the un-burned run reports as usual with the clock standing still, so the burn is the only difference between them (${ctlNoBurn.progress.length} reports, +${ctlNoBurn.advanced}ms)`);
+// And the yield burn: 10 boundaries (5 per phase, pinned above) at 40ms each is 400ms of clock that `chunkMs`
+// must not have absorbed — so the SUM of every reported chunk is 0.
 const ybReported = ybRun.progress.reduce((a, p) => a + p.chunkMs, 0);
-ok(ybElapsed >= YIELD_BURN * ybRun.yieldCalls * 0.5,
-  `CONTROL: ${ybRun.yieldCalls} yields at ${YIELD_BURN}ms cost real wall-clock (${ybElapsed}ms elapsed)`);
-ok(ybReported < ybElapsed / 2,
-  `and the reported chunk time is a fraction of it, so yield time is excluded rather than redistributed (${ybReported}ms reported of ${ybElapsed}ms elapsed)`);
+ok(ybRun.yieldCalls === 10 && ybRun.advanced === 400,
+  `CONTROL: ${ybRun.yieldCalls} yields at ${YIELD_BURN}ms move the clock 400ms (+${ybRun.advanced}ms)`);
+ok(ybReported === 0,
+  `and none of it is reported as chunk time, so yield time is excluded rather than redistributed (${ybReported}ms reported of ${ybRun.advanced}ms)`);
 
 // ---- #684 follow-up: `elapsedMs` INCLUDES the yields, which is why it exists -------------------
 // THE ONE TIMING FIELD THIS HARNESS CAN GATE BY VALUE. Every `chunkMs` is 0 here because the shim is
@@ -1427,26 +1466,27 @@ for (const ph of ['build', 'wire'] as const) {
   const ps = ybRun.progress.filter((p) => p.phase === ph);
   const last = ps[ps.length - 1];
   const sumChunks = ps.reduce((a, p) => a + p.chunkMs, 0);
-  // n-1 yields inside the window: the last boundary's yield lands after its own report (see `elapsedMs`).
-  const want = YIELD_BURN * (ps.length - 1) * 0.5;
-  ok(last.elapsedMs - sumChunks >= want,
-    `${ph}: elapsedMs spans the ${ps.length - 1} yields inside the phase that chunkMs excludes ` +
-    `(${last.elapsedMs}ms elapsed − ${sumChunks}ms of chunks = ${last.elapsedMs - sumChunks}ms of yielding, ≥ ${want}ms)`);
+  // 5 reports per phase and 4 yields inside the window, written out: the last boundary's yield lands after
+  // its own report (see `elapsedMs`). 4 × 40ms.
+  const want = 160;
+  ok(last.elapsedMs - sumChunks === want,
+    `${ph}: elapsedMs spans the 4 yields inside the phase that chunkMs excludes ` +
+    `(${last.elapsedMs}ms elapsed − ${sumChunks}ms of chunks = ${last.elapsedMs - sumChunks}ms of yielding, want ${want}ms)`);
   // MONOTONIC AND PER-PHASE. A cumulative field must never go backwards, and each phase must start its own
-  // count from ~0 — if `phaseStart` were stamped once at the top of the run, the wire phase's first reading
+  // count from 0 — if `phaseStart` were stamped once at the top of the run, the wire phase's first reading
   // would already carry the entire build phase and this would catch it.
   ok(ps.every((p, i) => i === 0 || p.elapsedMs >= ps[i - 1].elapsedMs),
     `${ph}: elapsedMs is cumulative and never decreases across the phase`);
-  ok(ps[0].elapsedMs < YIELD_BURN,
-    `${ph}: the phase's FIRST reading starts near zero, so the clock was re-stamped at this loop head rather than at the run's (${ps[0].elapsedMs}ms)`);
+  ok(ps[0].elapsedMs === 0,
+    `${ph}: the phase's FIRST reading starts at zero, so the clock was re-stamped at this loop head rather than at the run's (${ps[0].elapsedMs}ms)`);
 }
 // The un-burned control: with a free yield, elapsed and total agree — so the assertions above are reading
 // the burn and not some constant offset the executor adds regardless.
 for (const ph of ['build', 'wire'] as const) {
   const ps = ctlNoBurn.progress.filter((p) => p.phase === ph);
   const last = ps[ps.length - 1];
-  ok(last.elapsedMs - ps.reduce((a, p) => a + p.chunkMs, 0) < YIELD_BURN / 2,
-    `CONTROL: ${ph} with a free yield shows almost no gap between elapsed and Σ chunkMs (${last.elapsedMs - ps.reduce((a, p) => a + p.chunkMs, 0)}ms)`);
+  ok(last.elapsedMs - ps.reduce((a, p) => a + p.chunkMs, 0) === 0,
+    `CONTROL: ${ph} with a free yield shows no gap between elapsed and Σ chunkMs (${last.elapsedMs - ps.reduce((a, p) => a + p.chunkMs, 0)}ms)`);
 }
 
 // A run with NO options is the production call shape — it must still complete, and must yield without
@@ -4666,6 +4706,69 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const headerCalls = mainCode.split('\n').filter((l) => /\bplaceHeader\(/.test(l) && !/const placeHeader\b/.test(l));
   ok(headerCalls.length === 1 && /\}, \(\{ page, defId \}\) => placeHeader\(page, defId\)\);/.test(headerCalls[0]) && /await labelAfterBuilds\(/.test(mainCode),
     `#1750 main.ts places headers only as the label of labelAfterBuilds, never inside a build (${headerCalls.length} call site(s): ${headerCalls.map((l) => l.trim()).join(' / ')})`);
+}
+
+
+// ── #1812: every lever's manifest default is what the COMPONENT MATERIALIZER does with the lever unset ──
+// The engine half of this check (`packages/engine/test.ts`, #1812) runs the token emission both ways. A
+// lever the token tree cannot see is resolved here instead, when a def is materialized for a brand: the
+// button settings (`brandButtonLayout`'s `?? DEFAULT_BUTTON_LAYOUT`) and `controlShape`'s `boxed`/`pill`
+// (`?? 'rounded'`). SUBJECT = `leverManifest[].default`. ORACLE = `materializeForBrand` over every
+// component def, for a base brand with the lever UNSET and with it set to the manifest default. The
+// expected side is the materializer's own output, never the manifest.
+//
+// Bases: a literal minimal brand (the three required fields), aurora (`actionPalette: accent`, sharp
+// corners) and nb-redesign (the owner's NB shape: hairline controls, edge-locked button icons). Three,
+// not every brief: each materialization runs one `brandTheme` per def, and this arm is the slowest in
+// the file at three.
+//
+// Sensitivity (docs/34 shape 4): every (lever, value) PAIR the engine arm lists as TREE-BLIND must move
+// this materialization, or the no-op check above measured nothing for that value. Pairs, not levers:
+// `controlShape` moves the tree at `hairline` but not at `boxed` or `pill`, and a wrong `pill` default
+// is visible only here. The list is a literal copy of the engine arm's `TREE_BLIND_PAIRS`, deliberately
+// not imported: the engine arm fails if its list goes stale, and this one fails if a listed pair stops
+// reaching the defs.
+//
+// TRAP (2026-09-30): a main merge once resolved this whole block away (the conflict resolver matched on
+// an import it shared with main's new block) and verify stayed 67/67 green with the arm gone, because a
+// deleted arm fails nothing inside itself. So the ENGINE arm (`packages/engine/test.ts`, #1812) reads this
+// file and fails by name unless the sensitivity assertion below and every pair literal are present.
+{
+  const TREE_BLIND_PAIRS: [string, unknown][] = [
+    ['buttonContentSize', 'smaller'],
+    ['buttonIcons', 'edges'],
+    ['buttonMinWidthMultiplier', 1], ['buttonMinWidthMultiplier', 4],
+    ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
+  ];
+  const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);
+  const setIn = (o: any, key: string, v: unknown): any => {
+    const c = structuredClone(o); const ps = key.split('.'); let a = c;
+    for (const p of ps.slice(0, -1)) a = a[p] ??= {};
+    a[ps[ps.length - 1]] = v; return c;
+  };
+  const materialized = (input: BrandInput): string => JSON.stringify(componentDefs.map((d) => materializeForBrand(d, input)));
+  const brief = (f: string): BrandInput => parseDesignMd(readFileSync(new URL(`../../packages/engine/examples/${f}`, import.meta.url), 'utf8')).input;
+  const minimal = { id: 'minimal-1812', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } } as BrandInput;
+  const bases: [string, BrandInput][] = [['minimal', minimal], ['aurora', brief('aurora.design.md')], ['nb-redesign', brief('nb-redesign.design.md')]];
+  const baseOut = new Map(bases.map(([id, b]) => [id, materialized(b)]));
+  const withDefault = leverManifest.filter((l) => l.default !== undefined);
+  const drift: string[] = [];
+  const unexercised: string[] = [];
+  for (const l of withDefault) {
+    let exercised = 0;
+    for (const [id, base] of bases) {
+      if (getIn(base, l.key) !== undefined) continue;
+      exercised++;
+      if (materialized(setIn(base, l.key, l.default)) !== baseOut.get(id)) drift.push(`${l.key}=${JSON.stringify(l.default)} on ${id}`);
+    }
+    if (!exercised) unexercised.push(l.key);
+  }
+  ok(unexercised.length === 0, `#1812 every lever with a manifest default is left unset by at least one base brand${unexercised.length ? ` — NEVER UNSET: ${unexercised.join(', ')}` : ''}`);
+  ok(drift.length === 0, `#1812 every lever's manifest default is what materializeForBrand does with the lever unset${drift.length ? ` — DIFFERS: ${drift.join('; ')}` : ''}`);
+
+  const blindUnmoved = TREE_BLIND_PAIRS.filter(([key, v]) => materialized(setIn(minimal, key, v)) === baseOut.get('minimal'))
+    .map(([key, v]) => `${key}=${JSON.stringify(v)}`);
+  ok(blindUnmoved.length === 0, `#1812 each tree-blind (lever, value) pair moves the materialized defs${blindUnmoved.length ? ` — UNMOVED: ${blindUnmoved.join(', ')}` : ''}`);
 }
 
 if (failed) process.exit(1);

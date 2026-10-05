@@ -228,7 +228,12 @@ export type ModeOverrides = Record<string, PrimitiveRef>;   // rolePath -> primi
 // `against` is set only when the miss is on a ground OTHER than the role's own `against`: the page fill's
 // `background.tertiary` tier (#1773), or a role's SECOND contracted pair (`AlsoAgainst`, #1745), naming that
 // pair's partner. A warning without it is about the role's own `against`, as it always was.
-export type OverrideWarning = { role: string; ratio: number; min: number; against?: string };
+// `unresolved` (#2034) marks an override whose own `against` is neither a role in the mode nor a ramp step,
+// and NAMES that ground; `ratio` is the pick measured on the page base it fell back to. It is its own field
+// rather than `against` (#2097 item 3) because `against` on a warning means a SECOND ground the miss is on,
+// and `lint-ratio-truth` keys a warning carrying one as a second-pair confession. An unresolved ground is the
+// role's OWN ground, so the warning carries no `against`.
+export type OverrideWarning = { role: string; ratio: number; min: number; against?: string; unresolved?: string };
 // A contract a role carries beyond its own `against` (#1773): the page interactive fill's second ground,
 // `background.tertiary`. `tree.ts` counts each into `modeChecks` / `modePass` beside the per-role checks.
 export type TierCheck = { role: string; against: string; ratio: number; min: number };
@@ -354,6 +359,21 @@ const modeConfigs = (ns: string, neutralPalette: string, neutral: Step[], surfac
       : (family === 'light' ? baseS.num + 50 : baseS.num - 50);
     const floorStep = cfg.floorStep ?? defFloor;
     const dir = family === 'light' ? +1 : -1;           // light steps darker; dark steps lighter
+    // A declared TIER (#1972) replaces one rung of the ladder below; an unset one keeps the ladder's own
+    // step, so a brand that declares none emits exactly what it did before.
+    const tier = (spec: InverseSurfaceSpec | undefined, derived: Cand): Cand => {
+      if (spec == null) return derived;
+      const s = specToSurf(spec);
+      return surfAtP(s.pal, s.num);
+    };
+    const bg = bgLadder(baseS.pal, baseS.num, dir);
+    const bgTiers: SurfSet = { primary: bg.primary, secondary: tier(cfg.secondary, bg.secondary), tertiary: tier(cfg.tertiary, bg.tertiary) };
+    // The floor FOLLOWS a declared `secondary` (#1972, owner, option A). 46 roles per mode are gated on the
+    // floor and describe themselves as clearing their bar "on background.secondary". With nothing declared
+    // the two are the same step, so that was true by coincidence; with `secondary` declared and the floor
+    // left behind, every one of those claims would name a surface the tree no longer has. An explicit
+    // `floorStep` still wins: it is a declaration too, and may differ from the tier, as it may today.
+    const floor = cfg.floorStep == null && cfg.secondary != null ? bgTiers.secondary : n(floorStep);
     // Inverse anchors NEAR the opposite extreme, not AT it — pure black reads
     // harsh/muddy and pure white halates in dark UIs (KB 31 §halation, §tint-not-
     // black). Light inverse = near-black 950; dark inverse = near-white 25. HC
@@ -369,10 +389,14 @@ const modeConfigs = (ns: string, neutralPalette: string, neutral: Step[], surfac
     const invSpec = cfg.inverseBase ?? (family === 'light' ? 950 : 25);
     const invS = specToSurf(invSpec);
     const invDir = -dir;
+    // The inverse floor needs no such coupling: it IS `inverse.background.secondary` (read off `bgInverse`
+    // in `resolveMode`), so a declared `inverseSecondary` moves every role gated on it by construction.
+    const bgInv = bgLadder(invS.pal, invS.num, invDir);
     return {
-      base: surfAtP(baseS.pal, baseS.num), floor: n(floorStep),
-      bg: bgLadder(baseS.pal, baseS.num, dir), fg: fgLadder(baseS.pal, baseS.num, dir),
-      bgInverse: bgLadder(invS.pal, invS.num, invDir), fgInverse: fgLadder(invS.pal, invS.num, invDir),
+      base: surfAtP(baseS.pal, baseS.num), floor,
+      bg: bgTiers, fg: fgLadder(baseS.pal, baseS.num, dir),
+      bgInverse: { primary: bgInv.primary, secondary: tier(cfg.inverseSecondary, bgInv.secondary), tertiary: tier(cfg.inverseTertiary, bgInv.tertiary) },
+      fgInverse: fgLadder(invS.pal, invS.num, invDir),
       invRgb: surfAtP(invS.pal, invS.num).rgb,
     };
   };
@@ -420,7 +444,8 @@ const SEMANTICS = ['brand', 'success', 'warning', 'danger', 'info'] as const;
 /**
  * Grounds that HAVE a declarative input, and which `surfaces.<mode>` field it is (#956).
  *
- * Only the two page/band anchors are here, and the gap is the point rather than an omission: the
+ * Only the surface ladders are here — the two anchors (#956) and their second and third tiers (#1972) —
+ * and the gap is the point rather than an omission: the
  * other grounds (`text.primary`, `foreground.<semantic>`, `interactive.<c>.fill.rest`, `field.fill`,
  * `disabled.fill`, …) are DERIVED roles that happen to also serve as grounds, so there is nowhere
  * earlier to declare them — they do not exist until derivation has run. The override refusal names
@@ -430,31 +455,60 @@ const SEMANTICS = ['brand', 'success', 'warning', 'danger', 'info'] as const;
 export const GROUND_INPUT: Record<string, string> = {
   'background.primary': 'base',
   'inverse.background.primary': 'inverseBase',
+  // The page and inverse tiers (#1972). Overridden, each left its dependents on the old surface: the S4b
+  // probe saw `inverse.background.secondary` leave 12 roles reported stale.
+  'background.secondary': 'secondary',
+  'background.tertiary': 'tertiary',
+  'inverse.background.secondary': 'inverseSecondary',
+  'inverse.background.tertiary': 'inverseTertiary',
 };
 
 /**
- * THE LABEL → GLYPH OVERRIDE TWIN (#1617). `interactive.<c>.icon.<st>` (and its `inverse.` column) is
- * minted as a VALUE twin of `interactive.<c>.text.<st>` — the same derived candidate (#1471). The
- * override layer rewrites exactly one role, so an override on the label ink alone used to move the
- * label and leave the glyph at the derived value: near-black label, grey icon on the owner's NB file.
- * The requirement is that an outline / text control's icon always matches its label, so an override on
- * a `text` twin is carried to its `icon` twin — unless the icon carries its own explicit override, which
- * wins. `border` is deliberately NOT coupled: a border override is an independent authoring choice.
+ * THE LABEL → GLYPH OVERRIDE TWIN (#1617, widened #1968). Every `text` role is minted beside an `icon`
+ * role at the same path with the `text` segment swapped — `text.brand` / `icon.brand`, `inverse.text.link.hover`
+ * / `inverse.icon.link.hover`, `interactive.<c>.text.rest` / `interactive.<c>.icon.rest`. The override layer
+ * rewrites exactly one role, so an override on the label ink alone used to move the label and leave the glyph
+ * at the derived value: near-black label, grey icon on the owner's NB file. So an override on a `text` role is
+ * carried to its `icon` twin — unless the icon carries its own explicit override, which wins. `border` is
+ * deliberately NOT coupled: a border override is an independent authoring choice.
+ *
+ * THE TWIN MAP IS READ OFF THE TREE, not listed: a twin is the swapped path IF this mode's tree has it, so a
+ * family added later is covered the day it emits both halves, and a role absent in this mode carries nothing.
+ *
+ * FOUR CASES, split by whether the icon follows its text regardless of the lever (owner, 2026-10-02 and -03):
+ *   - `(inverse.)interactive.*` — the control's glyph is minted as the label's value twin (#1471) under BOTH
+ *     `iconContrast` values, and #1617's requirement is that it always matches its label. Carried always.
+ *   - `(inverse.)text.primary` and `text.on-<status>` (#1982) — the seven inks whose floor the lever does not
+ *     set: `primary` is the most extreme neutral at `primaryMin`, and an `on-<status>` ink is `onColor` on its
+ *     solid fill at `onMin`, for text and icon alike. Under `'3:1'` the icon keeps its text's floor and value,
+ *     so it follows its text there too. Carried always.
+ *   - `(inverse.)text.tertiary` and `(inverse.)text.<status>-subtle` (#2024, owner 2026-10-03) — their text is
+ *     held to the same 3:1 floor as an icon, so the same rule #1982 applied holds: under `'3:1'` the icon
+ *     follows its text. Carried always. (#1982 had left them out because their icon's floor still comes from
+ *     the lever; the owner's decision is that the equal floor is what decides.)
+ *   - every other pair: `(inverse.)text.secondary` and the bold `(inverse.)text.<status>`. Under
+ *     `iconContrast: '3:1'` the icon's floor is the lever's and sits below its text's, and it derives its own
+ *     value, so carrying the label there would override that choice. Carried only when icons match text
+ *     (`'text'`).
  *
  * Only the post-derivation layer needs this. The pre-derivation `ovRgb` / `asGround` path substitutes
- * overrides only at GROUND reads, and neither twin is a ground (nothing is contrast-measured against a
- * label or glyph ink), so the twin has nothing to feed there. The expanded icon entry is re-rated
- * against its own `against` by the same loop as any explicit override, and the final contrast sweep
- * warns for it exactly as it does for the label.
+ * overrides only at GROUND reads, and no `icon` role is a ground (nothing is contrast-measured against a
+ * glyph ink), so the twin has nothing to feed there. The expanded icon entry is re-rated against its own
+ * `against` by the same loop as any explicit override — a carried link meets the same floor clamp (#1510) —
+ * and the final contrast sweep warns for it exactly as it does for the label.
  */
-const ICON_TWIN_OF_TEXT = /^((?:inverse\.)?interactive\.[^.]+\.)text\.(rest|hover|pressed)$/;
-export function withIconTwins(ov: ModeOverrides | undefined): ModeOverrides | undefined {
+const TEXT_SEGMENT = /(^|\.)text\./;
+const ALWAYS_TWINNED = /^(?:(?:inverse\.)?interactive\.|(?:inverse\.)?text\.(?:primary|tertiary|(?:brand|success|warning|danger|info)-subtle)$|text\.on-[^.]+$)/;
+export function withIconTwins(
+  ov: ModeOverrides | undefined, roles: Record<string, unknown>, iconContrast: Theme['iconContrast'],
+): ModeOverrides | undefined {
   if (!ov) return ov;
   const out: ModeOverrides = { ...ov };
   for (const [rolePath, ref] of Object.entries(ov)) {
-    const m = ICON_TWIN_OF_TEXT.exec(rolePath);
-    if (!m) continue;
-    const iconPath = `${m[1]}icon.${m[2]}`;
+    if (!TEXT_SEGMENT.test(rolePath)) continue;
+    const iconPath = rolePath.replace(TEXT_SEGMENT, '$1icon.');
+    if (!(iconPath in roles)) continue;                 // no twin in this mode's tree
+    if (iconContrast !== 'text' && !ALWAYS_TWINNED.test(rolePath)) continue;
     if (!(iconPath in ov)) out[iconPath] = ref;         // an explicit icon override wins
   }
   return out;
@@ -543,6 +597,29 @@ export const engineGrounds = (roles: Record<string, ResolvedRole>): Set<string> 
  *  the blast radius in the very message that has to justify a refusal. */
 export const groundDependentsOf = (roles: Record<string, ResolvedRole>, g: string): string[] =>
   Object.keys(roles).filter((k) => roles[k].against === g || roles[k].legibleFor === g).sort();
+
+/**
+ * The ground an OVERRIDE is re-rated against (#2025, #2034): `self`, a role in this mode, or a
+ * `<palette>.<step>` on this theme's ramps (the contrast floor names one). Anything else falls back to
+ * the page base, and that fallback is WARNED, naming the role and, in `unresolved`, the ground it could
+ * not find. Unreachable from any input today: every `against` the engine writes is a role or
+ * a step, which `lint-ratio-truth` arm C holds across the corpus and its sweep. Warned rather than
+ * thrown because the miss would be the engine's defect, not the brand's, and a throw would refuse a
+ * brand for it. Exported so `test.ts` FO-02 can hand it a ground no input can reach.
+ */
+export const overrideGroundRgb = (
+  rolePath: string, against: string, min: number, self: RGB,
+  rgbByRole: ReadonlyMap<string, RGB>, ramps: ReadonlyMap<string, Step[]>, page: RGB, warnings: OverrideWarning[],
+): RGB => {
+  if (against === 'self') return self;
+  const role = rgbByRole.get(against);
+  if (role) return role;
+  const dot = against.lastIndexOf('.');
+  const step = dot < 0 ? undefined : ramps.get(against.slice(0, dot))?.find((s) => s.key === against.slice(dot + 1))?.rgb;
+  if (step) return step;
+  warnings.push({ role: rolePath, ratio: contrast(self, page), min, unresolved: against });
+  return page;
+};
 
 const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<string, Step[]>): ModeResult => {
   const ns = theme.namespace;
@@ -1905,7 +1982,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // pin here would let a deliberate fill choice silently push link text below its floor. A link
     // colour is overridable in its own right.
     // The link palette (#1496). Links DEFAULT to following the action palette — `theme.linkPalette`
-    // resolves to the action palette when the `linkPalette` lever is unset, so `linkFollowsAction` is
+    // resolves to `roleToPalette.action` (= `r2p.action`, a `roleColors.action` rebase included, #1895)
+    // when the `linkPalette` lever is unset, so `linkFollowsAction` is
     // true and the derivation below is byte-identical to pre-#1496 (same `r2p.action` name, same anchor
     // path). A brand that sets `linkPalette` decouples links onto another palette (primary / neutral / a
     // custom accent). When decoupled we use the palette's own baseline anchor (`theme.linkAnchorStep`),
@@ -2163,7 +2241,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // because a ref naming a role absent in this mode is skipped, so the input and what applied are not
   // the same set.
   const overridden = new Set<string>();
-  const ov = withFillStateTwins(withIconTwins(theme.overrides?.[mode]));
+  const ov = withFillStateTwins(withIconTwins(theme.overrides?.[mode], roles, theme.iconContrast));
   if (ov) {
     for (const [rolePath, ref] of Object.entries(ov)) {
       const existing = roles[rolePath];
@@ -2212,7 +2290,12 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       const step = steps.find((s) => s.key === ref.step);
       if (!step) throw new Error(`overrides[${mode}]: unknown step '${ref.step}' in palette '${ref.palette}' (role '${rolePath}')`);
       const newRgb = step.rgb;
-      const againstRgb = existing.against === 'self' ? newRgb : (rgbByRole.get(existing.against) ?? baseRgb);
+      // A floor-measured role (`foreground.*`, links, `interactive.<c>.fill.*`) names its ground as a
+      // PALETTE STEP — the contrast floor, `neutral.050` — not a role, so it is not in `rgbByRole`. Read
+      // it off the ramp. Falling through to the page base re-rated every overridden floor role on white:
+      // a ratio the tree does not contain, no warning for a floor-only shortfall, and the link clamp
+      // just below clearing white instead of the floor (4,810 sub-contract links in the sweep, #2025).
+      const againstRgb = overrideGroundRgb(rolePath, existing.against, existing.min, newRgb, rgbByRole, ramps, baseRgb, warnings);
       // ---- the LINK floor guard (#1510) ----
       // The general override layer WARNS-not-blocks: a hand-tuned FOREGROUND ink may dip below its bar
       // by the author's choice — applied, emitted, recorded as a warning (the posture just above). A LINK

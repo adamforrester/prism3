@@ -7561,6 +7561,24 @@
       "when_to_use": "Corner rounding of surfaces and controls.",
       "resolves_to": "{nbds.core.dimension.6}"
     },
+    "radius.xl": {
+      "$description": "radius xl — 8px",
+      "meaning": "Corner-radius role — xl",
+      "when_to_use": "Corner rounding of surfaces and controls.",
+      "resolves_to": "{nbds.core.dimension.8}"
+    },
+    "radius.2xl": {
+      "$description": "radius 2xl — 12px",
+      "meaning": "Corner-radius role — 2xl",
+      "when_to_use": "Corner rounding of surfaces and controls.",
+      "resolves_to": "{nbds.core.dimension.12}"
+    },
+    "radius.3xl": {
+      "$description": "radius 3xl — 16px",
+      "meaning": "Corner-radius role — 3xl",
+      "when_to_use": "Corner rounding of surfaces and controls.",
+      "resolves_to": "{nbds.core.dimension.16}"
+    },
     "radius.round": {
       "$description": "radius round — 128px (pill)",
       "meaning": "Corner-radius role — round",
@@ -7572,6 +7590,12 @@
       "meaning": "Corner-radius role — capsule",
       "when_to_use": "Corner rounding of surfaces and controls.",
       "resolves_to": "999px"
+    },
+    "radius.hairline": {
+      "$description": "radius hairline — 1px",
+      "meaning": "Corner-radius role — hairline",
+      "when_to_use": "Corner rounding of surfaces and controls.",
+      "resolves_to": "{nbds.core.dimension.1}"
     },
     "border-width.none": {
       "$description": "border-width none — 0px",
@@ -9864,7 +9888,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
-        "border-width.hairline"
+        "border-width.hairline",
+        "radius.hairline"
       ]
     },
     "core.dimension.2": {
@@ -9930,6 +9955,7 @@
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
         "control.size.sm.dot",
+        "radius.xl",
         "space.100"
       ]
     },
@@ -9949,6 +9975,7 @@
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
         "control.size.lg.dot",
+        "radius.2xl",
         "space.150"
       ]
     },
@@ -9963,6 +9990,7 @@
         "grid.sm.gutter",
         "grid.sm.margin",
         "icon.size.xs",
+        "radius.3xl",
         "space.200"
       ]
     },

@@ -65,7 +65,7 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
 
 ## Scope (#110 — one build, two outputs: the no-fork capstone)
 
-- ✅ **The iframe IS the shared `apps/studio/src` UI** — `apps/plugin/build.mjs` bundles `../../apps/studio/src/main.ts` into
+- ✅ **The iframe IS the shared `apps/studio/src` UI** — `apps/plugin/build.mjs` bundles `../../apps/studio/src/entry.ts` (via `src/ui/entry.ts`) into
   `dist/ui.html` (host=figma), retiring the placeholder. The same source the standalone web app builds;
   not a second UI. `tsconfig.ui.json` repoints at the shared UI so the DOM-clean/no-plugin-typings check
   runs on what's bundled.
@@ -269,8 +269,8 @@ The CLIs and the runbook are in `tools/figma-mcp/`.
 ## Scope (the agent link — an agent drives the running plugin by command)
 
 "The plugin does the writing; the agent does the triggering and reading of the output." With the owner's
-**Agent link** switched on (a temporary dashed chip, bottom-left of the panel — its placement and name are
-open owner decisions), an agent sends a command and reads back a structured result. One protocol, two
+**Agent link** switched on (the **Agent: Off** chip in the top bar opens a small popover with the switch,
+IA-3 and D6; it replaced the bottom-left chip in UI redesign S1.4), an agent sends a command and reads back a structured result. One protocol, two
 transports: A, the file mailbox, and B, the local desktop bridge.
 
 - ✅ **One protocol** — `src/agent-protocol.ts`, context-neutral like `messages.ts` (compiles under both
@@ -303,8 +303,9 @@ transports: A, the file mailbox, and B, the local desktop bridge.
   Gate: `test-agent-bridge.ts`.
 - ⏭ **No `cleanup` command** — no panel action removes components, and the link routes only to those.
 
-The iframe entry is now `src/ui/entry.ts`: it imports `apps/studio/src/main.ts` whole and unchanged (one UI,
-no fork) and mounts the agent-link chip beside it, so the web build carries none of it.
+The iframe entry is now `src/ui/entry.ts`: it imports the studio entry `apps/studio/src/entry.ts` (which mounts `apps/studio/src/main.ts`) whole and unchanged (one UI,
+no fork) and mounts the Agent chip into the top bar's `bar-agent` slot, which only the plugin's frame
+renders, so the web build carries none of it.
 
 ## Run
 
@@ -319,7 +320,7 @@ npm test -w @prism3/plugin           # write + read + persist + float + styles +
 Then in Figma: **Plugins → Development → Import plugin from manifest…** → pick `apps/plugin/manifest.json`.
 The UI iframe is a single self-contained HTML file (the bundled shared UI is inlined) — required because
 the iframe has no server to fetch from and ships with no network access. Tune the brand with the knobs,
-then open the brand menu → **↳ Apply to Figma variables** to materialise the whole generated
+then select **Apply Theme** (on the top bar, or in the Figma menu) to materialise the whole generated
 system — `core-palette` + `color`, the ten FLOAT collections (`core-dimension`, `space`, `radius`,
 `size`, `icon`, `control`, `border-width`, `focus`, `opacity`, `layout`), shadow/gradient Styles, and font variables +
 Text Styles (#237, see above) — into the current file; the panel reports any existing Prism3 theme
@@ -327,7 +328,7 @@ found on boot.
 
 ## ⚠️ The plugin does NOT auto-update when the web UI changes
 
-The iframe UI is **built, not referenced** — `build.mjs` bundles + inlines `apps/studio/src/main.ts` into
+The iframe UI is **built, not referenced** — `build.mjs` bundles + inlines the studio UI (entry `apps/studio/src/entry.ts`) into
 `dist/ui.html` at build time (it must: the iframe has no server and ships zero network access). So
 `dist/` is a **gitignored build artifact** that only reflects `apps/studio/src` as of the last build. **Editing
 `apps/studio/src` — or pulling web-lane changes on `main` — does nothing to the plugin until you rebuild.** This

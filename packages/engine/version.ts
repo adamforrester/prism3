@@ -2744,6 +2744,213 @@
 /**
  * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
  *
+ * 0.227.1 — folded 2026-10-05 from 1 change note, newest merge first.
+ *
+ * [notes-2114-unresolved-ground · patch · a4ec4243] An override whose ground is neither a role nor a ramp step now names that ground in the warning's own
+ * `unresolved` field (a string) instead of in `against` with `unresolved: true` (#2097 item 3, #2114).
+ * `against` on an OverrideWarning keeps its one meaning, a second ground the miss is on, so lint-ratio-truth
+ * would no longer read this warning as a confession for a pair that does not exist. No emitted artifact moves.
+ *
+ * 0.227.0 — folded 2026-10-04 from 1 change note, newest merge first.
+ *
+ * [engine-lever-copy-2050 · minor · 2dbe9e55] Plain words for the shape, motion, layout and type lever names and descriptions (#2050, #2005), and the
+ * typography lock reasons in REQUIRED_WEIGHT_ROLES, owner-approved copy. Each motion.transition.*
+ * $description now names the curve its easing role resolves to, not the transition's fixed default (#2062).
+ * No lever key or token path moves.
+ *
+ * 0.226.0 — folded 2026-10-04 from 1 change note, newest merge first.
+ *
+ * [engine-2033-floorstep-strict · minor · 907ba977] surfaces.<mode>.floorStep refuses a value that is not a step on the neutral ramp (#2033, owner go-ahead
+ * 2026-10-04), the check base and inverseBase got in #1985: a typo must never silently move the contrast floor.
+ * 333 used to resolve to neutral.350 and 1234 to neutral.950, moving every floor-gated role with no error; both
+ * now throw, naming the key and the nearest real step. A non-number is refused by name. Real steps are accepted
+ * unchanged. The off-ramp refusal is now one helper shared by the six surface anchors and floorStep, and the
+ * anchor messages are unchanged. Minor, not major: ENGINE major is refused below 1.0, what is refused was
+ * already resolving to a floor nobody chose, and no corpus brand, fixture, gate case or Studio control relied on
+ * snapping (every floorStep measured was a real step: 100, 200, 300, 800). No token path moves, so
+ * CONTRACT_VERSION does not.
+ *
+ * 0.225.0 — folded 2026-10-04 from 3 change notes, newest merge first.
+ *
+ * [engine-fo01-coverage-fallback-warn-2034 · minor · 4e432fe4] An override whose ground is neither a role in its mode nor a ramp step is now warned. The override pass still re-rates the pick on the page base, as before, but it adds an `OverrideWarning` with `unresolved: true` that names the role and the ground it could not find. It is no longer silent (#2034). No input reaches this today: every ground the engine writes is a role or a step, and 5,726 override cases across the corpus produced none. So no emitted artifact moves.
+ *
+ * [engine-2053-radius-hairline-always · minor · 0f869e7a] radius.hairline (1px, aliasing core.dimension.1) is always emitted (#2053, owner 2026-10-04). It was
+ * opt-in through radiusHairline (#1362), or implied by controlShape: 'hairline' (#1371); radiusScale now
+ * pushes it for every brand, the NB fixture included, so a 1px corner is always reachable and the Studio
+ * switch could read Off while a control shape used it. radiusHairline is still ACCEPTED in brand input, so
+ * existing brand files load, but it changes nothing: a note says so, the lever manifest marks it
+ * deprecated, and the schema marks it deprecated. controlShape: 'hairline' still binds radius.hairline.
+ * Every emitted brand gains one radius token and one Figma variable. CONTRACT 14.1.0 to 14.2.0 (MINOR):
+ * radius.hairline joins the guaranteed surface.
+ *
+ * [engine-1985-surface-base-strict · minor · 7729217e] surfaces.<mode>.base and inverseBase refuse unknown keywords and steps that are not on the palette's ramp
+ * (#1985, owner 2026-10-03, option A): a typo must never silently pick a color. 'grey' used to resolve to
+ * neutral.025 and 333 to neutral.350; both now throw, naming the key and, for an off-ramp number, the nearest
+ * real step. This is the check the four tier inputs got in #1972, now one check over all six surface anchors,
+ * and the tier messages name the nearest step too. Minor, not major: ENGINE major is refused below 1.0, what is
+ * refused was already resolving to an unintended color, and no corpus brand, fixture, gate case or Studio
+ * control relied on snapping (1,688 resolutions measured, 0 off the ramp). No token path moves, so
+ * CONTRACT_VERSION does not.
+ *
+ * 0.224.0 — folded 2026-10-03 from 2 change notes, newest merge first.
+ *
+ * [engine-override-floor-ground-2025 · minor · 38e40092] An override is re-rated against its real ground when that ground is a palette step (#2025). A floor-measured role (foreground.*, text.link.*, icon.link.*, interactive.<c>.fill.*) names the contrast floor, a ramp step such as neutral.050, as its ground. The override pass looked that ground up among roles only and fell back to the page base, so an overridden floor role recorded its contrast on the page, a shortfall that existed only on the floor raised no warning, and the #1510 link clamp cleared the page instead of the floor. Across a sweep of every link override on six corpus brands, 4,810 link values were emitted below their contract on the floor (worst 2.66:1), each recording a ratio that cleared it. The ground is now read off the theme's ramps. Minor, not patch: no committed artifact moves, because no corpus brand overrides a floor-measured role, but a brand that does now emits a different link value and may gain a warning.
+ *
+ * [engine-2024-icons-follow-text · minor · af875310] Under iconContrast '3:1', tertiary and -subtle icons follow their text too (#2024, owner 2026-10-03). The
+ * always-carried set in withIconTwins (ALWAYS_TWINNED) gains (inverse.)text.tertiary and
+ * (inverse.)text.<status>-subtle, whose text is held to the same 3:1 floor as an icon: the rule #1982 applied.
+ * That makes 19 icons follow their text while unpaired; the other 12, (inverse.)icon.secondary and the bold
+ * (inverse.)icon.<status>, still derive and edit on their own. An explicit icon override still wins.
+ * Interactive icons were already carried (#1617). No token path moves, so CONTRACT_VERSION does not.
+ *
+ * 0.223.0 — folded 2026-10-02 from 1 change note, newest merge first.
+ *
+ * [engine-icon-floor-follows-text-1982 · minor · 41fb2431] Under iconContrast '3:1', the seven icon roles that keep a 4.5:1 floor now follow their text (#1982):
+ * icon.primary, inverse.icon.primary and icon.on-brand, -success, -warning, -danger and -info. The lever
+ * does not lower their floor, so they already derived equal to their text, but an override on the text
+ * was left behind on the icon. withIconTwins now carries those seven pairs under both lever values, as
+ * it does the interactive ones. Every other pair still carries only under 'text'. An explicit icon
+ * override still wins. No path is added or removed, so CONTRACT_VERSION is unchanged, and no committed
+ * artifact moves: no corpus brand under '3:1' carries a text override on these.
+ *
+ * 0.222.0 — folded 2026-10-02 from 1 change note, newest merge first.
+ *
+ * [engine-bg-tier-inputs · minor · 75104b3e] The background tiers are inputs (#1972). `surfaces.<light|dark>` takes four optional keys:
+ * `secondary` and `tertiary` (the page's second and third tiers, neutral-only like `base`) and
+ * `inverseSecondary` and `inverseTertiary` (the inverse band's, the same forms as `inverseBase`). Each is
+ * read during derivation, so every role measured against the tier re-derives against it. A declared
+ * `secondary` carries the contrast floor with it unless `floorStep` is set, so the 46 floor-gated roles
+ * per mode re-measure too; high-contrast modes follow the standard floor, as they already do for `base`.
+ * An `overrides` entry on any of the four is now refused, naming the input. Unset, every tier is the
+ * ladder's own step and every artifact is byte-identical. The keys are checked in `brandTheme` (white,
+ * black, or a step on the palette's ramp), because the schema validator skips `allOf`/`oneOf`. Token
+ * paths are unchanged, so CONTRACT_VERSION does not move.
+ *
+ * 0.221.0 — folded 2026-10-02 from 1 change note, newest merge first.
+ *
+ * [engine-icon-follows-text · minor · 2b413d28] A text override carries to its icon twin wherever the tree has one, when icons match text (#1968).
+ * Before, only the interactive label inks did (#1617): an override on text.brand left icon.brand at its
+ * derived value even under iconContrast 'text', the default, and the icon has no editor of its own.
+ * withIconTwins now reads the twin map off the mode's tree (the path with its text segment swapped for
+ * icon), so text.*, inverse.text.* and both link families carry. Under iconContrast '3:1' only the
+ * interactive pairs carry, because a non-interactive icon then has its own floor and derives its own
+ * value; the interactive glyph is the label's value twin under both lever values (owner, 2026-10-02).
+ * An explicit icon override still wins. No path is added or removed, so CONTRACT_VERSION is unchanged,
+ * and no committed artifact moves: no corpus brand carries a per-mode override.
+ *
+ * 0.220.0 — folded 2026-10-01 from 3 change notes, newest merge first.
+ *
+ * [lane-links-follow-action · minor · 8b793d96] #1895: an unset `linkPalette` follows the palette the action role resolves to, `roleColors.action`
+ * included (owner decision 2026-10-01). It followed the `actionPalette` lever, so a brand that moved action
+ * with `roleColors.action` got action fills on the new palette and links still on primary. `theme.ts` now
+ * resolves `input.linkPalette ?? roleToPalette.action`, and modes.ts then takes its existing
+ * link-follows-action path, so the link anchors as the action fill does. An explicit `linkPalette` still
+ * wins. No corpus brand sets `roleColors.action`, so no `out/` artifact moves; `schema/lever-manifest.json`
+ * moves for the `linkPalette` description, which now says links follow the action color including a
+ * `roleColors.action` override. The two decisions-log notes for a set `linkPalette` now compare against
+ * the resolved action palette and say "the action color" instead of "actionPalette" (owner decision
+ * 2026-10-01). No token name moves.
+ *
+ * [lane-write-safety-floor · minor · 5a70ec82] Plugin write-path safety floor (#1884, #506 case c): every effect, paint, grid and text style Apply Theme
+ * writes now carries an ownership mark, shared plugin data `prism3`/`owned` = `1`, stamped whether the
+ * style was created or reused. The apply pre-flight reads the mark before the description. A style a
+ * designer re-described is still recognized as Prism3's. Before this, its next apply was refused and named
+ * the style as not created by Prism3. Styles written before the mark existed are still recognized by the
+ * engine's description templates, or by the persisted brand in a file older than the mode stamp, and the
+ * next apply marks them. A file built by any earlier version re-applies with nothing created and no
+ * conflict. Variables carry no mark: the pre-flight judges a variable by its collection's stamp and checks
+ * its type in every era. Nothing changes for a foreign file. It is still refused whole before the first
+ * write, and the verdict names each collision.
+ *
+ * [lane-notes-voice · minor · 07db9e67] Every decisions-log note follows the voice standard's UI register (#1883). `theme.notes` ships in the
+ * MCP `theme_brand` result, each emitted tree's `decisions`, the reports and the studio's Decisions log,
+ * and its notes were engine-voiced: "CONFIRM" directives, all-caps words, issue numbers, a date and
+ * maintainer terms ("hairline sentinel", "LIFT-primary", "DTCG composite spine"). Each note now says
+ * what the engine decided, then why, in plain words. Text only: no decision changes, and no token,
+ * contrast result or contract path moves. The `WCAG 1.4.1` citation the studio's link advisory reads is
+ * kept verbatim. The provenance the notes carried (issue numbers, the date) moved to comments beside
+ * each push. `lint-voice.ts` gains a DECISIONS LOG arm that renders every producer across the corpus, a
+ * sweep of brand inputs and every schema enum value, reads the literals of every push, and fails an issue number, an all-caps word, a date, an internal id or a
+ * maintainer term in any note, and any note no known producer claims.
+ *
+ * 0.219.0 — folded 2026-10-01 from 5 change notes, newest merge first.
+ *
+ * [lane-radius-large-rungs · minor · 6670a1fc] Three container radius rungs, `radius.xl`, `radius.2xl` and `radius.3xl` (#1852). The ladder stopped at
+ * `radius.lg` (6px at the default scale), so a card, panel, sheet or dialog wanting an 8-16px corner bound a
+ * `core.dimension.*` primitive, which `radiusScale` never moves. The new rungs are `baseMd` x 2, x 3 and x 4,
+ * scaled by `radiusScale` and snapped to the 2px sub-grid like the rungs below them: 8, 12 and 16px at the
+ * default (owner decision, 2026-09-30, reproducing Prism 2's container ramp), 16, 24 and 32px on aurora
+ * (`radiusScale` 2), 0 at `radiusScale` 0. They reach every emission the ladder already reaches: DTCG, the
+ * per-mode overrides (`modeLevers.radius`, wireframe), the Figma `radius` collection, `.ai.json`, and the
+ * reports. No component binds them yet. The Figma dimension sort now treats a key as a number only when the
+ * whole key is one, so `2xl` and `3xl` list after `xl` rather than before `none` (`parseFloat('2xl')` is 2).
+ * The colour emitter's copy of that sort takes the same rule; no colour key is digit-led, so no colour
+ * output moves. Caveat, as for #1594: the order fixes CREATION order only. In a Figma file that already
+ * holds the radius collection the plugin cannot reorder variables, so the three new rungs are appended after
+ * `capsule` (and `hairline`, where a brand has it). Only a newly built file gets ladder order.
+ * CONTRACT 14.0.0 to 14.1.0 (three guaranteed paths added).
+ *
+ * [lane-paste-packer-remeasure · patch · 218c959e] #1814: `planSetChunks` measures every chunk as it will ship, at its final index and total, and keeps moving a
+ * variant on to the next chunk until every chunk of more than one variant fits the budget. It used to move one
+ * variant off an over-budget last chunk and never measure again. For every set and budget measured the chunks
+ * are the same as before; the loop replaces an unstated one-byte margin with a measurement.
+ *
+ * [lane-paste-axes-placement · minor · b1f0add1] #1809: the MCP paste script (the chunked `planSetChunks` payload) gets the two find-or-create
+ * fixes the plugin got in #1780 and #1750. A paste over a component set whose variant AXES differ from the plan's
+ * (an axis gained, lost or renamed) is refused on every chunk with the plugin's own `set -> AXES CHANGED` miss, and
+ * nothing is appended into the old set. A new set pasted onto a page that already has content is placed
+ * top-aligned with the sets there and 160px right of everything in its row, instead of at the origin over the
+ * set before it. Chunk 1 places it; later chunks append and do not move it. The chunk shell grows 1,176 bytes, so
+ * icon-button's set packs into 16 chunks, from 14.
+ *
+ * [lane-weight-intent-exclusions · minor · 34464962] #1746: `validateComponentDef` refuses a `figmaProperties.excludeCoordinates` entry that names the def's
+ * `weightIntent` axis. A brand that ships one weight for the group drops that axis (`applyWeightIntent`), and the
+ * entry would then be ignored by the projector while `figmaVariantCount` still counted the rest of it, so #1355's
+ * integrity check would fire on a def that validated. No def in the registry names it, so no emitted artifact
+ * moves.
+ *
+ * [lane-mcp-prose-scope · patch · da4d42eb] The MCP server's `theme_from_brief` `brief` argument description no longer uses an RFC 2119 `MUST`
+ * (#1806): "It must open with a --- YAML frontmatter fence on the first line." The voice standard permits
+ * those levels in the payload channel only, and an MCP description is not that channel. Found by the
+ * voice gate's new MCP scope: `lint-us-english.ts` and `lint-voice.ts` now scan `tools/list` as the
+ * server returns it over stdio (`mcp-served.ts`), with the six tool names asserted present. No committed
+ * artifact moves.
+ *
+ * 0.218.0 — folded 2026-09-30 from 3 change notes, newest merge first.
+ *
+ * [lane-theme-from-brief-default · minor · 8f664ecb] #1868: the MCP tool theme_from_brief returned no decisions log unless the caller named sections,
+ * because its include default was an empty list, while its description promised the same payload as
+ * theme_brand, whose default is the decisions log. Both tools now share DEFAULT_THEME_SECTIONS, and
+ * theme_from_brief's include description says it replaces the default. A behavior change to a shipped
+ * tool's default output, so an ENGINE bump. CONTRACT STANDS (no token name moves).
+ *
+ * [lane-vocabulary-provenance · minor · 3750d9bd] Personality trait notes name no source brand (#1824). Each trait's `why`, which `resolveVocabulary`
+ * copies into `theme.notes` (served by the MCP server, emitted as the tree's `decisions`, inlined into
+ * every bundle), used to quote the example briefs by name, and some of those briefs are real brands'.
+ * Each note now says what the trait sets and why, in the UI register, and a trait that applied no setting (every one kept) logs what it kept without a `why`. The research provenance moved to
+ * `test.ts`, which ships nowhere and still checks every quote verbatim against the committed briefs
+ * (#1685). Bundled comments and one rename rule's `why` that named a client were reworded the same way.
+ * `lint-voice.ts` gains a CLIENT NAMES arm over both built bundles (raw, comments included) and every
+ * rendered trait note. No committed artifact moves: no corpus brand sets `personality`.
+ *
+ * [lane-mcp-initialize-fallback · minor · b86b1f41] #1867: the MCP server's `initialize` answered a protocol version it did not speak with its newest,
+ * `2026-07-28`. That revision removed the handshake, so no client that sends `initialize` can use it:
+ * Claude Code asks for `2025-11-25` and refused to connect. `initialize` now echoes a version it
+ * speaks, and otherwise answers `2024-11-05` (HANDSHAKE_PROTOCOL_VERSION), the newest revision this
+ * server speaks that still has the handshake. Stateless requests are unchanged. A behavior change to a
+ * shipped server, so an ENGINE bump. CONTRACT STANDS (no token name moves).
+ *
+ * 0.217.0 — folded 2026-09-30 from 1 change note, newest merge first.
+ *
+ * [lane-link-palette-default · minor · 25aa1446] #1812: `schema/lever-manifest.json` stops stating `linkPalette: default 'primary'`. The engine has no
+ * static default for it: an unset `linkPalette` resolves to whatever `actionPalette` resolves to
+ * (`theme.ts`, `input.linkPalette ?? actionPalette`), so on an accent- or neutral-action brand (aurora,
+ * nb-redesign) the manifest named the wrong palette, and any surface or agent rendering "Auto" from it would
+ * too. The lever's description already said "Defaults to following the action palette". New gate: every
+ * lever's manifest default must be a no-op when stated explicitly, measured by running the engine (the DTCG
+ * tree, `test.ts`) and the component materializer (`apps/plugin/test-write-components.ts`) with the lever
+ * unset and set, with a per-(lever, value) sensitivity list for the values only the materializer sees. A shipped manifest change → ENGINE bump. CONTRACT STANDS (no token name moves).
+ *
  * 0.94.0 — the radio/checkbox ROW QA bundle (#1424 + #1433), two owner-approved fixes on the two row defs.
  *
  * #1424 — LONG LABELS WRAP INSTEAD OF OVERFLOWING. Prism 2's radio-button-row / checkbox-row let a long
@@ -4331,7 +4538,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.216.0';
+export const ENGINE_VERSION = '0.227.1';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -4774,6 +4981,14 @@ export const ENGINE_VERSION = '0.216.0';
  * `color.interactive.neutral.overlay.hover` — no new role. So `transparent` is the whole guaranteed diff.
  * (#1341/#1342)
  *
+ * 14.1.0 — #1852 adds THREE guaranteed names: `radius.xl`, `radius.2xl` and `radius.3xl`, the container corners
+ * (card, panel, sheet, dialog) above `radius.lg`'s 6px. All three are rungs of the scaled ladder (`baseMd × 2`,
+ * `× 3` and `× 4`, then `radiusScale`, snapped to the 2px sub-grid: 8, 12 and 16px at the default; owner
+ * decision 2026-09-30, reproducing Prism 2's container ramp), so every brand at every scale emits them and all
+ * three land in the GUARANTEED intersection. They alias existing `core.dimension.*` steps, so no primitive is
+ * added. A pure ADDITION — a new name cannot break an existing reference — so a clean MINOR: 14.0.0 → 14.1.0.
+ * Nothing is removed or retyped. (#1852)
+ *
  * 14.0.0 — the spacing model (owner-decided MAJOR 2026-09-29, zero consumers confirmed): REMOVE the shared
  * size scale's spacing tokens, `size.{xs,sm,md,lg,xl}.{padding-x,padding-x-visual,padding-y,gap}` — 20 guaranteed
  * paths, gone from DTCG, the Figma `size` collection and every other emission. `size.*` now holds control
@@ -4860,7 +5075,13 @@ export const ENGINE_VERSION = '0.216.0';
  * count never forces a contract move again. No DEPRECATIONS entry — a demotion has no replacement path, the
  * name itself is what the 5-and-6-floor brands still emit. Nothing is added or retyped. (#1479)
  */
-export const CONTRACT_VERSION = '14.0.0';
+/**
+ * 14.2.0 (#2053, owner 2026-10-04): MINOR. `radius.hairline` (1px, aliasing `core.dimension.1`) joins the
+ * guaranteed surface. It was opt-in (`radiusHairline`, #1362) and so brand-dependent; every brand now emits
+ * it, the NB fixture included, because `radiusScale` pushes it unconditionally. An added path cannot break a
+ * reference. Nothing is removed or retyped. `radiusHairline` stays accepted in brand input and changes nothing.
+ */
+export const CONTRACT_VERSION = '14.2.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

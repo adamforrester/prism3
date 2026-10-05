@@ -1,0 +1,74 @@
+# UI redesign: owner QA notes on concept v6 (2026-10-01)
+
+The owner's QA notes on the v6 mockup, sent during S1.2 of the implementation plan. This file extends `decisions-2026-09-30-v6-review.md`, and wins wherever the two differ. S1.2 applies Q1 to Q3 (`docs/progress/pending/ui-s1-2-frame.md`); Q4 is deferred.
+
+| # | Topic | Decision |
+|---|---|---|
+| Q1 | Color sub-nav placement | On the Color tab, the **Palettes · Surfaces & fills · Interactive** segments go **below the tab row's divider**, not above it. The tab row and its hairline come first; the sub-nav sits under the line, at the top of the levers panel. |
+| Q2 | Divider alignment | The levers tab row and the preview title row **share one height**, so their bottom dividers sit at the same y across the split. In v6 the two lines are visibly offset. Both rows take one shared header-height value. `test:chrome` checks it: the tab row's bottom border and the preview header's bottom border at the same y, within 0.5px, at 1280, in light and dark, on a page with the sub-nav and one without. At 380 there is one pane, so the check is skipped there. |
+| Q3 | Search | The always-visible "Search settings" field is out of place. Whether to keep search at all is **open**: the owner wants to see it working first (v6's search typed characters backwards). Search goes **behind an icon button in the levers header**: a magnifier, a target of 24px or more, named "Search settings". It opens a field in place; Escape closes it and returns focus to the icon. The caret holds and nothing is rebuilt per keystroke (the P2 subscriber model; the field itself is never re-rendered). A test types "radius" and reads "radius" back, with the radius lever among the results. Flagged in the PR **for the owner's review: keep or remove**. |
+| Q4 | Preview follows the lever | **Deferred.** The owner is open to a later trial: the preview scrolls to show the part that matches the lever being edited. It is tried on one section first, in one slice (likely S2, Palettes), and the owner then decides whether it applies everywhere. Not built in S1.2. |
+
+Other notes from the owner, for the overnight lanes: a design call that neither v6 nor these notes cover takes the option closest to v6 and is flagged in the PR. Nothing brand-facing is decided in a lane.
+
+## Later decisions (2026-10-01)
+
+The owner's decisions taken during S3 and S4 of the implementation plan. They extend the table above and win wherever an earlier file differs. S4a (Color › Surfaces & fills, the page) applies Q5 and Q6.
+
+| # | Topic | Decision |
+|---|---|---|
+| Q5 | The Color previews | **The Color previews reuse the legacy Style guide's sections, with ratio badges.** Color › Surfaces & fills departs from concept v6's preview: it shows the Style guide's **Background, Foreground, Text color, Border and Icon** sections, drawn from the same shared code as the Style guide (`apps/studio/src/preview/sections/`), so the two cannot drift. Each token chip there carries a **contrast ratio badge**, below-floor marked by the role's own floor. The badge is on Surfaces & fills only; the Style guide stays as it was. |
+| Q6 | Brand's MVP preview | **The MVP Brand preview is the legacy Style guide.** The condensed preview is backlogged as #1941, and the typography sample as #1942 (with S6). S5's Interactive preview adds the text buttons v6 left out. |
+| Q7 | Modes in the brand menu | **Everything about modes leaves the brand menu.** Brand › Modes is the only Modes editor. Done in a separate PR (#1949) stacked on #1939, closing #1943. No other page adds a mode control outside Brand › Modes. |
+| Q8 | A status color switched to Custom | **It starts from the color it currently auto-derives**, not `#808080`, and the user edits from there. Done in a separate PR. |
+| Q9 | Neutral chroma under Follow primary | **Stays read-only**, S2's current (legacy) behavior. Nothing changes. |
+| Q10 | Neutral copy from S1.2 to S3 | **Approved:** the new neutral copy listed in #1922, #1923, #1929, #1935 and #1939, with one exception: "Back to the page" became "Back" (#1950). |
+| Q11 | Two glyphs | **"⋯" becomes "…" everywhere, and a plain "⚠" is used, never "⚠" with the emoji selector.** Done in a separate PR. |
+| Q12 | The apply action's name | **"Apply Theme" replaces "Apply to Figma".** Done in a separate PR. |
+| Q13 | Search (Q3) | **Stays for now.** |
+| Q14 | The Q4 trial | **Kept.** The preview scrolls smoothly and respects reduced motion. Done in a separate PR. |
+| Q15 | Dark off while a custom mode is based on Dark | **The engine's refusal stays.** The confirm names the blocking mode and no data is lost (done in S3). The longer-term snapshot model is filed as #1946. |
+| Q16 | Removing a brand color | **Asks to confirm first, in place.** Done in a separate PR. |
+| Q17 | The Activity strip at 380 | **Fine for now** at the bottom. |
+| Q18 | Font licenses | **The notice plus its URL is confirmed.** |
+| Q19 | Which mode the fill and text rows on Surfaces & fills edit | **The mode the preview shows** (the legacy behavior), not light only as v6 R5 had it. |
+| Q20 | Where text colors are edited | **The Text rows on Surfaces & fills are the permanent, primary text editor**, not an interim one. The preview uses the legacy Text color display. The Roles matrix (S4b) is a **secondary** view, a role × mode overview with quick per-mode edits. It is never the only way to edit a token: every role it covers also has a normal row on its page. |
+| Q21 | Surfaces & fills option sets | **Aligned for now:** the legacy option sets stay (all neutral steps, no Auto for Page, the band as palette + step), and ~~Light and Dark surfaces are both always shown~~ (**superseded by Q22**: one set of surface controls, for the mode the preview shows). The owner confirms on seeing the page. |
+
+## Decisions of 2026-10-02
+
+The owner's decisions after seeing S4a's page and S5's scoping, confirmed in chat. They extend the tables above and win wherever an earlier file differs. Copy marked APPROVED is final wording. S4c (Color › Surfaces & fills revisions) applies Q22 for Surfaces & fills, Q23 to Q30 and Q31's no-op, and builds Q41 and Q42; S5.2 (Color › Interactive) applies Q22 for Interactive and Q32 to Q40; S4d (Surfaces & fills rows) applies Q44 to Q50.
+
+| # | Topic | Decision |
+|---|---|---|
+| Q22 | Which mode a semantic page edits | **Q19 is extended: every semantic page edits the mode the preview shows.** On Surfaces & fills that includes the Surfaces controls (Page, Contrast floor, Inverse band): Light and Dark are no longer shown side by side, there is one set of controls for the previewed mode. This reverses that part of Q21. On Interactive it includes the rows and the column anchors. Follow-up #1967: assess an "Editing: ‹mode›" label; not built now. |
+| Q23 | Copy rule | **Lever labels, section headings and descriptions match the copy of the corresponding preview section.** |
+| Q24 | Styling | **The preview's section containers** (the "Background" and "Foreground" header cards on Surfaces & fills, for example) **use the same lighter gray as the levers panel background.** |
+| Q25 | Page name | **"Surfaces & fills" is kept.** |
+| Q26 | Section heading | **"Surfaces" becomes "Background fills".** APPROVED intro: "The base page planes and their inverse counterparts." (Replaced the same day by the preview's full sentence once the scrim had a row: see below the table.) |
+| Q27 | Page intro | APPROVED: "Background and foreground fills, text, fields and gradients: the colors every page is built on." |
+| Q28 | The Link row | **Removed from Surfaces & fills** (#1961, option b). Links are edited only on Interactive. |
+| Q29 | Fields section | **A new "Fields" section on Surfaces & fills, with every field role editable:** `field.fill` plus the 7 with no editor today (#1962). APPROVED intro: "Form field fills, borders and text, in every state." The field rows live on Surfaces & fills, so the page-assignment rule in `pages.ts` (which gave the `field` family to Interactive) and `test-pages` move with them. |
+| Q30 | Focus ring | **A read-only focus ring display goes next to Border** on Surfaces & fills. Making it customizable is #1966, not now. |
+| Q31 | Roles matrix (S4b) | **Deferred: it will not be built.** It is folded into a post-MVP editable-token-table idea (#1969). It is not part of the `pages.ts` UI, and no Roles toggle is drawn. The `roles` prefixes in `pages.ts` stay: `test-pages` uses them for coverage. |
+| Q32 | C1, text buttons | **The Interactive preview gets a Text button row** beside Filled, Outline and Inverse. Brand's Style guide gets it too, shared through `preview/sections/interactive.ts`. |
+| Q33 | C2, per-column colors | **Every per-column color is editable as rows.** Order: Primary, Neutral, Destructive, then the accents. Hover and pressed are grouped under their fill: generated from the fill, and overridable. All groups start expanded, with jump links at the top of the levers to each column group. No collapsing for now. |
+| Q34 | C3, which mode | **Rows and anchors edit the previewed mode** (Q22). |
+| Q35 | C4, option sets | **Today's option sets are kept:** anchor steps (all), promotable palettes (excluding Primary), the action palette (excluding Neutral, #1811). "We worked on this quite a bit and I don't want to lose that." |
+| Q36 | C5, link palette | **The link palette gets "Auto: follows action palette".** |
+| Q37 | C6, disabled floor | **The reduced disabled floor is four chips** (3 / 3.5 / 4 / 4.5), disabled under Full. |
+| Q38 | C10, strict contrast | APPROVED caption: "Off: inverse button labels clear 4.5:1 at rest and may dip on hover and pressed. On: they clear 4.5:1 in every state." |
+| Q39 | C11, columns in the preview | **The Interactive preview shows every column, accents included.** Brand's Style guide keeps Primary, Neutral and Destructive, plus the Text row (Q32). |
+| Q40 | Add-column hint | **"on Primitives" becomes "on Palettes":** "Add a brand color on Palettes to create another interactive color." |
+| Q41 | Surface controls name their token | Added later the same day, while S4c was in review. **Each control names the token it sets**, the way the fill rows name their role, with the human label kept as secondary text: Page sets `background.primary` (by writing `surfaces.<mode>.base`), Inverse band sets `inverse.background.primary` (by writing `surfaces.<mode>.inverseBase`); Contrast floor is a setting, not a token, and keeps its label. The visible wording of those labels is awaiting the owner's approval. |
+| Q42 | Scrim | **The scrim gets a read-only row** showing its value and opacity. With the scrim in the levers, Q26's intro gives way to the preview's full sentence, which matches it under Q23: "The base page planes, their inverse counterparts, and the scrim that dims them behind a modal." Still open with the owner, and left as on `main`: the color of the area the specimens sit in (today the brand's `background.primary`). |
+| Q43 | Preview grounds and badges | **Deferred (#1971).** The owner's direction: the Background and Foreground sections in white containers with no badges, and the contrast-checking sections on the page color. Not built yet. |
+| Q44 | Foreground section | **Primary, Secondary and Tertiary get their own section**, like Background fills. APPROVED heading "Foreground", with the preview's Foreground description (Q23). The "surface" label and the card, panel and nested use cases go; the rows are labeled Primary, Secondary and Tertiary. The bold and subtle fills keep their rows. |
+| Q45 | Page background picker | **The Page control uses the same swatch panel (the step picker) as the rows**, not a native select. The same applies to the Inverse band step. |
+| Q46 | Text color preview | **Two ratio badges per token:** one in the "On light surface" column and one in the "On dark surface" column. They replace the single badge by the token name. |
+| Q47 | Inverse background preview | **The arbitrary inverse-text sample on the inverse background is removed.** |
+| Q48 | Inverse foreground tertiary | It is the only one with a contrast pill. **Investigate:** fix it if it is a bug, report it if it is real. |
+| Q49 | The remaining tokens | **Rows for the remaining tokens** (the 89), except the 4 background tiers, which wait for the engine inputs in #1972: `foreground.*-subtle` (5), `text.on-*` (5), `border.*` (9; `border.focus` stays read-only until #1966), `inverse.foreground.*` (13), `inverse.text.*` (13), `inverse.border.*` (9; `inverse.border.focus` read-only), and the icons (18 and 13 inverse), per Q50. The page gets jump links. |
+| Q50 | Icon rows | **Always visible.** While the `iconContrast` setting is `'text'` (paired), each row is LOCKED and shows "Follows ‹text token›", e.g. "Follows text.brand" (APPROVED). One note at the top of the Icon section reads: "Icons follow their text color. Unpair them to set icons on their own." (APPROVED). It has a button, "Unpair icons from text" (APPROVED), which sets `iconContrast` to its unpaired option (`'3:1'`). Once unpaired, the rows unlock and write overrides. The same applies to the inverse icons. |
+
+Engine, a local lane and not UI: #1968, when `iconContrast` is `'text'`, a text override carries to its icon twin. Interactive pairs carry under both settings, as today (#1617).

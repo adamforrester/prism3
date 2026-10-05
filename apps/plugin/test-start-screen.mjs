@@ -130,7 +130,7 @@ const readStart = (page) => page.evaluate(() => {
     chips: [...document.querySelectorAll('[data-p3="start-example"]')].map((c) => c.textContent.trim()),
     upload: !!q('[data-p3="start-file"]'),
     // The editor's own surfaces — asserted positively so "nothing rendered" cannot pass as "hydrated".
-    editorRail: document.querySelectorAll('[data-p3^="rail-page-"]').length,
+    editorTabs: document.querySelectorAll('[data-p3="tab-row"] [role="tab"]').length,
     brandSel: q('[data-p3="brand-switcher"]')?.textContent ?? null,
   };
 });
@@ -167,7 +167,7 @@ console.log('\n2. a file WITH a persisted brand hydrates, and shows NO start scr
   ok(await waitStart(page, false), 'restore-input does NOT put the panel on the start screen');
   const s = await readStart(page);
   // POSITIVE, not merely "no start screen": a blank page satisfies the negative form.
-  ok(s.editorRail > 0, `the editor rendered — ${s.editorRail} rail destinations`);
+  ok(s.editorTabs > 0, `the editor rendered — ${s.editorTabs} tabs`);
   ok((s.brandSel ?? '').includes('restored-brand'), `the restored brand is the working brand ("${s.brandSel}")`);
   ok(errors.length === 0, `no console errors (${errors.slice(0, 1).join('') || 'none'})`);
   await page.close();
@@ -201,15 +201,18 @@ console.log('\n3. variables in the file but no stored brand: start screen, and t
   // being the relevant fact the moment the session has one.
   const { page } = await openPanel();
   await post(page, { type: 'restore-input-empty' });
-  await waitStart(page, true);
-  await page.locator('[data-p3="start-example"]').first().click();
+  // Kept, not discarded: the start screen seen here by the same probe is what makes "no start screen"
+  // below a measurement rather than a lookup that finds nothing (#1831).
+  const sawStart = await waitStart(page, true);
+  await hooks.click(page.locator('[data-p3="start-example"]').first());
   await waitStart(page, false);
   await post(page, { type: 'restore-input-empty' });
   // Give the handler a turn to do the wrong thing before asserting it did not.
   await page.waitForTimeout(150);
   const s = await readStart(page);
-  ok(!s.start, 'a late empty-restore does NOT discard a brand the designer already chose');
-  ok(s.editorRail > 0, 'and the editor is still standing');
+  hooks.absent(ok, { seen: sawStart, state: 'the start screen, earlier in this same panel' },
+    !s.start, 'a late empty-restore does NOT discard a brand the designer already chose');
+  ok(s.editorTabs > 0, 'and the editor is still standing');
   await page.close();
 }
 
@@ -219,11 +222,11 @@ console.log('\n4. "+ New brand" surfaces the start screen (it used to load a neu
   const { page, errors } = await openPanel();
   await post(page, { type: 'restore-input', input: NB_BRAND });
   await waitStart(page, false);
-  await page.click('[data-p3="brand-switcher"]');
+  await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
   await hooks.need(page, '[data-p3="brand-menu"]');
   const nb = page.locator('[data-p3="brand-menu-new"]');
   ok(await nb.count() > 0 && (await nb.textContent()) === '+ New brand', 'the brand menu offers "+ New brand"');
-  await nb.click();
+  await hooks.click(nb);
   ok(await waitStart(page, true), 'clicking it returns to the start moment');
   const s = await readStart(page);
   ok(s.upload && s.chips.length >= 2, 'with the upload and the examples the direct load could not offer');
@@ -237,16 +240,16 @@ console.log('\n5. each path lands in the editor');
   const { page } = await openPanel();
   await post(page, { type: 'restore-input-empty' });
   await waitStart(page, true);
-  await page.locator('[data-p3="start-example"]').first().click();
+  await hooks.click(page.locator('[data-p3="start-example"]').first());
   ok(await waitStart(page, false), 'an example chip enters the editor');
-  ok((await readStart(page)).editorRail > 0, 'and the editor rendered');
+  ok((await readStart(page)).editorTabs > 0, 'and the editor rendered');
   await page.close();
 }
 {
   const { page } = await openPanel();
   await post(page, { type: 'restore-input-empty' });
   await waitStart(page, true);
-  await page.locator('[data-p3="start-blank"]').click();
+  await hooks.click(page.locator('[data-p3="start-blank"]'));
   ok(await waitStart(page, false), '"Start blank" enters the editor');
   await page.close();
 }
@@ -448,11 +451,15 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
         caretRatio: !editable || !caret ? null : round(ratio(over({ ...caret, a: caret.a * op }, ground), ground)),
         op: round(op), cls: name(el), text: `[${el.tagName === 'INPUT' ? el.type : el.tagName.toLowerCase()}] "${String(el.value ?? '').slice(0, 20)}"`,
         hook: el.getAttribute('data-p3'),
+        // #1031's first half, per field: the scheme the UA resolves for this control, and how light the
+        // ground it is drawn on is. A dark scheme over a light ground is the mechanism exactly.
+        scheme: cs.colorScheme, groundLum: round(lum(ground)),
         ...classify(el, cs),
       });
     }
     scratch?.remove();
-    return { text, fields, unparsed, colorScheme: getComputedStyle(document.documentElement).colorScheme };
+    const legacy = document.querySelector('[data-p3="legacy-frame"]');
+    return { text, fields, unparsed, legacyScheme: legacy ? getComputedStyle(legacy).colorScheme : null };
   };
 
   // The bars, AUTHORED here as WCAG states them — not imported from the studio suite, so a change to one
@@ -519,6 +526,13 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
   let unparsedTotal = 0;
   let textTotal = 0, fieldTotal = 0, worst = { ratio: Infinity, where: '' };
   const pagesSeen = new Set();
+  const tabsSeen = new Set();
+  /** The moved tabs the sweep measures (S8.2), each by its tab's hook and its levers' hook. Literal. */
+  const TAB_SWEEP = [
+    ['[data-p3="tab-color"]', '[data-p3="palettes-levers"]', 'Color'], ['[data-p3="tab-type"]', '[data-p3="type-levers"]', 'Type'],
+    ['[data-p3="tab-shape"]', '[data-p3="shape-levers"]', 'Shape'], ['[data-p3="tab-depth"]', '[data-p3="depth-levers"]', 'Depth & motion'],
+    ['[data-p3="tab-layout"]', '[data-p3="layout-levers"]', 'Layout'], ['[data-p3="tab-components"]', '[data-p3="components-levers"]', 'Components'],
+  ];
   const measure = async (page, where) => {
     await settle(page, where);
     const m = await page.evaluate(LEGIBILITY);
@@ -529,8 +543,14 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
       uniq.length ? ` — ${uniq.length} not: ${uniq.slice(0, 3).map((u) => `${u.cls} ${u.prop} "${u.value}"`).join(' | ')}` : ''}`);
     textTotal += m.text.length; fieldTotal += m.fields.length;
     for (const r of m.text.filter((x) => !x.specimen)) if (r.ratio < worst.ratio) worst = { ratio: r.ratio, where: `${where} — ${r.cls} "${r.text}"` };
-    ok(!/\bdark\b/.test(m.colorScheme),
-      `${where}: the shell resolves a light-only color-scheme ("${m.colorScheme}") — opting into dark hands the UA the field ink, caret and option lists over surfaces painted from light tokens (#1031)`);
+    // #1031's FIRST HALF. Until UI redesign S1.2 this read the document, which had to resolve light. The
+    // chrome now follows Figma's theme for real, so in Figma's dark theme the document resolves dark, and
+    // the line held is the one #1031 was about: no control resolves a dark scheme over a light ground, and
+    // the legacy frame, whose surfaces are still painted from light tokens, resolves light.
+    const mismatched = m.fields.filter((f) => /\bdark\b/.test(f.scheme) && f.groundLum > 0.5);
+    ok(mismatched.length === 0,
+      `${where}: no form control resolves a dark color-scheme over a light ground — that hands the UA the field ink, caret and option lists (#1031)${mismatched.length ? ` — ${mismatched.slice(0, 3).map((f) => `${f.hook ?? f.cls} "${f.scheme}" on a ground at luminance ${f.groundLum}`).join(' | ')}` : ''}`);
+    if (m.legacyScheme !== null) ok(!/\bdark\b/.test(m.legacyScheme), `${where}: the legacy frame resolves a light color-scheme ("${m.legacyScheme}"), pinned until each page moves (D2)`);
     ok(m.text.length >= STATE_TEXT_FLOOR, `${where}: measured ${m.text.length} text nodes (floor ${STATE_TEXT_FLOOR})`);
     const textUnder = m.text.filter((r) => r.ratio < barOf(r));
     ok(textUnder.length === 0, `${where}: every one of ${m.text.length} text nodes meets its bar (chrome ${TEXT_MIN}:1, ${LARGE_TEXT_MIN}:1 large; specimens ${SPECIMEN_FLOOR}:1)${
@@ -547,21 +567,32 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
     ok(unmarked.length === 0, `${where}: every inline-inked text node is marked data-specimen${unmarked.length ? ` — ${unmarked.slice(0, 3).map((u) => `${u.cls} "${u.text}"`).join(' | ')}` : ''}`);
     return m;
   };
-  // The brand menu's three controls BY IDENTITY — the surface #1031's 1.11:1 lived on, in this bundle.
-  // A pass that never opens it is a clean report over a corpus that excludes the defect (docs/34 shape 9),
-  // which is the first of the two reasons the studio suite missed #1031.
-  // Name, Namespace, and the import textarea, each by its hook.
-  const BRANDMENU_CONTROLS = ['[data-p3="brand-menu-name"]', '[data-p3="brand-menu-namespace"]', '[data-p3="import-text"]'].map(hooks.role);
+  // The brand menu's control BY IDENTITY — the surface #1031's 1.11:1 lived on, in this bundle. A pass that
+  // never opens it is a clean report over a corpus that excludes the defect (docs/34 shape 9), which is the
+  // first of the two reasons the studio suite missed #1031. UI redesign S3 moved the Name and Namespace fields
+  // to Brand › Identity, so the menu keeps the import textarea, and Brand's two fields are measured on Brand.
+  const BRANDMENU_CONTROLS = ['[data-p3="import-text"]'].map(hooks.role);
   const measureBrandMenu = async (page, where) => {
-    await page.locator('[data-p3="brand-switcher"]').click();
-    await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-name"]');
-    await page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-import"]').click();
+    await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+    await hooks.need(page, '[data-p3="brand-menu"] [data-p3="brand-menu-import"]');
+    await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-import"]'));
     await hooks.need(page, '[data-p3="brand-menu"] [data-p3="import-text"]');
-    // Typed into, so the Name row measures glyphs that are on screen rather than an empty field.
-    await page.fill('[data-p3="brand-menu"] [data-p3="brand-menu-name"]', 'plugin-brand');
+    // Typed into, so the field measures glyphs that are on screen rather than an empty field.
+    await page.fill('[data-p3="brand-menu"] [data-p3="import-text"]', 'plugin-brand');
     const m = await measure(page, where);
     const seen = new Set(m.fields.map((f) => f.hook));
     for (const want of BRANDMENU_CONTROLS) ok(seen.has(want), `${where}: the "${want}" control is mounted and was measured`);
+  };
+  // Brand (S3): Identity's two fields BY IDENTITY, typed into, with the Style guide in the preview beside them.
+  const BRAND_CONTROLS = ['[data-p3="brand-name"]', '[data-p3="brand-namespace"]'].map(hooks.role);
+  const measureBrand = async (page, where) => {
+    await hooks.click(page.locator('[data-p3="tab-brand"]'));
+    await hooks.need(page, '[data-p3="brand-levers"] [data-p3="brand-name"]');
+    await hooks.need(page, '[data-p3="brand-style-guide"] [data-p3="specimen"]');
+    await page.fill('[data-p3="brand-name"]', 'plugin-brand');
+    const m = await measure(page, where);
+    const seen = new Set(m.fields.map((f) => f.hook));
+    for (const want of BRAND_CONTROLS) ok(seen.has(want), `${where}: the "${want}" control is mounted and was measured`);
   };
 
   if (DEFAULT && MIN) {
@@ -574,18 +605,34 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
         await post(page, { type: 'restore-input-empty' });
         await waitStart(page, true);
         await measure(page, `${tag} / start screen`);
-        await page.locator('[data-p3="start-example"]').first().click();
+        await hooks.click(page.locator('[data-p3="start-example"]').first());
         await waitStart(page, false);
-        await hooks.need(page, '[data-p3^="rail-page-"].active');
+        await hooks.need(page, '[data-p3="frame"]');   // the app view (Color › Palettes draws the two panes from S2)
+        // The old rail is the Pages menu now (UI redesign S1.2), with the rail's hooks on its items.
+        await hooks.click(page.locator('[data-p3="pages-menu"]'));
+        await hooks.need(page, '[data-p3="pages-menu-list"]');
         const rail = await page.$$eval('[data-p3^="rail-page-"]', (els) => els.map((e) => ({
           hook: e.getAttribute('data-p3'), label: e.querySelector('[data-p3="rail-item-label"]')?.textContent.trim() ?? '' })));
+        await hooks.click(page.locator('[data-p3="pages-menu"]'));
         for (const { hook, label } of rail) {
-          await page.locator(`[data-p3="${hook}"]`).click();
-          await page.waitForFunction((h) => document.querySelector(`[data-p3="${h}"]`)?.classList.contains('active'), hook);
+          await hooks.click(page.locator('[data-p3="pages-menu"]'));
+          await hooks.click(page.locator(`[data-p3="${hook}"]`));
+          await page.waitForFunction((h) => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage === h.slice('rail-page-'.length), hook);
           await page.evaluate(() => document.fonts.ready);
           pagesSeen.add(hook);
           await measure(page, `${tag} / ${label}`);
         }
+        // The tabs, each by its tab hook and its levers' hook (UI redesign S8.2): Components moved off the Pages menu to
+        // its own tab, so the plugin-only build controls are measured there, and every other moved tab with it, since
+        // the menu now holds the Style guide alone.
+        for (const [tab, levers, label] of TAB_SWEEP) {
+          await hooks.click(page.locator(tab));
+          await hooks.need(page, levers);
+          await page.evaluate(() => document.fonts.ready);
+          tabsSeen.add(hooks.role(tab));
+          await measure(page, `${tag} / ${label}`);
+        }
+        await measureBrand(page, `${tag} / Brand`);
         await measureBrandMenu(page, `${tag} / brand menu`);
         ok(errors.length === 0, `${tag}: no console errors across the sweep (${errors.slice(0, 1).join('') || 'none'})`);
         await context.close();
@@ -595,18 +642,21 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
         await post(small.page, { type: 'restore-input-empty' });
         await waitStart(small.page, true);
         await measure(small.page, `${tag} / start screen @ ${MIN.width}×${MIN.height}`);
-        await small.page.locator('[data-p3="start-example"]').first().click();
+        await hooks.click(small.page.locator('[data-p3="start-example"]').first());
         await waitStart(small.page, false);
         await measure(small.page, `${tag} / editor @ ${MIN.width}×${MIN.height}`);
         await small.context.close();
       }
     }
   }
-  // REPRESENTED, not counted: the one page only this bundle has must be among those measured.
-  ok(pagesSeen.has(hooks.role('[data-p3="rail-page-components"]')), `the plugin-only Components page was measured (saw ${[...pagesSeen].join(', ') || 'no pages'})`);
+  // REPRESENTED, not counted: the build controls only this bundle has must be among those measured. Since S8.2 they are
+  // the Components TAB's (its Build button and set choices), not a Pages menu page's; the menu's one page left, the
+  // Style guide, must be measured too.
+  ok(tabsSeen.has(hooks.role('[data-p3="tab-components"]')), `the Components tab, with the plugin-only build controls, was measured (saw ${[...tabsSeen].join(', ') || 'no tabs'})`);
+  ok(pagesSeen.has(hooks.role('[data-p3="rail-page-style-guide"]')), `the plugin's one Pages menu page, the Style guide, was measured (saw ${[...pagesSeen].join(', ') || 'no pages'})`);
   ok(textTotal >= SWEEP_TEXT_FLOOR, `measured ${textTotal} text nodes across the panel sweep (floor ${SWEEP_TEXT_FLOOR})`);
   ok(fieldTotal >= SWEEP_FIELD_FLOOR, `measured ${fieldTotal} form controls across the panel sweep (floor ${SWEEP_FIELD_FLOOR})`);
-  console.log(`  ${pagesSeen.size} rail pages × 2 schemes × 2 Figma themes, plus the start moment at both sizes: ${textTotal} text nodes, ${fieldTotal} form controls.`);
+  console.log(`  ${pagesSeen.size} rail page(s) and ${tabsSeen.size} tabs × 2 schemes × 2 Figma themes, plus the start moment at both sizes: ${textTotal} text nodes, ${fieldTotal} form controls.`);
   console.log(`  Lowest chrome text: ${worst.ratio}:1 — ${worst.where}`);
   console.log(`  Unparsed colors: ${unparsedTotal} (every one fails by name).`);
 }

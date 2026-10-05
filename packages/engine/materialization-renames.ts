@@ -119,7 +119,9 @@ export const varKey = (collection: string, name: string): VarKey => `${collectio
 export type MaterializationRule = {
   /** Stable, and used in every report line — a rule is identified by this in both checks. */
   id: string;
-  /** The `ENGINE_VERSION` that made the change. */
+  /** The `ENGINE_VERSION` that made the change. A PR adding a rule cannot know it, so it writes the
+   *  placeholder {{ENGINE_VERSION}} as the whole single-quoted string, here and in `test.ts`'s
+   *  `EXPECTED_SINCE`, and the fold fills in the version it assigns (#1816, `fold-stamps.ts`). */
   since: string;
   /** What moved and why, to `INVERSE_GAPS`' standard: enough that a reader can weigh the decision. */
   why: string;
@@ -234,11 +236,11 @@ export const MATERIALIZATION_RENAMES: MaterializationRule[] = [
     since: '0.50.0',
     why:
       'The shipped brands took per-brand root namespaces: aurora `prism/*` -> `ads/*`, harbor '
-      + '`prism/*` -> `hds/*` and wendys `prism/*` -> `wds/*`, following the `<brand>ds` convention New '
-      + 'Balance has always used (`nbds`). '
+      + '`prism/*` -> `hds/*` and the third example brand `prism/*` -> `wds/*`, following the `<brand>ds` '
+      + 'convention the reference brand has always used (`nbds`). '
       + '`prism` and `pds3` are now RESERVED for a future canonical default theme, so no named brand may '
       + 'declare either — all three had been sitting on `prism` by inheriting the engine default rather '
-      + 'than by choosing it, wendys because the standard dialect had no way to declare one at all. Only the FIRST SEGMENT moves: every token name below the root is '
+      + 'than by choosing it, the third because the standard dialect had no way to declare one at all. Only the FIRST SEGMENT moves: every token name below the root is '
       + 'byte-identical, which is why `token-contract.ts --check` reports the guaranteed surface unchanged '
       + '(the contract is keyed below the configurable root). For a Figma file this is still a rename of '
       + 'every variable the brand owns, which is exactly what this register exists to record.',
@@ -308,6 +310,7 @@ export const MATERIALIZATION_RENAMES: MaterializationRule[] = [
  */
 export type MaterializationDeletion = {
   id: string;
+  /** As `MaterializationRule.since`: a new deletion writes the quoted placeholder and the fold fills it (#1816). */
   since: string;
   why: string;
   domain: (collection: string, name: string, root: string) => boolean;

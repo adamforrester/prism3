@@ -154,11 +154,22 @@ export type ShimOpts = {
    *  about WHEN the clock starts. Everything else here is synchronous, so every `chunkMs` is 0 and the
    *  strongest available assertion is `>= 0`, which no clock rule can fail. `setup` burns inside
    *  `loadAllPagesAsync` (pre-build-loop work) and `combine` inside `combineAsVariants` (between-loops
-   *  work); the yield's own burn is injected at `yieldTo` by `instrumented`. Busy-wait rather than a
-   *  timer because `Date.now()` is what the executor reads, and a `setTimeout` would advance the clock
-   *  while handing control away — which is the very thing being distinguished. Opt-in per run, so only
-   *  the one block below pays for it. */
-  burn?: { setup?: number; combine?: number };
+   *  work); the yield's own burn is injected at `yieldTo` by `instrumented`. Those three are costs a
+   *  chunk must EXCLUDE. `member` is the converse (#1848): it burns inside the FIRST
+   *  `createComponentFromNode` only, which is mid-chunk work, so the first build chunk must INCLUDE it.
+   *  Without it, a `chunkMs` stuck at a constant 0 passed every exclusion. Opt-in per run, so only
+   *  the one block that asks pays for it.
+   *
+   *  CHARGED ON A VIRTUAL CLOCK, through `advance` (#1800). It used to be a busy-wait on the real clock,
+   *  and then every assertion about it was a wall-clock bound: the chunk after the burn had to come in
+   *  under half the burn, so a loaded CPU that slowed the chunk's own work failed it with the exclusion
+   *  intact. `Date.now()` is what the executor reads, so the test swaps in a clock that moves only when
+   *  a burn advances it; the executor's work then costs 0ms and every reading is exact. A burn without
+   *  `advance` throws rather than falling back to a busy-wait, so no run silently goes back to measuring
+   *  the machine. */
+  burn?: { setup?: number; combine?: number; member?: number };
+  /** Advances the run's virtual clock by `ms`. Required when `burn` is set; see `burn`. */
+  advance?: (ms: number) => void;
   /**
    * A CALL COUNTER ON THE HOST BOUNDARY — every subtree `findOne` a node actually receives (#701).
    *
@@ -387,13 +398,16 @@ export type ShimOpts = {
   abortAfterCombine?: boolean;
 };
 
-/** A blocking burn. Deliberately holds the thread: the executor measures with `Date.now()`, so cost it
- *  cannot observe is cost this harness cannot charge. */
-export const burnMs = (ms: number): void => { const t0 = Date.now(); while (Date.now() - t0 < ms) { /* hold */ } };
 
 export const makeShim = (opts: ShimOpts = {}) => {
   const names = new Set(opts.vars ?? []);
   const page = opts.page;
+  /** Charges a `burn` to the run's virtual clock (#1800). No busy-wait fallback: see `ShimOpts.burn`. */
+  const charge = (ms: number): void => {
+    if (!opts.advance) throw new Error('ShimOpts.burn needs ShimOpts.advance: a burn is charged to a virtual clock, never by holding the thread');
+    opts.advance(ms);
+  };
+  let memberBurned = false;
   /** Copy an instance's `mainComponent` onto a twin the host installs in its place (#1781) — same
    *  non-enumerable shape `createInstance` gives it, so a relocated instance still reads back its source. */
   const carryMain = (from: Node, to: Node): void => {
@@ -1175,7 +1189,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
       loadedFonts.add(fontKey(fn));
     },
     // Zero-cost unless a run asks for the burn (`opts.burn.setup`). This is the last of the pre-build-loop
-    loadAllPagesAsync: async () => { if (opts.burn?.setup) burnMs(opts.burn.setup); },
+    loadAllPagesAsync: async () => { if (opts.burn?.setup) charge(opts.burn.setup); },
     // WHAT A CRITERIA SEARCH ACTUALLY RETURNS (#681). `types: ['COMPONENT']` matches `ComponentNode`
     // only, so this honors the criteria rather than ignoring them — the previous flat map returned every
     // entry as a bare COMPONENT whatever it was, which is exactly why the live defect could not be
@@ -1353,12 +1367,17 @@ export const makeShim = (opts: ShimOpts = {}) => {
     // shim model a host where a converted frame is never a component — and `isExposedInstance`'s precondition
     // is stated in exactly those terms. So the one gap hid the other: a containment rule modelled against a
     // node that never becomes a container could only ever refuse.
-    createComponentFromNode: (n: Node) => { n.type = 'COMPONENT'; return n; },
+    createComponentFromNode: (n: Node) => {
+      // Inside the build loop, once per built member; the burn is charged on the first one only, so it
+      // lands in exactly one chunk (#1848).
+      if (opts.burn?.member && !memberBurned) { memberBurned = true; charge(opts.burn.member); }
+      n.type = 'COMPONENT'; return n;
+    },
     combineAsVariants: (members: Node[], parent?: unknown) => {
       // Between the build loop's last boundary and the wire loop's first — the window the wire re-stamp
       // excludes. Charged here rather than in `resize` or `addComponentProperty` because this is the
       // single most expensive of the set-level calls live.
-      if (opts.burn?.combine) burnMs(opts.burn.combine);
+      if (opts.burn?.combine) charge(opts.burn.combine);
       // #913: refuses AFTER every member is built, named and on the page — the large regime, and the one
       // call in the run whose failure strands the most. Figma's own message for the case it rejects.
       if (opts.refuse?.combine) { hostRefusing = true; throw new Error('in combineAsVariants: The nodes must all have the same parent'); }

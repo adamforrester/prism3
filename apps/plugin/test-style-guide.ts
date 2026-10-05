@@ -51,9 +51,9 @@
  *      titles, and not a pass; a renamed group's old table named as staying until an unfiltered run;
  *  14. YIELDING (#1778), with a counting `yieldTo`: a progress reading per table, a yield after every table, and at
  *      least 12 yields inside the 124-row Inverse table, never more than 10 rows apart;
- *  15. ONE RUN AT A TIME (#1785): a run asked for from the agent link while a panel run is mid-yield is refused, naming
- *      the panel's run, and exactly one set of tables results. (`test-agent-link.ts` drives the same gate through
- *      `main.ts`'s two real entry points.)
+ *  15. ONE RUN AT A TIME (#1785, through #1957's `run-guard.ts`): the guard holds `style-guide` through a run's
+ *      yields, so a second request at its third yield finds it busy and is not run, and exactly one set of tables
+ *      results. (`test-agent-link.ts` drives the same guard through `main.ts`'s two real entry points.)
  *  16–19. PHASE 2 (#259), on the prism3 emission's dimension and font variables and its 63 text styles, plus a
  *      mode-varying `density` and a `metrics` ramp stored out of order: a table per collection and type on the right
  *      page; spacing bars, brackets and radius swatches at the value with their width or corner bound and each mode
@@ -195,7 +195,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { ensureStyleGuideCells } from './src/style-guide-cells';
 import type { CellsApi } from './src/style-guide-cells';
-import { planStyleGuide, runStyleGuide, styleGuideSummary, contrastText, createStyleGuideGate, styleGuideBusy, humanizeName, varKind, sizeByPadding } from './src/style-guide';
+import { planStyleGuide, runStyleGuide, styleGuideSummary, contrastText, humanizeName, varKind, sizeByPadding } from './src/style-guide';
+import { createRunGuard } from './src/run-guard';
 import type { StyleGuideApi, SgCatalog, SgTable, TableOutcome, StyleGuideResult, StyleGuideRun, StyleGuideOptions, StyleGuideProgress } from './src/style-guide';
 import { parseDesignMd } from '@prism3/engine/design-md';
 import { brandTheme } from '@prism3/engine/theme';
@@ -1850,32 +1851,34 @@ const main = async (): Promise<void> => {
       `14: the 124-row Inverse table yields while its rows are placed, never more than 10 rows apart (${rowsAt.length} yields, largest gap ${Math.max(0, ...gaps)} rows)`);
   }
 
-  console.log('15. one run at a time, from either entry point (#1785)');
+  console.log('15. one run at a time, from either entry point (#1785, #1957)');
   {
-    // The gate `main.ts` routes the panel and the agent link through. A panel run draws the prism3 file; at its third
-    // yield, mid-table, the agent link asks for a run through the same gate.
-    const gate = createStyleGuideGate();
+    // The run guard `main.ts` routes the panel and the agent link through (`run-guard.ts`, #1957). A run draws the
+    // prism3 file holding `style-guide`; at its third yield, mid-table, a second request asks the same guard, the way
+    // `main.ts`'s `guarded` does: busy first, and run only if not.
+    const guard = createRunGuard();
     const f15 = await fullFile();
-    const hold: { second?: ReturnType<typeof gate.run<StyleGuideResult>> } = {};
+    let busyAtYield: boolean | null = null;
+    let secondRan = false;
     let yields = 0;
     const yieldTo = async (): Promise<void> => {
-      if (++yields === 3) hold.second = gate.run('agent', () => draw(f15.api, contract));
+      if (++yields === 3) {
+        busyAtYield = guard.busy('style-guide');
+        if (!busyAtYield) await guard.run('style-guide', async () => { secondRan = true; await draw(f15.api, contract); });
+      }
       await fastYield();
     };
-    const first = await gate.run('panel', () => draw(f15.api, contract, {}, { yieldTo }));
-    const second = await hold.second;
-    ok(first.ran && second?.ran === false && second.running === 'panel',
-      `15: a run asked for from the agent link while a panel run is mid-yield is refused, naming the panel's run (${JSON.stringify(second && { ran: second.ran, running: second.ran ? null : second.running })})`);
-    const busy = styleGuideBusy('panel');
-    ok(!busy.ok && busy.headline === '✗ already drawing' && busy.summary.startsWith('A style guide started from the panel is still drawing, so this request was not run')
-      && styleGuideBusy('agent').summary.startsWith('A style guide started from the agent link is still drawing'), `15: the refusal says which run is still drawing: "${busy.headline}" — ${busy.summary.slice(0, 80)}…`);
+    let first: StyleGuideResult | null = null;
+    await guard.run('style-guide', async () => { first = await draw(f15.api, contract, {}, { yieldTo }); });
+    ok(busyAtYield === true && !secondRan,
+      `15: a run asked for while another is mid-yield finds the guard busy and is not run (busy ${busyAtYield}, ran ${secondRan})`);
     const wraps = [...tablesOn(f15.prim), ...tablesOn(f15.sem)];
     const keys = new Set(wraps.map((w) => w.pluginData['prism3-style-guide']));
+    const firstResult = first as StyleGuideResult | null;
     ok(wraps.length === 22 && keys.size === 22 && wraps.every((w) => w.children.filter((c) => c.name === 'Table').length === 1)
-      && first.ran && first.value.tables.length === 22 && first.value.tables.every((t) => t.status === 'created'),
+      && firstResult !== null && firstResult.tables.length === 22 && firstResult.tables.every((t) => t.status === 'created'),
       `15: exactly one set of tables results: 22, each key once, each with one grid (${wraps.length} tables, ${keys.size} keys)`);
-    const third = await gate.run('agent', () => draw(f15.api, contract, { collections: ['legacy'] }));
-    ok(third.ran && gate.running() === null, '15: once that run reports, the next is let through, from either entry point');
+    ok(!guard.busy('style-guide'), '15: once that run reports, the guard is released and the next is let through');
   }
 
   console.log('16. phase 2: dimension tables (#259)');
@@ -2108,9 +2111,9 @@ const main = async (): Promise<void> => {
     const refused = await draw(nb.api, contract, { tables: ['Radius', 'Font weight'] });
     refuseBinding = false;
     const v = styleGuideSummary(refused);
-    ok(refused.unbound === 17 && !v.ok && v.summary.includes('6 type=radius specimens are not bound to their variable') && v.summary.includes('11 font weight specimens are not bound to their variable'),
+    ok(refused.unbound === 21 && !v.ok && v.summary.includes('10 type=radius specimens are not bound to their variable') && v.summary.includes('11 font weight specimens are not bound to their variable'),
       `19: a binding the host refuses is counted and named, and is not a pass: ${refused.unbound} unbound — "${v.headline}"`);
-    ok(v.headline === '⚠ 17 specimens unbound', `19: its headline counts specimens, not swatches: "${v.headline}"`);
+    ok(v.headline === '⚠ 21 specimens unbound', `19: its headline counts specimens, not swatches: "${v.headline}"`);
   }
 
   console.log('20. the title cell, on every table type (owner decision 15)');

@@ -23,7 +23,8 @@
  * means Button.
  */
 import type { BrandInput } from '@prism3/engine/theme';
-import type { AgentLinkState, AgentResult, AgentProgress } from './agent-protocol';
+import type { AgentLinkState, AgentResult, AgentProgress, AgentCmd } from './agent-protocol';
+import type { WriteCmd } from './run-guard';
 
 /** Messages the UI iframe sends TO the main thread. Wrapped in `{ pluginMessage }` on the wire. */
 export type UiToMain =
@@ -177,7 +178,13 @@ export type MainToUi =
    *
    *  `headline` obeys the same ≤24-char pill budget (`componentHeadline`, gated in
    *  `test-apply-summary.ts`); `summary` carries the counts and the misses behind it. */
-  | { type: 'component-result'; ok: boolean; headline: string; summary: string }
+  | { type: 'component-result'; ok: boolean; headline: string; summary: string;
+    /** Did the build run to the end (UI redesign S8.2, owner decision C1)? `true` when the set was built, its misses
+     *  (if any) in the summary; `false` when it stopped before building the set: an unknown or not-standalone def, or a
+     *  throw. The Components page tells "Built with problems" from "Build failed" by this, never by the headline's
+     *  words. REQUIRED: the plugin and the panel ship in one bundle, so a post without it is a type error here,
+     *  not an older host to accommodate. */
+    completed: boolean }
   /** Result of a `file-setup` scaffold (#1554) — the same `{ok, headline, summary}` shape as
    *  `apply-result` / `component-result`, a DISTINCT variant for the same one-kind-per-fact reason: "did
    *  the page skeleton get laid" is separately true and separately actionable from a theme or component
@@ -185,9 +192,8 @@ export type MainToUi =
    *  ≤24-char pill budget; `summary` names the pages created and any font miss on the template assets. */
   | { type: 'file-setup-result'; ok: boolean; headline: string; summary: string }
   /** Result of a `style-guide` run (#259) — the same `{ok, headline, summary}` shape, its own kind and slot.
-   *  `summary` names the tables created and updated, the tokens added, removed or changed, and every skip.
-   *  `busy` (#1785): refused, because a style-guide run from the other entry point is still drawing. */
-  | { type: 'style-guide-result'; ok: boolean; headline: string; summary: string; busy?: true }
+   *  `summary` names the tables created and updated, the tokens added, removed or changed, and every skip. */
+  | { type: 'style-guide-result'; ok: boolean; headline: string; summary: string }
   /** Result of a `prune` message (#1521) — a preview when `applied` is false, the outcome of the delete
    *  when it is true, told apart by that flag rather than by parsing `summary`. `count` is the number of
    *  items the preview WOULD remove, or the number the apply DID remove. `summary` is the review text
@@ -198,11 +204,18 @@ export type MainToUi =
       /** Set on an AGENT's preview (the agent link): show it as a pill, never open the confirm dialog. The
        *  dialog's Confirm would prune against the panel's own knobs, not the input the agent previewed. */
       pillOnly?: boolean }
+  /** A write the main thread DECLINED because a run of the same operation was already going (#1957,
+   *  `run-guard.ts`). Not a verdict: the file is untouched and the running write is unaffected, so this
+   *  must not land in the operation's verdict slot or settle its run, and it is its own kind for that
+   *  reason. `agent` says whose request was declined: an agent's (the agent also gets `busy` in its own
+   *  command result), or the panel's own. The Activity drawer adds it to the row's earlier results as
+   *  "Refused" (the owner's call). */
+  | { type: 'refused'; code: 'busy'; cmd: WriteCmd; agent: boolean; message: string }
   /** A component build is UNDERWAY (#684) — posted at every chunk boundary, many times per build.
    *
    *  THE ONLY NON-TERMINAL MESSAGE ON THIS BRIDGE, and the reason it had to exist: `build-components`
    *  used to post exactly one message, at the end. On the first live 648-member build that meant the pill
-   *  read a frozen `⋯ Building…` for the whole run, then the file stayed unresponsive for **1 min 10 s**
+   *  read a frozen `Building…` for the whole run, then the file stayed unresponsive for **1 min 10 s**
    *  after it said done. Nothing could be posted mid-run because nothing yielded; the executor now chunks
    *  (see `write-components.ts`), and this is what a chunk boundary says.
    *
@@ -236,7 +249,11 @@ export type MainToUi =
    *  the variables) and nowhere else, so it travels rather than being inferred from `summary`'s
    *  prose downstream — which would make the wording load-bearing, the same trap the
    *  headline/summary split above exists to avoid. */
-  | { type: 'seed-info'; ok: boolean; present: boolean; summary: string }
+  /*  `failed` is how many contract checks failed (0 when the contract holds, the file is unthemed, or the
+   *  read threw). It travels for the Activity drawer's short verdict ("2 mismatches", owner decision #3 on
+   *  #1956), for the same reason `present` does: a count read out of `summary`'s prose would make the
+   *  wording load-bearing. */
+  | { type: 'seed-info'; ok: boolean; present: boolean; summary: string; failed: number }
   /** Boot knob-rehydration (#131): the `BrandInput` persisted by the last apply, read back from the
    *  file's shared-data. The UI loads it wholesale so it opens on the persisted brand, not defaults.
    *  Sent only when a trusted blob exists (genuine absence → not sent → UI keeps defaults; a
@@ -290,7 +307,13 @@ export type MainToUi =
   /** A build's progress reading while an agent command runs, streamed to the bridge (#684's reading). */
   | { type: 'agent-progress'; id: string; progress: AgentProgress }
   /** A console line printed while an agent command runs, streamed to the bridge. */
-  | { type: 'agent-log'; id: string; line: string };
+  | { type: 'agent-log'; id: string; line: string }
+  /** An agent command has started, and has finished (UI redesign S11): what lets the panel's Activity
+   *  drawer show it running and mark its result as the agent's. Sent for every valid command, `status`
+   *  included; the panel decides which have an operation to show. `finished` follows the command's
+   *  terminal verdict, and is sent even when its handler threw and posted none. */
+  | { type: 'agent-started'; id: string; cmd: AgentCmd }
+  | { type: 'agent-finished'; id: string; cmd: AgentCmd };
 
 /** Narrow a discriminated union by its `type` tag — the payload a handler actually receives. */
 export type OfType<U extends { type: string }, T extends U['type']> = Extract<U, { type: T }>;

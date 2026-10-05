@@ -14,9 +14,10 @@
  * backend — no UI change. This is the seam that lets `apps/studio/src` be reused verbatim
  * inside the plugin.
  *
- * PURE-adjacent: imports only the engine's TYPES + DOM. No `node:*`.
+ * PURE-adjacent: imports only TYPES (the engine's, and the plugin's wire contract) + DOM. No `node:*`.
  */
 import type { ResolvedPreview } from '@prism3/engine/resolve-preview';
+import type { UiToMain, MainToUi, OfType, StyleGuideOptions } from '../../plugin/src/messages';
 
 type Mode = ResolvedPreview['modes'][number];
 
@@ -96,10 +97,51 @@ export const cssVarAdapter = (scope: HTMLElement): WriteAdapter => ({
  */
 export const makeWriteHost = (scope: HTMLElement): WriteAdapter => cssVarAdapter(scope);
 
+/** A host→UI notification after the adapter has validated it at the boundary. Not a wire type: the
+ *  wire carries `messages.ts` `MainToUi` (tagged `type`); the adapter checks each field and hands the UI
+ *  this `kind`-tagged shape, with defaults filled in (`headline`, `styles`). See `onHostMessage`. */
+export type HostMessage =
+  | { kind: 'apply-result'; ok: boolean; headline: string; summary: string }
+  | { kind: 'component-result'; ok: boolean; headline: string; summary: string; completed: boolean }
+  // #1558 — the outcome of a `file-setup` scaffold. A FOURTH kind of the `{ok, headline, summary}`
+  // shape, distinct for the same one-kind-per-fact reason `component-result` is: "did the page
+  // skeleton get laid" is separately true and separately actionable from a theme or component write,
+  // so it needs its own verdict slot and cannot overwrite theirs.
+  | { kind: 'file-setup-result'; ok: boolean; headline: string; summary: string }
+  // #259 — the outcome of a `style-guide` run, its own slot.
+  | { kind: 'style-guide-result'; ok: boolean; headline: string; summary: string }
+  | { kind: 'component-progress'; phase: 'build' | 'wire' | 'retry'; done: number; total: number; chunkMs: number }
+  // #1778 — how far a style-guide run has got: `done` of `total` tables. Non-terminal, like
+  // `component-progress`, so it belongs in the style guide's pending state, never its verdict slot.
+  | { kind: 'style-guide-progress'; done: number; total: number }
+  // #1521 — a prune preview (`applied: false`, `count` = what would be removed) or its outcome
+  // (`applied: true`, `count` = what was removed). The UI reads `count` on a preview to decide
+  // whether to open its confirm dialog, and `applied` to tell a preview from a verdict.
+  | { kind: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string; pillOnly?: boolean }
+  // UI redesign S11: an agent command's start, its build progress, and its end, for the Activity drawer.
+  // `cmd` stays a string here; which commands have an operation to show is the host session's call.
+  | { kind: 'agent-started'; id: string; cmd: string }
+  | { kind: 'agent-progress'; id: string; phase: 'build' | 'wire' | 'retry'; done: number; total: number }
+  | { kind: 'agent-finished'; id: string }
+  // #1957: a write the main thread declined because a run of the same operation was already going. Not a
+  // verdict, so it is its own kind: `cmd` is the operation's agent-command name, `agent` whose request it was.
+  | { kind: 'refused'; code: 'busy'; cmd: string; agent: boolean; message: string }
+  // `present` is the #722 addition: the summary string alone could not distinguish "no Prism3
+  // theme in this file" from "a theme is here", and #721's three outcomes need that told apart
+  // from `ok`. Deriving it by parsing `summary` would make the UI depend on the host's prose.
+  | { kind: 'seed-info'; ok: boolean; summary: string; present: boolean; failed: number }
+  | { kind: 'restore-input'; input: unknown }
+  | { kind: 'restore-input-error'; message: string }
+  // #1197 — the host read the file and found NO brand blob. Distinct from `restore-input` not
+  // arriving, which is what absence used to look like, and distinct from `seed-info`'s
+  // `present: false`, which is about VARIABLES in the canvas rather than a stored brand.
+  | { kind: 'restore-input-empty' }
+  | { kind: 'font-list'; families: string[]; styles: number[] };
+
 /** The commit seam: the per-host "apply this theme" action, distinct from the preview.
  *  `web` implementations are the UI's own exporters; `figma` posts to the main thread. */
 export interface HostCommit {
-  /** True only in the Figma plugin — the UI shows an "Apply to Figma variables" action + the
+  /** True only in the Figma plugin — the UI shows an "Apply Theme" action + the
    *  read-back seed panel. `false` on web (the export bar is the commit path there). */
   readonly isFigma: boolean;
   /** Post the current brand to the host for materialisation (Figma only; no-op on web). The
@@ -156,40 +198,7 @@ export interface HostCommit {
    *  `component-progress` (#684) is the one NON-TERMINAL kind: it arrives many times per build and is
    *  superseded by the next one, so it belongs in the pending state rather than a verdict slot. It has no
    *  `ok` for that reason — a fraction is not an outcome. */
-  onHostMessage(
-    cb: (
-      msg:
-        | { kind: 'apply-result'; ok: boolean; headline: string; summary: string }
-        | { kind: 'component-result'; ok: boolean; headline: string; summary: string }
-        // #1558 — the outcome of a `file-setup` scaffold. A FOURTH kind of the `{ok, headline, summary}`
-        // shape, distinct for the same one-kind-per-fact reason `component-result` is: "did the page
-        // skeleton get laid" is separately true and separately actionable from a theme or component write,
-        // so it needs its own verdict slot and cannot overwrite theirs.
-        | { kind: 'file-setup-result'; ok: boolean; headline: string; summary: string }
-        // #259 — the outcome of a `style-guide` run, its own slot.
-        // `busy` (#1785): refused because a run from the other entry point is still drawing.
-        | { kind: 'style-guide-result'; ok: boolean; headline: string; summary: string; busy?: true }
-        | { kind: 'component-progress'; phase: 'build' | 'wire' | 'retry'; done: number; total: number; chunkMs: number }
-        // #1778 — how far a style-guide run has got: `done` of `total` tables. Non-terminal, like
-        // `component-progress`, so it belongs in the style guide's pending state, never its verdict slot.
-        | { kind: 'style-guide-progress'; done: number; total: number }
-        // #1521 — a prune preview (`applied: false`, `count` = what would be removed) or its outcome
-        // (`applied: true`, `count` = what was removed). The UI reads `count` on a preview to decide
-        // whether to open its confirm dialog, and `applied` to tell a preview from a verdict.
-        | { kind: 'prune-result'; ok: boolean; applied: boolean; count: number; summary: string; pillOnly?: boolean }
-        // `present` is the #722 addition: the summary string alone could not distinguish "no Prism3
-        // theme in this file" from "a theme is here", and #721's three outcomes need that told apart
-        // from `ok`. Deriving it by parsing `summary` would make the UI depend on the host's prose.
-        | { kind: 'seed-info'; ok: boolean; summary: string; present: boolean }
-        | { kind: 'restore-input'; input: unknown }
-        | { kind: 'restore-input-error'; message: string }
-        // #1197 — the host read the file and found NO brand blob. Distinct from `restore-input` not
-        // arriving, which is what absence used to look like, and distinct from `seed-info`'s
-        // `present: false`, which is about VARIABLES in the canvas rather than a stored brand.
-        | { kind: 'restore-input-empty' }
-        | { kind: 'font-list'; families: string[]; styles: number[] },
-    ) => void,
-  ): void;
+  onHostMessage(cb: (msg: HostMessage) => void): void;
   /** Ask the host to resize its window to these outer dimensions (#144; Figma only, no-op on web,
    *  where the browser owns the window). Called continuously while the grip is dragged; `commit`
    *  is true on pointer-up, the host's cue to persist. The host clamps — this layer does not know
@@ -197,158 +206,186 @@ export interface HostCommit {
   requestResize(width: number, height: number, commit: boolean): void;
 }
 
-/** The wire shape the iframe posts to the main thread. Kept in sync with the plugin's
- *  `messages.ts` `UiToMain` (`apply-theme`) — the bridge unwraps `{ pluginMessage }`. */
-type UiApplyMsg = { type: 'apply-theme'; input: unknown };
-/** Kept in sync with `messages.ts` `UiToMain` (`build-components`) — `def` is a `componentDefs` id and
- *  is optional (absent means Button), see `postComponents` above. */
-type UiComponentsMsg = { type: 'build-components'; def?: string };
-/** Kept in sync with `messages.ts` `UiToMain` (`file-setup`, #1554) — carries no payload; the taxonomy
- *  is a main-bundle config, not something the UI supplies (see `postFileSetup`). */
-type UiFileSetupMsg = { type: 'file-setup' };
-/** Kept in sync with `messages.ts` `StyleGuideOptions` (#259) — the panel's Customize fields. */
-export type StyleGuideOptionsMsg = {
-  collections?: string[];
-  types?: string[];
-  valueFormat?: 'hex' | 'rgba' | 'hsl' | 'hsb';
-  header?: 'dark' | 'light';
-  aliases?: boolean;
-  description?: boolean;
-  display?: 'auto' | 'default' | 'text' | 'icon' | 'border' | 'transparency';
-  tables?: string[];
-  rem?: boolean;
-  dimensionDisplay?: 'auto' | 'filled' | 'line';
-  fontDisplay?: 'auto' | 'generic' | 'family' | 'size' | 'weight' | 'letterSpacing' | 'lineHeight';
-  paragraphSpacing?: boolean;
-  textDecoration?: boolean;
-  titleCell?: boolean;
+/** The wire shape the iframe posts to the main thread is the plugin's own `UiToMain` (#1813), imported
+ *  as a TYPE, so it is erased from both bundles and no plugin code reaches the web one. It used to be
+ *  re-declared here message by message, with a comment asking that the two be kept in sync and nothing
+ *  checking that they were. Every post below goes through `post`, whose parameter is that union, and each
+ *  message is written as a literal of its own member type, so a field dropped or renamed on either side
+ *  is a compile error here. (A new optional field on the plugin side is not: the UI simply does not send it.) */
+type ApplyTheme = Extract<UiToMain, { type: 'apply-theme' }>;
+/** The style guide's Customize fields (#259): `messages.ts` `StyleGuideOptions`, under the name the UI uses. */
+export type StyleGuideOptionsMsg = StyleGuideOptions;
+/** Post one message to the main thread; the bridge unwraps `{ pluginMessage }`. */
+const post = (msg: UiToMain): void => parent.postMessage({ pluginMessage: msg }, '*');
+
+/** The INBOUND wire shape is the plugin's own `MainToUi` (#1840), imported as a TYPE like `UiToMain` above.
+ *
+ *  It still arrives over `postMessage`, so it is validated field by field rather than cast: the sender is
+ *  another context, and an older or newer host build can send a different shape. What changed is where
+ *  the validator gets its field NAMES. It used to read a loose shape written out here beside `MainToUi`,
+ *  so a field renamed in `messages.ts` kept being read under its old name, arrived as `undefined`, and
+ *  no typecheck or test noticed. Each validator below now receives `Untrusted<member>`: the member's own
+ *  keys, every value `unknown`. Reading a key the member does not have is a compile error at the read,
+ *  while every value is still checked before it is used. */
+type Untrusted<M> = { readonly [K in keyof M]?: unknown };
+type Validator<K extends MainToUi['type']> = (m: Untrusted<OfType<MainToUi, K>>) => HostMessage | null;
+
+/** A `{ok, headline, summary}` verdict. `headline` falls back to the ok flag, not to the summary: a host
+ *  build older than the headline field sends none, and letting the ~150-char summary land in the pill
+ *  would restore exactly the truncation the field exists to remove. */
+type VerdictKind = 'apply-result' | 'component-result' | 'file-setup-result' | 'style-guide-result';
+const verdict = <K extends VerdictKind>(kind: K, m: Untrusted<OfType<MainToUi, VerdictKind>>, okText: string, failText: string): { kind: K; ok: boolean; headline: string; summary: string } => {
+  const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? okText : failText;
+  return { kind, ok: !!m.ok, headline, summary: String(m.summary ?? '') };
 };
-/** Kept in sync with `messages.ts` `UiToMain` (`style-guide`, #259). */
-type UiStyleGuideMsg = { type: 'style-guide'; options?: StyleGuideOptionsMsg };
-/** Kept in sync with `messages.ts` `UiToMain` (`prune`, #1521) — `confirm` false previews, true deletes. */
-type UiPruneMsg = { type: 'prune'; input: unknown; confirm: boolean };
-/** Kept in sync with `messages.ts` `UiToMain` (`resize-ui`). */
-type UiResizeMsg = { type: 'resize-ui'; width: number; height: number; commit: boolean };
+
+const count = (x: unknown): number | null => (typeof x === 'number' && Number.isFinite(x) && x >= 0 ? Math.floor(x) : null);
+/** A build's progress reading, from the panel's own build or an agent's: `null` when the numbers are
+ *  unusable. `phase` is checked against the union rather than cast: it selects a label the UI shows, and an
+ *  unknown phase from a newer host should not print its name. */
+const progressReading = (m: { phase?: unknown; done?: unknown; total?: unknown }): { phase: 'build' | 'wire' | 'retry'; done: number; total: number } | null => {
+  const done = count(m.done);
+  const total = count(m.total);
+  const phase = m.phase === 'build' || m.phase === 'wire' || m.phase === 'retry' ? m.phase : null;
+  return phase && done !== null && total !== null && total > 0 ? { phase, done, total } : null;
+};
+const isId = (x: unknown): x is string => typeof x === 'string' && x.length > 0;
+
+/** One entry per `MainToUi` kind, keyed by the union itself, so a kind added in `messages.ts` is a compile
+ *  error here until it is either handled or declared `null`. `null` means the kind is not this adapter's:
+ *  it is dropped here, as any unknown `type` is. Every entry is a function or `null`, never a call, so the
+ *  table has no side effects and the web bundle, which never calls `toHostMessage`, drops it whole. */
+const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
+  'apply-result': (m) => verdict('apply-result', m, '✓ applied', '✗ apply failed'),
+  // The default says "built" without a count, because an older host that sends no headline sends no
+  // counts to put in one either.
+  // `completed` (S8.2, C1): required of the host (`messages.ts`), and never inferred from `ok`. Only a literal `true`
+  // reads as a build that ran to the end. A malformed value is not dropped (a dropped terminal result leaves the
+  // panel on "Building…", #870); it reads as a build that did not finish, the claim that needs no evidence.
+  'component-result': (m) => ({ ...verdict('component-result', m, '✓ built', '✗ build failed'), completed: m.completed === true }),
+  'file-setup-result': (m) => verdict('file-setup-result', m, '✓ file set up', '✗ setup failed'),   // #1558
+  'style-guide-result': (m) => verdict('style-guide-result', m, '✓ style guide written', '✗ style guide failed'),   // #259
+  'component-progress': (m) => {
+    // Validated, not coerced, and DROPPED if the numbers are unusable — unlike the result kinds
+    // above, which fall back to a default headline. A result is a fact the designer is waiting for,
+    // so a degraded one is still worth showing; a progress reading is one of dozens and the next one
+    // is milliseconds away, so a "0 of 0" is strictly worse than the previous reading staying put.
+    const r = progressReading(m);
+    return r ? { kind: 'component-progress', ...r, chunkMs: count(m.chunkMs) ?? 0 } : null;
+  },
+  'style-guide-progress': (m) => {
+    // #1778. Validated and dropped when unusable, for the `component-progress` reason above.
+    const done = count(m.done);
+    const total = count(m.total);
+    return done !== null && total !== null && total > 0 && done <= total ? { kind: 'style-guide-progress', done, total } : null;
+  },
+  'prune-result': (m) => {
+    // #1521. `count` and `applied` are validated at the boundary like the other numeric/flag fields
+    // above — a preview with a bad count is dropped rather than opening a confirm dialog on nonsense.
+    const count = typeof m.count === 'number' && Number.isFinite(m.count) && m.count >= 0 ? Math.floor(m.count) : null;
+    if (count === null) return null;
+    // `pillOnly` (the agent link): a preview the panel did not ask for — shown, never opened as a dialog.
+    return { kind: 'prune-result', ok: !!m.ok, applied: !!m.applied, count, summary: String(m.summary ?? ''), ...(m.pillOnly === true ? { pillOnly: true } : {}) };
+  },
+  // `present` defaults FALSE when a host omits it (an older plugin build against a newer UI):
+  // absent → #721's state 3, "not a Prism3 file". That is the safe default because state 3
+  // claims nothing about a stored input, whereas defaulting true would assert the file is ours
+  // and then report its knobs as unrecoverable — inventing a limitation from a missing field.
+  // `failed` (S11) defaults 0 when omitted or malformed: the drawer then says the contract failed without a count.
+  'seed-info': (m) => ({ kind: 'seed-info', ok: !!m.ok, summary: String(m.summary ?? ''), present: !!m.present, failed: Number.isInteger(m.failed) && (m.failed as number) > 0 ? m.failed as number : 0 }),
+  'restore-input': (m) => (m.input ? { kind: 'restore-input', input: m.input } : null),
+  'restore-input-empty': () => ({ kind: 'restore-input-empty' }),
+  'restore-input-error': (m) => ({ kind: 'restore-input-error', message: String(m.message ?? 'saved brand data could not be restored') }),
+  'font-list': (m) => {
+    if (!Array.isArray(m.families)) return null;
+    // Filter to strings at the boundary: this arrives over postMessage, so the shape is asserted
+    // rather than guaranteed, and a non-string would reach `textContent` downstream.
+    //
+    // `styles` is index-parallel to `families`, so the two must be filtered TOGETHER — filtering
+    // names first and mapping counts afterwards would shift every count by the number of dropped
+    // names and mis-report every family after the first bad one. Zip, then drop pairs.
+    const rawStyles = Array.isArray(m.styles) ? (m.styles as unknown[]) : null;
+    const families: string[] = [];
+    const styles: number[] = [];
+    (m.families as unknown[]).forEach((f, i) => {
+      if (typeof f !== 'string') return;
+      families.push(f);
+      // A missing/!finite count reads as 0 = "unknown", which the UI renders as a bare tick rather
+      // than inventing a number. Older hosts send no `styles` at all, which lands here too.
+      const n = rawStyles ? rawStyles[i] : undefined;
+      styles.push(typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
+    });
+    return { kind: 'font-list', families, styles };
+  },
+  // The agent link's messages. The panel's own listeners read them (`agent-link-ui.ts`, and the bridge
+  // relay in `agent-bridge-relay.ts`); the shared UI body reads only what the Activity drawer shows (S11):
+  // a command's start, its build progress, and its end. The result envelope and the log lines stay the
+  // relay's.
+  'agent-link-state': null,
+  'agent-result': null,
+  'agent-progress': (m) => {
+    const p = m.progress && typeof m.progress === 'object' ? progressReading(m.progress as Record<string, unknown>) : null;
+    return p && isId(m.id) ? { kind: 'agent-progress', id: m.id, ...p } : null;
+  },
+  'agent-log': null,
+  'agent-started': (m) => (isId(m.id) && typeof m.cmd === 'string' ? { kind: 'agent-started', id: m.id, cmd: m.cmd } : null),
+  'agent-finished': (m) => (isId(m.id) ? { kind: 'agent-finished', id: m.id } : null),
+  // #1957. Dropped unless every field is usable: a refusal with no operation has no row to land in.
+  'refused': (m) => (m.code === 'busy' && typeof m.cmd === 'string' && typeof m.agent === 'boolean' && typeof m.message === 'string' && m.message
+    ? { kind: 'refused', code: 'busy', cmd: m.cmd, agent: m.agent, message: m.message } : null),
+};
+
+/** Validate one inbound `MessageEvent.data` and return the UI's `HostMessage`, or `null` to drop it. Pure,
+ *  so `test-write-adapter.ts` drives it with literals. The `type` is looked up as an OWN key of `INBOUND`,
+ *  so an inherited name such as `toString` is dropped like any other unknown kind. */
+export const toHostMessage = (data: unknown): HostMessage | null => {
+  const m: unknown = data ? (data as { pluginMessage?: unknown }).pluginMessage : undefined;
+  if (!m || typeof m !== 'object') return null;
+  const type = (m as { type?: unknown }).type;
+  if (typeof type !== 'string' || !Object.prototype.hasOwnProperty.call(INBOUND, type)) return null;
+  // Each validator's parameter is its own member's keys, so the table is a union of functions; the lookup
+  // has already matched `type` to the member, which the compiler cannot follow through a string index.
+  const validate = INBOUND[type as MainToUi['type']] as ((m: object) => HostMessage | null) | null;
+  return validate ? validate(m) : null;
+};
 
 /** Figma commit — the DOM-only bridge half (no `figma.*`; lives in the iframe). Posts to the
  *  main thread via `parent.postMessage` and listens for the main thread's replies. */
 const figmaCommit = (): HostCommit => ({
   isFigma: true,
   postTheme(input) {
-    parent.postMessage({ pluginMessage: { type: 'apply-theme', input } as UiApplyMsg }, '*');
+    // `input` is `unknown` at this seam (see `postTheme`), so it is cast to the wire's `BrandInput` here.
+    post({ type: 'apply-theme', input: input as ApplyTheme['input'] });
   },
   postComponents(def) {
     // `def` omitted from the message when the caller omitted it, rather than sent as `undefined`: the
     // main thread distinguishes absent (means Button) from present, and `postMessage` structured-clones,
     // so an explicit `undefined` would arrive as a present key holding nothing.
-    parent.postMessage({ pluginMessage: { type: 'build-components', ...(def ? { def } : {}) } as UiComponentsMsg }, '*');
+    // A typed local, not a spread: a conditional spread escapes the excess-property check, so a renamed
+    // `def` in `messages.ts` would compile and post a build with no def.
+    const msg: Extract<UiToMain, { type: 'build-components' }> = def ? { type: 'build-components', def } : { type: 'build-components' };
+    post(msg);
   },
   postFileSetup() {
-    parent.postMessage({ pluginMessage: { type: 'file-setup' } as UiFileSetupMsg }, '*');
+    post({ type: 'file-setup' });
   },
   postStyleGuide(options) {
-    parent.postMessage({ pluginMessage: { type: 'style-guide', ...(options ? { options } : {}) } as UiStyleGuideMsg }, '*');
+    const msg: Extract<UiToMain, { type: 'style-guide' }> = options ? { type: 'style-guide', options } : { type: 'style-guide' };   // typed local, as above
+    post(msg);
   },
   postPrune(input, confirm) {
-    parent.postMessage({ pluginMessage: { type: 'prune', input, confirm } as UiPruneMsg }, '*');
+    post({ type: 'prune', input: input as ApplyTheme['input'], confirm });
   },
   onHostMessage(cb) {
     window.addEventListener('message', (e: MessageEvent) => {
-      const m = (e.data && e.data.pluginMessage) as
-        | {
-            type?: string; ok?: boolean; present?: boolean; headline?: string; summary?: string; input?: unknown; message?: string;
-            families?: unknown; styles?: unknown; phase?: unknown; done?: unknown; total?: unknown; chunkMs?: unknown;
-            applied?: unknown; count?: unknown; pillOnly?: unknown; busy?: unknown;
-          }
-        | undefined;
-      if (!m) return;
-      if (m.type === 'apply-result') {
-        // `headline` falls back to the ok flag, not to the summary: a host build older than this one
-        // sends no headline, and letting the ~150-char summary land in the pill would restore exactly
-        // the truncation this field exists to remove.
-        const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? '✓ applied' : '✗ apply failed';
-        cb({ kind: 'apply-result', ok: !!m.ok, headline, summary: String(m.summary ?? '') });
-      } else if (m.type === 'component-result') {
-        // Same headline fallback, same reason (see above). The default says "built" without a count,
-        // because an older host that sends no headline sends no counts to put in one either.
-        const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? '✓ built' : '✗ build failed';
-        cb({ kind: 'component-result', ok: !!m.ok, headline, summary: String(m.summary ?? '') });
-      } else if (m.type === 'file-setup-result') {
-        // #1558. Same headline fallback as the two result kinds above, same reason: a host build older than
-        // this one sends no headline, and letting the full summary land in the pill would restore the
-        // truncation the headline exists to remove.
-        const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? '✓ file set up' : '✗ setup failed';
-        cb({ kind: 'file-setup-result', ok: !!m.ok, headline, summary: String(m.summary ?? '') });
-      } else if (m.type === 'style-guide-result') {
-        // #259. Same headline fallback, same reason.
-        const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? '✓ style guide written' : '✗ style guide failed';
-        cb({ kind: 'style-guide-result', ok: !!m.ok, headline, summary: String(m.summary ?? ''), ...(m.busy === true ? { busy: true as const } : {}) });
-      } else if (m.type === 'component-progress') {
-        // Validated, not coerced, and DROPPED if the numbers are unusable — unlike the result kinds
-        // above, which fall back to a default headline. A result is a fact the designer is waiting for,
-        // so a degraded one is still worth showing; a progress reading is one of dozens and the next one
-        // is milliseconds away, so a "0 of 0" is strictly worse than the previous reading staying put.
-        const n = (x: unknown): number | null => (typeof x === 'number' && Number.isFinite(x) && x >= 0 ? Math.floor(x) : null);
-        const done = n(m.done);
-        const total = n(m.total);
-        // `phase` is checked against the union rather than cast: it selects a label the UI shows, and an
-        // unknown phase from a newer host should read as generic progress instead of printing its name.
-        const phase = m.phase === 'build' || m.phase === 'wire' || m.phase === 'retry' ? m.phase : null;
-        if (phase && done !== null && total !== null && total > 0) {
-          cb({ kind: 'component-progress', phase, done, total, chunkMs: n(m.chunkMs) ?? 0 });
-        }
-      } else if (m.type === 'style-guide-progress') {
-        // #1778. Validated and dropped when unusable, for the `component-progress` reason above.
-        const n = (x: unknown): number | null => (typeof x === 'number' && Number.isFinite(x) && x >= 0 ? Math.floor(x) : null);
-        const done = n(m.done);
-        const total = n(m.total);
-        if (done !== null && total !== null && total > 0 && done <= total) cb({ kind: 'style-guide-progress', done, total });
-      } else if (m.type === 'prune-result') {
-        // #1521. `count` and `applied` are validated at the boundary like the other numeric/flag fields
-        // above — a preview with a bad count is dropped rather than opening a confirm dialog on nonsense.
-        const count = typeof m.count === 'number' && Number.isFinite(m.count) && m.count >= 0 ? Math.floor(m.count) : null;
-        if (count !== null) {
-          // `pillOnly` (the agent link): a preview the panel did not ask for — shown, never opened as a dialog.
-          cb({ kind: 'prune-result', ok: !!m.ok, applied: !!m.applied, count, summary: String(m.summary ?? ''), ...(m.pillOnly === true ? { pillOnly: true } : {}) });
-        }
-      } else if (m.type === 'seed-info') {
-        // `present` defaults FALSE when a host omits it (an older plugin build against a newer UI):
-        // absent → #721's state 3, "not a Prism3 file". That is the safe default because state 3
-        // claims nothing about a stored input, whereas defaulting true would assert the file is ours
-        // and then report its knobs as unrecoverable — inventing a limitation from a missing field.
-        cb({ kind: 'seed-info', ok: !!m.ok, summary: String(m.summary ?? ''), present: !!m.present });
-      } else if (m.type === 'restore-input' && m.input) {
-        cb({ kind: 'restore-input', input: m.input });
-      } else if (m.type === 'restore-input-empty') {
-        cb({ kind: 'restore-input-empty' });
-      } else if (m.type === 'restore-input-error') {
-        cb({ kind: 'restore-input-error', message: String(m.message ?? 'saved brand data could not be restored') });
-      } else if (m.type === 'font-list' && Array.isArray(m.families)) {
-        // Filter to strings at the boundary: this arrives over postMessage, so the shape is asserted
-        // rather than guaranteed, and a non-string would reach `textContent` downstream.
-        //
-        // `styles` is index-parallel to `families`, so the two must be filtered TOGETHER — filtering
-        // names first and mapping counts afterwards would shift every count by the number of dropped
-        // names and mis-report every family after the first bad one. Zip, then drop pairs.
-        const rawStyles = Array.isArray(m.styles) ? (m.styles as unknown[]) : null;
-        const families: string[] = [];
-        const styles: number[] = [];
-        (m.families as unknown[]).forEach((f, i) => {
-          if (typeof f !== 'string') return;
-          families.push(f);
-          // A missing/!finite count reads as 0 = "unknown", which the UI renders as a bare tick rather
-          // than inventing a number. Older hosts send no `styles` at all, which lands here too.
-          const n = rawStyles ? rawStyles[i] : undefined;
-          styles.push(typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
-        });
-        cb({ kind: 'font-list', families, styles });
-      }
+      const msg = toHostMessage(e.data);
+      if (msg) cb(msg);
     });
     // Listener attached — signal the main thread it can post (and run the boot read-back, #109).
-    parent.postMessage({ pluginMessage: { type: 'ui-ready' } }, '*');
+    post({ type: 'ui-ready' });
   },
   requestResize(width, height, commit) {
-    parent.postMessage({ pluginMessage: { type: 'resize-ui', width, height, commit } as UiResizeMsg }, '*');
+    post({ type: 'resize-ui', width, height, commit });
   },
 });
 

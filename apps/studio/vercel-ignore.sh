@@ -12,7 +12,7 @@
 # stops someone "simplifying" this into a stale deploy.
 #
 # WHAT CAN CHANGE THE SITE. Vercel runs `build:site --workspace @prism3/studio`, which bundles
-# `apps/studio/src/main.ts` and copies `apps/studio/index.html`. Measured against esbuild's own metafile, that
+# `apps/studio/src/entry.ts` (which imports `main.ts`) and copies `apps/studio/index.html`. Measured against esbuild's own metafile, that
 # bundle's only out-of-`apps/studio/` inputs are `packages/engine/**` and `packages/engine/schema/**`. The Figma plugin
 # is NOT part of this build and cannot affect the deployed site, so `apps/plugin/**` is deliberately
 # absent from the trigger list.
@@ -39,6 +39,12 @@
 # tempting fix — leaving them excluded because "the feature is Figma-only" — would be the #474 stale
 # deploy with a rationale attached. Dead-code elimination is a size optimization, not a dependency
 # boundary, and this list is about the boundary.
+#
+# UI REDESIGN S8.1 MOVED THAT IMPORT OUT OF THE WEB BUILD. The gate above had kept the reference out and three
+# definition modules in (Button, IconButton and Icon), so the plugin now computes the catalog in its own
+# entry and the web reads a generated copy (`apps/studio/gen-component-catalog.ts`). The three files stay
+# OFF this list anyway: a file wrongly excluded skips a deploy, a file wrongly included costs one build, and
+# the generated copy changes with the definitions, so a definition change still reaches the site through it.
 
 set -uo pipefail
 
@@ -77,9 +83,20 @@ EXCLUDED=(
 PATHS=(apps/studio packages/engine/schema vercel.json package.json package-lock.json packages/engine)
 for f in "${EXCLUDED[@]}"; do PATHS+=(":(exclude)packages/engine/$f"); done
 
-# `--quiet` exits 0 when the diff is empty and 1 when it is not. Anything else (a shallow clone with
-# no HEAD^, a bad ref) is an ERROR, not a "nothing changed" — so it must build. The `|| exit 1`
-# catches every non-zero code, error and change alike, and only a genuinely empty diff reaches
-# `exit 0`. Uncertainty always resolves toward building.
-git diff --quiet HEAD^ HEAD -- "${PATHS[@]}" || exit 1
+# WHAT THE DIFF IS AGAINST (#1953). Not `HEAD^`: a branch whose newest commit touches only docs (a progress
+# fragment after the commit that changed the app) was skipped while its earlier commits changed the site, so
+# a PR could have no preview at all. The base is the last commit Vercel successfully deployed for this
+# branch, which Vercel provides as `VERCEL_GIT_PREVIOUS_SHA`. With no previous deploy (a new branch), or a
+# previous SHA this clone does not have (a shallow clone, a force-push), there is nothing to compare with,
+# so it builds. A build skipped here still counts against the daily deployment quota (Vercel's docs), so
+# building more often costs build minutes, not quota.
+BASE="${VERCEL_GIT_PREVIOUS_SHA:-}"
+[ -n "$BASE" ] || exit 1
+git cat-file -e "${BASE}^{commit}" 2>/dev/null || exit 1
+
+# `--quiet` exits 0 when the diff is empty and 1 when it is not. Anything else (a bad ref) is an ERROR,
+# not a "nothing changed" — so it must build. The `|| exit 1` catches every non-zero code, error and
+# change alike, and only a genuinely empty diff reaches `exit 0`. Uncertainty always resolves toward
+# building.
+git diff --quiet "$BASE" HEAD -- "${PATHS[@]}" || exit 1
 exit 0

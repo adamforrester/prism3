@@ -36,6 +36,14 @@ declare const PRISM3_HOST: 'web' | 'figma';
 declare const PRISM3_BUILD: string;
 
 /**
+ * Whether this bundle may carry the smoke suite's test hooks (#2098). `true` only in `build.mjs`, the local `dist/`
+ * that `test-smoke.mjs` drives; `false` in `build-site.mjs` (the deployed site), `vercel-ignore-check.mjs` and
+ * `apps/plugin/build.mjs`. A define, so esbuild drops the gated code from a `false` bundle entirely, rather than
+ * leaving a runtime check a URL could satisfy. `test-prod-bundle.ts` checks the deployed bundle.
+ */
+declare const PRISM3_TEST_HOOKS: boolean;
+
+/**
  * `.css` imported as TEXT (#769). The chrome stylesheet moved out of a template literal in
  * `main.ts` into `styles.css`, and it is pulled back in as a string rather than emitted as a
  * separate asset — the bundle has to stay self-contained for the Figma plugin iframe, which ships
@@ -51,6 +59,19 @@ declare const PRISM3_BUILD: string;
  * bundler that emits a separate .css file just as happily. `main.ts` asserts the string at boot.
  */
 declare module '*.css' {
+  const css: string;
+  export default css;
+}
+
+/**
+ * The new shell's stylesheet as TEXT (UI redesign S1.1): the `--p3-*` variables generated from the
+ * default theme, the embedded chrome fonts, and `chrome.css`. A VIRTUAL module: no file has this name.
+ * `apps/studio/chrome/esbuild-plugin.mjs` produces it at bundle time, and every esbuild entry that
+ * bundles `apps/studio/src` must load that plugin (`build.mjs`, `build-site.mjs`,
+ * `vercel-ignore-check.mjs`, `apps/plugin/build.mjs`). One that does not fails with
+ * `Could not resolve "p3:chrome-css"`. This declaration only lets `typecheck` see the import.
+ */
+declare module 'p3:chrome-css' {
   const css: string;
   export default css;
 }

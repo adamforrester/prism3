@@ -511,6 +511,16 @@ export const GATES: Gate[] = [
     precondition: chromiumPrecondition,
   },
   {
+    // UI redesign S1.2: the new shell's chrome, measured as rendered. It drives BOTH bundles — the
+    // studio's dist/main.js and the plugin's dist/ui.html — so it is ordered after both builds.
+    id: 'chrome',
+    ciStep: 'New shell chrome suite (UI redesign S1.2)',
+    cmd: ws('@prism3/studio', 'test:chrome'),
+    after: ['build-web', 'build-plugin'],
+    why: 'it drives the built dist/main.js and dist/ui.html in a browser',
+    precondition: chromiumPrecondition,
+  },
+  {
     // The FOURTH component-tier suite, and the only one whose ACTUAL comes from the HOST rather than
     // from the plan. `plugin-test` drives the executor and asserts what the executor reports;
     // this reads the built tree back and diffs it against the plan, which is the direction that
@@ -559,13 +569,10 @@ export const GATES: Gate[] = [
     id: 'lint-voice',
     ciStep: 'Voice lint gate (shipped text)',
     cmd: engine('lint-voice.ts'),
-    after: ['build-web'],
-    // NOT `build-plugin`, and the difference from the line above is a defect rather than a decision:
-    // this gate's scope has the same apps/plugin/dist hole #937 fixed in its sibling, filed separately
-    // rather than widened here. Adding `build-plugin` to this `after` before the scope moves would
-    // declare a dependency on a directory the gate does not read — an ordering constraint with nothing
-    // behind it is the kind a later edit deletes as noise, which is what `why` exists to prevent.
-    why: 'same apps/studio/dist/*.js scope as the US-English gate, same reason it runs after the web build',
+    after: ['build-web', 'build-plugin'],
+    // `build-plugin` since #1824: the CLIENT NAMES arm reads apps/plugin/dist (main.js + ui.html) raw.
+    // The voice RULES still do not (#948 is open), so this ordering serves that one arm today.
+    why: 'the voice rules scan apps/studio/dist/*.js, and the client-name arm (#1824) scans both built bundles — run before either build it reads a stale one, or none',
   },
   {
     id: 'lint-doc-gates',

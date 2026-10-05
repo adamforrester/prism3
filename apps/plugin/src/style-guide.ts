@@ -2029,37 +2029,3 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
     : r.deleted.length ? `✓ ${tables(drawn)}, ${r.deleted.length} deleted` : `✓ style guide: ${tables(drawn)}`;
   return { ok, headline: headline.length > 24 ? (ok ? '✓ style guide written' : '⚠ style guide partial') : headline, summary: parts.join('. ') || 'Nothing to draw: this file has no variables or text styles of the types this run covers' };
 };
-
-/**
- * ONE STYLE-GUIDE RUN AT A TIME (#1785). A run yields to the host (#1778), so the panel stays live while it draws,
- * and the panel's button and the agent link's `style-guide` command are two entry points into one file. Two runs
- * meet at their yields: the second's `drawTable` removes the first's grid mid-build, and the first then writes into
- * a grid no longer on the page. The gate holds one run per plugin session; a second request, from either entry
- * point, is REFUSED by name rather than queued, since a queued run would redraw every table the first just drew.
- * `main.ts` makes one gate and routes both entry points through it.
- */
-export type StyleGuideEntry = 'panel' | 'agent';
-
-export const createStyleGuideGate = () => {
-  let running: StyleGuideEntry | null = null;
-  return {
-    /** Who started the run in flight, or null. */
-    running: (): StyleGuideEntry | null => running,
-    /** Run `fn` unless a run is in flight; then return who started that one, and do not run. */
-    async run<T>(entry: StyleGuideEntry, fn: () => Promise<T>): Promise<{ ran: true; value: T } | { ran: false; running: StyleGuideEntry }> {
-      if (running) return { ran: false, running };
-      running = entry;
-      try { return { ran: true, value: await fn() }; } finally { running = null; }
-    },
-  };
-};
-
-/** The headline of a refused second run. */
-export const STYLE_GUIDE_BUSY = '✗ already drawing';
-
-/** The verdict a refused second run reports: which entry point's run is still drawing, and what to do. */
-export const styleGuideBusy = (running: StyleGuideEntry): { ok: false; headline: string; summary: string } => ({
-  ok: false,
-  headline: STYLE_GUIDE_BUSY,
-  summary: `A style guide started from the ${running === 'agent' ? 'agent link' : 'panel'} is still drawing, so this request was not run — two runs at once draw over each other's tables. Run it again once that one reports its result`,
-});
