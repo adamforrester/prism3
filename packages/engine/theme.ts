@@ -1896,6 +1896,16 @@ const buildTypography = (t: TypographyInput = {}): Typography => {
   const families = deriveFamilies(t.families);
   const wr = { ...WEIGHT_ROLE_DEFAULT, ...(t.weightRoles ?? {}) };
   const fluid = t.responsive?.fluid ?? true;
+  // #2068 (owner decision 2026-10-05: refuse). The fluid clamp() interpolates from minViewport to
+  // maxViewport and divides by their difference (`fluidClamp`, tree.ts), so an equal pair emitted
+  // `-Infinityrem + Infinityvw` (invalid CSS, the declaration dropped) and an inverted one a clamp() that
+  // shrinks as the viewport grows, both building clean. Refused whether or not `fluid` is on (owner decision
+  // Q16 = a): the pair is what the fluid regime reads, and a brand that turns fluid on later would inherit it.
+  const vpMin = t.responsive?.minViewport ?? 375, vpMax = t.responsive?.maxViewport ?? 1280;
+  // The wording is the owner's, approved 2026-10-05 on #2068: one sentence for both the equal and the
+  // inverted pair, with the two values as entered.
+  if (vpMin >= vpMax)
+    throw new Error(`The minimum viewport (${vpMin}px) must be smaller than the maximum viewport (${vpMax}px).`);
   return {
     families,
     typefaces: deriveTypefaces(t.typefaceLibrary, families),

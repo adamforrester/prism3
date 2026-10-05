@@ -7507,6 +7507,32 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     ok(thr(() => tBrand('soE4', { sizeOverrides: { display: { xl: { mobile: 45 } } } } as any)), '[#1587] an off-ladder viewport override throws');
     ok(thr(() => tBrand('soE5', { sizeOverrides: { display: { zzz: { desktop: 96 } } } } as any)), '[#1587] a viewport override on a rung the brand does not ship throws rather than no-opping');
     ok(thr(() => tBrand('soE6', { responsive: { fluid: false }, sizeOverrides: { display: { xl: { mobile: 40 } } } } as any)), '[#1587] a mobile override with responsive off throws (no mobile endpoint to pin)');
+    // #2068 — an EMPTY or REVERSED fluid range is refused (owner decision 2026-10-05). `fluidClamp` divides
+    // by maxViewport − minViewport: 800/800 emitted `-Infinityrem + Infinityvw` and 1280/375 a clamp() that
+    // shrinks as the viewport grows, and both built clean. EXPECTED is the owner-approved sentence, typed
+    // here literally, with the two values as entered: one wording for both arms. Refused with fluid off too
+    // (owner decision Q16 = a). BY-NAME MUTATION: delete the refusal in `buildTypography` → the equal, the
+    // inverted, the as-entered and the fluid-off arms fail.
+    const vpMsg = (id: string, responsive: Record<string, unknown>) => msgOf(() => tBrand(id, { responsive } as any));
+    const VP_EQ = 'The minimum viewport (800px) must be smaller than the maximum viewport (800px).';
+    const VP_INV = 'The minimum viewport (1280px) must be smaller than the maximum viewport (375px).';
+    ok(vpMsg('vpEq', { fluid: true, minViewport: 800, maxViewport: 800 }) === VP_EQ,
+      `[#2068] an equal viewport pair (800/800) is refused with the approved wording (got "${vpMsg('vpEq', { fluid: true, minViewport: 800, maxViewport: 800 })}")`);
+    ok(vpMsg('vpInv', { fluid: true, minViewport: 1280, maxViewport: 375 }) === VP_INV,
+      `[#2068] an inverted viewport pair (1280/375) is refused with the approved wording (got "${vpMsg('vpInv', { fluid: true, minViewport: 1280, maxViewport: 375 })}")`);
+    ok(vpMsg('vpDec', { fluid: true, minViewport: 400.5, maxViewport: 400 }) === 'The minimum viewport (400.5px) must be smaller than the maximum viewport (400px).',
+      `[#2068] the message carries the values as entered, not rounded (got "${vpMsg('vpDec', { fluid: true, minViewport: 400.5, maxViewport: 400 })}")`);
+    ok(vpMsg('vpOff', { fluid: false, minViewport: 1280, maxViewport: 375 }) === VP_INV,
+      `[#2068] the refusal holds with fluid off too (owner decision Q16 = a) — the pair is what the fluid regime reads (got "${vpMsg('vpOff', { fluid: false, minViewport: 1280, maxViewport: 375 })}")`);
+    // The default range still builds, implicitly and stated explicitly, and its emitted clamps are finite.
+    ok(!thr(() => tBrand('vpDef', {} as any)) && !thr(() => tBrand('vpDefX', { responsive: { fluid: true, minViewport: 375, maxViewport: 1280 } } as any)),
+      '[#2068] the default 375/1280 range builds, omitted and stated explicitly');
+    {
+      const emitted = JSON.stringify(buildTree(brandTheme(tInput('vpTree', { responsive: { fluid: true, minViewport: 375, maxViewport: 1280 } }))).tree);
+      const clamps = emitted.match(/clamp\([^)]*\)/g) ?? [];
+      ok(clamps.length > 0 && clamps.every((c) => !/Infinity|NaN/.test(c)),
+        `[#2068] at 375/1280 the tree emits ${clamps.length} clamp() value(s), all finite (non-vacuous: at least one is emitted)`);
+    }
     // validateBrandInput ACCEPTS a well-formed override (returns an empty error array, never throws) and
     // REJECTS a malformed one at the schema layer.
     ok(validateBrandInput(tInput('soV', { sizeOverrides: { display: { xl: { mobile: 40 } } } })).length === 0,
