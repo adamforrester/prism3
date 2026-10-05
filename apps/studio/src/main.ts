@@ -2873,7 +2873,7 @@ const syncStart = (): void => {
       startReopened = false;
       syncStart();
       // Back to the control that opened it.
-      (barHost?.querySelector<HTMLElement>('[data-p3="brand-switcher"]') ?? null)?.focus();
+      (frame?.bar.querySelector<HTMLElement>('[data-p3="brand-switcher"]') ?? null)?.focus();
     },
   });
 };
