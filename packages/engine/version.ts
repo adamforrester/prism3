@@ -2744,6 +2744,13 @@
 /**
  * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
  *
+ * 0.227.0 — folded 2026-10-04 from 1 change note, newest merge first.
+ *
+ * [engine-lever-copy-2050 · minor · 2dbe9e55] Plain words for the shape, motion, layout and type lever names and descriptions (#2050, #2005), and the
+ * typography lock reasons in REQUIRED_WEIGHT_ROLES, owner-approved copy. Each motion.transition.*
+ * $description now names the curve its easing role resolves to, not the transition's fixed default (#2062).
+ * No lever key or token path moves.
+ *
  * 0.226.0 — folded 2026-10-04 from 1 change note, newest merge first.
  *
  * [engine-2033-floorstep-strict · minor · 907ba977] surfaces.<mode>.floorStep refuses a value that is not a step on the neutral ramp (#2033, owner go-ahead
@@ -4524,7 +4531,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.226.0';
+export const ENGINE_VERSION = '0.227.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
