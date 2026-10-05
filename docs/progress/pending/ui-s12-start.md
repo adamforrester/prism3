@@ -35,4 +35,5 @@
 
 - **A start-path assertion behind a `hooks.need`** fails as "the hook did not appear", not by the decision's name. The guard's assertion reads the window first and throws after it.
 - **harbor has Dark on by default** (no `modes` key): clicking Dark opens the turn-off confirm and writes nothing, so the three-edit fixture turns Wireframe on.
+- **A refused saved brand's notice (#1989) sat under the scrim.** Its Export and Clear are mounted above `#app`, and the start window now covers the whole viewport on the first run, which is always when that notice shows. `test:smoke`'s #1989 cases caught it (their clicks timed out). The notice now opens the start window's body (`entry.ts`), inside the window's focus; the window closes only on a load, which dismisses the notice first.
 - **The `.start*` rules in `styles.css` and `mountView`'s single branch** are left for S13.
