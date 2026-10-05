@@ -61,7 +61,9 @@ export const LAYOUT_COPY = {
  *  D16's plain words (the manifest's own descriptions say "min-width floors" and "reading-measure content column",
  *  which D16 retires from visible copy), the value pickers' one-line hints, and the line at the breakpoint limit. */
 export const LAYOUT_DRAFT = {
-  breakpointsTip: 'The screen width where each layout starts, smallest first. The first is always 0px. Names follow the count: up to five run sm to 2xl, six or seven run xs to 3xl.',
+  // Not draft any more: the lever's own description, word for word (#2070; #2089 corrected "six or seven run xs to
+  // 3xl", which is wrong for six). `test-lever-tips.ts` holds it to `lever-manifest.json`; keep it a literal (docs/34).
+  breakpointsTip: 'The screen width where each layout starts, smallest first. Studio keeps the first at 0px. Names follow the count: up to five start at sm, six run xs to 2xl, and seven run xs to 3xl. The default is 0, 768, 1024, 1440 and 1920.',
   columnsTip: 'How many columns the grid has on the widest breakpoints. Smaller breakpoints step up to it: 4, then 8, then this count.',
   maxTip: 'The widest content gets. Below this width, content fills the screen.',
   narrowTip: 'A narrower width for long text, so lines stay a readable length.',

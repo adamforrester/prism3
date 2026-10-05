@@ -6,9 +6,10 @@
  *   npx tsx apps/studio/gen-used-by.ts --write    # rewrite src/preview/used-by.ts from the definitions
  *   npx tsx apps/studio/test-used-by.ts           # (in `npm test`) fail when the committed index is stale
  *
- * WHY DATA AND NOT AN IMPORT. The web bundle never imports the component definitions: one ungated reference to
- * `componentDefs` puts every definition's prose into `apps/studio/dist` (`main.ts`, `COMPONENT_CATALOGUE`, and
- * `lint-bundle-prose`'s intent). `button-spacing.ts` is the engine's precedent for the same need. So the studio
+ * WHY DATA AND NOT AN IMPORT. The web bundle never imports the component definitions: one reference to
+ * `componentDefs`, gated or not, puts definitions' prose into `apps/studio/dist` (the component catalog's own
+ * reasoning in `src/state/component-catalog.ts`, `vercel-ignore-check.mjs`, and `lint-bundle-prose`'s intent).
+ * `button-spacing.ts` is the engine's precedent for the same need. So the studio
  * reads a small generated table instead, and `test-used-by.ts` holds it to the definitions it was written from.
  *
  * WHAT IT COUNTS. A definition uses a radius size when one of its `tokens` values is `radius.<size>`, and a control

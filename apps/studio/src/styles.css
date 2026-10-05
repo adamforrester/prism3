@@ -473,14 +473,6 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .toktable td.mcol .tok-hexv{white-space:normal;word-break:break-word}
 .toktable td.pair{white-space:nowrap;width:1%}
 .type-spec{margin-bottom:8px}
-.ts-list{display:flex;flex-direction:column;gap:22px;padding:14px 0 2px}
-.ts-row{display:flex;flex-direction:column;gap:8px;min-width:0}
-.ts-meta{font-size:11.5px;color:var(--faint)}
-.ts-sample{color:var(--ink);letter-spacing:-0.02em;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* Type-specimen variants strip — the weights each group ships + italic/link/size-range (the type sub-levers). */
-.ts-variants{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin-top:2px}
-.ts-var{font-size:14px;color:var(--ink2);line-height:1.2}
-.ts-var-range{font-size:11px;color:var(--faint);align-self:center}
 .shadow-spec{margin-bottom:8px}
 .sh-list{display:flex;flex-wrap:wrap;gap:28px;border-radius:var(--r-sm);padding:24px 20px;background:var(--paper);margin-top:14px}
 .sh-cell .tpill{margin-top:2px}
@@ -1021,6 +1013,9 @@ label.cset-head{cursor:pointer}
 .sg-ground{margin-top:14px;padding:18px 18px 20px;border-radius:var(--r);border:1px solid var(--line);
   color:var(--ink);transition:background .12s ease}
 .sg-ground .sub-t{color:var(--muted)}
+/* #1971: the line naming a ground that is not the page (Surfaces & fills' Foreground, on the contrast floor). */
+.sg-floor-lab{margin:0;font-size:13px;line-height:1.5;color:var(--muted)}
+.sg-floor-lab + .sub-lab{margin-top:12px}
 .sg-grid{display:grid;gap:14px;margin-top:2px}
 .sg-g3{grid-template-columns:repeat(3,1fr)}.sg-g5{grid-template-columns:repeat(5,1fr)}
 .sg-cw{display:flex;flex-direction:column;gap:8px;min-width:0}
