@@ -2147,7 +2147,10 @@ for (const host of ['web', 'figma']) {
         const f = await drawerState(page);
         const fs = f.ops['filesetup'];
         ok(f.open && f.body && fs?.summary === bad.summary, `F2 ${where}: a ${kind} keeps the drawer open${w === 1280 || narrow ? ` past ${(COLLAPSE_MS + 1000) / 1000} s` : ''}, its row's summary showing — open ${f.open}, summary "${fs?.summary}"`);
-        ok(f.dot === 'bad' && f.name === 'Activity, 1 needs attention', `F2 ${where}: Activity's dot and name say a result needs attention (dot ${f.dot}, name "${f.name}")`);
+        // D-RED A (owner, 2026-10-05): the tile's dot is red ('bad') for a failure and green ('warn') for a warning; the
+        // name says it needs attention either way.
+        const wantDot = kind === 'failure' ? 'bad' : 'warn';
+        ok(f.dot === wantDot && f.name === 'Activity, 1 needs attention', `F2 ${where}: Activity's dot (${wantDot}) and name say a result needs attention (dot ${f.dot}, name "${f.name}")`);
         if (narrow) ok(f.sheet, `F2 ${where}: at 380 a ${kind} opens the full-pane sheet under the top row (sheet ${f.sheet})`);
         const mf = await measure(page, `${where} / a ${kind} open`, host, w);
         check(mf, `${where} / a ${kind} open`, columnOf(host, w), narrow ? { ...INSPECT_NARROW_FLOOR, text: 4, fonts: 4, controls: 6 } : PLACE_FLOOR,
@@ -2155,7 +2158,7 @@ for (const host of ['web', 'figma']) {
         if (narrow) await shot('drawer-open');
         await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
         const c = await drawerState(page);
-        ok(!c.open && c.shown && c.dot === 'bad', `F2 ${where}: the drawer's toggle closes it, and the dot keeps the ${kind} (open ${c.open}, dot ${c.dot})`);
+        ok(!c.open && c.shown && c.dot === wantDot, `F2 ${where}: the drawer's toggle closes it, and the dot keeps the ${kind} (open ${c.open}, dot ${c.dot})`);
         // The page row's verdict asks to be shown: the drawer hears it through the store and opens by hand, on
         // that operation's row, expanded (S11). It discloses nothing in place any more. RE-HOSTED IN S8.2: Set up file
         // has no page row now (its one control is the Figma menu's, G8 A) and a build's result is the Components
