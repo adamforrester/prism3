@@ -7586,8 +7586,10 @@ for (const host of ['web', 'figma']) {
 //      its guard use `p3-dialog-*` and `p3-scrim`; the export dialog's own two-column body once turned the start window
 //      into two columns. Its rules now carry their own `p3-bardlg-*` names. Held: with the export dialog open, "+ New
 //      brand" opens the start window in the same page, and the start window's body lays its cards out in one column
-//      (a single computed grid track), both hosts, 1280. Until the start window exists (S12 not merged), there is nothing
-//      to compare against, and the section says so instead of passing.
+//      (a single computed grid track), both hosts, 1280. Until the start window exists (S12 not merged) that half says so
+//      instead of passing; the other half runs today: an element carrying the start window's class names, placed beside
+//      the open export dialog, is laid out by none of its rules.
+//   Mutation: the export dialog's body rule unscoped (`.p3-bardlg-body, .p3-dialog-body { … }`) → `28c … dialog scope: …`.
 // =============================================================================================
 console.log('\n28c. The export dialog and the start window, in one page');
 for (const host of ['web', 'figma']) {
@@ -7596,6 +7598,23 @@ for (const host of ['web', 'figma']) {
   try {
     await hooks.click(page.locator('[data-p3="export-open"]'));
     await hooks.need(page, '[data-p3="export-dialog"]');
+    // Today, before the start window exists: an element with the start window's class names, placed in the page beside the
+    // open export dialog and read, then removed. No rule of the export dialog may lay it out (its body would be two tracks).
+    const probe = await page.evaluate(() => {
+      const scrim = document.createElement('div'); scrim.className = 'p3-scrim';
+      const dlg = document.createElement('section'); dlg.className = 'p3-dialog p3-start';
+      const body = document.createElement('div'); body.className = 'p3-dialog-body';
+      dlg.append(body); scrim.append(dlg); document.querySelector('[data-p3="frame"]').append(scrim);
+      const cs = getComputedStyle(body), ss = getComputedStyle(scrim);
+      const r = { bodyDisplay: cs.display, bodyTracks: cs.gridTemplateColumns, scrimPosition: ss.position, scrimZ: ss.zIndex };
+      scrim.remove();
+      return r;
+    });
+    // Once S12 lands its own rules lay this element out (one track, a fixed scrim at its own z-index); the export
+    // dialog's would make it two tracks, or put the scrim at the export dialog's z-index (50).
+    const probeTracks = probe.bodyTracks === 'none' ? 0 : probe.bodyTracks.split(' ').filter(Boolean).length;
+    ok(probeTracks <= 1 && probe.scrimZ !== '50',
+      `${where}: dialog scope: no rule of the export dialog reaches an element named as the start window's (body ${probe.bodyDisplay}, ${probeTracks} tracks "${probe.bodyTracks}"; scrim ${probe.scrimPosition}, z ${probe.scrimZ})`);
     // The scrim covers the bar, so "+ New brand" is reached the way a script would: the brand menu, then its item.
     await page.evaluate(() => document.querySelector('[data-p3="brand-switcher"]')?.click());
     await page.waitForFunction(() => !!document.querySelector('[data-p3="brand-menu-new"]'), null, { timeout: 3000 }).catch(() => {});
