@@ -53,10 +53,9 @@ const ROOT = dirname(fileURLToPath(import.meta.url));
 // Every element this suite LOCATES is found by its `data-p3` hook (F1), minted by `hook()` in
 // `src/main.ts` — not by a class name, and not by a section title. A restyle or a rename therefore does
 // not move what the suite reads. Visible copy is still asserted where the copy is the thing under test.
-// Two things still read classes on purpose: the shared STATE tokens (`.on`, `.active`, `.cur`,
-// `.is-pressed`), which carry state rather than identity, and the probe's `cls` labels, which only name
-// a node in a failure message. The guard (`test-hooks.mjs`) fails any hook this file names that never
-// rendered, by name.
+// Two things still read classes on purpose: the shared STATE tokens (`.on`, `.active`, `.cur`), which
+// carry state rather than identity, and the probe's `cls` labels, which only name a node in a failure
+// message. The guard (`test-hooks.mjs`) fails any hook this file names that never rendered, by name.
 const hooks = hookGuard(import.meta.url);
 
 // ---- the assertion harness -------------------------------------------------------------------
