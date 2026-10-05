@@ -1129,6 +1129,9 @@ label.cset-head{cursor:pointer}
 .sg-ground{margin-top:14px;padding:18px 18px 20px;border-radius:var(--r);border:1px solid var(--line);
   color:var(--ink);transition:background .12s ease}
 .sg-ground .sub-t{color:var(--muted)}
+/* #1971: the line naming a ground that is not the page (Surfaces & fills' Foreground, on the contrast floor). */
+.sg-floor-lab{margin:0;font-size:13px;line-height:1.5;color:var(--muted)}
+.sg-floor-lab + .sub-lab{margin-top:12px}
 .sg-grid{display:grid;gap:14px;margin-top:2px}
 .sg-g3{grid-template-columns:repeat(3,1fr)}.sg-g5{grid-template-columns:repeat(5,1fr)}
 .sg-cw{display:flex;flex-direction:column;gap:8px;min-width:0}

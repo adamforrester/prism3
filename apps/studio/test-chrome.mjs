@@ -193,8 +193,12 @@
  *     Icons description (QA-I10). All literal.
  *   · SCRIM (QA-B10): its own lever section and preview section, its copy APPROVED, the scrim row not in Background fills.
  *   · FIELDS (#2016, Q80): a preview section on the page, and an edit in the levers' Fields reveals it (QA-B9's rule).
- *   · #1971 (Q81): Background and Foreground on white (literal `#ffffff`) with no badge, every other section on the
- *     emission's `background.primary` with its badges; Q23 pairs for Background fills, Scrim and Fields.
+ *   · #1971 (Q81): Background with no badge, every other section with its badges (Foreground's since GR2, the owner,
+ *     2026-10-04: each bold fill's badge prints its emitted hex against the emitted floor); Q23 pairs for
+ *     Background fills, Scrim and Fields. The grounds (the owner, 2026-10-03, #1971's follow-up): every section on the
+ *     emission's `background.primary` for the previewed mode, except Foreground, on the emission's contrast floor
+ *     (`foreground.brand`'s `against` in that mode, resolved from the committed tree, `EMITTED_FLOOR`), with a line
+ *     inside its ground naming that step.
  *   · THE LOCK (QA-B12): the pairing button's padlock is the shut shackle while paired and the open one while not
  *     (path data literal), aria-hidden, the button named by its words.
  *   · GRADIENTS (QA-B13 to QA-B16): the switch in its block's header at the top right; no element in the levers paints
@@ -2929,11 +2933,64 @@ console.log(`\nColor › Surfaces & fills (S4a)\n${'='.repeat(78)}`);
  *  fills preview draws, each a section of the Style guide on the brand's page color, plus its gradients (the
  *  default theme ships two). Literal: the owner's decision Q5 names the five sections. */
 const EXPECT_FILLS_SPECIMENS = ['Background', 'Scrim', 'Foreground', 'Text color', 'Border', 'Focus ring', 'Icon', 'Fields', 'Gradients'];
-/** #1971 (owner decision Q81, S4f): the sections that are themselves grounds, Background and Foreground, sit in WHITE
- *  containers and carry no ratio badge; every other section checks contrast against the page and sits on its color.
- *  Literal, the owner's word: white, `#ffffff`, in every mode. Scrim (QA-B10) and Fields (#2016) are S4f's. */
-const FILLS_WHITE_SECTIONS = ['Background', 'Foreground'];
-const WHITE = '#ffffff';
+/** #1971 (owner decision Q81, S4f): the page planes, Background, carry no ratio badge; every other section carries its
+ *  badges, Foreground included since it sits on the floor it is measured against (GR2, owner 2026-10-04). Literal. */
+const FILLS_GROUND_SECTIONS = ['Background'];
+/** GR2: the Foreground roles measured against the contrast floor, each badged in the Foreground section. Literal. */
+const FLOOR_BADGED = ['brand', 'danger', 'success', 'warning', 'info'];
+/** #1971 Q13(a) (owner, 2026-10-05): the Foreground cards whose badge describes the text drawn on the card's own fill,
+ *  as [fill, text]: the three Inverse cards (their label) and the five Subtle cards. Literal. */
+const ON_FILL_CARDS = [...['primary', 'secondary', 'tertiary'].map((t) => [`inverse.foreground.${t}`, 'inverse.text.primary']),
+  ...FLOOR_BADGED.map((sem) => [`foreground.${sem}-subtle`, `text.${sem}`])];
+/** WCAG 2 contrast of two hexes, computed here (the oracle side), never read from the studio. */
+const wcagHex = (a, b) => {
+  const lum = (hx) => { const f = (i) => { const x = parseInt(hx.slice(i, i + 2), 16) / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(1) + 0.7152 * f(3) + 0.0722 * f(5); };
+  const x = lum(a), y = lum(b);
+  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+};
+/** #1971 (owner, 2026-10-03): the grounds follow the previewed mode. Every section sits on the page, Background
+ *  included, except these, which sit on the CONTRAST FLOOR: the step `foreground.*` is measured against. Literal. */
+const FILLS_FLOOR_SECTIONS = ['Foreground'];
+/** The line naming the floor inside that section's ground (APPROVED, owner 2026-10-04, GR1). Literal. */
+const FLOOR_LABEL = (step) => `On the contrast floor (${step})`;
+/** The contrast floor per mode, from the COMMITTED emission, never the studio's resolver: `foreground.brand`'s
+ *  `against` in the mode's tree (the base, or the base under the mode's overlay), resolved as a role or a palette
+ *  step to its hex. */
+const EMITTED_FLOOR = (() => {
+  const out = join(REPO, 'packages/engine/out');
+  const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
+  const root = Object.keys(base).find((k) => !k.startsWith('$'));
+  const leafAt = (tree, path) => path.split('.').reduce((n, k) => n?.[k], tree);
+  const treeFor = (mode) => {
+    if (mode === 'light') return base;
+    const t = structuredClone(base);
+    const ov = JSON.parse(readFileSync(join(out, `prism3.${mode}.overlay.tokens.json`), 'utf8'));
+    const put = (src, dst) => { for (const [k, v] of Object.entries(src)) { if (k.startsWith('$')) continue; if (v && typeof v === 'object' && '$value' in v) dst[k] = v; else put(v, dst[k] ??= {}); } };
+    put(ov, t);
+    return t;
+  };
+  const resolveHex = (tree, path, seen = 0) => {
+    const v = leafAt(tree, path)?.$value;
+    if (typeof v !== 'string' || seen > 20) return null;
+    const m = /^\{(.+)\}$/.exec(v);
+    return m ? resolveHex(tree, m[1], seen + 1) : v.toLowerCase();
+  };
+  return Object.fromEntries(['light', 'dark', 'hc-light', 'hc-dark'].map((m) => {
+    const t = treeFor(m);
+    const step = leafAt(t, `${root}.color.foreground.brand`)?.$extensions?.prism3?.against ?? null;
+    const hex = step ? (resolveHex(t, `${root}.color.${step}`) ?? resolveHex(t, `${root}.core.palette.${step}`)) : null;
+    // GR2: each bold fill's emitted hex and what it is measured against, for its badge's expected ratio.
+    // A mode's overlay carries only the leaves whose VALUE varies, so a fill whose hex is the same in every mode keeps
+    // its per-mode `against` on the base leaf (`$extensions.prism3.modes.<mode>`), read first.
+    const againstIn = (path) => leafAt(base, path)?.$extensions?.prism3?.modes?.[m]?.against ?? leafAt(t, path)?.$extensions?.prism3?.against ?? null;
+    const fills = Object.fromEntries(FLOOR_BADGED.map((sem) => [sem, { hex: resolveHex(t, `${root}.color.foreground.${sem}`), against: againstIn(`${root}.color.foreground.${sem}`) }]));
+    // Q13(a): each on-fill card's two roles, emitted hexes, for the drawn-pairing badge's oracle.
+    const roles = Object.fromEntries(ON_FILL_CARDS.flat().map((k) => [k, resolveHex(t, `${root}.color.${k}`)]));
+    return [m, { step, hex, fills, roles }];
+  }));
+})();
+ok(Object.values(EMITTED_FLOOR).every((x) => /^#[0-9a-f]{6}$/.test(x.hex ?? '')), `the oracle resolved the contrast floor for every mode from the emission (${JSON.stringify(EMITTED_FLOOR)})`);
+ok(Object.entries(EMITTED_FLOOR).some(([m, x]) => x.hex !== EMITTED[m]), `the oracle's contrast floor differs from the page in at least one mode, so a Foreground on the page can fail (${JSON.stringify(EMITTED_FLOOR)} vs ${JSON.stringify(EMITTED)})`);
 /** The manifest keys v6 homes on Surfaces & fills, with their hooks. R2: every lever on this page is shown. */
 const FILLS_LEVERS = [['surfaces', '[data-p3="lever-surfaces"]'], ['gradients', '[data-p3="lever-gradients"]'],
   // S4f (QA-I10): the Icon section's pairing control is the icon contrast lever's block, as Interactive drew it.
@@ -3011,6 +3068,16 @@ const fillsGrounds = (page) => page.evaluate(() => {
   return { card: host ? hex(groundOf(host)) : null, roots: grounds.map((g) => ({ name: g.closest('.psec')?.querySelector('.psec-t')?.textContent ?? '?', root: g.getAttribute('data-p3') === 'specimen', ground: hex(groundOf(g)) })),
     sections: [...(host?.querySelectorAll('.psec') ?? [])].map((x) => ({ name: x.querySelector('.psec-t')?.textContent ?? '?', bg: hex(groundOf(x)) })),
     badges: Object.fromEntries([...(host?.querySelectorAll('.psec') ?? [])].map((x) => [x.querySelector('.psec-t')?.textContent ?? '?', x.querySelectorAll('[data-p3="ratio-badge"]').length])),
+    fgBadges: [...(host?.querySelectorAll('.psec') ?? [])].filter((x) => x.querySelector('.psec-t')?.textContent === 'Foreground')
+      .flatMap((x) => [...x.querySelectorAll('[data-p3="ratio-badge"]')].map((b) => ({ role: b.dataset.role, text: b.querySelector('.sg-ratio-n')?.textContent ?? '' }))),
+    drawn: [...(host?.querySelectorAll('.psec') ?? [])].filter((x) => x.querySelector('.psec-t')?.textContent === 'Foreground')
+      .flatMap((x) => [...x.querySelectorAll('.sg-cw')]).map((cw) => {
+        const card = cw.querySelector('.sg-card'), lab = card?.querySelector('.sg-lab'), b = cw.querySelector('[data-p3="ratio-badge"][data-pair]');
+        const solid = (css) => { const c = parse(css); return c && c.a >= 0.999 ? hex(c) : null; };
+        return { fillRole: card?.dataset.sgRole ?? null, inkRole: lab?.dataset.sgRole ?? null, fill: card ? solid(getComputedStyle(card).backgroundColor) : null, ink: lab ? solid(getComputedStyle(lab).color) : null,
+          badge: b ? b.querySelector('.sg-ratio-n')?.textContent ?? '' : null };
+      }),
+    labels: Object.fromEntries([...(host?.querySelectorAll('.psec') ?? [])].map((x) => [x.querySelector('.psec-t')?.textContent ?? '?', x.querySelector('.sg-ground [data-p3="ground-label"]')?.textContent ?? null])),
     levers: hex(groundOf(document.querySelector('[data-p3="levers-pane"]'))) };
 });
 /** Q24 (S4c): each section container in the preview takes the levers panel's gray. EXPECTED from the TOKEN, not
@@ -3031,18 +3098,43 @@ for (const host of ['web', 'figma']) {
       const where = `${host} ${theme} 1280, previewing ${mode}`;
       const g = await fillsGrounds(page);
       const want = EMITTED[mode];
+      const floor = EMITTED_FLOOR[mode];
       for (const name of EXPECT_FILLS_SPECIMENS) {
         const r = g.roots.find((x) => x.name === name);
-        // #1971: Background and Foreground on white, the rest on the page.
-        const white = FILLS_WHITE_SECTIONS.includes(name);
-        const on = white ? WHITE : want;
-        ok(!!r && r.root && r.ground === on, `specimen ground: surfaces & fills ${where}: ${name} is a specimen root on ${white ? `white ${WHITE} (#1971)` : `background.primary ${want}`}${
-          !r ? ' — not drawn' : !r.root ? ` — not a specimen root, on ${r.ground === g.card ? `the chrome card (${r.ground})` : r.ground}` : r.ground !== on ? ` — ${r.ground === g.card && !white ? `is the chrome card (${r.ground})` : `is ${r.ground}`}` : ''}`);
+        // #1971: Foreground on the contrast floor, the rest (Background included) on the page.
+        const onFloor = FILLS_FLOOR_SECTIONS.includes(name);
+        const on = onFloor ? floor.hex : want;
+        ok(!!r && r.root && r.ground === on, `specimen ground: surfaces & fills ${where}: ${name} is a specimen root on ${onFloor ? `the contrast floor ${floor.step} ${floor.hex} (#1971)` : `background.primary ${want}`}${
+          !r ? ' — not drawn' : !r.root ? ` — not a specimen root, on ${r.ground === g.card ? `the chrome card (${r.ground})` : r.ground}` : r.ground !== on ? ` — ${r.ground === g.card ? `is the chrome card (${r.ground})` : `is ${r.ground}`}` : ''}`);
+        // #1971: the floor's section names its ground by the emission's step; no other section carries that line.
+        const label = onFloor ? FLOOR_LABEL(floor.step) : null;
+        ok((g.labels[name] ?? null) === label, `#1971 surfaces & fills ${where}: the ${name} section ${label ? `names its ground "${label}"` : 'carries no ground label'}${(g.labels[name] ?? null) !== label ? ` — read ${JSON.stringify(g.labels[name] ?? null)}` : ''}`);
       }
       // #1971: no ratio badge in a section that is a ground; at least one in each section on the page that grades a role.
       const badgesBy = g.badges;
-      for (const name of FILLS_WHITE_SECTIONS) ok(badgesBy[name] === 0, `#1971 surfaces & fills ${where}: the ${name} section shows no contrast badge (Q81) — ${badgesBy[name]} drawn`);
+      for (const name of FILLS_GROUND_SECTIONS) ok(badgesBy[name] === 0, `#1971 surfaces & fills ${where}: the ${name} section shows no contrast badge (Q81) — ${badgesBy[name]} drawn`);
       for (const name of ['Text color', 'Border', 'Icon', 'Fields']) ok(badgesBy[name] > 0, `#1971 surfaces & fills ${where}: the ${name} section, on the page, shows its contrast badges — ${badgesBy[name]} drawn`);
+      // GR2: Foreground, on the floor, badges each bold fill; each prints the emitted fill against the emitted floor.
+      const offFloor = FLOOR_BADGED.flatMap((sem) => {
+        const role = `foreground.${sem}`, b = g.fgBadges.find((x) => x.role === role), e = floor.fills[sem];
+        if (!b) return [`${role}: no badge drawn`];
+        if (!e?.hex || e.against !== floor.step) return [`${role}: the emission measures it against ${e?.against}, not the floor ${floor.step}`];
+        const r = wcagHex(e.hex, floor.hex);
+        return Math.abs(parseFloat(b.text) - Math.floor(r * 100) / 100) <= 0.011 ? [] : [`${role} prints ${b.text}, the emitted ${e.hex} on the floor ${floor.hex} measures ${r.toFixed(3)}:1`];
+      });
+      // Q13(a): every Subtle and Inverse card badges its text on its own fill, as rendered; each rendered color is held to
+      // the emission's hex for its role, and the ratio is computed here from the two.
+      const offDrawn = ON_FILL_CARDS.flatMap(([fillRole, inkRole]) => {
+        const d = g.drawn.find((x) => x.fillRole === fillRole);
+        if (!d) return [`${fillRole}: card not drawn`];
+        if (d.inkRole !== inkRole) return [`${fillRole}: its text is ${d.inkRole}, not ${inkRole}`];
+        if (d.badge === null) return [`${fillRole}: no badge of its drawn pairing`];
+        if (d.fill !== floor.roles[fillRole] || d.ink !== floor.roles[inkRole]) return [`${inkRole} on ${fillRole}: renders ${d.ink} on ${d.fill}, the emission says ${floor.roles[inkRole]} on ${floor.roles[fillRole]}`];
+        const r = wcagHex(d.ink, d.fill);
+        return Math.abs(parseFloat(d.badge) - Math.floor(r * 100) / 100) <= 0.011 ? [] : [`${inkRole} on ${fillRole} prints ${d.badge}, the drawn ${d.ink} on ${d.fill} measures ${r.toFixed(3)}:1`];
+      });
+      ok(offDrawn.length === 0, `#1971 Q13(a) surfaces & fills ${where}: every Subtle and Inverse card in Foreground badges its text on its own fill, as drawn${offDrawn.length ? ` — ${offDrawn.join(' | ')}` : ''}`);
+      ok(offFloor.length === 0, `#1971 GR2 surfaces & fills ${where}: the Foreground section, on the contrast floor, badges each bold fill with its emitted ratio against that floor${offFloor.length ? ` — ${offFloor.join(' | ')}` : ''}`);
       const unlisted = g.roots.filter((x) => !EXPECT_FILLS_SPECIMENS.includes(x.name)).map((x) => x.name);
       ok(unlisted.length === 0, `specimen ground: surfaces & fills ${where}: every section ground drawn is a listed specimen${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
       const offGray = g.sections.filter((x) => x.bg !== LEVERS_GRAY).map((x) => `${x.name} on ${x.bg}`);
@@ -3192,7 +3284,8 @@ for (const host of ['web', 'figma']) {
     'Background fills': 'The base page planes and their inverse counterparts.',
     Scrim: "The overlay that dims the page behind a modal. It isn't editable.",
     // Q44: the APPROVED heading with the preview's Foreground description (Q23); Border and Icon take the preview's (Q23).
-    Foreground: 'Content surfaces placed ON the page — the neutral and inverse ladders, plus semantic fills in bold and subtle weights, each paired with its on-surface text.',
+    // #1971 (APPROVED, owner 2026-10-05, superseding GR3): the preview's Foreground sits on the contrast floor, so its sentence (and the levers', Q23) says so.
+    Foreground: "Content surfaces, shown on the contrast floor they're measured against.",
     Border: 'Neutral separators, the focus ring, and semantic borders — their own category, not a surface.',
     'Text color': 'Every text color at one size, shown on the current surface and its inverse counterpart. On-color text lives with the fills above.',
     Icon: 'Icon color at the neutral tiers, the semantic set, and the on-color icons that sit on bold fills.',

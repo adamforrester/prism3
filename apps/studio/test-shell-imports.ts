@@ -453,7 +453,7 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   ok(importsSections(mainSrc, 'main.ts'), 'src/main.ts imports the shared color sections (preview/sections/index)');
   ok(importsSections(surfSrc, 'surfaces.ts'), 'src/preview/surfaces.ts imports the shared color sections (sections/index)');
   // The Style guide draws the five as `COLOR_SECTIONS`. Since S4f Surfaces & fills draws each of the five by its
-  // shared renderer, by name in code (it hands Background its own description and grounds two of them on white,
+  // shared renderer, by name in code (it hands Background its own description and grounds Foreground on the contrast floor,
   // #1971), with the Scrim and Fields sections between them; a copy of its own fails the title check below.
   ok(/\bCOLOR_SECTIONS\b/.test(mainSrc.replace(/^\s*(\/\/|\*).*$/gm, '')), 'the Style guide draws COLOR_SECTIONS');
   for (const fn of ['backgroundSection', 'foregroundSection', 'textColorSection', 'borderSection', 'iconSection', 'scrimSection', 'fieldsSection']) {
@@ -507,7 +507,7 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   ok(importsSections(mainSrc, 'main.ts'), 'src/main.ts imports the shared color sections (preview/sections/index)');
   ok(importsSections(surfSrc, 'surfaces.ts'), 'src/preview/surfaces.ts imports the shared color sections (sections/index)');
   // The Style guide draws the five as `COLOR_SECTIONS`. Since S4f Surfaces & fills draws each of the five by its
-  // shared renderer, by name in code (it hands Background its own description and grounds two of them on white,
+  // shared renderer, by name in code (it hands Background its own description and grounds Foreground on the contrast floor,
   // #1971), with the Scrim and Fields sections between them; a copy of its own fails the title check below.
   ok(/\bCOLOR_SECTIONS\b/.test(mainSrc.replace(/^\s*(\/\/|\*).*$/gm, '')), 'the Style guide draws COLOR_SECTIONS');
   for (const fn of ['backgroundSection', 'foregroundSection', 'textColorSection', 'borderSection', 'iconSection', 'scrimSection', 'fieldsSection']) {
