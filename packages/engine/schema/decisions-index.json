@@ -190,6 +190,34 @@
     },
     {
       "date": "2026-09-29",
+      "issue": 259,
+      "title": "the title cell",
+      "doc": "docs/45-style-guide-generator.md",
+      "section": null
+    },
+    {
+      "date": "2026-09-29",
+      "issue": 259,
+      "title": "tables flow left to right, a row per category",
+      "doc": "docs/45-style-guide-generator.md",
+      "section": null
+    },
+    {
+      "date": "2026-09-29",
+      "issue": 259,
+      "title": "the row definition, the radius swatch's one corner, and the later-phase kind names",
+      "doc": "docs/45-style-guide-generator.md",
+      "section": null
+    },
+    {
+      "date": "2026-09-29",
+      "issue": 259,
+      "title": "one spacing style per run, and REM in its own column",
+      "doc": "docs/45-style-guide-generator.md",
+      "section": null
+    },
+    {
+      "date": "2026-09-29",
       "issue": null,
       "title": "size is for size, space is for space — a component states its own spacing, and density moves it one step",
       "doc": "docs/28-component-anatomy-schema.md",
@@ -222,6 +250,20 @@
       "title": "a dismissible tag's label row takes a fixed 4px inset, and the gap floor holds the distance the eye reads",
       "doc": "docs/28-component-anatomy-schema.md",
       "section": "5.4.4"
+    },
+    {
+      "date": "2026-09-30",
+      "issue": 259,
+      "title": "the Pixels toggle removed, and REM for a text style's letter spacing and paragraph spacing",
+      "doc": "docs/45-style-guide-generator.md",
+      "section": null
+    },
+    {
+      "date": "2026-09-30",
+      "issue": 259,
+      "title": "a spacing specimen rests at 0 wide, a zero draws nothing, and every bind shrinks",
+      "doc": "docs/45-style-guide-generator.md",
+      "section": null
     },
     {
       "date": "2026-09-30",
