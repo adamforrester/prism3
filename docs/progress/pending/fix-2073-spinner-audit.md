@@ -38,3 +38,11 @@ always-failure. The audit only ever passed on the "…" because it measured earl
 The probe pauses the fade at t=370 before the "a write running" audit. Without the hold:
 `✗ figma light 1280 / a write running, fade held at t=370: every chrome text node clears 4.5:1 (3:1 large) — text span.p3-spin "…" 2.53:1`.
 With the hold, the same held time passes, and the fade is back at t=370, paused, after the measure.
+
+**A color mutation must be pale against the inverse ground, not the page.** The "…" sits on the primary
+button (`--p3-inv-bg`: near-black in light, near-white in dark). In review, `.p3-spin { color: var(--p3-line-1) }`
+passed all 15280 assertions, and `main`'s audit passed it too. The mutation was applied, but a page-ground
+hairline color is high contrast on the inverse ground: 14.04:1 in light, 10.95:1 in dark. `color: var(--p3-text-2)`
+is effective. With the hold, `test:chrome` fails 6 of 15280, all by name, for example
+`✗ figma light 1280 / a write running: every chrome text node clears 4.5:1 (3:1 large) — text span.p3-spin "…" 3.52:1`
+(3.6:1 in dark).
