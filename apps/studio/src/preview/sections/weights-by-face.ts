@@ -73,7 +73,12 @@ export const weightsByFaceSection = (ty: Theme['typography'], mode: string, copy
     wb.append(tr);
   }
   wt.append(wb); wscroll.append(wt); wtbl.append(wscroll); wsec.append(wtbl);
-  wsec.append(el('p', 'sl-note', '● ships it · ○ may not (falls back to the nearest) · ? unknown family, not flagged. A specimen that looks identical to the row above it is the fallback showing — that is what ○ predicts.'));
+  // The key's ● and ○ each get a span, so the chrome can draw them in its own face (#1993); the words are one string.
+  const key = el('p', 'sl-note');
+  for (const part of '● ships it · ○ may not (falls back to the nearest) · ? unknown family, not flagged. A specimen that looks identical to the row above it is the fallback showing — that is what ○ predicts.'.split(/([●○])/)) {
+    if (part) key.append(part === '●' || part === '○' ? el('span', 'tpw-key', part) : document.createTextNode(part));
+  }
+  wsec.append(key);
   // Which italic and link styles each text type ships, in the italic chips' words.
   wsec.append(subHead('Italic and link styles'));
   const stbl = el('div', 'mtbl');

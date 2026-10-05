@@ -228,9 +228,12 @@ export type ModeOverrides = Record<string, PrimitiveRef>;   // rolePath -> primi
 // `against` is set only when the miss is on a ground OTHER than the role's own `against`: the page fill's
 // `background.tertiary` tier (#1773), or a role's SECOND contracted pair (`AlsoAgainst`, #1745), naming that
 // pair's partner. A warning without it is about the role's own `against`, as it always was.
-// `unresolved` (#2034) marks an override whose `against` is neither a role in the mode nor a ramp step:
-// `against` names that ground, and `ratio` is the pick measured on the page base it fell back to.
-export type OverrideWarning = { role: string; ratio: number; min: number; against?: string; unresolved?: true };
+// `unresolved` (#2034) marks an override whose own `against` is neither a role in the mode nor a ramp step,
+// and NAMES that ground; `ratio` is the pick measured on the page base it fell back to. It is its own field
+// rather than `against` (#2097 item 3) because `against` on a warning means a SECOND ground the miss is on,
+// and `lint-ratio-truth` keys a warning carrying one as a second-pair confession. An unresolved ground is the
+// role's OWN ground, so the warning carries no `against`.
+export type OverrideWarning = { role: string; ratio: number; min: number; against?: string; unresolved?: string };
 // A contract a role carries beyond its own `against` (#1773): the page interactive fill's second ground,
 // `background.tertiary`. `tree.ts` counts each into `modeChecks` / `modePass` beside the per-role checks.
 export type TierCheck = { role: string; against: string; ratio: number; min: number };
@@ -598,8 +601,8 @@ export const groundDependentsOf = (roles: Record<string, ResolvedRole>, g: strin
 /**
  * The ground an OVERRIDE is re-rated against (#2025, #2034): `self`, a role in this mode, or a
  * `<palette>.<step>` on this theme's ramps (the contrast floor names one). Anything else falls back to
- * the page base, and that fallback is WARNED, naming the role and the ground it could not find, with
- * `unresolved: true`. Unreachable from any input today: every `against` the engine writes is a role or
+ * the page base, and that fallback is WARNED, naming the role and, in `unresolved`, the ground it could
+ * not find. Unreachable from any input today: every `against` the engine writes is a role or
  * a step, which `lint-ratio-truth` arm C holds across the corpus and its sweep. Warned rather than
  * thrown because the miss would be the engine's defect, not the brand's, and a throw would refuse a
  * brand for it. Exported so `test.ts` FO-02 can hand it a ground no input can reach.
@@ -614,7 +617,7 @@ export const overrideGroundRgb = (
   const dot = against.lastIndexOf('.');
   const step = dot < 0 ? undefined : ramps.get(against.slice(0, dot))?.find((s) => s.key === against.slice(dot + 1))?.rgb;
   if (step) return step;
-  warnings.push({ role: rolePath, ratio: contrast(self, page), min, against, unresolved: true });
+  warnings.push({ role: rolePath, ratio: contrast(self, page), min, unresolved: against });
   return page;
 };
 

@@ -61,9 +61,12 @@ Two committed drivers do, and both are Playwright (an `apps/studio` devDependenc
 the engine core stays dependency-free):
 
 ```bash
-npm run test:smoke   -w @prism3/studio   # test-smoke.mjs — the CI suite: every page × mode × brand
-npm run audit:modes  -w @prism3/studio   # mode-audit.mjs — which sections respond to the mode bar
+npm run test:smoke   -w @prism3/studio   # test-smoke.mjs — the CI suite: every place × mode × brand
+npm run test:chrome  -w @prism3/studio   # test-chrome.mjs — the shell's chrome, on both hosts
 ```
+
+(`mode-audit.mjs`, which measured which legacy sections responded to the mode strip, was deleted in
+UI redesign S8.3 with the web's last legacy page; the smoke sweep holds mode agreement on every place.)
 
 Start from one of those rather than a blank file. What follows is the trap that neither of them
 makes obvious, and that a third probe will hit on its first run.
@@ -104,7 +107,7 @@ makes obvious, and that a third probe will hit on its first run.
 
 Two smaller traps worth inheriting rather than rediscovering:
 
-- **Serve on an ephemeral port** (`listen(0)`), as both drivers above do. `mode-audit.mjs` held
+- **Serve on an ephemeral port** (`listen(0)`), as both drivers above do. The deleted `mode-audit.mjs` held
   **8899** until it gated (#1898); two harnesses on one port collide as `EADDRINUSE`, which reads exactly like a test failure and gets debugged as one.
 - **Use a fresh browser context per brand.** The working brand persists to `localStorage`, so a shared
   context carries one brand's state — and any override a probe writes — into the next. A new context

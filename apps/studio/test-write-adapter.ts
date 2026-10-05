@@ -81,10 +81,20 @@ accepts('apply-result', { type: 'apply-result', ok: true, headline: '✓ 12 writ
   { kind: 'apply-result', ok: true, headline: '✓ 12 written', summary: 'counts' });
 accepts('apply-result without a headline (older host)', { type: 'apply-result', ok: false, summary: 'x' },
   { kind: 'apply-result', ok: false, headline: '✗ apply failed', summary: 'x' });
-accepts('component-result', { type: 'component-result', ok: true, headline: '✓ 48 built', summary: 's' },
-  { kind: 'component-result', ok: true, headline: '✓ 48 built', summary: 's' });
-accepts('component-result without a headline', { type: 'component-result', ok: true, summary: 's' },
-  { kind: 'component-result', ok: true, headline: '✓ built', summary: 's' });
+// `completed` (UI redesign S8.2, owner decision C1): carried as the host sends it, and never inferred from `ok`: a
+// post without it (a contract break, since `messages.ts` requires it) reads as a build that did not finish.
+accepts('component-result', { type: 'component-result', ok: true, completed: true, headline: '✓ 48 built', summary: 's' },
+  { kind: 'component-result', ok: true, headline: '✓ 48 built', summary: 's', completed: true });
+accepts('component-result without completed is not read off ok', { type: 'component-result', ok: true, headline: '✓ 48 built', summary: 's' },
+  { kind: 'component-result', ok: true, headline: '✓ 48 built', summary: 's', completed: false });
+accepts('component-result without a headline', { type: 'component-result', ok: true, completed: true, summary: 's' },
+  { kind: 'component-result', ok: true, headline: '✓ built', summary: 's', completed: true });
+accepts('component-result that completed with misses', { type: 'component-result', ok: false, completed: true, headline: '⚠ 48, 2 missed', summary: 's' },
+  { kind: 'component-result', ok: false, headline: '⚠ 48, 2 missed', summary: 's', completed: true });
+accepts('component-result that stopped before the set', { type: 'component-result', ok: false, completed: false, headline: '✗ unknown def', summary: 's' },
+  { kind: 'component-result', ok: false, headline: '✗ unknown def', summary: 's', completed: false });
+accepts('component-result with a malformed completed', { type: 'component-result', ok: false, completed: 'yes', headline: '✗ x', summary: 's' },
+  { kind: 'component-result', ok: false, headline: '✗ x', summary: 's', completed: false });
 accepts('file-setup-result', { type: 'file-setup-result', ok: true, headline: '✓ 9 pages', summary: 'p' },
   { kind: 'file-setup-result', ok: true, headline: '✓ 9 pages', summary: 'p' });
 accepts('file-setup-result without a headline', { type: 'file-setup-result', ok: false, summary: 'p' },

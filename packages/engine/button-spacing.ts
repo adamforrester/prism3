@@ -4,8 +4,11 @@
  * names the four keys in `densitySpacing`, so density moves each one step along the space ladder.
  *
  * ITS OWN MODULE, outside `components/` (which holds defs only, `typecheck-components.ts`), for one reason: the studio's button specimen reads these steps, and importing a def would put
- * every component def's prose into the web bundle, which the studio keeps out on purpose (`main.ts`,
- * `COMPONENT_CATALOGUE`). This file is data only and imports nothing.
+ * every component def's prose into the web bundle, which the studio keeps out on purpose. A gate is not
+ * enough: S8.1 measured that a reference behind `PRISM3_HOST === 'figma'` still carried Button, IconButton
+ * and Icon into `apps/studio/dist`, so the component catalog is computed outside the web bundle
+ * (`catalogOf` in `apps/studio/src/state/component-catalog.ts`), and `vercel-ignore-check.mjs` fails by name
+ * when a definition module adds bytes to the web output. This file is data only and imports nothing.
  *
  * The horizontal model and its ordering (#325, #326) are argued in `button.ts` beside the tokens.
  */

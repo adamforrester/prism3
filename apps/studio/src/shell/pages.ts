@@ -17,7 +17,8 @@
  * LEGACY PAGES. Until a domain slice moves a page, it shows one or more legacy pages in the full-width
  * legacy frame (D1). `legacy` names them, in the order the frame offers them; plan §4's table is the
  * source. A slice moves a page by emptying its list and setting its `status` to `new` (S2: Color › Palettes; S3: Brand;
- * S4a: Color › Surfaces & fills; S5.2: Color › Interactive; S6.2: Type; S7: Shape; S9.2: Depth & motion; S10: Layout);
+ * S4a: Color › Surfaces & fills; S5.2: Color › Interactive; S6.2: Type; S7: Shape; S9.2: Depth & motion; S10: Layout;
+ * S8.2: Components, the last tab);
  * S13 deletes both fields. The store's `page` then holds the moved page's id (`NewPageKey`). `PageKey`, the legacy page
  * keys the store's `page` holds, is DERIVED from these lists (plus the Figma menu's Style guide), so a
  * slice that empties a list takes the key out of the type, and `NAV` in `main.ts` (checked against
@@ -41,6 +42,10 @@ export const BUTTON_SETS_DESC = 'Each button set is a full set of fill, text, bo
  *  Background section there (Q23): the owner's Q26 intro, APPROVED, now that the scrim has its own section
  *  (QA-B10). The Style guide's own Background section keeps its longer sentence, scrim included. */
 export const BACKGROUND_FILLS_DESC = 'The base page planes and their inverse counterparts.';
+/** Surfaces & fills' Foreground copy (#1971; APPROVED, owner 2026-10-05, superseding GR3), shared by the levers' Foreground section
+ *  and the preview's Foreground section there (Q23). That preview section sits on the contrast floor, not the page, so
+ *  its sentence says so. The Style guide's own Foreground section keeps its sentence ("placed ON the page"). */
+export const FOREGROUND_FILLS_DESC = "Content surfaces, shown on the contrast floor they're measured against.";
 /** The Scrim copy (S4f, QA-B10, APPROVED), shared by the levers' Scrim section and the preview's (Q23). */
 export const SCRIM_DESC = "The overlay that dims the page behind a modal. It isn't editable.";
 /** The Fields copy (Q29, APPROVED), shared by the levers' Fields section and, since S4f (#2016, Q80), the preview's. */
@@ -77,7 +82,15 @@ export const CONTAINERS_DESC = 'Content stretches up to the maximum width. The c
  *  containerNarrow keeps "Content container"). APPROVED (owner, S10 scope). */
 export const LAYOUT_LABELS = { columns: 'Columns', gutter: 'Gutter', margin: 'Margin', max: 'Maximum width', narrow: 'Content container' } as const;
 
-/** Which host a legacy page list applies to. Components maps to a different legacy page per host (§4). */
+/** The Components sections' copy (S8.2), each shared by the levers section and the preview section it pairs with
+ *  (owner decision Q23). DRAFT, pending the owner's approval (the S8.2 PR's "Copy for owner approval" block). */
+export const BUTTON_DESC = 'How buttons place their icons, size their label and set their minimum width. Applies to buttons, not icon buttons.';
+export const SETS_DESC = 'Every component set the engine defines, with what each contains and its spacing at your density.';
+/** The Components intro, with the number of sets counted from the catalog, never typed (DRAFT, S8.2). The page data's
+ *  `intro` below is the same sentence without the count, for a reader of the data alone. */
+export const COMPONENTS_INTRO = (n: number): string => `Button options, and the ${n} component sets the engine defines.`;
+
+/** Which host a legacy page list applies to. Components mapped to a different legacy page per host until S8.2 (§4). */
 export type Host = 'web' | 'figma';
 
 /** The views a page can call home, with their titles (the preview header shows the title). */
@@ -161,8 +174,8 @@ export const DOMAINS = [
           { title: 'Background fills', desc: BACKGROUND_FILLS_DESC, rows: [{ ctl: 'surfaces', keys: ['surfaces'], drive: 'surface' }] },
           { title: 'Scrim', desc: SCRIM_DESC, rows: [{ ctl: 'scrim' }] },
           // S4d (owner decision Q44): the neutral ladder in its own section, the approved heading with the preview's
-          // Foreground description (Q23). The fills keep Foreground fills.
-          { title: 'Foreground', desc: 'Content surfaces placed ON the page — the neutral and inverse ladders, plus semantic fills in bold and subtle weights, each paired with its on-surface text.', rows: [{ ctl: 'foreground', schemaOnly: ['overrides'] }] },
+          // Foreground description (Q23; since #1971 the floor's sentence, FOREGROUND_FILLS_DESC). The fills keep Foreground fills.
+          { title: 'Foreground', desc: FOREGROUND_FILLS_DESC, rows: [{ ctl: 'foreground', schemaOnly: ['overrides'] }] },
           { title: 'Foreground fills', desc: 'Auto follows the contrast-gated default. A pick below its floor is marked, not blocked.', rows: [{ ctl: 'fills', schemaOnly: ['overrides'] }] },
           // NOT CONCEPT V6'S (S4a): the legacy page's text inks, as rows like the fills. These rows are the
           // permanent, primary text editor (owner decision Q20, `decisions-2026-10-01-qa.md`, replacing v6's
@@ -313,14 +326,15 @@ export const DOMAINS = [
     legacy: [],
   },
   {
-    // The web has no Components page (it is Figma-only), so the web tab shows the Buttons block on the
-    // legacy Size & radius page until S8 (§4). S7 moved Shape off that page; in the plugin, whose Components tab
-    // shows its own page, the Button options are reached through the Pages menu until S8 (owner decision D4 B),
-    // under the page's own title, "Size & radius" (D5 B).
-    id: 'components', label: 'Components', home: 'comps', intro: 'Button options, and the 26 component sets the engine defines.',
+    // S8.2: moved, one page on both hosts (owner decisions G2, G5, G6 A). The Button options and their preview, then the
+    // component sets: a read-only list on the web, the list with a Build button in the plugin. Each lever section and the
+    // preview section it pairs with share their heading and description (Q23); v6's "Sets" / "Component sets" pair is
+    // "Component sets" on both sides. The intro is drawn with the set count (`COMPONENTS_INTRO`). Its levers are
+    // `domains/components.ts`, its preview `preview/components.ts`.
+    id: 'components', label: 'Components', home: 'comps', intro: 'Button options, and the component sets the engine defines.',
     sections: [
       {
-        title: 'Button', rows: [
+        title: 'Button', desc: BUTTON_DESC, rows: [
           { ctl: 'densityLink' },
           { ctl: 'enum', keys: ['buttonIcons'], drive: 'button' },
           { ctl: 'enum', keys: ['buttonContentSize'], drive: 'button' },
@@ -328,10 +342,10 @@ export const DOMAINS = [
           { ctl: 'slider', keys: ['buttonMinWidthMultiplier'], drive: 'button' },
         ],
       },
-      { title: 'Sets', rows: [{ ctl: 'sets' }] },
+      { title: 'Component sets', desc: SETS_DESC, rows: [{ ctl: 'sets' }] },
     ],
-    status: 'legacy',
-    legacy: { web: ['sizeRadius'], figma: ['components'] },
+    status: 'new',
+    legacy: [],
   },
 ] as const satisfies readonly Domain[];
 
@@ -405,7 +419,8 @@ export const PLACES: readonly Place[] = TABS.flatMap((t) => (t.subs ? t.subs.map
 
 /** The place that shows `page`, for a page change that did not come from the tab row (the Pages menu, a
  *  brand load). `keep` wins when it already shows the page, so moving between two tabs that share a
- *  legacy page (Shape and Components on the web) never jumps the selection. Null when no place shows the
+ *  legacy page never jumps the selection (its one case, Shape and Components on the web, ended with S8.2; the rule
+ *  stays until S13 deletes `legacy`). Null when no place shows the
  *  page (the plugin's Style guide, a Figma menu item from S1.4 on). */
 export const placeOfPage = (page: PageKey, host: Host, keep: Place | null): Place | null => {
   if (isNewPage(page)) return PLACES.find((p) => newPageOf(p) === page) ?? null;

@@ -14,7 +14,8 @@
  *   5. mount the plugin's resize grip (Figma only);
  *   6. `build()` — the first render. Everything above must precede it.
  *   7. on web, if step 1 refused the saved brand, the notice offering to export or clear it (#1989).
- *   8. on web, only when the page is opened with `?p3-test-hooks`, the smoke suite's edit hook (#388).
+ *   8. on web, only when the page is opened with `?p3-test-hooks`, the smoke suite's edit hook (#388), and only in
+ *      a build that defines PRISM3_TEST_HOOKS true (the local `dist/`, never the deployed site, #2098).
  * The font probe's canvas used to be made at import too; it is now made on first use, in `main.ts`.
  */
 import { brandTheme } from '@prism3/engine/theme';
@@ -175,7 +176,10 @@ if (refused) {
 // engine would refuse (#2044, #2054, #2055), so no control is left to make that edit. This writes one path into the
 // brand and rebuilds, the same two steps a control's edit takes, so the refusal and the bar that shows it are the
 // real ones. Without the parameter nothing is defined.
-if (PRISM3_HOST !== 'figma' && new URLSearchParams(location.search).has('p3-test-hooks')) {
+// BUILD-GATED (#2098): `PRISM3_TEST_HOOKS` is `true` only in `build.mjs` (the local `dist/` the smoke suite drives) and
+// `false` in the deployed `build-site.mjs`, where esbuild drops this whole block, so production cannot turn it on.
+// `test-prod-bundle.ts` checks the deployed bundle carries neither the parameter nor the hook.
+if (PRISM3_HOST !== 'figma' && PRISM3_TEST_HOOKS && new URLSearchParams(location.search).has('p3-test-hooks')) {
   (window as unknown as { __prism3TestEdit: (path: string, value: unknown) => void }).__prism3TestEdit = (path, value) => {
     setPath(brandState, path, value);
     rebuild();

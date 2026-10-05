@@ -3,7 +3,7 @@
  *
  * Extracted from `main.ts` because `main.ts` calls `build()` (touching `document`) at import and
  * cannot load under tsx; `test-outline-roles.ts` drives this module instead, the same reason
- * `size-labels.ts` and `provenance.ts` exist.
+ * `provenance.ts` exists.
  *
  * The three roles take ONE ground switch between them. The ink and the edge were switched to their
  * `inverse.` twins on an inverse preview ground by #461 / #467; the hover and pressed FILL was not, so

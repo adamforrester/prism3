@@ -36,6 +36,14 @@ declare const PRISM3_HOST: 'web' | 'figma';
 declare const PRISM3_BUILD: string;
 
 /**
+ * Whether this bundle may carry the smoke suite's test hooks (#2098). `true` only in `build.mjs`, the local `dist/`
+ * that `test-smoke.mjs` drives; `false` in `build-site.mjs` (the deployed site), `vercel-ignore-check.mjs` and
+ * `apps/plugin/build.mjs`. A define, so esbuild drops the gated code from a `false` bundle entirely, rather than
+ * leaving a runtime check a URL could satisfy. `test-prod-bundle.ts` checks the deployed bundle.
+ */
+declare const PRISM3_TEST_HOOKS: boolean;
+
+/**
  * `.css` imported as TEXT (#769). The chrome stylesheet moved out of a template literal in
  * `main.ts` into `styles.css`, and it is pulled back in as a string rather than emitted as a
  * separate asset — the bundle has to stay self-contained for the Figma plugin iframe, which ships

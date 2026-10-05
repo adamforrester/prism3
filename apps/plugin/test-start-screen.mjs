@@ -526,6 +526,13 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
   let unparsedTotal = 0;
   let textTotal = 0, fieldTotal = 0, worst = { ratio: Infinity, where: '' };
   const pagesSeen = new Set();
+  const tabsSeen = new Set();
+  /** The moved tabs the sweep measures (S8.2), each by its tab's hook and its levers' hook. Literal. */
+  const TAB_SWEEP = [
+    ['[data-p3="tab-color"]', '[data-p3="palettes-levers"]', 'Color'], ['[data-p3="tab-type"]', '[data-p3="type-levers"]', 'Type'],
+    ['[data-p3="tab-shape"]', '[data-p3="shape-levers"]', 'Shape'], ['[data-p3="tab-depth"]', '[data-p3="depth-levers"]', 'Depth & motion'],
+    ['[data-p3="tab-layout"]', '[data-p3="layout-levers"]', 'Layout'], ['[data-p3="tab-components"]', '[data-p3="components-levers"]', 'Components'],
+  ];
   const measure = async (page, where) => {
     await settle(page, where);
     const m = await page.evaluate(LEGIBILITY);
@@ -615,6 +622,16 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
           pagesSeen.add(hook);
           await measure(page, `${tag} / ${label}`);
         }
+        // The tabs, each by its tab hook and its levers' hook (UI redesign S8.2): Components moved off the Pages menu to
+        // its own tab, so the plugin-only build controls are measured there, and every other moved tab with it, since
+        // the menu now holds the Style guide alone.
+        for (const [tab, levers, label] of TAB_SWEEP) {
+          await hooks.click(page.locator(tab));
+          await hooks.need(page, levers);
+          await page.evaluate(() => document.fonts.ready);
+          tabsSeen.add(hooks.role(tab));
+          await measure(page, `${tag} / ${label}`);
+        }
         await measureBrand(page, `${tag} / Brand`);
         await measureBrandMenu(page, `${tag} / brand menu`);
         ok(errors.length === 0, `${tag}: no console errors across the sweep (${errors.slice(0, 1).join('') || 'none'})`);
@@ -632,11 +649,14 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
       }
     }
   }
-  // REPRESENTED, not counted: the one page only this bundle has must be among those measured.
-  ok(pagesSeen.has(hooks.role('[data-p3="rail-page-components"]')), `the plugin-only Components page was measured (saw ${[...pagesSeen].join(', ') || 'no pages'})`);
+  // REPRESENTED, not counted: the build controls only this bundle has must be among those measured. Since S8.2 they are
+  // the Components TAB's (its Build button and set choices), not a Pages menu page's; the menu's one page left, the
+  // Style guide, must be measured too.
+  ok(tabsSeen.has(hooks.role('[data-p3="tab-components"]')), `the Components tab, with the plugin-only build controls, was measured (saw ${[...tabsSeen].join(', ') || 'no tabs'})`);
+  ok(pagesSeen.has(hooks.role('[data-p3="rail-page-style-guide"]')), `the plugin's one Pages menu page, the Style guide, was measured (saw ${[...pagesSeen].join(', ') || 'no pages'})`);
   ok(textTotal >= SWEEP_TEXT_FLOOR, `measured ${textTotal} text nodes across the panel sweep (floor ${SWEEP_TEXT_FLOOR})`);
   ok(fieldTotal >= SWEEP_FIELD_FLOOR, `measured ${fieldTotal} form controls across the panel sweep (floor ${SWEEP_FIELD_FLOOR})`);
-  console.log(`  ${pagesSeen.size} rail pages × 2 schemes × 2 Figma themes, plus the start moment at both sizes: ${textTotal} text nodes, ${fieldTotal} form controls.`);
+  console.log(`  ${pagesSeen.size} rail page(s) and ${tabsSeen.size} tabs × 2 schemes × 2 Figma themes, plus the start moment at both sizes: ${textTotal} text nodes, ${fieldTotal} form controls.`);
   console.log(`  Lowest chrome text: ${worst.ratio}:1 — ${worst.where}`);
   console.log(`  Unparsed colors: ${unparsedTotal} (every one fails by name).`);
 }
