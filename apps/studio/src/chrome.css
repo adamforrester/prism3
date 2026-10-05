@@ -115,7 +115,7 @@
 }
 .p3-textarea::placeholder { color: var(--p3-text-2); opacity: 1; }
 .p3-textarea:hover { border-color: var(--p3-field-edge-hover); }
-.p3-textarea:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
+.p3-textarea:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 .p3-field-err { margin: 0; color: var(--p3-bad-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); }
 .p3-import-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); }
 .p3-upload { cursor: pointer; }
