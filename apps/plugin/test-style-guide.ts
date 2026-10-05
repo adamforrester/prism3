@@ -71,6 +71,14 @@
  *      tables, a height change moves the rows below; a new category starts a new row.
  *  24. THE REVIEW OF f3bb76cd: a bracket with its parts named otherwise, and a file with no spacing set, counted; one
  *      verdict per specimen; a new table taller than its row pushing the row below down.
+ *  25. THE BUILD STYLE GUIDES PAGE (UI redesign S11.2): the catalog the page is offered (`catalogFor`), its 22 titles typed
+ *      here; every variable listed under the table that drew it, read back off each drawn frame's own row record; the
+ *      later-phase variables with no table; the text styles last; `isSetUp` needing both cell sets and both pages.
+ *  26. A RUN TABLE BY TABLE: its list first, then each table drawing and done.
+ *  27. ONE FAILED TABLE (owner decision P6): the host refusing the Accent table fails that table with its words, the run
+ *      draws the other 21, the verdict is "⚠ 21 drawn, 1 failed", and a redraw by the table's key draws it alone.
+ *  28. CANCEL (owner decision P7): a stop read after table 3 ends the run there, deletes no superseded table (the control
+ *      run to the end does), and the verdict says where it stopped; a stop after the last table is no stop.
  *
  * INDEPENDENCE (docs/34): expected values are literals written here. The ratios (19.42, 18.13, 21) and the
  * failing 3.27 (neutral/400 on white, computed by hand from the WCAG formula), 6.44 (foreground.brand on
@@ -195,7 +203,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { ensureStyleGuideCells } from './src/style-guide-cells';
 import type { CellsApi } from './src/style-guide-cells';
-import { planStyleGuide, runStyleGuide, styleGuideSummary, contrastText, humanizeName, varKind, sizeByPadding } from './src/style-guide';
+import { planStyleGuide, runStyleGuide, styleGuideSummary, contrastText, humanizeName, varKind, sizeByPadding, catalogFor, isSetUp } from './src/style-guide';
 import { createRunGuard, busyMessage } from './src/run-guard';
 import type { StyleGuideApi, SgCatalog, SgTable, TableOutcome, StyleGuideResult, StyleGuideRun, StyleGuideOptions, StyleGuideProgress } from './src/style-guide';
 import { parseDesignMd } from '@prism3/engine/design-md';
@@ -2499,6 +2507,130 @@ const main = async (): Promise<void> => {
     const ramp = tableFrame(tl.prim, 'Ramp');
     ok(rt.tables[0]?.status === 'created' && ramp?.y === 0 && ramp.height === RAMP_H && fontBefore.every((w) => w.y === RAMP_H + 160),
       `24: a new 80-step table lands at the end of the dimension row, ${ramp?.height}px tall, and the font row moves to 160px below it, y ${RAMP_H + 160} (${[...new Set(fontBefore.map((w) => w.y))].join(', ')})`);
+  }
+
+  console.log('25. the Build style guides page: what the file holds, and whether Set up file has run (S11.2)');
+  {
+    // THE TABLES THE PAGE OFFERS, typed here: the prism3 file's 22, in draw order (section 14 counts the same run).
+    const PRISM3_TITLES = ['Core — base', 'Primary', 'Neutral', 'Accent', 'Success', 'Warning', 'Info', 'Danger', 'Black alpha', 'White alpha',
+      'Background', 'Foreground', 'Text', 'Icon', 'Interactive', 'Disabled', 'Border', 'Scrim', 'Veil', 'Field', 'Inverse', 'Legacy'];
+    const f25 = await fullFile();
+    const cat = catalogFor({ collections: f25.cols, variables: f25.vars }, contract, isSetUp(f25.api.root));
+    ok(JSON.stringify(cat.tables.map((t) => t.title)) === JSON.stringify(PRISM3_TITLES) && cat.tables.every((t) => t.kind === 'color')
+      && cat.tables.filter((t) => t.page === 'Semantic tokens').length === 11 && cat.tables.filter((t) => t.page === 'Primitive tokens').length === 11,
+      `25: the page is offered the 22 tables in draw order, all color, 11 on each token page, named without "↳" (${cat.tables.slice(0, 3).map((t) => `${t.title}@${t.page}`).join(', ')}…)`);
+    ok(JSON.stringify(cat.collections.map((c) => `${c.name}:${c.modes.join('/')}:${c.items.length}`)) === JSON.stringify(['core:Default:164', 'color:light/dark/hc-light/hc-dark:268', 'legacy:Value:4']),
+      `25: every collection, its modes and every variable in it (${cat.collections.map((c) => `${c.name} ${c.items.length}`).join(', ')})`);
+    const item = (n: string) => cat.collections.flatMap((c) => c.items).find((i) => i.name === n);
+    ok(cat.tables[item('pds3/color/text/primary')!.table]?.title === 'Text' && cat.tables[item('pds3/core/palette/primary/500')!.table]?.title === 'Primary'
+      && item('pds3/core/palette/white')?.value === '#FFFFFF' && item('pds3/color/background/secondary')?.value === '#E9E9E9' && item('pds3/core/palette/transparent')?.value === '#000000 · 0%',
+      `25: a variable names the table it is drawn in, and its value in the default mode (text/primary in ${cat.tables[item('pds3/color/text/primary')!.table]?.title}; white ${item('pds3/core/palette/white')?.value})`);
+    // THE TREE AGREES WITH THE RUN: draw the file, then read each drawn table's rows back off the frame's own record
+    // (the variable IDs the executor wrote), never off the plan. Every variable sits under the table that drew it.
+    await draw(f25.api, contract);
+    const byId = new Map(f25.vars.map((v) => [v.id, v.name]));
+    const wrong: string[] = [];
+    for (const w of [...tablesOn(f25.prim), ...tablesOn(f25.sem)]) {
+      const title = w.name.replace('Style guide — ', '');
+      for (const id of Object.keys(JSON.parse(w.pluginData['prism3-style-guide-rows'] || '{}'))) {
+        const it = item(byId.get(id) ?? '');
+        if (!it || cat.tables[it.table]?.title !== title) wrong.push(`${byId.get(id)} in ${title}`);
+      }
+    }
+    ok(wrong.length === 0 && cat.collections.flatMap((c) => c.items).every((i) => i.table >= 0),
+      `25: every drawn row's variable is listed under the table that drew it (${wrong.length} not: ${wrong.slice(0, 3).join(', ')})`);
+    ok(cat.setUp === true, '25: the file with both cell sets and both token pages is set up');
+    const bare = makeShim([page('Cover'), page(PRIM), page(SEM)], [], []);
+    const fc25 = page(FC);
+    const noPages = makeShim([page('Cover'), fc25], [], []);
+    await ensureStyleGuideCells(noPages.api, fc25);
+    ok(isSetUp(bare.api.root) === false && isSetUp(noPages.api.root) === false,
+      `25: pages without the cell sets, or the cell sets without the pages, are not set up (${isSetUp(bare.api.root)}, ${isSetUp(noPages.api.root)})`);
+    // PHASE 2'S FILE: a later-phase variable is listed with table -1, and a text style under the text-style table.
+    const f25b = await phase2File();
+    const cat2 = catalogFor({ collections: f25b.cols, variables: f25b.vars, textStyles: f25b.styles }, contract, true);
+    const all2 = cat2.collections.flatMap((c) => c.items);
+    const ts = cat2.collections.find((c) => c.textStyles);
+    ok(ts?.name === 'Text styles' && ts.items.length === 63 && ts.items.every((i) => cat2.tables[i.table]?.title === 'Text styles' && cat2.tables[i.table]?.kind === 'text'),
+      `25: the 63 text styles are listed last, as "Text styles", each under the text-style table (${ts?.items.length})`);
+    const later = all2.filter((i) => i.table < 0).map((i) => i.name);
+    ok(later.includes('pds3/opacity/50') && later.includes('pds3/opacity/0') && !later.includes('pds3/space/050') && all2.some((i) => i.name === 'pds3/space/050'),
+      `25: an opacity is listed with no table, a space with one (${later.length} with none: ${later.slice(0, 3).join(', ')}…)`);
+    ok(cat2.tables.some((t) => t.kind === 'dimension' && t.title === 'Space') && cat2.tables.some((t) => t.kind === 'font' && /^Font size/.test(t.title)),
+      `25: the page's four kinds: Space is spacing and size, Font size a font variable (${[...new Set(cat2.tables.map((t) => t.kind))].join(', ')})`);
+  }
+
+  console.log('26. a run table by table: its list, then each table drawing and done (S11.2, owner decision P1)');
+  {
+    const f26 = await fullFile();
+    const events: string[] = [];
+    let listed: string[] = [];
+    await draw(f26.api, contract, {}, { onPlan: (ts) => { listed = ts.map((t) => t.title); }, onTable: (e) => events.push(`${e.index}:${e.status}`) });
+    const want = Array.from({ length: 22 }, (_, i) => [`${i}:drawing`, `${i}:done`]).flat();
+    ok(listed.length === 22 && listed[0] === 'Core — base' && listed[21] === 'Legacy' && JSON.stringify(events) === JSON.stringify(want),
+      `26: the run lists its 22 tables first, then each one drawing and then done, in order (${events.slice(0, 4).join(', ')}… ${events.length} moves)`);
+  }
+
+  console.log('27. one failed table does not stop the run, and Draw it again redraws that table alone (S11.2, owner decision P6)');
+  {
+    const f27 = await fullFile();
+    // THE HOST REFUSES ONE TABLE: binding any Accent step throws, as a host refusing a write would.
+    const realBind = f27.api.variables.setBoundVariableForPaint;
+    let refuse = true;
+    f27.api.variables.setBoundVariableForPaint = (paint: unknown, field: 'color', v: unknown) => {
+      if (refuse && /\/palette\/accent\//.test(String((v as { name?: string }).name))) throw new Error('Accent refused');
+      return realBind(paint, field, v);
+    };
+    const events: string[] = [];
+    const keys: string[] = [];
+    const r = await draw(f27.api, contract, {}, { onPlan: (ts) => { keys.push(...ts.map((t) => t.key)); }, onTable: (e) => events.push(`${e.index}:${e.status}${e.reason ? `(${e.reason})` : ''}`) });
+    const accent = 3;
+    const failedT = r.tables.filter((t) => t.status === 'failed');
+    ok(failedT.length === 1 && failedT[0].title === 'Accent' && (failedT[0] as Extract<TableOutcome, { status: 'failed' }>).reason === 'Accent refused'
+      && r.tables.filter((t) => t.status === 'created').length === 21,
+      `27: the Accent table fails with the host's words, and the run goes on to draw the other 21 (${r.tables.map((t) => t.status).filter((x) => x !== 'created').join(', ')}; ${r.tables.filter((t) => t.status === 'created').length} created)`);
+    ok(events[accent * 2] === '3:drawing' && events[accent * 2 + 1] === '3:failed(Accent refused)' && events[accent * 2 + 2] === '4:drawing' && events.length === 44,
+      `27: the Accent table's moves read drawing, then failed with its reason, and the next table starts (${events.slice(6, 9).join(', ')})`);
+    const v = styleGuideSummary(r);
+    ok(!v.ok && v.headline === '⚠ 21 drawn, 1 failed' && v.summary.startsWith('Accent: Accent refused. '),
+      `27: the verdict is "⚠ 21 drawn, 1 failed", not a pass, and the summary opens on the failed table and its reason (${v.headline}; ${v.summary.slice(0, 40)}…)`);
+    // DRAW IT AGAIN: the host now takes the binding, and the page redraws the one table by its key.
+    refuse = false;
+    const others = [...tablesOn(f27.prim), ...tablesOn(f27.sem)].filter((w) => w.pluginData['prism3-style-guide'] !== keys[accent]);
+    const prints = new Map(others.map((w) => [w, w.pluginData['prism3-style-guide-print']]));
+    const again: string[] = [];
+    const r2 = await draw(f27.api, contract, { tables: [keys[accent]] }, { onTable: (e) => again.push(`${e.index}:${e.status}`) });
+    const acc = tableFrame(f27.prim, 'Accent');
+    ok(r2.tables.length === 1 && r2.tables[0].title === 'Accent' && r2.tables[0].status !== 'failed' && JSON.stringify(again) === JSON.stringify(['0:drawing', '0:done'])
+      && styleGuideSummary(r2).headline === '✓ style guide: 1 table' && !!acc && acc.findAll((n) => boundId(n.fills) !== undefined).length === 20,
+      `27: Draw it again draws Accent alone, its 20 swatches bound this time (${r2.tables.map((t) => `${t.title} ${t.status}`).join(', ')}; ${styleGuideSummary(r2).headline})`);
+    ok(tablesOn(f27.prim).filter((w) => w.name === 'Style guide — Accent').length === 1 && [...prints].every(([w, p]) => w.pluginData['prism3-style-guide-print'] === p),
+      `27: there is one Accent table, and no other table moved (${[...prints].filter(([w, p]) => w.pluginData['prism3-style-guide-print'] !== p).length} changed)`);
+  }
+
+  console.log('28. Cancel stops after the table being drawn, and deletes nothing (S11.2, owner decision P7)');
+  {
+    const f28 = await fullFile();
+    await draw(f28.api, contract);
+    // The Legacy group is emptied: an unfiltered run that finishes deletes its unedited table (section 6).
+    const legacy = f28.vars.filter((v) => v.name.startsWith('legacy/'));
+    for (const v of legacy) f28.vars.splice(f28.vars.indexOf(v), 1);
+    let done = 0;
+    const r = await draw(f28.api, contract, {}, { onTable: (e) => { if (e.status === 'done') done++; }, stop: () => done >= 3 });
+    ok(r.tables.length === 3 && JSON.stringify(r.stopped) === JSON.stringify({ done: 3, total: 21 }) && done === 3,
+      `28: a stop read after the third table ends the run there: 3 of 21 reached (${r.tables.length} outcomes; ${JSON.stringify(r.stopped)})`);
+    ok(r.deleted.length === 0 && r.stale.length === 0 && !!tableFrame(f28.prim, 'Legacy'),
+      `28: a stopped run judges no superseded table: the emptied Legacy table stays (deleted ${r.deleted.length}, stale ${r.stale.length})`);
+    const v = styleGuideSummary(r);
+    ok(v.ok && v.headline === '✓ style guide: 3 tables' && v.summary.includes('Stopped after table 3 of 21. The tables already drawn stay'),
+      `28: the verdict counts the 3 tables and says where it stopped (${v.headline}; ${v.summary.slice(0, 120)})`);
+    // The control: the same file, run to the end, deletes the Legacy table, so the stop is what kept it.
+    const full = await draw(f28.api, contract);
+    ok(!full.stopped && full.deleted.includes('Style guide — Legacy'), `28: run to the end, the same file deletes the Legacy table (${full.deleted.join(', ')})`);
+    // A stop read after the LAST table is no stop.
+    let n = 0;
+    const last = await draw(f28.api, contract, {}, { onTable: (e) => { if (e.status === 'done') n++; }, stop: () => n >= 21 });
+    ok(!last.stopped && last.tables.length === 21, `28: a stop that turns true only after the last table is not a stop (${JSON.stringify(last.stopped)})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }

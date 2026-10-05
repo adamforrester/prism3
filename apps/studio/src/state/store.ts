@@ -104,7 +104,9 @@ export const firstRun = (): boolean => provenance.origin.kind === 'none';
  *   - `host:progress`: the in-flight component build's fraction — a text swap, never a re-render.
  *   - `fonts`: the families the host can load, which the Typography page reads. */
 export type HostTopic =
-  | 'host' | 'host:detail' | 'host:components' | 'host:filesetup' | 'host:styleguide' | 'host:progress' | 'fonts';
+  | 'host' | 'host:detail' | 'host:components' | 'host:filesetup' | 'host:styleguide' | 'host:progress' | 'fonts'
+  /** The Build style guides page (S11.2): the file's catalog arrived, or a table of the panel's run moved. */
+  | 'host:sgpage';
 
 /** What changed. `brand`: the working input, the resolved theme or the error (every `rebuild`, and a
  *  wholesale load). `origin`: the provenance was reassigned. `mode`: the mode being viewed. `page`: the

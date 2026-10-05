@@ -50,6 +50,7 @@ const KINDS = [
   'apply-result', 'component-result', 'file-setup-result', 'style-guide-result', 'component-progress', 'style-guide-progress',
   'prune-result', 'seed-info', 'restore-input', 'restore-input-empty', 'restore-input-error', 'font-list',
   'agent-started', 'agent-progress', 'agent-finished', 'refused',
+  'style-guide-catalog', 'style-guide-tables', 'style-guide-table',
 ] as const;
 const exercised = new Set<string>();
 
@@ -67,7 +68,7 @@ ok(typeof (globalThis as { document?: unknown }).document === 'undefined', 'prem
 const init = initialHostSession();
 ok(same(plain(init), {
   seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, componentState: null,
-  fileSetupState: null, styleGuideState: null, componentProgress: null, styleGuideProgress: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
+  fileSetupState: null, styleGuideState: null, componentProgress: null, styleGuideProgress: null, styleGuideCatalog: null, styleGuideRun: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
   pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], agentRun: null, refused: null,
 }), 'initial session: every slot empty');
 
@@ -287,6 +288,31 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
   ok(prune.next.pruneBusy === false, 'refused: a declined delete behind an agent\'s prune clears the panel\'s delete');
   const unknown = step(init, { kind: 'refused', code: 'busy', cmd: 'readback', agent: true, message: 'x' });
   ok(unknown.next === init && unknown.topics.length === 0, 'refused: a command with no write operation changes nothing');
+}
+
+// ---- the Build style guides page (UI redesign S11.2) ----------------------------------------------------------
+{
+  const cat = { setUp: true, collections: [], tables: [{ key: 'k', title: 'Text', kind: 'color' as const, page: 'Semantic tokens', rows: 2 }], notes: [] };
+  const c = step(init, { kind: 'style-guide-catalog', catalog: cat, error: null });
+  ok(same(c.next.styleGuideCatalog, { catalog: cat, error: null }) && same(c.topics, ['host:sgpage']), 'style-guide-catalog: lands in styleGuideCatalog and invalidates host:sgpage');
+  const idle = step(init, { kind: 'style-guide-tables', tables: [{ key: 'a', title: 'Primary', page: 'Primitive tokens' }] });
+  ok(idle.next === init && idle.topics.length === 0, 'style-guide-tables: ignored while the panel has no run pending (an agent\'s run is Activity\'s)');
+  const pending: HostSession = { ...init, styleGuideState: 'pending' };
+  const list = step(pending, { kind: 'style-guide-tables', tables: [{ key: 'a', title: 'Primary', page: 'Primitive tokens' }, { key: 'b', title: 'Text', page: 'Semantic tokens' }] });
+  ok(same(list.next.styleGuideRun, { tables: [
+    { key: 'a', title: 'Primary', page: 'Primitive tokens', status: 'waiting', reason: null },
+    { key: 'b', title: 'Text', page: 'Semantic tokens', status: 'waiting', reason: null },
+  ], stopped: null }) && same(list.topics, ['host:sgpage']), 'style-guide-tables: a pending run lists every table waiting');
+  const d0 = step(list.next, { kind: 'style-guide-table', index: 0, status: 'drawing', reason: null });
+  const f0 = step(d0.next, { kind: 'style-guide-table', index: 0, status: 'failed', reason: 'Accent refused' });
+  const d1 = step(f0.next, { kind: 'style-guide-table', index: 1, status: 'done', reason: null });
+  ok(same(d1.next.styleGuideRun?.tables.map((t) => `${t.status}:${t.reason}`), ['failed:Accent refused', 'done:null']) && same(f0.topics, ['host:sgpage']),
+    'style-guide-table: each move lands on its row, a failure with its reason');
+  ok(step(d1.next, { kind: 'style-guide-table', index: 2, status: 'done', reason: null }).next === d1.next, 'style-guide-table: an index past the list is dropped');
+  const res = step(d1.next, { kind: 'style-guide-result', ok: true, headline: '✓ style guide: 1 table', summary: 's', stopped: { done: 1, total: 2 } });
+  ok(same(res.next.styleGuideRun?.stopped, { done: 1, total: 2 }) && res.next.styleGuideRun?.tables.length === 2,
+    'style-guide-result: the run is kept after the verdict, with where Cancel stopped it');
+  ok(step(res.next, { kind: 'style-guide-table', index: 0, status: 'done', reason: null }).next === res.next, 'style-guide-table: a move after the verdict is dropped');
 }
 
 for (const k of KINDS) ok(exercised.has(k), `coverage: ${k} was exercised`);
