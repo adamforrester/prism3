@@ -42,6 +42,10 @@ export const BUTTON_SETS_DESC = 'Each button set is a full set of fill, text, bo
  *  Background section there (Q23): the owner's Q26 intro, APPROVED, now that the scrim has its own section
  *  (QA-B10). The Style guide's own Background section keeps its longer sentence, scrim included. */
 export const BACKGROUND_FILLS_DESC = 'The base page planes and their inverse counterparts.';
+/** Surfaces & fills' Foreground copy (#1971; APPROVED, owner 2026-10-05, superseding GR3), shared by the levers' Foreground section
+ *  and the preview's Foreground section there (Q23). That preview section sits on the contrast floor, not the page, so
+ *  its sentence says so. The Style guide's own Foreground section keeps its sentence ("placed ON the page"). */
+export const FOREGROUND_FILLS_DESC = "Content surfaces, shown on the contrast floor they're measured against.";
 /** The Scrim copy (S4f, QA-B10, APPROVED), shared by the levers' Scrim section and the preview's (Q23). */
 export const SCRIM_DESC = "The overlay that dims the page behind a modal. It isn't editable.";
 /** The Fields copy (Q29, APPROVED), shared by the levers' Fields section and, since S4f (#2016, Q80), the preview's. */
@@ -170,8 +174,8 @@ export const DOMAINS = [
           { title: 'Background fills', desc: BACKGROUND_FILLS_DESC, rows: [{ ctl: 'surfaces', keys: ['surfaces'], drive: 'surface' }] },
           { title: 'Scrim', desc: SCRIM_DESC, rows: [{ ctl: 'scrim' }] },
           // S4d (owner decision Q44): the neutral ladder in its own section, the approved heading with the preview's
-          // Foreground description (Q23). The fills keep Foreground fills.
-          { title: 'Foreground', desc: 'Content surfaces placed ON the page — the neutral and inverse ladders, plus semantic fills in bold and subtle weights, each paired with its on-surface text.', rows: [{ ctl: 'foreground', schemaOnly: ['overrides'] }] },
+          // Foreground description (Q23; since #1971 the floor's sentence, FOREGROUND_FILLS_DESC). The fills keep Foreground fills.
+          { title: 'Foreground', desc: FOREGROUND_FILLS_DESC, rows: [{ ctl: 'foreground', schemaOnly: ['overrides'] }] },
           { title: 'Foreground fills', desc: 'Auto follows the contrast-gated default. A pick below its floor is marked, not blocked.', rows: [{ ctl: 'fills', schemaOnly: ['overrides'] }] },
           // NOT CONCEPT V6'S (S4a): the legacy page's text inks, as rows like the fills. These rows are the
           // permanent, primary text editor (owner decision Q20, `decisions-2026-10-01-qa.md`, replacing v6's

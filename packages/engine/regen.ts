@@ -119,11 +119,11 @@ const check = (): void => {
   const schemaSnap = join(tmp, 'schema');
   const engineSnap = join(tmp, 'engine');
   try {
-    cpSync(outDir, outSnap, { recursive: true });
+    cpSync(outDir, outSnap, { recursive: true, preserveTimestamps: true });
     mkdirSync(schemaSnap, { recursive: true });
-    for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) cpSync(join(schemaDir, f), join(schemaSnap, f));
+    for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) cpSync(join(schemaDir, f), join(schemaSnap, f), { preserveTimestamps: true });
     mkdirSync(engineSnap, { recursive: true });
-    for (const f of ENGINE_ARTIFACTS) cpSync(join(here, f), join(engineSnap, f));
+    for (const f of ENGINE_ARTIFACTS) cpSync(join(here, f), join(engineSnap, f), { preserveTimestamps: true });
 
     regenerate();
 
@@ -150,11 +150,14 @@ const check = (): void => {
       if (!readFileSync(join(engineSnap, f)).equals(readFileSync(join(here, f)))) drifted.push(`packages/engine/${f}`);
     }
 
-    // Restore the committed state either way — the gate reports, it never rewrites.
+    // Restore the committed state either way — the gate reports, it never rewrites. Every copy, the
+    // snapshot and the restore, keeps its timestamps (#2067): without that, a clean `--check` left each
+    // artifact newer than a bundle built just before it, and `assertBundleFresh` refused that bundle as
+    // stale. `icon-glyphs.ts` compiles into both bundles, and ci.yml runs `--check` again after the builds.
     rmSync(outDir, { recursive: true, force: true });
-    cpSync(outSnap, outDir, { recursive: true });
-    for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) cpSync(join(schemaSnap, f), join(schemaDir, f));
-    for (const f of ENGINE_ARTIFACTS) cpSync(join(engineSnap, f), join(here, f));
+    cpSync(outSnap, outDir, { recursive: true, preserveTimestamps: true });
+    for (const f of [...SCHEMA_ARTIFACTS, ...MAINTAINER_ARTIFACTS]) cpSync(join(schemaSnap, f), join(schemaDir, f), { preserveTimestamps: true });
+    for (const f of ENGINE_ARTIFACTS) cpSync(join(engineSnap, f), join(here, f), { preserveTimestamps: true });
 
     const checked = after.size + SCHEMA_ARTIFACTS.length + MAINTAINER_ARTIFACTS.length + ENGINE_ARTIFACTS.length;
     if (!drifted.length && !added.length && !removed.length) {

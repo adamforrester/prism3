@@ -28,12 +28,12 @@
  * Every wait in this file is a wait on a REAL CONDITION — a selector, `document.fonts.ready`, or a
  * `waitForFunction` on the state the click was supposed to produce. There is not one arbitrary sleep,
  * deliberately: a flaky browser suite that blocks every PR is the fastest way to erode trust in gates
- * generally, and this repo's gate discipline is worth more than this suite is. `mode-audit.mjs` uses
- * `waitForTimeout` throughout; it is an ad-hoc audit a human reads, and the tradeoff is different for
- * something CI runs on every push.
+ * generally, and this repo's gate discipline is worth more than this suite is. (`mode-audit.mjs`, deleted
+ * in UI redesign S8.3, used `waitForTimeout` throughout: an ad-hoc audit a human read, a different tradeoff
+ * from something CI runs on every push.)
  *
- * PORT. This serves on an EPHEMERAL port (`listen(0)`) rather than a fixed one, as `mode-audit.mjs` now
- * does too (#1898): two harnesses on one port collide as `EADDRINUSE`, which reads exactly like a test
+ * PORT. This serves on an EPHEMERAL port (`listen(0)`) rather than a fixed one, as `mode-audit.mjs` did
+ * too until S8.3 deleted it (#1898): two harnesses on one port collide as `EADDRINUSE`, which reads exactly like a test
  * failure and would be debugged as one. Picking another fixed number only moves the collision.
  *
  * FRESH CONTEXT PER BRAND. The studio persists its working brand to `localStorage`, so a shared
@@ -47,6 +47,7 @@ import { dirname, extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { hookGuard } from './test-hooks.mjs';
+import { assertBundleFresh, STUDIO_SOURCE_ROOTS } from './test-bundle-freshness.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 // Every element this suite LOCATES is found by its `data-p3` hook (F1), minted by `hook()` in
@@ -72,9 +73,14 @@ const ok = (cond, label) => {
   console.error(`  ✗ ${label}`);
 };
 
+// The bundle this suite drives must be at least as new as its sources (#2067): a stale `dist/main.js` is
+// the old UI, measured and reported as this one. The check and its roots: `test-bundle-freshness.mjs`.
+assertBundleFresh({ repo: join(ROOT, '../..'), bundle: 'apps/studio/dist/main.js', roots: STUDIO_SOURCE_ROOTS, label: 'main.js freshness',
+  effect: 'this suite would test the old UI', build: 'npm run -w @prism3/studio build' });
+
 // ---- the static server -----------------------------------------------------------------------
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.map': 'application/json' };
-// Read BEFORE writing the header — the trap `mode-audit.mjs` records at #565: a missing file threw
+// Read BEFORE writing the header — the trap the deleted `mode-audit.mjs` recorded at #565: a missing file threw
 // with the 200 already sent, so the catch's `writeHead(404)` raised ERR_HTTP_HEADERS_SENT outside the
 // try, unhandled, and killed the harness. A harness that exits instead of reporting looks like a
 // clean run.
@@ -504,21 +510,19 @@ const classifyPair = (p, emission, mode) => {
  *    detect a blanked workspace: that case is covered, and covered better, by the
  *    `controls > 0 || readOnlyNote > 0` assertion in the loop, which names the condition instead of
  *    proxying it through a count.
- *  - `SWEEP_NODE_FLOOR` (5000; 8000 until S7 and S10 together moved Shape's and Layout's text out of the legacy
- *    sweep) — well below a healthy full sweep's total (printed every run) and well
- *    above what a sweep of nothing-but-chrome states totals, so it catches every state rendering only
- *    its chrome — which the per-state floor clears once per state and structurally cannot catch in
+ *  - `SWEEP_NODE_FLOOR` (10000 since S8.3 moved the sweep onto the tabs) — well below a healthy full sweep's total
+ *    (printed every run) and well above what a sweep of nothing-but-chrome states totals, so it catches every state
+ *    rendering only its chrome — which the per-state floor clears once per state and structurally cannot catch in
  *    aggregate.
- *  - `SWEEP_STATE_FLOOR` (28) — the product of the three per-axis minimums already asserted below
- *    (≥ 2 brands × ≥ 2 modes × ≥ 2 pages: the Preview page left the Pages menu in UI redesign S3, and Elevation and
- *    Motion in S9.2, leaving Size & radius and Layout on the web), so it raises no new bar. What it adds is a NAMED failure
- *    for a sweep that visits nothing: at zero states the loop body never runs, so contrast, console
- *    errors and mode agreement are all ABSENT rather than failing, and absence is what this file
+ *  - `SWEEP_STATE_FLOOR` (36) — the product of the three per-axis minimums already asserted below
+ *    (≥ 2 brands × ≥ 2 modes × the tab row's 9 places, each of which must be walked by name), so it raises no new bar.
+ *    What it adds is a NAMED failure for a sweep that visits nothing: at zero states the loop body never runs, so
+ *    contrast, console errors and mode agreement are all ABSENT rather than failing, and absence is what this file
  *    keeps having to convert into a failure.
  */
 const STATE_NODE_FLOOR = 12;
-const SWEEP_NODE_FLOOR = 4000;   // 8000 until UI redesign S7, S9.2 and S10 moved Shape, Elevation, Motion and Layout out of the legacy sweep (sections 1g, 1h and 1i measure them)
-const SWEEP_STATE_FLOOR = 4;   // 2 brands × 2 modes × 1 page: since S10 the web's one legacy page is Size & radius (the Button options, until S8)
+const SWEEP_NODE_FLOOR = 10000;   // S8.3: the sweep on the tabs measures every place's whole document; a run of chrome-only states (the frame head, ~13 nodes) totals under 1,500 across the corpus, a healthy one far more (printed every run). 4000 while only the moved pages' own sections counted
+const SWEEP_STATE_FLOOR = 36;   // 2 brands × 2 modes × 9 places (the per-axis minimums; S8.3 moved the sweep onto the tab row's 9 places)
 /** The same "did it look?" floor for the form-control walk added by #1031, and the reason it is a
  *  SWEEP total and not a per-state one is recorded at the assertion: zero fields is legitimate in a
  *  derived mode, where the read-only note replaces every editor, so the per-state range starts at 0 and
@@ -527,7 +531,18 @@ const SWEEP_STATE_FLOOR = 4;   // 2 brands × 2 modes × 1 page: since S10 the w
  *  by name. No measured corpus size is written in here: that literal drifts as the studio grows or
  *  retires controls — this is the site #1232 fixed, the count belongs in the live output, not frozen in
  *  a comment beside a passing assertion. */
-const SWEEP_FIELD_FLOOR = 6;   // 250 until UI redesign S5.2 moved the Interactive page's selects out of the legacy sweep; 200 until S9.2 moved Elevation's and Motion's, and S10 Layout's breakpoint fields and grid selects (Size & radius's Button options are what is left)
+const SWEEP_FIELD_FLOOR = 100;   // S8.3: the sweep on the tabs reads every place's fields (Surfaces & fills, Type, Layout and Interactive carry most); 6 while the web's sweep had nothing to walk
+/** THE FLOORS ARE LITERALS, AND THIS SAYS SO BY NAME (S8.3, docs/34 shape 1). A floor computed from what it floors cannot
+ *  fail: `SWEEP_STATE_FLOOR = statesVisited` would read "visited 0 states (floor 0)" as a pass. So the suite reads its own
+ *  source and refuses, before it measures anything, any floor not declared once as an integer literal. */
+{
+  const own = await readFile(fileURLToPath(import.meta.url), 'utf8');
+  for (const name of ['STATE_NODE_FLOOR', 'SWEEP_NODE_FLOOR', 'SWEEP_STATE_FLOOR', 'SWEEP_FIELD_FLOOR']) {
+    const decls = [...own.matchAll(new RegExp(`^\\s*(?:(?:const|let|var)\\s+)?${name}\\s*=(?!=)\\s*([^;\\n]*)`, 'gm'))].map((m) => m[1].trim());
+    ok(decls.length === 1 && /^\d+$/.test(decls[0]),
+      `${name} is declared once, as an integer literal, never derived from what it floors (docs/34) — declared ${decls.length} time(s): ${decls.map((d) => JSON.stringify(d)).join(', ')}`);
+  }
+}
 /** The brand menu's own minimum, asserted per open (#1031). The popover carried Name and Namespace until UI
  *  redesign S3 moved them to Brand › Identity (chrome, measured by `test:chrome` in both themes, and by the
  *  Brand section below); what it still carries is `.bm-ta` once the import box is open, so one control is
@@ -679,14 +694,91 @@ const modeCells = new Set();
 let worstExempt = Infinity;
 let worstExemptWhere = '';
 
-// NOTHING TO SWEEP ON THE WEB SINCE UI REDESIGN S8.2. This loop walked every LEGACY page, reached through the Pages
-// menu, in every mode, on every corpus brand. S8.2 moved the web's last legacy page (Size & radius, the Button options)
-// to the Components tab, and the web's Pages menu went with it (owner decision G19 A), so there is no legacy page left
-// to walk. The moved pages are measured by their own sections (1a to 1i, 3c onward). S8.3, which merges right after
-// S8.2, moves this sweep onto the tab hooks (plan §9.2: "in the same PR that deletes the menu"). Until then the loop
-// holds what it can, by name: each brand boots clean, its emission loads, and the top bar offers no Pages menu (read
-// by its accessible name, the button a designer would look for), so a legacy page that comes back fails here until the
-// sweep walks it again.
+// THE SWEEP ON THE TABS (UI redesign S8.3, plan §9.2). Until S8.2 this loop walked every LEGACY page through the Pages
+// menu; S8.2 moved the web's last one (Size & radius, the Button options) to the Components tab and the web's Pages menu
+// went with it (owner decision G19 A). So it walks the tab row now: every place a designer can reach (each tab, and
+// each of Color's sub-pages), in every mode the preview header offers, on every corpus brand, held per state to what
+// the legacy sweep held each page to: zero console errors; the DOM (the frame shows the place, the preview names it, the
+// levers pane carries controls, every declared chrome surface is mounted, the error bar is hidden, no horizontal
+// overflow, no legacy page drawn); the rendered contrast of every text node and form control in the document, both
+// panes and the chrome; the paired specimens against the engine's contracts (#1652); and MODE AGREEMENT, the one check
+// `mode-audit.mjs` made that still has a subject (S8.3 deletes the audit): the mode chosen once, in the preview header,
+// is the one mode every place's header marks, in its radios and in its narrow-width select alike.
+//
+// THE PLACES ARE A LITERAL, AND THE TAB ROW IS THE OTHER SIDE. `SWEEP_PLACES` is typed here from the IA, never read from
+// `pages.ts`; what the rendered tab row and Color's sub-row offer is read from the DOM, per brand, and the two must agree
+// both ways. A place dropped from the list fails as "not walked", and a tab the studio grows fails the same way until
+// the sweep walks it (docs/34: represented, not counted).
+//
+// MODE IS THE OUTER AXIS, as it was: the mode is module state that survives navigation, so it is chosen once on the
+// first place and every place is then walked carrying it, which is the sequence a designer performs.
+/** Each place and how it is reached: its tab's hook, then its sub-page's when it has one. Literal (the IA). */
+const SWEEP_PLACES = {
+  brand: ['[data-p3="tab-brand"]'],
+  'color-palettes': ['[data-p3="tab-color"]', '[data-p3="color-sub-palettes"]'],
+  'color-fills': ['[data-p3="tab-color"]', '[data-p3="color-sub-fills"]'],
+  'color-interactive': ['[data-p3="tab-color"]', '[data-p3="color-sub-interactive"]'],
+  type: ['[data-p3="tab-type"]'],
+  shape: ['[data-p3="tab-shape"]'],
+  depth: ['[data-p3="tab-depth"]'],
+  layout: ['[data-p3="tab-layout"]'],
+  components: ['[data-p3="tab-components"]'],
+};
+/** Go to a place by its clicks, and wait for the frame to say it shows that place: a real condition, never a duration. */
+const goPlace = async (page, place) => {
+  for (const sel of SWEEP_PLACES[place]) await hooks.click(page.locator(sel));
+  await page.waitForFunction((p) => document.querySelector('[data-p3="frame"]')?.dataset.place === p, place);
+  await page.evaluate(() => document.fonts.ready);
+};
+/** The places the rendered tab row offers, by the same spelling (`tab-<id>`, then `<id>-sub-<sub>` for a tab with a
+ *  sub-row), read from the DOM. Each tab is clicked to learn whether it draws a sub-row. */
+const offeredPlaces = async (page) => {
+  const tabs = await page.locator('[data-p3="tab-row"] [role="tab"]').evaluateAll((ns) => ns.map((n) => n.getAttribute('data-p3')));
+  const out = [];
+  for (const t of tabs) {
+    await hooks.click(page.locator(`[data-p3="${t}"]`));
+    const id = t.slice('tab-'.length);
+    await page.waitForFunction((x) => (document.querySelector('[data-p3="frame"]')?.dataset.place ?? '').split('-')[0] === x, id);
+    const subs = await page.locator('[data-p3="sub-nav"] [role="tab"]').evaluateAll((ns) => ns.map((n) => n.getAttribute('data-p3')));
+    if (subs.length) for (const s of subs) out.push(`${id}-${s.slice(`${id}-sub-`.length)}`);
+    else out.push(id);
+  }
+  return out;
+};
+/**
+ * KNOWN CONTRAST GAPS — chrome text this sweep measures CORRECTLY below its bar, where the fix is a design choice held
+ * for the owner (#1887's KNOWN_BADGE_GAPS shape, carried over from `mode-audit.mjs` when S8.3 deleted it). Each row is a
+ * literal written from the measurement and names the issue that owns the fix. A row EXCUSES only an exact match: the
+ * same place, the same node class and text, at or above its stated floor; anything else counts. A row FAILS WHEN STALE:
+ * if its node is drawn and every instance clears the chrome bar, the run fails naming the row, so the fixing PR deletes
+ * it. Its node only draws where the brand's faces are missing from the device (CI, a bare container), so a run that
+ * never draws it says so by name rather than calling the row stale.
+ */
+// EMPTY since #2091 closed its one row (the Type preview's font status, inked with the ground's text color). The
+// mechanism stays: a planted row `{ place, cls, text, atLeast, issue }` still excuses its exact node and still fails
+// as STALE once that node clears its bar (both re-proven by planting the #2091 row against the fix and against its
+// mutation, in that PR).
+const KNOWN_CONTRAST_GAPS = [];
+const knownGapOf = (place, r) => KNOWN_CONTRAST_GAPS.find((k) => k.place === place && k.cls === r.cls && k.text === r.text && r.ratio >= k.atLeast);
+const gapSeen = new Map(KNOWN_CONTRAST_GAPS.map((k) => [k, { drawn: 0, under: 0 }]));
+/**
+ * THE TYPE PAGE'S FONT STATUS, HELD TO THE CHROME TEXT BAR IN EVERY BRAND × MODE (#2091, owner T-FONT A). The label
+ * "⚠ Not installed" is studio text on the BRAND's page color, so its ratio moves with the brand and the mode; it
+ * was `--warn` at 3.84–4.16:1 on the dark grounds. The general chrome check above already counts it, but only when
+ * it is drawn, and it is drawn only where a brand face does not resolve on the device. So this one is asserted
+ * EXERCISED, per brand and mode, by its own class and text (literals, not read from `ui/fonts.ts`): a state that
+ * drew no such label fails as not exercised rather than passing vacuously (docs/34: represented, not counted). CI
+ * and a bare container lack the corpus faces; a machine that has all of them installed fails here by name, which
+ * is the truth about that run: it did not check the label.
+ */
+const FONT_STATUS = { place: 'type', cls: 'span.tf-stat.no', text: '⚠ Not installed' };
+const fontStatusSeen = new Map();   // `${brand} / ${mode}` -> { drawn, worst }
+/** The chrome surfaces whose home is the legacy WORKSPACE (`CHROME_SURFACES` in `src/main.ts`, `home: 'workspace'`),
+ *  typed here. The roster is published per VIEW, and the app view still promises the legacy mode strip because the
+ *  plugin's Style guide draws it; on the web the workspace is drawn by no place (each state below asserts that no legacy
+ *  page is drawn), so these are left out of the "declared and mounted" check exactly while that holds. */
+const WORKSPACE_SURFACES = ['mode-strip'];
+const sweptPlaces = new Set();
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
   const boot = drain();
@@ -694,10 +786,164 @@ for (const brand of BRANDS) {
   const emission = await loadEmission(brand);
   ok(emission !== null && emission.modes.length >= 2,
     `${brand}: its committed emission (packages/engine/out/${brand.toLowerCase()}.tokens.json) loads with its modes — the oracle paired specimens are checked against (#1652)`);
+  // The web draws no Pages menu (G19 A): read by its accessible name, the button a designer would look for.
   const bar = await page.evaluate(() => ({ bar: !!document.querySelector('[data-p3="top-bar"]'), pages: [...document.querySelectorAll('button')].filter((b) => b.getAttribute('aria-label') === 'Pages').length }));
   hooks.absent(ok, { seen: bar.bar, state: 'the top bar' }, bar.pages === 0,
-    `${brand}: NOTHING TO SWEEP — the web offers no Pages menu, so no legacy page is left to walk (S8.2; S8.3 moves the sweep onto the tabs) — found ${bar.pages}`);
+    `${brand}: the web offers no Pages menu, so every page is reached by the tab row the sweep walks (G19 A) — found ${bar.pages}`);
+  const offered = await offeredPlaces(page);
+  const notWalked = offered.filter((p) => !(p in SWEEP_PLACES));
+  const notOffered = Object.keys(SWEEP_PLACES).filter((p) => !offered.includes(p));
+  ok(offered.length > 0 && notWalked.length === 0 && notOffered.length === 0,
+    `${brand}: the sweep walks every place the tab row offers, and only those (${offered.length} offered)${notWalked.length ? ` — not walked: ${notWalked.join(', ')}` : ''}${notOffered.length ? ` — not offered: ${notOffered.join(', ')}` : ''}`);
+
+  const places = Object.keys(SWEEP_PLACES);
+  await goPlace(page, places[0]);
+  const modes = await page.locator('[data-p3="mode-option"]').evaluateAll((ns) => ns.map((n) => n.dataset.mode));
+  ok(modes.length >= 2, `${brand}: the mode control offers ${modes.length} modes (${modes.join(', ')})`);
+
+  for (const mode of modes) {
+    await goPlace(page, places[0]);
+    await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
+    await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
+    for (const place of places) {
+      await goPlace(page, place);
+      const where = `${brand} / ${place} / ${mode}`;
+      statesVisited++;
+      sweptPlaces.add(place);
+
+      // --- zero console errors -----------------------------------------------------------------
+      const errs = drain();
+      ok(errs.length === 0, `${where}: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+
+      // --- key DOM assertions ------------------------------------------------------------------
+      const dom = await page.evaluate(() => {
+        const err = document.querySelector('[data-p3="error-bar"]');
+        const lf = document.querySelector('[data-p3="legacy-frame"]');
+        // The page-chrome floor (#772), read from what the app DECLARES rather than from a list restated here.
+        const roster = (document.documentElement.dataset.chromeRoster ?? '').split(' ').filter(Boolean);
+        return {
+          place: document.querySelector('[data-p3="frame"]')?.dataset.place ?? null,
+          title: document.querySelector('[data-p3="preview-title"]')?.textContent?.trim() ?? '',
+          controls: document.querySelectorAll('[data-p3="levers-pane"] input, [data-p3="levers-pane"] select, [data-p3="levers-pane"] button').length,
+          roster,
+          chromeMissing: roster.filter((k) => !document.querySelector(`[data-chrome="${k}"]`)),
+          errorBarShown: !!err && getComputedStyle(err).display !== 'none',
+          errorBarMounted: !!err,
+          errorBarText: err?.textContent?.trim() ?? '',
+          legacyMounted: !!lf,
+          legacyPage: lf?.dataset.legacyPage ?? null,
+          // MODE AGREEMENT: the radios that are checked, and the select that stands in for them when the header is
+          // slim, both read here, so a place that resets the mode or a control that drifts from the other fails.
+          modeOn: [...document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]')].filter((n) => n.getAttribute('aria-checked') === 'true').map((n) => n.dataset.mode),
+          modeSelect: document.querySelector('[data-p3="mode-select"]')?.value ?? null,
+          overflowX: document.documentElement.scrollWidth - window.innerWidth,
+        };
+      });
+      ok(dom.place === place, `${where}: the frame shows ${place} (shows ${dom.place})`);
+      ok(dom.title.length > 0, `${where}: the preview header names the view ("${dom.title}")`);
+      // "Not blank": the levers pane carries controls. A derived mode holds them disabled (Q59), never removes them.
+      ok(dom.controls > 0, `${where}: the levers pane renders ${dom.controls} control(s)`);
+      ok(dom.roster.length >= 3, `${where}: the view publishes its chrome roster (${dom.roster.join(', ') || 'EMPTY'})`);
+      ok(dom.roster.includes('error'), `${where}: the roster names the engine-error surface — #388's defect was one page rendering it and the rest not`);
+      const mustMount = dom.legacyPage === null ? dom.chromeMissing.filter((k) => !WORKSPACE_SURFACES.includes(k)) : dom.chromeMissing;
+      ok(dom.roster.some((k) => !WORKSPACE_SURFACES.includes(k)) && mustMount.length === 0,
+        `${where}: every declared chrome surface outside the legacy workspace is mounted${mustMount.length ? ` — missing ${mustMount.join(', ')}` : ''}`);
+      hooks.absent(ok, { seen: dom.errorBarMounted, state: 'the global error bar mounted, found by its hook' },
+        !dom.errorBarShown, `${where}: the global error bar is hidden${dom.errorBarShown ? ` — "${dom.errorBarText}"` : ''}`);
+      ok(dom.overflowX <= 1, `${where}: no horizontal overflow (${dom.overflowX}px past the viewport)`);
+      // No legacy page anywhere a designer can go on the web (and so no legacy mode strip, which only a legacy page drew):
+      // what smoke §2b's #485 drive, chrome §4's web arm and chrome §9's strip sync held in place until this sweep.
+      hooks.absent(ok, { seen: dom.legacyMounted, state: 'the legacy frame mounted, found by its hook' },
+        dom.legacyPage === null, `${where}: no legacy page is drawn (the legacy frame names ${JSON.stringify(dom.legacyPage)})`);
+      ok(dom.modeOn.length === 1 && dom.modeOn[0] === mode && dom.modeSelect === mode,
+        `${where}: mode agreement — the preview header marks exactly ${mode}, in its radios and its select (radios ${JSON.stringify(dom.modeOn)}, select ${JSON.stringify(dom.modeSelect)})`);
+
+      // --- rendered contrast -------------------------------------------------------------------
+      await settle(page, where);
+      const probe = await page.evaluate(LEGIBILITY_PROBE);
+      const rows = probe.text;
+      assertParsed(where, probe.unparsed);
+      nodesMeasured += rows.length;
+      fieldsMeasured += probe.fields.length;
+      ok(rows.length >= STATE_NODE_FLOOR,
+        `${where}: the contrast probe measured ${rows.length} text nodes (floor ${STATE_NODE_FLOOR})${
+          rows.length < STATE_NODE_FLOOR ? ' — this state rendered almost no text, or the probe stopped matching; the ratio assertion below is vacuous here' : ''}`);
+      const under = rows.filter((r) => r.ratio < CONTRAST_FLOOR);
+      for (const r of rows) if (r.ratio < worstRatio) { worstRatio = r.ratio; worstWhere = `${where} — ${r.cls} "${r.text}"`; }
+      ok(under.length === 0, `${where}: every one of ${rows.length} text nodes clears ${CONTRAST_FLOOR}:1${
+        under.length ? ` — ${under.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (op ${u.op})`).join(' | ')}` : ''}`);
+      const chrome = rows.filter((r) => !r.specimen);
+      specimensMeasured += rows.length - chrome.length;
+      for (const r of chrome) if (r.ratio < worstChrome) { worstChrome = r.ratio; worstChromeWhere = `${where} — ${r.cls} "${r.text}"`; }
+      for (const k of KNOWN_CONTRAST_GAPS) {
+        if (k.place !== place) continue;
+        const mine = chrome.filter((r) => r.cls === k.cls && r.text === k.text);
+        gapSeen.get(k).drawn += mine.length;
+        gapSeen.get(k).under += mine.filter((r) => r.ratio < barOf(r)).length;
+      }
+      if (place === FONT_STATUS.place) {
+        const st = chrome.filter((r) => r.cls === FONT_STATUS.cls && r.text === FONT_STATUS.text);
+        fontStatusSeen.set(`${brand} / ${mode}`, { drawn: st.length, worst: st.length ? Math.min(...st.map((r) => r.ratio)) : null });
+        const stUnder = st.filter((r) => r.ratio < CHROME_TEXT_MIN);
+        ok(stUnder.length === 0, `${where}: the font status ${FONT_STATUS.cls} "${FONT_STATUS.text}" clears ${CHROME_TEXT_MIN}:1 on the brand's page color in all ${st.length} place(s) drawn (#2091)${
+          stUnder.length ? ` — ${stUnder.slice(0, 3).map((u) => `${u.ratio}:1 (op ${u.op})`).join(' | ')}` : ''}`);
+      }
+      const chromeUnder = chrome.filter((r) => r.ratio < barOf(r) && !knownGapOf(place, r));
+      ok(chromeUnder.length === 0, `${where}: every one of ${chrome.length} chrome text nodes meets WCAG 1.4.3 (${CHROME_TEXT_MIN}:1, ${CHROME_LARGE_TEXT_MIN}:1 large), known gaps aside${
+        chromeUnder.length ? ` — ${chromeUnder.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (${u.px}px/${u.weight}, op ${u.op}, needs ${barOf(u)}:1)`).join(' | ')}` : ''}`);
+      const unmarked = rows.filter((r) => r.inlineInk && !r.specimen);
+      ok(unmarked.length === 0, `${where}: every node inked by an inline style is marked data-specimen at its render site${
+        unmarked.length ? ` — ${unmarked.slice(0, 3).map((u) => `${u.cls} "${u.text}"`).join(' | ')}: wrap it in specimen() where it is painted, or it is held to the chrome bar as if the studio chose that color` : ''}`);
+
+      // --- paired specimens, held to the contract of the pair they preview (#1652) --------------
+      const paired = rows.filter((r) => r.pair);
+      if (paired.length && emission) {
+        modeCells.add(`${brand}/${mode}`);
+        ok(emission.modes.includes(mode), `${where}: the mode "${mode}" is one the emission carries (${emission.modes.join(', ')})`);
+        const judged = paired.map((r) => ({ r, c: classifyPair(r.pair, emission, mode) }));
+        const bad = judged.filter(({ c }) => c.problem);
+        ok(bad.length === 0, `${where}: every one of ${paired.length} paired specimens renders exactly the engine role pair it claims${
+          bad.length ? ` — ${bad.slice(0, 3).map(({ r, c }) => `"${r.pair.state}" ${c.problem}`).join(' | ')}` : ''}`);
+        const held = judged.filter(({ c }) => !c.problem);
+        for (const { c } of held) pairedByClass[c.cls]++;
+        const pairUnder = held.filter(({ r, c }) => r.ratio < c.bar);
+        ok(pairUnder.length === 0, `${where}: every paired specimen meets the contract of the pair it previews${
+          pairUnder.length ? ` — ${pairUnder.slice(0, 3).map(({ r, c }) => `${r.pair.claim} at ${r.ratio}:1 (${c.contract}, needs ${c.bar}:1)`).join(' | ')}` : ''}`);
+        for (const { r, c } of held.filter(({ c }) => c.cls === 'exempt')) {
+          exemptCells.add(`${brand}/${mode}`);
+          if (r.ratio < worstExempt) { worstExempt = r.ratio; worstExemptWhere = `${where} — ${r.pair.claim}`; }
+          const rest = held.find(({ r: q }) => q.pair.row === r.pair.row && q.pair.state === 'rest');
+          ok(rest && hexOf(rest.r.pair.fill) !== hexOf(r.pair.fill),
+            `${where}: exempt ${r.pair.claim} is distinct from its row's rest fill — the one thing #1281 keeps gated (${
+              rest ? `${hexOf(r.pair.fill)} vs rest ${hexOf(rest.r.pair.fill)}` : 'NO rest specimen in its row'})`);
+        }
+      }
+
+      // --- rendered contrast, form controls (#1031) ---------------------------------------------
+      // No per-state floor (a place may draw no field); "did it look?" is the sweep total below.
+      const fieldsUnder = probe.fields.filter(fieldFails);
+      for (const f of probe.fields) if (f.ratio < worstRatio) { worstRatio = f.ratio; worstWhere = `${where} — ${f.cls} ${f.text}`; }
+      for (const f of probe.fields) if (!f.specimen && f.ratio < worstField) { worstField = f.ratio; worstFieldWhere = `${where} — ${f.cls} ${f.text}`; }
+      ok(fieldsUnder.length === 0, `${where}: every one of ${probe.fields.length} form control(s) inks its value at its text bar (${CHROME_TEXT_MIN}:1, ${CHROME_LARGE_TEXT_MIN}:1 large) and its caret at ${CHROME_CARET_MIN}:1${
+        fieldsUnder.length ? ` — ${fieldsUnder.slice(0, 3).map(describeField).join(' | ')}` : ''}`);
+    }
+  }
+  console.log(`  ${brand}: ${places.length} places × ${modes.length} modes swept (${places.join(', ')})`);
   await ctx.close();
+}
+
+{
+  const cells = [...fontStatusSeen.keys()];
+  const unseen = cells.filter((c) => fontStatusSeen.get(c).drawn === 0);
+  const worst = Math.min(...[...fontStatusSeen.values()].filter((v) => v.drawn).map((v) => v.worst));
+  ok(cells.length >= BRANDS.length * 2 && unseen.length === 0,
+    `the font status "${FONT_STATUS.text}" was drawn, and so measured, on the Type page in every brand × mode swept (${cells.length - unseen.length} of ${cells.length}, lowest ${Number.isFinite(worst) ? `${worst}:1` : 'none'})${
+      unseen.length ? ` — NOT EXERCISED in ${unseen.slice(0, 4).join(', ')}${unseen.length > 4 ? ', …' : ''}: every brand face resolved on this machine, so #2091's check measured nothing there` : ''}`);
+  console.log(`  font status "${FONT_STATUS.text}" (#2091): drawn in ${cells.length - unseen.length} of ${cells.length} brand × mode states, lowest ${Number.isFinite(worst) ? `${worst}:1` : 'none'}`);
+}
+for (const [k, seen] of gapSeen) {
+  if (seen.drawn === 0) console.log(`  known gap #${k.issue} (${k.place} / ${k.cls} "${k.text}"): not drawn on this machine, so not exercised`);
+  else ok(seen.under > 0, `known contrast gap #${k.issue} (${k.place} / ${k.cls} "${k.text}") still occurs — STALE if not: drawn ${seen.drawn} time(s), ${seen.under} below the chrome bar. Delete the row from KNOWN_CONTRAST_GAPS with the fix`);
 }
 
 // =============================================================================================
@@ -819,10 +1065,11 @@ console.log(`  ${brandStates} brand × mode states on Brand: the Style guide's t
 // compared to nothing; the state count is what makes "the loop never ran" a failure instead of a
 // silence, and the node total is what catches every state rendering nothing but chrome — which the
 // per-state floor passes 72 times over.
-// The legacy sweep has nothing to visit since S8.2 (section 1's note): its state count is held at 0, by name, so a
-// legacy page that comes back fails here until S8.3's sweep, on the tabs, covers it.
-ok(statesVisited === 0 && SWEEP_STATE_FLOOR > 0,
-  `the legacy sweep visited ${statesVisited} page × mode × brand states: NOTHING TO SWEEP on the web since S8.2 (its floor, ${SWEEP_STATE_FLOOR}, returns with S8.3's sweep on the tabs)`);
+ok(statesVisited >= SWEEP_STATE_FLOOR,
+  `the sweep visited ${statesVisited} place × mode × brand states (floor ${SWEEP_STATE_FLOOR})`);
+// Every place REPRESENTED, not counted: a state total can stay above its floor with one place never walked.
+ok(Object.keys(SWEEP_PLACES).every((p) => sweptPlaces.has(p)),
+  `the sweep measured every place it lists (${Object.keys(SWEEP_PLACES).filter((p) => !sweptPlaces.has(p)).join(', ') || 'all walked'})`);
 ok(nodesMeasured >= SWEEP_NODE_FLOOR,
   `the sweep measured ${nodesMeasured} text nodes in total (floor ${SWEEP_NODE_FLOOR})`);
 // Both classes REPRESENTED, or the split is vacuous: zero specimens means the marker stopped reaching the
@@ -996,7 +1243,10 @@ ok(palettesStates >= BRANDS.length * 2, `the Palettes sweep visited ${palettesSt
 //   · the five sections draw, in order, the token chips the Style guide has always drawn (literal), on
 //     Surfaces & fills AND on the Style guide itself, so a change to a shared section shows on both.
 // S4f: Surfaces & fills also draws Scrim (QA-B10, out of Background) and Fields (#2016), each with its own marker and
-// chips (literal); Background and Foreground sit on white with no badge (#1971), every other section on the page; the
+// chips (literal); Background carries no badge (#1971) and Foreground badges its bold fills against the floor (GR2); every
+// section sits on the page except Foreground,
+// which sits on the contrast floor (the emission's own `against` for foreground.brand, resolved to its hex) under a line
+// naming that step (#1971, the grounds the owner confirmed 2026-10-03); the
 // Fields section paints every opaque field role, page and inverse, held to its emitted hex; and each levers section
 // is described as the preview section it pairs with (Q23), Scrim and Fields included.
 console.log(`\nColor › Surfaces & fills — the moved page, against each brand's emission\n${'='.repeat(78)}`);
@@ -1031,9 +1281,24 @@ const EXPECT_FILLS_CHIPS = {
   Scrim: ['scrim.default'],
   Fields: [...fieldChips('', 'text.primary'), ...fieldChips('inverse.', 'inverse.text.primary')],
 };
-/** #1971 (Q81): on Surfaces & fills the grounds themselves, Background and Foreground, sit on WHITE with no ratio
- *  badge; every other section sits on the page. Literal, the owner's word. */
-const FILLS_WHITE = ['Background', 'Foreground'];
+/** #1971 (Q81): on Surfaces & fills the page planes themselves, Background, carry no ratio badge. Literal. Foreground
+ *  carries its badges again since it sits on the floor it is measured against (GR2, owner 2026-10-04). */
+const FILLS_GROUNDS = ['Background'];
+/** GR2: the Foreground roles each measured against the contrast floor, whose badges must be drawn in the Foreground
+ *  section and print the ratio of the role's EMITTED hex against the EMITTED floor (the ground the section shows).
+ *  Literal: the five bold fills. */
+const FLOOR_BADGED = ['brand', 'danger', 'success', 'warning', 'info'].map((s) => `foreground.${s}`);
+/** #1971 Q13(a) (owner, 2026-10-05): the Foreground cards whose badge describes the text drawn on the card's own fill,
+ *  as [fill, text]: the three Inverse cards (their label) and the five Subtle cards. Literal. */
+const ON_FILL_CARDS = [...['primary', 'secondary', 'tertiary'].map((t) => [`inverse.foreground.${t}`, 'inverse.text.primary']),
+  ...['brand', 'danger', 'success', 'warning', 'info'].map((s) => [`foreground.${s}-subtle`, `text.${s}`])];
+/** #1971 (owner, 2026-10-03): the section that sits on the CONTRAST FLOOR, the step `foreground.*` is measured against,
+ *  rather than on the page; every other section, Background included, sits on the page. Literal. Its ground's hex is
+ *  the EMISSION's: `foreground.brand`'s `against` in the mode, resolved as a role or a palette step from the committed
+ *  tree, never from the studio's resolver. */
+const FILLS_ON_FLOOR = ['Foreground'];
+/** The line naming the floor inside that section's ground (APPROVED, owner 2026-10-04, GR1). Literal. */
+const floorLabel = (step) => `On the contrast floor (${step})`;
 /** Roles whose swatch must be among those checked, one or more per section, so an empty read fails by name. */
 const MUST_PAINT = ['background.primary', 'inverse.background.primary', 'foreground.brand', 'text.on-brand', 'text.primary', 'border.secondary', 'icon.primary', 'icon.on-brand'];
 /** #2016: the Fields section's own painted roles, every opaque field role page and inverse, each held to its emitted hex
@@ -1058,6 +1323,7 @@ const readSections = (page, hostSel) => page.evaluate((sel) => {
     shared: s.getAttribute('data-sg-section'),
     root: s.querySelector('.sg-ground')?.getAttribute('data-p3') === 'specimen',
     ground: hex(getComputedStyle(s.querySelector('.sg-ground') ?? s).backgroundColor),
+    groundLabel: s.querySelector('.sg-ground [data-p3="ground-label"]')?.textContent ?? null,
     chips: [...s.querySelectorAll('.sg-ground [data-p3="token-pill"]')].map((p) => p.textContent.replace(/^color\./, '').replace(/!$/, '')),
     badges: s.querySelectorAll('[data-p3="ratio-badge"]').length,
   }));
@@ -1075,7 +1341,7 @@ const readSections = (page, hostSel) => page.evaluate((sel) => {
   // A badge inside the Text color grid reports its COLUMN, by its cell's position (0: the page's mode, 1: the
   // opposite mode, 2: the token column), never by anything the section writes about it (S4d, Q46).
   const colOf = (b) => { const cell = b.closest('.sg-tc'); const grid = cell?.parentElement?.classList.contains('sg-tcg') ? cell.parentElement : null; return grid ? [...grid.children].indexOf(cell) % 3 : null; };
-  const badges = [...(host?.querySelectorAll('[data-p3="ratio-badge"]') ?? [])].map((b) => ({ role: b.dataset.role, text: b.querySelector('.sg-ratio-n')?.textContent ?? '', below: b.dataset.below === 'true', mark: b.querySelector('.sg-ratio-mk')?.textContent ?? '', col: colOf(b) }));
+  const badges = [...(host?.querySelectorAll('[data-p3="ratio-badge"]') ?? [])].map((b) => ({ role: b.dataset.role, text: b.querySelector('.sg-ratio-n')?.textContent ?? '', below: b.dataset.below === 'true', mark: b.querySelector('.sg-ratio-mk')?.textContent ?? '', col: colOf(b), section: b.closest('.psec')?.querySelector('.psec-t')?.textContent ?? null, pair: b.dataset.pair ?? null }));
   // The Text color section's graded inks, by row: the token in the third column, and the column of each badge in that row.
   const tcRows = [...(host?.querySelectorAll('.sg-tcg') ?? [])].flatMap((g) => {
     const cells = [...g.children].slice(3);
@@ -1182,7 +1448,7 @@ const checkSwatches = (where, got, emission, mode, modes) => {
   ok(oppCells > 0, `${where}: the swatch check read the Text color section's second column (${oppCells} cell(s) held to ${opp})`);
 };
 const floor2 = (r) => Math.floor(r * 100) / 100;
-let fillsStates = 0, fillsBadges = 0, fillsPaint = 0, sgStates = 0;
+let fillsStates = 0, fillsBadges = 0, fillsPaint = 0, sgStates = 0, floorDiffers = 0, fillsDrawnPairs = 0;
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
   const emission = await loadEmission(brand);
@@ -1203,19 +1469,68 @@ for (const brand of BRANDS) {
     ok(errs.length === 0, `${where}: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
     const got = await readSections(page, SG_FILLS);
     const page0 = emission?.role('background.primary', mode)?.hex;
+    // #1971: the contrast floor, from the emission: what foreground.brand is measured against in this mode, as a hex.
+    const floorStep = emission?.role('foreground.brand', mode)?.against ?? null;
+    const floor0 = floorStep ? (emission.role(floorStep, mode)?.hex ?? palOf(floorStep)) : null;
+    ok(!!page0 && !!floor0, `${where}: the emission names this mode's background.primary (${page0}) and the contrast floor foreground.brand is measured against (${floorStep} ${floor0})`);
+    if (floor0 && floor0 !== page0) floorDiffers++;
     for (const name of expectRoots ?? []) {
       const s = got.sections.find((x) => x.name === name);
-      // #1971: Background and Foreground on white, every other section on the page.
-      const want = FILLS_WHITE.includes(name) ? '#ffffff' : page0;
-      ok(!!s && s.root && s.ground === want, `${where}: section ${name} is a specimen root on ${FILLS_WHITE.includes(name) ? 'white #ffffff (#1971)' : `the emission's background.primary ${page0}`}${!s ? ' — not drawn' : !s.root ? ' — not a specimen root' : s.ground !== want ? ` — on ${s.ground}` : ''}`);
+      // #1971: Foreground on the contrast floor, every other section (Background included) on the page.
+      const onFloor = FILLS_ON_FLOOR.includes(name);
+      const want = onFloor ? floor0 : page0;
+      ok(!!s && s.root && s.ground === want, `${where}: section ${name} is a specimen root on ${onFloor ? `the emission's contrast floor ${floorStep} ${floor0} (#1971)` : `the emission's background.primary ${page0}`}${!s ? ' — not drawn' : !s.root ? ' — not a specimen root' : s.ground !== want ? ` — on ${s.ground}` : ''}`);
+    }
+    // #1971: the floor's section names its ground, by the emission's step; no other section carries the line.
+    for (const name of expectRoots ?? []) {
+      const s = got.sections.find((x) => x.name === name);
+      const want = FILLS_ON_FLOOR.includes(name) && floorStep ? floorLabel(floorStep) : null;
+      ok((s?.groundLabel ?? null) === want, `${where}: section ${name} ${want ? `names its ground "${want}"` : 'carries no ground label'}${(s?.groundLabel ?? null) !== want ? ` — read ${JSON.stringify(s?.groundLabel ?? null)}` : ''}`);
     }
     const unlisted = got.sections.filter((x) => !(expectRoots ?? []).includes(x.name)).map((x) => x.name);
     ok(unlisted.length === 0, `${where}: every section drawn is a listed specimen root${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
-    // #1971: the grounds carry no ratio badge.
-    for (const name of FILLS_WHITE) {
+    // #1971: the page planes carry no ratio badge.
+    for (const name of FILLS_GROUNDS) {
       const n = got.sections.find((x) => x.name === name)?.badges ?? -1;
       ok(n === 0, `${where}: the ${name} section shows no contrast badge (#1971) — ${n} drawn`);
     }
+    // GR2: on the floor, Foreground badges each bold fill, and each such badge prints the emitted fill against the
+    // emitted floor: the ground the section is drawn on. Computed here, from the two emitted hexes.
+    const offFloor = [];
+    for (const role of FLOOR_BADGED) {
+      const b = got.badges.find((x) => x.section === 'Foreground' && x.role === role);
+      const r = emission?.role(role, mode);
+      if (!b) { offFloor.push(`${role}: no badge drawn`); continue; }
+      if (!r || !floor0 || r.against !== floorStep) { offFloor.push(`${role}: the emission measures it against ${r?.against}, not the floor ${floorStep}`); continue; }
+      const want = wcag(hexRgb(r.hex), hexRgb(floor0));
+      if (!(Math.abs(parseFloat(b.text) - floor2(want)) <= 0.011)) offFloor.push(`${role} prints ${b.text}, the emitted ${r.hex} on the floor ${floor0} measures ${want.toFixed(3)}:1`);
+    }
+    ok(offFloor.length === 0, `${where}: the Foreground section, on the contrast floor, badges each bold fill with its emitted ratio against that floor (GR2)${offFloor.length ? ` — ${offFloor.join(' | ')}` : ''}`);
+    // #1971 Q13(a) (owner, 2026-10-05): every Subtle and Inverse card in Foreground badges what it DRAWS, its text on
+    // its fill. Read off the render: the card's own fill and label colors, each held to the emission's hex for the role
+    // it paints, and the ratio computed HERE from those two, never from the badge's own claim or the floor.
+    const drawn = await page.evaluate((sel) => [...(document.querySelector(sel)?.querySelectorAll('.psec') ?? [])]
+      .filter((x) => x.querySelector('.psec-t')?.textContent === 'Foreground')
+      .flatMap((x) => [...x.querySelectorAll('.sg-cw')]).map((cw) => {
+        const card = cw.querySelector('.sg-card'), lab = card?.querySelector('.sg-lab');
+        const b = cw.querySelector('[data-p3="ratio-badge"][data-pair]');
+        return { fillRole: card?.dataset.sgRole ?? null, inkRole: lab?.dataset.sgRole ?? null, fill: card ? getComputedStyle(card).backgroundColor : null,
+          ink: lab ? getComputedStyle(lab).color : null, badge: b ? b.querySelector('.sg-ratio-n')?.textContent ?? '' : null };
+      }), SG_FILLS);
+    const offDrawn = [];
+    for (const [fillRole, inkRole] of ON_FILL_CARDS) {
+      const d = drawn.find((x) => x.fillRole === fillRole);
+      if (!d) { offDrawn.push(`${fillRole}: card not drawn`); continue; }
+      if (d.inkRole !== inkRole) { offDrawn.push(`${fillRole}: its text is ${d.inkRole}, not ${inkRole}`); continue; }
+      if (d.badge === null) { offDrawn.push(`${fillRole}: no badge of its drawn pairing`); continue; }
+      const fillHex = rgbHex(d.fill), inkHex = rgbHex(d.ink);
+      const wantFill = emission?.role(fillRole, mode)?.hex, wantInk = emission?.role(inkRole, mode)?.hex;
+      if (fillHex !== wantFill || inkHex !== wantInk) { offDrawn.push(`${inkRole} on ${fillRole}: renders ${inkHex} on ${fillHex}, the emission says ${wantInk} on ${wantFill}`); continue; }
+      const want = wcag(hexRgb(inkHex), hexRgb(fillHex));
+      if (!(Math.abs(parseFloat(d.badge) - floor2(want)) <= 0.011)) offDrawn.push(`${inkRole} on ${fillRole} prints ${d.badge}, the drawn ${inkHex} on ${fillHex} measures ${want.toFixed(3)}:1`);
+      fillsDrawnPairs++;
+    }
+    ok(offDrawn.length === 0, `${where}: every Subtle and Inverse card in Foreground badges its text on its own fill, as drawn (#1971 Q13(a))${offDrawn.length ? ` — ${offDrawn.join(' | ')}` : ''}`);
     // #2016: the Fields section paints every opaque field role, page and inverse (the swatch check below holds each to its hex).
     const fieldsPaint = new Set(got.paint.filter((n) => n.section === 'Fields').map((n) => n.role));
     const unpaintedFields = MUST_PAINT_FIELDS.filter((r) => !fieldsPaint.has(r));
@@ -1244,6 +1559,8 @@ for (const brand of BRANDS) {
     const offBadge = [];
     const opp = oppositeMode(mode, modes);
     for (const b of got.badges) {
+      // A badge of a card's drawn pairing (#1971 Q13(a)) is held by its own arm above, against the card as rendered.
+      if (b.pair) continue;
       // A Text color badge in the second column is that column's mode's (Q46), by its position.
       const bm = b.col === 1 ? opp : mode;
       const r = emission?.role(b.role, bm);
@@ -1260,8 +1577,8 @@ for (const brand of BRANDS) {
     ok(offBadge.length === 0, `${where}: every ratio badge prints the emitted pair's ratio and marks its floor${offBadge.length ? ` — ${offBadge.slice(0, 3).join(' | ')}` : ''}`);
     // Q46: the Text color section's token column carries the pill alone; its badges are per column, below.
     const tcTokens = new Set(got.tcRows.map((t) => t.role));
-    // #1971: the white sections carry none, held above; every other chip of a graded role carries its badge.
-    const noBadge = got.chipsWithBadge.filter((c) => { if (tcTokens.has(c.role) || FILLS_WHITE.includes(c.section)) return false; const r = emission?.role(c.role, mode); return r && r.against && r.against !== 'self' && !c.badge; }).map((c) => c.role);
+    // #1971: Background carries none, held above; every other chip of a graded role carries its badge.
+    const noBadge = got.chipsWithBadge.filter((c) => { if (tcTokens.has(c.role) || FILLS_GROUNDS.includes(c.section)) return false; const r = emission?.role(c.role, mode); return r && r.against && r.against !== 'self' && !c.badge; }).map((c) => c.role);
     ok(noBadge.length === 0, `${where}: every chip of a role measured against another carries its ratio badge${noBadge.length ? ` — no badge: ${[...new Set(noBadge)].slice(0, 5).join(', ')}` : ''}`);
     // Q46: every text token graded in a column's mode carries exactly one badge in that column, its own, and the
     // token column carries none. Which roles are graded is the emission's (an \`against\` other than itself).
@@ -1324,6 +1641,9 @@ for (const brand of BRANDS) {
   await ctx.close();
 }
 ok(fillsStates >= BRANDS.length * 2, `the Surfaces & fills sweep visited ${fillsStates} brand × mode states (floor ${BRANDS.length * 2})`);
+ok(fillsDrawnPairs >= BRANDS.length * 2 * 8, `the drawn-pairing badge arm measured ${fillsDrawnPairs} Subtle and Inverse cards (#1971 Q13(a); floor ${BRANDS.length * 2 * 8})`);
+// #1971: the floor check can tell the floor from the page only where they differ; the corpus must give it such a cell.
+ok(floorDiffers > 0, `the Surfaces & fills sweep met a contrast floor that differs from the page in ${floorDiffers} brand × mode state(s), so a Foreground on the page fails`);
 ok(sgStates >= BRANDS.length * 2, `the Style guide sweep visited ${sgStates} brand × mode states (floor ${BRANDS.length * 2})`);
 console.log(`  ${fillsStates} + ${sgStates} states, ${fillsPaint} swatches and ${fillsBadges} ratio badges checked against the emissions.`);
 
@@ -2414,14 +2734,9 @@ for (const brand of BRANDS) {
   }
   await chooseMode(page, 'light');
 
-  // --- 2b. a select must not jump the page while scrolled (#485): RETIRED in UI redesign S10 ----------------------
-  //
-  // `applyFull()` → `renderWorkspace()` did `workspace.innerHTML = ''`, which reset scroll as a side effect; #485 fixed it
-  // by saving and restoring around the teardown, and this drove it on the first legacy page that drew a select (Layout,
-  // then Motion). S9.2 moved Motion and S10 moved Layout into the two panes, which never run that tier, and S8.2 moved
-  // the web's last legacy page (Size & radius) to Components: the web has no legacy page at all. RETIRED, NOT DELETED:
-  // section 1 holds that the web offers no Pages menu (no legacy page to reach), so a legacy page that comes back fails
-  // there by name, and the drive comes back on it.
+  // --- 2b. (#485, a select jumping the page while scrolled) RETIRED with the legacy tier, S8.3 -------------------------
+  // #485 lived in `applyFull()` → `renderWorkspace()`'s teardown of the legacy workspace; the two panes never run it. The
+  // hold S8.2 left here is now section 1's: every place, in every mode, on every brand, asserts that no legacy page is drawn.
 
   // --- 2c. the export actually writes a file ----------------------------------------------------
   // The dialog rendering is #723's suite; what only a browser can check is that clicking Download
@@ -2929,10 +3244,17 @@ const readNewChips = (sel) => {
   hooks.absent(ok, { seen: on === 'true', state: 'the Full contrast switch, on' }, r1.found === 0,
     `${brand} / Interactive / disabledMin: under Full contrast the floor chips are not drawn (QA-I8) — ${r1.found} drawn, switch ${on}`);
   ok((await persistedAt(page, 'disabledStrategy')) === 'full', `${brand} / Interactive / disabledStrategy: the Full contrast switch on writes "full" (wrote ${JSON.stringify(await persistedAt(page, 'disabledStrategy'))})`);
-  // At 380 the page's chips stay inside the panel (long labels wrap onto a second row).
+  // At 380 the page's chips stay inside the panel (long labels wrap onto a second row). The frame's width tier
+  // (`data-w`) is set by a ResizeObserver at the next rendering step, which can come after `setViewportSize`
+  // resolves (#2095, the race #2090 fixed for Button options), so wait on the tier and require it: measured in the
+  // wide tier, this check would be passing on the two-pane layout squeezed to 380, not the narrow one.
   await page.setViewportSize({ width: 380, height: 900 });
-  const over = await page.evaluate(() => [...document.querySelectorAll('[data-p3="interactive-levers"] [role="radiogroup"]')].map((g) => g.scrollWidth - g.clientWidth).filter((x) => x > 1).length);
-  ok(over === 0, `${brand} / Interactive at 380: every chip group fits its panel (${over} overflow)`);
+  await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow', null, { timeout: 5000 }).catch(() => {});
+  const { tier, over } = await page.evaluate(() => ({
+    tier: document.querySelector('[data-p3="frame"]')?.dataset.w,
+    over: [...document.querySelectorAll('[data-p3="interactive-levers"] [role="radiogroup"]')].map((g) => g.scrollWidth - g.clientWidth).filter((x) => x > 1).length,
+  }));
+  ok(tier === 'narrow' && over === 0, `${brand} / Interactive at 380: every chip group fits its panel (${over} overflow, frame tier ${tier})`);
   const errs = drain();
   ok(errs.length === 0, `${brand}: driving the Interactive chips raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
