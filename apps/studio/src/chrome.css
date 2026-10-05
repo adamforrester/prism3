@@ -1051,30 +1051,30 @@
   position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
   padding: var(--p3-space-300); background: var(--p3-overlay-pressed);
 }
-.p3-dialog {
+.p3-dialog:is(.p3-start, .p3-dialog-guard) {
   display: flex; flex-direction: column; width: min(100%, calc(var(--p3-dlg-unit) * 5)); max-height: 100%; min-height: 0;
   color: var(--p3-text); background: var(--p3-bg-page); border: var(--p3-bw-hairline) solid var(--p3-line-2);
   border-radius: var(--p3-radius-xl); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-normal);
 }
-.p3-dialog-guard { width: min(100%, calc(var(--p3-dlg-unit) * 3.75)); }
-.p3-dialog-head {
+.p3-dialog.p3-dialog-guard { width: min(100%, calc(var(--p3-dlg-unit) * 3.75)); }
+:is(.p3-start, .p3-dialog-guard) .p3-dialog-head {
   display: flex; align-items: center; gap: var(--p3-space-100); flex: none; min-height: var(--p3-bar-h);
   padding: var(--p3-space-100) var(--p3-space-300); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1);
 }
-.p3-dialog-title {
+:is(.p3-start, .p3-dialog-guard) .p3-dialog-title {
   flex: 1 1 auto; min-width: 0; margin: 0; color: var(--p3-text); font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong);
   letter-spacing: var(--p3-ls-snug); line-height: var(--p3-lh-compact);
 }
-.p3-dialog-body { display: grid; gap: var(--p3-space-200); min-height: 0; overflow: auto; padding: var(--p3-space-300); }
-.p3-dialog-foot {
+:is(.p3-start, .p3-dialog-guard) .p3-dialog-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--p3-space-200); min-height: 0; overflow: auto; padding: var(--p3-space-300); }
+:is(.p3-start, .p3-dialog-guard) .p3-dialog-foot {
   display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--p3-space-100); flex: none;
   padding: var(--p3-space-200) var(--p3-space-300); border-top: var(--p3-bw-hairline) solid var(--p3-line-1);
 }
-.p3-dialog-body p { margin: 0; }
+:is(.p3-start, .p3-dialog-guard) .p3-dialog-body p { margin: 0; }
 .p3-guard-text { color: var(--p3-text); }
 .p3-frame[data-w="narrow"] .p3-scrim-start { padding: 0; }
 .p3-frame[data-w="narrow"] .p3-start { width: 100%; height: 100%; max-height: none; border: 0; border-radius: 0; }
-.p3-frame[data-w="narrow"] :is(.p3-dialog-head, .p3-dialog-body, .p3-dialog-foot) { padding-left: var(--p3-space-200); padding-right: var(--p3-space-200); }
+.p3-frame[data-w="narrow"] :is(.p3-start, .p3-dialog-guard) :is(.p3-dialog-head, .p3-dialog-body, .p3-dialog-foot) { padding-left: var(--p3-space-200); padding-right: var(--p3-space-200); }
 /* Today's four cards, restyled (G11 B): containers take radius-xl and a hairline; the every card takes the same edge (the owner's review of #2142). */
 .p3-start-lede { color: var(--p3-text-2); }
 .p3-start-card {
