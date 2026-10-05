@@ -101,7 +101,11 @@ export type UiToMain =
    *  persists the size to `clientStorage`. Splitting it this way keeps the drag smooth without
    *  writing to storage on every pointer-move. The main thread clamps — the UI does not decide
    *  the minimum. */
-  | { type: 'resize-ui'; width: number; height: number; commit: boolean };
+  | { type: 'resize-ui'; width: number; height: number; commit: boolean }
+  /** The person chose a chrome theme in the Theme menu (the owner's top-bar decision, 2026-10-05): Match Figma
+   *  (`figma`), Light or Dark. The main thread keeps it in `clientStorage`, per person, and sends it back on
+   *  `ui-ready` as `theme-pref`. */
+  | { type: 'set-theme-pref'; pref: 'figma' | 'light' | 'dark' };
 
 /** A style-guide specimen (#259) — the `type` axis of `_style-guide-swatches` a table row instances. */
 export type SwatchType = 'default' | 'text' | 'icon' | 'border' | 'transparency';
@@ -278,6 +282,10 @@ export type MainToUi =
    *  after every command, so the panel's control always shows what the link is doing. The shared UI body
    *  never reads it — the agent-link control (`agent-link-ui.ts`) is its only consumer. */
   | { type: 'agent-link-state'; state: AgentLinkState }
+  /** The chrome theme this person last chose (`set-theme-pref`), read from `clientStorage` on `ui-ready`. Not sent
+   *  when nothing was kept: the UI starts on Match Figma. Read by the plugin's UI entry (`ui/entry.ts`), never by the
+   *  shared UI body's host messages. */
+  | { type: 'theme-pref'; pref: 'figma' | 'light' | 'dark' }
   /** The result of an `agent-command` — the protocol's own envelope, relayed to the bridge unchanged. */
   | { type: 'agent-result'; result: AgentResult }
   /** A build's progress reading while an agent command runs, streamed to the bridge (#684's reading). */

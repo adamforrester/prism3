@@ -2834,9 +2834,10 @@ const pinLight = <E extends HTMLElement>(n: E): E => { n.dataset.theme = 'light'
 const renderPagesMenu = (): HTMLElement | null => {
   if (!railNav().length) { navMenuOpen = false; return null; }
   const nWrap = el('div', 'barmenu-wrap');
-  const nav = hook(el('button', 'p3-btn p3-btn-collapse') as HTMLButtonElement, 'pages-menu');
+  // A white button with ▾ at every width (the owner's top-bar decision, 2026-10-05): at 380 it starts the second row.
+  const nav = hook(el('button', 'p3-btn') as HTMLButtonElement, 'pages-menu');
   nav.type = 'button';
-  nav.append(glyph('pages'), el('span', 'p3-btn-label', 'Pages'), glyph('chev'));
+  nav.append(el('span', 'p3-btn-label', 'Pages'), glyph('chev'));
   nav.setAttribute('aria-label', 'Pages');
   nav.setAttribute('aria-expanded', String(navMenuOpen));
   nav.onclick = (e) => {

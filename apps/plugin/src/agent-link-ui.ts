@@ -28,6 +28,7 @@ import type { AgentLinkState } from './agent-protocol';
 import { createBridgeRelay } from './agent-bridge-relay';
 import type { WsLike } from './agent-bridge-relay';
 import { glyph, h, hook } from '../../studio/src/shell/dom';
+import { setAgentLinkOn } from '../../studio/src/shell/activity';
 
 /** The frame's stable slot for the chip, by its hook. */
 const SLOT = '[data-p3="bar-agent"]';
@@ -101,6 +102,8 @@ export const mountAgentLink = (): void => {
     toggle.dataset.on = String(on);
     toggleText.textContent = on ? 'On' : 'Off';
     status.textContent = agentLinkStatusText(state);
+    // Activity's name and tooltip say "agent link on" while it is (the owner's top-bar decision, 2026-10-05).
+    setAgentLinkOn(on);
   };
 
   const isOpen = (): boolean => pop.isConnected;

@@ -438,7 +438,7 @@ const BAR = ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="act
 /** The plugin's own top-bar controls (S1.4): the Pages menu (the plugin keeps it for the Style guide until S11.2; the web
  *  draws none since S8.2, owner decision G19 A, which section 26 holds), the Agent chip (IA-3), the Figma menu, and Apply
  *  Theme. */
-const FIGMA_BAR = ['[data-p3="pages-menu"]', '[data-p3="agent-chip"]', '[data-p3="figma-open"]', '[data-p3="apply-to-figma"]'];
+const FIGMA_BAR = ['[data-p3="pages-menu"]', '[data-p3="agent-chip"]', '[data-p3="theme-toggle"]', '[data-p3="figma-open"]', '[data-p3="apply-to-figma"]'];
 const EXPECT_CONTROLS = {
   'web wide': [...BAR, '[data-p3="theme-toggle"]', ...TABS, ...COLOR_SUBS],
   'web narrow': [...BAR, '[data-p3="theme-toggle"]', '[data-p3="tab-select"]', ...COLOR_SUBS],
@@ -516,8 +516,8 @@ const FLOORS = {
 const FOCUS_STOPS = {
   'web wide': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="theme-toggle"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="tab-color"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
   'web narrow': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="theme-toggle"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
-  'figma wide': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="agent-chip"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="figma-open"]', '[data-p3="apply-to-figma"]', '[data-p3="tab-color"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
-  'figma narrow': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="agent-chip"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="figma-open"]', '[data-p3="apply-to-figma"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
+  'figma wide': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="agent-chip"]', '[data-p3="theme-toggle"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="figma-open"]', '[data-p3="apply-to-figma"]', '[data-p3="tab-color"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
+  'figma narrow': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="agent-chip"]', '[data-p3="theme-toggle"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="figma-open"]', '[data-p3="apply-to-figma"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
 };
 const PLACE_FLOOR = { text: 9, edges: 10, glyphs: 3, controls: 12, fonts: 9 };
 /** Inspect at 380: the tab row is a select and the bar is glyphs, so fewer chrome words are drawn. */
@@ -975,9 +975,10 @@ for (const host of ['web', 'figma']) {
       ok(m.theme === (host === 'web' ? 'system' : theme), `${where}: <html data-theme> is "${m.theme}"`);
       check(m, where, column);
       report(m, where);
-      // The product mark (owner, 2026-10-04): the studio's bar starts with the logo and "Prism3 Studio", ahead of
-      // the brand switcher; narrow keeps the logo and drops the name, which the mark's accessible name keeps. The
-      // plugin's bar has none (Figma's title bar names the plugin). Expected values are the literals here.
+      // The product mark (owner, 2026-10-04; on the plugin too since the owner's top-bar decision of 2026-10-05): the
+      // bar starts with the logo and "Prism3 Studio", ahead of the brand switcher; narrow keeps the logo and drops the
+      // name, which the mark's accessible name keeps. The bar's controls place it first (`bar-main`'s first child).
+      // Expected values are the literals here.
       const mk = await page.evaluate(() => {
         const bar = document.querySelector('[data-p3="top-bar"]');
         const marks = [...document.querySelectorAll('[data-p3="product-mark"]')];
@@ -988,7 +989,7 @@ for (const host of ['web', 'figma']) {
         const name = mark?.querySelector('.p3-mark-name') ?? null;
         const logo = mark?.querySelector('.logo') ?? null;
         return {
-          bar: !!bar, n: marks.length, first: !!mark && bar?.firstElementChild === mark,
+          bar: !!bar, n: marks.length, first: !!mark && bar?.querySelector('[data-p3="bar-main"]')?.firstElementChild === mark,
           inBar: !!mark && !!bar?.contains(mark),
           mark: mark ? box(mark) : null, switcher: sw ? box(sw) : null,
           text: (name?.textContent ?? '').trim(), label: mark?.getAttribute('aria-label') ?? null, role: mark?.getAttribute('role') ?? null,
@@ -996,9 +997,9 @@ for (const host of ['web', 'figma']) {
           control: !!mark && (mark.matches('button, a[href], [tabindex]') || !!mark.querySelector('button, a[href], [tabindex]')),
         };
       });
-      if (host === 'web') {
+      {
         const ahead = !!mk.mark && !!mk.switcher && (mk.mark.bottom <= mk.switcher.top + 0.5 || mk.mark.right <= mk.switcher.left + 0.5);
-        ok(mk.n === 1 && mk.inBar, `product mark ${where}: the studio's top bar draws the product mark once (${mk.n} found${mk.inBar ? '' : ', none in the top bar'})`);
+        ok(mk.n === 1 && mk.inBar, `product mark ${where}: the top bar draws the product mark once (${mk.n} found${mk.inBar ? '' : ', none in the top bar'})`);
         ok(mk.first && ahead, `product mark ${where}: the mark is first in the top bar, ahead of the brand switcher (${JSON.stringify({ first: mk.first, mark: mk.mark, switcher: mk.switcher })})`);
         ok(mk.text === 'Prism3 Studio' && mk.label === 'Prism3 Studio' && mk.role === 'img', `product mark ${where}: the mark reads "Prism3 Studio", as text and as its accessible name (${JSON.stringify({ text: mk.text, label: mk.label, role: mk.role })})`);
         ok(mk.logoShown && mk.logoHidden && !mk.control, `product mark ${where}: the logo is drawn and hidden from assistive tech, and the mark is not a control (${JSON.stringify({ logo: mk.logoShown, hidden: mk.logoHidden, control: mk.control })})`);
@@ -1008,8 +1009,6 @@ for (const host of ['web', 'figma']) {
           const t = m.text.find((x) => x.el.startsWith('span.p3-mark-name'));
           ok(!!t && t.r >= TEXT_MIN, `product mark ${where}: "Prism3 Studio" is measured on the top bar at ${TEXT_MIN}:1 (${t ? `${t.r}:1` : 'not measured'})`);
         }
-      } else {
-        hooks.absent(ok, { seen: mk.bar, state: 'the plugin\'s top bar' }, mk.n === 0, `product mark ${where}: the plugin's top bar draws no product mark (${mk.n} found)`);
       }
       for (const t of m.text) lows.text = Math.min(lows.text, t.r);
       for (const e of m.edges) lows.edge = Math.min(lows.edge, e.r);
@@ -1198,8 +1197,10 @@ console.log(`\nBehavior\n${'='.repeat(78)}`);
   const bar = await page.evaluate(() => getComputedStyle(document.querySelector('[data-p3="top-bar"]')).backgroundColor);
   ok(before === 'light', `the plugin starts on Figma's light theme (data-theme "${before}")`);
   ok(bar !== 'rgb(233, 233, 233)', `the plugin follows Figma to dark live: the top bar repaints (${bar})`);
-  const toggles = await page.locator('[data-p3="theme-toggle"]').count();
-  hooks.absent(ok, { seen: await page.locator('[data-p3="top-bar"]').count() === 1, state: 'the plugin\'s top bar' }, toggles === 0, 'the plugin offers no theme toggle (it follows Figma)');
+  // Since the owner's top-bar decision (2026-10-05) the plugin offers a Theme menu too, on Match Figma by default,
+  // which is what the live follow above shows; §27b holds its choices.
+  const toggle = await page.evaluate(() => document.querySelector('[data-p3="theme-toggle"]')?.getAttribute('aria-label') ?? null);
+  ok(toggle === 'Theme: Match Figma', `the plugin's Theme menu starts on Match Figma ("${toggle}")`);
   await ctx.close();
 }
 
@@ -1409,9 +1410,10 @@ for (const host of ['web', 'figma']) {
     for (const { w, h } of WIDTHS) {
       const where = `${host} ${theme} ${w}`;
       const { ctx, page, errors } = await open({ host, theme, w, h });
-      const name = await page.evaluate(() => ({ text: document.querySelector('[data-p3="verdict"]')?.textContent, label: document.querySelector('[data-p3="verdict"]')?.getAttribute('aria-label') }));
+      // Since the owner's "A · Menu bar" (2026-10-05) the bar shows "Contrast" and the line is the tooltip's.
+      const name = await page.evaluate(() => ({ text: document.querySelector('[data-p3="verdict-tip"]')?.textContent, label: document.querySelector('[data-p3="verdict"]')?.getAttribute('aria-label') }));
       ok(name.label === `Verdict: ${VERDICT_LINE}. Open Inspect, Contrast`, `${where}: the verdict is named "Verdict: ${VERDICT_LINE}. Open Inspect, Contrast" — named "${name.label}"`);
-      if (w > 560) ok(name.text === VERDICT_LINE, `${where}: the verdict reads "${VERDICT_LINE}" — reads "${name.text}"`);
+      ok(name.text === VERDICT_LINE, `${where}: the verdict's tooltip reads "${VERDICT_LINE}" — reads "${name.text}"`);
       // Scroll the page first, so "closes back to it" includes where it was: the window for a legacy page, the
       // preview body for a moved one (its frame is fixed; at 380 the preview pane is shown first).
       if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
@@ -1711,7 +1713,7 @@ for (const host of ['web', 'figma']) {
           const a = await drawerState(page);
           ok(a.shown && a.open && a.body && a.expanded === 'true' && a.note === DRAWER_NOTE.web, `F2 ${where}: Activity shows the drawer with "${DRAWER_NOTE.web}" (${JSON.stringify({ open: a.open, note: a.note })})`);
           const m = await measure(page, `${where} / Activity open`, host, w);
-          check(m, `${where} / Activity open`, columnOf(host, w), narrow ? { ...INSPECT_NARROW_FLOOR, text: 3, fonts: 3, controls: 5 } : PLACE_FLOOR, narrow
+          check(m, `${where} / Activity open`, columnOf(host, w), narrow ? { ...INSPECT_NARROW_FLOOR, text: 3, fonts: 3, controls: 5, edges: 6 } : PLACE_FLOOR, narrow
             ? { state: 'sheet', only: ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="activity-open"]', '[data-p3="theme-toggle"]', '[data-p3="activity-toggle"]'] }
             : { extra: ['[data-p3="activity-toggle"]'] });
           if (narrow) ok(a.sheet, `F2 ${where}: at 380 Activity opens the full-pane sheet under the top row (sheet ${a.sheet})`);
@@ -2804,7 +2806,7 @@ for (const host of ['web', 'figma']) {
   await hooks.click(page.locator('[data-p3="mode-off-confirm-go"]'));
   await page.waitForFunction(() => document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]').length === 2);
   const hcd = await checkState(page, '[data-p3="mode-on-hc-dark"]');
-  const verdictNow = await page.evaluate(() => document.querySelector('[data-p3="verdict"]')?.textContent);
+  const verdictNow = await page.evaluate(() => document.querySelector('[data-p3="verdict-tip"]')?.textContent);
   ok(JSON.stringify(await modeRadios(page)) === '["light","hc-light"]' && verdictNow === 'All 442 pairs at or above floor', `Q3: confirming turns off dark and high contrast dark (modes ${await modeRadios(page)}, verdict "${verdictNow}")`);
   ok(hcd?.checked === 'false' && hcd.locked && hcd.note === 'Off while dark is off: it follows dark.', `Q3: high contrast dark stays off and locked while dark is off, and says why (${JSON.stringify(hcd)})`);
   // A locked check keeps its focus stop (aria-disabled), so it is activated the way a keyboard user would:
@@ -7062,10 +7064,13 @@ for (const { w, h } of WIDTHS) {
 //   · KEYBOARD ACCESS to the brand menu: Enter on the switcher opens it with focus on the current example; Arrow
 //     Down, End and Home move between its items; Escape closes it back to the switcher. Escape closes the export
 //     dialog back to Export.
-//   · THE BAR'S RIGHT END (the owner's S13.1 review): on the web the theme toggle precedes Activity and Export, so
-//     Export is the last control and, at 1280 and 380, ends at the page content's right edge within 1px (the plugin's
-//     last control, after Export, is held to the same edge); Export and Activity each draw their glyph at every width,
-//     aria-hidden, and keep their names. 640 is not held to the edge: there the web's bar takes two rows.
+//   · THE BAR (the owner's "A · Menu bar" decision, 2026-10-05), as rendered, on both hosts, both themes, every width:
+//     the DOM order per host; no divider (no separator element, no edge on a non-control, no thin filled bar); the
+//     brand switcher, Pages and Figma as white buttons with ▾; Contrast, Theme, Activity and Export as borderless tiles,
+//     their label shown above the narrow tier and dropped at it, their names unchanged, their tooltip drawn on hover;
+//     Apply Theme the only filled control (none on the web); the web at 640 on one row; the plugin at 380 on two rows,
+//     the file's actions on the second; and, at 1280 and 380, the top row's last control at the page content's right
+//     edge within 1px (on the web, Export). 27b holds Contrast's mark per verdict and the plugin's Theme choice.
 // =============================================================================================
 console.log('\n27. S13.1: the brand menu, Export and the error strip in the chrome');
 const S131_REFUSED = { root: 'rf', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true },
@@ -7094,30 +7099,66 @@ const STRIP_PROBE = () => {
     fullWidth: Math.abs(r.left - frame.left) <= 1 && Math.abs(r.right - frame.right) <= 1, underBar: Math.abs(r.top - bar.bottom) <= 1,
     rect: [Math.round(r.left), Math.round(r.top), Math.round(r.right)], barBottom: Math.round(bar.bottom) };
 };
-/** The bar's right end, read as rendered: the DOM order of the theme toggle (web), Activity and Export; whether each of
- *  Export and Activity draws its leading glyph, aria-hidden, under its unchanged name; and the right edge of the bar's
- *  last visible control on its top row against the page content's right edge, which is the content box of the row
- *  under the bar: the preview header's at the wide tier, the tab row's at the narrow one. */
-const BAR_END_PROBE = () => {
-  const q = (s) => document.querySelector(`[data-p3="${s}"]`);
+/** The bar, read as rendered (the owner's "A · Menu bar", 2026-10-05). Colors are compared by resolving the chrome's
+ *  own variables on a probe node, removed before anything else is read. */
+const BAR_PROBE = () => {
+  const bar = document.querySelector('[data-p3="top-bar"]');
+  const q = (s) => bar.querySelector(`[data-p3="${s}"]`);
+  const probe = document.createElement('span');
+  bar.append(probe);
+  const resolve = (v) => { probe.style.backgroundColor = `var(${v})`; return getComputedStyle(probe).backgroundColor; };
+  const page = resolve('--p3-bg-page');
+  probe.remove();
+  const alpha = (c) => { const m = /rgba?\(([^)]+)\)/.exec(c ?? ''); if (!m) return 1; const p = m[1].split(/[,\s/]+/).filter(Boolean); return p.length > 3 ? Number(p[3]) : 1; };
+  const shown = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).visibility !== 'hidden'; };
   const all = [...document.querySelectorAll('*')];
-  const order = [...(q('theme-toggle') ? ['theme-toggle'] : []), 'activity-open', 'export-open'].map((hook) => ({ hook, at: all.indexOf(q(hook)) }));
-  const glyphs = [['export-open', 'Export'], ['activity-open', 'Activity']].map(([hook, want]) => {
-    const b = q(hook), g = b?.querySelector(':scope > svg.p3-ico');
-    const r = g?.getBoundingClientRect();
-    return { hook, want, shown: !!g && getComputedStyle(g).display !== 'none' && r.width > 0 && r.height > 0, hidden: g?.getAttribute('aria-hidden') ?? null, name: b?.getAttribute('aria-label') ?? null };
+  const HOOKS = ['product-mark', 'brand-switcher', 'verdict', 'agent-chip', 'theme-toggle', 'activity-open', 'export-open', 'pages-menu', 'figma-open', 'apply-to-figma'];
+  const order = HOOKS.filter((k) => q(k)).sort((a, b) => all.indexOf(q(a)) - all.indexOf(q(b)));
+  // Dividers: a separator element, an edge on anything that is not a control, or a thin filled bar.
+  const inside = (n) => n.closest('button, select, [role="menu"], .p3-menu, [role="dialog"], .p3-scrim, .p3-tile-tip, .p3-seg');
+  const dividers = [];
+  for (const n of bar.querySelectorAll('*')) {
+    if (!shown(n)) continue;
+    if (n.matches('hr, [role="separator"]')) { dividers.push(`${n.tagName.toLowerCase()} separator`); continue; }
+    if (inside(n) || n.matches('svg *')) continue;
+    const cs = getComputedStyle(n), r = n.getBoundingClientRect();
+    for (const side of ['Left', 'Right', 'Top', 'Bottom']) {
+      if (parseFloat(cs[`border${side}Width`]) > 0 && cs[`border${side}Style`] !== 'none' && alpha(cs[`border${side}Color`]) > 0) dividers.push(`${n.getAttribute('data-p3') ?? n.className} border-${side.toLowerCase()}`);
+    }
+    if (((r.width <= 2 && r.height >= 8) || (r.height <= 2 && r.width >= 8)) && alpha(cs.backgroundColor) > 0) dividers.push(`${n.getAttribute('data-p3') ?? n.className} a ${Math.round(r.width)}×${Math.round(r.height)} bar`);
+  }
+  const chev = (b) => { const g = [...b.querySelectorAll('svg.p3-ico')].filter(shown).at(-1); return !!g && /M4 6l4 4 4-4/.test(g.innerHTML); };
+  const white = ['brand-switcher', 'pages-menu', 'figma-open'].filter((k) => q(k)).map((k) => {
+    const b = q(k), cs = getComputedStyle(b);
+    return { k, bg: cs.backgroundColor === page, edge: parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle === 'solid' && alpha(cs.borderTopColor) > 0, chev: chev(b) };
   });
-  const bar = q('top-bar');
-  const vis = [...bar.querySelectorAll('button, select')].filter((n) => { const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).visibility !== 'hidden'; });
+  const tiles = ['verdict', 'theme-toggle', 'activity-open', 'export-open'].filter((k) => q(k)).map((k) => {
+    const b = q(k), cs = getComputedStyle(b), lab = b.querySelector('.p3-tile-label'), tip = b.querySelector('.p3-tile-tip'), g = b.querySelector('.p3-tile-mark svg.p3-ico');
+    return { k, borderless: ['Top', 'Right', 'Bottom', 'Left'].every((sd) => parseFloat(cs[`border${sd}Width`]) === 0 || alpha(cs[`border${sd}Color`]) === 0), clear: alpha(cs.backgroundColor) === 0,
+      glyph: shown(g) && g.getAttribute('aria-hidden') === 'true', label: shown(lab) ? lab.textContent : null, labelHidden: lab?.getAttribute('aria-hidden') === 'true',
+      name: b.getAttribute('aria-label'), tip: tip?.textContent ?? null, tipHidden: tip?.getAttribute('aria-hidden') === 'true' };
+  });
+  const buttons = [...bar.querySelectorAll('button')].filter((b) => shown(b) && !inside(b.parentElement ?? b));
+  const filled = buttons.filter((b) => { const c = getComputedStyle(b).backgroundColor; return alpha(c) > 0 && c !== page; }).map((b) => b.getAttribute('data-p3') ?? b.className);
+  const ctl = (k) => (k === 'product-mark' ? q(k) : q(k)?.closest('button') ?? q(k));
+  const rowsOf = HOOKS.filter((k) => shown(q(k))).map((k) => ({ k, top: Math.round(ctl(k).getBoundingClientRect().top), mid: Math.round((ctl(k).getBoundingClientRect().top + ctl(k).getBoundingClientRect().bottom) / 2) }));
+  const firstMid = Math.min(...rowsOf.map((x) => x.mid));
+  const row1 = rowsOf.filter((x) => x.mid < firstMid + 8).map((x) => x.k);
+  const row2 = rowsOf.filter((x) => x.mid >= firstMid + 8).map((x) => x.k);
+  const vis = buttons.filter((b) => !b.closest('[data-p3="pane-toggle"]'));
   const top = Math.min(...vis.map((n) => n.getBoundingClientRect().top));
-  const row = vis.filter((n) => n.getBoundingClientRect().top < top + 4).sort((a, b) => a.getBoundingClientRect().right - b.getBoundingClientRect().right);
-  const last = row.at(-1);
-  const narrow = q('frame').dataset.w === 'narrow';
-  const ref = narrow ? q('tab-row') : document.querySelector('.p3-preview-head');
+  const last = vis.filter((n) => n.getBoundingClientRect().top < top + 8).sort((a, b) => a.getBoundingClientRect().right - b.getBoundingClientRect().right).at(-1);
+  const narrow = document.querySelector('[data-p3="frame"]').dataset.w === 'narrow';
+  const ref = narrow ? document.querySelector('[data-p3="tab-row"]') : document.querySelector('.p3-preview-head');
   const rr = ref.getBoundingClientRect();
-  return { order, glyphs, last: last?.getAttribute('data-p3') ?? last?.className ?? null, lastRight: Math.round((last?.getBoundingClientRect().right ?? -99) * 10) / 10,
+  return { order, dividers, white, tiles, filled, row1, row2, last: last?.getAttribute('data-p3') ?? null, lastRight: Math.round((last?.getBoundingClientRect().right ?? -99) * 10) / 10,
     contentRight: Math.round((rr.right - parseFloat(getComputedStyle(ref).paddingRight)) * 10) / 10, contentFrom: narrow ? 'the tab row' : 'the preview header' };
 };
+const BAR_ORDER = {
+  web: ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'activity-open', 'export-open'],
+  figma: ['product-mark', 'brand-switcher', 'verdict', 'agent-chip', 'theme-toggle', 'activity-open', 'export-open', 'pages-menu', 'figma-open', 'apply-to-figma'],
+};
+const TILE_LABEL = { verdict: 'Contrast', 'theme-toggle': 'Theme', 'activity-open': 'Activity', 'export-open': 'Export' };
 for (const { w, h } of WIDTHS) {
   for (const host of ['web', 'figma']) {
     for (const theme of ['light', 'dark']) {
@@ -7126,21 +7167,36 @@ for (const { w, h } of WIDTHS) {
       const column = columnOf(host, w);
       const { ctx, page, errors } = await open({ host, theme, w, h, query: '?p3-test-hooks' });
       try {
-        // ── the bar's right end, and Export's and Activity's glyphs (the owner's S13.1 review) ──
-        const be = await page.evaluate(BAR_END_PROBE);
-        ok(be.order.every((x) => x.at >= 0) && be.order.every((x, i) => i === 0 || x.at > be.order[i - 1].at),
-          `${where}: bar order: ${host === 'web' ? 'the theme toggle precedes Activity, which precedes Export' : 'Activity precedes Export'} (${be.order.map((x) => `${x.hook}@${x.at}`).join(', ')})`);
-        for (const g of be.glyphs) {
-          ok(g.shown && g.hidden === 'true' && g.name === g.want,
-            `${where}: ${g.hook} carries its glyph, drawn (${g.shown}) and hidden from assistive technology (aria-hidden ${g.hidden}), and its name stays "${g.want}" ("${g.name}")`);
+        // ── the bar (the owner's "A · Menu bar", 2026-10-05) ──
+        const bp = await page.evaluate(BAR_PROBE);
+        ok(JSON.stringify(bp.order) === JSON.stringify(BAR_ORDER[host]), `${where}: bar order: ${BAR_ORDER[host].join(', ')} (${bp.order.join(', ')})`);
+        ok(bp.dividers.length === 0, `${where}: bar dividers: none between the bar's items (${bp.dividers.join(' | ') || 'none'})`);
+        for (const x of bp.white) ok(x.bg && x.edge && x.chev, `${where}: bar menus: ${x.k} is a white button with an edge and ▾ (white ${x.bg}, edge ${x.edge}, ▾ ${x.chev})`);
+        ok(bp.white.length === (host === 'web' ? 1 : 3), `${where}: bar menus: ${host === 'web' ? 'the brand switcher' : 'the brand switcher, Pages and Figma'} measured (${bp.white.map((x) => x.k).join(', ')})`);
+        ok(bp.tiles.length === 4, `${where}: bar tiles: Contrast, Theme, Activity and Export all measured (${bp.tiles.map((x) => x.k).join(', ')})`);
+        for (const t of bp.tiles) {
+          const want = TILE_LABEL[t.k];
+          const nameOk = t.k === 'export-open' ? t.name === 'Export' : t.k === 'activity-open' ? /^Activity(, |$)/.test(t.name ?? '') : t.k === 'theme-toggle' ? /^Theme: /.test(t.name ?? '') : /^Verdict: .+\. Open Inspect, Contrast$/.test(t.name ?? '');
+          const tipOk = t.k === 'verdict' ? t.name === `Verdict: ${t.tip}. Open Inspect, Contrast` : t.tip === t.name;
+          ok(t.borderless && t.clear && t.glyph && (narrow ? t.label === null : t.label === want) && t.labelHidden && nameOk && tipOk && t.tipHidden,
+            `${where}: bar tiles: ${t.k} is borderless (${t.borderless && t.clear}) with its glyph (${t.glyph}), ${narrow ? 'its label dropped' : `labelled "${want}"`} ("${t.label}"), named "${t.name}", its tooltip "${t.tip}"`);
+        }
+        ok(JSON.stringify(bp.filled) === JSON.stringify(host === 'web' ? [] : ['apply-to-figma']), `${where}: bar fill: ${host === 'web' ? 'no control' : 'Apply Theme alone'} is filled (${bp.filled.join(', ') || 'none'})`);
+        if (host === 'web' && w === 640) ok(bp.row2.length === 0, `${where}: bar rows: the web's bar is one row at 640 (second row: ${bp.row2.join(', ') || 'none'})`);
+        if (host === 'figma' && narrow) {
+          ok(JSON.stringify(bp.row1) === JSON.stringify(BAR_ORDER.figma.slice(0, 7)) && JSON.stringify(bp.row2) === JSON.stringify(['pages-menu', 'figma-open', 'apply-to-figma']),
+            `${where}: bar rows: the plugin at 380 keeps the mark, the brand, Contrast, the Agent chip, Theme, Activity and Export on the first row and Pages, Figma and Apply Theme on the second (${bp.row1.join(', ')} / ${bp.row2.join(', ')})`);
         }
         if (w !== 640) {
-          // 1280 and 380: the bar's last control on its top row ends where the page content does, within 1px. On the web
-          // that control is Export. The plugin's bar goes on after Export (Pages, the Figma menu, Apply Theme), so there
-          // the last control is held to the edge and named.
-          ok(Math.abs(be.lastRight - be.contentRight) <= 1 && (host !== 'web' || be.last === 'export-open'),
-            `${where}: bar alignment: the bar's last control on its top row (${be.last}) ends at the page content's right edge (${be.lastRight} vs ${be.contentRight}, ${be.contentFrom})${host === 'web' ? ', and it is Export' : ''}`);
+          ok(Math.abs(bp.lastRight - bp.contentRight) <= 1 && (host !== 'web' || bp.last === 'export-open'),
+            `${where}: bar alignment: the bar's last control on its top row (${bp.last}) ends at the page content's right edge (${bp.lastRight} vs ${bp.contentRight}, ${bp.contentFrom})${host === 'web' ? ', and it is Export' : ''}`);
         }
+        // The tooltip, on hover: drawn under its tile, inside the window.
+        await page.locator('[data-p3="verdict"]').hover();
+        const tp = await page.evaluate(() => { const t = document.querySelector('[data-p3="verdict-tip"]'); const r = t.getBoundingClientRect(); const b = document.querySelector('[data-p3="verdict"]').getBoundingClientRect();
+          return { shown: getComputedStyle(t).display !== 'none' && r.width > 0, r: [Math.round(r.left), Math.round(r.top), Math.round(r.right)], under: r.top >= b.bottom - 1, vw: innerWidth }; });
+        ok(tp.shown && tp.under && tp.r[0] >= 0 && tp.r[2] <= tp.vw, `${where}: Contrast's tooltip shows on hover, under it and inside the window (${JSON.stringify(tp)})`);
+        await page.mouse.move(0, h - 1);
         // ── the brand menu, the import box open ──
         await hooks.click(page.locator('[data-p3="brand-switcher"]'));
         await hooks.need(page, '[data-p3="brand-menu"]');
@@ -7209,6 +7265,86 @@ for (const { w, h } of WIDTHS) {
         }
         if (SHOTS) await page.screenshot({ path: join(SHOTS, `s131-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-strip.png`) });
 
+        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      } finally { await ctx.close(); }
+    }
+  }
+}
+
+// =============================================================================================
+// 27b. The owner's "A · Menu bar" (2026-10-05), two behaviors held directly, both hosts, both themes:
+//   · CONTRAST'S MARK FOLLOWS THE VERDICT: a check and no count while every pair passes; a warning glyph and the
+//     count below floor once an edit puts pairs below it. The web's edit is test-verdict-count.ts's two-mode
+//     fixture, whose count is derived by hand there: 2 of 884, 2 modes. The plugin's is a restore of a one-mode
+//     brand with the same Light override; its count is read from its own line.
+//   · THE PLUGIN'S THEME MENU: Match Figma, Light and Dark, in that order, Match Figma checked by default and the
+//     chrome on Figma's theme; a choice applies, is posted to the main thread as `set-theme-pref`, and, after a
+//     reload, comes back (the main thread's `theme-pref` reply, which `apps/plugin/test-theme-pref.ts` holds) as the
+//     checked choice and the chrome's theme.
+// =============================================================================================
+console.log('\n27b. The menu bar: Contrast per verdict, the plugin Theme menu');
+const LOW_FIXTURE = {
+  light: { 'text.secondary': { palette: 'neutral', step: '100' }, 'icon.secondary': { palette: 'neutral', step: '550' } },
+  dark: { 'text.secondary': { palette: 'neutral', step: '900' }, 'icon.secondary': { palette: 'neutral', step: '450' } },
+};
+const LOW_BRAND = { root: 'lo', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true },
+  id: 'low-brand', overrides: { light: LOW_FIXTURE.light } };
+const CONTRAST_PROBE = () => {
+  const b = document.querySelector('[data-p3="verdict"]');
+  const g = b.querySelector('.p3-tile-mark svg.p3-ico');
+  return { state: b.dataset.state, check: !!g && /M3 8\.5l3 3 7-7/.test(g.innerHTML) && g.classList.contains('p3-tile-ok'),
+    warn: !!g && /M8 1\.8l6\.6 11\.7H1\.4z/.test(g.innerHTML) && g.classList.contains('p3-tile-bad'),
+    count: b.querySelector('[data-p3="verdict-count"]')?.textContent ?? null, tip: b.querySelector('[data-p3="verdict-tip"]')?.textContent ?? null, name: b.getAttribute('aria-label') };
+};
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    for (const { w, h } of [WIDTHS[0], WIDTHS[2]]) {
+      const where = `27b ${host} ${theme} ${w}`;
+      const { ctx, page, errors } = await open({ host, theme, w, h, query: '?p3-test-hooks' });
+      try {
+        const c0 = await page.evaluate(CONTRAST_PROBE);
+        ok(c0.state === 'ok' && c0.check && !c0.warn && c0.count === null && /^All \d+ pairs at or above floor$/.test(c0.tip ?? ''),
+          `${where}: Contrast: every pair passes, so its mark is the check with no count (${JSON.stringify(c0)})`);
+        if (host === 'web') await page.evaluate((o) => window.__prism3TestEdit('overrides', o), LOW_FIXTURE);
+        else await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), LOW_BRAND);
+        await page.waitForFunction(() => document.querySelector('[data-p3="verdict"]')?.dataset.state === 'fail', null, { timeout: 5000 }).catch(() => {});
+        const c1 = await page.evaluate(CONTRAST_PROBE);
+        const lead = /^(\d+) of \d+ below floor, \d+ modes?$/.exec(c1.tip ?? '');
+        ok(c1.state === 'fail' && c1.warn && !c1.check && (host === 'web' ? c1.tip === '2 of 884 below floor, 2 modes' && c1.count === '2' : !!lead && c1.count === lead[1]),
+          `${where}: Contrast: pairs below floor, so its mark is the warning glyph and the count below floor (${JSON.stringify(c1)})`);
+        ok(c1.name === `Verdict: ${c1.tip}. Open Inspect, Contrast`, `${where}: Contrast keeps its name, the full line ("${c1.name}")`);
+
+        if (host === 'figma' && w === WIDTHS[0].w) {
+          const menuState = () => page.evaluate(() => ({
+            items: [...document.querySelectorAll('[data-p3="theme-menu"] [role="menuitemradio"]')].map((i) => [i.querySelector('.p3-menu-label')?.textContent, i.getAttribute('aria-checked')]),
+            data: document.documentElement.dataset.theme, name: document.querySelector('[data-p3="theme-toggle"]')?.getAttribute('aria-label') }));
+          await hooks.click(page.locator('[data-p3="theme-toggle"]'));
+          await hooks.need(page, '[data-p3="theme-menu"]');
+          const m0 = await menuState();
+          ok(JSON.stringify(m0.items) === JSON.stringify([['Match Figma', 'true'], ['Light', 'false'], ['Dark', 'false']]) && m0.data === theme && m0.name === 'Theme: Match Figma',
+            `${where}: plugin Theme: Match Figma, Light and Dark, Match Figma checked by default and the chrome on Figma's ${theme} theme (${JSON.stringify(m0)})`);
+          const other = theme === 'light' ? 'dark' : 'light';
+          await page.evaluate(() => { window.__themePosts = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'set-theme-pref') window.__themePosts.push(m.pref); }); });
+          await hooks.click(page.locator(other === 'dark' ? '[data-p3="theme-option-dark"]' : '[data-p3="theme-option-light"]'));
+          const posted = await page.evaluate(() => new Promise((r) => setTimeout(() => r(window.__themePosts.slice()), 50)));
+          const m1 = await menuState();
+          ok(m1.data === other && m1.name === `Theme: ${other === 'dark' ? 'Dark' : 'Light'}` && JSON.stringify(posted) === JSON.stringify([other]),
+            `${where}: plugin Theme: choosing ${other} applies it and posts it to the main thread to keep (theme ${m1.data}, "${m1.name}", posted ${JSON.stringify(posted)})`);
+          // A reload: the main thread answers ui-ready with what it kept (its half: apps/plugin/test-theme-pref.ts).
+          await page.reload({ waitUntil: 'load' });
+          await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'restore-input-empty' } }, '*'));
+          await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: 'prism3' }));
+          await hooks.need(page, '[data-p3="theme-toggle"]');
+          await page.evaluate((p) => window.postMessage({ pluginMessage: { type: 'theme-pref', pref: p } }, '*'), posted[0]);
+          await page.waitForFunction((t) => document.documentElement.dataset.theme === t, other, { timeout: 3000 }).catch(() => {});
+          await hooks.click(page.locator('[data-p3="theme-toggle"]'));
+          const m2 = await menuState();
+          ok(m2.data === other && m2.items.find((x) => x[1] === 'true')?.[0] === (other === 'dark' ? 'Dark' : 'Light'),
+            `${where}: plugin Theme: after a reload the kept choice comes back, checked and applied (${JSON.stringify(m2)})`);
+          await page.keyboard.press('Escape');
+        }
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
         ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);

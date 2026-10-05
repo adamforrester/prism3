@@ -1,7 +1,9 @@
 /**
  * The top bar's controls (UI redesign S13.1, owner decisions G18 A and N-2 A): the brand switcher and its menu,
  * Export and its dialog, the plugin's Apply Theme and the prune review, placed among the shell's own controls (the
- * verdict, the Agent chip's slot, Activity and the Figma menu) in the order the bar has had since S1.4. Until S13.1
+ * mark, Contrast, the Agent chip's slot, Theme, Activity and the Figma menu), in the owner's "A · Menu bar" order
+ * (2026-10-05; see `paint`): white buttons with ▾ for the menus, borderless tiles with a small label for Contrast,
+ * Theme, Activity and Export (`dom.ts` `tile`), Apply Theme the one filled control, and no divider. Until S13.1
  * `main.ts`'s `renderBar` drew these into the frame's bar slot in the legacy stylesheet, pinned light; they are the
  * chrome's now, in both themes.
  *
@@ -26,7 +28,7 @@
  * focus is found again by its hook and its place among the controls with that hook, and focused again.
  */
 import { subscribe } from '../state/store';
-import { glyph, h, hook, pendingLabel, setBusy } from './dom';
+import { glyph, h, hook, pendingLabel, setBusy, tile } from './dom';
 import type { FigmaSource } from './figma';
 
 /** The brand menu's state, read from `main.ts` on every repaint. */
@@ -103,11 +105,13 @@ export type BarLend = {
 
 /** The shell's nodes the bar places, the same nodes every time. */
 export type BarPlaced = {
+  /** The product mark (the logo and "Prism3 Studio"), first on both hosts. */
+  readonly mark: HTMLElement;
   readonly verdict: HTMLElement;
   readonly activity: HTMLElement;
   readonly agent: HTMLElement | null;
   readonly figma: HTMLElement | null;
-  /** The theme toggle (web only, F3), placed before Activity and Export so Export ends the bar (owner, S13.1 review). */
+  /** The theme menu (F3; both hosts since 2026-10-05), placed before Activity and Export so Export ends the web's bar. */
   readonly theme: HTMLElement | null;
   /** The Figma menu's writes: the bar's Apply Theme is its `apply` item, the same label, state and function. */
   readonly figmaSource: FigmaSource | null;
@@ -148,12 +152,12 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     applyBtn.append(pendingLabel('Apply Theme', 'Applying…'));
     applyBtn.onclick = () => placed.figmaSource!().find((a) => a.id === 'apply')?.run();
   }
-  // Export: its download glyph and the word (owner, S13.1 review); at narrow widths the glyph alone, and the accessible
-  // name stays "Export". The glyph is decorative (`glyph()` sets aria-hidden).
+  // Export: a bar tile (the owner's top-bar decision, 2026-10-05), its download glyph over "Export", the glyph alone
+  // at narrow widths; the name and the tooltip stay "Export".
   const exportWrap = h('div', 'p3-popwrap');
-  const exp = hook(h('button', 'p3-btn p3-btn-collapse p3-btn-lead'), 'export-open');
-  exp.type = 'button';
-  exp.append(glyph('export'), h('span', 'p3-btn-label', 'Export'));
+  const { btn: exp, mark: expMark, tip: expTip } = tile('export-open', 'Export');
+  expMark.append(glyph('export'));
+  expTip.textContent = 'Export';
   exp.setAttribute('aria-label', 'Export');
   exp.setAttribute('aria-haspopup', 'dialog');
   exp.onclick = (e) => { e.stopPropagation(); act.toggleExport(); };
@@ -187,12 +191,16 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     }
     exp.setAttribute('aria-expanded', String(v.exportOpen));
 
-    // The bar's order: the brand switcher, the verdict, a spacer, the Agent chip's slot (plugin), the theme toggle
-    // (web), Activity, Export, the Pages menu (plugin), the Figma menu (plugin), Apply Theme (plugin). Since the owner's
-    // S13.1 review the theme toggle sits before Activity, so on the web Export is last and its right edge is the page
-    // content's. The shell's nodes are placed, never re-minted, so one that holds focus keeps it.
+    // The bar's order (the owner's top-bar decision, 2026-10-05, "A · Menu bar"): the mark, the brand switcher,
+    // Contrast, a spacer, the Agent chip's slot (plugin, held where it was), Theme, Activity, Export, then on the
+    // plugin the Pages menu, the Figma menu and Apply Theme. On the web Export is the last control, and its right edge
+    // is the page content's. At the narrow tier the plugin's file actions take a second row (`rowBreak`), Apply Theme
+    // on its right (`spacer2`); above it both draw nothing. The shell's nodes are placed, never re-minted, so one that
+    // holds focus keeps it.
     const pages = lend.pages ? lend.pages() : null;
-    const order: (HTMLElement | null)[] = [brandWrap, placed.verdict, spacer, placed.agent, placed.theme, placed.activity, exportWrap, pages, placed.figma, applyBtn, layer];
+    const fileRow = !!(pages || placed.figma || applyBtn);
+    const order: (HTMLElement | null)[] = [placed.mark, brandWrap, placed.verdict, spacer, placed.agent, placed.theme, placed.activity, exportWrap,
+      fileRow ? rowBreak : null, pages, placed.figma, fileRow ? spacer2 : null, applyBtn, layer];
     const want = order.filter((n): n is HTMLElement => !!n);
     if (want.length !== root.children.length || want.some((n, i) => root.children[i] !== n)) root.replaceChildren(...want);
 
@@ -212,6 +220,8 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     } else if (focused && document.activeElement !== focused) focused.focus({ preventScroll: true });
   };
   const spacer = h('span', 'p3-spacer');
+  const rowBreak = h('span', 'p3-bar-break');
+  const spacer2 = h('span', 'p3-bar-spacer2');
 
   // ── the brand menu ───────────────────────────────────────────────────────────────────────────────
   const brandMenu = (v: BarView): HTMLElement => {
