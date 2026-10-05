@@ -542,7 +542,7 @@
       "control": "list",
       "advanced": true,
       "itemLabel": "min-width (px)",
-      "description": "The screen width where each layout starts, smallest first. Studio keeps the first at 0px. Names follow the count: up to five start at sm, six run xs to 2xl, and seven run xs to 3xl. The default is 0, 768, 1024, 1440 and 1920."
+      "description": "The screen width where each layout starts, smallest first. The first is always 0px. Names follow the count: up to five start at sm, six run xs to 2xl, and seven run xs to 3xl. The default is 0, 768, 1024, 1440 and 1920."
     },
     {
       "key": "layout.columns",

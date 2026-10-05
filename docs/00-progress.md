@@ -7,6 +7,888 @@
 
 ---
 
+## (2026-10-05) — the breakpoint prose says the first is always 0, and validate_brand reports the engine's refusals (#2146 items 1 and 2)
+
+**STATUS: branch `engine/2146-breakpoint-prose-validate`.** `ENGINE_VERSION` → **0.229.0** (minor, a change note: `schema/lever-manifest.json` moves). No token, name or value moves; `CONTRACT_VERSION` unchanged. **Items 1 and 2 of #2146.** Item 3 (the studio's `namesFor` guard) is the UI lane's.
+
+### Item 2: the prose (owner decision Q26 a)
+
+- `levers.ts`, the `layout.breakpoints` description: "Studio keeps the first at 0px." becomes "The first is always 0px." Regen carries it into `schema/lever-manifest.json`, which is what owes the minor bump.
+- `schema/theme-schema.json`, the `breakpoints` description, gains "The first must be 0." That file is hand-authored, not a regen artifact.
+- `apps/studio/src/domains/layout.ts`, `breakpointsTip`, gets the same sentence. `test-lever-tips.ts` (#2106) requires a studio tooltip to equal its lever's description word for word, so the levers.ts change could not land alone. It's the same approved sentence, so this is mechanical fallout, not a studio decision.
+
+### Item 1: validate_brand
+
+MCP `validate_brand` ran the schema only, so it returned `{ valid: true }` for inputs `brandTheme` refuses: `layout.breakpoints: [320, 768]` (#2132), or an empty or reversed viewport range (#2068). `theme_brand` then refused them. It now also runs `brandTheme` on a **schema-valid** input, and reports what it throws, verbatim. A schema-invalid input is not handed to `brandTheme`. Measured: with that guard removed, `{ id: 'nope' }` gains `Cannot read properties of undefined (reading 'chroma')` among its errors.
+
+**Not covered:** refusals that only fire at resolve time, for example an override naming an unknown palette or step, which `resolveAllModes` throws. #2146 named `brandTheme`'s refusals.
+
+**Owed when #2137 lands:** an exact `validate_brand` arm for the empty-list refusal. That refusal isn't on `main` yet, so whichever of #2137 and this PR merges second adds the arm.
+
+### Tests, in `mcp-test.ts` over the wire
+
+53 → 59 passing.
+- `validate_brand` on `[320, 768]` returns exactly the #2132 sentence.
+- On 1280/375 it returns exactly the #2068 sentence.
+- A buildable brand is still valid with no errors.
+- A schema-invalid input reports schema errors only.
+- The lever description (from `list_levers`) and the schema description (from `list_levers describe: ['layout']`) carry the approved sentences.
+
+### Mutations, each failing by name
+
+- **Drop the `brandTheme` call:** both refusal arms fail (`got {"valid":true,"errors":[]}`).
+- **Restore the old lever sentence:** the lever-prose arm fails.
+- **Restore the old schema sentence:** the schema-prose arm fails.
+- **Run `brandTheme` on a schema-invalid input** (`if (true)`): the malformed-input arm fails, showing the `Cannot read properties…` error.
+
+---
+
+## (2026-10-05) — layout refuses an empty breakpoints list (#2137)
+
+**STATUS: branch `engine/2137-empty-breakpoints`.** `ENGINE_VERSION` → **0.229.0** (minor, a change note). No emitted artifact moves; `CONTRACT_VERSION` unchanged. **Fixes #2137** (engine side).
+
+### What changed
+
+`layout: { breakpoints: [] }` built a brand with no breakpoints at all, so no layout. #2132's first-breakpoint refusal skipped it on purpose (`floors.length > 0`), because its message names the first value and an empty list has none.
+
+`buildLayout` (`theme.ts`) now refuses an empty list **before** the first-breakpoint check, with the owner's approved wording (2026-10-05, Q22 a):
+
+> The brand needs at least one breakpoint, starting at 0px.
+
+With the empty case handled first, #2132's check no longer needs its `floors.length > 0` guard, and it now reads `if (floors[0] !== 0)`.
+
+Swept before landing: no committed brand, fixture, brief, studio or plugin source declares an empty list.
+
+### Tests
+
+In the layout block of `test.ts`, beside #2132's arms. The expected message is the approved sentence as a literal, compared exactly:
+- `[]` is refused;
+- `[0]` builds, with one breakpoint.
+
+### Mutations, each failing the refused arm by name
+
+All 3137 assertion sites ran under both, the same as unmutated. The `[0]` arm stayed green in both.
+
+- **Delete only the new check.** `❌ [#2137] an empty breakpoints list is refused with the approved wording (got "The first breakpoint must be 0px. This brand starts at undefinedpx.")`. With the guard gone too, `[]` falls into #2132's check and gets a message naming `undefinedpx`. The exact match is what rejects it: an arm checking only that `[]` throws would have passed here.
+- **Restore the pre-PR code** (the guard back, no empty check). `❌ … (got "")`: `[]` builds again.
+
+**Out of scope:** offering the refusal up front in the studio, the UI lane's follow-up.
+
+---
+
+## (2026-10-05) — Style guide, phase 2: dimension, font-variable and text-style tables (#259)
+
+**STATUS: PR open from `lane/style-guide-phase2`, labeled DO NOT MERGE; #1784, which it was stacked on, is merged (`5ec56acd`). Part of #259.** ENGINE **0.229.0**, a `minor` change note (claimed as 0.200.0, 0.205.0, 0.210.0, 0.216.0 and 0.218.0 on its branch before #1807; the fold assigns the number). Also fixes #1795, a plugin behavior change. No engine emission moves, so `out/**` carries only the fold's restamp; CONTRACT STANDS at 14.0.0. Built and offline-tested; the owner judges the proposed defaults live (`docs/45` §8).
+
+**Why.** Phase 2 of the owner's plan (#259, `docs/45` §5): the tables for dimension and typography, the owner's REM and pixel options, and the spacing cell set that phase 1 built and nothing read.
+
+**What it does.**
+- **Every variable is read, not only COLOR** (`readCatalog`, the #146 lesson: a type-filtered fetch misses the STRING family and FLOAT size variables), with its `scopes`, and the file's text styles (`getLocalTextStylesAsync`).
+- **A variable's kind** (`varKind`): a single-property scope first (`FONT_SIZE`, `PARAGRAPH_SPACING`, `EFFECT_FLOAT`, `OPACITY` …), the name second (per word, camelCase included), and a plain scale only by frame-length scopes or a `dimension`/`scale` name; anything else is `other`. The later-phase kinds (font style, paragraph spacing, shadow and effect, gradient, duration and motion, opacity, border widths, icon sizes, breakpoints, grid, other) are counted in one note and not drawn.
+- **Tables.** One `dimension` table per collection, one per font kind per collection, one for the text styles. Primitive or semantic by phase 1's alias rule, applied to the table. A title two phase-2 tables share names its collection: "Font size (core)", "Font size (type-sets)".
+- **Specimens, pinned per mode, then bound.** A spacing: the `display=filled` spacing cell, its example frame made the value's width by a bound `paddingLeft`. A size or plain scale: the `display=line` bracket, the same way, its absolute bars following the frame by the constraints set in the component. A radius: the `type=radius` swatch, all four corners bound. A font variable: "Abc 123" with its one property bound (a family or weight loads that font first). A text style: "Abc 123" with `setTextStyleIdAsync`, its font loaded first. No ground, no contrast column.
+- **Values.** `16px · 1rem` (REM at 16px), each unit on a toggle; a weight as `600 · Semi Bold`; a text style's size / line height per mode, family, weight and letter spacing once, paragraph spacing and decoration on toggle. The rerun report compares units-free values, so a REM switch changes no row.
+- **Modes.** A mode-varying dimension and prism3's fluid `type-sets` sizes draw one bound specimen and value per mode. The text-style table takes the modes of the collection its sizes are bound to (desktop, mobile), so a hero style reads 160px beside 48px.
+- **Options** (`StyleGuideOptions`, agent-link args validated as `bad-args`, panel *Customize*): `pixels`, `rem`, `dimensionDisplay` (auto / Generic / Spacing / Border radius), `fontDisplay` (auto / Generic / Family / Size / Weight / Letter spacing / Line height), `paragraphSpacing`, `textDecoration`. `PHASE_TYPES` is now color, dimension, the five font kinds and `typography`.
+- **A binding the host refuses, a resize it refuses or ignores, and a cell with no layer to size** are each counted with the unbound swatches and named by table and token; the headline reads "⚠ 17 specimens unbound".
+
+**The title cell (owner decision 15, 2026-09-29, a follow-up commit on this PR).** The owner defined the option held in the first commit: on every table type, a leading "Name" column holding a readable name a designer can edit ("Text Primary" for `text/primary`, "Display 3XL Emphasis" for `display/3xl/emphasis`). `titleCell` in `StyleGuideOptions`, the agent link and *Customize*, off by default (proposed). The default is `humanizeName` over the path below the table's shared prefix; a single step keeps its prefix's last word ("Space 050"). An edit survives: each title cell carries its row's ID, the table records the default it generated and the text it showed, and a cell whose text is not the default keeps it; an unedited one follows a renamed token. **The trap that made the fingerprint change bigger than it looked:** leaving the title cells' text out was not enough, because every width that follows the title column moves with it. The column's "Name" header cell FILLs the same track, so the first build still read a retitled table as edited; the header cell is marked as part of the title column too, and a titled table's frame, grid and header widths are left out. An untitled table is fingerprinted exactly as before.
+
+**The review of `4faeb98a`, and the owner's live run of it (2026-09-29, follow-up commits on this PR).**
+- **The live finding: every bracket in "Dimension — nbds" was the same 8px, and the run said `unbound: 0`.** The owner's spacing cells are not the shim's. Their `spacing-line-example` frame holds `left-bar`, `horizontal-line` and `right-bar`, every one constrained MIN, so the run resized and bound the frame (which is why nothing was counted) and nothing inside it moved. **The diagnosis that made the fix small:** the old finder took the first non-text layer, which on the owner's cell *is* the frame, so the sizing was right and the drawing was not; the gap was that no step read back what a person would see. Now the specimen layer is found by structure (`spacingLayer`: `Bar`, the first child frame, a `*-example` name), the frame and the line are each resized, bound and read back, and `right-bar` is carried to the edge by a MAX constraint set as an instance override before the resize. Where the host refuses that override, `right-bar` is moved to the value and the report names the edge as static (x cannot be bound to a variable); where it cannot be moved either, the specimen is counted. A cell with no layer to size is counted too, by table and token. The built spacing set now takes the owner's layer names, and constrains its own `right-bar` MAX and `horizontal-line` STRETCH so it needs no override. The radius layer is found by structure as well (`radiusLayer`: `Specimen`, then the first rounded layer, the owner's clipped `radius-example`).
+- **A FLOAT is a length only when its scopes or name say so.** `varKind` fell back to `scale`, so Prism2's unscoped `pds/motion/duration/*` drew as "200px · 12.5rem" brackets, and so did its `EFFECT_FLOAT` shadow parts, its gradient stops and New Balance's `PARAGRAPH_SPACING` variables. Each now goes to its later-phase kind; the fallback is `other`. The fixtures are the reference exports' shapes, checked by a script over every `reference/` and prism3 FLOAT and STRING before they were written as literals.
+- **The bar's resize is guarded** like the bind, so a host that refuses a resize on an instance's layer no longer aborts the run.
+- **Fonts: loaded before bound, pinned before bound.** The shim now models the host's rule: a font-bound property or `setTextStyleIdAsync` throws on text whose font is not loaded, and a bound family or weight needs the font it resolves to *in the node's mode at the moment it binds*. That second half is why the pin moved first: bound before pinning, a column whose mode is not the collection's default resolved the default mode's font, which that column never loaded.
+- **Superseded phase-2 tables are exercised:** an unedited dimension table and text-style table are deleted; a dimension table whose value moved is kept as edited.
+- **All four radius corners are bound.** Held for the owner in `docs/45` §8: it changes the built swatch from one rounded corner to four.
+
+**Owner decisions from live QA (2026-09-29), folded into this PR.**
+- **Tables flow left to right, a row per category** (decision 16): "build these horizontal", amended to "a new category of tokens … ideally starts on a new 'row'". The category is the token type drawn (color, dimension, the font kinds together, text styles); the gap is 160px between tables and between rows; both proposed. Every rule of #1784's vertical stack carries over, turned on its side: a filtered run moves the tables after a redrawn one in its row by its change in width, and the rows below by its row's change in height, only while each sits where the generator left it; a first-time table goes at the end of its category's row, or starts a new row. An earlier build's vertical stack converts in its own order (the sort is x, then y). **The trap:** "the row's height" is the tallest table's, not the redrawn table's, so a filtered run that grows a table that is not its row's tallest moves nothing below it.
+- **A palette swatch FILLs its cell** (decision 13, restated: "the 83x83 size … is likely driven by the padding within the rows"), floored so a HUG track cannot collapse it: 32px first, then 80px by the owner's decision (below). Role swatches stay FIXED on a ground that FILLs.
+- **Live check passed: a table dragged wider reflows** (HUG tracks, FILL cells). Decision 11 needs no FLEX tracks; removed from the open items.
+- **The cells Set up file builds mirror the owner's spacing and radius structure**, so one finder reads both; section 22 draws both at the same literal widths. The built bracket's `right-bar` is MAX in the component (the owner's is MIN), so it needs no instance override. The swatch and text-cell members keep this build's names: only a few of the owner's are measured, and phase 1's finder reads both by name, then by role.
+
+**Held items decided (2026-09-29, a follow-up commit on this PR; `docs/45` decision 17).** The row definition and the later-phase kind names are approved as proposed. The radius swatch keeps one visible rounded corner: the cells Set up file builds now use the owner's sizes too (a 48 × 48 clipping `radius-example-container` over a 256 × 96 `radius-example`), and section 1 asserts the clip and the oversized shape against literals typed in the test; dropping `clipsContent` in the builder fails "1: the radius swatch's radius-example-container clips its content…". The palette swatch's floor, held for the owner's answer, is decided at **80px** (close to the owner's 83px, not much smaller); the swatch still FILLs its cell, so a palette row with the built cells is now 80px tall.
+
+**The review of `f3bb76cd` (same follow-up commit), each fix with a literal test and a mutation.**
+- **HIGH, a title edit lost:** the names record was written only on a titled run, and the live title text was read but never saved, so edit → untitled run → titled run brought the generated default back. The live text is now merged into the record before the grid goes, and the record is written whenever it holds anything.
+- **A new table from a filtered run overlapped the row below:** the push-down skipped created tables. It now counts them, at a height of 0 before the run; an 80-step table 3,764px tall pushes the font row to 160px below it.
+- **A bracket whose parts are named otherwise, and a file with no spacing set,** each read as a pass; both are counted now, by table and token.
+- **One verdict per specimen:** a bracket could add up to 4 to `unbound`; it now adds 1, for the first thing wrong with it.
+- **Wording:** a refused or ignored resize reads "not sized to their value".
+- **The header exclusion in the fingerprint** was untested because the fixture's header box does not follow its header's width; section 20's header now FILLs its box, so dropping the exclusion fails by name.
+
+**The owner's live run of 0.205.0 (NB test file, 2026-09-29): "⚠ 102 specimens unbound", and the host finding behind it.** 67 brackets and 35 bars were not sized; the reporting worked and the sizing did not. Measured in the plugin runtime with scratch components: **a width written to a layer inside an instance is silently dropped** (`resize`, `resizeWithoutConstraints`, `setBoundVariable('width')`, and a width binding the main already has), with or without auto layout on the parent; the same write on the main component works. **This contradicts what the review round assumed** (a resized, width-bound frame, a MAX constraint override on `right-bar`, a move fallback): none of it can work on an instance, and all of it is removed. What holds is a bound `paddingLeft`: a hugging auto-layout frame with no flow child and its left padding bound is exactly the value wide, and stays live. **The trap:** the first padding bind can freeze the frame at FIXED at the width it gave, after which it stops following its variable (live: stuck at 1,440px); HUG is set again after the bind. So each specimen is: other paddings 0 → HUG → bind `paddingLeft` → HUG → read back, and a width that is not the value is counted by table and token. The built cells are hugging frames with paddingLeft 8; the bracket's bars are ABSOLUTE, constrained MIN, STRETCH and MAX in the component, so no per-instance override is needed. **The owner's cells** (fixed-width frames, bars in flow) cannot be sized by a plugin at all; the run counts them and says so in ONE line with what the component needs. **The shim now models the host:** instance-layer width writes and width binds are no-ops, a bound padding is read live, the first padding bind freezes a hugging frame until HUG is re-asserted, and absolute children follow the constraints set in the component. Every earlier spacing test passed against a shim that let an instance's layer take a width; that is the lesson, not the mechanism. **Then, with the owner's OK, the owner's cells in the NB test file were restructured to the recipe** (their layer names kept; verified live: space/300 → 24 with right-bar at 23, space/800 → 64). The finder sizes that tree; only a cell whose example frame is not auto layout, or whose bars are in flow, gets the one restructure line. The built cells are that tree exactly (itemSpacing 0, `horizontal-line` at y 7.5), asserted in section 1 against literal geometry, and section 22 draws a fixture with exactly the owner's restructured tree.
+
+**Owner decisions from live QA, later on 2026-09-29 (`docs/45` decisions 18 and 19).**
+- **One spacing style per run.** `dimensionDisplay` is `filled` (default) or `line`, and every spacing specimen in every table draws in it; `auto` means `filled` for the agent link. The per-role choice and the Generic / Border radius overrides are gone. A radius row still draws the radius swatch, a corner rather than a spacing style (held as proposed).
+- **REM in its own column.** A "REM" column follows each value column in every table of lengths (dimension, font size, line height, letter spacing, text styles); the value cell keeps px and the alias chip; `rem` off removes the column. With `pixels` off and `rem` on, the value column still prints px, because the base value always appears, so the Pixels toggle no longer changes anything (held for the owner: whether it stays). A text style's letter spacing and paragraph spacing print their base unit only, with no REM (proposed). The rerun report compares raw values, so the column change moves no row; the fingerprint needs no change either, because a superseded table is compared with its own recorded print and a drawn one is refingerprinted, so a table drawn before this build is not misread as edited.
+
+**#1795, folded in (the shape of #1791 and #1794).** A superseded table was deleted with `f.remove()` and its name read after, which the host refuses ("in get_name: … does not exist"). Its name and place are now read before the remove; nothing else in `style-guide.ts` or `style-guide-cells.ts` reads a removed node (the grid's rebuild removes old grids and reads nothing after). The shim now invalidates a removed node the way #1794's removal shim does (mirrored, not imported, since #1794 is not merged): any read but `id` and `removed` throws, and so does a second remove. Section 6a deletes two superseded, unedited tables in one run and names both literally; restoring the read-after-remove fails it by name ("6a: one run deletes two superseded, unedited tables and names both… (Error: in get_name: The node … does not exist)"), and the suite then stops at the next deletion, 91 checks in. Three older tests read a deleted table's `parent` or position after the run; they now read `removed`, or the position captured before.
+
+**The live QA of 0.210.0, and two owner decisions (2026-09-30, `docs/45` decisions 20 and 21).** On the NB test file (`types: ["dimension"]`, `titleCell`), "⚠ 102 specimens unbound" became "⚠ 18 specimens unbound", every one a value of 8px or less. Three host findings, measured live, each with the owner's decision:
+- **The floor.** A layer inside an instance grows past its main component's width through the bound padding, but never hugs narrower than it. The frames rested at 8, so every value of 8 or less stayed 8. Decided: the frame rests at 0 wide. Set up file now builds it with paddingLeft 0, draws the bars at 8, then resizes it to 0.01 and only then sets HUG, because a hugging frame with nothing to hug keeps its last width. The owner set their own cells the same way (live: 2px → 2, 24px → 24, right-bar at 1 and 23). Section 1's literal geometry is now 0.01 × 20 and 0.01 × 16, the line 0.01 wide, and right-bar at −0.99.
+- **Zero.** A bind to 0 leaves the last width, and Figma cannot draw a 0-wide layer. Decided: the zero's specimen is hidden and counts as drawn, and the row keeps its name and `0px`. That is why the refused-bind counts dropped by one: 18 → 17 in section 21, and 5 → 4 in section 24.
+- **Shrink after grow.** A frame bound to 24, then to 2, stays 24 under HUG alone. Of the owner's measured recipes, (c) is used: bind, then FIXED, then HUG. It lives in a new exported `sizeByPadding`, run for every bind.
+- **The shim** now models the three findings:
+  - an empty hugging row never hugs narrower than its main's width (`_floor`, set at `createInstance`);
+  - it holds its width when its padding decreases or is 0 (`_held`), until HUG is set from another sizing;
+  - FIXED keeps the current width.
+
+The owner also decided two held items (decision 20):
+- **Pixels is removed:** the panel field, `StyleGuideOptions.pixels` and its docs are gone. The agent link stays tolerant. `pixels`, with any value, is accepted and ignored. It is handed over as `retired: ['pixels']`, and the run's notes say "pixels is no longer an option and was ignored: every value column prints its base value in px". I chose accept-and-ignore over refusing, so an older caller does not break.
+- **Letter spacing and paragraph spacing get REM** in the text-style table: a REM column beside each, as in decision 19. Only a length in px converts. A percentage letter spacing prints as stored, and its REM cell reads "—".
+
+**Trap: the executor's fresh instances never see a decrease.** Every specimen is a new instance of a main resting at 0.01, so the FIXED toggle matters only where the frame is already wider than the value, and no run of the suite's tables reaches that. The toggle's own check calls `sizeByPadding` directly on a built bracket bound to 24, then 2. It is the only check that fails when the toggle is dropped (R9 below).
+
+**Brought up to date with `main` (2026-10-05, owner decision S11.2 H2 A: up to date as its own PR, no change to how the Style guide page looks or behaves beyond what this PR does).** Three merges of `origin/main`: `6af80116` (130 commits on), `4d3a4459`, and `5ec56acd`, the squash of #1784, which this PR was stacked on. Where this branch's first reconciliation and #1784's differed, #1784's is kept from `main`: the run guard (`run-guard.ts`, #1957) in place of the style guide's own gate, the table count's `styleGuideProgress`/`agentReading` path and `tableReading` validator, the row going busy during an agent's run, and its tests and `docs/45` lines (owner decisions Q18 a, Q19 b, Q20 a, Q21 a). #1784's progress fragment and change note are `main`'s. What this PR adds over `main` is phase 2 alone: the dimension, font-variable and text-style tables, REM, their options in the panel, the agent link and the tests, and their `docs/45`, `docs/42` and decision-index rows.
+- **Test literals moved by `main`'s emission.** `radius.hairline` is now always emitted (#2053), so the prism3 file has 10 radius tokens, not 6: section 19's refused-binding case reads "⚠ 21 specimens unbound" ("10 type=radius specimens…"), and `docs/45` with it.
+- **`main`'s click guard (#1831):** `test-build-verdict.mjs`'s phase-2 Customize clicks go through `hooks.click`.
+- **Mutation** (after a `wip:` commit, restored from HEAD): `REM_BASE` 16 → 10 fails 14 checks by name in `test-style-guide.ts`, among them "16: its value cell reads px with its alias, and the REM column beside it REM at a 16px base", "17: its value is "16px", and "1rem" in the REM column" and "18: body/lg/default reads 18px / 150% with 1.125rem in its REM column…".
+
+**Deliberately not done.** The fingerprint is unchanged for a table without a title column, so phase 1's recorded fingerprints keep matching; the cost is that a superseded dimension table whose value moved reads as edited and is kept (a bar's width is its value), the safe direction. Font style (`core/font/style/*`) waits for a later phase with opacity and the rest.
+
+**Traps for whoever works here next.**
+- **The emission's `text-styles.json` holds 63 styles, not the 39 `docs/45` §4 counted;** the fixture reads them from the emission, so the count follows the engine.
+- **A table's mode named "Value"** (the `legacy` and a foreign fixture's) reads "Value · Value" in the header row. It is the file's name, printed as given; the phase-2 fixture names its one mode "Default".
+- **The scratchpad is shared across lanes:** name mutation scripts in a lane subfolder, not `m1.py` at its root.
+- **A `### Decided (…)` heading in `docs/45` needs a row in `schema/decisions-index.json` and `docs/42`** (`lint-decisions-index`). The title-cell commit added one without either and was never verified; the first full verify of this round caught it. Decision 16 has its own heading for the same reason: a numbered item added under an existing heading is not indexed on its own.
+- **Not checked offline:** that the host accepts `setBoundVariable` on an instance's bar, corner and text fields, which fonts a bound family or weight needs, `setTextStyleIdAsync` under a pinned mode, a `constraints` override on the bracket's `right-bar`, and whether a width changed through its bound variable carries a MAX-constrained child (`docs/45` §7, live-checks).
+- **The shim's cells are only as good as their resemblance to the owner's.** Every spacing test passed against a structure the owner's file does not have, and the live run was the first to see it. Section 22's fixture is copied from the owner's measured cells; if the owner's cells change, change the fixture from a new measurement, not from the code.
+- **The shim's font rule reads the shim of the run in progress** (`active`, set by `loadAllPagesAsync`), and each shim keeps its own loaded fonts. A test that asserts a load uses a family no other test loads (Proof Serif, Proof Sans, Proof Mono), since the cell sets preload Inter Regular, Semi Bold and Bold.
+
+**Tests.** `test-style-guide.ts` sections 16–22, literal, through the shim, on a file of the prism3 emission's dimension and font variables and 63 text styles plus a mode-varying `density` and an out-of-order `metrics` ramp (details: `docs/45` §7). Section 20, the title cell: no Name column by default; the humanized defaults ("Text Primary", "Inverse Text Primary", "Display 3XL Emphasis", "Space 050", "XS Height", "Size 16"); a hand-edited title surviving a rerun, and a run without the column, while an unedited one follows its renamed token; a superseded table whose only change is a retitled row deleted as unedited, and one with a value retyped still kept as edited. Section 21, the review of `4faeb98a`: each reviewed shape's kind by literal fixture, a FLOAT nothing places as `other`, a refused and a silently ignored resize counted and named, fonts loaded before binding, a mode-varying family pinned before bound, superseded phase-2 tables. Section 22, the owner's cell structure and the built cells: the bracket and bar at 4 and 64 with `right-bar` at 3 and 63 on both, the four radius corners, the static-edge and no-edge fallbacks, and an unreadable cell counted. Section 23 and the rewritten sections 5, 10, 11 and 13: rows by category at literal positions, a width change moving only its row's later tables, a height change moving the row below, a new category starting a new row, and the palette swatch filling its cell (81 × 44; 84 in an 84px row). `test-agent-link.ts`: the new args reach the handler; bad values are `bad-args`. `test-build-verdict.mjs`: the new Customize fields, and that they cross the bridge (a probe flipping its expectation went red, 152 of 153).
+
+**Mutations,** after a `wip:` commit, each restored from HEAD. Each fails by name:
+
+| Mutation | Fails |
+|---|---|
+| the spacing bar's width left unbound | "16: space/050 draws the filled spacing bar at 4px, its width bound to space/050 and pinned to the space mode (… bound undefined)", "16: a mode-varying spacing draws a bound bar per mode, pinned…" |
+| the radius corner left unbound | "16: radius/md draws the type=radius swatch, 48 × 48 and FIXED, its corner bound to radius/md", "19: a binding the host refuses is counted and named… (11 unbound)" |
+| the font variable's property left unbound | "17: font size 16's specimen is "Abc 123" with fontSize alone bound to it", "17: font family display binds fontFamily alone…", "17: font weight 600 binds fontWeight alone…", "17: a line height binds lineHeight…", "17: Display "Size" binds fontSize instead", "19: a binding the host refuses…" |
+| REM computed at a 10px base | "16: its value reads px and REM at a 16px base, with its alias ("4px · 0.4rem …")", "16: space/1200 reads "96px · 6rem"", "16: radius/capsule reads "999px · 62.4375rem"", "17: its value is "16px · 1rem"", "18: body/lg/default reads 18px · 1.125rem / 150%…", and six more |
+| a lexical sort | "16: the space scale in ramp order, 1000 after 900", "16: a ramp stored 16, 4, 100, 2 draws 2, 4, 16, 100 (100, 16, 2, 4)", "16: a size draws the bracket (display=line), 100px wide for 100" |
+| the text style not applied | "18: body/lg/default's specimen is "Abc 123" with its text style applied, one per mode, pinned (, )" |
+| the paragraph-spacing column always shown | "18: the text-style table: a specimen and size per type-sets mode, then family, weight, letter spacing (… Paragraph spacing …)", "18: toggled off, the two columns are gone on the rerun" |
+| (title cell) a designer's edit not preserved | "20: a hand-edited title survives a rerun ("Space 050")…", "20: the edit survives a run drawn without the title column, and returns with it" |
+| (title cell) title text in the fingerprint | "20: a superseded table whose only change is a retitled row is deleted, unedited (deleted []; kept … Radius, edited)", "20: one with a value retyped is still kept as edited" |
+| (title cell) the humanizer returns the raw path | "20: humanized: … (display/xl/emphasis)", "20: on, a color table leads with Name…", "20: an inverse role reads "Inverse Text Primary"", "20: a text style reads "Display 3XL Emphasis"…", "20: a hand-edited title survives…" |
+| `varKind`'s fallback returns `scale` | "21: a FLOAT neither its scopes nor its name place is "other", never a length (misc/ratio/golden → scale)", "21: planned, only the two scales are drawn as dimensions…", "21: each is reported as not drawn until a later phase, by kind" |
+| the resize guard removed | "21: a bar the host will not resize does not abort the run… (Error: cannot resize spacing-filled-example)", "21: each refused resize is counted and named…" |
+| the family/weight font load skipped | "21: a family is loaded before it is bound", "21: pinned before bound…", "21: a weight is bound after … Inter Extra Bold", "21: every font specimen bound", "17: font family display binds fontFamily alone…", "16: 13 tables, all created" |
+| the text-style font load skipped | "21: a text style is applied after its font, Proof Mono Medium, is loaded (style not applied)", "21: every font specimen bound", "16: 13 tables, all created" |
+| bound before pinned | "21: pinned before bound: the editorial column … (Inter Regular, bound undefined)", "21: every font specimen bound: 1 unbound" |
+| one radius corner bound | "16: all four of its corners are bound to radius/md (bound, unbound, unbound, unbound)", "22: the owner's radius swatch binds all four corners of radius-example" |
+| the spacing finder returns null | 18 checks, among them "22: the owner's bracket is drawn at its value…", "22: the owner's filled bar is drawn at its value and bound…", "22: the cells Set up file builds draw the same…", "16: space/050 draws the filled spacing bar at 4px…" |
+| `right-bar` not moved | "22: the owner's bracket is drawn at its value… right-bar at the right edge, 3 and 63 (… right 7)", "22: its right edge is carried by a MAX constraint…", "22: with the constraint refused, right-bar is moved to the value…", "22: refused both…" |
+| the palette swatch left FIXED | "5: a palette row has no ground frame: its cell is the type=default swatch, FILLing it both ways at 81 × 44… (FIXED/FIXED 48×48)", "5: a taller row makes a taller swatch… (48, 48)" |
+| no floor on the palette swatch | "5: a palette row has no ground frame… floored at 32 (… 168 swatches not filling)" |
+| a single row for everything | "23: two categories, two tables each, at literal positions…", "23: each category's tables are top-aligned, 160px apart", "23: a width change in row 1 moves only row 1's later tables…", "23: a height change in row 1 moves row 2 down…", "23: a first table of a new category starts a new row…" |
+| vertical stacking (a row per table) | 14 checks, among them "10: a first run lays its tables out left to right, top-aligned, 160px apart", "13: a filtered run moves only the tables after its table, in its row…", "23: two categories, two tables each, at literal positions…" |
+| probe: the fixture's host repaint not replayed | "21: an unedited superseded dimension table and text-style table are deleted (… Step …)", "21: a superseded dimension table whose value moved is kept…" (the Step fixture is kept for the reason it claims) |
+| (f3bb76cd review) the live title text not merged into the record | "20: a title edited, then a run without the column, then one with it: the edit comes back ("Space 100")" |
+| (f3bb76cd review) created tables skipped by the push-down | "24: a new 80-step table lands at the end of the dimension row… (2130)" |
+| (f3bb76cd review) bracket parts not checked | "24: a bracket whose parts are not named horizontal-line and right-bar is counted… (0 — ✓)" |
+| (f3bb76cd review) no spacing set not counted | "24: with no spacing set, every spacing specimen is counted and the run is not a pass (0 — ✓)" |
+| (f3bb76cd review) each failure counted | "24: five brackets, each refused a resize and two bindings, count once each… (9)" |
+| (f3bb76cd review) header descendants not excluded from the fingerprint | "20: a superseded table whose only change is a retitled row is deleted, unedited", "20: one with a value retyped is still kept as edited" |
+| (decision 17) the radius clip dropped in the builder | "1: the radius swatch's radius-example-container clips its content…", "16: the drawn radius specimen keeps the clip…", "16: no cell in any phase-2 table is wider than its column" |
+| (decision 17) the palette floor removed, or back at 32 | "5: a palette row has no ground frame… floored at 80 (… 81×44)", "5: a taller row makes a taller swatch… (124, 44)" |
+| (0.205.0 live run) HUG not re-asserted after the padding bind | "16: the bar follows its variable live, with no rerun: dimension/4 set to 5 makes space/050's bar 5px (4px, FIXED)", "21: an unedited superseded dimension table and text-style table are deleted…", "21: a superseded dimension table whose value moved is kept…". It first survived: `fit()` ran after the recipe and set HUG again, so the recipe's own re-assert was never the one that counted. `fit()` now runs before the recipe, and the mutation fails |
+| (0.205.0 live run) resize and a width bind used instead of the padding | 12 checks, among them "16: space/050 draws the filled spacing bar at 4px, its left padding bound…", "22: the built bracket is drawn at its value by its bound left padding…", "22: the built filled bar is drawn at its value…" |
+| (restructured cells) bars in flow not checked | "24: a hugging bracket with its bars in flow cannot be sized by its padding: all 5 counted, in the one restructure line" |
+| (restructured cells) every auto-layout frame treated as unsizable | 16 checks, among them "22: the owner's cells restructured to the padding recipe are sized…", "22: the built bracket is drawn at its value…" |
+| (restructured cells) the built horizontal-line at y 8 | "1: the spacing members are the owner's restructured tree exactly…" |
+| (decision 19) REM back in the value cell | 9 checks, among them "16: its value cell reads px with its alias, and the REM column beside it…", "17: its value is "16px", and "1rem" in the REM column", "17: a fluid size draws desktop and mobile side by side…", "19: space/050 re-aliased to 6…" |
+| (decision 18) per-role selection restored for size rows | "16: a size draws the run's one spacing style, the filled bar by default…", "16: gap, height and width rows all draw the run's one style…" |
+| (R9, live QA of 0.210.0) the FIXED toggle dropped after the bind | "22: a bracket grown to 24 and rebound to 2 shrinks to 2, right-bar at 23 then 1 (24 right 23; 24 right 23)" |
+| (R10, decision 21) a zero not hidden, drawn by the recipe | "21: a padding bind the host refuses is counted and named… 18", "22: cells resting 8 wide cannot draw below 8… (Dimension: 0, 4; Space: 4)", "22: dimension/0 draws nothing… (INSTANCE visible true…)", "24: four bars whose padding bind is refused count once each, 4… (5…)" |
+| (R11, decision 21) the built frame not resized to 0.01 at rest | 10 checks, among them "1: the spacing members are the owner's restructured tree exactly: hug frames 0.01×20 and 0.01×16… (…8x20…)", "22: the built bracket is drawn at its value… (w 8)", "22: a bracket grown to 24 and rebound to 2 shrinks to 2… (8 right 7)" |
+| (R12, decision 20) the pixels option still honored, passed on as an option (`test-agent-link.ts`) | "style-guide: the phase-2 options reach the handler as sent, and a retired pixels arrives as retired, not as an option (…"pixels":false…)", "style-guide: pixels "yes" is accepted and ignored, not refused (true; {"pixels":"yes"})" |
+| (R13, decision 20) the letter-spacing REM missing | 5 checks: "18: the text-style table: … letter spacing and its REM", "18: body/lg/default reads … and "—" for the REM…", "18: paragraph spacing (with its REM) and decoration toggled on add their columns", "18: a link style reads "0px" paragraph spacing, "0rem" beside it…", "18: a letter spacing of 0.8px reads "0.05rem" beside it…" |
+| (R14, decision 20) the Pixels field restored in the panel (`test-build-verdict.mjs`, on the rebuilt `dist/ui.html`) | "#259 decision 20: Customize has no Pixels field" |
+
+The resize-guard, `right-bar`, one-verdict and repaint-probe rows above test code the 0.205.0 live run removed (the resize, the MAX override and move, the per-failure buckets, the manual repaint); they stand as the record of that round.
+
+Each mutation's diff was checked non-empty, and every run executed the whole suite (the same assertion count as its unmutated baseline: 302 for the title-cell, kind, resize, font-load, corner and probe rows, run at a work-in-progress tree before the rows and the filling swatch, whose code they do not touch; 314 for the next seven, at the review-round head `f3bb76cd`; 321 for the last eight, at the final tree). The title-cell rows were run for the first time in this round; the commit that added them had not run them.
+
+---
+
+## (2026-10-05) — Activity: a set build's first phase line names the set, or none (#2088)
+
+**STATUS: branch `ui/2088-set-phase`.** UI and tests only. No engine change, no emitted artifact moves, no ENGINE bump, and `CONTRACT_VERSION` is unchanged. Fixes #2088.
+
+**The owner's decision (2026-10-05).** Until a build's first chunk boundary reports, the Activity drawer's phase line for Build set said "Building the Button set…" whatever set was building, a string left from when Button was the only set (#718). A build the panel started now names its set: "Building the ‹Set› set…", with the set's display name from the component catalog (the same `name` the Components page shows), looked up by the id the panel posted (`HostSession.componentDef`). A build an agent started names none, because the panel was not told which set it is: the line reads exactly "Building the set…", the owner's wording.
+
+**One function, both readers.** `firstPhase()` in `apps/studio/src/main.ts` answers for the drawer's `componentPhase` and for `componentPendingText`, whose comment says the two read the same words. The pending-pill reader has no live caller for the component build since S8.2 retired the page's pill; it moved with the drawer rather than keep the stale string.
+
+**The check (`test:verdict`, `#2088`).** Both arms read the phase line BEFORE any `component-progress` is posted, the only window the line exists in. Panel builds of Button and then Tag, on one page, must read exactly "Building the Button set…" and then "Building the Tag set…", having posted `button` and then `tag`; an agent's `build-components` with no progress must read exactly "Building the set…". The expected strings are literals, never read from the catalog the code reads.
+
+**Mutations, after a `wip:` commit, restored with `git checkout -- <file>`:**
+- `firstPhase` back to the literal "Building the Button set…": both arms fail by name, `✗ #2088 a panel build of Tag reads exactly "Building the Tag set…" before its first boundary — posted ["tag"], read ["Building the Button set…"]` and `✗ #2088 an agent's build reads exactly "Building the set…" before its first boundary — read ["Building the Button set…"]`.
+- `firstPhase` ignoring `componentDef`: `✗ #2088 a panel build of Tag reads exactly "Building the Tag set…" before its first boundary — posted ["tag"], read ["Building the set…"]`.
+- **Strengthened after review (one set let a hard-coded name pass, 300/300):** the panel arm now builds Button then Tag on one page and reads each line exactly, so a hard-coded name and a stale previous set both fail by name. Hard-coded Tag → `✗ #2088 a panel build of Button … — posted ["button"], read ["Building the Tag set…"]`; hard-coded Button → `✗ #2088 a panel build of Tag … — posted ["button","tag"], read ["Building the Button set…"]`; the previous set (`[...host.setBuilds.keys()].at(-1)`) → `✗ #2088 a panel build of Button … — read ["Building the set…"]` and `✗ #2088 a panel build of Tag … — read ["Building the Button set…"]`.
+
+---
+
+## (2026-10-05) — Style guide: one table at a time, yielding to Figma, one run at a time, a header that spans its table and the owner's HUG grid (#1778, #1785, #259)
+
+**STATUS: PR #1784 open from `lane/style-guide-filter-yield`. Closes #1778; part of #1785 and #259.** ENGINE → **0.229.0** (a `minor` change note, `packages/engine/changes/lane-style-guide-filter-yield.md`), a plugin behavior change. No emitted artifact moves. CONTRACT stands.
+
+**Why.** The owner's first full live run drew 41 tables in about 4.7 minutes and held Figma and the plugin for all of it (#1778). While the basics are debugged, the owner wants to run one table, or a few, and work up to all of them. Two scope additions came from the owner mid-lane (2026-09-29), both recorded as `docs/45` §2 decisions 10 and 11.
+
+**What it does.**
+- **A `tables` filter.** `StyleGuideOptions.tables`, the agent-link arg (validated like its siblings; an empty list or an empty name is `bad-args`), and a *Tables* field under the panel's *Customize*: titles separated by commas. Matching is case-insensitive on the title as drawn ("Primary — nbds") or on the key. A name that matches nothing is reported by name with every title the run can draw, and the run is not a pass ("⚠ 1 drawn, 1 not found", "✗ no table matched").
+- **A filtered run covers only the tables it draws.** The stale/replaced candidate loop is scoped the way `types` already scoped it (#1749 review item 4): with `tables` set there are no candidates at all, so a skipped table is never stale, replaced, kept or deleted. The re-stack runs only on the pages the run drew on. On that page only the tables below a redrawn one, in its column, move, by exactly its change in height (rewritten in the review round below: the first build closed every gap).
+- **Yielding (#1778).** `runStyleGuide` takes a fourth argument, `{ yieldTo?, onProgress? }`, kept off `StyleGuideOptions` because it never crosses the bridge. It reuses the component writer's `realYield` (#699/#724, now exported), yielding after every table and every `max(1, floor(28 / columns))` rows within one. `CELLS_PER_YIELD = 28` is ~0.9s at the ~32ms a cell the owner's run averaged (4.7 minutes over ~8,800 cells, the prism3 emission's 4,394 twice for two roots): proposed, and the live `tableMs` readings are what to calibrate it against.
+- **Progress.** A `style-guide-progress` message before the first table and after each. The panel's pending pill reads "Drawing table 7 of 22…" on the page row and the bar; the console logs `[prism3 #1778] style guide: table 7 of 22, <title>, <ms>ms`; an agent gets it as progress phase `table` (the bridge's `message` then reads `table 7/22`). The dispatcher treats it as progress, never as a verdict.
+- **The header spans its table (owner decision 10).** The `_Section-header` instance FILLs the wrapper, which hugs the grid, instead of keeping its component's 2,517px. FIXED at the grid's width is the fallback, and a wrapper left wider than its grid is named in the verdict.
+- **The owner's grid model (owner decision 11),** measured live on "↳ Style Guide Examples": every column and row track HUG, every cell FILL on both axes, every text `WIDTH_AND_HEIGHT` on one line. The FIXED column widths, the 360px description cap and `wrapTo` are gone; `docs/45` §6 keeps their history. The specimen's ground frame FILLs its track as the cell. The track gap and the swatch's sizing were held here and decided by the owner the same day (decisions 12 and 13, below).
+- **Counts agree with their number:** "✓ style guide: 1 table", "1 table created". A filtered run made "1 tables" common.
+
+**The shim.** `test-style-guide.ts`'s node shim now models the owner's grid: a HUG track is as wide as its widest cell's content (a FILL cell counts what it would hug), a FILL cell takes its track on both axes, a hugging grid is its tracks, and `resize` leaves a hugging or filling frame FIXED, as a drag does. A grid dragged wider first spread its extra evenly across HUG tracks, the shim's own assumption; the review round removed that (below). The header component in the fixture is 2,517px FIXED, as the owner's is.
+
+**Traps for whoever works here next.**
+- **An uncached track model made the suite 8× slower** (278s against main's 33s). Every FILL cell's width is its column's widest content, and the fingerprint reads 1,750 cell widths in the 124-row table, plus a nested FILL layer's parent on every walk. The shim now caches each grid's tracks per *layout epoch*: every `N` is a proxy that bumps a counter on every write. The one blind spot, a write inside a nested object, is named beside it. The suite runs in ~60s under the lane's load.
+- **`setTimeout(0)` costs ~1.2ms in node.** The suite's ~70 runs yield thousands of times, so every run injects a `setImmediate` yield (`draw()` in the test). `realYield` itself is exercised only live, the same limit the component writer's header states.
+- **`pkill -f <file>` inside a command line that names `<file>` kills that command's own shell.** An edit chained after it never ran, and the next run measured the unedited file. Kill by PID, or keep the kill in its own call.
+- **Not checked offline:** the host's share of a dragged grid's width, a header FILLing in a hugging wrapper, and that the yields keep Figma responsive. All three are `docs/45` §7 live-checks.
+
+**Tests (first build).** `test-style-guide.ts` sections 12–14 (literal, through the shim): the reflow; the filter on the two-root file (one table in place, the 42 others untouched with their grid and fingerprint, none stale; a semantic table put 50px off the stack is not re-flowed, because that page was not drawn on; two new rows move the 19 tables below by exactly 144px and leave the one above; any case, or a key; unknown names); the yields with a counting `yieldTo`. Section 2 asserts the owner-cell table, its grid and its header all at 2,828px; section 5 asserts HUG tracks, FILL cells and one-line text in all 22 tables, and the description column at its longest line (630 + 16 + 16 = 662). `test-agent-link.ts` covers the `tables` bad-args and the progress mapping; `test:verdict` covers the Tables field crossing the bridge and the page's pill counting "Drawing table 7 of 22…".
+
+**Mutations,** after a `wip:` commit, each restored from HEAD. Each fails by name:
+
+| Mutation | Fails |
+|---|---|
+| the filter ignored (draws everything) | "13: tables: ["Primary — nbds"] draws that one table", "13: every other table is untouched…", "13: the semantic page, which the filtered run did not draw on, is not re-stacked" |
+| the skipped tables treated as candidates (the `tables` scope removed) | "13: the tables a filtered run skips are not stale, not replaced, not deleted and not reported (stale 41, deleted 41, kept 1)" |
+| the per-row yield removed | "14: the 124-row Inverse table yields while its rows are placed, never more than 10 rows apart (1 yields…)" |
+| the per-table yield removed | "14: the host gets control back after every table (none after table 17, 21, 22)" |
+| the header left at its component width | "2: the table and its header are as wide as its grid, 2828px… (header 2517)", "12: the table and its header hug the grid…" |
+| a FIXED column track | "5: every column and row track of every table is HUG" (and the width arms in 2 and 5) |
+| a text cell left hugging | "5: every text cell FILLs its track, both axes (3372 of 3372 do not)", "12: every cell follows its track…" |
+
+### Review round (review of `f95a2cb3`) and two more owner decisions
+
+**Owner decisions (2026-09-29), recorded as `docs/45` §2 decisions 12 and 13:** a **2px gap** between tracks, rows and columns alike, and a **fixed-size swatch**: the swatch instance keeps its component's size, FIXED on both axes, inside a cell that FILLs its track. Read as the brief's test states it: the specimen's ground frame stays as the cell (it carries the contracted ground, the reason the owner's white-only specimens were a defect) and FILLs; the swatch inside it no longer stretches with anything. (The owner then clarified decision 13: a palette row has no ground at all; see the owner's answers below.) With the gap, the owner-cell Text table is 2,854px (2,828 + 13 × 2), a grown row is 74px (72 + 2), and the literals in sections 2, 10 and 13 moved with it.
+
+**S1, a filtered run moved tables it did not draw.** The diagnosis: the filtered run reused the unfiltered re-stack, which re-flows the page from its topmost table and so closes every gap. The claim "the tables below move by exactly the height delta" held only on a tight stack. The fix is not a smarter re-flow but no re-flow: a filtered run records each redrawn table's height before and after, and moves only the tables below it in its column that sit where the generator left them, by exactly that delta. A moved table's position record moves with it. **Deliberate departure from the review's wording** ("never writes position records for tables it didn't draw"): without that write, the next run reads a table the generator itself moved as moved by hand, leaves it out of the stack, and would report it as "moved" if it were ever superseded. What is guaranteed instead is narrower and checkable: no record is written for a table the run does not move, and a record-less table is never moved or recorded.
+
+**S2, two runs could overlap (#1785).** *(Superseded when the branch was brought up to date with main: the gate described here is gone, and main's run guard, #1957, holds the style guide instead. See the last section.)* A gate in `style-guide.ts` (`createStyleGuideGate`), one per plugin session in `main.ts`, which both entry points reach through `ACTIONS.styleGuide`. The entry point is told apart by the sink (`uiSink` is the panel's). Refused, not queued: a queued second run would redraw every table the first had just drawn, and the panel's pending state would have to span two runs. The refusal carries `busy: true`, so an agent's refusal is not forwarded to the panel and a panel's leaves its row pending on the agent's run. An agent's run posts its table readings to the panel as well, and the panel goes pending on a reading only when it is the first one (`done: 0`), so a reading arriving after its own result can never bring a finished run back. **Style guide only:** `build-components` and `apply-theme` each have their own verdict slot and pending state, so a shared guard needs a refusal shaped for each; #1785 stays open for them, and the PR says "Part of".
+
+**S3** is `docs/45` §7's known limitation (closing the plugin mid-run). **S4:** the reflow test asserted the shim's own assumption. The typings define HUG as CSS `fit-content(100%)`, which does not absorb extra width, so the shim no longer spreads a dragged grid's extra across its tracks, section 12 asserts only that a FILL cell is as wide as its track and that the wrapper and header follow the grid, and what a drag does is a `docs/45` §7 live-check. If the host leaves slack, the owner's "drag wider and it reflows" needs FLEX tracks: that is a design call, flagged, not made.
+
+**Nits:** tests for the header-width miss and the row-track read-back; the header mutation map's retired names marked; a name of spaces alone is `bad-args`; the unknown-name note lists the first 8 titles and "and N more"; the panel's Tables field is a textarea where a line break, when present, is the only separator, so a title keeps its comma; a filtered run that draws a renamed group's new table says the old one stays until a run without a Tables filter.
+
+**Trap.** The plugin build's sandbox check reads `node:` as a builtin import anywhere in `dist/main.js`, so an object literal with a property named `node` (`{ node: wrap }`) fails the build. The field is `frame`.
+
+**Mutations,** after a `wip:` commit, each restored from HEAD. Each fails by name:
+
+| Mutation | Fails |
+|---|---|
+| the track gap left at 0 | "5: every table's grid has a 2px gap between its rows and between its columns", "2: the table and its header are as wide as its grid, 2854px…", "10: … 740px", "13: … 148px" |
+| the swatch's FIXED sizing dropped | "5: every swatch keeps its component's 48 × 48, FIXED on both axes, inside a cell that FILLs its wider track (1236 of 1236 do not…)" |
+| the gap-closing re-stack restored for filtered runs | "13: a filtered run whose table keeps its height moves no table and writes no position record… (17 moved…; 17 recorded)", "13: a table a designer moved and a table with no position record are left alone… (Warning +148…)", "13: shrinking back by 148px moves the same 17 tables…" |
+| the header-width miss dropped | "10: a header the host will not size to its table is named, with the table's width and its grid's (no miss)" |
+| the row-track read-back clause dropped | "10: a grid that did not keep its hugging ROW tracks is named (no miss)" |
+| the unknown-name title list uncapped | "13: an unknown name is reported by name, with the first 8 titles this run can draw and "and 35 more"" |
+| the renamed-table note dropped | "13: a filtered run that draws a renamed group's new table says the old one stays until a run without a Tables filter" |
+| the gate's refusal removed (`createStyleGuideGate`) | "15: a run asked for from the agent link while a panel run is mid-yield is refused…", and in `test-agent-link.ts` "one-run/agent: … is refused…", "one-run/panel: a click while the agent's run is mid-yield is refused…" |
+| `main.ts` routes around the gate (`styleGuide` in `ACTIONS`) | "one-run/agent: a style guide asked for over the link while the panel's run is mid-yield is refused…", "one-run/panel: a click while the agent's run is mid-yield is refused…", "one-run/panel: an agent's run posts its readings to the panel too…" |
+| the `busy` refusal forwarded to the panel | "one-run/agent: the refusal goes to the agent alone…" |
+| an agent's readings not posted to the panel | "one-run/panel: an agent's run posts its readings to the panel too…" |
+| the panel not going pending on an agent's first reading | `test:verdict`: "#1785 an agent-link run's first reading puts the page's row pending, the button disabled"; the `busy` result read as a verdict → "#1785 a busy refusal leaves the row pending on the run in flight, with no verdict pill" |
+| a name of spaces alone accepted | "style-guide with a name of spaces alone for tables → bad-args…" |
+
+### The owner's answers on the PR (2026-09-29)
+
+**A second run is refused, with "✗ already drawing"** — decided, `docs/45` §2 decision 14; only the summary's wording stays proposed. (Since the merge with main, the refusal is the run guard's, in its words; the headline is held for the owner, below.)
+
+**Decision 13, clarified: the specimen depends on the token's role, and a ground appears only where the specimen must sit on something.** "The palettes do not need this. We could do this for fills though. Text should be letters that can sit on a BG, and borders are shapes with strokes that can sit on a BG." The first reading (a fixed swatch inside a ground on every row) was half of it. What moved in code is only the palette row: `swatchOf` builds the bound, mode-pinned member, `keepSize` fixes it at its size once it is in its parent, and a primitive table places it straight into the grid cell with no ground. Every semantic row already drew the member its role names, through the existing `autoDisplay` classification (letters for `text`, the outline for `border`, the glyph for `icon`, the checkerboard for translucent values), on the ground the contrast column measures against. So the owner's text/border/icon cases were already built, and are now asserted literally. **Transparency:** an alpha *palette* draws the checkerboard with no ground (the checkerboard is what shows the alpha, and nothing is measured); a translucent *role* keeps its ground, because its contrast is measured over that ground and the specimen should show what the number measures. **Ambiguous by the name-based classification,** listed in `docs/45` §8 and drawn as it reads them today: `*/on-fill`, `field.placeholder` (both ink with no text/icon segment, drawn as filled squares) and `foreground.*` (non-text graphic colors, drawn as fills).
+
+A palette row is now 48px, its bare swatch, where it was 72 inside a ground, so the filter test's growth is 2 × (48 + 2) = 100px, not 148. **Trap:** section 11's edit fixtures read "the swatch" as the ground's first child; with the ground gone that is the swatch's own `Specimen` layer, and the swap fixture then threw on a null main component, which aborted the suite after section 11 with sections 12–15 silently unrun. The helper now reads the cell itself when it is not a ground. A crashed suite reports fewer checks, not a failure line, so read the exit code, not only the `✗` lines.
+
+| Mutation | Fails |
+|---|---|
+| a ground on a palette row (primitive rows drawn through `specimen`) | "5: a palette row has no ground frame: its cell is the type=default swatch, 48 × 48 and FIXED (Ground … 168 grounds in the primitive tables)", "13: two new steps grow Primary — nbds by 2 × (48 + 2) = 100px (got 148)" |
+| a filled square for a text role (`autoDisplay` never returns `text`) | "5: a text.* row draws letters, the type=text member with its "Aa" fill bound to the token, on its ground, with no filled square (type=default…)", "5: text/primary uses the text swatch", "3: a text role draws the text swatch", "2: the adopted type=Text swatch is used for a text role" |
+
+### Brought up to date with main (2026-10-05)
+
+**What changed.** `git merge origin/main` (154 commits), no rebase. #1784's own run gate (`createStyleGuideGate`, `styleGuideBusy`, the `busy` flag on `style-guide-result`, the `styleGuideOnce` wrapper and the dispatcher's `busy` forward filter) is deleted. `ACTIONS.styleGuide` is main's `guarded('style-guide', styleGuide)` (#1957), so "one run at a time" comes from `run-guard.ts`. The engine bump moved from `version.ts` into a change note; this entry moved from the top of the log into this fragment.
+
+**The panel side was re-ported, not merged.** Main's UI redesign moved the host state into `state/host-session.ts` (a pure `reduce` plus topics) and the write adapter into a typed `INBOUND` table, so #1784's hunks there had nothing to land on. `style-guide-progress` is now a `HostMessage` kind, validated in `INBOUND`, kept in `styleGuideProgress` beside `styleGuideState` (accepted only while pending, cleared by the verdict and by an unpend), and it invalidates `host:progress`, which rewrites the page row's pending pill and the Activity drawer's phase line ("Drawing table 7 of 22…") in place. The *Tables* field carries a `style-guide-tables` hook so `test:verdict` drives it by hook, like the other Customize fields.
+
+**What main's guard covers, and the one addition.** Both directions are refused by the guard, from either entry point, mid-yield (`test-agent-link.ts` `one-run/*`, now asserting main's `refused` message and `busy` error). #1784 also put the page's button in a busy state while an *agent's* style guide drew. Main's guard does not do that, and main's run functions apply owner decision #4 on #1956 (busy while the panel's or an agent's run is out) only to the bar's and menu's writes. The smallest addition: `syncStyleGuideRow` reads `agentRunning('styleguide')` too, and also listens on `host`, where `agent-started` and `agent-finished` land. What is NOT carried: #1784's row went pending on an agent's first table reading and counted the agent's tables. Main tells the panel about an agent's run through `agent-started`, and its `agent-progress` reading takes the component build's phases only, so an agent's style guide shows no count. Also not carried: #1784's refusal kept the panel's row pending on the agent's run. Main's reducer unpends it and records the refusal in the Activity drawer.
+
+**Held for the owner, then answered (2026-10-05).** `docs/45` §2 decision 14 named the refusal's headline "✗ already drawing"; the guard's refusal is not a verdict and carries its own words ("Style guide is already running. Try again when it finishes."). The owner's answers on the three items flagged on the PR: **Q18 (a)**, keep main's refusal words; **Q19 (b)**, show an agent's table count now (below); **Q20 (a)**, keep main's refused-click behavior (the row is reset and the drawer records the refusal).
+
+**Mutation.** With `ACTIONS.styleGuide` routed around `guarded` (a `wip:` commit first, restored from HEAD), `test-agent-link.ts` fails `one-run/agent: a style guide asked for over the link while the panel's run is mid-yield is refused with busy` and `one-run/panel: a click while the agent's run is mid-yield is refused with busy`, by name.
+
+### Q19 (b): an agent's style guide counts its tables
+
+**The gap.** The plugin already streamed an agent's table readings as `agent-progress` phase `table`. The studio dropped them twice: the adapter's `progressReading` accepts only the build's phases, and the reducer's `agent-progress` took only a build run.
+
+**The fix reuses the panel run's path.** The adapter accepts phase `table` through `tableReading`, the validator `style-guide-progress` now uses too. The reducer keeps a reading only when it is the run's own kind: a build's phases on a build, a table count on a style guide. `styleGuidePendingText` reads the panel's own `styleGuideProgress` while its run is pending and the agent's reading otherwise, and the page row renders an agent's run as the same pending pill. So the row and the Activity drawer read "Drawing table 7 of 22…" for an agent's run, the panel run's words, with no new string. The run guard is unchanged.
+
+**Tests.** `test:verdict` posts `agent-started` and an `agent-progress` table reading (6 of 22) through the built panel and reads `["Drawing table 7 of 22…"]` on the page row's pill and on the drawer's Style guide row, as literals. `test-host-session.ts` adds the reducer's three cases, and `test-write-adapter.ts` adds the accepted reading.
+
+**Mutation** (after a commit, restored from HEAD): the reducer's `r.op === 'styleguide' && m.phase === 'table'` made `false` fails `test:verdict` "Q19 an agent-link style guide counts its tables on the page's row" and "… on the Activity drawer's Style guide row", and `test-host-session.ts` "agent-progress: an agent style guide records its table count…", by name.
+
+---
+
+## (2026-10-05) — Chrome: a disabled text field does not answer hover
+
+**STATUS: branch `ui/disabled-field-focus`.** UI and tests only. No engine change, no emitted artifact moves, no ENGINE bump, and `CONTRACT_VERSION` is unchanged. No new copy. A follow-up to #2120.
+
+**The owner's decision (2026-10-05, F2).** A disabled text field shows no hover. `.p3-text-input:hover` became `.p3-text-input:hover:not(:disabled)`, so a pointer over Layout's fixed first breakpoint field no longer moves its edge to `field-edge-hover`. Before this, the field drew the hover edge, which reads as editable.
+
+**Held: F1 and F3 of the same decision.** F1 (a disabled field takes Prism3's own disabled field skin) and F3 (Continue's focus ring) are not in this PR. Both were reported to the owner with their evidence:
+- **F1.** Prism3's text field (`packages/engine/components/text-field.ts`) draws disabled as `color.disabled.fill`, `color.disabled.border` and the on-fill ink `color.disabled.on-fill`. It carries no surface, so it uses no `inverse.*` set. Mirrored into the chrome, that skin measures 3.05:1 text and 1.80:1 edge on the light page, and 3.04:1 and 1.65:1 on the dark page. `test:chrome`'s audit holds every chrome field to 4.5:1 and every control edge to 3:1, and it has no exemption for disabled controls. So the mirrored skin fails `every chrome field inks its value at 4.5:1` and `every control edge and indicator clears 3:1` on both hosts and both themes. Whether the chrome exempts disabled fields is the owner's call, so #2120's dashed edge stays.
+- **F3.** Prism3's button ring is `color.border.focus`, `focus.ring.width` (2px) and `focus.ring.offset` (2px). The owner chose the page's text color, and Prism3's color differs, so this sub-item stopped. The chrome's brand-leak check (`BRAND_RE` in `chrome/tokens.mjs`) also forbids `border.focus` in the chrome.
+
+**The check (`test:chrome`, `disabled field:`).** On both hosts and both chrome themes, a pointer over the disabled first breakpoint field must change none of its background, edge or text colors. A control arm, a pointer over an editable breakpoint field, must change that field's edge, which proves the probe can see a hover. Given a screenshot directory, the block also saves the disabled field and Continue focused by keyboard.
+
+**Mutation, after a `wip:` commit, restored with `git checkout -- <file>`:**
+- `:not(:disabled)` dropped from the hover rule: 4 failures, all this check, for example `✗ disabled field: web light: a pointer over the disabled first breakpoint field changes nothing — borderTopColor rgb(141, 142, 144) → rgb(103, 105, 107)`.
+
+---
+
+## (2026-10-05) — typography refuses an empty or reversed viewport range (#2068)
+
+**STATUS: branch `engine/2068-viewport-range-refusal`.** `ENGINE_VERSION` → **0.228.0** (minor, a change note). No emitted artifact moves; `CONTRACT_VERSION` unchanged. **Fixes #2068** (engine side).
+
+### What changed
+
+`fluidClamp` (`tree.ts`) interpolates a fluid size between `typography.responsive.minViewport` and `maxViewport`, and divides by their difference. Nothing checked the pair:
+- **800/800** emitted `clamp(2.25rem, -Infinityrem + Infinityvw, 3rem)`, which is invalid CSS, so the browser drops the whole declaration.
+- **1280/375** emitted a clamp() whose size shrinks as the viewport grows.
+
+Both built clean.
+
+`buildTypography` (`theme.ts`) now throws when `minViewport >= maxViewport`, with the owner's approved wording (2026-10-05), one sentence for both the equal and the inverted pair:
+
+> The minimum viewport (‹min›px) must be smaller than the maximum viewport (‹max›px).
+
+‹min› and ‹max› are the values as entered. The refusal holds **with `fluid` off too**, which is owner decision Q16 = (a). The pair is what the fluid regime reads, so a brand that turned fluid on later would otherwise inherit the bad range.
+
+**Wording history.** The first push carried two drafted messages for the owner's review, one per arm, each prefixed `typography.responsive:`. The approved sentence replaced both before merge.
+
+### Tests
+
+In the `[#1587]` sizeOverrides block of `test.ts`, which has the `tBrand` / `msgOf` helpers. Each expected message is the approved sentence typed as a literal and compared exactly:
+- equal (800/800), refused;
+- inverted (1280/375), refused;
+- the values as entered (400.5/400 gives `400.5px`, not rounded);
+- inverted with `fluid: false`, still refused;
+- the default range builds, both omitted and stated explicitly as 375/1280;
+- at 375/1280 the emitted tree's clamp() values are all finite. A floor requires at least one to be emitted, so the arm can't pass over an empty set.
+
+### Out of scope
+
+- **Offering the refusal up front in the studio** (`apps/studio/src/state/type-input.ts`, like #2054 / #2055) is the UI lane's follow-up.
+
+---
+
+## (2026-10-05) — Correction to 2026-10-05 FO-02 tells a role ground from a step ground (#2097 item 1)
+
+The entry says the role-branch mutation **mA** (`if (role) return ramps.get('neutral')?.find((s) => s.key === '050')?.rgb ?? role;`) was "caught only by the #1745 exit gate". **That is wrong.** Against FO-02 as it then stood, mA failed three arms: **L-06** (an inverse link family is independently settable), **IT-01** (the carried icon is re-rated against its own `against`), and the **#1745 exit gate**.
+
+Re-measured on 2026-10-05 with every failure line printed. FO-02b now catches mA as well, so today it fails four:
+
+```
+❌ L-06: an INVERSE link family is independently settable (got 550, pinned 025)
+❌ FO-02b: a role ground resolves to that role's color, #c8d2dc — not the floor step (#e9e9e9) or the page (#ffffff); got #e9e9e9
+❌ IT-01: the carried icon is re-rated against its own `against`
+❌ #1745 exit gate: an override sinking the label on the bold neutral fill …
+Prism3 engine tests: 135274 passed, 4 failed
+```
+
+**How it happened.** The original run printed failure lines through a keyword filter (`grep -E "landed|exit|FO-0|passed|…"`). The #1745 line passed because it contains the word "exit", and the L-06 and IT-01 lines were dropped. The harness had already reported `3 failure line(s)`, and only one was shown. That mismatch was the signal, and it went unread.
+
+**What stands.** The entry's conclusion is unchanged: FO-02, the arm written to hold these two branches, was green under both mutations, and FO-02b closes that. The mB row was complete as written: it reported 7 failure lines, and all 7 were FO-01 and FO-01b.
+
+---
+
+## (2026-10-05) — layout refuses a first breakpoint that isn't 0px (#2132)
+
+**STATUS: branch `engine/2132-first-breakpoint-zero`.** `ENGINE_VERSION` → **0.228.0** (minor, a change note). No emitted artifact moves; `CONTRACT_VERSION` unchanged. **Fixes #2132** (engine side).
+
+### What changed
+
+Breakpoints are mobile-first min-widths, smallest first, so the first is the layout for every width below the second. A first floor of 320 leaves screens under 320px with no layout. The studio locks that field at 0px ("Always 0px."), so only a hand-written brief or saved file could reach another value. The engine accepted it silently, and the studio then showed the stored value beside "Always 0px.", which was false (found in #2120's review).
+
+`buildLayout` (`theme.ts`) now throws when `layout.breakpoints[0]` is not 0, with the owner's approved wording (2026-10-05, decision F4 A), the value as entered:
+
+> The first breakpoint must be 0px. This brand starts at ‹n›px.
+
+Swept before landing: every committed brand, fixture and brief (`examples/*.design.md`, the test fixtures, the studio's and plugin's sources) starts at 0, so nothing that built before is refused.
+
+### Tests
+
+In the layout block of `test.ts`, beside `lyBrand`. Each expected message is the approved sentence as a literal, compared exactly:
+- 0 builds, stated explicitly (`[0, 768, 1024]`) and by default;
+- 320 is refused;
+- 1 is refused, so the rule is "not 0" rather than a threshold;
+- 0.5 is refused, and the message carries `0.5px` as entered, not rounded.
+
+Mutation, deleting the refusal: the three refusal arms fail by name, the 0 arm stays green, and all 3129 assertion sites ran.
+
+### Not this rule
+
+**An empty `breakpoints` list builds**, with no breakpoints at all (measured: `layout: { breakpoints: [] }` gives an empty layout and no error). The approved message names a first value, and an empty list has none, so the refusal skips it (`floors.length > 0`). Filed as #2137.
+
+**Showing the refusal on the studio's import** (`Line ‹n›: …` under the S7 template) is the UI lane's follow-up.
+
+---
+
+## (2026-10-05) — the per-mode refusal tests name the refusal they hold (#2108)
+
+**STATUS: branch `test/2108-mode-refusal-messages`.** Test only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. **Fixes #2108.**
+
+### The gap, measured
+
+`brandTheme` (`theme.ts`) carries three copy-pasted pairs of per-mode refusals, one pair each for `overrides`, `modeAnchors` and `modeLevers`: "mode is not in this brand's modes", and "mode is generate-only". Their tests (`A1(c)`, `A2b(c)`, `D(c)`) asserted only that **something** threw. Six mutations, each making one branch throw the next family's message (overrides → modeAnchors → modeLevers → overrides), run against the tests as they stood:
+
+| branch | old tests |
+|---|---|
+| overrides, absent | **whole suite green** (135274 passed, 0 failed) |
+| overrides, generate-only | caught only by FO-01b's `hc-dark` arm (#2113) |
+| modeAnchors, absent | **whole suite green** |
+| modeAnchors, generate-only | **whole suite green** |
+| modeLevers, absent | **whole suite green** |
+| modeLevers, generate-only | **whole suite green** |
+
+A user would be told the wrong field, and nothing would notice.
+
+### The fix
+
+The eight mode-refusal arms of `A1(c)`, `A2b(c)` and `D(c)` now check that the message starts with its own field, its mode and its reason. For example, `"modeLevers: mode 'hc-light' is generate-only"` and `"overrides: mode 'dark' is not in this brand's modes"`. The other arms in those blocks (a malformed palette or step, the radius range) are unchanged.
+
+### Mutations against the new tests, each failing by name
+
+All 3125 assertion sites ran under every mutation, the same as unmutated.
+
+- **overrides, absent:** both `A1(c)` absent arms, e.g. `(got "modeAnchors: mode 'dark' is not in this brand's modes (light)")`
+- **overrides, generate-only:** `A1(c)` hc-light, plus FO-01b
+- **modeAnchors, absent:** `A2b(c)` absent
+- **modeAnchors, generate-only:** `A2b(c)` hc-light
+- **modeLevers, absent:** `D(c)` absent
+- **modeLevers, generate-only:** `D(c)` hc-light and wireframe
+
+---
+
+## (2026-10-05) — Surfaces & fills: the Neutral cards badge their text on their own fill
+
+**STATUS: branch `ui/neutral-badge`.** UI and tests only. No engine change, no emitted artifact moves, no ENGINE bump, and `CONTRACT_VERSION` is unchanged. No new copy.
+
+**The owner's decision (2026-10-05).** On Color › Surfaces & fills, the Foreground section's three Neutral cards (`foreground.primary`, `.secondary`, `.tertiary`, each with its label in `text.primary`) now carry a contrast badge for what they draw: the label's ink on the card's own fill. Subtle and Inverse already did this (#2084, #1971 Q13(a)). The Neutral cards take the Inverse cards' exact call, `surfaceCard(…, inkBadge = true)`, which puts `onFillBadge(ink, fill, chip)` beside the plane's pill. Every corpus brand emits the three neutral fills `against: self`, so their chips had no badge of their own before, and none is lost. The badge's ratio is measured on the two role hexes, as the Subtle and Inverse badges are.
+
+**The check (`test:smoke`, Surfaces & fills, every brand × mode).** `every Neutral card in Foreground badges its text on its own fill, its badge naming that pair`. For each Neutral card (a literal list, `NEUTRAL_ON_FILL`), the badge must exist, and its `data-pair` must read `text.primary on foreground.<t>`. The card's rendered fill and label colors must equal the emission's hexes for those roles, and the printed ratio must match the ratio computed in the test from those two rendered colors. The existing Subtle/Inverse arm checks that a badge exists but not its pair. A pair written fill-on-ink prints the same ratio, so only the Neutral arm can see it. A sweep-wide floor (`the Neutral on-fill badge arm measured N Neutral cards`) fails a run that measured none.
+
+**Mutations, after a `wip:` commit, restored with `git checkout -- <file>`:**
+- Neutral cards back to `surfaceCard(c, k, n, 'text.primary')`: 13 failures, all this arm, one per brand × mode, for example `✗ prism3 / Surfaces & fills / light: every Neutral card in Foreground badges its text on its own fill, its badge naming that pair — foreground.primary: no badge of its drawn pairing | …`, plus the floor `✗ the Neutral on-fill badge arm measured 0 Neutral cards (floor 18)`.
+- `surfaceCard`'s badge called fill-on-ink (`c.onFillBadge(k, inkRole, k)`): 13 failures, all this arm, for example `✗ prism3 / Surfaces & fills / light: every Neutral card in Foreground badges its text on its own fill, its badge naming that pair — foreground.primary: its badge's pair is "foreground.primary on text.primary", not "text.primary on foreground.primary" | …`. The Subtle and Inverse arm stayed green under it.
+
+---
+
+## (2026-10-05) — test:chrome's stale-bundle check also watches the plugin's build script and its prose strip (#2098 item 1)
+
+**STATUS: branch `test/2098-freshness-roots`, PR #2110 open.** Test harness only: no product code changes, no emitted artifact moves, ENGINE stays at 0.228.0 and `CONTRACT_VERSION` is unchanged. Part of #2098.
+
+**What was wrong.** The browser suites refuse to start on a bundle older than its sources, so they never test an old UI. Since #2102 they share one check, `assertBundleFresh` in `apps/studio/test-bundle-freshness.mjs`, over literal source directories. Three build scripts shape a bundle from outside every directory, so an edit to any of them let a stale bundle through:
+- `apps/plugin/build.mjs`, for `apps/plugin/dist/ui.html`;
+- `apps/plugin/strip-maintainer-prose.mjs`, which that build runs over component prose, also for `ui.html`;
+- `apps/studio/build.mjs`, which sets `main.js`'s defines.
+
+**What changed.**
+- A root may now be one file. It is compared as itself, and a missing one fails by name, as an empty directory does (docs/34 shape 9).
+- `PLUGIN_UI_SOURCE_ROOTS` gains the plugin's two files, and `STUDIO_SOURCE_ROOTS` gains `apps/studio/build.mjs`. So `test-smoke.mjs` is covered too.
+- The build's other inputs were already covered. The chrome CSS plugin both builds import is under `apps/studio/chrome`, and `src/ui/index.html` is under `apps/plugin/src`.
+
+This PR's first version added an inline check to `test-chrome.mjs`. #2102 replaced that check with the shared module, so the inline edit was dropped in the merge.
+
+**Mutations, each failing by name (exit 1):**
+- `touch apps/plugin/build.mjs`, no rebuild → `✗ ui.html freshness: apps/plugin/dist/ui.html is older than apps/plugin/build.mjs`.
+- `touch apps/plugin/strip-maintainer-prose.mjs` → the same line, naming that file.
+- `touch apps/studio/build.mjs` → `✗ main.js freshness: apps/studio/dist/main.js is older than apps/studio/build.mjs`, from both `test-chrome.mjs` and `test-smoke.mjs`.
+- A root renamed to `apps/plugin/build-gone.mjs` → `✗ ui.html freshness: source root apps/plugin/build-gone.mjs is missing or holds no files`.
+
+**Controls.**
+- With `main`'s roots and `build.mjs` touched, the check passes. That is the stale case getting through before this PR.
+- With the file-root arm removed, a file root refuses as "holds no files". That is the behavior #2110's review found on `main`.
+
+**Trap for whoever re-verifies this.** Each touch leaves its bundle older than the file, so the next run refuses. Rebuild that bundle before running anything else.
+
+---
+
+## (2026-10-05) — The studio README names which pages go read-only in a derived mode (#2098 item 2)
+
+**STATUS: branch `docs/2098-readme-derived-pages`, PR #2111 open.** Docs only: no code changes, no emitted artifact moves, ENGINE stays at 0.228.0 and `CONTRACT_VERSION` is unchanged. Part of #2098 (see #1984).
+
+**What changed.** `apps/studio/README.md`'s section on why a sweep must loop modes outside pages had said only that a derived mode is hatched. It also still described two kinds of page.
+
+Since #2090 (S8.2) moved Components, every page is `status: 'new'`. The `'legacy'` kind is still in the type, but no page uses it. The section now says that, and drops its legacy-page bullet and the legacy halves of the symptom and the rule.
+
+It names the seven pages that keep their controls on screen, read-only, under an "auto-derived — read-only" state line in a derived mode: Surfaces & fills, Interactive, Type, Shape, Depth & motion, Layout and Components. Brand and Palettes show no line and stay editable, since nothing they set varies by mode.
+
+**How it was checked.**
+- **Live, before #2090.** A throwaway Playwright probe (not committed) opened prism3, aurora and harbor in HC light. For each page it read the state line and how many controls were enabled. The six then-moved pages showed the line with almost every control disabled (Fills 1 of 154 enabled, Layout 1 of 33). Brand and Palettes showed no line, with their controls enabled.
+- **Components, after the merge.** It was checked in code. `components.ts` draws `components-derived` in a derived mode, and `test-chrome.mjs` asserts that line.
+- **The derived-state hooks.** Each of the seven has one in `src/domains/` (`isDerived`), and neither Brand nor Palettes does.
+
+---
+
+## (2026-10-05) — lint-ratio-truth reads a palette step's color from the emission, not the emitter's input (#2097 item 4)
+
+**STATUS: branch `gate/2097-ratio-truth-reads-out`.** Gate only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. **Item 4 of #2097.**
+
+### The gap, measured
+
+Since #1986, arm A recomputes every ratio measured on a palette-step ground (the contrast floor). It read the step's color from `theme.palettes`, which is the emitter's **input**. Its lookup was independent of the engine's ground lookup, but its data was not. So an emitter that wrote a step's primitive wrong agreed with itself here. Measured: with `primitiveLeaf` in `tree.ts` emitting every `050` step at 90% of its color (rounded, so it is a valid color), the gate as it was reported **clean**: exit 0, all 49432 ratios "matching".
+
+### The fix
+
+The step's color now comes from the emission:
+- **Corpus brands with a committed tree** (`COMMITTED_TREES`: `nb`, `aurora`, `harbor`, `wendys`, named literally) read `out/<brand>.tokens.json`.
+- **Every other case** (the `minimal-*` corpus fixtures, the declared-surface sweep and the override sweep, none of which has a committed tree) reads its own `buildTree` output.
+- `theme.palettes` still names WHICH ramps exist, and never supplies a value.
+- Each `$value` is parsed as `#rrggbb` or `rgb(r, g, b)`. nb's `colorFormat` is `rgb`, so all 121 of its steps use the second form. Anything else fails by name.
+- **A new floor (6):** every `COMMITTED_TREES` name must be read, and must contribute at least one checked row. A renamed corpus id or a moved file fails by name instead of quietly falling back to an in-memory build (docs/34 shape 9).
+
+Same coverage as before: 49432 ratios, 9184 on a step ground, 1640 of those in the corpus. 656 rows are now read from the four committed trees. The run takes 2.1s, up from 1.8s.
+
+### Mutations
+
+- **L1, the emitter writes a step wrong** (`tree.ts`, every `050` step at 90%, rounded). Old gate: clean. New gate: `❌ 6157 ratio-truth failure(s)`, for example `corpus:minimal (required fields only)/light: 'foreground.brand' records ratio 4.10 against 'neutral.050', but the emitted colors measure 3.29`.
+- **L2, a committed tree is wrong** (`out/aurora.tokens.json`'s `neutral.050` set to `#c9c9ca`). Old gate: clean. New gate: `❌ 142 ratio-truth failure(s)`, for example `corpus:aurora (engine-native brief)/light: 'foreground.brand' records ratio 5.29 against 'neutral.050', but the emitted colors measure 3.88`. A committed tree drifting from the live emitter is also `regen --check`'s subject, so L2 shows what this gate now reads, not a hole only it closes.
+- **L3, a `COMMITTED_TREES` name drifts** (`harbor` → `harbour`). `❌ COMMITTED_TREES names 'harbour', but no corpus brand read out/harbour.tokens.json`.
+- **First L1 attempt, unrounded.** It produced non-integer channels, which `colorValue` rendered as malformed hex. It failed by name, but on the new parse guard (`the emitted tree has no readable color at prism.core.palette.neutral.050`) rather than on the ratio. Kept as evidence for the guard, and redone rounded to test the ratio.
+
+**Not covered, unchanged:** a ROLE ground's color still comes from `resolveAllModes`, not from the emission. #2097 scoped this item to steps.
+
+---
+
+## (2026-10-05) — A test checks that the chrome's eased scroll follows `motion.transition.default` when its alias is repointed (#2098 item 4)
+
+**STATUS: branch `chrome/2098-motion-transition-alias`, PR open.** Test only: no product code changes, no emitted artifact moves, ENGINE stays at 0.228.0 and `CONTRACT_VERSION` is unchanged. Part of #2098.
+
+**The read had already moved.** #2098 item 4 says `chrome/spec.mjs` reads `motion.duration.normal` and `easing-role.default`. That was true when #2041 was reviewed. On `main`, #2041 (243d201f) already reads `motion.transition.default#duration` and `#timingFunction`, and `chrome/tokens.mjs`'s `resolve` follows a member's alias. What was still missing is a gate that tells the two reads apart. Over the committed emission they agree, because the composite points at exactly `duration.normal` and `easing-role.default`. So test-chrome.mjs's QA-B9 arm, with its literals `200ms` and `cubic-bezier(0.2, 0, 0, 1)`, passes either way.
+
+**What changed.** `apps/studio/test-chrome-motion.ts` is new, and it runs in `npm run -w @prism3/studio test`. In each chrome theme it:
+- takes the rows `shellRows` hands the build;
+- clones the merged tree;
+- adds fixture leaves (345ms; a curve of 0.11, 0.22, 0.33, 0.44), each one alias hop away, as the emission's are;
+- repoints the composite's two members at them;
+- asserts `cssOf` builds exactly those values.
+
+The expected values are literals the emission never carries. A control checks that, over the unmodified emission, the same rows read the engine's own values.
+
+**Mutations, each failing by name:**
+- `transition-dur` read directly from `motion.duration.normal` → `light: --p3-transition-dur follows the repointed duration (want 345ms, got 200ms)`, and the same in dark;
+- `transition-ease` read directly from `motion.easing-role.default` → the `-ease` arm in both themes;
+- `resolve` not following a member's alias → both arms in both themes.
+
+**Trap for whoever is next.** That last mutation first crashed the suite (`value.join is not a function`) instead of failing an arm. The test now catches a throwing read and reports it as the value it got, so a broken resolver fails by name like the rest.
+
+---
+
+## (2026-10-05) — Studio: the Type preview's ● and ○ are drawn by the embedded Inter, and back in the glyph check (#1993)
+
+**Status:** studio only: the embedded Inter subset (two code points added), `chrome.css` (one rule),
+`weights-by-face.ts` (the key's marks in spans, same words), `glyphs.mjs` (the `NOT_CHROME` entry gone), the
+recipe comment in `tokens.mjs`, and one `test:chrome` block. No ENGINE bump (no emitted artifact moves).
+CONTRACT unchanged. No new words.
+
+### What was wrong
+
+The Weights table in the Type preview marks each weight ● (ships it) or ○ (may not), and its key repeats both.
+S6.1 kept `weights-by-face.ts` out of the `[glyphs]` build check (`NOT_CHROME`), because the embedded Inter subset
+had neither glyph. Measured by CDP before this change, every mark was drawn by a device font (DejaVu Sans in the
+test container): the section sits in the legacy card, whose text stack is `styles.css`'s `--sans`.
+
+### The fix, in two halves
+
+- **The face carries them.** Inter itself has U+25CF and U+25CB, so this re-subsets it by the recipe beside
+  `CHROME_FONTS` in `tokens.mjs`, with those two added. The recipe first reproduced #1924's committed file byte for
+  byte (sha256 `1e27343f…8322`), so the only difference in the new file is the two code points. The source font's
+  sha256 matched the recipe. Every one of the 239 earlier code points keeps its outline, advance and variations,
+  compared glyph by glyph. The new file is 47,996 B (72 B more), with 241 code points.
+- **The marks are drawn by it.** One `chrome.css` rule gives `.tpw-mark.yes`, `.tpw-mark.no` and the key's
+  `.tpw-key` spans the chrome's UI face, inside `.p3-legacy-card`. The key's sentence stays one string literal,
+  split at ● and ○ only so each mark gets a span. Its `textContent` is unchanged, and its words still draw in the
+  card's own stack.
+
+`weights-by-face.ts` leaves `NOT_CHROME`, so `[glyphs]` reads its literals again.
+
+### What the eye sees
+
+The same filled and hollow circles. Inter's ○ is a little larger than DejaVu's, which shows in the key, and the
+section is 1px shorter. The ? mark (an unknown family) is untouched.
+
+### Checks, and the mutations that fail them by name
+
+- **`[glyphs]`, the build.** With the old subset back and the file in scope, the studio build fails with
+  `[glyphs] U+25CB (○) is not in the embedded face … weights-by-face.ts:62`, and the same for U+25CF (●).
+- **`test:chrome`, new block 20c.** By CDP, on web and in the plugin, every mark in the table and key is drawn by
+  `Inter` as a custom font, and at least one ● and one ○ are drawn in each (represented, not counted). Dropping the
+  `chrome.css` rule fails `#1993 (web): every availability mark is drawn by Inter, never a device font …`.
+  `[glyphs]` cannot see this half: it proves the face HAS a glyph, not that the page asks the face for it.
+
+---
+
+## (2026-10-05) — UI: a Layout write guard on main.ts, a dashed edge on a fixed text field, and PAIRS names Continue (#2098 items 5, 6)
+
+**STATUS: branch `ui/2098-layout-continue`. Part of #2098 (UI-lane items 5 and 6, from the reviews of #2041 and
+S10 #2060).** UI and studio tests only: no engine change, no emitted artifact moves, no ENGINE bump,
+`CONTRACT_VERSION` unchanged, no new visible wording.
+
+**1. `main.ts` keeps no Layout writes** (`test-shell-imports`, four new assertions), the same AST arm S9.1 and
+#2083 built for Depth & motion, Shape and the Button options. S10 moved Breakpoints, Grid and Containers to
+`domains/layout.ts`, writing through `state/layout-input.ts`. Now held: no direct write under `brandState.layout`
+(any assignment operator, `delete`, `++`/`--`, `Object.assign`, an in-place mutator such as `.push` on its
+breakpoints, or `setPath` rooted at `brandState.layout`, directly or through one alias); no keyed write (`setPath`
+into `layout.*`); and no `layout.*` key literal handed to the generic renderer (`renderControl`); and no import of `./state/layout-input` at all (review of #2120: the AST arms see only a write spelled in `main.ts`, so a call into `setColumns` or `addBreakpoint` slipped past them). Layout has no
+`ModeLevers` field, so there is no mode field to hold. Oracle: the literal `layout` root.
+
+**2. The fixed first breakpoint field no longer looks editable.** `.p3-text-input:disabled` takes a dashed edge and a
+not-allowed cursor. That is the chrome's existing can't-change edge, not a new design: a fixed check box
+(`.p3-check-fixed`), a locked value picker (`.p3-vpick[aria-disabled]`), a locked mode check and a disabled button
+already draw it. It also applies to text fields a derived mode locks, which had the same problem. `test:chrome`'s Layout
+block reads each breakpoint field's computed `border-top-style`: dashed on the first, solid on every editable one.
+
+**3. PAIRS names Continue.** `chrome/spec.mjs` described `inv-text` on `inv-bg` / `inv-bg-2` as "Apply Theme" only;
+Continue (`.p3-next`, QA-I12) draws in the same pair, so the entries now read "Apply Theme and Continue". This is the
+build-time checker's description, not visible copy.
+
+**Held for the owner (not in this PR).** Item 5's ring color: Continue's focus ring is `ctl-edge`, the same color as
+its `inv-bg` fill, so only the 2px offset separates it. The issue names the problem but not the fix (another color, a
+two-tone ring, or a wider offset are all visual choices). Item 6's first-field value: on a hand-written brand whose
+first breakpoint isn't 0, the disabled field shows that value beside "Always 0px." Showing 0 would misstate the
+brand, and dropping or rewording the note needs new copy. Both are listed on #2098.
+
+**Mutations, each failing by name:** `brandState.layout!.breakpoints!.push(320)` or `brandState.layout = {}` added to
+`main.ts` → `src/main.ts writes nothing into brandState.layout itself`; `setPath(brandState, 'layout.columns', 12)`
+→ `src/main.ts makes no keyed Layout write (setPath into layout.*)`; `import { setColumns, addBreakpoint } from './state/layout-input'` plus both calls → `src/main.ts imports no Layout write (./state/layout-input): it has none left to make`; the `.p3-text-input:disabled` rule removed →
+`Layout: web: the fixed first breakpoint field draws a dashed edge, and every editable one a solid edge` (and the
+figma arm).
+
+---
+
+## (2026-10-05) — Studio: `size-labels.ts` and its test are removed, the last of S6.3's dead code (#2038)
+
+**Status:** studio only (`apps/studio/src/size-labels.ts` and `apps/studio/test-size-labels.ts` deleted, one
+entry out of the studio `test` script, two comments). No ENGINE bump (no emitted artifact moves). CONTRACT
+unchanged. No visible change.
+
+### What changed
+
+#2038 named two pieces of dead code left after S6.3 retired the legacy Type page:
+
+- **`sizeColumnHeader`** in `apps/studio/src/size-labels.ts`. Only its own unit test called it. With it
+  gone, the module's two other exports, `SIZE_BASE_LABEL` and `SIZE_BASE_TITLE`, had no reader but that
+  same test, so the whole module goes, with `test-size-labels.ts` and its entry in the studio `test` script.
+  Two comments that cited `size-labels.ts` as precedent for a pure, tsx-testable module now cite
+  `provenance.ts` alone.
+- **`renderRepointTable`'s line height and letter spacing branch** in `main.ts`. Already gone: S9.2 (#2063)
+  removed `renderRepointTable` whole. `setRepoint` stays, because `domains/type.ts` calls it.
+
+### How "dead" was established, not assumed
+
+A search over `apps/`, `packages/`, `tools/`, `skills/` and the root scripts, tests included, finds no
+reference to `sizeColumnHeader`, `SizeColumnHeader`, `SIZE_BASE_LABEL`, `SIZE_BASE_TITLE` or
+`size-labels` after the change. Before it, the only references were the module, its test, the `test`
+script, and the two comments. The bundles agree from the other side: `apps/studio/dist/main.js` and
+`apps/plugin/dist/{main.js,ui.html}` carried the tooltip copy ("One base size —") zero times even BEFORE the
+change, because esbuild had already tree-shaken a module nothing bundled imports.
+
+### What the test guarded, and why losing it is safe
+
+`test-size-labels.ts` held #1586's rule: a type-size table's base column must not read "Light". The legacy
+size table it guarded is gone, and nothing renders `SIZE_BASE_LABEL` or `SIZE_BASE_TITLE`, so the test was
+checking a module no screen draws.
+
+---
+
+## (2026-10-05) — Studio: the dead legacy Interactive CSS is removed (#1976)
+
+**Status:** `apps/studio/src/styles.css` and one `STATES` entry in `apps/studio/src/main.ts`. No ENGINE
+bump (no emitted artifact moves). CONTRACT unchanged. No visible change.
+
+### What changed
+
+S5.2 (#1974) retired the legacy Interactive page and left its stylesheet behind. This removes it: the
+matrix caption (`.gcap`, `.gcap-t`, `.gcap-d`), the slot rows (`.arow`, `.arow-main`, `.arow-lead`, `.asw`,
+`.amid`, `.alabel`, `.adesc`), the example column (`.aex`, `.aex-two`, `.aex-spec`, `.exbox`), the live
+specimens (`.ibtn`, `.ilink`, `.pinnable`, `.inote`, `.inote-ic`), the states grid (`.astates*`,
+`.astate*`), both of the block's `@media` rules, and their comments. `arow-lead` leaves `STATES`, since
+no markup wears it.
+
+`.psec-h` sat in the same block and stays. It is not Interactive-only (the palette section head), and
+`attachModeBadges` in `main.ts` still queries it, so whether it is dead belongs to a sweep of that code,
+not to this one.
+
+### How "dead" was established, not assumed
+
+- **Source and bundles.** A word-bounded search over `apps/`, `packages/`, `tools/` and `skills/`, tests
+  included, finds none of the removed classes outside `styles.css`. The rebuilt bundles carry none of them, and the `--ibtn-*` / `--ilink-*` custom properties the
+  rules read are set nowhere.
+- **The rendered DOM.** A scratch Playwright preload (not committed) watched every page `test:chrome` and
+  `test:smoke` opened, with a MutationObserver, for a node matching any removed selector. Zero hits. A
+  positive control (`[data-p3]`) was seen on every page.
+
+### Moot, not fixed
+
+The removed `@media(min-width:901px)` rule's comment recorded a stale 325px calibration (#902, since closed).
+The rule and the rows it sized are gone, so the calibration has nothing left to measure.
+
+---
+
+## (2026-10-05) — Smoke: the Interactive page's 380 check waits on the frame's width tier (#2095)
+
+**STATUS: branch `ui/2095-interactive-380-wait`.** Tests only. No studio source change, no engine change, no emitted artifact moves, no ENGINE bump, and `CONTRACT_VERSION` is unchanged. Fixes #2095.
+
+**The race.** The frame's width tier (`data-w`, narrow or wide) is set by a ResizeObserver in `shell/frame.ts`. Its callback runs at the next rendering step, which can come after Playwright's `setViewportSize` resolves. A check that measures right after the resize can see the wide two-pane layout squeezed to 380px. #2090 fixed this for the Button options check, which flaked about 1 run in 10. The Interactive page's 380 check in `test-smoke.mjs` had the same shape, and was latent: forced wide, it still measured 0 overflow, so it passed in either tier.
+
+**The fix.** After the resize, the check waits on the tier as a real condition, not a duration. It reads the tier with the measurement, prints it in the assertion, and requires it to be `narrow`. So a run measured in the wide tier fails by name, rather than passing on a layout a designer never sees at 380.
+
+**Every other resize, swept.**
+- `test-smoke.mjs`: two `setViewportSize` calls. The Interactive one is fixed here. Button options (Components) already waits and requires `narrow` (#2090), so it is left as is.
+- `test-chrome.mjs`: no `setViewportSize`. Each state opens a new context at its final viewport, and `frame.ts` sets `data-w` synchronously when it mounts. So the tier is right before any measurement, and `goPlace`'s read of the tier has nothing to race. Left as is.
+- No other resize route (`resizeTo`, CDP device metrics) appears in either suite.
+
+**Mutation, after a `wip:` commit, restored with `git checkout -- <file>`.** The wait was dropped, and `data-w="wide"` was set on the frame before measuring, which is the stale tier #2090's investigation forced. Result: `prism3 / Interactive at 380: every chip group fits its panel (0 overflow, frame tier wide)`, the only failure (the Interactive drive runs on the first corpus brand). The 0 overflow is the latent part: without the tier in the assertion, this run passed.
+
+### Traps
+- **The overflow count alone can't catch this race on Interactive.** The wide tier happens to fit there too, so only the tier assertion fails. That is why the tier is required rather than just printed.
+
+---
+
+## (2026-10-05) — Type: the font status "⚠ Not installed" takes the ground's text color (#2091)
+
+**STATUS: branch `ui/2091-font-status-ink`.** UI and tests only. No engine change, no emitted artifact moves, no ENGINE bump, and `CONTRACT_VERSION` is unchanged. No new strings. Fixes #2091.
+
+**The owner's decision (2026-10-05, T-FONT A).** The Type preview's font status keeps its ⚠ symbol, and its words use the studio's normal text color. Inside the Type preview's ground that color is `--ink`, which `ground()` in `preview/sections/kit.ts` re-scopes to the mode's `text.primary`. So the label now reads at the brand's own body-text contrast: the lowest in the corpus is 15.98:1 (harbor light), against 3.84–4.16:1 before. `.tf-stat.no` moved from `var(--warn)` to `var(--ink)`. The label string, its span and its class are unchanged.
+
+**The glyph takes the text color too, not a warning tint.** The owner allowed the ⚠ to keep `--warn` only if it passed 3:1 as a graphical object on every brand ground in every mode. On the corpus it would (lowest 3.84:1, harbor dark). But the ground is the page color of whatever brand the designer authors, which the studio does not own, and a fixed amber cannot promise 3:1 there: a mid-tone page color takes it to about 1:1. Keeping the tint would also have needed a new carve-out in `test:smoke`'s probe. The probe measures every element that owns a text node, so it holds a lone "⚠" in its own span to the 4.5:1 text bar, and that bar is exactly what `--warn` fails. So the ⚠ alone says "warning", and the one span keeps one ink.
+
+**`KNOWN_CONTRAST_GAPS` is empty, and the mechanism stays.** The #2091 row was deleted. Both arms were re-proven by planting that row again: against the fix it fails as STALE, and against the mutation it excuses the general chrome check while the new check still fails.
+
+**The new check (`test:smoke` section 1, `FONT_STATUS`).** On the Type place, for every brand × mode, the font status (`span.tf-stat.no` "⚠ Not installed", a literal not read from `ui/fonts.ts`) must clear 4.5:1 wherever it is drawn. After the sweep, it must have been drawn in every brand × mode state swept. The label shows only where a brand face does not resolve on the device. That is true in CI and in a bare container, which drew it in 12 of 12 states (3 brands × 4 modes, 116 nodes). A machine with every corpus face installed fails by name with "NOT EXERCISED", because on that machine the check measured nothing. The general chrome check already covered this node, but only when it was drawn, so it could not tell an unmeasured run from a passing one.
+
+**Mutations, after a `wip:` commit, restored with `git checkout -- <file>`:**
+- `.tf-stat.no{color:var(--warn)}`: 14 failures, 7 of them the new check by name, for example `harbor / type / dark: the font status span.tf-stat.no "⚠ Not installed" clears 4.5:1 on the brand's page color in all 9 place(s) drawn (#2091) — 3.84:1`. The other 7 are the general chrome check on the same states.
+- The same mutation with the #2091 row planted back in `KNOWN_CONTRAST_GAPS`: 7 failures, all the new check. The planted row still excuses the general check.
+- The fix with the row planted: `known contrast gap #2091 (type / span.tf-stat.no "⚠ Not installed") still occurs — STALE if not: drawn 116 time(s), 0 below the chrome bar`.
+
+### Traps
+- **"✓ Installed" is still `--ok` on the same ground** (3.87:1 on the dark grounds, computed from the emission). It is drawn only on a machine that has the brand's faces, so neither CI nor this container ever measures it. The decision covered the warning only, so it is filed as #2103 rather than changed here.
+
+---
+
+## (2026-10-05) — UI redesign S8.3: the web's page sweep moves onto the tabs, and `mode-audit.mjs` is deleted
+
+**STATUS: branch `ui/s83-sweep-on-tabs`, stacked on S8.2 (#2090); merge right after it.** UI gates and docs only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged, no visible change and no new strings (the four shipped comments in `main.ts`/`kit.ts` that named the audit are reworded; they reach the bundle, so they stay US English). The third of S8's PRs, and the first half of S13 pulled forward: S8.2 removed the web's last legacy page and its Pages menu (G19 A), which left `test:smoke`'s sweep and the mode audit with nothing to walk. Fixes #1912.
+
+**`test:smoke` section 1 is the sweep again, on the tab row.** Every place a designer can reach (`SWEEP_PLACES`: Brand, Color › Palettes, Surfaces & fills, Interactive, Type, Shape, Depth & motion, Layout, Components), in every mode the preview header offers, on every corpus brand: 3 × 4 × 9 = 108 states, about 35 s. Per state, what the legacy sweep held each page to: 0 console errors; the frame shows the place and the preview names its view; the levers pane carries controls (a derived mode holds them, never removes them, Q59); every declared chrome surface outside the legacy workspace is mounted; the error bar is hidden; no horizontal overflow; **no legacy page drawn**; **mode agreement** (the mode chosen once in the preview header is the one mode every place marks, in its radios and its select); the rendered contrast of every text node and form control in the whole document; the paired specimens against the engine's contracts (#1652). The places are a literal, and the rendered tab row and Color's sub-row are the other side: they must agree both ways, per brand, so a place dropped from the list fails as "not walked" and a tab the studio grows fails until the sweep walks it.
+
+**The floors, re-derived from what the new pages render (measured, then set as minimums):** `SWEEP_STATE_FLOOR` 4 → 36 (2 brands × 2 modes × 9 places, the per-axis minimums; 108 measured); `SWEEP_NODE_FLOOR` 4000 → 10000 (about 53,000 measured in total; chrome-only states, the frame head, total under 1,500 across the corpus); `SWEEP_FIELD_FLOOR` 6 → 100 (492 measured). `STATE_NODE_FLOOR` stays 12 (the sparsest state measured 190). **The floors are literals, and the suite says so by name:** it reads its own source and refuses any of the four not declared once as an integer literal, so a floor derived from the count it floors fails before anything is measured.
+
+**Two things the restored sweep found, neither fixed here:**
+- **#2091 (filed):** the Type preview's font status "⚠ Not installed" (`.tf-stat.no`, `--warn` on the brand's page color) renders at 3.84–4.16:1 in prism3, aurora and harbor, against 4.5:1. Machine-dependent (it shows only where the brand faces are missing, as in CI). The fix is a color choice on a ground the studio does not own, which is the owner's, so it is held as `KNOWN_CONTRAST_GAPS`'s one row: #1887's `KNOWN_BADGE_GAPS` shape carried over from the deleted audit. A row excuses only its exact node (place, class, text) at 3:1 or above, and fails the run as STALE once its node is drawn and clears its bar; a run that never draws it says so by name.
+- **The app view's chrome roster still promises `mode-strip`** (`CHROME_SURFACES`, `home: 'workspace'`), which only a legacy page mounts; the plugin's Style guide still draws it. On the web no place draws a legacy page, so the sweep leaves the workspace's surfaces (`WORKSPACE_SURFACES`, typed) out of the mounted check exactly while it also asserts no legacy page is drawn. S13 deletes the strip and the surface.
+
+**`mode-audit.mjs` is deleted with its CI step (#1897)** in the five places: `ci.yml`, `verify.ts` (69 → 68 gates; no file states the count), `CLAUDE.md` §4, `CONTRIBUTING.md` §3 and the PR template; with it the `audit:modes` script, and the studio README's and `docs/26`'s present-tense claims. **`lint-doc-gates.ts` could not see a leftover line** (measured: the `audit:modes` line put back in CONTRIBUTING.md §3 printed "clean", because a deleted gate names no `ci.yml` step for any arm to compare). **Arm 6** is new: `RETIRED_GATES`, a literal register of deleted gates' tokens, none of which may appear in `ci.yml`, `verify.ts` or the three checklist regions, with a self-check that it finds a planted line and passes a clean one.
+
+**Where each of the audit's checks went:**
+- **Mode agreement** (the mode strip marks the chosen mode, on every page): `test:smoke` section 1, per state, now against the preview header's radios and select.
+- **"The web offers no Pages menu"** (its S8.2 NOTHING TO AUDIT path, with the top bar rendered as proof): `test:smoke` section 1, per brand, through `absent()` with the top bar as proof; and every place the tab row offers is walked.
+- **The per-mode measurement (EDITS / displays / inert) and `--check-badges`** (each legacy section's mode-scope badge against it, derived modes #545, placement #562, the editability proof against the persisted brand #574): **retired**. They measured the legacy mode strip and its badges, and the web draws neither. The questions they answered are held on the moved pages by their own sections: the levers edit the mode the preview shows (Q22) and brand-wide values write the same bytes from any editable mode (Q54) in `test:chrome` sections 16 to 26, every control held in a derived mode with the preview still drawn (Q59) in the same sections, and each page's writes against the persisted brand in its `state/*-input.ts` unit suite and `test:smoke`'s per-page drives.
+- **`KNOWN_BADGE_GAPS` (#1912):** its last row (Buttons) left with Size & radius in S8.2, so #1912 closes; the shape lives on as `KNOWN_CONTRAST_GAPS`.
+- **The instrument's own checks** (its hook guard, section heads against titles #1831, the `.knob` label floor): **retired** with the instrument. `section-head` and `section-title` are still read by `test:smoke` and `test:chrome`; `mode-scope-badge` is now read by no suite, and renders on no web surface (S9.2's NOTHING TO READ); S13 deletes the badges with the strip.
+
+**The S8.2 placeholders, replaced:** `test:smoke` §2b's #485 note (retired by name, held by the sweep's "no legacy page" per state), `test:chrome` §4's web arm (#1031 is measured on the plugin's Style guide alone; the web has no legacy field) and §9's legacy mode-strip hold (no legacy page, and so no strip, is drawn on any place; mode agreement is per state).
+
+**Mutations, each after a `wip:` commit, diff checked non-empty, restored with `git checkout -- <file>`:**
+- Depth & motion dropped from `SWEEP_PLACES`: `prism3: the sweep walks every place the tab row offers, and only those (9 offered) — not walked: depth` (and aurora, harbor).
+- A contrast failure planted on Components (`.p3-clevers .p3-readout { color: var(--p3-fill-1) }`): `prism3 / components / light: every one of 181 chrome text nodes meets WCAG 1.4.3 … span.p3-readout "Comfortable" at 1.21:1` (48 failures, every brand and mode).
+- `SWEEP_STATE_FLOOR` derived from the sweep (`let … = 0`, then `= statesVisited` before the assertion): `SWEEP_STATE_FLOOR is declared once, as an integer literal, never derived from what it floors (docs/34) — declared 2 time(s): "0", "statesVisited"`.
+- A reference to the audit left in each of the five places, one at a time: `lint-doc-gates` `CONTRIBUTING.md §3 (The gates) (line 976 of its region) names "audit:modes" — retired: …`, and the same for `CLAUDE.md §4`, the PR template's §Gates, `verify.ts` (`mode-audit`) and `ci.yml` (`mode-audit`).
+
+### Traps
+
+- **A raw hex in `chrome.css` fails the build** (the chrome plugin's `[raw]` scan), and the suite then drives the PREVIOUS `dist/main.js`: a mutation planted that way ran green against the old bundle. Check the build's exit before reading a browser suite's verdict.
+- **`KNOWN_CONTRAST_GAPS` is machine-dependent by design:** on a machine with the brand faces installed, #2091's node never draws and the row is reported "not exercised", not stale.
+- **`placeOfPage`'s `keep` rule still has no case** (S13 deletes `legacy`).
+
+---
+
+## (2026-10-05) — Studio: the dead legacy type-specimen CSS (.ts-*) is removed (#2012)
+
+**Status:** `apps/studio/src/styles.css` only. No ENGINE bump (no emitted artifact moves). CONTRACT unchanged. No visible change.
+
+### What changed
+
+`apps/studio/src/styles.css` loses the eight-line legacy type-specimen block: `.ts-list`, `.ts-row`,
+`.ts-sample`, `.ts-variants`, `.ts-var` and `.ts-var-range`, which #2012 names, plus `.ts-meta`, which sat
+inside the same block with no user either, and the block's one comment. The legacy Type page that drew
+them was already gone before S6.2.
+
+### How "dead" was established, not assumed
+
+- **Source and bundles.** A word-bounded search (`ts-meta` must not match `cw-row` or `weights-row`) over
+  `apps/`, `packages/`, `tools/` and `skills/`, tests included, finds each class only in `styles.css`. No
+  source builds a `ts-` class name by concatenation. The rebuilt `apps/studio/dist/main.js` and
+  `apps/plugin/dist/{main.js,ui.html}` carry none of them.
+- **The rendered DOM.** The repo has no unused-selector check, so a scratch Playwright preload (not
+  committed) watched every page `test:chrome` and `test:smoke` opened, with a MutationObserver, for a node
+  matching any removed selector. Zero hits in both suites. A positive control (`[data-p3]`) was seen on
+  every page, so the observer was attached and reporting.
+- **No visual change.** The 225 `test:chrome` screenshots were taken before and after the removal and
+  compared.
+
+### Trap for whoever re-verifies
+
+A plain `grep ts-row` finds `components-row` and `weights-row` in the tests and the studio. Bound the
+search on both sides with `[^a-zA-Z0-9_-]`, or the class looks used when it is not.
+
+---
+
+## (2026-10-05) — UI: the smoke suite's test hook is gated on a build define and left out of the deployed bundle (#2098 item 3)
+
+**STATUS: branch `ui/2098-test-hooks-prod`. Part of #2098 (item 3, from the review of #2074).** UI build and studio
+tests only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged, no visible
+wording.
+
+**The defect.** `entry.ts` step 8 defines `window.__prism3TestEdit` when the page is opened with `?p3-test-hooks`, so
+`test-smoke.mjs` §2d can make an edit no control makes any more. The block shipped in the production web bundle too,
+so anyone could turn it on in the deployed Studio with a URL.
+
+**The fix: a build define.** `PRISM3_TEST_HOOKS` (declared in `prism3-host.d.ts`) is `true` only in `build.mjs`, the
+local `dist/` the smoke suite drives, and `false` in `build-site.mjs` (Vercel's build command),
+`vercel-ignore-check.mjs` (which describes the deployed bundle) and `apps/plugin/build.mjs` (the hook was already
+web-only; the define is there so no bare identifier is left). Step 8's condition reads it before the URL.
+
+**What "the prod bundle lacks it" means, measured.** esbuild without minification folds the gate to `if (false) { … }`
+but keeps the block's text. The deploy does not minify, and `build-site.mjs`'s header says it must match the local
+build it is developed against, so this PR does not turn minification on to delete the text. The result in the
+deployed `main.js`: the string `p3-test-hooks` is gone (nothing a visitor sends can turn the hook on), and
+`__prism3TestEdit` appears once, as the body of the dead `if (false)` branch. The deployed sourcemap still carries
+`entry.ts`'s source text, as it always has (`build-site.mjs` ships the source deliberately); that is not code that runs.
+
+**The test, and why it is independent (docs/34).** `apps/studio/test-prod-bundle.ts` (in `npm test`) runs the real
+`build-site.mjs` as a child process and reads the `public/dist/main.js` it writes, so it never restates the build's
+options. Its oracle is two literal strings. It first asserts both still appear in `entry.ts`'s code (comments
+stripped), so a renamed parameter can't make the absence check vacuous; then that the deployed bundle has no
+`p3-test-hooks`, and no `__prism3TestEdit` anywhere but directly under `if (false) {`. The smoke suite (§2d)
+separately holds the local `dist/` to having the hook.
+
+**Mutations, each failing by name:** `PRISM3_TEST_HOOKS: 'false'` → `'true'` in `build-site.mjs` → `the deployed
+bundle (build-site.mjs) carries no "p3-test-hooks"` and `… carries no reachable "__prism3TestEdit"`; the
+`PRISM3_TEST_HOOKS &&` clause removed from `entry.ts` → the same two.
+
+---
+
 ## (2026-10-05) — #2114's warning-shape change gets its engine change note
 
 #2114 (#2097 item 3) changed the exported `OverrideWarning`: an unresolved override ground moved from `against` plus `unresolved: true` into `unresolved` as a string. No committed artifact moved, so `regen --check` and `lint-emission-version` both stayed green and nothing asked for a note. But `CONTRIBUTING.md` reserves "no note" for changes that owe no bump. A behavior change owes a bump, and `patch` is permitted here because no artifact moves; #2034, which introduced this warning with the same reach, declared a `minor`. Without a note, the 0.225.0 changelog would still describe `unresolved: true` and nothing would record the change.

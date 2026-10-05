@@ -40,6 +40,8 @@ export interface CellNode extends FNode {
   y?: unknown;
   rotation?: unknown;
   topLeftRadius?: unknown;
+  /** A layer's constraints inside a frame without auto layout (the spacing bracket's parts). */
+  constraints?: unknown;
   readonly width?: number;
   readonly height?: number;
   readonly parent?: CellNode | null;
@@ -154,12 +156,24 @@ const buildSwatches = (api: FileComponentsApi, page: CellsPage, loaded: Set<stri
         specimen.strokeWeight = 2;
         specimen.strokeAlign = 'INSIDE';
       } else if (type === 'radius') {
+        // THE OWNER'S STRUCTURE AND SIZES (measured live, 2026-09-29; owner decision, "keep the one"): a 48 × 48
+        // `radius-example-container` that clips, over a 256 × 96 `radius-example` at its top-left, so the swatch SHOWS
+        // ONE rounded corner. The table binds all four of the shape's corners, which keeps the value right everywhere;
+        // the clip is what keeps the look to one corner.
+        specimen.resize?.(SWATCH_SIZE, SWATCH_SIZE);
+        specimen.name = 'radius-example-container';
         specimen.cornerRadius = 0;
-        specimen.topLeftRadius = 16;
-        specimen.fills = solid(CHIP);
-        specimen.strokes = solid(INK);
-        specimen.strokeWeight = 2;
-        specimen.strokeAlign = 'INSIDE';
+        specimen.clipsContent = true;
+        specimen.fills = [];
+        const shape = box(api, 'radius-example', 256, 96);
+        shape.x = 0;
+        shape.y = 0;
+        shape.cornerRadius = 8;
+        shape.fills = solid(CHIP);
+        shape.strokes = solid(INK);
+        shape.strokeWeight = 2;
+        shape.strokeAlign = 'INSIDE';
+        specimen.appendChild?.(shape);
       } else {
         specimen.fills = solid(INK);
         // A hairline, so a white or near-white primitive still reads on a white cell.
@@ -168,7 +182,7 @@ const buildSwatches = (api: FileComponentsApi, page: CellsPage, loaded: Set<stri
         specimen.strokeAlign = 'INSIDE';
       }
     }
-    specimen.name = 'Specimen';
+    if (type !== 'radius') specimen.name = 'Specimen';
     if (type === 'transparency') {
       // The checkerboard sits under the fill, so a translucent value shows as translucent.
       const checker = box(api, 'Checker', SPECIMEN, SPECIMEN);
@@ -186,7 +200,8 @@ const buildSwatches = (api: FileComponentsApi, page: CellsPage, loaded: Set<stri
       checker.y = INSET;
       root.appendChild?.(checker);
     }
-    if (type !== 'icon') { specimen.x = type === 'text' ? 8 : INSET; specimen.y = type === 'text' ? 8 : INSET; }
+    if (type === 'radius') { specimen.x = 0; specimen.y = 0; }
+    else if (type !== 'icon') { specimen.x = type === 'text' ? 8 : INSET; specimen.y = type === 'text' ? 8 : INSET; }
     root.appendChild?.(specimen);
     page.appendChild(root);
     return root;
@@ -257,20 +272,51 @@ const buildTextCells = (api: FileComponentsApi, page: CellsPage, loaded: Set<str
   return set;
 };
 
+/** A spacing example frame's rest width: the least the host draws, since a layer inside an instance never hugs
+ *  narrower than its main component's own width (live QA of 0.210.0). */
+export const SPACING_REST_W = 0.01;
+
 const buildSpacingCells = (api: FileComponentsApi, page: CellsPage): CellNode => {
   const members = (['filled', 'line'] as const).map((display) => {
     const root = api.createComponent() as CellNode;
     root.name = `display=${display}`;
     autoLayout(root, { dir: 'HORIZONTAL', padding: 12, counterAlign: 'CENTER' });
     root.fills = [];
-    const bar = box(api, 'Bar', 16, display === 'filled' ? 16 : 8);
+    // SIZED BY ITS LEFT PADDING (the owner's live run of 0.205.0, measured in the plugin runtime, 2026-09-29): Figma
+    // silently drops a width written to a layer inside an instance (`resize`, `resizeWithoutConstraints`, a bound
+    // `width`), but keeps a bound `paddingLeft`. So the member's first child, `spacing-<display>-example`, is a
+    // HORIZONTAL auto-layout frame that hugs its width (no flow children, every padding 0) at a fixed height, and the
+    // table binds its paddingLeft to the value. The bracket's three bars sit inside it ABSOLUTELY, their constraints
+    // set here in the component (left-bar MIN, horizontal-line STRETCH, right-bar MAX), so a frame the padding widens
+    // carries them with no per-instance override. The names are the owner's.
+    // ITS REST WIDTH IS 0 (owner decision, live QA of 0.210.0, 2026-09-30): a layer inside an instance never hugs
+    // narrower than its main component's own width, so an 8px rest width left every value of 8 or less at 8. The frame
+    // is drawn at 8 with its bars, then resized to 0.01, the least the host draws, and only then set to HUG: a hugging
+    // frame with nothing to hug keeps its last width. The owner's cells in the NB test file were set the same way.
+    const h = display === 'filled' ? 20 : 16;
+    const bar = box(api, `spacing-${display}-example`, 8, h);
+    bar.layoutMode = 'HORIZONTAL';
+    bar.primaryAxisSizingMode = 'AUTO';
+    bar.counterAxisSizingMode = 'FIXED';
+    bar.paddingLeft = 0; bar.paddingRight = 0; bar.paddingTop = 0; bar.paddingBottom = 0; bar.itemSpacing = 0;
+    bar.clipsContent = display === 'filled';
     if (display === 'filled') bar.fills = solid('#F4A7A7');
     else {
-      // A bracket: a line with end caps, drawn as a frame with a bottom, left and right edge.
-      bar.strokes = solid('#D14343');
-      bar.strokeAlign = 'INSIDE';
-      bar.strokeTopWeight = 0; bar.strokeBottomWeight = 1; bar.strokeLeftWeight = 1; bar.strokeRightWeight = 1;
+      const part = (name: string, w: number, h: number, x: number, y: number, horizontal: string): void => {
+        const p = box(api, name, w, h);
+        p.fills = solid('#D14343');
+        bar.appendChild?.(p);
+        // Absolute only once inside the auto-layout frame, which the host requires; then placed and constrained.
+        p.layoutPositioning = 'ABSOLUTE';
+        p.x = x; p.y = y;
+        p.constraints = { horizontal, vertical: 'MIN' };
+      };
+      part('left-bar', 1, 16, 0, 0, 'MIN');
+      part('horizontal-line', 8, 1, 0, 7.5, 'STRETCH');
+      part('right-bar', 1, 16, 7, 0, 'MAX');
     }
+    bar.resize?.(SPACING_REST_W, h);
+    bar.primaryAxisSizingMode = 'AUTO';
     root.appendChild?.(bar);
     page.appendChild(root);
     return root;

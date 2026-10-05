@@ -17,7 +17,9 @@
  *   [variables] `chrome.css` reads a `--p3-*` the map does not define, or the map defines one
  *               `chrome.css` never reads (v6 check 6). The map grows with the rules, never ahead.
  *   [brand]     a chrome color resolves through the brand palette or a brand, link or focus role, in
- *               either theme (v6 check 7).
+ *               either theme (v6 check 7), except `--p3-focus-ring` on `color.border.focus`, the one
+ *               exception BRAND_ALLOW names (#2144); and BRAND_CANARIES, which hold that exception to that
+ *               one name and that one path.
  *   [offline]   the output would make a network request: a remote `url()`, an `@import`, or an
  *               `@font-face` that is not a `data:` URI (v6 check 10).
  *   [pairs]     a PAIRS entry (`spec.mjs`) whose two variables are both mapped measures under its
@@ -51,7 +53,9 @@ import {
   scanRawStrict, ratio, fmtRatio,
 } from './tokens.mjs';
 import { glyphGaps, glyphWatchFiles } from './glyphs.mjs';
-import { VARS_FOR, PRODUCT_FOR, ALIAS, SHELL_VARS, PAIRS, DECORATIVE, INACTIVE } from './spec.mjs';
+import { VARS_FOR, PRODUCT_FOR, ALIAS, SHELL_VARS, PAIRS as MOCKUP_PAIRS, PRODUCT_PAIRS, DECORATIVE, INACTIVE } from './spec.mjs';
+
+const PAIRS = [...MOCKUP_PAIRS, ...PRODUCT_PAIRS];
 
 /** The only roles an INACTIVE variable may read (F1 A): the engine's cross-cutting disabled family. Typed here, not
  *  read from `spec.mjs`, so the list that grants the exemption cannot also set what qualifies for it. */
@@ -85,6 +89,20 @@ export const RAW_CANARIES = [
   ['a named color beside a nested rule', '.a { color: red; & .b { gap: var(--p3-x) } }', 'named color "red"'],
   ['an hwb() color', '.a { color: hwb(0 0% 0%) }', 'raw color function "hwb("'],
   ['identifier-valued properties that spell a color, nested', '.a { grid-area: tan; animation-name: gold; & .b { grid-area: tan; animation: gold var(--p3-d) } }', null],
+];
+
+/**
+ * THE BRAND EXCEPTION'S OWN CANARIES (#2144), run on every build before the map is scanned. The real map has
+ * exactly one variable on a brand path, the allowed one, so it cannot show the exception is still narrow: an
+ * allowlist widened to a pattern, or to every variable reading `border.focus`, would pass it unchanged. Each
+ * canary is a literal row, [what, row, must fail]. A row that should fail and passes, or the allowed row
+ * failing, fails [brand] by name.
+ */
+export const BRAND_CANARIES = [
+  ['the focus ring on Prism3\'s focus color (the one exception)', ['focus-ring', 'color.border.focus', C], false],
+  ['a sibling name on the focus color', ['focus-ring-hover', 'color.border.focus', C], true],
+  ['a non-focus variable on the focus color', ['ctl-edge', 'color.border.focus', C], true],
+  ['the focus ring pointed at the primary palette', ['focus-ring', 'core.palette.primary.600', C], true],
 ];
 
 export const CHROME_CSS_MODULE = 'p3:chrome-css';
@@ -154,7 +172,13 @@ export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_
     return { css: null, errors };
   }
 
-  // [brand] no chrome color through the brand palette or a brand, link or focus role, in either theme.
+  // [brand] the exception's canaries first (BRAND_CANARIES), then no chrome color through the brand palette or
+  // a brand, link or focus role, in either theme, but for the one exception.
+  for (const [label, row, mustFail] of BRAND_CANARIES) {
+    const got = brandLeaks(modes, [row]);
+    if (mustFail && !got.length) fail('brand', `self-check: brandLeaks no longer refuses ${label} (--p3-${row[0]} on ${row[1]}); BRAND_ALLOW (tokens.mjs) allows one variable, focus-ring, by name, on color.border.focus only`);
+    if (!mustFail && got.length) fail('brand', `self-check: brandLeaks now refuses ${label}: ${got.join('; ')}`);
+  }
   for (const mode of ['light', 'dark']) {
     for (const msg of brandLeaks({ [mode]: modes[mode] }, rows[mode])) fail('brand', msg);
   }
