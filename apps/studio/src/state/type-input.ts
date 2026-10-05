@@ -279,6 +279,15 @@ export const setCaptionFloor = (px: 10 | 11): void => { setPath(brandState, 'typ
 export const setSizeFloor = (px: 8 | 10): void => { setPath(brandState, 'typography.sizeFloor', px === 8 ? 8 : undefined); };
 /** Fluid heading sizing. ALWAYS written, `true` included (the legacy page's bytes). */
 export const setFluid = (on: boolean): void => { setPath(brandState, 'typography.responsive.fluid', on); };
+/** The engine's refusal of viewport bound `key` at `n` (#2068), or null when the pair builds. The other bound is
+ *  the brand's, else the engine's default (the theme's). The engine's own rule and its own sentence, no trial
+ *  build: the minimum must be below the maximum, fluid on or off, with each value as entered. */
+export const viewportRefusal = (key: 'minViewport' | 'maxViewport', n: number): string | null => {
+  const bound = (k: 'minViewport' | 'maxViewport'): number => brandState.typography?.responsive?.[k] ?? theme.typography[k];
+  const min = key === 'minViewport' ? n : bound('minViewport');
+  const max = key === 'maxViewport' ? n : bound('maxViewport');
+  return min >= max ? `The minimum viewport (${min}px) must be smaller than the maximum viewport (${max}px).` : null;
+};
 /** A responsive viewport bound. A non-finite number writes nothing; returns whether it wrote. */
 export const setResponsiveViewport = (key: 'minViewport' | 'maxViewport', n: number): boolean => {
   if (!Number.isFinite(n)) return false;

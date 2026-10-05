@@ -17,7 +17,7 @@
 **Held for the owner.** Nothing in this PR. One thing PR 2 has to face: a table only "fails" when the host throws. A font Figma cannot load is still a named miss inside a drawn table (the run counts its specimens unbound), not a failed table, so the mockup's example failure ("Playfair Display Medium Italic is unavailable in this Figma") does not arise from a font miss today. Making a font miss fail its table would be a change to what the run counts as drawn; not made.
 
 **Tests.**
-- `test-style-guide.ts` sections 25–28, through the node shim, expected values typed: 25 the catalog over the prism3 file (its 22 titles; every drawn row's variable listed under the table that drew it, read back off each frame's own row record, never off the plan), over the phase-2 file (later-phase opacities with no table, the 63 text styles last) and `isSetUp`'s four cases; 26 a run's list and moves; 27 the host refusing every Accent binding: Accent fails with the host's words, the other 21 are drawn, "⚠ 21 drawn, 1 failed", and a redraw by Accent's key draws it alone, its 20 swatches bound, no other table's fingerprint moved; 28 a stop after table 3 (3 of 21; the emptied Legacy table kept; the control run to the end deletes it).
+- `test-style-guide.ts` sections 26–29 (renumbered when #2153 took 25 on main), through the node shim, expected values typed: 26 the catalog over the prism3 file (its 22 titles; every drawn row's variable listed under the table that drew it, read back off each frame's own row record, never off the plan), over the phase-2 file (later-phase opacities with no table, the 63 text styles last) and `isSetUp`'s four cases; 27 a run's list and moves; 28 the host refusing every Accent binding: Accent fails with the host's words, the other 21 are drawn, "⚠ 21 drawn, 1 failed", and a redraw by Accent's key draws it alone, its 20 swatches bound, no other table's fingerprint moved; 29 a stop after table 3 (3 of 21; the emptied Legacy table kept; the control run to the end deletes it).
 - `test-style-guide-page.ts` (new, in the plugin `test` step): the REAL `main.ts` under a host model, as `test-agent-link.ts` loads it. The catalog answer as one literal; Set up file's five cases; a read that throws; a panel run's message order; another sink getting no table messages; Cancel between tables 2 and 3 through the real message switch; a cancel with nothing running.
 - `apps/studio/test-write-adapter.ts` and `test-host-session.ts`: the three kinds and `stopped`, accepted and dropped, and the session's slots.
 
@@ -25,10 +25,10 @@
 
 | Mutation | Fails |
 |---|---|
-| the loop breaks on a failed table | "27: the Accent table fails with the host's words, and the run goes on to draw the other 21 (failed; 3 created)", and two more 27 arms |
-| `stop` never read | "28: a stop read after the third table ends the run there…", "cancel: sent while the run is between tables 2 and 3…" (`test-style-guide-page.ts`) |
-| a stopped run judges superseded tables | "28: a stopped run judges no superseded table: the emptied Legacy table stays (deleted 1, stale 1)" |
-| `isSetUp` stops reading the pages | "catalog/setup: … sets, no pages true …", "25: pages without the cell sets, or the cell sets without the pages, are not set up (false, true)" |
+| the loop breaks on a failed table | "28: the Accent table fails with the host's words, and the run goes on to draw the other 21 (failed; 3 created)", and two more 28 arms |
+| `stop` never read | "29: a stop read after the third table ends the run there…", "cancel: sent while the run is between tables 2 and 3…" (`test-style-guide-page.ts`) |
+| a stopped run judges superseded tables | "29: a stopped run judges no superseded table: the emptied Legacy table stays (deleted 1, stale 1)" |
+| `isSetUp` stops reading the pages | "catalog/setup: … sets, no pages true …", "26: pages without the cell sets, or the cell sets without the pages, are not set up (false, true)" |
 | the `style-guide-cancel` case sets nothing | "cancel: sent while the run is between tables 2 and 3…" |
 | the table list posted to every sink but the panel's | "events/panel: …", "events/agent: … (style-guide-tables, …)" |
 
