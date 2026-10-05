@@ -886,6 +886,43 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.close();
 }
 
+// ── #2088: the first phase line names the set being built, or none ───────────────────────────────────
+//
+// Before the first chunk boundary reports, the Activity row's phase line said "Building the Button set…" whatever
+// set was building. The owner's call (2026-10-05): a build the panel started names its set by the catalog's display
+// name; one an agent started names none, and reads exactly "Building the set…". Both arms read the line BEFORE any
+// `component-progress` is posted, which is the only window the line exists in. The expected strings are literals,
+// the copy under test, never read from the catalog the code reads.
+//
+// MUTATIONS, each failing here by name:
+//   · `firstPhase` back to the literal "Building the Button set…" → `#2088 a panel build of Tag …` and `#2088 an agent's build …`.
+//   · `firstPhase` ignoring `componentDef` → `#2088 a panel build of Tag …`.
+{
+  const { page, errors } = await openPanel();
+  const phaseOf = () => page.evaluate(() => [...document.querySelectorAll('[data-p3="activity-op"][data-op="components"] [data-p3="op-progress"] b')].map((n) => n.textContent));
+  const running = () => page.waitForFunction(() => document.querySelector('[data-p3="activity-op"][data-op="components"]')?.dataset.state === 'running', null, { timeout: 5000 }).catch(() => {});
+
+  await hooks.click(page.locator('[data-p3="components-def-option"][value="tag"]'));
+  await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 }).catch(() => {});
+  await running();
+  await page.waitForFunction(() => window.__builds.length > 0, null, { timeout: 3000 }).catch(() => {});
+  const own = await phaseOf();
+  const posted = JSON.stringify(await builds(page));
+  ok(posted === '["tag"]' && own.length === 1 && own[0] === 'Building the Tag set…',
+    `#2088 a panel build of Tag reads exactly "Building the Tag set…" before its first boundary — posted ${posted}, read ${JSON.stringify(own)}`);
+  await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: "set 'tag'" });
+  await idleAgain(page);
+
+  await post(page, { type: 'agent-started', id: 'p1', cmd: 'build-components' });
+  await running();
+  const agent = await phaseOf();
+  ok(agent.length === 1 && agent[0] === 'Building the set…',
+    `#2088 an agent's build reads exactly "Building the set…" before its first boundary — read ${JSON.stringify(agent)}`);
+  await post(page, { type: 'agent-finished', id: 'p1', cmd: 'build-components' });
+  ok(errors.length === 0, `#2088: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
 // ── #1957: a declined second write ─────────────────────────────────────────────────────────────────
 //
 // The plugin's main thread refuses a second write of an operation while one is running, and tells the panel

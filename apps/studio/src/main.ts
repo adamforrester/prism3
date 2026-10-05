@@ -2684,7 +2684,7 @@ const renderPruneDialog = (): HTMLElement => {
  *  restart at 1, which reads as a build that failed and started over. Naming the phase makes the reset
  *  the expected thing it is.
  *
- *  Before the first boundary reports there is no fraction to show, so this is the pre-#684 string — which
+ *  Before the first boundary reports there is no fraction to show, so this is `firstPhase` (#2088) — which
  *  is also what a host build older than this one leaves on screen for the whole build.
  *
  *  NOT SUBJECT TO THE 24-CHAR PILL BUDGET, unlike the headlines in `apply-summary.ts`: pending renders as
@@ -2692,7 +2692,7 @@ const renderPruneDialog = (): HTMLElement => {
  *  verdict. The longest string here is "Wiring references… 648 of 648" at 29 characters. */
 const componentPendingText = (): string => {
   const p = host.componentProgress;
-  if (!p) return 'Building the Button set…';
+  if (!p) return firstPhase();
   // #1679: the reference back-off's waits. Owner's wording, and no fraction — a pass count is not progress
   // through the set, and the waits grow, so "3 of 6" would suggest the pause is half over when it is not.
   if (p.phase === 'retry') return 'Retrying property links…';
@@ -2794,10 +2794,19 @@ const closeOpenDetail = (): void => { if (host.openDetail === null) return; setH
 /** The static pending texts, one per write that has one: the page rows' pills and the Activity drawer's
  *  phase line read the same words. */
 const PENDING_TEXT = { apply: 'Writing to Figma…', filesetup: 'Setting up file…', styleguide: 'Drawing the style guide…' } as const;
+/** The phase line before a build's first boundary reports (#2088). A build the panel started names its set,
+ *  by the catalog's display name for the id it posted (`componentDef`); one an agent started is a set the panel
+ *  was not told, so the line names none (the owner's wording, 2026-10-05). Before #2088 this said "Button"
+ *  whatever was building, a leftover from when Button was the only set (#718). */
+const firstPhase = (): string => {
+  const id = host.componentState === 'pending' ? host.componentDef : null;
+  const name = id === null ? undefined : componentCatalog().find((e) => e.id === id)?.name;
+  return name ? `Building the ${name} set…` : 'Building the set…';
+};
 /** The component build's phase and progress, from either reading (the panel's or the agent's). The words
  *  are `componentPendingText`'s, with the fraction moved to the progress bar. */
 const componentPhase = (p: HostSession['componentProgress']): Pick<OpReading, 'phase' | 'progress'> =>
-  !p ? { phase: 'Building the Button set…', progress: null }
+  !p ? { phase: firstPhase(), progress: null }
     : p.phase === 'retry' ? { phase: 'Retrying property links…', progress: null }
       : { phase: p.phase === 'build' ? 'Building members…' : 'Wiring references…', progress: { done: p.done, total: p.total } };
 const IDLE: OpReading = { state: 'idle', ref: null, verdict: null, summary: null, phase: null, progress: null, agent: false };
