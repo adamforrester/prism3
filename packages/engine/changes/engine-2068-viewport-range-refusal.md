@@ -8,5 +8,5 @@ maxViewport emitted a clamp() that shrinks type as the viewport widens. Both bui
 `buildTypography` now throws when minViewport >= maxViewport, whether or not `fluid` is on (owner
 decisions 2026-10-05: refuse, and Q16 = a). The message is the owner's approved wording, one sentence for
 both cases: "The minimum viewport (<min>px) must be smaller than the maximum viewport (<max>px)." No
-committed artifact moves: every corpus and example brand uses a valid range (the default 375/1280, or nb's
-375/1440). Offering the refusal up front in the studio is the UI lane's follow-up.
+committed artifact moves: every committed brand's range is valid, with minViewport below maxViewport.
+Offering the refusal up front in the studio is the UI lane's follow-up.
