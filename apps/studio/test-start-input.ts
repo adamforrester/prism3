@@ -6,7 +6,7 @@
  * `src/state/start-input.ts` holds what each start path starts a brand from, the color card's hex check, the guard's
  * words, the design.md import check shared by every paste and every file, and where an import error points;
  * `src/provenance.ts` holds the count the guard names (`editCount`). The window that draws them is held in the browser
- * by `test:chrome` section 27 and `apps/plugin/test-start-screen.mjs`.
+ * by `test:chrome` section 28 and `apps/plugin/test-start-screen.mjs`.
  *
  * INDEPENDENT OF WHAT IT CHECKS (docs/34). Every expected string is a literal typed here, from the owner's decisions
  * (S3, S6, S7, S10, G13, G15) and the approved strings table; every expected line number is counted by hand from the
@@ -154,7 +154,7 @@ console.log('\nFile types (S6, G12)\n');
 console.log('\nOne check for both pastes (the S12 trap)\n');
 {
   // Source scan: the brand menu (`main.ts`) and the start window (`shell/start.ts`) each import the shared check and
-  // neither defines one of its own. A browser half (`test:chrome` section 27) shows both boxes the same words.
+  // neither defines one of its own. A browser half (`test:chrome` section 28) shows both boxes the same words.
   const main = readFileSync(join(HERE, 'src/main.ts'), 'utf8');
   const start = readFileSync(join(HERE, 'src/shell/start.ts'), 'utf8');
   const importsShared = (src: string): boolean => /import\s*\{[^}]*\bvalidatePaste\b[^}]*\}\s*from\s*'(\.\.?\/)+state\/start-input'/.test(src);

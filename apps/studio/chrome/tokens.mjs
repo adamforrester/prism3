@@ -15,7 +15,7 @@
 // Also here, because every build enforces them: the raw-value scan (no hex, color function, length,
 // duration or shadow in chrome CSS; the product adds named colors, `currentColor`, `var()` fallbacks
 // and non-`data:` URLs in `scanRawStrict`), the brand-leak check (no chrome color through the brand palette
-// or a brand, link or focus role), WCAG contrast, and the embedded chrome fonts.
+// or a brand, link or focus role, but for the focus ring's one named exception, #2144), WCAG contrast, and the embedded chrome fonts.
 //
 // Zero dependencies, no network.
 
@@ -166,12 +166,25 @@ export const themeBlock = (tree, vars) => vars.map((v) => `  --p3-${v[0]}: ${css
 
 // ── no brand in the chrome ─────────────────────────────────────────────────────────────────────
 export const BRAND_RE = /(core\.palette\.(primary|accent))|\.brand\b|\.brand-|\.link\.|border\.focus/;
+/**
+ * THE ONE EXCEPTION (#2144, owner decision FR1 A, 2026-10-05): the chrome's focus ring reads Prism3's
+ * `color.border.focus`, which resolves through `core.palette.primary`. Keeping brand color out of the chrome is
+ * a preference for a minimal frame, not a ban, and focus rings are the accepted exception.
+ *
+ * Keyed by the variable's NAME, matched exactly, and bound to the one token path it may read. A pattern here
+ * (`/focus/`, a prefix, any name that reads `border.focus`) would let a second chrome variable through the
+ * brand palette unnoticed, so the build runs BRAND_CANARIES (`esbuild-plugin.mjs`) against this function
+ * before it scans the map: a sibling name on the same path, the named variable on another brand path, and a
+ * non-focus variable on `border.focus` must each still fail.
+ */
+export const BRAND_ALLOW = new Map([['focus-ring', 'color.border.focus']]);
 /** One message per chrome color variable that resolves through a brand token, in any mode. */
 export function brandLeaks(modes, vars) {
   const errors = [];
   for (const mode of Object.keys(modes)) {
     for (const v of vars) {
       if (v[2] !== C) continue;
+      if (BRAND_ALLOW.has(v[0]) && BRAND_ALLOW.get(v[0]) === v[1]) continue;
       const { chain } = resolve(modes[mode], P(v[1]));
       const bad = chain.find((p) => BRAND_RE.test(p));
       if (bad) errors.push(`chrome var --p3-${v[0]} (${mode}) resolves through brand token ${bad}`);
