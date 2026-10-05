@@ -83,8 +83,9 @@ export type AgentErrorCode =
   | 'busy';
 export type AgentError = { code: AgentErrorCode; message: string };
 
-/** One `component-progress` reading, as the UI's pill receives it, with when it arrived. */
-export type AgentProgress = { at: string; phase: 'build' | 'wire' | 'retry'; done: number; total: number; chunkMs: number };
+/** One `component-progress` reading, as the UI's pill receives it, with when it arrived. A `style-guide-progress`
+ *  reading (#1778) arrives as phase `table`: `done` of `total` tables drawn, `chunkMs` what the last one cost. */
+export type AgentProgress = { at: string; phase: 'build' | 'wire' | 'retry' | 'table'; done: number; total: number; chunkMs: number };
 
 /** Which transport delivered the command. The protocol is the same on both; this is provenance only. */
 export type AgentTransport = 'mailbox' | 'bridge';
@@ -190,8 +191,11 @@ export const parseCommand = (raw: unknown): ParsedCommand => {
       if (!oneOf(args.header, ['dark', 'light'])) return fail('bad-args', 'style-guide takes args.header: dark or light');
       if (!oneOf(args.display, ['auto', 'default', 'text', 'icon', 'border', 'transparency'])) return fail('bad-args', 'style-guide takes args.display: auto, default, text, icon, border or transparency');
       if (!flag(args.aliases) || !flag(args.description)) return fail('bad-args', 'style-guide takes args.aliases and args.description as booleans');
+      // An empty list would draw nothing and match nothing, so it is refused rather than read as "every table";
+      // so is a name of spaces alone, which the filter's trim would turn into an empty one.
+      if (args.tables !== undefined && (!strings(args.tables) || !args.tables.length || args.tables.some((t) => !t.trim()))) return fail('bad-args', "style-guide takes args.tables: a non-empty array of table titles or keys, e.g. ['Primary — nbds']");
       const opts: StyleGuideOptions = {};
-      for (const k of ['collections', 'types', 'valueFormat', 'header', 'display', 'aliases', 'description'] as const) {
+      for (const k of ['collections', 'types', 'valueFormat', 'header', 'display', 'aliases', 'description', 'tables'] as const) {
         if (args[k] !== undefined) (opts as Record<string, unknown>)[k] = args[k];
       }
       return { ok: true, command: { ...base, cmd: 'style-guide', args: opts } };

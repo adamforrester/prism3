@@ -105,6 +105,10 @@ accepts('style-guide-result without a headline', { type: 'style-guide-result', o
   { kind: 'style-guide-result', ok: true, headline: '✓ style guide written', summary: 't' });
 accepts('component-progress', { type: 'component-progress', phase: 'wire', done: 3.7, total: 10, chunkMs: 41 },
   { kind: 'component-progress', phase: 'wire', done: 3, total: 10, chunkMs: 41 });
+accepts('style-guide-progress', { type: 'style-guide-progress', done: 6.4, total: 22, tableMs: 900 },
+  { kind: 'style-guide-progress', done: 6, total: 22 });
+accepts('agent-progress (a style guide\'s table reading)', { type: 'agent-progress', id: 'a1', progress: { at: 't', phase: 'table', done: 6, total: 22, chunkMs: 900 } },
+  { kind: 'agent-progress', id: 'a1', phase: 'table', done: 6, total: 22 });
 accepts('prune-result (preview)', { type: 'prune-result', ok: true, applied: false, count: 5, summary: 'r' },
   { kind: 'prune-result', ok: true, applied: false, count: 5, summary: 'r' });
 accepts('prune-result (agent preview, pillOnly)', { type: 'prune-result', ok: true, applied: false, count: 2, summary: 'r', pillOnly: true },
@@ -151,6 +155,8 @@ drops('restore-input with no input', wire({ type: 'restore-input' }));
 drops('font-list with no families array', wire({ type: 'font-list', families: 'Inter' }));
 drops('component-progress with total 0', wire({ type: 'component-progress', phase: 'build', done: 0, total: 0, chunkMs: 1 }));
 drops('component-progress with an unknown phase', wire({ type: 'component-progress', phase: 'paint', done: 1, total: 2, chunkMs: 1 }));
+drops('style-guide-progress with total 0', wire({ type: 'style-guide-progress', done: 0, total: 0, tableMs: 0 }));
+drops('style-guide-progress past its total', wire({ type: 'style-guide-progress', done: 23, total: 22, tableMs: 0 }));
 drops('prune-result with a negative count', wire({ type: 'prune-result', ok: true, applied: false, count: -1, summary: 'r' }));
 
 console.log(`\n${executed - failed}/${executed} passed`);
