@@ -91,6 +91,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { hookGuard } from './test-hooks.mjs';
+import { assertBundleFresh, STUDIO_SOURCE_ROOTS } from './test-bundle-freshness.mjs';
 
 // The same hook guard as the browser suites (#1829): hooks named in this file that never rendered fail by
 // name at the end of the run, and a failure here makes the run exit non-zero even without `--check-badges`,
@@ -125,6 +126,11 @@ try {
 }
 
 const ROOT = new URL('.', import.meta.url).pathname;
+// The bundle this suite drives must be at least as new as its sources (#2067): a stale `dist/main.js` is
+// the old UI, measured and reported as this one. The check and its roots: `test-bundle-freshness.mjs`.
+assertBundleFresh({ repo: join(ROOT, '../..'), bundle: 'apps/studio/dist/main.js', roots: STUDIO_SOURCE_ROOTS, label: 'main.js freshness',
+  effect: 'this suite would test the old UI', build: 'npm run -w @prism3/studio build' });
+
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.map': 'application/json' };
 // Read BEFORE writing the header: a missing file threw with the 200 already sent, so the catch's
 // `writeHead(404)` raised ERR_HTTP_HEADERS_SENT — outside the try, unhandled, killing the audit. A
