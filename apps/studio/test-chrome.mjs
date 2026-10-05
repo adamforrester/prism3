@@ -539,10 +539,22 @@ try { pluginHtml = readFileSync(join(REPO, 'apps/plugin/dist/ui.html'), 'utf8');
 // rebuild that was not needed (`main.ts` is the main thread's, not the iframe's). A narrower one would let
 // the stale case through. Every root must exist and hold files, so a renamed directory fails here rather
 // than scanning nothing and passing (docs/34 shape 9).
+// THE FILES ARE THE BUILD'S OWN (#2098): `apps/plugin/build.mjs` and the strip it runs over component prose
+// shape the bundle without being in any root, so an edit to either left the stale case through. Each must
+// exist, for the roots' reason. The chrome CSS plugin the build imports is under `apps/studio/chrome`.
 const UI_SOURCE_ROOTS = ['apps/studio/src', 'apps/studio/chrome', 'apps/plugin/src', 'packages/engine'];
+const UI_SOURCE_FILES = ['apps/plugin/build.mjs', 'apps/plugin/strip-maintainer-prose.mjs'];
 {
   const builtAt = statSync(join(REPO, 'apps/plugin/dist/ui.html')).mtimeMs;
   let newest = { at: -Infinity, file: '' };
+  for (const rel of UI_SOURCE_FILES) {
+    let at;
+    try { at = statSync(join(REPO, rel)).mtimeMs; } catch {
+      console.error(`✗ ui.html freshness: source file ${rel} is missing, so it was not compared. Fix UI_SOURCE_FILES in test-chrome.mjs.`);
+      process.exit(1);
+    }
+    if (at > newest.at) newest = { at, file: join(REPO, rel) };
+  }
   for (const root of UI_SOURCE_ROOTS) {
     let files = 0;
     let ents = [];
