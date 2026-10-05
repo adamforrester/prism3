@@ -100,7 +100,7 @@ for (const c of verdictCases) {
   const prog = step(pending, { kind: 'component-progress', phase: 'build', done: 24, total: 648, chunkMs: 90 });
   ok(same(prog.next.componentProgress, { phase: 'build', done: 24, total: 648 }), 'component-progress: records phase, done and total while pending');
   ok(same(prog.topics, ['host:progress']), 'component-progress: invalidates host:progress only (a text swap, no re-render)');
-  const verdict = step(prog.next, { kind: 'component-result', ok: true, headline: '✓ built 648', summary: 'all good' });
+  const verdict = step(prog.next, { kind: 'component-result', ok: true, completed: true, headline: '✓ built 648', summary: 'all good' });
   ok(same(verdict.next.componentState, { ok: true, headline: '✓ built 648', summary: 'all good' }),
     '#870 replay: the verdict lands in componentState, the slot the Components page reads');
   ok(verdict.next.componentProgress === null, '#870 replay: the verdict clears componentProgress, so no page shows a stale fraction');
@@ -111,25 +111,27 @@ for (const c of verdictCases) {
   ok(idle.next === init, 'component-progress: ignored when no build is pending');
 }
 
-// ---- the per-set build ledger (UI redesign S8.2, owner decision G9 A) -----------------------------------------
+// ---- the per-set build ledger (UI redesign S8.2, owner decisions G9 A and C1 A) ------------------------------
 // The wire's `component-result` names no set, so the panel remembers the set it posted (`componentDef`) and the
-// verdict that answers that build is recorded against it in `setBuilds`: `true` clean, `false` with problems. The
-// expectations are literals: a set id typed here, the verdict's `ok` typed here.
+// verdict that answers that build is recorded against it in `setBuilds`, in three states read off the verdict itself:
+// `ok` (a clean build), `issues` (it ran to the end, `completed: true`, with misses), `failed` (it stopped before the
+// set, `completed: false`). The expectations are literals: a set id typed here, the verdict's fields typed here.
 //
-// Mutation this fails by name: recording the verdict against nothing (the `own` guard always false) →
-// `G9: a clean verdict for the panel's own build of 'tag' records tag → true`.
+// Mutations this fails by name: recording the verdict against nothing → `G9: a clean verdict for the panel's own build
+// of 'tag' records tag → ok`; reading "failed" off `ok` alone → `C1: a build that ran to the end with misses records
+// badge → issues, not failed`.
 {
   const posted: HostSession = { ...init, componentState: 'pending', componentDef: 'tag' };
-  const clean = step(posted, { kind: 'component-result', ok: true, headline: '✓ built 45', summary: "set 'Tag'" });
-  ok(same([...clean.next.setBuilds], [['tag', true]]), `G9: a clean verdict for the panel's own build of 'tag' records tag → true (${JSON.stringify([...clean.next.setBuilds])})`);
+  const clean = step(posted, { kind: 'component-result', ok: true, completed: true, headline: '✓ built 45', summary: "set 'Tag'" });
+  ok(same([...clean.next.setBuilds], [['tag', 'ok']]), `G9: a clean verdict for the panel's own build of 'tag' records tag → ok (${JSON.stringify([...clean.next.setBuilds])})`);
   ok(clean.next.componentDef === null, 'G9: the verdict clears the set the panel was building');
-  const second = step({ ...clean.next, componentState: 'pending', componentDef: 'badge' }, { kind: 'component-result', ok: false, headline: '⚠ 20, 1 missed', summary: "set 'Badge'" });
-  ok(same([...second.next.setBuilds], [['tag', true], ['badge', false]]), `G9: a verdict with problems records badge → false and keeps tag's (${JSON.stringify([...second.next.setBuilds])})`);
-  const again = step({ ...second.next, componentState: 'pending', componentDef: 'tag' }, { kind: 'component-result', ok: false, headline: '✗ apply failed', summary: 'x' });
-  ok(again.next.setBuilds.get('tag') === false && again.next.setBuilds.get('badge') === false, 'G9: a later build of the same set replaces its result');
+  const issues = step({ ...clean.next, componentState: 'pending', componentDef: 'badge' }, { kind: 'component-result', ok: false, completed: true, headline: '⚠ 20, 1 missed', summary: "set 'Badge'" });
+  ok(same([...issues.next.setBuilds], [['tag', 'ok'], ['badge', 'issues']]), `C1: a build that ran to the end with misses records badge → issues, not failed, and keeps tag's (${JSON.stringify([...issues.next.setBuilds])})`);
+  const failed = step({ ...issues.next, componentState: 'pending', componentDef: 'tag' }, { kind: 'component-result', ok: false, completed: false, headline: '✗ apply failed', summary: 'x' });
+  ok(failed.next.setBuilds.get('tag') === 'failed' && failed.next.setBuilds.get('badge') === 'issues', `C1: a build that stopped before the set records tag → failed, replacing its clean result (${JSON.stringify([...failed.next.setBuilds])})`);
   // An agent's build (the panel posted nothing): its verdict names no set, so none is recorded.
   const agentRun = step(init, { kind: 'agent-started', id: 'b9', cmd: 'build-components' }).next;
-  const byAgent = step(agentRun, { kind: 'component-result', ok: true, headline: '✓ built 432', summary: "set 'Button'" });
+  const byAgent = step(agentRun, { kind: 'component-result', ok: true, completed: true, headline: '✓ built 432', summary: "set 'Button'" });
   ok(byAgent.next.setBuilds.size === 0, `G9: an agent's build is not attributed to a set (${JSON.stringify([...byAgent.next.setBuilds])})`);
   // The panel's request declined behind an agent's run: no build of its own is coming, so it forgets the set.
   const declined = step({ ...agentRun, componentState: 'pending', componentDef: 'tag' }, { kind: 'refused', code: 'busy', cmd: 'build-components', agent: false, message: 'busy' });
@@ -213,7 +215,7 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
   const verdict = step(started.next, { kind: 'apply-result', ok: true, headline: 'H', summary: 'S' });
   ok(same(verdict.next.agentRun, { id: 'a1', op: 'apply', settled: true, progress: null }) && same(verdict.next.applyState, { ok: true, headline: 'H', summary: 'S' }),
     'agent run: the apply verdict settles the run and lands in the apply slot');
-  const other = step(started.next, { kind: 'component-result', ok: true, headline: 'H', summary: 'S' });
+  const other = step(started.next, { kind: 'component-result', ok: true, completed: true, headline: 'H', summary: 'S' });
   ok(other.next.agentRun?.settled === false, 'agent run: another operation\'s verdict does not settle it');
   const stale = step(verdict.next, { kind: 'agent-finished', id: 'zz' });
   ok(stale.next === verdict.next && stale.topics.length === 0, 'agent-finished: another run\'s end changes nothing');

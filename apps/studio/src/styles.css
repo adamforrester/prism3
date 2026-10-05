@@ -300,12 +300,6 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .stage-t b{font-weight:600;font-size:13.5px}
 .stage-t small{color:var(--faint);font-size:11.5px}
 .rail-note{color:var(--muted);font-size:12px;line-height:1.6;margin:22px 8px 0;padding-top:20px;border-top:1px solid var(--line)}
-/* Build identity (#474) — quiet by default, legible when you go looking for it. */
-.rail-build{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;color:var(--faint);font-size:11px;margin:12px 8px 0;user-select:text}
-/* `overflow-wrap:anywhere` because since #836 this field holds a checkout's directory name, not a fixed
-   literal — `p3-buildid` fits the 210px rail and a longer branch name does not, and a flex item's default
-   `min-width:auto` lets an unbreakable token overflow the rail rather than wrap inside it. */
-.rail-build-b{font-family:var(--mono,ui-monospace,SFMono-Regular,Menlo,monospace);color:var(--muted);overflow-wrap:anywhere}
 
 .hero{padding:6px 0 4px}
 .hero h1{margin:0;font-size:40px;font-weight:660;letter-spacing:-0.03em;line-height:1.08}
@@ -717,7 +711,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .btnl-icon.btnl-pinned{position:absolute;top:50%;transform:translateY(-50%)}
 /* UI redesign S8.2 — the Components preview's Component sets list, on the section's ground in the ground's own inks
    (`--ink`, `--muted`, `--line`). A set that can't be built is grayed by its text tier, never by opacity, so its
-   reason stays legible. The Build button is the preview's own control, drawn like Motion's Play. */
+   reason stays legible. The Build button is the preview's build bar, in the chrome (`chrome.css`, `.p3-buildbar`). */
 .cset{display:flex;flex-direction:column;gap:12px;margin-top:6px}
 .cset-list{display:flex;flex-direction:column;gap:0;margin:0;padding:0;list-style:none;border-top:1px solid var(--line)}
 .cset-item{padding:12px 0;border-bottom:1px solid var(--line)}
@@ -734,16 +728,7 @@ label.cset-head{cursor:pointer}
 .cset-spacing{font-size:11.5px}
 .cset-off .cset-name{color:var(--muted);font-weight:560}
 .cset-reason{color:var(--ink2)}
-.cset-buildrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
-.cset-build{min-height:32px;border:1px solid var(--line2);background:var(--panel);border-radius:var(--r-sm);padding:6px 14px;font:inherit;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
-.cset-build:hover{border-color:var(--ink)}
-.cset-build:focus-visible,.cset-radio:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
-.cset-build[aria-busy="true"]{cursor:progress}
-/* The engine Button's isPending, as the chrome's controls draw it (`pendingLabel`, chrome.css): both labels in one
-   cell, the one not showing held invisible; the spinner takes the button's own ink on the brand's ground. */
-.cset-build[aria-busy="true"] .p3-pend-idle,.cset-build:not([aria-busy="true"]) .p3-pend-busy{visibility:hidden}
-.cset-build .p3-spin::before{border-top-color:currentColor}
-.cset-build:disabled{cursor:not-allowed;color:var(--muted)}
+.cset-radio:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 /* Spacing ramp preview (#265) — the space.* steps as proportional bars (spacing has no other payoff). */
 .sp-list{display:flex;flex-direction:column;gap:7px;border-radius:var(--r-sm);padding:22px 20px;background:var(--paper);margin-top:14px}
 /* Label and bar on ONE row. Stacked, the 18 steps ran ~950px tall while the bars — now drawn at their

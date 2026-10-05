@@ -29,6 +29,9 @@ export type Verdict = { ok: boolean; headline: string; summary: string };
 /** An action's slot: `null` = never run this session, `pending` = posted and not answered yet, else the
  *  host's verdict. */
 export type ActionState = Verdict | 'pending' | null;
+/** A set's last build this session (S8.2; owner decisions G9, C1): built cleanly, built with problems (the build ran to
+ *  the end and the summary names its misses), or failed (it stopped before building the set). */
+export type SetBuild = 'ok' | 'issues' | 'failed';
 /** Whose detail row is open, at most one. */
 export type DetailKey = 'apply' | 'components' | 'filesetup' | 'styleguide';
 /** The operations the Activity drawer shows (UI redesign S11): the four writes with a verdict slot, the
@@ -116,11 +119,10 @@ export interface HostSession {
    *  wire's `component-result` does not name its set, so the panel remembers the one it posted, and the verdict that
    *  answers it is recorded against that set in `setBuilds`. */
   readonly componentDef: string | null;
-  /** Each set's last build result in THIS session (owner decision G9 A, S8.2): `true` built cleanly, `false` built
-   *  with problems; a set with no entry was not built from this panel this session. Recorded only for the panel's
+  /** Each set's last build result in THIS session (owner decisions G9 A and C1 A, S8.2); a set with no entry was not built from this panel this session. Recorded only for the panel's
    *  own builds: an agent's build carries no set id over the wire, so it is not attributed (it still lands in the
    *  Activity drawer). Never persisted, and never read from the file. */
-  readonly setBuilds: ReadonlyMap<string, boolean>;
+  readonly setBuilds: ReadonlyMap<string, SetBuild>;
   /** OPT-IN PRUNE (#1521) — Figma-only, and three slots for the same reason `applyState` is not
    *  `seedOutcome`: the prune is its own action and its verdict must not land in another write's pill.
    *  `pruneBusy` is the in-flight state — a preview being computed or a delete running — and disables the
@@ -267,7 +269,8 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       // The progress clears with the verdict, so a next build's first render cannot show this run's fraction.
       // S8.2 (G9): the verdict that answers the panel's own pending build is recorded against the set it posted.
       const own = s.componentState === 'pending' && s.componentDef !== null;
-      const setBuilds = own ? new Map([...s.setBuilds, [s.componentDef as string, m.ok]]) : s.setBuilds;
+      const result: SetBuild = m.ok ? 'ok' : m.completed ? 'issues' : 'failed';
+      const setBuilds = own ? new Map([...s.setBuilds, [s.componentDef as string, result]]) : s.setBuilds;
       return { ...s, componentState: { ok: m.ok, headline: m.headline, summary: m.summary }, openDetail: m.ok ? null : 'components', componentProgress: null, componentDef: null, setBuilds };
     }
     case 'file-setup-result':

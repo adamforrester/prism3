@@ -6564,7 +6564,7 @@ console.log(`\nComponents (S8.2)\n${'='.repeat(78)}`);
 const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'lever-button-label-weight', 'lever-button-min-width-multiplier'];
 /** The lever sections and the preview sections they pair with (Q23), in order. Literal. */
 const COMPONENTS_PAIRS = [['Button', 'Button'], ['Component sets', 'Component sets']];
-/** The page's drafted copy (pending the owner), verbatim. */
+/** The page's copy, approved by the owner (2026-10-05), verbatim. */
 const COMPONENTS_COPY = {
   Button: 'How buttons place their icons, size their label and set their minimum width. Applies to buttons, not icon buttons.',
   'Component sets': 'Every component set the engine defines, with what each contains and its spacing at your density.',
@@ -6662,7 +6662,7 @@ for (const host of ['web', 'figma']) {
     } else {
       ok(r.build.length === 1 && r.build[0][0] === COMPONENTS_COPY.build && (r.build[0][1] ?? '').trim().endsWith(COMPONENTS_COPY.busy) && r.radios === DOC_SETS.length && r.checked === 'button',
         `G2: figma: the set list offers each set as a choice, Button chosen, and one Build button names it — ${JSON.stringify(r.build)}, ${r.radios} radios, checked ${r.checked}`);
-      ok(JSON.stringify(r.hints) === JSON.stringify([COMPONENTS_COPY.buildHint, COMPONENTS_COPY.orderHint]), `G3: figma: the build's two plain facts read as drafted (${JSON.stringify(r.hints)})`);
+      ok(JSON.stringify(r.hints) === JSON.stringify([COMPONENTS_COPY.buildHint, COMPONENTS_COPY.orderHint]), `G3: figma: the build's two plain facts read as approved (${JSON.stringify(r.hints)})`);
       ok(r.last.length === DOC_SETS.length && r.last.every((t) => t === 'Not built in this session'), `G9: figma: before any build, every set reads "Not built in this session" (${[...new Set(r.last)].join(', ')})`);
       ok(r.webLines.length === 0, `figma: no web line in the plugin (${JSON.stringify(r.webLines)})`);
       // Choosing another set renames the Build button, in place, keeping focus on the radio.
@@ -6749,6 +6749,107 @@ for (const host of ['web', 'figma']) {
     ok(errors.length === 0, `components reveal: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `S8.2 reveal: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// C3 A (#2086): the build stamp moved from the foot of the Pages menu to the foot of the Inspect menu, in small text, on
+// both hosts (the plugin showed it too). Oracle: the engine version read from `packages/engine/version.ts` here, as
+// text, never the bundle's import; the stamp's words are #474's, unchanged.
+//
+// Mutations this fails by name: the stamp block removed from `inspectMenu` → `C3: <host>: the Inspect menu ends with
+// the build stamp …`; the stamp left in the plugin's Pages menu as well → `C3: figma: the Pages menu no longer draws the
+// build stamp …`.
+const ENGINE_V = /export const ENGINE_VERSION = '([^']+)'/.exec(readFileSync(join(REPO, 'packages/engine/version.ts'), 'utf8'))?.[1] ?? null;
+ok(ENGINE_V !== null, `C3: the oracle reads the engine version from packages/engine/version.ts (${ENGINE_V})`);
+for (const host of ['web', 'figma']) {
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'components');
+    await hooks.click(page.locator('[data-p3="inspect-open"]'));
+    await hooks.need(page, '[data-p3="inspect-menu"]');
+    const s = await page.evaluate(() => {
+      const menu = document.querySelector('[data-p3="inspect-menu"]');
+      const st = menu?.querySelector('[data-p3="build-stamp"]');
+      const item = menu?.querySelector('[data-p3^="inspect-option-"]');
+      return {
+        all: document.querySelectorAll('[data-p3="build-stamp"]').length,
+        last: !!st && menu.lastElementChild === st,
+        parts: st ? [...st.children].map((n) => n.textContent) : [],
+        title: st?.title ?? '',
+        small: st && item ? parseFloat(getComputedStyle(st).fontSize) < parseFloat(getComputedStyle(item).fontSize) : null,
+        shown: !!st && st.getClientRects().length > 0,
+      };
+    });
+    ok(s.all === 1 && s.last && s.shown && s.parts.length === 2 && s.parts[0] === `engine ${ENGINE_V}` && s.parts[1].trim().length > 0 && s.title.length > 0,
+      `C3: ${host}: the Inspect menu ends with the build stamp, "engine ${ENGINE_V}" and the build chip, its title the full reading — ${JSON.stringify(s)}`);
+    ok(s.small === true, `C3: ${host}: the stamp is smaller text than the menu's items (${s.small})`);
+    await page.keyboard.press('Escape');
+    if (host === 'figma') {
+      await hooks.click(page.locator('[data-p3="pages-menu"]'));
+      await hooks.need(page, '[data-p3="pages-menu-list"]');
+      const inPages = await page.evaluate(() => document.querySelectorAll('[data-p3="pages-menu-list"] [data-p3="build-stamp"]').length);
+      ok(inPages === 0, `C3: figma: the Pages menu no longer draws the build stamp (${inPages})`);
+      await page.keyboard.press('Escape');
+    }
+    ok(errors.length === 0, `C3 ${host}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S8.2 C3 ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// C4 A: in the plugin, the build bar ("Build ‹Name›" and its two hints) stays in view at the foot of the preview at any
+// scroll position, and never covers the last set: at the end of the scroll the last set ends above it. Read at three
+// scroll positions, wide and in the narrow Preview pane, by the browser's own hit test at the bar's center. Its focus
+// order (the set's choice, then the Build button) and the Activity drawer over it still work.
+//
+// Mutations this fails by name: `position: sticky` dropped from `.p3-buildbar` → `C4: figma 1280 at the top: the build
+// bar is in view …`.
+for (const { w, h } of [{ w: 1280, h: 700 }, { w: 380, h: 700 }]) {
+  const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w, h });
+  try {
+    await goPlace(page, 'components');
+    if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+    await hooks.need(page, '[data-p3="components-row"]');
+    const scrollable = await page.evaluate(() => { const b = document.querySelector('[data-p3="preview-body"]'); return b.scrollHeight - b.clientHeight; });
+    ok(scrollable > 400, `C4: figma ${w}: the preview scrolls, so this check can mean something (${scrollable}px of scroll)`);
+    for (const [at, f] of [['the top', 0], ['the middle', 0.5], ['the end', 1]]) {
+      await page.evaluate((k) => { const b = document.querySelector('[data-p3="preview-body"]'); b.scrollTop = Math.round((b.scrollHeight - b.clientHeight) * k); }, f);
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+      const g = await page.evaluate(() => {
+        const body = document.querySelector('[data-p3="preview-body"]').getBoundingClientRect();
+        const barN = document.querySelector('[data-p3="components-row"]');
+        const bar = barN.getBoundingClientRect();
+        const hit = document.elementFromPoint(bar.left + bar.width / 2, bar.top + bar.height / 2);
+        const sets = document.querySelectorAll('[data-p3="component-set"]');
+        const lastSet = sets[sets.length - 1].getBoundingClientRect();
+        return { inView: bar.top >= body.top - 0.5 && bar.bottom <= body.bottom + 0.5 && bar.height > 0, onTop: !!hit && barN.contains(hit),
+          bar: [Math.round(bar.top), Math.round(bar.bottom)], body: [Math.round(body.top), Math.round(body.bottom)], lastBottom: Math.round(lastSet.bottom),
+          label: barN.querySelector('[data-p3="label-idle"]')?.textContent ?? null,
+          hints: [...barN.querySelectorAll('[data-p3="components-build-hint"], [data-p3="components-order-hint"]')].length };
+      });
+      ok(g.inView && g.onTop && g.label === 'Build Button' && g.hints === 2,
+        `C4: figma ${w} at ${at}: the build bar is in view at the foot of the preview and on top at its center, "Build Button" with its two hints — bar ${JSON.stringify(g.bar)} in ${JSON.stringify(g.body)}, on top ${g.onTop}, ${JSON.stringify(g.label)}, ${g.hints} hints`);
+      if (f === 1) ok(g.lastBottom <= g.bar[0] + 0.5, `C4: figma ${w} at the end: the last set ends above the bar, not under it (set ends ${g.lastBottom}, bar starts ${g.bar[0]})`);
+    }
+    // Focus order: from the chosen set's radio, Tab reaches the Build button next.
+    await page.locator('[data-p3="components-def-option"]:checked').focus();
+    await page.keyboard.press('Tab');
+    const focus = await page.evaluate(() => document.activeElement?.getAttribute('data-p3') ?? null);
+    ok(focus === 'components-build', `C4: figma ${w}: Tab from the chosen set reaches the Build button (on "${focus}")`);
+    // The Activity drawer, opened, sits over the bar wherever the two meet.
+    await hooks.click(page.locator('[data-p3="activity-open"]'));
+    await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, { timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(400);
+    const d = await page.evaluate(() => {
+      const dr = document.querySelector('[data-p3="activity-drawer"]');
+      const a = dr.getBoundingClientRect(), b = document.querySelector('[data-p3="components-row"]').getBoundingClientRect();
+      const x0 = Math.max(a.left, b.left), x1 = Math.min(a.right, b.right), y0 = Math.max(a.top, b.top), y1 = Math.min(a.bottom, b.bottom);
+      if (x1 - x0 < 2 || y1 - y0 < 2) return { open: dr.dataset.open, overlap: false, onTop: true };
+      const hit = document.elementFromPoint((x0 + x1) / 2, (y0 + y1) / 2);
+      return { open: dr.dataset.open, overlap: true, onTop: !!hit && dr.contains(hit) };
+    });
+    ok(d.open === 'true' && d.onTop, `C4: figma ${w}: the Activity drawer opens over the build bar, not under it (${JSON.stringify(d)})`);
+    ok(errors.length === 0, `C4 figma ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `S8.2 C4 figma ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
 }
 // The chrome on Components: both hosts, both themes, 1280, 640 and 380 (the Settings pane, then the Preview pane when

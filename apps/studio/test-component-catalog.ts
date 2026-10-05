@@ -21,17 +21,20 @@
  *
  * Mutations this fails by name: the committed copy edited (Button's `members` 432 → 648) → `the committed catalog
  * matches the component definitions — stale: button.members`; the member count hard-coded in `catalogOf` →
- * `button: the catalog says 648 members, the projector builds 432`.
+ * `button: the catalog says 648 members, the projector builds 432`; `padding-x-visual` added to `SPACING_SHOWN` →
+ * `C2: button at comfortable shows the engine's padding and gap px`; the spacing read at comfortable whatever the
+ * density → `C2: button at compact shows the engine's padding and gap px`.
  */
 import { componentDefs } from '@prism3/engine/components/index';
-import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
+import { figmaAnatomySet, applySpacingDensity } from '@prism3/engine/anatomy-figma';
 import { densitySpacingKeys, type ComponentDef } from '@prism3/engine/component-schema';
 import { sizeRefPx, componentSizes } from '@prism3/engine/scale';
 import { planTargets, defForTarget, SWAP_TARGET } from '../plugin/src/build-deps';
 import { COMPONENT_CATALOG_DATA } from './src/state/component-catalog-data';
 import { catalogOf, buildableSets, unbuildableSets, CATALOG_SWAP_TARGET, type CatalogEntry } from './src/state/component-catalog';
 import { computeCatalog, render } from './gen-component-catalog';
-import { chosenOf, setsView, SETS_COPY } from './src/preview/sections/component-sets';
+import { chosenOf, setsView } from './src/preview/sections/component-sets';
+import type { SetBuild } from './src/state/host-session';
 
 let failed = 0;
 let executed = 0;
@@ -123,28 +126,26 @@ console.log('\n6. What the Components page says of each set (setsView, S8.2), an
 // The px are the space ladder's own (8px base: space.200 = 16, space.150 = 12, space.100 = 8, space.075 = 6), typed
 // here; density moves each step one along the ladder (compact: 16 → 12).
 const spacePx = sizeRefPx(componentSizes('comfortable', 8));
-const last = new Map<string, boolean>([['button', true], ['tag', false]]);
+const last = new Map<string, SetBuild>([['button', 'ok'], ['tag', 'issues'], ['badge', 'failed']]);
 const view = setsView(committed, { density: 'comfortable', spacePx, plugin: true, lastOf: (id) => last.get(id) });
 const v = (id: string) => view.find((x) => x.id === id);
 ok(v('button')?.parts === '432 parts' && v('icon')?.parts === '44 components' && v('spinner')?.parts === '4 components',
   `parts: Button "${v('button')?.parts}", Icon "${v('icon')?.parts}", Spinner "${v('spinner')?.parts}" (want 432 parts, 44 components, 4 components)`);
 ok(v('button')?.contains === 'Contains Icon, FocusRing, Spinner' && v('focus-ring')?.contains === 'Contains no other set',
   `contains: by the nested sets' names ("${v('button')?.contains}", "${v('focus-ring')?.contains}")`);
-ok(JSON.stringify(v('button')?.spacing) === JSON.stringify(['Small: padding-x 16 · padding-x-visual 12 · padding-y 6 · gap 8', 'Medium: padding-x 16 · padding-x-visual 12 · padding-y 8 · gap 8', 'Large: padding-x 24 · padding-x-visual 16 · padding-y 8 · gap 12']),
+ok(JSON.stringify(v('button')?.spacing) === JSON.stringify(['Small: padding-x 16 · padding-y 6 · gap 8', 'Medium: padding-x 16 · padding-y 8 · gap 8', 'Large: padding-x 24 · padding-y 8 · gap 12']),
   `spacing at comfortable: Button's three sizes in px (${JSON.stringify(v('button')?.spacing)})`);
 const compact = setsView(committed, { density: 'compact', spacePx, plugin: true, lastOf: () => undefined }).find((x) => x.id === 'button');
-ok(compact?.spacing[1] === 'Medium: padding-x 12 · padding-x-visual 8 · padding-y 6 · gap 6',
+ok(compact?.spacing[1] === 'Medium: padding-x 12 · padding-y 6 · gap 6',
   `spacing at compact: one step down the ladder, gaps floored at 4 (${JSON.stringify(compact?.spacing[1])})`);
 ok(JSON.stringify(v('focus-ring')?.spacing) === '[]', 'a set whose spacing follows no density states none');
-ok(v('button')?.last === SETS_COPY.built && v('tag')?.last === SETS_COPY.problems && v('badge')?.last === SETS_COPY.notBuilt,
-  `G9: this session's result per set — Button "${v('button')?.last}", Tag "${v('tag')?.last}", Badge "${v('badge')?.last}"`);
-ok(SETS_COPY.built === 'Built just now' && SETS_COPY.problems === 'Built with problems' && SETS_COPY.notBuilt === 'Not built in this session',
-  'G9: the three result lines read the drafted words');
+ok(v('button')?.last === 'Built just now' && v('tag')?.last === 'Built with problems' && v('badge')?.last === 'Build failed' && v('select')?.last === 'Not built in this session',
+  `G9, C1: this session's result per set — Button "${v('button')?.last}", Tag "${v('tag')?.last}", Badge "${v('badge')?.last}", Select "${v('select')?.last}"`);
 const web = setsView(committed, { density: 'comfortable', spacePx, plugin: false, lastOf: (id) => last.get(id) });
 ok(web.every((x) => x.last === null), 'the web states no build result: nothing builds there');
 ok(view.every((x) => x.offered === committed.find((e) => e.id === x.id)?.buildable), 'every set that builds is offered, and only those');
 // G4, on the planted catalog (section 4): listed, with its reason, and never offered.
-const pv = setsView(planted, { density: 'comfortable', spacePx, plugin: true, lastOf: () => true });
+const pv = setsView(planted, { density: 'comfortable', spacePx, plugin: true, lastOf: () => 'ok' });
 ok(pv.length === 3 && pv[0].offered === false && pv[1].offered === false,
   `G4: a set that can't be built is listed and not offered — planted-declared offered ${pv[0].offered}, planted-thrower offered ${pv[1].offered}`);
 ok(pv[0].reason === "Can't be built yet: it binds no geometry of its own." && pv[1].reason === "Can't be built yet: the Figma build can't read its definition yet",
@@ -153,6 +154,32 @@ ok(pv[0].parts === null && pv[0].last === null, 'G4: a set that can\'t be built 
 ok(chosenOf(pv, 'planted-declared') === 'button' && chosenOf(pv, null) === 'button' && chosenOf(pv.slice(0, 2), 'planted-declared') === null,
   `G4: the Build button never names a set that can't be built (chose ${chosenOf(pv, 'planted-declared')}, then ${chosenOf(pv.slice(0, 2), 'planted-declared')} with none offered)`);
 ok(chosenOf(view, 'tag') === 'tag', 'the chosen set holds while it is offered');
+
+console.log('\n7. C2: the set list shows each size\'s padding and gap only, at the px the ENGINE builds at each density');
+// Oracle: the engine's own density output, `applySpacingDensity(def, density)` (the def a build projects), read over
+// the schema's expansion and resolved on the space ladder; NOT `densitySpacingStep`, which setsView calls. The keys
+// shown are typed here as the owner's decision words them (C2 A, "only the padding and gap values"); every leaf name
+// the corpus uses is classified below, so a def adding a new spacing name fails here until it is placed.
+const SHOWN = ['gap', 'pad-x', 'pad-y', 'padding-x', 'padding-y'];
+const HIDDEN = ['check-gap', 'dismissible.visible-gap', 'padding-x-visual', 'select.gap', 'select.padding-end'];
+const leaf = (k: string): [string, string] => { const m = /^size\.([^.]+)\.(.+)$/.exec(k); return m ? [m[1][0].toUpperCase() + m[1].slice(1), m[2]] : ['', k]; };
+const names = new Set(componentDefs.flatMap((d) => densitySpacingKeys(d).map((k) => leaf(k)[1])));
+ok([...names].every((n) => SHOWN.includes(n) || HIDDEN.includes(n)), `C2: every spacing name is classified shown or hidden (unclassified: ${JSON.stringify([...names].filter((n) => !SHOWN.includes(n) && !HIDDEN.includes(n)))})`);
+for (const density of ['comfortable', 'compact', 'spacious'] as const) {
+  const shown = setsView(committed, { density, spacePx, plugin: true, lastOf: () => undefined });
+  for (const d of componentDefs) {
+    const built = applySpacingDensity(d, density);
+    const lines = new Map<string, string[]>();
+    for (const k of densitySpacingKeys(d)) {
+      const [size, n] = leaf(k);
+      if (!SHOWN.includes(n)) continue;
+      lines.set(size, [...(lines.get(size) ?? []), `${n} ${spacePx(String(built.tokens[k]))}`]);
+    }
+    const want = [...lines].map(([size, parts]) => `${size ? `${size}: ` : ''}${parts.join(' · ')}`);
+    const got = shown.find((x) => x.id === d.id)?.spacing;
+    ok(JSON.stringify(got) === JSON.stringify(want), `C2: ${d.id} at ${density} shows the engine's padding and gap px (${JSON.stringify(got)} vs ${JSON.stringify(want)})`);
+  }
+}
 
 console.log(`\n${executed - failed}/${executed} component catalog assertions passed.`);
 if (failed) process.exit(1);

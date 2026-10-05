@@ -22,11 +22,12 @@
  * ── UI redesign S8.2: where the build lives now ───────────────────────────────────────────────────
  *
  * The build moved from the legacy Components rail page to the Components TAB's preview (owner decision G2 A): the set
- * is chosen in the set list and built with the Build button under it, whose label names the set ("Build Button") and
- * which is busy, not disabled, while a build runs (#1956 decision 4). The page has no verdict pill or fraction of its
- * own any more: the verdict and the live fraction are the Activity drawer's build row, and the page's per-set line says
- * how this session's build of that set went (G9: "Built just now", "Built with problems", "Not built in this
- * session"). Every arm below reads those two places. The verdict LITERALS are unchanged: they are the copy under test.
+ * is chosen in the set list and built with the Build button in the bar at the foot of the preview (C4 A), whose label
+ * names the set ("Build Button") and which is busy, not disabled, while a build runs (#1956 decision 4). The page has
+ * no verdict pill or fraction of its own any more: the verdict and the live fraction are the Activity drawer's build
+ * row, and the page's per-set line says how this session's build of that set went (G9 and C1: "Built just now", "Built
+ * with problems" for a build that ran to the end with issues, "Build failed" for one that stopped, "Not built in this
+ * session"), told apart by the posted verdict's `ok` and `completed`. Every arm below reads those two places. The verdict LITERALS are unchanged: they are the copy under test.
  * Set up file's one control is the Figma menu's item now (G8 A), and its arm drives that.
  *
  * ── why this suite is a BROWSER suite, and why it lives here rather than in apps/studio ──────────
@@ -162,11 +163,11 @@ const browser = await chromium.launch();
 /** Post a main-thread → UI message in the wire shape `bridge-main.ts` puts on the bus. */
 const post = (page, msg) => page.evaluate((m) => window.postMessage({ pluginMessage: m }, '*'), msg);
 
-/** The Build button's labels and each set's result line, as drafted (S8.2; owner decisions G2 and G9, copy pending the
- *  owner). Typed here, never read from the source: they are the words a designer reads. */
+/** The Build button's labels and each set's result line, as approved (S8.2; owner decisions G2, G9 and C1, copy approved
+ *  2026-10-05). Typed here, never read from the source: they are the words a designer reads. */
 const BUILD_LABEL = 'Build Button';
 const BUSY_LABEL = 'Building…';
-const LAST = { ok: 'Built just now', bad: 'Built with problems', none: 'Not built in this session' };
+const LAST = { ok: 'Built just now', bad: 'Built with problems', failed: 'Build failed', none: 'Not built in this session' };
 
 /** Everything a designer can read about a build, from the rendered DOM only.
  *
@@ -266,13 +267,15 @@ const CONDITIONS = [
   {
     name: 'clean build',
     why: 'the case the field report observed',
-    msg: { type: 'component-result', ok: true, headline: '✓ built 648', summary: "set 'Button': 648 variants (+648 built, 0 already present), 0 refs missing" },
+    msg: { type: 'component-result', ok: true, completed: true, headline: '✓ built 648', summary: "set 'Button': 648 variants (+648 built, 0 already present), 0 refs missing" },
+    line: LAST.ok,
     verdictOpens: false,
   },
   {
     name: 'build with misses',
     why: "#866's four DISCARDED refs — the reason this surface matters at all",
-    msg: { type: 'component-result', ok: false, headline: '⚠ 648, 4 missed', summary: "set 'Button': 648 variants, ⚠ 4 misses (focus/ring/offset; icon/size; …)" },
+    msg: { type: 'component-result', ok: false, completed: true, headline: '⚠ 648, 4 missed', summary: "set 'Button': 648 variants, ⚠ 4 misses (focus/ring/offset; icon/size; …)" },
+    line: LAST.bad,
     verdictOpens: true,
   },
   {
@@ -284,19 +287,22 @@ const CONDITIONS = [
     // sentence was pointing at a case this row no longer stands for.)
     name: 'errored build',
     why: 'the catch arm, with the file untouched — planSetLayout throws before anything is created',
-    msg: { type: 'component-result', ok: false, headline: '✗ apply failed', summary: 'component build failed: planSetLayout: no coherent set' },
+    msg: { type: 'component-result', ok: false, completed: false, headline: '✗ apply failed', summary: 'component build failed: planSetLayout: no coherent set' },
+    line: LAST.failed,
     verdictOpens: true,
   },
   {
     name: 'already-built (idempotent re-run)',
     why: 'every member skipped by name, so misses === skipped and the build is a SUCCESS',
-    msg: { type: 'component-result', ok: true, headline: '✓ 0 new, 648 present', summary: "set 'Button': 648 variants (+0 built, 648 already present)" },
+    msg: { type: 'component-result', ok: true, completed: true, headline: '✓ 0 new, 648 present', summary: "set 'Button': 648 variants (+0 built, 648 already present)" },
+    line: LAST.ok,
     verdictOpens: false,
   },
   {
     name: 'unknown def',
     why: 'the early return — the UI and the plugin disagree about the catalogue',
-    msg: { type: 'component-result', ok: false, headline: '✗ unknown def', summary: "no component def with id 'nope' — this build knows button, icon-button" },
+    msg: { type: 'component-result', ok: false, completed: false, headline: '✗ unknown def', summary: "no component def with id 'nope' — this build knows button, icon-button" },
+    line: LAST.failed,
     verdictOpens: true,
   },
   {
@@ -313,9 +319,10 @@ const CONDITIONS = [
     name: 'not buildable standalone',
     why: "#869's refusal — a def whose projection cannot render alone, refused rather than half-built",
     msg: {
-      type: 'component-result', ok: false, headline: '✗ not buildable on its own',
+      type: 'component-result', ok: false, completed: false, headline: '✗ not buildable on its own',
       summary: 'focus-ring: a ring is sized by the control it surrounds, so it projects members that bind no width or height of their own — built alone it is a 100×100 default frame with the focus color at 1px. Build it as part of a host instead: Button nests it and supplies the geometry.',
     },
+    line: LAST.failed,
     verdictOpens: true,
   },
   {
@@ -332,9 +339,10 @@ const CONDITIONS = [
     name: 'errored build, partial write',
     why: "#913's marked leftovers — the catch arm with nodes already in the file, which needs its own words",
     msg: {
-      type: 'component-result', ok: false, headline: '✗ failed, 2 parked',
+      type: 'component-result', ok: false, completed: false, headline: '✗ failed, 2 parked',
       summary: "component build failed: in setTextStyleIdAsync: unloaded font \"Clash Display Semi Bold\" — 2 nodes had already reached the file; they are parked in the frame '⚠ Prism3 partial build — button (2 nodes; undo to remove)' on this page. One undo removes the whole build.",
     },
+    line: LAST.failed,
     verdictOpens: true,
   },
 ];
@@ -366,7 +374,7 @@ console.log(`\nComponent-build verdict suite (#870) — ${CONDITIONS.length} ter
   ok(errors.length === 0, `opening the panel logs no console errors (${errors.slice(0, 2).join(' · ')})`);
   await startBuild(page, undefined, 'the fresh panel\'s proving build');
   const during = await readSurfaces(page);
-  await post(page, { type: 'component-result', ok: true, headline: '✓ built 648', summary: "set 'Button': 648 variants" });
+  await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built 648', summary: "set 'Button': 648 variants" });
   await idleAgain(page);
   const after = await readSurfaces(page);
   ok(during.button === BUSY_LABEL && during.busy && after.setLine === LAST.ok,
@@ -400,8 +408,9 @@ for (const c of CONDITIONS) {
   ok(after.picker === 'button', `${c.name}: the chosen set holds — read ${after.picker}`);
 
   // The verdict is VISIBLE: the drawer carries the host's own headline, and the set says how its build went (G9).
-  const line = c.msg.ok ? LAST.ok : LAST.bad;
-  ok(after.setLine === line, `${c.name}: the set's line on the page reads "${line}" — read ${JSON.stringify(after.setLine)}`);
+  // C1 A: three results, told apart by the build's own verdict (ok, and whether the build ran to the end), never by a
+  // hand-set state. Each condition's line is typed beside its message above.
+  ok(after.setLine === c.line, `${c.name}: the set's line on the page reads "${c.line}" — read ${JSON.stringify(after.setLine)}`);
   ok(after.barVerdict.some((t) => (t ?? '').includes(c.msg.headline)), `${c.name}: the Activity row carries the verdict "${c.msg.headline}"`);
 
   // No pending text survives the verdict. ABSENCE, judged against what the same probe saw during this build (#1831).
@@ -438,7 +447,7 @@ for (const c of CONDITIONS) {
 // the two verdicts differ ONLY in their number.
 //
 // WHERE THE NUMBER IS (S8.2): the Activity row's verdict and its open detail. The page's per-set line says only how the
-// build went ("Built with problems", G9); the count it used to carry was the legacy row's pill, retired with the row.
+// build went ("Build failed" here, since the build stopped: G9, C1); the count it used to carry was the legacy row's pill, retired with the row.
 //
 // WHAT IS *NOT* ASSERTED HERE, AND WHY: whether the count is clipped out of the pill. #483's finding was a verdict
 // clipped by `text-overflow: ellipsis` at 220px, but the pill grows with its text now (measured: `overflow: visible`,
@@ -449,14 +458,14 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await startBuild(page, undefined, label);
   const headline = `✗ failed, ${n} parked`;
   await post(page, {
-    type: 'component-result', ok: false, headline,
+    type: 'component-result', ok: false, completed: false, headline,
     summary: `component build failed: in combineAsVariants: The nodes must all have the same parent — ${n} nodes had already reached the file; they are parked in the frame '⚠ Prism3 partial build — button (${n} nodes; undo to remove)' on this page. One undo removes the whole build.`,
   });
   await idleAgain(page);
   const after = await readSurfaces(page);
   ok(after.barVerdict.some((t) => (t ?? '').includes(String(n))),
     `${label}: the Activity row states how many nodes were left, and it survives navigating away — read ${JSON.stringify(after.barVerdict)}`);
-  ok(after.setLine === LAST.bad, `${label}: the set's line on the page says the build had problems — read ${JSON.stringify(after.setLine)}`);
+  ok(after.setLine === LAST.failed, `${label}: the set's line on the page says the build failed (it stopped before the set, C1) — read ${JSON.stringify(after.setLine)}`);
   ok(after.detail !== null && (after.detail ?? '').includes('parked in the frame'), `${label}: the open detail says where the leftovers are`);
   ok((after.detail ?? '').includes('⚠ Prism3 partial build'), `${label}: ...and names the frame, which is the only pointer the panel can give`);
   ok((after.detail ?? '').includes('One undo'), `${label}: ...and names the way out, which is one undo because the run is one undo entry`);
@@ -481,7 +490,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     await startBuild(page, other, `the non-default set '${other}'`);
     const posted = await builds(page);
     ok(JSON.stringify(posted) === JSON.stringify([other]), `the picker's selection is the set posted: '${other}' — posted ${JSON.stringify(posted)}`);
-    await post(page, { type: 'component-result', ok: true, headline: '✓ built', summary: `set '${other}'` });
+    await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: `set '${other}'` });
     await idleAgain(page);
     const after = await readSurfaces(page, other);
     const button = await readSurfaces(page, 'button');
@@ -520,7 +529,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   ok(retrying.barPending.some((t) => (t ?? '') === 'Retrying property links…'),
     `#1679 while the reference back-off waits, the pill reads exactly "Retrying property links…" — read ${JSON.stringify(retrying.barPending)}`);
 
-  await post(page, { type: 'component-result', ok: true, headline: '✓ built 648', summary: "set 'Button': 648 variants" });
+  await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built 648', summary: "set 'Button': 648 variants" });
   await page.waitForFunction(() => (document.querySelector('[data-p3="activity-op"][data-op="components"] [data-p3="op-verdict"]')?.textContent ?? '').includes('✓ built 648'), null, { timeout: 5000 }).catch(() => {});
   const landed = await readSurfaces(page);
   ok(landed.barVerdict.some((t) => (t ?? '').includes('✓ built 648')), 'a verdict arriving off-page lands in the Activity drawer, which is what survives navigation');
@@ -540,14 +549,14 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
 {
   const { page } = await openPanel();
   await startBuild(page, undefined, 'the first of two builds');
-  await post(page, { type: 'component-result', ok: false, headline: '⚠ 648, 4 missed', summary: 'first run' });
+  await post(page, { type: 'component-result', ok: false, completed: true, headline: '⚠ 648, 4 missed', summary: 'first run' });
   await idleAgain(page);
   const first = await readSurfaces(page);
   await startBuild(page, undefined, 'the second of two builds');
   const second = await readSurfaces(page);
   ok(second.button === BUSY_LABEL && second.busy, 'a second build can be started from the resolved state');
   ok(second.barPending.some((t) => /24 of 648/.test(t ?? '')), "the second build's progress reports too, rather than the first verdict staying put");
-  await post(page, { type: 'component-result', ok: true, headline: '✓ 0 new, 648 present', summary: 'second run — idempotent' });
+  await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ 0 new, 648 present', summary: 'second run — idempotent' });
   await idleAgain(page);
   const done = await readSurfaces(page);
   ok(first.setLine === LAST.bad && done.setLine === LAST.ok, `the second build's result replaces the first on the set's line — first ${JSON.stringify(first.setLine)}, then ${JSON.stringify(done.setLine)}`);
@@ -1257,7 +1266,7 @@ for (const how of ['pointer', 'focus']) {
 {
   const VERDICTS = [
     { op: 'apply', msg: { type: 'apply-result', ok: false, headline: '⚠ 3 roles missed', summary: '3 roles could not be written: text.link.visited; …' } },
-    { op: 'components', msg: { type: 'component-result', ok: false, headline: '⚠ 648, 4 missed', summary: "set 'Button': 648 variants, ⚠ 4 misses (focus/ring/offset; icon/size; …)" } },
+    { op: 'components', msg: { type: 'component-result', ok: false, completed: true, headline: '⚠ 648, 4 missed', summary: "set 'Button': 648 variants, ⚠ 4 misses (focus/ring/offset; icon/size; …)" } },
     { op: 'filesetup', msg: { type: 'file-setup-result', ok: false, headline: '✗ file setup failed', summary: 'file setup failed: a page named Components already exists' } },
     { op: 'styleguide', msg: { type: 'style-guide-result', ok: false, headline: '✗ style guide failed', summary: 'style guide failed: no variables in this file' } },
   ];

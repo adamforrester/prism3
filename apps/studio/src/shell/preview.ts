@@ -22,6 +22,8 @@ import { currentMode, rp, setCurrentMode, subscribe, theme } from '../state/stor
 import { breadthLine, healthLine, isDerived, modeLine, verdictLine, verdictOf, type Verdict } from '../state/verdict';
 import { INSPECT, type InspectId } from './pages';
 import { glyph, h, hook } from './dom';
+import { ENGINE_VERSION } from '@prism3/engine/version';
+import { buildChip, buildTitle } from '../build-identity';
 
 /** Short mode names, as the legacy mode strip and concept v6 show them. A custom mode shows its own name. */
 const MODE_LABEL: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light', 'hc-dark': 'HC dark', wireframe: 'Wireframe' };
@@ -194,6 +196,16 @@ export const inspectMenu = (open: (v: InspectId, opener: HTMLElement) => void, c
     return it;
   });
   menu.append(...items);
+  // THE BUILD STAMP (#474; owner decision C3 A, 2026-10-05): which engine and which build this is, at the foot of the
+  // menu in small text. It stood at the foot of the Pages menu until S8.2 removed that menu on the web (G19); it moved
+  // here on both hosts, since the plugin showed it too. Its text is unchanged: `engine <version>`, then the build chip
+  // (`build-identity.ts`, asserted in `test-build-identity.ts`), the full reading in its title. Not a menu item: it is
+  // read and selected, never chosen, so arrow keys pass it by.
+  const stamp = hook(h('p', 'p3-menu-stamp'), 'build-stamp');
+  stamp.setAttribute('role', 'none');
+  stamp.append(h('span', undefined, `engine ${ENGINE_VERSION}`), h('span', 'p3-menu-stamp-b', buildChip(PRISM3_BUILD)));
+  stamp.title = buildTitle(PRISM3_BUILD);
+  menu.append(stamp);
   const note = items[0].querySelector('.p3-menu-note')!;
   const paint = (): void => { const v = verdict(); note.textContent = v.fail ? `${v.fail} below floor` : 'all pass'; };
   const isOpen = (): boolean => menu.isConnected;

@@ -102,7 +102,7 @@ export const makeWriteHost = (scope: HTMLElement): WriteAdapter => cssVarAdapter
  *  this `kind`-tagged shape, with defaults filled in (`headline`, `styles`). See `onHostMessage`. */
 export type HostMessage =
   | { kind: 'apply-result'; ok: boolean; headline: string; summary: string }
-  | { kind: 'component-result'; ok: boolean; headline: string; summary: string }
+  | { kind: 'component-result'; ok: boolean; headline: string; summary: string; completed: boolean }
   // #1558 — the outcome of a `file-setup` scaffold. A FOURTH kind of the `{ok, headline, summary}`
   // shape, distinct for the same one-kind-per-fact reason `component-result` is: "did the page
   // skeleton get laid" is separately true and separately actionable from a theme or component write,
@@ -231,7 +231,7 @@ type Validator<K extends MainToUi['type']> = (m: Untrusted<OfType<MainToUi, K>>)
  *  build older than the headline field sends none, and letting the ~150-char summary land in the pill
  *  would restore exactly the truncation the field exists to remove. */
 type VerdictKind = 'apply-result' | 'component-result' | 'file-setup-result' | 'style-guide-result';
-const verdict = (kind: VerdictKind, m: Untrusted<OfType<MainToUi, VerdictKind>>, okText: string, failText: string): HostMessage => {
+const verdict = <K extends VerdictKind>(kind: K, m: Untrusted<OfType<MainToUi, VerdictKind>>, okText: string, failText: string): { kind: K; ok: boolean; headline: string; summary: string } => {
   const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? okText : failText;
   return { kind, ok: !!m.ok, headline, summary: String(m.summary ?? '') };
 };
@@ -256,7 +256,9 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   'apply-result': (m) => verdict('apply-result', m, '✓ applied', '✗ apply failed'),
   // The default says "built" without a count, because an older host that sends no headline sends no
   // counts to put in one either.
-  'component-result': (m) => verdict('component-result', m, '✓ built', '✗ build failed'),
+  // `completed` (S8.2, C1): a boolean from the host, or, from an older host that sends none, `ok` (a clean build ran to
+  // the end; anything else is read as a build that did not).
+  'component-result': (m) => ({ ...verdict('component-result', m, '✓ built', '✗ build failed'), completed: typeof m.completed === 'boolean' ? m.completed : !!m.ok }),
   'file-setup-result': (m) => verdict('file-setup-result', m, '✓ file set up', '✗ setup failed'),   // #1558
   'style-guide-result': (m) => verdict('style-guide-result', m, '✓ style guide written', '✗ style guide failed'),   // #259
   'component-progress': (m) => {
