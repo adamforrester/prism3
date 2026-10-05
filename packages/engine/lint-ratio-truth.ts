@@ -61,10 +61,14 @@
  *                  foreground inks, links and `interactive.<c>.fill.*` are measured on it, and it is a
  *                  ramp primitive, not a role. Until #1986 this arm SKIPPED any `against` shaped like
  *                  a step, so arm A never recomputed those ratios at all: 1,640 corpus ratios and
- *                  7,544 sweep ratios per run taken on trust. The step's hex is now read off
- *                  `theme.palettes` (the emitted primitive) — data, not the engine's ground lookup —
- *                  and a step-shaped `against` that is on no ramp fails here rather than being
- *                  skipped. Turning it on found #2025 on day one: the override pass re-rated every
+ *                  7,544 sweep ratios per run taken on trust. The step's colour is read off the
+ *                  EMISSION (#2097 item 4): the committed `out/<brand>.tokens.json` for a corpus
+ *                  brand that has one, and that case's own `buildTree` output for the rest. Until
+ *                  #2097 it was read off `theme.palettes`, the emitter's INPUT — independent of the
+ *                  engine's ground lookup, but not of the data, so an emitter writing a step's
+ *                  primitive wrong agreed with itself here. `theme.palettes` still says WHICH ramps
+ *                  exist; it never supplies a value. A step-shaped `against` that is on no ramp fails
+ *                  here rather than being skipped. Turning it on found #2025 on day one: the override pass re-rated every
  *                  overridden floor role on the page, 22 rows in this sweep recording a ratio the
  *                  tree did not contain. That is fixed (#2032); this arm is what holds it.
  *
@@ -99,12 +103,33 @@ import { brandTheme, BrandInput } from './theme';
 import { resolveAllModes, GROUND_INPUT } from './modes';
 import { contrast, hexToRgb, composite } from './color';
 import { corpus, MINIMAL_BRAND } from './token-contract';
+import { buildTree } from './tree';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 // `groundsOf` lives in `grounds.ts` since #988 — a module other files can import without running
 // this gate. See that file's header for why a gate script cannot also be a library.
 import { groundsOf } from './grounds';
 
 /** A ratio is a float; equality is "the same number", not "close enough to pass". */
 const EPS = 0.02;
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+/**
+ * The corpus brands with a COMMITTED tree (#2097 item 4), named literally: each one's step colours are
+ * read from `out/<id>.tokens.json`, which a regen wrote and this run did not. Literal rather than "any
+ * corpus id with a file", so a file that moves or a corpus id that is renamed fails by name below instead
+ * of quietly falling back to the in-memory emission (docs/34 shape 9).
+ */
+const COMMITTED_TREES = ['nb', 'aurora', 'harbor', 'wendys'];
+/** An emitted colour `$value` as `#rrggbb`. The corpus emits two formats: hex, and `rgb(r, g, b)` (nb's
+ *  `colorFormat`). Anything else is `undefined`, and the caller fails the step by name. */
+const emittedHex = (v: unknown): string | undefined => {
+  if (typeof v !== 'string') return undefined;
+  if (/^#[0-9a-f]{6}$/i.test(v)) return v.toLowerCase();
+  const m = /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/.exec(v);
+  return m ? `#${m.slice(1, 4).map((n) => Number(n).toString(16).padStart(2, '0')).join('')}` : undefined;
+};
 
 /**
  * Ground moves worth proving the bookkeeping against. Deliberately includes grounds the ramp cannot
@@ -165,6 +190,10 @@ let checked = 0, confessions = 0, alsoChecked = 0, alsoConfessions = 0;
 // Of `checked`, the rows whose ground is a palette STEP (#1986), and of those, the corpus's. Counted apart
 // so the floor below can hold the resolution itself, not just the total it is folded into.
 let checkedOnStep = 0, corpusOnStep = 0;
+// Of `checkedOnStep`, the rows whose step colour came from a COMMITTED tree (#2097 item 4), and which of
+// `COMMITTED_TREES` were read. The floor below holds both, so the out/ read cannot quietly stop happening.
+let committedOnStep = 0;
+const committedRead = new Set<string>();
 
 /** A ground that is a palette STEP (`neutral.050`) rather than a role — a real, intentional form. */
 const isPaletteStep = (s: string): boolean => /^[a-z][a-z0-9-]*\.\d+$/.test(s);
@@ -175,12 +204,23 @@ const isPaletteStep = (s: string): boolean => /^[a-z][a-z0-9-]*\.\d+$/.test(s);
  */
 type OverrideCtx = { ground: string; baseline: Record<string, { hex: string }> };
 
-const sweep = (label: string, theme: ReturnType<typeof brandTheme>, ctx?: OverrideCtx): void => {
-  // A palette-step ground's colour, read off the THEME'S RAMPS by name (#1986): `<palette>.<key>` → that
-  // step's own `hex`, the value its primitive emits. Never the floor the engine measured against — the
+const sweep = (label: string, theme: ReturnType<typeof brandTheme>, ctx?: OverrideCtx, committed?: string): void => {
+  // A palette-step ground's colour, read off the EMISSION by name (#1986, #2097 item 4): `<palette>.<key>`
+  // → that step's primitive as the tree states it. Never the floor the engine measured against — the
   // lookup is by the name the role REPORTS, so a role whose recorded ground and real ground came apart
-  // is measured against the one it names, which is the claim this gate holds.
-  const stepHex = new Map(theme.palettes.flatMap((p) => p.steps.map((s) => [`${p.palette}.${s.key}`, s.hex] as const)));
+  // is measured against the one it names, which is the claim this gate holds. And never `theme.palettes`'
+  // hex, which is the emitter's input: a step the emitter writes wrong must disagree with the ratio the
+  // engine computed off its own ramp, not agree with it. A committed tree for a corpus brand, else this
+  // case's own build (a sweep case has no committed tree).
+  const tree = committed ? JSON.parse(readFileSync(resolve(HERE, 'out', `${committed}.tokens.json`), 'utf8')) : buildTree(theme).tree;
+  const emittedPalette = tree?.[theme.root]?.core?.palette;
+  const stepHex = new Map<string, string>();
+  for (const p of theme.palettes) for (const s of p.steps) {
+    const v = emittedHex(emittedPalette?.[p.palette]?.[s.key]?.$value);
+    if (v) stepHex.set(`${p.palette}.${s.key}`, v);
+    else failures.push(`${label}: the ${committed ? `committed out/${committed}.tokens.json` : 'emitted tree'} has no readable color at ${theme.root}.core.palette.${p.palette}.${s.key} (got ${JSON.stringify(emittedPalette?.[p.palette]?.[s.key]?.$value)}), so ratios on that step cannot be checked against what ships.`);
+  }
+  if (committed && stepHex.size) committedRead.add(committed);
   for (const m of resolveAllModes(theme)) {
     const roles = m.roles as Record<string, { hex: string; against?: string; ratio?: number; min?: number; alpha?: number; model: string; legibleFor?: string; alsoAgainst?: { against: string; min: number } }>;
     // A warning that carries `against` is about a role's SECOND pair (arm F), so it does not confess the
@@ -278,7 +318,7 @@ const sweep = (label: string, theme: ReturnType<typeof brandTheme>, ctx?: Overri
         truth = contrast(hexToRgb(r.hex), hexToRgb(groundHex));
       }
       checked++;
-      if (!(against in roles)) { checkedOnStep++; if (label.startsWith('corpus:')) corpusOnStep++; }
+      if (!(against in roles)) { checkedOnStep++; if (label.startsWith('corpus:')) corpusOnStep++; if (committed) committedOnStep++; }
       // How the failure READS has to differ, because the two models fail differently and a reader
       // debugging one should not be handed the other's sentence.
       const how = r.model === 'ink-on-composite'
@@ -319,7 +359,10 @@ const sweep = (label: string, theme: ReturnType<typeof brandTheme>, ctx?: Overri
   }
 };
 
-for (const { id, theme } of corpus()) sweep(`corpus:${id}`, theme);
+for (const { id, theme } of corpus()) {
+  const short = id.split(' ')[0];
+  sweep(`corpus:${id}`, theme, undefined, COMMITTED_TREES.includes(short) ? short : undefined);
+}
 for (const c of CASES) sweep(c.label, brandTheme(c.input));
 const overrideCases = OVERRIDE_CASES();
 // The unoverridden baseline arm B compares against. Built once — it is the same tree for every case.
@@ -384,10 +427,19 @@ if (alsoChecked === 0 || alsoConfessions === 0)
 if (corpusOnStep < 1000 || checkedOnStep === corpusOnStep)
   failures.push(`only ${checkedOnStep} ratio(s) recomputed on a palette-step ground (${corpusOnStep} in the corpus, ${checkedOnStep - corpusOnStep} in the sweep) — about 1,640 and 7,544 are expected. The floor-measured roles' \`against\` no longer resolves to a ramp step, so their ratios are not being checked.`);
 
+// FLOOR 6 — the step colours must come from the committed trees where they exist (#2097 item 4). Every name
+// in COMMITTED_TREES must have been read, with steps in it, and the rows checked on them must be non-zero;
+// otherwise a corpus id renamed or a file moved has sent every corpus row back to an in-memory build.
+for (const id of COMMITTED_TREES)
+  if (!committedRead.has(id))
+    failures.push(`COMMITTED_TREES names '${id}', but no corpus brand read out/${id}.tokens.json — the corpus id or the file moved, so that brand's step colors are not being read from what ships.`);
+if (committedOnStep === 0)
+  failures.push(`no ratio on a palette-step ground was checked against a committed tree — the out/ read in sweep() is not happening.`);
+
 if (confessions === 0)
   failures.push(`arm B never fired: no case produced a role below its minimum, so "complies or confesses" was never tested. CASES needs a ground the ramp genuinely cannot serve (a mid-grey base is the reliable one).`);
 
-console.log(`Prism3 reported-ratio truth — ${checked} gated ratio(s) recomputed from final colors across ${corpus().length} corpus brand(s) + ${CASES.length} declared-surface case(s), ${checkedOnStep} of them on a palette-step ground (${corpusOnStep} in the corpus); ${confessions} below-minimum role(s), all confessed; ${alsoChecked} second pair(s), ${alsoConfessions} below minimum and confessed`);
+console.log(`Prism3 reported-ratio truth — ${checked} gated ratio(s) recomputed from final colors across ${corpus().length} corpus brand(s) + ${CASES.length} declared-surface case(s), ${checkedOnStep} of them on a palette-step ground (${corpusOnStep} in the corpus, ${committedOnStep} read from ${committedRead.size} committed tree(s)); ${confessions} below-minimum role(s), all confessed; ${alsoChecked} second pair(s), ${alsoConfessions} below minimum and confessed`);
 
 if (failures.length) {
   console.error(`\n❌ ${failures.length} ratio-truth failure(s):\n`);
