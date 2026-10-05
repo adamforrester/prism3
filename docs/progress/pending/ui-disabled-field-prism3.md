@@ -18,6 +18,11 @@
 - **The floor.** Section 2 fails a Layout sweep that exempted zero nodes or did not exempt `bp-input`.
 - **The canary.** Section 2 also plants, beside the field, a copy that is not disabled but keeps its class, its hook and, inline, its exact colors. The copy must be measured, must not be exempted, and must fail 4.5:1.
 
+**The same rule in `test:smoke` and the plugin's `test:start`.** The first full `npm run verify` failed two gates that #2143's notes did not name. Both suites have their own form-control walk, and both measure the same field: 18 failures in `smoke` (every brand's Layout field, plus every field Layout and Type lock in HC light and HC dark) and 4 in `plugin-start` (Figma's Layout tab, both schemes and both themes). Both walks now carry the rule, each with its own copy of the oracle. A chrome field (never a specimen) is exempt only if it is `:disabled` or `aria-disabled` and also under its bar. Each exempted field is asserted, by name, to be disabled, to take no focus, and to draw the three Prism3 roles from the emission. The accessibility-tree read stays in `test:chrome` only. Each suite also has:
+- a floor: every brand's Layout sweep in smoke, and every Layout tab measured in `test:start`, exempts `bp-input`;
+- the same canary;
+- a printed count: smoke 44 fields in 18 states, `test:start` 4 in 4.
+
 **The replacement for #2120's test (`F1 A: Layout: …`).** On both hosts and both chrome themes, the first breakpoint field's computed fill, edge (all four sides, solid) and value ink must equal the emission's Prism3 disabled values, and no editable breakpoint field may take any of them. Given a screenshot directory, it saves the breakpoint list as `f1-{web,plugin}-{light,dark}.png`.
 
 **Mutations,** each run in its own detached worktree at the `wip:` commit, so the branch's working tree was never written:
@@ -29,6 +34,10 @@
 - **(c) The ink on `disabled.text` instead of `disabled.on-fill`.** This was changed in `spec.mjs`. 8 failures:
   - `✗ web light 1280 / layout: the exempted input[bp-input] "sm, px" draws Prism3's disabled roles for light: … ink color.disabled.on-fill #67696b (drew {… "ink":"#808284" …})`, on both hosts and both themes;
   - `✗ F1 A: Layout: web light: the fixed first breakpoint field draws Prism3's disabled text field …`, on both hosts and both themes.
+
+- **(b) and (c) on `test:smoke` and `test:start`,** each in its own detached worktree:
+  - The class-name widening in both walks gives the canary only, by name: smoke 3 (`✗ prism3 / layout / light: the exemption canary, … {"planted":true,"measured":true,"ratio":3.06,"exempted":true}`, once per brand) and `test:start` 4 (`✗ light scheme / Figma light / Layout: the exemption canary, …`).
+  - The `disabled.text` ink gives the color arm on every exempted field: smoke 44 (`✗ prism3 / layout / light: the exempted field input.p3-text-input [text] "0" draws Prism3's disabled roles for the light chrome: …`) and `test:start` 4.
 
 ### Traps
 - **The exemption is decided against the floors in Node, not in the page.** `exemptOf` and `check` both read `TEXT_MIN` / `LARGE_TEXT_MIN` / `NONTEXT_MIN`. The probe only says which nodes are off, so a probe change cannot quietly decide what passes.
