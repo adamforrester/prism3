@@ -70,7 +70,15 @@
 - `apps/plugin/test-theme-pref.ts` (new, in the plugin's `test`) drives the real `main.ts`: a choice is kept under `prism3:theme`, and the next `ui-ready` sends it back.
 - Existing checks follow the change: the product mark is now checked on both hosts; the plugin's "no theme toggle" check became "starts on Match Figma"; the verdict's line is read from its tooltip; the Tab-order lists include the plugin's Theme; and the 380 Activity sheet's edge floor went from 10 to 6, because the tiles have no edge.
 
-MUTS_PLACEHOLDER
+**Mutations for the menu bar.** Each was run on a `git archive` copy of the committed head (`87fc5974`) with the shared `node_modules` linked in, built, and run through `test:chrome`, so the worktree itself was never mutated or restored:
+- **The theme menu put back after Export** (`bar.ts`'s order): 16 failures. Example: `S13.1 web light 1280: bar order: product-mark, brand-switcher, verdict, theme-toggle, activity-open, export-open (product-mark, brand-switcher, verdict, activity-open, export-open, theme-toggle)`, and `… bar alignment: the bar's last control on its top row (theme-toggle) ends at the page content's right edge (1248 vs 1248, the preview header), and it is Export`.
+- **A divider after the mark** (`border-right` on `.p3-mark`): 12 failures, every host, theme and width. Example: `S13.1 web light 1280: bar dividers: none between the bar's items (product-mark border-right)`.
+- **The labels kept at the narrow tier** (the narrow `.p3-tile-label` rule dropped): 26 failures. Examples: `S13.1 web light 380: bar tiles: verdict is borderless (true) with its glyph (true), its label dropped ("Contrast"), …` and `T7 figma light 380: the Agent tile sits in the top bar's Agent slot, named "Agent, off", not pressed, no dot, its label dropped ({… "label":"Agent" …})`.
+- **Contrast's mark always the check** (`preview.ts`): 9 failures. Example: `27b web light 1280: Contrast: pairs below floor, so its mark is the warning glyph and the count below floor ({"state":"fail","check":true,"warn":false,"count":null,"tip":"2 of 884 below floor, 2 modes",…})`.
+- **The Agent dot drawn while off** (`.p3-agent-dot { display: block }`): 12 failures. Example: `T7 figma light 1280: the Agent tile sits in the top bar's Agent slot, named "Agent, off", not pressed, no dot, labelled "Agent" ({… "dot":true …})`, plus `… the published off state clears the dot and the pressed state`.
+- **The theme choice not kept** (`main.ts`'s `set-theme-pref` case emptied): `test-theme-pref.ts` failed 4 checks, for example `a choice is kept in clientStorage under prism3:theme (kept undefined)` and `the next ui-ready sends the kept choice back (sent [])`.
+
+The clean run on the same head: `test:chrome` 18161/18161.
 
 **Held:**
 - **The plugin from 561 to about 1000px.** The bar wraps at the wide tier, so Export can start the second row. The owner named 1280 and 380 for the plugin; its window opens at 1280.
