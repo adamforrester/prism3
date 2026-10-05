@@ -212,7 +212,17 @@ const sweep = (label: string, theme: ReturnType<typeof brandTheme>, ctx?: Overri
   // hex, which is the emitter's input: a step the emitter writes wrong must disagree with the ratio the
   // engine computed off its own ramp, not agree with it. A committed tree for a corpus brand, else this
   // case's own build (a sweep case has no committed tree).
-  const tree = committed ? JSON.parse(readFileSync(resolve(HERE, 'out', `${committed}.tokens.json`), 'utf8')) : buildTree(theme).tree;
+  //
+  // A COMMITTED_TREES file that is MISSING fails here, by name (#2136). Before, `readFileSync` threw ENOENT
+  // and the gate died on a stack trace naming neither itself nor the tree, though the comment on
+  // COMMITTED_TREES already promised a named failure (docs/34 shape 20). The brand is then swept from its
+  // in-memory build, so the rest of the run still reports; FLOOR 6 below fails it too, since it was not read.
+  const file = committed ? resolve(HERE, 'out', `${committed}.tokens.json`) : undefined;
+  if (committed && !existsSync(file!)) {
+    failures.push(`COMMITTED_TREES names '${committed}', but out/${committed}.tokens.json is missing`);
+    committed = undefined;
+  }
+  const tree = committed ? JSON.parse(readFileSync(file!, 'utf8')) : buildTree(theme).tree;
   const emittedPalette = tree?.[theme.root]?.core?.palette;
   const stepHex = new Map<string, string>();
   for (const p of theme.palettes) for (const s of p.steps) {

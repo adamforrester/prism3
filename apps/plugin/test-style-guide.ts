@@ -71,6 +71,9 @@
  *      tables, a height change moves the rows below; a new category starts a new row.
  *  24. THE REVIEW OF f3bb76cd: a bracket with its parts named otherwise, and a file with no spacing set, counted; one
  *      verdict per specimen; a new table taller than its row pushing the row below down.
+ *  25. REM ON AND OFF (#2153): every dimension and font-variable table, planned and drawn, with REM on and with REM off
+ *      (first drawn, and redrawn from on): its exact column list, a REM cell under every REM column, and no REM cell and
+ *      no cell past the last column when REM is off. The column lists are literals, one per table and setting.
  *
  * INDEPENDENCE (docs/34): expected values are literals written here. The ratios (19.42, 18.13, 21) and the
  * failing 3.27 (neutral/400 on white, computed by hand from the WCAG formula), 6.44 (foreground.brand on
@@ -182,6 +185,10 @@
  *     table…", "18: toggled off, the two columns are gone…"; (title cell) the edit not preserved → "20: a hand-edited title
  *     survives a rerun…"; the title column left in the fingerprint → "20: a superseded table whose only change is a
  *     retitled row is deleted, unedited"; the humanizer returning the raw path → "20: humanized: …" and four more.
+ *   - (#2153) REM forced on, `const lengths = true && …` in `planVariableTables` → "25: REM off: the plan's columns are
+ *     each table's exact list", "25: REM off: every planned cell has no REM" and their four drawn arms fail, and nothing
+ *     outside 25 does; REM forced off, `const lengths = false && …` → the four "25: REM on…" arms fail, with 11 arms
+ *     of 16, 17, 19 and 23.
  *
  * THE SHIM IGNORES A RESIZE THE HOST IGNORES: a FIXED text inside an instance keeps its main component's width under
  * `resize` (live, 2026-09-28). Before the shim modeled it, every width assertion passed over one-word-a-line text.
@@ -936,7 +943,14 @@ const fullFile = async (variables = prism3Variables()): Promise<Shim & { fc: N; 
 const setsNamed = (pages: N[], name: string): N[] => pages.flatMap((p) => p.findAllWithCriteria({ types: ['COMPONENT_SET'] })).filter((n) => n.name.toLowerCase() === name.toLowerCase());
 const tablesOn = (p: N): N[] => p.findAll((n) => n.type === 'FRAME' && !!n.pluginData['prism3-style-guide']);
 const tableFrame = (p: N, title: string): N | undefined => tablesOn(p).find((n) => n.name === `Style guide — ${title}`);
-const gridOf = (wrap: N): N => wrap.children.find((c) => c.name === 'Table')!;
+/** A table's grid. A missing table or grid is a named failure and an empty frame, never a throw (#2153): a fault that
+ *  loses a table must not stop the suite before the checks after it report. */
+const gridOf = (wrap: N | undefined): N => {
+  const g = wrap?.children.find((c) => c.name === 'Table');
+  if (g) return g;
+  ok(false, `gridOf: ${wrap ? `"${wrap.name}" has no Table grid` : 'a table the check expected is not drawn'}`);
+  return new N('FRAME');
+};
 const cellAt = (grid: N, r: number, c: number): N | undefined => grid.children.find((k) => k.gridRow === r && k.gridCol === c);
 const textIn = (n: N | undefined): string => (n?.findAll((k) => k.type === 'TEXT') ?? []).map((t) => t.characters).join(' | ');
 const rowOf = (grid: N, token: string): number => grid.children.find((k) => k.gridCol === 0 && textIn(k) === token)?.gridRow ?? -1;
@@ -2499,6 +2513,93 @@ const main = async (): Promise<void> => {
     const ramp = tableFrame(tl.prim, 'Ramp');
     ok(rt.tables[0]?.status === 'created' && ramp?.y === 0 && ramp.height === RAMP_H && fontBefore.every((w) => w.y === RAMP_H + 160),
       `24: a new 80-step table lands at the end of the dimension row, ${ramp?.height}px tall, and the font row moves to 160px below it, y ${RAMP_H + 160} (${[...new Set(fontBefore.map((w) => w.y))].join(', ')})`);
+  }
+
+  console.log('25. REM on and REM off on every dimension and font-variable table (#2153)');
+  {
+    // THE EXPECTED COLUMNS ARE LITERALS, one list per table and per setting, read off the fixture's collections and modes
+    // (`phase2Variables`): density's two modes, type-sets' desktop and mobile, Default everywhere else. A length table
+    // (dimension, font size, line height, letter spacing) has a REM column after each Value column when REM is on; a
+    // family or a weight never has one. Never built from the planner's or the drawer's own column lists.
+    const ONE_ON = ['Token', 'Default', 'Value', 'REM', 'Description'];
+    const ONE_OFF = ['Token', 'Default', 'Value', 'Description'];
+    const REM_ON: Record<string, string[]> = {
+      'Density': ['Token', 'compact', 'Value', 'REM', 'comfortable', 'Value', 'REM', 'Description'],
+      'Dimension': ONE_ON, 'Step': ONE_ON, 'Size': ONE_ON, 'Space': ONE_ON, 'Radius': ONE_ON,
+      'Font size (core)': ONE_ON,
+      'Font size (type-sets)': ['Token', 'desktop', 'Value', 'REM', 'mobile', 'Value', 'REM', 'Description'],
+      'Line height': ONE_ON, 'Letter spacing': ONE_ON,
+      'Font family': ONE_OFF, 'Font weight': ONE_OFF,
+    };
+    const REM_OFF: Record<string, string[]> = {
+      'Density': ['Token', 'compact', 'Value', 'comfortable', 'Value', 'Description'],
+      'Dimension': ONE_OFF, 'Step': ONE_OFF, 'Size': ONE_OFF, 'Space': ONE_OFF, 'Radius': ONE_OFF,
+      'Font size (core)': ONE_OFF,
+      'Font size (type-sets)': ['Token', 'desktop', 'Value', 'mobile', 'Value', 'Description'],
+      'Line height': ONE_OFF, 'Letter spacing': ONE_OFF,
+      'Font family': ONE_OFF, 'Font weight': ONE_OFF,
+    };
+    const TITLES = JSON.stringify(Object.keys(REM_ON).sort());
+    const REM_CELL = /^(-?\d+(\.\d+)?rem|—)$/;
+    const ANY_REM = /^-?\d+(\.\d+)?rem$/;
+    const same = (a: readonly string[] | undefined, b: readonly string[]): boolean => JSON.stringify(a) === JSON.stringify(b);
+
+    // THE PLAN: the planner's columns, and every cell's `rem`: set on a length table with REM on, unset otherwise.
+    const fx = phase2Variables();
+    const catalog: SgCatalog = { collections: fx.cols, variables: fx.vars, textStyles: fx.styles };
+    for (const [setting, rem, want] of [['on', undefined, REM_ON], ['off', false, REM_OFF]] as const) {
+      const plan = planStyleGuide(catalog, contract, rem === false ? { rem } : {});
+      const tables = plan.tables.filter((t) => t.type !== 'typography');
+      ok(JSON.stringify(tables.map((t) => t.title).sort()) === TITLES, `25: REM ${setting}: the plan has the 12 dimension and font-variable tables (${tables.map((t) => t.title).join(', ')})`);
+      const wrongCols = tables.filter((t) => !same(t.columns, want[t.title] ?? [])).map((t) => `${t.title}: ${t.columns.join(' · ')}`);
+      ok(wrongCols.length === 0, `25: REM ${setting}: the plan's columns are each table's exact list${wrongCols.length ? ` (${wrongCols.join(' / ')})` : ''}`);
+      const wrongCells = tables.flatMap((t) => {
+        const hasRem = (want[t.title] ?? []).includes('REM');
+        return t.rows.flatMap((r) => r.cells.filter((c) => hasRem ? !(typeof c.rem === 'string' && REM_CELL.test(c.rem)) : c.rem !== undefined)
+          .map((c) => `${t.title} ${r.token} ${c.modeName}: ${String(c.rem)}`));
+      });
+      const cellCount = tables.reduce((n, t) => n + t.rows.reduce((m, r) => m + r.cells.length, 0), 0);
+      ok(cellCount > 0 && wrongCells.length === 0, `25: REM ${setting}: every planned cell ${setting === 'on' ? 'of a length table has its REM, and no family or weight cell has one' : 'has no REM'} (${cellCount} cells${wrongCells.length ? `; ${wrongCells.slice(0, 4).join(' / ')}` : ''})`);
+    }
+
+    // THE DRAWN TABLES: the header row, and every body row's cells. With REM on, each REM column's cell reads REM (or
+    // "—"); with REM off, no cell sits past the header's last column and no cell reads REM. Drawn first-time with REM
+    // on, then first-time with REM off, then REM on redrawn with REM off (the toggle a designer makes).
+    const drawnTables = (sh: { prim: N; sem: N }): N[] => [...tablesOn(sh.prim), ...tablesOn(sh.sem)].filter((w) => w.name !== 'Style guide — Text styles');
+    const titleOf = (w: N): string => w.name.replace('Style guide — ', '');
+    const checkDrawn = (sh: { prim: N; sem: N }, setting: 'on' | 'off', how: string): void => {
+      const want = setting === 'on' ? REM_ON : REM_OFF;
+      const ws = drawnTables(sh);
+      ok(JSON.stringify(ws.map(titleOf).sort()) === TITLES, `25: REM ${setting}, ${how}: the 12 dimension and font-variable tables are drawn (${ws.map(titleOf).join(', ')})`);
+      const wrongHeads = ws.filter((w) => !same(headerRow(w), want[titleOf(w)] ?? [])).map((w) => `${titleOf(w)}: ${headerRow(w).join(' · ')}`);
+      ok(wrongHeads.length === 0, `25: REM ${setting}, ${how}: each table's header row is its exact column list${wrongHeads.length ? ` (${wrongHeads.join(' / ')})` : ''}`);
+      const wrongCells: string[] = [];
+      let bodyRows = 0;
+      for (const w of ws) {
+        const cols = want[titleOf(w)] ?? [];
+        const g = gridOf(w);
+        const rows = [...new Set(g.children.map((k) => k.gridRow!).filter((r) => r > 0))];
+        bodyRows += rows.length;
+        for (const r of rows) {
+          const cells = g.children.filter((k) => k.gridRow === r);
+          for (const k of cells) if (k.gridCol! >= cols.length) wrongCells.push(`${titleOf(w)} row ${r}: a cell in column ${k.gridCol} past "${cols[cols.length - 1]}" reads "${textIn(k)}"`);
+          cols.forEach((name, c) => {
+            const t = textIn(cellAt(g, r, c));
+            if (name === 'REM' && !REM_CELL.test(t)) wrongCells.push(`${titleOf(w)} row ${r}: its REM cell reads "${t}"`);
+            if (name !== 'REM' && ANY_REM.test(t)) wrongCells.push(`${titleOf(w)} row ${r}: its ${name} cell reads "${t}"`);
+          });
+        }
+      }
+      ok(bodyRows > 0 && wrongCells.length === 0, `25: REM ${setting}, ${how}: ${setting === 'on' ? 'every row has a REM cell under each REM column' : 'no row has a REM cell'}, and no cell sits outside its column (${bodyRows} rows${wrongCells.length ? `; ${wrongCells.slice(0, 4).join(' / ')}` : ''})`);
+    };
+    const on = await phase2File();
+    await draw(on.api, contract);
+    checkDrawn(on, 'on', 'first draw');
+    const off = await phase2File();
+    await draw(off.api, contract, { rem: false });
+    checkDrawn(off, 'off', 'first draw');
+    await draw(on.api, contract, { rem: false });
+    checkDrawn(on, 'off', 'redrawn from REM on');
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }

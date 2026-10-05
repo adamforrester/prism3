@@ -574,8 +574,11 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     // tool called valid could then fail `theme_brand`. Run only on a schema-valid input: a malformed one
     // would reach `brandTheme` in a shape it does not guard and fail with a TypeError instead of a reason.
     // Reported as the engine states it, so the agent reads the same sentence `theme_brand` would give.
+    // #2159: the SAME build path `theme_brand` runs, `brandTheme` then `buildTree`. Some refusals only fire
+    // in the second, when the modes resolve: an override naming an unknown palette or step throws there,
+    // so `brandTheme` alone called that brand valid.
     if (errors.length === 0) {
-      try { brandTheme(args as BrandInput); }
+      try { buildTree(brandTheme(args as BrandInput)); }
       catch (e) { errors.push((e as Error).message); }
     }
     return structured({ valid: errors.length === 0, errors });
