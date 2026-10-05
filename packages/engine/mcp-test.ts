@@ -265,8 +265,16 @@ await new Promise((r) => setTimeout(r, 3000));
   ok(levers.includes('smallest first. The first is always 0px. Names follow') && !levers.includes('Studio keeps the first at 0px'),
     '#2146 the layout.breakpoints lever description says "The first is always 0px." (Q26 a)');
   const schemaBp = (await server.callJson('list_levers', { describe: ['layout'] })).payload.described?.properties?.layout?.properties?.breakpoints?.description ?? '';
-  ok(schemaBp.includes('ascending. The first must be 0. Auto-named'),
+  ok(schemaBp.includes('ascending. The first must be 0.'),
     `#2146 the schema's layout.breakpoints description says "The first must be 0." (Q26 a; got "${schemaBp}")`);
+  // #2160: the schema stated the names as "Auto-named sm/md/lg/xl/2xl", true only up to five breakpoints. It
+  // now carries the lever's approved naming sentence (#2070) word for word. Pinned to EACH OTHER, not to a
+  // phrase, so an edit to either one alone fails here: the two are authored separately, and drifted once.
+  // BY-NAME MUTATIONS: restore the schema's old "Auto-named …" text → this arm fails; edit the lever's
+  // sentence alone → this arm fails.
+  const leverNames = /Names follow the count:[^.]*\./.exec(levers)?.[0] ?? '';
+  ok(leverNames.length > 40 && schemaBp.includes(leverNames),
+    `#2160 the schema's breakpoints description carries the lever's naming sentence word for word (lever: "${leverNames}"; schema: "${schemaBp}")`);
 }
 
 // ----------------------------------------------------------------- 3. JOURNEY
