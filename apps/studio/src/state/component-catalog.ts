@@ -30,6 +30,7 @@
  */
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
+import { COMPONENT_CATALOG_DATA } from './component-catalog-data';
 
 /** The swap target a projection is run with: the plugin's own (`build-deps.ts`'s `SWAP_TARGET`), so the swap names a
  *  plan carries are the ones a build resolves. Restated as a literal because the studio cannot import the plugin;
@@ -53,6 +54,11 @@ export type CatalogEntry = {
   unit: 'variants' | 'components';
   /** The ids of the sets this one nests, in first-seen order. Empty when not buildable. */
   nests: string[];
+  /** The spacing that follows density (UI redesign S8.2): each `densitySpacing` key, `{size}` expanded over the
+   *  definition's sizes, with the COMFORTABLE `space.*` step it binds. The px at a brand's density is the brand's to
+   *  compute (`densitySpacingStep`, then the brand's space ladder), so the catalog holds the steps, never px. Empty for
+   *  a set whose spacing does not follow density. */
+  spacing: { key: string; ref: string }[];
 };
 export type Catalog = readonly CatalogEntry[];
 
@@ -60,9 +66,19 @@ type PlanNode = { nestTarget?: string; swapTarget?: string; children?: readonly 
 
 /** The catalog of `defs`, in their order. `project` is the projector (`figmaAnatomySet` with
  *  `CATALOG_SWAP_TARGET`); it throws for a definition it cannot build. */
+/** A definition's density-following spacing as the catalog states it: the keys its `densitySpacing` names, each
+ *  `{size}` expanded over the sizes the definition declares (`variants.size`, else the code API's `props.size`), with
+ *  the comfortable step each binds. Restated here rather than imported from `component-schema.ts`, which the web
+ *  bundle must not carry; `test-component-catalog.ts` holds it equal to the schema's own `densitySpacingKeys`. */
+export const spacingOf = (d: ComponentDef): { key: string; ref: string }[] => {
+  const sizes = (d.variants as Record<string, readonly string[] | undefined> | undefined)?.size ?? d.props.find((p) => p.name === 'size')?.values ?? [];
+  const keys = (d.densitySpacing ?? []).flatMap((k) => (k.includes('{size}') ? sizes.map((v) => k.replace('{size}', v)) : [k]));
+  return keys.map((key) => ({ key, ref: String(d.tokens[key]) }));
+};
+
 export const catalogOf = (defs: readonly ComponentDef[], project: (def: ComponentDef) => readonly AnatomyPlan[]): CatalogEntry[] =>
   defs.map((d) => {
-    const base = { id: d.id, name: d.name, category: d.category, summary: d.summary, unit: d.figmaProperties?.emitAsComponents === true ? 'components' as const : 'variants' as const };
+    const base = { id: d.id, name: d.name, category: d.category, summary: d.summary, unit: d.figmaProperties?.emitAsComponents === true ? 'components' as const : 'variants' as const, spacing: spacingOf(d) };
     const no = (reason: string | null): CatalogEntry => ({ ...base, buildable: false, reason, members: null, nests: [] });
     if (d.figmaProperties?.notStandalone) return no(d.figmaProperties.notStandalone);
     let plans: readonly AnatomyPlan[];
@@ -91,3 +107,7 @@ let provided: Catalog | null = null;
 export const provideCatalog = (c: Catalog): void => { provided = c; };
 /** The catalog the plugin provided, or `null` when none was (the web, or a plugin entry that forgot). */
 export const providedCatalog = (): Catalog | null => provided;
+/** The catalog this host lists (UI redesign S8.2, moved from `main.ts`): the plugin's own computation, or the web's
+ *  generated copy. `PRISM3_HOST` is a build-time define, so each bundle keeps one branch; the generated copy is data
+ *  only, so the plugin bundle drops it. */
+export const componentCatalog = (): Catalog => (PRISM3_HOST === 'figma' ? provided ?? [] : COMPONENT_CATALOG_DATA);

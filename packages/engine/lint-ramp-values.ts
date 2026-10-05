@@ -69,10 +69,10 @@
  *   B  STALE SENTINEL    — a rung special-cased AND present in `rp.dims`. Either the sentinel outlived
  *                          its reason, or this file's discovery over-collected. See above: this arm is
  *                          the reason the discovery can be trusted.
- *   C  LITERAL KEY       — a `rp.dims['<ref>']` read with a spelled-out key (today
- *                          `paintControlShapePreview`'s `rp.dims['radius.md']`) whose ref the map does
- *                          not carry. Same defect, no loop to catch it, and one `?? 0` away from the
- *                          same silent 0.
+ *   C  LITERAL KEY       — a `rp.dims['<ref>']` read with a spelled-out key whose ref the map does not
+ *                          carry. Same defect, no loop to catch it, and one `?? 0` away from the same
+ *                          silent 0. (Its last subject, the legacy button specimen's `rp.dims['radius.md']`,
+ *                          went in S8.2; the arm stays as a tripwire, see the S8.2 section below.)
  *
  * ── THE FLOORS ─────────────────────────────────────────────────────────────────────────────────
  *
@@ -117,6 +117,22 @@
  * files, or whose patterns stopped matching, fails by name; a studio with no ramp in the map passes, which is the
  * truth. And #1189 is folded in: when a ramp's special-case discovery finds nothing while rungs sit outside the map,
  * its arm-A findings are skipped, because a scan just declared unreadable is not evidence.
+ *
+ * ── UI REDESIGN S8.2: ARM C LOST ITS LAST LITERAL READ, AND IS KEPT AS A TRIPWIRE (docs/34) ──────────
+ *
+ * S8.2 moved the button specimen to the Components page and fixed #2049 there: each button's corner is now the radius
+ * size the engine binds for the brand's Control shape, at its value in the previewed mode (`buttonCornerPx` in
+ * `apps/studio/src/preview/sections/button-layout.ts`, read off the ladder, never off `rp.dims`), so the legacy
+ * caller's `rp.dims['radius.md']`, arm C's last subject, is gone. The studio reads `rp.dims` by a literal key nowhere.
+ *
+ * KEPT, NOT RETIRED, for the reason S7 kept the undeclared-ramp floor: the arm costs nothing, its detector is proven
+ * alive on every run by the planted fixture (a pattern that stopped matching fails by name), and a new literal read is
+ * exactly the #1177 shape it exists for, one `?? 0` from a silent zero. Zero literal reads is the expected state now,
+ * printed as such, and is the truth rather than a blind spot: the fixture, not the count, is what proves the scan
+ * looked. What the corner's VALUE should be is held where it can be measured against an independent oracle, not here:
+ * `apps/studio/test-button-input.ts` against the engine's `applyControlShape` and the brand's emission, and
+ * `test:smoke` against the corner as drawn. `MUST_READ` keeps `main.ts` and the radius module; `button-layout.ts` is
+ * read with every other studio file.
  *
  * PURE-ADJACENT — reads the studio's source files and runs the engine + the real preview resolver in memory.
  */

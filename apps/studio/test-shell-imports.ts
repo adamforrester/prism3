@@ -144,7 +144,9 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   'src/domains/depth.ts', 'src/preview/depth.ts',
   // S8.1: the Button option writes, the button specimen, and the component catalog with the web's generated copy.
   'src/state/button-input.ts', 'src/preview/sections/button-layout.ts', 'src/state/component-catalog.ts',
-  'src/state/component-catalog-data.ts'];
+  'src/state/component-catalog-data.ts',
+  // S8.2: Components (its levers and its preview) and the preview's Component sets section.
+  'src/domains/components.ts', 'src/preview/components.ts', 'src/preview/sections/component-sets.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {
@@ -621,9 +623,9 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
       `every ModeLevers field is classified as Type or not (${modeLeverFields.length} read from the engine)${unclassified.length ? ` — unclassified: ${unclassified.join(', ')}` : ''}`);
 
     /** A variable-key write that is not Type, by `<enclosing function>:<key text>`, and why. */
-    const UNRESOLVED_OK: Record<string, string> = {
-      'renderControl:lever.key': 'the generic lever knob; rule 3 holds that no Type lever is handed to it',
-    };
+    // Empty since UI redesign S8.2: its one entry, `renderControl:lever.key` (the generic lever knob's write), went with
+    // the knob, whose last caller (the Button options) moved to `domains/components.ts`.
+    const UNRESOLVED_OK: Record<string, string> = {};
     /** Every write in one file, by the rules above. `main.ts` is held to all of them; `domains/depth.ts` (#2078) to the
      *  direct Depth & motion rule, since its keyed writes are already refused outright below (it names no `setPath`). */
     const scan = (FILE: string, TEXT: string) => {
@@ -806,14 +808,24 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     const DEPTH_LEVERS = join(SRC, 'domains/depth.ts');
     const dl = scan(DEPTH_LEVERS, readFileSync(DEPTH_LEVERS, 'utf8'));
     ok(dl.depthDirect.length === 0, `src/domains/depth.ts writes nothing into brandState.shadow or brandState.motionPersonality itself${dl.depthDirect.length ? ` — ${dl.depthDirect.slice(0, 3).join(' | ')}: the write belongs in state/depth-motion-input.ts` : ''}`);
+    // `domains/components.ts` (S8.2) under the same visitor: no Button option written onto `brandState` directly, by any
+    // operator or alias; its keyed writes are refused outright in the S8.1/S8.2 arm below (it names no `setPath`).
+    const COMPONENTS_LEVERS = join(SRC, 'domains/components.ts');
+    const cl = scan(COMPONENTS_LEVERS, readFileSync(COMPONENTS_LEVERS, 'utf8'));
+    ok(cl.buttonDirect.length === 0, `src/domains/components.ts writes no Button option onto brandState itself${cl.buttonDirect.length ? ` — ${cl.buttonDirect.slice(0, 3).join(' | ')}: the write belongs in state/button-input.ts` : ''}`);
     const stale = Object.keys(UNRESOLVED_OK).filter((k) => !seenOk.has(k));
     ok(stale.length === 0, `every UNRESOLVED_OK entry still names a write in src/main.ts${stale.length ? ` — no longer found: ${stale.join(', ')}` : ''}`);
 
     // Rule 3: what the generic renderer is fed.
     // `csSlider`/`csPicker` were fed here too (review of #2017) until S10 retired both with Layout's legacy page;
-    // `leverSection` (S9.2) and `renderPerModeSelect` (S7, S9.2) are gone, and `leverControl` and `csLeverStack` (S8.1:
-    // the Button options call `renderControl` with their state writes).
+    // `leverSection` (S9.2) and `renderPerModeSelect` (S7, S9.2) are gone, and `leverControl` and `csLeverStack` (S8.1).
+    // `renderControl` itself went in S8.2 with its last caller, so the rule has no subject today: the visitors below
+    // find nothing to feed. That is recorded rather than left to read as a pass. The rule is kept for a generic writer
+    // that returns, and this line fails until FEEDS names it: `main.ts` declares no function that takes a lever and
+    // writes its key.
     const FEEDS = new Set(['renderControl']);
+    const generic = /\bconst\s+(\w+)\s*=\s*\(\s*lever\s*:\s*Lever\b/.exec(mainSrc.replace(/^\s*(\/\/|\*).*$/gm, ''));
+    ok(!generic || FEEDS.has(generic[1]), `rule 3: src/main.ts declares no generic lever writer that FEEDS does not watch${generic ? ` — ${generic[1]}(lever: Lever, …)` : ''}`);
     /** Does `e` name a Type lever: a `typography.*` key literal, `leversFor('typography')`, or a variable whose
      *  own initializer does (one level, resolved by the checker)? */
     const typeLever = (e: ts.Node, depth = 0): boolean => {
@@ -907,39 +919,48 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
     ok(new RegExp(`\\b${w}\\(`).test(leversCode), `src/domains/depth.ts writes through ${w}()`);
 }
 
-// ── the Button options and the component catalog, out of `main.ts` (UI redesign S8.1) ───────────────────────
-// The legacy Size & radius page's Button options write through `state/button-input.ts` (the AST arm above holds that
-// `main.ts` writes no Button option itself), and the page draws the button specimen from
-// `preview/sections/button-layout.ts`, so the Components page (S8.2) writes the same bytes and draws the same code. The
-// catalog is computed by `state/component-catalog.ts`, which imports no definition: the plugin hands it the
-// definitions from its own entry, and the web reads the generated copy. Subject: `main.ts`, the catalog module and
-// the plugin's iframe entry, read from disk, comments stripped. Oracle: the literal setter and renderer names, the
-// specimen's own markup as the legacy renderer wrote it, and the literal module specifiers of the definitions and
-// the projector. `vercel-ignore-check.mjs` holds the same rule on the built web bundle; this holds it in the source,
-// where it fails first.
+// ── the Button options and the component catalog, out of `main.ts` (UI redesign S8.1, S8.2) ─────────────────
+// Since S8.2 the Button options are the Components page's (`domains/components.ts`), which writes through
+// `state/button-input.ts` (the AST arm above holds that `main.ts` writes no Button option itself, and the scan below
+// holds the same of the new page), and its preview (`preview/components.ts`) draws the button specimen from
+// `preview/sections/button-layout.ts`. The catalog is computed by `state/component-catalog.ts`, which imports no
+// definition: the plugin hands it the definitions from its own entry, and the web reads the generated copy. Subject:
+// `main.ts`, the Components modules, the catalog module and the plugin's iframe entry, read from disk, comments
+// stripped. Oracle: the literal setter and renderer names, the specimen's own markup, and the literal module specifiers
+// of the definitions and the projector. `vercel-ignore-check.mjs` holds the same rule on the built web bundle; this
+// holds it in the source, where it fails first.
 {
   const strip = (src: string): string => src.replace(/^\s*(\/\/|\*).*$/gm, '');
   const mainSrc = readFileSync(MAIN, 'utf8');
   const mainCode = strip(mainSrc);
+  const levSrc = readFileSync(join(SRC, 'domains/components.ts'), 'utf8');
+  const levCode = strip(levSrc);
+  const prevSrc = readFileSync(join(SRC, 'preview/components.ts'), 'utf8');
+  const prevCode = strip(prevSrc);
+  const setsSrc = readFileSync(join(SRC, 'preview/sections/component-sets.ts'), 'utf8');
   const idx = readFileSync(join(SRC, 'preview/sections/index.ts'), 'utf8');
-  ok(/\bbuttonLayoutSection\(/.test(mainCode), 'src/main.ts draws the button specimen through the shared buttonLayoutSection()');
+  ok(/\bbuttonLayoutSection\(/.test(prevCode), 'src/preview/components.ts draws the button specimen through the shared buttonLayoutSection()');
   ok(idx.includes("from './button-layout'"), 'preview/sections/index.ts exports the button specimen from ./button-layout');
-  const own = /'btnl-(list|row|btn)'|BUTTON_SIZES\s*[:=]/.exec(mainCode);
-  ok(!own, `src/main.ts draws no button specimen of its own${own ? ` — it carries "${own[0]}": the specimen belongs in preview/sections/button-layout.ts` : ''}`);
-  // The generic knob writes whatever key it is handed (`renderControl`'s default is `setPath(brandState, lever.key, …)`),
-  // so the AST arm cannot see a Button option that reaches it without its state write. Each setter is named here, in
-  // the table the page hands the knob, and the knob is handed the table's write.
-  for (const [key, setter] of [['buttonIcons', 'setButtonIcons'], ['buttonContentSize', 'setButtonContentSize'],
-    ['buttonLabelWeight', 'setButtonLabelWeight'], ['buttonMinWidthMultiplier', 'setButtonMinWidth']] as const) {
-    ok(new RegExp(`\\[\\s*'${key}'\\s*,\\s*\\([^)]*\\)\\s*=>\\s*${setter}\\(`).test(mainCode), `src/main.ts hands the ${key} knob its write, ${setter}()`);
+  for (const [file, code] of [['src/main.ts', mainCode], ['src/preview/components.ts', prevCode], ['src/domains/components.ts', levCode]] as const) {
+    const own = /'btnl-(list|row|btn)'|BUTTON_SIZES\s*[:=]/.exec(code);
+    ok(!own, `${file} draws no button specimen of its own${own ? ` — it carries "${own[0]}": the specimen belongs in preview/sections/button-layout.ts` : ''}`);
   }
-  ok(/renderControl\(\s*l\s*,\s*apply\s*,\s*write\s*\)/.test(mainCode), 'src/main.ts hands each Button option knob the write from its table (renderControl(l, apply, write))');
-  ok(imports(mainSrc, 'main.ts').some((i) => i.spec === './state/button-input'), 'src/main.ts imports its Button option writes from ./state/button-input');
+  // Each chip is handed its write from the page's table, and the table names each setter; the slider calls its own.
+  for (const [key, setter] of [['buttonIcons', 'setButtonIcons'], ['buttonContentSize', 'setButtonContentSize'], ['buttonLabelWeight', 'setButtonLabelWeight']] as const) {
+    ok(new RegExp(`\\b${key}\\s*:\\s*\\([^)]*\\)\\s*=>\\s*${setter}\\(`).test(levCode), `src/domains/components.ts hands the ${key} chips their write, ${setter}()`);
+  }
+  ok(/BUTTON_OPTION_WRITES\[key\]\(v\)/.test(levCode), 'src/domains/components.ts hands each Button option chip the write from its table (BUTTON_OPTION_WRITES[key](v))');
+  ok(/\bsetButtonMinWidth\(v\)/.test(levCode), 'src/domains/components.ts writes the minimum width through setButtonMinWidth()');
+  ok(imports(levSrc, 'components.ts').some((i) => i.spec === '../state/button-input'), 'src/domains/components.ts imports its Button option writes from ../state/button-input');
+  ok(!imports(mainSrc, 'main.ts').some((i) => i.spec === './state/button-input'), 'src/main.ts no longer imports the Button option writes (S8.2 moved them to the Components page)');
+  const generic = /\b(setPath|setModeLever)\(/.exec(levCode);
+  ok(!generic, `src/domains/components.ts writes only through state/button-input.ts${generic ? ` — it calls ${generic[1]}() itself` : ''}`);
   // The catalog: no definition, and no projector, in the studio source a web build reads.
   const DEF_SPECS = /(^|\/)components(\/index)?$|engine\/components\/|anatomy-figma$/;
   const catSrc = readFileSync(join(SRC, 'state/component-catalog.ts'), 'utf8');
   for (const [file, src] of [['src/main.ts', mainSrc], ['src/state/component-catalog.ts', catSrc],
-    ['src/state/component-catalog-data.ts', readFileSync(join(SRC, 'state/component-catalog-data.ts'), 'utf8')]] as const) {
+    ['src/state/component-catalog-data.ts', readFileSync(join(SRC, 'state/component-catalog-data.ts'), 'utf8')],
+    ['src/domains/components.ts', levSrc], ['src/preview/components.ts', prevSrc], ['src/preview/sections/component-sets.ts', setsSrc]] as const) {
     const hit = imports(src, file).filter((i) => DEF_SPECS.test(i.spec));
     ok(hit.length === 0, `${file} imports no component definition or projector at run time${hit.length ? ` — line ${hit[0].line}: '${hit[0].spec}' (the web bundle would carry it)` : ''}`);
   }

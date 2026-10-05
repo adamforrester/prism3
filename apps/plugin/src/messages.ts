@@ -150,7 +150,13 @@ export type MainToUi =
    *
    *  `headline` obeys the same ≤24-char pill budget (`componentHeadline`, gated in
    *  `test-apply-summary.ts`); `summary` carries the counts and the misses behind it. */
-  | { type: 'component-result'; ok: boolean; headline: string; summary: string }
+  | { type: 'component-result'; ok: boolean; headline: string; summary: string;
+    /** Did the build run to the end (UI redesign S8.2, owner decision C1)? `true` when the set was built, its misses
+     *  (if any) in the summary; `false` when it stopped before building the set: an unknown or not-standalone def, or a
+     *  throw. The Components page tells "Built with problems" from "Build failed" by this, never by the headline's
+     *  words. REQUIRED: the plugin and the panel ship in one bundle, so a post without it is a type error here,
+     *  not an older host to accommodate. */
+    completed: boolean }
   /** Result of a `file-setup` scaffold (#1554) — the same `{ok, headline, summary}` shape as
    *  `apply-result` / `component-result`, a DISTINCT variant for the same one-kind-per-fact reason: "did
    *  the page skeleton get laid" is separately true and separately actionable from a theme or component

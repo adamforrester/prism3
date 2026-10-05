@@ -137,6 +137,10 @@
 .p3-menu-item[disabled]:hover { background: none; }
 .p3-menu-item .p3-ico { color: var(--p3-icon-2); }
 .p3-menu-note { margin-left: auto; padding-left: var(--p3-space-200); color: var(--p3-text-2); font-size: var(--p3-fs-12); }
+/* The build stamp at the foot of the Inspect menu (#474, owner decision C3 A): small, secondary, selectable. */
+.p3-menu-stamp { display: flex; flex-wrap: wrap; gap: var(--p3-space-050) var(--p3-space-150); margin: var(--p3-space-050) 0 0; padding: var(--p3-space-100) var(--p3-space-150) var(--p3-space-050);
+  border-top: var(--p3-bw-hairline) solid var(--p3-line-1); color: var(--p3-text-2); font-size: var(--p3-fs-12); user-select: text; }
+.p3-menu-stamp-b { font-family: var(--p3-font-mono); overflow-wrap: anywhere; }
 .p3-menu-item > .p3-ico:last-child { visibility: hidden; color: var(--p3-icon); }
 .p3-menu-item[aria-checked="true"] { font-weight: var(--p3-fw-emphasis); }
 .p3-menu-item[aria-checked="true"] > .p3-ico:last-child { visibility: visible; }
@@ -645,6 +649,17 @@
 /* ── the Palettes preview (S2, V7): a container per group, large squares, labels under them ───── */
 .p3-preview-stack { padding: var(--p3-space-400); gap: var(--p3-space-300); }
 .p3-frame[data-w="narrow"] .p3-preview-stack { padding: var(--p3-space-150); }
+/* Components' build bar (S8.2, owner decision C4 A; plugin only): the chosen set's Build button and its two hints, the
+   last child of the preview stack, sticky to the preview's bottom edge so it is in view at any scroll position. In the
+   flow at the end, so scrolled to the bottom it sits under the last set rather than over it. No shadow (T5): its own
+   ground and edge set it apart. */
+.p3-buildbar {
+  position: sticky; bottom: 0; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100) var(--p3-space-300);
+  padding: var(--p3-space-200) var(--p3-space-300); background: var(--p3-bg-page); font-family: var(--p3-font-ui);
+  border: var(--p3-bw-hairline) solid var(--p3-edge); border-radius: var(--p3-radius-xl);
+}
+.p3-buildbar-hints { display: grid; gap: var(--p3-space-025); min-width: 0; flex: 1 1 0; }
+.p3-buildbar-hints .p3-sub { margin: 0; }
 .p3-board-desc { flex-basis: 100%; margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-14); line-height: var(--p3-lh-cozy); }
 .p3-board-body { display: grid; gap: var(--p3-space-300); }
 .p3-pal { display: grid; gap: var(--p3-space-200); min-width: 0; contain: layout paint; }
@@ -833,6 +848,8 @@
 .p3-legacy-card .p3-sgsec { background: var(--p3-levers-bg); }
 /* Long option labels (Outline hover) wrap onto a second row rather than run past the panel. */
 .p3-ilevers .p3-choice { flex-wrap: wrap; }
+/* Components (S8.2): the Button options' labels ("Attached to label", "Match button size") wrap the same way at 380. */
+.p3-clevers .p3-choice { flex-wrap: wrap; }
 /* The Interactive preview (S5.3). QA-I1: a treatment label's foot line (its token and ratio badge) wraps inside the
    label column instead of running under the buttons beside it. QA-I2: a ratio badge's mark takes the chrome's
    status icon colors, a pass in the success icon and a miss in the danger icon; the badge keeps its own ink and

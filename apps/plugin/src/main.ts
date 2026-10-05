@@ -519,7 +519,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       // was — the disagreement is between two bundles, so naming only one side of it is half a diagnosis.
       sink.data({ build: { def: defId, known: componentDefs.map((d) => d.id) } });
       postVerdict({
-        type: 'component-result', ok: false, headline: '✗ unknown def',
+        type: 'component-result', ok: false, completed: false, headline: '✗ unknown def',
         summary: `no component def with id '${defId}' — this build knows ${componentDefs.map((d) => d.id).join(', ')}`,
       }, sink);
       return;
@@ -539,7 +539,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
     // moment, and paraphrasing it here would be a second copy to keep true.
     if (def.figmaProperties?.notStandalone) {
       postVerdict({
-        type: 'component-result', ok: false, headline: '✗ not buildable on its own',
+        type: 'component-result', ok: false, completed: false, headline: '✗ not buildable on its own',
         summary: def.figmaProperties.notStandalone,
       }, sink);
       return;
@@ -692,6 +692,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       postVerdict({
         type: 'component-result',
         ok: r.set !== null && r.misses.length === r.skipped,
+        completed: r.set !== null,
         headline: componentHeadline(r.added, r.skipped, r.misses.length - r.skipped - r.stale, r.stale, r.refsRelinked),
         summary: summary + alsoBuiltNote(alsoBuilt) + pageHeaderNote(headers),
       }, sink);
@@ -774,7 +775,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       const partial = partialWriteOf(e instanceof DependencyBuildError ? e.original : e);
       sink.data({ build: { def: defId ?? button.id, threw: (e as Error)?.message ?? String(e), partialWrite: partial } });
       postVerdict({
-        type: 'component-result', ok: false,
+        type: 'component-result', ok: false, completed: false,
         headline: partial ? partialWriteHeadline(partial) : APPLY_FAILED_HEADLINE,
         summary: `component build failed: ${(e as Error).message}${partial ? partialWriteNote(partial) : ''}`,
       }, sink);
