@@ -107,6 +107,8 @@ accepts('component-progress', { type: 'component-progress', phase: 'wire', done:
   { kind: 'component-progress', phase: 'wire', done: 3, total: 10, chunkMs: 41 });
 accepts('style-guide-progress', { type: 'style-guide-progress', done: 6.4, total: 22, tableMs: 900 },
   { kind: 'style-guide-progress', done: 6, total: 22 });
+accepts('agent-progress (a style guide\'s table reading)', { type: 'agent-progress', id: 'a1', progress: { at: 't', phase: 'table', done: 6, total: 22, chunkMs: 900 } },
+  { kind: 'agent-progress', id: 'a1', phase: 'table', done: 6, total: 22 });
 accepts('prune-result (preview)', { type: 'prune-result', ok: true, applied: false, count: 5, summary: 'r' },
   { kind: 'prune-result', ok: true, applied: false, count: 5, summary: 'r' });
 accepts('prune-result (agent preview, pillOnly)', { type: 'prune-result', ok: true, applied: false, count: 2, summary: 'r', pillOnly: true },

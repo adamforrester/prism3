@@ -121,6 +121,16 @@ for (const c of verdictCases) {
   const late = step(verdict.next, { kind: 'style-guide-progress', done: 22, total: 22 });
   ok(late.next === verdict.next && late.topics.length === 0, 'style-guide-progress: a late reading after the verdict is dropped and invalidates nothing');
 }
+// Owner decision Q19 b: an agent's style guide keeps its table count; a reading of the other kind is dropped.
+{
+  const sg = step(init, { kind: 'agent-started', id: 's1', cmd: 'style-guide' }).next;
+  const t = step(sg, { kind: 'agent-progress', id: 's1', phase: 'table', done: 6, total: 22 });
+  ok(same(t.next.agentRun?.progress, { phase: 'table', done: 6, total: 22 }) && same(t.topics, ['host:progress']),
+    'agent-progress: an agent style guide records its table count and invalidates host:progress');
+  ok(step(sg, { kind: 'agent-progress', id: 's1', phase: 'build', done: 1, total: 2 }).next === sg, 'agent-progress: a build reading on a style-guide run is dropped');
+  const bc = step(init, { kind: 'agent-started', id: 'b9', cmd: 'build-components' }).next;
+  ok(step(bc, { kind: 'agent-progress', id: 'b9', phase: 'table', done: 1, total: 2 }).next === bc, 'agent-progress: a table reading on a build run is dropped');
+}
 
 // ---- the per-set build ledger (UI redesign S8.2, owner decisions G9 A and C1 A) ------------------------------
 // The wire's `component-result` names no set, so the panel remembers the set it posted (`componentDef`) and the

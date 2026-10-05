@@ -1350,9 +1350,10 @@ const tablesField = (): HTMLTextAreaElement => {
 };
 
 /** The style guide's live pending text (#1778): the table being drawn, counted from 1. Before the first
- *  reading, and from a host build older than this one, the pre-#1778 string. */
+ *  reading, and from a host build older than this one, the pre-#1778 string. The reading is the panel's own
+ *  run's, or else an agent's (owner decision Q19 b): one text for both. */
 const styleGuidePendingText = (): string => {
-  const p = host.styleGuideProgress;
+  const p = host.styleGuideState === 'pending' ? host.styleGuideProgress : agentReading('styleguide');
   return p ? `Drawing table ${Math.min(p.done + 1, p.total)} of ${p.total}…` : PENDING_TEXT.styleguide;
 };
 /** The live style-guide pending pills, for `componentPendingEls`' reason: rewritten in place on `host:progress`. */
@@ -1369,11 +1370,14 @@ const syncStyleGuideRow = (opts: { staged?: true } = {}): void => {
   if (!opts.staged && !row.isConnected) return;
   // #1785: busy while an agent's style guide draws too (owner decision #4 on #1956, the other writes' rule), so
   // the panel cannot start a second run over it. The main thread's run guard (#1957) refuses one regardless.
-  const pending = host.styleGuideState === 'pending' || agentRunning('styleguide');
+  // An agent's run shows on the row as the panel's own pending run does, its table count included (Q19 b).
+  const byAgent = host.styleGuideState !== 'pending' && agentRunning('styleguide');
+  const pending = host.styleGuideState === 'pending' || byAgent;
   styleGuideBtn.textContent = pending ? '… Drawing…' : `▦ ${STYLE_GUIDE_LABEL}`;
   styleGuideBtn.disabled = pending;
   row.querySelector(':scope > .bar-seed, :scope > .applystat')?.remove();
-  if (host.styleGuideState) row.prepend(renderApplyStatus(host.styleGuideState, 'styleguide'));
+  const shown = byAgent ? 'pending' : host.styleGuideState;
+  if (shown) row.prepend(renderApplyStatus(shown, 'styleguide'));
 };
 subscribe('host:styleguide', () => syncStyleGuideRow());
 // An agent's run starting or ending is told on `host` (`agent-started`, `agent-finished`).
@@ -2850,6 +2854,14 @@ const componentPhase = (p: HostSession['componentProgress']): Pick<OpReading, 'p
 const IDLE: OpReading = { state: 'idle', ref: null, verdict: null, summary: null, phase: null, progress: null, agent: false };
 /** True while the agent's command for `k` runs and its verdict has not landed. */
 const agentRunning = (k: OpKey): boolean => !!host.agentRun && host.agentRun.op === k && !host.agentRun.settled;
+/** The running agent command's own reading for `k`, or null. */
+const agentReading = (k: OpKey): NonNullable<HostSession['agentRun']>['progress'] =>
+  agentRunning(k) ? host.agentRun!.progress : null;
+/** An agent build's reading, in the panel build's shape (a style guide's `table` phase is not a build's). */
+const agentBuildReading = (): HostSession['componentProgress'] => {
+  const r = agentReading('components');
+  return r && r.phase !== 'table' ? { phase: r.phase, done: r.done, total: r.total } : null;
+};
 /** One operation as the Activity drawer reads it (S11). Running when the panel's own slot is pending, or
  *  the agent's command for it runs (`agentRun`); `ref` is `'pending'` or the agent run's id then, so a run
  *  that ends with no verdict is the slot's old value coming back. `agent` is true while an agent's command
@@ -2905,7 +2917,7 @@ const activityReading = (): ActivityReading => {
     ops: {
       apply: opReading('apply', host.applyState === 'pending', verdictOf(host.applyState), fixed(PENDING_TEXT.apply)),
       components: opReading('components', host.componentState === 'pending', verdictOf(host.componentState),
-        () => componentPhase(host.componentState === 'pending' ? host.componentProgress : host.agentRun?.progress ?? null)),
+        () => componentPhase(host.componentState === 'pending' ? host.componentProgress : agentBuildReading())),
       filesetup: opReading('filesetup', host.fileSetupState === 'pending', verdictOf(host.fileSetupState), fixed(PENDING_TEXT.filesetup)),
       styleguide: opReading('styleguide', host.styleGuideState === 'pending', verdictOf(host.styleGuideState), () => ({ phase: styleGuidePendingText(), progress: null })),
       prune: opReading('prune', !!host.pruneBusy,

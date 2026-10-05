@@ -166,8 +166,9 @@ export interface HostSession {
    *  verdict is recorded as the agent's. `agent-finished` clears the slot. A command that ends with no
    *  verdict (its handler threw) leaves the operation's slot as it was. `progress` is the agent build's
    *  own reading, which the panel's `componentProgress` does not take: that one is accepted only while
-   *  the panel's own build is pending. */
-  readonly agentRun: { readonly id: string; readonly op: OpKey; readonly settled: boolean; readonly progress: { phase: 'build' | 'wire' | 'retry'; done: number; total: number } | null } | null;
+   *  the panel's own build is pending. An agent's style guide reads phase `table`, its `done` of `total`
+   *  tables (#1778, owner decision Q19 b), which the page row and the drawer show as a panel run's. */
+  readonly agentRun: { readonly id: string; readonly op: OpKey; readonly settled: boolean; readonly progress: { phase: 'build' | 'wire' | 'retry' | 'table'; done: number; total: number } | null } | null;
   /** The last write the main thread declined because a run of the same operation was already going
    *  (#1957), `null` until one is. `n` counts them, so the drawer can tell a second refusal from the first
    *  when the words are the same. A refusal is not a verdict: it settles no run and fills no verdict slot.
@@ -247,7 +248,10 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     }
     case 'agent-progress': {
       const r = s.agentRun;
-      if (!r || r.id !== m.id || r.settled || r.op !== 'components') return s;
+      if (!r || r.id !== m.id || r.settled) return s;
+      // The reading must be the run's own kind: a build's phases on a build, a table count on a style guide.
+      const own = r.op === 'components' ? m.phase !== 'table' : r.op === 'styleguide' && m.phase === 'table';
+      if (!own) return s;
       return { ...s, agentRun: { ...r, progress: { phase: m.phase, done: m.done, total: m.total } } };
     }
     case 'agent-finished':

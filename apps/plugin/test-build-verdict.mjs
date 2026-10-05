@@ -707,6 +707,18 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const agentRun = await readSg();
   ok(agentRun.button === '… Drawing…' && agentRun.disabled === true,
     `#1785 an agent-link style guide in flight makes the page's button busy, disabled — read "${agentRun.button}", disabled ${agentRun.disabled}`);
+  // Owner decision Q19 b: the agent's table readings (the dispatcher's `agent-progress`, phase `table`) count on the
+  // page's row and on the Activity drawer's Style guide row, in the panel run's words.
+  await post(page, { type: 'agent-progress', id: 'sg1', progress: { at: '2026-10-05T00:00:00.000Z', phase: 'table', done: 6, total: 22, chunkMs: 900 } });
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-pill"]')].some((n) => n.textContent === 'Drawing table 7 of 22…'), null, { timeout: 3000 }).catch(() => {});
+  const agentCount = await page.evaluate(() => ({
+    row: [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-pill"]')].map((n) => n.textContent),
+    drawer: [...document.querySelectorAll('[data-p3="activity-op"][data-op="styleguide"] [data-p3="op-progress"]')].map((n) => n.textContent),
+  }));
+  ok(JSON.stringify(agentCount.row) === JSON.stringify(['Drawing table 7 of 22…']),
+    `Q19 an agent-link style guide counts its tables on the page's row — read ${JSON.stringify(agentCount.row)}`);
+  ok(JSON.stringify(agentCount.drawer) === JSON.stringify(['Drawing table 7 of 22…']),
+    `Q19 an agent-link style guide counts its tables on the Activity drawer's Style guide row — read ${JSON.stringify(agentCount.drawer)}`);
   await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 1 table', summary: '1 table updated in place — no token changes' });
   await post(page, { type: 'agent-finished', id: 'sg1', cmd: 'style-guide' });
   await page.waitForFunction(() => document.querySelector('[data-p3="style-guide-draw"]')?.textContent === '▦ Draw style guide', null, { timeout: 5000 }).catch(() => {});
