@@ -185,6 +185,10 @@ const sweep = (label: string, theme: ReturnType<typeof brandTheme>, ctx?: Overri
     const roles = m.roles as Record<string, { hex: string; against?: string; ratio?: number; min?: number; alpha?: number; model: string; legibleFor?: string; alsoAgainst?: { against: string; min: number } }>;
     // A warning that carries `against` is about a role's SECOND pair (arm F), so it does not confess the
     // role's own pair — keyed apart, or a shortfall on one pair would silently excuse the other.
+    // An override's UNRESOLVED-ground warning (#2034) names that ground in `unresolved`, never in `against`
+    // (#2097 item 3), so it is keyed with the role's own pair, which is the ground it is about. Before that
+    // it carried the ground in `against` and was read here as a second-pair confession for a pair that
+    // does not exist. Arm C still reports the row itself, since its `against` resolves to nothing.
     const warned = new Set((m.warnings ?? []).filter((w) => w.against == null).map((w) => w.role));
     const warnedAlso = new Set((m.warnings ?? []).filter((w) => w.against != null).map((w) => `${w.role} @ ${w.against}`));
     for (const [key, r] of Object.entries(roles)) {

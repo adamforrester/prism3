@@ -5,15 +5,18 @@
  */
 import { el, specimen, type SgCtx } from './kit';
 
-/** A color plane, an optional in-card label (and sub-label) in its ink, and the token chip(s) underneath. */
-export const surfaceCard = (c: SgCtx, k: string, label: string, inkRole: string, sub?: string, extra: HTMLElement[] = []): HTMLElement => {
+/** A color plane, an optional in-card label (and sub-label) in its ink, and the token chip(s) underneath. With
+ *  `inkBadge` (#1971, Q13(a)), the plane's chip carries the badge of what the card draws, its ink on the plane, in
+ *  place of the plane's own badge against its ground. */
+export const surfaceCard = (c: SgCtx, k: string, label: string, inkRole: string, sub?: string, extra: HTMLElement[] = [], inkBadge = false): HTMLElement => {
   const { cur, paint, fails } = c;
   const cw = el('div', 'sg-cw');
   const card = c.painted(el('div', 'sg-card'), k, 'background'); card.style.background = paint(cur, k);
   if (fails(cur, k)) card.append(el('span', 'sg-failmk', '!'));
   const lab = c.painted(el('div', 'sg-lab', label), inkRole, 'color'); specimen(lab).style.color = paint(cur, inkRole); card.append(lab);
   if (sub) { const sb = c.painted(el('div', 'sg-sub', sub), inkRole, 'color'); specimen(sb).style.color = paint(cur, inkRole); card.append(sb); }
-  cw.append(card, c.pills(...c.chip(k), ...extra));
+  const own = inkBadge ? [c.pill(k), c.onFillBadge(inkRole, k, k)].filter((n): n is HTMLElement => n !== null) : c.chip(k);
+  cw.append(card, c.pills(...own, ...extra));
   return cw;
 };
 

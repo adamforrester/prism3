@@ -227,7 +227,8 @@ const buildUiHtml = async (id) => {
     // the plugin ships inside a versioned manifest and so has no commit to claim. True, and it made the
     // field unfalsifiable: `plugin` is the same string in every checkout, so the one panel chip that could
     // have answered "which tree is Figma running?" answered "a plugin" (#836).
-    define: { PRISM3_HOST: '"figma"', PRISM3_BUILD: JSON.stringify(id) },
+    // PRISM3_TEST_HOOKS (#2098): the web smoke suite's hook, never in the plugin; defined so no bare identifier is left.
+    define: { PRISM3_HOST: '"figma"', PRISM3_BUILD: JSON.stringify(id), PRISM3_TEST_HOOKS: 'false' },
     // The studio chrome stylesheet is a real .css file since #769, imported by the studio's entry.ts as TEXT.
     // This loader is what keeps the UI a SINGLE self-contained document: esbuild's default `.css`
     // loader emits a separate stylesheet, which an iframe shipping `allowedDomains:["none"]` has no
