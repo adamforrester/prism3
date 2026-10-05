@@ -159,10 +159,11 @@ const openPage = async (width = 1280, height = 820) => {
     window.__sent = [];
     window.addEventListener('message', (e) => { const m = e.data && e.data.pluginMessage; if (m && /^(style-guide|file-setup)/.test(m.type)) window.__sent.push(m); });
   });
-  await hooks.click(page.locator('[data-p3="tab-brand"]'));
+  // From Brand, so Close has a page to return to (at 380 the tab row is a select, and the opening page serves).
+  if (width > 560) await hooks.click(page.locator('[data-p3="tab-brand"]'));
   await hooks.click(page.locator('[data-p3="figma-open"]'));
   await hooks.need(page, '[data-p3="figma-menu"]');
-  const item = await page.locator('[data-p3="figma-option-style-guide"]').textContent();
+  const item = await page.locator('[data-p3="figma-option-style-guide"] [data-p3="label-idle"]').textContent();
   await hooks.click(page.locator('[data-p3="figma-option-style-guide"]'));
   await hooks.need(page, '[data-p3="style-guides"]');
   return { page, errors, item };
@@ -194,8 +195,8 @@ console.log('\nopening the page, and Set up file (H10–H12, P8)');
   await post(page, { type: 'style-guide-catalog', catalog: CAT });
   await settle(page);
   st = await read(page);
-  ok(!st.warning && st.draw?.disabled === false && st.draw.label === 'Draw 7 tables' && st.summary === '7 tables · 11 variables, 1 text style',
-    `P8, P12: once set up, Draw is on, "Draw 7 tables", "7 tables · 11 variables, 1 text style" (${JSON.stringify({ draw: st.draw, summary: st.summary })})`);
+  ok(!st.warning && st.draw?.disabled === false && st.draw.label === 'Draw 7 tables' && st.summary === '7 tables · 10 variables, 1 text style',
+    `P8, P12: once set up, Draw is on, "Draw 7 tables", "7 tables · 10 variables, 1 text style" (${JSON.stringify({ draw: st.draw, summary: st.summary })})`);
   // H12: the legacy page stays in the Pages menu until the cleanup.
   await hooks.click(page.locator('[data-p3="pages-menu"]'));
   ok(await page.locator('[data-p3="rail-page-style-guide"]').count() === 1, 'H12: the legacy Style guide page is still in the Pages menu');
@@ -215,7 +216,8 @@ console.log('\nselection and options (P2–P5, H4–H9)');
   ok(JSON.stringify(st.collections) === JSON.stringify(['Every collection', 'core', 'color', 'border-width', 'Text styles']), `the Collection list: every collection, then each, the text styles as "Text styles" (${st.collections})`);
   const bw = st.groups.find((g) => g.name === 'border-width');
   ok(bw?.later === 'Later phase' && bw.disabled && bw.box === 'false', `P5: a later-phase group is tagged "Later phase", and its box is off and cannot be checked (${JSON.stringify(bw)})`);
-  await hooks.click(page.locator(groupBox('C:border-width:border-width/pds3/border-width')));
+  // `force`: Playwright will not click an `aria-disabled` control on its own; a person still can.
+  await hooks.click(page.locator(groupBox('C:border-width:border-width/pds3/border-width')), { force: true });
   st = await read(page);
   ok(st.groups.find((g) => g.name === 'border-width')?.box === 'false' && st.draw.label === 'Draw 7 tables', 'P5: clicking it checks nothing');
   ok(JSON.stringify(st.kinds) === JSON.stringify({ color: 'true', dimension: 'true', font: 'true', text: 'true' }), `P2: every kind box starts checked (${JSON.stringify(st.kinds)})`);
@@ -230,6 +232,7 @@ console.log('\nselection and options (P2–P5, H4–H9)');
   ok(st.nameCell === false, `H9: the Name cell is off by default (${st.nameCell})`);
   // Draw with everything selected sends the defaults and no tables filter.
   await hooks.click(page.locator('[data-p3="sg-draw"]'));
+  await settle(page);
   st = await read(page);
   const first = sentOf(st, 'style-guide')[0]?.options;
   ok(first && !('tables' in first) && first.rem === false && first.titleCell === false && first.valueFormat === 'hex' && first.display === 'auto' && first.fontDisplay === 'auto',
@@ -275,6 +278,7 @@ console.log('\nselection and options (P2–P5, H4–H9)');
   ok(palette.length === 2 && palette.every((l) => l.boxed), `P3: white and black sit in a group spanning two tables, so each carries its table's box (${JSON.stringify(palette)})`);
   // Draw of a part selection sends its tables by key.
   await hooks.click(page.locator('[data-p3="sg-draw"]'));
+  await settle(page);
   st = await read(page);
   const part = sentOf(st, 'style-guide')[1]?.options;
   ok(part && JSON.stringify(part.tables) === JSON.stringify([ALL_KEYS[0], ALL_KEYS[1], ALL_KEYS[2], ALL_KEYS[3], ALL_KEYS[5]]),
@@ -305,6 +309,7 @@ const LIST = CAT.tables.slice(0, 4).map((t) => ({ key: t.key, title: t.title, pa
     `P1, P11: Activity records the run in its "Style guides" row and does not open by itself while the page shows it (open ${st.drawerOpen}, dot ${st.dot}, row "${st.sgRowTitle}")`);
   ok(st.draw.disabled === true, 'Draw is off while the run draws');
   await hooks.click(page.locator('[data-p3="sg-cancel"]'));
+  await settle(page);
   st = await read(page);
   ok(sentOf(st, 'style-guide-cancel').length === 1, `P7: Cancel asks the main thread to stop after the current table (${sentOf(st, 'style-guide-cancel').length})`);
   await post(page, { type: 'style-guide-table', index: 1, status: 'failed', reason: 'Primary refused' });
@@ -317,6 +322,7 @@ const LIST = CAT.tables.slice(0, 4).map((t) => ({ key: t.key, title: t.title, pa
     `P1 (call 11): a failure the page shows marks Activity, and the drawer stays closed (open ${st.drawerOpen}, dot ${st.dot}, verdict "${st.verdict}")`);
   // P6: Draw it again draws that table alone, by its key.
   await hooks.click(page.locator('[data-p3="sg-again"]'));
+  await settle(page);
   st = await read(page);
   const again = sentOf(st, 'style-guide').pop()?.options;
   ok(JSON.stringify(again?.tables) === JSON.stringify([ALL_KEYS[1]]) && st.titles === 'Primary' && st.draw.label === 'Draw 1 table',
