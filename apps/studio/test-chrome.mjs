@@ -7598,6 +7598,19 @@ for (const host of ['web', 'figma']) {
             `${where}: tile dots: Agent "on" and Activity "${ac.state}" draw in the ok green ${ag.okColor} (Agent ${ag.color}, Activity ${ac.color})`);
           ok(ag.name === 'Agent, on' && /^Activity, agent link on, 1 running$/.test(ac.name ?? ''),
             `${where}: tile dots: the names still carry the state ("${ag.name}", "${ac.name}")`);
+          // D-RED A: a failure's dot is red; a warning's (an attention state that is not a failure) is green.
+          const actDot = () => page.evaluate(() => { const d = document.querySelector('[data-p3="activity-open"] .p3-tile-mark > .p3-status-dot');
+            const g = document.createElement('div'); g.className = 'p3-dot p3-dot-ok'; document.body.append(g); const okc = getComputedStyle(g).backgroundColor; g.className = 'p3-dot p3-dot-bad'; const badc = getComputedStyle(g).backgroundColor; g.remove();
+            const cs = getComputedStyle(d); return { state: d.dataset.state, shown: cs.display !== 'none', color: cs.backgroundColor, ok: okc, bad: badc, name: d.closest('button').getAttribute('aria-label') }; });
+          await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'apply-result', ok: false, headline: '✗ write failed', summary: 'The write failed.' } }, '*'));
+          await page.waitForFunction(() => document.querySelector('[data-p3="activity-open"] .p3-status-dot')?.dataset.state === 'bad', null, { timeout: 3000 }).catch(() => {});
+          const fd = await actDot();
+          ok(fd.state === 'bad' && fd.shown && fd.color === fd.bad && /needs attention/.test(fd.name ?? ''), `${where}: tile dots: a failure's dot is red (${JSON.stringify(fd)})`);
+          await hooks.click(page.locator('[data-p3="apply-to-figma"]'));
+          await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'apply-result', ok: false, headline: '⚠ 4 misses', summary: '4 roles were not written.' } }, '*'));
+          await page.waitForFunction(() => document.querySelector('[data-p3="activity-open"] .p3-status-dot')?.dataset.state === 'warn', null, { timeout: 3000 }).catch(() => {});
+          const wd = await actDot();
+          ok(wd.state === 'warn' && wd.shown && wd.color === wd.ok && /needs attention/.test(wd.name ?? ''), `${where}: tile dots: a warning's dot is green, and its name still says it needs attention (${JSON.stringify(wd)})`);
           await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), { ...AGENT_ON, on: false, since: null });
         }
       } catch (e) {

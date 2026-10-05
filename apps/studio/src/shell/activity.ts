@@ -293,7 +293,11 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     toggle.setAttribute('aria-expanded', String(open));
     button.setAttribute('aria-expanded', String(open));
     const kind = running ? 'run' : failed ? 'bad' : unread ? 'unread' : 'none';
-    dot.dataset.state = kind;
+    // The tile's dot (the owner's D-RED A, 2026-10-05): red only for a failure. An attention state that is not one, a
+    // warning (its verdict leads with ⚠, as every write's headline does: ✓ done, ⚠ done with problems, ✗ failed), draws
+    // green like the rest. The drawer, and the names, keep counting both as needing attention.
+    const failures = Object.values(last.ops).filter((o) => o.state === 'bad' && !(o.verdict ?? '').startsWith('⚠')).length;
+    dot.dataset.state = kind === 'bad' && !failures ? 'warn' : kind;
     drawer.dataset.state = kind;
     const name = ['Activity', agentLinkOn && 'agent link on', statusWords(running, failed, unread)].filter(Boolean).join(', ');
     button.setAttribute('aria-label', name);

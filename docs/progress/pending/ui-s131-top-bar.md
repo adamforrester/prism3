@@ -86,7 +86,25 @@ The clean run on the same head: `test:chrome` 18161/18161.
 - **`test:chrome` §28c**, both hosts at 1280:
   - with the export dialog open, an element carrying the start window's class names is laid out by none of its rules: one track at most, and not the export scrim's z-index;
   - once the start window exists (#2142), "+ New brand" opens it over the open export dialog, and its body must be a single grid track. Until #2142 merges, that half says so instead of passing.
-  - Mutation, the body rule unscoped (`.p3-bardlg-body, .p3-dialog-body { … }`): MUT_G_PLACEHOLDER
+  - Mutation, the body rule unscoped: below.
+
+**The tile dots (owner QA, 2026-10-05).** Before, the dots were placed and colored inconsistently:
+- Agent's "on" dot sat at the glyph's bottom right, in green.
+- Activity's dot sat at the top right, and its color depended on the state (`statusWords`/`paint` in `shell/activity.ts`):
+  - **running**: a ring in the icon ink (black in light, white in dark);
+  - **attention** (a failed or warning result): filled bad red;
+  - **new result nobody opened**: filled icon ink;
+  - **nothing**: no dot.
+  The drawer's own lead dot is not a tile dot and is unchanged.
+
+Now every tile dot sits at the glyph's top right at one offset (`.p3-tile-mark > .p3-dot`). **The owner's D-RED A: a failure keeps its red dot, and every other dot is the ok green (`--p3-ok-icon`)**: Agent on, Activity running (still a ring), a new result (filled), and an attention state that is not a failure, which is a warning. A write's `ok: false` covers both failures and warnings, so the tile tells them apart by the verdict's lead mark, the contract every write's headline follows (✓ done, ⚠ done with problems, ✗ failed): a `bad` operation whose verdict starts with ⚠ draws the new `warn` dot, in green. The drawer and the names still count both as needing attention.
+
+`test:chrome` §28b checks the plugin at 1280 in both themes, with the link on and a write running: both dots are drawn, at one offset within 1px, in the ok green, and the names still say "Agent, on" and "Activity, agent link on, 1 running". Then a failed apply (`✗ write failed`) draws Activity's dot red, and a warning (`⚠ 4 misses`) draws it green; both names still say "needs attention". (The "light" case runs in dark by then: its Theme check chose Dark.) The web has no tile dot in any state (no agent link, no write).
+
+Mutations for the dots and the dialog scope (each on a `git archive` copy of `a629aa1b`; the clean run was 18382/18382):
+- **Agent's dot back at the bottom right**: `28b figma light 1280: tile dots: Agent's and Activity's dots sit at their glyph's top right at one offset (Agent 4,10; Activity 4,-2; …)`, and the same for dark.
+- **Activity's running dot in the icon ink**: `28b figma light 1280: tile dots: Agent "on" and Activity "run" draw in the ok green rgb(56, 146, 94) (Agent rgb(56, 146, 94), Activity rgb(247, 247, 247))`, and the same for dark.
+- **The export body rule unscoped** (`.p3-bardlg-body, .p3-dialog-body`): `28c web light 1280: dialog scope: no rule of the export dialog reaches an element named as the start window's (body grid, 2 tracks "268.797px 268.797px"; scrim static, z auto)`, and the same for figma.
 
 **Held:**
 - **The plugin from 561 to about 1000px.** The bar wraps at the wide tier, so Export can start the second row. The owner named 1280 and 380 for the plugin; its window opens at 1280.
