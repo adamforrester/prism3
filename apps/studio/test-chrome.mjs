@@ -76,6 +76,24 @@
  * inline-value check: the one S1.2 named (the plugin's bottom-left agent chip) went in S1.4 (D6), and its
  * exemption went with it, as it said it would.
  *
+ * THE ONE CONTRAST EXEMPTION: INACTIVE CONTROLS (owner decision F1 A, 2026-10-05). WCAG 2.2 exempts a user
+ * interface component that is not available for user interaction from SC 1.4.3 and SC 1.4.11, and the owner
+ * decided that a disabled text field in the chrome draws Prism3's own disabled text field skin exactly
+ * (`color.disabled.fill`, `.border`, `.on-fill`), which sits under both floors (3.05:1 and 3.04:1 text, 1.80:1
+ * and 1.65:1 edge, light and dark). The audit exempts a node from its floor only when it is, or sits inside, a
+ * control that is `:disabled` or `aria-disabled="true"`, never by class name or hook; and it still asserts, by
+ * name, that each exempted node is disabled in the accessibility tree, takes no focus and no scripted edit, and
+ * draws exactly those three roles, read from the committed emission (`checkExempt`, above `check`). Each run
+ * prints how many nodes it exempted; section 2 fails a Layout sweep that exempted none, and plants a canary there
+ * (the same field, not disabled) that must fail its floor. Mutations, each failing by name:
+ *   · the first breakpoint field not disabled, its colors kept → `web light 1280 / layout: every chrome field inks
+ *     its value at 4.5:1 — input[bp-input] "sm, px" 3.05:1`, its edge at 1.8:1, and `… the contrast audit exempted
+ *     0 disabled node(s) …`, on both hosts and both themes (22 failures).
+ *   · the exemption widened to the field's class → `… the exemption canary, … is not exempted and fails 4.5:1 —
+ *     {…"exempted":true}`, on both hosts and both themes, and nothing else (4 failures).
+ *   · the field's ink on `disabled.text` → `… the exempted input[bp-input] "sm, px" draws Prism3's disabled roles for
+ *     light …` and `F1 A: Layout: web light: … draws Prism3's disabled text field …` (8 failures).
+ *
  * NOTHING FORCED (S2). S1.2 and S1.3 set the frame's `data-layout="panes"` themselves for the Q2 check and
  * the preview-header checks, because no page rendered the two panes. S2 moved Color › Palettes, the opening
  * page, into them, so every one of those checks now measures Color › Palettes as it renders. Q2's "a page
@@ -408,6 +426,37 @@ const APPLY_LABEL = 'Apply Theme';
 const APPLY_RUNNING = '\u2026 Applying\u2026';
 const LAYER_STEP = 1.04;
 const ALIGN_TOLERANCE = 0.5;
+/** THE DISABLED ORACLE (F1 A): Prism3's disabled text field skin per chrome theme, resolved in Node from the engine's
+ *  committed emission (its alias chain followed through the base tree with the dark overlay), never from the studio's
+ *  CSS or `chrome/spec.mjs`. The three roles are the ones `packages/engine/components/text-field.ts` binds for its
+ *  disabled state, typed here: `disabled.fill`, `disabled.border` and the on-fill ink (never `disabled.text`). */
+const PRISM3_DISABLED = (() => {
+  const out = join(REPO, 'packages/engine/out');
+  const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
+  const root = Object.keys(base).find((k) => !k.startsWith('$'));
+  const leafAt = (tree, path) => path.split('.').reduce((n, k) => n?.[k], tree);
+  const dark = structuredClone(base);
+  const put = (src, dst) => { for (const [k, v] of Object.entries(src)) { if (k.startsWith('$')) continue; if (v && typeof v === 'object' && '$value' in v) dst[k] = v; else put(v, dst[k] ??= {}); } };
+  put(JSON.parse(readFileSync(join(out, 'prism3.dark.overlay.tokens.json'), 'utf8')), dark);
+  const hex = (tree, path, seen = 0) => {
+    const v = leafAt(tree, path)?.$value;
+    if (typeof v !== 'string' || seen > 20) return null;
+    const m = /^\{(.+)\}$/.exec(v);
+    return m ? hex(tree, m[1], seen + 1) : v.toLowerCase();
+  };
+  const skin = (tree) => ({ fill: hex(tree, `${root}.color.disabled.fill`), edge: hex(tree, `${root}.color.disabled.border`), ink: hex(tree, `${root}.color.disabled.on-fill`) });
+  return { light: skin(base), dark: skin(dark) };
+})();
+/** A computed `rgb(…)` as `#rrggbb`, or null when it is not opaque sRGB. */
+const hexOfRgb = (s) => {
+  const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim());
+  if (!m) return null;
+  const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
+  if (p.length > 3 && p[3] !== 1) return null;
+  return `#${p.slice(0, 3).map((x) => Math.round(x).toString(16).padStart(2, '0')).join('')}`;
+};
+/** Every contrast exemption the audit granted this run, by probe: [where, count, hooks]. Printed at the end. */
+const EXEMPTIONS = [];
 const WIDTHS = [{ w: 1280, h: 900 }, { w: 640, h: 900 }, { w: 380, h: 420 }];
 
 /** The places not moved yet. A domain slice that moves a place removes it here, in the same change. Empty since S8.2
@@ -708,6 +757,32 @@ const PROBE = (opt) => {
 
   const all = [...(frame?.querySelectorAll('*') ?? [])].filter(inChrome);
   const drawn = all.filter(shown);
+  const CONTROL = 'button, select, input:not([type="hidden"]), [role="tab"], [role="menuitemradio"], a[href]';
+
+  // THE CONTRAST EXEMPTION, its predicate (F1 A; see "THE CONTRAST EXEMPTION" above `check`). A measured node is OFF
+  // when it is a control, or sits inside one, that is really disabled: `:disabled` (which also covers a control in a
+  // disabled fieldset) or `aria-disabled="true"`. Never a class name or a hook. Each off control is listed once in
+  // `offs` with what Node needs to hold it to the exemption's three conditions, and tagged `data-coff` so Node can
+  // reach it; a measured entry carries its control's index in `offs`, or -1. Whether a node is EXEMPT (off AND under
+  // its floor) is decided in Node, against the literal floors.
+  const offs = [];
+  const offOf = (el) => {
+    for (let n = el; n && n.nodeType === 1 && frame?.contains(n); n = n.parentElement) {
+      if (!n.matches(CONTROL)) continue;
+      if (!(n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true')) continue;
+      let i = offs.findIndex((o) => o.node === n);
+      if (i < 0) {
+        const cs = getComputedStyle(n);
+        i = offs.push({ node: n, el: label(n), hook: n.getAttribute('data-p3'), canary: n.hasAttribute('data-ccanary'),
+          prop: n.disabled === true, aria: n.getAttribute('aria-disabled') === 'true',
+          fill: cs.backgroundColor, ink: cs.color,
+          edges: ['Top', 'Right', 'Bottom', 'Left'].map((side) => [cs[`border${side}Color`], cs[`border${side}Style`], parseFloat(cs[`border${side}Width`])]) }) - 1;
+        n.setAttribute('data-coff', String(i));
+      }
+      return i;
+    }
+    return -1;
+  };
 
   // text
   const text = [];
@@ -720,7 +795,7 @@ const PROBE = (opt) => {
     const g = groundOf(el);
     const px = parseFloat(cs.fontSize), weight = Number(cs.fontWeight);
     const large = px >= 24 || (px >= 18.66 && weight >= 700);
-    text.push({ el: label(el), r: fl(ratio(over(ink, g), g)), large });
+    text.push({ el: label(el), r: fl(ratio(over(ink, g), g)), large, off: offOf(el) });
     el.setAttribute('data-cprobe', cs.fontFamily.includes(opt.monoAlias) ? 'mono' : 'text');
   }
   // fields: the value a field draws, on its own fill
@@ -730,10 +805,9 @@ const PROBE = (opt) => {
     const cs = getComputedStyle(el);
     const ink = parse(cs.color, `${label(el)} color`);
     const g = groundOf(el);
-    if (ink) fields.push({ el: label(el), r: fl(ratio(over(ink, g), g)), scheme: cs.colorScheme });
+    if (ink) fields.push({ el: label(el), r: fl(ratio(over(ink, g), g)), scheme: cs.colorScheme, off: offOf(el), canary: el.hasAttribute('data-ccanary') });
   }
   // controls, their kinds, targets, edges
-  const CONTROL = 'button, select, input:not([type="hidden"]), [role="tab"], [role="menuitemradio"], a[href]';
   const controls = [];
   const unclassified = [];
   const edges = [];
@@ -750,7 +824,7 @@ const PROBE = (opt) => {
       const c = parse(cs[`border${side}Color`], `${label(el)} border`);
       if (!c || c.a === 0) continue;
       // A tab's underline is drawn on the tab row; every other edge against what is outside the control.
-      edges.push({ el: label(el), side, r: fl(ratio(over(c, outside), outside)) });
+      edges.push({ el: label(el), side, r: fl(ratio(over(c, outside), outside)), off: offOf(el), canary: el.hasAttribute('data-ccanary') });
     }
   }
   // glyphs
@@ -790,6 +864,9 @@ const PROBE = (opt) => {
     leversShown: [...document.querySelectorAll('[data-p3="levers-pane"]')].some(shown), previewShown: [...document.querySelectorAll('[data-p3="preview-body"]')].some(shown),
     legacyPage: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage,
     text, fields, controls, unclassified, edges, glyphs, shadows, inline, unparsed,
+    offs: offs.map(({ node, ...o }) => o),
+    // The chrome theme as the generated CSS sets it (`color-scheme` on the root), so the oracle is read for the theme drawn.
+    scheme: getComputedStyle(document.documentElement).colorScheme,
     layers: {
       leversOnPage: layers.levers && layers.page ? fl(ratio(layers.levers, layers.page)) : null,
       barOnLevers: layers.bar && layers.levers ? fl(ratio(layers.bar, layers.levers)) : null,
@@ -940,12 +1017,111 @@ const holdSpin = (page, hold) => page.evaluate((hold) => {
     }
   }
 }, hold);
+/** THE CONTRAST EXEMPTION, which nodes take it: an OFF node (the probe's predicate: really disabled) that measures
+ *  under its literal floor. A node that clears its floor needs no exemption and is not counted. Returns `offs` indexes. */
+const exemptOf = (m) => {
+  const ids = new Set();
+  for (const t of m.text) if (t.off >= 0 && t.r < (t.large ? LARGE_TEXT_MIN : TEXT_MIN)) ids.add(t.off);
+  for (const f of m.fields) if (f.off >= 0 && f.r < TEXT_MIN) ids.add(f.off);
+  for (const e of m.edges) if (e.off >= 0 && e.r < NONTEXT_MIN) ids.add(e.off);
+  return [...ids];
+};
+/** The exemption's first two conditions, read off the page for the off control `data-coff="i"`: what the browser's
+ *  accessibility tree says (CDP, not the DOM predicate that granted it), whether it takes focus, and whether a
+ *  scripted edit (focus, then typing) changes its value or anything the page stores. */
+const holdsOff = async (page, i) => {
+  const sel = `[data-coff="${i}"]`;
+  const cdp = await page.context().newCDPSession(page);
+  let ax = null;
+  try {
+    await cdp.send('DOM.enable');
+    await cdp.send('Accessibility.enable');
+    const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+    const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel });
+    const { nodes } = await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false });
+    ax = nodes[0]?.properties?.find((p) => p.name === 'disabled')?.value?.value === true;
+  } finally { await cdp.detach(); }
+  const read = (x) => page.evaluate((x) => {
+    const n = document.querySelector(x);
+    return { value: n?.value ?? null, text: n?.textContent ?? null, store: JSON.stringify(Object.entries(localStorage)) };
+  }, x);
+  const before = await read(sel);
+  const focused = await page.evaluate((x) => { const n = document.querySelector(x); document.activeElement?.blur?.(); n?.focus(); return !!n && document.activeElement === n; }, sel);
+  await page.locator(sel).pressSequentially('7', { timeout: 1000 }).catch(() => {});
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const after = await read(sel);
+  return { ax, focused, changed: JSON.stringify(before) !== JSON.stringify(after) };
+};
+/** THE EXEMPTION'S CANARY (F1 A): beside the disabled field, plant a copy that is NOT disabled but keeps its class,
+ *  its hook and, inline, the exact colors it draws; probe; remove it. The copy must be measured and must fail its
+ *  floor without being exempted, so an exemption widened to a class name or a hook fails here by name. */
+const exemptionCanary = async (page) => {
+  const planted = await page.evaluate(() => {
+    const src = document.querySelector('[data-p3="bp-row"] input:disabled');
+    if (!src) return false;
+    const cs = getComputedStyle(src);
+    const c = src.cloneNode(true);
+    c.disabled = false;
+    c.removeAttribute('id');
+    c.setAttribute('data-ccanary', '');
+    for (const p of ['background-color', 'color', 'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color']) c.style.setProperty(p, cs.getPropertyValue(p));
+    src.after(c);
+    return true;
+  });
+  const m = planted ? await page.evaluate(PROBE, { legacyPages: LEGACY_PAGES, kinds: CONTROL_KINDS, inspectLegacy: INSPECT_LEGACY, monoAlias: MONO_ALIAS }) : null;
+  await page.evaluate(() => { for (const n of document.querySelectorAll('[data-ccanary]')) n.remove(); for (const n of document.querySelectorAll('[data-coff]')) n.removeAttribute('data-coff'); });
+  const f = m?.fields.find((x) => x.canary);
+  return { planted, measured: !!f, r: f?.r ?? null, exempted: f ? exemptOf(m).includes(f.off) : null };
+};
 const measure = async (page, where, host, w) => {
   await holdSpin(page, true);
   const m = await page.evaluate(PROBE, { legacyPages: LEGACY_PAGES, kinds: CONTROL_KINDS, inspectLegacy: INSPECT_LEGACY, monoAlias: MONO_ALIAS });
   const fonts = await fontsDrawn(page);
+  const exempt = [];
+  for (const i of exemptOf(m)) exempt.push({ ...m.offs[i], ...(await holdsOff(page, i)) });
+  await page.evaluate(() => { for (const n of document.querySelectorAll('[data-coff]')) n.removeAttribute('data-coff'); });
   await holdSpin(page, false);
-  return { ...m, fonts };
+  return { ...m, fonts, exempt };
+};
+
+/**
+ * THE CONTRAST EXEMPTION (owner decision F1 A, 2026-10-05). WCAG 2.2 exempts a user interface component that is not
+ * available for user interaction from SC 1.4.3 (text, 4.5:1) and SC 1.4.11 (non-text, 3:1): an inactive control.
+ * The owner decided that a disabled text field in the chrome takes Prism3's own disabled skin exactly, which sits
+ * under both floors on purpose (about 3.05:1 text and 1.8:1 edge). So the audit exempts a node from its floor only when:
+ *
+ *   · it is REALLY DISABLED: the node is, or sits inside, a control that is `:disabled` or `aria-disabled="true"`
+ *     (`offOf` in PROBE). Never a class name, a hook or a marker the page sets for the test: the canary in section 2
+ *     plants a non-disabled field with the same class, hook and colors, and it must fail its floor.
+ *
+ * and every node it exempts is still asserted, by name, to be:
+ *
+ *   1. disabled to assistive technology: the browser's accessibility tree (CDP `getPartialAXTree`) reports it
+ *      disabled, and it carries the `disabled` property or `aria-disabled`;
+ *   2. neither focusable nor editable: `focus()` does not take, and a scripted edit (focus, then typing) changes
+ *      nothing, its value or anything the page stores. So an `aria-disabled` control that keeps its focus stop does
+ *      not qualify;
+ *   3. drawn in the Prism3 disabled roles for the chrome theme: fill `color.disabled.fill`, every edge
+ *      `color.disabled.border` (solid), and ink `color.disabled.on-fill`, read from the committed emission
+ *      (`PRISM3_DISABLED`), never from the studio's CSS or `chrome/spec.mjs` (docs/34).
+ *
+ * Counted, not trusted: every probe's exemptions go to `EXEMPTIONS`, printed at the end of the run, and section 2
+ * fails a Layout sweep that exempted nothing, since its first breakpoint field is disabled there by design (D13).
+ */
+const checkExempt = (m, where) => {
+  EXEMPTIONS.push([where, m.exempt.length, m.exempt.map((x) => x.hook ?? x.el)]);
+  const want = PRISM3_DISABLED[m.scheme];
+  ok(!m.exempt.length || !!want, `${where}: the chrome theme is light or dark, so the disabled oracle applies (color-scheme "${m.scheme}")`);
+  for (const x of m.exempt) {
+    ok(x.ax === true && (x.prop || x.aria),
+      `${where}: the exempted ${x.el} is disabled to assistive technology (accessibility tree disabled ${x.ax}, disabled property ${x.prop}, aria-disabled ${x.aria})`);
+    ok(!x.focused && !x.changed, `${where}: the exempted ${x.el} cannot be focused or edited (took focus ${x.focused}, a scripted edit changed ${x.changed ? 'something' : 'nothing'})`);
+    if (!want) continue;
+    const edges = x.edges.filter(([, style, width]) => style !== 'none' && width > 0);
+    const got = { fill: hexOfRgb(x.fill), edge: [...new Set(edges.map(([c]) => hexOfRgb(c)))].join(' '), ink: hexOfRgb(x.ink), styles: [...new Set(edges.map(([, st]) => st))].join(' ') };
+    ok(got.fill === want.fill && got.edge === want.edge && edges.length === 4 && got.styles === 'solid' && got.ink === want.ink,
+      `${where}: the exempted ${x.el} draws Prism3's disabled roles for ${m.scheme}: fill color.disabled.fill ${want.fill}, a solid edge color.disabled.border ${want.edge}, ink color.disabled.on-fill ${want.ink} (drew ${JSON.stringify(got)})`);
+  }
 };
 
 /** `only`: the controls this state shows, replacing the column's list (the narrow Preview pane, which hides
@@ -979,11 +1155,11 @@ const check = (m, where, column, floor = FLOORS[column], { state = 'page', extra
       : m.layout === 'panes' && m.inspectShown && !m.previewShown && !m.legacyShown && (m.w === 'narrow' || m.leversShown),
     `${where}: Inspect covers the ${listed ? 'legacy frame' : 'preview'} (${shows})`);
   }
-  // text
+  // text (an exempted node, below, is held to the exemption's conditions instead of the floor)
   ok(m.text.length >= floor.text, `${where}: measured ${m.text.length} chrome text nodes (floor ${floor.text})`);
-  const dim = m.text.filter((t) => t.r < (t.large ? LARGE_TEXT_MIN : TEXT_MIN));
+  const dim = m.text.filter((t) => t.r < (t.large ? LARGE_TEXT_MIN : TEXT_MIN) && t.off < 0);
   ok(dim.length === 0, `${where}: every chrome text node clears ${TEXT_MIN}:1 (${LARGE_TEXT_MIN}:1 large)${dim.length ? ` — ${dim.slice(0, 4).map((t) => `text ${t.el} ${t.r}:1`).join(' | ')}` : ''}`);
-  const fdim = m.fields.filter((f) => f.r < TEXT_MIN);
+  const fdim = m.fields.filter((f) => f.r < TEXT_MIN && f.off < 0);
   ok(fdim.length === 0, `${where}: every chrome field inks its value at ${TEXT_MIN}:1${fdim.length ? ` — ${fdim.map((f) => `${f.el} ${f.r}:1`).join(' | ')}` : ''}`);
   // controls
   ok(m.unclassified.length === 0, `${where}: every chrome control is classified${m.unclassified.length ? ` — unclassified control ${m.unclassified.slice(0, 4).join(', ')}` : ''}`);
@@ -998,8 +1174,10 @@ const check = (m, where, column, floor = FLOORS[column], { state = 'page', extra
   // edges and indicators
   ok(m.edges.length >= floor.edges, `${where}: measured ${m.edges.length} control edges and indicators (floor ${floor.edges})`);
   // One line per control (its weakest side), so the message names every control that fails.
-  const weak = [...new Map(m.edges.filter((e) => e.r < NONTEXT_MIN).sort((a, b) => b.r - a.r).map((e) => [e.el, e])).values()];
+  const weak = [...new Map(m.edges.filter((e) => e.r < NONTEXT_MIN && e.off < 0).sort((a, b) => b.r - a.r).map((e) => [e.el, e])).values()];
   ok(weak.length === 0, `${where}: every control edge and indicator clears ${NONTEXT_MIN}:1${weak.length ? ` — ${weak.slice(0, 6).map((e) => `edge ${e.el} ${e.r}:1 < ${NONTEXT_MIN}`).join(' | ')}` : ''}`);
+  // THE CONTRAST EXEMPTION: every node it exempted is still held to all three of its conditions.
+  checkExempt(m, where);
   ok(m.glyphs.length >= floor.glyphs, `${where}: measured ${m.glyphs.length} glyphs (floor ${floor.glyphs})`);
   const faint = m.glyphs.filter((g) => g.r < NONTEXT_MIN);
   ok(faint.length === 0, `${where}: every glyph clears ${NONTEXT_MIN}:1${faint.length ? ` — ${faint.slice(0, 4).map((g) => `${g.el} ${g.r}:1`).join(' | ')}` : ''}`);
@@ -1150,6 +1328,15 @@ for (const host of ['web', 'figma']) {
         `${where}: no place draws a local switch between legacy pages (D8's, retired in S9.2)`);
       const m = await measure(page, where, host, 1280);
       check(m, where, columnOf(host, 1280), PLACE_FLOOR);
+      if (place === 'layout') {
+        // F1 A: Layout's first breakpoint field is disabled by design (D13), so this sweep must exempt it. A sweep that
+        // exempts nothing here has stopped measuring the exemption, or the field, and fails by name.
+        ok(m.exempt.length >= 1 && m.exempt.some((x) => x.hook === 'bp-input'),
+          `${where}: the contrast audit exempted ${m.exempt.length} disabled node(s), Layout's first breakpoint field among them (floor 1) — ${JSON.stringify(m.exempt.map((x) => x.el))}`);
+        const c = await exemptionCanary(page);
+        ok(c.planted && c.measured && c.exempted === false && c.r < TEXT_MIN,
+          `${where}: the exemption canary, a field with the disabled field's class, hook and colors that is not disabled, is not exempted and fails ${TEXT_MIN}:1 — ${JSON.stringify(c)}`);
+      }
     }
     ok(errors.length === 0, `${host} ${theme} places: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     await ctx.close();
@@ -5228,6 +5415,27 @@ for (const host of ['web', 'figma']) {
       ok(JSON.stringify(await sw()) === JSON.stringify({ on: 'true', off: false, why: '' }), `#2055: releasing both mobile sizes makes the fluid switch live again (${JSON.stringify(await sw())})`);
       ok(JSON.stringify(await persisted(page)) === JSON.stringify(pFluid), '#2055: releasing both mobile sizes returns the brand to its bytes');
     }
+    // #2068: a viewport pair the engine refuses is put back rather than written, with the engine's own sentence as
+    // the warning under the fields, and the error bar stays quiet. EXPECTED typed here: the owner-approved sentence
+    // with the values entered, never read from the page's module (docs/34).
+    {
+      const vp = (k) => page.locator(k === 'min' ? '[data-p3="type-min-viewport"]' : '[data-p3="type-max-viewport"]');
+      const line = () => page.evaluate(() => document.querySelector('[data-p3="type-viewport-refused"]')?.textContent?.trim() ?? null);
+      const bar = () => page.evaluate(() => { const e = document.querySelector('[data-p3="error-bar"]'); return !!e && !e.hidden && !!e.textContent?.trim(); });
+      ok((await line()) === null, `#2068: on the 375/1280 default, no viewport refusal is shown (${await line()})`);
+      const before = JSON.stringify(await persisted(page));
+      for (const [k, v, back, why, what] of [
+        ['min', '1280', '375', 'The minimum viewport (1280px) must be smaller than the maximum viewport (1280px).', 'min equal to max'],
+        ['max', '320', '1280', 'The minimum viewport (375px) must be smaller than the maximum viewport (320px).', 'max below min'],
+      ]) {
+        await vp(k).fill(v);
+        await vp(k).evaluate((e) => e.blur());
+        await page.waitForFunction(() => !!document.querySelector('[data-p3="type-viewport-refused"]'), null, { timeout: 5000 }).catch(() => {});
+        ok((await line()) === why, `#2068: ${what}, the refusal reads "${why}" (${await line()})`);
+        ok((await vp(k).inputValue()) === back, `#2068: ${what}, the field is put back to ${back} (${await vp(k).inputValue()})`);
+        ok(JSON.stringify(await persisted(page)) === before && !(await bar()), `#2068: ${what}, nothing is written and the error bar stays quiet`);
+      }
+    }
     // A text type that pins a font style cannot be Italic only: the chip is disabled with the reason.
     const pinIn = page.locator('[data-p3="pin-cut-row"][data-cat="body"][data-role="default"] [data-p3="pin-cut-input"]');
     await pinIn.fill('Medium');
@@ -6223,7 +6431,6 @@ const layoutRead = (page) => page.evaluate(() => {
   const secs = [...pane.querySelectorAll('[data-p3="lever-section"]')].map((x) => ({ title: x.querySelector('.p3-lsec-title')?.textContent, desc: x.querySelector('.p3-lsec-desc')?.textContent ?? '' }));
   const psecs = [...body.querySelectorAll('[data-p3="layout-style-guide"] .psec')].map((x) => ({ title: x.querySelector('[data-p3="section-title"]')?.textContent, desc: x.querySelector('[data-p3="section-description"]')?.textContent ?? '' }));
   const bpRows = [...pane.querySelectorAll('[data-p3="bp-row"]')].map((r) => ({ bp: r.dataset.bp, value: r.querySelector('input')?.value, disabled: r.querySelector('input')?.disabled,
-    edge: r.querySelector('input') ? getComputedStyle(r.querySelector('input')).borderTopStyle : null,
     note: r.querySelector('[data-p3="bp-first-note"]')?.textContent ?? null, remove: r.querySelector('[data-p3="bp-remove"]')?.textContent ?? null }));
   return {
     intro: pane.querySelector('.p3-intro')?.textContent, secs, psecs, bpRows,
@@ -6296,11 +6503,6 @@ for (const host of ['web', 'figma']) {
       `Layout: the first breakpoint is fixed at 0 (${host}): its field reads 0, is disabled, says "${LAYOUT_APPROVED.first}" and has no Remove — ${JSON.stringify(first)}`);
     ok(r.bpRows.slice(1).every((x) => x.disabled === false && x.remove === `Remove ${x.bp}`) && r.add === LAYOUT_APPROVED.add && r.next === LAYOUT_APPROVED.next,
       `Layout: ${host}: every other breakpoint is editable with "Remove ‹name›", and the list ends on "${LAYOUT_APPROVED.add}"; Continue reads "${LAYOUT_APPROVED.next}" — ${JSON.stringify(r.bpRows.slice(1))}, add ${r.add}, next ${r.next}`);
-    // #2098 item 6: the fixed first field must not look like an editable one. It takes the chrome's can't-change edge,
-    // dashed (a fixed check box, a locked value picker, a disabled button), and every editable field keeps a solid one.
-    // Read as computed on the rendered field, so a rule that stops matching fails here by name.
-    ok(first?.edge === 'dashed' && r.bpRows.slice(1).every((x) => x.edge === 'solid'),
-      `Layout: ${host}: the fixed first breakpoint field draws a dashed edge, and every editable one a solid edge — ${JSON.stringify(r.bpRows.map((x) => [x.bp, x.edge]))}`);
     // T8: Continue opens the Components tab on this host, its own two panes since S8.2 on both hosts.
     await hooks.click(page.locator('[data-p3="layout-continue"]'));
     await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'components', null, { timeout: 5000 }).catch(() => {});
@@ -6312,6 +6514,38 @@ for (const host of ['web', 'figma']) {
   } catch (e) {
     ok(false, `S10 Layout ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
+}
+// F1 A (owner, 2026-10-05), replacing #2120's dashed edge: the fixed first breakpoint field draws Prism3's own disabled
+// text field skin, exactly, on both hosts and in both chrome themes, and no editable field takes it. Read as computed on
+// the rendered fields; the oracle is the committed emission (`PRISM3_DISABLED`), never the studio's CSS or `spec.mjs`.
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    try {
+      await goPlace(page, 'layout');
+      await hooks.need(page, '[data-p3="layout-levers"]');
+      const d = await page.evaluate(() => ({
+        scheme: getComputedStyle(document.documentElement).colorScheme,
+        fields: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="bp-row"] input')].map((n) => {
+          const cs = getComputedStyle(n);
+          return { disabled: n.disabled, fill: cs.backgroundColor, ink: cs.color, edges: ['Top', 'Right', 'Bottom', 'Left'].map((x) => [cs[`border${x}Color`], cs[`border${x}Style`]]) };
+        }),
+      }));
+      const want = PRISM3_DISABLED[theme];
+      const skin = (f) => ({ fill: hexOfRgb(f.fill), edge: [...new Set(f.edges.map(([c]) => hexOfRgb(c)))].join(' '), style: [...new Set(f.edges.map(([, st]) => st))].join(' '), ink: hexOfRgb(f.ink) });
+      const first = d.fields[0];
+      const got = first ? skin(first) : null;
+      ok(d.scheme === theme && first?.disabled === true && got.fill === want.fill && got.edge === want.edge && got.style === 'solid' && got.ink === want.ink,
+        `F1 A: Layout: ${host} ${theme}: the fixed first breakpoint field draws Prism3's disabled text field: fill color.disabled.fill ${want.fill}, a solid edge color.disabled.border ${want.edge}, value color.disabled.on-fill ${want.ink} — drew ${JSON.stringify(got)} (disabled ${first?.disabled}, chrome ${d.scheme})`);
+      const rest = d.fields.slice(1).map(skin);
+      ok(d.fields.length === 5 && d.fields.slice(1).every((f) => !f.disabled) && rest.every((x) => x.fill !== want.fill && x.edge !== want.edge && x.ink !== want.ink),
+        `F1 A: Layout: ${host} ${theme}: no editable breakpoint field takes the disabled skin — ${JSON.stringify(rest)}`);
+      if (SHOTS) await page.locator('[data-p3="levers-pane"] [data-p3="bp-list"]').screenshot({ path: join(SHOTS, `f1-${host === 'web' ? 'web' : 'plugin'}-${theme}.png`) });
+      ok(errors.length === 0, `F1 A Layout ${host} ${theme}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `F1 A Layout ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
 }
 // No hover on a disabled text field (owner, 2026-10-05, after #2120): a pointer over Layout's fixed first breakpoint
 // field changes none of its colors. The same pointer over an editable field does change its edge, which proves the
@@ -7719,6 +7953,13 @@ for (const host of ['web', 'figma']) {
 }
 
 hooks.report(ok);
+// THE CONTRAST EXEMPTION, counted per run (F1 A): how many nodes the audit exempted, over how many probes, and where.
+{
+  const hit = EXEMPTIONS.filter(([, n]) => n > 0);
+  const total = hit.reduce((a, [, n]) => a + n, 0);
+  console.log(`\nContrast exemption (inactive controls, WCAG 2.2 SC 1.4.3 and 1.4.11; F1 A): ${total} node(s) exempted in ${hit.length} of ${EXEMPTIONS.length} probes.`);
+  for (const [where, n, what] of hit) console.log(`  ${where}: ${n} — ${what.join(', ')}`);
+}
 console.log(`\nLowest chrome text ${lows.text}:1, lowest edge or indicator ${lows.edge}:1, lowest focus ring ${lows.focus}:1, smallest target ${lows.target.toFixed(1)}px.`);
 console.log(`${executed - failed}/${executed} chrome assertions passed.`);
 await browser.close();
