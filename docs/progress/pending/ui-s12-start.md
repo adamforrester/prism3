@@ -6,8 +6,14 @@
 - **G11 B:** today's four cards, restyled, every shipped string kept, under "Start a brand" / "Start a brand in this file" (G17). The brand mark is the top bar's (G10). Order color, examples, neutral default, import (S8).
 - **S1:** the color card's button reads "Start from this color". **G14:** the color starts at the working brand's primary. **S3:** a hex that is not `#rrggbb` is refused with "Enter a hex color as #rrggbb." (it used to fall back to the picker's color silently).
 - **G13:** "Start blank" loads a neutral gray (concept v6's Blank: `l 0.5, c 0.03, h 250`, neutral hue 250 at chroma 0.004, following the primary), not the indigo `NEW_BRAND()` it loaded under the same words.
-- **S2:** a paste box above "↑ Upload…", with Import. **S7:** import errors open "Line ‹n›: " when the line is known, and drop it when not. **S6:** another file type says "Choose a .md, .markdown or .txt file.", on the start and the brand menu's upload.
+- **S2:** a paste box with its own Import button (round 2 below for its layout). **S7:** import errors open "Line ‹n›: " when the line is known, and drop it when not. **S6:** another file type says "Choose a .md, .markdown or .txt file.", on the start and the brand menu's upload.
 - **G15, S4, S5, S9, S10:** Close whenever the start was reopened (never on the first run; Escape does what Close does). With unsaved edits a choice asks first, in a second window ON TOP of the start: "Replace ‹brand› with ‹choice›?", "‹n› edits to ‹brand› are not saved to a file. Export or apply first to keep them.", "Discard ‹n› edits". Focus starts on Cancel, Cancel and Escape return to the start, and Discard wears Prism3's destructive button.
+
+**The owner's review of #2142 (round 2):**
+- **One border for all four cards.** The color card's stronger edge (`line-2`) is gone; every card takes `line-1`.
+- **The import card's hierarchy.** "↑ Upload…" sits at the right end of the heading row. The paste box sits below it at `space-200`, one step up from the `space-150` the cards use elsewhere, so pasting reads as the alternative. Import sits below the box on the right. It is disabled while the box is empty or holds only spaces, and keeps its name "Import" in both states. So the empty-box sentence ("Paste a design.md brief or choose a file first.") can no longer show on the start. The brand menu keeps it, because its Load button is never disabled and still reaches it.
+- **X1:** the import card's description is "Already have a design.md? Paste it or upload it to load the full brand."
+- **Held:** the neutral-default card's position and structure wait on the owner (move it up, or fold it into the color card).
 
 **The diagnosis that made Close small.** The scope planned to keep "+ New brand"'s `clearOrigin()` and remember the old provenance so Close could put it back (T7, with the #1197/#1200 identity trap that restoring the boot provenance re-arms). Reopening now changes no origin at all: a reopen flag beside the session opens the window, Close clears it, and every path goes through `loadBrand`, which clears it too. So Close restores nothing because nothing moved, the guard is the brand menu's own rule (`needsOverwriteConfirm`, which a cleared origin made false: the scope's headline 8, edits dropped without asking), and the identity guard reads "nothing chosen" until a path is chosen. In the plugin, a reopen before the host answers turns into the first run on an empty file (no Close), and closes on a file with a brand: `test:start` §4b holds both orders.
 
@@ -29,6 +35,10 @@
 - the "Line ‹n›: " prefix dropped: unit `S7: a known line goes in front as "Line ‹n›: "` (and eight more), chrome `a repeated key on line 3 says "Line 3: …" (S7)`;
 - the old file-type sentence: unit `S6: the wrong-type sentence is the approved one`, chrome `a file of another type says "Choose a .md, .markdown or .txt file." (S6)` and the brand menu's;
 - Blank before the examples: chrome `the cards run color, examples, the neutral default, import (S8)`;
+- the color card's old darker border (round 2): chrome `all four cards draw the same border — ["rgb(141, 142, 144)|1px","rgb(219, 219, 220)|1px",…]`;
+- Upload moved back below the box: chrome `the import card's heading row holds its title and then "↑ Upload…" — holds ["Import a design.md"]`;
+- Import left enabled when the box is empty: chrome `with the box empty, Import is disabled and still named "Import" — {"disabled":false,…}`;
+- the old import description: chrome `the import card says "Already have a design.md? Paste it or upload it to load the full brand." (X1)`;
 - the brand menu's paste off the shared check: chrome `the brand menu's empty paste says "Paste a design.md brief or choose a file first."`.
 
 ### Traps
