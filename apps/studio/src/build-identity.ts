@@ -45,7 +45,8 @@
  * marker: `p3-buildid 08-26 21:55Z` (23 characters) renders at **152.3px on one line**; the chip stays on
  * one line through 29 characters, takes two from 30 to 58, and three at 59; and an unbreakable 80-character
  * token is three lines at 194px. Nothing overflows the rail at any length tried, because `.rail-build-b`
- * carries `overflow-wrap:anywhere`.
+ * carries `overflow-wrap:anywhere`. (Those numbers were measured in the rail. The stamp sits at the foot of the
+ * Inspect menu since UI redesign S8.2, owner decision C3 A, and `.p3-menu-stamp-b` keeps `overflow-wrap:anywhere`.)
  *
  * TWO EARLIER VERSIONS OF THOSE NUMBERS WERE WRONG, in different ways, and both are worth keeping visible.
  * The first said four lines at 47 characters; #1100's reviewer falsified it and a second pass measured

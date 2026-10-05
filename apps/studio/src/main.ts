@@ -26,11 +26,9 @@ import { resolveAllModes } from '@prism3/engine/modes';
 import { parseDesignMd, toDesignMd } from '@prism3/engine/design-md';
 import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '@prism3/engine/standard-design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
-import { ENGINE_VERSION } from '@prism3/engine/version';
 import { hostCommit, type HostCommit } from './write-adapter';
 import { initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type DetailKey, type OpKey } from './state/host-session';
 import type { StyleGuideOptionsMsg } from './write-adapter';
-import { buildChip, buildTitle } from './build-identity';
 import { emToPercentLabel } from './em-percent';
 import { mountFrame, type Frame } from './shell/frame';
 import { isNewPage, pageOfTab, type LegacyPageKey } from './shell/pages';
@@ -3189,22 +3187,8 @@ const renderNavMenu = (): HTMLElement => {
     menu.append(it);
   });
   menu.append(el('p', 'rail-note', 'Ordered the way a theme composes — palettes first, then how they’re applied to surfaces and interaction, then type and form.'));
-  // The page states which build it is (#474). `/dist/main.js` is served from an invariant URL, so a
-  // cached bundle is indistinguishable from a fresh one by looking at it — a shipped change was
-  // reported missing and took a local rebuild plus a pixel measurement to clear. Engine version
-  // answers "what code produced these tokens"; the commit answers "is this deploy current", and only
-  // the second one was ever in doubt. Selectable, because the first thing anyone does is paste it.
-  // It sat at the foot of the rail, and came into the menu with it (S1.2).
-  //
-  // The two readings moved to `build-identity.ts` in #836, unchanged for the web and extended for the
-  // plugin, where the field used to be the literal `plugin` in every checkout. That made this the one
-  // chip that could have said which tree Figma was running and did not — and it was the OTHER field,
-  // `engine 0.21.0`, that eventually caught it on 2026-08-26. Both sentences below are now asserted in
-  // `test-build-identity.ts`; inline in this file they were unreachable by any test.
-  const stamp = hook(el('p', 'rail-build'), 'build-stamp');
-  stamp.append(el('span', undefined, `engine ${ENGINE_VERSION}`), el('span', 'rail-build-b', buildChip(PRISM3_BUILD)));
-  stamp.title = buildTitle(PRISM3_BUILD);
-  menu.append(stamp);
+  // The build stamp (#474) stood here until UI redesign S8.2; it is at the foot of the Inspect menu now, on both hosts
+  // (owner decision C3 A), since the web has no Pages menu (G19).
   return menu;
 };
 

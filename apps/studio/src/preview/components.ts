@@ -5,8 +5,9 @@
  * lever section, headed and described as its lever section is (Q23). **Button**: the button specimen for the previewed
  * mode, small, medium and large, each at its minimum width and widened with icons, in the brand's action colors on its
  * page, with the corner the engine gives a button for the brand's Control shape in that mode (#2049). **Component
- * sets**: every set the engine defines; in the plugin, the set to build is chosen here and built with the Build button
- * under the list, and each set says how its last build in this session went. On the web the list is read-only.
+ * sets**: every set the engine defines; in the plugin, the set to build is chosen here and built with the build bar's
+ * button, which stays in view at the bottom of the preview (C4), and each set says how its last build in this session
+ * went. On the web the list is read-only and there is no bar.
  *
  * LEGACY MARKUP IN A LIGHT-PINNED HOST, SPECIMENS ON THE BRAND'S PAGE (plan §9.1), as `preview/shape.ts`: each
  * section's ground is a specimen root painted with the brand's own `background.primary` for the previewed mode, and
@@ -54,6 +55,21 @@ export const mountComponentsPreview = (hostEl: HTMLElement, cleanups: (() => voi
   const card = hook(h('div', 'p3-legacy-card'), 'components-style-guide');
   card.dataset.theme = 'light';
   stack.append(card);
+  // THE BUILD BAR (owner decision C4 A, plugin only): "Build ‹Name›" and its two hints, in the chrome's own controls,
+  // after the card and sticky to the bottom of the preview, so it is in view at any scroll position. In the flow, at
+  // the end, it never covers the last set: scrolled to the bottom it sits under it. Built once per mount, synced in
+  // place, so a host message never moves focus off it. Its hooks are the legacy build row's (`test:verdict`).
+  let btn: HTMLButtonElement | null = null;
+  if (plugin) {
+    const bar = hook(h('div', 'p3-buildbar'), 'components-row');
+    btn = hook(h('button', 'p3-btn p3-btn-primary'), 'components-build');
+    btn.type = 'button';
+    btn.onclick = () => { if (chosen !== null && !lend.sets.busy()) lend.sets.run(chosen); };
+    const hints = h('div', 'p3-buildbar-hints');
+    hints.append(hook(h('p', 'p3-sub', SETS_COPY.buildHint), 'components-build-hint'), hook(h('p', 'p3-sub', SETS_COPY.orderHint), 'components-order-hint'));
+    bar.append(btn, hints);
+    stack.append(bar);
+  }
   hostEl.replaceChildren(stack);
   let view: SetEntryView[] = [];
 
@@ -65,7 +81,6 @@ export const mountComponentsPreview = (hostEl: HTMLElement, cleanups: (() => voi
       const n = card.querySelector<HTMLElement>(`[data-p3="component-set"][data-set="${v.id}"] [data-p3="component-set-last"]`);
       if (n && v.last !== null && n.textContent !== v.last) n.textContent = v.last;
     }
-    const btn = card.querySelector<HTMLButtonElement>('[data-p3="components-build"]');
     if (!btn) return;
     const name = view.find((v) => v.id === chosen)?.name ?? '';
     const words = `${SETS_COPY.buildSet(name)}\n${SETS_COPY.busy}`;
@@ -94,7 +109,6 @@ export const mountComponentsPreview = (hostEl: HTMLElement, cleanups: (() => voi
     sets.append(componentSetsSection(view, {
       plugin, chosen, densityLabel: densityLabel(),
       onChoose: (id) => { chosen = id; syncBuild(); },
-      onBuild: () => { if (chosen !== null && !lend.sets.busy()) lend.sets.run(chosen); },
     }));
     const secs = [button, sets];
     // Q24: each section's container on the levers panel's gray, as the other previews' are.

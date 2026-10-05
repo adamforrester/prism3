@@ -3504,9 +3504,15 @@ ok(componentChipGroups >= COMPONENT_CHIPS.length * 2 && buttonSpecimens === BRAN
   const { ctx, page } = await openBrand(BRANDS[0]);
   await gotoComponents(page);
   await page.setViewportSize({ width: 380, height: 900 });
-  const over = await page.evaluate(() => [...document.querySelectorAll('[data-p3="components-levers"] [role="radiogroup"]')].map((g) => g.scrollWidth - g.clientWidth).filter((x) => x > 1).length);
-  const groups = await page.evaluate(() => document.querySelectorAll('[data-p3="components-levers"] [role="radiogroup"]').length);
-  ok(groups === 3 && over === 0, `at 380px every Button option chip group fits the levers panel (${groups} groups, ${over} overflow)`);
+  // The frame's width tier (`data-w`) is set by a ResizeObserver, which runs at the next rendering step, not when
+  // `setViewportSize` resolves. Measured before it, the levers sit in the wide layout's 42% column at 380 (each group
+  // about 90px wide) and all three groups overflow. Wait on the tier itself, a real condition, and name it below.
+  await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow', null, { timeout: 5000 }).catch(() => {});
+  const { tier, groups, over } = await page.evaluate(() => {
+    const gs = [...document.querySelectorAll('[data-p3="components-levers"] [role="radiogroup"]')];
+    return { tier: document.querySelector('[data-p3="frame"]')?.dataset.w, groups: gs.length, over: gs.map((g) => g.scrollWidth - g.clientWidth).filter((x) => x > 1).length };
+  });
+  ok(tier === 'narrow' && groups === 3 && over === 0, `at 380px every Button option chip group fits the levers panel (${groups} groups, ${over} overflow, frame tier ${tier})`);
   await ctx.close();
 }
 

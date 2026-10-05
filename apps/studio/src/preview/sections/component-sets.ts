@@ -1,7 +1,8 @@
 /** The Components preview's Component sets section (UI redesign S8.2; owner decisions G1, G2, G3, G4, G5 and G9, all
  *  A): every set the engine defines, with its one-line summary, its category, how many parts a build writes, the sets
  *  it contains, and the spacing that follows density at the brand's density. In the plugin, a set is chosen here and
- *  built with the Build button under the list; each set says how its last build in this session went. On the web the
+ *  built with the build bar's button (in view at the bottom of the preview, C4); each set says how its last build in this
+ *  session went (G9, C1). On the web the
  *  list is read-only, with one line saying building needs the plugin.
  *
  *  TWO HALVES. `setsView` is pure (no DOM, so `test-component-sets.ts` runs it in Node over planted catalogs): what each
@@ -20,9 +21,10 @@
  *  Classes are the legacy card's (`cset-*`), drawn on the section's ground in the ground's own inks. */
 import { densitySpacingStep, type Density } from '@prism3/engine/scale';
 import type { Catalog, CatalogEntry } from '../../state/component-catalog';
+import type { SetBuild } from '../../state/host-session';
 import { el, hook } from './kit';
 
-/** The section's copy. DRAFT, pending the owner (the S8.2 PR's "Copy for owner approval" block). */
+/** The section's copy. APPROVED (owner, 2026-10-05, #2090; "Build failed" added by C1 A). */
 export const SETS_COPY = {
   parts: (n: number, unit: CatalogEntry['unit']): string => `${n} ${unit === 'components' ? (n === 1 ? 'component' : 'components') : (n === 1 ? 'part' : 'parts')}`,
   contains: (names: readonly string[]): string => (names.length ? `Contains ${names.join(', ')}` : 'Contains no other set'),
@@ -36,6 +38,7 @@ export const SETS_COPY = {
   orderHint: 'Apply Theme first, so the set can use your variables.',
   built: 'Built just now',
   problems: 'Built with problems',
+  failed: 'Build failed',
   notBuilt: 'Not built in this session',
   spacingAt: (density: string): string => `Spacing at ${density} density, in px.`,
   picker: 'Set to build',
@@ -46,7 +49,8 @@ export type SetEntryView = {
   /** "432 parts", or "44 components" for a set built as separate components; null when it can't be built. */
   parts: string | null;
   contains: string;
-  /** One line per size (or one line for a set whose spacing has no size), each "Small: padding-x 16 · gap 8". */
+  /** One short line per size (or one for spacing with no size), each its padding and gap only: "Small: padding-x 16 ·
+   *  padding-y 6 · gap 8" (owner decision C2 A; `SPACING_SHOWN`). The full list is Inspect › Tokens'. */
   spacing: string[];
   /** Offered for building (G4): only a set that can be built. */
   offered: boolean;
@@ -58,10 +62,16 @@ export type SetEntryView = {
 
 const cap = (s: string): string => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
+/** Which density-following keys the set list shows (owner decision C2 A, "only the padding and gap values"): a key whose
+ *  name, after its `size.<size>.` lead, is exactly `padding-x`, `padding-y`, `pad-x`, `pad-y` or `gap`. Left out: every
+ *  qualified name, the visual padding (`padding-x-visual`), the per-part gaps and paddings (`select.gap`,
+ *  `dismissible.visible-gap`, `check-gap`, `select.padding-end`). */
+export const SPACING_SHOWN = /^(?:padding-x|padding-y|pad-x|pad-y|gap)$/;
+
 /** What each entry of `catalog` says, in its order. `spacePx` resolves a `space.*` step to px on the brand's ladder;
  *  `density` is the brand's; `plugin` says whether this host builds; `lastOf` is the session's result per set. */
 export const setsView = (catalog: Catalog, o: {
-  density: Density; spacePx: (ref: string) => number | undefined; plugin: boolean; lastOf: (id: string) => boolean | undefined;
+  density: Density; spacePx: (ref: string) => number | undefined; plugin: boolean; lastOf: (id: string) => SetBuild | undefined;
 }): SetEntryView[] => catalog.map((e) => {
   const nameOf = (id: string): string => catalog.find((x) => x.id === id)?.name ?? id;
   const groups = new Map<string, string[]>();
@@ -69,6 +79,7 @@ export const setsView = (catalog: Catalog, o: {
     const m = /^size\.([^.]+)\.(.+)$/.exec(s.key);
     const size = m ? cap(m[1]) : '';
     const name = m ? m[2] : s.key;
+    if (!SPACING_SHOWN.test(name)) continue;
     const px = o.spacePx(densitySpacingStep(s.key, s.ref, o.density));
     groups.set(size, [...(groups.get(size) ?? []), `${name} ${px ?? '?'}`]);
   }
@@ -82,7 +93,7 @@ export const setsView = (catalog: Catalog, o: {
     spacing,
     offered: e.buildable,
     reason,
-    last: o.plugin && e.buildable ? (r === true ? SETS_COPY.built : r === false ? SETS_COPY.problems : SETS_COPY.notBuilt) : null,
+    last: o.plugin && e.buildable ? (r === 'ok' ? SETS_COPY.built : r === 'issues' ? SETS_COPY.problems : r === 'failed' ? SETS_COPY.failed : SETS_COPY.notBuilt) : null,
   };
 });
 
@@ -90,10 +101,11 @@ export const setsView = (catalog: Catalog, o: {
 export const chosenOf = (view: readonly SetEntryView[], want: string | null): string | null =>
   view.find((v) => v.offered && v.id === want)?.id ?? view.find((v) => v.offered)?.id ?? null;
 
-/** Draw the list, and in the plugin the radios and the Build row. `chosen` is the set the Build button names. */
+/** Draw the list, and in the plugin its radios. `chosen` is the set checked. The Build button and its hints are the
+ *  preview's build bar (`preview/components.ts`, owner decision C4 A), which stays in view at the bottom. */
 export const componentSetsSection = (view: readonly SetEntryView[], o: {
   plugin: boolean; chosen: string | null; densityLabel: string;
-  onChoose: (id: string) => void; onBuild: () => void;
+  onChoose: (id: string) => void;
 }): HTMLElement => {
   const root = hook(el('div', 'cset'), 'component-sets');
   root.append(hook(el('p', 'cset-note', SETS_COPY.spacingAt(o.densityLabel)), 'component-sets-density'));
@@ -125,17 +137,6 @@ export const componentSetsSection = (view: readonly SetEntryView[], o: {
     list.append(item);
   }
   root.append(list);
-  if (!o.plugin) {
-    root.append(hook(el('p', 'cset-note', SETS_COPY.web), 'components-web-line'));
-    return root;
-  }
-  const row = hook(el('div', 'cset-buildrow'), 'components-row');
-  const btn = hook(el('button', 'cset-build') as HTMLButtonElement, 'components-build');
-  btn.type = 'button';
-  btn.onclick = o.onBuild;
-  row.append(btn);
-  root.append(row,
-    hook(el('p', 'cset-note', SETS_COPY.buildHint), 'components-build-hint'),
-    hook(el('p', 'cset-note', SETS_COPY.orderHint), 'components-order-hint'));
+  if (!o.plugin) root.append(hook(el('p', 'cset-note', SETS_COPY.web), 'components-web-line'));
   return root;
 };
