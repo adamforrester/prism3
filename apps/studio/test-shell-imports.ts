@@ -894,6 +894,10 @@ ok(arm.offenders.length === 0, `no file under ${NEW_DIRS.join(', ')} imports src
   // S9.2 retired `renderRepointTable`, the last Type writer `main.ts` held (its line height and letter spacing branch was
   // already dead, #2038), so `main.ts` imports no Type write at all: the AST arm above holds that it makes none.
   ok(!imports(mainSrc, 'main.ts').some((i) => i.spec === './state/type-input'), 'src/main.ts imports no Type write (./state/type-input): it has none left to make');
+  // Layout the same way (review of #2120): the AST arms above see only a write spelled in `main.ts`, so a call into
+  // `state/layout-input.ts`'s own writers (`setColumns`, `addBreakpoint`, …) would slip past them. S10 left `main.ts`
+  // no Layout write to make, so it imports none.
+  ok(!imports(mainSrc, 'main.ts').some((i) => i.spec === './state/layout-input'), 'src/main.ts imports no Layout write (./state/layout-input): it has none left to make');
 }
 
 // ── Depth & motion's preview pieces and writes (UI redesign S9.1, S9.2) ─────────────────────────────────────────
