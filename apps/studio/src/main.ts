@@ -33,6 +33,8 @@ import { mountFrame, type Frame } from './shell/frame';
 import { isNewPage, pageOfTab, type LegacyPageKey } from './shell/pages';
 import type { ActivityReading, OpReading } from './shell/activity';
 import type { FigmaAction } from './shell/figma';
+import type { BarActions, BarView, ExportBlock, ExportView } from './shell/bar';
+import { errorStrip, type ErrorStrip } from './shell/notices';
 import { glyph, pendingLabel, setBusy } from './shell/dom';
 // The start window (UI redesign S12) and what it shares with the brand menu's import: one check for every paste and
 // every file, with the error naming its line (owner decision S7).
@@ -169,7 +171,8 @@ const setVolatile = (hosts: readonly HTMLElement[], paint: () => void): void => 
   volatileHosts = hosts;
   paintVolatile = paint;
 };
-let globalErrHost: HTMLElement | null = null;
+/** The error strip (`shell/notices.ts`, UI redesign S13.1), minted with the `error` surface on every view. */
+let globalErr: ErrorStrip | null = null;
 /** Keep the global error bar honest after every rebuild. `lastError` is set by `rebuild()`'s catch and
  *  means "the live edit did not resolve; you are looking at the last good theme" — a state the user must
  *  be told about wherever they are, not only on the page that happens to render it.
@@ -186,17 +189,16 @@ const syncErrorBar = (): void => {
   // outside `mountView`. `isConnected`, not a null check: a detached node is a surface that shows
   // nothing while still satisfying every reference to it. Reports rather than throws, for the reason
   // `chromedWorkspace` gives; the smoke suite's zero-console-errors assertion makes it fatal in CI.
-  if (!globalErrHost?.isConnected) {
+  if (!globalErr?.node.isConnected) {
     if (lastError) console.error(`the 'error' chrome surface is not mounted in this view, so an engine error is going unreported: ${lastError} (#772)`);
     return;
   }
-  // `hidden`, not an inline `display`: the bar sits in the frame's notices row, which is chrome, and the
-  // chrome carries no runtime inline values (`test:chrome`).
-  globalErrHost.hidden = !lastError && !restoreFailure;
+  // The strip hides with `hidden`, not an inline `display`: the chrome carries no runtime inline values (`test:chrome`).
   // A refused RESTORE is not a change that didn't apply, and what is on screen is not the designer's last
   // theme but the boot demo (#1989). So it says whose brand failed, and why the two writes are off.
-  if (restoreFailure) globalErrHost.textContent = RESTORE_BAR[restoreFailure.kind](restoreFailure.reason);
-  else if (lastError) globalErrHost.textContent = `That change didn't apply: ${lastError} — you are seeing the last theme that resolved.`;
+  if (restoreFailure) globalErr.show(RESTORE_BAR[restoreFailure.kind](restoreFailure.reason));
+  else if (lastError) globalErr.show(`That change didn't apply: ${lastError} — you are seeing the last theme that resolved.`);
+  else globalErr.show(null);
   syncChromeHeight();   // the bar lives in the chrome; showing it moves everything sticky below
 };
 // `syncChrome()` refreshes EVERY declared chrome surface (see CHROME_SURFACES) rather than naming
@@ -1473,7 +1475,7 @@ let chromeHost: HTMLElement;      // the sticky header, measured into --chrome-h
  *     obligation to declare, and their placement rules were gated by `mode-audit.mjs --check-badges` until S8.3 deleted it.
  *     Declaring them would move working code for symmetry, and into #771's lane.
  *
- *   • The SEED / RESTORE / APPLY pills (#480, #722) render INSIDE `renderBar()`, which IS the
+ *   • The SEED / RESTORE / APPLY pills (#480, #722) rendered INSIDE the bar, which IS the
  *     `brand-bar` surface — so they are already mounted once, structurally, by something on this list.
  *     They are bar CONTENT, and promoting content to a surface would put a plugin-only pill into the
  *     floor every web view has to carry.
@@ -1524,18 +1526,18 @@ const CHROME_SURFACES: readonly ChromeSurface[] = [
     // The legacy half of the new top bar (S1.2): the frame owns the bar itself and lends this slot.
     // Its hook is `bar-main`: the `bar` hook moved with the status pills to the Activity drawer's bar row
     // (S1.4), where `test:verdict` reads them.
-    mount: () => { barHost = hook(el('div', 'p3-bar-main'), 'bar-main'); renderBar(); return barHost; },
-    // NO `sync`, deliberately. `renderBar()` rebuilds `barHost` wholesale, and that node holds the open
+    // Since S13.1 the shell draws it (`shell/bar.ts`): the frame mints it once, and this places that same node.
+    mount: () => frame!.barMain,
+    // NO `sync`, deliberately. The bar repaints itself from the store (`bar`, `host`, `brand`), and it holds the open
     // brand menu, the Pages menu and the export dialog — refreshing it on every knob edit would close
     // whatever the designer had open, mid-gesture. It re-renders on its own events instead (menu
     // toggles, apply state, brand load), which is the reason `sync` is optional at all.
   },
   {
     key: 'error', home: 'root', views: ['app'],
-    // THE SURFACE THIS MECHANISM IS NAMED AFTER (#388). It was scoped to the start view too, while the start was a
-    // root view of its own; since S12 the start is a window over the app view, which carries it. (The start
-    // window's import errors stay field messages on their own controls: a rejected input, not adopted state.)
-    mount: () => { globalErrHost = hook(el('div', 'errbar errbar-global'), 'error-bar'); return globalErrHost; },
+    // THE SURFACE THIS MECHANISM IS NAMED AFTER (#388). Since S12 the start is a window over the app view, which carries it.
+    // Drawn by the shell since S13.1 (`shell/notices.ts`): a full-width strip in the chrome, in both themes.
+    mount: () => { globalErr = errorStrip(); return globalErr.node; },
     sync: () => syncErrorBar(),
   },
   {
@@ -1627,12 +1629,14 @@ const mountView = (view: RootView, body: () => HTMLElement): void => {
         lend: { styleGuide: renderPreviewStyleGuide, fonts: () => host, sets: { busy: componentBusy, lastOf: (id) => host.setBuilds.get(id), run: runBuild } },
         // The product mark's logo, `styles.css`'s fixed gradient, lent like the views above.
         logo: () => el('span', 'logo'),
+        // S13.1: the top bar's brand menu, Export and the plugin's dialogs, drawn by the shell over this file's state.
+        bar: { read: barRead, exportView, act: barActions, importAccept: IMPORT_ACCEPT, pages: commit.isFigma ? renderPagesMenu : null },
       });
     }
     chromeHost = frame.head;
-    frame.bar.replaceChildren();
     frame.notices.replaceChildren();
     mountSurfaces('bar', view, frame.bar);
+    barChanged();   // as `renderBar` ran on every build: the examples' marker, the menus' state
     mountSurfaces('root', view, frame.notices);
     frame.legacyPage.replaceChildren(body());
   }
@@ -2091,7 +2095,6 @@ const bindStuck = (): void => {
 };
 
 // ---- brand setup — selector menu: name + namespace, switch / new / import --------
-let barHost: HTMLElement;
 let brandMenuOpen = false;
 let exportMenuOpen = false;
 let navMenuOpen = false;
@@ -2117,7 +2120,6 @@ let importText = '';            // M-17: survives re-renders so a failed paste i
  *  would measure against the wrong baseline. Storing the pair means the origin travels with the input
  *  it belongs to and the confirm button re-authors nothing. */
 let pendingLoad: { input: BrandInput; origin: Origin } | null = null;
-let outsideBound = false;
 /** True while `loadBrand` is inside `loadInput` — see there. */
 let loading = false;
 
@@ -2137,7 +2139,7 @@ subscribe('brand', () => { if (frame && !loading && !firstRun() && isNewPage(pag
 // A NAME TYPED ON THE BRAND PAGE REACHES THE BAR THROUGH THE STORE (UI redesign S3). Brand › Identity writes
 // the name per keystroke without a rebuild (#1196), and `syncIdentity` tells the `identity` topic; the brand
 // switcher's name is patched in place, as the brand menu's Name field used to patch it by name.
-subscribe('identity', () => { const n = barHost?.querySelector('.p3-brand-name'); if (n) n.textContent = brandState.id; });
+// (The bar subscribes to `identity` itself since S13.1, `shell/bar.ts`.)
 
 // A MODE CHANGE FROM THE NEW SHELL REPAINTS THE LEGACY PAGE THROUGH THE STORE (UI redesign S1.3). The
 // preview's mode control calls `setCurrentMode` and nothing else; the legacy writer (the mode strip) calls it
@@ -2168,6 +2170,7 @@ const loadBrand = (input: BrandInput, origin: Origin): void => {
   try { loadInput(input, origin); } finally { loading = false; }
   brandMenuOpen = false; importOpen = false; importErr = null; importText = ''; pendingLoad = null;
   startReopened = false;   // a load is a choice: the start window closes with it (S12)
+  barChanged();
   build();
 };
 
@@ -2231,7 +2234,7 @@ const exportTokens = (): void => {
 const stageImport = (text: string, from: 'paste' | 'file'): void => {
   importText = text;              // M-17: keep the paste so an error re-render doesn't wipe it
   const res = from === 'paste' ? validatePaste(text) : validateDesignMd(text);
-  if ('error' in res) { importErr = importErrorText(res.error); pendingLoad = null; renderBar(); return; }
+  if ('error' in res) { importErr = importErrorText(res.error); pendingLoad = null; barChanged(); return; }
   importErr = null;
   stageLoad(res.input, { kind: 'import', label: String(res.input.id ?? 'design.md') });
 };
@@ -2252,7 +2255,7 @@ const stageImport = (text: string, from: 'paste' | 'file'): void => {
  */
 const stageLoad = (input: BrandInput, origin: Origin): void => {
   if (!needsOverwriteConfirm(brandState, provenance)) { loadBrand(input, origin); return; }
-  pendingLoad = { input, origin }; renderBar();
+  pendingLoad = { input, origin }; barChanged();
 };
 
 /** Name the origin for user-facing copy (#722).
@@ -2288,345 +2291,121 @@ const originLabel = (o: Origin, where: 'arriving' | 'atRisk'): string => {
   }
 };
 
-/** The confirm-overwrite control (#160/#722, generalized by #1033).
- *
- *  Extracted from `renderImportBox` for the reason that function's own header gives for existing: the
- *  condition and its prompt are the thing that stops edits being lost silently, and a second copy is a
- *  second place to get it wrong. Three writers now stage a load; all three render THIS. */
-const renderOverwriteConfirm = (pending: { input: BrandInput; origin: Origin }): HTMLElement => {
-  const box = el('div', 'bm-import');
-  // Reaching here MEANS there are edits to lose (`stageLoad` loads straight through when there are
-  // not), so the sentence can name what they are edits *to* instead of asserting they exist (#722).
-  box.append(hook(el('p', 'bm-confirm', `Replace the current brand with ${originLabel(pending.origin, 'arriving')}? Your edits to ${originLabel(provenance.origin, 'atRisk')} are not saved anywhere else.`), 'overwrite-confirm'));
-  const row = el('div', 'bm-confirm-row');
-  const rep = hook(el('button', 'bm-load', 'Replace brand') as HTMLButtonElement, 'overwrite-replace');
-  rep.onclick = () => { pendingLoad = null; loadBrand(pending.input, pending.origin); };
-  const can = hook(el('button', 'bm-cancel', 'Cancel') as HTMLButtonElement, 'overwrite-cancel');
-  can.onclick = () => { pendingLoad = null; renderBar(); };
-  row.append(rep, can);
-  box.append(row);
-  return box;
-};
+/** The overwrite confirm's sentence (#160/#722, generalized by #1033). The bar draws it (`shell/bar.ts`, S13.1)
+ *  beneath the examples or in place of the import box; one sentence for all three writers that stage a load.
+ *  Reaching here MEANS there are edits to lose (`stageLoad` loads straight through when there are not), so the
+ *  sentence can name what they are edits *to* instead of asserting they exist (#722). */
+const overwriteText = (pending: { input: BrandInput; origin: Origin }): string =>
+  `Replace the current brand with ${originLabel(pending.origin, 'arriving')}? Your edits to ${originLabel(provenance.origin, 'atRisk')} are not saved anywhere else.`;
 
-const renderBrandMenu = (): HTMLElement => {
-  const menu = hook(el('div', 'brandmenu'), 'brand-menu');
+/** Tell the top bar its own state moved (UI redesign S13.1). It was `renderBar()`, which drew the bar here; the
+ *  shell draws it now (`shell/bar.ts`) and repaints from the store's `bar` topic. */
+const barChanged = (): void => invalidate('bar');
 
-  // The brand's Name and Namespace fields left this menu for Brand › Identity (UI redesign S3, IA-1), where
-  // the name writes per keystroke through `syncIdentity` (#1196) and the namespace warns while it is a
-  // reserved or placeholder one (T2). The bar's name follows through the store's `identity` topic.
-  // The Examples `.cur` marker is computed at render, from `brandState.id`: no field in this menu writes the
-  // name any more, so nothing can move it while the menu is open (#1075's in-place patch had that subject).
-  const isCurrentExample = (name: string): boolean => name === brandState.id;
+/** The bar's view of this file's state: the brand menu, the import box, the pending load, the dialogs. */
+const barRead = (): BarView => ({
+  brand: { name: brandState.id, hex: hex(oklchToRgb(brandState.primary)) },
+  menuOpen: brandMenuOpen,
+  // The Examples marker is computed at render, from `brandState.id` (#1075's subject went with the menu's fields).
+  examples: Object.keys(BRANDS).map((name) => ({ name, hex: hex(oklchToRgb(BRANDS[name].primary)), current: name === brandState.id })),
+  confirm: pendingLoad && (pendingLoad.origin.kind === 'example' || pendingLoad.origin.kind === 'import')
+    ? { at: pendingLoad.origin.kind, text: overwriteText(pendingLoad) } : null,
+  importOpen, importText, importErr,
+  exportOpen: exportMenuOpen,
+  prune: host.prunePreview ? {
+    summary: host.prunePreview.summary,
+    deleteLabel: `Delete ${host.prunePreview.count} item${host.prunePreview.count === 1 ? '' : 's'}`,
+    // #1989: a preview the host sends opens this dialog whatever the Prune button's state, so Delete is off too.
+    off: restoreFailure ? RESTORE_OFF_HINT : null,
+  } : null,
+});
 
-  // No Modes section (owner decision 2026-10-01, #1943). #432 had put the mode set here; S3 gave Brand › Modes
-  // its own editor with different rules (a check per mode, a confirm before Dark off, the drops it lists), and
-  // two editors of one set disagreed. Brand › Modes is the one place modes are edited, so Examples leads.
-  menu.append(el('div', 'bm-cap', 'Examples'));
-  for (const name of Object.keys(BRANDS)) {
-    const b = hook(el('button', 'bm-item' + (isCurrentExample(name) ? ' cur' : '')) as HTMLButtonElement, 'brand-menu-example');
-    const d = el('span', 'bm-dot'); d.style.background = hex(oklchToRgb(BRANDS[name].primary));
-    b.append(d, el('span', undefined, name));
-    // #1033: through the guard, not straight to `loadBrand`. Examples STAY here and stay one click from
-    // an untouched brand (the decision the issue left open) — the confirm is what makes that safe, and
-    // it fires only when there are edits to lose, so browsing the examples is unchanged.
-    b.onclick = () => stageLoad(BRANDS[name], { kind: 'example', id: name });
-    menu.append(b);
-  }
-  // Beneath the list it belongs to, so the sentence sits where the click was.
-  if (pendingLoad?.origin.kind === 'example') menu.append(renderOverwriteConfirm(pendingLoad));
-
-  menu.append(el('div', 'bm-div'));
-  // #1034's `.cur` marker is GONE, and #1197 is why rather than an oversight. It existed because the
-  // plugin's click loaded `NEW_BRAND()` in place, so in a file whose stored brand was already an
-  // untouched new brand the click was a pixel-for-pixel no-op with nothing saying so. That click now
-  // returns to the start moment in both hosts, which is visible feedback whatever the values are —
-  // exactly the reason #1034 excluded web from the marker in the first place. The condition it tested
-  // has no subject left: there is no longer a state in which this button does nothing.
-  const nb = hook(el('button', 'bm-item', '+ New brand') as HTMLButtonElement, 'brand-menu-new');
-  // BOTH HOSTS reopen the start (#1197), now a window over the studio (UI redesign S12). The working brand and its
-  // origin stay exactly as they are while it is open: nothing is replaced until a path is chosen, and every path asks
-  // first when it would discard edits (owner decision G15 A, the guard in `shell/start.ts`). So Close returns to the
-  // brand unchanged with nothing to put back. Until S12 this cleared the origin, which made `needsOverwriteConfirm`
-  // false and let every start path drop unsaved edits without asking (the S12 scoping report, headline 8).
-  nb.onclick = () => {
-    brandMenuOpen = false;
-    startReopened = true;
-    renderBar();
-    syncStart();
-  };
-  menu.append(nb);
-  const imp = hook(el('button', 'bm-item', '↑ Import design.md…') as HTMLButtonElement, 'brand-menu-import');
-  imp.onclick = () => { importOpen = !importOpen; importErr = null; pendingLoad = null; renderBar(); };
-  menu.append(imp);
-
-  if (importOpen) menu.append(renderImportBox());
-
-  // Export + Apply-to-Figma moved OUT of this dropdown (#159) — they're their own bar affordances
-  // now (Export is an artifact output, not a brand source; Apply is the plugin's primary CTA).
-  return menu;
-};
-
-/** The design.md import control — paste-or-upload, then the conditional confirm (#160, #722).
- *
- *  Extracted from `renderBrandMenu` by #723 so the export dialog's import slot and the brand menu
- *  render the SAME control rather than two that look alike. Worth being explicit about why it is one
- *  function: this is the path that validates by engine acceptance and stages an overwrite, and a
- *  second copy would be a second place for the confirm condition to be got wrong — where the failure
- *  mode is silently overwriting someone's edits. All state stays in the module-level `import*`
- *  variables, so an in-progress paste survives being reached from either surface. */
-const renderImportBox = (): HTMLElement => {
-  // An import awaiting confirm replaces this control with the prompt, as it did at #160 — the confirm
-  // itself now lives in `renderOverwriteConfirm`, shared with the two brand-menu writers (#1033). Keyed
-  // on the pending load's ORIGIN, so a staged example does not blank the paste box.
-  if (pendingLoad?.origin.kind === 'import') return renderOverwriteConfirm(pendingLoad);
-  const box = el('div', 'bm-import');
-  const ta = hook(el('textarea', 'bm-ta') as HTMLTextAreaElement, 'import-text');
-  ta.placeholder = 'Paste a design.md — --- YAML frontmatter --- then prose…';
-  ta.spellcheck = false;
-  ta.value = importText;                                   // M-17: restore across re-renders
-  ta.oninput = () => { importText = ta.value; };           // a mode-toggle mid-paste won't lose it
-  box.append(ta);
-  if (importErr) box.append(hook(el('p', 'bm-err', importErr), 'import-error'));
-  const row = el('div', 'bm-import-row');
-  const up = el('label', 'bm-upload');
-  const fi = hook(el('input', 'bm-file') as HTMLInputElement, 'import-file');
-  fi.type = 'file'; fi.accept = IMPORT_ACCEPT;
-  fi.onchange = async () => {
-    const f = fi.files?.[0]; if (!f) return;
-    const read = await readDesignMdFile(f);
-    if ('error' in read) { importErr = read.error; pendingLoad = null; renderBar(); return; }
-    stageImport(read.text, 'file');
-  };
-  up.append(el('span', undefined, '↑ Upload .md'), fi);
-  const load = hook(el('button', 'bm-load', 'Load') as HTMLButtonElement, 'import-load');
-  load.onclick = () => stageImport(ta.value, 'paste');
-  row.append(up, load);
-  box.append(row);
-  return box;
-};
-
-/** The export dialog (#723, implementing #720) — replacing the two-item dropdown #159 introduced.
- *
- *  WHY A DIALOG AND NOT A LONGER MENU. The dropdown's two items were each a whole decision compressed
- *  into one click, which worked precisely because there was nothing to decide. #720 establishes that
- *  the DTCG export has four admissible shape settings, and a dropdown has nowhere to put a setting, a
- *  preview of what it does, or the list of files you are about to get. Widening the menu would have
- *  produced a menu with controls in it — the form fighting the content.
- *
- *  The structure is TWO LEVELS, artifact then settings, and that is load-bearing rather than tidy: it
- *  is what let `design.md` end up with no settings at all as a legible answer (each candidate #720
- *  named turned out to describe an emitter that does not exist — see `export-settings.ts`). A flat
- *  list of controls would have needed one of them invented to fill the space.
- *
- *  Everything about WHAT the settings are lives in `src/export-settings.ts`, which is pure and tested
- *  under tsx (`test-export-settings.ts`, 150 assertions over the four emitted brands). This function
- *  renders that model and nothing more — in particular the preview is the REAL `projectDtcg` over a
- *  six-token sample, not a second renderer that could drift from what the download writes. */
-const renderExportDialog = (): HTMLElement => {
-  const wrap = el('div', 'exdlg-scrim');
-  const dlg = hook(el('div', 'exdlg'), 'export-dialog');
-  dlg.setAttribute('role', 'dialog');
-  dlg.setAttribute('aria-modal', 'true');
-  dlg.setAttribute('aria-label', 'Export');
-
-  const head = el('div', 'exdlg-head');
-  head.append(el('h2', 'exdlg-t', 'Export'));
-  const close = el('button', 'exdlg-x', '✕') as HTMLButtonElement;
-  close.setAttribute('aria-label', 'Close');
-  close.onclick = () => { exportMenuOpen = false; renderBar(); };
-  head.append(close);
-  dlg.append(head);
-
-  // TWO COLUMNS: the settings on the left, what they produce on the right.
-  //
-  // Not a layout preference. Built as one column first and the preview landed entirely below the fold —
-  // four settings with a description each is ~470px before the preview starts. A preview you have to
-  // scroll to is not a preview: the whole reason it is here is to answer "what does this control do?"
-  // in the moment the control is clicked, and #720's verify item ("a control whose effect is invisible
-  // in the preview is either mis-chosen or the sample is wrong") is not satisfiable if the effect is
-  // merely *present* somewhere in a scroll region. Side by side, clicking a setting changes something
-  // you are already looking at. Collapses to one column below 720px, where two would be too narrow to
-  // read either — there the preview follows the settings, which is the honest degradation.
-  const body = el('div', 'exdlg-body');
-  const left = el('div', 'exdlg-col');
-  const right = el('div', 'exdlg-out');
-
-  // ---- level 1: which artifact ------------------------------------------------------------
-  // A segmented control, not a select: two mutually-exclusive options is doc 26's binary case, and
-  // both labels are short enough to sit side by side at this width.
-  // #723 — the export dialog reuses the shared segmented control; exdlg-seg adds align-self only
-  const seg = el('div', mix('seg', 'exdlg-seg'));
-  for (const a of ARTIFACTS) {
-    const b = el('button', 'seg-b' + (a.id === exportArtifact ? ' on' : ''), a.label) as HTMLButtonElement;
-    b.setAttribute('aria-pressed', String(a.id === exportArtifact));
-    b.onclick = () => { exportArtifact = a.id; renderBar(); };
-    seg.append(b);
-  }
-  left.append(seg);
+/** The export dialog's content (#723, implementing #720), from `export-settings.ts`, which is pure and tested under
+ *  tsx (`test-export-settings.ts`). Two levels, artifact then settings: that is what let `design.md` have no settings
+ *  as a legible answer. The preview is the REAL `projectDtcg` over a six-token sample, never a second renderer. */
+const exportView = (): ExportView => {
   const artifact = ARTIFACTS.find((a) => a.id === exportArtifact)!;
-  left.append(el('p', 'exdlg-desc', artifact.desc));
-
-  // ---- level 2: its shape settings, DERIVED from the declaration ---------------------------
-  // `visibleSettings` filters the ONE list by artifact and source (#720). Never a per-source list:
-  // two lists drift, and the drift shows up as a control reaching an export it corrupts.
+  // `visibleSettings` filters the ONE list by artifact and source (#720). Never a per-source list.
   const settings = visibleSettings(exportArtifact, exportSource);
-  if (settings.length) {
-    left.append(el('div', 'exdlg-div'));
-    for (const s of settings) {
-      const row = el('div', 'exdlg-set');
-      row.append(el('div', 'exdlg-lab', s.label));
-      // same control; exdlg-oseg adds max-width + flex-wrap so a long option pair wraps inside the panel
-      const sseg = el('div', mix('seg', 'exdlg-oseg'));
-      for (const o of s.options) {
-        const on = exportSettings[s.key] === o.value;
-        const b = el('button', 'seg-b' + (on ? ' on' : ''), o.label) as HTMLButtonElement;
-        b.setAttribute('aria-pressed', String(on));
-        b.setAttribute('aria-label', `${s.label}: ${o.label}`);
-        b.onclick = () => { exportSettings = { ...exportSettings, [s.key]: o.value }; renderBar(); };
-        sseg.append(b);
-      }
-      row.append(sseg);
-      row.append(el('p', 'exdlg-sdesc', s.desc));
-      left.append(row);
-    }
-  } else {
-    // Said out loud rather than left as an empty area. An artifact with nothing to configure is a
-    // fact about the artifact, and silence here reads as a loading state or a bug.
-    left.append(el('p', 'exdlg-none', 'Nothing to set — the brief is written one way.'));
-  }
-  body.append(left);
-
-  // ---- the right column: the file list, then the preview -----------------------------------
+  const right: ExportBlock[] = [];
   if (exportArtifact === 'dtcg') {
     ensureThemeFresh();                   // #1196 — the preview must show the current namespace, same as the download
     const tree = buildTree(theme).tree;   // `theme` is the last-good — always valid, never throws
     const files = fileNames(tree, slug(), exportSettings);
-    right.append(el('div', 'exdlg-cap', files.length === 1 ? 'You get 1 file' : `You get ${files.length} files`));
-    const list = el('p', 'exdlg-files');
-    // Every name, up to a point, then a count — an 18-group split is a legitimate setting and its file
-    // list is longer than this column. The count is what makes the elision honest, and `title` keeps
-    // the full list one hover away rather than lost.
-    list.textContent = files.length <= 4 ? files.join('\n') : `${files.slice(0, 3).join('\n')}\n+${files.length - 3} more`;
-    list.title = files.join('\n');
-    right.append(list);
-    if (restoreFailure) right.append(hook(el('p', 'exdlg-sdesc', TOKENS_NONE), 'export-restore-note'));
-    right.append(el('div', 'exdlg-cap', 'A few tokens, shaped by these settings'));
-    // One block PER FILE, with the name above it — not the file texts concatenated. The split setting
-    // makes the sample several documents (3 for the 6-token sample), and joined with a newline they read
-    // as one file containing `}` `{` in the middle, which is not valid JSON and not what downloads. The
-    // name is chrome (an element), never injected into the text: the text has to stay the bytes.
+    right.push({ kind: 'cap', text: files.length === 1 ? 'You get 1 file' : `You get ${files.length} files` });
+    // Every name, up to a point, then a count; `title` keeps the full list one hover away.
+    right.push({ kind: 'files', text: files.length <= 4 ? files.join('\n') : `${files.slice(0, 3).join('\n')}\n+${files.length - 3} more`, title: files.join('\n') });
+    if (restoreFailure) right.push({ kind: 'note', text: TOKENS_NONE, hook: 'export-restore-note' });
+    right.push({ kind: 'cap', text: 'A few tokens, shaped by these settings' });
+    // One block PER FILE, with the name above it when there are several, never the texts concatenated.
     const prev = previewFiles(tree, slug(), exportSettings);
-    const box = el('div', 'exdlg-prevs');
-    for (const f of prev) {
-      if (prev.length > 1) box.append(el('div', 'exdlg-pname', f.name));
-      const pre = el('pre', 'exdlg-pre');
-      pre.textContent = f.text;
-      box.append(pre);
-    }
-    right.append(box);
+    right.push({ kind: 'previews', files: prev.map((f) => ({ name: prev.length > 1 ? f.name : null, text: f.text })) });
   } else {
-    // The brief has no settings, so there is nothing for a preview to demonstrate — and an empty right
-    // column would read as something that failed to load. One sentence about what the file is for.
     if (briefInput()) {
-      right.append(el('div', 'exdlg-cap', 'You get 1 file'));
-      right.append(el('p', 'exdlg-files', `${briefSlug()}.design.md`));
+      right.push({ kind: 'cap', text: 'You get 1 file' });
+      right.push({ kind: 'files', text: `${briefSlug()}.design.md` });
     }
-    right.append(el('p', 'exdlg-sdesc', 'A handful of anchors — the color, the type, the few decisions this brand is built from. The engine regrows the rest.'));
+    right.push({ kind: 'note', text: 'A handful of anchors — the color, the type, the few decisions this brand is built from. The engine regrows the rest.' });
     // #1994: say whose brand this is when it is not the one on screen, or why there is none to export.
-    if (restoreFailure) right.append(hook(el('p', 'exdlg-sdesc', restoreFailure.brand ? BRIEF_IS_FAILED : BRIEF_NONE), 'export-restore-note'));
+    if (restoreFailure) right.push({ kind: 'note', text: restoreFailure.brand ? BRIEF_IS_FAILED : BRIEF_NONE, hook: 'export-restore-note' });
   }
-  body.append(right);
-
-  dlg.append(body);
-
-  // ---- the action -------------------------------------------------------------------------
-  const foot = el('div', 'exdlg-foot');
-  const go = hook(el('button', 'exdlg-go') as HTMLButtonElement, 'dialog-confirm');
-  go.textContent = exportArtifact === 'design-md' ? '↓ Download brief' : '↓ Download tokens';
-  if (exportArtifact === 'design-md' && !briefInput()) { go.disabled = true; go.title = BRIEF_NONE; }
   // Owner (#2007): after a failed restore the tokens on hand are the DEMO's, so that download is off too.
-  if (exportArtifact === 'dtcg' && restoreFailure) { go.disabled = true; go.title = TOKENS_NONE; }
-  go.onclick = () => {
-    exportMenuOpen = false; renderBar();
-    if (exportArtifact === 'design-md') exportDesignMd(); else exportTokens();
+  const off = exportArtifact === 'design-md' && !briefInput() ? BRIEF_NONE : exportArtifact === 'dtcg' && restoreFailure ? TOKENS_NONE : null;
+  return {
+    artifacts: ARTIFACTS.map((a) => ({ id: a.id, label: a.label, on: a.id === exportArtifact })),
+    desc: artifact.desc,
+    settings: settings.map((s) => ({ key: s.key, label: s.label, desc: s.desc,
+      options: s.options.map((o) => ({ value: o.value, label: o.label, on: exportSettings[s.key] === o.value })) })),
+    // Said out loud rather than left as an empty area: silence reads as a loading state or a bug.
+    none: settings.length ? null : 'Nothing to set — the brief is written one way.',
+    right,
+    go: { text: exportArtifact === 'design-md' ? '↓ Download brief' : '↓ Download tokens', off },
+    // The Figma-file path (#677) is absent rather than disabled: `availableImportSlots()` narrows to the copy-bearing
+    // variant, so there is no string to render for a path whose behavior is undecided.
+    imports: availableImportSlots().map((slot) => ({ label: slot.label, desc: slot.desc })),
   };
-  const cancel = el('button', 'bm-cancel', 'Cancel') as HTMLButtonElement;
-  cancel.onclick = () => { exportMenuOpen = false; renderBar(); };
-  foot.append(cancel, go);
-  dlg.append(foot);
-
-  // ---- import: a SLOT, not a control ------------------------------------------------------
-  // #723 puts import in this dialog because it is the same conversation as export — the brief that
-  // comes out here is the one that goes back in. The Figma-file path (#677) is deliberately absent
-  // rather than disabled: `availableImportSlots()` narrows to the copy-bearing variant of the union,
-  // so there is no string to render for a path whose behavior is undecided, and a disabled control
-  // would promise one anyway. See `export-settings.ts`.
-  const slots = availableImportSlots();
-  if (slots.length) {
-    const imp = el('div', 'exdlg-import');
-    imp.append(el('div', 'exdlg-div'));
-    imp.append(el('div', 'exdlg-cap', 'Import'));
-    for (const slot of slots) {
-      const b = el('button', 'bm-item', `↑ ${slot.label}…`) as HTMLButtonElement;
-      b.onclick = () => { importOpen = !importOpen; importErr = null; pendingLoad = null; renderBar(); };
-      imp.append(b);
-      imp.append(el('p', 'exdlg-sdesc', slot.desc));
-    }
-    if (importOpen) imp.append(renderImportBox());
-    dlg.append(imp);
-  }
-
-  // Click the scrim to dismiss, but not a click inside the panel — the scrim IS the outside.
-  wrap.onmousedown = (e) => {
-    if (e.target === wrap) { exportMenuOpen = false; renderBar(); }
-  };
-  wrap.append(dlg);
-  return wrap;
 };
 
-/** The prune confirm dialog (#1521) — the review a designer sees before an opt-in delete runs.
- *
- *  Reuses the export dialog's `exdlg-*` chrome (scrim, panel, head, footer) rather than a second modal
- *  vocabulary — the deliberate cross-surface reuse the class-name law (#770) names. Its body is one
- *  column, `exdlg-col` appended straight to the flex `.exdlg` (not the two-column `exdlg-body`), holding
- *  the review sentence the main thread built (`prunePreviewSummary`). The footer pairs Cancel with the
- *  destructive CTA, whose label names the outcome — "Delete N items", per the voice standard's
- *  Destructive tone — not a bare "Confirm". Nothing here deletes; only the CTA's `postPrune(…, true)`
- *  does, and the main thread recomputes the plan from a fresh read before it acts. */
-const renderPruneDialog = (): HTMLElement => {
-  const p = host.prunePreview!;
-  const wrap = el('div', 'exdlg-scrim');
-  const dlg = hook(el('div', 'exdlg'), 'prune-dialog');
-  dlg.setAttribute('role', 'dialog');
-  dlg.setAttribute('aria-modal', 'true');
-  dlg.setAttribute('aria-label', 'Prune stale items');
-
-  const head = el('div', 'exdlg-head');
-  head.append(el('h2', 'exdlg-t', 'Prune stale items'));
-  const close = el('button', 'exdlg-x', '✕') as HTMLButtonElement;
-  close.setAttribute('aria-label', 'Close');
-  close.onclick = () => { setHost({ prunePreview: null }); renderBar(); };
-  head.append(close);
-  dlg.append(head);
-
-  const col = el('div', 'exdlg-col');
-  col.append(el('p', 'exdlg-desc', p.summary));
-  dlg.append(col);
-
-  const foot = el('div', 'exdlg-foot');
-  const cancel = el('button', 'barbtn', 'Cancel') as HTMLButtonElement;
-  cancel.onclick = () => { setHost({ prunePreview: null }); renderBar(); };
-  const del = hook(el('button', 'exdlg-go', `Delete ${p.count} item${p.count === 1 ? '' : 's'}`) as HTMLButtonElement, 'dialog-confirm');
-  // #1989: a preview the host sends opens this dialog whatever the Prune button's state, so Delete is off too.
-  if (restoreFailure) { del.disabled = true; del.title = RESTORE_OFF_HINT; }
-  del.onclick = () => { setHost({ pruneBusy: 'delete', prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, true); };
-  foot.append(cancel, del);
-  dlg.append(foot);
-
-  // The scrim IS the outside — a click on it cancels, a click inside the panel does not.
-  wrap.onmousedown = (e) => { if (e.target === wrap) { setHost({ prunePreview: null }); renderBar(); } };
-  wrap.append(dlg);
-  return wrap;
+/** What the bar's controls run: each is the body the old control ran, ending in `barChanged()`. */
+const barActions: BarActions = {
+  // Closing the menu discards a staged load with it (#1033): an unanswered "Replace the current brand?" must not be
+  // waiting behind a reopened menu.
+  toggleMenu: () => { brandMenuOpen = !brandMenuOpen; exportMenuOpen = false; navMenuOpen = false; if (!brandMenuOpen) { importOpen = false; pendingLoad = null; } barChanged(); },
+  closeMenu: () => { brandMenuOpen = false; navMenuOpen = false; importOpen = false; pendingLoad = null; barChanged(); },
+  // #1033: through the guard, not straight to `loadBrand`. The confirm fires only when there are edits to lose.
+  example: (name) => stageLoad(BRANDS[name], { kind: 'example', id: name }),
+  // BOTH HOSTS return to the start moment (#1197). Returning to it is an ORIGIN CHANGE (#722): clear the origin and the
+  // start screen follows, because `firstRun()` reads it. The working brand is deliberately left in place: it is what
+  // the app renders behind the start screen, and the replace happens later, when a path is chosen.
+  newBrand: () => { brandMenuOpen = false; startReopened = true; barChanged(); syncStart(); },   // S12: reopen the start window; origin kept (G15)
+  toggleImport: () => { importOpen = !importOpen; importErr = null; pendingLoad = null; barChanged(); },
+  importText: (text) => { importText = text; },           // a mode-toggle mid-paste won't lose it (M-17)
+  importLoad: (text) => stageImport(text, 'paste'),
+  importFile: (file) => {
+    void readDesignMdFile(file).then((read) => {
+      if ('error' in read) { importErr = read.error; pendingLoad = null; barChanged(); return; }
+      stageImport(read.text, 'file');
+    });
+  },
+  replace: () => { const p = pendingLoad; if (!p) return; pendingLoad = null; loadBrand(p.input, p.origin); },
+  cancelReplace: () => { pendingLoad = null; barChanged(); },
+  toggleExport: () => { exportMenuOpen = !exportMenuOpen; brandMenuOpen = false; navMenuOpen = false; importOpen = false; barChanged(); },
+  closeExport: () => { exportMenuOpen = false; barChanged(); },
+  // Escape closes the dialog and its import box with it, as it always has.
+  escapeExport: () => { exportMenuOpen = false; importOpen = false; barChanged(); },
+  artifact: (id) => { exportArtifact = id as ArtifactId; barChanged(); },
+  setting: (key, value) => { exportSettings = { ...exportSettings, [key]: value }; barChanged(); },
+  download: () => {
+    exportMenuOpen = false; barChanged();
+    if (exportArtifact === 'design-md') exportDesignMd(); else exportTokens();
+  },
+  // Cancel deletes nothing: a review is not a commitment. Only Delete's `postPrune(…, true)` does, and the main thread
+  // recomputes the plan from a fresh read before it acts.
+  closePrune: () => { setHost({ prunePreview: null }); barChanged(); },
+  deletePrune: () => {
+    if (restoreFailure) return;
+    setHost({ pruneBusy: 'delete', prunePreview: null }); hostChanged(); commit.postPrune(lastGoodInput, true);
+  },
 };
 
 /** The Apply-to-Figma status pill — reached only in the plugin, via the `commit.isFigma` branch.
@@ -2694,7 +2473,7 @@ const componentPendingText = (): string => {
  *  test `syncErrorBar` judges itself by. Live membership is at most one per host that renders the pill. */
 const componentPendingEls = new Set<HTMLElement>();
 
-// `host:progress` — a TEXT SWAP, NOT `renderBar()`. This fires at every chunk boundary — 27 per phase, so 54
+// `host:progress` — a TEXT SWAP, NOT a bar repaint. This fires at every chunk boundary — 27 per phase, so 54
 // times, in a 648-member build at CHUNK = 24 — and rebuilding the bar discards and remakes every control in
 // it, which would blur whatever the designer had focused and reset the brand switcher's open state
 // mid-build. The pending pill is the only thing that changed, so it is the only thing rewritten.
@@ -2763,7 +2542,7 @@ function renderApplyStatus(state: Exclude<HostSession['applyState'], null>, whic
 }
 
 // The bar's host subscription, guarded on the chrome being mounted — the guard the switch carried.
-subscribe('host', () => { if (barHost) renderBar(); });
+// (The bar subscribes to `host` itself since S13.1, `shell/bar.ts`.)
 
 /** The UI's own host-state change (a write going pending, a result asked for): told through the same two
  *  topics a host verdict invalidates, in the same order, so the bar and the Activity drawer (S1.4) each
@@ -2994,166 +2773,41 @@ const figmaActions = (): FigmaAction[] => [
   { id: 'style-guide', label: 'Style guide…', busy: null, disabled: false, run: () => setPage('styleGuide') },
 ];
 
-/** The brand bar (#159) — a horizontal row of brand-level utilities, replacing the single
- *  overloaded dropdown. Left: brandmark. Right: brand switcher (identity + examples + new +
- *  import — a brand *source*), Export (artifact *output*), and, in the plugin only, the primary
- *  Apply-to-Figma CTA (the terminal action of the plugin flow). Modes live in the workspace
- *  mode-context strip (#171), not here. The bar is sticky (see `.bar`). */
 /** A legacy surface opened from the new chrome, pinned light (D2): `data-theme="light"` resets the chrome
  *  variables and `color-scheme` beneath it, so its fields keep dark UA ink on their light ground in a dark
- *  theme (#1031). */
+ *  theme (#1031). Since S13.1 the plugin's Pages menu list is the one left. */
 const pinLight = <E extends HTMLElement>(n: E): E => { n.dataset.theme = 'light'; return n; };
 
-function renderBar(): void {
-  // The shell's nodes this places (the verdict, the Agent slot, Activity, the Figma menu) are the same
-  // nodes on every render, so one that held focus gets it back once it is placed again.
-  const focused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  barHost.innerHTML = '';
-  // THE LEGACY HALF OF THE NEW TOP BAR (UI redesign S1.2). The frame (`shell/frame.ts`) owns the bar and
-  // its theme toggle; this paints the controls the legacy code still owns into the slot it lends: the
-  // brand switcher, Export, the Pages menu and the plugin's Apply Theme, and places the shell's own
-  // controls among them in concept v6's order (S1.4): the verdict, the Agent chip's slot, Activity and the
-  // Figma menu. The plugin's write verdicts are the Activity drawer's own (S11). Every control here wears
-  // the chrome's classes; the menus and dialogs they open are legacy surfaces, pinned light (`pinLight`).
-
-  // Brand switcher — identity, examples, new, import.
-  const bWrap = el('div', 'barmenu-wrap');
-  const sel = hook(el('button', 'p3-brand') as HTMLButtonElement, 'brand-switcher');
-  sel.type = 'button';
-  sel.setAttribute('aria-expanded', String(brandMenuOpen));
-  // The swatch is the brand's color, so it is brand content: `data-content` marks it, and its inline
-  // background is the one runtime value the chrome may carry. The chrome's class sits on the frame
-  // around it, never inside it.
-  const sw = el('span', 'p3-swatch');
-  const dot = el('span');
-  dot.setAttribute('data-content', '');
-  dot.style.background = hex(oklchToRgb(brandState.primary));
-  sw.append(dot);
-  sel.append(sw, el('span', 'p3-brand-name', brandState.id), glyph('chev'));
-  // Closing the menu discards a staged load with it (#1033) — an unanswered "Replace the current brand?"
-  // must not be waiting behind a reopened menu, where the next click on Replace would answer a question
-  // asked about a state that has since moved on.
-  sel.onclick = (e) => { e.stopPropagation(); brandMenuOpen = !brandMenuOpen; exportMenuOpen = false; navMenuOpen = false; if (!brandMenuOpen) { importOpen = false; pendingLoad = null; } renderBar(); };
-  bWrap.append(sel);
-  if (brandMenuOpen) bWrap.append(pinLight(renderBrandMenu()));
-  barHost.append(bWrap);
-  // The verdict (S1.3): the shell's node, kept current by its own subscription and moved here, after the
-  // brand switcher, on every render rather than re-minted.
-  if (frame) barHost.append(frame.verdict);
-  barHost.append(el('span', 'p3-spacer'));
-  // The Agent chip's slot (IA-3), then Activity (F2): the frame's nodes, placed, never re-minted.
-  if (frame?.agent) barHost.append(frame.agent);
-  if (frame) barHost.append(frame.activity);
-
-  const actions = barHost;
-
-  // Apply Theme — plugin-only, the primary CTA (the plugin's terminal action). Never rendered on web
-  // (`commit.isFigma` false — a runtime property, so the branch is unreachable there rather than
-  // eliminated). Its status, the boot read-back's (#109, #480) and every other write's are the Activity
-  // drawer's since S11 (`activityReading`): each operation's row holds its latest result and the earlier ones.
-  let applyBtn: HTMLButtonElement | null = null;
-  if (commit.isFigma) {
-    // Pending is a real state, not a cosmetic one: the write is asynchronous and, on a large file, slow
-    // enough that a button which neither moves nor says so reads as broken — and a second click posts a
-    // second concurrent write over the same variables. Busy while any Apply runs, the panel's or an
-    // agent's (owner decision #4 on #1956): the signal is `pendingLabel`'s, the guard is `runApply`'s.
-    // Appended last, after Export and Pages, so the one inverse-filled control ends the bar.
-    applyBtn = hook(el('button', 'p3-btn p3-btn-primary') as HTMLButtonElement, 'apply-to-figma');
-    applyBtn.type = 'button';
-    applyBtn.append(pendingLabel('Apply Theme', 'Applying…'));
-    setBusy(applyBtn, applyBusy());
-    // Off, natively, while the file's brand does not resolve (#1989): unlike busy, nothing is running that
-    // focus should wait on. The reason is the error bar's, and the tooltip's.
-    if (restoreFailure) { applyBtn.disabled = true; applyBtn.title = RESTORE_OFF_HINT; }
-    // The previous run's detail is stale the instant a new write starts, so it collapses with the state.
-    applyBtn.onclick = runApply;
-
-    // The component write's trigger USED TO SIT HERE (#483), a second action beside Apply. #718 moved it
-    // to the Components rail page, and UI redesign S8.2 to the Components tab's preview. Apply is the
-    // only write that belongs in the primary bar: it is the terminal action of the theme flow, runs after
-    // every knob change, and answers in well under a second.
-    //
-    // What did NOT move is the build's STATUS: it stays legible after navigating away from the page that
-    // started it, in the Activity drawer since S11, because a 648-member build runs ~105s cold (#700) and
-    // nobody watches a page for that long. The prune's control is the Figma menu's (`figmaActions`), and
-    // its verdict (a preview that finds nothing stale, or the outcome of a delete) is its own row there.
-  }
-
-  // Export — opens the export dialog (#723, replacing #159's dropdown). Concept v6 names it with the
-  // word alone; at narrow widths the word gives way to a glyph, and the accessible name stays "Export".
-  const eWrap = el('div', 'barmenu-wrap');
-  const exp = hook(el('button', 'p3-btn p3-btn-collapse') as HTMLButtonElement, 'export-open');
-  exp.type = 'button';
-  exp.append(glyph('export'), el('span', 'p3-btn-label', 'Export'));
-  exp.setAttribute('aria-label', 'Export');   // stable accessible name once the word is hidden
-  exp.setAttribute('aria-haspopup', 'dialog');
-  exp.setAttribute('aria-expanded', String(exportMenuOpen));
-  exp.onclick = (e) => { e.stopPropagation(); exportMenuOpen = !exportMenuOpen; brandMenuOpen = false; navMenuOpen = false; importOpen = false; renderBar(); };
-  eWrap.append(exp);
-  actions.append(eWrap);
-
-  // Pages — the old rail, as a menu (D1, D5). The tab row navigates now; this keeps every legacy page
-  // reachable by its old name until its domain slice retires it, and S13 removes the menu. A host with no destination
-  // left draws none (owner decision G19 A): the web since S8.2, whose last legacy page moved to Components; the plugin
-  // keeps it for the Style guide until S11.2.
+/** The plugin's Pages menu (D1, D5): the old rail, as a menu, lent to the top bar (`shell/bar.ts`), which places it
+ *  after Export. What is left of `renderBar` (UI redesign S13.1): the shell draws every other control on the bar. It
+ *  keeps the Style guide reachable by its old name until S11.2 moves it into the Figma menu, and S13 removes the
+ *  menu. A host with no destination left draws none (owner decision G19 A): the web since S8.2. */
+const renderPagesMenu = (): HTMLElement | null => {
+  if (!railNav().length) { navMenuOpen = false; return null; }
   const nWrap = el('div', 'barmenu-wrap');
-  if (!railNav().length) navMenuOpen = false;
-  const nav = hook(el('button', 'p3-btn p3-btn-collapse') as HTMLButtonElement, 'pages-menu');
+  // A white button with ▾ at every width (the owner's top-bar decision, 2026-10-05): at 380 it starts the second row.
+  const nav = hook(el('button', 'p3-btn') as HTMLButtonElement, 'pages-menu');
   nav.type = 'button';
-  nav.append(glyph('pages'), el('span', 'p3-btn-label', 'Pages'), glyph('chev'));
+  nav.append(el('span', 'p3-btn-label', 'Pages'), glyph('chev'));
   nav.setAttribute('aria-label', 'Pages');
   nav.setAttribute('aria-expanded', String(navMenuOpen));
   nav.onclick = (e) => {
     e.stopPropagation();
     navMenuOpen = !navMenuOpen; brandMenuOpen = false; exportMenuOpen = false; importOpen = false;
-    renderBar();
+    barChanged();
   };
   nWrap.append(nav);
   if (navMenuOpen) nWrap.append(pinLight(renderNavMenu()));
-  if (railNav().length) actions.append(nWrap);
-  // The Figma menu (S1.4, plugin only), then Apply Theme, the one inverse-filled control, last.
-  if (frame?.figma) actions.append(frame.figma);
-  if (applyBtn) actions.append(applyBtn);
-
-
-  // The export dialog is appended to the BAR HOST, not inside `.barmenu-wrap` (#723). Two reasons, both
-  // concrete: the wrap is `position:relative` for the dropdowns that hang off it, which would trap a
-  // fixed-position scrim in its stacking context; and the outside-click handler below dismisses anything
-  // outside a `.barmenu-wrap`, so a dialog inside one would be dismissed by its own scrim click on the
-  // way to the scrim's own handler. Ordering the two would have been the bug; not overlapping them is
-  // the fix. `renderBar()` clears `barHost` on every call, so the dialog's lifetime is still one flag.
-  if (exportMenuOpen) barHost.append(pinLight(renderExportDialog()));
-  // The prune confirm dialog (#1521), appended for the same reasons the export dialog is — a modal scrim
-  // that must sit outside the relative `.barmenu-wrap` stacking context. Present only when a preview with
-  // something to remove has landed; `renderBar()` clears `barHost` each call, so its lifetime is the flag.
-  if (host.prunePreview) barHost.append(pinLight(renderPruneDialog()));
-  // A shell node placed again above keeps the focus it had (a re-render moved it, which blurs it).
-  if (focused && focused.isConnected && document.activeElement !== focused) focused.focus({ preventScroll: true });
-
-  if (!outsideBound) {
+  if (!pagesOutsideBound) {
+    // Bound once: a click outside the Pages menu's wrap closes it. The brand menu's own dismissal is the bar's.
     document.addEventListener('mousedown', (e) => {
-      // The apply detail is NOT dismissed here, deliberately: it is a row in the chrome rather than an
-      // overlay, so it obscures nothing and a click elsewhere is not a request to close it. Auto-closing
-      // it would also lose a miss report the moment the designer clicked the control they came to fix.
-      //
-      // `exportMenuOpen` is no longer in this condition (#723): the export dialog is modal, and its own
-      // scrim decides what "outside" means for it. Left here, this handler would close the dialog on the
-      // first click that landed on a setting — every control in it is outside `.barmenu-wrap`.
-      if ((brandMenuOpen || navMenuOpen) && !(e.target as HTMLElement).closest('.barmenu-wrap')) {
-        brandMenuOpen = false; navMenuOpen = false; importOpen = false; pendingLoad = null; renderBar();
-      }
+      if (navMenuOpen && !(e.target as HTMLElement).closest('.barmenu-wrap')) { navMenuOpen = false; barChanged(); }
     });
-    // Escape closes the dialog. Bound once, alongside the click dismissal, for the same reason: the bar
-    // re-renders constantly and a per-render listener would accumulate one per render.
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && exportMenuOpen) { exportMenuOpen = false; importOpen = false; renderBar(); }
-      // Escape cancels the prune review too (#1521) — a review is not a commitment, so closing it
-      // deletes nothing. Same bound-once handler, for the same reason the click dismissal is.
-      else if (e.key === 'Escape' && host.prunePreview) { setHost({ prunePreview: null }); renderBar(); }
-    });
-    outsideBound = true;
+    pagesOutsideBound = true;
   }
-}
+  return nWrap;
+};
+let pagesOutsideBound = false;
 
 /** The rail's destinations as a dropdown, for the widths where the rail is not a sidebar. Renders
  *  from the same `railNav()` data and reuses the rail's own `.stage-t` title+subtitle block, so the
@@ -3183,7 +2837,7 @@ const renderNavMenu = (): HTMLElement => {
     it.onclick = () => {
       navMenuOpen = false;
       // `setPage` alone: the `page` subscriber re-renders the legacy frame, and with it this bar.
-      if (page !== s.key) setPage(s.key); else renderBar();
+      if (page !== s.key) setPage(s.key); else barChanged();
     };
     menu.append(it);
   });

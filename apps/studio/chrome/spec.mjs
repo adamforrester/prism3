@@ -147,6 +147,10 @@ export const PRODUCT_VARS = [
   ['danger-fill', 'color.interactive.destructive.fill.rest', 'color.interactive.destructive.fill.rest', C, 'the destructive button\'s fill (S5)'],
   ['danger-on', 'color.interactive.destructive.on-fill', 'color.interactive.destructive.on-fill', C, 'the destructive button\'s label (S5)'],
   ['danger-edge-hover', 'color.interactive.destructive.border.hover', 'color.interactive.destructive.border.hover', C, 'the destructive button\'s edge on hover (S5)'],
+  // S13.1: the layout column the brand menu (four, concept's 288px popover) and the export dialog (twelve, 864px,
+  // the legacy dialog's width) are measured in, from the dimension grid; and the dialogs' scrim, the engine's role.
+  ['l-col', 'core.dimension.72', 'core.dimension.72', D, 'the brand menu\'s and the export dialog\'s column'],
+  ['scrim', 'color.scrim.default', 'color.scrim.default', C, 'the scrim behind the export and prune dialogs'],
 ];
 /** Pairs the product adds beyond the mockup's PAIRS, for PRODUCT_VARS rows the mockup never maps (`build-v6.mjs` reads
  *  PAIRS and would refuse a name it has no row for). Same shape as PAIRS; the product build evaluates both. */
@@ -196,6 +200,8 @@ export const SHELL_VARS = [
   // S12: the start window and its guard: the scrim, the window's width unit and its card padding, and the guard's
   // destructive Discard (S5).
   'overlay-pressed', 'dlg-unit', 'space-250', 'danger-fill', 'danger-on', 'danger-edge-hover',
+  // S13.1: the brand menu's and the export dialog's column, and the dialogs' scrim.
+  'l-col', 'scrim',
 ];
 
 // Mapped color variables that carry no contrast duty: a hairline that splits regions, a hover wash.
@@ -207,7 +213,7 @@ export const SHELL_VARS = [
 // no hover wash: a hover shows an edge (a declared pair) or the inset fill (`fill-1`, paired with text).
 // S12 lists a second: the start window's scrim (`overlay-pressed`, concept v6's), a wash over the studio behind the
 // window. Nothing is read on it; the window it holds is opaque.
-export const DECORATIVE = ['line-1', 'overlay-pressed'];
+export const DECORATIVE = ['line-1', 'overlay-pressed', 'scrim'];
 
 // Mapped color variables that paint only an INACTIVE control (owner decision F1 A, 2026-10-05). WCAG 2.2 exempts a
 // user interface component that is not available for user interaction from SC 1.4.3 (text) and SC 1.4.11 (non-text),
@@ -216,3 +222,5 @@ export const DECORATIVE = ['line-1', 'overlay-pressed'];
 // role in either theme, so a live color cannot be parked here; and `test:chrome` exempts a drawn node only when it is
 // really disabled, and then holds it to these exact Prism3 roles, read from the emission.
 export const INACTIVE = ['disabled-fill', 'disabled-edge', 'disabled-ink'];
+// S13.1 adds the scrim: a translucent wash over the page behind a modal dialog. Nothing is read on it; the dialog
+// draws its own opaque ground (`bg-page`), and every pair inside the dialog is declared on that ground.

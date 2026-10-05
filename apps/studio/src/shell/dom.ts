@@ -97,3 +97,24 @@ export const setBusy = (b: HTMLElement, busy: boolean): void => {
   if (busy) { b.setAttribute('aria-disabled', 'true'); b.setAttribute('aria-busy', 'true'); }
   else { b.removeAttribute('aria-disabled'); b.removeAttribute('aria-busy'); }
 };
+
+/**
+ * A bar tile (the owner's top-bar decision, 2026-10-05, "A · Menu bar"): a borderless control, its mark (a glyph, or
+ * a glyph and a count) over a small label, with a tooltip under it on hover and on keyboard focus. The label shows
+ * above the narrow tier and drops at it (`NARROW_MAX`), leaving the mark and the tooltip. The accessible name is the
+ * control's `aria-label` in every tier, so it never depends on the label or the tooltip, and both are `aria-hidden`
+ * (they repeat what the name says). The tooltip is drawn by the stylesheet alone, so it carries no inline value.
+ * `start`: the tooltip hangs from the tile's left edge rather than its right (a tile on the bar's left side).
+ */
+export type Tile = { readonly btn: HTMLButtonElement; readonly mark: HTMLElement; readonly tip: HTMLElement };
+export const tile = (role: string, label: string, start = false): Tile => {
+  const btn = hook(h('button', start ? 'p3-btn p3-tile p3-tile-start' : 'p3-btn p3-tile'), role);
+  btn.type = 'button';
+  const mark = h('span', 'p3-tile-mark');
+  const lab = h('span', 'p3-tile-label', label);
+  lab.setAttribute('aria-hidden', 'true');
+  const tip = hook(h('span', 'p3-tile-tip'), `${role}-tip`);
+  tip.setAttribute('aria-hidden', 'true');
+  btn.append(mark, lab, tip);
+  return { btn, mark, tip };
+};

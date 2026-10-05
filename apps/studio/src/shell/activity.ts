@@ -35,7 +35,18 @@
 import { subscribe } from '../state/store';
 import type { OpKey } from '../state/host-session';
 import type { Host } from './pages';
-import { glyph, h, hook } from './dom';
+import { glyph, h, hook, tile } from './dom';
+
+/** Whether the plugin's agent link is on (the owner's top-bar decision, 2026-10-05: Activity's name and tooltip say
+ *  "agent link on" while it is). The plugin's Agent tile (`apps/plugin/src/agent-link-ui.ts`) reports each state the
+ *  main thread publishes; the studio never sets it, so on the web it stays off. */
+let agentLinkOn = false;
+const linkWatchers = new Set<() => void>();
+export const setAgentLinkOn = (on: boolean): void => {
+  if (on === agentLinkOn) return;
+  agentLinkOn = on;
+  for (const f of linkWatchers) f();
+};
 
 /** F2, v5 Q9: how long the drawer stays open after a success before it collapses by itself. */
 export const COLLAPSE_MS = 4000;
@@ -108,13 +119,14 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   const { read, closeDetail } = opts.lend;
 
   // ── the button, in the top bar ─────────────────────────────────────────────────────────────────
-  // The word at full width, the glyph alone when narrow; the name stays "Activity" plus the status words.
-  const button = hook(h('button', 'p3-btn p3-btn-collapse p3-activity-btn'), 'activity-open');
-  button.type = 'button';
+  // A bar tile (the owner's top-bar decision, 2026-10-05): the glyph and its status dot over "Activity", the glyph
+  // alone when narrow. The name, and the tooltip, are "Activity" plus the agent link and the status words.
+  const { btn: button, mark, tip } = tile('activity-open', 'Activity');
+  button.classList.add('p3-activity-btn');
   button.setAttribute('aria-controls', 'p3-activity');
   const dot = h('span', 'p3-dot p3-status-dot');
   dot.setAttribute('aria-hidden', 'true');
-  button.append(glyph('pulse'), h('span', 'p3-btn-label', 'Activity'), dot);
+  mark.append(glyph('pulse'), dot);
 
   // ── the drawer ─────────────────────────────────────────────────────────────────────────────────
   const drawer = hook(h('section', 'p3-drawer'), 'activity-drawer');
@@ -283,8 +295,9 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     const kind = running ? 'run' : failed ? 'bad' : unread ? 'unread' : 'none';
     dot.dataset.state = kind;
     drawer.dataset.state = kind;
-    const words = statusWords(running, failed, unread);
-    button.setAttribute('aria-label', words ? `Activity, ${words}` : 'Activity');
+    const name = ['Activity', agentLinkOn && 'agent link on', statusWords(running, failed, unread)].filter(Boolean).join(', ');
+    button.setAttribute('aria-label', name);
+    tip.textContent = name;
     paintBar();
     for (const [k, rec] of recs) paintRow(k, rec, last.ops[k]);
     const order = [...recs.keys()].map((k) => rowEls.get(k)!.root);
@@ -425,6 +438,8 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   toggle.onclick = () => show(!open, true);
   close.onclick = () => { show(false, true); button.focus(); };
   cleanups.push(subscribe('host', onHost), subscribe('host:detail', onHost), subscribe('host:progress', onProgress), clear);
+  linkWatchers.add(paint);
+  cleanups.push(() => linkWatchers.delete(paint));
   paint();
   return { button, drawer, live };
 };

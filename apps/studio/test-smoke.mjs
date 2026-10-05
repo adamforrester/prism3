@@ -2957,6 +2957,39 @@ for (const brand of BRANDS) {
   const raised = await errState();
   ok(/typography\.sizes\.title\.2xs/.test(raised.text), `${brand}: the bar names the field the engine refused — "${raised.text.slice(0, 90)}"`);
 
+  // THE STRIP IN DARK (UI redesign S13.1, owner decision G18 A: the bug being fixed). Until S13.1 the line was a legacy
+  // card pinned light, so in a dark theme it stayed a light card. The theme is the device's here (the studio's default,
+  // `system`), so emulating a dark device turns the chrome dark; the strip must go with it. Measured as RENDERED: its
+  // composited ground, its line and its glyph against that ground, at literal floors (a ground below 0.2 luminance is
+  // dark; the line 4.5:1, the glyph 3:1). The light theme's strip is read the same way first, so a strip that is dark
+  // in both themes fails too.
+  const stripDrawn = () => page.evaluate(() => {
+    const e = document.querySelector('[data-p3="error-bar"]');
+    const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+    const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+    const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+    const ratio = (a, b) => { const x = lum(a), y = lum(b); return Math.floor(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 100) / 100; };
+    if (!e || getComputedStyle(e).display === 'none') return { shown: false };
+    let g = null;
+    for (let n = e; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { g = g ? over(g, c) : c; if (g.a >= 0.999) break; } }
+    g = g ? { ...g, a: 1 } : { r: 255, g: 255, b: 255, a: 1 };
+    // Every node in the strip that draws text, and every glyph, against the strip's ground.
+    const inks = [...e.querySelectorAll('*')].filter((n) => [...n.childNodes].some((c) => c.nodeType === 3 && c.textContent.trim())).map((n) => parse(getComputedStyle(n).color)).filter(Boolean);
+    const glyphs = [...e.querySelectorAll('svg')].map((n) => parse(getComputedStyle(n).color)).filter(Boolean);
+    return { shown: true, groundLum: Math.round(lum(g) * 1000) / 1000, text: inks.map((c) => ratio(over(c, g), g)), glyphs: glyphs.map((c) => ratio(over(c, g), g)) };
+  });
+  const lightStrip = await stripDrawn();
+  ok(lightStrip.shown && lightStrip.groundLum > 0.5 && lightStrip.text.length > 0 && Math.min(...lightStrip.text) >= 4.5,
+    `${brand}: in light, the error strip is drawn on a light ground (luminance ${lightStrip.groundLum}) and its line clears 4.5:1 (${JSON.stringify(lightStrip.text)})`);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.waitForFunction(() => matchMedia('(prefers-color-scheme: dark)').matches);
+  const darkStrip = await stripDrawn();
+  ok(darkStrip.shown && darkStrip.groundLum < 0.2,
+    `${brand}: in dark, the error strip is drawn on a dark ground (luminance ${darkStrip.groundLum}, below 0.2) — the light card #388's line was until S13.1 is the case refused`);
+  ok(darkStrip.shown && darkStrip.text.length > 0 && Math.min(...darkStrip.text) >= 4.5 && darkStrip.glyphs.length > 0 && Math.min(...darkStrip.glyphs) >= 3,
+    `${brand}: in dark, the error strip's line clears 4.5:1 (${JSON.stringify(darkStrip.text)}) and its glyph 3:1 (${JSON.stringify(darkStrip.glyphs)})`);
+  await page.emulateMedia({ colorScheme: 'light' });
+
   // THE GENERALIZATION, not just the instance: the surface belongs to the view, so navigating to a
   // third page must not lose it. A page-local bar would vanish here, which is the state #388 described
   // from the other end — the error existing with nothing rendering it.
@@ -3834,24 +3867,28 @@ for (const brand of BRANDS) {
     await page.fill('[data-p3="brand-menu"] [data-p3="import-text"]', 'smoke-brand');
 
     const where = `${brand} / brand menu / ${scheme} scheme`;
-    // #1031's FIRST HALF, asserted directly — on the POPOVER, since UI redesign S1.2. Until then the
-    // whole document resolved light (the studio declared nothing) and that was the line held here. The
-    // chrome now has a real dark scheme (the frame follows the device by default, so this arm's dark run
-    // has a dark document), and the legacy surfaces still painted from light tokens are pinned light with
-    // `data-theme="light"`. So the opt-in that matters is the popover's own, and each of its controls':
-    // anything naming `dark` there hands the UA the field ink, the caret, autofill and native option lists
-    // from a dark palette over a surface this stylesheet paints light, and the option list is not
-    // something any in-page probe can measure, which is why the opt-in itself is the thing to hold.
+    // #1031's FIRST HALF, asserted directly — on the POPOVER and each of its controls. Until UI redesign S13.1
+    // the menu was a legacy surface painted from light tokens and pinned light, and the line held here was "it
+    // resolves a light-only scheme". S13.1 draws it in the chrome, which follows the theme, so the line is the
+    // one #1031 was about in either direction: the color-scheme each control resolves AGREES WITH THE GROUND it
+    // is drawn on — no dark scheme over a light ground (the UA's near-white ink, caret, autofill and option
+    // lists over a light field), and no light scheme over a dark one. The ground is MEASURED (its composited
+    // background's luminance), never read from the theme attribute, so a surface pinned to the wrong theme fails
+    // here whatever the document says.
     const schemes = await page.evaluate(() => {
+      const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+      const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+      const groundLum = (el) => { for (let n = el; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a >= 0.999) return lum(c); } return 1; };
       const menu = document.querySelector('[data-p3="brand-menu"]');
-      return { menu: menu ? getComputedStyle(menu).colorScheme : 'unmounted',
-        fields: [...(menu?.querySelectorAll('input, select, textarea') ?? [])].map((f) => [f.getAttribute('data-p3') ?? f.tagName, getComputedStyle(f).colorScheme]) };
+      const read = (n) => [n.getAttribute('data-p3') ?? n.tagName, getComputedStyle(n).colorScheme, Math.round(groundLum(n) * 1000) / 1000];
+      return { menu: menu ? read(menu) : null, fields: [...(menu?.querySelectorAll('input, select, textarea') ?? [])].map(read) };
     });
-    ok(schemes.menu === 'normal' || schemes.menu === 'light',
-      `${where}: the brand menu resolves a light-only color-scheme (resolved "${schemes.menu}") — it paints every surface from light tokens, so opting into dark hands the UA half of a pairing it cannot see`);
-    const darkFields = schemes.fields.filter(([, cs]) => /\bdark\b/.test(cs));
-    ok(schemes.fields.length > 0 && darkFields.length === 0,
-      `${where}: every control in the brand menu resolves a light color-scheme (${schemes.fields.length} read${darkFields.length ? `; dark: ${darkFields.map(([h, cs]) => `${h} "${cs}"`).join(', ')}` : ''})`);
+    const disagrees = ([, cs, g]) => (/\bdark\b/.test(cs) && g > 0.5) || (!/\bdark\b/.test(cs) && g < 0.2);
+    ok(!!schemes.menu && !disagrees(schemes.menu),
+      `${where}: the brand menu's color-scheme agrees with its ground (${JSON.stringify(schemes.menu)}) — a dark scheme over a light ground, or the reverse, hands the UA half of a pairing it cannot see (#1031)`);
+    const offFields = schemes.fields.filter(disagrees);
+    ok(schemes.fields.length > 0 && offFields.length === 0,
+      `${where}: every control in the brand menu resolves a color-scheme that agrees with its ground (${schemes.fields.length} read${offFields.length ? `; off: ${offFields.map(([h, cs, g]) => `${h} "${cs}" on ${g}`).join(', ')}` : ''})`);
     await settle(page, where);
     const probe = await page.evaluate(LEGIBILITY_PROBE, '[data-p3="brand-menu"]');
     assertParsed(where, probe.unparsed);

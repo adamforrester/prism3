@@ -15,10 +15,11 @@
  * WHAT THIS STYLES: the frame (`src/shell/frame.ts`), meaning the top bar, the tab row with Color's
  * sub-row, the notices row, the legacy frame's Depth & motion switch and the two panes (S1.2); the
  * preview header, the mode control, the verdict and Inspect (`src/shell/preview.ts`, S1.3); and the
- * Activity button and drawer, the Figma menu and the plugin's Agent chip (S1.4); the levers panel, the
- * Palettes preview and the step picker (S2: `src/domains/`, `src/preview/`, `src/ui/`). The
- * legacy surfaces inside it (the legacy page, the brand menu, the Pages menu, the dialogs) keep
- * `styles.css` and are pinned light with `data-theme="light"`. So no rule here sets a font or a color
+ * Activity button and drawer, the Figma menu and the plugin's Agent tile (S1.4, T7); the levers panel, the
+ * Palettes preview and the step picker (S2: `src/domains/`, `src/preview/`, `src/ui/`); the brand menu, the
+ * export and prune dialogs and the error strip (S13.1: `src/shell/bar.ts`, `src/shell/notices.ts`). The
+ * legacy surfaces inside it (the legacy page and the plugin's Pages menu) keep `styles.css` and are pinned
+ * light with `data-theme="light"`. So no rule here sets a font or a color
  * on a container that holds legacy content: each chrome control sets its own, and legacy text keeps
  * inheriting the legacy body's.
  *
@@ -40,9 +41,13 @@
 /* ── the top bar ─────────────────────────────────────────────────────────────────────────── */
 .p3-bar {
   display: flex; align-items: center; gap: var(--p3-space-100); min-height: var(--p3-bar-h);
-  padding: var(--p3-space-050) var(--p3-space-300); background: var(--p3-bar-bg);
+  padding: var(--p3-space-050) var(--p3-space-400) var(--p3-space-050) var(--p3-space-300); background: var(--p3-bar-bg);
   border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1);
 }
+/* The bar's last control ends where the page content does (owner, S13.1 review): the right padding is the preview
+   header's (`.p3-preview-head`), and at the narrow tier both rows take the same 12px. The dialog layer draws no box,
+   so it adds no gap after the last control; its scrims are fixed to the window. */
+.p3-dialog-layer { display: contents; }
 .p3-bar-slot { display: contents; }
 .p3-bar-main { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); position: relative; }
 .p3-spacer { flex: 1 1 auto; }
@@ -72,8 +77,6 @@
 /* A ghost control shows an edge on hover, the bar's own (B1), instead of a wash. */
 .p3-btn-ghost:hover { border-color: var(--p3-edge-bar); }
 .p3-btn-icon { padding: 0; min-width: var(--p3-ctl-h-sm); }
-/* Export and Pages: the word at full width, the glyph alone when narrow (the accessible name stays). */
-.p3-btn-collapse > .p3-ico:first-child { display: none; }
 :is(.p3-btn, .p3-brand, .p3-pill, .p3-seg-tab, .p3-select, .p3-menu-item, .p3-verdict):focus-visible {
   outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset);
 }
@@ -86,24 +89,65 @@
   overflow: hidden; outline: var(--p3-bw-hairline) solid var(--p3-line-1); outline-offset: calc(-1 * var(--p3-bw-hairline));
 }
 .p3-swatch > span { display: block; width: 100%; height: 100%; }
-/* The brand menu hangs from the switcher's left edge: the switcher starts the bar. */
-.p3-bar-main .barmenu-wrap:first-child .brandmenu { left: 0; right: auto; }
-
-/* The verdict (S1.3): every role with a floor, in every mode. It opens Inspect › Contrast. A control, so
-   radius-lg (the 2026-10-01 radius split), with the bar's edge (B1). It takes the room the bar has left,
-   up to its full line (it outgrows the bar's spacer a hundred to one), and gives way first (its line
-   truncates) before the bar wraps a row; narrow keeps
-   the dot alone. The bar may wrap: the plugin's write actions crowd it until S1.4 moves them. */
-.p3-verdict {
-  display: inline-flex; align-items: center; gap: var(--p3-space-100); flex: 100 1 0; min-width: 0; max-width: max-content;
-  min-height: var(--p3-ctl-h-sm); padding: 0 var(--p3-space-200) 0 var(--p3-space-150); border-radius: var(--p3-radius-lg);
-  border: var(--p3-bw-hairline) solid var(--p3-edge-bar); background-color: var(--p3-bg-page); color: var(--p3-text);
-  font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-default);
-  line-height: var(--p3-lh-compact); white-space: nowrap; cursor: pointer;
+/* The brand menu (S13.1) hangs under the switcher, from its left edge. Fixed, at its static position, so its height
+   can be held to the window (100% of a fixed box's containing block is the viewport) and it scrolls rather than run
+   off the bottom (#432), with the import box open, at 380 × 420 too. Four layout columns wide (concept's 288). */
+.p3-brandwrap { flex: 0 1 auto; min-width: 0; }
+.p3-menu.p3-brandmenu {
+  position: fixed; top: auto; right: auto; margin-top: calc(var(--p3-ctl-h-sm) + var(--p3-space-050));
+  min-width: 0; width: calc(var(--p3-l-col) * 4); max-width: calc(100% - 2 * var(--p3-space-300));
+  max-height: calc(100% - 2 * var(--p3-bar-h)); overflow-y: auto; align-content: start;
 }
-.p3-verdict:hover { border-color: var(--p3-field-edge-hover); }
-.p3-verdict[data-state="fail"] { color: var(--p3-bad-text); }
-.p3-verdict-text { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.p3-swatch-sm { width: var(--p3-icon-xs); height: var(--p3-icon-xs); }
+.p3-menu-item[aria-current="true"] { font-weight: var(--p3-fw-emphasis); }
+.p3-menu-cap {
+  padding: var(--p3-space-100) var(--p3-space-150) var(--p3-space-050); color: var(--p3-text-2);
+  font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis);
+}
+.p3-menu-div { border-top: var(--p3-bw-hairline) solid var(--p3-line-1); margin: var(--p3-space-050) 0; }
+/* The design.md import box, in the brand menu and in the export dialog. */
+.p3-import { display: grid; gap: var(--p3-space-100); padding: var(--p3-space-100) var(--p3-space-050) var(--p3-space-050); }
+.p3-brandmenu .p3-confirm { margin: var(--p3-space-050); padding: var(--p3-space-150); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); color: var(--p3-text); }
+.p3-textarea {
+  width: 100%; min-width: 0; min-height: calc(3 * var(--p3-ctl-h)); resize: vertical; padding: var(--p3-space-100) var(--p3-space-150);
+  border-radius: var(--p3-radius-lg); border: var(--p3-bw-hairline) solid var(--p3-edge); background: var(--p3-bg-page);
+  color: var(--p3-text); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal);
+}
+.p3-textarea::placeholder { color: var(--p3-text-2); opacity: 1; }
+.p3-textarea:hover { border-color: var(--p3-field-edge-hover); }
+.p3-textarea:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
+.p3-field-err { margin: 0; color: var(--p3-bad-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); }
+.p3-import-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); }
+.p3-upload { cursor: pointer; }
+.p3-file { display: none; }
+
+/* Bar tiles (the owner's top-bar decision, 2026-10-05, "A · Menu bar"): Contrast, Theme, Activity and Export. No edge
+   and no fill, a mark (a glyph, or a glyph and a count) over a small label; the label drops at the narrow tier. The
+   tooltip hangs under the tile on hover and on keyboard focus, the inverse pair, and repeats the name (`dom.ts`
+   `tile`). There is no divider anywhere in the bar. */
+.p3-btn.p3-tile {
+  position: relative; flex-direction: column; gap: var(--p3-space-025); min-height: var(--p3-ctl-h); padding: 0 var(--p3-space-100);
+  border-color: transparent; background-color: transparent;
+}
+.p3-btn.p3-tile:hover { border-color: transparent; }
+.p3-tile-mark { position: relative; display: inline-flex; align-items: center; gap: var(--p3-space-050); }
+/* The label takes the text ink: the secondary ink is under 4.5:1 on the dark bar at this size. */
+.p3-tile-label { color: var(--p3-text); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-default); line-height: var(--p3-lh-compact); }
+.p3-btn.p3-tile .p3-ico.p3-tile-ok { color: var(--p3-ok-icon); }
+.p3-btn.p3-tile .p3-ico.p3-tile-bad { color: var(--p3-bad-icon); }
+.p3-tile-count { color: var(--p3-bad-text); font-size: var(--p3-fs-12); font-variant-numeric: tabular-nums; }
+/* Activity's status dot sits at the glyph's top right. */
+.p3-tile-mark > .p3-status-dot { position: absolute; top: calc(-1 * var(--p3-space-025)); right: calc(-1 * var(--p3-space-050)); }
+.p3-tile-tip {
+  display: none; position: absolute; z-index: 60; top: calc(100% + var(--p3-space-050)); right: 0; width: max-content;
+  max-width: calc(var(--p3-l-col) * 3); padding: var(--p3-space-050) var(--p3-space-100); border-radius: var(--p3-radius-md);
+  background: var(--p3-inv-bg); color: var(--p3-inv-text); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-default);
+  line-height: var(--p3-lh-cozy); white-space: normal; text-align: left; pointer-events: none;
+}
+.p3-tile-start > .p3-tile-tip { left: 0; right: auto; }
+.p3-tile:is(:hover, :focus-visible):not([aria-expanded="true"]) > .p3-tile-tip { display: block; }
+/* The plugin's second row at the narrow tier: a break and a spacer that draw nothing above it. */
+.p3-bar-break, .p3-bar-spacer2 { display: none; }
 /* A status dot. Never the only cue: the verdict's line, a mode's name and count, Health's sentence say it. */
 .p3-dot { display: inline-block; flex: none; width: var(--p3-dot); height: var(--p3-dot); border-radius: var(--p3-radius-pill); }
 .p3-dot-ok { background: var(--p3-ok-icon); }
@@ -253,9 +297,56 @@
 }
 .p3-pane-toggle { display: none; }
 
-/* ── notices: the engine error and the apply detail, legacy cards pinned light ───────────── */
-.p3-notices { padding: var(--p3-space-150) var(--p3-space-300) 0; background: var(--p3-bg-page); }
+/* ── notices: the error strip, full width under the top bar (S13.1) ──────────────────────── */
+/* Concept v6's banner: the inset ground, the danger glyph and text. In the chrome's theme, so dark in dark. */
 .p3-notices:not(:has(> :not([hidden]))) { display: none; }
+.p3-errstrip {
+  display: flex; align-items: flex-start; gap: var(--p3-space-150); padding: var(--p3-space-150) var(--p3-space-300);
+  background: var(--p3-fill-1); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); color: var(--p3-bad-text);
+  font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-cozy);
+}
+.p3-errstrip[hidden] { display: none; }
+.p3-errstrip > .p3-ico { color: var(--p3-bad-icon); margin-top: var(--p3-space-025); }
+.p3-errstrip-text { min-width: 0; overflow-wrap: anywhere; }
+
+/* ── the dialogs (S13.1): Export and the prune review, on a scrim ─────────────────────────── */
+.p3-scrim {
+  position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
+  padding: var(--p3-space-300); background: var(--p3-scrim);
+}
+.p3-dialog {
+  display: flex; flex-direction: column; width: 100%; max-width: calc(var(--p3-l-col) * 12); max-height: 100%; min-height: 0;
+  border-radius: var(--p3-radius-xl); border: var(--p3-bw-hairline) solid var(--p3-line-2); background: var(--p3-bg-page);
+  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-cozy);
+}
+.p3-dialog-head {
+  display: flex; align-items: center; gap: var(--p3-space-150); padding: var(--p3-space-150) var(--p3-space-300);
+  border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1);
+}
+.p3-dialog-title { flex: 1 1 auto; margin: 0; font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); }
+.p3-dialog-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: 0; overflow: hidden; }
+.p3-dialog-col { display: flex; flex-direction: column; gap: var(--p3-space-150); min-width: 0; padding: var(--p3-space-200) var(--p3-space-300); overflow-y: auto; }
+.p3-export-out { background: var(--p3-fill-1); border-left: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-dialog-desc { margin: 0; }
+.p3-dialog-note { margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); }
+.p3-export-seg, .p3-export-oseg { align-self: flex-start; max-width: 100%; }
+.p3-export-oseg { flex-wrap: wrap; }
+.p3-export-oseg .p3-seg-tab { flex: 0 1 auto; padding: 0 var(--p3-space-150); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
+.p3-export-set { display: grid; gap: var(--p3-space-075); }
+.p3-export-lab { font-weight: var(--p3-fw-emphasis); }
+.p3-export-files { margin: 0; font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); white-space: pre-line; overflow-wrap: anywhere; }
+.p3-export-prevs { display: grid; gap: var(--p3-space-075); min-width: 0; min-height: 0; flex: 1 1 auto; overflow: auto; align-content: start; }
+.p3-export-pname { color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); overflow-wrap: anywhere; }
+.p3-export-pre {
+  margin: 0; overflow: auto; padding: var(--p3-space-150); border-radius: var(--p3-radius-lg); border: var(--p3-bw-hairline) solid var(--p3-line-1);
+  background: var(--p3-bg-page); color: var(--p3-text); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); white-space: pre;
+}
+.p3-dialog-foot {
+  display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--p3-space-100); padding: var(--p3-space-150) var(--p3-space-300);
+  border-top: var(--p3-bw-hairline) solid var(--p3-line-1);
+}
+.p3-dialog-import { display: grid; gap: var(--p3-space-075); padding: var(--p3-space-150) var(--p3-space-300); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-dialog-import > .p3-menu-item { justify-self: start; }
 
 /* ── the legacy frame (D1) ───────────────────────────────────────────────────────────────── */
 /* No background: the legacy page draws on the legacy body's ground, as it always has. */
@@ -393,9 +484,6 @@
 .p3-frame[data-w="narrow"] :is(.p3-btn, .p3-brand) { min-height: var(--p3-ctl-h-xs); font-size: var(--p3-fs-12); }
 .p3-frame[data-w="narrow"] .p3-brand { padding: 0 var(--p3-space-100); }
 .p3-frame[data-w="narrow"] .p3-btn-icon { min-width: var(--p3-ctl-h-xs); }
-.p3-frame[data-w="narrow"] .p3-btn-collapse { padding: 0; min-width: var(--p3-ctl-h-xs); }
-.p3-frame[data-w="narrow"] .p3-btn-collapse > .p3-ico:first-child { display: block; }
-.p3-frame[data-w="narrow"] .p3-btn-collapse > :is(.p3-btn-label, .p3-ico:last-child:not(:first-child)) { display: none; }
 .p3-frame[data-w="narrow"] .p3-nav { gap: var(--p3-space-100); padding: var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-nav .p3-tabs { display: none; }
 .p3-frame[data-w="narrow"] .p3-domrow { display: flex; flex: 1 1 auto; min-width: 0; }
@@ -404,7 +492,12 @@
 .p3-frame[data-w="narrow"] .p3-subnav { padding: var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-subnav .p3-seg { display: flex; width: 100%; }
 .p3-frame[data-w="narrow"] .p3-seg-tab { padding: 0 var(--p3-space-150); }
-.p3-frame[data-w="narrow"] .p3-notices { padding: var(--p3-space-100) var(--p3-space-150) 0; }
+.p3-frame[data-w="narrow"] .p3-errstrip { padding: var(--p3-space-100) var(--p3-space-150); }
+.p3-frame[data-w="narrow"] .p3-scrim { padding: var(--p3-space-150); }
+.p3-frame[data-w="narrow"] :is(.p3-dialog-head, .p3-dialog-col, .p3-dialog-foot, .p3-dialog-import) { padding-left: var(--p3-space-150); padding-right: var(--p3-space-150); }
+.p3-frame[data-w="narrow"] .p3-dialog-body { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
+.p3-frame[data-w="narrow"] .p3-dialog-col { overflow: visible; }
+.p3-frame[data-w="narrow"] .p3-export-out { border-left: 0; border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-frame[data-layout="panes"][data-w="narrow"] {
   grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
   grid-template-areas: "bar" "notices" "nav" "subnav" "levers" "drawer";
@@ -417,8 +510,13 @@
 .p3-frame[data-w="narrow"] .p3-preview-head { flex-wrap: wrap; padding: var(--p3-space-100) var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-inspect-head { padding: 0 var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-inspect-body { padding: var(--p3-space-150); }
-.p3-frame[data-w="narrow"] .p3-verdict { justify-content: center; padding: 0; min-width: var(--p3-ctl-h-xs); min-height: var(--p3-ctl-h-xs); }
-.p3-frame[data-w="narrow"] .p3-verdict-text { display: none; }
+.p3-frame[data-w="narrow"] .p3-btn.p3-tile { min-height: var(--p3-ctl-h-xs); min-width: var(--p3-ctl-h-xs); padding: 0 var(--p3-space-050); }
+.p3-frame[data-w="narrow"] .p3-tile-label { display: none; }
+/* At 380 the Contrast tooltip hangs from the bar's left edge, so a long line stays inside the window. */
+.p3-frame[data-w="narrow"] .p3-tile-start { position: static; }
+.p3-frame[data-w="narrow"] .p3-tile-start > .p3-tile-tip { left: 0; top: 100%; }
+.p3-frame[data-w="narrow"] .p3-bar-break { display: block; flex: 0 0 100%; height: 0; }
+.p3-frame[data-w="narrow"] .p3-bar-spacer2 { display: block; flex: 1 1 auto; }
 .p3-frame[data-w="narrow"] .p3-inspect-close .p3-btn-label { display: none; }
 .p3-frame[data-layout="panes"][data-w="narrow"][data-pane="preview"] :is(.p3-levers, .p3-nav, .p3-subnav) { display: none; }
 .p3-frame[data-layout="panes"][data-w="narrow"] .p3-pane-toggle { display: inline-flex; }
@@ -500,21 +598,12 @@
 .p3-frame[data-w="narrow"] .p3-figma-wrap { position: static; }
 .p3-frame[data-w="narrow"] .p3-figma-menu { left: 0; right: 0; }
 
-/* ── the Agent chip (S1.4, IA-3; plugin only) and its popover ─────────────────────────────── */
+/* ── the Agent tile (S1.4, IA-3; T7 A, 2026-10-05; plugin only) ───────────────────────────── */
 .p3-agent-slot { display: inline-flex; }
 .p3-agent-slot:empty { display: none; }
-.p3-agent-dot { box-sizing: border-box; border: var(--p3-bw-hairline) solid var(--p3-icon-2); }
-:is(.p3-agent-chip, .p3-agent-switch)[data-on="true"] .p3-agent-dot { background: var(--p3-ok-icon); border-color: var(--p3-ok-icon); }
-.p3-agent-pop {
-  min-width: 0; width: calc(7 * var(--p3-ctl-h)); gap: var(--p3-space-150); padding: var(--p3-space-200);
-  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-normal);
-}
-.p3-agent-head { display: flex; align-items: center; justify-content: space-between; gap: var(--p3-space-150); }
-.p3-agent-title { font-weight: var(--p3-fw-emphasis); }
-.p3-agent-line { margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: normal; overflow-wrap: anywhere; }
-/* At 380 the popover spans the top row, under it, rather than hanging from a chip near the middle. */
-.p3-frame[data-w="narrow"] .p3-agent-slot > .p3-popwrap { position: static; }
-.p3-frame[data-w="narrow"] .p3-agent-pop { left: 0; right: 0; width: auto; }
+/* The Agent tile's dot (T7 A): green, at the glyph's bottom right, while the link is on; nothing while it is off. */
+.p3-agent-dot { display: none; position: absolute; right: calc(-1 * var(--p3-space-050)); bottom: calc(-1 * var(--p3-space-025)); background: var(--p3-ok-icon); }
+.p3-tile[data-on="true"] .p3-agent-dot { display: block; }
 
 /* ── the levers panel (S2 on): sections as white cards on the gray panel (IA-2, V7) ────────── */
 .p3-levers-body {

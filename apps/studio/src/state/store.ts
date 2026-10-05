@@ -110,8 +110,10 @@ export type HostTopic =
  *  wholesale load). `origin`: the provenance was reassigned. `mode`: the mode being viewed. `page`: the
  *  rail destination. `search`: the settings search query. `search:hits`: how many settings it matched on
  *  the page in view. `identity`: the brand's name or namespace moved WITHOUT a rebuild (`syncIdentity`, UI
- *  redesign S3), so whatever shows the name repaints without a re-resolve. Plus the host topics above. */
-export type Topic = 'brand' | 'origin' | 'mode' | 'page' | 'search' | 'search:hits' | 'identity' | HostTopic;
+ *  redesign S3), so whatever shows the name repaints without a re-resolve. `bar`: the top bar's own state moved (a
+ *  menu or dialog opened or closed, an import staged; UI redesign S13.1), which `shell/bar.ts` repaints from. Plus the
+ *  host topics above. */
+export type Topic = 'brand' | 'origin' | 'mode' | 'page' | 'search' | 'search:hits' | 'identity' | 'bar' | HostTopic;
 const subscribers = new Map<Topic, Set<() => void>>();
 
 /** Call `fn` whenever `topic` is invalidated. Returns the unsubscribe. */

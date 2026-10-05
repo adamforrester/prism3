@@ -21,7 +21,7 @@
 import { currentMode, rp, setCurrentMode, subscribe, theme } from '../state/store';
 import { breadthLine, healthLine, isDerived, modeLine, verdictLine, verdictOf, type Verdict } from '../state/verdict';
 import { INSPECT, type InspectId } from './pages';
-import { glyph, h, hook } from './dom';
+import { glyph, h, hook, tile } from './dom';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { buildChip, buildTitle } from '../build-identity';
 
@@ -148,19 +148,22 @@ export const modeControl = (cleanups: (() => void)[]): HTMLElement => {
 };
 
 // ── the verdict on the top bar ─────────────────────────────────────────────────────────────────────
-/** The verdict: a dot and the line, which opens Inspect › Contrast. At narrow widths only the dot shows;
- *  the name carries the line either way. */
+/** Contrast, a bar tile (the owner's top-bar decision, 2026-10-05): a check while every pair passes, a warning
+ *  glyph and the count below floor otherwise, over the label "Contrast". The verdict's line is the tooltip; the
+ *  name carries the line in every tier, unchanged ("Verdict: <line>. Open Inspect, Contrast"). A click opens
+ *  Inspect › Contrast, as before. */
 export const verdictButton = (open: (opener: HTMLElement) => void, cleanups: (() => void)[]): HTMLButtonElement => {
-  const b = hook(h('button', 'p3-verdict'), 'verdict');
-  b.type = 'button';
+  const { btn: b, mark, tip } = tile('verdict', 'Contrast', true);
   const paint = (): void => {
     const v = verdict();
     const line = verdictLine(v);
     if (b.dataset.line === line) return;   // unchanged: no redraw (S2, as the mode control)
     b.dataset.line = line;
-    const dot = h('span', v.fail ? 'p3-dot p3-dot-bad' : 'p3-dot p3-dot-ok');
-    dot.setAttribute('aria-hidden', 'true');
-    b.replaceChildren(dot, h('span', 'p3-verdict-text', line));
+    const g = glyph(v.fail ? 'warn' : 'check');
+    g.classList.add(v.fail ? 'p3-tile-bad' : 'p3-tile-ok');
+    if (v.fail) mark.replaceChildren(g, hook(h('span', 'p3-tile-count', String(v.fail)), 'verdict-count'));
+    else mark.replaceChildren(g);
+    tip.textContent = line;
     b.dataset.state = v.fail ? 'fail' : 'ok';
     b.setAttribute('aria-label', `Verdict: ${line}. Open Inspect, Contrast`);
   };
