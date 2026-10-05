@@ -30,3 +30,8 @@
 | a variable boxed below the table level | "tree: below the table level nothing carries a box (100, 200, 4, 8, …)", "tree: each collection folds …" |
 | REM on by default | "draw: the defaults (H4–H9): Hex, from each token's role, REM off, Name cell off" |
 | the selection always sent as keys | "draw: every table selected sends no tables filter, so the run judges superseded tables" |
+| the drawer never quiet (frame's `quiet` always false) | "P1, P11: Activity records the run in its "Style guides" row and does not open by itself while the page shows it (open true…)", "P1 (call 11): a failure the page shows marks Activity, and the drawer stays closed (open true…)" |
+| Draw on before Set up file | "P8: Set up file not run: a warning with its button, and Draw off, described by the warning (…disabled false…)" |
+| Draw it again by title, not key | "P6: Draw it again draws Primary alone, by key, and the title box names it (["Primary"], …)" |
+
+**Trap.** Playwright will not click an `aria-disabled` control, and waits for it to be enabled until its timeout. Checking that a later-phase box ignores a click needs `{ force: true }`. Also, `window.postMessage` to itself is asynchronous, so a read straight after a click misses the message the click posted. Settle first.
