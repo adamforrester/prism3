@@ -1896,6 +1896,16 @@ const buildTypography = (t: TypographyInput = {}): Typography => {
   const families = deriveFamilies(t.families);
   const wr = { ...WEIGHT_ROLE_DEFAULT, ...(t.weightRoles ?? {}) };
   const fluid = t.responsive?.fluid ?? true;
+  // #2068 (owner decision 2026-10-05: refuse). The fluid clamp() interpolates from minViewport to
+  // maxViewport and divides by their difference (`fluidClamp`, tree.ts), so an equal pair emitted
+  // `-Infinityrem + Infinityvw` (invalid CSS, the declaration dropped) and an inverted one a clamp() that
+  // shrinks as the viewport grows, both building clean. Refused whether or not `fluid` is on (owner decision
+  // Q16 = a): the pair is what the fluid regime reads, and a brand that turns fluid on later would inherit it.
+  const vpMin = t.responsive?.minViewport ?? 375, vpMax = t.responsive?.maxViewport ?? 1280;
+  // The wording is the owner's, approved 2026-10-05 on #2068: one sentence for both the equal and the
+  // inverted pair, with the two values as entered.
+  if (vpMin >= vpMax)
+    throw new Error(`The minimum viewport (${vpMin}px) must be smaller than the maximum viewport (${vpMax}px).`);
   return {
     families,
     typefaces: deriveTypefaces(t.typefaceLibrary, families),
@@ -2088,6 +2098,13 @@ const resolveGap = (override: number | undefined, ladder: number, field: string,
 
 const buildLayout = (input: BrandInput['layout'] = {}): LayoutAxis => {
   const floors = input.breakpoints ?? [0, 768, 1024, 1440, 1920];
+  // #2132 (owner decision 2026-10-05, F4 A: refuse). Breakpoints are mobile-first min-widths, so the first
+  // is the layout for every width below the second: a first floor of 320 leaves screens under 320px with
+  // no layout. The studio locks the field at 0, so only a hand-written brief or saved file reaches this.
+  // The wording is the owner's, approved on #2132, with the value as entered. An EMPTY list has no first
+  // value to name and is not this rule (#2137).
+  if (floors.length > 0 && floors[0] !== 0)
+    throw new Error(`The first breakpoint must be 0px. This brand starts at ${floors[0]}px.`);
   const base = input.columns ?? 12;
   const n = floors.length;
   const names = bpNames(n);

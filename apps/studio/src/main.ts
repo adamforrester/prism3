@@ -1292,7 +1292,7 @@ const renderStyleGuidePage = (host: PageHost): void => {
   // CUSTOMIZE — folded by default: every option has a default, so the button alone draws the common case.
   const det = hook(el('details', 'contracts') as HTMLDetailsElement, 'style-guide-customize');
   const sum = el('summary', 'contracts-sum');
-  sum.append(el('span', 'contracts-t', 'Customize'), el('span', 'contracts-hint', 'value format · header · display style · columns'));
+  sum.append(el('span', 'contracts-t', 'Customize'), el('span', 'contracts-hint', 'value format · header · display style · columns · tables'));
   det.append(sum);
   const pick = <K extends 'valueFormat' | 'header' | 'display'>(key: K, opts: [string, string][], fallback: string): HTMLSelectElement => {
     const s = selectEl();
@@ -1307,6 +1307,7 @@ const renderStyleGuidePage = (host: PageHost): void => {
       'The specimen each row draws. By default a text role draws “Aa”, a border role an outline, an icon role a diamond, and a translucent value a checkerboard.'), 'style-guide-display'),
     knob('Aliases', toggleField(styleGuideOptions.aliases ?? true, (on) => { styleGuideOptions.aliases = on; }), 'Show the primitive each value aliases, as a chip beside it.'),
     knob('Description', toggleField(styleGuideOptions.description ?? true, (on) => { styleGuideOptions.description = on; }), 'Add a column with each variable’s description.'),
+    hook(knob('Tables', tablesField(), 'Draws only the tables named, by title (Primary — nbds): one a line, or several on one line separated by commas. A title with a comma in it goes on a line of its own. Empty draws every table.'), 'style-guide-tables'),
   );
   sec.append(det);
 
@@ -1316,7 +1317,7 @@ const renderStyleGuidePage = (host: PageHost): void => {
   styleGuideBtn = btn;
   btn.title = 'Draws the color tables from this file’s variables. Safe to re-run — it updates tables in place.';
   btn.onclick = () => {
-    setHost({ styleGuideState: 'pending', openDetail: null });
+    setHost({ styleGuideState: 'pending', styleGuideProgress: null, openDetail: null });
     hostChanged(); syncStyleGuideRow();
     commit.postStyleGuide({ ...styleGuideOptions });
   };
@@ -1325,6 +1326,38 @@ const renderStyleGuidePage = (host: PageHost): void => {
   sec.append(row);
   host.append(sec);
 };
+
+/** The Tables filter (#1778): table titles, sent as `tables` and left out when empty. One title a line, or
+ *  several on one line separated by commas: a field with a line break splits on line breaks ONLY, so a title
+ *  with a comma in it survives on a line of its own. A text field rather than a checklist of titles: the titles
+ *  are the main thread's plan of this file's variables, which the panel does not hold until a run reports them.
+ *  A name that matches nothing comes back in the verdict with the titles this run can draw. */
+const tableNames = (text: string): string[] =>
+  text.split(/\r?\n/.test(text) ? /\r?\n/ : ',').map((x) => x.trim()).filter(Boolean);
+const tablesField = (): HTMLTextAreaElement => {
+  const input = el('textarea', 'tf-in') as HTMLTextAreaElement;
+  input.rows = 2; input.spellcheck = false; input.placeholder = 'Every table';
+  input.setAttribute('aria-label', 'Tables to draw: one a line, or separated by commas');
+  const kept = styleGuideOptions.tables ?? [];
+  // Shown again the way it reads back: a line each (every line closed, so one title still reads as a line)
+  // once any title holds a comma.
+  input.value = kept.some((x) => x.includes(',')) ? kept.map((x) => `${x}\n`).join('') : kept.join(', ');
+  input.oninput = () => {
+    const names = tableNames(input.value);
+    if (names.length) styleGuideOptions.tables = names; else delete styleGuideOptions.tables;
+  };
+  return input;
+};
+
+/** The style guide's live pending text (#1778): the table being drawn, counted from 1. Before the first
+ *  reading, and from a host build older than this one, the pre-#1778 string. The reading is the panel's own
+ *  run's, or else an agent's (owner decision Q19 b): one text for both. */
+const styleGuidePendingText = (): string => {
+  const p = host.styleGuideState === 'pending' ? host.styleGuideProgress : agentReading('styleguide');
+  return p ? `Drawing table ${Math.min(p.done + 1, p.total)} of ${p.total}…` : PENDING_TEXT.styleguide;
+};
+/** The live style-guide pending pills, for `componentPendingEls`' reason: rewritten in place on `host:progress`. */
+const styleGuidePendingEls = new Set<HTMLElement>();
 
 /** The style-guide row's status, refreshed in place (#259): the build's and file setup's old row mechanism (#870), in
  *  its own slot. `staged` is true on the render path, where the row is built detached and reconciled in (#771); the
@@ -1335,13 +1368,20 @@ const syncStyleGuideRow = (opts: { staged?: true } = {}): void => {
   const row = styleGuideRow;
   if (!row || !styleGuideBtn) return;
   if (!opts.staged && !row.isConnected) return;
-  const pending = host.styleGuideState === 'pending';
+  // #1785: busy while an agent's style guide draws too (owner decision #4 on #1956, the other writes' rule), so
+  // the panel cannot start a second run over it. The main thread's run guard (#1957) refuses one regardless.
+  // An agent's run shows on the row as the panel's own pending run does, its table count included (Q19 b).
+  const byAgent = host.styleGuideState !== 'pending' && agentRunning('styleguide');
+  const pending = host.styleGuideState === 'pending' || byAgent;
   styleGuideBtn.textContent = pending ? '… Drawing…' : `▦ ${STYLE_GUIDE_LABEL}`;
   styleGuideBtn.disabled = pending;
   row.querySelector(':scope > .bar-seed, :scope > .applystat')?.remove();
-  if (host.styleGuideState) row.prepend(renderApplyStatus(host.styleGuideState, 'styleguide'));
+  const shown = byAgent ? 'pending' : host.styleGuideState;
+  if (shown) row.prepend(renderApplyStatus(shown, 'styleguide'));
 };
 subscribe('host:styleguide', () => syncStyleGuideRow());
+// An agent's run starting or ending is told on `host` (`agent-started`, `agent-finished`).
+subscribe('host', () => syncStyleGuideRow());
 
 // Font availability (`fontAvailable`, `faceStatus`) and the advisory weight map (`knownWeightsOf`,
 // `WEIGHT_NAME`) live in `ui/fonts.ts` (UI redesign S6.1). The Type controls and the fixed ladders the legacy
@@ -2684,7 +2724,7 @@ const renderPruneDialog = (): HTMLElement => {
  *  restart at 1, which reads as a build that failed and started over. Naming the phase makes the reset
  *  the expected thing it is.
  *
- *  Before the first boundary reports there is no fraction to show, so this is the pre-#684 string — which
+ *  Before the first boundary reports there is no fraction to show, so this is `firstPhase` (#2088) — which
  *  is also what a host build older than this one leaves on screen for the whole build.
  *
  *  NOT SUBJECT TO THE 24-CHAR PILL BUDGET, unlike the headlines in `apply-summary.ts`: pending renders as
@@ -2692,7 +2732,7 @@ const renderPruneDialog = (): HTMLElement => {
  *  verdict. The longest string here is "Wiring references… 648 of 648" at 29 characters. */
 const componentPendingText = (): string => {
   const p = host.componentProgress;
-  if (!p) return 'Building the Button set…';
+  if (!p) return firstPhase();
   // #1679: the reference back-off's waits. Owner's wording, and no fraction — a pass count is not progress
   // through the set, and the waits grow, so "3 of 6" would suggest the pause is half over when it is not.
   if (p.phase === 'retry') return 'Retrying property links…';
@@ -2736,6 +2776,12 @@ subscribe('host:progress', () => {
     if (node.isConnected) node.textContent = text;
     else componentPendingEls.delete(node);
   }
+  // #1778: the style guide's pills, the same way.
+  const sg = styleGuidePendingText();
+  for (const node of styleGuidePendingEls) {
+    if (node.isConnected) node.textContent = sg;
+    else styleGuidePendingEls.delete(node);
+  }
 });
 
 function renderApplyStatus(state: Exclude<HostSession['applyState'], null>, which: DetailKey): HTMLElement {
@@ -2751,7 +2797,12 @@ function renderApplyStatus(state: Exclude<HostSession['applyState'], null>, whic
     // File setup posts a single terminal result with no progress boundaries (#1558), so its pending text
     // is static like the theme write's rather than cached like the component build's.
     if (which === 'filesetup') return pendingPill(PENDING_TEXT.filesetup);
-    if (which === 'styleguide') return pendingPill(PENDING_TEXT.styleguide);
+    if (which === 'styleguide') {
+      // #1778: the run reports each table, so this pill is cached for in-place updates like the component build's.
+      const node = pendingPill(styleGuidePendingText());
+      styleGuidePendingEls.add(node);
+      return node;
+    }
     const node = pendingPill(componentPendingText());
     // ADDED, not assigned (#870). Two hosts render this pill and both can be live at once; see
     // `componentPendingEls` for the measurement that an assignment left one of them frozen.
@@ -2794,15 +2845,32 @@ const closeOpenDetail = (): void => { if (host.openDetail === null) return; setH
 /** The static pending texts, one per write that has one: the page rows' pills and the Activity drawer's
  *  phase line read the same words. */
 const PENDING_TEXT = { apply: 'Writing to Figma…', filesetup: 'Setting up file…', styleguide: 'Drawing the style guide…' } as const;
+/** The phase line before a build's first boundary reports (#2088). A build the panel started names its set,
+ *  by the catalog's display name for the id it posted (`componentDef`); one an agent started is a set the panel
+ *  was not told, so the line names none (the owner's wording, 2026-10-05). Before #2088 this said "Button"
+ *  whatever was building, a leftover from when Button was the only set (#718). */
+const firstPhase = (): string => {
+  const id = host.componentState === 'pending' ? host.componentDef : null;
+  const name = id === null ? undefined : componentCatalog().find((e) => e.id === id)?.name;
+  return name ? `Building the ${name} set…` : 'Building the set…';
+};
 /** The component build's phase and progress, from either reading (the panel's or the agent's). The words
  *  are `componentPendingText`'s, with the fraction moved to the progress bar. */
 const componentPhase = (p: HostSession['componentProgress']): Pick<OpReading, 'phase' | 'progress'> =>
-  !p ? { phase: 'Building the Button set…', progress: null }
+  !p ? { phase: firstPhase(), progress: null }
     : p.phase === 'retry' ? { phase: 'Retrying property links…', progress: null }
       : { phase: p.phase === 'build' ? 'Building members…' : 'Wiring references…', progress: { done: p.done, total: p.total } };
 const IDLE: OpReading = { state: 'idle', ref: null, verdict: null, summary: null, phase: null, progress: null, agent: false };
 /** True while the agent's command for `k` runs and its verdict has not landed. */
 const agentRunning = (k: OpKey): boolean => !!host.agentRun && host.agentRun.op === k && !host.agentRun.settled;
+/** The running agent command's own reading for `k`, or null. */
+const agentReading = (k: OpKey): NonNullable<HostSession['agentRun']>['progress'] =>
+  agentRunning(k) ? host.agentRun!.progress : null;
+/** An agent build's reading, in the panel build's shape (a style guide's `table` phase is not a build's). */
+const agentBuildReading = (): HostSession['componentProgress'] => {
+  const r = agentReading('components');
+  return r && r.phase !== 'table' ? { phase: r.phase, done: r.done, total: r.total } : null;
+};
 /** One operation as the Activity drawer reads it (S11). Running when the panel's own slot is pending, or
  *  the agent's command for it runs (`agentRun`); `ref` is `'pending'` or the agent run's id then, so a run
  *  that ends with no verdict is the slot's old value coming back. `agent` is true while an agent's command
@@ -2858,9 +2926,9 @@ const activityReading = (): ActivityReading => {
     ops: {
       apply: opReading('apply', host.applyState === 'pending', verdictOf(host.applyState), fixed(PENDING_TEXT.apply)),
       components: opReading('components', host.componentState === 'pending', verdictOf(host.componentState),
-        () => componentPhase(host.componentState === 'pending' ? host.componentProgress : host.agentRun?.progress ?? null)),
+        () => componentPhase(host.componentState === 'pending' ? host.componentProgress : agentBuildReading())),
       filesetup: opReading('filesetup', host.fileSetupState === 'pending', verdictOf(host.fileSetupState), fixed(PENDING_TEXT.filesetup)),
-      styleguide: opReading('styleguide', host.styleGuideState === 'pending', verdictOf(host.styleGuideState), fixed(PENDING_TEXT.styleguide)),
+      styleguide: opReading('styleguide', host.styleGuideState === 'pending', verdictOf(host.styleGuideState), () => ({ phase: styleGuidePendingText(), progress: null })),
       prune: opReading('prune', !!host.pruneBusy,
         pv ? { state: pv.ok ? 'ok' : 'bad', ref: pv, verdict: pruneShort(pv), summary: pv.summary }
           : pp ? { state: 'ok', ref: pp, verdict: pruneShort({ ok: true, applied: false, count: pp.count }), summary: pp.summary } : null,

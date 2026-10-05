@@ -111,6 +111,9 @@ export type HostMessage =
   // #259 — the outcome of a `style-guide` run, its own slot.
   | { kind: 'style-guide-result'; ok: boolean; headline: string; summary: string }
   | { kind: 'component-progress'; phase: 'build' | 'wire' | 'retry'; done: number; total: number; chunkMs: number }
+  // #1778 — how far a style-guide run has got: `done` of `total` tables. Non-terminal, like
+  // `component-progress`, so it belongs in the style guide's pending state, never its verdict slot.
+  | { kind: 'style-guide-progress'; done: number; total: number }
   // #1521 — a prune preview (`applied: false`, `count` = what would be removed) or its outcome
   // (`applied: true`, `count` = what was removed). The UI reads `count` on a preview to decide
   // whether to open its confirm dialog, and `applied` to tell a preview from a verdict.
@@ -118,7 +121,8 @@ export type HostMessage =
   // UI redesign S11: an agent command's start, its build progress, and its end, for the Activity drawer.
   // `cmd` stays a string here; which commands have an operation to show is the host session's call.
   | { kind: 'agent-started'; id: string; cmd: string }
-  | { kind: 'agent-progress'; id: string; phase: 'build' | 'wire' | 'retry'; done: number; total: number }
+  // A style guide's reading arrives as phase `table` (#1778): `done` of `total` tables drawn.
+  | { kind: 'agent-progress'; id: string; phase: 'build' | 'wire' | 'retry' | 'table'; done: number; total: number }
   | { kind: 'agent-finished'; id: string }
   // #1957: a write the main thread declined because a run of the same operation was already going. Not a
   // verdict, so it is its own kind: `cmd` is the operation's agent-command name, `agent` whose request it was.
@@ -246,6 +250,12 @@ const progressReading = (m: { phase?: unknown; done?: unknown; total?: unknown }
   const phase = m.phase === 'build' || m.phase === 'wire' || m.phase === 'retry' ? m.phase : null;
   return phase && done !== null && total !== null && total > 0 ? { phase, done, total } : null;
 };
+/** A style guide's reading (#1778): `done` of `total` tables, `null` when the numbers are unusable. */
+const tableReading = (m: { done?: unknown; total?: unknown }): { done: number; total: number } | null => {
+  const done = count(m.done);
+  const total = count(m.total);
+  return done !== null && total !== null && total > 0 && done <= total ? { done, total } : null;
+};
 const isId = (x: unknown): x is string => typeof x === 'string' && x.length > 0;
 
 /** One entry per `MainToUi` kind, keyed by the union itself, so a kind added in `messages.ts` is a compile
@@ -269,6 +279,11 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
     // is milliseconds away, so a "0 of 0" is strictly worse than the previous reading staying put.
     const r = progressReading(m);
     return r ? { kind: 'component-progress', ...r, chunkMs: count(m.chunkMs) ?? 0 } : null;
+  },
+  'style-guide-progress': (m) => {
+    // #1778. Validated and dropped when unusable, for the `component-progress` reason above.
+    const r = tableReading(m);
+    return r ? { kind: 'style-guide-progress', ...r } : null;
   },
   'prune-result': (m) => {
     // #1521. `count` and `applied` are validated at the boundary like the other numeric/flag fields
@@ -315,7 +330,10 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   'agent-link-state': null,
   'agent-result': null,
   'agent-progress': (m) => {
-    const p = m.progress && typeof m.progress === 'object' ? progressReading(m.progress as Record<string, unknown>) : null;
+    const raw = m.progress && typeof m.progress === 'object' ? m.progress as Record<string, unknown> : null;
+    // An agent's style guide reads phase `table` (#1778, owner decision Q19 b); a build reads its own phases.
+    const t = raw && raw.phase === 'table' ? tableReading(raw) : null;
+    const p = t ? { phase: 'table' as const, ...t } : raw ? progressReading(raw) : null;
     return p && isId(m.id) ? { kind: 'agent-progress', id: m.id, ...p } : null;
   },
   'agent-log': null,
