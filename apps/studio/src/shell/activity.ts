@@ -38,7 +38,7 @@ import type { Host } from './pages';
 import { glyph, h, hook, tile } from './dom';
 
 /** Whether the plugin's agent link is on (the owner's top-bar decision, 2026-10-05: Activity's name and tooltip say
- *  "agent link on" while it is). The plugin's Agent chip (`apps/plugin/src/agent-link-ui.ts`) reports each state the
+ *  "agent link on" while it is). The plugin's Agent tile (`apps/plugin/src/agent-link-ui.ts`) reports each state the
  *  main thread publishes; the studio never sets it, so on the web it stays off. */
 let agentLinkOn = false;
 const linkWatchers = new Set<() => void>();

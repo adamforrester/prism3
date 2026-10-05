@@ -1,8 +1,9 @@
 /**
  * The plugin iframe's entry (#110 + the agent link). It IS the shared studio UI — `apps/studio/src/entry.ts`,
  * the studio's own entry, imported whole and unchanged (one UI, no fork) — plus the one plugin-only control that is not part of it:
- * the Agent chip (`agent-link-ui.ts`), which it places in the top bar's `bar-agent` slot (IA-3). Mounted here
- * rather than inside the studio's body, so the web build carries none of it.
+ * the Agent tile (`agent-link-ui.ts`, T7), which it places in the top bar's `bar-agent` slot (IA-3). Mounted here
+ * rather than inside the studio's body, so the web build carries none of it. It also keeps the plugin's Theme choice
+ * (below).
  */
 // The component catalog, computed from the definitions this bundle carries, provided BEFORE the studio evaluates
 // (an import's body runs in import order), so the studio's Components page reads it from its first render (S8.1).

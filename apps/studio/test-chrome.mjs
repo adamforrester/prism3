@@ -438,7 +438,7 @@ const BAR = ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="act
 /** The plugin's own top-bar controls (S1.4): the Pages menu (the plugin keeps it for the Style guide until S11.2; the web
  *  draws none since S8.2, owner decision G19 A, which section 26 holds), the Agent chip (IA-3), the Figma menu, and Apply
  *  Theme. */
-const FIGMA_BAR = ['[data-p3="pages-menu"]', '[data-p3="agent-chip"]', '[data-p3="theme-toggle"]', '[data-p3="figma-open"]', '[data-p3="apply-to-figma"]'];
+const FIGMA_BAR = ['[data-p3="pages-menu"]', '[data-p3="agent-toggle"]', '[data-p3="theme-toggle"]', '[data-p3="figma-open"]', '[data-p3="apply-to-figma"]'];
 const EXPECT_CONTROLS = {
   'web wide': [...BAR, '[data-p3="theme-toggle"]', ...TABS, ...COLOR_SUBS],
   'web narrow': [...BAR, '[data-p3="theme-toggle"]', '[data-p3="tab-select"]', ...COLOR_SUBS],
@@ -516,8 +516,8 @@ const FLOORS = {
 const FOCUS_STOPS = {
   'web wide': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="theme-toggle"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="tab-color"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
   'web narrow': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="theme-toggle"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
-  'figma wide': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="agent-chip"]', '[data-p3="theme-toggle"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="figma-open"]', '[data-p3="apply-to-figma"]', '[data-p3="tab-color"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
-  'figma narrow': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="agent-chip"]', '[data-p3="theme-toggle"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="figma-open"]', '[data-p3="apply-to-figma"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
+  'figma wide': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="theme-toggle"]', '[data-p3="agent-toggle"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="figma-open"]', '[data-p3="apply-to-figma"]', '[data-p3="tab-color"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
+  'figma narrow': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="theme-toggle"]', '[data-p3="agent-toggle"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="figma-open"]', '[data-p3="apply-to-figma"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
 };
 const PLACE_FLOOR = { text: 9, edges: 10, glyphs: 3, controls: 12, fonts: 9 };
 /** Inspect at 380: the tab row is a select and the bar is glyphs, so fewer chrome words are drawn. */
@@ -1600,11 +1600,8 @@ const FIGMA_EFFECT = { apply: ['apply-theme'], prune: ['prune:false'], 'file-set
 const PRUNE_LABEL = { preview: '… Checking…', delete: '… Removing…' };
 /** The drawer's note, per host: concept v6's plugin line, and the studio's own. Literal. */
 const DRAWER_NOTE = { figma: 'Results of Apply, Build and Prune appear here after they run.', web: 'Nothing has run in this session.' };
-const AGENT_LINE = 'Lets an agent on this computer run Prism3 commands in this file. Off at every launch; only you can turn it on.';
 /** An agent-link state the main thread could publish, and the status line it must read as (today's words). */
 const AGENT_ON = { v: 1, on: true, since: '2026-10-01T09:00:00.000Z', engineVersion: 'x', build: 'x', pollMs: 1000, transports: { mailbox: true, bridge: false }, lastCommand: null, inboxError: null };
-const AGENT_ON_LINE = 'Listening — file mailbox, every 1 s · no command yet';
-const AGENT_OFF_LINE = 'Off — agent commands are ignored.';
 /** What each write must carry on the wire, worked out without the UI: the brand the page loaded is the
  *  committed `schema/example-brands.json`'s prism3 (the start screen's chip), and no edit is made in this
  *  section, so Apply and Prune must post that input whole. Shapes from `apps/plugin/src/messages.ts`. */
@@ -1724,74 +1721,62 @@ for (const host of ['web', 'figma']) {
           await shot('drawer-collapsed');
           const bar = await page.locator('[data-p3="top-bar"]').count();
           hooks.absent(ok, { seen: bar === 1, state: 'the studio\'s top bar' }, await page.locator('[data-p3="figma-open"]').count() === 0, `${where}: the studio offers no Figma menu`);
-          hooks.absent(ok, { seen: bar === 1, state: 'the studio\'s top bar' }, await page.locator('[data-p3="bar-agent"]').count() === 0 && await page.locator('[data-p3="agent-chip"]').count() === 0, `${where}: the studio renders no Agent slot or chip`);
+          hooks.absent(ok, { seen: bar === 1, state: 'the studio\'s top bar' }, await page.locator('[data-p3="bar-agent"]').count() === 0 && await page.locator('[data-p3="agent-toggle"]').count() === 0, `${where}: the studio renders no Agent slot or tile`);
           ok(errors.length === 0, `${where} Activity: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
           continue;
         }
 
-        // ── the Agent chip (IA-3), in the top bar; the bottom-left chip is gone (D6) ───────────────
+        // ── the Agent tile (IA-3; the owner's T7 A, 2026-10-05), in the top bar; the bottom-left chip is gone (D6) ──
+        // A borderless tile between Theme and Activity, its glyph over "Agent" (the label drops at the narrow tier). A
+        // click posts the same `agent-link` request the old popover's switch did; the main thread's published state is
+        // what the tile shows: "Agent, off" / "Agent, on", aria-pressed, and a green dot only while on.
+        const agentState = () => page.evaluate(() => {
+          const c = document.querySelector('[data-p3="top-bar"] [data-p3="bar-agent"] [data-p3="agent-toggle"]');
+          const dot = c?.querySelector('[data-p3="agent-dot"]');
+          const lab = c?.querySelector('.p3-tile-label');
+          const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).display !== 'none' && getComputedStyle(n).visibility !== 'hidden'; };
+          return { inBar: !!c, name: c?.getAttribute('aria-label') ?? null, pressed: c?.getAttribute('aria-pressed') ?? null, dot: vis(dot), label: vis(lab) ? lab.textContent : null,
+            tip: c?.querySelector('[data-p3="agent-toggle-tip"]')?.textContent ?? null };
+        });
         const chip = await page.evaluate(() => {
           const frame = document.querySelector('[data-p3="frame"]');
-          const c = document.querySelector('[data-p3="top-bar"] [data-p3="bar-agent"] [data-p3="agent-chip"]');
           // Anything outside the frame that names an agent or holds a control: where the old chip was mounted.
           const outside = [...document.body.querySelectorAll('*')].filter((e) => !frame.contains(e) && !e.contains(frame) && !['SCRIPT', 'STYLE'].includes(e.tagName));
           return {
-            inBar: !!c, name: c?.getAttribute('aria-label') ?? null, text: c?.textContent ?? null,
-            old: !!document.querySelector('#p3-agent-link'),
+            inBar: !!document.querySelector('[data-p3="top-bar"] [data-p3="bar-agent"] [data-p3="agent-toggle"]'),
+            old: !!document.querySelector('#p3-agent-link'), popover: !!document.querySelector('.p3-agent-chip, .p3-agent-pop'),
             strays: outside.filter((e) => /agent/i.test(e.textContent ?? '') || e.querySelector('button')).map((e) => `${e.tagName.toLowerCase()}${e.id ? `#${e.id}` : ''}`),
           };
         });
-        ok(chip.inBar && chip.name === 'Agent: Off', `IA-3 ${where}: the Agent chip sits in the top bar's Agent slot and is named "Agent: Off" (${JSON.stringify({ inBar: chip.inBar, name: chip.name })})`);
-        if (!narrow) ok(chip.text === 'Agent: Off', `IA-3 ${where}: the Agent chip reads "Agent: Off" (reads "${chip.text}")`);
-        hooks.absent(ok, { seen: chip.inBar, state: 'the Agent chip in the top bar' }, !chip.old && chip.strays.length === 0,
-          `D6 ${where}: the bottom-left agent chip is gone — nothing outside the frame names an agent or holds a button (found ${JSON.stringify(chip.strays)}, #p3-agent-link ${chip.old ? 'present' : 'absent'})`);
+        const a0 = await agentState();
+        ok(a0.inBar && a0.name === 'Agent, off' && a0.pressed === 'false' && !a0.dot && a0.tip === 'Agent, off' && a0.label === (narrow ? null : 'Agent'),
+          `T7 ${where}: the Agent tile sits in the top bar's Agent slot, named "Agent, off", not pressed, no dot, ${narrow ? 'its label dropped' : 'labelled "Agent"'} (${JSON.stringify(a0)})`);
+        hooks.absent(ok, { seen: chip.inBar, state: 'the Agent tile in the top bar' }, !chip.old && !chip.popover && chip.strays.length === 0,
+          `D6 ${where}: the old chips are gone — no bottom-left chip, no Agent chip or popover, and nothing outside the frame names an agent or holds a button (found ${JSON.stringify(chip.strays)}, #p3-agent-link ${chip.old ? 'present' : 'absent'}, chip or popover ${chip.popover ? 'present' : 'absent'})`);
         const slot = await page.evaluate(() => { const s0 = document.querySelector('[data-p3="bar-agent"]'); s0.__p3Mark = 'slot'; return true; });
-        // A re-render of the legacy bar (the Pages menu opening and closing) keeps the same slot, chip inside.
+        // A re-render of the legacy bar (the Pages menu opening and closing) keeps the same slot, tile inside.
         await hooks.click(page.locator('[data-p3="pages-menu"]'), WAIT);
         await hooks.click(page.locator('[data-p3="pages-menu"]'), WAIT);
-        const kept = await page.evaluate(() => { const s1 = document.querySelector('[data-p3="bar-agent"]'); return s1?.__p3Mark === 'slot' && !!s1.querySelector('[data-p3="agent-chip"]'); });
-        ok(slot && kept, `IA-3 ${where}: the Agent slot is the same node after the bar re-renders, and still holds the chip`);
-        await hooks.click(page.locator('[data-p3="agent-chip"]'), WAIT);
-        await hooks.need(page, '[data-p3="agent-popover"]', WAIT);
-        const pop = await page.evaluate(() => ({
-          sw: document.querySelector('[data-p3="agent-switch"]')?.getAttribute('role'), checked: document.querySelector('[data-p3="agent-switch"]')?.getAttribute('aria-checked'),
-          lines: [...document.querySelectorAll('[data-p3="agent-popover"] p')].map((n) => n.textContent), status: document.querySelector('[data-p3="agent-status"]')?.textContent,
-          focus: document.activeElement?.getAttribute('data-p3'), expanded: document.querySelector('[data-p3="agent-chip"]')?.getAttribute('aria-expanded'),
-        }));
-        ok(pop.sw === 'switch' && pop.checked === 'false' && pop.focus === 'agent-switch' && pop.expanded === 'true', `IA-3 ${where}: the chip opens its popover on the switch, off (${JSON.stringify({ sw: pop.sw, checked: pop.checked, focus: pop.focus })})`);
-        ok(pop.lines[0] === AGENT_LINE && pop.status === AGENT_OFF_LINE, `IA-3 ${where}: the popover says what the link does and that it is off (${JSON.stringify(pop.lines)})`);
-        const mc = await measure(page, `${where} / Agent popover`, host, w);
-        check(mc, `${where} / Agent popover`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="agent-switch"]'] });
-        await shot('agent');
+        const kept = await page.evaluate(() => { const s1 = document.querySelector('[data-p3="bar-agent"]'); return s1?.__p3Mark === 'slot' && !!s1.querySelector('[data-p3="agent-toggle"]'); });
+        ok(slot && kept, `IA-3 ${where}: the Agent slot is the same node after the bar re-renders, and still holds the tile`);
         await takePosts(page);
-        await hooks.click(page.locator('[data-p3="agent-switch"]'), WAIT);
+        await hooks.click(page.locator('[data-p3="agent-toggle"]'), WAIT);
         const sw = await takeWrites(page);
-        ok(isWire(sw, AGENT_WIRE), `IA-3 ${where}: the switch asks the main thread to turn the link on, ${JSON.stringify(AGENT_WIRE)} (posted ${JSON.stringify(sw)})`);
+        ok(isWire(sw, AGENT_WIRE), `T7 ${where}: a click on the Agent tile asks the main thread to turn the link on, ${JSON.stringify(AGENT_WIRE)} (posted ${JSON.stringify(sw)})`);
         await postMsg(page, { type: 'agent-link-state', state: AGENT_ON });
-        await page.waitForFunction(() => document.querySelector('[data-p3="agent-chip"]')?.getAttribute('aria-label') === 'Agent: On', null, { timeout: 5000 }).catch(() => {});
-        const on = await page.evaluate(() => ({ name: document.querySelector('[data-p3="agent-chip"]')?.getAttribute('aria-label'), checked: document.querySelector('[data-p3="agent-switch"]')?.getAttribute('aria-checked'), status: document.querySelector('[data-p3="agent-status"]')?.textContent }));
-        ok(on.name === 'Agent: On' && on.checked === 'true' && on.status === AGENT_ON_LINE, `IA-3 ${where}: the main thread's state turns the chip on and the status line reads "${AGENT_ON_LINE}" (${JSON.stringify(on)})`);
+        await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-label') === 'Agent, on', null, { timeout: 5000 }).catch(() => {});
+        const a1 = await agentState();
+        ok(a1.name === 'Agent, on' && a1.pressed === 'true' && a1.dot && a1.tip === 'Agent, on', `T7 ${where}: the main thread's state turns the tile on: "Agent, on", pressed, the dot drawn (${JSON.stringify(a1)})`);
+        const mc = await measure(page, `${where} / Agent on`, host, w);
+        check(mc, `${where} / Agent on`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="agent-toggle"]'] });
+        await shot('agent');
+        await hooks.click(page.locator('[data-p3="agent-toggle"]'), WAIT);
+        const sw2 = await takeWrites(page);
+        ok(isWire(sw2, { type: 'agent-link', on: false }), `T7 ${where}: a click while on asks the main thread to turn the link off (posted ${JSON.stringify(sw2)})`);
         await postMsg(page, { type: 'agent-link-state', state: { ...AGENT_ON, on: false, since: null } });
-        await page.keyboard.press('Escape');
-        const shut = await page.evaluate(() => ({ pop: !!document.querySelector('[data-p3="agent-popover"]'), focus: document.activeElement?.getAttribute('data-p3') }));
-        ok(!shut.pop && shut.focus === 'agent-chip', `IA-3 ${where}: Escape closes the popover back to the chip (${JSON.stringify(shut)})`);
-        // Focus leaving the popover closes it: Tab past the switch. Shift+Tab back to the chip stays inside, and
-        // Escape on the chip closes the popover it opened.
-        const agentPop = () => page.evaluate(() => ({ pop: !!document.querySelector('[data-p3="agent-popover"]'), expanded: document.querySelector('[data-p3="agent-chip"]')?.getAttribute('aria-expanded'), focus: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName.toLowerCase() ?? null }));
-        await hooks.click(page.locator('[data-p3="agent-chip"]'), WAIT);
-        await hooks.need(page, '[data-p3="agent-popover"]', WAIT);
-        await page.keyboard.press('Tab');
-        const tabbed = await agentPop();
-        ok(!tabbed.pop && tabbed.expanded === 'false' && tabbed.focus !== 'agent-switch', `IA-3 ${where}: Tab past the switch closes the popover (${JSON.stringify(tabbed)})`);
-        if (!tabbed.pop) await hooks.click(page.locator('[data-p3="agent-chip"]'), WAIT);
-        await hooks.need(page, '[data-p3="agent-popover"]', WAIT);
-        await page.locator('[data-p3="agent-switch"]').focus();
-        await page.keyboard.press('Shift+Tab');
-        const back = await agentPop();
-        ok(back.pop && back.expanded === 'true' && back.focus === 'agent-chip', `IA-3 ${where}: Shift+Tab from the switch to the chip keeps the popover open (${JSON.stringify(back)})`);
-        await page.keyboard.press('Escape');
-        const escChip = await agentPop();
-        ok(!escChip.pop && escChip.expanded === 'false' && escChip.focus === 'agent-chip', `IA-3 ${where}: Escape on the chip closes its open popover (${JSON.stringify(escChip)})`);
+        await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-label') === 'Agent, off', null, { timeout: 5000 }).catch(() => {});
+        const a2 = await agentState();
+        ok(a2.name === 'Agent, off' && a2.pressed === 'false' && !a2.dot, `T7 ${where}: the published off state clears the dot and the pressed state (${JSON.stringify(a2)})`);
 
         // ── the Figma menu: by keyboard, then each item's action ──────────────────────────────────
         await page.locator('[data-p3="figma-open"]').focus();
@@ -7067,7 +7052,7 @@ for (const { w, h } of WIDTHS) {
 //   · THE BAR (the owner's "A · Menu bar" decision, 2026-10-05), as rendered, on both hosts, both themes, every width:
 //     the DOM order per host; no divider (no separator element, no edge on a non-control, no thin filled bar); the
 //     brand switcher, Pages and Figma as white buttons with ▾; Contrast, Theme, Activity and Export as borderless tiles,
-//     their label shown above the narrow tier and dropped at it, their names unchanged, their tooltip drawn on hover;
+//     (Agent too, on the plugin: T7 A) their label shown above the narrow tier and dropped at it, their names unchanged, their tooltip drawn on hover;
 //     Apply Theme the only filled control (none on the web); the web at 640 on one row; the plugin at 380 on two rows,
 //     the file's actions on the second; and, at 1280 and 380, the top row's last control at the page content's right
 //     edge within 1px (on the web, Export). 27b holds Contrast's mark per verdict and the plugin's Theme choice.
@@ -7112,7 +7097,7 @@ const BAR_PROBE = () => {
   const alpha = (c) => { const m = /rgba?\(([^)]+)\)/.exec(c ?? ''); if (!m) return 1; const p = m[1].split(/[,\s/]+/).filter(Boolean); return p.length > 3 ? Number(p[3]) : 1; };
   const shown = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).visibility !== 'hidden'; };
   const all = [...document.querySelectorAll('*')];
-  const HOOKS = ['product-mark', 'brand-switcher', 'verdict', 'agent-chip', 'theme-toggle', 'activity-open', 'export-open', 'pages-menu', 'figma-open', 'apply-to-figma'];
+  const HOOKS = ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'pages-menu', 'figma-open', 'apply-to-figma'];
   const order = HOOKS.filter((k) => q(k)).sort((a, b) => all.indexOf(q(a)) - all.indexOf(q(b)));
   // Dividers: a separator element, an edge on anything that is not a control, or a thin filled bar.
   const inside = (n) => n.closest('button, select, [role="menu"], .p3-menu, [role="dialog"], .p3-scrim, .p3-tile-tip, .p3-seg');
@@ -7132,7 +7117,7 @@ const BAR_PROBE = () => {
     const b = q(k), cs = getComputedStyle(b);
     return { k, bg: cs.backgroundColor === page, edge: parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle === 'solid' && alpha(cs.borderTopColor) > 0, chev: chev(b) };
   });
-  const tiles = ['verdict', 'theme-toggle', 'activity-open', 'export-open'].filter((k) => q(k)).map((k) => {
+  const tiles = ['verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open'].filter((k) => q(k)).map((k) => {
     const b = q(k), cs = getComputedStyle(b), lab = b.querySelector('.p3-tile-label'), tip = b.querySelector('.p3-tile-tip'), g = b.querySelector('.p3-tile-mark svg.p3-ico');
     return { k, borderless: ['Top', 'Right', 'Bottom', 'Left'].every((sd) => parseFloat(cs[`border${sd}Width`]) === 0 || alpha(cs[`border${sd}Color`]) === 0), clear: alpha(cs.backgroundColor) === 0,
       glyph: shown(g) && g.getAttribute('aria-hidden') === 'true', label: shown(lab) ? lab.textContent : null, labelHidden: lab?.getAttribute('aria-hidden') === 'true',
@@ -7156,9 +7141,9 @@ const BAR_PROBE = () => {
 };
 const BAR_ORDER = {
   web: ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'activity-open', 'export-open'],
-  figma: ['product-mark', 'brand-switcher', 'verdict', 'agent-chip', 'theme-toggle', 'activity-open', 'export-open', 'pages-menu', 'figma-open', 'apply-to-figma'],
+  figma: ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'pages-menu', 'figma-open', 'apply-to-figma'],
 };
-const TILE_LABEL = { verdict: 'Contrast', 'theme-toggle': 'Theme', 'activity-open': 'Activity', 'export-open': 'Export' };
+const TILE_LABEL = { verdict: 'Contrast', 'theme-toggle': 'Theme', 'agent-toggle': 'Agent', 'activity-open': 'Activity', 'export-open': 'Export' };
 for (const { w, h } of WIDTHS) {
   for (const host of ['web', 'figma']) {
     for (const theme of ['light', 'dark']) {
@@ -7173,10 +7158,10 @@ for (const { w, h } of WIDTHS) {
         ok(bp.dividers.length === 0, `${where}: bar dividers: none between the bar's items (${bp.dividers.join(' | ') || 'none'})`);
         for (const x of bp.white) ok(x.bg && x.edge && x.chev, `${where}: bar menus: ${x.k} is a white button with an edge and ▾ (white ${x.bg}, edge ${x.edge}, ▾ ${x.chev})`);
         ok(bp.white.length === (host === 'web' ? 1 : 3), `${where}: bar menus: ${host === 'web' ? 'the brand switcher' : 'the brand switcher, Pages and Figma'} measured (${bp.white.map((x) => x.k).join(', ')})`);
-        ok(bp.tiles.length === 4, `${where}: bar tiles: Contrast, Theme, Activity and Export all measured (${bp.tiles.map((x) => x.k).join(', ')})`);
+        ok(bp.tiles.length === (host === 'web' ? 4 : 5), `${where}: bar tiles: Contrast, Theme, ${host === 'web' ? '' : 'Agent, '}Activity and Export all measured (${bp.tiles.map((x) => x.k).join(', ')})`);
         for (const t of bp.tiles) {
           const want = TILE_LABEL[t.k];
-          const nameOk = t.k === 'export-open' ? t.name === 'Export' : t.k === 'activity-open' ? /^Activity(, |$)/.test(t.name ?? '') : t.k === 'theme-toggle' ? /^Theme: /.test(t.name ?? '') : /^Verdict: .+\. Open Inspect, Contrast$/.test(t.name ?? '');
+          const nameOk = t.k === 'export-open' ? t.name === 'Export' : t.k === 'activity-open' ? /^Activity(, |$)/.test(t.name ?? '') : t.k === 'theme-toggle' ? /^Theme: /.test(t.name ?? '') : t.k === 'agent-toggle' ? /^Agent, (on|off)$/.test(t.name ?? '') : /^Verdict: .+\. Open Inspect, Contrast$/.test(t.name ?? '');
           const tipOk = t.k === 'verdict' ? t.name === `Verdict: ${t.tip}. Open Inspect, Contrast` : t.tip === t.name;
           ok(t.borderless && t.clear && t.glyph && (narrow ? t.label === null : t.label === want) && t.labelHidden && nameOk && tipOk && t.tipHidden,
             `${where}: bar tiles: ${t.k} is borderless (${t.borderless && t.clear}) with its glyph (${t.glyph}), ${narrow ? 'its label dropped' : `labelled "${want}"`} ("${t.label}"), named "${t.name}", its tooltip "${t.tip}"`);
@@ -7185,7 +7170,7 @@ for (const { w, h } of WIDTHS) {
         if (host === 'web' && w === 640) ok(bp.row2.length === 0, `${where}: bar rows: the web's bar is one row at 640 (second row: ${bp.row2.join(', ') || 'none'})`);
         if (host === 'figma' && narrow) {
           ok(JSON.stringify(bp.row1) === JSON.stringify(BAR_ORDER.figma.slice(0, 7)) && JSON.stringify(bp.row2) === JSON.stringify(['pages-menu', 'figma-open', 'apply-to-figma']),
-            `${where}: bar rows: the plugin at 380 keeps the mark, the brand, Contrast, the Agent chip, Theme, Activity and Export on the first row and Pages, Figma and Apply Theme on the second (${bp.row1.join(', ')} / ${bp.row2.join(', ')})`);
+            `${where}: bar rows: the plugin at 380 keeps the mark, the brand, Contrast, Theme, Agent, Activity and Export on the first row and Pages, Figma and Apply Theme on the second (${bp.row1.join(', ')} / ${bp.row2.join(', ')})`);
         }
         if (w !== 640) {
           ok(Math.abs(bp.lastRight - bp.contentRight) <= 1 && (host !== 'web' || bp.last === 'export-open'),
@@ -7346,6 +7331,18 @@ for (const host of ['web', 'figma']) {
           await page.keyboard.press('Escape');
         }
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+        // Last, after the console check: a link switched on opens the desktop bridge's socket, which no harness serves.
+        if (host === 'figma' && w === WIDTHS[0].w) {
+          // Activity's name and tooltip say "agent link on" while the link is on (approved copy, 2026-10-05).
+          const actName = () => page.evaluate(() => { const b = document.querySelector('[data-p3="activity-open"]'); return [b?.getAttribute('aria-label'), b?.querySelector('[data-p3="activity-open-tip"]')?.textContent]; });
+          const off = await actName();
+          await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), AGENT_ON);
+          await page.waitForFunction(() => /agent link on/.test(document.querySelector('[data-p3="activity-open"]')?.getAttribute('aria-label') ?? ''), null, { timeout: 3000 }).catch(() => {});
+          const on = await actName();
+          ok(off[0] === 'Activity' && off[1] === 'Activity' && on[0] === 'Activity, agent link on' && on[1] === 'Activity, agent link on',
+            `${where}: Activity's name and tooltip add "agent link on" while the link is on (off ${JSON.stringify(off)}, on ${JSON.stringify(on)})`);
+          await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), { ...AGENT_ON, on: false, since: null });
+        }
       } catch (e) {
         ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
       } finally { await ctx.close(); }

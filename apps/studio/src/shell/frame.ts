@@ -33,10 +33,10 @@
  * for S1.4's lends below, `activity` (the host session's writes) and `figma` (the write functions).
  *
  * S1.4 adds the Activity drawer (`activity.ts`) at the bottom of the frame, the Activity button and, in the
- * plugin, the Figma menu (`figma.ts`) and the Agent chip's slot (IA-3) on the top bar. The bar (`bar.ts`) places
+ * plugin, the Figma menu (`figma.ts`) and the Agent tile's slot (IA-3; T7) on the top bar. The bar (`bar.ts`) places
  * those three where concept v6 draws them, as it places the verdict. Since S11 the drawer draws every write's
  * result itself, from the host session `main.ts` lends it, so it lends no slot. The plugin's own entry mounts the
- * Agent chip into its slot (`apps/plugin/src/agent-link-ui.ts`); the slot is never cleared.
+ * Agent tile into its slot (`apps/plugin/src/agent-link-ui.ts`); the slot is never cleared.
  *
  * THE PRODUCT MARK (owner, 2026-10-04; on the plugin too since the owner's top-bar decision of 2026-10-05) starts
  * the top bar: the logo, then "Prism3 Studio", ahead of the brand switcher. It names the product and goes nowhere,
@@ -116,8 +116,8 @@ export type Frame = {
   readonly notices: HTMLElement;
   /** Slot: the legacy page, inside the legacy frame. */
   readonly legacyPage: HTMLElement;
-  /** The Agent chip's stable, empty slot (IA-3, plugin only), placed by the bar after the spacer. The
-   *  plugin's entry mounts the chip into it; nothing here or in the bar ever clears it. */
+  /** The Agent tile's stable, empty slot (IA-3, plugin only), placed by the bar between Theme and Activity (T7). The
+   *  plugin's entry mounts the tile into it; nothing here or in the bar ever clears it. */
   readonly agent: HTMLElement | null;
   /** Publish the sticky region's height as `--chrome-h`, which the legacy mode strip sticks below. */
   readonly syncSticky: () => void;
@@ -324,7 +324,7 @@ export const mountFrame = (app: HTMLElement, opts: {
     if (e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); closeInspect(); }
   });
 
-  // ── Activity (F2), the Figma menu and the Agent chip's slot (S1.4) ───────────────────────────────
+  // ── Activity (F2), the Figma menu and the Agent tile's slot (S1.4) ───────────────────────────────
   // The drawer sits last in the frame, pinned to the bottom edge, under whichever region shows the page.
   const activity = mountActivity({ host, lend: opts.activity, narrow: () => root.dataset.w === 'narrow' }, cleanups);
   const figma = host === 'figma' && opts.figma ? figmaMenu(opts.figma, cleanups) : null;

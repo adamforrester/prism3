@@ -15,7 +15,7 @@
  * WHAT THIS STYLES: the frame (`src/shell/frame.ts`), meaning the top bar, the tab row with Color's
  * sub-row, the notices row, the legacy frame's Depth & motion switch and the two panes (S1.2); the
  * preview header, the mode control, the verdict and Inspect (`src/shell/preview.ts`, S1.3); and the
- * Activity button and drawer, the Figma menu and the plugin's Agent chip (S1.4); the levers panel, the
+ * Activity button and drawer, the Figma menu and the plugin's Agent tile (S1.4, T7); the levers panel, the
  * Palettes preview and the step picker (S2: `src/domains/`, `src/preview/`, `src/ui/`); the brand menu, the
  * export and prune dialogs and the error strip (S13.1: `src/shell/bar.ts`, `src/shell/notices.ts`). The
  * legacy surfaces inside it (the legacy page and the plugin's Pages menu) keep `styles.css` and are pinned
@@ -77,8 +77,6 @@
 /* A ghost control shows an edge on hover, the bar's own (B1), instead of a wash. */
 .p3-btn-ghost:hover { border-color: var(--p3-edge-bar); }
 .p3-btn-icon { padding: 0; min-width: var(--p3-ctl-h-sm); }
-/* A collapsing button (the Agent chip): the word at full width, the glyph alone when narrow (the name stays). */
-.p3-btn-collapse > .p3-ico:first-child { display: none; }
 :is(.p3-btn, .p3-brand, .p3-pill, .p3-seg-tab, .p3-select, .p3-menu-item, .p3-verdict):focus-visible {
   outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset);
 }
@@ -486,9 +484,6 @@
 .p3-frame[data-w="narrow"] :is(.p3-btn, .p3-brand) { min-height: var(--p3-ctl-h-xs); font-size: var(--p3-fs-12); }
 .p3-frame[data-w="narrow"] .p3-brand { padding: 0 var(--p3-space-100); }
 .p3-frame[data-w="narrow"] .p3-btn-icon { min-width: var(--p3-ctl-h-xs); }
-.p3-frame[data-w="narrow"] .p3-btn-collapse { padding: 0; min-width: var(--p3-ctl-h-xs); }
-.p3-frame[data-w="narrow"] .p3-btn-collapse > .p3-ico:first-child { display: block; }
-.p3-frame[data-w="narrow"] .p3-btn-collapse > :is(.p3-btn-label, .p3-ico:last-child:not(:first-child)) { display: none; }
 .p3-frame[data-w="narrow"] .p3-nav { gap: var(--p3-space-100); padding: var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-nav .p3-tabs { display: none; }
 .p3-frame[data-w="narrow"] .p3-domrow { display: flex; flex: 1 1 auto; min-width: 0; }
@@ -603,21 +598,12 @@
 .p3-frame[data-w="narrow"] .p3-figma-wrap { position: static; }
 .p3-frame[data-w="narrow"] .p3-figma-menu { left: 0; right: 0; }
 
-/* ── the Agent chip (S1.4, IA-3; plugin only) and its popover ─────────────────────────────── */
+/* ── the Agent tile (S1.4, IA-3; T7 A, 2026-10-05; plugin only) ───────────────────────────── */
 .p3-agent-slot { display: inline-flex; }
 .p3-agent-slot:empty { display: none; }
-.p3-agent-dot { box-sizing: border-box; border: var(--p3-bw-hairline) solid var(--p3-icon-2); }
-:is(.p3-agent-chip, .p3-agent-switch)[data-on="true"] .p3-agent-dot { background: var(--p3-ok-icon); border-color: var(--p3-ok-icon); }
-.p3-agent-pop {
-  min-width: 0; width: calc(7 * var(--p3-ctl-h)); gap: var(--p3-space-150); padding: var(--p3-space-200);
-  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-normal);
-}
-.p3-agent-head { display: flex; align-items: center; justify-content: space-between; gap: var(--p3-space-150); }
-.p3-agent-title { font-weight: var(--p3-fw-emphasis); }
-.p3-agent-line { margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: normal; overflow-wrap: anywhere; }
-/* At 380 the popover spans the top row, under it, rather than hanging from a chip near the middle. */
-.p3-frame[data-w="narrow"] .p3-agent-slot > .p3-popwrap { position: static; }
-.p3-frame[data-w="narrow"] .p3-agent-pop { left: 0; right: 0; width: auto; }
+/* The Agent tile's dot (T7 A): green, at the glyph's bottom right, while the link is on; nothing while it is off. */
+.p3-agent-dot { display: none; position: absolute; right: calc(-1 * var(--p3-space-050)); bottom: calc(-1 * var(--p3-space-025)); background: var(--p3-ok-icon); }
+.p3-tile[data-on="true"] .p3-agent-dot { display: block; }
 
 /* ── the levers panel (S2 on): sections as white cards on the gray panel (IA-2, V7) ────────── */
 .p3-levers-body {

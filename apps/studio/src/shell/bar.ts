@@ -1,9 +1,9 @@
 /**
  * The top bar's controls (UI redesign S13.1, owner decisions G18 A and N-2 A): the brand switcher and its menu,
  * Export and its dialog, the plugin's Apply Theme and the prune review, placed among the shell's own controls (the
- * mark, Contrast, the Agent chip's slot, Theme, Activity and the Figma menu), in the owner's "A · Menu bar" order
+ * mark, Contrast, Theme, the Agent tile's slot, Activity and the Figma menu), in the owner's "A · Menu bar" order
  * (2026-10-05; see `paint`): white buttons with ▾ for the menus, borderless tiles with a small label for Contrast,
- * Theme, Activity and Export (`dom.ts` `tile`), Apply Theme the one filled control, and no divider. Until S13.1
+ * Theme, Agent, Activity and Export (`dom.ts` `tile`), Apply Theme the one filled control, and no divider. Until S13.1
  * `main.ts`'s `renderBar` drew these into the frame's bar slot in the legacy stylesheet, pinned light; they are the
  * chrome's now, in both themes.
  *
@@ -192,14 +192,14 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     exp.setAttribute('aria-expanded', String(v.exportOpen));
 
     // The bar's order (the owner's top-bar decision, 2026-10-05, "A · Menu bar"): the mark, the brand switcher,
-    // Contrast, a spacer, the Agent chip's slot (plugin, held where it was), Theme, Activity, Export, then on the
-    // plugin the Pages menu, the Figma menu and Apply Theme. On the web Export is the last control, and its right edge
+    // Contrast, a spacer, Theme, the Agent tile's slot (plugin; T7 A), Activity, Export, then on the plugin the Pages
+    // menu, the Figma menu and Apply Theme. On the web Export is the last control, and its right edge
     // is the page content's. At the narrow tier the plugin's file actions take a second row (`rowBreak`), Apply Theme
     // on its right (`spacer2`); above it both draw nothing. The shell's nodes are placed, never re-minted, so one that
     // holds focus keeps it.
     const pages = lend.pages ? lend.pages() : null;
     const fileRow = !!(pages || placed.figma || applyBtn);
-    const order: (HTMLElement | null)[] = [placed.mark, brandWrap, placed.verdict, spacer, placed.agent, placed.theme, placed.activity, exportWrap,
+    const order: (HTMLElement | null)[] = [placed.mark, brandWrap, placed.verdict, spacer, placed.theme, placed.agent, placed.activity, exportWrap,
       fileRow ? rowBreak : null, pages, placed.figma, fileRow ? spacer2 : null, applyBtn, layer];
     const want = order.filter((n): n is HTMLElement => !!n);
     if (want.length !== root.children.length || want.some((n, i) => root.children[i] !== n)) root.replaceChildren(...want);

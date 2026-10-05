@@ -3,7 +3,7 @@
 **STATUS: branch `ui/s131-top-bar`, off `main` after S8.3 (#2094) merged; held for the owner's screenshot review.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged, **no new strings** (every visible string and accessible name is today's, moved verbatim; the dialogs' Close drops the "✕" character for the chrome's `x` glyph, with the same accessible name, "Close"). Owner decisions G18 A and N-2 A (2026-10-05). The first half of S13, split off as the scoping report recommended (S13a, the bar and the notices; S13b, the deletions).
 
 **What moved.** Until now `main.ts`'s `renderBar` (32 call sites) drew the brand switcher, the brand menu, Export and its dialog, the plugin's Apply Theme and the prune review into the frame's bar slot, the menus and dialogs in `styles.css`, pinned light; and the engine error line was a legacy card in the notices row, pinned light, so in a dark theme it stayed a light card. Now:
-- **`src/shell/bar.ts`** draws the bar's controls in the chrome (`chrome.css`, the chrome tokens, #2041's shared pieces: `p3-menu`, `p3-menu-item`, `p3-btn`, `p3-seg`, `p3-confirm`), in the order the bar has had since S1.4: the "Prism3 Studio" mark first on the web (#2079, the frame's), the brand switcher, the verdict, the Agent chip's slot, Activity, Export, the Pages menu (plugin), the Figma menu (plugin), Apply Theme (plugin). Apply Theme reads the Figma menu's own `apply` item (same label, busy and off states, tooltip, function).
+- **`src/shell/bar.ts`** draws the bar's controls in the chrome (`chrome.css`, the chrome tokens, #2041's shared pieces: `p3-menu`, `p3-menu-item`, `p3-btn`, `p3-seg`, `p3-confirm`), in the order the owner's menu bar sets (below). Apply Theme reads the Figma menu's own `apply` item (same label, busy and off states, tooltip, function).
 - **`src/shell/notices.ts`** draws the error line as a **full-width strip right under the top bar** (concept v6's banner: the inset ground, the danger glyph and text), in the chrome's theme, so it is dark in dark. Its text and its show, hide and clear rules are `main.ts`'s `syncErrorBar`, unchanged (#388, #772, #1989); the notices row moved from after the tab row to straight after the bar (the two-pane grid already put it there).
 - **What `main.ts` keeps, and lends** (`BarLend`): the brand-load rules (the overwrite confirm and its sentence, `loadBrand` and its origin, the design.md validation), the export model and downloads, the host's writes, and their state. The bar reads a view of that state and calls the actions, each the body the old control ran; each ends in the store's new **`bar` topic**, which the bar repaints from (plan §3.10), with focus kept by hook and position across a repaint. `renderBar` is **gone**; its call sites call `barChanged()`.
 - **What is left, and why:** the plugin's **Pages menu** stays a legacy node (`renderPagesMenu`, the list pinned light in `styles.css`'s `.brandmenu.navmenu`, `.bm-cap`, `.bm-div`, `.barmenu-wrap`) until S11.2 moves the Style guide into the Figma menu. **"+ New brand"** still returns to the start screen through `build()`, the legacy view switch, inside its lent body, until S12. The `brand-bar` chrome surface stays declared (it now places the shell's node), so the roster `test:smoke` reads is unchanged.
@@ -26,12 +26,55 @@
 - **The brand menu not keyboard-reachable** (its items `tabIndex = -1`, and no focus moved into it on open): `test:chrome` `S13.1 web light 1280: keyboard: Enter on the brand switcher opens the menu with focus on the current example (open true, focus on "brand-switcher", current null)`, with the arrows and Escape-from-an-item arms, every column. (The same run also failed `figma light 640 / a write running: … span.p3-spin "…" 1:1`, section 10's spinner measured mid-fade: timing, not the mutation; the clean runs pass it.)
 - **The error strip not cleared on undo** (`show(null)` returns before hiding, in `shell/notices.ts`): `test:smoke` `prism3: undoing the refused edit clears the bar` (and aurora, harbor).
 
-**The owner's review (2026-10-05), two changes.**
-- **The theme toggle moves left of Activity and Export** (web; the plugin has no theme toggle). It was the bar's last control, outside the bar's controls; the frame now hands it to `bar.ts` (`BarPlaced.theme`), which places it after the spacer and before Activity. So on the web Export is the last control. Its right edge now **equals the page content's** at 1280 (the preview header's content edge, 1248) and at 380 (the tab row's, 368). The alignment is made, not coincidental: the bar's right padding is the preview header's (`space-400`; the left stays `space-300`, under the tab row), and the dialog layer is `display: contents`, so the empty layer no longer adds a gap after the last control (at 1280 that gap had happened to make up the 8px; at 380 it put Export 6px short). The plugin's bar goes on after Export (Pages, the Figma menu, Apply Theme); there the last control on the top row is held to the same edge, and Export is not moved (that would reorder the plugin's bar, which the owner did not ask for).
-- **Export and Activity draw their glyph beside the word at every width.** Both glyphs already existed in `shell/dom.ts`'s chrome set and were drawn only at the narrow tier: `export` (an arrow down onto a line, the download mark, since S1.2) and `pulse` (concept v6's activity line, since S1.4). A new `p3-btn-lead` class shows a collapsing button's leading glyph at full width too; the Pages menu keeps the word alone. The glyphs stay decorative (`glyph()` sets `aria-hidden`), and the names stay "Export" and "Activity". No new glyph, so no icon gate moves.
-- **Held by `test:chrome` §27**, both hosts, both themes: the DOM order (theme toggle, Activity, Export), each glyph drawn, aria-hidden, under its unchanged name (1280, 640, 380), and the alignment within 1px (1280, 380). The web's Tab order lists (`FOCUS_STOPS`) follow the new order.
-- **Mutations** (each from a clean commit, restored with `git checkout -- <file>`): the theme toggle put back after Export fails `S13.1 web light 1280: bar order: the theme toggle precedes Activity, which precedes Export (theme-toggle@38, activity-open@27, export-open@33)` and `S13.1 web light 1280: bar alignment: the bar's last control on its top row (theme-toggle) ends at the page content's right edge (1248 vs 1248, the preview header), and it is Export`, in both themes at 1280 and 380 (order alone at 640; 10 failures); Export's glyph dropped fails `S13.1 web light 1280: export-open carries its glyph, drawn (false) and hidden from assistive technology (aria-hidden null), and its name stays "Export" ("Export")`, on both hosts, both themes, every width (12 failures).
-- **Not held, and why:** at 640 the web's bar no longer fits one row (the two glyphs add 48px), so Export opens a second row at its left. 640 is the wide tier; the owner named 1280 and 380. Held for the owner.
+**The owner's first review (2026-10-05).** The theme menu moved left of Activity and Export, so on the web Export is the last control. Its right edge **equals the page content's**: 1248 at 1280 (the preview header's content edge) and 368 at 380 (the tab row's). This alignment is made deliberately, not by accident: the bar's right padding is the preview header's (`space-400`; the left stays `space-300`), and the dialog layer is `display: contents`, so the empty layer adds no gap after the last control. Before, at 1280, that gap happened to make up the 8px; at 380 it left Export 6px short. That round also put glyphs beside Export's and Activity's words. The menu bar below replaces those glyph buttons.
+
+**The owner's menu bar (2026-10-05, a modified "A · Menu bar" from the top-bar mockup).**
+- **No divider anywhere in the bar.**
+- **The plugin's order:** the mark (the logo and "Prism3 Studio"), the brand switcher, Contrast, then Theme, Agent, Activity and Export, then Pages ▾, Figma ▾, and Apply Theme at the far right. The web has the same order without Pages, Figma or Apply Theme, so Export ends the web's bar, still at the page content's edge.
+- **The mark is on the plugin too** (it was web only). The bar places it first among its controls (`BarPlaced.mark`), so a second row starts at the bar's own edge.
+- **Contrast, Theme, Agent (plugin), Activity and Export are tiles** (`dom.ts` `tile`): borderless and unfilled, a glyph over a small label. The label drops at the narrow tier (`NARROW_MAX`, 560). A tooltip under the tile, on hover and on keyboard focus, repeats the name. The names are unchanged, and the label and tooltip are `aria-hidden`. The tooltip is drawn by the stylesheet alone, so it sets no inline value; at 380, Contrast's tooltip hangs from the bar's left edge, so it stays inside the window. The labels take the text ink: the secondary ink measured 4.17:1 on the dark bar at 12px (`test:start` caught it).
+- **The brand switcher, Pages and Figma are white buttons with ▾.** Pages no longer collapses to its glyph at 380.
+- **Apply Theme is the only filled control.** The web has none.
+- **Contrast** shows a check while every pair passes, or a warning glyph and the count below floor. Today's line is the tooltip. The name is still "Verdict: <line>. Open Inspect, Contrast", and a click still opens Inspect › Contrast. There is no checking state. The bordered verdict pill and its CSS are gone.
+- **The Agent tile (the owner's T7 A, 2026-10-05)** replaces the "Agent: Off" chip and its popover, between Theme and Activity, plugin only:
+  - a click posts the same `agent-link` request the popover's switch posted, and the main thread stays the authority (off at every launch);
+  - its name and tooltip are "Agent, off" or "Agent, on";
+  - it carries `aria-pressed`, because the old control was a toggle (a `role="switch"` with `aria-checked`);
+  - a green dot sits on the glyph only while the link is on.
+  The popover's explanation line and status line ("Listening — file mailbox, every 1 s …", and an inbox error when there is one) are no longer drawn. `agentLinkStatusText` is kept, and still tested by `test-agent-link.ts`, until the owner says where that status goes.
+- **Activity's name and tooltip add "agent link on"** while the link is on (approved copy), for example "Activity, agent link on, 1 running". The plugin's Agent tile reports each state through `setAgentLinkOn` (`shell/activity.ts`).
+- **The plugin's Theme menu** offers Match Figma (the default, today's behavior: Figma's `figma-light`/`figma-dark` classes, live), Light and Dark (`shell/theme.ts`, now host-aware). The plugin's iframe has no storage, so the choice is kept **per person in `figma.clientStorage`, key `prism3:theme`**, the same mechanism as the window size (`prism3:ui-size`, #144):
+  - the UI posts `set-theme-pref`;
+  - the main thread keeps it and answers each `ui-ready` with `theme-pref`;
+  - the plugin's UI entry applies the reply.
+  The web keeps Light, Dark and System in `localStorage`.
+- **Fit:** the web at 640 is one row. The plugin at 380 is two rows:
+  - row 1: the mark, the brand, Contrast, Theme, Agent, Activity and Export. Measured at 380 with "prism3": the controls span 12–368 with a 58px gap in the spacer (mark 22, brand 106, Contrast, Theme, Agent, Activity and Export 28 each, gaps 6), so Export stays on row 1;
+  - row 2: Pages ▾ and Figma ▾, then Apply Theme on the right (a row break and a second spacer that only the narrow tier draws).
+
+**Gates for the menu bar:**
+- `test:chrome` §27, both hosts, both themes, at 1280, 640 and 380:
+  - the DOM order per host;
+  - no divider (no separator element, no edge on a non-control, no thin filled element);
+  - the white-with-▾ menus;
+  - the borderless tiles: glyph, label shown or dropped by width, names and tooltips;
+  - Apply Theme as the only fill;
+  - one row at web 640, and row membership at plugin 380;
+  - the alignment;
+  - Contrast's tooltip shown on hover inside the window.
+- `test:chrome` §27b:
+  - Contrast's mark per verdict, using `test-verdict-count.ts`'s two-mode fixture on the web, "2 of 884 below floor, 2 modes" and the count 2;
+  - the plugin Theme menu's three choices, its default, a choice posted to the main thread, and the choice remembered across a reload;
+  - "agent link on" in Activity's name.
+- `test:chrome`'s Agent section (T7): the tile sits in its slot, named "Agent, off", not pressed, with no dot, and its label is dropped at 380. A click posts `agent-link` on; the published on state gives "Agent, on", pressed, and the dot; a second click posts off; and the off state clears both. The old chip and popover are gone (D6).
+- `apps/plugin/test-theme-pref.ts` (new, in the plugin's `test`) drives the real `main.ts`: a choice is kept under `prism3:theme`, and the next `ui-ready` sends it back.
+- Existing checks follow the change: the product mark is now checked on both hosts; the plugin's "no theme toggle" check became "starts on Match Figma"; the verdict's line is read from its tooltip; the Tab-order lists include the plugin's Theme; and the 380 Activity sheet's edge floor went from 10 to 6, because the tiles have no edge.
+
+MUTS_PLACEHOLDER
+
+**Held:**
+- **The plugin from 561 to about 1000px.** The bar wraps at the wide tier, so Export can start the second row. The owner named 1280 and 380 for the plugin; its window opens at 1280.
+- **Where the agent link's status now shows** (the old popover's two lines), above.
 
 **Filed:** #2105 (the plugin at 380 × 420: the bar's second row draws over the error line, and a long line leaves the levers 0px; on the base too).
 
