@@ -6169,6 +6169,49 @@ for (const host of ['web', 'figma']) {
     ok(false, `S10 Layout ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
 }
+// No hover on a disabled text field (owner, 2026-10-05, after #2120): a pointer over Layout's fixed first breakpoint
+// field changes none of its colors. The same pointer over an editable field does change its edge, which proves the
+// probe can see a hover. Both hosts, both chrome themes. Screenshots of the disabled field and of Continue focused
+// by keyboard when a directory is given.
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    try {
+      await goPlace(page, 'layout');
+      await hooks.need(page, '[data-p3="layout-levers"]');
+      const field = (i) => page.locator('[data-p3="bp-row"] input').nth(i);
+      const read = (i) => field(i).evaluate((n) => { const cs = getComputedStyle(n); return { disabled: n.disabled, backgroundColor: cs.backgroundColor, borderTopColor: cs.borderTopColor, color: cs.color }; });
+      await page.mouse.move(1, 1);
+      const rest = await read(0);
+      await field(0).hover({ force: true });
+      const hovered = await read(0);
+      const moved = ['backgroundColor', 'borderTopColor', 'color'].filter((k) => hovered[k] !== rest[k]);
+      await page.mouse.move(1, 1);
+      const editRest = await read(1);
+      await field(1).hover();
+      const editHover = await read(1);
+      await page.mouse.move(1, 1);
+      ok(editRest.disabled === false && editHover.borderTopColor !== editRest.borderTopColor,
+        `disabled field: ${host} ${theme}: control: a pointer over an editable breakpoint field changes its edge (${editRest.borderTopColor} → ${editHover.borderTopColor}), so the probe sees a hover`);
+      ok(rest.disabled === true && moved.length === 0,
+        `disabled field: ${host} ${theme}: a pointer over the disabled first breakpoint field changes nothing${moved.length ? ` — ${moved.map((k) => `${k} ${rest[k]} → ${hovered[k]}`).join(', ')}` : ''}`);
+      if (SHOTS) {
+        const tag = `${host === 'web' ? 'studio' : 'plugin'}-${theme}`;
+        await page.locator('[data-p3="bp-row"]').first().screenshot({ path: join(SHOTS, `disabled-field-${tag}.png`) });
+        const next = page.locator('[data-p3="layout-continue"]');
+        await next.evaluate((n) => n.scrollIntoView({ block: 'center' }));
+        await next.focus();
+        await page.keyboard.press('Shift+Tab');
+        await page.keyboard.press('Tab');
+        const box = await next.boundingBox();
+        if (box) await page.screenshot({ path: join(SHOTS, `continue-focus-${tag}.png`), clip: { x: Math.max(0, box.x - 16), y: Math.max(0, box.y - 16), width: box.width + 32, height: box.height + 32 } });
+      }
+      ok(errors.length === 0, `disabled field: ${host} ${theme}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `disabled field ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+}
 // D13 (#2045), the limits, the pickers' writes, a slider, and the reveal (QA-B9): web, read back from the persisted brand.
 {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
