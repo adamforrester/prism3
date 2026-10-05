@@ -8112,6 +8112,15 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     `[#2132] the smallest non-zero first breakpoint (1px) is refused too, so the rule is "not 0" and not a threshold (got "${bpMsg('bp1', [1, 768, 1024])}")`);
   ok(bpMsg('bpDec', [0.5, 768]) === 'The first breakpoint must be 0px. This brand starts at 0.5px.',
     `[#2132] the message carries the value as entered, not rounded (got "${bpMsg('bpDec', [0.5, 768])}")`);
+  // #2137 — an EMPTY breakpoints list is refused (owner decision 2026-10-05, Q22 a). It built a brand with no
+  // layout at all. EXPECTED is the owner-approved sentence, typed here literally. A single breakpoint at 0 is
+  // the smallest list that builds. BY-NAME MUTATION: delete the empty-list refusal in `buildLayout` → the
+  // refused arm fails (and nothing else names it: the #2132 check reads `floors[0]`, undefined here, so it
+  // throws #2132's message instead, which this arm's exact match rejects).
+  ok(bpMsg('bpEmpty', []) === 'The brand needs at least one breakpoint, starting at 0px.',
+    `[#2137] an empty breakpoints list is refused with the approved wording (got "${bpMsg('bpEmpty', [])}")`);
+  ok(bpMsg('bpOne', [0]) === '' && lyBrand('bpOneB', { breakpoints: [0] }).layout.breakpoints.length === 1,
+    `[#2137] a single breakpoint at 0px builds, with one breakpoint (got "${bpMsg('bpOne', [0])}")`);
 }
 
 // ------------------------------------------------- gradient invariants (opt-in)
