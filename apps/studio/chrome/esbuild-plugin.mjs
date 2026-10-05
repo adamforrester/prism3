@@ -22,8 +22,9 @@
  *               `@font-face` that is not a `data:` URI (v6 check 10).
  *   [pairs]     a PAIRS entry (`spec.mjs`) whose two variables are both mapped measures under its
  *               literal floor in either theme (v6 check 8); a mapped color variable takes part in
- *               no such pair and is not listed in DECORATIVE; or a PAIRS or DECORATIVE entry names a
- *               variable no row defines (#1927).
+ *               no such pair and is not listed in DECORATIVE or INACTIVE; a PAIRS, DECORATIVE or INACTIVE
+ *               entry names a variable no row defines (#1927); or an INACTIVE variable reads a token that is
+ *               not a `color.disabled.*` role (INACTIVE_ROLE, typed here) in either theme (F1 A).
  *   [fonts]     a chrome face's woff2 file is missing.
  *   [license]   a chrome face's OFL file is missing, has no copyright line, or no longer carries the
  *               face's LICENSE_COPYRIGHT literal; or the output lacks, for a face in CHROME_FONTS, a
@@ -50,7 +51,11 @@ import {
   scanRawStrict, ratio, fmtRatio,
 } from './tokens.mjs';
 import { glyphGaps, glyphWatchFiles } from './glyphs.mjs';
-import { VARS_FOR, PRODUCT_FOR, ALIAS, SHELL_VARS, PAIRS, DECORATIVE } from './spec.mjs';
+import { VARS_FOR, PRODUCT_FOR, ALIAS, SHELL_VARS, PAIRS, DECORATIVE, INACTIVE } from './spec.mjs';
+
+/** The only roles an INACTIVE variable may read (F1 A): the engine's cross-cutting disabled family. Typed here, not
+ *  read from `spec.mjs`, so the list that grants the exemption cannot also set what qualifies for it. */
+export const INACTIVE_ROLE = /^color\.disabled\.[a-z-]+$/;
 
 // Each chrome face's license file, beside the woff2 in `fonts/`. The copyright line the bundle's
 // notice carries is read from this file, never typed here, so the notice cannot drift from the
@@ -193,6 +198,15 @@ export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_
     for (const n of [fg, bg]) if (!rowNames.has(n)) fail('pairs', `PAIRS names --p3-${n}, which no row in TILE_VARS (tokens.mjs), V6_VARS or PRODUCT_VARS (spec.mjs) defines (${fg} on ${bg}, ${what})`);
   }
   for (const n of DECORATIVE) if (!rowNames.has(n)) fail('pairs', `DECORATIVE names --p3-${n}, which no row in TILE_VARS (tokens.mjs), V6_VARS or PRODUCT_VARS (spec.mjs) defines`);
+  for (const n of INACTIVE) if (!rowNames.has(n)) fail('pairs', `INACTIVE names --p3-${n}, which no row in TILE_VARS (tokens.mjs), V6_VARS or PRODUCT_VARS (spec.mjs) defines`);
+  // An INACTIVE variable is exempt from contrast because it paints only a disabled control (WCAG 2.2 SC 1.4.3 and
+  // 1.4.11, owner decision F1 A). It must read a disabled role, in both themes, or the exemption would hide a live color.
+  for (const mode of ['light', 'dark']) {
+    for (const r of rows[mode]) {
+      if (!Array.isArray(r) || !INACTIVE.includes(r[0])) continue;
+      if (r[2] !== C || !INACTIVE_ROLE.test(r[1])) fail('pairs', `--p3-${r[0]} is listed in INACTIVE but reads ${r[1]} in ${mode}, which is not a color.disabled.* role`);
+    }
+  }
   for (const [fg, bg, floor, what] of PAIRS) {
     if (!mapped.has(fg) || !mapped.has(bg)) continue;
     paired.add(fg); paired.add(bg);
@@ -205,8 +219,8 @@ export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_
   // Represented, not counted: every mapped color variable takes part in an evaluated pair, or is
   // listed in DECORATIVE (spec.mjs) as carrying no contrast duty.
   for (const r of rows.light) {
-    if (!Array.isArray(r) || r[2] !== C || paired.has(r[0]) || DECORATIVE.includes(r[0])) continue;
-    fail('pairs', `--p3-${r[0]} is a mapped color in no declared pair whose other side is mapped; declare one in PAIRS or list it in DECORATIVE (spec.mjs)`);
+    if (!Array.isArray(r) || r[2] !== C || paired.has(r[0]) || DECORATIVE.includes(r[0]) || INACTIVE.includes(r[0])) continue;
+    fail('pairs', `--p3-${r[0]} is a mapped color in no declared pair whose other side is mapped; declare one in PAIRS or list it in DECORATIVE or INACTIVE (spec.mjs)`);
   }
 
   if (errors.length) return { css: null, errors };

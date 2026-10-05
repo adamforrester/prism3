@@ -607,9 +607,13 @@
 /* No hover on a disabled field: it cannot be edited, so nothing answers the pointer (owner, 2026-10-05). */
 .p3-text-input:hover:not(:disabled) { border-color: var(--p3-field-edge-hover); }
 .p3-text-input:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
-/* A text field that cannot change (Layout's first breakpoint, D13; any field a derived mode locks) takes the chrome's
-   can't-change edge, dashed, as a fixed check box, a locked value picker and a disabled button do (#2098 item 6). */
-.p3-text-input:disabled { border-style: dashed; cursor: not-allowed; }
+/* A text field that cannot change (Layout's first breakpoint, D13; any field a derived mode locks) takes Prism3's own
+   disabled text field skin, exactly: the fill, the edge and the on-fill ink its text field definition binds (owner
+   decision F1 A, 2026-10-05). Contrast-exempt as an inactive component (WCAG 2.2 SC 1.4.3, 1.4.11); test:chrome
+   exempts it only while it is really disabled, and holds it to these three roles. */
+.p3-text-input:disabled {
+  background: var(--p3-disabled-fill); border-color: var(--p3-disabled-edge); color: var(--p3-disabled-ink); cursor: not-allowed;
+}
 /* Personality: the engine's words as chips; a chosen one takes the selected edge and shows its check. */
 .p3-chips { display: flex; flex-wrap: wrap; gap: var(--p3-space-100); }
 .p3-btn.p3-chip { min-height: var(--p3-ctl-h-xs); padding: 0 var(--p3-space-150); gap: var(--p3-space-050); font-weight: var(--p3-fw-default); }
