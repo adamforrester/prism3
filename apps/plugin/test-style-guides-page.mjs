@@ -205,6 +205,19 @@ console.log('\nopening the page, and Set up file (H10–H12, P8)');
   await page.close();
 }
 
+// ── SG4: a catalog the host could not read ───────────────────────────────────────────────────────
+console.log('\na file the host could not read (SG4)');
+{
+  const { page, errors } = await openPage();
+  await post(page, { type: 'style-guide-catalog', catalog: { setUp: false, collections: [], tables: [], notes: [] }, error: 'in getLocalVariablesAsync: the document is closed' });
+  await settle(page);
+  const said = await page.evaluate(() => document.querySelector('[data-p3="sg-read-error"]')?.textContent ?? null);
+  ok(said === "Couldn't read this file's variables. Close the page and open it again.",
+    `SG4: a catalog the host could not read says exactly the approved words, never the host's message (${JSON.stringify(said)})`);
+  ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
 // ── P2, P3, P4, P5, H4–H9 ────────────────────────────────────────────────────────────────────────
 console.log('\nselection and options (P2–P5, H4–H9)');
 {

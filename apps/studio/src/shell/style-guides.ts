@@ -58,6 +58,8 @@ const HEADING = 'Build style guides';
 const INTRO = 'Draws a table for each group of tokens in this file. A rerun updates each table in place.';
 const NOTE = 'Needs the pages and cells Set up file adds.';
 const SET_UP = 'Set up file';
+/** A catalog the host could not read (owner decision SG4). */
+const READ_ERROR = "Couldn't read this file's variables. Close the page and open it again.";
 const KIND_LABEL: Record<StyleGuideKind, string> = { color: 'Color', dimension: 'Spacing and size', font: 'Font variables', text: 'Text styles' };
 const KINDS: readonly StyleGuideKind[] = ['color', 'dimension', 'font', 'text'];
 const STATUS: Record<SgRunTable['status'] | 'stopped', string> = { waiting: 'Waiting', drawing: 'Drawing', done: 'Done', failed: 'Not drawn', stopped: 'Not drawn' };
@@ -218,8 +220,8 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
       n.append(glyph('warn'), h('span', 'p3-sg-warn-text', NOTE), b);
       head.append(n);
     }
-    const err = lend.read().catalog?.error;
-    if (err) head.append(hook(h('p', 'p3-sub p3-sg-error', err), 'sg-read-error'));
+    // The host could not read the file (owner decision SG4, 2026-10-05): the approved words, never the host's message.
+    if (lend.read().catalog?.error) head.append(hook(h('p', 'p3-sub p3-sg-error', READ_ERROR), 'sg-read-error'));
     return head;
   };
 
