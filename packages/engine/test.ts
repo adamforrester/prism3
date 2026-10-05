@@ -7524,6 +7524,24 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
       `[#2068] the message carries the values as entered, not rounded (got "${vpMsg('vpDec', { fluid: true, minViewport: 400.5, maxViewport: 400 })}")`);
     ok(vpMsg('vpOff', { fluid: false, minViewport: 1280, maxViewport: 375 }) === VP_INV,
       `[#2068] the refusal holds with fluid off too (owner decision Q16 = a) — the pair is what the fluid regime reads (got "${vpMsg('vpOff', { fluid: false, minViewport: 1280, maxViewport: 375 })}")`);
+
+    // #2172 — the ONE-BOUND path: a brand that sets only one viewport is compared against the engine's default
+    // for the other, and the message names that default (owner decision Q17 a). Every arm above sets both, so
+    // the default the comparison uses was never exercised: changing it alone left this whole block green.
+    // EXPECTED is literal. BY-NAME MUTATION: change the comparison's default (theme.ts, `vpMax = … ?? 1280`)
+    // → the min-only arm, the default-range arm and the schema arm fail.
+    ok(vpMsg('vpMinOnly', { fluid: true, minViewport: 1280 }) === 'The minimum viewport (1280px) must be smaller than the maximum viewport (1280px).',
+      `[#2172] only minViewport 1280 is compared with the default maxViewport, 1280, and refused (got "${vpMsg('vpMinOnly', { fluid: true, minViewport: 1280 })}")`);
+    ok(vpMsg('vpMaxOnly', { fluid: true, maxViewport: 375 }) === 'The minimum viewport (375px) must be smaller than the maximum viewport (375px).',
+      `[#2172] only maxViewport 375 is compared with the default minViewport, 375, and refused (got "${vpMsg('vpMaxOnly', { fluid: true, maxViewport: 375 })}")`);
+    const vpDefault = tBrand('vpDefOut', {} as any).typography;
+    ok(vpDefault.minViewport === 375 && vpDefault.maxViewport === 1280,
+      `[#2172] a brand that sets neither viewport builds with 375/1280, the range the refusal compared (got ${vpDefault.minViewport}/${vpDefault.maxViewport})`);
+    // The schema states the defaults too, for an agent reading it. Pinned to what the engine builds.
+    const vpSchema = JSON.parse(readFileSync(resolve(HERE, 'schema', 'theme-schema.json'), 'utf8'));
+    const vpProps = JSON.stringify(vpSchema).match(/"minViewport":\{"type":"number","default":(\d+)[^}]*\},"maxViewport":\{"type":"number","default":(\d+)/);
+    ok(!!vpProps && Number(vpProps[1]) === vpDefault.minViewport && Number(vpProps[2]) === vpDefault.maxViewport,
+      `[#2172] theme-schema.json's stated viewport defaults match the engine's (schema ${vpProps?.[1]}/${vpProps?.[2]}, engine ${vpDefault.minViewport}/${vpDefault.maxViewport})`);
     // The default range still builds, implicitly and stated explicitly, and its emitted clamps are finite.
     ok(!thr(() => tBrand('vpDef', {} as any)) && !thr(() => tBrand('vpDefX', { responsive: { fluid: true, minViewport: 375, maxViewport: 1280 } } as any)),
       '[#2068] the default 375/1280 range builds, omitted and stated explicitly');
