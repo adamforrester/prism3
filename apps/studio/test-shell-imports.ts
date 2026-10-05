@@ -154,7 +154,9 @@ const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.
   'src/state/button-input.ts', 'src/preview/sections/button-layout.ts', 'src/state/component-catalog.ts',
   'src/state/component-catalog-data.ts',
   // S8.2: Components (its levers and its preview) and the preview's Component sets section.
-  'src/domains/components.ts', 'src/preview/components.ts', 'src/preview/sections/component-sets.ts'];
+  'src/domains/components.ts', 'src/preview/components.ts', 'src/preview/sections/component-sets.ts',
+  // S12: the start window and its decisions.
+  'src/shell/start.ts', 'src/state/start-input.ts'];
 
 /** Every identifier in `src` that names a legacy tier, with its 1-based line. */
 const references = (src: string, file: string): { line: number; name: string }[] => {

@@ -150,7 +150,7 @@ console.log('1. a file with NO stored brand surfaces the start screen');
   await post(page, { type: 'restore-input-empty' });
   ok(await waitStart(page, true), 'restore-input-empty puts the panel on the start screen');
   const s = await readStart(page);
-  ok(s.heading === 'Start a new brand.', `the heading is the web's: "${s.heading}"`);
+  ok(s.heading === 'Start a brand in this file', `the heading is the plugin's (owner decision G17): "${s.heading}"`);
   ok(s.fromColor, 'path 1 — start from your color');
   ok(s.startBlank, 'path 2 — start blank');
   ok(s.chips.length >= 2, `path 3 — example chips (${s.chips.join(', ')})`);
@@ -234,6 +234,35 @@ console.log('\n4. "+ New brand" surfaces the start screen (it used to load a neu
   await page.close();
 }
 
+// ── §4b — "+ New brand" before the host answers (UI redesign S12, the #1197 / #1200 trap) ──────────────
+// Reopening the start changes no origin, so the identity guard still reads "nothing chosen" until the designer picks a
+// path. Both orders the host can answer in are held: an empty file turns the reopened start into the first run (no
+// Close, nothing to go back to), and a file with a brand loads it and closes the start.
+console.log('\n4b. "+ New brand" before the host answers, then either answer');
+{
+  const { page, errors } = await openPanel();
+  await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
+  await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
+  ok(await waitStart(page, true), 'the start reopens before the host has answered');
+  ok(await page.locator('[data-p3="start-close"]').count() === 1, 'and, reopened, it offers Close');
+  await post(page, { type: 'restore-input-empty' });
+  await page.waitForFunction(() => !document.querySelector('[data-p3="start-close"]'), null, { timeout: 4000 }).catch(() => {});
+  const s = await readStart(page);
+  ok(s.start && await page.locator('[data-p3="start-close"]').count() === 0, 'an empty file then makes it the first run: the start stays, with no Close');
+  ok(errors.length === 0, `no console errors (${errors.slice(0, 1).join('') || 'none'})`);
+  await page.close();
+}
+{
+  const { page } = await openPanel();
+  await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
+  await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
+  await waitStart(page, true);
+  await post(page, { type: 'restore-input', input: NB_BRAND });
+  ok(await waitStart(page, false), 'a file with a brand then loads it, and the start closes');
+  ok(((await readStart(page)).brandSel ?? '').includes('restored-brand'), 'the file\'s brand is the working brand');
+  await page.close();
+}
+
 // ── §5 — the paths actually leave the start screen ─────────────────────────────────────────────
 console.log('\n5. each path lands in the editor');
 {
@@ -293,7 +322,8 @@ for (const vp of [{ width: 1280, height: 900 }, { width: 500, height: 560 }, { w
   ok(!m.clippedTop, `${at}: the column is not clipped by the centering`);
   ok(m.reachable, `${at}: the whole column is scrollable into view`);
   ok(m.controlsInView, `${at}: every control sits inside the viewport width`);
-  ok(m.cards === 4, `${at}: all four paths render (${m.cards})`);
+  // Three cards since the owner's answer N1 A: "Start blank" is the color card's secondary action, so four paths in three.
+  ok(m.cards === 3, `${at}: all four paths render in three cards (${m.cards})`);
   await page.close();
 }
 
