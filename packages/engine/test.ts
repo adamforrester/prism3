@@ -8049,6 +8049,20 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   // 2-tier (NB-style minimal): smallest 4, top = base
   const two = lyBrand('ly2', { breakpoints: [0, 1024] }).layout;
   ok(two.grid[0].columns === 4 && two.grid[1].columns === two.baseColumns, '2-tier ladder = [4, base]');
+  // #2132 — a first breakpoint that isn't 0px is refused (owner decision 2026-10-05, F4 A). EXPECTED is the
+  // owner-approved sentence, typed here literally, with the value as entered. The 0 arms are the default and
+  // the explicit [0, …] lists above, which already build; the default is asserted again here so this block
+  // states both of the decision's arms. BY-NAME MUTATION: delete the refusal in `buildLayout` → the three
+  // refusal arms fail.
+  const bpMsg = (id: string, breakpoints: number[]) => { try { lyBrand(id, { breakpoints }); return ''; } catch (e) { return (e as Error).message; } };
+  ok(bpMsg('bp0', [0, 768, 1024]) === '' && lyBrand('bpDef', {}).layout.breakpoints[0].px === 0,
+    '[#2132] a first breakpoint of 0px builds, stated explicitly and by default');
+  ok(bpMsg('bp320', [320, 768]) === 'The first breakpoint must be 0px. This brand starts at 320px.',
+    `[#2132] a first breakpoint of 320px is refused with the approved wording (got "${bpMsg('bp320', [320, 768])}")`);
+  ok(bpMsg('bp1', [1, 768, 1024]) === 'The first breakpoint must be 0px. This brand starts at 1px.',
+    `[#2132] the smallest non-zero first breakpoint (1px) is refused too, so the rule is "not 0" and not a threshold (got "${bpMsg('bp1', [1, 768, 1024])}")`);
+  ok(bpMsg('bpDec', [0.5, 768]) === 'The first breakpoint must be 0px. This brand starts at 0.5px.',
+    `[#2132] the message carries the value as entered, not rounded (got "${bpMsg('bpDec', [0.5, 768])}")`);
 }
 
 // ------------------------------------------------- gradient invariants (opt-in)
