@@ -222,8 +222,8 @@ await new Promise((r) => setTimeout(r, 3000));
 // ---------------------------------------------- #2146: validate_brand reports the engine's own refusals
 // The schema is not the whole contract: `brandTheme` refuses inputs the schema accepts, and `validate_brand`
 // called them valid while `theme_brand` then refused them. EXPECTED is each refusal's owner-approved sentence,
-// typed here literally. BY-NAME MUTATION: drop the `brandTheme` call from the `validate_brand` handler → the
-// two refusal arms fail; the valid-brand and malformed-input arms do not.
+// typed here literally. BY-NAME MUTATION: drop the whole build call from the `validate_brand` handler → every
+// refusal arm below fails; the valid-brand and malformed-input arms do not.
 {
   const B = { id: 'x', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
   const bp = (await server.callJson('validate_brand', { ...B, layout: { breakpoints: [320, 768] } })).payload;
@@ -232,6 +232,21 @@ await new Promise((r) => setTimeout(r, 3000));
   const vp = (await server.callJson('validate_brand', { ...B, typography: { responsive: { fluid: true, minViewport: 1280, maxViewport: 375 } } })).payload;
   ok(vp.valid === false && vp.errors.length === 1 && vp.errors[0] === 'The minimum viewport (1280px) must be smaller than the maximum viewport (375px).',
     `#2146 validate_brand reports the viewport-range refusal (#2068), not just the schema (got ${JSON.stringify(vp)})`);
+  // #2137, owed by #2157 and #2158 (whichever merged second): the empty breakpoints list, refused in
+  // `brandTheme`. The exact approved sentence, typed here literally.
+  const empty = (await server.callJson('validate_brand', { ...B, layout: { breakpoints: [] } })).payload;
+  ok(empty.valid === false && empty.errors.length === 1 && empty.errors[0] === 'The brand needs at least one breakpoint, starting at 0px.',
+    `#2137 validate_brand reports the empty-breakpoints refusal (got ${JSON.stringify(empty)})`);
+  // #2159: refusals that fire only in `buildTree`, once the modes resolve, after `brandTheme` has accepted the
+  // brand. `validate_brand` runs the same build path `theme_brand` does, so they are reported in the engine's
+  // own words. EXPECTED is each message typed here literally. BY-NAME MUTATION: drop `buildTree(…)` from the
+  // handler (back to `brandTheme` alone) → these two arms fail; the brandTheme arms above do not.
+  const step = (await server.callJson('validate_brand', { ...B, overrides: { light: { 'foreground.brand': { palette: 'neutral', step: '999' } } } })).payload;
+  ok(step.valid === false && step.errors.length === 1 && step.errors[0] === "overrides[light]: unknown step '999' in palette 'neutral' (role 'foreground.brand')",
+    `#2159 validate_brand reports an override naming an unknown step, a refusal only buildTree reaches (got ${JSON.stringify(step)})`);
+  const pal = (await server.callJson('validate_brand', { ...B, overrides: { light: { 'foreground.brand': { palette: 'nope', step: '500' } } } })).payload;
+  ok(pal.valid === false && pal.errors.length === 1 && pal.errors[0] === "overrides[light]: unknown palette 'nope' (role 'foreground.brand')",
+    `#2159 validate_brand reports an override naming an unknown palette, a refusal only buildTree reaches (got ${JSON.stringify(pal)})`);
   const good = (await server.callJson('validate_brand', B)).payload;
   ok(good.valid === true && good.errors.length === 0, `#2146 a brand the engine builds is still valid, with no errors (got ${JSON.stringify(good)})`);
   // A schema-invalid input is NOT handed to brandTheme: it would fail there with a TypeError rather than a
