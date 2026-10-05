@@ -1073,9 +1073,17 @@ for (const b of brands) {
     'FO-01b prism3/hc-dark: foreground.brand is measured on neutral.900 at #171718 under a #000000 page (precondition)');
   ok(!!hcFg && Math.abs(hcFg.ratio - onRgb(hcFg.hex, '#171718')) < 1e-9 && Math.abs(onRgb(hcFg.hex, '#171718') - onRgb(hcFg.hex, '#000000')) > 0.1,
     `FO-01b prism3/hc-dark: foreground.brand records its contrast on the floor #171718 (records ${hcFg?.ratio.toFixed(2)}, measures ${hcFg && onRgb(hcFg.hex, '#171718').toFixed(2)} on the floor, ${hcFg && onRgb(hcFg.hex, '#000000').toFixed(2)} on the page)`);
+  // The refusal is matched by its FIELD and its MODE, not by the word 'generate-only': theme.ts carries three
+  // copies of this refusal (overrides, modeAnchors, modeLevers), and the overrides branch throwing a sibling's
+  // message would still say 'generate-only' (#2097 item 2).
+  // BY-NAME MUTATIONS (#2097 item 2), on `brandTheme`'s overrides refusal in theme.ts:
+  //   · `&& m !== 'hc-dark'` on its condition (HC accepts the override) → this arm is the ONLY failure in the
+  //     suite. A1(c) holds hc-light, not hc-dark, so without this arm nothing would see it.
+  //   · `if (false)` (every generate-only mode accepts) → this arm and A1(c).
+  //   · the overrides branch throwing the `modeAnchors:` message → this arm only; the old `includes('generate-only')` passed it.
   let hcThrew = '';
   try { resolveAllModes(brandTheme({ ...PRISM3(), overrides: { 'hc-dark': { 'foreground.brand': { palette: 'neutral', step: '400' } } } } as BrandInput)); } catch (e) { hcThrew = (e as Error).message; }
-  ok(hcThrew.includes('generate-only'), `FO-01b prism3/hc-dark: an override in an HC mode is refused, so no HC ratio passes through the override pass (threw: "${hcThrew.slice(0, 80)}")`);
+  ok(hcThrew.startsWith("overrides: mode 'hc-dark' is generate-only"), `FO-01b prism3/hc-dark: an override in an HC mode is refused by the overrides refusal, naming hc-dark, so no HC ratio passes through the override pass (threw: "${hcThrew.slice(0, 80)}")`);
 }
 
 // FO-02 (#2034) — the override pass's page FALLBACK is warned, never silent. No input reaches it today
