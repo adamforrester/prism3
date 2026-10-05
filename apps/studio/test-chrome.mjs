@@ -5970,6 +5970,7 @@ const layoutRead = (page) => page.evaluate(() => {
   const secs = [...pane.querySelectorAll('[data-p3="lever-section"]')].map((x) => ({ title: x.querySelector('.p3-lsec-title')?.textContent, desc: x.querySelector('.p3-lsec-desc')?.textContent ?? '' }));
   const psecs = [...body.querySelectorAll('[data-p3="layout-style-guide"] .psec')].map((x) => ({ title: x.querySelector('[data-p3="section-title"]')?.textContent, desc: x.querySelector('[data-p3="section-description"]')?.textContent ?? '' }));
   const bpRows = [...pane.querySelectorAll('[data-p3="bp-row"]')].map((r) => ({ bp: r.dataset.bp, value: r.querySelector('input')?.value, disabled: r.querySelector('input')?.disabled,
+    edge: r.querySelector('input') ? getComputedStyle(r.querySelector('input')).borderTopStyle : null,
     note: r.querySelector('[data-p3="bp-first-note"]')?.textContent ?? null, remove: r.querySelector('[data-p3="bp-remove"]')?.textContent ?? null }));
   return {
     intro: pane.querySelector('.p3-intro')?.textContent, secs, psecs, bpRows,
@@ -6042,6 +6043,11 @@ for (const host of ['web', 'figma']) {
       `Layout: the first breakpoint is fixed at 0 (${host}): its field reads 0, is disabled, says "${LAYOUT_APPROVED.first}" and has no Remove — ${JSON.stringify(first)}`);
     ok(r.bpRows.slice(1).every((x) => x.disabled === false && x.remove === `Remove ${x.bp}`) && r.add === LAYOUT_APPROVED.add && r.next === LAYOUT_APPROVED.next,
       `Layout: ${host}: every other breakpoint is editable with "Remove ‹name›", and the list ends on "${LAYOUT_APPROVED.add}"; Continue reads "${LAYOUT_APPROVED.next}" — ${JSON.stringify(r.bpRows.slice(1))}, add ${r.add}, next ${r.next}`);
+    // #2098 item 6: the fixed first field must not look like an editable one. It takes the chrome's can't-change edge,
+    // dashed (a fixed check box, a locked value picker, a disabled button), and every editable field keeps a solid one.
+    // Read as computed on the rendered field, so a rule that stops matching fails here by name.
+    ok(first?.edge === 'dashed' && r.bpRows.slice(1).every((x) => x.edge === 'solid'),
+      `Layout: ${host}: the fixed first breakpoint field draws a dashed edge, and every editable one a solid edge — ${JSON.stringify(r.bpRows.map((x) => [x.bp, x.edge]))}`);
     // T8: Continue opens the Components tab on this host, its own two panes since S8.2 on both hosts.
     await hooks.click(page.locator('[data-p3="layout-continue"]'));
     await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'components', null, { timeout: 5000 }).catch(() => {});
