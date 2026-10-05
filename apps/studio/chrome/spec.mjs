@@ -135,7 +135,7 @@ export const PRODUCT_VARS = [
   // S12 (owner decision S5): the guard's Discard wears Prism3's destructive button, the Button.Destructive component's
   // default (filled) appearance: its fill and its on-fill ink at rest, from the same tokens in both themes. Hover moves
   // the edge to the destructive border's hover step, the way the outline appearance carries state: the filled hover
-  // step under the on-fill ink measures 3.31:1 in dark (filed), below the 4.5:1 text floor.
+  // step under the on-fill ink measures 3.31:1 in dark (#2135), below the 4.5:1 text floor.
   ['danger-fill', 'color.interactive.destructive.fill.rest', 'color.interactive.destructive.fill.rest', C, 'the destructive button\'s fill (S5)'],
   ['danger-on', 'color.interactive.destructive.on-fill', 'color.interactive.destructive.on-fill', C, 'the destructive button\'s label (S5)'],
   ['danger-edge-hover', 'color.interactive.destructive.border.hover', 'color.interactive.destructive.border.hover', C, 'the destructive button\'s edge on hover (S5)'],
