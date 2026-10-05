@@ -15,6 +15,8 @@
 - **X1:** the import card's description is "Already have a design.md? Paste it or upload it to load the full brand."
 - **N1 A: "Start blank" folds into the color card** as its secondary action, beside "Start from this color", with the same button text and the same G13 Blank. The card's description becomes "Your primary brand color; everything else takes smart defaults you can tune. No color yet? Start blank with a neutral gray." The separate "Start with a neutral default" card, its title and its line are gone. The order is now color (with Blank), examples, import: four paths in three cards. Blank still saves G13's gray, byte for byte, checked against `main` and as a literal in section 27.
 
+**Round 3 (review of #2142):** the guard check ran only through the aurora example, so a color, paste, upload or Blank path calling `lend.load` directly (skipping `pick()`) survived. Section 27 now runs every path (color, Blank, an example, paste, upload) on both hosts and themes. Each path starts from its own fresh harbor with one edit, must show "Discard 1 edit", and with 0 edits must load at once. **Q31 (owner, approved copy):** "Start a brand in this file", "Paste a design.md brief", and "Paste a design.md brief or choose a file first.", which replaces "Nothing to import — the file is empty." in the brand menu's paste.
+
 **The diagnosis that made Close small.** The scope planned to keep "+ New brand"'s `clearOrigin()` and remember the old provenance so Close could put it back (T7, with the #1197/#1200 identity trap that restoring the boot provenance re-arms). Reopening now changes no origin at all: a reopen flag beside the session opens the window, Close clears it, and every path goes through `loadBrand`, which clears it too. So Close restores nothing because nothing moved, the guard is the brand menu's own rule (`needsOverwriteConfirm`, which a cleared origin made false: the scope's headline 8, edits dropped without asking), and the identity guard reads "nothing chosen" until a path is chosen. In the plugin, a reopen before the host answers turns into the first run on an empty file (no Close), and closes on a file with a brand: `test:start` §4b holds both orders.
 
 **Technical calls:**
@@ -41,6 +43,7 @@
 - Upload moved back below the box: chrome `the import card's heading row holds its title and then "↑ Upload…" — holds ["Import a design.md"]`;
 - Import left enabled when the box is empty: chrome `with the box empty, Import is disabled and still named "Import" — {"disabled":false,…}`;
 - the old import description: chrome `the import card says "Already have a design.md? Paste it or upload it to load the full brand." (X1)`;
+- (round 3) each start path calling `lend.load` instead of `pick()`, one at a time: chrome `the color path over 1 unsaved edit asks first ("Discard 1 edit") — loaded without asking (brand "untitled")`, `the paste path … — loaded without asking (brand "harbor")`, `the upload path … — loaded without asking (brand "harbor")`, `the Blank path … — loaded without asking (brand "untitled")`;
 - the brand menu's paste off the shared check: chrome `the brand menu's empty paste says "Paste a design.md brief or choose a file first."`.
 
 ### Traps
