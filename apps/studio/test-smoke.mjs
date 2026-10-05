@@ -3136,10 +3136,17 @@ const readNewChips = (sel) => {
   hooks.absent(ok, { seen: on === 'true', state: 'the Full contrast switch, on' }, r1.found === 0,
     `${brand} / Interactive / disabledMin: under Full contrast the floor chips are not drawn (QA-I8) — ${r1.found} drawn, switch ${on}`);
   ok((await persistedAt(page, 'disabledStrategy')) === 'full', `${brand} / Interactive / disabledStrategy: the Full contrast switch on writes "full" (wrote ${JSON.stringify(await persistedAt(page, 'disabledStrategy'))})`);
-  // At 380 the page's chips stay inside the panel (long labels wrap onto a second row).
+  // At 380 the page's chips stay inside the panel (long labels wrap onto a second row). The frame's width tier
+  // (`data-w`) is set by a ResizeObserver at the next rendering step, which can come after `setViewportSize`
+  // resolves (#2095, the race #2090 fixed for Button options), so wait on the tier and require it: measured in the
+  // wide tier, this check would be passing on the two-pane layout squeezed to 380, not the narrow one.
   await page.setViewportSize({ width: 380, height: 900 });
-  const over = await page.evaluate(() => [...document.querySelectorAll('[data-p3="interactive-levers"] [role="radiogroup"]')].map((g) => g.scrollWidth - g.clientWidth).filter((x) => x > 1).length);
-  ok(over === 0, `${brand} / Interactive at 380: every chip group fits its panel (${over} overflow)`);
+  await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow', null, { timeout: 5000 }).catch(() => {});
+  const { tier, over } = await page.evaluate(() => ({
+    tier: document.querySelector('[data-p3="frame"]')?.dataset.w,
+    over: [...document.querySelectorAll('[data-p3="interactive-levers"] [role="radiogroup"]')].map((g) => g.scrollWidth - g.clientWidth).filter((x) => x > 1).length,
+  }));
+  ok(tier === 'narrow' && over === 0, `${brand} / Interactive at 380: every chip group fits its panel (${over} overflow, frame tier ${tier})`);
   const errs = drain();
   ok(errs.length === 0, `${brand}: driving the Interactive chips raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
