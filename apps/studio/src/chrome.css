@@ -981,13 +981,12 @@
 .p3-frame[data-w="narrow"] .p3-scrim-start { padding: 0; }
 .p3-frame[data-w="narrow"] .p3-start { width: 100%; height: 100%; max-height: none; border: 0; border-radius: 0; }
 .p3-frame[data-w="narrow"] :is(.p3-dialog-head, .p3-dialog-body, .p3-dialog-foot) { padding-left: var(--p3-space-200); padding-right: var(--p3-space-200); }
-/* Today's four cards, restyled (G11 B): containers take radius-xl and a hairline; the color card keeps a stronger edge. */
+/* Today's four cards, restyled (G11 B): containers take radius-xl and a hairline; the every card takes the same edge (the owner's review of #2142). */
 .p3-start-lede { color: var(--p3-text-2); }
 .p3-start-card {
   display: grid; gap: var(--p3-space-050); min-width: 0; padding: var(--p3-space-250);
   border: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-xl); background: var(--p3-bg-page);
 }
-.p3-start-hero { border-color: var(--p3-line-2); }
 .p3-start-text { display: grid; gap: var(--p3-space-050); min-width: 0; }
 .p3-start-title { margin: 0; color: var(--p3-text); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
 .p3-start-desc { color: var(--p3-text-2); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); }
@@ -1017,3 +1016,8 @@
 /* Discard (owner decision S5): Prism3's destructive button, filled, at rest exactly; its edge carries hover. */
 .p3-btn.p3-btn-danger { background-color: var(--p3-danger-fill); color: var(--p3-danger-on); border-color: var(--p3-danger-fill); }
 .p3-btn.p3-btn-danger:hover { border-color: var(--p3-danger-edge-hover); }
+/* The import card (the owner's review of #2142): its heading row holds the title and Upload, and the paste box sits a
+   step further below it (space-200, one up from the cards' space-150), so pasting reads as the alternative. */
+.p3-start-headrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: var(--p3-space-200); }
+.p3-start-import > .p3-start-paste { margin-top: var(--p3-space-200); }
+.p3-start-pasterow { justify-content: flex-end; margin-top: var(--p3-space-100); }

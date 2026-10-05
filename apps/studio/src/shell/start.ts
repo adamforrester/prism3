@@ -10,7 +10,8 @@
  *
  * THE OWNER'S DECISIONS IT DRAWS. The order is color, examples, the neutral default, import (S8). The color card
  * starts at the working brand's primary (G14) and its button reads "Start from this color" (S1); a hex that is not
- * #rrggbb is refused in words (S3). The import card has a paste box above "↑ Upload…", with an Import button (S2),
+ * #rrggbb is refused in words (S3). The import card has "↑ Upload…" on its heading row and a paste box below, whose
+ * Import button is disabled until the box holds text (S2, the owner's review of #2142),
  * and its errors name the line (S7). Close shows whenever the window was reopened (S9), never on the first run, and
  * Escape does what Close does. With unsaved edits a choice asks first, in a second window on top of this one (S4):
  * Cancel returns to the start, focus starts on Cancel, and Discard wears Prism3's destructive button (S5).
@@ -155,7 +156,7 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
   };
 
   // ── 1. from a color (G14: the working brand's primary; S1, S3) ───────────────────────────────────
-  const c1 = card('Start from your color', 'Your primary brand color; everything else takes smart defaults you can tune.', 'p3-start-card p3-start-hero');
+  const c1 = card('Start from your color', 'Your primary brand color; everything else takes smart defaults you can tune.', 'p3-start-card');
   const row1 = h('div', 'p3-start-row');
   const field = h('div', 'p3-colorfield');
   const start = hex(oklchToRgb(brandState.primary));
@@ -207,19 +208,29 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
   c3.el.append(blank);
 
   // ── 4. import a design.md: paste it (S2), or upload it ─────────────────────────────────────────
-  const c4 = card('Import a design.md', 'Already have a design.md? Upload it to load the full brand.');
+  // The owner's review of #2142: Upload sits at the end of the heading row; the paste box, set further down, is the
+  // alternative, and its Import belongs to it.
+  const c4 = card('Import a design.md', 'Already have a design.md? Paste it or upload it to load the full brand.', 'p3-start-card p3-start-import');
+  const head4 = hook(h('div', 'p3-start-headrow'), 'start-import-head');
   const paste = hook(h('textarea', 'p3-start-paste'), 'start-paste');
   paste.placeholder = 'Paste a design.md brief';
   paste.setAttribute('aria-label', 'Paste a design.md brief');
   paste.spellcheck = false;
-  const row4 = h('div', 'p3-start-row');
+  const row4 = h('div', 'p3-start-row p3-start-pasterow');
   const upload = button('p3-btn p3-btn-page', 'start-upload', '↑ Upload…');
   const file = hook(h('input', 'p3-start-file'), 'start-file');
   file.type = 'file'; file.accept = IMPORT_ACCEPT; file.tabIndex = -1;
   file.setAttribute('aria-hidden', 'true');
   upload.onclick = () => file.click();
   const imp = button('p3-btn p3-btn-page p3-start-go', 'start-import', 'Import');
-  row4.append(upload, file, imp);
+  // Disabled while the box is empty or only spaces, so an empty Import cannot be pressed; its name is its label in both
+  // states.
+  const syncImport = (): void => { imp.disabled = !paste.value.trim(); };
+  paste.addEventListener('input', syncImport);
+  syncImport();
+  head4.append(c4.text, upload, file);
+  c4.el.replaceChildren(head4);
+  row4.append(imp);
   const err4 = errLine('start-import-error', 'p3-start-import-error');
   const showImportError = (text: string): void => {
     err4.textContent = text;

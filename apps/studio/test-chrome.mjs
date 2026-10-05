@@ -48,7 +48,8 @@
  * over the studio, every owner decision against a literal typed in the section: the heading per host (G17), no Close on
  * the first run and Close when reopened (S9, S10), the cards in the order color, examples, neutral default, import (S8),
  * "Start from this color" (S1), the color starting at the working brand's primary (G14), a bad hex refused in words
- * (S3), the empty paste (S2), import errors that open "Line ‹n›: " only when the line is known (S7), the wrong file type
+ * (S3), Import disabled while the paste box is empty and named in both states, every card's border equal, Upload on the
+ * import card's heading row and its X1 description (the owner's review of #2142), the brand menu's empty paste (S2), import errors that open "Line ‹n›: " only when the line is known (S7), the wrong file type
  * (S6), the guard over 3 edits opening ON TOP of the start (S4) with focus on Cancel (S5), its approved words (S10),
  * Discard drawn in Prism3's destructive fill and on-fill (oracle: the committed emission, S5), Cancel and Escape back to
  * the start, Close back to the brand byte-identical with its origin kept, and the brand menu's paste and upload showing
@@ -7018,6 +7019,7 @@ const START = {
   emptyPaste: 'Paste a design.md brief or choose a file first.',                                // S2
   fileType: 'Choose a .md, .markdown or .txt file.',                                            // S6
   close: 'Close',                                                                                // S10
+  importDesc: 'Already have a design.md? Paste it or upload it to load the full brand.',       // X1 (the owner's review of #2142)
 };
 /** A brief with a repeated key on line 3 (the opening --- is line 1), and one with no primary, which names no line. */
 const DUP_KEY_BRIEF = '---\nid: dup\nid: again\n---\n';
@@ -7096,6 +7098,15 @@ const readStartWindow = (page) => page.evaluate(() => {
     focusInStart: !!a && !!dlg?.contains(a),
     focusInGuard: !!a && !!guard?.contains(a),
     brand: q('[data-p3="brand-switcher"]')?.textContent ?? null,
+    // The owner's review of #2142: every card's edge, the import card's heading row and description, and Import's state.
+    cardEdges: [...document.querySelectorAll('[data-p3="start-path"]')].map((c) => { const cs = getComputedStyle(c); return `${cs.borderTopColor}|${cs.borderTopWidth}`; }),
+    importHead: [...(q('[data-p3="start-import-head"]')?.children ?? [])].filter((n) => n.getClientRects().length)
+      .map((n) => n.getAttribute('data-p3') ?? n.querySelector('h3')?.textContent ?? n.tagName),
+    importDesc: q('[data-p3="start-import-head"] .p3-start-desc')?.textContent ?? null,
+    importBelowPaste: (() => { const b = q('[data-p3="start-import"]'), t = q('[data-p3="start-paste"]'); if (!b || !t) return false;
+      const rb = b.getBoundingClientRect(), rt = t.getBoundingClientRect(); return rb.top >= rt.bottom && Math.abs(rb.right - rt.right) < 1; })(),
+    uploadAbovePaste: (() => { const u = q('[data-p3="start-upload"]'), t = q('[data-p3="start-paste"]'); return !!u && !!t && u.getBoundingClientRect().bottom <= t.getBoundingClientRect().top; })(),
+    importDisabled: q('[data-p3="start-import"]')?.disabled ?? null,
   };
 });
 /** The web's saved brand, the bytes a reload restores. Null in the plugin. */
@@ -7113,6 +7124,12 @@ for (const { w, h } of START_SIZES) {
         ok(s.heading === START.heading[host], `${where}: the heading reads "${START.heading[host]}" (G17) — reads "${s.heading}"`);
         ok(s.close === null, `${where}: the first run offers no Close (G15 A, S9) — found "${s.close}"`);
         ok(JSON.stringify(s.order) === JSON.stringify(START.order), `${where}: the cards run color, examples, the neutral default, import (S8) — ${JSON.stringify(s.order)}`);
+        // The owner's review of #2142: one edge for all four cards; Upload on the import card's heading row; X1's words.
+        ok(s.cardEdges.length === 4 && new Set(s.cardEdges).size === 1, `${where}: all four cards draw the same border — ${JSON.stringify(s.cardEdges)}`);
+        ok(JSON.stringify(s.importHead) === JSON.stringify(['Import a design.md', 'start-upload']),
+          `${where}: the import card's heading row holds its title and then "↑ Upload…" — holds ${JSON.stringify(s.importHead)}`);
+        ok(s.uploadAbovePaste && s.importBelowPaste, `${where}: Upload sits above the paste box, Import below it at its right edge (upload above ${s.uploadAbovePaste}, import below ${s.importBelowPaste})`);
+        ok(s.importDesc === START.importDesc, `${where}: the import card says "${START.importDesc}" (X1) — says "${s.importDesc}"`);
         ok(s.go === START.go, `${where}: the color card's button reads "${START.go}" (S1) — reads "${s.go}"`);
         ok(!!s.hex && s.hex.toLowerCase() === (s.behindHex ?? '').toLowerCase(), `${where}: the color starts at the working brand's primary (G14): ${s.hex}, the primary behind is ${s.behindHex}`);
         ok(s.frameInert && s.focusInStart, `${where}: the studio behind is inert and focus is in the window (${s.focus})`);
@@ -7123,7 +7140,8 @@ for (const { w, h } of START_SIZES) {
         // Focus stays in the window, and every stop draws a ring.
         const rings = await focusRings(page);
         const ringHooks = new Set(rings.map((r) => r.hook));
-        for (const want of ['start-hex', 'start-go', 'start-example', 'start-blank', 'start-upload', 'start-import']) ok(ringHooks.has(want), `${where}: Tab reaches ${want} inside the window`);
+        // Import is disabled while the box is empty, so Tab passes it here.
+        for (const want of ['start-hex', 'start-go', 'start-example', 'start-blank', 'start-upload']) ok(ringHooks.has(want), `${where}: Tab reaches ${want} inside the window`);
         const weakRings = rings.filter((r) => r.width < 2 || r.r < NONTEXT_MIN);
         ok(weakRings.length === 0, `${where}: every stop in the window draws a ring at least 2px wide at ${NONTEXT_MIN}:1${weakRings.length ? ` — ${weakRings.slice(0, 3).map((r) => `${r.hook} ${r.width}px ${r.r}:1`).join(' | ')}` : ''}`);
         s = await readStartWindow(page);
@@ -7140,8 +7158,21 @@ for (const { w, h } of START_SIZES) {
         ok(s.focus === 'start-hex' && (await savedBrand(page)) === before, `${where}: the refused hex loads nothing and focus goes to the field (${s.focus})`);
 
         // ── S7: import errors name their line; S2: an empty box asks for a brief; S6: the wrong file type ──────────
-        await hooks.click(page.locator('[data-p3="start-import"]'));
-        ok((await readStartWindow(page)).importErr === START.emptyPaste, `${where}: Import with an empty box says "${START.emptyPaste}" (S2)`);
+        // Import belongs to the paste box: disabled while it is empty or only spaces, enabled with text, named "Import" in
+        // both states (read from the accessibility tree).
+        const importNode = page.locator('[data-p3="start-import"]');
+        const importState = async () => ({ disabled: (await readStartWindow(page)).importDisabled, aria: (await importNode.ariaSnapshot()).trim() });
+        let st = await importState();
+        ok(st.disabled === true && st.aria === '- button "Import" [disabled]', `${where}: with the box empty, Import is disabled and still named "Import" — ${JSON.stringify(st)}`);
+        await page.fill('[data-p3="start-paste"]', '   \n ');
+        st = await importState();
+        ok(st.disabled === true, `${where}: with only spaces in the box, Import stays disabled — ${JSON.stringify(st)}`);
+        await page.fill('[data-p3="start-paste"]', DUP_KEY_BRIEF);
+        st = await importState();
+        ok(st.disabled === false && st.aria === '- button "Import"', `${where}: with text in the box, Import is enabled, named "Import" — ${JSON.stringify(st)}`);
+        await page.fill('[data-p3="start-paste"]', '');
+        st = await importState();
+        ok(st.disabled === true && (await readStartWindow(page)).importErr === '', `${where}: cleared again, Import is disabled again, and the empty-box sentence never shows on the start — ${JSON.stringify(st)}`);
         await page.fill('[data-p3="start-paste"]', DUP_KEY_BRIEF);
         await hooks.click(page.locator('[data-p3="start-import"]'));
         const dupErr = (await readStartWindow(page)).importErr ?? '';
