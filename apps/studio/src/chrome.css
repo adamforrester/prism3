@@ -604,7 +604,8 @@
   color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14);
 }
 .p3-text-input.p3-value { font-family: var(--p3-font-mono); }
-.p3-text-input:hover { border-color: var(--p3-field-edge-hover); }
+/* No hover on a disabled field: it cannot be edited, so nothing answers the pointer (owner, 2026-10-05). */
+.p3-text-input:hover:not(:disabled) { border-color: var(--p3-field-edge-hover); }
 .p3-text-input:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
 /* A text field that cannot change (Layout's first breakpoint, D13; any field a derived mode locks) takes Prism3's own
    disabled text field skin, exactly: the fill, the edge and the on-fill ink its text field definition binds (owner

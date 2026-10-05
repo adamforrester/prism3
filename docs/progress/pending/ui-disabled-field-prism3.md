@@ -41,4 +41,4 @@
 
 ### Traps
 - **The exemption is decided against the floors in Node, not in the page.** `exemptOf` and `check` both read `TEXT_MIN` / `LARGE_TEXT_MIN` / `NONTEXT_MIN`. The probe only says which nodes are off, so a probe change cannot quietly decide what passes.
-- **#2143 (`ui/disabled-field-focus`) touches the hover rule next to this one.** It changes `.p3-text-input:hover` to `:hover:not(:disabled)`. Any conflict is mechanical, and its "a pointer changes nothing" check holds with this skin.
+- **#2143 (`ui/disabled-field-focus`) merged while this was in flight.** Its rule, `.p3-text-input:hover:not(:disabled)`, sits next to this one. Its `test:chrome` block ("a pointer over the disabled first breakpoint field changes nothing") conflicted with this PR's replacement of #2120's test in the same place. The merge keeps both blocks, one after the other.
