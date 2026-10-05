@@ -47,6 +47,7 @@ import { dirname, extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { hookGuard } from './test-hooks.mjs';
+import { assertBundleFresh, STUDIO_SOURCE_ROOTS } from './test-bundle-freshness.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 // Every element this suite LOCATES is found by its `data-p3` hook (F1), minted by `hook()` in
@@ -71,6 +72,11 @@ const ok = (cond, label) => {
   failures.push(label);
   console.error(`  ✗ ${label}`);
 };
+
+// The bundle this suite drives must be at least as new as its sources (#2067): a stale `dist/main.js` is
+// the old UI, measured and reported as this one. The check and its roots: `test-bundle-freshness.mjs`.
+assertBundleFresh({ repo: join(ROOT, '../..'), bundle: 'apps/studio/dist/main.js', roots: STUDIO_SOURCE_ROOTS, label: 'main.js freshness',
+  effect: 'this suite would test the old UI', build: 'npm run -w @prism3/studio build' });
 
 // ---- the static server -----------------------------------------------------------------------
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.map': 'application/json' };

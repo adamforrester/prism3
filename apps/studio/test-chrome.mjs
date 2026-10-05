@@ -331,6 +331,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { hookGuard } from './test-hooks.mjs';
 import { P, loadModes, resolve as resolveToken } from './chrome/tokens.mjs';
+import { assertBundleFresh, PLUGIN_UI_SOURCE_ROOTS, STUDIO_SOURCE_ROOTS } from './test-bundle-freshness.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '../..');
@@ -525,47 +526,14 @@ try { pluginHtml = readFileSync(join(REPO, 'apps/plugin/dist/ui.html'), 'utf8');
   console.error('✗ apps/plugin/dist/ui.html is missing: run `npm run -w @prism3/plugin build` first.');
   process.exit(1);
 }
-// ── the figma host's bundle must be at least as new as what it is built from (#2037) ─────────────────
-// `dist/ui.html` is the plugin build's output, and it inlines `apps/studio/src` whole. A studio-only
-// rebuild leaves it stale, and the figma arm then measures the old UI and reports it as this one: it bit
-// S4e's info-text mutation and S6.3's one-home mutation. `npm run verify` orders `build-plugin` before this
-// suite, so the case is a hand run.
-// A CHECK, NOT A BUILD, to match verify.ts: builds are their own gates and every browser suite is ordered
-// `after` them. Building here would build the plugin twice per verify, and report a build failure as this
-// suite's.
-// THE ROOTS ARE LITERAL, and they are what the UI bundle compiles from: the studio app and its chrome CSS,
-// the plugin's iframe entry and the modules it imports, and the engine the studio bundles. The build writes
-// no metafile, so the exact input set is not readable here. A root wider than the bundle only costs a
-// rebuild that was not needed (`main.ts` is the main thread's, not the iframe's). A narrower one would let
-// the stale case through. Every root must exist and hold files, so a renamed directory fails here rather
-// than scanning nothing and passing (docs/34 shape 9).
-const UI_SOURCE_ROOTS = ['apps/studio/src', 'apps/studio/chrome', 'apps/plugin/src', 'packages/engine'];
-{
-  const builtAt = statSync(join(REPO, 'apps/plugin/dist/ui.html')).mtimeMs;
-  let newest = { at: -Infinity, file: '' };
-  for (const root of UI_SOURCE_ROOTS) {
-    let files = 0;
-    let ents = [];
-    try { ents = readdirSync(join(REPO, root), { recursive: true, withFileTypes: true }); } catch { /* reported below, by name */ }
-    for (const ent of ents) {
-      if (!ent.isFile()) continue;
-      const file = join(ent.parentPath, ent.name);
-      if (file.includes(`${sep}node_modules${sep}`)) continue;
-      files++;
-      const at = statSync(file).mtimeMs;
-      if (at > newest.at) newest = { at, file };
-    }
-    if (files === 0) {
-      console.error(`✗ ui.html freshness: source root ${root} is missing or holds no files, so nothing was compared. Fix UI_SOURCE_ROOTS in test-chrome.mjs.`);
-      process.exit(1);
-    }
-  }
-  if (newest.at > builtAt) {
-    console.error(`✗ ui.html freshness: apps/plugin/dist/ui.html is older than ${relative(REPO, newest.file)}, so the figma host would test the old UI. ` +
-      'Run `npm run -w @prism3/plugin build`, then this suite again.');
-    process.exit(1);
-  }
-}
+// ── both hosts' bundles must be at least as new as what they are built from (#2037, #2067) ────────────
+// The figma host loads `apps/plugin/dist/ui.html` and the web host `apps/studio/dist/main.js`. A rebuild of
+// one after an edit leaves the other stale, and that arm then measures the old UI and reports it as this one.
+// The check, its roots and why they are literal: `test-bundle-freshness.mjs`.
+assertBundleFresh({ repo: REPO, bundle: 'apps/plugin/dist/ui.html', roots: PLUGIN_UI_SOURCE_ROOTS, label: 'ui.html freshness',
+  effect: 'the figma host would test the old UI', build: 'npm run -w @prism3/plugin build' });
+assertBundleFresh({ repo: REPO, bundle: 'apps/studio/dist/main.js', roots: STUDIO_SOURCE_ROOTS, label: 'main.js freshness',
+  effect: 'the web host would test the old UI', build: 'npm run -w @prism3/studio build' });
 const FIGMA = {
   light: { cls: 'figma-light', vars: { '--figma-color-bg': '#ffffff', '--figma-color-text': '#000000e5' } },
   dark: { cls: 'figma-dark', vars: { '--figma-color-bg': '#2c2c2c', '--figma-color-text': '#ffffff' } },
