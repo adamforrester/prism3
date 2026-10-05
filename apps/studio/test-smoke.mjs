@@ -293,7 +293,7 @@ const LEGIBILITY_PROBE = (rootSel) => {
       if (focusable) { el.blur(); prev?.focus?.(); }
     }
     fields.push({
-      off, focusable, disabledProp: el.disabled === true, ariaDisabled: el.getAttribute('aria-disabled') === 'true',
+      off, focusable, canary: el.hasAttribute('data-ccanary'), disabledProp: el.disabled === true, ariaDisabled: el.getAttribute('aria-disabled') === 'true',
       fill: cs.backgroundColor, ink: cs.color,
       edges: ['Top', 'Right', 'Bottom', 'Left'].map((x) => [cs[`border${x}Color`], cs[`border${x}Style`]]),
       ratio: round(ratio(over({ ...col, a: col.a * op }, ground), ground)),
@@ -414,9 +414,10 @@ const hexOfRgb = (s) => {
 /** Every field exemption granted this run: [where, hook]. Printed after the sweep, and floored per brand there. */
 const FIELD_EXEMPTIONS = [];
 /** The fields under their bars that the exemption does not cover; each one it does cover is asserted here. */
+const isExemptField = (f) => f.off && !f.specimen && fieldFails(f);
 const fieldsUnderBar = (probe, where) => {
   const under = probe.fields.filter(fieldFails);
-  const exempt = under.filter((f) => f.off && !f.specimen);
+  const exempt = under.filter(isExemptField);
   const want = PRISM3_DISABLED[probe.scheme];
   for (const f of exempt) {
     FIELD_EXEMPTIONS.push([where, f.hook ?? f.cls]);
@@ -991,6 +992,28 @@ for (const brand of BRANDS) {
       for (const f of probe.fields) if (!f.specimen && f.ratio < worstField) { worstField = f.ratio; worstFieldWhere = `${where} — ${f.cls} ${f.text}`; }
       ok(fieldsUnder.length === 0, `${where}: every one of ${probe.fields.length} form control(s) inks its value at its text bar (${CHROME_TEXT_MIN}:1, ${CHROME_LARGE_TEXT_MIN}:1 large) and its caret at ${CHROME_CARET_MIN}:1${
         fieldsUnder.length ? ` — ${fieldsUnder.slice(0, 3).map(describeField).join(' | ')}` : ''}`);
+      if (place === 'layout' && mode === 'light') {
+        // F1 A's canary: beside the disabled field, a copy that is NOT disabled but keeps its class, hook and, inline,
+        // its colors. It must be measured and must fail its bar unexempted, so an exemption widened to a class or a
+        // hook fails here by name.
+        const planted = await page.evaluate(() => {
+    const src = document.querySelector('[data-p3="bp-row"] input:disabled');
+    if (!src) return false;
+    const cs = getComputedStyle(src);
+    const c = src.cloneNode(true);
+    c.disabled = false;
+    c.removeAttribute('id');
+    c.setAttribute('data-ccanary', '');
+    for (const p of ['background-color', 'color', 'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color']) c.style.setProperty(p, cs.getPropertyValue(p));
+    src.after(c);
+    return true;
+  });
+        const cp = planted ? await page.evaluate(LEGIBILITY_PROBE) : null;
+        await page.evaluate(() => { for (const n of document.querySelectorAll('[data-ccanary]')) n.remove(); });
+        const cf = cp?.fields.find((f) => f.canary);
+        ok(planted && !!cf && fieldFails(cf) && !isExemptField(cf),
+          `${where}: the exemption canary, a field with the disabled field's class, hook and colors that is not disabled, is not exempted and fails its bar — ${JSON.stringify({ planted, measured: !!cf, ratio: cf?.ratio ?? null, exempted: cf ? isExemptField(cf) : null })}`);
+      }
     }
   }
   console.log(`  ${brand}: ${places.length} places × ${modes.length} modes swept (${places.join(', ')})`);

@@ -457,7 +457,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
         if (focusable) { el.blur(); prev?.focus?.(); }
       }
       fields.push({
-        off, focusable, disabledProp: el.disabled === true, ariaDisabled: el.getAttribute('aria-disabled') === 'true',
+        off, focusable, canary: el.hasAttribute('data-ccanary'), disabledProp: el.disabled === true, ariaDisabled: el.getAttribute('aria-disabled') === 'true',
         fill: cs.backgroundColor, ink: cs.color,
         edges: ['Top', 'Right', 'Bottom', 'Left'].map((x) => [cs[`border${x}Color`], cs[`border${x}Style`]]),
         ratio: round(ratio(over({ ...col, a: col.a * op }, ground), ground)),
@@ -517,6 +517,8 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
   };
   /** Every field exemption granted this run: [where, hook]. Floored on the Layout tab after the sweep, and printed. */
   const FIELD_EXEMPTIONS = [];
+  const fieldFails = (f) => f.ratio < barOf(f) || (f.caretRatio !== null && f.caretRatio < caretBarOf(f));
+  const isExemptField = (f) => f.off && !f.specimen && fieldFails(f);
   // Non-empty floors. A state that measured almost nothing fails naming itself rather than passing as
   // "every one of 0 nodes clears 4.5:1" — #779's first defect, which this file would otherwise repeat.
   const STATE_TEXT_FLOOR = 10;
@@ -604,8 +606,8 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
     const textUnder = m.text.filter((r) => r.ratio < barOf(r));
     ok(textUnder.length === 0, `${where}: every one of ${m.text.length} text nodes meets its bar (chrome ${TEXT_MIN}:1, ${LARGE_TEXT_MIN}:1 large; specimens ${SPECIMEN_FLOOR}:1)${
       textUnder.length ? ` — ${textUnder.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (${u.px}px/${u.weight}, op ${u.op}, needs ${barOf(u)}:1)`).join(' | ')}` : ''}`);
-    const under = m.fields.filter((f) => f.ratio < barOf(f) || (f.caretRatio !== null && f.caretRatio < caretBarOf(f)));
-    const exempt = under.filter((f) => f.off && !f.specimen);
+    const under = m.fields.filter(fieldFails);
+    const exempt = under.filter(isExemptField);
     const want = PRISM3_DISABLED[m.scheme];
     for (const f of exempt) {
       FIELD_EXEMPTIONS.push([where, f.hook ?? f.cls]);
@@ -691,6 +693,28 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
           await page.evaluate(() => document.fonts.ready);
           tabsSeen.add(hooks.role(tab));
           await measure(page, `${tag} / ${label}`);
+          if (label === 'Layout') {
+            // F1 A's canary: beside the disabled field, a copy that is NOT disabled but keeps its class, hook and,
+            // inline, its colors. It must be measured and fail its bar unexempted, so an exemption widened to a class
+            // or a hook fails here by name.
+            const planted = await page.evaluate(() => {
+              const src = document.querySelector('[data-p3="bp-row"] input:disabled');
+              if (!src) return false;
+              const cs = getComputedStyle(src);
+              const c = src.cloneNode(true);
+              c.disabled = false;
+              c.removeAttribute('id');
+              c.setAttribute('data-ccanary', '');
+              for (const p of ['background-color', 'color', 'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color']) c.style.setProperty(p, cs.getPropertyValue(p));
+              src.after(c);
+              return true;
+            });
+            const cp = planted ? await page.evaluate(LEGIBILITY) : null;
+            await page.evaluate(() => { for (const n of document.querySelectorAll('[data-ccanary]')) n.remove(); });
+            const cf = cp?.fields.find((f) => f.canary);
+            ok(planted && !!cf && fieldFails(cf) && !isExemptField(cf),
+              `${tag} / Layout: the exemption canary, a field with the disabled field's class, hook and colors that is not disabled, is not exempted and fails its bar — ${JSON.stringify({ planted, measured: !!cf, ratio: cf?.ratio ?? null, exempted: cf ? isExemptField(cf) : null })}`);
+          }
         }
         await measureBrand(page, `${tag} / Brand`);
         await measureBrandMenu(page, `${tag} / brand menu`);
