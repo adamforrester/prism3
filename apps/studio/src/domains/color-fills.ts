@@ -119,10 +119,10 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const surfRow = (o: { key: string; id: string; hk: string; label: string; token: string | null; rowRole: string; hex: string; now: string;
       info?: string; picker: Omit<StepPickerOpts, 'modeLabel' | 'onClose' | 'role'> & { role?: string } }): HTMLElement => {
       const wrap = h('div', 'p3-fillrow-wrap');
-      // A row with its own info text (the contrast floor) is a wide row: its Auto label names the tier it follows, too
-      // long to share a line with the name, so the button takes the line under it (as the floor's select took the
-      // field's full width before S4f).
-      const row = hook(h('div', o.info ? 'p3-fillrow p3-fillrow-wide' : 'p3-fillrow'), 'surface-row');
+      // Every row is the one grid: swatch, name, and the picker on the right (#2179: the contrast floor's picker sat
+      // under its name). The floor's Auto label names the tier it follows, longer than the other rows' labels, so its
+      // row caps the picker's column and lets the label wrap inside the button (`p3-fillrow-long`).
+      const row = hook(h('div', o.info ? 'p3-fillrow p3-fillrow-long' : 'p3-fillrow'), 'surface-row');
       row.dataset.role = o.rowRole;
       const sw = h('span', 'p3-fill-sw');
       sw.dataset.content = '';

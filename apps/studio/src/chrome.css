@@ -818,9 +818,11 @@
 /* The preview's scrim card: the same checkerboard under the wash, the card's size and corners kept. */
 .p3-legacy-card .sg-scrimcard.p3-checker { background-size: var(--p3-space-150) var(--p3-space-150); }
 .p3-fill-nameline { display: flex; align-items: center; gap: var(--p3-space-050); min-width: 0; }
-.p3-fillrow.p3-fillrow-wide { grid-template-columns: auto minmax(0, 1fr); }
-.p3-fillrow-wide > .p3-pick { grid-column: 2; justify-self: start; max-width: 100%; }
-.p3-fillrow-wide > .p3-pick .p3-btn-label { white-space: normal; text-align: start; }
+/* #2179: the contrast floor's row is the rows' grid, its picker on the right; its long Auto label wraps inside a capped
+   picker column, so the name beside it keeps its room. */
+.p3-fillrow.p3-fillrow-long { grid-template-columns: auto minmax(0, 1fr) fit-content(50%); }
+.p3-fillrow-long > .p3-btn.p3-pick { padding-block: var(--p3-space-050); }
+.p3-fillrow-long > .p3-pick .p3-btn-label { white-space: normal; text-align: start; }
 .p3-jump { display: flex; flex-wrap: wrap; gap: var(--p3-space-100) var(--p3-space-200); }
 .p3-jump[hidden] { display: none; }
 .p3-jump-label { display: inline-flex; align-items: center; min-height: var(--p3-hit-min); }   /* QA-B17: "Jump to:", on the links' line */

@@ -345,6 +345,10 @@
  *     `… a control inside Inspect › Tokens redraws the list inside Inspect (Semantics: text.primary → …; row null, …)`.
  *   · the contract table given no rows → `… Inspect › Contrast lists the preview spec's 34 contracts, in order — listed 0`.
  *   · `→` appended to the Back label → `… every chrome text element draws in the embedded Inter — … Back to Palett drew DejaVu Sans (device), Inter`.
+ *
+ * #2179 ADDS: the Contrast floor row in Default background fills draws its picker on the right, beside its name, its
+ * right edge on the other three rows' picker edge, every brand × mode at 1280 and 380 (web). Mutation: the floor row's
+ * `p3-fillrow` class dropped → `#2179 web 1280 prism3 / light: the Contrast floor's picker ends at the other rows' picker edge …`.
  */
 import { createServer } from 'node:http';
 import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -3702,6 +3706,68 @@ for (const host of ['web', 'figma']) {
     ok(errors.length === 0, `${host} S4f lock and gradients: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     await ctx.close();
   }
+}
+// #2179 (owner QA, 2026-10-05): the Contrast floor row is drawn in the rows' own layout, its step picker on the right
+// beside its name, not under it. Every brand the start screen offers × every mode it previews, at 1280 and at 380, on the
+// web host. THE ORACLE is the other three rows of Default background fills (Primary, Secondary, Tertiary), measured in
+// the same render: the floor's picker ends where theirs end (right edges within ALIGN_TOLERANCE), its top sits inside
+// its name's line (above the label's bottom edge), and it sits beside its name exactly when theirs do (at 380 as at 1280).
+{
+  const ctx0 = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const p0 = await ctx0.newPage();
+  await p0.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
+  await hooks.need(p0, '[data-p3="start-example"]');
+  const brands = (await p0.locator('[data-p3="start-example"]').allTextContents()).map((n) => n.trim());
+  await ctx0.close();
+  ok(brands.length >= 2, `#2179: the start screen offers the corpus brands (found ${brands.length}: ${brands.join(', ')})`);
+  const FLOOR_ROW_PROBE = () => [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="surface-default-rows"] [data-p3="surface-row"]')].map((r) => {
+    const box = (n) => { const b = n?.getBoundingClientRect(); return b && b.width > 0 ? { top: b.top, bottom: b.bottom, left: b.left, right: b.right } : null; };
+    return { role: r.dataset.role, label: box(r.querySelector('.p3-fill-label')), name: box(r.querySelector('.p3-fill-label')?.closest('.p3-fill-name') ?? r.querySelector('.p3-fill-label')), pick: box(r.querySelector('.p3-pick')) };
+  });
+  let measured = 0;
+  for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 800 }]) {
+    for (const brand of brands) {
+      const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: 'light' });
+      const page = await ctx.newPage();
+      await hooks.watch(page);
+      const errors = [];
+      page.on('pageerror', (e) => errors.push(`uncaught: ${e.message}`));
+      await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
+      await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: brand }));
+      await hooks.need(page, '[data-p3="frame"]');
+      await goPlace(page, 'color-fills');
+      await hooks.need(page, '[data-p3="levers-pane"] [data-p3="surface-default-rows"]');
+      const modes = await page.evaluate(() => {
+        const r = [...document.querySelectorAll('[data-p3="mode-option"]')].map((n) => n.dataset.mode);
+        return r.length ? r : [...document.querySelectorAll('[data-p3="mode-select"] option')].map((o) => o.value);
+      });
+      ok(modes.length >= 2, `#2179 web ${w} ${brand}: the mode control offers ${modes.length} modes (${modes.join(', ')})`);
+      for (const mode of modes) {
+        // At 380 the mode control is on the Preview pane, and the rows on the Settings pane.
+        if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+        await showMode(page, mode);
+        if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
+        await page.waitForFunction((m) => document.querySelector('[data-p3="levers-pane"] [data-p3="surfaces-group"]')?.dataset.mode !== undefined, mode, WAIT).catch(() => {});
+        const rows = await page.evaluate(FLOOR_ROW_PROBE);
+        const where = `#2179 web ${w} ${brand} / ${mode}`;
+        const floor = rows.find((r) => r.role === 'surfaces.floorStep');
+        const others = rows.filter((r) => ['background.primary', 'background.secondary', 'background.tertiary'].includes(r.role));
+        const drawn = floor?.pick && floor.label && others.length === 3 && others.every((r) => r.pick && r.label && r.name);
+        ok(drawn, `${where}: Default background fills draws Primary, Secondary, Tertiary and Contrast floor, each with its picker — read ${JSON.stringify(rows.map((r) => [r.role, !!r.pick]))}`);
+        if (!drawn) continue;
+        measured++;
+        const besideOf = (r) => r.pick.left >= r.name.right - ALIGN_TOLERANCE && r.pick.top < r.label.bottom;
+        const offRight = others.filter((r) => Math.abs(r.pick.right - floor.pick.right) > ALIGN_TOLERANCE);
+        ok(offRight.length === 0, `${where}: the Contrast floor's picker ends at the other rows' picker edge (right ${floor.pick.right.toFixed(1)}; ${others.map((r) => `${r.role} ${r.pick.right.toFixed(1)}`).join(', ')})`);
+        ok(floor.pick.top < floor.label.bottom, `${where}: the Contrast floor's picker starts on its name's line, not under it (picker top ${floor.pick.top.toFixed(1)}, label bottom ${floor.label.bottom.toFixed(1)})`);
+        const theirs = [...new Set(others.map(besideOf))];
+        ok(theirs.length === 1 && besideOf(floor) === theirs[0], `${where}: the Contrast floor's picker sits beside its name exactly as the other rows' do (floor ${besideOf(floor) ? 'beside' : 'under'}; others ${theirs.map((b) => (b ? 'beside' : 'under')).join(', ')})`);
+      }
+      ok(errors.length === 0, `#2179 web ${w} ${brand}: 0 uncaught errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      await ctx.close();
+    }
+  }
+  ok(measured >= brands.length * 2 * 2, `#2179: the floor row was measured in ${measured} brand × mode × width states (floor ${brands.length * 2 * 2})`);
 }
 // A6 (owner, 2026-10-03): the scrim's wash sits over a checkered ground, in the levers' swatch and the preview's card, so
 // it reads as translucent: both chrome themes, Light and Dark previewed. THE ORACLE is the render: the element under
