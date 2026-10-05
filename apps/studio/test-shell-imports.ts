@@ -52,6 +52,10 @@
  * did not come from a tainted import — a global the page itself put there. Nothing in `main.ts` exports
  * its tiers onto a global today.
  *
+ * `renderBar` STAYS ON THE LIST after S13.1 deleted it from `main.ts`: the shell draws the bar now (`shell/bar.ts`),
+ * and a shell file that named a `renderBar` again would be reaching for a painter outside the store. The list is the
+ * oracle, written here; a tier that no longer exists is still a name the shell must not take up.
+ *
  * WHAT A STATIC SCAN OF THE SHELL CANNOT SEE: A CALLBACK `main.ts` LENDS. `main.ts` hands the shell
  * functions to call (`mountFrame(app, { inspect: { contrast, tokens } })`, and whatever S1.4 and later lend).
  * Those are defined in `main.ts`, outside the scanned folders, and reach the shell as values with neutral
@@ -96,6 +100,10 @@ const NEW_DIRS = ['src/shell', 'src/domains', 'src/preview', 'src/ui', 'src/stat
 const MUST_SCAN = ['src/shell/frame.ts', 'src/shell/pages.ts', 'src/shell/theme.ts', 'src/shell/dom.ts', 'src/shell/preview.ts',
   // S1.4: the Activity drawer and the Figma menu, which run writes `main.ts` lends and must not reach a tier.
   'src/shell/activity.ts', 'src/shell/figma.ts',
+  // S13.1: the top bar's controls (the brand menu, Export and its dialog, Apply Theme, the prune review) and the error
+  // strip, which `main.ts`'s `renderBar` drew until then. Their actions are lent, like the Figma menu's, and each ends
+  // in the store's `bar` topic rather than a repaint tier.
+  'src/shell/bar.ts', 'src/shell/notices.ts',
   // #1928: the store and the inputs beside it.
   'src/state/store.ts', 'src/state/verdict.ts', 'src/state/palette-input.ts', 'src/state/host-session.ts',
   // S2: Color › Palettes (its levers and its preview) and the shared controls.

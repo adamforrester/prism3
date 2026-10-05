@@ -3,10 +3,12 @@
  * the top bar, the tab row with Color's sub-row, the two panes, the legacy frame, and narrow mode.
  *
  * WHAT IT OWNS AND WHAT IT LENDS. The frame is mounted once per app view and outlives every legacy
- * render, so a tab keeps focus across the page change it causes. It lends slots to the legacy code in
- * `main.ts`, which fills them on every `build()`: the bar's legacy controls (brand switcher, Export, Pages
- * and the plugin's Apply Theme), the notices (the engine error) and the legacy page itself. Everything
- * else here is the shell's own.
+ * render, so a tab keeps focus across the page change it causes. It lends two slots to the legacy code in
+ * `main.ts`, which fills them on every `build()`: the notices row (the error strip, which the shell draws,
+ * `notices.ts`, mounted where `main.ts` declares the `error` surface) and the legacy page itself. Since S13.1
+ * the top bar's controls are the shell's (`bar.ts`): the brand switcher and its menu, Export and its dialog, and
+ * the plugin's Apply Theme and prune review, drawn over the state `main.ts` lends; only the plugin's Pages menu
+ * is still a legacy node, lent until S11.2. Everything else here is the shell's own.
  *
  * HOW IT TALKS TO THE REST OF THE APP: store setters out, store topics in (plan §3.10). A tab click calls
  * `setPage`; the legacy frame repaints because `main.ts` subscribes to `page`, and the tab row repaints
@@ -31,7 +33,7 @@
  * for S1.4's lends below, `activity` (the host session's writes) and `figma` (the write functions).
  *
  * S1.4 adds the Activity drawer (`activity.ts`) at the bottom of the frame, the Activity button and, in the
- * plugin, the Figma menu (`figma.ts`) and the Agent chip's slot (IA-3) on the top bar. The legacy bar places
+ * plugin, the Figma menu (`figma.ts`) and the Agent chip's slot (IA-3) on the top bar. The bar (`bar.ts`) places
  * those three where concept v6 draws them, as it places the verdict. Since S11 the drawer draws every write's
  * result itself, from the host session `main.ts` lends it, so it lends no slot. The plugin's own entry mounts the
  * Agent chip into its slot (`apps/plugin/src/agent-link-ui.ts`); the slot is never cleared.
@@ -52,6 +54,7 @@ import { glyph, h, hook } from './dom';
 import { inspectMenu, modeControl, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
 import { mountActivity, type ActivityLend } from './activity';
 import { figmaMenu, type FigmaSource } from './figma';
+import { mountBar, type BarLend } from './bar';
 import { THEME_CHOICES, setThemePref, themePref, type ThemePref } from './theme';
 import { mountPalettesLevers } from '../domains/color-palettes';
 import { mountPalettesPreview } from '../preview/palettes';
@@ -102,23 +105,18 @@ const PRODUCT_NAME = 'Prism3 Studio';
 export const NARROW_MAX = 560;
 
 export type Frame = {
-  /** The sticky region: the bar, the tab row and the notices. */
+  /** The sticky region: the bar, the notices and the tab row. */
   readonly head: HTMLElement;
-  /** Slot: the bar's legacy controls. */
+  /** The bar's slot, which holds `barMain`. */
   readonly bar: HTMLElement;
-  /** Slot: the legacy notices, pinned light. */
+  /** The bar's controls (`bar.ts`), the `brand-bar` chrome surface `main.ts` declares. */
+  readonly barMain: HTMLElement;
+  /** Slot: the notices row, under the top bar: the error strip (`notices.ts`). */
   readonly notices: HTMLElement;
   /** Slot: the legacy page, inside the legacy frame. */
   readonly legacyPage: HTMLElement;
-  /** The verdict (S1.3). The shell owns it and keeps it current; `renderBar` places it after the brand
-   *  switcher on every render, the same node each time. */
-  readonly verdict: HTMLElement;
-  /** The Activity button (S1.4), placed by `renderBar` before Export, the same node each time. */
-  readonly activity: HTMLElement;
-  /** The Figma menu (S1.4, plugin only), placed by `renderBar` after the Pages menu. */
-  readonly figma: HTMLElement | null;
-  /** The Agent chip's stable, empty slot (IA-3, plugin only), placed by `renderBar` after the spacer. The
-   *  plugin's entry mounts the chip into it; nothing here or in `renderBar` ever clears it. */
+  /** The Agent chip's stable, empty slot (IA-3, plugin only), placed by the bar after the spacer. The
+   *  plugin's entry mounts the chip into it; nothing here or in the bar ever clears it. */
   readonly agent: HTMLElement | null;
   /** Publish the sticky region's height as `--chrome-h`, which the legacy mode strip sticks below. */
   readonly syncSticky: () => void;
@@ -172,6 +170,8 @@ export const mountFrame = (app: HTMLElement, opts: {
   readonly lend: PageLends;
   /** The product logo (`styles.css`'s `.logo`), for the studio's product mark. The plugin draws no mark. */
   readonly logo: () => HTMLElement;
+  /** The top bar's controls' state and actions (S13.1, `bar.ts`). */
+  readonly bar: BarLend;
 }): Frame => {
   const { host } = opts;
   const cleanups: (() => void)[] = [];
@@ -255,11 +255,11 @@ export const mountFrame = (app: HTMLElement, opts: {
   const subRow = hook(h('div', 'p3-subnav'), 'sub-nav');
 
   // ── notices, the legacy frame, the panes ────────────────────────────────────────────────────────
-  // The notices and the legacy frame are legacy surfaces, pinned light (D2): `data-theme="light"` resets
-  // the chrome variables and `color-scheme` beneath them, so their fields keep dark UA ink (#1031).
+  // The notices row sits under the top bar, full width (S13.1): the error strip, in the chrome's theme. The legacy
+  // frame is a legacy surface, pinned light (D2): `data-theme="light"` resets the chrome variables and
+  // `color-scheme` beneath it, so its fields keep dark UA ink (#1031).
   const notices = hook(h('div', 'p3-notices'), 'notices');
-  notices.dataset.theme = 'light';
-  head.append(bar, nav, subRow, notices);
+  head.append(bar, notices, nav, subRow);
 
   const legacy = hook(h('main', 'p3-legacy'), 'legacy-frame');
   legacy.id = PANEL_ID;
@@ -335,8 +335,10 @@ export const mountFrame = (app: HTMLElement, opts: {
   root.append(head, legacy, panes, inspect, activity.drawer);
   app.append(root);
 
-  // The verdict, on the bar (lent to `renderBar`, which places it after the brand switcher).
+  // The verdict, on the bar, after the brand switcher; then the bar's controls (S13.1), which place the shell's nodes.
   const verdict = verdictButton((opener) => openInspect('contrast', opener), cleanups);
+  const barMain = mountBar(opts.bar, { verdict, activity: activity.button, agent, figma, figmaSource: host === 'figma' ? opts.figma : null }, cleanups);
+  barSlot.append(barMain);
 
   // ── Inspect state ───────────────────────────────────────────────────────────────────────────────
   let inspecting: InspectId | null = null;
@@ -553,8 +555,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   render();
 
   return {
-    head, bar: barSlot, notices, legacyPage, verdict, syncSticky,
-    activity: activity.button, figma, agent,
+    head, bar: barSlot, barMain, notices, legacyPage, syncSticky, agent,
     unmount: () => {
       for (const c of cleanups) c();
       root.remove();

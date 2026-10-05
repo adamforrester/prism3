@@ -16,9 +16,10 @@
  * sub-row, the notices row, the legacy frame's Depth & motion switch and the two panes (S1.2); the
  * preview header, the mode control, the verdict and Inspect (`src/shell/preview.ts`, S1.3); and the
  * Activity button and drawer, the Figma menu and the plugin's Agent chip (S1.4); the levers panel, the
- * Palettes preview and the step picker (S2: `src/domains/`, `src/preview/`, `src/ui/`). The
- * legacy surfaces inside it (the legacy page, the brand menu, the Pages menu, the dialogs) keep
- * `styles.css` and are pinned light with `data-theme="light"`. So no rule here sets a font or a color
+ * Palettes preview and the step picker (S2: `src/domains/`, `src/preview/`, `src/ui/`); the brand menu, the
+ * export and prune dialogs and the error strip (S13.1: `src/shell/bar.ts`, `src/shell/notices.ts`). The
+ * legacy surfaces inside it (the legacy page and the plugin's Pages menu) keep `styles.css` and are pinned
+ * light with `data-theme="light"`. So no rule here sets a font or a color
  * on a container that holds legacy content: each chrome control sets its own, and legacy text keeps
  * inheriting the legacy body's.
  *
@@ -86,8 +87,37 @@
   overflow: hidden; outline: var(--p3-bw-hairline) solid var(--p3-line-1); outline-offset: calc(-1 * var(--p3-bw-hairline));
 }
 .p3-swatch > span { display: block; width: 100%; height: 100%; }
-/* The brand menu hangs from the switcher's left edge: the switcher starts the bar. */
-.p3-bar-main .barmenu-wrap:first-child .brandmenu { left: 0; right: auto; }
+/* The brand menu (S13.1) hangs under the switcher, from its left edge. Fixed, at its static position, so its height
+   can be held to the window (100% of a fixed box's containing block is the viewport) and it scrolls rather than run
+   off the bottom (#432), with the import box open, at 380 × 420 too. Four layout columns wide (concept's 288). */
+.p3-brandwrap { flex: 0 1 auto; min-width: 0; }
+.p3-menu.p3-brandmenu {
+  position: fixed; top: auto; right: auto; margin-top: calc(var(--p3-ctl-h-sm) + var(--p3-space-050));
+  min-width: 0; width: calc(var(--p3-l-col) * 4); max-width: calc(100% - 2 * var(--p3-space-300));
+  max-height: calc(100% - 2 * var(--p3-bar-h)); overflow-y: auto; align-content: start;
+}
+.p3-swatch-sm { width: var(--p3-icon-xs); height: var(--p3-icon-xs); }
+.p3-menu-item[aria-current="true"] { font-weight: var(--p3-fw-emphasis); }
+.p3-menu-cap {
+  padding: var(--p3-space-100) var(--p3-space-150) var(--p3-space-050); color: var(--p3-text-2);
+  font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis);
+}
+.p3-menu-div { border-top: var(--p3-bw-hairline) solid var(--p3-line-1); margin: var(--p3-space-050) 0; }
+/* The design.md import box, in the brand menu and in the export dialog. */
+.p3-import { display: grid; gap: var(--p3-space-100); padding: var(--p3-space-100) var(--p3-space-050) var(--p3-space-050); }
+.p3-brandmenu .p3-confirm { margin: var(--p3-space-050); padding: var(--p3-space-150); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); color: var(--p3-text); }
+.p3-textarea {
+  width: 100%; min-width: 0; min-height: calc(3 * var(--p3-ctl-h)); resize: vertical; padding: var(--p3-space-100) var(--p3-space-150);
+  border-radius: var(--p3-radius-lg); border: var(--p3-bw-hairline) solid var(--p3-edge); background: var(--p3-bg-page);
+  color: var(--p3-text); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal);
+}
+.p3-textarea::placeholder { color: var(--p3-text-2); opacity: 1; }
+.p3-textarea:hover { border-color: var(--p3-field-edge-hover); }
+.p3-textarea:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
+.p3-field-err { margin: 0; color: var(--p3-bad-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); }
+.p3-import-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); }
+.p3-upload { cursor: pointer; }
+.p3-file { display: none; }
 
 /* The verdict (S1.3): every role with a floor, in every mode. It opens Inspect › Contrast. A control, so
    radius-lg (the 2026-10-01 radius split), with the bar's edge (B1). It takes the room the bar has left,
@@ -253,9 +283,56 @@
 }
 .p3-pane-toggle { display: none; }
 
-/* ── notices: the engine error and the apply detail, legacy cards pinned light ───────────── */
-.p3-notices { padding: var(--p3-space-150) var(--p3-space-300) 0; background: var(--p3-bg-page); }
+/* ── notices: the error strip, full width under the top bar (S13.1) ──────────────────────── */
+/* Concept v6's banner: the inset ground, the danger glyph and text. In the chrome's theme, so dark in dark. */
 .p3-notices:not(:has(> :not([hidden]))) { display: none; }
+.p3-errstrip {
+  display: flex; align-items: flex-start; gap: var(--p3-space-150); padding: var(--p3-space-150) var(--p3-space-300);
+  background: var(--p3-fill-1); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1); color: var(--p3-bad-text);
+  font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-cozy);
+}
+.p3-errstrip[hidden] { display: none; }
+.p3-errstrip > .p3-ico { color: var(--p3-bad-icon); margin-top: var(--p3-space-025); }
+.p3-errstrip-text { min-width: 0; overflow-wrap: anywhere; }
+
+/* ── the dialogs (S13.1): Export and the prune review, on a scrim ─────────────────────────── */
+.p3-scrim {
+  position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
+  padding: var(--p3-space-300); background: var(--p3-scrim);
+}
+.p3-dialog {
+  display: flex; flex-direction: column; width: 100%; max-width: calc(var(--p3-l-col) * 12); max-height: 100%; min-height: 0;
+  border-radius: var(--p3-radius-xl); border: var(--p3-bw-hairline) solid var(--p3-line-2); background: var(--p3-bg-page);
+  color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-cozy);
+}
+.p3-dialog-head {
+  display: flex; align-items: center; gap: var(--p3-space-150); padding: var(--p3-space-150) var(--p3-space-300);
+  border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1);
+}
+.p3-dialog-title { flex: 1 1 auto; margin: 0; font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); }
+.p3-dialog-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: 0; overflow: hidden; }
+.p3-dialog-col { display: flex; flex-direction: column; gap: var(--p3-space-150); min-width: 0; padding: var(--p3-space-200) var(--p3-space-300); overflow-y: auto; }
+.p3-export-out { background: var(--p3-fill-1); border-left: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-dialog-desc { margin: 0; }
+.p3-dialog-note { margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); }
+.p3-export-seg, .p3-export-oseg { align-self: flex-start; max-width: 100%; }
+.p3-export-oseg { flex-wrap: wrap; }
+.p3-export-oseg .p3-seg-tab { flex: 0 1 auto; padding: 0 var(--p3-space-150); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
+.p3-export-set { display: grid; gap: var(--p3-space-075); }
+.p3-export-lab { font-weight: var(--p3-fw-emphasis); }
+.p3-export-files { margin: 0; font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); white-space: pre-line; overflow-wrap: anywhere; }
+.p3-export-prevs { display: grid; gap: var(--p3-space-075); min-width: 0; min-height: 0; flex: 1 1 auto; overflow: auto; align-content: start; }
+.p3-export-pname { color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); overflow-wrap: anywhere; }
+.p3-export-pre {
+  margin: 0; overflow: auto; padding: var(--p3-space-150); border-radius: var(--p3-radius-lg); border: var(--p3-bw-hairline) solid var(--p3-line-1);
+  background: var(--p3-bg-page); color: var(--p3-text); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); white-space: pre;
+}
+.p3-dialog-foot {
+  display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--p3-space-100); padding: var(--p3-space-150) var(--p3-space-300);
+  border-top: var(--p3-bw-hairline) solid var(--p3-line-1);
+}
+.p3-dialog-import { display: grid; gap: var(--p3-space-075); padding: var(--p3-space-150) var(--p3-space-300); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-dialog-import > .p3-menu-item { justify-self: start; }
 
 /* ── the legacy frame (D1) ───────────────────────────────────────────────────────────────── */
 /* No background: the legacy page draws on the legacy body's ground, as it always has. */
@@ -401,7 +478,12 @@
 .p3-frame[data-w="narrow"] .p3-subnav { padding: var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-subnav .p3-seg { display: flex; width: 100%; }
 .p3-frame[data-w="narrow"] .p3-seg-tab { padding: 0 var(--p3-space-150); }
-.p3-frame[data-w="narrow"] .p3-notices { padding: var(--p3-space-100) var(--p3-space-150) 0; }
+.p3-frame[data-w="narrow"] .p3-errstrip { padding: var(--p3-space-100) var(--p3-space-150); }
+.p3-frame[data-w="narrow"] .p3-scrim { padding: var(--p3-space-150); }
+.p3-frame[data-w="narrow"] :is(.p3-dialog-head, .p3-dialog-col, .p3-dialog-foot, .p3-dialog-import) { padding-left: var(--p3-space-150); padding-right: var(--p3-space-150); }
+.p3-frame[data-w="narrow"] .p3-dialog-body { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
+.p3-frame[data-w="narrow"] .p3-dialog-col { overflow: visible; }
+.p3-frame[data-w="narrow"] .p3-export-out { border-left: 0; border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-frame[data-layout="panes"][data-w="narrow"] {
   grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
   grid-template-areas: "bar" "notices" "nav" "subnav" "levers" "drawer";

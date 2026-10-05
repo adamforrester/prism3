@@ -125,6 +125,10 @@ export const PRODUCT_VARS = [
   // (the shared styling pass; #2015 read `motion.duration.normal` and the mockup's `ease` row separately).
   ['transition-dur', 'motion.transition.default#duration', 'motion.transition.default#duration', T, 'the eased scroll of the edit-reveal and the jump links'],
   ['transition-ease', 'motion.transition.default#timingFunction', 'motion.transition.default#timingFunction', E, 'the eased scroll\'s curve'],
+  // S13.1: the layout column the brand menu (four, concept's 288px popover) and the export dialog (twelve, 864px,
+  // the legacy dialog's width) are measured in, from the dimension grid; and the dialogs' scrim, the engine's role.
+  ['l-col', 'core.dimension.72', 'core.dimension.72', D, 'the brand menu\'s and the export dialog\'s column'],
+  ['scrim', 'color.scrim.default', 'color.scrim.default', C, 'the scrim behind the export and prune dialogs'],
 ];
 export const PRODUCT_FOR = (mode) => PRODUCT_VARS.map(([n, l, d, k]) => [n, mode === 'light' ? l : d, k]);
 
@@ -160,6 +164,8 @@ export const SHELL_VARS = [
   'transition-dur', 'transition-ease',
   // QA-B11: the fill rows' swatch, as tall as a row's label and token (the mockup's 40px swatch row).
   'swatch-h',
+  // S13.1: the brand menu's and the export dialog's column, and the dialogs' scrim.
+  'l-col', 'scrim',
 ];
 
 // Mapped color variables that carry no contrast duty: a hairline that splits regions, a hover wash.
@@ -169,4 +175,6 @@ export const SHELL_VARS = [
 // hairline (`border.primary`) that splits the bar, the tab row, the sub-nav and the two panes, and rings the
 // brand swatch. It is never a control's boundary; every control edge is a declared pair at 3:1. S1.2 maps
 // no hover wash: a hover shows an edge (a declared pair) or the inset fill (`fill-1`, paired with text).
-export const DECORATIVE = ['line-1'];
+// S13.1 adds the scrim: a translucent wash over the page behind a modal dialog. Nothing is read on it; the dialog
+// draws its own opaque ground (`bg-page`), and every pair inside the dialog is declared on that ground.
+export const DECORATIVE = ['line-1', 'scrim'];

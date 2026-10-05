@@ -294,6 +294,14 @@
  * corpus brand) and asserts no legacy page is drawn and the mode agrees on each: section 4's web arm (#1031 is measured
  * on the plugin's Style guide alone) and section 9's legacy mode-strip hold.
  *
+ * S13.1 ADDS (section 27; owner decisions G18 A and N-2 A: the brand menu, Export's dialog and the error line leave the
+ * legacy `renderBar` for the chrome, `shell/bar.ts` and `shell/notices.ts`), on both hosts, both themes, at 1280, 640
+ * and 380: each piece measured by the probe as chrome (the probe no longer skips the notices row or the bar's popovers;
+ * only the plugin's Pages menu list, legacy until S11.2, stays out); the error strip's ground follows the theme, it is
+ * full width and right under the top bar; the brand menu stays inside the window and the export dialog is one column
+ * at the narrow tier; and the brand menu by keyboard (Enter opens it on the current example, the arrows, Home and End
+ * move, Escape closes it back to the switcher; Escape closes the dialog back to Export).
+ *
  * NOT COVERED: right-to-left layout (the product ships no RTL locale; new CSS uses logical-friendly
  * flex and grid, §9.1), and text-only zoom.
  *
@@ -521,7 +529,9 @@ const CONTROL_KINDS = [['p3-brand', 'brand switcher'], ['p3-verdict', 'verdict']
   // S5.2: Color › Interactive's jump links to its column groups.
   ['p3-jump-link', 'jump link'],
   // S6.3's value picker, first measured open on Depth & motion (S9.2): each value is a button of its own.
-  ['p3-vpick', 'picker value']];
+  ['p3-vpick', 'picker value'],
+  // S13.1: the brand menu's import box.
+  ['p3-textarea', 'text area']];
 /** Legacy views Inspect lends a host to until their slices replace them (S1.3): pinned light and drawn in
  *  `styles.css`, so outside the chrome, like the legacy page. Named literally, by hook. */
 const INSPECT_LEGACY = ['[data-p3="inspect-contrast-table"]', '[data-p3="inspect-token-list"]',
@@ -627,7 +637,7 @@ const browser = await chromium.launch();
 /** A booted app on the opening page, Color › Palettes (the two panes, from S2). Studio: from the start
  *  screen's prism3 chip, the OS scheme emulated. Plugin: Figma's theme stubbed, then the start screen the host
  *  asks for, then the first example. */
-const open = async ({ host, theme, w, h, store }) => {
+const open = async ({ host, theme, w, h, store, query = '' }) => {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: theme });
   const page = await ctx.newPage();
   await hooks.watch(page);
@@ -636,7 +646,7 @@ const open = async ({ host, theme, w, h, store }) => {
   page.on('console', (m) => { if (m.type() === 'error') errors.push(`console.error: ${m.text()}`); });
   if (store) await page.addInitScript((s) => { for (const [k, v] of Object.entries(s)) localStorage.setItem(k, v); }, store);
   if (host === 'web') {
-    await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
+    await page.goto(`${ORIGIN}/index.html${query}`, { waitUntil: 'networkidle' });
     await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: 'prism3' }));
   } else {
     await page.goto(`${ORIGIN}/plugin?figma=${theme}`, { waitUntil: 'load' });
@@ -710,12 +720,12 @@ const PROBE = (opt) => {
   const place = frame?.dataset.place ?? '';
   const skipLegacy = opt.legacyPages.includes(place);
   /** Inside the chrome: in the frame, outside brand content, outside the legacy page of a listed place,
-   *  outside the notices' legacy cards and the legacy popovers (pinned light, `styles.css`). */
+   *  outside the plugin's Pages menu list (a legacy popover, pinned light, `styles.css`, until S11.2). Since S13.1
+   *  the error strip, the brand menu and the export and prune dialogs are chrome, measured here like the rest. */
   const inChrome = (el) => frame?.contains(el)
     && !el.closest('[data-content]')
     && !(skipLegacy && legacyPage?.contains(el))
-    && !el.closest('[data-p3="notices"] > *')
-    && !el.closest('.barmenu-wrap > [data-theme="light"]')
+    && !el.closest('[data-p3="pages-menu-list"]')
     && !opt.inspectLegacy.some((sel) => el.closest(sel));
 
   const all = [...(frame?.querySelectorAll('*') ?? [])].filter(inChrome);
@@ -738,14 +748,14 @@ const PROBE = (opt) => {
   // fields: the value a field draws, on its own fill
   const fields = [];
   // A range and a color well draw no value text, so they have no ink to measure here.
-  for (const el of drawn.filter((n) => n.matches('input:not([type="checkbox"]):not([type="range"]):not([type="color"]), select'))) {
+  for (const el of drawn.filter((n) => n.matches('input:not([type="checkbox"]):not([type="range"]):not([type="color"]), select, textarea'))) {
     const cs = getComputedStyle(el);
     const ink = parse(cs.color, `${label(el)} color`);
     const g = groundOf(el);
     if (ink) fields.push({ el: label(el), r: fl(ratio(over(ink, g), g)), scheme: cs.colorScheme });
   }
   // controls, their kinds, targets, edges
-  const CONTROL = 'button, select, input:not([type="hidden"]), [role="tab"], [role="menuitemradio"], a[href]';
+  const CONTROL = 'button, select, textarea, input:not([type="hidden"]), [role="tab"], [role="menuitemradio"], a[href]';
   const controls = [];
   const unclassified = [];
   const edges = [];
@@ -6856,6 +6866,134 @@ for (const { w, h } of WIDTHS) {
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
         ok(false, `S8.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      } finally { await ctx.close(); }
+    }
+  }
+}
+
+// =============================================================================================
+// 27. S13.1 (owner decisions G18 A, N-2 A): the top bar's last old-code pieces in the new chrome — the brand menu,
+//     Export's dialog and the error strip — on both hosts, both themes, at 1280, 640 and 380. Each is measured as
+//     rendered with the probe every other section uses (text 4.5:1, edges and glyphs 3:1, targets, the embedded
+//     face, no shadows, no inline values), and three things are held directly:
+//   · THE ERROR STRIP takes the theme: its ground is dark in dark and light in light (luminance, a literal line,
+//     0.2 and 0.5: #1031's light card in a dark frame is the case it refuses), it is full width, and it sits right
+//     under the top bar. The web's refused edit is the test edit hook (`?p3-test-hooks`, entry.ts), the plugin's a
+//     restore the engine refuses (`test-build-verdict.mjs` §#1989's brand).
+//   · THE NARROW TIER: at 380 the brand menu stays inside the window (it scrolls rather than run off it, #432) and
+//     the export dialog lays out one column; wide, two.
+//   The menu, the keyboard and the dialog run first, on the example the column opened; the strip last, since the
+//   plugin's refused restore loads a brand of its own.
+//   · KEYBOARD ACCESS to the brand menu: Enter on the switcher opens it with focus on the current example; Arrow
+//     Down, End and Home move between its items; Escape closes it back to the switcher. Escape closes the export
+//     dialog back to Export.
+// =============================================================================================
+console.log('\n27. S13.1: the brand menu, Export and the error strip in the chrome');
+const S131_REFUSED = { root: 'rf', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true },
+  id: 'refused-brand', overrides: { light: { 'background.secondary': { palette: 'neutral', step: '200' } } } };
+const DARK_GROUND_MAX = 0.2;
+const LIGHT_GROUND_MIN = 0.5;
+const BRAND_MENU_HOOKS = ['[data-p3="brand-menu-example"]', '[data-p3="brand-menu-new"]', '[data-p3="brand-menu-import"]', '[data-p3="import-text"]', '[data-p3="import-load"]'];
+const EXPORT_HOOKS = ['[data-p3="export-artifact"]', '[data-p3="dialog-close"]', '[data-p3="dialog-cancel"]', '[data-p3="dialog-confirm"]'];
+/** The strip, read directly: its ground (composited), its text and glyph against it, and where it sits. */
+const STRIP_PROBE = () => {
+  const e = document.querySelector('[data-p3="error-bar"]');
+  if (!e) return { mounted: false };
+  const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+  const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+  const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+  const ratio = (a, b) => { const x = lum(a), y = lum(b); return Math.floor(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 100) / 100; };
+  let g = null;
+  for (let n = e; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { g = g ? over(g, c) : c; if (g.a >= 0.999) break; } }
+  g = g ? { ...g, a: 1 } : { r: 255, g: 255, b: 255, a: 1 };
+  const text = e.querySelector('.p3-errstrip-text');
+  const ink = parse(getComputedStyle(text).color), glyphInk = parse(getComputedStyle(e.querySelector('svg')).color);
+  const r = e.getBoundingClientRect(), bar = document.querySelector('[data-p3="top-bar"]').getBoundingClientRect();
+  const frame = document.querySelector('[data-p3="frame"]').getBoundingClientRect();
+  return { mounted: true, shown: !e.hidden && getComputedStyle(e).display !== 'none', text: text.textContent, groundLum: Math.round(lum(g) * 1000) / 1000,
+    textR: ink ? ratio(over(ink, g), g) : 0, glyphR: glyphInk ? ratio(over(glyphInk, g), g) : 0,
+    fullWidth: Math.abs(r.left - frame.left) <= 1 && Math.abs(r.right - frame.right) <= 1, underBar: Math.abs(r.top - bar.bottom) <= 1,
+    rect: [Math.round(r.left), Math.round(r.top), Math.round(r.right)], barBottom: Math.round(bar.bottom) };
+};
+for (const { w, h } of WIDTHS) {
+  for (const host of ['web', 'figma']) {
+    for (const theme of ['light', 'dark']) {
+      const where = `S13.1 ${host} ${theme} ${w}`;
+      const narrow = w <= 560;
+      const column = columnOf(host, w);
+      const { ctx, page, errors } = await open({ host, theme, w, h, query: '?p3-test-hooks' });
+      try {
+        // ── the brand menu, the import box open ──
+        await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+        await hooks.need(page, '[data-p3="brand-menu"]');
+        await hooks.click(page.locator('[data-p3="brand-menu-import"]'));
+        await hooks.need(page, '[data-p3="brand-menu"] [data-p3="import-text"]');
+        await page.fill('[data-p3="import-text"]', 'a design.md');
+        const mm = await measure(page, `${where} / brand menu`, host, w);
+        check(mm, `${where} / brand menu`, column, narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: BRAND_MENU_HOOKS });
+        ok(mm.fields.some((f) => /import-text/.test(f.el)), `${where} / brand menu: the import box's text area is measured as a field (${mm.fields.map((f) => f.el).join(', ')})`);
+        const fit = await page.evaluate(() => { const r = document.querySelector('[data-p3="brand-menu"]').getBoundingClientRect(); return { r: [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)], vw: innerWidth, vh: innerHeight }; });
+        ok(fit.r[0] >= 0 && fit.r[2] <= fit.vw && fit.r[3] <= fit.vh, `${where} / brand menu: the open menu stays inside the window (${JSON.stringify(fit.r)} in ${fit.vw} × ${fit.vh})`);
+        if (SHOTS) await page.screenshot({ path: join(SHOTS, `s131-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-brand-menu.png`) });
+
+        // ── keyboard: Escape closes it to the switcher; Enter opens it on the current example; arrows, Home, End ──
+        await page.keyboard.press('Escape');
+        const k0 = await page.evaluate(() => ({ open: !!document.querySelector('[data-p3="brand-menu"]'), focus: document.activeElement?.getAttribute('data-p3') }));
+        ok(!k0.open && k0.focus === 'brand-switcher', `${where}: keyboard: Escape closes the brand menu back to the switcher (open ${k0.open}, focus on "${k0.focus}")`);
+        await page.keyboard.press('Enter');
+        const k1 = await page.evaluate(() => ({ open: !!document.querySelector('[data-p3="brand-menu"]'), focus: document.activeElement?.getAttribute('data-p3'), current: document.activeElement?.getAttribute('aria-current') }));
+        ok(k1.open && k1.focus === 'brand-menu-example' && k1.current === 'true', `${where}: keyboard: Enter on the brand switcher opens the menu with focus on the current example (open ${k1.open}, focus on "${k1.focus}", current ${k1.current})`);
+        const at = () => page.evaluate(() => { const a = document.activeElement; const items = [...document.querySelectorAll('[data-p3="brand-menu"] .p3-menu-item')]; return { i: items.indexOf(a), n: items.length, hook: a?.getAttribute('data-p3') }; });
+        const k2a = await at();
+        await page.keyboard.press('ArrowDown');
+        const k2 = await at();
+        await page.keyboard.press('End');
+        const k3 = await at();
+        await page.keyboard.press('Home');
+        const k4 = await at();
+        ok(k2.i === (k2a.i + 1) % k2.n && k3.i === k3.n - 1 && k3.hook === 'brand-menu-import' && k4.i === 0,
+          `${where}: keyboard: Arrow Down, End and Home move between the brand menu's items (from ${k2a.i} to ${k2.i}, End ${k3.i} "${k3.hook}" of ${k3.n}, Home ${k4.i})`);
+        await page.keyboard.press('Escape');
+        const k5 = await page.evaluate(() => ({ open: !!document.querySelector('[data-p3="brand-menu"]'), focus: document.activeElement?.getAttribute('data-p3') }));
+        ok(!k5.open && k5.focus === 'brand-switcher', `${where}: keyboard: Escape from an item closes the menu back to the switcher (open ${k5.open}, focus on "${k5.focus}")`);
+
+        // ── the export dialog ──
+        await hooks.click(page.locator('[data-p3="export-open"]'));
+        await hooks.need(page, '[data-p3="export-dialog"]');
+        const md = await measure(page, `${where} / export dialog`, host, w);
+        check(md, `${where} / export dialog`, column, narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: EXPORT_HOOKS });
+        const cols = await page.evaluate(() => getComputedStyle(document.querySelector('[data-p3="export-dialog"] .p3-dialog-body')).gridTemplateColumns.split(' ').length);
+        ok(cols === (narrow ? 1 : 2), `${where} / export dialog: ${narrow ? 'one column at the narrow tier' : 'two columns, the settings beside the preview'} (${cols})`);
+        if (SHOTS) await page.screenshot({ path: join(SHOTS, `s131-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-export.png`) });
+        await page.keyboard.press('Escape');
+        const k6 = await page.evaluate(() => ({ open: !!document.querySelector('[data-p3="export-dialog"]'), focus: document.activeElement?.getAttribute('data-p3') }));
+        ok(!k6.open && k6.focus === 'export-open', `${where}: keyboard: Escape closes the export dialog back to Export (open ${k6.open}, focus on "${k6.focus}")`);
+        // ── the error strip ──
+        if (host === 'web') await page.evaluate(() => window.__prism3TestEdit('overrides', { light: { 'background.secondary': { palette: 'neutral', step: '200' } } }));
+        else await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), S131_REFUSED);
+        await page.waitForFunction(() => { const e = document.querySelector('[data-p3="error-bar"]'); return !!e && !e.hidden; }, null, { timeout: 5000 }).catch(() => {});
+        const st = await page.evaluate(STRIP_PROBE);
+        ok(st.mounted && st.shown && /background\.secondary/.test(st.text ?? ''), `${where}: the error strip shows the refusal, naming the field ("${String(st.text).slice(0, 70)}")`);
+        ok(theme === 'dark' ? st.groundLum < DARK_GROUND_MAX : st.groundLum > LIGHT_GROUND_MIN,
+          `${where}: the error strip's ground follows the ${theme} theme (luminance ${st.groundLum}, ${theme === 'dark' ? `below ${DARK_GROUND_MAX}` : `above ${LIGHT_GROUND_MIN}`})`);
+        ok(st.textR >= TEXT_MIN && st.glyphR >= NONTEXT_MIN, `${where}: the error strip's line clears ${TEXT_MIN}:1 (${st.textR}:1) and its glyph ${NONTEXT_MIN}:1 (${st.glyphR}:1)`);
+        ok(st.fullWidth && st.underBar, `${where}: the error strip is full width and sits right under the top bar (strip ${JSON.stringify(st.rect)}, bar ends ${st.barBottom})`);
+        const ms = await measure(page, `${where} / error strip`, host, w);
+        // The web's refusal is an edit on the opening page, so the whole column is held. The plugin's is a restore, which
+        // loads a brand of its own (no second brand color, so Palettes draws fewer levers), and at 380 × 420 its long line
+        // fills the levers pane (as the legacy card did, in the same row: #2105). So there the strip's own
+        // nodes are held, to the same bars.
+        if (host === 'web') check(ms, `${where} / error strip`, column, narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR);
+        else {
+          const dim = ms.text.filter((t) => /error-bar|p3-errstrip/.test(t.el) || /That change|saved brand/.test(t.el)).filter((t) => t.r < TEXT_MIN);
+          ok(ms.text.length > 0 && dim.length === 0 && ms.shadows.length === 0 && ms.inline.length === 0 && ms.unparsed.length === 0,
+            `${where} / error strip: the chrome around the plugin's strip draws no dim strip text, no shadow and no inline value (${dim.map((t) => `${t.el} ${t.r}:1`).join(' | ') || 'clean'})`);
+        }
+        if (SHOTS) await page.screenshot({ path: join(SHOTS, `s131-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-strip.png`) });
+
+        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
       } finally { await ctx.close(); }
     }
   }

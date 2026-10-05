@@ -123,8 +123,8 @@ build();
 // ---- 7. a saved brand the engine refused (#1989) -----------------------------------------------------
 // Web only (`refusedBrand` is never set in the plugin). Mounted on `body`, ahead of `#app`, for the reason
 // the resize grip is: `#app` is re-rendered wholesale on every state change, and this has to outlive that.
-// It wears the existing error card and button classes, pinned light like the frame's notices, because this
-// fix adds no stylesheet rules.
+// It wears the existing error card and button classes, pinned light like the legacy surfaces, because this
+// fix adds no stylesheet rules. (The frame's error line moved to the chrome's error strip in UI redesign S13.1.)
 //
 // The refused brand is still in storage, and stays there until the next successful rebuild persists over
 // it, which is the first brand chosen. So the notice says that, and offers the two things worth doing
