@@ -2,7 +2,9 @@
 
 **STATUS: branch `ui/2103-status-brand-text`.** UI and tests only. No engine change, no emitted artifact moves, no ENGINE bump, and `CONTRACT_VERSION` is unchanged. No new strings. Fixes #2103.
 
-**The owner's direction (2026-10-05).** The Type preview's font status sits on the BRAND's page color, but "✓ Installed" was colored with the studio chrome's fixed `--ok` (3.87:1 on the corpus's dark pages), and "⚠ Not installed" with the ground's `--ink` (#2091). The tokens already have passing status colors, so both labels now use them: ✓ takes the brand's `color.text.success` and ⚠ takes `color.text.warning`, for the mode on screen. Over the corpus pages those measure 4.99:1 to 11.65:1. The engine gates each at 4.5:1, or 7:1 in high contrast, against the brand's page step (`neutral.050`/`.100` or `neutral.900`).
+DECISION RECORD PENDING (replaces T-FONT A)
+
+**The owner's direction (2026-10-05).** The Type preview's font status sits on the BRAND's page color, but "✓ Installed" was colored with the studio chrome's fixed `--ok` (3.87:1 on the corpus's dark pages), and "⚠ Not installed" with the ground's `--ink` (#2091). The tokens already have passing status colors, so both labels now use them: ✓ takes the brand's `color.text.success` and ⚠ takes `color.text.warning`, for the mode on screen. Over the corpus pages those measure 4.99:1 to 11.65:1. The emission contract-checks each against `neutral.050` / `neutral.900` (`neutral.100` in harbor's light modes), min 4.5:1, 7:1 in high contrast; the smoke and chrome checks below measure each against the brand's page color directly.
 
 **How it is painted (technical call: option (b)).** `ground()` exposes no CSS variable for these two roles, and it was not widened. `faces.ts` paints the status inline with `c.paint(c.cur, role)` and marks it with `c.painted(specimen(…), role, 'color')`, the way the specimen beside it is painted in `text.primary`. The `.tf-stat.ok`/`.no` color rule in `styles.css` is gone; the class names stay as the labels' identifiers.
 

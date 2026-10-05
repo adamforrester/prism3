@@ -5242,6 +5242,136 @@ for (const host of ['web', 'figma']) {
 }
 
 // =============================================================================================
+// 20d. #2103: the plugin's font status, on the brand's page, in the brand's own status text roles. The figma host's
+//      labels are the host-list arm of `faceStatus` ("✓ N styles", "✓ Figma has it", "⚠ Figma lacks it"), which
+//      `test:smoke` never draws: the web has no host list. Each is painted in the brand's `text.success` (✓) or
+//      `text.warning` (⚠) for the mode on screen, on the brand's page color, which the studio does not own.
+//
+//      For every brand × mode the plugin offers, on the Type place: each label clears 4.5:1 on the ground it is drawn
+//      on, and is drawn in the emission's hex for its role. EXPECTED is the committed emission
+//      (`packages/engine/out/<brand>.tokens.json`), resolved here in Node, never the studio's resolver or CSS. The
+//      labels, their classes and roles are literals here, not read from `ui/fonts.ts` or `faces.ts`.
+//
+//      BOTH ARMS ARE EXERCISED, NOT ASSUMED (docs/34: represented, not counted). The host's font list is fed in this
+//      test only, by the `font-list` message the plugin's main thread sends, posted twice per state: Inter with 36
+//      styles ("✓ 36 styles"), then Inter with no count ("✓ Figma has it"). Every corpus brand also sets a face the
+//      list leaves out (JetBrains Mono), so "⚠ Figma lacks it" is drawn in both. A label drawn zero times in any
+//      brand × mode fails as NOT EXERCISED. No shipped code changes.
+//
+//      Mutation (#2103): the label painted in the old fixed colors (`stat.style.color = st.ok ? 'var(--ok)' :
+//      'var(--ink)'` in `faces.ts`, both bundles rebuilt) fails this section by name.
+// =============================================================================================
+console.log(`\n#2103 — the plugin's font status, in the brand's status text roles on its page\n${'='.repeat(78)}`);
+/** The figma host's three labels, literal. `lists` names which of the two posted font lists draw it. */
+const FIGMA_FONT_STATUS = [
+  { cls: 'tf-stat ok', text: '✓ 36 styles', role: 'text.success', lists: ['styles'] },
+  { cls: 'tf-stat ok', text: '✓ Figma has it', role: 'text.success', lists: ['bare'] },
+  { cls: 'tf-stat no', text: '⚠ Figma lacks it', role: 'text.warning', lists: ['styles', 'bare'] },
+];
+const FIGMA_FONT_LISTS = { styles: { families: ['Inter'], styles: [36] }, bare: { families: ['Inter'], styles: [0] } };
+/** A brand's role hex in a mode, from its committed emission: the leaf's per-mode value, its aliases followed. */
+const emittedRole = (brand) => {
+  let tree;
+  try { tree = JSON.parse(readFileSync(join(REPO, 'packages/engine/out', `${brand.toLowerCase()}.tokens.json`), 'utf8')); } catch { return null; }
+  const rootKey = Object.keys(tree).find((k) => !k.startsWith('$'));
+  const at = (path) => path.split('.').reduce((n, s) => n?.[s], tree[rootKey]);
+  const modes = at('color.interactive.primary.on-fill')?.$extensions?.prism3?.figma?.modes ?? [];
+  const inMode = (leaf, mode) => (mode !== modes[0] && leaf.$extensions?.prism3?.modes?.[mode]) || { $value: leaf.$value };
+  return (key, mode) => {
+    const leaf = at(`color.${key}`);
+    if (!leaf || !modes.includes(mode)) return null;
+    let v = inMode(leaf, mode).$value;
+    for (let hops = 0; typeof v === 'string' && v.startsWith('{') && hops < 8; hops++) {
+      const target = at(v.slice(1, -1).replace(`${rootKey}.`, ''));
+      if (!target) return null;
+      v = inMode(target, mode).$value;
+    }
+    return typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : null;
+  };
+};
+/** Every font status label in the Type preview: its text, class, drawn color and the ratio on its composited ground. */
+const FONT_STATUS_PROBE = () => {
+  const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+  const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+  const groundOf = (el) => { let acc = null; for (let n = el; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { acc = acc ? over(acc, c) : c; if (acc.a >= 0.999) return acc; } } return acc ? over(acc, { r: 255, g: 255, b: 255, a: 1 }) : { r: 255, g: 255, b: 255, a: 1 }; };
+  const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+  const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  const hex = (c) => `#${[c.r, c.g, c.b].map((x) => Math.round(x).toString(16).padStart(2, '0')).join('')}`;
+  return [...document.querySelectorAll('[data-p3="preview-body"] span.tf-stat')].map((n) => {
+    const cs = getComputedStyle(n);
+    const g = groundOf(n);
+    const fg = parse(cs.color) ?? { r: 0, g: 0, b: 0, a: 1 };
+    return { text: n.textContent, cls: n.className, color: hex(fg), ground: hex(g), ratio: Math.floor(ratio(over(fg, g), g) * 100) / 100,
+      visible: n.getClientRects().length > 0 && cs.visibility !== 'hidden' };
+  });
+};
+const figmaStatusSeen = new Map();   // `${brand} / ${mode} / ${text}` -> { drawn, worst }
+{
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: 'light' });
+  const page = await ctx.newPage();
+  await hooks.watch(page);
+  await page.goto(`${ORIGIN}/plugin?figma=light`, { waitUntil: 'load' });
+  await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'restore-input-empty' } }, '*'));
+  await hooks.need(page, '[data-p3="start-example"]');
+  const brands = (await page.locator('[data-p3="start-example"]').allTextContents()).map((n) => n.trim());
+  await ctx.close();
+  ok(brands.length >= 2, `#2103 (figma): the plugin's start screen offers the corpus brands (found ${brands.length}: ${brands.join(', ')})`);
+  for (const brand of brands) {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: 'light' });
+    const page = await ctx.newPage();
+    await hooks.watch(page);
+    const errors = [];
+    page.on('pageerror', (e) => errors.push(`uncaught: ${e.message}`));
+    try {
+      await page.goto(`${ORIGIN}/plugin?figma=light`, { waitUntil: 'load' });
+      await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'restore-input-empty' } }, '*'));
+      await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: brand }));
+      await hooks.need(page, '[data-p3="frame"]');
+      await goPlace(page, 'type');
+      const role = emittedRole(brand);
+      ok(role !== null, `#2103 (figma) ${brand}: its committed emission (packages/engine/out/${brand.toLowerCase()}.tokens.json) loads — the oracle the labels are checked against`);
+      const modes = await page.locator('[data-p3="mode-option"]').evaluateAll((ns) => ns.map((n) => n.dataset.mode));
+      ok(modes.length >= 2, `#2103 (figma) ${brand}: the mode control offers ${modes.length} modes (${modes.join(', ')})`);
+      for (const mode of modes) {
+        await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
+        await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
+        const drawn = [];
+        for (const [list, msg] of Object.entries(FIGMA_FONT_LISTS)) {
+          await page.evaluate((m) => window.postMessage({ pluginMessage: { type: 'font-list', ...m } }, '*'), msg);
+          const allowed = FIGMA_FONT_STATUS.filter((l) => l.lists.includes(list)).map((l) => l.text);
+          await page.waitForFunction((a) => { const s = [...document.querySelectorAll('[data-p3="preview-body"] span.tf-stat')]; return s.length > 0 && s.every((n) => a.includes(n.textContent)); }, allowed, WAIT).catch(() => {});
+          drawn.push(...(await page.evaluate(FONT_STATUS_PROBE)).filter((d) => d.visible));
+        }
+        const where = `#2103 (figma) ${brand} / type / ${mode}`;
+        for (const lab of FIGMA_FONT_STATUS) {
+          const mine = drawn.filter((d) => d.text === lab.text && d.cls === lab.cls);
+          figmaStatusSeen.set(`${brand} / ${mode} / ${lab.text}`, { drawn: mine.length, worst: mine.length ? Math.min(...mine.map((d) => d.ratio)) : null });
+          const under = mine.filter((d) => d.ratio < 4.5);
+          ok(under.length === 0, `${where}: the font status "${lab.text}" clears 4.5:1 on the brand's page color in all ${mine.length} place(s) drawn${
+            under.length ? ` — ${[...new Set(under.map((u) => `${u.ratio}:1 (${u.color} on ${u.ground})`))].slice(0, 3).join(' | ')}` : ''}`);
+          const want = role?.(lab.role, mode) ?? null;
+          const off = mine.filter((d) => d.color !== want);
+          ok(want !== null && off.length === 0, `${where}: the font status "${lab.text}" is drawn in the brand's ${lab.role} ${want} in all ${mine.length} place(s)${
+            off.length ? ` — drawn ${[...new Set(off.map((d) => d.color))].join(', ')}` : ''}`);
+        }
+      }
+      ok(errors.length === 0, `#2103 (figma) ${brand}: no page errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `#2103 (figma) ${brand}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+  for (const lab of FIGMA_FONT_STATUS) {
+    const cells = [...figmaStatusSeen.keys()].filter((k) => k.endsWith(` / ${lab.text}`));
+    const unseen = cells.filter((c) => figmaStatusSeen.get(c).drawn === 0).map((c) => c.slice(0, -(lab.text.length + 3)));
+    const worst = Math.min(...cells.map((c) => figmaStatusSeen.get(c)).filter((v) => v.drawn).map((v) => v.worst));
+    ok(cells.length >= brands.length * 2 && unseen.length === 0,
+      `#2103 (figma): the font status "${lab.text}" was drawn, and so measured, on the Type page in every brand × mode (${cells.length - unseen.length} of ${cells.length}, lowest ${Number.isFinite(worst) ? `${worst}:1` : 'none'})${
+        unseen.length ? ` — NOT EXERCISED in ${unseen.slice(0, 4).join(', ')}${unseen.length > 4 ? ', …' : ''}: the label was never drawn there, so its check measured nothing` : ''}`);
+    console.log(`  font status "${lab.text}" (figma, #2103): drawn in ${cells.length - unseen.length} of ${cells.length} brand × mode states, lowest ${Number.isFinite(worst) ? `${worst}:1` : 'none'}`);
+  }
+}
+
+// =============================================================================================
 // 21. QA-B9, QA-B17, QA-I11 (owner decisions, 2026-10-02): an edit on Surfaces & fills and Interactive eases the
 //     preview to its section, on the chrome's motion tokens, and jumps under reduced motion; nothing but an edit
 //     moves it, and no edit changes its page; the jump links ease the same way under "Jump to:"; each page keeps
