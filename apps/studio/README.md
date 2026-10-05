@@ -78,8 +78,12 @@ makes obvious, and that a third probe will hit on its first run.
   list in this file.
   - **Moved pages** draw the two panes (levers beside a preview). Every one carries the **mode
     control** in its preview header (`mode-option` hooks, derived modes hatched), whether or not
-    anything on it is edited per mode. In a **derived** mode (HC light / HC dark / Wireframe) their
-    controls stay on screen but go read-only, under an "auto-derived — read-only" state line.
+    anything on it is edited per mode. In a **derived** mode (HC light / HC dark / Wireframe), six of them
+    keep their controls on screen but read-only, under an "auto-derived — read-only" state line: Surfaces &
+    fills, Interactive, Type, Shape, Depth & motion and Layout. Each page's derived-mode arm in
+    `test-chrome.mjs` pins it. **Brand and Palettes don't:** nothing they set varies by mode, so they show no
+    line and stay editable in every mode. Components isn't a moved page yet; it goes read-only by the legacy
+    rule below.
   - **Legacy pages** still render in the full-width legacy frame. Their old mode strip (`mode-tab`
     hooks) appears **only on pages that carry a mode-varying control** (#268). A strip-less legacy
     page still renders *through* whatever mode is selected. The strip's absence means "nothing here
