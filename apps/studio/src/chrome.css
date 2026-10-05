@@ -138,10 +138,11 @@
 .p3-tile-count { color: var(--p3-bad-text); font-size: var(--p3-fs-12); font-variant-numeric: tabular-nums; }
 /* Every tile dot (Activity's status, Agent's "on") sits at the glyph's top right, at one offset (the owner's QA,
    2026-10-05). A failure is red (`.p3-status-dot[data-state="bad"]`); every other dot is the ok green (D-RED A): Agent
-   on, Activity running (a ring), a warning (`warn`) and a new result nobody opened. */
+   on, Activity running, a warning (`warn`) and a new result nobody opened. Every tile dot is filled, the same shape
+   (owner, 2026-10-05): Activity's running dot is no longer a ring on the tile. */
 .p3-tile-mark > .p3-dot { position: absolute; top: calc(-1 * var(--p3-space-025)); right: calc(-1 * var(--p3-space-050)); }
 .p3-tile-mark > .p3-status-dot:is([data-state="unread"], [data-state="warn"]) { background: var(--p3-ok-icon); }
-.p3-tile-mark > .p3-status-dot[data-state="run"] { border-color: var(--p3-ok-icon); }
+.p3-tile-mark > .p3-status-dot[data-state="run"] { border: 0; background: var(--p3-ok-icon); }
 .p3-tile-tip {
   display: none; position: absolute; z-index: 60; top: calc(100% + var(--p3-space-050)); right: 0; width: max-content;
   max-width: calc(var(--p3-l-col) * 3); padding: var(--p3-space-050) var(--p3-space-100); border-radius: var(--p3-radius-md);

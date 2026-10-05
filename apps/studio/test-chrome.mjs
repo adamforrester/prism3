@@ -7789,8 +7789,8 @@ for (const host of ['web', 'figma']) {
           ok(off[0] === 'Activity' && off[1] === 'Activity' && on[0] === 'Activity, agent link on' && on[1] === 'Activity, agent link on',
             `${where}: Activity's name and tooltip add "agent link on" while the link is on (off ${JSON.stringify(off)}, on ${JSON.stringify(on)})`);
           // The tile dots (the owner's QA, 2026-10-05): with the link on and a write running (Apply Theme posted, no main
-          // thread to answer), both dots are drawn. Each sits at its glyph's top right at the same offset (within 1px), and
-          // each draws in the ok green (Activity's running ring by its edge). The web shows no tile dot in any state: it
+          // thread to answer), both dots are drawn. Each sits at its glyph's top right at the same offset (within 1px), each
+          // is filled, and each draws in the ok green. The web shows no tile dot in any state: it
           // has no agent link and runs no write.
           await hooks.click(page.locator('[data-p3="apply-to-figma"]'));
           await page.waitForFunction(() => document.querySelector('[data-p3="activity-open"] .p3-status-dot')?.dataset.state === 'run', null, { timeout: 3000 }).catch(() => {});
@@ -7801,15 +7801,17 @@ for (const host of ['web', 'figma']) {
             return ['agent-toggle', 'activity-open'].map((k) => {
               const b = document.querySelector(`[data-p3="${k}"]`), d = b?.querySelector('.p3-tile-mark > .p3-dot'), ic = b?.querySelector('.p3-tile-mark > svg.p3-ico');
               const dr = d?.getBoundingClientRect(), ir = ic?.getBoundingClientRect(), cs = d ? getComputedStyle(d) : null;
-              const ring = d?.dataset.state === 'run';
               return { k, shown: !!dr && dr.width > 0 && cs.display !== 'none', state: d?.dataset.state ?? (b?.dataset.on === 'true' ? 'on' : 'off'),
                 dx: dr && ir ? Math.round((dr.right - ir.right) * 10) / 10 : null, dy: dr && ir ? Math.round((dr.top - ir.top) * 10) / 10 : null,
-                color: cs ? (ring ? cs.borderTopColor : cs.backgroundColor) : null, okColor, name: b?.getAttribute('aria-label') };
+                color: cs ? cs.backgroundColor : null, okColor, name: b?.getAttribute('aria-label'),
+                // Filled, the same shape on every tile (owner, 2026-10-05): a solid fill and no visible ring.
+                filled: !!cs && cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && (parseFloat(cs.borderTopWidth) === 0 || cs.borderTopStyle === 'none' || cs.borderTopColor === cs.backgroundColor) };
             });
           });
           const [ag, ac] = dots;
           ok(ag.shown && ac.shown && ag.dx !== null && Math.abs(ag.dx - ac.dx) <= 1 && Math.abs(ag.dy - ac.dy) <= 1 && ag.dy <= 0 && ag.dx >= 0,
             `${where}: tile dots: Agent's and Activity's dots sit at their glyph's top right at one offset (Agent ${ag.dx},${ag.dy}; Activity ${ac.dx},${ac.dy}; ${JSON.stringify(dots.map((d) => [d.k, d.shown, d.state]))})`);
+          ok(ag.filled && ac.filled, `${where}: tile dots: every dot is filled, Activity "${ac.state}" too (Agent filled ${ag.filled}, Activity filled ${ac.filled})`);
           ok(ag.color === ag.okColor && ac.color === ac.okColor,
             `${where}: tile dots: Agent "on" and Activity "${ac.state}" draw in the ok green ${ag.okColor} (Agent ${ag.color}, Activity ${ac.color})`);
           ok(ag.name === 'Agent, on' && /^Activity, agent link on, 1 running$/.test(ac.name ?? ''),
