@@ -81,11 +81,13 @@ accepts('apply-result', { type: 'apply-result', ok: true, headline: '✓ 12 writ
   { kind: 'apply-result', ok: true, headline: '✓ 12 written', summary: 'counts' });
 accepts('apply-result without a headline (older host)', { type: 'apply-result', ok: false, summary: 'x' },
   { kind: 'apply-result', ok: false, headline: '✗ apply failed', summary: 'x' });
-// `completed` (UI redesign S8.2, owner decision C1): carried as the host sends it; from an older host with none, read
-// off `ok` (a clean build ran to the end; anything else counts as one that did not).
-accepts('component-result', { type: 'component-result', ok: true, headline: '✓ 48 built', summary: 's' },
+// `completed` (UI redesign S8.2, owner decision C1): carried as the host sends it, and never inferred from `ok`: a
+// post without it (a contract break, since `messages.ts` requires it) reads as a build that did not finish.
+accepts('component-result', { type: 'component-result', ok: true, completed: true, headline: '✓ 48 built', summary: 's' },
   { kind: 'component-result', ok: true, headline: '✓ 48 built', summary: 's', completed: true });
-accepts('component-result without a headline', { type: 'component-result', ok: true, summary: 's' },
+accepts('component-result without completed is not read off ok', { type: 'component-result', ok: true, headline: '✓ 48 built', summary: 's' },
+  { kind: 'component-result', ok: true, headline: '✓ 48 built', summary: 's', completed: false });
+accepts('component-result without a headline', { type: 'component-result', ok: true, completed: true, summary: 's' },
   { kind: 'component-result', ok: true, headline: '✓ built', summary: 's', completed: true });
 accepts('component-result that completed with misses', { type: 'component-result', ok: false, completed: true, headline: '⚠ 48, 2 missed', summary: 's' },
   { kind: 'component-result', ok: false, headline: '⚠ 48, 2 missed', summary: 's', completed: true });
