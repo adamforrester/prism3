@@ -107,14 +107,22 @@ export type UiToMain =
 export type SwatchType = 'default' | 'text' | 'icon' | 'border' | 'transparency';
 /** How a style-guide value cell prints a color. */
 export type ValueFormat = 'hex' | 'rgba' | 'hsl' | 'hsb';
+/** The spacing specimen's style for the WHOLE run (owner decision, 2026-09-29: a stylistic choice, never chosen by
+ *  role): `filled` a filled bar at the value's width (the default, the first member of the owner's cell set), `line` the
+ *  bracket. `auto` is kept for the agent link and means the default, `filled`; it never varies by row. */
+export type DimensionDisplay = 'auto' | 'filled' | 'line';
+/** A font-variable row's specimen (#259 phase 2): "Abc 123" with the one named property bound to the variable;
+ *  `generic` binds none. `auto` binds the property the variable is for. */
+export type FontDisplay = 'auto' | 'generic' | 'family' | 'size' | 'weight' | 'letterSpacing' | 'lineHeight';
 
 /** The style guide's options (#259) — the panel's Customize fields and the agent command's args. Every one
- *  has a default, so `{}` documents every color collection. Here, not in `style-guide.ts`, so this file and
+ *  has a default, so `{}` draws every table this phase draws. Here, not in `style-guide.ts`, so this file and
  *  `agent-protocol.ts` stay context-neutral: that module imports the engine's color math at runtime. */
 export interface StyleGuideOptions {
   /** Collection names to document, in any case; absent means every collection. */
   collections?: string[];
-  /** Token types; absent means every type this phase covers (`color`). */
+  /** Token types; absent means every type this phase covers (`PHASE_TYPES` in `style-guide.ts`: color,
+   *  dimension, the five font-variable kinds and `typography`, the text styles). */
   types?: string[];
   valueFormat?: ValueFormat;
   /** Table header: `dark` (default) or `light`. */
@@ -123,8 +131,28 @@ export interface StyleGuideOptions {
   aliases?: boolean;
   /** Show the description column. Default on. */
   description?: boolean;
-  /** Override the specimen chosen from each token's role. `auto` (default) chooses per row. */
+  /** Override the COLOR specimen chosen from each token's role. `auto` (default) chooses per row. */
   display?: 'auto' | SwatchType;
+  /** Draw only these tables (#1778), each named by its title as drawn ("Primary — nbds") or its key, in any
+   *  case; absent means every table. A name that matches no table is reported by name. A filtered run covers
+   *  only the tables it draws: no other table is stale, replaced or deleted by it. */
+  tables?: string[];
+  /** Args an older agent-link caller sent that no longer do anything (owner decision 20 removed `pixels`): accepted,
+   *  ignored, and each said in the result's notes. Set by the agent link, never by the panel. */
+  retired?: 'pixels'[];
+  /** Print lengths in REM as well, at a 16px base. Default on. */
+  rem?: boolean;
+  /** The spacing specimen for every dimension row: `filled` (default) or `line`. `auto` means `filled`. */
+  dimensionDisplay?: DimensionDisplay;
+  /** The font-variable specimen; `auto` (default) binds the property each variable is for. */
+  fontDisplay?: FontDisplay;
+  /** Add a paragraph-spacing column to the text-style table. Default off. */
+  paragraphSpacing?: boolean;
+  /** Add a text-decoration column to the text-style table. Default off. */
+  textDecoration?: boolean;
+  /** Add a leading "Name" column on every table: a readable name per row ("Text Primary") a designer can edit, kept
+   *  on rerun (owner decision 15). Default off (proposed). */
+  titleCell?: boolean;
 }
 
 /** Messages the main thread sends TO the UI iframe. */
@@ -204,6 +232,12 @@ export type MainToUi =
    *  CALIBRATE the chunk size: the shim has no event loop, so that number cannot be gated and has to be
    *  observed. See `CHUNK` in `write-components.ts`. */
   | { type: 'component-progress'; phase: 'build' | 'wire' | 'retry'; done: number; total: number; chunkMs: number }
+  /** A style-guide run is UNDERWAY (#1778) — posted once before the first table (`done: 0`) and after each
+   *  table, so the pending pill reads "Drawing table 7 of 22…" while the executor yields to the host between
+   *  tables. Its own kind for the `component-progress` reason: a reading is not a verdict, and it must not
+   *  land in either action's result slot. `tableMs` is what the last table cost, the live run's calibration
+   *  data for the executor's yield spacing (`CELLS_PER_YIELD` in `style-guide.ts`); 0 on the first reading. */
+  | { type: 'style-guide-progress'; done: number; total: number; tableMs: number }
   /** Boot read-back (#109): whether an existing Prism3 theme in the file passes the contract, plus a
    *  human summary. Informational — the actual knob-rehydration is `restore-input` below.
    *

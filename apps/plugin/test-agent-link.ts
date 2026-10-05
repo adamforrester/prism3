@@ -41,6 +41,10 @@
  *   · busy/sink: a `refused` that reaches the agent's sink fails the command with its code (mutation: the
  *     dispatcher's refusal check removed → busy/sink fails). busy/titles: `run-guard.ts`'s TITLE equals the
  *     drawer's OP_TITLE (mutation: one title changed in either file → busy/titles fails) (#1995)
+ *   · one-run: the STYLE GUIDE through the same guard, with the real `styleGuide` held mid-yield (#1778): a
+ *     style guide asked for from the panel or the link while the other's run draws is refused with `busy`
+ *     and the owner's words, the drawing run's verdict lands once, and the next click runs (#1785) (mutation:
+ *     `ACTIONS.styleGuide` not wrapped in `guarded` → one-run/agent and one-run/panel fail, by name)
  *   · foreign: on a file holding content Prism3 did not make, apply-theme from the panel and from the agent
  *     both refuse the whole write, name each collision in the same verdict, and change nothing (#1884)
  *   · claim-before-run: the id is in `claimed` while its handler runs
@@ -254,6 +258,127 @@ for (const c of CASES) {
   ok(!!(pr.result?.data as { prunePlan?: unknown }).prunePlan, 'prune: the plan behind the preview is structured data');
   const bc = results[CASES.findIndex((c) => c.cmd === 'build-components')];
   ok(Array.isArray(((bc.result?.data as { build?: { known?: unknown } }).build)?.known), 'build-components: the known def ids are structured data');
+}
+
+/* ── style-guide tables + progress (#1778) ───────────────────────────────────────────────────────────── */
+section('style-guide — tables reach the handler; a table reading is progress, never a verdict (#1778)');
+{
+  const orig = actions.styleGuide;
+  let got: unknown = null;
+  actions.styleGuide = async (...a: unknown[]) => {
+    got = a[0];
+    const sink = a[1] as { post(m: unknown): void };
+    sink.post({ type: 'style-guide-progress', done: 0, total: 2, tableMs: 0 });
+    sink.post({ type: 'style-guide-progress', done: 1, total: 2, tableMs: 12 });
+    sink.post({ type: 'style-guide-progress', done: 2, total: 2, tableMs: 7 });
+    sink.post({ type: 'style-guide-result', ok: true, headline: '✓ style guide: 2 tables', summary: '2 tables updated in place' });
+  };
+  posted.length = 0;
+  const { id } = await send('style-guide', { tables: ['Primary — nbds', 'Text — pds3'] });
+  await tick();
+  const r = (await read(id)) as AgentResult;
+  actions.styleGuide = orig;
+  ok(JSON.stringify(got) === JSON.stringify({ tables: ['Primary — nbds', 'Text — pds3'] }), `style-guide: args.tables reaches the handler as sent (${JSON.stringify(got)})`);
+  ok(r.ok && (r.result?.verdict as { type?: string } | null)?.type === 'style-guide-result' && !('earlierVerdicts' in (r.result?.data ?? {}))
+    && JSON.stringify((r.progress ?? []).map((p) => `${p.phase} ${p.done}/${p.total} ${p.chunkMs}ms`)) === JSON.stringify(['table 0/2 0ms', 'table 1/2 12ms', 'table 2/2 7ms']),
+    `style-guide: each table reading streams as progress phase "table", and the verdict is the result alone (${JSON.stringify(r.progress?.map((p) => p.phase))})`);
+  ok(!posted.some((m) => m.type === 'style-guide-progress'), 'style-guide: an agent run\'s table readings are not forwarded to the panel as verdicts');
+
+  // #259 phase 2: the dimension, font-variable and text-style options reach the handler as sent.
+  const p2args = { types: ['dimension', 'typography'], pixels: false, rem: true, dimensionDisplay: 'line', fontDisplay: 'letterSpacing', paragraphSpacing: true, textDecoration: false, titleCell: true };
+  actions.styleGuide = async (...a: unknown[]) => {
+    got = a[0];
+    (a[1] as { post(m: unknown): void }).post({ type: 'style-guide-result', ok: true, headline: '✓ style guide: 1 table', summary: '' });
+  };
+  const p2 = await send('style-guide', p2args);
+  await tick();
+  await read(p2.id);
+  actions.styleGuide = orig;
+  // `pixels` IS RETIRED (owner decision 20): accepted and ignored, never passed on as an option; the handler gets
+  // `retired: ['pixels']`, which the run's notes say was ignored. Typed literally here.
+  ok(JSON.stringify(got) === '{"types":["dimension","typography"],"rem":true,"dimensionDisplay":"line","fontDisplay":"letterSpacing","paragraphSpacing":true,"textDecoration":false,"titleCell":true,"retired":["pixels"]}',
+    `style-guide: the phase-2 options reach the handler as sent, and a retired pixels arrives as retired, not as an option (${JSON.stringify(got)})`);
+  // Any value of it is accepted, so an older caller that sent a string is not refused either.
+  actions.styleGuide = async (...a: unknown[]) => {
+    got = a[0];
+    (a[1] as { post(m: unknown): void }).post({ type: 'style-guide-result', ok: true, headline: '✓ style guide: 1 table', summary: '' });
+  };
+  const px = await send('style-guide', { pixels: 'yes' });
+  await tick();
+  const rpx = (await read(px.id)) as AgentResult;
+  actions.styleGuide = orig;
+  ok(rpx.ok === true && JSON.stringify(got) === '{"retired":["pixels"]}', `style-guide: pixels "yes" is accepted and ignored, not refused (${rpx.ok}; ${JSON.stringify(got)})`);
+}
+
+/* ── one style-guide run at a time (#1785) ──────────────────────────────────────────────────────────── */
+section('one-run — a style guide asked for from one entry point while the other\'s run draws is refused with busy (#1785, #1957)');
+{
+  // A file the real `styleGuide` can run over: one color variable, the two cell sets, no token page (so its one table
+  // is a named skip). What matters is that the run YIELDS: `realYield` is a 0ms `setTimeout`, held here apart from the
+  // poll's 1000ms one, so a run stays mid-yield until `release()` — through `main.ts`'s own guard, not a stub.
+  const held: (() => void)[] = [];
+  const pollTimeout = g.setTimeout as unknown as (fn: () => void, ms?: number) => number;
+  g.setTimeout = ((fn: () => void, ms?: number) => { if (!ms) { held.push(fn); return 0; } return pollTimeout(fn, ms); }) as unknown as typeof setTimeout;
+  const release = async (): Promise<void> => {
+    for (let i = 0; i < 20 && held.length; i++) { for (const fn of held.splice(0)) fn(); for (let j = 0; j < 40; j++) await settle(); }
+  };
+  const r0 = root as Record<string, unknown>;
+  const saved = { load: host.loadAllPagesAsync, vars: host.variables, find: r0.findAllWithCriteria };
+  host.loadAllPagesAsync = async () => undefined;
+  host.variables = {
+    getLocalVariableCollectionsAsync: async () => [{ id: 'C:1', name: 'ramp', modes: [{ modeId: 'm:0', name: 'Value' }], defaultModeId: 'm:0' }],
+    getLocalVariablesAsync: async () => [{ id: 'V:1', name: 'ramp/100', variableCollectionId: 'C:1', resolvedType: 'COLOR', description: '', valuesByMode: { 'm:0': { r: 1, g: 0, b: 0, a: 1 } } }],
+    setBoundVariableForPaint: (p: unknown) => p,
+  };
+  r0.findAllWithCriteria = () => [{ name: '_style-guide-swatches', type: 'COMPONENT_SET', children: [] }, { name: '_style-guide-text-cells', type: 'COMPONENT_SET', children: [] }];
+  type Verdict = { type?: string; ok?: boolean; headline?: string; summary?: string };
+  const results_ = (): Verdict[] => posted.filter((m) => m.type === 'style-guide-result');
+  // Main's run guard (#1957, `run-guard.ts`) is the one guard: its refusal and its words, for this operation.
+  const SG_BUSY = 'Style guide is already running. Try again when it finishes.';
+  const sgRefusals = (agentFlag: boolean) => posted.filter((m) => m.type === 'refused' && m.agent === agentFlag);
+  const isSgRefusal = (m: any, agentFlag: boolean) =>
+    JSON.stringify(m) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'style-guide', agent: agentFlag, message: SG_BUSY });
+
+  // THE PANEL FIRST: a click starts a run, which holds at its yield; the agent link then asks for one.
+  posted.length = 0;
+  await toUi({ type: 'style-guide', options: {} });
+  const heldPanel = held.length;
+  const { id: a1 } = await send('style-guide', {});
+  await tick();
+  const r1 = (await read(a1)) as AgentResult;
+  const ar = sgRefusals(true);
+  ok(heldPanel > 0 && r1.ok === false && r1.error?.code === 'busy' && r1.error?.message === SG_BUSY && ar.length === 1 && isSgRefusal(ar[0], true),
+    `one-run/agent: a style guide asked for over the link while the panel's run is mid-yield is refused with busy (${r1.error?.code}: ${r1.error?.message})`);
+  ok(results_().length === 0 && !posted.some((m) => m.type === 'agent-started' && m.id === a1), 'one-run/agent: the refusal is no verdict over the panel\'s run, and the agent\'s run never started');
+  await release();
+  const p1 = results_();
+  ok(p1.length === 1, `one-run: the panel's run then finishes and reports once (${p1.map((m) => m.headline).join(', ')})`);
+
+  // THE AGENT FIRST: a command starts a run, which holds at its yield; a click then asks for one.
+  posted.length = 0;
+  const { id: a2 } = await send('style-guide', {});
+  await tick();
+  ok(held.length > 0 && posted.some((m) => m.type === 'agent-started' && m.id === a2 && m.cmd === 'style-guide'),
+    'one-run/panel: an agent\'s run is held mid-yield, and the panel is told it started (its button goes busy on that)');
+  await toUi({ type: 'style-guide', options: {} });
+  const pr = sgRefusals(false);
+  ok(pr.length === 1 && isSgRefusal(pr[0], false) && results_().length === 0,
+    `one-run/panel: a click while the agent's run is mid-yield is refused with busy, and posts no verdict (${pr[0]?.message})`);
+  await release();
+  await tick();
+  const r2 = (await read(a2)) as AgentResult;
+  const v2 = r2.result?.verdict as Verdict | null;
+  ok(v2?.type === 'style-guide-result' && results_().length === 1 && results_()[0].headline === v2.headline,
+    `one-run: the agent's run then finishes, and its one verdict reaches the panel (${v2?.headline})`);
+
+  // And the guard is open again: a click runs.
+  posted.length = 0;
+  await toUi({ type: 'style-guide', options: {} });
+  await release();
+  ok(results_().length === 1 && !posted.some((m) => m.type === 'refused'), 'one-run: once both have reported, the next click runs');
+
+  host.loadAllPagesAsync = saved.load; host.variables = saved.vars; r0.findAllWithCriteria = saved.find;
+  g.setTimeout = pollTimeout as unknown as typeof setTimeout;
 }
 
 /* ── envelope ───────────────────────────────────────────────────────────────────────────────────────── */
@@ -556,6 +681,21 @@ section('failures — answered, never silent');
   await tick();
   const rf = (await read(sf.id)) as AgentResult;
   ok(rf.ok === false && rf.error?.code === 'bad-args' && calls.length === 0, 'style-guide with valueFormat cmyk → bad-args');
+  for (const [args, what, re] of [[{ dimensionDisplay: 'bar' }, 'dimensionDisplay bar', /args\.dimensionDisplay/], [{ dimensionDisplay: 'radius' }, 'dimensionDisplay radius (removed: one spacing style per run)', /args\.dimensionDisplay/], [{ fontDisplay: 'color' }, 'fontDisplay color', /args\.fontDisplay/],
+    [{ rem: 'yes' }, 'rem as a string', /args\.rem/], [{ textDecoration: 1 }, 'textDecoration as a number', /args\.textDecoration/], [{ titleCell: 'on' }, 'titleCell as a string', /args\.titleCell/]] as const) {
+    calls.length = 0;
+    const sb = await send('style-guide', args);
+    await tick();
+    const rb = (await read(sb.id)) as AgentResult;
+    ok(rb.ok === false && rb.error?.code === 'bad-args' && re.test(rb.error.message) && calls.length === 0, `style-guide with ${what} → bad-args, and the style guide is not run`);
+  }
+  for (const [tables, what] of [['Primary — nbds', 'a string'], [[], 'an empty list'], [['Primary — nbds', ''], 'an empty name'], [['Primary — nbds', '   '], 'a name of spaces alone']] as const) {
+    calls.length = 0;
+    const st = await send('style-guide', { tables });
+    await tick();
+    const rt = (await read(st.id)) as AgentResult;
+    ok(rt.ok === false && rt.error?.code === 'bad-args' && /args\.tables/.test(rt.error.message) && calls.length === 0, `style-guide with ${what} for tables → bad-args, and the style guide is not run`);
+  }
 
   // An entry with no usable id cannot be answered by id — it is reported on the link record instead.
   const q = JSON.parse(root.getSharedPluginData(MAILBOX.ns, MAILBOX.inbox));

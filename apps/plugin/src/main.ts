@@ -849,7 +849,15 @@ const styleGuide = async (options: StyleGuideOptions, sink: ActionSink): Promise
     } catch (e) {
       contractNote = `. The saved brand did not resolve (${(e as Error).message}), so the contrast column reads "—"`;
     }
-    const result = await runStyleGuide(figma, contract, options);
+    // One table at a time, yielding to the host between them and within a big one (#1778). Each reading goes to
+    // the pending pill and, logged, to the console: a hung run's last line names the table it hung on, and
+    // `tableMs` is the live figure `CELLS_PER_YIELD` is calibrated against.
+    const result = await runStyleGuide(figma, contract, options, {
+      onProgress: (p) => {
+        if (p.done > 0) console.log(`[prism3 #1778] style guide: table ${p.done} of ${p.total}, ${p.title}, ${p.tableMs}ms`);
+        sink.post({ type: 'style-guide-progress', done: p.done, total: p.total, tableMs: p.tableMs });
+      },
+    });
     const v = styleGuideSummary(result);
     sink.data({ styleGuide: result });
     sink.post({ type: 'style-guide-result', ok: v.ok, headline: v.headline, summary: appendBuildNote(v.summary + contractNote, PRISM3_BUILD) });

@@ -661,6 +661,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
       button: btn ? btn.textContent : null,
       disabled: btn ? btn.disabled : null,
       verdict: [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-verdict"]')].map((n) => n.textContent),
+      pendingText: [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-pill"]')].map((n) => n.textContent),
       customize: det ? { open: det.open, text: det.textContent } : null,
       sent: window.__sent,
     };
@@ -670,10 +671,23 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   ok(before.customize !== null && before.customize.open === false, '#259 the per-type options fold away under a closed "Customize"');
   ok(/Color value/.test(before.customize?.text ?? '') && /Display style/.test(before.customize?.text ?? '') && /From each token’s role/.test(before.customize?.text ?? ''),
     '#259 Customize carries Color value and Display style, the display defaulting to the token\'s role');
+  ok(['Dimension display', 'Font variable display', 'REM', 'Paragraph spacing', 'Text decoration', 'Title cell'].every((w) => (before.customize?.text ?? '').includes(w)),
+    '#259 phase 2: Customize carries Dimension display, Font variable display, REM, Paragraph spacing and Text decoration');
+  // Owner decision 20: the Pixels toggle is removed, since the base value always prints.
+  ok(!(before.customize?.text ?? '').includes('Pixels'), '#259 decision 20: Customize has no Pixels field');
 
   await hooks.click(page.locator('[data-p3="style-guide-customize"] summary'));
   await page.locator('[data-p3="style-guide-value-format"] select').selectOption('hsl');
   await page.locator('[data-p3="style-guide-display"] select').selectOption('border');
+  // #259 phase 2: a dimension display, a font-variable display, REM off and paragraph spacing on, each knob
+  // found by its own hook.
+  await page.locator('[data-p3="style-guide-dimension-display"] select').selectOption('line');
+  await page.locator('[data-p3="style-guide-font-display"] select').selectOption('weight');
+  await hooks.click(page.locator('[data-p3="style-guide-rem"] input'), { force: true });
+  await hooks.click(page.locator('[data-p3="style-guide-paragraph-spacing"] input'), { force: true });
+  await hooks.click(page.locator('[data-p3="style-guide-title-cell"] input'), { force: true });
+  // #1778: the Tables field — titles separated by commas on one line, sent as a list, blanks dropped.
+  await page.locator('[data-p3="style-guide-tables"] textarea').fill('Primary — nbds,  Text — pds3, ');
   const clicked = await hooks.click(page.locator('[data-p3="style-guide-draw"]'), { timeout: 4000 }).then(() => true, () => false);
   ok(clicked, '#259 the Draw style guide control can be clicked');
   // postMessage delivers asynchronously; a real condition rather than a sleep.
@@ -682,12 +696,59 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   ok(pending.button === '… Drawing…' && pending.disabled === true, `#259 a run in flight reads "… Drawing…", disabled — read "${pending.button}", disabled ${pending.disabled}`);
   ok(pending.sent.length === 1 && pending.sent[0].options?.valueFormat === 'hsl' && pending.sent[0].options?.display === 'border',
     `#259 the click posts one style-guide message carrying the picked options — sent ${JSON.stringify(pending.sent)}`);
+  const p2 = pending.sent[0]?.options ?? {};
+  ok(p2.dimensionDisplay === 'line' && p2.fontDisplay === 'weight' && p2.rem === false && p2.paragraphSpacing === true && p2.titleCell === true && p2.pixels === undefined && p2.textDecoration === undefined,
+    `#259 phase 2: the dimension and font displays, REM off and paragraph spacing on cross the bridge; untouched toggles are not sent — sent ${JSON.stringify(p2)}`);
+  ok(JSON.stringify(pending.sent[0]?.options?.tables) === JSON.stringify(['Primary — nbds', 'Text — pds3']),
+    `#1778 the Tables field crosses the bridge as a list of titles — sent ${JSON.stringify(pending.sent[0]?.options?.tables)}`);
+  // #1778: a progress reading rewrites the page's pending pill in place.
+  await post(page, { type: 'style-guide-progress', done: 6, total: 22, tableMs: 900 });
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-pill"]')].some((n) => n.textContent === 'Drawing table 7 of 22…'), null, { timeout: 3000 }).catch(() => {});
+  const counting = await readSg();
+  ok(counting.pendingText.length === 1 && counting.pendingText[0] === 'Drawing table 7 of 22…', `#1778 a run in flight counts its tables on the page's row — read ${JSON.stringify(counting.pendingText)}`);
 
   await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 22 tables', summary: '22 tables: 11 on ↳ Primitive tokens, 11 on ↳ Semantic tokens' });
   await page.waitForFunction(() => document.querySelector('[data-p3="style-guide-draw"]')?.textContent === '▦ Draw style guide', null, { timeout: 5000 }).catch(() => {});
   const done = await readSg();
   ok(done.button === '▦ Draw style guide' && done.disabled === false, `#259 the verdict re-enables the control on the page — read "${done.button}", disabled ${done.disabled}`);
   ok(done.verdict.length === 1 && done.verdict[0].includes('✓ style guide: 22 tables'), `#259 exactly one verdict pill on the page's row, in the headline's words — read ${JSON.stringify(done.verdict)}`);
+
+  // #1785: a run the AGENT LINK started, which the panel did not click for. While it runs (`agent-started` until its
+  // verdict lands) the page's button is busy, so a click cannot start a second run over it: the rule the other writes
+  // already follow (owner decision #4 on #1956). The main thread's run guard (#1957) refuses a second run regardless.
+  await post(page, { type: 'agent-started', id: 'sg1', cmd: 'style-guide' });
+  await page.waitForFunction(() => document.querySelector('[data-p3="style-guide-draw"]')?.textContent === '… Drawing…', null, { timeout: 3000 }).catch(() => {});
+  const agentRun = await readSg();
+  ok(agentRun.button === '… Drawing…' && agentRun.disabled === true,
+    `#1785 an agent-link style guide in flight makes the page's button busy, disabled — read "${agentRun.button}", disabled ${agentRun.disabled}`);
+  // Owner decision Q19 b: the agent's table readings (the dispatcher's `agent-progress`, phase `table`) count on the
+  // page's row and on the Activity drawer's Style guide row, in the panel run's words.
+  await post(page, { type: 'agent-progress', id: 'sg1', progress: { at: '2026-10-05T00:00:00.000Z', phase: 'table', done: 6, total: 22, chunkMs: 900 } });
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-pill"]')].some((n) => n.textContent === 'Drawing table 7 of 22…'), null, { timeout: 3000 }).catch(() => {});
+  const agentCount = await page.evaluate(() => ({
+    row: [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-pill"]')].map((n) => n.textContent),
+    drawer: [...document.querySelectorAll('[data-p3="activity-op"][data-op="styleguide"] [data-p3="op-progress"]')].map((n) => n.textContent),
+  }));
+  ok(JSON.stringify(agentCount.row) === JSON.stringify(['Drawing table 7 of 22…']),
+    `Q19 an agent-link style guide counts its tables on the page's row — read ${JSON.stringify(agentCount.row)}`);
+  ok(JSON.stringify(agentCount.drawer) === JSON.stringify(['Drawing table 7 of 22…']),
+    `Q19 an agent-link style guide counts its tables on the Activity drawer's Style guide row — read ${JSON.stringify(agentCount.drawer)}`);
+  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 1 table', summary: '1 table updated in place — no token changes' });
+  await post(page, { type: 'agent-finished', id: 'sg1', cmd: 'style-guide' });
+  await page.waitForFunction(() => document.querySelector('[data-p3="style-guide-draw"]')?.textContent === '▦ Draw style guide', null, { timeout: 5000 }).catch(() => {});
+  const agentDone = await readSg();
+  ok(agentDone.disabled === false && agentDone.verdict.length === 1 && agentDone.verdict[0].includes('✓ style guide: 1 table'), `#1785 the agent's verdict ends it on the page's row — read ${JSON.stringify(agentDone.verdict)}`);
+
+  // The Tables field with a line break splits on line breaks ONLY, so a title with a comma in it survives.
+  const custom = page.locator('[data-p3="style-guide-customize"]');
+  if (!(await custom.evaluate((d) => d.open))) await hooks.click(custom.locator('summary'));
+  await page.locator('[data-p3="style-guide-tables"] textarea').fill('Brand, legacy — nbds\nText — pds3\n');
+  await hooks.click(page.locator('[data-p3="style-guide-draw"]'), { timeout: 4000 }).catch(() => {});
+  await page.waitForFunction(() => window.__sent.length > 1, null, { timeout: 3000 }).catch(() => {});
+  const lines = await readSg();
+  ok(JSON.stringify(lines.sent[1]?.options?.tables) === JSON.stringify(['Brand, legacy — nbds', 'Text — pds3']),
+    `#1778 a Tables field with a line break sends a title a line, its comma kept — sent ${JSON.stringify(lines.sent[1]?.options?.tables)}`);
+  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 2 tables', summary: '2 tables updated in place' });
   ok(errors.length === 0, `#259 no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
@@ -883,6 +944,50 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   const firedIdle = await sentApply();
   ok(firedIdle === 1, `S11 control: with no Apply running, the same click posts one apply-theme — messages ${firedIdle}`);
   ok(errors.length === 0, `S11 agent run: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
+// ── #2088: the first phase line names the set being built, or none ───────────────────────────────────
+//
+// Before the first chunk boundary reports, the Activity row's phase line said "Building the Button set…" whatever
+// set was building. The owner's call (2026-10-05): a build the panel started names its set by the catalog's display
+// name; one an agent started names none, and reads exactly "Building the set…". Both arms read the line BEFORE any
+// `component-progress` is posted, which is the only window the line exists in. The expected strings are literals,
+// the copy under test, never read from the catalog the code reads.
+//
+// The panel arm builds TWO sets on one page, Button then Tag, and reads each one's line exactly: one set alone
+// lets a line hard-coded to that set's name pass (the original "always Button" was that shape), and the second
+// build is what catches a line reading the PREVIOUS set rather than the current one.
+//
+// MUTATIONS, each failing here by name:
+//   · `firstPhase` returning the literal "Building the Tag set…" for any named build → `#2088 a panel build of Button …`.
+//   · `firstPhase` returning the literal "Building the Button set…" for any named build → `#2088 a panel build of Tag …`.
+//   · `firstPhase` naming the previous set (`[...host.setBuilds.keys()].at(-1)`) → both panel lines.
+{
+  const { page, errors } = await openPanel();
+  const phaseOf = () => page.evaluate(() => [...document.querySelectorAll('[data-p3="activity-op"][data-op="components"] [data-p3="op-progress"] b')].map((n) => n.textContent));
+  const running = () => page.waitForFunction(() => document.querySelector('[data-p3="activity-op"][data-op="components"]')?.dataset.state === 'running', null, { timeout: 5000 }).catch(() => {});
+
+  for (const [id, name, sent] of [['button', 'Button', '["button"]'], ['tag', 'Tag', '["button","tag"]']]) {
+    await hooks.click(page.locator(`[data-p3="components-def-option"][value="${id}"]`));
+    await hooks.click(page.locator('[data-p3="components-build"]').first(), { timeout: 4000 }).catch(() => {});
+    await running();
+    await page.waitForFunction((n) => window.__builds.length >= n, sent === '["button"]' ? 1 : 2, { timeout: 3000 }).catch(() => {});
+    const own = await phaseOf();
+    const posted = JSON.stringify(await builds(page));
+    ok(posted === sent && own.length === 1 && own[0] === `Building the ${name} set…`,
+      `#2088 a panel build of ${name} reads exactly "Building the ${name} set…" before its first boundary — posted ${posted}, read ${JSON.stringify(own)}`);
+    await post(page, { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: `set '${id}'` });
+    await idleAgain(page);
+  }
+
+  await post(page, { type: 'agent-started', id: 'p1', cmd: 'build-components' });
+  await running();
+  const agent = await phaseOf();
+  ok(agent.length === 1 && agent[0] === 'Building the set…',
+    `#2088 an agent's build reads exactly "Building the set…" before its first boundary — read ${JSON.stringify(agent)}`);
+  await post(page, { type: 'agent-finished', id: 'p1', cmd: 'build-components' });
+  ok(errors.length === 0, `#2088: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
 
