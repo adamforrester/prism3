@@ -7186,13 +7186,14 @@ for (const { w, h } of START_SIZES) {
         // The guard opens ON TOP of the start (S4), with focus on Cancel (S5).
         const aurora = page.locator('[data-p3="start-example"]').filter({ hasText: 'aurora' });
         await hooks.click(aurora);
-        await hooks.need(page, '[data-p3="start-guard"]');
+        await page.waitForSelector('[data-p3="start-guard"]', { timeout: 3000 }).catch(() => {});
         s = await readStartWindow(page);
+        ok(s.guard && s.discard === 'Discard 3 edits', `${where}: a start path over 3 unsaved edits asks first ("Discard 3 edits") — ${s.guard ? `"${s.discard}"` : `loaded without asking (brand "${s.brand}")`}`);
+        if (!s.guard) throw new Error('no guard to measure');
         ok(s.guard && s.open && s.startInert && s.guardOnTop, `${where}: the guard opens on top of the start window, which stays open behind it (S4) — start ${s.open ? 'open' : 'closed'}, inert ${s.startInert}, on top ${s.guardOnTop}`);
         ok(s.focus === 'start-guard-cancel', `${where}: focus starts on Cancel (S5) — on ${s.focus}`);
         ok(s.guardTitle === 'Replace harbor-edited with the aurora example?', `${where}: the guard's title is "Replace ‹brand› with ‹choice›?" (S10) — "${s.guardTitle}"`);
         ok(s.guardBody === '3 edits to harbor-edited are not saved to a file. Export or apply first to keep them.', `${where}: the guard's body names the 3 edits (S10) — "${s.guardBody}"`);
-        ok(s.discard === 'Discard 3 edits', `${where}: a start path over 3 unsaved edits asks first ("Discard 3 edits") — "${s.discard}"`);
         const want = DESTRUCTIVE[theme];
         ok(s.discardStyle?.bg === rgbOf(want.fill) && s.discardStyle?.ink === rgbOf(want.on) && s.discardStyle?.edge === rgbOf(want.fill),
           `${where}: Discard wears Prism3's destructive button: fill ${want.fill}, label ${want.on} (S5) — ${JSON.stringify(s.discardStyle)}`);
