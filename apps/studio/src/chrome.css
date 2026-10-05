@@ -41,9 +41,13 @@
 /* ── the top bar ─────────────────────────────────────────────────────────────────────────── */
 .p3-bar {
   display: flex; align-items: center; gap: var(--p3-space-100); min-height: var(--p3-bar-h);
-  padding: var(--p3-space-050) var(--p3-space-300); background: var(--p3-bar-bg);
+  padding: var(--p3-space-050) var(--p3-space-400) var(--p3-space-050) var(--p3-space-300); background: var(--p3-bar-bg);
   border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1);
 }
+/* The bar's last control ends where the page content does (owner, S13.1 review): the right padding is the preview
+   header's (`.p3-preview-head`), and at the narrow tier both rows take the same 12px. The dialog layer draws no box,
+   so it adds no gap after the last control; its scrims are fixed to the window. */
+.p3-dialog-layer { display: contents; }
 .p3-bar-slot { display: contents; }
 .p3-bar-main { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); position: relative; }
 .p3-spacer { flex: 1 1 auto; }
@@ -73,8 +77,10 @@
 /* A ghost control shows an edge on hover, the bar's own (B1), instead of a wash. */
 .p3-btn-ghost:hover { border-color: var(--p3-edge-bar); }
 .p3-btn-icon { padding: 0; min-width: var(--p3-ctl-h-sm); }
-/* Export and Pages: the word at full width, the glyph alone when narrow (the accessible name stays). */
+/* Export and Pages: the word at full width, the glyph alone when narrow (the accessible name stays). A leading glyph
+   (`p3-btn-lead`: Export and Activity, owner's S13.1 review) shows beside the word at full width too. */
 .p3-btn-collapse > .p3-ico:first-child { display: none; }
+.p3-btn-collapse.p3-btn-lead > .p3-ico:first-child { display: block; }
 :is(.p3-btn, .p3-brand, .p3-pill, .p3-seg-tab, .p3-select, .p3-menu-item, .p3-verdict):focus-visible {
   outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset);
 }

@@ -107,6 +107,8 @@ export type BarPlaced = {
   readonly activity: HTMLElement;
   readonly agent: HTMLElement | null;
   readonly figma: HTMLElement | null;
+  /** The theme toggle (web only, F3), placed before Activity and Export so Export ends the bar (owner, S13.1 review). */
+  readonly theme: HTMLElement | null;
   /** The Figma menu's writes: the bar's Apply Theme is its `apply` item, the same label, state and function. */
   readonly figmaSource: FigmaSource | null;
 };
@@ -146,10 +148,10 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     applyBtn.append(pendingLabel('Apply Theme', 'Applying…'));
     applyBtn.onclick = () => placed.figmaSource!().find((a) => a.id === 'apply')?.run();
   }
-  // Export: concept v6 names it with the word alone; at narrow widths the word gives way to a glyph, and the accessible
-  // name stays "Export".
+  // Export: its download glyph and the word (owner, S13.1 review); at narrow widths the glyph alone, and the accessible
+  // name stays "Export". The glyph is decorative (`glyph()` sets aria-hidden).
   const exportWrap = h('div', 'p3-popwrap');
-  const exp = hook(h('button', 'p3-btn p3-btn-collapse'), 'export-open');
+  const exp = hook(h('button', 'p3-btn p3-btn-collapse p3-btn-lead'), 'export-open');
   exp.type = 'button';
   exp.append(glyph('export'), h('span', 'p3-btn-label', 'Export'));
   exp.setAttribute('aria-label', 'Export');
@@ -185,11 +187,12 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     }
     exp.setAttribute('aria-expanded', String(v.exportOpen));
 
-    // The bar's order, as it has been since S1.4: the brand switcher, the verdict, a spacer, the Agent chip's slot,
-    // Activity, Export, the Pages menu (plugin), the Figma menu (plugin), Apply Theme (plugin). The shell's nodes are
-    // placed, never re-minted, so one that holds focus keeps it.
+    // The bar's order: the brand switcher, the verdict, a spacer, the Agent chip's slot (plugin), the theme toggle
+    // (web), Activity, Export, the Pages menu (plugin), the Figma menu (plugin), Apply Theme (plugin). Since the owner's
+    // S13.1 review the theme toggle sits before Activity, so on the web Export is last and its right edge is the page
+    // content's. The shell's nodes are placed, never re-minted, so one that holds focus keeps it.
     const pages = lend.pages ? lend.pages() : null;
-    const order: (HTMLElement | null)[] = [brandWrap, placed.verdict, spacer, placed.agent, placed.activity, exportWrap, pages, placed.figma, applyBtn, layer];
+    const order: (HTMLElement | null)[] = [brandWrap, placed.verdict, spacer, placed.agent, placed.theme, placed.activity, exportWrap, pages, placed.figma, applyBtn, layer];
     const want = order.filter((n): n is HTMLElement => !!n);
     if (want.length !== root.children.length || want.some((n, i) => root.children[i] !== n)) root.replaceChildren(...want);
 

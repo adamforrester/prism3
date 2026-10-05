@@ -108,8 +108,9 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   const { read, closeDetail } = opts.lend;
 
   // ── the button, in the top bar ─────────────────────────────────────────────────────────────────
-  // The word at full width, the glyph alone when narrow; the name stays "Activity" plus the status words.
-  const button = hook(h('button', 'p3-btn p3-btn-collapse p3-activity-btn'), 'activity-open');
+  // The glyph and the word at full width (owner, S13.1 review), the glyph alone when narrow; the glyph is decorative and
+  // the name stays "Activity" plus the status words.
+  const button = hook(h('button', 'p3-btn p3-btn-collapse p3-btn-lead p3-activity-btn'), 'activity-open');
   button.type = 'button';
   button.setAttribute('aria-controls', 'p3-activity');
   const dot = h('span', 'p3-dot p3-status-dot');

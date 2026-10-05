@@ -514,8 +514,8 @@ const FLOORS = {
 };
 /** The controls Tab must reach on the opening page, by hook: each tablist is one stop (a roving tabindex). */
 const FOCUS_STOPS = {
-  'web wide': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="theme-toggle"]', '[data-p3="tab-color"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
-  'web narrow': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="theme-toggle"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
+  'web wide': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="theme-toggle"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="tab-color"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
+  'web narrow': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="theme-toggle"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
   'figma wide': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="agent-chip"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="figma-open"]', '[data-p3="apply-to-figma"]', '[data-p3="tab-color"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
   'figma narrow': ['[data-p3="brand-switcher"]', '[data-p3="verdict"]', '[data-p3="agent-chip"]', '[data-p3="activity-open"]', '[data-p3="export-open"]', '[data-p3="pages-menu"]', '[data-p3="figma-open"]', '[data-p3="apply-to-figma"]', '[data-p3="tab-select"]', '[data-p3="search-open"]', '[data-p3="color-sub-palettes"]'],
 };
@@ -7019,6 +7019,10 @@ for (const { w, h } of WIDTHS) {
 //   · KEYBOARD ACCESS to the brand menu: Enter on the switcher opens it with focus on the current example; Arrow
 //     Down, End and Home move between its items; Escape closes it back to the switcher. Escape closes the export
 //     dialog back to Export.
+//   · THE BAR'S RIGHT END (the owner's S13.1 review): on the web the theme toggle precedes Activity and Export, so
+//     Export is the last control and, at 1280 and 380, ends at the page content's right edge within 1px (the plugin's
+//     last control, after Export, is held to the same edge); Export and Activity each draw their glyph at every width,
+//     aria-hidden, and keep their names. 640 is not held to the edge: there the web's bar takes two rows.
 // =============================================================================================
 console.log('\n27. S13.1: the brand menu, Export and the error strip in the chrome');
 const S131_REFUSED = { root: 'rf', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true },
@@ -7047,6 +7051,30 @@ const STRIP_PROBE = () => {
     fullWidth: Math.abs(r.left - frame.left) <= 1 && Math.abs(r.right - frame.right) <= 1, underBar: Math.abs(r.top - bar.bottom) <= 1,
     rect: [Math.round(r.left), Math.round(r.top), Math.round(r.right)], barBottom: Math.round(bar.bottom) };
 };
+/** The bar's right end, read as rendered: the DOM order of the theme toggle (web), Activity and Export; whether each of
+ *  Export and Activity draws its leading glyph, aria-hidden, under its unchanged name; and the right edge of the bar's
+ *  last visible control on its top row against the page content's right edge, which is the content box of the row
+ *  under the bar: the preview header's at the wide tier, the tab row's at the narrow one. */
+const BAR_END_PROBE = () => {
+  const q = (s) => document.querySelector(`[data-p3="${s}"]`);
+  const all = [...document.querySelectorAll('*')];
+  const order = [...(q('theme-toggle') ? ['theme-toggle'] : []), 'activity-open', 'export-open'].map((hook) => ({ hook, at: all.indexOf(q(hook)) }));
+  const glyphs = [['export-open', 'Export'], ['activity-open', 'Activity']].map(([hook, want]) => {
+    const b = q(hook), g = b?.querySelector(':scope > svg.p3-ico');
+    const r = g?.getBoundingClientRect();
+    return { hook, want, shown: !!g && getComputedStyle(g).display !== 'none' && r.width > 0 && r.height > 0, hidden: g?.getAttribute('aria-hidden') ?? null, name: b?.getAttribute('aria-label') ?? null };
+  });
+  const bar = q('top-bar');
+  const vis = [...bar.querySelectorAll('button, select')].filter((n) => { const r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(n).visibility !== 'hidden'; });
+  const top = Math.min(...vis.map((n) => n.getBoundingClientRect().top));
+  const row = vis.filter((n) => n.getBoundingClientRect().top < top + 4).sort((a, b) => a.getBoundingClientRect().right - b.getBoundingClientRect().right);
+  const last = row.at(-1);
+  const narrow = q('frame').dataset.w === 'narrow';
+  const ref = narrow ? q('tab-row') : document.querySelector('.p3-preview-head');
+  const rr = ref.getBoundingClientRect();
+  return { order, glyphs, last: last?.getAttribute('data-p3') ?? last?.className ?? null, lastRight: Math.round((last?.getBoundingClientRect().right ?? -99) * 10) / 10,
+    contentRight: Math.round((rr.right - parseFloat(getComputedStyle(ref).paddingRight)) * 10) / 10, contentFrom: narrow ? 'the tab row' : 'the preview header' };
+};
 for (const { w, h } of WIDTHS) {
   for (const host of ['web', 'figma']) {
     for (const theme of ['light', 'dark']) {
@@ -7055,6 +7083,21 @@ for (const { w, h } of WIDTHS) {
       const column = columnOf(host, w);
       const { ctx, page, errors } = await open({ host, theme, w, h, query: '?p3-test-hooks' });
       try {
+        // ── the bar's right end, and Export's and Activity's glyphs (the owner's S13.1 review) ──
+        const be = await page.evaluate(BAR_END_PROBE);
+        ok(be.order.every((x) => x.at >= 0) && be.order.every((x, i) => i === 0 || x.at > be.order[i - 1].at),
+          `${where}: bar order: ${host === 'web' ? 'the theme toggle precedes Activity, which precedes Export' : 'Activity precedes Export'} (${be.order.map((x) => `${x.hook}@${x.at}`).join(', ')})`);
+        for (const g of be.glyphs) {
+          ok(g.shown && g.hidden === 'true' && g.name === g.want,
+            `${where}: ${g.hook} carries its glyph, drawn (${g.shown}) and hidden from assistive technology (aria-hidden ${g.hidden}), and its name stays "${g.want}" ("${g.name}")`);
+        }
+        if (w !== 640) {
+          // 1280 and 380: the bar's last control on its top row ends where the page content does, within 1px. On the web
+          // that control is Export. The plugin's bar goes on after Export (Pages, the Figma menu, Apply Theme), so there
+          // the last control is held to the edge and named.
+          ok(Math.abs(be.lastRight - be.contentRight) <= 1 && (host !== 'web' || be.last === 'export-open'),
+            `${where}: bar alignment: the bar's last control on its top row (${be.last}) ends at the page content's right edge (${be.lastRight} vs ${be.contentRight}, ${be.contentFrom})${host === 'web' ? ', and it is Export' : ''}`);
+        }
         // ── the brand menu, the import box open ──
         await hooks.click(page.locator('[data-p3="brand-switcher"]'));
         await hooks.need(page, '[data-p3="brand-menu"]');

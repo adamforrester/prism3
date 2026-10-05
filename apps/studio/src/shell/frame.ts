@@ -211,8 +211,9 @@ export const mountFrame = (app: HTMLElement, opts: {
   paneToggle.append(...paneButtons);
   bar.append(paneToggle);
 
-  // The theme toggle, studio only (F3). The plugin follows Figma's theme and offers no choice.
-  if (host === 'web') bar.append(themeToggle(cleanups));
+  // The theme toggle, studio only (F3). The plugin follows Figma's theme and offers no choice. The bar places it, before
+  // Activity and Export (owner, S13.1 review).
+  const theme = host === 'web' ? themeToggle(cleanups) : null;
 
   // ── the tab row and Color's sub-row ─────────────────────────────────────────────────────────────
   const nav = hook(h('div', 'p3-nav'), 'tab-row');
@@ -337,7 +338,7 @@ export const mountFrame = (app: HTMLElement, opts: {
 
   // The verdict, on the bar, after the brand switcher; then the bar's controls (S13.1), which place the shell's nodes.
   const verdict = verdictButton((opener) => openInspect('contrast', opener), cleanups);
-  const barMain = mountBar(opts.bar, { verdict, activity: activity.button, agent, figma, figmaSource: host === 'figma' ? opts.figma : null }, cleanups);
+  const barMain = mountBar(opts.bar, { verdict, activity: activity.button, agent, figma, theme, figmaSource: host === 'figma' ? opts.figma : null }, cleanups);
   barSlot.append(barMain);
 
   // ── Inspect state ───────────────────────────────────────────────────────────────────────────────
