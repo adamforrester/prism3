@@ -21,6 +21,7 @@
 import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
 import type { HostMessage } from '../write-adapter';
+import type { StyleGuideCatalog, StyleGuideTableStatus } from '../../../plugin/src/messages';
 import { joinSeed, withRecovered, type SeedOutcome } from '../provenance';
 import type { HostTopic } from './store';
 
@@ -32,6 +33,8 @@ export type ActionState = Verdict | 'pending' | null;
 /** A set's last build this session (S8.2; owner decisions G9, C1): built cleanly, built with problems (the build ran to
  *  the end and the summary names its misses), or failed (it stopped before building the set). */
 export type SetBuild = 'ok' | 'issues' | 'failed';
+/** One table of the panel's style-guide run, as the Build style guides page lists it (S11.2). */
+export type SgRunTable = { readonly key: string; readonly title: string; readonly page: string; readonly status: StyleGuideTableStatus; readonly reason: string | null };
 /** Whose detail row is open, at most one. */
 export type DetailKey = 'apply' | 'components' | 'filesetup' | 'styleguide';
 /** The operations the Activity drawer shows (UI redesign S11): the four writes with a verdict slot, the
@@ -118,6 +121,13 @@ export interface HostSession {
   /** How far the panel's in-flight style-guide run has got (#1778): `done` of `total` tables, `null` between runs
    *  and before the first reading. A sibling of `styleGuideState` for the `componentProgress` reason: not a verdict. */
   readonly styleGuideProgress: { done: number; total: number } | null;
+  /** What the Build style guides page shows (S11.2): the host's last `style-guide-catalog`, `null` until one arrives.
+   *  `error` is the host's words when it could not read the file. */
+  readonly styleGuideCatalog: { readonly catalog: StyleGuideCatalog; readonly error: string | null } | null;
+  /** The panel's last style-guide run, table by table (S11.2, owner decision P1 variant 1), `null` before the first.
+   *  KEPT AFTER THE VERDICT, unlike `styleGuideProgress`: the page shows which table failed once the run is over, and
+   *  that is what Draw it again acts on. `stopped` is set when Cancel ended it. A new run replaces it. */
+  readonly styleGuideRun: { readonly tables: readonly SgRunTable[]; readonly stopped: { done: number; total: number } | null } | null;
   /** The set the panel's own pending build is for (UI redesign S8.2), `null` when the panel has no build out. The
    *  wire's `component-result` does not name its set, so the panel remembers the one it posted, and the verdict that
    *  answers it is recorded against that set in `setBuilds`. */
@@ -188,6 +198,8 @@ export const initialHostSession = (): HostSession => ({
   styleGuideState: null,
   componentProgress: null,
   styleGuideProgress: null,
+  styleGuideCatalog: null,
+  styleGuideRun: null,
   componentDef: null,
   setBuilds: new Map(),
   pruneBusy: false,
@@ -283,8 +295,23 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     }
     case 'file-setup-result':
       return { ...s, fileSetupState: { ok: m.ok, headline: m.headline, summary: m.summary }, openDetail: m.ok ? null : 'filesetup' };
-    case 'style-guide-result':
-      return { ...s, styleGuideState: { ok: m.ok, headline: m.headline, summary: m.summary }, openDetail: m.ok ? null : 'styleguide', styleGuideProgress: null };
+    case 'style-guide-result': {
+      // S11.2: a stopped run's count lands on the panel's run, which the page keeps showing.
+      const run = s.styleGuideRun && s.styleGuideState === 'pending' ? { ...s.styleGuideRun, stopped: m.stopped ?? null } : s.styleGuideRun;
+      return { ...s, styleGuideState: { ok: m.ok, headline: m.headline, summary: m.summary }, openDetail: m.ok ? null : 'styleguide', styleGuideProgress: null, styleGuideRun: run };
+    }
+    case 'style-guide-catalog':
+      return { ...s, styleGuideCatalog: { catalog: m.catalog, error: m.error } };
+    case 'style-guide-tables':
+      // The `style-guide-progress` rule: accepted only while the panel's own run is pending.
+      if (s.styleGuideState !== 'pending') return s;
+      return { ...s, styleGuideRun: { tables: m.tables.map((t) => ({ ...t, status: 'waiting', reason: null })), stopped: null } };
+    case 'style-guide-table': {
+      const run = s.styleGuideRun;
+      if (s.styleGuideState !== 'pending' || !run || m.index >= run.tables.length) return s;
+      const tables = run.tables.map((t, i) => (i === m.index ? { ...t, status: m.status, reason: m.status === 'failed' ? m.reason : null } : t));
+      return { ...s, styleGuideRun: { ...run, tables } };
+    }
     case 'component-progress':
       // Accepted only while the build is in flight. A boundary message still queued behind the verdict
       // would otherwise bring back the fraction the verdict just cleared.
@@ -351,6 +378,9 @@ export const topicsFor = (m: HostMessage, prev: HostSession, next: HostSession):
     case 'style-guide-result': return ['host', 'host:detail', 'host:styleguide'];
     case 'component-progress': return next === prev ? [] : ['host:progress'];
     case 'style-guide-progress': return next === prev ? [] : ['host:progress'];
+    case 'style-guide-catalog': return ['host:sgpage'];
+    case 'style-guide-tables': return next === prev ? [] : ['host:sgpage'];
+    case 'style-guide-table': return next === prev ? [] : ['host:sgpage'];
     case 'prune-result': return ['host'];
     case 'seed-info': return ['host'];
     // UI redesign S11: the Activity drawer's agent rows. A start or an end it does not show moves nothing.
