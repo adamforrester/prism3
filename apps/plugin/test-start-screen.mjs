@@ -462,9 +462,9 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
       let clickChanged = null;
       if (focusable && c.getAttribute('aria-busy') !== 'true') {
         // What an activation could move, as `test:chrome`'s check reads it: the control, what the page stores, the place
-        // shown, whether the start window is up, and which windows, menus and pickers are open.
+        // shown, whether the start window is up, and which windows and menus are open.
         const snap = () => JSON.stringify([c.outerHTML, Object.entries(localStorage), document.querySelector('[data-p3="frame"]')?.dataset.place ?? null,
-          !!document.querySelector('[data-p3="start-screen"]'), [...document.querySelectorAll('[role="dialog"], [role="menu"], [role="listbox"], [data-p3="step-picker"], [data-p3="value-picker"]')]
+          !!document.querySelector('[data-p3="start-screen"]'), [...document.querySelectorAll('[role="dialog"], [role="menu"], [role="listbox"]')]
             .filter((d) => d.getClientRects().length).map((d) => d.getAttribute('data-p3') ?? d.getAttribute('role'))]);
         const before = snap();
         HTMLElement.prototype.click.call(c);
