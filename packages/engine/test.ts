@@ -6673,6 +6673,60 @@ arm: {
   ok(outOfGamut === 0, '#305 every tinted shadow base is inside sRGB');
 }
 
+// SHADOW TINT FOLLOWS THE HUE THAT BUILDS THE NEUTRAL RAMP (#2184, owner decision 2026-10-06). With
+// `shadow.tint.hue` unset, the tint takes the ramp's source hue: the primary's under Follow primary, the
+// custom tint hue under Custom tint, the pinned gray's under Pinned. It used to take the stored
+// `neutral.hue` in all three, which under Follow primary and Pinned is a hue the designer can neither
+// see nor edit. An explicit `shadow.tint.hue` still wins.
+//
+// INDEPENDENCE (docs/34): each EXPECTED hue is read off the INPUT (`primary.h`, `neutral.hue`,
+// `neutral.anchor.h`, `shadow.tint.hue`), never off the emitted shadow. Every hue in play (the stored
+// neutral, the custom tint, the primary, the pinned gray, the explicit override) is at least 30° from
+// every other, asserted inside each test, so a build that took the WRONG source cannot agree by
+// coincidence (shape 4). Each case also carries a dark-mode shadow override, so the per-mode
+// call site is held as well as the baseline. And the recorded `tint.hue` alone would be a field
+// agreeing with itself (shape 5), so the default path's shadow COLOR must also equal the color built by
+// asking for the expected hue explicitly. That is what a user sees.
+{
+  const PRIMARY = { l: 0.55, c: 0.15, h: 195 };   // a teal primary
+  const STORED = 40;                             // a stored neutral.hue far from every source below
+  const PIN = { l: 0.22, c: 0.012, h: 250 };     // a pinned gray with a real hue (c 0.012)
+  const DARK = { dark: { shadow: { softness: 0.6 } } };   // a dark mode always keeps its own shadow entry
+  const theme2184 = (neutral: Record<string, unknown>, shadow?: Record<string, unknown>) =>
+    brandTheme({ id: 't2184', root: 'prism', primary: PRIMARY, neutral: { hue: STORED, chroma: 0.006, ...neutral },
+      ...(shadow ? { shadow } : {}), modeLevers: DARK } as any);
+  const near = (a: number, b: number) => Math.abs(a - b) < 1e-9;
+  const apart = (a: number, b: number) => Math.min(Math.abs(a - b) % 360, 360 - (Math.abs(a - b) % 360)) >= 30;
+  const CUSTOM = 300, EXPLICIT = 120;
+  const HUES = [STORED, CUSTOM, PRIMARY.h, PIN.h, EXPLICIT];
+  const distinct = HUES.every((a, i) => HUES.every((b, j) => i === j || apart(a, b)));
+  const same = (a: RGB, b: RGB) => a.r === b.r && a.g === b.g && a.b === b.b;
+  // One case per source: the hue it must produce, read from the input.
+  const check = (label: string, neutral: Record<string, unknown>, expected: number) => {
+    const t = theme2184(neutral);
+    const asked = theme2184(neutral, { tint: { hue: expected } });   // the same brand, asking for `expected`
+    const base = t.shadow.tint.hue, dark = t.shadow.shadowByMode?.dark?.tint.hue;
+    const colorOk = same(t.shadow.colorRgb, asked.shadow.colorRgb)
+      && !!t.shadow.shadowByMode?.dark && same(t.shadow.shadowByMode.dark.colorRgb, asked.shadow.shadowByMode!.dark!.colorRgb);
+    ok(distinct && near(base, expected) && dark !== undefined && near(dark, expected) && colorOk,
+      `#2184 ${label}: the shadow tint takes ${label === 'Follow primary' ? "the primary's hue" : label === 'Custom tint' ? 'the custom tint hue' : "the pinned gray's hue"} ` +
+      `(expected ${expected}, from the input; got baseline ${base}, dark mode ${dark}; color matches the expected hue: ${colorOk}; every hue in play ≥30° from every other: ${distinct})`);
+  };
+  check('Follow primary', { auto: true }, PRIMARY.h);
+  check('Custom tint', { hue: CUSTOM }, CUSTOM);
+  check('Pinned', { anchor: PIN }, PIN.h);
+  // A pinned gray wins over Follow primary for the ramp, so it wins for the shadow too.
+  check('Pinned', { anchor: PIN, auto: true }, PIN.h);
+
+  // The explicit override still wins, under every source.
+  const won = [{ auto: true }, { hue: CUSTOM }, { anchor: PIN }].map((n) => {
+    const t = theme2184(n, { tint: { hue: EXPLICIT } });
+    return { base: t.shadow.tint.hue, dark: t.shadow.shadowByMode?.dark?.tint.hue };
+  });
+  ok(distinct && won.every((w) => near(w.base, EXPLICIT) && w.dark !== undefined && near(w.dark, EXPLICIT)),
+    `#2184 an explicit shadow.tint.hue still wins over every neutral source (expected ${EXPLICIT}; got ${won.map((w) => `${w.base}/${w.dark}`).join(', ')})`);
+}
+
 // PER-MODE SHADOW (Phase D) — a mode re-derives its shadow ramp at its own softness/tint via the SAME
 // buildShadow the baseline uses, picking the layer-set for the mode's APPEARANCE (dark/dark-based →
 // reduced; light/light-based → full) with the mode's own tinted colorRgb. Rides

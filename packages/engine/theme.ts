@@ -1973,9 +1973,11 @@ const SHADOW_BASE: { name: string; key: number[]; amb: number[] }[] = [
   { name: '2xl', key: [6, 12, -6, 0.14], amb: [22, 52, -12, 0.12] },
 ];
 
-const buildShadow = (neutralHue: number, input: BrandInput['shadow'] = {}): ShadowAxis => {
+/** `neutralRampHue` is the hue that builds the neutral ramp (#2184), the tint's default; an explicit
+ *  `shadow.tint.hue` still wins. */
+const buildShadow = (neutralRampHue: number, input: BrandInput['shadow'] = {}): ShadowAxis => {
   const softness = input.softness ?? 1;
-  const tint = { hue: input.tint?.hue ?? neutralHue, amount: input.tint?.amount ?? 0.15 };
+  const tint = { hue: input.tint?.hue ?? neutralRampHue, amount: input.tint?.amount ?? 0.15 };
   // Shadow base colour: amount 0 = pure black (the NB dialect); any tint lifts it to a hue-tinted
   // dark (Polaris/Comeau: a tinted near-black reads richer than dead grey). Layers reuse this RGB
   // and vary only alpha — one shadow colour per theme.
@@ -2528,9 +2530,14 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // `auto` derives the neutral hue from the brand primary at build time (a cohesive cast that
   // re-tracks on recolour) rather than a frozen stored hue; a pinned anchor still wins over it.
   const nHue = input.neutral.auto ? input.primary.h : input.neutral.hue;
+  // The hue that actually builds the neutral ramp (#2184, owner decision 2026-10-06): the pinned gray's
+  // when one is pinned, else `nHue` — the primary's under Follow primary, the custom tint otherwise. One
+  // binding for the ramp AND the shadow tint's default, so the shadow cannot follow a stored
+  // `neutral.hue` the ramp is not using (which it did under Follow primary and under a pinned gray).
+  const neutralRampHue = nAnchor ? nAnchor.h : nHue;
   const neutralSteps = nAnchor
-    ? generateRamp({ hue: nAnchor.h, chroma: nAnchor.c, anchor: { oklch: nAnchor, stepNum: autoPlaceStep(nAnchor.l) } })
-    : generateRamp({ hue: nHue, chroma: input.neutral.chroma });
+    ? generateRamp({ hue: neutralRampHue, chroma: nAnchor.c, anchor: { oklch: nAnchor, stepNum: autoPlaceStep(nAnchor.l) } })
+    : generateRamp({ hue: neutralRampHue, chroma: input.neutral.chroma });
   if (nAnchor) notes.push(`neutral: pinned to the brand's gray (lightness ${nAnchor.l}) at step ${autoPlaceStep(nAnchor.l)} — the ramp is built from that gray, not from a hue and chroma.`);
   else if (input.neutral.auto) notes.push(`neutral: the grays follow the primary hue (${Math.round(input.primary.h)}) — change the brand color and the grays follow.`);
 
@@ -2781,7 +2788,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     motion.easingRolesByMode = easingRolesByMode;
     notes.push(`motion: easing roles use a different curve per mode — ${Object.entries(easingRolesByMode).map(([m, r]) => `${m} (${Object.entries(r).map(([k, v]) => `${k} → ${v}`).join(', ')})`).join('; ')}; the curves themselves are the same in every mode.`);
   }
-  const shadow = buildShadow(input.neutral.hue, input.shadow);
+  const shadow = buildShadow(neutralRampHue, input.shadow);
   notes.push(`shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness ${shadow.softness}; tinted to hue ${shadow.tint.hue} at ${shadow.tint.amount}${shadow.tint.amount === 0 ? ' (pure black)' : ''}. Full shadows in light, reduced in dark, where surface lightness carries elevation.`);
   // Per-mode SHADOW (Phase D): a customizable mode overriding `shadow` re-derives its ramp via the SAME
   // buildShadow the baseline uses, at the mode's (softness/tint merged over the global). The APPEARANCE
@@ -2795,7 +2802,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   for (const [mo, lev] of Object.entries(modeLevers)) {
     if (!lev?.shadow) continue;
     const app = shadowAppearance[mo] ?? 'light';
-    const sm = buildShadow(input.neutral.hue, {
+    const sm = buildShadow(neutralRampHue, {
       softness: lev.shadow.softness ?? input.shadow?.softness,
       tint: { hue: lev.shadow.tint?.hue ?? input.shadow?.tint?.hue, amount: lev.shadow.tint?.amount ?? input.shadow?.tint?.amount },
     });
