@@ -9942,16 +9942,25 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
 // each hex, as color.ts's rgbToOklch returns it (the engine and unit tests derive the same pins live). prism3 authors
 // its own tint hue, which would win, so it is removed: the case is the DEFAULT path. Amount stays enabled: an untinted
 // shadow still lifts off pure black by its amount (Q58 B's render).
-for (const [hexStr, pin] of [['#333333', { l: 0.3211, c: 1.2e-8, h: 89.88 }], ['#808080', { l: 0.5999, c: 2.2e-8, h: 89.88 }]]) {
-  const where = `#2184 Q58 B: a pure-gray pin (${hexStr}), web light 1280`;
+// Owner Q73 A widened it to ANY gray ramp: a Custom tint or Follow primary at chroma 0 too, each with its own reason line
+// (the pinned form approved, Q72 A; the general form a draft). The case's `patch` is what replaces the brand's neutral.
+const PINNED_WHY = 'The pinned gray has no hue, so shadows are untinted.', GRAY_WHY = 'The neutral is gray, so shadows are untinted.';
+const NO_HUE_CASES = [
+  { name: 'Q58 B: a pure-gray pin (#333333)', patch: { anchor: { l: 0.3211, c: 1.2e-8, h: 89.88 } }, keep: true, why: PINNED_WHY },
+  { name: 'Q58 B: a pure-gray pin (#808080)', patch: { anchor: { l: 0.5999, c: 2.2e-8, h: 89.88 } }, keep: true, why: PINNED_WHY },
+  { name: 'Q73 A: a gray Custom tint (chroma 0)', patch: { hue: 40, chroma: 0 }, keep: false, why: GRAY_WHY },
+  { name: 'Q73 A: a gray Follow primary (chroma 0)', patch: { hue: 40, chroma: 0, auto: true }, keep: false, why: GRAY_WHY },
+];
+for (const { name, patch, keep, why } of NO_HUE_CASES) {
+  const where = `#2184 ${name}, web light 1280`;
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
   try {
-    await page.evaluate((p) => {
+    await page.evaluate(([p, k]) => {
       const blob = JSON.parse(localStorage.getItem('prism3:brandInput'));
-      blob.input.neutral = { ...blob.input.neutral, anchor: p };
+      blob.input.neutral = k ? { ...blob.input.neutral, ...p } : { ...p };   // a non-pin case drops the brand's own fields
       if (blob.input.shadow?.tint) delete blob.input.shadow.tint.hue;
       localStorage.setItem('prism3:brandInput', JSON.stringify(blob));
-    }, pin);
+    }, [patch, keep]);
     await page.reload({ waitUntil: 'networkidle' });
     await hooks.need(page, '[data-p3="frame"]');
     await openDepth(page);
@@ -9962,12 +9971,12 @@ for (const [hexStr, pin] of [['#333333', { l: 0.3211, c: 1.2e-8, h: 89.88 }], ['
       return {
         disabled: el?.disabled ?? null, aria: el?.getAttribute('aria-valuetext') ?? null,
         readout: field?.querySelector('.p3-readout')?.textContent ?? null,
-        hint: [...(field?.querySelectorAll('.p3-state') ?? [])].some((n) => !n.hidden && n.textContent.trim().length > 0),
+        hint: [...(field?.querySelectorAll('.p3-state') ?? [])].filter((n) => !n.hidden).map((n) => n.textContent.trim()).join(' | '),
         amountEnabled: document.querySelector('[data-p3="shadow-tint-amount"]')?.disabled === false,
       };
     });
-    ok(st.disabled === true && st.readout === 'None' && st.aria === 'None' && st.hint && st.amountEnabled && !/\b(89|90)/.test(`${st.readout} ${st.aria}`),
-      `${where}: the hue slider is disabled, reads None (not ~90°), says why, and Amount stays enabled (${JSON.stringify(st)})`);
+    ok(st.disabled === true && st.readout === 'None' && st.aria === 'None' && st.hint === why && st.amountEnabled && !/\b(89|90)/.test(`${st.readout} ${st.aria}`),
+      `${where}: the hue slider is disabled, reads None (not ~90°), says why ("${why}"), and Amount stays enabled (${JSON.stringify(st)})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);

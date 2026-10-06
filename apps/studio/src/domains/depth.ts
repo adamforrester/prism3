@@ -66,10 +66,12 @@ export const DEPTH_COPY = {
   /** The two tint sliders' names (the legacy page's). */
   hue: 'Tint hue',
   amount: 'Tint amount',
-  /** DRAFT (#2184 Q58 B, for owner approval): the hue slider's readout, and the line under it, when the shadow has no
-   *  hue to follow (a pure-gray pin, no tint hue set). */
+  /** The hue slider's readout, and the line under it, when the shadow has no hue to follow: the neutral ramp is gray
+   *  and no tint hue is set (#2184). The pinned form is approved (owner Q58 B, Q72 A); the general form, for a Custom
+   *  tint or Follow primary at chroma 0 (Q73 A), is a DRAFT for owner approval. */
   noHue: 'None',
-  noHueHint: 'The pinned gray has no hue, so shadows are untinted.',
+  noHuePinned: 'The pinned gray has no hue, so shadows are untinted.',
+  noHueGray: 'The neutral is gray, so shadows are untinted.',
 } as const;
 
 /** The tempo chips, from the manifest's options (the legacy page's three). */
@@ -176,12 +178,16 @@ export const mountDepthLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     // (#2184, owner Q58 B). The engine reports it as `tint.hue: null`; it never shows the converter's noise hue.
     let noHue: ShadowCtl['noHue'];
     if (key === 'tint.hue') {
-      const why = stateLine(DEPTH_COPY.noHueHint);
+      const why = stateLine(DEPTH_COPY.noHuePinned);
       why.hidden = true;
       wrap.append(why);
       noHue = (none) => {
         if (s.el.disabled !== none) s.el.disabled = none;
-        if (none) s.el.setAttribute('aria-valuetext', DEPTH_COPY.noHue);
+        if (none) {
+          s.el.setAttribute('aria-valuetext', DEPTH_COPY.noHue);
+          // The reason names the source: a pinned gray, or a hue-and-chroma neutral at chroma 0 (Q73 A).
+          setText(why.querySelector('span')!, brandState.neutral?.anchor ? DEPTH_COPY.noHuePinned : DEPTH_COPY.noHueGray);
+        }
         if (why.hidden === none) why.hidden = !none;
       };
     }

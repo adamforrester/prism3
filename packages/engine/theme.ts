@@ -1974,7 +1974,8 @@ const SHADOW_BASE: { name: string; key: number[]; amb: number[] }[] = [
 ];
 
 /** `defaultHue` is the hue that builds the neutral ramp (#2184), the tint's default; an explicit
- *  `shadow.tint.hue` still wins. `null` means the ramp has no hue to follow (a pure-gray pin, owner Q58 B):
+ *  `shadow.tint.hue` still wins. `null` means the ramp has no hue to follow (any gray ramp: a pure-gray pin, owner Q58 B, or a Custom tint
+ *  or Follow primary at chroma 0, owner Q73 A):
  *  the shadow is then UNTINTED, chroma 0, while `amount` still lifts its lightness off pure black. */
 const buildShadow = (defaultHue: number | null, input: BrandInput['shadow'] = {}): ShadowAxis => {
   const softness = input.softness ?? 1;
@@ -2544,7 +2545,10 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // 1e-4 sits four orders of magnitude above that noise and well below the faintest real pin in the corpus
   // (nb-redesign's #151415, chroma 0.0025).
   const ACHROMATIC_C = 1e-4;
-  const shadowTintDefault = nAnchor && nAnchor.c < ACHROMATIC_C ? null : neutralRampHue;
+  // ANY gray ramp, not only a pin (owner Q73 A): a Custom tint or Follow primary at `neutral.chroma` 0 builds a
+  // gray ramp too, so the guard reads the chroma that BUILDS the ramp, the pin's or `neutral.chroma`.
+  const neutralRampChroma = nAnchor ? nAnchor.c : input.neutral.chroma;
+  const shadowTintDefault = neutralRampChroma < ACHROMATIC_C ? null : neutralRampHue;
   const neutralSteps = nAnchor
     ? generateRamp({ hue: neutralRampHue, chroma: nAnchor.c, anchor: { oklch: nAnchor, stepNum: autoPlaceStep(nAnchor.l) } })
     : generateRamp({ hue: neutralRampHue, chroma: input.neutral.chroma });
@@ -2799,7 +2803,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     notes.push(`motion: easing roles use a different curve per mode — ${Object.entries(easingRolesByMode).map(([m, r]) => `${m} (${Object.entries(r).map(([k, v]) => `${k} → ${v}`).join(', ')})`).join('; ')}; the curves themselves are the same in every mode.`);
   }
   const shadow = buildShadow(shadowTintDefault, input.shadow);
-  notes.push(`shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness ${shadow.softness}; ${shadow.tint.hue === null ? `untinted at ${shadow.tint.amount}${shadow.tint.amount === 0 ? ' (pure black)' : ''}, because the pinned gray has no hue` : `tinted to hue ${shadow.tint.hue} at ${shadow.tint.amount}${shadow.tint.amount === 0 ? ' (pure black)' : ''}`}. Full shadows in light, reduced in dark, where surface lightness carries elevation.`);
+  notes.push(`shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness ${shadow.softness}; ${shadow.tint.hue === null ? `untinted at ${shadow.tint.amount}${shadow.tint.amount === 0 ? ' (pure black)' : ''}, because ${nAnchor ? 'the pinned gray has no hue' : 'the neutral is gray'}` : `tinted to hue ${shadow.tint.hue} at ${shadow.tint.amount}${shadow.tint.amount === 0 ? ' (pure black)' : ''}`}. Full shadows in light, reduced in dark, where surface lightness carries elevation.`);
   // Per-mode SHADOW (Phase D): a customizable mode overriding `shadow` re-derives its ramp via the SAME
   // buildShadow the baseline uses, at the mode's (softness/tint merged over the global). The APPEARANCE
   // decides the layer-set — a dark or dark-based custom mode gets the reduced dark layers; light/light-

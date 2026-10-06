@@ -150,5 +150,13 @@ for (const hexStr of ['#333333', '#808080']) {
   ok(D.brandShadowValue('tint.hue') === 30, `${hexStr} pinned, then a hue of 30 written: the explicit hue wins and the slider reads 30 (got ${D.brandShadowValue('tint.hue')})`);
 }
 
+// ANY gray ramp (owner Q73 A): a Custom tint or Follow primary at chroma 0 has no hue for the slider to show either.
+for (const [label, auto] of [['Custom tint', false], ['Follow primary', true]] as const) {
+  store.initSession(structuredClone({ ...brands.harbor, neutral: { hue: brands.harbor.neutral.hue, chroma: 0, ...(auto ? { auto: true } : {}) } }), { kind: 'example', id: 'harbor' });
+  const v = D.brandShadowValue('tint.hue');
+  ok(v === null && typeof D.brandShadowValue('tint.amount') === 'number',
+    `a gray ${label} (chroma 0): the hue slider's value is null (shown as None), not a hue (got hue ${v}, amount ${D.brandShadowValue('tint.amount')})`);
+}
+
 console.log(`\n${executed - failed}/${executed} Depth & motion write assertions passed.`);
 if (failed) process.exit(1);

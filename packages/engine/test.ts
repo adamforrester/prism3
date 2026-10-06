@@ -6758,6 +6758,22 @@ arm: {
       `#2184 Q58 B: an explicit shadow.tint.hue still tints a pure-gray pin's shadow (${hexStr}; expected hue 30, ` +
       `got ${asked.shadow.tint.hue}, color ${JSON.stringify(asked.shadow.colorRgb)})`);
   }
+  // ANY gray ramp, not only a pin (owner Q73 A): a Custom tint or Follow primary at `neutral.chroma` 0 builds a gray
+  // ramp, so its shadow is untinted the same way. Its stored hue (40) and the primary's (195) are real numbers here,
+  // not converter noise, which is exactly why a pin-only guard would have tinted these.
+  const grayTheme = (auto: boolean, shadow?: Record<string, unknown>) =>
+    brandTheme({ id: 'tgray0', root: 'prism', primary: { l: 0.55, c: 0.15, h: 195 },
+      neutral: { hue: 40, chroma: 0, ...(auto ? { auto: true } : {}) }, ...(shadow ? { shadow } : {}), modeLevers: DARK } as any);
+  for (const [label, auto] of [['Custom tint', false], ['Follow primary', true]] as const) {
+    const t = grayTheme(auto);
+    const dark = t.shadow.shadowByMode?.dark;
+    ok(t.shadow.tint.hue === null && gray(t.shadow.colorRgb) && t.shadow.colorRgb.r > 0 && !!dark && dark.tint.hue === null && gray(dark.colorRgb),
+      `#2184 Q73 A: a gray ${label} (chroma 0) leaves the shadow untinted, with no hue ` +
+      `(got tint.hue ${t.shadow.tint.hue}, color ${JSON.stringify(t.shadow.colorRgb)}, dark mode hue ${dark?.tint.hue}, ${dark ? JSON.stringify(dark.colorRgb) : 'no entry'})`);
+    const asked = grayTheme(auto, { tint: { hue: 30 } });
+    ok(asked.shadow.tint.hue === 30 && !gray(asked.shadow.colorRgb) && asked.shadow.shadowByMode?.dark?.tint.hue === 30,
+      `#2184 Q73 A: an explicit shadow.tint.hue still tints a gray ${label}'s shadow (expected hue 30, got ${asked.shadow.tint.hue}, color ${JSON.stringify(asked.shadow.colorRgb)})`);
+  }
   // The other side of the guard: a faint but REAL pin keeps its hue.
   const faint = rgbToOklch(hexToRgb('#151415'));
   const f = pinTheme('#151415');
