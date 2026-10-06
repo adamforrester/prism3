@@ -94,6 +94,23 @@
  *   · the field's ink on `disabled.text` → `… the exempted input[bp-input] "sm, px" draws Prism3's disabled roles for
  *     light …` and `F1 A: Layout: web light: … draws Prism3's disabled text field …` (8 failures).
  *
+ * X4 A AND Q28 a (owner, 2026-10-05; #2155, #2154, #2174). The exemption covers disabled BUTTONS too, each held to
+ * Prism3's disabled roles for its appearance (`DISABLED_SKIN`: filled, outline, text, typed from `button.ts` and
+ * `icon-button.ts`), the ink of every label and glyph inside it included; an `aria-disabled` control that keeps its
+ * focus stop qualifies only when activating it changes nothing. S12 fails a first run that did not exempt Import, and
+ * plants the button canary there. Every canary now carries EVERY computed style of the real control (#2174), so only
+ * `:disabled` / `aria-disabled` tells them apart. The section "X4 A, Q28 a" at the end reads every appearance on a real
+ * control, one control of each kind hovered off and on, and every control HC light switches off. Mutations, each
+ * failing by name, each in a detached worktree:
+ *   · the skin's edge dashed → `X4 A: web light: the disabled Import (start-import) draws no dashed edge — …`,
+ *     `X4 A derived: … no disabled chrome control draws a dashed edge (438 read) — …` (884 failures).
+ *   · the outline edge on `disabled.border` → `X4 A: web light: the disabled Import (start-import) draws Prism3's
+ *     disabled outline button: … drew {"fill":"none","edge":"#c0c1c2",…}` (820 failures).
+ *   · a chip hover rule after the skin → `Q28 a: web light: a pointer over a disabled chip (personality-word, on brand)
+ *     changes nothing (Q28 a)`, on both hosts and both themes, and nothing else (4 failures).
+ *   · the select's hover rule without its limit → M3B_RECORD
+ *   · the exemption keyed on `cursor: not-allowed` → M4_RECORD
+ *
  * NOTHING FORCED (S2). S1.2 and S1.3 set the frame's `data-layout="panes"` themselves for the Q2 check and
  * the preview-header checks, because no page rendered the two panes. S2 moved Color › Palettes, the opening
  * page, into them, so every one of those checks now measures Color › Palettes as it renders. Q2's "a page
