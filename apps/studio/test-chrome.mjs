@@ -7855,6 +7855,17 @@ for (const { w, h } of WIDTHS) {
           await hooks.need(page, '[data-p3="export-dialog"]');
           const tw = await tabWalk(page, 'export-dialog');
           ok(tw.ok && tw.confirm, `${where}: dialog tab order: Tab from the export dialog's first control visits every stop, Download included, and Shift+Tab the reverse (stops ${tw.stops.join(', ')}; Tab ${tw.fwd.join(' → ')}; Shift+Tab ${tw.back.join(' → ')})`);
+          // The preview is a Tab stop of its own (tabindex 0), reached by Tab, whatever the trap does: a scroll region must
+          // stay keyboard-reachable.
+          const pv = await page.evaluate(() => { const p = document.querySelector('[data-p3="export-dialog"] .p3-export-pre'); return { tabindex: p?.getAttribute('tabindex') ?? null }; });
+          ok(pv.tabindex === '0' && tw.fwd.includes('pre'), `${where}: dialog tab order: the export preview is a Tab stop of its own (tabindex "${pv.tabindex}") and Tab reaches it (${tw.fwd.includes('pre')})`);
+          // The trap defers to the browser for a focusable node its list does not name: a link planted in the footer, ahead
+          // of Cancel, must be reached by Tab, and Tab from it must go on to Cancel (not wrap to the first control).
+          await page.evaluate(() => { const a = document.createElement('a'); a.href = '#'; a.textContent = 'planted'; a.setAttribute('data-planted', ''); document.querySelector('[data-p3="export-dialog"] .p3-bardlg-foot').prepend(a); });
+          const pw2 = await tabWalk(page, 'export-dialog');
+          const ai = pw2.fwd.indexOf('a');
+          ok(pw2.ok && ai > 0 && pw2.fwd[ai + 1] === 'dialog-cancel', `${where}: dialog tab order: Tab reaches a focusable control the trap's list does not name, and goes on from it to Cancel (Tab ${pw2.fwd.join(' → ')})`);
+          await page.evaluate(() => document.querySelector('[data-planted]')?.remove());
           await page.keyboard.press('Escape');
         }
         // ── the overwrite confirm (web) and the prune review (plugin), measured as chrome (#2124 review, finding 3d) ──
