@@ -2038,7 +2038,7 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
   const noCells = skipped.filter((t) => t.reason === 'no-cells');
   if (noCells.length) parts.push(`${noCells.length} tables skipped — this file has no style-guide cell sets, and Set up file adds them`);
   const noPage = [...new Set(skipped.filter((t) => t.reason === 'no-page').map((t) => t.page))];
-  for (const p of noPage) parts.push(`${skipped.filter((t) => t.page === p).length} tables skipped — this file has no ${p} page, and Set up file adds it`);
+  for (const p of noPage) parts.push(`${skipped.filter((t) => t.page === p).length} tables skipped — this file has no ${p.replace(/^↳\s*/, '')} page, and Set up file adds it`);
   // Superseded tables: the deleted ones by name, since a deletion names its scope; the kept ones grouped by the
   // reason each was kept; a table from before the fingerprint apart, with what to do about it. Wording proposed,
   // owner to confirm (docs/45 §8).

@@ -1324,7 +1324,7 @@ const main = async (): Promise<void> => {
     ok(r.tables.filter((t) => t.status === 'skipped' && t.reason === 'no-page').length === 11, '7: no Semantic tokens page — 11 tables skipped');
     ok(!s.pages.some((p) => p.name === SEM), '7: the missing page is not created');
     ok(r.tables.filter((t) => t.status === 'created').length === 11, '7: the primitive tables are still drawn');
-    ok(styleGuideSummary(r).summary.includes('11 tables skipped — this file has no ↳ Semantic tokens page'), '7: the skip is named in the summary');
+    ok(styleGuideSummary(r).summary.includes('11 tables skipped — this file has no Semantic tokens page'), '7: the skip is named in the summary');
     const partial = styleGuideSummary(r);
     ok(!partial.ok && partial.headline === '⚠ 11 drawn, 11 skipped', `7: a partial run is not a pass — headline "${partial.headline}"`);
 

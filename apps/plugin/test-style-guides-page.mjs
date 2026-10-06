@@ -199,6 +199,9 @@ const groupBox = (id) => `[data-p3="sg-group"][data-id="${id}"] [data-p3="sg-box
 console.log('\nopening the page, and Set up file (H10–H12, P8)');
 {
   const { page, errors, item } = await openPage();
+  // The page's open request crosses `postMessage`, a task after it mounts (CI on e3c624b2 read it as 0): wait for it.
+  // "Once" stays held by the later arm's exact 2.
+  await posted(page, 'style-guide-catalog-request', 1);
   let st = await read(page);
   ok(item?.trim() === 'Build style guides…' && st.heading === 'Build style guides' && st.layout === 'page',
     `H11: the Figma menu's "Build style guides…" opens the page, headed "Build style guides" (item "${item}", heading "${st.heading}", layout ${st.layout})`);
