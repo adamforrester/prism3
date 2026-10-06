@@ -15,6 +15,8 @@
  * line, so it is never guessed at: a wrong line is worse than none.
  */
 import { brandTheme, type BrandInput } from '@prism3/engine/theme';
+import { resolveAllModes } from '@prism3/engine/modes';
+import { studioMessage } from './floor-refusal';
 import { hexToRgb, rgbToOklch } from '@prism3/engine/color';
 import { parseDesignMd } from '@prism3/engine/design-md';
 import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '@prism3/engine/standard-design-md';
@@ -143,12 +145,15 @@ export const errorLine = (text: string, message: string, internal: boolean): num
   return null;
 };
 
-const refusal = (text: string, e: unknown, prefix: string): { error: ImportError } => {
+const refusal = (text: string, e: unknown, prefix: string, input?: BrandInput): { error: ImportError } => {
   const message = (e as Error)?.message ?? String(e);
   const internal = e instanceof TypeError || e instanceof ReferenceError || e instanceof RangeError;
   const line = errorLine(text, message, internal);
   // The line is in front now, so the parser's own "at line N" (counted inside the front matter) would contradict it.
-  const said = line !== null ? message.replace(/\s+at line \d+\b/, '') : message;
+  // A contrast floor refusal reads in the studio's words (Q67 B), ending on the file's key (Q76 A); the line is
+  // still found from the engine's key.
+  const shown = input ? studioMessage(message, input, 'import') : message;
+  const said = line !== null ? shown.replace(/\s+at line \d+\b/, '') : shown;
   return { error: { text: `${prefix}${said}`.trim(), line } };
 };
 
@@ -177,8 +182,10 @@ export const validateDesignMd = (text: string): ImportResult => {
     catch (e) { return refusal(text, e, "That doesn't read as a design.md: "); }
   }
 
-  try { brandTheme(input); }
-  catch (e) { return refusal(text, e, 'Parsed, but the engine rejected it: '); }
+  // The modes resolve too: some refusals are made there, not in `brandTheme` (the contrast floor's, #2227), and a
+  // brief that passed here would otherwise load and fail as the next edit.
+  try { resolveAllModes(brandTheme(input)); }
+  catch (e) { return refusal(text, e, 'Parsed, but the engine rejected it: ', input); }
   return { input };
 };
 

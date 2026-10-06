@@ -43,9 +43,10 @@ import {
   BORDER_ROWS, FIELD_ROWS, FILL_ROWS, FOCUS_ROLES, floorAutoFollows, floorAutoLabel, floorAutoShortLabel, FOREGROUND_ROWS, ICON_ROWS, PAIR_ICONS_CONFIRM, TEXT_ROWS, addGradient, addStop, bandOf, bandPalettes, editGradient, gradStopHex,
   iconOverrideCount, iconsPaired, lockedTo, overrideOf, pageKeyOf, pageSteps, pairIcons, paletteOf, readGradients, removeGradient, removeStop, renameGradient, rolesIn,
   setBandPalette, setBandStep, setCenter, setGradientsOn, setRowOverride, setStopPalette, setStopPosition, setStopStep,
-  SCRIM_ROLE, SURFACE_TOKENS, setInverseTier, setSurfaceBase, setSurfaceFloor, setSurfaceTier, stepHex, stepOfPath, stepsOf, surfaceSourceOf, tierOf, unpairIcons, washReadOf,
+  SCRIM_ROLE, SURFACE_TOKENS, clearFloorReset, floorResetNotice, setInverseTier, setSurfaceBase, setSurfaceFloor, setSurfaceTier, floorGroundSteps, stepHex, stepOfPath, stepsOf, surfaceSourceOf, tierOf, unpairIcons, washReadOf,
   type FillRow, type InverseTier, type PageTier,
 } from '../state/fills-input';
+import { floorNoneText } from '../state/floor-refusal';
 import { DOMAINS, ICONS_DESC, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
@@ -84,6 +85,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
 
   const edit = (key: string, write: () => void): void => {
     lastEdited = key;
+    clearFloorReset();   // a floor reset's notice lasts until the next edit (Q69 A)
     write();
     noteSectionEdit();   // QA-B9: the edit, and only an edit, reveals its preview section
     rebuild();
@@ -224,6 +226,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     // (`floorAutoLabel`, S4e). A step writes what the floor select wrote for it (`setSurfaceFloor`, the step's
     // number), and Return to Auto what its Auto option wrote (`''`, which unsets `floorStep`).
     const floorSteps = stepsOf(nPal);
+    const floorGround = floorGroundSteps(m);
     const floorKey = cur?.floorStep == null ? null : floorSteps.find((s) => Number(s) === Number(cur.floorStep)) ?? String(cur.floorStep);
     const autoFloor = stepOfPath(`palette.${roles['foreground.brand']?.against ?? ''}`);
     const floorAt = floorKey != null ? { palette: nPal, step: floorKey } : autoFloor && autoFloor.palette === nPal ? autoFloor : null;
@@ -235,11 +238,16 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       follows: floorKey != null ? null : floorAutoFollows(m),
       info: FLOOR_INFO,
       picker: {
-        role: 'Contrast floor', palettes: [rampOf(nPal)], current: floorAt,
+        role: 'Contrast floor', palettes: [{ palette: nPal, steps: floorGround }], current: floorAt,
         against: null, overridden: floorKey != null,
         onPick: (_p, step) => edit('surfaces', () => setSurfaceFloor(m, step)), onAuto: () => edit('surfaces', () => setSurfaceFloor(m, '')),
       },
     }));
+    // No ground on a neutral step (Q70 A): the picker offers Auto alone, and the line says why. A background that
+    // moved off a set floor reset it to Auto (Q69 A), and the line says so until the next edit.
+    if (!floorGround.length) def.append(hook(stateLine(floorNoneText(m)), 'surface-floor-none'));
+    const reset = floorResetNotice(m);
+    if (reset) def.append(hook(stateLine(reset), 'surface-floor-reset'));
 
     // ── Inverse (BG1 A, approved copy) ──
     const inv = hook(h('div', 'p3-fillrows'), 'surface-inverse-rows');
