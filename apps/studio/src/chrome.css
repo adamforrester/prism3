@@ -404,6 +404,9 @@
 .p3-frame[data-w="narrow"] .p3-subnav { padding: var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-subnav .p3-seg { display: flex; width: 100%; }
 .p3-frame[data-w="narrow"] .p3-seg-tab { padding: 0 var(--p3-space-150); }
+/* #2175: the neutral source's three segments ("Follow primary", "Custom tint", "Pinned") clip at 380 at the 12px
+   above; at 8px they fit. Scoped to the choice that opts in, so no other segmented control moves. */
+.p3-frame[data-w="narrow"] .p3-seg-snug .p3-seg-tab { padding: 0 var(--p3-space-100); }
 .p3-frame[data-w="narrow"] .p3-notices { padding: var(--p3-space-100) var(--p3-space-150) 0; }
 .p3-frame[data-layout="panes"][data-w="narrow"] {
   grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
@@ -822,9 +825,6 @@
 /* The preview's scrim card: the same checkerboard under the wash, the card's size and corners kept. */
 .p3-legacy-card .sg-scrimcard.p3-checker { background-size: var(--p3-space-150) var(--p3-space-150); }
 .p3-fill-nameline { display: flex; align-items: center; gap: var(--p3-space-050); min-width: 0; }
-.p3-fillrow.p3-fillrow-wide { grid-template-columns: auto minmax(0, 1fr); }
-.p3-fillrow-wide > .p3-pick { grid-column: 2; justify-self: start; max-width: 100%; }
-.p3-fillrow-wide > .p3-pick .p3-btn-label { white-space: normal; text-align: start; }
 .p3-jump { display: flex; flex-wrap: wrap; gap: var(--p3-space-100) var(--p3-space-200); }
 .p3-jump[hidden] { display: none; }
 .p3-jump-label { display: inline-flex; align-items: center; min-height: var(--p3-hit-min); }   /* QA-B17: "Jump to:", on the links' line */
