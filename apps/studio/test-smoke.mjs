@@ -1908,9 +1908,64 @@ console.log(`  ${intStates} states, ${intText} Text-row inks, ${intPaired} paire
 console.log(`\nColor › Surfaces & fills — the previewed mode's surfaces, and the Fields rows reaching the export (S4c)\n${'='.repeat(78)}`);
 const inputAt = (page) => page.evaluate(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input ?? null; } catch { return null; } });
 const toSurface = (v) => (v === 'white' || v === 'black' ? v : Number(v));
+/** A click that waits for its target to SETTLE first, and is BOUNDED (#2080). Measured before writing it
+ *  (2026-10-06): across 300 clicks on the Dark option in this suite and test:chrome, at load averages 7 to 14 and
+ *  with the renderer's CPU throttled 4×, the button was never replaced and never moved before the click, and each
+ *  click took as long as the page's longest main-thread task during it (127ms at most unthrottled, 380ms
+ *  throttled). So a 30-second stall is a renderer that could not run for 30 seconds, not a control that would not
+ *  hold still. This waits until the page renders frames with the target holding still: its box, and its scroller's
+ *  scrollTop, unchanged across consecutive frames. That is a measured settle, not a sleep, and it covers an eased
+ *  scroll still stepping (`follow-edit.ts`). Then it clicks. BOTH are bounded, so either stall fails the arm by name
+ *  and the suite reaches its report, instead of dying on a bare Playwright timeout. Kept here, beside its one user:
+ *  test-hooks.mjs's shared `hooks.click` is unchanged. */
+const SETTLE_CLICK_MS = 15000;
+const settledClick = async (page, selector, label) => {
+  const deadline = Date.now() + SETTLE_CLICK_MS * 2;
+  const settled = await Promise.race([
+    page.evaluate(async ([sel, cap]) => {
+      const scrollerOf = (n) => {
+        for (let p = n.parentElement; p; p = p.parentElement) {
+          const oy = getComputedStyle(p).overflowY;
+          if ((oy === 'auto' || oy === 'scroll') && p.scrollHeight > p.clientHeight) return p;
+        }
+        return document.scrollingElement;
+      };
+      const read = () => {
+        const n = document.querySelector(sel);
+        if (!n) return null;
+        const r = n.getBoundingClientRect(), sc = scrollerOf(n);
+        return `${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.width)},${Math.round(r.height)}|${sc ? Math.round(sc.scrollTop) : 0}`;
+      };
+      const t0 = performance.now();
+      let prev, still = 0, frames = 0;
+      while (performance.now() - t0 < cap) {
+        await new Promise((r) => requestAnimationFrame(r));
+        frames++;
+        const now = read();
+        if (now !== null && now === prev) { if (++still >= 2) return { ok: true }; } else still = 0;
+        prev = now;
+      }
+      return { ok: false, why: prev === null ? 'it is not in the page' : `it was still moving after ${frames} frames (last box ${prev})` };
+    }, [selector, SETTLE_CLICK_MS]),
+    new Promise((r) => setTimeout(() => r({ ok: false, why: `the page rendered no frame within ${SETTLE_CLICK_MS}ms` }), SETTLE_CLICK_MS + 1000)),
+  ]).catch((e) => ({ ok: false, why: String(e?.message ?? e).split('\n')[0] }));
+  if (!settled.ok) { ok(false, `${label}: ${selector} did not settle before its click — ${settled.why}`); return false; }
+  try {
+    await hooks.click(page.locator(selector), { timeout: Math.max(1000, deadline - Date.now()) });
+    return true;
+  } catch (e) {
+    ok(false, `${label}: the click on ${selector} did not land — ${String(e?.message ?? e).split('\n')[0]}`);
+    return false;
+  }
+};
 const previewMode = async (page, m) => {
-  await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${m}"]`));
-  await page.waitForFunction((mm) => document.querySelector(`[data-p3="mode-option"][data-mode="${mm}"]`)?.getAttribute('aria-checked') === 'true', m);
+  const sel = `[data-p3="mode-option"][data-mode="${m}"]`;
+  if (!await settledClick(page, sel, `previewMode ${m}`)) return false;
+  // Bounded too: unbounded, a click that landed without taking effect was the same bare 30-second throw.
+  const on = await page.waitForFunction((s) => document.querySelector(s)?.getAttribute('aria-checked') === 'true', sel, { timeout: SETTLE_CLICK_MS })
+    .then(() => true, () => false);
+  if (!on) ok(false, `previewMode ${m}: the ${m} option was clicked and is still not checked after ${SETTLE_CLICK_MS}ms`);
+  return on;
 };
 // S4d (owner decision Q45): the Page (Primary since S4f, QA-B3) and the band step are step pickers; the band palette stays
 // a select. S4f (QA-B1): the contrast floor is a row, its control the step picker, writing what its select wrote.
@@ -5007,6 +5062,44 @@ for (const c of REFUSED_CASES) {
   ok(frameUp > 0, `#1989 ${c.label}: after Clear, choosing an example opens the studio`);
   const errs = drain();
   ok(errs.length === 0, `#1989 ${c.label}: 0 console errors after the boot${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+
+// ---- #2080: keyboard focus survives the mode control's repaint ------------------------------------------------
+// The preview header's mode control repaints on every mode AND every brand (verdict) update: one `paint`, subscribed
+// to both (`shell/preview.ts`). A paint changes a button's `data-sig` and replaces its CHILDREN, but keeps the button
+// itself, so a keyboard user's focus stays put. Driven by the path a person uses, Arrow Right on the radio group,
+// which focuses the next option and selects it, so that paint redraws the newly focused button. EXPECTED: that same
+// node still holds focus after the paint, and the paint reached it (its `data-sig` changed, so the arm is not
+// vacuous). BY-NAME MUTATION: make `paint` rebuild the radios every call → the same-node arm fails.
+{
+  const { ctx, page, drain } = await openBrand(BRANDS[0]);
+  await hooks.need(page, '[data-p3="mode-control"]');
+  const first = page.locator('[data-p3="mode-control"] [data-p3="mode-option"][aria-checked="true"]');
+  await hooks.need(page, first);
+  await first.focus();
+  const before = await page.evaluate(() => {
+    const a = document.activeElement;
+    if (!a || a.getAttribute('data-p3') !== 'mode-option') return null;
+    window.__p3focusProbe = a;
+    const next = a.nextElementSibling;
+    return { mode: a.dataset.mode, next: next?.dataset.mode ?? null, nextSig: next?.dataset.sig ?? null };
+  });
+  ok(!!before?.next, `#2080 focus setup: a mode option is focused and has a next option (${JSON.stringify(before)})`);
+  if (before?.next) {
+    await page.keyboard.press('ArrowRight');
+    const moved = await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', before.next, { timeout: SETTLE_CLICK_MS }).then(() => true, () => false);
+    const after = await page.evaluate((m) => {
+      const n = document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`);
+      return { focusedIsIt: !!n && document.activeElement === n, sameNodeAsBefore: n === window.__p3focusProbe?.nextElementSibling || false,
+        connectedBefore: window.__p3focusProbe?.isConnected ?? false, sig: n?.dataset.sig ?? null };
+    }, before.next);
+    ok(moved && after.sig !== before.nextSig, `#2080 the repaint reached the newly focused option: ${before.next} is checked and its data-sig moved (${before.nextSig} → ${after.sig})`);
+    ok(after.focusedIsIt && after.sameNodeAsBefore && after.connectedBefore,
+      `#2080 keyboard focus survives the mode control's repaint: the ${before.next} option keeps focus and is the same node (${JSON.stringify(after)})`);
+  }
+  const errs = drain();
+  ok(errs.length === 0, `#2080 0 console errors in the focus check${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
 }
 

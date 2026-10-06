@@ -3687,8 +3687,45 @@ for (const host of ['web', 'figma']) {
   });
   // Ask to re-pair, waiting for the dialog without requiring it, so a re-pair that asks nothing fails below by name
   // rather than at a hook wait.
+  // #2167: askPair's click waits for its target to SETTLE, and is BOUNDED. Measured before writing it (2026-10-06):
+  // the levers pane re-renders whole on every brand update, so icons-pair is a new node after each edit, and the
+  // button sits far below the fold (y ≈ 3650 in a pane scrolled to ≈ 3650), so every click scrolls it into view
+  // first. Under load (averages 7 to 14) and with the renderer throttled 4×, no click on it was replaced or moved
+  // before it landed, and none took over 70ms. The one stall seen (30s at "scrolling into view if needed") is a
+  // renderer that could not run, which no wait makes faster. So this waits until the page renders frames with the
+  // button and the pane's scrollTop unchanged across consecutive frames, which also covers an eased scroll
+  // (`follow-edit.ts`) still stepping. Then it clicks, both bounded. A stall fails THIS arm by name: askPair's
+  // callers already report "no dialog" as their own failure. The suite reaches report() instead of dying on a bare
+  // Playwright timeout. Local to this site on purpose: the shared `hooks.click` is unchanged.
+  const PAIR_SEL = '[data-p3="levers-pane"] [data-p3="icons-pair"]';
+  const PAIR_SETTLE_MS = 15000;
   const askPair = async () => {
-    await hooks.click(pairBtn());
+    const deadline = Date.now() + PAIR_SETTLE_MS * 2;
+    const settled = await Promise.race([
+      page.evaluate(async ([sel, cap]) => {
+        const pane = document.querySelector('[data-p3="levers-pane"]');
+        const read = () => {
+          const n = document.querySelector(sel);
+          if (!n) return null;
+          const r = n.getBoundingClientRect();
+          return `${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.width)},${Math.round(r.height)}|${pane ? Math.round(pane.scrollTop) : 0}`;
+        };
+        const t0 = performance.now();
+        let prev, still = 0, frames = 0;
+        while (performance.now() - t0 < cap) {
+          await new Promise((r) => requestAnimationFrame(r));
+          frames++;
+          const now = read();
+          if (now !== null && now === prev) { if (++still >= 2) return { ok: true }; } else still = 0;
+          prev = now;
+        }
+        return { ok: false, why: prev === null ? 'it is not in the page' : `it was still moving after ${frames} frames (last box ${prev})` };
+      }, [PAIR_SEL, PAIR_SETTLE_MS]),
+      new Promise((r) => setTimeout(() => r({ ok: false, why: `the page rendered no frame within ${PAIR_SETTLE_MS}ms` }), PAIR_SETTLE_MS + 1000)),
+    ]).catch((e) => ({ ok: false, why: String(e?.message ?? e).split('\n')[0] }));
+    if (!settled.ok) { ok(false, `#2167 askPair: Pair icons did not settle before its click — ${settled.why}`); return; }
+    try { await hooks.click(pairBtn(), { timeout: Math.max(1000, deadline - Date.now()) }); }
+    catch (e) { ok(false, `#2167 askPair: the click on Pair icons did not land — ${String(e?.message ?? e).split('\n')[0]}`); return; }
     await page.waitForFunction(() => !!document.querySelector('[data-p3="icons-pair-confirm"]'), null, { timeout: 5000 }).catch(() => {});
   };
   // No icon overrides: no dialog, and iconContrast is "text" again.
