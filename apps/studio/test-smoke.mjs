@@ -2072,8 +2072,10 @@ for (const brand of BRANDS) {
   for (const [m, other] of [['dark', 'light'], ['light', 'dark']]) {
     if (!modes.includes(m)) continue;
     await previewMode(page, m);
-    for (const [k, field, pick] of [['base', 'base', 3], ['floor', 'floorStep', 5], ['band-step', 'inverseBase', 4],
-      ['secondary', 'secondary', 4], ['tertiary', 'tertiary', 6], ['inverse-secondary', 'inverseSecondary', 3], ['inverse-tertiary', 'inverseTertiary', 5]]) {
+    // The floor goes last (#2227, owner Q57 A): it may only be a step a page ground sits on, so it is picked once the
+    // grounds are final. Picked earlier, the tertiary edit after it would leave it on no ground, and the engine refuses that.
+    for (const [k, field, pick] of [['base', 'base', 3], ['band-step', 'inverseBase', 4],
+      ['secondary', 'secondary', 4], ['tertiary', 'tertiary', 6], ['inverse-secondary', 'inverseSecondary', 3], ['inverse-tertiary', 'inverseTertiary', 5], ['floor', 'floorStep', 5]]) {
       const before = (await inputAt(page))?.surfaces ?? {};
       let v;
       if (PICKED.has(k)) {
