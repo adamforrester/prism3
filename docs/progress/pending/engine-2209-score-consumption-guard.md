@@ -1,6 +1,6 @@
 ## (2026-10-06) — MCP score_consumption: a malformed refs item or pairs entry is an isError result, not -32603 (#2209)
 
-**STATUS: branch `engine/2209-score-consumption-guard`, PR held for owner copy review.** MCP only: no token, name or value moves, `CONTRACT_VERSION` unchanged. Change note `engine: minor`, so ENGINE moves at the next fold past {{ENGINE_VERSION}}. **Fixes #2209.** Five new sentences are drafts and the owner's to approve; they are listed in `docs/voice-standard.md` §3.
+**STATUS: branch `engine/2209-score-consumption-guard`, copy approved by the owner (Q53, 2026-10-06).** MCP only: no token, name or value moves, `CONTRACT_VERSION` unchanged. Change note `engine: minor`, so ENGINE moves at the next fold past {{ENGINE_VERSION}}. **Fixes #2209.** The five new sentences are owner-approved (Q53) and listed in `docs/voice-standard.md` §3. Also fixes, in passing as #2209 asked, the `emit-figma-dims.ts:416` comment: four floors auto-name `sm..xl`, not `sm..2xl`.
 
 ### Diagnosis
 
@@ -14,21 +14,14 @@ Each escaped `tools/call` as -32603. A `kind` outside the enum threw nothing, bu
 
 `scoreInputErrors` in `mcp.ts` checks each `refs` item and `pairs` entry against the tool's inputSchema before the build. It returns `{ error: 'score_consumption input failed validation', errors: [...] }` with `isError`, one sentence per bad entry, naming its index and what is wrong. Every bad entry is reported at once, so one round fixes them all. Only types are checked: an empty or unknown role still scores as `unresolved`, as before. A `pairs` that is not an array is still ignored, as an absent one is; it threw nothing, so it is outside this fix.
 
-### The guard was not widened, on evidence
+### `figmaArtifacts` is reachable from user input: filed as #2227, not guarded here
 
-The issue asked to confirm that `figmaArtifacts` and `buildAiMetadata`, both outside `buildBrand`'s guard, have no user input that reaches a throw. `ai-metadata.ts` throws nothing. `emit-figma*.ts` has six throws, all internal invariants:
-- an unparseable color;
-- a palette literal with no Figma line;
-- a palette with no build;
-- a palette step that zero or several page grounds alias;
-- a fill opacity that is not a number token;
-- a shadow mode entry that is not the wrapped `{ $value: [...] }` shape the tree writes (#708).
+The issue asked to confirm that `figmaArtifacts` and `buildAiMetadata`, both outside `buildBrand`'s guard, have no user input that reaches a throw. **That holds for `buildAiMetadata` and not for `figmaArtifacts`.** An earlier draft of this entry said both were safe. The independent review of #2223 showed otherwise, and the claim is withdrawn.
 
-Two routes for user input were checked:
-- **Overrides.** The only free-form route to a page ground is an override, and `brandTheme` refuses every override of a ground ("is a GROUND — N role(s) are contrast-measured against it"). Measured: all 31 ground-onto-ground and ground-onto-step overrides were refused inside the guard.
-- **Colors.** No brand field takes a raw color string. Colors arrive as OKLCH numbers and the engine writes every color value `parseColor` reads.
-
-A probe of 66 hostile but schema-valid brands, run through both emitters, found 0 throws past the guard. It covered `l` 0, 0.5 and 1; `c` up to 1e6; `h` from -720 to 1e9; neutral chroma up to 1e6; a pinned neutral anchor; and a `brandColors` entry at those corners. 6 brands were refused inside the guard, and the other 60 emitted clean. `lint-lever-sweep.ts` already runs `figmaArtifacts` for every toggle and enum value.
+- **`ai-metadata.ts`** throws nothing.
+- **`figmaArtifacts` is reachable.** A schema-valid brand with `surfaces: { light: { floorStep: 25 } }` makes `buildFigmaColor` throw "… is measured against the palette step 'neutral.025', which no page ground aliases …". `export_theme` with `include: ["figma"]` returns -32603, while `validate_brand` calls the brand valid. The review's sweep found 79 of 285 schema-valid brands throwing past the guard, all of them `surfaces` cases that set `floorStep` or `secondary`. The plugin's apply path calls the same function.
+- **Why my probe missed it.** It covered overrides, raw colors, and extreme OKLCH values, and treated the "palette step that zero or several page grounds alias" throw as an invariant because overrides of a ground are refused. It never varied `surfaces`, the lever that picks the step directly. `lint-lever-sweep.ts` runs toggles and enums, not `floorStep` numbers, so it doesn't cover this either.
+- **Why it isn't fixed here.** Wrapping `figmaArtifacts` in the guard would turn the crash into a refusal from the Figma step alone. #2227 asks for the refusal, or a fix to the emission, to come from the build path so `validate_brand` reports it, and for the studio picker to stop offering the step. That is its own change.
 
 ### Gates and their independence
 
