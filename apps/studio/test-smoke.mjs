@@ -2048,8 +2048,8 @@ for (const brand of BRANDS) {
   const wasAlias = emission[root]?.color?.background?.secondary?.$value ?? '';
   const wasStep = (/\.neutral\.([0-9]+)\}$/.exec(wasAlias) ?? [])[1] ?? null;
   // The floor's Auto label, in full: since FL1 A (#2197) the floor's picker button shows "Auto · ‹step›" and carries the
-  // full sentence, the tier it follows included, as its tooltip (no tooltip when the label is already the whole wording) (each read below is with the floor on Auto, as the brand loads).
-  const floorAuto = () => page.evaluate(() => { const b = document.querySelector('[data-p3="levers-pane"] [data-p3="surface-floor-pick"]'); return b?.getAttribute('title') ?? b?.querySelector('.p3-btn-label')?.textContent ?? null; });
+  // full sentence, the tier it follows included, as its tooltip (each read below is with the floor on Auto, as the brand loads).
+  const floorAuto = () => page.evaluate(() => { const b = document.querySelector('[data-p3="levers-pane"] [data-p3="surface-floor-pick"]'); return b?.getAttribute('title') ?? null; });
   const TEXT_SEC = '[data-p3="levers-pane"] [data-p3="text-rows"] .p3-fillrow[data-role="text.secondary"] [data-p3="fill-pick"]';
   const groundOf = async () => {
     await hooks.click(page.locator(TEXT_SEC));

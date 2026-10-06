@@ -40,7 +40,7 @@
 import { brandState, currentMode, lastError, rebuild, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import { isDerived } from '../state/verdict';
 import {
-  BORDER_ROWS, FIELD_ROWS, FILL_ROWS, FOCUS_ROLES, floorAutoLabel, floorAutoShortLabel, FOREGROUND_ROWS, ICON_ROWS, PAIR_ICONS_CONFIRM, TEXT_ROWS, addGradient, addStop, bandOf, bandPalettes, editGradient, gradStopHex,
+  BORDER_ROWS, FIELD_ROWS, FILL_ROWS, FOCUS_ROLES, floorAutoFollows, floorAutoLabel, floorAutoShortLabel, FOREGROUND_ROWS, ICON_ROWS, PAIR_ICONS_CONFIRM, TEXT_ROWS, addGradient, addStop, bandOf, bandPalettes, editGradient, gradStopHex,
   iconOverrideCount, iconsPaired, lockedTo, overrideOf, pageKeyOf, pageSteps, pairIcons, paletteOf, readGradients, removeGradient, removeStop, renameGradient, rolesIn,
   setBandPalette, setBandStep, setCenter, setGradientsOn, setRowOverride, setStopPalette, setStopPosition, setStopStep,
   SCRIM_ROLE, SURFACE_TOKENS, setInverseTier, setSurfaceBase, setSurfaceFloor, setSurfaceTier, stepHex, stepOfPath, stepsOf, surfaceSourceOf, tierOf, unpairIcons, washReadOf,
@@ -117,7 +117,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
      *  picker under the row while it is open. `key` is the picker's slot in `openRole`. `info` adds the row's own
      *  info button beside its name, its note drawn under the row (QA-B6). */
     const surfRow = (o: { key: string; id: string; hk: string; label: string; token: string | null; rowRole: string; hex: string; now: string;
-      full?: string; info?: string; picker: Omit<StepPickerOpts, 'modeLabel' | 'onClose' | 'role'> & { role?: string } }): HTMLElement => {
+      full?: string; follows?: string | null; info?: string; picker: Omit<StepPickerOpts, 'modeLabel' | 'onClose' | 'role'> & { role?: string } }): HTMLElement => {
       const wrap = h('div', 'p3-fillrow-wrap');
       // Every row is the one grid: swatch, name, and the picker on the right (#2179: the contrast floor's picker sat
       // under its name).
@@ -149,11 +149,11 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       btn.id = o.id;
       const open = openRole === o.key && editable;
       btn.setAttribute('aria-expanded', String(open));
-      // `full`, when it says more than the visible label (the floor's "follows" sentence, FL1 A), is the button's
-      // tooltip and follows the visible label in its accessible name, which keeps the visible label verbatim (WCAG 2.5.3).
-      const more = o.full && o.full !== o.now ? o.full : null;
-      btn.setAttribute('aria-label', `${o.label}, ${modeLabel(currentMode)}: ${o.now}.${more ? ` ${more}.` : ''} Pick a step`);
-      if (more) btn.title = more;
+      // The accessible name starts with the visible label, word for word (WCAG 2.5.3). An Auto floor on a tier's step adds
+      // the role it follows (owner, option 1 on #2193): "Contrast floor, Light: Auto · neutral 050, follows
+      // background.secondary. Pick a step". `full` is the tooltip (FL1 A: the floor's full sentence, or its step).
+      btn.setAttribute('aria-label', `${o.label}, ${modeLabel(currentMode)}: ${o.now}${o.follows ? `, follows ${o.follows}` : ''}. Pick a step`);
+      if (o.full) btn.title = o.full;
       btn.append(h('span', 'p3-btn-label', o.now), glyph('chev'));
       btn.disabled = !editable;
       btn.onclick = () => {
@@ -231,7 +231,8 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       key: 'surface:floor', id: 'p3-surf-floor', hk: 'surface-floor-pick', label: 'Contrast floor', token: null, rowRole: FLOOR_ROW,
       hex: (floorAt && stepHex(floorAt.palette, floorAt.step)) ?? roles[SURFACE_TOKENS.secondary]?.hex ?? '#ffffff',
       now: floorKey != null ? `${nPal} ${floorKey}` : floorAutoShortLabel(m),
-      full: floorKey != null ? undefined : floorAutoLabel(m),
+      full: floorKey != null ? `${nPal} ${floorKey}` : floorAutoLabel(m),
+      follows: floorKey != null ? null : floorAutoFollows(m),
       info: FLOOR_INFO,
       picker: {
         role: 'Contrast floor', palettes: [rampOf(nPal)], current: floorAt,
