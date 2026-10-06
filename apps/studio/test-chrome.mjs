@@ -435,6 +435,20 @@
  * Mutation: the dashed rule back → `X4 A derived: web light: no disabled chrome control, and not the fixed Light row
  * (mode-on-light, read true), draws a dashed edge (439 read) — brand mode-on-light: …` and `… DB1 A: the fixed Light
  * row's box draws Prism3's disabled check box: …` (8 failures).
+ *
+ * #2213 ADDS (owner decision N1 A, section 31): in the plugin, light and dark, at 1280 and 380, the agent link's status
+ * line in the Activity drawer's bar row, for three published states (off, listening, an inbox error): absent while off;
+ * otherwise right of the summary and its time, last before the caret, one line, its words `agentLinkStatusText(state)`
+ * (the plugin's formatter, bundled for Node and called here), its ink the emission's `color.text.secondary` (quiet) or
+ * `color.text.danger` (an error) at 4.5:1 on its ground, the summary left whole and the caret on the row; cut short at
+ * 380, its tooltip and its accessible name (CDP `getPartialAXTree` on its text, and the row's computed name) carry the
+ * full words. The web's drawer draws no line. Mutations, each against the built bundles:
+ *   · hidden while listening → `#2213 figma light 1280 listening: the status line is drawn in the bar row, …` (4).
+ *   · shown while off → `#2213 figma light 1280 off: no status line while the link is off (read "Off — agent commands are ignored.")` (4).
+ *   · the error in the quiet ink → `#2213 figma light 1280 error: the line draws in the chrome's error ink, the emission's color.text.danger #a82e2e (read #67696b)` (4).
+ *   · the text cut short in the DOM at 380 → `#2213 figma light 380 listening: the accessible name carries the full words: the line's computed text "Listening — file m…", …` (12 in all).
+ *   · the line shrinking alongside the summary (`flex: 0 1000 auto`) → `#2213 figma light 380 listening: the caret and the whole summary stay on the row (… whole false)` (4).
+ *   · no tooltip at 380 → `#2213 figma light 380 listening: the line's tooltip carries its full words, though it is cut short (… read "null")` (4).
  */
 import { createServer } from 'node:http';
 import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
