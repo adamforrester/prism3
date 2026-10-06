@@ -6709,14 +6709,14 @@ arm: {
     const colorOk = same(t.shadow.colorRgb, asked.shadow.colorRgb)
       && !!t.shadow.shadowByMode?.dark && same(t.shadow.shadowByMode.dark.colorRgb, asked.shadow.shadowByMode!.dark!.colorRgb);
     ok(distinct && near(base, expected) && dark !== undefined && near(dark, expected) && colorOk,
-      `#2184 ${label}: the shadow tint takes ${label === 'Follow primary' ? "the primary's hue" : label === 'Custom tint' ? 'the custom tint hue' : "the pinned gray's hue"} ` +
+      `#2184 ${label}: the shadow tint takes ${label === 'Follow primary' ? "the primary's hue" : label === 'Custom tint' ? 'the custom tint hue' : "the pinned gray's hue"}${label.startsWith('Pinned,') ? ' (the pin wins over Follow primary, as it does for the ramp)' : ''} ` +
       `(expected ${expected}, from the input; got baseline ${base}, dark mode ${dark}; color matches the expected hue: ${colorOk}; every hue in play ≥30° from every other: ${distinct})`);
   };
   check('Follow primary', { auto: true }, PRIMARY.h);
   check('Custom tint', { hue: CUSTOM }, CUSTOM);
   check('Pinned', { anchor: PIN }, PIN.h);
   // A pinned gray wins over Follow primary for the ramp, so it wins for the shadow too.
-  check('Pinned', { anchor: PIN, auto: true }, PIN.h);
+  check('Pinned, with Follow primary on', { anchor: PIN, auto: true }, PIN.h);
 
   // The explicit override still wins, under every source.
   const won = [{ auto: true }, { hue: CUSTOM }, { anchor: PIN }].map((n) => {
