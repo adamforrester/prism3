@@ -10631,10 +10631,10 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 // AD2: at 380 the open drawer is the full-pane sheet, with no handle, a kept height or not.
 for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
   const where = `31 ${host} ${theme} 380`;
-  const { ctx, page, errors } = await open({ host, theme, w: 380, h: 420, store: host === 'web' ? { [HEIGHT_KEY]: '300' } : undefined });
+  const { ctx, page, errors } = await open({ host, theme, w: 380, h: 420, store: host === 'web' ? { [HEIGHT_KEY]: '200' } : undefined });
   try {
     await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
-    if (host === 'figma') await postMsg(page, { type: 'activity-height', px: 300 });
+    if (host === 'figma') await postMsg(page, { type: 'activity-height', px: 200 });
     await openDrawer(page);
     const s = await gripState(page);
     const sheet = await page.evaluate(() => { const b = document.querySelector('[data-p3="activity-body"]'); return !!b && !b.hidden && b.getBoundingClientRect().height > 0; });
@@ -10642,7 +10642,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
     await page.keyboard.press('Tab');
     const f = await page.evaluate(() => document.activeElement?.getAttribute('data-p3') ?? null);
     ok(f !== 'activity-grip', `${where}: the handle takes no focus at 380 (focus on ${f})`);
-    ok(near(s.drawer.bottom, s.vh, 1) && Math.abs(s.drawer.h - 300) > 1, `${where}: a kept height does not size the sheet: it runs to the window's bottom (height ${fx(s.drawer.h)}, bottom ${fx(s.drawer.bottom)} of ${s.vh})`);
+    ok(near(s.drawer.bottom, s.vh, 1) && Math.abs(s.drawer.h - 200) > 1, `${where}: a kept height does not size the sheet: it runs to the window's bottom (height ${fx(s.drawer.h)}, bottom ${fx(s.drawer.bottom)} of ${s.vh})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
