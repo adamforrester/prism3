@@ -1412,6 +1412,11 @@ const FLOOR_BADGED = ['brand', 'danger', 'success', 'warning', 'info'].map((s) =
  *  as [fill, text]: the three Inverse cards (their label) and the five Subtle cards. Literal. */
 const ON_FILL_CARDS = [...['primary', 'secondary', 'tertiary'].map((t) => [`inverse.foreground.${t}`, 'inverse.text.primary']),
   ...['brand', 'danger', 'success', 'warning', 'info'].map((s) => [`foreground.${s}-subtle`, `text.${s}`])];
+/** #2121: the minimum each of those cards' text is held to, which its badge's ✓/✗ is the verdict of. Literal, never
+ *  the badge's or the resolver's own `min`: a status text 4.5:1, and 7:1 in the high-contrast modes; the inverse
+ *  label 7:1, and 15:1 in the high-contrast modes (the engine's contracts, as `resolveAllModes` states them for every
+ *  example brand on 2026-10-05). */
+const ON_FILL_MIN = (mode, ink) => (ink === 'inverse.text.primary' ? (mode.startsWith('hc') ? 15 : 7) : (mode.startsWith('hc') ? 7 : 4.5));
 /** #1971 (owner, 2026-10-03): the section that sits on the CONTRAST FLOOR, the step `foreground.*` is measured against,
  *  rather than on the page; every other section, Background included, sits on the page. Literal. Its ground's hex is
  *  the EMISSION's: `foreground.brand`'s `against` in the mode, resolved as a role or a palette step from the committed
@@ -1638,7 +1643,7 @@ for (const brand of BRANDS) {
         const card = cw.querySelector('.sg-card'), lab = card?.querySelector('.sg-lab');
         const b = cw.querySelector('[data-p3="ratio-badge"][data-pair]');
         return { fillRole: card?.dataset.sgRole ?? null, inkRole: lab?.dataset.sgRole ?? null, fill: card ? getComputedStyle(card).backgroundColor : null,
-          ink: lab ? getComputedStyle(lab).color : null, badge: b ? b.querySelector('.sg-ratio-n')?.textContent ?? '' : null, pair: b?.dataset.pair ?? null };
+          ink: lab ? getComputedStyle(lab).color : null, badge: b ? b.querySelector('.sg-ratio-n')?.textContent ?? '' : null, mark: b ? b.querySelector('.sg-ratio-mk')?.textContent ?? null : null, pair: b?.dataset.pair ?? null };
       }), SG_FILLS);
     const offDrawn = [];
     for (const [fillRole, inkRole] of ON_FILL_CARDS) {
@@ -1651,6 +1656,9 @@ for (const brand of BRANDS) {
       if (fillHex !== wantFill || inkHex !== wantInk) { offDrawn.push(`${inkRole} on ${fillRole}: renders ${inkHex} on ${fillHex}, the emission says ${wantInk} on ${wantFill}`); continue; }
       const want = wcag(hexRgb(inkHex), hexRgb(fillHex));
       if (!(Math.abs(parseFloat(d.badge) - floor2(want)) <= 0.011)) offDrawn.push(`${inkRole} on ${fillRole} prints ${d.badge}, the drawn ${inkHex} on ${fillHex} measures ${want.toFixed(3)}:1`);
+      // #2121: and its mark is the verdict of that measured ratio against the text's minimum, typed here (ON_FILL_MIN).
+      const wantMark = want + 1e-9 < ON_FILL_MIN(mode, inkRole) ? '✗' : '✓';
+      if (d.mark !== wantMark) offDrawn.push(`${inkRole} on ${fillRole} marks ${JSON.stringify(d.mark)}, the drawn ${want.toFixed(3)}:1 against the ${ON_FILL_MIN(mode, inkRole)}:1 minimum is ${wantMark}`);
       fillsDrawnPairs++;
     }
     ok(offDrawn.length === 0, `${where}: every Subtle and Inverse card in Foreground badges its text on its own fill, as drawn (#1971 Q13(a))${offDrawn.length ? ` — ${offDrawn.join(' | ')}` : ''}`);
