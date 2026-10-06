@@ -115,6 +115,8 @@ export const S63 = {
   // with itself (docs/34).
   scaleTip: 'Moves every heading size one step up or down the size ladder. Body, label, caption and code stay put.',
   scaleClash: 'Some sizes you set would clash at this scale. Release them to switch.',
+  /** Compact refused for the 16px title floor, on the chip and under the chips (owner decision Q55 B, APPROVED, #2194). */
+  scaleTitleFloor: "Compact can't be used while the title floor is 16px. Raise the title floor to use it.",
   release: 'Release pinned sizes',
   pinned: (n: number): string => `${n} ${n === 1 ? 'size is' : 'sizes are'} set individually. They keep their size when the scale moves.`,
   unresolved: (paths: readonly string[]): string => `${paths.length === 1 ? 'One text style' : `${paths.length} text styles`} the preview uses ${paths.length === 1 ? 'is' : 'are'} not in this brand: ${paths.join(', ')}. The preview shows a fallback.`,
@@ -540,8 +542,8 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
   };
 
   // ── Scale ──────────────────────────────────────────────────────────────────────────────────────
-  /** The heading scale: three chips, a chip the engine would refuse (a size you set colliding at that scale,
-   *  #353) disabled with the reason, and Release pinned sizes while any is. Brand-wide: any editable mode. */
+  /** The heading scale: three chips, a chip the engine would refuse disabled with the reason, and Release pinned
+   *  sizes while a size you set colliding at that scale (#353) is the reason (#2194). Brand-wide: any editable mode. */
   const typeScale = (): Item[] => {
     const L = leverOf('typography.typeScale');
     const b = leverBlock('typography.typeScale', { label: S63.scaleLabel, desc: S63.scaleTip, group: true });
@@ -549,12 +551,17 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     const opts = (L?.options ?? []).map((o) => ({ v: String(o.value), l: String(o.label) }));
     const c = choice(S63.scaleLabel, 'type-scale', opts, (v) => edit('typography.typeScale', () => setTypeScale(v)));
     c.set(cur);
+    // #2194 (owner, N3 A): the clash message and Release only when a pinned size is the cause; any other refusal
+    // shows its own reason, the title floor's in its approved words (Q55 B) and the rest in the engine's own (Q56 A).
     let blocked = 0;
+    const other = new Set<string>();
     for (const o of opts) {
-      if (!shapeBlocked(o.v, cur)) continue;
-      blocked++;
+      const r = shapeBlocked(o.v, cur);
+      if (!r) continue;
+      const why = r.kind === 'pinned' ? S63.scaleClash : r.kind === 'titleFloor' ? S63.scaleTitleFloor : r.reason;
+      if (r.kind === 'pinned') blocked++; else other.add(why);
       const chip = c.el.querySelector<HTMLButtonElement>(`[data-value="${o.v}"]`);
-      if (chip) { chip.disabled = true; chip.title = S63.scaleClash; }
+      if (chip) { chip.disabled = true; chip.title = why; }
     }
     b.ctl.append(c.el);
     // TS1 A (#2216, owner approval 2026-10-06): the control, then the pinned count as a plain line under it, then each
@@ -564,6 +571,13 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       const line = hook(stateLine(S63.pinned(pins)), 'type-sizes-count');
       line.classList.add('p3-tscale-pins');
       b.ctl.append(line);
+    }
+    // #2194: a refusal that is not a pinned-size clash is a warning, so a group of its own (TS1 A), first among the
+    // warnings: it is about a chip, as the clash is, and it stood before the clash before TS1 A.
+    for (const why of other) {
+      const box = hook(h('div', 'p3-tscale-group'), 'type-scale-refused');
+      box.append(stateLine(why, 'warn'));
+      b.ctl.append(box);
     }
     if (blocked) {
       const rel = hook(h('button', 'p3-btn p3-btn-page'), 'type-scale-release');

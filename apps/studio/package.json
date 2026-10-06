@@ -13,7 +13,7 @@
     "test:smoke": "node test-smoke.mjs",
     "test:chrome": "node test-chrome.mjs",
     "lint:contrast": "node lint-contrast.mjs",
-    "lint:live-css": "node lint-live-css.mjs",
+    "lint:live-css": "node lint-live-css.mjs && node test-live-css.mjs",
     "check:ignore": "node vercel-ignore-check.mjs"
   },
   "devDependencies": {
