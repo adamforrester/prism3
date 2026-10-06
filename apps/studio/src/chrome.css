@@ -506,6 +506,9 @@
 .p3-frame[data-w="narrow"] .p3-bardlg-body { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
 .p3-frame[data-w="narrow"] .p3-bardlg-col { overflow: visible; }
 .p3-frame[data-w="narrow"] .p3-export-out { border-left: 0; border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
+/* #2175: the neutral source's three segments ("Follow primary", "Custom tint", "Pinned") clip at 380 at the 12px
+   above; at 8px they fit. Scoped to the choice that opts in, so no other segmented control moves. */
+.p3-frame[data-w="narrow"] .p3-seg-snug .p3-seg-tab { padding: 0 var(--p3-space-100); }
 .p3-frame[data-layout="panes"][data-w="narrow"] {
   grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
   grid-template-areas: "bar" "notices" "nav" "subnav" "levers" "drawer";

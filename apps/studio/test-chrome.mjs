@@ -1535,11 +1535,11 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) {
     const named = (l) => blocks.find((b) => b.querySelector('.p3-lever-name')?.textContent.trim() === l);
     return { value: document.querySelector('[data-p3="search-input"]').value, status: document.querySelector('[data-p3="search-status"]')?.textContent,
       shown: blocks.filter(vis).length, chroma: !!named(labels[0]) && vis(named(labels[0])), primary: named(labels[1]) ? vis(named(labels[1])) : null,
-      pinned: !!document.querySelector('[data-p3="lever-neutral-anchor"]') };
+      advanced: !!document.querySelector('[data-p3="lever-status-success"]') };
   }, [CHROMA, PRIMARY]);
   ok(r.value === 'chroma' && r.chroma, `search palettes: typing "chroma" shows the "${CHROMA}" lever (${JSON.stringify(r)})`);
   ok(r.primary === false, `search palettes: a lever that does not match ("${PRIMARY}") is hidden (${r.primary === null ? 'not on the page' : 'visible'})`);
-  ok(r.pinned, 'search palettes: the search reaches the advanced levers (the pinned neutral is drawn while it runs)');
+  ok(r.advanced, 'search palettes: the search reaches the advanced levers (the status colors are drawn while it runs)');
   ok(r.status === `${r.shown} settings match`, `search palettes: the status line counts what is shown ("${r.status}", ${r.shown} shown)`);
   await page.keyboard.press('Escape');
   const after = await page.evaluate(() => ({ hidden: [...document.querySelectorAll('[data-p3="levers-pane"] .p3-lever')].filter((n) => n.getBoundingClientRect().height === 0).length, focus: document.activeElement?.getAttribute('data-p3') }));
@@ -2343,11 +2343,13 @@ for (const host of ['web', 'figma']) {
 // =============================================================================================
 console.log(`\nControls represented — the Palettes levers\n${'='.repeat(78)}`);
 /** The manifest keys v6 homes on Color › Palettes, and the tier each sits in (R2: the manifest flag decides
- *  on Palettes), with the hook each must render. Literal: the decision, never read from `pages.ts`. */
+ *  on Palettes), with the hook each must render. Literal: the decision, never read from `pages.ts`. The fourth
+ *  field marks a lever whose block is drawn only while pinned (#2175, owner PN1 B): unpinned, `neutral.anchor`'s
+ *  control is the Pinned choice in the neutral source, and its color field's block appears once Pinned is chosen. */
 const PALETTES_LEVERS = [
   ['primary', '[data-p3="lever-primary"]', false], ['brandColors', '[data-p3="lever-brand-colors"]', false],
   ['neutral.hue', '[data-p3="lever-neutral-hue"]', false], ['neutral.chroma', '[data-p3="lever-neutral-chroma"]', false],
-  ['neutral.anchor', '[data-p3="lever-neutral-anchor"]', true],
+  ['neutral.anchor', '[data-p3="lever-neutral-anchor"]', false, 'pinned'],
   ['status.success', '[data-p3="lever-status-success"]', true], ['status.warning', '[data-p3="lever-status-warning"]', true],
   ['status.danger', '[data-p3="lever-status-danger"]', true], ['status.info', '[data-p3="lever-status-info"]', true],
 ];
@@ -2364,10 +2366,16 @@ for (const host of ['web', 'figma']) {
   const count = () => page.evaluate((hs) => Object.fromEntries(hs.map((hk) => [hk, document.querySelectorAll(`[data-p3="levers-pane"] ${hk}`).length])), PALETTES_LEVERS.map(([, hk]) => hk));
   const strays = () => page.evaluate((hs) => [...document.querySelectorAll('[data-p3="levers-pane"] .p3-lever')].map((n) => n.getAttribute('data-p3')).filter((r) => !hs.includes(`[data-p3="${r}"]`)), PALETTES_LEVERS.map(([, hk]) => hk));
   const c0 = await count();
-  for (const [key, hook, adv] of PALETTES_LEVERS) {
+  for (const [key, hook, adv, only] of PALETTES_LEVERS) {
     if (adv) hooks.absent(ok, { seen: c0['[data-p3="lever-primary"]'] === 1, state: 'the everyday Palettes levers' }, c0[hook] === 0, `${host}: Palettes lever ${key} waits behind Show advanced (${c0[hook]} rendered)`);
+    else if (only === 'pinned') hooks.absent(ok, { seen: c0['[data-p3="lever-neutral-hue"]'] === 1, state: 'the Neutrals levers, unpinned' }, c0[hook] === 0, `${host}: Palettes lever ${key} draws no block until Pinned is chosen (${c0[hook]} rendered)`);
     else ok(c0[hook] === 1, `${host}: Palettes lever ${key} renders its hook ${hooks.role(hook)} once — rendered ${c0[hook]}`);
   }
+  // Pinned, so every key on the page draws its block below.
+  await hooks.click(page.locator('[data-p3="neutral-source-pinned"]'));
+  await hooks.need(page, '[data-p3="lever-neutral-anchor"]');
+  const cp = await count();
+  for (const [key, hook, adv] of PALETTES_LEVERS) if (!adv) ok(cp[hook] === 1, `${host}: pinned, Palettes lever ${key} renders its hook ${hooks.role(hook)} once outside Show advanced — rendered ${cp[hook]}`);
   await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
   await hooks.need(page, '[data-p3="lever-status-info"]');
   const c1 = await count();
@@ -2375,10 +2383,10 @@ for (const host of ['web', 'figma']) {
   const st = await strays();
   ok(st.length === 0, `${host}: every lever block on Palettes is one of its ${PALETTES_LEVERS.length} keys${st.length ? ` — unclassified lever ${st.join(', ')}` : ''}`);
   const label = await page.evaluate(() => document.querySelector('[data-p3="palettes-advanced"]')?.textContent);
-  ok(label === 'Hide 5 advanced', `${host}: the disclosure reads "Hide 5 advanced" when open (reads "${label}")`);
+  ok(label === 'Hide 4 advanced', `${host}: the disclosure reads "Hide 4 advanced" when open (reads "${label}")`);
   // The advanced levers are chrome too: measured with Show advanced open.
   const ma = await measure(page, `${host} light 1280 / Palettes, Show advanced open`, host, 1280);
-  check(ma, `${host} light 1280 / Palettes, Show advanced open`, columnOf(host, 1280), PLACE_FLOOR, { extra: ['[data-p3="neutral-pin-switch"]', '[data-p3="status-success-source"]'] });
+  check(ma, `${host} light 1280 / Palettes, Show advanced open`, columnOf(host, 1280), PLACE_FLOOR, { extra: ['[data-p3="neutral-source-pinned"]', '[data-p3="neutral-anchor-hex"]', '[data-p3="status-success-source"]'] });
   if (SHOTS) await page.screenshot({ path: join(SHOTS, `s2-${host === 'web' ? 'studio' : 'plugin'}-light-1280-advanced.png`), fullPage: false });
   await ctx.close();
 }
@@ -2440,7 +2448,7 @@ console.log(`\nEdits — the levers write, the preview repaints\n${'='.repeat(78
   const follow = await sliders();
   ok(follow.chroma?.disabled === true, `neutral: under Follow primary the chroma slider is read-only, as on the legacy page (${JSON.stringify(follow.chroma)})`);
   await hooks.click(page.locator('[data-p3="neutral-source-custom"]'));
-  await hooks.click(page.locator('[data-p3="neutral-pin-switch"]'));
+  await hooks.click(page.locator('[data-p3="neutral-source-pinned"]'));
   await hooks.need(page, '[data-p3="neutral-anchor-hex"]');
   const pinned = await sliders();
   ok(pinned.hue?.disabled === true && pinned.chroma?.disabled === true && !!pinned.anchor
@@ -8573,6 +8581,151 @@ for (const host of ['web', 'figma']) {
         if (s.guard) await hooks.click(page.locator('[data-p3="start-guard-discard"]'));
       }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+}
+
+// =============================================================================================
+// 29. #2175 (owner decision PN1 B, 2026-10-05): Pinned is the third neutral source on Color › Palettes
+// =============================================================================================
+// "Pinned" sits beside "Follow primary" and "Custom tint" in the Neutrals section; exactly one is selected, and Pinned is
+// selected exactly when the brand carries `neutral.anchor`. Its color field appears under the choice only while Pinned
+// is selected. Choosing Follow or Custom while pinned unpins and restores that source, the way the old switch off then
+// that choice did. No "Pinned neutral" section, and no switch, is left behind Show advanced. At 380 the three
+// segments fit without clipping on both hosts and both themes (one narrow-tier padding rule, PN1).
+// THE ORACLES, independent of the panel: the PERSISTED brand (web: `prism3:brandInput`, read from storage) and the
+// PREVIEW's neutral anchor pill (both hosts), a separate render path from the levers. The labels, the state line,
+// the typed gray and the section titles are literals here, never read from the source.
+console.log(`\n#2175 — Pinned, the third neutral source\n${'='.repeat(78)}`);
+{
+  const PN_LABELS = ['Follow primary', 'Custom tint', 'Pinned'];
+  const PN_GRAY = '#5c6670';
+  const PN_STATE = `A pinned neutral sets the ramp: ${PN_GRAY}. Hue and chroma are its readout.`;
+  const pn = (page) => page.evaluate(() => {
+    const radios = [...document.querySelectorAll('[data-p3="neutral-source"] [role="radio"]')].map((b) => ({ l: b.textContent, on: b.getAttribute('aria-checked') === 'true' }));
+    let stored = null;
+    try { stored = JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.neutral ?? null; } catch { stored = null; }
+    const hue = document.querySelector('[data-p3="lever-neutral-hue"]');
+    const blk = document.querySelector('[data-p3="lever-neutral-anchor"]');
+    const levers = document.querySelector('[data-p3="palettes-levers"]');
+    return {
+      radios, stored, pill: !!document.querySelector('[data-p3="palette"][data-palette="neutral"] .p3-palh-anchor'),
+      blocks: document.querySelectorAll('[data-p3="lever-neutral-anchor"]').length, field: !!document.querySelector('[data-p3="neutral-anchor-hex"]'),
+      underChoice: blk ? blk.previousElementSibling === hue : null,
+      state: hue?.querySelector('.p3-lever-state')?.textContent.trim() ?? '',
+      switches: levers?.querySelectorAll('[role="switch"]').length ?? -1,
+      titles: [...(levers?.querySelectorAll('.p3-lsec-title') ?? [])].map((t) => t.textContent.trim()),
+      adv: document.querySelector('[data-p3="palettes-advanced"]')?.textContent ?? null,
+    };
+  });
+  const fit = (page) => page.evaluate(() => {
+    const g = document.querySelector('[data-p3="neutral-source"]');
+    if (!g) return null;
+    const ctl = g.closest('.p3-lever-ctl').getBoundingClientRect();
+    const tabs = [...g.querySelectorAll('.p3-seg-tab')];
+    const pane = document.querySelector('[data-p3="levers-pane"]');
+    return { ctlRight: Math.round(ctl.right * 10) / 10, groupRight: Math.round(g.getBoundingClientRect().right * 10) / 10,
+      lastRight: Math.round(tabs[tabs.length - 1].getBoundingClientRect().right * 10) / 10,
+      clipped: tabs.filter((t) => t.scrollWidth > t.clientWidth).map((t) => t.textContent), paneOverflow: pane.scrollWidth - pane.clientWidth };
+  });
+  const fits = (f) => !!f && f.clipped.length === 0 && f.lastRight <= f.ctlRight + 0.5 && f.groupRight <= f.ctlRight + 0.5 && f.paneOverflow <= 0;
+  const settle = (page, want) => page.waitForFunction((w) => [...document.querySelectorAll('[data-p3="neutral-source"] [role="radio"]')]
+    .find((b) => b.getAttribute('aria-checked') === 'true')?.textContent === w, want, { timeout: 5000 }).catch(() => {}).then(() => page.waitForTimeout(150));
+  for (const host of ['web', 'figma']) {
+    for (const theme of ['light', 'dark']) {
+      for (const w of [1280, 380]) {
+        const where = `#2175 ${host} ${theme} ${w}`;
+        const { ctx, page, errors } = await open({ host, theme, w, h: 900 });
+        try {
+          // The anchor's truth: the persisted brand on the web; the preview's anchor pill on both (and they must agree).
+          const anchored = (x) => (host === 'web' ? !!x.stored?.anchor : x.pill);
+          const selected = (x) => x.radios.filter((r) => r.on).map((r) => r.l);
+          const shot = async (state) => {
+            if (!SHOTS) return;
+            await page.locator('[data-p3="lever-neutral-hue"]').scrollIntoViewIfNeeded();
+            await page.screenshot({ path: join(SHOTS, `2175-${host === 'web' ? 'web' : 'plugin'}-${theme}-${w}-${state}.png`), fullPage: false });
+          };
+          // Unpinned, as prism3 boots.
+          const s0 = await pn(page);
+          ok(JSON.stringify(s0.radios.map((r) => r.l)) === JSON.stringify(PN_LABELS), `${where}: the neutral source offers ${PN_LABELS.join(', ')}, in that order (offers ${JSON.stringify(s0.radios.map((r) => r.l))})`);
+          ok(selected(s0).length === 1 && selected(s0)[0] !== 'Pinned' && !anchored(s0), `${where}: unpinned, exactly one source is selected and it is not Pinned (${JSON.stringify(selected(s0))}, anchor ${anchored(s0)})`);
+          if (host === 'web') ok(!!s0.stored?.anchor === s0.pill, `${where}: the persisted anchor and the preview's anchor pill agree, unpinned (${!!s0.stored?.anchor}, ${s0.pill})`);
+          hooks.absent(ok, { seen: s0.radios.length === 3, state: 'the neutral source, unpinned' }, s0.blocks === 0 && !s0.field, `${where}: unpinned, no pinned color field is drawn (${s0.blocks} block(s), field ${s0.field})`);
+          const f0 = await fit(page);
+          ok(fits(f0), `${where}: unpinned, the three neutral sources fit their row with no clipping (${JSON.stringify(f0)})`);
+          await shot('unpinned');
+          // No Advanced pinned section remains, with Show advanced open.
+          await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
+          await hooks.need(page, '[data-p3="lever-status-info"]');
+          const sa = await pn(page);
+          ok(!sa.titles.includes('Pinned neutral') && sa.switches === 0 && sa.adv === 'Hide 4 advanced',
+            `${where}: no "Pinned neutral" section and no switch remain behind Show advanced (sections ${JSON.stringify(sa.titles)}, ${sa.switches} switch(es), "${sa.adv}")`);
+          await hooks.click(page.locator('[data-p3="palettes-advanced"]'));
+          // Pinned.
+          await hooks.click(page.locator('[data-p3="neutral-source-pinned"]'));
+          await settle(page, 'Pinned');
+          await hooks.need(page, '[data-p3="neutral-anchor-hex"]');
+          const s1 = await pn(page);
+          ok(JSON.stringify(selected(s1)) === '["Pinned"]' && anchored(s1), `${where}: choosing Pinned selects it alone and pins the neutral (${JSON.stringify(selected(s1))}, anchor ${anchored(s1)})`);
+          if (host === 'web') ok(!!s1.stored?.anchor === s1.pill, `${where}: the persisted anchor and the preview's anchor pill agree, pinned (${!!s1.stored?.anchor}, ${s1.pill})`);
+          ok(s1.blocks === 1 && s1.field && s1.underChoice === true, `${where}: pinned, the pinned color field appears once, directly under the source (${s1.blocks} block(s), field ${s1.field}, under ${s1.underChoice})`);
+          const ancField = page.locator('[data-p3="neutral-anchor-hex"]');
+          await ancField.fill(PN_GRAY);
+          await ancField.press('Enter');
+          await page.waitForFunction((t) => document.querySelector('[data-p3="lever-neutral-hue"] .p3-lever-state')?.textContent.trim() === t, PN_STATE, { timeout: 5000 }).catch(() => {});
+          const s2 = await pn(page);
+          ok(s2.state === PN_STATE, `${where}: pinned to ${PN_GRAY}, the state line reads "${PN_STATE}" (reads "${s2.state}")`);
+          const f1 = await fit(page);
+          ok(fits(f1), `${where}: pinned, the three neutral sources fit their row with no clipping (${JSON.stringify(f1)})`);
+          await shot('pinned');
+          // Follow primary while pinned: unpins, and Follow primary is the source.
+          await hooks.click(page.locator('[data-p3="neutral-source-follow"]'));
+          await settle(page, 'Follow primary');
+          const s3 = await pn(page);
+          ok(JSON.stringify(selected(s3)) === '["Follow primary"]' && !anchored(s3) && s3.blocks === 0 && s3.state === '',
+            `${where}: choosing Follow primary while pinned unpins and follows primary (${JSON.stringify(selected(s3))}, anchor ${anchored(s3)}, ${s3.blocks} block(s), state "${s3.state}")`);
+          if (host === 'web') ok(s3.stored?.auto === true && !('anchor' in (s3.stored ?? {})), `${where}: the saved neutral follows primary with no anchor (${JSON.stringify(s3.stored)})`);
+          // Pin again, then Custom tint: unpins, and the custom tint is the source.
+          await hooks.click(page.locator('[data-p3="neutral-source-pinned"]'));
+          await settle(page, 'Pinned');
+          const s4 = await pn(page);
+          ok(JSON.stringify(selected(s4)) === '["Pinned"]' && anchored(s4), `${where}: Pinned again from Follow primary (${JSON.stringify(selected(s4))}, anchor ${anchored(s4)})`);
+          if (host === 'web') ok(s4.stored?.auto === true && !!s4.stored?.anchor, `${where}: pinning keeps the saved Follow primary underneath (${JSON.stringify(s4.stored)})`);
+          await hooks.click(page.locator('[data-p3="neutral-source-custom"]'));
+          await settle(page, 'Custom tint');
+          const s5 = await pn(page);
+          ok(JSON.stringify(selected(s5)) === '["Custom tint"]' && !anchored(s5) && s5.blocks === 0,
+            `${where}: choosing Custom tint while pinned unpins and takes the custom tint (${JSON.stringify(selected(s5))}, anchor ${anchored(s5)}, ${s5.blocks} block(s))`);
+          if (host === 'web') ok(!('auto' in (s5.stored ?? {})) && !('anchor' in (s5.stored ?? {})) && typeof s5.stored?.hue === 'number', `${where}: the saved neutral is a custom tint with no anchor (${JSON.stringify(s5.stored)})`);
+          ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+        } catch (e) {
+          ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        } finally { await ctx.close(); }
+      }
+    }
+  }
+}
+
+
+// Search still finds the pinned neutral while unpinned (review of #2195). Unpinned, `neutral.anchor` draws no block of its
+// own, so the "Neutral hue" block, which holds its Pinned choice, must answer a search for it, as main's Advanced block did.
+for (const host of ['web', 'figma']) {
+  for (const q of ['pin', 'anchor']) {
+    const where = `#2175 search ${host} "${q}"`;
+    const { ctx, page } = await open({ host, theme: 'light', w: 1280, h: 900 });
+    try {
+      await hooks.click(page.locator('[data-p3="search-open"]'));
+      await hooks.need(page, '[data-p3="search-input"]');
+      await page.keyboard.type(q, { delay: 20 });
+      await page.waitForFunction(() => !!document.querySelector('[data-p3="search-status"]')?.textContent, null, { timeout: 5000 }).catch(() => {});
+      const r = await page.evaluate(() => {
+        const g = document.querySelector('[data-p3="levers-pane"] [data-p3="neutral-source"]');
+        return { source: !!g && g.getBoundingClientRect().height > 0, anchorBlocks: document.querySelectorAll('[data-p3="lever-neutral-anchor"]').length,
+          status: document.querySelector('[data-p3="search-status"]')?.textContent ?? '' };
+      });
+      ok(r.source && r.anchorBlocks === 0, `${where}: unpinned, searching "${q}" reaches the Neutral source group, where Pinned is chosen (${JSON.stringify(r)})`);
     } catch (e) {
       ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
     } finally { await ctx.close(); }

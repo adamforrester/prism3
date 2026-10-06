@@ -2,10 +2,11 @@
  * Color › Palettes, the levers panel (UI redesign S2; concept v6's Palettes page, V7, R2, R3).
  *
  * WHAT IT DRAWS, in v6's order, from the page's sections in `shell/pages.ts`: the page intro; Primary;
- * Brand colors, with a row per color and the dashed add; Neutrals (follow primary or a custom tint, then
- * chroma); and behind "Show 5 advanced", the pinned neutral and the four status colors (R2: Palettes keeps
- * the manifest's `advanced` flag). Last, the way on to the next sub-page. Each manifest key homed here draws
- * its `lever-*` block exactly once.
+ * Brand colors, with a row per color and the dashed add; Neutrals (one source of three: Follow primary, Custom
+ * tint or Pinned, then the pinned color while pinned, then chroma); and behind "Show 4 advanced", the four status
+ * colors (R2: Palettes keeps the manifest's `advanced` flag; #2175 cleared it on `neutral.anchor`). Last, the way
+ * on to the next sub-page. Each manifest key homed here draws its `lever-*` block at most once, and `neutral.anchor`
+ * draws its block only while pinned: unpinned, its control is the Pinned choice in the source.
  *
  * HOW IT REPAINTS: by store subscription only (plan §5). A control writes the brand through
  * `state/palette-input.ts` and calls `rebuild()`; the `brand` topic tells this panel, the preview and the
@@ -26,7 +27,7 @@ import {
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { glyph, h, hook } from '../shell/dom';
 import { noteEdit } from '../preview/follow-edit';
-import { choice, colorField, inlineConfirm, leverBlock, setText, leverOf, selectField, sliderReadout, slider, stateLine, subLine, switchButton, type LeverBlock } from '../ui/lever-kit';
+import { choice, colorField, inlineConfirm, leverBlock, setText, leverOf, selectField, sliderReadout, slider, stateLine, subLine, type LeverBlock } from '../ui/lever-kit';
 
 const PAGE = (DOMAINS.find((d) => d.id === 'color') as { subpages: readonly PageData[] }).subpages.find((p) => p.id === 'palettes')!;
 const pad = (n: number): string => String(n).padStart(3, '0');
@@ -164,9 +165,23 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
       const hueL = leverOf('neutral.hue')!, chL = leverOf('neutral.chroma')!;
       const follow = !!brandState.neutral.auto;
       const pinned = !!brandState.neutral.anchor;
-      const a = leverBlock('neutral.hue', { group: true });
-      const src = choice('Neutral source', 'neutral-source', [{ v: 'follow', l: 'Follow primary' }, { v: 'custom', l: 'Custom tint' }] as const,
-        (v) => edit('neutral.hue', () => setNeutralFollow(v === 'follow')));
+      // Unpinned, `neutral.anchor` draws no block of its own: its control is the Pinned choice here. So this block
+      // answers a search for it, by the anchor lever's label and key (searchable text only; nothing visible changes).
+      const ancL = leverOf('neutral.anchor');
+      const a = leverBlock('neutral.hue', { group: true, alsoSays: pinned || !ancL ? undefined : `${ancL.label} ${ancL.key}` });
+      // #2175 (owner, PN1 B): Pinned is the third source. The engine builds the ramp from exactly one of the three
+      // (a pinned anchor wins over Follow primary and the custom hue), so exactly one is selected, and Pinned is
+      // selected exactly when `neutral.anchor` is set. Choosing Pinned does what the old switch did on; choosing
+      // Follow primary or Custom tint while pinned unpins and then sets that source, which is the old switch off
+      // followed by that choice. The saved value keeps its shape: `auto` and `hue` are never touched by pinning.
+      const src = choice('Neutral source', 'neutral-source',
+        [{ v: 'follow', l: 'Follow primary' }, { v: 'custom', l: 'Custom tint' }, { v: 'pinned', l: 'Pinned' }] as const,
+        (v) => {
+          if (v === 'pinned') { edit('neutral.anchor', () => setNeutralPinned(true)); return; }
+          edit('neutral.hue', () => { if (brandState.neutral.anchor) setNeutralPinned(false); setNeutralFollow(v === 'follow'); });
+        });
+      // Three segments fit the narrow tier only at the tighter padding (chrome.css, `.p3-seg-snug`).
+      src.el.classList.add('p3-seg-snug');
       const followLine = subLine('');
       const hue = slider('neutral.hue', 'neutral-hue-slider', hueL.label, (v) => edit('neutral.hue', () => setNeutralHue(v)));
       // As the legacy page: only a custom tint edits hue and chroma. A pinned neutral shows the anchor's
@@ -175,6 +190,10 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
       // held for the owner, UI redesign S2 review.)
       a.ctl.append(src.el, follow && !pinned ? followLine : hue.el);
       hue.el.disabled = pinned;
+      // The pinned color, directly under the source while Pinned is selected, in its own lever block.
+      const p = pinned ? leverBlock('neutral.anchor', { label: 'Pinned neutral', forId: 'p3-neutral-anchor' }) : null;
+      const cf = p ? colorField('p3-neutral-anchor', 'Pinned neutral', 'neutral-anchor', (v) => edit('neutral.anchor', () => setNeutralAnchor(v))) : null;
+      if (p && cf) p.ctl.append(cf.el);
       const b = leverBlock('neutral.chroma', { forId: 'p3-neutral-chroma' });
       const ch = slider('neutral.chroma', 'neutral-chroma-slider', chL.label, (v) => edit('neutral.chroma', () => setNeutralChroma(v)));
       ch.el.disabled = pinned || follow;
@@ -183,34 +202,23 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
         { block: a, keys: ['neutral.hue'], sync: () => {
           const n = brandState.neutral;
           const f = !!n.auto;
-          src.set(f ? 'follow' : 'custom');
+          src.set(n.anchor ? 'pinned' : f ? 'follow' : 'custom');
           const eff = f ? brandState.primary.h : n.hue;
           setText(followLine, `Hue follows primary: ${Math.round(eff * 10) / 10}°.`);
           const h0 = n.anchor ? n.anchor.h : n.hue;
           hue.set(h0);
           a.setReadout(n.anchor ? sliderReadout(hueL, h0) : f ? `${Math.round(eff)}° · follows primary` : sliderReadout(hueL, n.hue));
-          a.setState(n.anchor ? stateLine(`A pinned neutral in Advanced sets the ramp: ${hexOf(n.anchor)}. Hue and chroma are its readout.`) : null);
+          a.setState(n.anchor ? stateLine(`A pinned neutral sets the ramp: ${hexOf(n.anchor)}. Hue and chroma are its readout.`) : null);
         } },
+        ...(p && cf ? [{ block: p, keys: ['neutral.anchor'], sync: () => {
+          const anc = brandState.neutral.anchor;
+          if (anc) cf.set(hexOf(anc), oklchMeta(anc));
+        } }] : []),
         { block: b, keys: ['neutral.chroma'], sync: () => {
           const c0 = brandState.neutral.anchor ? brandState.neutral.anchor.c : brandState.neutral.chroma;
           ch.set(c0); b.setReadout(sliderReadout(chL, c0));
         } },
       ];
-    },
-
-    neutralAnchor: () => {
-      const b = leverBlock('neutral.anchor', { forId: 'p3-neutral-pin' });
-      const sw = switchButton('p3-neutral-pin', leverOf('neutral.anchor')!.label, 'neutral-pin-switch',
-        { on: 'Pinned', off: 'Off: the ramp is derived from hue and chroma' }, (on) => edit('neutral.anchor', () => setNeutralPinned(on)));
-      b.ctl.append(sw.el);
-      const pinned = !!brandState.neutral.anchor;
-      const cf = pinned ? colorField('p3-neutral-anchor', 'Pinned neutral', 'neutral-anchor', (v) => edit('neutral.anchor', () => setNeutralAnchor(v))) : null;
-      if (cf) b.ctl.append(cf.el);
-      return [{ block: b, keys: ['neutral.anchor'], sync: () => {
-        const anc = brandState.neutral.anchor;
-        sw.set(!!anc);
-        if (cf && anc) cf.set(hexOf(anc), oklchMeta(anc));
-      } }];
     },
 
     status: (keys) => {
