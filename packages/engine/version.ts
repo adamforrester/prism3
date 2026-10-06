@@ -2744,6 +2744,36 @@
 /**
  * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
  *
+ * 0.230.0 — folded 2026-10-06 from 4 change notes, newest merge first.
+ *
+ * [engine-2198-max-seven-breakpoints · minor · 9b91eebb] Layout refuses more than seven breakpoints (#2198). `bpNames` names seven, xs to 3xl, and an eighth built
+ * and took the placeholder name `bp7`. `buildLayout` now refuses a list longer than seven (owner decision
+ * 2026-10-06, Q43 A), with the count as entered: "The brand can have at most seven breakpoints. This brand has
+ * <n>." The refusal is in the build path, so MCP `validate_brand` and the generating tools report it in that
+ * sentence. Narrowing what the engine accepts is a behavior change, so this is a minor bump with no contract
+ * change. No committed artifact moves: no committed brand, fixture or brief declares more than seven.
+ *
+ * [engine-2162-theme-brand-iserror · minor · 2fcaa51b] MCP's generating tools report a build-time refusal as an `isError` result, not a protocol error (#2162).
+ * `theme_brand`, `theme_from_brief`, `export_theme` and `score_consumption` caught `brandTheme` but called
+ * `buildTree` outside any `try`, so a refusal that fires only once the modes resolve (an override naming an
+ * unknown palette or step) escaped `tools/call` as a -32603 internal error, which a client may not hand back to
+ * the model. All four now build through one guarded helper, and a refusal from either step returns
+ * `{ error: 'BrandInput refused by the engine', errors: [<the engine's sentence>] }` with `isError`, the same
+ * shape the schema failure uses. A `brandTheme` refusal used to read `{ error: 'brandTheme failed: <msg>' }`
+ * and now uses that shape too. No token, name or value moves.
+ *
+ * [ui-s112-style-guide-plumbing · minor · 9c396ae7] Plugin: the style guide's plumbing for the Build style guides page (UI redesign S11.2). A failed table no longer ends
+ * the run: it is reported failed with the host's words and the next table is drawn ("⚠ 21 drawn, 1 failed"). A run can
+ * be stopped after its current table (`style-guide-cancel`); a stopped run deletes no superseded table. A panel run posts
+ * its table list and each table's move; `style-guide-catalog-request` answers with the file's collections, variables,
+ * text styles, the tables a run would draw and whether Set up file has run. No emitted artifact moves.
+ *
+ * [engine-2159-validate-full-build · minor · 4d593212] MCP `validate_brand` runs the same build path as `theme_brand` (#2159): `brandTheme`, then `buildTree`.
+ * Since #2158 it ran `brandTheme` alone, so a refusal that fires only once the modes resolve, such as an
+ * override naming an unknown palette or step, still passed `validate_brand` and then failed `theme_brand`.
+ * Those refusals are now reported in the engine's own words. The guard is unchanged: a schema-invalid input
+ * never reaches the build. No token, name or value moves.
+ *
  * 0.229.0 — folded 2026-10-05 from 4 change notes, newest merge first.
  *
  * [engine-2146-breakpoint-prose-validate · minor · 443cd7e4] The breakpoint prose says the first is always 0, and `validate_brand` reports the engine's own refusals
@@ -4617,7 +4647,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.229.0';
+export const ENGINE_VERSION = '0.230.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
