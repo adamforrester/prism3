@@ -2109,6 +2109,12 @@ const buildLayout = (input: BrandInput['layout'] = {}): LayoutAxis => {
     throw new Error('The brand needs at least one breakpoint, starting at 0px.');
   if (floors[0] !== 0)
     throw new Error(`The first breakpoint must be 0px. This brand starts at ${floors[0]}px.`);
+  // #2198 (owner decision 2026-10-06, Q43 A: refuse). `bpNames` names seven, xs to 3xl. An eighth built and
+  // took the placeholder `bp7` from the fallback below, a name no consumer could expect. Refused here, in the
+  // build path, so `validate_brand` and the generating tools report it in this sentence (DRAFT wording,
+  // awaiting the owner). The studio's input already stops at seven (`MAX_BREAKPOINTS`).
+  if (floors.length > 7)
+    throw new Error(`The brand can have at most seven breakpoints. This brand has ${floors.length}.`);
   const base = input.columns ?? 12;
   const n = floors.length;
   const names = bpNames(n);

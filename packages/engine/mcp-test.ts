@@ -247,6 +247,15 @@ await new Promise((r) => setTimeout(r, 3000));
   const pal = (await server.callJson('validate_brand', { ...B, overrides: { light: { 'foreground.brand': { palette: 'nope', step: '500' } } } })).payload;
   ok(pal.valid === false && pal.errors.length === 1 && pal.errors[0] === "overrides[light]: unknown palette 'nope' (role 'foreground.brand')",
     `#2159 validate_brand reports an override naming an unknown palette, a refusal only buildTree reaches (got ${JSON.stringify(pal)})`);
+  // #2198: more than seven breakpoints, refused in the build path, so validate_brand reports the sentence.
+  const eight = (await server.callJson('validate_brand', { ...B, layout: { breakpoints: [0, 360, 480, 768, 1024, 1440, 1920, 2560] } })).payload;
+  ok(eight.valid === false && eight.errors.length === 1 && eight.errors[0] === 'The brand can have at most seven breakpoints. This brand has 8.',
+    `#2198 validate_brand reports the more-than-seven refusal (got ${JSON.stringify(eight)})`);
+  // …and so does a generating tool, through #2200's guarded build (isError, the sentence in `errors`).
+  const eightTheme = await server.reply(server.send('tools/call', { name: 'theme_brand', arguments: { brand: { ...B, layout: { breakpoints: [0, 360, 480, 768, 1024, 1440, 1920, 2560] } } } }));
+  const eightPayload = eightTheme.result ? JSON.parse(eightTheme.result.content[0].text) : null;
+  ok(!eightTheme.error && eightTheme.result?.isError === true && eightPayload?.errors?.[0] === 'The brand can have at most seven breakpoints. This brand has 8.',
+    `#2198 theme_brand refuses an eighth breakpoint as an isError result carrying the sentence (got ${eightTheme.error ? 'RPC error ' + eightTheme.error.code : JSON.stringify(eightPayload)})`);
   const good = (await server.callJson('validate_brand', B)).payload;
   ok(good.valid === true && good.errors.length === 0, `#2146 a brand the engine builds is still valid, with no errors (got ${JSON.stringify(good)})`);
   // A schema-invalid input is NOT handed to brandTheme: it would fail there with a TypeError rather than a
