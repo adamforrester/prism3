@@ -33,7 +33,7 @@
  */
 import { subscribe } from '../state/store';
 import { focusables, glyph, h, hook, pendingLabel, setBusy, tile, trapTab } from './dom';
-import type { FigmaSource } from './figma';
+import type { FigmaAction } from './figma';
 
 /** The brand menu's state, read from `main.ts` on every repaint. */
 export type BarView = {
@@ -117,8 +117,8 @@ export type BarPlaced = {
   readonly figma: HTMLElement | null;
   /** The theme menu (F3; both hosts since 2026-10-05), placed before Activity and Export so Export ends the web's bar. */
   readonly theme: HTMLElement | null;
-  /** The Figma menu's writes: the bar's Apply Theme is its `apply` item, the same label, state and function. */
-  readonly figmaSource: FigmaSource | null;
+  /** The bar's Apply Theme: its busy and off states, tooltip and function. The Figma menu does not list it (#2178). */
+  readonly applyTheme: (() => FigmaAction) | null;
 };
 
 /** Mount the bar's controls into `host` (the frame's bar slot). Returns the node, which is the `brand-bar` chrome
@@ -148,13 +148,13 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
 
   // ── Apply Theme (plugin), Export ─────────────────────────────────────────────────────────────────
   let applyBtn: HTMLButtonElement | null = null;
-  if (placed.figmaSource) {
+  if (placed.applyTheme) {
     // The primary CTA, the one inverse-filled control, last on the bar. Busy while any Apply runs (owner decision #4
     // on #1956); off, natively, while the file's brand does not resolve (#1989), with the reason as its tooltip.
     applyBtn = hook(h('button', 'p3-btn p3-btn-primary'), 'apply-to-figma');
     applyBtn.type = 'button';
     applyBtn.append(pendingLabel('Apply Theme', 'Applying…'));
-    applyBtn.onclick = () => placed.figmaSource!().find((a) => a.id === 'apply')?.run();
+    applyBtn.onclick = () => placed.applyTheme!().run();
   }
   // Export: a bar tile (the owner's top-bar decision, 2026-10-05), its download glyph over "Export", the glyph alone
   // at narrow widths; the name and the tooltip stay "Export".
@@ -189,11 +189,11 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     brandWrap.querySelector(':scope > [data-p3="brand-menu"]')?.remove();
     if (v.menuOpen) brandWrap.append(brandMenu(v));
 
-    if (applyBtn && placed.figmaSource) {
-      const a = placed.figmaSource().find((x) => x.id === 'apply');
-      setBusy(applyBtn, !!a?.busy);
-      applyBtn.disabled = !!a?.disabled && !a.busy;
-      if (a?.hint && a.disabled) applyBtn.title = a.hint; else applyBtn.removeAttribute('title');
+    if (applyBtn && placed.applyTheme) {
+      const a = placed.applyTheme();
+      setBusy(applyBtn, !!a.busy);
+      applyBtn.disabled = a.disabled && !a.busy;
+      if (a.hint && a.disabled) applyBtn.title = a.hint; else applyBtn.removeAttribute('title');
     }
     exp.setAttribute('aria-expanded', String(v.exportOpen));
 
