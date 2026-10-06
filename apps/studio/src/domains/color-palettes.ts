@@ -165,7 +165,10 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
       const hueL = leverOf('neutral.hue')!, chL = leverOf('neutral.chroma')!;
       const follow = !!brandState.neutral.auto;
       const pinned = !!brandState.neutral.anchor;
-      const a = leverBlock('neutral.hue', { group: true });
+      // Unpinned, `neutral.anchor` draws no block of its own: its control is the Pinned choice here. So this block
+      // answers a search for it, by the anchor lever's label and key (searchable text only; nothing visible changes).
+      const ancL = leverOf('neutral.anchor');
+      const a = leverBlock('neutral.hue', { group: true, alsoSays: pinned || !ancL ? undefined : `${ancL.label} ${ancL.key}` });
       // #2175 (owner, PN1 B): Pinned is the third source. The engine builds the ramp from exactly one of the three
       // (a pinned anchor wins over Follow primary and the custom hue), so exactly one is selected, and Pinned is
       // selected exactly when `neutral.anchor` is set. Choosing Pinned does what the old switch did on; choosing

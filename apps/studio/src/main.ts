@@ -21,10 +21,9 @@
  */
 import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput, Theme } from '@prism3/engine/theme';
-import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast, composite } from '@prism3/engine/color';
+import { hex, oklchToRgb, contrast, composite } from '@prism3/engine/color';
 import { resolveAllModes } from '@prism3/engine/modes';
-import { parseDesignMd, toDesignMd } from '@prism3/engine/design-md';
-import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '@prism3/engine/standard-design-md';
+import { toDesignMd } from '@prism3/engine/design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
 import { hostCommit, type HostCommit } from './write-adapter';
 import { initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type DetailKey, type OpKey } from './state/host-session';
@@ -35,6 +34,12 @@ import { isNewPage, pageOfTab, type LegacyPageKey } from './shell/pages';
 import type { ActivityReading, OpReading } from './shell/activity';
 import type { FigmaAction } from './shell/figma';
 import { glyph, pendingLabel, setBusy } from './shell/dom';
+// The start window (UI redesign S12) and what it shares with the brand menu's import: one check for every paste and
+// every file, with the error naming its line (owner decision S7).
+import { openStart, type StartChoice, type StartWindow } from './shell/start';
+import {
+  IMPORT_ACCEPT, guardText, importErrorText, readDesignMdFile, validateDesignMd, validatePaste,
+} from './state/start-input';
 // The Style guide's shared color sections and the helpers they draw with (UI redesign S4a, owner decision Q5):
 // Color › Surfaces & fills draws the same five sections from the same modules.
 import {
@@ -53,7 +58,7 @@ import { brandControlShape } from './state/shape-input';
 // Motion control to `domains/depth.ts` (S9.2); the Type writes to `state/type-input.ts` and every Type control to
 // `domains/type.ts` (S6.1 to S6.3). Nothing here writes either any more.
 import {
-  needsOverwriteConfirm, isDirty, isUnrecoverable,
+  needsOverwriteConfirm, isDirty, isUnrecoverable, editCount,
   type Origin,
 } from './provenance';
 import {
@@ -74,14 +79,7 @@ import {
 // hands both to the store's `initSession` before anything renders. `firstRun`, the start screen's
 // gate, is the store's reading of that origin.
 
-// A minimal, known-good starting point for "New brand": one mid-indigo primary + a
-// derived neutral, action defaults to primary, namespace at the 'prism' placeholder.
-const NEW_BRAND = (): BrandInput => ({
-  id: 'untitled', root: 'prism',
-  modes: ['light'],                               // most brands ship light only (docs/11 Pillar 1)
-  primary: { l: 0.55, c: 0.15, h: 262 },
-  neutral: { hue: 262, chroma: 0.006, auto: true },   // neutral hue auto-follows primary (262 = primary.h → identical ramp; now live-linked)
-});
+// The start paths' brands ("Start blank", a color's seed) moved to `state/start-input.ts` with the start window (S12).
 
 const MODE_LABEL: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light', 'hc-dark': 'HC dark', wireframe: 'Wireframe' };
 
@@ -1437,7 +1435,7 @@ const hero = (title: string, lede: string): HTMLElement => {
 let app: HTMLElement;
 export const mountApp = (root: HTMLElement): void => { app = root; };
 let workspace: HTMLElement;
-/** The new frame (S1.2), while the app view is mounted; null on the start view. */
+/** The new frame (S1.2), mounted by the first `build()` and kept; the start window opens in its layer (S12). */
 let frame: Frame | null = null;
 let modeStripHost: HTMLElement;   // top of the WORKSPACE — the mode bar sits with what it scopes (#432)
 let chromeHost: HTMLElement;      // the sticky header, measured into --chrome-h
@@ -1480,10 +1478,11 @@ let chromeHost: HTMLElement;      // the sticky header, measured into --chrome-h
  *     They are bar CONTENT, and promoting content to a surface would put a plugin-only pill into the
  *     floor every web view has to carry.
  *
- *   • The START SCREEN's import validation stays a field message on its own control — see the note at
- *     `renderStartScreen` for the distinction between a rejected input and adopted state.
+ *   • The START WINDOW's import validation stays a field message on its own control (`shell/start.ts`): a
+ *     rejected input the app never adopted, unlike the engine error this list carries.
  */
-type RootView = 'start' | 'app';
+/** The one root view since UI redesign S12: the start is a window over it, not a view of its own. */
+type RootView = 'app';
 type ChromeSurface = {
   /** Stable identity. Stamped as `data-chrome` on the mounted node and published in the roster, so
    *  "is this surface actually there" is answerable from the rendered page rather than from this file. */
@@ -1532,14 +1531,10 @@ const CHROME_SURFACES: readonly ChromeSurface[] = [
     // toggles, apply state, brand load), which is the reason `sync` is optional at all.
   },
   {
-    key: 'error', home: 'root', views: ['start', 'app'],
-    // THE SURFACE THIS MECHANISM IS NAMED AFTER (#388). It is the one entry scoped to every view, and
-    // the start screen is in that list even though `lastError` is unreachable there today — nothing
-    // calls `rebuild()` before an origin exists. Mounted anyway, because the EXEMPTION is what would
-    // rot: the next pre-brand view that does touch the engine would inherit "no error surface" from a
-    // list it never read, which is this ticket's defect with a different page in it. A hidden node
-    // costs a div; the precedent costs the ticket. (Its own import validation stays where it is — see
-    // the survey note in `renderStartScreen`.)
+    key: 'error', home: 'root', views: ['app'],
+    // THE SURFACE THIS MECHANISM IS NAMED AFTER (#388). It was scoped to the start view too, while the start was a
+    // root view of its own; since S12 the start is a window over the app view, which carries it. (The start
+    // window's import errors stay field messages on their own controls: a rejected input, not adopted state.)
     mount: () => { globalErrHost = hook(el('div', 'errbar errbar-global'), 'error-bar'); return globalErrHost; },
     sync: () => syncErrorBar(),
   },
@@ -1609,7 +1604,7 @@ const chromeRoster = (view: RootView): string[] =>
  *  branch of `build()` happened to be written first. */
 const mountView = (view: RootView, body: () => HTMLElement): void => {
   document.documentElement.dataset.chromeRoster = chromeRoster(view).join(' ');
-  if (view === 'app') {
+  {
     // THE APP VIEW LIVES IN THE NEW FRAME (UI redesign S1.2, `shell/frame.ts`): the top bar, the tab row
     // and the legacy frame. The frame is mounted once and outlives every render, so a tab keeps focus
     // across the page change it causes; what is re-minted here, on every `build()`, is what the frame
@@ -1640,19 +1635,6 @@ const mountView = (view: RootView, body: () => HTMLElement): void => {
     mountSurfaces('bar', view, frame.bar);
     mountSurfaces('root', view, frame.notices);
     frame.legacyPage.replaceChildren(body());
-  } else {
-    frame?.unmount();
-    frame = null;
-    app.innerHTML = '';
-    // The start screen is legacy until S12, so it is pinned light like the legacy frame (D2).
-    app.dataset.theme = 'light';
-    // Two-tier global header (docs/23 §7): tier 1 = brand identity + Export (the "brand bar"); tier 2 =
-    // the persistent mode selector. The mode bar is NOT tier 2 any more (#432) — it is minted into the
-    // workspace instead — so the chrome carries brand identity and app-level status.
-    const chrome = el('header', 'chrome');
-    chromeHost = chrome;
-    mountSurfaces('root', view, chrome);
-    app.append(chrome, body());
   }
   // Sync AFTER the append, never before: a surface's first paint is its sync, and the initial state is
   // always DERIVED — page nav re-runs `build()`, so a hardcoded "hidden" at mount would drop a live
@@ -2185,6 +2167,7 @@ const loadBrand = (input: BrandInput, origin: Origin): void => {
   if (restoreFailure && restoreFailure.kind !== 'unresolved') restoreFailure = null;
   try { loadInput(input, origin); } finally { loading = false; }
   brandMenuOpen = false; importOpen = false; importErr = null; importText = ''; pendingLoad = null;
+  startReopened = false;   // a load is a choice: the start window closes with it (S12)
   build();
 };
 
@@ -2232,57 +2215,8 @@ const exportTokens = (): void => {
   }
 };
 
-// design.md import (#160) — one validation path shared by the start-screen upload card and the
-// post-setup import, so both reject the same off-spec input with the same friendly errors.
-const MD_FILE_RE = /\.(md|markdown|txt)$/i;
-const IMPORT_ACCEPT = '.md,.markdown,.txt,text/markdown,text/plain';
-
-/** Engine acceptance IS the validation: parse the design.md, then confirm the engine builds it.
- *  Returns the BrandInput or a friendly error — the working brand is never touched here. (The full
- *  schema validator is node-bound, so it can't run here; brandTheme's guards cover the rest.)
- *
- *  Mirrors cli.ts's dialect auto-detection (#556): a design.md may be ENGINE-NATIVE (frontmatter
- *  compiles 1:1 to BrandInput, read by `parseDesignMd`) or STANDARD (brand-skills / google-labs —
- *  a flat `colors:` hex map, read by `parseStandardDesignMd` + `standardToBrandInput`). Before this
- *  fix the web import path only ever tried the native parser, so a standard-dialect file like
- *  `examples/wendys.design.md` parsed into an empty/malformed BrandInput and crashed inside
- *  `brandTheme` with an engine-internals error ("Cannot read properties of undefined (reading 'l')")
- *  instead of importing. Detection is the same rule cli.ts uses: a top-level flat `colors:` map is
- *  the standard dialect (engine-native briefs never have one). */
-const validateDesignMd = (text: string): { input: BrandInput } | { error: string } => {
-  if (!text.trim()) return { error: 'Nothing to import — the file is empty.' };
-
-  // ---- detect dialect: a top-level flat `colors:` map is the standard dialect ----
-  let std;
-  try { std = parseStandardDesignMd(text); }
-  catch (e) { return { error: `That doesn't read as a design.md: ${(e as Error).message}` }; }
-  const isStandard = isStandardDesignMd(std);
-
-  let input: BrandInput;
-  if (isStandard) {
-    try { input = standardToBrandInput(std).input; }
-    catch (e) { return { error: `Parsed as a standard-dialect design.md, but couldn't classify '${std.name}': ${(e as Error).message}` }; }
-  } else {
-    try { input = parseDesignMd(text).input; }
-    catch (e) { return { error: `That doesn't read as a design.md: ${(e as Error).message}` }; }
-  }
-
-  try { brandTheme(input); }
-  catch (e) { return { error: `Parsed, but the engine rejected it: ${(e as Error).message}` }; }
-  return { input };
-};
-
-/** Read an uploaded File as design.md text, rejecting non-markdown/text file types up front (#160). */
-const readDesignMdFile = (file: File): Promise<{ text: string } | { error: string }> => {
-  const okType = MD_FILE_RE.test(file.name) || /^text\//.test(file.type || '');
-  if (!okType) return Promise.resolve({ error: `That's not a design.md — upload a .md file (got "${file.name}").` });
-  return new Promise((resolve) => {
-    const r = new FileReader();
-    r.onload = () => resolve({ text: String(r.result ?? '') });
-    r.onerror = () => resolve({ error: `Couldn't read "${file.name}".` });
-    r.readAsText(file);
-  });
-};
+// design.md import (#160): the check, the file reader and the picker's types live in `state/start-input.ts` (S12), so
+// the brand menu's paste and the start window's paste are held by one check.
 
 /** Post-setup import: validate, then STAGE for confirm-overwrite — loadBrand replaces the working
  *  brand, so we never overwrite current edits without an explicit Replace (#160).
@@ -2294,10 +2228,10 @@ const readDesignMdFile = (file: File): Promise<{ text: string } | { error: strin
  *  and a baseline we can ask whether anything would actually be lost, so the prompt only appears when
  *  it is true, and #160's guarantee is strengthened rather than weakened: it still cannot overwrite
  *  real edits silently. */
-const stageImport = (text: string): void => {
+const stageImport = (text: string, from: 'paste' | 'file'): void => {
   importText = text;              // M-17: keep the paste so an error re-render doesn't wipe it
-  const res = validateDesignMd(text);
-  if ('error' in res) { importErr = res.error; pendingLoad = null; renderBar(); return; }
+  const res = from === 'paste' ? validatePaste(text) : validateDesignMd(text);
+  if ('error' in res) { importErr = importErrorText(res.error); pendingLoad = null; renderBar(); return; }
   importErr = null;
   stageLoad(res.input, { kind: 'import', label: String(res.input.id ?? 'design.md') });
 };
@@ -2409,27 +2343,16 @@ const renderBrandMenu = (): HTMLElement => {
   // exactly the reason #1034 excluded web from the marker in the first place. The condition it tested
   // has no subject left: there is no longer a state in which this button does nothing.
   const nb = hook(el('button', 'bm-item', '+ New brand') as HTMLButtonElement, 'brand-menu-new');
-  // BOTH HOSTS return to the start moment (#1197). This branch used to fork: web cleared the origin,
-  // the plugin loaded `NEW_BRAND()` in place, and the comment here said the plugin "must not surface
-  // the web start screen" because that port was a deferred cross-lane follow-up (#506/#533). #1197 is
-  // that follow-up, and the decision is that the two hosts offer the same four paths — a designer in
-  // Figma starting a new brand can pick an example or upload a design.md, which the direct load could
-  // not do.
-  //
-  // The fork does not survive as a smaller fork, either: the plugin's own confirm-before-replace
-  // (#1034's fold-in) is not needed here any more, because clearing the origin REPLACES NOTHING. The
-  // working brand stays exactly where it is and the start screen renders in front of it; the replace
-  // happens later, when a path is chosen, and each of those paths goes through `loadBrand` with its
-  // own origin. That is why the guard and the `alreadyNew` marker below can both go: neither has a
-  // subject once the click stops overwriting the brand.
+  // BOTH HOSTS reopen the start (#1197), now a window over the studio (UI redesign S12). The working brand and its
+  // origin stay exactly as they are while it is open: nothing is replaced until a path is chosen, and every path asks
+  // first when it would discard edits (owner decision G15 A, the guard in `shell/start.ts`). So Close returns to the
+  // brand unchanged with nothing to put back. Until S12 this cleared the origin, which made `needsOverwriteConfirm`
+  // false and let every start path drop unsaved edits without asking (the S12 scoping report, headline 8).
   nb.onclick = () => {
     brandMenuOpen = false;
-    // #722: returning to the start moment is an ORIGIN CHANGE — clear the origin and the start screen
-    // follows, because `firstRun()` reads it. Previously this set a flag that `loadBrand` knew nothing
-    // about, which is why re-entry looked like it needed its own path. The working brand is
-    // deliberately left in place: it is what the app renders behind the start screen.
-    clearOrigin();
-    build();
+    startReopened = true;
+    renderBar();
+    syncStart();
   };
   menu.append(nb);
   const imp = hook(el('button', 'bm-item', '↑ Import design.md…') as HTMLButtonElement, 'brand-menu-import');
@@ -2463,20 +2386,20 @@ const renderImportBox = (): HTMLElement => {
   ta.value = importText;                                   // M-17: restore across re-renders
   ta.oninput = () => { importText = ta.value; };           // a mode-toggle mid-paste won't lose it
   box.append(ta);
-  if (importErr) box.append(el('p', 'bm-err', importErr));
+  if (importErr) box.append(hook(el('p', 'bm-err', importErr), 'import-error'));
   const row = el('div', 'bm-import-row');
   const up = el('label', 'bm-upload');
-  const fi = el('input', 'bm-file') as HTMLInputElement;
+  const fi = hook(el('input', 'bm-file') as HTMLInputElement, 'import-file');
   fi.type = 'file'; fi.accept = IMPORT_ACCEPT;
   fi.onchange = async () => {
     const f = fi.files?.[0]; if (!f) return;
     const read = await readDesignMdFile(f);
     if ('error' in read) { importErr = read.error; pendingLoad = null; renderBar(); return; }
-    stageImport(read.text);
+    stageImport(read.text, 'file');
   };
   up.append(el('span', undefined, '↑ Upload .md'), fi);
   const load = hook(el('button', 'bm-load', 'Load') as HTMLButtonElement, 'import-load');
-  load.onclick = () => stageImport(ta.value);
+  load.onclick = () => stageImport(ta.value, 'paste');
   row.append(up, load);
   box.append(row);
   return box;
@@ -3270,113 +3193,41 @@ const renderNavMenu = (): HTMLElement => {
   return menu;
 };
 
-/** Seed a fresh brand from a single hex color: the engine grows a full system from one primary, so
- *  the color's OKLCH becomes the primary anchor and the neutral leans to its hue (a subtle brand tint). */
-const seedFromColor = (hexVal: string): BrandInput => {
-  const o = rgbToOklch(hexToRgb(hexVal));
-  return { ...NEW_BRAND(), primary: o, neutral: { hue: o.h, chroma: 0.006 } };
-};
-
-/** The first-run START SCREEN (#149 follow-up). Web boots here when nothing is persisted, instead of
- *  silently loading the demo. One brand color bootstraps a full theme, so the paths are: start from
- *  your color, start from a neutral default, or open an example. Each lands in the editor (loadBrand →
- *  rebuild persists it), so a reload restores the working brand and the start screen doesn't reappear. */
-const renderStartScreen = (): HTMLElement => {
-  const view = hook(el('div', 'startview'), 'start-screen');
-  const col = hook(el('div', 'start-col'), 'start-column');
-  const mark = el('div', 'start-mark');
-  mark.append(el('span', 'logo'), el('span', 'wordmark', 'Prism3 Studio'));
-  col.append(mark);
-  col.append(hook(el('h1', 'start-h', 'Start a new brand.'), 'start-heading'));
-  col.append(el('p', 'start-lede', 'One brand color is enough — the engine grows a full, contrast-checked system you can steer. Pick a starting point.'));
-
-  // Leaving the start screen IS choosing an origin — there is no separate `firstRun = false` to
-  // forget, because the start screen renders on `origin.kind === 'none'` and every path below hands
-  // `loadBrand` a real one. The four paths are four different origins, and keeping them distinct is
-  // what makes a later reset mean something: "back to the file" and "back to the brand I imported"
-  // are not the same destination.
-  const enter = (input: BrandInput, origin: Origin): void => loadBrand(input, origin);
-
-  // Path 1 — from your color (the hero path: a single primary bootstraps everything).
-  const c1 = hook(el('div', 'start-card start-hero'), 'start-path');
-  c1.append(el('h2', 'start-ct', 'Start from your color'));
-  c1.append(el('p', 'start-cd', 'Your primary brand color; everything else takes smart defaults you can tune.'));
-  const row = el('div', 'start-color-row');
-  const swatch = el('input', 'start-swatch') as HTMLInputElement; swatch.type = 'color'; swatch.value = '#5e4bc3';
-  const hexIn = el('input', 'start-hex') as HTMLInputElement; hexIn.type = 'text'; hexIn.value = '#5e4bc3'; hexIn.setAttribute('aria-label', 'Brand color hex');
-  const HEX = /^#[0-9a-f]{6}$/i;
-  swatch.oninput = () => { hexIn.value = swatch.value; };
-  hexIn.oninput = () => { if (HEX.test(hexIn.value)) swatch.value = hexIn.value; };
-  const go = hook(el('button', 'start-go', 'Create theme →') as HTMLButtonElement, 'start-go');
-  // A color the user typed is a brand they authored here — `new`, not an example they picked.
-  go.onclick = () => enter(seedFromColor(HEX.test(hexIn.value) ? hexIn.value : swatch.value), { kind: 'new' });
-  row.append(swatch, hexIn, go);
-  c1.append(row);
-  col.append(c1);
-
-  // Path 2 — a neutral, unopinionated default (set color later).
-  const c2 = hook(el('div', 'start-card start-row2'), 'start-path');
-  const t2 = el('div', 'start-c2t');
-  t2.append(el('h2', 'start-ct', 'Start with a neutral default'), el('p', 'start-cd', 'An unopinionated starting theme — jump in and set your color later.'));
-  const b2 = hook(el('button', 'start-alt', 'Start blank') as HTMLButtonElement, 'start-blank');
-  b2.onclick = () => enter(NEW_BRAND(), { kind: 'new' });
-  c2.append(t2, b2);
-  col.append(c2);
-
-  // Path 3 — open a fully-built example (prism3 / aurora / harbor), explicitly framed as examples.
-  const c3 = hook(el('div', 'start-card'), 'start-path');
-  c3.append(el('h2', 'start-ct', 'Explore an example'));
-  c3.append(el('p', 'start-cd', 'Open a fully-built example to see what the engine produces from a brand.'));
-  const chips = el('div', 'start-chips');
-  for (const name of Object.keys(BRANDS)) {
-    const chip = hook(el('button', 'start-chip') as HTMLButtonElement, 'start-example');
-    const d = el('span', 'dot'); d.style.background = hex(oklchToRgb(BRANDS[name].primary));
-    chip.append(d, el('span', undefined, name));
-    chip.onclick = () => enter(BRANDS[name], { kind: 'example', id: name });
-    chips.append(chip);
-  }
-  c3.append(chips);
-  col.append(c3);
-
-  // Path 4 — import an existing design.md by upload (#160). No overwrite confirm: it's the first-run
-  // screen, there's no brand to replace. File type + engine-acceptance are both validated first.
-  const c4 = hook(el('div', 'start-card start-row2'), 'start-path');
-  const t4 = el('div', 'start-c2t');
-  t4.append(el('h2', 'start-ct', 'Import a design.md'), el('p', 'start-cd', 'Already have a design.md? Upload it to load the full brand.'));
-  // DELIBERATELY NOT FOLDED INTO THE DECLARED CHROME (#772). This is field validation — "that file is
-  // not a design.md" — attached to the control that produced it, and it reports a REJECTED input the
-  // app never adopted. The chrome error bar reports the opposite case: an engine throw over state the
-  // app is already holding, which is why that one has to be visible wherever you are. Moving this into
-  // shared chrome would put a message about one upload control at the top of the screen, away from the
-  // control, and the floor would have cost this view the ability to say something true about itself.
-  const err4 = el('p', 'start-imp-err');
-  t4.append(err4);
-  const up4 = hook(el('label', 'start-alt start-upload'), 'start-upload');
-  const fi4 = hook(el('input', 'start-file') as HTMLInputElement, 'start-file');
-  fi4.type = 'file'; fi4.accept = IMPORT_ACCEPT;
-  fi4.onchange = async () => {
-    err4.textContent = '';
-    const f = fi4.files?.[0]; if (!f) return;
-    const read = await readDesignMdFile(f);
-    if ('error' in read) { err4.textContent = read.error; return; }
-    const res = validateDesignMd(read.text);
-    if ('error' in res) { err4.textContent = res.error; return; }
-    enter(res.input, { kind: 'import', label: String(res.input.id ?? f.name) });
-  };
-  up4.append(el('span', undefined, '↑ Upload…'), fi4);
-  c4.append(t4, up4);
-  col.append(c4);
-
-  view.append(col);
-  return view;
+// ---- the start window (UI redesign S12) --------------------------------------------------------------
+// It opens over the studio on the first run (no origin yet) and when "+ New brand" reopens it; any load closes it.
+/** "+ New brand" opened it, so it offers Close (owner decisions G15 A, S9). */
+let startReopened = false;
+let startWindow: StartWindow | null = null;
+/** Open, keep or close the start window to match the session. Kept while it stays the same window, so a hex being
+ *  typed or a paste survives a render behind it. */
+const syncStart = (): void => {
+  const want: 'first' | 'reopen' | null = firstRun() ? 'first' : startReopened ? 'reopen' : null;
+  if (startWindow && want && startWindow.first === (want === 'first')) return;
+  startWindow?.dismiss(null);
+  startWindow = null;
+  if (!want || !frame) return;
+  startWindow = openStart(frame.layer, {
+    host: commit.isFigma ? 'figma' : 'web',
+    first: want === 'first',
+    // THE ONE DECISION for whether a replacement asks first (#1033's `stageLoad` rule): only with edits to lose. The
+    // count it names is the settings that differ from the origin (`editCount`).
+    guardFor: (c: StartChoice) => (needsOverwriteConfirm(brandState, provenance)
+      ? guardText(String(brandState.id), originLabel(c.origin, 'arriving'), editCount(brandState, provenance.baseline))
+      : null),
+    load: (c: StartChoice) => loadBrand(c.input, c.origin),
+    close: () => {
+      startReopened = false;
+      syncStart();
+      // Back to the control that opened it.
+      (barHost?.querySelector<HTMLElement>('[data-p3="brand-switcher"]') ?? null)?.focus();
+    },
+  });
 };
 
 export const build = (): void => {
-  // No origin yet: the start moment stands in for the app. It is a ROOT VIEW, not a page — so it goes
-  // through `mountView` like the app does and carries whatever surfaces the declaration scopes to it,
-  // instead of being the one screen in the studio that renders outside the chrome entirely (#772).
-  if (firstRun()) { mountView('start', () => renderStartScreen()); return; }
-
+  // The studio always renders, and the start window opens over it (UI redesign S12, owner decision G10 A): on the
+  // first run (no origin yet) and after "+ New brand". Until S12 the start was a root view of its own, outside the
+  // frame and pinned light.
   // The rail is gone (UI redesign S1.2, D1): the tab row in the frame navigates, and the old rail
   // survives as the Pages menu in the top bar (`renderNavMenu`), with its hooks and its build stamp.
   const shell = el('div', 'shell');
@@ -3387,6 +3238,7 @@ export const build = (): void => {
   // After `mountView`, never inside its `body()`: `renderWorkspace` measures real geometry (`syncStuck`
   // reads a bounding rect against the live `--chrome-h`), and a detached shell measures zero.
   renderWorkspace();
+  syncStart();
 };
 
 // ---- stylesheet install ----------------------------------------------------

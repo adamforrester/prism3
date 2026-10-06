@@ -128,6 +128,38 @@ const sortKeys = (v: unknown): unknown => {
   return out;
 };
 
+/**
+ * How many settings differ from the origin: the number the start window's guard names ("Discard 3 edits", owner
+ * decision G15 A and decision 14).
+ *
+ * A COUNT OF VALUES, NOT OF KEYSTROKES. Nothing records each edit as it is made (a slider writes on every step), so the
+ * count is read off the same two inputs `isDirty` compares: one per setting whose value differs, was added or was
+ * removed. A setting is a plain value, a list of plain values (`modes`: turning a mode on is one edit), or a color
+ * (an object of numbers `l`, `c` and `h`: one pick is one edit, not three). Anything else is a group, counted by its
+ * settings. Zero exactly when `isDirty` is false: both read the same canonical form.
+ */
+export const editCount = (current: BrandInput, baseline: BrandInput): number => {
+  const a = settingsOf(sortKeys(current)), b = settingsOf(sortKeys(baseline));
+  let n = 0;
+  for (const k of new Set([...a.keys(), ...b.keys()])) if (a.get(k) !== b.get(k)) n++;
+  return n;
+};
+const isPlain = (v: unknown): boolean => v === null || typeof v !== 'object';
+const isColor = (v: unknown): boolean => {
+  if (v === null || typeof v !== 'object' || Array.isArray(v)) return false;
+  const ks = Object.keys(v as object);
+  return ['l', 'c', 'h'].every((k) => ks.includes(k)) && ks.every((k) => typeof (v as Record<string, unknown>)[k] === 'number');
+};
+const settingsOf = (v: unknown, at = '', out = new Map<string, string>()): Map<string, string> => {
+  if (v === undefined) return out;
+  if (isPlain(v) || isColor(v) || (Array.isArray(v) && v.every(isPlain))) { out.set(at, JSON.stringify(v)); return out; }
+  const entries = Array.isArray(v) ? v.map((x, i) => [String(i), x] as const) : Object.entries(v as Record<string, unknown>);
+  // An empty group is a value of its own (`{}` against no key at all), as it is to `isDirty`.
+  if (!entries.length) { out.set(at, JSON.stringify(v)); return out; }
+  for (const [k, x] of entries) settingsOf(x, `${at}/${k}`, out);
+  return out;
+};
+
 /** What a reset returns to — a fresh clone, so the caller cannot write through it into the baseline.
  *  NOT `baselineOf`: `main.ts` already has one, for a role's CONTRAST baseline. Two unrelated meanings
  *  of the same word in one import list is a name worth spending four extra characters to avoid. */
