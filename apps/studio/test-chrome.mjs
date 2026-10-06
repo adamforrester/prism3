@@ -45,6 +45,14 @@
  * the mark, once, ahead of the brand switcher; it reads "Prism3 Studio" as text and as its accessible name, is not a
  * control, and its name is shown wide (measured at 4.5:1) and dropped narrow, the logo kept. The plugin's bar has none.
  *
+ * THE HEADING RULE (section 30; heading pass 1 of 2, TY2 A, owner approval 2026-10-06), on both hosts, both themes, at 1280 and 380,
+ * every page with its Show advanced open: each heading level's computed size, weight, line height (and L1's tracking, L3's
+ * ink) and the space after it, against the chrome tokens' values read from the committed emission by this file's own walk;
+ * the audit's per-page heading list, each found at its level, with literal floors on the counts; every ⓘ button's hit-min
+ * target, its place after the heading text and on the line's center; and no glyph in a hint line, nor any ⓘ glyph outside
+ * a button, in Light and High contrast light (HP3); and a sweep of every heading element and heading-styled text, each of
+ * which must be a level, a table header or a reasoned exemption, with no heading tag skipping a level.
+ *
  * S12 ADDS (section 28), on both hosts, both themes, at 1280 and 380 (the frame's `data-w` waited on): THE START WINDOW
  * over the studio, every owner decision against a literal typed in the section: the heading per host (G17), no Close on
  * the first run and Close when reopened (S9, S10), the cards in the order color (with "Start blank" as its secondary action, N1 A),
@@ -8698,6 +8706,342 @@ for (const host of ['web', 'figma']) {
     } finally { await ctx.close(); }
   }
 }
+
+// =============================================================================================
+// 30. The heading rule (heading pass 1 of 2, TY2 A, approved 2026-10-06): three levels on every page, both hosts, both
+//     themes, at 1280 and 380, each level's size, weight, line height and space after held to the chrome tokens' EMITTED values
+// =============================================================================================
+// L1 section title: fs-16 / fw-strong / lh-compact / ls-snug; its description space-050 under it, its content space-300
+// after the head. L2 group heading (a lever's name, a row list's sub-heading, an Interactive group's title, a Grid
+// breakpoint's name): fs-14 / fw-strong / lh-compact; its content space-150 after its row, or space-050 when what follows
+// is the lever's own one-line description. L3 field label: fs-14 / fw-emphasis / lh-compact, in color.text.primary; its
+// control space-050 after it. Table headers are not a level, and keep fs-12. The ⓘ is only ever a button: it keeps its
+// hit-min target, sits space-050 after the heading text, centered on the line, and does not set the row's height; and no
+// hint line draws a glyph (HP3).
+//
+// THE SWEEP (the review of #2210): the audit's list says what each page must show, and it cannot fail on a heading it does
+// not name. So every element in the levers pane that is a heading by its tag or role (h1–h6, legend, [role="heading"]),
+// and every text drawn at fw-strong or fs-16 and up outside a control, must be one of the levels (or a table header), or
+// sit in HEADING_EXEMPT with its reason; and no heading tag skips a level after the one before it.
+//
+// INDEPENDENCE (docs/34). The elements are found by class or hook, each literal here, never by the CSS's own selectors.
+// The expected values are the EMISSION's: each chrome token the rule names is mapped, by a literal in this file, to its
+// emitted path in the committed `packages/engine/out/prism3.tokens.json` (and its dark overlay, for the ink), and resolved
+// here by this file's own alias walk; not from `chrome.css`, not from `chrome/tokens.mjs`'s map, and not through its
+// `resolve`. The headings each page must show are the audit's per-page list (scratch audit of 2026-10-05, prism3, every
+// Show advanced opened), typed here; the counts are literal floors, so a sweep that finds fewer fails naming its count.
+//
+// Mutations, each failing by name (heading pass 1), measured on the built bundles:
+//   · an L2 back at fw-default (`.p3-lever-name`'s weight on `--p3-fw-default`) →
+//     `TY2 A web light 1280 / brand: L2 "Brand name" (lever name) fw 400, want fw-strong 600` (232 failures, every host and theme).
+//   · the space after an L2 back to 4px (the head's `padding-block-end` turned into a `space-050` pull-up, the legend's to
+//     `space-050`) → `TY2 A web light 1280 / brand: L2 "Brand name" (lever name) space after 4, want space-150 12` (232).
+//   · one hint line's glyph put back (Components' web sets hint, `glyph('info')` prepended) →
+//     `HP3 TY2 A web light 1280 / components (light): hint line components-sets-web draws a glyph — …` and
+//     `… a non-button ⓘ glyph is drawn — components-sets-web: …` (8: the web host, both themes, Light and High contrast light).
+//   · the ⓘ's overhang back on the button's own `1lh` (the narrow tier's ⓘ is ctl-h-xs tall) →
+//     `TY2 A web light 380 / color-palettes: L2 "Primary brand color" (lever name) its row is 19 tall, its line 17.5: …`
+//     (196, every one at 380, none at 1280).
+//   · a stray `h4.p3-rogue` added to Components' Density →
+//     `TY2 A web light 1280 / components: every heading in the levers pane is one of the three levels or a table header —
+//     not covered: h4.p3-rogue "Density sets" (a heading element) | … (drawn 14px / 700)` (16, with the space after Density).
+//   · a row list's sub-heading drawn as an h5 → `… / color-fills: no heading skips a level after the one before it —
+//     h3.p3-lsec-title "Foreground" h3 then h5.p3-rows-sub "Inverse" h5 | …` (8).
+console.log(`\nThe heading rule (TY2 A, heading pass 1)\n${'='.repeat(78)}`);
+/** The chrome tokens the rule names, each to its emitted path (a literal map, typed from `chrome/tokens.mjs`'s rows on
+ *  2026-10-06; deliberately not imported, so the build's map and this oracle stay two derivations). */
+const HEADING_TOKEN_PATHS = {
+  'fs-12': 'core.font.size.12', 'fs-14': 'core.font.size.14', 'fs-16': 'core.font.size.16',
+  'fw-default': 'core.font.weight-role.default', 'fw-emphasis': 'core.font.weight-role.emphasis', 'fw-strong': 'core.font.weight-role.strong',
+  'lh-compact': 'core.font.line-height-role.compact', 'ls-snug': 'core.font.letter-spacing-role.snug',
+  'space-050': 'space.050', 'space-150': 'space.150', 'space-300': 'space.300', 'hit-min': 'core.dimension.24',
+  text: 'color.text.primary', 'text-2': 'color.text.secondary',
+};
+/** The rem the emission's dimensions are written in: the browser's default root size, which the chrome does not change. */
+const ROOT_PX = 16;
+const HT = (() => {
+  const out = join(REPO, 'packages', 'engine', 'out');
+  const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
+  const dark = JSON.parse(readFileSync(join(out, 'prism3.dark.overlay.tokens.json'), 'utf8'));
+  const root = base.$extensions?.prism3?.root;
+  const at = (tree, path) => path.split('.').reduce((n, k) => (n && typeof n === 'object' ? n[k] : undefined), tree);
+  const walk = (mode, path, hops = 0) => {
+    const o = mode === 'dark' ? at(dark, path) : undefined;
+    const v = (o?.$value !== undefined ? o : at(base, path))?.$value;
+    const m = typeof v === 'string' && /^\{([^}]+)\}$/.exec(v);
+    return m && hops < 16 ? walk(mode, m[1], hops + 1) : v;
+  };
+  const num = (name) => {
+    const v = walk('light', `${root}.${HEADING_TOKEN_PATHS[name]}`);
+    if (typeof v === 'number') return v;
+    const m = /^(-?[\d.]+)(px|rem|em)?$/.exec(String(v ?? ''));
+    if (!m) throw new Error(`TY2 A: ${name} (${HEADING_TOKEN_PATHS[name]}) resolves to ${JSON.stringify(v)} in the emission, not a number`);
+    if (m[2] === 'em') return { em: Number(m[1]) };
+    return Number(m[1]) * (m[2] === 'rem' ? ROOT_PX : 1);
+  };
+  const t = Object.fromEntries(Object.keys(HEADING_TOKEN_PATHS).filter((k) => !k.startsWith('text')).map((k) => [k, num(k)]));
+  const ink = (name, mode) => { const v = walk(mode, `${root}.${HEADING_TOKEN_PATHS[name]}`); return typeof v === 'string' ? v.toLowerCase() : null; };
+  return { ...t, ink: { text: { light: ink('text', 'light'), dark: ink('text', 'dark') }, 'text-2': { light: ink('text-2', 'light'), dark: ink('text-2', 'dark') } } };
+})();
+ok(HT['fs-14'] === 14 && HT['fs-16'] === 16 && HT['fw-strong'] === 600 && HT['fw-emphasis'] === 500 && HT['fw-default'] === 400
+  && HT['lh-compact'] === 1.25 && HT['space-150'] === 12 && HT['hit-min'] >= 24 && Object.values(HT.ink).every((m) => /^#[0-9a-f]{6}$/.test(m.light ?? '') && /^#[0-9a-f]{6}$/.test(m.dark ?? '') && m.light !== m.dark),
+  `TY2 A: the oracle resolved the rule's chrome tokens from the emission (${JSON.stringify(HT)})`);
+/** Each level's type, as chrome tokens. */
+const LEVEL_TYPE = {
+  L1: { fs: 'fs-16', fw: 'fw-strong', ls: 'ls-snug' },
+  L2: { fs: 'fs-14', fw: 'fw-strong' },
+  L3: { fs: 'fs-14', fw: 'fw-emphasis', ink: 'text' },
+  TH: { fs: 'fs-12', fw: 'fw-emphasis', ink: 'text-2' },
+};
+/** The headings each page must show, by level (the audit's list, prism3, every Show advanced open). Text is matched
+ *  from its start, so a value carried in a label ("Angle · 135°") does not tie the list to one brand's value. */
+const EXPECT_HEADINGS = {
+  brand: {
+    L1: ['Identity', 'Personality', 'Modes'],
+    L2: ['Brand name', 'Token namespace', 'Personality words', 'Modes on', 'Custom modes'],
+  },
+  'color-palettes': {
+    // #2175 (PN1 B) folded the Pinned neutral section and its Pin a neutral lever into Neutrals' source choice.
+    L1: ['Primary', 'Brand colors', 'Neutrals', 'Status colors'],
+    L2: ['Primary brand color', 'Additional brand colors', 'Neutral hue', 'Neutral chroma', 'Success color', 'Warning color', 'Danger color', 'Info color'],
+  },
+  'color-fills': {
+    L1: ['Background fills', 'Scrim', 'Foreground', 'Foreground fills', 'Text color', 'Border', 'Icon', 'Fields', 'Gradients'],
+    L2: ['Background fills', 'Icon contrast floor', 'Gradients', 'Default background fills', 'Inverse background fills', 'Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse'],
+    L3: ['Inverse fill palette', 'Kind', 'Angle', 'Interpolation', 'Stops', 'Kind', 'Shape', 'Center X %', 'Center Y %', 'Interpolation', 'Stops'],
+  },
+  'color-interactive': {
+    L1: ['Interactive', 'Disabled', 'Links'],
+    L2: ['Action palette', 'Outline hover', 'Strict interactive contrast', 'Interactive palettes', 'Full contrast', 'Reduced contrast floor', 'Link palette', 'Link states', 'Primary', 'Neutral', 'Destructive'],
+    // Held decision 7, approved: a lever inside a group (Neutral emphasis, inside Neutral) reads as a field.
+    L3: ['Neutral emphasis', 'Hover', 'Pressed', 'Visited'],
+  },
+  type: {
+    L1: ['Font families', 'Scale', 'Scale limits', 'Weights and styles', 'Line height and letter spacing'],
+    L2: ['Typeface library', 'Font family for each text type', 'Type scale', 'Individual sizes', 'Headings scale between mobile and desktop', 'Largest display size',
+      'Smallest title size', 'Smallest caption size', 'Smallest type size', 'Weights', 'Weights each text type ships', 'Italic styles', 'Pin a font style', 'Line height',
+      'Letter spacing', 'One step looser or tighter'],
+    L3: ['Set every text type to', 'Min viewport, px', 'Max viewport, px'],
+    TH: ['Family', 'Text type', 'Text type', 'Line height', 'Letter spacing', 'Desktop', 'Mobile'],
+  },
+  shape: {
+    L1: ['Density', 'Radius', 'Base radius'],
+    L2: ['Density', 'Radius softness', 'Control shape', 'Base radius'],
+  },
+  depth: {
+    L1: ['Elevation', 'Motion'],
+    L2: ['Shadow softness', 'Shadow tint', 'Motion tempo', 'Easing per motion role'],
+    L3: ['Tint hue', 'Tint amount'],
+  },
+  layout: {
+    L1: ['Breakpoints', 'Grid', 'Containers'],
+    L2: ['Breakpoints', 'Grid columns', 'Maximum width', 'Content container', 'sm', 'md', 'lg', 'xl', '2xl'],
+  },
+  components: {
+    L1: ['Button', 'Component sets'],
+    L2: ['Density', 'Button icons', 'Button label & icon', 'Button label weight', 'Button minimum width'],
+  },
+};
+/** Each page's Show advanced disclosures, opened before the sweep so the advanced levers' headings are measured too. */
+const HEADING_ADVANCED = {
+  'color-palettes': ['[data-p3="palettes-advanced"]'], type: ['[data-p3="scale-advanced"]', '[data-p3="type-sections-advanced"]'],
+  shape: ['[data-p3="shape-advanced"]'], depth: ['[data-p3="depth-tint-advanced"]'],
+};
+/** Literal floors, under the counts measured when this landed (per host and theme, all nine pages): headings found, the
+ *  ⓘ buttons measured, the token labels (`.p3-fill-label`) typed, and the hint lines read in Light and High contrast light. */
+const HEADING_FLOOR = {
+  1280: { L1: 34, L2: 72, L3: 20, TH: 21, info: 54, tokenLabels: 288, hints: 16, swept: 80 },
+  380: { L1: 34, L2: 72, L3: 20, TH: 21, info: 54, tokenLabels: 288, hints: 16, swept: 80 },
+};
+/** Elements a sweep may find with a heading's tag or a heading's weight or size that are not one of the levels, each with
+ *  the reason it is not (a selector, then the reason; the reason is held to 20 characters or more). Empty when this landed:
+ *  every heading element and every heading-styled text in the levers pane was one of the three levels or a table header. */
+const HEADING_EXEMPT = [];
+ok(HEADING_EXEMPT.every(([sel, why]) => typeof sel === 'string' && sel && typeof why === 'string' && why.trim().length >= 20),
+  `TY2 A: every heading exemption names a selector and a reason of 20 characters or more (${JSON.stringify(HEADING_EXEMPT)})`);
+/** The space after a heading, read in the page: from the bottom of the heading's row content (its padding and border
+ *  excluded) to the top of the outermost box that starts below it and follows it in document order. Each level's row,
+ *  by class: an L2 lever name's is its head, a group title's is its head row, a breakpoint name's is its legend. */
+const HEADING_PROBE = ({ strong, big, exempt }) => {
+  const pane = document.querySelector('[data-p3="levers-pane"]');
+  const vis = (n) => { const cs = getComputedStyle(n); if (cs.display === 'none' || cs.visibility === 'hidden') return false; const r = n.getBoundingClientRect(); return r.width >= 1 && r.height >= 1 && !n.closest('[hidden]'); };
+  const r2 = (x) => Math.round(x * 100) / 100;
+  const own = (n) => [...n.childNodes].filter((c) => c.nodeType === 3).map((c) => c.textContent).join(' ').replace(/\s+/g, ' ').trim();
+  const LEAF = new Set(['INPUT', 'SELECT', 'BUTTON', 'TEXTAREA', 'CANVAS', 'IMG', 'svg']);
+  const leaves = [...pane.querySelectorAll('*')].filter(vis).filter((n) => own(n) || LEAF.has(n.tagName) || n.classList.contains('p3-fill-sw') || n.classList.contains('p3-gbar'));
+  const box = (el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return { top: r.top + parseFloat(cs.paddingTop) + parseFloat(cs.borderTopWidth), bottom: r.bottom - parseFloat(cs.paddingBottom) - parseFloat(cs.borderBottomWidth) }; };
+  const next = (row) => {
+    const b = box(row).bottom;
+    for (const n of leaves) {
+      if (row.contains(n) || n.contains(row) || !(row.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING)) continue;
+      const r = n.getBoundingClientRect();
+      if (r.top < b - 1) continue;
+      let top = r.top, el = n;
+      for (let a = n.parentElement; a && a !== pane && !a.contains(row); a = a.parentElement) { const ar = a.getBoundingClientRect(); if (ar.top >= b - 1 && ar.height > 0) { top = Math.min(top, ar.top); el = a; } else break; }
+      return { gap: r2(top - b), el, leaf: n };
+    }
+    return null;
+  };
+  const TABLE_HEADS = '.p3-facehead, .p3-tsizes-head, .p3-wmatrix-head, .p3-tnudge-head';
+  const found = [];
+  const classified = new Set();
+  const add = (level, n, kind, row) => {
+    classified.add(n); classified.add(row);
+    const cs = getComputedStyle(n);
+    const nx = next(row);
+    const desc = nx?.leaf.closest('.p3-sub');
+    const ownDesc = !!(desc && desc.parentElement?.matches('.p3-lever-ctl') && desc.parentElement.firstElementChild === desc && desc.closest('.p3-lever') === n.closest('.p3-lever'));
+    const rb = box(row);
+    found.push({ level, kind, text: n.textContent.replace(/\s+/g, ' ').trim(), fs: parseFloat(cs.fontSize), fw: Number(cs.fontWeight), lh: parseFloat(cs.lineHeight),
+      ls: parseFloat(cs.letterSpacing) || 0, color: cs.color, h: r2(n.getBoundingClientRect().height), rowH: r2(rb.bottom - rb.top),
+      after: nx ? nx.gap : null, toDesc: !!nx?.leaf.closest('.p3-lsec-desc'), ownDesc,
+      switchInRow: !!row.querySelector(':scope > .p3-switch') });
+  };
+  for (const n of pane.querySelectorAll('.p3-lsec-title')) if (vis(n)) add('L1', n, 'section title', n);
+  for (const n of pane.querySelectorAll('.p3-lever-name')) if (vis(n)) add(n.closest('.p3-icol') ? 'L3' : 'L2', n, n.closest('.p3-icol') ? 'lever name in a group' : 'lever name', n.closest('.p3-lever-head'));
+  for (const n of pane.querySelectorAll('.p3-rows-sub')) if (vis(n)) add('L2', n, 'rows sub-heading', n);
+  for (const n of pane.querySelectorAll('.p3-icol-title')) if (vis(n)) add('L2', n, 'group title', n.closest('.p3-icol-head'));
+  for (const n of pane.querySelectorAll('.p3-lgrid-name > b')) if (vis(n)) add('L2', n, 'breakpoint name', n.parentElement);
+  for (const n of pane.querySelectorAll('.p3-field-label')) if (vis(n)) { const th = !!n.closest(TABLE_HEADS); add(th ? 'TH' : 'L3', n, th ? 'table header' : 'field label', n.closest('.p3-slider-head') ?? n); }
+  const heads = [...pane.querySelectorAll('.p3-lsec-head')].filter(vis).map((hd) => { const nx = next(hd); return { title: hd.querySelector('.p3-lsec-title')?.textContent.trim(), after: nx ? nx.gap : null }; });
+  const tokenLabels = [...pane.querySelectorAll('.p3-fill-label')].filter(vis).map((n) => { const cs = getComputedStyle(n); return { text: n.textContent.trim(), fs: parseFloat(cs.fontSize), fw: Number(cs.fontWeight), lh: parseFloat(cs.lineHeight) }; });
+  const infos = [...pane.querySelectorAll('.p3-info')].filter(vis).map((b) => {
+    const r = b.getBoundingClientRect();
+    const head = b.closest('.p3-lever-head');
+    const name = head?.querySelector('.p3-lever-name');
+    const nr = name?.getBoundingClientRect();
+    return { label: b.getAttribute('aria-label'), w: r2(r.width), h: r2(r.height), inHead: !!name,
+      dx: nr ? r2(r.left - nr.right) : null, dy: nr ? r2((r.top + r.bottom) / 2 - (nr.top + nr.bottom) / 2) : null };
+  });
+  // THE SWEEP: every element that is a heading by its tag or role, and every text drawn at a heading's weight or size,
+  // must be one of the levels above (or exempted, with its reason). Controls draw their own labels and are not headings.
+  const isExempt = (n) => exempt.some((sel) => n.matches(sel));
+  const label = (n) => `${n.tagName.toLowerCase()}${[...n.classList].map((c) => `.${c}`).join('')} "${n.textContent.replace(/\s+/g, ' ').trim().slice(0, 40)}"`;
+  const headingEls = [...pane.querySelectorAll('h1, h2, h3, h4, h5, h6, legend, [role="heading"]')].filter(vis);
+  const unclassified = headingEls.filter((n) => !classified.has(n) && !isExempt(n)).map((n) => `${label(n)} (a heading element)`);
+  const CONTROLS = 'button, select, option, input, textarea, [role="radio"], [role="tab"], [role="switch"], [role="option"], [data-content]';
+  for (const n of pane.querySelectorAll('*')) {
+    if (!vis(n) || !own(n) || n.closest(CONTROLS) || classified.has(n) || isExempt(n)) continue;
+    const cs = getComputedStyle(n);
+    if (Number(cs.fontWeight) >= strong || parseFloat(cs.fontSize) >= big) unclassified.push(`${label(n)} (drawn ${cs.fontSize} / ${cs.fontWeight})`);
+  }
+  // The outline the tags draw: no heading skips a level after the one before it (h3 then h5 fails).
+  const ranked = headingEls.map((n) => [n, /^H([1-6])$/.exec(n.tagName)?.[1] ?? (n.getAttribute('role') === 'heading' ? n.getAttribute('aria-level') : null)]).filter(([, l]) => l).map(([n, l]) => [n, Number(l)]);
+  const skips = [];
+  for (let i = 1; i < ranked.length; i++) if (ranked[i][1] > ranked[i - 1][1] + 1) skips.push(`${label(ranked[i - 1][0])} h${ranked[i - 1][1]} then ${label(ranked[i][0])} h${ranked[i][1]}`);
+  return { found, heads, tokenLabels, infos, swept: headingEls.length, unclassified, skips };
+};
+/** The hint lines (`.p3-state-hint`) and every drawn ⓘ glyph outside a button, in the levers pane. The ⓘ glyph is known by
+ *  its drawing, typed here: a ring of radius 6.2 and a dot of radius 0.9 (`glyph('info')`). */
+const HINT_PROBE = () => {
+  const pane = document.querySelector('[data-p3="levers-pane"]');
+  const vis = (n) => n.getClientRects().length > 0 && getComputedStyle(n).visibility !== 'hidden' && !n.closest('[hidden]');
+  const hints = [...pane.querySelectorAll('.p3-state-hint')].filter(vis).map((n) => ({ hook: n.getAttribute('data-p3'), text: n.textContent.trim().slice(0, 60), glyphs: n.querySelectorAll('svg').length }));
+  const stray = [...pane.querySelectorAll('svg')].filter(vis).filter((s) => s.querySelector('circle[r="6.2"]') && s.querySelector('circle[r="0.9"]') && !s.closest('button'))
+    .map((s) => `${s.parentElement?.getAttribute('data-p3') ?? s.parentElement?.className}: "${(s.parentElement?.textContent ?? '').trim().slice(0, 50)}"`);
+  return { hints, stray };
+};
+const near = (a, b, tol = 0.5) => typeof a === 'number' && Math.abs(a - b) <= tol;
+const headingCounts = {};
+/** At the narrow tier the levers and the preview are one pane each, behind the pane toggle. */
+const showLevers = async (page, w) => { if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]')); };
+for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const where = `TY2 A ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h });
+    const tally = { L1: 0, L2: 0, L3: 0, TH: 0, info: 0, tokenLabels: 0, hints: 0, swept: 0 };
+    try {
+      if (w <= 560) await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
+      for (const place of NEW_PAGES) {
+        await goPlace(page, place);
+        await showLevers(page, w);
+        for (const sel of HEADING_ADVANCED[place] ?? []) {
+          await hooks.need(page, sel);
+          if ((await page.locator(sel).getAttribute('aria-expanded')) === 'false') await hooks.click(page.locator(sel));
+        }
+        await page.evaluate(() => document.fonts.ready);
+        const m = await page.evaluate(HEADING_PROBE, { strong: HT['fw-strong'], big: HT['fs-16'], exempt: HEADING_EXEMPT.map(([sel]) => sel) });
+        const at = `${where} / ${place}`;
+        tally.swept += m.swept;
+        ok(m.unclassified.length === 0, `${at}: every heading in the levers pane is one of the three levels or a table header — not covered: ${m.unclassified.join(' | ')}`);
+        ok(m.skips.length === 0, `${at}: no heading skips a level after the one before it — ${m.skips.join(' | ')}`);
+        // Every heading the audit lists, at its level.
+        for (const [level, want] of Object.entries(EXPECT_HEADINGS[place])) {
+          const pool = m.found.filter((f) => f.level === level).map((f) => f.text);
+          const missing = [];
+          for (const w of want) { const i = pool.findIndex((t) => t.startsWith(w)); if (i < 0) missing.push(w); else pool.splice(i, 1); }
+          ok(missing.length === 0, `${at}: every ${level} heading the audit lists is found at ${level} — missing ${JSON.stringify(missing)} (found ${JSON.stringify(m.found.filter((f) => f.level === level).map((f) => f.text))})`);
+        }
+        headingCounts[place] ??= {};
+        for (const f of m.found) {
+          tally[f.level]++;
+          headingCounts[place][f.level] = (headingCounts[place][f.level] ?? 0) + (host === 'web' && theme === 'light' && w === 1280 ? 1 : 0);
+          const ty = LEVEL_TYPE[f.level];
+          const name = `${f.level} "${f.text.slice(0, 40)}" (${f.kind})`;
+          const miss = [];
+          if (f.fs !== HT[ty.fs]) miss.push(`fs ${f.fs}, want ${ty.fs} ${HT[ty.fs]}`);
+          if (f.fw !== HT[ty.fw]) miss.push(`fw ${f.fw}, want ${ty.fw} ${HT[ty.fw]}`);
+          if (f.level !== 'TH' && !near(f.lh, HT[ty.fs] * HT['lh-compact'], 0.05)) miss.push(`line height ${f.lh}, want lh-compact ${HT[ty.fs] * HT['lh-compact']}`);
+          if (ty.ls && !near(f.ls, HT[ty.fs] * HT['ls-snug'].em, 0.05)) miss.push(`letter spacing ${f.ls}, want ls-snug ${HT[ty.fs] * HT['ls-snug'].em}`);
+          if (ty.ink && f.color !== startRgb(HT.ink[ty.ink][theme])) miss.push(`ink ${f.color}, want ${HEADING_TOKEN_PATHS[ty.ink]} ${HT.ink[ty.ink][theme]}`);
+          // The space after it.
+          if (f.level === 'L1') {
+            const want = f.toDesc ? 'space-050' : 'space-300';
+            if (!near(f.after, HT[want])) miss.push(`space after ${f.after}, want ${want} ${HT[want]}`);
+          } else if (f.level === 'L2') {
+            const want = f.ownDesc ? 'space-050' : 'space-150';
+            if (!near(f.after, HT[want])) miss.push(`space after ${f.after}, want ${want} ${HT[want]}${f.ownDesc ? ' (its own description)' : ''}`);
+            // The row is as tall as its line: the ⓘ overhangs it. (A switch still sets Gradients' row until HP5, PR 2.)
+            if (f.kind === 'lever name' && !f.switchInRow && !near(f.rowH, f.h)) miss.push(`its row is ${f.rowH} tall, its line ${f.h}: something in the row sets its height`);
+          } else if (f.level === 'L3' && (f.kind === 'field label' || f.kind === 'lever name in a group')) {
+            if (!near(f.after, HT['space-050'])) miss.push(`space after ${f.after}, want space-050 ${HT['space-050']}`);
+          }
+          ok(miss.length === 0, `${at}: ${name} ${miss.join('; ')}`);
+        }
+        for (const hd of m.heads) {
+          ok(near(hd.after, HT['space-300']), `${at}: section "${hd.title}": its content starts ${hd.after} after its head, want space-300 ${HT['space-300']}`);
+        }
+        // L3 token labels: the level's type (their token line sits under them, space-025, as before).
+        for (const t of m.tokenLabels) {
+          tally.tokenLabels++;
+          ok(t.fs === HT['fs-14'] && t.fw === HT['fw-emphasis'] && near(t.lh, HT['fs-14'] * HT['lh-compact'], 0.05),
+            `${at}: L3 token label "${t.text}" is fs-14 / fw-emphasis / lh-compact — ${t.fs} / ${t.fw} / ${t.lh}`);
+        }
+        // The ⓘ buttons: the hit-min target kept; in a lever's head, space-050 after the name and centered on its line.
+        for (const i of m.infos) {
+          tally.info++;
+          const miss = [];
+          if (!(i.w >= HT['hit-min'] && i.h >= HT['hit-min'])) miss.push(`target ${i.w} × ${i.h}, want hit-min ${HT['hit-min']} or more`);
+          if (i.inHead && !near(i.dx, HT['space-050'])) miss.push(`${i.dx} after the heading text, want space-050 ${HT['space-050']}`);
+          if (i.inHead && !near(i.dy, 0)) miss.push(`${i.dy} off the line's center`);
+          ok(miss.length === 0, `${at}: ⓘ "${i.label}" ${miss.join('; ')}`);
+        }
+        // HP3: no hint line draws a glyph, and no ⓘ glyph is drawn outside a button. Read in Light and again in High
+        // contrast light, where the derived-mode line shows on most pages.
+        for (const mode of ['light', 'hc-light']) {
+          if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+          await showMode(page, mode);
+          await showLevers(page, w);
+          const hp = await page.evaluate(HINT_PROBE);
+          tally.hints += hp.hints.length;
+          for (const hl of hp.hints) ok(hl.glyphs === 0, `HP3 ${at} (${mode}): hint line ${hl.hook ?? '(no hook)'} draws a glyph — "${hl.text}"`);
+          ok(hp.stray.length === 0, `HP3 ${at} (${mode}): a non-button ⓘ glyph is drawn — ${hp.stray.join(' | ')}`);
+        }
+        if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+        await showMode(page, 'light');
+        await showLevers(page, w);   // the narrow tab select is drawn only over the levers
+      }
+      console.log(`  ${where}: ${JSON.stringify(tally)}`);
+      for (const [k, floor] of Object.entries(HEADING_FLOOR[w])) {
+        ok(tally[k] >= floor, `${where}: the sweep measured ${tally[k]} ${k === 'info' ? 'ⓘ buttons' : k === 'hints' ? 'hint lines' : k === 'tokenLabels' ? 'token labels' : k === 'swept' ? 'heading elements' : `${k} headings`} across the nine pages (floor ${floor})`);
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+}
+console.log(`  headings per page (web light): ${Object.entries(headingCounts).map(([p, c]) => `${p} ${Object.entries(c).map(([l, n]) => `${l} ${n}`).join(' ')}`).join(' · ')}`);
 
 hooks.report(ok);
 // THE CONTRAST EXEMPTION, counted per run (F1 A): how many nodes the audit exempted, over how many probes, and where.
