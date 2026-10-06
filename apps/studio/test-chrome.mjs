@@ -9453,6 +9453,18 @@ for (const host of ['web', 'figma']) {
 //     label's line, flush right — same line false …` (28); · the narrow tier's grid dropped → `#2217 TY2 A web light 380 / type:
 //     … the token sits under its label, at its left edge — under false, 148 from the label's left` (56); · the library rows
 //     given `onLine` → `HP6 … face row "Inter" / font.typeface.inter: the token sits under its label … under false …` (12).
+//
+// THE BUILD STYLE GUIDES PAGE (#2215; SH1 A, owner 2026-10-06), on the figma host only (the web host has no such page): its
+// card titles are L1, its option group titles L2, its lever names (a lever inside a group, held decision 7) and field names
+// L3, and its page title an exemption with its reason. It has its own EXPECT_HEADINGS entry and SG_HEADING_FLOOR; and every
+// page EXPECT_HEADINGS names must have been measured on the host, by name (the represented-page check), not by a count.
+// Mutations, each after a `wip:` commit, on rebuilt bundles, each failing by name:
+//   · `.p3-sg-ogroup-title` back to 12 / fw-default in secondary ink → `TY2 A figma light 1280 / style-guides: L2 "All tables"
+//     (option group title) fs 12, want fs-14 14; fw 400, want fw-strong 600; line height 15, want lh-compact 17.5` (20);
+//   · the page dropped from the walk (`HEADING_PAGES.figma` without it) → `TY2 A figma light 1280: the heading rule measured
+//     the style-guides page, which the audit's list names — measured ["brand",…,"components"]` (4, with 16 from its floors);
+//   · one lever name at fw-strong → `TY2 A figma light 1280 / style-guides: L3 "Aliases" (option name) fw 600, want
+//     fw-emphasis 500` (4).
 console.log(`\nThe heading rule (TY2 A, heading pass 1)\n${'='.repeat(78)}`);
 /** The chrome tokens the rule names, each to its emitted path (a literal map, typed from `chrome/tokens.mjs`'s rows on
  *  2026-10-06; deliberately not imported, so the build's map and this oracle stay two derivations). */
