@@ -99,8 +99,11 @@ const fnv = (s: string): string => {
 const keyOf = (pairs: readonly (readonly [string, string])[]): string =>
   [...pairs].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([a, v]) => `${a}=${v}`).join(', ');
 
-/** Children the host has and the plan does not, walked by name, each as a path relative to the member. */
+/** Children the host has and the plan does not, walked by name, each as a path relative to the member.
+ *  A GLYPH's contents are not walked: they are what Figma's SVG importer made of `glyphSvg`, unnamed and
+ *  never in the plan, so every glyph would otherwise read as carrying children the update must remove. */
 const extraChildren = (plan: AnatomyPlan['root'], node: SnapNode, path: string, out: string[]): void => {
+  if (plan.type === 'GLYPH') return;
   const planned = new Map((plan.children ?? []).map((c) => [c.name, c] as const));
   for (const k of node.children ?? []) {
     const p = path === '.' ? k.name : `${path}/${k.name}`;
@@ -253,8 +256,14 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], host: HostSetView
       // A child added or removed by hand makes the member's paths unreliable, so an update skips the
       // whole member rather than going node by node (§4).
       const structural = edit.added.length + edit.removed.length > 0;
+      // A CONFLICT is a hand-edited node the update would also write. Where neither the plan nor the
+      // executor moved, the update writes nothing, so nothing conflicts: the node differs from the plan
+      // only because of the edit itself. Where one moved, the baseline holds hashes, not values, so a
+      // difference on an edited node cannot be split into the edit's part and the plan's part, and it is
+      // reported as a conflict. That can over-report; it never hides one.
+      const moved = planMoved || (revField !== null && revField !== rev);
       for (const p of [...edit.changed, ...edit.added, ...edit.removed])
-        handEdits.push({ member: m.name, path: p, conflict: touched.has(p.replace(/#\d+$/, '')), structural });
+        handEdits.push({ member: m.name, path: p, conflict: moved && touched.has(p.replace(/#\d+$/, '')), structural });
     }
   }
 
@@ -379,13 +388,15 @@ export const captureVerdict = (plan: AnatomyPlan | undefined, m: HostMember, por
 export const captureSet = async (set: LiveSet, plans: AnatomyPlan[], ports: ReadPorts, breathe?: () => Promise<void>): Promise<{ recorded: number; skipped: { member: string; reason: string }[] }> => {
   const planned = new Map(plans.map((p) => [coordKey(planComponentName(p)), p] as const));
   const view = await readSetView(set, breathe);
-  const live = new Map((set.children ?? []).map((c) => [String((c as { id?: unknown }).id ?? ''), c] as const));
+  // The live members in the order `readSetView` read them: the same filter over the same children. By
+  // position, not by id, so the write lands on the node that was read even where ids are not unique.
+  const live = (set.children ?? []).filter((c) => coordKey(String((c as { name?: unknown }).name ?? '')) !== null);
   let recorded = 0;
   const skipped: { member: string; reason: string }[] = [];
-  for (const m of view.members) {
+  for (const [i, m] of view.members.entries()) {
     const v = captureVerdict(planned.get(coordKey(m.name)), m, ports);
     if (!v.record) { skipped.push({ member: m.name, reason: v.reason }); continue; }
-    await writeBaseline(live.get(m.id));
+    await writeBaseline(live[i]);
     recorded++;
   }
   return { recorded, skipped };
