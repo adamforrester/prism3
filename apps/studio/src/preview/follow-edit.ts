@@ -19,7 +19,8 @@
  * no marker (Surfaces & fills' Gradients; Interactive's Icons was another until S5.3 removed it), and only
  * `sections/` may write one (`test-shell-imports.ts`). Two lever headings were renamed away from their preview section by the
  * owner (Q26: "Background fills"; Q44: "Foreground fills", the fills the Foreground section draws), and
- * `PREVIEW_HEADING` names their pair, as it does Type's Scale limits (S6.3), whose preview is the Scale section, and Shape's
+ * `PREVIEW_HEADING` names their pair, as it does Type's Scale limits (S6.3), whose preview is the Scale section, Type's
+ * Typeface library and Font family for each text type (TY1 A), whose preview is Font families, and Shape's
  * Base radius (S7), whose preview is the Radius section. Scrim and Fields (S4f) are headed as their preview sections
  * are, so they need no row. A lever section with no preview section reveals nothing.
  *
@@ -195,6 +196,10 @@ export const revealGroup = (body: HTMLElement, palette: string): boolean => {
 export const PREVIEW_HEADING: Readonly<Record<string, string>> = {
   'Background fills': 'Background',
   'Foreground fills': 'Foreground',
+  // Type (TY1 A, #2190): the levers' Font families section became two, each titled by its lever; both reveal the
+  // preview's Font families, which keeps its title.
+  'Typeface library': 'Font families',
+  'Font family for each text type': 'Font families',
   // Type (S6.3): the limits change the scale, so they reveal the preview's Scale section (scope §3).
   'Scale limits': 'Scale',
   // Shape (S7, owner decision D1 A): the base radius moves every radius size, so it reveals the preview's Radius.

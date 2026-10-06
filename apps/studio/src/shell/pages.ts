@@ -50,8 +50,8 @@ export const FOREGROUND_FILLS_DESC = "Content surfaces, shown on the contrast fl
 export const SCRIM_DESC = "The overlay that dims the page behind a modal. It isn't editable.";
 /** The Fields copy (Q29, APPROVED), shared by the levers' Fields section and, since S4f (#2016, Q80), the preview's. */
 export const FIELDS_DESC = 'Form field fills, borders and text, in every state.';
-/** The Faces copy (S6.2), shared by the Type levers' Faces section and the preview's Faces section (Q23). DRAFT:
- *  pending the owner's approval. */
+/** The Faces copy (S6.2), the preview's Font families section's. The Type levers drew it too until TY1 A split their
+ *  section in two (HP2, 2026-10-06). DRAFT: pending the owner's approval. */
 export const FACES_DESC = 'The font families in the brand, and the family each text type uses.';
 /** The Type sections' copy (S6.3), each shared by the levers section and the preview section that pairs with it
  *  (owner decision Q23; Scale limits pairs with the preview's Scale, `PREVIEW_HEADING` in `preview/follow-edit.ts`).
@@ -244,7 +244,11 @@ export const DOMAINS = [
     // description is the preview's Faces section's (Q23). Both DRAFT, pending the owner.
     id: 'type', label: 'Type', home: 'type', intro: 'Font families per text type, then the heading scale they sit on.',
     sections: [
-      { title: 'Font families', desc: FACES_DESC, rows: [{ ctl: 'library', schemaOnly: ['typography.typefaceLibrary'] }, { ctl: 'families', keys: ['typography.families'] }] },
+      // TY1 A (#2190) and HP2 (owner approval 2026-10-06): the library and the family for each text type are two sections,
+      // each titled by its lever's own name (`TYPE_COPY` in `domains/type.ts`), so nothing is renamed. The old "Font
+      // families" title and its description are dropped from the levers; the preview's Font families section keeps both.
+      { title: 'Typeface library', rows: [{ ctl: 'library', schemaOnly: ['typography.typefaceLibrary'] }] },
+      { title: 'Font family for each text type', rows: [{ ctl: 'families', keys: ['typography.families'] }] },
       // S6.3: Individual sizes sits in Scale behind its Show advanced (Q63, Q64); the brand-wide sizes, the mobile
       // pins and each mode's sizes are schema inputs, not manifest levers.
       { title: 'Scale', desc: SCALE_DESC, rows: [{ ctl: 'typeScale', keys: ['typography.typeScale'] }, { ctl: 'sizes', schemaOnly: ['typography.sizes', 'typography.sizeOverrides'] }] },
