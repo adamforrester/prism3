@@ -613,6 +613,33 @@
 .p3-frame[data-w="narrow"] .p3-drawer[data-open="true"] { flex: 1 1 auto; border-top: 0; }
 .p3-frame[data-w="narrow"] .p3-drawer[data-open="true"] .p3-drawer-body { flex: 1 1 auto; max-height: none; }
 .p3-frame[data-w="narrow"] .p3-drawer[data-open="true"] .p3-drawer-close { display: inline-flex; }
+/* #2176 (the owner's AD1–AD3): the open drawer's handle, at the wide tier. A window splitter: its box is the hit target
+   (hit-min tall, the pill's width plus space-200 a side), centered on the drawer's top edge over the bar row. Its one
+   mark is the pill, which sits space-075 inside the drawer's top border, the way a sheet's grabber does, and is
+   space-500 wide (the owner's change from the mock's 32px). The pill takes the secondary glyph ink, a declared 3:1 pair
+   on the page. The drawer is the handle's containing block; it makes no stacking context, so nothing that hangs over
+   it from the preview header moves under it. */
+.p3-frame:is([data-layout="panes"], [data-layout="page"]) .p3-drawer { position: relative; z-index: auto; }
+.p3-drawer-grip {
+  position: absolute; top: 0; left: 0; right: 0; margin: 0 auto; box-sizing: border-box; display: flex; justify-content: center;
+  align-items: flex-start; width: calc(var(--p3-space-500) + 2 * var(--p3-space-200)); height: var(--p3-hit-min);
+  padding-top: var(--p3-space-075); cursor: ns-resize; touch-action: none; user-select: none;
+}
+.p3-drawer-grip[hidden] { display: none; }
+.p3-drawer-grip:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
+.p3-drawer-pill { display: block; flex: none; width: var(--p3-space-500); height: var(--p3-space-050); border-radius: var(--p3-radius-pill); background: var(--p3-icon-2); }
+/* AD2: no handle at the narrow tier, where the open drawer is the full-pane sheet. */
+.p3-frame[data-w="narrow"] .p3-drawer-grip { display: none; }
+/* A kept height (`--p3-activity-h`, which the shell sets on the frame while the drawer is open and wide; a runtime
+   variable, RUNTIME_VARS in `chrome/esbuild-plugin.mjs`): the drawer draws at it, its body taking the rest. Under the
+   two panes the preview body and the drawer share the preview column from the sub-row's line down, so the drawer can
+   reach the preview header whatever the levers column holds: the body keeps the drawer's height free under it. */
+.p3-frame[data-w="wide"] .p3-drawer[data-sized="true"] { box-sizing: border-box; height: var(--p3-activity-h); }
+.p3-frame[data-w="wide"] .p3-drawer[data-sized="true"] .p3-drawer-body { flex: 1 1 auto; max-height: none; }
+.p3-frame[data-layout="panes"][data-w="wide"]:has(> .p3-drawer[data-sized="true"]) :is(.p3-preview-body, .p3-inspect-body) {
+  grid-row: 4 / -1; margin-bottom: var(--p3-activity-h);
+}
+.p3-frame[data-layout="panes"][data-w="wide"] .p3-drawer[data-sized="true"] { grid-row: 4 / -1; align-self: end; }
 
 /* The Figma menu (S1.4, plugin only). At 380 it spans the top row, under it, like the Agent popover. */
 .p3-frame[data-w="narrow"] .p3-figma-wrap { position: static; }

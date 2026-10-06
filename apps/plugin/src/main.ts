@@ -86,6 +86,18 @@ const sendThemePref = async (): Promise<void> => {
     /* storage unavailable: Match Figma */
   }
 };
+/** The open Activity drawer's height, as the person dragged it (#2176, the owner's AD1): kept like the Theme choice. */
+const ACTIVITY_HEIGHT_KEY = 'prism3:activity-height';
+const isHeight = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0;
+/** Send the kept height, if there is one; nothing kept (or storage unavailable) leaves the drawer at its own height. */
+const sendActivityHeight = async (): Promise<void> => {
+  try {
+    const v: unknown = await figma.clientStorage.getAsync(ACTIVITY_HEIGHT_KEY);
+    if (isHeight(v)) postToUi({ type: 'activity-height', px: v });
+  } catch {
+    /* storage unavailable: the drawer's own height */
+  }
+};
 const DEFAULT_SIZE = { width: 1280, height: 900 };
 // Floor only. The shared UI's narrow tier (#144) is designed down to 480, and below ~380 the chrome
 // bar stops being usable at all; Figma clamps the ceiling to the screen, so no maximum is needed.
@@ -1091,10 +1103,15 @@ onUiMessage((msg: UiToMain) => {
       // The link is off on every launch; the panel's control starts from this.
       postToUi({ type: 'agent-link-state', state: agentLink.state() });
       void sendThemePref();
+      void sendActivityHeight();
       return;
     case 'set-theme-pref':
       // The Theme menu's choice, kept per person (the owner's top-bar decision, 2026-10-05).
       if (isThemePref(msg.pref)) void figma.clientStorage.setAsync(THEME_PREF_KEY, msg.pref).catch(() => {/* best-effort */});
+      return;
+    case 'set-activity-height':
+      // The Activity drawer's height, kept per person (#2176).
+      if (isHeight(msg.px)) void figma.clientStorage.setAsync(ACTIVITY_HEIGHT_KEY, Math.round(msg.px)).catch(() => {/* best-effort */});
       return;
     case 'apply-theme':
       void ACTIONS.applyTheme(msg.input, uiSink);
