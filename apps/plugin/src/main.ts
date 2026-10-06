@@ -73,6 +73,19 @@ import { AGENT_COMMANDS, failedResult } from './agent-protocol';
 // full layout wants 1280px. Figma is desktop-only, so we size the window to the web canvas rather
 // than a "standard" narrow plugin — the same UI renders identically to the standalone web app.
 const UI_SIZE_KEY = 'prism3:ui-size';
+/** The chrome theme the person chose in the Theme menu: Match Figma, Light or Dark (the owner's top-bar decision,
+ *  2026-10-05). Kept in `clientStorage`, which is per person and per machine, like the window size above. */
+const THEME_PREF_KEY = 'prism3:theme';
+const isThemePref = (v: unknown): v is 'figma' | 'light' | 'dark' => v === 'figma' || v === 'light' || v === 'dark';
+/** Send the kept choice, if there is one; nothing kept (or storage unavailable) leaves the UI on Match Figma. */
+const sendThemePref = async (): Promise<void> => {
+  try {
+    const v: unknown = await figma.clientStorage.getAsync(THEME_PREF_KEY);
+    if (isThemePref(v)) postToUi({ type: 'theme-pref', pref: v });
+  } catch {
+    /* storage unavailable: Match Figma */
+  }
+};
 const DEFAULT_SIZE = { width: 1280, height: 900 };
 // Floor only. The shared UI's narrow tier (#144) is designed down to 480, and below ~380 the chrome
 // bar stops being usable at all; Figma clamps the ceiling to the screen, so no maximum is needed.
@@ -1077,6 +1090,11 @@ onUiMessage((msg: UiToMain) => {
       void sendFonts();
       // The link is off on every launch; the panel's control starts from this.
       postToUi({ type: 'agent-link-state', state: agentLink.state() });
+      void sendThemePref();
+      return;
+    case 'set-theme-pref':
+      // The Theme menu's choice, kept per person (the owner's top-bar decision, 2026-10-05).
+      if (isThemePref(msg.pref)) void figma.clientStorage.setAsync(THEME_PREF_KEY, msg.pref).catch(() => {/* best-effort */});
       return;
     case 'apply-theme':
       void ACTIONS.applyTheme(msg.input, uiSink);

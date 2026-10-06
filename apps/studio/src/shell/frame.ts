@@ -3,10 +3,12 @@
  * the top bar, the tab row with Color's sub-row, the two panes, the legacy frame, and narrow mode.
  *
  * WHAT IT OWNS AND WHAT IT LENDS. The frame is mounted once per app view and outlives every legacy
- * render, so a tab keeps focus across the page change it causes. It lends slots to the legacy code in
- * `main.ts`, which fills them on every `build()`: the bar's legacy controls (brand switcher, Export, Pages
- * and the plugin's Apply Theme), the notices (the engine error) and the legacy page itself. Everything
- * else here is the shell's own.
+ * render, so a tab keeps focus across the page change it causes. It lends two slots to the legacy code in
+ * `main.ts`, which fills them on every `build()`: the notices row (the error strip, which the shell draws,
+ * `notices.ts`, mounted where `main.ts` declares the `error` surface) and the legacy page itself. Since S13.1
+ * the top bar's controls are the shell's (`bar.ts`): the brand switcher and its menu, Export and its dialog, and
+ * the plugin's Apply Theme and prune review, drawn over the state `main.ts` lends; only the plugin's Pages menu
+ * is still a legacy node, lent until S11.2. Everything else here is the shell's own.
  *
  * HOW IT TALKS TO THE REST OF THE APP: store setters out, store topics in (plan §3.10). A tab click calls
  * `setPage`; the legacy frame repaints because `main.ts` subscribes to `page`, and the tab row repaints
@@ -31,16 +33,17 @@
  * for S1.4's lends below, `activity` (the host session's writes) and `figma` (the write functions).
  *
  * S1.4 adds the Activity drawer (`activity.ts`) at the bottom of the frame, the Activity button and, in the
- * plugin, the Figma menu (`figma.ts`) and the Agent chip's slot (IA-3) on the top bar. The legacy bar places
+ * plugin, the Figma menu (`figma.ts`) and the Agent tile's slot (IA-3; T7) on the top bar. The bar (`bar.ts`) places
  * those three where concept v6 draws them, as it places the verdict. Since S11 the drawer draws every write's
  * result itself, from the host session `main.ts` lends it, so it lends no slot. The plugin's own entry mounts the
- * Agent chip into its slot (`apps/plugin/src/agent-link-ui.ts`); the slot is never cleared.
+ * Agent tile into its slot (`apps/plugin/src/agent-link-ui.ts`); the slot is never cleared.
  *
- * THE PRODUCT MARK (owner, 2026-10-04) starts the studio's top bar: the logo, then "Prism3 Studio", ahead of the
- * brand switcher. It names the product and goes nowhere, so it is not a control. Its logo is `main.ts`'s, lent
- * as `logo`: it is `styles.css`'s `.logo`, a fixed conic gradient, and this stylesheet may hold no raw color.
- * The plugin draws no mark: Figma's own title bar names the plugin, and its width is tight. Narrow keeps the
- * logo and drops the name, which the mark's accessible name still carries.
+ * THE PRODUCT MARK (owner, 2026-10-04; on the plugin too since the owner's top-bar decision of 2026-10-05) starts
+ * the top bar: the logo, then "Prism3 Studio", ahead of the brand switcher. It names the product and goes nowhere,
+ * so it is not a control. Its logo is `main.ts`'s, lent as `logo`: it is `styles.css`'s `.logo`, a fixed conic
+ * gradient, and this stylesheet may hold no raw color. The bar places it, first among its controls, so a second row
+ * starts at the bar's own edge. Narrow keeps the logo and drops the name, which the mark's accessible name still
+ * carries.
  *
  * NARROW MODE (Q7) is a width class, `data-w="narrow"`, set from the frame's own width, because the chrome
  * stylesheet may not hold a raw length and a media or container query needs one. Under it the tab row
@@ -48,12 +51,13 @@
  */
 import { page, searchHits, searchQuery, setPage, setSearch, subscribe } from '../state/store';
 import { INSPECT, TABS, homeOf, isMenuPage, isNewPage, legacyOf, newPageOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type NewPageKey, type Place, type TabId } from './pages';
-import { glyph, h, hook } from './dom';
+import { glyph, h, hook, tile } from './dom';
 import { inspectMenu, modeControl, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
 import { mountActivity, type ActivityLend } from './activity';
 import { figmaMenu, type FigmaSource } from './figma';
+import { mountBar, type BarLend } from './bar';
 import { mountStyleGuides, type StyleGuidesLend } from './style-guides';
-import { THEME_CHOICES, setThemePref, themePref, type ThemePref } from './theme';
+import { THEME_CHOICES, onThemeChange, setThemePref, themeChoice } from './theme';
 import { mountPalettesLevers } from '../domains/color-palettes';
 import { mountPalettesPreview } from '../preview/palettes';
 import { mountBrandLevers } from '../domains/brand';
@@ -103,23 +107,23 @@ const PRODUCT_NAME = 'Prism3 Studio';
 export const NARROW_MAX = 560;
 
 export type Frame = {
-  /** The sticky region: the bar, the tab row and the notices. */
+  /** The sticky region: the bar, the notices and the tab row. */
   readonly head: HTMLElement;
-  /** Slot: the bar's legacy controls. */
+  /** The bar's slot, which holds `barMain`. */
   readonly bar: HTMLElement;
-  /** Slot: the legacy notices, pinned light. */
+  /** The bar's controls (`bar.ts`), the `brand-bar` chrome surface `main.ts` declares. */
+  readonly barMain: HTMLElement;
+  /** The shell's own bar nodes, which the bar places (S1.3, S1.4): the verdict (Contrast), the Activity button and the
+   *  Figma menu (plugin only). Kept on the frame beside `barMain`, as main has them. */
+  readonly verdict: HTMLElement;
+  readonly activity: HTMLElement;
+  readonly figma: HTMLElement | null;
+  /** Slot: the notices row, under the top bar: the error strip (`notices.ts`). */
   readonly notices: HTMLElement;
   /** Slot: the legacy page, inside the legacy frame. */
   readonly legacyPage: HTMLElement;
-  /** The verdict (S1.3). The shell owns it and keeps it current; `renderBar` places it after the brand
-   *  switcher on every render, the same node each time. */
-  readonly verdict: HTMLElement;
-  /** The Activity button (S1.4), placed by `renderBar` before Export, the same node each time. */
-  readonly activity: HTMLElement;
-  /** The Figma menu (S1.4, plugin only), placed by `renderBar` after the Pages menu. */
-  readonly figma: HTMLElement | null;
-  /** The Agent chip's stable, empty slot (IA-3, plugin only), placed by `renderBar` after the spacer. The
-   *  plugin's entry mounts the chip into it; nothing here or in `renderBar` ever clears it. */
+  /** The Agent tile's stable, empty slot (IA-3, plugin only), placed by the bar between Theme and Activity (T7). The
+   *  plugin's entry mounts the tile into it; nothing here or in the bar ever clears it. */
   readonly agent: HTMLElement | null;
   /** Publish the sticky region's height as `--chrome-h`, which the legacy mode strip sticks below. */
   readonly syncSticky: () => void;
@@ -174,8 +178,10 @@ export const mountFrame = (app: HTMLElement, opts: {
   /** The legacy renderers lent to the moved pages (S3: the Style guide, to Brand's preview), and the host's font
    *  list (S6.2, Type). */
   readonly lend: PageLends;
-  /** The product logo (`styles.css`'s `.logo`), for the studio's product mark. The plugin draws no mark. */
+  /** The product logo (`styles.css`'s `.logo`), for the product mark, on both hosts. */
   readonly logo: () => HTMLElement;
+  /** The top bar's controls' state and actions (S13.1, `bar.ts`). */
+  readonly bar: BarLend;
   /** The Build style guides page's reads and writes (S11.2), or null where there is no Figma file. */
   readonly styleGuides: StyleGuidesLend | null;
 }): Frame => {
@@ -190,16 +196,14 @@ export const mountFrame = (app: HTMLElement, opts: {
   // ── the top bar ────────────────────────────────────────────────────────────────────────────────
   const bar = hook(h('div', 'p3-bar'), 'top-bar');
   const barSlot = h('div', 'p3-bar-slot');
-  // The product mark, studio only, first in the bar (owner, 2026-10-04). An image with a name, not a control.
-  if (host === 'web') {
-    const mark = hook(h('div', 'p3-mark'), 'product-mark');
-    mark.setAttribute('role', 'img');
-    mark.setAttribute('aria-label', PRODUCT_NAME);
-    const logo = opts.logo();
-    logo.setAttribute('aria-hidden', 'true');
-    mark.append(logo, h('span', 'p3-mark-name', PRODUCT_NAME));
-    bar.append(mark);
-  }
+  // The product mark, first in the bar on both hosts (owner, 2026-10-04 and 2026-10-05). An image with a name, not a
+  // control. The bar places it.
+  const mark = hook(h('div', 'p3-mark'), 'product-mark');
+  mark.setAttribute('role', 'img');
+  mark.setAttribute('aria-label', PRODUCT_NAME);
+  const logo = opts.logo();
+  logo.setAttribute('aria-hidden', 'true');
+  mark.append(logo, h('span', 'p3-mark-name', PRODUCT_NAME));
   bar.append(barSlot);
 
   // The narrow Settings / Preview toggle (Q7). It switches the two panes, so it is hidden while the page
@@ -217,8 +221,9 @@ export const mountFrame = (app: HTMLElement, opts: {
   paneToggle.append(...paneButtons);
   bar.append(paneToggle);
 
-  // The theme toggle, studio only (F3). The plugin follows Figma's theme and offers no choice.
-  if (host === 'web') bar.append(themeToggle(cleanups));
+  // The theme menu (F3; on the plugin too since the owner's top-bar decision of 2026-10-05, with Match Figma first).
+  // The bar places it, before Activity and Export.
+  const theme = themeToggle(cleanups);
 
   // ── the tab row and Color's sub-row ─────────────────────────────────────────────────────────────
   const nav = hook(h('div', 'p3-nav'), 'tab-row');
@@ -261,11 +266,11 @@ export const mountFrame = (app: HTMLElement, opts: {
   const subRow = hook(h('div', 'p3-subnav'), 'sub-nav');
 
   // ── notices, the legacy frame, the panes ────────────────────────────────────────────────────────
-  // The notices and the legacy frame are legacy surfaces, pinned light (D2): `data-theme="light"` resets
-  // the chrome variables and `color-scheme` beneath them, so their fields keep dark UA ink (#1031).
+  // The notices row sits under the top bar, full width (S13.1): the error strip, in the chrome's theme. The legacy
+  // frame is a legacy surface, pinned light (D2): `data-theme="light"` resets the chrome variables and
+  // `color-scheme` beneath it, so its fields keep dark UA ink (#1031).
   const notices = hook(h('div', 'p3-notices'), 'notices');
-  notices.dataset.theme = 'light';
-  head.append(bar, nav, subRow, notices);
+  head.append(bar, notices, nav, subRow);
 
   const legacy = hook(h('main', 'p3-legacy'), 'legacy-frame');
   legacy.id = PANEL_ID;
@@ -330,7 +335,7 @@ export const mountFrame = (app: HTMLElement, opts: {
     if (e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); closeInspect(); }
   });
 
-  // ── Activity (F2), the Figma menu and the Agent chip's slot (S1.4) ───────────────────────────────
+  // ── Activity (F2), the Figma menu and the Agent tile's slot (S1.4) ───────────────────────────────
   // The drawer sits last in the frame, pinned to the bottom edge, under whichever region shows the page.
   // S11.2 (P1, variant 1): while the Build style guides page shows its run, the drawer does not open by itself for it.
   const activity = mountActivity({ host, lend: opts.activity, narrow: () => root.dataset.w === 'narrow', quiet: (k) => k === 'styleguide' && isMenuPage(page) }, cleanups);
@@ -348,8 +353,10 @@ export const mountFrame = (app: HTMLElement, opts: {
   root.append(head, legacy, panes, menuPage, inspect, activity.drawer, layer);
   app.append(root);
 
-  // The verdict, on the bar (lent to `renderBar`, which places it after the brand switcher).
+  // The verdict, on the bar, after the brand switcher; then the bar's controls (S13.1), which place the shell's nodes.
   const verdict = verdictButton((opener) => openInspect('contrast', opener), cleanups);
+  const barMain = mountBar(opts.bar, { mark, verdict, activity: activity.button, agent, figma, theme, figmaSource: host === 'figma' ? opts.figma : null }, cleanups);
+  barSlot.append(barMain);
 
   // ── Inspect state ───────────────────────────────────────────────────────────────────────────────
   let inspecting: InspectId | null = null;
@@ -577,7 +584,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   render();
 
   return {
-    head, bar: barSlot, notices, legacyPage, verdict, syncSticky, layer,
+    head, bar: barSlot, barMain, notices, legacyPage, verdict, syncSticky, layer,
     activity: activity.button, figma, agent,
     unmount: () => {
       for (const c of cleanups) c();
@@ -588,25 +595,25 @@ export const mountFrame = (app: HTMLElement, opts: {
   };
 };
 
-/** The studio's theme toggle: an icon button that opens a menu of three radio items (concept v6). */
+/** The theme menu: a bar tile, "Theme", that opens a menu of radio items (concept v6): Light, Dark and System on the
+ *  studio, Match Figma, Light and Dark on the plugin (`theme.ts`). The tile shows the current choice's glyph; its
+ *  name and tooltip say the choice ("Theme: System"). */
 const themeToggle = (cleanups: (() => void)[]): HTMLElement => {
   const wrap = h('div', 'p3-popwrap');
-  const btn = hook(h('button', 'p3-btn p3-btn-ghost p3-btn-icon'), 'theme-toggle');
-  btn.type = 'button';
+  const { btn, mark, tip } = tile('theme-toggle', 'Theme');
   btn.setAttribute('aria-haspopup', 'menu');
   btn.setAttribute('aria-controls', 'p3-theme-menu');
   const menu = hook(h('div', 'p3-menu'), 'theme-menu');
   menu.id = 'p3-theme-menu';
   menu.setAttribute('role', 'menu');
   menu.setAttribute('aria-label', 'Theme');
-  const GLYPH: Record<ThemePref, 'sun' | 'moon' | 'system'> = { light: 'sun', dark: 'moon', system: 'system' };
   const items = THEME_CHOICES.map((c) => {
     const it = hook(h('button', 'p3-menu-item'), `theme-option-${c.pref}`);
     it.type = 'button';
     it.setAttribute('role', 'menuitemradio');
     it.tabIndex = -1;
     const label = h('span', 'p3-menu-label', c.label);
-    it.append(glyph(GLYPH[c.pref]), label);
+    it.append(glyph(c.glyph), label);
     if (c.note) it.append(h('span', 'p3-menu-note', c.note));
     it.append(glyph('check'));
     it.onclick = () => { setThemePref(c.pref); close(true); paint(); };
@@ -615,11 +622,13 @@ const themeToggle = (cleanups: (() => void)[]): HTMLElement => {
   menu.append(...items);
 
   const paint = (): void => {
-    const cur = THEME_CHOICES.find((c) => c.pref === themePref())!;
-    btn.replaceChildren(glyph(GLYPH[cur.pref]));
+    const cur = themeChoice();
+    mark.replaceChildren(glyph(cur.glyph));
     btn.setAttribute('aria-label', `Theme: ${cur.label}`);
+    tip.textContent = `Theme: ${cur.label}`;
     for (const [i, c] of THEME_CHOICES.entries()) items[i].setAttribute('aria-checked', String(c.pref === cur.pref));
   };
+  cleanups.push(onThemeChange(paint));
   const isOpen = (): boolean => menu.isConnected;
   const onDown = (e: MouseEvent): void => { if (!wrap.contains(e.target as Node)) close(false); };
   const open = (): void => {

@@ -25,7 +25,7 @@ import {
   BLANK_BRAND, HEX_ERROR, IMPORT_ACCEPT, importErrorText, readDesignMdFile, readHex, seedFromColor, validateDesignMd, validatePaste,
   type GuardText,
 } from '../state/start-input';
-import { h, hook } from './dom';
+import { focusables, h, hook, trapTab } from './dom';
 import type { Host } from './pages';
 
 /** A start choice: the brand it loads and where that brand came from. */
@@ -49,9 +49,6 @@ export type StartWindow = {
   readonly dismiss: (to: HTMLElement | null) => void;
 };
 
-const FOCUSABLE = 'button:not([disabled]), input:not([type="hidden"]):not([disabled]), textarea, select, [tabindex]:not([tabindex="-1"])';
-const focusables = (root: HTMLElement): HTMLElement[] =>
-  [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((n) => n.getClientRects().length > 0 && !n.closest('[inert]'));
 
 /** A window over the frame: a scrim and a dialog in it, labelled by its title. */
 const windowShell = (cls: 'p3-dialog p3-start' | 'p3-dialog p3-dialog-guard', role: string, titleId: string): { scrim: HTMLElement; dlg: HTMLElement } => {
@@ -62,16 +59,6 @@ const windowShell = (cls: 'p3-dialog p3-start' | 'p3-dialog p3-dialog-guard', ro
   dlg.setAttribute('aria-labelledby', titleId);
   scrim.append(dlg);
   return { scrim, dlg };
-};
-
-/** Keep Tab inside `dlg`, wrapping at both ends. */
-const trapTab = (dlg: HTMLElement, e: KeyboardEvent): void => {
-  if (e.key !== 'Tab') return;
-  const f = focusables(dlg);
-  if (!f.length) { e.preventDefault(); return; }
-  const i = f.indexOf(document.activeElement as HTMLElement);
-  if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
-  else if (!e.shiftKey && (i < 0 || i === f.length - 1)) { e.preventDefault(); f[0].focus(); }
 };
 
 const button = (cls: `p3-${string}`, role: string, label: string): HTMLButtonElement => {

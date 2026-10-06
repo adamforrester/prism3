@@ -2047,9 +2047,84 @@ console.log(`  ${intStates} states, ${intText} Text-row inks, ${intPaired} paire
 console.log(`\nColor › Surfaces & fills — the previewed mode's surfaces, and the Fields rows reaching the export (S4c)\n${'='.repeat(78)}`);
 const inputAt = (page) => page.evaluate(() => { try { return JSON.parse(localStorage.getItem('prism3:brandInput'))?.input ?? null; } catch { return null; } });
 const toSurface = (v) => (v === 'white' || v === 'black' ? v : Number(v));
+/** A click that waits for its target to SETTLE first, and is BOUNDED (#2080). Measured before writing it
+ *  (2026-10-06): across 300 clicks on the Dark option in this suite and test:chrome, at load averages 7 to 14 and
+ *  with the renderer's CPU throttled 4×, the button was never replaced and never moved before the click, and each
+ *  click took as long as the page's longest main-thread task during it (127ms at most unthrottled, 380ms
+ *  throttled). So a 30-second stall is a renderer that could not run for 30 seconds, not a control that would not
+ *  hold still. This waits until the page renders frames with the target holding still: its box, and its scroller's
+ *  scrollTop, unchanged across consecutive frames. That is a measured settle, not a sleep, and it covers an eased
+ *  scroll still stepping (`follow-edit.ts`). Then it clicks. BOTH are bounded, so either stall fails the arm by name
+ *  and the suite reaches its report, instead of dying on a bare Playwright timeout. Kept here, beside its one user:
+ *  test-hooks.mjs's shared `hooks.click` is unchanged. */
+const SETTLE_CLICK_MS = 15000;
+/** Pages whose renderer rendered no frame within the bound (#2231 review). Such a page is DEAD: every later
+ *  `evaluate` on it waits with no timeout of its own, so the suite would hang (measured: 25+ minutes). Its
+ *  context is closed, and the arm that owns it skips to the next brand. Read by every `previewMode` caller. */
+const deadPages = new WeakSet();
+const closeDead = async (page, label) => {
+  deadPages.add(page);
+  ok(false, `${label}: the page rendered no frame within ${SETTLE_CLICK_MS}ms, so it is treated as dead — its context is closed and the rest of this arm is skipped`);
+  // Bounded too: a close against a frozen renderer is the one call left, and it must not become the hang.
+  await Promise.race([page.context().close().catch(() => {}), new Promise((r) => setTimeout(r, 10000))]);
+};
+/** Whether the page renders a frame within 3s, bounded on this side. After a failed click this tells a frozen
+ *  renderer (dead: close it) from a control that would not take the click (alive: carry on). */
+const rendersFrame = (page) => Promise.race([
+  page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r(true)))).catch(() => false),
+  new Promise((r) => setTimeout(() => r(false), 3000)),
+]);
+const settledClick = async (page, selector, label) => {
+  const deadline = Date.now() + SETTLE_CLICK_MS * 2;
+  const settled = await Promise.race([
+    page.evaluate(async ([sel, cap]) => {
+      const scrollerOf = (n) => {
+        for (let p = n.parentElement; p; p = p.parentElement) {
+          const oy = getComputedStyle(p).overflowY;
+          if ((oy === 'auto' || oy === 'scroll') && p.scrollHeight > p.clientHeight) return p;
+        }
+        return document.scrollingElement;
+      };
+      const read = () => {
+        const n = document.querySelector(sel);
+        if (!n) return null;
+        const r = n.getBoundingClientRect(), sc = scrollerOf(n);
+        return `${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.width)},${Math.round(r.height)}|${sc ? Math.round(sc.scrollTop) : 0}`;
+      };
+      const t0 = performance.now();
+      let prev, still = 0, frames = 0;
+      while (performance.now() - t0 < cap) {
+        await new Promise((r) => requestAnimationFrame(r));
+        frames++;
+        const now = read();
+        if (now !== null && now === prev) { if (++still >= 2) return { ok: true }; } else still = 0;
+        prev = now;
+      }
+      return { ok: false, why: prev === null ? 'it is not in the page' : `it was still moving after ${frames} frames (last box ${prev})` };
+    }, [selector, SETTLE_CLICK_MS]),
+    new Promise((r) => setTimeout(() => r({ ok: false, dead: true }), SETTLE_CLICK_MS + 1000)),
+  ]).catch((e) => ({ ok: false, why: String(e?.message ?? e).split('\n')[0] }));
+  if (settled.dead) { await closeDead(page, label); return false; }
+  if (!settled.ok) { ok(false, `${label}: ${selector} did not settle before its click — ${settled.why}`); return false; }
+  try {
+    await hooks.click(page.locator(selector), { timeout: Math.max(1000, deadline - Date.now()) });
+    return true;
+  } catch (e) {
+    // A renderer that froze AFTER the settle (measured: the click then times out, and the page is dead) is named
+    // as dead here, at the first failure, rather than one call later.
+    if (!await rendersFrame(page)) { await closeDead(page, label); return false; }
+    ok(false, `${label}: the click on ${selector} did not land — ${String(e?.message ?? e).split('\n')[0]}`);
+    return false;
+  }
+};
 const previewMode = async (page, m) => {
-  await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${m}"]`));
-  await page.waitForFunction((mm) => document.querySelector(`[data-p3="mode-option"][data-mode="${mm}"]`)?.getAttribute('aria-checked') === 'true', m);
+  const sel = `[data-p3="mode-option"][data-mode="${m}"]`;
+  if (!await settledClick(page, sel, `previewMode ${m}`)) return false;
+  // Bounded too: unbounded, a click that landed without taking effect was the same bare 30-second throw.
+  const on = await page.waitForFunction((s) => document.querySelector(s)?.getAttribute('aria-checked') === 'true', sel, { timeout: SETTLE_CLICK_MS })
+    .then(() => true, () => false);
+  if (!on) ok(false, `previewMode ${m}: the ${m} option was clicked and is still not checked after ${SETTLE_CLICK_MS}ms`);
+  return on;
 };
 // S4d (owner decision Q45): the Page (Primary since S4f, QA-B3) and the band step are step pickers; the band palette stays
 // a select. S4f (QA-B1): the contrast floor is a row, its control the step picker, writing what its select wrote.
@@ -2060,7 +2135,7 @@ const SURF_HOOKS = { base: '[data-p3="levers-pane"] [data-p3="surface-base-pick"
   'inverse-secondary': '[data-p3="levers-pane"] [data-p3="surface-inverse-secondary-pick"]', 'inverse-tertiary': '[data-p3="levers-pane"] [data-p3="surface-inverse-tertiary-pick"]' };
 const PICKED = new Set(['base', 'floor', 'band-step', 'secondary', 'tertiary', 'inverse-secondary', 'inverse-tertiary']);
 const SURF = (k) => SURF_HOOKS[k];
-for (const brand of BRANDS) {
+s4cArm: for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
   await hooks.click(page.locator('[data-p3="tab-color"]'));
   await hooks.click(page.locator('[data-p3="color-sub-fills"]'));
@@ -2071,7 +2146,7 @@ for (const brand of BRANDS) {
   ok(sets === 1, `S4c ${brand}: Surfaces & fills draws one set of surface controls (${sets})`);
   for (const [m, other] of [['dark', 'light'], ['light', 'dark']]) {
     if (!modes.includes(m)) continue;
-    await previewMode(page, m);
+    if (!await previewMode(page, m)) { if (deadPages.has(page)) continue s4cArm; continue; }
     for (const [k, field, pick] of [['base', 'base', 3], ['floor', 'floorStep', 5], ['band-step', 'inverseBase', 4],
       ['secondary', 'secondary', 4], ['tertiary', 'tertiary', 6], ['inverse-secondary', 'inverseSecondary', 3], ['inverse-tertiary', 'inverseTertiary', 5]]) {
       const before = (await inputAt(page))?.surfaces ?? {};
@@ -2101,9 +2176,10 @@ for (const brand of BRANDS) {
   // A derived mode: the controls show its family's surfaces and are disabled, as the rows are.
   const derived = modes.find((m) => m.startsWith('hc-'));
   if (derived) {
-    await previewMode(page, derived);
-    const dis = await page.evaluate((sels) => sels.map((x) => document.querySelector(x)?.disabled ?? null), Object.keys(SURF_HOOKS).map(SURF));
-    ok(dis.every((d) => d === true), `S4c ${brand}: previewing ${derived}, every surface control is disabled (${JSON.stringify(dis)})`);
+    if (await previewMode(page, derived)) {
+      const dis = await page.evaluate((sels) => sels.map((x) => document.querySelector(x)?.disabled ?? null), Object.keys(SURF_HOOKS).map(SURF));
+      ok(dis.every((d) => d === true), `S4c ${brand}: previewing ${derived}, every surface control is disabled (${JSON.stringify(dis)})`);
+    } else if (deadPages.has(page)) continue s4cArm;
   }
   // Every Fields row, in Dark and then in Light, writes its own role and no other (review of #1980: a row
   // wired to its sibling's role went green while only three rows were edited). EXPECTED: the role is the
@@ -2118,7 +2194,7 @@ for (const brand of BRANDS) {
   let fieldEdits = 0;
   for (const [m, other] of [['dark', 'light'], ['light', 'dark']]) {
     if (!modes.includes(m)) continue;
-    await previewMode(page, m);
+    if (!await previewMode(page, m)) { if (deadPages.has(page)) continue s4cArm; continue; }
     for (const [i, role] of ALL_FIELD_ROLES.entries()) {
       fieldEdits++;
       const step = FIELD_STEPS[m][i];
@@ -2145,7 +2221,7 @@ for (const brand of BRANDS) {
   const aliasIn = (tree, role, m) => (m === 'light' ? leaf(tree, role)?.$value : leaf(tree, role)?.$extensions?.prism3?.modes?.[m]?.$value) ?? null;
   const EDITS = [['dark', 'field.border.rest', '300'], ['light', 'inverse.field.placeholder', '200'], ['dark', 'field.fill', '100']];
   for (const [m, role, step] of EDITS) {
-    await previewMode(page, m);
+    if (!await previewMode(page, m)) { if (deadPages.has(page)) continue s4cArm; continue; }
     const row = `[data-p3="levers-pane"] [data-p3="field-rows"] .p3-fillrow[data-role="${role}"]`;
     await hooks.click(page.locator(`${row} [data-p3="fill-pick"]`));
     await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${step}"]`));
@@ -2176,12 +2252,12 @@ for (const brand of BRANDS) {
 //     (the review): the page tiers' pickers offer neutral only and the inverse tiers the Inverse fill's palettes,
 //     and at a ladder-end Page in Light and in Dark the floor's Auto label names the engine's floor alone.
 console.log(`\nColor › Surfaces & fills — a Secondary pick carries the contrast floor (S4e)\n${'='.repeat(78)}`);
-for (const brand of BRANDS) {
+s4eArm: for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
   await hooks.click(page.locator('[data-p3="tab-color"]'));
   await hooks.click(page.locator('[data-p3="color-sub-fills"]'));
   await hooks.need(page, '[data-p3="fills-levers"]');
-  await previewMode(page, 'light');
+  if (!await previewMode(page, 'light')) { if (!deadPages.has(page)) await ctx.close(); continue s4eArm; }
   const emission = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
   const root = Object.keys(emission)[0];
   const wasAlias = emission[root]?.color?.background?.secondary?.$value ?? '';
@@ -2254,7 +2330,7 @@ for (const brand of BRANDS) {
   // floor alone. EXPECTED: the literal label, and the floor the engine measures the floor-gated text.secondary on
   // (its picker's hint), the two read through different controls.
   for (const [m, pageKey, want] of [['light', 'black', 'Auto · neutral 950'], ['dark', 'white', 'Auto · neutral 050']]) {
-    await previewMode(page, m);
+    if (!await previewMode(page, m)) { if (deadPages.has(page)) continue s4eArm; continue; }
     const rawP = await brandRaw();
     await hooks.click(page.locator(SURF('base')));
     await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${pageKey}"]`));
@@ -2290,13 +2366,13 @@ const S4D_EDITS = [
   ['light', 'icon.brand', 'primary', '750', 'Icon'],
   ['dark', 'inverse.icon.success', 'success', '350', 'Icon'],
 ];
-for (const brand of BRANDS) {
+s4dArm: for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
   const b = brand.toLowerCase();
   await hooks.click(page.locator('[data-p3="tab-color"]'));
   await hooks.click(page.locator('[data-p3="color-sub-fills"]'));
   await hooks.need(page, '[data-p3="fills-levers"]');
-  await previewMode(page, 'light');
+  if (!await previewMode(page, 'light')) { if (!deadPages.has(page)) await ctx.close(); continue s4dArm; }
   ok(b in ICONS_PAIRED, `S4d ${brand}: the suite says whether this brand loads with icons paired (ICONS_PAIRED)`);
   const rows0 = await iconRowsAt(page);
   ok(rows0.length === 31, `S4d ${brand}: the Icon section draws the 31 icon rows (read ${rows0.length})`);
@@ -2328,7 +2404,7 @@ for (const brand of BRANDS) {
   const loose = FOLLOW_ALWAYS.filter((role) => { const r = rows1.find((x) => x.role === role); return !r || !r.disabled || r.text !== `Follows ${ICON_TWIN(role)}`; });
   ok(loose.length === 0, `S4d ${brand}: #1982/#2024 unpaired, the nineteen stay disabled and read "Follows text.X"${loose.length ? ` — not locked: ${loose.join(', ')}` : ''}`);
   for (const [m, role, pal, step, sec] of S4D_EDITS) {
-    await previewMode(page, m);
+    if (!await previewMode(page, m)) { if (deadPages.has(page)) continue s4dArm; continue; }
     const row = `[data-p3="levers-pane"] .p3-fillrow[data-role="${role}"]`;
     // Bounded: a row left locked (or not drawn) is a failure by name here, not a 30-second timeout.
     const can = await page.evaluate((sel) => { const b = document.querySelector(sel); return !!b && !b.disabled; }, `${row} [data-p3="fill-pick"]`);
@@ -3102,6 +3178,39 @@ for (const brand of BRANDS) {
   ok(surfaced, `${brand}: an engine throw raised on Type SURFACES (#388's defect path)`);
   const raised = await errState();
   ok(/typography\.sizes\.title\.2xs/.test(raised.text), `${brand}: the bar names the field the engine refused — "${raised.text.slice(0, 90)}"`);
+
+  // THE STRIP IN DARK (UI redesign S13.1, owner decision G18 A: the bug being fixed). Until S13.1 the line was a legacy
+  // card pinned light, so in a dark theme it stayed a light card. The theme is the device's here (the studio's default,
+  // `system`), so emulating a dark device turns the chrome dark; the strip must go with it. Measured as RENDERED: its
+  // composited ground, its line and its glyph against that ground, at literal floors (a ground below 0.2 luminance is
+  // dark; the line 4.5:1, the glyph 3:1). The light theme's strip is read the same way first, so a strip that is dark
+  // in both themes fails too.
+  const stripDrawn = () => page.evaluate(() => {
+    const e = document.querySelector('[data-p3="error-bar"]');
+    const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+    const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+    const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+    const ratio = (a, b) => { const x = lum(a), y = lum(b); return Math.floor(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 100) / 100; };
+    if (!e || getComputedStyle(e).display === 'none') return { shown: false };
+    let g = null;
+    for (let n = e; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { g = g ? over(g, c) : c; if (g.a >= 0.999) break; } }
+    g = g ? { ...g, a: 1 } : { r: 255, g: 255, b: 255, a: 1 };
+    // Every node in the strip that draws text, and every glyph, against the strip's ground.
+    const inks = [...e.querySelectorAll('*')].filter((n) => [...n.childNodes].some((c) => c.nodeType === 3 && c.textContent.trim())).map((n) => parse(getComputedStyle(n).color)).filter(Boolean);
+    const glyphs = [...e.querySelectorAll('svg')].map((n) => parse(getComputedStyle(n).color)).filter(Boolean);
+    return { shown: true, groundLum: Math.round(lum(g) * 1000) / 1000, text: inks.map((c) => ratio(over(c, g), g)), glyphs: glyphs.map((c) => ratio(over(c, g), g)) };
+  });
+  const lightStrip = await stripDrawn();
+  ok(lightStrip.shown && lightStrip.groundLum > 0.5 && lightStrip.text.length > 0 && Math.min(...lightStrip.text) >= 4.5,
+    `${brand}: in light, the error strip is drawn on a light ground (luminance ${lightStrip.groundLum}) and its line clears 4.5:1 (${JSON.stringify(lightStrip.text)})`);
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.waitForFunction(() => matchMedia('(prefers-color-scheme: dark)').matches);
+  const darkStrip = await stripDrawn();
+  ok(darkStrip.shown && darkStrip.groundLum < 0.2,
+    `${brand}: in dark, the error strip is drawn on a dark ground (luminance ${darkStrip.groundLum}, below 0.2) — the light card #388's line was until S13.1 is the case refused`);
+  ok(darkStrip.shown && darkStrip.text.length > 0 && Math.min(...darkStrip.text) >= 4.5 && darkStrip.glyphs.length > 0 && Math.min(...darkStrip.glyphs) >= 3,
+    `${brand}: in dark, the error strip's line clears 4.5:1 (${JSON.stringify(darkStrip.text)}) and its glyph 3:1 (${JSON.stringify(darkStrip.glyphs)})`);
+  await page.emulateMedia({ colorScheme: 'light' });
 
   // THE GENERALIZATION, not just the instance: the surface belongs to the view, so navigating to a
   // third page must not lose it. A page-local bar would vanish here, which is the state #388 described
@@ -3980,24 +4089,28 @@ for (const brand of BRANDS) {
     await page.fill('[data-p3="brand-menu"] [data-p3="import-text"]', 'smoke-brand');
 
     const where = `${brand} / brand menu / ${scheme} scheme`;
-    // #1031's FIRST HALF, asserted directly — on the POPOVER, since UI redesign S1.2. Until then the
-    // whole document resolved light (the studio declared nothing) and that was the line held here. The
-    // chrome now has a real dark scheme (the frame follows the device by default, so this arm's dark run
-    // has a dark document), and the legacy surfaces still painted from light tokens are pinned light with
-    // `data-theme="light"`. So the opt-in that matters is the popover's own, and each of its controls':
-    // anything naming `dark` there hands the UA the field ink, the caret, autofill and native option lists
-    // from a dark palette over a surface this stylesheet paints light, and the option list is not
-    // something any in-page probe can measure, which is why the opt-in itself is the thing to hold.
+    // #1031's FIRST HALF, asserted directly — on the POPOVER and each of its controls. Until UI redesign S13.1
+    // the menu was a legacy surface painted from light tokens and pinned light, and the line held here was "it
+    // resolves a light-only scheme". S13.1 draws it in the chrome, which follows the theme, so the line is the
+    // one #1031 was about in either direction: the color-scheme each control resolves AGREES WITH THE GROUND it
+    // is drawn on — no dark scheme over a light ground (the UA's near-white ink, caret, autofill and option
+    // lists over a light field), and no light scheme over a dark one. The ground is MEASURED (its composited
+    // background's luminance), never read from the theme attribute, so a surface pinned to the wrong theme fails
+    // here whatever the document says.
     const schemes = await page.evaluate(() => {
+      const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+      const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+      const groundLum = (el) => { for (let n = el; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a >= 0.999) return lum(c); } return 1; };
       const menu = document.querySelector('[data-p3="brand-menu"]');
-      return { menu: menu ? getComputedStyle(menu).colorScheme : 'unmounted',
-        fields: [...(menu?.querySelectorAll('input, select, textarea') ?? [])].map((f) => [f.getAttribute('data-p3') ?? f.tagName, getComputedStyle(f).colorScheme]) };
+      const read = (n) => [n.getAttribute('data-p3') ?? n.tagName, getComputedStyle(n).colorScheme, Math.round(groundLum(n) * 1000) / 1000];
+      return { menu: menu ? read(menu) : null, fields: [...(menu?.querySelectorAll('input, select, textarea') ?? [])].map(read) };
     });
-    ok(schemes.menu === 'normal' || schemes.menu === 'light',
-      `${where}: the brand menu resolves a light-only color-scheme (resolved "${schemes.menu}") — it paints every surface from light tokens, so opting into dark hands the UA half of a pairing it cannot see`);
-    const darkFields = schemes.fields.filter(([, cs]) => /\bdark\b/.test(cs));
-    ok(schemes.fields.length > 0 && darkFields.length === 0,
-      `${where}: every control in the brand menu resolves a light color-scheme (${schemes.fields.length} read${darkFields.length ? `; dark: ${darkFields.map(([h, cs]) => `${h} "${cs}"`).join(', ')}` : ''})`);
+    const disagrees = ([, cs, g]) => (/\bdark\b/.test(cs) && g > 0.5) || (!/\bdark\b/.test(cs) && g < 0.2);
+    ok(!!schemes.menu && !disagrees(schemes.menu),
+      `${where}: the brand menu's color-scheme agrees with its ground (${JSON.stringify(schemes.menu)}) — a dark scheme over a light ground, or the reverse, hands the UA half of a pairing it cannot see (#1031)`);
+    const offFields = schemes.fields.filter(disagrees);
+    ok(schemes.fields.length > 0 && offFields.length === 0,
+      `${where}: every control in the brand menu resolves a color-scheme that agrees with its ground (${schemes.fields.length} read${offFields.length ? `; off: ${offFields.map(([h, cs, g]) => `${h} "${cs}" on ${g}`).join(', ')}` : ''})`);
     await settle(page, where);
     const probe = await page.evaluate(LEGIBILITY_PROBE, '[data-p3="brand-menu"]');
     assertParsed(where, probe.unparsed);
@@ -5146,6 +5259,44 @@ for (const c of REFUSED_CASES) {
   ok(frameUp > 0, `#1989 ${c.label}: after Clear, choosing an example opens the studio`);
   const errs = drain();
   ok(errs.length === 0, `#1989 ${c.label}: 0 console errors after the boot${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+
+// ---- #2080: keyboard focus survives the mode control's repaint ------------------------------------------------
+// The preview header's mode control repaints on every mode AND every brand (verdict) update: one `paint`, subscribed
+// to both (`shell/preview.ts`). A paint changes a button's `data-sig` and replaces its CHILDREN, but keeps the button
+// itself, so a keyboard user's focus stays put. Driven by the path a person uses, Arrow Right on the radio group,
+// which focuses the next option and selects it, so that paint redraws the newly focused button. EXPECTED: that same
+// node still holds focus after the paint, and the paint reached it (its `data-sig` changed, so the arm is not
+// vacuous). BY-NAME MUTATION: make `paint` rebuild the radios every call → the same-node arm fails.
+{
+  const { ctx, page, drain } = await openBrand(BRANDS[0]);
+  await hooks.need(page, '[data-p3="mode-control"]');
+  const first = page.locator('[data-p3="mode-control"] [data-p3="mode-option"][aria-checked="true"]');
+  await hooks.need(page, first);
+  await first.focus();
+  const before = await page.evaluate(() => {
+    const a = document.activeElement;
+    if (!a || a.getAttribute('data-p3') !== 'mode-option') return null;
+    window.__p3focusProbe = a;
+    const next = a.nextElementSibling;
+    return { mode: a.dataset.mode, next: next?.dataset.mode ?? null, nextSig: next?.dataset.sig ?? null };
+  });
+  ok(!!before?.next, `#2080 focus setup: a mode option is focused and has a next option (${JSON.stringify(before)})`);
+  if (before?.next) {
+    await page.keyboard.press('ArrowRight');
+    const moved = await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', before.next, { timeout: SETTLE_CLICK_MS }).then(() => true, () => false);
+    const after = await page.evaluate((m) => {
+      const n = document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`);
+      return { focusedIsIt: !!n && document.activeElement === n, sameNodeAsBefore: n === window.__p3focusProbe?.nextElementSibling || false,
+        connectedBefore: window.__p3focusProbe?.isConnected ?? false, sig: n?.dataset.sig ?? null };
+    }, before.next);
+    ok(moved && after.sig !== before.nextSig, `#2080 the repaint reached the newly focused option: ${before.next} is checked and its data-sig moved (${before.nextSig} → ${after.sig})`);
+    ok(after.focusedIsIt && after.sameNodeAsBefore && after.connectedBefore,
+      `#2080 keyboard focus survives the mode control's repaint: the ${before.next} option keeps focus and is the same node (${JSON.stringify(after)})`);
+  }
+  const errs = drain();
+  ok(errs.length === 0, `#2080 0 console errors in the focus check${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
 }
 

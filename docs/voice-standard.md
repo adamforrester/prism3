@@ -57,6 +57,11 @@ are exempt**, matching the existing US-English carve-out in `CLAUDE.md`.
 | "Peak chroma of the neutral ramp." | "Peak neutral chroma (~0.004–0.02); tapers to near-0 at the ramp ends. 0 = pure gray." |
 | "Great contrast!" | "Clears 4.5:1 against the page." |
 | "This might not meet contrast." | "3.9:1 against the page — below the 4.5:1 floor for body text." |
+| "-32603 internal error: Cannot read properties of null (reading 'fg')" | "score_consumption input failed validation", then one line per bad entry, as below (MCP, #2209) |
+| (no line: the call crashed) | ``pairs[0] is null; each pair is an object with `fg` and `bg` color roles, such as { "fg": "text.primary", "bg": "background.primary" }`` |
+| (no line: the call crashed) | ``pairs[1].bg is missing; it takes a color role, such as "background.primary"`` |
+| (no line: `kind: "heading"` scored silently at 4.5:1) | ``pairs[0].kind is "heading"; it takes text, large-text or ui`` |
+| (no line: the call crashed) | ``refs[1] is null; each ref is a token path, such as "color.text.primary"`` |
 
 **Mechanics that make it sound right:** the system is the subject, in present tense; an em
 dash carries the reason; numbers appear inline and unhedged; a semicolon pairs the contrast

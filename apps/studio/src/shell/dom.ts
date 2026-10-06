@@ -100,3 +100,48 @@ export const setBusy = (b: HTMLElement, busy: boolean): void => {
   if (busy) { b.setAttribute('aria-disabled', 'true'); b.setAttribute('aria-busy', 'true'); }
   else { b.removeAttribute('aria-disabled'); b.removeAttribute('aria-busy'); }
 };
+
+/**
+ * A bar tile (the owner's top-bar decision, 2026-10-05, "A · Menu bar"): a borderless control, its mark (a glyph, or
+ * a glyph and a count) over a small label, with a tooltip under it on hover and on keyboard focus. The label shows
+ * above the narrow tier and drops at it (`NARROW_MAX`), leaving the mark and the tooltip. The accessible name is the
+ * control's `aria-label` in every tier, so it never depends on the label or the tooltip, and both are `aria-hidden`
+ * (they repeat what the name says). The tooltip is drawn by the stylesheet alone, so it carries no inline value.
+ * `start`: the tooltip hangs from the tile's left edge rather than its right (a tile on the bar's left side).
+ */
+export type Tile = { readonly btn: HTMLButtonElement; readonly mark: HTMLElement; readonly tip: HTMLElement };
+export const tile = (role: string, label: string, start = false): Tile => {
+  const btn = hook(h('button', start ? 'p3-btn p3-tile p3-tile-start' : 'p3-btn p3-tile'), role);
+  btn.type = 'button';
+  const mark = h('span', 'p3-tile-mark');
+  const lab = h('span', 'p3-tile-label', label);
+  lab.setAttribute('aria-hidden', 'true');
+  const tip = hook(h('span', 'p3-tile-tip'), `${role}-tip`);
+  tip.setAttribute('aria-hidden', 'true');
+  btn.append(mark, lab, tip);
+  return { btn, mark, tip };
+};
+
+/** The controls Tab can reach inside `root`, in order: drawn, not inert. Shared by every modal window (S12's start
+ *  window and its guard, S13.1's export and prune dialogs). */
+const FOCUSABLE = 'button:not([disabled]), input:not([type="hidden"]):not([disabled]), textarea, select, [tabindex]:not([tabindex="-1"])';
+export const focusables = (root: HTMLElement): HTMLElement[] =>
+  [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((n) => n.getClientRects().length > 0 && !n.closest('[inert]'));
+
+/** Keep Tab inside `dlg`, wrapping at both ends: a modal (`aria-modal`) window's keyboard trap. It takes over Tab only at
+ *  the two ends of the list (and from the window itself, its fallback focus); anywhere else the browser moves focus in
+ *  document order. So a focusable node the list does not name (a scroll region Chromium makes focusable, #2124 review)
+ *  is passed through, never mistaken for an end. */
+export const trapTab = (dlg: HTMLElement, e: KeyboardEvent): void => {
+  if (e.key !== 'Tab') return;
+  const f = focusables(dlg);
+  if (!f.length) { e.preventDefault(); return; }
+  const at = document.activeElement as HTMLElement;
+  const i = f.indexOf(at);
+  if (i < 0) {
+    if (at === dlg || !dlg.contains(at)) { e.preventDefault(); (e.shiftKey ? f[f.length - 1] : f[0]).focus(); }
+    return;
+  }
+  if (e.shiftKey && i === 0) { e.preventDefault(); f[f.length - 1].focus(); }
+  else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
+};

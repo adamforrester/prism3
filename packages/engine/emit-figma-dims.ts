@@ -413,7 +413,7 @@ export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
   // keys, already in ascending order) — NOT a hardcoded 5. A 6-breakpoint brand (aurora: xs..2xl)
   // otherwise silently drops its base `xs` grid, and a ≤3-breakpoint brand would read
   // `gridNode[mode]` undefined and crash. `LAYOUT_MODES` stays the DEFAULT breakpoint-name set
-  // (a 4-floor brief auto-names them sm..2xl); the emit follows whatever the brand generated.
+  // (a 4-floor brief auto-names them sm..xl); the emit follows whatever the brand generated.
   const modes = Object.keys(gridNode);
 
   // ONE description per grid variable, shared by every breakpoint mode (#1623 FG/F-1). A Figma variable

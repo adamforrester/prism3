@@ -346,6 +346,45 @@ await new Promise((r) => setTimeout(r, 3000));
   }
 }
 
+// ------------------------------- #2209: a malformed score_consumption entry is an isError result naming it
+// `pairs: [null]` threw in `scoreContractCompliance` (`pair.fg` of null), and `refs: [null]` in `normalizeRef`,
+// outside #2162's `buildBrand` guard, so both escaped as -32603 protocol errors. Each case must be an `isError`
+// result whose `errors` name the bad entry by index and say what is wrong. Read off the RAW reply, for the same
+// reason as #2162 above. EXPECTED sentences are typed here literally, never read from mcp.ts. BY-NAME MUTATION:
+// skip `scoreInputErrors` in mcp.ts's score_consumption → the `pairs: [null]`, missing-`bg` and `refs: [null]`
+// arms fail as RPC errors, and the bad-`kind` arm fails on the scored result it now gets.
+{
+  const B = { id: 'x', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  const GOOD = { fg: 'text.primary', bg: 'background.primary' };
+  const call = async (args: unknown) => {
+    const res = await server.reply(server.send('tools/call', { name: 'score_consumption', arguments: args }));
+    let payload: any = null;
+    try { payload = res.result ? JSON.parse(res.result.content[0].text) : null; } catch { /* reported below */ }
+    return { res, payload, seen: res.error ? `RPC error ${res.error.code}: ${res.error.message}` : JSON.stringify(payload).slice(0, 300) };
+  };
+  for (const [label, args, want] of [
+    ['pairs: [null]', { brand: B, refs: [], pairs: [null] },
+      ['pairs[0] is null; each pair is an object with `fg` and `bg` color roles, such as { "fg": "text.primary", "bg": "background.primary" }']],
+    ['a pair missing bg, after a good one', { brand: B, refs: [], pairs: [GOOD, { fg: 'text.primary' }] },
+      ['pairs[1].bg is missing; it takes a color role, such as "background.primary"']],
+    ['a pair that is an array, and one with a numeric fg', { brand: B, refs: [], pairs: [['text.primary', 'background.primary'], { fg: 7, bg: 'background.primary' }] },
+      ['pairs[0] is an array; each pair is an object with `fg` and `bg` color roles, such as { "fg": "text.primary", "bg": "background.primary" }',
+        'pairs[1].fg is 7; it takes a color role, such as "text.primary"']],
+    ['a pair whose kind is outside the enum', { brand: B, refs: [], pairs: [{ ...GOOD, kind: 'heading' }] },
+      ['pairs[0].kind is "heading"; it takes text, large-text or ui']],
+    ['refs: [null]', { brand: B, refs: ['color.text.primary', null] },
+      ['refs[1] is null; each ref is a token path, such as "color.text.primary"']],
+  ] as const) {
+    const r = await call(args);
+    const okShape = !r.res.error && r.res.result?.isError === true && JSON.stringify(r.payload?.errors) === JSON.stringify(want);
+    ok(okShape, `#2209 score_consumption, ${label}: an isError result naming the bad entry, not a protocol error (want ${JSON.stringify(want)}; got ${r.seen})`);
+  }
+  // Control: well-formed input, with every kind and a pair naming no color role, still scores and is not refused.
+  const c = await call({ brand: B, refs: ['color.text.primary'], pairs: [GOOD, { ...GOOD, kind: 'text' }, { ...GOOD, kind: 'large-text' }, { ...GOOD, kind: 'ui' }, { fg: 'not.a.role', bg: '' }] });
+  ok(!c.res.error && c.res.result?.isError !== true && c.payload?.contracts?.checked > 0 && c.payload?.contracts?.unresolved?.length === 1,
+    `#2209 control: well-formed score_consumption input still scores, every kind accepted, an unknown role reported as unresolved (got ${c.seen})`);
+}
+
 // ----------------------------------------------------------------- 3. JOURNEY
 // The end-to-end an agent performs. Each step consumes the PREVIOUS step's output, so this fails if
 // the tools stop composing — which no per-tool assertion can detect.

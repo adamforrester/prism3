@@ -24,6 +24,8 @@ const slug = (k: string): string => leverHook(k).slice('lever-'.length);
 export type LeverBlock = {
   readonly el: HTMLElement;
   readonly ctl: HTMLElement;
+  /** The name the head draws (the page's, or the manifest's). */
+  readonly label: string;
   readonly setReadout: (text: string) => void;
   readonly setState: (node: HTMLElement | null) => void;
   readonly setRefused: (yes: boolean) => void;
@@ -73,7 +75,7 @@ export const leverBlock = (key: string, opts: { label?: string; group?: boolean;
   refused.hidden = true;
   el.append(head, ...(tip ? [tip] : []), ctl, state, refused);
   return {
-    el, ctl,
+    el, ctl, label,
     setReadout: (t) => { setText(readout, t); if (readout.hidden !== !t) readout.hidden = !t; },
     // A state line is replaced only when its words change.
     setState: (n) => { if ((state.textContent ?? '') !== (n?.textContent ?? '')) state.replaceChildren(...(n ? [n] : [])); },
@@ -81,6 +83,47 @@ export const leverBlock = (key: string, opts: { label?: string; group?: boolean;
     // `alsoSays`: searchable text only, never drawn (#2175: a lever whose control lives in another lever's block).
     said: `${label} ${desc} ${key}${opts.alsoSays ? ` ${opts.alsoSays}` : ''}`.toLowerCase(),
   };
+};
+
+/** BG1 A and HP5 (heading pass 2, owner approval 2026-10-06): a lever named exactly as its section says its name once,
+ *  in the section's title. Its head row goes; its ⓘ moves beside the section title, `space-050` after it, and anything
+ *  else its head held (a switch, a shown readout) moves to the far end of the title's row. Its tip opens under the
+ *  section's head, and its own one-line lead (the editing-mode line) joins the head as its last description line. The
+ *  lever's group or control is then named by the section title, so nothing loses its accessible name. Called by a
+ *  page once the lever is in its section; `section` is the `.p3-lsec`. */
+export const promoteLever = (section: HTMLElement, b: LeverBlock): void => {
+  const head = section.querySelector<HTMLElement>(':scope > .p3-lsec-head');
+  const title = head?.querySelector<HTMLElement>('.p3-lsec-title');
+  const lhead = b.el.querySelector<HTMLElement>(':scope > .p3-lever-head');
+  if (!head || !title || !lhead) return;
+  let row = head.querySelector<HTMLElement>(':scope > .p3-lsec-titlerow');
+  if (!row) {
+    row = h('div', 'p3-lsec-titlerow');
+    title.replaceWith(row);
+    row.append(title);
+  }
+  const info = lhead.querySelector<HTMLElement>(':scope > .p3-info');
+  if (info) row.append(info);
+  const rest = [...lhead.children].filter((c) => !c.matches('.p3-lever-name, .p3-info') && !(c.matches('.p3-readout') && (c as HTMLElement).hidden));
+  if (rest.length) {
+    const end = h('span', 'p3-lsec-end');
+    end.append(...rest);
+    row.append(end);
+  }
+  const lead = b.ctl.querySelector<HTMLElement>(':scope > .p3-sub:first-child, :scope > .p3-modegroup:first-child > .p3-sub:first-child');
+  if (lead) { lead.classList.add('p3-lsec-desc', 'p3-lsec-lead'); head.append(lead); }
+  const tip = b.el.querySelector<HTMLElement>(':scope > .p3-tip');
+  if (tip) head.append(tip);
+  lhead.hidden = true;
+  if (!title.id) title.id = `${b.el.id}-t`;
+  // A fieldset's name was its legend; a control its head's <label> named takes the title instead, unless it names itself.
+  if (b.el instanceof HTMLFieldSetElement) b.el.setAttribute('aria-labelledby', title.id);
+  const name = lhead.querySelector('.p3-lever-name');
+  if (name instanceof HTMLLabelElement && name.htmlFor) {
+    const ctl = b.el.querySelector<HTMLElement>(`#${CSS.escape(name.htmlFor)}`);
+    if (ctl && !ctl.hasAttribute('aria-label') && !ctl.hasAttribute('aria-labelledby')) ctl.setAttribute('aria-labelledby', title.id);
+  }
+  b.el.dataset.promoted = 'true';
 };
 
 /** An info button and the toggletip it opens, as a lever's head draws them, for a control INSIDE a lever that has
@@ -113,9 +156,11 @@ export const subLine = (text: string): HTMLElement => h('p', 'p3-sub', text);
 /** A control's name and the token it sets (the owner's QA-B2, 2026-10-02): the label first, so it is read first,
  *  and the token under it, in mono. Every fill row, every Surfaces & fills field and every Type family row draws
  *  its name through this one helper, so the order is decided once. It reverses #1980's "token first" (and Type's
- *  Q68 order with it). A `forId` makes it the control's `<label>`. */
-export const tokenLabel = (token: string, label: string, forId?: string): HTMLElement => {
-  const l = h(forId ? 'label' : 'div', 'p3-fill-name');
+ *  Q68 order with it). A `forId` makes it the control's `<label>`. `onLine` (#2217, heading pass 2): a label stacked
+ *  over its control, with nothing on its right, puts the token flush right on its own line, wrapping under it when the
+ *  two do not fit (and always at the narrow tier); the DOM order stays label, then token. */
+export const tokenLabel = (token: string, label: string, forId?: string, opts: { onLine?: boolean } = {}): HTMLElement => {
+  const l = h(forId ? 'label' : 'div', opts.onLine ? 'p3-fill-name p3-fill-name-online' : 'p3-fill-name');
   if (forId && l instanceof HTMLLabelElement) l.htmlFor = forId;
   l.dataset.role = token;
   l.append(h('b', 'p3-fill-label', label), h('span', 'p3-fill-tok', token));
