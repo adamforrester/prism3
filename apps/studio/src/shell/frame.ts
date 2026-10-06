@@ -122,6 +122,9 @@ export type Frame = {
   readonly agent: HTMLElement | null;
   /** Publish the sticky region's height as `--chrome-h`, which the legacy mode strip sticks below. */
   readonly syncSticky: () => void;
+  /** The layer a window opens in, over everything the frame draws (S12: the start window and its guard). Empty, and
+   *  drawn as nothing, while no window is open. */
+  readonly layer: HTMLElement;
   /** Remove the frame and drop its subscriptions and listeners. */
   readonly unmount: () => void;
 };
@@ -332,7 +335,9 @@ export const mountFrame = (app: HTMLElement, opts: {
 
   // The Activity status line rides in the top bar, which is always drawn, on the bar's own ground.
   bar.append(activity.live);
-  root.append(head, legacy, panes, inspect, activity.drawer);
+  // S12: the window layer, last, so a window is drawn over the drawer too.
+  const layer = hook(h('div', 'p3-layer'), 'layer');
+  root.append(head, legacy, panes, inspect, activity.drawer, layer);
   app.append(root);
 
   // The verdict, on the bar (lent to `renderBar`, which places it after the brand switcher).
@@ -553,7 +558,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   render();
 
   return {
-    head, bar: barSlot, notices, legacyPage, verdict, syncSticky,
+    head, bar: barSlot, notices, legacyPage, verdict, syncSticky, layer,
     activity: activity.button, figma, agent,
     unmount: () => {
       for (const c of cleanups) c();
