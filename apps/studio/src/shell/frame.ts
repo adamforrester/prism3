@@ -50,8 +50,9 @@
  * becomes a select, only the top row stays sticky, and the bar's text buttons drop to their glyphs.
  *
  * THE BAR'S FIT (#2214, the owner's BL1 A+B, BL2 A, BL3 A). Above the narrow tier, when the full bar would not fit on
- * one row, the tile labels, then the product name, then the plugin's file row give way, each by a measured check that
- * sets `data-bar-fit`, reusing the narrow tier's rules for each. See `fitBar`.
+ * one row, the tile labels, then the product name, then the plugin's file row, then the brand name (cut short, Q83 A)
+ * give way, each by a measured check that sets `data-bar-fit`, reusing the narrow tier's rules where it has them. See
+ * `fitBar`.
  */
 import { page, searchHits, searchQuery, setPage, setSearch, subscribe } from '../state/store';
 import { INSPECT, TABS, homeOf, isMenuPage, isNewPage, legacyOf, newPageOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type NewPageKey, type Place, type TabId } from './pages';
