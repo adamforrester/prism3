@@ -569,10 +569,47 @@ export const mountFrame = (app: HTMLElement, opts: {
     const sticky = getComputedStyle(head).display === 'contents' ? bar : head;
     document.documentElement.style.setProperty('--chrome-h', `${sticky.offsetHeight}px`);
   };
+  // The plugin's tile labels (#2214, owner decision N2 A): above the narrow tier the bar stays one row. When the row
+  // with every label shown would not fit, the labels drop (`data-labels="off"`) and the tiles keep their glyphs, their
+  // tooltips and their names; when it fits again, they come back. The test is measured, not a breakpoint, so a long
+  // brand name drops them at a wider width than a short one. The width compared is always the full-label row's, never
+  // the row with the labels hidden, so the state cannot flap: it is measured once per content change (a mutation in
+  // the bar's controls, a font load, a change of tier) and reused while only the width moves.
+  let fullRow: number | null = null;
+  const fullRowWidth = (): number => {
+    let sum = 0, n = 0;
+    for (const c of barMain.children) {
+      if (c.getClientRects().length === 0) continue;   // not drawn, or a box-less layer (`display: contents`)
+      const cs = getComputedStyle(c);
+      if (cs.position === 'absolute' || cs.position === 'fixed') continue;
+      n++;
+      // A spacer grows into the free space and asks for none, so it adds only its gaps.
+      if (parseFloat(cs.flexGrow) > 0) continue;
+      sum += c.getBoundingClientRect().width + parseFloat(cs.marginLeft) + parseFloat(cs.marginRight);
+    }
+    return sum + Math.max(0, n - 1) * parseFloat(getComputedStyle(barMain).columnGap);
+  };
+  const fitLabels = (): void => {
+    if (host !== 'figma' || root.dataset.w === 'narrow') { fullRow = null; delete root.dataset.labels; return; }
+    const room = barMain.getBoundingClientRect().width;
+    if (!room) return;   // not laid out yet: the observer calls again once it is
+    if (fullRow === null) {
+      // Shown for the measurement, then set again before anything is drawn: no frame paints in between.
+      delete root.dataset.labels;
+      fullRow = fullRowWidth();
+    }
+    if (fullRow <= room + 0.01) delete root.dataset.labels; else root.dataset.labels = 'off';
+  };
+  const refit = (): void => { fullRow = null; fitLabels(); };
+  const mo = new MutationObserver(refit);
+  mo.observe(barMain, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class', 'hidden', 'aria-busy', 'disabled'] });
+  document.fonts.addEventListener('loadingdone', refit);
+  cleanups.push(() => mo.disconnect(), () => document.fonts.removeEventListener('loadingdone', refit));
   const ro = new ResizeObserver(() => {
     const w = root.getBoundingClientRect().width;
     const tier = w <= NARROW_MAX ? 'narrow' : 'wide';
-    if (root.dataset.w !== tier) root.dataset.w = tier;
+    if (root.dataset.w !== tier) { root.dataset.w = tier; fullRow = null; }
+    fitLabels();
     syncSticky();
   });
   ro.observe(root);

@@ -152,6 +152,10 @@
 }
 .p3-tile-start > .p3-tile-tip { left: 0; right: auto; }
 .p3-tile:is(:hover, :focus-visible):not([aria-expanded="true"]) > .p3-tile-tip { display: block; }
+/* Above the narrow tier, the plugin's labels drop when the row with them would not fit on one line (#2214, N2 A). The
+   frame measures that row (`frame.ts`, `fitLabels`) and sets `data-labels`; the tiles keep their size, glyph,
+   tooltip and name. */
+.p3-frame[data-labels="off"] .p3-tile-label { display: none; }
 /* The plugin's second row at the narrow tier: a break and a spacer that draw nothing above it. */
 .p3-bar-break, .p3-bar-spacer2 { display: none; }
 .p3-verdict:where(:not(:disabled, [aria-disabled="true"])):hover { border-color: var(--p3-field-edge-hover); }
