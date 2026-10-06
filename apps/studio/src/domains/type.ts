@@ -538,8 +538,8 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
   };
 
   // ── Scale ──────────────────────────────────────────────────────────────────────────────────────
-  /** The heading scale: three chips, a chip the engine would refuse (a size you set colliding at that scale,
-   *  #353) disabled with the reason, and Release pinned sizes while any is. Brand-wide: any editable mode. */
+  /** The heading scale: three chips, a chip the engine would refuse disabled with the reason, and Release pinned
+   *  sizes while a size you set colliding at that scale (#353) is the reason (#2194). Brand-wide: any editable mode. */
   const typeScale = (): Item[] => {
     const L = leverOf('typography.typeScale');
     const b = leverBlock('typography.typeScale', { label: S63.scaleLabel, desc: S63.scaleTip, group: true });
@@ -547,14 +547,20 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     const opts = (L?.options ?? []).map((o) => ({ v: String(o.value), l: String(o.label) }));
     const c = choice(S63.scaleLabel, 'type-scale', opts, (v) => edit('typography.typeScale', () => setTypeScale(v)));
     c.set(cur);
+    // #2194 (owner, N3 A): the clash message and Release only when a pinned size is the cause; any other refusal
+    // shows its own reason, the title floor's in its approved words (B8b) and the rest in the engine's own.
     let blocked = 0;
+    const other = new Set<string>();
     for (const o of opts) {
-      if (!shapeBlocked(o.v, cur)) continue;
-      blocked++;
+      const r = shapeBlocked(o.v, cur);
+      if (!r) continue;
+      const why = r.kind === 'pinned' ? S63.scaleClash : r.kind === 'titleFloor' ? S63.titleFloorCompact : r.reason;
+      if (r.kind === 'pinned') blocked++; else other.add(why);
       const chip = c.el.querySelector<HTMLButtonElement>(`[data-value="${o.v}"]`);
-      if (chip) { chip.disabled = true; chip.title = S63.scaleClash; }
+      if (chip) { chip.disabled = true; chip.title = why; }
     }
     b.ctl.append(c.el);
+    for (const why of other) b.ctl.append(hook(stateLine(why, 'warn'), 'type-scale-refused'));
     if (blocked) {
       const rel = hook(h('button', 'p3-btn p3-btn-page'), 'type-scale-release');
       rel.type = 'button';

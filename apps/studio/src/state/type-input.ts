@@ -222,12 +222,25 @@ export const setFacePin = (cat: string, role: string, style: string, family: str
 export const setTypeScale = (key: string): void => {
   setPath(brandState, 'typography.typeScale', key === 'default' ? undefined : key);
 };
-/** Whether switching to shape `key` would make the engine refuse the brand (a pinned size colliding at the
- *  new shape, #353). Runs a trial build: keep it out of per-keystroke paths. */
-export const shapeBlocked = (key: string, cur: string): boolean => {
-  if (key === cur) return false;
-  try { brandTheme({ ...brandState, typography: { ...(brandState.typography as any), typeScale: key === 'default' ? undefined : key } } as any); return false; }
-  catch { return true; }
+/** Why the engine would refuse a switch to shape `key`, or null when it builds (#2194). `pinned`: a pinned size
+ *  collides at the new shape (#353), told apart by the same switch building once every pin is released, so
+ *  Release pinned sizes fixes it. `titleFloor`: the 16px title floor under Compact, the engine's own rule (no
+ *  release can fix it). `other`: anything else, with the engine's message. Runs trial builds: keep it out of
+ *  per-keystroke paths. */
+export type ScaleRefusal = { kind: 'pinned' } | { kind: 'titleFloor' } | { kind: 'other'; reason: string };
+export const shapeBlocked = (key: string, cur: string): ScaleRefusal | null => {
+  if (key === cur) return null;
+  const refusal = (b: BrandInput): string | null => {
+    try { brandTheme({ ...b, typography: { ...(b.typography as any), typeScale: key === 'default' ? undefined : key } } as any); return null; }
+    catch (e) { return (e as Error).message; }
+  };
+  const why = refusal(brandState);
+  if (why === null) return null;
+  if (key === 'compact' && brandState.typography?.titleFloor === 16) return { kind: 'titleFloor' };
+  const released: BrandInput = structuredClone(brandState);
+  if (released.typography) { delete released.typography.sizes; delete released.typography.sizeOverrides; }
+  for (const lev of Object.values(released.modeLevers ?? {})) if (lev) delete lev.typeSizes;
+  return refusal(released) === null ? { kind: 'pinned' } : { kind: 'other', reason: why };
 };
 /** The display ceiling, written as the rung name the select holds. */
 export const setDisplayCeiling = (v: string): void => { setPath(brandState, 'typography.displayCeiling', v); };

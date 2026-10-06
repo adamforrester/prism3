@@ -247,12 +247,41 @@ T.setTypeScale('compact');
 ok(ty() === with3({ typeScale: 'compact' }) && takes(), `setTypeScale(compact) writes typeScale (${ty()})`);
 T.setTypeScale('default');
 ok(pristine(), 'setTypeScale(default) UNSETS typeScale: byte-identical to the brand as loaded');
-ok(T.shapeBlocked('default', 'default') === false && T.shapeBlocked('compact', 'default') === false, 'shapeBlocked: the current shape never, compact not on the brand as loaded');
+ok(T.shapeBlocked('default', 'default') === null && T.shapeBlocked('compact', 'default') === null, 'shapeBlocked: the current shape never, compact not on the brand as loaded');
 T.setTitleFloor(true);
 ok(ty() === with3({ titleFloor: 16 }) && takes(), `setTitleFloor(on) writes 16 (${ty()})`);
-ok(T.shapeBlocked('compact', 'default') === true, 'shapeBlocked(compact) with the 16px title floor: the engine refuses it, so the card is blocked');
+ok(T.shapeBlocked('compact', 'default')?.kind === 'titleFloor', 'shapeBlocked(compact) with the 16px title floor: the engine refuses it, so the card is blocked');
 T.setTitleFloor(false);
 ok(pristine(), 'setTitleFloor(off) UNSETS titleFloor');
+// #2194 (owner, N3 A): a refusal is a pinned-size clash only when releasing the pinned sizes makes the switch
+// build. EXPECTED typed here: the kinds, and the shipped Aurora's input read as data (expressive, the 16px floor,
+// nothing pinned), never the module's own classification (docs/34).
+reset('aurora');
+{
+  const a = store.brandState.typography as Record<string, unknown>;
+  ok(a.typeScale === 'expressive' && a.titleFloor === 16 && a.sizes === undefined && a.sizeOverrides === undefined && T.pinnedSizeCount() === 0,
+    `#2194: the shipped Aurora is Expressive with the 16px title floor and nothing pinned (${JSON.stringify({ typeScale: a.typeScale, titleFloor: a.titleFloor, pins: T.pinnedSizeCount() })})`);
+  const r = T.shapeBlocked('compact', 'expressive');
+  ok(r?.kind === 'titleFloor', `#2194: Aurora at Compact, nothing pinned, is refused for the title floor, not as a pinned-size clash (${JSON.stringify(r)})`);
+  ok(T.shapeBlocked('default', 'expressive') === null, '#2194: Aurora at Default builds');
+}
+reset();
+T.setSizePin(null, 'display', 'md', 48);
+{
+  const r = T.shapeBlocked('expressive', 'default');
+  ok(r?.kind === 'pinned', `#2194: display md pinned at 48px clashes under Expressive (56px below it), a pinned-size clash (${JSON.stringify(r)})`);
+  ok(T.shapeBlocked('compact', 'default') === null, '#2194: the same pin builds under Compact');
+  T.releasePinnedSizes();
+  ok(T.shapeBlocked('expressive', 'default') === null && pristine(), '#2194: released, Expressive builds and the brand is back to its bytes');
+}
+reset();
+(store.brandState.typography as Record<string, unknown>).captionFloor = 9;
+{
+  const r = T.shapeBlocked('compact', 'default');
+  ok(r?.kind === 'other' && r.reason === 'typography.captionFloor: 9 is invalid — must be one of 10/11',
+    `#2194: a refusal releasing cannot fix is neither a clash nor the title floor, and carries the engine's own sentence (${JSON.stringify(r)})`);
+}
+reset();
 // S6.3: the caption and size floors, no surface's before: the default UNSETS the key.
 T.setCaptionFloor(10);
 ok(ty() === with3({ captionFloor: 10 }) && takes() && engine().composites.some((c) => c.path.startsWith('caption.sm.')),

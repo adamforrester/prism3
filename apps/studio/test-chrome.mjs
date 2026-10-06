@@ -666,9 +666,9 @@ const ORIGIN = `http://127.0.0.1:${server.address().port}`;
 const browser = await chromium.launch();
 
 /** A booted app on the opening page, Color › Palettes (the two panes, from S2). Studio: from the start
- *  screen's prism3 chip, the OS scheme emulated. Plugin: Figma's theme stubbed, then the start screen the host
- *  asks for, then the first example. */
-const open = async ({ host, theme, w, h, store }) => {
+ *  screen's prism3 chip (or `brand`'s), the OS scheme emulated. Plugin: Figma's theme stubbed, then the start
+ *  screen the host asks for, then the same example. */
+const open = async ({ host, theme, w, h, store, brand = 'prism3' }) => {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: theme });
   const page = await ctx.newPage();
   await hooks.watch(page);
@@ -678,11 +678,11 @@ const open = async ({ host, theme, w, h, store }) => {
   if (store) await page.addInitScript((s) => { for (const [k, v] of Object.entries(s)) localStorage.setItem(k, v); }, store);
   if (host === 'web') {
     await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
-    await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: 'prism3' }));
+    await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: brand }));
   } else {
     await page.goto(`${ORIGIN}/plugin?figma=${theme}`, { waitUntil: 'load' });
     await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'restore-input-empty' } }, '*'));
-    await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: 'prism3' }));
+    await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: brand }));
   }
   await hooks.need(page, '[data-p3="frame"]');
   await hooks.need(page, '[data-p3="palettes-levers"]');
@@ -5465,6 +5465,67 @@ for (const host of ['web', 'figma']) {
   } catch (e) {
     ok(false, `S6.3 Type edits: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
+}
+// #2194 (owner, N3 A, 2026-10-06): the clash message and Release pinned sizes show only when a pinned size is what
+// the engine refuses; any other refusal shows its own reason. Both hosts. The shipped Aurora is Expressive with the
+// 16px smallest title and nothing pinned, so its Compact chip is refused for the title floor: disabled with the
+// title floor's approved reason (B8b), that reason shown under the chips, and no clash message or Release. Then a
+// real clash (prism3, display md set to 56px, refused under Expressive) still shows both. EXPECTED typed here: the
+// two sentences' words, never read from the page's module (docs/34).
+{
+  const CLASH = 'Some sizes you set would clash at this scale. Release them to switch.';
+  const FLOOR = 'The Compact scale already places a title at 16px, so the engine refuses 16px with it.';
+  const scaleState = (page) => page.evaluate(() => {
+    const lev = document.querySelector('[data-p3="lever-typography-type-scale"]');
+    const chip = (b) => ({ off: !!b?.disabled, why: b?.title ?? '' });
+    return {
+      compact: chip(document.querySelector('[data-p3="type-scale-compact"]')), default: chip(document.querySelector('[data-p3="type-scale-default"]')),
+      expressive: chip(document.querySelector('[data-p3="type-scale-expressive"]')),
+      clash: (lev?.textContent ?? '').includes('clash'), release: !!document.querySelector('[data-p3="type-scale-release"]'),
+      refused: [...(lev?.querySelectorAll('[data-p3="type-scale-refused"]') ?? [])].map((n) => n.textContent),
+      pinned: !!document.querySelector('[data-p3="type-sizes-count"]'),
+    };
+  });
+  for (const host of ['web', 'figma']) {
+    {
+      const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900, brand: 'aurora' });
+      try {
+        await goPlace(page, 'type');
+        await hooks.need(page, '[data-p3="type-scale-compact"]');
+        const s = await scaleState(page);
+        ok(!s.pinned && !s.expressive.off && !s.default.off, `#2194: ${host}: Aurora loads with nothing pinned, Default and Expressive live (${JSON.stringify(s)})`);
+        ok(s.compact.off && s.compact.why === FLOOR, `#2194: ${host}: Aurora's Compact chip is disabled with the title floor's reason "${FLOOR}" (${JSON.stringify(s.compact)})`);
+        ok(JSON.stringify(s.refused) === JSON.stringify([FLOOR]), `#2194: ${host}: Aurora at Compact shows the real reason under the chips, once (${JSON.stringify(s.refused)})`);
+        ok(!s.clash && !s.release, `#2194: ${host}: Aurora at Compact, nothing pinned, shows no clash message and no Release pinned sizes (clash ${s.clash}, release ${s.release})`);
+        ok(errors.length === 0, `#2194: ${host}: Aurora's Type scale: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `#2194 Aurora ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      } finally { await ctx.close(); }
+    }
+    {
+      const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+      try {
+        await goPlace(page, 'type');
+        await openTypeAdvanced(page);
+        const btn = '[data-p3="type-size-desktop"][data-group="display"][data-variant="md"]';
+        await hooks.click(page.locator(btn));
+        await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="56"]'));
+        if (await page.locator('[data-p3="value-picker-close"]').count()) await hooks.click(page.locator('[data-p3="value-picker-close"]'));
+        await page.waitForFunction(() => !!document.querySelector('[data-p3="type-scale-release"]'), null, { timeout: 5000 }).catch(() => {});
+        const s = await scaleState(page);
+        ok(s.pinned && s.expressive.off && s.expressive.why === CLASH, `#2194: ${host}: with display md set to 56px, Expressive is disabled with "${CLASH}" (${JSON.stringify(s.expressive)})`);
+        ok(s.clash && s.release && s.refused.length === 0, `#2194: ${host}: a real pinned-size clash still shows the clash message and Release pinned sizes, and no other reason (${JSON.stringify(s)})`);
+        ok(!s.compact.off, `#2194: ${host}: the same pin builds under Compact, so its chip stays live`);
+        await hooks.click(page.locator('[data-p3="type-scale-release"]'));
+        await page.waitForFunction(() => !document.querySelector('[data-p3="type-scale-release"]'), null, { timeout: 5000 }).catch(() => {});
+        const r = await scaleState(page);
+        ok(!r.pinned && !r.expressive.off && !r.release && !r.clash, `#2194: ${host}: Release pinned sizes clears the clash and Expressive is live again (${JSON.stringify(r)})`);
+        ok(errors.length === 0, `#2194: ${host}: the pinned clash: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `#2194 pinned clash ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      } finally { await ctx.close(); }
+    }
+  }
 }
 // typography.responsive has one home (owner decision Q71): Type › Scale limits draws it, and Layout, whose legacy page
 // drew "Responsive type sizing" and its fluid read-out (#361), no longer does. Both hosts. Since S10 Layout is a moved
