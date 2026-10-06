@@ -43,7 +43,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { brandTheme, BrandInput } from './theme';
+import { brandTheme, BrandInput, type Theme } from './theme';
 import { buildTree, validateBrandInput } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
 import { buildLeverManifest } from './levers';
@@ -421,15 +421,25 @@ const structured = (obj: unknown): ToolResult =>
 /** Dispatch a tools/call. Pure — imports of the core are all pure functions. Tool-level
  *  failures (bad brand, generation throw) come back as `isError` results, not RPC errors,
  *  per the MCP convention (the call succeeded; the tool reported a problem). */
+/** Build a schema-valid brand the way every generating tool does, `brandTheme` then `buildTree`, and turn a
+ *  refusal from EITHER into an `isError` result carrying the engine's own sentence in `errors`, the shape the
+ *  schema failure above already uses (#2162). Before, `buildTree` sat outside every `try`, so a refusal that
+ *  fires only when the modes resolve (an override naming an unknown palette or step) escaped `tools/call` as a
+ *  -32603 protocol error, which a client may not hand back to the model. Call it on schema-valid input only. */
+const buildBrand = (brand: unknown): { theme: Theme; built: ReturnType<typeof buildTree> } | ToolResult => {
+  try { const theme = brandTheme(brand as BrandInput); return { theme, built: buildTree(theme) }; }
+  catch (e) { return text({ error: 'BrandInput refused by the engine', errors: [(e as Error).message] }, true); }
+};
+const refused = (r: ReturnType<typeof buildBrand>): r is ToolResult => 'content' in r;
+
 /** Validate → generate → verification payload. Shared by `theme_brand` and `theme_from_brief` so the
  *  two can never report a brand differently depending on how it was supplied. */
 const themePayload = (brand: unknown, include: string[]): ToolResult => {
   const errors = validateBrandInput(brand);
   if (errors.length) return text({ error: 'BrandInput failed schema validation', errors }, true);
-  let theme;
-  try { theme = brandTheme(brand as BrandInput); }
-  catch (e) { return text({ error: `brandTheme failed: ${(e as Error).message}` }, true); }
-  const { tree, modes, stats } = buildTree(theme);
+  const b = buildBrand(brand);
+  if (refused(b)) return b;
+  const { theme, built: { tree, modes, stats } } = b;
   let checks = 0, pass = 0; const failures: string[] = [];
   for (const m of modes) for (const [k, r] of Object.entries(m.roles)) {
     const rr = r as { min: number; ratio: number };
@@ -500,14 +510,13 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     if (bad) return text({ error: bad }, true);
     const errors = validateBrandInput(brand);
     if (errors.length) return text({ error: 'BrandInput failed schema validation', errors }, true);
-    let theme;
-    try { theme = brandTheme(brand as BrandInput); }
-    catch (e) { return text({ error: `brandTheme failed: ${(e as Error).message}` }, true); }
     const want = include?.length ? include : [...EXPORT_SECTIONS];
     const unknown = want.filter((s) => !EXPORT_SECTIONS.includes(s as never));
     if (unknown.length) return text({ error: `unknown include section(s): ${unknown.join(', ')}. Valid: ${EXPORT_SECTIONS.join(', ')}` }, true);
 
-    const { tree } = buildTree(theme);
+    const b = buildBrand(brand);
+    if (refused(b)) return b;
+    const { theme, built: { tree } } = b;
     const files: { path: string; content: string }[] = [];
     if (want.includes('tokens')) files.push({ path: 'tokens.json', content: JSON.stringify(tree, null, 2) + '\n' });
     if (want.includes('aiMetadata')) files.push({ path: 'ai-metadata.json', content: JSON.stringify(buildAiMetadata(theme, tree, { tokensFile: 'tokens.json' }), null, 2) + '\n' });
@@ -588,10 +597,9 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     const errors = validateBrandInput(args?.brand);
     if (errors.length) return text({ error: 'BrandInput failed schema validation', errors }, true);
     if (!Array.isArray(args?.refs)) return text({ error: 'score_consumption requires `refs`: an array of token refs' }, true);
-    let theme;
-    try { theme = brandTheme(args.brand as BrandInput); }
-    catch (e) { return text({ error: `brandTheme failed: ${(e as Error).message}` }, true); }
-    const { tree } = buildTree(theme);
+    const b = buildBrand(args.brand);
+    if (refused(b)) return b;
+    const { theme, built: { tree } } = b;
     const out: Record<string, unknown> = { consumption: scoreConsumption(args.refs as string[], tree, theme.root) };
     // Pairs are optional: contract compliance is a different question from ref hygiene, and an agent
     // that only reports the tokens it named should still get the first two metrics.
