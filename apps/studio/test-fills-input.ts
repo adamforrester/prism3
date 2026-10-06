@@ -49,6 +49,8 @@ import { GROUND_INPUT, resolveAllModes } from '@prism3/engine/modes';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import * as store from './src/state/store';
 import * as F from './src/state/fills-input';
+import { validateDesignMd, importErrorText } from './src/state/start-input';
+import { toDesignMd } from '@prism3/engine/design-md';
 
 let executed = 0, failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -697,6 +699,76 @@ for (const c of FLOOR_OFFER_CASES) {
   }
   ok(disagree.length === 0, `and the engine builds each offered step as the floor and refuses every other by sentence${disagree.length ? ` — ${disagree.join('; ')}` : ''}`);
 }
+
+// ── 11. the studio's floor sentences (owner decisions Q67 B, Q69 A, Q70 A on #2250) ─────────────────────
+console.log('\n11. A floor refusal reads in the studio\'s words; a background that moves off the floor resets it to Auto (Q67 B, Q69 A, Q70 A; oracle: literals)');
+// Every sentence is typed here, never read from the module. The engine's own sentence opens with the key it refuses,
+// so "never shown verbatim" is that it appears nowhere the studio shows a message.
+const ENGINE_WORDS = /floorStep|is not a step a|page ground sits on/;
+const withFloor = (mode: 'light' | 'dark', floorStep: number, base?: string | number): BrandInput => {
+  const b = structuredClone(prism3);
+  (b.surfaces ??= {})[mode] = { ...(b.surfaces[mode] ?? {}), ...(base !== undefined ? { base } : {}), floorStep } as never;
+  return b;
+};
+const REFUSAL_CASES: Array<{ input: BrandInput; want: string; what: string }> = [
+  { input: withFloor('light', 400), want: 'The contrast floor has to match a page background in Light. Choose 050 or 100, or return to Auto.', what: 'Light, floor 400 on a White page (two steps)' },
+  { input: withFloor('dark', 400), want: 'The contrast floor has to match a page background in Dark. Choose 850, 900 or 950, or return to Auto.', what: 'Dark, floor 400 (three steps)' },
+  { input: withFloor('light', 400, 950), want: 'The contrast floor has to match a page background in Light. Choose 950, or return to Auto.', what: 'Light, floor 400 on a neutral 950 page (one step)' },
+  { input: withFloor('light', 400, 'black'), want: 'The contrast floor has to match a page background in Light. No page background in Light sits on a neutral step, so return to Auto.', what: 'Light, floor 400 on a Black page (no step)' },
+];
+for (const c of REFUSAL_CASES) {
+  let engine: string | null = null;
+  try { resolveAllModes(brandTheme(structuredClone(c.input))); } catch (e) { engine = (e as Error).message; }
+  ok(!!engine && ENGINE_WORDS.test(engine), `#2250 ${c.what}: the engine refuses it in its own words, for agents (threw ${JSON.stringify(engine)})`);
+  reset();
+  Object.assign(store.brandState, structuredClone(c.input));
+  store.rebuild();
+  ok(store.lastError === c.want, `#2250 ${c.what}: the error bar's message is the studio sentence (read ${JSON.stringify(store.lastError)})`);
+  ok(!ENGINE_WORDS.test(store.lastError ?? ''), `#2250 ${c.what}: the error bar's message carries none of the engine's sentence`);
+  const imp = validateDesignMd(toDesignMd(c.input));
+  const text = 'error' in imp ? importErrorText(imp.error) : null;
+  ok(!!text && text.includes(`Parsed, but the engine rejected it: ${c.want}`) && 'error' in imp && imp.error.line != null,
+    `#2250 ${c.what}: a design.md import is refused with the studio sentence, on its line (read ${JSON.stringify(text)})`);
+  ok(!ENGINE_WORDS.test(text ?? ''), `#2250 ${c.what}: the import's message carries none of the engine's sentence`);
+}
+// Another refusal keeps the engine's words: only the floor's is reworded.
+reset();
+Object.assign(store.brandState, { surfaces: { light: { base: 12345 } } });
+store.rebuild();
+ok(!!store.lastError && store.lastError.startsWith('surfaces.light.base'), `#2250 a refusal that is not the floor's keeps the engine's words (read ${JSON.stringify(store.lastError)})`);
+
+// Q69 A: a background that moves off a set floor resets it to Auto, with the notice; one that keeps it does not.
+const RESET_CASES: Array<{ floor: string; edit: () => void; reset: boolean; notice: string | null; what: string }> = [
+  { floor: '050', edit: () => F.setSurfaceTier('light', 'secondary', '200'), reset: true,
+    notice: 'The contrast floor is back on Auto — neutral 050 is no longer a page background in Light.', what: 'floor 050, Secondary moves to neutral 200' },
+  { floor: '100', edit: () => F.setSurfaceBase('light', '200'), reset: true,
+    notice: 'The contrast floor is back on Auto — neutral 100 is no longer a page background in Light.', what: 'floor 100, Primary moves to neutral 200' },
+  { floor: '100', edit: () => F.setSurfaceTier('light', 'secondary', '200'), reset: false, notice: null, what: 'floor 100, Secondary moves to neutral 200 (Tertiary keeps 100)' },
+];
+for (const c of RESET_CASES) {
+  reset();
+  F.setSurfaceFloor('light', c.floor);
+  store.rebuild();
+  F.clearFloorReset();
+  c.edit();
+  store.rebuild();
+  const fs = store.brandState.surfaces?.light?.floorStep;
+  ok(c.reset ? fs === undefined : fs === Number(c.floor), `#2250 ${c.what}: the floor ${c.reset ? 'resets to Auto' : `stays ${c.floor}`} (floorStep ${fs})`);
+  ok(store.lastError === null, `#2250 ${c.what}: the brand resolves, so the error bar stays quiet (read ${JSON.stringify(store.lastError)})`);
+  ok(F.floorResetNotice('light') === c.notice, `#2250 ${c.what}: the notice reads ${JSON.stringify(c.notice)} (read ${JSON.stringify(F.floorResetNotice('light'))})`);
+}
+// Return to Auto on a tier moves the grounds too.
+reset();
+F.setSurfaceTier('light', 'secondary', '200');
+F.setSurfaceFloor('light', '200');
+store.rebuild();
+F.clearFloorReset();
+F.setSurfaceTier('light', 'secondary', undefined);
+store.rebuild();
+ok(store.brandState.surfaces?.light?.floorStep === undefined && store.lastError === null
+  && F.floorResetNotice('light') === 'The contrast floor is back on Auto — neutral 200 is no longer a page background in Light.',
+  `#2250 floor 200 on Secondary 200, Secondary back to Auto: the floor resets, with the notice (floorStep ${store.brandState.surfaces?.light?.floorStep}, notice ${JSON.stringify(F.floorResetNotice('light'))})`);
+ok(F.floorResetNotice('dark') === null, '#2250 and the notice is Light\'s alone');
 
 console.log(`\n${executed - failed}/${executed} Surfaces & fills write assertions passed.`);
 if (failed) process.exit(1);

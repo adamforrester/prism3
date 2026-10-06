@@ -4359,6 +4359,64 @@ for (const theme of ['light', 'dark']) {
     ok(false, `#2227: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
 }
+// #2250 (owner decisions Q67 B, Q69 A, Q70 A): the studio's floor sentences, on the real page. THE ORACLE is literal.
+// A background moved off a set floor resets it to Auto with its notice, and the error bar stays quiet; a page with no
+// ground on a neutral step shows the line under the picker; a brief whose floor is off its grounds is refused in the
+// studio's words. The engine's sentence (for agents) is never on screen.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  const PANE = '[data-p3="levers-pane"]';
+  const ENGINE_WORDS = /floorStep|is not a step a|page ground sits on/;
+  const pick = async (hk, step) => {
+    await hooks.click(page.locator(`${PANE} [data-p3="${hk}"]`));
+    await hooks.need(page, `${PANE} [data-p3="step-picker"]`);
+    await hooks.click(page.locator(`${PANE} [data-p3="step-picker"] [data-p3="step-picker-step"][data-step="${step}"]`));
+    await page.waitForFunction((k) => document.querySelector('[data-p3="levers-pane"] [data-p3="step-picker"] [aria-pressed="true"]')?.dataset.step === k, step, { timeout: 5000 }).catch(() => {});
+    await page.keyboard.press('Escape');
+  };
+  const text = (sel) => page.evaluate((q) => { const e = document.querySelector(q); return e ? e.textContent.trim() : null; }, sel);
+  const bar = () => page.evaluate(() => { const e = document.querySelector('[data-p3="error-bar"]'); return e && !e.hidden ? e.textContent?.trim() ?? '' : ''; });
+  const engineOnScreen = () => page.evaluate((src) => new RegExp(src).test(document.body.innerText), ENGINE_WORDS.source);
+  try {
+    await goPlace(page, 'color-fills');
+    await showMode(page, 'light');
+    ok(await page.locator(`${PANE} [data-p3="surface-floor-none"]`).count() === 0, '#2250: with a ground on a neutral step, no empty-picker line shows');
+    await pick('surface-base-pick', 'black');
+    const WANT_NONE = 'No page background in Light sits on a neutral step, so the floor stays Auto.';
+    const none = await text(`${PANE} [data-p3="surface-floor-none"]`);
+    ok(none === WANT_NONE, `#2250: Primary Black: the line under the floor picker reads "${WANT_NONE}" — read ${JSON.stringify(none)}`);
+    await pick('surface-base-pick', 'white');
+    ok(await page.locator(`${PANE} [data-p3="surface-floor-none"]`).count() === 0, '#2250: Primary back to White: the empty-picker line goes');
+    await pick('surface-floor-pick', '050');
+    ok(await page.locator(`${PANE} [data-p3="surface-floor-reset"]`).count() === 0, '#2250: picking a floor shows no reset notice');
+    await pick('surface-secondary-pick', '200');
+    const WANT_RESET = 'The contrast floor is back on Auto — neutral 050 is no longer a page background in Light.';
+    const reset = await text(`${PANE} [data-p3="surface-floor-reset"]`);
+    ok(reset === WANT_RESET, `#2250: floor 050, then Secondary to neutral 200: the notice reads "${WANT_RESET}" — read ${JSON.stringify(reset)}`);
+    const floorNow = await text(`${PANE} [data-p3="surface-floor-pick"]`);
+    ok(/^Auto\b/.test(floorNow ?? ''), `#2250: and the floor row reads Auto — read ${JSON.stringify(floorNow)}`);
+    const b1 = await bar();
+    ok(b1 === '', `#2250: and the error bar stays quiet${b1 ? ` — read ${JSON.stringify(b1)}` : ''}`);
+    await pick('surface-secondary-pick', '100');
+    ok(await page.locator(`${PANE} [data-p3="surface-floor-reset"]`).count() === 0, '#2250: the next edit clears the reset notice');
+    ok(!(await engineOnScreen()), '#2250: the engine\'s floor sentence is nowhere on the page after the edits');
+    // A brief whose floor is off its grounds, through the brand menu's paste.
+    await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+    await hooks.need(page, '[data-p3="brand-menu"]');
+    await hooks.click(page.locator('[data-p3="brand-menu-import"]'));
+    await hooks.need(page, '[data-p3="brand-menu"] [data-p3="import-text"]');
+    await page.fill('[data-p3="import-text"]', '---\nid: floor-off\nprimary: { l: 0.55, c: 0.15, h: 262 }\nneutral: { hue: 262, chroma: 0.006 }\nsurfaces:\n  light: { floorStep: 400 }\n---\n');
+    await hooks.click(page.locator('[data-p3="import-load"]'));
+    await hooks.need(page, '[data-p3="import-error"]');
+    const WANT_IMPORT = 'Line 6: Parsed, but the engine rejected it: The contrast floor has to match a page background in Light. Choose 050 or 100, or return to Auto.';
+    const imp = await text('[data-p3="import-error"]');
+    ok(imp === WANT_IMPORT, `#2250: a pasted brief with floor 400 is refused with the studio sentence, "${WANT_IMPORT}" — read ${JSON.stringify(imp)}`);
+    ok(!(await engineOnScreen()), '#2250: the engine\'s floor sentence is nowhere on the page after the refused paste');
+    ok(errors.length === 0, `#2250: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#2250: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
 // The step picker, mounted (V9): it opens under its row on the current step, a pick writes the step and keeps
 // the picker's focus, the preview repaints to the emission's own step, Return to Auto reverts, Escape closes it
 // to its button; and nothing of this moves the preview's home (V1).
