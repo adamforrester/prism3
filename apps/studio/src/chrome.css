@@ -1217,10 +1217,17 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
   border: var(--p3-bw-hairline) solid var(--p3-line-1); background: var(--p3-bg-page);
 }
 .p3-sg-sec-title { margin: 0; font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snug); line-height: var(--p3-lh-compact); }
+/* The heading rule (TY2 A, #2215): a card's title is L1, so its content starts space-300 after it; the card's gap is
+   space-200, which the untitled Draw card keeps. (Its page title, .p3-sg-title, is a page title, not a level.) */
+.p3-sg-sec-title { margin-block-end: calc(var(--p3-space-300) - var(--p3-space-200)); }
 .p3-sg-plain { display: grid; gap: var(--p3-space-200); min-width: 0; margin: 0; padding: 0; border: 0; }
 .p3-sg-selrow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--p3-space-150); }
-.p3-sg-field { display: grid; gap: var(--p3-space-075); min-width: 0; }
-.p3-sg-field-name { padding: 0; font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
+/* L3 (TY2 A, #2215): a field's name (Collection, Mode, the Kinds legend) is a field label, fs-14 / fw-emphasis /
+   lh-compact in primary ink, its control space-050 after it. The legend is not reached by its fieldset's gap, so it
+   carries the space itself. */
+.p3-sg-field { display: grid; gap: var(--p3-space-050); min-width: 0; }
+.p3-sg-field-name { padding: 0; font-size: var(--p3-fs-14); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); color: var(--p3-text); }
+legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 /* A disabled select takes the disabled field (F1 A), as the text field does: no dashed edge (#2155). */
 .p3-sg .p3-select:disabled { background: var(--p3-disabled-fill); border-color: var(--p3-disabled-edge); color: var(--p3-disabled-ink); cursor: not-allowed; }
 .p3-sg-kinds { display: grid; gap: var(--p3-space-100); min-width: 0; margin: 0; padding: 0; border: 0; }
@@ -1299,10 +1306,15 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 /* The options: a group per kind in the selection, each lever a name, its control and its hint. */
 .p3-sg-ogroup { display: grid; gap: var(--p3-space-150); padding-top: var(--p3-space-150); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-sg-ogroup:first-child { padding-top: 0; border-top: 0; }
-.p3-sg-ogroup-title { margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-default); line-height: var(--p3-lh-compact); }
+/* L2 (TY2 A, #2215): an option group's title is a group heading, fs-14 / fw-strong / lh-compact in primary ink; its first
+   lever starts space-150 after it (the group's gap). */
+.p3-sg-ogroup-title { margin: 0; color: var(--p3-text); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
 .p3-sg-lever { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--p3-space-050) var(--p3-space-200); }
 .p3-sg-lever-wide { grid-template-columns: minmax(0, 1fr); }
-.p3-sg-lever-name { font-weight: var(--p3-fw-emphasis); }
+/* L3 (TY2 A, SH1 A, #2215): a lever inside an option group reads as a field (held decision 7, as Interactive's Neutral
+   emphasis): fs-14 / fw-emphasis / lh-compact in primary ink. What follows its row (the control under a wide lever's
+   name, or the lever's own hint under a name and its control) starts space-050 after it: the lever's row gap. */
+.p3-sg-lever-name { color: var(--p3-text); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
 .p3-sg-hint { grid-column: 1 / -1; }
 /* The switch (concept v6's, SG5 A): a button with `role="switch"` holding a track and a knob. Its ring is its own
    outline, on the focus color (FR1 A). */
