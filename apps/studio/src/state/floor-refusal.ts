@@ -1,5 +1,5 @@
 /**
- * The contrast floor's studio sentences (owner decisions Q67 B, Q69 A, Q70 A on #2250), with no DOM and no store, so
+ * The contrast floor's studio sentences (owner decisions Q67 B, Q69 A, Q70 A, Q74 B, Q75 A, Q76 A on #2250), with no DOM and no store, so
  * the import check (`start-input.ts`) and a Node test can call them on any brand input.
  *
  * THE ENGINE'S SENTENCE IS FOR AGENTS (Q67 B). The engine refuses a `floorStep` no page ground in that mode sits on
@@ -39,16 +39,22 @@ export const groundStepsOf = (input: BrandInput, mode: FloorMode): { palette: st
 const listOf = (steps: readonly string[]): string =>
   steps.length < 2 ? (steps[0] ?? '') : `${steps.slice(0, -1).join(', ')} or ${steps[steps.length - 1]}`;
 
-/** The studio's refusal (Q67 B, DRAFT copy): the mode, then the steps a floor can be, from the brand. */
-export const floorRefusalText = (mode: FloorMode, steps: readonly string[]): string =>
-  `The contrast floor has to match a page background in ${label(mode)}. ` +
-  (steps.length ? `Choose ${listOf(steps)}, or return to Auto.` : `No page background in ${label(mode)} sits on a neutral step, so return to Auto.`);
+/** Where a refusal is read: in the studio, after an edit, or on a design.md import, which names the file's key. */
+export type RefusalWhere = 'studio' | 'import';
+
+/** The studio's refusal (Q67 B): the mode, then the steps a floor can be, from the brand. An import ends on the
+ *  file's key (Q76 A); with no valid step, both read the one sentence (Q74 B). */
+export const floorRefusalText = (mode: FloorMode, steps: readonly string[], where: RefusalWhere = 'studio'): string =>
+  steps.length
+    ? `The contrast floor has to match a page background in ${label(mode)}. Choose ${listOf(steps)}, ` +
+      (where === 'import' ? 'or remove floorStep to use Auto.' : 'or return to Auto.')
+    : `No page background in ${label(mode)} sits on a neutral step, so the contrast floor stays on Auto.`;
 
 /** The line under an empty floor picker (Q70 A, the owner's wording). */
 export const floorNoneText = (mode: FloorMode): string =>
   `No page background in ${label(mode)} sits on a neutral step, so the floor stays Auto.`;
 
-/** The notice when a page background moves off the floor's step and the studio resets the floor (Q69 A, DRAFT). */
+/** The notice when a page background moves off the floor's step and the studio resets the floor (Q69 A, Q75 A). */
 export const floorResetText = (mode: FloorMode, palette: string, step: string): string =>
   `The contrast floor is back on Auto — ${palette} ${step} is no longer a page background in ${label(mode)}.`;
 
@@ -65,9 +71,9 @@ export const floorOffGround = (input: BrandInput): { mode: FloorMode; step: numb
 
 /** What the studio says for an engine message about `input`: the plain sentence for a floor refusal, the engine's own
  *  words for anything else. */
-export const studioMessage = (message: string, input: BrandInput): string => {
+export const studioMessage = (message: string, input: BrandInput, where: RefusalWhere = 'studio'): string => {
   const kind = /^surfaces\.(light|dark)\.floorStep:/.exec(message);
   if (!kind) return message;
   const off = floorOffGround(input);
-  return off && off.mode === kind[1] ? floorRefusalText(off.mode, off.steps) : message;
+  return off && off.mode === kind[1] ? floorRefusalText(off.mode, off.steps, where) : message;
 };

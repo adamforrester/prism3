@@ -700,21 +700,26 @@ for (const c of FLOOR_OFFER_CASES) {
   ok(disagree.length === 0, `and the engine builds each offered step as the floor and refuses every other by sentence${disagree.length ? ` — ${disagree.join('; ')}` : ''}`);
 }
 
-// ── 11. the studio's floor sentences (owner decisions Q67 B, Q69 A, Q70 A on #2250) ─────────────────────
+// ── 11. the studio's floor sentences (owner decisions Q67 B, Q69 A, Q70 A, Q74 B, Q75 A, Q76 A on #2250) ─────────────────────
 console.log('\n11. A floor refusal reads in the studio\'s words; a background that moves off the floor resets it to Auto (Q67 B, Q69 A, Q70 A; oracle: literals)');
 // Every sentence is typed here, never read from the module. The engine's own sentence opens with the key it refuses,
-// so "never shown verbatim" is that it appears nowhere the studio shows a message.
-const ENGINE_WORDS = /floorStep|is not a step a|page ground sits on/;
+// so "never shown verbatim" is that it appears nowhere the studio shows a message. An import names the
+// file's own key, `floorStep`, bare (Q76 A), so the pattern is the engine's phrasing, not that word.
+const ENGINE_WORDS = /surfaces\.(light|dark)\.floorStep|is not a step a|page ground sits on/;
 const withFloor = (mode: 'light' | 'dark', floorStep: number, base?: string | number): BrandInput => {
   const b = structuredClone(prism3);
   (b.surfaces ??= {})[mode] = { ...(b.surfaces[mode] ?? {}), ...(base !== undefined ? { base } : {}), floorStep } as never;
   return b;
 };
-const REFUSAL_CASES: Array<{ input: BrandInput; want: string; what: string }> = [
-  { input: withFloor('light', 400), want: 'The contrast floor has to match a page background in Light. Choose 050 or 100, or return to Auto.', what: 'Light, floor 400 on a White page (two steps)' },
-  { input: withFloor('dark', 400), want: 'The contrast floor has to match a page background in Dark. Choose 850, 900 or 950, or return to Auto.', what: 'Dark, floor 400 (three steps)' },
-  { input: withFloor('light', 400, 950), want: 'The contrast floor has to match a page background in Light. Choose 950, or return to Auto.', what: 'Light, floor 400 on a neutral 950 page (one step)' },
-  { input: withFloor('light', 400, 'black'), want: 'The contrast floor has to match a page background in Light. No page background in Light sits on a neutral step, so return to Auto.', what: 'Light, floor 400 on a Black page (no step)' },
+const REFUSAL_CASES: Array<{ input: BrandInput; want: string; wantImport: string; what: string }> = [
+  { input: withFloor('light', 400), want: 'The contrast floor has to match a page background in Light. Choose 050 or 100, or return to Auto.',
+    wantImport: 'The contrast floor has to match a page background in Light. Choose 050 or 100, or remove floorStep to use Auto.', what: 'Light, floor 400 on a White page (two steps)' },
+  { input: withFloor('dark', 400), want: 'The contrast floor has to match a page background in Dark. Choose 850, 900 or 950, or return to Auto.',
+    wantImport: 'The contrast floor has to match a page background in Dark. Choose 850, 900 or 950, or remove floorStep to use Auto.', what: 'Dark, floor 400 (three steps)' },
+  { input: withFloor('light', 400, 950), want: 'The contrast floor has to match a page background in Light. Choose 950, or return to Auto.',
+    wantImport: 'The contrast floor has to match a page background in Light. Choose 950, or remove floorStep to use Auto.', what: 'Light, floor 400 on a neutral 950 page (one step)' },
+  { input: withFloor('light', 400, 'black'), want: 'No page background in Light sits on a neutral step, so the contrast floor stays on Auto.',
+    wantImport: 'No page background in Light sits on a neutral step, so the contrast floor stays on Auto.', what: 'Light, floor 400 on a Black page (no step)' },
 ];
 for (const c of REFUSAL_CASES) {
   let engine: string | null = null;
@@ -724,10 +729,10 @@ for (const c of REFUSAL_CASES) {
   Object.assign(store.brandState, structuredClone(c.input));
   store.rebuild();
   ok(store.lastError === c.want, `#2250 ${c.what}: the error bar's message is the studio sentence (read ${JSON.stringify(store.lastError)})`);
-  ok(!ENGINE_WORDS.test(store.lastError ?? ''), `#2250 ${c.what}: the error bar's message carries none of the engine's sentence`);
+  ok(!ENGINE_WORDS.test(store.lastError ?? '') && !/floorStep/.test(store.lastError ?? ''), `#2250 ${c.what}: the error bar's message carries none of the engine's sentence, nor its key`);
   const imp = validateDesignMd(toDesignMd(c.input));
   const text = 'error' in imp ? importErrorText(imp.error) : null;
-  ok(!!text && text.includes(`Parsed, but the engine rejected it: ${c.want}`) && 'error' in imp && imp.error.line != null,
+  ok(!!text && text.includes(`Parsed, but the engine rejected it: ${c.wantImport}`) && 'error' in imp && imp.error.line != null,
     `#2250 ${c.what}: a design.md import is refused with the studio sentence, on its line (read ${JSON.stringify(text)})`);
   ok(!ENGINE_WORDS.test(text ?? ''), `#2250 ${c.what}: the import's message carries none of the engine's sentence`);
 }

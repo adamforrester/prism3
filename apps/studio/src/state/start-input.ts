@@ -150,8 +150,9 @@ const refusal = (text: string, e: unknown, prefix: string, input?: BrandInput): 
   const internal = e instanceof TypeError || e instanceof ReferenceError || e instanceof RangeError;
   const line = errorLine(text, message, internal);
   // The line is in front now, so the parser's own "at line N" (counted inside the front matter) would contradict it.
-  // A contrast floor refusal reads in the studio's words (Q67 B); the line is still found from the engine's key.
-  const shown = input ? studioMessage(message, input) : message;
+  // A contrast floor refusal reads in the studio's words (Q67 B), ending on the file's key (Q76 A); the line is
+  // still found from the engine's key.
+  const shown = input ? studioMessage(message, input, 'import') : message;
   const said = line !== null ? shown.replace(/\s+at line \d+\b/, '') : shown;
   return { error: { text: `${prefix}${said}`.trim(), line } };
 };

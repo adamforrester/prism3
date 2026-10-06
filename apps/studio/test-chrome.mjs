@@ -4367,7 +4367,7 @@ for (const theme of ['light', 'dark']) {
 {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
   const PANE = '[data-p3="levers-pane"]';
-  const ENGINE_WORDS = /floorStep|is not a step a|page ground sits on/;
+  const ENGINE_WORDS = /surfaces\.(light|dark)\.floorStep|is not a step a|page ground sits on/;
   const pick = async (hk, step) => {
     await hooks.click(page.locator(`${PANE} [data-p3="${hk}"]`));
     await hooks.need(page, `${PANE} [data-p3="step-picker"]`);
@@ -4409,7 +4409,7 @@ for (const theme of ['light', 'dark']) {
     await page.fill('[data-p3="import-text"]', '---\nid: floor-off\nprimary: { l: 0.55, c: 0.15, h: 262 }\nneutral: { hue: 262, chroma: 0.006 }\nsurfaces:\n  light: { floorStep: 400 }\n---\n');
     await hooks.click(page.locator('[data-p3="import-load"]'));
     await hooks.need(page, '[data-p3="import-error"]');
-    const WANT_IMPORT = 'Line 6: Parsed, but the engine rejected it: The contrast floor has to match a page background in Light. Choose 050 or 100, or return to Auto.';
+    const WANT_IMPORT = 'Line 6: Parsed, but the engine rejected it: The contrast floor has to match a page background in Light. Choose 050 or 100, or remove floorStep to use Auto.';
     const imp = await text('[data-p3="import-error"]');
     ok(imp === WANT_IMPORT, `#2250: a pasted brief with floor 400 is refused with the studio sentence, "${WANT_IMPORT}" — read ${JSON.stringify(imp)}`);
     ok(!(await engineOnScreen()), '#2250: the engine\'s floor sentence is nowhere on the page after the refused paste');
