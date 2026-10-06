@@ -1,6 +1,6 @@
 ## (2026-10-05) — Build style guides: the page (S11.2, PR 2 of 2)
 
-**STATUS: PR #2171 open from `ui/s112-style-guides-page`; the owner reviewed the screenshots and approved it (SG1, below). Merges `ui/s112-style-guide-plumbing` (PR 1, #2161), which must land first.** No engine or emitted change; no change note owed (UI only, the S-slices' precedent). CONTRACT stands.
+**STATUS: PR #2171 open from `ui/s112-style-guides-page`; the owner reviewed the screenshots and approved it (SG1, below). Merges `ui/s112-style-guide-plumbing` (PR 1, #2161), which must land first.** No emitted change. One plugin string changed in the review round (the skipped table's page, without "↳"), so the PR carries an `engine: minor` note. CONTRACT stands.
 
 **Why.** The owner approved the Build style guides mockup (2026-10-05: P1 variant 1, P2 A, P3 B, P4 A, P5 A, P6–P9, P10, P11 "Style guides", P12 all DRAFT copy) and its options (H4–H9), its heading and its menu item (H10, H11). This builds the page to the mockup, on PR 1's plumbing.
 
@@ -37,3 +37,30 @@
 | Draw it again by title, not key | "P6: Draw it again draws Primary alone, by key, and the title box names it (["Primary"], …)" |
 
 **Trap.** Playwright will not click an `aria-disabled` control, and waits for it to be enabled until its timeout. Checking that a later-phase box ignores a click needs `{ force: true }`. Also, `window.postMessage` to itself is asynchronous, so a read straight after a click misses the message the click posted. Settle first.
+
+### Review round (independent review of `a8bf370c`) and owner decisions Q46 A, Q47 A (2026-10-06)
+
+**Owner decisions (2026-10-06):**
+- **Q46 A:** SG1 covers the page's copy as built. The one exception is the stopped line, which now matches the string approved on #2161 exactly, with no trailing period: "Stopped after table ‹n› of ‹n›. The tables already drawn stay".
+- **Q47 A:** at 380, the Draw bar stands `space.300` (24px) above the Activity drawer's strip, as Components' build bar does (#2180, #2196). It is no longer flush: `.p3-sg-actbar` is `bottom: var(--p3-space-300)`, with its own edge and corners like the build bar.
+
+**What the review held, and what changed:**
+- **Merged with main** (no rebase). `package.json` (both), `chrome/spec.mjs` (`SHELL_VARS`), `chrome.css` and `frame.ts` were resolved as unions. `frame.ts` is `root.append(head, legacy, panes, menuPage, inspect, activity.drawer, layer)`.
+- **FR1 A focus rings.** The title box's fold and the switch now draw their rings on `--p3-focus-ring`. The switch is now a `<button role="switch">` holding the track and knob, so its ring is its own outline, where the ring audit reads it. Before, the ring sat on a sibling of an invisible input, which no audit could see. `test:chrome`'s #2144 sweep now opens this page in the plugin, in both themes, and reads every ring on it. It must reach the switch, the fold, Draw and Close.
+- **Progress announcements.** There is now one `aria-live="polite"` region (`sg-live`), a node of its own outside what `paint` replaces. It holds only the run line, and its text changes in place; between runs it is empty. The nested `aria-live` wrappers and the `role="status"` are gone.
+- **Focus.** A run started from the page (Draw by keyboard, or Draw it again) moves focus to Cancel. Cancel shows as soon as the page posts the run, before the main thread lists the run's tables. When the run ends, focus goes to Draw, or to the run line if Draw is off. It never lands on `<body>`.
+- **`role="switch"`** is asserted.
+- **"↳".** A skipped table's reason names its page as the table list does, with no arrow ("this file has no Primitive tokens page, and Set up file adds it"). That string lives in the plugin's `style-guide.ts`, so this PR now carries an `engine: minor` change note.
+
+**Mutations,** each after a `wip:` commit and restored from HEAD, each failing by name:
+
+| Mutation | Fails |
+|---|---|
+| the Draw bar back to flush (`bottom: 0`) | "P9, Q47 A: at 380 the run comes first, and Draw sits in a pinned bar at least space.300 (24px) above the Activity drawer's strip, scrolled or not (… "top":0 …)" |
+| the live region put back inside the replaced content | "progress: one polite live region, the same node through the run's events, holding the run line alone, and no live or status region inside the page (… "nested":1 …)" |
+| the live region replaced by a new node on each paint | the same arm (… "text":"" …) |
+| the live region holding more than the run line | the same arm (… "Drawing table 2 of 4… You can leave this page." …) |
+| no move to Cancel | "focus: a keyboard Draw moves focus to Cancel as the run starts (focus on sg-run-line)", "focus: Draw it again moves focus to Cancel as its run starts, not to <body> (focus on sg-run-line)" |
+| no move when the run ends | "focus: when the run ends, focus moves from Cancel to Draw or the run line, never <body> (focus on body)" |
+| `role="switch"` dropped | "SG5 A: each option switch is a switch to assistive technology, role="switch" ([null,null,null])" |
+| the switch's ring back on `--p3-ctl-edge` | `test:chrome`: "#2144 figma light 1280: every focused chrome control draws its ring in color.border.focus (#1e1eff) … build style guides sg-opt-aliases: color #0d0d0e, want color.border.focus #1e1eff …", and the same in dark (#f7f7f7, want #4f79fa) |
