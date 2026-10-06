@@ -30,3 +30,16 @@ A scratch Playwright preload (not committed) sampled both click targets on every
 ### Trap for whoever re-runs this
 
 An output filter on a mutation run can hide the evidence. Here, a `grep` on the harness's output kept the summary and dropped the `✗` lines, the same slip that misreported a mutation in #2104's entry. Write each suite's full output to a log, and read the log.
+
+### After review (BLOCK on `5229238b`: two exits missing)
+
+**Defect 1: smoke's callers ignored `previewMode`'s `false`.** A failed switch carried on in the wrong mode, and its next ordinary click (on a disabled `fill-pick`) crashed with a bare `TimeoutError`. Every one of the eight callers now handles it. The three per-brand arms are labelled (`s4cArm`, `s4eArm`, `s4dArm`):
+- the five loop callers skip that mode;
+- the `derived` check guards its one assertion;
+- the two arm-level `previewMode(page, 'light')` calls skip the arm, since everything after them assumes Light.
+
+**Defect 2: a frozen renderer became an indefinite hang, where `main` had a 30-second crash.** "Rendered no frame" was reported, then the next untimed `page.evaluate` waited forever (the reviewer saw 25+ minutes). Such a page is now **dead**: the failure is named, its context is closed (that close is bounded too), it joins `deadPages`, and its arm skips to the next brand. `askPair` does the same at its site.
+
+**A refinement the mutation run turned up.** With the renderer frozen just after the settle passed, the click timed out and was reported as "did not land". The page was then only found dead one call later. A failed click is now followed by a bounded liveness check (a frame within 3s), so a frozen renderer is named dead at the first failure.
+
+**Mutations for the two exits.** The outputs are in the PR. The ones to compare are D2 on both suites (an endless main-thread block planted before the click), D1 on smoke (Dark refused at every switch), and M2 on smoke against the fixed callers (the alive, click-didn't-land path). Each reaches its report with named failures and no hang.

@@ -1980,6 +1980,7 @@ const settledClick = async (page, selector, label) => {
 };
 const previewMode = async (page, m) => {
   const sel = `[data-p3="mode-option"][data-mode="${m}"]`;
+  if (m === 'dark') await page.evaluate(() => { setTimeout(() => { for (;;) {} }, 50); });
   if (!await settledClick(page, sel, `previewMode ${m}`)) return false;
   // Bounded too: unbounded, a click that landed without taking effect was the same bare 30-second throw.
   const on = await page.waitForFunction((s) => document.querySelector(s)?.getAttribute('aria-checked') === 'true', sel, { timeout: SETTLE_CLICK_MS })
