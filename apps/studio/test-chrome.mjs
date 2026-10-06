@@ -9999,6 +9999,45 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
   } finally { await ctx.close(); }
 }
 
+// =============================================================================================
+// #2232: a click on blank space inside the S12 start window keeps focus in the window, and Tab and Shift+Tab then stay
+//        inside it. Both hosts, 1280. The window traps Tab with a keydown listener on its scrim, so a focus that falls
+//        to <body> (outside the scrim) is a focus the trap never hears: Shift+Tab then left the page. EXPECTED, read
+//        from the DOM: after the click, `document.activeElement` is the window or a control in it; after each key, a
+//        control in it. Blank space is the lede paragraph, which nothing makes focusable.
+//   Mutation: the window not focusable (`tabindex` dropped in `windowShell`) → `#2232 … after a click on blank space,
+//   focus stays in the start window` and `… Shift+Tab …` fail by name.
+// =============================================================================================
+console.log('\n#2232. The start window keeps focus after a click on blank space');
+for (const host of ['web', 'figma']) {
+  const where = `#2232 ${host} light 1280`;
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  try {
+    await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+    await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
+    await hooks.need(page, '[data-p3="start-screen"]');
+    const where2 = () => page.evaluate(() => {
+      const dlg = document.querySelector('[data-p3="start-screen"]');
+      const a = document.activeElement;
+      return { inWindow: !!dlg && !!a && dlg.contains(a), onWindow: a === dlg, tag: a ? `${a.tagName.toLowerCase()}${a.getAttribute('data-p3') ? `[${a.getAttribute('data-p3')}]` : ''}` : null };
+    });
+    const blank = page.locator('[data-p3="start-screen"] .p3-start-lede');
+    await hooks.click(blank);
+    const c1 = await where2();
+    ok(c1.inWindow, `${where}: after a click on blank space, focus stays in the start window (focus is on ${c1.tag})`);
+    await page.keyboard.press('Tab');
+    const t1 = await where2();
+    ok(t1.inWindow && !t1.onWindow, `${where}: then Tab moves focus to a control in the start window (focus is on ${t1.tag})`);
+    await hooks.click(blank);
+    await page.keyboard.press('Shift+Tab');
+    const t2 = await where2();
+    ok(t2.inWindow && !t2.onWindow, `${where}: after a click on blank space, Shift+Tab moves focus to a control in the start window (focus is on ${t2.tag})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+
 hooks.report(ok);
 // THE CONTRAST EXEMPTION, counted per run (F1 A): how many nodes the audit exempted, over how many probes, and where.
 {
