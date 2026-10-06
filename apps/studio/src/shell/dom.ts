@@ -104,7 +104,8 @@ export const setBusy = (b: HTMLElement, busy: boolean): void => {
 /**
  * A bar tile (the owner's top-bar decision, 2026-10-05, "A · Menu bar"): a borderless control, its mark (a glyph, or
  * a glyph and a count) over a small label, with a tooltip under it on hover and on keyboard focus. The label shows
- * above the narrow tier and drops at it (`NARROW_MAX`), leaving the mark and the tooltip. The accessible name is the
+ * above the narrow tier and drops at it (`NARROW_MAX`), and above it whenever the full bar would not fit on one row
+ * (`frame.ts`'s `fitBar`, #2214), leaving the mark and the tooltip. The accessible name is the
  * control's `aria-label` in every tier, so it never depends on the label or the tooltip, and both are `aria-hidden`
  * (they repeat what the name says). The tooltip is drawn by the stylesheet alone, so it carries no inline value.
  * `start`: the tooltip hangs from the tile's left edge rather than its right (a tile on the bar's left side).

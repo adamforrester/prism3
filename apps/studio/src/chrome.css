@@ -9,8 +9,8 @@
  * variable unread. See `apps/studio/chrome/esbuild-plugin.mjs`.
  *
  * Classes here take the `p3-` scope, which `styles.css` does not use. State is read from ARIA attributes
- * and from the frame's `data-w` (width tier) and `data-layout` (legacy or panes), never from a shared
- * state class.
+ * and from the frame's `data-w` (width tier), `data-bar-fit` (the wide bar's fit step, #2214) and `data-layout`
+ * (legacy or panes), never from a shared state class.
  *
  * WHAT THIS STYLES: the frame (`src/shell/frame.ts`), meaning the top bar, the tab row with Color's
  * sub-row, the notices row, the legacy frame's Depth & motion switch and the two panes (S1.2); the
@@ -489,7 +489,11 @@
 .p3-frame[data-w="narrow"] .p3-bar-main { flex-wrap: wrap; gap: var(--p3-space-075); }
 /* Narrow keeps the logo and drops the name; the mark's accessible name still says it. */
 .p3-frame[data-w="narrow"] .p3-mark { padding-right: var(--p3-space-050); }
-.p3-frame[data-w="narrow"] .p3-mark-name { display: none; }
+/* The narrow tier's rules for the tile labels, the product name and the two rows also serve the wide bar's fit steps
+   (#2214, BL1 A+B): `frame.ts` (`fitBar`) sets `data-bar-fit` when the full bar would not fit on one row. `glyphs`
+   drops the labels, `logo` the name too, `rows` takes the two rows as well, and `trim` (Q83 A) also cuts the brand
+   switcher's name short, below. */
+.p3-frame:is([data-w="narrow"], [data-bar-fit="logo"], [data-bar-fit="rows"], [data-bar-fit="trim"]) .p3-mark-name { display: none; }
 .p3-frame[data-w="narrow"] :is(.p3-btn, .p3-brand) { min-height: var(--p3-ctl-h-xs); font-size: var(--p3-fs-12); }
 .p3-frame[data-w="narrow"] .p3-brand { padding: 0 var(--p3-space-100); }
 .p3-frame[data-w="narrow"] .p3-btn-icon { min-width: var(--p3-ctl-h-xs); }
@@ -523,12 +527,16 @@
 .p3-frame[data-w="narrow"] .p3-inspect-head { padding: 0 var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-inspect-body { padding: var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-btn.p3-tile { min-height: var(--p3-ctl-h-xs); min-width: var(--p3-ctl-h-xs); padding: 0 var(--p3-space-050); }
-.p3-frame[data-w="narrow"] .p3-tile-label { display: none; }
+.p3-frame:is([data-w="narrow"], [data-bar-fit]) .p3-tile-label { display: none; }
 /* At 380 the Contrast tooltip hangs from the bar's left edge, so a long line stays inside the window. */
 .p3-frame[data-w="narrow"] .p3-tile-start { position: static; }
 .p3-frame[data-w="narrow"] .p3-tile-start > .p3-tile-tip { left: 0; top: 100%; }
-.p3-frame[data-w="narrow"] .p3-bar-break { display: block; flex: 0 0 100%; height: 0; }
-.p3-frame[data-w="narrow"] .p3-bar-spacer2 { display: block; flex: 1 1 auto; }
+.p3-frame:is([data-w="narrow"], [data-bar-fit="rows"], [data-bar-fit="trim"]) .p3-bar-break { display: block; flex: 0 0 100%; height: 0; }
+.p3-frame:is([data-w="narrow"], [data-bar-fit="rows"], [data-bar-fit="trim"]) .p3-bar-spacer2 { display: block; flex: 1 1 auto; }
+/* `trim` (#2214, the owner's Q83 A): the first row still does not fit, so the brand switcher takes what is left of it and
+   cuts its name short with the ellipsis `.p3-brand-name` already draws; the spacer before Theme gives up its share. */
+.p3-frame[data-bar-fit="trim"] .p3-brandwrap { flex: 1 1 0; min-width: 0; }
+.p3-frame[data-bar-fit="trim"] .p3-bar-main > .p3-spacer { flex-grow: 0; }
 .p3-frame[data-w="narrow"] .p3-inspect-close .p3-btn-label { display: none; }
 .p3-frame[data-layout="panes"][data-w="narrow"][data-pane="preview"] :is(.p3-levers, .p3-nav, .p3-subnav) { display: none; }
 .p3-frame[data-layout="panes"][data-w="narrow"] .p3-pane-toggle { display: inline-flex; }

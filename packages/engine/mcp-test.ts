@@ -316,6 +316,29 @@ await new Promise((r) => setTimeout(r, 3000));
   }
 }
 
+// ------------------------------- #2227: a contrast floor no page ground sits on is refused, by sentence
+// `surfaces.light.floorStep: 25` sits under no light page ground (white, neutral.050, neutral.100). The DTCG and
+// Figma prose name the ground every floor-gated fill clears its bar on, so the Figma color emission had no ground
+// to name and threw, outside #2200's guard: export_theme include:["figma"] returned -32603. Since owner Q57 A the
+// build refuses such a floor, so validate_brand reports the sentence and export_theme returns it as isError. A
+// floor ON a ground (100, background.tertiary) still builds. EXPECTED is the engine's sentence, typed here
+// literally. Read off the RAW reply, as #2162 does. BY-NAME MUTATION: drop the refusal from modes.ts `resolve()`
+// → the validate_brand and export_theme arms fail (the latter as RPC error -32603); the floor-on-a-ground arm does not.
+{
+  const OFF_GROUND = 'surfaces.light.floorStep: 25 is not a step a light page ground sits on — the floor is the ground every floor-gated role is measured against. Use 50 (background.secondary) or 100 (background.tertiary).';
+  const B = { id: 'x', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  const off = (await server.callJson('validate_brand', { ...B, surfaces: { light: { floorStep: 25 } } })).payload;
+  ok(off.valid === false && off.errors.length === 1 && off.errors[0] === OFF_GROUND,
+    `#2227 validate_brand refuses a contrast floor no light page ground sits on, by sentence (got ${JSON.stringify(off)})`);
+  const res = await server.reply(server.send('tools/call', { name: 'export_theme', arguments: { brand: { ...B, surfaces: { light: { floorStep: 25 } } }, outDir: 'mcp-test-refusal-out', include: ['figma'] } }));
+  let payload: any = null;
+  try { payload = res.result ? JSON.parse(res.result.content[0].text) : null; } catch { /* reported below */ }
+  ok(!res.error && res.result?.isError === true && payload?.errors?.length === 1 && payload.errors[0] === OFF_GROUND,
+    `#2227 export_theme include:["figma"] refuses an off-ground floor as an isError result carrying the sentence, not a protocol error (got ${res.error ? `RPC error ${res.error.code}: ${res.error.message}` : JSON.stringify(payload).slice(0, 200)})`);
+  const on = (await server.callJson('validate_brand', { ...B, surfaces: { light: { floorStep: 100 } } })).payload;
+  ok(on.valid === true && on.errors.length === 0, `#2227 a contrast floor on a page ground (100, background.tertiary) is still valid (got ${JSON.stringify(on)})`);
+}
+
 // ------------------------------- #2209: a malformed score_consumption entry is an isError result naming it
 // `pairs: [null]` threw in `scoreContractCompliance` (`pair.fg` of null), and `refs: [null]` in `normalizeRef`,
 // outside #2162's `buildBrand` guard, so both escaped as -32603 protocol errors. Each case must be an `isError`

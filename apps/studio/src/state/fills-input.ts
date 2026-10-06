@@ -39,6 +39,7 @@ import { BUILTIN_MODES, resolveAllModes } from '@prism3/engine/modes';
 import { brandState, setPath, theme } from './store';
 import { resolvedModes } from './verdict';
 import { STATUS_ROLES } from './palette-input';
+import { floorResetText, groundStepsOf } from './floor-refusal';
 
 /** A resolved role, the slice the levers read. `alpha` is set on a translucent role (a wash: the scrim, the
  *  veils), whose `hex` is its opaque base, never the color anyone sees. */
@@ -125,6 +126,25 @@ export const pageKeyOf = (base: string | number): string =>
 /** The page surface: `white`, `black` or a neutral step (the select's value, or the picker's key). */
 export const setSurfaceBase = (mode: SurfaceMode, v: string): void => {
   setPath(brandState, `surfaces.${mode}.base`, v === 'white' || v === 'black' ? v : Number(v));
+  resetStrandedFloor(mode);
+};
+/** The notice a floor reset leaves (owner decision Q69 A), for the mode and the brand it was made on, or null. It is
+ *  held here, not drawn once, so the repaint the edit triggers still shows it; the next Surfaces edit clears it. */
+let floorReset: { mode: SurfaceMode; brand: object; text: string } | null = null;
+export const floorResetNotice = (mode: SurfaceMode): string | null =>
+  floorReset && floorReset.mode === mode && floorReset.brand === brandState ? floorReset.text : null;
+export const clearFloorReset = (): void => { floorReset = null; };
+/** A page background moved (Q69 A): when `mode`'s set floor is on none of its grounds now, the engine would refuse
+ *  the brand (#2227), so the floor goes back to Auto and says so. The grounds are read off the brand with the floor
+ *  removed, as the engine checks them. */
+const resetStrandedFloor = (mode: SurfaceMode): void => {
+  const step = brandState.surfaces?.[mode]?.floorStep;
+  if (step == null) return;
+  const g = groundStepsOf(brandState, mode);
+  if (!g || g.steps.some((k) => Number(k) === Number(step))) return;
+  const key = (theme.palettes.find((p) => p.palette === g.palette)?.steps ?? []).find((s) => Number(s.key) === Number(step))?.key ?? String(step);
+  setSurfaceFloor(mode, '');
+  floorReset = { mode, brand: brandState, text: floorResetText(mode, g.palette, key) };
 };
 /** The contrast floor's Auto option, in `mode`: the floor the ENGINE derives with no `floorStep`, read off the
  *  resolved theme (`foreground.brand`'s `against`, the floor every floor-gated role is measured on). With nothing
@@ -173,6 +193,17 @@ const autoFloorRoles = (mode: SurfaceMode): Record<string, FillRole | undefined>
 /** The contrast floor: a neutral step, or `''` for Auto. */
 export const setSurfaceFloor = (mode: SurfaceMode, v: string): void => {
   setPath(brandState, `surfaces.${mode}.floorStep`, v === '' ? undefined : Number(v));
+};
+/** The steps a contrast floor can name (owner decision Q57 A, #2227): only a neutral step one of `mode`'s page
+ *  grounds (`background.primary`, `.secondary`, `.tertiary`) sits on, in ramp order. The engine refuses any other
+ *  step, so the picker offers none. White and black are fixed primitives, not steps, and are never offered. */
+export const floorGroundSteps = (mode: SurfaceMode): Array<{ key: string; hex: string }> => {
+  const nPal = theme.roleToPalette.neutral;
+  const roles = rolesIn(mode);
+  const on = new Set([SURFACE_TOKENS.base, SURFACE_TOKENS.secondary, SURFACE_TOKENS.tertiary]
+    .map((t) => stepOfPath(roles[t]?.path)).filter((s) => s?.palette === nPal).map((s) => s!.step));
+  const pal = theme.palettes.find((p) => p.palette === nPal);
+  return (pal?.steps ?? []).filter((s) => on.has(s.key)).map((s) => ({ key: s.key, hex: s.hex }));
 };
 /** The palettes the inverse band can draw from (#898): neutral first, then every declared non-status
  *  palette. Status, alpha and the white and black keywords are excluded. */
@@ -225,8 +256,9 @@ const clearSurface = (mode: SurfaceMode, field: string): void => {
 /** A page tier (`secondary`, `tertiary`): a picker key (`'white'`, `'black'`, a neutral step's key), written as
  *  the Page writes its key (`setSurfaceBase`); `undefined` is Auto and clears the input. */
 export const setSurfaceTier = (mode: SurfaceMode, tier: PageTier, v: string | undefined): void => {
-  if (v === undefined) return clearSurface(mode, tier);
-  setPath(brandState, `surfaces.${mode}.${tier}`, v === 'white' || v === 'black' ? v : Number(v));
+  if (v === undefined) clearSurface(mode, tier);
+  else setPath(brandState, `surfaces.${mode}.${tier}`, v === 'white' || v === 'black' ? v : Number(v));
+  resetStrandedFloor(mode);
 };
 /** An inverse tier (`inverseSecondary`, `inverseTertiary`): a step on `palette`, written as the Inverse fill's
  *  step is (`setBandStep`): a neutral step a bare number, another palette `{ palette, step }`; `undefined` is

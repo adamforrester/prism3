@@ -143,6 +143,7 @@ type SurfSet = { primary: Cand; secondary: Cand; tertiary: Cand };
 export type ModeCfg = {
   surface: Cand;                   // base page surface (background.primary)
   floor: Cand; floorName: string;  // contrast floor (worst-case supported surface)
+  floorLabel: string;              // the page ground the floor sits on, named in floor-gated prose (#2227)
   bg: SurfSet; bgInverse: SurfSet; // background canvas ladders
   fg: SurfSet; fgInverse: SurfSet; // foreground surface ladders
   inverseSurface: RGB;             // the primary inverse surface (for the inverse column / inverse.border.*)
@@ -349,7 +350,7 @@ const modeConfigs = (ns: string, neutralPalette: string, neutral: Step[], surfac
   // the page so a card reads against the default page, then stepping on.
   const fgLadder = (pal: string, baseNum: number, dir: number): SurfSet => ({ primary: surfAtP(pal, baseNum + dir * 50), secondary: surfAtP(pal, baseNum + dir * 100), tertiary: surfAtP(pal, baseNum + dir * 150) });
 
-  const resolve = (family: 'light' | 'dark', defBase: SurfaceSpec): { base: Cand; floor: Cand; bg: SurfSet; fg: SurfSet; bgInverse: SurfSet; fgInverse: SurfSet; invRgb: RGB } => {
+  const resolve = (family: 'light' | 'dark', defBase: SurfaceSpec): { base: Cand; floor: Cand; floorLabel: string; bg: SurfSet; fg: SurfSet; bgInverse: SurfSet; fgInverse: SurfSet; invRgb: RGB } => {
     const cfg = surfaces[family] ?? {};
     const baseSpec = cfg.base ?? defBase;
     const baseS = specToSurf(baseSpec);
@@ -374,6 +375,27 @@ const modeConfigs = (ns: string, neutralPalette: string, neutral: Step[], surfac
     // left behind, every one of those claims would name a surface the tree no longer has. An explicit
     // `floorStep` still wins: it is a declaration too, and may differ from the tier, as it may today.
     const floor = cfg.floorStep == null && cfg.secondary != null ? bgTiers.secondary : n(floorStep);
+    // The floor must BE a page ground (#2227, owner Q57 A): every floor-gated role names, in its
+    // description, the ground it clears its bar on, and a floor no ground sits on makes that a claim about
+    // a surface the page does not have (#2239 measured fills at 1.2:1 on the real page claiming 3:1). Where
+    // two tiers share the step, `secondary` is named first, then `primary`, then `tertiary` — the same
+    // order the Figma color lines name it in.
+    const tierOrder = ['secondary', 'primary', 'tertiary'] as const;
+    // Auto is never refused: at a ladder end (a Black light page, a White or 050 dark page) the derived
+    // floor is a step no ground sits on, and refusing it would refuse the page choice itself, which Q57
+    // did not decide. That case keeps naming `background.secondary`, as before.
+    const onTier = tierOrder.find((t) => bgTiers[t].path === floor.path);
+    if (!onTier && cfg.floorStep != null) {
+      const offered = new Map<string, string>();
+      for (const t of tierOrder) {
+        const s = neutral.find((st) => `${ns}.${neutralPalette}.${st.key}` === bgTiers[t].path);
+        if (s && !offered.has(String(s.num))) offered.set(String(s.num), `${s.num} (background.${t})`);
+      }
+      const opts = [...offered.entries()].sort((a, b) => Number(a[0]) - Number(b[0])).map(([, v]) => v);
+      const use = opts.length === 0 ? `Remove it — no ${family} page ground sits on a neutral step.`
+        : `Use ${opts.length === 1 ? opts[0] : `${opts.slice(0, -1).join(', ')} or ${opts[opts.length - 1]}`}.`;
+      throw new Error(`surfaces.${family}.floorStep: ${cfg.floorStep} is not a step a ${family} page ground sits on — the floor is the ground every floor-gated role is measured against. ${use}`);
+    }
     // Inverse anchors NEAR the opposite extreme, not AT it — pure black reads
     // harsh/muddy and pure white halates in dark UIs (KB 31 §halation, §tint-not-
     // black). Light inverse = near-black 950; dark inverse = near-white 25. HC
@@ -393,7 +415,7 @@ const modeConfigs = (ns: string, neutralPalette: string, neutral: Step[], surfac
     // in `resolveMode`), so a declared `inverseSecondary` moves every role gated on it by construction.
     const bgInv = bgLadder(invS.pal, invS.num, invDir);
     return {
-      base: surfAtP(baseS.pal, baseS.num), floor,
+      base: surfAtP(baseS.pal, baseS.num), floor, floorLabel: `background.${onTier ?? 'secondary'}`,
       bg: bgTiers, fg: fgLadder(baseS.pal, baseS.num, dir),
       bgInverse: { primary: bgInv.primary, secondary: tier(cfg.inverseSecondary, bgInv.secondary), tertiary: tier(cfg.inverseTertiary, bgInv.tertiary) },
       fgInverse: fgLadder(invS.pal, invS.num, invDir),
@@ -407,9 +429,9 @@ const modeConfigs = (ns: string, neutralPalette: string, neutral: Step[], surfac
   const flat = (c: Cand): SurfSet => ({ primary: c, secondary: c, tertiary: c });
 
   const mk = (r: ReturnType<typeof resolve>, kind: ModeCfg['kind'], family: 'light' | 'dark', mins: MinSet): ModeCfg =>
-    ({ surface: r.base, floor: r.floor, floorName: short(r.floor), bg: r.bg, bgInverse: r.bgInverse, fg: r.fg, fgInverse: r.fgInverse, inverseSurface: r.invRgb, family, kind, ...mins });
-  const hcMk = (base: Cand, inv: Cand, floor: Cand, family: 'light' | 'dark', mins: MinSet): ModeCfg =>
-    ({ surface: base, floor, floorName: short(floor), bg: flat(base), bgInverse: flat(inv), fg: flat(base), fgInverse: flat(inv), inverseSurface: inv.rgb, family, kind: 'hc', ...mins });
+    ({ surface: r.base, floor: r.floor, floorName: short(r.floor), floorLabel: r.floorLabel, bg: r.bg, bgInverse: r.bgInverse, fg: r.fg, fgInverse: r.fgInverse, inverseSurface: r.invRgb, family, kind, ...mins });
+  const hcMk = (base: Cand, inv: Cand, floor: Cand, floorLabel: string, family: 'light' | 'dark', mins: MinSet): ModeCfg =>
+    ({ surface: base, floor, floorName: short(floor), floorLabel, bg: flat(base), bgInverse: flat(inv), fg: flat(base), fgInverse: flat(inv), inverseSurface: inv.rgb, family, kind: 'hc', ...mins });
 
   // Build the per-mode config table from the descriptor registry (B). Standard + wireframe modes use
   // their family's resolved surfaces (wireframe = light); HC restores the pure black/white extremes
@@ -417,7 +439,7 @@ const modeConfigs = (ns: string, neutralPalette: string, neutral: Step[], surfac
   const out = {} as Record<ModeName, ModeCfg>;
   for (const d of descriptors) {
     out[d.name] = d.kind === 'hc'
-      ? hcMk(d.family === 'light' ? white : black, d.family === 'light' ? black : white, resolved[d.family].floor, d.family, d.mins)
+      ? hcMk(d.family === 'light' ? white : black, d.family === 'light' ? black : white, resolved[d.family].floor, resolved[d.family].floorLabel, d.family, d.mins)
       : mk(resolved[d.family], d.kind, d.family, d.mins);
   }
   return out;
@@ -1193,7 +1215,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   for (const r of ['brand', 'success', 'warning', 'info'] as const) {
     const f = paletteRole(r, floorRgb, fillFloorMin);
     fills[r] = f;
-    put(`foreground.${r}`, f, `Bold ${r} fill — clears ${fillFloorMin}:1 on background.secondary`, cfg.floorName, fillFloorMin);
+    put(`foreground.${r}`, f, `Bold ${r} fill — clears ${fillFloorMin}:1 on ${cfg.floorLabel}`, cfg.floorName, fillFloorMin);
   }
   // subtle semantic tint SURFACES (light banner/badge fills) — pair with text.{r}.
   for (const r of SEMANTICS)
@@ -1231,7 +1253,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // itself is static — there is no per-state danger fill.
   const dangerRest = paletteRole('danger', floorRgb, fillFloorMin);
   fills.danger = dangerRest;
-  put('foreground.danger', dangerRest, `Bold danger fill — clears ${fillFloorMin}:1 on background.secondary`, cfg.floorName, fillFloorMin);
+  put('foreground.danger', dangerRest, `Bold danger fill — clears ${fillFloorMin}:1 on ${cfg.floorLabel}`, cfg.floorName, fillFloorMin);
   // Interactive fill states walk the palette (rest → hover/focused → pressed/selected), by the rung
   // rule below.
   // `fillMin` is the floor the walked step is guarded against (#557) — the SAME floor `put` then
@@ -1323,7 +1345,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       // rest then broke the NB fixture and forced a banned ink; both are handled deliberately here,
       // so the split is degenerate and gone.
       put(`interactive.${name}.fill.${stKey}`, rated(c, floorRgb),
-        `${name} interactive fill — ${stKey}, clears ${fillMin}:1 on background.secondary`, cfg.floorName, fillMin);
+        `${name} interactive fill — ${stKey}, clears ${fillMin}:1 on ${cfg.floorLabel}`, cfg.floorName, fillMin);
     }
     put(`interactive.${name}.on-fill`, onColor(asGround(`interactive.${name}.fill.rest`, rest.rgb)), `Ink on the ${name} interactive fill`, `interactive.${name}.fill.rest`, onMin);
   };
@@ -2066,7 +2088,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   //
   // Both passes run for every brand. The second used to be gated by the `inverse` lever; #895 removed
   // it, so the inverse content set is now as unconditional as the page one.
-  const pageGround: Ground = { base: baseRgb, baseName: 'background.primary', floor: floorRgb, floorName: cfg.floorName, floorLabel: 'background.secondary', dir, tint: subtleTint, mutedStep, page: true };
+  const pageGround: Ground = { base: baseRgb, baseName: 'background.primary', floor: floorRgb, floorName: cfg.floorName, floorLabel: cfg.floorLabel, dir, tint: subtleTint, mutedStep, page: true };
   const inverseGround: Ground = { base: invRgb, baseName: 'inverse.background.primary', floor: invFloorRgb, floorName: 'inverse.background.secondary', floorLabel: 'inverse.background.secondary', dir: -dir, tint: subtleTintInverse, mutedStep: 1000 - mutedStep, page: false };
 
   for (const s of buildContent(textProfile, pageGround)) put(`text.${s.key}`, s.r, s.desc, s.against, s.min);

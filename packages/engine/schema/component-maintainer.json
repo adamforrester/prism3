@@ -258,9 +258,12 @@
       "notes": {
         "contested": [
           "Whether to mark required or optional — the field settled on Prism 2's `Required` boolean, reconciling away the old none/required/optional axis (#1338); a brand marking the optional minority instead leaves `required` off. The DEFAULT is off since #1699 (owner-delegated), where Prism 2 defaults it on: every host's own `required` prop defaults off, and a marker shown by default claims a requirement the field has not declared.",
-          "Floating vs static label; static top-aligned is the default here (brief §2, §13)."
+          "Floating vs static label; static top-aligned is the default here (brief §2, §13).",
+          "Where the Figma name wraps (#1762, owner-decided 2026-09-30, changing #1757 decision 2): it hugs its text and wraps at a max width, so the required marker sits right after the name (after its last word on one line, beside the wrapped name on more) rather than at the row's trailing edge. The max width is the root `placementWidth` (320) less the row gap before the marker (4px) = 316; the marker's own width is not subtracted, because it is a brand-font advance the engine does not hold. Accepted tradeoffs: a field stretched wider in Figma does not widen the wrap point, and a long required name overruns 320 by the marker's width. The alternatives were keeping the trailing marker (option 1) and a two-colored run inside one text node (option 2, which retires the `indicator` paint slot and the node-visibility boolean)."
         ],
-        "unverified": [],
+        "unverified": [
+          "That Figma wraps an auto-width (`WIDTH_AND_HEIGHT`) text layer at its `maxWidth`, and places the next sibling in the row right after the clamped box, on the baseline the row aligns (#1762). The offline shims model the width and the position; no live file has measured either yet. The live check is in the #1762 PR."
+        ],
         "evolution": [
           "FLOATING LABELS OUT OF FAVOR: the static top-aligned label is now the assumed default for accessibility, i18n and density; Material 3 keeps floating as an option (KB text-field brief §13).",
           "PLACEHOLDER-AS-LABEL is universally an anti-pattern — settled, though legacy code persists. This part is the visible label that replaces it."
@@ -310,7 +313,7 @@
         ],
         "unverified": [
           "Polaris migration to framework-agnostic Web Components (<s-text-field>, Shadow DOM) — needs _source-text backing, shared with the Button brief (brief §11, §14).",
-          "The field's width (#1518, #1757): the control carries a `minWidth: 320` floor, the label and the message stretch across the column it holds (`crossAxisFill`, with the nested instance's own FIXED mode), and `content` grows inside the control. So the field reads at 320, the label and message wrap at that width, and a long value clips at `content`'s edge instead of widening the field. Measured on the offline host; whether the live host keeps a stretch on a nested INSTANCE is the standing nesting caveat.",
+          "The field's width (#1518, #1757): the control carries a `minWidth: 320` floor, the label and the message stretch across the column it holds (`crossAxisFill`, with the nested instance's own FIXED mode), and `content` grows inside the control. So the field reads at 320, the message wraps at that width, the label's name wraps at FieldLabel's own 316 max width (#1762), and a long value clips at `content`'s edge instead of widening the field. Measured on the offline host; whether the live host keeps a stretch on a nested INSTANCE is the standing nesting caveat.",
           "A long value or placeholder CLIPS at `content`'s edge in Figma (`clipsContent`, #1758), with no ellipsis — the native single-line input it stands for scrolls with the caret, so the full text stays reachable in code. The clip is modelled offline; the live host has not been checked.",
           "The leading and trailing glyphs are node-visibility BOOLEANS (#1331/#1494): each node is built hidden and shown by its switch. In Figma auto-layout a `visible:false` child is excluded from the flow, so a hidden glyph should add no gap — but whether a real host reflows `content` / the control when a switch toggles is a host question no Node gate answers. Symptom on a real host: a persistent gap where a hidden glyph sits, or the trailing affix not pinning tight when off."
         ],

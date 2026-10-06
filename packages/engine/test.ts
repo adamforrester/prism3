@@ -647,6 +647,99 @@ const nbFixName = (n: string): string => nbVar(CORE_GROUPS.has(n.split('/')[0]) 
     "#1296(e): an upright width pin ('Light Condensed') and an oblique pin still bind — the refusal is italic-only");
 }
 
+// ── #2227 / #2239 — A CONTRAST FLOOR IS A STEP A PAGE GROUND SITS ON (owner Q57 A) ──────────────────────
+// Every floor-gated fill says, in its description, which ground it clears its bar on. A `floorStep` no page
+// ground sits on made that a claim about a surface the page does not have: the Figma color emission threw
+// (`export_theme` -32603, #2227), and fills at floorSteps 500–750 shipped at 1.2–2:1 on the page while claiming
+// 3:1 (#2239). The build now refuses such a floor by sentence. Swept: every example brief × light/dark × every
+// neutral step as `floorStep`.
+// ORACLE, independent of the refusal: the page grounds' steps are read off the brand built WITHOUT a floorStep
+// (the roles' own `path`s — a floor does not move a ground), and the expected sentence is typed here, filled
+// from those steps. The #2239 arm measures each `clears N:1 on background.<tier>` role, in every mode of every
+// brand that builds, against that tier's emitted hex — never against `against`, the step the engine gated on.
+// BY-NAME MUTATIONS: drop the refusal from modes.ts `resolve()` → every arm here fails, the refusal arms listing
+// the steps that built and the #2239 arms the fills that miss; name `background.secondary` again in the
+// floor-gated prose → every #2227 arm fails on the floors at background.tertiary/primary, which the prose
+// misnames, and the aurora dark #2239 arm on the one such floor where the misnamed claim also measures false.
+{
+  const briefs = readdirSync(resolve(HERE, './examples')).filter((f) => f.endsWith('.design.md')).sort();
+  ok(briefs.length >= 4, `#2227 floor sweep: examples/ holds the committed briefs, not an empty glob (found ${briefs.length})`);
+  const TIERS = ['secondary', 'primary', 'tertiary'] as const;
+  type Roles = Record<string, { hex: string; path: string; description?: string; alpha?: number }>;
+  for (const file of briefs) {
+    const text = readFileSync(resolve(HERE, `./examples/${file}`), 'utf8');
+    const std = parseStandardDesignMd(text);
+    const input: BrandInput = isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input;
+    const plain = brandTheme(input);
+    const neutralPal = plain.palettes.find((p) => p.role === 'neutral')!;
+    const steps = neutralPal.steps.map((st) => st.num);
+    const plainModes = resolveAllModes(plain);
+    for (const mode of ['light', 'dark'] as const) {
+      // A light-only brief resolves no dark mode, so a dark floor has nothing to be measured on and is not swept.
+      const resolvedMode = plainModes.find((m) => m.mode === mode);
+      if (!resolvedMode) continue;
+      // Which neutral step each page ground sits on, first choice first; white/black sit on none.
+      const roles = resolvedMode.roles as Roles;
+      const onStep = new Map<number, string>();
+      for (const t of TIERS) {
+        const m = new RegExp(`(?:^|\\.)${neutralPal.palette}\\.(\\d+)$`).exec(roles[`background.${t}`].path);
+        if (m && !onStep.has(Number(m[1]))) onStep.set(Number(m[1]), `background.${t}`);
+      }
+      const opts = [...onStep.entries()].sort((a, b) => a[0] - b[0]).map(([n, g]) => `${n} (${g})`);
+      const use = opts.length === 0 ? `Remove it — no ${mode} page ground sits on a neutral step.`
+        : `Use ${opts.length === 1 ? opts[0] : `${opts.slice(0, -1).join(', ')} or ${opts[opts.length - 1]}`}.`;
+      const wrong: string[] = []; const misses: string[] = []; let built = 0; let refused = 0; let measured = 0;
+      for (const step of steps) {
+        const b = JSON.parse(JSON.stringify(input)) as BrandInput;
+        b.surfaces = { ...(b.surfaces ?? {}), [mode]: { ...(b.surfaces?.[mode] ?? {}), floorStep: step } } as BrandInput['surfaces'];
+        const expected = onStep.has(step) ? null
+          : `surfaces.${mode}.floorStep: ${step} is not a step a ${mode} page ground sits on — the floor is the ground every floor-gated role is measured against. ${use}`;
+        let all: ReturnType<typeof resolveAllModes> | null = null; let threw = '';
+        try { const theme = brandTheme(b); all = resolveAllModes(theme); figmaArtifacts(theme); } catch (e) { threw = (e as Error).message; }
+        if (expected === null ? threw !== '' : threw !== expected) wrong.push(`${step}: ${threw ? `"${threw.slice(0, 110)}"` : 'built'}`);
+        if (threw) { refused++; continue; }
+        built++;
+        // The floor's own ground is named in the prose — the oracle's tier, not always `background.secondary`.
+        const brandDesc = (all!.find((m) => m.mode === mode)!.roles as Roles)['foreground.brand']?.description ?? '';
+        if (!brandDesc.endsWith(` on ${onStep.get(step)}`)) wrong.push(`${step}: foreground.brand says "${brandDesc}", not on ${onStep.get(step)}`);
+        for (const m of all!) for (const [k, r] of Object.entries(m.roles as Roles)) {
+          const g = /clears ([\d.]+):1 on (background\.(?:primary|secondary|tertiary))$/.exec(r.description ?? '');
+          if (!g || (r.alpha ?? 1) < 1) continue;
+          measured++;
+          const ratio = contrast(hexToRgb(r.hex), hexToRgb((m.roles as Roles)[g[2]].hex));
+          if (ratio < Number(g[1]) - 1e-9) misses.push(`${step} ${m.mode} ${k}: ${ratio.toFixed(2)}:1 on ${g[2]}, claims ${g[1]}:1`);
+        }
+      }
+      ok(wrong.length === 0 && built > 0 && refused > 0,
+        `#2227 floor sweep: ${file} ${mode}.floorStep builds on a page ground's step and is refused by sentence elsewhere (built ${built}, refused ${refused}; wrong: ${wrong.slice(0, 4).join('; ') || 'none'}${wrong.length > 4 ? ` … ${wrong.length} in all` : ''})`);
+      ok(misses.length === 0 && measured > 0,
+        `#2239 floor sweep: ${file} ${mode}.floorStep — every fill that ships clears its claimed ratio on the ground its description names (measured ${measured}; misses: ${misses.slice(0, 3).join('; ') || 'none'}${misses.length > 3 ? ` … ${misses.length} in all` : ''})`);
+    }
+  }
+  // AUTO IS NEVER REFUSED. At a ladder end the derived floor is a step next to the page that no ground takes
+  // (a Black light page floors at 950 over a black secondary; a White or 050 dark page at 050/025 over a white
+  // one). Refusing it would refuse the page choice, which Q57 A did not decide, so the refusal is for an
+  // explicit `floorStep` only; and every floor-gated claim there is measured true on the ground it names.
+  // A 950 light page is the control: its secondary is black too, but its floor, 950, is its own primary.
+  // ORACLE: the four page choices and their floors are literals. BY-NAME MUTATION: drop `cfg.floorStep != null`
+  // from the refusal → the three ladder-end cases fail on the refusal sentence; the control still builds.
+  const AUTO_ENDS: Array<['light' | 'dark', 'white' | 'black' | number, string]> = [['light', 'black', 'neutral.950'], ['light', 950, 'neutral.950'], ['dark', 'white', 'neutral.050'], ['dark', 50, 'neutral.025']];
+  for (const [mode, base, floor] of AUTO_ENDS) {
+    const b = JSON.parse(JSON.stringify(exampleBrands()["prism3"])) as BrandInput;
+    b.surfaces = { ...(b.surfaces ?? {}), [mode]: { ...(b.surfaces?.[mode] ?? {}), base } } as BrandInput['surfaces'];
+    let threw = ''; let all: ReturnType<typeof resolveAllModes> = [];
+    try { all = resolveAllModes(brandTheme(b)); } catch (e) { threw = (e as Error).message; }
+    const roles = (all.find((m) => m.mode === mode)?.roles ?? {}) as Roles;
+    const misses: string[] = [];
+    for (const [k, r] of Object.entries(roles)) {
+      const g = /clears ([\d.]+):1 on (background\.(?:primary|secondary|tertiary))$/.exec(r.description ?? '');
+      if (g && (r.alpha ?? 1) >= 1 && contrast(hexToRgb(r.hex), hexToRgb(roles[g[2]].hex)) < Number(g[1]) - 1e-9) misses.push(k);
+    }
+    ok(threw === '' && (roles['foreground.brand'] as { against?: string } | undefined)?.against === floor && misses.length === 0,
+      `#2227 Auto floor at a ladder end: prism3 ${mode} Page ${base} builds with no floorStep, floored at ${floor}, every claim true on its ground (${threw ? `threw "${threw.slice(0, 100)}"` : `floor ${(roles['foreground.brand'] as { against?: string } | undefined)?.against}, misses: ${misses.join(', ') || 'none'}`})`);
+  }
+}
+
 // ── #1296 — THE CANONICAL DEFAULT THEME IS A COMPLETE REFERENCE ─────────────────────────────────────
 // `prism3` is not a contract corpus member (the corpus spans input VARIATION; see `token-contract.ts`),
 // so nothing forces it to emit the guaranteed surface — a default theme that quietly lacked a promised
@@ -4809,8 +4902,11 @@ arm: {
             ok(msg.includes(`surfaces.${mode}.floorStep`) && msg.includes('neutral ramp') && (nearest === null ? msg.includes('is not a step number') : msg.includes(`the nearest step is ${nearest}.`)),
               `#2033: surfaces.${mode}.floorStep = ${JSON.stringify(v)} is refused by name${nearest ? `, naming the nearest step ${nearest}` : ''} (got: "${msg.slice(0, 140)}")`);
           }
-          // A real step is accepted UNCHANGED: text.secondary is measured against exactly that step.
-          const FLOOR_ACCEPTED: Array<[number, string]> = [[300, 'neutral.300'], [25, 'neutral.025'], [950, 'neutral.950']];
+          // A real step is accepted UNCHANGED: text.secondary is measured against exactly that step. Since #2227
+          // (owner Q57 A) only a step a page ground sits on builds, so these are the default ladders' tiers: light
+          // white/050/100, dark 950/900/850. An off-ground step passes `brandTheme` and is refused once the modes
+          // resolve; the #2227 sweep holds that.
+          const FLOOR_ACCEPTED: Array<[number, string]> = mode === 'light' ? [[50, 'neutral.050'], [100, 'neutral.100']] : [[900, 'neutral.900'], [850, 'neutral.850'], [950, 'neutral.950']];
           for (const [v, floor] of FLOOR_ACCEPTED) {
             const input = withSurf(mode, 'floorStep', v);
             const msg = refusal(input);
@@ -14406,6 +14502,48 @@ arm: {
         "#1757 select's wrapping value is bounded THROUGH `content`, which fills the floored control — removing the control's 320 floor refuses the value BY NAME, so the filled parent is load-bearing");
     }
 
+    // ---- #1762: field-label's name HUGS and wraps at a MAX WIDTH, so the required marker follows it ----
+    // Owner decision 2026-09-30 (option 3), changing #1757's decision 2. The expected numbers are literals, not
+    // read off the def: 316 = the field's 320 default width less the 4px row gap before the marker (the marker's
+    // own width is not subtracted), on all 24 members. Each refusal is pinned BY NAME (docs/34).
+    {
+      const members = figmaAnatomySet(fieldLabel);
+      const off = members.flatMap((m) => {
+        const [text, marker] = m.root.children;
+        const bad: string[] = [];
+        if (text?.name !== 'text' || marker?.name !== 'indicator') bad.push(`children [${m.root.children.map((c) => c.name).join(', ')}]`);
+        if (text?.maxWidth !== 316) bad.push(`maxWidth ${String(text?.maxWidth)}`);
+        if (text?.layoutGrow !== undefined || text?.textAutoResize !== undefined) bad.push(`layoutGrow ${String(text?.layoutGrow)}, textAutoResize ${String(text?.textAutoResize)}`);
+        return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
+      });
+      ok(members.length === 24 && off.length === 0,
+        `#1762 field-label's name HUGS and wraps at maxWidth 316 (320 less the 4px gap) on all 24 members — no layoutGrow, no HEIGHT (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
+      // THE MARKER FOLLOWS THE NAME, not a filling box: nothing in the row grows, the row packs from its start,
+      // and the marker is the name's next sibling. A `wrap: true` name (#1757) is the filling box this refuses.
+      const rowOff = members.flatMap((m) => {
+        const kids = m.root.children;
+        const growers = kids.filter((c) => c.layoutGrow !== undefined).map((c) => c.name);
+        const i = kids.findIndex((c) => c.name === 'text');
+        return growers.length || m.root.primaryAxisAlignItems !== 'MIN' || kids[i + 1]?.name !== 'indicator'
+          ? [`${planComponentName(m)}: growers [${growers.join(', ')}], justify ${String(m.root.primaryAxisAlignItems)}, after the name '${String(kids[i + 1]?.name)}'`] : [];
+      });
+      ok(members.length === 24 && rowOff.length === 0,
+        `#1762 the required marker follows the name in the row, not a filling box — no child grows, the row packs from the start, and the marker is the name's next sibling (${rowOff.length} off — ${rowOff[0] ?? 'none'})`);
+
+      const refuses = (d: ComponentDef, ...res: RegExp[]) => validateComponentDef(d).errors.some((e) => res.every((r) => r.test(e)));
+      const flParts = fieldLabel.anatomy!.parts;
+      const withFl = (over: Record<string, unknown>) => ({ ...fieldLabel, anatomy: { ...fieldLabel.anatomy!, parts: { ...flParts, ...over } } }) as ComponentDef;
+      ok(validateComponentDef(fieldLabel).errors.length === 0, `#1762 field-label validates with wrap 'hug' (${validateComponentDef(fieldLabel).errors[0] ?? 'clean'})`);
+      ok(refuses(withFl({ label: { ...flParts.label, placementWidth: undefined } }), /'text' declares wrap 'hug'/, /not the anatomy ROOT with a 'placementWidth'/),
+        "#1762 a hugging wrap under a root with no build width is refused BY NAME — there is no width to derive the max width from");
+      ok(refuses(withFl({ label: { ...flParts.label, layout: { ...flParts.label.layout!, direction: 'column' } } }), /'text' declares wrap 'hug'/, /is not a 'row'/),
+        "#1762 a hugging wrap in a COLUMN is refused BY NAME — the max width shares a row's width with its siblings");
+      ok(refuses(withFl({ label: { ...flParts.label, padding: { block: 'gap', inlineLabel: 'gap' } } }), /'text' declares wrap 'hug'/, /declares padding/),
+        "#1762 a hugging wrap under a PADDED root is refused BY NAME — the max width does not subtract padding");
+      ok(refuses({ ...withFl({}), tokens: { ...fieldLabel.tokens, gap: 'size.small.height' } } as ComponentDef, /'text' declares wrap 'hug'/, /does not bind a step of the space ladder/),
+        "#1762 a hugging wrap whose row gap is off the space ladder is refused BY NAME — the max width subtracts the gap in px");
+    }
+
     // ---- `grow` and `paddingTop` (textarea's independent message and counter, 2026-09-25): the plan carries
     //      each exactly where declared, and each refusal fires BY NAME (docs/34) ----
     {
@@ -17078,7 +17216,8 @@ arm: {
             // and size terms beside this already do.
             const weight = (bv.strokeWeight?.value ?? bv.strokeTopWeight?.value ?? (node.strokeWeight as number)) || 0;   // #1332: the weight binds per-side
             if (bv.width) return bv.width.value ?? 0;
-            if (node.type === 'TEXT') return ((node.characters as string) || '').length * 6;
+            // A hugging text under a max width (#1762) clamps to it, as `component-shim.ts` models the host.
+            if (node.type === 'TEXT') return Math.min(((node.characters as string) || '').length * 6, typeof node.maxWidth === 'number' ? node.maxWidth : Infinity);
             // A LITERAL side (#1667's reserve beside a pinned icon) counts where the side is not bound, as on the host.
             const lit = (k: string): number => (typeof node[k] === 'number' ? node[k] as number : 0);
             const pad = (bv.paddingLeft?.value ?? lit('paddingLeft')) + (bv.paddingRight?.value ?? lit('paddingRight'));
@@ -19697,7 +19836,7 @@ arm: {
           const dive = (n: Record<string, unknown>, path: string): void => {
             const here = `${path}/${String(n.name)}`;
             if (n.type !== 'COMPONENT_SET')
-              out.push(`${here} ${String(n.layoutMode)} p:${String(n.primaryAxisSizingMode)} c:${String(n.counterAxisSizingMode)} align:${String(n.layoutAlign)} grow:${String(n.layoutGrow)} text:${String(n.textAutoResize)}${n.type === 'COMPONENT' ? ` w:${String(n.width)}` : ''}`);
+              out.push(`${here} ${String(n.layoutMode)} p:${String(n.primaryAxisSizingMode)} c:${String(n.counterAxisSizingMode)} align:${String(n.layoutAlign)} grow:${String(n.layoutGrow)} text:${String(n.textAutoResize)} mw:${String(n.maxWidth)}${n.type === 'COMPONENT' ? ` w:${String(n.width)}` : ''}`);
             for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) dive(c, here);
           };
           for (const c of page.children as Record<string, unknown>[]) dive(c, '');
@@ -19712,7 +19851,9 @@ arm: {
             /\/control HORIZONTAL p:AUTO c:AUTO /, /\/(value|placeholder) undefined .*grow:1 text:HEIGHT/]],
           [textField, [/\/label undefined p:FIXED .*align:STRETCH /, /\/message undefined p:FIXED .*align:STRETCH /, /\/content HORIZONTAL p:FIXED c:AUTO align:INHERIT grow:1 /]],
           [fieldMessage, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/text undefined .*grow:1 text:HEIGHT/]],
-          [fieldLabel, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/text undefined .*grow:1 text:HEIGHT/]],
+          // #1762: field-label's name HUGS (no grow, auto width) and wraps at its 316 max width, on both hosts —
+          // the paste twin's spliced max-width line as well as the plugin's.
+          [fieldLabel, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/text undefined .*grow:0 text:WIDTH_AND_HEIGHT mw:316$/]],
         ]);
         for (const [def, want] of FLOORS) {
           const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });

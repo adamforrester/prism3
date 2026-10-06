@@ -659,9 +659,9 @@ const NOTE_SWEEP: [string, Record<string, unknown>][] = [
   ['roleColors off-hue', { primary: { l: 0.5, c: 0.15, h: 150 }, neutral: { hue: 150, chroma: 0.01 }, brandColors: [{ name: 'lime', oklch: { l: 0.7, c: 0.15, h: 135 } }], roleColors: { danger: 'lime', info: 'lime' } }],
   ['interactivePalettes over accentPalette', { brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.1, h: 200 } }], accentPalette: 'accent', interactivePalettes: [{ name: 'accent', palette: 'accent' }] }],
   ['every opt-in at once', { controlShape: 'hairline', gradients: true, buttonLabelWeight: 'default', typography: { sizeFloor: 8, titleFloor: 16, captionFloor: 10, responsive: { fluid: false } }, disabledStrategy: 'full', outlineInteraction: 'solid-tint', neutralEmphasis: 'strong', strictInteractiveContrast: true }],
-  ['radiusHairline (retired), no hover, surfaces', { radiusHairline: true, outlineInteraction: 'none', surfaces: { light: { base: 100, floorStep: 300 }, dark: { floorStep: 800 } } }],
+  ['radiusHairline (retired), no hover, surfaces', { radiusHairline: true, outlineInteraction: 'none', surfaces: { light: { base: 100, floorStep: 200 }, dark: { floorStep: 850 } } }],
   // #1972: a declared second tier, with the floor following it (light) and held by `floorStep` (dark).
-  ['declared second tiers', { surfaces: { light: { secondary: 200 }, dark: { secondary: 700, floorStep: 800 } } }],
+  ['declared second tiers', { surfaces: { light: { secondary: 200 }, dark: { secondary: 700, floorStep: 850 } } }],
   ['brand inverse band', { brandColors: [{ name: 'navy', oklch: { l: 0.22, c: 0.06, h: 250 } }], surfaces: { light: { inverseBase: { palette: 'navy', step: 900 } } } }],
   ['links on neutral', { linkPalette: 'neutral' }],
   ['link set apart from a rebased action', { brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.1, h: 200 } }], roleColors: { action: 'accent' }, linkPalette: 'primary' }],
