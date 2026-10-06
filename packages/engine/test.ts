@@ -6727,6 +6727,45 @@ arm: {
     `#2184 an explicit shadow.tint.hue still wins over every neutral source (expected ${EXPLICIT}; got ${won.map((w) => `${w.base}/${w.dark}`).join(', ')})`);
 }
 
+// A PURE-GRAY PIN HAS NO HUE, SO ITS SHADOW IS UNTINTED (#2184, owner Q58 B, 2026-10-06). r = g = b converts to
+// chroma ~1e-8 and a noise hue of ~89.88° (#2241). The ramp cannot show that noise at chroma ~0, but a shadow tint
+// would (olive, ΔE00 2.23), and the studio's hue slider read ~90°. With no explicit `shadow.tint.hue`, such a pin's
+// shadow now carries NO hue: `tint.hue` is null and the color is achromatic, while `amount` still lifts it off
+// pure black (Q58 B's render, R1). An explicit hue still wins.
+//
+// INDEPENDENCE: the pins come from the REAL converter (`rgbToOklch(hexToRgb(...))`), so its noise is part of the
+// input rather than a hand-typed stand-in. The expectations are structural consequences, not the formula:
+// r = g = b (untinted), not 0/0/0 (the lift kept), and the noise hue appearing nowhere. And the guard is held
+// from the other side (docs/34 shape 14): nb-redesign's faint REAL pin, #151415 at chroma 0.0025, must stay tinted
+// at its own hue.
+{
+  const DARK = { dark: { shadow: { softness: 0.6 } } };
+  const pinTheme = (hexStr: string, shadow?: Record<string, unknown>) =>
+    brandTheme({ id: 'tgray', root: 'prism', primary: { l: 0.55, c: 0.15, h: 195 },
+      neutral: { hue: 40, chroma: 0.006, anchor: rgbToOklch(hexToRgb(hexStr)) }, ...(shadow ? { shadow } : {}), modeLevers: DARK } as any);
+  const gray = (c: RGB) => c.r === c.g && c.g === c.b;
+  for (const hexStr of ['#333333', '#808080']) {
+    const pin = rgbToOklch(hexToRgb(hexStr));
+    const t = pinTheme(hexStr);
+    const dark = t.shadow.shadowByMode?.dark;
+    const untinted = t.shadow.tint.hue === null && gray(t.shadow.colorRgb) && t.shadow.colorRgb.r > 0
+      && !!dark && dark.tint.hue === null && gray(dark.colorRgb);
+    ok(pin.c < 1e-6 && untinted,
+      `#2184 Q58 B: a pure-gray pin (${hexStr}) leaves the shadow untinted, with no hue (pin chroma ${pin.c.toExponential(1)}, ` +
+      `converter hue ${pin.h.toFixed(2)}; got tint.hue ${t.shadow.tint.hue}, color ${JSON.stringify(t.shadow.colorRgb)}, dark mode hue ${dark?.tint.hue}, ${dark ? JSON.stringify(dark.colorRgb) : 'no entry'})`);
+    const asked = pinTheme(hexStr, { tint: { hue: 30 } });
+    ok(asked.shadow.tint.hue === 30 && !gray(asked.shadow.colorRgb) && asked.shadow.shadowByMode?.dark?.tint.hue === 30,
+      `#2184 Q58 B: an explicit shadow.tint.hue still tints a pure-gray pin's shadow (${hexStr}; expected hue 30, ` +
+      `got ${asked.shadow.tint.hue}, color ${JSON.stringify(asked.shadow.colorRgb)})`);
+  }
+  // The other side of the guard: a faint but REAL pin keeps its hue.
+  const faint = rgbToOklch(hexToRgb('#151415'));
+  const f = pinTheme('#151415');
+  ok(faint.c > 1e-3 && f.shadow.tint.hue !== null && Math.abs((f.shadow.tint.hue as number) - faint.h) < 1e-9 && !gray(f.shadow.colorRgb),
+    `#2184 Q58 B: a faint but real pin (#151415, chroma ${faint.c.toFixed(4)}) still tints the shadow at its own hue ` +
+    `(expected ${faint.h.toFixed(2)}, got ${f.shadow.tint.hue}, color ${JSON.stringify(f.shadow.colorRgb)})`);
+}
+
 // PER-MODE SHADOW (Phase D) — a mode re-derives its shadow ramp at its own softness/tint via the SAME
 // buildShadow the baseline uses, picking the layer-set for the mode's APPEARANCE (dark/dark-based →
 // reduced; light/light-based → full) with the mode's own tinted colorRgb. Rides

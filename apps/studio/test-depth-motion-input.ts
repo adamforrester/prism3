@@ -22,6 +22,7 @@ import { brandTheme, type BrandInput } from '@prism3/engine/theme';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import * as store from './src/state/store';
 import * as D from './src/state/depth-motion-input';
+import { rgbToOklch, hexToRgb } from '@prism3/engine/color';
 
 let executed = 0, failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -133,6 +134,21 @@ D.setEasingRole('dark', 'emphasized', '');
 ok(pristine(), 'setEasingRole(dark, emphasized, Auto) prunes the mode and modeLevers: byte-identical to the brand as loaded');
 D.setEasingRole('dark', 'exit', 'linear'); D.setEasingRole('dark', 'exit', undefined);
 ok(pristine(), 'setEasingRole(dark, exit, undefined) is Auto too');
+
+console.log('\n2. A pure-gray pin has no hue: the hue slider draws None, never the converter noise (#2184, owner Q58 B)');
+// The value the Depth & motion hue slider and every mode's Auto draw from is `brandShadowValue('tint.hue')`, the
+// engine's resolved hue. Under a pure-gray pin (r = g = b, built by the real converter so its ~89.88° noise is in the
+// input, #2241) it must be null, which the slider renders disabled and reading None.
+for (const hexStr of ['#333333', '#808080']) {
+  const pin = rgbToOklch(hexToRgb(hexStr));
+  store.initSession(structuredClone({ ...brands.harbor, neutral: { ...brands.harbor.neutral, anchor: pin } }), { kind: 'example', id: 'harbor' });
+  const v = D.brandShadowValue('tint.hue');
+  ok(v === null && typeof D.brandShadowValue('tint.amount') === 'number',
+    `${hexStr} pinned (converter hue ${pin.h.toFixed(2)}): the hue slider's value is null (shown as None), not ~90°, and the amount still resolves (got hue ${v}, amount ${D.brandShadowValue('tint.amount')})`);
+  D.setShadowTint('light', 'hue', 30);
+  store.rebuild();   // the app rebuilds through edit(); brandShadowValue reads the resolved theme
+  ok(D.brandShadowValue('tint.hue') === 30, `${hexStr} pinned, then a hue of 30 written: the explicit hue wins and the slider reads 30 (got ${D.brandShadowValue('tint.hue')})`);
+}
 
 console.log(`\n${executed - failed}/${executed} Depth & motion write assertions passed.`);
 if (failed) process.exit(1);

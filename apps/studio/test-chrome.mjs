@@ -9043,6 +9043,44 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
 }
 console.log(`  headings per page (web light): ${Object.entries(headingCounts).map(([p, c]) => `${p} ${Object.entries(c).map(([l, n]) => `${l} ${n}`).join(' ')}`).join(' · ')}`);
 
+// #2184, owner Q58 B (2026-10-06): a PURE-GRAY pin (r = g = b) has no hue, so the shadow is untinted and the Depth &
+// motion hue slider is disabled and reads None, never the converter's ~89.88° noise (#2241). A section of its own at
+// the end of the file: four UI-lane PRs are open against the rest of it. The pins are the OKLCH the studio stores for
+// each hex, as color.ts's rgbToOklch returns it (the engine and unit tests derive the same pins live). prism3 authors
+// its own tint hue, which would win, so it is removed: the case is the DEFAULT path. Amount stays enabled: an untinted
+// shadow still lifts off pure black by its amount (Q58 B's render).
+for (const [hexStr, pin] of [['#333333', { l: 0.3211, c: 1.2e-8, h: 89.88 }], ['#808080', { l: 0.5999, c: 2.2e-8, h: 89.88 }]]) {
+  const where = `#2184 Q58 B: a pure-gray pin (${hexStr}), web light 1280`;
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await page.evaluate((p) => {
+      const blob = JSON.parse(localStorage.getItem('prism3:brandInput'));
+      blob.input.neutral = { ...blob.input.neutral, anchor: p };
+      if (blob.input.shadow?.tint) delete blob.input.shadow.tint.hue;
+      localStorage.setItem('prism3:brandInput', JSON.stringify(blob));
+    }, pin);
+    await page.reload({ waitUntil: 'networkidle' });
+    await hooks.need(page, '[data-p3="frame"]');
+    await openDepth(page);
+    await openTint(page);
+    const st = await page.evaluate(() => {
+      const el = document.querySelector('[data-p3="shadow-tint-hue"]');
+      const field = el?.closest('.p3-field');
+      return {
+        disabled: el?.disabled ?? null, aria: el?.getAttribute('aria-valuetext') ?? null,
+        readout: field?.querySelector('.p3-readout')?.textContent ?? null,
+        hint: [...(field?.querySelectorAll('.p3-state') ?? [])].some((n) => !n.hidden && n.textContent.trim().length > 0),
+        amountEnabled: document.querySelector('[data-p3="shadow-tint-amount"]')?.disabled === false,
+      };
+    });
+    ok(st.disabled === true && st.readout === 'None' && st.aria === 'None' && st.hint && st.amountEnabled && !/\b(89|90)/.test(`${st.readout} ${st.aria}`),
+      `${where}: the hue slider is disabled, reads None (not ~90°), says why, and Amount stays enabled (${JSON.stringify(st)})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+
 hooks.report(ok);
 // THE CONTRAST EXEMPTION, counted per run (F1 A): how many nodes the audit exempted, over how many probes, and where.
 {

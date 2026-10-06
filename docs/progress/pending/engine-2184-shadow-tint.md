@@ -1,7 +1,12 @@
 ## (2026-10-06) — Engine: the shadow tint follows the hue that builds the neutral ramp (#2184)
 
 **Status:** ENGINE `{{ENGINE_VERSION}}` (`engine: minor`, change note `engine-2184-shadow-tint.md`). CONTRACT
-unchanged. `regen` moves no committed artifact. One file of engine code (`theme.ts`) and one block of tests.
+unchanged. `regen` moves no committed artifact.
+- **Engine:** `theme.ts`, plus tests in `test.ts`.
+- **Studio** (owner Q58 B): `domains/depth.ts`, `state/depth-motion-input.ts` and one `chrome.css` rule, plus tests in
+  `test-depth-motion-input.ts` and a new section at the end of `test-chrome.mjs`.
+
+**Copy and one visual detail are DRAFTS held for owner approval** (listed below).
 
 ### What changed
 
@@ -78,6 +83,52 @@ every arm the only failures in `test.ts` were these tests:
 | (c) the explicit-override branch dropped | 1 | `#2184 an explicit shadow.tint.hue still wins over every neutral source (expected 120; got 195/195, 300/300, 250/250)` |
 
 Custom tint passes under (a) and (b), correctly: there, the stored hue *is* the source.
+
+### A pure-gray pin has no hue, so its shadow is untinted (owner Q58 B, 2026-10-06)
+
+Lane D's review found that a pin with r = g = b converts to chroma ~1e-8 and a noise hue of ~89.88° (#2241). The
+ramp can't show that noise at chroma ~0, but the shadow tint did: olive, ΔE00 2.23. The studio's hue slider also
+read ~90°. The owner ruled that such a ramp has no hue, so the shadow is **untinted**, and an explicit
+`shadow.tint.hue` still wins.
+
+- **Detection is by chroma, never by the noise hue.** The shadow's default is `null` below `ACHROMATIC_C = 1e-4`.
+  That threshold is four orders of magnitude above the noise, and well below the faintest real pin in the corpus
+  (nb-redesign's `#151415`, chroma 0.0025).
+- **The render is "no hue, the amount still lifts".** That was the owner's choice of two (the other was pure
+  black): chroma 0 at the lightness `amount` sets, so the Amount slider keeps working under the pin. At the default
+  amount it is ΔE00 0.44 from pure black.
+- **The resolved hue becomes `null`.** `ShadowAxis.tint.hue` is now `number | null`. No token carries the hue,
+  only `colorRgb` and the layers, so nothing emitted changes shape.
+- **The slider is disabled and reads None.** That was the owner's choice. It keeps its `aria-valuetext` in step,
+  and a hint line says why. Every mode's Auto label reads None too. Amount stays enabled.
+- **The guard covers the pin only,** as Q58 B scopes it. A Custom tint or Follow-primary neutral at `chroma: 0`
+  also builds a gray ramp, but there the hue is a user-set number rather than converter noise. That case is held
+  as an open question, not decided here.
+- **The converter itself is untouched;** its noise is #2241.
+
+**Drafts held for owner approval** (docs/voice-standard.md):
+
+| # | Where | Text |
+|---|---|---|
+| C1 | the decisions-log note, for an untinted shadow | `untinted at 0.15, because the pinned gray has no hue` (with ` (pure black)` after the amount when it is 0) |
+| C2 | the hue slider's readout | `None` |
+| C3 | the line under the disabled hue slider | `The pinned gray has no hue, so shadows are untinted.` |
+| V1 | a disabled range's skin (`chrome.css`) | `accent-color: var(--p3-disabled-ink); cursor: not-allowed`, from #2152's disabled-skin family (F1 A) |
+
+The tests:
+- **`test.ts`:** `#333333` and `#808080`, built through the real converter, leave the shadow untinted: `tint.hue` null,
+  r = g = b, still lifted off black, at the baseline and per mode. An explicit hue still tints both pins. The faint
+  real pin `#151415` keeps its own hue, which holds the guard from the other side (docs/34 shape 14).
+- **`test-depth-motion-input.ts`:** the slider's source value, `brandShadowValue('tint.hue')`, is null under each
+  pin, and an explicit hue then wins.
+- **`test-chrome.mjs`:** a new section at the end, outside the four open UI-lane PRs' edits. The hue slider is
+  disabled, its readout and `aria-valuetext` read None with no 89 or 90, its hint shows, and Amount stays enabled.
+
+| Arm | Failures | ✗ line |
+|---|---|---|
+| (d) the guard removed | `test.ts` 2, studio unit 2 | `#2184 Q58 B: a pure-gray pin (#333333) leaves the shadow untinted, with no hue (… got tint.hue 89.87556274151122, color {"r":13,"g":12,"b":10} …)`, the same for `#808080`, and `✗ #333333 pinned (converter hue 89.88): the hue slider's value is null (shown as None), not ~90° … (got hue 89.87556274151122 …)` |
+| (e) the threshold raised to 1e-2 | `test.ts` 1 | `#2184 Q58 B: a faint but real pin (#151415, chroma 0.0025) still tints the shadow at its own hue (expected 325.67, got null …)` |
+| (f) the studio's disable call dropped | `test:chrome` | 26051/26053, both failures this section's: `✗ #2184 Q58 B: a pure-gray pin (#333333), web light 1280: the hue slider is disabled, reads None (not ~90°), says why, and Amount stays enabled ({"disabled":false,"aria":null,"readout":"None","hint":false,"amountEnabled":true})`, the same for `#808080`. The readout still says None through its own mapping, so the disable assertion is what fires |
 
 ### A trap for whoever re-verifies this
 
