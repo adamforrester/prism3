@@ -36,7 +36,7 @@ import { noteSectionEdit } from '../preview/follow-edit';
 import { DOMAINS, pageOfTab, type Host, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { choice, leverBlock, leverOf, slider, sliderReadout, stateLine, subLine, type LeverBlock } from '../ui/lever-kit';
+import { choice, leverBlock, leverOf, promoteLever, slider, sliderReadout, stateLine, subLine, type LeverBlock } from '../ui/lever-kit';
 import { valuePicker } from '../ui/value-picker';
 import type { PageLends } from '../preview/brand';
 
@@ -222,6 +222,8 @@ export const mountShapeLevers = (hostEl: HTMLElement, cleanups: (() => void)[], 
     const el = sectionShell(s, i);
     const out: Item[] = [];
     for (const r of s.rows) for (const k of r.keys ?? []) { const b = BUILDERS[k]; if (!b) continue; const it = b(); el.append(it.el); out.push(it); }
+    // BG1 A: a lever named as its section (Density, Base radius) says its name once, in the section's title.
+    for (const it of out) if (it.block && it.block.label === s.title) promoteLever(el, it.block);
     return { el, items: out };
   };
   /** The page's Show advanced (Type's form): a disclosure button and the body it opens. */

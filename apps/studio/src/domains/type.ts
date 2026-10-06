@@ -1,13 +1,15 @@
 /**
  * Type, the levers panel (UI redesign S6.2 Font families; S6.3 the rest; concept v6's Type page).
  *
- * WHAT IT DRAWS: the intro; **Font families** (S6.2): the typeface library, each family by its token first and its
- * name under it (owner decision Q68), whether it is available here and what uses it, Add font family (in the plugin,
- * a type-ahead over the fonts this Figma can load) and a spelling note; the family for each text type; Apply to all,
- * and the remove button on a family nothing uses (always shown: the owner keeps Font families out of Show advanced). **Scale** (S6.3): the three
- * scale chips, a chip the engine would refuse disabled with the reason and Release pinned sizes; behind its Show
- * advanced, **Individual sizes**, a Desktop and a Mobile control for each heading size, side by side (Q63 option
- * A); the #1802 line naming a style the preview uses that the brand does not make (Q72). Behind the page's Show
+ * WHAT IT DRAWS: the intro; the S6.2 font families, as two sections since TY1 A (#2190, heading pass 2): **Typeface
+ * library** (each family by its name with its token under it, whether it is available here and what uses it, Add font
+ * family (in the plugin, a type-ahead over the fonts this Figma can load) and a spelling note, and the remove button on
+ * a family nothing uses) and **Font family for each text type** (each text type's family, its token on the label's
+ * line, #2217; then Apply to all), both always shown: the owner keeps them out of Show advanced. **Scale** (S6.3): the three
+ * scale chips, then the pinned count, then each warning with its own action (TS1 A, #2216): a chip the engine would
+ * refuse disabled with the reason and Release pinned sizes, then the #1802 line naming a style the preview uses that
+ * the brand does not make (Q72); behind its Show advanced, **Individual sizes**, a Desktop and a Mobile control for
+ * each heading size, side by side (Q63 option A). Behind the page's Show
  * advanced (Q69): **Scale limits** (headings scale between mobile and desktop, with the viewport pair and the way
  * to Layout's breakpoints; the display ceiling; the title, caption and size floors), **Weights and styles** (each
  * weight, the weights each text type ships with its Link styles, the italic styles, Pin a font style) and **Line
@@ -62,7 +64,7 @@ import { noteSectionEdit } from '../preview/follow-edit';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { choice, leverBlock, leverOf, selectField, stateLine, subLine, switchButton, textField, tokenLabel, type LeverBlock } from '../ui/lever-kit';
+import { choice, leverBlock, leverOf, promoteLever, selectField, stateLine, subLine, switchButton, textField, tokenLabel, type LeverBlock } from '../ui/lever-kit';
 import type { PageLends } from '../preview/brand';
 
 const PAGE = DOMAINS.find((d) => d.id === 'type') as PageData;
@@ -448,7 +450,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
           line.append(reset);
         }
       }
-      fld.append(tokenName(`font.family.${g}`, FACE_NAME[g], id), line);
+      fld.append(tokenName(`font.family.${g}`, FACE_NAME[g], id, { onLine: true }), line);
       rows.append(fld);
       out.push({ el: fld, said: `${FACE_NAME[g]} font.family.${g} ${g}`.toLowerCase(), key: `family:${g}` });
     }
@@ -562,26 +564,39 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       if (chip) { chip.disabled = true; chip.title = why; }
     }
     b.ctl.append(c.el);
-    for (const why of other) b.ctl.append(hook(stateLine(why, 'warn'), 'type-scale-refused'));
+    // TS1 A (#2216, owner approval 2026-10-06): the control, then the pinned count as a plain line under it, then each
+    // warning in a group of its own, holding its own action: the clash with Release pinned sizes, then the missing styles.
+    const pins = pinnedSizeCount();
+    if (pins) {
+      const line = hook(stateLine(S63.pinned(pins)), 'type-sizes-count');
+      line.classList.add('p3-tscale-pins');
+      b.ctl.append(line);
+    }
+    // #2194: a refusal that is not a pinned-size clash is a warning, so a group of its own (TS1 A), first among the
+    // warnings: it is about a chip, as the clash is, and it stood before the clash before TS1 A.
+    for (const why of other) {
+      const box = hook(h('div', 'p3-tscale-group'), 'type-scale-refused');
+      box.append(stateLine(why, 'warn'));
+      b.ctl.append(box);
+    }
     if (blocked) {
       const rel = hook(h('button', 'p3-btn p3-btn-page'), 'type-scale-release');
       rel.type = 'button';
       rel.append(h('span', 'p3-btn-label', S63.release));
       rel.onclick = () => edit('typography.typeScale', () => releasePinnedSizes());
-      const box = h('div', 'p3-tscale-clash');
+      const box = hook(h('div', 'p3-tscale-group p3-tscale-clash'), 'type-scale-clash');
       box.append(stateLine(S63.scaleClash, 'warn'), rel);
       b.ctl.append(box);
     }
-    const pins = pinnedSizeCount();
-    if (pins) b.setState(hook(stateLine(S63.pinned(pins)), 'type-sizes-count'));
-    // #1802 (owner decision Q72): a text style the preview binds by name that this brand does not make.
+    // #1802 (owner decision Q72): a text style the preview binds by name that this brand does not make. Inside the
+    // lever since TS1 A, so it reads as part of Type scale.
     const miss = rp.unresolvedType;
-    const out: Item[] = [{ el: b.el, said: b.said, key: 'typography.typeScale', block: b }];
     if (miss.length) {
-      const line = hook(stateLine(S63.unresolved(miss), 'warn'), 'type-unresolved');
-      out.push({ el: line, said: '', key: 'type-unresolved' });
+      const box = hook(h('div', 'p3-tscale-group'), 'type-scale-unresolved');
+      box.append(hook(stateLine(S63.unresolved(miss), 'warn'), 'type-unresolved'));
+      b.ctl.append(box);
     }
-    return out;
+    return [{ el: b.el, said: b.said, key: 'typography.typeScale', block: b }];
   };
 
   /** Individual sizes (Q63 option A, Q64): each heading size, a Desktop and a Mobile control side by side. Desktop
@@ -707,7 +722,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
   };
 
   const scale = (s: Section): { el: HTMLElement; items: Item[] } => {
-    const el = sectionShell(s.title, s.desc, 1);
+    const el = sectionShell(s.title, s.desc, 2);
     const out: Item[] = [];
     for (const it of typeScale()) { el.append(it.el); out.push(it); }
     const show = scaleAdvOpen || !!searchQuery.trim();
@@ -722,7 +737,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
   // ── Scale limits ───────────────────────────────────────────────────────────────────────────────
   /** Every control here is brand-wide (the engine has no per-mode limit): any editable mode writes the same bytes. */
   const limits = (s: Section): { el: HTMLElement; items: Item[] } => {
-    const el = sectionShell(s.title, s.desc, 2);
+    const el = sectionShell(s.title, s.desc, 3);
     const out: Item[] = [];
     const ty = theme.typography;
     // Headings scale between mobile and desktop (owner decision Q70's words): `responsive.fluid`, ALWAYS written
@@ -932,7 +947,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
         const only = c.el.querySelector<HTMLButtonElement>('[data-value="only"]');
         if (only) { only.disabled = true; only.title = S63.italicPinned; }
       }
-      row.append(tokenLabel(`type.${g}`, S63.groupName(g)), c.el);
+      row.append(tokenLabel(`type.${g}`, S63.groupName(g), undefined, { onLine: true }), c.el);
       rows.append(row);
     }
     b.ctl.append(rows);
@@ -980,7 +995,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
   };
 
   const weights = (s: Section): { el: HTMLElement; items: Item[] } => {
-    const el = sectionShell(s.title, s.desc, 3);
+    const el = sectionShell(s.title, s.desc, 4);
     const out: Item[] = [...weightRows(), weightMatrix(), italics(), facePins()];
     for (const it of out) el.append(it.el);
     return { el, items: out };
@@ -1076,7 +1091,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
   };
 
   const spacing = (s: Section): { el: HTMLElement; items: Item[] } => {
-    const el = sectionShell(s.title, s.desc, 4);
+    const el = sectionShell(s.title, s.desc, 5);
     const out: Item[] = [spacingNames('lineHeights'), spacingNames('letterSpacings'), nudges()];
     for (const it of out) el.append(it.el);
     return { el, items: out };
@@ -1095,17 +1110,24 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     el.append(head);
     return el;
   };
-  const faces = (s: Section): { el: HTMLElement; items: Item[] } => {
+  /** TY1 A (#2190): the typeface library, its own section, titled by the lever's own name, which it says once (BG1 A). */
+  const librarySection = (s: Section): { el: HTMLElement; items: Item[] } => {
     const el = sectionShell(s.title, s.desc, 0);
-    const out: Item[] = [];
     const lib = library();
     el.append(lib.el);
-    out.push(lib);
+    if (lib.block) promoteLever(el, lib.block);
+    return { el, items: [lib] };
+  };
+  /** TY1 A (#2190): the family for each text type, its own section, titled by its lever's name (said once), then Apply
+   *  to all, always shown: the owner (2026-10-03, #2036) keeps the families out of Show advanced, "a major brand
+   *  lever". It and the remove button were behind S6.2's fold (Q64). */
+  const familiesSection = (s: Section): { el: HTMLElement; items: Item[] } => {
+    const el = sectionShell(s.title, s.desc, 1);
+    const out: Item[] = [];
     const fams = families();
     el.append(fams[0].el);
+    if (fams[0].block) promoteLever(el, fams[0].block);
     out.push(...fams);
-    // Apply to all, at the end of Font families, always shown: the owner (2026-10-03, #2036) keeps Font families out of
-    // Show advanced, "a major brand lever". It and the remove button were behind S6.2's fold (Q64).
     const a = applyAll();
     el.append(a.el);
     out.push(a);
@@ -1122,11 +1144,12 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     pickFocus = null;
     const derived = derivedLine();
     const parts: HTMLElement[] = [h('p', 'p3-intro', PAGE.intro), ...(derived ? [derived] : [])];
-    const [famS, scaleS, ...advS] = PAGE.sections;
-    const fx = faces(famS);
+    const [libS, famS, scaleS, ...advS] = PAGE.sections;
+    const lx = librarySection(libS);
+    const fx = familiesSection(famS);
     const sc = scale(scaleS);
-    parts.push(fx.el, sc.el);
-    items.push(...fx.items, ...sc.items);
+    parts.push(lx.el, fx.el, sc.el);
+    items.push(...lx.items, ...fx.items, ...sc.items);
     // The advanced sections (Q69: Scale limits, Weights and styles; Q64: Line height and letter spacing) behind
     // the page's Show advanced, as Palettes draws its own (counted by their rows); a search opens them.
     const showAll = secAdvOpen || !!searchQuery.trim();
