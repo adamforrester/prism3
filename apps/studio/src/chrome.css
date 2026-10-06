@@ -1107,7 +1107,7 @@
 .p3-sg-titles-sum::-webkit-details-marker { display: none; }
 .p3-sg-titles-sum > .p3-ico { color: var(--p3-icon-2); }
 .p3-sg-titles[open] > .p3-sg-titles-sum > .p3-ico { transform: rotate(90deg); }
-.p3-sg-titles-sum:focus-visible { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
+.p3-sg-titles-sum:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 .p3-sg-titles-body { display: grid; gap: var(--p3-space-075); }
 .p3-sg-textarea { width: 100%; min-height: var(--p3-ctl-h); resize: vertical; font-family: var(--p3-font-mono); }
 .p3-sg-err { margin: 0; color: var(--p3-bad-text); font-size: var(--p3-fs-12); }
@@ -1147,9 +1147,13 @@
 .p3-sg-lever-wide { grid-template-columns: minmax(0, 1fr); }
 .p3-sg-lever-name { font-weight: var(--p3-fw-emphasis); }
 .p3-sg-hint { grid-column: 1 / -1; }
-/* The switch (concept v6's): a track and a knob over a native checkbox with `role="switch"`. */
-.p3-sg-switch { position: relative; display: inline-flex; align-items: center; min-height: var(--p3-ctl-h-xs); cursor: pointer; }
-.p3-sg-switch-input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+/* The switch (concept v6's, SG5 A): a button with `role="switch"` holding a track and a knob. Its ring is its own
+   outline, on the focus color (FR1 A). */
+.p3-sg-switch {
+  display: inline-flex; align-items: center; min-height: var(--p3-ctl-h-xs); padding: 0; border: 0; border-radius: var(--p3-radius-pill);
+  background: transparent; cursor: pointer;
+}
+.p3-sg-switch:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 .p3-sg-track {
   position: relative; flex: none; width: var(--p3-track-w); height: var(--p3-track-h); border-radius: var(--p3-radius-pill);
   border: var(--p3-bw-hairline) solid var(--p3-edge); background: var(--p3-bg-page); pointer-events: none;
@@ -1159,19 +1163,18 @@
   width: var(--p3-thumb); height: var(--p3-thumb); border-radius: var(--p3-radius-pill); background: var(--p3-icon-2);
   transition: transform var(--p3-transition-dur) var(--p3-transition-ease);
 }
-.p3-sg-switch-input:checked + .p3-sg-track { background: var(--p3-inv-bg); border-color: var(--p3-inv-bg); }
-.p3-sg-switch-input:checked + .p3-sg-track > .p3-sg-knob { background: var(--p3-inv-text); transform: translateX(calc(var(--p3-track-w) - var(--p3-thumb) - 2 * var(--p3-thumb-inset))); }
-.p3-sg-switch-input:focus-visible + .p3-sg-track { outline: var(--p3-focus-width) solid var(--p3-ctl-edge); outline-offset: var(--p3-focus-offset); }
-.p3-sg-switch-input:disabled, .p3-sg-switch-input:disabled + .p3-sg-track { cursor: not-allowed; }
-.p3-sg-switch-input:disabled + .p3-sg-track { border-style: dashed; }
+.p3-sg-switch[aria-checked="true"] .p3-sg-track { background: var(--p3-inv-bg); border-color: var(--p3-inv-bg); }
+.p3-sg-switch[aria-checked="true"] .p3-sg-knob { background: var(--p3-inv-text); transform: translateX(calc(var(--p3-track-w) - var(--p3-thumb) - 2 * var(--p3-thumb-inset))); }
 @media (prefers-reduced-motion: reduce) { .p3-sg-knob { transition: none; } }
 /* At 380: one column, the run's table list first, and Draw pinned to the bottom of the page. */
-.p3-frame[data-w="narrow"] .p3-sg { padding: var(--p3-space-200) var(--p3-space-150) 0; gap: var(--p3-space-200); }
+.p3-frame[data-w="narrow"] .p3-sg { padding: var(--p3-space-200) var(--p3-space-150) var(--p3-space-300); gap: var(--p3-space-200); }
 .p3-frame[data-w="narrow"] .p3-sg-cols, .p3-frame[data-w="narrow"] .p3-sg-selrow { grid-template-columns: minmax(0, 1fr); }
 .p3-frame[data-w="narrow"] .p3-sg-sec { padding: var(--p3-space-200); }
+/* Q47 A (owner, 2026-10-06; as Components' build bar, #2180): it stands `space-300` above the page's bottom edge, so it
+   never sits flush on the Activity drawer's strip. */
 .p3-sg-actbar {
-  position: sticky; bottom: 0; z-index: 5; margin: 0 calc(-1 * var(--p3-space-150)); padding: var(--p3-space-150);
-  border-top: var(--p3-bw-hairline) solid var(--p3-line-1); background: var(--p3-bg-page);
+  position: sticky; bottom: var(--p3-space-300); z-index: 5; padding: var(--p3-space-150) var(--p3-space-200);
+  border: var(--p3-bw-hairline) solid var(--p3-edge); border-radius: var(--p3-radius-xl); background: var(--p3-bg-page);
 }
 /* The closed strip at 380 carries the running style guide's progress (S11.2). */
 .p3-strip-prog { flex: none; width: calc(2 * var(--p3-ctl-h)); }

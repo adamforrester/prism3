@@ -73,7 +73,11 @@ const S = {
   open: new Set<string>(),
   titles: '',
   opt: { ...DEFAULT_OPTIONS } as PageOptions,
+  /** How many tables the page's own run asked for, until the main thread lists them (0 when none is running). */
+  pending: 0,
 };
+/** The run line (approved, P12, and #1784's): the table being drawn, counted from 1. */
+const runLine = (at: number, n: number): string => `Drawing table ${at} of ${n}…`;
 
 /** Mount the page into `root`. Returns nothing; its subscriptions go into `cleanups`. */
 export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narrow: () => boolean, cleanups: (() => void)[]): void => {
@@ -98,16 +102,42 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
     seen = r;
     if (landed) lend.request();
   };
+  // THE ONE LIVE REGION (review of #2171): a node of its own, outside the content `paint` replaces, that holds the run
+  // line alone ("Drawing table 3 of 32…") and has its text changed in place, so a screen reader hears each table and
+  // nothing else. Empty between runs.
+  const live = hook(h('p', 'p3-sr'), 'sg-live');
+  live.setAttribute('aria-live', 'polite');
+  /** Where focus goes after the next paint: Cancel, once a run this page started is drawn (review of #2171). */
+  let focusCancel = false;
+  const start = (o: StyleGuideOptions, tables: number): void => {
+    S.pending = tables;
+    focusCancel = true;
+    lend.draw(o);
+  };
   const paint = (): void => {
     refresh();
     const cat = adopt();
-    const f = document.activeElement instanceof HTMLElement && page.contains(document.activeElement) ? keyOf(document.activeElement) : null;
+    const r = lend.read();
+    const inPage = document.activeElement instanceof HTMLElement && page.contains(document.activeElement);
+    const f = inPage ? keyOf(document.activeElement as HTMLElement) : null;
     const caret = document.activeElement instanceof HTMLTextAreaElement ? document.activeElement.selectionStart : null;
     page.replaceChildren(...compose(cat));
+    const line = r.state === 'pending' && (r.run || S.pending) ? runLine(r.progress ? Math.min(r.progress.done + 1, r.progress.total) : 1, r.run?.tables.length || S.pending) : '';
+    if (live.textContent !== line) live.textContent = line;
+    if (r.state !== 'pending') S.pending = 0;
+    const cancel = page.querySelector<HTMLElement>('[data-key="cancel"]');
+    if (focusCancel && cancel) { focusCancel = false; cancel.focus({ preventScroll: true }); return; }
+    if (r.state !== 'pending') focusCancel = false;
     if (f) {
       const back = page.querySelector<HTMLElement>(f);
-      back?.focus({ preventScroll: true });
-      if (back instanceof HTMLTextAreaElement && caret !== null) back.setSelectionRange(caret, caret);
+      if (back && !(back as HTMLButtonElement).disabled) {
+        back.focus({ preventScroll: true });
+        if (back instanceof HTMLTextAreaElement && caret !== null) back.setSelectionRange(caret, caret);
+        return;
+      }
+      // What had focus is gone (Cancel, once the run ends; a Draw it again that redrew): to Draw, or the run line.
+      const draw = page.querySelector<HTMLButtonElement>('[data-key="draw"]');
+      (draw && !draw.disabled ? draw : page.querySelector<HTMLElement>('[data-key="run-line"]') ?? draw)?.focus({ preventScroll: true });
     }
   };
 
@@ -134,20 +164,21 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
     b.onclick = () => { if (!disabled) onToggle(); };
     return b;
   };
+  /** The switch (SG5 A, concept v6's track and knob): a button with `role="switch"`, so its focus ring is its own
+   *  outline, on the chrome's focus color (FR1 A), where the ring audit reads it. */
   const sw = (key: keyof PageOptions, label: string): HTMLElement => {
-    const wrap = h('label', 'p3-sg-switch');
-    const input = hook(h('input', 'p3-sg-switch-input'), `sg-opt-${kebab(String(key))}`);
-    input.type = 'checkbox';
-    input.setAttribute('role', 'switch');
-    input.setAttribute('aria-label', label);
-    input.dataset.key = String(key);
-    input.checked = S.opt[key] === true;
-    input.onchange = () => { (S.opt as Record<string, unknown>)[key] = input.checked; paint(); };
+    const b = hook(h('button', 'p3-sg-switch'), `sg-opt-${kebab(String(key))}`);
+    b.type = 'button';
+    b.setAttribute('role', 'switch');
+    b.setAttribute('aria-label', label);
+    b.dataset.key = String(key);
+    b.setAttribute('aria-checked', String(S.opt[key] === true));
+    b.onclick = () => { (S.opt as Record<string, unknown>)[key] = !(S.opt[key] === true); paint(); };
     const track = h('span', 'p3-sg-track');
     track.setAttribute('aria-hidden', 'true');
     track.append(h('span', 'p3-sg-knob'));
-    wrap.append(input, track);
-    return wrap;
+    b.append(track);
+    return b;
   };
   const select = (role: string, label: string, opts: readonly (readonly [string, string])[], cur: string, onChange: (v: string) => void, disabled = false): HTMLElement => {
     const wrap = h('div', 'p3-selwrap');
@@ -288,7 +319,7 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
     // Draw by table title (H8).
     const det = hook(h('details', 'p3-sg-titles'), 'sg-titles');
     if (S.titles) det.open = true;
-    const sum = h('summary', 'p3-sg-titles-sum');
+    const sum = hook(h('summary', 'p3-sg-titles-sum'), 'sg-titles-summary');
     sum.append(glyph('chevr'), h('span', undefined, 'Draw by table title'));
     const ta = hook(h('textarea', 'p3-text-input p3-sg-textarea'), 'sg-titles-input');
     ta.rows = 2; ta.spellcheck = false; ta.placeholder = 'Every table';
@@ -415,7 +446,7 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
     if (!setUp) d.setAttribute('aria-describedby', 'p3-sg-setup-note');
     d.onclick = () => {
       if (!cat || d.disabled) return;
-      lend.draw(drawOptions(cat, S.sel, S.opt));
+      start(drawOptions(cat, S.sel, S.opt), S.sel.size);
     };
     bar.append(d);
     return bar;
@@ -423,18 +454,19 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
 
   const progress = (): HTMLElement | null => {
     const r = lend.read();
-    const run = r.run;
-    if (!run) return null;
     const drawing = r.state === 'pending';
+    // Before the main thread lists the run's tables, the page's own run is already under way: its line and Cancel.
+    const run = r.run ?? (drawing && S.pending ? { tables: [], stopped: null } : null);
+    if (!run) return null;
     const wrap = hook(h('div', 'p3-sg-prog'), 'sg-progress');
-    wrap.setAttribute('aria-label', 'Progress');
-    const n = run.tables.length;
+    const n = run.tables.length || S.pending;
     const state = (t: SgRunTable): SgRunTable['status'] | 'stopped' => (!drawing && run.stopped && t.status === 'waiting' ? 'stopped' : t.status);
     if (drawing) {
       const at = r.progress ? Math.min(r.progress.done + 1, r.progress.total) : 1;
       const head = h('div', 'p3-sg-runhead');
-      const t = hook(h('span', 'p3-sg-runline', `Drawing table ${at} of ${n}…`), 'sg-run-line');
-      t.setAttribute('role', 'status');
+      const t = hook(h('span', 'p3-sg-runline', runLine(at, n)), 'sg-run-line');
+      t.tabIndex = -1;
+      t.dataset.key = 'run-line';
       head.append(t, btn('p3-btn p3-btn-page p3-sg-cancel', 'sg-cancel', 'Cancel', lend.cancel));
       head.lastElementChild!.setAttribute('data-key', 'cancel');
       const bar = h('progress', 'p3-op-prog') as HTMLProgressElement;
@@ -442,7 +474,7 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
       bar.setAttribute('aria-hidden', 'true');
       wrap.append(head, bar, h('p', 'p3-sub', 'You can leave this page. The run goes on, and Activity keeps the result.'));
     } else if (run.stopped) {
-      wrap.append(hook(h('p', 'p3-sg-summary', `Stopped after table ${run.stopped.done} of ${run.stopped.total}. The tables already drawn stay.`), 'sg-stopped'));
+      wrap.append(hook(h('p', 'p3-sg-summary', `Stopped after table ${run.stopped.done} of ${run.stopped.total}. The tables already drawn stay`), 'sg-stopped'));
     } else if (r.state && typeof r.state === 'object') {
       wrap.append(hook(h('p', 'p3-sg-summary', r.state.summary), 'sg-run-summary'));
     }
@@ -471,7 +503,7 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
           // The mockup's retry: the title box names the table, so the tree shows what is drawn (P6).
           S.titles = cat.tables[ix].title;
           S.sel = new Set([ix]);
-          lend.draw(drawOptions(cat, S.sel, S.opt));
+          start(drawOptions(cat, S.sel, S.opt), 1);
         });
         again.dataset.key = `again=${t.key}`;
         if (lend.read().busy) again.disabled = true;
@@ -533,7 +565,7 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
     const prog = progress();
     if (narrow()) {
       const parts: HTMLElement[] = [header(setUp)];
-      if (prog) { const s = hook(h('section', 'p3-sg-sec p3-sg-progsec'), 'sg-run'); s.setAttribute('aria-live', 'polite'); s.append(prog); parts.push(s); }
+      if (prog) { const s = hook(h('section', 'p3-sg-sec p3-sg-progsec'), 'sg-run'); s.setAttribute('aria-label', 'Progress'); s.append(prog); parts.push(s); }
       const cols = h('div', 'p3-sg-cols');
       cols.append(selection(cat, busy), options(cat, busy));
       const act = hook(h('div', 'p3-sg-actbar'), 'sg-actbar');
@@ -546,13 +578,13 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
     const run = hook(h('section', 'p3-sg-sec p3-sg-runsec'), 'sg-run');
     run.setAttribute('aria-label', 'Draw');
     run.append(runbar(cat, setUp));
-    if (prog) { prog.setAttribute('aria-live', 'polite'); run.append(prog); }
+    if (prog) run.append(prog);
     right.append(run, options(cat, busy));
     cols.append(selection(cat, busy), right);
     return [header(setUp), cols];
   };
 
-  root.append(page);
+  root.append(page, live);
   lend.request();
   paint();
   for (const t of ['host', 'host:styleguide', 'host:sgpage', 'host:progress', 'host:filesetup'] as const) cleanups.push(subscribe(t, paint));
@@ -560,7 +592,7 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
   const ro = new ResizeObserver(() => { const n = narrow(); if (n !== (page.dataset.narrow === 'true')) { page.dataset.narrow = String(n); paint(); } });
   ro.observe(root);
   page.dataset.narrow = String(narrow());
-  cleanups.push(() => ro.disconnect(), () => page.remove());
+  cleanups.push(() => ro.disconnect(), () => page.remove(), () => live.remove());
 };
 
 /** A hook's spelling of an option key: `nameCell` → `name-cell`. */

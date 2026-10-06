@@ -38,6 +38,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { hookGuard } from '../studio/test-hooks.mjs';
+import { P, loadModes, resolve as resolveToken } from '../studio/chrome/tokens.mjs';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const UI = join(ROOT, 'dist/ui.html');
@@ -125,8 +126,11 @@ const read = (page) => page.evaluate(() => {
     titles: q('[data-p3="sg-titles-input"]')?.value ?? null,
     titlesError: text('[data-p3="sg-titles-error"]'),
     groupsShown: Object.entries({ all: '[data-p3="sg-group-all"]', color: '[data-p3="sg-group-color"]', dimension: '[data-p3="sg-group-dimension"]', font: '[data-p3="sg-group-font"]', text: '[data-p3="sg-group-text"]' }).filter(([, sel]) => q(sel)).map(([g]) => g),
-    rem: q('[data-p3="sg-opt-rem"]') ? q('[data-p3="sg-opt-rem"]').checked : null,
-    nameCell: q('[data-p3="sg-opt-name-cell"]')?.checked ?? null,
+    rem: q('[data-p3="sg-opt-rem"]') ? q('[data-p3="sg-opt-rem"]').getAttribute('aria-checked') === 'true' : null,
+    nameCell: q('[data-p3="sg-opt-name-cell"]') ? q('[data-p3="sg-opt-name-cell"]').getAttribute('aria-checked') === 'true' : null,
+    switchRoles: [...document.querySelectorAll('[data-p3="sg-opt-rem"], [data-p3="sg-opt-name-cell"], [data-p3="sg-opt-aliases"]')].map((n) => n.getAttribute('role')),
+    focus: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName.toLowerCase() ?? null,
+    live: (() => { const l = q('[data-p3="sg-live"]'); return l ? { text: l.textContent, children: l.childElementCount, live: l.getAttribute('aria-live'), nested: document.querySelectorAll('[data-p3="style-guides"] [aria-live], [data-p3="style-guides"] [role="status"]').length } : null; })(),
     valueFormat: (() => { const s = q('[data-p3="sg-opt-value-format"]'); return s ? { value: s.value, options: [...s.options].map((o) => o.textContent) } : null; })(),
     colorSample: (() => { const s = q('[data-p3="sg-opt-color-sample"]'); return s ? { value: s.value, options: [...s.options].map((o) => o.textContent) } : null; })(),
     fontSample: (() => { const s = q('[data-p3="sg-opt-font-sample"]'); return s ? { value: s.value, options: [...s.options].map((o) => o.textContent) } : null; })(),
@@ -243,6 +247,7 @@ console.log('\nselection and options (P2–P5, H4–H9)');
   ok(st.fontSample?.value === 'auto' && JSON.stringify(st.fontSample.options) === JSON.stringify(['From each variable’s kind', 'Generic', 'Family', 'Size', 'Weight', 'Letter spacing', 'Line height']),
     `H7: the font sample list (${JSON.stringify(st.fontSample)})`);
   ok(st.nameCell === false, `H9: the Name cell is off by default (${st.nameCell})`);
+  ok(JSON.stringify(st.switchRoles) === JSON.stringify(['switch', 'switch', 'switch']), `SG5 A: each option switch is a switch to assistive technology, role="switch" (${JSON.stringify(st.switchRoles)})`);
   // Draw with everything selected sends the defaults and no tables filter.
   await hooks.click(page.locator('[data-p3="sg-draw"]'));
   await settle(page);
@@ -307,7 +312,14 @@ const LIST = CAT.tables.slice(0, 4).map((t) => ({ key: t.key, title: t.title, pa
   const { page, errors } = await openPage();
   await post(page, { type: 'style-guide-catalog', catalog: CAT });
   await settle(page);
-  await hooks.click(page.locator('[data-p3="sg-draw"]'));
+  // By keyboard (review of #2171): Draw goes off as the run starts, so focus must move, to Cancel, not fall to <body>.
+  await page.locator('[data-p3="sg-draw"]').focus();
+  await page.keyboard.press('Enter');
+  await settle(page);
+  let st0 = await read(page);
+  ok(st0.focus === 'sg-cancel', `focus: a keyboard Draw moves focus to Cancel as the run starts (focus on ${st0.focus})`);
+  // THE ONE LIVE REGION: the same node for the whole run, holding the run line and nothing else.
+  await page.evaluate(() => { window.__live = document.querySelector('[data-p3="sg-live"]'); });
   await post(page, { type: 'style-guide-tables', tables: LIST });
   await post(page, { type: 'style-guide-progress', done: 0, total: 4, tableMs: 0 });
   await post(page, { type: 'style-guide-table', index: 0, status: 'drawing' });
@@ -321,6 +333,9 @@ const LIST = CAT.tables.slice(0, 4).map((t) => ({ key: t.key, title: t.title, pa
   ok(st.drawerOpen === false && st.dot === 'run' && st.sgRowTitle === 'Style guides',
     `P1, P11: Activity records the run in its "Style guides" row and does not open by itself while the page shows it (open ${st.drawerOpen}, dot ${st.dot}, row "${st.sgRowTitle}")`);
   ok(st.draw.disabled === true, 'Draw is off while the run draws');
+  const same = await page.evaluate(() => window.__live === document.querySelector('[data-p3="sg-live"]') && window.__live.isConnected);
+  ok(same && st.live?.live === 'polite' && st.live.text === 'Drawing table 2 of 4…' && st.live.children === 0 && st.live.nested === 0,
+    `progress: one polite live region, the same node through the run's events, holding the run line alone, and no live or status region inside the page (${JSON.stringify({ same, live: st.live })})`);
   await hooks.click(page.locator('[data-p3="sg-cancel"]'));
   await settle(page);
   st = await read(page);
@@ -329,14 +344,17 @@ const LIST = CAT.tables.slice(0, 4).map((t) => ({ key: t.key, title: t.title, pa
   await post(page, { type: 'style-guide-result', ok: false, headline: '⚠ 1 drawn, 1 failed', summary: 'Primary: Primary refused. Stopped after table 2 of 4. The tables already drawn stay', stopped: { done: 2, total: 4 } });
   await settle(page);
   st = await read(page);
-  ok(st.stopped === 'Stopped after table 2 of 4. The tables already drawn stay.' && JSON.stringify(st.tables) === JSON.stringify(['Primary:Not drawn(Primary refused)', 'Core — base:Done', 'Dimension:Not drawn', 'Text:Not drawn']),
+  ok(st.stopped === 'Stopped after table 2 of 4. The tables already drawn stay' && JSON.stringify(st.tables) === JSON.stringify(['Primary:Not drawn(Primary refused)', 'Core — base:Done', 'Dimension:Not drawn', 'Text:Not drawn']),
     `P7, P6: stopped: where it stopped, the failed table first with its reason, the rest "Not drawn" (${JSON.stringify({ stopped: st.stopped, tables: st.tables })})`);
+  ok(st.focus === 'sg-draw' || st.focus === 'sg-run-line', `focus: when the run ends, focus moves from Cancel to Draw or the run line, never <body> (focus on ${st.focus})`);
+  ok(st.live?.text === '', `progress: the live region is emptied when the run ends (${JSON.stringify(st.live?.text)})`);
   ok(st.drawerOpen === false && st.dot === 'bad' && st.verdict === '⚠ 1 drawn, 1 failed',
     `P1 (call 11): a failure the page shows marks Activity, and the drawer stays closed (open ${st.drawerOpen}, dot ${st.dot}, verdict "${st.verdict}")`);
   // P6: Draw it again draws that table alone, by its key.
   await hooks.click(page.locator('[data-p3="sg-again"]'));
   await settle(page);
   st = await read(page);
+  ok(st.focus === 'sg-cancel', `focus: Draw it again moves focus to Cancel as its run starts, not to <body> (focus on ${st.focus})`);
   const again = sentOf(st, 'style-guide').pop()?.options;
   ok(JSON.stringify(again?.tables) === JSON.stringify([ALL_KEYS[1]]) && st.titles === 'Primary' && st.draw.label === 'Draw 1 table',
     `P6: Draw it again draws Primary alone, by key, and the title box names it (${JSON.stringify(again?.tables)}, "${st.titles}")`);
@@ -380,17 +398,22 @@ console.log('\nat 380 (P9)');
   await post(page, { type: 'style-guide-table', index: 0, status: 'drawing' });
   await settle(page);
   const st = await read(page);
+  // Q47 A (owner, 2026-10-06; as Components', #2180): the bar stands at least space.300 above the Activity drawer's strip,
+  // at the top and at the end of the page's scroll. THE ORACLE is space.300 resolved from the committed emission.
+  const GAP = parseFloat(String(resolveToken(loadModes().light, P('space.300')).value));
   const pinned = await page.evaluate(() => {
     const bar = document.querySelector('[data-p3="sg-actbar"]');
     const pg = document.querySelector('[data-p3="menu-page"]');
-    if (!bar || !pg) return null;
+    const strip = document.querySelector('[data-p3="activity-drawer"]');
+    if (!bar || !pg || !strip) return null;
     pg.scrollTop = 0;
-    const a = bar.getBoundingClientRect().bottom, b = pg.getBoundingClientRect().bottom;
+    const top = strip.getBoundingClientRect().top - bar.getBoundingClientRect().bottom;
     pg.scrollTop = pg.scrollHeight;
-    return { top: Math.round(a), pageBottom: Math.round(b), after: Math.round(bar.getBoundingClientRect().bottom), sticky: getComputedStyle(bar).position };
+    const end = strip.getBoundingClientRect().top - bar.getBoundingClientRect().bottom;
+    return { top: Math.round(top), end: Math.round(end), sticky: getComputedStyle(bar).position, stripShown: strip.dataset.ever === 'true' };
   });
-  ok(st.actbar && st.runBeforeCols && pinned?.sticky === 'sticky' && Math.abs(pinned.top - pinned.pageBottom) <= 1 && Math.abs(pinned.after - pinned.pageBottom) <= 1,
-    `P9: at 380 the run comes first, and Draw sits in a bar pinned to the page's bottom edge, scrolled or not (${JSON.stringify({ actbar: st.actbar, runFirst: st.runBeforeCols, pinned })})`);
+  ok(GAP > 0 && st.actbar && st.runBeforeCols && pinned?.sticky === 'sticky' && pinned.stripShown && pinned.top >= GAP && pinned.end >= GAP,
+    `P9, Q47 A: at 380 the run comes first, and Draw sits in a pinned bar at least space.300 (${GAP}px) above the Activity drawer's strip, scrolled or not (${JSON.stringify({ actbar: st.actbar, runFirst: st.runBeforeCols, pinned })})`);
   const strip = await page.locator('[data-p3="activity-strip-progress"]').count();
   await post(page, { type: 'style-guide-progress', done: 1, total: 4, tableMs: 1 });
   await settle(page);
