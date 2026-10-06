@@ -162,7 +162,11 @@ if (refused) {
     btn('Export saved brand', 'refused-brand-export', exportIt),
     btn('Clear saved brand', 'refused-brand-clear', clearIt),
   );
-  document.body.insertBefore(card, document.getElementById('app'));
+  // UI redesign S12: a refused brand is always a first run, so the start window is open over the studio, and a notice
+  // above `#app` would sit under its scrim, out of reach. It opens the window's body instead, inside the focus the
+  // window keeps; the window closes only on a load, which dismisses the notice first (below).
+  const startBody = document.querySelector('[data-p3="start-column"]');
+  if (startBody) startBody.prepend(card); else document.body.insertBefore(card, document.getElementById('app'));
   // GONE THE MOMENT A BRAND LOADS (review of #1997). Left mounted, the card outlived the choice: it sat under
   // the frame, first in tab order, and its Clear would have deleted the brand just chosen, whose rebuild
   // had already persisted over the refused one. Every load assigns a new provenance (`loadInput`), which

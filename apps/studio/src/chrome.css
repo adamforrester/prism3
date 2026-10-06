@@ -663,9 +663,10 @@
 /* Components' build bar (S8.2, owner decision C4 A; plugin only): the chosen set's Build button and its two hints, the
    last child of the preview stack, sticky to the preview's bottom edge so it is in view at any scroll position. In the
    flow at the end, so scrolled to the bottom it sits under the last set rather than over it. No shadow (T5): its own
-   ground and edge set it apart. */
+   ground and edge set it apart. #2180: it stops the stacked cards' gap (`space-300`, the `.p3-stack` gap) above the
+   preview's bottom edge, so it never sits flush on the Activity drawer's strip, closed or open. */
 .p3-buildbar {
-  position: sticky; bottom: 0; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100) var(--p3-space-300);
+  position: sticky; bottom: var(--p3-space-300); z-index: 1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100) var(--p3-space-300);
   padding: var(--p3-space-200) var(--p3-space-300); background: var(--p3-bg-page); font-family: var(--p3-font-ui);
   border: var(--p3-bw-hairline) solid var(--p3-edge); border-radius: var(--p3-radius-xl);
 }
@@ -954,6 +955,75 @@
 }
 .p3-combo-opt:hover, .p3-combo-opt[aria-selected="true"] { background: var(--p3-fill-1); }
 
+/* ── the start window and its guard (UI redesign S12) ──────────────────────────────────────────────── */
+/* A window over the studio (G10 A): the scrim covers the frame, the window sits centered on it, and at 380 the start
+   takes the whole pane. Its head stays put while its body scrolls. */
+.p3-layer:empty { display: none; }
+.p3-scrim {
+  position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+  padding: var(--p3-space-300); background: var(--p3-overlay-pressed);
+}
+.p3-dialog {
+  display: flex; flex-direction: column; width: min(100%, calc(var(--p3-dlg-unit) * 5)); max-height: 100%; min-height: 0;
+  color: var(--p3-text); background: var(--p3-bg-page); border: var(--p3-bw-hairline) solid var(--p3-line-2);
+  border-radius: var(--p3-radius-xl); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-normal);
+}
+.p3-dialog-guard { width: min(100%, calc(var(--p3-dlg-unit) * 3.75)); }
+.p3-dialog-head {
+  display: flex; align-items: center; gap: var(--p3-space-100); flex: none; min-height: var(--p3-bar-h);
+  padding: var(--p3-space-100) var(--p3-space-300); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1);
+}
+.p3-dialog-title {
+  flex: 1 1 auto; min-width: 0; margin: 0; color: var(--p3-text); font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong);
+  letter-spacing: var(--p3-ls-snug); line-height: var(--p3-lh-compact);
+}
+.p3-dialog-body { display: grid; gap: var(--p3-space-200); min-height: 0; overflow: auto; padding: var(--p3-space-300); }
+.p3-dialog-foot {
+  display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--p3-space-100); flex: none;
+  padding: var(--p3-space-200) var(--p3-space-300); border-top: var(--p3-bw-hairline) solid var(--p3-line-1);
+}
+.p3-dialog-body p { margin: 0; }
+.p3-guard-text { color: var(--p3-text); }
+.p3-frame[data-w="narrow"] .p3-scrim-start { padding: 0; }
+.p3-frame[data-w="narrow"] .p3-start { width: 100%; height: 100%; max-height: none; border: 0; border-radius: 0; }
+.p3-frame[data-w="narrow"] :is(.p3-dialog-head, .p3-dialog-body, .p3-dialog-foot) { padding-left: var(--p3-space-200); padding-right: var(--p3-space-200); }
+/* Today's four cards, restyled (G11 B): containers take radius-xl and a hairline; the every card takes the same edge (the owner's review of #2142). */
+.p3-start-lede { color: var(--p3-text-2); }
+.p3-start-card {
+  display: grid; gap: var(--p3-space-050); min-width: 0; padding: var(--p3-space-250);
+  border: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-xl); background: var(--p3-bg-page);
+}
+.p3-start-text { display: grid; gap: var(--p3-space-050); min-width: 0; }
+.p3-start-title { margin: 0; color: var(--p3-text); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
+.p3-start-desc { color: var(--p3-text-2); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); }
+.p3-start-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); margin-top: var(--p3-space-150); }
+.p3-start-row > .p3-start-go { margin-left: auto; }
+.p3-start-row > .p3-colorfield { flex: 0 1 auto; }
+.p3-colorfield[data-refused="true"] { border-color: var(--p3-bad-icon); }
+.p3-frame[data-w="narrow"] .p3-start-row > .p3-start-go { margin-left: 0; }
+.p3-start-chips { display: flex; flex-wrap: wrap; gap: var(--p3-space-100); margin-top: var(--p3-space-150); }
+.p3-btn.p3-start-chip { border-radius: var(--p3-radius-pill); padding: 0 var(--p3-space-150) 0 var(--p3-space-100); font-weight: var(--p3-fw-default); }
+.p3-start-dot { flex: none; width: var(--p3-space-150); height: var(--p3-space-150); border-radius: var(--p3-radius-pill); }
+.p3-start-paste {
+  display: block; width: 100%; min-width: 0; min-height: calc(var(--p3-ctl-h) * 2); margin-top: var(--p3-space-150);
+  padding: var(--p3-space-100) var(--p3-space-150); resize: vertical; color: var(--p3-text); background: var(--p3-bg-page);
+  border: var(--p3-bw-hairline) solid var(--p3-edge); border-radius: var(--p3-radius-lg);
+  font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal);
+}
+.p3-start-paste::placeholder { color: var(--p3-text-2); opacity: 1; }
+.p3-start-paste:hover { border-color: var(--p3-field-edge-hover); }
+.p3-start-paste:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
+.p3-start-file { display: none; }
+.p3-start-err { margin: 0; color: var(--p3-bad-text); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); }
+.p3-start-err:empty { display: none; }
+/* Discard (owner decision S5): Prism3's destructive button, filled, at rest exactly; its edge carries hover. */
+.p3-btn.p3-btn-danger { background-color: var(--p3-danger-fill); color: var(--p3-danger-on); border-color: var(--p3-danger-fill); }
+.p3-btn.p3-btn-danger:hover { border-color: var(--p3-danger-edge-hover); }
+/* The import card (the owner's review of #2142): its heading row holds the title and Upload, and the paste box sits a
+   step further below it (space-200, one up from the cards' space-150), so pasting reads as the alternative. */
+.p3-start-headrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: var(--p3-space-200); }
+.p3-start-import > .p3-start-paste { margin-top: var(--p3-space-200); }
+.p3-start-pasterow { justify-content: flex-end; margin-top: var(--p3-space-100); }
 /* ── the Build style guides page (S11.2, plugin only): a page no tab shows, full width ─────── */
 /* Its own layout (`data-layout="page"`): the head, the page scrolling under it, the drawer at the foot. */
 .p3-sgpage { display: none; }
