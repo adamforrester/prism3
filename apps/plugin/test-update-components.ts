@@ -336,9 +336,14 @@ section('writes — the dry run writes nothing');
   const again = await previewUpdate(b.shim, [{ def: TAG, plans: b.plans }]);
   const twice = await previewUpdate(b.shim, [{ def: TAG, plans: b.plans }]);
   ok(again.sets[0].previewHash === twice.sets[0].previewHash, 'writes/hash: the same file reads the same preview hash twice');
-  (membersOf(b.set)[9].setBoundVariable as (f: string, v: { id: string }) => void)('strokeWeight', { id: await varId(b, 'space/0') });
+  // The same node edited again, in a field the read-back does not compare (opacity): the preview's own
+  // text cannot change (one hand edit, same member, same path, same field changes), so only the
+  // file-state fingerprint inside the hash can see it.
+  childNamed(membersOf(b.set)[3], 'content').opacity = 0.5;
   const moved = await previewUpdate(b.shim, [{ def: TAG, plans: b.plans }]);
-  ok(moved.sets[0].previewHash !== twice.sets[0].previewHash, 'writes/hash: a file that moved after the preview reads a different hash');
+  const text = (x: typeof moved) => JSON.stringify({ ...x.sets[0], previewHash: '' });
+  ok(text(moved) === text(twice), 'premise: the preview reads the same with the node edited again');
+  ok(moved.sets[0].previewHash !== twice.sets[0].previewHash, 'writes/hash: a file that moved after the preview reads a different hash, even where the preview text did not');
 }
 
 /* ── capture ─────────────────────────────────────────────────────────────────────────────────────────── */
