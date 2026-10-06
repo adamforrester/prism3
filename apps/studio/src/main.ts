@@ -2649,7 +2649,10 @@ const activityReading = (): ActivityReading => {
       components: opReading('components', host.componentState === 'pending', verdictOf(host.componentState),
         () => componentPhase(host.componentState === 'pending' ? host.componentProgress : agentBuildReading())),
       filesetup: opReading('filesetup', host.fileSetupState === 'pending', verdictOf(host.fileSetupState), fixed(PENDING_TEXT.filesetup)),
-      styleguide: opReading('styleguide', host.styleGuideState === 'pending', verdictOf(host.styleGuideState), () => ({ phase: styleGuidePendingText(), progress: null, strip: host.styleGuideState === 'pending' ? host.styleGuideProgress : agentReading('styleguide') })),
+      // The tables that failed, as data, so a run where one failed draws Activity's red dot (D-RED A, decision (a)). The
+      // panel's own run only: an agent's run sends no tables, and `styleGuideRun` would still be the panel's last one.
+      styleguide: ((r) => ({ ...r, failed: r.agent ? 0 : host.styleGuideRun?.tables.filter((t) => t.status === 'failed').length ?? 0 }))(
+        opReading('styleguide', host.styleGuideState === 'pending', verdictOf(host.styleGuideState), () => ({ phase: styleGuidePendingText(), progress: null, strip: host.styleGuideState === 'pending' ? host.styleGuideProgress : agentReading('styleguide') }))),
       prune: opReading('prune', !!host.pruneBusy,
         pv ? { state: pv.ok ? 'ok' : 'bad', ref: pv, verdict: pruneShort(pv), summary: pv.summary }
           : pp ? { state: 'ok', ref: pp, verdict: pruneShort({ ok: true, applied: false, count: pp.count }), summary: pp.summary } : null,

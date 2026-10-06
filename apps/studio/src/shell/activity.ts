@@ -76,6 +76,9 @@ export type OpReading = {
   readonly agent: boolean;
   /** How far a style guide has got, for the closed strip at 380 only (S11.2); its row says it in words. */
   readonly strip?: { readonly done: number; readonly total: number } | null;
+  /** How many of the things the run was asked to make failed, when the write reports it as data (the style guide's
+   *  tables, S11.2). Above 0, a result is a failure whatever its headline's mark (D-RED A, decision (a)). */
+  readonly failed?: number;
 };
 /** A write the main thread declined while a run of the same operation was going (#1957). `n` counts
  *  them, so each is a change. */
@@ -311,7 +314,10 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     // The tile's dot (the owner's D-RED A, 2026-10-05): red only for a failure. An attention state that is not one, a
     // warning (its verdict leads with ⚠, as every write's headline does: ✓ done, ⚠ done with problems, ✗ failed), draws
     // green like the rest. The drawer, and the names, keep counting both as needing attention.
-    const failures = Object.values(last.ops).filter((o) => o.state === 'bad' && !(o.verdict ?? '').startsWith('⚠')).length;
+    // A failure: a bad result whose headline leads with anything but ⚠ (✗, or a short word such as "Failed"), or one
+    // that reports a failed item as data (`failed`), e.g. a style-guide run where a table failed: something asked for
+    // was not made. ⚠ with nothing failed ("⚠ 4 misses") is a warning, and draws green.
+    const failures = Object.values(last.ops).filter((o) => o.state === 'bad' && (!(o.verdict ?? '').startsWith('⚠') || (o.failed ?? 0) > 0)).length;
     dot.dataset.state = kind === 'bad' && !failures ? 'warn' : kind;
     drawer.dataset.state = kind;
     const name = ['Activity', agentLinkOn && 'agent link on', statusWords(running, failed, unread)].filter(Boolean).join(', ');
