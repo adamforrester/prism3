@@ -3749,7 +3749,17 @@ for (const host of ['web', 'figma']) {
     }
     if (!settled.ok) { ok(false, `#2167 askPair: Pair icons did not settle before its click — ${settled.why}`); return false; }
     try { await hooks.click(pairBtn(), { timeout: Math.max(1000, deadline - Date.now()) }); }
-    catch (e) { ok(false, `#2167 askPair: the click on Pair icons did not land — ${String(e?.message ?? e).split('\n')[0]}`); return false; }
+    catch (e) {
+      // A renderer that froze after the settle: name it dead at this first failure, as above.
+      const alive = await Promise.race([page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r(true)))).catch(() => false), new Promise((r) => setTimeout(() => r(false), 3000))]);
+      if (!alive) {
+        ok(false, `#2167 askPair: the page rendered no frame after the click failed, so it is treated as dead — its context is closed and the rest of this arm is skipped`);
+        await Promise.race([ctx.close().catch(() => {}), new Promise((r) => setTimeout(r, 10000))]);
+        return false;
+      }
+      ok(false, `#2167 askPair: the click on Pair icons did not land — ${String(e?.message ?? e).split('\n')[0]}`);
+      return false;
+    }
     await page.waitForFunction(() => !!document.querySelector('[data-p3="icons-pair-confirm"]'), null, { timeout: 5000 }).catch(() => {});
     return true;
   };

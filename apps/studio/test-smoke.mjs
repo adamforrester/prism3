@@ -1929,6 +1929,12 @@ const closeDead = async (page, label) => {
   // Bounded too: a close against a frozen renderer is the one call left, and it must not become the hang.
   await Promise.race([page.context().close().catch(() => {}), new Promise((r) => setTimeout(r, 10000))]);
 };
+/** Whether the page renders a frame within 3s, bounded on this side. After a failed click this tells a frozen
+ *  renderer (dead: close it) from a control that would not take the click (alive: carry on). */
+const rendersFrame = (page) => Promise.race([
+  page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r(true)))).catch(() => false),
+  new Promise((r) => setTimeout(() => r(false), 3000)),
+]);
 const settledClick = async (page, selector, label) => {
   const deadline = Date.now() + SETTLE_CLICK_MS * 2;
   const settled = await Promise.race([
@@ -1965,6 +1971,9 @@ const settledClick = async (page, selector, label) => {
     await hooks.click(page.locator(selector), { timeout: Math.max(1000, deadline - Date.now()) });
     return true;
   } catch (e) {
+    // A renderer that froze AFTER the settle (measured: the click then times out, and the page is dead) is named
+    // as dead here, at the first failure, rather than one call later.
+    if (!await rendersFrame(page)) { await closeDead(page, label); return false; }
     ok(false, `${label}: the click on ${selector} did not land — ${String(e?.message ?? e).split('\n')[0]}`);
     return false;
   }
