@@ -3839,10 +3839,70 @@ for (const host of ['web', 'figma']) {
   });
   // Ask to re-pair, waiting for the dialog without requiring it, so a re-pair that asks nothing fails below by name
   // rather than at a hook wait.
+  // #2167: askPair's click waits for its target to SETTLE, and is BOUNDED. Measured before writing it (2026-10-06):
+  // the levers pane re-renders whole on every brand update, so icons-pair is a new node after each edit, and the
+  // button sits far below the fold (y ≈ 3650 in a pane scrolled to ≈ 3650), so every click scrolls it into view
+  // first. Under load (averages 7 to 14) and with the renderer throttled 4×, no click on it was replaced or moved
+  // before it landed, and none took over 70ms. The one stall seen (30s at "scrolling into view if needed") is a
+  // renderer that could not run, which no wait makes faster. So this waits until the page renders frames with the
+  // button and the pane's scrollTop unchanged across consecutive frames, which also covers an eased scroll
+  // (`follow-edit.ts`) still stepping. Then it clicks, both bounded. A stall fails THIS arm by name: askPair's
+  // callers already report "no dialog" as their own failure. The suite reaches report() instead of dying on a bare
+  // Playwright timeout. Local to this site on purpose: the shared `hooks.click` is unchanged.
+  const PAIR_SEL = '[data-p3="levers-pane"] [data-p3="icons-pair"]';
+  const PAIR_SETTLE_MS = 15000;
   const askPair = async () => {
-    await hooks.click(pairBtn());
+    const deadline = Date.now() + PAIR_SETTLE_MS * 2;
+    const settled = await Promise.race([
+      page.evaluate(async ([sel, cap]) => {
+        const pane = document.querySelector('[data-p3="levers-pane"]');
+        const read = () => {
+          const n = document.querySelector(sel);
+          if (!n) return null;
+          const r = n.getBoundingClientRect();
+          return `${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.width)},${Math.round(r.height)}|${pane ? Math.round(pane.scrollTop) : 0}`;
+        };
+        const t0 = performance.now();
+        let prev, still = 0, frames = 0;
+        while (performance.now() - t0 < cap) {
+          await new Promise((r) => requestAnimationFrame(r));
+          frames++;
+          const now = read();
+          if (now !== null && now === prev) { if (++still >= 2) return { ok: true }; } else still = 0;
+          prev = now;
+        }
+        return { ok: false, why: prev === null ? 'it is not in the page' : `it was still moving after ${frames} frames (last box ${prev})` };
+      }, [PAIR_SEL, PAIR_SETTLE_MS]),
+      new Promise((r) => setTimeout(() => r({ ok: false, dead: true }), PAIR_SETTLE_MS + 1000)),
+    ]).catch((e) => ({ ok: false, why: String(e?.message ?? e).split('\n')[0] }));
+    // A page that rendered no frame within the bound is DEAD (#2231 review): any later evaluate on it waits
+    // with no timeout. Close its context, bounded, and end the arm. Its own ctx.close() below then returns at once.
+    if (settled.dead) {
+      ok(false, `#2167 askPair: the page rendered no frame within ${PAIR_SETTLE_MS}ms, so it is treated as dead — its context is closed and the rest of this arm is skipped`);
+      await Promise.race([ctx.close().catch(() => {}), new Promise((r) => setTimeout(r, 10000))]);
+      return false;
+    }
+    if (!settled.ok) { ok(false, `#2167 askPair: Pair icons did not settle before its click — ${settled.why}`); return false; }
+    try { await hooks.click(pairBtn(), { timeout: Math.max(1000, deadline - Date.now()) }); }
+    catch (e) {
+      // A renderer that froze after the settle: name it dead at this first failure, as above.
+      const alive = await Promise.race([page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r(true)))).catch(() => false), new Promise((r) => setTimeout(() => r(false), 3000))]);
+      if (!alive) {
+        ok(false, `#2167 askPair: the page rendered no frame after the click failed, so it is treated as dead — its context is closed and the rest of this arm is skipped`);
+        await Promise.race([ctx.close().catch(() => {}), new Promise((r) => setTimeout(r, 10000))]);
+        return false;
+      }
+      ok(false, `#2167 askPair: the click on Pair icons did not land — ${String(e?.message ?? e).split('\n')[0]}`);
+      return false;
+    }
     await page.waitForFunction(() => !!document.querySelector('[data-p3="icons-pair-confirm"]'), null, { timeout: 5000 }).catch(() => {});
+    return true;
   };
+  // #2167: a stalled askPair ends THIS arm here, by name (it has already failed), rather than letting the next
+  // step assume a dialog that never opened. Measured: `unpair()` then waited for an Unpair button that only a
+  // completed pairing draws, and threw, so the suite never reached report(). The arm's error check and
+  // ctx.close() below still run.
+  askPairArm: {
   // No icon overrides: no dialog, and iconContrast is "text" again.
   await unpair();
   ok(JSON.parse(await stored() ?? 'null')?.input?.iconContrast === '3:1', 'Q52 setup: Unpair persisted iconContrast "3:1"');
@@ -3863,7 +3923,7 @@ for (const host of ['web', 'figma']) {
   const ICON_OV = { 'icon.brand': { palette: 'primary', step: '700' }, 'inverse.icon.secondary': { palette: 'neutral', step: '200' }, 'text.brand': { palette: 'primary', step: '300' } };
   ok(b0?.iconContrast === '3:1' && JSON.stringify(b0?.overrides) === JSON.stringify({ light: ICON_OV }),
     `Q52 setup: two icon overrides and a text override persisted (${JSON.stringify(b0?.overrides)})`);
-  await askPair();
+  if (!await askPair()) break askPairArm;
   const d1 = await dialog();
   const WANT = { n: 1, title: 'Pair icons with text?', body: ['This removes 2 custom icon colors. Icons will follow their text color again.'], go: 'Pair icons', cancel: 'Cancel', unpaired: true };
   ok(JSON.stringify(d1) === JSON.stringify(WANT), `Q52: re-pairing with 2 icon overrides asks first, in the approved words, icons still unpaired — read ${JSON.stringify(d1)}`);
@@ -3889,7 +3949,7 @@ for (const host of ['web', 'figma']) {
   const b1 = JSON.parse(await stored() ?? 'null')?.input;
   ok(b1?.iconContrast === '3:1' && JSON.stringify(b1?.overrides) === JSON.stringify({ light: { 'text.brand': { palette: 'primary', step: '300' }, 'icon.brand': { palette: 'primary', step: '700' } } }),
     `Q60 setup: one icon override and the text override persisted (${JSON.stringify(b1?.overrides)})`);
-  await askPair();
+  if (!await askPair()) break askPairArm;
   const d3 = await dialog();
   const WANT1 = { n: 1, title: 'Pair icons with text?', body: ['This removes 1 custom icon color. Icons will follow their text color again.'], go: 'Pair icons', cancel: 'Cancel', unpaired: true };
   ok(JSON.stringify(d3) === JSON.stringify(WANT1), `Q60: re-pairing with 1 icon override asks first, the body singular, icons still unpaired — read ${JSON.stringify(d3)}`);
@@ -3898,6 +3958,7 @@ for (const host of ['web', 'figma']) {
   const a1 = JSON.parse(await stored() ?? 'null')?.input;
   ok(a1?.iconContrast === 'text' && JSON.stringify(a1?.overrides) === JSON.stringify({ light: { 'text.brand': { palette: 'primary', step: '300' } } }),
     `Q60: Pair icons with 1 icon override writes iconContrast "text" and clears icon.brand, keeping text.brand (iconContrast ${JSON.stringify(a1?.iconContrast)}, overrides ${JSON.stringify(a1?.overrides)})`);
+  }
   ok(errors.length === 0, `Q52 re-pair: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }
