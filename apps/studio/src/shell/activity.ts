@@ -48,16 +48,17 @@ export const setAgentLinkOn = (on: boolean): void => {
   for (const f of linkWatchers) f();
 };
 
-/** The agent link's status line (#2213, the owner's N1 A, 2026-10-06): the plugin's own words for the link
- *  (`agentLinkStatusText` in `apps/plugin/src/agent-link-ui.ts`), drawn at the far right of the drawer's bar row,
- *  beside the caret. `error` says the words carry an inbox error, which draws in the chrome's error ink; otherwise
- *  the line is quiet text. `null` draws no line. The plugin's Agent tile reports it with each published state (a
- *  line while the link is on, none while it is off); the studio never sets it, so on the web there is none. */
-export type AgentLinkLine = { readonly text: string; readonly error: boolean };
-let agentLinkLine: AgentLinkLine | null = null;
-export const setAgentLinkLine = (line: AgentLinkLine | null): void => {
-  if (line?.text === agentLinkLine?.text && line?.error === agentLinkLine?.error) return;
-  agentLinkLine = line ? { text: line.text, error: line.error } : null;
+/** The agent link's status (#2213; the owner's N1 A and AS1 A, 2026-10-06), as the plugin words it
+ *  (`apps/plugin/src/agent-link-ui.ts`). `short` is the closed row's high-level status ("Agent listening", …), drawn at
+ *  the far right of the drawer's bar row beside the caret, `error` drawing it in the chrome's error ink and otherwise
+ *  quiet; `null` draws none. `full` is the link's whole status line (`agentLinkStatusText`), the open drawer's first line
+ *  and the short status's tooltip and accessible name; `null` draws none. The plugin's Agent tile reports it with each
+ *  published state; the studio never sets it, so on the web there is none. */
+export type AgentLinkStatus = { readonly short: string | null; readonly error: boolean; readonly full: string | null };
+let agentLinkStatus: AgentLinkStatus = { short: null, error: false, full: null };
+export const setAgentLinkStatus = (st: AgentLinkStatus): void => {
+  if (st.short === agentLinkStatus.short && st.error === agentLinkStatus.error && st.full === agentLinkStatus.full) return;
+  agentLinkStatus = { short: st.short, error: st.error, full: st.full };
   for (const f of linkWatchers) f();
 };
 
@@ -170,7 +171,10 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   const note = hook(h('p', 'p3-note p3-drawer-note', opts.host === 'figma'
     ? 'Results of Apply, Build and Prune appear here after they run.'
     : 'Nothing has run in this session.'), 'activity-note');
-  body.append(close, rows, note);
+  // The agent link's full status line (#2213, AS1 A): the open drawer's first line, above the runs, while the plugin
+  // reports one.
+  const linkDetail = hook(h('p', 'p3-note p3-drawer-note'), 'activity-agent-detail');
+  body.append(close, linkDetail, rows, note);
   drawer.append(toggle, body);
   // A write's control says it is busy while the write runs, panel or agent, and a polite status line says
   // so once, when it starts (owner decision #4 on #1956, the engine Button's `isPending` aria note). One
@@ -287,6 +291,10 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   const paintBar = (): void => {
     const { running, failed } = counts(last);
     const lead = leadOf();
+    // The row's text runs (the summary, its time, the counts and the agent status) share one baseline: they sit in a
+    // baseline-aligned run of their own (#2213, the owner's review), centered in the row with the dot and the caret,
+    // because centering texts of two sizes one by one sets their baselines apart.
+    const lead0: Node[] = [];
     const parts: Node[] = [];
     if (lead) {
       const o = last.ops[lead];
@@ -297,7 +305,8 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       d.dataset.state = run ? 'run' : rec.result && !rec.result.ok ? 'bad' : 'ok';
       const text = h('span', 'p3-drawer-last');
       text.append(h('b', undefined, OP_TITLE[lead]), ` · ${run ? o.phase ?? 'Running' : rec.result?.verdict ?? ''}`);
-      parts.push(d, text, h('span', 'p3-op-when', rec.t));
+      lead0.push(d);
+      parts.push(text, h('span', 'p3-op-when', rec.t));
       // At 380, the closed strip carries the running style guide's progress (the S11.2 mockup, variant 1).
       if (run && lead === 'styleguide' && o.strip && narrow() && !open) {
         const bar = hook(h('progress', 'p3-op-prog p3-strip-prog'), 'activity-strip-progress') as HTMLProgressElement;
@@ -307,22 +316,24 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
         parts.push(bar);
       }
     } else {
-      parts.push(glyph('pulse'), h('span', 'p3-drawer-last', 'Activity'));
+      lead0.push(glyph('pulse'));
+      parts.push(h('span', 'p3-drawer-last', 'Activity'));
     }
     parts.push(h('span', 'p3-spacer'));
     const count = [running && `${running} running`, failed && attention(failed)].filter(Boolean).join(' · ');
     if (count) parts.push(h('span', 'p3-drawer-count', count));
-    // The agent link's status line (#2213), last before the caret. One line: when the row is narrow it gives way
-    // before anything else on it and is cut short with an ellipsis, so its full words are its tooltip, and they stay
-    // whole in the text, which is what the row's accessible name is read from.
-    if (agentLinkLine) {
-      const ln = hook(h('span', 'p3-drawer-link', agentLinkLine.text), 'activity-agent-link');
-      ln.dataset.error = String(agentLinkLine.error);
-      ln.title = agentLinkLine.text;
+    // The agent link's short status (#2213, AS1 A), last before the caret. One line, cut short with an ellipsis if the
+    // row has no room for it. Its tooltip is the link's full status line, and so is the rest of its accessible name,
+    // after its visible words.
+    if (agentLinkStatus.short) {
+      const ln = hook(h('span', 'p3-drawer-link', agentLinkStatus.short), 'activity-agent-link');
+      ln.dataset.error = String(agentLinkStatus.error);
+      if (agentLinkStatus.full) { ln.title = agentLinkStatus.full; ln.append(h('span', 'p3-sr', agentLinkStatus.full)); }
       parts.push(ln);
     }
-    parts.push(glyph('chev'), h('span', 'p3-sr', `${open ? 'Collapse' : 'Expand'} Activity`));
-    toggle.replaceChildren(...parts);
+    const runs = h('span', 'p3-drawer-text');
+    runs.append(...parts);
+    toggle.replaceChildren(...lead0, runs, glyph('chev'), h('span', 'p3-sr', `${open ? 'Collapse' : 'Expand'} Activity`));
   };
 
   const paint = (): void => {
@@ -350,6 +361,8 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     const order = [...recs.keys()].map((k) => rowEls.get(k)!.root);
     if (order.length !== rows.children.length || order.some((n, i) => rows.children[i] !== n)) rows.replaceChildren(...order);
     note.hidden = recs.size > 0;
+    linkDetail.textContent = agentLinkStatus.full ?? '';
+    linkDetail.hidden = !agentLinkStatus.full;
   };
 
   /** The collapse that comes due `COLLAPSE_MS` after a success. */
