@@ -94,6 +94,27 @@
  *   · the field's ink on `disabled.text` → `… the exempted input[bp-input] "sm, px" draws Prism3's disabled roles for
  *     light …` and `F1 A: Layout: web light: … draws Prism3's disabled text field …` (8 failures).
  *
+ * X4 A AND Q28 a (owner, 2026-10-05; #2155, #2154, #2174). The exemption covers disabled BUTTONS too, each held to
+ * Prism3's disabled roles for its appearance (`DISABLED_SKIN`: filled, outline, text, typed from `button.ts` and
+ * `icon-button.ts`), the ink of every label and glyph inside it included; an `aria-disabled` control that keeps its
+ * focus stop qualifies only when activating it changes nothing. S12 fails a first run that did not exempt Import, and
+ * plants the button canary there. Every canary now carries EVERY computed style of the real control (#2174), so only
+ * `:disabled` / `aria-disabled` tells them apart. The section "X4 A, Q28 a" at the end reads every appearance on a real
+ * control, one control of each kind hovered off and on, and every control HC light switches off. Mutations, each
+ * failing by name, each in a detached worktree:
+ *   · the skin's edge dashed → `X4 A: web light: the disabled Import (start-import) draws no dashed edge — …`,
+ *     `X4 A derived: … no disabled chrome control draws a dashed edge (438 read) — …` (884 failures).
+ *   · the outline edge on `disabled.border` → `X4 A: web light: the disabled Import (start-import) draws Prism3's
+ *     disabled outline button: … drew {"fill":"none","edge":"#c0c1c2",…}` (820 failures).
+ *   · a chip hover rule after the skin → `Q28 a: web light: a pointer over a disabled chip (personality-word, on brand)
+ *     changes nothing (Q28 a)`, on both hosts and both themes, and nothing else (4 failures).
+ *   · the select's hover rule without its limit → `Q28 a: web light: a pointer over a disabled select (family-select,
+ *     on type) changes nothing (Q28 a)`, on both hosts and both themes, and nothing else (4 failures).
+ *   · the exemption keyed on `cursor: not-allowed` → only the canaries: `S12 web light 1280 / start: the exemption
+ *     canary, a button with every computed style of the disabled Import … — {…"exempted":…}` (8) and `web light 1280 /
+ *     layout: the exemption canary, a field with every computed style …` (4). #2152's canary, which copied the class,
+ *     the hook and six colors, passes it.
+ *
  * NOTHING FORCED (S2). S1.2 and S1.3 set the frame's `data-layout="panes"` themselves for the Q2 check and
  * the preview-header checks, because no page rendered the two panes. S2 moved Color › Palettes, the opening
  * page, into them, so every one of those checks now measures Color › Palettes as it renders. Q2's "a page
@@ -387,6 +408,15 @@
  *   · the contract table given no rows → `… Inspect › Contrast lists the preview spec's 34 contracts, in order — listed 0`.
  *   · `→` appended to the Back label → `… every chrome text element draws in the embedded Inter — … Back to Palett drew DejaVu Sans (device), Inter`.
  *
+ * #2179 ADDS: the Contrast floor row in Default background fills draws its picker on the right, beside its name, its
+ * right edge on the other three rows' picker edge, every brand × mode at 1280 and 380 (web). Mutation: the floor row's
+ * `p3-fillrow` class dropped → `#2179 web 1280 prism3 / light: the Contrast floor's picker ends at the other rows' picker edge …`.
+ * FL1 A (#2197): on Auto the floor's label reads "Auto · ‹step›" (prism3: the emission's floor), its tooltip is the full
+ * sentence, and the label is not cut off; both hosts. Its COMPUTED accessible name is the owner's option 1 ("Contrast floor,
+ * Light: Auto · neutral 050, follows background.secondary. Pick a step"), and each picker's contains its visible label.
+ * Mutations: the long label back as the visible one → `#2179 web 1280 prism3 / light: FL1 A: the Contrast floor's Auto
+ * label reads "Auto · ‹step›" …`; the earlier name form back → `… option 1: the Contrast floor's computed accessible name is …`.
+ *
  * #2180 ADDS: in the plugin, Components' build bar stands at least `space.300` (the stacked-card gap, resolved from the
  * emission) above the Activity drawer, at 1280 and 380, the drawer closed and open, at three scroll positions.
  * Mutation: `.p3-buildbar`'s `bottom` back to 0 → `#2180: figma 1280, drawer closed, at the top: the build bar stands …`.
@@ -456,9 +486,61 @@ const PRISM3_DISABLED = (() => {
     const m = /^\{(.+)\}$/.exec(v);
     return m ? hex(tree, m[1], seen + 1) : v.toLowerCase();
   };
-  const skin = (tree) => ({ fill: hex(tree, `${root}.color.disabled.fill`), edge: hex(tree, `${root}.color.disabled.border`), ink: hex(tree, `${root}.color.disabled.on-fill`) });
+  // X4 A adds the two roles the button definitions bind and the text field does not: `disabled.text` and `disabled.icon`.
+  const skin = (tree) => ({ fill: hex(tree, `${root}.color.disabled.fill`), edge: hex(tree, `${root}.color.disabled.border`), ink: hex(tree, `${root}.color.disabled.on-fill`),
+    text: hex(tree, `${root}.color.disabled.text`), icon: hex(tree, `${root}.color.disabled.icon`) });
   return { light: skin(base), dark: skin(dark) };
 })();
+/**
+ * THE DISABLED SKIN PER APPEARANCE (owner decision X4 A, 2026-10-05, #2155). What Prism3 draws for a disabled control
+ * of each appearance the chrome uses, typed here from the engine's definitions and resolved through `PRISM3_DISABLED`,
+ * never read from the studio's CSS or `chrome/spec.mjs` (docs/34). `none` is a paint that draws nothing (no fill, no
+ * edge on any side).
+ *   · field (`text-field.ts`): the disabled fill, a solid `disabled.border` edge, the on-fill ink.
+ *   · filled (`button.ts` `filled`, also Discard's `button-destructive`, whose disabled block is the same): the disabled
+ *     fill and the on-fill ink for its label and glyph (#784); `filled` keys no border, so no edge.
+ *   · outline (`button.ts` `outline`, the chrome's page-colored button): no fill (outline keys none at rest), a solid
+ *     edge on `disabled.icon` (#1349), the label on `disabled.text`, the glyph on `disabled.icon`.
+ *   · text (`button.ts` `text`, `icon-button.ts` `ghost`: the chrome's ghost buttons and the edgeless mode check): no
+ *     fill, no edge, the label on `disabled.text`, the glyph on `disabled.icon`.
+ * Which appearance a control has is read from its element and classes. That only picks which skin to expect; the
+ * exemption itself is granted only by `:disabled` or `aria-disabled="true"` (`offOf` in PROBE).
+ */
+const DISABLED_APPEARANCE = (o) => {
+  if (['input', 'select', 'textarea'].includes(o.tag)) return 'field';
+  const c = new Set(o.cls.split(/\s+/));
+  if (['p3-btn-primary', 'p3-next', 'p3-btn-danger'].some((k) => c.has(k))) return 'filled';
+  if (['p3-btn-ghost', 'p3-check'].some((k) => c.has(k))) return 'text';
+  return 'outline';
+};
+const DISABLED_SKIN = (appearance, scheme) => {
+  const d = PRISM3_DISABLED[scheme];
+  if (!d) return null;
+  return {
+    field: { fill: d.fill, edge: d.edge, ink: d.ink, glyph: d.ink, roles: 'fill color.disabled.fill, a solid edge color.disabled.border, ink color.disabled.on-fill' },
+    filled: { fill: d.fill, edge: 'none', ink: d.ink, glyph: d.ink, roles: 'fill color.disabled.fill, no edge, label and glyph color.disabled.on-fill' },
+    outline: { fill: 'none', edge: d.icon, ink: d.text, glyph: d.icon, roles: 'no fill, a solid edge color.disabled.icon, label color.disabled.text, glyph color.disabled.icon' },
+    text: { fill: 'none', edge: 'none', ink: d.text, glyph: d.icon, roles: 'no fill, no edge, label color.disabled.text, glyph color.disabled.icon' },
+  }[appearance];
+};
+/** A computed color as `#rrggbb` when opaque, `none` when fully transparent, and the raw string otherwise. */
+const paintOf = (s) => {
+  const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim());
+  if (!m) return String(s);
+  const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
+  if (p.length > 3 && p[3] === 0) return 'none';
+  if (p.length > 3 && p[3] !== 1) return String(s);
+  return `#${p.slice(0, 3).map((x) => Math.round(x).toString(16).padStart(2, '0')).join('')}`;
+};
+/** What a control draws, from its computed fill, four edges ([color, style, width]) and ink: its fill, its edge (one
+ *  solid color on all four sides, `none` when no side draws, or what it draws otherwise) and its ink. */
+const drawnSkin = (o) => {
+  const sides = o.edges.filter(([c, st, wd]) => st !== 'none' && wd > 0 && paintOf(c) !== 'none');
+  const colors = [...new Set(sides.map(([c]) => paintOf(c)))];
+  const styles = [...new Set(sides.map(([, st]) => st))];
+  const edge = !sides.length ? 'none' : sides.length === 4 && colors.length === 1 && styles.join() === 'solid' ? colors[0] : `${sides.length} side(s) ${colors.join('/')} ${styles.join('/')}`;
+  return { fill: paintOf(o.fill), edge, ink: paintOf(o.ink) };
+};
 /** A computed `rgb(…)` as `#rrggbb`, or null when it is not opaque sRGB. */
 const hexOfRgb = (s) => {
   const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim());
@@ -788,6 +870,7 @@ const PROBE = (opt) => {
       if (i < 0) {
         const cs = getComputedStyle(n);
         i = offs.push({ node: n, el: label(n), hook: n.getAttribute('data-p3'), canary: n.hasAttribute('data-ccanary'),
+          tag: n.tagName.toLowerCase(), cls: n.getAttribute('class') ?? '',
           prop: n.disabled === true, aria: n.getAttribute('aria-disabled') === 'true',
           fill: cs.backgroundColor, ink: cs.color,
           edges: ['Top', 'Right', 'Bottom', 'Left'].map((side) => [cs[`border${side}Color`], cs[`border${side}Style`], parseFloat(cs[`border${side}Width`])]) }) - 1;
@@ -809,7 +892,8 @@ const PROBE = (opt) => {
     const g = groundOf(el);
     const px = parseFloat(cs.fontSize), weight = Number(cs.fontWeight);
     const large = px >= 24 || (px >= 18.66 && weight >= 700);
-    text.push({ el: label(el), r: fl(ratio(over(ink, g), g)), large, off: offOf(el) });
+    // X4 A: an off node's own ink rides along, so an exempted label is held to its appearance's ink, not only its control.
+    text.push({ el: label(el), r: fl(ratio(over(ink, g), g)), large, off: offOf(el), ink: cs.color, canary: !!el.closest('[data-ccanary]') });
     el.setAttribute('data-cprobe', cs.fontFamily.includes(opt.monoAlias) ? 'mono' : 'text');
   }
   // fields: the value a field draws, on its own fill
@@ -838,7 +922,7 @@ const PROBE = (opt) => {
       const c = parse(cs[`border${side}Color`], `${label(el)} border`);
       if (!c || c.a === 0) continue;
       // A tab's underline is drawn on the tab row; every other edge against what is outside the control.
-      edges.push({ el: label(el), side, r: fl(ratio(over(c, outside), outside)), off: offOf(el), canary: el.hasAttribute('data-ccanary') });
+      edges.push({ el: label(el), side, r: fl(ratio(over(c, outside), outside)), off: offOf(el), canary: !!el.closest('[data-ccanary]') });
     }
   }
   // glyphs
@@ -846,7 +930,7 @@ const PROBE = (opt) => {
   for (const svg of drawn.filter((n) => n.matches('svg.p3-ico'))) {
     const c = parse(getComputedStyle(svg).color, `${label(svg.parentElement)} glyph`);
     const g = groundOf(svg.parentElement);
-    if (c) glyphs.push({ el: `glyph in ${label(svg.parentElement)}`, r: fl(ratio(over(c, g), g)) });
+    if (c) glyphs.push({ el: `glyph in ${label(svg.parentElement)}`, r: fl(ratio(over(c, g), g)), off: offOf(svg), ink: getComputedStyle(svg).color, canary: !!svg.closest('[data-ccanary]') });
   }
   // shadows, on every chrome element and its pseudo-elements, drawn or not
   const shadows = [];
@@ -1038,15 +1122,17 @@ const exemptOf = (m) => {
   for (const t of m.text) if (t.off >= 0 && t.r < (t.large ? LARGE_TEXT_MIN : TEXT_MIN)) ids.add(t.off);
   for (const f of m.fields) if (f.off >= 0 && f.r < TEXT_MIN) ids.add(f.off);
   for (const e of m.edges) if (e.off >= 0 && e.r < NONTEXT_MIN) ids.add(e.off);
+  for (const g of m.glyphs) if (g.off >= 0 && g.r < NONTEXT_MIN) ids.add(g.off);
   return [...ids];
 };
 /** The exemption's first two conditions, read off the page for the off control `data-coff="i"`: what the browser's
- *  accessibility tree says (CDP, not the DOM predicate that granted it), whether it takes focus, and whether a
- *  scripted edit (focus, then typing) changes its value or anything the page stores. */
+ *  accessibility tree says (CDP, not the DOM predicate that granted it), whether it takes focus, whether a scripted
+ *  edit (focus, then typing) changes its value or anything the page stores, and whether a click on it changes
+ *  anything: the control itself, what the page stores, the place shown, which windows and menus are open (X4 A). */
 const holdsOff = async (page, i) => {
   const sel = `[data-coff="${i}"]`;
   const cdp = await page.context().newCDPSession(page);
-  let ax = null;
+  let ax = null, inert = null;
   try {
     await cdp.send('DOM.enable');
     await cdp.send('Accessibility.enable');
@@ -1054,87 +1140,125 @@ const holdsOff = async (page, i) => {
     const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel });
     const { nodes } = await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false });
     ax = nodes[0]?.properties?.find((p) => p.name === 'disabled')?.value?.value === true;
+    // A control under an open window (S12's guard over the start) is inert: the tree drops it, which is more than
+    // disabled, so it reports no disabled property. Read from the tree's own reasons, not the DOM.
+    inert = nodes[0]?.ignored === true && (nodes[0]?.ignoredReasons ?? []).some((r) => /inert/i.test(r.name));
   } finally { await cdp.detach(); }
   const read = (x) => page.evaluate((x) => {
     const n = document.querySelector(x);
     return { value: n?.value ?? null, text: n?.textContent ?? null, store: JSON.stringify(Object.entries(localStorage)) };
+  }, x);
+  const world = (x) => page.evaluate((x) => {
+    const n = document.querySelector(x);
+    const open = [...document.querySelectorAll('[role="dialog"], [role="menu"], [role="listbox"], [data-p3="step-picker"], [data-p3="value-picker"]')]
+      .filter((d) => d.getClientRects().length).map((d) => d.getAttribute('data-p3') ?? d.getAttribute('role'));
+    return JSON.stringify({ control: n?.outerHTML.replace(/ data-c(?:off|probe)="[^"]*"/g, '') ?? null, store: Object.entries(localStorage),
+      place: document.querySelector('[data-p3="frame"]')?.dataset.place ?? null, open });
   }, x);
   const before = await read(sel);
   const focused = await page.evaluate((x) => { const n = document.querySelector(x); document.activeElement?.blur?.(); n?.focus(); return !!n && document.activeElement === n; }, sel);
   await page.locator(sel).pressSequentially('7', { timeout: 1000 }).catch(() => {});
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   const after = await read(sel);
-  return { ax, focused, changed: JSON.stringify(before) !== JSON.stringify(after) };
+  const w0 = await world(sel);
+  // Activation as the platform performs it (`HTMLElement.prototype.click`, which Enter and Space also reach), in the
+  // page rather than a Playwright click: a pointer would land on whatever is on top (S12's guard over Import). A
+  // native disabled control ignores it, so it tests what an `aria-disabled` one's own handler does.
+  await page.evaluate((x) => { const n = document.querySelector(x); if (n) HTMLElement.prototype.click.call(n); }, sel);
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const w1 = await world(sel);
+  return { ax, inert, focused, changed: JSON.stringify(before) !== JSON.stringify(after), clicked: w0 !== w1 };
 };
-/** THE EXEMPTION'S CANARY (F1 A): beside the disabled field, plant a copy that is NOT disabled but keeps its class,
- *  its hook and, inline, the exact colors it draws; probe; remove it. The copy must be measured and must fail its
- *  floor without being exempted, so an exemption widened to a class name or a hook fails here by name. */
-const exemptionCanary = async (page) => {
-  const planted = await page.evaluate(() => {
-    const src = document.querySelector('[data-p3="bp-row"] input:disabled');
-    if (!src) return false;
-    const cs = getComputedStyle(src);
-    const c = src.cloneNode(true);
-    c.disabled = false;
-    c.removeAttribute('id');
-    c.setAttribute('data-ccanary', '');
-    for (const p of ['background-color', 'color', 'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color']) c.style.setProperty(p, cs.getPropertyValue(p));
-    src.after(c);
-    return true;
-  });
-  const m = planted ? await page.evaluate(PROBE, { legacyPages: LEGACY_PAGES, kinds: CONTROL_KINDS, inspectLegacy: INSPECT_LEGACY, monoAlias: MONO_ALIAS }) : null;
+/** THE EXEMPTION'S CANARY (F1 A, X4 A, #2174): beside the real disabled control `sel`, plant a copy that is NOT
+ *  disabled (no `disabled`, no `aria-disabled`) and carries, inline, EVERY computed style of the real control and of
+ *  each element inside it, so only `:disabled` / `aria-disabled` tells them apart; probe; remove it. It keeps the
+ *  class and the hook too. The copy must be measured and must fail its floor without being exempted, so an
+ *  exemption keyed on a class, a hook, a color or any other computed style (`cursor: not-allowed`) fails here by name. */
+const PLANT_CANARY = (sel) => {
+  // What a copy may differ in and still be a lookalike: the size its place in the row gives it (and the origins that
+  // follow from that size), a shorthand that serializes differently from the same longhands, and a non-standard one.
+  const CANARY_LAYOUT = new Set(['width', 'height', 'inline-size', 'block-size', 'transform-origin', 'perspective-origin', 'text-decoration', 'app-region']);
+  const src = document.querySelector(sel);
+  if (!src) return { planted: false };
+  const c = src.cloneNode(true);
+  const from = [src, ...src.querySelectorAll('*')], to = [c, ...c.querySelectorAll('*')];
+  from.forEach((n, i) => { const cs = getComputedStyle(n); for (const p of cs) to[i].style.setProperty(p, cs.getPropertyValue(p)); });
+  c.disabled = false;
+  for (const a of ['disabled', 'aria-disabled', 'id', 'data-coff', 'data-cprobe']) c.removeAttribute(a);
+  c.setAttribute('data-ccanary', '');
+  src.after(c);
+  const a = getComputedStyle(src), b = getComputedStyle(c);
+  const differ = [...a].filter((p) => !CANARY_LAYOUT.has(p) && a.getPropertyValue(p) !== b.getPropertyValue(p));
+  return { planted: true, live: !c.matches(':disabled') && c.getAttribute('aria-disabled') !== 'true', differ: differ.slice(0, 6) };
+};
+const exemptionCanary = async (page, sel = '[data-p3="bp-row"] input:disabled') => {
+  const p = await page.evaluate(PLANT_CANARY, sel);
+  const m = p.planted ? await page.evaluate(PROBE, { legacyPages: LEGACY_PAGES, kinds: CONTROL_KINDS, inspectLegacy: INSPECT_LEGACY, monoAlias: MONO_ALIAS }) : null;
   await page.evaluate(() => { for (const n of document.querySelectorAll('[data-ccanary]')) n.remove(); for (const n of document.querySelectorAll('[data-coff]')) n.removeAttribute('data-coff'); });
-  const f = m?.fields.find((x) => x.canary);
-  return { planted, measured: !!f, r: f?.r ?? null, exempted: f ? exemptOf(m).includes(f.off) : null };
+  // What the canary drew that has a floor: its value (a field), its text (a button), its edges and its glyphs.
+  const nodes = m ? [...m.fields.filter((x) => x.canary).map((x) => ({ ...x, floor: TEXT_MIN })), ...m.text.filter((x) => x.canary).map((x) => ({ ...x, floor: x.large ? LARGE_TEXT_MIN : TEXT_MIN })),
+    ...m.edges.filter((x) => x.canary).map((x) => ({ ...x, floor: NONTEXT_MIN })), ...m.glyphs.filter((x) => x.canary).map((x) => ({ ...x, floor: NONTEXT_MIN }))] : [];
+  const ex = m ? new Set(exemptOf(m)) : new Set();
+  return { planted: p.planted, live: p.live ?? null, differ: p.differ ?? null, measured: nodes.length, r: nodes.length ? Math.min(...nodes.map((x) => x.r)) : null,
+    under: nodes.filter((x) => x.r < x.floor).length, exempted: nodes.filter((x) => x.off >= 0 && ex.has(x.off)).length };
 };
+/** The canary's verdict: planted live with no computed style apart from the real control, measured, under its floor,
+ *  and exempted nowhere. */
+const canaryHolds = (c) => c.planted && c.live && c.differ?.length === 0 && c.measured > 0 && c.under > 0 && c.exempted === 0;
 const measure = async (page, where, host, w) => {
   await holdSpin(page, true);
   const m = await page.evaluate(PROBE, { legacyPages: LEGACY_PAGES, kinds: CONTROL_KINDS, inspectLegacy: INSPECT_LEGACY, monoAlias: MONO_ALIAS });
   const fonts = await fontsDrawn(page);
   const exempt = [];
-  for (const i of exemptOf(m)) exempt.push({ ...m.offs[i], ...(await holdsOff(page, i)) });
+  for (const i of exemptOf(m)) exempt.push({ i, ...m.offs[i], ...(await holdsOff(page, i)) });
   await page.evaluate(() => { for (const n of document.querySelectorAll('[data-coff]')) n.removeAttribute('data-coff'); });
   await holdSpin(page, false);
   return { ...m, fonts, exempt };
 };
 
 /**
- * THE CONTRAST EXEMPTION (owner decision F1 A, 2026-10-05). WCAG 2.2 exempts a user interface component that is not
- * available for user interaction from SC 1.4.3 (text, 4.5:1) and SC 1.4.11 (non-text, 3:1): an inactive control.
- * The owner decided that a disabled text field in the chrome takes Prism3's own disabled skin exactly, which sits
- * under both floors on purpose (about 3.05:1 text and 1.8:1 edge). So the audit exempts a node from its floor only when:
+ * THE CONTRAST EXEMPTION (owner decisions F1 A and X4 A, 2026-10-05). WCAG 2.2 exempts a user interface component
+ * that is not available for user interaction from SC 1.4.3 (text, 4.5:1) and SC 1.4.11 (non-text, 3:1): an inactive
+ * control. The owner decided that a disabled text field (F1 A) and a disabled button (X4 A, #2155) in the chrome take
+ * Prism3's own disabled skin exactly, which sits under the floors on purpose (about 3.05:1 field text and 1.8:1 field
+ * edge; about 3.9:1 and 3.4:1 button labels, light and dark). So the audit exempts a node from its floor only when:
  *
  *   · it is REALLY DISABLED: the node is, or sits inside, a control that is `:disabled` or `aria-disabled="true"`
- *     (`offOf` in PROBE). Never a class name, a hook or a marker the page sets for the test: the canary in section 2
- *     plants a non-disabled field with the same class, hook and colors, and it must fail its floor.
+ *     (`offOf` in PROBE). Never a class name, a hook, a color, a cursor or a marker the page sets for the test: the
+ *     canaries (section 2's field, S12's Import) plant a non-disabled copy carrying every computed style of the real
+ *     control, and it must fail its floor (#2174).
  *
  * and every node it exempts is still asserted, by name, to be:
  *
  *   1. disabled to assistive technology: the browser's accessibility tree (CDP `getPartialAXTree`) reports it
- *      disabled, and it carries the `disabled` property or `aria-disabled`;
- *   2. neither focusable nor editable: `focus()` does not take, and a scripted edit (focus, then typing) changes
- *      nothing, its value or anything the page stores. So an `aria-disabled` control that keeps its focus stop does
- *      not qualify;
- *   3. drawn in the Prism3 disabled roles for the chrome theme: fill `color.disabled.fill`, every edge
- *      `color.disabled.border` (solid), and ink `color.disabled.on-fill`, read from the committed emission
- *      (`PRISM3_DISABLED`), never from the studio's CSS or `chrome/spec.mjs` (docs/34).
+ *      disabled, or drops it as inert (under an open window), and it carries the `disabled` property or `aria-disabled`;
+ *   2. inert: a scripted edit (focus, then typing) changes nothing, a click changes nothing (the control, what the page
+ *      stores, the place, the open windows), and it takes no focus unless it is `aria-disabled` (the mode check, a
+ *      matrix check and a refused picker value keep their focus stop on purpose, so their reason is read);
+ *   3. drawn in the Prism3 disabled roles for its appearance and the chrome theme (`DISABLED_SKIN`): its fill, its
+ *      edge and its ink, and the ink of every label and glyph the audit exempted inside it, read from the committed
+ *      emission (`PRISM3_DISABLED`), never from the studio's CSS or `chrome/spec.mjs` (docs/34).
  *
- * Counted, not trusted: every probe's exemptions go to `EXEMPTIONS`, printed at the end of the run, and section 2
- * fails a Layout sweep that exempted nothing, since its first breakpoint field is disabled there by design (D13).
+ * Counted, not trusted: every probe's exemptions go to `EXEMPTIONS`, printed at the end of the run; section 2 fails a
+ * Layout sweep that exempted nothing, since its first breakpoint field is disabled there by design (D13), and S12
+ * fails a first run that did not exempt Import, disabled while the paste box is empty.
  */
 const checkExempt = (m, where) => {
   EXEMPTIONS.push([where, m.exempt.length, m.exempt.map((x) => x.hook ?? x.el)]);
-  const want = PRISM3_DISABLED[m.scheme];
-  ok(!m.exempt.length || !!want, `${where}: the chrome theme is light or dark, so the disabled oracle applies (color-scheme "${m.scheme}")`);
+  ok(!m.exempt.length || !!PRISM3_DISABLED[m.scheme], `${where}: the chrome theme is light or dark, so the disabled oracle applies (color-scheme "${m.scheme}")`);
   for (const x of m.exempt) {
-    ok(x.ax === true && (x.prop || x.aria),
-      `${where}: the exempted ${x.el} is disabled to assistive technology (accessibility tree disabled ${x.ax}, disabled property ${x.prop}, aria-disabled ${x.aria})`);
-    ok(!x.focused && !x.changed, `${where}: the exempted ${x.el} cannot be focused or edited (took focus ${x.focused}, a scripted edit changed ${x.changed ? 'something' : 'nothing'})`);
+    ok((x.ax === true || x.inert === true) && (x.prop || x.aria),
+      `${where}: the exempted ${x.el} is disabled to assistive technology (accessibility tree disabled ${x.ax}, inert ${x.inert}, disabled property ${x.prop}, aria-disabled ${x.aria})`);
+    ok((!x.focused || x.aria) && !x.changed && !x.clicked,
+      `${where}: the exempted ${x.el} is inert: no focus unless aria-disabled, no edit, no click (took focus ${x.focused}, a scripted edit changed ${x.changed ? 'something' : 'nothing'}, a click changed ${x.clicked ? 'something' : 'nothing'})`);
+    const appearance = DISABLED_APPEARANCE(x);
+    const want = DISABLED_SKIN(appearance, m.scheme);
     if (!want) continue;
-    const edges = x.edges.filter(([, style, width]) => style !== 'none' && width > 0);
-    const got = { fill: hexOfRgb(x.fill), edge: [...new Set(edges.map(([c]) => hexOfRgb(c)))].join(' '), ink: hexOfRgb(x.ink), styles: [...new Set(edges.map(([, st]) => st))].join(' ') };
-    ok(got.fill === want.fill && got.edge === want.edge && edges.length === 4 && got.styles === 'solid' && got.ink === want.ink,
-      `${where}: the exempted ${x.el} draws Prism3's disabled roles for ${m.scheme}: fill color.disabled.fill ${want.fill}, a solid edge color.disabled.border ${want.edge}, ink color.disabled.on-fill ${want.ink} (drew ${JSON.stringify(got)})`);
+    const got = drawnSkin(x);
+    const labels = [...new Set(m.text.filter((t) => t.off === x.i).map((t) => paintOf(t.ink)))];
+    const marks = [...new Set(m.glyphs.filter((g) => g.off === x.i).map((g) => paintOf(g.ink)))];
+    ok(got.fill === want.fill && got.edge === want.edge && got.ink === want.ink && labels.every((c) => c === want.ink) && marks.every((c) => c === want.glyph),
+      `${where}: the exempted ${x.el} draws Prism3's disabled ${appearance} roles for ${m.scheme}: ${want.roles} (want fill ${want.fill}, edge ${want.edge}, ink ${want.ink}, glyph ${want.glyph}; drew ${JSON.stringify({ ...got, labels, glyphs: marks })})`);
   }
 };
 
@@ -1193,7 +1317,7 @@ const check = (m, where, column, floor = FLOORS[column], { state = 'page', extra
   // THE CONTRAST EXEMPTION: every node it exempted is still held to all three of its conditions.
   checkExempt(m, where);
   ok(m.glyphs.length >= floor.glyphs, `${where}: measured ${m.glyphs.length} glyphs (floor ${floor.glyphs})`);
-  const faint = m.glyphs.filter((g) => g.r < NONTEXT_MIN);
+  const faint = m.glyphs.filter((g) => g.r < NONTEXT_MIN && g.off < 0);
   ok(faint.length === 0, `${where}: every glyph clears ${NONTEXT_MIN}:1${faint.length ? ` — ${faint.slice(0, 4).map((g) => `${g.el} ${g.r}:1`).join(' | ')}` : ''}`);
   // fonts
   ok(m.fonts.length >= floor.fonts, `${where}: read the drawn fonts of ${m.fonts.length} chrome text elements (floor ${floor.fonts})`);
@@ -1347,8 +1471,8 @@ for (const host of ['web', 'figma']) {
         ok(m.exempt.length >= 1 && m.exempt.some((x) => x.hook === 'bp-input'),
           `${where}: the contrast audit exempted ${m.exempt.length} disabled node(s), Layout's first breakpoint field among them (floor 1) — ${JSON.stringify(m.exempt.map((x) => x.el))}`);
         const c = await exemptionCanary(page);
-        ok(c.planted && c.measured && c.exempted === false && c.r < TEXT_MIN,
-          `${where}: the exemption canary, a field with the disabled field's class, hook and colors that is not disabled, is not exempted and fails ${TEXT_MIN}:1 — ${JSON.stringify(c)}`);
+        ok(canaryHolds(c),
+          `${where}: the exemption canary, a field with every computed style of the disabled field (its class and hook too) that is not disabled, is not exempted and fails its floor — ${JSON.stringify(c)}`);
       }
     }
     ok(errors.length === 0, `${host} ${theme} places: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
@@ -1856,7 +1980,7 @@ console.log(`\nActivity, the Figma menu and the Agent chip (S1.4)\n${'='.repeat(
 const COLLAPSE_MS = 4000;
 /** The Figma menu's items, by hook suffix and label: today's labels (the bar's two controls, the file-setup
  *  button) and concept v6's two option-first items. Literal. */
-const FIGMA_ITEMS = [['apply', APPLY_LABEL], ['prune', 'Prune stale'], ['file-setup', 'Set up file'], ['build', 'Build set…'], ['style-guide', 'Style guide…']];
+const FIGMA_ITEMS = [['apply', APPLY_LABEL], ['prune', 'Prune stale'], ['file-setup', 'Set up file'], ['build', 'Build set…'], ['style-guide', 'Build style guides…']];
 /** Each item's hook, spelled out so the hook guard reads every one. */
 const FIGMA_OPTION = { apply: '[data-p3="figma-option-apply"]', prune: '[data-p3="figma-option-prune"]', 'file-setup': '[data-p3="figma-option-file-setup"]',
   build: '[data-p3="figma-option-build"]', 'style-guide': '[data-p3="figma-option-style-guide"]' };
@@ -1864,7 +1988,7 @@ const FIGMA_OPTION = { apply: '[data-p3="figma-option-apply"]', prune: '[data-p3
  *  control posted), or where it opens: a legacy page (Style guide…), or since S8.2 a tab (Build set… opens the
  *  Components tab, owner decision G2 A, where the set is chosen and built). Typed here from
  *  `apps/plugin/src/messages.ts`'s names and the tab's hook. */
-const FIGMA_EFFECT = { apply: ['apply-theme'], prune: ['prune:false'], 'file-setup': ['file-setup'], build: { tab: 'components' }, 'style-guide': { page: 'style-guide' } };
+const FIGMA_EFFECT = { apply: ['apply-theme'], prune: ['prune:false'], 'file-setup': ['file-setup'], build: { tab: 'components' }, 'style-guide': { menuPage: 'style-guides' } };
 /** The Figma menu's Prune item while each half of a prune runs (`figmaActions` in main.ts). Literal. */
 const PRUNE_LABEL = { preview: '… Checking…', delete: '… Removing…' };
 /** The drawer's note, per host: concept v6's plugin line, and the studio's own. Literal. */
@@ -2181,9 +2305,11 @@ for (const host of ['web', 'figma']) {
         // that operation's row, expanded (S11). It discloses nothing in place any more. RE-HOSTED IN S8.2: Set up file
         // has no page row now (its one control is the Figma menu's, G8 A) and a build's result is the Components
         // tab's per-set line, so the one page row left with a verdict is the Style guide's, which the menu's Style
-        // guide… item opens without writing (asserted below). A style guide that failed, as the host posts it:
-        await openFigma(page);
-        await hooks.click(page.locator(FIGMA_OPTION['style-guide']), WAIT);
+        // guide… item opens without writing (asserted below). Since S11.2 that item opens the Build style guides page, and
+        // the legacy page with this row is reached from the Pages menu until the cleanup (H12). A style guide that failed,
+        // as the host posts it:
+        await hooks.click(page.locator('[data-p3="pages-menu"]'), WAIT);
+        await hooks.click(page.locator('[data-p3="rail-page-style-guide"]'), WAIT);
         await page.waitForFunction(() => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage === 'style-guide', null, { timeout: 5000 }).catch(() => {});
         await takePosts(page);
         const sgBad = { type: 'style-guide-result', ok: false, headline: '✗ style guide failed', summary: 'style guide failed: the cell components Set up file adds are missing' };
@@ -2219,14 +2345,17 @@ for (const host of ['web', 'figma']) {
           await hooks.click(page.locator(FIGMA_OPTION[id]), WAIT);
           const want = FIGMA_EFFECT[id];
           if (want.tab) await page.waitForFunction((t) => document.querySelector('[data-p3="frame"]')?.dataset.place === t, want.tab, { timeout: 5000 }).catch(() => {});
+          else if (want.menuPage) await page.waitForFunction(() => !!document.querySelector('[data-p3="style-guides"]'), null, { timeout: 5000 }).catch(() => {});
           else await page.waitForFunction((p) => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage === p, want.page, { timeout: 5000 }).catch(() => {});
           const g = await menuState(page);
           const at = await page.evaluate(() => ({ place: document.querySelector('[data-p3="frame"]')?.dataset.place ?? null,
             selected: document.querySelector('[data-p3^="tab-"][aria-selected="true"]')?.getAttribute('data-p3') ?? null,
-            sets: !!document.querySelector('[data-p3="components-build"]') }));
+            sets: !!document.querySelector('[data-p3="components-build"]'),
+            menuPage: document.querySelector('[data-p3="frame"]')?.dataset.layout === 'page' && !!document.querySelector('[data-p3="style-guides"]') }));
           const px = await takePosts(page);
-          const landed = want.tab ? at.place === want.tab && at.selected === `tab-${want.tab}` && g.page === undefined && at.sets : g.page === want.page;
-          ok(landed && px.length === 0, `Figma menu ${where}: ${FIGMA_ITEMS.find(([x]) => x === id)[1]} opens the ${want.tab ? `${want.tab} tab` : `${want.page} page`} and writes nothing — ${landed ? '' : 'nothing opened: '}place "${at.place}", tab ${at.selected}, legacy page "${g.page}", Build control ${at.sets}, posted ${JSON.stringify(px)}`);
+          const landed = want.tab ? at.place === want.tab && at.selected === `tab-${want.tab}` && g.page === undefined && at.sets
+            : want.menuPage ? at.menuPage && at.selected === null : g.page === want.page;
+          ok(landed && px.length === 0, `Figma menu ${where}: ${FIGMA_ITEMS.find(([x]) => x === id)[1]} opens the ${want.tab ? `${want.tab} tab` : `${want.page ?? want.menuPage} page`} and writes nothing — ${landed ? '' : 'nothing opened: '}place "${at.place}", tab ${at.selected}, legacy page "${g.page}", Build control ${at.sets}, posted ${JSON.stringify(px)}`);
         }
         // The bar's own Apply runs the same write the menu's item does.
         await hooks.click(page.locator('[data-p3="apply-to-figma"]'), WAIT);
@@ -3923,6 +4052,114 @@ for (const host of ['web', 'figma']) {
     ok(errors.length === 0, `${host} S4f lock and gradients: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     await ctx.close();
   }
+}
+// #2179 (owner QA, 2026-10-05): the Contrast floor row is drawn in the rows' own layout, its step picker on the right
+// beside its name, not under it. Every brand the start screen offers × every mode it previews, at 1280 and at 380, on
+// both hosts. THE ORACLE is the other three rows of Default background fills (Primary, Secondary, Tertiary), measured in
+// the same render: the floor's picker ends where theirs end (right edges within ALIGN_TOLERANCE), its top sits inside
+// its name's line (above the label's bottom edge), and it sits beside its name exactly when theirs do (at 380 as at 1280).
+// ACCESSIBLE NAMES are the browser's COMPUTED names (CDP `Accessibility.getPartialAXTree`), never the attribute: each
+// picker's contains its visible label as one contiguous piece (WCAG 2.5.3), and the floor's on Auto is exactly the
+// owner's option 1 on #2193, its mode word from the literal map below.
+{
+  const MODE_WORD = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light', 'hc-dark': 'HC dark', wireframe: 'Wireframe' };
+  /** The computed accessible name of every Default background fills picker, in row order. */
+  const axNames = async (cdp) => {
+    const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+    const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: '[data-p3="levers-pane"] [data-p3="surface-default-rows"] [data-p3="surface-row"] .p3-pick' });
+    const out = [];
+    for (const nodeId of nodeIds) {
+      const { nodes } = await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false });
+      out.push(nodes.find((n) => !n.ignored)?.name?.value ?? null);
+    }
+    return out;
+  };
+  const ctx0 = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const p0 = await ctx0.newPage();
+  await p0.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
+  await hooks.need(p0, '[data-p3="start-example"]');
+  const brands = (await p0.locator('[data-p3="start-example"]').allTextContents()).map((n) => n.trim());
+  await ctx0.close();
+  ok(brands.length >= 2, `#2179: the start screen offers the corpus brands (found ${brands.length}: ${brands.join(', ')})`);
+  const FLOOR_ROW_PROBE = () => [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="surface-default-rows"] [data-p3="surface-row"]')].map((r) => {
+    const box = (n) => { const b = n?.getBoundingClientRect(); return b && b.width > 0 ? { top: b.top, bottom: b.bottom, left: b.left, right: b.right } : null; };
+    const pk = r.querySelector('.p3-pick'), lab = pk?.querySelector('.p3-btn-label');
+    return { role: r.dataset.role, label: box(r.querySelector('.p3-fill-label')), name: box(r.querySelector('.p3-fill-label')?.closest('.p3-fill-name') ?? r.querySelector('.p3-fill-label')), pick: box(pk),
+      text: lab?.textContent ?? null, aria: pk?.getAttribute('aria-label') ?? null, title: pk?.getAttribute('title') ?? null,
+      scroll: lab ? [lab.scrollWidth, lab.clientWidth] : null };
+  });
+  let measured = 0;
+  for (const host of ['web', 'figma']) for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 800 }]) {
+    for (const brand of brands) {
+      const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: 'light' });
+      const page = await ctx.newPage();
+      await hooks.watch(page);
+      const errors = [];
+      page.on('pageerror', (e) => errors.push(`uncaught: ${e.message}`));
+      if (host === 'web') await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
+      else {
+        await page.goto(`${ORIGIN}/plugin?figma=light`, { waitUntil: 'load' });
+        await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'restore-input-empty' } }, '*'));
+      }
+      const cdp = await ctx.newCDPSession(page);
+      await cdp.send('Accessibility.enable');
+      await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: brand }));
+      await hooks.need(page, '[data-p3="frame"]');
+      await goPlace(page, 'color-fills');
+      await hooks.need(page, '[data-p3="levers-pane"] [data-p3="surface-default-rows"]');
+      const modes = await page.evaluate(() => {
+        const r = [...document.querySelectorAll('[data-p3="mode-option"]')].map((n) => n.dataset.mode);
+        return r.length ? r : [...document.querySelectorAll('[data-p3="mode-select"] option')].map((o) => o.value);
+      });
+      ok(modes.length >= 2, `#2179 ${host} ${w} ${brand}: the mode control offers ${modes.length} modes (${modes.join(', ')})`);
+      for (const mode of modes) {
+        // At 380 the mode control is on the Preview pane, and the rows on the Settings pane.
+        if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+        await showMode(page, mode);
+        if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
+        await page.waitForFunction((m) => document.querySelector('[data-p3="levers-pane"] [data-p3="surfaces-group"]')?.dataset.mode !== undefined, mode, WAIT).catch(() => {});
+        const rows = await page.evaluate(FLOOR_ROW_PROBE);
+        const where = `#2179 ${host} ${w} ${brand} / ${mode}`;
+        const floor = rows.find((r) => r.role === 'surfaces.floorStep');
+        const others = rows.filter((r) => ['background.primary', 'background.secondary', 'background.tertiary'].includes(r.role));
+        const drawn = floor?.pick && floor.label && floor.name && others.length === 3 && others.every((r) => r.pick && r.label && r.name);
+        ok(drawn, `${where}: Default background fills draws Primary, Secondary, Tertiary and Contrast floor, each with its name and its picker — read ${JSON.stringify(rows.map((r) => [r.role, { name: !!r.name, label: !!r.label, pick: !!r.pick }]))}`);
+        if (!drawn) continue;
+        measured++;
+        const besideOf = (r) => r.pick.left >= r.name.right - ALIGN_TOLERANCE && r.pick.top < r.label.bottom;
+        const offRight = others.filter((r) => Math.abs(r.pick.right - floor.pick.right) > ALIGN_TOLERANCE);
+        ok(offRight.length === 0, `${where}: the Contrast floor's picker ends at the other rows' picker edge (right ${floor.pick.right.toFixed(1)}; ${others.map((r) => `${r.role} ${r.pick.right.toFixed(1)}`).join(', ')})`);
+        ok(floor.pick.top < floor.label.bottom, `${where}: the Contrast floor's picker starts on its name's line, not under it (picker top ${floor.pick.top.toFixed(1)}, label bottom ${floor.label.bottom.toFixed(1)})`);
+        const theirs = [...new Set(others.map(besideOf))];
+        ok(theirs.length === 1 && besideOf(floor) === theirs[0], `${where}: the Contrast floor's picker sits beside its name exactly as the other rows' do (floor ${besideOf(floor) ? 'beside' : 'under'}; others ${theirs.map((b) => (b ? 'beside' : 'under')).join(', ')})`);
+        // FL1 A (owner, #2197): on Auto the button shows "Auto · ‹palette› ‹step›", the step as the picker names steps;
+        // its tooltip is the full sentence ("Auto · follows background.secondary (‹step›)") when it follows the tier, and
+        // the label itself when it does not. For prism3 the step is the committed emission's floor (`EMITTED_FLOOR`).
+        const names = await axNames(cdp);
+        rows.forEach((r, i) => { r.ax = names[i] ?? null; });
+        const auto = /^Auto\b/.test(floor.text ?? '');
+        if (auto) {
+          const step = (/^Auto · ([a-z0-9-]+ [0-9]+)$/.exec(floor.text ?? '') ?? [])[1] ?? null;
+          const want = brand === 'prism3' && EMITTED_FLOOR[mode]?.step ? `Auto · ${EMITTED_FLOOR[mode].step.split('.').join(' ')}` : null;
+          ok(step !== null && (want === null || floor.text === want), `${where}: FL1 A: the Contrast floor's Auto label reads "Auto · ‹step›"${want ? ` (${JSON.stringify(want)}, the emission's floor)` : ''} — read ${JSON.stringify(floor.text)}`);
+          const follows = floor.title === `Auto · follows background.secondary (${step})`;
+          ok(step !== null && (follows || floor.title === floor.text),
+            `${where}: FL1 A: the Contrast floor's tooltip is the full sentence for the same step, or the label where it follows no tier — read ${JSON.stringify(floor.title)}`);
+          // Owner, option 1 on #2193: "Contrast floor, ‹mode›: Auto · ‹step›, follows ‹role›. Pick a step"; with no tier
+          // followed, the rows' usual "‹row›, ‹mode›: ‹label›. Pick a step".
+          const wantName = `Contrast floor, ${MODE_WORD[mode] ?? mode}: ${floor.text}${follows ? ', follows background.secondary' : ''}. Pick a step`;
+          ok(floor.ax === wantName, `${where}: option 1: the Contrast floor's computed accessible name is ${JSON.stringify(wantName)} — read ${JSON.stringify(floor.ax)}`);
+        }
+        // WCAG 2.5.3 (label in name): each picker's computed accessible name contains its visible label as one piece.
+        const noLabel = rows.filter((r) => r.pick && !(r.text && (r.ax ?? '').includes(r.text)));
+        ok(noLabel.length === 0 && names.length === rows.length, `${where}: WCAG 2.5.3: each picker's computed accessible name contains its visible label${noLabel.length ? ` — not: ${noLabel.map((r) => `${r.role} shows ${JSON.stringify(r.text)}, named ${JSON.stringify(r.ax)}`).join('; ')}` : ''} (${names.length} names for ${rows.length} rows)`);
+        ok(!!floor.scroll && floor.scroll[0] <= floor.scroll[1], `${where}: FL1 A: the Contrast floor's label fits its button on one line, not cut off (scrollWidth ${floor.scroll?.[0]}, clientWidth ${floor.scroll?.[1]})`);
+      }
+      ok(errors.length === 0, `#2179 ${host} ${w} ${brand}: 0 uncaught errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      await ctx.close();
+    }
+  }
+  ok(measured >= brands.length * 2 * 2 * 2, `#2179: the floor row was measured in ${measured} host × brand × mode × width states (floor ${brands.length * 2 * 2 * 2})`);
 }
 // A6 (owner, 2026-10-03): the scrim's wash sits over a checkered ground, in the levers' swatch and the preview's card, so
 // it reads as translucent: both chrome themes, Light and Dark previewed. THE ORACLE is the render: the element under
@@ -8177,6 +8414,23 @@ const FOCUS_SWEEP_NEEDS = {
 };
 /** The focused controls photographed for review when a screenshot directory is given: [hook, file name part]. */
 const FOCUS_SHOTS = [['palettes-continue', 'continue'], ['density-choice-comfortable', 'chip'], ['brand-name', 'text-field'], ['tab-color', 'tab']];
+/** The Build style guides page in the sweep (S11.2): a small file, typed here, with one table of each kind, so every
+ *  option group draws; and the page's own controls the sweep must reach, its switch and its title box's fold. */
+const SG_RING_CATALOG = {
+  setUp: true,
+  collections: [
+    { id: 'C:core', name: 'core', modes: ['Default'], items: [{ name: 'pds3/core/palette/primary/100', table: 0, value: '#E0E0FF' }, { name: 'pds3/core/dimension/4', table: 1, value: '4px' }, { name: 'pds3/core/font/size/16', table: 2, value: '16px' }] },
+    { id: 'text-styles', name: 'Text styles', modes: [], textStyles: true, items: [{ name: 'body/md', table: 3, value: '' }] },
+  ],
+  tables: [
+    { key: 'color|C:core|pds3/core/palette/primary', title: 'Primary', kind: 'color', page: 'Primitive tokens', rows: 1 },
+    { key: 'dimension|C:core|pds3/core/dimension', title: 'Dimension', kind: 'dimension', page: 'Primitive tokens', rows: 1 },
+    { key: 'fontSize|C:core|pds3/core/font/size', title: 'Font size', kind: 'font', page: 'Primitive tokens', rows: 1 },
+    { key: 'typography|text-styles|body', title: 'Text styles', kind: 'text', page: 'Semantic tokens', rows: 1 },
+  ],
+  notes: [],
+};
+const SG_RING_NEEDS = ['[data-p3="sg-opt-aliases"]', '[data-p3="sg-titles-summary"]', '[data-p3="sg-draw"]', '[data-p3="sg-close"]'];
 let focusSwept = 0;
 for (const host of ['web', 'figma']) {
   let hostTotal = 0;
@@ -8210,6 +8464,27 @@ for (const host of ['web', 'figma']) {
         }
         hostTotal += rings.length;
         focusSwept += rings.length;
+      }
+      // The plugin's Build style guides page (S11.2; review of #2171), which no tab shows: its switch, its title box's
+      // fold and every other control on it, with a catalog posted so the tree and every option group are drawn.
+      if (host === 'figma') {
+        await openFigma(page);
+        await hooks.click(page.locator('[data-p3="figma-option-style-guide"]'), WAIT);
+        await hooks.need(page, '[data-p3="style-guides"]');
+        await postMsg(page, { type: 'style-guide-catalog', catalog: SG_RING_CATALOG });
+        await settle(page);
+        const rings = await focusRings(page, { all: true, max: 600, skipIn: FOCUS_SWEEP_SKIP });
+        counts.push(`build style guides ${rings.length}`);
+        ok(rings.length >= FOCUS_PLACE_FLOOR, `${where} / build style guides: the sweep read ${rings.length} chrome focus rings (floor ${FOCUS_PLACE_FLOOR})`);
+        for (const r of rings) {
+          reached.add(r.hook);
+          const miss = ringMisses(r, r.pinnedLight ? 'light' : theme);
+          if (miss.length) bad.push({ r: { ...r, hook: `build style guides ${r.hook}` }, miss });
+          lows.focus = Math.min(lows.focus, r.r);
+        }
+        hostTotal += rings.length;
+        focusSwept += rings.length;
+        for (const want of SG_RING_NEEDS) ok(reached.has(hooks.role(want)), `${where}: the sweep reaches ${want} on the Build style guides page and reads its ring`);
       }
       console.log(`  ${where}: ${counts.join(', ')}`);
       ok(bad.length === 0, `${where}: every focused chrome control draws its ring in ${FOCUS_RING_TOKEN} (${FOCUS_HEX[theme]}), at least ${FOCUS_WIDTH_MIN}px wide, ${FOCUS_OFFSET}px outside, at ${NONTEXT_MIN}:1${bad.length ? ` — ${bad.length} miss: ${ringReport(bad)}` : ''}`);
@@ -8364,6 +8639,14 @@ for (const { w, h } of START_SIZES) {
         const m = await measure(page, `${where} / start`, host, w);
         check(m, `${where} / start`, columnOf(host, w), w <= 560 ? INSPECT_NARROW_FLOOR : PLACE_FLOOR,
           { only: ['[data-p3="start-go"]', '[data-p3="start-hex"]', '[data-p3="start-example"]', '[data-p3="start-blank"]', '[data-p3="start-upload"]', '[data-p3="start-import"]'] });
+        // X4 A: Import is disabled while the paste box is empty, in Prism3's disabled outline button, under the text
+        // floor on purpose; this probe must exempt it. Then the button canary: a live copy of Import carrying every
+        // computed style of the disabled one, which must fail its floor unexempted (#2174).
+        ok(m.exempt.some((x) => x.hook === 'start-import'),
+          `${where} / start: the contrast audit exempted the disabled Import button (floor 1) — exempted ${JSON.stringify(m.exempt.map((x) => x.el))}`);
+        const bc = await exemptionCanary(page, '[data-p3="start-import"]:disabled');
+        ok(canaryHolds(bc),
+          `${where} / start: the exemption canary, a button with every computed style of the disabled Import (its class and hook too) that is not disabled, is not exempted and fails its floor — ${JSON.stringify(bc)}`);
         // Focus stays in the window, and every stop draws a ring.
         const rings = await focusRings(page);
         const ringHooks = new Set(rings.map((r) => r.hook));
@@ -8599,6 +8882,248 @@ for (const host of ['web', 'figma']) {
 }
 
 // =============================================================================================
+// X4 A (#2155) and Q28 a (#2154): a disabled button is Prism3's disabled button; no disabled control answers hover
+// =============================================================================================
+console.log(`\nX4 A, Q28 a — disabled buttons in Prism3's skin; no hover on a disabled control\n${'='.repeat(78)}`);
+/** What a control draws, read off the page: its fill, four edges and ink, the ink of every label and glyph inside it,
+ *  every dashed or dotted edge on it or inside it, and the colors and edges of it and everything inside it (so a hover
+ *  that moves any of them shows). Runs in the page. */
+const DISABLED_READ = (sel) => {
+  const n = document.querySelector(sel);
+  if (!n) return null;
+  const cs = getComputedStyle(n);
+  const inside = [n, ...n.querySelectorAll('*')];
+  const drawn = (e) => e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
+  const side = ['Top', 'Right', 'Bottom', 'Left'];
+  return {
+    tag: n.tagName.toLowerCase(), cls: n.getAttribute('class') ?? '', hook: n.getAttribute('data-p3'),
+    off: n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true',
+    fill: cs.backgroundColor, ink: cs.color, edges: side.map((x) => [cs[`border${x}Color`], cs[`border${x}Style`], parseFloat(cs[`border${x}Width`])]),
+    labels: inside.filter((e) => drawn(e) && !e.closest('svg') && [...e.childNodes].some((t) => t.nodeType === 3 && t.textContent.trim())).map((e) => getComputedStyle(e).color),
+    glyphs: [...n.querySelectorAll('svg.p3-ico')].filter(drawn).map((g) => getComputedStyle(g).color),
+    // A dashed or dotted side that draws: some width, a color that is not fully transparent, on a drawn element.
+    dashed: inside.flatMap((e) => { const c = getComputedStyle(e); return side.filter((x) => ['dashed', 'dotted'].includes(c[`border${x}Style`]) && parseFloat(c[`border${x}Width`]) > 0
+      && !/^rgba\([^)]*,\s*0\)$|^transparent$/.test(c[`border${x}Color`]) && drawn(e)).map((x) => `${e.getAttribute('class') ?? e.tagName} ${x.toLowerCase()} ${c[`border${x}Style`]}`); }),
+    look: JSON.stringify(inside.map((e) => { const c = getComputedStyle(e); return [c.backgroundColor, c.color, ...side.map((x) => `${c[`border${x}Color`]} ${c[`border${x}Style`]}`), c.outlineStyle, c.boxShadow]; })),
+  };
+};
+/** Turn a control off or on the way the chrome does for its kind: native `disabled`, `aria-disabled`, or (a color
+ *  field, which is a group) every field inside it. Returns whether it was off before, so the caller can put it back. */
+const SET_OFF = ([sel, form, on]) => {
+  const n = document.querySelector(sel);
+  if (!n) return null;
+  const was = n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true' || [...n.querySelectorAll('input')].some((x) => x.disabled);
+  if (form === 'native') n.disabled = on;
+  else if (form === 'aria') { if (on) n.setAttribute('aria-disabled', 'true'); else n.removeAttribute('aria-disabled'); }
+  else for (const x of n.querySelectorAll('input')) x.disabled = on;
+  return was;
+};
+const hoverLook = async (page, sel) => {
+  await page.mouse.move(1, 1);
+  const rest = await page.evaluate(DISABLED_READ, sel);
+  await page.locator(sel).hover({ force: true, timeout: 3000 });
+  const hovered = await page.evaluate(DISABLED_READ, sel);
+  await page.mouse.move(1, 1);
+  return { rest, hovered, moved: rest?.look !== hovered?.look };
+};
+/** One verdict line on a disabled button's skin against `DISABLED_SKIN`, read for the chrome theme drawn. */
+const skinVerdict = (r, scheme) => {
+  const appearance = DISABLED_APPEARANCE(r);
+  const want = DISABLED_SKIN(appearance, scheme);
+  const got = drawnSkin(r);
+  const labels = [...new Set(r.labels.map(paintOf))], glyphs = [...new Set(r.glyphs.map(paintOf))];
+  const pass = !!want && got.fill === want.fill && got.edge === want.edge && got.ink === want.ink && labels.every((c) => c === want.ink) && glyphs.every((c) => c === want.glyph);
+  return { appearance, want, pass, drew: { ...got, labels, glyphs } };
+};
+
+// 1. Every appearance the chrome uses, on both hosts and in both chrome themes, read on a real control: Import (outline,
+// disabled by the app while the paste box is empty), Start from this color (filled), Close (text) and the search
+// glyph (text, an icon button), and the guard's Discard (destructive, filled). The others are switched off here the
+// way the app switches a button off (`disabled`). Each must draw exactly its appearance's Prism3 disabled roles, no
+// dashed edge, and nothing on hover; switched back on, the same control answers hover (the control arm). With a
+// screenshot directory, each is saved as `2155-{web,plugin}-{light,dark}-{appearance}.png`.
+const X4_SHOT = async (page, sel, name) => {
+  if (!SHOTS) return;
+  const box = await page.locator(sel).boundingBox();
+  if (box) await page.screenshot({ path: join(SHOTS, `${name}.png`), clip: { x: Math.max(0, box.x - 12), y: Math.max(0, box.y - 12), width: box.width + 24, height: box.height + 24 } });
+};
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const where = `X4 A: ${host} ${theme}`;
+    const tag = `2155-${host === 'web' ? 'web' : 'plugin'}-${theme}`;
+    const { ctx, page, errors } = await openFirstRun({ host, theme, w: 1280, h: 900 });
+    try {
+      const scheme = await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
+      const seen = [];
+      const one = async (label, sel, natural) => {
+        await hooks.need(page, sel);
+        await page.locator(sel).scrollIntoViewIfNeeded();
+        const was = natural ? null : await page.evaluate(SET_OFF, [sel, 'native', true]);
+        const off = await hoverLook(page, sel);
+        const r = off.rest;
+        const v = skinVerdict(r, scheme);
+        seen.push(v.appearance);
+        ok(r.off && (natural ? r.tag === 'button' : was === false),
+          `${where}: ${label} (${r.hook}) is a ${natural ? 'button the app disabled' : 'button switched off here'} (off ${r.off}${natural ? '' : `, off before ${was}`})`);
+        ok(v.pass, `${where}: the disabled ${label} (${r.hook}) draws Prism3's disabled ${v.appearance} button: ${v.want?.roles} (want fill ${v.want?.fill}, edge ${v.want?.edge}, ink ${v.want?.ink}, glyph ${v.want?.glyph}; drew ${JSON.stringify(v.drew)})`);
+        ok(r.dashed.length === 0, `${where}: the disabled ${label} (${r.hook}) draws no dashed edge${r.dashed.length ? ` — ${r.dashed.join(', ')}` : ''}`);
+        ok(!off.moved, `${where}: a pointer over the disabled ${label} (${r.hook}) changes nothing (Q28 a)`);
+        await X4_SHOT(page, sel, `${tag}-${v.appearance === 'filled' && /danger/.test(r.cls) ? 'destructive' : v.appearance}${/search/.test(r.hook ?? '') ? '-icon' : ''}`);
+        await page.evaluate(SET_OFF, [sel, 'native', false]);
+        const on = await hoverLook(page, sel);
+        ok(!on.rest.off && on.moved, `${where}: control: ${label} (${r.hook}) switched on answers hover, so the probe sees a hover`);
+        if (natural) await page.evaluate(SET_OFF, [sel, 'native', true]);
+      };
+      await one('Import', '[data-p3="start-import"]', true);
+      await one('Start from this color', '[data-p3="start-go"]', false);
+      // Load the example, make one edit, and reopen the start: Close is drawn, and an example now asks first.
+      await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: 'prism3' }));
+      await hooks.need(page, '[data-p3="palettes-levers"]');
+      await goPlace(page, 'brand');
+      await page.fill('[data-p3="brand-name"]', 'prism3-edited');
+      await page.locator('[data-p3="brand-name"]').press('Enter');
+      await one('search', '[data-p3="search-open"]', false);
+      await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+      await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
+      await hooks.need(page, '[data-p3="start-screen"]');
+      await one('Close', '[data-p3="start-close"]', false);
+      await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: 'aurora' }));
+      await hooks.need(page, '[data-p3="start-guard-discard"]');
+      await one('Discard', '[data-p3="start-guard-discard"]', false);
+      ok(['outline', 'filled', 'text'].every((a) => seen.includes(a)) && seen.length === 5,
+        `${where}: every appearance the chrome uses was read disabled: outline, filled (twice, Discard among them) and text — read ${JSON.stringify(seen)}`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+}
+
+// 2. Q28 a: one control of each kind the chrome draws, switched off the way the app switches that kind off, changes
+// nothing under the pointer: no color, no edge, no fill, on itself or anything inside it, and it draws no dashed
+// edge. Switched back on, the same control answers hover (the control arm, which proves the probe sees a hover). Both
+// hosts, both chrome themes. The kinds are found on the page, the first one drawn and not chosen; a kind not found
+// fails by name.
+const HOVER_KINDS = [
+  ['button', '.p3-btn.p3-btn-page:not(.p3-chip, .p3-check, .p3-switch, .p3-mcheck, .p3-next, .p3-btn-ghost, .p3-pick, .p3-addrow)', 'native'],
+  ['picker button', '.p3-btn.p3-pick:not([aria-expanded="true"], [data-set="true"])', 'native'],
+  ['filled button', '.p3-btn.p3-next', 'native'],
+  ['ghost button', '.p3-btn.p3-btn-ghost:not(.p3-info, .p3-deplink)', 'native'],
+  ['add row', '.p3-btn.p3-addrow', 'native'],
+  ['chip', '.p3-btn.p3-chip:not([aria-pressed="true"])', 'native'],
+  ['check', '.p3-btn.p3-check:not([aria-checked="true"])', 'aria'],
+  ['matrix check', '.p3-btn.p3-mcheck:not([aria-checked="true"])', 'aria'],
+  ['switch', '.p3-btn.p3-switch', 'native'],
+  ['segmented tab', '[data-p3="levers-pane"] .p3-seg-tab:not([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"])', 'native'],
+  ['select', '[data-p3="levers-pane"] .p3-select', 'native'],
+  ['color field', '.p3-colorfield', 'inner'],
+  ['text field', '.p3-text-input:not(:disabled)', 'native'],
+  ['picker step', '.p3-step:not([aria-pressed="true"])', 'native'],
+  ['picker value', '.p3-vpick:not([aria-pressed="true"], [aria-disabled="true"])', 'aria'],
+];
+/** Mark the first drawn, enabled control matching `sel` with `data-chover`, and say whether one was found. */
+const MARK_KIND = (sel) => {
+  for (const n of document.querySelectorAll('[data-chover]')) n.removeAttribute('data-chover');
+  const n = [...document.querySelectorAll(sel)].find((x) => x.getClientRects().length && !x.closest('[inert], [data-content]')
+    && !x.matches(':disabled') && x.getAttribute('aria-disabled') !== 'true' && ![...x.querySelectorAll('input')].some((i) => i.disabled));
+  if (!n) return false;
+  n.setAttribute('data-chover', '');
+  return true;
+};
+// Where each kind is drawn: the places, and a step that opens what a place hides (Type's advanced sections, a value
+// picker on Layout, a step picker on Surfaces & fills).
+const HOVER_TOUR = [
+  ['brand', null],
+  ['color-palettes', null],
+  ['layout', async (page) => { await hooks.click(page.locator('[data-p3="levers-pane"] .p3-btn.p3-pick').first()); await hooks.need(page, '[data-p3="value-picker"]'); }],
+  ['type', openTypeAdvanced],
+  ['color-fills', async (page) => { await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="fill-pick"]').first()); await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]'); }],
+];
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const where = `Q28 a: ${host} ${theme}`;
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    try {
+      const done = new Set();
+      for (const [place, reveal] of HOVER_TOUR) {
+        await goPlace(page, place);
+        if (reveal) await reveal(page).catch(() => {});
+        for (const [kind, sel, form] of HOVER_KINDS) {
+          if (done.has(kind) || !(await page.evaluate(MARK_KIND, sel))) continue;
+          done.add(kind);
+          const m = '[data-chover]';
+          await page.locator(m).scrollIntoViewIfNeeded();
+          const on = await hoverLook(page, m);
+          await page.evaluate(SET_OFF, [m, form, true]);
+          const off = await hoverLook(page, m);
+          await page.evaluate(SET_OFF, [m, form, false]);
+          ok(on.moved, `${where}: control: an enabled ${kind} (${on.rest?.hook ?? on.rest?.cls}, on ${place}) answers hover, so the probe sees a hover`);
+          ok(off.rest?.off === true || form === 'inner', `${where}: the ${kind} (${off.rest?.hook ?? off.rest?.cls}) is off for the hover read (${form})`);
+          ok(!off.moved, `${where}: a pointer over a disabled ${kind} (${off.rest?.hook ?? off.rest?.cls}, on ${place}) changes nothing (Q28 a)`);
+          ok(off.rest?.dashed.length === 0, `${where}: a disabled ${kind} (${off.rest?.hook ?? off.rest?.cls}) draws no dashed edge${off.rest?.dashed.length ? ` — ${off.rest.dashed.join(', ')}` : ''}`);
+          if (/\bp3-(btn|vpick)\b/.test(off.rest?.cls ?? '')) {
+            const scheme = await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
+            const v = skinVerdict(off.rest, scheme);
+            ok(v.pass, `${where}: a disabled ${kind} (${off.rest.hook ?? off.rest.cls}) draws Prism3's disabled ${v.appearance} button: ${v.want?.roles} (drew ${JSON.stringify(v.drew)})`);
+          }
+          await page.evaluate(() => { for (const n of document.querySelectorAll('[data-chover]')) n.removeAttribute('data-chover'); });
+        }
+      }
+      const missing = HOVER_KINDS.map(([k]) => k).filter((k) => !done.has(k));
+      ok(missing.length === 0, `${where}: every control kind was hovered off and on (${done.size} of ${HOVER_KINDS.length})${missing.length ? ` — not found: ${missing.join(', ')}` : ''}`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+}
+
+// 3. Every control a derived mode switches off, on every place, on both hosts and in both chrome themes: no dashed
+// edge on any of them (#2155: no chrome control draws a dashed edge to mean disabled), and every disabled button draws
+// its appearance's Prism3 disabled roles. Counted, with a floor, so a sweep that found no disabled button fails.
+const DERIVED_OFF_FLOOR = 100;
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const where = `X4 A derived: ${host} ${theme}`;
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    try {
+      await showMode(page, 'hc-light');
+      const scheme = await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
+      let buttons = 0, controls = 0;
+      const bad = [], dashed = [];
+      for (const place of ['color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components']) {
+        await goPlace(page, place);
+        if (place === 'type') await openTypeAdvanced(page).catch(() => {});
+        const n = await page.evaluate(() => {
+          const offs = [...document.querySelectorAll('[data-p3="frame"] :is(button, select, input, textarea, [role="switch"], [role="checkbox"], [role="radio"])')]
+            .filter((x) => x.getClientRects().length && (x.matches(':disabled') || x.getAttribute('aria-disabled') === 'true') && x.getAttribute('aria-busy') !== 'true' && !x.closest('[data-content]'));
+          offs.forEach((x, i) => x.setAttribute('data-cderived', String(i)));
+          return offs.length;
+        });
+        for (let i = 0; i < n; i++) {
+          const r = await page.evaluate(DISABLED_READ, `[data-cderived="${i}"]`);
+          if (!r) continue;
+          controls++;
+          if (r.dashed.length) dashed.push(`${place} ${r.hook ?? r.cls}: ${r.dashed.join(', ')}`);
+          if (!/\bp3-(btn|vpick)\b/.test(r.cls)) continue;
+          buttons++;
+          const v = skinVerdict(r, scheme);
+          if (!v.pass) bad.push(`${place} ${r.hook ?? r.cls} (${v.appearance}): ${JSON.stringify(v.drew)}`);
+        }
+        await page.evaluate(() => { for (const x of document.querySelectorAll('[data-cderived]')) x.removeAttribute('data-cderived'); });
+      }
+      console.log(`  ${where}: ${controls} disabled controls read, ${buttons} of them buttons`);
+      ok(buttons >= DERIVED_OFF_FLOOR, `${where}: HC light switched off ${buttons} chrome buttons across the places (floor ${DERIVED_OFF_FLOOR})`);
+      ok(bad.length === 0, `${where}: every disabled chrome button draws its appearance's Prism3 disabled roles (${buttons} read)${bad.length ? ` — ${bad.slice(0, 4).join(' | ')}` : ''}`);
+      ok(dashed.length === 0, `${where}: no disabled chrome control draws a dashed edge (${controls} read)${dashed.length ? ` — ${dashed.slice(0, 4).join(' | ')}` : ''}`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+}
+
+// =============================================================================================
 // 29. #2175 (owner decision PN1 B, 2026-10-05): Pinned is the third neutral source on Color › Palettes
 // =============================================================================================
 // "Pinned" sits beside "Follow primary" and "Custom tint" in the Neutrals section; exactly one is selected, and Pinned is
@@ -8748,7 +9273,7 @@ hooks.report(ok);
 {
   const hit = EXEMPTIONS.filter(([, n]) => n > 0);
   const total = hit.reduce((a, [, n]) => a + n, 0);
-  console.log(`\nContrast exemption (inactive controls, WCAG 2.2 SC 1.4.3 and 1.4.11; F1 A): ${total} node(s) exempted in ${hit.length} of ${EXEMPTIONS.length} probes.`);
+  console.log(`\nContrast exemption (inactive controls, WCAG 2.2 SC 1.4.3 and 1.4.11; F1 A, X4 A): ${total} node(s) exempted in ${hit.length} of ${EXEMPTIONS.length} probes.`);
   for (const [where, n, what] of hit) console.log(`  ${where}: ${n} — ${what.join(', ')}`);
 }
 console.log(`\nLowest chrome text ${lows.text}:1, lowest edge or indicator ${lows.edge}:1, lowest focus ring ${lows.focus}:1, smallest target ${lows.target.toFixed(1)}px.`);

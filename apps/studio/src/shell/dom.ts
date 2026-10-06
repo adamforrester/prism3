@@ -58,6 +58,9 @@ const GLYPHS = {
   // their text, unlocked while they are set on their own. The same body; only the shackle differs.
   lock: '<rect x="3.2" y="7.2" width="9.6" height="6.6" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.4 7.2V5.2a2.6 2.6 0 0 1 5.2 0v2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
   unlock: '<rect x="3.2" y="7.2" width="9.6" height="6.6" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.4 7.2V5.2a2.6 2.6 0 0 1 5.1-.7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+  // S11.2: the Build style guides page's part-checked box (a dash) and a table that was not drawn (concept v6's error).
+  dash: '<path d="M4 8h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  error: '<circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.6v4.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="11.2" r="0.95" fill="currentColor"/>',
 } as const;
 export type Glyph = keyof typeof GLYPHS;
 
