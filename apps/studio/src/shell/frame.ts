@@ -54,7 +54,7 @@ import { INSPECT, TABS, homeOf, isMenuPage, isNewPage, legacyOf, newPageOf, plac
 import { glyph, h, hook, tile } from './dom';
 import { inspectMenu, modeControl, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
 import { mountActivity, type ActivityLend } from './activity';
-import { figmaMenu, type FigmaSource } from './figma';
+import { figmaMenu, type FigmaAction, type FigmaSource } from './figma';
 import { mountBar, type BarLend } from './bar';
 import { mountStyleGuides, type StyleGuidesLend } from './style-guides';
 import { THEME_CHOICES, onThemeChange, setThemePref, themeChoice } from './theme';
@@ -175,6 +175,8 @@ export const mountFrame = (app: HTMLElement, opts: {
   readonly activity: ActivityLend;
   /** The Figma menu's writes (S1.4), or null where there is no Figma file (the studio). */
   readonly figma: FigmaSource | null;
+  /** The bar's Apply Theme (#2178: no longer a Figma menu item), or null where there is no Figma file. */
+  readonly applyTheme: (() => FigmaAction) | null;
   /** The legacy renderers lent to the moved pages (S3: the Style guide, to Brand's preview), and the host's font
    *  list (S6.2, Type). */
   readonly lend: PageLends;
@@ -355,7 +357,7 @@ export const mountFrame = (app: HTMLElement, opts: {
 
   // The verdict, on the bar, after the brand switcher; then the bar's controls (S13.1), which place the shell's nodes.
   const verdict = verdictButton((opener) => openInspect('contrast', opener), cleanups);
-  const barMain = mountBar(opts.bar, { mark, verdict, activity: activity.button, agent, figma, theme, figmaSource: host === 'figma' ? opts.figma : null }, cleanups);
+  const barMain = mountBar(opts.bar, { mark, verdict, activity: activity.button, agent, figma, theme, applyTheme: host === 'figma' ? opts.applyTheme : null }, cleanups);
   barSlot.append(barMain);
 
   // ── Inspect state ───────────────────────────────────────────────────────────────────────────────
