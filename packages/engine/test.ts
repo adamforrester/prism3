@@ -14502,6 +14502,48 @@ arm: {
         "#1757 select's wrapping value is bounded THROUGH `content`, which fills the floored control — removing the control's 320 floor refuses the value BY NAME, so the filled parent is load-bearing");
     }
 
+    // ---- #1762: field-label's name HUGS and wraps at a MAX WIDTH, so the required marker follows it ----
+    // Owner decision 2026-09-30 (option 3), changing #1757's decision 2. The expected numbers are literals, not
+    // read off the def: 316 = the field's 320 default width less the 4px row gap before the marker (the marker's
+    // own width is not subtracted), on all 24 members. Each refusal is pinned BY NAME (docs/34).
+    {
+      const members = figmaAnatomySet(fieldLabel);
+      const off = members.flatMap((m) => {
+        const [text, marker] = m.root.children;
+        const bad: string[] = [];
+        if (text?.name !== 'text' || marker?.name !== 'indicator') bad.push(`children [${m.root.children.map((c) => c.name).join(', ')}]`);
+        if (text?.maxWidth !== 316) bad.push(`maxWidth ${String(text?.maxWidth)}`);
+        if (text?.layoutGrow !== undefined || text?.textAutoResize !== undefined) bad.push(`layoutGrow ${String(text?.layoutGrow)}, textAutoResize ${String(text?.textAutoResize)}`);
+        return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
+      });
+      ok(members.length === 24 && off.length === 0,
+        `#1762 field-label's name HUGS and wraps at maxWidth 316 (320 less the 4px gap) on all 24 members — no layoutGrow, no HEIGHT (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
+      // THE MARKER FOLLOWS THE NAME, not a filling box: nothing in the row grows, the row packs from its start,
+      // and the marker is the name's next sibling. A `wrap: true` name (#1757) is the filling box this refuses.
+      const rowOff = members.flatMap((m) => {
+        const kids = m.root.children;
+        const growers = kids.filter((c) => c.layoutGrow !== undefined).map((c) => c.name);
+        const i = kids.findIndex((c) => c.name === 'text');
+        return growers.length || m.root.primaryAxisAlignItems !== 'MIN' || kids[i + 1]?.name !== 'indicator'
+          ? [`${planComponentName(m)}: growers [${growers.join(', ')}], justify ${String(m.root.primaryAxisAlignItems)}, after the name '${String(kids[i + 1]?.name)}'`] : [];
+      });
+      ok(members.length === 24 && rowOff.length === 0,
+        `#1762 the required marker follows the name in the row, not a filling box — no child grows, the row packs from the start, and the marker is the name's next sibling (${rowOff.length} off — ${rowOff[0] ?? 'none'})`);
+
+      const refuses = (d: ComponentDef, ...res: RegExp[]) => validateComponentDef(d).errors.some((e) => res.every((r) => r.test(e)));
+      const flParts = fieldLabel.anatomy!.parts;
+      const withFl = (over: Record<string, unknown>) => ({ ...fieldLabel, anatomy: { ...fieldLabel.anatomy!, parts: { ...flParts, ...over } } }) as ComponentDef;
+      ok(validateComponentDef(fieldLabel).errors.length === 0, `#1762 field-label validates with wrap 'hug' (${validateComponentDef(fieldLabel).errors[0] ?? 'clean'})`);
+      ok(refuses(withFl({ label: { ...flParts.label, placementWidth: undefined } }), /'text' declares wrap 'hug'/, /not the anatomy ROOT with a 'placementWidth'/),
+        "#1762 a hugging wrap under a root with no build width is refused BY NAME — there is no width to derive the max width from");
+      ok(refuses(withFl({ label: { ...flParts.label, layout: { ...flParts.label.layout!, direction: 'column' } } }), /'text' declares wrap 'hug'/, /is not a 'row'/),
+        "#1762 a hugging wrap in a COLUMN is refused BY NAME — the max width shares a row's width with its siblings");
+      ok(refuses(withFl({ label: { ...flParts.label, padding: { block: 'gap', inlineLabel: 'gap' } } }), /'text' declares wrap 'hug'/, /declares padding/),
+        "#1762 a hugging wrap under a PADDED root is refused BY NAME — the max width does not subtract padding");
+      ok(refuses({ ...withFl({}), tokens: { ...fieldLabel.tokens, gap: 'size.small.height' } } as ComponentDef, /'text' declares wrap 'hug'/, /does not bind a step of the space ladder/),
+        "#1762 a hugging wrap whose row gap is off the space ladder is refused BY NAME — the max width subtracts the gap in px");
+    }
+
     // ---- `grow` and `paddingTop` (textarea's independent message and counter, 2026-09-25): the plan carries
     //      each exactly where declared, and each refusal fires BY NAME (docs/34) ----
     {
@@ -17174,7 +17216,8 @@ arm: {
             // and size terms beside this already do.
             const weight = (bv.strokeWeight?.value ?? bv.strokeTopWeight?.value ?? (node.strokeWeight as number)) || 0;   // #1332: the weight binds per-side
             if (bv.width) return bv.width.value ?? 0;
-            if (node.type === 'TEXT') return ((node.characters as string) || '').length * 6;
+            // A hugging text under a max width (#1762) clamps to it, as `component-shim.ts` models the host.
+            if (node.type === 'TEXT') return Math.min(((node.characters as string) || '').length * 6, typeof node.maxWidth === 'number' ? node.maxWidth : Infinity);
             // A LITERAL side (#1667's reserve beside a pinned icon) counts where the side is not bound, as on the host.
             const lit = (k: string): number => (typeof node[k] === 'number' ? node[k] as number : 0);
             const pad = (bv.paddingLeft?.value ?? lit('paddingLeft')) + (bv.paddingRight?.value ?? lit('paddingRight'));
@@ -19793,7 +19836,7 @@ arm: {
           const dive = (n: Record<string, unknown>, path: string): void => {
             const here = `${path}/${String(n.name)}`;
             if (n.type !== 'COMPONENT_SET')
-              out.push(`${here} ${String(n.layoutMode)} p:${String(n.primaryAxisSizingMode)} c:${String(n.counterAxisSizingMode)} align:${String(n.layoutAlign)} grow:${String(n.layoutGrow)} text:${String(n.textAutoResize)}${n.type === 'COMPONENT' ? ` w:${String(n.width)}` : ''}`);
+              out.push(`${here} ${String(n.layoutMode)} p:${String(n.primaryAxisSizingMode)} c:${String(n.counterAxisSizingMode)} align:${String(n.layoutAlign)} grow:${String(n.layoutGrow)} text:${String(n.textAutoResize)} mw:${String(n.maxWidth)}${n.type === 'COMPONENT' ? ` w:${String(n.width)}` : ''}`);
             for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) dive(c, here);
           };
           for (const c of page.children as Record<string, unknown>[]) dive(c, '');
@@ -19808,7 +19851,9 @@ arm: {
             /\/control HORIZONTAL p:AUTO c:AUTO /, /\/(value|placeholder) undefined .*grow:1 text:HEIGHT/]],
           [textField, [/\/label undefined p:FIXED .*align:STRETCH /, /\/message undefined p:FIXED .*align:STRETCH /, /\/content HORIZONTAL p:FIXED c:AUTO align:INHERIT grow:1 /]],
           [fieldMessage, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/text undefined .*grow:1 text:HEIGHT/]],
-          [fieldLabel, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/text undefined .*grow:1 text:HEIGHT/]],
+          // #1762: field-label's name HUGS (no grow, auto width) and wraps at its 316 max width, on both hosts —
+          // the paste twin's spliced max-width line as well as the plugin's.
+          [fieldLabel, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/text undefined .*grow:0 text:WIDTH_AND_HEIGHT mw:316$/]],
         ]);
         for (const [def, want] of FLOORS) {
           const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
