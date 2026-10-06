@@ -45,12 +45,13 @@
  * the mark, once, ahead of the brand switcher; it reads "Prism3 Studio" as text and as its accessible name, is not a
  * control, and its name is shown wide (measured at 4.5:1) and dropped narrow, the logo kept. The plugin's bar has none.
  *
- * THE HEADING RULE (section 29; heading pass 1 of 2, TY2 A, owner approval 2026-10-06), on both hosts, both themes, at 1280,
+ * THE HEADING RULE (section 29; heading pass 1 of 2, TY2 A, owner approval 2026-10-06), on both hosts, both themes, at 1280 and 380,
  * every page with its Show advanced open: each heading level's computed size, weight, line height (and L1's tracking, L3's
  * ink) and the space after it, against the chrome tokens' values read from the committed emission by this file's own walk;
  * the audit's per-page heading list, each found at its level, with literal floors on the counts; every ⓘ button's hit-min
  * target, its place after the heading text and on the line's center; and no glyph in a hint line, nor any ⓘ glyph outside
- * a button, in Light and High contrast light (HP3).
+ * a button, in Light and High contrast light (HP3); and a sweep of every heading element and heading-styled text, each of
+ * which must be a level, a table header or a reasoned exemption, with no heading tag skipping a level.
  *
  * S12 ADDS (section 28), on both hosts, both themes, at 1280 and 380 (the frame's `data-w` waited on): THE START WINDOW
  * over the studio, every owner decision against a literal typed in the section: the heading per host (G17), no Close on
@@ -8030,7 +8031,7 @@ for (const host of ['web', 'figma']) {
 
 // =============================================================================================
 // 29. The heading rule (heading pass 1 of 2, TY2 A, approved 2026-10-06): three levels on every page, both hosts, both
-//     themes, at 1280, each level's size, weight, line height and space after held to the chrome tokens' EMITTED values
+//     themes, at 1280 and 380, each level's size, weight, line height and space after held to the chrome tokens' EMITTED values
 // =============================================================================================
 // L1 section title: fs-16 / fw-strong / lh-compact / ls-snug; its description space-050 under it, its content space-300
 // after the head. L2 group heading (a lever's name, a row list's sub-heading, an Interactive group's title, a Grid
@@ -8039,6 +8040,11 @@ for (const host of ['web', 'figma']) {
 // control space-050 after it. Table headers are not a level, and keep fs-12. The ⓘ is only ever a button: it keeps its
 // hit-min target, sits space-050 after the heading text, centered on the line, and does not set the row's height; and no
 // hint line draws a glyph (HP3).
+//
+// THE SWEEP (the review of #2210): the audit's list says what each page must show, and it cannot fail on a heading it does
+// not name. So every element in the levers pane that is a heading by its tag or role (h1–h6, legend, [role="heading"]),
+// and every text drawn at fw-strong or fs-16 and up outside a control, must be one of the levels (or a table header), or
+// sit in HEADING_EXEMPT with its reason; and no heading tag skips a level after the one before it.
 //
 // INDEPENDENCE (docs/34). The elements are found by class or hook, each literal here, never by the CSS's own selectors.
 // The expected values are the EMISSION's: each chrome token the rule names is mapped, by a literal in this file, to its
@@ -8055,6 +8061,14 @@ for (const host of ['web', 'figma']) {
 //   · one hint line's glyph put back (Components' web sets hint, `glyph('info')` prepended) →
 //     `HP3 TY2 A web light 1280 / components (light): hint line components-sets-web draws a glyph — …` and
 //     `… a non-button ⓘ glyph is drawn — components-sets-web: …` (8: the web host, both themes, Light and High contrast light).
+//   · the ⓘ's overhang back on the button's own `1lh` (the narrow tier's ⓘ is ctl-h-xs tall) →
+//     `TY2 A web light 380 / color-palettes: L2 "Primary brand color" (lever name) its row is 19 tall, its line 17.5: …`
+//     (196, every one at 380, none at 1280).
+//   · a stray `h4.p3-rogue` added to Components' Density →
+//     `TY2 A web light 1280 / components: every heading in the levers pane is one of the three levels or a table header —
+//     not covered: h4.p3-rogue "Density sets" (a heading element) | … (drawn 14px / 700)` (16, with the space after Density).
+//   · a row list's sub-heading drawn as an h5 → `… / color-fills: no heading skips a level after the one before it —
+//     h3.p3-lsec-title "Foreground" h3 then h5.p3-rows-sub "Inverse" h5 | …` (8).
 console.log(`\nThe heading rule (TY2 A, heading pass 1)\n${'='.repeat(78)}`);
 /** The chrome tokens the rule names, each to its emitted path (a literal map, typed from `chrome/tokens.mjs`'s rows on
  *  2026-10-06; deliberately not imported, so the build's map and this oracle stay two derivations). */
