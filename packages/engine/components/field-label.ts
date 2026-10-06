@@ -257,11 +257,11 @@ export const fieldLabel: ComponentDef = {
         // rather than a default: the marker sits beside running text and can differ in type step, so
         // centering would float it off the label's baseline. Figma's auto-layout carries baseline
         // alignment natively, so this projects.
-        // FILLS ITS PLACEMENT, AND IS BUILT AT THE FIELD'S WIDTH (#1757, owner: the label wraps at field width
-        // rather than overflowing). Every host stretches the instance across its field, so the name wraps at
-        // the host's width; a bare instance is built 320 wide (the field floor, `field-message`'s reason) so
-        // its text never freezes at the width of the default "Label". It hugged before, and a long name ran
-        // past the field.
+        // FILLS ITS PLACEMENT, AND IS BUILT AT THE FIELD'S WIDTH (#1757). Every host stretches the instance
+        // across its field; a bare instance is built 320 wide (the field floor, `field-message`'s reason). The
+        // 320 is ALSO where the name wraps, since #1762: the name hugs and wraps at a max width derived from
+        // this `placementWidth` (see `text`), so the row is as wide as the field and the name and marker sit at
+        // its start. It hugged before #1757, and a long name ran past the field.
         layout: { direction: 'row', align: 'baseline', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         placementWidth: 320,
         gap: 'gap',
@@ -272,10 +272,29 @@ export const fieldLabel: ComponentDef = {
         type: 'size.{size}.{weight}.text',
         // No `paintSlot` — the default IS `label`, and stating it would invite the reading that the
         // field is required on every text part.
-        // WRAPS (#1757) — grows across the row and reflows inside it. The required marker therefore sits at
-        // the row's trailing end in Figma, not after the last word as it does in code (held for the owner).
-        wrap: true,
-        note: 'The accessible name. Wraps at the field\'s width rather than running past it. A native <label for> in the code projection; a plain text node in Figma, where the association cannot exist.',
+        // HUGS AND WRAPS AT A MAX WIDTH (#1762, owner-decided 2026-09-30, option 3 — this CHANGES #1757's
+        // decision 2, "the label wraps at field width"). #1757 grew the name across the row (`wrap: true`), so
+        // its box was as wide as the row and the required marker sat at the row's trailing edge in Figma
+        // ("Label ··· *" at 320), not after the last word as in code. Now the name hugs its glyphs and wraps at
+        // `maxWidth`, so the marker sits right after the name's box: after the last word on a one-line name, as
+        // in code. A name long enough to wrap fills its max width, and the marker then sits beside the wrapped
+        // box, at 316 + 4, not after the last word of the last line — a separate node cannot follow a line
+        // break, which is option 2's case and not this one's.
+        //
+        // THE MAX WIDTH IS DERIVED, NOT A NEW LITERAL: the root's `placementWidth` (320, the field's default
+        // width) less the row `gap` before the marker (`space.050` = 4px — the space scale is fixed, so every
+        // brand emits 4) = 316. The MARKER'S OWN WIDTH IS NOT SUBTRACTED: it is the advance of `*` in the brand's
+        // font at the label's size, and the engine holds no font metrics. So name + gap + marker fits inside
+        // 320 until the name reaches its max width, and a long REQUIRED name then overruns the field by the
+        // marker's width. With the marker off, the 4px stays reserved, so the name wraps 4px short of 320 —
+        // and turning the marker on does not move where the name wraps.
+        //
+        // THE OTHER ACCEPTED TRADEOFF: the max width is a literal on the main component, so a field a designer
+        // stretches wider in Figma does not move the wrap point — the label instance stretches, the name still
+        // wraps at 316. In code nothing changes: the marker flows inline after the name and the name wraps at
+        // whatever width the field gives it.
+        wrap: 'hug',
+        note: 'The accessible name. Hugs its text and wraps at a max width — the default field width less the gap before the marker — so the marker sits right after the name. A native <label for> in the code projection; a plain text node in Figma, where the association cannot exist.',
       },
       indicator: {
         kind: 'text',
@@ -301,7 +320,7 @@ export const fieldLabel: ComponentDef = {
         // `required` boolean below are two halves of one mechanism. Built HIDDEN (the boolean defaults
         // false since #1699), shown when the switch is turned on.
         optional: true,
-        note: 'The required marker ("*"), in the indicator ink beside the name. Hidden by default (the `required` boolean, off by default) and shown when the field is marked required. Never the sole signal: the field carries required / aria-required.',
+        note: 'The required marker ("*"), in the indicator ink right after the name — after its last word on one line, beside the wrapped name on more. Hidden by default (the `required` boolean, off by default) and shown when the field is marked required. Never the sole signal: the field carries required / aria-required.',
       },
     },
     codeOnly: [
@@ -413,7 +432,7 @@ export const fieldLabel: ComponentDef = {
   },
 
   docs: {
-    usage: 'Place above every field as its accessible name. Wire htmlFor to the field id. Set the `required` boolean per field (on shows the marker, off hides it), consistently across a form. Reuse the same component above every field control so the label-is-always-present contract holds family-wide.',
+    usage: 'Place above every field as its accessible name. Wire htmlFor to the field id. Set the `required` boolean per field (on shows the marker, off hides it), consistently across a form. Reuse the same component above every field control so the label-is-always-present contract holds family-wide. In code the marker flows inline after the name, and the name wraps at the field\'s width. In Figma the name wraps at a fixed max width — the default field width, 320, less the 4px gap before the marker — so the marker sits right after a one-line name. Three limits follow: a field stretched wider in Figma still wraps its name at that width; on a name long enough to wrap, the marker sits beside the wrapped name, not after its last word; and that required name runs past the field by the marker\'s width.',
     do: [
       'Always render a label, even for search (visually-hidden, still in the DOM)',
       'Keep it a short noun phrase in sentence case, no trailing colon',
@@ -457,6 +476,10 @@ export const fieldLabel: ComponentDef = {
     contested: [
       'Whether to mark required or optional — the field settled on Prism 2\'s `Required` boolean, reconciling away the old none/required/optional axis (#1338); a brand marking the optional minority instead leaves `required` off. The DEFAULT is off since #1699 (owner-delegated), where Prism 2 defaults it on: every host\'s own `required` prop defaults off, and a marker shown by default claims a requirement the field has not declared.',
       'Floating vs static label; static top-aligned is the default here (brief §2, §13).',
+      'Where the Figma name wraps (#1762, owner-decided 2026-09-30, changing #1757 decision 2): it hugs its text and wraps at a max width, so the required marker sits right after the name (after its last word on one line, beside the wrapped name on more) rather than at the row\'s trailing edge. The max width is the root `placementWidth` (320) less the row gap before the marker (4px) = 316; the marker\'s own width is not subtracted, because it is a brand-font advance the engine does not hold. Accepted tradeoffs: a field stretched wider in Figma does not widen the wrap point, and a long required name overruns 320 by the marker\'s width. The alternatives were keeping the trailing marker (option 1) and a two-colored run inside one text node (option 2, which retires the `indicator` paint slot and the node-visibility boolean).',
+    ],
+    unverified: [
+      'That Figma wraps an auto-width (`WIDTH_AND_HEIGHT`) text layer at its `maxWidth`, and places the next sibling in the row right after the clamped box, on the baseline the row aligns (#1762). The offline shims model the width and the position; no live file has measured either yet. The live check is in the #1762 PR.',
     ],
     // KB text-field brief §13, the items about the label.
     evolution: [

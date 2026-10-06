@@ -189,10 +189,10 @@ export const radioGroup: ComponentDef = {
         kind: 'nest',
         nests: 'field-label',
         nesting: { kind: 'nest-fixed', variant: { size: 'medium', emphasis: 'secondary', weight: 'bold', state: 'rest' }, follow: ['size'] },
-        // FILLS the group's width (#1757), `checkbox-group`'s label copied (#1475): a long heading wraps at the
-        // group's width instead of running past it.
+        // FILLS the group's width (#1757), `checkbox-group`'s label copied (#1475): a long heading wraps at
+        // field-label's own max width (#1762) instead of running past it.
         crossAxisFill: true,
-        note: 'The group heading and accessible name, composed rather than re-declared, configured secondary and bold, with its required marker following the group\'s `required`. Its size follows the group; a fix to FieldLabel reaches here without a copy. Fills the group\'s width, so a long heading wraps. It is MANDATORY: an unlabeled radio group announces "radio button, 1 of 3" with no idea what the choice is.',
+        note: 'The group heading and accessible name, composed rather than re-declared, configured secondary and bold, with its required marker following the group\'s `required`. Its size follows the group; a fix to FieldLabel reaches here without a copy. Fills the group\'s width; a long heading wraps at FieldLabel\'s max width. It is MANDATORY: an unlabeled radio group announces "radio button, 1 of 3" with no idea what the choice is.',
       },
       // THE STACKED ROWS (nest-fixed, FOLLOWING size). Three in-flow instances of `radio-row`, each
       // `follow`ing the group's size (a `large` group nests `large` rows). `nest-fixed`, NOT `nest-exposed`:

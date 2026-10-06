@@ -33,6 +33,7 @@ import type { ResolvedPreview } from '@prism3/engine/resolve-preview';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import { provenanceOf, noOrigin, type Origin, type Provenance } from '../provenance';
 import type { PageKey } from '../shell/pages';
+import { studioMessage } from './floor-refusal';
 
 export type Mode = ResolvedPreview['modes'][number];
 
@@ -168,7 +169,7 @@ export const rebuild = (): void => {
     lastError = null;
     persist?.(brandState);   // persist the last-good brand (web only — the plugin injects no writer; best-effort)
   } catch (e) {
-    lastError = (e as Error).message;
+    lastError = studioMessage((e as Error).message, brandState);   // a floor refusal in the studio's words (Q67 B)
   }
   invalidate('brand');
 };

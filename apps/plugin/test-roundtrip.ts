@@ -1493,7 +1493,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   const LONG = 'x'.repeat(70);
   const mainOf = (n: Node | undefined) => (n as (Node & { _main?: Node }) | undefined)?._main;
 
-  // ---- the nested label and message track the FIELD's width, and wrap at it ----
+  // ---- the nested MESSAGE tracks the FIELD's width, and wraps at it (the label is below, #1762) ----
   // Each host's control is measured at its own 320 floor and again widened to 400 (a designer's resize);
   // the nested instance must be as wide as the control both times. The long string goes on the nested
   // component's own text, so the instance's height is the text reflowed at the instance's width.
@@ -1520,9 +1520,38 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       `#1757 ${host} ${part} wraps at the field's width: on every member the ${part} is as wide as the control (320, and 400 when widened) and a ${LONG.length}-character ${part} is two ${LINE}px lines (${off.length} off — ${off[0] ?? 'none'})`);
   };
   await nestedWraps('text-field', 'message', 'text');
-  await nestedWraps('text-field', 'label', 'text');
-  await nestedWraps('select', 'label', 'text');
   await nestedWraps('select', 'message', 'text');
+
+  // ---- the nested LABEL stretches with the field, and its name wraps at field-label's 316 (#1762) ----
+  // #1757 had the label's name wrap at the field's width. Since #1762 the name hugs and wraps at a max width
+  // on the main component (320 less the 4px marker gap), so the INSTANCE still stretches with the control —
+  // 320, and 400 when widened — while the NAME stays 316 wide on two lines both times. That second half is the
+  // owner's accepted tradeoff, pinned here: a field stretched wider does not move the wrap point.
+  const nestedLabelWraps = async (host: string) => {
+    const members = await setOf(host);
+    const off: string[] = [];
+    for (const m of members) {
+      const ctl = find(m, 'control');
+      const inst = find(m, 'label');
+      const text = find(mainOf(inst), 'text');
+      if (!ctl || !inst || !text) { off.push(`${m.name}: incomplete`); continue; }
+      const was = text.characters;
+      const floor = ctl.minWidth;
+      text.characters = LONG;
+      const at320 = [W(ctl), W(inst), W(text), H(text)];
+      ctl.minWidth = WIDER;
+      const at400 = [W(ctl), W(inst), W(text), H(text)];
+      ctl.minWidth = floor;
+      text.characters = was;
+      if (!(near(at320[0], 320) && near(at320[1], 320) && near(at320[2], 316) && near(at320[3], 2 * LINE)
+        && near(at400[0], WIDER) && near(at400[1], WIDER) && near(at400[2], 316) && near(at400[3], 2 * LINE)))
+        off.push(`${m.name}: at 320 the control/label/name are ${at320.slice(0, 3).join('/')} wide and the name ${at320[3]} tall; widened, ${at400.slice(0, 3).join('/')} and ${at400[3]}`);
+    }
+    ok(members.length > 0 && off.length === 0,
+      `#1762 ${host} label stretches with the field but its name wraps at 316: on every member the label instance is as wide as the control (320, and 400 when widened), and a ${LONG.length}-character name stays 316 wide on two ${LINE}px lines both times (${off.length} off — ${off[0] ?? 'none'})`);
+  };
+  await nestedLabelWraps('text-field');
+  await nestedLabelWraps('select');
 
   // ---- a BARE field-message / field-label wraps at its 320 build width, not at its default string's ----
   const bareWraps = async (id: string) => {
@@ -1585,6 +1614,52 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     ok(members.length > 0 && off.length === 0,
       `#1757 text-field long value clips: on every member a ${VALUE50.length}-character value runs past \`content\`, which holds its width, clips it, and ends before the trailing slot; the control stays 320 wide (${off.length} off — ${off[0] ?? 'none'})`);
   }
+}
+
+// ── #1762: THE REQUIRED MARKER FOLLOWS THE NAME, measured on the built field-label ───────────────────
+// Owner decision 2026-09-30 (option 3, changing #1757's decision 2): the name hugs and wraps at a max width, so
+// the marker sits right after the name's box instead of at the row's trailing edge. Measured here on the
+// geometry the shim's layout model computes from what the executor left on the nodes, with the marker switched
+// ON. The expected numbers are literals: the shim's 6px advance, the row gap pinned to 4px (`space/050`, the
+// px every brand emits), and the 320 build width — none is read off the def or the plan.
+//   · a one-line "Label" (5 characters, 30px): the marker's x is 30 + 4 = 34, where a name filling the row
+//     puts it at 320 − 6 = 314, the trailing edge the owner saw ("Label ··· *");
+//   · a 70-character name (420px): the name clamps at 316 and takes two lines, and the marker sits at
+//     316 + 4 = 320 — past the field by its own width, the accepted tradeoff (its width is not subtracted).
+// The shim MODELS Figma's auto-width-plus-maxWidth wrap; no live file has measured it yet (see the PR).
+{
+  const LINE = 40;
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP_TARGET });
+  const def = componentDefs.find((d) => d.id === 'field-label')!;
+  const plans = project(def);
+  const lineBox = Object.fromEntries([...new Set(plans.flatMap((p) => planTextStyles(p.root)))].map((s) => [s, LINE]));
+  const page: Page = { children: [] };
+  const shim = makeShim({ ...fullFor(plans), page, layoutModel: true, textLineBox: lineBox, varPx: { 'space/050': 4 } });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+  const r = await applyComponentPlan(plans, shim as any);
+  ok(r.misses.length === 0, `#1762 seed: field-label builds on the layout-model shim with 0 misses (${r.misses[0] ?? 'none'})`);
+  const members = ((page.children.find((c) => c.type === 'COMPONENT_SET')?.children as Node[] | undefined) ?? []);
+  const kid = (m: Node, name: string) => ((m.children as Node[] | undefined) ?? []).find((c) => c.name === name);
+  const measure = (m: Node, chars: string) => {
+    const text = kid(m, 'text')!, marker = kid(m, 'indicator')!;
+    const was = [text.characters, marker.visible];
+    text.characters = chars;
+    marker.visible = true;
+    const got = { row: m.width as number, name: text.width as number, lines: (text.height as number) / LINE, x: marker.x as number, nameX: text.x as number };
+    text.characters = was[0];
+    marker.visible = was[1];
+    return got;
+  };
+  const off: string[] = [];
+  for (const m of members) {
+    if (!kid(m, 'text') || !kid(m, 'indicator')) { off.push(`${String(m.name)}: incomplete`); continue; }
+    const short = measure(m, 'Label');
+    const long = measure(m, 'x'.repeat(70));
+    if (!(short.row === 320 && short.nameX === 0 && short.name === 30 && short.x === 34 && long.name === 316 && long.lines === 2 && long.x === 320))
+      off.push(`${String(m.name)}: row ${short.row}; "Label" is ${short.name} wide at x ${short.nameX} and the marker is at ${short.x}; the long name is ${long.name} wide on ${long.lines} lines and the marker is at ${long.x}`);
+  }
+  ok(members.length === 24 && off.length === 0,
+    `#1762 field-label's required marker follows the name: at x 34 after a one-line "Label" (30 + the 4px gap, not the trailing edge at 314), and at 320 beside a 70-character name clamped at 316 on two lines, on all 24 members (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
 }
 
 // ── #1781 — THE READ-BACK NAMES A NEST THAT POINTS AT THE WRONG SET ─────────────────────────────
