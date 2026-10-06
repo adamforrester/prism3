@@ -17,11 +17,13 @@ const GROUND_ROLES = ['background.primary', 'background.secondary', 'background.
 const label = (mode: FloorMode): string => (mode === 'dark' ? 'Dark' : 'Light');
 
 /** The neutral steps `mode`'s page grounds sit on, by key (`'050'`), in ramp order, read off `input` built with
- *  `surfaces.<mode>.floorStep` removed (Auto is never refused, so that build is the one the floor has to match).
- *  Also the neutral palette's name. Null when that build fails for another reason. */
+ *  EVERY mode's `floorStep` removed (Auto is never refused, and a floor never moves a ground, so that build is the one
+ *  the floor has to match). Removing only `mode`'s floor would leave the other mode's off-ground floor to throw, and
+ *  the engine's sentence would reach the studio verbatim (#2250 review). Also the neutral palette's name. Null when
+ *  that build fails for another reason. */
 export const groundStepsOf = (input: BrandInput, mode: FloorMode): { palette: string; steps: string[] } | null => {
   const b = structuredClone(input);
-  delete (b.surfaces?.[mode] as { floorStep?: number } | undefined)?.floorStep;
+  for (const m of FLOOR_MODES) delete (b.surfaces?.[m] as { floorStep?: number } | undefined)?.floorStep;
   try {
     const t = brandTheme(b);
     const nPal = t.roleToPalette.neutral;

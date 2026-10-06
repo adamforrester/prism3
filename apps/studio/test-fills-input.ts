@@ -720,6 +720,11 @@ const REFUSAL_CASES: Array<{ input: BrandInput; want: string; wantImport: string
     wantImport: 'The contrast floor has to match a page background in Light. Choose 950, or remove floorStep to use Auto.', what: 'Light, floor 400 on a neutral 950 page (one step)' },
   { input: withFloor('light', 400, 'black'), want: 'No page background in Light sits on a neutral step, so the contrast floor stays on Auto.',
     wantImport: 'No page background in Light sits on a neutral step, so the contrast floor stays on Auto.', what: 'Light, floor 400 on a Black page (no step)' },
+  // Both modes off-ground at once: the mode being reworded must be read with the OTHER mode's floor removed too, or
+  // that floor throws and the engine's sentence passes through verbatim (#2250 review). The engine refuses Light first.
+  { input: (() => { const b = withFloor('light', 400); (b.surfaces ??= {}).dark = { ...(b.surfaces.dark ?? {}), floorStep: 400 } as never; return b; })(),
+    want: 'The contrast floor has to match a page background in Light. Choose 050 or 100, or return to Auto.',
+    wantImport: 'The contrast floor has to match a page background in Light. Choose 050 or 100, or remove floorStep to use Auto.', what: 'Light and Dark both floor 400 (both off-ground)' },
 ];
 for (const c of REFUSAL_CASES) {
   let engine: string | null = null;
