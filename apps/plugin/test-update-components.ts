@@ -169,12 +169,14 @@ section('theme — what Apply Theme moves is not a hand edit');
   const b = await build(TAG);
   // Apply Theme moves each variable's VALUE: a bound number reads a new number, a bound paint a new color,
   // and auto-layout re-derives every unbound size and position. The bindings themselves stay.
-  let moved = 0;
+  let moved = 0, movedBound = 0;
   const walk = (n: Node): void => {
     const bv = (n.boundVariables ?? {}) as Record<string, unknown>;
     // A field the shim models as a getter (an instance's measured size) is the host's to move, not ours.
-    const nudge = (k: string, by: number): void => { try { n[k] = (n[k] as number) + by; moved++; } catch { /* getter only */ } };
-    for (const k of Object.keys(bv)) if (typeof n[k] === 'number') nudge(k, 3);
+    const nudge = (k: string, by: number): boolean => { try { n[k] = (typeof n[k] === 'number' ? n[k] as number : 10) + by; moved++; return true; } catch { return false; } };
+    // A bound field reads its variable's resolved value on the host. The shim records the binding and
+    // leaves the field unset, so the value the theme moves is written here, where Figma would show it.
+    for (const k of Object.keys(bv)) if (k !== 'fills' && k !== 'strokes' && nudge(k, 3)) movedBound++;
     for (const k of ['width', 'height', 'x', 'y']) if (typeof n[k] === 'number' && !bv[k]) nudge(k, 7);
     for (const f of ['fills', 'strokes']) {
       const paints = n[f];
@@ -183,7 +185,7 @@ section('theme — what Apply Theme moves is not a hand edit');
     for (const c of (n.children as Node[] | undefined) ?? []) walk(c);
   };
   for (const m of membersOf(b.set)) walk(m);
-  ok(moved > 200, `premise: the theme moved values on many nodes (${moved})`);
+  ok(moved > 200 && movedBound > 100, `premise: the theme moved values on many nodes, many of them behind a binding (${moved}, ${movedBound} bound)`);
   const p = (await previewUpdate(b.shim, [{ def: TAG, plans: b.plans }])).sets[0];
   ok(p.handEdits.length === 0 && p.counts.current === 45, `theme/no hand edits: every member still current after the values moved (${p.handEdits.length} edits, ${p.counts.current} current)`);
 }
