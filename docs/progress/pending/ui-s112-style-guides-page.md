@@ -76,3 +76,11 @@ Every fixed sleep is gone. Each wait now names the state the next assertion read
 **Mutation, Cancel ignored** (the page's `cancel` lend a no-op), fails by name:
 - ✗ wait: 1 "style-guide-cancel" posted — not within 8000 ms; …
 - ✗ P7: Cancel asks the main thread to stop after the current table (0)
+
+### The CI failure on `e3c624b2`, found (delta review of `12528b91`)
+
+The CI line was `✗ the page asks the main thread for the file's catalog once, on open (0)`. `openPage` returns once the page is in the DOM, but the page's open request crosses `postMessage` a task later, and that arm read `__sent` with no wait. CI's later "ask again (2)" arm passed, so the request was sent, just read too early.
+
+**Reproduced:** with the page's open request delayed by 300 ms (`setTimeout(() => lend.request(), 300)`), that exact ✗ fires, and it is the only failure. **Fixed:** the arm now first waits on `posted(page, 'style-guide-catalog-request', 1)`. "Once" stays held by the later arm's exact 2. With the same 300 ms delay, the suite passes.
+
+Also: the Activity summary's skip line ("N tables skipped — this file has no … page") names the page without "↳", matching the table reason. It is in the plugin's `style-guide.ts`, under this PR's `engine: minor` note; `test-style-guide.ts` section 7's literal moved with it.
