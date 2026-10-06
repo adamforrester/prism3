@@ -10085,6 +10085,38 @@ for (const { name, patch, keep, why } of NO_HUE_CASES) {
   } finally { await ctx.close(); }
 }
 
+// #2241 (owner decision): a pinned pure gray has no hue, so Color › Palettes' neutral hue readout, the hue slider's
+// value text and the pinned color's OKLCH line all read None, never a number. Two stored forms: hue 0 (what a pick or an
+// import stores since #2241) and ~89.88° (the converter noise a brand file saved before #2241 still carries). The
+// decision is the color's CHROMA, so both must read None. A new section at the end, beside #2184's.
+for (const [form, pin] of [['stored hue 0', { l: 0.3211, c: 1.2e-8, h: 0 }], ['legacy noise hue 89.88', { l: 0.3211, c: 1.2e-8, h: 89.88 }]]) {
+  const where = `#2241 a pinned pure gray (${form}), Color › Palettes, web light 1280`;
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await page.evaluate((p) => {
+      const blob = JSON.parse(localStorage.getItem('prism3:brandInput'));
+      blob.input.neutral = { ...blob.input.neutral, anchor: p };
+      delete blob.input.neutral.auto;
+      localStorage.setItem('prism3:brandInput', JSON.stringify(blob));
+    }, pin);
+    await page.reload({ waitUntil: 'networkidle' });
+    await hooks.need(page, '[data-p3="frame"]');
+    await goPlace(page, 'color-palettes');
+    await hooks.need(page, '[data-p3="lever-neutral-hue"]');
+    const st = await page.evaluate(() => {
+      const blk = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-neutral-hue"]') ?? document.querySelector('[data-p3="lever-neutral-hue"]');
+      const sl = document.querySelector('[data-p3="neutral-hue-slider"]');
+      const meta = document.querySelector('[data-p3="lever-neutral-anchor"] .p3-colorfield-meta');
+      return { readout: blk?.querySelector('.p3-readout')?.textContent ?? null, aria: sl?.getAttribute('aria-valuetext') ?? null, meta: meta?.textContent ?? null };
+    });
+    ok(st.readout === 'None' && st.aria === 'None' && /\bNone$/.test(st.meta ?? '') && !/\b(89|90)(\.\d)?°?/.test(`${st.readout} ${st.aria} ${st.meta}`),
+      `${where}: the hue readout, the slider's value text and the OKLCH line read None, not a hue (${JSON.stringify(st)})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+
 hooks.report(ok);
 // THE CONTRAST EXEMPTION, counted per run (F1 A): how many nodes the audit exempted, over how many probes, and where.
 {

@@ -23,7 +23,7 @@
  * Pure + deterministic. Consumed by `standardToBrandInput` (standard-design-md.ts),
  * which `cli.ts` routes to for the standard `design.md` dialect.
  */
-import { hexToRgb, rgbToOklch, RGB } from './color';
+import { hexToRgb, rgbToOklch, RGB, storedOklch } from './color';
 import { OKLCH } from './theme';
 
 export type ColorRole =
@@ -61,7 +61,7 @@ export type ColorClassification = {
 
 const round = (n: number, dp = 4) => Number(n.toFixed(dp));
 const oklchOf = (hex: string): OKLCH => {
-  const o = rgbToOklch(hexToRgb(hex));
+  const o = storedOklch(rgbToOklch(hexToRgb(hex)));   // a hue-less swatch stores hue 0, never the noise (#2241)
   return { l: round(o.l), c: round(o.c), h: round(o.h, 2) };
 };
 
@@ -111,7 +111,7 @@ export const classifyColors = (colors: Record<string, string>): ColorClassificat
   for (const [token, hex] of Object.entries(colors)) {
     const role = roleOf(token);
     const rgb = hexToRgb(hex);
-    provided.push({ token, hex, rgb, oklch: rgbToOklch(rgb), role, baseRamp: baseRampFor(role, token), usedAsAnchor: false });
+    provided.push({ token, hex, rgb, oklch: storedOklch(rgbToOklch(rgb)), role, baseRamp: baseRampFor(role, token), usedAsAnchor: false });
   }
   const mark = (token: string) => { const p = provided.find((x) => x.token === token); if (p) p.usedAsAnchor = true; };
 

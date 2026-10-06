@@ -15,7 +15,7 @@
  * line, so it is never guessed at: a wrong line is worse than none.
  */
 import { brandTheme, type BrandInput } from '@prism3/engine/theme';
-import { hexToRgb, rgbToOklch } from '@prism3/engine/color';
+import { hexToRgb, rgbToOklch, storedOklch } from '@prism3/engine/color';
 import { parseDesignMd } from '@prism3/engine/design-md';
 import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '@prism3/engine/standard-design-md';
 
@@ -34,7 +34,9 @@ const NEW_BRAND = (): BrandInput => ({
 /** Seed a fresh brand from one hex color: the color's OKLCH becomes the primary, and the neutral leans to its hue. */
 export const seedFromColor = (hexVal: string): BrandInput => {
   const o = rgbToOklch(hexToRgb(hexVal));
-  return { ...NEW_BRAND(), primary: o, neutral: { hue: o.h, chroma: 0.006 } };
+  // A pure gray has no hue for the neutral to lean to (#2241), so the neutral is gray too: the owner's no-hue rule
+  // (Q58 B, Q73 A) as the fallback, which also leaves its shadows untinted. Stored with hue 0, never the noise.
+  return { ...NEW_BRAND(), primary: storedOklch(o), neutral: o.h === null ? { hue: 0, chroma: 0 } : { hue: o.h, chroma: 0.006 } };
 };
 
 /** "Start with a neutral default" (owner decision G13 A): a neutral gray primary and every default, concept v6's Blank

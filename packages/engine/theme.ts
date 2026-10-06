@@ -15,7 +15,7 @@
  */
 import { generateRamp, peakChromaL, autoPlaceStep, Step } from './ramp';
 import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight, iconSizes, IconSizeStep, controlSizes, ControlSizeStep, SPACE_BASE, GRID_BASE } from './scale';
-import { oklchToRgb, RGB, contrast, hex as rgbHex, inGamut, maxChroma, deltaE2000 } from './color';
+import { oklchToRgb, RGB, contrast, hex as rgbHex, inGamut, maxChroma, deltaE2000, ACHROMATIC_C } from './color';
 import type { ModeName, BuiltinModeName, ModeOverrides } from './modes';
 import { resolveVocabulary } from './vocabulary';
 
@@ -2542,9 +2542,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // A pure-gray pin (r = g = b) has NO hue: its chroma is ~1e-8 and the converter reports noise (~89.88°, #2241).
   // The ramp cannot show that noise at chroma ~0, but a shadow tint would (olive, ΔE00 2.23). So the shadow's
   // default is null below ACHROMATIC_C, read off the CHROMA, never off the noise hue (owner Q58 B, 2026-10-06).
-  // 1e-4 sits four orders of magnitude above that noise and well below the faintest real pin in the corpus
-  // (nb-redesign's #151415, chroma 0.0025).
-  const ACHROMATIC_C = 1e-4;
+  // ACHROMATIC_C (color.ts, #2241) is the same no-hue line the converter draws: one definition of "this gray has no hue".
   // ANY gray ramp, not only a pin (owner Q73 A): a Custom tint or Follow primary at `neutral.chroma` 0 builds a
   // gray ramp too, so the guard reads the chroma that BUILDS the ramp, the pin's or `neutral.chroma`.
   const neutralRampChroma = nAnchor ? nAnchor.c : input.neutral.chroma;

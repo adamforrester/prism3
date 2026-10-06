@@ -13,7 +13,7 @@
  */
 import type { BrandInput } from '@prism3/engine/theme';
 import { brandTheme } from '@prism3/engine/theme';
-import { hex, oklchToRgb, hexToRgb, rgbToOklch } from '@prism3/engine/color';
+import { hex, oklchToRgb, hexToRgb, rgbToOklch, storedOklch } from '@prism3/engine/color';
 import { autoPlaceStep } from '@prism3/engine/ramp';
 import { brandState, lastGoodInput, theme } from './store';
 import { resolvedModes } from './verdict';
@@ -23,7 +23,9 @@ export type StatusRole = typeof STATUS_ROLES[number];
 type OKLCH = { l: number; c: number; h: number };
 
 export const hexOf = (o: OKLCH): string => hex(oklchToRgb(o));
-export const oklchOf = (h: string): OKLCH => rgbToOklch(hexToRgb(h));
+/** A picked hex, in the stored form: a hue-less pick (a pure gray) is written with hue 0, never the converter's noise
+ *  (#2241). */
+export const oklchOf = (h: string): OKLCH => storedOklch(rgbToOklch(hexToRgb(h)));
 /** A six-digit hex, with or without its `#`, or null. */
 export const parseHex = (s: string): string | null => {
   const m = /^#?([0-9a-f]{6})$/i.exec(s.trim());
