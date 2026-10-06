@@ -6,7 +6,8 @@ unchanged. `regen` moves no committed artifact.
 - **Studio** (owner Q58 B): `domains/depth.ts`, `state/depth-motion-input.ts` and one `chrome.css` rule, plus tests in
   `test-depth-motion-input.ts` and a new section at the end of `test-chrome.mjs`.
 
-**Copy and one visual detail are DRAFTS held for owner approval** (listed below).
+**Strings for the owner:** C1–C3 and V1 are approved (owner Q72 A). The general forms G1 and G2 are DRAFTS held for
+approval (listed below).
 
 ### What changed
 
@@ -84,7 +85,7 @@ every arm the only failures in `test.ts` were these tests:
 
 Custom tint passes under (a) and (b), correctly: there, the stored hue *is* the source.
 
-### A pure-gray pin has no hue, so its shadow is untinted (owner Q58 B, 2026-10-06)
+### A gray ramp has no hue, so its shadow is untinted (owner Q58 B and Q73 A, 2026-10-06)
 
 Lane D's review found that a pin with r = g = b converts to chroma ~1e-8 and a noise hue of ~89.88° (#2241). The
 ramp can't show that noise at chroma ~0, but the shadow tint did: olive, ΔE00 2.23. The studio's hue slider also
@@ -101,19 +102,24 @@ read ~90°. The owner ruled that such a ramp has no hue, so the shadow is **unti
   only `colorRgb` and the layers, so nothing emitted changes shape.
 - **The slider is disabled and reads None.** That was the owner's choice. It keeps its `aria-valuetext` in step,
   and a hint line says why. Every mode's Auto label reads None too. Amount stays enabled.
-- **The guard covers the pin only,** as Q58 B scopes it. A Custom tint or Follow-primary neutral at `chroma: 0`
-  also builds a gray ramp, but there the hue is a user-set number rather than converter noise. That case is held
-  as an open question, not decided here.
+- **The guard covers ANY gray ramp (owner Q73 A).** It reads the chroma that *builds* the ramp, the pin's or
+  `neutral.chroma`, so a Custom tint or Follow primary at `chroma: 0` is untinted too, though its hue is a real,
+  user-set number. The decisions-log note and the slider's line name the source: the pinned wording for a pin,
+  a general one otherwise.
 - **The converter itself is untouched;** its noise is #2241.
 
-**Drafts held for owner approval** (docs/voice-standard.md):
+### Strings for the owner
 
-| # | Where | Text |
-|---|---|---|
-| C1 | the decisions-log note, for an untinted shadow | `untinted at 0.15, because the pinned gray has no hue` (with ` (pure black)` after the amount when it is 0) |
-| C2 | the hue slider's readout | `None` |
-| C3 | the line under the disabled hue slider | `The pinned gray has no hue, so shadows are untinted.` |
-| V1 | a disabled range's skin (`chrome.css`) | `accent-color: var(--p3-disabled-ink); cursor: not-allowed`, from #2152's disabled-skin family (F1 A) |
+Following docs/voice-standard.md.
+
+| # | Where | Text | Status |
+|---|---|---|---|
+| C1 | the decisions-log note, a pinned gray | `untinted at 0.15, because the pinned gray has no hue` (` (pure black)` after the amount when it is 0) | approved (Q72 A) |
+| C2 | the hue slider's readout | `None` | approved (Q72 A) |
+| C3 | the line under the disabled hue slider, a pinned gray | `The pinned gray has no hue, so shadows are untinted.` | approved (Q72 A) |
+| V1 | a disabled range's skin (`chrome.css`) | `accent-color: var(--p3-disabled-ink); cursor: not-allowed`, from #2152's disabled-skin family (F1 A) | approved (Q72 A) |
+| G1 | the decisions-log note, a gray Custom tint or Follow primary | `untinted at 0.15, because the neutral is gray` | **draft** |
+| G2 | the line under the disabled hue slider, a gray Custom tint or Follow primary | `The neutral is gray, so shadows are untinted.` | **draft** |
 
 The tests:
 - **`test.ts`:** `#333333` and `#808080`, built through the real converter, leave the shadow untinted: `tint.hue` null,
@@ -121,14 +127,19 @@ The tests:
   real pin `#151415` keeps its own hue, which holds the guard from the other side (docs/34 shape 14).
 - **`test-depth-motion-input.ts`:** the slider's source value, `brandShadowValue('tint.hue')`, is null under each
   pin, and an explicit hue then wins.
-- **`test-chrome.mjs`:** a new section at the end, outside the four open UI-lane PRs' edits. The hue slider is
-  disabled, its readout and `aria-valuetext` read None with no 89 or 90, its hint shows, and Amount stays enabled.
+- **Q73 A:** a Custom tint and a Follow primary at `chroma: 0` are untinted in `test.ts`, at the baseline and per
+  mode, and an explicit hue still tints both. Their slider value is null in `test-depth-motion-input.ts`.
+- **`test-chrome.mjs`:** a new section at the end, outside the four open UI-lane PRs' edits. It runs four cases:
+  the two pins, a gray Custom tint and a gray Follow primary. Each hue slider must be disabled, its readout and
+  `aria-valuetext` must read None with no 89 or 90, its line must give the exact reason for its source (C3 or
+  G2), and Amount must stay enabled.
 
 | Arm | Failures | ✗ line |
 |---|---|---|
 | (d) the guard removed | `test.ts` 2, studio unit 2 | `#2184 Q58 B: a pure-gray pin (#333333) leaves the shadow untinted, with no hue (… got tint.hue 89.87556274151122, color {"r":13,"g":12,"b":10} …)`, the same for `#808080`, and `✗ #333333 pinned (converter hue 89.88): the hue slider's value is null (shown as None), not ~90° … (got hue 89.87556274151122 …)` |
 | (e) the threshold raised to 1e-2 | `test.ts` 1 | `#2184 Q58 B: a faint but real pin (#151415, chroma 0.0025) still tints the shadow at its own hue (expected 325.67, got null …)` |
 | (f) the studio's disable call dropped | `test:chrome` | 26051/26053, both failures this section's: `✗ #2184 Q58 B: a pure-gray pin (#333333), web light 1280: the hue slider is disabled, reads None (not ~90°), says why, and Amount stays enabled ({"disabled":false,"aria":null,"readout":"None","hint":false,"amountEnabled":true})`, the same for `#808080`. The readout still says None through its own mapping, so the disable assertion is what fires |
+| (g) the guard scoped back to the pin (Q73 A) | `test.ts` 2, studio unit 2 | `#2184 Q73 A: a gray Custom tint (chroma 0) leaves the shadow untinted, with no hue (got tint.hue 40, color {"r":15,"g":11,"b":10} …)`, `#2184 Q73 A: a gray Follow primary (chroma 0) … (got tint.hue 195 …)`, and the studio's `✗ a gray Custom tint (chroma 0): the hue slider's value is null (shown as None), not a hue (got hue 65 …)` with its Follow-primary twin (hue 195). The pin tests stay green |
 
 ### A trap for whoever re-verifies this
 
