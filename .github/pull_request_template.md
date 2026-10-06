@@ -90,6 +90,7 @@
 - [ ] `npm run -w @prism3/studio check:ignore` → clean
 - [ ] `npm run -w @prism3/studio test:chrome` → _N/N passed_ — the new shell's chrome, measured as **rendered** (UI redesign S1.2). Run it **after both** the web and plugin builds: it drives `dist/main.js` and `dist/ui.html` across host × theme × width. Text at 4.5:1, edges and indicators at 3:1, focus rings, 24px targets, the fonts actually drawn (CDP), no shadows, no runtime inline values outside `[data-content]`, no horizontal scroll at 640, controls represented by hook with literal per-column floors, the IA-2 layer order, and the legacy frame's map. Skips the legacy pages by the literal `LEGACY_PAGES`, never by a marker the page sets. Needs the same one-off `npx playwright install chromium` as `test:smoke`
 - [ ] `npm run -w @prism3/studio lint:contrast` → clean
+- [ ] `npm run -w @prism3/studio lint:live-css` → clean — no live `styles.css` rule removed (#2201). A deliberate removal is named with `-- --accept --allow '<key>'`
 - [ ] `npm run -w @prism3/plugin typecheck` → clean
 - [ ] `npm run -w @prism3/plugin test` → _N/N passed_
 - [ ] `npm run -w @prism3/plugin build` → succeeds, 0 `node:` builtins in `dist/main.js`

@@ -19,7 +19,7 @@ export type WriteCmd = 'apply-theme' | 'build-components' | 'file-setup' | 'styl
 /** Each operation's title, as the Activity drawer shows it (`apps/studio/src/shell/activity.ts` `OP_TITLE`). Two copies, because the
  *  plugin's main thread does not bundle the shell; `test-agent-link.ts`'s `busy/titles` keeps them equal (#1995). */
 export const TITLE: Readonly<Record<WriteCmd, string>> = {
-  'apply-theme': 'Apply Theme', 'build-components': 'Build set', 'file-setup': 'Set up file', 'style-guide': 'Style guide', prune: 'Prune stale',
+  'apply-theme': 'Apply Theme', 'build-components': 'Build set', 'file-setup': 'Set up file', 'style-guide': 'Style guides', prune: 'Prune stale',
 };
 
 export const isWriteCmd = (cmd: string): cmd is WriteCmd => Object.prototype.hasOwnProperty.call(TITLE, cmd);

@@ -521,6 +521,16 @@ export const GATES: Gate[] = [
     precondition: chromiumPrecondition,
   },
   {
+    // #2201: a live styles.css rule is not removed without an explicit accept. STATIC at check time — it
+    // parses the current styles.css with Chromium's CSS parser (hence the precondition) and compares it to
+    // apps/studio/live-css.json, the rules the browser suites' pages were seen to draw. It reads neither
+    // bundle, so it declares no `after`; the sweep that records the baseline runs only under --accept.
+    id: 'lint-live-css',
+    ciStep: 'A live styles.css rule is not removed without an accept (#2201)',
+    cmd: ws('@prism3/studio', 'lint:live-css'),
+    precondition: chromiumPrecondition,
+  },
+  {
     // The FOURTH component-tier suite, and the only one whose ACTUAL comes from the HOST rather than
     // from the plan. `plugin-test` drives the executor and asserts what the executor reports;
     // this reads the built tree back and diffs it against the plan, which is the direction that
