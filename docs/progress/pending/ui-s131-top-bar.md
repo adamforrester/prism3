@@ -161,6 +161,10 @@ Mutations for the trap, each on a `git archive` copy of `a0fd52de` (the clean `t
 
 S12's `test:start` (which shares the trap) passes.
 
+**Each half held on its own** (the coordinator's follow-up: two new arms in §29, Export, both hosts, 1280 and 380). Mutations ran on a copy of `15d2efb0`, where the clean run was 20544/20544:
+- **The defer arm.** A link is planted in the footer ahead of Cancel. A link is not in `trapTab`'s list, which names buttons, inputs, text areas, selects and `tabindex`, so it tests the defer; a planted button would be in the list and would not. Tab must reach the link and go on from it to Cancel. Mutation, the defer dropped (the trap handles every Tab again): 8 failures, for example `S13.1 web dark 1280: dialog tab order: Tab reaches a focusable control the trap's list does not name, and goes on from it to Cancel (Tab dialog-close → … )`.
+- **The preview arm.** The `<pre>` has `tabindex="0"` and Tab reaches it. Mutation, its `tabindex` dropped: 8 failures, for example `S13.1 web dark 1280: dialog tab order: the export preview is a Tab stop of its own (tabindex "null") and Tab reaches it (true)`. Chromium still reaches an implicit scroller, which is why the arm also checks the attribute.
+
 **Held:**
 - **The plugin from 561 to about 1000px.** The bar wraps at the wide tier, so Export can start the second row. The owner named 1280 and 380 for the plugin; its window opens at 1280.
 - **Where the agent link's status now shows** (the old popover's two lines), above.
