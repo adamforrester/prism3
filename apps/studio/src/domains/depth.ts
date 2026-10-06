@@ -67,8 +67,8 @@ export const DEPTH_COPY = {
   hue: 'Tint hue',
   amount: 'Tint amount',
   /** The hue slider's readout, and the line under it, when the shadow has no hue to follow: the neutral ramp is gray
-   *  and no tint hue is set (#2184). The pinned form is approved (owner Q58 B, Q72 A); the general form, for a Custom
-   *  tint or Follow primary at chroma 0 (Q73 A), is a DRAFT for owner approval. */
+   *  and no tint hue is set (#2184). The pinned form is approved (owner Q58 B, Q72 A); so is the general form, for a
+   *  Custom tint or Follow primary at chroma 0 (Q73 A, Q82). */
   noHue: 'None',
   noHuePinned: 'The pinned gray has no hue, so shadows are untinted.',
   noHueGray: 'The neutral is gray, so shadows are untinted.',

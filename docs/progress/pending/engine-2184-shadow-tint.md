@@ -6,8 +6,8 @@ unchanged. `regen` moves no committed artifact.
 - **Studio** (owner Q58 B): `domains/depth.ts`, `state/depth-motion-input.ts` and one `chrome.css` rule, plus tests in
   `test-depth-motion-input.ts` and a new section at the end of `test-chrome.mjs`.
 
-**Strings for the owner:** C1–C3 and V1 are approved (owner Q72 A). The general forms G1 and G2 are DRAFTS held for
-approval (listed below).
+**Strings for the owner:** all approved. C1–C3 and V1 in owner Q72 A, and the general forms G1 and G2 in Q82
+(listed below).
 
 ### What changed
 
@@ -118,8 +118,8 @@ Following docs/voice-standard.md.
 | C2 | the hue slider's readout | `None` | approved (Q72 A) |
 | C3 | the line under the disabled hue slider, a pinned gray | `The pinned gray has no hue, so shadows are untinted.` | approved (Q72 A) |
 | V1 | a disabled range's skin (`chrome.css`) | `accent-color: var(--p3-disabled-ink); cursor: not-allowed`, from #2152's disabled-skin family (F1 A) | approved (Q72 A) |
-| G1 | the decisions-log note, a gray Custom tint or Follow primary | `untinted at 0.15, because the neutral is gray` | **draft** |
-| G2 | the line under the disabled hue slider, a gray Custom tint or Follow primary | `The neutral is gray, so shadows are untinted.` | **draft** |
+| G1 | the decisions-log note, a gray Custom tint or Follow primary | `untinted at 0.15, because the neutral is gray` | approved (Q82) |
+| G2 | the line under the disabled hue slider, a gray Custom tint or Follow primary | `The neutral is gray, so shadows are untinted.` | approved (Q82) |
 
 The tests:
 - **`test.ts`:** `#333333` and `#808080`, built through the real converter, leave the shadow untinted: `tint.hue` null,

@@ -10045,7 +10045,7 @@ for (const host of ['web', 'figma']) {
 // its own tint hue, which would win, so it is removed: the case is the DEFAULT path. Amount stays enabled: an untinted
 // shadow still lifts off pure black by its amount (Q58 B's render).
 // Owner Q73 A widened it to ANY gray ramp: a Custom tint or Follow primary at chroma 0 too, each with its own reason line
-// (the pinned form approved, Q72 A; the general form a draft). The case's `patch` is what replaces the brand's neutral.
+// (the pinned form approved in Q72 A, the general form in Q82). The case's `patch` is what replaces the brand's neutral.
 const PINNED_WHY = 'The pinned gray has no hue, so shadows are untinted.', GRAY_WHY = 'The neutral is gray, so shadows are untinted.';
 const NO_HUE_CASES = [
   { name: 'Q58 B: a pure-gray pin (#333333)', patch: { anchor: { l: 0.3211, c: 1.2e-8, h: 89.88 } }, keep: true, why: PINNED_WHY },
