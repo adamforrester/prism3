@@ -9775,9 +9775,9 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
           paneSel: sg ? '[data-p3="style-guides"]' : '[data-p3="levers-pane"]' });
         const at = `${where} / ${place}`;
         // What this page's measurements count toward: the nine pages' floors, or the style guides page's own (#2215).
-        const t = sg ? sgTally : tally;
+        const cnt = sg ? sgTally : tally;
         visited.add(place);
-        t.swept += m.swept;
+        cnt.swept += m.swept;
         ok(m.unclassified.length === 0, `${at}: every heading in the ${sg ? 'page' : 'levers pane'} is one of the three levels or a table header — not covered: ${m.unclassified.join(' | ')}`);
         ok(m.skips.length === 0, `${at}: no heading skips a level after the one before it — ${m.skips.join(' | ')}`);
         // Every heading the audit lists, at its level.
@@ -9789,7 +9789,7 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
         }
         headingCounts[place] ??= {};
         for (const f of m.found) {
-          t[f.level]++;
+          cnt[f.level]++;
           headingCounts[place][f.level] = (headingCounts[place][f.level] ?? 0) + (host === (sg ? 'figma' : 'web') && theme === 'light' && w === 1280 ? 1 : 0);
           const ty = LEVEL_TYPE[f.level];
           const name = `${f.level} "${f.text.slice(0, 40)}" (${f.kind})`;
@@ -9860,13 +9860,13 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
         }
         // L3 token labels: the level's type (their token line sits under them, space-025, as before).
         for (const t of m.tokenLabels) {
-          t.tokenLabels++;
+          cnt.tokenLabels++;
           ok(t.fs === HT['fs-14'] && t.fw === HT['fw-emphasis'] && near(t.lh, HT['fs-14'] * HT['lh-compact'], 0.05),
             `${at}: L3 token label "${t.text}" is fs-14 / fw-emphasis / lh-compact — ${t.fs} / ${t.fw} / ${t.lh}`);
         }
         // The ⓘ buttons: the hit-min target kept; in a lever's head, space-050 after the name and centered on its line.
         for (const i of m.infos) {
-          t.info++;
+          cnt.info++;
           const miss = [];
           if (!(i.w >= HT['hit-min'] && i.h >= HT['hit-min'])) miss.push(`target ${i.w} × ${i.h}, want hit-min ${HT['hit-min']} or more`);
           if (i.inHead && !near(i.dx, HT['space-050'])) miss.push(`${i.dx} after the heading text, want space-050 ${HT['space-050']}`);
