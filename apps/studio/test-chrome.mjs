@@ -5722,12 +5722,13 @@ for (const host of ['web', 'figma']) {
 // #2194 (owner, N3 A, 2026-10-06): the clash message and Release pinned sizes show only when a pinned size is what
 // the engine refuses; any other refusal shows its own reason. Both hosts. The shipped Aurora is Expressive with the
 // 16px smallest title and nothing pinned, so its Compact chip is refused for the title floor: disabled with the
-// title floor's approved reason (B8b), that reason shown under the chips, and no clash message or Release. Then a
-// real clash (prism3, display md set to 56px, refused under Expressive) still shows both. EXPECTED typed here: the
+// title floor's approved reason (Q55 B, its own sentence, not the 16px chip's B8b), that reason shown under the
+// chips, and no clash message or Release. Then a real clash (prism3, display md set to 56px, refused under
+// Expressive) still shows both. EXPECTED typed here: the
 // two sentences' words, never read from the page's module (docs/34).
 {
   const CLASH = 'Some sizes you set would clash at this scale. Release them to switch.';
-  const FLOOR = 'The Compact scale already places a title at 16px, so the engine refuses 16px with it.';
+  const FLOOR = "Compact can't be used while the title floor is 16px. Raise the title floor to use it.";
   const scaleState = (page) => page.evaluate(() => {
     const lev = document.querySelector('[data-p3="lever-typography-type-scale"]');
     const chip = (b) => ({ off: !!b?.disabled, why: b?.title ?? '' });

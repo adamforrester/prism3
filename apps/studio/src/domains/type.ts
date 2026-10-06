@@ -113,6 +113,8 @@ export const S63 = {
   // with itself (docs/34).
   scaleTip: 'Moves every heading size one step up or down the size ladder. Body, label, caption and code stay put.',
   scaleClash: 'Some sizes you set would clash at this scale. Release them to switch.',
+  /** Compact refused for the 16px title floor, on the chip and under the chips (owner decision Q55 B, APPROVED, #2194). */
+  scaleTitleFloor: "Compact can't be used while the title floor is 16px. Raise the title floor to use it.",
   release: 'Release pinned sizes',
   pinned: (n: number): string => `${n} ${n === 1 ? 'size is' : 'sizes are'} set individually. They keep their size when the scale moves.`,
   unresolved: (paths: readonly string[]): string => `${paths.length === 1 ? 'One text style' : `${paths.length} text styles`} the preview uses ${paths.length === 1 ? 'is' : 'are'} not in this brand: ${paths.join(', ')}. The preview shows a fallback.`,
@@ -548,13 +550,13 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     const c = choice(S63.scaleLabel, 'type-scale', opts, (v) => edit('typography.typeScale', () => setTypeScale(v)));
     c.set(cur);
     // #2194 (owner, N3 A): the clash message and Release only when a pinned size is the cause; any other refusal
-    // shows its own reason, the title floor's in its approved words (B8b) and the rest in the engine's own.
+    // shows its own reason, the title floor's in its approved words (Q55 B) and the rest in the engine's own (Q56 A).
     let blocked = 0;
     const other = new Set<string>();
     for (const o of opts) {
       const r = shapeBlocked(o.v, cur);
       if (!r) continue;
-      const why = r.kind === 'pinned' ? S63.scaleClash : r.kind === 'titleFloor' ? S63.titleFloorCompact : r.reason;
+      const why = r.kind === 'pinned' ? S63.scaleClash : r.kind === 'titleFloor' ? S63.scaleTitleFloor : r.reason;
       if (r.kind === 'pinned') blocked++; else other.add(why);
       const chip = c.el.querySelector<HTMLButtonElement>(`[data-value="${o.v}"]`);
       if (chip) { chip.disabled = true; chip.title = why; }
