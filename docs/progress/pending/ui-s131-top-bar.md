@@ -38,8 +38,7 @@
 - **Contrast** shows a check while every pair passes, or a warning glyph and the count below floor. Today's line is the tooltip. The name is still "Verdict: <line>. Open Inspect, Contrast", and a click still opens Inspect › Contrast. There is no checking state. The bordered verdict pill and its CSS are gone.
 - **The Agent tile (the owner's T7 A, 2026-10-05)** replaces the "Agent: Off" chip and its popover, between Theme and Activity, plugin only:
   - a click posts the same `agent-link` request the popover's switch posted, and the main thread stays the authority (off at every launch);
-  - its name and tooltip are "Agent, off" or "Agent, on";
-  - it carries `aria-pressed`, because the old control was a toggle (a `role="switch"` with `aria-checked`);
+  - its name and tooltip are the fixed "Agent", and `aria-pressed` says on or off (the toggle pattern, Q44), because the old control was a toggle (a `role="switch"` with `aria-checked`);
   - a green dot sits on the glyph only while the link is on.
   The popover's explanation line and status line ("Listening — file mailbox, every 1 s …", and an inbox error when there is one) are no longer drawn. `agentLinkStatusText` is kept, and still tested by `test-agent-link.ts`, until the owner says where that status goes.
 - **Activity's name and tooltip add "agent link on"** while the link is on (approved copy), for example "Activity, agent link on, 1 running". The plugin's Agent tile reports each state through `setAgentLinkOn` (`shell/activity.ts`).
@@ -56,7 +55,7 @@
 - Tile labels "Contrast" and "Theme" (visible for the first time; "Theme" was an accessible name only): the owner's T9.
 - Tile label "Agent" (the chip read "Agent: Off"): T7 A.
 - "Match Figma", "Light" and "Dark" on the plugin's Theme menu: T2.
-- Accessible names "Agent, on" and "Agent, off" (were "Agent: On" / "Agent: Off"): T7 A. The option the owner chose said "Screen readers hear 'Agent, on' / 'Agent, off'", and the owner answered "T7: A". The re-review is also raising these two with the owner.
+- The Agent tile's accessible name is the fixed "Agent" (was "Agent: On" / "Agent: Off"), with `aria-pressed` carrying on or off: the toggle pattern, per the owner's Q44 note and the 03:48Z re-review. An interim "Agent, on" / "Agent, off" is gone; it announced the state twice beside `aria-pressed`. The visible label "Agent" is unchanged (T7 A).
 - "agent link on" in Activity's accessible name and tooltip: T9.
 - "Prism3 Studio" on the plugin: an existing string, new to that surface; the owner asked for the plugin logo, and T1–T5 kept it in the mock.
 
@@ -145,6 +144,18 @@ Mutations for the review's fixes, each run on a `git archive` copy of `1433912a`
 - **Third try:** a `color-mix()` toward the page ground. The check could not read its computed `color(srgb …)` value and would have thrown, so the probe now reads that form too, and an ink it cannot read counts as 0, failing by name. With that fix, the mutation fails 12 times, every host, theme and width, for example `S13.1 web dark 1280 / brand menu: import error line contrast 2.94:1, at least 4.5:1 (ink color(srgb 0.638431 0.221176 0.216863), …)`. Light fails too (3.69:1), because the mix dims both themes.
 
 **The re-review's Mutation A** (Escape's `exp.focus()` removed, and `aria-modal="true"` removed), on a copy of `105dc268`: 38 failures. Every one is the new `aria-modal` assertion, for example `S13.1 web light 1280: dialog focus: the export dialog is a modal dialog (role "dialog", aria-modal "null")` and `S13.1 figma light 1280: dialog focus: the prune review is a modal dialog with focus inside it ({"role":"dialog","modal":null,"inside":true})`. Removing Escape's `exp.focus()` on its own no longer changes behavior: `paint()` now returns focus to the opener on every close, Escape included, and the Escape arm checks the outcome.
+
+**The 03:48Z re-review, one blocker and three small fixes.**
+- **The trap split the export dialog.** Its preview `<pre>` scrolls, so Chromium made it a Tab stop that the trap's list did not name. From it, Tab wrapped to the first control and Shift+Tab to the last, so Download, Cancel and Import were never reached. Two changes fix this:
+  - `trapTab` now takes over Tab only at the two ends of its list, and from the window itself; anywhere else the browser moves focus in document order;
+  - the `<pre>` is a real stop (`tabindex="0"`) and is in the list.
+  S12's start window shares the trap.
+  - New arms, Export on both hosts and prune on the plugin, at 1280 and 380: the dialog's stops are read independently of the trap's list (drawn controls, `tabindex` 0 or above, and scroll regions with nothing focusable inside them). From the first stop, Tab must visit every stop in document order, `dialog-confirm` included, and come back round; Shift+Tab must do the reverse.
+- **§29c:** a missing start window is now `ok(false, …)`, not a log line.
+- **The Agent tile** has the fixed name "Agent" and `aria-pressed`. The T7 arms check the name "Agent" and `aria-pressed` false/true.
+- **The `bar.ts` header** now says "+ New brand" reopens S12's start window.
+
+MUT_TRAP_PLACEHOLDER
 
 **Held:**
 - **The plugin from 561 to about 1000px.** The bar wraps at the wide tier, so Export can start the second row. The owner named 1280 and 380 for the plugin; its window opens at 1280.

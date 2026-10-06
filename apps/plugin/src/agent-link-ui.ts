@@ -4,7 +4,7 @@
  * PLACEMENT (UI redesign S1.4, IA-3 and D6; the owner's top-bar decision T7 A, 2026-10-05): a bar tile like Theme,
  * Activity and Export (`dom.ts` `tile`), its glyph over "Agent", in the stable `bar-agent` slot the frame renders
  * (`apps/studio/src/shell/frame.ts`) and never clears, which the bar places between Theme and Activity. A click
- * switches the link; its name is "Agent, on" or "Agent, off", with `aria-pressed`; a green dot sits on the glyph
+ * switches the link; its name is "Agent", with `aria-pressed` for on or off; a green dot sits on the glyph
  * while the link is on. Until T7 it was the "Agent: Off" chip, which opened a popover holding the switch, a line on
  * what the link does and the link's status; the chip and the popover are gone. The status line's formatter
  * (`agentLinkStatusText`) is kept, and tested, until the owner says where that status is shown. It is styled by the
@@ -60,10 +60,12 @@ export const mountAgentLink = (): void => {
   // The Agent tile (the owner's top-bar decision T7 A, 2026-10-05): a bar tile like Theme, Activity and Export, its
   // glyph over "Agent", the glyph alone when narrow. A click switches the link, the same request the old popover's
   // switch posted: the main thread is the authority, so the tile shows only the state it publishes. It is a toggle,
-  // so it carries `aria-pressed` (the old switch's `aria-checked`), and its name says the state, as the old chip's
-  // did: "Agent, on" or "Agent, off". A green dot on the glyph while the link is on; nothing while it is off.
+  // so it carries `aria-pressed` (the old switch's `aria-checked`) under the fixed name "Agent". A green dot on the glyph while the link is on; nothing while it is off.
   const wrap = h('div', 'p3-popwrap');
   const { btn: chip, mark, tip } = tile('agent-toggle', 'Agent');
+  // A toggle (the owner's Q44 note): one fixed name, and `aria-pressed` says on or off, so the state is announced once.
+  chip.setAttribute('aria-label', 'Agent');
+  tip.textContent = 'Agent';
   const dot = hook(h('span', 'p3-dot p3-agent-dot'), 'agent-dot');
   dot.setAttribute('aria-hidden', 'true');
   mark.append(glyph('agent'), dot);
@@ -71,11 +73,8 @@ export const mountAgentLink = (): void => {
 
   const render = (): void => {
     const on = !!state?.on;
-    const name = on ? 'Agent, on' : 'Agent, off';
-    chip.setAttribute('aria-label', name);
     chip.setAttribute('aria-pressed', String(on));
     chip.dataset.on = String(on);
-    tip.textContent = name;
     // Activity's name and tooltip say "agent link on" while it is (the owner's top-bar decision, 2026-10-05).
     setAgentLinkOn(on);
   };

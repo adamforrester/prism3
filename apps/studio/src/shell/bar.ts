@@ -14,7 +14,8 @@
  * Each action ends by telling the store's `bar` topic, which this subscribes to and repaints from, as the shell
  * repaints from every topic (plan §3.10). So nothing here names a legacy repaint tier, and `test-shell-imports.ts`
  * holds that, as it does for the Figma menu. It cannot see inside a lent body (its header says so): "+ New brand" is
- * `main.ts`'s, and it still returns to the start screen through `build()`, the legacy view switch, until S12.
+ * `main.ts`'s, and it reopens S12's start window over the studio (`startReopened`, `syncStart`), leaving the brand and
+ * its origin in place until a path is chosen.
  *
  * WHAT IS LEFT LENT AS A NODE: the plugin's Pages menu (`pages`), the legacy page list the plugin keeps for the Style
  * guide until S11.2 moves it into the Figma menu. It is placed where it was, after Export.
@@ -406,7 +407,10 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
         const box = h('div', 'p3-export-prevs');
         for (const f of blk.files) {
           if (f.name !== null) box.append(h('div', 'p3-export-pname', f.name));
-          box.append(h('pre', 'p3-export-pre', f.text));
+          // A scroll region, so it is a Tab stop (and in the trap's list) rather than one Chromium adds behind its back.
+          const pre = h('pre', 'p3-export-pre', f.text);
+          pre.tabIndex = 0;
+          box.append(pre);
         }
         right.append(box);
       }

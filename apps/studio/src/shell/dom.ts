@@ -125,12 +125,20 @@ const FOCUSABLE = 'button:not([disabled]), input:not([type="hidden"]):not([disab
 export const focusables = (root: HTMLElement): HTMLElement[] =>
   [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((n) => n.getClientRects().length > 0 && !n.closest('[inert]'));
 
-/** Keep Tab inside `dlg`, wrapping at both ends: a modal (`aria-modal`) window's keyboard trap. */
+/** Keep Tab inside `dlg`, wrapping at both ends: a modal (`aria-modal`) window's keyboard trap. It takes over Tab only at
+ *  the two ends of the list (and from the window itself, its fallback focus); anywhere else the browser moves focus in
+ *  document order. So a focusable node the list does not name (a scroll region Chromium makes focusable, #2124 review)
+ *  is passed through, never mistaken for an end. */
 export const trapTab = (dlg: HTMLElement, e: KeyboardEvent): void => {
   if (e.key !== 'Tab') return;
   const f = focusables(dlg);
   if (!f.length) { e.preventDefault(); return; }
-  const i = f.indexOf(document.activeElement as HTMLElement);
-  if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
-  else if (!e.shiftKey && (i < 0 || i === f.length - 1)) { e.preventDefault(); f[0].focus(); }
+  const at = document.activeElement as HTMLElement;
+  const i = f.indexOf(at);
+  if (i < 0) {
+    if (at === dlg || !dlg.contains(at)) { e.preventDefault(); (e.shiftKey ? f[f.length - 1] : f[0]).focus(); }
+    return;
+  }
+  if (e.shiftKey && i === 0) { e.preventDefault(); f[f.length - 1].focus(); }
+  else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
 };

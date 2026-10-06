@@ -1998,7 +1998,7 @@ for (const host of ['web', 'figma']) {
         // ── the Agent tile (IA-3; the owner's T7 A, 2026-10-05), in the top bar; the bottom-left chip is gone (D6) ──
         // A borderless tile between Theme and Activity, its glyph over "Agent" (the label drops at the narrow tier). A
         // click posts the same `agent-link` request the old popover's switch did; the main thread's published state is
-        // what the tile shows: "Agent, off" / "Agent, on", aria-pressed, and a green dot only while on.
+        // what the tile shows: the fixed name "Agent" (a toggle, Q44), aria-pressed false or true, and a green dot only while on.
         const agentState = () => page.evaluate(() => {
           const c = document.querySelector('[data-p3="top-bar"] [data-p3="bar-agent"] [data-p3="agent-toggle"]');
           const dot = c?.querySelector('[data-p3="agent-dot"]');
@@ -2018,8 +2018,8 @@ for (const host of ['web', 'figma']) {
           };
         });
         const a0 = await agentState();
-        ok(a0.inBar && a0.name === 'Agent, off' && a0.pressed === 'false' && !a0.dot && a0.tip === 'Agent, off' && a0.label === (narrow ? null : 'Agent'),
-          `T7 ${where}: the Agent tile sits in the top bar's Agent slot, named "Agent, off", not pressed, no dot, ${narrow ? 'its label dropped' : 'labelled "Agent"'} (${JSON.stringify(a0)})`);
+        ok(a0.inBar && a0.name === 'Agent' && a0.pressed === 'false' && !a0.dot && a0.tip === 'Agent' && a0.label === (narrow ? null : 'Agent'),
+          `T7 ${where}: the Agent tile sits in the top bar's Agent slot, named "Agent", aria-pressed false, no dot, ${narrow ? 'its label dropped' : 'labelled "Agent"'} (${JSON.stringify(a0)})`);
         hooks.absent(ok, { seen: chip.inBar, state: 'the Agent tile in the top bar' }, !chip.old && !chip.popover && chip.strays.length === 0,
           `D6 ${where}: the old chips are gone — no bottom-left chip, no Agent chip or popover, and nothing outside the frame names an agent or holds a button (found ${JSON.stringify(chip.strays)}, #p3-agent-link ${chip.old ? 'present' : 'absent'}, chip or popover ${chip.popover ? 'present' : 'absent'})`);
         const slot = await page.evaluate(() => { const s0 = document.querySelector('[data-p3="bar-agent"]'); s0.__p3Mark = 'slot'; return true; });
@@ -2033,9 +2033,9 @@ for (const host of ['web', 'figma']) {
         const sw = await takeWrites(page);
         ok(isWire(sw, AGENT_WIRE), `T7 ${where}: a click on the Agent tile asks the main thread to turn the link on, ${JSON.stringify(AGENT_WIRE)} (posted ${JSON.stringify(sw)})`);
         await postMsg(page, { type: 'agent-link-state', state: AGENT_ON });
-        await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-label') === 'Agent, on', null, { timeout: 5000 }).catch(() => {});
+        await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'true', null, { timeout: 5000 }).catch(() => {});
         const a1 = await agentState();
-        ok(a1.name === 'Agent, on' && a1.pressed === 'true' && a1.dot && a1.tip === 'Agent, on', `T7 ${where}: the main thread's state turns the tile on: "Agent, on", pressed, the dot drawn (${JSON.stringify(a1)})`);
+        ok(a1.name === 'Agent' && a1.pressed === 'true' && a1.dot && a1.tip === 'Agent', `T7 ${where}: the main thread's state turns the tile on: named "Agent", aria-pressed true, the dot drawn (${JSON.stringify(a1)})`);
         const mc = await measure(page, `${where} / Agent on`, host, w);
         check(mc, `${where} / Agent on`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="agent-toggle"]'] });
         await shot('agent');
@@ -2043,9 +2043,9 @@ for (const host of ['web', 'figma']) {
         const sw2 = await takeWrites(page);
         ok(isWire(sw2, { type: 'agent-link', on: false }), `T7 ${where}: a click while on asks the main thread to turn the link off (posted ${JSON.stringify(sw2)})`);
         await postMsg(page, { type: 'agent-link-state', state: { ...AGENT_ON, on: false, since: null } });
-        await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-label') === 'Agent, off', null, { timeout: 5000 }).catch(() => {});
+        await page.waitForFunction(() => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === 'false', null, { timeout: 5000 }).catch(() => {});
         const a2 = await agentState();
-        ok(a2.name === 'Agent, off' && a2.pressed === 'false' && !a2.dot, `T7 ${where}: the published off state clears the dot and the pressed state (${JSON.stringify(a2)})`);
+        ok(a2.name === 'Agent' && a2.pressed === 'false' && !a2.dot, `T7 ${where}: the published off state clears the dot and the pressed state (${JSON.stringify(a2)})`);
 
         // ── the Figma menu: by keyboard, then each item's action ──────────────────────────────────
         await page.locator('[data-p3="figma-open"]').focus();
@@ -7638,6 +7638,38 @@ const STRIP_PROBE = () => {
     fullWidth: Math.abs(r.left - frame.left) <= 1 && Math.abs(r.right - frame.right) <= 1, underBar: Math.abs(r.top - bar.bottom) <= 1,
     rect: [Math.round(r.left), Math.round(r.top), Math.round(r.right)], barBottom: Math.round(bar.bottom) };
 };
+/** A modal dialog's Tab order, walked (#2124 review): its keyboard stops, read independently of the trap's own list
+ *  (every drawn control, any `tabindex` of 0 or more, and every scroll region with no focusable inside it, which
+ *  Chromium makes a stop), in document order; then Tab from the first stop around to it again, and Shift+Tab the same,
+ *  recording each. Returns both walks and the expected order, by hook (or tag when unhooked). */
+const tabWalk = async (page, role) => {
+  const stops = await page.evaluate((r) => {
+    const d = document.querySelector(`[data-p3="${r}"]`);
+    const drawn = (n) => n.getClientRects().length > 0 && getComputedStyle(n).visibility !== 'hidden';
+    const ctl = 'button:not([disabled]), input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]';
+    const all = [...d.querySelectorAll('*')].filter((n) => {
+      if (!drawn(n)) return false;
+      if (n.matches(ctl)) return !(n.hasAttribute('tabindex') && n.tabIndex < 0);
+      const cs = getComputedStyle(n);
+      const scrolls = /(auto|scroll)/.test(cs.overflowY + cs.overflowX) && (n.scrollHeight > n.clientHeight + 1 || n.scrollWidth > n.clientWidth + 1);
+      return scrolls && !n.querySelector(ctl);
+    });
+    all.forEach((n, i) => { n.dataset.tabstop = String(i); });
+    return all.map((n) => n.getAttribute('data-p3') ?? n.tagName.toLowerCase());
+  }, role);
+  const here = () => page.evaluate(() => { const a = document.activeElement; return a?.dataset.tabstop ?? `out:${a?.getAttribute('data-p3') ?? a?.tagName}`; });
+  await page.evaluate(() => document.querySelector('[data-tabstop="0"]')?.focus());
+  const fwd = ['0'];
+  for (let i = 0; i < stops.length + 2; i++) { await page.keyboard.press('Tab'); const h = await here(); if (h === '0') break; fwd.push(h); }
+  await page.evaluate(() => document.querySelector('[data-tabstop="0"]')?.focus());
+  const back = ['0'];
+  for (let i = 0; i < stops.length + 2; i++) { await page.keyboard.press('Shift+Tab'); const h = await here(); if (h === '0') break; back.push(h); }
+  const want = stops.map((_, i) => String(i));
+  const wantBack = ['0', ...want.slice(1).reverse()];
+  const name = (k) => (/^\d+$/.test(k) ? stops[Number(k)] : k);
+  return { ok: JSON.stringify(fwd) === JSON.stringify(want) && JSON.stringify(back) === JSON.stringify(wantBack),
+    fwd: fwd.map(name), back: back.map(name), stops, confirm: fwd.map(name).includes('dialog-confirm') };
+};
 /** The bar, read as rendered (the owner's "A · Menu bar", 2026-10-05). Colors are compared by resolving the chrome's
  *  own variables on a probe node, removed before anything else is read. */
 const BAR_PROBE = () => {
@@ -7715,7 +7747,7 @@ for (const { w, h } of WIDTHS) {
         ok(bp.tiles.length === (host === 'web' ? 4 : 5), `${where}: bar tiles: Contrast, Theme, ${host === 'web' ? '' : 'Agent, '}Activity and Export all measured (${bp.tiles.map((x) => x.k).join(', ')})`);
         for (const t of bp.tiles) {
           const want = TILE_LABEL[t.k];
-          const nameOk = t.k === 'export-open' ? t.name === 'Export' : t.k === 'activity-open' ? /^Activity(, |$)/.test(t.name ?? '') : t.k === 'theme-toggle' ? /^Theme: /.test(t.name ?? '') : t.k === 'agent-toggle' ? /^Agent, (on|off)$/.test(t.name ?? '') : /^Verdict: .+\. Open Inspect, Contrast$/.test(t.name ?? '');
+          const nameOk = t.k === 'export-open' ? t.name === 'Export' : t.k === 'activity-open' ? /^Activity(, |$)/.test(t.name ?? '') : t.k === 'theme-toggle' ? /^Theme: /.test(t.name ?? '') : t.k === 'agent-toggle' ? t.name === 'Agent' : /^Verdict: .+\. Open Inspect, Contrast$/.test(t.name ?? '');
           const tipOk = t.k === 'verdict' ? t.name === `Verdict: ${t.tip}. Open Inspect, Contrast` : t.tip === t.name;
           ok(t.borderless && t.clear && t.glyph && (narrow ? t.label === null : t.label === want) && t.labelHidden && nameOk && tipOk && t.tipHidden,
             `${where}: bar tiles: ${t.k} is borderless (${t.borderless && t.clear}) with its glyph (${t.glyph}), ${narrow ? 'its label dropped' : `labelled "${want}"`} ("${t.label}"), named "${t.name}", its tooltip "${t.tip}"`);
@@ -7810,6 +7842,13 @@ for (const { w, h } of WIDTHS) {
           const back = await dlgAt();
           ok(!back.open && back.focus === 'export-open', `${where}: dialog focus: ${how} closes the export dialog back to Export (open ${back.open}, focus on "${back.focus}")`);
         }
+        if (w !== 640) {
+          await hooks.click(page.locator('[data-p3="export-open"]'));
+          await hooks.need(page, '[data-p3="export-dialog"]');
+          const tw = await tabWalk(page, 'export-dialog');
+          ok(tw.ok && tw.confirm, `${where}: dialog tab order: Tab from the export dialog's first control visits every stop, Download included, and Shift+Tab the reverse (stops ${tw.stops.join(', ')}; Tab ${tw.fwd.join(' → ')}; Shift+Tab ${tw.back.join(' → ')})`);
+          await page.keyboard.press('Escape');
+        }
         // ── the overwrite confirm (web) and the prune review (plugin), measured as chrome (#2124 review, finding 3d) ──
         if (w === 1280 && host === 'web') {
           await page.evaluate(() => window.__prism3TestEdit('id', 'edited-brand'));
@@ -7823,9 +7862,11 @@ for (const { w, h } of WIDTHS) {
           await hooks.click(page.locator('[data-p3="overwrite-cancel"]'));
           await page.keyboard.press('Escape');
         }
-        if (w === 1280 && host === 'figma') {
+        if (w !== 640 && host === 'figma') {
           await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'prune-result', ok: true, applied: false, count: 2, summary: 'Would remove 2 items: 2 variables.' } }, '*'));
           await hooks.need(page, '[data-p3="prune-dialog"]');
+          const pw = await tabWalk(page, 'prune-dialog');
+          ok(pw.ok && pw.confirm, `${where}: dialog tab order: Tab from the prune review's first control visits every stop, its Delete included, and Shift+Tab the reverse (stops ${pw.stops.join(', ')}; Tab ${pw.fwd.join(' → ')}; Shift+Tab ${pw.back.join(' → ')})`);
           const pm = await page.evaluate(() => { const d = document.querySelector('[data-p3="prune-dialog"]'); return { role: d?.getAttribute('role'), modal: d?.getAttribute('aria-modal'), inside: !!document.activeElement?.closest('[data-p3="prune-dialog"]') }; });
           ok(pm.role === 'dialog' && pm.modal === 'true' && pm.inside, `${where}: dialog focus: the prune review is a modal dialog with focus inside it (${JSON.stringify(pm)})`);
           // Every way out but Cancel (held below, after the measure) returns focus to the Figma menu, its opener.
@@ -7839,7 +7880,7 @@ for (const { w, h } of WIDTHS) {
             await hooks.need(page, '[data-p3="prune-dialog"]');
           }
           const mp = await measure(page, `${where} / prune review`, host, w);
-          check(mp, `${where} / prune review`, column, PLACE_FLOOR, { extra: ['[data-p3="dialog-confirm"]', '[data-p3="dialog-cancel"]'] });
+          check(mp, `${where} / prune review`, column, narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: ['[data-p3="dialog-confirm"]', '[data-p3="dialog-cancel"]'] });
           const pc = await page.evaluate(INK_PROBE, '[data-p3="prune-dialog"] .p3-bardlg-desc');
           ok(pc.r >= TEXT_MIN, `${where} / prune review: its sentence's contrast ${pc.r}:1, at least ${TEXT_MIN}:1`);
           await hooks.click(page.locator('[data-p3="prune-dialog"] [data-p3="dialog-cancel"]'));
@@ -7989,7 +8030,7 @@ for (const host of ['web', 'figma']) {
               const dr = d?.getBoundingClientRect(), ir = ic?.getBoundingClientRect(), cs = d ? getComputedStyle(d) : null;
               return { k, shown: !!dr && dr.width > 0 && cs.display !== 'none', state: d?.dataset.state ?? (b?.dataset.on === 'true' ? 'on' : 'off'),
                 dx: dr && ir ? Math.round((dr.right - ir.right) * 10) / 10 : null, dy: dr && ir ? Math.round((dr.top - ir.top) * 10) / 10 : null,
-                color: cs ? cs.backgroundColor : null, okColor, name: b?.getAttribute('aria-label'),
+                color: cs ? cs.backgroundColor : null, okColor, name: b?.getAttribute('aria-label'), pressed: b?.getAttribute('aria-pressed'),
                 // Filled, the same shape on every tile (owner, 2026-10-05): a solid fill and no visible ring.
                 filled: !!cs && cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && (parseFloat(cs.borderTopWidth) === 0 || cs.borderTopStyle === 'none' || cs.borderTopColor === cs.backgroundColor) };
             });
@@ -8000,7 +8041,7 @@ for (const host of ['web', 'figma']) {
           ok(ag.filled && ac.filled, `${where}: tile dots: every dot is filled, Activity "${ac.state}" too (Agent filled ${ag.filled}, Activity filled ${ac.filled})`);
           ok(ag.color === ag.okColor && ac.color === ac.okColor,
             `${where}: tile dots: Agent "on" and Activity "${ac.state}" draw in the ok green ${ag.okColor} (Agent ${ag.color}, Activity ${ac.color})`);
-          ok(ag.name === 'Agent, on' && /^Activity, agent link on, 1 running$/.test(ac.name ?? ''),
+          ok(ag.name === 'Agent' && ag.pressed === 'true' && /^Activity, agent link on, 1 running$/.test(ac.name ?? ''),
             `${where}: tile dots: the names still carry the state ("${ag.name}", "${ac.name}")`);
           // D-RED A: a failure's dot is red; a warning's (an attention state that is not a failure) is green.
           const actDot = () => page.evaluate(() => { const d = document.querySelector('[data-p3="activity-open"] .p3-tile-mark > .p3-status-dot');
@@ -8070,7 +8111,7 @@ for (const host of ['web', 'figma']) {
       const tracks = (n) => (n ? getComputedStyle(n).gridTemplateColumns.split(' ').filter(Boolean).length : null);
       return { start: !!col, startTracks: tracks(col), exportOpen: !!exp, exportTracks: tracks(exp) };
     });
-    if (!st.start) console.log(`  ${where}: no start window in this build (S12, #2142, not merged): the legacy start screen replaced the frame, so there is nothing to compare yet`);
+    if (!st.start) ok(false, `${where}: the start window opened over the export dialog ("+ New brand" drew no start window: ${JSON.stringify(st)})`);
     else {
       ok(st.exportOpen, `${where}: the export dialog is still open under the start window (${JSON.stringify(st)})`);
       ok(st.startTracks === 1, `${where}: dialog scope: the start window's body lays its cards out in one column with the export dialog open (${st.startTracks} tracks; ${JSON.stringify(st)})`);
