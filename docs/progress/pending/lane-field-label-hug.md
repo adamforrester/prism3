@@ -1,6 +1,6 @@
 ## (2026-09-30) — Field label: the name hugs and wraps at a max width, so the required marker follows it (#1762)
 
-**STATUS: PR open from `lane/field-label-hug`, labeled DO NOT MERGE.** Owner decision 2026-09-30, option 3 of #1762, which **changes #1757's decision 2** ("the label wraps at field width"). Decision record: `docs/28` §5.5, indexed in `docs/42`. **ENGINE minor bump to {{ENGINE_VERSION}}** (the projected component surface moves; change note `packages/engine/changes/lane-field-label-hug.md`). CONTRACT stands.
+**STATUS: PR #1832 open from `lane/field-label-hug`, approved by the owner on 2026-10-06 without screenshots; the live check below is still to run.** Owner decision 2026-09-30, option 3 of #1762, which **changes #1757's decision 2** ("the label wraps at field width"). Decision record: `docs/28` §5.5, indexed in `docs/42`. **ENGINE minor bump to {{ENGINE_VERSION}}** (the projected component surface moves; change note `packages/engine/changes/lane-field-label-hug.md`). CONTRACT stands.
 
 **The defect the owner saw.** #1757 grew field-label's name across its row (`wrap: true`: `layoutGrow: 1` + `textAutoResize: HEIGHT`), so the name's box was the row's width and the required marker, a separate text node, sat at the row's trailing edge: "Label ··· *" at 320. In code the marker flows inline after the name.
 
