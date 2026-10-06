@@ -3963,8 +3963,8 @@ for (const host of ['web', 'figma']) {
         const where = `#2179 web ${w} ${brand} / ${mode}`;
         const floor = rows.find((r) => r.role === 'surfaces.floorStep');
         const others = rows.filter((r) => ['background.primary', 'background.secondary', 'background.tertiary'].includes(r.role));
-        const drawn = floor?.pick && floor.label && others.length === 3 && others.every((r) => r.pick && r.label && r.name);
-        ok(drawn, `${where}: Default background fills draws Primary, Secondary, Tertiary and Contrast floor, each with its picker — read ${JSON.stringify(rows.map((r) => [r.role, !!r.pick]))}`);
+        const drawn = floor?.pick && floor.label && floor.name && others.length === 3 && others.every((r) => r.pick && r.label && r.name);
+        ok(drawn, `${where}: Default background fills draws Primary, Secondary, Tertiary and Contrast floor, each with its name and its picker — read ${JSON.stringify(rows.map((r) => [r.role, { name: !!r.name, label: !!r.label, pick: !!r.pick }]))}`);
         if (!drawn) continue;
         measured++;
         const besideOf = (r) => r.pick.left >= r.name.right - ALIGN_TOLERANCE && r.pick.top < r.label.bottom;
@@ -3976,16 +3976,20 @@ for (const host of ['web', 'figma']) {
         // FL1 A (owner, #2197): on Auto the button shows "Auto · ‹palette› ‹step›", the step as the picker names steps; the
         // full sentence ("Auto · follows background.secondary (‹step›)" when it follows the tier) is its tooltip and is
         // in its accessible name. For prism3 the step is the committed emission's floor (`EMITTED_FLOOR`), not the page's.
-        const auto = /^Auto\b/.test(floor.title ?? '');
+        const auto = /^Auto\b/.test(floor.text ?? '');
         if (auto) {
           const step = (/^Auto · ([a-z0-9-]+ [0-9]+)$/.exec(floor.text ?? '') ?? [])[1] ?? null;
           const want = brand === 'prism3' && EMITTED_FLOOR[mode]?.step ? `Auto · ${EMITTED_FLOOR[mode].step.split('.').join(' ')}` : null;
           ok(step !== null && (want === null || floor.text === want), `${where}: FL1 A: the Contrast floor's Auto label reads "Auto · ‹step›"${want ? ` (${JSON.stringify(want)}, the emission's floor)` : ''} — read ${JSON.stringify(floor.text)}`);
-          ok(step !== null && (floor.title === `Auto · follows background.secondary (${step})` || floor.title === `Auto · ${step}`),
+          // The full sentence when the floor follows the tier; when it does not, the label is already the whole wording.
+          ok(step !== null && (floor.title === `Auto · follows background.secondary (${step})` || floor.title === null),
             `${where}: FL1 A: the Contrast floor's tooltip is the full sentence for the same step — read ${JSON.stringify(floor.title)}`);
+          ok(floor.title === null || (floor.aria ?? '').endsWith(` ${floor.title}. Pick a step`),
+            `${where}: FL1 A: the Contrast floor's accessible name keeps the full sentence — read ${JSON.stringify(floor.aria)} (tooltip ${JSON.stringify(floor.title)})`);
         }
-        ok(!!floor.title && /^Contrast floor, [^:]+: /.test(floor.aria ?? '') && (floor.aria ?? '').endsWith(`: ${floor.title}. Pick a step`),
-          `${where}: FL1 A: the Contrast floor's accessible name keeps the full sentence — read ${JSON.stringify(floor.aria)} (tooltip ${JSON.stringify(floor.title)})`);
+        // WCAG 2.5.3 (label in name): every row's accessible name carries its picker's visible label verbatim.
+        const noLabel = rows.filter((r) => r.pick && !(r.text && (r.aria ?? '').includes(`: ${r.text}.`)));
+        ok(noLabel.length === 0, `${where}: WCAG 2.5.3: each picker's accessible name contains its visible label${noLabel.length ? ` — not: ${noLabel.map((r) => `${r.role} shows ${JSON.stringify(r.text)}, named ${JSON.stringify(r.aria)}`).join('; ')}` : ''}`);
         ok(!!floor.scroll && floor.scroll[0] <= floor.scroll[1], `${where}: FL1 A: the Contrast floor's label fits its button on one line, not cut off (scrollWidth ${floor.scroll?.[0]}, clientWidth ${floor.scroll?.[1]})`);
       }
       ok(errors.length === 0, `#2179 web ${w} ${brand}: 0 uncaught errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);

@@ -149,10 +149,11 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       btn.id = o.id;
       const open = openRole === o.key && editable;
       btn.setAttribute('aria-expanded', String(open));
-      // `full`, when given, is the longer wording the short label stands for (the floor's "follows" sentence, FL1 A):
-      // the accessible name and the tooltip say it whole.
-      btn.setAttribute('aria-label', `${o.label}, ${modeLabel(currentMode)}: ${o.full ?? o.now}. Pick a step`);
-      if (o.full) btn.title = o.full;
+      // `full`, when it says more than the visible label (the floor's "follows" sentence, FL1 A), is the button's
+      // tooltip and follows the visible label in its accessible name, which keeps the visible label verbatim (WCAG 2.5.3).
+      const more = o.full && o.full !== o.now ? o.full : null;
+      btn.setAttribute('aria-label', `${o.label}, ${modeLabel(currentMode)}: ${o.now}.${more ? ` ${more}.` : ''} Pick a step`);
+      if (more) btn.title = more;
       btn.append(h('span', 'p3-btn-label', o.now), glyph('chev'));
       btn.disabled = !editable;
       btn.onclick = () => {
@@ -230,7 +231,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       key: 'surface:floor', id: 'p3-surf-floor', hk: 'surface-floor-pick', label: 'Contrast floor', token: null, rowRole: FLOOR_ROW,
       hex: (floorAt && stepHex(floorAt.palette, floorAt.step)) ?? roles[SURFACE_TOKENS.secondary]?.hex ?? '#ffffff',
       now: floorKey != null ? `${nPal} ${floorKey}` : floorAutoShortLabel(m),
-      full: floorKey != null ? `${nPal} ${floorKey}` : floorAutoLabel(m),
+      full: floorKey != null ? undefined : floorAutoLabel(m),
       info: FLOOR_INFO,
       picker: {
         role: 'Contrast floor', palettes: [rampOf(nPal)], current: floorAt,
