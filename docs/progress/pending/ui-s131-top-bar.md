@@ -139,6 +139,8 @@ Mutations for the review's fixes, each run on a `git archive` copy of `1433912a`
 - **Focus not moved into Export on open**: 42 failures. Example: `S13.1 web light 1280: dialog focus: opening Export moves focus into the dialog (on "export-open")`.
 - **The strip rewrites unchanged text** (`notices.ts`): 12 failures. Example: `S13.1 web light 1280: error strip: the same error after 2 more rebuilds leaves its text untouched (2 mutations, same text node false, …)`, on both hosts.
 
+**The re-review's Mutation A** (Escape's `exp.focus()` removed, and `aria-modal="true"` removed), on a copy of `105dc268`: 38 failures. Every one is the new `aria-modal` assertion, for example `S13.1 web light 1280: dialog focus: the export dialog is a modal dialog (role "dialog", aria-modal "null")` and `S13.1 figma light 1280: dialog focus: the prune review is a modal dialog with focus inside it ({"role":"dialog","modal":null,"inside":true})`. Removing Escape's `exp.focus()` on its own no longer changes behavior: `paint()` now returns focus to the opener on every close, Escape included, and the Escape arm checks the outcome.
+
 **Held:**
 - **The plugin from 561 to about 1000px.** The bar wraps at the wide tier, so Export can start the second row. The owner named 1280 and 380 for the plugin; its window opens at 1280.
 - **Where the agent link's status now shows** (the old popover's two lines), above.
