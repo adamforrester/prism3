@@ -99,10 +99,12 @@ export const infoTip = (id: string, label: string, text: string): { button: HTML
   return { button, tip };
 };
 
-/** A plain note under a control (`hint`), or a warning. */
+/** A plain note under a control (`hint`), or a warning. A hint draws no glyph: the ⓘ is only ever a button (the
+ *  heading pass, TY2 A and HP3), so a hint reads as a plain description. A warning keeps its warning glyph. */
 export const stateLine = (text: string, kind: 'hint' | 'warn' = 'hint'): HTMLElement => {
   const p = h('p', kind === 'hint' ? 'p3-state p3-state-hint' : 'p3-state p3-state-warn');
-  p.append(glyph(kind === 'hint' ? 'info' : 'warn'), h('span', undefined, text));
+  if (kind === 'warn') p.append(glyph('warn'));
+  p.append(h('span', undefined, text));
   return p;
 };
 export const subLine = (text: string): HTMLElement => h('p', 'p3-sub', text);
