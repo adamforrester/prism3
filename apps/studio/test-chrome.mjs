@@ -7590,16 +7590,26 @@ const EXPORT_HOOKS = ['[data-p3="export-artifact"]', '[data-p3="dialog-close"]',
 /** One node's text against the ground composited under it, as the strip probe reads it: the ratio, floored to 2 places. */
 const INK_PROBE = (sel) => {
   const e = document.querySelector(sel);
-  if (!e) return { r: 0, text: '' };
-  const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+  if (!e) return { r: 0, text: '', ink: null };
+  // rgb()/rgba(), and the `color(srgb …)` form a computed `color-mix()` comes back in: an ink this cannot read is a
+  // ratio of 0, so the check that reads it fails by name rather than throwing.
+  const parse = (s) => {
+    const t = (s ?? '').trim();
+    let m = /^rgba?\(([^)]+)\)$/.exec(t);
+    if (m) { const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; }
+    m = /^color\(srgb\s+([^)]+)\)$/.exec(t);
+    if (m) { const p = m[1].split(/[\s/]+/).filter(Boolean).map(Number); return { r: p[0] * 255, g: p[1] * 255, b: p[2] * 255, a: p.length > 3 ? p[3] : 1 }; }
+    return null;
+  };
   const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
   const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
   let g = null;
   for (let n = e; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { g = g ? over(g, c) : c; if (g.a >= 0.999) break; } }
   g = g ? { ...g, a: 1 } : { r: 255, g: 255, b: 255, a: 1 };
-  const ink = parse(getComputedStyle(e).color);
+  const raw = getComputedStyle(e).color, ink = parse(raw);
+  if (!ink) return { r: 0, text: e.textContent ?? '', ink: raw };
   const x = lum(over(ink, g)), y = lum(g);
-  return { r: Math.floor(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 100) / 100, text: e.textContent ?? '' };
+  return { r: Math.floor(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 100) / 100, text: e.textContent ?? '', ink: raw };
 };
 const STRIP_PROBE = () => {
   const e = document.querySelector('[data-p3="error-bar"]');
@@ -7735,7 +7745,7 @@ for (const { w, h } of WIDTHS) {
         await hooks.click(page.locator('[data-p3="import-load"]'));
         await hooks.need(page, '[data-p3="import-error"]');
         const ie = await page.evaluate(INK_PROBE, '[data-p3="import-error"]');
-        ok(ie.r >= TEXT_MIN, `${where} / brand menu: import error line contrast ${ie.r}:1, at least ${TEXT_MIN}:1 ("${ie.text.slice(0, 40)}")`);
+        ok(ie.r >= TEXT_MIN, `${where} / brand menu: import error line contrast ${ie.r}:1, at least ${TEXT_MIN}:1 (ink ${ie.ink}, "${ie.text.slice(0, 40)}")`);
 
         // ── keyboard: Escape closes it to the switcher; Enter opens it on the current example; arrows, Home, End ──
         await page.keyboard.press('Escape');
