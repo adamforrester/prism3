@@ -8139,6 +8139,17 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     `[#2137] an empty breakpoints list is refused with the approved wording (got "${bpMsg('bpEmpty', [])}")`);
   ok(bpMsg('bpOne', [0]) === '' && lyBrand('bpOneB', { breakpoints: [0] }).layout.breakpoints.length === 1,
     `[#2137] a single breakpoint at 0px builds, with one breakpoint (got "${bpMsg('bpOne', [0])}")`);
+  // #2198 — more than seven breakpoints are refused (owner decision 2026-10-06, Q43 A). `bpNames` names seven
+  // (xs to 3xl), and an eighth took the placeholder `bp7`. EXPECTED is the sentence typed here literally, with
+  // the count as entered. Seven is the largest list that builds, and it carries real names. BY-NAME MUTATION:
+  // allow an eighth (drop the refusal in `buildLayout`) → the eight and nine arms fail.
+  const SEVEN = [0, 360, 480, 768, 1024, 1440, 1920];
+  const seven = lyBrand('bp7ok', { breakpoints: SEVEN }).layout.breakpoints.map((b) => b.name).join(' ');
+  ok(seven === 'xs sm md lg xl 2xl 3xl', `[#2198] seven breakpoints build, named xs to 3xl with no placeholder (got "${seven}")`);
+  ok(bpMsg('bp8', [...SEVEN, 2560]) === 'The brand can have at most seven breakpoints. This brand has 8.',
+    `[#2198] an eighth breakpoint is refused (got "${bpMsg('bp8', [...SEVEN, 2560])}")`);
+  ok(bpMsg('bp9', [...SEVEN, 2560, 3200]) === 'The brand can have at most seven breakpoints. This brand has 9.',
+    `[#2198] the message carries the count as entered (nine) (got "${bpMsg('bp9', [...SEVEN, 2560, 3200])}")`);
 }
 
 // ------------------------------------------------- gradient invariants (opt-in)

@@ -144,8 +144,8 @@ export const DOMAINS = [
         sections: [
           { title: 'Primary', rows: [{ ctl: 'primary', keys: ['primary'] }] },
           { title: 'Brand colors', desc: 'Each color grows into its own 20-step ramp.', rows: [{ ctl: 'brandColors', keys: ['brandColors'] }] },
-          { title: 'Neutrals', rows: [{ ctl: 'neutral', keys: ['neutral.hue', 'neutral.chroma'] }] },
-          { title: 'Pinned neutral', advanced: true, rows: [{ ctl: 'neutralAnchor', keys: ['neutral.anchor'] }] },
+          // #2175 (owner, PN1 B): pinning is the third neutral source, so the pinned neutral lives here, not behind Show advanced.
+          { title: 'Neutrals', rows: [{ ctl: 'neutral', keys: ['neutral.hue', 'neutral.chroma', 'neutral.anchor'] }] },
           {
             title: 'Status colors', advanced: true, rows: [
               { ctl: 'status', keys: ['status.success'] }, { ctl: 'status', keys: ['status.warning'] },
