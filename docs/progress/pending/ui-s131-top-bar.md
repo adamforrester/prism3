@@ -139,6 +139,11 @@ Mutations for the review's fixes, each run on a `git archive` copy of `1433912a`
 - **Focus not moved into Export on open**: 42 failures. Example: `S13.1 web light 1280: dialog focus: opening Export moves focus into the dialog (on "export-open")`.
 - **The strip rewrites unchanged text** (`notices.ts`): 12 failures. Example: `S13.1 web light 1280: error strip: the same error after 2 more rebuilds leaves its text untouched (2 mutations, same text node false, …)`, on both hosts.
 
+**The dark import error's mutation** (the coordinator's follow-up), on a copy of the head:
+- **First try:** the ink moved to `--p3-bad-icon`. It changed nothing, because that token resolves to the same red as `--p3-bad-text` in dark (`rgb(227, 75, 73)`, 4.97:1). So the check passing was correct, not a gap.
+- **Second try:** a raw darker color, which the chrome build refuses (`[raw] … raw color function "rgb("`).
+- **Third try:** a `color-mix()` toward the page ground. The check could not read its computed `color(srgb …)` value and would have thrown, so the probe now reads that form too, and an ink it cannot read counts as 0, failing by name. With that fix, the mutation fails 12 times, every host, theme and width, for example `S13.1 web dark 1280 / brand menu: import error line contrast 2.94:1, at least 4.5:1 (ink color(srgb 0.638431 0.221176 0.216863), …)`. Light fails too (3.69:1), because the mix dims both themes.
+
 **The re-review's Mutation A** (Escape's `exp.focus()` removed, and `aria-modal="true"` removed), on a copy of `105dc268`: 38 failures. Every one is the new `aria-modal` assertion, for example `S13.1 web light 1280: dialog focus: the export dialog is a modal dialog (role "dialog", aria-modal "null")` and `S13.1 figma light 1280: dialog focus: the prune review is a modal dialog with focus inside it ({"role":"dialog","modal":null,"inside":true})`. Removing Escape's `exp.focus()` on its own no longer changes behavior: `paint()` now returns focus to the opener on every close, Escape included, and the Escape arm checks the outcome.
 
 **Held:**
