@@ -1,56 +1,65 @@
-## (2026-10-06) — Plugin: the agent link's status line in the Activity drawer's bar row (#2213)
+## (2026-10-06) — Plugin: the agent link's status in the Activity drawer, and the drawer row on one baseline (#2213)
 
 **Status:** branch `ui/2213-agent-status-drawer`, held for the owner's screenshot review. `apps/studio/src/shell/activity.ts`
-(`setAgentLinkLine`), `apps/studio/src/chrome.css` (`.p3-drawer-link`), `apps/plugin/src/agent-link-ui.ts`, and
-`test:chrome` section 31. UI only: no ENGINE bump (no emitted artifact moves), CONTRACT unchanged. **No new copy**: the
-line's words are the existing formatter's, `agentLinkStatusText`. Owner decision N1 A (2026-10-06). Closes #2213.
+(`setAgentLinkStatus`, the row's text runs, the open drawer's agent line), `apps/studio/src/chrome.css`
+(`.p3-drawer-text`, `.p3-drawer-link`), `apps/plugin/src/agent-link-ui.ts` (`agentLinkShortStatus`), and tests in
+`apps/plugin/test-agent-link.ts` and `test:chrome` section 31. UI only: no ENGINE bump (no emitted artifact moves), CONTRACT
+unchanged. Owner decisions N1 A, AS1 A and DE1 A (2026-10-06). Closes #2213.
+
+**New strings, approved by the owner (AS1 A):** "Agent listening", "Agent not listening", "Agent error". The full line is
+`agentLinkStatusText`'s existing words, in their existing order (DE1 A).
 
 ### What changed
 
-#2124 removed the Agent popover, so the link's status line was drawn nowhere. It now sits at the far right of the Activity
-drawer's bar row, last before the caret, in the plugin only.
+#2124 removed the Agent popover, so the link's status was drawn nowhere. It is now in the Activity drawer, in the plugin
+only.
 
-- **When:** a line only while the link is on. Off draws none. The plugin's Agent tile reports it with each published state
-  through `setAgentLinkLine` (beside `setAgentLinkOn`); the studio never calls it, so the web has none.
-- **Ink:** quiet text (the chrome's `text-2`, `color.text.secondary`). When the state carries an inbox error, the chrome's
-  error ink (`bad-text`, `color.text.danger`), keyed on `data-error`. `test:chrome` holds both to the emission's hex and
-  to 4.5:1 on the row's ground, in light and dark.
-- **One line, and it gives way first.** `flex: 1000 1 0%; max-width: max-content`: the line starts from no width and grows
-  into whatever room the row has left, up to its words' own width. So the summary ("Read-back · Clean") and its time are
-  never squeezed by it, and the caret stays on the row. When the room is short, the line is cut with an ellipsis; its
-  `title` and its text (which is what the row's accessible name is read from) keep the full words.
-- **Measured:** at 380 the line has about 150px, so both the listening and the error words are cut. At 1280 the row sits
-  under the preview pane (about 740px), so the listening words fit whole and the error's longer words are cut there too.
+- **The closed row's short status (AS1 A)**, at the far right of the drawer's bar row, last before the caret.
+  `agentLinkShortStatus` is a small pure formatter beside `agentLinkStatusText`. It returns nothing while the link is off
+  (an old inbox error kept after switch-off included: the UI lane's call on Q1). With the link on, an inbox error reads
+  "Agent error" in the error ink; no transport listening (neither the mailbox nor the bridge) reads "Agent not listening",
+  also in the error ink; otherwise "Agent listening", quiet (`text-2`). The status's `title` is the full line, and its
+  accessible name carries its words and then the full line (a screen-reader-only span after them).
+- **The full line moves into the open drawer.** `agentLinkStatusText(state)` is the body's first line, above the run rows,
+  in the body's note style (`p3-note`). It shows while the link is on, or while it holds an inbox error. So the link
+  switched off with an old error shows "Off — agent commands are ignored." there.
+- **One baseline (the owner's review).** The time ("19:49") sat 1.5px higher than "Clean". The row's items were each
+  centered (`align-items: center`), and centering a 12px run beside a 14px one sets their baselines apart. The text runs
+  (the summary, its time, the counts and the agent status) now sit in one `.p3-drawer-text` run with
+  `align-items: baseline`, and that run is centered in the row with the dot and the caret. The strip's progress bar stays
+  centered. Tokens only: no new value.
+- **The status takes only leftover room.** It keeps the rule from round one: `flex: 1000 1 0%; max-width: max-content`. It
+  starts at no width and grows into the room the row has left, so the summary is never squeezed. The short words fit
+  whole at 380.
 
 ### The approach tried and discarded
 
-The first cut was `flex: 0 1000 auto` (shrink the line before anything else). Flexbox weights shrinking by the basis, so the
-summary still gave up a fraction of a pixel, and that was enough to draw its ellipsis: "Read-back · Cle…". The first probe
-missed it too: `scrollWidth` rounds to whole pixels, so a 0.08px overflow read as whole. The summary is now measured with a
-`Range` over its contents against its box, and the line takes room rather than giving it back.
+In round one, `flex: 0 1000 auto` was tried first, to shrink the line before anything else. Flexbox weights shrinking by the
+basis, so the summary still gave up 0.08px, enough to draw "Read-back · Cle…". A `scrollWidth` probe missed it because it
+rounds to whole pixels. The summary is now measured with a `Range` over its contents against its box.
+
+For the baseline, `align-items: baseline` on the whole row was considered and not built. A baseline group sits at the
+row's cross-start, so the text would hug the top of the 36px row while the glyphs stayed centered. A centered run that
+aligns on its baseline inside keeps both.
 
 ### Gates, and the mutations that fail them by name
 
-`test:chrome` section 31: the plugin, light and dark, at 1280 and 380, three published states (off, listening after a
-command, listening with an inbox error), after a boot read-back so the row has a summary. The words are
-`agentLinkStatusText(state)`, bundled for Node from the plugin's source and called in the test; the inks are walked from the
-committed emission (not `tokens.mjs`, not the CSS); the accessible name is read through CDP `getPartialAXTree` on the line's
-text node and on the row. Each mutation was run against the built bundles, with the tree committed first:
+`apps/plugin/test-agent-link.ts` tests `agentLinkShortStatus` on its own, against literal strings, for eight states.
+`test:chrome` section 31 runs the plugin in light and dark, at 1280 and 380. It covers five states (off, listening, on with
+no transport, an inbox error, off with an old error) after a boot read-back, and the web's row for the baseline. The full
+line is `agentLinkStatusText`, bundled from the plugin source and called in the test. The inks are walked from the committed
+emission. The names are read through CDP `getPartialAXTree`. The baselines come from a zero-size inline-block probe after
+each text node. Each mutation was run against rebuilt bundles, with a `wip:` commit first:
 
-- hidden while listening → `#2213 figma light 1280 listening: the status line is drawn in the bar row, at least 40px wide (read null, shown false)` (4).
-- shown while off → `#2213 figma light 1280 off: no status line while the link is off (read "Off — agent commands are ignored.")` (4).
-- the error in the quiet ink → `#2213 figma light 1280 error: the line draws in the chrome's error ink, the emission's color.text.danger #a82e2e (read #67696b)` (4).
-- the text cut short in the DOM at 380 → `#2213 figma light 380 listening: the accessible name carries the full words: the line's computed text "Listening — file m…", the row's name "Read-back · Clean … Listening — file m… Expand Activity"` (12 in all).
-- the line shrinking with the summary → `#2213 figma light 380 listening: the caret and the whole summary stay on the row (… summary "Read-back · Clean" whole false)` (4).
-- no tooltip at 380 → `#2213 figma light 380 listening: the line's tooltip carries its full words, though it is cut short (… read "null")` (4).
+- the short status showing the long text → `#2213 figma light 1280 listening: the bar row's agent status reads "Agent listening" (read "Listening — file mailbox, every 1 s · last: status ✓ done (16:35:12)", shown true)` (32 in all).
+- the full line missing from the open drawer → `#2213 figma light 1280 listening: the open drawer's first line is the full line, agentLinkStatusText(state), above the runs (want "Listening — file mailbox, every 1 s · last: status ✓ done (16:35:12)", read null, first false, above the runs true)` (16).
+- "Agent error" in the quiet ink → `#2213 figma light 1280 error: "Agent error" draws in the chrome's error ink, the emission's color.text.danger #a82e2e (read #67696b)` (4).
+- the old alignment (the row's text centered item by item) → `#2213 figma light 1280 off: every text run in the drawer's bar row sits on one baseline, within 0.5px (3 runs, spread 1.5px: "Read-back" 877.5, "· Clean" 877.5, "22:00" 876)` (24).
 
-### Left for the owner
+### Not done, on purpose
 
-- **Off with a stale inbox error.** The link keeps `inboxError` after it is switched off (`agent-link.ts` clears it only on
-  a poll). The formatter reads "Off — agent commands are ignored." for that state and drops the error, so the line follows
-  the formatter and draws nothing while off. The issue's "or when it has an error" could also mean showing it there.
-- **At 380 the error's words are cut before the ⚠.** The error is still told by the ink, the tooltip and the name, but
-  the visible words read "Listening — file mailbox,…". Putting the error first would change the formatter's order.
-- **The tooltip is set in every state**, not only when the line is cut.
-- **The drawer is still not drawn before anything has run.** The plugin's boot read-back draws it almost at once; until
-  then the line has no row to sit in.
+- The link does not clear an old inbox error on switch-off (`agent-link.ts`). The UI lane ruled that out of scope.
+- The full line in the open drawer is in the body's quiet note style even when it carries an error. The owner asked for
+  the body's style, and the error is already told in the closed row.
+- The short status stays in the row while the drawer is open, because it is the same row.
+- No dependency on #2177/#2271 (mono detail lines). Whichever lands second takes the merge.

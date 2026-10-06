@@ -439,19 +439,20 @@
  * (mode-on-light, read true), draws a dashed edge (439 read) — brand mode-on-light: …` and `… DB1 A: the fixed Light
  * row's box draws Prism3's disabled check box: …` (8 failures).
  *
- * #2213 ADDS (owner decision N1 A, section 31): in the plugin, light and dark, at 1280 and 380, the agent link's status
- * line in the Activity drawer's bar row, for three published states (off, listening, an inbox error): absent while off;
- * otherwise right of the summary and its time, last before the caret, one line, its words `agentLinkStatusText(state)`
- * (the plugin's formatter, bundled for Node and called here), its ink the emission's `color.text.secondary` (quiet) or
- * `color.text.danger` (an error) at 4.5:1 on its ground, the summary left whole and the caret on the row; cut short at
- * 380, its tooltip and its accessible name (CDP `getPartialAXTree` on its text, and the row's computed name) carry the
- * full words. The web's drawer draws no line. Mutations, each against the built bundles:
- *   · hidden while listening → `#2213 figma light 1280 listening: the status line is drawn in the bar row, …` (4).
- *   · shown while off → `#2213 figma light 1280 off: no status line while the link is off (read "Off — agent commands are ignored.")` (4).
- *   · the error in the quiet ink → `#2213 figma light 1280 error: the line draws in the chrome's error ink, the emission's color.text.danger #a82e2e (read #67696b)` (4).
- *   · the text cut short in the DOM at 380 → `#2213 figma light 380 listening: the accessible name carries the full words: the line's computed text "Listening — file m…", …` (12 in all).
- *   · the line shrinking alongside the summary (`flex: 0 1000 auto`) → `#2213 figma light 380 listening: the caret and the whole summary stay on the row (… whole false)` (4).
- *   · no tooltip at 380 → `#2213 figma light 380 listening: the line's tooltip carries its full words, though it is cut short (… read "null")` (4).
+ * #2213 ADDS (owner decisions N1 A and AS1 A, section 31): in the plugin, light and dark, at 1280 and 380, five published
+ * states of the agent link (off; listening; on with no transport; an inbox error; off with a stale inbox error). The
+ * closed row's short status, against the owner's literal words ("Agent listening", "Agent not listening", "Agent error",
+ * none while off): right of the summary and its time, last before the caret, one line and whole, its ink the emission's
+ * `color.text.secondary` or `color.text.danger` at 4.5:1, the summary whole and the caret on the row; its tooltip and its
+ * accessible name (CDP `getPartialAXTree` on its text nodes, and the row's computed name) carry the full line,
+ * `agentLinkStatusText(state)`, bundled for Node and called here. The open drawer's first line, above the runs, is that
+ * full line while the link is on or holds an inbox error, and absent otherwise. Every text run in the bar row sits on one
+ * baseline within 0.5px (a zero-size inline-block probe after each text node), in every state, with a write's count too,
+ * and on the web's row. Mutations, each against the built bundles:
+ *   · the short status showing the long text → `#2213 figma light 1280 listening: the bar row's agent status reads "Agent listening" (read "Listening — file mailbox, …")` (32 in all).
+ *   · the full line missing from the open drawer → `#2213 figma light 1280 listening: the open drawer's first line is the full line, agentLinkStatusText(state), above the runs (… read null …)` (16).
+ *   · "Agent error" in the quiet ink → `#2213 figma light 1280 error: "Agent error" draws in the chrome's error ink, the emission's color.text.danger #a82e2e (read #67696b)` (4).
+ *   · the row's text centered one by one again (`.p3-drawer-text` `align-items: center`) → `#2213 figma light 1280 off: every text run in the drawer's bar row sits on one baseline, within 0.5px (3 runs, spread 1.5px: … "22:00" 876)` (24).
  */
 import { createServer } from 'node:http';
 import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
