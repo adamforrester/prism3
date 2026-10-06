@@ -420,6 +420,13 @@
  * #2180 ADDS: in the plugin, Components' build bar stands at least `space.300` (the stacked-card gap, resolved from the
  * emission) above the Activity drawer, at 1280 and 380, the drawer closed and open, at three scroll positions.
  * Mutation: `.p3-buildbar`'s `bottom` back to 0 → `#2180: figma 1280, drawer closed, at the top: the build bar stands …`.
+ *
+ * #2208 ADDS (owner decision DB1 A): Brand › Modes' always-on Light row (`mode-on-light`) draws Prism3's disabled check
+ * box, and `X4 A derived` reads it: no dashed edge, its box on `disabled.fill`, a solid `disabled.border` and the mark
+ * on `disabled.on-fill` (oracle: the committed emission), and it stays a fixed fact (a div, its words unchanged).
+ * Mutation: the dashed rule back → `X4 A derived: web light: no disabled chrome control, and not the fixed Light row
+ * (mode-on-light, read true), draws a dashed edge (439 read) — brand mode-on-light: …` and `… DB1 A: the fixed Light
+ * row's box draws Prism3's disabled check box: …` (8 failures).
  */
 import { createServer } from 'node:http';
 import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -8551,10 +8558,39 @@ for (const host of ['web', 'figma']) {
         }
         await page.evaluate(() => { for (const x of document.querySelectorAll('[data-cderived]')) x.removeAttribute('data-cderived'); });
       }
+      // DB1 A (#2208): Brand › Modes' always-on Light row is a fixed fact, not a control, and it draws the same
+      // "can't change" look: the sweep reads it too, and its box is held to Prism3's disabled check box below.
+      await goPlace(page, 'brand');
+      const LIGHT_ROW = '[data-p3="levers-pane"] [data-p3="mode-on-light"]';
+      const fixed = await page.evaluate(DISABLED_READ, LIGHT_ROW);
+      if (fixed) { controls++; if (fixed.dashed.length) dashed.push(`brand ${fixed.hook}: ${fixed.dashed.join(', ')}`); }
       console.log(`  ${where}: ${controls} disabled controls read, ${buttons} of them buttons`);
       ok(buttons >= DERIVED_OFF_FLOOR, `${where}: HC light switched off ${buttons} chrome buttons across the places (floor ${DERIVED_OFF_FLOOR})`);
       ok(bad.length === 0, `${where}: every disabled chrome button draws its appearance's Prism3 disabled roles (${buttons} read)${bad.length ? ` — ${bad.slice(0, 4).join(' | ')}` : ''}`);
-      ok(dashed.length === 0, `${where}: no disabled chrome control draws a dashed edge (${controls} read)${dashed.length ? ` — ${dashed.slice(0, 4).join(' | ')}` : ''}`);
+      ok(!!fixed && dashed.length === 0, `${where}: no disabled chrome control, and not the fixed Light row (mode-on-light, read ${!!fixed}), draws a dashed edge (${controls} read)${dashed.length ? ` — ${dashed.slice(0, 4).join(' | ')}` : ''}`);
+      // The fixed Light row's box against the emission's disabled check box roles (`PRISM3_DISABLED`, resolved from the
+      // committed emission, never from the studio's CSS): fill `disabled.fill`, a solid `disabled.border` edge on all
+      // four sides, the check mark drawn in `disabled.on-fill`. It stays a fixed fact with its words: a `div` that is
+      // no control and takes no focus, its box hidden from assistive tech, its text the literal below.
+      const box = await page.evaluate((sel) => {
+        const r = document.querySelector(sel), b = r?.querySelector('.p3-check-box'), m = b?.querySelector('svg.p3-ico');
+        if (!b) return null;
+        const c = getComputedStyle(b), side = ['Top', 'Right', 'Bottom', 'Left'];
+        return { fill: c.backgroundColor, edges: side.map((x) => [c[`border${x}Color`], c[`border${x}Style`], parseFloat(c[`border${x}Width`])]),
+          mark: m && m.getClientRects().length ? getComputedStyle(m).color : null, tag: r.tagName.toLowerCase(), role: r.getAttribute('role'),
+          tabindex: r.getAttribute('tabindex'), boxHidden: b.getAttribute('aria-hidden'), text: r.textContent };
+      }, LIGHT_ROW);
+      const want = PRISM3_DISABLED[scheme];
+      const got = box && { ...drawnSkin({ fill: box.fill, edges: box.edges, ink: box.mark }) };
+      ok(!!box && !!want && got.fill === want.fill && got.edge === want.edge && got.ink === want.ink,
+        `${where}: DB1 A: the fixed Light row's box draws Prism3's disabled check box: fill color.disabled.fill ${want?.fill}, a solid edge color.disabled.border ${want?.edge}, the mark on color.disabled.on-fill ${want?.ink} — drew ${JSON.stringify(got)}`);
+      ok(!!box && box.tag === 'div' && box.role === null && box.tabindex === null && box.boxHidden === 'true'
+        && box.text === 'LightAlways generated: it\u2019s the base mode.',
+        `${where}: DB1 A: the fixed Light row stays a fixed fact that says Light is always on (a div, no role, no tabindex, box aria-hidden, "Light" + "Always generated: it’s the base mode.") — read ${JSON.stringify(box && { tag: box.tag, role: box.role, tabindex: box.tabindex, boxHidden: box.boxHidden, text: box.text })}`);
+      if (SHOTS) {
+        const at = await page.locator(LIGHT_ROW).locator('xpath=..').boundingBox();
+        if (at) await page.screenshot({ path: join(SHOTS, `2208-${host === 'web' ? 'web' : 'plugin'}-${theme}-modes.png`), clip: { x: Math.max(0, at.x - 16), y: Math.max(0, at.y - 48), width: at.width + 32, height: at.height + 64 } });
+      }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
