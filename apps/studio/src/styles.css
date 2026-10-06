@@ -176,115 +176,12 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
    of the viewport with the last items simply unreachable. Bounded to the space below the header. */
 .brandmenu{position:absolute;top:calc(100% + 8px);right:0;width:288px;max-height:calc(100vh - var(--chrome-h, 120px) - 24px);overflow-y:auto;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:12px;z-index:20;display:flex;flex-direction:column;gap:2px;box-shadow:0 12px 32px -8px rgba(24,24,27,.20),0 4px 12px -4px rgba(24,24,27,.12)}
 
-/* The export dialog (#723), replacing .exportmenu's 232px dropdown. Not a <dialog>: the app uses no
-   native dialogs (same call as the color pickers and the confirm rows), so this is the app's own
-   pattern rather than a second one. z-index sits above .brandmenu's 20 — the two are mutually
-   exclusive in practice, but a modal that could render UNDER a dropdown is a bug waiting for the one
-   state that allows both. --scrim is not used: this is chrome, and the token is the brand's. */
-/* Vertically centered, NOT hung below the bar. The dropdowns are anchored to their triggers because
-   they belong to them; a modal does not, and top-aligning this one under the chrome cost ~110px that
-   the settings column needed — measured, not guessed: the left column wants 634px and was given 524,
-   which clipped the fourth setting's label mid-word. */
-.exdlg-scrim{position:fixed;inset:0;z-index:40;background:rgba(24,24,27,.34);display:flex;align-items:center;justify-content:center;padding:20px}
-/* Bounded height with the BODY scrolling, not the panel: the head keeps the title and the close button
-   reachable, and the footer keeps the download button reachable, however long the preview runs. That is
-   the same failure .brandmenu's max-height fixed (#432) — here it would have put the primary action
-   below the fold on a 700px window. */
-.exdlg{width:min(880px,100%);max-height:calc(100vh - 40px);display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);box-shadow:0 24px 64px -12px rgba(24,24,27,.30),0 8px 20px -8px rgba(24,24,27,.16)}
-.exdlg-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px 12px;border-bottom:1px solid var(--line)}
-.exdlg-t{margin:0;font-size:15px;font-weight:600;color:var(--ink)}
-.exdlg-x{border:0;background:none;font:inherit;font-size:14px;color:var(--faint);cursor:pointer;padding:4px 6px;border-radius:var(--r-xs);line-height:1}
-.exdlg-x:hover{background:var(--paper);color:var(--ink)}
-/* Settings left, output right. The columns scroll INDEPENDENTLY (each is its own overflow region): a
-   single scroller would move the settings out of view while reading the preview, which is the pairing
-   the two-column layout exists to hold together. */
-.exdlg-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;min-height:0;overflow:hidden}
-/* gap:0 on purpose — every child here carries its own margin, and a flex gap on top of that is a second
-   spacing system for the same axis. It also cost real room: gap+margin together overflowed the column by
-   33px at an 869px viewport, clipping the fourth setting's description mid-line. The column still scrolls
-   (it must — #720 can add settings, and no fixed height survives that), but the default four now fit. */
-.exdlg-col{padding:14px 18px 12px;overflow-y:auto;display:flex;flex-direction:column;gap:0;min-width:0}
-/* The output column is the quieter surface — it reports rather than accepts input, and the tint is what
-   says so without a heading announcing it. */
-.exdlg-out{padding:16px 18px;overflow-y:auto;background:var(--paper);border-left:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
-/* Below 720 two columns are each too narrow to read: the preview is mono at 11px and the descriptions
-   are full sentences. One column, settings first, preview after — the same order the single-column
-   build had, which is the right degradation rather than a compromise. */
-@media (max-width:720px){
-  .exdlg-body{grid-template-columns:minmax(0,1fr);overflow-y:auto}
-  .exdlg-col,.exdlg-out{overflow:visible}
-  .exdlg-out{border-left:0;border-top:1px solid var(--line)}
-}
-.exdlg-seg{align-self:flex-start}
-.exdlg-desc{margin:9px 2px 0;font-size:12.5px;line-height:1.55;color:var(--ink2)}
-.exdlg-div{height:1px;background:var(--line);margin:13px 0 12px}
-/* A setting is label / control / description stacked, not label-beside-control: the descriptions are a
-   full line each (#618 allows them to carry real vocabulary, which costs width), and four rows of
-   right-aligned controls with prose underneath reads as two competing columns. */
-.exdlg-set{display:flex;flex-direction:column;gap:6px;margin-bottom:13px}
-.exdlg-set:last-child{margin-bottom:0}
-.exdlg-lab{font-size:12.5px;font-weight:560;color:var(--ink)}
-.exdlg-oseg{align-self:flex-start;max-width:100%;flex-wrap:wrap}
-/* The option labels are token names on purpose (color.on-fill) — the control demonstrating itself
-   rather than describing itself. Mono is what makes that read as a name rather than as prose. */
-.exdlg-oseg .seg-b{font-family:var(--mono);font-size:12px}
-.exdlg-sdesc{margin:0 2px;font-size:11.5px;line-height:1.55;color:var(--muted)}
-.exdlg-none{margin:2px;font-size:12.5px;color:var(--muted)}
-.exdlg-cap{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:600;margin:2px 2px 6px}
-/* pre-line, not nowrap: the file list is one name per line and a long brand id should wrap rather than
-   push the column wider or clip. */
-.exdlg-files{margin:0 2px 14px;font-family:var(--mono);font-size:11.5px;line-height:1.7;color:var(--ink2);word-break:break-all;white-space:pre-line}
-/* The preview is the real projection, so it is as tall as the tokens are — scrollable rather than
-   trimmed, because trimming would show something the download does not contain.
-   One pre per file. With a split there are several, so THIS is the scroll region and each pre keeps its
-   natural height; with one file the lone pre takes the remaining height itself (:only-child), so a
-   single document still fills the panel instead of sitting in a short box with dead space under it. */
-.exdlg-prevs{flex:1;min-height:0;display:flex;flex-direction:column;gap:3px;overflow:auto}
-.exdlg-pname{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin:5px 2px 1px;word-break:break-all}
-.exdlg-pname:first-child{margin-top:0}
-.exdlg-pre{margin:0;flex:none;overflow:auto;padding:11px 12px;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-xs);font-family:var(--mono);font-size:11px;line-height:1.55;color:var(--ink2);white-space:pre}
-.exdlg-pre:only-child{flex:1;min-height:120px}
-@media (max-width:720px){ .exdlg-prevs{flex:none;max-height:300px} }
-.exdlg-foot{display:flex;align-items:center;justify-content:flex-end;gap:9px;padding:12px 18px 16px;border-top:1px solid var(--line)}
-.exdlg-go{border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:var(--r-xs);padding:8px 17px;font:inherit;font-size:13px;font-weight:560;cursor:pointer}
-/* Import sits BELOW the footer — outside the export conversation but in the same dialog, which is the
-   relationship: the brief that comes out here is the one that goes back in. Its own surface tint keeps
-   it from reading as a third export option. */
-.exdlg-import{padding:0 18px 16px;background:var(--paper);border-top:1px solid var(--line);border-radius:0 0 var(--r) var(--r)}
-.exdlg-import .exdlg-div{margin-top:0}
-.exdlg-import .bm-ta{height:96px}
 .bm-cap{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:600;margin:4px 2px 6px}
-.bm-field{display:flex;align-items:center;gap:10px;padding:4px 2px}
-.bm-lab{font-size:12.5px;color:var(--ink2);width:78px;flex:none}
-/* A TEXT-ENTRY CONTROL PAIRS `background` WITH `color` (#1031). An `<input>` inherits neither from its
-   parent by UA default, so a rule that sets one and not the other hands half the pairing to the UA — and
-   the UA answers from the resolved `color-scheme`, which is the host's to decide, not this stylesheet's.
-   The plugin panel used to declare `light dark`; the four rules here that set a light `background` and no
-   `color` then rendered near-white ink on it in Figma's dark theme (`.bm-in` at 1.11:1). The root fix is
-   in `apps/plugin/src/ui/index.html`; these four make each control's own contract complete, so the pairing
-   survives the panel one day genuinely adapting. Five sibling rules already did it this way
-   (`.start-hex`, `.pname-input`, `.select`, `.gr-ed-nameinput`, `.tf-in`) — this is the convention, not a
-   new one. `.te-font` (line ~501) has the same omission and is deliberately left: it has no call site in
-   `main.ts`, and giving dead CSS a fix implies a control that is not there. */
-.bm-in{flex:1;min-width:0;padding:6px 9px;border:1px solid var(--line2);border-radius:var(--r-xs);font:inherit;font-size:13px;background:var(--paper);color:var(--ink)}
-.bm-in.bad{border-color:#d23;background:#fdecec}
-.bm-hint{margin:2px 2px 4px;font-size:11px;color:var(--faint);font-family:var(--mono)}
 .bm-div{height:1px;background:var(--line);margin:8px 0}
-.bm-item{display:flex;align-items:center;gap:9px;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:13px;color:var(--ink2);padding:8px 8px;border-radius:var(--r-xs);cursor:pointer}
-.bm-item:hover{background:var(--paper)}
-.bm-item.cur{color:var(--ink);font-weight:600}
-.bm-dot{width:11px;height:11px;border-radius:3px;flex:none}
-.bm-import{margin-top:6px;display:flex;flex-direction:column;gap:8px}
-.bm-ta{width:100%;height:120px;resize:vertical;padding:9px;border:1px solid var(--line2);border-radius:var(--r-xs);font-family:var(--mono);font-size:12px;background:var(--paper);color:var(--ink);line-height:1.5}
-.bm-err{margin:0;font-size:11.5px;color:#a12;line-height:1.5}
-.bm-load{align-self:flex-start;border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:var(--r-xs);padding:7px 16px;font:inherit;font-size:13px;font-weight:560;cursor:pointer}
-.bm-file,.start-file{display:none}
-.bm-import-row,.bm-confirm-row{display:flex;align-items:center;gap:8px}
-.bm-upload{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);background:var(--paper);border-radius:var(--r-xs);padding:7px 12px;font-size:12.5px;color:var(--muted);cursor:pointer;white-space:nowrap}
-.bm-upload:hover{border-color:var(--ink);color:var(--ink)}
-.bm-cancel{border:1px solid var(--line2);background:var(--panel);border-radius:var(--r-xs);padding:7px 14px;font:inherit;font-size:13px;color:var(--ink2);cursor:pointer}
-.bm-cancel:hover{border-color:var(--ink)}
-.bm-confirm{margin:2px 2px 8px;font-size:12.5px;line-height:1.55;color:var(--ink2)}
+/* The brand menu's items, the import box and the export dialog are the chrome's since UI redesign S13.1
+   (chrome.css, shell/bar.ts). What stays here is what the plugin's Pages menu (.brandmenu.navmenu, .bm-cap,
+   .bm-div) still draws until S11.2. */
+.start-file{display:none}
 .start-upload{display:inline-flex;align-items:center;gap:6px}
 .start-imp-err{margin:9px 0 0;font-size:12px;color:#a12;line-height:1.5}
 
@@ -736,14 +633,9 @@ label.cset-head{cursor:pointer}
 /* Status DOTS are non-text (SC 1.4.11, 3:1) and already cleared that bar — they join the set for
    consistency, not compliance. One status green should be one green. */
 .ratio{font-variant-numeric:tabular-nums;color:var(--muted)}
-/* The global bar (#388) carries .errbar-global as a marker only — it deliberately has NO rules of its
-   own. A full-bleed variant was written first and was silently inert: it sat above .errbar at equal
-   specificity, so every declaration lost the source-order tiebreak. Rendered, the plain .errbar card
-   matches the mode bar it sits under, so the right fix was to delete the override, not to reorder it.
-   (No backticks in this stylesheet — it is a template literal; see #366.)
-   .errbar now has exactly ONE mint (#772): the Color page's own copy was folded into the declared
-   chrome, and `.psec .errbar{margin-top:16px}` went with it rather than being left as a rule reserved
-   against an element nothing renders. */
+/* .errbar is the boot-failure card's (entry.ts), pinned light. The engine-error line it also drew until UI
+   redesign S13.1 is the chrome's error strip now (chrome.css .p3-errstrip, shell/notices.ts).
+   (No backticks in this stylesheet — it is a template literal; see #366.) */
 .errbar{border:1px solid #f2c6c6;background:#fdecec;color:#a12;border-radius:var(--r-sm);padding:10px 14px;font-size:13px;margin-bottom:16px}
 
 /* Style guide (Preview → Style guide) — specimen layout; shell/pill come from .psec/.sub-lab/.tpill */

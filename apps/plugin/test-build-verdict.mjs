@@ -617,6 +617,19 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
     ok(named.length === 1 && named[0] === 'prune-dialog',
       `#1830 the prune dialog is a role="dialog" whose accessible name is "Prune stale items" — dialogs by that name: ${JSON.stringify(named)}`);
     control = s;
+    // #2124 review (findings 1 and 2): the dialog is modal. Focus is inside it as it opens, Tab and Shift+Tab stay
+    // inside, and Cancel returns focus to its opener, the Figma menu button.
+    const at = () => page.evaluate(() => ({ hook: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName ?? null,
+      inside: !!document.activeElement?.closest('[data-p3="prune-dialog"]') }));
+    const f0 = await at();
+    ok(f0.inside, `#2124 prune: focus moves into the dialog as it opens (on ${f0.hook})`);
+    const walk = [];
+    for (let i = 0; i < 6; i++) { await page.keyboard.press('Tab'); walk.push(await at()); }
+    for (let i = 0; i < 3; i++) { await page.keyboard.press('Shift+Tab'); walk.push(await at()); }
+    ok(walk.every((x) => x.inside), `#2124 prune: Tab and Shift+Tab stay inside the dialog (${walk.map((x) => `${x.hook}${x.inside ? '' : ' OUTSIDE'}`).join(', ')})`);
+    await hooks.click(page.locator('[data-p3="prune-dialog"] [data-p3="dialog-cancel"]'), { timeout: 4000 });
+    const f1 = await at();
+    ok(f1.hook === 'figma-open', `#2124 prune: Cancel returns focus to the Figma menu, its opener (on ${f1.hook})`);
     ok(errors.length === 0, `#1663 control: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
   }
@@ -1537,7 +1550,7 @@ for (const how of ['pointer', 'focus']) {
   const none = await writes();
   ok(none.length === 0, `#1989 after a refused restore, Apply Theme and Prune stale post nothing to the plugin, the confirm dialog's Delete included — posted ${JSON.stringify(none)}`);
   // Closed by its own Cancel, so the control below clicks Apply rather than an open modal.
-  await hooks.click(page.locator('[data-p3="prune-dialog"] button', { hasText: 'Cancel' }), { timeout: 4000 }).catch(() => {});
+  await hooks.click(page.locator('[data-p3="prune-dialog"] button', { hasText: 'Cancel' }), { timeout: 4000 });
 
   // CONTROL: a brand that resolves turns both back on, and Apply posts that brand, once.
   await post(page, { type: 'restore-input', input: GOOD });
@@ -1614,7 +1627,7 @@ for (const how of ['pointer', 'focus']) {
     await page.waitForFunction(() => !!document.querySelector('[data-p3="prune-dialog"]'), null, { timeout: 5000 }).catch(() => {});
     const deleteOff = await page.evaluate(() => document.querySelector('[data-p3="dialog-confirm"]')?.disabled ?? null);
     await hooks.click(page.locator('[data-p3="dialog-confirm"]'), { force: true, timeout: 4000 }).catch(() => {});
-    await hooks.click(page.locator('[data-p3="prune-dialog"] button', { hasText: 'Cancel' }), { timeout: 4000 }).catch(() => {});
+    await hooks.click(page.locator('[data-p3="prune-dialog"] button', { hasText: 'Cancel' }), { timeout: 4000 });
     await hooks.click(page.locator('[data-p3="figma-open"]'), { timeout: 4000 }).catch(() => {});
     await hooks.click(page.locator('[data-p3="figma-option-prune"]'), { force: true, timeout: 4000 }).catch(() => {});
     await hooks.click(page.locator('[data-p3="figma-option-apply"]'), { force: true, timeout: 4000 }).catch(() => {});
@@ -1640,8 +1653,9 @@ for (const how of ['pointer', 'focus']) {
       ]);
       file = dl ? { name: dl.suggestedFilename(), text: await readFile(await dl.path(), 'utf8').catch(() => '') } : null;
     } else {
-      await page.keyboard.press('Escape');
-      await hooks.click(page.locator('[data-p3="export-dialog"] button', { hasText: 'Cancel' }), { timeout: 4000 }).catch(() => {});
+      // Closed by its Cancel. (Escape used to come first, so this click found no dialog, and a `.catch` hid that: the
+      // #2124 review's finding 3b.)
+      await hooks.click(page.locator('[data-p3="export-dialog"] button', { hasText: 'Cancel' }), { timeout: 4000 });
     }
     return { ...st, file };
   };
@@ -1658,7 +1672,7 @@ for (const how of ['pointer', 'focus']) {
       page.waitForEvent('download', { timeout: 2500 }).catch(() => null),
       hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'), { force: true, timeout: 4000 }).catch(() => {}),
     ]);
-    if (await page.locator('[data-p3="export-dialog"]').count()) await hooks.click(page.locator('[data-p3="export-dialog"] button', { hasText: /^Cancel$/ }), { timeout: 4000 }).catch(() => {});
+    if (await page.locator('[data-p3="export-dialog"]').count()) await hooks.click(page.locator('[data-p3="export-dialog"] button', { hasText: /^Cancel$/ }), { timeout: 4000 });
     return { ...st, file: dl ? dl.suggestedFilename() : null };
   };
   const tokensOff = (t) => t.off === true && t.file === null && (t.note ?? '').includes("these tokens would be the demo brand's");

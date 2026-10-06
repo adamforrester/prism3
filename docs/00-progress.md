@@ -7,6 +7,566 @@
 
 ---
 
+## (2026-10-06) — MCP score_consumption: a malformed refs item or pairs entry is an isError result, not -32603 (#2209)
+
+**STATUS: branch `engine/2209-score-consumption-guard`, copy approved by the owner (Q53, 2026-10-06).** MCP only: no token, name or value moves, `CONTRACT_VERSION` unchanged. Change note `engine: minor`, so ENGINE moves at the next fold past 0.231.0. **Fixes #2209.** The five new sentences are owner-approved (Q53) and listed in `docs/voice-standard.md` §3. Also fixes, in passing as #2209 asked, the `emit-figma-dims.ts:416` comment: four floors auto-name `sm..xl`, not `sm..2xl`.
+
+### Diagnosis
+
+#2200 put `brandTheme` and `buildTree` behind one guard, `buildBrand`. `score_consumption`'s own scoring runs after it, outside any `try`:
+- `scoreContractCompliance` reads `pair.fg` and calls `.replace` on it, so `pairs: [null]`, a pair missing `fg` or `bg`, or one whose `fg` is a number, all throw;
+- `normalizeRef` calls `.trim()` on each ref, so `refs: [null]` throws the same way. The issue named only `pairs`; `refs` is the same defect in the same handler.
+
+Each escaped `tools/call` as -32603. A `kind` outside the enum threw nothing, but it was scored silently at the 4.5:1 text floor.
+
+### What changed
+
+`scoreInputErrors` in `mcp.ts` checks each `refs` item and `pairs` entry against the tool's inputSchema before the build. It returns `{ error: 'score_consumption input failed validation', errors: [...] }` with `isError`, one sentence per bad entry, naming its index and what is wrong. Every bad entry is reported at once, so one round fixes them all. Only types are checked: an empty or unknown role still scores as `unresolved`, as before. A `pairs` that is not an array is still ignored, as an absent one is; it threw nothing, so it is outside this fix.
+
+### `figmaArtifacts` is reachable from user input: filed as #2227, not guarded here
+
+The issue asked to confirm that `figmaArtifacts` and `buildAiMetadata`, both outside `buildBrand`'s guard, have no user input that reaches a throw. **That holds for `buildAiMetadata` and not for `figmaArtifacts`.** An earlier draft of this entry said both were safe. The independent review of #2223 showed otherwise, and the claim is withdrawn.
+
+- **`ai-metadata.ts`** throws nothing.
+- **`figmaArtifacts` is reachable.** A schema-valid brand with `surfaces: { light: { floorStep: 25 } }` makes `buildFigmaColor` throw "… is measured against the palette step 'neutral.025', which no page ground aliases …". `export_theme` with `include: ["figma"]` returns -32603, while `validate_brand` calls the brand valid. The review's sweep found 79 of 285 schema-valid brands throwing past the guard, all of them `surfaces` cases that set `floorStep` or `secondary`. The plugin's apply path calls the same function.
+- **Why my probe missed it.** It covered overrides, raw colors, and extreme OKLCH values, and treated the "palette step that zero or several page grounds alias" throw as an invariant because overrides of a ground are refused. It never varied `surfaces`, the lever that picks the step directly. `lint-lever-sweep.ts` runs toggles and enums, not `floorStep` numbers, so it doesn't cover this either.
+- **Why it isn't fixed here.** Wrapping `figmaArtifacts` in the guard would turn the crash into a refusal from the Figma step alone. #2227 asks for the refusal, or a fix to the emission, to come from the build path so `validate_brand` reports it, and for the studio picker to stop offering the step. That is its own change.
+
+### Gates and their independence
+
+`mcp-test.ts` gains a `#2209` block of five arms and a control, read off the raw reply. Expected sentences are typed in the test, never read from `mcp.ts`. The cases:
+- `pairs: [null]`;
+- a pair missing `bg` after a good one, which proves the index;
+- an array entry and a numeric `fg` together, which proves every bad entry is reported;
+- a bad `kind`;
+- `refs: [null]`.
+
+The control sends every `kind` and an unknown role, and checks the input still scores, with one `unresolved`.
+
+### Trap for whoever is next
+
+`mcp-test.ts` carries the `#2162` block twice, verbatim. #2207's merge added the second copy. Filed as #2222, not fixed here.
+
+---
+
+## (2026-10-06) — Brand › Modes: the always-on Light row draws Prism3's disabled check box (DB1 A; #2208)
+
+**Status:** `apps/studio/src/chrome.css` and `test:chrome`. No engine change, no emitted artifact moves, no ENGINE bump, and `CONTRACT_VERSION` is unchanged. No new copy. Visible: Brand › Modes' Light row changes from a dashed box with the mark in the text color to Prism3's disabled check box, the same box a locked mode check draws since #2211.
+
+### The owner's decision
+
+- **DB1 A (#2208, option b).** The fixed **Light** row draws Prism3's disabled check box, the same as a locked mode check, so "can't change" has one look in the chrome.
+
+### The change
+
+- **Removed.** `.p3-check-fixed .p3-check-box { border-style: dashed; }`, the last dashed "can't change" edge #2211 left in `chrome.css`, and the row's own mark color (`--p3-text`).
+- **Reused, not added.** #2211's two locked-check-box rules now also select `.p3-check-fixed`, through `:is(…)`. The box takes `--p3-disabled-fill`, `--p3-disabled-edge` (`color.disabled.border`) and the mark `--p3-disabled-ink` (`color.disabled.on-fill`). No role differs, so no variable is new. The row keeps `display: block` on its mark, since a fixed row is always on and has no `aria-checked` to show it.
+- **Unchanged on purpose.** The row is still a `div`, not a control. It has no role and no tabindex, its box is `aria-hidden`, and its text still reads "Light" and "Always generated: it’s the base mode." Its name and note keep their ink. The decision covers the box only, and the note is already held at 4.5:1 by #1770's check in `test:chrome` §1.
+
+### Test, in `test:chrome` (X4 A derived)
+
+- **The sweep widens.** After the eight places, each of the four runs (web and figma, light and dark chrome) goes to Brand and reads the Light row with the same `DISABLED_READ`. Its dashed edges join the sweep's list, and the line now names the row: `no disabled chrome control, and not the fixed Light row (mode-on-light, read …), draws a dashed edge`. A row not found fails the line too. The count goes from 438 to 439.
+- **The box against the emission.** A new line holds the box's fill, its four edges (one solid color) and its mark to `PRISM3_DISABLED`, resolved in Node from the committed emission, never from the studio's CSS: `disabled.fill`, a solid `disabled.border`, the mark on `disabled.on-fill`. It runs in both chrome themes on both hosts.
+- **Still a fixed fact.** A third line holds the row to a `div` with no role or tabindex, its box `aria-hidden`, and its text the literal above.
+- With a screenshot directory, each run saves `2208-{web,plugin}-{light,dark}-modes.png`.
+
+### Mutation (`wip:` commit first)
+
+- **The dashed rule back:** 8 failures, two per run on both hosts and both chrome themes. The first is `X4 A derived: web light: no disabled chrome control, and not the fixed Light row (mode-on-light, read true), draws a dashed edge (439 read) — brand mode-on-light: p3-check-box top dashed, p3-check-box right dashed, p3-check-box bottom dashed, p3-check-box left dashed`. Its pair is `X4 A derived: web light: DB1 A: the fixed Light row's box draws Prism3's disabled check box: … drew {"fill":"#c0c1c2","edge":"4 side(s) #c0c1c2 dashed","ink":"#67696b"}`.
+
+---
+
+## (2026-10-06) — Studio: one heading rule across every page (heading pass 1 of 2, TY2 A)
+
+**Status:** `apps/studio/src/chrome.css` (heading rules only), `apps/studio/src/ui/lever-kit.ts` (`stateLine`), and
+`test:chrome` section 30. No ENGINE bump (no emitted artifact moves). CONTRACT unchanged. No new copy. Visible on every
+levers page, both hosts, both themes.
+
+### What changed
+
+The owner approved TY2 A and HP1–HP7 on 2026-10-06. This PR lands the rule. PR 2 lands the structure: BG1 / #2181,
+the TY1 split / #2190, TS1 A, token names on the label line, HP2, HP5 and HP6. #2192 (the chips) comes after that.
+
+- **Three levels, existing tokens only (HP7: no new weight).**
+  - **L1 section title** keeps `fs-16` / `fw-strong` / `lh-compact` / `ls-snug`. Its description sits `space-050` under it,
+    and its content starts `space-300` after the head.
+  - **L2 group heading** (lever names, `.p3-rows-sub`, `.p3-icol-title`, Layout › Grid's breakpoint names) is now
+    `fs-14` / `fw-strong` / `lh-compact`. Lever names were `fw-emphasis`. Its content starts `space-150` after it, fixed.
+    Before, it ranged from 3.3 to 25.3 px. When a lever's own one-line description comes next, the gap is `space-050`.
+  - **L3 field label** (`.p3-field-label`, `.p3-fill-label`) is `fs-14` / `fw-emphasis` / `lh-compact` in primary ink.
+    Its control starts `space-050` after it. HP4: the 12px secondary labels (Inverse fill palette, the gradient fields,
+    Interactive's link states, Depth's tint, Type's viewport fields and Set every text type to) move up to L3.
+  - **Not a level:** the table headers in Type's four tables keep `fs-12` in secondary ink.
+- **The ⓘ button** keeps its target: `hit-min` (24px; owner decision IT1, 2026-10-06). Equal negative margins of a whole
+  `hit-min` let it overhang the heading's line at every tier, so the head row is as tall as its line. It sits `space-050`
+  after the text, centered on the line.
+- **HP3:** a hint line (`stateLine(text, 'hint')`) no longer draws the ⓘ glyph, so the ⓘ appears only on a button. All 14
+  hint sites go through that one helper. Warnings keep their glyph.
+- **Mechanics found while measuring:**
+  - A group lever's head is a `<legend>`, which the fieldset's gap does not reach, so the legend carries the full
+    `space-150`.
+  - A readout in a head row, or in Depth's slider head, takes `lh-compact`. At `lh-normal` it made the row 3.5px taller.
+  - An Interactive group's first row and a row list's first row are pulled up from `space-300` to `space-150`.
+  - Gradients' Stops label pulls its first stop up to `space-050`.
+  - Layout › Grid's `<b>` drew at the UA's 700. It now takes `fw-strong`.
+- **Held decision 7, applied:** Neutral emphasis, the lever inside Interactive's Neutral group, takes L3's weight, and its
+  control follows at `space-050`.
+
+### The gate (test:chrome section 30)
+
+Section 30 runs on both hosts, both themes, at 1280 and 380, on every page, with every Show advanced open. It finds headings
+by class. It checks each level's computed size, weight, line height and the space after it. It also checks L1's
+tracking and L3's ink.
+
+The expected values come from the committed emission, never from the CSS. Each token the rule names is mapped by a
+literal to its emitted path (`core.font.weight-role.strong`, `space.150`, …) and resolved by the section's own alias
+walk. It does not import `chrome/tokens.mjs`.
+
+The audit's per-page heading list is typed in, and every entry must be found at its level. Floors on the counts (L1
+34, L2 72, L3 20, table headers 21, ⓘ 54, token labels 288, hint lines 16, per host and theme) fail a sweep that finds
+fewer. In Light and in High contrast light, the section also fails any hint line that draws a glyph, and any ⓘ glyph
+drawn outside a button.
+
+It also sweeps every heading element (h1–h6, `legend`, `[role="heading"]`) and every text drawn at `fw-strong` or `fs-16`
+and up outside a control. Each must be a level, a table header, or a reasoned entry in `HEADING_EXEMPT`, which was empty
+when this landed. No heading tag may skip a level after the one before it. The sweep found 80 heading elements per
+host, theme and width. The review of #2210 asked for it: a list of expected headings cannot fail on a heading it does
+not name.
+
+### Traps for whoever re-verifies this
+
+- **Not `1lh` for the ⓘ's overhang.** Inside the button, `1lh` is the button's own line height (15px), not the
+  heading's. At 380 the narrow tier's buttons are `ctl-h-xs` (28px) tall, so `(1lh − hit-min) / 2` left the ⓘ setting a
+  19px row there. It passed at 1280 only because 24 − 9 = 15 fits inside 17.5. The review of #2210 caught it, and section
+  30 now runs at 380 for that reason.
+
+- **The ⓘ target is 24px, not 44.** `hit-min` is `core.dimension.24`, the WCAG 2.5.8 floor. The plan's "44px" was a
+  misstatement, and the owner confirmed 24 (IT1). The gate holds the ⓘ to `hit-min` read from the emission.
+- **Measure from the heading's row, not from its text.** The Interactive group title and the Grid breakpoint name sit
+  on a baseline with smaller secondary text, so the text box ends 1.3–1.5px above its row. Measured from the row's
+  content box, the gap is exactly `space-150`.
+- **Gradients' switch still sets its row's height.** HP5 moves it into the title row in PR 2, so the row-height check
+  skips a head that holds a switch.
+- **The audit's Palettes list predates #2175.** That change folded the Pinned neutral section and its Pin a neutral lever
+  into Neutrals' source choice, so the list drops both and the floors drop by one L1, one L2 and one ⓘ.
+- **The audit ran on aurora; the gate runs on prism3**, the suite's brand. The lists match, except that prism3's Grid
+  has no `xs` group.
+- **#2171's Style guides page has its own heading classes.** It takes the rule after it lands, not here.
+
+---
+
+## (2026-10-06) — Build style guides: the page (S11.2, PR 2 of 2)
+
+**STATUS: PR #2171 open from `ui/s112-style-guides-page`; the owner reviewed the screenshots and approved it (SG1, below). Merges `ui/s112-style-guide-plumbing` (PR 1, #2161), which must land first.** No emitted change. One plugin string changed in the review round (the skipped table's page, without "↳"), so the PR carries an `engine: minor` note. CONTRACT stands.
+
+**Why.** The owner approved the Build style guides mockup (2026-10-05: P1 variant 1, P2 A, P3 B, P4 A, P5 A, P6–P9, P10, P11 "Style guides", P12 all DRAFT copy) and its options (H4–H9), its heading and its menu item (H10, H11). This builds the page to the mockup, on PR 1's plumbing.
+
+**What it does.**
+- **A page no tab shows.** `pages.ts` gains `MENU_PAGES` (`styleGuides`), a third kind of `PageKey` beside the legacy and the moved pages. The frame draws it in its own `page` layout: the head, the page scrolling under it, and the drawer at the foot. It is mounted on arrival and released, with its subscriptions, on leaving. No tab is selected while it shows (P10); Close returns to the page the Figma menu was opened from.
+- **The Figma menu's "Build style guides…" opens it** (H11). The legacy Style guide page and its Pages menu entry stay, untouched, until the cleanup PR (H12).
+- **The model is pure** (`state/style-guides.ts`, tested in Node): the tree from the catalog (a collection's chain of single groups folded, a chain of single groups as one row), the selection as a set of TABLES (P2 A, P3 B), which rows carry a box (at or above the table level), what starts open (the mockup's call 2), the counts and the words beside Draw, the title box, the options and their defaults (H4–H9: Hex, from each role, REM off, Name cell off), and what Draw sends: every option, and the selection as table KEYS only when it is not every table, so a full run still judges superseded tables.
+- **The page** (`shell/style-guides.ts`) draws the mockup: What to draw (Collection, Mode fixed to "Every mode" (P4 A), the four kind boxes, the tree with later-phase rows grayed out, tagged and not pickable (P5 A), Deselect all / Select all, Draw by table title), the run (the summary and Draw, then the table list with Waiting, Drawing, Done and Not drawn, Cancel, a stopped run's line, and a failed table first with its reason and Draw it again), and Options, a group per kind in the selection. Set up file not run: the warning box with its button, and Draw off (P8). It asks for the catalog on open and again when Apply Theme's, Set up file's or its own run's verdict lands. At 380: one column, the run first, Draw in a bar pinned to the bottom (P9).
+- **Activity (P1 variant 1, the mockup's call 11).** The drawer row is titled "Style guides" (P11; the run guard's title moves with it, as `busy/titles` requires). While the page is open, the drawer does not open by itself for the style guide, when it starts or when it fails: its row, the bar row and the red dot still record it, and the verdict's own request to be shown is not taken as a click. Away from the page, F2 is unchanged. At 380, the closed strip carries the run's progress bar.
+- **Chrome.** The page's rules in `chrome.css`, on existing variables plus the switch's four (`track-w`, `track-h`, `thumb`, `thumb-inset`, added to `SHELL_VARS`); every color pair it draws is already declared in `PAIRS`. Two glyphs, `dash` (a part-checked box) and `error`.
+
+**Owner decisions (2026-10-05), on the screenshots of #2171:**
+- **SG1:** the page is approved as built.
+- **SG2:** the refusal stays "Style guides is already running. Try again when it finishes." (P11 renamed the operation, and the approved refusal is built from its title.)
+- **SG3 A:** a failed table shows the host's own reason, as it comes. The mockup's "‹font› is unavailable in this Figma." has no source today: a font Figma cannot load is a named miss inside a drawn table, not a failed table (PR 1's note). No change.
+- **SG4:** approved copy. When the host cannot read the file's catalog, the page says exactly "Couldn't read this file's variables. Close the page and open it again." in place of the host's message. Built here, with its test and mutation.
+- **SG5 A:** the switch stays the mockup's track and knob. Moving the studio's other switches over is a separate issue, filed by the coordinator.
+
+**Tests.**
+- `apps/studio/test-style-guides.ts` (new, in the studio `test` step): the model, on a typed catalog.
+- `apps/plugin/test-style-guides-page.mjs` (new, run by `test:verdict` after `test-build-verdict.mjs`): the built `dist/ui.html`, one arm per decision, named by it (SG4 included), and a control arm showing that away from the page a failed style guide still opens Activity.
+- `test-chrome.mjs`: the Figma menu's item reads "Build style guides…" and opens the page without writing; the reveal arm reaches the legacy page through the Pages menu. Screenshots: `scratchpad/s112-shots/`.
+
+**Mutations,** after a `wip:` commit, each restored from HEAD; each fails by name:
+
+| Mutation | Fails |
+|---|---|
+| a variable boxed below the table level | "tree: below the table level nothing carries a box (100, 200, 4, 8, …)", "tree: each collection folds …" |
+| REM on by default | "draw: the defaults (H4–H9): Hex, from each token's role, REM off, Name cell off" |
+| the selection always sent as keys | "draw: every table selected sends no tables filter, so the run judges superseded tables" |
+| the drawer never quiet (frame's `quiet` always false) | "P1, P11: Activity records the run in its "Style guides" row and does not open by itself while the page shows it (open true…)", "P1 (call 11): a failure the page shows marks Activity, and the drawer stays closed (open true…)" |
+| Draw on before Set up file | "P8: Set up file not run: a warning with its button, and Draw off, described by the warning (…disabled false…)" |
+| the host's raw message shown in place of SG4's words | "SG4: a catalog the host could not read says exactly the approved words, never the host's message ("in getLocalVariablesAsync: the document is closed")" |
+| Draw it again by title, not key | "P6: Draw it again draws Primary alone, by key, and the title box names it (["Primary"], …)" |
+
+**Trap.** Playwright will not click an `aria-disabled` control, and waits for it to be enabled until its timeout. Checking that a later-phase box ignores a click needs `{ force: true }`. Also, `window.postMessage` to itself is asynchronous, so a read straight after a click misses the message the click posted. Settle first.
+
+### Review round (independent review of `a8bf370c`) and owner decisions Q46 A, Q47 A (2026-10-06)
+
+**Owner decisions (2026-10-06):**
+- **Q46 A:** SG1 covers the page's copy as built. The one exception is the stopped line, which now matches the string approved on #2161 exactly, with no trailing period: "Stopped after table ‹n› of ‹n›. The tables already drawn stay".
+- **Q47 A:** at 380, the Draw bar stands `space.300` (24px) above the Activity drawer's strip, as Components' build bar does (#2180, #2196). It is no longer flush: `.p3-sg-actbar` is `bottom: var(--p3-space-300)`, with its own edge and corners like the build bar.
+
+**What the review held, and what changed:**
+- **Merged with main** (no rebase). `package.json` (both), `chrome/spec.mjs` (`SHELL_VARS`), `chrome.css` and `frame.ts` were resolved as unions. `frame.ts` is `root.append(head, legacy, panes, menuPage, inspect, activity.drawer, layer)`.
+- **FR1 A focus rings.** The title box's fold and the switch now draw their rings on `--p3-focus-ring`. The switch is now a `<button role="switch">` holding the track and knob, so its ring is its own outline, where the ring audit reads it. Before, the ring sat on a sibling of an invisible input, which no audit could see. `test:chrome`'s #2144 sweep now opens this page in the plugin, in both themes, and reads every ring on it. It must reach the switch, the fold, Draw and Close.
+- **Progress announcements.** There is now one `aria-live="polite"` region (`sg-live`), a node of its own outside what `paint` replaces. It holds only the run line, and its text changes in place; between runs it is empty. The nested `aria-live` wrappers and the `role="status"` are gone.
+- **Focus.** A run started from the page (Draw by keyboard, or Draw it again) moves focus to Cancel. Cancel shows as soon as the page posts the run, before the main thread lists the run's tables. When the run ends, focus goes to Draw, or to the run line if Draw is off. It never lands on `<body>`.
+- **`role="switch"`** is asserted.
+- **"↳".** A skipped table's reason names its page as the table list does, with no arrow ("this file has no Primitive tokens page, and Set up file adds it"). That string lives in the plugin's `style-guide.ts`, so this PR now carries an `engine: minor` change note.
+
+**Mutations,** each after a `wip:` commit and restored from HEAD, each failing by name:
+
+| Mutation | Fails |
+|---|---|
+| the Draw bar back to flush (`bottom: 0`) | "P9, Q47 A: at 380 the run comes first, and Draw sits in a pinned bar at least space.300 (24px) above the Activity drawer's strip, scrolled or not (… "top":0 …)" |
+| the live region put back inside the replaced content | "progress: one polite live region, the same node through the run's events, holding the run line alone, and no live or status region inside the page (… "nested":1 …)" |
+| the live region replaced by a new node on each paint | the same arm (… "text":"" …) |
+| the live region holding more than the run line | the same arm (… "Drawing table 2 of 4… You can leave this page." …) |
+| no move to Cancel | "focus: a keyboard Draw moves focus to Cancel as the run starts (focus on sg-run-line)", "focus: Draw it again moves focus to Cancel as its run starts, not to <body> (focus on sg-run-line)" |
+| no move when the run ends | "focus: when the run ends, focus moves from Cancel to Draw or the run line, never <body> (focus on body)" |
+| `role="switch"` dropped | "SG5 A: each option switch is a switch to assistive technology, role="switch" ([null,null,null])" |
+| the switch's ring back on `--p3-ctl-edge` | `test:chrome`: "#2144 figma light 1280: every focused chrome control draws its ring in color.border.focus (#1e1eff) … build style guides sg-opt-aliases: color #0d0d0e, want color.border.focus #1e1eff …", and the same in dark (#f7f7f7, want #4f79fa) |
+
+### CI round (`e3c624b2`): the page suite waits on conditions, never on the clock
+
+CI failed at the `test:verdict` step on `e3c624b2`. Its annotation carried no assertion, and the job log was out of reach. Six local runs passed: three on the head, three merged with main. So the one suspect inside this PR's scope was hardened: `test-style-guides-page.mjs` waited a fixed 120 ms after every posted message and every click that posts one. Both directions of the bridge are asynchronous `postMessage`, so on a loaded runner a read could come before the message had been handled.
+
+Every fixed sleep is gone. Each wait now names the state the next assertion reads: the message handled, the element drawn, the post caught. It runs for up to 8 s, and when it times out it is a named ✗ saying what it waited for and what the page showed; it never throws. Every assertion keeps its meaning. `test-build-verdict.mjs`'s own `settle` predates this PR and is untouched.
+
+**Under load:** five `test:verdict` runs with two `test:chrome` runs going in two other worktrees the whole time (load average 10.4–11.8 on 4 cores). All five passed (311/311 and 55/55).
+
+**Mutation, Cancel ignored** (the page's `cancel` lend a no-op), fails by name:
+- ✗ wait: 1 "style-guide-cancel" posted — not within 8000 ms; …
+- ✗ P7: Cancel asks the main thread to stop after the current table (0)
+
+### The CI failure on `e3c624b2`, found (delta review of `12528b91`)
+
+The CI line was `✗ the page asks the main thread for the file's catalog once, on open (0)`. `openPage` returns once the page is in the DOM, but the page's open request crosses `postMessage` a task later, and that arm read `__sent` with no wait. CI's later "ask again (2)" arm passed, so the request was sent, just read too early.
+
+**Reproduced:** with the page's open request delayed by 300 ms (`setTimeout(() => lend.request(), 300)`), that exact ✗ fires, and it is the only failure. **Fixed:** the arm now first waits on `posted(page, 'style-guide-catalog-request', 1)`. "Once" stays held by the later arm's exact 2. With the same 300 ms delay, the suite passes.
+
+Also: the Activity summary's skip line ("N tables skipped — this file has no … page") names the page without "↳", matching the table reason. It is in the plugin's `style-guide.ts`, under this PR's `engine: minor` note; `test-style-guide.ts` section 7's literal moved with it.
+
+### Merged with #2211 (disabled buttons): the page takes the disabled skin
+
+The `chrome.css` conflict was resolved as a union, with #2211's disabled rules placed after the page block so they still sit last and win. Draw is a `.p3-btn-primary`, so it takes the filled disabled skin, and no page rule overrides it. The later-phase boxes are `aria-disabled` `.p3-check`, so they take the check skin. The switch is never disabled.
+
+One page rule broke #2155's rule ("no chrome control draws a dashed edge to mean disabled"): the fixed Mode select drew `border-style: dashed`. It now takes the disabled field's three roles (F1 A, as `.p3-text-input:disabled` does). #2211's derived sweep only visits the levers' places, not this page, so `test-style-guides-page.mjs` now holds both controls itself (57/57). Each arm compares the page against the roles resolved through a `var(--p3-…)` probe, never against the page's own rule.
+
+**Mutations, each failing by name:**
+- the select's dashed edge restored → ✗ `#2155 F1 A: the fixed Mode select draws the disabled field, no dashed edge`
+- the select's edge on `edge` → the same ✗
+- a page rule giving Draw its own fill → ✗ `#2211 X4 A: the disabled Draw takes Prism3's disabled filled button: …`
+
+**Trap:** in light, `disabled-fill` and `disabled-edge` resolve to the same color, so a mutation that swaps those two passes. Use a different role to check the edge arm.
+
+---
+
+## (2026-10-06) — Studio: a live styles.css rule cannot be removed under a green verify (#2201)
+
+**Status:** a new gate, `lint:live-css` (`apps/studio/lint-live-css.mjs`), with its sweep
+(`apps/studio/live-css-sweep.mjs`) and its baseline (`apps/studio/live-css.json`). It is wired into
+`verify.ts`, `ci.yml`, CONTRIBUTING §3, CLAUDE.md §4 and the PR template. No engine file changes, so no
+ENGINE bump; CONTRACT is unchanged. `test-chrome.mjs` is not edited: the sweep rides it, and four open
+UI-lane PRs are changing that file.
+
+### The defect
+
+The review of #2116 deleted `.sg-g3{grid-template-columns:repeat(3,1fr)}`, a live rule whose class
+`kit.ts` builds at run time. The style guide's three-column grid fell to one column, and every suite
+stayed green. They assert colors, contrast, targets and words, but nothing reads a grid's track count.
+
+### The design
+
+**Two sides.**
+- **EXPECTED** is the set of `styles.css` rules that matched an element a real page drew. A preload records it
+  by riding the four browser suites `verify` already runs, so liveness comes from the DOM the app's
+  TypeScript draws, never from the stylesheet:
+  - `test:chrome`, on both hosts in light and dark;
+  - `test:smoke`;
+  - the plugin's `test:verdict` and `test:start`.
+- **ACTUAL** is the current `styles.css`, parsed by Chromium.
+
+The gate fails, by name, when a live rule is gone or has lost a property. A rule no page drew is not in
+EXPECTED, so a true dead-code removal passes.
+
+**Keyed per rule, not per selector.** The key is the context, the selector and an ordinal:
+`@media (max-width: 760px) » .sg-g3 #1`. Selector text alone would pass the reviewer's own mutation,
+because `.sg-g3` also appears in the 760px rule `.sg-g3,.sg-g5{…}` (docs/34 shape 15). M5 below measures
+this. Each selector of a list is its own key.
+
+**Property names, not values.** Dropping `gap` from a live rule fails; changing its value passes. I
+considered a computed-style comparison on drawn nodes and didn't build it. Computed style moves with brand,
+mode and timing (#2116 measured ~380k-pixel run-to-run noise in one pane), so it would pin every value
+on the page rather than the presence of its rules.
+
+**The baseline has memory (shape 6).** The gate never writes it. `-- --accept` re-runs the sweep, testing
+every old key's selector against the DOM, including keys already gone from the sheet. It refuses to forget a
+rule the DOM still draws unless the rule is named with `--allow '<key>'`. A key no page draws any more drops
+out on its own, and is printed. `--dry-run` never writes. `--suites` narrows the sweep, and is refused
+without `--dry-run`: a `test:chrome`-only sweep holds 385 live rules against 426, so a partial sweep written as a
+baseline would forget 41 live rules.
+
+**A shared parser, checked by a second one.** The check and the accept both read through Chromium. That is
+not the DRY trap: what the check compares is the subject at two moments, and the independent side is the
+sweep. But a rule the parser drops would be invisible to both moments (shape 15). So a tokenizer of the
+gate's own lists every rule prelude in the raw text, and the two lists are aligned. Every dropped rule is
+named, and only one reason is accepted: another engine's prefix. Today that is
+`input[type=color]::-moz-color-swatch` at L368, which Chromium drops by design and could never draw.
+
+**Did it look (shape 9).** The gate fails on any of these:
+- a baseline under 150 live rules;
+- a sweep with no frame in any of the four host × scheme corners;
+- a parse under 200 rules;
+- a self-check that plants a removal in memory and isn't told.
+
+The sweep counts only frames that installed `styles.css`, recognized by the sheet's own fingerprint.
+
+### The first accept caught the sweep's own blind spot
+
+The first `--accept` refused: `test:chrome opened no frame carrying apps/studio/src/styles.css`. The build
+installs ONE `<style>` holding `styles.css` followed by `chrome.css` (1083 rules), and the sweep had looked
+for a sheet of exactly `styles.css`'s 514. It now matches a prefix. Without that represented-check, the
+first baseline would have been empty and every later run green.
+
+### The baseline
+
+On `main` at 9b91eebb: **426 live, 119 drawn by no page**. The sweep counted 457 frames carrying the
+sheet: web light 206, web dark 55, figma light 143, figma dark 53. First witnesses: `test:chrome` 398,
+`test:smoke` 27, `test:verdict` 1, so the extra suites each vouch for rules `test:chrome` never draws. The
+119 are dead code or states no suite reaches, filed as #2224. The gate cannot protect a rule nothing draws,
+and that is its stated limit.
+
+### Mutations
+
+Each one ran from a `wip:` commit. The harness asserted the edit applied (`s != o`, an exact anchor, count 1) and
+was restored with `git checkout --`.
+
+| # | Mutation | Result |
+|---|---|---|
+| M1 | delete `.sg-g3{grid-template-columns:repeat(3,1fr)}` (the reviewer's) | exit 1: `✗ live rule removed: .sg-g3 #1 — it matched a drawn element in test:chrome, web light. Restore it; or, if removing it is the intent, run … --accept --allow '.sg-g3 #1'` |
+| M2 | delete `.startview{…}`, a rule no page draws (no class-position use in source) | exit 0: `✓ live-css: no live rule … was removed or lost a property.` |
+| M3 | drop `gap:14px` from the live `.sg-grid` | exit 1: `✗ live rule lost column-gap, row-gap: .sg-grid #1 — drawn in test:chrome, web light.` |
+| M4 | M1, with the gate's removal arm neutralized | `.sg-g3` named 0 times; the gate stays red only through its self-check: `✗ self-check: removing the live rule :root #1 in memory was not reported` |
+| M4b | M4, with that self-check also neutralized | exit 0, green: the named failure in M1 comes from that arm alone |
+| M5 | M1, read as selector text instead of rule keys | `.sg-g3` present before and after, so a selector-text gate PASSES the mutation; the key `.sg-g3 #1` is gone while `@media (max-width: 760px) » .sg-g3 #1` remains |
+| M6 | M1, then `--accept --dry-run --suites test:chrome` | exit 1: `✗ live-css --accept refuses to forget live rules. Each still matches a drawn element: .sg-g3 #1 was removed` |
+| M7 | M6 with `--allow '.sg-g3 #1'` | exit 0: `would allow: .sg-g3 #1`, nothing written |
+| — | `--accept --suites test:chrome` without `--dry-run` | exit 1: `✗ … --suites narrows the sweep, so it is allowed only with --dry-run.` |
+
+M1 also found a bug in the gate's first draft. Its dead-rule self-check asserted that the planted removal
+reported *nothing*, which a real removal elsewhere made false. So every real failure carried a spurious
+second line. The self-check now asks only whether its own planted key is reported.
+
+### What it does not see
+
+- A rule live only in a state no suite reaches (#2224 lists today's).
+- A live rule's effect removed without removing the rule: a later override, or a value set to its initial value.
+- A rule added since the last `--accept`, until the next one. The gate prints that count every run.
+
+### Trap for whoever moves this
+
+**Never add `live-css.json` to `regen.ts`, and never let the check write it.** Regenerated or self-rewritten,
+it would agree with a deletion, and the gate would go green with the rule gone. That is shape 6, and
+`token-contract.json`'s rule.
+
+---
+
+## (2026-10-06) — Chrome: a disabled button takes Prism3's disabled button skin, no disabled control answers hover, and the exemption canaries copy every style (X4 A, Q28 a; #2155, #2154, #2174)
+
+**Status:** `apps/studio/src/chrome.css`, `apps/studio/chrome/spec.mjs`, `test:chrome`, `test:smoke` and the plugin's `test:start`. No engine change, no emitted artifact moves, no ENGINE bump, and `CONTRACT_VERSION` is unchanged. No new copy. Visible: every disabled chrome button changes from the dashed "can't change" edge to Prism3's disabled button for its appearance, and no disabled control changes under the pointer.
+
+### The owner's decisions
+
+- **X4 A (#2155).** A disabled button in the studio chrome follows Prism3's own disabled button styling, the way F1 A (#2152) did for the text field.
+- **Q28 a (#2154).** A disabled control, `[disabled]` or `[aria-disabled="true"]`, shows no hover change, whatever its kind. #2143 had done this for text fields only.
+
+### The skin, read from the engine's definitions
+
+`packages/engine/components/button.ts` binds one cross-cutting disabled block. The projector (`anatomy-figma.ts`) paints the fill only where the appearance has a fill at rest, the edge only on `outline`, and the on-fill ink only over a disabled fill (#784). `icon-button.ts` binds the same block for its `ghost`. `button-destructive` shares the block, so Discard is drawn the same as a filled button. Per appearance the chrome uses:
+
+| Appearance | Chrome buttons | Fill | Edge | Label | Glyph |
+|---|---|---|---|---|---|
+| filled | Apply Theme, Continue (`.p3-next`), Start from this color, Discard | `disabled.fill` | none | `disabled.on-fill` | `disabled.on-fill` |
+| outline | every page-colored `.p3-btn`, the value picker's values | none | `disabled.icon` (#1349) | `disabled.text` | `disabled.icon` |
+| text | every ghost button, the mode check | none | none | `disabled.text` | `disabled.icon` |
+
+- **Reused and added.** `--p3-disabled-fill` and `--p3-disabled-ink` (#2152) match the filled roles, so they are reused. `--p3-disabled-edge` reads `disabled.border`, which a button never binds (#1349 moved the button's edge to `disabled.icon`). So there are two new rows, `--p3-disabled-text` (`color.disabled.text`) and `--p3-disabled-icon` (`color.disabled.icon`). Both are in `INACTIVE`, and the build's `INACTIVE_ROLE` check accepts them as `color.disabled.*` roles. In the default theme `text` and `icon` resolve to the same value (neutral 450 light, 550 dark). They are still two rows because they are two roles.
+- **The rules.** One block sits at the end of `chrome.css`, keyed on `:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"])`. A running write's control is `aria-disabled` and `aria-busy`. It is pending, not disabled, so it keeps its look (S11). The block is last so it wins over a state rule of the same weight, such as a chosen chip or a set picker. Everything inside the button inherits the label ink, and every glyph takes the glyph role.
+- **Removed.** `.p3-btn[disabled]`'s dashed edge, `.p3-btn-primary[disabled]`'s page fill, the dashed edges on `.p3-mcheck[aria-disabled]` and `.p3-vpick[aria-disabled]`, and the dashed box of a locked mode check. A locked mode check's box now takes Prism3's disabled check box (`checkbox-control.ts`: `disabled.fill`, `disabled.border`, the mark on `disabled.on-fill`). A disabled switch's dot takes the glyph role.
+- **Hover.** Every `:hover` rule in `chrome.css` now carries `:where(:not(:disabled, [aria-disabled="true"]))`. It adds no weight, so the cascade is unchanged. The color field is a group, so it uses `:not(:has(…))`. `.p3-menu-item[disabled]:hover`'s reset is gone because its rule is now limited the same way.
+
+### The contrast exemption, extended to buttons (all three suites, each with its own oracle)
+
+The disabled button label sits under the text floor on purpose: about 3.9:1 in light and 3.5:1 in dark for outline and text, and about 3.0:1 on the disabled fill. As with #2152, a node is exempt only when it is, or sits inside, a control that is `:disabled` or `aria-disabled="true"`, and only when it is under its floor. Each exempted button is asserted, by name, to be:
+- **disabled to assistive technology.** In `test:chrome` this comes from the accessibility tree. A control under an open window (S12's guard over Import) counts when the tree drops it as inert. In smoke and start it means the disabled property or `aria-disabled`.
+- **inert.** It takes no focus. An `aria-disabled` control keeps its focus stop on purpose (the mode check, a matrix check, a refused picker value), so for those, activating it with `click()` must change nothing. In `test:chrome` that covers the control, what the page stores, the place, and which windows are open. In smoke and start it covers the control and what the page stores.
+- **drawn in its appearance's roles.** This covers its fill, its edge and its ink. It also covers the ink of every label (and, in `test:chrome`, every glyph) the audit exempted inside it. The values come from the committed emission. Which appearance a control has is read from its element and classes. That only picks the skin to expect. It never grants the exemption.
+
+**Counted, with floors:**
+- `test:chrome` exempted 788 nodes in 60 of 286 probes. These were Surfaces & fills' 31 paired icon rows (disabled in Light by design), Layout's first breakpoint field, the step picker's Return to Auto, and Import on every S12 probe. S12 now fails a first run that did not exempt Import.
+- `test:smoke` exempted 2589 labels in 39 states across 27 controls, and every brand must exempt one.
+- `test:start` exempted 8 labels in 8 states. Every start moment must exempt Import, because the paste box is empty there.
+
+### The canaries copy every computed style (#2174)
+
+In each suite, every canary (the field one from #2152, and a new button one) is now a copy that is not disabled. It carries, inline, every computed style of the real disabled control and of each element inside it, and it keeps the class and the hook too. Only `:disabled` / `aria-disabled` tells the two apart. The canary must be:
+- planted live;
+- left with no computed style different from the original, apart from the size its place in the row gives it, the origins that follow from that size, and two serializations (`text-decoration`, `app-region`);
+- measured, under its floor, and exempted nowhere.
+
+Where the button canary is planted:
+- `test:chrome`: S12's Import, on both hosts, both themes, both sizes.
+- `test:smoke`: the first disabled chrome button each brand draws. That is Surfaces & fills' first paired icon row.
+- `test:start`: Import at the start moment.
+
+### The new tests (`test:chrome`, "X4 A, Q28 a")
+
+1. **Every appearance, on a real control, on both hosts and in both themes.**
+   - The controls: Import (outline, disabled by the app), Start from this color (filled), the search glyph (text, an icon button), Close (text), and the guard's Discard (destructive).
+   - Each is switched off the way the app does it and must draw exactly its appearance's roles, draw no dashed edge, and change nothing on hover.
+   - Switched back on, each must answer hover (the control arm).
+   - The screenshots are `2155-{web,plugin}-{light,dark}-{outline,filled,text,text-icon,destructive}.png`.
+2. **Q28 a, every kind.** One control of each of 15 kinds is found on the page, with the first one drawn and not chosen. The kinds are: button, picker button, filled button, ghost button, add row, chip, check, matrix check, switch, segmented tab, select, color field, text field, picker step and picker value. Each is hovered on and then off, on both hosts in both themes. Off, it must change nothing on itself or inside it and draw no dashed edge. On, it must answer hover. A kind that is not found fails by name.
+3. **Every control a derived mode switches off.** In HC light, every place, both hosts and both themes, the test reads 438 disabled controls, 312 of them buttons (floor 100). No disabled control may draw a dashed edge, and every disabled button must draw its appearance's roles.
+
+### Mutations, each in its own detached worktree at the `wip:` commit, so the branch's working tree was never written
+
+- **M1, the dashed edge put back** (the skin rule's `border-style: solid` → `dashed`): `test:chrome` 884 failures. Among them, on both hosts and both themes:
+  - `✗ X4 A: web light: the disabled Import (start-import) draws no dashed edge — p3-btn p3-btn-page p3-start-go top dashed, …`;
+  - `✗ X4 A derived: web light: no disabled chrome control draws a dashed edge (438 read) — color-fills surface-base-pick: …`;
+  - `✗ Q28 a: web light: a disabled chip (personality-word) draws no dashed edge — …`;
+  - `✗ S12 web light 1280 / start: the exempted button[start-import] "Import" draws Prism3's disabled outline roles for light: … drew {"fill":"none","edge":"4 side(s) #808284 dashed",…}`.
+- **M2, a disabled button colored with the wrong role** (the outline edge on `--p3-disabled-edge`, `color.disabled.border`, instead of `--p3-disabled-icon`):
+  - `test:chrome` 820 failures, for example `✗ X4 A: web light: the disabled Import (start-import) draws Prism3's disabled outline button: … (want fill none, edge #808284, …; drew {"fill":"none","edge":"#c0c1c2",…})` and `✗ X4 A derived: web light: every disabled chrome button draws its appearance's Prism3 disabled roles (312 read) — color-fills surface-base-pick (outline): …`;
+  - `test:start` 8 failures, `✗ light scheme / Figma light / start screen: the exempted "Import" in start-import draws Prism3's disabled outline roles for the light chrome (want fill none, edge #808284, ink #808284; drew {…"edge":"#c0c1c2"…})`.
+- **M3, hover allowed on a disabled chip** (an unlimited `.p3-btn.p3-chip:hover` rule after the skin): `test:chrome` 4 failures and nothing else, `✗ Q28 a: web light: a pointer over a disabled chip (personality-word, on brand) changes nothing (Q28 a)`, on both hosts and both themes.
+- **M3b, #2154's own mutation, one kind's hover rule without its limit** (`.p3-select:hover`): `test:chrome` 4 failures and nothing else, `✗ Q28 a: web light: a pointer over a disabled select (family-select, on type) changes nothing (Q28 a)`, on both hosts and both themes.
+- **M4, the exemption re-keyed on `cursor: not-allowed`** (each suite's predicate, the field one and the button one): only the canaries fail, in every suite.
+  - `test:chrome` 12: `✗ S12 web light 1280 / start: the exemption canary, a button with every computed style of the disabled Import … — {…"exempted":…}` (8: both hosts, both themes, both sizes) and `✗ web light 1280 / layout: the exemption canary, a field with every computed style …` (4);
+  - `test:smoke` 6: `✗ prism3 / color-fills / light: the button exemption canary, a fill-pick with every computed style of the disabled one … — {…"exempted":2,…}` and `✗ prism3 / layout / light: the exemption canary, a field with every computed style … — {…"exempted":true}`, for each of the three brands;
+  - `test:start` 8: `✗ light scheme / Figma light / start screen: the button exemption canary, … — {…"exempted":1,…}` and `✗ light scheme / Figma light / Layout: the exemption canary, a field …`, in each scheme × theme.
+
+  #2152's canary, which copied only the class, the hook and six colors, would pass under M4, because the cursor was not copied. That gap is what #2174 named.
+
+### Traps
+
+- **A hover rule on a `.p3-btn` is masked by the skin.** The skin sets `border-color` at the same weight and sits last. So dropping the `:where(:not(…))` limit from `.p3-btn.p3-btn-page:hover` changes nothing that is drawn, and Q28 a's test rightly stays green. M3 therefore adds a chip hover rule *after* the skin, which is what a hover that shows would take. For the kinds that are not `.p3-btn` (select, segmented tab, color field, picker step, text field), the limit is the only guard.
+- **Restoring the old `.p3-btn[disabled] { … dashed }` rule alone also changes nothing drawn**, for the same reason: the skin's `border-style: solid` wins. M1 mutates the skin instead.
+- **The click check activates in the page (`HTMLElement.prototype.click`), not with a Playwright click.** A pointer would land on whatever is on top, such as S12's guard over Import. It also keeps the hook guard's `.click(` scan meaningful.
+- **Held for the owner (#2208).** Brand › Modes' fixed Light row is a `div`, not a control. It still draws the dashed "can't change" box beside the locked checks that now draw Prism3's disabled box.
+
+---
+
+## (2026-10-06) — Surfaces & fills: the Contrast floor row puts its picker on the right, like the rows above it (#2179)
+
+**Status:** branch `ui/2179-floor-row-layout`. `apps/studio/src/domains/color-fills.ts`, `apps/studio/src/chrome.css` and `test:chrome`. No ENGINE bump (no emitted artifact moves). CONTRACT unchanged. No new copy beyond the owner's FL1 A label (below). **Fixes #2179, #2197.**
+
+### What changed
+
+On Color › Surfaces & fills, Default background fills, the Primary, Secondary and Tertiary rows put their step picker on the right of the row. The Contrast floor row put it on its own line under the name. That was deliberate in S4f (#2040): the floor row took a `p3-fillrow-wide` class, a two-column grid with the picker in column 2 of a second line, because its Auto label ("Auto · follows background.secondary (neutral 050)") is much longer than the other rows' labels.
+
+Now the floor row uses the same three-column grid as the other rows (`p3-fillrow`), and `p3-fillrow-wide` is gone.
+
+**The label, FL1 A (owner, #2197, added in review).** The PR's first version capped the picker's column at 50% and let the long label end in an ellipsis. QA-B5 holds every picker at 40px, so the label couldn't wrap. The owner then chose FL1 A: on Auto, the button shows "Auto · ‹step›" (for example "Auto · neutral 050"), naming the step as the picker names steps (`floorAutoShortLabel`). The full sentence, "Auto · follows background.secondary (neutral 050)" (`floorAutoLabel`, unchanged), is now the button's tooltip. The accessible name is the owner's option 1 on #2193, starting with the visible label word for word (WCAG 2.5.3): "Contrast floor, Light: Auto · neutral 050, follows background.secondary. Pick a step" (`floorAutoFollows` names the role). When the floor follows no tier, or a step is picked, it is the rows' usual "‹row›, ‹mode›: ‹label›. Pick a step". The floor's tooltip is always set: the full sentence, or the label itself (the picked step, or "Auto · ‹step›" at the ladder's ends).
+
+With the short label the floor row needs no modifier, so the cap went too. The label fits on one line at 1280 and at 380.
+
+At 380 the other rows stay side by side, because no rule stacks them, so the floor row does too.
+
+`test:smoke`'s S4e checks, which read the floor's "follows" wording, now read it off the button's tooltip.
+
+### Test, in `test:chrome`
+
+A new block, run for every brand on the start screen × every mode it previews, at 1280 and at 380, on the web host. The oracle is the other three rows, measured in the same render. The floor's picker:
+- ends at their picker edge (within `ALIGN_TOLERANCE`);
+- starts above its label's bottom edge;
+- sits beside its name exactly when theirs do;
+- on Auto, reads "Auto · ‹step›", for prism3 the committed emission's floor step (`EMITTED_FLOOR`);
+- has the full sentence as its tooltip, for the same step (or its label, where it follows no tier);
+- has exactly the option 1 accessible name, read as the browser COMPUTES it (CDP `Accessibility.getPartialAXTree`), not off the attribute;
+- like each row's picker, has a computed name that contains its visible label as one contiguous piece (WCAG 2.5.3).
+
+The block runs on both hosts, web and figma.
+- shows its whole label, not cut off (`scrollWidth ≤ clientWidth`).
+
+At 380 the mode control is on the Preview pane, so the block switches panes around each mode change.
+
+### Mutations, each failing by name (`wip:` commit first)
+
+- **The floor row's `p3-fillrow` class dropped:** 72 failures, starting with `#2179 web 1280 prism3 / light: the Contrast floor's picker ends at the other rows' picker edge (right 393.0; background.primary 487.6, …)`.
+- **`color-fills.ts` and `chrome.css` back to main (the wide row):** 60 failures, including `#2179 web 380 prism3 / light: the Contrast floor's picker sits beside its name exactly as the other rows' do (floor under; others beside)`.
+- **FL1 A: the long label back as the visible one:** 24 failures. The first is `#2179 web 1280 prism3 / light: FL1 A: the Contrast floor's Auto label reads "Auto · ‹step›" ("Auto · neutral 050", the emission's floor) — read "Auto · follows background.secondary (neutral 050)"`. The truncation check passes under this mutation: without the old cap, the picker's column grows to fit the long label. It guards against a cap coming back.
+- **The earlier composed name back** ("…: Auto · neutral 050. Auto · follows background.secondary (neutral 050). Pick a step"): 48 failures, all of them the option 1 check, on both hosts. For example `#2179 figma 1280 prism3 / light: option 1: the Contrast floor's computed accessible name is "Contrast floor, Light: Auto · neutral 050, follows background.secondary. Pick a step" — read "…"`.
+- **The tooltip sentence in the name in place of the visible label:** 96 failures, including `#2179 web 1280 prism3 / light: WCAG 2.5.3: each picker's computed accessible name contains its visible label — not: surfaces.floorStep shows "Auto · neutral 050", named "Contrast floor, Light: Auto · follows background.secondary (neutral 050), follows background.secondary. Pick a step"`.
+- **The floor's name column collapsed (`width: 0`):** the review found that this crashed the block with a TypeError, because the `drawn` guard didn't check the floor's name. The guard now checks it. The collapse fails by name and the suite runs to its summary: `#2179 web 1280 prism3 / light: Default background fills draws Primary, Secondary, Tertiary and Contrast floor, each with its name and its picker — read […["surfaces.floorStep",{"name":false,"label":true,"pick":true}]]`.
+
+---
+
+## (2026-10-06) — Color: Pinned becomes a third neutral source (#2175)
+
+**Status:** `apps/studio/src/domains/color-palettes.ts`, `apps/studio/src/shell/pages.ts`, one rule in
+`apps/studio/src/chrome.css`, `packages/engine/levers.ts` and the regenerated `schema/lever-manifest.json`, and
+`test:chrome`. ENGINE bump owed (`packages/engine/changes/ui-2175-pinned-neutral.md`, minor): the manifest no longer
+flags `neutral.anchor` as `advanced`. CONTRACT unchanged (`token-contract.ts --check`: unchanged). The saved value is
+unchanged in shape and in bytes.
+
+### What changed
+
+The owner chose option B on #2175 (PN1 B, PN2, PN3). On Color › Palettes, the Neutrals section's source choice under
+"Neutral hue" has a third option, "Pinned", beside "Follow primary" and "Custom tint".
+
+- **Choosing Pinned** does what the old switch did when turned on (`setNeutralPinned(true)`). The color field
+  ("Pinned neutral") then appears in its own lever block directly under the choice, and the hue and chroma sliders
+  are its read-only readout, as before. The state line reads "A pinned neutral sets the ramp: ‹#hex›. Hue and chroma
+  are its readout." (PN2: today's line without "in Advanced").
+- **Choosing Follow primary or Custom tint while pinned** unpins and sets that source: `setNeutralPinned(false)`,
+  then `setNeutralFollow(…)`. That is exactly the old switch off followed by that choice, so the saved bytes match.
+- **Exactly one source is selected,** and Pinned is selected exactly when `neutral.anchor` is set. While pinned,
+  Follow and Custom cannot be flipped underneath the pinned gray (the cost the mock named; the hidden `auto` is
+  kept and comes back on unpin).
+- **The "Pinned neutral" Advanced section and its switch are gone.** Advanced reads "Show 4 advanced" (the four
+  status colors).
+- **PN3:** `neutral.anchor` loses `advanced: true` in `levers.ts`, and `regen.ts` rewrote the lever manifest. This
+  keeps R2 (the Palettes tier follows the manifest flag, held by `test-pages.ts`) true without an exception.
+- **The 380 fit.** At the narrow tier the three segments overflow their row by 19px at the 12px segment padding.
+  One rule, `.p3-frame[data-w="narrow"] .p3-seg-snug .p3-seg-tab { padding: 0 var(--p3-space-100); }`, pads them at
+  8px. Only the neutral source opts in (`p3-seg-snug`), so no other segmented control moves.
+- **Search still finds it (review of #2195).** Unpinned, `neutral.anchor` draws no block, so search lost "Pin a
+  neutral". The "Neutral hue" block now carries the anchor lever's label and key as searchable text only
+  (`leverBlock`'s `alsoSays`), so "pin", "anchor" and "neutral" reach the Neutral source group, as on main. Nothing
+  visible changes. "neutral" counts 2 settings where main counted 3, because the anchor has no block of its own.
+
+### Equivalence (scratch driver, not committed)
+
+The same session on a build of `origin/main` (`273221f6`, today's switch behind Show advanced) and on this branch:
+boot, pin, type `#5c6670`, unpin via Follow primary, pin, unpin via Custom tint, on prism3, aurora and harbor. On main,
+each "unpin via" is the switch off and then that choice. **18/18 snapshots byte-identical** in `brandState.neutral` and
+in the whole persisted brand, and **30/30 downloads byte-identical** (the tokens file and the design.md brief, after
+each step but the first pin). 0 page errors on either side. Harbor shows the one non-trivial case: unpinning via Custom
+tint from Follow primary writes the primary's hue (195) as the custom hue on both sides.
+
+### The tests, and how they are independent
+
+`test:chrome` section 29, on both hosts, both themes, at 1280 and 380. The truth for "pinned" is the persisted brand
+(web, read from storage) and the preview's neutral anchor pill (both hosts), a separate render path from the levers.
+The labels, the state line, the typed gray and the section titles are literals in the test. It holds: the three
+choices in order with exactly one selected; Pinned selected iff the anchor is set; the color field only while pinned,
+directly under the choice; Follow and Custom each unpin and restore their source (with the saved shape checked on the
+web); the state line; no "Pinned neutral" section and no switch behind Show advanced ("Hide 4 advanced"); and the 380
+fit, unpinned and pinned (the selected segment is bold, so wider). Section 12 now expects `neutral.anchor` everyday and
+drawn only while pinned, and its search check reads the status colors as the advanced levers reached.
+
+Mutations, each failing by name (a `wip:` commit before each):
+
+| Mutation | Fails |
+|---|---|
+| the Advanced "Pinned neutral" section and switch put back | `#2175 … no "Pinned neutral" section and no switch remain behind Show advanced` (8, every host, theme and width); `test-pages.ts`: `no manifest lever has two homes` and `each lever's tier follows the manifest flag` |
+| Pinned shown selected while the anchor is unset | `#2175 … unpinned, exactly one source is selected and it is not Pinned` (8), and each case then stops at `neutral-anchor-hex` (8) |
+| the search text for the anchor lever removed | `#2175 search {web,figma} "{pin,anchor}": unpinned, searching … reaches the Neutral source group, where Pinned is chosen` (4) |
+| the narrow padding rule dropped | `#2175 {web,figma} {light,dark} 380: {unpinned,pinned}, the three neutral sources fit their row with no clipping` (8; the last segment ends at 349 in a 330 row) |
+
+### Not in scope
+
+#2184 (the shadow tint follows the stored `neutral.hue`, also while pinned) is untouched.
+
+---
+
 ## (2026-10-06) — layout refuses more than seven breakpoints (#2198)
 
 **STATUS: branch `engine/2198-max-seven-breakpoints`, built on #2200's branch with `main` merged in. Merge held for the owner's approval of the refusal sentence (listed in the PR body).** ENGINE bump class: **`minor`** (a change note: a new refusal narrows what the engine accepts). No emitted artifact moves; `CONTRACT_VERSION` unchanged. **Fixes #2198.**
