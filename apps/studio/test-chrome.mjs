@@ -108,8 +108,12 @@
  *     disabled outline button: … drew {"fill":"none","edge":"#c0c1c2",…}` (820 failures).
  *   · a chip hover rule after the skin → `Q28 a: web light: a pointer over a disabled chip (personality-word, on brand)
  *     changes nothing (Q28 a)`, on both hosts and both themes, and nothing else (4 failures).
- *   · the select's hover rule without its limit → M3B_RECORD
- *   · the exemption keyed on `cursor: not-allowed` → M4_RECORD
+ *   · the select's hover rule without its limit → `Q28 a: web light: a pointer over a disabled select (family-select,
+ *     on type) changes nothing (Q28 a)`, on both hosts and both themes, and nothing else (4 failures).
+ *   · the exemption keyed on `cursor: not-allowed` → only the canaries: `S12 web light 1280 / start: the exemption
+ *     canary, a button with every computed style of the disabled Import … — {…"exempted":…}` (8) and `web light 1280 /
+ *     layout: the exemption canary, a field with every computed style …` (4). #2152's canary, which copied the class,
+ *     the hook and six colors, passes it.
  *
  * NOTHING FORCED (S2). S1.2 and S1.3 set the frame's `data-layout="panes"` themselves for the Q2 check and
  * the preview-header checks, because no page rendered the two panes. S2 moved Color › Palettes, the opening
