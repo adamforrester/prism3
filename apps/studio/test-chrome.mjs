@@ -10027,6 +10027,13 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
 //   · a chip writing the wrong value (Upright + italic writes Italic only) → `#2192 web light 1280: step 1, "caption" both
 //     (key) saves italics ["body","caption"] and italicDefault ["display","title"] — saved italics ["body"], italicDefault
 //     ["display","title","caption"]` (96: 72 saves, 24 pressed).
+//   KB1 A's two arms, mutated the same way:
+//   · arrows moving the selection (`choice`'s arrow handler in `chipChoice`) → `#2192 web light 1280: KB1 A, ArrowRight on
+//     "label"'s both chip moves neither focus nor the pressed chip — focus on ["label","only"], pressed […]` and `… the four
+//     arrow keys save nothing — saved italics ["body","label"]` (40);
+//   · Enter ignored (`chipChoice` prevents Enter's default) → `#2192 web light 1280: KB1 A, Enter on "label"'s both chip
+//     presses it and keeps focus on it — pressed ["upright"], focus on ["label","both"]` and `… saves italics
+//     ["body","label"] and no italicDefault — saved italics ["body"]` (16).
 console.log(`\nItalic styles chips (#2192)\n${'='.repeat(78)}`);
 /** The text types, in order, and the three words (Q6's, unchanged by #2192). Literal. */
 const ITALIC_GROUPS = ['display', 'title', 'body', 'label', 'caption', 'eyebrow', 'code'];

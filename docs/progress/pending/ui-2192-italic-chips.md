@@ -52,8 +52,12 @@ Each mutation came after a `wip:` commit and ran on rebuilt bundles. Each failed
   both (key) saves italics ["body","caption"] … — saved italics ["body"], italicDefault ["display","title","caption"]` (96).
 
 The two KB1 A arms, mutated the same way:
-- **(d) Arrows move the selection** (`choice`'s arrow handler added to `chipChoice`) → see the PR.
-- **(e) Enter ignored** (`chipChoice` prevents Enter's default) → see the PR.
+- **(d) Arrows move the selection** (`choice`'s arrow handler added to `chipChoice`) → `#2192 web light 1280: KB1 A,
+  ArrowRight on "label"'s both chip moves neither focus nor the pressed chip — focus on ["label","only"], pressed […]`
+  and `… the four arrow keys save nothing — saved italics ["body","label"]` (40).
+- **(e) Enter ignored** (`chipChoice` prevents Enter's default) → `#2192 web light 1280: KB1 A, Enter on "label"'s both
+  chip presses it and keeps focus on it — pressed ["upright"], focus on ["label","both"]` and `… saves italics
+  ["body","label"] and no italicDefault — saved italics ["body"]` (16).
 
 ### Traps for whoever re-verifies
 
