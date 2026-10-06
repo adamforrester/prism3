@@ -568,6 +568,58 @@ const hexOfRgb = (s) => {
 const EXEMPTIONS = [];
 const WIDTHS = [{ w: 1280, h: 900 }, { w: 640, h: 900 }, { w: 380, h: 420 }];
 
+/** #2214's ORACLE (the owner's BL1 A+B, BL2 A, BL3 A, 2026-10-06): which fit step the bar should be on, measured here and
+ *  never read from the frame's `data-bar-fit` or its arithmetic. Each candidate row is FORCED with this file's own
+ *  stylesheet (no wrap, no shrink, no spacer, the bar's controls box sized to its content) and read as laid out
+ *  (`scrollWidth`); the room is the controls box's width before anything is forced. The frame derives every step from
+ *  one measurement of the full row by subtraction; this lays each candidate out for real, so the two are partners and
+ *  neither is the other (docs/34, shape 2). Within 1px of the room the answer is ambiguous, and both neighbors are
+ *  accepted (`also`). Above the narrow tier only: at it, the narrow tier's own rules hold, as before. */
+const FIT_ORACLE = () => {
+  const bm = document.querySelector('[data-p3="bar-main"]');
+  const narrow = document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow';
+  const room = bm.getBoundingClientRect().width;
+  const st = document.createElement('style');
+  document.head.append(st);
+  const FORCE = '.p3-bar-main{flex:none!important;width:max-content!important;flex-wrap:nowrap!important}.p3-bar-main>*{flex-shrink:0!important}'
+    + '.p3-bar-main>.p3-spacer{flex:0 0 0!important}.p3-bar-break,.p3-bar-spacer2{display:none!important}';
+  const need = (css) => { st.textContent = FORCE + css; return bm.scrollWidth; };
+  const full = need('.p3-tile-label{display:block!important}.p3-mark-name{display:inline!important}');
+  const glyphs = need('.p3-tile-label{display:none!important}.p3-mark-name{display:inline!important}');
+  const logo = need('.p3-tile-label{display:none!important}.p3-mark-name{display:none!important}');
+  st.remove();
+  const fileRow = !!bm.querySelector('[data-p3="apply-to-figma"], [data-p3="figma-open"]');
+  const steps = [['full', full], ['glyphs', glyphs], ['logo', logo]];
+  const pick = (slack) => steps.find(([, x]) => x <= room + slack)?.[0] ?? (fileRow ? 'rows' : 'none');
+  const step = pick(0), lo = pick(-1), hi = pick(1);
+  return { narrow, room: Math.round(room * 10) / 10, full, glyphs, logo, fileRow, step, also: [...new Set([lo, step, hi])] };
+};
+/** The bar as DRAWN, classified from the render alone: which labels and which name show, and how its controls fall
+ *  into rows. `full`, `glyphs` and `logo` are one row (every tile at one top, the controls box one control tall);
+ *  `rows` is the narrow tier's two (Pages, Figma and Apply Theme on the second, Apply Theme at its right edge). Anything
+ *  else is reported as `other`, with what was seen. */
+const FIT_SEEN = () => {
+  const bm = document.querySelector('[data-p3="bar-main"]');
+  const drawn = (n) => !!n && n.getClientRects().length > 0 && n.getBoundingClientRect().width > 0 && getComputedStyle(n).display !== 'none';
+  const labels = [...bm.querySelectorAll('.p3-tile-label')].map(drawn);
+  const name = drawn(bm.querySelector('.p3-mark-name'));
+  const HOOKS = ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'pages-menu', 'figma-open', 'apply-to-figma'];
+  const ctl = (k) => { const n = bm.querySelector(`[data-p3="${k}"]`); return k === 'product-mark' ? n : n?.closest('button') ?? n; };
+  const boxes = HOOKS.map((k) => [k, ctl(k)]).filter(([, n]) => drawn(n)).map(([k, n]) => { const r = n.getBoundingClientRect(); return { k, top: r.top, bottom: r.bottom, right: r.right, mid: (r.top + r.bottom) / 2 }; });
+  const rows = [];
+  for (const b of boxes) { const row = rows.find((r) => Math.abs(r[0].mid - b.mid) < 8); if (row) row.push(b); else rows.push([b]); }
+  const tileTops = [...bm.querySelectorAll('.p3-tile')].filter(drawn).map((t) => t.getBoundingClientRect().top);
+  const tall = Math.max(...boxes.map((b) => b.bottom - b.top));
+  const box = bm.getBoundingClientRect();
+  const oneRow = rows.length === 1 && Math.max(...tileTops) - Math.min(...tileTops) <= 1 && box.height <= tall + 1;
+  const row2 = rows[1]?.map((b) => b.k) ?? [];
+  const applyBox = boxes.find((b) => b.k === 'apply-to-figma');
+  const twoRows = rows.length === 2 && JSON.stringify(row2) === JSON.stringify(['pages-menu', 'figma-open', 'apply-to-figma']) && !!applyBox && Math.abs(applyBox.right - box.right) <= 1;
+  const all = labels.length > 0 && labels.every(Boolean), none = labels.every((x) => !x);
+  const step = all && name && oneRow ? 'full' : none && name && oneRow ? 'glyphs' : none && !name && oneRow ? 'logo' : none && !name && twoRows ? 'rows' : 'other';
+  return { step, labels: labels.filter(Boolean).length, of: labels.length, name, rows: rows.map((r) => r.map((b) => b.k).join(' ')), height: Math.round(box.height), tall: Math.round(tall) };
+};
+
 /** The places not moved yet. A domain slice that moves a place removes it here, in the same change. Empty since S8.2
  *  moved Components, the last tab: no place shows a legacy page (the plugin's Style guide is a Pages menu page that
  *  no tab shows, `MENU_LEGACY`). */
@@ -1399,8 +1451,13 @@ for (const host of ['web', 'figma']) {
         ok(mk.text === 'Prism3 Studio' && mk.label === 'Prism3 Studio' && mk.role === 'img', `product mark ${where}: the mark reads "Prism3 Studio", as text and as its accessible name (${JSON.stringify({ text: mk.text, label: mk.label, role: mk.role })})`);
         ok(mk.logoShown && mk.logoHidden && !mk.control, `product mark ${where}: the logo is drawn and hidden from assistive tech, and the mark is not a control (${JSON.stringify({ logo: mk.logoShown, hidden: mk.logoHidden, control: mk.control })})`);
         const narrow = column.endsWith('narrow');
-        ok(mk.nameShown === !narrow, `product mark ${where}: the name is ${narrow ? 'dropped at narrow widths (the logo stays)' : 'shown'} (${mk.nameShown ? 'shown' : 'hidden'})`);
-        if (!narrow) {
+        // #2214 (BL1 A+B): above the narrow tier the name drops too when the bar would not fit on one row without it,
+        // which `FIT_ORACLE` measures; an ambiguous width (within 1px) accepts either.
+        const fit = narrow ? null : await page.evaluate(FIT_ORACLE);
+        const nameDrops = !!fit && fit.also.every((x) => x === 'logo' || x === 'rows');
+        const nameMay = !!fit && fit.also.some((x) => x === 'logo' || x === 'rows') && !nameDrops;
+        ok(nameMay || mk.nameShown === !(narrow || nameDrops), `product mark ${where}: the name is ${narrow ? 'dropped at narrow widths (the logo stays)' : nameDrops ? 'dropped, as the bar would not fit on one row with it (#2214)' : 'shown'} (${mk.nameShown ? 'shown' : 'hidden'}${fit ? `, fit ${JSON.stringify(fit)}` : ''})`);
+        if (mk.nameShown) {
           const t = m.text.find((x) => x.el.startsWith('span.p3-mark-name'));
           ok(!!t && t.r >= TEXT_MIN, `product mark ${where}: "Prism3 Studio" is measured on the top bar at ${TEXT_MIN}:1 (${t ? `${t.r}:1` : 'not measured'})`);
         }
@@ -2157,8 +2214,12 @@ for (const host of ['web', 'figma']) {
           };
         });
         const a0 = await agentState();
-        ok(a0.inBar && a0.name === 'Agent' && a0.pressed === 'false' && !a0.dot && a0.tip === 'Agent' && a0.label === (narrow ? null : 'Agent'),
-          `T7 ${where}: the Agent tile sits in the top bar's Agent slot, named "Agent", aria-pressed false, no dot, ${narrow ? 'its label dropped' : 'labelled "Agent"'} (${JSON.stringify(a0)})`);
+        // #2214: above the narrow tier the label drops when the full bar would not fit on one row (`FIT_ORACLE`).
+        const fitT7 = narrow ? null : await page.evaluate(FIT_ORACLE);
+        const dropT7 = narrow || fitT7.also.every((x) => x !== 'full');
+        const eitherT7 = !dropT7 && fitT7.also.some((x) => x !== 'full');
+        ok(a0.inBar && a0.name === 'Agent' && a0.pressed === 'false' && !a0.dot && a0.tip === 'Agent' && (eitherT7 ? a0.label === null || a0.label === 'Agent' : a0.label === (dropT7 ? null : 'Agent')),
+          `T7 ${where}: the Agent tile sits in the top bar's Agent slot, named "Agent", aria-pressed false, no dot, ${narrow ? 'its label dropped' : dropT7 ? 'its label dropped, as the full bar would not fit on one row (#2214)' : 'labelled "Agent"'} (${JSON.stringify(a0)}${fitT7 ? `, fit ${fitT7.step}` : ''})`);
         hooks.absent(ok, { seen: chip.inBar, state: 'the Agent tile in the top bar' }, !chip.old && !chip.popover && chip.strays.length === 0,
           `D6 ${where}: the old chips are gone — no bottom-left chip, no Agent chip or popover, and nothing outside the frame names an agent or holds a button (found ${JSON.stringify(chip.strays)}, #p3-agent-link ${chip.old ? 'present' : 'absent'}, chip or popover ${chip.popover ? 'present' : 'absent'})`);
         const slot = await page.evaluate(() => { const s0 = document.querySelector('[data-p3="bar-agent"]'); s0.__p3Mark = 'slot'; return true; });
@@ -8077,12 +8138,17 @@ for (const { w, h } of WIDTHS) {
         for (const x of bp.white) ok(x.bg && x.edge && x.chev, `${where}: bar menus: ${x.k} is a white button with an edge and ▾ (white ${x.bg}, edge ${x.edge}, ▾ ${x.chev})`);
         ok(bp.white.length === (host === 'web' ? 1 : 3), `${where}: bar menus: ${host === 'web' ? 'the brand switcher' : 'the brand switcher, Pages and Figma'} measured (${bp.white.map((x) => x.k).join(', ')})`);
         ok(bp.tiles.length === (host === 'web' ? 4 : 5), `${where}: bar tiles: Contrast, Theme, ${host === 'web' ? '' : 'Agent, '}Activity and Export all measured (${bp.tiles.map((x) => x.k).join(', ')})`);
+        // #2214 (BL1 A+B, BL3 A): above the narrow tier every label drops together when the full bar would not fit on
+        // one row, which `FIT_ORACLE` measures; an ambiguous width (within 1px) accepts either.
+        const fit29 = narrow ? null : await page.evaluate(FIT_ORACLE);
+        const dropped = narrow || fit29.also.every((x) => x !== 'full');
+        const either = !narrow && !dropped && fit29.also.some((x) => x !== 'full');
         for (const t of bp.tiles) {
           const want = TILE_LABEL[t.k];
           const nameOk = t.k === 'export-open' ? t.name === 'Export' : t.k === 'activity-open' ? /^Activity(, |$)/.test(t.name ?? '') : t.k === 'theme-toggle' ? /^Theme: /.test(t.name ?? '') : t.k === 'agent-toggle' ? t.name === 'Agent' : /^Verdict: .+\. Open Inspect, Contrast$/.test(t.name ?? '');
           const tipOk = t.k === 'verdict' ? t.name === `Verdict: ${t.tip}. Open Inspect, Contrast` : t.tip === t.name;
-          ok(t.borderless && t.clear && t.glyph && (narrow ? t.label === null : t.label === want) && t.labelHidden && nameOk && tipOk && t.tipHidden,
-            `${where}: bar tiles: ${t.k} is borderless (${t.borderless && t.clear}) with its glyph (${t.glyph}), ${narrow ? 'its label dropped' : `labelled "${want}"`} ("${t.label}"), named "${t.name}", its tooltip "${t.tip}"`);
+          ok(t.borderless && t.clear && t.glyph && (either ? t.label === null || t.label === want : dropped ? t.label === null : t.label === want) && t.labelHidden && nameOk && tipOk && t.tipHidden,
+            `${where}: bar tiles: ${t.k} is borderless (${t.borderless && t.clear}) with its glyph (${t.glyph}), ${narrow ? 'its label dropped' : dropped ? 'its label dropped, as the full bar would not fit on one row (#2214)' : `labelled "${want}"`} ("${t.label}"), named "${t.name}", its tooltip "${t.tip}"${fit29 ? ` (fit ${fit29.step}: need ${fit29.full} in ${fit29.room})` : ''}`);
         }
         ok(JSON.stringify(bp.filled) === JSON.stringify(host === 'web' ? [] : ['apply-to-figma']), `${where}: bar fill: ${host === 'web' ? 'no control' : 'Apply Theme alone'} is filled (${bp.filled.join(', ') || 'none'})`);
         if (host === 'web' && w === 640) ok(bp.row2.length === 0, `${where}: bar rows: the web's bar is one row at 640 (second row: ${bp.row2.join(', ') || 'none'})`);
@@ -9381,6 +9447,94 @@ for (const host of ['web', 'figma']) {
     } catch (e) {
       ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
     } finally { await ctx.close(); }
+  }
+}
+
+// =============================================================================================
+// 29c. #2214, the bar's fit (the owner's BL1 A+B, BL2 A and BL3 A, 2026-10-06), both hosts, both themes, at 1280, 1000,
+//      800 and 640, with "prism3" and with a long brand name. Above the narrow tier the bar is one row whenever it
+//      fits; when the full bar would not, every tile label drops together, then the product name beside the logo, then
+//      (the plugin, which has a file row) the narrow tier's two rows. Never any other wrap.
+//   · THE EXPECTED STEP is `FIT_ORACLE`'s: each candidate row laid out for real under this file's own forcing
+//     stylesheet and read by `scrollWidth`, against the controls box's width. Never a number written here, and never
+//     the frame's `data-bar-fit`.
+//   · THE DRAWN STEP is `FIT_SEEN`'s, classified from the render alone (labels, name, rows, tops, heights).
+//   · ACCESSIBLE NAMES are the browser's computed names (CDP `Accessibility.getPartialAXTree`) of every bar control and
+//     the mark, identical at every width to the same brand's at 1280, where the full bar shows (asserted).
+//   · A LONG NAME GIVES WAY SOONER: at some width its step is further along than "prism3"'s, and never behind it.
+// Mutations, each failing here by name: (a) no label drop, (b) the product name never drops, (c) straight to the two
+// rows, (d) the frame's measurement ignores the brand switcher's width, (e) the web excluded. See the progress entry.
+// =============================================================================================
+console.log('\n29c. #2214: the bar gives way in order, by a measured fit');
+{
+  const LONG_NAME = 'northwind-outdoor-supply-co';
+  const LONG_BRAND = { root: 'nw', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true }, id: LONG_NAME };
+  const FIT_WIDTHS = [1280, 1000, 800, 640];
+  const ORDER = ['full', 'glyphs', 'logo', 'rows'];
+  const AX_HOOKS = ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'pages-menu', 'figma-open', 'apply-to-figma'];
+  /** The computed accessible name of each bar control present, by hook. */
+  const axBar = async (cdp) => {
+    const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+    const out = {};
+    for (const k of AX_HOOKS) {
+      const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: `[data-p3="top-bar"] [data-p3="${k}"]` });
+      if (!nodeId) continue;
+      const { nodes } = await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false });
+      out[k] = nodes.find((n) => !n.ignored)?.name?.value ?? null;
+    }
+    return out;
+  };
+  const settle = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  for (const host of ['web', 'figma']) {
+    const seenBy = { short: {}, long: {} };
+    for (const theme of ['light', 'dark']) {
+      const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900, query: '?p3-test-hooks' });
+      const cdp = await ctx.newCDPSession(page);
+      try {
+        await cdp.send('DOM.enable');
+        await cdp.send('Accessibility.enable');
+        for (const brand of ['short', 'long']) {
+          if (brand === 'long') {
+            await page.setViewportSize({ width: 1280, height: 900 });
+            if (host === 'web') await page.evaluate((n) => window.__prism3TestEdit('id', n), LONG_NAME);
+            else await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), LONG_BRAND);
+            await page.waitForFunction((n) => document.querySelector('[data-p3="brand-switcher"] .p3-brand-name')?.textContent === n, LONG_NAME, { timeout: 5000 }).catch(() => {});
+            const nm = await page.evaluate(() => document.querySelector('[data-p3="brand-switcher"] .p3-brand-name')?.textContent);
+            ok(nm === LONG_NAME, `29c ${host} ${theme}: the long brand loads ("${nm}")`);
+            await settle(page);
+          }
+          let base = null;
+          for (const w of FIT_WIDTHS) {
+            const where = `29c ${host} ${theme} ${w} ${brand === 'long' ? LONG_NAME : 'prism3'}`;
+            await page.setViewportSize({ width: w, height: 900 });
+            await settle(page);
+            const fit = await page.evaluate(FIT_ORACLE);
+            const seen = await page.evaluate(FIT_SEEN);
+            const names = await axBar(cdp);
+            ok(!fit.narrow && fit.step !== 'none', `${where}: the bar has a step that fits above the narrow tier (fit ${JSON.stringify(fit)})`);
+            ok(fit.also.includes(seen.step),
+              `${where}: the bar is ${fit.step === 'rows' ? 'the narrow tier\'s two rows (Pages, Figma and Apply Theme on the second)' : `one row (${fit.step})`}, as measured: full ${fit.full}, without labels ${fit.glyphs}, without the name ${fit.logo}, in ${fit.room} (drawn ${JSON.stringify(seen)})`);
+            if (w === 1280) {
+              base = names;
+              ok(seen.step === 'full' && seen.labels === seen.of && seen.of >= (host === 'web' ? 4 : 5), `${where}: at 1280 the full bar shows, every tile labelled (${JSON.stringify(seen)})`);
+              ok(Object.keys(names).length === (host === 'web' ? 6 : 10) && Object.values(names).every((v) => !!v), `${where}: every bar control and the mark have a computed name (${JSON.stringify(names)})`);
+            } else {
+              const moved = AX_HOOKS.filter((k) => names[k] !== base[k]);
+              ok(moved.length === 0, `${where}: every accessible name is unchanged from 1280 with ${seen.step} drawn (${moved.map((k) => `${k}: "${base[k]}" → "${names[k]}"`).join('; ') || 'none moved'})`);
+            }
+            if (theme === 'light') seenBy[brand][w] = seen.step;
+            if (SHOTS && (w !== 1280 || brand === 'short')) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `final-2214-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}${brand === 'long' ? '-long-name' : ''}.png`) });
+          }
+        }
+        ok(errors.length === 0, `29c ${host} ${theme}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `29c ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      } finally { await cdp.detach().catch(() => {}); await ctx.close(); }
+    }
+    const idx = (x) => ORDER.indexOf(x);
+    const later = FIT_WIDTHS.filter((w) => idx(seenBy.long[w]) > idx(seenBy.short[w]));
+    const behind = FIT_WIDTHS.filter((w) => idx(seenBy.long[w]) < idx(seenBy.short[w]));
+    ok(later.length > 0 && behind.length === 0, `29c ${host}: the long name gives way sooner than "prism3" (further along at ${later.join(', ') || 'no width'}; behind at ${behind.join(', ') || 'none'}; ${FIT_WIDTHS.map((w) => `${w} ${seenBy.short[w]}/${seenBy.long[w]}`).join(', ')})`);
   }
 }
 
