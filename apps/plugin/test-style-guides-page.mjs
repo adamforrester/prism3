@@ -172,7 +172,27 @@ const openPage = async (width = 1280, height = 820) => {
   await hooks.need(page, '[data-p3="style-guides"]');
   return { page, errors, item };
 };
-const settle = (page) => page.waitForTimeout(120);
+/**
+ * WAIT ON THE CONDITION, NEVER ON THE CLOCK (#2171's CI round). The page hears the main thread through `postMessage`,
+ * which is asynchronous, and what it posts reaches this window the same way, so every assertion below first waits for
+ * the state it reads to have arrived: the message handled, the DOM drawn, the post caught. A wait that runs out is a
+ * named ✗ saying what it waited for and what the page showed, and the run goes on; it never throws. The fixed 120 ms
+ * sleeps this replaces could read the page before a loaded runner had delivered the message.
+ */
+const WAIT_MS = 8000;
+const until = async (page, label, fn, arg) => {
+  try { await page.waitForFunction(fn, arg, { timeout: WAIT_MS }); return true; } catch {
+    const saw = await read(page).then((st) => JSON.stringify({ draw: st.draw, warning: st.warning, runLine: st.runLine, tables: st.tables, focus: st.focus, drawerOpen: st.drawerOpen, layout: st.layout, sent: st.sent.map((m) => m.type) }).slice(0, 600), () => 'the page could not be read');
+    ok(false, `wait: ${label} — not within ${WAIT_MS} ms; the page showed ${saw}`);
+    return false;
+  }
+};
+/** At least `n` messages of `type` posted by the panel (caught on this window). */
+const posted = (page, type, n) => until(page, `${n} "${type}" posted`, ([t, k]) => window.__sent.filter((m) => m.type === t).length >= k, [type, n]);
+/** The page has drawn the catalog's tree. */
+const treeDrawn = (page) => until(page, 'the catalog drawn as a tree', () => document.querySelectorAll('[data-p3="sg-group"]').length > 0);
+/** Table `i` of the run list shows `status`. */
+const tableIs = (page, i, status) => until(page, `table ${i} reads ${status}`, ([k, st]) => !!document.querySelector(`[data-p3="sg-table"][data-index="${k}"][data-status="${st}"]`), [i, status]);
 const groupBox = (id) => `[data-p3="sg-group"][data-id="${id}"] [data-p3="sg-box"]`;
 
 // ── H10/H11/H12, P8 ──────────────────────────────────────────────────────────────────────────────
@@ -184,20 +204,20 @@ console.log('\nopening the page, and Set up file (H10–H12, P8)');
     `H11: the Figma menu's "Build style guides…" opens the page, headed "Build style guides" (item "${item}", heading "${st.heading}", layout ${st.layout})`);
   ok(sentOf(st, 'style-guide-catalog-request').length === 1, `the page asks the main thread for the file's catalog once, on open (${sentOf(st, 'style-guide-catalog-request').length})`);
   await post(page, { type: 'style-guide-catalog', catalog: { ...CAT, setUp: false } });
-  await settle(page);
+  await until(page, 'the Set up file warning drawn', () => !!document.querySelector('[data-p3="sg-setup-warning"]'));
   st = await read(page);
   ok(st.warning && /Needs the pages and cells Set up file adds\./.test(st.warningText ?? '') && st.draw?.disabled === true && st.draw.describedBy === 'p3-sg-setup-note',
     `P8: Set up file not run: a warning with its button, and Draw off, described by the warning (${JSON.stringify({ w: st.warningText, draw: st.draw })})`);
   await hooks.click(page.locator('[data-p3="sg-setup"]'));
-  await settle(page);
+  await posted(page, 'file-setup', 1);
   st = await read(page);
   ok(sentOf(st, 'file-setup').length === 1, `P8: the warning's Set up file runs Set up file (${sentOf(st, 'file-setup').length} posted)`);
   await post(page, { type: 'file-setup-result', ok: true, headline: '✓ file set up', summary: 'pages created' });
-  await settle(page);
+  await posted(page, 'style-guide-catalog-request', 2);
   st = await read(page);
   ok(sentOf(st, 'style-guide-catalog-request').length === 2, `P8: Set up file's verdict makes the page ask for the catalog again (${sentOf(st, 'style-guide-catalog-request').length})`);
   await post(page, { type: 'style-guide-catalog', catalog: CAT });
-  await settle(page);
+  await until(page, 'the set-up catalog adopted: no warning', () => !document.querySelector('[data-p3="sg-setup-warning"]'));
   st = await read(page);
   ok(!st.warning && st.draw?.disabled === false && st.draw.label === 'Draw 7 tables' && st.summary === '7 tables · 10 variables, 1 text style',
     `P8, P12: once set up, Draw is on, "Draw 7 tables", "7 tables · 10 variables, 1 text style" (${JSON.stringify({ draw: st.draw, summary: st.summary })})`);
@@ -214,7 +234,7 @@ console.log('\na file the host could not read (SG4)');
 {
   const { page, errors } = await openPage();
   await post(page, { type: 'style-guide-catalog', catalog: { setUp: false, collections: [], tables: [], notes: [] }, error: 'in getLocalVariablesAsync: the document is closed' });
-  await settle(page);
+  await until(page, 'the read error drawn', () => !!document.querySelector('[data-p3="sg-read-error"]'));
   const said = await page.evaluate(() => document.querySelector('[data-p3="sg-read-error"]')?.textContent ?? null);
   ok(said === "Couldn't read this file's variables. Close the page and open it again.",
     `SG4: a catalog the host could not read says exactly the approved words, never the host's message (${JSON.stringify(said)})`);
@@ -227,7 +247,7 @@ console.log('\nselection and options (P2–P5, H4–H9)');
 {
   const { page, errors } = await openPage();
   await post(page, { type: 'style-guide-catalog', catalog: CAT });
-  await settle(page);
+  await treeDrawn(page);
   let st = await read(page);
   ok(st.mode?.disabled === true && JSON.stringify(st.mode.options) === JSON.stringify(['Every mode']), `P4: Mode is "Every mode", fixed (${JSON.stringify(st.mode)})`);
   ok(JSON.stringify(st.collections) === JSON.stringify(['Every collection', 'core', 'color', 'border-width', 'Text styles']), `the Collection list: every collection, then each, the text styles as "Text styles" (${st.collections})`);
@@ -250,13 +270,13 @@ console.log('\nselection and options (P2–P5, H4–H9)');
   ok(JSON.stringify(st.switchRoles) === JSON.stringify(['switch', 'switch', 'switch']), `SG5 A: each option switch is a switch to assistive technology, role="switch" (${JSON.stringify(st.switchRoles)})`);
   // Draw with everything selected sends the defaults and no tables filter.
   await hooks.click(page.locator('[data-p3="sg-draw"]'));
-  await settle(page);
+  await posted(page, 'style-guide', 1);
   st = await read(page);
   const first = sentOf(st, 'style-guide')[0]?.options;
   ok(first && !('tables' in first) && first.rem === false && first.titleCell === false && first.valueFormat === 'hex' && first.display === 'auto' && first.fontDisplay === 'auto',
     `Draw, everything selected: the defaults, and no tables filter, so the run judges superseded tables (${JSON.stringify(first)})`);
   await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 7 tables', summary: '7 tables created' });
-  await settle(page);
+  await until(page, 'the run ended: Draw on again', () => document.querySelector('[data-p3="sg-draw"]')?.disabled === false);
 
   // P2: the color kind box clears every color table; the tree follows.
   await hooks.click(page.locator('[data-p3="sg-kind-color"]'));
@@ -276,7 +296,7 @@ console.log('\nselection and options (P2–P5, H4–H9)');
   // Title box: exactly the tables it names; an unknown name is said.
   await hooks.click(page.locator('[data-p3="sg-titles"] summary'));
   await page.locator('[data-p3="sg-titles-input"]').fill('Text\nNope');
-  await settle(page);
+  await until(page, 'the title box read', () => (document.querySelector('[data-p3="sg-titles-error"]')?.textContent ?? '') !== '');
   st = await read(page);
   ok(st.draw.label === 'Draw 1 table' && st.summary === '1 table · 2 variables' && st.titlesError === 'No table is titled “Nope”.' && st.kinds.color === 'mixed',
     `P2, H8: the title box selects exactly the tables it names, and names the one that matches none (${JSON.stringify({ draw: st.draw.label, summary: st.summary, err: st.titlesError })})`);
@@ -296,7 +316,7 @@ console.log('\nselection and options (P2–P5, H4–H9)');
   ok(palette.length === 2 && palette.every((l) => l.boxed), `P3: white and black sit in a group spanning two tables, so each carries its table's box (${JSON.stringify(palette)})`);
   // Draw of a part selection sends its tables by key.
   await hooks.click(page.locator('[data-p3="sg-draw"]'));
-  await settle(page);
+  await posted(page, 'style-guide', 2);
   st = await read(page);
   const part = sentOf(st, 'style-guide')[1]?.options;
   ok(part && JSON.stringify(part.tables) === JSON.stringify([ALL_KEYS[0], ALL_KEYS[1], ALL_KEYS[2], ALL_KEYS[3], ALL_KEYS[5]]),
@@ -311,11 +331,12 @@ const LIST = CAT.tables.slice(0, 4).map((t) => ({ key: t.key, title: t.title, pa
 {
   const { page, errors } = await openPage();
   await post(page, { type: 'style-guide-catalog', catalog: CAT });
-  await settle(page);
+  await treeDrawn(page);
   // By keyboard (review of #2171): Draw goes off as the run starts, so focus must move, to Cancel, not fall to <body>.
   await page.locator('[data-p3="sg-draw"]').focus();
   await page.keyboard.press('Enter');
-  await settle(page);
+  await posted(page, 'style-guide', 1);
+  await until(page, 'Cancel drawn', () => !!document.querySelector('[data-p3="sg-cancel"]'));
   let st0 = await read(page);
   ok(st0.focus === 'sg-cancel', `focus: a keyboard Draw moves focus to Cancel as the run starts (focus on ${st0.focus})`);
   // THE ONE LIVE REGION: the same node for the whole run, holding the run line and nothing else.
@@ -326,7 +347,8 @@ const LIST = CAT.tables.slice(0, 4).map((t) => ({ key: t.key, title: t.title, pa
   await post(page, { type: 'style-guide-table', index: 0, status: 'done' });
   await post(page, { type: 'style-guide-progress', done: 1, total: 4, tableMs: 9 });
   await post(page, { type: 'style-guide-table', index: 1, status: 'drawing' });
-  await settle(page);
+  await tableIs(page, 1, 'drawing');
+  await until(page, 'the second progress reading handled', () => /2 of 4/.test(document.querySelector('[data-p3="sg-run-line"]')?.textContent ?? ''));
   let st = await read(page);
   ok(st.runLine === 'Drawing table 2 of 4…' && JSON.stringify(st.tables) === JSON.stringify(['Core — base:Done', 'Primary:Drawing', 'Dimension:Waiting', 'Text:Waiting']) && st.cancel,
     `P1: the run on the page, table by table: "Drawing table 2 of 4…", Done, Drawing, Waiting, and Cancel (${JSON.stringify({ line: st.runLine, tables: st.tables })})`);
@@ -337,12 +359,12 @@ const LIST = CAT.tables.slice(0, 4).map((t) => ({ key: t.key, title: t.title, pa
   ok(same && st.live?.live === 'polite' && st.live.text === 'Drawing table 2 of 4…' && st.live.children === 0 && st.live.nested === 0,
     `progress: one polite live region, the same node through the run's events, holding the run line alone, and no live or status region inside the page (${JSON.stringify({ same, live: st.live })})`);
   await hooks.click(page.locator('[data-p3="sg-cancel"]'));
-  await settle(page);
+  await posted(page, 'style-guide-cancel', 1);
   st = await read(page);
   ok(sentOf(st, 'style-guide-cancel').length === 1, `P7: Cancel asks the main thread to stop after the current table (${sentOf(st, 'style-guide-cancel').length})`);
   await post(page, { type: 'style-guide-table', index: 1, status: 'failed', reason: 'Primary refused' });
   await post(page, { type: 'style-guide-result', ok: false, headline: '⚠ 1 drawn, 1 failed', summary: 'Primary: Primary refused. Stopped after table 2 of 4. The tables already drawn stay', stopped: { done: 2, total: 4 } });
-  await settle(page);
+  await until(page, 'the stopped run drawn', () => !!document.querySelector('[data-p3="sg-stopped"]'));
   st = await read(page);
   ok(st.stopped === 'Stopped after table 2 of 4. The tables already drawn stay' && JSON.stringify(st.tables) === JSON.stringify(['Primary:Not drawn(Primary refused)', 'Core — base:Done', 'Dimension:Not drawn', 'Text:Not drawn']),
     `P7, P6: stopped: where it stopped, the failed table first with its reason, the rest "Not drawn" (${JSON.stringify({ stopped: st.stopped, tables: st.tables })})`);
@@ -352,7 +374,8 @@ const LIST = CAT.tables.slice(0, 4).map((t) => ({ key: t.key, title: t.title, pa
     `P1 (call 11): a failure the page shows marks Activity, and the drawer stays closed (open ${st.drawerOpen}, dot ${st.dot}, verdict "${st.verdict}")`);
   // P6: Draw it again draws that table alone, by its key.
   await hooks.click(page.locator('[data-p3="sg-again"]'));
-  await settle(page);
+  await posted(page, 'style-guide', 2);
+  await until(page, 'the redraw under way: Cancel drawn', () => !!document.querySelector('[data-p3="sg-cancel"]'));
   st = await read(page);
   ok(st.focus === 'sg-cancel', `focus: Draw it again moves focus to Cancel as its run starts, not to <body> (focus on ${st.focus})`);
   const again = sentOf(st, 'style-guide').pop()?.options;
@@ -362,25 +385,26 @@ const LIST = CAT.tables.slice(0, 4).map((t) => ({ key: t.key, title: t.title, pa
   await post(page, { type: 'style-guide-table', index: 0, status: 'drawing' });
   await post(page, { type: 'style-guide-table', index: 0, status: 'done' });
   await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 1 table', summary: '1 table updated in place — no token changes' });
-  await settle(page);
+  await until(page, "the redraw's verdict drawn", () => document.querySelector('[data-p3="sg-verdict"]')?.textContent === '✓ style guide: 1 table');
   st = await read(page);
   ok(JSON.stringify(st.tables) === JSON.stringify(['Primary:Done']) && st.verdict === '✓ style guide: 1 table', `P6: the redraw's run lists Primary alone, done (${JSON.stringify(st.tables)})`);
   // The verdict pill opens Activity on the result, by hand.
   await hooks.click(page.locator('[data-p3="sg-verdict"]'));
-  await settle(page);
+  await until(page, 'Activity opened from the verdict pill', () => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true');
   st = await read(page);
   ok(st.drawerOpen === true, `the page's verdict pill opens Activity (open ${st.drawerOpen})`);
   await hooks.click(page.locator('[data-p3="activity-toggle"]'));
   // Close returns to where the menu was opened from (Brand).
   await hooks.click(page.locator('[data-p3="sg-close"]'));
-  await settle(page);
+  await until(page, 'the page closed', () => document.querySelector('[data-p3="frame"]')?.dataset.layout !== 'page');
   const back = await page.evaluate(() => ({ tab: document.querySelector('[data-p3="tab-brand"]')?.getAttribute('aria-selected'), layout: document.querySelector('[data-p3="frame"]')?.dataset.layout, page: !!document.querySelector('[data-p3="style-guides"]') }));
   ok(back.tab === 'true' && back.layout === 'panes' && !back.page, `Close returns to the page the menu was opened from (${JSON.stringify(back)})`);
   // CONTROL for the quiet drawer: away from the page, a failed style guide opens Activity, as F2 says.
   await post(page, { type: 'agent-started', id: 'a1', cmd: 'style-guide' });
   await post(page, { type: 'style-guide-result', ok: false, headline: '⚠ 3 drawn, 1 failed', summary: 'Text: x' });
   await post(page, { type: 'agent-finished', id: 'a1', cmd: 'style-guide' });
-  await settle(page);
+  await until(page, "the agent's failed verdict recorded in Activity", () => document.querySelector('[data-p3="activity-op"][data-op="styleguide"] [data-p3="op-verdict"]')?.textContent === '⚠ 3 drawn, 1 failed');
+  await until(page, 'Activity opened by itself', () => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true');
   st = await read(page);
   ok(st.drawerOpen === true, `control: away from the page, a failed style guide opens Activity by itself (open ${st.drawerOpen})`);
   ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
@@ -392,11 +416,13 @@ console.log('\nat 380 (P9)');
 {
   const { page, errors } = await openPage(380, 620);
   await post(page, { type: 'style-guide-catalog', catalog: CAT });
-  await settle(page);
+  await treeDrawn(page);
   await hooks.click(page.locator('[data-p3="sg-draw"]'));
+  await posted(page, 'style-guide', 1);
   await post(page, { type: 'style-guide-tables', tables: LIST });
   await post(page, { type: 'style-guide-table', index: 0, status: 'drawing' });
-  await settle(page);
+  await tableIs(page, 0, 'drawing');
+  await until(page, "Activity's strip shown", () => document.querySelector('[data-p3="activity-drawer"]')?.dataset.ever === 'true');
   const st = await read(page);
   // Q47 A (owner, 2026-10-06; as Components', #2180): the bar stands at least space.300 above the Activity drawer's strip,
   // at the top and at the end of the page's scroll. THE ORACLE is space.300 resolved from the committed emission.
@@ -416,7 +442,7 @@ console.log('\nat 380 (P9)');
     `P9, Q47 A: at 380 the run comes first, and Draw sits in a pinned bar at least space.300 (${GAP}px) above the Activity drawer's strip, scrolled or not (${JSON.stringify({ actbar: st.actbar, runFirst: st.runBeforeCols, pinned })})`);
   const strip = await page.locator('[data-p3="activity-strip-progress"]').count();
   await post(page, { type: 'style-guide-progress', done: 1, total: 4, tableMs: 1 });
-  await settle(page);
+  await until(page, "the strip's progress drawn", () => !!document.querySelector('[data-p3="activity-strip-progress"]'));
   ok(await page.locator('[data-p3="activity-strip-progress"]').count() === 1, `at 380 Activity's strip carries the run's progress (before the first reading ${strip})`);
   ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
