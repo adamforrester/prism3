@@ -57,6 +57,11 @@ const windowShell = (cls: 'p3-dialog p3-start' | 'p3-dialog p3-dialog-guard', ro
   dlg.setAttribute('role', cls.includes('guard') ? 'alertdialog' : 'dialog');
   dlg.setAttribute('aria-modal', 'true');
   dlg.setAttribute('aria-labelledby', titleId);
+  // Focusable, but not a Tab stop (#2232): a click on blank space inside the window focuses the window itself, rather
+  // than dropping focus to <body>, outside the scrim whose keydown listener is the Tab trap. `trapTab` already treats
+  // the window as its fallback focus (Tab to the first control, Shift+Tab to the last), and `focusables` skips
+  // `tabindex="-1"`, so the window is never itself a stop. A mouse focus draws no ring (:focus-visible stays false).
+  dlg.tabIndex = -1;
   scrim.append(dlg);
   return { scrim, dlg };
 };
