@@ -84,7 +84,7 @@ export type SgContract = readonly {
 }[];
 
 export type { SwatchType, ValueFormat, StyleGuideOptions, DimensionDisplay, FontDisplay } from './messages';
-import type { SwatchType, StyleGuideOptions, ValueFormat } from './messages';
+import type { SwatchType, StyleGuideOptions, ValueFormat, StyleGuideCatalog, StyleGuideCatalogCollection, StyleGuideKind } from './messages';
 
 /** The types phases 1 and 2 document: `color`; `dimension` (spacing, size and radius variables); the five font-variable
  *  kinds, one table each; and `typography`, the file's text styles. Everything else is named in the result as a
@@ -998,7 +998,10 @@ export type KeepReason = 'edited' | 'moved' | 'copied' | 'unrecorded' | 'no-coll
 export type TableOutcome =
   | { key: string; title: string; page: string; status: 'created'; rows: number }
   | { key: string; title: string; page: string; status: 'updated'; rows: number; diff: RowsDiff }
-  | { key: string; title: string; page: string; status: 'skipped'; reason: 'no-page' | 'no-cells' };
+  | { key: string; title: string; page: string; status: 'skipped'; reason: 'no-page' | 'no-cells' }
+  /** The host threw while this table was drawn (S11.2, owner decision P6): the run went on to the next table. What
+   *  the table had drawn before the throw stays where it is; a rerun finds it by its key and updates it in place. */
+  | { key: string; title: string; page: string; status: 'failed'; reason: string };
 
 export interface StyleGuideResult {
   tables: TableOutcome[];
@@ -1022,6 +1025,9 @@ export interface StyleGuideResult {
   /** The `tables` filter's names that match no table (#1778). Not a pass: the designer asked for a table
    *  this run could not find. */
   unmatched: string[];
+  /** Set when `StyleGuideRun.stop` ended the run early (S11.2, owner decision P7): `done` of `total` tables were
+   *  reached. A stopped run judges no superseded table and re-flows nothing it did not draw, as a filtered one. */
+  stopped?: { done: number; total: number };
 }
 
 /** A progress reading (#1778): `done` of `total` tables drawn, the last one's title and what it cost. */
@@ -1034,7 +1040,20 @@ export interface StyleGuideRun {
   yieldTo?: YieldFn;
   /** Called before the first table (`done: 0`) and after each. Synchronous: it posts and returns. */
   onProgress?: (p: StyleGuideProgress) => void;
+  /** Called once, before the first table, with every table the run will try (S11.2). */
+  onPlan?: (tables: readonly SgTable[]) => void;
+  /** Called as each table moves (S11.2): `drawing` before it, then `done`, or `failed` with the reason. A skipped table
+   *  (no page) reads `failed`, with the words the summary uses for it. */
+  onTable?: (e: { index: number; status: 'drawing' | 'done' | 'failed'; reason?: string }) => void;
+  /** Read after each table (S11.2, owner decision P7): true stops the run there. The table being drawn is finished
+   *  first, and nothing already drawn is removed. */
+  stop?: () => boolean;
 }
+
+/** Why a skipped table was not drawn, in the summary's words (`styleGuideSummary`), for the page's table list. */
+const SKIP_REASON = (t: { page: string }, reason: 'no-page' | 'no-cells'): string => reason === 'no-cells'
+  ? 'this file has no style-guide cell sets, and Set up file adds them'
+  : `this file has no ${t.page} page, and Set up file adds it`;
 
 /**
  * Cells written between two yields to the host (#1778). A full run on the owner's file drew 41 tables in about
@@ -1288,7 +1307,8 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const swatches = sets[SWATCH_SET] as SgNode | undefined;
   const textCells = sets[TEXT_CELL_SET] as SgNode | undefined;
   if (!swatches || !textCells) {
-    for (const t of plan.tables) skip(t, 'no-cells');
+    run.onPlan?.(plan.tables);
+    plan.tables.forEach((t, index) => { skip(t, 'no-cells'); run.onTable?.({ index, status: 'failed', reason: SKIP_REASON(t, 'no-cells') }); });
     return { tables: out, stale: [], replaced: [], deleted: [], kept: [], unbound: 0, notes: plan.notes, misses, unmatched: plan.unmatched };
   }
   const allSets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly SgNode[];
@@ -1764,14 +1784,33 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   };
   // ONE TABLE AT A TIME, YIELDING BETWEEN THEM (#1778): the host repaints, the panel's pill counts up, and a
   // designer can scroll while the rest draw.
+  //
+  // ONE FAILED TABLE DOES NOT STOP THE RUN (S11.2, owner decision P6): a throw while one table is drawn is that table's
+  // outcome, `failed` with the host's words, and the run goes on to the next. And a STOP is read after each table
+  // (P7): the table being drawn is finished, the rest are not started.
+  run.onPlan?.(plan.tables);
   if (plan.tables.length) run.onProgress?.({ done: 0, total: plan.tables.length, title: '', tableMs: 0 });
+  let stopped: StyleGuideResult['stopped'];
   for (let i = 0; i < plan.tables.length; i++) {
     const t = plan.tables[i];
     const started = Date.now();
-    await drawTable(t);
+    run.onTable?.({ index: i, status: 'drawing' });
+    try {
+      await drawTable(t);
+      const o = out[out.length - 1];
+      run.onTable?.(o?.key === t.key && o.status === 'skipped' ? { index: i, status: 'failed', reason: SKIP_REASON(t, o.reason) } : { index: i, status: 'done' });
+    } catch (e) {
+      const reason = (e as Error)?.message ?? String(e);
+      out.push({ key: t.key, title: t.title, page: t.page, status: 'failed', reason });
+      run.onTable?.({ index: i, status: 'failed', reason });
+    }
     run.onProgress?.({ done: i + 1, total: plan.tables.length, title: t.title, tableMs: Date.now() - started });
     await yieldTo();
+    if (i + 1 < plan.tables.length && run.stop?.()) { stopped = { done: i + 1, total: plan.tables.length }; break; }
   }
+  // A STOPPED run is a partial one: like a run filtered to named tables, it judges no superseded table and re-flows
+  // only around what it drew. Every write after the stop would be one the designer asked not to happen.
+  const partial = !!options.tables || !!stopped;
 
   const recordOf = (n: SgNode): { x: number; y: number } | null => {
     const s = n.getPluginData?.(AT_KEY) || '';
@@ -1824,7 +1863,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     if (!k || planned.has(k)) continue;
     const [type, colId] = k.split('|');
     if (!types.has(type.toLowerCase()) || (wantIds && !wantIds.has(colId))) continue;
-    if (options.tables) continue;
+    if (partial) continue;
     // A key that is an ANCESTOR of a planned one is a table this run now draws as narrower tables — an earlier
     // build drew one table per root where a collection holds two (`…|nbds` → `…|nbds/color/text`).
     if ([...planned].some((q) => q.startsWith(`${k}/`))) replaced.push(String(f.name));
@@ -1876,7 +1915,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const byRow = (a: SgNode, b: SgNode): number => num(a.x) - num(b.x) || num(a.y) - num(b.y);
   const leftAt = (n: SgNode): boolean => { const a = recordOf(n); return !!a && near(num(n.x), a.x) && near(num(n.y), a.y); };
   const catOf = (n: SgNode): string => categoryOfKey(n.getPluginData?.(TABLE_KEY) || '');
-  if (options.tables) for (const p of drawnOn) {
+  if (partial) for (const p of drawnOn) {
     // Every table the run drew here, a NEW one included (review of f3bb76cd): a first-time table lands at the end of
     // its row, and when it is taller than the row it must push the rows below down, or it runs over them.
     const mine = drawn.filter((d) => d.page === p);
@@ -1951,7 +1990,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   }
   for (const [what, ws] of noSet) { const n = ws.length; misses.push(`${n} ${what} spacing specimen${plural(n, ' is', 's are')} not drawn: this file has no ${SPACING_CELL_SET} set, which Set up file adds (${placesOf(ws)})`); }
   for (const [what, ws] of noLayer) { const n = ws.length; misses.push(`${n} ${what} specimen${plural(n, ' is', 's are')} not bound: the member has no layer this build can size or bind (a Bar, a first frame, or a layer named *-example), so ${plural(n, 'it shows', 'they show')} the cell component's own value (${placesOf(ws)})`); }
-  return { tables: out, stale, replaced, deleted, kept, unbound, notes, misses, unmatched: plan.unmatched };
+  return { tables: out, stale, replaced, deleted, kept, unbound, notes, misses, unmatched: plan.unmatched, ...(stopped ? { stopped } : {}) };
 };
 
 /**
@@ -1979,7 +2018,11 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
   const made = r.tables.filter((t) => t.status === 'created');
   const upd = r.tables.filter((t): t is Extract<TableOutcome, { status: 'updated' }> => t.status === 'updated');
   const skipped = r.tables.filter((t): t is Extract<TableOutcome, { status: 'skipped' }> => t.status === 'skipped');
+  const failed = r.tables.filter((t): t is Extract<TableOutcome, { status: 'failed' }> => t.status === 'failed');
   const parts: string[] = [];
+  // A failed table first, by its title and the host's reason (S11.2): it is what the designer has to act on.
+  for (const t of failed) parts.push(`${t.title}: ${t.reason}`);
+  if (r.stopped) parts.push(`Stopped after table ${r.stopped.done} of ${r.stopped.total}. The tables already drawn stay`);
   // A filtered run (#1778) often draws one table, so every count here agrees with its number.
   const tables = (n: number): string => `${n} table${n === 1 ? '' : 's'}`;
   if (made.length) parts.push(`${tables(made.length)} created (${made.slice(0, 3).map((t) => t.title).join(', ')}${made.length > 3 ? '…' : ''})`);
@@ -2021,11 +2064,67 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
   // unbound swatch is a specimen that does not show its token, so the pill says so and the detail opens on it.
   // Every form fits the 24-char pill at any count below 1000.
   // A table the designer named that no table matches (#1778) is the same: they asked for something not drawn.
-  const ok = skipped.length === 0 && r.unbound === 0 && r.unmatched.length === 0;
-  const headline = drawn === 0 ? (skipped.length ? '✗ style guide skipped' : r.unmatched.length ? '✗ no table matched' : '✓ style guide: 0 tables')
+  // A failed table is the same (S11.2): "⚠ 31 drawn, 1 failed", the approved words (P12).
+  const ok = skipped.length === 0 && failed.length === 0 && r.unbound === 0 && r.unmatched.length === 0;
+  const headline = drawn === 0 ? (failed.length ? `⚠ 0 drawn, ${failed.length} failed` : skipped.length ? '✗ style guide skipped' : r.unmatched.length ? '✗ no table matched' : '✓ style guide: 0 tables')
+    : failed.length ? `⚠ ${drawn} drawn, ${failed.length} failed`
     : skipped.length ? `⚠ ${drawn} drawn, ${skipped.length} skipped`
     : r.unmatched.length ? `⚠ ${drawn} drawn, ${r.unmatched.length} not found`
     : r.unbound ? `⚠ ${r.unbound} ${r.misses.some((m) => / specimens? (is|are) not (bound|sized|drawn)/.test(m)) ? 'specimens' : 'swatches'} unbound`
     : r.deleted.length ? `✓ ${tables(drawn)}, ${r.deleted.length} deleted` : `✓ style guide: ${tables(drawn)}`;
   return { ok, headline: headline.length > 24 ? (ok ? '✓ style guide written' : '⚠ style guide partial') : headline, summary: parts.join('. ') || 'Nothing to draw: this file has no variables or text styles of the types this run covers' };
+};
+
+// ── The Build style guides page (UI redesign S11.2) ───────────────────────────────────────────────────
+/** Whether Set up file has run, as the run needs it (owner decision P8): the swatch and text cell sets, without which
+ *  every table is skipped `no-cells`, and both token pages, without which a table is skipped `no-page`. Read once when
+ *  the page asks, after `loadAllPagesAsync`. */
+export const isSetUp = (root: StyleGuideApi['root']): boolean => {
+  const sets = findCellSets(root);
+  const pages = new Set(root.children.map((p) => p.name));
+  return !!sets[SWATCH_SET] && !!sets[TEXT_CELL_SET] && pages.has(PRIMITIVE_PAGE) && pages.has(SEMANTIC_PAGE);
+};
+
+const KIND_OF_TYPE = (type: string): StyleGuideKind =>
+  type === 'color' ? 'color' : type === 'dimension' ? 'dimension' : type === 'typography' ? 'text' : 'font';
+/** The variable kinds whose number is a length, printed in px in the tree. */
+const LENGTH_KINDS: ReadonlySet<VarKind> = new Set<VarKind>(['spacing', 'size', 'radius', 'scale', 'fontSize', 'lineHeight', 'letterSpacing',
+  'paragraphSpacing', 'paragraphIndent', 'borderWidth', 'iconSize', 'breakpoint', 'grid']);
+
+/**
+ * WHAT THE PAGE SHOWS BEFORE A RUN (S11.2): every collection with its variables, the text styles, and for each the
+ * table an UNFILTERED run would draw it in, from the same planner the run uses, so a title on the page is a title the
+ * `tables` option matches. A variable no phase draws has table -1: the page shows it, tagged and not pickable (P5).
+ * PURE: the caller reads the catalog and decides `setUp`.
+ */
+export const catalogFor = (catalog: SgCatalog, contract: SgContract | null, setUp: boolean): StyleGuideCatalog => {
+  const plan = planStyleGuide(catalog, contract, {});
+  const tableOf = new Map<string, number>();
+  plan.tables.forEach((t, i) => { for (const r of t.rows) if (!tableOf.has(r.variableId)) tableOf.set(r.variableId, i); });
+  const ix: Index = { byId: new Map(catalog.variables.map((v) => [v.id, v])), collections: new Map(catalog.collections.map((c) => [c.id, c])) };
+  const valueOf = (v: SgVariable, col: SgCollection): string => {
+    const mode = defaultMode(col);
+    if (!mode) return '';
+    if (v.resolvedType === 'COLOR') { const c = resolveColor(ix, v, mode); return c ? formatColor(c, 'hex') : ''; }
+    const lit = resolveLiteral(ix, v, mode);
+    if (typeof lit === 'string') return lit;
+    if (typeof lit === 'boolean') return String(lit);
+    if (typeof lit !== 'number') return '';
+    const kind = varKind(v);
+    return kind === 'fontWeight' ? trimNum(lit, 0) : kind && LENGTH_KINDS.has(kind) ? formatPx(lit) : trimNum(lit, 2);
+  };
+  const collections: StyleGuideCatalogCollection[] = catalog.collections.map((col) => ({
+    id: col.id,
+    name: col.name,
+    modes: col.modes.map((m) => m.name),
+    items: catalog.variables.filter((v) => v.variableCollectionId === col.id).map((v) => ({ name: v.name, table: tableOf.get(v.id) ?? -1, value: valueOf(v, col) })),
+  }));
+  const styles = catalog.textStyles ?? [];
+  if (styles.length) collections.push({ id: TEXT_STYLES_ID, name: 'Text styles', modes: [], textStyles: true, items: styles.map((st) => ({ name: st.name, table: tableOf.get(st.id) ?? -1, value: '' })) });
+  return {
+    setUp,
+    collections,
+    tables: plan.tables.map((t) => ({ key: t.key, title: t.title, kind: KIND_OF_TYPE(t.type), page: t.page.replace(/^↳\s*/, ''), rows: t.rows.length })),
+    notes: plan.notes,
+  };
 };
