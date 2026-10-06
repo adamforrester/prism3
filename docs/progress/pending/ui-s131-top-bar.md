@@ -108,6 +108,29 @@ Mutations for the dots and the dialog scope (each on a `git archive` copy of `a6
 
 **`test:chrome` F2 follows D-RED A.** Its warning case (dark, `⚠ 2 pages skipped`) now expects the green `warn` dot, and its failure case (light) still expects the red `bad` dot. The first verify after the #2152 merge failed on exactly that, which is the old expectation meeting the new rule. The same run also stopped once on a `TimeoutError` clicking Q52's `icons-pair`. That did not recur in the next standalone run or in the next verify (18708/18708, then 68/68), so I am treating it as a flake, not a defect: noted here, not filed.
 
+**Merging S12 (#2142).** S12 rewrote the old `renderBrandMenu`, which this branch had replaced with the shell's bar, so S12's behavior is carried into the bar's lent actions:
+- "+ New brand" reopens the start window (`startReopened`, `syncStart`) instead of clearing the origin;
+- a paste is checked with `validatePaste`, and a file with `validateDesignMd`, the error worded by `importErrorText`;
+- a load closes the start window;
+- the error surface is scoped to the app view;
+- the start window's Close returns focus to the bar's brand switcher (`frame.barMain`, where it was `barHost`);
+- the brand menu's file input carries S12's `import-file` hook;
+- `test:chrome` classifies S12's paste box as a text area, because this branch counts every textarea as a control;
+- `DECORATIVE` lists both scrims.
+
+**The orchestrator's partial review (#2124, 17:32 UTC), four findings:**
+1. **Focus return.** Closing Export by Close, Cancel or a scrim click sent focus to the brand switcher, or to `BODY` for a scrim click; only Escape was right. `paint()`'s fallback focused the switcher whenever the focused node had gone. Now a dialog's close, by any path, returns focus to its opener: Export, or the Figma menu for the prune review. The scrim's `mousedown` default is refused, so the click cannot move focus to the page underneath.
+2. **Focus into the dialogs.** Both are `aria-modal`. As one opens, focus moves to its first control. Tab and Shift+Tab stay inside until it closes, using S12's `focusables` and `trapTab`, which moved from `shell/start.ts` into `shell/dom.ts` so both windows share them. A repaint that loses the focused node falls back into the open dialog, never behind it.
+3. **Tests:**
+   - `test:chrome` §28: Close, Cancel and the scrim each return focus to Export. Focus moves in as the dialog opens, and 24 Tabs and 4 Shift+Tabs stay inside. The import error line is held to 4.5:1 at every host, theme and width. At 1280 in both themes, the overwrite confirm (web) and the prune review (plugin) are measured as chrome, their sentences are held to 4.5:1, and the prune review's Cancel returns focus to the Figma menu.
+   - `test-build-verdict.mjs`: the three Cancel clicks no longer swallow failures. One of them was clicking an export dialog that an Escape on the line before had already closed; the Escape is gone. The prune control arm now checks focus in, the trap, and Cancel back to the Figma menu.
+4. **The alert strip.** `show()` writes the text only when it changes. The notices row is no longer emptied on every `build()` (page changes included); `mountSurfaces` skips a mounted surface, so the strip is minted once per frame instead of being a new alert on each page. `test:chrome` §28: two more rebuilds with the same error make no mutation and keep the same text node, on both hosts.
+
+Mutations for the review's fixes, each run on a `git archive` copy of `1433912a`. The clean `test:chrome` run on that head was 20205/20205.
+- **Close returns focus to the brand switcher** (`bar.ts`, the export-closed branch): 36 failures. Example: `S13.1 web light 1280: dialog focus: Close closes the export dialog back to Export (open false, focus on "brand-switcher")`, with the same for Cancel and the scrim.
+- **Focus not moved into Export on open**: 42 failures. Example: `S13.1 web light 1280: dialog focus: opening Export moves focus into the dialog (on "export-open")`.
+- **The strip rewrites unchanged text** (`notices.ts`): 12 failures. Example: `S13.1 web light 1280: error strip: the same error after 2 more rebuilds leaves its text untouched (2 mutations, same text node false, …)`, on both hosts.
+
 **Held:**
 - **The plugin from 561 to about 1000px.** The bar wraps at the wide tier, so Export can start the second row. The owner named 1280 and 380 for the plugin; its window opens at 1280.
 - **Where the agent link's status now shows** (the old popover's two lines), above.
