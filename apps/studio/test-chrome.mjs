@@ -8074,7 +8074,9 @@ const DISABLED_READ = (sel) => {
     fill: cs.backgroundColor, ink: cs.color, edges: side.map((x) => [cs[`border${x}Color`], cs[`border${x}Style`], parseFloat(cs[`border${x}Width`])]),
     labels: inside.filter((e) => drawn(e) && !e.closest('svg') && [...e.childNodes].some((t) => t.nodeType === 3 && t.textContent.trim())).map((e) => getComputedStyle(e).color),
     glyphs: [...n.querySelectorAll('svg.p3-ico')].filter(drawn).map((g) => getComputedStyle(g).color),
-    dashed: inside.flatMap((e) => { const c = getComputedStyle(e); return side.filter((x) => ['dashed', 'dotted'].includes(c[`border${x}Style`]) && parseFloat(c[`border${x}Width`]) > 0 && drawn(e)).map((x) => `${e.getAttribute('class') ?? e.tagName} ${x.toLowerCase()} ${c[`border${x}Style`]}`); }),
+    // A dashed or dotted side that draws: some width, a color that is not fully transparent, on a drawn element.
+    dashed: inside.flatMap((e) => { const c = getComputedStyle(e); return side.filter((x) => ['dashed', 'dotted'].includes(c[`border${x}Style`]) && parseFloat(c[`border${x}Width`]) > 0
+      && !/^rgba\([^)]*,\s*0\)$|^transparent$/.test(c[`border${x}Color`]) && drawn(e)).map((x) => `${e.getAttribute('class') ?? e.tagName} ${x.toLowerCase()} ${c[`border${x}Style`]}`); }),
     look: JSON.stringify(inside.map((e) => { const c = getComputedStyle(e); return [c.backgroundColor, c.color, ...side.map((x) => `${c[`border${x}Color`]} ${c[`border${x}Style`]}`), c.outlineStyle, c.boxShadow]; })),
   };
 };
