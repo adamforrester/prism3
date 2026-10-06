@@ -84,3 +84,16 @@ The CI line was `✗ the page asks the main thread for the file's catalog once, 
 **Reproduced:** with the page's open request delayed by 300 ms (`setTimeout(() => lend.request(), 300)`), that exact ✗ fires, and it is the only failure. **Fixed:** the arm now first waits on `posted(page, 'style-guide-catalog-request', 1)`. "Once" stays held by the later arm's exact 2. With the same 300 ms delay, the suite passes.
 
 Also: the Activity summary's skip line ("N tables skipped — this file has no … page") names the page without "↳", matching the table reason. It is in the plugin's `style-guide.ts`, under this PR's `engine: minor` note; `test-style-guide.ts` section 7's literal moved with it.
+
+### Merged with #2211 (disabled buttons): the page takes the disabled skin
+
+The `chrome.css` conflict was resolved as a union, with #2211's disabled rules placed after the page block so they still sit last and win. Draw is a `.p3-btn-primary`, so it takes the filled disabled skin, and no page rule overrides it. The later-phase boxes are `aria-disabled` `.p3-check`, so they take the check skin. The switch is never disabled.
+
+One page rule broke #2155's rule ("no chrome control draws a dashed edge to mean disabled"): the fixed Mode select drew `border-style: dashed`. It now takes the disabled field's three roles (F1 A, as `.p3-text-input:disabled` does). #2211's derived sweep only visits the levers' places, not this page, so `test-style-guides-page.mjs` now holds both controls itself (57/57). Each arm compares the page against the roles resolved through a `var(--p3-…)` probe, never against the page's own rule.
+
+**Mutations, each failing by name:**
+- the select's dashed edge restored → ✗ `#2155 F1 A: the fixed Mode select draws the disabled field, no dashed edge`
+- the select's edge on `edge` → the same ✗
+- a page rule giving Draw its own fill → ✗ `#2211 X4 A: the disabled Draw takes Prism3's disabled filled button: …`
+
+**Trap:** in light, `disabled-fill` and `disabled-edge` resolve to the same color, so a mutation that swaps those two passes. Use a different role to check the edge arm.

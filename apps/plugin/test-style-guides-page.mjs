@@ -26,6 +26,8 @@
  *   · P9 (layout): at 380, one column, the run first, Draw pinned at the bottom.
  *   · P11: the Activity row is titled "Style guides".
  *   · Close returns to the page the Figma menu was opened from.
+ *   · #2211 (X4 A, F1 A): the disabled Draw takes Prism3's disabled filled button, the fixed Mode select the disabled
+ *     field; no dashed edge.
  *
  * INDEPENDENCE (docs/34): every expected value is typed here, in the words a designer reads; the catalog is a literal,
  * and nothing imports the page's model or reads its state. Mutations that fail here by name are in the S11.2 page PR's
@@ -189,6 +191,21 @@ const until = async (page, label, fn, arg) => {
 };
 /** At least `n` messages of `type` posted by the panel (caught on this window). */
 const posted = (page, type, n) => until(page, `${n} "${type}" posted`, ([t, k]) => window.__sent.filter((m) => m.type === t).length >= k, [type, n]);
+/** #2211 (X4 A, F1 A): what a disabled control on the page draws, beside the Prism3 disabled roles it should draw,
+ *  each resolved by the browser through a probe that holds only `var(--p3-…)`, so neither side reads the page's rule. */
+const skinOf = (page, hook) => page.evaluate((k) => {
+  const el = document.querySelector(`[data-p3="${k}"]`);
+  if (!el) return null;
+  const cs = getComputedStyle(el);
+  const probe = document.createElement('span');
+  el.parentElement.append(probe);
+  const role = (v) => { probe.style.color = `var(--p3-${v})`; return getComputedStyle(probe).color; };
+  const roles = { fill: role('disabled-fill'), edge: role('disabled-edge'), ink: role('disabled-ink') };
+  probe.remove();
+  const sides = ['top', 'right', 'bottom', 'left'];
+  return { roles, bg: cs.backgroundColor, ink: cs.color, edges: sides.map((x) => cs.getPropertyValue(`border-${x}-color`)),
+    dashed: sides.filter((x) => cs.getPropertyValue(`border-${x}-style`) === 'dashed') };
+}, hook);
 /** The page has drawn the catalog's tree. */
 const treeDrawn = (page) => until(page, 'the catalog drawn as a tree', () => document.querySelectorAll('[data-p3="sg-group"]').length > 0);
 /** Table `i` of the run list shows `status`. */
@@ -211,6 +228,9 @@ console.log('\nopening the page, and Set up file (H10–H12, P8)');
   st = await read(page);
   ok(st.warning && /Needs the pages and cells Set up file adds\./.test(st.warningText ?? '') && st.draw?.disabled === true && st.draw.describedBy === 'p3-sg-setup-note',
     `P8: Set up file not run: a warning with its button, and Draw off, described by the warning (${JSON.stringify({ w: st.warningText, draw: st.draw })})`);
+  const drawSkin = await skinOf(page, 'sg-draw');
+  ok(drawSkin && drawSkin.bg === drawSkin.roles.fill && drawSkin.ink === drawSkin.roles.ink && drawSkin.dashed.length === 0 && drawSkin.edges.every((c) => c === 'rgba(0, 0, 0, 0)'),
+    `#2211 X4 A: the disabled Draw takes Prism3's disabled filled button: the disabled fill and ink, no edge (${JSON.stringify(drawSkin)})`);
   await hooks.click(page.locator('[data-p3="sg-setup"]'));
   await posted(page, 'file-setup', 1);
   st = await read(page);
@@ -253,6 +273,9 @@ console.log('\nselection and options (P2–P5, H4–H9)');
   await treeDrawn(page);
   let st = await read(page);
   ok(st.mode?.disabled === true && JSON.stringify(st.mode.options) === JSON.stringify(['Every mode']), `P4: Mode is "Every mode", fixed (${JSON.stringify(st.mode)})`);
+  const modeSkin = await skinOf(page, 'sg-mode');
+  ok(modeSkin && modeSkin.dashed.length === 0 && modeSkin.bg === modeSkin.roles.fill && modeSkin.ink === modeSkin.roles.ink && modeSkin.edges.every((c) => c === modeSkin.roles.edge),
+    `#2155 F1 A: the fixed Mode select draws the disabled field, no dashed edge (${JSON.stringify(modeSkin)})`);
   ok(JSON.stringify(st.collections) === JSON.stringify(['Every collection', 'core', 'color', 'border-width', 'Text styles']), `the Collection list: every collection, then each, the text styles as "Text styles" (${st.collections})`);
   const bw = st.groups.find((g) => g.name === 'border-width');
   ok(bw?.later === 'Later phase' && bw.disabled && bw.box === 'false', `P5: a later-phase group is tagged "Later phase", and its box is off and cannot be checked (${JSON.stringify(bw)})`);
