@@ -1975,7 +1975,7 @@ console.log(`\nActivity, the Figma menu and the Agent chip (S1.4)\n${'='.repeat(
 const COLLAPSE_MS = 4000;
 /** The Figma menu's items, by hook suffix and label: today's labels (the bar's two controls, the file-setup
  *  button) and concept v6's two option-first items. Literal. */
-const FIGMA_ITEMS = [['apply', APPLY_LABEL], ['prune', 'Prune stale'], ['file-setup', 'Set up file'], ['build', 'Build set…'], ['style-guide', 'Style guide…']];
+const FIGMA_ITEMS = [['apply', APPLY_LABEL], ['prune', 'Prune stale'], ['file-setup', 'Set up file'], ['build', 'Build set…'], ['style-guide', 'Build style guides…']];
 /** Each item's hook, spelled out so the hook guard reads every one. */
 const FIGMA_OPTION = { apply: '[data-p3="figma-option-apply"]', prune: '[data-p3="figma-option-prune"]', 'file-setup': '[data-p3="figma-option-file-setup"]',
   build: '[data-p3="figma-option-build"]', 'style-guide': '[data-p3="figma-option-style-guide"]' };
@@ -1983,7 +1983,7 @@ const FIGMA_OPTION = { apply: '[data-p3="figma-option-apply"]', prune: '[data-p3
  *  control posted), or where it opens: a legacy page (Style guide…), or since S8.2 a tab (Build set… opens the
  *  Components tab, owner decision G2 A, where the set is chosen and built). Typed here from
  *  `apps/plugin/src/messages.ts`'s names and the tab's hook. */
-const FIGMA_EFFECT = { apply: ['apply-theme'], prune: ['prune:false'], 'file-setup': ['file-setup'], build: { tab: 'components' }, 'style-guide': { page: 'style-guide' } };
+const FIGMA_EFFECT = { apply: ['apply-theme'], prune: ['prune:false'], 'file-setup': ['file-setup'], build: { tab: 'components' }, 'style-guide': { menuPage: 'style-guides' } };
 /** The Figma menu's Prune item while each half of a prune runs (`figmaActions` in main.ts). Literal. */
 const PRUNE_LABEL = { preview: '… Checking…', delete: '… Removing…' };
 /** The drawer's note, per host: concept v6's plugin line, and the studio's own. Literal. */
@@ -2312,9 +2312,11 @@ for (const host of ['web', 'figma']) {
         // that operation's row, expanded (S11). It discloses nothing in place any more. RE-HOSTED IN S8.2: Set up file
         // has no page row now (its one control is the Figma menu's, G8 A) and a build's result is the Components
         // tab's per-set line, so the one page row left with a verdict is the Style guide's, which the menu's Style
-        // guide… item opens without writing (asserted below). A style guide that failed, as the host posts it:
-        await openFigma(page);
-        await hooks.click(page.locator(FIGMA_OPTION['style-guide']), WAIT);
+        // guide… item opens without writing (asserted below). Since S11.2 that item opens the Build style guides page, and
+        // the legacy page with this row is reached from the Pages menu until the cleanup (H12). A style guide that failed,
+        // as the host posts it:
+        await hooks.click(page.locator('[data-p3="pages-menu"]'), WAIT);
+        await hooks.click(page.locator('[data-p3="rail-page-style-guide"]'), WAIT);
         await page.waitForFunction(() => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage === 'style-guide', null, { timeout: 5000 }).catch(() => {});
         await takePosts(page);
         const sgBad = { type: 'style-guide-result', ok: false, headline: '✗ style guide failed', summary: 'style guide failed: the cell components Set up file adds are missing' };
@@ -2350,14 +2352,17 @@ for (const host of ['web', 'figma']) {
           await hooks.click(page.locator(FIGMA_OPTION[id]), WAIT);
           const want = FIGMA_EFFECT[id];
           if (want.tab) await page.waitForFunction((t) => document.querySelector('[data-p3="frame"]')?.dataset.place === t, want.tab, { timeout: 5000 }).catch(() => {});
+          else if (want.menuPage) await page.waitForFunction(() => !!document.querySelector('[data-p3="style-guides"]'), null, { timeout: 5000 }).catch(() => {});
           else await page.waitForFunction((p) => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage === p, want.page, { timeout: 5000 }).catch(() => {});
           const g = await menuState(page);
           const at = await page.evaluate(() => ({ place: document.querySelector('[data-p3="frame"]')?.dataset.place ?? null,
             selected: document.querySelector('[data-p3^="tab-"][aria-selected="true"]')?.getAttribute('data-p3') ?? null,
-            sets: !!document.querySelector('[data-p3="components-build"]') }));
+            sets: !!document.querySelector('[data-p3="components-build"]'),
+            menuPage: document.querySelector('[data-p3="frame"]')?.dataset.layout === 'page' && !!document.querySelector('[data-p3="style-guides"]') }));
           const px = await takePosts(page);
-          const landed = want.tab ? at.place === want.tab && at.selected === `tab-${want.tab}` && g.page === undefined && at.sets : g.page === want.page;
-          ok(landed && px.length === 0, `Figma menu ${where}: ${FIGMA_ITEMS.find(([x]) => x === id)[1]} opens the ${want.tab ? `${want.tab} tab` : `${want.page} page`} and writes nothing — ${landed ? '' : 'nothing opened: '}place "${at.place}", tab ${at.selected}, legacy page "${g.page}", Build control ${at.sets}, posted ${JSON.stringify(px)}`);
+          const landed = want.tab ? at.place === want.tab && at.selected === `tab-${want.tab}` && g.page === undefined && at.sets
+            : want.menuPage ? at.menuPage && at.selected === null : g.page === want.page;
+          ok(landed && px.length === 0, `Figma menu ${where}: ${FIGMA_ITEMS.find(([x]) => x === id)[1]} opens the ${want.tab ? `${want.tab} tab` : `${want.page ?? want.menuPage} page`} and writes nothing — ${landed ? '' : 'nothing opened: '}place "${at.place}", tab ${at.selected}, legacy page "${g.page}", Build control ${at.sets}, posted ${JSON.stringify(px)}`);
         }
         // The bar's own Apply runs the same write the menu's item does.
         await hooks.click(page.locator('[data-p3="apply-to-figma"]'), WAIT);
@@ -7847,6 +7852,23 @@ const FOCUS_SWEEP_NEEDS = {
 };
 /** The focused controls photographed for review when a screenshot directory is given: [hook, file name part]. */
 const FOCUS_SHOTS = [['palettes-continue', 'continue'], ['density-choice-comfortable', 'chip'], ['brand-name', 'text-field'], ['tab-color', 'tab']];
+/** The Build style guides page in the sweep (S11.2): a small file, typed here, with one table of each kind, so every
+ *  option group draws; and the page's own controls the sweep must reach, its switch and its title box's fold. */
+const SG_RING_CATALOG = {
+  setUp: true,
+  collections: [
+    { id: 'C:core', name: 'core', modes: ['Default'], items: [{ name: 'pds3/core/palette/primary/100', table: 0, value: '#E0E0FF' }, { name: 'pds3/core/dimension/4', table: 1, value: '4px' }, { name: 'pds3/core/font/size/16', table: 2, value: '16px' }] },
+    { id: 'text-styles', name: 'Text styles', modes: [], textStyles: true, items: [{ name: 'body/md', table: 3, value: '' }] },
+  ],
+  tables: [
+    { key: 'color|C:core|pds3/core/palette/primary', title: 'Primary', kind: 'color', page: 'Primitive tokens', rows: 1 },
+    { key: 'dimension|C:core|pds3/core/dimension', title: 'Dimension', kind: 'dimension', page: 'Primitive tokens', rows: 1 },
+    { key: 'fontSize|C:core|pds3/core/font/size', title: 'Font size', kind: 'font', page: 'Primitive tokens', rows: 1 },
+    { key: 'typography|text-styles|body', title: 'Text styles', kind: 'text', page: 'Semantic tokens', rows: 1 },
+  ],
+  notes: [],
+};
+const SG_RING_NEEDS = ['[data-p3="sg-opt-aliases"]', '[data-p3="sg-titles-summary"]', '[data-p3="sg-draw"]', '[data-p3="sg-close"]'];
 let focusSwept = 0;
 for (const host of ['web', 'figma']) {
   let hostTotal = 0;
@@ -7880,6 +7902,27 @@ for (const host of ['web', 'figma']) {
         }
         hostTotal += rings.length;
         focusSwept += rings.length;
+      }
+      // The plugin's Build style guides page (S11.2; review of #2171), which no tab shows: its switch, its title box's
+      // fold and every other control on it, with a catalog posted so the tree and every option group are drawn.
+      if (host === 'figma') {
+        await openFigma(page);
+        await hooks.click(page.locator('[data-p3="figma-option-style-guide"]'), WAIT);
+        await hooks.need(page, '[data-p3="style-guides"]');
+        await postMsg(page, { type: 'style-guide-catalog', catalog: SG_RING_CATALOG });
+        await settle(page);
+        const rings = await focusRings(page, { all: true, max: 600, skipIn: FOCUS_SWEEP_SKIP });
+        counts.push(`build style guides ${rings.length}`);
+        ok(rings.length >= FOCUS_PLACE_FLOOR, `${where} / build style guides: the sweep read ${rings.length} chrome focus rings (floor ${FOCUS_PLACE_FLOOR})`);
+        for (const r of rings) {
+          reached.add(r.hook);
+          const miss = ringMisses(r, r.pinnedLight ? 'light' : theme);
+          if (miss.length) bad.push({ r: { ...r, hook: `build style guides ${r.hook}` }, miss });
+          lows.focus = Math.min(lows.focus, r.r);
+        }
+        hostTotal += rings.length;
+        focusSwept += rings.length;
+        for (const want of SG_RING_NEEDS) ok(reached.has(hooks.role(want)), `${where}: the sweep reaches ${want} on the Build style guides page and reads its ring`);
       }
       console.log(`  ${where}: ${counts.join(', ')}`);
       ok(bad.length === 0, `${where}: every focused chrome control draws its ring in ${FOCUS_RING_TOKEN} (${FOCUS_HEX[theme]}), at least ${FOCUS_WIDTH_MIN}px wide, ${FOCUS_OFFSET}px outside, at ${NONTEXT_MIN}:1${bad.length ? ` — ${bad.length} miss: ${ringReport(bad)}` : ''}`);

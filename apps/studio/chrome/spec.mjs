@@ -207,6 +207,8 @@ export const SHELL_VARS = [
   // S12: the start window and its guard: the scrim, the window's width unit and its card padding, and the guard's
   // destructive Discard (S5).
   'overlay-pressed', 'dlg-unit', 'space-250', 'danger-fill', 'danger-on', 'danger-edge-hover',
+  // S11.2: the Build style guides page's switch, concept v6's track and knob.
+  'track-w', 'track-h', 'thumb', 'thumb-inset',
 ];
 
 // Mapped color variables that carry no contrast duty: a hairline that splits regions, a hover wash.

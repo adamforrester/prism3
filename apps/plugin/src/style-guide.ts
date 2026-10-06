@@ -1050,10 +1050,11 @@ export interface StyleGuideRun {
   stop?: () => boolean;
 }
 
-/** Why a skipped table was not drawn, in the summary's words (`styleGuideSummary`), for the page's table list. */
+/** Why a skipped table was not drawn, in the summary's words (`styleGuideSummary`), for the page's table list. The page is
+ *  named as the list names it, without the taxonomy's "↳" (review of #2171). */
 const SKIP_REASON = (t: { page: string }, reason: 'no-page' | 'no-cells'): string => reason === 'no-cells'
   ? 'this file has no style-guide cell sets, and Set up file adds them'
-  : `this file has no ${t.page} page, and Set up file adds it`;
+  : `this file has no ${t.page.replace(/^↳\s*/, '')} page, and Set up file adds it`;
 
 /**
  * Cells written between two yields to the host (#1778). A full run on the owner's file drew 41 tables in about
@@ -2037,7 +2038,7 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
   const noCells = skipped.filter((t) => t.reason === 'no-cells');
   if (noCells.length) parts.push(`${noCells.length} tables skipped — this file has no style-guide cell sets, and Set up file adds them`);
   const noPage = [...new Set(skipped.filter((t) => t.reason === 'no-page').map((t) => t.page))];
-  for (const p of noPage) parts.push(`${skipped.filter((t) => t.page === p).length} tables skipped — this file has no ${p} page, and Set up file adds it`);
+  for (const p of noPage) parts.push(`${skipped.filter((t) => t.page === p).length} tables skipped — this file has no ${p.replace(/^↳\s*/, '')} page, and Set up file adds it`);
   // Superseded tables: the deleted ones by name, since a deletion names its scope; the kept ones grouped by the
   // reason each was kept; a table from before the fingerprint apart, with what to do about it. Wording proposed,
   // owner to confirm (docs/45 §8).

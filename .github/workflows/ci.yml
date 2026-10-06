@@ -258,6 +258,19 @@ jobs:
       - name: New shell chrome suite (UI redesign S1.2)
         run: npm run -w @prism3/studio test:chrome
 
+      # #2201: deleting a LIVE rule from apps/studio/src/styles.css left every suite green (the review of
+      # #2116 deleted `.sg-g3`, whose class kit.ts builds at run time, and the style guide's three-column
+      # grid fell to one column under a green verify). EXPECTED is apps/studio/live-css.json — the rules
+      # that matched an element the four browser suites' pages drew, recorded by a sweep riding those
+      # suites, so liveness is decided by the DOM and never by the stylesheet. ACTUAL is the current
+      # styles.css, parsed by Chromium. Keyed per rule (context, selector, ordinal), not per selector:
+      # `.sg-g3` also appears in a 760px @media rule, so selector text alone passes the reviewer's own
+      # mutation. The baseline is rewritten only by `npm run -w @prism3/studio lint:live-css -- --accept`,
+      # which re-sweeps and refuses to forget a rule the DOM still draws unless it is named with --allow.
+      # The browser comes from the verdict step.
+      - name: "A live styles.css rule is not removed without an accept (#2201)"
+        run: npm run -w @prism3/studio lint:live-css
+
       # TokenPress's own 263 assertions, ported from vitest onto tsx (the suite it arrived with). It
       # runs the exporter end to end against Figma-shaped fixtures, so it is the only thing here that
       # can catch a regression in the OUT direction (Figma -> DTCG). Its runner asserts a per-file

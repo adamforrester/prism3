@@ -1022,6 +1022,161 @@
 .p3-start-headrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: var(--p3-space-200); }
 .p3-start-import > .p3-start-paste { margin-top: var(--p3-space-200); }
 .p3-start-pasterow { justify-content: flex-end; margin-top: var(--p3-space-100); }
+/* ── the Build style guides page (S11.2, plugin only): a page no tab shows, full width ─────── */
+/* Its own layout (`data-layout="page"`): the head, the page scrolling under it, the drawer at the foot. */
+.p3-sgpage { display: none; }
+.p3-frame[data-layout="page"] { position: fixed; inset: 0; display: flex; flex-direction: column; }
+.p3-frame[data-layout="page"] :is(.p3-legacy, .p3-panes) { display: none; }
+.p3-frame[data-layout="page"] .p3-sgpage { display: block; flex: 1 1 auto; min-height: 0; overflow: auto; background: var(--p3-levers-bg); }
+.p3-frame[data-layout="page"]:not([data-inspect=""]) .p3-sgpage { display: none; }
+.p3-frame[data-layout="page"]:not([data-inspect=""]) .p3-inspect { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.p3-frame[data-layout="page"] .p3-drawer { position: static; flex: none; }
+/* At 380 the head's rows are the frame's own flex items (the head is `display: contents` there): none of them shrinks. */
+.p3-frame[data-layout="page"] :is(.p3-head, .p3-bar, .p3-nav, .p3-subnav, .p3-notices) { flex: none; }
+.p3-frame[data-w="narrow"]:has(> .p3-drawer[data-open="true"]) .p3-sgpage { display: none; }
+.p3-sg {
+  display: grid; gap: var(--p3-space-300); align-content: start; max-width: calc(29 * var(--p3-ctl-h)); margin: 0 auto;
+  padding: var(--p3-space-400) var(--p3-space-500); color: var(--p3-text); font-family: var(--p3-font-ui);
+  font-size: var(--p3-fs-14); line-height: var(--p3-lh-normal);
+}
+.p3-sg-head { display: grid; gap: var(--p3-space-100); }
+.p3-sg-hrow { display: flex; align-items: center; gap: var(--p3-space-200); }
+.p3-sg-title { margin: 0; flex: 1 1 auto; font-size: var(--p3-fs-20); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snug); line-height: var(--p3-lh-compact); }
+.p3-sg-intro { margin: 0; color: var(--p3-text-2); line-height: var(--p3-lh-cozy); }
+.p3-sg-note { display: flex; align-items: center; gap: var(--p3-space-100); margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); }
+.p3-sg-note > .p3-ico { color: var(--p3-icon-2); }
+.p3-sg-warn {
+  padding: var(--p3-space-150) var(--p3-space-200); border: var(--p3-bw-hairline) solid var(--p3-line-2); border-radius: var(--p3-radius-xl);
+  background: var(--p3-bg-page); color: var(--p3-text); font-size: var(--p3-fs-14);
+}
+.p3-sg-warn > .p3-ico { color: var(--p3-warn-icon); }
+.p3-sg-warn-text { flex: 1 1 auto; min-width: 0; }
+.p3-sg-error { color: var(--p3-bad-text); }
+.p3-sg-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--p3-space-300); align-items: start; }
+.p3-sg-right { display: grid; gap: var(--p3-space-300); min-width: 0; }
+.p3-sg-sec {
+  display: grid; gap: var(--p3-space-200); min-width: 0; padding: var(--p3-space-300); border-radius: var(--p3-radius-xl);
+  border: var(--p3-bw-hairline) solid var(--p3-line-1); background: var(--p3-bg-page);
+}
+.p3-sg-sec-title { margin: 0; font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snug); line-height: var(--p3-lh-compact); }
+.p3-sg-plain { display: grid; gap: var(--p3-space-200); min-width: 0; margin: 0; padding: 0; border: 0; }
+.p3-sg-selrow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--p3-space-150); }
+.p3-sg-field { display: grid; gap: var(--p3-space-075); min-width: 0; }
+.p3-sg-field-name { padding: 0; font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
+/* A disabled select takes the disabled field (F1 A), as the text field does: no dashed edge (#2155). */
+.p3-sg .p3-select:disabled { background: var(--p3-disabled-fill); border-color: var(--p3-disabled-edge); color: var(--p3-disabled-ink); cursor: not-allowed; }
+.p3-sg-kinds { display: grid; gap: var(--p3-space-100); min-width: 0; margin: 0; padding: 0; border: 0; }
+.p3-sg-chips { display: flex; flex-wrap: wrap; gap: var(--p3-space-100); }
+.p3-sg-chips > .p3-sg-check { width: auto; border-color: var(--p3-edge); }
+.p3-sg-n { color: var(--p3-text-2); font-size: var(--p3-fs-12); }
+.p3-check[aria-checked="mixed"] .p3-check-box { background: var(--p3-text); border-color: var(--p3-text); }
+.p3-check[aria-checked="mixed"] .p3-check-box > .p3-ico { display: block; color: var(--p3-bg-page); }
+.p3-sg-treebar { display: flex; align-items: center; gap: var(--p3-space-150); }
+.p3-sg-grow { flex: 1 1 auto; min-width: 0; }
+.p3-sg-tree, .p3-sg-sub { margin: 0; padding: 0; list-style: none; }
+.p3-sg-tree {
+  max-height: calc(10 * var(--p3-ctl-h)); overflow: auto; padding: var(--p3-space-050);
+  border: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-xl);
+}
+.p3-sg-row { display: flex; align-items: center; gap: var(--p3-space-025); min-height: var(--p3-ctl-h-xs); }
+.p3-sg-row[data-depth="1"] { padding-left: var(--p3-space-200); }
+.p3-sg-row[data-depth="2"] { padding-left: var(--p3-space-400); }
+.p3-sg-row[data-depth="3"] { padding-left: calc(3 * var(--p3-space-200)); }
+.p3-sg-row[data-depth="4"] { padding-left: calc(4 * var(--p3-space-200)); }
+.p3-sg-row[data-depth="5"] { padding-left: calc(5 * var(--p3-space-200)); }
+.p3-sg-row[data-depth="6"], .p3-sg-row[data-depth="7"], .p3-sg-row[data-depth="8"] { padding-left: calc(6 * var(--p3-space-200)); }
+.p3-sg-fold { min-height: var(--p3-ctl-h-xs); min-width: var(--p3-ctl-h-xs); }
+.p3-sg-fold[aria-expanded="true"] > .p3-ico { transform: rotate(90deg); }
+.p3-sg-fold-space { flex: none; width: var(--p3-ctl-h-xs); }
+.p3-sg-row > :is(.p3-sg-check, .p3-sg-label) { flex: 1 1 auto; min-width: 0; }
+.p3-sg-label { display: flex; align-items: center; gap: var(--p3-space-150); min-height: var(--p3-ctl-h-xs); padding: var(--p3-space-050) var(--p3-space-100); }
+.p3-sg-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p3-sg-row[data-p3="sg-group"] .p3-sg-name { font-weight: var(--p3-fw-emphasis); }
+.p3-sg-row[data-later="true"] .p3-sg-name { color: var(--p3-text-2); }
+.p3-sg-tag {
+  flex: none; padding: 0 var(--p3-space-075); border-radius: var(--p3-radius-md); background: var(--p3-fill-1);
+  color: var(--p3-text-2); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal);
+}
+.p3-sg-meta { display: inline-flex; align-items: center; gap: var(--p3-space-075); margin-left: auto; flex: none; color: var(--p3-text-2); font-size: var(--p3-fs-12); }
+.p3-sg-mono { font-family: var(--p3-font-mono); }
+.p3-sg-swatch { display: inline-block; flex: none; width: var(--p3-icon-xs); height: var(--p3-icon-xs); border: var(--p3-bw-hairline) solid var(--p3-line-2); border-radius: var(--p3-radius-md); overflow: hidden; }
+.p3-sg-swatch > span { display: block; width: 100%; height: 100%; }
+.p3-sg-titles { display: grid; gap: var(--p3-space-100); }
+.p3-sg-titles-sum { display: flex; align-items: center; gap: var(--p3-space-075); cursor: pointer; font-weight: var(--p3-fw-emphasis); list-style: none; }
+.p3-sg-titles-sum::-webkit-details-marker { display: none; }
+.p3-sg-titles-sum > .p3-ico { color: var(--p3-icon-2); }
+.p3-sg-titles[open] > .p3-sg-titles-sum > .p3-ico { transform: rotate(90deg); }
+.p3-sg-titles-sum:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
+.p3-sg-titles-body { display: grid; gap: var(--p3-space-075); }
+.p3-sg-textarea { width: 100%; min-height: var(--p3-ctl-h); resize: vertical; font-family: var(--p3-font-mono); }
+.p3-sg-err { margin: 0; color: var(--p3-bad-text); font-size: var(--p3-fs-12); }
+.p3-sg-err:empty { display: none; }
+/* The run: the summary and Draw, then (variant 1) the table list. */
+.p3-sg-runbar { display: flex; align-items: center; gap: var(--p3-space-200); }
+.p3-sg-sum { flex: 1 1 auto; min-width: 0; color: var(--p3-text-2); }
+.p3-sg-sum > b { color: var(--p3-text); font-weight: var(--p3-fw-emphasis); }
+.p3-sg-draw { min-height: var(--p3-ctl-h); }
+.p3-sg-prog { display: grid; gap: var(--p3-space-150); min-width: 0; }
+.p3-sg-runhead { display: flex; align-items: center; gap: var(--p3-space-150); }
+.p3-sg-runline { flex: 1 1 auto; min-width: 0; font-weight: var(--p3-fw-emphasis); }
+.p3-sg-summary { margin: 0; overflow-wrap: anywhere; }
+.p3-sg-tlist {
+  margin: 0; padding: 0; list-style: none; max-height: calc(8 * var(--p3-ctl-h)); overflow: auto;
+  border: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-xl);
+}
+.p3-sg-trow {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); min-height: var(--p3-ctl-h-xs);
+  padding: var(--p3-space-050) var(--p3-space-150); border-top: var(--p3-bw-hairline) solid var(--p3-line-1);
+}
+.p3-sg-trow:first-child { border-top: 0; }
+.p3-sg-trow > .p3-ico { color: var(--p3-ok-icon); }
+.p3-sg-trow[data-status="failed"] > .p3-ico { color: var(--p3-bad-icon); }
+.p3-sg-wait { box-sizing: border-box; flex: none; width: var(--p3-icon-xs); height: var(--p3-icon-xs); border: var(--p3-bw-hairline) dashed var(--p3-icon-2); border-radius: var(--p3-radius-pill); }
+.p3-sg-tname { flex: 1 1 auto; min-width: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); }
+.p3-sg-tname > b { color: var(--p3-text); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-emphasis); }
+.p3-sg-tstatus { flex: none; color: var(--p3-text-2); font-size: var(--p3-fs-12); }
+.p3-sg-trow[data-status="failed"] .p3-sg-tstatus, .p3-sg-reason { color: var(--p3-bad-text); }
+.p3-sg-why { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); width: 100%; padding-left: var(--p3-space-300); font-size: var(--p3-fs-12); }
+.p3-sg-reason { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+/* The options: a group per kind in the selection, each lever a name, its control and its hint. */
+.p3-sg-ogroup { display: grid; gap: var(--p3-space-150); padding-top: var(--p3-space-150); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
+.p3-sg-ogroup:first-child { padding-top: 0; border-top: 0; }
+.p3-sg-ogroup-title { margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-default); line-height: var(--p3-lh-compact); }
+.p3-sg-lever { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--p3-space-050) var(--p3-space-200); }
+.p3-sg-lever-wide { grid-template-columns: minmax(0, 1fr); }
+.p3-sg-lever-name { font-weight: var(--p3-fw-emphasis); }
+.p3-sg-hint { grid-column: 1 / -1; }
+/* The switch (concept v6's, SG5 A): a button with `role="switch"` holding a track and a knob. Its ring is its own
+   outline, on the focus color (FR1 A). */
+.p3-sg-switch {
+  display: inline-flex; align-items: center; min-height: var(--p3-ctl-h-xs); padding: 0; border: 0; border-radius: var(--p3-radius-pill);
+  background: transparent; cursor: pointer;
+}
+.p3-sg-switch:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
+.p3-sg-track {
+  position: relative; flex: none; width: var(--p3-track-w); height: var(--p3-track-h); border-radius: var(--p3-radius-pill);
+  border: var(--p3-bw-hairline) solid var(--p3-edge); background: var(--p3-bg-page); pointer-events: none;
+}
+.p3-sg-knob {
+  position: absolute; top: calc(var(--p3-thumb-inset) - var(--p3-bw-hairline)); left: calc(var(--p3-thumb-inset) - var(--p3-bw-hairline));
+  width: var(--p3-thumb); height: var(--p3-thumb); border-radius: var(--p3-radius-pill); background: var(--p3-icon-2);
+  transition: transform var(--p3-transition-dur) var(--p3-transition-ease);
+}
+.p3-sg-switch[aria-checked="true"] .p3-sg-track { background: var(--p3-inv-bg); border-color: var(--p3-inv-bg); }
+.p3-sg-switch[aria-checked="true"] .p3-sg-knob { background: var(--p3-inv-text); transform: translateX(calc(var(--p3-track-w) - var(--p3-thumb) - 2 * var(--p3-thumb-inset))); }
+@media (prefers-reduced-motion: reduce) { .p3-sg-knob { transition: none; } }
+/* At 380: one column, the run's table list first, and Draw pinned to the bottom of the page. */
+.p3-frame[data-w="narrow"] .p3-sg { padding: var(--p3-space-200) var(--p3-space-150) var(--p3-space-300); gap: var(--p3-space-200); }
+.p3-frame[data-w="narrow"] .p3-sg-cols, .p3-frame[data-w="narrow"] .p3-sg-selrow { grid-template-columns: minmax(0, 1fr); }
+.p3-frame[data-w="narrow"] .p3-sg-sec { padding: var(--p3-space-200); }
+/* Q47 A (owner, 2026-10-06; as Components' build bar, #2180): it stands `space-300` above the page's bottom edge, so it
+   never sits flush on the Activity drawer's strip. */
+.p3-sg-actbar {
+  position: sticky; bottom: var(--p3-space-300); z-index: 5; padding: var(--p3-space-150) var(--p3-space-200);
+  border: var(--p3-bw-hairline) solid var(--p3-edge); border-radius: var(--p3-radius-xl); background: var(--p3-bg-page);
+}
+/* The closed strip at 380 carries the running style guide's progress (S11.2). */
+.p3-strip-prog { flex: none; width: calc(2 * var(--p3-ctl-h)); }
 
 /* ── a disabled button: Prism3's own disabled button (owner decision X4 A, 2026-10-05) ─────── */
 /* A disabled button takes the disabled skin Prism3's button and icon button definitions bind for its appearance, and
