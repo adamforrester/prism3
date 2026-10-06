@@ -1,0 +1,552 @@
+{
+  "badge": {
+    "axes": {
+      "emphasis": [
+        "bold",
+        "subtle"
+      ],
+      "tone": [
+        "danger",
+        "info",
+        "neutral",
+        "success",
+        "warning"
+      ],
+      "type": [
+        "count",
+        "dot",
+        "status"
+      ]
+    },
+    "members": 20
+  },
+  "button": {
+    "axes": {
+      "appearance": [
+        "filled",
+        "outline",
+        "text"
+      ],
+      "leading icon": [
+        "false",
+        "true"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pending",
+        "pressed",
+        "rest"
+      ],
+      "surface": [
+        "default",
+        "inverse"
+      ],
+      "trailing icon": [
+        "false",
+        "true"
+      ]
+    },
+    "members": 432
+  },
+  "button-destructive": {
+    "axes": {
+      "appearance": [
+        "filled",
+        "outline",
+        "text"
+      ],
+      "leading icon": [
+        "false",
+        "true"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pending",
+        "pressed",
+        "rest"
+      ],
+      "surface": [
+        "default",
+        "inverse"
+      ],
+      "trailing icon": [
+        "false",
+        "true"
+      ]
+    },
+    "members": 432
+  },
+  "button-neutral": {
+    "axes": {
+      "appearance": [
+        "filled",
+        "outline",
+        "text"
+      ],
+      "leading icon": [
+        "false",
+        "true"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pending",
+        "pressed",
+        "rest"
+      ],
+      "surface": [
+        "default",
+        "inverse"
+      ],
+      "trailing icon": [
+        "false",
+        "true"
+      ]
+    },
+    "members": 432
+  },
+  "checkbox-control": {
+    "axes": {
+      "selection": [
+        "checked",
+        "indeterminate",
+        "unchecked"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "error",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ]
+    },
+    "members": 54
+  },
+  "checkbox-group": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ]
+    },
+    "members": 3
+  },
+  "checkbox-row": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ]
+    },
+    "members": 3
+  },
+  "field-label": {
+    "axes": {
+      "emphasis": [
+        "primary",
+        "secondary"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "rest"
+      ],
+      "weight": [
+        "bold",
+        "regular"
+      ]
+    },
+    "members": 24
+  },
+  "field-message": {
+    "axes": {
+      "status": [
+        "default",
+        "error",
+        "success",
+        "warning"
+      ]
+    },
+    "members": 4
+  },
+  "focus-ring": {
+    "axes": {
+      "surface": [
+        "default",
+        "inverse"
+      ]
+    },
+    "members": 2
+  },
+  "icon": {
+    "axes": {
+      "name": [
+        "FPO-default-icon",
+        "arrow-down",
+        "arrow-down-left",
+        "arrow-down-right",
+        "arrow-left",
+        "arrow-right",
+        "arrow-up",
+        "arrow-up-left",
+        "arrow-up-right",
+        "check",
+        "check-circle",
+        "check-circle-filled",
+        "chevron-down",
+        "chevron-left",
+        "chevron-right",
+        "chevron-up",
+        "close",
+        "close-filled",
+        "error-circle",
+        "error-circle-filled",
+        "external-link-filled",
+        "eye",
+        "eye-filled",
+        "eye-off",
+        "eye-off-filled",
+        "home",
+        "image",
+        "info-circle",
+        "info-circle-filled",
+        "link",
+        "minus",
+        "minus-filled",
+        "more-horizontal-filled",
+        "more-vertical-filled",
+        "pause-circle",
+        "play-circle",
+        "plus",
+        "plus-circle",
+        "plus-circle-filled",
+        "plus-filled",
+        "resize-grip",
+        "search",
+        "warning-triangle",
+        "warning-triangle-filled"
+      ]
+    },
+    "members": 44
+  },
+  "icon-button": {
+    "axes": {
+      "appearance": [
+        "filled",
+        "ghost",
+        "outline"
+      ],
+      "shape": [
+        "circular",
+        "square"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pending",
+        "pressed",
+        "rest"
+      ],
+      "surface": [
+        "default",
+        "inverse"
+      ]
+    },
+    "members": 216
+  },
+  "icon-button-destructive": {
+    "axes": {
+      "appearance": [
+        "filled",
+        "ghost",
+        "outline"
+      ],
+      "shape": [
+        "circular",
+        "square"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pending",
+        "pressed",
+        "rest"
+      ],
+      "surface": [
+        "default",
+        "inverse"
+      ]
+    },
+    "members": 216
+  },
+  "icon-button-neutral": {
+    "axes": {
+      "appearance": [
+        "filled",
+        "ghost",
+        "outline"
+      ],
+      "shape": [
+        "circular",
+        "square"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pending",
+        "pressed",
+        "rest"
+      ],
+      "surface": [
+        "default",
+        "inverse"
+      ]
+    },
+    "members": 216
+  },
+  "image-placeholder": {
+    "axes": {
+      "ratio": [
+        "16:9",
+        "1:1",
+        "4:3"
+      ]
+    },
+    "members": 3
+  },
+  "radio-control": {
+    "axes": {
+      "selection": [
+        "checked",
+        "unchecked"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ]
+    },
+    "members": 30
+  },
+  "radio-group": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ]
+    },
+    "members": 3
+  },
+  "radio-row": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ]
+    },
+    "members": 3
+  },
+  "select": {
+    "axes": {
+      "state": [
+        "disabled",
+        "filled",
+        "focus-visible",
+        "hover",
+        "read-only",
+        "rest"
+      ],
+      "status": [
+        "default",
+        "error",
+        "success",
+        "warning"
+      ]
+    },
+    "members": 24
+  },
+  "spinner": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small",
+        "x-small"
+      ]
+    },
+    "members": 4
+  },
+  "switch-control": {
+    "axes": {
+      "selection": [
+        "off",
+        "on"
+      ],
+      "size": [
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "error",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ]
+    },
+    "members": 24
+  },
+  "switch-row": {
+    "axes": {
+      "size": [
+        "medium",
+        "small"
+      ]
+    },
+    "members": 2
+  },
+  "tag": {
+    "axes": {
+      "selection": [
+        "selected",
+        "unselected"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ],
+      "type": [
+        "dismissible",
+        "select"
+      ]
+    },
+    "members": 45
+  },
+  "text-field": {
+    "axes": {
+      "state": [
+        "disabled",
+        "filled",
+        "focus-visible",
+        "hover",
+        "read-only",
+        "rest"
+      ],
+      "status": [
+        "default",
+        "error",
+        "success",
+        "warning"
+      ]
+    },
+    "members": 24
+  },
+  "textarea": {
+    "axes": {
+      "state": [
+        "disabled",
+        "filled",
+        "focus-visible",
+        "hover",
+        "read-only",
+        "rest"
+      ],
+      "status": [
+        "default",
+        "error",
+        "success",
+        "warning"
+      ]
+    },
+    "members": 24
+  },
+  "veil": {
+    "axes": {
+      "direction": [
+        "from-bottom",
+        "from-left",
+        "from-right",
+        "from-top",
+        "full"
+      ],
+      "intensity": [
+        "medium",
+        "strong",
+        "subtle"
+      ],
+      "value": [
+        "dark",
+        "light"
+      ]
+    },
+    "members": 30
+  }
+}
