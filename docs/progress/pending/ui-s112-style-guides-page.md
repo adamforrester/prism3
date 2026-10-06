@@ -64,3 +64,15 @@
 | no move when the run ends | "focus: when the run ends, focus moves from Cancel to Draw or the run line, never <body> (focus on body)" |
 | `role="switch"` dropped | "SG5 A: each option switch is a switch to assistive technology, role="switch" ([null,null,null])" |
 | the switch's ring back on `--p3-ctl-edge` | `test:chrome`: "#2144 figma light 1280: every focused chrome control draws its ring in color.border.focus (#1e1eff) … build style guides sg-opt-aliases: color #0d0d0e, want color.border.focus #1e1eff …", and the same in dark (#f7f7f7, want #4f79fa) |
+
+### CI round (`e3c624b2`): the page suite waits on conditions, never on the clock
+
+CI failed at the `test:verdict` step on `e3c624b2`. Its annotation carried no assertion, and the job log was out of reach. Six local runs passed: three on the head, three merged with main. So the one suspect inside this PR's scope was hardened: `test-style-guides-page.mjs` waited a fixed 120 ms after every posted message and every click that posts one. Both directions of the bridge are asynchronous `postMessage`, so on a loaded runner a read could come before the message had been handled.
+
+Every fixed sleep is gone. Each wait now names the state the next assertion reads: the message handled, the element drawn, the post caught. It runs for up to 8 s, and when it times out it is a named ✗ saying what it waited for and what the page showed; it never throws. Every assertion keeps its meaning. `test-build-verdict.mjs`'s own `settle` predates this PR and is untouched.
+
+**Under load:** five `test:verdict` runs with two `test:chrome` runs going in two other worktrees the whole time (load average 10.4–11.8 on 4 cores). All five passed (311/311 and 55/55).
+
+**Mutation, Cancel ignored** (the page's `cancel` lend a no-op), fails by name:
+- ✗ wait: 1 "style-guide-cancel" posted — not within 8000 ms; …
+- ✗ P7: Cancel asks the main thread to stop after the current table (0)
