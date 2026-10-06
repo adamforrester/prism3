@@ -9556,7 +9556,9 @@ const EXPECT_HEADINGS = {
   'style-guides': {
     L1: ['What to draw', 'Options'],
     L2: ['All tables', 'Color', 'Spacing and size', 'Font variables', 'Text styles'],
-    L3: ['Collection', 'Mode', 'Kinds'],
+    // SH1 A (owner, 2026-10-06): a lever inside an option group reads as a field, L3.
+    L3: ['Collection', 'Mode', 'Kinds', 'Table header', 'Aliases', 'Description', 'Name cell', 'REM', 'Color value', 'Color sample',
+      'Dimension display', 'Font sample', 'Paragraph spacing', 'Text decoration'],
   },
 };
 /** Each page's Show advanced disclosures, opened before the sweep so the advanced levers' headings are measured too. */
@@ -9586,7 +9588,7 @@ const PLUGIN_ONLY_PAGES = [SG_PLACE];
 /** The pages the rule is measured on, per host. */
 const HEADING_PAGES = { web: [...NEW_PAGES], figma: [...NEW_PAGES, SG_PLACE] };
 /** The style guides page's own literal floors (per host and theme, both widths), under the counts measured when it joined. */
-const SG_HEADING_FLOOR = { L1: 2, L2: 5, L3: 3, swept: 9 };
+const SG_HEADING_FLOOR = { L1: 2, L2: 5, L3: 14, swept: 9 };
 const openStyleGuides = async (page) => {
   await openFigma(page);
   await hooks.click(page.locator('[data-p3="figma-option-style-guide"]'), WAIT);
@@ -9655,16 +9657,16 @@ const HEADING_PROBE = ({ strong, big, exempt, paneSel }) => {
   const TABLE_HEADS = '.p3-facehead, .p3-tsizes-head, .p3-wmatrix-head, .p3-tnudge-head';
   const found = [];
   const classified = new Set();
-  const add = (level, n, kind, row) => {
+  const add = (level, n, kind, row, afterAt, hasUnder) => {
     classified.add(n); classified.add(row);
     const cs = getComputedStyle(n);
-    const nx = next(row);
+    const nx = afterAt === undefined ? next(row) : null;
     const desc = nx?.leaf.closest('.p3-sub');
     const ownDesc = !!(desc && desc.parentElement?.matches('.p3-lever-ctl') && desc.parentElement.firstElementChild === desc && desc.closest('.p3-lever') === n.closest('.p3-lever'));
     const rb = box(row);
     found.push({ level, kind, text: n.textContent.replace(/\s+/g, ' ').trim(), fs: parseFloat(cs.fontSize), fw: Number(cs.fontWeight), lh: parseFloat(cs.lineHeight),
       ls: parseFloat(cs.letterSpacing) || 0, color: cs.color, h: r2(n.getBoundingClientRect().height), rowH: r2(rb.bottom - rb.top),
-      after: nx ? nx.gap : null, toDesc: !!nx?.leaf.closest('.p3-lsec-desc'), ownDesc,
+      after: afterAt === undefined ? (nx ? nx.gap : null) : afterAt, hasUnder: hasUnder ?? true, toDesc: !!nx?.leaf.closest('.p3-lsec-desc'), ownDesc,
       sec: n.closest('.p3-lsec')?.querySelector('.p3-lsec-title')?.textContent.replace(/\s+/g, ' ').trim() ?? null });
   };
   for (const n of pane.querySelectorAll('.p3-lsec-title')) if (vis(n)) add('L1', n, 'section title', n.closest('.p3-lsec-titlerow') ?? n);
@@ -9678,6 +9680,18 @@ const HEADING_PROBE = ({ strong, big, exempt, paneSel }) => {
   for (const n of pane.querySelectorAll('.p3-sg-sec-title')) if (vis(n)) add('L1', n, 'card title', n);
   for (const n of pane.querySelectorAll('.p3-sg-ogroup-title')) if (vis(n)) add('L2', n, 'option group title', n);
   for (const n of pane.querySelectorAll('.p3-sg-field-name')) if (vis(n)) add('L3', n, 'field label', n);
+  // A lever's name inside an option group is L3 (SH1 A). Its row is the lever's first grid row: the name, and beside it the
+  // control unless the lever is wide. The space after is measured from that row to the next box in the lever (a wide
+  // lever's control, else its own hint); a lever with nothing under its row ends there, and the group's gap follows.
+  for (const n of pane.querySelectorAll('.p3-sg-lever-name')) if (vis(n)) {
+    const lv = n.parentElement;
+    const kids = [...lv.children].filter(vis);
+    const wide = lv.classList.contains('p3-sg-lever-wide');
+    const nb = n.getBoundingClientRect().bottom;
+    const rowBottom = wide ? nb : Math.max(nb, kids[1]?.getBoundingClientRect().bottom ?? nb);
+    const under = wide ? kids[1] : kids[2];
+    add('L3', n, 'option name', n, under ? r2(under.getBoundingClientRect().top - rowBottom) : null, !!under);
+  }
   const heads = [...pane.querySelectorAll('.p3-lsec-head')].filter(vis).map((hd) => { const nx = next(hd); return { title: hd.querySelector('.p3-lsec-title')?.textContent.trim(), after: nx ? nx.gap : null }; });
   const tokenLabels = [...pane.querySelectorAll('.p3-fill-label')].filter(vis).map((n) => { const cs = getComputedStyle(n); return { text: n.textContent.trim(), fs: parseFloat(cs.fontSize), fw: Number(cs.fontWeight), lh: parseFloat(cs.lineHeight) }; });
   const infos = [...pane.querySelectorAll('.p3-info')].filter(vis).map((b) => {
@@ -9811,7 +9825,7 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
             // The row is as tall as its line: the ⓘ overhangs it. (HP5, #2218, took Gradients' switch out of its lever head,
             // so no lever head is skipped any more.)
             if (f.kind === 'lever name' && !near(f.rowH, f.h)) miss.push(`its row is ${f.rowH} tall, its line ${f.h}: something in the row sets its height`);
-          } else if (f.level === 'L3' && (f.kind === 'field label' || f.kind === 'lever name in a group')) {
+          } else if (f.level === 'L3' && (f.kind === 'field label' || f.kind === 'lever name in a group' || (f.kind === 'option name' && f.hasUnder))) {
             if (!near(f.after, HT['space-050'])) miss.push(`space after ${f.after}, want space-050 ${HT['space-050']}`);
           }
           ok(miss.length === 0, `${at}: ${name} ${miss.join('; ')}`);

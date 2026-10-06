@@ -1301,7 +1301,10 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-sg-ogroup-title { margin: 0; color: var(--p3-text); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
 .p3-sg-lever { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--p3-space-050) var(--p3-space-200); }
 .p3-sg-lever-wide { grid-template-columns: minmax(0, 1fr); }
-.p3-sg-lever-name { font-weight: var(--p3-fw-emphasis); }
+/* L3 (TY2 A, SH1 A, #2215): a lever inside an option group reads as a field (held decision 7, as Interactive's Neutral
+   emphasis): fs-14 / fw-emphasis / lh-compact in primary ink. What follows its row (the control under a wide lever's
+   name, or the lever's own hint under a name and its control) starts space-050 after it: the lever's row gap. */
+.p3-sg-lever-name { color: var(--p3-text); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
 .p3-sg-hint { grid-column: 1 / -1; }
 /* The switch (concept v6's, SG5 A): a button with `role="switch"` holding a track and a knob. Its ring is its own
    outline, on the focus color (FR1 A). */
