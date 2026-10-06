@@ -3609,8 +3609,9 @@ for (const host of ['web', 'figma']) {
     ['inverse.background.tertiary', 'Inverse tertiary', 'inverse.background.tertiary', 'surface-inverse-tertiary-pick'],
   ].map(([role, label, token, pick]) => ({ role, label, token, swatch: true, pick }));
   ok(JSON.stringify(c.surfRows) === JSON.stringify(WANT_SURF_ROWS), `${host}: QA-B1/QA-B3: Background fills draws its rows in the Foreground pattern, Primary first — read ${JSON.stringify(c.surfRows)}`);
-  ok(JSON.stringify(c.surfSubs) === JSON.stringify(['Default background fills', 'Inverse background fills']),
-    `${host}: QA-B7: Background fills' sub-sections are "Default background fills" and "Inverse background fills" — read ${JSON.stringify(c.surfSubs)}`);
+  // BG1 A (#2181, approved 2026-10-06) shortened QA-B7's "Default background fills" and "Inverse background fills".
+  ok(JSON.stringify(c.surfSubs) === JSON.stringify(['Default', 'Inverse']),
+    `${host}: QA-B7, BG1 A: Background fills' sub-sections are "Default" and "Inverse" — read ${JSON.stringify(c.surfSubs)}`);
   for (const [key, hk] of FILLS_LEVERS) ok(c.levers[hk] === 1, `${host}: Surfaces & fills lever ${key} renders its hook ${hooks.role(hk)} once — rendered ${c.levers[hk]}`);
   for (const r of [...SURFACE_ROW_ROLES, ...FOREGROUND_ROW_ROLES, ...FILL_ROW_ROLES, ...TEXT_ROW_ROLES, ...BORDER_ROW_ROLES, ...ICON_ROW_ROLES, ...FIELD_ROW_ROLES, ...READONLY_ROW_ROLES]) ok(c.rows[r] === 1, `${host}: Surfaces & fills renders the ${r} row once — rendered ${c.rows[r]}`);
   // The focus rings (S4d, #1966): read-only rows, no control.
@@ -3632,9 +3633,10 @@ for (const host of ['web', 'figma']) {
     // The preview's own section descriptions, by title, as rendered (Q23: the levers side copies them).
     previewDescs: Object.fromEntries([...document.querySelectorAll('[data-p3="section-head"]')].map((n) => [n.querySelector('[data-p3="section-title"]')?.textContent, n.querySelector('[data-p3="section-description"]')?.textContent ?? null])),
     surfacesName: document.querySelector('[data-p3="fills-levers"] [data-p3="lever-surfaces"] .p3-lever-name')?.textContent ?? null,
-    // The info toggletip the block's own button controls (`aria-controls`), so it is that button's text.
+    // The info toggletip the block's own button controls (`aria-controls`), so it is that button's text. Since BG1 A the
+    // button sits beside the section's title, in the title row of the section that holds the block.
     surfacesTip: (() => {
-      const info = document.querySelector('[data-p3="fills-levers"] [data-p3="lever-surfaces"] [data-p3="lever-info"]');
+      const info = document.querySelector('[data-p3="fills-levers"] [data-p3="lever-surfaces"]')?.closest('.p3-lsec')?.querySelector('.p3-lsec-titlerow [data-p3="lever-info"]');
       const id = info?.getAttribute('aria-controls');
       return id ? document.getElementById(id)?.textContent ?? null : null;
     })(),
@@ -3708,8 +3710,8 @@ for (const host of ['web', 'figma']) {
   const FG_LABELS = [['foreground.primary', 'Primary'], ['foreground.secondary', 'Secondary'], ['foreground.tertiary', 'Tertiary'],
     ['inverse.foreground.primary', 'Primary'], ['inverse.foreground.secondary', 'Secondary'], ['inverse.foreground.tertiary', 'Tertiary']];
   ok(JSON.stringify(copy.fgLabels) === JSON.stringify(FG_LABELS), `${host}: the Foreground section's rows are labeled Primary, Secondary, Tertiary (Q44) — read ${JSON.stringify(copy.fgLabels)}`);
-  // S4f (QA-B7): Background fills' two sub-headings come first, the APPROVED words.
-  ok(JSON.stringify(copy.subs) === JSON.stringify(['Default background fills', 'Inverse background fills', 'Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse']),
+  // S4f (QA-B7): Background fills' two sub-headings come first, the APPROVED words (BG1 A: "Default" and "Inverse").
+  ok(JSON.stringify(copy.subs) === JSON.stringify(['Default', 'Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse']),
     `${host}: Background fills heads its two groups (QA-B7), and Foreground, Foreground fills, Text color, Border and Icon each head their inverse rows "Inverse" — read ${JSON.stringify(copy.subs)}`);
   ok(copy.intro === FILLS_COPY.intro, `${host}: the Surfaces & fills intro is the owner's (Q27) — read ${JSON.stringify(copy.intro)}`);
   ok(JSON.stringify(copy.titles) === JSON.stringify(FILLS_COPY.titles), `${host}: the Surfaces & fills sections are ${FILLS_COPY.titles.join(', ')} — read ${JSON.stringify(copy.titles)}`);
@@ -4091,8 +4093,9 @@ for (const host of ['web', 'figma']) {
     // Gradients (QA-B13, QA-B14, QA-B15, QA-B16).
     const gr = await page.evaluate(() => {
       const blk = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-gradients"]');
-      const head = blk?.querySelector('.p3-lever-head');
-      const sw = blk?.querySelector('[data-p3="gradients-switch"]');
+      // HP5 (#2218): the switch moved from the lever's head to its section's title row, at the far end.
+      const head = blk?.closest('.p3-lsec')?.querySelector('.p3-lsec-titlerow');
+      const sw = head?.querySelector('[data-p3="gradients-switch"]');
       const hb = head?.getBoundingClientRect(), sb = sw?.getBoundingClientRect();
       // A gradient DRAWN is a linear or radial CSS gradient (the engine's two kinds) between two colors or more. The
       // scrim's swatch sits on the chrome's transparency checkerboard (A6), a conic pattern, and is not one.
@@ -4111,14 +4114,14 @@ for (const host of ['web', 'figma']) {
       const addRow = blk?.querySelector('[data-p3="gradient-add-row"]'), add = blk?.querySelector('[data-p3="gradient-add"]');
       const last = eds[eds.length - 1];
       return {
-        inHead: !!sw && sw.closest('.p3-lever-head') === head, right: hb && sb ? Math.round(hb.right - sb.right) : null, top: hb && sb ? Math.round(sb.top - hb.top) : null,
+        inHead: !!sw && sw.closest('.p3-lsec-titlerow') === head, right: hb && sb ? Math.round(hb.right - sb.right) : null, top: hb && sb ? Math.round(sb.top - hb.top) : null,
         painted, n: eds.length, sides,
         addLine: addRow ? getComputedStyle(addRow).borderTopStyle : null,
         addAbove: addRow && add ? Math.round(box(add).top - box(addRow).top) : null,
         addBelowLast: addRow && last ? Math.round(box(addRow).top - Math.max(...ctl(last).map((x) => box(x).bottom))) : null,
       };
     });
-    ok(gr.inHead && gr.right !== null && gr.right <= 1 && gr.top !== null && gr.top <= 12, `${host} QA-B13: the gradients switch sits at the top right of its block's header — read ${JSON.stringify({ inHead: gr.inHead, right: gr.right, top: gr.top })}`);
+    ok(gr.inHead && gr.right !== null && gr.right <= 1 && gr.top !== null && gr.top <= 12, `${host} QA-B13, HP5: the gradients switch sits at the right of its section's title row — read ${JSON.stringify({ inHead: gr.inHead, right: gr.right, top: gr.top })}`);
     ok(gr.painted.length === 0, `${host} QA-B14: the levers draw no gradient (the preview shows them)${gr.painted.length ? ` — drawn by ${gr.painted.join(', ')}` : ''}`);
     // S4a gave 8px above a divider and 12px under it; QA-B16 asks for more on both sides: 24px (the scale's 300) each.
     ok(gr.n >= 2 && gr.sides.length === gr.n - 1 && gr.sides.every((x) => x.above >= 24 && x.below >= 24),
@@ -5174,8 +5177,10 @@ const TYPE_FACE_OF = (g) => {
   return v;
 };
 ok(TYPE_FACE_OF('body') === 'Inter' && TYPE_FACE_OF('display') === 'Playfair Display', `the oracle resolves the default theme's faces from the emission (body ${TYPE_FACE_OF('body')}, display ${TYPE_FACE_OF('display')})`);
-/** The Faces copy (Q23: the lever section and the preview section say the same thing). DRAFT, typed here. */
+/** The preview's Faces copy. DRAFT, typed here. The levers drew it too (Q23) until TY1 A and HP2 (#2190, 2026-10-06) split
+ *  their section into the two below, each titled by its lever's own name; both reveal the preview's Font families. */
 const FACES_COPY = ['Font families', 'The font families in the brand, and the family each text type uses.'];
+const TY1_TITLES = ['Typeface library', 'Font family for each text type'];
 const sectionGrounds = (page, hk) => page.evaluate((hostHook) => {
   const parse = (x) => { const m = /^rgba?\(([^)]+)\)$/.exec((x ?? '').trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
   const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
@@ -5235,13 +5240,13 @@ for (const host of ['web', 'figma']) {
       });
       const lib = [...pane.querySelectorAll('[data-p3="face-row"]')].map((row) => ({ slug: row.dataset.slug, first: row.querySelector('.p3-fill-name')?.firstElementChild?.className ?? null,
         tok: row.querySelector('.p3-fill-name .p3-fill-tok')?.textContent ?? null }));
-      const lsec = pane.querySelector('[data-p3="lever-section"]');
+      const lsecs = [...pane.querySelectorAll('[data-p3="lever-section"]')].slice(0, 2);
       const prev = [...document.querySelectorAll('[data-p3="type-style-guide"] .psec')].find((x) => x.querySelector('.psec-t')?.textContent === 'Font families');
       return {
         blocks: ['lever-typography-typeface-library', 'lever-typography-families'].map((hk) => pane.querySelectorAll(`[data-p3="${hk}"]`).length),
         fams, lib, tabs: pane.querySelectorAll('.pvseg').length + document.querySelectorAll('[data-p3="legacy-page"] .pvseg').length,
         lent: pane.querySelectorAll('.p3-legacy-card').length,
-        leverCopy: [lsec?.querySelector('.p3-lsec-title')?.textContent ?? null, lsec?.querySelector('.p3-lsec-desc')?.textContent ?? null],
+        leverCopy: lsecs.map((x) => x.querySelector('.p3-lsec-title')?.textContent ?? null),
         previewCopy: [prev?.querySelector('.psec-t')?.textContent ?? null, prev?.querySelector('.psec-d')?.textContent ?? null],
         source: document.querySelector('[data-p3="typeface-source"]')?.textContent ?? null,
       };
@@ -5259,20 +5264,20 @@ for (const host of ['web', 'figma']) {
     ok(r.lib.length >= 3 && r.lib.every((x) => x.first === 'p3-fill-label' && x.tok === `font.typeface.${x.slug}`), `QA-B2: ${host}: every library face is named first, its token under it (${JSON.stringify(r.lib)})`);
     ok(r.tabs === 0, `${host}: the four-tab bar (Primitives · Semantics · Text styles · Preview) is gone (${r.tabs} drawn)`);
     ok(r.lent === 0, `${host}: the levers draw no lent legacy region (S6.3 retired it; ${r.lent} drawn)`);
-    ok(JSON.stringify(r.leverCopy) === JSON.stringify(FACES_COPY) && JSON.stringify(r.previewCopy) === JSON.stringify(r.leverCopy),
-      `Q23: ${host}: the Faces lever section and the preview's Faces section have one heading and description — levers ${JSON.stringify(r.leverCopy)}, preview ${JSON.stringify(r.previewCopy)}`);
+    ok(JSON.stringify(r.leverCopy) === JSON.stringify(TY1_TITLES) && JSON.stringify(r.previewCopy) === JSON.stringify(FACES_COPY),
+      `TY1 A: ${host}: the levers open on ${TY1_TITLES.join(' and ')}, and the preview's Font families keeps its heading and description — levers ${JSON.stringify(r.leverCopy)}, preview ${JSON.stringify(r.previewCopy)}`);
     ok(r.source === 'On this device', `${host}: before the host sends a font list, the library's availability reads "On this device" (${r.source})`);
     // The owner (2026-10-03, #2036): "Font families should not be advanced, that's a major brand lever." Apply to all
-    // and the remove button are drawn without any fold: Font families' section holds no Show advanced, and Apply to
-    // all sits in no fold's body.
+    // and the remove button are drawn without any fold: neither of the two sections TY1 A made holds a Show advanced, and
+    // Apply to all sits in the family section, in no fold's body.
     const fam = await page.evaluate(() => {
-      const sec = document.querySelector('#p3-lsec-type-0');
+      const secs = ['#p3-lsec-type-0', '#p3-lsec-type-1'].map((id) => document.querySelector(id));
       const all = document.querySelector('[data-p3="family-all-apply"]');
-      return { title: sec?.querySelector('.p3-lsec-title')?.textContent ?? null, folds: sec ? sec.querySelectorAll('.p3-advrow, [aria-controls^="p3-advb"]').length : -1,
-        all: !!all && sec?.contains(all), inFold: !!all?.closest('.p3-advbody') };
+      return { titles: secs.map((x) => x?.querySelector('.p3-lsec-title')?.textContent ?? null), folds: secs.reduce((a, x) => a + (x ? x.querySelectorAll('.p3-advrow, [aria-controls^="p3-advb"]').length : 99), 0),
+        all: !!all && !!secs[1]?.contains(all), inFold: !!all?.closest('.p3-advbody') };
     });
-    ok(fam.title === 'Font families' && fam.folds === 0 && fam.all && !fam.inFold,
-      `owner (2026-10-03): ${host}: Font families sits outside Show advanced: Apply to all is drawn in it, in no fold (${JSON.stringify(fam)})`);
+    ok(JSON.stringify(fam.titles) === JSON.stringify(TY1_TITLES) && fam.folds === 0 && fam.all && !fam.inFold,
+      `owner (2026-10-03): ${host}: the font family sections sit outside Show advanced: Apply to all is drawn in the second, in no fold (${JSON.stringify(fam)})`);
     // S6.3: the other two folds, so the scans below read every lever on the page.
     await openTypeAdvanced(page);
     // The owner's rule (2026-10-02): never "face" as a word in visible copy, on the levers (the lent region, the
@@ -5332,7 +5337,7 @@ for (const host of ['web', 'figma']) {
     await page.waitForFunction(() => document.querySelector('[data-p3="family-select"][data-group="body"]')?.value === 'Inter');
     ok(JSON.stringify(await persisted(page)) === JSON.stringify(p0), 'type: setting body back to Inter returns the persisted brand to its bytes');
     await chooseMode(page, 'dark');
-    const auto = await page.evaluate(() => { const s = document.querySelector('[data-p3="family-select"][data-group="body"]'); return { value: s?.value, text: s?.selectedOptions[0]?.textContent, line: document.querySelector('[data-p3="lever-typography-families"] .p3-sub')?.textContent }; });
+    const auto = await page.evaluate(() => { const s = document.querySelector('[data-p3="family-select"][data-group="body"]'); return { value: s?.value, text: s?.selectedOptions[0]?.textContent, line: document.querySelector('[data-p3="lever-typography-families"]')?.closest('.p3-lsec')?.querySelector(':scope > .p3-lsec-head > .p3-sub')?.textContent }; });
     ok(auto.value === '' && auto.text === 'Auto: follows Light (Inter)' && auto.line === 'Editing Dark, the mode the preview shows.',
       `Q62: previewing Dark, the body select starts on "Auto: follows Light (Inter)" under the editing line (${JSON.stringify(auto)})`);
     await page.locator('[data-p3="family-select"][data-group="body"]').selectOption('JetBrains Mono');
@@ -5463,8 +5468,9 @@ for (const { w, h } of WIDTHS) {
 //      `typography.responsive is drawn on Type only — also on Layout …`.
 // =============================================================================================
 console.log(`\nType (S6.3)\n${'='.repeat(78)}`);
-/** Q23: each lever section, in order, and the preview section it pairs with (Scale limits with Scale, scope §3). */
-const TYPE_PAIRS = [['Font families', 'Font families'], ['Scale', 'Scale'], ['Scale limits', 'Scale'], ['Weights and styles', 'Weights and styles'],
+/** Q23: each lever section, in order, and the preview section it pairs with (Scale limits with Scale, scope §3; TY1 A's two
+ *  font family sections with Font families). */
+const TYPE_PAIRS = [['Typeface library', 'Font families'], ['Font family for each text type', 'Font families'], ['Scale', 'Scale'], ['Scale limits', 'Scale'], ['Weights and styles', 'Weights and styles'],
   ['Line height and letter spacing', 'Line height and letter spacing']];
 /** The S6.3 sections' descriptions, DRAFT, literal (the preview's paired section says the same, Q23). */
 const TYPE_S63_COPY = {
@@ -6261,12 +6267,14 @@ const readNames = (page) => page.evaluate(() => [...document.querySelectorAll('[
   const L = lab?.getBoundingClientRect(), T = tok?.getBoundingClientRect();
   const kind = n.closest('[data-p3="family-row"]') ? 'type-family' : n.closest('[data-p3="face-row"]') ? 'type-face' : n.closest('[data-p3="interactive-levers"]') ? 'interactive-row'
     : n.closest('[data-p3="type-size-row"]') ? 'type-size' : n.closest('[data-p3="weight-row"]') ? 'type-weight'
-    : n.closest('[data-p3="lh-row"]') ? 'type-line-height' : n.closest('[data-p3="ls-row"]') ? 'type-letter-spacing'
+    : n.closest('[data-p3="lh-row"]') ? 'type-line-height' : n.closest('[data-p3="ls-row"]') ? 'type-letter-spacing' : n.closest('[data-p3="italic-row"]') ? 'type-italic'
     : n.closest('[data-p3="layout-levers"]') ? 'layout-row'
     // S4f (QA-B1): Background fills' controls are rows now, inside the surfaces lever; a name in a `.p3-field` is the
     // shape they had before.
     : n.closest('[data-p3="lever-surfaces"] .p3-fillrow') ? 'background-row' : n.closest('.p3-fillrow') ? 'fill-row' : n.closest('.p3-field') ? 'fill-field' : 'other';
   return { kind, role: n.closest('.p3-fillrow')?.dataset.role ?? null, token: tok?.textContent ?? null, label: lab?.textContent ?? null, below: !!L && !!T && T.top >= L.bottom - 0.5,
+    // #2217: a label stacked over its control may carry its token flush right on its own line, after it.
+    after: !!L && !!T && T.left >= L.right && T.top < L.bottom,
     labTop: L ? Math.round(L.top) : null, tokTop: T ? Math.round(T.top) : null, tokFont: tok ? getComputedStyle(tok).fontFamily : null };
 }));
 /** Every select and step-picker button drawn in the levers pane: height, font size, alignment and where its caret is. */
@@ -6364,9 +6372,12 @@ for (const [host, theme] of [['web', 'light'], ['web', 'dark'], ['figma', 'light
     ok(tokenless.every((n) => n.role === 'surfaces.floorStep') && tokenless.length <= 1,
       `QA-B2: ${where}: only the contrast floor row draws a name with no token under it — read ${JSON.stringify(tokenless.map((n) => [n.place, n.role, n.label]))}`);
     const tokened = names.filter((n) => n.token !== null);
-    const above = tokened.filter((n) => !n.below);
+    // #2217 (heading pass 2): Type's family and italic rows, stacked over their control, carry the token on the label's line,
+    // after it (or under it, when the two don't fit); every other row keeps it under its label.
+    const ONLINE = new Set(['type-family', 'type-italic']);
+    const above = tokened.filter((n) => !(n.below || (ONLINE.has(n.kind) && n.after)));
     ok(names.length >= 20 && above.length === 0,
-      `QA-B2: ${where}: in every row type the token sits below its label, so the label is read first (${names.length} read)${above.length ? ` — ${JSON.stringify(above.slice(0, 3))}` : ''}`);
+      `QA-B2: ${where}: in every row type the token sits below its label (or after it on its line, #2217), so the label is read first (${names.length} read)${above.length ? ` — ${JSON.stringify(above.slice(0, 3))}` : ''}`);
     // …and the two are the right way round: the mono line reads as a token path (dotted, no spaces), the label
     // above it does not. A call that hands the label and the token in the wrong order fails here.
     const PATH = /^[a-z0-9*-]+(\.[a-z0-9*-]+)+$/;
@@ -9413,6 +9424,35 @@ for (const host of ['web', 'figma']) {
 //     not covered: h4.p3-rogue "Density sets" (a heading element) | … (drawn 14px / 700)` (16, with the space after Density).
 //   · a row list's sub-heading drawn as an h5 → `… / color-fills: no heading skips a level after the one before it —
 //     h3.p3-lsec-title "Foreground" h3 then h5.p3-rows-sub "Inverse" h5 | …` (8).
+//
+// HEADING PASS 2 (#2220: BG1 A #2181, HP5 #2218, TY1 A and HP2 #2190, TS1 A #2216, #2217 with HP6; approved 2026-10-06), the
+// structure, held in the same loop: no section draws its own title twice; each promoted lever's ⓘ sits in its section's title
+// row (space-050 after the title, centered on its line, by the ⓘ check) and opens the help it opened before (PROMOTED, typed
+// from the source before the pass or read from the lever manifest); Background fills' subgroups read exactly Default and
+// Inverse; Gradients' switch is at the far end of the title row, on the title's line, and every title row and lever head is
+// as tall as its line (pass 1's skip for a switch is gone); Type has its two sections, each by its lever hook, and no levers
+// section draws the old "Font families" title or description; and the family and italic rows put the token on the label's
+// line, flush right, wide, and under it at 380, while every other token (HP6: the library's rows) stays under its label.
+// After the loop, the TS1 A case: inside Type scale, the control, the pinned count, the clash group with Release, then the
+// missing-styles group, at the emitted space-050 / space-100 / space-150.
+// Mutations (heading pass 2), each after a `wip:` commit, on rebuilt bundles, each failing by name:
+//   · the promoted lever's head left drawn → `BG1 A TY2 A web light 1280 / color-fills: section "Background fills" draws its own
+//     title again — span.p3-lever-name` (56); · "Default background fills" back → `… Background fills' subgroups read exactly
+//     ["Default","Inverse"] — read ["Default background fills","Inverse"]` (8); · the ⓘ left in the hidden head → `… section
+//     "Background fills": its ⓘ sits beside the title, in its row — read {…"info":null…}` (120);
+//   · Gradients' switch left in the hidden head → `HP5 … Gradients' switch sits at the far end of the section's title row … "sw":null`
+//     (8); · the switch's overhang dropped → `… L1 "Gradients" (section title) its row is 36 tall, its line 20: …` (8);
+//   · the families folded back into the library section → `TY1 A … "Typeface library" is its own section, holding
+//     lever-typography-typeface-library and not lever-typography-families — read [both]` (64); · the old description put back
+//     on the library → `HP2 … no levers section draws the old "Font families" title or its description …` (8);
+//   · the pinned count back in the state line → `TS1 A web light 1280: inside Type scale, the control, then the pinned count, …
+//     — read ["type-scale","type-scale-clash","type-scale-unresolved"]` (40); · the missing-styles group in the state line →
+//     `… outside ["type-unresolved"] …` (32); · the count's pull-up dropped → `… the pinned count sits space-050 4 under the
+//     control — read 8` (8); · the between-groups space dropped → `… each warning group sits space-150 12 … "clash":8 …` (8);
+//   · the family rows without `onLine` → `#2217 … family row "Display family" / font.family.display: the token sits on the
+//     label's line, flush right — same line false …` (28); · the narrow tier's grid dropped → `#2217 TY2 A web light 380 / type:
+//     … the token sits under its label, at its left edge — under false, 148 from the label's left` (56); · the library rows
+//     given `onLine` → `HP6 … face row "Inter" / font.typeface.inter: the token sits under its label … under false …` (12).
 console.log(`\nThe heading rule (TY2 A, heading pass 1)\n${'='.repeat(78)}`);
 /** The chrome tokens the rule names, each to its emitted path (a literal map, typed from `chrome/tokens.mjs`'s rows on
  *  2026-10-06; deliberately not imported, so the build's map and this oracle stay two derivations). */
@@ -9420,7 +9460,7 @@ const HEADING_TOKEN_PATHS = {
   'fs-12': 'core.font.size.12', 'fs-14': 'core.font.size.14', 'fs-16': 'core.font.size.16',
   'fw-default': 'core.font.weight-role.default', 'fw-emphasis': 'core.font.weight-role.emphasis', 'fw-strong': 'core.font.weight-role.strong',
   'lh-compact': 'core.font.line-height-role.compact', 'ls-snug': 'core.font.letter-spacing-role.snug',
-  'space-050': 'space.050', 'space-150': 'space.150', 'space-300': 'space.300', 'hit-min': 'core.dimension.24',
+  'space-050': 'space.050', 'space-100': 'space.100', 'space-150': 'space.150', 'space-300': 'space.300', 'hit-min': 'core.dimension.24',
   text: 'color.text.primary', 'text-2': 'color.text.secondary',
 };
 /** The rem the emission's dimensions are written in: the browser's default root size, which the chrome does not change. */
@@ -9473,7 +9513,9 @@ const EXPECT_HEADINGS = {
   },
   'color-fills': {
     L1: ['Background fills', 'Scrim', 'Foreground', 'Foreground fills', 'Text color', 'Border', 'Icon', 'Fields', 'Gradients'],
-    L2: ['Background fills', 'Icon contrast floor', 'Gradients', 'Default background fills', 'Inverse background fills', 'Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse'],
+    // Heading pass 2 (BG1 A, #2181; HP5, #2218): the Background fills and Gradients levers say their names once, in their
+    // section titles, and Background fills' subgroups are "Default" and "Inverse".
+    L2: ['Icon contrast floor', 'Default', 'Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse'],
     L3: ['Inverse fill palette', 'Kind', 'Angle', 'Interpolation', 'Stops', 'Kind', 'Shape', 'Center X %', 'Center Y %', 'Interpolation', 'Stops'],
   },
   'color-interactive': {
@@ -9483,8 +9525,10 @@ const EXPECT_HEADINGS = {
     L3: ['Neutral emphasis', 'Hover', 'Pressed', 'Visited'],
   },
   type: {
-    L1: ['Font families', 'Scale', 'Scale limits', 'Weights and styles', 'Line height and letter spacing'],
-    L2: ['Typeface library', 'Font family for each text type', 'Type scale', 'Individual sizes', 'Headings scale between mobile and desktop', 'Largest display size',
+    // Heading pass 2 (TY1 A and HP2, #2190): the library and the family for each text type are two sections, each titled by
+    // its lever's name; "Font families" is gone from the levers.
+    L1: ['Typeface library', 'Font family for each text type', 'Scale', 'Scale limits', 'Weights and styles', 'Line height and letter spacing'],
+    L2: ['Type scale', 'Individual sizes', 'Headings scale between mobile and desktop', 'Largest display size',
       'Smallest title size', 'Smallest caption size', 'Smallest type size', 'Weights', 'Weights each text type ships', 'Italic styles', 'Pin a font style', 'Line height',
       'Letter spacing', 'One step looser or tighter'],
     L3: ['Set every text type to', 'Min viewport, px', 'Max viewport, px'],
@@ -9492,7 +9536,7 @@ const EXPECT_HEADINGS = {
   },
   shape: {
     L1: ['Density', 'Radius', 'Base radius'],
-    L2: ['Density', 'Radius softness', 'Control shape', 'Base radius'],
+    L2: ['Radius softness', 'Control shape'],
   },
   depth: {
     L1: ['Elevation', 'Motion'],
@@ -9501,7 +9545,7 @@ const EXPECT_HEADINGS = {
   },
   layout: {
     L1: ['Breakpoints', 'Grid', 'Containers'],
-    L2: ['Breakpoints', 'Grid columns', 'Maximum width', 'Content container', 'sm', 'md', 'lg', 'xl', '2xl'],
+    L2: ['Grid columns', 'Maximum width', 'Content container', 'sm', 'md', 'lg', 'xl', '2xl'],
   },
   components: {
     L1: ['Button', 'Component sets'],
@@ -9516,8 +9560,9 @@ const HEADING_ADVANCED = {
 /** Literal floors, under the counts measured when this landed (per host and theme, all nine pages): headings found, the
  *  ⓘ buttons measured, the token labels (`.p3-fill-label`) typed, and the hint lines read in Light and High contrast light. */
 const HEADING_FLOOR = {
-  1280: { L1: 34, L2: 72, L3: 20, TH: 21, info: 54, tokenLabels: 288, hints: 16, swept: 80 },
-  380: { L1: 34, L2: 72, L3: 20, TH: 21, info: 54, tokenLabels: 288, hints: 16, swept: 80 },
+  // Heading pass 2: Type's split adds an L1; the seven promoted lever names leave L2 (and four of them were legends).
+  1280: { L1: 35, L2: 65, L3: 20, TH: 21, info: 54, tokenLabels: 288, hints: 16, swept: 77 },
+  380: { L1: 35, L2: 65, L3: 20, TH: 21, info: 54, tokenLabels: 288, hints: 16, swept: 77 },
 };
 /** Elements a sweep may find with a heading's tag or a heading's weight or size that are not one of the levels, each with
  *  the reason it is not (a selector, then the reason; the reason is held to 20 characters or more). Empty when this landed:
@@ -9525,6 +9570,38 @@ const HEADING_FLOOR = {
 const HEADING_EXEMPT = [];
 ok(HEADING_EXEMPT.every(([sel, why]) => typeof sel === 'string' && sel && typeof why === 'string' && why.trim().length >= 20),
   `TY2 A: every heading exemption names a selector and a reason of 20 characters or more (${JSON.stringify(HEADING_EXEMPT)})`);
+/** HEADING PASS 2 (BG1 A #2181, HP5 #2218, TY1 A and HP2 #2190, approved 2026-10-06): the sections whose lever was named
+ *  as the section, per page, each with the help text its ⓘ opened BEFORE the pass, typed here from the source of 2026-10-06
+ *  (or the lever manifest's description, where the page drew the manifest's): the promoted ⓘ must open the same words. */
+const PROMOTED = {
+  'color-fills': {
+    'Background fills': 'The page, its tiers and the inverse fill for the mode the preview shows.',
+    Gradients: manifest.levers.find((l) => l.key === 'gradients')?.description,
+  },
+  type: {
+    'Typeface library': 'The font families this brand can use. A family is in the library while a text type uses it, or once you add it.',
+    'Font family for each text type': 'Each text type’s font.family token names one family from the library. Swapping the family keeps every reference to the token.',
+  },
+  shape: {
+    Density: 'Sets every control height, and moves each component’s padding and gaps one step on the spacing scale.',
+    'Base radius': 'The medium radius at standard softness, from 2 to 12px. Every other radius size is a multiple of it.',
+  },
+  layout: { Breakpoints: manifest.levers.find((l) => l.key === 'layout.breakpoints')?.description },
+};
+ok(Object.values(PROMOTED).every((p) => Object.values(p).every((t) => typeof t === 'string' && t.length > 20)), `BG1 A: every promoted lever's help text is typed or read from the manifest (${JSON.stringify(PROMOTED)})`);
+/** BG1 A's subgroup labels, the owner's approved words, exactly (not by their start). */
+const BG1_SUBS = ['Default', 'Inverse'];
+/** TY1 A: each Type section and the lever hook it must hold (and the one it must not); HP2: the old title and description,
+ *  which no levers section may draw. */
+const TY1_SECTIONS = [
+  ['Typeface library', 'lever-typography-typeface-library', 'lever-typography-families'],
+  ['Font family for each text type', 'lever-typography-families', 'lever-typography-typeface-library'],
+];
+const HP2_GONE = ['Font families', 'The font families in the brand, and the family each text type uses.'];
+/** #2217: the rows whose label is stacked over its control put the token on the label's line (family, italic); HP6: the
+ *  library's rows (face) keep it under the name, since their right edge holds a status. Literal floors, on Type. */
+const TOKEN_LINE = new Set(['family', 'italic']);
+const TOKEN_FLOOR = { type: { family: 7, italic: 7, face: 3 } };
 /** The space after a heading, read in the page: from the bottom of the heading's row content (its padding and border
  *  excluded) to the top of the outermost box that starts below it and follows it in document order. Each level's row,
  *  by class: an L2 lever name's is its head, a group title's is its head row, a breakpoint name's is its legend. */
@@ -9561,9 +9638,9 @@ const HEADING_PROBE = ({ strong, big, exempt }) => {
     found.push({ level, kind, text: n.textContent.replace(/\s+/g, ' ').trim(), fs: parseFloat(cs.fontSize), fw: Number(cs.fontWeight), lh: parseFloat(cs.lineHeight),
       ls: parseFloat(cs.letterSpacing) || 0, color: cs.color, h: r2(n.getBoundingClientRect().height), rowH: r2(rb.bottom - rb.top),
       after: nx ? nx.gap : null, toDesc: !!nx?.leaf.closest('.p3-lsec-desc'), ownDesc,
-      switchInRow: !!row.querySelector(':scope > .p3-switch') });
+      sec: n.closest('.p3-lsec')?.querySelector('.p3-lsec-title')?.textContent.replace(/\s+/g, ' ').trim() ?? null });
   };
-  for (const n of pane.querySelectorAll('.p3-lsec-title')) if (vis(n)) add('L1', n, 'section title', n);
+  for (const n of pane.querySelectorAll('.p3-lsec-title')) if (vis(n)) add('L1', n, 'section title', n.closest('.p3-lsec-titlerow') ?? n);
   for (const n of pane.querySelectorAll('.p3-lever-name')) if (vis(n)) add(n.closest('.p3-icol') ? 'L3' : 'L2', n, n.closest('.p3-icol') ? 'lever name in a group' : 'lever name', n.closest('.p3-lever-head'));
   for (const n of pane.querySelectorAll('.p3-rows-sub')) if (vis(n)) add('L2', n, 'rows sub-heading', n);
   for (const n of pane.querySelectorAll('.p3-icol-title')) if (vis(n)) add('L2', n, 'group title', n.closest('.p3-icol-head'));
@@ -9573,8 +9650,9 @@ const HEADING_PROBE = ({ strong, big, exempt }) => {
   const tokenLabels = [...pane.querySelectorAll('.p3-fill-label')].filter(vis).map((n) => { const cs = getComputedStyle(n); return { text: n.textContent.trim(), fs: parseFloat(cs.fontSize), fw: Number(cs.fontWeight), lh: parseFloat(cs.lineHeight) }; });
   const infos = [...pane.querySelectorAll('.p3-info')].filter(vis).map((b) => {
     const r = b.getBoundingClientRect();
-    const head = b.closest('.p3-lever-head');
-    const name = head?.querySelector('.p3-lever-name');
+    // A lever's ⓘ in its head, or a promoted lever's beside its section title (BG1 A, heading pass 2).
+    const head = b.closest('.p3-lever-head, .p3-lsec-titlerow');
+    const name = head?.querySelector('.p3-lever-name, .p3-lsec-title');
     const nr = name?.getBoundingClientRect();
     return { label: b.getAttribute('aria-label'), w: r2(r.width), h: r2(r.height), inHead: !!name,
       dx: nr ? r2(r.left - nr.right) : null, dy: nr ? r2((r.top + r.bottom) / 2 - (nr.top + nr.bottom) / 2) : null };
@@ -9595,7 +9673,36 @@ const HEADING_PROBE = ({ strong, big, exempt }) => {
   const ranked = headingEls.map((n) => [n, /^H([1-6])$/.exec(n.tagName)?.[1] ?? (n.getAttribute('role') === 'heading' ? n.getAttribute('aria-level') : null)]).filter(([, l]) => l).map(([n, l]) => [n, Number(l)]);
   const skips = [];
   for (let i = 1; i < ranked.length; i++) if (ranked[i][1] > ranked[i - 1][1] + 1) skips.push(`${label(ranked[i - 1][0])} h${ranked[i - 1][1]} then ${label(ranked[i][0])} h${ranked[i][1]}`);
-  return { found, heads, tokenLabels, infos, swept: headingEls.length, unclassified, skips };
+  // HEADING PASS 2. Each section, its title, the headings drawn inside it, and its title row (BG1 A, HP5); the subgroup
+  // labels; and every token name's place against its label (#2217, HP6).
+  const norm = (t) => (t ?? '').replace(/\s+/g, ' ').trim();
+  const sections = [...pane.querySelectorAll('.p3-lsec')].filter(vis).map((sec) => {
+    const title = sec.querySelector(':scope > .p3-lsec-head .p3-lsec-title');
+    const titleText = norm(title?.textContent);
+    const inner = [...sec.querySelectorAll('.p3-lever-name, .p3-rows-sub, .p3-icol-title, .p3-field-label, .p3-lgrid-name > b, .p3-lsec-title')].filter((n) => n !== title && vis(n));
+    const row = title?.closest('.p3-lsec-titlerow');
+    const rr = row?.getBoundingClientRect(), tr = title?.getBoundingClientRect();
+    const sw = row?.querySelector('[role="switch"]');
+    const swr = sw?.getBoundingClientRect();
+    const info = row?.querySelector(':scope > .p3-info');
+    return {
+      title: titleText, hooks: [...sec.querySelectorAll('.p3-lever')].map((n) => n.getAttribute('data-p3')),
+      descs: [...sec.querySelectorAll(':scope > .p3-lsec-head > .p3-lsec-desc')].map((n) => norm(n.textContent)),
+      repeats: inner.filter((n) => norm(n.textContent).toLowerCase() === titleText.toLowerCase()).map((n) => `${n.tagName.toLowerCase()}.${[...n.classList].join('.')}`),
+      subs: [...sec.querySelectorAll('.p3-rows-sub')].filter(vis).map((n) => norm(n.textContent)),
+      row: row ? { h: r2(rr.height), titleH: r2(tr.height), info: info ? { label: info.getAttribute('aria-label'), controls: info.getAttribute('aria-controls') } : null,
+        sw: sw ? { name: sw.getAttribute('aria-label'), endGap: r2(rr.right - swr.right), dy: r2((swr.top + swr.bottom) / 2 - (tr.top + tr.bottom) / 2), inRow: row.contains(sw) } : null } : null,
+    };
+  });
+  const tokenLines = [...pane.querySelectorAll('.p3-fill-name')].filter(vis).map((nm) => {
+    const lab = nm.querySelector('.p3-fill-label'), tok = nm.querySelector('.p3-fill-tok');
+    if (!lab || !tok || !vis(tok)) return null;
+    const lr = lab.getBoundingClientRect(), kr = tok.getBoundingClientRect(), nr = nm.getBoundingClientRect();
+    const where = nm.closest('[data-p3="family-row"]') ? 'family' : nm.closest('[data-p3="italic-row"]') ? 'italic' : nm.closest('[data-p3="face-row"]') ? 'face' : 'other';
+    return { where, label: norm(lab.textContent), token: norm(tok.textContent), labelFirst: !!(lab.compareDocumentPosition(tok) & Node.DOCUMENT_POSITION_FOLLOWING),
+      sameLine: kr.top < lr.bottom - 1 && kr.bottom > lr.top + 1, under: kr.top >= lr.bottom - 0.5, flushRight: r2(nr.right - kr.right), leftAligned: r2(kr.left - lr.left) };
+  }).filter(Boolean);
+  return { found, heads, tokenLabels, infos, swept: headingEls.length, unclassified, skips, sections, tokenLines };
 };
 /** The hint lines (`.p3-state-hint`) and every drawn ⓘ glyph outside a button, in the levers pane. The ⓘ glyph is known by
  *  its drawing, typed here: a ring of radius 6.2 and a dot of radius 0.9 (`glyph('info')`). */
@@ -9654,11 +9761,14 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
           if (f.level === 'L1') {
             const want = f.toDesc ? 'space-050' : 'space-300';
             if (!near(f.after, HT[want])) miss.push(`space after ${f.after}, want ${want} ${HT[want]}`);
+            // BG1 A, HP5: a title row (the title, its ⓘ, a switch at its end) is as tall as the title: they overhang it.
+            if (!near(f.rowH, f.h)) miss.push(`its row is ${f.rowH} tall, its line ${f.h}: something in the title's row sets its height`);
           } else if (f.level === 'L2') {
             const want = f.ownDesc ? 'space-050' : 'space-150';
             if (!near(f.after, HT[want])) miss.push(`space after ${f.after}, want ${want} ${HT[want]}${f.ownDesc ? ' (its own description)' : ''}`);
-            // The row is as tall as its line: the ⓘ overhangs it. (A switch still sets Gradients' row until HP5, PR 2.)
-            if (f.kind === 'lever name' && !f.switchInRow && !near(f.rowH, f.h)) miss.push(`its row is ${f.rowH} tall, its line ${f.h}: something in the row sets its height`);
+            // The row is as tall as its line: the ⓘ overhangs it. (HP5, #2218, took Gradients' switch out of its lever head,
+            // so no lever head is skipped any more.)
+            if (f.kind === 'lever name' && !near(f.rowH, f.h)) miss.push(`its row is ${f.rowH} tall, its line ${f.h}: something in the row sets its height`);
           } else if (f.level === 'L3' && (f.kind === 'field label' || f.kind === 'lever name in a group')) {
             if (!near(f.after, HT['space-050'])) miss.push(`space after ${f.after}, want space-050 ${HT['space-050']}`);
           }
@@ -9666,6 +9776,45 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
         }
         for (const hd of m.heads) {
           ok(near(hd.after, HT['space-300']), `${at}: section "${hd.title}": its content starts ${hd.after} after its head, want space-300 ${HT['space-300']}`);
+        }
+        // ── heading pass 2 ──
+        // BG1 A: no section draws its own title twice.
+        for (const sec of m.sections) ok(sec.repeats.length === 0, `BG1 A ${at}: section "${sec.title}" draws its own title again — ${sec.repeats.join(', ')}`);
+        // BG1 A: each promoted lever's ⓘ sits in its section's title row, named for the section (its place on the line is the ⓘ check below).
+        for (const title of Object.keys(PROMOTED[place] ?? {})) {
+          const sec = m.sections.find((x) => x.title === title);
+          ok(sec?.row?.info?.label === `About ${title}`, `BG1 A ${at}: section "${title}": its ⓘ sits beside the title, in its row — read ${JSON.stringify(sec?.row ?? null)}`);
+        }
+        // BG1 A: Background fills' subgroups read exactly "Default" and "Inverse".
+        if (place === 'color-fills') {
+          const bg = m.sections.find((x) => x.title === 'Background fills');
+          ok(JSON.stringify(bg?.subs) === JSON.stringify(BG1_SUBS), `BG1 A ${at}: Background fills' subgroups read exactly ${JSON.stringify(BG1_SUBS)} — read ${JSON.stringify(bg?.subs)}`);
+          // HP5: Gradients' On switch is in the section's title row, at its far end, centered on the title's line.
+          const gr = m.sections.find((x) => x.title === 'Gradients');
+          const sw = gr?.row?.sw;
+          ok(!!sw && sw.inRow && sw.name === 'Gradients' && near(sw.endGap, 0) && near(sw.dy, 0),
+            `HP5 ${at}: Gradients' switch sits at the far end of the section's title row, on the title's line — read ${JSON.stringify(gr?.row ?? null)}`);
+        }
+        if (place === 'type') {
+          // TY1 A: the library and the family for each text type are two sections, each holding its own lever.
+          for (const [title, has, not] of TY1_SECTIONS) {
+            const sec = m.sections.find((x) => x.title === title);
+            ok(!!sec && sec.hooks.includes(has) && !sec.hooks.includes(not), `TY1 A ${at}: "${title}" is its own section, holding ${has} and not ${not} — read ${sec ? JSON.stringify(sec.hooks.filter((x) => x.startsWith('lever-'))) : 'no such section'}`);
+          }
+          // HP2: the old "Font families" title and its description are gone from the levers.
+          const old = m.sections.filter((x) => x.title === HP2_GONE[0] || x.descs.includes(HP2_GONE[1]));
+          ok(old.length === 0, `HP2 ${at}: no levers section draws the old "${HP2_GONE[0]}" title or its description — read ${JSON.stringify(old.map((x) => [x.title, x.descs]))}`);
+        }
+        // #2217: a stacked label's token on its line, flush right, wide; under it at the narrow tier. HP6: the library's
+        // rows keep the token under the name. Every other token sits under its label, as before. Label first in the DOM.
+        const tl = (k) => m.tokenLines.filter((t) => t.where === k);
+        for (const [k, floor] of Object.entries(TOKEN_FLOOR[place] ?? {})) ok(tl(k).length >= floor, `#2217 ${at}: ${tl(k).length} ${k} rows with a token name (floor ${floor})`);
+        for (const t of m.tokenLines) {
+          const stackedRow = TOKEN_LINE.has(t.where);
+          const name = `${t.where} row "${t.label}" / ${t.token}`;
+          ok(t.labelFirst, `#2217 ${at}: ${name}: the label comes before its token in the DOM`);
+          if (stackedRow && w > 560) ok(t.sameLine && near(t.flushRight, 0), `#2217 ${at}: ${name}: the token sits on the label's line, flush right — same line ${t.sameLine}, ${t.flushRight} from the right edge`);
+          else ok(t.under && near(t.leftAligned, 0), `${stackedRow ? '#2217' : t.where === 'face' ? 'HP6' : '#2217'} ${at}: ${name}: the token sits under its label, at its left edge — under ${t.under}, ${t.leftAligned} from the label's left`);
         }
         // L3 token labels: the level's type (their token line sits under them, space-025, as before).
         for (const t of m.tokenLabels) {
@@ -9681,6 +9830,21 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
           if (i.inHead && !near(i.dx, HT['space-050'])) miss.push(`${i.dx} after the heading text, want space-050 ${HT['space-050']}`);
           if (i.inHead && !near(i.dy, 0)) miss.push(`${i.dy} off the line's center`);
           ok(miss.length === 0, `${at}: ⓘ "${i.label}" ${miss.join('; ')}`);
+        }
+        // BG1 A: each promoted ⓘ opens the help text it opened before the pass, under its section's head.
+        for (const [title, want] of Object.entries(PROMOTED[place] ?? {})) {
+          const btn = page.locator(`[data-p3="levers-pane"] .p3-lsec-titlerow > .p3-info[aria-label="About ${title}"]`);
+          if ((await btn.count()) !== 1) { ok(false, `BG1 A ${at}: section "${title}" has one ⓘ in its title row — found ${await btn.count()}`); continue; }
+          await hooks.click(btn);
+          const tip = await page.evaluate((t) => {
+            const b = [...document.querySelectorAll('[data-p3="levers-pane"] .p3-lsec-titlerow > .p3-info')].find((x) => x.getAttribute('aria-label') === `About ${t}`);
+            const tp = b && document.getElementById(b.getAttribute('aria-controls'));
+            return { open: b?.getAttribute('aria-expanded'), shown: !!tp && !tp.hidden && tp.getClientRects().length > 0, text: tp?.textContent.trim() ?? null,
+              inHead: !!tp && tp.parentElement === b.closest('.p3-lsec-head'), below: !!tp && tp.getBoundingClientRect().top >= b.closest('.p3-lsec-titlerow').getBoundingClientRect().bottom };
+          }, title);
+          ok(tip.open === 'true' && tip.shown && tip.text === want && tip.inHead && tip.below,
+            `BG1 A ${at}: section "${title}": its ⓘ opens the help it opened before, under the section's head — read ${JSON.stringify(tip)}, want ${JSON.stringify(want)}`);
+          await hooks.click(btn);
         }
         // HP3: no hint line draws a glyph, and no ⓘ glyph is drawn outside a button. Read in Light and again in High
         // contrast light, where the derived-mode line shows on most pages.
@@ -9708,6 +9872,69 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
   }
 }
 console.log(`  headings per page (web light): ${Object.entries(headingCounts).map(([p, c]) => `${p} ${Object.entries(c).map(([l, n]) => `${l} ${n}`).join(' ')}`).join(' · ')}`);
+
+// TS1 A (#2216, heading pass 2): inside the Type scale lever, top to bottom: the segmented control; the pinned count, a plain
+// line space-050 under it; the clash warning grouped with Release pinned sizes; then the missing-styles warning in a group of
+// its own, inside the lever (it was a sibling after it). space-100 inside a group, space-150 between groups. The state that
+// shows all three is the prism3 example with title xs set to 18px (a real pinned-size clash: at the compact scale title sm
+// resolves to 18px too, which the engine refuses) and strong declined in display and title (so the preview's
+// display.lg.strong, title.lg.strong and title.md.strong are not made). THE ORACLE is the DOM's order and its measured gaps
+// against the emitted space tokens.
+const TS1_STATE = { typography: { sizes: { title: { xs: 18 } }, weights: { display: ['emphasis'], title: ['emphasis'] } } };
+const TS1_ORDER = ['type-scale', 'type-sizes-count', 'type-scale-clash', 'type-scale-unresolved'];
+const ts1Input = (() => {
+  const doc = JSON.parse(JSON.stringify(BOOT_INPUT));
+  const deep = (a, b) => { for (const [k, v] of Object.entries(b)) { if (v && typeof v === 'object' && !Array.isArray(v)) { a[k] ??= {}; deep(a[k], v); } else a[k] = v; } };
+  deep(doc, TS1_STATE);
+  return doc;
+})();
+const TS1_PROBE = () => {
+  const vis = (n) => n.getClientRects().length > 0 && !n.closest('[hidden]');
+  const lv = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-typography-type-scale"]');
+  const ctl = lv?.querySelector(':scope > .p3-lever-ctl');
+  const kids = ctl ? [...ctl.children].filter(vis) : [];
+  const hk = (n) => n?.getAttribute('data-p3') ?? null;
+  const r = (n) => n?.getBoundingClientRect();
+  const gap = (a, b) => (a && b ? Math.round((r(b).top - r(a).bottom) * 100) / 100 : null);
+  const by = (k) => kids.find((n) => hk(n) === k);
+  const clash = by('type-scale-clash'), un = by('type-scale-unresolved');
+  const kidsOf = (g) => (g ? [...g.children].filter(vis).map((n) => hk(n) ?? (n.matches('.p3-state-warn') ? 'warning' : n.className)) : null);
+  return {
+    order: kids.map(hk), clash: kidsOf(clash), unresolved: kidsOf(un),
+    countGlyphs: by('type-sizes-count')?.querySelectorAll('svg').length ?? null,
+    outside: [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="type-unresolved"], [data-p3="levers-pane"] [data-p3="type-sizes-count"]')].filter((n) => !ctl?.contains(n)).map(hk),
+    stateEmpty: !(lv?.querySelector(':scope > .p3-lever-state')?.textContent.trim()),
+    gaps: { count: gap(by('type-scale'), by('type-sizes-count')), clash: gap(by('type-sizes-count'), clash), inClash: gap(clash?.firstElementChild, clash?.lastElementChild), unresolved: gap(clash, un) },
+  };
+};
+for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+  const where = `TS1 A ${host} ${theme} ${w}`;
+  const { ctx, page, errors } = await open({ host, theme, w, h });
+  try {
+    if (host === 'web') {
+      await page.evaluate((s) => localStorage.setItem('prism3:brandInput', s), JSON.stringify({ v: 2, input: ts1Input }));
+      await page.reload({ waitUntil: 'networkidle' });
+    } else await postMsg(page, { type: 'restore-input', input: ts1Input });
+    await hooks.need(page, '[data-p3="frame"]');
+    if (w <= 560) await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
+    await goPlace(page, 'type');
+    await showLevers(page, w);
+    await hooks.need(page, '[data-p3="type-scale-unresolved"]');
+    await page.evaluate(() => document.fonts.ready);
+    const t = await page.evaluate(TS1_PROBE);
+    ok(JSON.stringify(t.order) === JSON.stringify(TS1_ORDER), `${where}: inside Type scale, the control, then the pinned count, then the clash group, then the missing-styles group — read ${JSON.stringify(t.order)}`);
+    ok(t.outside.length === 0 && t.stateEmpty, `${where}: the pinned count and the missing-styles warning are inside the Type scale control column, nothing after it — outside ${JSON.stringify(t.outside)}, state line empty ${t.stateEmpty}`);
+    ok(JSON.stringify(t.clash) === JSON.stringify(['warning', 'type-scale-release']), `${where}: the clash warning's group holds it and its own action, Release pinned sizes — read ${JSON.stringify(t.clash)}`);
+    ok(JSON.stringify(t.unresolved) === JSON.stringify(['type-unresolved']), `${where}: the missing-styles warning is a group of its own — read ${JSON.stringify(t.unresolved)}`);
+    ok(t.countGlyphs === 0, `${where}: the pinned count is a plain line, no glyph — read ${t.countGlyphs}`);
+    ok(near(t.gaps.count, HT['space-050']), `${where}: the pinned count sits space-050 ${HT['space-050']} under the control — read ${t.gaps.count}`);
+    ok(near(t.gaps.inClash, HT['space-100']), `${where}: inside the clash group, Release pinned sizes sits space-100 ${HT['space-100']} under its warning — read ${t.gaps.inClash}`);
+    ok(near(t.gaps.clash, HT['space-150']) && near(t.gaps.unresolved, HT['space-150']), `${where}: each warning group sits space-150 ${HT['space-150']} after the line or group before it — read ${JSON.stringify(t.gaps)}`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
 
 hooks.report(ok);
 // THE CONTRAST EXEMPTION, counted per run (F1 A): how many nodes the audit exempted, over how many probes, and where.
