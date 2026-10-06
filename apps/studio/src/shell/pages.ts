@@ -353,6 +353,12 @@ export const DOMAINS = [
  *  moves it into the Figma menu (§4's last row). */
 export const MENU_LEGACY = ['styleGuide'] as const;
 
+/** Pages a menu opens that no tab shows and that are not legacy (UI redesign S11.2): the Figma menu's Build style
+ *  guides, drawn by the shell (`shell/style-guides.ts`) in its own full-width layout, with no tab selected. */
+export const MENU_PAGES = ['styleGuides'] as const;
+export type MenuPageKey = (typeof MENU_PAGES)[number];
+export const isMenuPage = (k: string): k is MenuPageKey => (MENU_PAGES as readonly string[]).includes(k);
+
 // ── types derived from the data ────────────────────────────────────────────────────────────────────
 type DomainT = (typeof DOMAINS)[number];
 type SubOf<D> = D extends { readonly subpages: readonly (infer S)[] } ? S : never;
@@ -370,7 +376,7 @@ export type LegacyPageKey = KeysOf<PageT['legacy']> | (typeof MENU_LEGACY)[numbe
 export type NewPageKey = Extract<PageT, { readonly status: 'new' }>['id'];
 /** What the store's `page` holds: a legacy page, or a moved page by its id. The two sets never share a
  *  key: a slice that moves a page takes its legacy key out of the first set in the same change. */
-export type PageKey = LegacyPageKey | NewPageKey;
+export type PageKey = LegacyPageKey | NewPageKey | MenuPageKey;
 
 /** A place the tab row can select: a tab, or a Color sub-page. */
 export type Place = { readonly tab: TabId; readonly sub?: ColorSubId };
@@ -423,6 +429,7 @@ export const PLACES: readonly Place[] = TABS.flatMap((t) => (t.subs ? t.subs.map
  *  stays until S13 deletes `legacy`). Null when no place shows the
  *  page (the plugin's Style guide, a Figma menu item from S1.4 on). */
 export const placeOfPage = (page: PageKey, host: Host, keep: Place | null): Place | null => {
+  if (isMenuPage(page)) return null;
   if (isNewPage(page)) return PLACES.find((p) => newPageOf(p) === page) ?? null;
   if (keep && legacyOf(keep, host).includes(page)) return keep;
   return PLACES.find((p) => legacyOf(p, host).includes(page)) ?? null;
