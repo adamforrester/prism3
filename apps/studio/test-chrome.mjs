@@ -9936,6 +9936,174 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
   } finally { await ctx.close(); }
 }
 
+// =============================================================================================
+// 31. #2213 (owner decision N1 A, 2026-10-06): the agent link's status line at the far right of the Activity drawer's
+//     bar row, beside the caret. Plugin only; light and dark; 1280 and 380.
+// =============================================================================================
+console.log(`\nThe agent link's status line in the Activity drawer (#2213)\n${'='.repeat(78)}`);
+/** THE WORDS, from the plugin's own formatter, bundled for Node from its source and called here with each state below.
+ *  Never read off the page: the line must equal what this call returns. */
+const LINK_TEXT = await (async () => {
+  const esbuild = await import('esbuild');
+  const out = await esbuild.build({ entryPoints: [join(REPO, 'apps/plugin/src/agent-link-ui.ts')], bundle: true, platform: 'node', format: 'esm', write: false });
+  return (await import(`data:text/javascript;base64,${Buffer.from(out.outputFiles[0].text).toString('base64')}`)).agentLinkStatusText;
+})();
+/** Three published states, as the main thread posts them (`AgentLinkState`, `apps/plugin/src/agent-protocol.ts`): off,
+ *  listening (after a command, so the words run long), and listening with an inbox error. Literals. */
+const LINK_STATES = {
+  off: { ...AGENT_ON, on: false, since: null, transports: { mailbox: false, bridge: false } },
+  listening: { ...AGENT_ON, lastCommand: { id: 'c1', cmd: 'status', ok: true, finishedAt: '2026-10-06T16:35:12.000Z', headline: '✓ done' } },
+  error: { ...AGENT_ON, inboxError: 'the inbox is not a JSON array' },
+};
+/** What each state must draw, typed here from the issue: no line while off; quiet text while listening; the chrome's
+ *  error ink for an error. The inks are the chrome tokens' roles (`chrome/tokens.mjs` maps text-2 and bad-text to them),
+ *  named here and resolved below from the committed emission, never from the stylesheet. */
+const LINK_WANT = { off: null, listening: 'color.text.secondary', error: 'color.text.danger' };
+/** The emission's hex for a chrome role in a chrome theme: the base tree, the dark overlay over it in dark, aliases
+ *  followed here (the same walk as `FOCUS_HEX`, written again so neither leans on the other or on `tokens.mjs`). */
+const LINK_INK = (() => {
+  const out = join(REPO, 'packages', 'engine', 'out');
+  const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
+  const dark = JSON.parse(readFileSync(join(out, 'prism3.dark.overlay.tokens.json'), 'utf8'));
+  const at = (tree, path) => path.split('.').reduce((n, k) => (n && typeof n === 'object' ? n[k] : undefined), tree);
+  const leaf = (mode, path) => { const o = mode === 'dark' ? at(dark, path) : undefined; return o?.$value !== undefined ? o : at(base, path); };
+  const walk = (mode, path, hops = 0) => {
+    const v = leaf(mode, path)?.$value;
+    const m = typeof v === 'string' && /^\{([^}]+)\}$/.exec(v);
+    if (m && hops < 16) return walk(mode, m[1], hops + 1);
+    return typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : null;
+  };
+  const r = {};
+  for (const mode of ['light', 'dark']) for (const role of Object.values(LINK_WANT).filter(Boolean)) r[`${mode} ${role}`] = walk(mode, `pds3.${role}`);
+  return r;
+})();
+ok(Object.values(LINK_INK).every((x) => /^#[0-9a-f]{6}$/.test(x ?? '')) && LINK_INK['light color.text.danger'] !== LINK_INK['light color.text.secondary'] && LINK_INK['dark color.text.danger'] !== LINK_INK['dark color.text.secondary'],
+  `#2213: the oracle resolved the quiet and the error ink, distinct, in light and dark from the emission (${JSON.stringify(LINK_INK)})`);
+ok(typeof LINK_TEXT === 'function' && /^Listening/.test(LINK_TEXT(LINK_STATES.listening)) && LINK_TEXT(LINK_STATES.error).includes('⚠'),
+  `#2213: the formatter, called here, words each state (${typeof LINK_TEXT === 'function' ? Object.keys(LINK_STATES).map((k) => `${k}: "${LINK_TEXT(LINK_STATES[k])}"`).join('; ') : 'not loaded'})`);
+/** Where the line must be cut short, and where it must be whole: at 380 always; at 1280 the listening words fit beside
+ *  the summary under the preview pane, and the error's longer words may not, so that one is not asserted. Literal. */
+const LINK_CUT = { listening: { 1280: false, 380: true }, error: { 380: true } };
+/** The gap from the line's right edge to the caret: the row's own gap, at most. Literal. */
+const LINK_CARET_GAP_MAX = 12;
+/** The line drawn at least this wide when the row is narrow: some of its words still show. Literal. */
+const LINK_MIN_W = 40;
+/** The boot read-back the plugin posts, so the drawer's bar row is drawn with a summary (the owner's screenshot:
+ *  "● Read-back · Clean"). Shape from `apps/plugin/src/messages.ts`. */
+const LINK_SEED = { type: 'seed-info', ok: true, present: true, summary: 'Contract holds: 412 variables checked.', failed: 0 };
+
+/** The bar row, as drawn: the line (or none), the summary, the time, the caret, and the line's ink on its ground. */
+const LINK_PROBE = () => {
+  const row = document.querySelector('[data-p3="activity-toggle"]');
+  const ln = row?.querySelector('[data-p3="activity-agent-link"]') ?? null;
+  const box = (n) => { if (!n) return null; const r = n.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };
+  const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s ?? ''); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+  const over = (f, g) => ({ r: f.r * f.a + g.r * (1 - f.a), g: f.g * f.a + g.g * (1 - f.a), b: f.b * f.a + g.b * (1 - f.a), a: 1 });
+  const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+  const hex = (c) => `#${[c.r, c.g, c.b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
+  const ground = (el) => { const stack = []; for (let x = el; x && x.nodeType === 1; x = x.parentElement) stack.push(parse(getComputedStyle(x).backgroundColor)); let g = { r: 255, g: 255, b: 255, a: 1 }; for (const c of stack.reverse()) if (c && c.a > 0) g = over(c, g); return g; };
+  const icos = row ? [...row.children].filter((n) => n.tagName.toLowerCase() === 'svg') : [];
+  const caret = icos[icos.length - 1] ?? null;
+  const sum = row?.querySelector('.p3-drawer-last') ?? null;
+  const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false; for (let x = n; x && x.nodeType === 1; x = x.parentElement) if (getComputedStyle(x).display === 'none') return false; return true; };
+  let ink = null;
+  if (ln) {
+    const cs = getComputedStyle(ln);
+    const g = ground(ln);
+    const c = over(parse(cs.color), g);
+    const x = lum(c), y = lum(g);
+    ink = { hex: hex(c), ground: hex(g), ratio: Math.floor(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 100) / 100,
+      lineH: parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.6, wrap: cs.whiteSpace };
+  }
+  return {
+    rowShown: vis(row), row: box(row), sum: box(sum), sumText: sum?.textContent ?? null, sumWhole: !!sum && (() => { const rg = document.createRange(); rg.selectNodeContents(sum); return rg.getBoundingClientRect().width <= sum.getBoundingClientRect().width + 0.01; })(),
+    when: box(row?.querySelector('.p3-op-when')), caret: box(caret), line: box(ln), lineShown: vis(ln),
+    text: ln?.textContent ?? null, title: ln?.getAttribute('title') ?? null, cut: !!ln && ln.scrollWidth > ln.clientWidth + 1,
+    nextIsCaret: !!ln && ln.nextElementSibling === caret, rects: ln ? ln.getClientRects().length : 0, ink,
+  };
+};
+/** The line's and the row's names as the browser computes them (CDP `Accessibility.getPartialAXTree`), never the DOM. */
+const linkAx = async (page) => {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send('DOM.enable');
+    await cdp.send('Accessibility.enable');
+    const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+    const q = async (sel) => (await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel })).nodeId;
+    const rowId = await q('[data-p3="activity-toggle"]');
+    const lnId = await q('[data-p3="activity-agent-link"]');
+    const rowAx = rowId ? (await cdp.send('Accessibility.getPartialAXTree', { nodeId: rowId, fetchRelatives: false })).nodes[0] : null;
+    let line = null;
+    if (lnId) {
+      const { nodes } = await cdp.send('Accessibility.getPartialAXTree', { nodeId: lnId, fetchRelatives: true });
+      const self = nodes.find((n) => n.backendDOMNodeId !== undefined && (n.childIds ?? []).length && nodes.some((c) => c.role?.value === 'StaticText' && (n.childIds ?? []).includes(c.nodeId)));
+      const texts = nodes.filter((n) => n.role?.value === 'StaticText' && (self?.childIds ?? []).includes(n.nodeId)).map((n) => n.name?.value ?? '');
+      line = texts.join('');
+    }
+    return { row: rowAx?.name?.value ?? null, line };
+  } finally { await cdp.detach(); }
+};
+
+for (const theme of ['light', 'dark']) {
+  for (const { w, h } of WIDTHS.filter((x) => x.w === 1280 || x.w === 380)) {
+    const where = `#2213 figma ${theme} ${w}`;
+    const narrow = w <= 560;
+    const { ctx, page, errors } = await open({ host: 'figma', theme, w, h });
+    try {
+      await postMsg(page, LINK_SEED);
+      await page.waitForFunction(() => (document.querySelector('[data-p3="activity-toggle"]')?.textContent ?? '').includes('Read-back'), null, WAIT).catch(() => {});
+      for (const [k, state] of Object.entries(LINK_STATES)) {
+        await postMsg(page, { type: 'agent-link-state', state });
+        await page.waitForFunction((on) => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === String(on), state.on, WAIT).catch(() => {});
+        await settle(page);
+        const s = await page.evaluate(LINK_PROBE);
+        const want = LINK_WANT[k];
+        const words = LINK_TEXT(state);
+        if (SHOTS) await page.locator('[data-p3="activity-toggle"]').screenshot({ path: join(SHOTS, `2213-plugin-${theme}-${w}-${k}.png`) }).catch(() => {});
+        if (!want) {
+          hooks.absent(ok, { seen: s.rowShown && s.sumText !== null, state: 'the drawer\'s bar row, drawn with its summary' }, s.line === null,
+            `${where} ${k}: no status line while the link is off (read ${JSON.stringify(s.text)})`);
+          continue;
+        }
+        ok(s.lineShown && s.line && s.line.w >= LINK_MIN_W, `${where} ${k}: the status line is drawn in the bar row, at least ${LINK_MIN_W}px wide (read ${JSON.stringify(s.line)}, shown ${s.lineShown})`);
+        if (!s.line) continue;
+        ok(s.text === words, `${where} ${k}: the line's text is agentLinkStatusText(state), called here — want "${words}", read "${s.text}"`);
+        const leftEdge = Math.max(s.sum?.r ?? 0, s.when?.r ?? 0);
+        const gap = s.caret ? s.caret.l - s.line.r : null;
+        ok(s.line.l >= leftEdge - 0.5 && s.nextIsCaret && gap !== null && gap >= 0 && gap <= LINK_CARET_GAP_MAX,
+          `${where} ${k}: the line sits right of the summary and its time, last before the caret, within ${LINK_CARET_GAP_MAX}px of it (line ${s.line.l.toFixed(1)}–${s.line.r.toFixed(1)}, summary and time end ${leftEdge.toFixed(1)}, caret at ${s.caret?.l.toFixed(1)}, next is the caret ${s.nextIsCaret})`);
+        ok(s.caret && s.row && s.caret.l >= s.row.l && s.caret.r <= s.row.r + 0.5 && s.sum && s.sum.l >= s.row.l && s.sumWhole,
+          `${where} ${k}: the caret and the whole summary stay on the row (row ${s.row?.l.toFixed(1)}–${s.row?.r.toFixed(1)}, caret ${s.caret?.l.toFixed(1)}–${s.caret?.r.toFixed(1)}, summary "${s.sumText}" whole ${s.sumWhole})`);
+        ok(s.rects === 1 && s.ink && s.line.h <= s.ink.lineH * 1.5, `${where} ${k}: the line keeps to one line (${s.rects} box(es), ${s.line.h.toFixed(1)}px tall, line height ${s.ink?.lineH})`);
+        const inkHex = LINK_INK[`${theme} ${want}`];
+        ok(s.ink?.hex === inkHex, `${where} ${k}: the line draws in ${want === 'color.text.danger' ? 'the chrome\'s error ink' : 'the quiet ink'}, the emission's ${want} ${inkHex} (read ${s.ink?.hex})`);
+        ok(s.ink && s.ink.ratio >= TEXT_MIN, `${where} ${k}: the line holds ${TEXT_MIN}:1 on its ground (${s.ink?.hex} on ${s.ink?.ground}, ${s.ink?.ratio}:1)`);
+        // Cut short at 380, and whole at 1280 where its words fit: both cases are this check's, so each is asserted.
+        const cutWant = LINK_CUT[k][w];
+        if (cutWant !== undefined) ok(s.cut === cutWant, `${where} ${k}: the line is ${cutWant ? 'cut short with an ellipsis' : 'whole'} (cut ${s.cut})`);
+        const ax = await linkAx(page);
+        ok(s.title === words, `${where} ${k}: the line's tooltip carries its full words${s.cut ? ', though it is cut short' : ''} (want "${words}", read "${s.title}")`);
+        ok(ax.line === words && (ax.row ?? '').includes(words), `${where} ${k}: the accessible name carries the full words${s.cut ? ', though the line is cut short' : ''}: the line's computed text "${ax.line}", the row's name "${ax.row}"`);
+      }
+      const bad = errors.filter((e) => !/WebSocket/.test(e));
+      ok(bad.length === 0, `${where}: 0 console errors (the agent link's bridge socket aside)${bad.length ? ` — ${bad.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+}
+// The web has no agent link (N1 A: plugin only): opened by hand, its drawer's bar row draws no line.
+{
+  const { ctx, page } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await hooks.click(page.locator('[data-p3="activity-open"]'), WAIT);
+    const s = await page.evaluate(LINK_PROBE);
+    hooks.absent(ok, { seen: s.rowShown, state: 'the studio\'s drawer bar row, opened' }, s.line === null, `#2213 web light 1280: the studio's drawer draws no agent link line (read ${JSON.stringify(s.text)})`);
+  } catch (e) {
+    ok(false, `#2213 web light 1280: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+
 hooks.report(ok);
 // THE CONTRAST EXEMPTION, counted per run (F1 A): how many nodes the audit exempted, over how many probes, and where.
 {

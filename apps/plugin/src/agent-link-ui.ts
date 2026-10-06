@@ -6,9 +6,11 @@
  * (`apps/studio/src/shell/frame.ts`) and never clears, which the bar places between Theme and Activity. A click
  * switches the link; its name is "Agent", with `aria-pressed` for on or off; a green dot sits on the glyph
  * while the link is on. Until T7 it was the "Agent: Off" chip, which opened a popover holding the switch, a line on
- * what the link does and the link's status; the chip and the popover are gone. The status line's formatter
- * (`agentLinkStatusText`) is kept, and tested, until the owner says where that status is shown. It is styled by the
- * chrome stylesheet (`apps/studio/src/chrome.css`), so it carries no inline value and follows the chrome's theme.
+ * what the link does and the link's status; the chip and the popover are gone. The status line (`agentLinkStatusText`)
+ * is drawn in the Activity drawer's bar row, at its far right beside the caret (#2213, the owner's N1 A, 2026-10-06):
+ * while the link is on, quiet text, or the error ink when it carries an inbox error; nothing while it is off. The tile
+ * reports it with each published state (`setAgentLinkLine`, `shell/activity.ts`). Both are styled by the chrome
+ * stylesheet (`apps/studio/src/chrome.css`), so they carry no inline value and follow the chrome's theme.
  *
  * It is mounted by the plugin's own UI entry (`ui/entry.ts`) beside the shared studio UI rather than inside
  * it: the web build carries none of it. The frame mounts and unmounts with the app view (the start screen
@@ -29,12 +31,12 @@ import type { AgentLinkState } from './agent-protocol';
 import { createBridgeRelay } from './agent-bridge-relay';
 import type { WsLike } from './agent-bridge-relay';
 import { glyph, h, hook, tile } from '../../studio/src/shell/dom';
-import { setAgentLinkOn } from '../../studio/src/shell/activity';
+import { setAgentLinkLine, setAgentLinkOn } from '../../studio/src/shell/activity';
 
 /** The frame's stable slot for the tile, by its hook. */
 const SLOT = '[data-p3="bar-agent"]';
 
-/** The link's status line, from the published state (the old popover's; not drawn since T7, see above). */
+/** The link's status line, from the published state (the old popover's words; since #2213, the Activity drawer's). */
 export const agentLinkStatusText = (s: AgentLinkState | null): string => {
   if (!s || !s.on) return 'Off — agent commands are ignored.';
   const every = `${Math.round(s.pollMs / 100) / 10} s`;
@@ -77,6 +79,9 @@ export const mountAgentLink = (): void => {
     chip.dataset.on = String(on);
     // Activity's name and tooltip say "agent link on" while it is (the owner's top-bar decision, 2026-10-05).
     setAgentLinkOn(on);
+    // The status line in the Activity drawer's bar row (#2213): only while the link is on. The formatter shows an
+    // inbox error only then, so a line that carries one is drawn in the error ink.
+    setAgentLinkLine(on && state ? { text: agentLinkStatusText(state), error: !!state.inboxError } : null);
   };
   chip.addEventListener('click', () => post({ type: 'agent-link', on: !state?.on }));
 

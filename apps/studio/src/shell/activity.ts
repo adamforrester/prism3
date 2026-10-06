@@ -48,6 +48,19 @@ export const setAgentLinkOn = (on: boolean): void => {
   for (const f of linkWatchers) f();
 };
 
+/** The agent link's status line (#2213, the owner's N1 A, 2026-10-06): the plugin's own words for the link
+ *  (`agentLinkStatusText` in `apps/plugin/src/agent-link-ui.ts`), drawn at the far right of the drawer's bar row,
+ *  beside the caret. `error` says the words carry an inbox error, which draws in the chrome's error ink; otherwise
+ *  the line is quiet text. `null` draws no line. The plugin's Agent tile reports it with each published state (a
+ *  line while the link is on, none while it is off); the studio never sets it, so on the web there is none. */
+export type AgentLinkLine = { readonly text: string; readonly error: boolean };
+let agentLinkLine: AgentLinkLine | null = null;
+export const setAgentLinkLine = (line: AgentLinkLine | null): void => {
+  if (line?.text === agentLinkLine?.text && line?.error === agentLinkLine?.error) return;
+  agentLinkLine = line ? { text: line.text, error: line.error } : null;
+  for (const f of linkWatchers) f();
+};
+
 /** F2, v5 Q9: how long the drawer stays open after a success before it collapses by itself. */
 export const COLLAPSE_MS = 4000;
 /** A collapse that comes due while focus or the pointer is inside the drawer waits this long, then looks
@@ -299,6 +312,15 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     parts.push(h('span', 'p3-spacer'));
     const count = [running && `${running} running`, failed && attention(failed)].filter(Boolean).join(' · ');
     if (count) parts.push(h('span', 'p3-drawer-count', count));
+    // The agent link's status line (#2213), last before the caret. One line: when the row is narrow it gives way
+    // before anything else on it and is cut short with an ellipsis, so its full words are its tooltip, and they stay
+    // whole in the text, which is what the row's accessible name is read from.
+    if (agentLinkLine) {
+      const ln = hook(h('span', 'p3-drawer-link', agentLinkLine.text), 'activity-agent-link');
+      ln.dataset.error = String(agentLinkLine.error);
+      ln.title = agentLinkLine.text;
+      parts.push(ln);
+    }
     parts.push(glyph('chev'), h('span', 'p3-sr', `${open ? 'Collapse' : 'Expand'} Activity`));
     toggle.replaceChildren(...parts);
   };

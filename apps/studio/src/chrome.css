@@ -562,6 +562,12 @@
 .p3-drawer[data-open="true"] .p3-drawer-bar > .p3-ico:last-of-type { transform: rotate(180deg); }
 .p3-drawer-last { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .p3-drawer-count { color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: nowrap; }
+/* The agent link's status line (#2213, the owner's N1 A; plugin only): quiet text at the bar row's far right, beside
+   the caret, and an inbox error in the error ink. One line. It takes only the room the row has left (from no width, up
+   to its words' own), so the summary never gives way to it; when that room is short it is cut with an ellipsis, and its
+   tooltip and the row's name carry the full words. */
+.p3-drawer-link { flex: 1000 1 0%; min-width: 0; max-width: max-content; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p3-text-2); font-size: var(--p3-fs-12); }
+.p3-drawer-link[data-error="true"] { color: var(--p3-bad-text); }
 .p3-drawer-body {
   display: grid; gap: var(--p3-space-100); align-content: start; min-height: 0;
   max-height: calc(6 * var(--p3-bar-h)); overflow: auto; padding: 0 var(--p3-space-300) var(--p3-space-200);
