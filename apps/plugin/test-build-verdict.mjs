@@ -1488,8 +1488,10 @@ for (const how of ['pointer', 'focus']) {
 // MUTATIONS, each run against the built bundle and each failing here by name:
 //   · the restore dispatch never setting `restoreRefusal` → `#1989 after a refused restore, Apply Theme and
 //     Prune stale post nothing …` (and the disabled and bar arms).
-//   · the disabled state dropped (bar button and both menu items) → `#1989 after a refused restore, Apply Theme
-//     (bar and Figma menu) and Prune stale are disabled …`.
+//   · the disabled state dropped (the bar's Apply and the menu's Prune) → `#1989 after a refused restore, Apply Theme
+//     (the bar's) and Prune stale (the Figma menu's) are disabled …`.
+//   · the `apply` item put back into the Figma menu (#2178) → `#2178 the Figma menu lists no Apply Theme …` and
+//     `#2178 the Figma menu's items read Prune stale, Set up file, …`.
 //   · the confirm dialog's Delete left enabled → `#1989 a host prune preview … its Delete is disabled` and
 //     `#1989 … post nothing to the plugin, the confirm dialog's Delete included`.
 //   There is no guard in `runApply`/`runPrune` to mutate: their only callers are the disabled controls, so a
@@ -1514,8 +1516,9 @@ for (const how of ['pointer', 'focus']) {
       brand: document.querySelector('[data-p3="brand-switcher"]')?.textContent ?? null,
       bar: bar && !bar.hidden ? bar.textContent : null,
       applyDisabled: document.querySelector('[data-p3="apply-to-figma"]')?.disabled ?? null,
-      menuApply: document.querySelector('[data-p3="figma-option-apply"]')?.disabled ?? null,
       menuPrune: document.querySelector('[data-p3="figma-option-prune"]')?.disabled ?? null,
+      // #2178: every item the open Figma menu lists, by hook and label.
+      menuItems: [...document.querySelectorAll('[data-p3="figma-menu"] [role="menuitem"]')].map((n) => [n.getAttribute('data-p3'), (n.querySelector('[data-p3="label-idle"]') ?? n).textContent.replace(/^…\s*/, '').trim()]),
     };
   });
 
@@ -1528,12 +1531,18 @@ for (const how of ['pointer', 'focus']) {
   ok((off.bar ?? '').includes("This file's saved brand didn't resolve") && (off.bar ?? '').includes("'background.secondary'")
     && (off.bar ?? '').includes('Apply Theme and Prune stale are off'),
     `#1989 the error bar says the file's brand did not resolve, names the refused role, and says why the writes are off — read ${JSON.stringify((off.bar ?? '').slice(0, 160))}`);
-  ok(off.applyDisabled === true && off.menuApply === true && off.menuPrune === true,
-    `#1989 after a refused restore, Apply Theme (bar and Figma menu) and Prune stale are disabled — bar ${off.applyDisabled}, menu apply ${off.menuApply}, menu prune ${off.menuPrune}`);
+  ok(off.applyDisabled === true && off.menuPrune === true,
+    `#1989 after a refused restore, Apply Theme (the bar's) and Prune stale (the Figma menu's) are disabled — bar ${off.applyDisabled}, menu prune ${off.menuPrune}`);
+  // #2178 (owner decision, 2026-10-05): the Figma menu does not list Apply Theme; the bar's filled button is its one
+  // control. EXPECTED is the four labels, literal; the proof the probe can see the menu is Prune stale among them.
+  hooks.absent(ok, { seen: off.menuItems.some(([hk]) => hk === 'figma-option-prune'), state: 'the Figma menu open with Prune stale listed' },
+    !off.menuItems.some(([hk, l]) => /apply/i.test(`${hk} ${l}`)),
+    `#2178 the Figma menu lists no Apply Theme — items ${JSON.stringify(off.menuItems)}`);
+  ok(JSON.stringify(off.menuItems.map(([, l]) => l)) === JSON.stringify(['Prune stale', 'Set up file', 'Build set…', 'Build style guides…']),
+    `#2178 the Figma menu's items read Prune stale, Set up file, Build set…, Build style guides… — read ${JSON.stringify(off.menuItems.map(([, l]) => l))}`);
 
   // Every way a designer reaches the two writes, forced past the disabled state, so the guard behind it is measured too.
   await hooks.click(page.locator('[data-p3="figma-option-prune"]'), { force: true, timeout: 4000 }).catch(() => {});
-  await hooks.click(page.locator('[data-p3="figma-option-apply"]'), { force: true, timeout: 4000 }).catch(() => {});
   await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { force: true, timeout: 4000 }).catch(() => {});
   // The prune dialog is the one route the disabled state does not cover: a preview from the host opens it
   // whatever the Prune button's state. So one is sent, and its Delete is clicked.
@@ -1612,15 +1621,14 @@ for (const how of ['pointer', 'focus']) {
       return {
         bar: bar && !bar.hidden ? bar.textContent : null,
         apply: document.querySelector('[data-p3="apply-to-figma"]')?.disabled ?? null,
-        menuApply: document.querySelector('[data-p3="figma-option-apply"]')?.disabled ?? null,
         menuPrune: document.querySelector('[data-p3="figma-option-prune"]')?.disabled ?? null,
       };
     });
     await page.keyboard.press('Escape');
     return r;
   };
-  const allOff = (r) => r.apply === true && r.menuApply === true && r.menuPrune === true;
-  const allOn = (r) => r.apply === false && r.menuApply === false && r.menuPrune === false;
+  const allOff = (r) => r.apply === true && r.menuPrune === true;
+  const allOn = (r) => r.apply === false && r.menuPrune === false;
   /** Every way to the two writes, forced, plus a host prune preview's Delete; returns what was posted. */
   const tryWrites = async (page) => {
     await post(page, { type: 'prune-result', ok: true, applied: false, count: 2, summary: 'Would remove 2 items: 2 variables.' });
@@ -1630,7 +1638,6 @@ for (const how of ['pointer', 'focus']) {
     await hooks.click(page.locator('[data-p3="prune-dialog"] button', { hasText: 'Cancel' }), { timeout: 4000 });
     await hooks.click(page.locator('[data-p3="figma-open"]'), { timeout: 4000 }).catch(() => {});
     await hooks.click(page.locator('[data-p3="figma-option-prune"]'), { force: true, timeout: 4000 }).catch(() => {});
-    await hooks.click(page.locator('[data-p3="figma-option-apply"]'), { force: true, timeout: 4000 }).catch(() => {});
     await page.keyboard.press('Escape');
     await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { force: true, timeout: 4000 }).catch(() => {});
     await page.waitForTimeout(500);
@@ -1694,7 +1701,7 @@ for (const how of ['pointer', 'focus']) {
     await post(page, { type: 'restore-input', input: { ...base, id: 'refused-brand', overrides: { light: { 'background.secondary': { palette: 'neutral', step: '200' } } } } });
     await page.waitForFunction(() => /didn't resolve/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
     const off = await read(page);
-    ok(allOff(off), `#1994 unresolved: Apply Theme, menu Apply and menu Prune are off after the refused restore — ${JSON.stringify(off)}`);
+    ok(allOff(off), `#1994 unresolved: Apply Theme and menu Prune are off after the refused restore — ${JSON.stringify(off)}`);
     const ex = await exportBrief(page);
     ok(ex.off === false && !!ex.file && ex.file.name === 'refused-brand.design.md' && ex.file.text.includes('background.secondary'),
       `#1994 unresolved: Export design.md writes the file's brand that failed, not the demo — file ${JSON.stringify(ex.file?.name ?? null)}, keeps the override ${!!ex.file?.text.includes('background.secondary')}`);
@@ -1703,7 +1710,7 @@ for (const how of ['pointer', 'focus']) {
     const example = await chooseExample(page);
     const on = await read(page);
     ok(on.bar === null && allOn(on),
-      `#1994 unresolved: choosing an example from the brand menu turns Apply Theme, menu Apply and menu Prune back on, and clears the bar — ${JSON.stringify(on)}`);
+      `#1994 unresolved: choosing an example from the brand menu turns Apply Theme and menu Prune back on, and clears the bar — ${JSON.stringify(on)}`);
     await hooks.click(page.locator('[data-p3="apply-to-figma"]'), { timeout: 4000 }).catch(() => {});
     await page.waitForFunction(() => window.__writes.length > 0, null, { timeout: 3000 }).catch(() => {});
     const posted = await writes(page);
