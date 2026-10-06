@@ -137,10 +137,10 @@ export const PRODUCT_VARS = [
   ['disabled-edge', 'color.disabled.border', 'color.disabled.border', C, 'a disabled text field\'s edge (F1 A)'],
   ['disabled-ink', 'color.disabled.on-fill', 'color.disabled.on-fill', C, 'a disabled text field\'s value; a disabled filled button\'s label and glyph (F1 A, X4 A)'],
   // X4 A (owner, 2026-10-05, #2155): a disabled button takes Prism3's own disabled button skin, per appearance, as
-  // \`packages/engine/components/button.ts\` and \`icon-button.ts\` bind it. Filled (Apply Theme, Continue, Discard): the
+  // `packages/engine/components/button.ts` and `icon-button.ts` bind it. Filled (Apply Theme, Continue, Discard): the
   // fill above and the on-fill ink, no edge. Outline (every page-colored button) and text (every ghost button): no
-  // fill, the label on \`disabled.text\` and the glyph on \`disabled.icon\`; outline's edge binds \`disabled.icon\` too
-  // (#1349), never \`disabled.border\`. These two are the only roles a button binds that the text field does not.
+  // fill, the label on `disabled.text` and the glyph on `disabled.icon`; outline's edge binds `disabled.icon` too
+  // (#1349), never `disabled.border`. These two are the only roles a button binds that the text field does not.
   ['disabled-text', 'color.disabled.text', 'color.disabled.text', C, 'a disabled outline or ghost button\'s label (X4 A)'],
   ['disabled-icon', 'color.disabled.icon', 'color.disabled.icon', C, 'a disabled outline or ghost button\'s glyph, and the outline button\'s edge (X4 A)'],
   // #2144 (owner decision FR1 A, 2026-10-05): every chrome focus ring draws in Prism3's focus color. It resolves

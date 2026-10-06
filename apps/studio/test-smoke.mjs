@@ -233,7 +233,11 @@ const LEGIBILITY_PROBE = (rootSel) => {
     if (focusable) { c.blur(); prev?.focus?.(); }
     let clickChanged = null;
     if (focusable && c.getAttribute('aria-busy') !== 'true') {
-      const snap = () => JSON.stringify([c.outerHTML, Object.entries(localStorage)]);
+      // What an activation could move, as `test:chrome`'s check reads it: the control, what the page stores, the place
+      // shown, whether the start window is up, and which windows, menus and pickers are open.
+      const snap = () => JSON.stringify([c.outerHTML, Object.entries(localStorage), document.querySelector('[data-p3="frame"]')?.dataset.place ?? null,
+        !!document.querySelector('[data-p3="start-screen"]'), [...document.querySelectorAll('[role="dialog"], [role="menu"], [role="listbox"], [data-p3="step-picker"], [data-p3="value-picker"]')]
+          .filter((d) => d.getClientRects().length).map((d) => d.getAttribute('data-p3') ?? d.getAttribute('role'))]);
       const before = snap();
       HTMLElement.prototype.click.call(c);
       clickChanged = snap() !== before;
