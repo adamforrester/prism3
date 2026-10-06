@@ -13,12 +13,12 @@ pressed. Its signature is `choice`'s, so the lever's write (`setItalicStyle`) an
 unchanged. The pinned-style case (Italic only disabled, with its reason) and a derived mode (every control disabled) work
 as before, because both set `disabled` on the same buttons. The token stays flush right on the label's line (#2217).
 
-**The keyboard, a call this PR made.** #2192 asked for "the same keyboard behavior as the other single-select chip
-groups", but none existed: Personality's chips are multi-select, and Density, which the issue cited, is a segmented
-`choice`. The board left arrow keys to this PR. The chips follow Personality's chips and the board's mock: each chip is a
-Tab stop, and Enter or Space presses it. Arrow keys do nothing. The segmented control had a roving tab stop where arrows
-moved the selection. That was radio behavior, and it would be wrong with `aria-pressed` buttons. A press keeps focus
-through the redraw (the page's hook-and-index restore).
+**The keyboard: KB1 A, decided by the owner on 2026-10-06.** Each chip is a Tab stop, Enter or Space presses it, and
+arrow keys do nothing. This is how Personality's chips and the board's mock behave. #2192 asked for "the same keyboard
+behavior as the other single-select chip groups", but none existed: Personality's chips are multi-select, and Density,
+which the issue cited, is a segmented `choice`. The segmented control had a roving tab stop where arrows moved the
+selection. That was radio behavior, and it does not fit `aria-pressed` buttons. A press keeps focus through the redraw
+(the page's hook-and-index restore).
 
 ### Equivalence (run once, recorded here)
 
@@ -35,6 +35,9 @@ The gate runs on both hosts and both themes, at 1280 and 380:
   part.
 - Each row has exactly one chip pressed, the one prism3 calls for as loaded, and only that chip draws its check.
 - Tab moves between chips in a row. Space presses the focused chip and keeps focus on it.
+- KB1 A: ArrowRight, ArrowLeft, ArrowUp and ArrowDown each leave focus and every row's pressed chip unchanged, and the
+  saved brand is unchanged. Enter presses the focused chip, keeps focus on it, and saves the hand-worked literal (label
+  joins `italics`: `["body","label"]`).
 - Ten steps, each compared with the saved brand: `example-brands.json`'s prism3 with the two lists set to hand-worked
   literals.
 
@@ -47,6 +50,10 @@ Each mutation came after a `wip:` commit and ran on rebuilt bundles. Each failed
   "display" has exactly one chip pressed, only — pressed ["upright","only"]` (152).
 - **(c) A chip writes the wrong value** (Upright + italic writes Italic only) → `#2192 web light 1280: step 1, "caption"
   both (key) saves italics ["body","caption"] … — saved italics ["body"], italicDefault ["display","title","caption"]` (96).
+
+The two KB1 A arms, mutated the same way:
+- **(d) Arrows move the selection** (`choice`'s arrow handler added to `chipChoice`) → see the PR.
+- **(e) Enter ignored** (`chipChoice` prevents Enter's default) → see the PR.
 
 ### Traps for whoever re-verifies
 

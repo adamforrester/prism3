@@ -10005,8 +10005,9 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
 // =============================================================================================
 // Each of the seven rows holds one `role="group"` of three `.p3-btn.p3-chip` buttons with `aria-pressed`, and nothing of
 // the segmented control (`.p3-seg`, `.p3-choice`, a radio or radiogroup). Exactly one chip is pressed in each row, the
-// one prism3's brand as loaded calls for, and only that chip draws its check. The keyboard is Personality's chips': each
-// chip is a Tab stop, and Space presses the focused one, which keeps focus through the redraw. Every write is read back
+// one prism3's brand as loaded calls for, and only that chip draws its check. The keyboard is KB1 A (owner, decided
+// 2026-10-06), as Personality's chips: each chip is a Tab stop, Space or Enter presses the focused one, which keeps focus
+// through the redraw, and arrow keys do nothing (focus, the pressed chip and the saved brand all unchanged). Every write is read back
 // from the SAVED brand: on the web host the persisted `prism3:brandInput`, on the figma host the `input` Apply posts.
 //
 // INDEPENDENCE (docs/34). The rows, the words and the pressed state as loaded are literals typed here; the loaded state
@@ -10122,6 +10123,33 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
       const one = on.every(([, p]) => p.length === 1) && on.find(([x]) => x === g)?.[1][0] === v;
       ok(one, `${where}: step ${i}, every row still has exactly one chip pressed, and "${g}" has ${v} — pressed ${JSON.stringify(on)}`);
     }
+    // KB1 A (owner, 2026-10-06): arrow keys do nothing. From label's unpressed Upright + italic chip, each arrow leaves
+    // focus where it was, every row's pressed chip as it was, and the saved brand as the ten steps left it.
+    const focusAt = () => page.evaluate(() => [document.activeElement?.closest('[data-p3="italic-row"]')?.dataset.group ?? null, document.activeElement?.dataset.value ?? null]);
+    const pressedNow = async () => (await page.evaluate(ITALIC_PROBE)).map((r) => [r.g, r.chips.filter((c) => c[2] === 'true').map((c) => c[0])]);
+    const afterSteps = italicBrand(['body'], undefined);
+    await chip('label', 'both').focus();
+    const before = JSON.stringify(await pressedNow());
+    for (const key of ['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown']) {
+      await page.keyboard.press(key);
+      await settle(page);
+      const at = await focusAt(), now = JSON.stringify(await pressedNow());
+      ok(JSON.stringify(at) === JSON.stringify(['label', 'both']) && now === before,
+        `${where}: KB1 A, ${key} on "label"'s both chip moves neither focus nor the pressed chip — focus on ${JSON.stringify(at)}, pressed ${now === before ? 'unchanged' : now}`);
+    }
+    const sArrows = await saved();
+    ok(canon(sArrows) === canon(afterSteps), `${where}: KB1 A, the four arrow keys save nothing — saved italics ${JSON.stringify(sArrows?.typography?.italics)}, italicDefault ${JSON.stringify(sArrows?.typography?.italicDefault)}; ${wireDiff({ input: sArrows }, { input: afterSteps })}`);
+    // KB1 A: Enter presses the focused chip, keeps focus on it, and saves the literal: label joins italics, in text-type order.
+    await chip('label', 'both').focus();
+    await page.keyboard.press('Enter');
+    await page.waitForFunction((sel) => document.querySelector(sel)?.getAttribute('aria-pressed') === 'true', chipSel('label', 'both'), { timeout: 5000 }).catch(() => {});
+    const atEnter = await focusAt();
+    const pEnter = await pressedNow();
+    const wantEnter = italicBrand(['body', 'label'], undefined);
+    const sEnter = await saved();
+    ok(JSON.stringify(pEnter.find(([x]) => x === 'label')?.[1]) === '["both"]' && JSON.stringify(atEnter) === JSON.stringify(['label', 'both']),
+      `${where}: KB1 A, Enter on "label"'s both chip presses it and keeps focus on it — pressed ${JSON.stringify(pEnter.find(([x]) => x === 'label')?.[1])}, focus on ${JSON.stringify(atEnter)}`);
+    ok(canon(sEnter) === canon(wantEnter), `${where}: KB1 A, Enter on "label"'s both chip saves italics ["body","label"] and no italicDefault — saved italics ${JSON.stringify(sEnter?.typography?.italics)}, italicDefault ${JSON.stringify(sEnter?.typography?.italicDefault)}; ${wireDiff({ input: sEnter }, { input: wantEnter })}`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
