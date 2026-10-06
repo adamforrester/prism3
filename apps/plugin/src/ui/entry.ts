@@ -1,28 +1,31 @@
 /**
  * The plugin iframe's entry (#110 + the agent link). It IS the shared studio UI — `apps/studio/src/entry.ts`,
  * the studio's own entry, imported whole and unchanged (one UI, no fork) — plus the one plugin-only control that is not part of it:
- * the Agent chip (`agent-link-ui.ts`), which it places in the top bar's `bar-agent` slot (IA-3). Mounted here
- * rather than inside the studio's body, so the web build carries none of it.
+ * the Agent tile (`agent-link-ui.ts`, T7), which it places in the top bar's `bar-agent` slot (IA-3). Mounted here
+ * rather than inside the studio's body, so the web build carries none of it. It also keeps the plugin's Theme choice
+ * (below).
  */
 // The component catalog, computed from the definitions this bundle carries, provided BEFORE the studio evaluates
 // (an import's body runs in import order), so the studio's Components page reads it from its first render (S8.1).
 import './component-catalog';
 import '../../../studio/src/entry';
 import { mountAgentLink } from '../agent-link-ui';
+import { initFigmaTheme, restoreFigmaTheme } from '../../../studio/src/shell/theme';
+import type { UiToMain } from '../messages';
 
 /**
- * The chrome follows Figma's theme (UI redesign S1.2, plan §3.3; owner decision F3). `figma.showUI` passes
- * `themeColors: true`, so Figma marks `<html>` with `figma-light` or `figma-dark` before this runs and
- * swaps the class live when the designer changes theme. The chrome's variables key off `data-theme`, so
- * the class is mapped onto it now and on every change. With neither class (a browser harness with no
- * stub), the chrome follows the device. The studio's light / dark / system toggle is web only.
+ * The chrome's theme (UI redesign S1.2, owner decision F3; the plugin's choice, the owner's top-bar decision of
+ * 2026-10-05). The Theme menu offers Match Figma (the default), Light and Dark (`shell/theme.ts`). Match Figma maps
+ * Figma's `figma-light` and `figma-dark` classes onto `data-theme`, live: `figma.showUI` passes `themeColors: true`,
+ * so Figma marks `<html>` before this runs and swaps the class when the designer changes theme. The choice is kept
+ * per person in `figma.clientStorage`, which only the main thread can reach: a choice is posted as `set-theme-pref`,
+ * and the main thread answers `ui-ready` with the kept one as `theme-pref` (`../main.ts`).
  */
-const followFigmaTheme = (): void => {
-  const cls = document.documentElement.classList;
-  const want = cls.contains('figma-dark') ? 'dark' : cls.contains('figma-light') ? 'light' : 'system';
-  if (document.documentElement.dataset.theme !== want) document.documentElement.dataset.theme = want;
-};
-followFigmaTheme();
-new MutationObserver(followFigmaTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+const postMain = (m: UiToMain): void => parent.postMessage({ pluginMessage: m }, '*');
+initFigmaTheme((pref) => postMain({ type: 'set-theme-pref', pref }));
+window.addEventListener('message', (e: MessageEvent) => {
+  const m = e.data && (e.data as { pluginMessage?: { type?: unknown; pref?: unknown } }).pluginMessage;
+  if (m && m.type === 'theme-pref') restoreFigmaTheme(m.pref);
+});
 
 mountAgentLink();

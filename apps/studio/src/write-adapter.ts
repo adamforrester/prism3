@@ -390,6 +390,8 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   // a command's start, its build progress, and its end. The result envelope and the log lines stay the
   // relay's.
   'agent-link-state': null,
+  // The chrome theme's kept choice: read by the plugin's UI entry (`apps/plugin/src/ui/entry.ts`), not here.
+  'theme-pref': null,
   'agent-result': null,
   'agent-progress': (m) => {
     const raw = m.progress && typeof m.progress === 'object' ? m.progress as Record<string, unknown> : null;
