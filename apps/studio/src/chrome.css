@@ -634,10 +634,34 @@
 .p3-lsec-desc { margin: 0; color: var(--p3-text-2); line-height: var(--p3-lh-cozy); }
 /* One lever: 8px from its label to its control. */
 .p3-lever { display: grid; gap: var(--p3-space-100); min-width: 0; margin: 0; padding: 0; border: 0; }
-.p3-lever-head { display: flex; align-items: center; gap: var(--p3-space-050); min-height: var(--p3-hit-min); width: 100%; padding: 0; float: none; }
-.p3-lever-name { font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
+.p3-lever-head { display: flex; align-items: center; gap: var(--p3-space-050); width: 100%; padding: 0; float: none; }
+/* ── the heading rule (TY2 A): three levels, every value an existing chrome variable ─────────────────
+   L1 section title (.p3-lsec-title, above): fs-16 / fw-strong / lh-compact / ls-snug; its description space-050
+   under it (.p3-lsec-head's gap); its content space-300 after the head (.p3-lsec's gap).
+   L2 group heading (a lever's name, .p3-rows-sub, .p3-icol-title, .p3-lgrid-name > b): fs-14 / fw-strong /
+   lh-compact; its content starts space-150 after it, whatever that content is.
+   L3 field label (.p3-field-label, .p3-fill-label): fs-14 / fw-emphasis / lh-compact, primary ink; its control
+   space-050 after it. Table headers are not a level (below). test:chrome section 29 measures all three. */
+.p3-lever-name { font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
+/* The head row is as tall as its line: the lever's gap (space-100) plus space-050 makes the L2's space-150. A group
+   lever's head is a <legend>, which the fieldset's grid gap does not reach, so it carries the whole space-150. */
+.p3-lever-head { padding-block-end: var(--p3-space-050); }
+fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150); }
+/* A lever inside a group (Color › Interactive's Neutral emphasis, inside Neutral) reads as a field: L3's weight, and its
+   control space-050 after it (its head is a <legend>, so the legend's padding is the whole space). */
+.p3-icol .p3-lever-name { font-weight: var(--p3-fw-emphasis); }
+.p3-icol fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-050); }
+/* A lever's own one-line description belongs to its head: space-050 under the name, not space-150. */
+.p3-lever-ctl > .p3-sub:first-child { margin-block-start: calc(-1 * var(--p3-space-100)); }
 .p3-readout { margin-left: auto; color: var(--p3-text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.p3-lever-head .p3-readout, .p3-slider-head > .p3-readout { line-height: var(--p3-lh-compact); }
+/* The ⓘ keeps its target (hit-min wide, at least; the narrow tier's buttons are ctl-h-xs tall) but overhangs the heading's
+   line equally above and below, so it never sets the row's height at any tier: equal negative margins of a whole hit-min
+   leave its margin box shorter than the line, and the head's center alignment keeps it centered on the line. (Not
+   `1lh`: inside the button that is the button's own line height, not the heading's.) It sits space-050 after the
+   heading text (the head's gap). */
 .p3-btn-icon.p3-info { min-width: var(--p3-hit-min); min-height: var(--p3-hit-min); }
+.p3-lever-head .p3-info { margin-block: calc(-1 * var(--p3-hit-min)); }
 .p3-lever .p3-btn-ghost:where(:not(:disabled, [aria-disabled="true"])):hover, .p3-picker .p3-btn-ghost:where(:not(:disabled, [aria-disabled="true"])):hover { border-color: var(--p3-edge); }
 .p3-tip { margin: 0; padding: var(--p3-space-150) var(--p3-space-200); border-radius: var(--p3-radius-lg); background: var(--p3-fill-1); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); }
 .p3-lever-ctl { display: grid; gap: var(--p3-space-100); min-width: 0; }
@@ -645,7 +669,6 @@
 .p3-sub { margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); }
 .p3-state { display: flex; gap: var(--p3-space-100); align-items: flex-start; margin: 0; font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); }
 .p3-state-hint { color: var(--p3-text-2); }
-.p3-state-hint .p3-ico { color: var(--p3-icon-2); }
 .p3-state-warn .p3-ico { color: var(--p3-warn-icon); }
 /* An engine refusal: the lever is ringed in the danger icon color and says why, in words. */
 .p3-lever[data-refused="true"] { outline: var(--p3-bw-thick) solid var(--p3-bad-icon); outline-offset: var(--p3-space-150); border-radius: var(--p3-radius-lg); }
@@ -680,6 +703,8 @@
 .p3-switch-dot { box-sizing: border-box; border: var(--p3-bw-hairline) solid var(--p3-icon-2); }
 .p3-switch[data-on="true"] .p3-switch-dot { background: var(--p3-ok-icon); border-color: var(--p3-ok-icon); }
 .p3-list { display: grid; gap: var(--p3-space-100); }
+/* L3: a field label over a list (Gradients' Stops) has its first row space-050 after it, as a control would. */
+.p3-list > .p3-field-label { margin-block-end: calc(var(--p3-space-050) - var(--p3-space-100)); }
 .p3-list-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--p3-space-100); align-items: center; }
 .p3-list-row > .p3-btn-icon { min-height: var(--p3-ctl-h); min-width: var(--p3-ctl-h); }
 /* The dashed add row (V7): a dashed edge that still clears 3:1 (B1). */
@@ -865,7 +890,9 @@
 .p3-fieldgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--p3-step-w) * 2), 1fr)); gap: var(--p3-space-300) var(--p3-space-200); }
 .p3-field { display: grid; gap: var(--p3-space-050); min-width: 0; align-content: start; }
 .p3-field-wide { grid-column: 1 / -1; }
-.p3-field-label { color: var(--p3-text-2); font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
+.p3-field-label { color: var(--p3-text); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
+/* Table headers name cells, not fields: they are not a heading level, and keep the secondary 12px label. */
+:is(.p3-facehead, .p3-tsizes-head, .p3-wmatrix-head, .p3-tnudge-head) .p3-field-label { color: var(--p3-text-2); font-size: var(--p3-fs-12); }
 /* Depth & motion (S9.2): a slider's name with its readout on one line; a per-mode control's Auto line or its Return to
    Auto, one shown; a curve drawn in a value picker row (D10), stroked in the row's ink. */
 .p3-slider-head { display: flex; align-items: baseline; gap: var(--p3-space-100); }
@@ -884,7 +911,7 @@
   outline: var(--p3-bw-hairline) solid var(--p3-line-1); outline-offset: calc(-1 * var(--p3-bw-hairline));
 }
 .p3-fill-name { display: grid; gap: var(--p3-space-025); min-width: 0; }
-.p3-fill-label { font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
+.p3-fill-label { font-size: var(--p3-fs-14); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
 .p3-fill-tok { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
 .p3-btn.p3-pick { min-height: var(--p3-ctl-h); gap: var(--p3-space-100); justify-content: flex-start; padding: 0 var(--p3-space-150) 0 var(--p3-space-200); }
 /* QA-B5: the step's words take the room and start at the left, so the ratio and the caret sit at the far right. */
@@ -919,6 +946,8 @@
 /* S4f: the Background fills sub-headings (QA-B7) at the rows' sub-heading size; the first opens the block, so it
    takes no divider. The contrast floor row's name and its info button share a line (QA-B6). */
 .p3-rows-sub.p3-rows-sub-first { margin-top: 0; padding-top: 0; border-top: none; }
+/* L2: a group heading inside a row list (whose gap is space-300) pulls its first row up to space-150. */
+.p3-fillrows > .p3-rows-sub { margin-block-end: calc(var(--p3-space-150) - var(--p3-space-300)); }
 /* A6 (owner, 2026-10-03): the scrim's wash fills its swatch, over the swatch's checkerboard (`.p3-checker`). */
 .p3-scrim-wash { display: block; width: 100%; height: 100%; border-radius: inherit; }
 /* The preview's scrim card: the same checkerboard under the wash, the card's size and corners kept. */
@@ -942,6 +971,8 @@
 .p3-icol:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); border-radius: var(--p3-radius-md); }
 .p3-icol-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--p3-space-100); }
 .p3-icol-title { margin: 0; font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
+/* L2: the group's first row starts space-150 after its heading row (the group's gap is space-300). */
+.p3-icol-head { margin-block-end: calc(var(--p3-space-150) - var(--p3-space-300)); }
 .p3-irow-group { display: grid; gap: var(--p3-space-300); }
 .p3-irow-states { display: grid; gap: var(--p3-space-300); padding-left: var(--p3-space-300); border-left: var(--p3-bw-hairline) dashed var(--p3-line-1); }
 .p3-irow-states:empty { display: none; }
@@ -1031,6 +1062,10 @@
 .p3-lgrid { display: grid; gap: var(--p3-space-200); }
 .p3-lgrid-bp { display: grid; gap: var(--p3-space-100); min-width: 0; margin: 0; padding: var(--p3-space-150) 0 0; border: 0; border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-lgrid-name { display: flex; align-items: baseline; gap: var(--p3-space-100); padding: 0; float: left; width: 100%; }
+/* L2: each breakpoint's name is a group heading at fw-strong (it was the UA's <b> bold, off-token); the fieldset's
+   gap (space-100) plus space-050 makes its space-150. */
+.p3-lgrid-name > b { font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
+.p3-lgrid-name { padding-block-end: var(--p3-space-050); }
 .p3-lgrid-name + * { clear: both; }
 .p3-lrow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--p3-space-150); align-items: center; }
 .p3-lrow > .p3-btn.p3-pick { min-width: 0; white-space: normal; }
