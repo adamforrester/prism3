@@ -24,6 +24,18 @@
  * `.sg-g3,.sg-g5{…}` (docs/34 shape 15: the comparison right, the set blind to the hard case). Each
  * selector of a list is its own key, so dropping one name from `.a,.b{}` fails too.
  *
+ * RULES ARE MATCHED WITHIN A GROUP, NOT BY ORDINAL (#2234). The ordinal names a rule; it does not identify
+ * it. Inserting a `.sg-g3{…}` above the existing one, or swapping two `.tpill` rules, shifts every ordinal
+ * after it, and comparing by key then reported "lost …" for edits that removed nothing. So `compare()`
+ * groups rules by (context, selector), the part of the key the sweep decides liveness by, and matches old
+ * to new inside each group by the largest total property overlap, ties broken by ordinal distance so an
+ * untouched file maps one to one. WHY THIS CANNOT HIDE A REMOVAL: deleting a live property shrinks its
+ * group's multiset of property names, so no matching of that group is loss-free and the loss is reported,
+ * named by the old key. What matching CAN absorb is a property MOVING between two rules with the same
+ * selector in the same context. That removes nothing, which is this gate's subject; a cascade change it
+ * causes is the "effect, not the rule" limit below. The context stays in the group: matching across it is
+ * exactly #2201's shape-15 case (the 760px `.sg-g3` rule also declares `grid-template-columns`).
+ *
  * PROPERTY NAMES, NOT VALUES. A live rule losing `grid-template-columns` fails; the same rule moving
  * from `repeat(3,1fr)` to `repeat(4,1fr)` passes. The gate is about removal. A computed-style comparison
  * on drawn nodes was considered and not built: computed style moves with the brand, the mode and timing
@@ -158,18 +170,72 @@ export const dropped = (raw, order) => {
 };
 export const OTHER_ENGINE = /(^|[^a-z])-moz-/;
 
-/** The comparison, kept pure so the self-check below can drive it with a planted removal. */
-export const compare = (baseline, current) => {
-  const now = new Map(current.rules.map((r) => [r.key, r]));
-  const removed = [], shrunk = [];
-  for (const [key, was] of Object.entries(baseline.live)) {
-    const r = now.get(key);
-    if (!r) { removed.push({ key, was }); continue; }
-    const lost = was.props.filter((p) => !r.props.includes(p));
-    if (lost.length) shrunk.push({ key, was, lost });
+/** A key's group: its context and selector, the key without its ordinal. */
+export const groupOf = (key) => key.replace(/ #\d+$/, '');
+const ordinalOf = (key) => Number(/ #(\d+)$/.exec(key)?.[1] ?? 0);
+const overlap = (a, b) => { const s = new Set(b); let n = 0; for (const p of a) if (s.has(p)) n++; return n; };
+
+/**
+ * Match one group's old rules to its new ones: the assignment with the largest total property overlap,
+ * then the most rules matched (so an old rule emptied to `.sg-g3{}` reads as "lost grid-template-columns",
+ * not "removed"), then the smallest total ordinal distance. Exact for groups up to EXACT_MAX on either side (the
+ * largest group in styles.css today is 2); greedy above, which can only report a loss an exact match would
+ * not, never hide one (the multiset argument in the header holds for any assignment). Returns, per old
+ * rule, the new rule it maps to, or null.
+ */
+const EXACT_MAX = 8;
+export const matchGroup = (olds, news) => {
+  const score = (o, n) => [overlap(o.props, n.props), 1, -Math.abs(ordinalOf(o.key) - ordinalOf(n.key))];
+  const better = (a, b) => a[0] !== b[0] ? a[0] > b[0] : a[1] !== b[1] ? a[1] > b[1] : a[2] > b[2];
+  if (olds.length <= EXACT_MAX && news.length <= EXACT_MAX) {
+    let best = null;
+    const go = (i, used, acc, tot) => {
+      if (i === olds.length) { if (!best || better(tot, best.tot)) best = { acc: [...acc], tot }; return; }
+      go(i + 1, used, [...acc, null], tot);
+      for (let j = 0; j < news.length; j++) if (!(used & (1 << j))) {
+        const sc = score(olds[i], news[j]);
+        go(i + 1, used | (1 << j), [...acc, news[j]], [tot[0] + sc[0], tot[1] + sc[1], tot[2] + sc[2]]);
+      }
+    };
+    go(0, 0, [], [0, 0, 0]);
+    return best.acc;
   }
-  const known = new Set([...Object.keys(baseline.live), ...baseline.dead]);
-  const unprotected = current.rules.filter((r) => !known.has(r.key)).map((r) => r.key);
+  const pairs = [];
+  for (const [i, o] of olds.entries()) for (const [j, n] of news.entries()) pairs.push({ i, j, sc: score(o, n) });
+  pairs.sort((a, b) => (better(a.sc, b.sc) ? -1 : better(b.sc, a.sc) ? 1 : 0));
+  const out = olds.map(() => null), took = new Set();
+  for (const { i, j } of pairs) if (out[i] === null && !took.has(j)) { out[i] = news[j]; took.add(j); }
+  return out;
+};
+
+/** The comparison, kept pure so the self-check below and `test-live-css.mjs` can drive it. */
+export const compare = (baseline, current) => {
+  const byGroup = new Map();
+  for (const r of current.rules) { const g = groupOf(r.key); if (!byGroup.has(g)) byGroup.set(g, []); byGroup.get(g).push(r); }
+  const liveByGroup = new Map();
+  for (const [key, was] of Object.entries(baseline.live)) { const g = groupOf(key); if (!liveByGroup.has(g)) liveByGroup.set(g, []); liveByGroup.get(g).push({ key, ...was }); }
+  const removed = [], shrunk = [], matched = new Set();
+  for (const [g, olds] of liveByGroup) {
+    const news = byGroup.get(g) ?? [];
+    const m = matchGroup(olds, news);
+    for (const [i, o] of olds.entries()) {
+      const r = m[i];
+      const was = baseline.live[o.key];
+      if (!r) { removed.push({ key: o.key, was }); continue; }
+      matched.add(r);
+      const lost = was.props.filter((p) => !r.props.includes(p));
+      if (lost.length) shrunk.push({ key: o.key, now: r.key, was, lost });
+    }
+  }
+  // Unprotected: a rule no baseline rule accounts for. A live group's unmatched rules; for a dead group (or
+  // one the baseline never saw), the rules beyond the count it recorded.
+  const deadCount = new Map();
+  for (const k of baseline.dead) deadCount.set(groupOf(k), (deadCount.get(groupOf(k)) ?? 0) + 1);
+  const unprotected = [];
+  for (const [g, news] of byGroup) {
+    if (liveByGroup.has(g)) { for (const r of news) if (!matched.has(r)) unprotected.push(r.key); continue; }
+    news.slice(deadCount.get(g) ?? 0).forEach((r) => unprotected.push(r.key));
+  }
   return { removed, shrunk, unprotected };
 };
 
@@ -194,15 +260,16 @@ const check = async () => {
   const text = raw.length;
   // Can it fail at all (docs/34 shape 4)? Plant a removal and a dead-code removal in memory, then compare.
   const [firstLive] = Object.keys(baseline.live);
-  const planted = compare(baseline, { rules: current.rules.filter((r) => r.key !== firstLive) });
+  // The whole group goes: removing one ordinal would leave a same-selector sibling for matching to find.
+  const planted = compare(baseline, { rules: current.rules.filter((r) => groupOf(r.key) !== groupOf(firstLive)) });
   if (!planted.removed.some((x) => x.key === firstLive)) fails.push(`self-check: removing the live rule ${firstLive} in memory was not reported`);
   const deadKey = baseline.dead.find((k) => current.rules.some((r) => r.key === k));
   // Asks only whether THE PLANTED key is reported: a real removal elsewhere in the sheet is also in `removed`.
-  if (deadKey && compare(baseline, { rules: current.rules.filter((r) => r.key !== deadKey) }).removed.some((x) => x.key === deadKey)) fails.push(`self-check: removing the dead rule ${deadKey} in memory was reported as live`);
+  if (deadKey && compare(baseline, { rules: current.rules.filter((r) => groupOf(r.key) !== groupOf(deadKey)) }).removed.some((x) => x.key === deadKey)) fails.push(`self-check: removing the dead rule ${deadKey} in memory was reported as live`);
 
   const { removed, shrunk, unprotected } = compare(baseline, current);
   for (const { key, was } of removed) fails.push(`live rule removed: ${key} — it matched a drawn element in ${witness(was.seen)}. Restore it; or, if removing it is the intent, run \`node apps/studio/lint-live-css.mjs --accept --allow '${key}'\``);
-  for (const { key, was, lost } of shrunk) fails.push(`live rule lost ${lost.join(', ')}: ${key} — drawn in ${witness(was.seen)}. Restore the propert${lost.length > 1 ? 'ies' : 'y'}; or, if dropping ${lost.length > 1 ? 'them' : 'it'} is the intent, run \`node apps/studio/lint-live-css.mjs --accept --allow '${key}'\``);
+  for (const { key, now, was, lost } of shrunk) fails.push(`live rule lost ${lost.join(', ')}: ${key}${now !== key ? ` (now ${now})` : ''} — drawn in ${witness(was.seen)}. Restore the propert${lost.length > 1 ? 'ies' : 'y'}; or, if dropping ${lost.length > 1 ? 'them' : 'it'} is the intent, run \`node apps/studio/lint-live-css.mjs --accept --allow '${key}'\``);
 
   console.log(`live-css: ${live} live rules held from a sweep of ${Object.values(baseline.coverage).reduce((a, b) => a + b, 0)} frames (${CORNERS.map((c) => `${c.replace('|', ' ')} ${baseline.coverage[c] ?? 0}`).join(', ')}); ${baseline.dead.length} were drawn by no page at the last accept; ${current.styleRules} style rules parsed, ${text} preludes counted${drop.out.length ? `, ${drop.out.length} dropped by Chromium for another engine's prefix (${drop.out.map((d) => `L${d.line}`).join(', ')})` : ''}.`);
   console.log(`live-css: ${unprotected.length} rule key${unprotected.length === 1 ? '' : 's'} added since the last --accept, unprotected until the next one.`);
@@ -256,14 +323,13 @@ const accept = async () => {
   for (const c of CORNERS) if (!(coverage[c] > 0)) { console.error(`✗ live-css --accept: the sweep drew no ${c.replace('|', ' ')} frame.`); process.exit(1); }
 
   // Memory: what the old baseline protected and this accept would forget.
+  // The same matching the check uses (#2234), so an insert or a reorder is not something an accept forgets.
   const refused = [], dropped = [], used = new Set();
-  for (const [key, was] of Object.entries(old.live)) {
-    const r = current.rules.find((x) => x.key === key);
-    const lost = r ? was.props.filter((p) => !r.props.includes(p)) : null;
-    if (r && !lost.length) continue;
+  const forget = compare({ live: old.live, dead: old.dead ?? [] }, current);
+  for (const { key, lost } of [...forget.removed, ...forget.shrunk]) {
     if (!seen[key]) { dropped.push(`${key} (no page draws it now)`); continue; }
     if (allow.includes(key)) { used.add(key); continue; }
-    refused.push(r ? `${key} lost ${lost.join(', ')}` : `${key} was removed`);
+    refused.push(lost ? `${key} lost ${lost.join(', ')}` : `${key} was removed`);
   }
   const unused = allow.filter((k) => !used.has(k));
   if (unused.length) { console.error(`✗ live-css --accept: --allow names ${unused.join(', ')}, which this accept does not forget. Check the key.`); process.exit(1); }
