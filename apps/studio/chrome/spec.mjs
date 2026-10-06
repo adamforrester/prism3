@@ -217,7 +217,7 @@ export const SHELL_VARS = [
 // draws its own opaque ground (`bg-page`), and every pair inside the dialog is declared on that ground. S12 lists a
 // third: the start window's scrim (`overlay-pressed`, concept v6's), a wash over the studio behind the window. Nothing
 // is read on it; the window it holds is opaque.
-export const DECORATIVE = ['line-1', 'scrim', 'overlay-pressed'];
+export const DECORATIVE = ['line-1', 'overlay-pressed', 'scrim'];
 
 // Mapped color variables that paint only an INACTIVE control (owner decision F1 A, 2026-10-05). WCAG 2.2 exempts a
 // user interface component that is not available for user interaction from SC 1.4.3 (text) and SC 1.4.11 (non-text),

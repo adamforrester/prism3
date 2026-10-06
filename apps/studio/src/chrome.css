@@ -316,7 +316,7 @@
 
 /* ── the dialogs (S13.1): Export and the prune review, on a scrim ─────────────────────────── */
 /* Their own `p3-bardlg-*` names, not `p3-dialog-*` or `p3-scrim` (the start window and its guard's, S12): no rule here
-   reaches another dialog, and no rule of theirs reaches these (`test:chrome` §28c). The scrim sits at z-index 50, under
+   reaches another dialog, and no rule of theirs reaches these (`test:chrome` §29c). The scrim sits at z-index 50, under
    the start window's, so a window opened over an open export dialog sits above it. */
 .p3-bardlg-scrim {
   position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;

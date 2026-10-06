@@ -332,7 +332,7 @@
  * corpus brand) and asserts no legacy page is drawn and the mode agrees on each: section 4's web arm (#1031 is measured
  * on the plugin's Style guide alone) and section 9's legacy mode-strip hold.
  *
- * S13.1 ADDS (section 28; owner decisions G18 A and N-2 A: the brand menu, Export's dialog and the error line leave the
+ * S13.1 ADDS (section 29; owner decisions G18 A and N-2 A: the brand menu, Export's dialog and the error line leave the
  * legacy `renderBar` for the chrome, `shell/bar.ts` and `shell/notices.ts`), on both hosts, both themes, at 1280, 640
  * and 380: each piece measured by the probe as chrome (the probe no longer skips the notices row or the bar's popovers;
  * only the plugin's Pages menu list, legacy until S11.2, stays out); the error strip's ground follows the theme, it is
@@ -1463,7 +1463,7 @@ console.log(`\nBehavior\n${'='.repeat(78)}`);
   ok(before === 'light', `the plugin starts on Figma's light theme (data-theme "${before}")`);
   ok(bar !== 'rgb(233, 233, 233)', `the plugin follows Figma to dark live: the top bar repaints (${bar})`);
   // Since the owner's top-bar decision (2026-10-05) the plugin offers a Theme menu too, on Match Figma by default,
-  // which is what the live follow above shows; §28b holds its choices.
+  // which is what the live follow above shows; §29b holds its choices.
   const toggle = await page.evaluate(() => document.querySelector('[data-p3="theme-toggle"]')?.getAttribute('aria-label') ?? null);
   ok(toggle === 'Theme: Match Figma', `the plugin's Theme menu starts on Match Figma ("${toggle}")`);
   await ctx.close();
@@ -7495,7 +7495,7 @@ for (const { w, h } of WIDTHS) {
 }
 
 // =============================================================================================
-// 28. S13.1 (owner decisions G18 A, N-2 A): the top bar's last old-code pieces in the new chrome — the brand menu,
+// 29. S13.1 (owner decisions G18 A, N-2 A): the top bar's last old-code pieces in the new chrome — the brand menu,
 //     Export's dialog and the error strip — on both hosts, both themes, at 1280, 640 and 380. Each is measured as
 //     rendered with the probe every other section uses (text 4.5:1, edges and glyphs 3:1, targets, the embedded
 //     face, no shadows, no inline values), and three things are held directly:
@@ -7516,9 +7516,9 @@ for (const { w, h } of WIDTHS) {
 //     (Agent too, on the plugin: T7 A) their label shown above the narrow tier and dropped at it, their names unchanged, their tooltip drawn on hover;
 //     Apply Theme the only filled control (none on the web); the web at 640 on one row; the plugin at 380 on two rows,
 //     the file's actions on the second; and, at 1280 and 380, the top row's last control at the page content's right
-//     edge within 1px (on the web, Export). 28b holds Contrast's mark per verdict and the plugin's Theme choice.
+//     edge within 1px (on the web, Export). 29b holds Contrast's mark per verdict and the plugin's Theme choice.
 // =============================================================================================
-console.log('\n28. S13.1: the brand menu, Export and the error strip in the chrome');
+console.log('\n29. S13.1: the brand menu, Export and the error strip in the chrome');
 const S131_REFUSED = { root: 'rf', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true },
   id: 'refused-brand', overrides: { light: { 'background.secondary': { palette: 'neutral', step: '200' } } } };
 const DARK_GROUND_MAX = 0.2;
@@ -7799,7 +7799,7 @@ for (const { w, h } of WIDTHS) {
 }
 
 // =============================================================================================
-// 28b. The owner's "A · Menu bar" (2026-10-05), two behaviors held directly, both hosts, both themes:
+// 29b. The owner's "A · Menu bar" (2026-10-05), two behaviors held directly, both hosts, both themes:
 //   · CONTRAST'S MARK FOLLOWS THE VERDICT: a check and no count while every pair passes; a warning glyph and the
 //     count below floor once an edit puts pairs below it. The web's edit is test-verdict-count.ts's two-mode
 //     fixture, whose count is derived by hand there: 2 of 884, 2 modes. The plugin's is a restore of a one-mode
@@ -7809,7 +7809,7 @@ for (const { w, h } of WIDTHS) {
 //     reload, comes back (the main thread's `theme-pref` reply, which `apps/plugin/test-theme-pref.ts` holds) as the
 //     checked choice and the chrome's theme.
 // =============================================================================================
-console.log('\n28b. The menu bar: Contrast per verdict, the plugin Theme menu');
+console.log('\n29b. The menu bar: Contrast per verdict, the plugin Theme menu');
 const LOW_FIXTURE = {
   light: { 'text.secondary': { palette: 'neutral', step: '100' }, 'icon.secondary': { palette: 'neutral', step: '550' } },
   dark: { 'text.secondary': { palette: 'neutral', step: '900' }, 'icon.secondary': { palette: 'neutral', step: '450' } },
@@ -7826,7 +7826,7 @@ const CONTRAST_PROBE = () => {
 for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
     for (const { w, h } of [WIDTHS[0], WIDTHS[2]]) {
-      const where = `28b ${host} ${theme} ${w}`;
+      const where = `29b ${host} ${theme} ${w}`;
       const { ctx, page, errors } = await open({ host, theme, w, h, query: '?p3-test-hooks' });
       try {
         const c0 = await page.evaluate(CONTRAST_PROBE);
@@ -7932,17 +7932,17 @@ for (const host of ['web', 'figma']) {
 }
 
 // =============================================================================================
-// 28c. The export dialog's rules reach no other dialog (the owner's demo, 2026-10-05). The S12 start window (#2142) and
+// 29c. The export dialog's rules reach no other dialog (the owner's demo, 2026-10-05). The S12 start window (#2142) and
 //      its guard use `p3-dialog-*` and `p3-scrim`; the export dialog's own two-column body once turned the start window
 //      into two columns. Its rules now carry their own `p3-bardlg-*` names. Held, both hosts, 1280: with the start window
 //      open ("+ New brand") and the export dialog open under it, the start window's body lays its cards out in one column
 //      (a single computed grid track); and an element carrying the start window's class names, placed beside the open
 //      export dialog, is laid out by none of its rules.
-//   Mutation: the export dialog's body rule unscoped (`.p3-bardlg-body, .p3-dialog-body { … }`) → `28c … dialog scope: …`.
+//   Mutation: the export dialog's body rule unscoped (`.p3-bardlg-body, .p3-dialog-body { … }`) → `29c … dialog scope: …`.
 // =============================================================================================
-console.log('\n28c. The export dialog and the start window, in one page');
+console.log('\n29c. The export dialog and the start window, in one page');
 for (const host of ['web', 'figma']) {
-  const where = `28c ${host} light 1280`;
+  const where = `29c ${host} light 1280`;
   const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
   try {
     // The start window first ("+ New brand" from the brand menu), then Export over the studio under it: the brand menu
