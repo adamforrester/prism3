@@ -647,6 +647,99 @@ const nbFixName = (n: string): string => nbVar(CORE_GROUPS.has(n.split('/')[0]) 
     "#1296(e): an upright width pin ('Light Condensed') and an oblique pin still bind — the refusal is italic-only");
 }
 
+// ── #2227 / #2239 — A CONTRAST FLOOR IS A STEP A PAGE GROUND SITS ON (owner Q57 A) ──────────────────────
+// Every floor-gated fill says, in its description, which ground it clears its bar on. A `floorStep` no page
+// ground sits on made that a claim about a surface the page does not have: the Figma color emission threw
+// (`export_theme` -32603, #2227), and fills at floorSteps 500–750 shipped at 1.2–2:1 on the page while claiming
+// 3:1 (#2239). The build now refuses such a floor by sentence. Swept: every example brief × light/dark × every
+// neutral step as `floorStep`.
+// ORACLE, independent of the refusal: the page grounds' steps are read off the brand built WITHOUT a floorStep
+// (the roles' own `path`s — a floor does not move a ground), and the expected sentence is typed here, filled
+// from those steps. The #2239 arm measures each `clears N:1 on background.<tier>` role, in every mode of every
+// brand that builds, against that tier's emitted hex — never against `against`, the step the engine gated on.
+// BY-NAME MUTATIONS: drop the refusal from modes.ts `resolve()` → every arm here fails, the refusal arms listing
+// the steps that built and the #2239 arms the fills that miss; name `background.secondary` again in the
+// floor-gated prose → every #2227 arm fails on the floors at background.tertiary/primary, which the prose
+// misnames, and the aurora dark #2239 arm on the one such floor where the misnamed claim also measures false.
+{
+  const briefs = readdirSync(resolve(HERE, './examples')).filter((f) => f.endsWith('.design.md')).sort();
+  ok(briefs.length >= 4, `#2227 floor sweep: examples/ holds the committed briefs, not an empty glob (found ${briefs.length})`);
+  const TIERS = ['secondary', 'primary', 'tertiary'] as const;
+  type Roles = Record<string, { hex: string; path: string; description?: string; alpha?: number }>;
+  for (const file of briefs) {
+    const text = readFileSync(resolve(HERE, `./examples/${file}`), 'utf8');
+    const std = parseStandardDesignMd(text);
+    const input: BrandInput = isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input;
+    const plain = brandTheme(input);
+    const neutralPal = plain.palettes.find((p) => p.role === 'neutral')!;
+    const steps = neutralPal.steps.map((st) => st.num);
+    const plainModes = resolveAllModes(plain);
+    for (const mode of ['light', 'dark'] as const) {
+      // A light-only brief resolves no dark mode, so a dark floor has nothing to be measured on and is not swept.
+      const resolvedMode = plainModes.find((m) => m.mode === mode);
+      if (!resolvedMode) continue;
+      // Which neutral step each page ground sits on, first choice first; white/black sit on none.
+      const roles = resolvedMode.roles as Roles;
+      const onStep = new Map<number, string>();
+      for (const t of TIERS) {
+        const m = new RegExp(`(?:^|\\.)${neutralPal.palette}\\.(\\d+)$`).exec(roles[`background.${t}`].path);
+        if (m && !onStep.has(Number(m[1]))) onStep.set(Number(m[1]), `background.${t}`);
+      }
+      const opts = [...onStep.entries()].sort((a, b) => a[0] - b[0]).map(([n, g]) => `${n} (${g})`);
+      const use = opts.length === 0 ? `Remove it — no ${mode} page ground sits on a neutral step.`
+        : `Use ${opts.length === 1 ? opts[0] : `${opts.slice(0, -1).join(', ')} or ${opts[opts.length - 1]}`}.`;
+      const wrong: string[] = []; const misses: string[] = []; let built = 0; let refused = 0; let measured = 0;
+      for (const step of steps) {
+        const b = JSON.parse(JSON.stringify(input)) as BrandInput;
+        b.surfaces = { ...(b.surfaces ?? {}), [mode]: { ...(b.surfaces?.[mode] ?? {}), floorStep: step } } as BrandInput['surfaces'];
+        const expected = onStep.has(step) ? null
+          : `surfaces.${mode}.floorStep: ${step} is not a step a ${mode} page ground sits on — the floor is the ground every floor-gated role is measured against. ${use}`;
+        let all: ReturnType<typeof resolveAllModes> | null = null; let threw = '';
+        try { const theme = brandTheme(b); all = resolveAllModes(theme); figmaArtifacts(theme); } catch (e) { threw = (e as Error).message; }
+        if (expected === null ? threw !== '' : threw !== expected) wrong.push(`${step}: ${threw ? `"${threw.slice(0, 110)}"` : 'built'}`);
+        if (threw) { refused++; continue; }
+        built++;
+        // The floor's own ground is named in the prose — the oracle's tier, not always `background.secondary`.
+        const brandDesc = (all!.find((m) => m.mode === mode)!.roles as Roles)['foreground.brand']?.description ?? '';
+        if (!brandDesc.endsWith(` on ${onStep.get(step)}`)) wrong.push(`${step}: foreground.brand says "${brandDesc}", not on ${onStep.get(step)}`);
+        for (const m of all!) for (const [k, r] of Object.entries(m.roles as Roles)) {
+          const g = /clears ([\d.]+):1 on (background\.(?:primary|secondary|tertiary))$/.exec(r.description ?? '');
+          if (!g || (r.alpha ?? 1) < 1) continue;
+          measured++;
+          const ratio = contrast(hexToRgb(r.hex), hexToRgb((m.roles as Roles)[g[2]].hex));
+          if (ratio < Number(g[1]) - 1e-9) misses.push(`${step} ${m.mode} ${k}: ${ratio.toFixed(2)}:1 on ${g[2]}, claims ${g[1]}:1`);
+        }
+      }
+      ok(wrong.length === 0 && built > 0 && refused > 0,
+        `#2227 floor sweep: ${file} ${mode}.floorStep builds on a page ground's step and is refused by sentence elsewhere (built ${built}, refused ${refused}; wrong: ${wrong.slice(0, 4).join('; ') || 'none'}${wrong.length > 4 ? ` … ${wrong.length} in all` : ''})`);
+      ok(misses.length === 0 && measured > 0,
+        `#2239 floor sweep: ${file} ${mode}.floorStep — every fill that ships clears its claimed ratio on the ground its description names (measured ${measured}; misses: ${misses.slice(0, 3).join('; ') || 'none'}${misses.length > 3 ? ` … ${misses.length} in all` : ''})`);
+    }
+  }
+  // AUTO IS NEVER REFUSED. At a ladder end the derived floor is a step next to the page that no ground takes
+  // (a Black light page floors at 950 over a black secondary; a White or 050 dark page at 050/025 over a white
+  // one). Refusing it would refuse the page choice, which Q57 A did not decide, so the refusal is for an
+  // explicit `floorStep` only; and every floor-gated claim there is measured true on the ground it names.
+  // A 950 light page is the control: its secondary is black too, but its floor, 950, is its own primary.
+  // ORACLE: the four page choices and their floors are literals. BY-NAME MUTATION: drop `cfg.floorStep != null`
+  // from the refusal → the three ladder-end cases fail on the refusal sentence; the control still builds.
+  const AUTO_ENDS: Array<['light' | 'dark', 'white' | 'black' | number, string]> = [['light', 'black', 'neutral.950'], ['light', 950, 'neutral.950'], ['dark', 'white', 'neutral.050'], ['dark', 50, 'neutral.025']];
+  for (const [mode, base, floor] of AUTO_ENDS) {
+    const b = JSON.parse(JSON.stringify(exampleBrands()["prism3"])) as BrandInput;
+    b.surfaces = { ...(b.surfaces ?? {}), [mode]: { ...(b.surfaces?.[mode] ?? {}), base } } as BrandInput['surfaces'];
+    let threw = ''; let all: ReturnType<typeof resolveAllModes> = [];
+    try { all = resolveAllModes(brandTheme(b)); } catch (e) { threw = (e as Error).message; }
+    const roles = (all.find((m) => m.mode === mode)?.roles ?? {}) as Roles;
+    const misses: string[] = [];
+    for (const [k, r] of Object.entries(roles)) {
+      const g = /clears ([\d.]+):1 on (background\.(?:primary|secondary|tertiary))$/.exec(r.description ?? '');
+      if (g && (r.alpha ?? 1) >= 1 && contrast(hexToRgb(r.hex), hexToRgb(roles[g[2]].hex)) < Number(g[1]) - 1e-9) misses.push(k);
+    }
+    ok(threw === '' && (roles['foreground.brand'] as { against?: string } | undefined)?.against === floor && misses.length === 0,
+      `#2227 Auto floor at a ladder end: prism3 ${mode} Page ${base} builds with no floorStep, floored at ${floor}, every claim true on its ground (${threw ? `threw "${threw.slice(0, 100)}"` : `floor ${(roles['foreground.brand'] as { against?: string } | undefined)?.against}, misses: ${misses.join(', ') || 'none'}`})`);
+  }
+}
+
 // ── #1296 — THE CANONICAL DEFAULT THEME IS A COMPLETE REFERENCE ─────────────────────────────────────
 // `prism3` is not a contract corpus member (the corpus spans input VARIATION; see `token-contract.ts`),
 // so nothing forces it to emit the guaranteed surface — a default theme that quietly lacked a promised
@@ -4809,8 +4902,11 @@ arm: {
             ok(msg.includes(`surfaces.${mode}.floorStep`) && msg.includes('neutral ramp') && (nearest === null ? msg.includes('is not a step number') : msg.includes(`the nearest step is ${nearest}.`)),
               `#2033: surfaces.${mode}.floorStep = ${JSON.stringify(v)} is refused by name${nearest ? `, naming the nearest step ${nearest}` : ''} (got: "${msg.slice(0, 140)}")`);
           }
-          // A real step is accepted UNCHANGED: text.secondary is measured against exactly that step.
-          const FLOOR_ACCEPTED: Array<[number, string]> = [[300, 'neutral.300'], [25, 'neutral.025'], [950, 'neutral.950']];
+          // A real step is accepted UNCHANGED: text.secondary is measured against exactly that step. Since #2227
+          // (owner Q57 A) only a step a page ground sits on builds, so these are the default ladders' tiers: light
+          // white/050/100, dark 950/900/850. An off-ground step passes `brandTheme` and is refused once the modes
+          // resolve; the #2227 sweep holds that.
+          const FLOOR_ACCEPTED: Array<[number, string]> = mode === 'light' ? [[50, 'neutral.050'], [100, 'neutral.100']] : [[900, 'neutral.900'], [850, 'neutral.850'], [950, 'neutral.950']];
           for (const [v, floor] of FLOOR_ACCEPTED) {
             const input = withSurf(mode, 'floorStep', v);
             const msg = refusal(input);
