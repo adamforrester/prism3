@@ -8157,8 +8157,8 @@ const HEADING_ADVANCED = {
 /** Literal floors, under the counts measured when this landed (per host and theme, all nine pages): headings found, the
  *  ⓘ buttons measured, the token labels (`.p3-fill-label`) typed, and the hint lines read in Light and High contrast light. */
 const HEADING_FLOOR = {
-  1280: { L1: 35, L2: 73, L3: 20, TH: 21, info: 55, tokenLabels: 288, hints: 16, swept: 0 },
-  380: { L1: 35, L2: 73, L3: 20, TH: 21, info: 55, tokenLabels: 288, hints: 16, swept: 0 },
+  1280: { L1: 35, L2: 73, L3: 20, TH: 21, info: 55, tokenLabels: 288, hints: 16, swept: 81 },
+  380: { L1: 35, L2: 73, L3: 20, TH: 21, info: 55, tokenLabels: 288, hints: 16, swept: 81 },
 };
 /** Elements a sweep may find with a heading's tag or a heading's weight or size that are not one of the levels, each with
  *  the reason it is not (a selector, then the reason; the reason is held to 20 characters or more). Empty when this landed:
@@ -8336,6 +8336,7 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
         }
         if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
         await showMode(page, 'light');
+        await showLevers(page, w);   // the narrow tab select is drawn only over the levers
       }
       console.log(`  ${where}: ${JSON.stringify(tally)}`);
       for (const [k, floor] of Object.entries(HEADING_FLOOR[w])) {
