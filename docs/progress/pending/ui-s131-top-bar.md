@@ -92,7 +92,7 @@ The clean run on the same head: `test:chrome` 18161/18161.
 - **The clash.** The S12 start window and its guard (#2142) use `p3-dialog`, `p3-dialog-head`, `-title`, `-body`, `-foot` and `p3-scrim`, the same names as the export and prune dialogs. So the export dialog's two-column body rule split the start window into two columns; the owner hit it in a demo build. The export and prune dialogs now carry their own names, **`p3-bardlg-*`** (`p3-bardlg`, `-head`, `-title`, `-body`, `-col`, `-desc`, `-note`, `-foot`, `-import`, `-layer`, and `p3-bardlg-scrim`). So no rule of theirs reaches a start-window element, and no S12 rule reaches theirs. The export scrim stays at z-index 50, under S12's.
 - **`test:chrome` §29c**, both hosts at 1280:
   - with the export dialog open, an element carrying the start window's class names is laid out by none of its rules: one track at most, and not the export scrim's z-index;
-  - once the start window exists (#2142), "+ New brand" opens it over the open export dialog, and its body must be a single grid track. Until #2142 merges, that half says so instead of passing.
+  - with S12's start window (#2142, merged), "+ New brand" opens it and the export dialog opens under it; the start window's body must be a single grid track, and a missing start window is a failure (`ok(false, …)`), not a log line.
   - Mutation, the body rule unscoped: below.
 
 **The tile dots (owner QA, 2026-10-05).** Before, the dots were placed and colored inconsistently:
@@ -164,6 +164,8 @@ S12's `test:start` (which shares the trap) passes.
 **Each half held on its own** (the coordinator's follow-up: two new arms in §29, Export, both hosts, 1280 and 380). Mutations ran on a copy of `15d2efb0`, where the clean run was 20544/20544:
 - **The defer arm.** A link is planted in the footer ahead of Cancel. A link is not in `trapTab`'s list, which names buttons, inputs, text areas, selects and `tabindex`, so it tests the defer; a planted button would be in the list and would not. Tab must reach the link and go on from it to Cancel. Mutation, the defer dropped (the trap handles every Tab again): 8 failures, for example `S13.1 web dark 1280: dialog tab order: Tab reaches a focusable control the trap's list does not name, and goes on from it to Cancel (Tab dialog-close → … )`.
 - **The preview arm.** The `<pre>` has `tabindex="0"` and Tab reaches it. Mutation, its `tabindex` dropped: 8 failures, for example `S13.1 web dark 1280: dialog tab order: the export preview is a Tab stop of its own (tabindex "null") and Tab reaches it (true)`. Chromium still reaches an implicit scroller, which is why the arm also checks the attribute.
+
+**`lint:live-css` (#2226).** This PR deletes the old brand menu's and export dialog's markup, and with it their `styles.css` rules: `.bm-*` (the menu, its import box and confirm) and `.exdlg-*` (the dialog). After the merge, the gate failed 43 times, all `✗ live rule removed` on those keys. That is intended. `node apps/studio/lint-live-css.mjs --accept` re-swept every page (web and figma, light and dark) and dropped all 43 as "no page draws it now", with no `--allow` needed. The updated `apps/studio/live-css.json` is committed, and the gate is clean.
 
 **Held:**
 - **The plugin from 561 to about 1000px.** The bar wraps at the wide tier, so Export can start the second row. The owner named 1280 and 380 for the plugin; its window opens at 1280.
