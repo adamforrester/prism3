@@ -3201,6 +3201,11 @@ const FLOOR_BADGED = ['brand', 'danger', 'success', 'warning', 'info'];
  *  as [fill, text]: the three Inverse cards (their label) and the five Subtle cards. Literal. */
 const ON_FILL_CARDS = [...['primary', 'secondary', 'tertiary'].map((t) => [`inverse.foreground.${t}`, 'inverse.text.primary']),
   ...FLOOR_BADGED.map((sem) => [`foreground.${sem}-subtle`, `text.${sem}`])];
+/** #2121: the minimum each of those cards' text is held to, which its badge's ✓/✗ is the verdict of. Literal, never
+ *  the badge's or the resolver's own `min`: a status text 4.5:1, and 7:1 in the high-contrast modes; the inverse
+ *  label 7:1, and 15:1 in the high-contrast modes (the engine's contracts, as `resolveAllModes` states them for every
+ *  example brand on 2026-10-05). */
+const ON_FILL_MIN = (mode, ink) => (ink === 'inverse.text.primary' ? (mode.startsWith('hc') ? 15 : 7) : (mode.startsWith('hc') ? 7 : 4.5));
 /** WCAG 2 contrast of two hexes, computed here (the oracle side), never read from the studio. */
 const wcagHex = (a, b) => {
   const lum = (hx) => { const f = (i) => { const x = parseInt(hx.slice(i, i + 2), 16) / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(1) + 0.7152 * f(3) + 0.0722 * f(5); };
@@ -3334,7 +3339,7 @@ const fillsGrounds = (page) => page.evaluate(() => {
         const card = cw.querySelector('.sg-card'), lab = card?.querySelector('.sg-lab'), b = cw.querySelector('[data-p3="ratio-badge"][data-pair]');
         const solid = (css) => { const c = parse(css); return c && c.a >= 0.999 ? hex(c) : null; };
         return { fillRole: card?.dataset.sgRole ?? null, inkRole: lab?.dataset.sgRole ?? null, fill: card ? solid(getComputedStyle(card).backgroundColor) : null, ink: lab ? solid(getComputedStyle(lab).color) : null,
-          badge: b ? b.querySelector('.sg-ratio-n')?.textContent ?? '' : null };
+          badge: b ? b.querySelector('.sg-ratio-n')?.textContent ?? '' : null, mark: b ? b.querySelector('.sg-ratio-mk')?.textContent ?? null : null };
       }),
     labels: Object.fromEntries([...(host?.querySelectorAll('.psec') ?? [])].map((x) => [x.querySelector('.psec-t')?.textContent ?? '?', x.querySelector('.sg-ground [data-p3="ground-label"]')?.textContent ?? null])),
     levers: hex(groundOf(document.querySelector('[data-p3="levers-pane"]'))) };
@@ -3390,7 +3395,10 @@ for (const host of ['web', 'figma']) {
         if (d.badge === null) return [`${fillRole}: no badge of its drawn pairing`];
         if (d.fill !== floor.roles[fillRole] || d.ink !== floor.roles[inkRole]) return [`${inkRole} on ${fillRole}: renders ${d.ink} on ${d.fill}, the emission says ${floor.roles[inkRole]} on ${floor.roles[fillRole]}`];
         const r = wcagHex(d.ink, d.fill);
-        return Math.abs(parseFloat(d.badge) - Math.floor(r * 100) / 100) <= 0.011 ? [] : [`${inkRole} on ${fillRole} prints ${d.badge}, the drawn ${d.ink} on ${d.fill} measures ${r.toFixed(3)}:1`];
+        if (!(Math.abs(parseFloat(d.badge) - Math.floor(r * 100) / 100) <= 0.011)) return [`${inkRole} on ${fillRole} prints ${d.badge}, the drawn ${d.ink} on ${d.fill} measures ${r.toFixed(3)}:1`];
+        // #2121: and its mark is the verdict of that measured ratio against the text's minimum, typed here (ON_FILL_MIN).
+        const wantMark = r + 1e-9 < ON_FILL_MIN(mode, inkRole) ? '✗' : '✓';
+        return d.mark === wantMark ? [] : [`${inkRole} on ${fillRole} marks ${JSON.stringify(d.mark)}, the drawn ${r.toFixed(3)}:1 against the ${ON_FILL_MIN(mode, inkRole)}:1 minimum is ${wantMark}`];
       });
       ok(offDrawn.length === 0, `#1971 Q13(a) surfaces & fills ${where}: every Subtle and Inverse card in Foreground badges its text on its own fill, as drawn${offDrawn.length ? ` — ${offDrawn.join(' | ')}` : ''}`);
       ok(offFloor.length === 0, `#1971 GR2 surfaces & fills ${where}: the Foreground section, on the contrast floor, badges each bold fill with its emitted ratio against that floor${offFloor.length ? ` — ${offFloor.join(' | ')}` : ''}`);

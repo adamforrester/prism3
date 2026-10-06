@@ -7524,6 +7524,24 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
       `[#2068] the message carries the values as entered, not rounded (got "${vpMsg('vpDec', { fluid: true, minViewport: 400.5, maxViewport: 400 })}")`);
     ok(vpMsg('vpOff', { fluid: false, minViewport: 1280, maxViewport: 375 }) === VP_INV,
       `[#2068] the refusal holds with fluid off too (owner decision Q16 = a) — the pair is what the fluid regime reads (got "${vpMsg('vpOff', { fluid: false, minViewport: 1280, maxViewport: 375 })}")`);
+
+    // #2172 — the ONE-BOUND path: a brand that sets only one viewport is compared against the engine's default
+    // for the other, and the message names that default (owner decision Q17 a). Every arm above sets both, so
+    // the default the comparison uses was never exercised: changing it alone left this whole block green.
+    // EXPECTED is literal. BY-NAME MUTATION: change the comparison's default (theme.ts, `vpMax = … ?? 1280`)
+    // → the min-only arm, the default-range arm and the schema arm fail.
+    ok(vpMsg('vpMinOnly', { fluid: true, minViewport: 1280 }) === 'The minimum viewport (1280px) must be smaller than the maximum viewport (1280px).',
+      `[#2172] only minViewport 1280 is compared with the default maxViewport, 1280, and refused (got "${vpMsg('vpMinOnly', { fluid: true, minViewport: 1280 })}")`);
+    ok(vpMsg('vpMaxOnly', { fluid: true, maxViewport: 375 }) === 'The minimum viewport (375px) must be smaller than the maximum viewport (375px).',
+      `[#2172] only maxViewport 375 is compared with the default minViewport, 375, and refused (got "${vpMsg('vpMaxOnly', { fluid: true, maxViewport: 375 })}")`);
+    const vpDefault = tBrand('vpDefOut', {} as any).typography;
+    ok(vpDefault.minViewport === 375 && vpDefault.maxViewport === 1280,
+      `[#2172] a brand that sets neither viewport builds with 375/1280, the range the refusal compared (got ${vpDefault.minViewport}/${vpDefault.maxViewport})`);
+    // The schema states the defaults too, for an agent reading it. Pinned to what the engine builds.
+    const vpSchema = JSON.parse(readFileSync(resolve(HERE, 'schema', 'theme-schema.json'), 'utf8'));
+    const vpProps = JSON.stringify(vpSchema).match(/"minViewport":\{"type":"number","default":(\d+)[^}]*\},"maxViewport":\{"type":"number","default":(\d+)/);
+    ok(!!vpProps && Number(vpProps[1]) === vpDefault.minViewport && Number(vpProps[2]) === vpDefault.maxViewport,
+      `[#2172] theme-schema.json's stated viewport defaults match the engine's (schema ${vpProps?.[1]}/${vpProps?.[2]}, engine ${vpDefault.minViewport}/${vpDefault.maxViewport})`);
     // The default range still builds, implicitly and stated explicitly, and its emitted clamps are finite.
     ok(!thr(() => tBrand('vpDef', {} as any)) && !thr(() => tBrand('vpDefX', { responsive: { fluid: true, minViewport: 375, maxViewport: 1280 } } as any)),
       '[#2068] the default 375/1280 range builds, omitted and stated explicitly');
@@ -8121,6 +8139,17 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     `[#2137] an empty breakpoints list is refused with the approved wording (got "${bpMsg('bpEmpty', [])}")`);
   ok(bpMsg('bpOne', [0]) === '' && lyBrand('bpOneB', { breakpoints: [0] }).layout.breakpoints.length === 1,
     `[#2137] a single breakpoint at 0px builds, with one breakpoint (got "${bpMsg('bpOne', [0])}")`);
+  // #2198 — more than seven breakpoints are refused (owner decision 2026-10-06, Q43 A). `bpNames` names seven
+  // (xs to 3xl), and an eighth took the placeholder `bp7`. EXPECTED is the sentence typed here literally, with
+  // the count as entered. Seven is the largest list that builds, and it carries real names. BY-NAME MUTATION:
+  // allow an eighth (drop the refusal in `buildLayout`) → the eight and nine arms fail.
+  const SEVEN = [0, 360, 480, 768, 1024, 1440, 1920];
+  const seven = lyBrand('bp7ok', { breakpoints: SEVEN }).layout.breakpoints.map((b) => b.name).join(' ');
+  ok(seven === 'xs sm md lg xl 2xl 3xl', `[#2198] seven breakpoints build, named xs to 3xl with no placeholder (got "${seven}")`);
+  ok(bpMsg('bp8', [...SEVEN, 2560]) === 'The brand can have at most seven breakpoints. This brand has 8.',
+    `[#2198] an eighth breakpoint is refused (got "${bpMsg('bp8', [...SEVEN, 2560])}")`);
+  ok(bpMsg('bp9', [...SEVEN, 2560, 3200]) === 'The brand can have at most seven breakpoints. This brand has 9.',
+    `[#2198] the message carries the count as entered (nine) (got "${bpMsg('bp9', [...SEVEN, 2560, 3200])}")`);
 }
 
 // ------------------------------------------------- gradient invariants (opt-in)
