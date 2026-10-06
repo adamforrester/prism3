@@ -1166,6 +1166,13 @@ npm run lint:contrast -w @prism3/studio     # studio chrome clears its own contr
                                             #   legal token faded through opacity is invisible to this
                                             #   one, and a token used in a state no sweep visits is
                                             #   invisible to that one)
+npm run lint:live-css -w @prism3/studio     # no LIVE styles.css rule was removed (#2201) — STATIC
+                                            #   against live-css.json, the rules the four browser
+                                            #   suites' pages were seen to draw. Keyed per rule, not
+                                            #   per selector; property names, not values. The baseline
+                                            #   moves only by `-- --accept`, which re-sweeps and
+                                            #   refuses to forget a rule the DOM still draws unless
+                                            #   it is named with `--allow '<key>'`
 npm run typecheck -w @prism3/plugin      # BOTH contexts — main (no DOM) and ui (no figma.*)
 npm run test      -w @prism3/plugin      # write / readback / persist / float / styles shims
 npm run build     -w @prism3/plugin      # dist/main.js must contain 0 `node:` builtins — asserted by
