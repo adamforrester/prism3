@@ -133,9 +133,16 @@ export const PRODUCT_VARS = [
   // engine's text field definition binds (`packages/engine/components/text-field.ts`: `disabled.fill`, `disabled.border`
   // and the ON-FILL ink, since the field always has a fill). It sits on no surface, so no `inverse.*` set. Same role in
   // both themes; the dark overlay moves the value. Contrast-exempt as inactive (INACTIVE, below).
-  ['disabled-fill', 'color.disabled.fill', 'color.disabled.fill', C, 'a disabled text field\'s fill (F1 A)'],
+  ['disabled-fill', 'color.disabled.fill', 'color.disabled.fill', C, 'a disabled text field\'s fill; a disabled filled button\'s fill (F1 A, X4 A)'],
   ['disabled-edge', 'color.disabled.border', 'color.disabled.border', C, 'a disabled text field\'s edge (F1 A)'],
-  ['disabled-ink', 'color.disabled.on-fill', 'color.disabled.on-fill', C, 'a disabled text field\'s value (F1 A)'],
+  ['disabled-ink', 'color.disabled.on-fill', 'color.disabled.on-fill', C, 'a disabled text field\'s value; a disabled filled button\'s label and glyph (F1 A, X4 A)'],
+  // X4 A (owner, 2026-10-05, #2155): a disabled button takes Prism3's own disabled button skin, per appearance, as
+  // `packages/engine/components/button.ts` and `icon-button.ts` bind it. Filled (Apply Theme, Continue, Discard): the
+  // fill above and the on-fill ink, no edge. Outline (every page-colored button) and text (every ghost button): no
+  // fill, the label on `disabled.text` and the glyph on `disabled.icon`; outline's edge binds `disabled.icon` too
+  // (#1349), never `disabled.border`. These two are the only roles a button binds that the text field does not.
+  ['disabled-text', 'color.disabled.text', 'color.disabled.text', C, 'a disabled outline or ghost button\'s label (X4 A)'],
+  ['disabled-icon', 'color.disabled.icon', 'color.disabled.icon', C, 'a disabled outline or ghost button\'s glyph, and the outline button\'s edge (X4 A)'],
   // #2144 (owner decision FR1 A, 2026-10-05): every chrome focus ring draws in Prism3's focus color. It resolves
   // through `core.palette.primary`, so `brandLeaks` lets it through by this name only (BRAND_ALLOW, `tokens.mjs`).
   ['focus-ring', 'color.border.focus', 'color.border.focus', C, 'every chrome focus ring (#2144)'],
@@ -195,9 +202,13 @@ export const SHELL_VARS = [
   'swatch-h',
   // F1 A: a disabled text field in Prism3's disabled skin.
   'disabled-fill', 'disabled-edge', 'disabled-ink',
+  // X4 A: a disabled button in Prism3's disabled button skin.
+  'disabled-text', 'disabled-icon',
   // S12: the start window and its guard: the scrim, the window's width unit and its card padding, and the guard's
   // destructive Discard (S5).
   'overlay-pressed', 'dlg-unit', 'space-250', 'danger-fill', 'danger-on', 'danger-edge-hover',
+  // S11.2: the Build style guides page's switch, concept v6's track and knob.
+  'track-w', 'track-h', 'thumb', 'thumb-inset',
 ];
 
 // Mapped color variables that carry no contrast duty: a hairline that splits regions, a hover wash.
@@ -211,10 +222,10 @@ export const SHELL_VARS = [
 // window. Nothing is read on it; the window it holds is opaque.
 export const DECORATIVE = ['line-1', 'overlay-pressed'];
 
-// Mapped color variables that paint only an INACTIVE control (owner decision F1 A, 2026-10-05). WCAG 2.2 exempts a
+// Mapped color variables that paint only an INACTIVE control (owner decisions F1 A and X4 A, 2026-10-05). WCAG 2.2 exempts a
 // user interface component that is not available for user interaction from SC 1.4.3 (text) and SC 1.4.11 (non-text),
 // so these take part in no PAIRS entry. A name listed here is exempt from the [pairs] "in no declared pair" check, and
 // only from that. It is not a free pass: the build refuses an INACTIVE name whose token is not a `color.disabled.*`
 // role in either theme, so a live color cannot be parked here; and `test:chrome` exempts a drawn node only when it is
 // really disabled, and then holds it to these exact Prism3 roles, read from the emission.
-export const INACTIVE = ['disabled-fill', 'disabled-edge', 'disabled-ink'];
+export const INACTIVE = ['disabled-fill', 'disabled-edge', 'disabled-ink', 'disabled-text', 'disabled-icon'];

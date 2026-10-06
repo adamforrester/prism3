@@ -3,7 +3,7 @@
  * §3.9; the owner's F2, and v5 Q9 for the 4 s collapse).
  *
  * WHAT IT HOLDS SINCE S11: concept v6's activity model. One row per operation that has run in this session
- * (Apply Theme, Build set, Set up file, Style guide, Prune stale, Read-back), each with its verdict, the
+ * (Apply Theme, Build set, Set up file, Style guides, Prune stale, Read-back), each with its verdict, the
  * time it started, a body that says what it is doing or what it found, and its earlier results. An
  * operation an agent ran is tagged Agent, running and after (#1788). The drawer's bar row is v6's: the
  * newest operation's title and phase or verdict, its time, and how many are running or need attention.
@@ -47,7 +47,8 @@ export const HISTORY_MAX = 5;
 
 /** Concept v6's operation titles (`OP_TITLE`). The drawer lists operations in the order they first ran. */
 export const OP_TITLE: Readonly<Record<OpKey, string>> = {
-  'apply': 'Apply Theme', components: 'Build set', filesetup: 'Set up file', styleguide: 'Style guide', prune: 'Prune stale', readback: 'Read-back',
+  // "Style guides" since S11.2 (owner decision P11), matching the Build style guides page.
+  'apply': 'Apply Theme', components: 'Build set', filesetup: 'Set up file', styleguide: 'Style guides', prune: 'Prune stale', readback: 'Read-back',
 };
 
 /** One operation, as the drawer reads it. `ref` is the state's own value, so a new verdict that replaces
@@ -62,6 +63,8 @@ export type OpReading = {
   readonly phase: string | null;
   readonly progress: { readonly done: number; readonly total: number } | null;
   readonly agent: boolean;
+  /** How far a style guide has got, for the closed strip at 380 only (S11.2); its row says it in words. */
+  readonly strip?: { readonly done: number; readonly total: number } | null;
 };
 /** A write the main thread declined while a run of the same operation was going (#1957). `n` counts
  *  them, so each is a change. */
@@ -102,7 +105,11 @@ const EMPTY: OpReading = { state: 'idle', ref: null, verdict: null, summary: nul
 
 /** Mount the drawer and its button. `narrow` reads the frame's width tier; `cleanups` takes the
  *  subscriptions and the pending collapse. `now` is the clock the times are read from. */
-export const mountActivity = (opts: { readonly host: Host; readonly lend: ActivityLend; readonly narrow: () => boolean; readonly now?: () => Date }, cleanups: (() => void)[]): Activity => {
+export const mountActivity = (opts: { readonly host: Host; readonly lend: ActivityLend; readonly narrow: () => boolean; readonly now?: () => Date;
+  /** An operation the page in view shows itself (S11.2, owner decision P1 variant 1: the Build style guides page and
+   *  the style guide): the drawer does not open by itself when it starts or fails. Its row, the bar row and the dot
+   *  still record it. */
+  readonly quiet?: (k: OpKey) => boolean }, cleanups: (() => void)[]): Activity => {
   const { narrow } = opts;
   const now = opts.now ?? (() => new Date());
   const { read, closeDetail } = opts.lend;
@@ -263,6 +270,14 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       const text = h('span', 'p3-drawer-last');
       text.append(h('b', undefined, OP_TITLE[lead]), ` · ${run ? o.phase ?? 'Running' : rec.result?.verdict ?? ''}`);
       parts.push(d, text, h('span', 'p3-op-when', rec.t));
+      // At 380, the closed strip carries the running style guide's progress (the S11.2 mockup, variant 1).
+      if (run && lead === 'styleguide' && o.strip && narrow() && !open) {
+        const bar = hook(h('progress', 'p3-op-prog p3-strip-prog'), 'activity-strip-progress') as HTMLProgressElement;
+        bar.max = o.strip.total;
+        bar.value = o.strip.done;
+        bar.setAttribute('aria-hidden', 'true');
+        parts.push(bar);
+      }
     } else {
       parts.push(glyph('pulse'), h('span', 'p3-drawer-last', 'Activity'));
     }
@@ -325,6 +340,10 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   const onHost = (): void => {
     const cur = read();
     let started = false, settledOk = false, settledBad = false, landedOk = false, ended = false;
+    // A quiet operation (S11.2) is recorded like any other, but opens nothing by itself.
+    const loud = (k: OpKey): boolean => !opts.quiet?.(k);
+    /** Quiet operations whose result landed in this reading: the verdict's own request to show it is not by hand. */
+    const quietlySettled = new Set<OpKey>();
     for (const k of Object.keys(cur.ops) as OpKey[]) {
       const n = cur.ops[k];
       const p = last.ops[k] ?? EMPTY;
@@ -335,7 +354,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
           retire(rec);
           rec.t = clock(now());
           expanded.add(k);
-          started = true;
+          if (loud(k)) started = true;
           live.textContent = `${OP_TITLE[k]}, ${n.phase ?? 'Running'}`;
         }
         continue;
@@ -354,8 +373,9 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
           continue;
         }
         rec.result = resultOf(n, rec.t);
-        // A clean result collapses its row (#483, owner decision #1 on #1956); a bad one opens it.
-        if (n.state === 'bad') { settledBad = true; expanded.add(k); } else { settledOk = true; expanded.delete(k); }
+        // A clean result collapses its row (#483, owner decision #1 on #1956); a bad one opens it. A quiet one's
+        // result marks the drawer unread, never opens it (S11.2).
+        if (n.state === 'bad') { expanded.add(k); if (loud(k)) settledBad = true; else { quietlySettled.add(k); if (!open) unread = true; } } else { settledOk = true; expanded.delete(k); }
         continue;
       }
       if (n.state === 'idle' || (n.state === p.state && n.ref === p.ref)) continue;
@@ -378,7 +398,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       live.textContent = `${OP_TITLE[r.op]} already running; the second request was declined.`;
     }
     // A result a page asked to show (its verdict pill clicked, or a bad verdict) opens the drawer on it.
-    const reveal = cur.detail !== null && cur.detail !== last.detail ? cur.detail : null;
+    const reveal = cur.detail !== null && cur.detail !== last.detail && !quietlySettled.has(cur.detail) ? cur.detail : null;
     last = cur;
     const stillRunning = counts(cur).running > 0;
     // Emptied once nothing runs, so the next start is a change even when its words are the same.

@@ -30,7 +30,8 @@ import { initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession
 import type { StyleGuideOptionsMsg } from './write-adapter';
 import { emToPercentLabel } from './em-percent';
 import { mountFrame, type Frame } from './shell/frame';
-import { isNewPage, pageOfTab, type LegacyPageKey } from './shell/pages';
+import { isMenuPage, isNewPage, pageOfTab, type LegacyPageKey } from './shell/pages';
+import type { StyleGuidesLend } from './shell/style-guides';
 import type { ActivityReading, OpReading } from './shell/activity';
 import type { FigmaAction } from './shell/figma';
 import { glyph, pendingLabel, setBusy } from './shell/dom';
@@ -1627,6 +1628,8 @@ const mountView = (view: RootView, body: () => HTMLElement): void => {
         lend: { styleGuide: renderPreviewStyleGuide, fonts: () => host, sets: { busy: componentBusy, lastOf: (id) => host.setBuilds.get(id), run: runBuild } },
         // The product mark's logo, `styles.css`'s fixed gradient, lent like the views above.
         logo: () => el('span', 'logo'),
+        // S11.2: the Build style guides page's reads and writes, plugin only.
+        styleGuides: commit.isFigma ? styleGuidesLend : null,
       });
     }
     chromeHost = frame.head;
@@ -1717,7 +1720,7 @@ const pageHasModeVaryingControl = (): boolean => {
   // (#718's Components page, which took no mode input, moved to the two panes in UI redesign S8.2.)
   // A moved page (Color › Palettes from UI redesign S2) draws no legacy workspace, so it has no strip:
   // its preview header carries the mode control.
-  if (isNewPage(page)) return false;
+  if (isNewPage(page) || isMenuPage(page)) return false;
   // (Typography's column-per-mode rule, #416, went with the page, UI redesign S6.2: Type draws the two panes.)
   // (The Preview page's per-view rule went with the page, UI redesign S3: the Style guide is Brand's
   // preview, whose header carries the mode control, and its other two views are Inspect's.)
@@ -1948,7 +1951,7 @@ function renderWorkspace(): void {
   // A MOVED PAGE (UI redesign S2 on) draws in the frame's two panes, from its own modules, and the legacy
   // frame is hidden. Nothing legacy is drawn for it, and the volatile painter is emptied, so a legacy write
   // that still calls `apply()` (the bar's) repaints no page that is gone.
-  if (isNewPage(page)) { workspace.replaceChildren(); setVolatile([], () => {}); return; }
+  if (isNewPage(page) || isMenuPage(page)) { workspace.replaceChildren(); setVolatile([], () => {}); return; }
   // The workspace-home chrome surfaces (#772) — today that is the mode strip, page furniture rather
   // than global chrome (#432). Mounted from the DECLARATION rather than by name, so a second piece of
   // page furniture cannot arrive here wired to one of its two obligations.
@@ -2041,7 +2044,7 @@ const clearSearchMarks = (): void => {
 };
 function applySearch(): void {
   // A moved page filters its own levers panel and reports its own count (S2).
-  if (!workspace?.isConnected || isNewPage(page)) return;
+  if (!workspace?.isConnected || isNewPage(page) || isMenuPage(page)) return;
   clearSearchMarks();
   const q = searchQuery.trim().toLowerCase();
   if (!q) { if (searchHits !== null) setSearchHits(null); return; }
@@ -2808,7 +2811,7 @@ const agentBuildReading = (): HostSession['componentProgress'] => {
  *  the agent's command for it runs (`agentRun`); `ref` is `'pending'` or the agent run's id then, so a run
  *  that ends with no verdict is the slot's old value coming back. `agent` is true while an agent's command
  *  runs it and when its verdict lands, which is the moment the drawer records it. */
-const opReading = (k: OpKey, busy: boolean, settled: Omit<OpReading, 'phase' | 'progress' | 'agent'> | null, phase: () => Pick<OpReading, 'phase' | 'progress'>): OpReading => {
+const opReading = (k: OpKey, busy: boolean, settled: Omit<OpReading, 'phase' | 'progress' | 'agent'> | null, phase: () => Pick<OpReading, 'phase' | 'progress' | 'strip'>): OpReading => {
   const byAgent = agentRunning(k);
   if (busy || byAgent) return { state: 'running', ref: busy ? 'pending' : `agent:${host.agentRun!.id}`, verdict: null, summary: null, ...phase(), agent: !busy };
   if (!settled) return IDLE;
@@ -2861,7 +2864,7 @@ const activityReading = (): ActivityReading => {
       components: opReading('components', host.componentState === 'pending', verdictOf(host.componentState),
         () => componentPhase(host.componentState === 'pending' ? host.componentProgress : agentBuildReading())),
       filesetup: opReading('filesetup', host.fileSetupState === 'pending', verdictOf(host.fileSetupState), fixed(PENDING_TEXT.filesetup)),
-      styleguide: opReading('styleguide', host.styleGuideState === 'pending', verdictOf(host.styleGuideState), () => ({ phase: styleGuidePendingText(), progress: null })),
+      styleguide: opReading('styleguide', host.styleGuideState === 'pending', verdictOf(host.styleGuideState), () => ({ phase: styleGuidePendingText(), progress: null, strip: host.styleGuideState === 'pending' ? host.styleGuideProgress : agentReading('styleguide') })),
       prune: opReading('prune', !!host.pruneBusy,
         pv ? { state: pv.ok ? 'ok' : 'bad', ref: pv, verdict: pruneShort(pv), summary: pv.summary }
           : pp ? { state: 'ok', ref: pp, verdict: pruneShort({ ok: true, applied: false, count: pp.count }), summary: pp.summary } : null,
@@ -2977,6 +2980,36 @@ const runBuild = (id: string): void => {
 const pruneBlocked = (): boolean => pruneBusy() || applyBusy();
 const PRUNE_HINT = 'Removes the styles, modes and variables this config no longer emits. Shows the count before deleting, and names the modes.';
 
+/** The page the Build style guides page was opened from, which its Close returns to (the mockup's call 10). */
+let styleGuidesBack: PageKey | null = null;
+const openStyleGuides = (): void => {
+  if (!isMenuPage(page)) styleGuidesBack = page;
+  setPage('styleGuides');
+};
+/** The Build style guides page's reads and writes (S11.2), lent to the shell (`shell/style-guides.ts`). */
+const styleGuidesLend: StyleGuidesLend = {
+  read: () => ({
+    catalog: host.styleGuideCatalog,
+    run: host.styleGuideRun,
+    state: host.styleGuideState,
+    busy: host.styleGuideState === 'pending' || agentRunning('styleguide'),
+    progress: host.styleGuideState === 'pending' ? host.styleGuideProgress : null,
+    setupBusy: fileSetupBusy(),
+    writes: [host.applyState, host.fileSetupState],
+  }),
+  request: () => commit.requestStyleGuideCatalog(),
+  draw: (o) => {
+    // The previous run's list goes with the state, so the next one's starts empty (P1).
+    setHost({ styleGuideState: 'pending', styleGuideProgress: null, styleGuideRun: null, openDetail: null });
+    hostChanged();
+    commit.postStyleGuide(o);
+  },
+  cancel: () => commit.cancelStyleGuide(),
+  setUp: () => runFileSetup(),
+  close: () => setPage(styleGuidesBack ?? pageOfTab('brand', 'figma')),
+  showResult: () => { setHost({ openDetail: 'styleguide' }); hostChanged(); },
+};
+
 /** The Figma menu's items (`shell/figma.ts`), plugin only. Labels are today's: the bar's two controls, Set up file
  *  (whose only control this is since S8.2, G8 A), and the two writes that need options first (concept v6's "Build
  *  set…" and "Style guide…"), which open where those options are: the Components tab, and the Style guide page. */
@@ -2991,7 +3024,9 @@ const figmaActions = (): FigmaAction[] => [
   { id: 'file-setup', label: FILE_SETUP_LABEL, busy: fileSetupBusy() ? 'Setting up…' : null, disabled: false, run: runFileSetup },
   // S8.2 (owner decision G2 A): Build set… opens the Components tab, where the set is chosen and built.
   { id: 'build', label: 'Build set…', busy: null, disabled: false, run: () => setPage(pageOfTab('components', commit.isFigma ? 'figma' : 'web')) },
-  { id: 'style-guide', label: 'Style guide…', busy: null, disabled: false, run: () => setPage('styleGuide') },
+  // S11.2 (owner decision H10, H11): "Build style guides…" opens the new page. The legacy Style guide page stays in the
+  // Pages menu until the cleanup that follows (H12).
+  { id: 'style-guide', label: 'Build style guides…', busy: null, disabled: false, run: openStyleGuides },
 ];
 
 /** The brand bar (#159) — a horizontal row of brand-level utilities, replacing the single
