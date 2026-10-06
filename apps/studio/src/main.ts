@@ -1636,7 +1636,9 @@ const mountView = (view: RootView, body: () => HTMLElement): void => {
       });
     }
     chromeHost = frame.head;
-    frame.notices.replaceChildren();
+    // The notices row is NOT emptied here: its one surface, the error strip, is `role="alert"`, and a strip re-minted on
+    // every `build()` (each page change) would be a new alert carrying the same words. `mountSurfaces` skips a surface
+    // already mounted, so the strip is minted once per frame and only its text moves (#2124 review, finding 4).
     mountSurfaces('bar', view, frame.bar);
     barChanged();   // as `renderBar` ran on every build: the examples' marker, the menus' state
     mountSurfaces('root', view, frame.notices);

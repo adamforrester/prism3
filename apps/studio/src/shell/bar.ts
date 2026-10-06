@@ -24,11 +24,14 @@
  * Tab moves through it in order. The menu holds a form (the import box), so it is a group of controls, not a `menu`
  * role. The export and prune dialogs close on Escape and on a click on their scrim.
  *
+ * DIALOG FOCUS (#2124 review). Both dialogs are modal: focus moves into one as it opens, Tab stays inside it, and as it
+ * closes, by any path, focus returns to its opener (Export; the Figma menu for the prune review).
+ *
  * A REPAINT KEEPS FOCUS. Every repaint redraws the menu and the dialog whole, as `renderBar` did; the control that had
  * focus is found again by its hook and its place among the controls with that hook, and focused again.
  */
 import { subscribe } from '../state/store';
-import { glyph, h, hook, pendingLabel, setBusy, tile } from './dom';
+import { focusables, glyph, h, hook, pendingLabel, setBusy, tile, trapTab } from './dom';
 import type { FigmaSource } from './figma';
 
 /** The brand menu's state, read from `main.ts` on every repaint. */
@@ -169,6 +172,8 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
 
   // ── paint ──────────────────────────────────────────────────────────────────────────────────────
   let wasOpen = false;
+  let wasExport = false;
+  let wasPrune = false;
   const paintBrand = (v: BarView): void => {
     dot.style.background = v.brand.hex;
     name.textContent = v.brand.name;
@@ -208,15 +213,33 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     if (v.exportOpen) layer.append(exportDialog(lend.exportView(), v));
     if (v.prune) layer.append(pruneDialog(v.prune));
 
-    // Focus: back on the control that had it, or, as the menu opens, on its current example.
+    // Focus. A dialog first (#2124 review, findings 1 and 2): as one opens, focus moves into it (its first control);
+    // as one closes, by whatever path (Close, Cancel, a scrim click, Escape, its action), focus goes back to the
+    // control that opened it: Export, or the Figma menu for the prune review (its Prune stale item). Then the menu:
+    // back on the control that had it, or, as the menu opens, on its current example.
     const justOpened = v.menuOpen && !wasOpen;
     wasOpen = v.menuOpen;
-    if (justOpened) {
+    const exportOpened = v.exportOpen && !wasExport, exportClosed = !v.exportOpen && wasExport;
+    const pruneOpened = !!v.prune && !wasPrune, pruneClosed = !v.prune && wasPrune;
+    wasExport = v.exportOpen;
+    wasPrune = !!v.prune;
+    const into = (role: string): void => { const d = layer.querySelector<HTMLElement>(`[data-p3="${role}"]`); if (d) (focusables(d)[0] ?? d).focus(); };
+    const figmaOpener = (): HTMLElement | null => placed.figma?.querySelector<HTMLElement>('[data-p3="figma-open"]') ?? null;
+    if (exportOpened) into('export-dialog');
+    else if (pruneOpened) into('prune-dialog');
+    else if (exportClosed && !v.prune) exp.focus({ preventScroll: true });
+    else if (pruneClosed && !v.exportOpen) (figmaOpener() ?? sel).focus({ preventScroll: true });
+    else if (justOpened) {
       const items = menuItems(brandWrap);
       (items.find((i) => i.getAttribute('aria-current') === 'true') ?? items[0] ?? sel).focus();
     } else if (focused && !focused.isConnected) {
       // Redrawn: the same control again, or, when the menu closed under it, the switcher that opened it.
-      (again?.() ?? (v.menuOpen ? null : sel))?.focus({ preventScroll: true });
+      // Never behind an open dialog: there, the dialog's first control.
+      const inDlg = v.exportOpen ? 'export-dialog' : v.prune ? 'prune-dialog' : null;
+      const back = again?.() ?? null;
+      if (back) back.focus({ preventScroll: true });
+      else if (inDlg) into(inDlg);
+      else if (!v.menuOpen) sel.focus({ preventScroll: true });
     } else if (focused && document.activeElement !== focused) focused.focus({ preventScroll: true });
   };
   const spacer = h('span', 'p3-spacer');
@@ -299,7 +322,7 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     if (v.importErr) box.append(hook(h('p', 'p3-field-err', v.importErr), 'import-error'));
     const row = h('div', 'p3-import-row');
     const up = hook(h('label', 'p3-btn p3-btn-page p3-upload'), 'import-upload');
-    const fi = h('input', 'p3-file');
+    const fi = hook(h('input', 'p3-file'), 'import-file');
     fi.type = 'file';
     fi.accept = lend.importAccept;
     fi.onchange = () => { const f = fi.files?.[0]; if (f) act.importFile(f); };
@@ -320,6 +343,9 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     dlg.setAttribute('role', 'dialog');
     dlg.setAttribute('aria-modal', 'true');
     dlg.setAttribute('aria-label', title);
+    dlg.tabIndex = -1;   // focusable itself only as the fallback when it holds no control
+    // Modal (`aria-modal`): Tab and Shift+Tab stay inside until it closes (S12's trap, `dom.ts`).
+    dlg.addEventListener('keydown', (e) => trapTab(dlg, e));
     const head = h('div', 'p3-bardlg-head');
     head.append(h('h2', 'p3-bardlg-title', title));
     const x = hook(h('button', 'p3-btn p3-btn-ghost p3-btn-icon'), 'dialog-close');
@@ -329,7 +355,9 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     x.onclick = close;
     head.append(x);
     dlg.append(head);
-    scrim.onmousedown = (e) => { if (e.target === scrim) close(); };
+    // A scrim click closes it. Its default (focus moving to the page under the click) is refused, so focus goes back to
+    // the opener, as from Close.
+    scrim.onmousedown = (e) => { if (e.target === scrim) { e.preventDefault(); close(); } };
     scrim.append(dlg);
     return { scrim, dlg };
   };

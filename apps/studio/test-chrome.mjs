@@ -600,8 +600,8 @@ const CONTROL_KINDS = [['p3-brand', 'brand switcher'], ['p3-verdict', 'verdict']
   ['p3-jump-link', 'jump link'],
   // S6.3's value picker, first measured open on Depth & motion (S9.2): each value is a button of its own.
   ['p3-vpick', 'picker value'],
-  // S13.1: the brand menu's import box.
-  ['p3-textarea', 'text area']];
+  // S13.1: the brand menu's import box; S12: the start window's paste (measured since S13.1 counts every textarea).
+  ['p3-textarea', 'text area'], ['p3-start-paste', 'text area']];
 /** Legacy views Inspect lends a host to until their slices replace them (S1.3): pinned light and drawn in
  *  `styles.css`, so outside the chrome, like the legacy page. Named literally, by hook. */
 const INSPECT_LEGACY = ['[data-p3="inspect-contrast-table"]', '[data-p3="inspect-token-list"]',
@@ -7526,6 +7526,20 @@ const LIGHT_GROUND_MIN = 0.5;
 const BRAND_MENU_HOOKS = ['[data-p3="brand-menu-example"]', '[data-p3="brand-menu-new"]', '[data-p3="brand-menu-import"]', '[data-p3="import-text"]', '[data-p3="import-load"]'];
 const EXPORT_HOOKS = ['[data-p3="export-artifact"]', '[data-p3="dialog-close"]', '[data-p3="dialog-cancel"]', '[data-p3="dialog-confirm"]'];
 /** The strip, read directly: its ground (composited), its text and glyph against it, and where it sits. */
+/** One node's text against the ground composited under it, as the strip probe reads it: the ratio, floored to 2 places. */
+const INK_PROBE = (sel) => {
+  const e = document.querySelector(sel);
+  if (!e) return { r: 0, text: '' };
+  const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim()); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+  const over = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+  const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+  let g = null;
+  for (let n = e; n && n.nodeType === 1; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) { g = g ? over(g, c) : c; if (g.a >= 0.999) break; } }
+  g = g ? { ...g, a: 1 } : { r: 255, g: 255, b: 255, a: 1 };
+  const ink = parse(getComputedStyle(e).color);
+  const x = lum(over(ink, g)), y = lum(g);
+  return { r: Math.floor(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 100) / 100, text: e.textContent ?? '' };
+};
 const STRIP_PROBE = () => {
   const e = document.querySelector('[data-p3="error-bar"]');
   if (!e) return { mounted: false };
@@ -7655,6 +7669,12 @@ for (const { w, h } of WIDTHS) {
         const fit = await page.evaluate(() => { const r = document.querySelector('[data-p3="brand-menu"]').getBoundingClientRect(); return { r: [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)], vw: innerWidth, vh: innerHeight }; });
         ok(fit.r[0] >= 0 && fit.r[2] <= fit.vw && fit.r[3] <= fit.vh, `${where} / brand menu: the open menu stays inside the window (${JSON.stringify(fit.r)} in ${fit.vw} × ${fit.vh})`);
         if (SHOTS) await page.screenshot({ path: join(SHOTS, `s131-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-brand-menu.png`) });
+        // The import's error line (#2124 review, finding 3d): a refused paste, its line held to ${TEXT_MIN}:1 on the menu's
+        // ground. Measured at 4.96:1 in dark by a one-off probe before it was held here.
+        await hooks.click(page.locator('[data-p3="import-load"]'));
+        await hooks.need(page, '[data-p3="import-error"]');
+        const ie = await page.evaluate(INK_PROBE, '[data-p3="import-error"]');
+        ok(ie.r >= TEXT_MIN, `${where} / brand menu: import error line contrast ${ie.r}:1, at least ${TEXT_MIN}:1 ("${ie.text.slice(0, 40)}")`);
 
         // ── keyboard: Escape closes it to the switcher; Enter opens it on the current example; arrows, Home, End ──
         await page.keyboard.press('Escape');
@@ -7688,6 +7708,51 @@ for (const { w, h } of WIDTHS) {
         await page.keyboard.press('Escape');
         const k6 = await page.evaluate(() => ({ open: !!document.querySelector('[data-p3="export-dialog"]'), focus: document.activeElement?.getAttribute('data-p3') }));
         ok(!k6.open && k6.focus === 'export-open', `${where}: keyboard: Escape closes the export dialog back to Export (open ${k6.open}, focus on "${k6.focus}")`);
+        // #2124 review (findings 1, 2, 3a, 3c): every way out returns focus to Export; focus moves in as it opens and
+        // Tab stays inside while it is open.
+        const dlgAt = () => page.evaluate(() => ({ open: !!document.querySelector('[data-p3="export-dialog"]'), focus: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName ?? null,
+          inside: !!document.activeElement?.closest('[data-p3="export-dialog"]') }));
+        for (const how of ['Close', 'Cancel', 'the scrim']) {
+          await hooks.click(page.locator('[data-p3="export-open"]'));
+          await hooks.need(page, '[data-p3="export-dialog"]');
+          const in0 = await dlgAt();
+          ok(in0.inside, `${where}: dialog focus: opening Export moves focus into the dialog (on "${in0.focus}")`);
+          if (how === 'Close') {
+            const walk = [];
+            for (let i = 0; i < 24; i++) { await page.keyboard.press('Tab'); walk.push(await dlgAt()); }
+            for (let i = 0; i < 4; i++) { await page.keyboard.press('Shift+Tab'); walk.push(await dlgAt()); }
+            const out = walk.filter((x) => !x.inside).map((x) => x.focus);
+            ok(out.length === 0, `${where}: dialog focus: Tab and Shift+Tab stay inside the export dialog (${walk.length} presses${out.length ? `, left it for ${out.join(', ')}` : ''})`);
+            await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-close"]'));
+          } else if (how === 'Cancel') await hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-cancel"]'));
+          else { await page.mouse.move(2, 2); await page.mouse.down(); await page.mouse.up(); }   // the scrim, outside the dialog
+          const back = await dlgAt();
+          ok(!back.open && back.focus === 'export-open', `${where}: dialog focus: ${how} closes the export dialog back to Export (open ${back.open}, focus on "${back.focus}")`);
+        }
+        // ── the overwrite confirm (web) and the prune review (plugin), measured as chrome (#2124 review, finding 3d) ──
+        if (w === 1280 && host === 'web') {
+          await page.evaluate(() => window.__prism3TestEdit('id', 'edited-brand'));
+          await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+          await hooks.click(page.locator('[data-p3="brand-menu-example"]').filter({ hasText: 'aurora' }));
+          await hooks.need(page, '[data-p3="overwrite-confirm"]');
+          const mo = await measure(page, `${where} / overwrite confirm`, host, w);
+          check(mo, `${where} / overwrite confirm`, column, PLACE_FLOOR, { extra: ['[data-p3="overwrite-replace"]', '[data-p3="overwrite-cancel"]'] });
+          const oc = await page.evaluate(INK_PROBE, '[data-p3="overwrite-confirm"]');
+          ok(oc.r >= TEXT_MIN, `${where} / overwrite confirm: its sentence's contrast ${oc.r}:1, at least ${TEXT_MIN}:1`);
+          await hooks.click(page.locator('[data-p3="overwrite-cancel"]'));
+          await page.keyboard.press('Escape');
+        }
+        if (w === 1280 && host === 'figma') {
+          await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'prune-result', ok: true, applied: false, count: 2, summary: 'Would remove 2 items: 2 variables.' } }, '*'));
+          await hooks.need(page, '[data-p3="prune-dialog"]');
+          const mp = await measure(page, `${where} / prune review`, host, w);
+          check(mp, `${where} / prune review`, column, PLACE_FLOOR, { extra: ['[data-p3="dialog-confirm"]', '[data-p3="dialog-cancel"]'] });
+          const pc = await page.evaluate(INK_PROBE, '[data-p3="prune-dialog"] .p3-bardlg-desc');
+          ok(pc.r >= TEXT_MIN, `${where} / prune review: its sentence's contrast ${pc.r}:1, at least ${TEXT_MIN}:1`);
+          await hooks.click(page.locator('[data-p3="prune-dialog"] [data-p3="dialog-cancel"]'));
+          const pf = await page.evaluate(() => document.activeElement?.getAttribute('data-p3') ?? null);
+          ok(pf === 'figma-open', `${where}: dialog focus: the prune review's Cancel returns focus to the Figma menu (on "${pf}")`);
+        }
         // ── the error strip ──
         if (host === 'web') await page.evaluate(() => window.__prism3TestEdit('overrides', { light: { 'background.secondary': { palette: 'neutral', step: '200' } } }));
         else await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), S131_REFUSED);
@@ -7698,6 +7763,20 @@ for (const { w, h } of WIDTHS) {
           `${where}: the error strip's ground follows the ${theme} theme (luminance ${st.groundLum}, ${theme === 'dark' ? `below ${DARK_GROUND_MAX}` : `above ${LIGHT_GROUND_MIN}`})`);
         ok(st.textR >= TEXT_MIN && st.glyphR >= NONTEXT_MIN, `${where}: the error strip's line clears ${TEXT_MIN}:1 (${st.textR}:1) and its glyph ${NONTEXT_MIN}:1 (${st.glyphR}:1)`);
         ok(st.fullWidth && st.underBar, `${where}: the error strip is full width and sits right under the top bar (strip ${JSON.stringify(st.rect)}, bar ends ${st.barBottom})`);
+        // #2124 review, finding 4: the strip is role="alert", so the same error, re-shown after each rebuild, must leave its
+        // text untouched (no mutation, the same text node), or a standing error is announced again on every edit.
+        await page.evaluate(() => {
+          const line = document.querySelector('[data-p3="error-bar"] .p3-errstrip-text');
+          window.__stripNode = line.firstChild; window.__stripMuts = 0;
+          new MutationObserver((ms) => { window.__stripMuts += ms.length; }).observe(line, { childList: true, characterData: true, subtree: true });
+        });
+        for (let i = 0; i < 2; i++) {
+          if (host === 'web') await page.evaluate(() => window.__prism3TestEdit('overrides', { light: { 'background.secondary': { palette: 'neutral', step: '200' } } }));
+          else await page.evaluate((x) => window.postMessage({ pluginMessage: { type: 'restore-input', input: x } }, '*'), S131_REFUSED);
+          await page.waitForTimeout(150);
+        }
+        const same = await page.evaluate(() => { const line = document.querySelector('[data-p3="error-bar"] .p3-errstrip-text'); return { muts: window.__stripMuts, node: line.firstChild === window.__stripNode, text: line.textContent.slice(0, 40) }; });
+        ok(same.muts === 0 && same.node, `${where}: error strip: the same error after 2 more rebuilds leaves its text untouched (${same.muts} mutations, same text node ${same.node}, "${same.text}")`);
         const ms = await measure(page, `${where} / error strip`, host, w);
         // The web's refusal is an edit on the opening page, so the whole column is held. The plugin's is a restore, which
         // loads a brand of its own (no second brand color, so Palettes draws fewer levers), and at 380 × 420 its long line
@@ -7855,11 +7934,10 @@ for (const host of ['web', 'figma']) {
 // =============================================================================================
 // 28c. The export dialog's rules reach no other dialog (the owner's demo, 2026-10-05). The S12 start window (#2142) and
 //      its guard use `p3-dialog-*` and `p3-scrim`; the export dialog's own two-column body once turned the start window
-//      into two columns. Its rules now carry their own `p3-bardlg-*` names. Held: with the export dialog open, "+ New
-//      brand" opens the start window in the same page, and the start window's body lays its cards out in one column
-//      (a single computed grid track), both hosts, 1280. Until the start window exists (S12 not merged) that half says so
-//      instead of passing; the other half runs today: an element carrying the start window's class names, placed beside
-//      the open export dialog, is laid out by none of its rules.
+//      into two columns. Its rules now carry their own `p3-bardlg-*` names. Held, both hosts, 1280: with the start window
+//      open ("+ New brand") and the export dialog open under it, the start window's body lays its cards out in one column
+//      (a single computed grid track); and an element carrying the start window's class names, placed beside the open
+//      export dialog, is laid out by none of its rules.
 //   Mutation: the export dialog's body rule unscoped (`.p3-bardlg-body, .p3-dialog-body { … }`) → `28c … dialog scope: …`.
 // =============================================================================================
 console.log('\n28c. The export dialog and the start window, in one page');
@@ -7867,10 +7945,16 @@ for (const host of ['web', 'figma']) {
   const where = `28c ${host} light 1280`;
   const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
   try {
-    await hooks.click(page.locator('[data-p3="export-open"]'));
+    // The start window first ("+ New brand" from the brand menu), then Export over the studio under it: the brand menu
+    // closes an open export dialog, so this is the order in which both are open together. Export is reached by a
+    // dispatched click, as the start window's scrim covers the bar.
+    await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+    await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
+    await hooks.need(page, '[data-p3="export-open"]');
+    await page.locator('[data-p3="export-open"]').dispatchEvent('click');
     await hooks.need(page, '[data-p3="export-dialog"]');
-    // Today, before the start window exists: an element with the start window's class names, placed in the page beside the
-    // open export dialog and read, then removed. No rule of the export dialog may lay it out (its body would be two tracks).
+    // An element with the start window's class names, placed in the page beside the open export dialog and read, then
+    // removed: no rule of the export dialog may lay it out (its body would be two tracks).
     const probe = await page.evaluate(() => {
       const scrim = document.createElement('div'); scrim.className = 'p3-scrim';
       const dlg = document.createElement('section'); dlg.className = 'p3-dialog p3-start';
@@ -7881,17 +7965,9 @@ for (const host of ['web', 'figma']) {
       scrim.remove();
       return r;
     });
-    // Once S12 lands its own rules lay this element out (one track, a fixed scrim at its own z-index); the export
-    // dialog's would make it two tracks, or put the scrim at the export dialog's z-index (50).
     const probeTracks = probe.bodyTracks === 'none' ? 0 : probe.bodyTracks.split(' ').filter(Boolean).length;
     ok(probeTracks <= 1 && probe.scrimZ !== '50',
       `${where}: dialog scope: no rule of the export dialog reaches an element named as the start window's (body ${probe.bodyDisplay}, ${probeTracks} tracks "${probe.bodyTracks}"; scrim ${probe.scrimPosition}, z ${probe.scrimZ})`);
-    // The scrim covers the bar, so "+ New brand" is reached the way a script would: the brand menu, then its item.
-    // A dispatched click, so it does not land on the scrim (a pointer click there closes the dialog).
-    await hooks.need(page, '[data-p3="brand-switcher"]');
-    await page.locator('[data-p3="brand-switcher"]').dispatchEvent('click');
-    await hooks.need(page, '[data-p3="brand-menu-new"]');
-    await page.locator('[data-p3="brand-menu-new"]').dispatchEvent('click');
     await page.waitForTimeout(200);
     const st = await page.evaluate(() => {
       // The S12 start window only (a `p3-dialog` over the app view); the legacy start screen, which replaces the frame

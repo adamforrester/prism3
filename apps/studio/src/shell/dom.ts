@@ -118,3 +118,19 @@ export const tile = (role: string, label: string, start = false): Tile => {
   btn.append(mark, lab, tip);
   return { btn, mark, tip };
 };
+
+/** The controls Tab can reach inside `root`, in order: drawn, not inert. Shared by every modal window (S12's start
+ *  window and its guard, S13.1's export and prune dialogs). */
+const FOCUSABLE = 'button:not([disabled]), input:not([type="hidden"]):not([disabled]), textarea, select, [tabindex]:not([tabindex="-1"])';
+export const focusables = (root: HTMLElement): HTMLElement[] =>
+  [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((n) => n.getClientRects().length > 0 && !n.closest('[inert]'));
+
+/** Keep Tab inside `dlg`, wrapping at both ends: a modal (`aria-modal`) window's keyboard trap. */
+export const trapTab = (dlg: HTMLElement, e: KeyboardEvent): void => {
+  if (e.key !== 'Tab') return;
+  const f = focusables(dlg);
+  if (!f.length) { e.preventDefault(); return; }
+  const i = f.indexOf(document.activeElement as HTMLElement);
+  if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+  else if (!e.shiftKey && (i < 0 || i === f.length - 1)) { e.preventDefault(); f[0].focus(); }
+};

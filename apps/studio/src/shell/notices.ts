@@ -5,7 +5,8 @@
  *
  * WHAT IT SAYS, AND WHEN, IS `main.ts`'s (`syncErrorBar`, #388 and #772): it composes the line from `lastError` or
  * the restore failure and calls `show`, after every rebuild, on every view. This only draws: a warning glyph and the
- * line, or nothing. Hidden with the `hidden` attribute, never an inline value, so the chrome carries none.
+ * line, or nothing. Hidden with the `hidden` attribute, never an inline value, so the chrome carries none. It is an
+ * alert, so its text is written only when it changes.
  */
 import { glyph, h, hook } from './dom';
 
@@ -24,9 +25,12 @@ export const errorStrip = (): ErrorStrip => {
   node.hidden = true;
   return {
     node,
+    // The strip is `role="alert"`, and `main.ts` calls `show` after every rebuild. So the text is written only when it
+    // changes: rewriting the same words would announce a standing error again on each edit (#2124 review, finding 4).
     show: (text) => {
       node.hidden = text === null;
-      line.textContent = text ?? '';
+      const next = text ?? '';
+      if (line.textContent !== next) line.textContent = next;
     },
   };
 };
