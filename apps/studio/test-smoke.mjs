@@ -217,6 +217,39 @@ const LEGIBILITY_PROBE = (rootSel) => {
     return op;
   };
 
+  /** The control a node sits in when that control is really disabled (X4 A): its element, classes, colors and four
+   *  edges, whether it carries the disabled property or `aria-disabled`, whether focus takes, and, for one that does
+   *  take focus (an `aria-disabled` control keeps its stop), whether activating it (`click()`) changes it or anything
+   *  the page stores. A running write's control (`aria-busy`) is pending, not disabled, and is never activated here. */
+  const offSeen = new Map();
+  const offControl = (el) => {
+    const c = el.closest('button, [role="button"], [role="switch"], [role="checkbox"], [role="radio"], [role="tab"], [role="menuitemradio"], a[href]');
+    if (!c || !(c.matches(':disabled') || c.getAttribute('aria-disabled') === 'true')) return null;
+    if (offSeen.has(c)) return offSeen.get(c);
+    const cs = getComputedStyle(c);
+    const prev = document.activeElement;
+    c.focus();
+    const focusable = document.activeElement === c;
+    if (focusable) { c.blur(); prev?.focus?.(); }
+    let clickChanged = null;
+    if (focusable && c.getAttribute('aria-busy') !== 'true') {
+      // What an activation could move, as `test:chrome`'s check reads it: the control, what the page stores, the place
+      // shown, whether the start window is up, and which windows and menus are open.
+      const snap = () => JSON.stringify([c.outerHTML, Object.entries(localStorage), document.querySelector('[data-p3="frame"]')?.dataset.place ?? null,
+        !!document.querySelector('[data-p3="start-screen"]'), [...document.querySelectorAll('[role="dialog"], [role="menu"], [role="listbox"]')]
+          .filter((d) => d.getClientRects().length).map((d) => d.getAttribute('data-p3') ?? d.getAttribute('role'))]);
+      const before = snap();
+      HTMLElement.prototype.click.call(c);
+      clickChanged = snap() !== before;
+    }
+    const o = {
+      tag: c.tagName.toLowerCase(), cls: typeof c.className === 'string' ? c.className : '', hook: c.getAttribute('data-p3'),
+      prop: c.disabled === true, aria: c.getAttribute('aria-disabled') === 'true', focusable, clickChanged,
+      fill: cs.backgroundColor, ink: cs.color, edges: ['Top', 'Right', 'Bottom', 'Left'].map((x) => [cs[`border${x}Color`], cs[`border${x}Style`], parseFloat(cs[`border${x}Width`])]),
+    };
+    offSeen.set(c, o);
+    return o;
+  };
   const text = [];
   for (const el of root.querySelectorAll('*')) {
     // OWN text only. Measuring an ancestor's `textContent` would attribute a child's ink to the
@@ -234,7 +267,11 @@ const LEGIBILITY_PROBE = (rootSel) => {
     // about the button, and a composited ground would hide a mispainted fill behind whatever sits under it.
     const pairHost = el.closest('[data-specimen-pair]');
     const pairRow = pairHost?.closest('[data-p3="style-guide-buttons"]');
+    // OFF (X4 A): the node sits inside a control that is really disabled, `:disabled` or `aria-disabled="true"`, never
+    // by class or hook. What Node needs to hold an exempted label to the exemption's conditions rides along.
+    const offCtl = offControl(el);
     text.push({
+      offCtl, ink: cs.color, canary: el.closest('[data-ccanary]') !== null,
       ratio: round(ratio(over({ ...col, a: col.a * op }, ground), ground)),
       cls: name(el),
       text: [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent.trim()).join(' ').slice(0, 44),
@@ -400,9 +437,77 @@ const PRISM3_DISABLED = await (async () => {
     const m = /^\{(.+)\}$/.exec(v);
     return m ? hex(tree, m[1], seen + 1) : v.toLowerCase();
   };
-  const skin = (tree) => ({ fill: hex(tree, `${root}.color.disabled.fill`), edge: hex(tree, `${root}.color.disabled.border`), ink: hex(tree, `${root}.color.disabled.on-fill`) });
+  // X4 A: the two roles the button definitions bind and the text field does not, `disabled.text` and `disabled.icon`.
+  const skin = (tree) => ({ fill: hex(tree, `${root}.color.disabled.fill`), edge: hex(tree, `${root}.color.disabled.border`), ink: hex(tree, `${root}.color.disabled.on-fill`),
+    text: hex(tree, `${root}.color.disabled.text`), icon: hex(tree, `${root}.color.disabled.icon`) });
   return { light: skin(base), dark: skin(dark) };
 })();
+/**
+ * THE CONTRAST EXEMPTION FOR INACTIVE BUTTONS (owner decision X4 A, 2026-10-05, #2155), this suite's own copy. A
+ * disabled button in the chrome draws Prism3's own disabled button for its appearance, typed here from the engine's
+ * definitions (`button.ts`, `icon-button.ts`): filled (Apply Theme, Continue, Discard) on the disabled fill with the
+ * on-fill ink and no edge; outline (every page-colored button) with no fill, a solid `disabled.icon` edge and the
+ * label on `disabled.text`; text (every ghost button, the mode check) the same with no edge. Its label sits under the
+ * text bar on purpose (about 3.9:1 light, 3.4:1 dark). A chrome text node is exempt only when the control it sits in
+ * is REALLY DISABLED (`:disabled` or `aria-disabled="true"`, never a class, hook, color or cursor) and the node is under
+ * its bar; each exempted node is asserted, by name, to sit in a control that carries the disabled property or
+ * `aria-disabled`, takes no focus or changes nothing when activated, and draws its appearance's roles, the node's own
+ * ink included, read from the emission (`PRISM3_DISABLED`), never from the CSS. Which appearance a control has is
+ * read from its element and classes; that only picks the skin to expect.
+ */
+const DISABLED_APPEARANCE = (o) => {
+  if (['input', 'select', 'textarea'].includes(o.tag)) return 'field';
+  const c = new Set(o.cls.split(/\s+/));
+  if (['p3-btn-primary', 'p3-next', 'p3-btn-danger'].some((k) => c.has(k))) return 'filled';
+  if (['p3-btn-ghost', 'p3-check'].some((k) => c.has(k))) return 'text';
+  return 'outline';
+};
+const DISABLED_SKIN = (appearance, scheme) => {
+  const d = PRISM3_DISABLED[scheme];
+  if (!d) return null;
+  return {
+    field: { fill: d.fill, edge: d.edge, ink: d.ink },
+    filled: { fill: d.fill, edge: 'none', ink: d.ink },
+    outline: { fill: 'none', edge: d.icon, ink: d.text },
+    text: { fill: 'none', edge: 'none', ink: d.text },
+  }[appearance];
+};
+/** A computed color as `#rrggbb` when opaque, `none` when fully transparent, and the raw string otherwise. */
+const paintOf = (x) => {
+  const m = /^rgba?\(([^)]+)\)$/.exec((x ?? '').trim());
+  if (!m) return String(x);
+  const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
+  if (p.length > 3 && p[3] === 0) return 'none';
+  if (p.length > 3 && p[3] !== 1) return String(x);
+  return `#${p.slice(0, 3).map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
+};
+/** A control's fill, edge (one solid color on all four sides, `none` when no side draws) and ink, as drawn. */
+const drawnSkin = (o) => {
+  const sides = o.edges.filter(([c, st, wd]) => st !== 'none' && wd > 0 && paintOf(c) !== 'none');
+  const colors = [...new Set(sides.map(([c]) => paintOf(c)))];
+  const styles = [...new Set(sides.map(([, st]) => st))];
+  const edge = !sides.length ? 'none' : sides.length === 4 && colors.length === 1 && styles.join() === 'solid' ? colors[0] : `${sides.length} side(s) ${colors.join('/')} ${styles.join('/')}`;
+  return { fill: paintOf(o.fill), edge, ink: paintOf(o.ink) };
+};
+/** Every button exemption granted this run: [where, hook or class]. Floored per brand after the sweep, and printed. */
+const BUTTON_EXEMPTIONS = [];
+const isExemptText = (r) => !!r.offCtl && !r.specimen && r.ratio < barOf(r);
+/** Hold every exempted text node to the exemption's conditions, by name, and return the rows the exemption covers. */
+const exemptTextRows = (rows, where, scheme) => {
+  const exempt = rows.filter(isExemptText);
+  for (const r of exempt) {
+    const c = r.offCtl;
+    BUTTON_EXEMPTIONS.push([where, c.hook ?? c.cls]);
+    ok((c.prop || c.aria) && (c.focusable === false || (c.aria && c.clickChanged === false)),
+      `${where}: the exempted "${r.text}" sits in a disabled control, ${c.hook ?? c.cls}, that takes no focus or changes nothing when activated (disabled ${c.prop}, aria-disabled ${c.aria}, took focus ${c.focusable}, activation changed ${c.clickChanged})`);
+    const appearance = DISABLED_APPEARANCE(c);
+    const want = DISABLED_SKIN(appearance, scheme);
+    const got = { ...drawnSkin(c), label: paintOf(r.ink) };
+    ok(!!want && got.fill === want.fill && got.edge === want.edge && got.ink === want.ink && got.label === want.ink,
+      `${where}: the exempted "${r.text}" in ${c.hook ?? c.cls} draws Prism3's disabled ${appearance} roles for the ${scheme} chrome (want fill ${want?.fill}, edge ${want?.edge}, ink ${want?.ink}; drew ${JSON.stringify(got)})`);
+  }
+  return exempt;
+};
 const hexOfRgb = (s) => {
   const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim());
   if (!m) return null;
@@ -412,6 +517,30 @@ const hexOfRgb = (s) => {
 };
 /** Every field exemption granted this run: [where, hook]. Printed after the sweep, and floored per brand there. */
 const FIELD_EXEMPTIONS = [];
+/** THE EXEMPTION'S CANARY (F1 A, X4 A, #2174): beside the real disabled control `sel`, a copy that is NOT disabled (no
+ *  `disabled`, no `aria-disabled`) and carries, inline, EVERY computed style of the real control and of each element
+ *  inside it, so only `:disabled` / `aria-disabled` tells them apart. It keeps the class and the hook too. Runs in the
+ *  page; returns whether it was planted, whether it is live, and any computed style left different (none, or the copy
+ *  is not a lookalike). */
+const PLANT_CANARY = (sel) => {
+  // What a copy may differ in and still be a lookalike: the size its place in the row gives it (and the origins that
+  // follow from that size), a shorthand that serializes differently from the same longhands, and a non-standard one.
+  const CANARY_LAYOUT = new Set(['width', 'height', 'inline-size', 'block-size', 'transform-origin', 'perspective-origin', 'text-decoration', 'app-region']);
+  const src = document.querySelector(sel);
+  if (!src) return { planted: false };
+  const c = src.cloneNode(true);
+  const from = [src, ...src.querySelectorAll('*')], to = [c, ...c.querySelectorAll('*')];
+  from.forEach((n, i) => { const cs = getComputedStyle(n); for (const p of cs) to[i].style.setProperty(p, cs.getPropertyValue(p)); });
+  c.disabled = false;
+  for (const a of ['disabled', 'aria-disabled', 'id']) c.removeAttribute(a);
+  c.setAttribute('data-ccanary', '');
+  src.after(c);
+  const a = getComputedStyle(src), b = getComputedStyle(c);
+  return { planted: true, hook: src.getAttribute('data-p3'), live: !c.matches(':disabled') && c.getAttribute('aria-disabled') !== 'true',
+    differ: [...a].filter((p) => !CANARY_LAYOUT.has(p) && a.getPropertyValue(p) !== b.getPropertyValue(p)).slice(0, 6) };
+};
+/** The button canary's verdict per brand (X4 A), planted once in the first state that draws a disabled chrome button. */
+const buttonCanary = new Map();
 /** The fields under their bars that the exemption does not cover; each one it does cover is asserted here. */
 const isExemptField = (f) => f.off && !f.specimen && fieldFails(f);
 const fieldsUnderBar = (probe, where) => {
@@ -951,13 +1080,15 @@ for (const brand of BRANDS) {
       ok(rows.length >= STATE_NODE_FLOOR,
         `${where}: the contrast probe measured ${rows.length} text nodes (floor ${STATE_NODE_FLOOR})${
           rows.length < STATE_NODE_FLOOR ? ' — this state rendered almost no text, or the probe stopped matching; the ratio assertion below is vacuous here' : ''}`);
-      const under = rows.filter((r) => r.ratio < CONTRAST_FLOOR);
-      for (const r of rows) if (r.ratio < worstRatio) { worstRatio = r.ratio; worstWhere = `${where} — ${r.cls} "${r.text}"`; }
+      // X4 A: a label in a really disabled button, under its bar, is exempt as an inactive component, and held here instead.
+      const exemptText = exemptTextRows(rows, where, probe.scheme);
+      const under = rows.filter((r) => r.ratio < CONTRAST_FLOOR && !exemptText.includes(r));
+      for (const r of rows) if (r.ratio < worstRatio && !exemptText.includes(r)) { worstRatio = r.ratio; worstWhere = `${where} — ${r.cls} "${r.text}"`; }
       ok(under.length === 0, `${where}: every one of ${rows.length} text nodes clears ${CONTRAST_FLOOR}:1${
         under.length ? ` — ${under.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (op ${u.op})`).join(' | ')}` : ''}`);
       const chrome = rows.filter((r) => !r.specimen);
       specimensMeasured += rows.length - chrome.length;
-      for (const r of chrome) if (r.ratio < worstChrome) { worstChrome = r.ratio; worstChromeWhere = `${where} — ${r.cls} "${r.text}"`; }
+      for (const r of chrome) if (r.ratio < worstChrome && !exemptText.includes(r)) { worstChrome = r.ratio; worstChromeWhere = `${where} — ${r.cls} "${r.text}"`; }
       for (const k of KNOWN_CONTRAST_GAPS) {
         if (k.place !== place) continue;
         const mine = chrome.filter((r) => r.cls === k.cls && r.text === k.text);
@@ -982,7 +1113,7 @@ for (const brand of BRANDS) {
             off.length ? ` — drawn ${[...new Set(off.map((d) => `${d.color} (role ${d.role})`))].join(', ')}` : ''}`);
         }
       }
-      const chromeUnder = chrome.filter((r) => r.ratio < barOf(r) && !knownGapOf(place, r));
+      const chromeUnder = chrome.filter((r) => r.ratio < barOf(r) && !knownGapOf(place, r) && !exemptText.includes(r));
       ok(chromeUnder.length === 0, `${where}: every one of ${chrome.length} chrome text nodes meets WCAG 1.4.3 (${CHROME_TEXT_MIN}:1, ${CHROME_LARGE_TEXT_MIN}:1 large), known gaps aside${
         chromeUnder.length ? ` — ${chromeUnder.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (${u.px}px/${u.weight}, op ${u.op}, needs ${barOf(u)}:1)`).join(' | ')}` : ''}`);
       const unmarked = rows.filter((r) => r.inlineInk && !r.specimen);
@@ -1024,23 +1155,26 @@ for (const brand of BRANDS) {
         // F1 A's canary: beside the disabled field, a copy that is NOT disabled but keeps its class, hook and, inline,
         // its colors. It must be measured and must fail its bar unexempted, so an exemption widened to a class or a
         // hook fails here by name.
-        const planted = await page.evaluate(() => {
-    const src = document.querySelector('[data-p3="bp-row"] input:disabled');
-    if (!src) return false;
-    const cs = getComputedStyle(src);
-    const c = src.cloneNode(true);
-    c.disabled = false;
-    c.removeAttribute('id');
-    c.setAttribute('data-ccanary', '');
-    for (const p of ['background-color', 'color', 'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color']) c.style.setProperty(p, cs.getPropertyValue(p));
-    src.after(c);
-    return true;
-  });
-        const cp = planted ? await page.evaluate(LEGIBILITY_PROBE) : null;
+        const p = await page.evaluate(PLANT_CANARY, '[data-p3="bp-row"] input:disabled');
+        const cp = p.planted ? await page.evaluate(LEGIBILITY_PROBE) : null;
         await page.evaluate(() => { for (const n of document.querySelectorAll('[data-ccanary]')) n.remove(); });
         const cf = cp?.fields.find((f) => f.canary);
-        ok(planted && !!cf && fieldFails(cf) && !isExemptField(cf),
-          `${where}: the exemption canary, a field with the disabled field's class, hook and colors that is not disabled, is not exempted and fails its bar — ${JSON.stringify({ planted, measured: !!cf, ratio: cf?.ratio ?? null, exempted: cf ? isExemptField(cf) : null })}`);
+        ok(p.planted && p.live && p.differ.length === 0 && !!cf && fieldFails(cf) && !isExemptField(cf),
+          `${where}: the exemption canary, a field with every computed style of the disabled field (its class and hook too) that is not disabled, is not exempted and fails its bar — ${JSON.stringify({ ...p, measured: !!cf, ratio: cf?.ratio ?? null, exempted: cf ? isExemptField(cf) : null })}`);
+      }
+      if (!buttonCanary.has(brand) && (await page.evaluate(() => !!document.querySelector('[data-p3="frame"] .p3-btn:disabled:not([aria-busy="true"])')))) {
+        // X4 A's canary, once per brand, in the first state that draws a disabled chrome button: a copy of it that is NOT
+        // disabled but carries every computed style of it and of everything inside it (its class and hook too). Its
+        // label must be measured and fail its bar unexempted, so an exemption keyed on anything but `:disabled` /
+        // `aria-disabled` fails here by name (#2174).
+        const p = await page.evaluate(PLANT_CANARY, '[data-p3="frame"] .p3-btn:disabled:not([aria-busy="true"])');
+        const cp = p.planted ? await page.evaluate(LEGIBILITY_PROBE) : null;
+        await page.evaluate(() => { for (const n of document.querySelectorAll('[data-ccanary]')) n.remove(); });
+        const rows2 = cp?.text.filter((r) => r.canary) ?? [];
+        const verdict = { ...p, measured: rows2.length, under: rows2.filter((r) => r.ratio < barOf(r)).length, exempted: rows2.filter(isExemptText).length, ratio: rows2.length ? Math.min(...rows2.map((r) => r.ratio)) : null };
+        buttonCanary.set(brand, verdict);
+        ok(p.planted && p.live && p.differ.length === 0 && verdict.measured > 0 && verdict.under > 0 && verdict.exempted === 0,
+          `${where}: the button exemption canary, a ${p.hook ?? 'button'} with every computed style of the disabled one (its class and hook too) that is not disabled, is not exempted and fails its bar — ${JSON.stringify(verdict)}`);
       }
     }
   }
@@ -1213,6 +1347,11 @@ ok(fieldsMeasured >= SWEEP_FIELD_FLOOR,
 ok(BRANDS.every((b) => FIELD_EXEMPTIONS.some(([w, hk]) => w.startsWith(`${b} / layout /`) && hk === 'bp-input')),
   `every brand's sweep exempted Layout's disabled first breakpoint field from the field bar (F1 A) — exempted ${FIELD_EXEMPTIONS.length}; none for ${BRANDS.filter((b) => !FIELD_EXEMPTIONS.some(([w, hk]) => w.startsWith(`${b} / layout /`) && hk === 'bp-input')).join(', ') || 'no brand'}`);
 console.log(`\n  Contrast exemption (inactive fields, WCAG 2.2 SC 1.4.3; F1 A): ${FIELD_EXEMPTIONS.length} field(s) exempted in ${new Set(FIELD_EXEMPTIONS.map(([w]) => w)).size} state(s).`);
+// X4 A, counted: every brand's sweep draws disabled chrome buttons (HC light and HC dark switch off every lever section's
+// controls, Q59), so every brand must have exempted a label in one, and planted the button canary.
+ok(BRANDS.every((b) => BUTTON_EXEMPTIONS.some(([w]) => w.startsWith(`${b} / `)) && buttonCanary.has(b)),
+  `every brand's sweep exempted a disabled chrome button's label (X4 A) and planted its canary — exempted ${BUTTON_EXEMPTIONS.length}; missing for ${BRANDS.filter((b) => !BUTTON_EXEMPTIONS.some(([w]) => w.startsWith(`${b} / `)) || !buttonCanary.has(b)).join(', ') || 'no brand'}`);
+console.log(`  Contrast exemption (inactive buttons, WCAG 2.2 SC 1.4.3; X4 A): ${BUTTON_EXEMPTIONS.length} label(s) exempted in ${new Set(BUTTON_EXEMPTIONS.map(([w]) => w)).size} state(s), in ${new Set(BUTTON_EXEMPTIONS.map(([, h]) => h)).size} control(s): ${[...new Set(BUTTON_EXEMPTIONS.map(([, h]) => h))].slice(0, 12).join(', ')}.`);
 
 console.log(`\n  ${statesVisited} page × mode states, ${nodesMeasured} text nodes, ${fieldsMeasured} form controls measured.`);
 console.log(`  Lowest rendered contrast anywhere: ${worstRatio}:1 (specimen floor ${CONTRAST_FLOOR.toFixed(1)}:1)`);

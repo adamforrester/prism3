@@ -45,6 +45,14 @@
  * the mark, once, ahead of the brand switcher; it reads "Prism3 Studio" as text and as its accessible name, is not a
  * control, and its name is shown wide (measured at 4.5:1) and dropped narrow, the logo kept. The plugin's bar has none.
  *
+ * THE HEADING RULE (section 30; heading pass 1 of 2, TY2 A, owner approval 2026-10-06), on both hosts, both themes, at 1280 and 380,
+ * every page with its Show advanced open: each heading level's computed size, weight, line height (and L1's tracking, L3's
+ * ink) and the space after it, against the chrome tokens' values read from the committed emission by this file's own walk;
+ * the audit's per-page heading list, each found at its level, with literal floors on the counts; every ⓘ button's hit-min
+ * target, its place after the heading text and on the line's center; and no glyph in a hint line, nor any ⓘ glyph outside
+ * a button, in Light and High contrast light (HP3); and a sweep of every heading element and heading-styled text, each of
+ * which must be a level, a table header or a reasoned exemption, with no heading tag skipping a level.
+ *
  * S12 ADDS (section 28), on both hosts, both themes, at 1280 and 380 (the frame's `data-w` waited on): THE START WINDOW
  * over the studio, every owner decision against a literal typed in the section: the heading per host (G17), no Close on
  * the first run and Close when reopened (S9, S10), the cards in the order color (with "Start blank" as its secondary action, N1 A),
@@ -93,6 +101,27 @@
  *     {…"exempted":true}`, on both hosts and both themes, and nothing else (4 failures).
  *   · the field's ink on `disabled.text` → `… the exempted input[bp-input] "sm, px" draws Prism3's disabled roles for
  *     light …` and `F1 A: Layout: web light: … draws Prism3's disabled text field …` (8 failures).
+ *
+ * X4 A AND Q28 a (owner, 2026-10-05; #2155, #2154, #2174). The exemption covers disabled BUTTONS too, each held to
+ * Prism3's disabled roles for its appearance (`DISABLED_SKIN`: filled, outline, text, typed from `button.ts` and
+ * `icon-button.ts`), the ink of every label and glyph inside it included; an `aria-disabled` control that keeps its
+ * focus stop qualifies only when activating it changes nothing. S12 fails a first run that did not exempt Import, and
+ * plants the button canary there. Every canary now carries EVERY computed style of the real control (#2174), so only
+ * `:disabled` / `aria-disabled` tells them apart. The section "X4 A, Q28 a" at the end reads every appearance on a real
+ * control, one control of each kind hovered off and on, and every control HC light switches off. Mutations, each
+ * failing by name, each in a detached worktree:
+ *   · the skin's edge dashed → `X4 A: web light: the disabled Import (start-import) draws no dashed edge — …`,
+ *     `X4 A derived: … no disabled chrome control draws a dashed edge (438 read) — …` (884 failures).
+ *   · the outline edge on `disabled.border` → `X4 A: web light: the disabled Import (start-import) draws Prism3's
+ *     disabled outline button: … drew {"fill":"none","edge":"#c0c1c2",…}` (820 failures).
+ *   · a chip hover rule after the skin → `Q28 a: web light: a pointer over a disabled chip (personality-word, on brand)
+ *     changes nothing (Q28 a)`, on both hosts and both themes, and nothing else (4 failures).
+ *   · the select's hover rule without its limit → `Q28 a: web light: a pointer over a disabled select (family-select,
+ *     on type) changes nothing (Q28 a)`, on both hosts and both themes, and nothing else (4 failures).
+ *   · the exemption keyed on `cursor: not-allowed` → only the canaries: `S12 web light 1280 / start: the exemption
+ *     canary, a button with every computed style of the disabled Import … — {…"exempted":…}` (8) and `web light 1280 /
+ *     layout: the exemption canary, a field with every computed style …` (4). #2152's canary, which copied the class,
+ *     the hook and six colors, passes it.
  *
  * NOTHING FORCED (S2). S1.2 and S1.3 set the frame's `data-layout="panes"` themselves for the Q2 check and
  * the preview-header checks, because no page rendered the two panes. S2 moved Color › Palettes, the opening
@@ -391,6 +420,13 @@
  * #2180 ADDS: in the plugin, Components' build bar stands at least `space.300` (the stacked-card gap, resolved from the
  * emission) above the Activity drawer, at 1280 and 380, the drawer closed and open, at three scroll positions.
  * Mutation: `.p3-buildbar`'s `bottom` back to 0 → `#2180: figma 1280, drawer closed, at the top: the build bar stands …`.
+ *
+ * #2208 ADDS (owner decision DB1 A): Brand › Modes' always-on Light row (`mode-on-light`) draws Prism3's disabled check
+ * box, and `X4 A derived` reads it: no dashed edge, its box on `disabled.fill`, a solid `disabled.border` and the mark
+ * on `disabled.on-fill` (oracle: the committed emission), and it stays a fixed fact (a div, its words unchanged).
+ * Mutation: the dashed rule back → `X4 A derived: web light: no disabled chrome control, and not the fixed Light row
+ * (mode-on-light, read true), draws a dashed edge (439 read) — brand mode-on-light: …` and `… DB1 A: the fixed Light
+ * row's box draws Prism3's disabled check box: …` (8 failures).
  */
 import { createServer } from 'node:http';
 import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -457,9 +493,61 @@ const PRISM3_DISABLED = (() => {
     const m = /^\{(.+)\}$/.exec(v);
     return m ? hex(tree, m[1], seen + 1) : v.toLowerCase();
   };
-  const skin = (tree) => ({ fill: hex(tree, `${root}.color.disabled.fill`), edge: hex(tree, `${root}.color.disabled.border`), ink: hex(tree, `${root}.color.disabled.on-fill`) });
+  // X4 A adds the two roles the button definitions bind and the text field does not: `disabled.text` and `disabled.icon`.
+  const skin = (tree) => ({ fill: hex(tree, `${root}.color.disabled.fill`), edge: hex(tree, `${root}.color.disabled.border`), ink: hex(tree, `${root}.color.disabled.on-fill`),
+    text: hex(tree, `${root}.color.disabled.text`), icon: hex(tree, `${root}.color.disabled.icon`) });
   return { light: skin(base), dark: skin(dark) };
 })();
+/**
+ * THE DISABLED SKIN PER APPEARANCE (owner decision X4 A, 2026-10-05, #2155). What Prism3 draws for a disabled control
+ * of each appearance the chrome uses, typed here from the engine's definitions and resolved through `PRISM3_DISABLED`,
+ * never read from the studio's CSS or `chrome/spec.mjs` (docs/34). `none` is a paint that draws nothing (no fill, no
+ * edge on any side).
+ *   · field (`text-field.ts`): the disabled fill, a solid `disabled.border` edge, the on-fill ink.
+ *   · filled (`button.ts` `filled`, also Discard's `button-destructive`, whose disabled block is the same): the disabled
+ *     fill and the on-fill ink for its label and glyph (#784); `filled` keys no border, so no edge.
+ *   · outline (`button.ts` `outline`, the chrome's page-colored button): no fill (outline keys none at rest), a solid
+ *     edge on `disabled.icon` (#1349), the label on `disabled.text`, the glyph on `disabled.icon`.
+ *   · text (`button.ts` `text`, `icon-button.ts` `ghost`: the chrome's ghost buttons and the edgeless mode check): no
+ *     fill, no edge, the label on `disabled.text`, the glyph on `disabled.icon`.
+ * Which appearance a control has is read from its element and classes. That only picks which skin to expect; the
+ * exemption itself is granted only by `:disabled` or `aria-disabled="true"` (`offOf` in PROBE).
+ */
+const DISABLED_APPEARANCE = (o) => {
+  if (['input', 'select', 'textarea'].includes(o.tag)) return 'field';
+  const c = new Set(o.cls.split(/\s+/));
+  if (['p3-btn-primary', 'p3-next', 'p3-btn-danger'].some((k) => c.has(k))) return 'filled';
+  if (['p3-btn-ghost', 'p3-check'].some((k) => c.has(k))) return 'text';
+  return 'outline';
+};
+const DISABLED_SKIN = (appearance, scheme) => {
+  const d = PRISM3_DISABLED[scheme];
+  if (!d) return null;
+  return {
+    field: { fill: d.fill, edge: d.edge, ink: d.ink, glyph: d.ink, roles: 'fill color.disabled.fill, a solid edge color.disabled.border, ink color.disabled.on-fill' },
+    filled: { fill: d.fill, edge: 'none', ink: d.ink, glyph: d.ink, roles: 'fill color.disabled.fill, no edge, label and glyph color.disabled.on-fill' },
+    outline: { fill: 'none', edge: d.icon, ink: d.text, glyph: d.icon, roles: 'no fill, a solid edge color.disabled.icon, label color.disabled.text, glyph color.disabled.icon' },
+    text: { fill: 'none', edge: 'none', ink: d.text, glyph: d.icon, roles: 'no fill, no edge, label color.disabled.text, glyph color.disabled.icon' },
+  }[appearance];
+};
+/** A computed color as `#rrggbb` when opaque, `none` when fully transparent, and the raw string otherwise. */
+const paintOf = (s) => {
+  const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim());
+  if (!m) return String(s);
+  const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
+  if (p.length > 3 && p[3] === 0) return 'none';
+  if (p.length > 3 && p[3] !== 1) return String(s);
+  return `#${p.slice(0, 3).map((x) => Math.round(x).toString(16).padStart(2, '0')).join('')}`;
+};
+/** What a control draws, from its computed fill, four edges ([color, style, width]) and ink: its fill, its edge (one
+ *  solid color on all four sides, `none` when no side draws, or what it draws otherwise) and its ink. */
+const drawnSkin = (o) => {
+  const sides = o.edges.filter(([c, st, wd]) => st !== 'none' && wd > 0 && paintOf(c) !== 'none');
+  const colors = [...new Set(sides.map(([c]) => paintOf(c)))];
+  const styles = [...new Set(sides.map(([, st]) => st))];
+  const edge = !sides.length ? 'none' : sides.length === 4 && colors.length === 1 && styles.join() === 'solid' ? colors[0] : `${sides.length} side(s) ${colors.join('/')} ${styles.join('/')}`;
+  return { fill: paintOf(o.fill), edge, ink: paintOf(o.ink) };
+};
 /** A computed `rgb(…)` as `#rrggbb`, or null when it is not opaque sRGB. */
 const hexOfRgb = (s) => {
   const m = /^rgba?\(([^)]+)\)$/.exec((s ?? '').trim());
@@ -787,6 +875,7 @@ const PROBE = (opt) => {
       if (i < 0) {
         const cs = getComputedStyle(n);
         i = offs.push({ node: n, el: label(n), hook: n.getAttribute('data-p3'), canary: n.hasAttribute('data-ccanary'),
+          tag: n.tagName.toLowerCase(), cls: n.getAttribute('class') ?? '',
           prop: n.disabled === true, aria: n.getAttribute('aria-disabled') === 'true',
           fill: cs.backgroundColor, ink: cs.color,
           edges: ['Top', 'Right', 'Bottom', 'Left'].map((side) => [cs[`border${side}Color`], cs[`border${side}Style`], parseFloat(cs[`border${side}Width`])]) }) - 1;
@@ -808,7 +897,8 @@ const PROBE = (opt) => {
     const g = groundOf(el);
     const px = parseFloat(cs.fontSize), weight = Number(cs.fontWeight);
     const large = px >= 24 || (px >= 18.66 && weight >= 700);
-    text.push({ el: label(el), r: fl(ratio(over(ink, g), g)), large, off: offOf(el) });
+    // X4 A: an off node's own ink rides along, so an exempted label is held to its appearance's ink, not only its control.
+    text.push({ el: label(el), r: fl(ratio(over(ink, g), g)), large, off: offOf(el), ink: cs.color, canary: !!el.closest('[data-ccanary]') });
     el.setAttribute('data-cprobe', cs.fontFamily.includes(opt.monoAlias) ? 'mono' : 'text');
   }
   // fields: the value a field draws, on its own fill
@@ -837,7 +927,7 @@ const PROBE = (opt) => {
       const c = parse(cs[`border${side}Color`], `${label(el)} border`);
       if (!c || c.a === 0) continue;
       // A tab's underline is drawn on the tab row; every other edge against what is outside the control.
-      edges.push({ el: label(el), side, r: fl(ratio(over(c, outside), outside)), off: offOf(el), canary: el.hasAttribute('data-ccanary') });
+      edges.push({ el: label(el), side, r: fl(ratio(over(c, outside), outside)), off: offOf(el), canary: !!el.closest('[data-ccanary]') });
     }
   }
   // glyphs
@@ -845,7 +935,7 @@ const PROBE = (opt) => {
   for (const svg of drawn.filter((n) => n.matches('svg.p3-ico'))) {
     const c = parse(getComputedStyle(svg).color, `${label(svg.parentElement)} glyph`);
     const g = groundOf(svg.parentElement);
-    if (c) glyphs.push({ el: `glyph in ${label(svg.parentElement)}`, r: fl(ratio(over(c, g), g)) });
+    if (c) glyphs.push({ el: `glyph in ${label(svg.parentElement)}`, r: fl(ratio(over(c, g), g)), off: offOf(svg), ink: getComputedStyle(svg).color, canary: !!svg.closest('[data-ccanary]') });
   }
   // shadows, on every chrome element and its pseudo-elements, drawn or not
   const shadows = [];
@@ -1037,15 +1127,17 @@ const exemptOf = (m) => {
   for (const t of m.text) if (t.off >= 0 && t.r < (t.large ? LARGE_TEXT_MIN : TEXT_MIN)) ids.add(t.off);
   for (const f of m.fields) if (f.off >= 0 && f.r < TEXT_MIN) ids.add(f.off);
   for (const e of m.edges) if (e.off >= 0 && e.r < NONTEXT_MIN) ids.add(e.off);
+  for (const g of m.glyphs) if (g.off >= 0 && g.r < NONTEXT_MIN) ids.add(g.off);
   return [...ids];
 };
 /** The exemption's first two conditions, read off the page for the off control `data-coff="i"`: what the browser's
- *  accessibility tree says (CDP, not the DOM predicate that granted it), whether it takes focus, and whether a
- *  scripted edit (focus, then typing) changes its value or anything the page stores. */
+ *  accessibility tree says (CDP, not the DOM predicate that granted it), whether it takes focus, whether a scripted
+ *  edit (focus, then typing) changes its value or anything the page stores, and whether a click on it changes
+ *  anything: the control itself, what the page stores, the place shown, which windows and menus are open (X4 A). */
 const holdsOff = async (page, i) => {
   const sel = `[data-coff="${i}"]`;
   const cdp = await page.context().newCDPSession(page);
-  let ax = null;
+  let ax = null, inert = null;
   try {
     await cdp.send('DOM.enable');
     await cdp.send('Accessibility.enable');
@@ -1053,87 +1145,125 @@ const holdsOff = async (page, i) => {
     const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel });
     const { nodes } = await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false });
     ax = nodes[0]?.properties?.find((p) => p.name === 'disabled')?.value?.value === true;
+    // A control under an open window (S12's guard over the start) is inert: the tree drops it, which is more than
+    // disabled, so it reports no disabled property. Read from the tree's own reasons, not the DOM.
+    inert = nodes[0]?.ignored === true && (nodes[0]?.ignoredReasons ?? []).some((r) => /inert/i.test(r.name));
   } finally { await cdp.detach(); }
   const read = (x) => page.evaluate((x) => {
     const n = document.querySelector(x);
     return { value: n?.value ?? null, text: n?.textContent ?? null, store: JSON.stringify(Object.entries(localStorage)) };
+  }, x);
+  const world = (x) => page.evaluate((x) => {
+    const n = document.querySelector(x);
+    const open = [...document.querySelectorAll('[role="dialog"], [role="menu"], [role="listbox"], [data-p3="step-picker"], [data-p3="value-picker"]')]
+      .filter((d) => d.getClientRects().length).map((d) => d.getAttribute('data-p3') ?? d.getAttribute('role'));
+    return JSON.stringify({ control: n?.outerHTML.replace(/ data-c(?:off|probe)="[^"]*"/g, '') ?? null, store: Object.entries(localStorage),
+      place: document.querySelector('[data-p3="frame"]')?.dataset.place ?? null, open });
   }, x);
   const before = await read(sel);
   const focused = await page.evaluate((x) => { const n = document.querySelector(x); document.activeElement?.blur?.(); n?.focus(); return !!n && document.activeElement === n; }, sel);
   await page.locator(sel).pressSequentially('7', { timeout: 1000 }).catch(() => {});
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   const after = await read(sel);
-  return { ax, focused, changed: JSON.stringify(before) !== JSON.stringify(after) };
+  const w0 = await world(sel);
+  // Activation as the platform performs it (`HTMLElement.prototype.click`, which Enter and Space also reach), in the
+  // page rather than a Playwright click: a pointer would land on whatever is on top (S12's guard over Import). A
+  // native disabled control ignores it, so it tests what an `aria-disabled` one's own handler does.
+  await page.evaluate((x) => { const n = document.querySelector(x); if (n) HTMLElement.prototype.click.call(n); }, sel);
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const w1 = await world(sel);
+  return { ax, inert, focused, changed: JSON.stringify(before) !== JSON.stringify(after), clicked: w0 !== w1 };
 };
-/** THE EXEMPTION'S CANARY (F1 A): beside the disabled field, plant a copy that is NOT disabled but keeps its class,
- *  its hook and, inline, the exact colors it draws; probe; remove it. The copy must be measured and must fail its
- *  floor without being exempted, so an exemption widened to a class name or a hook fails here by name. */
-const exemptionCanary = async (page) => {
-  const planted = await page.evaluate(() => {
-    const src = document.querySelector('[data-p3="bp-row"] input:disabled');
-    if (!src) return false;
-    const cs = getComputedStyle(src);
-    const c = src.cloneNode(true);
-    c.disabled = false;
-    c.removeAttribute('id');
-    c.setAttribute('data-ccanary', '');
-    for (const p of ['background-color', 'color', 'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color']) c.style.setProperty(p, cs.getPropertyValue(p));
-    src.after(c);
-    return true;
-  });
-  const m = planted ? await page.evaluate(PROBE, { legacyPages: LEGACY_PAGES, kinds: CONTROL_KINDS, inspectLegacy: INSPECT_LEGACY, monoAlias: MONO_ALIAS }) : null;
+/** THE EXEMPTION'S CANARY (F1 A, X4 A, #2174): beside the real disabled control `sel`, plant a copy that is NOT
+ *  disabled (no `disabled`, no `aria-disabled`) and carries, inline, EVERY computed style of the real control and of
+ *  each element inside it, so only `:disabled` / `aria-disabled` tells them apart; probe; remove it. It keeps the
+ *  class and the hook too. The copy must be measured and must fail its floor without being exempted, so an
+ *  exemption keyed on a class, a hook, a color or any other computed style (`cursor: not-allowed`) fails here by name. */
+const PLANT_CANARY = (sel) => {
+  // What a copy may differ in and still be a lookalike: the size its place in the row gives it (and the origins that
+  // follow from that size), a shorthand that serializes differently from the same longhands, and a non-standard one.
+  const CANARY_LAYOUT = new Set(['width', 'height', 'inline-size', 'block-size', 'transform-origin', 'perspective-origin', 'text-decoration', 'app-region']);
+  const src = document.querySelector(sel);
+  if (!src) return { planted: false };
+  const c = src.cloneNode(true);
+  const from = [src, ...src.querySelectorAll('*')], to = [c, ...c.querySelectorAll('*')];
+  from.forEach((n, i) => { const cs = getComputedStyle(n); for (const p of cs) to[i].style.setProperty(p, cs.getPropertyValue(p)); });
+  c.disabled = false;
+  for (const a of ['disabled', 'aria-disabled', 'id', 'data-coff', 'data-cprobe']) c.removeAttribute(a);
+  c.setAttribute('data-ccanary', '');
+  src.after(c);
+  const a = getComputedStyle(src), b = getComputedStyle(c);
+  const differ = [...a].filter((p) => !CANARY_LAYOUT.has(p) && a.getPropertyValue(p) !== b.getPropertyValue(p));
+  return { planted: true, live: !c.matches(':disabled') && c.getAttribute('aria-disabled') !== 'true', differ: differ.slice(0, 6) };
+};
+const exemptionCanary = async (page, sel = '[data-p3="bp-row"] input:disabled') => {
+  const p = await page.evaluate(PLANT_CANARY, sel);
+  const m = p.planted ? await page.evaluate(PROBE, { legacyPages: LEGACY_PAGES, kinds: CONTROL_KINDS, inspectLegacy: INSPECT_LEGACY, monoAlias: MONO_ALIAS }) : null;
   await page.evaluate(() => { for (const n of document.querySelectorAll('[data-ccanary]')) n.remove(); for (const n of document.querySelectorAll('[data-coff]')) n.removeAttribute('data-coff'); });
-  const f = m?.fields.find((x) => x.canary);
-  return { planted, measured: !!f, r: f?.r ?? null, exempted: f ? exemptOf(m).includes(f.off) : null };
+  // What the canary drew that has a floor: its value (a field), its text (a button), its edges and its glyphs.
+  const nodes = m ? [...m.fields.filter((x) => x.canary).map((x) => ({ ...x, floor: TEXT_MIN })), ...m.text.filter((x) => x.canary).map((x) => ({ ...x, floor: x.large ? LARGE_TEXT_MIN : TEXT_MIN })),
+    ...m.edges.filter((x) => x.canary).map((x) => ({ ...x, floor: NONTEXT_MIN })), ...m.glyphs.filter((x) => x.canary).map((x) => ({ ...x, floor: NONTEXT_MIN }))] : [];
+  const ex = m ? new Set(exemptOf(m)) : new Set();
+  return { planted: p.planted, live: p.live ?? null, differ: p.differ ?? null, measured: nodes.length, r: nodes.length ? Math.min(...nodes.map((x) => x.r)) : null,
+    under: nodes.filter((x) => x.r < x.floor).length, exempted: nodes.filter((x) => x.off >= 0 && ex.has(x.off)).length };
 };
+/** The canary's verdict: planted live with no computed style apart from the real control, measured, under its floor,
+ *  and exempted nowhere. */
+const canaryHolds = (c) => c.planted && c.live && c.differ?.length === 0 && c.measured > 0 && c.under > 0 && c.exempted === 0;
 const measure = async (page, where, host, w) => {
   await holdSpin(page, true);
   const m = await page.evaluate(PROBE, { legacyPages: LEGACY_PAGES, kinds: CONTROL_KINDS, inspectLegacy: INSPECT_LEGACY, monoAlias: MONO_ALIAS });
   const fonts = await fontsDrawn(page);
   const exempt = [];
-  for (const i of exemptOf(m)) exempt.push({ ...m.offs[i], ...(await holdsOff(page, i)) });
+  for (const i of exemptOf(m)) exempt.push({ i, ...m.offs[i], ...(await holdsOff(page, i)) });
   await page.evaluate(() => { for (const n of document.querySelectorAll('[data-coff]')) n.removeAttribute('data-coff'); });
   await holdSpin(page, false);
   return { ...m, fonts, exempt };
 };
 
 /**
- * THE CONTRAST EXEMPTION (owner decision F1 A, 2026-10-05). WCAG 2.2 exempts a user interface component that is not
- * available for user interaction from SC 1.4.3 (text, 4.5:1) and SC 1.4.11 (non-text, 3:1): an inactive control.
- * The owner decided that a disabled text field in the chrome takes Prism3's own disabled skin exactly, which sits
- * under both floors on purpose (about 3.05:1 text and 1.8:1 edge). So the audit exempts a node from its floor only when:
+ * THE CONTRAST EXEMPTION (owner decisions F1 A and X4 A, 2026-10-05). WCAG 2.2 exempts a user interface component
+ * that is not available for user interaction from SC 1.4.3 (text, 4.5:1) and SC 1.4.11 (non-text, 3:1): an inactive
+ * control. The owner decided that a disabled text field (F1 A) and a disabled button (X4 A, #2155) in the chrome take
+ * Prism3's own disabled skin exactly, which sits under the floors on purpose (about 3.05:1 field text and 1.8:1 field
+ * edge; about 3.9:1 and 3.4:1 button labels, light and dark). So the audit exempts a node from its floor only when:
  *
  *   · it is REALLY DISABLED: the node is, or sits inside, a control that is `:disabled` or `aria-disabled="true"`
- *     (`offOf` in PROBE). Never a class name, a hook or a marker the page sets for the test: the canary in section 2
- *     plants a non-disabled field with the same class, hook and colors, and it must fail its floor.
+ *     (`offOf` in PROBE). Never a class name, a hook, a color, a cursor or a marker the page sets for the test: the
+ *     canaries (section 2's field, S12's Import) plant a non-disabled copy carrying every computed style of the real
+ *     control, and it must fail its floor (#2174).
  *
  * and every node it exempts is still asserted, by name, to be:
  *
  *   1. disabled to assistive technology: the browser's accessibility tree (CDP `getPartialAXTree`) reports it
- *      disabled, and it carries the `disabled` property or `aria-disabled`;
- *   2. neither focusable nor editable: `focus()` does not take, and a scripted edit (focus, then typing) changes
- *      nothing, its value or anything the page stores. So an `aria-disabled` control that keeps its focus stop does
- *      not qualify;
- *   3. drawn in the Prism3 disabled roles for the chrome theme: fill `color.disabled.fill`, every edge
- *      `color.disabled.border` (solid), and ink `color.disabled.on-fill`, read from the committed emission
- *      (`PRISM3_DISABLED`), never from the studio's CSS or `chrome/spec.mjs` (docs/34).
+ *      disabled, or drops it as inert (under an open window), and it carries the `disabled` property or `aria-disabled`;
+ *   2. inert: a scripted edit (focus, then typing) changes nothing, a click changes nothing (the control, what the page
+ *      stores, the place, the open windows), and it takes no focus unless it is `aria-disabled` (the mode check, a
+ *      matrix check and a refused picker value keep their focus stop on purpose, so their reason is read);
+ *   3. drawn in the Prism3 disabled roles for its appearance and the chrome theme (`DISABLED_SKIN`): its fill, its
+ *      edge and its ink, and the ink of every label and glyph the audit exempted inside it, read from the committed
+ *      emission (`PRISM3_DISABLED`), never from the studio's CSS or `chrome/spec.mjs` (docs/34).
  *
- * Counted, not trusted: every probe's exemptions go to `EXEMPTIONS`, printed at the end of the run, and section 2
- * fails a Layout sweep that exempted nothing, since its first breakpoint field is disabled there by design (D13).
+ * Counted, not trusted: every probe's exemptions go to `EXEMPTIONS`, printed at the end of the run; section 2 fails a
+ * Layout sweep that exempted nothing, since its first breakpoint field is disabled there by design (D13), and S12
+ * fails a first run that did not exempt Import, disabled while the paste box is empty.
  */
 const checkExempt = (m, where) => {
   EXEMPTIONS.push([where, m.exempt.length, m.exempt.map((x) => x.hook ?? x.el)]);
-  const want = PRISM3_DISABLED[m.scheme];
-  ok(!m.exempt.length || !!want, `${where}: the chrome theme is light or dark, so the disabled oracle applies (color-scheme "${m.scheme}")`);
+  ok(!m.exempt.length || !!PRISM3_DISABLED[m.scheme], `${where}: the chrome theme is light or dark, so the disabled oracle applies (color-scheme "${m.scheme}")`);
   for (const x of m.exempt) {
-    ok(x.ax === true && (x.prop || x.aria),
-      `${where}: the exempted ${x.el} is disabled to assistive technology (accessibility tree disabled ${x.ax}, disabled property ${x.prop}, aria-disabled ${x.aria})`);
-    ok(!x.focused && !x.changed, `${where}: the exempted ${x.el} cannot be focused or edited (took focus ${x.focused}, a scripted edit changed ${x.changed ? 'something' : 'nothing'})`);
+    ok((x.ax === true || x.inert === true) && (x.prop || x.aria),
+      `${where}: the exempted ${x.el} is disabled to assistive technology (accessibility tree disabled ${x.ax}, inert ${x.inert}, disabled property ${x.prop}, aria-disabled ${x.aria})`);
+    ok((!x.focused || x.aria) && !x.changed && !x.clicked,
+      `${where}: the exempted ${x.el} is inert: no focus unless aria-disabled, no edit, no click (took focus ${x.focused}, a scripted edit changed ${x.changed ? 'something' : 'nothing'}, a click changed ${x.clicked ? 'something' : 'nothing'})`);
+    const appearance = DISABLED_APPEARANCE(x);
+    const want = DISABLED_SKIN(appearance, m.scheme);
     if (!want) continue;
-    const edges = x.edges.filter(([, style, width]) => style !== 'none' && width > 0);
-    const got = { fill: hexOfRgb(x.fill), edge: [...new Set(edges.map(([c]) => hexOfRgb(c)))].join(' '), ink: hexOfRgb(x.ink), styles: [...new Set(edges.map(([, st]) => st))].join(' ') };
-    ok(got.fill === want.fill && got.edge === want.edge && edges.length === 4 && got.styles === 'solid' && got.ink === want.ink,
-      `${where}: the exempted ${x.el} draws Prism3's disabled roles for ${m.scheme}: fill color.disabled.fill ${want.fill}, a solid edge color.disabled.border ${want.edge}, ink color.disabled.on-fill ${want.ink} (drew ${JSON.stringify(got)})`);
+    const got = drawnSkin(x);
+    const labels = [...new Set(m.text.filter((t) => t.off === x.i).map((t) => paintOf(t.ink)))];
+    const marks = [...new Set(m.glyphs.filter((g) => g.off === x.i).map((g) => paintOf(g.ink)))];
+    ok(got.fill === want.fill && got.edge === want.edge && got.ink === want.ink && labels.every((c) => c === want.ink) && marks.every((c) => c === want.glyph),
+      `${where}: the exempted ${x.el} draws Prism3's disabled ${appearance} roles for ${m.scheme}: ${want.roles} (want fill ${want.fill}, edge ${want.edge}, ink ${want.ink}, glyph ${want.glyph}; drew ${JSON.stringify({ ...got, labels, glyphs: marks })})`);
   }
 };
 
@@ -1192,7 +1322,7 @@ const check = (m, where, column, floor = FLOORS[column], { state = 'page', extra
   // THE CONTRAST EXEMPTION: every node it exempted is still held to all three of its conditions.
   checkExempt(m, where);
   ok(m.glyphs.length >= floor.glyphs, `${where}: measured ${m.glyphs.length} glyphs (floor ${floor.glyphs})`);
-  const faint = m.glyphs.filter((g) => g.r < NONTEXT_MIN);
+  const faint = m.glyphs.filter((g) => g.r < NONTEXT_MIN && g.off < 0);
   ok(faint.length === 0, `${where}: every glyph clears ${NONTEXT_MIN}:1${faint.length ? ` — ${faint.slice(0, 4).map((g) => `${g.el} ${g.r}:1`).join(' | ')}` : ''}`);
   // fonts
   ok(m.fonts.length >= floor.fonts, `${where}: read the drawn fonts of ${m.fonts.length} chrome text elements (floor ${floor.fonts})`);
@@ -1347,8 +1477,8 @@ for (const host of ['web', 'figma']) {
         ok(m.exempt.length >= 1 && m.exempt.some((x) => x.hook === 'bp-input'),
           `${where}: the contrast audit exempted ${m.exempt.length} disabled node(s), Layout's first breakpoint field among them (floor 1) — ${JSON.stringify(m.exempt.map((x) => x.el))}`);
         const c = await exemptionCanary(page);
-        ok(c.planted && c.measured && c.exempted === false && c.r < TEXT_MIN,
-          `${where}: the exemption canary, a field with the disabled field's class, hook and colors that is not disabled, is not exempted and fails ${TEXT_MIN}:1 — ${JSON.stringify(c)}`);
+        ok(canaryHolds(c),
+          `${where}: the exemption canary, a field with every computed style of the disabled field (its class and hook too) that is not disabled, is not exempted and fails its floor — ${JSON.stringify(c)}`);
       }
     }
     ok(errors.length === 0, `${host} ${theme} places: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
@@ -1853,7 +1983,7 @@ console.log(`\nActivity, the Figma menu and the Agent chip (S1.4)\n${'='.repeat(
 const COLLAPSE_MS = 4000;
 /** The Figma menu's items, by hook suffix and label: today's labels (the bar's two controls, the file-setup
  *  button) and concept v6's two option-first items. Literal. */
-const FIGMA_ITEMS = [['apply', APPLY_LABEL], ['prune', 'Prune stale'], ['file-setup', 'Set up file'], ['build', 'Build set…'], ['style-guide', 'Style guide…']];
+const FIGMA_ITEMS = [['apply', APPLY_LABEL], ['prune', 'Prune stale'], ['file-setup', 'Set up file'], ['build', 'Build set…'], ['style-guide', 'Build style guides…']];
 /** Each item's hook, spelled out so the hook guard reads every one. */
 const FIGMA_OPTION = { apply: '[data-p3="figma-option-apply"]', prune: '[data-p3="figma-option-prune"]', 'file-setup': '[data-p3="figma-option-file-setup"]',
   build: '[data-p3="figma-option-build"]', 'style-guide': '[data-p3="figma-option-style-guide"]' };
@@ -1861,7 +1991,7 @@ const FIGMA_OPTION = { apply: '[data-p3="figma-option-apply"]', prune: '[data-p3
  *  control posted), or where it opens: a legacy page (Style guide…), or since S8.2 a tab (Build set… opens the
  *  Components tab, owner decision G2 A, where the set is chosen and built). Typed here from
  *  `apps/plugin/src/messages.ts`'s names and the tab's hook. */
-const FIGMA_EFFECT = { apply: ['apply-theme'], prune: ['prune:false'], 'file-setup': ['file-setup'], build: { tab: 'components' }, 'style-guide': { page: 'style-guide' } };
+const FIGMA_EFFECT = { apply: ['apply-theme'], prune: ['prune:false'], 'file-setup': ['file-setup'], build: { tab: 'components' }, 'style-guide': { menuPage: 'style-guides' } };
 /** The Figma menu's Prune item while each half of a prune runs (`figmaActions` in main.ts). Literal. */
 const PRUNE_LABEL = { preview: '… Checking…', delete: '… Removing…' };
 /** The drawer's note, per host: concept v6's plugin line, and the studio's own. Literal. */
@@ -2190,9 +2320,11 @@ for (const host of ['web', 'figma']) {
         // that operation's row, expanded (S11). It discloses nothing in place any more. RE-HOSTED IN S8.2: Set up file
         // has no page row now (its one control is the Figma menu's, G8 A) and a build's result is the Components
         // tab's per-set line, so the one page row left with a verdict is the Style guide's, which the menu's Style
-        // guide… item opens without writing (asserted below). A style guide that failed, as the host posts it:
-        await openFigma(page);
-        await hooks.click(page.locator(FIGMA_OPTION['style-guide']), WAIT);
+        // guide… item opens without writing (asserted below). Since S11.2 that item opens the Build style guides page, and
+        // the legacy page with this row is reached from the Pages menu until the cleanup (H12). A style guide that failed,
+        // as the host posts it:
+        await hooks.click(page.locator('[data-p3="pages-menu"]'), WAIT);
+        await hooks.click(page.locator('[data-p3="rail-page-style-guide"]'), WAIT);
         await page.waitForFunction(() => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage === 'style-guide', null, { timeout: 5000 }).catch(() => {});
         await takePosts(page);
         const sgBad = { type: 'style-guide-result', ok: false, headline: '✗ style guide failed', summary: 'style guide failed: the cell components Set up file adds are missing' };
@@ -2228,14 +2360,17 @@ for (const host of ['web', 'figma']) {
           await hooks.click(page.locator(FIGMA_OPTION[id]), WAIT);
           const want = FIGMA_EFFECT[id];
           if (want.tab) await page.waitForFunction((t) => document.querySelector('[data-p3="frame"]')?.dataset.place === t, want.tab, { timeout: 5000 }).catch(() => {});
+          else if (want.menuPage) await page.waitForFunction(() => !!document.querySelector('[data-p3="style-guides"]'), null, { timeout: 5000 }).catch(() => {});
           else await page.waitForFunction((p) => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage === p, want.page, { timeout: 5000 }).catch(() => {});
           const g = await menuState(page);
           const at = await page.evaluate(() => ({ place: document.querySelector('[data-p3="frame"]')?.dataset.place ?? null,
             selected: document.querySelector('[data-p3^="tab-"][aria-selected="true"]')?.getAttribute('data-p3') ?? null,
-            sets: !!document.querySelector('[data-p3="components-build"]') }));
+            sets: !!document.querySelector('[data-p3="components-build"]'),
+            menuPage: document.querySelector('[data-p3="frame"]')?.dataset.layout === 'page' && !!document.querySelector('[data-p3="style-guides"]') }));
           const px = await takePosts(page);
-          const landed = want.tab ? at.place === want.tab && at.selected === `tab-${want.tab}` && g.page === undefined && at.sets : g.page === want.page;
-          ok(landed && px.length === 0, `Figma menu ${where}: ${FIGMA_ITEMS.find(([x]) => x === id)[1]} opens the ${want.tab ? `${want.tab} tab` : `${want.page} page`} and writes nothing — ${landed ? '' : 'nothing opened: '}place "${at.place}", tab ${at.selected}, legacy page "${g.page}", Build control ${at.sets}, posted ${JSON.stringify(px)}`);
+          const landed = want.tab ? at.place === want.tab && at.selected === `tab-${want.tab}` && g.page === undefined && at.sets
+            : want.menuPage ? at.menuPage && at.selected === null : g.page === want.page;
+          ok(landed && px.length === 0, `Figma menu ${where}: ${FIGMA_ITEMS.find(([x]) => x === id)[1]} opens the ${want.tab ? `${want.tab} tab` : `${want.page ?? want.menuPage} page`} and writes nothing — ${landed ? '' : 'nothing opened: '}place "${at.place}", tab ${at.selected}, legacy page "${g.page}", Build control ${at.sets}, posted ${JSON.stringify(px)}`);
         }
         // The bar's own Apply runs the same write the menu's item does.
         await hooks.click(page.locator('[data-p3="apply-to-figma"]'), WAIT);
@@ -7786,6 +7921,23 @@ const FOCUS_SWEEP_NEEDS = {
 };
 /** The focused controls photographed for review when a screenshot directory is given: [hook, file name part]. */
 const FOCUS_SHOTS = [['palettes-continue', 'continue'], ['density-choice-comfortable', 'chip'], ['brand-name', 'text-field'], ['tab-color', 'tab']];
+/** The Build style guides page in the sweep (S11.2): a small file, typed here, with one table of each kind, so every
+ *  option group draws; and the page's own controls the sweep must reach, its switch and its title box's fold. */
+const SG_RING_CATALOG = {
+  setUp: true,
+  collections: [
+    { id: 'C:core', name: 'core', modes: ['Default'], items: [{ name: 'pds3/core/palette/primary/100', table: 0, value: '#E0E0FF' }, { name: 'pds3/core/dimension/4', table: 1, value: '4px' }, { name: 'pds3/core/font/size/16', table: 2, value: '16px' }] },
+    { id: 'text-styles', name: 'Text styles', modes: [], textStyles: true, items: [{ name: 'body/md', table: 3, value: '' }] },
+  ],
+  tables: [
+    { key: 'color|C:core|pds3/core/palette/primary', title: 'Primary', kind: 'color', page: 'Primitive tokens', rows: 1 },
+    { key: 'dimension|C:core|pds3/core/dimension', title: 'Dimension', kind: 'dimension', page: 'Primitive tokens', rows: 1 },
+    { key: 'fontSize|C:core|pds3/core/font/size', title: 'Font size', kind: 'font', page: 'Primitive tokens', rows: 1 },
+    { key: 'typography|text-styles|body', title: 'Text styles', kind: 'text', page: 'Semantic tokens', rows: 1 },
+  ],
+  notes: [],
+};
+const SG_RING_NEEDS = ['[data-p3="sg-opt-aliases"]', '[data-p3="sg-titles-summary"]', '[data-p3="sg-draw"]', '[data-p3="sg-close"]'];
 let focusSwept = 0;
 for (const host of ['web', 'figma']) {
   let hostTotal = 0;
@@ -7819,6 +7971,27 @@ for (const host of ['web', 'figma']) {
         }
         hostTotal += rings.length;
         focusSwept += rings.length;
+      }
+      // The plugin's Build style guides page (S11.2; review of #2171), which no tab shows: its switch, its title box's
+      // fold and every other control on it, with a catalog posted so the tree and every option group are drawn.
+      if (host === 'figma') {
+        await openFigma(page);
+        await hooks.click(page.locator('[data-p3="figma-option-style-guide"]'), WAIT);
+        await hooks.need(page, '[data-p3="style-guides"]');
+        await postMsg(page, { type: 'style-guide-catalog', catalog: SG_RING_CATALOG });
+        await settle(page);
+        const rings = await focusRings(page, { all: true, max: 600, skipIn: FOCUS_SWEEP_SKIP });
+        counts.push(`build style guides ${rings.length}`);
+        ok(rings.length >= FOCUS_PLACE_FLOOR, `${where} / build style guides: the sweep read ${rings.length} chrome focus rings (floor ${FOCUS_PLACE_FLOOR})`);
+        for (const r of rings) {
+          reached.add(r.hook);
+          const miss = ringMisses(r, r.pinnedLight ? 'light' : theme);
+          if (miss.length) bad.push({ r: { ...r, hook: `build style guides ${r.hook}` }, miss });
+          lows.focus = Math.min(lows.focus, r.r);
+        }
+        hostTotal += rings.length;
+        focusSwept += rings.length;
+        for (const want of SG_RING_NEEDS) ok(reached.has(hooks.role(want)), `${where}: the sweep reaches ${want} on the Build style guides page and reads its ring`);
       }
       console.log(`  ${where}: ${counts.join(', ')}`);
       ok(bad.length === 0, `${where}: every focused chrome control draws its ring in ${FOCUS_RING_TOKEN} (${FOCUS_HEX[theme]}), at least ${FOCUS_WIDTH_MIN}px wide, ${FOCUS_OFFSET}px outside, at ${NONTEXT_MIN}:1${bad.length ? ` — ${bad.length} miss: ${ringReport(bad)}` : ''}`);
@@ -7973,6 +8146,14 @@ for (const { w, h } of START_SIZES) {
         const m = await measure(page, `${where} / start`, host, w);
         check(m, `${where} / start`, columnOf(host, w), w <= 560 ? INSPECT_NARROW_FLOOR : PLACE_FLOOR,
           { only: ['[data-p3="start-go"]', '[data-p3="start-hex"]', '[data-p3="start-example"]', '[data-p3="start-blank"]', '[data-p3="start-upload"]', '[data-p3="start-import"]'] });
+        // X4 A: Import is disabled while the paste box is empty, in Prism3's disabled outline button, under the text
+        // floor on purpose; this probe must exempt it. Then the button canary: a live copy of Import carrying every
+        // computed style of the disabled one, which must fail its floor unexempted (#2174).
+        ok(m.exempt.some((x) => x.hook === 'start-import'),
+          `${where} / start: the contrast audit exempted the disabled Import button (floor 1) — exempted ${JSON.stringify(m.exempt.map((x) => x.el))}`);
+        const bc = await exemptionCanary(page, '[data-p3="start-import"]:disabled');
+        ok(canaryHolds(bc),
+          `${where} / start: the exemption canary, a button with every computed style of the disabled Import (its class and hook too) that is not disabled, is not exempted and fails its floor — ${JSON.stringify(bc)}`);
         // Focus stays in the window, and every stop draws a ring.
         const rings = await focusRings(page);
         const ringHooks = new Set(rings.map((r) => r.hook));
@@ -8208,6 +8389,277 @@ for (const host of ['web', 'figma']) {
 }
 
 // =============================================================================================
+// X4 A (#2155) and Q28 a (#2154): a disabled button is Prism3's disabled button; no disabled control answers hover
+// =============================================================================================
+console.log(`\nX4 A, Q28 a — disabled buttons in Prism3's skin; no hover on a disabled control\n${'='.repeat(78)}`);
+/** What a control draws, read off the page: its fill, four edges and ink, the ink of every label and glyph inside it,
+ *  every dashed or dotted edge on it or inside it, and the colors and edges of it and everything inside it (so a hover
+ *  that moves any of them shows). Runs in the page. */
+const DISABLED_READ = (sel) => {
+  const n = document.querySelector(sel);
+  if (!n) return null;
+  const cs = getComputedStyle(n);
+  const inside = [n, ...n.querySelectorAll('*')];
+  const drawn = (e) => e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
+  const side = ['Top', 'Right', 'Bottom', 'Left'];
+  return {
+    tag: n.tagName.toLowerCase(), cls: n.getAttribute('class') ?? '', hook: n.getAttribute('data-p3'),
+    off: n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true',
+    fill: cs.backgroundColor, ink: cs.color, edges: side.map((x) => [cs[`border${x}Color`], cs[`border${x}Style`], parseFloat(cs[`border${x}Width`])]),
+    labels: inside.filter((e) => drawn(e) && !e.closest('svg') && [...e.childNodes].some((t) => t.nodeType === 3 && t.textContent.trim())).map((e) => getComputedStyle(e).color),
+    glyphs: [...n.querySelectorAll('svg.p3-ico')].filter(drawn).map((g) => getComputedStyle(g).color),
+    // A dashed or dotted side that draws: some width, a color that is not fully transparent, on a drawn element.
+    dashed: inside.flatMap((e) => { const c = getComputedStyle(e); return side.filter((x) => ['dashed', 'dotted'].includes(c[`border${x}Style`]) && parseFloat(c[`border${x}Width`]) > 0
+      && !/^rgba\([^)]*,\s*0\)$|^transparent$/.test(c[`border${x}Color`]) && drawn(e)).map((x) => `${e.getAttribute('class') ?? e.tagName} ${x.toLowerCase()} ${c[`border${x}Style`]}`); }),
+    look: JSON.stringify(inside.map((e) => { const c = getComputedStyle(e); return [c.backgroundColor, c.color, ...side.map((x) => `${c[`border${x}Color`]} ${c[`border${x}Style`]}`), c.outlineStyle, c.boxShadow]; })),
+  };
+};
+/** Turn a control off or on the way the chrome does for its kind: native `disabled`, `aria-disabled`, or (a color
+ *  field, which is a group) every field inside it. Returns whether it was off before, so the caller can put it back. */
+const SET_OFF = ([sel, form, on]) => {
+  const n = document.querySelector(sel);
+  if (!n) return null;
+  const was = n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true' || [...n.querySelectorAll('input')].some((x) => x.disabled);
+  if (form === 'native') n.disabled = on;
+  else if (form === 'aria') { if (on) n.setAttribute('aria-disabled', 'true'); else n.removeAttribute('aria-disabled'); }
+  else for (const x of n.querySelectorAll('input')) x.disabled = on;
+  return was;
+};
+const hoverLook = async (page, sel) => {
+  await page.mouse.move(1, 1);
+  const rest = await page.evaluate(DISABLED_READ, sel);
+  await page.locator(sel).hover({ force: true, timeout: 3000 });
+  const hovered = await page.evaluate(DISABLED_READ, sel);
+  await page.mouse.move(1, 1);
+  return { rest, hovered, moved: rest?.look !== hovered?.look };
+};
+/** One verdict line on a disabled button's skin against `DISABLED_SKIN`, read for the chrome theme drawn. */
+const skinVerdict = (r, scheme) => {
+  const appearance = DISABLED_APPEARANCE(r);
+  const want = DISABLED_SKIN(appearance, scheme);
+  const got = drawnSkin(r);
+  const labels = [...new Set(r.labels.map(paintOf))], glyphs = [...new Set(r.glyphs.map(paintOf))];
+  const pass = !!want && got.fill === want.fill && got.edge === want.edge && got.ink === want.ink && labels.every((c) => c === want.ink) && glyphs.every((c) => c === want.glyph);
+  return { appearance, want, pass, drew: { ...got, labels, glyphs } };
+};
+
+// 1. Every appearance the chrome uses, on both hosts and in both chrome themes, read on a real control: Import (outline,
+// disabled by the app while the paste box is empty), Start from this color (filled), Close (text) and the search
+// glyph (text, an icon button), and the guard's Discard (destructive, filled). The others are switched off here the
+// way the app switches a button off (`disabled`). Each must draw exactly its appearance's Prism3 disabled roles, no
+// dashed edge, and nothing on hover; switched back on, the same control answers hover (the control arm). With a
+// screenshot directory, each is saved as `2155-{web,plugin}-{light,dark}-{appearance}.png`.
+const X4_SHOT = async (page, sel, name) => {
+  if (!SHOTS) return;
+  const box = await page.locator(sel).boundingBox();
+  if (box) await page.screenshot({ path: join(SHOTS, `${name}.png`), clip: { x: Math.max(0, box.x - 12), y: Math.max(0, box.y - 12), width: box.width + 24, height: box.height + 24 } });
+};
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const where = `X4 A: ${host} ${theme}`;
+    const tag = `2155-${host === 'web' ? 'web' : 'plugin'}-${theme}`;
+    const { ctx, page, errors } = await openFirstRun({ host, theme, w: 1280, h: 900 });
+    try {
+      const scheme = await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
+      const seen = [];
+      const one = async (label, sel, natural) => {
+        await hooks.need(page, sel);
+        await page.locator(sel).scrollIntoViewIfNeeded();
+        const was = natural ? null : await page.evaluate(SET_OFF, [sel, 'native', true]);
+        const off = await hoverLook(page, sel);
+        const r = off.rest;
+        const v = skinVerdict(r, scheme);
+        seen.push(v.appearance);
+        ok(r.off && (natural ? r.tag === 'button' : was === false),
+          `${where}: ${label} (${r.hook}) is a ${natural ? 'button the app disabled' : 'button switched off here'} (off ${r.off}${natural ? '' : `, off before ${was}`})`);
+        ok(v.pass, `${where}: the disabled ${label} (${r.hook}) draws Prism3's disabled ${v.appearance} button: ${v.want?.roles} (want fill ${v.want?.fill}, edge ${v.want?.edge}, ink ${v.want?.ink}, glyph ${v.want?.glyph}; drew ${JSON.stringify(v.drew)})`);
+        ok(r.dashed.length === 0, `${where}: the disabled ${label} (${r.hook}) draws no dashed edge${r.dashed.length ? ` — ${r.dashed.join(', ')}` : ''}`);
+        ok(!off.moved, `${where}: a pointer over the disabled ${label} (${r.hook}) changes nothing (Q28 a)`);
+        await X4_SHOT(page, sel, `${tag}-${v.appearance === 'filled' && /danger/.test(r.cls) ? 'destructive' : v.appearance}${/search/.test(r.hook ?? '') ? '-icon' : ''}`);
+        await page.evaluate(SET_OFF, [sel, 'native', false]);
+        const on = await hoverLook(page, sel);
+        ok(!on.rest.off && on.moved, `${where}: control: ${label} (${r.hook}) switched on answers hover, so the probe sees a hover`);
+        if (natural) await page.evaluate(SET_OFF, [sel, 'native', true]);
+      };
+      await one('Import', '[data-p3="start-import"]', true);
+      await one('Start from this color', '[data-p3="start-go"]', false);
+      // Load the example, make one edit, and reopen the start: Close is drawn, and an example now asks first.
+      await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: 'prism3' }));
+      await hooks.need(page, '[data-p3="palettes-levers"]');
+      await goPlace(page, 'brand');
+      await page.fill('[data-p3="brand-name"]', 'prism3-edited');
+      await page.locator('[data-p3="brand-name"]').press('Enter');
+      await one('search', '[data-p3="search-open"]', false);
+      await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+      await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
+      await hooks.need(page, '[data-p3="start-screen"]');
+      await one('Close', '[data-p3="start-close"]', false);
+      await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: 'aurora' }));
+      await hooks.need(page, '[data-p3="start-guard-discard"]');
+      await one('Discard', '[data-p3="start-guard-discard"]', false);
+      ok(['outline', 'filled', 'text'].every((a) => seen.includes(a)) && seen.length === 5,
+        `${where}: every appearance the chrome uses was read disabled: outline, filled (twice, Discard among them) and text — read ${JSON.stringify(seen)}`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+}
+
+// 2. Q28 a: one control of each kind the chrome draws, switched off the way the app switches that kind off, changes
+// nothing under the pointer: no color, no edge, no fill, on itself or anything inside it, and it draws no dashed
+// edge. Switched back on, the same control answers hover (the control arm, which proves the probe sees a hover). Both
+// hosts, both chrome themes. The kinds are found on the page, the first one drawn and not chosen; a kind not found
+// fails by name.
+const HOVER_KINDS = [
+  ['button', '.p3-btn.p3-btn-page:not(.p3-chip, .p3-check, .p3-switch, .p3-mcheck, .p3-next, .p3-btn-ghost, .p3-pick, .p3-addrow)', 'native'],
+  ['picker button', '.p3-btn.p3-pick:not([aria-expanded="true"], [data-set="true"])', 'native'],
+  ['filled button', '.p3-btn.p3-next', 'native'],
+  ['ghost button', '.p3-btn.p3-btn-ghost:not(.p3-info, .p3-deplink)', 'native'],
+  ['add row', '.p3-btn.p3-addrow', 'native'],
+  ['chip', '.p3-btn.p3-chip:not([aria-pressed="true"])', 'native'],
+  ['check', '.p3-btn.p3-check:not([aria-checked="true"])', 'aria'],
+  ['matrix check', '.p3-btn.p3-mcheck:not([aria-checked="true"])', 'aria'],
+  ['switch', '.p3-btn.p3-switch', 'native'],
+  ['segmented tab', '[data-p3="levers-pane"] .p3-seg-tab:not([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"])', 'native'],
+  ['select', '[data-p3="levers-pane"] .p3-select', 'native'],
+  ['color field', '.p3-colorfield', 'inner'],
+  ['text field', '.p3-text-input:not(:disabled)', 'native'],
+  ['picker step', '.p3-step:not([aria-pressed="true"])', 'native'],
+  ['picker value', '.p3-vpick:not([aria-pressed="true"], [aria-disabled="true"])', 'aria'],
+];
+/** Mark the first drawn, enabled control matching `sel` with `data-chover`, and say whether one was found. */
+const MARK_KIND = (sel) => {
+  for (const n of document.querySelectorAll('[data-chover]')) n.removeAttribute('data-chover');
+  const n = [...document.querySelectorAll(sel)].find((x) => x.getClientRects().length && !x.closest('[inert], [data-content]')
+    && !x.matches(':disabled') && x.getAttribute('aria-disabled') !== 'true' && ![...x.querySelectorAll('input')].some((i) => i.disabled));
+  if (!n) return false;
+  n.setAttribute('data-chover', '');
+  return true;
+};
+// Where each kind is drawn: the places, and a step that opens what a place hides (Type's advanced sections, a value
+// picker on Layout, a step picker on Surfaces & fills).
+const HOVER_TOUR = [
+  ['brand', null],
+  ['color-palettes', null],
+  ['layout', async (page) => { await hooks.click(page.locator('[data-p3="levers-pane"] .p3-btn.p3-pick').first()); await hooks.need(page, '[data-p3="value-picker"]'); }],
+  ['type', openTypeAdvanced],
+  ['color-fills', async (page) => { await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="fill-pick"]').first()); await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]'); }],
+];
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const where = `Q28 a: ${host} ${theme}`;
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    try {
+      const done = new Set();
+      for (const [place, reveal] of HOVER_TOUR) {
+        await goPlace(page, place);
+        if (reveal) await reveal(page).catch(() => {});
+        for (const [kind, sel, form] of HOVER_KINDS) {
+          if (done.has(kind) || !(await page.evaluate(MARK_KIND, sel))) continue;
+          done.add(kind);
+          const m = '[data-chover]';
+          await page.locator(m).scrollIntoViewIfNeeded();
+          const on = await hoverLook(page, m);
+          await page.evaluate(SET_OFF, [m, form, true]);
+          const off = await hoverLook(page, m);
+          await page.evaluate(SET_OFF, [m, form, false]);
+          ok(on.moved, `${where}: control: an enabled ${kind} (${on.rest?.hook ?? on.rest?.cls}, on ${place}) answers hover, so the probe sees a hover`);
+          ok(off.rest?.off === true || form === 'inner', `${where}: the ${kind} (${off.rest?.hook ?? off.rest?.cls}) is off for the hover read (${form})`);
+          ok(!off.moved, `${where}: a pointer over a disabled ${kind} (${off.rest?.hook ?? off.rest?.cls}, on ${place}) changes nothing (Q28 a)`);
+          ok(off.rest?.dashed.length === 0, `${where}: a disabled ${kind} (${off.rest?.hook ?? off.rest?.cls}) draws no dashed edge${off.rest?.dashed.length ? ` — ${off.rest.dashed.join(', ')}` : ''}`);
+          if (/\bp3-(btn|vpick)\b/.test(off.rest?.cls ?? '')) {
+            const scheme = await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
+            const v = skinVerdict(off.rest, scheme);
+            ok(v.pass, `${where}: a disabled ${kind} (${off.rest.hook ?? off.rest.cls}) draws Prism3's disabled ${v.appearance} button: ${v.want?.roles} (drew ${JSON.stringify(v.drew)})`);
+          }
+          await page.evaluate(() => { for (const n of document.querySelectorAll('[data-chover]')) n.removeAttribute('data-chover'); });
+        }
+      }
+      const missing = HOVER_KINDS.map(([k]) => k).filter((k) => !done.has(k));
+      ok(missing.length === 0, `${where}: every control kind was hovered off and on (${done.size} of ${HOVER_KINDS.length})${missing.length ? ` — not found: ${missing.join(', ')}` : ''}`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+}
+
+// 3. Every control a derived mode switches off, on every place, on both hosts and in both chrome themes: no dashed
+// edge on any of them (#2155: no chrome control draws a dashed edge to mean disabled), and every disabled button draws
+// its appearance's Prism3 disabled roles. Counted, with a floor, so a sweep that found no disabled button fails.
+const DERIVED_OFF_FLOOR = 100;
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const where = `X4 A derived: ${host} ${theme}`;
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    try {
+      await showMode(page, 'hc-light');
+      const scheme = await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
+      let buttons = 0, controls = 0;
+      const bad = [], dashed = [];
+      for (const place of ['color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components']) {
+        await goPlace(page, place);
+        if (place === 'type') await openTypeAdvanced(page).catch(() => {});
+        const n = await page.evaluate(() => {
+          const offs = [...document.querySelectorAll('[data-p3="frame"] :is(button, select, input, textarea, [role="switch"], [role="checkbox"], [role="radio"])')]
+            .filter((x) => x.getClientRects().length && (x.matches(':disabled') || x.getAttribute('aria-disabled') === 'true') && x.getAttribute('aria-busy') !== 'true' && !x.closest('[data-content]'));
+          offs.forEach((x, i) => x.setAttribute('data-cderived', String(i)));
+          return offs.length;
+        });
+        for (let i = 0; i < n; i++) {
+          const r = await page.evaluate(DISABLED_READ, `[data-cderived="${i}"]`);
+          if (!r) continue;
+          controls++;
+          if (r.dashed.length) dashed.push(`${place} ${r.hook ?? r.cls}: ${r.dashed.join(', ')}`);
+          if (!/\bp3-(btn|vpick)\b/.test(r.cls)) continue;
+          buttons++;
+          const v = skinVerdict(r, scheme);
+          if (!v.pass) bad.push(`${place} ${r.hook ?? r.cls} (${v.appearance}): ${JSON.stringify(v.drew)}`);
+        }
+        await page.evaluate(() => { for (const x of document.querySelectorAll('[data-cderived]')) x.removeAttribute('data-cderived'); });
+      }
+      // DB1 A (#2208): Brand › Modes' always-on Light row is a fixed fact, not a control, and it draws the same
+      // "can't change" look: the sweep reads it too, and its box is held to Prism3's disabled check box below.
+      await goPlace(page, 'brand');
+      const LIGHT_ROW = '[data-p3="levers-pane"] [data-p3="mode-on-light"]';
+      const fixed = await page.evaluate(DISABLED_READ, LIGHT_ROW);
+      if (fixed) { controls++; if (fixed.dashed.length) dashed.push(`brand ${fixed.hook}: ${fixed.dashed.join(', ')}`); }
+      console.log(`  ${where}: ${controls} disabled controls read, ${buttons} of them buttons`);
+      ok(buttons >= DERIVED_OFF_FLOOR, `${where}: HC light switched off ${buttons} chrome buttons across the places (floor ${DERIVED_OFF_FLOOR})`);
+      ok(bad.length === 0, `${where}: every disabled chrome button draws its appearance's Prism3 disabled roles (${buttons} read)${bad.length ? ` — ${bad.slice(0, 4).join(' | ')}` : ''}`);
+      ok(!!fixed && dashed.length === 0, `${where}: no disabled chrome control, and not the fixed Light row (mode-on-light, read ${!!fixed}), draws a dashed edge (${controls} read)${dashed.length ? ` — ${dashed.slice(0, 4).join(' | ')}` : ''}`);
+      // The fixed Light row's box against the emission's disabled check box roles (`PRISM3_DISABLED`, resolved from the
+      // committed emission, never from the studio's CSS): fill `disabled.fill`, a solid `disabled.border` edge on all
+      // four sides, the check mark drawn in `disabled.on-fill`. It stays a fixed fact with its words: a `div` that is
+      // no control and takes no focus, its box hidden from assistive tech, its text the literal below.
+      const box = await page.evaluate((sel) => {
+        const r = document.querySelector(sel), b = r?.querySelector('.p3-check-box'), m = b?.querySelector('svg.p3-ico');
+        if (!b) return null;
+        const c = getComputedStyle(b), side = ['Top', 'Right', 'Bottom', 'Left'];
+        return { fill: c.backgroundColor, edges: side.map((x) => [c[`border${x}Color`], c[`border${x}Style`], parseFloat(c[`border${x}Width`])]),
+          mark: m && m.getClientRects().length ? getComputedStyle(m).color : null, tag: r.tagName.toLowerCase(), role: r.getAttribute('role'),
+          tabindex: r.getAttribute('tabindex'), boxHidden: b.getAttribute('aria-hidden'), text: r.textContent };
+      }, LIGHT_ROW);
+      const want = PRISM3_DISABLED[scheme];
+      const got = box && { ...drawnSkin({ fill: box.fill, edges: box.edges, ink: box.mark }) };
+      ok(!!box && !!want && got.fill === want.fill && got.edge === want.edge && got.ink === want.ink,
+        `${where}: DB1 A: the fixed Light row's box draws Prism3's disabled check box: fill color.disabled.fill ${want?.fill}, a solid edge color.disabled.border ${want?.edge}, the mark on color.disabled.on-fill ${want?.ink} — drew ${JSON.stringify(got)}`);
+      ok(!!box && box.tag === 'div' && box.role === null && box.tabindex === null && box.boxHidden === 'true'
+        && box.text === 'LightAlways generated: it\u2019s the base mode.',
+        `${where}: DB1 A: the fixed Light row stays a fixed fact that says Light is always on (a div, no role, no tabindex, box aria-hidden, "Light" + "Always generated: it’s the base mode.") — read ${JSON.stringify(box && { tag: box.tag, role: box.role, tabindex: box.tabindex, boxHidden: box.boxHidden, text: box.text })}`);
+      if (SHOTS) {
+        const at = await page.locator(LIGHT_ROW).locator('xpath=..').boundingBox();
+        if (at) await page.screenshot({ path: join(SHOTS, `2208-${host === 'web' ? 'web' : 'plugin'}-${theme}-modes.png`), clip: { x: Math.max(0, at.x - 16), y: Math.max(0, at.y - 48), width: at.width + 32, height: at.height + 64 } });
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+}
+
+// =============================================================================================
 // 29. #2175 (owner decision PN1 B, 2026-10-05): Pinned is the third neutral source on Color › Palettes
 // =============================================================================================
 // "Pinned" sits beside "Follow primary" and "Custom tint" in the Neutrals section; exactly one is selected, and Pinned is
@@ -8352,12 +8804,348 @@ for (const host of ['web', 'figma']) {
   }
 }
 
+// =============================================================================================
+// 30. The heading rule (heading pass 1 of 2, TY2 A, approved 2026-10-06): three levels on every page, both hosts, both
+//     themes, at 1280 and 380, each level's size, weight, line height and space after held to the chrome tokens' EMITTED values
+// =============================================================================================
+// L1 section title: fs-16 / fw-strong / lh-compact / ls-snug; its description space-050 under it, its content space-300
+// after the head. L2 group heading (a lever's name, a row list's sub-heading, an Interactive group's title, a Grid
+// breakpoint's name): fs-14 / fw-strong / lh-compact; its content space-150 after its row, or space-050 when what follows
+// is the lever's own one-line description. L3 field label: fs-14 / fw-emphasis / lh-compact, in color.text.primary; its
+// control space-050 after it. Table headers are not a level, and keep fs-12. The ⓘ is only ever a button: it keeps its
+// hit-min target, sits space-050 after the heading text, centered on the line, and does not set the row's height; and no
+// hint line draws a glyph (HP3).
+//
+// THE SWEEP (the review of #2210): the audit's list says what each page must show, and it cannot fail on a heading it does
+// not name. So every element in the levers pane that is a heading by its tag or role (h1–h6, legend, [role="heading"]),
+// and every text drawn at fw-strong or fs-16 and up outside a control, must be one of the levels (or a table header), or
+// sit in HEADING_EXEMPT with its reason; and no heading tag skips a level after the one before it.
+//
+// INDEPENDENCE (docs/34). The elements are found by class or hook, each literal here, never by the CSS's own selectors.
+// The expected values are the EMISSION's: each chrome token the rule names is mapped, by a literal in this file, to its
+// emitted path in the committed `packages/engine/out/prism3.tokens.json` (and its dark overlay, for the ink), and resolved
+// here by this file's own alias walk; not from `chrome.css`, not from `chrome/tokens.mjs`'s map, and not through its
+// `resolve`. The headings each page must show are the audit's per-page list (scratch audit of 2026-10-05, prism3, every
+// Show advanced opened), typed here; the counts are literal floors, so a sweep that finds fewer fails naming its count.
+//
+// Mutations, each failing by name (heading pass 1), measured on the built bundles:
+//   · an L2 back at fw-default (`.p3-lever-name`'s weight on `--p3-fw-default`) →
+//     `TY2 A web light 1280 / brand: L2 "Brand name" (lever name) fw 400, want fw-strong 600` (232 failures, every host and theme).
+//   · the space after an L2 back to 4px (the head's `padding-block-end` turned into a `space-050` pull-up, the legend's to
+//     `space-050`) → `TY2 A web light 1280 / brand: L2 "Brand name" (lever name) space after 4, want space-150 12` (232).
+//   · one hint line's glyph put back (Components' web sets hint, `glyph('info')` prepended) →
+//     `HP3 TY2 A web light 1280 / components (light): hint line components-sets-web draws a glyph — …` and
+//     `… a non-button ⓘ glyph is drawn — components-sets-web: …` (8: the web host, both themes, Light and High contrast light).
+//   · the ⓘ's overhang back on the button's own `1lh` (the narrow tier's ⓘ is ctl-h-xs tall) →
+//     `TY2 A web light 380 / color-palettes: L2 "Primary brand color" (lever name) its row is 19 tall, its line 17.5: …`
+//     (196, every one at 380, none at 1280).
+//   · a stray `h4.p3-rogue` added to Components' Density →
+//     `TY2 A web light 1280 / components: every heading in the levers pane is one of the three levels or a table header —
+//     not covered: h4.p3-rogue "Density sets" (a heading element) | … (drawn 14px / 700)` (16, with the space after Density).
+//   · a row list's sub-heading drawn as an h5 → `… / color-fills: no heading skips a level after the one before it —
+//     h3.p3-lsec-title "Foreground" h3 then h5.p3-rows-sub "Inverse" h5 | …` (8).
+console.log(`\nThe heading rule (TY2 A, heading pass 1)\n${'='.repeat(78)}`);
+/** The chrome tokens the rule names, each to its emitted path (a literal map, typed from `chrome/tokens.mjs`'s rows on
+ *  2026-10-06; deliberately not imported, so the build's map and this oracle stay two derivations). */
+const HEADING_TOKEN_PATHS = {
+  'fs-12': 'core.font.size.12', 'fs-14': 'core.font.size.14', 'fs-16': 'core.font.size.16',
+  'fw-default': 'core.font.weight-role.default', 'fw-emphasis': 'core.font.weight-role.emphasis', 'fw-strong': 'core.font.weight-role.strong',
+  'lh-compact': 'core.font.line-height-role.compact', 'ls-snug': 'core.font.letter-spacing-role.snug',
+  'space-050': 'space.050', 'space-150': 'space.150', 'space-300': 'space.300', 'hit-min': 'core.dimension.24',
+  text: 'color.text.primary', 'text-2': 'color.text.secondary',
+};
+/** The rem the emission's dimensions are written in: the browser's default root size, which the chrome does not change. */
+const ROOT_PX = 16;
+const HT = (() => {
+  const out = join(REPO, 'packages', 'engine', 'out');
+  const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
+  const dark = JSON.parse(readFileSync(join(out, 'prism3.dark.overlay.tokens.json'), 'utf8'));
+  const root = base.$extensions?.prism3?.root;
+  const at = (tree, path) => path.split('.').reduce((n, k) => (n && typeof n === 'object' ? n[k] : undefined), tree);
+  const walk = (mode, path, hops = 0) => {
+    const o = mode === 'dark' ? at(dark, path) : undefined;
+    const v = (o?.$value !== undefined ? o : at(base, path))?.$value;
+    const m = typeof v === 'string' && /^\{([^}]+)\}$/.exec(v);
+    return m && hops < 16 ? walk(mode, m[1], hops + 1) : v;
+  };
+  const num = (name) => {
+    const v = walk('light', `${root}.${HEADING_TOKEN_PATHS[name]}`);
+    if (typeof v === 'number') return v;
+    const m = /^(-?[\d.]+)(px|rem|em)?$/.exec(String(v ?? ''));
+    if (!m) throw new Error(`TY2 A: ${name} (${HEADING_TOKEN_PATHS[name]}) resolves to ${JSON.stringify(v)} in the emission, not a number`);
+    if (m[2] === 'em') return { em: Number(m[1]) };
+    return Number(m[1]) * (m[2] === 'rem' ? ROOT_PX : 1);
+  };
+  const t = Object.fromEntries(Object.keys(HEADING_TOKEN_PATHS).filter((k) => !k.startsWith('text')).map((k) => [k, num(k)]));
+  const ink = (name, mode) => { const v = walk(mode, `${root}.${HEADING_TOKEN_PATHS[name]}`); return typeof v === 'string' ? v.toLowerCase() : null; };
+  return { ...t, ink: { text: { light: ink('text', 'light'), dark: ink('text', 'dark') }, 'text-2': { light: ink('text-2', 'light'), dark: ink('text-2', 'dark') } } };
+})();
+ok(HT['fs-14'] === 14 && HT['fs-16'] === 16 && HT['fw-strong'] === 600 && HT['fw-emphasis'] === 500 && HT['fw-default'] === 400
+  && HT['lh-compact'] === 1.25 && HT['space-150'] === 12 && HT['hit-min'] >= 24 && Object.values(HT.ink).every((m) => /^#[0-9a-f]{6}$/.test(m.light ?? '') && /^#[0-9a-f]{6}$/.test(m.dark ?? '') && m.light !== m.dark),
+  `TY2 A: the oracle resolved the rule's chrome tokens from the emission (${JSON.stringify(HT)})`);
+/** Each level's type, as chrome tokens. */
+const LEVEL_TYPE = {
+  L1: { fs: 'fs-16', fw: 'fw-strong', ls: 'ls-snug' },
+  L2: { fs: 'fs-14', fw: 'fw-strong' },
+  L3: { fs: 'fs-14', fw: 'fw-emphasis', ink: 'text' },
+  TH: { fs: 'fs-12', fw: 'fw-emphasis', ink: 'text-2' },
+};
+/** The headings each page must show, by level (the audit's list, prism3, every Show advanced open). Text is matched
+ *  from its start, so a value carried in a label ("Angle · 135°") does not tie the list to one brand's value. */
+const EXPECT_HEADINGS = {
+  brand: {
+    L1: ['Identity', 'Personality', 'Modes'],
+    L2: ['Brand name', 'Token namespace', 'Personality words', 'Modes on', 'Custom modes'],
+  },
+  'color-palettes': {
+    // #2175 (PN1 B) folded the Pinned neutral section and its Pin a neutral lever into Neutrals' source choice.
+    L1: ['Primary', 'Brand colors', 'Neutrals', 'Status colors'],
+    L2: ['Primary brand color', 'Additional brand colors', 'Neutral hue', 'Neutral chroma', 'Success color', 'Warning color', 'Danger color', 'Info color'],
+  },
+  'color-fills': {
+    L1: ['Background fills', 'Scrim', 'Foreground', 'Foreground fills', 'Text color', 'Border', 'Icon', 'Fields', 'Gradients'],
+    L2: ['Background fills', 'Icon contrast floor', 'Gradients', 'Default background fills', 'Inverse background fills', 'Inverse', 'Inverse', 'Inverse', 'Inverse', 'Inverse'],
+    L3: ['Inverse fill palette', 'Kind', 'Angle', 'Interpolation', 'Stops', 'Kind', 'Shape', 'Center X %', 'Center Y %', 'Interpolation', 'Stops'],
+  },
+  'color-interactive': {
+    L1: ['Interactive', 'Disabled', 'Links'],
+    L2: ['Action palette', 'Outline hover', 'Strict interactive contrast', 'Interactive palettes', 'Full contrast', 'Reduced contrast floor', 'Link palette', 'Link states', 'Primary', 'Neutral', 'Destructive'],
+    // Held decision 7, approved: a lever inside a group (Neutral emphasis, inside Neutral) reads as a field.
+    L3: ['Neutral emphasis', 'Hover', 'Pressed', 'Visited'],
+  },
+  type: {
+    L1: ['Font families', 'Scale', 'Scale limits', 'Weights and styles', 'Line height and letter spacing'],
+    L2: ['Typeface library', 'Font family for each text type', 'Type scale', 'Individual sizes', 'Headings scale between mobile and desktop', 'Largest display size',
+      'Smallest title size', 'Smallest caption size', 'Smallest type size', 'Weights', 'Weights each text type ships', 'Italic styles', 'Pin a font style', 'Line height',
+      'Letter spacing', 'One step looser or tighter'],
+    L3: ['Set every text type to', 'Min viewport, px', 'Max viewport, px'],
+    TH: ['Family', 'Text type', 'Text type', 'Line height', 'Letter spacing', 'Desktop', 'Mobile'],
+  },
+  shape: {
+    L1: ['Density', 'Radius', 'Base radius'],
+    L2: ['Density', 'Radius softness', 'Control shape', 'Base radius'],
+  },
+  depth: {
+    L1: ['Elevation', 'Motion'],
+    L2: ['Shadow softness', 'Shadow tint', 'Motion tempo', 'Easing per motion role'],
+    L3: ['Tint hue', 'Tint amount'],
+  },
+  layout: {
+    L1: ['Breakpoints', 'Grid', 'Containers'],
+    L2: ['Breakpoints', 'Grid columns', 'Maximum width', 'Content container', 'sm', 'md', 'lg', 'xl', '2xl'],
+  },
+  components: {
+    L1: ['Button', 'Component sets'],
+    L2: ['Density', 'Button icons', 'Button label & icon', 'Button label weight', 'Button minimum width'],
+  },
+};
+/** Each page's Show advanced disclosures, opened before the sweep so the advanced levers' headings are measured too. */
+const HEADING_ADVANCED = {
+  'color-palettes': ['[data-p3="palettes-advanced"]'], type: ['[data-p3="scale-advanced"]', '[data-p3="type-sections-advanced"]'],
+  shape: ['[data-p3="shape-advanced"]'], depth: ['[data-p3="depth-tint-advanced"]'],
+};
+/** Literal floors, under the counts measured when this landed (per host and theme, all nine pages): headings found, the
+ *  ⓘ buttons measured, the token labels (`.p3-fill-label`) typed, and the hint lines read in Light and High contrast light. */
+const HEADING_FLOOR = {
+  1280: { L1: 34, L2: 72, L3: 20, TH: 21, info: 54, tokenLabels: 288, hints: 16, swept: 80 },
+  380: { L1: 34, L2: 72, L3: 20, TH: 21, info: 54, tokenLabels: 288, hints: 16, swept: 80 },
+};
+/** Elements a sweep may find with a heading's tag or a heading's weight or size that are not one of the levels, each with
+ *  the reason it is not (a selector, then the reason; the reason is held to 20 characters or more). Empty when this landed:
+ *  every heading element and every heading-styled text in the levers pane was one of the three levels or a table header. */
+const HEADING_EXEMPT = [];
+ok(HEADING_EXEMPT.every(([sel, why]) => typeof sel === 'string' && sel && typeof why === 'string' && why.trim().length >= 20),
+  `TY2 A: every heading exemption names a selector and a reason of 20 characters or more (${JSON.stringify(HEADING_EXEMPT)})`);
+/** The space after a heading, read in the page: from the bottom of the heading's row content (its padding and border
+ *  excluded) to the top of the outermost box that starts below it and follows it in document order. Each level's row,
+ *  by class: an L2 lever name's is its head, a group title's is its head row, a breakpoint name's is its legend. */
+const HEADING_PROBE = ({ strong, big, exempt }) => {
+  const pane = document.querySelector('[data-p3="levers-pane"]');
+  const vis = (n) => { const cs = getComputedStyle(n); if (cs.display === 'none' || cs.visibility === 'hidden') return false; const r = n.getBoundingClientRect(); return r.width >= 1 && r.height >= 1 && !n.closest('[hidden]'); };
+  const r2 = (x) => Math.round(x * 100) / 100;
+  const own = (n) => [...n.childNodes].filter((c) => c.nodeType === 3).map((c) => c.textContent).join(' ').replace(/\s+/g, ' ').trim();
+  const LEAF = new Set(['INPUT', 'SELECT', 'BUTTON', 'TEXTAREA', 'CANVAS', 'IMG', 'svg']);
+  const leaves = [...pane.querySelectorAll('*')].filter(vis).filter((n) => own(n) || LEAF.has(n.tagName) || n.classList.contains('p3-fill-sw') || n.classList.contains('p3-gbar'));
+  const box = (el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return { top: r.top + parseFloat(cs.paddingTop) + parseFloat(cs.borderTopWidth), bottom: r.bottom - parseFloat(cs.paddingBottom) - parseFloat(cs.borderBottomWidth) }; };
+  const next = (row) => {
+    const b = box(row).bottom;
+    for (const n of leaves) {
+      if (row.contains(n) || n.contains(row) || !(row.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING)) continue;
+      const r = n.getBoundingClientRect();
+      if (r.top < b - 1) continue;
+      let top = r.top, el = n;
+      for (let a = n.parentElement; a && a !== pane && !a.contains(row); a = a.parentElement) { const ar = a.getBoundingClientRect(); if (ar.top >= b - 1 && ar.height > 0) { top = Math.min(top, ar.top); el = a; } else break; }
+      return { gap: r2(top - b), el, leaf: n };
+    }
+    return null;
+  };
+  const TABLE_HEADS = '.p3-facehead, .p3-tsizes-head, .p3-wmatrix-head, .p3-tnudge-head';
+  const found = [];
+  const classified = new Set();
+  const add = (level, n, kind, row) => {
+    classified.add(n); classified.add(row);
+    const cs = getComputedStyle(n);
+    const nx = next(row);
+    const desc = nx?.leaf.closest('.p3-sub');
+    const ownDesc = !!(desc && desc.parentElement?.matches('.p3-lever-ctl') && desc.parentElement.firstElementChild === desc && desc.closest('.p3-lever') === n.closest('.p3-lever'));
+    const rb = box(row);
+    found.push({ level, kind, text: n.textContent.replace(/\s+/g, ' ').trim(), fs: parseFloat(cs.fontSize), fw: Number(cs.fontWeight), lh: parseFloat(cs.lineHeight),
+      ls: parseFloat(cs.letterSpacing) || 0, color: cs.color, h: r2(n.getBoundingClientRect().height), rowH: r2(rb.bottom - rb.top),
+      after: nx ? nx.gap : null, toDesc: !!nx?.leaf.closest('.p3-lsec-desc'), ownDesc,
+      switchInRow: !!row.querySelector(':scope > .p3-switch') });
+  };
+  for (const n of pane.querySelectorAll('.p3-lsec-title')) if (vis(n)) add('L1', n, 'section title', n);
+  for (const n of pane.querySelectorAll('.p3-lever-name')) if (vis(n)) add(n.closest('.p3-icol') ? 'L3' : 'L2', n, n.closest('.p3-icol') ? 'lever name in a group' : 'lever name', n.closest('.p3-lever-head'));
+  for (const n of pane.querySelectorAll('.p3-rows-sub')) if (vis(n)) add('L2', n, 'rows sub-heading', n);
+  for (const n of pane.querySelectorAll('.p3-icol-title')) if (vis(n)) add('L2', n, 'group title', n.closest('.p3-icol-head'));
+  for (const n of pane.querySelectorAll('.p3-lgrid-name > b')) if (vis(n)) add('L2', n, 'breakpoint name', n.parentElement);
+  for (const n of pane.querySelectorAll('.p3-field-label')) if (vis(n)) { const th = !!n.closest(TABLE_HEADS); add(th ? 'TH' : 'L3', n, th ? 'table header' : 'field label', n.closest('.p3-slider-head') ?? n); }
+  const heads = [...pane.querySelectorAll('.p3-lsec-head')].filter(vis).map((hd) => { const nx = next(hd); return { title: hd.querySelector('.p3-lsec-title')?.textContent.trim(), after: nx ? nx.gap : null }; });
+  const tokenLabels = [...pane.querySelectorAll('.p3-fill-label')].filter(vis).map((n) => { const cs = getComputedStyle(n); return { text: n.textContent.trim(), fs: parseFloat(cs.fontSize), fw: Number(cs.fontWeight), lh: parseFloat(cs.lineHeight) }; });
+  const infos = [...pane.querySelectorAll('.p3-info')].filter(vis).map((b) => {
+    const r = b.getBoundingClientRect();
+    const head = b.closest('.p3-lever-head');
+    const name = head?.querySelector('.p3-lever-name');
+    const nr = name?.getBoundingClientRect();
+    return { label: b.getAttribute('aria-label'), w: r2(r.width), h: r2(r.height), inHead: !!name,
+      dx: nr ? r2(r.left - nr.right) : null, dy: nr ? r2((r.top + r.bottom) / 2 - (nr.top + nr.bottom) / 2) : null };
+  });
+  // THE SWEEP: every element that is a heading by its tag or role, and every text drawn at a heading's weight or size,
+  // must be one of the levels above (or exempted, with its reason). Controls draw their own labels and are not headings.
+  const isExempt = (n) => exempt.some((sel) => n.matches(sel));
+  const label = (n) => `${n.tagName.toLowerCase()}${[...n.classList].map((c) => `.${c}`).join('')} "${n.textContent.replace(/\s+/g, ' ').trim().slice(0, 40)}"`;
+  const headingEls = [...pane.querySelectorAll('h1, h2, h3, h4, h5, h6, legend, [role="heading"]')].filter(vis);
+  const unclassified = headingEls.filter((n) => !classified.has(n) && !isExempt(n)).map((n) => `${label(n)} (a heading element)`);
+  const CONTROLS = 'button, select, option, input, textarea, [role="radio"], [role="tab"], [role="switch"], [role="option"], [data-content]';
+  for (const n of pane.querySelectorAll('*')) {
+    if (!vis(n) || !own(n) || n.closest(CONTROLS) || classified.has(n) || isExempt(n)) continue;
+    const cs = getComputedStyle(n);
+    if (Number(cs.fontWeight) >= strong || parseFloat(cs.fontSize) >= big) unclassified.push(`${label(n)} (drawn ${cs.fontSize} / ${cs.fontWeight})`);
+  }
+  // The outline the tags draw: no heading skips a level after the one before it (h3 then h5 fails).
+  const ranked = headingEls.map((n) => [n, /^H([1-6])$/.exec(n.tagName)?.[1] ?? (n.getAttribute('role') === 'heading' ? n.getAttribute('aria-level') : null)]).filter(([, l]) => l).map(([n, l]) => [n, Number(l)]);
+  const skips = [];
+  for (let i = 1; i < ranked.length; i++) if (ranked[i][1] > ranked[i - 1][1] + 1) skips.push(`${label(ranked[i - 1][0])} h${ranked[i - 1][1]} then ${label(ranked[i][0])} h${ranked[i][1]}`);
+  return { found, heads, tokenLabels, infos, swept: headingEls.length, unclassified, skips };
+};
+/** The hint lines (`.p3-state-hint`) and every drawn ⓘ glyph outside a button, in the levers pane. The ⓘ glyph is known by
+ *  its drawing, typed here: a ring of radius 6.2 and a dot of radius 0.9 (`glyph('info')`). */
+const HINT_PROBE = () => {
+  const pane = document.querySelector('[data-p3="levers-pane"]');
+  const vis = (n) => n.getClientRects().length > 0 && getComputedStyle(n).visibility !== 'hidden' && !n.closest('[hidden]');
+  const hints = [...pane.querySelectorAll('.p3-state-hint')].filter(vis).map((n) => ({ hook: n.getAttribute('data-p3'), text: n.textContent.trim().slice(0, 60), glyphs: n.querySelectorAll('svg').length }));
+  const stray = [...pane.querySelectorAll('svg')].filter(vis).filter((s) => s.querySelector('circle[r="6.2"]') && s.querySelector('circle[r="0.9"]') && !s.closest('button'))
+    .map((s) => `${s.parentElement?.getAttribute('data-p3') ?? s.parentElement?.className}: "${(s.parentElement?.textContent ?? '').trim().slice(0, 50)}"`);
+  return { hints, stray };
+};
+const near = (a, b, tol = 0.5) => typeof a === 'number' && Math.abs(a - b) <= tol;
+const headingCounts = {};
+/** At the narrow tier the levers and the preview are one pane each, behind the pane toggle. */
+const showLevers = async (page, w) => { if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]')); };
+for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const where = `TY2 A ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h });
+    const tally = { L1: 0, L2: 0, L3: 0, TH: 0, info: 0, tokenLabels: 0, hints: 0, swept: 0 };
+    try {
+      if (w <= 560) await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
+      for (const place of NEW_PAGES) {
+        await goPlace(page, place);
+        await showLevers(page, w);
+        for (const sel of HEADING_ADVANCED[place] ?? []) {
+          await hooks.need(page, sel);
+          if ((await page.locator(sel).getAttribute('aria-expanded')) === 'false') await hooks.click(page.locator(sel));
+        }
+        await page.evaluate(() => document.fonts.ready);
+        const m = await page.evaluate(HEADING_PROBE, { strong: HT['fw-strong'], big: HT['fs-16'], exempt: HEADING_EXEMPT.map(([sel]) => sel) });
+        const at = `${where} / ${place}`;
+        tally.swept += m.swept;
+        ok(m.unclassified.length === 0, `${at}: every heading in the levers pane is one of the three levels or a table header — not covered: ${m.unclassified.join(' | ')}`);
+        ok(m.skips.length === 0, `${at}: no heading skips a level after the one before it — ${m.skips.join(' | ')}`);
+        // Every heading the audit lists, at its level.
+        for (const [level, want] of Object.entries(EXPECT_HEADINGS[place])) {
+          const pool = m.found.filter((f) => f.level === level).map((f) => f.text);
+          const missing = [];
+          for (const w of want) { const i = pool.findIndex((t) => t.startsWith(w)); if (i < 0) missing.push(w); else pool.splice(i, 1); }
+          ok(missing.length === 0, `${at}: every ${level} heading the audit lists is found at ${level} — missing ${JSON.stringify(missing)} (found ${JSON.stringify(m.found.filter((f) => f.level === level).map((f) => f.text))})`);
+        }
+        headingCounts[place] ??= {};
+        for (const f of m.found) {
+          tally[f.level]++;
+          headingCounts[place][f.level] = (headingCounts[place][f.level] ?? 0) + (host === 'web' && theme === 'light' && w === 1280 ? 1 : 0);
+          const ty = LEVEL_TYPE[f.level];
+          const name = `${f.level} "${f.text.slice(0, 40)}" (${f.kind})`;
+          const miss = [];
+          if (f.fs !== HT[ty.fs]) miss.push(`fs ${f.fs}, want ${ty.fs} ${HT[ty.fs]}`);
+          if (f.fw !== HT[ty.fw]) miss.push(`fw ${f.fw}, want ${ty.fw} ${HT[ty.fw]}`);
+          if (f.level !== 'TH' && !near(f.lh, HT[ty.fs] * HT['lh-compact'], 0.05)) miss.push(`line height ${f.lh}, want lh-compact ${HT[ty.fs] * HT['lh-compact']}`);
+          if (ty.ls && !near(f.ls, HT[ty.fs] * HT['ls-snug'].em, 0.05)) miss.push(`letter spacing ${f.ls}, want ls-snug ${HT[ty.fs] * HT['ls-snug'].em}`);
+          if (ty.ink && f.color !== startRgb(HT.ink[ty.ink][theme])) miss.push(`ink ${f.color}, want ${HEADING_TOKEN_PATHS[ty.ink]} ${HT.ink[ty.ink][theme]}`);
+          // The space after it.
+          if (f.level === 'L1') {
+            const want = f.toDesc ? 'space-050' : 'space-300';
+            if (!near(f.after, HT[want])) miss.push(`space after ${f.after}, want ${want} ${HT[want]}`);
+          } else if (f.level === 'L2') {
+            const want = f.ownDesc ? 'space-050' : 'space-150';
+            if (!near(f.after, HT[want])) miss.push(`space after ${f.after}, want ${want} ${HT[want]}${f.ownDesc ? ' (its own description)' : ''}`);
+            // The row is as tall as its line: the ⓘ overhangs it. (A switch still sets Gradients' row until HP5, PR 2.)
+            if (f.kind === 'lever name' && !f.switchInRow && !near(f.rowH, f.h)) miss.push(`its row is ${f.rowH} tall, its line ${f.h}: something in the row sets its height`);
+          } else if (f.level === 'L3' && (f.kind === 'field label' || f.kind === 'lever name in a group')) {
+            if (!near(f.after, HT['space-050'])) miss.push(`space after ${f.after}, want space-050 ${HT['space-050']}`);
+          }
+          ok(miss.length === 0, `${at}: ${name} ${miss.join('; ')}`);
+        }
+        for (const hd of m.heads) {
+          ok(near(hd.after, HT['space-300']), `${at}: section "${hd.title}": its content starts ${hd.after} after its head, want space-300 ${HT['space-300']}`);
+        }
+        // L3 token labels: the level's type (their token line sits under them, space-025, as before).
+        for (const t of m.tokenLabels) {
+          tally.tokenLabels++;
+          ok(t.fs === HT['fs-14'] && t.fw === HT['fw-emphasis'] && near(t.lh, HT['fs-14'] * HT['lh-compact'], 0.05),
+            `${at}: L3 token label "${t.text}" is fs-14 / fw-emphasis / lh-compact — ${t.fs} / ${t.fw} / ${t.lh}`);
+        }
+        // The ⓘ buttons: the hit-min target kept; in a lever's head, space-050 after the name and centered on its line.
+        for (const i of m.infos) {
+          tally.info++;
+          const miss = [];
+          if (!(i.w >= HT['hit-min'] && i.h >= HT['hit-min'])) miss.push(`target ${i.w} × ${i.h}, want hit-min ${HT['hit-min']} or more`);
+          if (i.inHead && !near(i.dx, HT['space-050'])) miss.push(`${i.dx} after the heading text, want space-050 ${HT['space-050']}`);
+          if (i.inHead && !near(i.dy, 0)) miss.push(`${i.dy} off the line's center`);
+          ok(miss.length === 0, `${at}: ⓘ "${i.label}" ${miss.join('; ')}`);
+        }
+        // HP3: no hint line draws a glyph, and no ⓘ glyph is drawn outside a button. Read in Light and again in High
+        // contrast light, where the derived-mode line shows on most pages.
+        for (const mode of ['light', 'hc-light']) {
+          if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+          await showMode(page, mode);
+          await showLevers(page, w);
+          const hp = await page.evaluate(HINT_PROBE);
+          tally.hints += hp.hints.length;
+          for (const hl of hp.hints) ok(hl.glyphs === 0, `HP3 ${at} (${mode}): hint line ${hl.hook ?? '(no hook)'} draws a glyph — "${hl.text}"`);
+          ok(hp.stray.length === 0, `HP3 ${at} (${mode}): a non-button ⓘ glyph is drawn — ${hp.stray.join(' | ')}`);
+        }
+        if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+        await showMode(page, 'light');
+        await showLevers(page, w);   // the narrow tab select is drawn only over the levers
+      }
+      console.log(`  ${where}: ${JSON.stringify(tally)}`);
+      for (const [k, floor] of Object.entries(HEADING_FLOOR[w])) {
+        ok(tally[k] >= floor, `${where}: the sweep measured ${tally[k]} ${k === 'info' ? 'ⓘ buttons' : k === 'hints' ? 'hint lines' : k === 'tokenLabels' ? 'token labels' : k === 'swept' ? 'heading elements' : `${k} headings`} across the nine pages (floor ${floor})`);
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+}
+console.log(`  headings per page (web light): ${Object.entries(headingCounts).map(([p, c]) => `${p} ${Object.entries(c).map(([l, n]) => `${l} ${n}`).join(' ')}`).join(' · ')}`);
+
 hooks.report(ok);
 // THE CONTRAST EXEMPTION, counted per run (F1 A): how many nodes the audit exempted, over how many probes, and where.
 {
   const hit = EXEMPTIONS.filter(([, n]) => n > 0);
   const total = hit.reduce((a, [, n]) => a + n, 0);
-  console.log(`\nContrast exemption (inactive controls, WCAG 2.2 SC 1.4.3 and 1.4.11; F1 A): ${total} node(s) exempted in ${hit.length} of ${EXEMPTIONS.length} probes.`);
+  console.log(`\nContrast exemption (inactive controls, WCAG 2.2 SC 1.4.3 and 1.4.11; F1 A, X4 A): ${total} node(s) exempted in ${hit.length} of ${EXEMPTIONS.length} probes.`);
   for (const [where, n, what] of hit) console.log(`  ${where}: ${n} — ${what.join(', ')}`);
 }
 console.log(`\nLowest chrome text ${lows.text}:1, lowest edge or indicator ${lows.edge}:1, lowest focus ring ${lows.focus}:1, smallest target ${lows.target.toFixed(1)}px.`);

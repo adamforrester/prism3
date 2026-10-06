@@ -334,7 +334,7 @@ section('one-run — a style guide asked for from one entry point while the othe
   type Verdict = { type?: string; ok?: boolean; headline?: string; summary?: string };
   const results_ = (): Verdict[] => posted.filter((m) => m.type === 'style-guide-result');
   // Main's run guard (#1957, `run-guard.ts`) is the one guard: its refusal and its words, for this operation.
-  const SG_BUSY = 'Style guide is already running. Try again when it finishes.';
+  const SG_BUSY = 'Style guides is already running. Try again when it finishes.';
   const sgRefusals = (agentFlag: boolean) => posted.filter((m) => m.type === 'refused' && m.agent === agentFlag);
   const isSgRefusal = (m: any, agentFlag: boolean) =>
     JSON.stringify(m) === JSON.stringify({ type: 'refused', code: 'busy', cmd: 'style-guide', agent: agentFlag, message: SG_BUSY });
