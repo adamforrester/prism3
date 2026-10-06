@@ -414,6 +414,18 @@ const LIST = CAT.tables.slice(0, 4).map((t) => ({ key: t.key, title: t.title, pa
   await until(page, "the redraw's verdict drawn", () => document.querySelector('[data-p3="sg-verdict"]')?.textContent === '✓ style guide: 1 table');
   st = await read(page);
   ok(JSON.stringify(st.tables) === JSON.stringify(['Primary:Done']) && st.verdict === '✓ style guide: 1 table', `P6: the redraw's run lists Primary alone, done (${JSON.stringify(st.tables)})`);
+  // D-RED A, decision (a) (#2124): a run stopped with NOTHING failed is not a failure, so Activity's dot stays green
+  // ('warn'), where call 11's run, with a failed table, is red ('bad'). The rule keys on the failed tables, not on
+  // `stopped` and not on ok:false.
+  await hooks.click(page.locator('[data-p3="sg-draw"]'));
+  await posted(page, 'style-guide', 3);
+  await post(page, { type: 'style-guide-tables', tables: [LIST[1]] });
+  await post(page, { type: 'style-guide-table', index: 0, status: 'drawing' });
+  await post(page, { type: 'style-guide-result', ok: false, headline: '⚠ 0 drawn, stopped', summary: 'Stopped after table 0 of 1. The tables already drawn stay', stopped: { done: 0, total: 1 } });
+  await until(page, 'the stopped run with nothing failed drawn', () => !!document.querySelector('[data-p3="sg-stopped"]'));
+  st = await read(page);
+  ok(st.dot === 'warn' && st.verdict === '⚠ 0 drawn, stopped',
+    `D-RED A: a stopped run with no failed table marks Activity green, not red (dot ${st.dot}, verdict "${st.verdict}")`);
   // The verdict pill opens Activity on the result, by hand.
   await hooks.click(page.locator('[data-p3="sg-verdict"]'));
   await until(page, 'Activity opened from the verdict pill', () => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true');

@@ -4,8 +4,8 @@
  *
  * WHAT IT DRAWS, from the page's sections in `shell/pages.ts`: the intro and jump links to each section (Q49);
  * **Background fills** (one set for the mode the preview shows, Q22, as rows in the Foreground rows' pattern since
- * S4f, QA-B1: under "Default background fills" Primary, Secondary, Tertiary and the contrast floor with its own info
- * text, QA-B3, QA-B6; under "Inverse background fills" the inverse fill's palette select, then Inverse primary,
+ * S4f, QA-B1: under "Default" Primary, Secondary, Tertiary and the contrast floor with its own info text, QA-B3,
+ * QA-B6; under "Inverse" the inverse fill's palette select, then Inverse primary,
  * secondary and tertiary; each row names its token, Q41, and opens the step picker, Q45); **Scrim** (S4f, QA-B10:
  * the scrim's read-only row, out of Background fills); **Foreground** (the neutral ladder,
  * page and inverse, Q44); **Foreground fills** (a row per fill: a small swatch, its name and role, and a button
@@ -15,8 +15,8 @@
  * (page and inverse, the focus rings read-only, #1966); **Icon** (the icon contrast lever's block, as Color ›
  * Interactive drew it, holding the note and the button that unpairs icons, Q50, or pairs them again, Q61, with a
  * padlock that says which, QA-I10, QA-B12; then every icon role, locked to its text role while icons match text);
- * **Fields** (a row per `field.*` role, page and inverse, Q29); **Gradients** (the switch at the top right of its
- * header, then an editor per gradient with editable stops and no bar of its own, QA-B13 to QA-B16). A section's
+ * **Fields** (a row per `field.*` role, page and inverse, Q29); **Gradients** (the switch at the far end of the
+ * section's title row, HP5, then an editor per gradient with editable stops and no bar of its own, QA-B13 to QA-B16). A section's
  * inverse rows sit under the preview's "Inverse" sub-heading. Every lever is shown (R2: this page shows every
  * lever). Last, the way on to Interactive.
  *
@@ -49,7 +49,7 @@ import {
 import { DOMAINS, ICONS_DESC, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { infoTip, inlineConfirm, jumpLabel, leverBlock, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock } from '../ui/lever-kit';
+import { infoTip, inlineConfirm, jumpLabel, leverBlock, promoteLever, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock } from '../ui/lever-kit';
 import { noteSectionEdit, scrollToStart } from '../preview/follow-edit';
 import { fmtRatio, stepPicker, type StepPickerOpts } from '../ui/step-picker';
 
@@ -95,12 +95,12 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
   // derived or a custom mode) shows the ones it is drawn from, disabled, with the line the rows use.
   // S4f (the owner's QA-B1, QA-B3, QA-B6, QA-B7): the controls are rows in the Foreground rows' pattern, a swatch,
   // the name with its token under it, then the step picker, under two sub-headings at the rows' sub-heading size:
-  // "Default background fills" (Primary, which was "Page", Secondary, Tertiary and the contrast floor, with its own
-  // info text) and "Inverse background fills" (the inverse fill's palette, then its three tiers). Every control
+  // "Default" (Primary, which was "Page", Secondary, Tertiary and the contrast floor, with its own info text) and
+  // "Inverse" (the inverse fill's palette, then its three tiers; BG1 A shortened both). Every control
   // writes exactly what the control it replaces wrote (the floor's step picker the floor select's value).
   const surfaces = (): Item[] => {
-    // The lever's name is the section's (owner decision Q26), not the manifest's "Page surfaces": the block
-    // heads the section, as Gradients' does. Its info text is the owner's (approved 2026-10-02), for this page
+    // The lever's name is the section's (owner decision Q26), not the manifest's "Page surfaces", so the section
+    // title says it once (BG1 A, `promoteLever`), as Gradients' does. Its info text is the owner's (approved 2026-10-02), for this page
     // only: the manifest's description is the engine's, shared with MCP and the emission, and stays as it is.
     const b = leverBlock('surfaces', {
       label: 'Background fills',
@@ -200,9 +200,9 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const d = derivedLine();
     grp.append(d ?? (editable ? editingLine() : subLine('Custom modes seed their surfaces from their base mode.')));
 
-    // ── Default background fills ──
+    // ── Default (BG1 A, approved copy: the section title already says "background fills") ──
     const def = hook(h('div', 'p3-fillrows'), 'surface-default-rows');
-    def.append(h('h4', 'p3-rows-sub p3-rows-sub-first', 'Default background fills'));
+    def.append(h('h4', 'p3-rows-sub p3-rows-sub-first', 'Default'));
     // Primary (QA-B3: "Page" was its name; it is `background.primary`): white, black, or a neutral step, in the step
     // picker (Q45). No Auto: an unset base reads as the mode's default. A pick writes the key exactly as the Page
     // control wrote it (`setSurfaceBase`).
@@ -241,9 +241,9 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       },
     }));
 
-    // ── Inverse background fills ──
+    // ── Inverse (BG1 A, approved copy) ──
     const inv = hook(h('div', 'p3-fillrows'), 'surface-inverse-rows');
-    inv.append(h('h4', 'p3-rows-sub', 'Inverse background fills'));
+    inv.append(h('h4', 'p3-rows-sub', 'Inverse'));
     // The inverse fill's palette first (#898; Q55: it stays a select). Choosing one is its own write: it seeds the
     // darkest step (`setBandPalette`).
     const band = bandOf(m);
@@ -661,6 +661,8 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       const its = ROWS[r.ctl]?.() ?? [];
       // The first item is the section's own block (a lever, or the rows' box); rows are inside it.
       if (its[0]) el.append(its[0].el);
+      // BG1 A, HP5: a lever named as its section (Background fills, Gradients) says its name once, in the title.
+      if (its[0]?.block && its[0].block.label === s.title) promoteLever(el, its[0].block);
       out.push(...its);
     }
     return { el, items: out };

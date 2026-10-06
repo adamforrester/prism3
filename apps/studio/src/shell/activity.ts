@@ -35,7 +35,18 @@
 import { subscribe } from '../state/store';
 import type { OpKey } from '../state/host-session';
 import type { Host } from './pages';
-import { glyph, h, hook } from './dom';
+import { glyph, h, hook, tile } from './dom';
+
+/** Whether the plugin's agent link is on (the owner's top-bar decision, 2026-10-05: Activity's name and tooltip say
+ *  "agent link on" while it is). The plugin's Agent tile (`apps/plugin/src/agent-link-ui.ts`) reports each state the
+ *  main thread publishes; the studio never sets it, so on the web it stays off. */
+let agentLinkOn = false;
+const linkWatchers = new Set<() => void>();
+export const setAgentLinkOn = (on: boolean): void => {
+  if (on === agentLinkOn) return;
+  agentLinkOn = on;
+  for (const f of linkWatchers) f();
+};
 
 /** F2, v5 Q9: how long the drawer stays open after a success before it collapses by itself. */
 export const COLLAPSE_MS = 4000;
@@ -65,6 +76,9 @@ export type OpReading = {
   readonly agent: boolean;
   /** How far a style guide has got, for the closed strip at 380 only (S11.2); its row says it in words. */
   readonly strip?: { readonly done: number; readonly total: number } | null;
+  /** How many of the things the run was asked to make failed, when the write reports it as data (the style guide's
+   *  tables, S11.2). Above 0, a result is a failure whatever its headline's mark (D-RED A, decision (a)). */
+  readonly failed?: number;
 };
 /** A write the main thread declined while a run of the same operation was going (#1957). `n` counts
  *  them, so each is a change. */
@@ -115,13 +129,14 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   const { read, closeDetail } = opts.lend;
 
   // ── the button, in the top bar ─────────────────────────────────────────────────────────────────
-  // The word at full width, the glyph alone when narrow; the name stays "Activity" plus the status words.
-  const button = hook(h('button', 'p3-btn p3-btn-collapse p3-activity-btn'), 'activity-open');
-  button.type = 'button';
+  // A bar tile (the owner's top-bar decision, 2026-10-05): the glyph and its status dot over "Activity", the glyph
+  // alone when narrow. The name, and the tooltip, are "Activity" plus the agent link and the status words.
+  const { btn: button, mark, tip } = tile('activity-open', 'Activity');
+  button.classList.add('p3-activity-btn');
   button.setAttribute('aria-controls', 'p3-activity');
   const dot = h('span', 'p3-dot p3-status-dot');
   dot.setAttribute('aria-hidden', 'true');
-  button.append(glyph('pulse'), h('span', 'p3-btn-label', 'Activity'), dot);
+  mark.append(glyph('pulse'), dot);
 
   // ── the drawer ─────────────────────────────────────────────────────────────────────────────────
   const drawer = hook(h('section', 'p3-drawer'), 'activity-drawer');
@@ -296,10 +311,18 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     toggle.setAttribute('aria-expanded', String(open));
     button.setAttribute('aria-expanded', String(open));
     const kind = running ? 'run' : failed ? 'bad' : unread ? 'unread' : 'none';
-    dot.dataset.state = kind;
+    // The tile's dot (the owner's D-RED A, 2026-10-05): red only for a failure. An attention state that is not one, a
+    // warning (its verdict leads with ⚠, as every write's headline does: ✓ done, ⚠ done with problems, ✗ failed), draws
+    // green like the rest. The drawer, and the names, keep counting both as needing attention.
+    // A failure: a bad result whose headline leads with anything but ⚠ (✗, or a short word such as "Failed"), or one
+    // that reports a failed item as data (`failed`), e.g. a style-guide run where a table failed: something asked for
+    // was not made. ⚠ with nothing failed ("⚠ 4 misses") is a warning, and draws green.
+    const failures = Object.values(last.ops).filter((o) => o.state === 'bad' && (!(o.verdict ?? '').startsWith('⚠') || (o.failed ?? 0) > 0)).length;
+    dot.dataset.state = kind === 'bad' && !failures ? 'warn' : kind;
     drawer.dataset.state = kind;
-    const words = statusWords(running, failed, unread);
-    button.setAttribute('aria-label', words ? `Activity, ${words}` : 'Activity');
+    const name = ['Activity', agentLinkOn && 'agent link on', statusWords(running, failed, unread)].filter(Boolean).join(', ');
+    button.setAttribute('aria-label', name);
+    tip.textContent = name;
     paintBar();
     for (const [k, rec] of recs) paintRow(k, rec, last.ops[k]);
     const order = [...recs.keys()].map((k) => rowEls.get(k)!.root);
@@ -445,6 +468,8 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   toggle.onclick = () => show(!open, true);
   close.onclick = () => { show(false, true); button.focus(); };
   cleanups.push(subscribe('host', onHost), subscribe('host:detail', onHost), subscribe('host:progress', onProgress), clear);
+  linkWatchers.add(paint);
+  cleanups.push(() => linkWatchers.delete(paint));
   paint();
   return { button, drawer, live };
 };

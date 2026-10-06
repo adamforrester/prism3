@@ -438,6 +438,61 @@ const nbFixName = (n: string): string => nbVar(CORE_GROUPS.has(n.split('/')[0]) 
   }
 }
 
+// ── #2227: a `secondary` on another ground's step still emits its Figma color lines ─────────────────
+// A declared page `secondary` can land on the step `base`, `tertiary` or an inverse tier also takes. The
+// floor moves with it, so the floor step is then aliased by two grounds, and the Figma line used to throw
+// rather than pick one (21 such cases across the briefs). Swept: every brief, both modes, every neutral
+// step. Independence (docs/34): the oracle never reads `aliasOf`, which the emitter selects by. It reads
+// the EMITTED files back: the ground a line names must carry, in color.light.json, the same color as the
+// floor step's palette variable in core.palette.json, and a page role must name a page ground. Which of
+// two same-colored grounds is named is deliberately not pinned; both are true. Mutations: drop the fixed
+// order and throw on two grounds again → the light arms fail, naming each step; put the inverse grounds
+// first → the light arms fail on `misnamed`. A brandTheme refusal is not this arm's subject and is
+// skipped, but counted, so a sweep that silently built nothing would read as a failure.
+{
+  const briefs = readdirSync(resolve(HERE, './examples')).filter((f) => f.endsWith('.design.md')).sort();
+  for (const file of briefs) {
+    const text = readFileSync(resolve(HERE, `./examples/${file}`), 'utf8');
+    const std = parseStandardDesignMd(text);
+    const input: BrandInput = isStandardDesignMd(std) ? standardToBrandInput(std).input : parseDesignMd(text).input;
+    const steps = brandTheme(input).palettes.find((p) => p.role === 'neutral')!.steps.map((s) => s.num);
+    for (const mode of ['light', 'dark'] as const) {
+      const thrown: string[] = [], misnamed: string[] = [];
+      let built = 0, firstError = '';
+      for (const s of steps) {
+        const b = JSON.parse(JSON.stringify(input));
+        b.surfaces = { ...(b.surfaces ?? {}), [mode]: { ...(b.surfaces?.[mode] ?? {}), secondary: s } };
+        let theme: Theme;
+        try { theme = brandTheme(b); } catch { continue; }
+        let arts: { path: string; content: string }[];
+        try { arts = figmaArtifacts(theme).artifacts; } catch (e) { thrown.push(String(s)); firstError ||= (e as Error).message; continue; }
+        built++;
+        const vars = (p: string): any[] => JSON.parse(arts.find((a) => a.path === p)!.content).variables;
+        const light = vars('color.light.json'), pal = vars('core.palette.json');
+        const valueOf = (list: any[], name: string) => JSON.stringify(list.find((v) => v.name === name)?.value ?? null);
+        const root = theme.root;
+        const walk = (node: any, path: string): void => {
+          if (!node || typeof node !== 'object') return;
+          if ('$value' in node) {
+            const against = String(node.$extensions?.prism3?.against ?? '');
+            if (!/^[a-z-]+\.\d+$/.test(against)) return;
+            const name = `${root}/color/${path.replace(/\./g, '/')}`;
+            const ground = / on ([a-z-]+(?:\/[a-z-]+)+)/.exec(light.find((v) => v.name === name)?.description ?? '')?.[1];
+            if (!ground) return;
+            const stepColor = valueOf(pal, `${root}/core/palette/${against.replace('.', '/')}`);
+            if (valueOf(light, `${root}/color/${ground}`) !== stepColor || stepColor === 'null' || (!path.startsWith('inverse.') && ground.startsWith('inverse/'))) misnamed.push(`${s}: ${path} names ${ground}, measured on ${against}`);
+            return;
+          }
+          for (const k of Object.keys(node)) if (!k.startsWith('$')) walk(node[k], path ? `${path}.${k}` : k);
+        };
+        walk(buildTree(theme).tree[root].color, '');
+      }
+      ok(built > 0 && thrown.length === 0 && misnamed.length === 0,
+        `#2227 figma sweep: ${file} ${mode}.secondary at every neutral step emits Figma color lines that name a ground on the floor step (built ${built}; throws at: ${thrown.join(', ') || 'none'}${firstError ? ` — first: ${firstError}` : ''}; misnamed: ${misnamed.slice(0, 3).join('; ') || 'none'})`);
+    }
+  }
+}
+
 // ── #1368 — VERBATIM FACE PIN (typography.faces) ──────────────────────────────────────
 // A (category, weight-role) slot may name the exact Figma face { family, style } it binds, OVERRIDING
 // the numeric-weight → style-name derivation, so a WIDTH cut the weight axis can't reach (NB's ITC
