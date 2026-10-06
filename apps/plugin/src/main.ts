@@ -24,7 +24,7 @@ import { appendBuildNote, buildNote } from '../../studio/src/build-identity';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
 import type { MainToUi, UiToMain, StyleGuideOptions } from './messages';
-import { createRunGuard, isWriteCmd, writes, busyMessage } from './run-guard';
+import { createRunGuard, guardFor, writes, busyMessage } from './run-guard';
 import type { WriteCmd } from './run-guard';
 import { strandedCollections, ownedModeIds } from './write-figma';
 import { computePrunePlan, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary } from './prune-figma';
@@ -66,6 +66,8 @@ import { createAgentLink } from './agent-link';
 import { createDispatcher, componentCensus } from './agent-dispatch';
 import type { ActionSink, AgentActions } from './agent-dispatch';
 import { AGENT_COMMANDS, failedResult } from './agent-protocol';
+import { previewUpdate, captureBaselines, previewVerdict, captureVerdictText } from './update-plan';
+import type { UpdateHost, UpdateTarget } from './update-plan';
 
 // Show the UI iframe. `__html__` is the bundled shared-UI HTML Figma injects from `manifest.ui`
 // (the inlined `apps/studio/src` app; declared for the sandbox global in `figma-env.d.ts`). The shared
@@ -115,7 +117,7 @@ figma.showUI(__html__, { ...DEFAULT_SIZE, themeColors: true });
  * written by whichever build wrote it, and stamping this build's identity onto it would attribute a
  * previous build's variables to this one — the precise confusion #836 is about, inverted.
  */
-const postVerdict = (m: Extract<MainToUi, { type: 'apply-result' | 'component-result' }>, sink: ActionSink): void =>
+const postVerdict = (m: Extract<MainToUi, { type: 'apply-result' | 'component-result' | 'component-update-result' }>, sink: ActionSink): void =>
   sink.post({ ...m, summary: appendBuildNote(m.summary, PRISM3_BUILD) });
 
 /**
@@ -797,6 +799,61 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
 };
 
 /**
+ * THE IN-PLACE UPDATE, DRY RUN ONLY (#2265, owner decision Q85 A) — and the one-time baseline capture.
+ *
+ * Both read every set the targets name, wherever it is in the file, so the pages are loaded first. The
+ * plans are the ones `buildComponents` would build now: the same brand materialization and swap target.
+ * `update-components` writes nothing (`update-plan.ts`); `capture-baseline` writes only the as-built
+ * record, and only on members that read back as exactly the current plan.
+ */
+const updateTargets = (defId: string | undefined): { targets: UpdateTarget[]; unknown: string | null; refused: { def: string; reason: string }[] } => {
+  let brandInput: BrandInput | null = null;
+  try { brandInput = restoreInput(figma.root); } catch { /* untrusted/absent → defaults, as `buildComponents` */ }
+  const defs = defId === undefined ? componentDefs.filter((d) => d.figmaProperties) : componentDefs.filter((d) => d.id === defId);
+  if (defId !== undefined && !defs.length) return { targets: [], unknown: defId, refused: [] };
+  const targets: UpdateTarget[] = [];
+  const refused: { def: string; reason: string }[] = [];
+  for (const d of defs) {
+    try { targets.push({ def: d.id, plans: figmaAnatomySet(materializeForBrand(d, brandInput), { swapTarget: SWAP_TARGET }) }); }
+    catch (e) { refused.push({ def: d.id, reason: `the engine could not plan it (${(e as Error)?.message ?? String(e)})` }); }
+  }
+  return { targets, unknown: null, refused };
+};
+const breathe = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
+const unknownDef = (defId: string, sink: ActionSink): void => postVerdict({
+  type: 'component-update-result', ok: false, headline: '✗ unknown def',
+  summary: `no component def with id '${defId}' — this build knows ${componentDefs.map((d) => d.id).join(', ')}`,
+}, sink);
+
+const updateComponents = async (defId: string | undefined, sink: ActionSink): Promise<void> => {
+  try {
+    const { targets, unknown, refused } = updateTargets(defId);
+    if (unknown !== null) return unknownDef(unknown, sink);
+    await figma.loadAllPagesAsync();
+    const r = await previewUpdate(figma as unknown as UpdateHost, targets, breathe);
+    r.refused.push(...refused);
+    sink.data({ update: { mode: 'preview', ...r } });
+    postVerdict({ type: 'component-update-result', ...previewVerdict(r) }, sink);
+  } catch (e) {
+    postVerdict({ type: 'component-update-result', ok: false, headline: '✗ check failed', summary: (e as Error)?.message ?? String(e) }, sink);
+  }
+};
+
+const captureBaseline = async (defId: string | undefined, sink: ActionSink): Promise<void> => {
+  try {
+    const { targets, unknown, refused } = updateTargets(defId);
+    if (unknown !== null) return unknownDef(unknown, sink);
+    await figma.loadAllPagesAsync();
+    const r = await captureBaselines(figma as unknown as UpdateHost, targets, breathe);
+    r.refused.push(...refused);
+    sink.data({ update: { mode: 'capture', ...r } });
+    postVerdict({ type: 'component-update-result', ...captureVerdictText(r) }, sink);
+  } catch (e) {
+    postVerdict({ type: 'component-update-result', ok: false, headline: '✗ record failed', summary: (e as Error)?.message ?? String(e) }, sink);
+  }
+};
+
+/**
  * FILE SETUP (#1554) — scaffold the file's PAGE structure, then build the two template assets.
  *
  * THE FIRST PAGE-CREATION ACTION in the plugin. It reconciles the file's page list to the taxonomy
@@ -1026,6 +1083,8 @@ export const ACTIONS: AgentActions = {
   styleGuide: guarded('style-guide', styleGuide),
   prune: guarded('prune', prune, (_input, confirm) => confirm),
   seedFromFile,
+  updateComponents: guarded('build-components', updateComponents),
+  captureBaseline: guarded('build-components', captureBaseline),
 };
 
 /**
@@ -1044,8 +1103,9 @@ const dispatch = createDispatcher({
   onFinish: (id, cmd) => postToUi({ type: 'agent-finished', id, cmd }),
   // #1957: an agent's write of an operation that is already running is declined before it starts.
   refuse: (c) => {
-    if (!isWriteCmd(c.cmd) || !writes(c.cmd, c.cmd === 'prune' ? c.args.confirm : undefined) || !guard.busy(c.cmd)) return null;
-    return { message: busyMessage(c.cmd), post: refusal(c.cmd, true) };
+    const held = guardFor(c.cmd);
+    if (!held || !writes(held, c.cmd === 'prune' ? c.args.confirm : undefined) || !guard.busy(held)) return null;
+    return { message: busyMessage(held), post: refusal(held, true) };
   },
   // The panel's pills show an agent's result as they would a button's. An agent's prune PREVIEW goes as a
   // pill only: opened as the confirm dialog, the owner's Confirm would prune against the panel's knobs,

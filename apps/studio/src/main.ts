@@ -2568,6 +2568,9 @@ const closeOpenDetail = (): void => { if (host.openDetail === null) return; setH
 /** The static pending texts, one per write that has one: the page rows' pills and the Activity drawer's
  *  phase line read the same words. */
 const PENDING_TEXT = { apply: 'Writing to Figma…', filesetup: 'Setting up file…', styleguide: 'Drawing the style guide…' } as const;
+/** The phase line while an agent's update check or baseline capture runs (#2265). Neither builds anything, so
+ *  neither may read as a build. DRAFT words, for the owner. */
+const CHECK_TEXT: Readonly<Record<string, string>> = { 'update-components': 'Checking the sets…', 'capture-baseline': 'Recording the sets as built…' };
 /** The phase line before a build's first boundary reports (#2088). A build the panel started names its set,
  *  by the catalog's display name for the id it posted (`componentDef`); one an agent started is a set the panel
  *  was not told, so the line names none (the owner's wording, 2026-10-05). Before #2088 this said "Button"
@@ -2648,8 +2651,13 @@ const activityReading = (): ActivityReading => {
   return {
     ops: {
       apply: opReading('apply', host.applyState === 'pending', verdictOf(host.applyState), fixed(PENDING_TEXT.apply)),
-      components: opReading('components', host.componentState === 'pending', verdictOf(host.componentState),
-        () => componentPhase(host.componentState === 'pending' ? host.componentProgress : agentBuildReading())),
+      // #2265: the row shows whichever the operation reported last, a build or an update check.
+      components: opReading('components', host.componentState === 'pending',
+        host.componentLatest === 'update' ? verdictOf(host.componentUpdate) : verdictOf(host.componentState),
+        () => {
+          const check = host.componentState === 'pending' ? undefined : CHECK_TEXT[host.agentRun?.cmd ?? ''];
+          return check ? { phase: check, progress: null } : componentPhase(host.componentState === 'pending' ? host.componentProgress : agentBuildReading());
+        }),
       filesetup: opReading('filesetup', host.fileSetupState === 'pending', verdictOf(host.fileSetupState), fixed(PENDING_TEXT.filesetup)),
       // The tables that failed, as data, so a run where one failed draws Activity's red dot (D-RED A, decision (a)). The
       // panel's own run only: an agent's run sends no tables, and `styleGuideRun` would still be the panel's last one.

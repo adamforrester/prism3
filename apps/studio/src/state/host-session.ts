@@ -45,10 +45,13 @@ export type OpKey = DetailKey | 'prune' | 'readback';
 export const AGENT_OP: Readonly<Record<string, OpKey>> = {
   'apply-theme': 'apply', 'build-components': 'components', 'file-setup': 'filesetup', 'style-guide': 'styleguide',
   prune: 'prune', readback: 'readback',
+  // #2265: the update's dry run and the baseline capture read every set and hold the build's guard, so they
+  // are the components operation. Only the agent link sends them today.
+  'update-components': 'components', 'capture-baseline': 'components',
 };
 /** Which operation's verdict a host message is. */
 const VERDICT_OP: Partial<Record<HostMessage['kind'], OpKey>> = {
-  'apply-result': 'apply', 'component-result': 'components', 'file-setup-result': 'filesetup', 'style-guide-result': 'styleguide',
+  'apply-result': 'apply', 'component-result': 'components', 'component-update-result': 'components', 'file-setup-result': 'filesetup', 'style-guide-result': 'styleguide',
   'prune-result': 'prune', 'seed-info': 'readback',
 };
 
@@ -98,6 +101,12 @@ export interface HostSession {
    *  report into the theme write's pill without claiming something about the variables it never touched,
    *  and with no slot of its own it would have nowhere to be `pending` while it writes hundreds of nodes. */
   readonly componentState: ActionState;
+  /** The last update dry run or baseline capture (#2265), `null` until one lands. Its own slot, not
+   *  `componentState`: "what an update would change" says nothing about whether a build landed, and the panel's
+   *  Build control reads `componentState`. Only an agent sends the two commands today, so it is never `pending`. */
+  readonly componentUpdate: Verdict | null;
+  /** Which of the two the components operation last reported (#2265), so the Activity row shows the newer one. */
+  readonly componentLatest: 'build' | 'update' | null;
   /** The state of the file-setup scaffold (#1558) — same shape, its own slot, for the same reason
    *  `componentState` is separate from `applyState`: three actions, three buttons, three verdicts. A
    *  file-setup verdict cannot report into the theme or component write's pill without claiming something
@@ -178,7 +187,7 @@ export interface HostSession {
    *  own reading, which the panel's `componentProgress` does not take: that one is accepted only while
    *  the panel's own build is pending. An agent's style guide reads phase `table`, its `done` of `total`
    *  tables (#1778, owner decision Q19 b), which the page row and the drawer show as a panel run's. */
-  readonly agentRun: { readonly id: string; readonly op: OpKey; readonly settled: boolean; readonly progress: { phase: 'build' | 'wire' | 'retry' | 'table'; done: number; total: number } | null } | null;
+  readonly agentRun: { readonly id: string; readonly op: OpKey; readonly cmd: string; readonly settled: boolean; readonly progress: { phase: 'build' | 'wire' | 'retry' | 'table'; done: number; total: number } | null } | null;
   /** The last write the main thread declined because a run of the same operation was already going
    *  (#1957), `null` until one is. `n` counts them, so the drawer can tell a second refusal from the first
    *  when the words are the same. A refusal is not a verdict: it settles no run and fills no verdict slot.
@@ -194,6 +203,8 @@ export const initialHostSession = (): HostSession => ({
   restoreError: null,
   applyState: null,
   componentState: null,
+  componentUpdate: null,
+  componentLatest: null,
   fileSetupState: null,
   styleGuideState: null,
   componentProgress: null,
@@ -256,7 +267,7 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       return s;
     case 'agent-started': {
       const op = AGENT_OP[m.cmd];
-      return op ? { ...s, agentRun: { id: m.id, op, settled: false, progress: null } } : s;
+      return op ? { ...s, agentRun: { id: m.id, op, cmd: m.cmd, settled: false, progress: null } } : s;
     }
     case 'agent-progress': {
       const r = s.agentRun;
@@ -291,8 +302,11 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       const own = s.componentState === 'pending' && s.componentDef !== null;
       const result: SetBuild = m.ok ? 'ok' : m.completed ? 'issues' : 'failed';
       const setBuilds = own ? new Map([...s.setBuilds, [s.componentDef as string, result]]) : s.setBuilds;
-      return { ...s, componentState: { ok: m.ok, headline: m.headline, summary: m.summary }, openDetail: m.ok ? null : 'components', componentProgress: null, componentDef: null, setBuilds };
+      return { ...s, componentState: { ok: m.ok, headline: m.headline, summary: m.summary }, openDetail: m.ok ? null : 'components', componentProgress: null, componentDef: null, setBuilds, componentLatest: 'build' };
     }
+    case 'component-update-result':
+      // The build's slot, its progress and its set record are left alone: a check is not a build.
+      return { ...s, componentUpdate: { ok: m.ok, headline: m.headline, summary: m.summary }, componentLatest: 'update' };
     case 'file-setup-result':
       return { ...s, fileSetupState: { ok: m.ok, headline: m.headline, summary: m.summary }, openDetail: m.ok ? null : 'filesetup' };
     case 'style-guide-result': {
@@ -374,6 +388,8 @@ export const topicsFor = (m: HostMessage, prev: HostSession, next: HostSession):
     case 'font-list': return ['fonts'];
     case 'apply-result': return ['host', 'host:detail'];
     case 'component-result': return ['host', 'host:detail', 'host:components'];
+    // The drawer's row, and the Build control, which an agent's check held busy until its verdict.
+    case 'component-update-result': return ['host', 'host:components'];
     case 'file-setup-result': return ['host', 'host:detail', 'host:filesetup'];
     case 'style-guide-result': return ['host', 'host:detail', 'host:styleguide'];
     case 'component-progress': return next === prev ? [] : ['host:progress'];

@@ -76,7 +76,7 @@ export const renameCoordinate = (def: string, key: string, ledger: readonly Comp
   for (;;) {
     let moved = false;
     pairs = pairs.map(([a, v]) => {
-      const ax = mine.find((r) => r.kind === 'axis' && r.from === a);
+      const ax = mine.find((r): r is Extract<ComponentRename, { kind: 'axis' }> => r.kind === 'axis' && r.from === a);
       const axis = ax ? ax.to : a;
       const val = mine.find((r) => r.kind === 'value' && r.axis === axis && r.from === v);
       if (ax || val) moved = true;

@@ -103,6 +103,9 @@ export const makeWriteHost = (scope: HTMLElement): WriteAdapter => cssVarAdapter
 export type HostMessage =
   | { kind: 'apply-result'; ok: boolean; headline: string; summary: string }
   | { kind: 'component-result'; ok: boolean; headline: string; summary: string; completed: boolean }
+  // #2265 — the in-place update's dry run, or a baseline capture: what an update WOULD change, which is not
+  // whether a build landed, so it has its own kind and never overwrites the build's verdict.
+  | { kind: 'component-update-result'; ok: boolean; headline: string; summary: string }
   // #1558 — the outcome of a `file-setup` scaffold. A FOURTH kind of the `{ok, headline, summary}`
   // shape, distinct for the same one-kind-per-fact reason `component-result` is: "did the page
   // skeleton get laid" is separately true and separately actionable from a theme or component write,
@@ -244,7 +247,7 @@ type Validator<K extends MainToUi['type']> = (m: Untrusted<OfType<MainToUi, K>>)
 /** A `{ok, headline, summary}` verdict. `headline` falls back to the ok flag, not to the summary: a host
  *  build older than the headline field sends none, and letting the ~150-char summary land in the pill
  *  would restore exactly the truncation the field exists to remove. */
-type VerdictKind = 'apply-result' | 'component-result' | 'file-setup-result' | 'style-guide-result';
+type VerdictKind = 'apply-result' | 'component-result' | 'component-update-result' | 'file-setup-result' | 'style-guide-result';
 const verdict = <K extends VerdictKind>(kind: K, m: Untrusted<OfType<MainToUi, VerdictKind>>, okText: string, failText: string): { kind: K; ok: boolean; headline: string; summary: string } => {
   const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? okText : failText;
   return { kind, ok: !!m.ok, headline, summary: String(m.summary ?? '') };
@@ -309,6 +312,7 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   // reads as a build that ran to the end. A malformed value is not dropped (a dropped terminal result leaves the
   // panel on "Building…", #870); it reads as a build that did not finish, the claim that needs no evidence.
   'component-result': (m) => ({ ...verdict('component-result', m, '✓ built', '✗ build failed'), completed: m.completed === true }),
+  'component-update-result': (m) => verdict('component-update-result', m, '✓ checked', '✗ check failed'),   // #2265
   'file-setup-result': (m) => verdict('file-setup-result', m, '✓ file set up', '✗ setup failed'),   // #1558
   'style-guide-result': (m) => {   // #259
     // S11.2: a cancelled run says how far it got; a malformed `stopped` is left off rather than guessed.
