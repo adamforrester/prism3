@@ -1919,6 +1919,16 @@ const toSurface = (v) => (v === 'white' || v === 'black' ? v : Number(v));
  *  and the suite reaches its report, instead of dying on a bare Playwright timeout. Kept here, beside its one user:
  *  test-hooks.mjs's shared `hooks.click` is unchanged. */
 const SETTLE_CLICK_MS = 15000;
+/** Pages whose renderer rendered no frame within the bound (#2231 review). Such a page is DEAD: every later
+ *  `evaluate` on it waits with no timeout of its own, so the suite would hang (measured: 25+ minutes). Its
+ *  context is closed, and the arm that owns it skips to the next brand. Read by every `previewMode` caller. */
+const deadPages = new WeakSet();
+const closeDead = async (page, label) => {
+  deadPages.add(page);
+  ok(false, `${label}: the page rendered no frame within ${SETTLE_CLICK_MS}ms, so it is treated as dead — its context is closed and the rest of this arm is skipped`);
+  // Bounded too: a close against a frozen renderer is the one call left, and it must not become the hang.
+  await Promise.race([page.context().close().catch(() => {}), new Promise((r) => setTimeout(r, 10000))]);
+};
 const settledClick = async (page, selector, label) => {
   const deadline = Date.now() + SETTLE_CLICK_MS * 2;
   const settled = await Promise.race([
@@ -1947,8 +1957,9 @@ const settledClick = async (page, selector, label) => {
       }
       return { ok: false, why: prev === null ? 'it is not in the page' : `it was still moving after ${frames} frames (last box ${prev})` };
     }, [selector, SETTLE_CLICK_MS]),
-    new Promise((r) => setTimeout(() => r({ ok: false, why: `the page rendered no frame within ${SETTLE_CLICK_MS}ms` }), SETTLE_CLICK_MS + 1000)),
+    new Promise((r) => setTimeout(() => r({ ok: false, dead: true }), SETTLE_CLICK_MS + 1000)),
   ]).catch((e) => ({ ok: false, why: String(e?.message ?? e).split('\n')[0] }));
+  if (settled.dead) { await closeDead(page, label); return false; }
   if (!settled.ok) { ok(false, `${label}: ${selector} did not settle before its click — ${settled.why}`); return false; }
   try {
     await hooks.click(page.locator(selector), { timeout: Math.max(1000, deadline - Date.now()) });
@@ -1976,7 +1987,7 @@ const SURF_HOOKS = { base: '[data-p3="levers-pane"] [data-p3="surface-base-pick"
   'inverse-secondary': '[data-p3="levers-pane"] [data-p3="surface-inverse-secondary-pick"]', 'inverse-tertiary': '[data-p3="levers-pane"] [data-p3="surface-inverse-tertiary-pick"]' };
 const PICKED = new Set(['base', 'floor', 'band-step', 'secondary', 'tertiary', 'inverse-secondary', 'inverse-tertiary']);
 const SURF = (k) => SURF_HOOKS[k];
-for (const brand of BRANDS) {
+s4cArm: for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
   await hooks.click(page.locator('[data-p3="tab-color"]'));
   await hooks.click(page.locator('[data-p3="color-sub-fills"]'));
@@ -1987,7 +1998,7 @@ for (const brand of BRANDS) {
   ok(sets === 1, `S4c ${brand}: Surfaces & fills draws one set of surface controls (${sets})`);
   for (const [m, other] of [['dark', 'light'], ['light', 'dark']]) {
     if (!modes.includes(m)) continue;
-    await previewMode(page, m);
+    if (!await previewMode(page, m)) { if (deadPages.has(page)) continue s4cArm; continue; }
     for (const [k, field, pick] of [['base', 'base', 3], ['floor', 'floorStep', 5], ['band-step', 'inverseBase', 4],
       ['secondary', 'secondary', 4], ['tertiary', 'tertiary', 6], ['inverse-secondary', 'inverseSecondary', 3], ['inverse-tertiary', 'inverseTertiary', 5]]) {
       const before = (await inputAt(page))?.surfaces ?? {};
@@ -2017,9 +2028,10 @@ for (const brand of BRANDS) {
   // A derived mode: the controls show its family's surfaces and are disabled, as the rows are.
   const derived = modes.find((m) => m.startsWith('hc-'));
   if (derived) {
-    await previewMode(page, derived);
-    const dis = await page.evaluate((sels) => sels.map((x) => document.querySelector(x)?.disabled ?? null), Object.keys(SURF_HOOKS).map(SURF));
-    ok(dis.every((d) => d === true), `S4c ${brand}: previewing ${derived}, every surface control is disabled (${JSON.stringify(dis)})`);
+    if (await previewMode(page, derived)) {
+      const dis = await page.evaluate((sels) => sels.map((x) => document.querySelector(x)?.disabled ?? null), Object.keys(SURF_HOOKS).map(SURF));
+      ok(dis.every((d) => d === true), `S4c ${brand}: previewing ${derived}, every surface control is disabled (${JSON.stringify(dis)})`);
+    } else if (deadPages.has(page)) continue s4cArm;
   }
   // Every Fields row, in Dark and then in Light, writes its own role and no other (review of #1980: a row
   // wired to its sibling's role went green while only three rows were edited). EXPECTED: the role is the
@@ -2034,7 +2046,7 @@ for (const brand of BRANDS) {
   let fieldEdits = 0;
   for (const [m, other] of [['dark', 'light'], ['light', 'dark']]) {
     if (!modes.includes(m)) continue;
-    await previewMode(page, m);
+    if (!await previewMode(page, m)) { if (deadPages.has(page)) continue s4cArm; continue; }
     for (const [i, role] of ALL_FIELD_ROLES.entries()) {
       fieldEdits++;
       const step = FIELD_STEPS[m][i];
@@ -2061,7 +2073,7 @@ for (const brand of BRANDS) {
   const aliasIn = (tree, role, m) => (m === 'light' ? leaf(tree, role)?.$value : leaf(tree, role)?.$extensions?.prism3?.modes?.[m]?.$value) ?? null;
   const EDITS = [['dark', 'field.border.rest', '300'], ['light', 'inverse.field.placeholder', '200'], ['dark', 'field.fill', '100']];
   for (const [m, role, step] of EDITS) {
-    await previewMode(page, m);
+    if (!await previewMode(page, m)) { if (deadPages.has(page)) continue s4cArm; continue; }
     const row = `[data-p3="levers-pane"] [data-p3="field-rows"] .p3-fillrow[data-role="${role}"]`;
     await hooks.click(page.locator(`${row} [data-p3="fill-pick"]`));
     await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${step}"]`));
@@ -2092,12 +2104,12 @@ for (const brand of BRANDS) {
 //     (the review): the page tiers' pickers offer neutral only and the inverse tiers the Inverse fill's palettes,
 //     and at a ladder-end Page in Light and in Dark the floor's Auto label names the engine's floor alone.
 console.log(`\nColor › Surfaces & fills — a Secondary pick carries the contrast floor (S4e)\n${'='.repeat(78)}`);
-for (const brand of BRANDS) {
+s4eArm: for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
   await hooks.click(page.locator('[data-p3="tab-color"]'));
   await hooks.click(page.locator('[data-p3="color-sub-fills"]'));
   await hooks.need(page, '[data-p3="fills-levers"]');
-  await previewMode(page, 'light');
+  if (!await previewMode(page, 'light')) { if (!deadPages.has(page)) await ctx.close(); continue s4eArm; }
   const emission = JSON.parse(await readFile(join(OUT_DIR, `${brand.toLowerCase()}.tokens.json`), 'utf8'));
   const root = Object.keys(emission)[0];
   const wasAlias = emission[root]?.color?.background?.secondary?.$value ?? '';
@@ -2170,7 +2182,7 @@ for (const brand of BRANDS) {
   // floor alone. EXPECTED: the literal label, and the floor the engine measures the floor-gated text.secondary on
   // (its picker's hint), the two read through different controls.
   for (const [m, pageKey, want] of [['light', 'black', 'Auto · neutral 950'], ['dark', 'white', 'Auto · neutral 050']]) {
-    await previewMode(page, m);
+    if (!await previewMode(page, m)) { if (deadPages.has(page)) continue s4eArm; continue; }
     const rawP = await brandRaw();
     await hooks.click(page.locator(SURF('base')));
     await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker-step"][data-step="${pageKey}"]`));
@@ -2206,13 +2218,13 @@ const S4D_EDITS = [
   ['light', 'icon.brand', 'primary', '750', 'Icon'],
   ['dark', 'inverse.icon.success', 'success', '350', 'Icon'],
 ];
-for (const brand of BRANDS) {
+s4dArm: for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
   const b = brand.toLowerCase();
   await hooks.click(page.locator('[data-p3="tab-color"]'));
   await hooks.click(page.locator('[data-p3="color-sub-fills"]'));
   await hooks.need(page, '[data-p3="fills-levers"]');
-  await previewMode(page, 'light');
+  if (!await previewMode(page, 'light')) { if (!deadPages.has(page)) await ctx.close(); continue s4dArm; }
   ok(b in ICONS_PAIRED, `S4d ${brand}: the suite says whether this brand loads with icons paired (ICONS_PAIRED)`);
   const rows0 = await iconRowsAt(page);
   ok(rows0.length === 31, `S4d ${brand}: the Icon section draws the 31 icon rows (read ${rows0.length})`);
@@ -2244,7 +2256,7 @@ for (const brand of BRANDS) {
   const loose = FOLLOW_ALWAYS.filter((role) => { const r = rows1.find((x) => x.role === role); return !r || !r.disabled || r.text !== `Follows ${ICON_TWIN(role)}`; });
   ok(loose.length === 0, `S4d ${brand}: #1982/#2024 unpaired, the nineteen stay disabled and read "Follows text.X"${loose.length ? ` — not locked: ${loose.join(', ')}` : ''}`);
   for (const [m, role, pal, step, sec] of S4D_EDITS) {
-    await previewMode(page, m);
+    if (!await previewMode(page, m)) { if (deadPages.has(page)) continue s4dArm; continue; }
     const row = `[data-p3="levers-pane"] .p3-fillrow[data-role="${role}"]`;
     // Bounded: a row left locked (or not drawn) is a failure by name here, not a 30-second timeout.
     const can = await page.evaluate((sel) => { const b = document.querySelector(sel); return !!b && !b.disabled; }, `${row} [data-p3="fill-pick"]`);

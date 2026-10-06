@@ -3738,8 +3738,15 @@ for (const host of ['web', 'figma']) {
         }
         return { ok: false, why: prev === null ? 'it is not in the page' : `it was still moving after ${frames} frames (last box ${prev})` };
       }, [PAIR_SEL, PAIR_SETTLE_MS]),
-      new Promise((r) => setTimeout(() => r({ ok: false, why: `the page rendered no frame within ${PAIR_SETTLE_MS}ms` }), PAIR_SETTLE_MS + 1000)),
+      new Promise((r) => setTimeout(() => r({ ok: false, dead: true }), PAIR_SETTLE_MS + 1000)),
     ]).catch((e) => ({ ok: false, why: String(e?.message ?? e).split('\n')[0] }));
+    // A page that rendered no frame within the bound is DEAD (#2231 review): any later evaluate on it waits
+    // with no timeout. Close its context, bounded, and end the arm. Its own ctx.close() below then returns at once.
+    if (settled.dead) {
+      ok(false, `#2167 askPair: the page rendered no frame within ${PAIR_SETTLE_MS}ms, so it is treated as dead — its context is closed and the rest of this arm is skipped`);
+      await Promise.race([ctx.close().catch(() => {}), new Promise((r) => setTimeout(r, 10000))]);
+      return false;
+    }
     if (!settled.ok) { ok(false, `#2167 askPair: Pair icons did not settle before its click — ${settled.why}`); return false; }
     try { await hooks.click(pairBtn(), { timeout: Math.max(1000, deadline - Date.now()) }); }
     catch (e) { ok(false, `#2167 askPair: the click on Pair icons did not land — ${String(e?.message ?? e).split('\n')[0]}`); return false; }
