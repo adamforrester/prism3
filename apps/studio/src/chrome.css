@@ -545,16 +545,21 @@
    lever's head is a <legend>, which the fieldset's grid gap does not reach, so it carries the whole space-150. */
 .p3-lever-head { padding-block-end: var(--p3-space-050); }
 fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150); }
-/* A lever inside a group (Color › Interactive's Neutral emphasis, inside Neutral) reads as a field: L3's weight. */
+/* A lever inside a group (Color › Interactive's Neutral emphasis, inside Neutral) reads as a field: L3's weight, and its
+   control space-050 after it (its head is a <legend>, so the legend's padding is the whole space). */
 .p3-icol .p3-lever-name { font-weight: var(--p3-fw-emphasis); }
+.p3-icol fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-050); }
 /* A lever's own one-line description belongs to its head: space-050 under the name, not space-150. */
 .p3-lever-ctl > .p3-sub:first-child { margin-block-start: calc(-1 * var(--p3-space-100)); }
 .p3-readout { margin-left: auto; color: var(--p3-text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .p3-lever-head .p3-readout, .p3-slider-head > .p3-readout { line-height: var(--p3-lh-compact); }
-/* The ⓘ keeps its hit-min target but overhangs the heading's line equally above and below, so it no longer sets the
-   row's height; it sits space-050 after the heading text (the head's gap), centered on the line. */
+/* The ⓘ keeps its target (hit-min wide, at least; the narrow tier's buttons are ctl-h-xs tall) but overhangs the heading's
+   line equally above and below, so it never sets the row's height at any tier: equal negative margins of a whole hit-min
+   leave its margin box shorter than the line, and the head's center alignment keeps it centered on the line. (Not
+   `1lh`: inside the button that is the button's own line height, not the heading's.) It sits space-050 after the
+   heading text (the head's gap). */
 .p3-btn-icon.p3-info { min-width: var(--p3-hit-min); min-height: var(--p3-hit-min); }
-.p3-lever-head .p3-info { margin-block: calc((1lh - var(--p3-hit-min)) / 2); }
+.p3-lever-head .p3-info { margin-block: calc(-1 * var(--p3-hit-min)); }
 .p3-lever .p3-btn-ghost:hover, .p3-picker .p3-btn-ghost:hover { border-color: var(--p3-edge); }
 .p3-tip { margin: 0; padding: var(--p3-space-150) var(--p3-space-200); border-radius: var(--p3-radius-lg); background: var(--p3-fill-1); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); }
 .p3-lever-ctl { display: grid; gap: var(--p3-space-100); min-width: 0; }

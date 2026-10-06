@@ -8063,7 +8063,7 @@ const HEADING_TOKEN_PATHS = {
   'fw-default': 'core.font.weight-role.default', 'fw-emphasis': 'core.font.weight-role.emphasis', 'fw-strong': 'core.font.weight-role.strong',
   'lh-compact': 'core.font.line-height-role.compact', 'ls-snug': 'core.font.letter-spacing-role.snug',
   'space-050': 'space.050', 'space-150': 'space.150', 'space-300': 'space.300', 'hit-min': 'core.dimension.24',
-  text: 'color.text.primary',
+  text: 'color.text.primary', 'text-2': 'color.text.secondary',
 };
 /** The rem the emission's dimensions are written in: the browser's default root size, which the chrome does not change. */
 const ROOT_PX = 16;
@@ -8087,19 +8087,19 @@ const HT = (() => {
     if (m[2] === 'em') return { em: Number(m[1]) };
     return Number(m[1]) * (m[2] === 'rem' ? ROOT_PX : 1);
   };
-  const t = Object.fromEntries(Object.keys(HEADING_TOKEN_PATHS).filter((k) => k !== 'text').map((k) => [k, num(k)]));
-  const ink = (mode) => { const v = walk(mode, `${root}.${HEADING_TOKEN_PATHS.text}`); return typeof v === 'string' ? v.toLowerCase() : null; };
-  return { ...t, ink: { light: ink('light'), dark: ink('dark') } };
+  const t = Object.fromEntries(Object.keys(HEADING_TOKEN_PATHS).filter((k) => !k.startsWith('text')).map((k) => [k, num(k)]));
+  const ink = (name, mode) => { const v = walk(mode, `${root}.${HEADING_TOKEN_PATHS[name]}`); return typeof v === 'string' ? v.toLowerCase() : null; };
+  return { ...t, ink: { text: { light: ink('text', 'light'), dark: ink('text', 'dark') }, 'text-2': { light: ink('text-2', 'light'), dark: ink('text-2', 'dark') } } };
 })();
 ok(HT['fs-14'] === 14 && HT['fs-16'] === 16 && HT['fw-strong'] === 600 && HT['fw-emphasis'] === 500 && HT['fw-default'] === 400
-  && HT['lh-compact'] === 1.25 && HT['space-150'] === 12 && HT['hit-min'] >= 24 && /^#[0-9a-f]{6}$/.test(HT.ink.light ?? '') && /^#[0-9a-f]{6}$/.test(HT.ink.dark ?? ''),
+  && HT['lh-compact'] === 1.25 && HT['space-150'] === 12 && HT['hit-min'] >= 24 && Object.values(HT.ink).every((m) => /^#[0-9a-f]{6}$/.test(m.light ?? '') && /^#[0-9a-f]{6}$/.test(m.dark ?? '') && m.light !== m.dark),
   `TY2 A: the oracle resolved the rule's chrome tokens from the emission (${JSON.stringify(HT)})`);
 /** Each level's type, as chrome tokens. */
 const LEVEL_TYPE = {
   L1: { fs: 'fs-16', fw: 'fw-strong', ls: 'ls-snug' },
   L2: { fs: 'fs-14', fw: 'fw-strong' },
-  L3: { fs: 'fs-14', fw: 'fw-emphasis', ink: true },
-  TH: { fs: 'fs-12', fw: 'fw-emphasis' },
+  L3: { fs: 'fs-14', fw: 'fw-emphasis', ink: 'text' },
+  TH: { fs: 'fs-12', fw: 'fw-emphasis', ink: 'text-2' },
 };
 /** The headings each page must show, by level (the audit's list, prism3, every Show advanced open). Text is matched
  *  from its start, so a value carried in a label ("Angle · 135°") does not tie the list to one brand's value. */
@@ -8156,11 +8156,20 @@ const HEADING_ADVANCED = {
 };
 /** Literal floors, under the counts measured when this landed (per host and theme, all nine pages): headings found, the
  *  ⓘ buttons measured, the token labels (`.p3-fill-label`) typed, and the hint lines read in Light and High contrast light. */
-const HEADING_FLOOR = { L1: 35, L2: 73, L3: 20, TH: 21, info: 55, tokenLabels: 288, hints: 16 };
+const HEADING_FLOOR = {
+  1280: { L1: 35, L2: 73, L3: 20, TH: 21, info: 55, tokenLabels: 288, hints: 16, swept: 0 },
+  380: { L1: 35, L2: 73, L3: 20, TH: 21, info: 55, tokenLabels: 288, hints: 16, swept: 0 },
+};
+/** Elements a sweep may find with a heading's tag or a heading's weight or size that are not one of the levels, each with
+ *  the reason it is not (a selector, then the reason; the reason is held to 20 characters or more). Empty when this landed:
+ *  every heading element and every heading-styled text in the levers pane was one of the three levels or a table header. */
+const HEADING_EXEMPT = [];
+ok(HEADING_EXEMPT.every(([sel, why]) => typeof sel === 'string' && sel && typeof why === 'string' && why.trim().length >= 20),
+  `TY2 A: every heading exemption names a selector and a reason of 20 characters or more (${JSON.stringify(HEADING_EXEMPT)})`);
 /** The space after a heading, read in the page: from the bottom of the heading's row content (its padding and border
  *  excluded) to the top of the outermost box that starts below it and follows it in document order. Each level's row,
  *  by class: an L2 lever name's is its head, a group title's is its head row, a breakpoint name's is its legend. */
-const HEADING_PROBE = () => {
+const HEADING_PROBE = ({ strong, big, exempt }) => {
   const pane = document.querySelector('[data-p3="levers-pane"]');
   const vis = (n) => { const cs = getComputedStyle(n); if (cs.display === 'none' || cs.visibility === 'hidden') return false; const r = n.getBoundingClientRect(); return r.width >= 1 && r.height >= 1 && !n.closest('[hidden]'); };
   const r2 = (x) => Math.round(x * 100) / 100;
@@ -8182,7 +8191,9 @@ const HEADING_PROBE = () => {
   };
   const TABLE_HEADS = '.p3-facehead, .p3-tsizes-head, .p3-wmatrix-head, .p3-tnudge-head';
   const found = [];
+  const classified = new Set();
   const add = (level, n, kind, row) => {
+    classified.add(n); classified.add(row);
     const cs = getComputedStyle(n);
     const nx = next(row);
     const desc = nx?.leaf.closest('.p3-sub');
@@ -8209,7 +8220,23 @@ const HEADING_PROBE = () => {
     return { label: b.getAttribute('aria-label'), w: r2(r.width), h: r2(r.height), inHead: !!name,
       dx: nr ? r2(r.left - nr.right) : null, dy: nr ? r2((r.top + r.bottom) / 2 - (nr.top + nr.bottom) / 2) : null };
   });
-  return { found, heads, tokenLabels, infos };
+  // THE SWEEP: every element that is a heading by its tag or role, and every text drawn at a heading's weight or size,
+  // must be one of the levels above (or exempted, with its reason). Controls draw their own labels and are not headings.
+  const isExempt = (n) => exempt.some((sel) => n.matches(sel));
+  const label = (n) => `${n.tagName.toLowerCase()}${[...n.classList].map((c) => `.${c}`).join('')} "${n.textContent.replace(/\s+/g, ' ').trim().slice(0, 40)}"`;
+  const headingEls = [...pane.querySelectorAll('h1, h2, h3, h4, h5, h6, legend, [role="heading"]')].filter(vis);
+  const unclassified = headingEls.filter((n) => !classified.has(n) && !isExempt(n)).map((n) => `${label(n)} (a heading element)`);
+  const CONTROLS = 'button, select, option, input, textarea, [role="radio"], [role="tab"], [role="switch"], [role="option"], [data-content]';
+  for (const n of pane.querySelectorAll('*')) {
+    if (!vis(n) || !own(n) || n.closest(CONTROLS) || classified.has(n) || isExempt(n)) continue;
+    const cs = getComputedStyle(n);
+    if (Number(cs.fontWeight) >= strong || parseFloat(cs.fontSize) >= big) unclassified.push(`${label(n)} (drawn ${cs.fontSize} / ${cs.fontWeight})`);
+  }
+  // The outline the tags draw: no heading skips a level after the one before it (h3 then h5 fails).
+  const ranked = headingEls.map((n) => [n, /^H([1-6])$/.exec(n.tagName)?.[1] ?? (n.getAttribute('role') === 'heading' ? n.getAttribute('aria-level') : null)]).filter(([, l]) => l).map(([n, l]) => [n, Number(l)]);
+  const skips = [];
+  for (let i = 1; i < ranked.length; i++) if (ranked[i][1] > ranked[i - 1][1] + 1) skips.push(`${label(ranked[i - 1][0])} h${ranked[i - 1][1]} then ${label(ranked[i][0])} h${ranked[i][1]}`);
+  return { found, heads, tokenLabels, infos, swept: headingEls.length, unclassified, skips };
 };
 /** The hint lines (`.p3-state-hint`) and every drawn ⓘ glyph outside a button, in the levers pane. The ⓘ glyph is known by
  *  its drawing, typed here: a ring of radius 6.2 and a dot of radius 0.9 (`glyph('info')`). */
@@ -8223,21 +8250,28 @@ const HINT_PROBE = () => {
 };
 const near = (a, b, tol = 0.5) => typeof a === 'number' && Math.abs(a - b) <= tol;
 const headingCounts = {};
-for (const host of ['web', 'figma']) {
+/** At the narrow tier the levers and the preview are one pane each, behind the pane toggle. */
+const showLevers = async (page, w) => { if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]')); };
+for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
-    const where = `TY2 A ${host} ${theme} 1280`;
-    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
-    const tally = { L1: 0, L2: 0, L3: 0, TH: 0, info: 0, tokenLabels: 0, hints: 0 };
+    const where = `TY2 A ${host} ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host, theme, w, h });
+    const tally = { L1: 0, L2: 0, L3: 0, TH: 0, info: 0, tokenLabels: 0, hints: 0, swept: 0 };
     try {
+      if (w <= 560) await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
       for (const place of NEW_PAGES) {
         await goPlace(page, place);
+        await showLevers(page, w);
         for (const sel of HEADING_ADVANCED[place] ?? []) {
           await hooks.need(page, sel);
           if ((await page.locator(sel).getAttribute('aria-expanded')) === 'false') await hooks.click(page.locator(sel));
         }
         await page.evaluate(() => document.fonts.ready);
-        const m = await page.evaluate(HEADING_PROBE);
+        const m = await page.evaluate(HEADING_PROBE, { strong: HT['fw-strong'], big: HT['fs-16'], exempt: HEADING_EXEMPT.map(([sel]) => sel) });
         const at = `${where} / ${place}`;
+        tally.swept += m.swept;
+        ok(m.unclassified.length === 0, `${at}: every heading in the levers pane is one of the three levels or a table header — not covered: ${m.unclassified.join(' | ')}`);
+        ok(m.skips.length === 0, `${at}: no heading skips a level after the one before it — ${m.skips.join(' | ')}`);
         // Every heading the audit lists, at its level.
         for (const [level, want] of Object.entries(EXPECT_HEADINGS[place])) {
           const pool = m.found.filter((f) => f.level === level).map((f) => f.text);
@@ -8248,7 +8282,7 @@ for (const host of ['web', 'figma']) {
         headingCounts[place] ??= {};
         for (const f of m.found) {
           tally[f.level]++;
-          headingCounts[place][f.level] = (headingCounts[place][f.level] ?? 0) + (host === 'web' && theme === 'light' ? 1 : 0);
+          headingCounts[place][f.level] = (headingCounts[place][f.level] ?? 0) + (host === 'web' && theme === 'light' && w === 1280 ? 1 : 0);
           const ty = LEVEL_TYPE[f.level];
           const name = `${f.level} "${f.text.slice(0, 40)}" (${f.kind})`;
           const miss = [];
@@ -8256,7 +8290,7 @@ for (const host of ['web', 'figma']) {
           if (f.fw !== HT[ty.fw]) miss.push(`fw ${f.fw}, want ${ty.fw} ${HT[ty.fw]}`);
           if (f.level !== 'TH' && !near(f.lh, HT[ty.fs] * HT['lh-compact'], 0.05)) miss.push(`line height ${f.lh}, want lh-compact ${HT[ty.fs] * HT['lh-compact']}`);
           if (ty.ls && !near(f.ls, HT[ty.fs] * HT['ls-snug'].em, 0.05)) miss.push(`letter spacing ${f.ls}, want ls-snug ${HT[ty.fs] * HT['ls-snug'].em}`);
-          if (ty.ink && f.color !== startRgb(HT.ink[theme])) miss.push(`ink ${f.color}, want color.text.primary ${HT.ink[theme]}`);
+          if (ty.ink && f.color !== startRgb(HT.ink[ty.ink][theme])) miss.push(`ink ${f.color}, want ${HEADING_TOKEN_PATHS[ty.ink]} ${HT.ink[ty.ink][theme]}`);
           // The space after it.
           if (f.level === 'L1') {
             const want = f.toDesc ? 'space-050' : 'space-300';
@@ -8266,7 +8300,7 @@ for (const host of ['web', 'figma']) {
             if (!near(f.after, HT[want])) miss.push(`space after ${f.after}, want ${want} ${HT[want]}${f.ownDesc ? ' (its own description)' : ''}`);
             // The row is as tall as its line: the ⓘ overhangs it. (A switch still sets Gradients' row until HP5, PR 2.)
             if (f.kind === 'lever name' && !f.switchInRow && !near(f.rowH, f.h)) miss.push(`its row is ${f.rowH} tall, its line ${f.h}: something in the row sets its height`);
-          } else if (f.level === 'L3' && f.kind === 'field label') {
+          } else if (f.level === 'L3' && (f.kind === 'field label' || f.kind === 'lever name in a group')) {
             if (!near(f.after, HT['space-050'])) miss.push(`space after ${f.after}, want space-050 ${HT['space-050']}`);
           }
           ok(miss.length === 0, `${at}: ${name} ${miss.join('; ')}`);
@@ -8292,18 +8326,20 @@ for (const host of ['web', 'figma']) {
         // HP3: no hint line draws a glyph, and no ⓘ glyph is drawn outside a button. Read in Light and again in High
         // contrast light, where the derived-mode line shows on most pages.
         for (const mode of ['light', 'hc-light']) {
-          await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
-          await page.waitForFunction((md) => document.querySelector(`[data-p3="mode-option"][data-mode="${md}"]`)?.getAttribute('aria-checked') === 'true', mode);
+          if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+          await showMode(page, mode);
+          await showLevers(page, w);
           const hp = await page.evaluate(HINT_PROBE);
           tally.hints += hp.hints.length;
           for (const hl of hp.hints) ok(hl.glyphs === 0, `HP3 ${at} (${mode}): hint line ${hl.hook ?? '(no hook)'} draws a glyph — "${hl.text}"`);
           ok(hp.stray.length === 0, `HP3 ${at} (${mode}): a non-button ⓘ glyph is drawn — ${hp.stray.join(' | ')}`);
         }
-        await hooks.click(page.locator('[data-p3="mode-option"][data-mode="light"]'));
+        if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+        await showMode(page, 'light');
       }
       console.log(`  ${where}: ${JSON.stringify(tally)}`);
-      for (const [k, floor] of Object.entries(HEADING_FLOOR)) {
-        ok(tally[k] >= floor, `${where}: the sweep measured ${tally[k]} ${k === 'info' ? 'ⓘ buttons' : k === 'hints' ? 'hint lines' : k === 'tokenLabels' ? 'token labels' : `${k} headings`} across the nine pages (floor ${floor})`);
+      for (const [k, floor] of Object.entries(HEADING_FLOOR[w])) {
+        ok(tally[k] >= floor, `${where}: the sweep measured ${tally[k]} ${k === 'info' ? 'ⓘ buttons' : k === 'hints' ? 'hint lines' : k === 'tokenLabels' ? 'token labels' : k === 'swept' ? 'heading elements' : `${k} headings`} across the nine pages (floor ${floor})`);
       }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
