@@ -1626,6 +1626,8 @@ const mountView = (view: RootView, body: () => HTMLElement): void => {
         inspect: { contrast: renderPreviewContracts, tokens: renderPreviewTokens },
         activity: { read: activityReading, closeDetail: closeOpenDetail },
         figma: commit.isFigma ? figmaActions : null,
+        // #2178: the bar's Apply Theme, lent apart from the Figma menu, which no longer lists it.
+        applyTheme: commit.isFigma ? applyAction : null,
         // S3: Brand's preview is the Style guide, lent the same way until a slice replaces it.
         // S6.2 lent Type's levers the legacy Text styles controls; S6.3 replaced them, so only the fonts are lent.
         // S8.2: the Components page's set builds, lent so that page never imports this file.
@@ -2692,7 +2694,7 @@ const componentBusy = (): boolean => host.componentState === 'pending' || agentR
  * resolves, whatever brought it (an example, an import). A later failing edit does not set it again: that
  * `lastGoodInput` is the designer's own brand, one edit back, which is what Apply has always posted.
  *
- * The bar's Apply and the Figma menu's two items are DISABLED rather than guarded in `runApply`/`runPrune`:
+ * The bar's Apply and the Figma menu's Prune stale are DISABLED rather than guarded in `runApply`/`runPrune`:
  * those are their only callers, so a guard there could never fire and no test could tell it was gone. The
  * prune dialog's Delete is disabled the same way, because a host preview can open that dialog at any time.
  */
@@ -2798,15 +2800,18 @@ const styleGuidesLend: StyleGuidesLend = {
   showResult: () => { setHost({ openDetail: 'styleguide' }); hostChanged(); },
 };
 
-/** The Figma menu's items (`shell/figma.ts`), plugin only. Labels are today's: the bar's two controls, Set up file
- *  (whose only control this is since S8.2, G8 A), and the two writes that need options first (concept v6's "Build
- *  set…" and "Style guide…"), which open where those options are: the Components tab, and the Style guide page. */
+/** The bar's Apply Theme (`shell/bar.ts`), plugin only: its busy and off states, its tooltip and its function. Not a
+ *  Figma menu item since #2178 (owner decision, 2026-10-05): the bar's filled button is its one control. */
+const applyAction = (): FigmaAction => ({ id: 'apply', label: 'Apply Theme', busy: applyBusy() ? 'Applying…' : null, disabled: !!restoreFailure,
+  ...(restoreFailure ? { hint: RESTORE_OFF_HINT } : {}), run: runApply });
+/** The Figma menu's items (`shell/figma.ts`), plugin only. Labels are today's: Prune stale, Set up file (whose only
+ *  control this is since S8.2, G8 A), and the two writes that need options first (concept v6's "Build set…" and
+ *  "Style guide…"), which open where those options are: the Components tab, and the Style guide page. Apply Theme is
+ *  the bar's alone (#2178). */
 /** The busy labels are the pending labels the panel already used (#1948), without their leading "…",
  *  which `pendingLabel` draws as the spinner's cell. An agent's prune does not say whether it is a dry run,
  *  so its busy label is the item's own. */
 const figmaActions = (): FigmaAction[] => [
-  { id: 'apply', label: 'Apply Theme', busy: applyBusy() ? 'Applying…' : null, disabled: !!restoreFailure,
-    ...(restoreFailure ? { hint: RESTORE_OFF_HINT } : {}), run: runApply },
   { id: 'prune', label: 'Prune stale', busy: host.pruneBusy === 'preview' ? 'Checking…' : host.pruneBusy === 'delete' ? 'Removing…' : pruneBusy() ? 'Prune stale' : null,
     disabled: pruneBlocked() || !!restoreFailure, hint: restoreFailure ? RESTORE_OFF_HINT : PRUNE_HINT, run: runPrune },
   { id: 'file-setup', label: FILE_SETUP_LABEL, busy: fileSetupBusy() ? 'Setting up…' : null, disabled: false, run: runFileSetup },

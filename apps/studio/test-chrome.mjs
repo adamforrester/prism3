@@ -152,11 +152,11 @@
  *     `COLLAPSE_MS`, 4 s, v5 Q9; timed at 1280); a failure (light) or a warning (dark) keeps it open past
  *     5 s, its row's summary showing (at 380: the full-pane sheet); the Activity button's dot and name say
  *     running, needs attention or new result, in concept v6's words. The studio's drawer opens on its note.
- *   · THE FIGMA MENU (plugin): its five items by literal label; Arrow Down, Home, End, Arrow Up (wrapping),
- *     Escape and Tab; each item's effect observed on the wire (the write message the old control posted,
- *     captured off the bus, payload and all: Apply and Prune must carry the brand the page loaded, read
- *     from the committed `schema/example-brands.json`, never from the UI) or as the legacy page it opens;
- *     Apply and Prune stale unavailable while Apply runs. The studio has none.
+ *   · THE FIGMA MENU (plugin): its four items by literal label, and no Apply Theme (#2178: the bar's filled button
+ *     is its one control); Arrow Down, Home, End, Arrow Up (wrapping), Escape and Tab; each item's effect observed
+ *     on the wire (the write message the old control posted, captured off the bus, payload and all: the bar's Apply
+ *     and the menu's Prune must carry the brand the page loaded, read from the committed `schema/example-brands.json`,
+ *     never from the UI) or as the legacy page it opens; Prune stale unavailable while Apply runs. The studio has none.
  *   · THE AGENT CHIP (IA-3, D6): in the top bar's Agent slot, the same slot node after the bar re-renders,
  *     "Agent: Off"; its popover's switch posts `agent-link`, and the main thread's state turns it on with
  *     today's status line; Escape closes it to the chip; Tab past the switch closes it; Shift+Tab back to the
@@ -396,12 +396,15 @@
  *   S1.4 review (orchestrator's review of #1929):
  *   · the pill's click without `hostChanged()`, or the drawer's reveal branch removed (S11) →
  *     `F2 … clicking the failure's verdict on the page row opens the drawer on its Set up file row, expanded — open false, …`.
- *   · `runApply` posting `{}` → `Figma menu … Apply Theme posts the brand the page loaded (…), whole — input differs at id, root, …`.
+ *   · `runApply` posting `{}` → `#2178 … the bar's Apply Theme posts the brand the page loaded (…), whole — input differs at id, root, …`.
  *   · `runPrune` posting a stale input → `Figma menu … Prune stale posts the brand the page loaded with confirm false, whole — input differs at id`.
  *   · the popover's focusout handler removed → `IA-3 … Tab past the switch closes the popover`.
  *   · Escape handled on the popover only → `IA-3 … Escape on the chip closes its open popover`.
  *   · the row header's toggle removed (S11) → `F2 … the row's own header collapses it, and the drawer stays open`.
- *   · the Figma menu's Apply stuck disabled → `S1.4 … the case stopped at a wait that never resolved, … waiting for locator('[data-p3="figma-option-apply"]')`, and the run goes on.
+ *   · the bar's Apply stuck disabled → `S1.4 … the case stopped at a wait that never resolved, … waiting for locator('[data-p3="apply-to-figma"]')`, and the run goes on.
+ *   #2178 (the Figma menu's Apply Theme removed, owner decision 2026-10-05):
+ *   · the `apply` item put back into `figmaActions` → `#2178 Figma menu … the menu lists no Apply Theme, the bar's button is its one control`
+ *     and `Figma menu … the items read Prune stale, Set up file, Build set…, Build style guides… — read Apply Theme, …`.
  *   S11 (#1788), each run against the built bundles:
  *   · the drawer's auto-open on a start removed → `F2 … Apply opens the drawer by itself while it runs, pinned to the bottom edge`.
  *   · the success collapse never scheduled → `F2 … a success collapses the drawer by 5 s (COLLAPSE_MS is 4 s), its result still on the drawer's bar row`.
@@ -2008,11 +2011,12 @@ for (const { w, h } of WIDTHS) {
 console.log(`\nActivity, the Figma menu and the Agent chip (S1.4)\n${'='.repeat(78)}`);
 /** F2 and v5 Q9, as the owner decided them: a success collapses the drawer 4 s after it lands. Literal. */
 const COLLAPSE_MS = 4000;
-/** The Figma menu's items, by hook suffix and label: today's labels (the bar's two controls, the file-setup
- *  button) and concept v6's two option-first items. Literal. */
-const FIGMA_ITEMS = [['apply', APPLY_LABEL], ['prune', 'Prune stale'], ['file-setup', 'Set up file'], ['build', 'Build set…'], ['style-guide', 'Build style guides…']];
+/** The Figma menu's items, by hook suffix and label: today's labels (the old Prune stale control, the file-setup
+ *  button) and concept v6's two option-first items. No Apply Theme (#2178, owner decision 2026-10-05): the bar's
+ *  filled button is its one control. Literal. */
+const FIGMA_ITEMS = [['prune', 'Prune stale'], ['file-setup', 'Set up file'], ['build', 'Build set…'], ['style-guide', 'Build style guides…']];
 /** Each item's hook, spelled out so the hook guard reads every one. */
-const FIGMA_OPTION = { apply: '[data-p3="figma-option-apply"]', prune: '[data-p3="figma-option-prune"]', 'file-setup': '[data-p3="figma-option-file-setup"]',
+const FIGMA_OPTION = { prune: '[data-p3="figma-option-prune"]', 'file-setup': '[data-p3="figma-option-file-setup"]',
   build: '[data-p3="figma-option-build"]', 'style-guide': '[data-p3="figma-option-style-guide"]' };
 /** What each item must do, observed: the write message it posts to the main thread (the message the old
  *  control posted), or where it opens: a legacy page (Style guide…), or since S8.2 a tab (Build set… opens the
@@ -2205,12 +2209,17 @@ for (const host of ['web', 'figma']) {
         await page.locator('[data-p3="figma-open"]').focus();
         await page.keyboard.press('ArrowDown');
         const k0 = await menuState(page);
-        ok(k0.open && k0.expanded === 'true' && k0.focus === 'figma-option-apply', `Figma menu ${where}: Arrow Down on the button opens the menu on its first item (${JSON.stringify({ open: k0.open, focus: k0.focus })})`);
+        ok(k0.open && k0.expanded === 'true' && k0.focus === 'figma-option-prune', `Figma menu ${where}: Arrow Down on the button opens the menu on its first item (${JSON.stringify({ open: k0.open, focus: k0.focus })})`);
         ok(JSON.stringify(k0.items.map(([hk, l]) => [hk, l])) === JSON.stringify(FIGMA_ITEMS.map(([id, l]) => [hooks.role(FIGMA_OPTION[id]), l])),
           `Figma menu ${where}: the items read ${FIGMA_ITEMS.map(([, l]) => l).join(', ')} — read ${k0.items.map(([, l]) => l).join(', ')}`);
+        // #2178 (owner decision, 2026-10-05): Apply Theme is the bar's filled button and nothing else. Read by label and
+        // by hook, so an item put back under either fails here; the proof is the open menu with its items read.
+        hooks.absent(ok, { seen: k0.open && k0.items.length > 0, state: 'the Figma menu open with its items' },
+          !k0.items.some(([hk, l]) => /apply/i.test(`${hk} ${l}`)),
+          `#2178 Figma menu ${where}: the menu lists no Apply Theme, the bar's button is its one control (items ${JSON.stringify(k0.items.map(([hk, l]) => [hk, l]))})`);
         const keys = [];
         for (const key of ['ArrowDown', 'End', 'Home', 'ArrowUp']) { await page.keyboard.press(key); keys.push((await menuState(page)).focus); }
-        ok(JSON.stringify(keys) === JSON.stringify(['figma-option-prune', 'figma-option-style-guide', 'figma-option-apply', 'figma-option-style-guide']),
+        ok(JSON.stringify(keys) === JSON.stringify(['figma-option-file-setup', 'figma-option-style-guide', 'figma-option-prune', 'figma-option-style-guide']),
           `Figma menu ${where}: Arrow Down, End, Home and Arrow Up (wrapping) move along the items (${keys.join(', ')})`);
         const mm = await measure(page, `${where} / Figma menu open`, host, w);
         check(mm, `${where} / Figma menu open`, columnOf(host, w), narrow ? INSPECT_NARROW_FLOOR : PLACE_FLOOR, { extra: Object.values(FIGMA_OPTION) });
@@ -2226,14 +2235,13 @@ for (const host of ['web', 'figma']) {
         const applyIdle = await applyBar(page);
         ok(applyIdle.text === APPLY_LABEL && applyIdle.name === null && !applyIdle.disabled && !applyIdle.busy,
           `${where}: the bar's Apply reads "${APPLY_LABEL}", named by its text, and can run (read ${JSON.stringify(applyIdle)})`);
-        // Apply Theme, from the menu: the write the bar's Apply posts, and the drawer opens by itself (F2).
+        // Apply Theme, from the bar's filled button (its one control since #2178): the write, and the drawer opens by itself (F2).
         await takePosts(page);
-        await openFigma(page);
-        await hooks.click(page.locator('[data-p3="figma-option-apply"]'), WAIT);
+        await hooks.click(page.locator('[data-p3="apply-to-figma"]'), WAIT);
         const wa = await takeWrites(page);
         const pa = wa.map(keyOf);
-        ok(JSON.stringify(pa) === JSON.stringify(FIGMA_EFFECT.apply), `Figma menu ${where}: Apply Theme posts ${FIGMA_EFFECT.apply} — posted ${JSON.stringify(pa)}`);
-        ok(isWire(wa, FIGMA_WIRE.apply), `Figma menu ${where}: Apply Theme posts the brand the page loaded (example-brands.json's prism3), whole — ${wireDiff(wa[0], FIGMA_WIRE.apply)}`);
+        ok(JSON.stringify(pa) === JSON.stringify(FIGMA_EFFECT.apply), `#2178 ${where}: the bar's Apply Theme posts ${FIGMA_EFFECT.apply} — posted ${JSON.stringify(pa)}`);
+        ok(isWire(wa, FIGMA_WIRE.apply), `#2178 ${where}: the bar's Apply Theme posts the brand the page loaded (example-brands.json's prism3), whole — ${wireDiff(wa[0], FIGMA_WIRE.apply)}`);
         await settle(page);
         const r = await drawerState(page);
         const ra = r.ops['apply'];
@@ -2254,14 +2262,13 @@ for (const host of ['web', 'figma']) {
         ok(applyBusy.text === APPLY_RUNNING && applyBusy.busy && applyBusy.disabled === false,
           `${where}: while the write runs, the bar's Apply reads "${APPLY_RUNNING}", busy and aria-disabled, not natively disabled (owner decision #4; read ${JSON.stringify(applyBusy)})`);
         ok(applyBusy.width === applyIdle.width, `${where}: the bar's Apply keeps its width while busy (${applyIdle.width} idle, ${applyBusy.width} busy)`);
-        // While it runs, the menu's Apply is busy (focusable, aria-disabled) and Prune stale is unavailable
-        // (today's rule: a prune reads what an apply writes); Set up file is neither.
+        // While it runs, Prune stale is unavailable (today's rule: a prune reads what an apply writes); Set up file
+        // is not.
         await openFigma(page);
         const busy = await menuState(page);
         const dis = Object.fromEntries(busy.items.map(([hk, , d, b]) => [hk, b ? 'busy' : d ? 'disabled' : 'ready']));
-        ok(dis['figma-option-apply'] === 'busy' && dis['figma-option-prune'] === 'disabled' && dis['figma-option-file-setup'] === 'ready',
-          `Figma menu ${where}: while Apply runs, Apply is busy, Prune stale is unavailable and Set up file can run (${JSON.stringify(dis)})`);
-        ok(busy.items.find(([hk]) => hk === 'figma-option-apply')?.[1] === APPLY_RUNNING, `Figma menu ${where}: while Apply runs, the menu's Apply reads "${APPLY_RUNNING}" (read "${busy.items.find(([hk]) => hk === 'figma-option-apply')?.[1]}")`);
+        ok(dis['figma-option-prune'] === 'disabled' && dis['figma-option-file-setup'] === 'ready',
+          `Figma menu ${where}: while Apply runs, Prune stale is unavailable and Set up file can run (${JSON.stringify(dis)})`);
         await page.keyboard.press('Escape');
         // A success collapses the drawer COLLAPSE_MS after it lands, and not before (timed at 1280).
         await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
@@ -2387,13 +2394,6 @@ for (const host of ['web', 'figma']) {
             : want.menuPage ? at.menuPage && at.selected === null : g.page === want.page;
           ok(landed && px.length === 0, `Figma menu ${where}: ${FIGMA_ITEMS.find(([x]) => x === id)[1]} opens the ${want.tab ? `${want.tab} tab` : `${want.page ?? want.menuPage} page`} and writes nothing — ${landed ? '' : 'nothing opened: '}place "${at.place}", tab ${at.selected}, legacy page "${g.page}", Build control ${at.sets}, posted ${JSON.stringify(px)}`);
         }
-        // The bar's own Apply runs the same write the menu's item does.
-        await hooks.click(page.locator('[data-p3="apply-to-figma"]'), WAIT);
-        const wb = await takeWrites(page);
-        const pb = wb.map(keyOf);
-        ok(JSON.stringify(pb) === JSON.stringify(FIGMA_EFFECT.apply), `${where}: the bar's Apply Theme posts ${FIGMA_EFFECT.apply}, as the menu's does — posted ${JSON.stringify(pb)}`);
-        ok(isWire(wb, FIGMA_WIRE.apply), `${where}: the bar's Apply Theme posts the brand the page loaded, whole — ${wireDiff(wb[0], FIGMA_WIRE.apply)}`);
-        ok(wa.length === 1 && wb.length === 1 && canon(wa[0]) === canon(wb[0]), `${where}: the bar's Apply and the Figma menu's post the same message — ${wireDiff(wb[0], wa[0])}`);
         const bad2 = errors.filter((e) => !/WebSocket/.test(e));
         ok(bad2.length === 0, `${where} S1.4: 0 console errors (the agent link's bridge socket aside)${bad2.length ? ` — ${bad2.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
@@ -10182,6 +10182,45 @@ for (const theme of ['light', 'dark']) {
     hooks.absent(ok, { seen: s.rowShown, state: 'the studio\'s drawer bar row, opened' }, s.line === null, `#2213 web light 1280: the studio's drawer draws no agent link line (read ${JSON.stringify(s.text)})`);
   } catch (e) {
     ok(false, `#2213 web light 1280: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+
+// =============================================================================================
+// #2232: a click on blank space inside the S12 start window keeps focus in the window, and Tab and Shift+Tab then stay
+//        inside it. Both hosts, 1280. The window traps Tab with a keydown listener on its scrim, so a focus that falls
+//        to <body> (outside the scrim) is a focus the trap never hears: Shift+Tab then left the page. EXPECTED, read
+//        from the DOM: after the click, `document.activeElement` is the window or a control in it; after each key, a
+//        control in it. Blank space is the lede paragraph, which nothing makes focusable.
+//   Mutation: the window not focusable (`tabindex` dropped in `windowShell`) → `#2232 … after a click on blank space,
+//   focus stays in the start window` and `… Shift+Tab …` fail by name.
+// =============================================================================================
+console.log('\n#2232. The start window keeps focus after a click on blank space');
+for (const host of ['web', 'figma']) {
+  const where = `#2232 ${host} light 1280`;
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+  try {
+    await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+    await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
+    await hooks.need(page, '[data-p3="start-screen"]');
+    const where2 = () => page.evaluate(() => {
+      const dlg = document.querySelector('[data-p3="start-screen"]');
+      const a = document.activeElement;
+      return { inWindow: !!dlg && !!a && dlg.contains(a), onWindow: a === dlg, tag: a ? `${a.tagName.toLowerCase()}${a.getAttribute('data-p3') ? `[${a.getAttribute('data-p3')}]` : ''}` : null };
+    });
+    const blank = page.locator('[data-p3="start-screen"] .p3-start-lede');
+    await hooks.click(blank);
+    const c1 = await where2();
+    ok(c1.inWindow, `${where}: after a click on blank space, focus stays in the start window (focus is on ${c1.tag})`);
+    await page.keyboard.press('Tab');
+    const t1 = await where2();
+    ok(t1.inWindow && !t1.onWindow, `${where}: then Tab moves focus to a control in the start window (focus is on ${t1.tag})`);
+    await hooks.click(blank);
+    await page.keyboard.press('Shift+Tab');
+    const t2 = await where2();
+    ok(t2.inWindow && !t2.onWindow, `${where}: after a click on blank space, Shift+Tab moves focus to a control in the start window (focus is on ${t2.tag})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
 }
 
