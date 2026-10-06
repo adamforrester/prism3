@@ -39,7 +39,7 @@ import { scaffoldSkeleton, resolveComponentPage } from './file-setup';
 import { ensureFileComponents } from './file-components';
 import { ensureStyleGuideCells } from './style-guide-cells';
 import type { CellsApi } from './style-guide-cells';
-import { runStyleGuide, styleGuideSummary } from './style-guide';
+import { runStyleGuide, styleGuideSummary, readCatalog, catalogFor, isSetUp } from './style-guide';
 import type { SgContract } from './style-guide';
 import { resolveAllModes } from '@prism3/engine/modes';
 import { TAXONOMY } from './file-taxonomy';
@@ -839,16 +839,26 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
  * NO SAVED BRAND IS NOT A FAILURE: the tables are drawn and the contrast column reads "—", said once in the
  * summary. A brand that no longer resolves is the same, with its reason.
  */
-const styleGuide = async (options: StyleGuideOptions, sink: ActionSink): Promise<void> => {
+/** The saved brand's contrast contract, or null with the reason it did not resolve. */
+const savedContract = (): { contract: SgContract | null; note: string } => {
   try {
-    let contract: SgContract | null = null;
-    let contractNote = '';
-    try {
-      const input = restoreInput(figma.root);
-      if (input) contract = resolveAllModes(brandTheme(input));
-    } catch (e) {
-      contractNote = `. The saved brand did not resolve (${(e as Error).message}), so the contrast column reads "—"`;
-    }
+    const input = restoreInput(figma.root);
+    return { contract: input ? resolveAllModes(brandTheme(input)) : null, note: '' };
+  } catch (e) {
+    return { contract: null, note: `. The saved brand did not resolve (${(e as Error).message}), so the contrast column reads "—"` };
+  }
+};
+
+/** Set by `style-guide-cancel` (S11.2, owner decision P7) and read by the running style guide after each table. Cleared
+ *  when a run starts, so a cancel sent while nothing ran cannot stop the next run. */
+let styleGuideStop = false;
+
+const styleGuide = async (options: StyleGuideOptions, sink: ActionSink): Promise<void> => {
+  styleGuideStop = false;
+  try {
+    const { contract, note: contractNote } = savedContract();
+    // The page's per-table list (S11.2) is the PANEL's: an agent's sink would take each of these as a verdict.
+    const panel = sink === uiSink;
     // One table at a time, yielding to the host between them and within a big one (#1778). Each reading goes to
     // the pending pill and, logged, to the console: a hung run's last line names the table it hung on, and
     // `tableMs` is the live figure `CELLS_PER_YIELD` is calibrated against.
@@ -857,12 +867,32 @@ const styleGuide = async (options: StyleGuideOptions, sink: ActionSink): Promise
         if (p.done > 0) console.log(`[prism3 #1778] style guide: table ${p.done} of ${p.total}, ${p.title}, ${p.tableMs}ms`);
         sink.post({ type: 'style-guide-progress', done: p.done, total: p.total, tableMs: p.tableMs });
       },
+      onPlan: (tables) => { if (panel) sink.post({ type: 'style-guide-tables', tables: tables.map((t) => ({ key: t.key, title: t.title, page: t.page.replace(/^↳\s*/, '') })) }); },
+      onTable: (e) => { if (panel) sink.post({ type: 'style-guide-table', index: e.index, status: e.status, ...(e.reason !== undefined ? { reason: e.reason } : {}) }); },
+      stop: () => styleGuideStop,
     });
     const v = styleGuideSummary(result);
     sink.data({ styleGuide: result });
-    sink.post({ type: 'style-guide-result', ok: v.ok, headline: v.headline, summary: appendBuildNote(v.summary + contractNote, PRISM3_BUILD) });
+    sink.post({ type: 'style-guide-result', ok: v.ok, headline: v.headline, summary: appendBuildNote(v.summary + contractNote, PRISM3_BUILD), ...(result.stopped ? { stopped: result.stopped } : {}) });
   } catch (e) {
     sink.post({ type: 'style-guide-result', ok: false, headline: '✗ style guide failed', summary: appendBuildNote(`style guide failed: ${(e as Error).message}`, PRISM3_BUILD) });
+  } finally {
+    styleGuideStop = false;
+  }
+};
+
+/**
+ * WHAT THE BUILD STYLE GUIDES PAGE SHOWS (S11.2): the file's collections, variables and text styles, the tables an
+ * unfiltered run would draw, and whether Set up file has run (`catalogFor`, `isSetUp`). Reads only; posts one
+ * `style-guide-catalog`, an empty one with `error` set when the read throws.
+ */
+const styleGuideCatalog = async (): Promise<void> => {
+  try {
+    await figma.loadAllPagesAsync();
+    const { catalog } = await readCatalog(figma.variables, () => figma.getLocalTextStylesAsync());
+    postToUi({ type: 'style-guide-catalog', catalog: catalogFor(catalog, savedContract().contract, isSetUp(figma.root as unknown as Parameters<typeof isSetUp>[0])) });
+  } catch (e) {
+    postToUi({ type: 'style-guide-catalog', catalog: { setUp: false, collections: [], tables: [], notes: [] }, error: (e as Error)?.message ?? String(e) });
   }
 };
 
@@ -1067,6 +1097,14 @@ onUiMessage((msg: UiToMain) => {
     case 'style-guide':
       // #259 — the color tables, after Apply theme. Its own action.
       void ACTIONS.styleGuide(msg.options ?? {}, uiSink);
+      return;
+    case 'style-guide-catalog-request':
+      // S11.2 — the Build style guides page's tree, titles and Set up file state. A read: never guarded.
+      void styleGuideCatalog();
+      return;
+    case 'style-guide-cancel':
+      // S11.2 (P7) — read by the running style guide after its current table; nothing running, nothing to stop.
+      if (guard.busy('style-guide')) styleGuideStop = true;
       return;
     case 'agent-link':
       // The owner's switch — the only way the link turns on. See `agent-link.ts`.

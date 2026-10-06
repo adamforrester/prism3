@@ -683,9 +683,10 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 /* Components' build bar (S8.2, owner decision C4 A; plugin only): the chosen set's Build button and its two hints, the
    last child of the preview stack, sticky to the preview's bottom edge so it is in view at any scroll position. In the
    flow at the end, so scrolled to the bottom it sits under the last set rather than over it. No shadow (T5): its own
-   ground and edge set it apart. */
+   ground and edge set it apart. #2180: it stops the stacked cards' gap (`space-300`, the `.p3-stack` gap) above the
+   preview's bottom edge, so it never sits flush on the Activity drawer's strip, closed or open. */
 .p3-buildbar {
-  position: sticky; bottom: 0; z-index: 1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100) var(--p3-space-300);
+  position: sticky; bottom: var(--p3-space-300); z-index: 1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100) var(--p3-space-300);
   padding: var(--p3-space-200) var(--p3-space-300); background: var(--p3-bg-page); font-family: var(--p3-font-ui);
   border: var(--p3-bw-hairline) solid var(--p3-edge); border-radius: var(--p3-radius-xl);
 }
