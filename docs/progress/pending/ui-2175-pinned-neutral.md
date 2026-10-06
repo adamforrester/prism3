@@ -27,6 +27,10 @@ The owner chose option B on #2175 (PN1 B, PN2, PN3). On Color › Palettes, the 
 - **The 380 fit.** At the narrow tier the three segments overflow their row by 19px at the 12px segment padding.
   One rule, `.p3-frame[data-w="narrow"] .p3-seg-snug .p3-seg-tab { padding: 0 var(--p3-space-100); }`, pads them at
   8px. Only the neutral source opts in (`p3-seg-snug`), so no other segmented control moves.
+- **Search still finds it (review of #2195).** Unpinned, `neutral.anchor` draws no block, so search lost "Pin a
+  neutral". The "Neutral hue" block now carries the anchor lever's label and key as searchable text only
+  (`leverBlock`'s `alsoSays`), so "pin", "anchor" and "neutral" reach the Neutral source group, as on main. Nothing
+  visible changes. "neutral" counts 2 settings where main counted 3, because the anchor has no block of its own.
 
 ### Equivalence (scratch driver, not committed)
 
@@ -39,7 +43,7 @@ tint from Follow primary writes the primary's hue (195) as the custom hue on bot
 
 ### The tests, and how they are independent
 
-`test:chrome` section 28, on both hosts, both themes, at 1280 and 380. The truth for "pinned" is the persisted brand
+`test:chrome` section 29, on both hosts, both themes, at 1280 and 380. The truth for "pinned" is the persisted brand
 (web, read from storage) and the preview's neutral anchor pill (both hosts), a separate render path from the levers.
 The labels, the state line, the typed gray and the section titles are literals in the test. It holds: the three
 choices in order with exactly one selected; Pinned selected iff the anchor is set; the color field only while pinned,
@@ -54,6 +58,7 @@ Mutations, each failing by name (a `wip:` commit before each):
 |---|---|
 | the Advanced "Pinned neutral" section and switch put back | `#2175 … no "Pinned neutral" section and no switch remain behind Show advanced` (8, every host, theme and width); `test-pages.ts`: `no manifest lever has two homes` and `each lever's tier follows the manifest flag` |
 | Pinned shown selected while the anchor is unset | `#2175 … unpinned, exactly one source is selected and it is not Pinned` (8), and each case then stops at `neutral-anchor-hex` (8) |
+| the search text for the anchor lever removed | `#2175 search {web,figma} "{pin,anchor}": unpinned, searching … reaches the Neutral source group, where Pinned is chosen` (4) |
 | the narrow padding rule dropped | `#2175 {web,figma} {light,dark} 380: {unpinned,pinned}, the three neutral sources fit their row with no clipping` (8; the last segment ends at 349 in a 330 row) |
 
 ### Not in scope
