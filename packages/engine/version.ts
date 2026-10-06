@@ -2744,6 +2744,25 @@
 /**
  * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
  *
+ * 0.231.0 — folded 2026-10-06 from 3 change notes, newest merge first.
+ *
+ * [engine-2209-score-consumption-guard · minor · b01cd28b] MCP's `score_consumption` refuses a malformed `refs` item or `pairs` entry as an `isError` result, not a
+ * protocol error (#2209). `pairs: [null]`, a pair missing `fg` or `bg`, and `refs: [null]` each threw past
+ * #2162's guard and escaped `tools/call` as a -32603 internal error. Each is now checked before the build and
+ * returns `{ error: 'score_consumption input failed validation', errors: [...] }`, one sentence per bad entry
+ * naming its index and what is wrong. A pair `kind` outside text, large-text and ui, which was scored silently
+ * at the 4.5:1 text floor, is refused the same way. No token, name or value moves.
+ *
+ * [ui-s112-style-guides-page · minor · 0deffd8c] Plugin: a style-guide table skipped for a missing token page names that page as the Build style guides page lists it,
+ * without the taxonomy's arrow ("this file has no Primitive tokens page, and Set up file adds it"). No emitted artifact
+ * moves.
+ *
+ * [ui-2175-pinned-neutral · minor · abf5542d] The `neutral.anchor` lever is no longer flagged `advanced` (#2175, owner decision PN3, 2026-10-05). The lever
+ * manifest (`schema/lever-manifest.json`) drops `advanced: true` from it, so a reader that follows the flag, such as
+ * the Studio's Color › Palettes page, places it with the neutral hue and chroma rather than behind Show advanced.
+ * Its key, label, control, description and saved value are unchanged. No token, name or value moves, so the
+ * token contract stands (`token-contract.ts --check`: unchanged).
+ *
  * 0.230.0 — folded 2026-10-06 from 4 change notes, newest merge first.
  *
  * [engine-2198-max-seven-breakpoints · minor · 9b91eebb] Layout refuses more than seven breakpoints (#2198). `bpNames` names seven, xs to 3xl, and an eighth built
@@ -4647,7 +4666,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.230.0';
+export const ENGINE_VERSION = '0.231.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
