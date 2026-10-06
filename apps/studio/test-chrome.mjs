@@ -10035,9 +10035,13 @@ const linkAx = async (page) => {
     const rowAx = rowId ? (await cdp.send('Accessibility.getPartialAXTree', { nodeId: rowId, fetchRelatives: false })).nodes[0] : null;
     let line = null;
     if (lnId) {
-      const { nodes } = await cdp.send('Accessibility.getPartialAXTree', { nodeId: lnId, fetchRelatives: true });
-      const self = nodes.find((n) => n.backendDOMNodeId !== undefined && (n.childIds ?? []).length && nodes.some((c) => c.role?.value === 'StaticText' && (n.childIds ?? []).includes(c.nodeId)));
-      const texts = nodes.filter((n) => n.role?.value === 'StaticText' && (self?.childIds ?? []).includes(n.nodeId)).map((n) => n.name?.value ?? '');
+      // The line's own text, as the tree carries it: the accessibility node of each of its DOM text nodes.
+      const { node } = await cdp.send('DOM.describeNode', { nodeId: lnId, depth: 1 });
+      const texts = [];
+      for (const c of (node.children ?? []).filter((x) => x.nodeType === 3)) {
+        const { nodes } = await cdp.send('Accessibility.getPartialAXTree', { backendNodeId: c.backendNodeId, fetchRelatives: false });
+        texts.push(nodes[0]?.ignored ? '' : nodes[0]?.name?.value ?? '');
+      }
       line = texts.join('');
     }
     return { row: rowAx?.name?.value ?? null, line };
