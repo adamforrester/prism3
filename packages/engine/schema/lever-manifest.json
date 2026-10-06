@@ -78,7 +78,6 @@
       "group": "color",
       "label": "Pin a neutral",
       "control": "color",
-      "advanced": true,
       "description": "Optional. A pre-defined brand gray, pinned verbatim at its lightness step; the ramp is built around it (hue/chroma from the anchor) instead of the cast. Set for a client that ships their own neutral; omit to derive from hue + chroma."
     },
     {

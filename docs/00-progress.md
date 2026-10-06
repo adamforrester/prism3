@@ -7,6 +7,839 @@
 
 ---
 
+## (2026-10-06) — layout refuses more than seven breakpoints (#2198)
+
+**STATUS: branch `engine/2198-max-seven-breakpoints`, built on #2200's branch with `main` merged in. Merge held for the owner's approval of the refusal sentence (listed in the PR body).** ENGINE bump class: **`minor`** (a change note: a new refusal narrows what the engine accepts). No emitted artifact moves; `CONTRACT_VERSION` unchanged. **Fixes #2198.**
+
+### What changed
+
+`bpNames()` names up to seven breakpoints (xs to 3xl). An eighth built without an error and took the placeholder `bp7` from `buildLayout`'s fallback. `buildLayout` now refuses a list longer than seven (owner decision 2026-10-06, Q43 A), after the empty-list (#2137) and first-breakpoint (#2132) checks, with the count as entered:
+
+> The brand can have at most seven breakpoints. This brand has ‹n›.
+
+The refusal is in the build path, so MCP `validate_brand` (full build since #2168) and the generating tools (through #2200's guarded build) report it in that sentence. **The studio already holds at seven:** `MAX_BREAKPOINTS = 7` in `apps/studio/src/state/layout-input.ts`, and the Layout page offers "Add breakpoint" only below it. So the UI can't reach the refusal, and no studio change is made.
+
+Swept: no committed brand, fixture, brief, studio or plugin source declares more than seven breakpoints.
+
+### Not added: `maxItems: 7` on the schema
+
+Measured with it in place: `validate_brand` reports `layout.breakpoints: 8 item(s) > maxItems 7`, and `theme_brand` reports `BrandInput failed schema validation` with the same line. A schema-invalid input never reaches the build, so the owner's sentence would never be shown on those paths. The studio's import goes through the same schema validator. Left out, and offered in the PR body as the owner's choice.
+
+**Also not added:** an "at most seven" sentence in the schema's breakpoints description. That line is the one #2202 rewrites, which is held for approval, so editing it here would conflict. It can follow once #2202 lands, if wanted.
+
+### Tests
+
+- **`test.ts`, beside #2137's arms:** seven builds as `xs sm md lg xl 2xl 3xl` with no placeholder; eight is refused with exactly the sentence; nine is refused, naming its count.
+- **`mcp-test.ts`:** `validate_brand` on eight reports exactly the sentence; `theme_brand` on eight returns `isError` with the sentence in `errors`.
+
+### Mutation: allow an eighth
+
+Delete the refusal:
+- **Engine:** `❌ [#2198] an eighth breakpoint is refused (got "")` and the nine arm fail. The seven arm stays green. All 3140 sites ran.
+- **MCP:** `❌ #2198 validate_brand reports the more-than-seven refusal (got {"valid":true,"errors":[]})` and the `theme_brand` arm fail (it built a full theme).
+
+---
+
+## (2026-10-06) — Chrome brand rule: BRAND_ALLOW can't gain an entry unnoticed (#2156)
+
+**STATUS: branch `ui/2156-brand-allow`.** Build gate only: no engine change, no emitted artifact moves, ENGINE stays at 0.230.0, `CONTRACT_VERSION` unchanged. No visible text changes. **Fixes #2156.**
+
+**The gap.** #2151's `BRAND_CANARIES` (`apps/studio/chrome/esbuild-plugin.mjs`) test how `brandLeaks` reads `BRAND_ALLOW`, not what `BRAND_ALLOW` holds. A second entry such as `['edge-bar', 'color.border.focus']` passes every canary, since none of them names it, and the build exits 0. Measured: the old plugin with that entry added builds clean.
+
+**What changed.** `esbuild-plugin.mjs` gains `BRAND_ALLOW_IS = [['focus-ring', 'color.border.focus']]`, a literal typed there and never derived from `tokens.mjs`. Before the canaries run, `[brand]` compares `[...BRAND_ALLOW]` with it and fails by name on any difference. Widening the exception now has to change that literal in the same diff, where review sees it. The build header no longer claims the canaries alone hold the exception narrow.
+
+**Mutations.** Each was run after a `wip:` commit, and each failed the build by name:
+- a second entry, `['edge-bar', 'color.border.focus']`, gives `[brand] self-check: BRAND_ALLOW (tokens.mjs) is [["focus-ring","color.border.focus"],["edge-bar","color.border.focus"]], not the one exception …`. It is the only error;
+- the one entry repointed, `color.border.focus.strong`, gives the same self-check, plus the existing canary and leak errors.
+
+**Trap.** The literal sits in the gate, `esbuild-plugin.mjs`, not next to the subject in `tokens.mjs`. A literal next to the allowlist would be edited with it as one thought; a second file is what makes a widening a visible two-file change.
+
+---
+
+## (2026-10-06) — the viewport default is written once, and the one-bound path is tested (#2172)
+
+**STATUS: branch `engine/2172-viewport-default-once`.** ENGINE bump class: **none owed**. The deduplicated defaults are the same values (375/1280), so no behavior, artifact, token, name or value moves. `CONTRACT_VERSION` unchanged. **Fixes #2172.**
+
+### What was wrong
+
+`buildTypography` (`theme.ts`) wrote each viewport default twice: once in #2068's comparison (`vpMax = … ?? 1280`) and once in the theme's output (`maxViewport: … ?? 1280`), which the studio reads. Every test passed both bounds explicitly, so the comparison's own default was never exercised. Measured on `main`: changing **only** that default to 1440 left the whole engine suite green, 135286 passed and 0 failed.
+
+### The fix
+
+The output now takes the values the comparison resolved (`minViewport: vpMin, maxViewport: vpMax`), so each default is written once.
+
+### Tests, in `test.ts`'s #2068 block
+
+- **Only `minViewport: 1280`** is refused with exactly "The minimum viewport (1280px) must be smaller than the maximum viewport (1280px)." This pins owner decision Q17 (a): the message names the default it compared against.
+- **Only `maxViewport: 375`**, the same in the other direction.
+- **Neither set** builds with 375/1280.
+- **`theme-schema.json`'s stated defaults** (`"default": 375` / `1280`, a third copy, read by agents) equal what the engine builds.
+
+### Mutations
+
+All 3141 assertion sites ran in each mutated run on this branch.
+- **The comparison's default alone, 1280 → 1440, with the duplicate put back** (the issue's scenario): `❌ [#2172] only minViewport 1280 is compared with the default maxViewport, 1280, and refused (got "")`. The default-range and schema arms stay green, correctly: the output still says 1280.
+- **The one default, 1280 → 1440, on this branch:** three arms fail, the min-only one, the default range (`got 375/1440`) and the schema pin (`schema 375/1280, engine 375/1440`).
+
+---
+
+## (2026-10-06) — Foreground's on-fill badges: the ✓/✗ is checked, not only the ratio (#2121)
+
+**STATUS: branch `ui/2121-on-fill-mark`.** Tests only: no engine change, no emitted artifact moves, ENGINE stays at 0.230.0, `CONTRACT_VERSION` unchanged. No visible text changes. **Fixes #2121.**
+
+**The gap.** The #1971 Q13(a) arms in `test-smoke.mjs` and `test-chrome.mjs` read each Subtle and Inverse card's badge ratio and compare it with the ratio of the colors drawn. Neither read the ✓/✗ next to it, so a badge showing ✓ on a failing pair passed both.
+
+**What changed.** Both arms now also read `.sg-ratio-mk`. The expected mark comes from the drawn ratio and a minimum typed in the test (`ON_FILL_MIN`), never from the badge's or the resolver's own `min`.
+
+**The minimum is per role, not what the issue said.** #2121 gave the minimum as "4.5, or 7 in HC". That is right for the status texts (`text.brand|danger|success|warning|info`). It is wrong for the Inverse card's `inverse.text.primary`, which the engine holds to 7:1 in Light and Dark and 15:1 in the high-contrast modes. Measured with `resolveAllModes` over every example brand. A literal of 4.5/7 would have expected ✓ wherever the inverse label sits between 7 and 15 in HC, which the badge correctly marks ✗.
+
+**Mutation.** The mark in `onFillRatioBadge` (`preview/sections/kit.ts`) was flipped after a `wip:` commit. It fails both arms by name, smoke and chrome.
+
+---
+
+## (2026-10-06) — the schema's breakpoints description states the naming rule the engine follows (#2160)
+
+**STATUS: branch `engine/2160-breakpoint-names-prose`. Merge held for the owner's approval of the changed string (listed in the PR body).** ENGINE bump class: **none owed**. `theme-schema.json` is hand-authored and outside regen, so no committed artifact, token, name or value moves. `CONTRACT_VERSION` unchanged. **Fixes #2160.**
+
+### What was wrong
+
+`theme-schema.json`'s `layout.breakpoints` description said the breakpoints are "Auto-named sm/md/lg/xl/2xl". That's true only up to five. `bpNames()` (`theme.ts`) names six `xs…2xl` and seven `xs…3xl`. The lever's description already says so, in copy approved in #2070.
+
+### The fix
+
+The schema description now carries the lever's approved sentence word for word: "Names follow the count: up to five start at sm, six run xs to 2xl, and seven run xs to 3xl." The rest of the description is unchanged, including "The first must be 0.", which #2158 added.
+
+Swept: no other shipped prose (schema, `levers.ts`, the READMEs, skills, studio or plugin sources) states the old five-name rule.
+
+### Test
+
+The #2146 prose block in `mcp-test.ts` now reads the lever's naming sentence out of `list_levers`, and asserts the schema description that `list_levers describe` returns carries it verbatim. The two are pinned **to each other**, not to a phrase, so an edit to either alone fails. Its old "The first must be 0." arm no longer anchors on "Auto-named".
+
+### Mutations, each failing the arm by name
+
+- **The schema back to "Auto-named sm/md/lg/xl/2xl."**: `❌ #2160 the schema's breakpoints description carries the lever's naming sentence word for word (…)`
+- **The lever's sentence edited alone** ("seven or more run xs to 3xl"): the same arm fails, showing both texts.
+
+### Found and filed
+
+**#2198:** an **eighth** breakpoint builds and is named `bp7`. Measured: 1 gives `sm`, 5 `sm…2xl`, 6 `xs…2xl`, 7 `xs…3xl`, and 8 `xs…3xl bp7`. The sentence is true but silent past seven. Whether to refuse, name or describe an eighth is a design question.
+
+### #2146
+
+Items 1 and 2 landed in #2158. Item 3, the studio's `namesFor` guard and offering the refusal up front, plus any studio copy for it, is the UI lane's and is not written here.
+
+---
+
+## (2026-10-06) — MCP's generating tools return a build-time refusal as an isError result (#2162)
+
+**STATUS: branch `engine/2162-theme-brand-iserror`.** `ENGINE_VERSION` → **0.230.0** (minor, a change note: the MCP tools' error output changes). No token, name or value moves; `CONTRACT_VERSION` unchanged. **Fixes #2162.**
+
+### What was wrong
+
+A refusal that fires in `buildTree`, once the modes resolve, escaped `tools/call` as a JSON-RPC **protocol** error. An override naming an unknown step is one such refusal. Measured over stdio: `{"error":{"code":-32603,"message":"internal error: overrides[light]: unknown step '999' …"}}`. The comment above `callTool` says a generation throw comes back as an `isError` result, and so does the conformance arm ("a tool that could not do its job returns isError so the model can self-correct"). That arm only exercised a schema failure.
+
+It wasn't just `theme_brand`. Four tools caught `brandTheme` and called `buildTree` outside any `try`: `theme_brand` and `theme_from_brief` (through the shared `themePayload`), `export_theme`, and `score_consumption`.
+
+### The fix
+
+One helper in `mcp.ts`, `buildBrand`, builds a schema-valid brand the way every generating tool does, `brandTheme` then `buildTree`. A refusal from either step becomes an `isError` result with `errors: [<the engine's sentence>]`, the `{ error, errors }` shape the schema failure already uses. All four tools call it. `export_theme` now checks its `include` list before building rather than after.
+
+**One output changes beyond the fix:** a `brandTheme` refusal used to read `{ error: 'brandTheme failed: <msg>' }`, and now uses the same shape. Nothing in the repo reads the old string. The CLI's own `brandTheme failed for …` message is separate and unchanged.
+
+`validate_brand` keeps its own handling. It isn't a generating tool, and its contract is `{ valid, errors }`.
+
+### Tests, in `mcp-test.ts`
+
+62 → 66 passing. One arm per tool, each fed the unknown-step override: `theme_brand`, `theme_from_brief` (the override in the brief's frontmatter), `export_theme` and `score_consumption`. Each arm reads the **raw** reply, because the suite's `server.call` throws on an RPC error, which would crash the suite instead of failing an arm. It asserts no RPC error, `isError`, and exactly the engine's sentence. `export_theme` writes no directory.
+
+### Mutation
+
+Move `buildTree` back outside `buildBrand`'s `try`: all four arms fail by name, each showing what it got. For example: `❌ #2162 theme_brand: a build-time refusal comes back as an isError result carrying the engine's sentence, not a protocol error (got RPC error -32603: internal error: overrides[light]: unknown step '999' in palette 'neutral' (role 'foreground.brand'))`.
+
+---
+
+## (2026-10-06) — Studio: the orphaned `is-pressed` leaves STATES (#2129)
+
+**STATUS: branch `ui/2129-is-pressed`.** UI only: no engine change, no emitted artifact moves, ENGINE stays at 0.230.0, `CONTRACT_VERSION` unchanged. No visible text changes. **Fixes #2129.**
+
+**What changed.** `is-pressed` is removed from `STATES` in `apps/studio/src/main.ts`. Since #2127 removed the legacy Interactive CSS, no rule names it and no markup applies it, the same case as `arow-lead`, which #2127 removed. The comment at the top of `test-smoke.mjs` no longer lists `.is-pressed` among the state classes the suite reads, because it reads none.
+
+**How "dead" was established**, the way #2116 did it:
+- **Source and tests.** A word-bounded search, `(?<![\w-])is-pressed(?![\w-])`, over every tracked file finds three hits:
+  - the `STATES` entry;
+  - the smoke comment;
+  - one line of past prose in `docs/00-progress.md`, left as history.
+
+  `styles.css` has none.
+- **Run-time names.** No source builds an `is-` class: no `'is-' +` and no `` `is-${…}` ``. The two loops over a `'pressed'` state, in `preview/sections/interactive.ts` and `domains/color-interactive.ts`, build a hook name and an element id, never a class.
+- **Built bundles.** Before the change, `apps/studio/dist/main.js` and `apps/plugin/dist/ui.html` each carried one hit, and `apps/plugin/dist/main.js` carried none. Both hits are the `STATES` array literal itself. After rebuilding, all three carry none. So the bundle check sees the name when it is there.
+
+**The mutation counterpart.** Nothing can fail by name for a deletion of dead code, because nothing reads it: that is what "dead" means. The control is the bundle count above, 1 before and 0 after, plus the full `verify` passing without the entry. `installStyles`' scope law still holds at boot.
+
+---
+
+## (2026-10-06) — Build style guides, plumbing: the page's catalog, table-by-table progress, Cancel, and a run that carries on past a failed table (S11.2, PR 1 of 2)
+
+**STATUS: PR open from `ui/s112-style-guide-plumbing`. The first of two PRs for UI redesign slice S11.2; the page itself is PR 2, which stacks on this.** ENGINE → **0.230.0** (a `minor` change note, `packages/engine/changes/ui-s112-style-guide-plumbing.md`), a plugin behavior change. No emitted artifact moves. CONTRACT stands. No visible change: nothing in the panel reads the new state yet.
+
+**Why.** The owner approved the Build style guides mockup on 2026-10-05 (P1 variant 1: progress on the page, recorded in Activity; P2 A: the tree is the one selection; P3 B: whole tables; P5 A: later-phase variables shown and not pickable; P6: a failed table does not stop the run, and Draw it again redraws that table; P7: Cancel stops after the current table; P8: without Set up file, a warning and Draw off). The mockup's NOTES named what the page needs that no lane provides: the tree's data and the table titles in the panel, a cheap Set up file check, per-table progress with titles, Cancel between tables, and carrying on past a throw. This PR is those, and only those.
+
+**What it does.**
+- **`style-guide-catalog-request` → `style-guide-catalog`.** The main thread reads the file (`readCatalog`, after `loadAllPagesAsync`) and answers with `catalogFor`: every collection with its modes and its variables, each with the index of the table an UNFILTERED run would draw it in (-1 for a later phase) and its value in the default mode (hex, px, a weight's number, a family); the text styles as one more entry, last; the tables in draw order with their key, title, kind (color, dimension, font, text: the four of H8) and page without the "↳"; and the planner's notes. The table indexes come from the same `planStyleGuide` the run uses, so a title on the page is a title the `tables` option matches. A read that throws is answered with an empty catalog and the host's words, never with silence.
+- **`isSetUp`.** Both cell sets (swatches and text cells) and both token pages: exactly what the run needs to draw anything. Without either, every table is skipped, which is P8's warning.
+- **Table by table.** `runStyleGuide`'s run argument takes `onPlan` (every table, before the first) and `onTable` (`drawing`, then `done` or `failed` with the reason). `main.ts` posts them as `style-guide-tables` and `style-guide-table`, to the PANEL's sink only: the agent link's sink takes every message that is not progress for a verdict, and an agent's run already shows in Activity by its `agent-progress` count (Q19). A skipped table (no page, no cell sets) reads `failed`, with the words the summary already uses for it.
+- **A failed table does not stop the run (P6).** A throw while one table is drawn becomes that table's outcome, `status: 'failed'` with the host's message, and the loop goes on. The verdict is "⚠ ‹n› drawn, ‹n› failed" (the approved P12 copy) and the summary opens with "‹title›: ‹reason›". What the failed table drew before the throw stays; a rerun finds it by its key and updates it in place. Draw it again needs no new message: it is the existing `tables` filter given the table's KEY, not its title (two color tables can share a title across collections; a key cannot).
+- **Cancel (P7).** `style-guide-cancel` sets a flag the running style guide reads after each table (`StyleGuideRun.stop`); the flag is cleared when a run starts and when it ends, so a cancel with nothing running stops nothing later. A stopped run returns `stopped: { done, total }`, the verdict counts what was drawn, and the summary says "Stopped after table ‹n› of ‹n›. The tables already drawn stay" (approved copy). **A stopped run is a partial run**: like a run filtered to named tables, it judges no superseded table and only nudges its own page's rows, because every write after the stop is one the designer asked not to happen. A stop that turns true after the last table is no stop.
+- **The panel's side.** `write-adapter.ts` validates the three new kinds field by field (an item pointing at a table the host did not list reads as not drawn; a table list with a malformed entry is dropped whole, since a hole would shift every later index onto the wrong row) and `style-guide-result`'s `stopped`. `host-session.ts` keeps `styleGuideCatalog` and `styleGuideRun`; the run list is accepted only while the panel's own run is pending, and is KEPT after the verdict, unlike `styleGuideProgress`, because the page shows which table failed once the run is over. A new topic, `host:sgpage`, has no subscriber yet. `HostCommit` gains `requestStyleGuideCatalog` and `cancelStyleGuide`.
+
+**Decided here (technical).** The catalog carries every variable with its value rather than a pre-built tree: the page folds single-child chains and decides what starts open (the mockup's call 2), which is presentation. Events go to the panel's sink only rather than teaching the dispatcher a third kind of non-verdict. No new message for Draw it again.
+
+**Held for the owner.** Nothing in this PR. One thing PR 2 has to face: a table only "fails" when the host throws. A font Figma cannot load is still a named miss inside a drawn table (the run counts its specimens unbound), not a failed table, so the mockup's example failure ("Playfair Display Medium Italic is unavailable in this Figma") does not arise from a font miss today. Making a font miss fail its table would be a change to what the run counts as drawn; not made.
+
+**Tests.**
+- `test-style-guide.ts` sections 26–29 (renumbered when #2153 took 25 on main), through the node shim, expected values typed: 26 the catalog over the prism3 file (its 22 titles; every drawn row's variable listed under the table that drew it, read back off each frame's own row record, never off the plan), over the phase-2 file (later-phase opacities with no table, the 63 text styles last) and `isSetUp`'s four cases; 27 a run's list and moves; 28 the host refusing every Accent binding: Accent fails with the host's words, the other 21 are drawn, "⚠ 21 drawn, 1 failed", and a redraw by Accent's key draws it alone, its 20 swatches bound, no other table's fingerprint moved; 29 a stop after table 3 (3 of 21; the emptied Legacy table kept; the control run to the end deletes it).
+- `test-style-guide-page.ts` (new, in the plugin `test` step): the REAL `main.ts` under a host model, as `test-agent-link.ts` loads it. The catalog answer as one literal; Set up file's five cases; a read that throws; a panel run's message order; another sink getting no table messages; Cancel between tables 2 and 3 through the real message switch; a cancel with nothing running.
+- `apps/studio/test-write-adapter.ts` and `test-host-session.ts`: the three kinds and `stopped`, accepted and dropped, and the session's slots.
+
+**Mutations,** after a `wip:` commit, each restored from HEAD; each fails by name:
+
+| Mutation | Fails |
+|---|---|
+| the loop breaks on a failed table | "28: the Accent table fails with the host's words, and the run goes on to draw the other 21 (failed; 3 created)", and two more 28 arms |
+| `stop` never read | "29: a stop read after the third table ends the run there…", "cancel: sent while the run is between tables 2 and 3…" (`test-style-guide-page.ts`) |
+| a stopped run judges superseded tables | "29: a stopped run judges no superseded table: the emptied Legacy table stays (deleted 1, stale 1)" |
+| `isSetUp` stops reading the pages | "catalog/setup: … sets, no pages true …", "26: pages without the cell sets, or the cell sets without the pages, are not set up (false, true)" |
+| the `style-guide-cancel` case sets nothing | "cancel: sent while the run is between tables 2 and 3…" |
+| the table list posted to every sink but the panel's | "events/panel: …", "events/agent: … (style-guide-tables, …)" |
+
+**Trap for whoever tests this next.** `realYield` is a 0ms `setTimeout`. A suite that holds those to stop a run between tables must let the run REACH its first yield before releasing: a call to `ACTIONS.styleGuide` returns before its first `await` resolves, so a release loop that checks for held yields straight away finds none and exits, and the awaited run then hangs the process ("unsettled top-level await"). `test-style-guide-page.ts`'s `release` settles first.
+
+### Review round (independent review of #2161)
+
+- **Merged with main.** #2170 (#2153) took section 25 of `test-style-guide.ts` for its REM tests. This PR's sections are now 26–29, in the header, in `main()` and in every label. The tables above use the new numbers.
+- **`isSetUp`'s requirements, each tested on its own.** The reviewer dropped each of the four checks in turn. Three survived both suites: the swatch set, the text-cell set and the Primitive tokens page. Only "sets, no pages" covered any of them, and it did so through the pages pair. Three arms in `test-style-guide-page.ts` now meet every requirement but one: `catalog/setup/swatches`, `catalog/setup/text-cells` and `catalog/setup/primitive-page`.
+- **A rethrow fails by name.** With `throw e` in the per-table catch, section 28 crashed the suite with an uncaught "Error: Accent refused". Its `draw` is now wrapped, and a throw is a named ✗.
+- **Copy.** The owner approved this PR's four new strings, as the orchestrator noted on #2161.
+
+| Mutation (after a `wip:` commit, restored from HEAD) | Fails |
+|---|---|
+| `isSetUp` without `!!sets[SWATCH_SET]` | "catalog/setup/swatches: both pages and the text-cell set, but no swatch set, is not set up (true)" |
+| `isSetUp` without `!!sets[TEXT_CELL_SET]` | "catalog/setup/text-cells: both pages and the swatch set, but no text-cell set, is not set up (true)" |
+| `isSetUp` without `pages.has(PRIMITIVE_PAGE)` | "catalog/setup/primitive-page: both cell sets and Semantic tokens, but no Primitive tokens page, is not set up (true)" |
+| `throw e` in the per-table catch | "28: the run survives a table the host refuses, and does not throw (it threw "Accent refused")", then three more 28 arms |
+
+---
+
+## (2026-10-06) — Components: the plugin's build bar stands clear of the Activity drawer (#2180)
+
+**Status:** branch `ui/2180-buildbar-gap`. One rule in `apps/studio/src/chrome.css` (`.p3-buildbar`), and `test:chrome`. No ENGINE bump (no emitted artifact moves). CONTRACT unchanged. No new copy. **Fixes #2180.**
+
+### What changed
+
+The build bar on Components (S8.2, owner decision C4 A; plugin only) is `position: sticky` in the preview's scroller, and it had `bottom: 0`. The preview's bottom edge is the Activity drawer's top edge, so the bar sat flush on the drawer's collapsed strip. With the drawer open at 1280, the bar sat flush on the open drawer instead.
+
+Now its sticky offset is `bottom: var(--p3-space-300)`. That is the chrome's stacked-card gap, the gap `.p3-stack` and `.p3-preview-stack` put between cards (`space.300`, 24px). The bar moves up with the drawer because it is stuck to the preview's edge, so the gap holds in every state:
+- 1280 closed: 24px;
+- 1280 open: 24px;
+- 380 closed: 24px;
+- 380 open: no bar is drawn. The open drawer is the full-pane sheet (F2), and it hides the panes.
+
+At the end of the scroll the bar is back in the flow. At 1280 the stack's own bottom padding (`space-400`) already gives more than the gap. At 380 that padding is `space-150`, so the sticky offset lifts the bar 12px into the space above it. The last set still ends above the bar, which the C4 test checks.
+
+The Activity drawer itself is untouched.
+
+### Test, in `test:chrome`
+
+A new block covers the plugin at 1280 and 380, with the drawer closed and open. The closed drawer is its strip: the block runs the bar's own Build first, because a drawer with no operation is hidden. The block reads three scroll positions: top, middle and end. The oracle is `space.300`, resolved from the committed emission through `chrome/tokens.mjs`, never the page's `--p3-*` variable. The gap is the drawer's top edge minus the bar's bottom edge, read off the render.
+
+At 380 with the drawer open, the block asserts that the sheet is shown and the bar is not drawn.
+
+### Mutation, failing by name (`wip:` commit first)
+
+**`bottom` back to 0:** 7 of 15 fail. The first is `#2180: figma 1280, drawer closed, at the top: the build bar stands at least space.300 (24px) above the Activity drawer — gap 0.0 …`, and 380 closed at the end reads `gap 12.7`.
+
+---
+
+## (2026-10-05) — UI redesign S12: the start window, today's four cards restyled over the studio
+
+**STATUS: branch `ui/s12-start`, held for the owner's screenshot review.** Studio and plugin UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. The start is no longer a root view of its own (legacy, pinned light, outside the frame): the studio always renders, and the start opens as a window over it (`shell/start.ts`), on the first run and from "+ New brand", in the chrome's light or dark theme (G10 A).
+
+**What the owner chose, and where each lives:**
+- **G11 B:** today's four cards, restyled (three since N1 A, below), under "Start a brand" / "Start a brand in this file" (G17). The brand mark is the top bar's (G10). Order color, examples, import (S8; the neutral default joined the color card in round 2).
+- **S1:** the color card's button reads "Start from this color". **G14:** the color starts at the working brand's primary. **S3:** a hex that is not `#rrggbb` is refused with "Enter a hex color as #rrggbb." (it used to fall back to the picker's color silently).
+- **G13:** "Start blank" loads a neutral gray (concept v6's Blank: `l 0.5, c 0.03, h 250`, neutral hue 250 at chroma 0.004, following the primary), not the indigo `NEW_BRAND()` it loaded under the same words.
+- **S2:** a paste box with its own Import button (round 2 below for its layout). **S7:** import errors open "Line ‹n›: " when the line is known, and drop it when not. **S6:** another file type says "Choose a .md, .markdown or .txt file.", on the start and the brand menu's upload.
+- **G15, S4, S5, S9, S10:** Close whenever the start was reopened (never on the first run; Escape does what Close does). With unsaved edits a choice asks first, in a second window ON TOP of the start: "Replace ‹brand› with ‹choice›?", "‹n› edits to ‹brand› are not saved to a file. Export or apply first to keep them.", "Discard ‹n› edits". Focus starts on Cancel, Cancel and Escape return to the start, and Discard wears Prism3's destructive button.
+
+**The owner's review of #2142 (round 2):**
+- **One border for all four cards.** The color card's stronger edge (`line-2`) is gone; every card takes `line-1`.
+- **The import card's hierarchy.** "↑ Upload…" sits at the right end of the heading row. The paste box sits below it at `space-200`, one step up from the `space-150` the cards use elsewhere, so pasting reads as the alternative. Import sits below the box on the right. It is disabled while the box is empty or holds only spaces, and keeps its name "Import" in both states. So the empty-box sentence ("Paste a design.md brief or choose a file first.") can no longer show on the start. The brand menu keeps it, because its Load button is never disabled and still reaches it.
+- **X1:** the import card's description is "Already have a design.md? Paste it or upload it to load the full brand."
+- **N1 A: "Start blank" folds into the color card** as its secondary action, beside "Start from this color", with the same button text and the same G13 Blank. The card's description becomes "Your primary brand color; everything else takes smart defaults you can tune. No color yet? Start blank with a neutral gray." The separate "Start with a neutral default" card, its title and its line are gone. The order is now color (with Blank), examples, import: four paths in three cards. Blank still saves G13's gray, byte for byte, checked against `main` and as a literal in section 28.
+
+**Round 3 (review of #2142):** the guard check ran only through the aurora example, so a color, paste, upload or Blank path calling `lend.load` directly (skipping `pick()`) survived. Section 27 now runs every path (color, Blank, an example, paste, upload) on both hosts and themes. Each path starts from its own fresh harbor with one edit, must show "Discard 1 edit", and with 0 edits must load at once. **Q31 (owner, approved copy):** "Start a brand in this file", "Paste a design.md brief", and "Paste a design.md brief or choose a file first.", which replaces "Nothing to import — the file is empty." in the brand menu's paste.
+
+**Round 4 (after #2151's focus rings, FR1 A):** the paste box's ring moves from `--p3-ctl-edge` to `--p3-focus-ring`, like every other chrome ring. It was the start window's only `:focus-visible` of its own; its buttons and fields take the shared rules. Section 28 (main's #2144 sweep took 27) now holds every stop in the start window, the paste box included, and the guard's Cancel and Discard, to main's `ringMisses` contract. The ring put back on `ctl-edge` fails with: `every stop in the start window draws its ring in color.border.focus (#1e1eff), 2px outside, at 3:1 (FR1 A) — start-paste: color #0d0d0e, want color.border.focus #1e1eff`. **Heads-up for #2124:** the start window's `.p3-dialog`, `.p3-dialog-head`, `-title`, `-body`, `-foot` and `.p3-scrim` are the rules #2124's export dialog shares, and its two-column `.p3-dialog-body` would turn the start window into two columns; #2124's merge scopes its own.
+
+**The diagnosis that made Close small.** The scope planned to keep "+ New brand"'s `clearOrigin()` and remember the old provenance so Close could put it back (T7, with the #1197/#1200 identity trap that restoring the boot provenance re-arms). Reopening now changes no origin at all: a reopen flag beside the session opens the window, Close clears it, and every path goes through `loadBrand`, which clears it too. So Close restores nothing because nothing moved, the guard is the brand menu's own rule (`needsOverwriteConfirm`, which a cleared origin made false: the scope's headline 8, edits dropped without asking), and the identity guard reads "nothing chosen" until a path is chosen. In the plugin, a reopen before the host answers turns into the first run on an empty file (no Close), and closes on a file with a brand: `test:start` §4b holds both orders.
+
+**Technical calls:**
+- **The guard's count** (`editCount`, `provenance.ts`): settings that differ from the origin, read off the same two inputs `isDirty` compares (zero exactly when it is false, held). A plain value, a list of plain values (`modes`) or a color (`l`, `c`, `h`) is one setting, so one pick is one edit, not three. Nothing records keystrokes, and a slider writes per step.
+- **‹choice›** reuses the brand menu's shipped words (`originLabel(…, 'arriving')`): "the aurora example", "a new brand" (color and Blank), the brief's quoted id. **‹brand›** is the brand's name. One edit takes the singular ("1 edit … is … keep it", "Discard 1 edit").
+- **Line numbers are studio-side** (`state/start-input.ts`): the parser's "at line N" counts inside the front matter, so the file line is N + 1, and that phrase is dropped once the line leads; a refusal naming a key path (`surfaces.light.base: …`) or quoting a name is found in the front matter; a JavaScript error out of the engine (a `TypeError` on a missing key) names no line and none is guessed. No engine change.
+- **Discard's hover** moves the edge to `destructive.border.hover`: the filled hover step under the white on-fill measures 3.31:1 in dark (#2135). Rest is Prism3's exactly (`fill.rest`, `on-fill`).
+- **One import check:** `validatePaste` (both paste boxes) and `validateDesignMd` (both pickers), moved out of `main.ts`. The brand menu's empty Load now says the approved empty-box sentence.
+
+**Equivalence against `main` (web, first run, persisted bytes):** identical for the color path at `#5e4bc3`, `#1E1EFF` and `#006666`, each example, and the upload of harbor, aurora and wendys; the new paste persists what main's upload of the same brief does. Two decided exceptions: Blank (G13) and the color path's untouched default (G14: the working brand's primary, not `#5e4bc3`).
+
+**Gates:** `test-start-input.ts` (new, in `npm test`): Blank, the color seed's bytes, `readHex`, the guard's words, the edit count against `isDirty`, nine import fixtures with hand-counted lines, the file types, and a source scan that both pastes import the one check. `test:chrome` section 28 (27 before main's #2144 focus-ring sweep took that number): every decision above, on both hosts, both themes, at 1280 and 380, the chrome probe in the first-run, reopened and guard states (the start-screen exemption from the inline-value check is gone; the example dots are `data-content`), the brand menu showing the same words for the same input. `test:start`: the plugin heading (G17) and §4b.
+
+**Mutations, each after a `wip:` commit, restored with `git checkout -- <file>`:**
+- the guard skipped: chrome `a start path over 3 unsaved edits asks first ("Discard 3 edits") — loaded without asking (brand "aurora")`;
+- Discard drawn as an ordinary button: chrome `Discard wears Prism3's destructive button: fill #d24241, label #ffffff (S5) — {"bg":"rgb(255, 255, 255)",…}`;
+- focus on Discard: chrome `focus starts on Cancel (S5) — on start-guard-discard`;
+- the "Line ‹n›: " prefix dropped: unit `S7: a known line goes in front as "Line ‹n›: "` (and eight more), chrome `a repeated key on line 3 says "Line 3: …" (S7)`;
+- the old file-type sentence: unit `S6: the wrong-type sentence is the approved one`, chrome `a file of another type says "Choose a .md, .markdown or .txt file." (S6)` and the brand menu's;
+- Blank before the examples (round 1): chrome `the cards run color, examples, the neutral default, import (S8)`;
+- (round 2, N1 A) the separate card put back: chrome `the cards run color (with Blank), examples, import (S8, N1 A) — ["Start from your color","Explore an example","Start with a neutral default","Import a design.md"]` and `"Start blank" sits inside the color card (N1 A) — in card 2`;
+- (round 2, N1 A) "Start blank" styled as primary: chrome `"Start blank" is the secondary action, on the card's own ground, not the primary fill — {"blank":"rgb(13, 13, 14)","go":"rgb(13, 13, 14)",…}`;
+- the color card's old darker border (round 2): chrome `every card draws the same border — ["rgb(141, 142, 144)|1px","rgb(219, 219, 220)|1px","rgb(219, 219, 220)|1px"]`;
+- Upload moved back below the box: chrome `the import card's heading row holds its title and then "↑ Upload…" — holds ["Import a design.md"]`;
+- Import left enabled when the box is empty: chrome `with the box empty, Import is disabled and still named "Import" — {"disabled":false,…}`;
+- the old import description: chrome `the import card says "Already have a design.md? Paste it or upload it to load the full brand." (X1)`;
+- (round 3) each start path calling `lend.load` instead of `pick()`, one at a time: chrome `the color path over 1 unsaved edit asks first ("Discard 1 edit") — loaded without asking (brand "untitled")`, `the paste path … — loaded without asking (brand "harbor")`, `the upload path … — loaded without asking (brand "harbor")`, `the Blank path … — loaded without asking (brand "untitled")`;
+- the brand menu's paste off the shared check: chrome `the brand menu's empty paste says "Paste a design.md brief or choose a file first."`.
+
+### Traps
+
+- **A start-path assertion behind a `hooks.need`** fails as "the hook did not appear", not by the decision's name. The guard's assertion reads the window first and throws after it.
+- **harbor has Dark on by default** (no `modes` key): clicking Dark opens the turn-off confirm and writes nothing, so the three-edit fixture turns Wireframe on.
+- **A refused saved brand's notice (#1989) sat under the scrim.** Its Export and Clear are mounted above `#app`, and the start window now covers the whole viewport on the first run, which is always when that notice shows. `test:smoke`'s #1989 cases caught it (their clicks timed out). The notice now opens the start window's body (`entry.ts`), inside the window's focus; the window closes only on a load, which dismisses the notice first.
+- **The `.start*` rules in `styles.css` and `mountView`'s single branch** are left for S13.
+
+---
+
+## (2026-10-05) — Studio: the dead legacy shape, motion, layout and scale CSS is removed (#2116, 3 of 3)
+
+**Status:** `apps/studio/src/styles.css` only. No ENGINE bump (no emitted artifact moves). CONTRACT unchanged. No visible change.
+
+### What changed
+
+#2116's 34 the rest classes leave `styles.css`, from the legacy Size & radius, Shape, the density and spacing specimens, Depth & motion, the primitive scales, alpha and opacity, the advanced levers, and the old build-card row. In all, 42 rules go, plus the `@media`/`@container` blocks left holding only them (`@media(max-width:760px)` · `@media(max-width:820px)`). The comments that described only those rules go with them.
+
+- **Removed with their rules**, among them the Spacing ramp head, which #2151's merge freed.
+- **Trimmed:** `.fs-row`'s note no longer cites `.cw-row` or the `.cw-row button.barbtn` suite selector, which no longer exists. It keeps the one reason it borrowed, from the removed `.cw-row` note. The controls-beside-previews note no longer describes the removed `.cs-split` column and its narrow-viewport wrap.
+
+The classes: `adv-panel` `adv-row` `adv-row-lab` · `ao-chk` `ao-fill` · `cs-ctl-col` `cs-preview-full` `cs-split` · `cw-row` · `motion-spec` · `obj-row` · `pv-cell` `pv-col` `pv-cols` `pv-rows` `pv-scale` `pv-scale-t` · `pvhost` · `rad-cell` `rad-cons` `rad-lab` `rad-list` `rad-shapes` `rad-sw` · `radius-spec` · `sp-bar` `sp-cell` `sp-lab` `sp-list` `sp-px` · `sz-box` `sz-cell` `sz-lab` `sz-list`.
+
+### How "dead" was established, not assumed
+
+The proof covers all three PRs at once, over the 226 classes, on `main` at `cd86e86e`.
+
+- **Source, tests and bundles.** The search is word-bounded on both sides, `(^|[^a-zA-Z0-9_-])<class>([^a-zA-Z0-9_-]|$)`, so `ts-row` cannot match `components-row`. It runs over every `.ts`, `.mjs`, `.js`, `.html`, `.css`, `.json` and `.md` file in `git ls-files apps packages tools skills` except `styles.css` itself, and finds none of the 226. The issue scanned comment text as definitions, so nine of its 241 had already gone from every selector. `.phead`'s three hits are a `chrome.css` grid-area name, not a class. After each PR's rebuild, `apps/studio/dist/main.js`, `apps/plugin/dist/main.js` and `apps/plugin/dist/ui.html` carry none of its classes outside surviving comment text.
+- **Run-time names.** Every hyphen prefix and suffix of every candidate was searched for in a building position (`` `te-${…}` ``, `'te-' +`, `` `${…}-row` ``). The 32 hits are element ids, `data-p3` hooks, names, log text, comments, and TokenPress's own exported CSS; none can produce a removed class. The same goes for every class-setting call with a computed argument. Every class-parameter helper (`tinted`, `shapeSample`, `tcHead`, `tcCell`, `specimenRoot`, `tabButton`) is called with literals. One construction does build styled classes: `` `sg-grid sg-g${cols}` `` in `preview/sections/kit.ts:305` produces `sg-g3` and `sg-g5`. **Those two stay.**
+- **The rendered DOM: zero matching nodes.** A scratch Playwright preload (not committed) wraps `chromium.launch` and puts a MutationObserver into every frame of every context the suites open. It reports any node wearing one of the 226, on insertion or on a class change. **The probe was proved first:** on a planted page it reported `te-c` (parsed), `pramp` (inserted later) and `sf-row` (set by a class change). It did not report `te-cat-wrapper` or `xte-c`, and the positive control (`[data-p3]`) fired.
+
+  | sweep, with all three PRs applied | result | pages | matching nodes | control seen |
+  |---|---|---|---|---|
+  | `test:chrome` | 16322/16322 | 273 | **0** | 273 |
+  | `test:smoke` | ALL PASS, 6603 assertions | 82 | **0** | 82 |
+
+- **Screenshots, against a noise baseline.** `test:chrome` saves 261 screenshots, and the preload saves each `test:smoke` page just before it closes (82). Unmodified `main` ran twice and the removal once, in the order main, removal, main.
+  - Between the two runs of identical code, 25 of 261 `test:chrome` shots and 17 of 82 `test:smoke` shots differ.
+  - So a shot counts as a real difference only if it was byte-identical in both main runs and differs after the change, or if it differs after the change by more than main differed from itself.
+  - **No real difference.**
+    - **`test:chrome`:** 238 of 261 shots are byte-identical to a main run. 13 differ by antialiasing: Δ1–2 along rounded corners, plus three isolated pixels at Δ6 and Δ11 in a spot that also differs between the main runs. The other 10 are the plugin's Activity drawer, which differs between main runs by the same amount, in the same boxes.
+    - **`test:smoke`:** 67 of 82 are byte-identical to a main run, and 4 differ by at most 29 px at Δ≤2. The other 11 are the preview pane. Every one is pixel-identical to *both* main runs once shifted vertically (by 2–155 px), so it is a scroll position, not a style.
+
+### The split, and why it merges in any order
+
+#2116 lands as three PRs:
+- **Color:** Palettes, Surfaces & fills, Interactive, Backgrounds, gradients.
+- **Type:** Typography, plus Heading sizes and the category-styles table.
+- **The rest:** Shape, Depth & motion, Layout, the primitive scales, and loose ends.
+
+Areas interleave line by line in `styles.css`, so a split by class family alone conflicted in seven places. So each rule has exactly one owner: the PR of its first dead class. Three rules are overridden by selector so each deletion run belongs to one PR: `.sf-ctlblock .chips-legend`, `.sf-ctlblock .chips-row` (Type) and `.pswatch.ao-chk` (the rest). Only `pswatch` and `sf-ctlblock` therefore have rules in two PRs.
+
+Checked with `git merge-file`:
+- **All six merge orders** are conflict-free, and each yields the same file.
+- **Against #2124:** each PR merges cleanly with #2124's `styles.css`, replayed onto this `main`, and so do all four together.
+- **The browser's own CSS parser** confirms 843 rules before, and 320 removed across the three (Color 102, Type 176, the rest 42), disjoint. Every removed rule requires one of the 226, and every survivor is unchanged and in order.
+
+### Held, not removed
+
+- `.sg-g3` and `.sg-g5`: built at run time (above).
+- `.bm-field`, `.bm-lab`, `.bm-in`, `.bm-hint`: inside the block #2124 deletes. That PR removes them, and touching them here would conflict.
+- Comments that name a removed class but survive here:
+  - #2124's "A TEXT-ENTRY CONTROL PAIRS…" block, which names `.pname-input`, `.gr-ed-nameinput` and `.te-font` (#2124 deletes it).
+  - The `@container` comment that still names `.pramp-wrap` as its container.
+  - "Top clearance as PADDING, matching .prow's…", which was already orphaned.
+
+  The last two are filed in #2165, with the classes the word-bounded scan keeps alive only because prose names them (`.lab`, `.psl-range`, `.panel`).
+
+### A trap for whoever re-verifies this
+
+The screenshot noise is not small. The `test:smoke` preview pane is captured mid-scroll, so two runs of identical code differ by up to ~380k pixels there, with hundreds of thousands of "strong" deltas. Those collapse to **0 differing pixels** under a pure vertical offset, which is how to tell them from a styling change. Comparing shots without that, or without a second baseline run, reads as a regression that is not there.
+
+### Mutation (it was truly dead)
+
+Put `.sp-list{display:flex;flex-direction:column;gap:7px;…}` back, at its original place (L726 of `main`'s `styles.css`), after a `wip:` commit:
+
+- `apps/studio/dist/main.js` and `apps/plugin/dist/ui.html` each carry `.sp-list{` again (1 hit each), so the bundle check above can see a rule when it is there.
+- studio `build` (including `installStyles`' scope law) and `test` pass. `test:smoke` passes (ALL PASS, 6603 assertions), and so does `test:chrome` (16322/16322).
+
+Nothing fails with the rule back, so nothing depended on it. Restored with `git checkout -- apps/studio/src/styles.css` from the committed state.
+
+---
+
+## (2026-10-05) — Studio: the dead legacy type-page CSS is removed (#2116, 2 of 3)
+
+**Status:** `apps/studio/src/styles.css` only. No ENGINE bump (no emitted artifact moves). CONTRACT unchanged. No visible change.
+
+### What changed
+
+#2116's 115 Type classes leave `styles.css`, from the legacy Typography (faces, categories, rungs, the size ladder, facePin), Heading sizes (the shape cards, range, stepper and per-size table cells), and the category-styles table. In all, 176 rules go, plus the `@media`/`@container` blocks left holding only them (`@media(max-width:760px)`). The comments that described only those rules go with them.
+
+- **Removed with their rules:** the Range note, the Typography Preview grid note, #558's `.tf-addbtn` note, both Typeface library notes, #405's add-face CTA note, the ladder offsetParent note, the `.ltbl-sel` 124px note, and #1467's facePin note. `.ltbl-who` is live (three preview sections render it) and keeps its own `max-width:124px`.
+- **Trimmed:** the Heading sizes section head now names only the per-size table, which is all that survives. `.cw-note`'s "Modeled on .sl-note / .tf-note" note no longer cites `.tf-note`.
+- The five old focus rings in this area (`.chips-in`, `.shape-card`, `.shape-release`, `.mstep`, `.mreset`) are removed like the rest, on the same proof.
+
+The classes: `chips-face` `chips-in` `chips-opt` `chips-row` · `cs-c` `cs-count` `cs-face` `cs-name` `cs-table` `cs-wrap` · `fz-bar` `fz-clamp` `fz-fill` `fz-name` `fz-pair` `fz-row` · `ltbl-sel` · `mcell` · `mreset` `mreset-sp` · `mstep` · `mtbl-cap` `mtbl-off` `mtbl-offval` `mtbl-ro` `mtbl-selfval` `mtbl-vplab` `mtbl-vpstack` `mtbl-worth` · `mval` · `pincut` `pincut-in` `pincut-stale` · `range-f` `range-row` `range-tg` `range-tglab` · `sh-auto` `sh-knob-head` · `shadow-spec` · `shape-blocked` `shape-blurb` `shape-card` `shape-cards` `shape-nums` `shape-release` · `sl-samp` `sl-tall` · `szt-badge` `szt-head` `szt-headlab` · `tabnote` · `te-c` `te-cat` `te-cat-name` `te-cat-note` `te-cat-wrap` `te-cbwrap` `te-font` `te-order-warn` `te-ramp` `te-ramp-cell` `te-ramp-in` `te-ramp-key` `te-ramp-ro` `te-shared-note` `te-shared-ro` `te-shared-ro-note` `te-warn` `te-weight` `te-wrow` · `tf-add` `tf-addbtn` `tf-adderr` `tf-addin` `tf-bulk` `tf-bulklab` `tf-cbo` `tf-cbolist` `tf-combo` `tf-derivenote` `tf-fall` `tf-fbnote` `tf-libname` `tf-libpath` `tf-libtbl` `tf-note` `tf-prev` `tf-rm` `tf-unbound` `tf-usedby` `tf-vf` · `tp-fam` · `tr-attr` `tr-band` `tr-band-c` `tr-band-d` `tr-band-n` `tr-block` `tr-meta` `tr-mode` `tr-mode-n` `tr-modes` `tr-row` `tr-samp` · `tsz-fdesc` `tsz-field` `tsz-flabel` · `type-editor` `type-spec` · `unavail` · `wr-name` `wr-row` `wr-samp` · `wt-spec`.
+
+### How "dead" was established, not assumed
+
+The proof covers all three PRs at once, over the 226 classes, on `main` at `cd86e86e`.
+
+- **Source, tests and bundles.** The search is word-bounded on both sides, `(^|[^a-zA-Z0-9_-])<class>([^a-zA-Z0-9_-]|$)`, so `ts-row` cannot match `components-row`. It runs over every `.ts`, `.mjs`, `.js`, `.html`, `.css`, `.json` and `.md` file in `git ls-files apps packages tools skills` except `styles.css` itself, and finds none of the 226. The issue scanned comment text as definitions, so nine of its 241 had already gone from every selector. `.phead`'s three hits are a `chrome.css` grid-area name, not a class. After each PR's rebuild, `apps/studio/dist/main.js`, `apps/plugin/dist/main.js` and `apps/plugin/dist/ui.html` carry none of its classes outside surviving comment text.
+- **Run-time names.** Every hyphen prefix and suffix of every candidate was searched for in a building position (`` `te-${…}` ``, `'te-' +`, `` `${…}-row` ``). The 32 hits are element ids, `data-p3` hooks, names, log text, comments, and TokenPress's own exported CSS; none can produce a removed class. The same goes for every class-setting call with a computed argument. Every class-parameter helper (`tinted`, `shapeSample`, `tcHead`, `tcCell`, `specimenRoot`, `tabButton`) is called with literals. One construction does build styled classes: `` `sg-grid sg-g${cols}` `` in `preview/sections/kit.ts:305` produces `sg-g3` and `sg-g5`. **Those two stay.**
+- **The rendered DOM: zero matching nodes.** A scratch Playwright preload (not committed) wraps `chromium.launch` and puts a MutationObserver into every frame of every context the suites open. It reports any node wearing one of the 226, on insertion or on a class change. **The probe was proved first:** on a planted page it reported `te-c` (parsed), `pramp` (inserted later) and `sf-row` (set by a class change). It did not report `te-cat-wrapper` or `xte-c`, and the positive control (`[data-p3]`) fired.
+
+  | sweep, with all three PRs applied | result | pages | matching nodes | control seen |
+  |---|---|---|---|---|
+  | `test:chrome` | 16322/16322 | 273 | **0** | 273 |
+  | `test:smoke` | ALL PASS, 6603 assertions | 82 | **0** | 82 |
+
+- **Screenshots, against a noise baseline.** `test:chrome` saves 261 screenshots, and the preload saves each `test:smoke` page just before it closes (82). Unmodified `main` ran twice and the removal once, in the order main, removal, main.
+  - Between the two runs of identical code, 25 of 261 `test:chrome` shots and 17 of 82 `test:smoke` shots differ.
+  - So a shot counts as a real difference only if it was byte-identical in both main runs and differs after the change, or if it differs after the change by more than main differed from itself.
+  - **No real difference.**
+    - **`test:chrome`:** 238 of 261 shots are byte-identical to a main run. 13 differ by antialiasing: Δ1–2 along rounded corners, plus three isolated pixels at Δ6 and Δ11 in a spot that also differs between the main runs. The other 10 are the plugin's Activity drawer, which differs between main runs by the same amount, in the same boxes.
+    - **`test:smoke`:** 67 of 82 are byte-identical to a main run, and 4 differ by at most 29 px at Δ≤2. The other 11 are the preview pane. Every one is pixel-identical to *both* main runs once shifted vertically (by 2–155 px), so it is a scroll position, not a style.
+
+### The split, and why it merges in any order
+
+#2116 lands as three PRs:
+- **Color:** Palettes, Surfaces & fills, Interactive, Backgrounds, gradients.
+- **Type:** Typography, plus Heading sizes and the category-styles table.
+- **The rest:** Shape, Depth & motion, Layout, the primitive scales, and loose ends.
+
+Areas interleave line by line in `styles.css`, so a split by class family alone conflicted in seven places. So each rule has exactly one owner: the PR of its first dead class. Three rules are overridden by selector so each deletion run belongs to one PR: `.sf-ctlblock .chips-legend`, `.sf-ctlblock .chips-row` (Type) and `.pswatch.ao-chk` (the rest). Only `pswatch` and `sf-ctlblock` therefore have rules in two PRs.
+
+Checked with `git merge-file`:
+- **All six merge orders** are conflict-free, and each yields the same file.
+- **Against #2124:** each PR merges cleanly with #2124's `styles.css`, replayed onto this `main`, and so do all four together.
+- **The browser's own CSS parser** confirms 843 rules before, and 320 removed across the three (Color 102, Type 176, the rest 42), disjoint. Every removed rule requires one of the 226, and every survivor is unchanged and in order.
+
+### Held, not removed
+
+- `.sg-g3` and `.sg-g5`: built at run time (above).
+- `.bm-field`, `.bm-lab`, `.bm-in`, `.bm-hint`: inside the block #2124 deletes. That PR removes them, and touching them here would conflict.
+- Comments that name a removed class but survive here:
+  - #2124's "A TEXT-ENTRY CONTROL PAIRS…" block, which names `.pname-input`, `.gr-ed-nameinput` and `.te-font` (#2124 deletes it).
+  - The `@container` comment that still names `.pramp-wrap` as its container.
+  - "Top clearance as PADDING, matching .prow's…", which was already orphaned.
+
+  The last two are filed in #2165, with the classes the word-bounded scan keeps alive only because prose names them (`.lab`, `.psl-range`, `.panel`).
+
+### A trap for whoever re-verifies this
+
+The screenshot noise is not small. The `test:smoke` preview pane is captured mid-scroll, so two runs of identical code differ by up to ~380k pixels there, with hundreds of thousands of "strong" deltas. Those collapse to **0 differing pixels** under a pure vertical offset, which is how to tell them from a styling change. Comparing shots without that, or without a second baseline run, reads as a regression that is not there.
+
+### Mutation (it was truly dead)
+
+Put `.mstep{font:inherit;font-size:13px;line-height:1;width:22px;height:24px;…}` back, at its original place (L1194 of `main`'s `styles.css`), after a `wip:` commit:
+
+- `apps/studio/dist/main.js` and `apps/plugin/dist/ui.html` each carry `.mstep{` again (1 hit each), so the bundle check above can see a rule when it is there.
+- studio `build` (including `installStyles`' scope law) and `test` pass. `test:smoke` passes (ALL PASS, 6603 assertions), and so does `test:chrome` (16322/16322).
+
+Nothing fails with the rule back, so nothing depended on it. Restored with `git checkout -- apps/studio/src/styles.css` from the committed state.
+
+---
+
+## (2026-10-05) — Studio: the dead legacy color-page CSS is removed (#2116, 1 of 3)
+
+**Status:** `apps/studio/src/styles.css` only. No ENGINE bump (no emitted artifact moves). CONTRACT unchanged. No visible change.
+
+### What changed
+
+#2116's 77 Color classes leave `styles.css`, from the legacy Palettes, Surfaces & fills, Interactive, Backgrounds and gradients. In all, 102 rules go, plus the `@media`/`@container` blocks left holding only them (`@container(max-width:352px)` · `@media(max-width:1208px)`). The comments that described only those rules go with them.
+
+- **Removed with their rules**, because each explained only rules that go here: the `.porigin` gap note, the neutral-row readout note, `.pramp-wrap`'s container note (#334), both Backgrounds card notes, the Surfaces & fills section head, the 1208px collapse note, and the 480px hex-drop note.
+- **Trimmed where this PR made them false:** `.lab`'s min-width note no longer cites `.labs` or `.lab-hex`. The `@container` tier note no longer claims a hex tier. It still names `.pramp-wrap`, which is filed in #2165.
+
+The classes: `bg-derived` `bg-floor` `bg-floor-lab` · `cb-lab` `cb-mark` `cb-ratio` · `cbadge` · `cs-ctl-stack` · `fg-row` `fg-sw` · `gr-cell` `gr-ed-add` `gr-ed-addstop` `gr-ed-card` `gr-ed-ctrls` `gr-ed-field` `gr-ed-head` `gr-ed-lab` `gr-ed-list` `gr-ed-name` `gr-ed-nameinput` `gr-ed-num` `gr-ed-range` `gr-ed-stop` `gr-ed-stoprm` `gr-ed-stops` `gr-ed-stopsh` `gr-ed-stopsw` `gr-ed-sw` `gr-lab` `gr-list` `gr-sw` · `gradient-spec` · `ic-add` `ic-addbtn` `ic-addhint` `ic-modenote` · `lab-hex` `lab-step` · `labs` · `np-note` · `panel-head` · `phead` · `phex` · `pidcol` · `pident` · `plock` · `pname` `pname-input` · `porigin` · `pramp` `pramp-wrap` · `prm` · `prole` `prole-dot` · `prow` · `psl-top` `psl-val` · `psub` · `pswatch` · `pswrap` · `sf-ctl` `sf-ctlblock` `sf-derived` `sf-desc` `sf-ex` `sf-ex-fill` `sf-ex-surface` `sf-ex-text` `sf-id` `sf-name` `sf-railnote` `sf-right` `sf-row` `sf-sw` · `slider-top` · `tok-shadow`.
+
+### How "dead" was established, not assumed
+
+The proof covers all three PRs at once, over the 226 classes, on `main` at `cd86e86e`.
+
+- **Source, tests and bundles.** The search is word-bounded on both sides, `(^|[^a-zA-Z0-9_-])<class>([^a-zA-Z0-9_-]|$)`, so `ts-row` cannot match `components-row`. It runs over every `.ts`, `.mjs`, `.js`, `.html`, `.css`, `.json` and `.md` file in `git ls-files apps packages tools skills` except `styles.css` itself, and finds none of the 226. The issue scanned comment text as definitions, so nine of its 241 had already gone from every selector. `.phead`'s three hits are a `chrome.css` grid-area name, not a class. After each PR's rebuild, `apps/studio/dist/main.js`, `apps/plugin/dist/main.js` and `apps/plugin/dist/ui.html` carry none of its classes outside surviving comment text.
+- **Run-time names.** Every hyphen prefix and suffix of every candidate was searched for in a building position (`` `te-${…}` ``, `'te-' +`, `` `${…}-row` ``). The 32 hits are element ids, `data-p3` hooks, names, log text, comments, and TokenPress's own exported CSS; none can produce a removed class. The same goes for every class-setting call with a computed argument. Every class-parameter helper (`tinted`, `shapeSample`, `tcHead`, `tcCell`, `specimenRoot`, `tabButton`) is called with literals. One construction does build styled classes: `` `sg-grid sg-g${cols}` `` in `preview/sections/kit.ts:305` produces `sg-g3` and `sg-g5`. **Those two stay.**
+- **The rendered DOM: zero matching nodes.** A scratch Playwright preload (not committed) wraps `chromium.launch` and puts a MutationObserver into every frame of every context the suites open. It reports any node wearing one of the 226, on insertion or on a class change. **The probe was proved first:** on a planted page it reported `te-c` (parsed), `pramp` (inserted later) and `sf-row` (set by a class change). It did not report `te-cat-wrapper` or `xte-c`, and the positive control (`[data-p3]`) fired.
+
+  | sweep, with all three PRs applied | result | pages | matching nodes | control seen |
+  |---|---|---|---|---|
+  | `test:chrome` | 16322/16322 | 273 | **0** | 273 |
+  | `test:smoke` | ALL PASS, 6603 assertions | 82 | **0** | 82 |
+
+- **Screenshots, against a noise baseline.** `test:chrome` saves 261 screenshots, and the preload saves each `test:smoke` page just before it closes (82). Unmodified `main` ran twice and the removal once, in the order main, removal, main.
+  - Between the two runs of identical code, 25 of 261 `test:chrome` shots and 17 of 82 `test:smoke` shots differ.
+  - So a shot counts as a real difference only if it was byte-identical in both main runs and differs after the change, or if it differs after the change by more than main differed from itself.
+  - **No real difference.**
+    - **`test:chrome`:** 238 of 261 shots are byte-identical to a main run. 13 differ by antialiasing: Δ1–2 along rounded corners, plus three isolated pixels at Δ6 and Δ11 in a spot that also differs between the main runs. The other 10 are the plugin's Activity drawer, which differs between main runs by the same amount, in the same boxes.
+    - **`test:smoke`:** 67 of 82 are byte-identical to a main run, and 4 differ by at most 29 px at Δ≤2. The other 11 are the preview pane. Every one is pixel-identical to *both* main runs once shifted vertically (by 2–155 px), so it is a scroll position, not a style.
+
+### The split, and why it merges in any order
+
+#2116 lands as three PRs:
+- **Color:** Palettes, Surfaces & fills, Interactive, Backgrounds, gradients.
+- **Type:** Typography, plus Heading sizes and the category-styles table.
+- **The rest:** Shape, Depth & motion, Layout, the primitive scales, and loose ends.
+
+Areas interleave line by line in `styles.css`, so a split by class family alone conflicted in seven places. So each rule has exactly one owner: the PR of its first dead class. Three rules are overridden by selector so each deletion run belongs to one PR: `.sf-ctlblock .chips-legend`, `.sf-ctlblock .chips-row` (Type) and `.pswatch.ao-chk` (the rest). Only `pswatch` and `sf-ctlblock` therefore have rules in two PRs.
+
+Checked with `git merge-file`:
+- **All six merge orders** are conflict-free, and each yields the same file.
+- **Against #2124:** each PR merges cleanly with #2124's `styles.css`, replayed onto this `main`, and so do all four together.
+- **The browser's own CSS parser** confirms 843 rules before, and 320 removed across the three (Color 102, Type 176, the rest 42), disjoint. Every removed rule requires one of the 226, and every survivor is unchanged and in order.
+
+### Held, not removed
+
+- `.sg-g3` and `.sg-g5`: built at run time (above).
+- `.bm-field`, `.bm-lab`, `.bm-in`, `.bm-hint`: inside the block #2124 deletes. That PR removes them, and touching them here would conflict.
+- Comments that name a removed class but survive here:
+  - #2124's "A TEXT-ENTRY CONTROL PAIRS…" block, which names `.pname-input`, `.gr-ed-nameinput` and `.te-font` (#2124 deletes it).
+  - The `@container` comment that still names `.pramp-wrap` as its container.
+  - "Top clearance as PADDING, matching .prow's…", which was already orphaned.
+
+  The last two are filed in #2165, with the classes the word-bounded scan keeps alive only because prose names them (`.lab`, `.psl-range`, `.panel`).
+
+### A trap for whoever re-verifies this
+
+The screenshot noise is not small. The `test:smoke` preview pane is captured mid-scroll, so two runs of identical code differ by up to ~380k pixels there, with hundreds of thousands of "strong" deltas. Those collapse to **0 differing pixels** under a pure vertical offset, which is how to tell them from a styling change. Comparing shots without that, or without a second baseline run, reads as a regression that is not there.
+
+### Mutation (it was truly dead)
+
+Put `.pramp{display:flex;flex-direction:column}` back, at its original place (L391 of `main`'s `styles.css`), after a `wip:` commit:
+
+- `apps/studio/dist/main.js` and `apps/plugin/dist/ui.html` each carry `.pramp{` again (1 hit each), so the bundle check above can see a rule when it is there.
+- studio `build` (including `installStyles`' scope law) and `test` pass. `test:smoke` passes (ALL PASS, 6603 assertions), and so does `test:chrome` (16322/16322).
+
+Nothing fails with the rule back, so nothing depended on it. Restored with `git checkout -- apps/studio/src/styles.css` from the committed state.
+
+---
+
+## (2026-10-05) — Chrome: a disabled text field takes Prism3's disabled skin, and the contrast audit exempts inactive controls (F1 A)
+
+**STATUS: branch `ui/disabled-field-prism3`.** UI, build check and tests only. No engine change, no emitted artifact moves, no ENGINE bump, and `CONTRACT_VERSION` is unchanged. No new copy. Replaces #2120's dashed edge on the fixed text field, and its test.
+
+**The owner's decision (2026-10-05, F1 A).** A disabled text field in the studio chrome follows Prism3's own disabled field styling exactly. The studio's contrast audit exempts disabled controls, as WCAG 2.2 does: SC 1.4.3 and SC 1.4.11 both exempt a component that is not available for user interaction.
+
+**The skin.** Re-checked in `packages/engine/components/text-field.ts`: the disabled state binds `color.disabled.fill`, `color.disabled.border`, and the on-fill ink `color.disabled.on-fill` for its label and glyph. It does not use `disabled.text`, because the field always has a fill. It sits on no surface, so it uses no `inverse.*` set. Three new chrome variables read those roles in both themes: `--p3-disabled-fill`, `--p3-disabled-edge` and `--p3-disabled-ink`. They are rows in `chrome/spec.mjs` `PRODUCT_VARS`, and none of them resolves through a `BRAND_RE` path (neutral 200 / 550 in light, 750 / 450 in dark). `.p3-text-input:disabled` now draws them. The dashed edge is gone, and the `not-allowed` cursor stays.
+
+**The build's `[pairs]` check.** These three variables are in no `PAIRS` entry, so they would fail "a mapped color in no declared pair". A new `INACTIVE` list in `spec.mjs` exempts them from that one rule only. The build refuses an `INACTIVE` name that maps no row, and one that reads anything but a `color.disabled.*` role in either theme. That pattern, `INACTIVE_ROLE`, is typed in `esbuild-plugin.mjs` rather than in `spec.mjs`, so the list that grants the exemption cannot also define what qualifies for it.
+
+**The audit's exemption (`test:chrome`).** The rationale is in the file header and above `checkExempt`.
+- **Who qualifies.** The probe marks a measured text node, field value or edge as off when it is, or sits inside, a control that is `:disabled` or `aria-disabled="true"`. It never goes by class name or hook. A node is exempt only if it is off and also measures under its literal floor. A disabled control that clears its floor is not counted.
+- **What each exempted node must still pass, by name:**
+  - The browser's accessibility tree (CDP `Accessibility.getPartialAXTree`, independent of the DOM predicate) reports it disabled, and it carries the `disabled` property or `aria-disabled`.
+  - `focus()` does not take, and a scripted edit (focus, then typing) changes neither its value nor `localStorage`. So an `aria-disabled` control that keeps its focus stop does not qualify. Nothing in the chrome needs one to today.
+  - Its fill, its four solid edges and its ink equal `color.disabled.fill`, `.border` and `.on-fill` for the chrome theme drawn (read from the root's `color-scheme`). The values come from `PRISM3_DISABLED`, which resolves the committed emission in Node, never the studio's CSS or `spec.mjs`.
+- **Counted.** Each run prints how many nodes it exempted, per probe. This run exempted 4 nodes in 4 of 262 probes: the first breakpoint field on Layout, web and figma, light and dark, in section 2's place sweep.
+- **The floor.** Section 2 fails a Layout sweep that exempted zero nodes or did not exempt `bp-input`.
+- **The canary.** Section 2 also plants, beside the field, a copy that is not disabled but keeps its class, its hook and, inline, its exact colors. The copy must be measured, must not be exempted, and must fail 4.5:1.
+
+**The same rule in `test:smoke` and the plugin's `test:start`.** The first full `npm run verify` failed two gates that #2143's notes did not name. Both suites have their own form-control walk, and both measure the same field: 18 failures in `smoke` (every brand's Layout field, plus every field Layout and Type lock in HC light and HC dark) and 4 in `plugin-start` (Figma's Layout tab, both schemes and both themes). Both walks now carry the rule, each with its own copy of the oracle. A chrome field (never a specimen) is exempt only if it is `:disabled` or `aria-disabled` and also under its bar. Each exempted field is asserted, by name, to be disabled, to take no focus, and to draw the three Prism3 roles from the emission. The accessibility-tree read stays in `test:chrome` only. Each suite also has:
+- a floor: every brand's Layout sweep in smoke, and every Layout tab measured in `test:start`, exempts `bp-input`;
+- the same canary;
+- a printed count: smoke 44 fields in 18 states, `test:start` 4 in 4.
+
+**The replacement for #2120's test (`F1 A: Layout: …`).** On both hosts and both chrome themes, the first breakpoint field's computed fill, edge (all four sides, solid) and value ink must equal the emission's Prism3 disabled values, and no editable breakpoint field may take any of them. Given a screenshot directory, it saves the breakpoint list as `f1-{web,plugin}-{light,dark}.png`.
+
+**Mutations,** each run in its own detached worktree at the `wip:` commit, so the branch's working tree was never written:
+- **(a) The field not disabled, its colors kept.** In `layout.ts`, `t.el.disabled = true` was commented out, and the CSS rule was keyed on `[data-fixed="true"]` as well. 22 failures. Among them, on both hosts and both themes:
+  - `✗ web light 1280 / layout: every chrome field inks its value at 4.5:1 — input[bp-input] "sm, px" 3.05:1`;
+  - `… every control edge and indicator clears 3:1 — edge input[bp-input] "sm, px" 1.8:1 < 3`;
+  - `… the contrast audit exempted 0 disabled node(s) …`.
+- **(b) The exemption widened to a class-name match.** `|| n.classList.contains('p3-text-input')` was added to the probe's predicate. 4 failures, all the canary, for example `✗ web light 1280 / layout: the exemption canary, … is not exempted and fails 4.5:1 — {"planted":true,"measured":true,"r":3.05,"exempted":true}`. Without the canary this mutation passes green, because every enabled field clears its floor and so is never exempted.
+- **(c) The ink on `disabled.text` instead of `disabled.on-fill`.** This was changed in `spec.mjs`. 8 failures:
+  - `✗ web light 1280 / layout: the exempted input[bp-input] "sm, px" draws Prism3's disabled roles for light: … ink color.disabled.on-fill #67696b (drew {… "ink":"#808284" …})`, on both hosts and both themes;
+  - `✗ F1 A: Layout: web light: the fixed first breakpoint field draws Prism3's disabled text field …`, on both hosts and both themes.
+
+- **(b) and (c) on `test:smoke` and `test:start`,** each in its own detached worktree:
+  - The class-name widening in both walks gives the canary only, by name: smoke 3 (`✗ prism3 / layout / light: the exemption canary, … {"planted":true,"measured":true,"ratio":3.06,"exempted":true}`, once per brand) and `test:start` 4 (`✗ light scheme / Figma light / Layout: the exemption canary, …`).
+  - The `disabled.text` ink gives the color arm on every exempted field: smoke 44 (`✗ prism3 / layout / light: the exempted field input.p3-text-input [text] "0" draws Prism3's disabled roles for the light chrome: …`) and `test:start` 4.
+
+### Traps
+- **The exemption is decided against the floors in Node, not in the page.** `exemptOf` and `check` both read `TEXT_MIN` / `LARGE_TEXT_MIN` / `NONTEXT_MIN`. The probe only says which nodes are off, so a probe change cannot quietly decide what passes.
+- **#2143 (`ui/disabled-field-focus`) merged while this was in flight.** Its rule, `.p3-text-input:hover:not(:disabled)`, sits next to this one. Its `test:chrome` block ("a pointer over the disabled first breakpoint field changes nothing") conflicted with this PR's replacement of #2120's test in the same place. The merge keeps both blocks, one after the other.
+
+---
+
+## (2026-10-05) — the style guide test holds "REM off removes the REM column" on every dimension and font-variable table (#2153)
+
+**STATUS: branch `test/2153-rem-off`.** Test only: `apps/plugin/test-style-guide.ts`. No engine, plugin source, token, name or value moves; `ENGINE_VERSION` and `CONTRACT_VERSION` unchanged.
+
+**The gap.** Forcing `const lengths = remOn(options) && …` in `planVariableTables` to ignore the option left `test-style-guide.ts` green. The only check on that path, "19: switching REM off changes no row", compares rerun diffs, and a REM toggle is by design not a change to a row. Section 18's REM-off arm covers the text-style table only, which has its own column code.
+
+### What section 25 checks
+
+- **The plan**, with REM on and with REM off: the 12 dimension and font-variable tables are all there, each table's `columns` is its exact list, and every cell's `rem` is set on a length table with REM on and unset otherwise. A family or a weight table has no REM column with REM on either.
+- **The drawn tables**, first drawn with REM on, first drawn with REM off, and redrawn from on to off: the header row is the exact list, every row has a REM cell (`<n>rem` or "—") under each REM column, and with REM off no cell reads REM and no cell sits past the last column.
+- **Independence:** the 24 column lists are literals typed in the test, read off the fixture's collections and modes (density's compact and comfortable, type-sets' desktop and mobile, Default elsewhere). None is built from the planner's or the drawer's own lists.
+
+### Mutations, each failing by name
+
+- **REM forced on** (`const lengths = true && …`): "25: REM off: the plan's columns are each table's exact list", "25: REM off: every planned cell has no REM", and the header and cell arms of both drawn REM-off runs fail. Six failures, all in section 25. Before this PR the same mutation was green.
+- **REM forced off** (`const lengths = false && …`): "25: REM on: the plan's columns are each table's exact list", "25: REM on: every planned cell of a length table has its REM…", and both drawn REM-on arms fail, with 11 arms in 16, 17, 19 and 23.
+- **Not a clean mutation:** dropping `'REM'` from the column list alone, keeping the cells, throws in section 6a. The shim's grid refuses a cell past its last column, as the host does. It's loud, so it isn't a silent pass, but it isn't a by-name result either.
+
+### `gridOf` no longer throws
+
+A missing table made `gridOf(undefined)` throw and stopped the suite. It now counts a named failure ("gridOf: a table the check expected is not drawn") and returns an empty frame. Measured with every dimension table's title changed: the suite used to stop in section 16. Now it reports 50 failures through section 18 and then stops at section 19's `space.id`, a separate `!` dereference. The remaining `!` dereferences are filed as #2163, with the issue's other leftover: the stale "Options" bullet in `lane-style-guide-phase2.md`, which this test-only PR leaves alone.
+
+---
+
+## (2026-10-05) — Type: a viewport pair the engine refuses is put back, with the engine's sentence (#2068)
+
+**STATUS: branch `ui/2068-2132-studio-refusals`.** UI only: no engine change, no emitted artifact moves, ENGINE stays at 0.230.0, `CONTRACT_VERSION` unchanged. No new copy: the one string shown is the engine's owner-approved sentence. **Part 1 of the studio follow-up to #2133 (#2068) and #2139 (#2132).** Part 2 waits for #2142 (see below).
+
+### What changed
+
+The engine refuses a minimum viewport that is not below the maximum, fluid on or off (#2133): "The minimum viewport (‹min›px) must be smaller than the maximum viewport (‹max›px)." Before this change, Type's Min/Max viewport fields wrote such a pair. The engine then threw, and the error bar showed it.
+
+Now `viewportRefusal(key, n)` in `state/type-input.ts` applies the engine's rule before anything is written. It applies it directly, with no trial build, as `ceilingBlocked()`, `titleFloorBlocked()` and `fluidBlocked()` do.
+- The other bound is the brand's, or the engine's default when the brand sets none.
+- Values appear as entered, so 1280.5 reads "1280.5px", as in the engine.
+
+When the helper returns a sentence, Type's `onCommit` writes nothing. It puts the field back to its value, and shows the sentence as a warning state line under the fields (hook `type-viewport-refused`). The line clears on the next repaint.
+
+### The display: a choice the owner may want to redirect
+
+The #2044/#2054/#2055 refusals disable a chip or switch with the reason in its `title`. A text field takes any value, so it can't be disabled in advance. Two existing text-field patterns were reused instead, and no new mechanism was added:
+- the put-back is how Layout's breakpoint field treats a refused edit;
+- the warning line is how Brand's namespace field shows an invalid value.
+
+The alternative, keeping the typed value and showing the line while typing, as the namespace field does, is a design call. I didn't make it.
+
+### Gates and their independence
+
+- **`test-type-input.ts`** checks each case against a sentence typed in the test, never read from the module. The engine is a second witness each time: it throws the same sentence for the pair, and builds each pair the helper lets through.
+  - not refused: 375 and 1280 on the default, and 400 under 1280;
+  - refused, equal: 1280/1280, 800/800, 375/375;
+  - refused, inverted: 375/320, 1280/800;
+  - refused, decimal: 1280.5/1280.
+- **`test-chrome.mjs`** drives the real fields.
+  - With no refusal, no line shows.
+  - Min 1280 against the default max, then max 320 against the default min, each show the exact sentence, are put back, write nothing, and leave the error bar quiet.
+- **Mutations.** Each was run after a `wip:` commit, and each failed by name:
+  - `>=` changed to `>` fails the three equal-value unit arms;
+  - a changed wording fails all six refused unit arms;
+  - the refusal ignored in `onCommit` fails the six `#2068: …` chrome arms, plus the hook guard's "never appeared in the rendered DOM".
+
+### Trap for whoever is next
+
+A chrome arm that writes an allowed viewport value can't undo it: the field has no way to unset the key, so the value stays in the brand. Type's later "every edit undone, the brand is the one it was" arm then fails, on a typography diff that looks unrelated. The arm here only drives refused values, which write nothing. The allowed case is covered by the unit arm.
+
+### Part 2, not done here
+
+From #2139 (#2132), the engine refuses a brief or saved file whose first breakpoint isn't 0px: "The first breakpoint must be 0px. This brand starts at ‹n›px." The studio should show this through the shared import validator: Start screen paste and upload, and the brand menu. It should use "Line ‹n›: ‹what is wrong›. ‹How to fix it›." when a line is known, and drop the "Line ‹n›: " prefix when none is. That validator arrives with the S12 Start screen PR, #2142, which is still open. Part 2 follows once it merges.
+
+---
+
+## (2026-10-05) — validate_brand runs theme_brand's build path, and tests the empty-breakpoints refusal (#2159)
+
+**STATUS: branch `engine/2159-validate-full-build`.** `ENGINE_VERSION` → **0.230.0** (minor, a change note: `validate_brand`'s behavior changes). No token, name or value moves; `CONTRACT_VERSION` unchanged. **Fixes #2159.**
+
+### What changed
+
+Since #2158, MCP `validate_brand` ran `brandTheme` on a schema-valid input and reported its refusals. Refusals that fire only in `buildTree`, once the modes resolve, still passed it. Measured: an override naming an unknown step or palette builds in `brandTheme` and throws in `buildTree`, with `overrides[light]: unknown step '999' in palette 'neutral' (role 'foreground.brand')` and `overrides[light]: unknown palette 'nope' (role 'foreground.brand')`.
+
+`validate_brand` now runs `buildTree(brandTheme(input))`, the path `theme_brand` runs, and reports what either throws, verbatim. The guard is unchanged: a schema-invalid input never reaches the build.
+
+### The test #2157 and #2158 owed
+
+Both PRs said whichever merged second would add a `validate_brand` arm for #2137's empty-list refusal. Neither did, so it lands here: `layout: { breakpoints: [] }` reports exactly `The brand needs at least one breakpoint, starting at 0px.`
+
+### Tests, in `mcp-test.ts`
+
+59 → 62 passing:
+- the empty list (#2137);
+- an override naming an unknown step;
+- an override naming an unknown palette.
+
+Each expected message is a literal.
+
+### Mutations, each failing by name
+
+- **Remove the build call:** all five refusal arms fail, the #2137 empty-list arm included (`got {"valid":true,"errors":[]}`).
+- **Back to `brandTheme` alone:** only the two override arms fail. The `brandTheme` arms stay green, so this isolates what `buildTree` adds.
+
+### Found and filed
+
+**#2162:** `theme_brand` itself returns a `-32603` protocol error for the same unknown-step override, not an `isError` result. `themePayload` catches `brandTheme` but not `buildTree`, though the comment above `callTool` says a generation throw comes back as `isError`. Out of scope here.
+
+---
+
+## (2026-10-05) — lint-ratio-truth names a missing committed tree instead of crashing (#2136)
+
+**STATUS: branch `gate/2136-committed-tree-missing`.** Gate only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. **Fixes #2136.**
+
+### What was wrong
+
+#2131 made `lint-ratio-truth` read palette steps from `out/<brand>.tokens.json` for every brand in `COMMITTED_TREES`. The comment on that list says a moved file "fails by name below". It didn't. `existsSync` was imported and never called, so a missing file reached `readFileSync` and the gate died on `ENOENT` with a stack trace. That still exits 1, but it names neither the gate nor the missing tree. The comment and the code were written in one pass and never checked against each other: docs/34 shape 20, in my own #2131.
+
+### The fix
+
+`sweep()` checks the committed path with `existsSync` before reading it. A missing file fails as:
+
+> COMMITTED_TREES names '‹id›', but out/‹id›.tokens.json is missing
+
+The brand is then swept from its in-memory build, so the rest of the run still reports. Floor 6 fails it as well, because that tree was not read.
+
+### Mutation
+
+In a scratch copy of `packages/engine`, `out/harbor.tokens.json` was renamed to `out/harbor.tokens.json.moved`:
+- **The gate as it was:** `exit=1`, `Error: ENOENT: no such file or directory, open '…/out/harbor.tokens.json'` and a stack trace (`at sweep (…lint-ratio-truth.ts:215:39)`).
+- **The fixed gate:** `exit=1`, `❌ 2 ratio-truth failure(s):`, `COMMITTED_TREES names 'harbor', but out/harbor.tokens.json is missing`, then floor 6's `COMMITTED_TREES names 'harbor', but no corpus brand read out/harbor.tokens.json — …`.
+
+The unmutated gate is clean, with the same coverage as before (49432 ratios, 656 from the four committed trees).
+
+---
+
+## (2026-10-05) — UI: Components refuses a write in a derived mode at the write, not only by the DOM disabled flag (#2096)
+
+**STATUS: branch `ui/2096-min-width-guard`. Fixes #2096.** UI and studio tests only: no engine change, no emitted
+artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged, no visible wording.
+
+**The defect.** On Components (S8.2), the Button minimum-width slider's write called `edit()` without checking the
+previewed mode. In a derived mode (HC light, HC dark, wireframe) only the input's DOM `disabled` flag stopped it,
+and a scripted `input` event is not stopped by that flag, so it wrote. No user could reach it.
+
+**The fix.** `edit()` in `domains/components.ts` returns before writing when `isDerived(currentMode)`. Every write on
+the page passes through it, so the three option chips are covered too. The guard sits in the domain module rather
+than in `state/button-input.ts`: the Button options are brand-wide and their setters take no mode, and "derived"
+is a fact about the mode the preview shows, which only the page knows.
+
+**The test.** `test:chrome`'s Q59 derived-mode block (web, 1280): previewing each of HC light, HC dark and
+wireframe, it dispatches a scripted `input` on the disabled slider with a value in range that the brand doesn't
+hold, and asserts `prism3:brandInput` is byte-identical before and after. It also asserts the slider was found and a
+brand was persisted, so the check can't pass by comparing two nulls.
+
+**Mutation, failing by name:** the guard line removed → `#2096: previewing HC light, a scripted input on the
+minimum-width slider writes nothing (prism3:brandInput byte-identical, buttonMinWidthMultiplier now 3.75)`, and
+the same line for HC dark (now 3.5, since the first write landed) and Wireframe: three failures, nothing else.
+
+---
+
+## (2026-10-05) — Studio: every chrome focus ring draws in Prism3's focus color (#2144)
+
+**Status:** `apps/studio/chrome/` (`tokens.mjs`, `spec.mjs`, `esbuild-plugin.mjs`), `apps/studio/src/chrome.css`, one rule in
+`apps/studio/src/styles.css`, and `test:chrome`. No ENGINE bump (no emitted artifact moves). CONTRACT unchanged. Visible:
+every chrome focus ring changes from the text color to Prism3's `color.border.focus` (light `#1e1eff`, dark `#4f79fa`).
+
+### What changed
+
+The owner chose FR1 A on #2144: the chrome's focus rings use Prism3's `color.border.focus`, which resolves through
+`core.palette.primary`. Keeping brand color out of the frame is a preference for a minimal frame, not a ban, and focus
+rings are the accepted exception.
+
+- **The one exception, by name.** `BRAND_RE` is unchanged, so `border.focus` is still a brand path. `brandLeaks` now skips
+  exactly one row: `BRAND_ALLOW` maps the variable name `focus-ring` to the one path it may read, `color.border.focus`.
+  The name is matched exactly and the path must match too. Every other chrome variable on a brand path still fails `[brand]`.
+- **The variable.** `--p3-focus-ring` is a `PRODUCT_VARS` row (`spec.mjs`), the same path in light and dark, listed in
+  `SHELL_VARS`. Its four pairs (page, levers panel, top bar, inset, all at 3:1) are a new `PRODUCT_PAIRS`, beside the
+  mockup's `PAIRS`. They are kept out of `PAIRS` because `build-v6.mjs` reads `PAIRS` and refuses a name it has no row
+  for. The lowest pair is 4.16:1 (dark, top bar).
+- **The rings.** All ten focus rules in `chrome.css` read `--p3-focus-ring` instead of `--p3-ctl-edge`, at the same width
+  and offset: the shared control rule (`.p3-btn`, Continue, chips, selects, menu items, the verdict), the tab's
+  `::before`, search, the two panes, the color, hex, range, step and add fields, text fields, jump links, `.p3-lsec`,
+  `.p3-icol` and the value picker. `--p3-ctl-edge` stays for the selected and pressed edges, and its four `PAIRS`
+  descriptions no longer claim a focus ring.
+- **`styles.css`.** Six rules there still draw a focus ring. One is on screen: `.cset-radio`, the plugin's set radios in
+  the Components preview. It now reads `--p3-focus-width`, `--p3-focus-ring` and `--p3-focus-offset` (2px, the same as
+  before). The other five (`.chips-in`, `.shape-card`, `.shape-release`, `.mstep`, `.mreset`) style classes no markup
+  wears. They are already on #2116's dead-class list, so this change leaves them for that sweep.
+
+### The tests, and why they are independent of the CSS
+
+- **The expected color comes from the emission.** `test-chrome.mjs` reads `packages/engine/out/prism3.tokens.json` and
+  the dark overlay and walks `color.border.focus`'s alias chain with its own few lines (`FOCUS_HEX`). It does not read
+  `chrome.css`, the spec row, or `tokens.mjs`'s `resolve`. That resolver also writes `--p3-focus-ring`, so a resolver bug
+  would agree with itself (docs/34, shape 2).
+- **What is held.** Each ring's computed color matches that hex for its mode. A ring inside a lent legacy view is the
+  light ring, because those views are pinned light. Each ring is at least 2px wide and sits at least 2px outside the
+  control. The exceptions are the two scrolling panes, whose ring sits fully inside their edge (S2), and the tab, whose
+  `::before` ring reaches past the tab's box on each side. Each ring is at 3:1 against what is outside it.
+- **Where.** In section 1, every host, theme and width, on the opening page and on Brand. In the new section 27, the
+  whole tab order of all nine places, both hosts, both themes, at 1280: 838 rings on the web and 894 in the plugin, light and dark together. It has
+  literal floors (web 820, plugin 870, and 15 per place) and a literal list of controls it must reach, by hook:
+  Continue, a chip, a text field, the hex field, a tab, a Color sub-page, a slider, Export, search, the mode option and
+  Inspect, plus Apply and the set radio in the plugin.
+- **The exception's own canaries.** The real map has one variable on a brand path, the allowed one, so it cannot show the
+  exception is still narrow. `BRAND_CANARIES` in `esbuild-plugin.mjs` run `brandLeaks` on four literal rows on every
+  build. `focus-ring` on `color.border.focus` must pass. `focus-ring-hover` on it, `ctl-edge` on it, and `focus-ring` on
+  `core.palette.primary.600` must each fail.
+
+### Mutations, each failing by name
+
+- Continue's ring back on the text color (`.p3-next:focus-visible { outline-color: var(--p3-text) }`) →
+  `#2144 web light 1280: every focused chrome control draws its ring in color.border.focus (#1e1eff) … palettes-continue:
+  color #0d0d0e`. It fails the same way in every column of section 1 and for every place's Continue in section 27.
+- `ctl-edge` pointed at `core.palette.primary.600` → `[brand] chrome var --p3-ctl-edge (light) resolves through brand
+  token pds3.core.palette.primary.600`. `ctl-edge` pointed at `color.border.focus` → `[brand] chrome var --p3-ctl-edge
+  (light) resolves through brand token pds3.color.border.focus`.
+- The allowlist widened to a pattern (`/^focus/.test(v[0])`) → `[brand] self-check: brandLeaks no longer refuses a sibling
+  name on the focus color` and `… the focus ring pointed at the primary palette`. Widened by path instead
+  (`v[1] === 'color.border.focus'`) → `… a sibling name on the focus color` and `… a non-focus variable on the focus color`.
+
+### A trap for whoever re-verifies this
+
+The plugin's set radio sits in Components' preview, a lent view pinned light. Its ring is `#1e1eff` even with the chrome
+in dark, which is correct: the variable resolves in the light block there. A check that expected the chrome theme's hex
+everywhere failed only on that one control, in the plugin, in dark.
+
+---
+
+## (2026-10-05) — Type: the font status takes the brand's own status text colors (#2103)
+
+**STATUS: branch `ui/2103-status-brand-text`.** UI and tests only. No engine change, no emitted artifact moves, no ENGINE bump, and `CONTRACT_VERSION` is unchanged. No new strings. Fixes #2103.
+
+**Owner decision FS1 A (2026-10-05):** "✓ Installed" is drawn in the brand's `text.success`, and "⚠ Not installed" in the brand's `text.warning`, for the mode on screen. This replaces T-FONT A (#2125), which drew ⚠ in the studio's text color. The owner's reason: Prism3's tokens already carry status colors that pass on the brand's own page, so the studio's fixed `--ok` / `--warn` colors shouldn't be used there.
+
+**The owner's direction (2026-10-05).** The Type preview's font status sits on the BRAND's page color, but "✓ Installed" was colored with the studio chrome's fixed `--ok` (3.87:1 on the corpus's dark pages), and "⚠ Not installed" with the ground's `--ink` (#2091). The tokens already have passing status colors, so both labels now use them: ✓ takes the brand's `color.text.success` and ⚠ takes `color.text.warning`, for the mode on screen. Over the corpus pages those measure 4.99:1 to 11.65:1. The emission contract-checks each against `neutral.050` / `neutral.900` (`neutral.100` in harbor's light modes), min 4.5:1, 7:1 in high contrast; the smoke and chrome checks below measure each against the brand's page color directly.
+
+**How it is painted (technical call: option (b)).** `ground()` exposes no CSS variable for these two roles, and it was not widened. `faces.ts` paints the status inline with `c.paint(c.cur, role)` and marks it with `c.painted(specimen(…), role, 'color')`, the way the specimen beside it is painted in `text.primary`. The `.tf-stat.ok`/`.no` color rule in `styles.css` is gone; the class names stay as the labels' identifiers.
+
+**The check (`test:smoke` section 1, `FONT_STATUS`).** On the Type place, for every brand × mode, each label (a literal class, text and role) must:
+- clear 4.5:1 on the brand's page color wherever it is drawn;
+- be drawn in the emission's hex for its role (EXPECTED is the committed emission, never the studio's resolver);
+- have been drawn in every brand × mode state swept, or it fails as NOT EXERCISED.
+
+The labels are specimen-marked now, so the check reads every probe row rather than only the chrome rows.
+
+**"✓ Installed" is exercised in CI by a stub inside the test.** CI and a bare container have none of the corpus faces, so ✓ was never drawn there, and #2091 recorded it as unmeasured. The main sweep now opens each brand with `INTER_INSTALLED`, an init script that answers the studio's canvas font probe as though Inter were installed. It widens `measureText` only for the probe's exact font string, `72px "Inter", <base>`. No shipped code changes. Every corpus brand uses Inter and also JetBrains Mono, which stays absent, so each state draws both labels: 12 of 12 states for each, lowest 5.03:1 for ✓ and 4.99:1 for ⚠.
+
+**Mutations, after a `wip:` commit, restored with `git checkout -- <file>`:**
+- ✓ pointed back at `--ok` (`stat.style.color = st.ok ? 'var(--ok)' : …`): 19 failures, all this check. For example `✗ prism3 / type / dark: the font status span.tf-stat.ok "✓ Installed" clears 4.5:1 on the brand's page color in all 5 place(s) drawn (#2091, #2103) — 3.87:1 (op 1) | …` and `✗ prism3 / type / light: the font status "✓ Installed" is drawn in the brand's text.success #19693f in all 5 place(s) (#2103) — drawn rgb(26, 127, 75) (role text.success)`.
+- Success and warning roles swapped: 24 failures, all this check. For example `✗ prism3 / type / light: the font status "✓ Installed" is drawn in the brand's text.success #19693f in all 5 place(s) (#2103) — drawn rgb(130, 81, 0) (role text.warning)` and `✗ prism3 / type / light: the font status "⚠ Not installed" is drawn in the brand's text.warning #825100 in all 5 place(s) (#2103) — drawn rgb(25, 105, 63) (role text.success)`.
+
+**The figma host (`test:chrome` section 20d).** The plugin draws the host-list arm of the status, "✓ N styles", "✓ Figma has it" and "⚠ Figma lacks it", which `test:smoke` never reaches because the web has no host list. Section 20d opens each brand the plugin's start screen offers in `dist/ui.html`, and on the Type place, in every mode, posts the plugin's own `font-list` message twice in the test only: Inter with 36 styles, then Inter with no count. JetBrains Mono stays off the list, so ⚠ is drawn in both. Each label must clear 4.5:1 on the ground it is drawn on and be drawn in the emission's hex for its role, read in Node from `packages/engine/out/<brand>.tokens.json`. A label drawn zero times in any brand × mode fails as NOT EXERCISED. All three were drawn in 12 of 12 states (aurora, harbor, prism3 × 4 modes): lowest 5.03:1 for both ✓ labels and 4.99:1 for ⚠.
+
+Mutation, after a `wip:` commit: the label painted in the old fixed colors (`stat.style.color = st.ok ? 'var(--ok)' : 'var(--ink)'`, both bundles rebuilt) gave 50 failures, all section 20d. For example `✗ #2103 (figma) prism3 / type / dark: the font status "✓ 36 styles" clears 4.5:1 on the brand's page color in all 5 place(s) drawn — 3.86:1 (#1a7f4b on #0d0d0e)` and `✗ #2103 (figma) prism3 / type / light: the font status "⚠ Figma lacks it" is drawn in the brand's text.warning #825100 in all 10 place(s) — drawn #0d0d0e`.
+
+---
+
 ## (2026-10-05) — the breakpoint prose says the first is always 0, and validate_brand reports the engine's refusals (#2146 items 1 and 2)
 
 **STATUS: branch `engine/2146-breakpoint-prose-validate`.** `ENGINE_VERSION` → **0.229.0** (minor, a change note: `schema/lever-manifest.json` moves). No token, name or value moves; `CONTRACT_VERSION` unchanged. **Items 1 and 2 of #2146.** Item 3 (the studio's `namesFor` guard) is the UI lane's.
