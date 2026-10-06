@@ -76,6 +76,14 @@ export type UiToMain =
    *  per role family on `↳ Semantic tokens`, from the file's own variables. Its own action for the #652 reason.
    *  Updates tables already drawn in place; never creates a page or moves a cell set. */
   | { type: 'style-guide'; options?: StyleGuideOptions }
+  /** Ask for what the Build style guides page shows (UI redesign S11.2): the file's collections and the variables in
+   *  each, its text styles, the tables a run would draw, and whether Set up file has run. Answered with one
+   *  `style-guide-catalog`. Reads and writes nothing else, so it is never refused by the run guard. */
+  | { type: 'style-guide-catalog-request' }
+  /** Stop the running style guide AFTER THE TABLE IT IS DRAWING (owner decision P7, 2026-10-05). The tables already
+   *  drawn stay. Nothing to cancel is not an error: the message is dropped. Only the panel posts it; an agent's run
+   *  can be stopped this way too, since the owner's panel is the one place a person watches the file. */
+  | { type: 'style-guide-cancel' }
   /** OPT-IN PRUNE (#1521) — remove the styles/variables/collections a config change dropped.
    *
    *  A SEPARATE ACTION FROM `apply-theme`, never a flag on it, for the #479 / #1152 reason: a theme apply
@@ -159,6 +167,52 @@ export interface StyleGuideOptions {
   titleCell?: boolean;
 }
 
+/** The four kinds of table the Build style guides page groups by (owner decision H8): color; spacing and size (every
+ *  `dimension` table, radius included); the five font-variable kinds; and the text styles. */
+export type StyleGuideKind = 'color' | 'dimension' | 'font' | 'text';
+/** One table a run with no filter would draw, in the order it draws them. */
+export interface StyleGuideCatalogTable {
+  /** The table's key (`<type>|<collection id>|<group path>`): what the `tables` option matches besides the title. */
+  key: string;
+  title: string;
+  kind: StyleGuideKind;
+  /** The page it is drawn on, without the taxonomy's leading "↳ ": "Primitive tokens", "Semantic tokens". */
+  page: string;
+  rows: number;
+}
+/** One variable, or one text style, as the page's tree lists it. */
+export interface StyleGuideCatalogItem {
+  /** The full name, slash-separated, as Figma stores it. */
+  name: string;
+  /** The index of the table it is drawn in, in `tables`; -1 when no phase draws it yet (owner decision P5: shown, not
+   *  pickable). */
+  table: number;
+  /** Its value in the collection's default mode, aliases followed: a hex for a color, px for a length, the number for
+   *  a weight, the string for a family. Empty for a text style. */
+  value: string;
+}
+/** A variable collection, or the file's text styles as one more entry (`textStyles: true`). */
+export interface StyleGuideCatalogCollection {
+  id: string;
+  name: string;
+  modes: string[];
+  items: StyleGuideCatalogItem[];
+  textStyles?: true;
+}
+/** What the Build style guides page shows before a run (S11.2). */
+export interface StyleGuideCatalog {
+  /** Whether Set up file has run: the swatch and text cell sets exist, and so do both token pages. Without them every
+   *  table would be skipped, so the page turns Draw off (owner decision P8). */
+  setUp: boolean;
+  collections: StyleGuideCatalogCollection[];
+  tables: StyleGuideCatalogTable[];
+  /** The planner's notes for an unfiltered run, the later-phase count among them. */
+  notes: string[];
+}
+/** Where one table of a run stands (owner decision P1, variant 1). `failed` carries its reason: the run goes on past
+ *  it (P6). */
+export type StyleGuideTableStatus = 'waiting' | 'drawing' | 'done' | 'failed';
+
 /** Messages the main thread sends TO the UI iframe. */
 export type MainToUi =
   /** Result of an `apply-theme` write: ok + a human summary (counts / any misses) for the UI.
@@ -197,7 +251,20 @@ export type MainToUi =
   | { type: 'file-setup-result'; ok: boolean; headline: string; summary: string }
   /** Result of a `style-guide` run (#259) — the same `{ok, headline, summary}` shape, its own kind and slot.
    *  `summary` names the tables created and updated, the tokens added, removed or changed, and every skip. */
-  | { type: 'style-guide-result'; ok: boolean; headline: string; summary: string }
+  | { type: 'style-guide-result'; ok: boolean; headline: string; summary: string;
+    /** Set when a `style-guide-cancel` stopped the run (S11.2): `done` of the run's `total` tables were reached. */
+    stopped?: { done: number; total: number } }
+  /** The answer to `style-guide-catalog-request` (S11.2). `error` is set, and the catalog empty, when the file could
+   *  not be read: the page says so rather than showing an empty file as if it had nothing in it. */
+  | { type: 'style-guide-catalog'; catalog: StyleGuideCatalog; error?: string }
+  /** A PANEL's style-guide run is starting (S11.2): the tables it will draw, in order, every one `waiting`. Posted once,
+   *  before the first `style-guide-table`. Not posted for an agent's run: the agent link's sink would count each
+   *  of these as a verdict, and Activity already shows an agent's run by its `agent-progress` count (owner decision
+   *  Q19). */
+  | { type: 'style-guide-tables'; tables: { key: string; title: string; page: string }[] }
+  /** One table of the panel's run moved (S11.2): `drawing` before it starts, then `done`, or `failed` with the reason. A
+   *  failed table does not stop the run (owner decision P6). Indexes `style-guide-tables`' list. */
+  | { type: 'style-guide-table'; index: number; status: Exclude<StyleGuideTableStatus, 'waiting'>; reason?: string }
   /** Result of a `prune` message (#1521) — a preview when `applied` is false, the outcome of the delete
    *  when it is true, told apart by that flag rather than by parsing `summary`. `count` is the number of
    *  items the preview WOULD remove, or the number the apply DID remove. `summary` is the review text

@@ -17,7 +17,7 @@
  * PURE-adjacent: imports only TYPES (the engine's, and the plugin's wire contract) + DOM. No `node:*`.
  */
 import type { ResolvedPreview } from '@prism3/engine/resolve-preview';
-import type { UiToMain, MainToUi, OfType, StyleGuideOptions } from '../../plugin/src/messages';
+import type { UiToMain, MainToUi, OfType, StyleGuideOptions, StyleGuideCatalog, StyleGuideCatalogCollection, StyleGuideCatalogTable, StyleGuideKind } from '../../plugin/src/messages';
 
 type Mode = ResolvedPreview['modes'][number];
 
@@ -109,7 +109,12 @@ export type HostMessage =
   // so it needs its own verdict slot and cannot overwrite theirs.
   | { kind: 'file-setup-result'; ok: boolean; headline: string; summary: string }
   // #259 — the outcome of a `style-guide` run, its own slot.
-  | { kind: 'style-guide-result'; ok: boolean; headline: string; summary: string }
+  | { kind: 'style-guide-result'; ok: boolean; headline: string; summary: string; stopped?: { done: number; total: number } }
+  // UI redesign S11.2 — the Build style guides page: what the file holds and which tables a run would draw (`error`
+  // set when the host could not read it), a panel run's table list, and each table's move.
+  | { kind: 'style-guide-catalog'; catalog: StyleGuideCatalog; error: string | null }
+  | { kind: 'style-guide-tables'; tables: { key: string; title: string; page: string }[] }
+  | { kind: 'style-guide-table'; index: number; status: 'drawing' | 'done' | 'failed'; reason: string | null }
   | { kind: 'component-progress'; phase: 'build' | 'wire' | 'retry'; done: number; total: number; chunkMs: number }
   // #1778 — how far a style-guide run has got: `done` of `total` tables. Non-terminal, like
   // `component-progress`, so it belongs in the style guide's pending state, never its verdict slot.
@@ -173,6 +178,11 @@ export interface HostCommit {
    *  options are the panel's Customize fields, every one optional. Its result is `style-guide-result`, its own
    *  kind and slot for the one-kind-per-fact reason above. */
   postStyleGuide(options?: StyleGuideOptionsMsg): void;
+  /** Ask the host for what the Build style guides page shows (S11.2; Figma only, no-op on web). Answered with a
+   *  `style-guide-catalog` host message. */
+  requestStyleGuideCatalog(): void;
+  /** Ask the host to stop the running style guide after its current table (S11.2, owner decision P7; Figma only). */
+  cancelStyleGuide(): void;
   /** Ask the host to PRUNE the styles/variables/collections the current config no longer emits (#1521;
    *  Figma only, no-op on web — the web host writes CSS custom properties, which have no stale-item
    *  problem). `confirm: false` asks for a preview (a `prune-result` with `applied: false`); `confirm:
@@ -257,6 +267,35 @@ const tableReading = (m: { done?: unknown; total?: unknown }): { done: number; t
   return done !== null && total !== null && total > 0 && done <= total ? { done, total } : null;
 };
 const isId = (x: unknown): x is string => typeof x === 'string' && x.length > 0;
+const str = (x: unknown): x is string => typeof x === 'string';
+const KINDS: readonly StyleGuideKind[] = ['color', 'dimension', 'font', 'text'];
+/** The style guide's catalog (S11.2), checked entry by entry: an entry with a field of the wrong type is dropped, and
+ *  an item whose table index points at no table reads as one no phase draws (-1), so the page never offers a table
+ *  the host did not name. `null` when the shape is not a catalog at all. */
+const catalogOf = (c: unknown): StyleGuideCatalog | null => {
+  if (!c || typeof c !== 'object') return null;
+  const o = c as Record<string, unknown>;
+  if (!Array.isArray(o.collections) || !Array.isArray(o.tables)) return null;
+  const tables: StyleGuideCatalogTable[] = (o.tables as unknown[]).flatMap((t) => {
+    const x = (t ?? {}) as Record<string, unknown>;
+    return str(x.key) && str(x.title) && str(x.page) && KINDS.includes(x.kind as StyleGuideKind) && count(x.rows) !== null
+      ? [{ key: x.key, title: x.title, kind: x.kind as StyleGuideKind, page: x.page, rows: count(x.rows)! }] : [];
+  });
+  const collections: StyleGuideCatalogCollection[] = (o.collections as unknown[]).flatMap((col) => {
+    const x = (col ?? {}) as Record<string, unknown>;
+    if (!str(x.id) || !str(x.name) || !Array.isArray(x.items)) return [];
+    const items = (x.items as unknown[]).flatMap((it) => {
+      const y = (it ?? {}) as Record<string, unknown>;
+      if (!str(y.name)) return [];
+      const t = Number.isInteger(y.table) && (y.table as number) >= 0 && (y.table as number) < tables.length ? y.table as number : -1;
+      return [{ name: y.name, table: t, value: str(y.value) ? y.value : '' }];
+    });
+    const modes = Array.isArray(x.modes) ? (x.modes as unknown[]).filter(str) : [];
+    return [{ id: x.id, name: x.name, modes, ...(x.textStyles === true ? { textStyles: true as const } : {}), items }];
+  });
+  const notes = Array.isArray(o.notes) ? (o.notes as unknown[]).filter(str) : [];
+  return { setUp: o.setUp === true, collections, tables, notes };
+};
 
 /** One entry per `MainToUi` kind, keyed by the union itself, so a kind added in `messages.ts` is a compile
  *  error here until it is either handled or declared `null`. `null` means the kind is not this adapter's:
@@ -271,7 +310,30 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   // panel on "Building…", #870); it reads as a build that did not finish, the claim that needs no evidence.
   'component-result': (m) => ({ ...verdict('component-result', m, '✓ built', '✗ build failed'), completed: m.completed === true }),
   'file-setup-result': (m) => verdict('file-setup-result', m, '✓ file set up', '✗ setup failed'),   // #1558
-  'style-guide-result': (m) => verdict('style-guide-result', m, '✓ style guide written', '✗ style guide failed'),   // #259
+  'style-guide-result': (m) => {   // #259
+    // S11.2: a cancelled run says how far it got; a malformed `stopped` is left off rather than guessed.
+    const st = m.stopped && typeof m.stopped === 'object' ? tableReading(m.stopped as { done?: unknown; total?: unknown }) : null;
+    return { ...verdict('style-guide-result', m, '✓ style guide written', '✗ style guide failed'), ...(st ? { stopped: st } : {}) };
+  },
+  // S11.2. A catalog that is not one is dropped: the page keeps asking rather than drawing a tree from nothing.
+  'style-guide-catalog': (m) => {
+    const catalog = catalogOf(m.catalog);
+    return catalog ? { kind: 'style-guide-catalog', catalog, error: str(m.error) && m.error ? m.error : null } : null;
+  },
+  'style-guide-tables': (m) => {
+    if (!Array.isArray(m.tables)) return null;
+    const tables = (m.tables as unknown[]).flatMap((t) => {
+      const x = (t ?? {}) as Record<string, unknown>;
+      return str(x.key) && str(x.title) && str(x.page) ? [{ key: x.key, title: x.title, page: x.page }] : [];
+    });
+    // Every entry or none: a list with a hole would shift every later `style-guide-table` index onto the wrong row.
+    return tables.length === m.tables.length ? { kind: 'style-guide-tables', tables } : null;
+  },
+  'style-guide-table': (m) => {
+    const index = count(m.index);
+    const status = m.status === 'drawing' || m.status === 'done' || m.status === 'failed' ? m.status : null;
+    return index !== null && status ? { kind: 'style-guide-table', index, status, reason: str(m.reason) && m.reason ? m.reason : null } : null;
+  },
   'component-progress': (m) => {
     // Validated, not coerced, and DROPPED if the numbers are unusable — unlike the result kinds
     // above, which fall back to a default headline. A result is a fact the designer is waiting for,
@@ -384,6 +446,12 @@ const figmaCommit = (): HostCommit => ({
     const msg: Extract<UiToMain, { type: 'style-guide' }> = options ? { type: 'style-guide', options } : { type: 'style-guide' };   // typed local, as above
     post(msg);
   },
+  requestStyleGuideCatalog() {
+    post({ type: 'style-guide-catalog-request' });
+  },
+  cancelStyleGuide() {
+    post({ type: 'style-guide-cancel' });
+  },
   postPrune(input, confirm) {
     post({ type: 'prune', input: input as ApplyTheme['input'], confirm });
   },
@@ -408,6 +476,8 @@ const webCommit = (): HostCommit => ({
   postComponents() {/* no canvas on web — the component tier is a Figma-only write */},
   postFileSetup() {/* no canvas on web — file scaffolding is a Figma-only action (#1558) */},
   postStyleGuide() {/* no canvas on web — the style guide is drawn in Figma (#259) */},
+  requestStyleGuideCatalog() {/* no file on web (S11.2) */},
+  cancelStyleGuide() {/* no style guide runs on web (S11.2) */},
   postPrune() {/* no figma.variables on web — CSS custom properties have no stale-item problem (#1521) */},
   onHostMessage() {/* no host messages on web */},
   requestResize() {/* the browser window is the user's to size on web */},
