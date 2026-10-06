@@ -174,6 +174,17 @@ const autoFloorRoles = (mode: SurfaceMode): Record<string, FillRole | undefined>
 export const setSurfaceFloor = (mode: SurfaceMode, v: string): void => {
   setPath(brandState, `surfaces.${mode}.floorStep`, v === '' ? undefined : Number(v));
 };
+/** The steps a contrast floor can name (owner decision Q57 A, #2227): only a neutral step one of `mode`'s page
+ *  grounds (`background.primary`, `.secondary`, `.tertiary`) sits on, in ramp order. The engine refuses any other
+ *  step, so the picker offers none. White and black are fixed primitives, not steps, and are never offered. */
+export const floorGroundSteps = (mode: SurfaceMode): Array<{ key: string; hex: string }> => {
+  const nPal = theme.roleToPalette.neutral;
+  const roles = rolesIn(mode);
+  const on = new Set([SURFACE_TOKENS.base, SURFACE_TOKENS.secondary, SURFACE_TOKENS.tertiary]
+    .map((t) => stepOfPath(roles[t]?.path)).filter((s) => s?.palette === nPal).map((s) => s!.step));
+  const pal = theme.palettes.find((p) => p.palette === nPal);
+  return (pal?.steps ?? []).filter((s) => on.has(s.key)).map((s) => ({ key: s.key, hex: s.hex }));
+};
 /** The palettes the inverse band can draw from (#898): neutral first, then every declared non-status
  *  palette. Status, alpha and the white and black keywords are excluded. */
 export const bandPalettes = (): string[] => {

@@ -4266,6 +4266,35 @@ for (const theme of ['light', 'dark']) {
   ok(errors.length === 0, `QA-I2 sweep: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }
+// #2227 (owner decision Q57 A): the contrast floor picker offers only a step a page ground sits on; the engine
+// refuses any other. THE ORACLE is literal: prism3's grounds, Light white/050/100 and Dark 950/900/850, so the floor's
+// steps are 050 and 100, and 850, 900 and 950. Each offered step, picked, builds: the error bar stays quiet.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'color-fills');
+    const WANT = { light: ['050', '100'], dark: ['850', '900', '950'] };
+    for (const mode of ['light', 'dark']) {
+      await showMode(page, mode);
+      await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="surface-floor-pick"]'));
+      await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+      const steps = await page.locator('[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step));
+      ok(JSON.stringify(steps) === JSON.stringify(WANT[mode]), `#2227: previewing ${mode}, the contrast floor picker offers only the steps a page ground sits on, ${WANT[mode].join(', ')} — read ${steps.join(', ')}`);
+      const refused = [];
+      for (const st of steps) {
+        await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-step"][data-step="${st}"]`));
+        await page.waitForFunction((k) => document.querySelector('[data-p3="levers-pane"] [data-p3="step-picker"] [aria-pressed="true"]')?.dataset.step === k, st, { timeout: 5000 }).catch(() => {});
+        const bar = await page.evaluate(() => { const e = document.querySelector('[data-p3="error-bar"]'); return e && !e.hidden ? e.textContent?.trim() ?? '' : ''; });
+        if (bar) refused.push(`${st}: ${bar}`);
+      }
+      ok(refused.length === 0, `#2227: previewing ${mode}, every offered floor step builds, and the error bar stays quiet${refused.length ? ` — ${refused.join(' | ')}` : ''}`);
+      await page.keyboard.press('Escape');
+    }
+    ok(errors.length === 0, `#2227: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#2227: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
 // The step picker, mounted (V9): it opens under its row on the current step, a pick writes the step and keeps
 // the picker's focus, the preview repaints to the emission's own step, Return to Auto reverts, Escape closes it
 // to its button; and nothing of this moves the preview's home (V1).

@@ -43,7 +43,7 @@ import {
   BORDER_ROWS, FIELD_ROWS, FILL_ROWS, FOCUS_ROLES, floorAutoFollows, floorAutoLabel, floorAutoShortLabel, FOREGROUND_ROWS, ICON_ROWS, PAIR_ICONS_CONFIRM, TEXT_ROWS, addGradient, addStop, bandOf, bandPalettes, editGradient, gradStopHex,
   iconOverrideCount, iconsPaired, lockedTo, overrideOf, pageKeyOf, pageSteps, pairIcons, paletteOf, readGradients, removeGradient, removeStop, renameGradient, rolesIn,
   setBandPalette, setBandStep, setCenter, setGradientsOn, setRowOverride, setStopPalette, setStopPosition, setStopStep,
-  SCRIM_ROLE, SURFACE_TOKENS, setInverseTier, setSurfaceBase, setSurfaceFloor, setSurfaceTier, stepHex, stepOfPath, stepsOf, surfaceSourceOf, tierOf, unpairIcons, washReadOf,
+  SCRIM_ROLE, SURFACE_TOKENS, setInverseTier, setSurfaceBase, setSurfaceFloor, setSurfaceTier, floorGroundSteps, stepHex, stepOfPath, stepsOf, surfaceSourceOf, tierOf, unpairIcons, washReadOf,
   type FillRow, type InverseTier, type PageTier,
 } from '../state/fills-input';
 import { DOMAINS, ICONS_DESC, type PageData, type Section } from '../shell/pages';
@@ -235,7 +235,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       follows: floorKey != null ? null : floorAutoFollows(m),
       info: FLOOR_INFO,
       picker: {
-        role: 'Contrast floor', palettes: [rampOf(nPal)], current: floorAt,
+        role: 'Contrast floor', palettes: [{ palette: nPal, steps: floorGroundSteps(m) }], current: floorAt,
         against: null, overridden: floorKey != null,
         onPick: (_p, step) => edit('surfaces', () => setSurfaceFloor(m, step)), onAuto: () => edit('surfaces', () => setSurfaceFloor(m, '')),
       },
