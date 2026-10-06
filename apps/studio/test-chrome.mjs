@@ -7978,13 +7978,14 @@ for (const host of ['web', 'figma']) {
 // `resolve`. The headings each page must show are the audit's per-page list (scratch audit of 2026-10-05, prism3, every
 // Show advanced opened), typed here; the counts are literal floors, so a sweep that finds fewer fails naming its count.
 //
-// Mutations, each failing by name (heading pass 1):
-//   · an L2 back at fw-default (`.p3-lever-name { font-weight: var(--p3-fw-default) }`) →
-//     `TY2 A web light 1280 / brand: L2 "Brand name" (.p3-lever-name) fw 400, want fw-strong 600 …`.
-//   · the space after an L2 back to 4px (`.p3-lever-head { padding-block-end: var(--p3-space-050) }` dropped, and the
-//     legend's with it) → `TY2 A … L2 "Brand name" (.p3-lever-name): space after 4, want space-150 12 …`.
-//   · one hint line's glyph put back (Components' sets hint) →
-//     `HP3 … hint line components-sets-web draws a glyph …` and `… a non-button ⓘ glyph …`.
+// Mutations, each failing by name (heading pass 1), measured on the built bundles:
+//   · an L2 back at fw-default (`.p3-lever-name`'s weight on `--p3-fw-default`) →
+//     `TY2 A web light 1280 / brand: L2 "Brand name" (lever name) fw 400, want fw-strong 600` (232 failures, every host and theme).
+//   · the space after an L2 back to 4px (the head's `padding-block-end` turned into a `space-050` pull-up, the legend's to
+//     `space-050`) → `TY2 A web light 1280 / brand: L2 "Brand name" (lever name) space after 4, want space-150 12` (232).
+//   · one hint line's glyph put back (Components' web sets hint, `glyph('info')` prepended) →
+//     `HP3 TY2 A web light 1280 / components (light): hint line components-sets-web draws a glyph — …` and
+//     `… a non-button ⓘ glyph is drawn — components-sets-web: …` (8: the web host, both themes, Light and High contrast light).
 console.log(`\nThe heading rule (TY2 A, heading pass 1)\n${'='.repeat(78)}`);
 /** The chrome tokens the rule names, each to its emitted path (a literal map, typed from `chrome/tokens.mjs`'s rows on
  *  2026-10-06; deliberately not imported, so the build's map and this oracle stay two derivations). */
