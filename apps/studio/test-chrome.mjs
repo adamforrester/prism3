@@ -378,6 +378,10 @@
  *     `… a control inside Inspect › Tokens redraws the list inside Inspect (Semantics: text.primary → …; row null, …)`.
  *   · the contract table given no rows → `… Inspect › Contrast lists the preview spec's 34 contracts, in order — listed 0`.
  *   · `→` appended to the Back label → `… every chrome text element draws in the embedded Inter — … Back to Palett drew DejaVu Sans (device), Inter`.
+ *
+ * #2180 ADDS: in the plugin, Components' build bar stands at least `space.300` (the stacked-card gap, resolved from the
+ * emission) above the Activity drawer, at 1280 and 380, the drawer closed and open, at three scroll positions.
+ * Mutation: `.p3-buildbar`'s `bottom` back to 0 → `#2180: figma 1280, drawer closed, at the top: the build bar stands …`.
  */
 import { createServer } from 'node:http';
 import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -7467,6 +7471,63 @@ for (const { w, h } of [{ w: 1280, h: 700 }, { w: 380, h: 700 }]) {
   } catch (e) {
     ok(false, `S8.2 C4 figma ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
+}
+// #2180 (owner QA, 2026-10-05): the build bar stands clear of the Activity drawer by the chrome's stacked-card gap,
+// `space.300` (the `.p3-stack` gap), at 1280 and 380, the drawer closed (its strip, shown once an operation has run) and
+// open, at the top, the middle and the end of the preview's scroll. THE ORACLE is `space.300` resolved here from the
+// committed emission (`chrome/tokens.mjs`), never the page's `--p3-*` variable; the gap is read off the render, the
+// drawer's top edge less the bar's bottom edge. At 380 the open drawer is the full-pane sheet (F2), which hides the
+// panes: there the bar must not be drawn at all, so nothing can sit on the sheet.
+//
+// Mutation this fails by name: `.p3-buildbar`'s `bottom` back to 0 → `#2180: figma 1280, drawer closed, at the top:
+// the build bar stands at least space.300 (24px) above the Activity drawer — gap 0 …`.
+{
+  const STACK_GAP = parseFloat(String(resolveToken(loadModes().light, P('space.300')).value));
+  ok(STACK_GAP > 0, `#2180 oracle: space.300 resolves from the committed emission (${STACK_GAP}px)`);
+  for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 700 }]) {
+    for (const drawer of ['closed', 'open']) {
+      const where = `#2180: figma ${w}, drawer ${drawer}`;
+      const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w, h });
+      try {
+        const narrow = w <= 560;
+        await goPlace(page, 'components');
+        if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+        await hooks.need(page, '[data-p3="components-row"]');
+        // An operation, so the closed drawer is its strip rather than hidden: the bar's own Build.
+        await hooks.click(page.locator('[data-p3="components-build"]'));
+        await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.ever === 'true', null, WAIT);
+        const isOpen = () => page.evaluate(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true');
+        if ((await isOpen()) !== (drawer === 'open')) await hooks.click(page.locator('[data-p3="activity-toggle"]'));
+        await page.waitForFunction((want) => (document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true') === want, drawer === 'open', WAIT);
+        if (narrow && drawer === 'closed' && await page.locator('[data-p3="pane-toggle-preview"]').isVisible()) {
+          const onPreview = await page.evaluate(() => { const b = document.querySelector('[data-p3="components-row"]')?.getBoundingClientRect(); return !!b && b.height > 0; });
+          if (!onPreview) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+        }
+        await settle(page);
+        const GEOM = () => {
+          const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false; for (let x = n; x && x.nodeType === 1; x = x.parentElement) if (getComputedStyle(x).display === 'none') return false; return true; };
+          const bar = document.querySelector('[data-p3="components-row"]'), dr = document.querySelector('[data-p3="activity-drawer"]');
+          return { barShown: vis(bar), drawerShown: vis(dr), barBottom: bar.getBoundingClientRect().bottom, drawerTop: dr.getBoundingClientRect().top };
+        };
+        if (narrow && drawer === 'open') {
+          const g = await page.evaluate(GEOM);
+          ok(g.drawerShown && !g.barShown, `${where}: the open drawer is the full-pane sheet and the build bar is not drawn on it (${JSON.stringify(g)})`);
+        } else {
+          for (const [at, f] of [['the top', 0], ['the middle', 0.5], ['the end', 1]]) {
+            await page.evaluate((k) => { const b = document.querySelector('[data-p3="preview-body"]'); b.scrollTop = Math.round((b.scrollHeight - b.clientHeight) * k); }, f);
+            await settle(page);
+            const g = await page.evaluate(GEOM);
+            const gap = g.drawerTop - g.barBottom;
+            ok(g.barShown && g.drawerShown && gap >= STACK_GAP - ALIGN_TOLERANCE,
+              `${where}, at ${at}: the build bar stands at least space.300 (${STACK_GAP}px) above the Activity drawer — gap ${gap.toFixed(1)} (bar shown ${g.barShown}, drawer shown ${g.drawerShown})`);
+          }
+        }
+        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+      } finally { await ctx.close(); }
+    }
+  }
 }
 // The chrome on Components: both hosts, both themes, 1280, 640 and 380 (the Settings pane, then the Preview pane when
 // narrow).
