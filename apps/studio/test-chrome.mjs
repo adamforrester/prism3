@@ -590,22 +590,28 @@ const FIT_ORACLE = () => {
   const full = need('.p3-tile-label{display:block!important}.p3-mark-name{display:inline!important}');
   const glyphs = need('.p3-tile-label{display:none!important}.p3-mark-name{display:inline!important}');
   const logo = need('.p3-tile-label{display:none!important}.p3-mark-name{display:none!important}');
+  const fileRow = !!bm.querySelector('.p3-bar-break');
+  // The two rows' first row: the controls before the plugin's row break, the rest taken out of the row.
+  const rows = fileRow ? need('.p3-tile-label{display:none!important}.p3-mark-name{display:none!important}.p3-bar-break~*{display:none!important}') : null;
   st.remove();
-  const fileRow = !!bm.querySelector('[data-p3="apply-to-figma"], [data-p3="figma-open"]');
-  const steps = [['full', full], ['glyphs', glyphs], ['logo', logo]];
-  const pick = (slack) => steps.find(([, x]) => x <= room + slack)?.[0] ?? (fileRow ? 'rows' : 'none');
+  const steps = [['full', full], ['glyphs', glyphs], ['logo', logo], ...(fileRow ? [['rows', rows]] : [])];
+  // Past the last row that fits as it is, the brand switcher's name is cut short (Q83 A).
+  const pick = (slack) => steps.find(([, x]) => x <= room + slack)?.[0] ?? 'trim';
   const step = pick(0), lo = pick(-1), hi = pick(1);
-  return { narrow, room: Math.round(room * 10) / 10, full, glyphs, logo, fileRow, step, also: [...new Set([lo, step, hi])] };
+  return { narrow, room: Math.round(room * 10) / 10, full, glyphs, logo, rows, fileRow, step, also: [...new Set([lo, step, hi])] };
 };
-/** The bar as DRAWN, classified from the render alone: which labels and which name show, and how its controls fall
- *  into rows. `full`, `glyphs` and `logo` are one row (every tile at one top, the controls box one control tall);
- *  `rows` is the narrow tier's two (Pages, Figma and Apply Theme on the second, Apply Theme at its right edge). Anything
- *  else is reported as `other`, with what was seen. */
+/** The bar as DRAWN, classified from the render alone: which labels and which name show, whether the brand switcher's
+ *  name is cut short (its text wider than its box), and how its controls fall into rows. `full`, `glyphs` and `logo`
+ *  are one row (every tile at one top, the controls box one control tall), the name whole; `rows` is the narrow tier's
+ *  two (Pages, Figma and Apply Theme on the second, Apply Theme at its right edge), the name whole; `trim` is the same
+ *  rows (one row where there is no file row) with the name cut. Anything else is reported as `other`. */
 const FIT_SEEN = () => {
   const bm = document.querySelector('[data-p3="bar-main"]');
   const drawn = (n) => !!n && n.getClientRects().length > 0 && n.getBoundingClientRect().width > 0 && getComputedStyle(n).display !== 'none';
   const labels = [...bm.querySelectorAll('.p3-tile-label')].map(drawn);
   const name = drawn(bm.querySelector('.p3-mark-name'));
+  const bn = bm.querySelector('[data-p3="brand-switcher"] .p3-brand-name');
+  const cut = !!bn && bn.scrollWidth > bn.clientWidth + 0.5;
   const HOOKS = ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'pages-menu', 'figma-open', 'apply-to-figma'];
   const ctl = (k) => { const n = bm.querySelector(`[data-p3="${k}"]`); return k === 'product-mark' ? n : n?.closest('button') ?? n; };
   const boxes = HOOKS.map((k) => [k, ctl(k)]).filter(([, n]) => drawn(n)).map(([k, n]) => { const r = n.getBoundingClientRect(); return { k, top: r.top, bottom: r.bottom, right: r.right, mid: (r.top + r.bottom) / 2 }; });
@@ -619,8 +625,10 @@ const FIT_SEEN = () => {
   const applyBox = boxes.find((b) => b.k === 'apply-to-figma');
   const twoRows = rows.length === 2 && JSON.stringify(row2) === JSON.stringify(['pages-menu', 'figma-open', 'apply-to-figma']) && !!applyBox && Math.abs(applyBox.right - box.right) <= 1;
   const all = labels.length > 0 && labels.every(Boolean), none = labels.every((x) => !x);
-  const step = all && name && oneRow ? 'full' : none && name && oneRow ? 'glyphs' : none && !name && oneRow ? 'logo' : none && !name && twoRows ? 'rows' : 'other';
-  return { step, labels: labels.filter(Boolean).length, of: labels.length, name, rows: rows.map((r) => r.map((b) => b.k).join(' ')), height: Math.round(box.height), tall: Math.round(tall) };
+  const fileRow = !!bm.querySelector('.p3-bar-break');
+  const step = cut ? (none && !name && (fileRow ? twoRows : oneRow) ? 'trim' : 'other')
+    : all && name && oneRow ? 'full' : none && name && oneRow ? 'glyphs' : none && !name && oneRow ? 'logo' : none && !name && twoRows ? 'rows' : 'other';
+  return { step, cut, labels: labels.filter(Boolean).length, of: labels.length, name, rows: rows.map((r) => r.map((b) => b.k).join(' ')), height: Math.round(box.height), tall: Math.round(tall) };
 };
 
 /** The places not moved yet. A domain slice that moves a place removes it here, in the same change. Empty since S8.2
@@ -1458,8 +1466,8 @@ for (const host of ['web', 'figma']) {
         // #2214 (BL1 A+B): above the narrow tier the name drops too when the bar would not fit on one row without it,
         // which `FIT_ORACLE` measures; an ambiguous width (within 1px) accepts either.
         const fit = narrow ? null : await page.evaluate(FIT_ORACLE);
-        const nameDrops = !!fit && fit.also.every((x) => x === 'logo' || x === 'rows');
-        const nameMay = !!fit && fit.also.some((x) => x === 'logo' || x === 'rows') && !nameDrops;
+        const nameDrops = !!fit && fit.also.every((x) => ['logo', 'rows', 'trim'].includes(x));
+        const nameMay = !!fit && fit.also.some((x) => ['logo', 'rows', 'trim'].includes(x)) && !nameDrops;
         ok(nameMay || mk.nameShown === !(narrow || nameDrops), `product mark ${where}: the name is ${narrow ? 'dropped at narrow widths (the logo stays)' : nameDrops ? 'dropped, as the bar would not fit on one row with it (#2214)' : 'shown'} (${mk.nameShown ? 'shown' : 'hidden'}${fit ? `, fit ${JSON.stringify(fit)}` : ''})`);
         if (mk.nameShown) {
           const t = m.text.find((x) => x.el.startsWith('span.p3-mark-name'));
@@ -9514,26 +9522,38 @@ for (const host of ['web', 'figma']) {
 }
 
 // =============================================================================================
-// 29c. #2214, the bar's fit (the owner's BL1 A+B, BL2 A and BL3 A, 2026-10-06), both hosts, both themes, at 1280, 1000,
-//      800 and 640, with "prism3" and with a long brand name. Above the narrow tier the bar is one row whenever it
-//      fits; when the full bar would not, every tile label drops together, then the product name beside the logo, then
-//      (the plugin, which has a file row) the narrow tier's two rows. Never any other wrap.
+// 29d. #2214, the bar's fit (the owner's BL1 A+B, BL2 A, BL3 A and Q83 A, 2026-10-06), both hosts, both themes, swept
+//      across 380–1280: the long brand name every 10px, "prism3" every 30px plus 640, 800, 1000 and 1280 (a coarser
+//      grid for the short name keeps the section near two minutes). Above the narrow tier the bar is one row whenever
+//      it fits; when the full bar would not, every tile label drops together, then the product name beside the logo,
+//      then (the plugin, which has a file row) the narrow tier's two rows, then the brand switcher's name is cut short
+//      with an ellipsis (Q83 A). Never any other wrap: the drawn rows never exceed the step's (1 for full, glyphs and
+//      logo; 2 for rows and, on the plugin, trim; 1 for trim on the web).
 //   · THE EXPECTED STEP is `FIT_ORACLE`'s: each candidate row laid out for real under this file's own forcing
 //     stylesheet and read by `scrollWidth`, against the controls box's width. Never a number written here, and never
 //     the frame's `data-bar-fit`.
-//   · THE DRAWN STEP is `FIT_SEEN`'s, classified from the render alone (labels, name, rows, tops, heights).
+//   · THE DRAWN STEP is `FIT_SEEN`'s, classified from the render alone (labels, name, a cut brand name, rows, tops).
 //   · ACCESSIBLE NAMES are the browser's computed names (CDP `Accessibility.getPartialAXTree`) of every bar control and
-//     the mark, identical at every width to the same brand's at 1280, where the full bar shows (asserted).
+//     the mark, identical at every width, the narrow tier included, to the same brand's at 1280, where the full bar
+//     shows (asserted). While the brand switcher's name is cut, its computed name and its tooltip are the full name.
 //   · A LONG NAME GIVES WAY SOONER: at some width its step is further along than "prism3"'s, and never behind it.
+//   · THE NARROW TIER (560 and below) is unchanged by #2214 and holds its own rules (section 29); here it is held only
+//     to the names.
 // Mutations, each failing here by name: (a) no label drop, (b) the product name never drops, (c) straight to the two
-// rows, (d) the frame's measurement ignores the brand switcher's width, (e) the web excluded. See the progress entry.
+// rows, (d) the frame's measurement ignores the brand switcher's width, (e) the web excluded, (f) no truncation. See
+// the progress entry.
 // =============================================================================================
-console.log('\n29c. #2214: the bar gives way in order, by a measured fit');
+console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
 {
   const LONG_NAME = 'northwind-outdoor-supply-co';
   const LONG_BRAND = { root: 'nw', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true }, id: LONG_NAME };
-  const FIT_WIDTHS = [1280, 1000, 800, 640];
-  const ORDER = ['full', 'glyphs', 'logo', 'rows'];
+  const sweep = (step) => { const out = []; for (let w = 1280; w >= 380; w -= step) out.push(w); return out; };
+  const FIT_WIDTHS = {
+    long: sweep(10),
+    short: [...new Set([...sweep(30), 1000, 800, 640])].sort((x, y) => y - x),
+  };
+  const ORDER = ['full', 'glyphs', 'logo', 'rows', 'trim'];
+  const MAX_ROWS = { full: 1, glyphs: 1, logo: 1, rows: 2 };
   const AX_HOOKS = ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'pages-menu', 'figma-open', 'apply-to-figma'];
   /** The computed accessible name of each bar control present, by hook. */
   const axBar = async (cdp) => {
@@ -9548,6 +9568,8 @@ console.log('\n29c. #2214: the bar gives way in order, by a measured fit');
     return out;
   };
   const settle = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  let states = 0;
+  const trimmedOn = { web: 0, figma: 0 };
   for (const host of ['web', 'figma']) {
     const seenBy = { short: {}, long: {} };
     for (const theme of ['light', 'dark']) {
@@ -9557,48 +9579,66 @@ console.log('\n29c. #2214: the bar gives way in order, by a measured fit');
         await cdp.send('DOM.enable');
         await cdp.send('Accessibility.enable');
         for (const brand of ['short', 'long']) {
+          await page.setViewportSize({ width: 1280, height: 900 });
+          await settle(page);
           if (brand === 'long') {
-            await page.setViewportSize({ width: 1280, height: 900 });
             if (host === 'web') await page.evaluate((n) => window.__prism3TestEdit('id', n), LONG_NAME);
             else await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), LONG_BRAND);
             await page.waitForFunction((n) => document.querySelector('[data-p3="brand-switcher"] .p3-brand-name')?.textContent === n, LONG_NAME, { timeout: 5000 }).catch(() => {});
             const nm = await page.evaluate(() => document.querySelector('[data-p3="brand-switcher"] .p3-brand-name')?.textContent);
-            ok(nm === LONG_NAME, `29c ${host} ${theme}: the long brand loads ("${nm}")`);
+            ok(nm === LONG_NAME, `29d ${host} ${theme}: the long brand loads ("${nm}")`);
             await settle(page);
           }
+          const fullName = brand === 'long' ? LONG_NAME : 'prism3';
           let base = null;
-          for (const w of FIT_WIDTHS) {
-            const where = `29c ${host} ${theme} ${w} ${brand === 'long' ? LONG_NAME : 'prism3'}`;
+          const missed = [], renamed = [];
+          for (const w of FIT_WIDTHS[brand]) {
+            const where = `29d ${host} ${theme} ${w} ${fullName}`;
             await page.setViewportSize({ width: w, height: 900 });
             await settle(page);
+            states++;
             const fit = await page.evaluate(FIT_ORACLE);
             const seen = await page.evaluate(FIT_SEEN);
             const names = await axBar(cdp);
-            ok(!fit.narrow && fit.step !== 'none', `${where}: the bar has a step that fits above the narrow tier (fit ${JSON.stringify(fit)})`);
-            ok(fit.also.includes(seen.step),
-              `${where}: the bar is ${fit.step === 'rows' ? 'the narrow tier\'s two rows (Pages, Figma and Apply Theme on the second)' : `one row (${fit.step})`}, as measured: full ${fit.full}, without labels ${fit.glyphs}, without the name ${fit.logo}, in ${fit.room} (drawn ${JSON.stringify(seen)})`);
+            const tip = await page.evaluate(() => document.querySelector('[data-p3="brand-switcher"]')?.getAttribute('title') ?? null);
             if (w === 1280) {
               base = names;
-              ok(seen.step === 'full' && seen.labels === seen.of && seen.of >= (host === 'web' ? 4 : 5), `${where}: at 1280 the full bar shows, every tile labelled (${JSON.stringify(seen)})`);
-              ok(Object.keys(names).length === (host === 'web' ? 6 : 10) && Object.values(names).every((v) => !!v), `${where}: every bar control and the mark have a computed name (${JSON.stringify(names)})`);
+              ok(seen.step === 'full' && seen.labels === seen.of && seen.of >= (host === 'web' ? 4 : 5) && tip === null, `${where}: at 1280 the full bar shows, every tile labelled, no tooltip on the switcher (${JSON.stringify(seen)}, title ${JSON.stringify(tip)})`);
+              ok(Object.keys(names).length === (host === 'web' ? 6 : 10) && Object.values(names).every((v) => !!v) && names['brand-switcher'] === fullName,
+                `${where}: every bar control and the mark have a computed name, the switcher's its brand's (${JSON.stringify(names)})`);
             } else {
               const moved = AX_HOOKS.filter((k) => names[k] !== base[k]);
-              ok(moved.length === 0, `${where}: every accessible name is unchanged from 1280 with ${seen.step} drawn (${moved.map((k) => `${k}: "${base[k]}" → "${names[k]}"`).join('; ') || 'none moved'})`);
+              if (moved.length) renamed.push(`${w} (${seen.step}): ${moved.map((k) => `${k}: "${base[k]}" → "${names[k]}"`).join('; ')}`);
             }
+            if (fit.narrow) continue;
             if (theme === 'light') seenBy[brand][w] = seen.step;
-            if (SHOTS && (w !== 1280 || brand === 'short')) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `final-2214-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}${brand === 'long' ? '-long-name' : ''}.png`) });
+            if (seen.step === 'trim') trimmedOn[host]++;
+            const allowed = seen.step === 'trim' ? (fit.fileRow ? 2 : 1) : MAX_ROWS[seen.step] ?? 0;
+            if (!fit.also.includes(seen.step) || seen.rows.length > allowed) missed.push(`${w}: want ${fit.also.join('/')} (full ${fit.full}, without labels ${fit.glyphs}, without the name ${fit.logo}${fit.fileRow ? `, first of two rows ${fit.rows}` : ''}, in ${fit.room}), drew ${seen.step} in ${seen.rows.length} row(s) ${JSON.stringify(seen.rows)}`);
+            if (seen.step === 'trim') {
+              ok(names['brand-switcher'] === fullName && tip === fullName, `${where}: the cut brand name keeps the full name as the switcher's accessible name and tooltip (name "${names['brand-switcher']}", title "${tip}")`);
+              ok(seen.rows[0]?.includes('export-open'), `${where}: Export stays on the first row while the brand name is cut (${JSON.stringify(seen.rows)})`);
+            } else if (tip !== null) missed.push(`${w}: the switcher carries a tooltip (${JSON.stringify(tip)}) with its name whole (${seen.step})`);
+            if (SHOTS && host === 'figma' && brand === 'long' && w >= 570 && w <= 590) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `q83-plugin-${theme}-${w}-long-name.png`) });
+            if (SHOTS && [640, 800, 1000, 1280].includes(w) && (w !== 1280 || brand === 'short')) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `final-2214-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}${brand === 'long' ? '-long-name' : ''}.png`) });
           }
+          ok(missed.length === 0, `29d ${host} ${theme} ${fullName}: across ${FIT_WIDTHS[brand].length} widths the bar draws the measured step, in no more rows than it allows (${missed.join(' | ') || 'every width'})`);
+          ok(renamed.length === 0, `29d ${host} ${theme} ${fullName}: every accessible name is unchanged from 1280 at every width, the narrow tier included (${renamed.join(' | ') || 'none moved'})`);
         }
-        ok(errors.length === 0, `29c ${host} ${theme}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+        ok(errors.length === 0, `29d ${host} ${theme}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `29c ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `29d ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
       } finally { await cdp.detach().catch(() => {}); await ctx.close(); }
     }
     const idx = (x) => ORDER.indexOf(x);
-    const later = FIT_WIDTHS.filter((w) => idx(seenBy.long[w]) > idx(seenBy.short[w]));
-    const behind = FIT_WIDTHS.filter((w) => idx(seenBy.long[w]) < idx(seenBy.short[w]));
-    ok(later.length > 0 && behind.length === 0, `29c ${host}: the long name gives way sooner than "prism3" (further along at ${later.join(', ') || 'no width'}; behind at ${behind.join(', ') || 'none'}; ${FIT_WIDTHS.map((w) => `${w} ${seenBy.short[w]}/${seenBy.long[w]}`).join(', ')})`);
+    const common = Object.keys(seenBy.short).filter((w) => w in seenBy.long);
+    const later = common.filter((w) => idx(seenBy.long[w]) > idx(seenBy.short[w]));
+    const behind = common.filter((w) => idx(seenBy.long[w]) < idx(seenBy.short[w]));
+    ok(later.length > 0 && behind.length === 0, `29d ${host}: the long name gives way sooner than "prism3" (further along at ${later.join(', ') || 'no width'}; behind at ${behind.join(', ') || 'none'})`);
   }
+  // Q83 A's case: the plugin's long name reaches the cut name (570–590, Lane D's sweep on #2257).
+  ok(trimmedOn.figma > 0, `29d figma: the long name reaches the cut-name step somewhere in the sweep (${trimmedOn.figma} state(s))`);
+  console.log(`  29d: ${states} bar states swept; the cut name drawn in ${trimmedOn.figma} plugin and ${trimmedOn.web} web state(s).`);
 }
 
 // =============================================================================================

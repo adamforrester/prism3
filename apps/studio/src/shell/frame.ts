@@ -580,7 +580,9 @@ export const mountFrame = (app: HTMLElement, opts: {
   // way in order, each by a measured fit check (`data-bar-fit`): every tile label together (`glyphs`; Apply Theme keeps
   // its text), then the product name beside the logo (`logo`, the logo kept, as at the narrow tier), then the narrow
   // tier's two rows (`rows`: Pages, Figma and Apply Theme on the second, Apply Theme at the right; only where the bar
-  // has that file row). The bar is never wrapped any other way. Each step's width is derived from ONE measurement of
+  // has that file row), then the brand switcher's name, cut short with an ellipsis (`trim`, the owner's Q83 A), so the
+  // first row still holds. While it is cut, the full name stays its accessible name (its text) and its tooltip
+  // (`title`). The bar is never wrapped any other way. Each step's width is derived from ONE measurement of
   // the full bar, everything shown, so it never depends on the step that happens to be drawn and the state cannot
   // flap; it is taken once per content change (a mutation in the bar's controls, a font load, a change of tier) and
   // reused while only the width moves. A breakpoint would not hold: a longer brand name needs the steps sooner.
@@ -622,8 +624,11 @@ export const mountFrame = (app: HTMLElement, opts: {
     fitWidths ??= measureFit();
     const fits = (x: number): boolean => x <= room + 0.01;
     const f = fitWidths;
-    const step = fits(f.full) ? null : fits(f.glyphs) ? 'glyphs' : fits(f.logo) || f.rows === null ? 'logo' : 'rows';
+    const step = fits(f.full) ? null : fits(f.glyphs) ? 'glyphs' : fits(f.logo) ? 'logo' : f.rows !== null && fits(f.rows) ? 'rows' : 'trim';
     if (step) root.dataset.barFit = step; else delete root.dataset.barFit;
+    const sw = barMain.querySelector<HTMLElement>('[data-p3="brand-switcher"]');
+    const full = sw?.querySelector('.p3-brand-name')?.textContent ?? '';
+    if (sw && step === 'trim' && full) sw.title = full; else sw?.removeAttribute('title');
   };
   const refit = (): void => { fitWidths = null; fitBar(); };
   const mo = new MutationObserver(refit);
