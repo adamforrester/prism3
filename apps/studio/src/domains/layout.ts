@@ -37,7 +37,7 @@ import {
 import { DOMAINS, LAYOUT_LABELS, pageOfTab, type Host, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { addRowButton, leverBlock, leverOf, slider, sliderReadout, stateLine, textField, tokenLabel, type LeverBlock } from '../ui/lever-kit';
+import { addRowButton, leverBlock, leverOf, promoteLever, slider, sliderReadout, stateLine, textField, tokenLabel, type LeverBlock } from '../ui/lever-kit';
 import { noteSectionEdit } from '../preview/follow-edit';
 import { valuePicker, type PickerValue, type ValuePickerOpts } from '../ui/value-picker';
 
@@ -220,6 +220,8 @@ export const mountLayoutLevers = (host: HTMLElement, cleanups: (() => void)[]): 
     else b.ctl.append(hook(subHint(LAYOUT_DRAFT.limit), 'bp-limit'));
     if (dropped.length) b.setState(hook(stateLine(dropped.map(LAYOUT_COPY.dropped).join(' ')), 'bp-dropped'));
     el.append(b.el);
+    // BG1 A: the lever is named as its section, so the section's title says it once.
+    if (b.label === s.title) promoteLever(el, b);
     return { el, items: [{ el: b.el, said: b.said, key: 'layout.breakpoints', block: b }] };
   };
   const subHint = (t: string): HTMLElement => h('p', 'p3-sub', t);

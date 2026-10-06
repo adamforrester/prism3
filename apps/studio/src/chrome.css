@@ -662,6 +662,12 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
    heading text (the head's gap). */
 .p3-btn-icon.p3-info { min-width: var(--p3-hit-min); min-height: var(--p3-hit-min); }
 .p3-lever-head .p3-info { margin-block: calc(-1 * var(--p3-hit-min)); }
+/* BG1 A, HP5 (heading pass 2): a lever named as its section says its name once, in the section's title row (`promoteLever`,
+   `ui/lever-kit.ts`). Its ⓘ sits space-050 after the title (the row's gap); anything else its head held (Gradients' switch)
+   sits at the row's far end. Both overhang the title's line as the lever head's ⓘ does, so the row is as tall as the title. */
+.p3-lsec-titlerow { display: flex; align-items: center; gap: var(--p3-space-050); min-width: 0; }
+.p3-lsec-end { display: inline-flex; align-items: center; gap: var(--p3-space-100); margin-inline-start: auto; }
+:is(.p3-lsec-titlerow > .p3-info, .p3-lsec-end > *) { margin-block: calc(-1 * var(--p3-hit-min)); }
 .p3-lever .p3-btn-ghost:where(:not(:disabled, [aria-disabled="true"])):hover, .p3-picker .p3-btn-ghost:where(:not(:disabled, [aria-disabled="true"])):hover { border-color: var(--p3-edge); }
 .p3-tip { margin: 0; padding: var(--p3-space-150) var(--p3-space-200); border-radius: var(--p3-radius-lg); background: var(--p3-fill-1); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); }
 .p3-lever-ctl { display: grid; gap: var(--p3-space-100); min-width: 0; }
@@ -914,6 +920,12 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 .p3-fill-name { display: grid; gap: var(--p3-space-025); min-width: 0; }
 .p3-fill-label { font-size: var(--p3-fs-14); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
 .p3-fill-tok { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p3-text-2); font-family: var(--p3-font-mono); font-size: var(--p3-fs-12); }
+/* #2217 (heading pass 2): a label stacked over its control, with nothing on its right, puts its token flush right on the
+   label's own line, and the token wraps under the label when the two do not fit; at the narrow tier it always does. */
+.p3-fill-name.p3-fill-name-online { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--p3-space-200); row-gap: var(--p3-space-025); }
+.p3-fill-name-online > .p3-fill-tok { margin-inline-start: auto; }
+.p3-frame[data-w="narrow"] .p3-fill-name.p3-fill-name-online { display: grid; }
+.p3-frame[data-w="narrow"] .p3-fill-name-online > .p3-fill-tok { margin-inline-start: 0; }
 .p3-btn.p3-pick { min-height: var(--p3-ctl-h); gap: var(--p3-space-100); justify-content: flex-start; padding: 0 var(--p3-space-150) 0 var(--p3-space-200); }
 /* QA-B5: the step's words take the room and start at the left, so the ratio and the caret sit at the far right. */
 .p3-btn.p3-pick > .p3-btn-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
@@ -931,8 +943,6 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 .p3-glist { display: grid; }
 .p3-gedit { display: grid; gap: var(--p3-space-150); padding-block: var(--p3-space-300); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-gadd { padding-top: var(--p3-space-400); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
-/* QA-B13: the gradients switch at the top right of its lever's header. */
-.p3-lever-head > .p3-switch { margin-inline-start: auto; }
 .p3-gbar { height: var(--p3-gbar-h); border-radius: var(--p3-radius-lg); outline: var(--p3-bw-hairline) solid var(--p3-line-1); outline-offset: calc(-1 * var(--p3-bw-hairline)); }
 .p3-gstop { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) minmax(0, var(--p3-step-w)) auto; gap: var(--p3-space-100); align-items: center; }
 .p3-gstop > .p3-btn-icon { min-height: var(--p3-ctl-h); min-width: var(--p3-ctl-h); }
@@ -1012,7 +1022,11 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 .p3-famrow > .p3-selwrap:only-child { grid-column: 1 / -1; }
 /* ── Type (S6.3): Individual sizes, the weights matrix, the italic chips, the pins, line height and letter spacing,
    and the value picker's list (ui/value-picker.ts) ─────────────────────────────────────────────────── */
-.p3-tscale-clash { display: grid; gap: var(--p3-space-100); justify-items: start; }
+/* TS1 A (#2216): Type scale's pinned count sits space-050 under the control (the control's gap less space-050); each
+   warning is a group holding its own action, space-100 inside, space-150 after the line or group before it. */
+.p3-tscale-pins { margin-block-start: calc(-1 * var(--p3-space-050)); }
+.p3-tscale-group { display: grid; gap: var(--p3-space-100); justify-items: start; }
+:is(.p3-tscale-pins, .p3-tscale-group) + .p3-tscale-group { margin-block-start: var(--p3-space-050); }
 .p3-tsizes { display: grid; gap: var(--p3-space-100); padding-top: var(--p3-space-150); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-tsizes-head, .p3-tsizes-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: var(--p3-space-150); align-items: center; }
 .p3-tsizes-row[data-off="true"] .p3-fill-label { color: var(--p3-text-2); }
