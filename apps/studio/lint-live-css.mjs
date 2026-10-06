@@ -197,11 +197,12 @@ const check = async () => {
   const planted = compare(baseline, { rules: current.rules.filter((r) => r.key !== firstLive) });
   if (!planted.removed.some((x) => x.key === firstLive)) fails.push(`self-check: removing the live rule ${firstLive} in memory was not reported`);
   const deadKey = baseline.dead.find((k) => current.rules.some((r) => r.key === k));
-  if (deadKey && compare(baseline, { rules: current.rules.filter((r) => r.key !== deadKey) }).removed.length) fails.push(`self-check: removing the dead rule ${deadKey} in memory was reported as live`);
+  // Asks only whether THE PLANTED key is reported: a real removal elsewhere in the sheet is also in `removed`.
+  if (deadKey && compare(baseline, { rules: current.rules.filter((r) => r.key !== deadKey) }).removed.some((x) => x.key === deadKey)) fails.push(`self-check: removing the dead rule ${deadKey} in memory was reported as live`);
 
   const { removed, shrunk, unprotected } = compare(baseline, current);
   for (const { key, was } of removed) fails.push(`live rule removed: ${key} — it matched a drawn element in ${witness(was.seen)}. Restore it; or, if removing it is the intent, run \`node apps/studio/lint-live-css.mjs --accept --allow '${key}'\``);
-  for (const { key, was, lost } of shrunk) fails.push(`live rule lost ${lost.join(', ')}: ${key} — drawn in ${witness(was.seen)}. Restore the propert${lost.length > 1 ? 'ies' : 'y'}; or run \`--accept --allow '${key}'\``);
+  for (const { key, was, lost } of shrunk) fails.push(`live rule lost ${lost.join(', ')}: ${key} — drawn in ${witness(was.seen)}. Restore the propert${lost.length > 1 ? 'ies' : 'y'}; or, if dropping ${lost.length > 1 ? 'them' : 'it'} is the intent, run \`node apps/studio/lint-live-css.mjs --accept --allow '${key}'\``);
 
   console.log(`live-css: ${live} live rules held from a sweep of ${Object.values(baseline.coverage).reduce((a, b) => a + b, 0)} frames (${CORNERS.map((c) => `${c.replace('|', ' ')} ${baseline.coverage[c] ?? 0}`).join(', ')}); ${baseline.dead.length} were drawn by no page at the last accept; ${current.styleRules} style rules parsed, ${text} preludes counted${drop.out.length ? `, ${drop.out.length} dropped by Chromium for another engine's prefix (${drop.out.map((d) => `L${d.line}`).join(', ')})` : ''}.`);
   console.log(`live-css: ${unprotected.length} rule key${unprotected.length === 1 ? '' : 's'} added since the last --accept, unprotected until the next one.`);
