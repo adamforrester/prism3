@@ -1672,7 +1672,7 @@ for (const how of ['pointer', 'focus']) {
       page.waitForEvent('download', { timeout: 2500 }).catch(() => null),
       hooks.click(page.locator('[data-p3="export-dialog"] [data-p3="dialog-confirm"]'), { force: true, timeout: 4000 }).catch(() => {}),
     ]);
-    if (await page.locator('[data-p3="export-dialog"]').count()) await hooks.click(page.locator('[data-p3="export-dialog"] button', { hasText: /^Cancel$/ }), { timeout: 4000 }).catch(() => {});
+    if (await page.locator('[data-p3="export-dialog"]').count()) await hooks.click(page.locator('[data-p3="export-dialog"] button', { hasText: /^Cancel$/ }), { timeout: 4000 });
     return { ...st, file: dl ? dl.suggestedFilename() : null };
   };
   const tokensOff = (t) => t.off === true && t.file === null && (t.note ?? '').includes("these tokens would be the demo brand's");

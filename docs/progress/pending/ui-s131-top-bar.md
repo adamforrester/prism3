@@ -1,6 +1,6 @@
 ## (2026-10-05) — UI redesign S13.1: the top bar's brand menu, Export and the error line move to the new chrome
 
-**STATUS: branch `ui/s131-top-bar`, off `main` after S8.3 (#2094) merged; held for the owner's screenshot review.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged, **no new strings** (every visible string and accessible name is today's, moved verbatim; the dialogs' Close drops the "✕" character for the chrome's `x` glyph, with the same accessible name, "Close"). Owner decisions G18 A and N-2 A (2026-10-05). The first half of S13, split off as the scoping report recommended (S13a, the bar and the notices; S13b, the deletions).
+**STATUS: branch `ui/s131-top-bar`, off `main` after S8.3 (#2094) merged; held for the owner's screenshot review.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged, **the strings below are new, each approved by the owner** (everything else is today's, moved verbatim; the dialogs' Close drops the "✕" character for the chrome's `x` glyph, with the same accessible name, "Close"). Owner decisions G18 A and N-2 A (2026-10-05). The first half of S13, split off as the scoping report recommended (S13a, the bar and the notices; S13b, the deletions).
 
 **What moved.** Until now `main.ts`'s `renderBar` (32 call sites) drew the brand switcher, the brand menu, Export and its dialog, the plugin's Apply Theme and the prune review into the frame's bar slot, the menus and dialogs in `styles.css`, pinned light; and the engine error line was a legacy card in the notices row, pinned light, so in a dark theme it stayed a light card. Now:
 - **`src/shell/bar.ts`** draws the bar's controls in the chrome (`chrome.css`, the chrome tokens, #2041's shared pieces: `p3-menu`, `p3-menu-item`, `p3-btn`, `p3-seg`, `p3-confirm`), in the order the owner's menu bar sets (below). Apply Theme reads the Figma menu's own `apply` item (same label, busy and off states, tooltip, function).
@@ -51,6 +51,14 @@
 - **Fit:** the web at 640 is one row. The plugin at 380 is two rows:
   - row 1: the mark, the brand, Contrast, Theme, Agent, Activity and Export. Measured at 380 with "prism3": the controls span 12–368 with a 58px gap in the spacer (mark 22, brand 106, Contrast, Theme, Agent, Activity and Export 28 each, gaps 6), so Export stays on row 1;
   - row 2: Pages ▾ and Figma ▾, then Apply Theme on the right (a row break and a second spacer that only the narrow tier draws).
+
+**New strings, each with its approval** (corrects the earlier "no new strings", which the re-review caught):
+- Tile labels "Contrast" and "Theme" (visible for the first time; "Theme" was an accessible name only): the owner's T9.
+- Tile label "Agent" (the chip read "Agent: Off"): T7 A.
+- "Match Figma", "Light" and "Dark" on the plugin's Theme menu: T2.
+- Accessible names "Agent, on" and "Agent, off" (were "Agent: On" / "Agent: Off"): T7 A. The option the owner chose said "Screen readers hear 'Agent, on' / 'Agent, off'", and the owner answered "T7: A". The re-review is also raising these two with the owner.
+- "agent link on" in Activity's accessible name and tooltip: T9.
+- "Prism3 Studio" on the plugin: an existing string, new to that surface; the owner asked for the plugin logo, and T1–T5 kept it in the mock.
 
 **Gates for the menu bar:**
 - `test:chrome` §29, both hosts, both themes, at 1280, 640 and 380:
@@ -122,8 +130,8 @@ Mutations for the dots and the dialog scope (each on a `git archive` copy of `a6
 1. **Focus return.** Closing Export by Close, Cancel or a scrim click sent focus to the brand switcher, or to `BODY` for a scrim click; only Escape was right. `paint()`'s fallback focused the switcher whenever the focused node had gone. Now a dialog's close, by any path, returns focus to its opener: Export, or the Figma menu for the prune review. The scrim's `mousedown` default is refused, so the click cannot move focus to the page underneath.
 2. **Focus into the dialogs.** Both are `aria-modal`. As one opens, focus moves to its first control. Tab and Shift+Tab stay inside until it closes, using S12's `focusables` and `trapTab`, which moved from `shell/start.ts` into `shell/dom.ts` so both windows share them. A repaint that loses the focused node falls back into the open dialog, never behind it.
 3. **Tests:**
-   - `test:chrome` §29: Close, Cancel and the scrim each return focus to Export. Focus moves in as the dialog opens, and 24 Tabs and 4 Shift+Tabs stay inside. The import error line is held to 4.5:1 at every host, theme and width. At 1280 in both themes, the overwrite confirm (web) and the prune review (plugin) are measured as chrome, their sentences are held to 4.5:1, and the prune review's Cancel returns focus to the Figma menu.
-   - `test-build-verdict.mjs`: the three Cancel clicks no longer swallow failures. One of them was clicking an export dialog that an Escape on the line before had already closed; the Escape is gone. The prune control arm now checks focus in, the trap, and Cancel back to the Figma menu.
+   - `test:chrome` §29: Close, Cancel, the scrim and Escape each return focus to Export, and Close, the scrim, Escape and Cancel return focus from the prune review to the Figma menu. Both dialogs are asserted `role="dialog"` and `aria-modal="true"`. Focus moves in as the dialog opens, and 24 Tabs and 4 Shift+Tabs stay inside. The import error line is held to 4.5:1 at every host, theme and width. At 1280 in both themes, the overwrite confirm (web) and the prune review (plugin) are measured as chrome, their sentences are held to 4.5:1, and the prune review's Cancel returns focus to the Figma menu.
+   - `test-build-verdict.mjs`: the four Cancel clicks no longer swallow failures. One of them was clicking an export dialog that an Escape on the line before had already closed; the Escape is gone. The prune control arm now checks focus in, the trap, and Cancel back to the Figma menu.
 4. **The alert strip.** `show()` writes the text only when it changes. The notices row is no longer emptied on every `build()` (page changes included); `mountSurfaces` skips a mounted surface, so the strip is minted once per frame instead of being a new alert on each page. `test:chrome` §29: two more rebuilds with the same error make no mutation and keep the same text node, on both hosts.
 
 Mutations for the review's fixes, each run on a `git archive` copy of `1433912a`. The clean `test:chrome` run on that head was 20205/20205.

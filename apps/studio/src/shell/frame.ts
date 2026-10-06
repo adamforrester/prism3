@@ -112,6 +112,11 @@ export type Frame = {
   readonly bar: HTMLElement;
   /** The bar's controls (`bar.ts`), the `brand-bar` chrome surface `main.ts` declares. */
   readonly barMain: HTMLElement;
+  /** The shell's own bar nodes, which the bar places (S1.3, S1.4): the verdict (Contrast), the Activity button and the
+   *  Figma menu (plugin only). Kept on the frame beside `barMain`, as main has them. */
+  readonly verdict: HTMLElement;
+  readonly activity: HTMLElement;
+  readonly figma: HTMLElement | null;
   /** Slot: the notices row, under the top bar: the error strip (`notices.ts`). */
   readonly notices: HTMLElement;
   /** Slot: the legacy page, inside the legacy frame. */
@@ -560,7 +565,8 @@ export const mountFrame = (app: HTMLElement, opts: {
   render();
 
   return {
-    head, bar: barSlot, barMain, notices, legacyPage, syncSticky, layer, agent,
+    head, bar: barSlot, barMain, notices, legacyPage, verdict, syncSticky, layer,
+    activity: activity.button, figma, agent,
     unmount: () => {
       for (const c of cleanups) c();
       root.remove();

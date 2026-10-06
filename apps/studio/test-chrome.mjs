@@ -7717,6 +7717,8 @@ for (const { w, h } of WIDTHS) {
           await hooks.need(page, '[data-p3="export-dialog"]');
           const in0 = await dlgAt();
           ok(in0.inside, `${where}: dialog focus: opening Export moves focus into the dialog (on "${in0.focus}")`);
+          const modal = await page.evaluate(() => { const d = document.querySelector('[data-p3="export-dialog"]'); return [d?.getAttribute('role'), d?.getAttribute('aria-modal')]; });
+          ok(modal[0] === 'dialog' && modal[1] === 'true', `${where}: dialog focus: the export dialog is a modal dialog (role "${modal[0]}", aria-modal "${modal[1]}")`);
           if (how === 'Close') {
             const walk = [];
             for (let i = 0; i < 24; i++) { await page.keyboard.press('Tab'); walk.push(await dlgAt()); }
@@ -7745,6 +7747,18 @@ for (const { w, h } of WIDTHS) {
         if (w === 1280 && host === 'figma') {
           await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'prune-result', ok: true, applied: false, count: 2, summary: 'Would remove 2 items: 2 variables.' } }, '*'));
           await hooks.need(page, '[data-p3="prune-dialog"]');
+          const pm = await page.evaluate(() => { const d = document.querySelector('[data-p3="prune-dialog"]'); return { role: d?.getAttribute('role'), modal: d?.getAttribute('aria-modal'), inside: !!document.activeElement?.closest('[data-p3="prune-dialog"]') }; });
+          ok(pm.role === 'dialog' && pm.modal === 'true' && pm.inside, `${where}: dialog focus: the prune review is a modal dialog with focus inside it (${JSON.stringify(pm)})`);
+          // Every way out but Cancel (held below, after the measure) returns focus to the Figma menu, its opener.
+          for (const how of ['Close', 'the scrim', 'Escape']) {
+            if (how === 'Close') await hooks.click(page.locator('[data-p3="prune-dialog"] [data-p3="dialog-close"]'));
+            else if (how === 'Escape') await page.keyboard.press('Escape');
+            else { await page.mouse.move(2, 2); await page.mouse.down(); await page.mouse.up(); }
+            const pe = await page.evaluate(() => ({ open: !!document.querySelector('[data-p3="prune-dialog"]'), focus: document.activeElement?.getAttribute('data-p3') ?? null }));
+            ok(!pe.open && pe.focus === 'figma-open', `${where}: dialog focus: ${how} closes the prune review back to the Figma menu (open ${pe.open}, focus on "${pe.focus}")`);
+            await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'prune-result', ok: true, applied: false, count: 2, summary: 'Would remove 2 items: 2 variables.' } }, '*'));
+            await hooks.need(page, '[data-p3="prune-dialog"]');
+          }
           const mp = await measure(page, `${where} / prune review`, host, w);
           check(mp, `${where} / prune review`, column, PLACE_FLOOR, { extra: ['[data-p3="dialog-confirm"]', '[data-p3="dialog-cancel"]'] });
           const pc = await page.evaluate(INK_PROBE, '[data-p3="prune-dialog"] .p3-bardlg-desc');
