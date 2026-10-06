@@ -265,8 +265,46 @@ await new Promise((r) => setTimeout(r, 3000));
   ok(levers.includes('smallest first. The first is always 0px. Names follow') && !levers.includes('Studio keeps the first at 0px'),
     '#2146 the layout.breakpoints lever description says "The first is always 0px." (Q26 a)');
   const schemaBp = (await server.callJson('list_levers', { describe: ['layout'] })).payload.described?.properties?.layout?.properties?.breakpoints?.description ?? '';
-  ok(schemaBp.includes('ascending. The first must be 0. Auto-named'),
+  ok(schemaBp.includes('ascending. The first must be 0.'),
     `#2146 the schema's layout.breakpoints description says "The first must be 0." (Q26 a; got "${schemaBp}")`);
+  // #2160: the schema stated the names as "Auto-named sm/md/lg/xl/2xl", true only up to five breakpoints. It
+  // now carries the lever's approved naming sentence (#2070) word for word. Pinned to EACH OTHER, not to a
+  // phrase, so an edit to either one alone fails here: the two are authored separately, and drifted once.
+  // BY-NAME MUTATIONS: restore the schema's old "Auto-named …" text → this arm fails; edit the lever's
+  // sentence alone → this arm fails.
+  const leverNames = /Names follow the count:[^.]*\./.exec(levers)?.[0] ?? '';
+  ok(leverNames.length > 40 && schemaBp.includes(leverNames),
+    `#2160 the schema's breakpoints description carries the lever's naming sentence word for word (lever: "${leverNames}"; schema: "${schemaBp}")`);
+}
+
+// ------------------------------- #2162: a build-time refusal is an isError result, never a protocol error
+// An override naming an unknown step passes `brandTheme` and is refused in `buildTree`, once the modes resolve.
+// Every generating tool returned that as a -32603 protocol error, which a client may not hand to the model. It
+// must be an `isError` result carrying the engine's sentence in `errors`, the shape `validate_brand` reports.
+// Read off the RAW reply: `server.call` throws on an RPC error, which would crash this suite rather than fail
+// an arm by name. EXPECTED is the engine's sentence, typed here literally. BY-NAME MUTATION: take `buildTree`
+// back out of `buildBrand`'s try in mcp.ts → every arm below fails.
+{
+  const UNKNOWN_STEP = "overrides[light]: unknown step '999' in palette 'neutral' (role 'foreground.brand')";
+  const B = { id: 'x', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, overrides: { light: { 'foreground.brand': { palette: 'neutral', step: '999' } } } };
+  const refusedAs = async (tool: string, args: unknown) => {
+    const res = await server.reply(server.send('tools/call', { name: tool, arguments: args }));
+    let payload: any = null;
+    try { payload = res.result ? JSON.parse(res.result.content[0].text) : null; } catch { /* reported below */ }
+    const okShape = !res.error && res.result?.isError === true && Array.isArray(payload?.errors) && payload.errors.length === 1 && payload.errors[0] === UNKNOWN_STEP;
+    return { okShape, seen: res.error ? `RPC error ${res.error.code}: ${res.error.message}` : JSON.stringify(payload).slice(0, 200) };
+  };
+  const brief = ['---', 'id: refusal', 'primary: { l: 0.5, c: 0.15, h: 250 }', 'neutral: { hue: 250, chroma: 0.01 }',
+    "overrides: { light: { foreground.brand: { palette: neutral, step: '999' } } }", '---', '', 'A brand with a bad override.'].join('\n');
+  for (const [tool, args] of [
+    ['theme_brand', { brand: B }],
+    ['theme_from_brief', { brief }],
+    ['export_theme', { brand: B, outDir: 'mcp-test-refusal-out' }],
+    ['score_consumption', { brand: B, refs: ['color.text.primary'] }],
+  ] as const) {
+    const r = await refusedAs(tool, args);
+    ok(r.okShape, `#2162 ${tool}: a build-time refusal comes back as an isError result carrying the engine's sentence, not a protocol error (got ${r.seen})`);
+  }
 }
 
 // ----------------------------------------------------------------- 3. JOURNEY
