@@ -445,6 +445,39 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
     const round = (n) => Math.round(n * 100) / 100;
     const name = (el) => `${el.tagName.toLowerCase()}.${(typeof el.className === 'string' ? el.className : '').trim().replace(/\s+/g, '.') || '-'}`;
     const classify = (el, cs) => ({ px: parseFloat(cs.fontSize), weight: Number(cs.fontWeight), specimen: el.closest('[data-specimen]') !== null });
+    /** The control a node sits in when that control is really disabled (X4 A), `:disabled` or `aria-disabled="true"`,
+     *  never by class or hook: its element, classes, colors and four edges, whether it carries the disabled property or
+     *  `aria-disabled`, whether focus takes, and, for one that does take focus, whether activating it (`click()`)
+     *  changes it or anything the page stores. A running write's control (`aria-busy`) is never activated here. */
+    const offSeen = new Map();
+    const offControl = (el) => {
+      const c = el.closest('button, [role="button"], [role="switch"], [role="checkbox"], [role="radio"], [role="tab"], [role="menuitemradio"], a[href]');
+      if (!c || !(c.matches(':disabled') || c.getAttribute('aria-disabled') === 'true')) return null;
+      if (offSeen.has(c)) return offSeen.get(c);
+      const cs = getComputedStyle(c);
+      const prev = document.activeElement;
+      c.focus();
+      const focusable = document.activeElement === c;
+      if (focusable) { c.blur(); prev?.focus?.(); }
+      let clickChanged = null;
+      if (focusable && c.getAttribute('aria-busy') !== 'true') {
+        // What an activation could move, as `test:chrome`'s check reads it: the control, what the page stores, the place
+        // shown, whether the start window is up, and which windows and menus are open.
+        const snap = () => JSON.stringify([c.outerHTML, Object.entries(localStorage), document.querySelector('[data-p3="frame"]')?.dataset.place ?? null,
+          !!document.querySelector('[data-p3="start-screen"]'), [...document.querySelectorAll('[role="dialog"], [role="menu"], [role="listbox"]')]
+            .filter((d) => d.getClientRects().length).map((d) => d.getAttribute('data-p3') ?? d.getAttribute('role'))]);
+        const before = snap();
+        HTMLElement.prototype.click.call(c);
+        clickChanged = snap() !== before;
+      }
+      const o = {
+        tag: c.tagName.toLowerCase(), cls: typeof c.className === 'string' ? c.className : '', hook: c.getAttribute('data-p3'),
+        prop: c.disabled === true, aria: c.getAttribute('aria-disabled') === 'true', focusable, clickChanged,
+        fill: cs.backgroundColor, ink: cs.color, edges: ['Top', 'Right', 'Bottom', 'Left'].map((x) => [cs[`border${x}Color`], cs[`border${x}Style`], parseFloat(cs[`border${x}Width`])]),
+      };
+      offSeen.set(c, o);
+      return o;
+    };
     const text = [];
     for (const el of document.querySelectorAll('*')) {
       if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
@@ -455,6 +488,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
       if (!col) continue;   // recorded in `unparsed`, which fails by name
       const ground = groundOf(el);
       text.push({
+        offCtl: offControl(el), ink: cs.color, canary: el.closest('[data-ccanary]') !== null,
         ratio: round(ratio(over({ ...col, a: col.a * op }, ground), ground)), op: round(op), cls: name(el),
         text: [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent.trim()).join(' ').slice(0, 40),
         inlineInk: (() => { for (let n = el; n; n = n.parentElement) if (n.style?.color) return true; return false; })(),
@@ -535,9 +569,76 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
       const m = /^\{(.+)\}$/.exec(v);
       return m ? hex(tree, m[1], seen + 1) : v.toLowerCase();
     };
-    const skin = (tree) => ({ fill: hex(tree, `${root}.color.disabled.fill`), edge: hex(tree, `${root}.color.disabled.border`), ink: hex(tree, `${root}.color.disabled.on-fill`) });
+    // X4 A: the two roles the button definitions bind and the text field does not, `disabled.text` and `disabled.icon`.
+    const skin = (tree) => ({ fill: hex(tree, `${root}.color.disabled.fill`), edge: hex(tree, `${root}.color.disabled.border`), ink: hex(tree, `${root}.color.disabled.on-fill`),
+      text: hex(tree, `${root}.color.disabled.text`), icon: hex(tree, `${root}.color.disabled.icon`) });
     return { light: skin(base), dark: skin(dark) };
   })();
+  /**
+   * THE CONTRAST EXEMPTION FOR INACTIVE BUTTONS (owner decision X4 A, 2026-10-05, #2155), this walk's own copy. A
+   * disabled chrome button draws Prism3's own disabled button for its appearance, typed here from the engine's
+   * definitions (`button.ts`, `icon-button.ts`): filled on the disabled fill with the on-fill ink and no edge; outline
+   * (the page-colored button: the start's Import while the paste box is empty) with no fill, a solid `disabled.icon`
+   * edge and the label on `disabled.text`; text (a ghost button, the mode check) the same with no edge. A chrome text
+   * node is exempt only when the control it sits in is REALLY DISABLED (`:disabled` or `aria-disabled="true"`, never a
+   * class, hook, color or cursor) and the node is under its bar; each exempted node is asserted, by name, to sit in a
+   * control that carries the disabled property or `aria-disabled`, takes no focus or changes nothing when activated,
+   * and draws its appearance's roles, the node's own ink included, read from the emission, never from the CSS.
+   */
+  const DISABLED_APPEARANCE = (o) => {
+    if (['input', 'select', 'textarea'].includes(o.tag)) return 'field';
+    const c = new Set(o.cls.split(/\s+/));
+    if (['p3-btn-primary', 'p3-next', 'p3-btn-danger'].some((k) => c.has(k))) return 'filled';
+    if (['p3-btn-ghost', 'p3-check'].some((k) => c.has(k))) return 'text';
+    return 'outline';
+  };
+  const DISABLED_SKIN = (appearance, scheme) => {
+    const d = PRISM3_DISABLED[scheme];
+    if (!d) return null;
+    return {
+      field: { fill: d.fill, edge: d.edge, ink: d.ink },
+      filled: { fill: d.fill, edge: 'none', ink: d.ink },
+      outline: { fill: 'none', edge: d.icon, ink: d.text },
+      text: { fill: 'none', edge: 'none', ink: d.text },
+    }[appearance];
+  };
+  const paintOf = (x) => {
+    const m = /^rgba?\(([^)]+)\)$/.exec((x ?? '').trim());
+    if (!m) return String(x);
+    const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
+    if (p.length > 3 && p[3] === 0) return 'none';
+    if (p.length > 3 && p[3] !== 1) return String(x);
+    return `#${p.slice(0, 3).map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
+  };
+  const drawnSkin = (o) => {
+    const sides = o.edges.filter(([c, st, wd]) => st !== 'none' && wd > 0 && paintOf(c) !== 'none');
+    const colors = [...new Set(sides.map(([c]) => paintOf(c)))];
+    const styles = [...new Set(sides.map(([, st]) => st))];
+    const edge = !sides.length ? 'none' : sides.length === 4 && colors.length === 1 && styles.join() === 'solid' ? colors[0] : `${sides.length} side(s) ${colors.join('/')} ${styles.join('/')}`;
+    return { fill: paintOf(o.fill), edge, ink: paintOf(o.ink) };
+  };
+  /** Every button exemption granted this run: [where, hook or class]. Floored on the start moment, and printed. */
+  const BUTTON_EXEMPTIONS = [];
+  const isExemptText = (r) => !!r.offCtl && !r.specimen && r.ratio < barOf(r);
+  /** The canary (F1 A, X4 A, #2174): beside the real disabled control `sel`, a copy that is NOT disabled and carries,
+   *  inline, EVERY computed style of the real control and of each element inside it (its class and hook too). */
+  const PLANT_CANARY = (sel) => {
+    // What a copy may differ in and still be a lookalike: the size its place in the row gives it (and the origins that
+    // follow from that size), a shorthand that serializes differently from the same longhands, and a non-standard one.
+    const CANARY_LAYOUT = new Set(['width', 'height', 'inline-size', 'block-size', 'transform-origin', 'perspective-origin', 'text-decoration', 'app-region']);
+    const src = document.querySelector(sel);
+    if (!src) return { planted: false };
+    const c = src.cloneNode(true);
+    const from = [src, ...src.querySelectorAll('*')], to = [c, ...c.querySelectorAll('*')];
+    from.forEach((n, i) => { const cs = getComputedStyle(n); for (const p of cs) to[i].style.setProperty(p, cs.getPropertyValue(p)); });
+    c.disabled = false;
+    for (const a of ['disabled', 'aria-disabled', 'id']) c.removeAttribute(a);
+    c.setAttribute('data-ccanary', '');
+    src.after(c);
+    const a = getComputedStyle(src), b = getComputedStyle(c);
+    return { planted: true, live: !c.matches(':disabled') && c.getAttribute('aria-disabled') !== 'true',
+      differ: [...a].filter((p) => !CANARY_LAYOUT.has(p) && a.getPropertyValue(p) !== b.getPropertyValue(p)).slice(0, 6) };
+  };
   const hexOfRgb = (x) => {
     const m = /^rgba?\(([^)]+)\)$/.exec((x ?? '').trim());
     if (!m) return null;
@@ -623,7 +724,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
     ok(uniq.length === 0, `${where}: every computed color the probe met was parsed${
       uniq.length ? ` — ${uniq.length} not: ${uniq.slice(0, 3).map((u) => `${u.cls} ${u.prop} "${u.value}"`).join(' | ')}` : ''}`);
     textTotal += m.text.length; fieldTotal += m.fields.length;
-    for (const r of m.text.filter((x) => !x.specimen)) if (r.ratio < worst.ratio) worst = { ratio: r.ratio, where: `${where} — ${r.cls} "${r.text}"` };
+    for (const r of m.text.filter((x) => !x.specimen && !isExemptText(x))) if (r.ratio < worst.ratio) worst = { ratio: r.ratio, where: `${where} — ${r.cls} "${r.text}"` };
     // #1031's FIRST HALF. Until UI redesign S1.2 this read the document, which had to resolve light. The
     // chrome now follows Figma's theme for real, so in Figma's dark theme the document resolves dark, and
     // the line held is the one #1031 was about: no control resolves a dark scheme over a light ground, and
@@ -633,7 +734,20 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
       `${where}: no form control resolves a dark color-scheme over a light ground — that hands the UA the field ink, caret and option lists (#1031)${mismatched.length ? ` — ${mismatched.slice(0, 3).map((f) => `${f.hook ?? f.cls} "${f.scheme}" on a ground at luminance ${f.groundLum}`).join(' | ')}` : ''}`);
     if (m.legacyScheme !== null) ok(!/\bdark\b/.test(m.legacyScheme), `${where}: the legacy frame resolves a light color-scheme ("${m.legacyScheme}"), pinned until each page moves (D2)`);
     ok(m.text.length >= STATE_TEXT_FLOOR, `${where}: measured ${m.text.length} text nodes (floor ${STATE_TEXT_FLOOR})`);
-    const textUnder = m.text.filter((r) => r.ratio < barOf(r));
+    // X4 A: a label in a really disabled button, under its bar, is exempt as an inactive component, and held here instead.
+    const exemptText = m.text.filter(isExemptText);
+    for (const r of exemptText) {
+      const c = r.offCtl;
+      BUTTON_EXEMPTIONS.push([where, c.hook ?? c.cls]);
+      ok((c.prop || c.aria) && (c.focusable === false || (c.aria && c.clickChanged === false)),
+        `${where}: the exempted "${r.text}" sits in a disabled control, ${c.hook ?? c.cls}, that takes no focus or changes nothing when activated (disabled ${c.prop}, aria-disabled ${c.aria}, took focus ${c.focusable}, activation changed ${c.clickChanged})`);
+      const appearance = DISABLED_APPEARANCE(c);
+      const want = DISABLED_SKIN(appearance, m.scheme);
+      const got = { ...drawnSkin(c), label: paintOf(r.ink) };
+      ok(!!want && got.fill === want.fill && got.edge === want.edge && got.ink === want.ink && got.label === want.ink,
+        `${where}: the exempted "${r.text}" in ${c.hook ?? c.cls} draws Prism3's disabled ${appearance} roles for the ${m.scheme} chrome (want fill ${want?.fill}, edge ${want?.edge}, ink ${want?.ink}; drew ${JSON.stringify(got)})`);
+    }
+    const textUnder = m.text.filter((r) => r.ratio < barOf(r) && !exemptText.includes(r));
     ok(textUnder.length === 0, `${where}: every one of ${m.text.length} text nodes meets its bar (chrome ${TEXT_MIN}:1, ${LARGE_TEXT_MIN}:1 large; specimens ${SPECIMEN_FLOOR}:1)${
       textUnder.length ? ` — ${textUnder.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1 (${u.px}px/${u.weight}, op ${u.op}, needs ${barOf(u)}:1)`).join(' | ')}` : ''}`);
     const under = m.fields.filter(fieldFails);
@@ -697,6 +811,18 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
         await post(page, { type: 'restore-input-empty' });
         await waitStart(page, true);
         await measure(page, `${tag} / start screen`);
+        {
+          // X4 A's canary: beside Import, disabled while the paste box is empty, a copy that is NOT disabled but carries
+          // every computed style of it and of its label (its class and hook too). The label must be measured and fail
+          // its bar unexempted, so an exemption keyed on anything but `:disabled` / `aria-disabled` fails here (#2174).
+          const p = await page.evaluate(PLANT_CANARY, '[data-p3="start-import"]:disabled');
+          const cp = p.planted ? await page.evaluate(LEGIBILITY) : null;
+          await page.evaluate(() => { for (const n of document.querySelectorAll('[data-ccanary]')) n.remove(); });
+          const rows = cp?.text.filter((r) => r.canary) ?? [];
+          const v = { ...p, measured: rows.length, under: rows.filter((r) => r.ratio < barOf(r)).length, exempted: rows.filter(isExemptText).length, ratio: rows.length ? Math.min(...rows.map((r) => r.ratio)) : null };
+          ok(p.planted && p.live && p.differ.length === 0 && v.measured > 0 && v.under > 0 && v.exempted === 0,
+            `${tag} / start screen: the button exemption canary, a button with every computed style of the disabled Import (its class and hook too) that is not disabled, is not exempted and fails its bar — ${JSON.stringify(v)}`);
+        }
         await hooks.click(page.locator('[data-p3="start-example"]').first());
         await waitStart(page, false);
         await hooks.need(page, '[data-p3="frame"]');   // the app view (Color › Palettes draws the two panes from S2)
@@ -727,23 +853,12 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
             // F1 A's canary: beside the disabled field, a copy that is NOT disabled but keeps its class, hook and,
             // inline, its colors. It must be measured and fail its bar unexempted, so an exemption widened to a class
             // or a hook fails here by name.
-            const planted = await page.evaluate(() => {
-              const src = document.querySelector('[data-p3="bp-row"] input:disabled');
-              if (!src) return false;
-              const cs = getComputedStyle(src);
-              const c = src.cloneNode(true);
-              c.disabled = false;
-              c.removeAttribute('id');
-              c.setAttribute('data-ccanary', '');
-              for (const p of ['background-color', 'color', 'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color']) c.style.setProperty(p, cs.getPropertyValue(p));
-              src.after(c);
-              return true;
-            });
-            const cp = planted ? await page.evaluate(LEGIBILITY) : null;
+            const p = await page.evaluate(PLANT_CANARY, '[data-p3="bp-row"] input:disabled');
+            const cp = p.planted ? await page.evaluate(LEGIBILITY) : null;
             await page.evaluate(() => { for (const n of document.querySelectorAll('[data-ccanary]')) n.remove(); });
             const cf = cp?.fields.find((f) => f.canary);
-            ok(planted && !!cf && fieldFails(cf) && !isExemptField(cf),
-              `${tag} / Layout: the exemption canary, a field with the disabled field's class, hook and colors that is not disabled, is not exempted and fails its bar — ${JSON.stringify({ planted, measured: !!cf, ratio: cf?.ratio ?? null, exempted: cf ? isExemptField(cf) : null })}`);
+            ok(p.planted && p.live && p.differ.length === 0 && !!cf && fieldFails(cf) && !isExemptField(cf),
+              `${tag} / Layout: the exemption canary, a field with every computed style of the disabled field (its class and hook too) that is not disabled, is not exempted and fails its bar — ${JSON.stringify({ ...p, measured: !!cf, ratio: cf?.ratio ?? null, exempted: cf ? isExemptField(cf) : null })}`);
           }
         }
         await measureBrand(page, `${tag} / Brand`);
@@ -776,6 +891,13 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
   const missed = layoutTags.filter((t) => !FIELD_EXEMPTIONS.some(([w, hk]) => w === t && hk === 'bp-input'));
   ok(missed.length === 0, `every Layout tab measured exempted its disabled first breakpoint field from the field bar (F1 A) — exempted ${FIELD_EXEMPTIONS.length}${missed.length ? `; none in ${missed.join(', ')}` : ''}`);
   console.log(`  Contrast exemption (inactive fields, WCAG 2.2 SC 1.4.3; F1 A): ${FIELD_EXEMPTIONS.length} field(s) exempted in ${new Set(FIELD_EXEMPTIONS.map(([w]) => w)).size} state(s).`);
+  // X4 A, counted: the start moment draws Import disabled (the paste box is empty), so every start moment measured must
+  // exempt its label.
+  const startTags = [];
+  for (const scheme of ['light', 'dark']) for (const theme of ['light', 'dark']) startTags.push(`${scheme} scheme / Figma ${theme} / start screen`);
+  const noImport = startTags.filter((t) => !BUTTON_EXEMPTIONS.some(([w, hk]) => w === t && hk === 'start-import'));
+  ok(noImport.length === 0, `every start moment measured exempted the disabled Import button's label (X4 A) — exempted ${BUTTON_EXEMPTIONS.length}${noImport.length ? `; none in ${noImport.join(', ')}` : ''}`);
+  console.log(`  Contrast exemption (inactive buttons, WCAG 2.2 SC 1.4.3; X4 A): ${BUTTON_EXEMPTIONS.length} label(s) exempted in ${new Set(BUTTON_EXEMPTIONS.map(([w]) => w)).size} state(s): ${[...new Set(BUTTON_EXEMPTIONS.map(([w, h]) => `${w} (${h})`))].join(', ')}.`);
   console.log(`  ${pagesSeen.size} rail page(s) and ${tabsSeen.size} tabs × 2 schemes × 2 Figma themes, plus the start moment at both sizes: ${textTotal} text nodes, ${fieldTotal} form controls.`);
   console.log(`  Lowest chrome text: ${worst.ratio}:1 — ${worst.where}`);
   console.log(`  Unparsed colors: ${unparsedTotal} (every one fails by name).`);

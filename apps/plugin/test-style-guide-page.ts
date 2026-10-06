@@ -174,8 +174,8 @@ section('events — a panel run says which table it is on, and how each went');
   await release();
   const seq = posted.filter((m) => m.type === 'style-guide-tables' || m.type === 'style-guide-table' || m.type === 'style-guide-result')
     .map((m) => (m.type === 'style-guide-tables' ? `tables:${m.tables.map((t: any) => `${t.title}@${t.page}`).join('|')}` : m.type === 'style-guide-table' ? `${m.index}:${m.status}${m.reason ? `(${m.reason})` : ''}` : 'result'));
-  const noPrim = 'this file has no ↳ Primitive tokens page, and Set up file adds it';
-  const noSem = 'this file has no ↳ Semantic tokens page, and Set up file adds it';
+  const noPrim = 'this file has no Primitive tokens page, and Set up file adds it';
+  const noSem = 'this file has no Semantic tokens page, and Set up file adds it';
   ok(JSON.stringify(seq) === JSON.stringify([
     'tables:Ramp@Primitive tokens|Alt@Semantic tokens|More@Primitive tokens|Text styles@Semantic tokens',
     '0:drawing', `0:failed(${noPrim})`, '1:drawing', `1:failed(${noSem})`, '2:drawing', `2:failed(${noPrim})`, '3:drawing', `3:failed(${noSem})`,
