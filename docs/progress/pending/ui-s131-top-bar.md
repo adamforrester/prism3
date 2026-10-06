@@ -155,7 +155,11 @@ Mutations for the review's fixes, each run on a `git archive` copy of `1433912a`
 - **The Agent tile** has the fixed name "Agent" and `aria-pressed`. The T7 arms check the name "Agent" and `aria-pressed` false/true.
 - **The `bar.ts` header** now says "+ New brand" reopens S12's start window.
 
-MUT_TRAP_PLACEHOLDER
+Mutations for the trap, each on a `git archive` copy of `a0fd52de` (the clean `test:chrome` there was 20386/20386):
+- **The `<pre>` dropped from the trap's list, alone**: 0 failures. That is correct behavior, not a missing check: with the trap now deferring to the browser for any node it does not name, the `<pre>` is still reached in document order and the walk stays whole. Either fix alone closes the hole.
+- **The `<pre>` dropped from the list, with the old wrap-on-unknown trap restored** (the defect as reviewed): 8 failures, every Export arm on both hosts at 1280 and 380. Example: `S13.1 web dark 1280: dialog tab order: Tab from the export dialog's first control visits every stop, Download included, and Shift+Tab the reverse (… Tab dialog-close → export-artifact → … → export-setting → pre; Shift+Tab dialog-close → export-import → dialog-confirm → dialog-cancel → pre → export-import → …)`.
+
+S12's `test:start` (which shares the trap) passes.
 
 **Held:**
 - **The plugin from 561 to about 1000px.** The bar wraps at the wide tier, so Export can start the second row. The owner named 1280 and 380 for the plugin; its window opens at 1280.
