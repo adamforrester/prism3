@@ -40,13 +40,19 @@ export type Lever = {
   control: LeverControl;
   required?: boolean;                   // a required BrandInput field (no default; must be set)
   advanced?: boolean;                   // hidden behind progressive disclosure by default
-  default?: unknown;                    // must equal the schema default where the schema defines one
+  /** Must equal the schema default where the schema defines one, AND be what the engine does with the
+   *  lever unset (`test.ts` #1812 runs the engine both ways). Omitted when the engine's unset behavior is
+   *  not one static value: `linkPalette` follows whatever palette the action role resolves to. */
+  default?: unknown;
   // slider (UI bounds — the presentation half; the schema leaves these open):
   min?: number; max?: number; step?: number; unit?: string;
   // enum (values MUST match the schema enum at `key`):
   options?: { value: string | number; label: string }[];
   // list/object (informational item hint):
   itemLabel?: string;
+  /** Present on a lever that is retired but still ACCEPTED in brand input (#2053): the note says what to do
+   *  instead. Additive and optional, so a reader that ignores it still reads the lever as before. */
+  deprecated?: string;
   /** Named stops a slider also accepts (#471) — `{ soft: 1.5 }`, so `radiusScale: 'soft'` is legal
    *  input. Present only on the six sliders where a word genuinely names a design intent; a bare
    *  quantity like `disabledMin` has none, deliberately. Emitted from `SLIDER_STOPS` rather than
@@ -70,14 +76,14 @@ export const leverManifest: Lever[] = [
     description: 'Hue the grays lean toward (a small chroma tints them to the brand for cohesion).' },
   { key: 'neutral.chroma', group: 'color', label: 'Neutral chroma', control: 'slider', required: true, min: 0, max: 0.03, step: 0.001,
     description: 'Peak neutral chroma (~0.004–0.02); tapers to near-0 at the ramp ends. 0 = pure gray.' },
-  { key: 'neutral.anchor', group: 'color', label: 'Pin a neutral', control: 'color', advanced: true,
+  { key: 'neutral.anchor', group: 'color', label: 'Pin a neutral', control: 'color',
     description: 'Optional. A pre-defined brand gray, pinned verbatim at its lightness step; the ramp is built around it (hue/chroma from the anchor) instead of the cast. Set for a client that ships their own neutral; omit to derive from hue + chroma.' },
   { key: 'brandColors', group: 'color', label: 'Additional brand colors', control: 'list', itemLabel: 'brand color (name + OKLCH)',
     description: 'Secondary / tertiary / accents — any number; each becomes its own ramp and can drive actions.' },
   { key: 'actionPalette', group: 'color', label: 'Action palette', control: 'palette-ref', default: 'primary',
     description: 'Which palette drives interactive/action color. Defaults to primary; point at an accent when the hero color is a poor CTA.' },
-  { key: 'linkPalette', group: 'color', label: 'Link palette', control: 'palette-ref', default: 'primary',
-    description: 'Which palette drives link color. Defaults to following the action palette; point at primary, neutral, or an accent to give links their own color. The contrast floor holds either way. A link palette that is not color-distinct from body text (e.g. neutral) prompts a warning to underline links for WCAG 1.4.1 — pair it with an underlined link role.' },
+  { key: 'linkPalette', group: 'color', label: 'Link palette', control: 'palette-ref',
+    description: 'Which palette drives link color. Defaults to following the action color, including a roleColors.action override; point at primary, neutral, or an accent to give links their own color. The contrast floor holds either way. A link palette that is not color-distinct from body text (e.g. neutral) prompts a warning to underline links for WCAG 1.4.1 — pair it with an underlined link role.' },
   { key: 'status.success', group: 'color', label: 'Success color', control: 'color', advanced: true,
     description: 'Optional measured override; omit to let the engine synthesize from a canonical hue.' },
   { key: 'status.warning', group: 'color', label: 'Warning color', control: 'color', advanced: true,
@@ -87,21 +93,21 @@ export const leverManifest: Lever[] = [
   { key: 'status.info', group: 'color', label: 'Info color', control: 'color', advanced: true,
     description: 'Optional measured override; omit to synthesize from the canonical blue hue.' },
   { key: 'surfaces', group: 'color', label: 'Page surfaces', control: 'object', advanced: true,
-    description: 'Non-default page surface per mode (e.g. a warm off-white). The contrast floor moves with it.' },
+    description: 'Non-default page and inverse surfaces per mode. The contrast floor follows the second tier.' },
   { key: 'strictInteractiveContrast', group: 'color', label: 'Strict interactive contrast', control: 'toggle', advanced: true, default: false,
     description: 'Opt-in (off by default). The inverse filled button steps its fill per state; the primary and destructive labels’ colored ink clears AA at rest but dips on the transient hover/pressed steps. On swaps both inverse labels to the neutral high-contrast ink so every state clears AA — guaranteed legibility over brand color.' },
   { key: 'linkStateRungs', group: 'color', label: 'Link states', control: 'object', advanced: true,
-    description: 'Optional. Set how far each engaged link state — hover, pressed, visited — steps from the resting link, one state at a time, as a count of ramp steps. An unset state keeps the tuned walk; the resting link and its focus follow the action palette. Each step is held to the link’s contrast floor, so it respaces a state without dropping the link below 4.5:1.' },
+    description: 'Optional. Set how far each engaged link state — hover, pressed, visited — steps from the resting link, one state at a time, as a count of ramp steps. An unset state keeps the tuned walk; the resting link and its focus follow the link palette. Each step is held to the link’s contrast floor, so it respaces a state without dropping the link below 4.5:1.' },
 
   // ---- FORM ----
-  { key: 'radiusScale', group: 'form', label: 'Corner softness', control: 'slider', default: 1, min: 0, max: 2, step: 0.5,
-    description: '0 = sharp, 1 = default, 2 = soft. Scales the radius ramp.' },
+  { key: 'radiusScale', group: 'form', label: 'Radius softness', control: 'slider', default: 1, min: 0, max: 2, step: 0.5,
+    description: 'How round every radius size is, from sharp (0) to round (2). The pill sizes and the 1px radius stay fixed.' },
   { key: 'density', group: 'form', label: 'Density', control: 'enum', default: 'comfortable',
     options: enumOpts(['comfortable', 'Comfortable'], ['compact', 'Compact'], ['spacious', 'Spacious']),
-    description: 'Sets control heights, and moves each component’s padding and gaps one step on the spacing scale. The name stays stable; the metrics shift. Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.' },
+    description: 'Sets control heights, and moves each component’s padding and gaps one step on the spacing scale. Token names stay the same; their values change. Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.' },
   { key: 'controlShape', group: 'form', label: 'Control shape', control: 'enum', default: 'rounded',
     options: enumOpts(['boxed', 'Boxed'], ['hairline', 'Hairline'], ['rounded', 'Rounded'], ['pill', 'Pill']),
-    description: 'Corner shape for pill-able controls like buttons. Boxed is sharp (0px); hairline is a fixed 1px edge; rounded follows corner softness; pill is a full height ÷ 2, whatever the softness.' },
+    description: 'The corner shape of buttons and other controls that can round fully. Boxed is sharp (0px). Hairline is a 1px corner. Rounded follows radius softness. Pill rounds the ends fully, whatever the softness.' },
   // The button levers (#1667). Labels and option labels are the owner's exact words.
   { key: 'buttonIcons', group: 'form', label: 'Button icons', control: 'enum', default: 'attached',
     options: enumOpts(['attached', 'Attached to label'], ['edges', 'Locked to edges']),
@@ -112,65 +118,66 @@ export const leverManifest: Lever[] = [
   // #1752 — label and option labels are the owner's exact words (2026-09-28). Buttons only.
   { key: 'buttonLabelWeight', group: 'form', label: 'Button label weight', control: 'enum', default: 'emphasis',
     options: enumOpts(['default', 'Default'], ['emphasis', 'Emphasis']),
-    description: 'The weight role a button label binds: Emphasis (600 at the stock weight roles) or Default (400). Default adds that weight to the label styles. Tags and badges keep Emphasis.' },
+    description: 'The weight of a button label: Emphasis (600 by default) or Default (400). Default adds that weight to the label styles. Tags and badges keep Emphasis.' },
   { key: 'buttonMinWidthMultiplier', group: 'form', label: 'Button minimum width', control: 'slider', default: 2.25, min: 1, max: 4, step: 0.25, unit: '× height',
     description: 'A button is at least its height times this wide, rounded up to the 8px grid, so a short label never makes a stubby button.' },
-  { key: 'baseMd', group: 'form', label: 'Radius anchor', control: 'slider', advanced: true, default: 4, min: 2, max: 12, step: 1, unit: 'px',
-    description: 'The radius.md value (px) at scale 1.' },
+  { key: 'baseMd', group: 'form', label: 'Base radius', control: 'slider', advanced: true, default: 4, min: 2, max: 12, step: 1, unit: 'px',
+    description: 'The medium radius at standard softness. Every other radius size is a multiple of it.' },
   { key: 'radiusHairline', group: 'form', label: 'Hairline radius', control: 'toggle', advanced: true, default: false,
-    description: 'Opt-in (off by default). On adds a fixed 1px radius.hairline for near-sharp brands — the scaled ramp only reaches even values, so this is the way to a 1px corner.' },
+    description: 'Retired. radius.hairline, a fixed 1px corner, is always emitted, so this setting changes nothing.',
+    deprecated: 'Always on since #2053: radius.hairline is emitted for every brand. Accepted so existing brand files still load.' },
 
   // ---- TYPE ----
   { key: 'typography.typeScale', group: 'type', label: 'Type scale', control: 'enum', default: 'default',
     options: enumOpts(['compact', 'Compact'], ['default', 'Default'], ['expressive', 'Expressive']),
-    description: 'Shifts heading sizes (display, title and eyebrow) up/down the ladder; body/label/caption/code stay put.' },
+    description: 'Moves every heading size one step up or down the size ladder. Body, label, caption and code stay put.' },
   { key: 'typography.families', group: 'type', label: 'Font families', control: 'object',
-    description: 'The face each text category draws from (+ a variable-font flag). A single name auto-pads a system fallback stack; `code: null` opts out of code styles.' },
-  { key: 'typography.weightRoles', group: 'type', label: 'Weight roles → numeric', control: 'object', advanced: true,
-    description: 'Map subtle/default/emphasis/strong/max to the brand’s numeric weights (defaults 300/400/600/700/900).' },
-  { key: 'typography.displayCeiling', group: 'type', label: 'Display size ceiling', control: 'enum', advanced: true, default: '3xl',
+    description: 'The font family each text type uses, and whether it is a variable font. A single family name gets a system fallback stack added. Setting code to none ships no code styles.' },
+  { key: 'typography.weightRoles', group: 'type', label: 'Weights', control: 'object', advanced: true,
+    description: 'The weight number behind each name. The names read in order, from subtle to max. The defaults are 300, 400, 600, 700 and 900.' },
+  { key: 'typography.displayCeiling', group: 'type', label: 'Largest display size', control: 'enum', advanced: true, default: '3xl',
     options: enumOpts(['sm', 'display.sm (1 rung)'], ['md', 'display.md (2 rungs)'], ['lg', 'display.lg (3 rungs)'],
       ['xl', 'display.xl (4 rungs)'], ['2xl', 'display.2xl (5 rungs)'], ['3xl', 'display.3xl (all 6)']),
-    description: 'Highest display rung the brand ships; rungs above it are omitted. Named by rung, not px, so the type scale preset cannot change how many rungs survive.' },
-  { key: 'typography.titleFloor', group: 'type', label: 'Title floor', control: 'enum', advanced: true, default: 18,
+    description: 'The largest display size the brand makes. Display sizes above it are left out. It names a step, not a pixel value, so changing the type scale never changes how many display sizes are kept.' },
+  { key: 'typography.titleFloor', group: 'type', label: 'Smallest title size', control: 'enum', advanced: true, default: 18,
     options: enumOpts([18, '18px (title.xs)'], [16, '16px (adds title.2xs)']),
-    description: 'Whether the title tier includes title.2xs — a 16px brand-font heading that overlaps body.md. Not available with the compact type scale, which already places a title at 16px.' },
-  { key: 'typography.captionFloor', group: 'type', label: 'Caption floor', control: 'enum', advanced: true, default: 11,
+    description: '16px adds a title at body size. The Compact scale already places a title at 16px, so the engine refuses 16px with it.' },
+  { key: 'typography.captionFloor', group: 'type', label: 'Smallest caption size', control: 'enum', advanced: true, default: 11,
     options: enumOpts([11, '11px (caption.md)'], [10, '10px (adds caption.sm)']),
-    description: 'Whether the caption tier includes caption.sm — a 10px fine-print rung (10 is already a step on the size ladder). Default floors caption at 11px; opt in for dense legal, footer or product-attribute fine print. Off by default, so no existing brand moves.' },
-  { key: 'typography.sizeFloor', group: 'type', label: 'Type size floor', control: 'enum', advanced: true, default: 10,
+    description: '10px adds a fine-print caption, for dense legal, footer or product details. The default smallest caption is 11px.' },
+  { key: 'typography.sizeFloor', group: 'type', label: 'Smallest type size', control: 'enum', advanced: true, default: 10,
     options: enumOpts([10, '10px (default floor)'], [8, '8px (adds caption.xs — escape hatch)']),
-    description: 'Opt-in sub-10px floor. 8 pushes the size ladder to an 8px floor and adds caption.xs. 8px sits below the size range the system contrast ratios were reasoned about, so the engine flags it in notes as a deliberate escape hatch — ship it only for genuine fine print that has an accessible alternative. Off by default, so no existing brand moves.' },
-  { key: 'typography.responsive', group: 'type', label: 'Responsive type', control: 'object', advanced: true,
-    description: 'Fluid heading sizing on/off + the min/max viewport pair driving clamp() and the Figma modes.' },
-  { key: 'typography.weights', group: 'type', label: 'Per-role weight sets', control: 'object', advanced: true,
-    description: 'Which weights each type role ships (weight is an axis on every role; adding one is additive). Every role keeps at least one. Label keeps emphasis, and body and caption keep default: the button and form controls use them.' },
-  { key: 'typography.links', group: 'type', label: 'Underlined link roles', control: 'list', advanced: true, itemLabel: 'type role',
-    description: 'Which roles get an underlined .*-link variant. Default body + caption.' },
-  { key: 'typography.italics', group: 'type', label: 'Italic roles', control: 'list', advanced: true, itemLabel: 'type role',
-    description: 'Which roles ship an .*-italic variant per weight (fontStyle:italic). Default none — italics are opt-in.' },
-  { key: 'typography.italicDefault', group: 'type', label: 'Italic-default roles', control: 'list', advanced: true, itemLabel: 'type role',
-    description: 'Which roles set italic as their only cut: the bare styles are italic (fontStyle:italic; 500 → Medium Italic), with no upright variant. Default none. A role here cannot also be in Italic roles.' },
+    description: '8px adds the smallest caption and moves the smallest type size down to 8px. That is below the sizes the contrast checks were set for, so the engine notes it: use it only for fine print that has an accessible alternative.' },
+  { key: 'typography.responsive', group: 'type', label: 'Headings scale between mobile and desktop', control: 'object', advanced: true,
+    description: 'Display, title and eyebrow sizes shrink smoothly from desktop to mobile between these two screen widths. Body text keeps one size.' },
+  { key: 'typography.weights', group: 'type', label: 'Weights each text type ships', control: 'object', advanced: true,
+    description: 'Which weights each text type ships. Each weight is a text style at every size. Every text type keeps at least one; label keeps Emphasis, and body and caption keep Default, because buttons and form controls use them.' },
+  { key: 'typography.links', group: 'type', label: 'Underlined link styles', control: 'list', advanced: true, itemLabel: 'type role',
+    description: 'Which text types get an underlined link style. The default is body and caption.' },
+  { key: 'typography.italics', group: 'type', label: 'Italic styles', control: 'list', advanced: true, itemLabel: 'type role',
+    description: 'Which text types ship an italic style for each weight. The default is none.' },
+  { key: 'typography.italicDefault', group: 'type', label: 'Italic-only text types', control: 'list', advanced: true, itemLabel: 'type role',
+    description: 'Which text types are italic only: every style is italic, with no upright style. The default is none. A text type here can’t also be in Italic styles.' },
 
   // ---- MOTION ----
   { key: 'motionPersonality.tempo', group: 'motion', label: 'Motion tempo', control: 'enum', default: 'standard',
     options: enumOpts(['snappy', 'Snappy'], ['standard', 'Standard'], ['relaxed', 'Relaxed']),
-    description: 'Scales the duration ramp (snappy ×0.8, standard ×1.0, relaxed ×1.3). Reduce-motion is derived.' },
+    description: 'How fast every duration runs: Snappy is 0.8×, Standard 1×, Relaxed 1.3×. Reduced motion is set for you.' },
   // ---- ELEVATION ----
   { key: 'shadow.softness', group: 'elevation', label: 'Shadow softness', control: 'slider', default: 1, min: 0, max: 2, step: 0.1,
     description: 'Blur:offset dial. Low → crisp/product; high → soft/marketing.' },
   { key: 'shadow.tint', group: 'elevation', label: 'Shadow tint', control: 'object', advanced: true,
-    description: 'Hue-shift the shadow base off pure black (hue + amount). Defaults to a subtle neutral tint.' },
+    description: 'How far the shadow color moves off pure black, and toward which hue. Amount 0 is pure black; the default is a slight neutral tint.' },
 
   // ---- LAYOUT ----
   { key: 'layout.breakpoints', group: 'layout', label: 'Breakpoints', control: 'list', advanced: true, itemLabel: 'min-width (px)',
-    description: 'Min-width floors (px), ascending. Names auto sm/md/lg/xl/2xl. Default [0,768,1024,1440,1920].' },
+    description: 'The screen width where each layout starts, smallest first. The first is always 0px. Names follow the count: up to five start at sm, six run xs to 2xl, and seven run xs to 3xl. The default is 0, 768, 1024, 1440 and 1920.' },
   { key: 'layout.columns', group: 'layout', label: 'Grid columns', control: 'slider', advanced: true, default: 12, min: 4, max: 24, step: 1,
-    description: 'Base column count for the design grid (16/24 for dense-data brands).' },
-  { key: 'layout.containerMax', group: 'layout', label: 'Container max', control: 'slider', advanced: true, default: 1440, min: 960, max: 1920, step: 40, unit: 'px',
-    description: 'Content max-width cap; layout is fluid below it.' },
+    description: 'How many columns the grid has on the widest breakpoints. Smaller breakpoints step up to it: 4, then 8, then this count.' },
+  { key: 'layout.containerMax', group: 'layout', label: 'Maximum width', control: 'slider', advanced: true, default: 1440, min: 960, max: 1920, step: 40, unit: 'px',
+    description: 'The widest content gets. Below this width, content fills the screen.' },
   { key: 'layout.containerNarrow', group: 'layout', label: 'Content container', control: 'slider', advanced: true, default: 720, min: 480, max: 960, step: 20, unit: 'px',
-    description: 'The reading-measure content column (~65–75ch) — narrower than the full container.' },
+    description: 'A narrower width for long text, so lines stay a readable length.' },
 
   // ---- ADVANCED (accessibility + opt-in) ----
   { key: 'iconContrast', group: 'advanced', label: 'Icon contrast floor', control: 'enum', default: 'text',

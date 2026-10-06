@@ -23,7 +23,8 @@
  * means Button.
  */
 import type { BrandInput } from '@prism3/engine/theme';
-import type { AgentLinkState, AgentResult, AgentProgress } from './agent-protocol';
+import type { AgentLinkState, AgentResult, AgentProgress, AgentCmd } from './agent-protocol';
+import type { WriteCmd } from './run-guard';
 
 /** Messages the UI iframe sends TO the main thread. Wrapped in `{ pluginMessage }` on the wire. */
 export type UiToMain =
@@ -75,6 +76,14 @@ export type UiToMain =
    *  per role family on `↳ Semantic tokens`, from the file's own variables. Its own action for the #652 reason.
    *  Updates tables already drawn in place; never creates a page or moves a cell set. */
   | { type: 'style-guide'; options?: StyleGuideOptions }
+  /** Ask for what the Build style guides page shows (UI redesign S11.2): the file's collections and the variables in
+   *  each, its text styles, the tables a run would draw, and whether Set up file has run. Answered with one
+   *  `style-guide-catalog`. Reads and writes nothing else, so it is never refused by the run guard. */
+  | { type: 'style-guide-catalog-request' }
+  /** Stop the running style guide AFTER THE TABLE IT IS DRAWING (owner decision P7, 2026-10-05). The tables already
+   *  drawn stay. Nothing to cancel is not an error: the message is dropped. Only the panel posts it; an agent's run
+   *  can be stopped this way too, since the owner's panel is the one place a person watches the file. */
+  | { type: 'style-guide-cancel' }
   /** OPT-IN PRUNE (#1521) — remove the styles/variables/collections a config change dropped.
    *
    *  A SEPARATE ACTION FROM `apply-theme`, never a flag on it, for the #479 / #1152 reason: a theme apply
@@ -100,20 +109,32 @@ export type UiToMain =
    *  persists the size to `clientStorage`. Splitting it this way keeps the drag smooth without
    *  writing to storage on every pointer-move. The main thread clamps — the UI does not decide
    *  the minimum. */
-  | { type: 'resize-ui'; width: number; height: number; commit: boolean };
+  | { type: 'resize-ui'; width: number; height: number; commit: boolean }
+  /** The person chose a chrome theme in the Theme menu (the owner's top-bar decision, 2026-10-05): Match Figma
+   *  (`figma`), Light or Dark. The main thread keeps it in `clientStorage`, per person, and sends it back on
+   *  `ui-ready` as `theme-pref`. */
+  | { type: 'set-theme-pref'; pref: 'figma' | 'light' | 'dark' };
 
 /** A style-guide specimen (#259) — the `type` axis of `_style-guide-swatches` a table row instances. */
 export type SwatchType = 'default' | 'text' | 'icon' | 'border' | 'transparency';
 /** How a style-guide value cell prints a color. */
 export type ValueFormat = 'hex' | 'rgba' | 'hsl' | 'hsb';
+/** The spacing specimen's style for the WHOLE run (owner decision, 2026-09-29: a stylistic choice, never chosen by
+ *  role): `filled` a filled bar at the value's width (the default, the first member of the owner's cell set), `line` the
+ *  bracket. `auto` is kept for the agent link and means the default, `filled`; it never varies by row. */
+export type DimensionDisplay = 'auto' | 'filled' | 'line';
+/** A font-variable row's specimen (#259 phase 2): "Abc 123" with the one named property bound to the variable;
+ *  `generic` binds none. `auto` binds the property the variable is for. */
+export type FontDisplay = 'auto' | 'generic' | 'family' | 'size' | 'weight' | 'letterSpacing' | 'lineHeight';
 
 /** The style guide's options (#259) — the panel's Customize fields and the agent command's args. Every one
- *  has a default, so `{}` documents every color collection. Here, not in `style-guide.ts`, so this file and
+ *  has a default, so `{}` draws every table this phase draws. Here, not in `style-guide.ts`, so this file and
  *  `agent-protocol.ts` stay context-neutral: that module imports the engine's color math at runtime. */
 export interface StyleGuideOptions {
   /** Collection names to document, in any case; absent means every collection. */
   collections?: string[];
-  /** Token types; absent means every type this phase covers (`color`). */
+  /** Token types; absent means every type this phase covers (`PHASE_TYPES` in `style-guide.ts`: color,
+   *  dimension, the five font-variable kinds and `typography`, the text styles). */
   types?: string[];
   valueFormat?: ValueFormat;
   /** Table header: `dark` (default) or `light`. */
@@ -122,9 +143,75 @@ export interface StyleGuideOptions {
   aliases?: boolean;
   /** Show the description column. Default on. */
   description?: boolean;
-  /** Override the specimen chosen from each token's role. `auto` (default) chooses per row. */
+  /** Override the COLOR specimen chosen from each token's role. `auto` (default) chooses per row. */
   display?: 'auto' | SwatchType;
+  /** Draw only these tables (#1778), each named by its title as drawn ("Primary — nbds") or its key, in any
+   *  case; absent means every table. A name that matches no table is reported by name. A filtered run covers
+   *  only the tables it draws: no other table is stale, replaced or deleted by it. */
+  tables?: string[];
+  /** Args an older agent-link caller sent that no longer do anything (owner decision 20 removed `pixels`): accepted,
+   *  ignored, and each said in the result's notes. Set by the agent link, never by the panel. */
+  retired?: 'pixels'[];
+  /** Print lengths in REM as well, at a 16px base. Default on. */
+  rem?: boolean;
+  /** The spacing specimen for every dimension row: `filled` (default) or `line`. `auto` means `filled`. */
+  dimensionDisplay?: DimensionDisplay;
+  /** The font-variable specimen; `auto` (default) binds the property each variable is for. */
+  fontDisplay?: FontDisplay;
+  /** Add a paragraph-spacing column to the text-style table. Default off. */
+  paragraphSpacing?: boolean;
+  /** Add a text-decoration column to the text-style table. Default off. */
+  textDecoration?: boolean;
+  /** Add a leading "Name" column on every table: a readable name per row ("Text Primary") a designer can edit, kept
+   *  on rerun (owner decision 15). Default off (proposed). */
+  titleCell?: boolean;
 }
+
+/** The four kinds of table the Build style guides page groups by (owner decision H8): color; spacing and size (every
+ *  `dimension` table, radius included); the five font-variable kinds; and the text styles. */
+export type StyleGuideKind = 'color' | 'dimension' | 'font' | 'text';
+/** One table a run with no filter would draw, in the order it draws them. */
+export interface StyleGuideCatalogTable {
+  /** The table's key (`<type>|<collection id>|<group path>`): what the `tables` option matches besides the title. */
+  key: string;
+  title: string;
+  kind: StyleGuideKind;
+  /** The page it is drawn on, without the taxonomy's leading "↳ ": "Primitive tokens", "Semantic tokens". */
+  page: string;
+  rows: number;
+}
+/** One variable, or one text style, as the page's tree lists it. */
+export interface StyleGuideCatalogItem {
+  /** The full name, slash-separated, as Figma stores it. */
+  name: string;
+  /** The index of the table it is drawn in, in `tables`; -1 when no phase draws it yet (owner decision P5: shown, not
+   *  pickable). */
+  table: number;
+  /** Its value in the collection's default mode, aliases followed: a hex for a color, px for a length, the number for
+   *  a weight, the string for a family. Empty for a text style. */
+  value: string;
+}
+/** A variable collection, or the file's text styles as one more entry (`textStyles: true`). */
+export interface StyleGuideCatalogCollection {
+  id: string;
+  name: string;
+  modes: string[];
+  items: StyleGuideCatalogItem[];
+  textStyles?: true;
+}
+/** What the Build style guides page shows before a run (S11.2). */
+export interface StyleGuideCatalog {
+  /** Whether Set up file has run: the swatch and text cell sets exist, and so do both token pages. Without them every
+   *  table would be skipped, so the page turns Draw off (owner decision P8). */
+  setUp: boolean;
+  collections: StyleGuideCatalogCollection[];
+  tables: StyleGuideCatalogTable[];
+  /** The planner's notes for an unfiltered run, the later-phase count among them. */
+  notes: string[];
+}
+/** Where one table of a run stands (owner decision P1, variant 1). `failed` carries its reason: the run goes on past
+ *  it (P6). */
+export type StyleGuideTableStatus = 'waiting' | 'drawing' | 'done' | 'failed';
 
 /** Messages the main thread sends TO the UI iframe. */
 export type MainToUi =
@@ -149,7 +236,13 @@ export type MainToUi =
    *
    *  `headline` obeys the same ≤24-char pill budget (`componentHeadline`, gated in
    *  `test-apply-summary.ts`); `summary` carries the counts and the misses behind it. */
-  | { type: 'component-result'; ok: boolean; headline: string; summary: string }
+  | { type: 'component-result'; ok: boolean; headline: string; summary: string;
+    /** Did the build run to the end (UI redesign S8.2, owner decision C1)? `true` when the set was built, its misses
+     *  (if any) in the summary; `false` when it stopped before building the set: an unknown or not-standalone def, or a
+     *  throw. The Components page tells "Built with problems" from "Build failed" by this, never by the headline's
+     *  words. REQUIRED: the plugin and the panel ship in one bundle, so a post without it is a type error here,
+     *  not an older host to accommodate. */
+    completed: boolean }
   /** Result of a `file-setup` scaffold (#1554) — the same `{ok, headline, summary}` shape as
    *  `apply-result` / `component-result`, a DISTINCT variant for the same one-kind-per-fact reason: "did
    *  the page skeleton get laid" is separately true and separately actionable from a theme or component
@@ -158,7 +251,20 @@ export type MainToUi =
   | { type: 'file-setup-result'; ok: boolean; headline: string; summary: string }
   /** Result of a `style-guide` run (#259) — the same `{ok, headline, summary}` shape, its own kind and slot.
    *  `summary` names the tables created and updated, the tokens added, removed or changed, and every skip. */
-  | { type: 'style-guide-result'; ok: boolean; headline: string; summary: string }
+  | { type: 'style-guide-result'; ok: boolean; headline: string; summary: string;
+    /** Set when a `style-guide-cancel` stopped the run (S11.2): `done` of the run's `total` tables were reached. */
+    stopped?: { done: number; total: number } }
+  /** The answer to `style-guide-catalog-request` (S11.2). `error` is set, and the catalog empty, when the file could
+   *  not be read: the page says so rather than showing an empty file as if it had nothing in it. */
+  | { type: 'style-guide-catalog'; catalog: StyleGuideCatalog; error?: string }
+  /** A PANEL's style-guide run is starting (S11.2): the tables it will draw, in order, every one `waiting`. Posted once,
+   *  before the first `style-guide-table`. Not posted for an agent's run: the agent link's sink would count each
+   *  of these as a verdict, and Activity already shows an agent's run by its `agent-progress` count (owner decision
+   *  Q19). */
+  | { type: 'style-guide-tables'; tables: { key: string; title: string; page: string }[] }
+  /** One table of the panel's run moved (S11.2): `drawing` before it starts, then `done`, or `failed` with the reason. A
+   *  failed table does not stop the run (owner decision P6). Indexes `style-guide-tables`' list. */
+  | { type: 'style-guide-table'; index: number; status: Exclude<StyleGuideTableStatus, 'waiting'>; reason?: string }
   /** Result of a `prune` message (#1521) — a preview when `applied` is false, the outcome of the delete
    *  when it is true, told apart by that flag rather than by parsing `summary`. `count` is the number of
    *  items the preview WOULD remove, or the number the apply DID remove. `summary` is the review text
@@ -169,11 +275,18 @@ export type MainToUi =
       /** Set on an AGENT's preview (the agent link): show it as a pill, never open the confirm dialog. The
        *  dialog's Confirm would prune against the panel's own knobs, not the input the agent previewed. */
       pillOnly?: boolean }
+  /** A write the main thread DECLINED because a run of the same operation was already going (#1957,
+   *  `run-guard.ts`). Not a verdict: the file is untouched and the running write is unaffected, so this
+   *  must not land in the operation's verdict slot or settle its run, and it is its own kind for that
+   *  reason. `agent` says whose request was declined: an agent's (the agent also gets `busy` in its own
+   *  command result), or the panel's own. The Activity drawer adds it to the row's earlier results as
+   *  "Refused" (the owner's call). */
+  | { type: 'refused'; code: 'busy'; cmd: WriteCmd; agent: boolean; message: string }
   /** A component build is UNDERWAY (#684) — posted at every chunk boundary, many times per build.
    *
    *  THE ONLY NON-TERMINAL MESSAGE ON THIS BRIDGE, and the reason it had to exist: `build-components`
    *  used to post exactly one message, at the end. On the first live 648-member build that meant the pill
-   *  read a frozen `⋯ Building…` for the whole run, then the file stayed unresponsive for **1 min 10 s**
+   *  read a frozen `Building…` for the whole run, then the file stayed unresponsive for **1 min 10 s**
    *  after it said done. Nothing could be posted mid-run because nothing yielded; the executor now chunks
    *  (see `write-components.ts`), and this is what a chunk boundary says.
    *
@@ -190,6 +303,12 @@ export type MainToUi =
    *  CALIBRATE the chunk size: the shim has no event loop, so that number cannot be gated and has to be
    *  observed. See `CHUNK` in `write-components.ts`. */
   | { type: 'component-progress'; phase: 'build' | 'wire' | 'retry'; done: number; total: number; chunkMs: number }
+  /** A style-guide run is UNDERWAY (#1778) — posted once before the first table (`done: 0`) and after each
+   *  table, so the pending pill reads "Drawing table 7 of 22…" while the executor yields to the host between
+   *  tables. Its own kind for the `component-progress` reason: a reading is not a verdict, and it must not
+   *  land in either action's result slot. `tableMs` is what the last table cost, the live run's calibration
+   *  data for the executor's yield spacing (`CELLS_PER_YIELD` in `style-guide.ts`); 0 on the first reading. */
+  | { type: 'style-guide-progress'; done: number; total: number; tableMs: number }
   /** Boot read-back (#109): whether an existing Prism3 theme in the file passes the contract, plus a
    *  human summary. Informational — the actual knob-rehydration is `restore-input` below.
    *
@@ -201,7 +320,11 @@ export type MainToUi =
    *  the variables) and nowhere else, so it travels rather than being inferred from `summary`'s
    *  prose downstream — which would make the wording load-bearing, the same trap the
    *  headline/summary split above exists to avoid. */
-  | { type: 'seed-info'; ok: boolean; present: boolean; summary: string }
+  /*  `failed` is how many contract checks failed (0 when the contract holds, the file is unthemed, or the
+   *  read threw). It travels for the Activity drawer's short verdict ("2 mismatches", owner decision #3 on
+   *  #1956), for the same reason `present` does: a count read out of `summary`'s prose would make the
+   *  wording load-bearing. */
+  | { type: 'seed-info'; ok: boolean; present: boolean; summary: string; failed: number }
   /** Boot knob-rehydration (#131): the `BrandInput` persisted by the last apply, read back from the
    *  file's shared-data. The UI loads it wholesale so it opens on the persisted brand, not defaults.
    *  Sent only when a trusted blob exists (genuine absence → not sent → UI keeps defaults; a
@@ -250,12 +373,22 @@ export type MainToUi =
    *  after every command, so the panel's control always shows what the link is doing. The shared UI body
    *  never reads it — the agent-link control (`agent-link-ui.ts`) is its only consumer. */
   | { type: 'agent-link-state'; state: AgentLinkState }
+  /** The chrome theme this person last chose (`set-theme-pref`), read from `clientStorage` on `ui-ready`. Not sent
+   *  when nothing was kept: the UI starts on Match Figma. Read by the plugin's UI entry (`ui/entry.ts`), never by the
+   *  shared UI body's host messages. */
+  | { type: 'theme-pref'; pref: 'figma' | 'light' | 'dark' }
   /** The result of an `agent-command` — the protocol's own envelope, relayed to the bridge unchanged. */
   | { type: 'agent-result'; result: AgentResult }
   /** A build's progress reading while an agent command runs, streamed to the bridge (#684's reading). */
   | { type: 'agent-progress'; id: string; progress: AgentProgress }
   /** A console line printed while an agent command runs, streamed to the bridge. */
-  | { type: 'agent-log'; id: string; line: string };
+  | { type: 'agent-log'; id: string; line: string }
+  /** An agent command has started, and has finished (UI redesign S11): what lets the panel's Activity
+   *  drawer show it running and mark its result as the agent's. Sent for every valid command, `status`
+   *  included; the panel decides which have an operation to show. `finished` follows the command's
+   *  terminal verdict, and is sent even when its handler threw and posted none. */
+  | { type: 'agent-started'; id: string; cmd: AgentCmd }
+  | { type: 'agent-finished'; id: string; cmd: AgentCmd };
 
 /** Narrow a discriminated union by its `type` tag — the payload a handler actually receives. */
 export type OfType<U extends { type: string }, T extends U['type']> = Extract<U, { type: T }>;

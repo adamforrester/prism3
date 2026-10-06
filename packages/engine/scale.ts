@@ -494,9 +494,20 @@ export const controlSizes = (density: Density): ControlSizeStep[] =>
 
 // Radius base ramp (px at scale=1) — a small bounded, genuinely-semantic set, so
 // t-shirt naming holds (both NB and Prism2 name it this way).
+//
+// THE CONTAINER RUNGS `xl` / `2xl` / `3xl` (#1852). `none`…`lg` stop at 6px, which is a control/field
+// corner; a card, panel, sheet or dialog wanting 8–16px had to reach for a `core.dimension.*` primitive,
+// which `radiusScale` never touches, so its corner stopped following the brand. Three rungs at
+// `baseMd` × 2 / × 3 / × 4 (8 / 12 / 16px at the default) — owner decision, 2026-09-30 — so the ladder
+// reproduces Prism 2's whole container ramp, 2/4/6/8/12/16 (the 0.5/1/1.5/2/3/4 × 4px factors), and keeps
+// the t-shirt run unbroken. They scale with the lever exactly as the rungs below them do (same
+// `snap2(baseMd × factor × scale)`); the largest legal input (`baseMd` 12 × 4 × scale 2 = 96px) stays under
+// the 128px `round` pill. They are container corners only: the selection-control corner stays clamped from
+// `sm` (`controlRadius`, #1015), so nothing here reaches a 12–24px box.
 const RADIUS_LADDER: { name: string; factor: number }[] = [
   { name: 'none', factor: 0 }, { name: 'sm', factor: 0.5 },
   { name: 'md', factor: 1 }, { name: 'lg', factor: 1.5 },
+  { name: 'xl', factor: 2 }, { name: '2xl', factor: 3 }, { name: '3xl', factor: 4 },
 ];
 const snap2 = (v: number) => Math.round(v / 2) * 2; // radius rides a 2px sub-grid
 
@@ -514,23 +525,23 @@ const snap2 = (v: number) => Math.round(v / 2) * 2; // radius rides a 2px sub-gr
  *  dimension grid on purpose (it emits as a literal, `tree.ts`), because a sentinel meaning "always a
  *  pill" is not a real ladder step to be aliased.
  *
- *  THE `hairline` OPT-IN SENTINEL (#1362, owner Option A). The scaled ladder rides an even 2px sub-grid
+ *  THE `hairline` SENTINEL (#1362, owner Option A; ALWAYS present since #2053). The scaled ladder rides an even 2px sub-grid
  *  (`snap2` → `Math.round(v / 2) * 2`), so 1px / 3px / 5px are unreachable from ANY `radiusScale` /
  *  `baseMd` — every non-`none` rung is even by construction. A brand can need 1px (New Balance's
  *  redesign uses it as its dominant corner, a deliberate near-sharp look, not a rounding artifact). So
- *  `hairline` is a FIXED 1px rung, unscaled and OPT-IN: it is pushed the same way the pills are — AFTER
- *  the scaled-ladder computation and its monotonicity guard, so it perturbs neither — but only when a
- *  brand asks for it (`radiusHairline: true` → `hairline` param). It is off by default, so every corpus
- *  brand's radii stay byte-identical. Unlike the pills it is NOT a pill (no clamp semantics) and it is
+ *  `hairline` is a FIXED 1px rung, unscaled: it is pushed the same way the pills are — AFTER the
+ *  scaled-ladder computation and its monotonicity guard, so it perturbs neither. It was opt-in until #2053
+ *  (owner, 2026-10-04): every brand now emits it, whatever `radiusHairline` says, so a control shape or a
+ *  designer can always reach a 1px corner. Unlike the pills it is NOT a pill (no clamp semantics) and it is
  *  ON the 4px dimension grid (`dimensionGrid` seeds 0/1/2), so `tree.ts` aliases it like any real rung
  *  rather than minting a literal — the sentinel mechanism is "fixed, unscaled, pushed past the ladder",
  *  not "off-grid". */
-export const radiusScale = (scale: number, baseMd = 4, pill = 128, capsule = 999, hairline = false): RadiusStep[] => {
+export const radiusScale = (scale: number, baseMd = 4, pill = 128, capsule = 999): RadiusStep[] => {
   const ramp: RadiusStep[] = RADIUS_LADDER.map(({ name, factor }) => ({
     name, px: name === 'none' ? 0 : Math.max(0, snap2(baseMd * factor * scale)),
   }));
   // Weak-monotonicity gate (L-03): radii must never DECREASE as the rung grows
-  // (none ≤ sm ≤ md ≤ lg). Equality is allowed by design — small scales snap
+  // (none ≤ sm ≤ md ≤ lg ≤ xl ≤ 2xl ≤ 3xl). Equality is allowed by design — small scales snap
   // adjacent rungs onto the same 2px sub-grid, and scale=0 collapses all to sharp
   // — but a rung smaller than its predecessor means a non-monotone (NaN/negative
   // scale, or a broken ladder edit) slipped the Number.isFinite guard upstream.
@@ -541,7 +552,7 @@ export const radiusScale = (scale: number, baseMd = 4, pill = 128, capsule = 999
   // sidestep the pills use, and the reason `hairline` (1px < lg) is legal here where the ladder forbids it.
   ramp.push({ name: 'round', px: pill, pill: true });
   ramp.push({ name: 'capsule', px: capsule, pill: true });
-  if (hairline) ramp.push({ name: 'hairline', px: 1 });
+  ramp.push({ name: 'hairline', px: 1 });
   return ramp;
 };
 

@@ -88,7 +88,7 @@
  *   FRAGMENT SHAPE — every pending fragment is one entry: its first line matches `HEADING_RE`, no second
  *                    `## ` heading, no `{{` placeholder in the heading, a plain lowercase file name. The
  *                    fold refuses a malformed fragment, so it fails here, at the PR that wrote it.
- *   FOLDED ENTRIES — every fragment that landed on HEAD's first-parent history and is no longer pending
+ *   FOLDED ENTRIES — every fragment that landed on `main`'s first-parent history (as HEAD reaches it) and is no longer pending
  *                    has an entry in the log: same title, dated the day it LANDED, and the folded entries
  *                    appear in the order they landed, newest first. This is #1104 / #1170's same-day
  *                    order with a real oracle at last: the date sort ties same-day entries and so can
@@ -99,7 +99,8 @@
  *                    A fold is recognized by CONTENT, never by a branch name. FOLD-SHAPED: the diff deletes
  *                    a pending fragment or change note AND the FOLDED ENTRIES arm passed. PURE: it also
  *                    touches nothing a fold does not write (the log, the pending directories, version.ts,
- *                    out/). Only a pure fold is exempt from carrying a fragment, so a fold PR that fixes a
+ *                    out/, and the three rename-stamp files when their whole diff is the fold filling
+ *                    `'{{ENGINE_VERSION}}'` with its version, #1816). Only a pure fold is exempt from carrying a fragment, so a fold PR that fixes a
  *                    semantic conflict carries one for the fix, and a normal PR cannot pass as a fold by
  *                    hand-moving another PR's fragment into the log. Skipped ONLY on a push run
  *                    (`GITHUB_EVENT_NAME=push`); anywhere else, a HEAD equal to its base or an
@@ -124,14 +125,21 @@
  * parsing": that would gate the fold with the fold. The date arm stays exactly as it was, a second,
  * wholly independent check on the same file.
  *
- * The arm reads HEAD's first-parent history. On a PR's merge ref (CI) that is `main` itself; on a
- * branch that merged `main` in, folds that reached it through the second parent are simply not seen —
- * less coverage, never a false failure.
+ * The arm reads HEAD's first-parent history, and trusts a landing only where that history is `main`'s
+ * own: a fragment counts when the commit that added it is on `main`'s first-parent chain (`origin/main`,
+ * then `main`; HEAD itself on a push run, which is `main`). On a PR's merge ref (CI) the first parent IS
+ * `main`, so every fragment `main` landed is seen. On a branch that merged `main` in, the fragments that
+ * arrived through that merge are simply not seen — less coverage, never a false failure. Until #1880 the
+ * code did not keep that promise: one merge of `main` carries every fragment `main` landed since the last
+ * merge as ONE add, so they shared a landing commit, the tie fell back to file-name order, and a correct
+ * fold failed locally (#1880; #1921 is the same tie, reached by a branch that merged `main` before and
+ * after a fold). What the branch loses locally, CI's merge ref still checks.
  */
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { STAMP_PATHS, onlyFilledStamps } from './rename-stamp-audit';
 
 const repo = join(import.meta.dirname, '../..');
 const FILE = 'docs/00-progress.md';
@@ -284,9 +292,25 @@ const walk = (filter: 'A' | 'D'): Map<string, { sha: string; day: string; seq: n
 };
 const added = walk('A');
 const removed = walk('D');
+// THE ORDER MAIN RECORDED (#1880). A landing on HEAD's first-parent chain is trusted only when that commit
+// is on `main`'s own first-parent chain. A branch's merge of `main` sits on HEAD's chain too, and it
+// carries every fragment `main` landed since the previous merge as ONE add: they share a landing commit,
+// the stable sort falls back to file-name order, and a correct fold reads as wrong (#1880, #1921). Those
+// fragments are left unseen here. A push run is `main` itself, so HEAD is the chain; anywhere else
+// `origin/main`, then `main`. Never GITHUB_BASE_REF: a stacked PR's base is another branch, and the
+// fold writes `main`'s order, not that branch's.
+const mainRef = process.env.GITHUB_EVENT_NAME === 'push'
+  ? 'HEAD'
+  : ['origin/main', 'main'].find((c) => git('rev-parse', '--verify', '--quiet', `${c}^{commit}`).ok);
+if (!mainRef) cannotRun('no main ref to read landing order from (tried origin/main, main).', 'Locally, `git fetch origin main`.');
+const mainChain = git('rev-list', '--first-parent', mainRef!);
+if (!mainChain.ok) cannotRun(`git rev-list over ${mainRef} failed.`, mainChain.err);
+const onMain = new Set(mainChain.out.split('\n').filter(Boolean));
 const pendingSet = new Set(pendingNow.map((f) => `${PENDING}/${f}`));
-const folded = [...added.entries()]
-  .filter(([p]) => isFragment(p.slice(PENDING.length + 1)) && !pendingSet.has(p))
+const gone = [...added.entries()].filter(([p]) => isFragment(p.slice(PENDING.length + 1)) && !pendingSet.has(p));
+const unseen = gone.filter(([, landed]) => !onMain.has(landed.sha)).length;
+const folded = gone
+  .filter(([, landed]) => onMain.has(landed.sha))
   .map(([path, landed]) => {
     // The fragment's LAST content: just before the first-parent commit that deleted it, or at HEAD when
     // only the working tree has deleted it (an uncommitted fold).
@@ -327,7 +351,10 @@ if (foldFails.length) {
   console.error('  fragment a merge resolution dropped; rerun the fold rather than hand-placing its entries. A folded');
   console.error('  heading is history: correct its body if you must, but leave the title and date as the fold wrote them.\n');
 } else {
-  console.log(`  ✓ folded entries — ${placed.length} folded fragment(s) found in the log at their landing day, newest merge first`);
+  console.log(
+    `  ✓ folded entries — ${placed.length} folded fragment(s) found in the log at their landing day, newest merge first` +
+      (unseen ? `; ${unseen} more landed off main's first-parent history (a merge of main, or this branch) and are not seen here (#1880)` : ''),
+  );
 }
 
 // NO PLACEHOLDER IN THE LOG (#1823 review). `{{ENGINE_VERSION}}` is filled in by the fold; the log never
@@ -385,7 +412,22 @@ if (foldFails.length) {
     const all = git('diff', '--name-only', '--no-renames', base, 'HEAD');
     if (!all.ok) cannotRun('git diff --name-only failed.', all.err);
     const touched = all.out.split('\n').map((x) => x.trim()).filter(Boolean);
-    const beyond = touched.filter((f) => !FOLD_WRITES.some((w) => (w.endsWith('/') ? f.startsWith(w) : f === w)));
+    // THE RENAME STAMPS (#1816). The fold also fills the quoted `'{{ENGINE_VERSION}}'` a PR wrote as a
+    // rename rule's `since`, in these three files. Such a file is a fold write only when its WHOLE diff is
+    // that substitution with HEAD's version: the base copy, substituted here, is byte-identical to HEAD's.
+    // Any other edit in the file is a change of its own and carries a fragment. The paths and the
+    // substitution are restated rather than imported from `fold-stamps.ts`, the subject (docs/34 shape 2).
+    // The comparison itself is `onlyFilledStamps` in `rename-stamp-audit.ts`, a pure function so `test.ts`
+    // can drive it with fixtures (#1842 review: "any stamp-file edit counts" survived every committed check).
+    const STAMP_FILES: string[] = Object.values(STAMP_PATHS);
+    const headVersionLine = /ENGINE_VERSION\s*=\s*'(\d+\.\d+\.\d+)'/.exec(git('show', 'HEAD:packages/engine/version.ts').out);
+    const isFilledStampFile = (f: string): boolean => {
+      if (!STAMP_FILES.includes(f) || !headVersionLine) return false;
+      const was = git('show', `${base}:${f}`);
+      const now = git('show', `HEAD:${f}`);
+      return was.ok && now.ok && onlyFilledStamps(was.out, now.out, headVersionLine[1]);
+    };
+    const beyond = touched.filter((f) => !FOLD_WRITES.some((w) => (w.endsWith('/') ? f.startsWith(w) : f === w)) && !isFilledStampFile(f));
     const foldShaped = (deletedFrags.length > 0 || deletedNotes.length > 0) && foldFails.length === 0;
     const pureFold = foldShaped && beyond.length === 0;
     const logHeads = git('diff', base, 'HEAD', '--', FILE).out.split('\n').filter((l) => l.startsWith('+') && HEADING_RE.test(l.slice(1)));

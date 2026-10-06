@@ -58,12 +58,17 @@ const aliasFigName = (aliasStr: string): string => {
  *  order, then leading-zero string keys (`"025"`,`"050"`,`"075"`) in insertion order — so `space`'s
  *  sub-steps landed after `1200` in the emitted (hence Figma-created) order. Purely reorders: maps over a
  *  COPY, never mutates the input, never touches a key's value/scope/alias. Non-numeric keys (named rungs
- *  like `radius.none`, t-shirt keys like `size.md`) `parseFloat` to NaN and compare EQUAL, so a stable
+ *  like `radius.none`, t-shirt keys like `size.md` or `radius.2xl` / `radius.3xl`) are not numbers and compare EQUAL, so a stable
  *  sort leaves every named collection in its insertion order — byte-identical output for those. */
 const byNumericKey = (keys: string[]): string[] =>
   [...keys].sort((a, b) => {
-    const na = parseFloat(a);
-    const nb = parseFloat(b);
+    // WHOLE-KEY numeric, not `parseFloat` (#1852): `parseFloat('2xl')` is 2 and `parseFloat('3xl')` is 3, so
+    // the first t-shirt keys with a leading digit sorted AHEAD of `none` as if they were numbers. A key is a
+    // magnitude only when all of it is one; every numeric key these collections carry (`0`, `025`, `1200`)
+    // still is.
+    const num = (k: string): number => (/^\d+(\.\d+)?$/.test(k) ? Number(k) : NaN);
+    const na = num(a);
+    const nb = num(b);
     const aNum = Number.isFinite(na);
     const bNum = Number.isFinite(nb);
     if (aNum && bNum) return na - nb;
@@ -104,7 +109,7 @@ export type FigmaDimsCollections = {
 // into a `dimension/…` (or `space/…`) primitive so the geometric scale is shared.
 //   dimension    → fine-grid primitives (REF TIER, hidden from publishing).
 //   space        → spacing rhythm, aliased. Scope: GAP.
-//   radius       → t-shirt ramp (none/sm/md/lg/round). Scope: CORNER_RADIUS.
+//   radius       → t-shirt ramp (none/sm/md/lg/xl/2xl/3xl + the round/capsule pills). Scope: CORNER_RADIUS.
 //   size         → component tier — one FLOAT per (t-shirt, prop) pair. `<t>/height` and
 //                  `md/min-height` alias dimension (WIDTH_HEIGHT scope). Dimensions only:
 //                  padding and gaps bind `space/*` directly (the spacing model, 2026-09-29).
@@ -408,7 +413,7 @@ export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
   // keys, already in ascending order) — NOT a hardcoded 5. A 6-breakpoint brand (aurora: xs..2xl)
   // otherwise silently drops its base `xs` grid, and a ≤3-breakpoint brand would read
   // `gridNode[mode]` undefined and crash. `LAYOUT_MODES` stays the DEFAULT breakpoint-name set
-  // (a 4-floor brief auto-names them sm..2xl); the emit follows whatever the brand generated.
+  // (a 4-floor brief auto-names them sm..xl); the emit follows whatever the brand generated.
   const modes = Object.keys(gridNode);
 
   // ONE description per grid variable, shared by every breakpoint mode (#1623 FG/F-1). A Figma variable

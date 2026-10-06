@@ -39,8 +39,8 @@ render preserved.
 
 ```bash
 npm install          # from the repo root (workspaces) or from web/
-npm run dev          # esbuild dev server on http://127.0.0.1:5173
-npm run build        # bundle to apps/studio/dist/
+npm run dev          # esbuild dev server on http://127.0.0.1:5173 (build.mjs --dev)
+npm run build        # bundle to apps/studio/dist/ (build.mjs)
 npm run typecheck    # tsc --noEmit
 ```
 
@@ -51,15 +51,22 @@ touch `node:` and would not bundle for the browser.
 
 ## Driving it headlessly — read this before writing a probe
 
-`src/main.ts` touches `document` at import time, so it cannot be loaded into a Node harness at
-any granularity. Anything that needs to observe this app's *behaviour* has to drive a browser.
+The session state — the working brand, the resolved theme, the last-good rule, the viewed mode and
+page — lives in `src/state/store.ts`, which touches no DOM and is imported directly by the Node suite
+`test-store.ts` (#896). Since #896 the only module with import-time effects is `src/entry.ts` (the
+bundle's entry); `src/main.ts` defines the pages and runs nothing while it loads. What it renders is
+still DOM, though, so anything that needs to observe this app's *behavior* on screen has to drive a
+browser.
 Two committed drivers do, and both are Playwright (an `apps/studio` devDependency since #767 —
 the engine core stays dependency-free):
 
 ```bash
-npm run test:smoke   -w @prism3/studio   # test-smoke.mjs — the CI suite: every page × mode × brand
-npm run audit:modes  -w @prism3/studio   # mode-audit.mjs — which sections respond to the mode bar
+npm run test:smoke   -w @prism3/studio   # test-smoke.mjs — the CI suite: every place × mode × brand
+npm run test:chrome  -w @prism3/studio   # test-chrome.mjs — the shell's chrome, on both hosts
 ```
+
+(`mode-audit.mjs`, which measured which legacy sections responded to the mode strip, was deleted in
+UI redesign S8.3 with the web's last legacy page; the smoke sweep holds mode agreement on every place.)
 
 Start from one of those rather than a blank file. What follows is the trap that neither of them
 makes obvious, and that a third probe will hit on its first run.
@@ -68,25 +75,30 @@ makes obvious, and that a third probe will hit on its first run.
 
 - **Mechanism.** `currentMode` is a single module-level global, and its persistence across
   navigation is a deliberate design decision, not an accident of the implementation — see
-  `../../docs/23-dashboard-ia-and-component-system.md` §7. Separately, the mode bar renders **only on
-  pages that carry a mode-varying control** (#268): today that is 6 of the 9 rail pages, so Palettes,
-  Typography and Layout show no bar at all. Those three still render *through* whatever mode is
-  selected. The bar's absence means "nothing here is edited per mode", never "mode does not apply".
-- **Symptom.** A probe that loops pages on the outside and modes on the inside reads each bar-less
-  page in whichever mode the *previous* page happened to leave behind — so its results are ordering
-  artefacts. Worse, it does not look like an ordering bug: arrive at Typography or Layout from a
-  **derived** mode (HC light / HC dark / Wireframe) and those pages drop their editors entirely for
-  the read-only "auto-derived" note, so the probe reports a blank page with no controls. That is the
-  app being correct. The first draft of `test-smoke.mjs` did exactly this and reported two false
+  `../../docs/23-dashboard-ia-and-component-system.md` §7. Every page is now a moved page
+  (`status: 'new'` in `src/shell/pages.ts`; the `'legacy'` kind remains in the type, but no page uses
+  it). Read the kind there, not from a list in this file.
+  - Each page draws the two panes (levers beside a preview) and carries the **mode control** in its
+    preview header (`mode-option` hooks, derived modes hatched), whether or not anything on it is edited
+    per mode.
+  - In a **derived** mode (HC light / HC dark / Wireframe), seven pages keep their controls on screen but
+    read-only, under an "auto-derived — read-only" state line: Surfaces & fills, Interactive, Type, Shape,
+    Depth & motion, Layout and Components. Each page's derived-mode arm in `test-chrome.mjs` pins it.
+  - **Brand and Palettes don't:** nothing they set varies by mode, so they show no line and stay editable
+    in every mode.
+- **Symptom.** A probe that loops pages on the outside and modes on the inside reads each page in
+  whichever mode the *previous* page happened to leave behind, so its results are ordering artefacts.
+  Worse, it does not look like an ordering bug. Arrive at one of the seven pages from a derived mode
+  and every field is read-only, so the probe reports controls that will not take an edit. That is the
+  app being correct. The first draft of `test-smoke.mjs` looped this way and reported two false
   defects on its first run.
-- **Rule.** Select the mode on a page that **has** the bar, then walk every page carrying it; repeat
-  per mode. That is also the sequence a person performs, and it is the difference between covering
-  *every page in every mode* and covering *every page that offers a mode bar*.
+- **Rule.** Select the mode explicitly, through a page's own mode control, before reading a page. Then
+  walk the pages in that mode, and repeat per mode. That is also the sequence a person performs.
 
 Two smaller traps worth inheriting rather than rediscovering:
 
-- **Serve on an ephemeral port** (`listen(0)`). `mode-audit.mjs` holds **8899**; two harnesses on one
-  port collide as `EADDRINUSE`, which reads exactly like a test failure and gets debugged as one.
+- **Serve on an ephemeral port** (`listen(0)`), as both drivers above do. The deleted `mode-audit.mjs` held
+  **8899** until it gated (#1898); two harnesses on one port collide as `EADDRINUSE`, which reads exactly like a test failure and gets debugged as one.
 - **Use a fresh browser context per brand.** The working brand persists to `localStorage`, so a shared
   context carries one brand's state — and any override a probe writes — into the next. A new context
   also returns the app to its first-run start screen, which is how a brand gets chosen without going
@@ -183,7 +195,7 @@ of going stale in production.
 npm run build:site --workspace @prism3/studio   # what Vercel runs → apps/studio/public/
 ```
 
-`build:site` (`build-site.mjs`) bundles with the same flags as `build`, then assembles
+`build:site` (`build-site.mjs`) bundles with the same options as `build` (`build.mjs`), then assembles
 `apps/studio/public/` containing exactly `index.html` + `dist/main.js` + `.map` — and **fails
 non-zero if the output is anything else**, so an emitted-but-unreferenced asset can't ship a
 broken site on a green build. `dev` and `build` are unchanged and remain the local workflow;
@@ -193,8 +205,11 @@ broken site on a green build. `dev` and `build` are unchanged and remain the loc
 `../../packages/engine/*` and `../../packages/engine/schema/example-brands.json`, which a `apps/studio/`-scoped
 build cannot resolve.
 
-Only `apps/studio/src` and `packages/engine/{*,schema}` are **read by the build**; `apps/plugin/`, `reference/`,
-and `packages/engine/out/` are neither read nor served. Install is a different matter — it runs
+Only `apps/studio/src`, `apps/studio/chrome` and `packages/engine/{*,schema}` are **read by the build**,
+plus two emitted files: the chrome plugin (`chrome/esbuild-plugin.mjs`, UI redesign S1.1) reads
+`packages/engine/out/prism3.tokens.json` and `prism3.dark.overlay.tokens.json` to generate the shell's
+`--p3-*` variables. `apps/plugin/`, `reference/` and the rest of `packages/engine/out/` are neither read
+nor served. Install is a different matter — it runs
 at the repo root and resolves **both** workspaces, so `node_modules` also holds the plugin's
 `@figma/plugin-typings`. Two consequences: the build needs devDependencies, so
 `NODE_ENV=production` must not be set at install time; and a dependency bump in

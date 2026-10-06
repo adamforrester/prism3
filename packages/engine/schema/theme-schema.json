@@ -196,7 +196,7 @@
     "surfaces": {
       "type": "object",
       "additionalProperties": false,
-      "description": "OPTIONAL. Non-default primary surfaces per mode (e.g. a warm off-white page). The contrast FLOOR moves with the declared base; the engine flags it in notes. Omit for white/black defaults.",
+      "description": "OPTIONAL. Non-default surfaces per mode (e.g. a warm off-white page), and the second and third tiers of the page and inverse ladders. The contrast FLOOR follows the second tier, which follows the declared base unless it is set itself; the engine flags it in notes. Omit for white/black defaults.",
       "properties": {
         "light": { "$ref": "#/$defs/surfaceMode" },
         "dark": { "$ref": "#/$defs/surfaceMode" }
@@ -478,7 +478,7 @@
       "additionalProperties": false,
       "description": "OPTIONAL. Layout axis — breakpoints, a 12-col grid (per-breakpoint overridable), gutter/margin aliasing the spacing scale, fluid containers + a max cap.",
       "properties": {
-        "breakpoints": { "type": "array", "items": { "type": "number" }, "description": "Min-width floors (px), ascending. Auto-named sm/md/lg/xl/2xl. Default [0,768,1024,1440,1920]." },
+        "breakpoints": { "type": "array", "items": { "type": "number" }, "description": "Min-width floors (px), ascending. The first must be 0. Names follow the count: up to five start at sm, six run xs to 2xl, and seven run xs to 3xl. Default [0,768,1024,1440,1920]." },
         "columns": { "type": "number", "default": 12, "description": "Base column count (12 default; 16/24 for dense-data brands). Emitted as a 4/8/…/base ladder per breakpoint — a design grid, not the code contract." },
         "columnOverrides": { "type": "object", "additionalProperties": { "type": "number" }, "description": "OPTIONAL. Per-breakpoint column overrides (bp → count). Wins over the ladder; unset keeps it. Rounded + clamped to 4..24 on emit." },
         "gutterOverrides": { "type": "object", "additionalProperties": { "type": "number" }, "description": "OPTIONAL. Per-breakpoint gutter overrides (bp → px). Wins over the ladder; unset keeps it. Must be a spacing step (aliases space/*), down to 4px; off-ladder throws." },
@@ -504,15 +504,15 @@
       "type": "string",
       "enum": ["rounded", "pill", "boxed", "hairline"],
       "default": "rounded",
-      "description": "OPTIONAL. Corner shape for pill-able controls (button, icon-button). 'boxed' is sharp (radius.none, 0px); 'hairline' is a fixed 1px edge (radius.hairline, implies the hairline rung); 'rounded' follows corner softness (radius.md); 'pill' is a full height ÷ 2 (radius.capsule). Default 'rounded'."
+      "description": "OPTIONAL. Corner shape for pill-able controls (button, icon-button). 'boxed' is sharp (radius.none, 0px); 'hairline' is a fixed 1px edge (radius.hairline, implies the hairline rung); 'rounded' follows radius softness (radius.md); 'pill' is a full height ÷ 2 (radius.capsule). Default 'rounded'."
     },
     "buttonIcons": { "type": "string", "enum": ["attached", "edges"], "default": "attached", "description": "OPTIONAL. Button icons: 'attached' beside the label, or 'edges' with the label centered between them." },
     "buttonContentSize": { "type": "string", "enum": ["match", "smaller"], "default": "match", "description": "OPTIONAL. 'smaller': a medium button takes the small label and icon." },
     "buttonLabelWeight": { "type": "string", "enum": ["default", "emphasis"], "default": "emphasis", "description": "OPTIONAL. 'default': buttons bind type.label.*.default." },
     "buttonMinWidthMultiplier": { "type": "number", "default": 2.25, "minimum": 1, "maximum": 4, "description": "OPTIONAL. Button min width = height × this, rounded up to 8px." },
-    "radiusScale": { "oneOf": [ { "type": "number", "default": 1, "description": "OPTIONAL. Corner softness: 0 = sharp, 1 = default, 2 = soft. Default 1." }, { "type": "string", "enum": ["sharp", "modest", "standard", "soft", "round"], "description": "Named stop — sharp 0 · modest 0.5 · standard 1 · soft 1.5 · round 2." } ] },
+    "radiusScale": { "oneOf": [ { "type": "number", "default": 1, "description": "OPTIONAL. Radius softness: 0 = sharp, 1 = default, 2 = soft. Default 1." }, { "type": "string", "enum": ["sharp", "modest", "standard", "soft", "round"], "description": "Named stop — sharp 0 · modest 0.5 · standard 1 · soft 1.5 · round 2." } ] },
     "baseMd": { "type": "number", "default": 4, "description": "OPTIONAL. The radius.md anchor (px) at scale 1. Default 4." },
-    "radiusHairline": { "type": "boolean", "default": false, "description": "OPTIONAL, OPT-IN (off by default). `true` adds a fixed, unscaled `radius.hairline` = 1px sentinel alongside the pills. The scaled ramp rides an even 2px sub-grid, so 1px is unreachable from radiusScale/baseMd; this is the way to a near-sharp 1px corner. Off leaves every rung byte-identical." },
+    "radiusHairline": { "type": "boolean", "default": false, "deprecated": true, "description": "RETIRED (#2053): accepted so existing brand files still load, but it changes nothing. `radius.hairline` (a fixed 1px corner) is always emitted. It was the opt-in for that rung: the scaled ramp rides an even 2px sub-grid, so 1px is otherwise unreachable from radiusScale/baseMd." },
     "personality": {
       "type": "array",
       "items": { "type": "string", "enum": ["energetic", "calm", "premium", "restrained", "bold", "generous", "dense", "sharp", "soft"] },
@@ -613,10 +613,26 @@
           "allOf": [{ "$ref": "#/$defs/neutralSurfaceSpec" }],
           "description": "The page surface for this mode. NEUTRAL-ONLY: a bare number / white / black. It does NOT accept a palette band — only the inverse band may (#898)."
         },
-        "floorStep": { "type": "number", "description": "The neutral step used as the contrast floor; defaults follow `base`." },
+        "floorStep": { "type": "number", "description": "The neutral step used as the contrast floor. Defaults to `secondary` when that is set, otherwise to one step past `base`." },
+        "secondary": {
+          "allOf": [{ "$ref": "#/$defs/neutralSurfaceSpec" }],
+          "description": "OPTIONAL. The page's second tier (`background.secondary`). NEUTRAL-ONLY, like `base`. Defaults to one step past `base`. The contrast floor moves with it unless `floorStep` is set, so the roles measured against this tier are re-derived against it. Set it here, not through `overrides`, which cannot re-derive those roles. High-contrast modes keep a flat page."
+        },
+        "tertiary": {
+          "allOf": [{ "$ref": "#/$defs/neutralSurfaceSpec" }],
+          "description": "OPTIONAL. The page's third tier (`background.tertiary`). NEUTRAL-ONLY, like `base`. Defaults to two steps past `base`. The roles measured against this tier are re-derived against it. Set it here, not through `overrides`. High-contrast modes keep a flat page."
+        },
         "inverseBase": {
           "allOf": [{ "$ref": "#/$defs/surfaceSpec" }],
           "description": "OPTIONAL. The inverse band for this mode — the dark hero / inverse section. Defaults to near-black 950 in light and near-white 25 in dark (near the extreme, not at it: pure black reads muddy, pure white halates). A bare number is a neutral step; `{ palette, step }` names a non-status brand or custom palette so the band can be brand navy or a deep accent (#898). Set it here, not through `overrides`, which cannot re-derive the band's roles. High-contrast modes keep the pure extremes."
+        },
+        "inverseSecondary": {
+          "allOf": [{ "$ref": "#/$defs/surfaceSpec" }],
+          "description": "OPTIONAL. The inverse band's second tier (`inverse.background.secondary`), and the contrast floor for inverse roles. Takes the same forms as `inverseBase`. Defaults to one step past `inverseBase`. The roles measured against it are re-derived against it. Set it here, not through `overrides`. High-contrast modes keep a flat band."
+        },
+        "inverseTertiary": {
+          "allOf": [{ "$ref": "#/$defs/surfaceSpec" }],
+          "description": "OPTIONAL. The inverse band's third tier (`inverse.background.tertiary`). Takes the same forms as `inverseBase`. Defaults to two steps past `inverseBase`. The roles measured against it are re-derived against it. Set it here, not through `overrides`. High-contrast modes keep a flat band."
         }
       }
     }

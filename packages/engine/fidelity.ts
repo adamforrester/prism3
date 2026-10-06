@@ -133,7 +133,7 @@ export const buildFidelityReport = (std: StandardDesignMd, cls: ColorClassificat
 
   // §4 radius
   P(`## 4. Radius parity`, '',
-    `Observed radius vs the engine's small **bounded** set (\`none/sm/md/lg/round\`) — radius is genuinely semantic (docs/00). Matched by px:`, '',
+    `Observed radius vs the engine's small **bounded** set (\`${theme.dims.radius.map((r) => r.name).join('/')}\`) — radius is genuinely semantic (docs/00). Matched by px:`, '',
     '| observed | px | engine token at same px | note |', '|---|---|---|---|');
   for (const [token, val] of Object.entries(std.rounded)) {
     const px = pxNum(val);

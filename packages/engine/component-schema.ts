@@ -1761,6 +1761,17 @@ export const validateComponentDef = (
           errors.push(`weightIntent: token '${k}' → '${ref}' is category '${g}' but weightIntent.group is '${group}' — one weight axis cannot span two categories' availabilities`);
       }
     }
+    // #1746 — NO EXCLUSION MAY NAME THE WEIGHT AXIS. Refused here rather than rewritten in
+    // `applyWeightIntent`, because the axis exists only in some brands: where the brand ships one weight
+    // for the group, the axis collapses and leaves `variantAxes`. An entry naming it then never matches in
+    // the projector (the coordinate no longer carries the axis), while `figmaVariantCount` applies the rest
+    // of the entry, so the two counts disagree on a def that validated. A rewrite would have to decide, in
+    // both places alike, what "exclude bold here" means once bold and regular are one member. No def needs
+    // that, so the combination is refused.
+    (def.figmaProperties?.excludeCoordinates ?? []).forEach((entry, i) => {
+      if (Object.prototype.hasOwnProperty.call(entry, axis))
+        errors.push(`figmaProperties.excludeCoordinates[${i}] names '${axis}', the weightIntent axis — a brand that ships one ${group} weight drops that axis, and the exclusion would then be ignored by the set but still counted by figmaVariantCount`);
+    });
   }
 
   return { errors, warnings };

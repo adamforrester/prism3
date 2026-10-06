@@ -24,6 +24,8 @@ import { appendBuildNote, buildNote } from '../../studio/src/build-identity';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
 import type { MainToUi, UiToMain, StyleGuideOptions } from './messages';
+import { createRunGuard, isWriteCmd, writes, busyMessage } from './run-guard';
+import type { WriteCmd } from './run-guard';
 import { strandedCollections, ownedModeIds } from './write-figma';
 import { computePrunePlan, prunePlanCount, applyPrunePlan, prunePreviewSummary, pruneAppliedSummary } from './prune-figma';
 import type { PruneInput, PruneApi } from './prune-figma';
@@ -37,7 +39,7 @@ import { scaffoldSkeleton, resolveComponentPage } from './file-setup';
 import { ensureFileComponents } from './file-components';
 import { ensureStyleGuideCells } from './style-guide-cells';
 import type { CellsApi } from './style-guide-cells';
-import { runStyleGuide, styleGuideSummary } from './style-guide';
+import { runStyleGuide, styleGuideSummary, readCatalog, catalogFor, isSetUp } from './style-guide';
 import type { SgContract } from './style-guide';
 import { resolveAllModes } from '@prism3/engine/modes';
 import { TAXONOMY } from './file-taxonomy';
@@ -71,6 +73,19 @@ import { AGENT_COMMANDS, failedResult } from './agent-protocol';
 // full layout wants 1280px. Figma is desktop-only, so we size the window to the web canvas rather
 // than a "standard" narrow plugin — the same UI renders identically to the standalone web app.
 const UI_SIZE_KEY = 'prism3:ui-size';
+/** The chrome theme the person chose in the Theme menu: Match Figma, Light or Dark (the owner's top-bar decision,
+ *  2026-10-05). Kept in `clientStorage`, which is per person and per machine, like the window size above. */
+const THEME_PREF_KEY = 'prism3:theme';
+const isThemePref = (v: unknown): v is 'figma' | 'light' | 'dark' => v === 'figma' || v === 'light' || v === 'dark';
+/** Send the kept choice, if there is one; nothing kept (or storage unavailable) leaves the UI on Match Figma. */
+const sendThemePref = async (): Promise<void> => {
+  try {
+    const v: unknown = await figma.clientStorage.getAsync(THEME_PREF_KEY);
+    if (isThemePref(v)) postToUi({ type: 'theme-pref', pref: v });
+  } catch {
+    /* storage unavailable: Match Figma */
+  }
+};
 const DEFAULT_SIZE = { width: 1280, height: 900 };
 // Floor only. The shared UI's narrow tier (#144) is designed down to 480, and below ~380 the chrome
 // bar stops being usable at all; Figma clamps the ceiling to the screen, so no maximum is needed.
@@ -200,7 +215,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     ].filter((o) => o.names.length);
     const orphanCount = allOrphans.reduce((n, o) => n + o.names.length, 0);
     const orphanNote = orphanCount
-      ? `, ⚠️ ${orphanCount} orphaned variables not in the plan (${allOrphans.map((o) => `${o.name}: ${o.names.length}`).join(', ')}) — likely renames; nothing was deleted`
+      ? `, ⚠ ${orphanCount} orphaned variables not in the plan (${allOrphans.map((o) => `${o.name}: ${o.names.length}`).join(', ')}) — likely renames; nothing was deleted`
       : '';
     // STRANDED COLLECTIONS (#1152) — the level above the orphan report, and the one no executor can
     // reach. `allOrphans` is assembled FROM the executors, so it can only describe collections a plan
@@ -225,7 +240,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     // still exist and every binding into them still resolves. It is stale, not broken, and the
     // decision to remove it is the designer's, since it may hold variables they bound by hand.
     const strandedNote = stranded.length
-      ? `, ⚠️ ${stranded.length} collection${stranded.length === 1 ? '' : 's'} in this file that no plan writes (${stranded.slice(0, 3).join(', ')}${stranded.length > 3 ? '…' : ''}) — left over from an earlier version or hand-made; nothing was deleted`
+      ? `, ⚠ ${stranded.length} collection${stranded.length === 1 ? '' : 's'} in this file that no plan writes (${stranded.slice(0, 3).join(', ')}${stranded.length > 3 ? '…' : ''}) — left over from an earlier version or hand-made; nothing was deleted`
       : '';
     // Rename migrations (#1013) — the other half of the orphan report above. A variable the plan renamed
     // is moved in place (id preserved, so every binding a designer made comes with it) rather than left
@@ -242,24 +257,24 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     const migRefused = mig.outcomes.filter((o) => isRefusal(o.status));
     const renameNote =
       (migrated.length ? `, ${migrated.length} renamed ${migrated.length === 1 ? 'token' : 'tokens'} migrated in place (bindings kept: ${migrated.slice(0, 3).map((o) => `${o.from}→${o.to}`).join(', ')}${migrated.length > 3 ? '…' : ''})` : '') +
-      (migRefused.length ? `, ⚠️ ${migRefused.length} ${migRefused.length === 1 ? 'rename' : 'renames'} refused (${migRefused.slice(0, 2).map((o) => `${o.from}→${o.to}: ${o.status}`).join(', ')}) — nothing moved for those` : '') +
-      (mig.refusals.length ? `, ⚠️ rename map invalid, no migrations attempted (${mig.refusals[0]})` : '');
+      (migRefused.length ? `, ⚠ ${migRefused.length} ${migRefused.length === 1 ? 'rename' : 'renames'} refused (${migRefused.slice(0, 2).map((o) => `${o.from}→${o.to}: ${o.status}`).join(', ')}) — nothing moved for those` : '') +
+      (mig.refusals.length ? `, ⚠ rename map invalid, no migrations attempted (${mig.refusals[0]})` : '');
     // #499: styles whose emitted name was corrected (e.g. `Semi Bold` → `SemiBold`). Worth surfacing
     // rather than silently succeeding — it is the difference between "the guess was right" and "the
     // guess was wrong and would have cost these styles before".
     const resolvedNote = ts.resolvedStyles ? `, ${ts.resolvedStyles} font styles name-resolved` : '';
     const skippedNote = ts.skipped.length
-      ? `, ⚠️ ${ts.skipped.length} text styles skipped (font unavailable: ${ts.skipped.slice(0, 3).map((x) => x.name).join(', ')}${ts.skipped.length > 3 ? '…' : ''})`
+      ? `, ⚠ ${ts.skipped.length} text styles skipped (font unavailable: ${ts.skipped.slice(0, 3).map((x) => x.name).join(', ')}${ts.skipped.length > 3 ? '…' : ''})`
       : '';
     // #680: the fonts loaded ahead of the write, and any face that would not load. Only NAMED faces are
     // listed — a crossed pair that does not exist is the ordinary case (most family × style combinations
     // are not real), and listing those would bury the reportable ones. `refused` should be empty on every
     // healthy apply: it means the preload missed something and the write survived it.
     const fontNote = pf.unavailable.length
-      ? `, ⚠️ ${pf.unavailable.length} typeface${pf.unavailable.length === 1 ? '' : 's'} unavailable (${pf.unavailable.slice(0, 3).map((x) => x.face).join(', ')}${pf.unavailable.length > 3 ? '…' : ''})`
+      ? `, ⚠ ${pf.unavailable.length} typeface${pf.unavailable.length === 1 ? '' : 's'} unavailable (${pf.unavailable.slice(0, 3).map((x) => x.face).join(', ')}${pf.unavailable.length > 3 ? '…' : ''})`
       : '';
     const refusedNote = tv.refused.length
-      ? `, ⚠️ ${tv.refused.length} variable writes refused by Figma (${tv.refused[0].name}: ${tv.refused[0].reason.slice(0, 60)})`
+      ? `, ⚠ ${tv.refused.length} variable writes refused by Figma (${tv.refused[0].name}: ${tv.refused[0].reason.slice(0, 60)})`
       : '';
     const summary =
       `palette ${r.paletteTotal} (+${r.paletteCreated}), color ${r.colorTotal} (+${r.colorCreated}), ` +
@@ -517,7 +532,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       // was — the disagreement is between two bundles, so naming only one side of it is half a diagnosis.
       sink.data({ build: { def: defId, known: componentDefs.map((d) => d.id) } });
       postVerdict({
-        type: 'component-result', ok: false, headline: '✗ unknown def',
+        type: 'component-result', ok: false, completed: false, headline: '✗ unknown def',
         summary: `no component def with id '${defId}' — this build knows ${componentDefs.map((d) => d.id).join(', ')}`,
       }, sink);
       return;
@@ -537,7 +552,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
     // moment, and paraphrasing it here would be a second copy to keep true.
     if (def.figmaProperties?.notStandalone) {
       postVerdict({
-        type: 'component-result', ok: false, headline: '✗ not buildable on its own',
+        type: 'component-result', ok: false, completed: false, headline: '✗ not buildable on its own',
         summary: def.figmaProperties.notStandalone,
       }, sink);
       return;
@@ -648,14 +663,14 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
     // THE SETTLE PROBE (#684), RUN WITHOUT THE VERDICT WAITING ON IT (#908). It still starts at the exact
     // moment the executor returns — the moment the pill says done and the file was previously frozen for
     // 1m10s — and the console telemetry below still carries its number, so #684's coupling is intact. What
-    // #908 removed is the designer waiting for it: awaited here, a busy host held `⋯ Building…` for the
+    // #908 removed is the designer waiting for it: awaited here, a busy host held `Building…` for the
     // whole tick budget (8.4s at 20ms of work per tick, 40s at 100ms) and then reported `null`. The
     // ordering is `verdictBeforeSettle`'s, and its header says why it is a named function with a test.
     const settleMs = await verdictBeforeSettle(measureSettle, () => {
       // Cap the miss list rather than the count: `summary` is read in a chrome row that wraps, but a
       // starved file can produce one miss per binding per member and the whole list is not a summary.
       const missNote = r.misses.length
-        ? `, ⚠️ ${r.misses.length} misses (${r.misses.slice(0, 3).join('; ')}${r.misses.length > 3 ? '; …' : ''})`
+        ? `, ⚠ ${r.misses.length} misses (${r.misses.slice(0, 3).join('; ')}${r.misses.length > 3 ? '; …' : ''})`
         : '';
       // THE STALE REASON, appended once (#827) — see `staleNote` for why the reason and the remedy are
       // one clause. Placed after `missNote` because the per-member STALE lines are inside that list, and
@@ -690,6 +705,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       postVerdict({
         type: 'component-result',
         ok: r.set !== null && r.misses.length === r.skipped,
+        completed: r.set !== null,
         headline: componentHeadline(r.added, r.skipped, r.misses.length - r.skipped - r.stale, r.stale, r.refsRelinked),
         summary: summary + alsoBuiltNote(alsoBuilt) + pageHeaderNote(headers),
       }, sink);
@@ -772,7 +788,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       const partial = partialWriteOf(e instanceof DependencyBuildError ? e.original : e);
       sink.data({ build: { def: defId ?? button.id, threw: (e as Error)?.message ?? String(e), partialWrite: partial } });
       postVerdict({
-        type: 'component-result', ok: false,
+        type: 'component-result', ok: false, completed: false,
         headline: partial ? partialWriteHeadline(partial) : APPLY_FAILED_HEADLINE,
         summary: `component build failed: ${(e as Error).message}${partial ? partialWriteNote(partial) : ''}`,
       }, sink);
@@ -810,15 +826,15 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
       } else {
         assets = { built: res.built, fontMisses: res.fontMisses };
         assetNote = `, built ${res.built.join(' + ')}` +
-          (res.fontMisses.length ? ` (⚠️ ${res.fontMisses.length} font miss: ${res.fontMisses.slice(0, 2).join('; ')})` : '');
+          (res.fontMisses.length ? ` (⚠ ${res.fontMisses.length} font miss: ${res.fontMisses.slice(0, 2).join('; ')})` : '');
       }
       // The style-guide cell sets (#259) beside them — adopted wherever the file already has them, in any case.
       const cells = await ensureStyleGuideCells(figma, page);
       assets = { ...assets, styleGuideCells: cells };
-      if (cells.built.length) assetNote += `, built ${cells.built.join(' + ')}${cells.fontMisses.length ? ` (⚠️ ${cells.fontMisses.slice(0, 2).join('; ')})` : ''}`;
+      if (cells.built.length) assetNote += `, built ${cells.built.join(' + ')}${cells.fontMisses.length ? ` (⚠ ${cells.fontMisses.slice(0, 2).join('; ')})` : ''}`;
       if (cells.adopted.length) assetNote += `, style-guide cells already present: ${cells.adopted.map((a) => a.page ? `${a.name} on ${a.page}` : a.name).join(', ')}`;
     } else {
-      assetNote = ', ⚠️ no File Components page — assets not built';
+      assetNote = ', ⚠ no File Components page — assets not built';
     }
     const summary = `pages: ${scaffold.created.length} created${scaffold.created.length ? ` (${scaffold.created.slice(0, 4).join(', ')}${scaffold.created.length > 4 ? '…' : ''})` : ' (all present)'}${assetNote}`;
     sink.data({ fileSetup: { pagesCreated: scaffold.created, fileComponentsPage: page ? true : false, assets } });
@@ -836,22 +852,60 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
  * NO SAVED BRAND IS NOT A FAILURE: the tables are drawn and the contrast column reads "—", said once in the
  * summary. A brand that no longer resolves is the same, with its reason.
  */
-const styleGuide = async (options: StyleGuideOptions, sink: ActionSink): Promise<void> => {
+/** The saved brand's contrast contract, or null with the reason it did not resolve. */
+const savedContract = (): { contract: SgContract | null; note: string } => {
   try {
-    let contract: SgContract | null = null;
-    let contractNote = '';
-    try {
-      const input = restoreInput(figma.root);
-      if (input) contract = resolveAllModes(brandTheme(input));
-    } catch (e) {
-      contractNote = `. The saved brand did not resolve (${(e as Error).message}), so the contrast column reads "—"`;
-    }
-    const result = await runStyleGuide(figma, contract, options);
+    const input = restoreInput(figma.root);
+    return { contract: input ? resolveAllModes(brandTheme(input)) : null, note: '' };
+  } catch (e) {
+    return { contract: null, note: `. The saved brand did not resolve (${(e as Error).message}), so the contrast column reads "—"` };
+  }
+};
+
+/** Set by `style-guide-cancel` (S11.2, owner decision P7) and read by the running style guide after each table. Cleared
+ *  when a run starts, so a cancel sent while nothing ran cannot stop the next run. */
+let styleGuideStop = false;
+
+const styleGuide = async (options: StyleGuideOptions, sink: ActionSink): Promise<void> => {
+  styleGuideStop = false;
+  try {
+    const { contract, note: contractNote } = savedContract();
+    // The page's per-table list (S11.2) is the PANEL's: an agent's sink would take each of these as a verdict.
+    const panel = sink === uiSink;
+    // One table at a time, yielding to the host between them and within a big one (#1778). Each reading goes to
+    // the pending pill and, logged, to the console: a hung run's last line names the table it hung on, and
+    // `tableMs` is the live figure `CELLS_PER_YIELD` is calibrated against.
+    const result = await runStyleGuide(figma, contract, options, {
+      onProgress: (p) => {
+        if (p.done > 0) console.log(`[prism3 #1778] style guide: table ${p.done} of ${p.total}, ${p.title}, ${p.tableMs}ms`);
+        sink.post({ type: 'style-guide-progress', done: p.done, total: p.total, tableMs: p.tableMs });
+      },
+      onPlan: (tables) => { if (panel) sink.post({ type: 'style-guide-tables', tables: tables.map((t) => ({ key: t.key, title: t.title, page: t.page.replace(/^↳\s*/, '') })) }); },
+      onTable: (e) => { if (panel) sink.post({ type: 'style-guide-table', index: e.index, status: e.status, ...(e.reason !== undefined ? { reason: e.reason } : {}) }); },
+      stop: () => styleGuideStop,
+    });
     const v = styleGuideSummary(result);
     sink.data({ styleGuide: result });
-    sink.post({ type: 'style-guide-result', ok: v.ok, headline: v.headline, summary: appendBuildNote(v.summary + contractNote, PRISM3_BUILD) });
+    sink.post({ type: 'style-guide-result', ok: v.ok, headline: v.headline, summary: appendBuildNote(v.summary + contractNote, PRISM3_BUILD), ...(result.stopped ? { stopped: result.stopped } : {}) });
   } catch (e) {
     sink.post({ type: 'style-guide-result', ok: false, headline: '✗ style guide failed', summary: appendBuildNote(`style guide failed: ${(e as Error).message}`, PRISM3_BUILD) });
+  } finally {
+    styleGuideStop = false;
+  }
+};
+
+/**
+ * WHAT THE BUILD STYLE GUIDES PAGE SHOWS (S11.2): the file's collections, variables and text styles, the tables an
+ * unfiltered run would draw, and whether Set up file has run (`catalogFor`, `isSetUp`). Reads only; posts one
+ * `style-guide-catalog`, an empty one with `error` set when the read throws.
+ */
+const styleGuideCatalog = async (): Promise<void> => {
+  try {
+    await figma.loadAllPagesAsync();
+    const { catalog } = await readCatalog(figma.variables, () => figma.getLocalTextStylesAsync());
+    postToUi({ type: 'style-guide-catalog', catalog: catalogFor(catalog, savedContract().contract, isSetUp(figma.root as unknown as Parameters<typeof isSetUp>[0])) });
+  } catch (e) {
+    postToUi({ type: 'style-guide-catalog', catalog: { setUp: false, collections: [], tables: [], notes: [] }, error: (e as Error)?.message ?? String(e) });
   }
 };
 
@@ -868,7 +922,7 @@ const seedFromFile = async (sink: ActionSink): Promise<void> => {
       // not by parsing the sentence: it is what stops "no theme here" being reported as knobs that
       // could not be recovered (#722).
       sink.data({ readback: { present: false } });
-      sink.post({ type: 'seed-info', ok: true, present: false, summary: 'No existing Prism3 theme in this file — start from the knobs.' });
+      sink.post({ type: 'seed-info', ok: true, present: false, summary: 'No existing Prism3 theme in this file — start from the knobs.', failed: 0 });
       return;
     }
     // The saved brand's declared modes against the file's (#1662 follow-up): resolved here from the persisted
@@ -879,11 +933,11 @@ const seedFromFile = async (sink: ActionSink): Promise<void> => {
     // `present: true` regardless of `ok`: the variables ARE here, and whether the contract verified is
     // a separate fact. Collapsing the two would make a contract failure look like an unthemed file.
     sink.data({ readback: { present: true, ok: v.ok, failed, checks: v.checks, declaredModes: v.declaredModes, plannedModes: v.plannedModes, details: v.details } });
-    sink.post({ type: 'seed-info', ok: v.ok, present: true, summary });
+    sink.post({ type: 'seed-info', ok: v.ok, present: true, summary, failed: failed.length });
   } catch (e) {
     // The read itself failed, so presence is UNKNOWN — reported false, since the outcome is an error
     // either way and claiming presence we could not establish would be worse than not claiming it.
-    sink.post({ type: 'seed-info', ok: false, present: false, summary: `read-back failed: ${(e as Error).message}` });
+    sink.post({ type: 'seed-info', ok: false, present: false, summary: `read-back failed: ${(e as Error).message}`, failed: 0 });
   }
 };
 
@@ -940,6 +994,23 @@ const sendFonts = async (): Promise<void> => {
 };
 
 /**
+ * ONE RUN OF A WRITE AT A TIME, PER OPERATION (#1957; `run-guard.ts`). Each writing entry of the table
+ * below goes through `guarded`, so the panel's buttons and the agent link meet the same guard. A second
+ * write of a running operation is not run: its caller's sink is sent `refused`, and nothing else is.
+ * The agent link asks first, through `refuse` below, so a declined command is never bracketed as running.
+ */
+const guard = createRunGuard();
+const refusal = (cmd: WriteCmd, agent: boolean): MainToUi => ({ type: 'refused', code: 'busy', cmd, agent, message: busyMessage(cmd) });
+const guarded = <A extends unknown[]>(cmd: WriteCmd, fn: (...a: A) => Promise<void>, confirm?: (...a: A) => boolean) =>
+  (...a: A): Promise<void> => {
+    if (!writes(cmd, confirm ? confirm(...a) : undefined)) return fn(...a);
+    // Every action's sink is its last argument.
+    const sink = a[a.length - 1] as ActionSink;
+    if (guard.busy(cmd)) { sink.post(refusal(cmd, sink !== uiSink)); return Promise.resolve(); }
+    return guard.run(cmd, () => fn(...a));
+  };
+
+/**
  * THE ACTION TABLE — the one set of handlers the panel's buttons and the agent link both reach.
  *
  * The switch below calls every action THROUGH this table, and the agent link's dispatcher is handed the
@@ -948,7 +1019,14 @@ const sendFonts = async (): Promise<void> => {
  * drives both the UI message and the agent command — a route pointed at a copy fails there by name.
  * Exported for that test only; nothing in the plugin imports it.
  */
-export const ACTIONS: AgentActions = { applyTheme, buildComponents, fileSetup, styleGuide, prune, seedFromFile };
+export const ACTIONS: AgentActions = {
+  applyTheme: guarded('apply-theme', applyTheme),
+  buildComponents: guarded('build-components', buildComponents),
+  fileSetup: guarded('file-setup', fileSetup),
+  styleGuide: guarded('style-guide', styleGuide),
+  prune: guarded('prune', prune, (_input, confirm) => confirm),
+  seedFromFile,
+};
 
 /**
  * THE AGENT LINK (off until the owner switches it on in the panel; never persisted). Commands arrive as
@@ -961,6 +1039,14 @@ const dispatch = createDispatcher({
   // Streamed to the panel, which forwards them to the desktop bridge for the commands it delivered.
   onProgress: (id, progress) => postToUi({ type: 'agent-progress', id, progress }),
   onLog: (id, line) => postToUi({ type: 'agent-log', id, line }),
+  // The Activity drawer's agent rows (UI redesign S11): when a command starts, and when it has ended.
+  onStart: (id, cmd) => postToUi({ type: 'agent-started', id, cmd }),
+  onFinish: (id, cmd) => postToUi({ type: 'agent-finished', id, cmd }),
+  // #1957: an agent's write of an operation that is already running is declined before it starts.
+  refuse: (c) => {
+    if (!isWriteCmd(c.cmd) || !writes(c.cmd, c.cmd === 'prune' ? c.args.confirm : undefined) || !guard.busy(c.cmd)) return null;
+    return { message: busyMessage(c.cmd), post: refusal(c.cmd, true) };
+  },
   // The panel's pills show an agent's result as they would a button's. An agent's prune PREVIEW goes as a
   // pill only: opened as the confirm dialog, the owner's Confirm would prune against the panel's knobs,
   // which are not necessarily the input the agent previewed.
@@ -1004,6 +1090,11 @@ onUiMessage((msg: UiToMain) => {
       void sendFonts();
       // The link is off on every launch; the panel's control starts from this.
       postToUi({ type: 'agent-link-state', state: agentLink.state() });
+      void sendThemePref();
+      return;
+    case 'set-theme-pref':
+      // The Theme menu's choice, kept per person (the owner's top-bar decision, 2026-10-05).
+      if (isThemePref(msg.pref)) void figma.clientStorage.setAsync(THEME_PREF_KEY, msg.pref).catch(() => {/* best-effort */});
       return;
     case 'apply-theme':
       void ACTIONS.applyTheme(msg.input, uiSink);
@@ -1024,6 +1115,14 @@ onUiMessage((msg: UiToMain) => {
     case 'style-guide':
       // #259 — the color tables, after Apply theme. Its own action.
       void ACTIONS.styleGuide(msg.options ?? {}, uiSink);
+      return;
+    case 'style-guide-catalog-request':
+      // S11.2 — the Build style guides page's tree, titles and Set up file state. A read: never guarded.
+      void styleGuideCatalog();
+      return;
+    case 'style-guide-cancel':
+      // S11.2 (P7) — read by the running style guide after its current table; nothing running, nothing to stop.
+      if (guard.busy('style-guide')) styleGuideStop = true;
       return;
     case 'agent-link':
       // The owner's switch — the only way the link turns on. See `agent-link.ts`.

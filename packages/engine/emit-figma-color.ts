@@ -253,15 +253,18 @@ export const parseColor = (v: unknown): FigmaColor => {
  *  key iteration emits integer-like keys (`"100"`…`"950"`) FIRST in ascending-numeric order, then
  *  leading-zero string keys (`"025"`,`"050"`) in insertion order — so each palette ramp's two lightest
  *  tints landed after `950` in the emitted (hence Figma-created) order. Sorts a COPY, never mutates the
- *  input. Non-numeric keys (ramp names like `red`, `black-alpha`; semantic keys like `background`)
- *  `parseFloat` to NaN and compare EQUAL, so a stable sort leaves them in insertion order — a no-op for
- *  every non-leading-zero group. A local mirror of the same helper in `emit-figma-dims.ts` (#1594): the
+ *  input. Non-numeric keys (ramp names like `red`, `black-alpha`; semantic keys like `background`) are
+ *  not numbers and compare EQUAL, so a stable sort leaves them in insertion order — a no-op for every
+ *  non-leading-zero group. A key counts as a number only when ALL of it is one, not by `parseFloat`
+ *  (which reads `2xl` as 2): no colour key is digit-led today, so this moves no output, but it keeps the
+ *  two copies the same rule (#1852). A local mirror of the same helper in `emit-figma-dims.ts` (#1594): the
  *  two colour/dimension emitters are deliberately separate modules (see the `core-palette`/`core-dimension`
  *  collection note above), so each carries its own copy rather than coupling them through a shared import. */
 const byNumericKey = (keys: string[]): string[] =>
   [...keys].sort((a, b) => {
-    const na = parseFloat(a);
-    const nb = parseFloat(b);
+    const num = (k: string): number => (/^\d+(\.\d+)?$/.test(k) ? Number(k) : NaN);
+    const na = num(a);
+    const nb = num(b);
     const aNum = Number.isFinite(na);
     const bNum = Number.isFinite(nb);
     if (aNum && bNum) return na - nb;
@@ -308,6 +311,12 @@ const paletteDescription = (theme: Theme, [palette, key]: string[], leaf: any): 
 
 const rgb255 = (c: FigmaColor) => ({ r: c.r * 255, g: c.g * 255, b: c.b * 255 });
 
+/** The grounds a floor step can be named by, first choice first. `background.secondary` leads because the floor
+ *  follows that tier unless `floorStep` moves it, and the DTCG description names it; page grounds come before
+ *  the inverse band's, since every role measured against a bare step is a page role. */
+const GROUND_ORDER = ['background.secondary', 'background.primary', 'background.tertiary',
+  'inverse.background.secondary', 'inverse.background.primary', 'inverse.background.tertiary'];
+
 /**
  * A color role's Figma line (`figmaColorDescription`), from structured fields only: each mode's `min`,
  * each mode's alpha off the resolved value, and the ground named by `against` — a role path already, or
@@ -331,10 +340,11 @@ const colorRoleDescription = (tree: any, root: string, dotted: string, leaf: any
     if (at(tree, `${root}.color.${against}`)) ground = against;
     else {
       const step = `${root}.${CORE_TIER}.palette.${against}`;
-      const grounds = ['background', 'inverse.background'].flatMap((fam) =>
-        Object.keys(at(tree, `${root}.color.${fam}`) ?? {}).filter((k) => !k.startsWith('$')).map((k) => `${fam}.${k}`))
-        .filter((g) => at(tree, `${root}.color.${g}`)?.$extensions?.prism3?.aliasOf === step);
-      if (grounds.length !== 1) throw new Error(`emit-figma-color: ${dotted} is measured against the palette step '${against}', which ${grounds.length ? `${grounds.length} page grounds alias (${grounds.join(', ')})` : 'no page ground aliases'} in light — the Figma line cannot name its ground`);
+      // Several grounds can sit on the floor step — a declared `secondary` on the step `base`, `tertiary` or
+      // an inverse tier also takes (#2227). They are one color in light, so naming any of them is true; the
+      // line names the first in GROUND_ORDER, so the choice is fixed, not whichever key the tree lists first.
+      const grounds = GROUND_ORDER.filter((g) => at(tree, `${root}.color.${g}`)?.$extensions?.prism3?.aliasOf === step);
+      if (!grounds.length) throw new Error(`emit-figma-color: ${dotted} is measured against the palette step '${against}', which no page ground aliases in light — the Figma line cannot name its ground`);
       ground = grounds[0];
     }
   }

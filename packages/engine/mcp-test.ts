@@ -199,12 +199,160 @@ await new Promise((r) => setTimeout(r, 3000));
   // Dual support: the older handshake still works and echoes a version we still speak.
   const initOld = await resultOf('initialize', { protocolVersion: '2024-11-05' });
   ok(initOld?.protocolVersion === '2024-11-05', 'conformance: initialize still answers a 2024-11-05 client with its own version');
+  // #1867: Claude Code asks for 2025-11-25. Answering 2026-07-28 (a revision with no handshake) made it
+  // refuse to connect; over real stdio, an in-between revision must get 2024-11-05 back.
+  const initClaudeCode = await resultOf('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'claude-code', version: '2' } });
+  ok(initClaudeCode?.protocolVersion === '2024-11-05',
+    `#1867 conformance: initialize from a 2025-11-25 client (Claude Code) answers 2024-11-05 over stdio (got ${initClaudeCode?.protocolVersion})`);
+  const init0618 = await resultOf('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'probe', version: '1' } });
+  ok(init0618?.protocolVersion === '2024-11-05',
+    `#1867 conformance: initialize from a 2025-06-18 client answers 2024-11-05 over stdio (got ${init0618?.protocolVersion})`);
+  // A handshake can never usefully answer 2026-07-28, even when a confused client asks for it.
+  const init0728 = await resultOf('initialize', { protocolVersion: '2026-07-28', capabilities: {}, clientInfo: { name: 'probe', version: '1' } });
+  ok(init0728?.protocolVersion === '2024-11-05',
+    `#1867 conformance: initialize asking for 2026-07-28 (a revision with no handshake) still answers 2024-11-05 (got ${init0728?.protocolVersion})`);
 
   // structuredContent must AGREE with the text block, or a client reading one sees different data
   // from a client reading the other.
   const vb = await server.call('validate_brand', { id: 'x', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } });
   ok(vb.structuredContent !== undefined && JSON.stringify(vb.structuredContent) === JSON.stringify(JSON.parse(vb.content[0].text)),
     'conformance: structuredContent and the text block carry identical data');
+}
+
+// ---------------------------------------------- #2146: validate_brand reports the engine's own refusals
+// The schema is not the whole contract: `brandTheme` refuses inputs the schema accepts, and `validate_brand`
+// called them valid while `theme_brand` then refused them. EXPECTED is each refusal's owner-approved sentence,
+// typed here literally. BY-NAME MUTATION: drop the whole build call from the `validate_brand` handler → every
+// refusal arm below fails; the valid-brand and malformed-input arms do not.
+{
+  const B = { id: 'x', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  const bp = (await server.callJson('validate_brand', { ...B, layout: { breakpoints: [320, 768] } })).payload;
+  ok(bp.valid === false && bp.errors.length === 1 && bp.errors[0] === 'The first breakpoint must be 0px. This brand starts at 320px.',
+    `#2146 validate_brand reports the first-breakpoint refusal (#2132), not just the schema (got ${JSON.stringify(bp)})`);
+  const vp = (await server.callJson('validate_brand', { ...B, typography: { responsive: { fluid: true, minViewport: 1280, maxViewport: 375 } } })).payload;
+  ok(vp.valid === false && vp.errors.length === 1 && vp.errors[0] === 'The minimum viewport (1280px) must be smaller than the maximum viewport (375px).',
+    `#2146 validate_brand reports the viewport-range refusal (#2068), not just the schema (got ${JSON.stringify(vp)})`);
+  // #2137, owed by #2157 and #2158 (whichever merged second): the empty breakpoints list, refused in
+  // `brandTheme`. The exact approved sentence, typed here literally.
+  const empty = (await server.callJson('validate_brand', { ...B, layout: { breakpoints: [] } })).payload;
+  ok(empty.valid === false && empty.errors.length === 1 && empty.errors[0] === 'The brand needs at least one breakpoint, starting at 0px.',
+    `#2137 validate_brand reports the empty-breakpoints refusal (got ${JSON.stringify(empty)})`);
+  // #2159: refusals that fire only in `buildTree`, once the modes resolve, after `brandTheme` has accepted the
+  // brand. `validate_brand` runs the same build path `theme_brand` does, so they are reported in the engine's
+  // own words. EXPECTED is each message typed here literally. BY-NAME MUTATION: drop `buildTree(…)` from the
+  // handler (back to `brandTheme` alone) → these two arms fail; the brandTheme arms above do not.
+  const step = (await server.callJson('validate_brand', { ...B, overrides: { light: { 'foreground.brand': { palette: 'neutral', step: '999' } } } })).payload;
+  ok(step.valid === false && step.errors.length === 1 && step.errors[0] === "overrides[light]: unknown step '999' in palette 'neutral' (role 'foreground.brand')",
+    `#2159 validate_brand reports an override naming an unknown step, a refusal only buildTree reaches (got ${JSON.stringify(step)})`);
+  const pal = (await server.callJson('validate_brand', { ...B, overrides: { light: { 'foreground.brand': { palette: 'nope', step: '500' } } } })).payload;
+  ok(pal.valid === false && pal.errors.length === 1 && pal.errors[0] === "overrides[light]: unknown palette 'nope' (role 'foreground.brand')",
+    `#2159 validate_brand reports an override naming an unknown palette, a refusal only buildTree reaches (got ${JSON.stringify(pal)})`);
+  // #2198: more than seven breakpoints, refused in the build path, so validate_brand reports the sentence.
+  const eight = (await server.callJson('validate_brand', { ...B, layout: { breakpoints: [0, 360, 480, 768, 1024, 1440, 1920, 2560] } })).payload;
+  ok(eight.valid === false && eight.errors.length === 1 && eight.errors[0] === 'The brand can have at most seven breakpoints. This brand has 8.',
+    `#2198 validate_brand reports the more-than-seven refusal (got ${JSON.stringify(eight)})`);
+  // …and so does a generating tool, through #2200's guarded build (isError, the sentence in `errors`).
+  const eightTheme = await server.reply(server.send('tools/call', { name: 'theme_brand', arguments: { brand: { ...B, layout: { breakpoints: [0, 360, 480, 768, 1024, 1440, 1920, 2560] } } } }));
+  const eightPayload = eightTheme.result ? JSON.parse(eightTheme.result.content[0].text) : null;
+  ok(!eightTheme.error && eightTheme.result?.isError === true && eightPayload?.errors?.[0] === 'The brand can have at most seven breakpoints. This brand has 8.',
+    `#2198 theme_brand refuses an eighth breakpoint as an isError result carrying the sentence (got ${eightTheme.error ? 'RPC error ' + eightTheme.error.code : JSON.stringify(eightPayload)})`);
+  const good = (await server.callJson('validate_brand', B)).payload;
+  ok(good.valid === true && good.errors.length === 0, `#2146 a brand the engine builds is still valid, with no errors (got ${JSON.stringify(good)})`);
+  // A schema-invalid input is NOT handed to brandTheme: it would fail there with a TypeError rather than a
+  // reason. So its errors are the schema's alone, and none reads like a crash.
+  const bad = (await server.callJson('validate_brand', { id: 'nope' })).payload;
+  ok(bad.valid === false && bad.errors.length > 0 && !bad.errors.some((e: string) => /TypeError|Cannot read|is not a function|undefined/.test(e)),
+    `#2146 a schema-invalid input reports schema errors only, never a brandTheme crash (got ${JSON.stringify(bad.errors).slice(0, 200)})`);
+}
+
+// ---------------------------------------- #2146 item 2: the breakpoint prose says the first is always 0
+// Owner-approved wording (Q26 a), read over the wire an agent uses: the lever description in `list_levers`,
+// and the schema description `list_levers describe` returns. BY-NAME MUTATIONS: restore either old sentence
+// → its arm fails.
+{
+  const levers = JSON.stringify((await server.callJson('list_levers')).payload.levers);
+  ok(levers.includes('smallest first. The first is always 0px. Names follow') && !levers.includes('Studio keeps the first at 0px'),
+    '#2146 the layout.breakpoints lever description says "The first is always 0px." (Q26 a)');
+  const schemaBp = (await server.callJson('list_levers', { describe: ['layout'] })).payload.described?.properties?.layout?.properties?.breakpoints?.description ?? '';
+  ok(schemaBp.includes('ascending. The first must be 0.'),
+    `#2146 the schema's layout.breakpoints description says "The first must be 0." (Q26 a; got "${schemaBp}")`);
+  // #2160: the schema stated the names as "Auto-named sm/md/lg/xl/2xl", true only up to five breakpoints. It
+  // now carries the lever's approved naming sentence (#2070) word for word. Pinned to EACH OTHER, not to a
+  // phrase, so an edit to either one alone fails here: the two are authored separately, and drifted once.
+  // BY-NAME MUTATIONS: restore the schema's old "Auto-named …" text → this arm fails; edit the lever's
+  // sentence alone → this arm fails.
+  const leverNames = /Names follow the count:[^.]*\./.exec(levers)?.[0] ?? '';
+  ok(leverNames.length > 40 && schemaBp.includes(leverNames),
+    `#2160 the schema's breakpoints description carries the lever's naming sentence word for word (lever: "${leverNames}"; schema: "${schemaBp}")`);
+}
+
+// ------------------------------- #2162: a build-time refusal is an isError result, never a protocol error
+// An override naming an unknown step passes `brandTheme` and is refused in `buildTree`, once the modes resolve.
+// Every generating tool returned that as a -32603 protocol error, which a client may not hand to the model. It
+// must be an `isError` result carrying the engine's sentence in `errors`, the shape `validate_brand` reports.
+// Read off the RAW reply: `server.call` throws on an RPC error, which would crash this suite rather than fail
+// an arm by name. EXPECTED is the engine's sentence, typed here literally. BY-NAME MUTATION: take `buildTree`
+// back out of `buildBrand`'s try in mcp.ts → every arm below fails.
+{
+  const UNKNOWN_STEP = "overrides[light]: unknown step '999' in palette 'neutral' (role 'foreground.brand')";
+  const B = { id: 'x', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, overrides: { light: { 'foreground.brand': { palette: 'neutral', step: '999' } } } };
+  const refusedAs = async (tool: string, args: unknown) => {
+    const res = await server.reply(server.send('tools/call', { name: tool, arguments: args }));
+    let payload: any = null;
+    try { payload = res.result ? JSON.parse(res.result.content[0].text) : null; } catch { /* reported below */ }
+    const okShape = !res.error && res.result?.isError === true && Array.isArray(payload?.errors) && payload.errors.length === 1 && payload.errors[0] === UNKNOWN_STEP;
+    return { okShape, seen: res.error ? `RPC error ${res.error.code}: ${res.error.message}` : JSON.stringify(payload).slice(0, 200) };
+  };
+  const brief = ['---', 'id: refusal', 'primary: { l: 0.5, c: 0.15, h: 250 }', 'neutral: { hue: 250, chroma: 0.01 }',
+    "overrides: { light: { foreground.brand: { palette: neutral, step: '999' } } }", '---', '', 'A brand with a bad override.'].join('\n');
+  for (const [tool, args] of [
+    ['theme_brand', { brand: B }],
+    ['theme_from_brief', { brief }],
+    ['export_theme', { brand: B, outDir: 'mcp-test-refusal-out' }],
+    ['score_consumption', { brand: B, refs: ['color.text.primary'] }],
+  ] as const) {
+    const r = await refusedAs(tool, args);
+    ok(r.okShape, `#2162 ${tool}: a build-time refusal comes back as an isError result carrying the engine's sentence, not a protocol error (got ${r.seen})`);
+  }
+}
+
+// ------------------------------- #2209: a malformed score_consumption entry is an isError result naming it
+// `pairs: [null]` threw in `scoreContractCompliance` (`pair.fg` of null), and `refs: [null]` in `normalizeRef`,
+// outside #2162's `buildBrand` guard, so both escaped as -32603 protocol errors. Each case must be an `isError`
+// result whose `errors` name the bad entry by index and say what is wrong. Read off the RAW reply, for the same
+// reason as #2162 above. EXPECTED sentences are typed here literally, never read from mcp.ts. BY-NAME MUTATION:
+// skip `scoreInputErrors` in mcp.ts's score_consumption → the `pairs: [null]`, missing-`bg` and `refs: [null]`
+// arms fail as RPC errors, and the bad-`kind` arm fails on the scored result it now gets.
+{
+  const B = { id: 'x', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  const GOOD = { fg: 'text.primary', bg: 'background.primary' };
+  const call = async (args: unknown) => {
+    const res = await server.reply(server.send('tools/call', { name: 'score_consumption', arguments: args }));
+    let payload: any = null;
+    try { payload = res.result ? JSON.parse(res.result.content[0].text) : null; } catch { /* reported below */ }
+    return { res, payload, seen: res.error ? `RPC error ${res.error.code}: ${res.error.message}` : JSON.stringify(payload).slice(0, 300) };
+  };
+  for (const [label, args, want] of [
+    ['pairs: [null]', { brand: B, refs: [], pairs: [null] },
+      ['pairs[0] is null; each pair is an object with `fg` and `bg` color roles, such as { "fg": "text.primary", "bg": "background.primary" }']],
+    ['a pair missing bg, after a good one', { brand: B, refs: [], pairs: [GOOD, { fg: 'text.primary' }] },
+      ['pairs[1].bg is missing; it takes a color role, such as "background.primary"']],
+    ['a pair that is an array, and one with a numeric fg', { brand: B, refs: [], pairs: [['text.primary', 'background.primary'], { fg: 7, bg: 'background.primary' }] },
+      ['pairs[0] is an array; each pair is an object with `fg` and `bg` color roles, such as { "fg": "text.primary", "bg": "background.primary" }',
+        'pairs[1].fg is 7; it takes a color role, such as "text.primary"']],
+    ['a pair whose kind is outside the enum', { brand: B, refs: [], pairs: [{ ...GOOD, kind: 'heading' }] },
+      ['pairs[0].kind is "heading"; it takes text, large-text or ui']],
+    ['refs: [null]', { brand: B, refs: ['color.text.primary', null] },
+      ['refs[1] is null; each ref is a token path, such as "color.text.primary"']],
+  ] as const) {
+    const r = await call(args);
+    const okShape = !r.res.error && r.res.result?.isError === true && JSON.stringify(r.payload?.errors) === JSON.stringify(want);
+    ok(okShape, `#2209 score_consumption, ${label}: an isError result naming the bad entry, not a protocol error (want ${JSON.stringify(want)}; got ${r.seen})`);
+  }
+  // Control: well-formed input, with every kind and a pair naming no color role, still scores and is not refused.
+  const c = await call({ brand: B, refs: ['color.text.primary'], pairs: [GOOD, { ...GOOD, kind: 'text' }, { ...GOOD, kind: 'large-text' }, { ...GOOD, kind: 'ui' }, { fg: 'not.a.role', bg: '' }] });
+  ok(!c.res.error && c.res.result?.isError !== true && c.payload?.contracts?.checked > 0 && c.payload?.contracts?.unresolved?.length === 1,
+    `#2209 control: well-formed score_consumption input still scores, every kind accepted, an unknown role reported as unresolved (got ${c.seen})`);
 }
 
 // ----------------------------------------------------------------- 3. JOURNEY
@@ -218,7 +366,8 @@ await new Promise((r) => setTimeout(r, 3000));
   ok(nonLever.includes('modeLevers'), 'journey ①: the per-mode override layer is discoverable');
   // ①b The inline schema summarizes; `describe` returns the full text for the fields the agent names (#1760).
   const described = (await server.callJson('list_levers', { describe: ['radiusHairline'] })).payload.described;
-  ok(/near-sharp 1px corner/.test(described?.properties?.radiusHairline?.description ?? ''),
+  // Matched past the first sentence, so only the full text passes (#2053 retired the lever; the text says so).
+  ok(/is always emitted/.test(described?.properties?.radiusHairline?.description ?? ''),
     'journey ①b: list_levers describe returns a field\'s full description over the wire');
 
   // ② Generate from a brief, the way an agent working from prose would.

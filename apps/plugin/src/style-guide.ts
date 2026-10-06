@@ -1,9 +1,12 @@
 /**
- * THE STYLE-GUIDE GENERATOR (#259, phase 1: COLOR) — a table per token group, drawn from the file's own variables.
+ * THE STYLE-GUIDE GENERATOR (#259, phases 1–2: COLOR; DIMENSION, FONT VARIABLES, TEXT STYLES) — a table per token
+ * group, drawn from the file's own variables and text styles.
  *
  * Absorbed as a plugin feature (`docs/09` §4): the tables document the variables a theme write left in THIS
  * file, so they are read from `figma.variables`, not from the engine's emission. The design record for every
- * phase is `docs/45-style-guide-generator.md`; this module is phase 1 — every COLOR variable collection.
+ * phase is `docs/45-style-guide-generator.md`; this module is phase 1 (every COLOR variable collection) and phase 2
+ * (dimension and font variables, one table per collection and type, and the text styles; docs/45 §6, "How phase 2
+ * decides").
  *
  * TWO HALVES, the shape every executor in this plugin takes:
  *   • `planStyleGuide` — PURE. A catalog of collections + variables and the engine's contrast contract in,
@@ -39,8 +42,10 @@ import type { RGB } from '@prism3/engine/color';
 import { SECTION_HEADER_SET, isTemplateSet } from './file-components';
 import { HEADER_VARIANT } from './page-header';
 import { TAXONOMY, allLeaves, leafPageName } from './file-taxonomy';
-import { findCellSets, pickVariant, SWATCH_SET, TEXT_CELL_SET } from './style-guide-cells';
+import { findCellSets, pickVariant, SAMPLE_TEXT, SPACING_CELL_SET, SWATCH_SET, TEXT_CELL_SET } from './style-guide-cells';
 import type { CellNode } from './style-guide-cells';
+import { realYield } from './write-components';
+import type { YieldFn } from './write-components';
 
 // ── The catalog: what the plan reads ───────────────────────────────────────────────────────────────
 export interface SgMode { modeId: string; name: string }
@@ -52,8 +57,25 @@ export interface SgVariable {
   resolvedType: string;
   description?: string;
   valuesByMode: Record<string, unknown>;
+  /** The host's `scopes` — what the variable may be bound to. Phase 2 reads a FLOAT or STRING variable's kind from
+   *  them first (`FONT_SIZE` is a font size, `CORNER_RADIUS` a radius), and from its name second. */
+  scopes?: readonly string[];
 }
-export interface SgCatalog { collections: readonly SgCollection[]; variables: readonly SgVariable[] }
+/** A local text style (#259 phase 2), as `getLocalTextStylesAsync` returns it: the literal values and the
+ *  variables its properties are bound to. */
+export interface SgTextStyle {
+  id: string;
+  name: string;
+  description?: string;
+  fontName: { family: string; style: string };
+  fontSize: number;
+  lineHeight?: { unit: string; value?: number };
+  letterSpacing?: { unit: string; value: number };
+  paragraphSpacing?: number;
+  textDecoration?: string;
+  boundVariables?: Record<string, { id?: string } | undefined>;
+}
+export interface SgCatalog { collections: readonly SgCollection[]; variables: readonly SgVariable[]; textStyles?: readonly SgTextStyle[] }
 
 /** The engine's contrast contract, per mode: `resolveAllModes(theme)` satisfies it structurally. */
 export type SgContract = readonly {
@@ -61,11 +83,18 @@ export type SgContract = readonly {
   roles: Record<string, { against: string; min: number; model?: string; legibleFor?: string }>;
 }[];
 
-export type { SwatchType, ValueFormat, StyleGuideOptions } from './messages';
-import type { SwatchType, StyleGuideOptions, ValueFormat } from './messages';
+export type { SwatchType, ValueFormat, StyleGuideOptions, DimensionDisplay, FontDisplay } from './messages';
+import type { SwatchType, StyleGuideOptions, ValueFormat, StyleGuideCatalog, StyleGuideCatalogCollection, StyleGuideKind } from './messages';
 
-/** The types this phase documents. Everything else is named in the result as a later phase. */
-export const PHASE_TYPES = ['color'] as const;
+/** The types phases 1 and 2 document: `color`; `dimension` (spacing, size and radius variables); the five font-variable
+ *  kinds, one table each; and `typography`, the file's text styles. Everything else is named in the result as a
+ *  later phase. Matched in any case. */
+export const PHASE_TYPES = ['color', 'dimension', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'typography'] as const;
+/** The font-variable kinds, each its own table (proposed, owner to confirm: one table per kind). */
+export const FONT_KINDS = ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing'] as const;
+export type FontKind = (typeof FONT_KINDS)[number];
+/** The REM base the owner's plugin printed against. */
+export const REM_BASE = 16;
 
 const leafName = (page: string): string => {
   const hit = allLeaves(TAXONOMY).find((l) => l.leaf.page === page);
@@ -105,21 +134,47 @@ export interface SgCell {
   groundId: string | null;
   /** The measured contrast, or null where the role has no contracted ground. */
   contrast: SgContrast | null;
+  /** Phase 2: the resolved number in this mode (a dimension's px, a font size or weight), which sizes a spacing
+   *  bar and picks the font a weight binds; null for a string or an unresolved value. */
+  num?: number | null;
+  /** Phase 2: the resolved string in this mode (a font family), which the specimen loads before binding. */
+  str?: string | null;
+  /** Phase 2: the value in REM, for the REM column that follows the value column; undefined where the table has none. */
+  rem?: string;
 }
+
+/** A phase-2 row's specimen. A color row has none: its `display` names the swatch. */
+export type SgSpecimen =
+  /** A `_style-guide-spacing-cells` member at the value's width, its sized layer's width bound to the variable. */
+  | { kind: 'spacing'; member: 'filled' | 'line' }
+  /** The swatches set's `type=radius` member, its four corners bound to the variable. */
+  | { kind: 'radius' }
+  /** "Abc 123" in a text cell, with one property bound to the variable, or none (`generic`). */
+  | { kind: 'font'; bind: FontKind | null }
+  /** "Abc 123" in a text cell with the text style applied. */
+  | { kind: 'style' };
 
 export interface SgRow {
   variableId: string;
   name: string;
   /** The name as the table prints it — the collection's shared prefix removed. */
   token: string;
+  /** The title cell's generated default (#259, owner decision 15): the path humanized, "Text Primary". */
+  label: string;
   description: string;
   display: SwatchType;
   cells: SgCell[];
+  /** Phase 2: the specimen, when the row is not a color. */
+  specimen?: SgSpecimen;
+  /** Phase 2: values printed once per row, after the mode columns (a text style's family, weight, letter spacing). */
+  extra?: { value: string; alias: string | null }[];
 }
 
 export interface SgTable {
-  /** Stable across runs: `color|<collection>|<group path>`. */
+  /** Stable across runs: `<type>|<collection>|<group path>`. */
   key: string;
+  /** The key's first field: `color`, `dimension`, a font kind (`fontSize`) or `typography`. */
+  type: string;
   kind: 'primitive' | 'semantic';
   page: string;
   collectionId: string;
@@ -130,7 +185,12 @@ export interface SgTable {
   rows: SgRow[];
 }
 
-export interface SgPlan { tables: SgTable[]; notes: string[] }
+export interface SgPlan {
+  tables: SgTable[];
+  notes: string[];
+  /** The `tables` filter's names that match no table (#1778), as given. Each is also said in `notes`. */
+  unmatched: string[];
+}
 
 type RGBA = { r: number; g: number; b: number; a: number };
 const isRgba = (v: unknown): v is RGBA =>
@@ -283,8 +343,12 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
   const notes: string[] = [];
   const format = options.valueFormat ?? 'hex';
   const wantTypes = (options.types ?? [...PHASE_TYPES]).map((t) => t.toLowerCase());
-  for (const t of wantTypes) if (!(PHASE_TYPES as readonly string[]).includes(t)) notes.push(`${t}: not in this phase — color only`);
-  if (!wantTypes.includes('color')) return { tables: [], notes };
+  const known = PHASE_TYPES.map((t) => t.toLowerCase());
+  // AN ARG THAT NO LONGER DOES ANYTHING (owner decision 20): the agent link accepts it, so an older caller does not
+  // break, and the result says it was ignored.
+  if (options.retired?.includes('pixels')) notes.push('pixels is no longer an option and was ignored: every value column prints its base value in px');
+  for (const t of wantTypes) if (!known.includes(t)) notes.push(`${t}: not in this phase — this phase draws ${PHASE_TYPES.join(', ')}`);
+  const wantColor = wantTypes.includes('color');
 
   const ix: Index = {
     byId: new Map(catalog.variables.map((v) => [v.id, v])),
@@ -294,13 +358,13 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
   const contractByMode = new Map((contract ?? []).map((m) => [m.mode.toLowerCase(), m.roles]));
   const roleKeys = new Set<string>();
   for (const m of contract ?? []) for (const k of Object.keys(m.roles)) roleKeys.add(k);
-  if (!contract) notes.push('No saved brand in this file, so the contrast column reads "—" — Apply theme saves one');
+  if (!contract && wantColor) notes.push('No saved brand in this file, so the contrast column reads "—" — Apply theme saves one');
   // Every variable some other variable aliases, in any mode — the fact a primitive table's header states.
   const referenced = new Set<string>();
   for (const v of catalog.variables) for (const val of Object.values(v.valuesByMode)) { const a = aliasId(val); if (a) referenced.add(a); }
 
   const tables: SgTable[] = [];
-  for (const col of catalog.collections) {
+  for (const col of wantColor ? catalog.collections : []) {
     if (wantCollections && !wantCollections.includes(col.name.toLowerCase())) continue;
     const vars = catalog.variables.filter((v) => v.variableCollectionId === col.id && v.resolvedType === 'COLOR');
     if (!vars.length) continue;
@@ -396,6 +460,7 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
           token: display(v),
           description: v.description ?? '',
           display: options.display && options.display !== 'auto' ? options.display : auto,
+          label: humanizeName(segs.slice(prefix.length), prefix[prefix.length - 1]),
           cells,
         };
       });
@@ -413,6 +478,7 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
         // Keyed by the collection's ID and the group's FULL path, so neither a renamed collection nor a sibling
         // group that shortens the shared prefix moves the key and duplicates the table.
         key: `color|${col.id}|${path}`,
+        type: 'color',
         kind: primitive ? 'primitive' : 'semantic',
         page: primitive ? PRIMITIVE_PAGE : SEMANTIC_PAGE,
         collectionId: col.id,
@@ -424,7 +490,379 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
       });
     }
   }
-  return { tables, notes };
+  tables.push(...planVariableTables(catalog, ix, options, wantTypes, wantCollections, referenced, notes));
+  if (wantTypes.includes('typography') && !wantCollections) tables.push(...planTextStyles(catalog, ix, options));
+  // PHASE 2 TITLES ARE UNIQUE (proposed, owner to confirm): two collections can both hold a font-size table (`core`
+  // and `type-sets`), so a title two phase-2 tables share names its collection, "Font size (core)". The tables filter
+  // matches a title, so a shared one would draw both. Color titles are phase 1's and unchanged.
+  const phase2 = tables.filter((t) => t.type !== 'color');
+  const shared = new Set(phase2.filter((t) => phase2.filter((u) => u.title === t.title).length > 1).map((t) => t.title));
+  for (const t of phase2) if (shared.has(t.title)) {
+    const col = catalog.collections.find((c) => c.id === t.collectionId);
+    if (col) t.title = `${t.title} (${col.name})`;
+  }
+  // THE TITLE CELL (owner decision 15, 2026-09-29): a leading Name column on every table type, when asked for.
+  if (options.titleCell) for (const t of tables) t.columns.unshift('Name');
+  return narrow(tables, notes, options.tables);
+};
+
+// ── Phase 2: dimension, font variables and text styles (#259) ─────────────────────────────────────────
+/** What a FLOAT or STRING variable documents. The dimension kinds (`spacing`, `size`, `radius`, `scale`) draw in one
+ *  `dimension` table per collection; each font kind draws its own table; the rest wait for phase 3. */
+export type VarKind = 'spacing' | 'size' | 'radius' | 'scale' | FontKind
+  | 'fontStyle' | 'paragraphSpacing' | 'paragraphIndent' | 'effect' | 'gradient' | 'duration' | 'motion'
+  | 'opacity' | 'borderWidth' | 'iconSize' | 'breakpoint' | 'grid' | 'other';
+
+/** A scope that names ONE property that is not a length on a frame: the variable is that property, whatever its
+ *  name. The dimension scopes (WIDTH_HEIGHT, GAP, CORNER_RADIUS, STROKE_FLOAT) are read below, after the name. */
+const PROPERTY_SCOPE: Record<string, VarKind> = {
+  FONT_FAMILY: 'fontFamily', FONT_SIZE: 'fontSize', FONT_WEIGHT: 'fontWeight', LINE_HEIGHT: 'lineHeight', LETTER_SPACING: 'letterSpacing', FONT_STYLE: 'fontStyle',
+  PARAGRAPH_SPACING: 'paragraphSpacing', PARAGRAPH_INDENT: 'paragraphIndent', EFFECT_FLOAT: 'effect', OPACITY: 'opacity', TEXT_CONTENT: 'other',
+};
+/** The scopes a length on a frame takes: a variable scoped to these alone is a dimension. */
+const DIMENSION_SCOPES = new Set(['WIDTH_HEIGHT', 'GAP', 'CORNER_RADIUS', 'STROKE_FLOAT']);
+/** The kinds a later phase draws, as the note names them. */
+const LATER_KIND: Partial<Record<VarKind, string>> = {
+  fontStyle: 'font style', paragraphSpacing: 'paragraph spacing', paragraphIndent: 'paragraph indent', effect: 'shadow and effect', gradient: 'gradient',
+  duration: 'duration', motion: 'motion', opacity: 'opacity', borderWidth: 'border width', iconSize: 'icon size', breakpoint: 'breakpoint', grid: 'grid',
+  other: 'other number or string',
+};
+
+/**
+ * A FLOAT or STRING variable's kind, from its SCOPES first and its NAME second (proposed, owner to confirm).
+ *   1. A scope naming one property that is not a frame length is that property: `FONT_SIZE` a font size,
+ *      `PARAGRAPH_SPACING` a paragraph spacing, `EFFECT_FLOAT` a shadow or effect, `OPACITY` an opacity.
+ *   2. Then the name, read per segment and per word, in any case and camelCase included (`lineHeight`,
+ *      `letter-spacing` and `letterspacing` read alike). The later-phase families come first (a gradient, a shadow, a
+ *      duration or other motion value, a breakpoint, a grid, an opacity, an icon size, a border width, a paragraph
+ *      spacing), so a `grid/gutter` is not drawn as spacing today and redrawn as a grid tomorrow, and a
+ *      `motion/duration/200` is never drawn as a 200px bracket. Then the font kinds, a radius, a spacing, a size.
+ *   3. Last, a dimension by scope or name: a variable scoped to frame lengths alone, or named `dimension` or
+ *      `scale`, is a plain `scale` (`core/dimension/*`). ANYTHING ELSE IS `other`, a later phase: a FLOAT the name
+ *      and scopes do not place is never drawn as a length (#259 review of `4faeb98a`: Prism2's unscoped
+ *      `pds/motion/duration/*` drew as "200px · 12.5rem" brackets).
+ * Not a FLOAT or STRING: null.
+ */
+export const varKind = (v: SgVariable): VarKind | null => {
+  if (v.resolvedType !== 'FLOAT' && v.resolvedType !== 'STRING') return null;
+  const scopes = (v.scopes ?? []).filter((s) => s !== 'ALL_SCOPES');
+  // Each segment whole, separators dropped ("lineheight", "paragraphspacing"), and each word in it ("line", "height").
+  const rawSegs = v.name.split('/');
+  const joined = new Set(rawSegs.map((s) => s.toLowerCase().replace(/[-_\s]/g, '')));
+  const words = new Set(rawSegs.flatMap((s) => s.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase().split(/[-_\s]+/)).filter(Boolean));
+  const has = (...w: string[]): boolean => w.some((x) => joined.has(x) || words.has(x));
+  const only = (s: string): boolean => scopes.length > 0 && scopes.every((x) => x === s);
+  const property = [...new Set(scopes.map((s) => PROPERTY_SCOPE[s]))];
+  if (scopes.length && property.length === 1 && property[0]) return property[0];
+  if (has('gradient')) return 'gradient';
+  if (has('shadow', 'effect', 'elevation', 'blur')) return 'effect';
+  if (has('duration', 'delay')) return 'duration';
+  if (has('motion', 'animation', 'transition', 'easing', 'spring')) return 'motion';
+  if (v.resolvedType === 'STRING') return has('family', 'fontfamily') ? 'fontFamily' : has('style', 'fontstyle') ? 'fontStyle' : 'other';
+  if (has('paragraphspacing')) return 'paragraphSpacing';
+  if (has('paragraphindent')) return 'paragraphIndent';
+  if (has('breakpoint', 'breakpoints')) return 'breakpoint';
+  if (has('grid')) return 'grid';
+  if (has('opacity', 'alpha')) return 'opacity';
+  if (has('icon')) return 'iconSize';
+  if (has('borderwidth', 'strokewidth', 'stroke') || (has('border') && has('width')) || only('STROKE_FLOAT')) return 'borderWidth';
+  const font = has('font', 'type', 'typography', 'fontfluid');
+  if (has('fontsize') || (font && has('size'))) return 'fontSize';
+  if (has('lineheight', 'leading')) return 'lineHeight';
+  if (has('letterspacing', 'tracking')) return 'letterSpacing';
+  if (has('fontweight') || (font && has('weight'))) return 'fontWeight';
+  if (has('radius', 'corner', 'cornerradius') || only('CORNER_RADIUS')) return 'radius';
+  if (only('GAP') || has('space', 'spacing', 'gap', 'padding', 'inset', 'margin')) return 'spacing';
+  if (only('WIDTH_HEIGHT') || has('size', 'height', 'width')) return 'size';
+  if ((scopes.length && scopes.every((s) => DIMENSION_SCOPES.has(s))) || has('dimension', 'dimensions', 'scale')) return 'scale';
+  return 'other';
+};
+const DIMENSION_KINDS: readonly VarKind[] = ['spacing', 'size', 'radius', 'scale'];
+/** The table type a kind draws in: `dimension`, a font kind, or null for a later phase. */
+const typeOfKind = (k: VarKind): string | null =>
+  DIMENSION_KINDS.includes(k) ? 'dimension' : (FONT_KINDS as readonly string[]).includes(k) ? k : null;
+const FONT_LABEL: Record<FontKind, string> = { fontFamily: 'Font family', fontSize: 'Font size', fontWeight: 'Font weight', lineHeight: 'Line height', letterSpacing: 'Letter spacing' };
+
+/** A number as the table prints it: up to `d` places, trailing zeros dropped. */
+const trimNum = (n: number, d: number): string => String(Math.round(n * 10 ** d) / 10 ** d);
+/** A length in its BASE unit, pixels: what a value column prints. REM is never in the same cell (owner decision,
+ *  2026-09-29: "REM is always an addition to the base value, never a replacement"); it has its own column. */
+export const formatPx = (px: number): string => `${trimNum(px, 2)}px`;
+/** The same length in REM at a 16px base (`REM_BASE`), for the REM column. */
+export const formatRem = (px: number): string => `${trimNum(px / REM_BASE, 4)}rem`;
+/** Whether a table's lengths get a REM column: the `rem` option, on by default. Every value column prints its base
+ *  value; there is no option to leave it out (owner decision 20: the Pixels toggle is removed). */
+const remOn = (o: StyleGuideOptions): boolean => o.rem !== false;
+/** The style name of each numeric weight, the names Figma's font menus use. */
+const WEIGHT_NAME: Record<number, string> = { 100: 'Thin', 200: 'Extra Light', 300: 'Light', 400: 'Regular', 500: 'Medium', 600: 'Semi Bold', 700: 'Bold', 800: 'Extra Bold', 900: 'Black' };
+export const weightName = (w: number): string | undefined => WEIGHT_NAME[Math.round(w / 100) * 100];
+/** The numeric weight a style name reads as ("Semi Bold Italic" → 600), or undefined when no weight word is in it. */
+export const weightOf = (style: string): number | undefined => {
+  const s = style.toLowerCase().replace(/[-_\s]/g, '');
+  const order: [string, number][] = [['extralight', 200], ['ultralight', 200], ['semibold', 600], ['demibold', 600], ['extrabold', 800], ['ultrabold', 800],
+    ['thin', 100], ['light', 300], ['regular', 400], ['medium', 500], ['bold', 700], ['black', 900], ['heavy', 900], ['italic', 400]];
+  return order.find(([w]) => s.includes(w))?.[1];
+};
+const formatWeight = (w: number): string => { const n = weightName(w); return n ? `${trimNum(w, 0)} · ${n}` : trimNum(w, 0); };
+/** A text style's line height: pixels as a length, a percentage as it is stored, AUTO as "auto". */
+const formatLineHeight = (lh: SgTextStyle['lineHeight']): string =>
+  !lh || lh.unit === 'AUTO' ? 'auto' : lh.unit === 'PERCENT' ? `${trimNum(lh.value ?? 0, 2)}%` : formatPx(lh.value ?? 0);
+const formatSpacing = (ls: SgTextStyle['letterSpacing']): string =>
+  !ls ? formatPx(0) : ls.unit === 'PERCENT' ? `${trimNum(ls.value, 2)}%` : formatPx(ls.value);
+/** A letter spacing's REM cell (owner decision 20): a length in px converts; a percentage is printed as it is stored,
+ *  in the value column, and has no REM, so its REM cell reads "—". */
+const spacingRem = (ls: SgTextStyle['letterSpacing']): string =>
+  !ls ? formatRem(0) : ls.unit === 'PIXELS' ? formatRem(ls.value) : '—';
+
+/** A variable's literal in a mode, following aliases the way `resolveColor` does: a number, a string, or null. */
+const resolveLiteral = (ix: Index, v: SgVariable, modeId: string): unknown => {
+  let cur: SgVariable | undefined = v;
+  let mode: string | undefined = modeId;
+  for (let hop = 0; cur && mode && hop < 16; hop++) {
+    const raw: unknown = cur.valuesByMode[mode];
+    const next = aliasId(raw);
+    if (!next) return raw ?? null;
+    const target = ix.byId.get(next);
+    if (!target) return null;
+    mode = target.variableCollectionId === cur.variableCollectionId ? mode : defaultMode(ix.collections.get(target.variableCollectionId));
+    cur = target;
+  }
+  return null;
+};
+
+/** Sort a table's rows in RAMP ORDER when every row is one step (`0, 025, 050 … 1200`; `none, sm, md` keep the file's
+ *  order), and keep the file's order when a row is a path (`xs/height`). */
+const rampSort = <T extends { token: string }>(rows: T[]): T[] =>
+  rows.every((r) => !r.token.includes('/')) ? [...rows].sort((a, b) => stepCompare(a.token, b.token)) : rows;
+
+/**
+ * THE DIMENSION AND FONT-VARIABLE TABLES (#259 phase 2). One table per collection (and root) per type: every
+ * dimension variable in a collection in one `dimension` table, each font kind in its own. PRIMITIVE when no variable
+ * in the table aliases another (`core/dimension/*`, on `↳ Primitive tokens`), SEMANTIC otherwise (`space`, `radius`,
+ * on `↳ Semantic tokens`), the phase 1 rule applied per table. One specimen + value column per mode, as color.
+ */
+const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOptions, wantTypes: readonly string[],
+  wantCollections: readonly string[] | undefined, referenced: ReadonlySet<string>, notes: string[]): SgTable[] => {
+  const out: SgTable[] = [];
+  const later = new Map<string, number>();
+  for (const col of catalog.collections) {
+    if (wantCollections && !wantCollections.includes(col.name.toLowerCase())) continue;
+    const buckets = new Map<string, { v: SgVariable; kind: VarKind }[]>();
+    for (const v of catalog.variables) {
+      if (v.variableCollectionId !== col.id) continue;
+      const kind = varKind(v);
+      if (!kind) continue;
+      const type = typeOfKind(kind);
+      if (!type) { const l = LATER_KIND[kind] ?? kind; later.set(l, (later.get(l) ?? 0) + 1); continue; }
+      if (!wantTypes.includes(type.toLowerCase())) continue;
+      if (!buckets.has(type)) buckets.set(type, []);
+      buckets.get(type)!.push({ v, kind });
+    }
+    for (const [type, members] of buckets) {
+      // ROOTS, as for color: the same tree under two first segments (`nbds/space/…`, `pds3/space/…`) is one table each.
+      const firsts = [...new Set(members.map((m) => m.v.name.split('/')[0]))];
+      const whole = commonPrefix(members.map((m) => m.v.name.split('/').slice(0, -1)));
+      const multiRoot = whole.length === 0 && firsts.length > 1 && commonPrefix(members.map((m) => m.v.name.split('/').slice(1, -1))).length > 0;
+      for (const root of multiRoot ? firsts : [null]) {
+        const mine = members.filter((m) => root === null || m.v.name.split('/')[0] === root);
+        const prefix = commonPrefix(mine.map((m) => m.v.name.split('/').slice(0, -1)));
+        const primitive = mine.every((m) => col.modes.every((md) => aliasId(m.v.valuesByMode[md.modeId]) === null));
+        const unrooted = type === 'dimension'
+          ? (primitive && prefix.length ? sentence(prefix[prefix.length - 1]) : sentence(col.name))
+          : FONT_LABEL[type as FontKind];
+        const title = root ? `${unrooted} — ${root}` : unrooted;
+        // A REM COLUMN after each Value column, in a table of lengths (dimension, font size, line height, letter
+        // spacing), when REM is on (owner decision, 2026-09-29). A family or a weight is not a length.
+        const lengths = remOn(options) && (type === 'dimension' || type === 'fontSize' || type === 'lineHeight' || type === 'letterSpacing');
+        const rows: SgRow[] = rampSort(mine.map(({ v, kind }) => {
+          const cells: SgCell[] = col.modes.map((m) => {
+            const lit = resolveLiteral(ix, v, m.modeId);
+            const first = aliasId(v.valuesByMode[m.modeId]);
+            const aliasVar = first ? ix.byId.get(first) : undefined;
+            const num = typeof lit === 'number' ? lit : null;
+            const str = typeof lit === 'string' ? lit : null;
+            const value = num === null ? (str ?? '—')
+              : type === 'fontWeight' ? formatWeight(num) : formatPx(num);
+            const rem = lengths ? (num === null ? '—' : formatRem(num)) : undefined;
+            return { modeId: m.modeId, modeName: m.name, value, rem, alias: aliasVar ? aliasVar.name : null, raw: `${first ?? ''}|${lit ?? ''}`, groundId: null, contrast: null, num, str };
+          });
+          return { variableId: v.id, name: v.name, token: v.name.split('/').slice(prefix.length).join('/'), label: humanizeName(v.name.split('/').slice(prefix.length), prefix[prefix.length - 1]), description: v.description ?? '', display: 'default' as SwatchType, cells, specimen: specimenOf(type, kind, options) };
+        }));
+        const n = rows.length;
+        const k = mine.filter((m) => referenced.has(m.v.id)).length;
+        const noun = type === 'dimension' ? `dimension${n === 1 ? '' : 's'}` : `${FONT_LABEL[type as FontKind].toLowerCase()} variable${n === 1 ? '' : 's'}`;
+        const perMode = col.modes.length > 1 ? `, per mode (${col.modes.map((m) => m.name).join(', ')})` : '';
+        const refs = primitive && k ? (k === n ? ', each referenced by another variable' : `, ${k} referenced by another variable`) : '';
+        out.push({
+          key: `${type}|${col.id}|${prefix.join('/')}`,
+          type,
+          kind: primitive ? 'primitive' : 'semantic',
+          page: primitive ? PRIMITIVE_PAGE : SEMANTIC_PAGE,
+          collectionId: col.id,
+          title,
+          description: `${n} ${noun} in ${col.name}${perMode}${refs}`,
+          modes: col.modes,
+          columns: ['Token', ...col.modes.flatMap((m) => [m.name, 'Value', ...(lengths ? ['REM'] : [])]), ...(options.description === false ? [] : ['Description'])],
+          rows,
+        });
+      }
+    }
+  }
+  // Said once, so a designer knows why the opacity or breakpoint variables are not drawn (types left open only).
+  if (!options.types && later.size) notes.push(`Not drawn until a later phase: ${[...later].map(([l, n]) => `${n} ${l}`).join(', ')} variable${[...later.values()].reduce((a, b) => a + b, 0) === 1 ? '' : 's'}`);
+  return out;
+};
+
+/** A phase-2 row's specimen. A DIMENSION draws ONE spacing style for the whole run (owner decision 18, 2026-09-29: "a
+ *  stylistic choice, never chosen by role"; a table that mixes the filled bar and the bracket reads as a bug): the
+ *  `dimensionDisplay` option, `filled` by default, `auto` meaning `filled`. A radius is the one exception, and not a
+ *  spacing style: it draws the radius swatch, a corner, whatever the option. A font variable binds the property it is
+ *  for, or the Customize override. */
+const specimenOf = (type: string, kind: VarKind, options: StyleGuideOptions): SgSpecimen => {
+  if (type === 'dimension') {
+    if (kind === 'radius') return { kind: 'radius' };
+    return { kind: 'spacing', member: options.dimensionDisplay === 'line' ? 'line' : 'filled' };
+  }
+  const f = options.fontDisplay ?? 'auto';
+  const bind: FontKind | null = f === 'auto' ? kind as FontKind : f === 'generic' ? null
+    : ({ family: 'fontFamily', size: 'fontSize', weight: 'fontWeight', letterSpacing: 'letterSpacing', lineHeight: 'lineHeight' } as const)[f];
+  return { kind: 'font', bind };
+};
+
+/** The pseudo-collection a text-style table's key names: text styles belong to no variable collection. */
+export const TEXT_STYLES_ID = 'text-styles';
+
+/**
+ * THE TEXT-STYLE TABLE (#259 phase 2): one row per local text style, in the file's own order, on `↳ Semantic tokens`.
+ * The specimen is "Abc 123" with the style applied. A style whose size is bound to a variable in a collection with
+ * more than one mode (prism3's `type-sets`: desktop, mobile) is a responsive size, so the table takes that
+ * collection's modes, side by side as every table does, each specimen pinned to its mode and each size printed in
+ * it (proposed, owner to confirm: a fluid size shows as its modes, not as a min–max range). Family, weight and letter
+ * spacing print once; paragraph spacing and text decoration only when toggled on.
+ */
+const planTextStyles = (catalog: SgCatalog, ix: Index, options: StyleGuideOptions): SgTable[] => {
+  const styles = catalog.textStyles ?? [];
+  if (!styles.length) return [];
+  const boundVar = (s: SgTextStyle, field: string): SgVariable | undefined => {
+    const id = s.boundVariables?.[field]?.id;
+    return id ? ix.byId.get(id) : undefined;
+  };
+  // The responsive collection: the one holding the most bound font sizes, among collections with more than one mode.
+  const counts = new Map<string, number>();
+  for (const s of styles) {
+    const v = boundVar(s, 'fontSize');
+    const c = v ? ix.collections.get(v.variableCollectionId) : undefined;
+    if (c && c.modes.length > 1) counts.set(c.id, (counts.get(c.id) ?? 0) + 1);
+  }
+  const top = [...counts].sort((a, b) => b[1] - a[1])[0];
+  const modeCol = top ? ix.collections.get(top[0]) : undefined;
+  const modes: readonly SgMode[] = modeCol ? modeCol.modes : [{ modeId: '', name: 'Specimen' }];
+  // A bound value in a mode: in the responsive collection, that mode; elsewhere, the variable's own default.
+  const inMode = (v: SgVariable, modeId: string): unknown =>
+    resolveLiteral(ix, v, modeCol && v.variableCollectionId === modeCol.id && modeId ? modeId : (defaultMode(ix.collections.get(v.variableCollectionId)) ?? modeId));
+  const numOr = (s: SgTextStyle, field: string, modeId: string, fallback: number | undefined): number | undefined => {
+    const v = boundVar(s, field);
+    const x = v ? inMode(v, modeId) : undefined;
+    return typeof x === 'number' ? x : fallback;
+  };
+  const strOr = (s: SgTextStyle, field: string, modeId: string, fallback: string): string => {
+    const v = boundVar(s, field);
+    const x = v ? inMode(v, modeId) : undefined;
+    return typeof x === 'string' ? x : fallback;
+  };
+  const once = (xs: string[]): string => [...new Set(xs)].join(' / ');
+  const prefix = commonPrefix(styles.map((s) => s.name.split('/').slice(0, -1)));
+  const rows: SgRow[] = styles.map((s) => {
+    const per = modes.map((m) => {
+      const size = numOr(s, 'fontSize', m.modeId, s.fontSize) ?? 0;
+      const lhPx = numOr(s, 'lineHeight', m.modeId, undefined);
+      const lh = lhPx !== undefined ? { unit: 'PIXELS', value: lhPx } : s.lineHeight;
+      const lsPx = numOr(s, 'letterSpacing', m.modeId, undefined);
+      const ls = lsPx !== undefined ? { unit: 'PIXELS', value: lsPx } : s.letterSpacing;
+      const family = strOr(s, 'fontFamily', m.modeId, s.fontName.family);
+      const style = strOr(s, 'fontStyle', m.modeId, s.fontName.style);
+      const weight = numOr(s, 'fontWeight', m.modeId, weightOf(style));
+      return { m, size, lh, ls, family, style, weight };
+    });
+    const cells: SgCell[] = per.map(({ m, size, lh, ls, family, style, weight }) => ({
+      modeId: m.modeId,
+      modeName: m.name,
+      value: `${formatPx(size)} / ${formatLineHeight(lh)}`,
+      // The REM column: the size, and the line height too when it is a length (a percentage or auto has no REM).
+      rem: remOn(options) ? `${formatRem(size)}${lh && lh.unit === 'PIXELS' ? ` / ${formatRem(lh.value ?? 0)}` : ''}` : undefined,
+      alias: boundVar(s, 'fontSize')?.name ?? null,
+      // What the style holds in this mode, in pixels and its own units, so a REM toggle is not a change.
+      raw: JSON.stringify([family, style, weight ?? null, size, lh ?? null, ls ?? null, s.paragraphSpacing ?? 0, s.textDecoration ?? 'NONE']),
+      groundId: null,
+      contrast: null,
+      num: size,
+      str: family,
+    }));
+    const extra: { value: string; alias: string | null }[] = [
+      { value: once(per.map((p) => p.family)), alias: boundVar(s, 'fontFamily')?.name ?? null },
+      { value: once(per.map((p) => (p.weight !== undefined ? `${trimNum(p.weight, 0)} · ${p.style}` : p.style))), alias: (boundVar(s, 'fontWeight') ?? boundVar(s, 'fontStyle'))?.name ?? null },
+      { value: once(per.map((p) => formatSpacing(p.ls))), alias: boundVar(s, 'letterSpacing')?.name ?? null },
+      // Letter spacing and paragraph spacing get their REM too, each in a REM column beside it (owner decision 20, the
+      // pattern of decision 19). Only a length in px converts.
+      ...(remOn(options) ? [{ value: once(per.map((p) => spacingRem(p.ls))), alias: null }] : []),
+      ...(options.paragraphSpacing ? [{ value: formatPx(s.paragraphSpacing ?? 0), alias: boundVar(s, 'paragraphSpacing')?.name ?? null },
+        ...(remOn(options) ? [{ value: formatRem(s.paragraphSpacing ?? 0), alias: null }] : [])] : []),
+      ...(options.textDecoration ? [{ value: sentence((s.textDecoration ?? 'NONE').toLowerCase()), alias: null }] : []),
+    ];
+    return { variableId: s.id, name: s.name, token: s.name.split('/').slice(prefix.length).join('/'), label: humanizeName(s.name.split('/').slice(prefix.length), prefix[prefix.length - 1]), description: s.description ?? '', display: 'default' as SwatchType, cells, specimen: { kind: 'style' }, extra };
+  });
+  const n = rows.length;
+  return [{
+    key: `typography|${TEXT_STYLES_ID}|${prefix.join('/')}`,
+    type: 'typography',
+    kind: 'semantic',
+    page: SEMANTIC_PAGE,
+    collectionId: modeCol?.id ?? TEXT_STYLES_ID,
+    title: 'Text styles',
+    description: `${n} text style${n === 1 ? '' : 's'} in this file${modeCol ? `, sizes per ${modeCol.name} mode (${modeCol.modes.map((m) => m.name).join(', ')})` : ''}`,
+    modes,
+    columns: ['Token', ...modes.flatMap((m) => [m.name, 'Size / line height', ...(remOn(options) ? ['REM'] : [])]), 'Family', 'Weight', 'Letter spacing',
+      ...(remOn(options) ? ['REM'] : []), ...(options.paragraphSpacing ? ['Paragraph spacing', ...(remOn(options) ? ['REM'] : [])] : []), ...(options.textDecoration ? ['Decoration'] : []),
+      ...(options.description === false ? [] : ['Description'])],
+    rows,
+  }];
+};
+
+/** A size word the humanized name keeps upper-case: xs, sm, md, lg, xl, 2xl, 3xl, xxl, 2xs (proposed, owner to confirm). */
+const SIZE_WORD = /^(\d*x{1,3}[sl]|sm|md|lg)$/i;
+/**
+ * THE TITLE CELL'S DEFAULT (owner decision 15, proposed rules): a token's path, below the table's shared prefix (the
+ * root or namespace and the collection's path), in Title Case, a word per path segment and per hyphen, size words
+ * upper-cased: `text/primary` → "Text Primary", `display/xl/emphasis` → "Display XL Emphasis", `on-brand` → "On Brand".
+ * A single step (`050` in `pds3/space`) keeps the last prefix segment, so it reads "Space 050", not "050".
+ */
+export const humanizeName = (segs: readonly string[], context?: string): string => {
+  const parts = segs.length === 1 && context ? [context, ...segs] : [...segs];
+  return parts.flatMap((p) => p.split(/[-_\s]+/)).filter(Boolean)
+    .map((w) => (SIZE_WORD.test(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1))).join(' ');
+};
+
+/**
+ * THE TABLES FILTER (#1778): keep the tables named, each by its title as drawn ("Primary — nbds") or its key, in
+ * any case. A name that matches nothing is reported by name, with the titles this run could draw, so a typo is
+ * never a silent no-op. Applied after the plan is built, so a title means what it means in an unfiltered run.
+ */
+const TITLES_LISTED = 8;
+const narrow = (tables: SgTable[], notes: string[], want: readonly string[] | undefined): SgPlan => {
+  if (!want) return { tables, notes, unmatched: [] };
+  const hit = (t: SgTable, name: string): boolean => {
+    const n = name.trim().toLowerCase();
+    return t.title.toLowerCase() === n || t.key.toLowerCase() === n;
+  };
+  const unmatched = [...new Set(want)].filter((name) => !tables.some((t) => hit(t, name)));
+  if (unmatched.length) {
+    // The first TITLES_LISTED titles, then a count: the owner's file draws 43, which is no longer a note.
+    const titles = tables.map((t) => t.title);
+    const listed = titles.length > TITLES_LISTED ? `${titles.slice(0, TITLES_LISTED).join(', ')} and ${titles.length - TITLES_LISTED} more` : titles.join(', ');
+    const here = tables.length ? `the tables this run can draw are ${listed}` : 'this run draws no tables';
+    notes.push(`No table is titled or keyed ${unmatched.map((n) => `"${n}"`).join(', ')}; ${here}`);
+  }
+  return { tables: tables.filter((t) => want.some((name) => hit(t, name))), notes, unmatched };
 };
 
 /** A ground or ink the contract names — a role key (`background.primary`) in this collection first, then a
@@ -505,7 +943,7 @@ export interface SgNode extends CellNode {
   gridRowGap?: unknown;
   gridColumnGap?: unknown;
   gridColumnSizes?: { type: string; value?: number }[];
-  readonly gridRowSizes?: readonly { type: string; value?: number }[];
+  gridRowSizes?: { type: string; value?: number }[];
   readonly componentProperties?: Record<string, { type?: string; value?: unknown }>;
   appendChildAt?(node: unknown, row: number, column: number): void;
   setPluginData?(key: string, value: string): void;
@@ -515,6 +953,14 @@ export interface SgNode extends CellNode {
   getStyledTextSegments?(fields: ('fontName' | 'fontSize' | 'fontWeight' | 'textStyleId')[]): readonly { fontName: unknown }[];
   getMainComponentAsync?(): Promise<unknown>;
   remove?(): void;
+  /** Phase 2: bind a node property (a bar's `width`, a corner, a text's `fontSize`) to a variable. */
+  setBoundVariable?(field: string, variable: unknown): void;
+  /** Phase 2: apply a text style to a text node (the dynamic-page form). */
+  setTextStyleIdAsync?(id: string): Promise<void>;
+  textStyleId?: unknown;
+  /** A floor on an auto-layout or grid child's size (a palette swatch that FILLs its cell). */
+  minWidth?: unknown;
+  minHeight?: unknown;
 }
 
 export interface SgPage {
@@ -534,9 +980,11 @@ export interface StyleGuideApi {
   loadAllPagesAsync(): Promise<void>;
   loadFontAsync(font: { family: string; style: string }): Promise<void>;
   createFrame(): SgNode;
+  /** Phase 2: the file's local text styles, in the file's order. Optional: without it, no text-style table. */
+  getLocalTextStylesAsync?(): Promise<readonly unknown[]>;
   variables: {
     getLocalVariableCollectionsAsync(): Promise<readonly unknown[]>;
-    getLocalVariablesAsync(type?: 'COLOR'): Promise<readonly unknown[]>;
+    getLocalVariablesAsync(type?: string): Promise<readonly unknown[]>;
     setBoundVariableForPaint(paint: unknown, field: 'color', variable: unknown): unknown;
   };
 }
@@ -550,7 +998,10 @@ export type KeepReason = 'edited' | 'moved' | 'copied' | 'unrecorded' | 'no-coll
 export type TableOutcome =
   | { key: string; title: string; page: string; status: 'created'; rows: number }
   | { key: string; title: string; page: string; status: 'updated'; rows: number; diff: RowsDiff }
-  | { key: string; title: string; page: string; status: 'skipped'; reason: 'no-page' | 'no-cells' };
+  | { key: string; title: string; page: string; status: 'skipped'; reason: 'no-page' | 'no-cells' }
+  /** The host threw while this table was drawn (S11.2, owner decision P6): the run went on to the next table. What
+   *  the table had drawn before the throw stays where it is; a rerun finds it by its key and updates it in place. */
+  | { key: string; title: string; page: string; status: 'failed'; reason: string };
 
 export interface StyleGuideResult {
   tables: TableOutcome[];
@@ -571,15 +1022,66 @@ export interface StyleGuideResult {
   notes: string[];
   /** Named, recoverable misses: fonts, a header set, a variant approximated, a node with nothing to bind. */
   misses: string[];
+  /** The `tables` filter's names that match no table (#1778). Not a pass: the designer asked for a table
+   *  this run could not find. */
+  unmatched: string[];
+  /** Set when `StyleGuideRun.stop` ended the run early (S11.2, owner decision P7): `done` of `total` tables were
+   *  reached. A stopped run judges no superseded table and re-flows nothing it did not draw, as a filtered one. */
+  stopped?: { done: number; total: number };
 }
 
-/** Read the file's collections and variables into the plan's catalog, keeping the host objects by id. */
-export const readCatalog = async (vars: StyleGuideApi['variables']): Promise<{ catalog: SgCatalog; collectionById: Map<string, unknown>; variableById: Map<string, unknown> }> => {
+/** A progress reading (#1778): `done` of `total` tables drawn, the last one's title and what it cost. */
+export interface StyleGuideProgress { done: number; total: number; title: string; tableMs: number }
+
+/** How the executor shares the host's thread (#1778) — never part of `StyleGuideOptions`, which crosses the
+ *  bridge: these are the caller's, the way `ComponentApplyOptions` carries the component writer's. */
+export interface StyleGuideRun {
+  /** How control returns to the host. Defaults to the component writer's `realYield`, a `setTimeout(0)`. */
+  yieldTo?: YieldFn;
+  /** Called before the first table (`done: 0`) and after each. Synchronous: it posts and returns. */
+  onProgress?: (p: StyleGuideProgress) => void;
+  /** Called once, before the first table, with every table the run will try (S11.2). */
+  onPlan?: (tables: readonly SgTable[]) => void;
+  /** Called as each table moves (S11.2): `drawing` before it, then `done`, or `failed` with the reason. A skipped table
+   *  (no page) reads `failed`, with the words the summary uses for it. */
+  onTable?: (e: { index: number; status: 'drawing' | 'done' | 'failed'; reason?: string }) => void;
+  /** Read after each table (S11.2, owner decision P7): true stops the run there. The table being drawn is finished
+   *  first, and nothing already drawn is removed. */
+  stop?: () => boolean;
+}
+
+/** Why a skipped table was not drawn, in the summary's words (`styleGuideSummary`), for the page's table list. The page is
+ *  named as the list names it, without the taxonomy's "↳" (review of #2171). */
+const SKIP_REASON = (t: { page: string }, reason: 'no-page' | 'no-cells'): string => reason === 'no-cells'
+  ? 'this file has no style-guide cell sets, and Set up file adds them'
+  : `this file has no ${t.page.replace(/^↳\s*/, '')} page, and Set up file adds it`;
+
+/**
+ * Cells written between two yields to the host (#1778). A full run on the owner's file drew 41 tables in about
+ * 4.7 minutes, ~8,800 cells by the plan's count (the prism3 emission's 4,394, twice for two roots): ~32ms a cell,
+ * everything included. 28 cells is ~0.9s, under the second where a stall reads as a stutter rather than a
+ * freeze, the component writer's budget (`CHUNK`). Rows are placed whole: a table yields every
+ * `max(1, floor(28 / columns))` rows, so every 2 rows of a four-mode semantic table (14 columns) and every 7
+ * rows of a one-mode palette (4 columns), and once more after the table. The per-cell cost is an average over
+ * a run that also sized columns by hand, which this build no longer does, not a measurement per phase: the
+ * live run's `tableMs` readings are what to calibrate this against.
+ */
+export const CELLS_PER_YIELD = 28;
+
+/** Read the file's collections, variables and text styles into the plan's catalog, keeping the host objects by id.
+ *  Every variable, not only COLOR: phase 2 reads FLOAT and STRING ones (the #146 lesson — a type-filtered fetch
+ *  misses the font family and size variables). */
+export const readCatalog = async (vars: StyleGuideApi['variables'], textStyles?: () => Promise<readonly unknown[]>): Promise<{ catalog: SgCatalog; collectionById: Map<string, unknown>; variableById: Map<string, unknown> }> => {
   const cols = (await vars.getLocalVariableCollectionsAsync()) as readonly (SgCollection & { id: string })[];
-  const vs = (await vars.getLocalVariablesAsync('COLOR')) as readonly SgVariable[];
+  const vs = (await vars.getLocalVariablesAsync()) as readonly SgVariable[];
+  const ts = (textStyles ? await textStyles() : []) as readonly SgTextStyle[];
   const catalog: SgCatalog = {
     collections: cols.map((c) => ({ id: c.id, name: c.name, modes: c.modes.map((m) => ({ modeId: m.modeId, name: m.name })), defaultModeId: c.defaultModeId })),
-    variables: vs.map((v) => ({ id: v.id, name: v.name, variableCollectionId: v.variableCollectionId, resolvedType: v.resolvedType, description: v.description, valuesByMode: v.valuesByMode })),
+    variables: vs.map((v) => ({ id: v.id, name: v.name, variableCollectionId: v.variableCollectionId, resolvedType: v.resolvedType, description: v.description, valuesByMode: v.valuesByMode, scopes: v.scopes ? [...v.scopes] : undefined })),
+    textStyles: ts.map((t) => ({
+      id: t.id, name: t.name, description: t.description, fontName: { family: t.fontName?.family, style: t.fontName?.style }, fontSize: t.fontSize,
+      lineHeight: t.lineHeight, letterSpacing: t.letterSpacing, paragraphSpacing: t.paragraphSpacing, textDecoration: t.textDecoration, boundVariables: t.boundVariables,
+    })),
   };
   return { catalog, collectionById: new Map(cols.map((c) => [c.id, c])), variableById: new Map(vs.map((v) => [v.id, v])) };
 };
@@ -587,7 +1089,15 @@ export const readCatalog = async (vars: StyleGuideApi['variables']): Promise<{ c
 const fontKeyOf = (f: { family: string; style: string }): string => `${f.family} ${f.style}`;
 const PLACEHOLDER_PAINT = { type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 0, g: 0, b: 0 } };
 const WHITE = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 1, g: 1, b: 1 } }];
+/** The gap between tables in a page's row (owner decision 16, 2026-09-29: tables flow left to right). 160px, the gap
+ *  the owner approved between component sets on a shared page (proposed, owner to confirm, for tables). */
 const TABLE_GAP = 160;
+/** A palette swatch's floor inside its FILL cell (owner decisions, 2026-09-29: decision 13 as restated, and the floor
+ *  itself, 80px, "close to the 83px in their file and not much smaller"). The swatch still FILLs its cell both ways;
+ *  80 is only the minimum, so a HUG track cannot shrink it below that. */
+const SWATCH_MIN = 80;
+/** The gap between a table's tracks, rows and columns alike: the owner's examples' 2px (owner decision, 2026-09-29). */
+const TRACK_GAP = 2;
 const PART_KEY = 'prism3-style-guide-part';
 /** The header text a run wrote, so the next run can tell its own words from a designer's. */
 const TITLE_KEY = 'prism3-style-guide-title';
@@ -601,13 +1111,71 @@ const PRINT_KEY = 'prism3-style-guide-print';
  *  duplicate and the id does not, so the frame id tells the generator's own frame from a designer's copy of it; the
  *  page id tells a table left on its page from one moved to another page at the same x and y. */
 const MARK_KEY = 'prism3-style-guide-mark';
-/** The widest a description column grows, in px, padding included — the only text that wraps. */
-export const DESC_WRAP = 360;
-
+/** On a title cell (owner decision 15): the variable or style ID of its row, so its text is found again on rerun. */
+export const NAME_CELL_KEY = 'prism3-style-guide-name';
+/** On a table: `{ <row ID>: { auto, text } }`, the generated default and the text shown, per row, the last time the
+ *  title column was drawn. A cell whose text is not its `auto` is a designer's edit, and survives the rerun. */
+const NAMES_KEY = 'prism3-style-guide-names';
+/** The `NAME_CELL_KEY` value on the title column's header cell, which holds no row. */
+const NAME_HEADER = '#header';
+/** "Space: 050, 100, 150 and 15 more; Radius: md", from `<table>\u241f<token>` entries, per table in order. */
+const placesOf = (ws: readonly string[]): string => {
+  const by = new Map<string, string[]>();
+  for (const w of ws) { const [tb, tk] = w.split('\u241f'); if (!by.has(tb)) by.set(tb, []); if (!by.get(tb)!.includes(tk)) by.get(tb)!.push(tk); }
+  return [...by].map(([tb, tks]) => `${tb}: ${tks.slice(0, 3).join(', ')}${tks.length > 3 ? ` and ${tks.length - 3} more` : ''}`).join('; ');
+};
+/** A layer inside `n` by name, in any case. */
+const byLayerName = (n: SgNode, name: string): SgNode | null =>
+  (n.findOne?.((c) => typeof c.name === 'string' && c.name.toLowerCase() === name) as SgNode | null | undefined) ?? null;
+/**
+ * THE SPACING CELL'S SIZED LAYER, by structure rather than one name (the live finding on `4faeb98a`). In order: a
+ * layer named `Bar` (the set this build made before), the member's first child FRAME (the owner's
+ * `spacing-filled-example` and `spacing-line-example`, and the set Set up file builds now), then any layer named
+ * `*-example`. Null when none: the caller counts it, never draws it silently.
+ */
+export const spacingLayer = (inst: SgNode): SgNode | null =>
+  byLayerName(inst, 'bar')
+  ?? (((inst.children ?? []) as SgNode[]).find((c) => c.type === 'FRAME') ?? null)
+  ?? ((inst.findOne?.((c) => typeof c.name === 'string' && /-example$/i.test(c.name)) as SgNode | null | undefined) ?? null);
+/**
+ * THE RADIUS SWATCH'S ROUNDED LAYER: a layer named `radius-example` (the owner's, 256 × 96 at an 8px radius clipped to
+ * 48 × 48 by its container, and the set Set up file builds now, in the same structure), else one named `Specimen` (the
+ * set an earlier build made), else the first layer with a rounded corner, else phase 1's fill fallback. Null when none.
+ */
+export const radiusLayer = (inst: SgNode): SgNode | null => {
+  const rounded = (c: CellNode): boolean => [c.cornerRadius, c.topLeftRadius].some((x) => typeof x === 'number' && x > 0);
+  return byLayerName(inst, 'radius-example') ?? byLayerName(inst, 'specimen') ?? ((inst.findOne?.(rounded) as SgNode | null | undefined) ?? null) ?? bindTarget(inst, 'default');
+};
+/** A TABLE'S CATEGORY, the row it sits in (owner decision 16; proposed, owner to confirm, the owner may want a finer
+ *  cut such as per root): the token type the generator draws, with the five font-variable kinds as one category. */
+export const categoryOfKey = (key: string): string => {
+  const type = key.split('|')[0];
+  return (FONT_KINDS as readonly string[]).includes(type) ? 'font' : type;
+};
+/** Rows in this order down a page; a later phase's category after them, by name. */
+const CATEGORY_ORDER = ['color', 'dimension', 'font', 'typography'];
+const categoryRank = (cat: string): number => { const i = CATEGORY_ORDER.indexOf(cat); return i < 0 ? CATEGORY_ORDER.length : i; };
+/** The radius swatch's four corners, each bound to the radius variable. */
+const RADIUS_CORNERS = ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const;
 const AUTO_LAYOUT = new Set(['HORIZONTAL', 'VERTICAL']);
 /** Set a node's horizontal sizing where the host allows it: HUG and FILL throw on a node outside auto layout. */
 const sizing = (n: SgNode, v: 'HUG' | 'FILL' | 'FIXED'): boolean => {
   try { n.layoutSizingHorizontal = v; return true; } catch { return false; }
+};
+/**
+ * A SPACING SPECIMEN SIZED BY ITS LEFT PADDING, the one width a plugin can set on a layer inside an instance (the owner's
+ * live run of 0.205.0): the other paddings 0, HUG, bind `paddingLeft`, then FIXED and HUG again. The toggle is the owner's
+ * recipe (c) from the live QA of 0.210.0 (2026-09-30): a hugging frame whose bound padding DECREASES keeps its width
+ * until FIXED then HUG is set (re-asserting HUG alone leaves it, and so does FIXED, resize and HUG before the bind), and
+ * the first padding bind can freeze the frame at FIXED. Returns whether the bind held; the caller reads the width back.
+ */
+export const sizeByPadding = (bar: SgNode, bind: (n: SgNode) => boolean): boolean => {
+  for (const k of ['paddingRight', 'paddingTop', 'paddingBottom'] as const) { try { bar[k] = 0; } catch { /* an override the host refuses shows in the read-back */ } }
+  sizing(bar, 'HUG');
+  const bound = bind(bar);
+  sizing(bar, 'FIXED');
+  sizing(bar, 'HUG');
+  return bound;
 };
 const num = (v: unknown): number => (typeof v === 'number' ? v : 0);
 const near = (a: number, b: number): boolean => Math.abs(a - b) < 0.5;
@@ -686,7 +1254,16 @@ const FONT_FIELDS = ['fontName', 'fontSize', 'fontWeight', 'textStyleId'] as con
  */
 const fingerprintOf = async (wrap: SgNode): Promise<string> => {
   const parts: string[] = [];
-  const walk = async (n: SgNode, depth: number): Promise<void> => {
+  // A TITLE CELL IS NOT AN EDIT (owner decision 15): a designer renames rows there, so a table with a title column
+  // leaves the title column out (its cells and its "Name" header, which fills the column), and with it the widths that follow the title column's width: the table's own, its
+  // grid's and its header's (all hug or fill to the grid). A table without a title column reads exactly as before,
+  // so a fingerprint recorded before the title cell still matches.
+  const titled = !!wrap.findOne?.((n) => !!(n as SgNode).getPluginData?.(NAME_CELL_KEY));
+  const walk = async (n: SgNode, depth: number, inHeader = false): Promise<void> => {
+    if (titled && n.getPluginData?.(NAME_CELL_KEY)) return;
+    const part = n.getPluginData?.(PART_KEY);
+    const header = inHeader || part === 'header';
+    const w = titled && (depth === 0 || part === 'table' || header) ? '' : Math.round(n.width ?? 0);
     const modes = n.explicitVariableModes && typeof n.explicitVariableModes === 'object'
       ? Object.entries(n.explicitVariableModes as Record<string, unknown>).map(([k, v]) => `${k}=${String(v)}`).sort().join(',') : '';
     const fields = FINGERPRINT_FIELDS.map((k) => stable(read(n, k)));
@@ -699,26 +1276,29 @@ const fingerprintOf = async (wrap: SgNode): Promise<string> => {
       const m = (n.getMainComponentAsync ? await n.getMainComponentAsync().catch(() => null) : read(n, 'mainComponent')) as { id?: unknown } | null | undefined;
       main = `${String(m?.id ?? '')}:${stable(read(n, 'componentProperties'))}`;
     }
-    parts.push([depth, n.type, n.name, n.visible === false ? 'hidden' : '', Math.round(n.width ?? 0), Math.round(n.height ?? 0),
+    parts.push([depth, n.type, n.name, n.visible === false ? 'hidden' : '', w, Math.round(n.height ?? 0),
       typeof n.characters === 'string' ? n.characters : '', paintsKey(n.fills), paintsKey(n.strokes), modes, ...fields, fontKey, main].join('\u241f'));
-    for (const c of (n.children ?? []) as SgNode[]) await walk(c, depth + 1);
+    for (const c of (n.children ?? []) as SgNode[]) await walk(c, depth + 1, header);
   };
   await walk(wrap, 0);
   const s = parts.join('\n');
   return `${fnv(s, false)}${fnv(s, true)}`;
 };
 
-/** Give a cell its column's width, keeping its height hugging its content. */
+/** Give a node a FIXED width, keeping its height hugging its content — the header's fallback where FILL is refused. */
 const setWidth = (n: SgNode, w: number): void => {
   sizing(n, 'FIXED');
   n.resize?.(w, n.height ?? 0);
   try { n.layoutSizingVertical = 'HUG'; } catch { /* a root outside auto layout keeps its height */ }
 };
 
-/** Run the plan into the file. Never throws for a missing optional piece; the host throwing is the caller's. */
-export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | null, options: StyleGuideOptions = {}): Promise<StyleGuideResult> => {
+/** Run the plan into the file. Never throws for a missing optional piece; the host throwing is the caller's.
+ *  Yields to the host after every table and every `CELLS_PER_YIELD` cells within one (#1778): a full run held
+ *  Figma and the panel for its whole ~4.7 minutes before it did. */
+export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | null, options: StyleGuideOptions = {}, run: StyleGuideRun = {}): Promise<StyleGuideResult> => {
+  const yieldTo = run.yieldTo ?? realYield;
   await api.loadAllPagesAsync();
-  const { catalog, collectionById, variableById } = await readCatalog(api.variables);
+  const { catalog, collectionById, variableById } = await readCatalog(api.variables, api.getLocalTextStylesAsync ? () => api.getLocalTextStylesAsync!() : undefined);
   const plan = planStyleGuide(catalog, contract, options);
   const misses: string[] = [];
   const out: TableOutcome[] = [];
@@ -728,12 +1308,16 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const swatches = sets[SWATCH_SET] as SgNode | undefined;
   const textCells = sets[TEXT_CELL_SET] as SgNode | undefined;
   if (!swatches || !textCells) {
-    for (const t of plan.tables) skip(t, 'no-cells');
-    return { tables: out, stale: [], replaced: [], deleted: [], kept: [], unbound: 0, notes: plan.notes, misses };
+    run.onPlan?.(plan.tables);
+    plan.tables.forEach((t, index) => { skip(t, 'no-cells'); run.onTable?.({ index, status: 'failed', reason: SKIP_REASON(t, 'no-cells') }); });
+    return { tables: out, stale: [], replaced: [], deleted: [], kept: [], unbound: 0, notes: plan.notes, misses, unmatched: plan.unmatched };
   }
   const allSets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly SgNode[];
   const headerSet = allSets.find((n) => n.name === SECTION_HEADER_SET) ?? allSets.find((n) => isTemplateSet(n.name, SECTION_HEADER_SET));
   const headerVariant = headerSet?.children?.find((c) => c.name === HEADER_VARIANT) as SgNode | undefined;
+  const spacingSet = sets[SPACING_CELL_SET] as SgNode | undefined;
+  if (!spacingSet && plan.tables.some((t) => t.rows.some((r) => r.specimen?.kind === 'spacing'))) misses.push(`no ${SPACING_CELL_SET} set — dimension rows have no specimen; Set up file adds it`);
+  const styleById = new Map((catalog.textStyles ?? []).map((st) => [st.id, st]));
   if (!headerSet) misses.push(`no ${SECTION_HEADER_SET} set — tables have no header; Set up file adds it`);
   else if (!headerVariant) misses.push(`${SECTION_HEADER_SET} has no ${HEADER_VARIANT} variant — tables have no header`);
 
@@ -777,7 +1361,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   // A text cell HUGS its words, never clips them (live, 2026-09-28: the owner's cells are a fixed 120px, and
   // "nbds/core/palette/primary/02" was cut off inside it). Every text node sizes to its words with truncation
   // off; every auto-layout frame from the inside out hugs; a root outside auto layout is widened to its content.
-  // Nothing wraps here: a width set before the grid's columns are sized is a guess (see the grid below).
+  // Nothing wraps, ever (owner decision, 2026-09-29): the cell then FILLs a HUG track, which takes this width.
   const fit = (inst: SgNode): void => {
     for (const t of textNodes(inst)) {
       t.textTruncation = 'DISABLED';
@@ -791,21 +1375,6 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       if (kids.length) inst.resize?.(Math.max(...kids.map((k) => num(k.x) * 2 + (k.width ?? 0))), inst.height ?? 0);
     }
   };
-  // Wrap a text to its cell. In an auto-layout cell: HEIGHT, then FILL, so the text takes the cell's width less its
-  // padding (live, 2026-09-28: on a TEXT inside an INSTANCE, FIXED + HEIGHT + `resize(296, h)` is ignored and the
-  // text keeps its main component's width, 29px in the owner's cell, one word a line; HEIGHT then FILL gives 296).
-  // FIXED + resize only where the parent is not auto layout, since FILL needs one.
-  const wrapTo = (t: SgNode, w: number): void => {
-    const parent = t.parent as SgNode | null | undefined;
-    if (parent && AUTO_LAYOUT.has(String(parent.layoutMode))) {
-      t.textAutoResize = 'HEIGHT';
-      if (sizing(t, 'FILL')) return;
-    }
-    sizing(t, 'FIXED');
-    t.textAutoResize = 'HEIGHT';
-    t.resize?.(w, t.height ?? 20);
-  };
-
   const textCell = async (type: 'default' | 'header' | 'value alias', color: string, text: string, alias?: string | null): Promise<SgNode | null> => {
     const v = variantOf(textCells, { type, color, textalign: 'left', padding: 'default' }, `type=${type}, color=${color}`);
     if (!v?.createInstance) return null;
@@ -818,9 +1387,63 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     return inst;
   };
 
-  // The specimen: a ground frame bound to the ground variable (or plain white), the swatch inside it bound to
-  // the token, and BOTH pinned to the column's mode so the binding resolves in that mode, live.
+  // THE SPECIMEN DEPENDS ON THE ROLE (owner decision 13, 2026-09-29, #259). The swatch member is the one the row's
+  // display names (`autoDisplay`, or the Display override): letters for a text role, an outlined shape for a border,
+  // the glyph for an icon, the checkerboard for a translucent value, the filled square otherwise. Its paint (the
+  // stroke, for a border) is bound to the token, it pins the column's mode, and it keeps its component's size,
+  // FIXED on both axes: it never stretches with the column.
+  //   • A SEMANTIC row draws it on a GROUND: a frame bound to the ground variable the contrast column measures
+  //     against (or plain white where the role has none), pinned to the same mode. The ground is the grid cell and
+  //     FILLs its track, so the ground reaches the cell's edges.
+  //   • A PRIMITIVE (palette) row has no ground: nothing is measured against one, so the swatch is the cell itself.
   const unboundIn = new Map<string, number>();
+  // PHASE-2 MISSES, each by what it is and WHERE: the table and the token, per specimen (a mode-varying row counts
+  // once a mode). Every one counts as unbound, so the run is not a pass (the live finding on
+  // 4faeb98a: the owner's line cells drew one 8px bracket for all 41 rows and the run read "unbound: 0").
+  const missAt = (m: Map<string, string[]>, what: string, where: string): void => { if (!m.has(what)) m.set(what, []); m.get(what)!.push(where); };
+  /** Specimens the host would not bind, by what they are ("type=radius", "font size"). */
+  const unboundSpec = new Map<string, string[]>();
+  /** Spacing layers the host would not resize to their value, by member ("display=filled"). */
+  const unsized = new Map<string, string[]>();
+  /** Specimens whose member has no layer this build recognizes to size or bind. */
+  const noLayer = new Map<string, string[]>();
+  /** Spacing specimens not drawn at all: the file has no `_style-guide-spacing-cells` set. */
+  const noSet = new Map<string, string[]>();
+  /** Spacing specimens whose sized layer is a fixed-width frame, by that layer's name: unsizable in an instance. */
+  const fixedLayer = new Map<string, string[]>();
+  /** Bind `field` on `node` to the variable; false where there is no node or variable, or the host refuses. */
+  const bindTo = (node: SgNode | null | undefined, field: string, variable: unknown): boolean => {
+    if (!node?.setBoundVariable || !variable) return false;
+    try { node.setBoundVariable(field, variable); return true; } catch { return false; }
+  };
+  const swatchOf = (row: SgRow, cell: SgCell, collection: unknown): { inst: SgNode; w: number; h: number } | null => {
+    const v = variantOf(swatches, { type: row.display }, `type=${row.display}`);
+    if (!v?.createInstance) return null;
+    const inst = v.createInstance() as SgNode;
+    const target = bindTarget(inst, row.display);
+    const variable = variableById.get(row.variableId);
+    if (target && variable) {
+      const paint = api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', variable);
+      if (row.display === 'border') target.strokes = [paint];
+      else target.fills = [paint];
+    } else unboundIn.set(String(v.name), (unboundIn.get(String(v.name)) ?? 0) + 1);
+    inst.setExplicitVariableModeForCollection?.(collection, cell.modeId);
+    return { inst, w: num(v.width), h: num(v.height) };
+  };
+  /** FIXED at the member's own size — set once the swatch is in its parent, which the host requires. */
+  const keepSize = ({ inst, w, h }: { inst: SgNode; w: number; h: number }): void => {
+    sizing(inst, 'FIXED');
+    try { inst.layoutSizingVertical = 'FIXED'; } catch { /* a host that refuses it leaves the instance as created */ }
+    if (w > 0 && h > 0) inst.resize?.(w, h);
+  };
+  /** A PALETTE SWATCH FILLS ITS CELL (owner decision 13, restated 2026-09-29: "the swatch FILLS the legacy example
+   *  space … the 83x83 size … is likely driven by the padding within the rows"). FILL on both axes, so its size is the
+   *  column's and the row's; `SWATCH_MIN` on both, so a HUG track cannot collapse it. */
+  const fillCell = (inst: SgNode): void => {
+    sizing(inst, 'FILL');
+    try { inst.layoutSizingVertical = 'FILL'; } catch { /* a host that refuses it leaves the swatch at its size */ }
+    try { inst.minWidth = SWATCH_MIN; inst.minHeight = SWATCH_MIN; } catch { /* no floor where the host has none */ }
+  };
   const specimen = (row: SgRow, cell: SgCell, collection: unknown): SgNode => {
     const ground = api.createFrame();
     ground.name = 'Ground';
@@ -831,19 +1454,8 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     const groundVariable = cell.groundId ? variableById.get(cell.groundId) : undefined;
     ground.fills = groundVariable ? [api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', groundVariable)] : WHITE;
     ground.setExplicitVariableModeForCollection?.(collection, cell.modeId);
-    const v = variantOf(swatches, { type: row.display }, `type=${row.display}`);
-    if (v?.createInstance) {
-      const inst = v.createInstance() as SgNode;
-      const target = bindTarget(inst, row.display);
-      const variable = variableById.get(row.variableId);
-      if (target && variable) {
-        const paint = api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', variable);
-        if (row.display === 'border') target.strokes = [paint];
-        else target.fills = [paint];
-      } else unboundIn.set(String(v.name), (unboundIn.get(String(v.name)) ?? 0) + 1);
-      inst.setExplicitVariableModeForCollection?.(collection, cell.modeId);
-      ground.appendChild?.(inst);
-    }
+    const sw = swatchOf(row, cell, collection);
+    if (sw) { ground.appendChild?.(sw.inst); keepSize(sw); }
     return ground;
   };
 
@@ -851,22 +1463,38 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   const pages = new Map(api.root.children.map((p) => [p.name, p]));
   const framesOn = (p: SgPage): SgNode[] =>
     ((p.findAllWithCriteria ? p.findAllWithCriteria({ types: ['FRAME'] }) : p.children) as readonly SgNode[]).filter((n) => n.type === 'FRAME');
-  const bottomOf = new Map<string, { x: number; y: number }>();
-  const anchor = (p: SgPage): { x: number; y: number } => {
-    if (!bottomOf.has(p.name)) {
+  // WHERE A NEW TABLE GOES (owner decision 16, 2026-09-29: "build these horizontal … a new category of tokens …
+  // ideally starts on a new 'row'"). A table goes at the END of its category's row: TABLE_GAP right of the rightmost
+  // table of that category, top-aligned with them (the ones still where the generator left them, else all of them).
+  // A category with no row yet starts one TABLE_GAP below the generator's lowest table, at its leftmost x; a page with
+  // no table takes it below its lowest content, left-aligned to it.
+  const rowEndOf = new Map<string, { x: number; y: number }>();
+  const anchor = (p: SgPage, cat: string): { x: number; y: number } => {
+    const k = `${p.name}\u241f${cat}`;
+    if (!rowEndOf.has(k)) {
       const shown = (p.children as readonly SgNode[]).filter((n) => n.visible !== false);
-      bottomOf.set(p.name, shown.length
-        ? { x: Math.min(...shown.map((n) => Number(n.x ?? 0))), y: Math.max(...shown.map((n) => Number(n.y ?? 0) + (n.height ?? 0))) + TABLE_GAP }
-        : { x: 0, y: 0 });
+      const tables = shown.filter((n) => n.type === 'FRAME' && !!n.getPluginData?.(TABLE_KEY));
+      const placed = (ns: SgNode[]): SgNode[] => { const at = ns.filter((n) => { const a = (n.getPluginData?.(AT_KEY) || '').split(',').map(Number); return a.length === 2 && near(num(n.x), a[0]) && near(num(n.y), a[1]); }); return at.length ? at : ns; };
+      const mine = placed(tables.filter((n) => categoryOfKey(n.getPluginData?.(TABLE_KEY) || '') === cat));
+      const all = placed(tables);
+      rowEndOf.set(k, mine.length
+        ? { x: Math.max(...mine.map((n) => num(n.x) + num(n.width))) + TABLE_GAP, y: Math.min(...mine.map((n) => num(n.y))) }
+        : all.length
+          ? { x: Math.min(...all.map((n) => num(n.x))), y: Math.max(...all.map((n) => num(n.y) + num(n.height))) + TABLE_GAP }
+          : shown.length
+            ? { x: Math.min(...shown.map((n) => num(n.x))), y: Math.max(...shown.map((n) => num(n.y) + num(n.height))) + TABLE_GAP }
+            : { x: 0, y: 0 });
     }
-    return bottomOf.get(p.name)!;
+    return rowEndOf.get(k)!;
   };
 
   const headerColor = options.header === 'light' ? 'white' : 'dark';
   const drawnOn = new Set<SgPage>();
-  for (const t of plan.tables) {
+  /** Every table this run drew, and how much wider it is than before (0 for a new one). */
+  const drawn: { frame: SgNode; page: SgPage; created: boolean; delta: number; height0: number }[] = [];
+  const drawTable = async (t: SgTable): Promise<void> => {
     const page = pages.get(t.page);
-    if (!page) { skip(t, 'no-page'); continue; }
+    if (!page) { skip(t, 'no-page'); return; }
     const collection = collectionById.get(t.collectionId);
 
     let wrap = framesOn(page).find((n) => n.getPluginData?.(TABLE_KEY) === t.key) ?? null;
@@ -897,7 +1525,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       wrap.fills = [];
       wrap.setPluginData?.(TABLE_KEY, t.key);
       // Measured BEFORE the new frame joins the page, so it does not count itself.
-      const at = anchor(page);
+      const at = anchor(page, categoryOfKey(t.key));
       page.appendChild(wrap);
       wrap.x = at.x;
       wrap.y = at.y;
@@ -915,6 +1543,31 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       }
     }
 
+    // The table's width before this run, which a filtered run's re-flow moves the tables after it by (#1778; the row
+    // of decision 16).
+    const before = created ? 0 : num(wrap.width);
+    // And its height, which a filtered run's row below moves by when this table is its row's tallest (decision 16).
+    const height0 = created ? 0 : num(wrap.height);
+    // THE TITLE CELLS' TEXT (owner decision 15), read before the grid goes: a cell a designer edited (its text is not
+    // the default the generator wrote) keeps its text. A table drawn last without the column keeps its record.
+    type NameRecord = Record<string, { auto: string; text: string }>;
+    const names = (() => { try { return JSON.parse(wrap.getPluginData?.(NAMES_KEY) || '{}') as NameRecord; } catch { return {} as NameRecord; } })();
+    const liveNames = new Map<string, string>();
+    for (const g of (wrap.children ?? []) as SgNode[]) if (g.getPluginData?.(PART_KEY) === 'table') {
+      for (const cell of (g.findAll?.((n) => !!(n as SgNode).getPluginData?.(NAME_CELL_KEY)) ?? []) as SgNode[]) {
+        const t = byName(cell, 'Text') ?? textNodes(cell)[0];
+        const id = cell.getPluginData!(NAME_CELL_KEY);
+        if (id !== NAME_HEADER && t && typeof t.characters === 'string') liveNames.set(id, t.characters);
+      }
+    }
+    // THE LIVE TEXT GOES INTO THE RECORD NOW, before the grid is rebuilt (review of f3bb76cd): a run WITHOUT the column
+    // removes the cells, so an edit made since the last titled run survives only if it is recorded here.
+    for (const [id, text] of liveNames) if (Object.prototype.hasOwnProperty.call(names, id)) names[id] = { auto: names[id].auto, text };
+    const nameFor = (row: SgRow): string => {
+      const rec = Object.prototype.hasOwnProperty.call(names, row.variableId) ? names[row.variableId] : undefined;
+      const text = liveNames.get(row.variableId) ?? rec?.text;
+      return rec && text !== undefined && text !== rec.auto ? text : row.label;
+    };
     // The grid is rebuilt every run: the values are static text, refreshed here.
     for (const c of (wrap.children ?? []) as SgNode[]) if (c.getPluginData?.(PART_KEY) === 'table') c.remove?.();
     const grid = api.createFrame();
@@ -924,67 +1577,241 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     grid.layoutMode = 'GRID';
     grid.gridRowCount = t.rows.length + 1;
     grid.gridColumnCount = t.columns.length;
-    grid.gridRowGap = 0;
-    grid.gridColumnGap = 0;
-    for (const s of grid.gridColumnSizes ?? []) s.type = 'HUG';
-    for (const s of grid.gridRowSizes ?? []) s.type = 'HUG';
+    // A 2px gap between tracks, both ways, as in the owner's examples (owner decision, 2026-09-29, #259).
+    grid.gridRowGap = TRACK_GAP;
+    grid.gridColumnGap = TRACK_GAP;
+    // THE OWNER'S GRID MODEL (owner decision, 2026-09-29, #259), measured live on their "↳ Style Guide Examples":
+    // every column and row track HUGs, every cell FILLs its track on both axes, and every text hugs its words on
+    // one line. A track takes its widest cell's content, and a designer who drags the grid wider widens the
+    // tracks and every cell follows. This replaces #1749's FIXED column widths and its wrapped descriptions:
+    // nothing wraps, so the description column is its longest line. The tracks are ASSIGNED, not mutated in
+    // place, since a host getter may hand back a copy; mutated where the assignment throws.
+    const hugTracks = (key: 'gridColumnSizes' | 'gridRowSizes', n: number): void => {
+      try { grid[key] = Array.from({ length: n }, () => ({ type: 'HUG' })); }
+      catch { for (const s of grid[key] ?? []) s.type = 'HUG'; }
+    };
+    hugTracks('gridColumnSizes', t.columns.length);
+    hugTracks('gridRowSizes', t.rows.length + 1);
     grid.layoutSizingHorizontal = 'HUG';
     grid.layoutSizingVertical = 'HUG';
     wrap.appendChild?.(grid);
 
-    const placed: { n: SgNode; r: number; c: number }[] = [];
-    const place = (n: SgNode | null, r: number, c: number): void => { if (n) { grid.appendChildAt?.(n, r, c); placed.push({ n, r, c }); } };
-    for (let c = 0; c < t.columns.length; c++) place(await textCell('header', headerColor, t.columns[c]), 0, c);
+    // A cell FILLs its track, both axes: a text cell hugs its words (`fit`), and the track takes that width; the
+    // specimen's ground fills the track too, so the ground reaches the cell's edges however wide the column is. A
+    // palette row's swatch is the one cell that does not: it keeps its component's size (decision 13).
+    const place = (n: SgNode | null, r: number, c: number): void => {
+      if (!n) return;
+      grid.appendChildAt?.(n, r, c);
+      sizing(n, 'FILL');
+      try { n.layoutSizingVertical = 'FILL'; } catch { /* a host that refuses it leaves the cell hugging */ }
+    };
+    /**
+     * A PHASE-2 SPECIMEN (#259), bound to the row's variable and pinned to its column's mode, as a color swatch is:
+     *   • spacing: a `_style-guide-spacing-cells` member (`filled` for a spacing, `line` for a size or scale) whose sized
+     *     layer (`spacingLayer`) is the value's width by its bound `paddingLeft`, the one width the host lets a plugin
+     *     set inside an instance; a bracket's bars, absolute and constrained in the component, follow it;
+     *   • radius: the swatches set's `type=radius` member at its fixed size, its four corners bound;
+     *   • font: "Abc 123" in a text cell with the one property bound (a family or weight first loads that font);
+     *   • style: "Abc 123" in a text cell with the text style applied (`setTextStyleIdAsync`).
+     * Each is pinned to its column's mode BEFORE it is bound, so the host resolves the variable in that mode. A binding
+     * the host refuses, a resize it refuses or ignores, and a member with no layer to size are each counted, named in
+     * the verdict by table and token, and the specimen keeps the component's own value. Nothing is a silent miss.
+     */
+    const drawSpecimen = async (row: SgRow, spec: SgSpecimen, cell: SgCell, collection: unknown, r: number, c: number): Promise<void> => {
+      const variable = variableById.get(row.variableId);
+      const where = `${t.title}\u241f${row.token}`;
+      const pin = (n: SgNode): void => { if (collection && cell.modeId) n.setExplicitVariableModeForCollection?.(collection, cell.modeId); };
+      if (spec.kind === 'spacing') {
+        // NO SPACING SET: every file set up before phase 2 is in this state. Counted, so the run is not a pass
+        // (review of f3bb76cd); the named miss above says Set up file adds the set.
+        if (!spacingSet) { missAt(noSet, `display=${spec.member}`, where); return; }
+        const v = variantOf(spacingSet, { display: spec.member }, `display=${spec.member}`);
+        if (!v?.createInstance) { missAt(noLayer, `display=${spec.member}`, where); return; }
+        const inst = v.createInstance() as SgNode;
+        const member = String(v.name);
+        const bar = spacingLayer(inst);
+        pin(inst);
+        // Fitted FIRST, so the HUG the recipe below sets after the bind is the last word on the frame's sizing, and the
+        // read-back sees what the canvas will.
+        fit(inst);
+        // ONE VERDICT PER SPECIMEN (review of f3bb76cd): the first thing wrong with it, in this order, counted once.
+        let fail: [Map<string, string[]>, string] | null = null;
+        const failAs = (m: Map<string, string[]>, what: string): void => { if (!fail) fail = [m, what]; };
+        if (!bar) {
+          // NO SILENT MISS: a member this build cannot read draws at the component's own width, and says so.
+          failAs(noLayer, member);
+        } else if (!AUTO_LAYOUT.has(String(bar.layoutMode)) || ((bar.children ?? []) as SgNode[]).some((k) => k.layoutPositioning !== 'ABSOLUTE')) {
+          // A FIXED-WIDTH LAYER, OR ONE WHOSE BARS ARE IN FLOW, CANNOT BE SIZED BY ITS PADDING (the owner's live run of
+          // 0.205.0): the host silently drops every width written to a layer inside an instance, and bars in flow add
+          // their own widths to the padding's. Named once for the whole run, with the fix.
+          failAs(fixedLayer, String(bar.name));
+        } else if (cell.num === 0) {
+          // A ZERO DRAWS NOTHING (owner decision, live QA of 0.210.0, 2026-09-30): Figma cannot draw a 0-wide layer, and
+          // a bind to 0 leaves the frame at its last width, so the bracket's two bars would still show. The specimen is
+          // hidden and counts as drawn; the row keeps its name and its 0px value.
+          inst.visible = false;
+        } else {
+          // SIZED BY ITS LEFT PADDING (`sizeByPadding`), then read back: the width must be the value. A layer inside an
+          // instance never hugs narrower than its main component's own width (live QA of 0.210.0), so a cell whose
+          // example frame rests wider than a value counts that value here, by table and token.
+          const bound = sizeByPadding(bar, (n) => bindTo(n, 'paddingLeft', variable));
+          const want = Math.max(0, typeof cell.num === 'number' ? cell.num : 0);
+          if (!bound) failAs(unboundSpec, `${member} spacing`);
+          else if (!near(num(bar.width), want)) failAs(unsized, member);
+        }
+        if (fail) missAt(fail[0], fail[1], where);
+        place(inst, r, c);
+        return;
+      }
+      if (spec.kind === 'radius') {
+        const v = variantOf(swatches, { type: 'radius' }, 'type=radius');
+        if (!v?.createInstance) { missAt(noLayer, 'type=radius', where); return; }
+        const inst = v.createInstance() as SgNode;
+        pin(inst);
+        // Every corner bound, so the specimen shows the value whichever corner the member rounds (review of `4faeb98a`).
+        // The owner's member clips a 256 × 96 `radius-example` to a 48 × 48 window, so only its top-left shows.
+        const target = radiusLayer(inst);
+        if (!target) missAt(noLayer, 'type=radius', where);
+        else if (!RADIUS_CORNERS.map((k) => bindTo(target, k, variable)).every(Boolean)) missAt(unboundSpec, 'type=radius', where);
+        grid.appendChildAt?.(inst, r, c);
+        keepSize({ inst, w: num(v.width), h: num(v.height) });
+        return;
+      }
+      const inst = await textCell('default', 'white', SAMPLE_TEXT);
+      if (!inst) return;
+      // PINNED BEFORE BOUND (review of `4faeb98a`): the host resolves a bound family or weight in the node's mode at
+      // the moment it binds. Bound first, a column whose mode is not the collection's default would resolve the
+      // default mode's font, which this column never loaded, and be refused.
+      pin(inst);
+      const text = byName(inst, 'Text') ?? textNodes(inst)[0] ?? null;
+      let bound = true;
+      let what = 'text-style';
+      if (spec.kind === 'style') {
+        const st = styleById.get(row.variableId);
+        bound = false;
+        if (text && st && await ensureFont(st.fontName)) {
+          try {
+            if (text.setTextStyleIdAsync) await text.setTextStyleIdAsync(st.id);
+            else text.textStyleId = st.id;
+            bound = true;
+          } catch { /* named below */ }
+        }
+      } else if (spec.bind) {
+        what = FONT_LABEL[spec.bind].toLowerCase();
+        const font = (text?.fontName ?? {}) as { family?: unknown; style?: unknown };
+        // The host sets a bound family or weight only in a font it has loaded: that family in the cell's style, or the
+        // cell's family at that weight.
+        const needs = spec.bind === 'fontFamily' && cell.str && typeof font.style === 'string' ? { family: cell.str, style: font.style }
+          : spec.bind === 'fontWeight' && typeof cell.num === 'number' && typeof font.family === 'string' ? { family: font.family, style: weightName(cell.num) ?? 'Regular' }
+          : null;
+        bound = (!needs || await ensureFont(needs)) && bindTo(text, spec.bind, variable);
+      }
+      if (!bound) missAt(unboundSpec, what, where);
+      fit(inst);
+      place(inst, r, c);
+    };
+    for (let c = 0; c < t.columns.length; c++) {
+      const h = await textCell('header', headerColor, t.columns[c]);
+      // The Name column's header is part of the title column: its width follows the titles, so the fingerprint skips it.
+      if (options.titleCell && c === 0) h?.setPluginData?.(NAME_CELL_KEY, NAME_HEADER);
+      place(h, 0, c);
+    }
+    // YIELD WITHIN A BIG TABLE (#1778): whole rows at a time, about `CELLS_PER_YIELD` cells between yields.
+    const rowsPerYield = Math.max(1, Math.floor(CELLS_PER_YIELD / t.columns.length));
     for (let r = 0; r < t.rows.length; r++) {
       const row = t.rows[r];
       let c = 0;
+      if (options.titleCell) {
+        const shown = nameFor(row);
+        const cell = await textCell('default', 'white', shown);
+        cell?.setPluginData?.(NAME_CELL_KEY, row.variableId);
+        place(cell, r + 1, c++);
+        names[row.variableId] = { auto: row.label, text: shown };
+      }
       place(await textCell('default', 'white', row.token), r + 1, c++);
-      for (const cell of row.cells) {
-        place(specimen(row, cell, collection), r + 1, c++);
+      // PHASE 2 (#259): a dimension, font-variable or text-style row. A specimen and a value per mode, then the values
+      // printed once (a text style's family, weight, letter spacing and its toggled columns). No contrast column.
+      if (row.specimen) {
+        for (const cell of row.cells) {
+          await drawSpecimen(row, row.specimen, cell, collection, r + 1, c++);
+          const chip = options.aliases !== false && cell.alias;
+          place(await textCell(chip ? 'value alias' : 'default', 'white', cell.value, cell.alias), r + 1, c++);
+          if (cell.rem !== undefined) place(await textCell('default', 'white', cell.rem), r + 1, c++);
+        }
+        for (const x of row.extra ?? []) place(await textCell(options.aliases !== false && x.alias ? 'value alias' : 'default', 'white', x.value, x.alias), r + 1, c++);
+      } else for (const cell of row.cells) {
+        if (t.kind === 'primitive') {
+          // A palette row: the swatch alone, at its own size, in the cell (decision 13).
+          const sw = swatchOf(row, cell, collection);
+          if (sw) { grid.appendChildAt?.(sw.inst, r + 1, c); fillCell(sw.inst); }
+          c++;
+        } else place(specimen(row, cell, collection), r + 1, c++);
         const chip = options.aliases !== false && cell.alias;
         place(await textCell(chip ? 'value alias' : 'default', 'white', cell.value, cell.alias), r + 1, c++);
         if (t.kind === 'semantic') place(await textCell('default', 'white', contrastText(cell.contrast)), r + 1, c++);
       }
       if (options.description !== false) place(await textCell('default', 'white', row.description || '—'), r + 1, c++);
+      if ((r + 1) % rowsPerYield === 0) await yieldTo();
     }
-    // COLUMNS FROM CONTENT, THEN TEXT FROM COLUMNS (live, 2026-09-28: a text switched to HEIGHT before its column
-    // was sized kept a 29px width — one word a line, 430px rows — and a mode header wrapped inside a 115px cell).
-    // Every cell was measured hugging its words above; each column is fixed from those measures; only then is a
-    // cell given its column's width, and a text that does not fit wrapped to the column less whatever else its cell
-    // holds. A column is its widest cell — so a swatch column is the wider of the specimen and its header, and a
-    // mode name never wraps — and the description column stops at `DESC_WRAP`.
-    const natural = placed.map((p) => p.n.width ?? 0);
-    const widths = t.columns.map(() => 0);
-    placed.forEach((p, i) => { widths[p.c] = Math.max(widths[p.c], natural[i]); });
-    if (options.description !== false) widths[t.columns.length - 1] = Math.min(widths[t.columns.length - 1], DESC_WRAP);
-    try { grid.gridColumnSizes = widths.map((value) => ({ type: 'FIXED', value })); }
-    catch { (grid.gridColumnSizes ?? []).forEach((s, c) => { s.type = 'FIXED'; s.value = widths[c]; }); }
-    placed.forEach((p, i) => {
-      const col = widths[p.c];
-      setWidth(p.n, col);
-      if (natural[i] <= col) return;
-      const texts = textNodes(p.n);
-      const main = byName(p.n, 'Text') ?? texts[0];
-      if (main) wrapTo(main, Math.max(1, col - (natural[i] - (main.width ?? 0))));
-    });
-    // Read back: a grid that did not keep its tracks is named, so a live run shows it rather than a misdrawn table.
-    const kept = grid.gridColumnSizes ?? [];
-    if (kept.length !== widths.length || kept.some((s, c) => s.type !== 'FIXED' || !near(Number(s.value), widths[c]))) {
-      misses.push(`${t.title}: the grid did not keep its column widths, so its cells may not line up`);
+    // Read back: a grid that did not keep its hugging tracks is named, so a live run shows it rather than a
+    // misdrawn table.
+    const hugs = (ts: readonly { type: string }[] | undefined, n: number): boolean => (ts ?? []).length === n && (ts ?? []).every((s) => s.type === 'HUG');
+    if (!hugs(grid.gridColumnSizes, t.columns.length) || !hugs(grid.gridRowSizes, t.rows.length + 1)) {
+      misses.push(`${t.title}: the grid did not keep its hugging tracks, so a column may not fit its widest cell`);
     }
+    // THE HEADER SPANS ITS TABLE, NOT THE PAGE (owner decision, 2026-09-29, #259). The `_Section-header` instance
+    // arrives at its component's width (2,517px in the owner's file), and the wrap hugs its widest child, so every
+    // table was page-wide around a 732px grid. The header FILLs the wrap, so the wrap hugs the grid and the header
+    // takes that width. FILL, not FIXED + resize: the host has ignored `resize` on an instance's FIXED text
+    // (live, 2026-09-28), and FILL follows the grid when a rerun widens it. FIXED at the grid's width only where
+    // the host refuses FILL. Set on every run, so a table drawn before this rule takes it on its next rerun.
+    const header = ((wrap.children ?? []) as SgNode[]).find((c) => c.getPluginData?.(PART_KEY) === 'header');
+    if (header && !sizing(header, 'FILL')) setWidth(header, grid.width ?? 0);
+    if (header && !near(num(wrap.width), num(grid.width))) misses.push(`${t.title}: the header did not take the table's width, so the table is ${Math.round(num(wrap.width))}px wide around a ${Math.round(num(grid.width))}px grid`);
 
+    if (Object.keys(names).length) wrap.setPluginData?.(NAMES_KEY, JSON.stringify(names));
     const after = snapshotOf(t);
-    const before = (() => { try { return JSON.parse(wrap.getPluginData?.(ROWS_KEY) || '{}') as RowsSnapshot; } catch { return {}; } })();
+    const was = (() => { try { return JSON.parse(wrap.getPluginData?.(ROWS_KEY) || '{}') as RowsSnapshot; } catch { return {}; } })();
     wrap.setPluginData?.(ROWS_KEY, JSON.stringify(after));
     // Stamped last, once the table holds everything this run writes: the frame it was written on, and what it holds.
     wrap.setPluginData?.(MARK_KEY, `${String(page.id)}|${String(wrap.id)}`);
     wrap.setPluginData?.(PRINT_KEY, await fingerprintOf(wrap));
     out.push(created
       ? { key: t.key, title: t.title, page: t.page, status: 'created', rows: t.rows.length }
-      : { key: t.key, title: t.title, page: t.page, status: 'updated', rows: t.rows.length, diff: diffRows(before, after) });
-    if (created) anchor(page).y += (wrap.height ?? 0) + TABLE_GAP;
+      : { key: t.key, title: t.title, page: t.page, status: 'updated', rows: t.rows.length, diff: diffRows(was, after) });
+    if (created) anchor(page, categoryOfKey(t.key)).x += num(wrap.width) + TABLE_GAP;
     drawnOn.add(page);
+    drawn.push({ frame: wrap, page, created, delta: created ? 0 : num(wrap.width) - before, height0: created ? 0 : height0 });
+  };
+  // ONE TABLE AT A TIME, YIELDING BETWEEN THEM (#1778): the host repaints, the panel's pill counts up, and a
+  // designer can scroll while the rest draw.
+  //
+  // ONE FAILED TABLE DOES NOT STOP THE RUN (S11.2, owner decision P6): a throw while one table is drawn is that table's
+  // outcome, `failed` with the host's words, and the run goes on to the next. And a STOP is read after each table
+  // (P7): the table being drawn is finished, the rest are not started.
+  run.onPlan?.(plan.tables);
+  if (plan.tables.length) run.onProgress?.({ done: 0, total: plan.tables.length, title: '', tableMs: 0 });
+  let stopped: StyleGuideResult['stopped'];
+  for (let i = 0; i < plan.tables.length; i++) {
+    const t = plan.tables[i];
+    const started = Date.now();
+    run.onTable?.({ index: i, status: 'drawing' });
+    try {
+      await drawTable(t);
+      const o = out[out.length - 1];
+      run.onTable?.(o?.key === t.key && o.status === 'skipped' ? { index: i, status: 'failed', reason: SKIP_REASON(t, o.reason) } : { index: i, status: 'done' });
+    } catch (e) {
+      const reason = (e as Error)?.message ?? String(e);
+      out.push({ key: t.key, title: t.title, page: t.page, status: 'failed', reason });
+      run.onTable?.({ index: i, status: 'failed', reason });
+    }
+    run.onProgress?.({ done: i + 1, total: plan.tables.length, title: t.title, tableMs: Date.now() - started });
+    await yieldTo();
+    if (i + 1 < plan.tables.length && run.stop?.()) { stopped = { done: i + 1, total: plan.tables.length }; break; }
   }
+  // A STOPPED run is a partial one: like a run filtered to named tables, it judges no superseded table and re-flows
+  // only around what it drew. Every write after the stop would be one the designer asked not to happen.
+  const partial = !!options.tables || !!stopped;
 
   const recordOf = (n: SgNode): { x: number; y: number } | null => {
     const s = n.getPluginData?.(AT_KEY) || '';
@@ -995,9 +1822,12 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   // SUPERSEDED TABLES (owner decision, 2026-09-28: "delete superseded tables if unedited"). A table an earlier run
   // wrote that this run does not draw — its group is gone (stale), or it is now drawn as narrower tables (replaced).
   // Only tables this run could have drawn are candidates: its types, and its collections (by ID, the key's second
-  // field) when filtered. Checked before the re-stack, so the stack closes over a deleted table.
+  // field) when filtered. A run filtered to named TABLES (#1778) covers only those, and draws every one of them, so
+  // it has no candidate at all: the tables it skipped are not stale, and an earlier build's wider table is not
+  // replaced by one narrow table drawn alone. Checked before the re-stack, so the stack closes over a deleted table.
   const planned = new Set(plan.tables.map((t) => t.key));
   const types = new Set((options.types ?? [...PHASE_TYPES]).map((t) => t.toLowerCase()));
+  // Text styles belong to no collection; their table's key names the pseudo-collection, present while the file has any.
   const wantIds = options.collections ? new Set(catalog.collections.filter((c) => options.collections!.some((w) => w.toLowerCase() === c.name.toLowerCase())).map((c) => c.id)) : null;
   const stale: string[] = [];
   const replaced: string[] = [];
@@ -1010,7 +1840,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   // recorded is never deleted — owner decision, 2026-09-28); this is the frame the generator wrote, not a duplicate
   // that carries its plugin data; it sits directly on the page the generator wrote it to, where the generator put
   // it; and it still holds what was written.
-  const collectionIds = new Set(catalog.collections.map((c) => c.id));
+  const collectionIds = new Set([...catalog.collections.map((c) => c.id), ...(catalog.textStyles?.length ? [TEXT_STYLES_ID] : [])]);
   const verdictOf = async (f: SgNode, p: SgPage, colId: string): Promise<KeepReason | 'unedited'> => {
     if (!collectionIds.has(colId)) return 'no-collection';
     if (!plan.tables.length) return 'nothing-drawn';
@@ -1033,49 +1863,135 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     const k = f.getPluginData?.(TABLE_KEY);
     if (!k || planned.has(k)) continue;
     const [type, colId] = k.split('|');
-    if (!types.has(type) || (wantIds && !wantIds.has(colId))) continue;
+    if (!types.has(type.toLowerCase()) || (wantIds && !wantIds.has(colId))) continue;
+    if (partial) continue;
     // A key that is an ANCESTOR of a planned one is a table this run now draws as narrower tables — an earlier
     // build drew one table per root where a collection holds two (`…|nbds` → `…|nbds/color/text`).
     if ([...planned].some((q) => q.startsWith(`${k}/`))) replaced.push(String(f.name));
     else stale.push(String(f.name));
     const v = await verdictOf(f, p, colId);
     if (v === 'unedited' && f.remove) {
-      if (!freed.has(p)) freed.set(p, []);
-      freed.get(p)!.push({ x: num(f.x), y: num(f.y) });
+      // EVERYTHING READ BEFORE THE REMOVE (#1795): the host invalidates a removed node, and reading its `name`, `x` or
+      // `y` afterwards throws ("in get_name: … does not exist"), the shape of #1791 and #1794.
+      const name = String(f.name);
+      const at = { x: num(f.x), y: num(f.y) };
       f.remove();
-      deleted.push(String(f.name));
+      if (!freed.has(p)) freed.set(p, []);
+      freed.get(p)!.push(at);
+      deleted.push(name);
     } else kept.push({ name: String(f.name), reason: v === 'unedited' ? 'not-removable' : v });
   }
 
-  // RE-STACK (live, 2026-09-28: "Primary — nbds" grew on a rerun to span y 1,013 → ~10,400 and ran over
-  // "Neutral — nbds", still at 3,585). The generator's own tables on each page it drew on are re-flowed in their
-  // order down the page, TABLE_GAP apart, from the topmost. A table is where the generator left it while it sits at
-  // the position recorded then; one that does not was moved by a designer and is left alone. A table from before the
-  // record has none, and is taken as the generator's while it keeps the stack's x. A deleted table's place counts
-  // as the top when it was higher, so deleting the first table does not leave a gap above the rest.
-  const byY = (a: SgNode, b: SgNode): number => num(a.y) - num(b.y);
-  for (const p of drawnOn) {
+  // A FILTERED run that draws a table for the first time, where the same collection still holds a table the
+  // generator no longer draws — a group renamed, drawn under its new title — says the old table stays: it judges
+  // no superseded table, so without this note the designer would see both and not know why.
+  const notes = [...plan.notes];
+  if (options.tables) {
+    const newCols = new Set(out.filter((o) => o.status === 'created').map((o) => plan.tables.find((t) => t.key === o.key)?.collectionId));
+    const everyKey = new Set(planStyleGuide(catalog, contract, { ...options, tables: undefined }).tables.map((t) => t.key));
+    const left = api.root.children.flatMap((p) => framesOn(p)).filter((f) => {
+      const k = f.getPluginData?.(TABLE_KEY) || '';
+      return !!k && !everyKey.has(k) && newCols.has(k.split('|')[1]);
+    }).map((f) => String(f.name));
+    if (left.length) notes.push(`${left.join(', ')} ${left.length === 1 ? 'stays' : 'stay'} in place: the generator no longer draws ${left.length === 1 ? 'it' : 'them'}, and a run filtered to named tables deletes nothing. The next run without a Tables filter decides whether to delete ${left.length === 1 ? 'it' : 'them'}`);
+  }
+
+  // ROWS BY CATEGORY (owner decision 16, 2026-09-29: "horizontal … a new category of tokens … ideally starts on a
+  // new 'row'"). The generator's own tables on each page it drew on are re-flowed into one row per category
+  // (`categoryOfKey`: color, dimension, font variables, text styles), rows in that order down the page. In a row the
+  // tables sit left to right, top-aligned, TABLE_GAP apart, in their order along it (by x, then y, so an earlier
+  // build's vertical stack converts in its own top-to-bottom order); each row starts TABLE_GAP below the tallest table
+  // of the row above; everything starts at the top-left of the tables re-flowed. The rules are the vertical stack's of
+  // #1778, carried over. A table is where the generator left it while it sits at the position recorded then; one that
+  // does not was moved by a designer and is left alone. A table from before the record has none, and is taken as the
+  // generator's while it keeps its category's row's y or the page's leftmost x (an earlier build's stack). A deleted
+  // table's place counts toward the start, so deleting the first table does not leave a gap.
+  //
+  // A FILTERED run (#1778) does not re-flow: it draws a few tables on a page it did not lay out, so it only keeps them
+  // from overlapping, row by row. Each table AFTER a drawn one in its row moves right by exactly the drawn table's
+  // change in WIDTH; the rows BELOW move down by exactly the change in the row's HEIGHT (its tallest table's), and only
+  // when that height changed. Only tables that sit where the generator left them move. No other gap on the page closes,
+  // a table a designer moved stays put, and a table from before the record is neither moved nor recorded. A table it
+  // moves has its record moved with it. (Superseded: the single vertical stack of #1778, down the page by height.)
+  const byRow = (a: SgNode, b: SgNode): number => num(a.x) - num(b.x) || num(a.y) - num(b.y);
+  const leftAt = (n: SgNode): boolean => { const a = recordOf(n); return !!a && near(num(n.x), a.x) && near(num(n.y), a.y); };
+  const catOf = (n: SgNode): string => categoryOfKey(n.getPluginData?.(TABLE_KEY) || '');
+  if (partial) for (const p of drawnOn) {
+    // Every table the run drew here, a NEW one included (review of f3bb76cd): a first-time table lands at the end of
+    // its row, and when it is taller than the row it must push the rows below down, or it runs over them.
+    const mine = drawn.filter((d) => d.page === p);
+    if (!mine.length) continue;
     const ours = (p.children as readonly SgNode[]).filter((n) => n.type === 'FRAME' && !!n.getPluginData?.(TABLE_KEY));
-    const left = ours.filter((n) => { const a = recordOf(n); return !!a && near(num(n.x), a.x) && near(num(n.y), a.y); });
+    const x0 = new Map(ours.map((n) => [n, num(n.x)]));
+    const y0 = new Map(ours.map((n) => [n, num(n.y)]));
+    const inRowOf = (d: SgNode, n: SgNode): boolean => catOf(n) === catOf(d) && near(y0.get(n) ?? 0, y0.get(d) ?? 0);
+    // Per row a drawn table sits in: its change in height, the tallest before against the tallest now.
+    const rowDrops: { y: number; drop: number }[] = [];
+    for (const d of mine) {
+      const row = ours.filter((n) => inRowOf(d.frame, n));
+      // A table this run created was not there before: height 0.
+      const was = (n: SgNode): number => mine.find((m) => m.frame === n)?.height0 ?? num(n.height);
+      const drop = Math.max(...row.map((n) => num(n.height))) - Math.max(...row.map(was));
+      const y = y0.get(d.frame) ?? 0;
+      if (!near(drop, 0) && !rowDrops.some((r) => near(r.y, y))) rowDrops.push({ y, drop });
+    }
+    for (const n of ours.filter(leftAt)) {
+      const dx = mine.filter((d) => d.frame !== n && inRowOf(d.frame, n) && (x0.get(d.frame) ?? 0) < (x0.get(n) ?? 0)).reduce((s, d) => s + d.delta, 0);
+      const dy = rowDrops.filter((r) => r.y < (y0.get(n) ?? 0) && !near(r.y, y0.get(n) ?? 0)).reduce((s, r) => s + r.drop, 0);
+      if (near(dx, 0) && near(dy, 0)) continue;
+      n.x = num(n.x) + dx;
+      n.y = num(n.y) + dy;
+      n.setPluginData?.(AT_KEY, `${num(n.x)},${num(n.y)}`);
+    }
+  }
+  else for (const p of drawnOn) {
+    const ours = (p.children as readonly SgNode[]).filter((n) => n.type === 'FRAME' && !!n.getPluginData?.(TABLE_KEY));
+    const left = ours.filter(leftAt);
     const unrecorded = ours.filter((n) => !recordOf(n));
-    const lead = [...left].sort(byY)[0] ?? [...unrecorded].sort(byY)[0];
-    if (!lead) continue;
-    const x = num(lead.x);
-    const stack = [...left, ...unrecorded.filter((n) => near(num(n.x), x))].sort(byY);
-    if (!stack.length) continue;
-    let y = num(stack[0].y);
-    for (const d of freed.get(p) ?? []) if (near(d.x, x)) y = Math.min(y, d.y);
-    for (const n of stack) {
-      n.x = x;
-      n.y = y;
-      n.setPluginData?.(AT_KEY, `${x},${y}`);
-      y += (n.height ?? 0) + TABLE_GAP;
+    if (!left.length && !unrecorded.length) continue;
+    const leftmost = Math.min(...[...left, ...unrecorded].map((n) => num(n.x)));
+    const rowYOf = (cat: string): number | undefined => {
+      const lead = [...left.filter((n) => catOf(n) === cat)].sort((a, b) => num(a.y) - num(b.y) || num(a.x) - num(b.x))[0]
+        ?? [...unrecorded.filter((n) => catOf(n) === cat)].sort((a, b) => num(a.y) - num(b.y) || num(a.x) - num(b.x))[0];
+      return lead ? num(lead.y) : undefined;
+    };
+    const taken = [...left, ...unrecorded.filter((n) => near(num(n.y), rowYOf(catOf(n)) ?? NaN) || near(num(n.x), leftmost))];
+    if (!taken.length) continue;
+    let x0 = Math.min(...taken.map((n) => num(n.x)));
+    let y = Math.min(...taken.map((n) => num(n.y)));
+    for (const d of freed.get(p) ?? []) { x0 = Math.min(x0, d.x); y = Math.min(y, d.y); }
+    const cats = [...new Set(taken.map(catOf))].sort((a, b) => categoryRank(a) - categoryRank(b) || a.localeCompare(b));
+    for (const cat of cats) {
+      const row = taken.filter((n) => catOf(n) === cat).sort(byRow);
+      let x = x0;
+      for (const n of row) {
+        n.x = x;
+        n.y = y;
+        n.setPluginData?.(AT_KEY, `${x},${y}`);
+        x += num(n.width) + TABLE_GAP;
+      }
+      y += Math.max(...row.map((n) => num(n.height))) + TABLE_GAP;
     }
   }
 
-  const unbound = [...unboundIn.values()].reduce((a, b) => a + b, 0);
+  const count = (...ms: Map<string, string[]>[]): number => ms.flatMap((m) => [...m.values()]).reduce((a, w) => a + w.length, 0);
+  const unbound = [...unboundIn.values()].reduce((a, b) => a + b, 0) + count(unboundSpec, unsized, noLayer, noSet, fixedLayer);
+  const plural = (n: number, one: string, many: string): string => (n === 1 ? one : many);
   for (const [variant, n] of unboundIn) misses.push(`${n} ${n === 1 ? 'swatch' : 'swatches'} in ${variant} have no layer that takes a fill, so they show the component's own color`);
-  return { tables: out, stale, replaced, deleted, kept, unbound, notes: plan.notes, misses };
+  for (const [what, ws] of unboundSpec) { const n = ws.length; misses.push(`${n} ${what} specimen${plural(n, ' is', 's are')} not bound to ${plural(n, 'its', 'their')} ${what === 'text-style' ? 'style' : 'variable'}, so ${plural(n, 'it shows', 'they show')} the cell component's own value (${placesOf(ws)})`); }
+  for (const [what, ws] of unsized) { const n = ws.length; misses.push(`${n} ${what} spacing specimen${plural(n, ' is', 's are')} not sized to ${plural(n, 'its', 'their')} value: bound by ${plural(n, 'its', 'their')} left padding, the layer did not take the value's width (${placesOf(ws)})`); }
+  // THE OWNER'S FIXED-WIDTH CELLS: said ONCE for the run, in the terms of the fix, not once per specimen.
+  if (fixedLayer.size) {
+    const all = [...fixedLayer.values()].flat();
+    const tables = new Set(all.map((w) => w.split('\u241f')[0])).size;
+    const layers = [...fixedLayer.keys()];
+    const named = layers.length > 1 ? `${layers.slice(0, -1).join(', ')} and ${layers[layers.length - 1]}` : layers[0];
+    const fix = layers.length > 1 ? `make ${named} hug frames sized by left padding, with the bars positioned absolutely` : `make ${named} a hug frame sized by left padding, with any bars positioned absolutely`;
+    misses.push(`${all.length} spacing specimen${plural(all.length, ' is', 's are')} not sized, in ${tables} table${plural(tables, '', 's')}. ${SPACING_CELL_SET}: ${fix}. Figma does not let a plugin resize a layer inside an instance.`);
+  }
+  for (const [what, ws] of noSet) { const n = ws.length; misses.push(`${n} ${what} spacing specimen${plural(n, ' is', 's are')} not drawn: this file has no ${SPACING_CELL_SET} set, which Set up file adds (${placesOf(ws)})`); }
+  for (const [what, ws] of noLayer) { const n = ws.length; misses.push(`${n} ${what} specimen${plural(n, ' is', 's are')} not bound: the member has no layer this build can size or bind (a Bar, a first frame, or a layer named *-example), so ${plural(n, 'it shows', 'they show')} the cell component's own value (${placesOf(ws)})`); }
+  return { tables: out, stale, replaced, deleted, kept, unbound, notes, misses, unmatched: plan.unmatched, ...(stopped ? { stopped } : {}) };
 };
 
 /**
@@ -1103,20 +2019,26 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
   const made = r.tables.filter((t) => t.status === 'created');
   const upd = r.tables.filter((t): t is Extract<TableOutcome, { status: 'updated' }> => t.status === 'updated');
   const skipped = r.tables.filter((t): t is Extract<TableOutcome, { status: 'skipped' }> => t.status === 'skipped');
+  const failed = r.tables.filter((t): t is Extract<TableOutcome, { status: 'failed' }> => t.status === 'failed');
   const parts: string[] = [];
-  if (made.length) parts.push(`${made.length} tables created (${made.slice(0, 3).map((t) => t.title).join(', ')}${made.length > 3 ? '…' : ''})`);
+  // A failed table first, by its title and the host's reason (S11.2): it is what the designer has to act on.
+  for (const t of failed) parts.push(`${t.title}: ${t.reason}`);
+  if (r.stopped) parts.push(`Stopped after table ${r.stopped.done} of ${r.stopped.total}. The tables already drawn stay`);
+  // A filtered run (#1778) often draws one table, so every count here agrees with its number.
+  const tables = (n: number): string => `${n} table${n === 1 ? '' : 's'}`;
+  if (made.length) parts.push(`${tables(made.length)} created (${made.slice(0, 3).map((t) => t.title).join(', ')}${made.length > 3 ? '…' : ''})`);
   if (upd.length) {
     const changes = upd.flatMap((t) => {
       const d = t.diff;
       const bits = [d.added.length && `${d.added.length} added`, d.removed.length && `${d.removed.length} removed`, d.changed.length && `${d.changed.length} changed`, d.renamed.length && `${d.renamed.length} renamed`].filter(Boolean);
       return bits.length ? [`${t.title}: ${bits.join(', ')}`] : [];
     });
-    parts.push(`${upd.length} tables updated in place — ${changes.length ? changes.join('; ') : 'no token changes'}`);
+    parts.push(`${tables(upd.length)} updated in place — ${changes.length ? changes.join('; ') : 'no token changes'}`);
   }
   const noCells = skipped.filter((t) => t.reason === 'no-cells');
   if (noCells.length) parts.push(`${noCells.length} tables skipped — this file has no style-guide cell sets, and Set up file adds them`);
   const noPage = [...new Set(skipped.filter((t) => t.reason === 'no-page').map((t) => t.page))];
-  for (const p of noPage) parts.push(`${skipped.filter((t) => t.page === p).length} tables skipped — this file has no ${p} page, and Set up file adds it`);
+  for (const p of noPage) parts.push(`${skipped.filter((t) => t.page === p).length} tables skipped — this file has no ${p.replace(/^↳\s*/, '')} page, and Set up file adds it`);
   // Superseded tables: the deleted ones by name, since a deletion names its scope; the kept ones grouped by the
   // reason each was kept; a table from before the fingerprint apart, with what to do about it. Wording proposed,
   // owner to confirm (docs/45 §8).
@@ -1142,10 +2064,68 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
   // A partial run is not a pass: a skipped table is a page the designer expected and does not have, and an
   // unbound swatch is a specimen that does not show its token, so the pill says so and the detail opens on it.
   // Every form fits the 24-char pill at any count below 1000.
-  const ok = skipped.length === 0 && r.unbound === 0;
-  const headline = drawn === 0 ? (skipped.length ? '✗ style guide skipped' : '✓ style guide: 0 tables')
+  // A table the designer named that no table matches (#1778) is the same: they asked for something not drawn.
+  // A failed table is the same (S11.2): "⚠ 31 drawn, 1 failed", the approved words (P12).
+  const ok = skipped.length === 0 && failed.length === 0 && r.unbound === 0 && r.unmatched.length === 0;
+  const headline = drawn === 0 ? (failed.length ? `⚠ 0 drawn, ${failed.length} failed` : skipped.length ? '✗ style guide skipped' : r.unmatched.length ? '✗ no table matched' : '✓ style guide: 0 tables')
+    : failed.length ? `⚠ ${drawn} drawn, ${failed.length} failed`
     : skipped.length ? `⚠ ${drawn} drawn, ${skipped.length} skipped`
-    : r.unbound ? `⚠ ${r.unbound} swatches unbound`
-    : r.deleted.length ? `✓ ${drawn} tables, ${r.deleted.length} deleted` : `✓ style guide: ${drawn} tables`;
-  return { ok, headline: headline.length > 24 ? (ok ? '✓ style guide written' : '⚠ style guide partial') : headline, summary: parts.join('. ') || 'No color variables in this file' };
+    : r.unmatched.length ? `⚠ ${drawn} drawn, ${r.unmatched.length} not found`
+    : r.unbound ? `⚠ ${r.unbound} ${r.misses.some((m) => / specimens? (is|are) not (bound|sized|drawn)/.test(m)) ? 'specimens' : 'swatches'} unbound`
+    : r.deleted.length ? `✓ ${tables(drawn)}, ${r.deleted.length} deleted` : `✓ style guide: ${tables(drawn)}`;
+  return { ok, headline: headline.length > 24 ? (ok ? '✓ style guide written' : '⚠ style guide partial') : headline, summary: parts.join('. ') || 'Nothing to draw: this file has no variables or text styles of the types this run covers' };
+};
+
+// ── The Build style guides page (UI redesign S11.2) ───────────────────────────────────────────────────
+/** Whether Set up file has run, as the run needs it (owner decision P8): the swatch and text cell sets, without which
+ *  every table is skipped `no-cells`, and both token pages, without which a table is skipped `no-page`. Read once when
+ *  the page asks, after `loadAllPagesAsync`. */
+export const isSetUp = (root: StyleGuideApi['root']): boolean => {
+  const sets = findCellSets(root);
+  const pages = new Set(root.children.map((p) => p.name));
+  return !!sets[SWATCH_SET] && !!sets[TEXT_CELL_SET] && pages.has(PRIMITIVE_PAGE) && pages.has(SEMANTIC_PAGE);
+};
+
+const KIND_OF_TYPE = (type: string): StyleGuideKind =>
+  type === 'color' ? 'color' : type === 'dimension' ? 'dimension' : type === 'typography' ? 'text' : 'font';
+/** The variable kinds whose number is a length, printed in px in the tree. */
+const LENGTH_KINDS: ReadonlySet<VarKind> = new Set<VarKind>(['spacing', 'size', 'radius', 'scale', 'fontSize', 'lineHeight', 'letterSpacing',
+  'paragraphSpacing', 'paragraphIndent', 'borderWidth', 'iconSize', 'breakpoint', 'grid']);
+
+/**
+ * WHAT THE PAGE SHOWS BEFORE A RUN (S11.2): every collection with its variables, the text styles, and for each the
+ * table an UNFILTERED run would draw it in, from the same planner the run uses, so a title on the page is a title the
+ * `tables` option matches. A variable no phase draws has table -1: the page shows it, tagged and not pickable (P5).
+ * PURE: the caller reads the catalog and decides `setUp`.
+ */
+export const catalogFor = (catalog: SgCatalog, contract: SgContract | null, setUp: boolean): StyleGuideCatalog => {
+  const plan = planStyleGuide(catalog, contract, {});
+  const tableOf = new Map<string, number>();
+  plan.tables.forEach((t, i) => { for (const r of t.rows) if (!tableOf.has(r.variableId)) tableOf.set(r.variableId, i); });
+  const ix: Index = { byId: new Map(catalog.variables.map((v) => [v.id, v])), collections: new Map(catalog.collections.map((c) => [c.id, c])) };
+  const valueOf = (v: SgVariable, col: SgCollection): string => {
+    const mode = defaultMode(col);
+    if (!mode) return '';
+    if (v.resolvedType === 'COLOR') { const c = resolveColor(ix, v, mode); return c ? formatColor(c, 'hex') : ''; }
+    const lit = resolveLiteral(ix, v, mode);
+    if (typeof lit === 'string') return lit;
+    if (typeof lit === 'boolean') return String(lit);
+    if (typeof lit !== 'number') return '';
+    const kind = varKind(v);
+    return kind === 'fontWeight' ? trimNum(lit, 0) : kind && LENGTH_KINDS.has(kind) ? formatPx(lit) : trimNum(lit, 2);
+  };
+  const collections: StyleGuideCatalogCollection[] = catalog.collections.map((col) => ({
+    id: col.id,
+    name: col.name,
+    modes: col.modes.map((m) => m.name),
+    items: catalog.variables.filter((v) => v.variableCollectionId === col.id).map((v) => ({ name: v.name, table: tableOf.get(v.id) ?? -1, value: valueOf(v, col) })),
+  }));
+  const styles = catalog.textStyles ?? [];
+  if (styles.length) collections.push({ id: TEXT_STYLES_ID, name: 'Text styles', modes: [], textStyles: true, items: styles.map((st) => ({ name: st.name, table: tableOf.get(st.id) ?? -1, value: '' })) });
+  return {
+    setUp,
+    collections,
+    tables: plan.tables.map((t) => ({ key: t.key, title: t.title, kind: KIND_OF_TYPE(t.type), page: t.page.replace(/^↳\s*/, ''), rows: t.rows.length })),
+    notes: plan.notes,
+  };
 };

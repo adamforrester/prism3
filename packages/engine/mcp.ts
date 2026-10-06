@@ -28,7 +28,7 @@
  *                         invented-token rate, primitive-leak rate, contrast-contract compliance.
  *   • export_theme     — generates a brand and WRITES its artifacts (tokens.json, ai-metadata.json,
  *                        figma/) to a directory, returning a manifest rather than the content.
- *   • validate_brand   — a `BrandInput` → schema errors (or ok), without generating.
+ *   • validate_brand   — a `BrandInput` → schema errors and the engine's input refusals (or ok), without generating.
  *
  * The knob CATALOGUE derives from the lever manifest (list_levers); the input SHAPE is
  * `theme-schema.json` (the manifest is presentation, the schema is the precise OKLCH-aware
@@ -43,7 +43,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { brandTheme, BrandInput } from './theme';
+import { brandTheme, BrandInput, type Theme } from './theme';
 import { buildTree, validateBrandInput } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
 import { buildLeverManifest } from './levers';
@@ -71,6 +71,11 @@ export const PROTOCOL_VERSIONS = ['2026-07-28', '2024-11-05'] as const;
 export const LATEST_PROTOCOL_VERSION = PROTOCOL_VERSIONS[0];
 /** Retained for the older handshake's reply. */
 export const PROTOCOL_VERSION = LATEST_PROTOCOL_VERSION;
+/** What `initialize` answers when the client asks for a version this server does not speak (#1867).
+ *  A client that sends `initialize` is on a pre-2026 revision, because `2026-07-28` removed the
+ *  handshake. So the answer is the newest HANDSHAKE revision we speak, never `2026-07-28`: Claude Code
+ *  asks for `2025-11-25`, and answering `2026-07-28` made it refuse to connect. */
+export const HANDSHAKE_PROTOCOL_VERSION = '2024-11-05';
 
 /** `_meta` keys the 2026-07-28 revision defines. Spelled out rather than string-literalled at each
  *  use so a typo cannot silently produce an unread field. */
@@ -319,8 +324,8 @@ export const toolDefs = (brandSchema: unknown) => [
     inputSchema: {
       type: 'object',
       properties: {
-        brief: { type: 'string', description: 'A design.md document. MUST open with a --- YAML frontmatter fence on the first line.' },
-        include: { type: 'array', items: { type: 'string', enum: [...THEME_SECTIONS] }, description: 'Extra sections to return; same meaning as theme_brand.' },
+        brief: { type: 'string', description: 'A design.md document. It must open with a --- YAML frontmatter fence on the first line.' },
+        include: { type: 'array', items: { type: 'string', enum: [...THEME_SECTIONS] }, description: 'Sections to return, replacing the default ["notes"]; same meaning as theme_brand.' },
       },
       required: ['brief'],
       additionalProperties: false,
@@ -366,7 +371,7 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'validate_brand',
     title: 'Validate a brand input',
-    description: 'Validate a BrandInput against the engine schema WITHOUT generating. Returns { valid, errors } — a fast pre-flight before theme_brand. Takes the same brand object as theme_brand\'s `brand` argument; see that tool for the full input schema.',
+    description: 'Validate a BrandInput against the engine schema and the engine\'s own input refusals, WITHOUT generating tokens. Returns { valid, errors } — a fast pre-flight before theme_brand. Takes the same brand object as theme_brand\'s `brand` argument; see that tool for the full input schema.',
     inputSchema: { type: 'object', description: 'A BrandInput — the same shape as theme_brand\'s `brand` property.' },
     outputSchema: {
       type: 'object',
@@ -378,8 +383,8 @@ export const toolDefs = (brandSchema: unknown) => [
 ];
 
 /** Sections included when the caller does not say. `notes` is the decisions log — every gap the
- *  engine filled on the brand's behalf, including the ones it explicitly flags for human
- *  confirmation ("action color defaults to the PRIMARY brand palette — CONFIRM this hue…").
+ *  engine filled on the brand's behalf, including the ones a person should look at ("action: follows
+ *  the primary palette (the default) — buttons and links take the brand hue; …").
  *
  *  It was opt-in until now, grouped with `tokens` and `aiMetadata` under "withheld by default".
  *  That grouping was by CATEGORY when the only thing justifying it is COST, and the measured costs
@@ -416,15 +421,55 @@ const structured = (obj: unknown): ToolResult =>
 /** Dispatch a tools/call. Pure — imports of the core are all pure functions. Tool-level
  *  failures (bad brand, generation throw) come back as `isError` results, not RPC errors,
  *  per the MCP convention (the call succeeded; the tool reported a problem). */
+/** Build a schema-valid brand the way every generating tool does, `brandTheme` then `buildTree`, and turn a
+ *  refusal from EITHER into an `isError` result carrying the engine's own sentence in `errors`, the shape the
+ *  schema failure above already uses (#2162). Before, `buildTree` sat outside every `try`, so a refusal that
+ *  fires only when the modes resolve (an override naming an unknown palette or step) escaped `tools/call` as a
+ *  -32603 protocol error, which a client may not hand back to the model. Call it on schema-valid input only. */
+const buildBrand = (brand: unknown): { theme: Theme; built: ReturnType<typeof buildTree> } | ToolResult => {
+  try { const theme = brandTheme(brand as BrandInput); return { theme, built: buildTree(theme) }; }
+  catch (e) { return text({ error: 'BrandInput refused by the engine', errors: [(e as Error).message] }, true); }
+};
+const refused = (r: ReturnType<typeof buildBrand>): r is ToolResult => 'content' in r;
+
+/** How a malformed value reads in a refusal: `missing`, `null`, `an array`, `an object`, or the value itself. */
+const shapeOf = (v: unknown): string =>
+  v === undefined ? 'missing' : v === null ? 'null' : Array.isArray(v) ? 'an array' : typeof v === 'object' ? 'an object' : typeof v === 'string' ? JSON.stringify(v) : String(v);
+
+/** Each `refs` item and `pairs` entry `score_consumption` was given, checked against its inputSchema before
+ *  anything reads it (#2209). Before, `pairs: [null]` reached `scoreContractCompliance`, whose `pair.fg` threw,
+ *  and `refs: [null]` reached `normalizeRef`'s `.trim()`; either escaped `tools/call` as a -32603 protocol error,
+ *  which #2162's `buildBrand` guard does not cover because neither runs inside it. A `kind` outside the enum
+ *  threw nothing: it was scored silently at the 4.5:1 text floor. Names every bad entry by index, so the caller
+ *  fixes all of them in one round. A `pairs` that is not an array is still ignored, as an absent one is. */
+const scoreInputErrors = (refs: unknown[], pairs: unknown): string[] => {
+  const errors: string[] = [];
+  refs.forEach((r, i) => { if (typeof r !== 'string') errors.push(`refs[${i}] is ${shapeOf(r)}; each ref is a token path, such as "color.text.primary"`); });
+  if (!Array.isArray(pairs)) return errors;
+  pairs.forEach((p, i) => {
+    if (!p || typeof p !== 'object' || Array.isArray(p)) {
+      errors.push(`pairs[${i}] is ${shapeOf(p)}; each pair is an object with \`fg\` and \`bg\` color roles, such as { "fg": "text.primary", "bg": "background.primary" }`);
+      return;
+    }
+    const pair = p as Record<string, unknown>;
+    for (const [k, eg] of [['fg', 'text.primary'], ['bg', 'background.primary']] as const) {
+      if (typeof pair[k] !== 'string') errors.push(`pairs[${i}].${k} is ${shapeOf(pair[k])}; it takes a color role, such as "${eg}"`);
+    }
+    if (pair.kind !== undefined && !['text', 'large-text', 'ui'].includes(pair.kind as string)) {
+      errors.push(`pairs[${i}].kind is ${shapeOf(pair.kind)}; it takes text, large-text or ui`);
+    }
+  });
+  return errors;
+};
+
 /** Validate → generate → verification payload. Shared by `theme_brand` and `theme_from_brief` so the
  *  two can never report a brand differently depending on how it was supplied. */
 const themePayload = (brand: unknown, include: string[]): ToolResult => {
   const errors = validateBrandInput(brand);
   if (errors.length) return text({ error: 'BrandInput failed schema validation', errors }, true);
-  let theme;
-  try { theme = brandTheme(brand as BrandInput); }
-  catch (e) { return text({ error: `brandTheme failed: ${(e as Error).message}` }, true); }
-  const { tree, modes, stats } = buildTree(theme);
+  const b = buildBrand(brand);
+  if (refused(b)) return b;
+  const { theme, built: { tree, modes, stats } } = b;
   let checks = 0, pass = 0; const failures: string[] = [];
   for (const m of modes) for (const [k, r] of Object.entries(m.roles)) {
     const rr = r as { min: number; ratio: number };
@@ -495,14 +540,13 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     if (bad) return text({ error: bad }, true);
     const errors = validateBrandInput(brand);
     if (errors.length) return text({ error: 'BrandInput failed schema validation', errors }, true);
-    let theme;
-    try { theme = brandTheme(brand as BrandInput); }
-    catch (e) { return text({ error: `brandTheme failed: ${(e as Error).message}` }, true); }
     const want = include?.length ? include : [...EXPORT_SECTIONS];
     const unknown = want.filter((s) => !EXPORT_SECTIONS.includes(s as never));
     if (unknown.length) return text({ error: `unknown include section(s): ${unknown.join(', ')}. Valid: ${EXPORT_SECTIONS.join(', ')}` }, true);
 
-    const { tree } = buildTree(theme);
+    const b = buildBrand(brand);
+    if (refused(b)) return b;
+    const { theme, built: { tree } } = b;
     const files: { path: string; content: string }[] = [];
     if (want.includes('tokens')) files.push({ path: 'tokens.json', content: JSON.stringify(tree, null, 2) + '\n' });
     if (want.includes('aiMetadata')) files.push({ path: 'ai-metadata.json', content: JSON.stringify(buildAiMetadata(theme, tree, { tokensFile: 'tokens.json' }), null, 2) + '\n' });
@@ -564,6 +608,18 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
 
   if (name === 'validate_brand') {
     const errors = validateBrandInput(args);
+    // #2146: the schema is not the whole contract. `brandTheme` refuses inputs the schema accepts (a first
+    // breakpoint that isn't 0, a viewport range that is empty or reversed, #2132 and #2068), so a brand this
+    // tool called valid could then fail `theme_brand`. Run only on a schema-valid input: a malformed one
+    // would reach `brandTheme` in a shape it does not guard and fail with a TypeError instead of a reason.
+    // Reported as the engine states it, so the agent reads the same sentence `theme_brand` would give.
+    // #2159: the SAME build path `theme_brand` runs, `brandTheme` then `buildTree`. Some refusals only fire
+    // in the second, when the modes resolve: an override naming an unknown palette or step throws there,
+    // so `brandTheme` alone called that brand valid.
+    if (errors.length === 0) {
+      try { buildTree(brandTheme(args as BrandInput)); }
+      catch (e) { errors.push((e as Error).message); }
+    }
     return structured({ valid: errors.length === 0, errors });
   }
 
@@ -571,10 +627,11 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     const errors = validateBrandInput(args?.brand);
     if (errors.length) return text({ error: 'BrandInput failed schema validation', errors }, true);
     if (!Array.isArray(args?.refs)) return text({ error: 'score_consumption requires `refs`: an array of token refs' }, true);
-    let theme;
-    try { theme = brandTheme(args.brand as BrandInput); }
-    catch (e) { return text({ error: `brandTheme failed: ${(e as Error).message}` }, true); }
-    const { tree } = buildTree(theme);
+    const bad = scoreInputErrors(args.refs, args.pairs);
+    if (bad.length) return text({ error: 'score_consumption input failed validation', errors: bad }, true);
+    const b = buildBrand(args.brand);
+    if (refused(b)) return b;
+    const { theme, built: { tree } } = b;
     const out: Record<string, unknown> = { consumption: scoreConsumption(args.refs as string[], tree, theme.root) };
     // Pairs are optional: contract compliance is a different question from ref hygiene, and an agent
     // that only reports the tokens it named should still get the first two metrics.
@@ -589,7 +646,9 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     // exactly the case the spec says to report with isError so the client can feed it back.
     try { parsed = parseDesignMd(args.brief); }
     catch (e) { return text({ error: `could not parse the design.md brief: ${(e as Error).message}` }, true); }
-    const result = themePayload(parsed.input, Array.isArray(args.include) ? args.include : []);
+    // Same default as theme_brand (#1868): the description promises the same payload, and an empty
+    // default silently dropped the decisions log from every call that named no sections.
+    const result = themePayload(parsed.input, Array.isArray(args.include) ? args.include : [...DEFAULT_THEME_SECTIONS]);
     if (result.isError) return result;
     // Report what the brief RESOLVED to. A brief is lossy by nature, and an agent cannot correct a
     // misreading it never sees — this is the field that makes the round trip debuggable.
@@ -633,10 +692,13 @@ export const handleRpc = (req: RpcRequest, brandSchema: unknown, io?: ExportIo):
       return ok({ protocolVersions: [...PROTOCOL_VERSIONS], capabilities: CAPABILITIES, serverInfo: SERVER_INFO });
 
     // 2024-11-05 — removed by the newer revision, kept answering so pinned clients still work.
-    // Echoes the client's version when we speak it, else our newest, which is what that spec asks.
+    // Echoes the client's version when it is a handshake revision we speak. Otherwise it answers
+    // HANDSHAKE_PROTOCOL_VERSION, never `2026-07-28` (#1867). The spec's MUST is "another version it
+    // supports"; its SHOULD says the latest, which we read as the latest a handshake client can use,
+    // because `2026-07-28` has no `initialize` and a client that sent one cannot use that answer.
     case 'initialize': {
       const want = req.params?.protocolVersion;
-      const version = typeof want === 'string' && (PROTOCOL_VERSIONS as readonly string[]).includes(want) ? want : LATEST_PROTOCOL_VERSION;
+      const version = typeof want === 'string' && want !== LATEST_PROTOCOL_VERSION && (PROTOCOL_VERSIONS as readonly string[]).includes(want) ? want : HANDSHAKE_PROTOCOL_VERSION;
       return ok({ protocolVersion: version, capabilities: CAPABILITIES, serverInfo: SERVER_INFO });
     }
     case 'notifications/initialized':

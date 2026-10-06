@@ -286,7 +286,7 @@ export const measureSettle = async (maxTicks: number = MAX_TICKS): Promise<numbe
  * Run the settle probe WITHOUT the designer's verdict waiting on it (#908).
  *
  * THE DEFECT THIS REMOVES: the probe was awaited before `component-result` was posted, so on a host busy
- * enough to matter the panel held `⋯ Building…` for the whole tick budget — 8.4s at 20ms of work per tick,
+ * enough to matter the panel held `Building…` for the whole tick budget — 8.4s at 20ms of work per tick,
  * 40s at 100ms — and then reported a verdict alongside a settle figure of `null`. The designer's verdict
  * was delayed by a diagnostic, and by a diagnostic that had failed. #870's argument is what makes that
  * more than a slow build: the verdict line is the ONLY place a build's misses are reported, and an 8.4s

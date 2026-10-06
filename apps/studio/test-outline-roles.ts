@@ -5,7 +5,7 @@
  *   npx tsx apps/studio/test-outline-roles.ts
  *
  * `main.ts` calls `build()` (touching `document`) at import and cannot load under tsx, so the key
- * choice was extracted to its own pure module, as `size-labels.ts` and `provenance.ts` were.
+ * choice was extracted to its own pure module, as `provenance.ts` was.
  *
  * The defect: on an inverse preview ground the ink and edge switched to their `inverse.` twins, and
  * the hover/pressed FILL did not. It read the PAGE wash, so the band preview painted `black-alpha` over

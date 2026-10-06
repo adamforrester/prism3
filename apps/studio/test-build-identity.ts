@@ -94,10 +94,11 @@ ok(buildChip(TREE_ID).endsWith('Z'), 'the chip marks its time as UTC — 08-26 1
 ok(!buildChip(LOCAL_ID).endsWith('Z') && !buildChip(COMMIT_ID).endsWith('Z'),
   "and the web's two forms are untouched by that — they carry no time at all");
 
-// `.rail-build` is a wrapping flex row with no width to spare. A single token with no break opportunity
-// would overflow the rail rather than wrap onto a second line, so the space between the two fields is
-// load-bearing layout, not just punctuation. (`.rail-build-b` also carries `overflow-wrap:anywhere`
-// for the case a branch name alone exceeds the column.)
+// The stamp (`.p3-menu-stamp`, at the foot of the Inspect menu since S8.2, C3 A; `.rail-build` before) is a
+// wrapping flex row with no width to spare. A single token with no break opportunity would overflow the
+// menu rather than wrap onto a second line, so the space between the two fields is load-bearing layout,
+// not just punctuation. (`.p3-menu-stamp-b` also carries `overflow-wrap:anywhere` for the case a branch
+// name alone exceeds the column.)
 ok(buildChip(TREE_ID).includes(' '), 'the chip has a break opportunity, so a long tree name wraps rather than overflowing');
 
 // The web is unchanged by #836 — asserted, because this module now sits in front of a surface that

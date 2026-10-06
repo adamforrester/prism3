@@ -67,6 +67,11 @@ const PAIRS = [
   // both badges in fact sit inside a --panel, where 6% clears. 6% is a CEILING, not a preference.
   ['--ok', '--ok-tint', 4.5],
   ['--danger', '--danger-tint', 4.5],
+  // #1675 — segmented chips. The selected chip is --panel ink on an --ink fill; an unselected chip is
+  // --ink on --panel (covered above). The unselected chip's edge is NON-TEXT, WCAG 1.4.11's 3:1, on
+  // both grounds a chip sits on: with no fill of its own, the edge is what shows where the control is.
+  ['--panel', '--ink', 4.5],
+  ['--chip-edge', '--paper', 3], ['--chip-edge', '--panel', 3],
 ];
 
 // #769 moved the stylesheet out of a template literal in `src/main.ts` into a real `src/styles.css`.

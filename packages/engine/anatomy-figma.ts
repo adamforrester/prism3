@@ -1921,10 +1921,8 @@ export const PILL_RADIUS_RUNG = 'radius.capsule';
 export const BOXED_RADIUS_RUNG = 'radius.none';
 
 /** The rung a pill-able control binds under `controlShape: hairline` (#1371) — the fixed 1px sentinel
- *  (#1362). `radius.hairline` is OPT-IN: it exists only when the brand's `radiusHairline` lever is on, so
- *  selecting `controlShape: hairline` IMPLIES that rung — `brandTheme` provisions `radius.hairline`
- *  whenever the control shape needs it (theme.ts), which is what keeps this rewrite always resolvable
- *  rather than dangling against a brand that never opted in. */
+ *  (#1362). Every brand emits `radius.hairline` since #2053 (`radiusScale` pushes it unconditionally), so
+ *  this rewrite always resolves, as `boxed`'s `radius.none` always has. */
 export const HAIRLINE_RADIUS_RUNG = 'radius.hairline';
 
 /** The rung each shape repoints the ROUNDED rung (`radius.md`) to on a pill-able def. `rounded` is `null`
@@ -1959,9 +1957,8 @@ export const isPillable = (def: ComponentDef): boolean => !!def.anatomy?.derived
  *
  * EACH SHAPE NAMES A RELATIONSHIP, NOT A RAW RADIUS (#1371). The four values are one selector reaching four
  * rungs by ref: `rounded` tracks the softness ramp, `pill` is the unconditional height ÷ 2, `boxed` is the
- * always-present sharp floor, and `hairline` is the opt-in 1px sentinel. `boxed`'s `radius.none` always
- * exists, so it is valid for any brand; `hairline`'s `radius.hairline` is provisioned by `brandTheme`
- * whenever `controlShape: hairline` is chosen (see `HAIRLINE_RADIUS_RUNG`), so this rewrite never dangles.
+ * always-present sharp floor, and `hairline` is the always-present 1px sentinel (#2053). Both rungs exist
+ * for every brand, so neither rewrite can dangle (see `HAIRLINE_RADIUS_RUNG`).
  *
  * WHY IT KEYS ON THE ROUNDED RUNG (`radius.md`) RATHER THAN THE LITERAL KEY `radius` (#1353). Before the
  * icon-button `shape` axis, both pill-able defs bound their corner radius through a token key spelled
@@ -4480,6 +4477,30 @@ if(!set&&!FIRST){
   misses.push('set -> '+SET_NAME+' NOT FOUND on this page (chunk '+(CHUNK+1)+' of '+TOTAL+' appends into the set chunk 1 creates — paste the chunks in order)');
   return {set:null,chunk:CHUNK+1,of:TOTAL,added:0,variants:0,misses};
 }
+// #1780 — A SET WHOSE VARIANT AXES DIFFER FROM THE PLAN'S IS REFUSED, NOT ADDED INTO (#1809 ports the
+// plugin's refusal here). A name match says nothing about the axes: when a def gains, loses or renames an
+// axis every planned member name is new, SKIP BY NAME below skips nothing, and every member lands in the
+// old set beside members on the other axis list — a set Figma reports as broken. So refuse and write
+// nothing. Read off the MEMBER NAMES, as the plugin's \`memberAxisLists\` does: the definitions getter
+// throws on exactly the mixed set this check most needs to read. Only coordinate-shaped names count, so a
+// designer's hand-made copy does not refuse the build. AXIS NAMES ONLY: a new VALUE on an existing axis is
+// the append path this payload has always had.
+// ON EVERY CHUNK, not only FIRST. On a set chunk 1 made from this plan the check passes (every member
+// carries every axis key). But when chunk 1 was refused, chunk 2 finds the OLD set by name, and without
+// the check there it would append into it — the defect, one chunk later.
+// The miss is the plugin's string, character for character; test.ts compares the two.
+// COMPACT, as the rest of this body is: every byte here ships in every chunk. Measured at #1809: the first,
+// indented spelling of these two blocks cost 1,511 bytes of shell and this one 1,176, and icon-button's set
+// packs into 16 chunks either way, from 14.
+if(set){const L=new Map();for(const c of set.children){const g=String(c.name).split(', ');if(g.every(s=>s.includes('='))){const l=g.map(s=>s.slice(0,s.indexOf('='))).sort();L.set(l.join(),l);}}
+const existing=[...L.values()],planned=EXPECTED_AXES.slice().sort(),sh=l=>'['+l.join(', ')+']';
+if(existing.some(l=>l.join()!==planned.join())){misses.push("set -> AXES CHANGED: '"+SET_NAME+"' on this page varies by "+existing.map(sh).join(' and ')+', and this build varies by '+sh(planned)+'. Nothing was added to it, because members on two axis lists leave a set Figma reports as broken. Rename the existing set (its instances keep pointing at it) and build again to get a new set beside it.');
+return {set:null,chunk:CHUNK+1,of:TOTAL,added:0,variants:0,axesChanged:{set:SET_NAME,existing,planned},misses};}}
+// #1750 — WHAT IS ALREADY ON THE PAGE, read BEFORE the build loop appends this chunk's members to it. Only
+// when this chunk CREATES the set, which is chunk 1 (a later chunk that finds no set returned above); a set
+// that already exists keeps its position, the "designer's placement wins" rule. Hidden nodes count.
+const created=!set;
+const prior=created?figma.currentPage.children.map(n=>({t:n.type,x:n.x||0,y:n.y||0,w:n.width||0,h:n.height||0})):[];
 // SKIP BY NAME. \`combineAsVariants\` accepts a DUPLICATE member name silently, and the set it returns
 // then THROWS on \`componentPropertyDefinitions\` and \`variantGroupProperties\` while
 // \`addComponentProperty\` still succeeds — so a re-run without this produces a set that looks buildable
@@ -4562,6 +4583,18 @@ if(colW.length&&rowH.length)set.resize(wantW,wantH);
 const boxMiss=[];
 if(colW.length&&rowH.length&&(Math.round(set.width)<Math.round(wantW)||Math.round(set.height)<Math.round(wantH)))
   boxMiss.push('set -> BOX '+Math.round(set.width)+'x'+Math.round(set.height)+' does not contain its '+members.length+' members ('+Math.round(wantW)+'x'+Math.round(wantH)+' needed; appending does NOT grow the frame)');
+// #1750 — PLACE A NEW SET CLEAR OF THE PAGE'S CONTENT, the plugin's \`placeNewSet\` rule: an empty page
+// leaves the set at the origin; otherwise top-aligned with the sets already there (or with all content when
+// there is none), then 160 (the plugin's SET_GAP, a placeholder) right of everything that overlaps the
+// set's row. A node wholly above or below the row does not push it. AFTER the resize, because the row is
+// the set's height. Written again here rather than shared: the paste script cannot import the plugin, and
+// test.ts compares the two placements.
+// THE ROW IS CHUNK 1'S HEIGHT. Later chunks grow the set down and right from where this put it, and do not
+// move it; the plugin places once, at the finished height. So a node below chunk 1's rows but inside the
+// finished set's can be covered here where the plugin would have pushed the set past it (#1856).
+// NO POSITION READ-BACK, unlike the plugin: the stub stores x/y as plain fields, so the read-back could not
+// fail in any gate, and it would cost bytes in every chunk.
+if(created&&prior.length){const S=prior.filter(b=>b.t==='COMPONENT_SET'),y=Math.min(...(S.length?S:prior).map(b=>b.y)),B=prior.filter(b=>b.y<y+set.height&&b.y+b.h>y);set.x=Math.max(...(B.length?B:prior).map(b=>b.x+b.w))+160;set.y=y;}
 // READ BACK the definitions, GUARDED. A duplicate member name poisons this getter (see above), so an
 // unguarded read throws with no indication of which member caused it — and takes the whole paste's
 // report with it, including the misses already collected.
@@ -4827,15 +4860,54 @@ ${PAYLOAD_CHUNK_RETURN}
     groups = next;
   }
 
-  // The LAST chunk declares the properties, so it carries `PROPS_ALL`/`REFS_ALL` and is heavier than the
-  // packing loop assumed. It is also the chunk most likely to be short, so this normally costs nothing —
-  // but if it does overflow, split one variant off the end rather than ship a chunk over budget.
-  const lastGroup = groups[groups.length - 1];
-  if (lastGroup.length > 1 && emit(lastGroup, groups.length - 1, groups.length, true).length > budgetBytes)
-    groups.push([lastGroup.pop()!]);
-
-  return groups.map((slice, i) => {
-    const js = emit(slice, i, groups.length, i === groups.length - 1);
-    return { index: i, total: groups.length, variants: slice.map((c) => c.name), js, bytes: js.length };
+  // RE-MEASURE THE CHUNKS THAT SHIP, AND MOVE A VARIANT ON UNTIL EVERY ONE FITS (#1814). Packing works from
+  // an estimate, and two things it cannot see change a chunk after it is packed:
+  //  - THE LAST chunk declares the properties, so it carries `PROPS_ALL`/`REFS_ALL` and is heavier than the
+  //    packing loop assumed. Measured at #1814: the textarea set packed at 124 budgets, 30,000 to 42,000 in
+  //    97-byte steps, needs a move at 14 of them, each time off the last chunk.
+  //  - A MOVE ADDS A CHUNK, so `TOTAL` can gain a digit, which widens every chunk's header by a byte.
+  // This loop used to move one variant off the last chunk and never measure again. Now every chunk is
+  // emitted as it will ship, at its final index and total; the first multi-variant chunk over budget
+  // passes its last variant to the front of the next chunk (or to a new last chunk), and the whole set is
+  // measured again. Plan order is kept. A single-variant chunk over budget stays, as the packing loop
+  // allows: it cannot be split, and its own `bytes` reports it.
+  //
+  // THE DIGIT HAS PUSHED NO CHUNK OVER IN ANY CASE MEASURED, and the reason is one byte nobody wrote
+  // down: the estimate charges a comma for every variant, and a chunk of k variants ships k - 1. So each
+  // packed chunk measures at least one byte under its estimate, and that byte absorbs the wider `TOTAL`.
+  // The loop, `settleChunks` below, does not rely on it.
+  return settleChunks(groups, budgetBytes, (slice, i, total, last) => {
+    const js = emit(slice, i, total, last);
+    return { index: i, total, variants: slice.map((c) => c.name), js, bytes: js.length };
   });
+};
+
+/**
+ * THE RE-MEASURE LOOP `planSetChunks` ends with (#1814), apart from it so `test.ts` can drive it with a
+ * made-up `ship` and reach the branch real sets never do: a move out of a MIDDLE chunk. Its variant goes to
+ * the FRONT of the next chunk, so plan order holds; a move out of the last chunk starts a new one.
+ *
+ * `ship` measures one chunk as it will ship, at its final index, total and last-ness. Each pass ships every
+ * chunk, returns them if every chunk of more than one item fits, and otherwise moves the last item of the
+ * first chunk that does not. A single-item chunk is never split: it cannot be, and taking its item would
+ * leave an empty chunk. Each pass moves one item one chunk later, so the loop ends; the bound turns a bug
+ * into an error instead of a hang. `groups` is moved in place.
+ */
+export const settleChunks = <T, C extends { bytes: number }>(
+  groups: T[][],
+  budgetBytes: number,
+  ship: (slice: T[], index: number, total: number, last: boolean) => C,
+): C[] => {
+  const items = groups.reduce((n, g) => n + g.length, 0);
+  const bound = items * (items + 1);
+  for (let pass = 0; ; pass++) {
+    const out = groups.map((slice, i) => ship(slice, i, groups.length, i === groups.length - 1));
+    const i = out.findIndex((c, k) => groups[k].length > 1 && c.bytes > budgetBytes);
+    if (i < 0) return out;
+    if (pass >= bound)
+      throw new Error(`settleChunks: chunk ${i + 1} of ${out.length} still measures ${out[i].bytes} bytes against a ${budgetBytes}-byte budget after ${pass} moves`);
+    const moved = groups[i].pop()!;
+    if (i === groups.length - 1) groups.push([moved]);
+    else groups[i + 1].unshift(moved);
+  }
 };
