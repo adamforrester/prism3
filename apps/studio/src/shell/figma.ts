@@ -4,13 +4,13 @@
  *
  * IT CALLS WHAT THE OLD CONTROLS CALL. `main.ts` lends the list (`FigmaSource`): each item's label, whether
  * it is available right now, and the function it runs, which is the same function the control it replaces
- * ran (Apply Theme, Prune stale), or the one the page's own button runs (Set up file). The two writes
+ * ran (Prune stale), or the one the page's own button runs (Set up file). The two writes
  * that need options first (a set to build, the style guide's settings) open the page that holds those
  * options, as concept v6's "Build set…" and "Style guide…" open theirs. This file only draws the menu and
  * runs what it is handed: it names no legacy repaint tier (plan §3.10).
  *
- * Apply Theme also stays on the bar, as the one inverse-filled control. The menu's copy of it is a
- * plain item.
+ * Apply Theme is not an item (#2178, owner decision 2026-10-05): it is the bar's one inverse-filled control,
+ * which reads the same `FigmaAction` shape (`bar.ts`).
  *
  * KEYBOARD, as the theme menu: the button opens it on a click, Enter, Space or Arrow Down, with focus on
  * the first item that is not disabled; Arrow keys, Home and End move between those items; Escape closes it
@@ -27,7 +27,7 @@ export type FigmaAction = {
   readonly label: string;
   /** The label while this write runs, panel or agent, without its leading "…"; `null` while it does not.
    *  A running item is busy, not disabled (`pendingLabel`): it keeps focus, and its `run` refuses a second
-   *  run while the first is out, which is the one guard the bar's control and this item share. */
+   *  run while the first is out. */
   readonly busy: string | null;
   /** Unavailable for another reason (Prune stale while Apply Theme runs). */
   readonly disabled: boolean;
