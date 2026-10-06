@@ -159,5 +159,36 @@ drops('style-guide-progress with total 0', wire({ type: 'style-guide-progress', 
 drops('style-guide-progress past its total', wire({ type: 'style-guide-progress', done: 23, total: 22, tableMs: 0 }));
 drops('prune-result with a negative count', wire({ type: 'prune-result', ok: true, applied: false, count: -1, summary: 'r' }));
 
+// ─── UI redesign S11.2: the Build style guides page ─────────────────────────────────────────────────────
+console.log('\nthe Build style guides page (S11.2)');
+const CATALOG = {
+  setUp: true,
+  collections: [
+    { id: 'C:1', name: 'color', modes: ['light', 'dark'], items: [{ name: 'color/text/primary', table: 0, value: '#111111' }, { name: 'color/opacity/50', table: -1, value: '50' }] },
+    { id: 'text-styles', name: 'Text styles', modes: [], textStyles: true, items: [{ name: 'body/md', table: 1, value: '' }] },
+  ],
+  tables: [{ key: 'color|C:1|color/text', title: 'Text', kind: 'color', page: 'Semantic tokens', rows: 1 }, { key: 'typography|text-styles|body', title: 'Text styles', kind: 'text', page: 'Semantic tokens', rows: 1 }],
+  notes: ['Not drawn until a later phase: 1 opacity variable'],
+};
+accepts('style-guide-catalog', { type: 'style-guide-catalog', catalog: CATALOG }, { kind: 'style-guide-catalog', catalog: CATALOG, error: null });
+accepts('style-guide-catalog with the host\'s error', { type: 'style-guide-catalog', catalog: { setUp: false, collections: [], tables: [], notes: [] }, error: 'no read' },
+  { kind: 'style-guide-catalog', catalog: { setUp: false, collections: [], tables: [], notes: [] }, error: 'no read' });
+// An item that names a table the host did not list reads as one no phase draws, so the page cannot offer it.
+accepts('style-guide-catalog: an item pointing past the tables reads as not drawn', { type: 'style-guide-catalog', catalog: { setUp: 'yes', collections: [{ id: 'C:1', name: 'c', modes: ['m', 3], items: [{ name: 'c/a', table: 7, value: '#000000' }, { name: 5 }] }], tables: [], notes: [] } },
+  { kind: 'style-guide-catalog', catalog: { setUp: false, collections: [{ id: 'C:1', name: 'c', modes: ['m'], items: [{ name: 'c/a', table: -1, value: '#000000' }] }], tables: [], notes: [] }, error: null });
+drops('style-guide-catalog with no tables array', wire({ type: 'style-guide-catalog', catalog: { setUp: true, collections: [] } }));
+accepts('style-guide-tables', { type: 'style-guide-tables', tables: [{ key: 'k1', title: 'Primary', page: 'Primitive tokens' }] },
+  { kind: 'style-guide-tables', tables: [{ key: 'k1', title: 'Primary', page: 'Primitive tokens' }] });
+drops('style-guide-tables with a malformed entry (every later index would shift)', wire({ type: 'style-guide-tables', tables: [{ key: 'k1', title: 'Primary' }, { key: 'k2', title: 'Neutral', page: 'Primitive tokens' }] }));
+accepts('style-guide-table drawing', { type: 'style-guide-table', index: 3, status: 'drawing' }, { kind: 'style-guide-table', index: 3, status: 'drawing', reason: null });
+accepts('style-guide-table failed, with its reason', { type: 'style-guide-table', index: 3, status: 'failed', reason: 'Accent refused' },
+  { kind: 'style-guide-table', index: 3, status: 'failed', reason: 'Accent refused' });
+drops('style-guide-table with an unknown status', wire({ type: 'style-guide-table', index: 0, status: 'waiting' }));
+drops('style-guide-table with no index', wire({ type: 'style-guide-table', status: 'done' }));
+accepts('style-guide-result stopped by Cancel', { type: 'style-guide-result', ok: true, headline: '✓ style guide: 3 tables', summary: 's', stopped: { done: 3, total: 22 } },
+  { kind: 'style-guide-result', ok: true, headline: '✓ style guide: 3 tables', summary: 's', stopped: { done: 3, total: 22 } });
+accepts('style-guide-result with a malformed stopped leaves it off', { type: 'style-guide-result', ok: true, headline: '✓ x', summary: 's', stopped: { done: 9, total: 3 } },
+  { kind: 'style-guide-result', ok: true, headline: '✓ x', summary: 's' });
+
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);

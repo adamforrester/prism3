@@ -18,8 +18,9 @@
  *               `chrome.css` never reads (v6 check 6). The map grows with the rules, never ahead.
  *   [brand]     a chrome color resolves through the brand palette or a brand, link or focus role, in
  *               either theme (v6 check 7), except `--p3-focus-ring` on `color.border.focus`, the one
- *               exception BRAND_ALLOW names (#2144); and BRAND_CANARIES, which hold that exception to that
- *               one name and that one path.
+ *               exception BRAND_ALLOW names (#2144); BRAND_ALLOW itself not exactly that one entry
+ *               (BRAND_ALLOW_IS, #2156); and BRAND_CANARIES, which hold that entry to that one name and
+ *               that one path.
  *   [offline]   the output would make a network request: a remote `url()`, an `@import`, or an
  *               `@font-face` that is not a `data:` URI (v6 check 10).
  *   [pairs]     a PAIRS entry (`spec.mjs`) whose two variables are both mapped measures under its
@@ -49,7 +50,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import {
-  ROOT, FONTS_DIR, CHROME_FONTS, C, P, loadModes, resolve, fontFaceCss, fontVarsCss, themeBlock, brandLeaks,
+  ROOT, FONTS_DIR, CHROME_FONTS, C, P, loadModes, resolve, fontFaceCss, fontVarsCss, themeBlock, brandLeaks, BRAND_ALLOW,
   scanRawStrict, ratio, fmtRatio,
 } from './tokens.mjs';
 import { glyphGaps, glyphWatchFiles } from './glyphs.mjs';
@@ -98,6 +99,13 @@ export const RAW_CANARIES = [
  * canary is a literal row, [what, row, must fail]. A row that should fail and passes, or the allowed row
  * failing, fails [brand] by name.
  */
+/**
+ * WHAT BRAND_ALLOW HOLDS, typed here (#2156). The canaries test how `brandLeaks` reads the allowlist, not what the
+ * allowlist holds: a second entry (`['edge-bar', 'color.border.focus']`, with `edge-bar` pointed there) passes
+ * every canary, since none of them names it. So the build compares BRAND_ALLOW with this literal, and any widening
+ * fails [brand] by name until this literal changes with it, in the same diff, where review sees it.
+ */
+export const BRAND_ALLOW_IS = [['focus-ring', 'color.border.focus']];
 export const BRAND_CANARIES = [
   ['the focus ring on Prism3\'s focus color (the one exception)', ['focus-ring', 'color.border.focus', C], false],
   ['a sibling name on the focus color', ['focus-ring-hover', 'color.border.focus', C], true],
@@ -174,6 +182,8 @@ export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_
 
   // [brand] the exception's canaries first (BRAND_CANARIES), then no chrome color through the brand palette or
   // a brand, link or focus role, in either theme, but for the one exception.
+  const allowed = JSON.stringify([...BRAND_ALLOW]);
+  if (allowed !== JSON.stringify(BRAND_ALLOW_IS)) fail('brand', `self-check: BRAND_ALLOW (tokens.mjs) is ${allowed}, not the one exception ${JSON.stringify(BRAND_ALLOW_IS)} (#2144); widening it changes BRAND_ALLOW_IS (esbuild-plugin.mjs) too`);
   for (const [label, row, mustFail] of BRAND_CANARIES) {
     const got = brandLeaks(modes, [row]);
     if (mustFail && !got.length) fail('brand', `self-check: brandLeaks no longer refuses ${label} (--p3-${row[0]} on ${row[1]}); BRAND_ALLOW (tokens.mjs) allows one variable, focus-ring, by name, on color.border.focus only`);
