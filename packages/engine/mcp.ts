@@ -432,6 +432,36 @@ const buildBrand = (brand: unknown): { theme: Theme; built: ReturnType<typeof bu
 };
 const refused = (r: ReturnType<typeof buildBrand>): r is ToolResult => 'content' in r;
 
+/** How a malformed value reads in a refusal: `missing`, `null`, `an array`, `an object`, or the value itself. */
+const shapeOf = (v: unknown): string =>
+  v === undefined ? 'missing' : v === null ? 'null' : Array.isArray(v) ? 'an array' : typeof v === 'object' ? 'an object' : typeof v === 'string' ? JSON.stringify(v) : String(v);
+
+/** Each `refs` item and `pairs` entry `score_consumption` was given, checked against its inputSchema before
+ *  anything reads it (#2209). Before, `pairs: [null]` reached `scoreContractCompliance`, whose `pair.fg` threw,
+ *  and `refs: [null]` reached `normalizeRef`'s `.trim()`; either escaped `tools/call` as a -32603 protocol error,
+ *  which #2162's `buildBrand` guard does not cover because neither runs inside it. A `kind` outside the enum
+ *  threw nothing: it was scored silently at the 4.5:1 text floor. Names every bad entry by index, so the caller
+ *  fixes all of them in one round. A `pairs` that is not an array is still ignored, as an absent one is. */
+const scoreInputErrors = (refs: unknown[], pairs: unknown): string[] => {
+  const errors: string[] = [];
+  refs.forEach((r, i) => { if (typeof r !== 'string') errors.push(`refs[${i}] is ${shapeOf(r)}; each ref is a token path, such as "color.text.primary"`); });
+  if (!Array.isArray(pairs)) return errors;
+  pairs.forEach((p, i) => {
+    if (!p || typeof p !== 'object' || Array.isArray(p)) {
+      errors.push(`pairs[${i}] is ${shapeOf(p)}; each pair is an object with \`fg\` and \`bg\` color roles, such as { "fg": "text.primary", "bg": "background.primary" }`);
+      return;
+    }
+    const pair = p as Record<string, unknown>;
+    for (const [k, eg] of [['fg', 'text.primary'], ['bg', 'background.primary']] as const) {
+      if (typeof pair[k] !== 'string') errors.push(`pairs[${i}].${k} is ${shapeOf(pair[k])}; it takes a color role, such as "${eg}"`);
+    }
+    if (pair.kind !== undefined && !['text', 'large-text', 'ui'].includes(pair.kind as string)) {
+      errors.push(`pairs[${i}].kind is ${shapeOf(pair.kind)}; it takes text, large-text or ui`);
+    }
+  });
+  return errors;
+};
+
 /** Validate → generate → verification payload. Shared by `theme_brand` and `theme_from_brief` so the
  *  two can never report a brand differently depending on how it was supplied. */
 const themePayload = (brand: unknown, include: string[]): ToolResult => {
@@ -597,6 +627,8 @@ export const callTool = (name: string, args: any, brandSchema?: unknown, io?: Ex
     const errors = validateBrandInput(args?.brand);
     if (errors.length) return text({ error: 'BrandInput failed schema validation', errors }, true);
     if (!Array.isArray(args?.refs)) return text({ error: 'score_consumption requires `refs`: an array of token refs' }, true);
+    const bad = scoreInputErrors(args.refs, args.pairs);
+    if (bad.length) return text({ error: 'score_consumption input failed validation', errors: bad }, true);
     const b = buildBrand(args.brand);
     if (refused(b)) return b;
     const { theme, built: { tree } } = b;
