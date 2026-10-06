@@ -60,6 +60,7 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { tailOf } from '@prism3/engine/figma-names';
 import { NS } from './persist-figma';
 import { EXECUTOR_REVISION } from './executor-revision';
+import { writeBaseline } from './member-baseline';
 // #1318 — the ONE gradient-stop binder, shared with the Paint Style executor rather than written twice.
 import { bindGradientStops } from './write-styles';
 import type { VariableAlias, Rgba } from './write-styles';
@@ -2381,6 +2382,11 @@ const writeComponentSet = async (
       wr(c).x = (i % cols) * PITCH;
       wr(c).y = Math.floor(i / cols) * PITCH;
     });
+    // THE "AS BUILT" BASELINE (#2265), as on the set path: after the last write, on this run's members only.
+    for (const c of fresh) {
+      try { await writeBaseline(c); }
+      catch (err) { misses.push(`${String(c.name)}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`); }
+    }
     return {
       // `component` (the def id, e.g. `icon`) is the GROUP label — non-null so the caller's `ok` and its
       // summary resolve, and `emittedComponents` below is what routes the summary to the no-set arm.
@@ -3188,7 +3194,22 @@ const writeComponentSet = async (
   // `planSetLayout` above. These are the ones that landed, which is the number the report is about.
   const refsWired = wiredRefs.length;
   const membersWired = new Set(wiredRefs.map((r) => r[0])).size;
-  const allMisses = misses.concat(stray, boxMiss, axisMiss, coincident, footprint, propMiss);
+
+  // THE "AS BUILT" BASELINE (#2265), last, once every write and repair above has landed: the record is of
+  // the member as the host now holds it, which is what a later dry run reads it against. Only on members
+  // THIS run built; a skipped member keeps the baseline its own build wrote, and a member built before
+  // baselines existed gets one through `capture-baseline`, never here. Re-found by name in the LIVE set,
+  // for #1574's reason. A member it cannot record reads as "no baseline" in the dry run, which is the
+  // safe direction: no baseline means no edit is assumed absent.
+  const asBuiltMiss: string[] = [];
+  const liveMembers = new Map(((liveSet().children ?? []) as CompNode[]).map((c) => [String(c.name), c] as const));
+  for (const mName of builtParts.keys()) {
+    const m = liveMembers.get(mName);
+    if (!m) { asBuiltMiss.push(`${mName}.asBuilt -> NOT RECORDED (the member is not in the set to read)`); continue; }
+    try { await writeBaseline(m); }
+    catch (err) { asBuiltMiss.push(`${mName}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`); }
+  }
+  const allMisses = misses.concat(stray, boxMiss, axisMiss, coincident, footprint, propMiss, asBuiltMiss);
 
   // #1579 — THE FINAL REPORT, overwriting the provisional one written at the combine (keep-last). On
   // `liveSet()` rather than `set`, for #1574's reason: a report left on a handle the host has replaced is
