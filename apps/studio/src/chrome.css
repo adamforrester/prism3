@@ -637,8 +637,9 @@
 .p3-check-box > .p3-ico { display: none; }
 .p3-check[aria-checked="true"] .p3-check-box { background: var(--p3-text); border-color: var(--p3-text); }
 .p3-check[aria-checked="true"] .p3-check-box > .p3-ico { display: block; color: var(--p3-bg-page); }
-.p3-check-fixed .p3-check-box { border-style: dashed; }
-.p3-check-fixed .p3-check-box > .p3-ico { display: block; color: var(--p3-text); }
+/* The always-on Light row (Brand › Modes, `.p3-check-fixed`) is a fixed fact, not a control: its mark always shows,
+   and its box takes the locked mode check's disabled check box below (owner decision DB1 A, #2208). */
+.p3-check-fixed .p3-check-box > .p3-ico { display: block; }
 .p3-check-text { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--p3-space-075); min-width: 0; }
 .p3-check-name { color: var(--p3-text); }
 .p3-check-note { color: var(--p3-text-2); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); }
@@ -1041,8 +1042,9 @@
 }
 .p3-btn:is(.p3-btn-primary, .p3-next, .p3-btn-danger):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-ico { color: var(--p3-disabled-ink); }
 /* What a disabled button holds: the mode check's box takes Prism3's disabled check box (its fill, edge and on-fill
-   mark), and the switch's dot, a glyph, takes the glyph's role. */
-.p3-check:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-check-box { background: var(--p3-disabled-fill); border-color: var(--p3-disabled-edge); }
-.p3-check:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-check-box > .p3-ico { color: var(--p3-disabled-ink); }
+   mark), and the switch's dot, a glyph, takes the glyph's role. The always-on Light row's box takes the same check box
+   (DB1 A, #2208), so "can't change" has one look. */
+:is(.p3-check:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]), .p3-check-fixed) .p3-check-box { background: var(--p3-disabled-fill); border-color: var(--p3-disabled-edge); }
+:is(.p3-check:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]), .p3-check-fixed) .p3-check-box > .p3-ico { color: var(--p3-disabled-ink); }
 .p3-switch:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-switch-dot { border-color: var(--p3-disabled-icon); }
 .p3-switch[data-on="true"]:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-switch-dot { background: var(--p3-disabled-icon); }
