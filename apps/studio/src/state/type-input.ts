@@ -237,10 +237,24 @@ export const shapeBlocked = (key: string, cur: string): ScaleRefusal | null => {
   const why = refusal(brandState);
   if (why === null) return null;
   if (key === 'compact' && brandState.typography?.titleFloor === 16) return { kind: 'titleFloor' };
-  const released: BrandInput = structuredClone(brandState);
-  if (released.typography) { delete released.typography.sizes; delete released.typography.sizeOverrides; }
-  for (const lev of Object.values(released.modeLevers ?? {})) if (lev) delete lev.typeSizes;
-  return refusal(released) === null ? { kind: 'pinned' } : { kind: 'other', reason: why };
+  return refusal(releasedBrand()) === null ? { kind: 'pinned' } : { kind: 'other', reason: why };
+};
+/** The brand as Release pinned sizes would leave it, with `brandState` untouched: the REAL `releasePinnedSizes()`
+ *  runs on clones swapped into the two keys it writes, and the originals go back in `finally`, the same objects,
+ *  so a "clash" is exactly what the button fixes and the two cannot drift (#2225 review). Synchronous: nothing
+ *  observes the swap. */
+const releasedBrand = (): BrandInput => {
+  const s = brandState as Record<string, unknown>;
+  const had = { typography: 'typography' in s, modeLevers: 'modeLevers' in s };
+  const keep = { typography: s.typography, modeLevers: s.modeLevers };
+  try {
+    s.typography = structuredClone(keep.typography);
+    s.modeLevers = structuredClone(keep.modeLevers);
+    releasePinnedSizes();
+    return structuredClone(brandState);
+  } finally {
+    for (const k of ['typography', 'modeLevers'] as const) { if (had[k]) s[k] = keep[k]; else delete s[k]; }
+  }
 };
 /** The display ceiling, written as the rung name the select holds. */
 export const setDisplayCeiling = (v: string): void => { setPath(brandState, 'typography.displayCeiling', v); };

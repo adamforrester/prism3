@@ -274,6 +274,24 @@ T.setSizePin(null, 'display', 'md', 48);
   T.releasePinnedSizes();
   ok(T.shapeBlocked('expressive', 'default') === null && pristine(), '#2194: released, Expressive builds and the brand is back to its bytes');
 }
+// #2225 review: a clash is exactly what Release pinned sizes fixes, wherever the pin is written. One arm per place
+// a size can be pinned, each the ONLY pin, so a place the release (or a re-list of it) forgets reads as `other`
+// here, by name. The places are typed here (the engine reads all three), never read from the module.
+for (const [where, pin] of [
+  ['brand-wide typography.sizes', () => T.setSizePin(null, 'display', 'md', 56)],
+  ["Dark's own modeLevers.dark.typeSizes", () => T.setSizePin('dark', 'display', 'md', 56)],
+  ['the desktop endpoint typography.sizeOverrides', () => { (store.brandState.typography as any).sizeOverrides = { display: { md: { desktop: 56 } } }; }],
+] as const) {
+  reset();
+  pin();
+  const before = JSON.stringify(store.brandState), tyObj = store.brandState.typography, mlObj = store.brandState.modeLevers;
+  const r = T.shapeBlocked('expressive', 'default');
+  ok(r?.kind === 'pinned', `#2225: display md at 56px pinned only in ${where} is a pinned-size clash under Expressive (${JSON.stringify(r)})`);
+  ok(JSON.stringify(store.brandState) === before && store.brandState.typography === tyObj && store.brandState.modeLevers === mlObj,
+    `#2225: the trial release leaves the brand untouched, the same objects, pinned in ${where}`);
+  T.releasePinnedSizes();
+  ok(T.shapeBlocked('expressive', 'default') === null && pristine(), `#2225: Release pinned sizes clears the pin in ${where}, and Expressive builds`);
+}
 reset();
 (store.brandState.typography as Record<string, unknown>).captionFloor = 9;
 {

@@ -8,7 +8,7 @@
 
 `shapeBlocked` now says why, or returns `null`:
 - **`titleFloor`**: Compact with the 16px title floor. This is the engine's own rule, checked directly, as the 16px title floor chip already checks it.
-- **`pinned`**: the switch is refused, and the same switch builds once every pinned size is released (`typography.sizes`, `sizeOverrides`, every mode's `typeSizes`, the fields `releasePinnedSizes()` clears). Only this case is a clash.
+- **`pinned`**: the switch is refused, and the same switch builds once every pinned size is released. Only this case is a clash. The trial release runs the real `releasePinnedSizes()`, not a list of its fields. It works on clones swapped into `brandState.typography` and `brandState.modeLevers`, and the original objects go back in `finally`. So a clash is exactly what the button fixes, and the two can't drift apart (independent review of #2225, which found that a re-listed copy could lose `typeSizes` or `sizeOverrides` and still pass).
 - **`other`**: anything else, carrying the engine's message.
 
 The lever shows the clash message and Release only for `pinned`. The title floor case disables the chip with the B8b sentence the 16px title floor chip already uses: "The Compact scale already places a title at 16px, so the engine refuses 16px with it." It also shows that sentence as a warning line under the chips (hook `type-scale-refused`). `other` does the same with the engine's message, the text the global error bar already shows for an engine refusal.
@@ -20,13 +20,17 @@ The lever shows the clash message and Release only for `pinned`. The title floor
 
 ### Gates and their independence
 
-- **`test-type-input.ts`** reads the shipped Aurora's input as data (Expressive, the 16px floor, `pinnedSizeCount() === 0`), then expects `titleFloor` for Compact, never `pinned`. With prism3 and display md pinned at 48px, Expressive is `pinned` and Compact builds; once released, Expressive builds and the brand is back to its bytes. An invalid `captionFloor` (9) is `other`, carrying the engine's sentence, which the test types out.
+- **`test-type-input.ts`** reads the shipped Aurora's input as data (Expressive, the 16px floor, `pinnedSizeCount() === 0`), then expects `titleFloor` for Compact, never `pinned`. With prism3 and display md pinned at 48px, Expressive is `pinned` and Compact builds; once released, Expressive builds and the brand is back to its bytes. An invalid `captionFloor` (9) is `other`, carrying the engine's sentence, which the test types out. Then one arm per place a size can be pinned: brand-wide `sizes`, Dark's `typeSizes`, and a desktop `sizeOverrides` endpoint, each the only pin. Each must be `pinned`, must leave `brandState` byte-identical with the same objects, and must clear on Release.
 - **`test-chrome.mjs`**, on both hosts:
   - Aurora loads with nothing pinned. Its Compact chip is disabled with the title floor sentence, which shows once under the chips, and there is no clash message and no Release.
   - On prism3, display md set to 56px through the picker (allowed at Default, refused under Expressive) disables Expressive with the clash sentence and shows the message and Release. Release clears it.
 
   `open()` takes an optional `brand` for the Aurora arm (default `prism3`, so every other caller is unchanged).
-- **Mutation.** After a `wip:` commit, `shapeBlocked` was put back to "every refusal is a clash" (`pinned` for any refusal). It fails by name, in both suites (see the PR).
+- **Mutation.** After a `wip:` commit, `shapeBlocked` was put back to "every refusal is a clash" (`pinned` for any refusal). It fails by name, in both suites (see the PR). A second round, again after a `wip:` commit, ran four mutations, and each failed by name in `test-type-input.ts`:
+  - Release forgets per-mode `typeSizes`: fails the Dark arm.
+  - Release forgets `sizeOverrides`: fails the endpoint arm.
+  - `shapeBlocked` re-lists the fields and drops those two, the divergence the review found: fails both arms.
+  - The swap is not undone: fails all three "leaves the brand untouched" arms.
 
 ### Trap for whoever is next
 
