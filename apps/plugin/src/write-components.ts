@@ -59,6 +59,7 @@ import type { AnatomyPlan, FigmaNodePlan, SwapFound } from '@prism3/engine/anato
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { tailOf } from '@prism3/engine/figma-names';
 import { NS } from './persist-figma';
+import { EXECUTOR_REVISION } from './executor-revision';
 // #1318 — the ONE gradient-stop binder, shared with the Paint Style executor rather than written twice.
 import { bindGradientStops } from './write-styles';
 import type { VariableAlias, Rgba } from './write-styles';
@@ -704,7 +705,7 @@ export type RefBackoffPass = { afterMs: number; retried: number; repaired: numbe
  * THE MEMBER STAMP (#827) — what a member records about the build that wrote it, so a re-run has
  * something to compare that is not the member's NAME.
  *
- * Shape: `<engine version>|<plan stamp>`. Two fields, and only ONE of them is compared.
+ * Shape: `<engine version>|<plan stamp>|<executor revision>`. Three fields, and the build compares ONE.
  *
  * THE PLAN STAMP IS THE DECISION. It moves exactly when the plan this executor would write moves, which
  * is the question the skip branch is actually asking.
@@ -716,40 +717,37 @@ export type RefBackoffPass = { afterMs: number; retried: number; repaired: numbe
  * fires is not a verdict). It is stored because the one thing a human asks on being told a member is
  * stale is *how old is it*, and a bare hash cannot answer that.
  *
- * NO BUILD IDENTITY IN IT YET, and this is the honest boundary rather than a gap I am papering over.
+ * THE EXECUTOR REVISION IS THE THIRD FIELD (#1098, #2265), and the build's comparison does not read it.
  * A plan stamp cannot see a change that lives only in this file: 7 of the 22 commits touching the
- * component pipeline since 2026-07-01 changed `write-components.ts` alone and moved no plan bytes. The
- * field that would close that is the bundle's identity.
+ * component pipeline since 2026-07-01 changed `write-components.ts` alone and moved no plan bytes.
+ * `EXECUTOR_REVISION` (`executor-revision.ts`) is the field that closes that, a hand-bumped integer that
+ * `lint-executor-revision.ts` forces up whenever this file's code changes. #836 had made `PRISM3_BUILD`
+ * available here; it is not used, because a build identity moves on every build, including the ones
+ * that change nothing a member carries.
  *
- * WHAT #836 CHANGED, AND WHAT IT DID NOT. This paragraph used to say the identity was not AVAILABLE here
- * — `build.mjs` defined `PRISM3_BUILD` only for the entry bundling `studio/src`, and naming it in this
- * context was a bare identifier that throws at load. That is no longer true: #836 defines it on both
- * entries and declares it in `figma-env.d.ts`, so `PRISM3_BUILD` is a legal reference on this line today.
- * What #836 deliberately did NOT do is put it in the stamp. Adding a third field changes a format already
- * persisted on every member in every themed file, and the question of what a per-member build identity
- * should be compared against — nothing, like the engine version? or something? — is a staleness decision,
- * not a reporting one. #836 answered "which build is running", which is a live question about a process;
- * this is "which build wrote this node", a durable question about a file. Filed as **#1098** rather than
- * carried here, because a note in a comment is not a tracked piece of work. Were it added it would go
- * here as a third field, still unread by the comparison for the same reason the engine version is —
- * `planHalf` reads the segment between the first and second `|`, so a third field appended after it would
- * not move the comparison. It would, though, break the separator's premise below: a filesystem path CAN
- * contain a `|`, which is the first thing that design has to answer and a second reason not to guess here.
+ * WHO READS IT. Not the build: `planHalf` reads the segment between the first and second `|`, so the
+ * ALREADY PRESENT / STALE verdict is unchanged, and a build stays add-only (#827). The in-place update's
+ * dry run (`update-plan.ts`) reads it through `revHalf`. A member stamped before the field existed has
+ * two fields, and reads as revision unknown rather than as revision 0, because it is not known.
  *
- * `|` as the separator because neither field can contain one: a semver is `[0-9.]` and a plan stamp is
- * 16 hex characters. A JSON blob would be the general answer and buys nothing at 26 bytes.
+ * `|` as the separator because no field can contain one: a semver is `[0-9.]`, a plan stamp is 16 hex
+ * characters, and a revision is an integer. A JSON blob would be the general answer and buys nothing at 26 bytes.
  */
-const STAMP_KEY = 'memberStamp';
-const memberStamp = (plan: AnatomyPlan): string => `${ENGINE_VERSION}|${planStamp(plan)}`;
+export const STAMP_KEY = 'memberStamp';
+export const memberStamp = (plan: AnatomyPlan): string => `${ENGINE_VERSION}|${planStamp(plan)}|${EXECUTOR_REVISION}`;
 
 /** The plan-stamp half — the only half the staleness decision reads. `''` for an unstamped member, which
  *  is what an empty `getSharedPluginData` and a host with no plugin-data surface both produce, and which
  *  never equals a real 16-hex stamp. That is the intended reading: unknown provenance is stale. */
-const planHalf = (stamp: string): string => stamp.split('|')[1] ?? '';
+export const planHalf = (stamp: string): string => stamp.split('|')[1] ?? '';
 
 /** The engine-version half, for the report only. `'unknown'` rather than `''` so the miss line reads as
  *  a fact about the member instead of as a missing interpolation. */
-const engineHalf = (stamp: string): string => stamp.split('|')[0] || 'unknown';
+export const engineHalf = (stamp: string): string => stamp.split('|')[0] || 'unknown';
+
+/** The executor-revision half (#1098), for the update's dry run. `''` for a stamp written before the field
+ *  existed, which reads as revision unknown: not equal to any revision, and not counted as older either. */
+export const revHalf = (stamp: string): string => stamp.split('|')[2] ?? '';
 
 /**
  * THE AXIS LISTS AN EXISTING SET'S MEMBERS CARRY (#1780), one entry per distinct list, each sorted.

@@ -2807,9 +2807,8 @@ const hex8 = (n: number): string => n.toString(16).padStart(8, '0');
  * bindings, and a binding re-themes because the binding is what was written. What it also cannot see is
  * a change that lives only in the executor: 7 of the 22 commits touching this component pipeline since
  * 2026-07-01 changed `write-components.ts` alone and moved no plan bytes. `write-components.ts`'s own
- * `memberStamp` pairs this hash with `ENGINE_VERSION` only — no build identity, by design (see that
- * function's header for the full account, including why #836, which scoped adding one, closed without
- * it landing).
+ * `memberStamp` pairs this hash with `ENGINE_VERSION` and, since #2265, the executor's hand-bumped
+ * revision (#1098), which is what sees those changes (see that function's header for the full account).
  */
 export const planStamp = (plan: AnatomyPlan): string => {
   const json = JSON.stringify(plan);

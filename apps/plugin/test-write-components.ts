@@ -585,8 +585,8 @@ const r1Stamps = r1Members.map(stampOf);
 ok(r1Stamps.every((s) => s !== ''), `every member built by the first run carries a stamp (${r1Stamps.filter((s) => s === '').length} of ${r1Stamps.length} unstamped)`);
 ok(new Set(r1Stamps).size === 21,
   `the 21 stamps are DISTINCT — a constant would make every member look correct against every plan (${new Set(r1Stamps).size} distinct)`);
-ok(r1Stamps.every((s) => s.split('|')[0] === ENGINE_VERSION && /^[0-9a-f]{16}$/.test(s.split('|')[1] ?? '')),
-  `each stamp reads '<engine version>|<64-bit plan hash>', so a human reading the panel can tell which half moved (${r1Stamps[0]})`);
+ok(r1Stamps.every((s) => s.split('|')[0] === ENGINE_VERSION && /^[0-9a-f]{16}$/.test(s.split('|')[1] ?? '') && /^[1-9][0-9]*$/.test(s.split('|')[2] ?? '') && s.split('|').length === 3),
+  `each stamp reads '<engine version>|<64-bit plan hash>|<executor revision>' (#1098), so a human reading the panel can tell which field moved (${r1Stamps[0]})`);
 // The idempotent re-run above is therefore a round-trip claim as well as a skip claim: `ALREADY PRESENT`
 // is now reachable ONLY through a stamp that was written on one run and read back on the next.
 ok(r2.stale === 0, `a genuinely unchanged re-run reports NOTHING stale — the false-positive direction, and the one that would make this feature useless (${r2.stale})`);
@@ -665,6 +665,19 @@ ok(stampOf(bumped) !== wasStamp && stampOf(bumped).split('|')[1] === wasStamp.sp
 const rVer = await run(grid, { ...full(), page: verPage });
 ok(rVer.stale === 0 && rVer.skipped === 21,
   `a member stamped by a different engine build but the same PLAN is still correct — comparing the version half would flag a whole file stale on a value change (stale=${rVer.stale}, skipped=${rVer.skipped})`);
+
+// (3c) THE EXECUTOR REVISION IS STORED AND NEVER COMPARED BY THE BUILD (#1098, #2265). The build stays
+// add-only: a member written by an older executor is still ALREADY PRESENT here, and it is the update's
+// dry run that reports it. Comparing the third field here would turn every executor change into a file
+// full of STALE members whose only offered remedy is a delete.
+const revMember = (verSet.children as Node[])[4];
+const wasRev = stampOf(revMember);
+(revMember.setSharedPluginData as (ns: string, k: string, v: string) => void)(STAMP_NS, STAMP_K, `${wasRev.split('|')[0]}|${wasRev.split('|')[1]}|999`);
+ok(stampOf(revMember).split('|')[2] === '999' && stampOf(revMember).split('|')[1] === wasRev.split('|')[1],
+  'reachable: the member now carries a DIFFERENT executor revision and the SAME plan hash');
+const rRev = await run(grid, { ...full(), page: verPage });
+ok(rRev.stale === 0 && rRev.skipped === 21,
+  `a member written by another executor revision but the same PLAN is ALREADY PRESENT to the build — the build compares the plan half only (stale=${rRev.stale}, skipped=${rRev.skipped})`);
 
 // (5) `main.ts` IS WIRED TO ALL OF THIS, gated by source text only — the same limit `applyWritePlan`'s
 // suite states. `main.ts` calls `figma.showUI` at module scope so it cannot be imported, and every count
