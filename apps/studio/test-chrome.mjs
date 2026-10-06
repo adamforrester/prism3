@@ -412,6 +412,13 @@
  * #2180 ADDS: in the plugin, Components' build bar stands at least `space.300` (the stacked-card gap, resolved from the
  * emission) above the Activity drawer, at 1280 and 380, the drawer closed and open, at three scroll positions.
  * Mutation: `.p3-buildbar`'s `bottom` back to 0 → `#2180: figma 1280, drawer closed, at the top: the build bar stands …`.
+ *
+ * #2208 ADDS (owner decision DB1 A): Brand › Modes' always-on Light row (`mode-on-light`) draws Prism3's disabled check
+ * box, and `X4 A derived` reads it: no dashed edge, its box on `disabled.fill`, a solid `disabled.border` and the mark
+ * on `disabled.on-fill` (oracle: the committed emission), and it stays a fixed fact (a div, its words unchanged).
+ * Mutation: the dashed rule back → `X4 A derived: web light: no disabled chrome control, and not the fixed Light row
+ * (mode-on-light, read true), draws a dashed edge (439 read) — brand mode-on-light: …` and `… DB1 A: the fixed Light
+ * row's box draws Prism3's disabled check box: …` (8 failures).
  */
 import { createServer } from 'node:http';
 import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
