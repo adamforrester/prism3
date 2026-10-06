@@ -66,6 +66,12 @@ export const DEPTH_COPY = {
   /** The two tint sliders' names (the legacy page's). */
   hue: 'Tint hue',
   amount: 'Tint amount',
+  /** The hue slider's readout, and the line under it, when the shadow has no hue to follow: the neutral ramp is gray
+   *  and no tint hue is set (#2184). The pinned form is approved (owner Q58 B, Q72 A); so is the general form, for a
+   *  Custom tint or Follow primary at chroma 0 (Q73 A, Q82). */
+  noHue: 'None',
+  noHuePinned: 'The pinned gray has no hue, so shadows are untinted.',
+  noHueGray: 'The neutral is gray, so shadows are untinted.',
 } as const;
 
 /** The tempo chips, from the manifest's options (the legacy page's three). */
@@ -99,7 +105,9 @@ const curveSvg = (b: readonly number[]): SVGElement => {
 /** Something drawn that search can hide and a refusal can mark. */
 type Item = { el: HTMLElement; said: string; key: string; block: LeverBlock };
 /** A shadow slider drawn this render, synced in place on every brand change. */
-type ShadowCtl = { key: ShadowKey; set: (v: number) => void; readout: (t: string) => void; auto: HTMLElement; reset: HTMLButtonElement; fmt: (v: number) => string };
+type ShadowCtl = { key: ShadowKey; set: (v: number) => void; readout: (t: string) => void; auto: HTMLElement; reset: HTMLButtonElement; fmt: (v: number) => string;
+  /** The hue slider only: disabled, its readout and hint saying so, while the shadow has no hue (#2184 Q58 B). */
+  noHue?: (none: boolean) => void };
 
 /** Mount the Depth & motion levers into `host`. Subscriptions are released through `cleanups`. */
 export const mountDepthLevers = (host: HTMLElement, cleanups: (() => void)[]): void => {
@@ -116,7 +124,7 @@ export const mountDepthLevers = (host: HTMLElement, cleanups: (() => void)[]): v
   let items: Item[] = [];
   let shadows: ShadowCtl[] = [];
   /** The brand value each shadow slider lands against, as it was drawn (the legacy closure's `global`). */
-  const drawnBrand: Partial<Record<ShadowKey, number>> = {};
+  const drawnBrand: Partial<Record<ShadowKey, number | null>> = {};
   let shapeKey = '';
 
   const edit = (key: string, write: () => void): void => {
@@ -166,9 +174,26 @@ export const mountDepthLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       readout = (t) => setText(read, t);
     }
     wrap.append(s.el);
+    // No hue to follow (a pure-gray pin, no tint hue set): the hue slider is disabled, reads None, and says why
+    // (#2184, owner Q58 B). The engine reports it as `tint.hue: null`; it never shows the converter's noise hue.
+    let noHue: ShadowCtl['noHue'];
+    if (key === 'tint.hue') {
+      const why = stateLine(DEPTH_COPY.noHuePinned);
+      why.hidden = true;
+      wrap.append(why);
+      noHue = (none) => {
+        if (s.el.disabled !== none) s.el.disabled = none;
+        if (none) {
+          s.el.setAttribute('aria-valuetext', DEPTH_COPY.noHue);
+          // The reason names the source: a pinned gray, or a hue-and-chroma neutral at chroma 0 (Q73 A).
+          setText(why.querySelector('span')!, brandState.neutral?.anchor ? DEPTH_COPY.noHuePinned : DEPTH_COPY.noHueGray);
+        }
+        if (why.hidden === none) why.hidden = !none;
+      };
+    }
     const pair = autoPair(role, () => edit(lever, () => { setShadow(currentMode, key, undefined, drawnBrand[key]); }));
     if (!light() && !derived()) wrap.append(pair.el);
-    shadows.push({ key, set: s.set, readout, auto: pair.auto, reset: pair.reset, fmt });
+    shadows.push({ key, set: s.set, readout, auto: pair.auto, reset: pair.reset, fmt, noHue });
     return wrap;
   };
   const softness = (): Item => {
@@ -188,7 +213,7 @@ export const mountDepthLevers = (host: HTMLElement, cleanups: (() => void)[]): v
   };
   /** The value a shadow slider shows: the brand's in Light (the authored tint key, else the resolved), the mode's
    *  override or the brand's elsewhere. */
-  const shadowShown = (key: ShadowKey): number => {
+  const shadowShown = (key: ShadowKey): number | null => {
     if (light()) {
       if (key === 'softness') return (getPath(brandState, 'shadow.softness') as number | undefined) ?? theme.shadow.softness;
       const k = key === 'tint.hue' ? 'hue' : 'amount';
@@ -200,10 +225,12 @@ export const mountDepthLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     for (const c of shadows) {
       drawnBrand[c.key] = brandShadowValue(c.key);
       const v = shadowShown(c.key);
-      c.set(v);
-      c.readout(c.fmt(v));
+      const show = (x: number | null): string => (x === null ? DEPTH_COPY.noHue : c.fmt(x));
+      if (v !== null) c.set(v);
+      c.noHue?.(v === null);
+      c.readout(show(v));
       const set = !light() && shadowOverride(currentMode, c.key) !== undefined;
-      setText(c.auto, DEPTH_COPY.autoLight(c.fmt(brandShadowValue(c.key))));
+      setText(c.auto, DEPTH_COPY.autoLight(show(brandShadowValue(c.key))));
       if (c.auto.hidden !== set) c.auto.hidden = set;
       if (c.reset.hidden !== !set) c.reset.hidden = !set;
     }

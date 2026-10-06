@@ -9516,6 +9516,18 @@ for (const host of ['web', 'figma']) {
 //     label's line, flush right — same line false …` (28); · the narrow tier's grid dropped → `#2217 TY2 A web light 380 / type:
 //     … the token sits under its label, at its left edge — under false, 148 from the label's left` (56); · the library rows
 //     given `onLine` → `HP6 … face row "Inter" / font.typeface.inter: the token sits under its label … under false …` (12).
+//
+// THE BUILD STYLE GUIDES PAGE (#2215; SH1 A, owner 2026-10-06), on the figma host only (the web host has no such page): its
+// card titles are L1, its option group titles L2, its lever names (a lever inside a group, held decision 7) and field names
+// L3, and its page title an exemption with its reason. It has its own EXPECT_HEADINGS entry and SG_HEADING_FLOOR; and every
+// page EXPECT_HEADINGS names must have been measured on the host, by name (the represented-page check), not by a count.
+// Mutations, each after a `wip:` commit, on rebuilt bundles, each failing by name:
+//   · `.p3-sg-ogroup-title` back to 12 / fw-default in secondary ink → `TY2 A figma light 1280 / style-guides: L2 "All tables"
+//     (option group title) fs 12, want fs-14 14; fw 400, want fw-strong 600; line height 15, want lh-compact 17.5` (20);
+//   · the page dropped from the walk (`HEADING_PAGES.figma` without it) → `TY2 A figma light 1280: the heading rule measured
+//     the style-guides page, which the audit's list names — measured ["brand",…,"components"]` (4, with 16 from its floors);
+//   · one lever name at fw-strong → `TY2 A figma light 1280 / style-guides: L3 "Aliases" (option name) fw 600, want
+//     fw-emphasis 500` (4).
 console.log(`\nThe heading rule (TY2 A, heading pass 1)\n${'='.repeat(78)}`);
 /** The chrome tokens the rule names, each to its emitted path (a literal map, typed from `chrome/tokens.mjs`'s rows on
  *  2026-10-06; deliberately not imported, so the build's map and this oracle stay two derivations). */
@@ -9614,6 +9626,15 @@ const EXPECT_HEADINGS = {
     L1: ['Button', 'Component sets'],
     L2: ['Density', 'Button icons', 'Button label & icon', 'Button label weight', 'Button minimum width'],
   },
+  // #2215: the plugin's Build style guides page, with SG_RING_CATALOG posted (every kind selected, so every option group
+  // draws). Its page title is not a level (HEADING_EXEMPT).
+  'style-guides': {
+    L1: ['What to draw', 'Options'],
+    L2: ['All tables', 'Color', 'Spacing and size', 'Font variables', 'Text styles'],
+    // SH1 A (owner, 2026-10-06): a lever inside an option group reads as a field, L3.
+    L3: ['Collection', 'Mode', 'Kinds', 'Table header', 'Aliases', 'Description', 'Name cell', 'REM', 'Color value', 'Color sample',
+      'Dimension display', 'Font sample', 'Paragraph spacing', 'Text decoration'],
+  },
 };
 /** Each page's Show advanced disclosures, opened before the sweep so the advanced levers' headings are measured too. */
 const HEADING_ADVANCED = {
@@ -9628,9 +9649,28 @@ const HEADING_FLOOR = {
   380: { L1: 35, L2: 65, L3: 20, TH: 21, info: 54, tokenLabels: 288, hints: 16, swept: 77 },
 };
 /** Elements a sweep may find with a heading's tag or a heading's weight or size that are not one of the levels, each with
- *  the reason it is not (a selector, then the reason; the reason is held to 20 characters or more). Empty when this landed:
- *  every heading element and every heading-styled text in the levers pane was one of the three levels or a table header. */
-const HEADING_EXEMPT = [];
+ *  the reason it is not (a selector, then the reason; the reason is held to 20 characters or more). Empty when pass 1
+ *  landed: every heading element and every heading-styled text in the levers pane was one of the three levels or a table
+ *  header. #2215 adds the Build style guides page's own title, the one page title the sweep reaches. */
+const HEADING_EXEMPT = [
+  ['h1.p3-sg-title', 'a page title, not a section level: the rule (TY2 A) sets the levels inside a page and leaves page titles (the preview\'s, the dialogs\') as they are'],
+];
+/** #2215: the plugin's Build style guides page joins the rule. The web host has no such page (`main.ts` lends it only to the
+ *  figma host), so the walk reaches it there only, through the Figma menu, with a catalog posted (SG_RING_CATALOG, section
+ *  27's file, one table of each kind, so every option group draws). */
+const SG_PLACE = 'style-guides';
+const PLUGIN_ONLY_PAGES = [SG_PLACE];
+/** The pages the rule is measured on, per host. */
+const HEADING_PAGES = { web: [...NEW_PAGES], figma: [...NEW_PAGES, SG_PLACE] };
+/** The style guides page's own literal floors (per host and theme, both widths), under the counts measured when it joined. */
+const SG_HEADING_FLOOR = { L1: 2, L2: 5, L3: 14, swept: 9 };
+const openStyleGuides = async (page) => {
+  await openFigma(page);
+  await hooks.click(page.locator('[data-p3="figma-option-style-guide"]'), WAIT);
+  await hooks.need(page, '[data-p3="style-guides"]');
+  await postMsg(page, { type: 'style-guide-catalog', catalog: SG_RING_CATALOG });
+  await settle(page);
+};
 ok(HEADING_EXEMPT.every(([sel, why]) => typeof sel === 'string' && sel && typeof why === 'string' && why.trim().length >= 20),
   `TY2 A: every heading exemption names a selector and a reason of 20 characters or more (${JSON.stringify(HEADING_EXEMPT)})`);
 /** HEADING PASS 2 (BG1 A #2181, HP5 #2218, TY1 A and HP2 #2190, approved 2026-10-06): the sections whose lever was named
@@ -9668,8 +9708,9 @@ const TOKEN_FLOOR = { type: { family: 7, italic: 7, face: 3 } };
 /** The space after a heading, read in the page: from the bottom of the heading's row content (its padding and border
  *  excluded) to the top of the outermost box that starts below it and follows it in document order. Each level's row,
  *  by class: an L2 lever name's is its head, a group title's is its head row, a breakpoint name's is its legend. */
-const HEADING_PROBE = ({ strong, big, exempt }) => {
-  const pane = document.querySelector('[data-p3="levers-pane"]');
+const HEADING_PROBE = ({ strong, big, exempt, paneSel }) => {
+  // The levers pane on the nine pages; the whole page on the plugin's Build style guides page (#2215).
+  const pane = document.querySelector(paneSel);
   const vis = (n) => { const cs = getComputedStyle(n); if (cs.display === 'none' || cs.visibility === 'hidden') return false; const r = n.getBoundingClientRect(); return r.width >= 1 && r.height >= 1 && !n.closest('[hidden]'); };
   const r2 = (x) => Math.round(x * 100) / 100;
   const own = (n) => [...n.childNodes].filter((c) => c.nodeType === 3).map((c) => c.textContent).join(' ').replace(/\s+/g, ' ').trim();
@@ -9691,16 +9732,16 @@ const HEADING_PROBE = ({ strong, big, exempt }) => {
   const TABLE_HEADS = '.p3-facehead, .p3-tsizes-head, .p3-wmatrix-head, .p3-tnudge-head';
   const found = [];
   const classified = new Set();
-  const add = (level, n, kind, row) => {
+  const add = (level, n, kind, row, afterAt, hasUnder) => {
     classified.add(n); classified.add(row);
     const cs = getComputedStyle(n);
-    const nx = next(row);
+    const nx = afterAt === undefined ? next(row) : null;
     const desc = nx?.leaf.closest('.p3-sub');
     const ownDesc = !!(desc && desc.parentElement?.matches('.p3-lever-ctl') && desc.parentElement.firstElementChild === desc && desc.closest('.p3-lever') === n.closest('.p3-lever'));
     const rb = box(row);
     found.push({ level, kind, text: n.textContent.replace(/\s+/g, ' ').trim(), fs: parseFloat(cs.fontSize), fw: Number(cs.fontWeight), lh: parseFloat(cs.lineHeight),
       ls: parseFloat(cs.letterSpacing) || 0, color: cs.color, h: r2(n.getBoundingClientRect().height), rowH: r2(rb.bottom - rb.top),
-      after: nx ? nx.gap : null, toDesc: !!nx?.leaf.closest('.p3-lsec-desc'), ownDesc,
+      after: afterAt === undefined ? (nx ? nx.gap : null) : afterAt, hasUnder: hasUnder ?? true, toDesc: !!nx?.leaf.closest('.p3-lsec-desc'), ownDesc,
       sec: n.closest('.p3-lsec')?.querySelector('.p3-lsec-title')?.textContent.replace(/\s+/g, ' ').trim() ?? null });
   };
   for (const n of pane.querySelectorAll('.p3-lsec-title')) if (vis(n)) add('L1', n, 'section title', n.closest('.p3-lsec-titlerow') ?? n);
@@ -9709,6 +9750,23 @@ const HEADING_PROBE = ({ strong, big, exempt }) => {
   for (const n of pane.querySelectorAll('.p3-icol-title')) if (vis(n)) add('L2', n, 'group title', n.closest('.p3-icol-head'));
   for (const n of pane.querySelectorAll('.p3-lgrid-name > b')) if (vis(n)) add('L2', n, 'breakpoint name', n.parentElement);
   for (const n of pane.querySelectorAll('.p3-field-label')) if (vis(n)) { const th = !!n.closest(TABLE_HEADS); add(th ? 'TH' : 'L3', n, th ? 'table header' : 'field label', n.closest('.p3-slider-head') ?? n); }
+  // The Build style guides page (#2215): a card's title is L1, an option group's title L2, a field's name L3. Its page
+  // title (`.p3-sg-title`) is not a level: it is in HEADING_EXEMPT, with its reason.
+  for (const n of pane.querySelectorAll('.p3-sg-sec-title')) if (vis(n)) add('L1', n, 'card title', n);
+  for (const n of pane.querySelectorAll('.p3-sg-ogroup-title')) if (vis(n)) add('L2', n, 'option group title', n);
+  for (const n of pane.querySelectorAll('.p3-sg-field-name')) if (vis(n)) add('L3', n, 'field label', n);
+  // A lever's name inside an option group is L3 (SH1 A). Its row is the lever's first grid row: the name, and beside it the
+  // control unless the lever is wide. The space after is measured from that row to the next box in the lever (a wide
+  // lever's control, else its own hint); a lever with nothing under its row ends there, and the group's gap follows.
+  for (const n of pane.querySelectorAll('.p3-sg-lever-name')) if (vis(n)) {
+    const lv = n.parentElement;
+    const kids = [...lv.children].filter(vis);
+    const wide = lv.classList.contains('p3-sg-lever-wide');
+    const nb = n.getBoundingClientRect().bottom;
+    const rowBottom = wide ? nb : Math.max(nb, kids[1]?.getBoundingClientRect().bottom ?? nb);
+    const under = wide ? kids[1] : kids[2];
+    add('L3', n, 'option name', n, under ? r2(under.getBoundingClientRect().top - rowBottom) : null, !!under);
+  }
   const heads = [...pane.querySelectorAll('.p3-lsec-head')].filter(vis).map((hd) => { const nx = next(hd); return { title: hd.querySelector('.p3-lsec-title')?.textContent.trim(), after: nx ? nx.gap : null }; });
   const tokenLabels = [...pane.querySelectorAll('.p3-fill-label')].filter(vis).map((n) => { const cs = getComputedStyle(n); return { text: n.textContent.trim(), fs: parseFloat(cs.fontSize), fw: Number(cs.fontWeight), lh: parseFloat(cs.lineHeight) }; });
   const infos = [...pane.querySelectorAll('.p3-info')].filter(vis).map((b) => {
@@ -9786,20 +9844,30 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
     const where = `TY2 A ${host} ${theme} ${w}`;
     const { ctx, page, errors } = await open({ host, theme, w, h });
     const tally = { L1: 0, L2: 0, L3: 0, TH: 0, info: 0, tokenLabels: 0, hints: 0, swept: 0 };
+    const sgTally = { L1: 0, L2: 0, L3: 0, TH: 0, info: 0, tokenLabels: 0, hints: 0, swept: 0 };
+    const visited = new Set();
     try {
       if (w <= 560) await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
-      for (const place of NEW_PAGES) {
-        await goPlace(page, place);
-        await showLevers(page, w);
-        for (const sel of HEADING_ADVANCED[place] ?? []) {
-          await hooks.need(page, sel);
-          if ((await page.locator(sel).getAttribute('aria-expanded')) === 'false') await hooks.click(page.locator(sel));
+      for (const place of HEADING_PAGES[host]) {
+        const sg = place === SG_PLACE;
+        if (sg) await openStyleGuides(page);
+        else {
+          await goPlace(page, place);
+          await showLevers(page, w);
+          for (const sel of HEADING_ADVANCED[place] ?? []) {
+            await hooks.need(page, sel);
+            if ((await page.locator(sel).getAttribute('aria-expanded')) === 'false') await hooks.click(page.locator(sel));
+          }
         }
         await page.evaluate(() => document.fonts.ready);
-        const m = await page.evaluate(HEADING_PROBE, { strong: HT['fw-strong'], big: HT['fs-16'], exempt: HEADING_EXEMPT.map(([sel]) => sel) });
+        const m = await page.evaluate(HEADING_PROBE, { strong: HT['fw-strong'], big: HT['fs-16'], exempt: HEADING_EXEMPT.map(([sel]) => sel),
+          paneSel: sg ? '[data-p3="style-guides"]' : '[data-p3="levers-pane"]' });
         const at = `${where} / ${place}`;
-        tally.swept += m.swept;
-        ok(m.unclassified.length === 0, `${at}: every heading in the levers pane is one of the three levels or a table header — not covered: ${m.unclassified.join(' | ')}`);
+        // What this page's measurements count toward: the nine pages' floors, or the style guides page's own (#2215).
+        const cnt = sg ? sgTally : tally;
+        visited.add(place);
+        cnt.swept += m.swept;
+        ok(m.unclassified.length === 0, `${at}: every heading in the ${sg ? 'page' : 'levers pane'} is one of the three levels or a table header — not covered: ${m.unclassified.join(' | ')}`);
         ok(m.skips.length === 0, `${at}: no heading skips a level after the one before it — ${m.skips.join(' | ')}`);
         // Every heading the audit lists, at its level.
         for (const [level, want] of Object.entries(EXPECT_HEADINGS[place])) {
@@ -9810,8 +9878,8 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
         }
         headingCounts[place] ??= {};
         for (const f of m.found) {
-          tally[f.level]++;
-          headingCounts[place][f.level] = (headingCounts[place][f.level] ?? 0) + (host === 'web' && theme === 'light' && w === 1280 ? 1 : 0);
+          cnt[f.level]++;
+          headingCounts[place][f.level] = (headingCounts[place][f.level] ?? 0) + (host === (sg ? 'figma' : 'web') && theme === 'light' && w === 1280 ? 1 : 0);
           const ty = LEVEL_TYPE[f.level];
           const name = `${f.level} "${f.text.slice(0, 40)}" (${f.kind})`;
           const miss = [];
@@ -9832,7 +9900,7 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
             // The row is as tall as its line: the ⓘ overhangs it. (HP5, #2218, took Gradients' switch out of its lever head,
             // so no lever head is skipped any more.)
             if (f.kind === 'lever name' && !near(f.rowH, f.h)) miss.push(`its row is ${f.rowH} tall, its line ${f.h}: something in the row sets its height`);
-          } else if (f.level === 'L3' && (f.kind === 'field label' || f.kind === 'lever name in a group')) {
+          } else if (f.level === 'L3' && (f.kind === 'field label' || f.kind === 'lever name in a group' || (f.kind === 'option name' && f.hasUnder))) {
             if (!near(f.after, HT['space-050'])) miss.push(`space after ${f.after}, want space-050 ${HT['space-050']}`);
           }
           ok(miss.length === 0, `${at}: ${name} ${miss.join('; ')}`);
@@ -9881,13 +9949,13 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
         }
         // L3 token labels: the level's type (their token line sits under them, space-025, as before).
         for (const t of m.tokenLabels) {
-          tally.tokenLabels++;
+          cnt.tokenLabels++;
           ok(t.fs === HT['fs-14'] && t.fw === HT['fw-emphasis'] && near(t.lh, HT['fs-14'] * HT['lh-compact'], 0.05),
             `${at}: L3 token label "${t.text}" is fs-14 / fw-emphasis / lh-compact — ${t.fs} / ${t.fw} / ${t.lh}`);
         }
         // The ⓘ buttons: the hit-min target kept; in a lever's head, space-050 after the name and centered on its line.
         for (const i of m.infos) {
-          tally.info++;
+          cnt.info++;
           const miss = [];
           if (!(i.w >= HT['hit-min'] && i.h >= HT['hit-min'])) miss.push(`target ${i.w} × ${i.h}, want hit-min ${HT['hit-min']} or more`);
           if (i.inHead && !near(i.dx, HT['space-050'])) miss.push(`${i.dx} after the heading text, want space-050 ${HT['space-050']}`);
@@ -9909,6 +9977,8 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
             `BG1 A ${at}: section "${title}": its ⓘ opens the help it opened before, under the section's head — read ${JSON.stringify(tip)}, want ${JSON.stringify(want)}`);
           await hooks.click(btn);
         }
+        // The style guides page has no levers pane, preview or mode control: the HP3 read below is the nine pages'.
+        if (sg) continue;
         // HP3: no hint line draws a glyph, and no ⓘ glyph is drawn outside a button. Read in Light and again in High
         // contrast light, where the derived-mode line shows on most pages.
         for (const mode of ['light', 'hc-light']) {
@@ -9924,9 +9994,18 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
         await showMode(page, 'light');
         await showLevers(page, w);   // the narrow tab select is drawn only over the levers
       }
-      console.log(`  ${where}: ${JSON.stringify(tally)}`);
+      console.log(`  ${where}: ${JSON.stringify(tally)}${host === 'figma' ? `, style guides ${JSON.stringify(sgTally)}` : ''}`);
       for (const [k, floor] of Object.entries(HEADING_FLOOR[w])) {
         ok(tally[k] >= floor, `${where}: the sweep measured ${tally[k]} ${k === 'info' ? 'ⓘ buttons' : k === 'hints' ? 'hint lines' : k === 'tokenLabels' ? 'token labels' : k === 'swept' ? 'heading elements' : `${k} headings`} across the nine pages (floor ${floor})`);
+      }
+      // #2215: every page the audit's list names was measured on this host — by name, not by a count. A page dropped from
+      // the walk fails here naming it, whatever the floors say. The list's keys are typed apart from the walk's list.
+      for (const page_ of Object.keys(EXPECT_HEADINGS)) {
+        if (host !== 'figma' && PLUGIN_ONLY_PAGES.includes(page_)) continue;
+        ok(visited.has(page_), `${where}: the heading rule measured the ${page_} page, which the audit's list names — measured ${JSON.stringify([...visited])}`);
+      }
+      if (host === 'figma') for (const [k, floor] of Object.entries(SG_HEADING_FLOOR)) {
+        ok(sgTally[k] >= floor, `${where} / ${SG_PLACE}: the sweep measured ${sgTally[k]} ${k === 'swept' ? 'heading elements' : `${k} headings`} on the Build style guides page (floor ${floor})`);
       }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
@@ -10196,6 +10275,53 @@ for (const host of ['web', 'figma']) {
     await page.keyboard.press('Shift+Tab');
     const t2 = await where2();
     ok(t2.inWindow && !t2.onWindow, `${where}: after a click on blank space, Shift+Tab moves focus to a control in the start window (focus is on ${t2.tag})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+
+// #2184, owner Q58 B (2026-10-06): a PURE-GRAY pin (r = g = b) has no hue, so the shadow is untinted and the Depth &
+// motion hue slider is disabled and reads None, never the converter's ~89.88° noise (#2241). A section of its own at
+// the end of the file: four UI-lane PRs are open against the rest of it. The pins are the OKLCH the studio stores for
+// each hex, as color.ts's rgbToOklch returns it (the engine and unit tests derive the same pins live). prism3 authors
+// its own tint hue, which would win, so it is removed: the case is the DEFAULT path. Amount stays enabled: an untinted
+// shadow still lifts off pure black by its amount (Q58 B's render).
+// Owner Q73 A widened it to ANY gray ramp: a Custom tint or Follow primary at chroma 0 too, each with its own reason line
+// (the pinned form approved in Q72 A, the general form in Q82). The case's `patch` is what replaces the brand's neutral.
+const PINNED_WHY = 'The pinned gray has no hue, so shadows are untinted.', GRAY_WHY = 'The neutral is gray, so shadows are untinted.';
+const NO_HUE_CASES = [
+  { name: 'Q58 B: a pure-gray pin (#333333)', patch: { anchor: { l: 0.3211, c: 1.2e-8, h: 89.88 } }, keep: true, why: PINNED_WHY },
+  { name: 'Q58 B: a pure-gray pin (#808080)', patch: { anchor: { l: 0.5999, c: 2.2e-8, h: 89.88 } }, keep: true, why: PINNED_WHY },
+  { name: 'Q73 A: a gray Custom tint (chroma 0)', patch: { hue: 40, chroma: 0 }, keep: false, why: GRAY_WHY },
+  { name: 'Q73 A: a gray Follow primary (chroma 0)', patch: { hue: 40, chroma: 0, auto: true }, keep: false, why: GRAY_WHY },
+];
+for (const { name, patch, keep, why } of NO_HUE_CASES) {
+  const where = `#2184 ${name}, web light 1280`;
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await page.evaluate(([p, k]) => {
+      const blob = JSON.parse(localStorage.getItem('prism3:brandInput'));
+      blob.input.neutral = k ? { ...blob.input.neutral, ...p } : { ...p };   // a non-pin case drops the brand's own fields
+      if (blob.input.shadow?.tint) delete blob.input.shadow.tint.hue;
+      localStorage.setItem('prism3:brandInput', JSON.stringify(blob));
+    }, [patch, keep]);
+    await page.reload({ waitUntil: 'networkidle' });
+    await hooks.need(page, '[data-p3="frame"]');
+    await openDepth(page);
+    await openTint(page);
+    const st = await page.evaluate(() => {
+      const el = document.querySelector('[data-p3="shadow-tint-hue"]');
+      const field = el?.closest('.p3-field');
+      return {
+        disabled: el?.disabled ?? null, aria: el?.getAttribute('aria-valuetext') ?? null,
+        readout: field?.querySelector('.p3-readout')?.textContent ?? null,
+        hint: [...(field?.querySelectorAll('.p3-state') ?? [])].filter((n) => !n.hidden).map((n) => n.textContent.trim()).join(' | '),
+        amountEnabled: document.querySelector('[data-p3="shadow-tint-amount"]')?.disabled === false,
+      };
+    });
+    ok(st.disabled === true && st.readout === 'None' && st.aria === 'None' && st.hint === why && st.amountEnabled && !/\b(89|90)/.test(`${st.readout} ${st.aria}`),
+      `${where}: the hue slider is disabled, reads None (not ~90°), says why ("${why}"), and Amount stays enabled (${JSON.stringify(st)})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
