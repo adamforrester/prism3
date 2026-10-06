@@ -1,7 +1,7 @@
 ## (2026-10-06) — Studio: one heading rule across every page (heading pass 1 of 2, TY2 A)
 
 **Status:** `apps/studio/src/chrome.css` (heading rules only), `apps/studio/src/ui/lever-kit.ts` (`stateLine`), and
-`test:chrome` section 29. No ENGINE bump (no emitted artifact moves). CONTRACT unchanged. No new copy. Visible on every
+`test:chrome` section 30. No ENGINE bump (no emitted artifact moves). CONTRACT unchanged. No new copy. Visible on every
 levers page, both hosts, both themes.
 
 ### What changed
@@ -34,9 +34,9 @@ the TY1 split / #2190, TS1 A, token names on the label line, HP2, HP5 and HP6. #
 - **Held decision 7, applied:** Neutral emphasis, the lever inside Interactive's Neutral group, takes L3's weight, and its
   control follows at `space-050`.
 
-### The gate (test:chrome section 29)
+### The gate (test:chrome section 30)
 
-Section 29 runs on both hosts, both themes, at 1280 and 380, on every page, with every Show advanced open. It finds headings
+Section 30 runs on both hosts, both themes, at 1280 and 380, on every page, with every Show advanced open. It finds headings
 by class. It checks each level's computed size, weight, line height and the space after it. It also checks L1's
 tracking and L3's ink.
 
@@ -45,13 +45,13 @@ literal to its emitted path (`core.font.weight-role.strong`, `space.150`, …) a
 walk. It does not import `chrome/tokens.mjs`.
 
 The audit's per-page heading list is typed in, and every entry must be found at its level. Floors on the counts (L1
-35, L2 73, L3 20, table headers 21, ⓘ 55, token labels 288, hint lines 16, per host and theme) fail a sweep that finds
+34, L2 72, L3 20, table headers 21, ⓘ 54, token labels 288, hint lines 16, per host and theme) fail a sweep that finds
 fewer. In Light and in High contrast light, the section also fails any hint line that draws a glyph, and any ⓘ glyph
 drawn outside a button.
 
 It also sweeps every heading element (h1–h6, `legend`, `[role="heading"]`) and every text drawn at `fw-strong` or `fs-16`
 and up outside a control. Each must be a level, a table header, or a reasoned entry in `HEADING_EXEMPT`, which was empty
-when this landed. No heading tag may skip a level after the one before it. The sweep found 81 heading elements per
+when this landed. No heading tag may skip a level after the one before it. The sweep found 80 heading elements per
 host, theme and width. The review of #2210 asked for it: a list of expected headings cannot fail on a heading it does
 not name.
 
@@ -60,7 +60,7 @@ not name.
 - **Not `1lh` for the ⓘ's overhang.** Inside the button, `1lh` is the button's own line height (15px), not the
   heading's. At 380 the narrow tier's buttons are `ctl-h-xs` (28px) tall, so `(1lh − hit-min) / 2` left the ⓘ setting a
   19px row there. It passed at 1280 only because 24 − 9 = 15 fits inside 17.5. The review of #2210 caught it, and section
-  29 now runs at 380 for that reason.
+  30 now runs at 380 for that reason.
 
 - **The ⓘ target is 24px, not 44.** `hit-min` is `core.dimension.24`, the WCAG 2.5.8 floor. The plan's "44px" was a
   misstatement, and the owner confirmed 24 (IT1). The gate holds the ⓘ to `hit-min` read from the emission.
@@ -69,6 +69,8 @@ not name.
   content box, the gap is exactly `space-150`.
 - **Gradients' switch still sets its row's height.** HP5 moves it into the title row in PR 2, so the row-height check
   skips a head that holds a switch.
+- **The audit's Palettes list predates #2175.** That change folded the Pinned neutral section and its Pin a neutral lever
+  into Neutrals' source choice, so the list drops both and the floors drop by one L1, one L2 and one ⓘ.
 - **The audit ran on aurora; the gate runs on prism3**, the suite's brand. The lists match, except that prism3's Grid
   has no `xs` group.
 - **#2171's Style guides page has its own heading classes.** It takes the rule after it lands, not here.

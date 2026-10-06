@@ -34,7 +34,7 @@ export type LeverBlock = {
 /** One lever: its label (a legend when the control is a group), an info button with the manifest's
  *  description as a toggletip, an optional readout, the control, an optional state line, and the refused
  *  mark an engine refusal shows. */
-export const leverBlock = (key: string, opts: { label?: string; group?: boolean; forId?: string; desc?: string } = {}): LeverBlock => {
+export const leverBlock = (key: string, opts: { label?: string; group?: boolean; forId?: string; desc?: string; alsoSays?: string } = {}): LeverBlock => {
   const L = leverOf(key);
   const label = opts.label ?? L?.label ?? key;
   // A schema input that is not a manifest lever (Brand's name, namespace, personality and modes, S3) has no
@@ -78,7 +78,8 @@ export const leverBlock = (key: string, opts: { label?: string; group?: boolean;
     // A state line is replaced only when its words change.
     setState: (n) => { if ((state.textContent ?? '') !== (n?.textContent ?? '')) state.replaceChildren(...(n ? [n] : [])); },
     setRefused: (yes) => { if (refused.hidden !== !yes) refused.hidden = !yes; if (yes) el.dataset.refused = 'true'; else if (el.dataset.refused) delete el.dataset.refused; },
-    said: `${label} ${desc} ${key}`.toLowerCase(),
+    // `alsoSays`: searchable text only, never drawn (#2175: a lever whose control lives in another lever's block).
+    said: `${label} ${desc} ${key}${opts.alsoSays ? ` ${opts.alsoSays}` : ''}`.toLowerCase(),
   };
 };
 
