@@ -252,7 +252,7 @@ export const ensurePageHeader = async (
  * read. A placed header is named; a skip says why and what adds the missing piece; a header already there
  * is silent unless a font kept its placeholder text.
  */
-export const pageHeaderNote = (outcomes: readonly PageHeaderOutcome[]): string => {
+export const pageHeaderItems = (outcomes: readonly PageHeaderOutcome[]): string[] => {
   const parts: string[] = [];
   for (const o of outcomes) {
     if (o.status === 'placed') {
@@ -269,5 +269,10 @@ export const pageHeaderNote = (outcomes: readonly PageHeaderOutcome[]): string =
       parts.push(`No header on ${o.page}: the page has no content to place it above`);
     }
   }
+  return parts;
+};
+/** The same items as one clause, each joined by `. ` (#2177 split the two: one line per header in the Activity drawer). */
+export const pageHeaderNote = (outcomes: readonly PageHeaderOutcome[]): string => {
+  const parts = pageHeaderItems(outcomes);
   return parts.length ? `. ${parts.join('. ')}` : '';
 };

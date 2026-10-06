@@ -71,6 +71,8 @@ export type OpReading = {
   readonly ref: unknown;
   readonly verdict: string | null;
   readonly summary: string | null;
+  /** The summary's items, one line each (#2177), when the host sent them; otherwise the summary is one line. */
+  readonly lines?: readonly string[] | null;
   readonly phase: string | null;
   readonly progress: { readonly done: number; readonly total: number } | null;
   readonly agent: boolean;
@@ -111,7 +113,7 @@ const clock = (d: Date): string => d.toTimeString().slice(0, 5);
 
 /** One result, as the drawer recorded it. `refused` marks a declined request (#1957), which is only ever
  *  history: it is not the operation's result, so a run that ends with no verdict skips it. */
-type Result = { readonly ok: boolean; readonly verdict: string; readonly summary: string | null; readonly agent: boolean; readonly t: string; readonly ref: unknown; readonly refused?: true };
+type Result = { readonly ok: boolean; readonly verdict: string; readonly summary: string | null; readonly lines?: readonly string[] | null; readonly agent: boolean; readonly t: string; readonly ref: unknown; readonly refused?: true };
 /** One operation's record: what the drawer has seen of it this session. */
 type Rec = { t: string; result: Result | null; history: Result[] };
 
@@ -247,7 +249,12 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       // True of this plugin: the build lands each set on its own page and shows it (v6's line).
       if (k === 'components') parts.push(h('p', 'p3-note', "Build set switches Figma to the set's page."));
     } else if (res?.summary) {
-      parts.push(hook(h('p', 'p3-op-summary', res.summary), 'op-summary'));
+      // One line per item, console-style (#2177): the items the host's summary joins, each in the chrome's mono font, a
+      // long one wrapping inside the drawer. A list, so a screen reader reads them in order and says how many. A
+      // summary sent without items is its own one line, in the same words.
+      const list = hook(h('ul', 'p3-op-summary'), 'op-summary');
+      for (const line of res.lines?.length ? res.lines : [res.summary]) list.append(hook(h('li', 'p3-op-line', line), 'op-line'));
+      parts.push(list);
     }
     if (rec.history.length) {
       const d = hook(h('details', 'p3-op-history'), 'op-history');
@@ -352,7 +359,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     if (!r) { r = { t: '', result: null, history: [] }; recs.set(k, r); }
     return r;
   };
-  const resultOf = (o: OpReading, t: string): Result => ({ ok: o.state === 'ok', verdict: o.verdict ?? '', summary: o.summary, agent: o.agent, t, ref: o.ref });
+  const resultOf = (o: OpReading, t: string): Result => ({ ok: o.state === 'ok', verdict: o.verdict ?? '', summary: o.summary, lines: o.lines ?? null, agent: o.agent, t, ref: o.ref });
   /** The previous result moves to the history, newest first, at most `HISTORY_MAX`. */
   const retire = (rec: Rec): void => {
     if (rec.result) rec.history = [rec.result, ...rec.history].slice(0, HISTORY_MAX);

@@ -586,7 +586,10 @@
 .p3-op-when { margin-left: auto; color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: nowrap; }
 .p3-op-body { display: grid; gap: var(--p3-space-100); padding: 0 var(--p3-space-150) var(--p3-space-150); font-size: var(--p3-fs-12); }
 .p3-op-body[hidden] { display: none; }
-.p3-op-summary { margin: 0; overflow-wrap: anywhere; }
+/* A run's details, one line per item, console-style (#2177): the chrome's mono font, each line its own block, a long
+   one wrapping inside the drawer rather than widening it. */
+.p3-op-summary { margin: 0; padding: 0; list-style: none; font-family: var(--p3-font-mono); overflow-wrap: anywhere; }
+.p3-op-line { margin: 0; }
 .p3-op-phase { display: grid; gap: var(--p3-space-050); }
 .p3-op-prog { display: block; appearance: none; width: 100%; height: var(--p3-space-050); border: none; border-radius: var(--p3-radius-pill); background: var(--p3-line-1); overflow: hidden; }
 .p3-op-prog::-webkit-progress-bar { background: var(--p3-line-1); }

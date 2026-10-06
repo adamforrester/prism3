@@ -101,15 +101,17 @@ export const makeWriteHost = (scope: HTMLElement): WriteAdapter => cssVarAdapter
  *  wire carries `messages.ts` `MainToUi` (tagged `type`); the adapter checks each field and hands the UI
  *  this `kind`-tagged shape, with defaults filled in (`headline`, `styles`). See `onHostMessage`. */
 export type HostMessage =
-  | { kind: 'apply-result'; ok: boolean; headline: string; summary: string }
-  | { kind: 'component-result'; ok: boolean; headline: string; summary: string; completed: boolean }
+  // `lines` (#2177): the summary's items, one per line in the Activity drawer; `null` from a host that sends none, or a
+  // malformed list, and the drawer then shows `summary` as its one line.
+  | { kind: 'apply-result'; ok: boolean; headline: string; summary: string; lines: readonly string[] | null }
+  | { kind: 'component-result'; ok: boolean; headline: string; summary: string; completed: boolean; lines: readonly string[] | null }
   // #1558 — the outcome of a `file-setup` scaffold. A FOURTH kind of the `{ok, headline, summary}`
   // shape, distinct for the same one-kind-per-fact reason `component-result` is: "did the page
   // skeleton get laid" is separately true and separately actionable from a theme or component write,
   // so it needs its own verdict slot and cannot overwrite theirs.
   | { kind: 'file-setup-result'; ok: boolean; headline: string; summary: string }
   // #259 — the outcome of a `style-guide` run, its own slot.
-  | { kind: 'style-guide-result'; ok: boolean; headline: string; summary: string; stopped?: { done: number; total: number } }
+  | { kind: 'style-guide-result'; ok: boolean; headline: string; summary: string; stopped?: { done: number; total: number }; lines: readonly string[] | null }
   // UI redesign S11.2 — the Build style guides page: what the file holds and which tables a run would draw (`error`
   // set when the host could not read it), a panel run's table list, and each table's move.
   | { kind: 'style-guide-catalog'; catalog: StyleGuideCatalog; error: string | null }
@@ -250,6 +252,11 @@ const verdict = <K extends VerdictKind>(kind: K, m: Untrusted<OfType<MainToUi, V
   return { kind, ok: !!m.ok, headline, summary: String(m.summary ?? '') };
 };
 
+/** A verdict's `lines` (#2177): every entry a string, or none at all. A list with a non-string in it is dropped whole
+ *  rather than shown with a hole, and the drawer falls back to the summary, which says every word. */
+const linesOf = (x: unknown): readonly string[] | null =>
+  Array.isArray(x) && x.length > 0 && x.every((l) => typeof l === 'string') ? x as string[] : null;
+
 const count = (x: unknown): number | null => (typeof x === 'number' && Number.isFinite(x) && x >= 0 ? Math.floor(x) : null);
 /** A build's progress reading, from the panel's own build or an agent's: `null` when the numbers are
  *  unusable. `phase` is checked against the union rather than cast: it selects a label the UI shows, and an
@@ -302,18 +309,18 @@ const catalogOf = (c: unknown): StyleGuideCatalog | null => {
  *  it is dropped here, as any unknown `type` is. Every entry is a function or `null`, never a call, so the
  *  table has no side effects and the web bundle, which never calls `toHostMessage`, drops it whole. */
 const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
-  'apply-result': (m) => verdict('apply-result', m, '✓ applied', '✗ apply failed'),
+  'apply-result': (m) => ({ ...verdict('apply-result', m, '✓ applied', '✗ apply failed'), lines: linesOf(m.lines) }),
   // The default says "built" without a count, because an older host that sends no headline sends no
   // counts to put in one either.
   // `completed` (S8.2, C1): required of the host (`messages.ts`), and never inferred from `ok`. Only a literal `true`
   // reads as a build that ran to the end. A malformed value is not dropped (a dropped terminal result leaves the
   // panel on "Building…", #870); it reads as a build that did not finish, the claim that needs no evidence.
-  'component-result': (m) => ({ ...verdict('component-result', m, '✓ built', '✗ build failed'), completed: m.completed === true }),
+  'component-result': (m) => ({ ...verdict('component-result', m, '✓ built', '✗ build failed'), completed: m.completed === true, lines: linesOf(m.lines) }),
   'file-setup-result': (m) => verdict('file-setup-result', m, '✓ file set up', '✗ setup failed'),   // #1558
   'style-guide-result': (m) => {   // #259
     // S11.2: a cancelled run says how far it got; a malformed `stopped` is left off rather than guessed.
     const st = m.stopped && typeof m.stopped === 'object' ? tableReading(m.stopped as { done?: unknown; total?: unknown }) : null;
-    return { ...verdict('style-guide-result', m, '✓ style guide written', '✗ style guide failed'), ...(st ? { stopped: st } : {}) };
+    return { ...verdict('style-guide-result', m, '✓ style guide written', '✗ style guide failed'), ...(st ? { stopped: st } : {}), lines: linesOf(m.lines) };
   },
   // S11.2. A catalog that is not one is dropped: the page keeps asking rather than drawing a tree from nothing.
   'style-guide-catalog': (m) => {
