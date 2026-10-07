@@ -438,6 +438,21 @@
  * Mutation: the dashed rule back → `X4 A derived: web light: no disabled chrome control, and not the fixed Light row
  * (mode-on-light, read true), draws a dashed edge (439 read) — brand mode-on-light: …` and `… DB1 A: the fixed Light
  * row's box draws Prism3's disabled check box: …` (8 failures).
+ *
+ * #2213 ADDS (owner decisions N1 A and AS1 A, section 31): in the plugin, light and dark, at 1280 and 380, five published
+ * states of the agent link (off; listening; on with no transport; an inbox error; off with a stale inbox error). The
+ * closed row's short status, against the owner's literal words ("Agent listening", "Agent not listening", "Agent error",
+ * none while off): right of the summary and its time, last before the caret, one line and whole, its ink the emission's
+ * `color.text.secondary` or `color.text.danger` at 4.5:1, the summary whole and the caret on the row; its tooltip and its
+ * accessible name (CDP `getPartialAXTree` on its text nodes, and the row's computed name) carry the full line,
+ * `agentLinkStatusText(state)`, bundled for Node and called here. The open drawer's first line, above the runs, is that
+ * full line while the link is on or holds an inbox error, and absent otherwise. Every text run in the bar row sits on one
+ * baseline within 0.5px (a zero-size inline-block probe after each text node), in every state, with a write's count too,
+ * and on the web's row. Mutations, each against the built bundles:
+ *   · the short status showing the long text → `#2213 figma light 1280 listening: the bar row's agent status reads "Agent listening" (read "Listening — file mailbox, …")` (32 in all).
+ *   · the full line missing from the open drawer → `#2213 figma light 1280 listening: the open drawer's first line is the full line, agentLinkStatusText(state), above the runs (… read null …)` (16).
+ *   · "Agent error" in the quiet ink → `#2213 figma light 1280 error: "Agent error" draws in the chrome's error ink, the emission's color.text.danger #a82e2e (read #67696b)` (4).
+ *   · the row's text centered one by one again (`.p3-drawer-text` `align-items: center`) → `#2213 figma light 1280 off: every text run in the drawer's bar row sits on one baseline, within 0.5px (3 runs, spread 1.5px: … "22:00" 876)` (24).
  */
 import { createServer } from 'node:http';
 import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -10364,6 +10379,249 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
   } catch (e) {
     ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
+}
+
+// =============================================================================================
+// 31. #2213 (owner decisions N1 A and AS1 A, 2026-10-06): the agent link's status in the Activity drawer. The closed
+//     row's short status at its far right, beside the caret; the full status line as the open drawer's first line; and
+//     every text run in the row on one baseline. Plugin, light and dark, 1280 and 380; the web's row for the baseline.
+// =============================================================================================
+console.log(`\nThe agent link's status in the Activity drawer (#2213)\n${'='.repeat(78)}`);
+/** THE FULL LINE, from the plugin's own formatter, bundled for Node from its source and called here with each state
+ *  below. Never read off the page. The SHORT STATUS is not bundled: its words are the owner's (AS1 A), typed below. */
+const LINK_TEXT = await (async () => {
+  const esbuild = await import('esbuild');
+  const out = await esbuild.build({ entryPoints: [join(REPO, 'apps/plugin/src/agent-link-ui.ts')], bundle: true, platform: 'node', format: 'esm', write: false });
+  return (await import(`data:text/javascript;base64,${Buffer.from(out.outputFiles[0].text).toString('base64')}`)).agentLinkStatusText;
+})();
+/** Published states, as the main thread posts them (`AgentLinkState`, `apps/plugin/src/agent-protocol.ts`). Literals. */
+const LINK_STATES = {
+  off: { ...AGENT_ON, on: false, since: null, transports: { mailbox: false, bridge: false } },
+  listening: { ...AGENT_ON, lastCommand: { id: 'c1', cmd: 'status', ok: true, finishedAt: '2026-10-06T16:35:12.000Z', headline: '✓ done' } },
+  notListening: { ...AGENT_ON, transports: { mailbox: false, bridge: false } },
+  error: { ...AGENT_ON, inboxError: 'the inbox is not a JSON array' },
+  offStale: { ...AGENT_ON, on: false, since: null, transports: { mailbox: false, bridge: false }, inboxError: 'the inbox is not a JSON array' },
+};
+/** What each state must draw, typed from the owner's AS1 A: the closed row's short status and its ink (the chrome
+ *  tokens' roles, resolved below from the committed emission, never the stylesheet), or none; and whether the open
+ *  drawer's first line shows the full line (while the link is on, or while it holds an inbox error). Literals. */
+const LINK_WANT = {
+  off: { short: null, full: false },
+  listening: { short: 'Agent listening', ink: 'color.text.secondary', full: true },
+  notListening: { short: 'Agent not listening', ink: 'color.text.danger', full: true },
+  error: { short: 'Agent error', ink: 'color.text.danger', full: true },
+  offStale: { short: null, full: true },
+};
+/** The emission's hex for a chrome role in a chrome theme: the base tree, the dark overlay over it in dark, aliases
+ *  followed here (the same walk as `FOCUS_HEX`, written again so neither leans on the other or on `tokens.mjs`). */
+const LINK_INK = (() => {
+  const out = join(REPO, 'packages', 'engine', 'out');
+  const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
+  const dark = JSON.parse(readFileSync(join(out, 'prism3.dark.overlay.tokens.json'), 'utf8'));
+  const at = (tree, path) => path.split('.').reduce((n, k) => (n && typeof n === 'object' ? n[k] : undefined), tree);
+  const leaf = (mode, path) => { const o = mode === 'dark' ? at(dark, path) : undefined; return o?.$value !== undefined ? o : at(base, path); };
+  const walk = (mode, path, hops = 0) => {
+    const v = leaf(mode, path)?.$value;
+    const m = typeof v === 'string' && /^\{([^}]+)\}$/.exec(v);
+    if (m && hops < 16) return walk(mode, m[1], hops + 1);
+    return typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : null;
+  };
+  const r = {};
+  for (const mode of ['light', 'dark']) for (const role of ['color.text.secondary', 'color.text.danger']) r[`${mode} ${role}`] = walk(mode, `pds3.${role}`);
+  return r;
+})();
+ok(Object.values(LINK_INK).every((x) => /^#[0-9a-f]{6}$/.test(x ?? '')) && LINK_INK['light color.text.danger'] !== LINK_INK['light color.text.secondary'] && LINK_INK['dark color.text.danger'] !== LINK_INK['dark color.text.secondary'],
+  `#2213: the oracle resolved the quiet and the error ink, distinct, in light and dark from the emission (${JSON.stringify(LINK_INK)})`);
+ok(typeof LINK_TEXT === 'function' && /^Listening/.test(LINK_TEXT(LINK_STATES.listening)) && LINK_TEXT(LINK_STATES.error).includes('⚠'),
+  `#2213: the formatter, called here, words each state (${typeof LINK_TEXT === 'function' ? Object.keys(LINK_STATES).map((k) => `${k}: "${LINK_TEXT(LINK_STATES[k])}"`).join('; ') : 'not loaded'})`);
+/** The gap from the short status's right edge to the caret: the row's own gap, at most. Literal. */
+const LINK_CARET_GAP_MAX = 12;
+/** Every text run in the bar row sits on one baseline, within this. Literal (the owner's review). */
+const BASELINE_TOL = 0.5;
+/** The boot read-back the plugin posts, so the drawer's bar row is drawn with a summary (the owner's screenshot:
+ *  "● Read-back · Clean"). Shape from `apps/plugin/src/messages.ts`. */
+const LINK_SEED = { type: 'seed-info', ok: true, present: true, summary: 'Contract holds: 412 variables checked.', failed: 0 };
+
+/** The bar row, as drawn: the short status (or none), the summary, the time, the caret, the status's ink on its ground,
+ *  and the baseline of every text run (a zero-size inline-block probe set after each text node, read, and removed:
+ *  its bottom edge is the baseline of the line it sits on). Text inside the screen-reader-only spans is not drawn. */
+const LINK_PROBE = () => {
+  const row = document.querySelector('[data-p3="activity-toggle"]');
+  const ln = row?.querySelector('[data-p3="activity-agent-link"]') ?? null;
+  const box = (n) => { if (!n) return null; const r = n.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };
+  const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s ?? ''); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+  const over = (f, g) => ({ r: f.r * f.a + g.r * (1 - f.a), g: f.g * f.a + g.g * (1 - f.a), b: f.b * f.a + g.b * (1 - f.a), a: 1 });
+  const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+  const hex = (c) => `#${[c.r, c.g, c.b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
+  const ground = (el) => { const stack = []; for (let x = el; x && x.nodeType === 1; x = x.parentElement) stack.push(parse(getComputedStyle(x).backgroundColor)); let g = { r: 255, g: 255, b: 255, a: 1 }; for (const c of stack.reverse()) if (c && c.a > 0) g = over(c, g); return g; };
+  const icos = row ? [...row.children].filter((n) => n.tagName.toLowerCase() === 'svg') : [];
+  const caret = icos[icos.length - 1] ?? null;
+  const sum = row?.querySelector('.p3-drawer-last') ?? null;
+  const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false; for (let x = n; x && x.nodeType === 1; x = x.parentElement) if (getComputedStyle(x).display === 'none') return false; return true; };
+  const ownText = (n) => [...n.childNodes].filter((c) => c.nodeType === 3).map((c) => c.textContent).join('');
+  // The baselines.
+  const runs = [];
+  if (row) {
+    const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    for (let t = walker.nextNode(); t; t = walker.nextNode()) if (t.textContent.trim() && !t.parentElement.closest('.p3-sr')) nodes.push(t);
+    for (const t of nodes) {
+      const pr = document.createElement('span');
+      pr.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline';
+      t.after(pr);
+      runs.push({ text: t.textContent.trim().slice(0, 24), y: Math.round(pr.getBoundingClientRect().bottom * 100) / 100 });
+      pr.remove();
+    }
+  }
+  let ink = null;
+  if (ln) {
+    const cs = getComputedStyle(ln);
+    const g = ground(ln);
+    const c = over(parse(cs.color), g);
+    const x = lum(c), y = lum(g);
+    ink = { hex: hex(c), ground: hex(g), ratio: Math.floor(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 100) / 100,
+      lineH: parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.6 };
+  }
+  return {
+    rowShown: vis(row), row: box(row), sum: box(sum), sumText: sum?.textContent ?? null,
+    sumWhole: !!sum && (() => { const rg = document.createRange(); rg.selectNodeContents(sum); return rg.getBoundingClientRect().width <= sum.getBoundingClientRect().width + 0.01; })(),
+    when: box(row?.querySelector('.p3-op-when')), caret: box(caret), line: box(ln), lineShown: vis(ln),
+    text: ln ? ownText(ln) : null, title: ln?.getAttribute('title') ?? null, cut: !!ln && ln.scrollWidth > ln.clientWidth + 1,
+    lastBeforeCaret: !!ln && !ln.nextElementSibling && ln.parentElement?.nextElementSibling === caret, rects: ln ? ln.getClientRects().length : 0, ink, runs,
+  };
+};
+/** The open drawer's body: its agent line (or none), whether it is the body's first drawn line above the run rows (the
+ *  sheet's Close control aside), and its ink on its ground. */
+const DETAIL_PROBE = () => {
+  const body = document.querySelector('[data-p3="activity-body"]');
+  const d = body?.querySelector('[data-p3="activity-agent-detail"]') ?? null;
+  const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false; for (let x = n; x && x.nodeType === 1; x = x.parentElement) if (getComputedStyle(x).display === 'none') return false; return true; };
+  const drawn = body ? [...body.children].filter((n) => vis(n) && n.getAttribute('data-p3') !== 'activity-close') : [];
+  const rows = body?.querySelector('.p3-ops');
+  const firstOp = rows?.querySelector('[data-p3="activity-op"]');
+  return { bodyShown: vis(body), shown: vis(d), text: vis(d) ? d.textContent : null, first: drawn[0] === d,
+    above: !!d && !!firstOp && d.getBoundingClientRect().bottom <= firstOp.getBoundingClientRect().top + 0.5, ops: rows?.children.length ?? 0 };
+};
+/** The short status's and the row's names as the browser computes them (CDP `Accessibility.getPartialAXTree`), never
+ *  the DOM: the tree's entry for each text node inside the status, and the row's computed name. */
+const linkAx = async (page) => {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send('DOM.enable');
+    await cdp.send('Accessibility.enable');
+    const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+    const q = async (sel) => (await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel })).nodeId;
+    const rowId = await q('[data-p3="activity-toggle"]');
+    const lnId = await q('[data-p3="activity-agent-link"]');
+    const rowAx = rowId ? (await cdp.send('Accessibility.getPartialAXTree', { nodeId: rowId, fetchRelatives: false })).nodes[0] : null;
+    let line = null;
+    if (lnId) {
+      const { node } = await cdp.send('DOM.describeNode', { nodeId: lnId, depth: -1 });
+      const textNodes = [];
+      const visit = (n) => { if (n.nodeType === 3) textNodes.push(n); for (const c of n.children ?? []) visit(c); };
+      visit(node);
+      const texts = [];
+      for (const t of textNodes) {
+        const { nodes } = await cdp.send('Accessibility.getPartialAXTree', { backendNodeId: t.backendNodeId, fetchRelatives: false });
+        if (!nodes[0]?.ignored) texts.push(nodes[0]?.name?.value ?? '');
+      }
+      line = texts.join(' ');
+    }
+    return { row: rowAx?.name?.value ?? null, line };
+  } finally { await cdp.detach(); }
+};
+const baselineMiss = (runs) => { const ys = runs.map((r) => r.y); return ys.length ? Math.round((Math.max(...ys) - Math.min(...ys)) * 100) / 100 : null; };
+
+for (const theme of ['light', 'dark']) {
+  for (const { w, h } of WIDTHS.filter((x) => x.w === 1280 || x.w === 380)) {
+    const where = `#2213 figma ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host: 'figma', theme, w, h });
+    const shoot = (name, sel) => (SHOTS ? page.locator(sel).screenshot({ path: join(SHOTS, `v2-2213-plugin-${theme}-${w}-${name}.png`) }).catch(() => {}) : null);
+    try {
+      await postMsg(page, LINK_SEED);
+      await page.waitForFunction(() => (document.querySelector('[data-p3="activity-toggle"]')?.textContent ?? '').includes('Read-back'), null, WAIT).catch(() => {});
+      for (const [k, state] of Object.entries(LINK_STATES)) {
+        await postMsg(page, { type: 'agent-link-state', state });
+        await page.waitForFunction((on) => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === String(on), state.on, WAIT).catch(() => {});
+        await settle(page);
+        const s = await page.evaluate(LINK_PROBE);
+        const want = LINK_WANT[k];
+        const full = LINK_TEXT(state);
+        if (k !== 'offStale') await shoot(`closed-${k}`, '[data-p3="activity-toggle"]');
+        // One baseline, in every state.
+        const spread = baselineMiss(s.runs);
+        ok(s.runs.length >= 3 && spread !== null && spread <= BASELINE_TOL,
+          `${where} ${k}: every text run in the drawer's bar row sits on one baseline, within ${BASELINE_TOL}px (${s.runs.length} runs, spread ${spread}px: ${s.runs.map((r) => `"${r.text}" ${r.y}`).join(', ')})`);
+        // The closed row's short status.
+        if (!want.short) {
+          hooks.absent(ok, { seen: s.rowShown && s.sumText !== null, state: 'the drawer\'s bar row, drawn with its summary' }, s.line === null,
+            `${where} ${k}: no agent status in the bar row while the link is off (read ${JSON.stringify(s.text)})`);
+        } else {
+          ok(s.lineShown && s.text === want.short, `${where} ${k}: the bar row's agent status reads "${want.short}" (read ${JSON.stringify(s.text)}, shown ${s.lineShown})`);
+          if (s.line) {
+            const leftEdge = Math.max(s.sum?.r ?? 0, s.when?.r ?? 0);
+            const gap = s.caret ? s.caret.l - s.line.r : null;
+            ok(s.line.l >= leftEdge - 0.5 && s.lastBeforeCaret && gap !== null && gap >= 0 && gap <= LINK_CARET_GAP_MAX,
+              `${where} ${k}: the status sits right of the summary and its time, last before the caret, within ${LINK_CARET_GAP_MAX}px of it (status ${s.line.l.toFixed(1)}–${s.line.r.toFixed(1)}, summary and time end ${leftEdge.toFixed(1)}, caret at ${s.caret?.l.toFixed(1)}, last before the caret ${s.lastBeforeCaret})`);
+            ok(s.caret && s.row && s.caret.l >= s.row.l && s.caret.r <= s.row.r + 0.5 && s.sum && s.sum.l >= s.row.l && s.sumWhole,
+              `${where} ${k}: the caret and the whole summary stay on the row (row ${s.row?.l.toFixed(1)}–${s.row?.r.toFixed(1)}, caret ${s.caret?.l.toFixed(1)}–${s.caret?.r.toFixed(1)}, summary "${s.sumText}" whole ${s.sumWhole})`);
+            ok(s.rects === 1 && s.ink && s.line.h <= s.ink.lineH * 1.5 && !s.cut, `${where} ${k}: the status keeps to one line, its words whole (${s.rects} box(es), ${s.line.h.toFixed(1)}px tall, cut ${s.cut})`);
+            const inkHex = LINK_INK[`${theme} ${want.ink}`];
+            ok(s.ink?.hex === inkHex, `${where} ${k}: "${want.short}" draws in ${want.ink === 'color.text.danger' ? 'the chrome\'s error ink' : 'the quiet ink'}, the emission's ${want.ink} ${inkHex} (read ${s.ink?.hex})`);
+            ok(s.ink && s.ink.ratio >= TEXT_MIN, `${where} ${k}: the status holds ${TEXT_MIN}:1 on its ground (${s.ink?.hex} on ${s.ink?.ground}, ${s.ink?.ratio}:1)`);
+            const ax = await linkAx(page);
+            ok(s.title === full, `${where} ${k}: the status's tooltip is the full line, agentLinkStatusText(state) (want "${full}", read "${s.title}")`);
+            ok((ax.line ?? '').includes(want.short) && (ax.line ?? '').includes(full) && (ax.row ?? '').includes(want.short) && (ax.row ?? '').includes(full),
+              `${where} ${k}: the status's accessible name carries its words and the full line: computed "${ax.line}", the row's name "${ax.row}"`);
+          }
+        }
+        // The open drawer's first line: the full line.
+        await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+        await settle(page);
+        const d = await page.evaluate(DETAIL_PROBE);
+        if (want.full) {
+          ok(d.shown && d.text === full && d.first && d.above,
+            `${where} ${k}: the open drawer's first line is the full line, agentLinkStatusText(state), above the runs (want "${full}", read ${JSON.stringify(d.text)}, first ${d.first}, above the runs ${d.above})`);
+          if (k !== 'offStale') await shoot(`open-${k}`, '[data-p3="activity-drawer"]');
+        } else {
+          hooks.absent(ok, { seen: d.bodyShown && d.ops > 0, state: 'the open drawer, its runs drawn' }, !d.shown,
+            `${where} ${k}: the open drawer shows no agent line while the link is off with no inbox error (read ${JSON.stringify(d.text)})`);
+        }
+        await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+        await settle(page);
+      }
+      // The counts are a text run too: a write running puts "1 running" in the row, beside the agent status.
+      await postMsg(page, { type: 'agent-link-state', state: LINK_STATES.listening });
+      await hooks.click(page.locator('[data-p3="apply-to-figma"]'), WAIT);
+      await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-toggle"] .p3-drawer-count'), null, WAIT).catch(() => {});
+      const r = await page.evaluate(LINK_PROBE);
+      const spread = baselineMiss(r.runs);
+      ok(r.runs.some((x) => /running/.test(x.text)) && r.runs.length >= 4 && spread !== null && spread <= BASELINE_TOL,
+        `${where} a write running: every text run in the bar row, the count too, sits on one baseline, within ${BASELINE_TOL}px (${r.runs.length} runs, spread ${spread}px: ${r.runs.map((x) => `"${x.text}" ${x.y}`).join(', ')})`);
+      const bad = errors.filter((e) => !/WebSocket/.test(e));
+      ok(bad.length === 0, `${where}: 0 console errors (the agent link's bridge socket aside)${bad.length ? ` — ${bad.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+}
+// The web: no agent link (N1 A: plugin only), and its row, opened by hand, on one baseline too.
+for (const theme of ['light', 'dark']) {
+  for (const { w, h } of WIDTHS.filter((x) => x.w === 1280 || x.w === 380)) {
+    const where = `#2213 web ${theme} ${w}`;
+    const { ctx, page } = await open({ host: 'web', theme, w, h });
+    try {
+      await hooks.click(page.locator('[data-p3="activity-open"]'), WAIT);
+      const s = await page.evaluate(LINK_PROBE);
+      const d = await page.evaluate(DETAIL_PROBE);
+      hooks.absent(ok, { seen: s.rowShown && d.bodyShown, state: 'the studio\'s drawer, opened' }, s.line === null && !d.shown,
+        `${where}: the studio's drawer draws no agent status and no agent line (read ${JSON.stringify(s.text)}, ${JSON.stringify(d.text)})`);
+      const spread = baselineMiss(s.runs);
+      ok(s.runs.length >= 1 && spread !== null && spread <= BASELINE_TOL, `${where}: the drawer's bar row's text sits on one baseline (${s.runs.length} run(s), spread ${spread}px)`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
 }
 
 // =============================================================================================
