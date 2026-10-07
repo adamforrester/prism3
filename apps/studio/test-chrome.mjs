@@ -950,7 +950,9 @@ const PROBE = (opt) => {
         const cs = getComputedStyle(n);
         i = offs.push({ node: n, el: label(n), hook: n.getAttribute('data-p3'), canary: n.hasAttribute('data-ccanary'),
           tag: n.tagName.toLowerCase(), cls: n.getAttribute('class') ?? '',
-          prop: n.disabled === true, aria: n.getAttribute('aria-disabled') === 'true',
+          // The DOM's own disabled state, apart from the `:disabled` match above: the property, or (#1984, N-3 A) that of
+          // the disabled fieldset holding a derived mode's levers.
+          prop: n.disabled === true || n.closest('fieldset')?.disabled === true, aria: n.getAttribute('aria-disabled') === 'true',
           fill: cs.backgroundColor, ink: cs.color,
           edges: ['Top', 'Right', 'Bottom', 'Left'].map((side) => [cs[`border${side}Color`], cs[`border${side}Style`], parseFloat(cs[`border${side}Width`])]) }) - 1;
         n.setAttribute('data-coff', String(i));
