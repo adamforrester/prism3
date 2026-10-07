@@ -22,6 +22,7 @@ import { resolvePreview } from '@prism3/engine/resolve-preview';
 import { hexToRgb, rgbToOklch } from '@prism3/engine/color';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import * as S from './src/state/start-input';
+import * as P from './src/state/palette-input';
 import { editCount, isDirty, provenanceOf } from './src/provenance';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -164,6 +165,24 @@ console.log('\nOne check for both pastes (the S12 trap)\n');
     ok(!/(const|function)\s+(validateDesignMd|validatePaste|parseDesignMd)\b/.test(src), `${name} defines no import check of its own`);
     ok(!/\b(parseDesignMd|parseStandardDesignMd|standardToBrandInput)\b/.test(src), `${name} does not parse a design.md itself`);
   }
+}
+
+console.log('\n#2241: starting from a pure gray stores no noise hue, and its neutral is gray');
+// A pure gray has no hue (#2241). Starting from one, the primary is stored with hue 0 (the stored form), and the neutral,
+// which would lean to the color's hue, has none to lean to, so it is gray (chroma 0): the owner's no-hue rule (Q58 B, Q73
+// A) as the fallback, which also leaves the shadow untinted. A picked gray takes the same stored form (`oklchOf`).
+for (const hx of ['#808080', '#333333']) {
+  const seed = S.seedFromColor(hx);
+  const t = brandTheme(structuredClone(seed));
+  ok(seed.primary.h === 0 && seed.neutral.chroma === 0 && !seed.neutral.auto && t.shadow.tint.hue === null,
+    `#2241 starting from ${hx}: the primary stores hue 0, the neutral is gray, and the shadow is untinted (got primary hue ${seed.primary.h}, neutral ${JSON.stringify(seed.neutral)}, shadow hue ${t.shadow.tint.hue})`);
+  ok(P.oklchOf(hx).h === 0, `#2241 a picked ${hx} is stored with hue 0 (got ${P.oklchOf(hx).h})`);
+}
+// The other side: a real color still seeds a neutral that leans to its hue.
+{
+  const seed = S.seedFromColor('#3366cc');
+  ok(seed.neutral.chroma === 0.006 && Math.abs(seed.neutral.hue - seed.primary.h) < 1e-9 && seed.primary.h > 0,
+    `#2241 starting from a real color (#3366cc), the neutral still leans to its hue (got ${JSON.stringify(seed.neutral)}, primary hue ${seed.primary.h})`);
 }
 
 console.log(`\n${executed - failed}/${executed} passed.`);

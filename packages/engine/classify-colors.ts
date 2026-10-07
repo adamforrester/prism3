@@ -23,7 +23,7 @@
  * Pure + deterministic. Consumed by `standardToBrandInput` (standard-design-md.ts),
  * which `cli.ts` routes to for the standard `design.md` dialect.
  */
-import { hexToRgb, rgbToOklch, RGB } from './color';
+import { hexToRgb, rgbToOklch, RGB, storedOklch, ACHROMATIC_C } from './color';
 import { OKLCH } from './theme';
 
 export type ColorRole =
@@ -61,7 +61,7 @@ export type ColorClassification = {
 
 const round = (n: number, dp = 4) => Number(n.toFixed(dp));
 const oklchOf = (hex: string): OKLCH => {
-  const o = rgbToOklch(hexToRgb(hex));
+  const o = storedOklch(rgbToOklch(hexToRgb(hex)));   // a hue-less swatch stores hue 0, never the noise (#2241)
   return { l: round(o.l), c: round(o.c), h: round(o.h, 2) };
 };
 
@@ -111,7 +111,7 @@ export const classifyColors = (colors: Record<string, string>): ColorClassificat
   for (const [token, hex] of Object.entries(colors)) {
     const role = roleOf(token);
     const rgb = hexToRgb(hex);
-    provided.push({ token, hex, rgb, oklch: rgbToOklch(rgb), role, baseRamp: baseRampFor(role, token), usedAsAnchor: false });
+    provided.push({ token, hex, rgb, oklch: storedOklch(rgbToOklch(rgb)), role, baseRamp: baseRampFor(role, token), usedAsAnchor: false });
   }
   const mark = (token: string) => { const p = provided.find((x) => x.token === token); if (p) p.usedAsAnchor = true; };
 
@@ -158,8 +158,15 @@ export const classifyColors = (colors: Record<string, string>): ColorClassificat
   } else {
     // No neutral provided → auto-follow the brand primary hue. The generated ramp is identical to the
     // old `hue: primary.h` snapshot (same value at build), but now the cast re-tracks on recolour.
-    neutral = { hue: primary.h, chroma: 0.005, auto: true };
-    log.push({ token: 'neutral', decision: `→ none provided; auto-follows the brand primary { hue ${neutral.hue}, chroma ${neutral.chroma} }` });
+    // A hue-less primary (a gray, #2241) has no hue to follow, so the neutral is gray, as starting from a gray color
+    // gives (owner Q87 A). Its stored hue 0 is never read as a hue.
+    if (primary.c < ACHROMATIC_C) {
+      neutral = { hue: 0, chroma: 0 };
+      log.push({ token: 'neutral', decision: `→ none provided; the brand primary has no hue, so the neutral is gray { hue 0, chroma 0 }` });
+    } else {
+      neutral = { hue: primary.h, chroma: 0.005, auto: true };
+      log.push({ token: 'neutral', decision: `→ none provided; auto-follows the brand primary { hue ${neutral.hue}, chroma ${neutral.chroma} }` });
+    }
   }
 
   // --- status: success / warning / error→danger (hue + chroma anchors) ---

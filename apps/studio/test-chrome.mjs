@@ -11254,6 +11254,73 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
   } finally { await ctx.close(); }
 }
 
+// #2241 (owner Q88 A): a pinned pure gray has no hue, so Color › Palettes' neutral hue readout, the hue slider's
+// value text and the pinned color's OKLCH line all read None, never a number. Two stored forms: hue 0 (what a pick or an
+// import stores since #2241) and ~89.88° (the converter noise a brand file saved before #2241 still carries). The
+// decision is the color's CHROMA, so both must read None. A new section at the end, beside #2184's.
+for (const [form, pin] of [['stored hue 0', { l: 0.3211, c: 1.2e-8, h: 0 }], ['legacy noise hue 89.88', { l: 0.3211, c: 1.2e-8, h: 89.88 }]]) {
+  const where = `#2241 a pinned pure gray (${form}), Color › Palettes, web light 1280`;
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await page.evaluate((p) => {
+      const blob = JSON.parse(localStorage.getItem('prism3:brandInput'));
+      blob.input.neutral = { ...blob.input.neutral, anchor: p };
+      delete blob.input.neutral.auto;
+      localStorage.setItem('prism3:brandInput', JSON.stringify(blob));
+    }, pin);
+    await page.reload({ waitUntil: 'networkidle' });
+    await hooks.need(page, '[data-p3="frame"]');
+    await goPlace(page, 'color-palettes');
+    await hooks.need(page, '[data-p3="lever-neutral-hue"]');
+    const st = await page.evaluate(() => {
+      const blk = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-neutral-hue"]') ?? document.querySelector('[data-p3="lever-neutral-hue"]');
+      const sl = document.querySelector('[data-p3="neutral-hue-slider"]');
+      const meta = document.querySelector('[data-p3="lever-neutral-anchor"] .p3-colorfield-meta');
+      return { readout: blk?.querySelector('.p3-readout')?.textContent ?? null, aria: sl?.getAttribute('aria-valuetext') ?? null, meta: meta?.textContent ?? null };
+    });
+    ok(st.readout === 'None' && st.aria === 'None' && /\bNone$/.test(st.meta ?? '') && !/\b(89|90)(\.\d)?°?/.test(`${st.readout} ${st.aria} ${st.meta}`),
+      `${where}: the hue readout, the slider's value text and the OKLCH line read None, not a hue (${JSON.stringify(st)})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+
+// #2241, owner Q88 A (review of #2280): under Follow primary, a GRAY primary has no hue to follow, so Color › Palettes'
+// hue readout reads None and the follow line says so, never "0°" (the stored hue 0) or a legacy file's noise. The primary
+// is #808080 in the stored form a pick writes; the neutral keeps its usual chroma, which Q87 A overrides to gray.
+{
+  const where = '#2241 Q88 A: Follow primary with a gray primary, Color › Palettes, web light 1280';
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await page.evaluate(() => {
+      const blob = JSON.parse(localStorage.getItem('prism3:brandInput'));
+      blob.input.primary = { l: 0.5999, c: 2.2e-8, h: 0 };
+      blob.input.neutral = { hue: 40, chroma: 0.006, auto: true };
+      localStorage.setItem('prism3:brandInput', JSON.stringify(blob));
+    });
+    await page.reload({ waitUntil: 'networkidle' });
+    await hooks.need(page, '[data-p3="frame"]');
+    await goPlace(page, 'color-palettes');
+    await hooks.need(page, '[data-p3="lever-neutral-hue"]');
+    const st = await page.evaluate(() => {
+      const blk = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-neutral-hue"]') ?? document.querySelector('[data-p3="lever-neutral-hue"]');
+      const follow = [...(blk?.querySelectorAll('*') ?? [])].map((n) => n.textContent ?? '').find((t) => t.startsWith('Hue follows primary')) ?? null;
+      return { readout: blk?.querySelector('.p3-readout')?.textContent ?? null, follow };
+    });
+    ok(st.readout === 'None' && st.follow === 'Hue follows primary: None.' && !/\b0°/.test(`${st.readout} ${st.follow}`),
+      `${where}: the hue readout reads None and the follow line says the primary has none, not 0° (${JSON.stringify(st)})`);
+    // The preview's neutral board, beside the levers, says the same (owner Q96 A), never "Hue 0°".
+    const board = await page.waitForFunction(() => [...document.querySelectorAll('.p3-board-desc')].map((n) => n.textContent ?? '')
+      .find((t) => t.endsWith('Text, borders and surfaces draw from it.')) ?? null, null, { timeout: 5000 }).then((hd) => hd.jsonValue()).catch(() => null);
+    ok(board === 'Gray, following primary. Text, borders and surfaces draw from it.',
+      `${where}: the preview's neutral line reads "Gray, following primary. Text, borders and surfaces draw from it." (got ${JSON.stringify(board)})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+
 // =============================================================================================
 // 33. #2272: the switcher's tooltip follows the name's own cut, not the `trim` step. The frame picks a step from one
 //     measurement by subtraction (`fitBar`), and a `trim` can leave the name whole when that measurement runs wider

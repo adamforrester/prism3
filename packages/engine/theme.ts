@@ -15,7 +15,7 @@
  */
 import { generateRamp, peakChromaL, autoPlaceStep, Step } from './ramp';
 import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight, iconSizes, IconSizeStep, controlSizes, ControlSizeStep, SPACE_BASE, GRID_BASE } from './scale';
-import { oklchToRgb, RGB, contrast, hex as rgbHex, inGamut, maxChroma, deltaE2000 } from './color';
+import { oklchToRgb, RGB, contrast, hex as rgbHex, inGamut, maxChroma, deltaE2000, ACHROMATIC_C } from './color';
 import type { ModeName, BuiltinModeName, ModeOverrides } from './modes';
 import { resolveVocabulary } from './vocabulary';
 
@@ -2517,7 +2517,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
 
   if (root !== 'prism') notes.push(`namespace: tokens emit under '${root}.*' instead of the default 'prism.*'.`);
   const anchorStep = autoPlaceStep(input.primary.l);
-  notes.push(`primary: the brand color is pinned at step ${anchorStep} (hue ${n2(input.primary.h)}) — the ramp is built around it.`);
+  notes.push(`primary: the brand color is pinned at step ${anchorStep} (${input.primary.c < ACHROMATIC_C ? 'no hue' : `hue ${n2(input.primary.h)}`}) — the ramp is built around it.`);
 
   // M-03: a pinned anchor whose chroma is out of sRGB gamut can't be rendered exactly — the
   // engine clamps toward the boundary, which silently nudges lightness AND hue (independent-
@@ -2540,6 +2540,11 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // `auto` derives the neutral hue from the brand primary at build time (a cohesive cast that
   // re-tracks on recolour) rather than a frozen stored hue; a pinned anchor still wins over it.
   const nHue = input.neutral.auto ? input.primary.h : input.neutral.hue;
+  // A hue-less primary (a gray, chroma below ACHROMATIC_C, #2241): its stored hue 0 is not a hue, so nothing may read it
+  // as one. Follow primary then has no hue to follow, so the neutral is gray, chroma 0 (owner Q87 A), which also leaves
+  // the shadow untinted through Q73 A's rule below. A pin still wins over Follow primary.
+  const primaryHueless = input.primary.c < ACHROMATIC_C;
+  const neutralChroma = input.neutral.auto && primaryHueless ? 0 : input.neutral.chroma;
   // The hue that actually builds the neutral ramp (#2184, owner decision 2026-10-06): the pinned gray's
   // when one is pinned, else `nHue` — the primary's under Follow primary, the custom tint otherwise. One
   // binding for the ramp AND the shadow tint's default, so the shadow cannot follow a stored
@@ -2548,18 +2553,18 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // A pure-gray pin (r = g = b) has NO hue: its chroma is ~1e-8 and the converter reports noise (~89.88°, #2241).
   // The ramp cannot show that noise at chroma ~0, but a shadow tint would (olive, ΔE00 2.23). So the shadow's
   // default is null below ACHROMATIC_C, read off the CHROMA, never off the noise hue (owner Q58 B, 2026-10-06).
-  // 1e-4 sits four orders of magnitude above that noise and well below the faintest real pin in the corpus
-  // (nb-redesign's #151415, chroma 0.0025).
-  const ACHROMATIC_C = 1e-4;
+  // ACHROMATIC_C (color.ts, #2241) is the same no-hue line the converter draws: one definition of "this gray has no hue".
   // ANY gray ramp, not only a pin (owner Q73 A): a Custom tint or Follow primary at `neutral.chroma` 0 builds a
   // gray ramp too, so the guard reads the chroma that BUILDS the ramp, the pin's or `neutral.chroma`.
-  const neutralRampChroma = nAnchor ? nAnchor.c : input.neutral.chroma;
+  const neutralRampChroma = nAnchor ? nAnchor.c : neutralChroma;
   const shadowTintDefault = neutralRampChroma < ACHROMATIC_C ? null : neutralRampHue;
   const neutralSteps = nAnchor
     ? generateRamp({ hue: neutralRampHue, chroma: nAnchor.c, anchor: { oklch: nAnchor, stepNum: autoPlaceStep(nAnchor.l) } })
-    : generateRamp({ hue: neutralRampHue, chroma: input.neutral.chroma });
+    : generateRamp({ hue: neutralRampHue, chroma: neutralChroma });
   if (nAnchor) notes.push(`neutral: pinned to the brand's gray (lightness ${n4(nAnchor.l)}) at step ${autoPlaceStep(nAnchor.l)} — the ramp is built from that gray, not from a hue and chroma.`);
-  else if (input.neutral.auto) notes.push(`neutral: the grays follow the primary hue (${Math.round(input.primary.h)}) — change the brand color and the grays follow.`);
+  else if (input.neutral.auto) notes.push(primaryHueless
+    ? `neutral: the grays follow the primary, which has no hue, so they are gray.`
+    : `neutral: the grays follow the primary hue (${Math.round(input.primary.h)}) — change the brand color and the grays follow.`);
 
   const palettes: PaletteBuild[] = [
     { palette: 'primary', role: 'brand', description: 'Brand primary', steps: generateRamp({ hue: input.primary.h, chroma: input.primary.c, anchor: { oklch: input.primary, stepNum: anchorStep } }) },
@@ -2581,7 +2586,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   }
   for (const bc of input.brandColors ?? []) {
     palettes.push({ palette: bc.name, role: 'brand', description: `Brand ${bc.name}`, steps: generateRamp({ hue: bc.oklch.h, chroma: bc.oklch.c, anchor: { oklch: bc.oklch, stepNum: autoPlaceStep(bc.oklch.l) } }) });
-    notes.push(`brand color: '${bc.name}' added (hue ${n2(bc.oklch.h)}).`);
+    notes.push(`brand color: '${bc.name}' added (${bc.oklch.c < ACHROMATIC_C ? 'no hue' : `hue ${n2(bc.oklch.h)}`}).`);
   }
 
   const status = (k: 'success' | 'warning' | 'info') => {
@@ -2636,7 +2641,9 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     // Distinguish the two carve reasons (M-05): a red-ish-but-greige primary must NOT be reused
     // for danger (a near-grey can't signal destruction), even though its hue is in the window.
     const hueIsRed = hueDist(input.primary.h, STATUS_DEFAULTS.danger.h) <= 20;
-    notes.push(hueIsRed
+    notes.push(primaryHueless
+      ? `danger: the primary has no hue, so danger gets its own red at hue ${d.h}.`
+      : hueIsRed
       ? `danger: the primary (hue ${n2(input.primary.h)}) is reddish, but its chroma ${n4(input.primary.c)} is below the ${RED_CHROMA_FLOOR} floor for danger — a separate red at hue ${d.h} carries destructive actions.`
       : `danger: the primary (hue ${n2(input.primary.h)}) is not red, so danger gets its own red at hue ${d.h}.`);
   }

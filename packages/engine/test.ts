@@ -11,7 +11,7 @@
  *     Each must build and clear EVERY mode contract — the real robustness test.
  * Exits non-zero on any failure.
  */
-import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, composite, RGB } from './color';
+import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, composite, RGB, storedOklch } from './color';
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, densitySpace, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
@@ -787,8 +787,60 @@ const BLACK: RGB = { r: 0, g: 0, b: 0 };
 
 // round-trip sRGB → OKLCH → sRGB (within ±2/255)
 for (const rgb of [WHITE, BLACK, { r: 207, g: 10, b: 44 }, { r: 18, g: 120, b: 200 }, { r: 120, g: 200, b: 30 }, { r: 250, g: 240, b: 5 }]) {
-  const rt = oklchToRgb(rgbToOklch(rgb));
+  const rt = oklchToRgb(storedOklch(rgbToOklch(rgb)));   // white and black have no hue (#2241): the stored form, as a brand file holds them
   ok(approx(rt.r, rgb.r, 2) && approx(rt.g, rgb.g, 2) && approx(rt.b, rgb.b, 2), `round-trip ${hex(rgb)} → ${hex(rt)}`);
+}
+
+// A PURE GRAY HAS NO HUE (#2241, CSS Color 4's "powerless" hue). Below a chroma of 1e-4 the converter used to return an
+// atan2 of rounding noise, ~89.88° for every gray, and code downstream read it as a real hue (the shadow tint went olive,
+// #2184). Now the measured hue is null, and the stored form a brand file holds writes it as 0 (a technical decision, recorded on #2280: the schema
+// keeps a numeric hue). The grays are named here as hex, so the expectation never comes from the converter itself; the
+// faint REAL color holds the threshold from the other side (docs/34 shape 14), its hue measured independently.
+for (const hx of ['#000000', '#333333', '#7f7f7f', '#808080', '#ffffff']) {
+  const o = rgbToOklch(hexToRgb(hx));
+  ok(o.h === null && o.c < 1e-6, `#2241 the converter reports no hue for a pure gray (${hx}: got hue ${o.h}, chroma ${o.c.toExponential(1)})`);
+  const st = storedOklch(o);
+  ok(st.h === 0 && st.c === o.c && st.l === o.l, `#2241 a pure gray's stored form writes hue 0 (${hx}: got ${JSON.stringify(st)})`);
+}
+{
+  const faint = rgbToOklch(hexToRgb('#151415'));
+  ok(faint.h !== null && Math.abs(faint.h - 325.67) < 0.05 && faint.c > 1e-3,
+    `#2241 a faint but real color keeps its hue (#151415: expected about 325.67, got hue ${faint.h}, chroma ${faint.c})`);
+  // A consumer: the hex import (design.md, the wendys path) stores a pure-gray swatch with hue 0, never the noise.
+  const cls = classifyColors({ Primary: '#3366cc', Secondary: '#808080', Neutral: '#888888' });
+  const noisy = cls.provided.filter((p) => p.oklch.c < 1e-4 && p.oklch.h !== 0).map((p) => `${p.token} h ${p.oklch.h}`);
+  const grays = cls.provided.filter((p) => p.oklch.c < 1e-4).length;
+  ok(grays >= 2 && noisy.length === 0,
+    `#2241 the hex import stores a pure-gray swatch with hue 0, not the converter noise (${grays} gray swatches; noisy: ${noisy.join(', ') || 'none'})`);
+}
+
+// A GRAY PRIMARY HAS NO HUE EITHER (#2241, owner Q87 A, review of #2280). Stored as hue 0, it must never be read as one:
+// Follow primary then has no hue to follow, so the neutral is gray (chroma 0) and the shadow untinted. The same holds for
+// a design.md import with no neutral swatches (which follows the primary), and no decisions-log note gives that primary a
+// hue. The primaries are named as hex and stored as a pick or an import stores them; the gray checks are structural.
+{
+  const grayPrimary = storedOklch(rgbToOklch(hexToRgb('#808080')));
+  const sameRgb = (c: RGB) => c.r === c.g && c.g === c.b;
+  const neutralGray = (t: any) => t.palettes.find((p: any) => p.palette === 'neutral').steps.every((st: any) => sameRgb(st.rgb));
+  // 1. Follow primary (the toggle) with a gray primary, at the neutral's usual chroma 0.006, and a gray brand color.
+  const follow = brandTheme({ id: 'g2241a', root: 'prism', primary: grayPrimary, neutral: { hue: 40, chroma: 0.006, auto: true },
+    brandColors: [{ name: 'slate', oklch: storedOklch(rgbToOklch(hexToRgb('#555555'))) }] } as any);
+  ok(neutralGray(follow) && follow.shadow.tint.hue === null && sameRgb(follow.shadow.colorRgb),
+    `#2241 Q87 A: Follow primary with a gray primary builds a gray neutral and an untinted shadow (neutral all gray: ${neutralGray(follow)}, ` +
+    `shadow hue ${follow.shadow.tint.hue}, color ${JSON.stringify(follow.shadow.colorRgb)})`);
+  // 2. A design.md import whose palette has a gray primary and no neutral swatches.
+  const imported = classifyColors({ Primary: '#333333' }).input;
+  const it = brandTheme({ id: 'g2241b', root: 'prism', ...imported } as any);
+  ok(imported.neutral.chroma === 0 && !imported.neutral.auto && neutralGray(it) && it.shadow.tint.hue === null,
+    `#2241 Q87 A: an import with a gray primary and no neutral swatches stores a gray neutral (got ${JSON.stringify(imported.neutral)}; ` +
+    `neutral all gray: ${neutralGray(it)}, shadow hue ${it.shadow.tint.hue})`);
+  // 3. No note gives the gray primary, or the gray brand color, a hue, in either case.
+  const hued = [...follow.notes, ...it.notes].filter((n) => /\(hue 0\b|primary hue \(0\)|primary \(hue 0\)/.test(n));
+  const primaryNote = follow.notes.find((n) => n.startsWith('primary:')) ?? '';
+  const brandColorNote = follow.notes.find((n) => n.startsWith("brand color: 'slate'")) ?? '';
+  ok(hued.length === 0 && primaryNote.includes('(no hue)') && brandColorNote === "brand color: 'slate' added (no hue).",
+    `#2241: no decisions-log note gives a gray primary or a gray brand color a hue (offending: ${hued.map((n) => `"${n.slice(0, 90)}…"`).join(' | ') || 'none'}; ` +
+    `primary note "${primaryNote.slice(0, 90)}"; brand color note "${brandColorNote}")`);
 }
 
 // hex formatting
@@ -6885,8 +6937,9 @@ arm: {
 // shadow now carries NO hue: `tint.hue` is null and the color is achromatic, while `amount` still lifts it off
 // pure black (Q58 B's render, R1). An explicit hue still wins.
 //
-// INDEPENDENCE: the pins come from the REAL converter (`rgbToOklch(hexToRgb(...))`), so its noise is part of the
-// input rather than a hand-typed stand-in. The expectations are structural consequences, not the formula:
+// INDEPENDENCE: the pins come from the REAL converter, in the STORED form a picked gray takes (`storedOklch(rgbToOklch(...))`,
+// #2241: hue 0, chroma ~1e-8), real converter output rather than a hand-typed stand-in. The legacy noise form (~89.88°,
+// a brand file saved before #2241) is held by test-chrome.mjs; either way the rule reads chroma. The expectations are structural consequences, not the formula:
 // r = g = b (untinted), not 0/0/0 (the lift kept), and the noise hue appearing nowhere. And the guard is held
 // from the other side (docs/34 shape 14): nb-redesign's faint REAL pin, #151415 at chroma 0.0025, must stay tinted
 // at its own hue.
@@ -6894,17 +6947,17 @@ arm: {
   const DARK = { dark: { shadow: { softness: 0.6 } } };
   const pinTheme = (hexStr: string, shadow?: Record<string, unknown>) =>
     brandTheme({ id: 'tgray', root: 'prism', primary: { l: 0.55, c: 0.15, h: 195 },
-      neutral: { hue: 40, chroma: 0.006, anchor: rgbToOklch(hexToRgb(hexStr)) }, ...(shadow ? { shadow } : {}), modeLevers: DARK } as any);
+      neutral: { hue: 40, chroma: 0.006, anchor: storedOklch(rgbToOklch(hexToRgb(hexStr))) }, ...(shadow ? { shadow } : {}), modeLevers: DARK } as any);
   const gray = (c: RGB) => c.r === c.g && c.g === c.b;
   for (const hexStr of ['#333333', '#808080']) {
-    const pin = rgbToOklch(hexToRgb(hexStr));
+    const pin = storedOklch(rgbToOklch(hexToRgb(hexStr)));
     const t = pinTheme(hexStr);
     const dark = t.shadow.shadowByMode?.dark;
     const untinted = t.shadow.tint.hue === null && gray(t.shadow.colorRgb) && t.shadow.colorRgb.r > 0
       && !!dark && dark.tint.hue === null && gray(dark.colorRgb);
     ok(pin.c < 1e-6 && untinted,
       `#2184 Q58 B: a pure-gray pin (${hexStr}) leaves the shadow untinted, with no hue (pin chroma ${pin.c.toExponential(1)}, ` +
-      `converter hue ${pin.h.toFixed(2)}; got tint.hue ${t.shadow.tint.hue}, color ${JSON.stringify(t.shadow.colorRgb)}, dark mode hue ${dark?.tint.hue}, ${dark ? JSON.stringify(dark.colorRgb) : 'no entry'})`);
+      `stored hue ${pin.h}; got tint.hue ${t.shadow.tint.hue}, color ${JSON.stringify(t.shadow.colorRgb)}, dark mode hue ${dark?.tint.hue}, ${dark ? JSON.stringify(dark.colorRgb) : 'no entry'})`);
     const asked = pinTheme(hexStr, { tint: { hue: 30 } });
     ok(asked.shadow.tint.hue === 30 && !gray(asked.shadow.colorRgb) && asked.shadow.shadowByMode?.dark?.tint.hue === 30,
       `#2184 Q58 B: an explicit shadow.tint.hue still tints a pure-gray pin's shadow (${hexStr}; expected hue 30, ` +
@@ -6927,7 +6980,7 @@ arm: {
       `#2184 Q73 A: an explicit shadow.tint.hue still tints a gray ${label}'s shadow (expected hue 30, got ${asked.shadow.tint.hue}, color ${JSON.stringify(asked.shadow.colorRgb)})`);
   }
   // The other side of the guard: a faint but REAL pin keeps its hue.
-  const faint = rgbToOklch(hexToRgb('#151415'));
+  const faint = storedOklch(rgbToOklch(hexToRgb('#151415')));
   const f = pinTheme('#151415');
   ok(faint.c > 1e-3 && f.shadow.tint.hue !== null && Math.abs((f.shadow.tint.hue as number) - faint.h) < 1e-9 && !gray(f.shadow.colorRgb),
     `#2184 Q58 B: a faint but real pin (#151415, chroma ${faint.c.toFixed(4)}) still tints the shadow at its own hue ` +
