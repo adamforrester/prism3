@@ -11258,8 +11258,9 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 //     needs (FIT_ORACLE's own reading), one first-row control is made 4px wider and the frame re-measures (a font load,
 //     one of its own re-measure signals); then the extra width is taken off with nothing the frame re-measures on (an
 //     inline style), and the window resized. The frame's sum is now 4px too wide, so it stays on `trim`, and the name
-//     fits its box: the bar must draw two rows (FIT_SEEN), the name whole, and no tooltip. Two controls hold the fixture to what it claims:
-//     before the inflation the bar draws `rows`, and with it the name is really cut and the tooltip is the name.
+//     fits its box: the bar must draw two rows (FIT_SEEN), the name whole, and no tooltip. Two controls hold the
+//     fixture to what it claims: before the inflation the bar draws `rows`, and with it the name is really cut and the
+//     tooltip is the name.
 // Mutation, failing here by name in every environment: `fitBar`'s tooltip from the step alone, not the cut.
 // =============================================================================================
 console.log('\n33. #2272: trim and its tooltip follow the name\'s own cut');

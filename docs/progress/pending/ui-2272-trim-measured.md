@@ -33,5 +33,10 @@ present and restores in `finally` (`git diff` empty after), each with both bundl
 - M1, the frame's tooltip from the step alone: `test:chrome` 34643/34645. Only §33 fails, both themes, e.g. `✗ 33 figma light 592: measured 4px too wide, the bar keeps two rows with the name whole and no tooltip, because nothing is cut (#2272) (drew rows, cut false, rows […], title "northwind-outdoor-supply-co")`. §29d stays green under it, so §33 is the only check that holds the frame's half, in every environment.
 - M2, `FIT_SEEN`'s whole-pixel cut back: 34639/34641, §29d's original failure back, both themes: `✗ 29d figma light northwind-outdoor-supply-co: across 91 widths the bar draws the measured step, in no more rows than it allows (590: the switcher carries a tooltip ("northwind-outdoor-supply-co") with its name whole (rows))`. The four fewer assertions are §29d's per-state `trim` checks, which run only where a state reads as cut, not a truncated run.
 
+**#2262's sweep, merged meanwhile, reads the same cut.** Its down-and-up tooltip check (`tipCheck`) takes
+`FIT_SEEN`'s `cut`, so it now passes `whole` too. Its fragment's trap ("locally this assertion is also red at 590 …
+the name still fits") was this misreading: at 590 the name is cut and the tooltip is right, so that check is green
+locally now.
+
 **Trap for whoever re-verifies:** a sub-pixel question cannot be answered with `scrollWidth`, `clientWidth` or
 `offsetWidth`; they round. Use `getBoundingClientRect()` or a Range.
