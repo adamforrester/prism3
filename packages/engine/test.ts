@@ -6933,6 +6933,40 @@ arm: {
     `(expected ${faint.h.toFixed(2)}, got ${f.shadow.tint.hue}, color ${JSON.stringify(f.shadow.colorRgb)})`);
 }
 
+// DECISIONS-LOG NOTES PRINT NO LONG DECIMALS (#2242). The notes are shipped prose: every brand's tokens carry them
+// as `$extensions.prism3.decisions`, and the reports print them. They interpolated input numbers raw, so a value
+// carrying full converter precision (a pin from a hex, a color picked in the studio) printed as
+// "tinted to hue 89.87556274151122". The shadow note's hue now prints in whole degrees, as the studio shows hue. The
+// other numbers print at the precision the corpus already uses: hue to 2 places, lightness and chroma to 4.
+//
+// INDEPENDENCE: the inputs are written with seven-place values in every field a note interpolates, and the expected
+// whole-degree hue is rounded from the INPUT, not read back from the note. The scan covers every note of every case
+// rather than the lines this fix touched, so a note added later with a raw number fails here too.
+{
+  const LONG = /\d\.\d{5,}/;   // more than 4 decimal places
+  const cases: [string, any][] = [
+    ['A (Follow primary, long brand color and status hues)', { id: 'n2242a', root: 'prism', primary: { l: 0.55, c: 0.1234567, h: 262.1234567 },
+      neutral: { hue: 40, chroma: 0.006, auto: true }, brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.1234567, h: 150.1234567 } }],
+      status: { success: { h: 145.1234567, chroma: 0.1 }, danger: { h: 27.1234567, chroma: 0.15 } } }],
+    ['B (a pin from a hex, an out-of-gamut primary)', { id: 'n2242b', root: 'prism', primary: { l: 0.7, c: 0.3456789, h: 200.987654 },
+      neutral: { hue: 40, chroma: 0.006, anchor: rgbToOklch(hexToRgb('#5a6b7c')) } }],
+    // C also carries the dimension, layout and fluid-type inputs the notes print, at seven places (#2273's review).
+    ['C (a long red primary, long radius, layout and fluid-type inputs)', { id: 'n2242c', root: 'prism', primary: { l: 0.55, c: 0.2012345, h: 27.1234567 },
+      neutral: { hue: 40, chroma: 0.006 }, radiusScale: 1.1234567, baseMd: 4.1234567,
+      layout: { breakpoints: [0, 768.1234567, 1024.1234567, 1440.1234567], containerMax: 1440.1234567, containerNarrow: 720.1234567 },
+      typography: { responsive: { fluid: true, minViewport: 375.1234567, maxViewport: 1280.1234567 } } }],
+  ];
+  const offenders: string[] = [];
+  for (const [name, input] of cases) for (const n of brandTheme(input).notes) if (LONG.test(n)) offenders.push(`${name}: "${n.slice(0, 110)}…"`);
+  ok(offenders.length === 0,
+    `#2242 no decisions-log note prints a number with more than 4 decimal places (${offenders.length} offending: ${offenders.slice(0, 3).join(' | ')})`);
+  const a = brandTheme(cases[0][1]);
+  const shadowNote = a.notes.find((n) => n.startsWith('shadow:')) ?? '';
+  const want = `tinted to hue ${Math.round(cases[0][1].primary.h)} at`;
+  ok(shadowNote.includes(want),
+    `#2242 the shadow note prints the tint hue in whole degrees (expected "${want}", rounded from the input's ${cases[0][1].primary.h}; got "${shadowNote.slice(0, 140)}")`);
+}
+
 // PER-MODE SHADOW (Phase D) — a mode re-derives its shadow ramp at its own softness/tint via the SAME
 // buildShadow the baseline uses, picking the layer-set for the mode's APPEARANCE (dark/dark-based →
 // reduced; light/light-based → full) with the mode's own tinted colorRgb. Rides

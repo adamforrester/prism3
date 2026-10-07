@@ -197,7 +197,7 @@ Observed elevation is single-layer CSS `box-shadow` strings; the engine generate
 - danger: the brand's hue 21.95.
 - dimensions: 4px grid, 8px spacing rhythm, 'comfortable' density (sets component sizes), radius scale 1 (base radius 4px).
 - motion: 'standard' tempo sets the durations; reduced-motion variants keep informational motion and set vestibular motion to 0.
-- shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness 1; tinted to hue 249.14 at 0.15. Full shadows in light, reduced in dark, where surface lightness carries elevation.
+- shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness 1; tinted to hue 249 at 0.15. Full shadows in light, reduced in dark, where surface lightness carries elevation.
 - gradient: none — the brand declares no gradients, and none are added by default.
 - layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); 12-column grid (4/8/12/12/12 by breakpoint); gutters 16/16/24/24/32px and margins 16/24/24/32/48px, from the spacing scale; containers max 1440px, narrow 720px.
 - typography: 22-step size ladder (10–160px), a fixed set rather than a ratio; weights subtle/default/emphasis/strong/max → 300/400/600/700/900; families display wendysFresh, title wendysFresh, body Roboto, label wendysFresh, caption Roboto, eyebrow wendysFresh, code JetBrains Mono; 'default' type scale. 39 text styles: title and display sizes follow the type scale, display tops out at '3xl' (160px), title.2xs is left out. 11 styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from 375 to 1280px and desktop and mobile Figma modes.
