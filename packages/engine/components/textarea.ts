@@ -298,6 +298,10 @@ export const textarea: ComponentDef = {
       container: {
         kind: 'box',
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        // BUILT AT THE FIELD'S WIDTH (#2292, field-message's #1757 mechanism): the root is 320 until a host
+        // places it, so an unplaced field still reads at 320, and the control FILLS it — so an instance set to
+        // fill its column stretches the bordered box with the label and the message.
+        placementWidth: 320,
         gap: 'root-gap',
         children: ['label', 'body'],
       },
@@ -323,7 +327,8 @@ export const textarea: ComponentDef = {
       // and the stateful border (text-field's `paintSlots`). NO bound height: it hugs its block padding plus
       // the text's reserved rows, so the box is rows × line height + padding and grows past it with longer
       // copy. `align: 'start'` keeps the text at the top of a taller box. The 320 min-width is text-field's
-      // literal projection floor (#1518), not a token.
+      // literal projection floor (#1518), not a token. Since #2292 the control FILLS `body`, which fills the
+      // root built at 320 (`placementWidth`), so a textarea set to fill its column stretches the box.
       control: {
         kind: 'box',
         role: 'target',

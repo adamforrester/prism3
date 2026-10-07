@@ -1494,10 +1494,16 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   const near = (a: number, b: number) => Math.abs(a - b) < 1e-6;
   const LONG = 'x'.repeat(70);
   const mainOf = (n: Node | undefined) => (n as (Node & { _main?: Node }) | undefined)?._main;
+  // A designer's resize of a member: the host's `resize`, on the FIXED-across root the executor built. Each
+  // caller puts back the width it MEASURED, never a literal 320 — a restore to 320 would mask a root that was
+  // not built at its placement width from every block after it (#2292's own mutation found that).
+  const widen = (m: Node, w: number) => (m.resize as (w: number, h: number) => void)(w, H(m));
 
   // ---- the nested MESSAGE tracks the FIELD's width, and wraps at it (the label is below, #1762) ----
-  // Each host's control is measured at its own 320 floor and again widened to 400 (a designer's resize);
-  // the nested instance must be as wide as the control both times. The long string goes on the nested
+  // Each host's control is measured at the field's 320 build width and again with the field widened to 400 (a
+  // designer's resize of the component). Since #2292 the control FILLS the root rather than carrying the
+  // width, so the widening is the root's resize, not a raised floor on the control (which a FIXED 320 root
+  // would now overflow rather than follow); the nested instance must be as wide as the control both times. The long string goes on the nested
   // component's own text, so the instance's height is the text reflowed at the instance's width.
   const nestedWraps = async (host: string, part: string, textName: string) => {
     const members = await setOf(host);
@@ -1508,12 +1514,12 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       const text = find(mainOf(inst), textName);
       if (!ctl || !inst || !text) { off.push(`${m.name}: incomplete`); continue; }
       const was = text.characters;
-      const floor = ctl.minWidth;
       text.characters = LONG;
       const at320 = [W(ctl), W(inst), H(inst)];
-      ctl.minWidth = WIDER;
+      const built = W(m);
+      widen(m, WIDER);
       const at400 = [W(ctl), W(inst)];
-      ctl.minWidth = floor;
+      widen(m, built);
       text.characters = was;
       if (!(near(at320[0], 320) && near(at320[1], at320[0]) && near(at320[2], 2 * LINE) && near(at400[0], WIDER) && near(at400[1], WIDER)))
         off.push(`${m.name}: at 320 the control is ${at320[0]}, the ${part} ${at320[1]} wide and ${at320[2]} tall; widened, ${at400[0]} and ${at400[1]}`);
@@ -1538,12 +1544,12 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       const text = find(mainOf(inst), 'text');
       if (!ctl || !inst || !text) { off.push(`${m.name}: incomplete`); continue; }
       const was = text.characters;
-      const floor = ctl.minWidth;
       text.characters = LONG;
       const at320 = [W(ctl), W(inst), W(text), H(text)];
-      ctl.minWidth = WIDER;
+      const built = W(m);
+      widen(m, WIDER);
       const at400 = [W(ctl), W(inst), W(text), H(text)];
-      ctl.minWidth = floor;
+      widen(m, built);
       text.characters = was;
       if (!(near(at320[0], 320) && near(at320[1], 320) && near(at320[2], 316) && near(at320[3], 2 * LINE)
         && near(at400[0], WIDER) && near(at400[1], WIDER) && near(at400[2], 316) && near(at400[3], 2 * LINE)))
@@ -1615,6 +1621,58 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     }
     ok(members.length > 0 && off.length === 0,
       `#1757 text-field long value clips: on every member a ${VALUE50.length}-character value runs past \`content\`, which holds its width, clips it, and ends before the trailing slot; the control stays 320 wide (${off.length} off — ${off[0] ?? 'none'})`);
+  }
+
+  // ---- #2292: a field INSTANCE set to FILL its column stretches the bordered box with it ----
+  // A design-rebuild test found the label and message spanning a 505px form column while the input box stopped
+  // at 320: the control held the field's floor, so it hugged rather than filled. Each field's root is now
+  // built at 320 and the control fills it. Measured here as a consumer places a field: an INSTANCE of every
+  // member, appended to a 505px auto-layout column and set to fill it (Figma's `layoutSizingHorizontal:
+  // 'FILL'` on a column child is `layoutAlign: 'STRETCH'` plus the instance's own FIXED width), and the box
+  // read off the main laid out at the instance's width (the shim's own model of an instance's interior, as
+  // its height getter does). Expected values are literals: 505 placed, 320 unplaced, and 320 in a 280px
+  // column (the floor holds; the box overflows the column, as it did before). Nested-instance stretch on a
+  // live host is the standing caveat — the PR lists the live check.
+  {
+    const COLUMN = 505;
+    const NARROW = 280;
+    const placedAt = (memberName: string, setName: string, column: number) => {
+      // Looked up per call: a set this block builds (textarea) is not in the file until `setOf` builds it.
+      const sets = shim.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as { name: string; children?: { name: string; createInstance?: () => Node }[] }[];
+      const ref = sets.find((s) => s.name === setName)?.children?.find((c) => c.name === memberName);
+      const inst = ref?.createInstance?.();
+      if (!inst) return undefined;
+      const host = (shim as unknown as { createFrame: () => Node }).createFrame();
+      host.layoutMode = 'VERTICAL';
+      host.counterAxisSizingMode = 'FIXED';
+      (host.resize as (w: number, h: number) => void)(column, 100);
+      (host.appendChild as (c: Node) => void)(inst);
+      inst.layoutAlign = 'STRETCH';
+      inst.counterAxisSizingMode = 'FIXED';
+      return inst;
+    };
+    // The box inside an instance, measured on the main laid out at the instance's width.
+    const inside = (inst: Node, name: string): number => {
+      const main = mainOf(inst)!;
+      main._forcedWidth = W(inst);
+      try { return W(find(main, name)); } finally { delete main._forcedWidth; }
+    };
+    for (const id of ['text-field', 'select', 'textarea']) {
+      const members = await setOf(id);
+      const off: string[] = [];
+      for (const m of members) {
+        const unplaced = [W(m), W(find(m, 'control'))];
+        const wide = placedAt(String(m.name), id, COLUMN);
+        const narrow = placedAt(String(m.name), id, NARROW);
+        if (!wide || !narrow) { off.push(`${m.name}: no instance`); continue; }
+        const placed = [W(wide), inside(wide, 'control'), inside(wide, 'label'), inside(wide, id === 'textarea' ? 'messageRow' : 'message')];
+        const tight = inside(narrow, 'control');
+        if (!(unplaced[0] === 320 && unplaced[1] === 320 && placed.every((w) => w === COLUMN) && tight === 320))
+          off.push(`${m.name}: unplaced root/control ${unplaced.join('/')}; in a ${COLUMN} column instance/control/label/${id === 'textarea' ? 'messageRow' : 'message'} ${placed.join('/')}; in ${NARROW}, control ${tight}`);
+      }
+      ok(members.length > 0 && off.length === 0,
+        `#2292 ${id} fills its column: on every member an unplaced field reads 320 (root and box), an instance set to FILL a ${COLUMN}px column has its input box, label and ${id === 'textarea' ? 'message row' : 'message'} at ${COLUMN}, and in a ${NARROW}px column the box keeps its 320 floor (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
+    }
   }
 }
 
