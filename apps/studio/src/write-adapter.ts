@@ -403,6 +403,8 @@ const INBOUND: { readonly [K in MainToUi['type']]: Validator<K> | null } = {
   'agent-link-state': null,
   // The chrome theme's kept choice: read by the plugin's UI entry (`apps/plugin/src/ui/entry.ts`), not here.
   'theme-pref': null,
+  // The Activity drawer's kept height (#2176): read by the plugin's UI entry, not here.
+  'activity-height': null,
   'agent-result': null,
   'agent-progress': (m) => {
     const raw = m.progress && typeof m.progress === 'object' ? m.progress as Record<string, unknown> : null;

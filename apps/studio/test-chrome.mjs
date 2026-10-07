@@ -453,6 +453,12 @@
  *   · the full line missing from the open drawer → `#2213 figma light 1280 listening: the open drawer's first line is the full line, agentLinkStatusText(state), above the runs (… read null …)` (16).
  *   · "Agent error" in the quiet ink → `#2213 figma light 1280 error: "Agent error" draws in the chrome's error ink, the emission's color.text.danger #a82e2e (read #67696b)` (4).
  *   · the row's text centered one by one again (`.p3-drawer-text` `align-items: center`) → `#2213 figma light 1280 off: every text run in the drawer's bar row sits on one baseline, within 0.5px (3 runs, spread 1.5px: … "22:00" 876)` (24).
+ *
+ * #2176 ADDS (section 32; the owner's AD1–AD3): the open Activity drawer's handle, a window splitter, on both hosts and
+ * both themes. At 1280: a pointer drag, the keyboard (Arrow Up and Down, Home and End) with `aria-valuenow` following the
+ * height drawn, the clamp at today's open height and just under the preview header (measured, never a number), the
+ * height kept across a reload, the pill inside the drawer's top border and wider than 32, and the computed name
+ * "Resize Activity". At 380: no handle. The probe counts a focusable separator as a control, kind "resize handle".
  */
 import { createServer } from 'node:http';
 import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -780,7 +786,9 @@ const CONTROL_KINDS = [['p3-brand', 'brand switcher'], ['p3-verdict', 'verdict']
   // S6.3's value picker, first measured open on Depth & motion (S9.2): each value is a button of its own.
   ['p3-vpick', 'picker value'],
   // S13.1: the brand menu's import box; S12: the start window's paste (measured since S13.1 counts every textarea).
-  ['p3-textarea', 'text area'], ['p3-start-paste', 'text area']];
+  ['p3-textarea', 'text area'], ['p3-start-paste', 'text area'],
+  // #2176: the open Activity drawer's handle, a window splitter.
+  ['p3-drawer-grip', 'resize handle']];
 /** Legacy views Inspect lends a host to until their slices replace them (S1.3): pinned light and drawn in
  *  `styles.css`, so outside the chrome, like the legacy page. Named literally, by hook. */
 const INSPECT_LEGACY = ['[data-p3="inspect-contrast-table"]', '[data-p3="inspect-token-list"]',
@@ -947,7 +955,8 @@ const PROBE = (opt) => {
 
   const all = [...(frame?.querySelectorAll('*') ?? [])].filter(inChrome);
   const drawn = all.filter(shown);
-  const CONTROL = 'button, select, textarea, input:not([type="hidden"]), [role="tab"], [role="menuitemradio"], a[href]';
+  // #2176: a focusable separator (the Activity drawer's handle, a window splitter) is a control too.
+  const CONTROL = 'button, select, textarea, input:not([type="hidden"]), [role="tab"], [role="menuitemradio"], a[href], [role="separator"][tabindex]';
 
   // THE CONTRAST EXEMPTION, its predicate (F1 A; see "THE CONTRAST EXEMPTION" above `check`). A measured node is OFF
   // when it is a control, or sits inside one, that is really disabled: `:disabled` (which also covers a control in a
@@ -9639,8 +9648,9 @@ for (const host of ['web', 'figma']) {
 //     the mark, identical at every width, the narrow tier included, to the same brand's at 1280, where the full bar
 //     shows (asserted). While the brand switcher's name is cut, its computed name and its tooltip are the full name.
 //   · A LONG NAME GIVES WAY SOONER: at some width its step is further along than "prism3"'s, and never behind it.
-//   · THE NARROW TIER (560 and below) is unchanged by #2214 and holds its own rules (section 29); here it is held only
-//     to the names.
+//   · THE NARROW TIER (560 and below) is unchanged by #2214 and holds its own rules (section 29); here it is held to the
+//     names and, since #2262, to the tooltip: down to 380 and back up, the switcher carries a `title` only while its
+//     name is cut, so a tooltip set at `trim` cannot linger into the narrow tier.
 // Mutations, each failing here by name: (a) no label drop, (b) the product name never drops, (c) straight to the two
 // rows, (d) the frame's measurement ignores the brand switcher's width, (e) the web excluded, (f) no truncation. See
 // the progress entry.
@@ -9694,6 +9704,14 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
           const fullName = brand === 'long' ? LONG_NAME : 'prism3';
           let base = null;
           const missed = [], renamed = [];
+          // #2262: the switcher's tooltip, across the sweep DOWN and back UP, the narrow tier included. The oracle is the
+          // render's own `cut` (the name's text wider than its box), never the frame's `data-bar-fit`.
+          const tipWrong = [];
+          let sawCut = false, narrowAfterCut = 0;
+          const tipCheck = (dir, w, tip, seen, narrow) => {
+            if ((tip !== null) !== seen.cut || (tip !== null && tip !== fullName))
+              tipWrong.push(`${dir} ${w}${narrow ? ' (narrow)' : ''}: title ${JSON.stringify(tip)}, name ${seen.cut ? 'cut' : 'whole'}`);
+          };
           for (const w of FIT_WIDTHS[brand]) {
             const where = `29d ${host} ${theme} ${w} ${fullName}`;
             await page.setViewportSize({ width: w, height: 900 });
@@ -9712,6 +9730,10 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
               const moved = AX_HOOKS.filter((k) => names[k] !== base[k]);
               if (moved.length) renamed.push(`${w} (${seen.step}): ${moved.map((k) => `${k}: "${base[k]}" → "${names[k]}"`).join('; ')}`);
             }
+            if (brand === 'long') {
+              tipCheck('down', w, tip, seen, fit.narrow);
+              if (seen.cut) sawCut = true; else if (fit.narrow && sawCut) narrowAfterCut++;
+            }
             if (fit.narrow) continue;
             if (theme === 'light') seenBy[brand][w] = seen.step;
             if (seen.step === 'trim') trimmedOn[host]++;
@@ -9723,6 +9745,21 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
             } else if (tip !== null) missed.push(`${w}: the switcher carries a tooltip (${JSON.stringify(tip)}) with its name whole (${seen.step})`);
             if (SHOTS && host === 'figma' && brand === 'long' && w >= 570 && w <= 590) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `q83-plugin-${theme}-${w}-long-name.png`) });
             if (SHOTS && [640, 800, 1000, 1280].includes(w) && (w !== 1280 || brand === 'short')) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `final-2214-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}${brand === 'long' ? '-long-name' : ''}.png`) });
+          }
+          if (brand === 'long') {
+            // Back UP, 380 → 1280: the reverse path into and out of the cut name.
+            for (const w of [...FIT_WIDTHS.long].reverse()) {
+              await page.setViewportSize({ width: w, height: 900 });
+              await settle(page);
+              const seen = await page.evaluate(FIT_SEEN);
+              const tip = await page.evaluate(() => document.querySelector('[data-p3="brand-switcher"]')?.getAttribute('title') ?? null);
+              const narrow = await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
+              tipCheck('up', w, tip, seen, narrow);
+            }
+            ok(tipWrong.length === 0,
+              `29d ${host} ${theme} ${fullName}: the switcher has a tooltip only while its name is cut, down to 380 and back up to 1280, the narrow tier included (${tipWrong.join(' | ') || 'every width, both ways'})`);
+            // The check can only fail if the path the defect needs is taken: a cut name, then the narrow tier (the plugin).
+            if (host === 'figma') ok(sawCut && narrowAfterCut > 0, `29d figma ${theme}: the sweep reaches the narrow tier after the name was cut, so a lingering tooltip would show (cut seen: ${sawCut}, narrow widths after it: ${narrowAfterCut})`);
           }
           ok(missed.length === 0, `29d ${host} ${theme} ${fullName}: across ${FIT_WIDTHS[brand].length} widths the bar draws the measured step, in no more rows than it allows (${missed.join(' | ') || 'every width'})`);
           ok(renamed.length === 0, `29d ${host} ${theme} ${fullName}: every accessible name is unchanged from 1280 at every width, the narrow tier included (${renamed.join(' | ') || 'none moved'})`);
@@ -10618,6 +10655,148 @@ for (const theme of ['light', 'dark']) {
 }
 
 // =============================================================================================
+// 33. #2275 (owner decision Q86 B, 2026-10-07: announce errors only): the agent link's short status, announced. When it
+//     changes INTO "Agent error" or "Agent not listening", from any other state, one persistent polite live region takes
+//     those words, once. Recovery to "Agent listening", switching off, and a full-line-only change (a new "last:" time,
+//     a new inbox message under the same error) announce nothing. A change OUT of an error state empties the region, the
+//     same node kept, adding no text (the UI lane's call on #2285: a removal from a polite region is not announced, and
+//     no stale "Agent error" is left to read). Plugin, light and dark, 1280 (the web has no link).
+//
+// INDEPENDENCE (docs/34). EXPECTED is typed here: each step's published state (literals, `AgentLinkState`'s shape) and
+// what the region must do on it, worked out by hand from Q86 B's words. ACTUAL is read from the page: a MutationObserver
+// installed on the region before the first state is posted counts every update to it, so a region that is rewritten
+// with the same words, or replaced, is seen as such; the region's politeness is the browser's own reading (CDP
+// `Accessibility.getPartialAXTree`, its `live` property), never the attribute. The region is found by its hook alone.
+//
+// Mutations (#2275), each after a `wip:` commit, on a rebuilt plugin bundle, each failing by name, none outside this
+// section (light shown; dark fails the same lines):
+//   · (a) recovery announced (`short?.error` dropped from the guard in `agent-link-ui.ts` `render`) → `#2275 figma light
+//     1280 error → listening: the live region is emptied in place, announcing nothing (text "Agent listening", removed
+//     ["Agent error"], added ["Agent listening"], same node true)`, the second recovery, and `… off → listening: the live
+//     region announces nothing (read 1 update(s): …)` (6);
+//   · (b) a full-line-only change announced (the short status re-set whenever the full line changes and the short does
+//     not) → `#2275 figma light 1280 a "last:"-only change while listening: the live region announces nothing (read 1
+//     update(s): …)` and `… a new inbox message while in error (the full line only): the live region announces nothing …` (4);
+//   · (c) the region replaced on each announcement instead of updated in place → `#2275 figma light 1280 listening →
+//     error: the one live region is the node present at mount, updated in place, never replaced (same node false,
+//     connected false, …)` and `… announces "Agent error" exactly once (read 0 update(s): [])`, every step after it (40);
+//   · (d) `aria-live="assertive"` → `#2275 figma light 1280: the accessibility tree reads the region as a polite live
+//     region, a status (read {"role":"status","live":"assertive",…})` and `… listening → error: exactly one live region
+//     carries "Agent error", and none carrying it is assertive (… assertive ["agent-status-live"])` (12);
+//   · (e) the region not cleared on a change out of an error state (the `else if` that empties it dropped) → `#2275 figma
+//     light 1280 error → listening: the live region is emptied in place, announcing nothing (text "Agent error", removed
+//     [], added [], same node true)`, and the same for the second recovery, error → off, and off with the error kept (8).
+//   On today's code before #2275 (no region): `#2275 figma light 1280: the live region is present from mount, empty and
+//   visually hidden, before any state is posted (read null)` and every step after it (66).
+// =============================================================================================
+console.log(`\nThe agent link's status, announced (#2275)\n${'='.repeat(78)}`);
+/** Two states that differ from `LINK_STATES.listening` and `.error` in the full line only. Literals. */
+const LINK_LISTENING_LATER = { ...LINK_STATES.listening, lastCommand: { id: 'c2', cmd: 'apply', ok: true, finishedAt: '2026-10-06T16:41:07.000Z', headline: '✓ applied' } };
+const LINK_ERROR_OTHER = { ...LINK_STATES.error, inboxError: 'the inbox could not be read' };
+/** Each step: its name, the state posted, and what the region must do: take these words once; `CLEAR`, be emptied with no
+ *  text added; or null, no update at all. From the mounted page, before any state is posted. Literals, from Q86 B and the
+ *  UI lane's call on #2285. */
+const CLEAR = Symbol('clear');
+const ANNOUNCE_STEPS = [
+  ['first state, off', LINK_STATES.off, null],
+  ['off → listening', LINK_STATES.listening, null],
+  ['a "last:"-only change while listening', LINK_LISTENING_LATER, null],
+  ['listening → error', LINK_STATES.error, 'Agent error'],
+  ['a new inbox message while in error (the full line only)', LINK_ERROR_OTHER, null],
+  ['error → listening', LINK_STATES.listening, CLEAR],
+  ['listening → not listening', LINK_STATES.notListening, 'Agent not listening'],
+  ['not listening → error', LINK_STATES.error, 'Agent error'],
+  ['error → listening, again', LINK_STATES.listening, CLEAR],
+  ['listening → error, again', LINK_STATES.error, 'Agent error'],
+  ['error → off', LINK_STATES.off, CLEAR],
+  ['off → error', LINK_STATES.error, 'Agent error'],
+  ['error → off with the inbox error kept', LINK_STATES.offStale, CLEAR],
+];
+const LIVE_HOOK = '[data-p3="agent-status-live"]';
+for (const theme of ['light', 'dark']) {
+  const where = `#2275 figma ${theme} 1280`;
+  const { ctx, page, errors } = await open({ host: 'figma', theme, w: 1280, h: 900 });
+  try {
+    // Present from mount: before any state is posted, the region is there, empty and visually hidden.
+    const atMount = await page.evaluate((sel) => {
+      const r = document.querySelector(sel);
+      if (!r) return null;
+      const b = r.getBoundingClientRect();
+      return { text: r.textContent, w: b.width, h: b.height, clip: getComputedStyle(r).clipPath };
+    }, LIVE_HOOK);
+    ok(!!atMount && atMount.text === '' && atMount.w <= 1 && atMount.h <= 1,
+      `${where}: the live region is present from mount, empty and visually hidden, before any state is posted (read ${JSON.stringify(atMount)})`);
+    // The counter: every update to the region, from now on; and a listener that counts the states the app has handled
+    // (registered after the app's own, so it runs after the app has rendered each one).
+    await page.evaluate((sel) => {
+      const node = document.querySelector(sel);
+      window.__live = { node, recs: [], handled: 0 };
+      window.addEventListener('message', (e) => { if (e.data?.pluginMessage?.type === 'agent-link-state') window.__live.handled += 1; });
+      if (node) new MutationObserver((rs) => { for (const r of rs) window.__live.recs.push({ type: r.type, added: [...r.addedNodes].map((n) => n.textContent), removed: [...r.removedNodes].map((n) => n.textContent), text: node.textContent }); })
+        .observe(node, { childList: true, characterData: true, subtree: true, attributes: true });
+    }, LIVE_HOOK);
+    let n = 0;
+    for (const [step, state, want] of ANNOUNCE_STEPS) {
+      await page.evaluate(() => { window.__live.recs = []; });
+      await postMsg(page, { type: 'agent-link-state', state });
+      n += 1;
+      await page.waitForFunction((k) => window.__live.handled >= k, n, WAIT).catch(() => {});
+      await settle(page);
+      const r = await page.evaluate((sel) => ({ recs: window.__live.recs, text: window.__live.node?.textContent ?? null, same: document.querySelector(sel) === window.__live.node,
+        connected: !!window.__live.node?.isConnected, count: document.querySelectorAll(sel).length, handled: window.__live.handled }), LIVE_HOOK);
+      const updates = r.recs.filter((x) => x.type !== 'attributes');
+      const watching = r.same && r.connected && r.count === 1 && r.handled === n;
+      ok(watching, `${where} ${step}: the one live region is the node present at mount, updated in place, never replaced (same node ${r.same}, connected ${r.connected}, ${r.count} in the page, ${r.handled} of ${n} states handled)`);
+      if (want === CLEAR) {
+        // Emptied in place: its text is now empty, a removal was observed, and nothing was added (no announcement).
+        const added = r.recs.flatMap((x) => (x.added ?? []).filter((t) => (t ?? '').trim() !== ''));
+        const removed = r.recs.flatMap((x) => x.removed ?? []);
+        ok(watching && r.text === '' && removed.length > 0 && added.length === 0 && updates.every((x) => x.type === 'childList'),
+          `${where} ${step}: the live region is emptied in place, announcing nothing (text ${JSON.stringify(r.text)}, removed ${JSON.stringify(removed)}, added ${JSON.stringify(added)}, same node ${r.same})`);
+      } else if (want) {
+        ok(updates.length === 1 && updates[0].text === want && r.recs.length === 1,
+          `${where} ${step}: the live region announces "${want}" exactly once (read ${updates.length} update(s): ${JSON.stringify(r.recs)})`);
+      } else {
+        hooks.absent(ok, { seen: watching, state: 'the live region present at mount, observed, and the state handled' }, r.recs.length === 0,
+          `${where} ${step}: the live region announces nothing (read ${r.recs.length} update(s): ${JSON.stringify(r.recs)})`);
+      }
+      if (typeof want === 'string') {
+        // Exactly one live region carries the words: no second region, and none carrying them assertive. (The app's
+        // error bar is an alert of its own, for engine errors; it never carries these words.)
+        const lv = await page.evaluate((words) => {
+          const live = [...document.querySelectorAll('[aria-live], [role="status"], [role="alert"], [role="log"], output')]
+            .filter((e) => (e.getAttribute('aria-live') ?? '') !== 'off');
+          const name = (e) => e.getAttribute('data-p3') ?? e.tagName.toLowerCase();
+          const carrying = live.filter((e) => e.textContent.includes(words));
+          return { carrying: carrying.map(name),
+            assertive: carrying.filter((e) => e.getAttribute('aria-live') === 'assertive' || (e.getAttribute('role') === 'alert' && e.getAttribute('aria-live') !== 'polite')).map(name) };
+        }, want);
+        ok(lv.carrying.length === 1 && lv.carrying[0] === 'agent-status-live' && lv.assertive.length === 0,
+          `${where} ${step}: exactly one live region carries "${want}", and none carrying it is assertive (carrying ${JSON.stringify(lv.carrying)}, assertive ${JSON.stringify(lv.assertive)})`);
+      }
+    }
+    // The browser's reading: a polite live region, a status.
+    const cdp = await page.context().newCDPSession(page);
+    let ax = null;
+    try {
+      await cdp.send('DOM.enable');
+      await cdp.send('Accessibility.enable');
+      const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+      const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: LIVE_HOOK });
+      const node = nodeId ? (await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false })).nodes[0] : null;
+      const prop = (k) => node?.properties?.find((p) => p.name === k)?.value?.value ?? null;
+      ax = node ? { role: node.role?.value ?? null, live: prop('live'), atomic: prop('atomic'), ignored: !!node.ignored } : null;
+    } finally { await cdp.detach(); }
+    ok(!!ax && ax.live === 'polite' && ax.role === 'status' && !ax.ignored,
+      `${where}: the accessibility tree reads the region as a polite live region, a status (read ${JSON.stringify(ax)})`);
+    const bad = errors.filter((e) => !/WebSocket/.test(e));
+    ok(bad.length === 0, `${where}: 0 console errors (the agent link's bridge socket aside)${bad.length ? ` — ${bad.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+
+// =============================================================================================
 // 30b. #2192 (owner QA, 2026-10-05): Type › Italic styles draws single-select chips, not a segmented control, on both
 //      hosts, both themes, at 1280 and 380; the same three words, one chip pressed per row, and the same saved brand
 // =============================================================================================
@@ -10784,11 +10963,14 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
 // =============================================================================================
 // #2232: a click on blank space inside the S12 start window keeps focus in the window, and Tab and Shift+Tab then stay
 //        inside it. Both hosts, 1280. The window traps Tab with a keydown listener on its scrim, so a focus that falls
-//        to <body> (outside the scrim) is a focus the trap never hears: Shift+Tab then left the page. EXPECTED, read
-//        from the DOM: after the click, `document.activeElement` is the window or a control in it; after each key, a
-//        control in it. Blank space is the lede paragraph, which nothing makes focusable.
-//   Mutation: the window not focusable (`tabindex` dropped in `windowShell`) → `#2232 … after a click on blank space,
-//   focus stays in the start window` and `… Shift+Tab …` fail by name.
+//        to <body> (outside the scrim) is a focus the trap never hears. EXPECTED, read from the DOM: after the click,
+//        `document.activeElement` is the window or a control in it; after each key, a control in it. Blank space is
+//        the lede paragraph, which nothing makes focusable.
+//   Mutation: the window not focusable (`tabindex` dropped in `windowShell`, today's code before #2255) → only the
+//   click arm fails, by name: `#2232 … after a click on blank space, focus stays in the start window (focus is on
+//   body)`, on both hosts. The Tab and Shift+Tab arms PASS under it: in headless Chromium, with everything behind the
+//   window inert, both keys from <body> land on a control in the window. They hold the behavior once focus is in the
+//   window; they are not evidence for the mutation.
 // =============================================================================================
 console.log('\n#2232. The start window keeps focus after a click on blank space');
 for (const host of ['web', 'figma']) {
@@ -10861,6 +11043,201 @@ for (const { name, patch, keep, why } of NO_HUE_CASES) {
     });
     ok(st.disabled === true && st.readout === 'None' && st.aria === 'None' && st.hint === why && st.amountEnabled && !/\b(89|90)/.test(`${st.readout} ${st.aria}`),
       `${where}: the hue slider is disabled, reads None (not ~90°), says why ("${why}"), and Amount stays enabled (${JSON.stringify(st)})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+
+// =============================================================================================
+// 32. #2176 (the owner's AD1–AD3, 2026-10-05): drag the Activity drawer's top edge to make it taller. Both hosts, both
+//     themes, at 1280 (the drag) and at 380 (no handle).
+// =============================================================================================
+// AD1: at the wide tier, while the drawer is open, a handle on its top edge. A window splitter (WAI-ARIA): `role=
+// "separator"`, `aria-orientation="horizontal"`, `aria-valuenow`/`-min`/`-max`; Arrow Up and Arrow Down step it, Home and End
+// go to the least and the most. The height runs from today's open height up to just under the preview header, clamped at
+// both ends, and is kept per person under `prism3:activity-height` (web `localStorage`; the plugin posts it to the main
+// thread, which keeps it in `figma.clientStorage` and answers `ui-ready` with it, held on that side by
+// `apps/plugin/test-activity-height.ts`). The owner's change from the mock: the pill sits INSIDE the drawer, below its
+// top border, and is wider than the mock's 32px. AD2: no handle at 380. AD3: its accessible name is "Resize Activity".
+//
+// INDEPENDENCE (docs/34). Every expected value is a literal typed here or a measurement of the rendered page, never read
+// from the drawer's own attributes: the least height is the drawer's height as it first opens, before anything is kept;
+// the most is the drawer's bottom less the PREVIEW HEADER's measured bottom (never a number); a drag's expected height is
+// the start height plus the pointer's travel; a key's step is the literal 24 below. `aria-valuenow` is then held to the
+// height the drawer is MEASURED at. The name is the browser's computed one (CDP `getPartialAXTree`), not the attribute.
+//
+// Mutations, each after a `wip:` commit, each failing here by name:
+//   (a) no clamp at the most (`within` caps at no max)    → `32 … dragged past the preview header, the drawer stops just under it …`
+//   (b) the height not kept (`keepNow` a no-op)           → `32 … the height is kept …` and `… after a reload …`
+//   (c) the arrow keys ignored                            → `32 … Arrow Up steps the drawer 24px taller …`
+//   (d) the handle shown at 380 (the narrow rule dropped) → `32 … 380: the open sheet draws no handle …`
+//   (e) the pill on the border, not inside it             → `32 … the pill sits inside the drawer, below its top border …`
+console.log('\n32. #2176: drag the Activity drawer taller (AD1–AD3)');
+/** AD3, approved: the handle's accessible name. Literal. */
+const GRIP_NAME = 'Resize Activity';
+/** One Arrow Up or Arrow Down, in CSS pixels. Literal. */
+const GRIP_STEP = 24;
+/** The mock's pill was 32px; the owner asked for a little wider. Literal. */
+const MOCK_PILL_W = 32;
+/** The kept height's key, on both hosts. Literal. */
+const HEIGHT_KEY = 'prism3:activity-height';
+const GRIP = '[data-p3="activity-grip"]';
+/** The drawer, the handle, the pill and the preview header, measured as rendered. */
+const gripState = (page) => page.evaluate(() => {
+  const box = (n) => { if (!n) return null; const r = n.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, w: r.width, h: r.height }; };
+  const d = document.querySelector('[data-p3="activity-drawer"]');
+  const g = document.querySelector('[data-p3="activity-grip"]');
+  const p = g?.querySelector('.p3-drawer-pill');
+  const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s ?? ''); if (!m) return null; const v = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: v[0], g: v[1], b: v[2], a: v.length > 3 ? v[3] : 1 }; };
+  const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+  const ink = p ? parse(getComputedStyle(p).backgroundColor) : null, ground = d ? parse(getComputedStyle(d).backgroundColor) : null;
+  const ratio = ink && ground && ink.a === 1 && ground.a === 1 ? (Math.max(lum(ink), lum(ground)) + 0.05) / (Math.min(lum(ink), lum(ground)) + 0.05) : null;
+  const gs = g ? getComputedStyle(g) : null;
+  return {
+    open: d?.dataset.open === 'true', drawer: box(d), border: d ? parseFloat(getComputedStyle(d).borderTopWidth) : null,
+    grip: box(g), gripShown: !!g && gs.display !== 'none' && g.getClientRects().length > 0 && !g.closest('[hidden]'),
+    pill: box(p), pillRatio: ratio, head: box(document.querySelector('[data-p3="preview-head"]')), body: box(document.querySelector('[data-p3="preview-body"]')),
+    role: g?.getAttribute('role') ?? null, orient: g?.getAttribute('aria-orientation') ?? null, tab: g?.tabIndex ?? null,
+    now: Number(g?.getAttribute('aria-valuenow')), min: Number(g?.getAttribute('aria-valuemin')), max: Number(g?.getAttribute('aria-valuemax')),
+    focus: document.activeElement?.getAttribute('data-p3') ?? null, vh: innerHeight,
+  };
+});
+/** The handle's computed accessible name and role, from the browser's accessibility tree. */
+const gripAx = async (page) => {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send('DOM.enable');
+    await cdp.send('Accessibility.enable');
+    const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+    const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: GRIP });
+    if (!nodeId) return { name: null, role: null };
+    const { nodes } = await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false });
+    const n = nodes.find((x) => !x.ignored);
+    return { name: n?.name?.value ?? null, role: n?.role?.value ?? null };
+  } finally { await cdp.detach(); }
+};
+/** Drag the handle from its center to `y` (a viewport y), in steps, with the mouse. */
+const dragGrip = async (page, y) => {
+  const b = await page.locator(GRIP).boundingBox();
+  const x = b.x + b.width / 2, y0 = b.y + b.height / 2;
+  await page.mouse.move(x, y0);
+  await page.mouse.down();
+  await page.mouse.move(x, y, { steps: 8 });
+  await page.mouse.up();
+  return y0;
+};
+const openDrawer = async (page) => {
+  await hooks.click(page.locator('[data-p3="activity-open"]'));
+  await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, { timeout: 5000 });
+};
+const fx = (n) => (typeof n === 'number' ? Math.round(n * 10) / 10 : n);
+for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+  const where = `32 ${host} ${theme} 1280`;
+  const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+  try {
+    if (host === 'figma') await page.evaluate(() => { window.__heightPosts = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'set-activity-height') window.__heightPosts.push(m.px); }); });
+    // Closed, the handle is not drawn (AD1: only while the drawer is open).
+    const c0 = await gripState(page);
+    hooks.absent(ok, { seen: !!c0.drawer, state: 'the drawer in the frame' }, !c0.open && !c0.gripShown, `${where}: with the drawer closed, no handle is drawn (open ${c0.open}, handle ${c0.gripShown})`);
+    await openDrawer(page);
+    const s0 = await gripState(page);
+    // Today's open height, measured as it first opens with nothing kept: the least the handle may set.
+    const least = s0.drawer.h;
+    // Just under the preview header: the drawer's bottom less the header's measured bottom: the most.
+    const most = s0.drawer.bottom - s0.head.bottom;
+    ok(s0.gripShown && s0.role === 'separator' && s0.orient === 'horizontal' && s0.tab === 0,
+      `${where}: the open drawer draws its handle, a focusable horizontal separator (shown ${s0.gripShown}, role ${s0.role}, orientation ${s0.orient}, tabIndex ${s0.tab})`);
+    const ax = await gripAx(page);
+    ok(ax.name === GRIP_NAME && /^(separator|splitter)$/.test(ax.role ?? ''), `${where}: the handle's computed accessible name is "${GRIP_NAME}" (AD3), as a separator (name ${JSON.stringify(ax.name)}, role ${ax.role})`);
+    ok(near(s0.min, least, 1) && near(s0.now, least, 1) && near(s0.max, most, 1),
+      `${where}: the handle reads the drawer's range: min today's open height ${fx(least)}, now ${fx(least)}, max the room under the preview header ${fx(most)} (min ${s0.min}, now ${s0.now}, max ${s0.max})`);
+    // The owner's change from the mock: the pill inside the drawer, below its top border, wider than 32; and drawn at 3:1.
+    const borderBottom = s0.drawer.top + s0.border;
+    ok(!!s0.pill && s0.pill.top >= borderBottom + 1 && s0.pill.bottom <= s0.drawer.bottom && s0.pill.left >= s0.drawer.left && s0.pill.right <= s0.drawer.right,
+      `${where}: the pill sits inside the drawer, below its top border (border's bottom edge ${fx(borderBottom)}, pill top ${fx(s0.pill?.top)}, ${fx((s0.pill?.top ?? 0) - borderBottom)}px inside)`);
+    ok(!!s0.pill && s0.pill.w > MOCK_PILL_W && s0.pill.h >= 1, `${where}: the pill is wider than the mock's ${MOCK_PILL_W}px (${fx(s0.pill?.w)} × ${fx(s0.pill?.h)})`);
+    ok(near((s0.pill.left + s0.pill.right) / 2, (s0.drawer.left + s0.drawer.right) / 2, 1), `${where}: the pill is centered on the drawer's top edge (pill ${fx((s0.pill.left + s0.pill.right) / 2)}, drawer ${fx((s0.drawer.left + s0.drawer.right) / 2)})`);
+    ok((s0.pillRatio ?? 0) >= NONTEXT_MIN, `${where}: the pill draws at ${NONTEXT_MIN}:1 on the drawer's ground (${s0.pillRatio?.toFixed(2)}:1)`);
+    ok(s0.grip.w >= 24 && s0.grip.h >= 24, `${where}: the handle's target is at least 24 × 24 (${fx(s0.grip.w)} × ${fx(s0.grip.h)})`);
+    // A pointer drag: the drawer follows the pointer's travel, and the preview body keeps the rest of the column.
+    const to = (await page.locator(GRIP).boundingBox()).y - 150;
+    const travel = (await dragGrip(page, to)) - to;
+    const s1 = await gripState(page);
+    ok(near(s1.drawer.h, least + travel, 1), `${where}: a pointer drag up by ${fx(travel)}px makes the drawer that much taller (from ${fx(least)} to ${fx(s1.drawer.h)}, want ${fx(least + travel)})`);
+    ok(near(s1.now, s1.drawer.h, 1) && near(s1.body.bottom, s1.drawer.top, 1) && near(s1.drawer.bottom, s0.drawer.bottom, 1),
+      `${where}: after the drag, aria-valuenow is the height drawn and the preview body ends where the drawer starts (now ${s1.now}, drawn ${fx(s1.drawer.h)}; body bottom ${fx(s1.body.bottom)}, drawer top ${fx(s1.drawer.top)}, bottom ${fx(s1.drawer.bottom)})`);
+    // Clamped at the most: dragged far past the preview header, it stops just under it.
+    await dragGrip(page, 2);
+    const s2 = await gripState(page);
+    ok(near(s2.drawer.top, s0.head.bottom, 1) && near(s2.drawer.h, most, 1) && near(s2.now, most, 1) && s2.drawer.bottom <= s2.vh + 0.5 && near(s2.head.bottom, s0.head.bottom, 0.5),
+      `${where}: dragged past the preview header, the drawer stops just under it (top ${fx(s2.drawer.top)}, header bottom ${fx(s0.head.bottom)}; height ${fx(s2.drawer.h)}, max ${fx(most)}; now ${s2.now}; bottom ${fx(s2.drawer.bottom)} of ${s2.vh})`);
+    // Clamped at the least: dragged far below, it stops at today's open height.
+    await dragGrip(page, 899);
+    const s3 = await gripState(page);
+    ok(near(s3.drawer.h, least, 1) && near(s3.now, least, 1), `${where}: dragged down past today's open height, the drawer stops at it (height ${fx(s3.drawer.h)}, want ${fx(least)}; now ${s3.now})`);
+    // The keyboard (the window splitter pattern): focus the handle, then step it.
+    await page.locator(GRIP).focus();
+    await page.keyboard.press('ArrowUp');
+    const k1 = await gripState(page);
+    ok(k1.focus === 'activity-grip' && near(k1.drawer.h, least + GRIP_STEP, 1) && near(k1.now, k1.drawer.h, 1),
+      `${where}: Arrow Up steps the drawer ${GRIP_STEP}px taller, and aria-valuenow follows (height ${fx(k1.drawer.h)}, want ${fx(least + GRIP_STEP)}; now ${k1.now}; focus ${k1.focus})`);
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('ArrowDown');
+    const k2 = await gripState(page);
+    ok(near(k2.drawer.h, least + 2 * GRIP_STEP, 1) && near(k2.now, k2.drawer.h, 1), `${where}: Arrow Down steps it ${GRIP_STEP}px back (height ${fx(k2.drawer.h)}, want ${fx(least + 2 * GRIP_STEP)}; now ${k2.now})`);
+    await page.keyboard.press('End');
+    const k3 = await gripState(page);
+    ok(near(k3.drawer.h, most, 1) && near(k3.now, most, 1), `${where}: End goes to the most, just under the preview header (height ${fx(k3.drawer.h)}, want ${fx(most)}; now ${k3.now})`);
+    await page.keyboard.press('ArrowUp');
+    const k4 = await gripState(page);
+    ok(near(k4.drawer.h, most, 1) && near(k4.now, most, 1), `${where}: Arrow Up at the most stays there (height ${fx(k4.drawer.h)}; now ${k4.now})`);
+    await page.keyboard.press('Home');
+    await page.keyboard.press('ArrowDown');
+    const k5 = await gripState(page);
+    ok(near(k5.drawer.h, least, 1) && near(k5.now, least, 1), `${where}: Home goes to the least, and Arrow Down there stays (height ${fx(k5.drawer.h)}, want ${fx(least)}; now ${k5.now})`);
+    // Kept per person: three steps up, then a reload.
+    for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowUp');
+    const want = Math.round(least + 3 * GRIP_STEP);
+    if (host === 'web') {
+      const kept = await page.evaluate((k) => localStorage.getItem(k), HEIGHT_KEY);
+      ok(kept === String(want), `${where}: the height is kept in localStorage under ${HEIGHT_KEY} (kept ${JSON.stringify(kept)}, want "${want}")`);
+      await page.reload({ waitUntil: 'networkidle' });
+      await hooks.need(page, '[data-p3="frame"]');
+    } else {
+      const posted = await page.evaluate(() => new Promise((r) => setTimeout(() => r(window.__heightPosts.slice()), 50)));
+      ok(posted.at(-1) === want, `${where}: the height is kept: posted to the main thread as set-activity-height (posted ${JSON.stringify(posted)}, want last ${want})`);
+      // A reload: the main thread answers ui-ready with what it kept (its half: apps/plugin/test-activity-height.ts).
+      await page.reload({ waitUntil: 'load' });
+      await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'restore-input-empty' } }, '*'));
+      await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: 'prism3' }));
+      await hooks.need(page, '[data-p3="frame"]');
+      await postMsg(page, { type: 'activity-height', px: posted.at(-1) ?? null });
+    }
+    await openDrawer(page);
+    const r1 = await gripState(page);
+    ok(near(r1.drawer.h, want, 1) && near(r1.now, want, 1), `${where}: after a reload the kept height comes back when the drawer opens (height ${fx(r1.drawer.h)}, want ${want}; now ${r1.now})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// AD2: at 380 the open drawer is the full-pane sheet, with no handle, a kept height or not.
+for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+  const where = `32 ${host} ${theme} 380`;
+  const { ctx, page, errors } = await open({ host, theme, w: 380, h: 420, store: host === 'web' ? { [HEIGHT_KEY]: '200' } : undefined });
+  try {
+    await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
+    if (host === 'figma') await postMsg(page, { type: 'activity-height', px: 200 });
+    await openDrawer(page);
+    const s = await gripState(page);
+    const sheet = await page.evaluate(() => { const b = document.querySelector('[data-p3="activity-body"]'); return !!b && !b.hidden && b.getBoundingClientRect().height > 0; });
+    hooks.absent(ok, { seen: s.open && sheet, state: 'the open sheet' }, !s.gripShown, `${where}: the open sheet draws no handle (AD2) (handle ${s.gripShown}${s.grip ? `, ${fx(s.grip.w)} × ${fx(s.grip.h)}` : ''})`);
+    await page.keyboard.press('Tab');
+    const f = await page.evaluate(() => document.activeElement?.getAttribute('data-p3') ?? null);
+    ok(f !== 'activity-grip', `${where}: the handle takes no focus at 380 (focus on ${f})`);
+    ok(near(s.drawer.bottom, s.vh, 1) && Math.abs(s.drawer.h - 200) > 1, `${where}: a kept height does not size the sheet: it runs to the window's bottom (height ${fx(s.drawer.h)}, bottom ${fx(s.drawer.bottom)} of ${s.vh})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);

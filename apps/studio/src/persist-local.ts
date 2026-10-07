@@ -110,3 +110,30 @@ export const persistThemePref = (store: LocalStore, pref: ThemePref): void => {
     /* storage unavailable: the choice holds for this session only */
   }
 };
+
+// ---- the Activity drawer's height (#2176, the owner's AD1) ------------------------------------------
+// The open drawer's height as the person dragged it, kept per viewer beside the theme, for the same reason: it is
+// how this person likes the studio laid out, never a brand edit. Same best-effort rule: junk or a store that throws
+// reads as no height (the drawer's own), and a write that throws is skipped.
+
+/** Storage key for the Activity drawer's height, in CSS pixels. */
+export const ACTIVITY_HEIGHT_KEY = 'prism3:activity-height';
+
+/** The stored height, or `null` when nothing usable is stored or the store throws. */
+export const restoreActivityHeightPx = (store: LocalStore): number | null => {
+  try {
+    const v = Number(store.getItem(ACTIVITY_HEIGHT_KEY) ?? '');
+    return Number.isFinite(v) && v > 0 ? Math.round(v) : null;
+  } catch {
+    return null;
+  }
+};
+
+/** Keep the height. Best-effort, like `persistThemePref`. */
+export const persistActivityHeightPx = (store: LocalStore, px: number): void => {
+  try {
+    store.setItem(ACTIVITY_HEIGHT_KEY, String(Math.round(px)));
+  } catch {
+    /* storage unavailable: the height holds for this session only */
+  }
+};
