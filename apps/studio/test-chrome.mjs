@@ -11354,7 +11354,9 @@ console.log('\n34. #2272: trim and its tooltip follow the name\'s own cut');
 // setting is read again: all still held, the tint hue by name. The plugin has no in-place brand change in its UI: a
 // `restore-input` (the committed prism3 with a new tint amount) loads the brand wholesale and returns the preview to
 // Light and the view to its opening page. So there the case reads that the restore lands live (no line, nothing held)
-// and that going back to HC light on Depth & motion holds every setting again, the tint hue by name.
+// and that going back to HC light on Depth & motion holds every setting again, the tint hue by name. Then, on both hosts,
+// the tint hue is re-enabled in place exactly as `noHue` does it (its `disabled` set false, no node drawn), and it must be
+// held again: a brand change also redraws nodes, so this is what holds the hold's attribute watch on its own.
 const RO_DERIVED = [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']];
 const RO_EDITABLE = ['light', 'dark'];
 const RO_PLACES = ['color-fills', 'color-interactive', 'type', 'depth', 'shape', 'layout', 'components'];
@@ -11619,6 +11621,15 @@ for (const host of ['web', 'figma']) {
       ok(again.amount === '0.25' && again.n > 0 && again.live.length === 0 && again.hue?.disabled === true,
         `${where}: back in HC light on the restored brand, every setting is held, the tint hue included (amount ${again.amount}; ${again.n} read; live ${JSON.stringify(again.live)}; hue ${JSON.stringify(again.hue)})`);
     }
+    // An in-place toggle alone: the page's own `disabled = false`, nothing drawn; read after the observer has run.
+    const relift = await page.evaluate(async () => {
+      const hue = document.querySelector('[data-p3="levers-pane"] [data-p3="shadow-tint-hue"]');
+      if (!hue) return null;
+      hue.disabled = false;
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      return { disabled: hue.matches(':disabled'), held: hue.getAttribute('data-held') };
+    });
+    ok(relift?.disabled === true, `${where}: the tint hue re-enabled in place, as Depth's own sync does it, is held again (${JSON.stringify(relift)})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
