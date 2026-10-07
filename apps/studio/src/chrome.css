@@ -1045,7 +1045,6 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 .p3-tweight, .p3-tspace, .p3-tpin { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--p3-space-150); align-items: center; }
 .p3-tspace-ctl { display: grid; gap: var(--p3-space-050); min-width: 0; }
 .p3-titalic { display: grid; gap: var(--p3-space-100); }
-.p3-titalic .p3-choice { flex-wrap: wrap; }
 .p3-tnudge { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--p3-space-150); align-items: start; }
 .p3-tnudge-set { color: var(--p3-text); font-weight: var(--p3-fw-emphasis); }
 .p3-wmatrix { display: grid; gap: var(--p3-space-050); overflow-x: auto; }
