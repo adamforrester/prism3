@@ -1,0 +1,22 @@
+## (2026-10-06) — Component sets: match members, record them as built, and a dry run of an in-place update (#2265, PR 1)
+
+The first of the in-place update PRs from the #2265 design note (owner decision Q85 A, every §10 recommendation). Builds stay add-only and nothing here applies an update. What it adds:
+
+- **Matching.** A set's existing members are matched to the plan by the canonical sorted `axis=value` coordinate (`coordKey` in `packages/engine/component-renames.ts`), with declared renames applied from the `COMPONENT_RENAMES` ledger (empty today). An added axis gives existing members the first plan's value. For a removed axis, the members on the set default's value are kept and the rest are reported as collapsing. A duplicate coordinate, a set mixing axis lists (#1780) or a ledger cycle blocks the set rather than guessing.
+- **`lint-component-renames.ts`** (new gate, git history). It fails a PR in which a def, an axis or a value leaves `schema/component-axes.json` at the merge base with no ledger entry. The baseline is pure data, written only by `--accept`, never by regen, and exempt in `lint-schema-classification.ts`. This PR introduces it, so the base does not track it and arm B reports BOOTSTRAP until this merges.
+- **`EXECUTOR_REVISION`** (#1098) is the stamp's third field. **`lint-executor-revision.ts`** (new gate, git history) fails a code change in the executor (write-components plus every file it reaches by a value import, with comments removed) that did not raise it. A two-field stamp reads as `revisionUnknown`, not as current.
+- **The "as built" baseline** (`apps/plugin/src/member-baseline.ts`): one FNV hash per node, read off the host after the build's own read-backs, never off the plan (`docs/34` shape 11). A binding hashes as its variable id and never its value, so Apply Theme between two dry runs reads as zero hand edits. That is tested by moving every bound value in a built set. Unbound width, height, x and y are not hashed, because auto-layout derives them.
+- **The dry run.** `update-components` over the agent link with `dryRun: true` (the only mode), plus `capture-baseline` for sets built before this. For each set it lists what an update would change, add or deprecate, and what it reports as hand-edited. The panel's Activity shows it. The panel button that would start it is held for PR 2 (an owner design call).
+
+### Diagnosis worth keeping
+
+- **Glyph contents are Figma's, not ours.** A GLYPH plan node's children come from Figma's SVG importer as unnamed vectors. Walking them as "extra children" put 30 of 45 button members in the diff on a fresh build. `extraChildren` stops at a GLYPH.
+- **A conflict needs a move.** At first, every hand-edited node read as a conflict. Now a hand-edited node is one only when the plan or the revision moved AND `diffAnatomy` touches that node. This can over-report: the hashes can't tell the edit from the plan change on the same node. It never hides a conflict. A "no conflict when the plan moved elsewhere on the node" assertion was tried and dropped as unachievable without per-field baselines.
+- **Capture writes by position, not by id.** The shim's nodes don't carry unique ids, and writing by id stored every baseline on one member. `captureSet` now writes to the coordinate-named children in `readSetView` order. Capture refuses a member whose anatomy already differs from the plan, so it can't launder a hand edit into the baseline.
+
+### Traps for whoever re-verifies
+
+- The shim's `root.findAllWithCriteria` returns name-only refs (the #681 model), so the shim's own search can't drive a whole-file preview. `test-update-components.ts` wraps the host with a search over `page.children`. The real host is unaffected.
+- The shim's `setBoundVariable` records the binding but does not set the numeric field. A test that only re-binds can't tell "hashes the binding" from "hashes the value". The theme case writes the values too, and that is the only reason the "signature hashes the bound value" mutation fails.
+- Not every plan has `space/075` as its content gap. The plan-change case moves it to `space/999` everywhere.
+- **Not yet verified on a live host:** a capture on the NB master over the agent link; design note §9's two-file key-stability check (appendChild into a published set keeps keys and child ids); Apply Theme followed by a dry run reading zero hand edits. All three are done with the owner after this PR.
