@@ -551,7 +551,19 @@ export const makeShim = (opts: ShimOpts = {}) => {
   };
   const innerX = (p: Node): number => (p.width as number) - padX(p) - strokeX(p);
   const gapOf = (p: Node): number => (p.boundVariables as Record<string, { value?: number }>).itemSpacing?.value ?? 0;
+  /** A node's own width FLOOR — a literal `minWidth`, or one bound to a variable. */
+  const floorOf = (n: Node): number => {
+    const bvW = (n.boundVariables as Record<string, { value?: number }>).minWidth?.value;
+    return Math.max(typeof n.minWidth === 'number' ? n.minWidth : 0, typeof bvW === 'number' ? bvW : 0);
+  };
+  // A FILLED NODE KEEPS ITS FLOOR (#2292), as the host does: Figma applies a min width to a FILL child too, so a
+  // field's control filling a column narrower than 320 stays 320 and overflows. Until #2292 no floored part
+  // filled, so a fill that ignored the floor could not be seen; now the three fields' controls do.
   const fillWidth = (n: Node): number | undefined => {
+    const w = fillWidthOf(n);
+    return w === undefined ? undefined : Math.max(floorOf(n), w);
+  };
+  const fillWidthOf = (n: Node): number | undefined => {
     if (!fillsX(n)) return undefined;
     const p = n.parent as Node;
     if (p.layoutMode === 'VERTICAL') return Math.max(0, innerX(p));
@@ -580,8 +592,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
     // auto-layout frame keeps its last resize — Figma's `createFrame` default of 100 until one. Only a
     // parent that fills it (`fillWidth`) moves either. Measuring content here instead is what let a grow
     // child in a hugging row, and a FIXED value row with a long value in it, read as if they tracked their text.
+    // …and a FIXED frame keeps its floor (#2292), as the host does: a min width above the set width resizes the
+    // frame to it. A filling control is FIXED from its layout write and built before its parent stretches it,
+    // so its corner grip is placed off this width.
     if (opts.layoutModel && fixedOnX(node) && node.type !== 'INSTANCE')
-      return typeof node._setW === 'number' ? node._setW : node.type === 'TEXT' ? textNatural(node) : 100;
+      return typeof node._setW === 'number' ? Math.max(floorOf(node), node._setW) : node.type === 'TEXT' ? textNatural(node) : Math.max(floorOf(node), 100);
     // A HUGGING TEXT WITH A MAX WIDTH (#1762) is as wide as its run up to that width, and wraps there — the
     // host behavior `wrap: 'hug'` relies on, MODELED here and not yet measured on a live file (see the PR).
     if (node.type === 'TEXT') return typeof node.maxWidth === 'number' ? Math.min(textNatural(node), node.maxWidth) : textNatural(node);
