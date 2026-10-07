@@ -4230,7 +4230,7 @@ for (const host of ['web', 'figma']) {
 {
   const MODE_WORD = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light', 'hc-dark': 'HC dark', wireframe: 'Wireframe' };
   /** The derived modes, typed here: since N-3 A (#1984) their levers panel is inert, so its pickers have no computed name
-   *  to read; there the check is that the tree holds none of them (section 31 holds the panel itself). */
+   *  to read; there the check is that the tree holds none of them (section 32 holds the panel itself). */
   const HELD_MODES = new Set(['hc-light', 'hc-dark', 'wireframe']);
   /** The computed accessible name of every Default background fills picker, in row order. */
   const axNames = async (cdp) => {
@@ -10875,7 +10875,7 @@ for (const { name, patch, keep, why } of NO_HUE_CASES) {
 }
 
 // =============================================================================================
-// 31. #1984 (owner decisions 2026-10-03 and N-3 A, 2026-10-05; copy RO1 A, 2026-10-07): while the preview shows a
+// 32. #1984 (owner decisions 2026-10-03 and N-3 A, 2026-10-05; copy RO1 A, 2026-10-07): while the preview shows a
 //     derived mode, the levers panel is ONE read-only state with one line, on every page that edits the previewed mode
 // =============================================================================================
 // Both hosts, both chrome themes, at 1280 and 380. In each derived mode, on each page below:
