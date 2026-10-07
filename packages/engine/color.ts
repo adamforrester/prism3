@@ -62,8 +62,9 @@ export const rgbToOklch = ({ r, g, b }: RGB): OklchMeasured => {
   return { l: L, c, h };
 };
 /** The STORED form, for brand input: a hue-less color is written with `h: 0`, CSS Color 4's convention for a
- *  missing hue, so brand files keep the schema's numeric hue (owner, #2241). Nothing reads a hue whose chroma is
- *  below `ACHROMATIC_C`, so the 0 is inert. */
+ *  missing hue, so brand files keep the schema's numeric hue. That is a technical decision, recorded on #2280, and it
+ *  holds only because every reader checks chroma first: nothing reads a hue whose chroma is below `ACHROMATIC_C`, so
+ *  the 0 is inert. */
 export const storedOklch = (m: OklchMeasured): OKLCH => ({ l: m.l, c: m.c, h: m.h ?? 0 });
 
 /** OKLCH -> linear sRGB triplet (may be out of [0,1] = out of gamut). */

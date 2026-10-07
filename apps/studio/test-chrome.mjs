@@ -10867,7 +10867,7 @@ for (const { name, patch, keep, why } of NO_HUE_CASES) {
   } finally { await ctx.close(); }
 }
 
-// #2241 (owner decision): a pinned pure gray has no hue, so Color › Palettes' neutral hue readout, the hue slider's
+// #2241 (owner Q88 A): a pinned pure gray has no hue, so Color › Palettes' neutral hue readout, the hue slider's
 // value text and the pinned color's OKLCH line all read None, never a number. Two stored forms: hue 0 (what a pick or an
 // import stores since #2241) and ~89.88° (the converter noise a brand file saved before #2241 still carries). The
 // decision is the color's CHROMA, so both must read None. A new section at the end, beside #2184's.

@@ -32,7 +32,7 @@ import { choice, colorField, inlineConfirm, leverBlock, setText, leverOf, select
 
 const PAGE = (DOMAINS.find((d) => d.id === 'color') as { subpages: readonly PageData[] }).subpages.find((p) => p.id === 'palettes')!;
 const pad = (n: number): string => String(n).padStart(3, '0');
-/** A hue-less color's hue readout (#2241, owner decision): the shadow slider's approved word (#2184, Q72 A's C2),
+/** A hue-less color's hue readout (#2241, owner Q88 A): the shadow slider's approved word (#2184, Q72 A's C2),
  *  never the stored 0 or a legacy file's ~89.88° converter noise. Decided by chroma, as the engine decides it. */
 const NO_HUE = 'None';
 const oklchMeta = (o: { l: number; c: number; h: number }): string =>

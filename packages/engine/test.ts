@@ -792,7 +792,7 @@ for (const rgb of [WHITE, BLACK, { r: 207, g: 10, b: 44 }, { r: 18, g: 120, b: 2
 
 // A PURE GRAY HAS NO HUE (#2241, CSS Color 4's "powerless" hue). Below a chroma of 1e-4 the converter used to return an
 // atan2 of rounding noise, ~89.88° for every gray, and code downstream read it as a real hue (the shadow tint went olive,
-// #2184). Now the measured hue is null, and the stored form a brand file holds writes it as 0 (owner decision: the schema
+// #2184). Now the measured hue is null, and the stored form a brand file holds writes it as 0 (a technical decision, recorded on #2280: the schema
 // keeps a numeric hue). The grays are named here as hex, so the expectation never comes from the converter itself; the
 // faint REAL color holds the threshold from the other side (docs/34 shape 14), its hue measured independently.
 for (const hx of ['#000000', '#333333', '#7f7f7f', '#808080', '#ffffff']) {
