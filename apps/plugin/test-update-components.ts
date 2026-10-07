@@ -38,7 +38,8 @@
  *   rev/…          an older executor revision reads update (re-applied); a stamp without one, revisionUnknown.
  *                  Mutation: the revision not compared → `rev/older`. All 45 re-applied is also the check that a
  *                  GLYPH's imported vectors are not read as children to remove (30 of 45 were, before).
- *   capture/…      also: each record lands on the member it was read from, not by id (the shim's nodes share one).
+ *   capture/…      also: each record lands on the member it was read from, by node id, even when the set is
+ *                  reordered while it is read (#2301). Mutation: the write by position → `capture/by id`.
  *   axis/…         an added axis lands members on the first plan's value; a removed axis keeps the default's
  *                  members and collapses the rest.
  *   blocked/…      a duplicate coordinate refuses the set.
@@ -57,6 +58,10 @@
  *                  stamped member holds; it then reads update, never current, and its node is the same node.
  *                  Mutations: Adopt stamps with the plan's own stamp → `adopt/reads update`; the stamp written
  *                  before the record → `adopt/stamp last`; a member off the plan adopted → `adopt/only planned`.
+ *                  And (#2299 review, #2301): a set the dry run refuses is refused whole, nothing written (the
+ *                  blocker check dropped → `adopt/blocked`); a member on a coordinate a stamped member lands on is
+ *                  left (the held skip dropped → `adopt/held`); each write lands by node id (by position →
+ *                  `adopt/by id`).
  *   file/…         a def with no set is missing, and the verdict's `lines` (#2177) are one per item, the list the
  *                  summary is joined from. Mutation: `lines` sent as the joined summary → `file/lines`.
  *
@@ -112,6 +117,8 @@ const build = async (id: string, plans = plansOf(id)): Promise<Built> => {
     comps: [...new Set([SWAP_TARGET, 'focus-ring', ...plans.flatMap((p) => planComps(p.root))])],
     page,
     liveRoot: true,
+    // Node ids, so Adopt and the capture can be held to writing by id (#2301).
+    identities: true,
   }) as any;
   const built = await applyComponentPlan(plans, shim);
   // A build that missed is a harness fault; the dry run would then be reading a set the executor never finished.
@@ -589,6 +596,65 @@ section('adopt — the one-time claim of members Prism3 did not build (#2283, §
   const v = adoptVerdictText(r);
   ok(v.headline === '✓ 1 adopted' && JSON.stringify(v.lines) === JSON.stringify([`${s.set}: 1 member adopted, 1 left as they are (not in the plan).`, 'Run an update to bring it in line with the plan.']),
     `adopt/words: the verdict counts what it adopted and what it left (${v.headline}; ${JSON.stringify(v.lines)})`);
+}
+
+/* ── adopt, refused and paired ───────────────────────────────────────────────────────────────────────── */
+section('adopt — a set the dry run refuses is refused whole; a held coordinate is left; every write lands by node id');
+{
+  const b = await build(TAG);
+  const stampOf = (n: Node): string => (n.getSharedPluginData as (ns: string, k: string) => string)(NS, STAMP_KEY);
+  const clear = (n: Node): void => { for (const k of [STAMP_KEY, BASELINE_KEY]) (n.setSharedPluginData as (ns: string, k: string, v: string) => void)(NS, k, ''); };
+  // Two members a designer made by hand, both on one planned coordinate.
+  const [x, y] = [membersOf(b.set)[5], membersOf(b.set)[6]];
+  clear(x); clear(y);
+  y.name = x.name;
+  const pre = (await previewUpdate(b.shim, [{ def: TAG, plans: b.plans }])).sets[0];
+  ok(pre.blockers.some((l) => /share the coordinate/.test(l)), `premise: the dry run refuses the set (${pre.blockers[0]?.slice(0, 60)})`);
+  const r = await adoptMembers(b.shim, [{ def: TAG, plans: b.plans }]);
+  ok(r.sets.length === 0 && r.refused.length === 1 && /share the coordinate/.test(r.refused[0].reason) && stampOf(x) === '' && stampOf(y) === '',
+    `adopt/blocked: the set is refused, its reason named, and neither member stamped (${JSON.stringify(r.refused).slice(0, 120)}; ${stampOf(x)}|${stampOf(y)})`);
+  const v = adoptVerdictText(r);
+  ok(!v.ok && v.lines.some((l) => l.startsWith('tag: not adopted. ') && /share the coordinate/.test(l)), `adopt/blocked words: ${JSON.stringify(v.lines).slice(0, 160)}`);
+}
+{
+  // A declared rename puts a stamped member on the coordinate a hand-made member already sits on.
+  const b = await build(TAG);
+  const stampOf = (n: Node): string => (n.getSharedPluginData as (ns: string, k: string) => string)(NS, STAMP_KEY);
+  const ours = memberNamed(b.set, (n) => n.includes('size=small') && n.includes('state=rest') && n.includes('selection=unselected'));
+  const theirs = memberNamed(b.set, (n) => n === setValue(String(ours.name), 'size', 'medium'));
+  const at = String(ours.name);
+  ours.name = setValue(at, 'size', 'sm');
+  theirs.name = at;
+  for (const k of [STAMP_KEY, BASELINE_KEY]) (theirs.setSharedPluginData as (ns: string, k: string, v: string) => void)(NS, k, '');
+  const ledger: ComponentRename[] = [{ def: TAG, kind: 'value', axis: 'size', from: 'sm', to: 'small', issue: 2265 }];
+  const r = await adoptMembers(b.shim, [{ def: TAG, plans: b.plans }], undefined, ledger);
+  const s = r.sets[0];
+  ok(!!s && s.adopted === 0 && s.skipped.length === 1 && s.skipped[0].member === at && s.skipped[0].reason === 'a Prism3 member has this coordinate' && stampOf(theirs) === '',
+    `adopt/held: the hand-made member on the coordinate Prism3's renamed member lands on is left as it is (${JSON.stringify(s)})`);
+}
+{
+  // The set is reversed while it is read (the read hands the thread back every 24 members): each write still lands on
+  // the node it was read from. A new array, as the host's `children` is a fresh one per read: the read in progress
+  // keeps the order it started with, and every lookup after it sees the new one.
+  const b = await build(TAG);
+  const stampOf = (n: Node): string => (n.getSharedPluginData as (ns: string, k: string) => string)(NS, STAMP_KEY);
+  const mine = [membersOf(b.set)[2], membersOf(b.set)[40]];
+  for (const m of mine) for (const k of [STAMP_KEY, BASELINE_KEY]) (m.setSharedPluginData as (ns: string, k: string, v: string) => void)(NS, k, '');
+  const others = membersOf(b.set).filter((m) => !mine.includes(m)).map((m) => [m, stampOf(m)] as const);
+  const r = await adoptMembers(b.shim, [{ def: TAG, plans: b.plans }], async () => { b.set.children = [...(b.set.children as Node[])].reverse(); });
+  ok(r.sets[0].adopted === 2 && mine.every((m) => stampOf(m).split('|')[1] === ADOPTED) && others.every(([m, st]) => stampOf(m) === st),
+    `adopt/by id: the two hand-made members are the two stamped, and no other member's stamp moved (${r.sets[0].adopted}; ${others.filter(([m, st]) => stampOf(m) !== st).length} moved)`);
+}
+{
+  // The same reorder under the capture: the member edited by hand is the one left without a record.
+  const b = await build(TAG);
+  for (const m of membersOf(b.set)) (m.setSharedPluginData as (ns: string, k: string, v: string) => void)(NS, BASELINE_KEY, '');
+  const edited = membersOf(b.set)[3];
+  (childNamed(edited, 'content').setBoundVariable as (f: string, v: { id: string }) => void)('itemSpacing', { id: await varId(b, 'space/0') });
+  const r = await captureBaselines(b.shim, [{ def: TAG, plans: b.plans }], async () => { b.set.children = [...(b.set.children as Node[])].reverse(); });
+  const recordOf = (n: Node): string => (n.getSharedPluginData as (ns: string, k: string) => string)(NS, BASELINE_KEY);
+  ok(r.sets[0].recorded === 44 && recordOf(edited) === '' && membersOf(b.set).filter((m) => m !== edited).every((m) => recordOf(m) !== ''),
+    `capture/by id: the edited member is the one left without a record, and every other member has one (${r.sets[0].recorded}, edited ${recordOf(edited) ? 'recorded' : 'not recorded'})`);
 }
 
 /* ── over a file ─────────────────────────────────────────────────────────────────────────────────────── */
