@@ -9,7 +9,7 @@
  * WHICH MODE A CONTROL EDITS. None of the four Button options has a per-mode value (no `ModeLevers` field), so each
  * writes the same bytes from any editable mode (Q54); the preview still follows the previewed mode for the heights,
  * the label weight and the corner. A derived mode (HC light, HC dark, wireframe) is read-only, every control on the
- * page (Q59), under S4a's line; the preview is still drawn.
+ * page (Q59), held by the frame: the whole levers panel is inert and disabled under one line (N-3 A, #1984); the preview is still drawn.
  *
  * BEHAVIOR-NEUTRAL (the S2 rule). Every write goes through `state/button-input.ts`, which writes what the legacy Size &
  * radius page wrote, byte for byte, its traps included: choosing a chip's default WRITES it rather than unsetting it,
@@ -29,7 +29,6 @@ import { brandDensity } from '../state/shape-input';
 import { componentCatalog } from '../state/component-catalog';
 import { noteSectionEdit } from '../preview/follow-edit';
 import { COMPONENTS_INTRO, DOMAINS, pageOfTab, type Host, type PageData, type Section } from '../shell/pages';
-import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
 import { choice, leverBlock, leverOf, slider, sliderReadout, stateLine, subLine, type LeverBlock } from '../ui/lever-kit';
 import { SETS_COPY } from '../preview/sections/component-sets';
@@ -46,7 +45,6 @@ export const COMPONENTS_COPY = {
   densityLink: 'Set it in Shape › Density',
   /** The plugin's line under Component sets: where the set is chosen. */
   choose: 'Choose a set in the preview to build it.',
-  derived: (m: string): string => `${m} is auto-derived — read-only. Edit Light or Dark and it follows.`,
 } as const;
 
 /** The Button option writes, by key, each through `state/button-input.ts` (S8.1's table, moved here from `main.ts`). */
@@ -79,8 +77,6 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     noteSectionEdit();   // QA-B9: the edit, and only an edit, reveals its preview section
     rebuild();
   };
-  const derivedLine = (): HTMLElement | null =>
-    isDerived(currentMode) ? hook(stateLine(COMPONENTS_COPY.derived(modeLabel(currentMode))), 'components-derived') : null;
 
   // ── Button ──────────────────────────────────────────────────────────────────────────────────────
   /** The way to Shape › Density (v6's `densityLink`): the brand's density, and the link. No lever key. */
@@ -173,13 +169,9 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     const scrollTop = hostEl.scrollTop;
     items = [];
     dragging = null;
-    const derived = derivedLine();
-    const parts: HTMLElement[] = [h('p', 'p3-intro', COMPONENTS_INTRO(componentCatalog().length)), ...(derived ? [derived] : [])];
+    const parts: HTMLElement[] = [h('p', 'p3-intro', COMPONENTS_INTRO(componentCatalog().length))];
     PAGE.sections.forEach((s, i) => { const x = section(s, i); parts.push(x.el); items.push(...x.items); });
     root.replaceChildren(...parts);
-    // A derived mode is read-only, every control on the page (Q59). The info buttons only show a description, and the
-    // way to Shape only navigates, so they stay live.
-    if (derived) for (const n of root.querySelectorAll<HTMLButtonElement | HTMLInputElement>('.p3-lsec :is(button, input):not(.p3-info, [data-p3="components-density-link"])')) n.disabled = true;
     for (const it of items) it.block?.setRefused(!!lastError && !!lastEdited && it.key === lastEdited);
     filter();
     if (focusKey) {
