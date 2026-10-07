@@ -5670,7 +5670,7 @@ for (const host of ['web', 'figma']) {
         lsec: [...pane.querySelectorAll('[data-p3="lever-section"]')].map((x) => [x.querySelector('.p3-lsec-title')?.textContent ?? null, x.querySelector('.p3-lsec-desc')?.textContent ?? null]),
         psec: [...document.querySelectorAll('[data-p3="type-style-guide"] .psec')].map((x) => [x.querySelector('.psec-t')?.textContent ?? null, x.querySelector('.psec-d')?.textContent ?? null]),
         words: {
-          scale: txt('[data-p3="type-scale"] [role="radio"]'), italic: txt('[data-p3="italic-row"][data-group="body"] [role="radio"]'),
+          scale: txt('[data-p3="type-scale"] [role="radio"]'), italic: txt('[data-p3="italic-row"][data-group="body"] .p3-chip'),
           title: txt('[data-p3="title-floor"] [role="radio"]'), caption: txt('[data-p3="caption-floor"] [role="radio"]'), size: txt('[data-p3="size-floor"] [role="radio"]'),
           fluid: pane.querySelector('[data-p3="lever-typography-responsive"] .p3-lever-name')?.textContent ?? null,
           layout: pane.querySelector('[data-p3="type-fluid-layout"]')?.textContent?.trim() ?? null,
@@ -10362,6 +10362,170 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
     ok(near(t.gaps.count, HT['space-050']), `${where}: the pinned count sits space-050 ${HT['space-050']} under the control — read ${t.gaps.count}`);
     ok(near(t.gaps.inClash, HT['space-100']), `${where}: inside the clash group, Release pinned sizes sits space-100 ${HT['space-100']} under its warning — read ${t.gaps.inClash}`);
     ok(near(t.gaps.clash, HT['space-150']) && near(t.gaps.unresolved, HT['space-150']), `${where}: each warning group sits space-150 ${HT['space-150']} after the line or group before it — read ${JSON.stringify(t.gaps)}`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+
+// =============================================================================================
+// 30b. #2192 (owner QA, 2026-10-05): Type › Italic styles draws single-select chips, not a segmented control, on both
+//      hosts, both themes, at 1280 and 380; the same three words, one chip pressed per row, and the same saved brand
+// =============================================================================================
+// Each of the seven rows holds one `role="group"` of three `.p3-btn.p3-chip` buttons with `aria-pressed`, and nothing of
+// the segmented control (`.p3-seg`, `.p3-choice`, a radio or radiogroup). Exactly one chip is pressed in each row, the
+// one prism3's brand as loaded calls for, and only that chip draws its check. The keyboard is KB1 A (owner, decided
+// 2026-10-06), as Personality's chips: each chip is a Tab stop, Space or Enter presses the focused one, which keeps focus
+// through the redraw, and arrow keys do nothing (focus, the pressed chip and the saved brand all unchanged). Every write is read back
+// from the SAVED brand: on the web host the persisted `prism3:brandInput`, on the figma host the `input` Apply posts.
+//
+// INDEPENDENCE (docs/34). The rows, the words and the pressed state as loaded are literals typed here; the loaded state
+// from `schema/example-brands.json`'s prism3 (italics ["body"], italicDefault ["display","title"]). Each step's expected
+// brand is that committed brand with the two lists set to a literal worked out by hand from the rule (Upright: in
+// neither list; Upright + italic: in `italics`; Italic only: in `italicDefault`; text-type order; an emptied list unset,
+// #2006). The same ten clicks were run against the segmented control's build before the change, and its saved brands
+// were byte-identical to the chips' on both hosts (22 saves; the PR records the run). The disabled and derived cases
+// stay where they were: section 20b (a pinned style disables Italic only, with its reason) and Q59 (a derived mode
+// holds italic-choice-only disabled).
+//
+// Mutations (#2192), each after a `wip:` commit, on rebuilt bundles, each failing by name, none outside this section:
+//   · the code row back on the segmented control (`choice` for g === 'code') → `#2192 web light 1280: row "code" renders
+//     chips, not a segmented control — 4 segmented part(s), group {"role":"radiogroup",…}` (96: 8 of these, 88 pressed);
+//   · two chips pressed in a row (`chipChoice`'s set also presses the first chip) → `#2192 web light 1280: row "display"
+//     has exactly one chip pressed, only — pressed ["upright","only"]` (152);
+//   · a chip writing the wrong value (Upright + italic writes Italic only) → `#2192 web light 1280: step 1, "caption" both
+//     (key) saves italics ["body","caption"] and italicDefault ["display","title"] — saved italics ["body"], italicDefault
+//     ["display","title","caption"]` (96: 72 saves, 24 pressed).
+//   KB1 A's two arms, mutated the same way:
+//   · arrows moving the selection (`choice`'s arrow handler in `chipChoice`) → `#2192 web light 1280: KB1 A, ArrowRight on
+//     "label"'s both chip moves neither focus nor the pressed chip — focus on ["label","only"], pressed […]` and `… the four
+//     arrow keys save nothing — saved italics ["body","label"]` (40);
+//   · Enter ignored (`chipChoice` prevents Enter's default) → `#2192 web light 1280: KB1 A, Enter on "label"'s both chip
+//     presses it and keeps focus on it — pressed ["upright"], focus on ["label","both"]` and `… saves italics
+//     ["body","label"] and no italicDefault — saved italics ["body"]` (16).
+console.log(`\nItalic styles chips (#2192)\n${'='.repeat(78)}`);
+/** The text types, in order, and the three words (Q6's, unchanged by #2192). Literal. */
+const ITALIC_GROUPS = ['display', 'title', 'body', 'label', 'caption', 'eyebrow', 'code'];
+const ITALIC_WORDS = [['upright', 'Upright'], ['both', 'Upright + italic'], ['only', 'Italic only']];
+/** Each chip's hook. Literal. */
+const ITALIC_CHIP = { upright: '[data-p3="italic-choice-upright"]', both: '[data-p3="italic-choice-both"]', only: '[data-p3="italic-choice-only"]' };
+/** prism3 as loaded: display and title Italic only, body Upright + italic, the rest Upright. Literal. */
+const ITALIC_LOADED = { display: 'only', title: 'only', body: 'both', label: 'upright', caption: 'upright', eyebrow: 'upright', code: 'upright' };
+/** Each step: the text type, the chip, how it is pressed, and the two lists the saved brand must then hold (undefined:
+ *  unset). Worked out by hand from the rule above; step 3 presses the pressed chip and must write nothing. */
+const ITALIC_STEPS = [
+  ['caption', 'both', 'key', ['body', 'caption'], ['display', 'title']],
+  ['body', 'only', 'click', ['caption'], ['display', 'title', 'body']],
+  ['body', 'only', 'click', ['caption'], ['display', 'title', 'body']],
+  ['display', 'upright', 'click', ['caption'], ['title', 'body']],
+  ['display', 'both', 'click', ['display', 'caption'], ['title', 'body']],
+  ['caption', 'upright', 'click', ['display'], ['title', 'body']],
+  ['body', 'upright', 'click', ['display'], ['title']],
+  ['title', 'upright', 'click', ['display'], undefined],
+  ['display', 'upright', 'click', undefined, undefined],
+  ['body', 'both', 'click', ['body'], undefined],
+];
+const italicBrand = (italics, italicDefault) => {
+  const b = JSON.parse(JSON.stringify(BOOT_INPUT));
+  if (italics) b.typography.italics = italics; else delete b.typography.italics;
+  if (italicDefault) b.typography.italicDefault = italicDefault; else delete b.typography.italicDefault;
+  return b;
+};
+const ITALIC_PROBE = () => [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="italic-row"]')].map((r) => {
+  const chips = [...r.querySelectorAll('.p3-btn.p3-chip')];
+  const group = r.querySelector('[data-p3="italic-choice"]');
+  return {
+    g: r.dataset.group,
+    seg: r.querySelectorAll('.p3-seg, .p3-seg-tab, .p3-choice, [role="radio"], [role="radiogroup"]').length,
+    group: group ? { role: group.getAttribute('role'), label: group.getAttribute('aria-label'), chips: group.querySelectorAll('.p3-btn.p3-chip').length } : null,
+    chips: chips.map((c) => [c.dataset.value, c.textContent.trim(), c.getAttribute('aria-pressed'), c.tagName,
+      (() => { const i = c.querySelector('.p3-ico'); return !!i && getComputedStyle(i).display !== 'none'; })()]),
+  };
+});
+for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+  const where = `#2192 ${host} ${theme} ${w}`;
+  const { ctx, page, errors } = await open({ host, theme, w, h });
+  try {
+    if (w <= 560) await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
+    if (host === 'figma') await recordPosts(page);
+    await goPlace(page, 'type');
+    await showLevers(page, w);
+    await openTypeAdvanced(page);
+    await hooks.need(page, '[data-p3="italic-row"]');
+    /** The saved brand: web, the persisted input; figma, the input of the one apply-theme Apply posts (then the
+     *  main thread's reply, so the next Apply is not held as busy). */
+    const saved = async () => {
+      if (host === 'web') return persisted(page);
+      await hooks.click(page.locator('[data-p3="apply-to-figma"]'), WAIT);
+      const ws = (await takeWrites(page)).filter((m) => m.type === 'apply-theme');
+      await postMsg(page, { type: 'apply-result', ok: true, headline: 'Applied', summary: 'Applied' });
+      await settle(page);
+      return ws.length === 1 ? ws[0].input : { posted: ws.length };
+    };
+    const rows = await page.evaluate(ITALIC_PROBE);
+    ok(JSON.stringify(rows.map((r) => r.g)) === JSON.stringify(ITALIC_GROUPS), `${where}: Italic styles draws a row for each text type, in order — read ${JSON.stringify(rows.map((r) => r.g))}`);
+    for (const r of rows) {
+      const words = r.chips.map(([v, l]) => [v, l]);
+      ok(r.seg === 0 && r.group?.role === 'group' && r.group.chips === 3 && JSON.stringify(words) === JSON.stringify(ITALIC_WORDS) && r.chips.every((c) => c[3] === 'BUTTON' && (c[2] === 'true' || c[2] === 'false')),
+        `${where}: row "${r.g}" renders chips, not a segmented control — ${r.seg} segmented part(s), group ${JSON.stringify(r.group)}, chips ${JSON.stringify(words)}`);
+      const on = r.chips.filter((c) => c[2] === 'true').map((c) => c[0]);
+      ok(on.length === 1 && on[0] === ITALIC_LOADED[r.g], `${where}: row "${r.g}" has exactly one chip pressed, ${ITALIC_LOADED[r.g]} — pressed ${JSON.stringify(on)}`);
+      ok(r.chips.every((c) => c[4] === (c[2] === 'true')), `${where}: row "${r.g}" draws the check on the pressed chip only — ${JSON.stringify(r.chips.map((c) => [c[0], c[4]]))}`);
+    }
+    const s0 = await saved();
+    ok(canon(s0) === canon(BOOT_INPUT), `${where}: before any click, the saved brand is prism3 as loaded — ${wireDiff({ input: s0 }, { input: BOOT_INPUT })}`);
+    const chipSel = (g, v) => `[data-p3="levers-pane"] [data-p3="italic-row"][data-group="${g}"] ${ITALIC_CHIP[v]}`;
+    const chip = (g, v) => page.locator(chipSel(g, v));
+    let i = 0;
+    for (const [g, v, how, italics, italicDefault] of ITALIC_STEPS) {
+      i += 1;
+      if (how === 'key') {
+        // Each chip is a Tab stop: from the row's first chip, Tab reaches the next one; Space presses it.
+        await chip(g, ITALIC_WORDS[0][0]).focus();
+        await page.keyboard.press('Tab');
+        const at = await page.evaluate(() => [document.activeElement?.closest('[data-p3="italic-row"]')?.dataset.group ?? null, document.activeElement?.dataset.value ?? null]);
+        ok(JSON.stringify(at) === JSON.stringify([g, v]), `${where}: Tab moves from "${g}"'s first chip to its next chip, ${v} — focus on ${JSON.stringify(at)}`);
+        await page.keyboard.press('Space');
+      } else await hooks.click(chip(g, v), WAIT);
+      await page.waitForFunction((sel) => document.querySelector(sel)?.getAttribute('aria-pressed') === 'true', chipSel(g, v), { timeout: 5000 }).catch(() => {});
+      if (how === 'key') {
+        const kept = await page.evaluate(() => [document.activeElement?.closest('[data-p3="italic-row"]')?.dataset.group ?? null, document.activeElement?.dataset.value ?? null]);
+        ok(JSON.stringify(kept) === JSON.stringify([g, v]), `${where}: after Space, focus stays on "${g}"'s ${v} chip through the redraw — focus on ${JSON.stringify(kept)}`);
+      }
+      const want = italicBrand(italics, italicDefault);
+      const got = await saved();
+      ok(canon(got) === canon(want), `${where}: step ${i}, "${g}" ${v} (${how}) saves italics ${JSON.stringify(italics)} and italicDefault ${JSON.stringify(italicDefault)} — saved italics ${JSON.stringify(got?.typography?.italics)}, italicDefault ${JSON.stringify(got?.typography?.italicDefault)}; ${wireDiff({ input: got }, { input: want })}`);
+      const on = (await page.evaluate(ITALIC_PROBE)).map((r) => [r.g, r.chips.filter((c) => c[2] === 'true').map((c) => c[0])]);
+      const one = on.every(([, p]) => p.length === 1) && on.find(([x]) => x === g)?.[1][0] === v;
+      ok(one, `${where}: step ${i}, every row still has exactly one chip pressed, and "${g}" has ${v} — pressed ${JSON.stringify(on)}`);
+    }
+    // KB1 A (owner, 2026-10-06): arrow keys do nothing. From label's unpressed Upright + italic chip, each arrow leaves
+    // focus where it was, every row's pressed chip as it was, and the saved brand as the ten steps left it.
+    const focusAt = () => page.evaluate(() => [document.activeElement?.closest('[data-p3="italic-row"]')?.dataset.group ?? null, document.activeElement?.dataset.value ?? null]);
+    const pressedNow = async () => (await page.evaluate(ITALIC_PROBE)).map((r) => [r.g, r.chips.filter((c) => c[2] === 'true').map((c) => c[0])]);
+    const afterSteps = italicBrand(['body'], undefined);
+    await chip('label', 'both').focus();
+    const before = JSON.stringify(await pressedNow());
+    for (const key of ['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown']) {
+      await page.keyboard.press(key);
+      await settle(page);
+      const at = await focusAt(), now = JSON.stringify(await pressedNow());
+      ok(JSON.stringify(at) === JSON.stringify(['label', 'both']) && now === before,
+        `${where}: KB1 A, ${key} on "label"'s both chip moves neither focus nor the pressed chip — focus on ${JSON.stringify(at)}, pressed ${now === before ? 'unchanged' : now}`);
+    }
+    const sArrows = await saved();
+    ok(canon(sArrows) === canon(afterSteps), `${where}: KB1 A, the four arrow keys save nothing — saved italics ${JSON.stringify(sArrows?.typography?.italics)}, italicDefault ${JSON.stringify(sArrows?.typography?.italicDefault)}; ${wireDiff({ input: sArrows }, { input: afterSteps })}`);
+    // KB1 A: Enter presses the focused chip, keeps focus on it, and saves the literal: label joins italics, in text-type order.
+    await chip('label', 'both').focus();
+    await page.keyboard.press('Enter');
+    await page.waitForFunction((sel) => document.querySelector(sel)?.getAttribute('aria-pressed') === 'true', chipSel('label', 'both'), { timeout: 5000 }).catch(() => {});
+    const atEnter = await focusAt();
+    const pEnter = await pressedNow();
+    const wantEnter = italicBrand(['body', 'label'], undefined);
+    const sEnter = await saved();
+    ok(JSON.stringify(pEnter.find(([x]) => x === 'label')?.[1]) === '["both"]' && JSON.stringify(atEnter) === JSON.stringify(['label', 'both']),
+      `${where}: KB1 A, Enter on "label"'s both chip presses it and keeps focus on it — pressed ${JSON.stringify(pEnter.find(([x]) => x === 'label')?.[1])}, focus on ${JSON.stringify(atEnter)}`);
+    ok(canon(sEnter) === canon(wantEnter), `${where}: KB1 A, Enter on "label"'s both chip saves italics ["body","label"] and no italicDefault — saved italics ${JSON.stringify(sEnter?.typography?.italics)}, italicDefault ${JSON.stringify(sEnter?.typography?.italicDefault)}; ${wireDiff({ input: sEnter }, { input: wantEnter })}`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);

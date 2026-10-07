@@ -397,6 +397,31 @@ export const toggleChip = (role: string, word: string, onToggle: (on: boolean) =
   return { el, set: (on) => { if (el.getAttribute('aria-pressed') !== String(on)) el.setAttribute('aria-pressed', String(on)); } };
 };
 
+/** One of two to four words, as chips (#2192): `toggleChip`'s look, single-select. A `role="group"` named by
+ *  `label`; each chip a button with `aria-pressed`, exactly one pressed. Keyboard as Personality's chips: each
+ *  chip is a Tab stop, Enter or Space presses it. Pressing the pressed chip writes nothing. Same signature as
+ *  `choice`, so a lever moves between the two without its writes changing. */
+export const chipChoice = <V extends string>(label: string, role: string, options: readonly { v: V; l: string }[], onPick: (v: V) => void): {
+  el: HTMLElement; set: (v: V) => void;
+} => {
+  const el = hook(h('div', 'p3-chips'), role);
+  el.setAttribute('role', 'group');
+  el.setAttribute('aria-label', label);
+  const btns = options.map((o) => {
+    const b = hook(h('button', 'p3-btn p3-btn-page p3-chip'), `${role}-${o.v}`);
+    b.type = 'button';
+    b.dataset.value = o.v;
+    b.append(glyph('check'), h('span', 'p3-btn-label', o.l));
+    b.onclick = () => { if (b.getAttribute('aria-pressed') !== 'true') onPick(o.v); };
+    return b;
+  });
+  el.append(...btns);
+  return {
+    el,
+    set: (v) => { for (const b of btns) { const on = String(b.dataset.value === v); if (b.getAttribute('aria-pressed') !== on) b.setAttribute('aria-pressed', on); } },
+  };
+};
+
 /** A confirm drawn in place, under the control that asked for it (concept v6's confirm dialog, inline): a
  *  title, what the action changes, the action and Cancel. Focus moves to the action; Escape or Cancel
  *  closes it and returns focus to `back`. */
