@@ -62,7 +62,10 @@
 /* Buttons: a page-colored fill and an edge that clears 3:1 on the bar (B1). */
 /* No hover on a disabled control (owner decision Q28 a, 2026-10-05): a control that is `:disabled` or
    `aria-disabled="true"` changes nothing under the pointer, whatever its kind. So every hover rule here is limited
-   with `:where(:not(:disabled, [aria-disabled="true"]))`, which adds no weight, so the cascade order is unchanged. */
+   with `:where(:not(:disabled, [aria-disabled="true"]))`, which adds no weight, so the cascade order is unchanged.
+   The build's [hover] check (`chrome/esbuild-plugin.mjs`, #2247) fails any `:hover` without it on the element it
+   hovers, but the selectors HOVER_EXEMPT names word for word, each with its reason: the tile tooltip, a reveal, and
+   the color field, which carries the limit in a `:has()` form. */
 .p3-btn, .p3-brand {
   display: inline-flex; align-items: center; justify-content: center; gap: var(--p3-space-100); flex: none;
   min-height: var(--p3-ctl-h-sm); padding: 0 var(--p3-space-200); border-radius: var(--p3-radius-lg);
@@ -793,8 +796,8 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
   color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14);
 }
 .p3-text-input.p3-value { font-family: var(--p3-font-mono); }
-/* No hover on a disabled field: it cannot be edited, so nothing answers the pointer (owner, 2026-10-05). */
-.p3-text-input:hover:not(:disabled) { border-color: var(--p3-field-edge-hover); }
+/* No hover on a disabled field: it cannot be edited, so nothing answers the pointer (owner, 2026-10-05; Q28 a). */
+.p3-text-input:where(:not(:disabled, [aria-disabled="true"])):hover { border-color: var(--p3-field-edge-hover); }
 .p3-text-input:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 /* A text field that cannot change (Layout's first breakpoint, D13; any field a derived mode locks) takes Prism3's own
    disabled text field skin, exactly: the fill, the edge and the on-fill ink its text field definition binds (owner
