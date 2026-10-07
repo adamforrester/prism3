@@ -63,7 +63,7 @@ import { MAILBOX, AGENT_COMMANDS, AGENT_PROTOCOL_VERSION, resultKey, utf8Bytes }
 import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { storeResult } from './src/agent-link';
 import { envelope, sendSnippet, readSnippet, linkSnippet } from './agent-snippets';
-import { agentLinkStatusText } from './src/agent-link-ui';
+import { agentLinkShortStatus, agentLinkStatusText } from './src/agent-link-ui';
 import { createRunGuard, TITLE } from './src/run-guard';
 import { createDispatcher } from './src/agent-dispatch';
 import { OP_TITLE } from '../studio/src/shell/activity';
@@ -748,6 +748,28 @@ section('state — what the panel shows');
   ok(!!s?.lastCommand && s.lastCommand.cmd === 'status' && s.lastCommand.headline.length > 0, 'the panel is told the last command and its headline');
   ok(/Listening — file mailbox, every 1 s · last: status/.test(agentLinkStatusText(s)), `the chip reads: "${agentLinkStatusText(s)}"`);
   ok(agentLinkStatusText(null) === agentLinkStatusText({ ...s, on: false }), 'and reads off before the first state arrives');
+}
+
+/* ── the short status (#2213, the owner's AS1 A): the Activity drawer's bar row ─────────────────────────── */
+section('short status — the drawer row\'s high-level words (AS1 A)');
+{
+  // The words are the owner's, typed here as literals; the states are built here, not read from the link.
+  const base: AgentLinkState = { v: 1, on: true, since: '2026-10-06T09:00:00.000Z', engineVersion: 'x', build: 'x', pollMs: 1000,
+    transports: { mailbox: true, bridge: false }, lastCommand: null, inboxError: null };
+  const cases: [string, AgentLinkState | null, { text: string; error: boolean } | null][] = [
+    ['no state yet', null, null],
+    ['off', { ...base, on: false, since: null, transports: { mailbox: false, bridge: false } }, null],
+    ['off, a stale inbox error kept', { ...base, on: false, since: null, transports: { mailbox: false, bridge: false }, inboxError: 'the inbox is not a JSON array' }, null],
+    ['on, the mailbox listening', base, { text: 'Agent listening', error: false }],
+    ['on, the bridge alone listening', { ...base, transports: { mailbox: false, bridge: true } }, { text: 'Agent listening', error: false }],
+    ['on, no transport listening', { ...base, transports: { mailbox: false, bridge: false } }, { text: 'Agent not listening', error: true }],
+    ['on, an inbox error', { ...base, inboxError: 'the inbox is not a JSON array' }, { text: 'Agent error', error: true }],
+    ['on, an inbox error and no transport', { ...base, transports: { mailbox: false, bridge: false }, inboxError: 'x' }, { text: 'Agent error', error: true }],
+  ];
+  for (const [name, st, want] of cases) {
+    const got = agentLinkShortStatus(st);
+    ok(JSON.stringify(got) === JSON.stringify(want), `${name}: the short status is ${JSON.stringify(want)} (read ${JSON.stringify(got)})`);
+  }
 }
 
 /* ── switch-off ─────────────────────────────────────────────────────────────────────────────────────── */
