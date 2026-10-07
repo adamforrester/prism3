@@ -111,9 +111,10 @@
  *
  * The control carries `minWidth: 320` — a LITERAL, not a token. Prism 2's select is `root width 320 ·
  * HUG` with its inner containers FILLing that width (`reference/Prism2/component-specs/select.json`).
- * The floor sits on the visible control and the hugging column takes its width from it; since #1751 the
- * label and message stretch across that column and `content` grows inside the control, so the field
- * reads at 320. A long value does not widen it: the value WRAPS and the control grows TALLER (#1758,
+ * The floor sits on the visible control; since #2292 the root is BUILT at 320 (`placementWidth`, Prism 2's
+ * root width) and the control fills it, so a select set to fill its column stretches the box. Since #1751
+ * the label and message stretch across that column and `content` grows inside the control, so the field
+ * reads at 320 until a host places it. A long value does not widen it: the value WRAPS and the control grows TALLER (#1758,
  * owner decision on #1757), so the control hugs its height above a 44px floor rather than fixing it. 320
  * is a comfortable projection default in 8px increments — the #1343 owner decision was explicit that it
  * is NOT a `field.width` semantic role — so no emitted token NAME moves and `CONTRACT_VERSION` holds; the
@@ -344,6 +345,10 @@ export const select: ComponentDef = {
       container: {
         kind: 'box',
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        // BUILT AT THE FIELD'S WIDTH (#2292, field-message's #1757 mechanism): the root is 320 until a host
+        // places it, so an unplaced field still reads at 320, and the control FILLS it — so an instance set to
+        // fill its column stretches the bordered box with the label and the message.
+        placementWidth: 320,
         gap: 'root-gap',
         children: ['label', 'control', 'message'],
       },
@@ -400,9 +405,10 @@ export const select: ComponentDef = {
         minHeight: 'min-height',
         // THE COMFORTABLE DEFAULT WIDTH (#1343a, #1345), a MIN-WIDTH not a fixed width. Prism 2's select
         // is `root width 320 · HUG` with its inner containers FILLing that width. The field is floored HERE,
-        // on the visible control, and the column hugs to it, so the field reads at 320 in Figma; the label,
-        // message and `content` fill from that width (#1751). The control CARRIES the width, so it keeps
-        // hugging above the floor rather than filling. A long value wraps rather than widening it (#1758). A
+        // on the visible control, so the field reads at 320 in Figma; the label, message and `content` fill
+        // from that width (#1751). Since #2292 the control FILLS the root, which is built at 320
+        // (`placementWidth`), so a select set to fill its column stretches the box; the floor still holds it
+        // at 320 or wider. A long value wraps rather than widening it (#1758). A
         // literal, not a token — 320 is a projection default in 8px increments, not a semantic value that
         // earns a `field.width` role (#1343 owner decision). So no emitted token NAME moves and
         // `CONTRACT_VERSION` stands.
@@ -643,7 +649,7 @@ export const select: ComponentDef = {
       'error as a border swap vs a full validation border set — settled as text-field settles it. Until #1517 error was the ONLY status that colored the border; #1517 (owner-directed, Prism 2 parity) extended the swap to warning and success, which the token tier already emits as `border.warning`/`border.success`, so every non-default status now colors its own boundary AND carries the message.',
     ],
     unverified: [
-      'The nested label and message now FILL the field\'s width (#1503, `crossAxisFill` → `layoutAlign: STRETCH`), spanning the 320 control rather than hugging narrower — the gap this note used to record (a `nest` cannot bind sizing, #1299, so it once sat at its natural width) is closed. The control is floored at 320 (`minWidth`) and the column hugs to it, so the field reads at 320 and the two nested parts stretch to match, each instance FIXED across (#1751) so its text wraps at that width (#1757); `test:roundtrip` measures the stretch and the wrap on the offline host, but whether a real host keeps the stretch on a nested INSTANCE is the standing offline-arm caveat (below).',
+      'The nested label and message now FILL the field\'s width (#1503, `crossAxisFill` → `layoutAlign: STRETCH`), spanning the 320 control rather than hugging narrower — the gap this note used to record (a `nest` cannot bind sizing, #1299, so it once sat at its natural width) is closed. The root is built at 320 (`placementWidth`, #2292) and the control fills it above its own 320 floor (`minWidth`), so an unplaced field reads at 320, a field set to fill its column stretches the control with it, and the two nested parts stretch to match, each instance FIXED across (#1751) so its text wraps at that width (#1757); `test:roundtrip` measures the stretch and the wrap on the offline host, but whether a real host keeps the stretch on a nested INSTANCE is the standing offline-arm caveat (below).',
       'A long value or placeholder WRAPS and the control grows taller (#1758), with no ellipsis on the Figma member. Measured on the offline host. A NATIVE <select> draws its selected value on one line, so the code-side reading needs the #1758 audit\'s answer for the native element.',
       'The leading glyph is a node-visibility BOOLEAN (#1331): the node is built at every member with `visible:false` and shown by the `leading icon` switch. In Figma auto-layout a `visible:false` child is EXCLUDED from the flow — it takes no space or gap — so a hidden glyph should add no gap to `content`, exactly as the absent slot did. The offline shims gate the boolean property, the built `visible=false` and the `componentPropertyReferences.visible` wiring, but NOT auto-layout\'s exclusion of invisible children: whether a real host reflows `content` when the switch toggles is a host question no Node gate answers. Symptom on a real host: a persistent gap where the hidden glyph sits, or the field not tightening when leading is off.',
     ],

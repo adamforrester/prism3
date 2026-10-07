@@ -519,12 +519,12 @@ export type PartDef = {
    *
    *  WHY A MIN-WIDTH AND NOT A BOUND `width`. Prism 2's select is `root width 320 · HUG` with its inner
    *  containers `FILL`ing that width (`reference/Prism2/component-specs/select.json`). The floor sits on the
-   *  visible `control`, and the field's column hugs to it. Since #1751 a `fill` part fills (see
-   *  `anatomy-figma.ts`'s `fillsAxis`), and the floored control is what its siblings fill FROM: the label and
-   *  message stretch to the column the control holds at 320, and the value row inside the control grows
-   *  across it. The control itself keeps hugging above its floor — it is the part that carries the width, so
-   *  it cannot also take its width from the column. A bound `width` would need `sizing.x: 'fixed'` (the
-   *  row-oriented width rule) and pin the field.
+   *  visible `control`. Since #1751 a `fill` part fills (see `anatomy-figma.ts`'s `fillsAxis`), and since
+   *  #2292 the field's root is BUILT at 320 (`placementWidth`) and the control FILLS it, floor and all: an
+   *  unplaced field reads at 320, and an instance set to fill its column stretches the control with it,
+   *  while the floor keeps it at 320 or wider (Figma keeps a min width under a fill). The label and message
+   *  stretch across the same column, and the value row inside the control grows across it. A bound `width`
+   *  would need `sizing.x: 'fixed'` (the row-oriented width rule) and pin the field.
    *
    *  Refused on a non-`box` kind, and on a `box` with no `layout`: Figma applies `minWidth` only to an
    *  auto-layout frame, so a floor on a layout-less box would be silently dropped (or throw on the real

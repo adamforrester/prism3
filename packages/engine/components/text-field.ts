@@ -328,6 +328,10 @@ export const textField: ComponentDef = {
       container: {
         kind: 'box',
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        // BUILT AT THE FIELD'S WIDTH (#2292, field-message's #1757 mechanism): the root is 320 until a host
+        // places it, so an unplaced field still reads at 320, and the control FILLS it — so an instance set to
+        // fill its column stretches the bordered box with the label and the message.
+        placementWidth: 320,
         gap: 'root-gap',
         children: ['label', 'control', 'message'],
       },
@@ -357,10 +361,10 @@ export const textField: ComponentDef = {
         layout: { direction: 'row', align: 'center', justify: 'space-between', sizing: { x: 'fill', y: 'fixed' } },
         height: 'min-height',
         // THE COMFORTABLE DEFAULT WIDTH (#1518, owner: parity with select) — a MIN-WIDTH not a fixed width,
-        // the `select` #1345 precedent adopted key-for-key. The floor sits on the visible control, and the
-        // hugging column takes its width from it; since #1751 the label and message stretch across that column
-        // and `content` grows inside the control, so the whole field reads at 320. The control is the part
-        // that CARRIES the width, so it keeps hugging above its floor rather than filling. A long value does
+        // the `select` #1345 precedent adopted key-for-key. The floor sits on the visible control; the label
+        // and message stretch across the column (#1751) and `content` grows inside the control, so the whole
+        // field reads at 320. Since #2292 the control FILLS the root, which is built at 320 (`placementWidth`),
+        // so a field set to fill its column stretches the box; the floor still holds it at 320 or wider. A long value does
         // not widen it: it clips at `content`'s edge (#1758, below). A LITERAL, not a token — 320 is a
         // projection default in 8px increments, not a semantic `field.width` role (#1343 owner decision) — so
         // no emitted token NAME moves and `CONTRACT_VERSION` stands.
@@ -602,7 +606,7 @@ export const textField: ComponentDef = {
     ],
     unverified: [
       'Polaris migration to framework-agnostic Web Components (<s-text-field>, Shadow DOM) — needs _source-text backing, shared with the Button brief (brief §11, §14).',
-      'The field\'s width (#1518, #1757): the control carries a `minWidth: 320` floor, the label and the message stretch across the column it holds (`crossAxisFill`, with the nested instance\'s own FIXED mode), and `content` grows inside the control. So the field reads at 320, the message wraps at that width, the label\'s name wraps at FieldLabel\'s own 316 max width (#1762), and a long value clips at `content`\'s edge instead of widening the field. Measured on the offline host; whether the live host keeps a stretch on a nested INSTANCE is the standing nesting caveat.',
+      'The field\'s width (#1518, #1757, #2292): the root is built at 320 (`placementWidth`), the control fills it above its own `minWidth: 320` floor, the label and the message stretch across it (`crossAxisFill`, with the nested instance\'s own FIXED mode), and `content` grows inside the control. So an unplaced field reads at 320 and a field set to fill its column stretches the input box with it, the message wraps at that width, the label\'s name wraps at FieldLabel\'s own 316 max width (#1762), and a long value clips at `content`\'s edge instead of widening the field. Measured on the offline host; whether the live host keeps a stretch on a nested INSTANCE is the standing nesting caveat.',
       'A long value or placeholder CLIPS at `content`\'s edge in Figma (`clipsContent`, #1758), with no ellipsis — the native single-line input it stands for scrolls with the caret, so the full text stays reachable in code. The clip is modelled offline; the live host has not been checked.',
       'The leading and trailing glyphs are node-visibility BOOLEANS (#1331/#1494): each node is built hidden and shown by its switch. In Figma auto-layout a `visible:false` child is excluded from the flow, so a hidden glyph should add no gap — but whether a real host reflows `content` / the control when a switch toggles is a host question no Node gate answers. Symptom on a real host: a persistent gap where a hidden glyph sits, or the trailing affix not pinning tight when off.',
     ],
