@@ -365,8 +365,20 @@ export type PartDef = {
    *  set at — the default string's (#1757, measured: field-message's caption froze at ~150px and a longer
    *  message wrapped to three lines inside a 320 field). So a `wrap` label under an unbounded row is
    *  refused, which is what makes the row's floor load-bearing rather than decorative. `boolean`; absent
-   *  means hug. */
-  wrap?: boolean;
+   *  means hug.
+   *
+   *  `'hug'` (#1762, owner-decided 2026-09-30) — HUG the glyphs and WRAP at a max width, so a sibling that
+   *  follows the text in its row sits right after the last word rather than at the row's trailing edge (the
+   *  field label's required marker). PROJECTS `maxWidth` on the text node and leaves it `WIDTH_AND_HEIGHT` with
+   *  no `layoutGrow`: Figma wraps an auto-width text at its `maxWidth`. THE MAX WIDTH IS DERIVED, never stated:
+   *  the root's `placementWidth`, less one row `gap` for each sibling in the row, the gap resolved at the plan's
+   *  coordinate to px on the fixed space scale (`spacePx`). The SIBLINGS' OWN WIDTHS ARE NOT SUBTRACTED — a
+   *  glyph's advance is a fact about the brand's font, which the engine does not hold — so text at its max
+   *  width plus a sibling overruns the placement width by the sibling's width. ITS PRECONDITIONS, asserted by
+   *  `anatomyErrors`: a `text` part, whose parent is the ROOT, a `row` with a `placementWidth`, no padding, and
+   *  a `gap` bound to a step of the space ladder. The max width is a literal on the main component, so a host
+   *  that stretches the instance wider does not move the wrap point. */
+  wrap?: boolean | 'hug';
   /** For a `text` part: the text box is at least this many LINES of its own type's line height tall —
    *  a multi-line field's visible rows (textarea). NAMED AS A PROP, never a count: the value is the
    *  numeric `default` of the def's own prop by this name (`'rows'` → 3), so the Figma control and the
@@ -3872,11 +3884,35 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // only with a `placementWidth` (#1757): its `fill` has nothing to fill from until a host places it, and a
     // bare instance would freeze the text exactly as above. And a parent that FILLS from a bounded ancestor
     // counts (#1755, select's `content` inside its floored control).
-    if (p.wrap) {
+    if (p.wrap === true) {
       const parent = claimed.get(n);
       const pp = parent ? parts[parent] : undefined;
       if (!parent || !boundsX(parent))
         e.push(`anatomy part '${n}' declares 'wrap' but its parent '${parent ?? '(none)'}' does not bound its main-axis width (minWidth ${pp?.minWidth ?? 'unset'}, sizing.x '${pp?.layout?.sizing.x ?? 'n/a'}'${parent === a.root ? `, placementWidth ${pp?.placementWidth ?? 'unset'}` : ''}) — 'layoutGrow' fills the REMAINING main-axis space and a hugging parent has none, so the text keeps the width of its default string and a longer one wraps there. Give the parent a 'minWidth' floor or a fixed width, fill it from a bounded parent, or give a root a 'placementWidth'`);
+    }
+    // ---- THE HUGGING WRAP (`wrap: 'hug'`, #1762) ----
+    // The max width is DERIVED at projection: the root's `placementWidth`, less one row gap per sibling. So
+    // every input to that sum must exist and mean what the sum assumes — a ROOT parent (the only part that
+    // carries a build width), laid out as a ROW (the siblings share the width), with no inline padding (the
+    // sum does not subtract it), and a gap on the space ladder (the only spacing the projector can turn into
+    // px). Each refused by name; any one missing would project a max width that is wrong or absent.
+    if (p.wrap === 'hug' && p.kind === 'text') {
+      const parent = claimed.get(n);
+      const pp = parent ? parts[parent] : undefined;
+      if (parent !== a.root || pp?.placementWidth === undefined)
+        e.push(`anatomy part '${n}' declares wrap 'hug' but its parent '${parent ?? '(none)'}' is not the anatomy ROOT with a 'placementWidth' — the max width is the root's build width less the row's gaps, and no other part carries one`);
+      else if (pp.layout?.direction !== 'row')
+        e.push(`anatomy part '${n}' declares wrap 'hug' but its parent '${parent}' is not a 'row' — the max width shares the row's width with its siblings, and a column gives each child the whole width`);
+      else if (pp.padding)
+        e.push(`anatomy part '${n}' declares wrap 'hug' but its parent '${parent}' declares padding — the max width is the build width less the row's gaps, and does not subtract padding`);
+      else if ((pp.children ?? []).length > 1) {
+        const gapKey = pp.gap;
+        const refs = gapKey === undefined ? [] : Object.entries(def.tokens ?? {})
+          .filter(([k]) => new RegExp(`^${gapKey.replace(/\./g, '\\.').replace(/\{[^}]+\}/g, '[^.]+')}$`).test(k)).map(([, v]) => v);
+        const offLadder = refs.filter((r) => { const m = /^space\.([0-9]+)$/.exec(r); return !m || !SPACE_LADDER.includes(m[1]); });
+        if (!refs.length || offLadder.length)
+          e.push(`anatomy part '${n}' declares wrap 'hug' but its parent '${parent}' has siblings and its gap '${gapKey ?? '(none)'}' does not bind a step of the space ladder (${offLadder.join(', ') || 'unbound'}) — the max width subtracts one gap per sibling, in px`);
+      }
     }
     // ---- THE ROOT'S BUILD WIDTH (`placementWidth`, #1757) ----
     // A literal the executors resize the root to, so every rule is about where a resize means something: a

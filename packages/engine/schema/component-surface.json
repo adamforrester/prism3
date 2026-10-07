@@ -143,15 +143,15 @@
     },
     "field-label": {
       "members": 24,
-      "sha256": "3ce261f7947452366c59a1ec15dcc284be2cd5c1bf0b8b4588e168130588e8fb"
+      "sha256": "cae2d2ac9ab44a1358128f3bd4b80a3ced5783c97a883059c236e2361047850b"
     },
     "field-label@body-emphasis": {
       "members": 24,
-      "sha256": "f4cb4d726ad7119f48c5a8e8c768fa3afb38b67b4b8ff6570bd7cf0db09f353d"
+      "sha256": "620f44d7105498be676cdfb819237313ecdbb4856bb7358ad4834d8026704df5"
     },
     "field-label@body-single": {
       "members": 12,
-      "sha256": "8eb2afc9c758b8ded2e5ee5225ee8d3fc2deaeea71005a19bf84073b4996424f"
+      "sha256": "0e8295511d22184ed7bacb9e62d4d7cf09e6263ba211a3237eb2b923bcf47dd9"
     },
     "field-message": {
       "members": 4,
