@@ -7,6 +7,928 @@
 
 ---
 
+## (2026-10-06) — Field label: the name hugs and wraps at a max width, so the required marker follows it (#1762)
+
+**STATUS: PR #1832 open from `lane/field-label-hug`, approved by the owner on 2026-10-06 without screenshots; the live check below is still to run.** Owner decision 2026-09-30, option 3 of #1762, which **changes #1757's decision 2** ("the label wraps at field width"). Decision record: `docs/28` §5.5, indexed in `docs/42`. **ENGINE minor bump to 0.232.0** (the projected component surface moves; change note `packages/engine/changes/lane-field-label-hug.md`). CONTRACT stands.
+
+**The defect the owner saw.** #1757 grew field-label's name across its row (`wrap: true`: `layoutGrow: 1` + `textAutoResize: HEIGHT`), so the name's box was the row's width and the required marker, a separate text node, sat at the row's trailing edge: "Label ··· *" at 320. In code the marker flows inline after the name.
+
+**The change.** New `PartDef.wrap: 'hug'`: the text hugs (no grow, auto width) and the plan carries a `maxWidth` it wraps at. Field-label's `text` uses it; the root keeps `fill` + `placementWidth: 320`, so hosts still stretch the instance. Both executors write `maxWidth` after the append (Figma takes it only on an auto-layout frame or its direct child) and read it back; the paste twin splices its line onto the reserved-lines slot's own line, so a payload without it gains no byte (Button's #536 grid budget). `anatomy-readback` compares it; both shims clamp a text's width to it and wrap its height.
+
+**The max-width math, derived rather than a new literal.** The root's `placementWidth` less one row gap per declared sibling, the gap resolved at the plan's coordinate and turned into px by the new `scale.ts` `spacePx` (the space scale is fixed at `SPACE_BASE`, so every brand emits the same px): 320 − 4 = **316** on all 24 members. **The marker's width is NOT subtracted**: it is the advance of `*` in the brand's font, and the engine holds no font metrics. The owner asked to subtract it if it is known per brand; it is not known offline. It is known at build time in Figma (the executor could measure the built marker), which would be a new executor mechanism and a design call, so it is filed as #1828 rather than done here.
+
+**Accepted tradeoffs (owner), now in the def's notes and docs.** A field stretched wider in Figma does not move the 316 wrap point. A required name long enough to wrap overruns 320 by the marker's width. Two consequences of option 3 itself, stated in the def rather than hidden: with the marker off the 4px stays reserved (the name wraps at 316, and turning the marker on does not reflow it); and on a WRAPPED name the marker sits beside the wrapped box at 316 + 4, not after the last word of the last line (a separate node cannot follow a line break; that was option 2).
+
+**Validator (`anatomyErrors`), each refusal pinned by name in `test.ts`.** `wrap: 'hug'` needs a text whose parent is the ROOT with a `placementWidth`, laid out as a `row`, with no padding, and (with siblings) a gap bound to a step of the space ladder. `wrap: true` keeps #1424/#1757's bounded-parent rule unchanged.
+
+**Hosts.** Select, text-field, textarea, checkbox-group and radio-group nest the one field-label; their label notes now say the name wraps at FieldLabel's max width. Nothing in their own plans moves.
+
+**Tests (literal expectations).** `test.ts`: the plan gives the name no grow, no `HEIGHT`, and `maxWidth` 316 on all 24 members; nothing in the row grows, the row packs from its start and the marker is the name's next sibling; four refusal arms; the #1751 parity floor now reads `grow:0 text:WIDTH_AND_HEIGHT mw:316` on both executors. `test-roundtrip.ts` (#1762 arm, gap pinned to 4px): with the marker on, a one-line "Label" (30px) puts the marker at x 34, not the trailing 314; a 70-character name clamps at 316 on two lines and the marker sits at 320.
+
+**Mutations (each on a `wip:` commit, restored by `git checkout --`).**
+
+| Mutation | Fails, by name |
+|---|---|
+| M1 field-label `text` back to `wrap: true` (layoutGrow + fill) | `#1762 field-label's name HUGS and wraps at maxWidth 316 …`, `#1762 the required marker follows the name in the row, not a filling box …`, `#1751 parity floor (field-label)`, and in `test:roundtrip` `#1762 field-label's required marker follows the name: at x 34 …` and `#1762 {text-field,select} label stretches with the field but its name wraps at 316 …` |
+| M2 the paste twin's max-width line not spliced | `#1751 parity floor (field-label)` and `#1751 parity (field-label): the plugin and paste executors leave identical sizing on every node` |
+| M3 the plugin executor's `kid.maxWidth = …` write removed | `every def round-trips … field-label (24)`, `#1762 seed … (text.maxWidth -> DISCARDED …)`, `#1762 field-label's required marker follows the name …`, plus the #1751 parity pair |
+
+### Review round (independent review of #1832 at 05d84f63; merge-ready, three follow-ups)
+
+- **A.** The #1757 `nestedWraps` arms for the text-field and select LABEL still read "wraps at the field's width (320, and 400 when widened)", which #1762 makes false; they passed only by measuring the stretched instance. They are now `#1762 {host} label stretches with the field but its name wraps at 316`: the instance is 320 and 400 wide, and the NAME stays 316 wide on two lines both times, which pins the accepted tradeoff. The message arms keep the #1757 wording, which is still true. M1 (`wrap: true`) fails both new arms by name.
+- **B.** text-field's `notes.unverified` said the label wraps at the field's width; it now says the name wraps at FieldLabel's 316.
+- **C.** `docs/28` §5.5 listed "the name wraps at 316 even with the marker off" as an accepted tradeoff. It is derived, not something the owner accepted, so it moved to a list of consequences for the owner to confirm at the live check, with the wrapped-name marker position.
+
+**Not verified offline, and the live check.** That Figma wraps an auto-width text at its `maxWidth`, keeps the next sibling right after the clamped box, and which line the baseline-aligned marker sits on for a wrapped name. The shims model the first two; nothing models the third. The def lists it under `notes.unverified`. Live steps (owner, in a test file): build field-label with the plugin; select a member, turn `required` on; confirm the name layer reads auto width with max width 316 and "Label *" sits together at the left; type a 70-character name and confirm it wraps at 316 with the marker beside it (note which line it aligns to); then rebuild select, text-field, textarea, checkbox-group and radio-group and check the nested label the same way, including a field stretched to 400 (the name should still wrap at 316).
+
+---
+
+## (2026-10-06) — A contrast floor must be a step a page ground sits on (#2227, #2239)
+
+**STATUS: branch `engine/2227-floor-on-a-ground`.** ENGINE minor, declared in `packages/engine/changes/engine-2227-floor-on-a-ground.md`; `CONTRACT_VERSION` unchanged; no committed artifact moves. The owner's Q67–Q70 and Q74–Q77 on #2250 are built in: the studio shows its own sentences, all of them the owner's wording. The picker screenshots were approved (Q68 A). **Part 2 of #2227.** Part 1, the 21 secondary-collision cases, is #2244, a separate PR.
+
+### The decision this carries
+
+Owner, Q57 A: a contrast floor may only be a step a page ground in that mode actually sits on. The build refuses any other `floorStep` with a sentence, and the studio picker offers only valid steps. This covers #2227's 74 floor-step cases and #2239.
+
+### Diagnosis
+
+Every floor-gated role (the bold fills, the interactive fills, and the secondary, tertiary, status and link text) is measured against the floor. Its description names the surface it clears its bar on, and that name was always `background.secondary`. With a `floorStep` that no ground takes, there were two failures:
+- the Figma color emission threw, so `export_theme include:["figma"]` returned -32603;
+- fills shipped measured against a surface the page doesn't have. At floorSteps 500–750, #2239 measured 1.2–2:1 on the real page against a claimed 3:1.
+
+### What changed
+
+- **`modes.ts` `resolve`.** After the floor is chosen, it finds the page ground the floor sits on, naming `secondary` first, then `primary`, then `tertiary` (the order the Figma color lines use). With an explicit `floorStep` and no such ground, it throws: "surfaces.‹mode›.floorStep: ‹n› is not a step a ‹mode› page ground sits on — the floor is the ground every floor-gated role is measured against. Use ‹steps›." The sentence lists the valid steps in ramp order, each with its ground. Where no ground is a neutral step, it says "Remove it — no ‹mode› page ground sits on a neutral step."
+- **Reporting.** The throw happens inside `buildTree`, so `validate_brand` and the generating tools report it through `buildBrand`'s guard. `export_theme`'s Figma emission now never sees an off-ground floor.
+- **Prose.** The floor-gated prose names the ground the floor sits on (`floorLabel`), so a floor held on the tertiary step says "on background.tertiary".
+- **Studio, the picker.** `floorGroundSteps(mode)` in `state/fills-input.ts` returns the neutral steps of the mode's three page grounds, in ramp order. The Contrast floor picker offers only those, in place of the whole ramp: prism3 Light shows 050 and 100, Dark 850, 900 and 950.
+- **Studio, the sentences (owner decisions Q67 B, Q69 A, Q70 A).** `state/floor-refusal.ts` holds them, with no DOM and no store. Agents and MCP keep the engine's sentence.
+  - **Q67 B, the refusal.** The studio says "The contrast floor has to match a page background in ‹Light›. Choose ‹050 or 100›, or return to Auto." The mode and steps come from the brand, built with the floor removed. Only the refusal's kind is read off the engine's message (its `surfaces.‹mode›.floorStep:` key), never its words. The store's `lastError` carries the studio sentence, so the error bar and the failed-restore bar both show it.
+  - **Q76 A, on import.** The import check (`validateDesignMd`) shows the same sentence on the brief's line, but ends on the file's key: "…Choose ‹050 or 100›, or remove floorStep to use Auto."
+  - **Q74 B, no valid step.** Both read "No page background in ‹Light› sits on a neutral step, so the contrast floor stays on Auto."
+  - **Q77 A.** The error bar's ". —" join is left alone here, filed as #2258.
+  - **The import check now resolves the modes.** The floor refusal is made in `resolveAllModes`, not `brandTheme`, and the check only ran `brandTheme`. So a brief with an off-ground floor passed the check, loaded, and then failed as "That change didn't apply". Now the check refuses it. Any other refusal made at mode resolution is refused at import the same way.
+  - **Q69 A, the reset.** `setSurfaceBase` and `setSurfaceTier` (its Return to Auto included) reset a set floor to Auto when no ground sits on its step any more. They leave a notice, which the floor row shows (hook `surface-floor-reset`) until the next Surfaces & fills edit. The notice is held in state, not drawn once, so the repaint after the edit still shows it.
+  - **Q70 A, the empty picker.** When no ground sits on a neutral step, a line under the picker says so (hook `surface-floor-none`).
+
+### Gates and mutations
+
+- **`test.ts`.** One sweep covers every example brief × light/dark × every neutral step as `floorStep`.
+  - The oracle is the plain brand's three ground paths, read off the brief with the floor unset, and a sentence typed in the test.
+  - Each step builds exactly when a ground sits on it, and is refused otherwise with that sentence, never a throw.
+  - For each built step, `foreground.brand` names the floor's ground.
+  - The #2239 arm measures every role whose description claims "clears N:1 on background.‹tier›" against that ground's hex, in every mode.
+  - The #2033 floor cases moved to on-ground steps.
+- **`mcp-test.ts`.** Three arms: `validate_brand` refuses by sentence; `export_theme include:["figma"]` returns an `isError` result carrying the sentence, never -32603; an on-ground floor (100, tertiary) is still valid.
+- **`test-fills-input.ts`, section 10.** Five literal cases of the offered steps: as loaded in both modes, Page 200, Secondary 200, and Page Black, which offers none. In each case the engine builds every offered step and refuses every other by sentence.
+- **`test-fills-input.ts`, section 11.** Every sentence is a literal typed in the test.
+  - The studio sentence covers four cases: two steps, three, one (a neutral 950 page) and none (a Black page). Each is checked in the error bar's message and in the import check's message, the latter on its line. Neither carries the engine's words, and the engine still refuses in its own words.
+  - A refusal that isn't the floor's keeps the engine's words.
+  - The reset has three cases: a Secondary move and a Primary move, each resetting with its notice, and a move that keeps the floor's ground, which resets nothing. A fourth case is a tier's Return to Auto.
+- **`test-chrome.mjs`.**
+  - In both modes, the real picker offers the literal steps, and picking each one leaves the error bar quiet.
+  - The #2250 block drives the real page. Primary Black shows the empty-picker line, and White removes it. Floor 050, then Secondary 200, shows the reset notice, the row reads Auto, and the error bar stays quiet. The next edit clears the notice. A pasted brief with floor 400 is refused with the studio sentence on line 6. After the edits and after the paste, the engine's sentence is nowhere in the page's text.
+- **Mutations.** Each ran after a `wip:` commit and failed by name:
+  - today's `modes.ts` fails 18 sweep arms (the emit throws, "built 20, refused 0", the 2.76:1-claims-3:1 misses) and 2 mcp arms (`{"valid":true}`, -32603);
+  - prose pinned back to `background.secondary` fails 10 arms;
+  - refusing every `floorStep` fails all 18 sweep arms, plus the mcp on-ground arm;
+  - the studio mutations are listed in the PR.
+
+### Traps for whoever is next
+
+- **Auto is never refused.** At a ladder end (a Black or 950 light page, a White or 050 dark page), the derived floor is a step next to the page, and no ground is that step. Refusing it would refuse the page choice, which Q57 did not decide. So the refusal applies only to an explicit `floorStep`, and that case keeps naming `background.secondary`. Measured: every floor-gated claim there still holds on the real secondary (0 misses in prism3).
+- **A light-only brief still has its dark floor refused.** `resolve('dark')` always runs, so a dark `floorStep` is checked even for nb-redesign, which emits no dark mode. The sweep skips the mode the brief doesn't resolve.
+- **Figma descriptions are light-only.** The DTCG overlays carry per-mode prose, but the Figma variable description is light's. Noted, not solved here.
+- **Only the studio's two background writes reset the floor.** A floor can still be stranded by anything else: an edit to the neutral ramp's steps, or a restored or hand-edited brand. Then the error bar shows the studio sentence. `test:smoke`'s S4c sweep met the stranded case before Q69, when it picked the floor and then moved the tertiary away. It runs in its original order again (floor second), because the move now resets the floor.
+- **The studio sentence keys on the engine's message opening with `surfaces.‹mode›.floorStep:`.** If the engine rewords that key, the studio falls back to the engine's words, and section 11's arms fail by name.
+- **"The engine's words never shown" cannot ban `floorStep`.** The import sentence names the key bare (Q76 A), so the tests match the engine's phrasing (`surfaces.‹mode›.floorStep`, "is not a step a", "page ground sits on"). The studio's own message is still checked for no `floorStep` at all.
+- **Sweep cost.** The sweep adds about 200 builds to `test.ts`.
+
+---
+
+## (2026-10-06) — Top bar: above the narrow tier the bar gives way in order, by a measured fit, never an arbitrary wrap (#2214)
+
+**STATUS: branch `ui/2214-bar-labels-fit`, PR #2257.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged, no new strings. Owner decisions N2 A, then BL1 A+B, BL2 A and BL3 A (2026-10-06, on #2214), then Q83 A (2026-10-06, on #2257, after the review lane's sweep). The owner approved the screenshots for the first round at `e862a560`.
+
+### Diagnosis
+
+Between 561px and about 1000px the plugin's bar wrapped to two rows wherever the flex row happened to break, because the tile labels dropped only at the narrow tier (560px and below).
+
+The issue's first fix, dropping the labels when the full bar would not fit, was built and measured first, and it was not enough. Hiding every label saves only about 122px, so with "prism3" the bar still wrapped up to about 900px, and with a long brand name up to about 1050px. The owner then set the order in which things give way.
+
+Measured in the built plugin, with each item kept from shrinking. The window needs the row width plus the bar's 56px of padding:
+
+| Bar state | "prism3" row | One row from | `northwind-outdoor-supply-co` row | One row from |
+|---|---|---|---|---|
+| Everything shown | 967 | 1023px | 1116 | 1172px |
+| Tile labels hidden | 845 | 901px | 994 | 1050px |
+| Labels and the product name hidden (logo kept) | 732 | 788px | 881 | 937px |
+| The two rows' first row | 381 | — | 530 | 586px |
+
+On the web, "prism3" fits at 640 with everything shown. At 640 (584px of room), `northwind-outdoor-supply-co` needs 706px with everything shown, 601 without labels and 488 without the name.
+
+**The review round (Lane D, #2257).** Lane D swept 380–1280 in 10px steps and found that the long name still wrapped arbitrarily on the plugin. Below about 586px even the two rows' first row did not fit, so Export fell onto a third row of its own. The section checked only 1280, 1000, 800 and 640, so it could not see this. The owner decided Q83 A: one more step.
+
+### What changed
+
+- **`apps/studio/src/shell/frame.ts`, `fitBar`, on the frame's existing ResizeObserver, on both hosts (BL2 A).** Above the narrow tier the bar is one row whenever it fits. When the full bar would not fit, these give way in order, and the frame's `data-bar-fit` names the step:
+  1. `glyphs`: every tile label drops together (BL3 A). The tiles keep their glyphs, tooltips and names, and Apply Theme keeps its text.
+  2. `logo`: the product name beside the logo drops too. The logo stays, as at the narrow tier.
+  3. `rows`: the narrow tier's two rows, with Pages, Figma and Apply Theme on the second and Apply Theme at the right. This step applies only where the bar has that file row, which is the plugin.
+  4. `trim` (Q83 A): the brand switcher's name is cut short with an ellipsis, so the first row still holds. The full name stays the switcher's accessible name (its text) and its tooltip (`title`, set only while the name is cut). Nothing else moves, and Export stays on row 1.
+- **No flapping.** Every step's width comes from one measurement of the full bar with everything shown (the labels and the name are subtracted, never hidden to measure). It is taken once per content change (a mutation in the bar's controls, a font load, a change of tier) and reused while only the width moves.
+- **`apps/studio/src/chrome.css`.** No forked rules. The narrow tier's own rules for `.p3-tile-label`, `.p3-mark-name`, `.p3-bar-break` and `.p3-bar-spacer2` now also match their step (`:is([data-w="narrow"], [data-bar-fit…])`), with the same specificity and order. The `trim` step adds two rules: the brand switcher's wrap takes what is left of the first row (`flex: 1 1 0`, so the ellipsis `.p3-brand-name` already draws takes over), and the spacer before Theme gives up its share. The narrow tier at 560px and below is unchanged.
+- **The web and `trim`.** The web has no file row, so after `logo` it goes straight to `trim`. No tested name reaches that on the web (the sweep draws the cut name in 0 web states), so the web looks the same as at the approved screenshots.
+
+### Gates
+
+`test:chrome` **section 29d**. It is not 29c: main's section 29c is the export dialog's.
+- **Coverage:** both hosts and both themes, swept from 1280 down to 380. The long name is swept every 10px. "prism3" is swept every 30px, plus 640, 800, 1000 and 1280. The coarser grid for the short name keeps the section near a minute (496 bar states).
+- **Expected step:** `FIT_ORACLE` lays each candidate row out for real under the test's own forcing stylesheet (no wrap, no shrink, no spacer, the controls box sized to its content), reads its `scrollWidth`, and compares it with the controls box's width.
+  - The candidates are the full row, the row without labels, the row without the name, and the two rows' first row (the controls before the row break, the rest taken out). Past the last one that fits comes `trim`.
+  - It never reads `data-bar-fit` or the frame's arithmetic. The frame subtracts from one measurement, and the test lays each row out, so neither side is derived from the other (docs/34 shape 2).
+  - Within 1px of the room, both neighboring steps are accepted.
+- **Drawn step:** `FIT_SEEN` classifies the bar from the render alone: which labels and name show, whether the brand name is cut (its text wider than its box), the rows, every tile at one top, and the controls box one control tall.
+  - Above the narrow tier, every width must draw the expected step in no more rows than it allows: 1 for full, glyphs and logo; 2 for rows and the plugin's trim; 1 for the web's trim.
+  - The tooltip appears only while the name is cut.
+- **Accessible names:** the computed name (CDP `Accessibility.getPartialAXTree`) of the mark and of every bar control must equal the same brand's name at 1280 at every width, the narrow tier included. While the name is cut, the switcher's computed name and its `title` are the full name, and Export is on row 1.
+- **Long name:** it gives way sooner than "prism3" and is never behind it, and on the plugin it reaches `trim`.
+
+The existing checks follow the fit and keep their own expectations otherwise: §1's product-mark name, §29's tile labels and T7's Agent label each read `FIT_ORACLE` above the narrow tier.
+
+Mutations, each made after a `wip:` commit, applied with its diff confirmed, rebuilt, run against section 29d (51/51 unmutated), and restored:
+- **(a) No label drop** (`[data-bar-fit]` taken out of the label rule): 11 failures. Example: `✗ 29d figma light prism3: across 33 widths the bar draws the measured step, in no more rows than it allows (1010: want glyphs (full 967, without labels 845, without the name 732, first of two rows 381, in 954), drew other in 2 row(s) [… "apply-to-figma"] | …)`.
+- **(b) The product name never drops:** 9 failures. Example: `✗ 29d figma light prism3: … (890: want logo (… in 834), drew other in 2 row(s) …)`.
+- **(c) Straight from the full bar to the two rows:** 8 failures. Example: `✗ 29d figma light prism3: … (1010: want glyphs (…), drew rows in 2 row(s) …)`.
+- **(d) The measurement ignores the brand switcher's width:** 11 failures. Example: `✗ 29d figma light prism3: … (1010: want glyphs (…), drew other in 2 row(s) …)`.
+- **(e) The web excluded:** 5 failures. Example: `✗ 29d web light prism3: … (590: want glyphs (full 557, without labels 452, without the name 339, in 534), drew other in 2 row(s) ["product-mark brand-switcher verdict theme-toggle activity-open","export-open"])`.
+- **(f) No truncation** (the `trim` rule on the brand switcher's wrap removed): 3 failures, and the three-row wrap comes back. `✗ 29d figma light northwind-outdoor-supply-co: … (580: want trim (full 1116, without labels 994, without the name 881, first of two rows 530, in 524), drew other in 3 row(s) ["product-mark brand-switcher verdict theme-toggle agent-toggle activity-open","export-open","pages-menu figma-open apply-to-figma"] | …)`, the same for dark, and `✗ 29d figma: the long name reaches the cut-name step somewhere in the sweep (0 state(s))`. 43 assertions ran, not 51, because the eight cut-name assertions (4 states × 2) run only where a name is cut.
+
+### Traps
+
+- **The narrow tier is not covered.** Below 561px a long name still wraps arbitrarily: on the plugin at 460px and below (Export, then Activity and Agent, break onto a third row), and on the web at about 430px and below. This predates #2214, and the narrow tier is unchanged here. Filed as #2262 for an owner decision.
+- **The first round's "No tested name reaches that width" was wrong.** 29c's own long name reached it on the plugin at 570–590px. It was checked at four widths only, so it could not see that. The sweep is what holds it now, and it is the reason Q83 A exists.
+- **Measuring a hidden row flaps.** Measuring the row as drawn (labels hidden) says "it fits", which shows the labels, which says "it does not". Every step is derived from the full row instead, and the cache is cleared only by a content change or a change of tier.
+- **A wrapping flex row breaks before it shrinks.** The brand switcher's `min-width: 0` alone never cuts the name: the line breaks first. `trim` gives its wrap `flex: 1 1 0`, so its own size asks for nothing and it takes only what is left.
+- **The oracle's forcing has to size the controls box to its content.** A nowrap row in a flex box that can shrink reads `scrollWidth === clientWidth` when it fits, which is ambiguous at the 1px edge. `width: max-content` with `flex: none` reads the row itself.
+
+---
+
+## (2026-10-06) — Engine: the shadow tint follows the hue that builds the neutral ramp (#2184)
+
+**Status:** ENGINE `0.232.0` (`engine: minor`, change note `engine-2184-shadow-tint.md`). CONTRACT
+unchanged. `regen` moves no committed artifact.
+- **Engine:** `theme.ts`, plus tests in `test.ts`.
+- **Studio** (owner Q58 B): `domains/depth.ts`, `state/depth-motion-input.ts` and one `chrome.css` rule, plus tests in
+  `test-depth-motion-input.ts` and a new section at the end of `test-chrome.mjs`.
+
+**Strings for the owner:** all approved. C1–C3 and V1 in owner Q72 A, and the general forms G1 and G2 in Q82
+(listed below).
+
+### What changed
+
+The owner decided on 2026-10-06 that, with `shadow.tint.hue` unset, the shadow tint follows whichever hue
+builds the neutral ramp:
+
+| Neutral source | Shadow tint hue |
+|---|---|
+| Follow primary (`neutral.auto`) | the primary's hue |
+| Custom tint | the custom tint hue |
+| Pinned (`neutral.anchor`) | the pinned gray's hue, which also wins over Follow primary, as it does for the ramp |
+
+An explicit `shadow.tint.hue` still wins. `buildShadow` used to take the stored `neutral.hue` at both of
+its `brandTheme` call sites, the baseline and the per-mode ramp. Under Follow primary and Pinned, that's a
+hue the ramp ignores and the studio doesn't show.
+
+`brandTheme` now derives `neutralRampHue` once (`nAnchor ? nAnchor.h : nHue`) and uses it for the neutral
+ramp *and* for both shadow calls, so the two can't drift apart again. The NB legacy fixture's call is left
+alone: it is a fixed fixture at `amount: 0`, pure black whatever the hue.
+
+### Which brands change, and by how much
+
+None in the corpus. `regen` moved nothing, and an equivalence run compared every corpus brand's shadow axis,
+built from the same input by `main`'s engine and by this branch's:
+
+| brand | neutral source | tint hue, main → branch | shadow axis |
+|---|---|---|---|
+| prism3 | custom tint, explicit tint 266.75 | 266.75 → 266.75 | identical |
+| aurora | custom tint, explicit tint 285 | 285 → 285 | identical |
+| harbor | custom tint | 65 → 65 | identical |
+| nb-redesign | pinned (anchor hue 325.7 = stored hue) | 325.7 → 325.7 | identical |
+| wendys | custom tint | 249.14 → 249.14 | identical |
+| nb (legacy fixture) | amount 0, pure black | 243 → 243 | identical |
+
+Where the rule does apply, Harbor with its tint unset shows it:
+- **Follow primary:** 65° → 195°, ΔE00 2.15 on the shadow color.
+- **A gray pinned at 250°:** 65° → 250°, ΔE00 2.51.
+- **Custom tint:** unchanged.
+
+`nb-regression` passes unchanged (mean ΔE00 1.95, 11/11 contracts).
+
+The class is `minor`, not `patch`, although no artifact moved. Principle 5 makes `minor` the class for any
+behavior change, and `patch` only *permitted* when nothing moves. Every non-corpus brand under Follow primary
+or a pinned gray gets a new shadow color. The token names don't move, so the token contract stands.
+
+### The studio's readout already agrees
+
+Depth & motion's tint hue slider shows the authored `shadow.tint.hue` or, unset, the engine's resolved
+`theme.shadow.tint.hue` (`domains/depth.ts` `shadowShown`). Every mode's Auto falls back to the same field
+(`state/depth-motion-input.ts` `brandShadowValue`). Nothing in the studio or the plugin derives the hue on its
+own, so the readout follows the new rule with no studio change. Under Follow primary, an untouched slider
+now reads the primary's hue.
+
+### Tests and mutations
+
+In `test.ts`, one test per source and one for the explicit override:
+- **Expected hues are read from the input.** Each expected hue is `primary.h`, `neutral.hue`,
+  `neutral.anchor.h` or `shadow.tint.hue`, never read back from the shadow.
+- **Every hue in play sits ≥ 30° from every other**, asserted in each test, so a wrong source cannot agree by
+  coincidence.
+- **Both call sites are held.** Each case carries a dark-mode shadow override, so the per-mode site is
+  checked alongside the baseline.
+- **The color is checked, not just the field.** The default path's shadow color must equal the color built by
+  asking for the expected hue explicitly.
+
+Each mutation ran from a `wip:` commit, asserted it applied, and was restored with `git checkout --`. In
+every arm the only failures in `test.ts` were these tests:
+
+| Arm | Failures | ✗ line |
+|---|---|---|
+| (a1) baseline back to `input.neutral.hue` | 3 | `#2184 Follow primary: the shadow tint takes the primary's hue (expected 195, from the input; got baseline 40, dark mode 195; …)` and both Pinned cases, `got baseline 40` |
+| (a2) per-mode back to `input.neutral.hue` | 3 | the same three, `got baseline 195, dark mode 40` / `baseline 250, dark mode 40` |
+| (b) Pinned mapped to the stored hue | 2 | `#2184 Pinned: the shadow tint takes the pinned gray's hue (expected 250, from the input; got baseline 40, …)` and `#2184 Pinned, with Follow primary on: …` |
+| (c) the explicit-override branch dropped | 1 | `#2184 an explicit shadow.tint.hue still wins over every neutral source (expected 120; got 195/195, 300/300, 250/250)` |
+
+Custom tint passes under (a) and (b), correctly: there, the stored hue *is* the source.
+
+### A gray ramp has no hue, so its shadow is untinted (owner Q58 B and Q73 A, 2026-10-06)
+
+Lane D's review found that a pin with r = g = b converts to chroma ~1e-8 and a noise hue of ~89.88° (#2241). The
+ramp can't show that noise at chroma ~0, but the shadow tint did: olive, ΔE00 2.23. The studio's hue slider also
+read ~90°. The owner ruled that such a ramp has no hue, so the shadow is **untinted**, and an explicit
+`shadow.tint.hue` still wins.
+
+- **Detection is by chroma, never by the noise hue.** The shadow's default is `null` below `ACHROMATIC_C = 1e-4`.
+  That threshold is four orders of magnitude above the noise, and well below the faintest real pin in the corpus
+  (nb-redesign's `#151415`, chroma 0.0025).
+- **The render is "no hue, the amount still lifts".** That was the owner's choice of two (the other was pure
+  black): chroma 0 at the lightness `amount` sets, so the Amount slider keeps working under the pin. At the default
+  amount it is ΔE00 0.44 from pure black.
+- **The resolved hue becomes `null`.** `ShadowAxis.tint.hue` is now `number | null`. No token carries the hue,
+  only `colorRgb` and the layers, so nothing emitted changes shape.
+- **The slider is disabled and reads None.** That was the owner's choice. It keeps its `aria-valuetext` in step,
+  and a hint line says why. Every mode's Auto label reads None too. Amount stays enabled.
+- **The guard covers ANY gray ramp (owner Q73 A).** It reads the chroma that *builds* the ramp, the pin's or
+  `neutral.chroma`, so a Custom tint or Follow primary at `chroma: 0` is untinted too, though its hue is a real,
+  user-set number. The decisions-log note and the slider's line name the source: the pinned wording for a pin,
+  a general one otherwise.
+- **The converter itself is untouched;** its noise is #2241.
+
+### Strings for the owner
+
+Following docs/voice-standard.md.
+
+| # | Where | Text | Status |
+|---|---|---|---|
+| C1 | the decisions-log note, a pinned gray | `untinted at 0.15, because the pinned gray has no hue` (` (pure black)` after the amount when it is 0) | approved (Q72 A) |
+| C2 | the hue slider's readout | `None` | approved (Q72 A) |
+| C3 | the line under the disabled hue slider, a pinned gray | `The pinned gray has no hue, so shadows are untinted.` | approved (Q72 A) |
+| V1 | a disabled range's skin (`chrome.css`) | `accent-color: var(--p3-disabled-ink); cursor: not-allowed`, from #2152's disabled-skin family (F1 A) | approved (Q72 A) |
+| G1 | the decisions-log note, a gray Custom tint or Follow primary | `untinted at 0.15, because the neutral is gray` | approved (Q82) |
+| G2 | the line under the disabled hue slider, a gray Custom tint or Follow primary | `The neutral is gray, so shadows are untinted.` | approved (Q82) |
+
+The tests:
+- **`test.ts`:** `#333333` and `#808080`, built through the real converter, leave the shadow untinted: `tint.hue` null,
+  r = g = b, still lifted off black, at the baseline and per mode. An explicit hue still tints both pins. The faint
+  real pin `#151415` keeps its own hue, which holds the guard from the other side (docs/34 shape 14).
+- **`test-depth-motion-input.ts`:** the slider's source value, `brandShadowValue('tint.hue')`, is null under each
+  pin, and an explicit hue then wins.
+- **Q73 A:** a Custom tint and a Follow primary at `chroma: 0` are untinted in `test.ts`, at the baseline and per
+  mode, and an explicit hue still tints both. Their slider value is null in `test-depth-motion-input.ts`.
+- **`test-chrome.mjs`:** a new section at the end, outside the four open UI-lane PRs' edits. It runs four cases:
+  the two pins, a gray Custom tint and a gray Follow primary. Each hue slider must be disabled, its readout and
+  `aria-valuetext` must read None with no 89 or 90, its line must give the exact reason for its source (C3 or
+  G2), and Amount must stay enabled.
+
+| Arm | Failures | ✗ line |
+|---|---|---|
+| (d) the guard removed | `test.ts` 2, studio unit 2 | `#2184 Q58 B: a pure-gray pin (#333333) leaves the shadow untinted, with no hue (… got tint.hue 89.87556274151122, color {"r":13,"g":12,"b":10} …)`, the same for `#808080`, and `✗ #333333 pinned (converter hue 89.88): the hue slider's value is null (shown as None), not ~90° … (got hue 89.87556274151122 …)` |
+| (e) the threshold raised to 1e-2 | `test.ts` 1 | `#2184 Q58 B: a faint but real pin (#151415, chroma 0.0025) still tints the shadow at its own hue (expected 325.67, got null …)` |
+| (f) the studio's disable call dropped | `test:chrome` | 26051/26053, both failures this section's: `✗ #2184 Q58 B: a pure-gray pin (#333333), web light 1280: the hue slider is disabled, reads None (not ~90°), says why, and Amount stays enabled ({"disabled":false,"aria":null,"readout":"None","hint":false,"amountEnabled":true})`, the same for `#808080`. The readout still says None through its own mapping, so the disable assertion is what fires |
+| (g) the guard scoped back to the pin (Q73 A) | `test.ts` 2, studio unit 2 | `#2184 Q73 A: a gray Custom tint (chroma 0) leaves the shadow untinted, with no hue (got tint.hue 40, color {"r":15,"g":11,"b":10} …)`, `#2184 Q73 A: a gray Follow primary (chroma 0) … (got tint.hue 195 …)`, and the studio's `✗ a gray Custom tint (chroma 0): the hue slider's value is null (shown as None), not a hue (got hue 65 …)` with its Follow-primary twin (hue 195). The pin tests stay green |
+
+### A trap for whoever re-verifies this
+
+The corpus can't show this change, because no corpus brand has a tint-unset Follow-primary or
+off-hue pinned neutral. So "`regen --check` clean" is true and proves nothing about the rule. The tests'
+synthetic brands are what hold it.
+
+---
+
+## (2026-10-06) — Build style guides: the page takes the heading rule and joins test:chrome section 30 (#2215)
+
+**Status:** `apps/studio/src/chrome.css` (the page's heading rules only) and `test:chrome` section 30. No ENGINE bump (no
+emitted artifact moves). CONTRACT unchanged. No copy changed. Visible only in the plugin: the web host has no Build style
+guides page. Closes #2215.
+
+### What changed
+
+Heading pass 1 (#2210) left #2171's page alone. It now maps onto the three levels, with existing chrome tokens only.
+
+- **The page title** (`.p3-sg-title`, "Build style guides", 20 / `fw-strong`) stays a page title. #2210 never restyled a
+  page title: the levers pages have none in the pane the rule measures, and the preview's title and the dialogs' titles
+  sit outside the rule. The sweep reaches this one, so it is the first entry in `HEADING_EXEMPT`, with its reason.
+- **L1, the card titles** (`.p3-sg-sec-title`: What to draw, Options) already had L1's type. Their content now starts
+  `space-300` after them (it was the card's `space-200` gap). A margin on the title does it, so the untitled Draw card
+  keeps its `space-200`.
+- **L2, the option group titles** (`.p3-sg-ogroup-title`: All tables, Color, Spacing and size, Font variables, Text
+  styles) move from 12 / `fw-default` in secondary ink to `fs-14` / `fw-strong` / `lh-compact` in primary ink. The
+  group's gap already gave `space-150` to the first lever.
+- **L3, the lever names inside a group** (`.p3-sg-lever-name`; the owner's decision SH1 A, 2026-10-06, applying held
+  decision 7: a lever inside a group reads as a field). They keep `fw-emphasis` and take `fs-14`, `lh-compact` (it was
+  `lh-normal`, 21px) and primary ink. What follows the lever's first row (a wide lever's control, or the lever's own
+  hint under a name and its control) starts `space-050` after it: the lever's row gap, unchanged.
+- **L3, the field names** on What to draw (Collection, Mode, the Kinds legend; accepted with SH1 A). They had L3's type.
+  Their control now starts `space-050` after them: `.p3-sg-field`'s gap moves from `space-075` to `space-050`, and the
+  Kinds `<legend>`, which its fieldset's gap does not reach, carries `space-050` itself (it was 0).
+
+### The gate (test:chrome section 30)
+
+- **The walk is per host.** `HEADING_PAGES` is the nine pages on the web host, and the nine plus `style-guides` on the
+  figma host. The page is reached through the Figma menu with section 27's `SG_RING_CATALOG` posted (one table of each
+  kind, so every option group draws). `HEADING_PROBE` takes the area it measures as a parameter: the levers pane, or
+  `[data-p3="style-guides"]` here.
+- **Its own literal `EXPECT_HEADINGS` entry:** L1 2, L2 5, L3 14, all typed. Its own floors (`SG_HEADING_FLOOR`) and
+  tally, so the nine pages' floors do not move.
+- **The represented-page check.** After the walk, every page `EXPECT_HEADINGS` names must have been measured on that
+  host, by name (the web host skips `PLUGIN_ONLY_PAGES`). The list's keys are typed apart from the walk's list, so
+  dropping a page from the walk fails here, whatever the counts say.
+- **The sweep** passes on the page: 9 heading elements per run, each a level or the exempted page title.
+- **A lever name's row** is the lever's first grid row, its name and (unless the lever is wide) its control. The space
+  after it is measured from that row to the next box in the lever. A lever with nothing under its row (Paragraph spacing,
+  Text decoration) has no space after it to measure; the group's gap follows.
+
+### Traps for whoever re-verifies
+
+- **The page is plugin only.** `main.ts` lends it to the figma host alone (`styleGuides: commit.isFigma ? … : null`), so
+  the web host cannot be screenshotted or measured on it. That is not a gap in the arm.
+- **Don't reuse `t` as a tally name in section 30's loop.** The token-label loop's own `t` shadows it. The first draft of
+  this arm did that, and token labels counted 0 on every run.
+- **The style guides page has no levers pane, preview or mode control.** The HP3 hint read, `PROMOTED`, TY1 and the
+  token-line checks are the nine pages' and are skipped there.
+
+### Mutations (each after a `wip:` commit, on rebuilt bundles, each failing by name)
+
+- `.p3-sg-ogroup-title` back to 12 / `fw-default` in secondary ink → `TY2 A figma light 1280 / style-guides: L2 "All tables"
+  (option group title) fs 12, want fs-14 14; fw 400, want fw-strong 600; line height 15, want lh-compact 17.5` (20).
+- The page dropped from the walk → `TY2 A figma light 1280: the heading rule measured the style-guides page, which the
+  audit's list names — measured [the nine]` (4, by name, with 16 more from the page's floors).
+- One lever name at `fw-strong` → `TY2 A figma light 1280 / style-guides: L3 "Aliases" (option name) fw 600, want
+  fw-emphasis 500` (4).
+
+---
+
+## (2026-10-06) — a click on blank space inside the start window keeps focus in it (#2232)
+
+**STATUS: branch `ui/2232-start-focus-trap`.** UI only, with no visible change: no engine change, no emitted artifact moves. ENGINE bump class: **none owed**. `CONTRACT_VERSION` unchanged. **Fixes #2232.**
+
+### What was wrong
+
+The S12 start window traps Tab with a keydown listener on its scrim, through `trapTab`. A click on blank space inside the window (its lede, a card's text) moved focus to `<body>`, because the window wasn't focusable. `<body>` is outside the scrim, so the trap's listener no longer heard the keys. Measured on today's code, on both hosts: after such a click, `document.activeElement` is `body`.
+
+**The issue said Shift+Tab then stays on `<body>`. That didn't reproduce in headless Chromium.** With everything behind the window inert, Tab and Shift+Tab from `<body>` both landed on a control in the window, so those two arms passed on today's code. The issue says it was found by reading the code. The failing condition, focus leaving the modal on a click, is the defect.
+
+### The fix
+
+`windowShell` (`apps/studio/src/shell/start.ts`) gives the window `tabindex="-1"`. This covers the start window and its guard, which both come from it. A click on blank space now focuses the window itself. `trapTab` already treats the window as its fallback focus: Tab goes to the first control, Shift+Tab to the last. `focusables()` skips `tabindex="-1"`, so the window is never a Tab stop. A mouse focus draws no ring (`:focus-visible` stays false). There is no visible change.
+
+### Test
+
+A new section at the end of `test-chrome.mjs` (kept clear of the open UI-lane PRs), on both hosts at 1280. It opens the start window from the brand menu, clicks its lede (`hooks.click`), and asserts three things. After the click, focus is in the window. Tab then moves focus to a control in it. After another click on blank space, Shift+Tab moves focus to a control in it.
+
+### Mutation: the fix reverted (today's code)
+
+Both hosts fail by name, `✗ #2232 web light 1280: after a click on blank space, focus stays in the start window (focus is on body)` and the same for figma (`33667/33669`). With the fix: `33669/33669`.
+
+---
+
+## (2026-10-06) — the Figma menu no longer lists Apply Theme; the bar's filled button is its one control (#2178)
+
+**STATUS: branch `ui/2178-figma-menu-apply`.** UI only: no engine change, no emitted artifact moves, ENGINE bump class: **none owed**, `CONTRACT_VERSION` unchanged, no new string. **Closes #2178.** Owner decision, 2026-10-05 (after the demo): Apply Theme appeared twice, as the top bar's filled primary button and as the first item of the Figma menu. The menu's copy goes; the bar's button stays.
+
+### What changed
+
+Since S13.1 (#2124) the bar's Apply Theme had no state of its own: `bar.ts` read the Figma menu's list (`FigmaSource`) and looked up its `apply` item by id for the label's busy state, the off state, the tooltip and the function. So removing the item from the list alone would have left the bar's button inert (its `find` returning `undefined`, the click doing nothing, the button never off). The fix is a separate lend, not a filter:
+
+- **`main.ts`** splits `applyAction` (one `FigmaAction`, the same fields as before: `applyBusy()`, `restoreFailure` and its `RESTORE_OFF_HINT`, `runApply`) out of `figmaActions`, which now lists Prune stale, Set up file, Build set… and Build style guides…. It lends `applyTheme` to the frame beside `figma`.
+- **`shell/frame.ts`** takes `applyTheme: (() => FigmaAction) | null` and hands it to the bar in place of `figmaSource`.
+- **`shell/bar.ts`** reads `placed.applyTheme()` directly. The `find((a) => a.id === 'apply')` lookups are gone, the code this change made dead.
+- **`shell/figma.ts`** is unchanged in behavior; its header no longer says the menu carries a copy of Apply.
+
+### Nothing else depended on the menu entry (checked)
+
+- **Agent path:** an agent's apply is `agent-dispatch.ts`'s `apply-theme` command on the main thread (`ACTIONS.applyTheme`), which never touches the UI. Unchanged.
+- **Keyboard path:** the menu's keyboard handling is generic over whatever items it holds. Arrow Down now opens it on Prune stale, the new first item. The bar's button is a native button. No shortcut ever named the menu's Apply.
+- **`postMessage`:** the `apply-theme` message is still posted by `runApply`, now reached only from the bar's button, and handled on the main thread for the bar and the agent. No handler became dead, so there is no handler-deletion arm.
+- **Test hooks:** `figma-option-apply` was used only by `test-chrome.mjs` §10 and `test-build-verdict.mjs`'s #1989 and #1994 arms. Both now drop it. The hook guard would have failed by name had a literal been left behind, since the hook no longer renders.
+- `apps/plugin/README.md`'s "on the top bar, or in the Figma menu" now says "on the top bar".
+
+### Tests
+
+- `test:chrome` §10, plugin, both themes, at 1280, 640 and 380: the menu's items read Prune stale, Set up file, Build set…, Build style guides… (literal); a `hooks.absent` check, proven by the open menu with its items read, finds no item whose hook or label says Apply; the keyboard walk is redone over four items; the Apply write that the menu's item used to drive is now driven from the bar's button, with the same wire checks (posts `apply-theme` with example-brands.json's prism3, whole), the drawer's auto-open and the busy label. The closing "the bar's Apply and the menu's post the same message" check went with the menu's Apply.
+- `test:verdict` #1989: with the menu open, its items read the same four labels, and a `hooks.absent` check finds no Apply. The bar's Apply still turns off after a refused restore and, in the control, posts the restored brand once. #1994's `allOff`/`allOn` read the bar's Apply and the menu's Prune.
+
+**Mutation** (`wip:` commit first), the `apply` item put back at the head of `figmaActions`, both bundles rebuilt:
+
+- `test:verdict` (316 assertions, 2 fail):
+  - `✗ #2178 the Figma menu lists no Apply Theme — items [["figma-option-apply","Apply Theme"],["figma-option-prune","Prune stale"],…]`
+  - `✗ #2178 the Figma menu's items read Prune stale, Set up file, Build set…, Build style guides… — read ["Apply Theme","Prune stale",…]`
+- `test:chrome` (28634 assertions, 24 fail: these four in each of the plugin's six cases, light and dark at 1280, 640 and 380):
+  - `✗ #2178 Figma menu figma light 1280: the menu lists no Apply Theme, the bar's button is its one control (items [["figma-option-apply","Apply Theme"],…])`
+  - `✗ Figma menu figma light 1280: the items read Prune stale, Set up file, Build set…, Build style guides… — read Apply Theme, Prune stale, …`
+  - `✗ Figma menu figma light 1280: Arrow Down on the button opens the menu on its first item ({"open":true,"focus":"figma-option-apply"})`
+  - `✗ Figma menu figma light 1280: Arrow Down, End, Home and Arrow Up (wrapping) move along the items (…, figma-option-apply, …)`
+
+Restored, both suites green again: `test:verdict` 316/316, `test:chrome` 28634/28634 (it was 28658 before the change: the menu's Apply checks that went, less the new ones).
+
+### Traps for whoever re-verifies this
+
+- The lend is `applyTheme`, not `apply`: `test-shell-imports.ts` refuses any identifier or key named after a legacy repaint tier (`apply` is one) anywhere under `src/shell`, and the first verify run of this branch failed `studio-test` on exactly that.
+
+- The absence checks match `/apply/i` against each item's hook and label together, so an item put back under either name fails. Don't spell `data-p3="figma-option-apply"` anywhere in a suite to probe for it: the hook guard reads every literal hook from the suite's source and fails one that never renders, which, after this change, that one never does.
+- Screenshots (before and after, the Figma menu open, light and dark, at 1280 and 380) were taken with `node apps/studio/test-chrome.mjs <dir>` (§10's `s14-plugin-<theme>-<w>-figma-menu.png`).
+
+---
+
+## (2026-10-06) — mcp-test.ts runs the #2162 block once (#2246)
+
+**STATUS: branch `test/2246-mcp-test-dedupe`.** Test only: no engine change, no emitted artifact moves. ENGINE bump class: **none owed**. `CONTRACT_VERSION` unchanged. **Fixes #2246.**
+
+### What was wrong
+
+`packages/engine/mcp-test.ts` carried the `#2162: a build-time refusal is an isError result, never a protocol error` block twice, byte-identical (lines 289–317 and 319–347). The second copy came from #2207, which branched off #2200's head and merged `main` in. Once #2200 was squash-merged, `main` carried the block as well, and the merge kept both copies. Every `#2162 <tool>` arm ran and counted twice, and an edit to one copy would have left the other stale under the same label.
+
+### The fix
+
+The second copy and its blank separator are deleted (30 lines). Before deleting, the span was asserted to be exactly the duplicate.
+
+### Proof the count drops by exactly that block, and nothing else
+
+A scratch copy of the suite (not committed) logged every assertion's label, before and after, and the two lists were compared as multisets:
+- `Prism3 MCP suite: 79 passed` → `75 passed`;
+- **dropped:** exactly four labels, once each, `#2162 theme_brand`, `#2162 theme_from_brief`, `#2162 export_theme` and `#2162 score_consumption` (`… a build-time refusal comes back as an isError result …`);
+- **added:** none;
+- **run more than once:** before, those four and only those; after, none.
+
+The surviving block still guards #2200's fix. With `buildTree` moved back outside `buildBrand`'s `try`, all four `#2162` arms fail by name, once each (`71 passed, 4 failed`).
+
+---
+
+## (2026-10-06) — Type scale: only a pinned-size clash offers Release; other refusals show their own reason (#2194)
+
+**STATUS: branch `ui/2194-type-scale-refusal`.** UI only: no engine change, no emitted artifact moves, ENGINE stays at 0.232.0, `CONTRACT_VERSION` unchanged. One new sentence, owner-approved (Q55 B, 2026-10-06): the Compact refusal for the 16px title floor. Every other sentence shown was already approved (owner decision N3 A, 2026-10-06).
+
+### What changed
+
+`shapeBlocked(key, cur)` in `state/type-input.ts` returned a boolean, and Type's Type scale lever read every `true` as a pinned-size clash. It then showed "Some sizes you set would clash at this scale. Release them to switch." and "Release pinned sizes", whatever the engine had actually refused. On the shipped Aurora (Expressive, 16px smallest title, nothing pinned), the Compact chip showed that clash. The engine's real refusal was `titleFloor 16 is incompatible with typeScale 'compact'`, which releasing sizes can't fix, and there was nothing to release.
+
+`shapeBlocked` now says why, or returns `null`:
+- **`titleFloor`**: Compact with the 16px title floor. This is the engine's own rule, checked directly, as the 16px title floor chip already checks it.
+- **`pinned`**: the switch is refused, and the same switch builds once every pinned size is released. Only this case is a clash. The trial release runs the real `releasePinnedSizes()`, not a list of its fields. It works on clones swapped into `brandState.typography` and `brandState.modeLevers`, and the original objects go back in `finally`. So a clash is exactly what the button fixes, and the two can't drift apart (independent review of #2225, which found that a re-listed copy could lose `typeSizes` or `sizeOverrides` and still pass).
+- **`other`**: anything else, carrying the engine's message.
+
+The lever shows the clash message and Release only for `pinned`. The title floor case disables the Compact chip with its own sentence, `S63.scaleTitleFloor`: "Compact can't be used while the title floor is 16px. Raise the title floor to use it." (owner decision Q55 B). It also shows that sentence as a warning line under the chips (hook `type-scale-refused`). `other` does the same with the engine's message, the text the global error bar already shows for an engine refusal (owner decision Q56 A).
+
+The 16px title floor chip keeps its own approved B8b sentence, `S63.titleFloorCompact`, unchanged. The first cut of this PR reused B8b under Type scale too, but there "refuses 16px with it" points at a lever in another section (Scale limits), so the owner gave this place its own words.
+
+### Owner decisions (2026-10-06)
+
+- **Q55 B: the title floor refusal gets its own sentence.** "Compact can't be used while the title floor is 16px. Raise the title floor to use it." It shows on the disabled Compact chip and under the chips. The 16px title floor chip's B8b sentence is unchanged.
+- **Q56 A: the `other` arm keeps the engine's message as written, for now.** No shipped brand reaches it. The two refusals a scale switch can hit are the title floor and the pinned clash, and a brand already refused for an unrelated reason fails every switch for that same reason. The message is the one the error bar already shows ("That change didn't apply: …"). Friendlier wording is filed as #2236.
+
+### Gates and their independence
+
+- **`test-type-input.ts`** reads the shipped Aurora's input as data (Expressive, the 16px floor, `pinnedSizeCount() === 0`), then expects `titleFloor` for Compact, never `pinned`. With prism3 and display md pinned at 48px, Expressive is `pinned` and Compact builds; once released, Expressive builds and the brand is back to its bytes. An invalid `captionFloor` (9) is `other`, carrying the engine's sentence, which the test types out. Then one arm per place a size can be pinned: brand-wide `sizes`, Dark's `typeSizes`, and a desktop `sizeOverrides` endpoint, each the only pin. Each must be `pinned`, must leave `brandState` byte-identical with the same objects, and must clear on Release.
+- **`test-chrome.mjs`**, on both hosts:
+  - Aurora loads with nothing pinned. Its Compact chip is disabled with the Q55 B sentence, typed in the test, which shows once under the chips, and there is no clash message and no Release. The B8b arm for the 16px title floor chip still types its own, unchanged sentence.
+  - On prism3, display md set to 56px through the picker (allowed at Default, refused under Expressive) disables Expressive with the clash sentence and shows the message and Release. Release clears it.
+
+  `open()` takes an optional `brand` for the Aurora arm (default `prism3`, so every other caller is unchanged).
+- **Mutation.** After a `wip:` commit, `shapeBlocked` was put back to "every refusal is a clash" (`pinned` for any refusal). It fails by name, in both suites (see the PR). A second round, again after a `wip:` commit, ran four mutations, and each failed by name in `test-type-input.ts`:
+  - Release forgets per-mode `typeSizes`: fails the Dark arm.
+  - Release forgets `sizeOverrides`: fails the endpoint arm.
+  - `shapeBlocked` re-lists the fields and drops those two, the divergence the review found: fails both arms.
+  - The swap is not undone: fails all three "leaves the brand untouched" arms.
+
+  A third round (Q55 B), after a `wip:` commit before each mutation, with both bundles rebuilt, each failing by name in `test-chrome.mjs` on both hosts (4 of 26069):
+  - The old B8b sentence put back in the Type scale refusal: fails `#2194: {web,figma}: Aurora's Compact chip is disabled with the title floor's reason "…"` and `#2194: {web,figma}: Aurora at Compact shows the real reason under the chips, once`.
+  - One word of the new sentence changed ("Raise" to "Lower"): fails the same four.
+
+  The B8b arm for the 16px title floor chip passes in both rounds' unmutated runs, still expecting its own unchanged sentence.
+
+### Trap for whoever is next
+
+The test-chrome hook guard refuses `data-p3="type-scale-${v}"`. Every hook has to appear literally, so the three chips are spelled out.
+
+---
+
+## (2026-10-06) — lint:live-css matches rules inside a selector group, so an insert or a reorder is not a "lost" rule (#2234)
+
+**STATUS: branch `gate/2234-live-css-match`.** Gate and its test only: no product, engine or baseline change. ENGINE bump class: **none owed**. `live-css.json` is untouched, so no `--accept` was run. `CONTRACT_VERSION` unchanged. **Fixes #2234.**
+
+### What was wrong
+
+`lint:live-css` (#2201) keyed each rule `<context> » <selector> #<ordinal>` and compared old to new **by key**. The ordinal names a rule but doesn't identify it, so two edits that removed nothing were reported as losses, and each forced a roughly 20-minute `--accept --allow`. Measured with `main`'s gate:
+- **A same-selector rule inserted** above `.sg-g3{grid-template-columns:…}`: `✗ live rule lost grid-template-columns: .sg-g3 #1`.
+- **The two live `.tpill` rules swapped:** both reported as having lost every property they declare.
+
+### The fix
+
+`compare()` groups rules by (context, selector), the part of the key the sweep decides liveness by. Inside each group it matches old to new by **the largest total property overlap**, then **the most rules matched** (so an old rule emptied to `.sg-g3{}` reads "lost grid-template-columns", not "removed"), then **the smallest ordinal distance** (so an untouched file maps one to one). The assignment is exact up to 8 rules a side (the largest group in `styles.css` is 2) and greedy above that.
+
+`--accept`'s "what would this forget" now uses the same `compare()`, so it doesn't refuse an insert either. The in-memory self-check plants a removal of a whole **group**, since removing one ordinal would leave matching a same-selector sibling. A failure message names the new key when matching moved it.
+
+**Why this can't hide a removal (in the header):** deleting a live property shrinks its group's multiset of property names, so no matching of that group is loss-free, and the loss is reported under the old key. What matching **can** absorb is a property moving between two same-selector rules in the same context. That removes nothing; any cascade change it causes is the gate's stated "effect, not the rule" limit. **The context stays in the group,** because matching across it is #2201's shape-15 case: the 760px `.sg-g3` rule also declares `grid-template-columns`.
+
+### Tests: `apps/studio/test-live-css.mjs`, run by `lint:live-css` after the gate
+
+Each case edits the real `styles.css` text in memory, parses it with the gate's Chromium `parse()`, and compares it with the committed baseline. EXPECTED is literal (keys and property names). Each target is found by its exact text, or the case fails by name. 17 assertions:
+- **Unedited:** clean, with 0 unprotected.
+- **Insert:** clean, and the inserted rule is the one counted unprotected.
+- **Swap:** clean.
+- **Deletion of `.sg-g3`'s `grid-template-columns`:** fails, named `.sg-g3 #1 lost grid-template-columns`.
+- **The whole `.sg-g3` rule deleted:** fails, named `.sg-g3 #1`.
+- **Deletion + insert, and deletion (of `color`) + swap:** both still fail by name. These are the cases a wrong matcher could use to hide a loss.
+- **A dead rule (`.faint`) deleted:** not flagged.
+
+**The first run caught my own regression:** an emptied rule read "removed", where the old gate said "lost". That's what added the most-rules-matched criterion.
+
+### Mutations: plausible wrong versions of this fix, each failing the test by name
+
+- **M1, keep matching by ordinal** (the old behavior): `insert` and `swap` fail with the false "lost …".
+- **M2, skip a group whose rule count changed** (a lazy fix for the insert): `deletion` (`removed: []`), `deletion + insert`, and the unprotected count fail. It hid real losses.
+- **M3, count a property kept if the selector declares it in ANY context** (shape 15): `deletion` and `deletion + insert` fail. The 760px rule hid #2201's own deletion.
+- **M4, report a dead rule's removal:** `dead removal` fails (`removed: [".faint #1"]`).
+
+**On disk, through the gate itself:** the insert passes (`1 rule key added … unprotected`), the swap passes, and the deletion fails as `✗ live rule lost grid-template-columns: .sg-g3 #1 — drawn in test:chrome, web light`.
+
+### Not covered (unchanged limits, in the header)
+
+The gate checks property names, not values, and protects only the rules the sweep sees drawn. Both are on record in #2224 and the issue.
+
+---
+
+## (2026-10-06) — Figma color lines: a `secondary` on another ground's step names one ground in a fixed order, not a throw (#2227, part 1)
+
+**STATUS: branch `engine/2227-secondary-shared-ground`.** Part 1 of #2227, the technical part: no wording, no design call, no committed artifact moves, `CONTRACT_VERSION` unchanged. Change note `engine: minor`, since a throw becomes output; ENGINE moves at the next fold past 0.232.0. Part 2 follows owner Q57 A: a Contrast floor may only be a step a page ground sits on. It covers the 74 floor-step cases and #2239 in its own PR.
+
+### Diagnosis
+
+A sweep ran every light and dark `floorStep` and `secondary` value, across the five example briefs, through `figmaArtifacts`. Of 400 schema-valid brands, 95 threw. Two classes:
+- **74: a `floorStep` on a step no page ground sits on.** This is #2227's `floorStep: 25`. Owner Q57 A makes it a build refusal, in part 2.
+- **21: a `secondary` on the step `base`, `tertiary` or an inverse tier also takes.** The floor moves with `secondary`, so the floor step is aliased by two grounds. `colorRoleDescription` in `emit-figma-color.ts` required exactly one ground and threw "… which 2 page grounds alias …". This PR fixes these 21.
+
+The Figma line is the only place that resolves a bare floor step back to a ground role. Its two-ground throw was a uniqueness check with nothing to protect: the grounds are one color in light, so either name is true.
+
+### What changed
+
+`GROUND_ORDER` sets the search order:
+- `background.secondary`, then `background.primary`, then `background.tertiary`;
+- then the three inverse tiers.
+
+The line names the first ground in that order that sits on the floor step. `background.secondary` leads because the floor follows it unless `floorStep` moves it, and the DTCG description already names it. Page grounds come before inverse ones because a probe of the example brands found no inverse role measured against a bare step: inverse roles name their ground as a role path. The no-ground throw stays. Part 2 makes it unreachable from input.
+
+### Gates and their independence
+
+`test.ts` adds one `#2227 figma sweep` arm per brief and mode. Each runs every neutral step as `secondary` through `figmaArtifacts`.
+
+The oracle never reads `aliasOf`, the field the emitter selects by. It reads the emitted files back:
+- the ground named in a role's Figma line must carry, in `color.light.json`, the color of the floor step's variable in `core.palette.json`;
+- a page role must name a page ground.
+
+A brandTheme refusal is skipped but counted, so an empty sweep fails.
+
+Mutations, each after a `wip:` commit, each failing the five light arms by name with the dark arms green:
+- **Today's emitter** (`git show origin/main:…`): fails with `throws at: 100, 850, 900, 950` for aurora, nb-redesign, prism3 and wendys, and `50, 150, 850, 900, 950` for harbor. That is the 21.
+- **Inverse grounds first:** fails on `misnamed: 850: foreground.brand names inverse/background/tertiary`.
+- **Naming `background.primary` whenever two grounds match:** fails on `misnamed: 100: foreground.brand names background/primary, measured on neutral.100`. The value oracle bites.
+
+Which of two same-colored grounds is named is deliberately not pinned.
+
+### Trap for whoever is next
+
+The test adds about 210 brand builds to `test.ts`. Part 2's `floorStep` sweep will add as many. Measure the suite's time before adding a third.
+
+---
+
+## (2026-10-06) — Studio: heading pass 2, the structure (#2220)
+
+**Status:** `apps/studio/src/ui/lever-kit.ts` (`promoteLever`, `tokenLabel`'s `onLine`), the Surfaces & fills, Type, Shape and
+Layout levers, `shell/pages.ts` (Type's sections), `preview/follow-edit.ts` (two pairings), `chrome.css`, and `test:chrome`
+sections 18, 20 and 30. No ENGINE bump (no emitted artifact moves). CONTRACT unchanged. No new copy: "Default" and
+"Inverse" are BG1 A's approved words, and every other string is an existing one, moved. Closes #2220, #2181, #2190, #2216,
+#2217 and #2218.
+
+### What changed
+
+Heading pass 1 (#2210) landed the rule. This lands the structure the owner approved with it on 2026-10-06.
+
+- **BG1 A (#2181): a lever named as its section says its name once.** `promoteLever` (in `lever-kit.ts`) hides the
+  lever's head row and moves its ⓘ into the section's title row, `space-050` after the title. Its tip opens under the
+  section's head, and its one-line lead (the editing-mode line) becomes the head's last description line. The lever's
+  fieldset, or the control its `<label>` named, now takes its accessible name from the section title. Five sections
+  repeated their name: Background fills and Gradients (Surfaces & fills), Density and Base radius (Shape), and
+  Breakpoints (Layout). Each page calls the helper where the lever's label equals the section title, so no list is kept
+  by hand. Background fills' subgroups now read **Default** and **Inverse**.
+- **HP5 (#2218):** Gradients' On switch moves to the far end of the section's title row. Like the ⓘ, it overhangs the
+  title's line (equal negative margins of `hit-min`), so the row is only as tall as the title. This is the same mechanism
+  pass 1 uses for the lever-head ⓘ. The board's mock used `(1lh − hit-min) / 2`, which made the row about 13px taller;
+  #2218's text ("the row is only as tall as the title") decides it.
+- **TY1 A and HP2 (#2190):** Type's Font families section is now two sections, **Typeface library** and **Font family for
+  each text type**. Each is titled by its lever's existing name and says that name once. The families section holds the
+  seven rows, the missing-fonts warning, and Set every text type to with Apply to all. The old levers title "Font
+  families" and its description are gone. The preview's Font families section keeps both, and `PREVIEW_HEADING` pairs
+  the two new lever sections with it, so an edit in either one still reveals it. Type's section ids move up by one
+  (`p3-lsec-type-0` is now the library).
+- **TS1 A (#2216):** inside Type scale, the order is the control, then the pinned count as a plain line `space-050` under
+  it, then the clash warning grouped with Release pinned sizes, then the missing-styles warning. That warning used to be
+  a sibling after the lever and is now a group of its own inside it. There is `space-100` inside a group and `space-150`
+  between groups. The count left the lever's state line.
+- **#2217 with HP6:** the seven Font family rows and the seven Italic styles rows put the token flush right on the
+  label's line (`flex-wrap`, `column-gap: space-200`, the token at `margin-inline-start: auto`). It wraps under the label
+  when the two don't fit, and always at the narrow tier. The DOM order stays label, then token. Rows with a control on
+  the right are unchanged. HP6: the Typeface library rows keep the token under the family name, because their right
+  edge holds a status.
+
+### The gate (test:chrome section 30, extended)
+
+- **EXPECT_HEADINGS:** Type's L1 list now starts with the two TY1 titles (the #2190 comment). The promoted lever names
+  leave the L2 lists, and the fills' subgroups read Default and Inverse. The literal floors move to match.
+- **New checks.** Each runs on both hosts and both themes, at 1280 and 380:
+  - No section draws its own title twice.
+  - Each promoted ⓘ is in its section's title row. It opens the same help text it opened before, typed from the pre-pass
+    source or read from the lever manifest, and the tip opens under the head.
+  - Background fills' subgroups read exactly Default and Inverse.
+  - Gradients' switch is at the far end of the title row, on the title's line.
+  - The title row is as tall as the title. Pass 1's skip for a lever head holding a switch is removed.
+  - Type has the two sections by lever hook. No levers section draws the old title or description.
+  - Each token line is checked: the family and italic rows share the label's line, flush right, at 1280 and wrap under
+    it at 380. Every other token sits under its label, and the label always comes first in the DOM.
+- **TS1 A case.** It runs on prism3 with title xs pinned at 18px (a real pinned-size clash at the compact scale) and strong
+  declined in display and title. It checks the order inside the control column, that each group holds its own action, and
+  the measured gaps against `space-050`, `space-100` and `space-150` from the emission.
+- **Sections 18 and 20** follow the new structure: the subgroup names, the Background fills tip read from the title row,
+  the Gradients switch in the title row, and Type's two section titles and their pairing with the preview.
+
+### Traps for whoever re-verifies
+
+- `promoteLever` matches on the lever's label exactly. If a section is renamed away from its lever (or the reverse), it
+  stops promoting, and section 30's "draws its own title again" check fails. That is the gate working, not a flake.
+- The TS1 state needs a real clash. Title xs at 18px clashes only at compact. If the engine's size ladder or the compact
+  scale moves, pick another pin with the probe `brandTheme` gives: try each scale and keep a pin that only one refuses.
+
+---
+
+## (2026-10-06) — the two load-sensitive suite clicks settle first, fail by name, and the suite still reports (#2080, #2167)
+
+**STATUS: branch `test/2080-2167-settle-clicks`.** Test only: no product change, no engine change, no emitted artifact moves. ENGINE bump class: **none owed**. `CONTRACT_VERSION` unchanged. **Fixes #2080 and #2167.**
+
+### The cause, measured (not "flake")
+
+A scratch Playwright preload (not committed) sampled both click targets on every animation frame: node identity, bounding box, `data-sig`, and the scroller's `scrollTop`. It also counted main-thread long tasks. A click that failed, or every click in later passes, logged what its target did during the wait. **It was proven first on planted nodes:** a node replaced every frame read `nodes=431`, and one moved every frame read `moves=479`.
+
+- **Under load.** Two extra `test:chrome` loops ran in spare worktrees, at load averages 7 to 14, across eight suite runs. **Neither stall reproduced.** All clicks on the Dark mode option: never replaced, slowest 127ms. All 8 clicks on `icons-pair`: slowest 68ms.
+- **What a click's time tracks.** Every slow click lined up with one main-thread long task of nearly its length (127ms with a 105ms task, 109 with 86, …). With the renderer's CPU throttled 4× (`Emulation.setCPUThrottlingRate`), the median rose 36 → 108ms and the max to 380ms against a 343ms task.
+- **#2080's candidate:** that the mode control replaces its buttons on every verdict update and costs keyboard focus. **Refuted.** `modeControl` (`shell/preview.ts`) rebuilds its buttons only when the brand's set of modes changes. A verdict update replaces a button's children, never the button. Across 300 measured clicks, 0 replacements. The only box change seen during a wait was the click's own result: checked, 71 → 72px wide.
+- **#2167's candidate:** the eased scroll. Not seen moving the target during any wait, but it is a real way a target can keep moving. And Surfaces & fills re-renders its whole levers pane on every brand update, so `icons-pair` is a new node after each edit, and it sits far below the fold (y ≈ 3650), so every click scrolls it into view first. #2167's log stalled at "scrolling into view if needed" with no further line: a call into a renderer that wasn't running.
+
+**Conclusion:** a 30-second stall in either click is a renderer that could not run for about 30 seconds (machine starvation, or the host suspending mid-run, which this machine has been seen to do). It isn't a target that wouldn't hold still. No wait makes a starved renderer faster. What the suite can do is wait for a real settle, and **fail the arm by name** when there isn't one.
+
+### The fix
+
+- **`test-smoke.mjs`:** `previewMode` goes through a local `settledClick`. It waits until the page renders frames with the target's box and its scroller's `scrollTop` unchanged across consecutive frames, which also covers an eased scroll still stepping. It then clicks. Both are bounded at 15s each. `previewMode`'s `aria-checked` wait is bounded too: unbounded, a click that landed but didn't take was the same bare throw. A stall records a named failure and returns `false`.
+- **`test-chrome.mjs`:** a targeted wait at the `askPair` site only, the same settle and bounded click, kept local because four UI-lane PRs are open against this file. A stalled `askPair` also **ends its arm** through a labelled block (`askPairArm`). Measured: with only the click bounded, the arm's next step, `unpair()`, waited for a button only a completed pairing draws and threw. So the suite still died before `report()`.
+- **The shared `hooks.click` is unchanged.** The remaining unbounded clicks and waits across both suites are filed as #2229.
+- **A guard for the property #2080 worried about** (new, the last section of `test-smoke.mjs`): Arrow Right on the mode radios selects and focuses the next option, and that option keeps focus as the same node, after a repaint that provably reached it (its `data-sig` moved). It passes today. It guards the behavior.
+
+### Mutations, each failing by name, every suite reaching its report
+
+- **The settle broken** (never satisfied), smoke: 114 `✗ previewMode <mode>: … did not settle before its click — it was still moving after 1801 frames …`, then `❌ 138 FAILED of 6756 assertions`, with no stack trace.
+- **The settle broken**, chrome: `✗ #2167 askPair: Pair icons did not settle before its click — …`, then `17794/17795 chrome assertions passed`, with no stack trace. The first attempt, before `askPairArm`, crashed in `unpair()`; that's what added the arm guard.
+- **The click stalled** (bound forced to 1ms), smoke: 114 `✗ previewMode <mode>: the click on … did not land — …`, then `❌ 138 FAILED of 6756 assertions`.
+- **The product guard:** `paint` made to rebuild the radios on every call (`shell/preview.ts`). Exactly `✗ #2080 keyboard focus survives the mode control's repaint … {"focusedIsIt":false,"sameNodeAsBefore":false,…}`, then `❌ 1 FAILED of 6699 assertions`.
+
+### Trap for whoever re-runs this
+
+An output filter on a mutation run can hide the evidence. Here, a `grep` on the harness's output kept the summary and dropped the `✗` lines, the same slip that misreported a mutation in #2104's entry. Write each suite's full output to a log, and read the log.
+
+### After review (BLOCK on `5229238b`: two exits missing)
+
+**Defect 1: smoke's callers ignored `previewMode`'s `false`.** A failed switch carried on in the wrong mode, and its next ordinary click (on a disabled `fill-pick`) crashed with a bare `TimeoutError`. Every one of the eight callers now handles it. The three per-brand arms are labelled (`s4cArm`, `s4eArm`, `s4dArm`):
+- the five loop callers skip that mode;
+- the `derived` check guards its one assertion;
+- the two arm-level `previewMode(page, 'light')` calls skip the arm, since everything after them assumes Light.
+
+**Defect 2: a frozen renderer became an indefinite hang, where `main` had a 30-second crash.** "Rendered no frame" was reported, then the next untimed `page.evaluate` waited forever (the reviewer saw 25+ minutes). Such a page is now **dead**: the failure is named, its context is closed (that close is bounded too), it joins `deadPages`, and its arm skips to the next brand. `askPair` does the same at its site.
+
+**A refinement the mutation run turned up.** With the renderer frozen just after the settle passed, the click timed out and was reported as "did not land". The page was then only found dead one call later. A failed click is now followed by a bounded liveness check (a frame within 3s), so a frozen renderer is named dead at the first failure.
+
+**Mutations for the two exits.** The outputs are in the PR. The ones to compare are D2 on both suites (an endless main-thread block planted before the click), D1 on smoke (Dark refused at every switch), and M2 on smoke against the fixed callers (the alive, click-didn't-land path). Each reaches its report with named failures and no hang.
+
+---
+
+## (2026-10-06) — UI redesign S13.1: the top bar's brand menu, Export and the error line move to the new chrome
+
+**STATUS: branch `ui/s131-top-bar`, off `main` after S8.3 (#2094) merged; held for the owner's screenshot review.** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged, **the strings below are new, each approved by the owner** (everything else is today's, moved verbatim; the dialogs' Close drops the "✕" character for the chrome's `x` glyph, with the same accessible name, "Close"). Owner decisions G18 A and N-2 A (2026-10-05). The first half of S13, split off as the scoping report recommended (S13a, the bar and the notices; S13b, the deletions).
+
+**What moved.** Until now `main.ts`'s `renderBar` (32 call sites) drew the brand switcher, the brand menu, Export and its dialog, the plugin's Apply Theme and the prune review into the frame's bar slot, the menus and dialogs in `styles.css`, pinned light; and the engine error line was a legacy card in the notices row, pinned light, so in a dark theme it stayed a light card. Now:
+- **`src/shell/bar.ts`** draws the bar's controls in the chrome (`chrome.css`, the chrome tokens, #2041's shared pieces: `p3-menu`, `p3-menu-item`, `p3-btn`, `p3-seg`, `p3-confirm`), in the order the owner's menu bar sets (below). Apply Theme reads the Figma menu's own `apply` item (same label, busy and off states, tooltip, function).
+- **`src/shell/notices.ts`** draws the error line as a **full-width strip right under the top bar** (concept v6's banner: the inset ground, the danger glyph and text), in the chrome's theme, so it is dark in dark. Its text and its show, hide and clear rules are `main.ts`'s `syncErrorBar`, unchanged (#388, #772, #1989); the notices row moved from after the tab row to straight after the bar (the two-pane grid already put it there).
+- **What `main.ts` keeps, and lends** (`BarLend`): the brand-load rules (the overwrite confirm and its sentence, `loadBrand` and its origin, the design.md validation), the export model and downloads, the host's writes, and their state. The bar reads a view of that state and calls the actions, each the body the old control ran; each ends in the store's new **`bar` topic**, which the bar repaints from (plan §3.10), with focus kept by hook and position across a repaint. `renderBar` is **gone**; its call sites call `barChanged()`.
+- **What is left, and why:** the plugin's **Pages menu** stays a legacy node (`renderPagesMenu`, the list pinned light in `styles.css`'s `.brandmenu.navmenu`, `.bm-cap`, `.bm-div`, `.barmenu-wrap`) until S11.2 moves the Style guide into the Figma menu. **"+ New brand"** still returns to the start screen through `build()`, the legacy view switch, inside its lent body, until S12. The `brand-bar` chrome surface stays declared (it now places the shell's node), so the roster `test:smoke` reads is unchanged.
+
+**Removed, each by name once nothing called it:** `renderBar`, `renderBrandMenu`, `renderImportBox`, `renderOverwriteConfirm` (its sentence is `overwriteText`), `renderExportDialog`, `renderPruneDialog`, `barHost`, `outsideBound`, `globalErrHost`; in `styles.css`, every `.exdlg*` rule (with its two `@media (max-width:720px)` blocks), `.bm-field`, `.bm-lab`, `.bm-in` (and `.bm-in.bad`), `.bm-hint`, `.bm-item`, `.bm-dot`, `.bm-import`, `.bm-ta`, `.bm-err`, `.bm-load`, `.bm-file`, `.bm-import-row`, `.bm-confirm-row`, `.bm-upload`, `.bm-cancel`, `.bm-confirm`; in `chrome.css`, the `.barmenu-wrap .brandmenu` hang rule and the notices row's legacy padding. Kept, with their last user named: `.errbar` (the web's refused-saved-brand boot card, `entry.ts`, #1999), `.barbtn` (that card and the Style guide's draw button), `.seg`/`.seg-b` (Inspect's token list).
+
+**Chrome tokens:** two product rows, `l-col` (`core.dimension.72`: the brand menu is four columns, 288px, concept's popover; the export dialog twelve, 864px) and `scrim` (`color.scrim.default`, listed decorative: nothing is read on it, the dialog draws its own ground). The brand menu is fixed at its static position under the switcher, so its height is held to the window and it scrolls rather than run off a 420px-tall plugin (#1925's second item, now held by `test:chrome` §29).
+
+**Gates:**
+- `test:chrome` **section 29** (27, then 28, until #2144 and S12 took those numbers), both hosts, both themes, 1280, 640 and 380: the brand menu (import box open), the export dialog and the error strip, each measured by the probe as chrome (text 4.5:1, edges and glyphs 3:1, 24px targets, the embedded font, no shadows, no inline values; the probe no longer skips the notices row or the bar's popovers, only the plugin's Pages menu list); the strip's ground follows the theme (literal luminance lines), full width, right under the bar; the menu inside the window and the dialog one column at the narrow tier; and **the brand menu by keyboard** (Enter opens it on the current example, Arrow Down, End and Home move, Escape closes it back to the switcher; Escape closes the dialog back to Export). The probe also measures `textarea` as a field and classifies `p3-textarea`.
+- `test:smoke` §2d: **the strip in dark**, the bug being fixed: its rendered ground dark (below 0.2), its line 4.5:1 and its glyph 3:1, and the light theme's strip on a light ground; #388's checks unchanged (quiet before, shown after the refused edit, naming the field, kept across navigation, cleared on undo). The #1031 brand-menu arm now holds that each control's color-scheme **agrees with its measured ground** in either direction (it held "light only" while the menu was pinned light).
+- `test-shell-imports.ts` scans `shell/bar.ts` and `shell/notices.ts` by name; `renderBar` stays on its literal tier list.
+- Every existing behavior test kept its oracle and its hooks (the hooks are the same names: `brand-switcher`, `brand-menu`, `brand-menu-example`, `brand-menu-new`, `brand-menu-import`, `import-text`, `import-load`, `overwrite-*`, `export-open`, `export-dialog`, `dialog-confirm`, `prune-dialog`, `error-bar`): the plugin's `test:start` (the start-screen re-entry from "+ New brand", the brand menu measured in both themes) and `test:verdict` (the prune review, Export after a failed restore, the #1989 error line) pass unchanged.
+
+**Equivalence (not committed; the S8.2 driver's approach):** every brand-menu action and Export, driven on a build of the base (`93011b47`, then again of `main` after the merge) and of this branch, per corpus brand: load each example, rename on Brand › Identity, stage an example over an edit (the confirm, Cancel, Replace), download tokens and the brief, a refused import (the error), the brief imported back over an edit (confirm, Replace), an import through the export dialog's slot, and "+ New brand" to the start screen, then from an example and from a color. **51 of 51 steps identical**: every persisted `prism3:*` key at 45 snapshots, the bar's name, the confirm sentence, the import error, and the bytes of all 6 downloads. (Rename is not a brand-menu action since S3; it was driven where it lives, with the bar's name read after.)
+
+**Mutations, each after a `wip:` commit, restored with `git checkout -- <file>`:**
+- **The error strip drawn light in dark** (`notices.dataset.theme = 'light'` back in `shell/frame.ts`, the pin it had): `test:smoke` `prism3: in dark, the error strip is drawn on a dark ground (luminance 0.815, below 0.2) …` (and aurora, harbor).
+- **Export dropped from the bar** (`exportWrap` out of the bar's order in `shell/bar.ts`): `test:chrome` `web light 1280: the chrome renders [data-p3="export-open"] and it was measured`, and `Tab reaches [data-p3="export-open"] and its ring was measured` (291 failures, every column).
+- **The brand menu not keyboard-reachable** (its items `tabIndex = -1`, and no focus moved into it on open): `test:chrome` `S13.1 web light 1280: keyboard: Enter on the brand switcher opens the menu with focus on the current example (open true, focus on "brand-switcher", current null)`, with the arrows and Escape-from-an-item arms, every column. (The same run also failed `figma light 640 / a write running: … span.p3-spin "…" 1:1`, section 10's spinner measured mid-fade: timing, not the mutation; the clean runs pass it.)
+- **The error strip not cleared on undo** (`show(null)` returns before hiding, in `shell/notices.ts`): `test:smoke` `prism3: undoing the refused edit clears the bar` (and aurora, harbor).
+
+**The owner's first review (2026-10-05).** The theme menu moved left of Activity and Export, so on the web Export is the last control. Its right edge **equals the page content's**: 1248 at 1280 (the preview header's content edge) and 368 at 380 (the tab row's). This alignment is made deliberately, not by accident: the bar's right padding is the preview header's (`space-400`; the left stays `space-300`), and the dialog layer is `display: contents`, so the empty layer adds no gap after the last control. Before, at 1280, that gap happened to make up the 8px; at 380 it left Export 6px short. That round also put glyphs beside Export's and Activity's words. The menu bar below replaces those glyph buttons.
+
+**The owner's menu bar (2026-10-05, a modified "A · Menu bar" from the top-bar mockup).**
+- **No divider anywhere in the bar.**
+- **The plugin's order:** the mark (the logo and "Prism3 Studio"), the brand switcher, Contrast, then Theme, Agent, Activity and Export, then Pages ▾, Figma ▾, and Apply Theme at the far right. The web has the same order without Pages, Figma or Apply Theme, so Export ends the web's bar, still at the page content's edge.
+- **The mark is on the plugin too** (it was web only). The bar places it first among its controls (`BarPlaced.mark`), so a second row starts at the bar's own edge.
+- **Contrast, Theme, Agent (plugin), Activity and Export are tiles** (`dom.ts` `tile`): borderless and unfilled, a glyph over a small label. The label drops at the narrow tier (`NARROW_MAX`, 560). A tooltip under the tile, on hover and on keyboard focus, repeats the name. The names are unchanged, and the label and tooltip are `aria-hidden`. The tooltip is drawn by the stylesheet alone, so it sets no inline value; at 380, Contrast's tooltip hangs from the bar's left edge, so it stays inside the window. The labels take the text ink: the secondary ink measured 4.17:1 on the dark bar at 12px (`test:start` caught it).
+- **The brand switcher, Pages and Figma are white buttons with ▾.** Pages no longer collapses to its glyph at 380.
+- **Apply Theme is the only filled control.** The web has none.
+- **Contrast** shows a check while every pair passes, or a warning glyph and the count below floor. Today's line is the tooltip. The name is still "Verdict: <line>. Open Inspect, Contrast", and a click still opens Inspect › Contrast. There is no checking state. The bordered verdict pill and its CSS are gone.
+- **The Agent tile (the owner's T7 A, 2026-10-05)** replaces the "Agent: Off" chip and its popover, between Theme and Activity, plugin only:
+  - a click posts the same `agent-link` request the popover's switch posted, and the main thread stays the authority (off at every launch);
+  - its name and tooltip are the fixed "Agent", and `aria-pressed` says on or off (the toggle pattern, Q44), because the old control was a toggle (a `role="switch"` with `aria-checked`);
+  - a green dot sits on the glyph only while the link is on.
+  The popover's explanation line and status line ("Listening — file mailbox, every 1 s …", and an inbox error when there is one) are no longer drawn. `agentLinkStatusText` is kept, and still tested by `test-agent-link.ts`, until the owner says where that status goes.
+- **Activity's name and tooltip add "agent link on"** while the link is on (approved copy), for example "Activity, agent link on, 1 running". The plugin's Agent tile reports each state through `setAgentLinkOn` (`shell/activity.ts`).
+- **The plugin's Theme menu** offers Match Figma (the default, today's behavior: Figma's `figma-light`/`figma-dark` classes, live), Light and Dark (`shell/theme.ts`, now host-aware). The plugin's iframe has no storage, so the choice is kept **per person in `figma.clientStorage`, key `prism3:theme`**, the same mechanism as the window size (`prism3:ui-size`, #144):
+  - the UI posts `set-theme-pref`;
+  - the main thread keeps it and answers each `ui-ready` with `theme-pref`;
+  - the plugin's UI entry applies the reply.
+  The web keeps Light, Dark and System in `localStorage`.
+- **Fit:** the web at 640 is one row. The plugin at 380 is two rows:
+  - row 1: the mark, the brand, Contrast, Theme, Agent, Activity and Export. Measured at 380 with "prism3": the controls span 12–368 with a 58px gap in the spacer (mark 22, brand 106, Contrast, Theme, Agent, Activity and Export 28 each, gaps 6), so Export stays on row 1;
+  - row 2: Pages ▾ and Figma ▾, then Apply Theme on the right (a row break and a second spacer that only the narrow tier draws).
+
+**New strings, each with its approval** (corrects the earlier "no new strings", which the re-review caught):
+- Tile labels "Contrast" and "Theme" (visible for the first time; "Theme" was an accessible name only): the owner's T9.
+- Tile label "Agent" (the chip read "Agent: Off"): T7 A.
+- "Match Figma", "Light" and "Dark" on the plugin's Theme menu: T2.
+- The Agent tile's accessible name is the fixed "Agent" (was "Agent: On" / "Agent: Off"), with `aria-pressed` carrying on or off: the toggle pattern, per the owner's Q44 note and the 03:48Z re-review. An interim "Agent, on" / "Agent, off" is gone; it announced the state twice beside `aria-pressed`. The visible label "Agent" is unchanged (T7 A).
+- "agent link on" in Activity's accessible name and tooltip: T9.
+- "Prism3 Studio" on the plugin: an existing string, new to that surface; the owner asked for the plugin logo, and T1–T5 kept it in the mock.
+
+**Gates for the menu bar:**
+- `test:chrome` §29, both hosts, both themes, at 1280, 640 and 380:
+  - the DOM order per host;
+  - no divider (no separator element, no edge on a non-control, no thin filled element);
+  - the white-with-▾ menus;
+  - the borderless tiles: glyph, label shown or dropped by width, names and tooltips;
+  - Apply Theme as the only fill;
+  - one row at web 640, and row membership at plugin 380;
+  - the alignment;
+  - Contrast's tooltip shown on hover inside the window.
+- `test:chrome` §29b:
+  - Contrast's mark per verdict, using `test-verdict-count.ts`'s two-mode fixture on the web, "2 of 884 below floor, 2 modes" and the count 2;
+  - the plugin Theme menu's three choices, its default, a choice posted to the main thread, and the choice remembered across a reload;
+  - "agent link on" in Activity's name.
+- `test:chrome`'s Agent section (T7): the tile sits in its slot, named "Agent, off", not pressed, with no dot, and its label is dropped at 380. A click posts `agent-link` on; the published on state gives "Agent, on", pressed, and the dot; a second click posts off; and the off state clears both. The old chip and popover are gone (D6).
+- `apps/plugin/test-theme-pref.ts` (new, in the plugin's `test`) drives the real `main.ts`: a choice is kept under `prism3:theme`, and the next `ui-ready` sends it back.
+- Existing checks follow the change: the product mark is now checked on both hosts; the plugin's "no theme toggle" check became "starts on Match Figma"; the verdict's line is read from its tooltip; the Tab-order lists include the plugin's Theme; and the 380 Activity sheet's edge floor went from 10 to 6, because the tiles have no edge.
+
+**Mutations for the menu bar.** Each was run on a `git archive` copy of the committed head (`87fc5974`) with the shared `node_modules` linked in, built, and run through `test:chrome`, so the worktree itself was never mutated or restored:
+- **The theme menu put back after Export** (`bar.ts`'s order): 16 failures. Example: `S13.1 web light 1280: bar order: product-mark, brand-switcher, verdict, theme-toggle, activity-open, export-open (product-mark, brand-switcher, verdict, activity-open, export-open, theme-toggle)`, and `… bar alignment: the bar's last control on its top row (theme-toggle) ends at the page content's right edge (1248 vs 1248, the preview header), and it is Export`.
+- **A divider after the mark** (`border-right` on `.p3-mark`): 12 failures, every host, theme and width. Example: `S13.1 web light 1280: bar dividers: none between the bar's items (product-mark border-right)`.
+- **The labels kept at the narrow tier** (the narrow `.p3-tile-label` rule dropped): 26 failures. Examples: `S13.1 web light 380: bar tiles: verdict is borderless (true) with its glyph (true), its label dropped ("Contrast"), …` and `T7 figma light 380: the Agent tile sits in the top bar's Agent slot, named "Agent, off", not pressed, no dot, its label dropped ({… "label":"Agent" …})`.
+- **Contrast's mark always the check** (`preview.ts`): 9 failures. Example (the section was 27b then, now 29b): `27b web light 1280: Contrast: pairs below floor, so its mark is the warning glyph and the count below floor ({"state":"fail","check":true,"warn":false,"count":null,"tip":"2 of 884 below floor, 2 modes",…})`.
+- **The Agent dot drawn while off** (`.p3-agent-dot { display: block }`): 12 failures. Example: `T7 figma light 1280: the Agent tile sits in the top bar's Agent slot, named "Agent, off", not pressed, no dot, labelled "Agent" ({… "dot":true …})`, plus `… the published off state clears the dot and the pressed state`.
+- **The theme choice not kept** (`main.ts`'s `set-theme-pref` case emptied): `test-theme-pref.ts` failed 4 checks, for example `a choice is kept in clientStorage under prism3:theme (kept undefined)` and `the next ui-ready sends the kept choice back (sent [])`.
+
+The clean run on the same head: `test:chrome` 18161/18161.
+
+**After the owner's approval: merging #2151 (focus rings), and a class clash with S12 (#2142).**
+- **Merge.** `chrome/spec.mjs` keeps main's `focus-ring` row and `PRODUCT_PAIRS` beside this branch's `l-col` and `scrim` rows, and `chrome/esbuild-plugin.mjs` keeps main's `PAIRS as MOCKUP_PAIRS, PRODUCT_PAIRS` import and spread. Every chrome focus ring is on `--p3-focus-ring`, including this branch's import box (`.p3-textarea`), which had been written on `--p3-ctl-edge`. #2144's sweep is `test:chrome` section 27, so this branch's sections are now **29, 29b and 29c** (#2144 is 27, S12 is 28).
+- **The clash.** The S12 start window and its guard (#2142) use `p3-dialog`, `p3-dialog-head`, `-title`, `-body`, `-foot` and `p3-scrim`, the same names as the export and prune dialogs. So the export dialog's two-column body rule split the start window into two columns; the owner hit it in a demo build. The export and prune dialogs now carry their own names, **`p3-bardlg-*`** (`p3-bardlg`, `-head`, `-title`, `-body`, `-col`, `-desc`, `-note`, `-foot`, `-import`, `-layer`, and `p3-bardlg-scrim`). So no rule of theirs reaches a start-window element, and no S12 rule reaches theirs. The export scrim stays at z-index 50, under S12's.
+- **`test:chrome` §29c**, both hosts at 1280:
+  - with the export dialog open, an element carrying the start window's class names is laid out by none of its rules: one track at most, and not the export scrim's z-index;
+  - with S12's start window (#2142, merged), "+ New brand" opens it and the export dialog opens under it; the start window's body must be a single grid track, and a missing start window is a failure (`ok(false, …)`), not a log line.
+  - Mutation, the body rule unscoped: below.
+
+**The tile dots (owner QA, 2026-10-05).** Before, the dots were placed and colored inconsistently:
+- Agent's "on" dot sat at the glyph's bottom right, in green.
+- Activity's dot sat at the top right, and its color depended on the state (`statusWords`/`paint` in `shell/activity.ts`):
+  - **running**: a ring in the icon ink (black in light, white in dark);
+  - **attention** (a failed or warning result): filled bad red;
+  - **new result nobody opened**: filled icon ink;
+  - **nothing**: no dot.
+  The drawer's own lead dot is not a tile dot and is unchanged.
+
+Now every tile dot sits at the glyph's top right at one offset (`.p3-tile-mark > .p3-dot`). **The owner's D-RED A: a failure keeps its red dot, and every other dot is the ok green (`--p3-ok-icon`)**: Agent on, Activity running, a new result, and an attention state that is not a failure, which is a warning. A write's `ok: false` covers both failures and warnings, so the tile tells them apart by the verdict's lead mark, the contract every write's headline follows (✓ done, ⚠ done with problems, ✗ failed): a `bad` operation whose verdict starts with ⚠ draws the new `warn` dot, in green. The drawer and the names still count both as needing attention.
+
+**Decision (a), after the #2171 merge (coordinator, 2026-10-06).** The lead mark alone was not enough. #2171's style guide page reports a run with a failed table as `⚠ 1 drawn, 1 failed`, and its call 11 expects that red, so the merged verify failed on `plugin-verdict` (`✗ P1 (call 11): a failure the page shows marks Activity, and the drawer stays closed (open false, dot warn, verdict "⚠ 1 drawn, 1 failed")`). The rule is now: **a result draws the red `bad` dot when its lead mark is ✗, or when it carries a structured failed count above 0.** Only the style guide reports that count as data, so `activityReading()` reads it from the tables the run already holds (`styleGuideRun.tables`, `status === 'failed'`), and it is 0 for an agent run, whose stored tables would be stale. No other write gains a field. A ⚠ result with nothing failed (`⚠ 4 misses`) keeps the green `warn` dot, and so does a stopped run with 0 failed: stopping is not failing, so the rule keys on the failed count, not on `stopped`. Not every `ok: false` is red (that was option (b)).
+
+Arms and mutations (each on a `git archive` copy of `4e1a6ab9`):
+- **Ignore the failed count** (key on the lead mark alone): `test:verdict` fails #2171's arm, `✗ P1 (call 11): a failure the page shows marks Activity, and the drawer stays closed (open false, dot warn, verdict "⚠ 1 drawn, 1 failed")`.
+- **Every `ok: false` red** (option (b)): the new arm fails, `✗ D-RED A: a stopped run with no failed table marks Activity green, not red (dot bad, verdict "⚠ 0 drawn, stopped")`. In `test:chrome`, §29b's existing `⚠ 4 misses` arm fails in both themes (`✗ 29b figma light 1280: tile dots: a warning's dot is green, and its name still says it needs attention ({"state":"bad", …})`, and dark), and so does F2's warning case at 1280, 640 and 380 (`✗ F2 figma dark 1280: Activity's dot (warn) and name say a result needs attention (dot bad, …)`). 8 failures, 23784/23792.
+- **Key on `stopped`** (a stopped run counts as failed): `✗ D-RED A: a stopped run with no failed table marks Activity green, not red (dot bad, verdict "⚠ 0 drawn, stopped")`.
+
+Clean: `test:verdict` 314/314 and 58/58, with #2171's call 11 unchanged.
+
+**Every tile dot is filled, the same shape** (the owner, during the orchestrator's review, 2026-10-05): Activity's running dot was a ring on the tile and is now a filled green dot like the rest. The drawer's own lead dot keeps its ring. Mutation, the ring put back on the tile: `28b (now 29b) figma light 1280: tile dots: every dot is filled, Activity "run" too (Agent filled true, Activity filled false)` (and dark). `test:chrome` §29b checks the plugin at 1280 in both themes, with the link on and a write running: both dots are drawn, at one offset within 1px, in the ok green, and the names still say "Agent, on" and "Activity, agent link on, 1 running". Then a failed apply (`✗ write failed`) draws Activity's dot red, and a warning (`⚠ 4 misses`) draws it green; both names still say "needs attention". (The "light" case runs in dark by then: its Theme check chose Dark.) The web has no tile dot in any state (no agent link, no write).
+
+Mutations for the dots and the dialog scope (each on a `git archive` copy of `a629aa1b`; the clean run was 18382/18382):
+- **Agent's dot back at the bottom right**: `28b (now 29b) figma light 1280: tile dots: Agent's and Activity's dots sit at their glyph's top right at one offset (Agent 4,10; Activity 4,-2; …)`, and the same for dark.
+- **Activity's running dot in the icon ink**: `28b (now 29b) figma light 1280: tile dots: Agent "on" and Activity "run" draw in the ok green rgb(56, 146, 94) (Agent rgb(56, 146, 94), Activity rgb(247, 247, 247))`, and the same for dark.
+- **The export body rule unscoped** (`.p3-bardlg-body, .p3-dialog-body`): `28c (now 29c) web light 1280: dialog scope: no rule of the export dialog reaches an element named as the start window's (body grid, 2 tracks "268.797px 268.797px"; scrim static, z auto)`, and the same for figma.
+
+**`test:chrome` F2 follows D-RED A.** Its warning case (dark, `⚠ 2 pages skipped`) now expects the green `warn` dot, and its failure case (light) still expects the red `bad` dot. The first verify after the #2152 merge failed on exactly that, which is the old expectation meeting the new rule. The same run also stopped once on a `TimeoutError` clicking Q52's `icons-pair`. That did not recur in the next standalone run or in the next verify (18708/18708, then 68/68), so I am treating it as a flake, not a defect: noted here, not filed.
+
+**Merging S12 (#2142).** S12 rewrote the old `renderBrandMenu`, which this branch had replaced with the shell's bar, so S12's behavior is carried into the bar's lent actions:
+- "+ New brand" reopens the start window (`startReopened`, `syncStart`) instead of clearing the origin;
+- a paste is checked with `validatePaste`, and a file with `validateDesignMd`, the error worded by `importErrorText`;
+- a load closes the start window;
+- the error surface is scoped to the app view;
+- the start window's Close returns focus to the bar's brand switcher (`frame.barMain`, where it was `barHost`);
+- the brand menu's file input carries S12's `import-file` hook;
+- `test:chrome` classifies S12's paste box as a text area, because this branch counts every textarea as a control;
+- `DECORATIVE` lists both scrims.
+
+**The orchestrator's partial review (#2124, 17:32 UTC), four findings:**
+1. **Focus return.** Closing Export by Close, Cancel or a scrim click sent focus to the brand switcher, or to `BODY` for a scrim click; only Escape was right. `paint()`'s fallback focused the switcher whenever the focused node had gone. Now a dialog's close, by any path, returns focus to its opener: Export, or the Figma menu for the prune review. The scrim's `mousedown` default is refused, so the click cannot move focus to the page underneath.
+2. **Focus into the dialogs.** Both are `aria-modal`. As one opens, focus moves to its first control. Tab and Shift+Tab stay inside until it closes, using S12's `focusables` and `trapTab`, which moved from `shell/start.ts` into `shell/dom.ts` so both windows share them. A repaint that loses the focused node falls back into the open dialog, never behind it.
+3. **Tests:**
+   - `test:chrome` §29: Close, Cancel, the scrim and Escape each return focus to Export, and Close, the scrim, Escape and Cancel return focus from the prune review to the Figma menu. Both dialogs are asserted `role="dialog"` and `aria-modal="true"`. Focus moves in as the dialog opens, and 24 Tabs and 4 Shift+Tabs stay inside. The import error line is held to 4.5:1 at every host, theme and width. At 1280 in both themes, the overwrite confirm (web) and the prune review (plugin) are measured as chrome, their sentences are held to 4.5:1, and the prune review's Cancel returns focus to the Figma menu.
+   - `test-build-verdict.mjs`: the four Cancel clicks no longer swallow failures. One of them was clicking an export dialog that an Escape on the line before had already closed; the Escape is gone. The prune control arm now checks focus in, the trap, and Cancel back to the Figma menu.
+4. **The alert strip.** `show()` writes the text only when it changes. The notices row is no longer emptied on every `build()` (page changes included); `mountSurfaces` skips a mounted surface, so the strip is minted once per frame instead of being a new alert on each page. `test:chrome` §29: two more rebuilds with the same error make no mutation and keep the same text node, on both hosts.
+
+Mutations for the review's fixes, each run on a `git archive` copy of `1433912a`. The clean `test:chrome` run on that head was 20205/20205.
+- **Close returns focus to the brand switcher** (`bar.ts`, the export-closed branch): 36 failures. Example: `S13.1 web light 1280: dialog focus: Close closes the export dialog back to Export (open false, focus on "brand-switcher")`, with the same for Cancel and the scrim.
+- **Focus not moved into Export on open**: 42 failures. Example: `S13.1 web light 1280: dialog focus: opening Export moves focus into the dialog (on "export-open")`.
+- **The strip rewrites unchanged text** (`notices.ts`): 12 failures. Example: `S13.1 web light 1280: error strip: the same error after 2 more rebuilds leaves its text untouched (2 mutations, same text node false, …)`, on both hosts.
+
+**The dark import error's mutation** (the coordinator's follow-up), on a copy of the head:
+- **First try:** the ink moved to `--p3-bad-icon`. It changed nothing, because that token resolves to the same red as `--p3-bad-text` in dark (`rgb(227, 75, 73)`, 4.97:1). So the check passing was correct, not a gap.
+- **Second try:** a raw darker color, which the chrome build refuses (`[raw] … raw color function "rgb("`).
+- **Third try:** a `color-mix()` toward the page ground. The check could not read its computed `color(srgb …)` value and would have thrown, so the probe now reads that form too, and an ink it cannot read counts as 0, failing by name. With that fix, the mutation fails 12 times, every host, theme and width, for example `S13.1 web dark 1280 / brand menu: import error line contrast 2.94:1, at least 4.5:1 (ink color(srgb 0.638431 0.221176 0.216863), …)`. Light fails too (3.69:1), because the mix dims both themes.
+
+**The re-review's Mutation A** (Escape's `exp.focus()` removed, and `aria-modal="true"` removed), on a copy of `105dc268`: 38 failures. Every one is the new `aria-modal` assertion, for example `S13.1 web light 1280: dialog focus: the export dialog is a modal dialog (role "dialog", aria-modal "null")` and `S13.1 figma light 1280: dialog focus: the prune review is a modal dialog with focus inside it ({"role":"dialog","modal":null,"inside":true})`. Removing Escape's `exp.focus()` on its own no longer changes behavior: `paint()` now returns focus to the opener on every close, Escape included, and the Escape arm checks the outcome.
+
+**The 03:48Z re-review, one blocker and three small fixes.**
+- **The trap split the export dialog.** Its preview `<pre>` scrolls, so Chromium made it a Tab stop that the trap's list did not name. From it, Tab wrapped to the first control and Shift+Tab to the last, so Download, Cancel and Import were never reached. Two changes fix this:
+  - `trapTab` now takes over Tab only at the two ends of its list, and from the window itself; anywhere else the browser moves focus in document order;
+  - the `<pre>` is a real stop (`tabindex="0"`) and is in the list.
+  S12's start window shares the trap.
+  - New arms, Export on both hosts and prune on the plugin, at 1280 and 380: the dialog's stops are read independently of the trap's list (drawn controls, `tabindex` 0 or above, and scroll regions with nothing focusable inside them). From the first stop, Tab must visit every stop in document order, `dialog-confirm` included, and come back round; Shift+Tab must do the reverse.
+- **§29c:** a missing start window is now `ok(false, …)`, not a log line.
+- **The Agent tile** has the fixed name "Agent" and `aria-pressed`. The T7 arms check the name "Agent" and `aria-pressed` false/true.
+- **The `bar.ts` header** now says "+ New brand" reopens S12's start window.
+
+Mutations for the trap, each on a `git archive` copy of `a0fd52de` (the clean `test:chrome` there was 20386/20386):
+- **The `<pre>` dropped from the trap's list, alone**: 0 failures. That is correct behavior, not a missing check: with the trap now deferring to the browser for any node it does not name, the `<pre>` is still reached in document order and the walk stays whole. Either fix alone closes the hole.
+- **The `<pre>` dropped from the list, with the old wrap-on-unknown trap restored** (the defect as reviewed): 8 failures, every Export arm on both hosts at 1280 and 380. Example: `S13.1 web dark 1280: dialog tab order: Tab from the export dialog's first control visits every stop, Download included, and Shift+Tab the reverse (… Tab dialog-close → export-artifact → … → export-setting → pre; Shift+Tab dialog-close → export-import → dialog-confirm → dialog-cancel → pre → export-import → …)`.
+
+S12's `test:start` (which shares the trap) passes.
+
+**Each half held on its own** (the coordinator's follow-up: two new arms in §29, Export, both hosts, 1280 and 380). Mutations ran on a copy of `15d2efb0`, where the clean run was 20544/20544:
+- **The defer arm.** A link is planted in the footer ahead of Cancel. A link is not in `trapTab`'s list, which names buttons, inputs, text areas, selects and `tabindex`, so it tests the defer; a planted button would be in the list and would not. Tab must reach the link and go on from it to Cancel. Mutation, the defer dropped (the trap handles every Tab again): 8 failures, for example `S13.1 web dark 1280: dialog tab order: Tab reaches a focusable control the trap's list does not name, and goes on from it to Cancel (Tab dialog-close → … )`.
+- **The preview arm.** The `<pre>` has `tabindex="0"` and Tab reaches it. Mutation, its `tabindex` dropped: 8 failures, for example `S13.1 web dark 1280: dialog tab order: the export preview is a Tab stop of its own (tabindex "null") and Tab reaches it (true)`. Chromium still reaches an implicit scroller, which is why the arm also checks the attribute.
+
+**`lint:live-css` (#2226).** This PR deletes the old brand menu's and export dialog's markup, and with it their `styles.css` rules: `.bm-*` (the menu, its import box and confirm) and `.exdlg-*` (the dialog). After the merge, the gate failed 43 times, all `✗ live rule removed` on those keys. That is intended. `node apps/studio/lint-live-css.mjs --accept` re-swept every page (web and figma, light and dark) and dropped all 43 as "no page draws it now", with no `--allow` needed. The updated `apps/studio/live-css.json` is committed, and the gate is clean.
+
+**Held:**
+- **The plugin from 561 to about 1000px.** The bar wraps at the wide tier, so Export can start the second row. The owner named 1280 and 380 for the plugin; its window opens at 1280.
+- **Where the agent link's status now shows** (the old popover's two lines), above.
+
+**Filed:** #2105 (the plugin at 380 × 420: the bar's second row draws over the error line, and a long line leaves the levers 0px; on the base too).
+
+### Traps
+- **A popover's height can't use the viewport here.** `chrome.css` may hold no raw length (`vh` included) and no var but `--p3-*`. The brand menu is `position: fixed` at its static position (top and left `auto`, a margin past the switcher), so `100%` in its `max-height` is the window's height. It relies on no ancestor making a containing block for fixed boxes (a `transform`, `filter` or `contain` on the frame, the head or the bar would break it).
+- **`hidden` loses to a class's `display`.** `.p3-errstrip { display: flex }` overrides the UA's `[hidden] { display: none }`, so the strip needs its own `.p3-errstrip[hidden]` rule; without it the strip never hides and #388's "quiet before" fails.
+- **The bar repaints whole on `bar`, `host` and `origin`,** as `renderBar` did; a keystroke in the import box tells no topic (`importText` stores only), so the caret is never disturbed.
+
+---
+
 ## (2026-10-06) — MCP score_consumption: a malformed refs item or pairs entry is an isError result, not -32603 (#2209)
 
 **STATUS: branch `engine/2209-score-consumption-guard`, copy approved by the owner (Q53, 2026-10-06).** MCP only: no token, name or value moves, `CONTRACT_VERSION` unchanged. Change note `engine: minor`, so ENGINE moves at the next fold past 0.231.0. **Fixes #2209.** The five new sentences are owner-approved (Q53) and listed in `docs/voice-standard.md` §3. Also fixes, in passing as #2209 asked, the `emit-figma-dims.ts:416` comment: four floors auto-name `sm..xl`, not `sm..2xl`.
