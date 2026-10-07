@@ -9648,8 +9648,9 @@ for (const host of ['web', 'figma']) {
 //     the mark, identical at every width, the narrow tier included, to the same brand's at 1280, where the full bar
 //     shows (asserted). While the brand switcher's name is cut, its computed name and its tooltip are the full name.
 //   · A LONG NAME GIVES WAY SOONER: at some width its step is further along than "prism3"'s, and never behind it.
-//   · THE NARROW TIER (560 and below) is unchanged by #2214 and holds its own rules (section 29); here it is held only
-//     to the names.
+//   · THE NARROW TIER (560 and below) is unchanged by #2214 and holds its own rules (section 29); here it is held to the
+//     names and, since #2262, to the tooltip: down to 380 and back up, the switcher carries a `title` only while its
+//     name is cut, so a tooltip set at `trim` cannot linger into the narrow tier.
 // Mutations, each failing here by name: (a) no label drop, (b) the product name never drops, (c) straight to the two
 // rows, (d) the frame's measurement ignores the brand switcher's width, (e) the web excluded, (f) no truncation. See
 // the progress entry.
@@ -9703,6 +9704,14 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
           const fullName = brand === 'long' ? LONG_NAME : 'prism3';
           let base = null;
           const missed = [], renamed = [];
+          // #2262: the switcher's tooltip, across the sweep DOWN and back UP, the narrow tier included. The oracle is the
+          // render's own `cut` (the name's text wider than its box), never the frame's `data-bar-fit`.
+          const tipWrong = [];
+          let sawCut = false, narrowAfterCut = 0;
+          const tipCheck = (dir, w, tip, seen, narrow) => {
+            if ((tip !== null) !== seen.cut || (tip !== null && tip !== fullName))
+              tipWrong.push(`${dir} ${w}${narrow ? ' (narrow)' : ''}: title ${JSON.stringify(tip)}, name ${seen.cut ? 'cut' : 'whole'}`);
+          };
           for (const w of FIT_WIDTHS[brand]) {
             const where = `29d ${host} ${theme} ${w} ${fullName}`;
             await page.setViewportSize({ width: w, height: 900 });
@@ -9721,6 +9730,10 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
               const moved = AX_HOOKS.filter((k) => names[k] !== base[k]);
               if (moved.length) renamed.push(`${w} (${seen.step}): ${moved.map((k) => `${k}: "${base[k]}" → "${names[k]}"`).join('; ')}`);
             }
+            if (brand === 'long') {
+              tipCheck('down', w, tip, seen, fit.narrow);
+              if (seen.cut) sawCut = true; else if (fit.narrow && sawCut) narrowAfterCut++;
+            }
             if (fit.narrow) continue;
             if (theme === 'light') seenBy[brand][w] = seen.step;
             if (seen.step === 'trim') trimmedOn[host]++;
@@ -9732,6 +9745,21 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
             } else if (tip !== null) missed.push(`${w}: the switcher carries a tooltip (${JSON.stringify(tip)}) with its name whole (${seen.step})`);
             if (SHOTS && host === 'figma' && brand === 'long' && w >= 570 && w <= 590) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `q83-plugin-${theme}-${w}-long-name.png`) });
             if (SHOTS && [640, 800, 1000, 1280].includes(w) && (w !== 1280 || brand === 'short')) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `final-2214-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}${brand === 'long' ? '-long-name' : ''}.png`) });
+          }
+          if (brand === 'long') {
+            // Back UP, 380 → 1280: the reverse path into and out of the cut name.
+            for (const w of [...FIT_WIDTHS.long].reverse()) {
+              await page.setViewportSize({ width: w, height: 900 });
+              await settle(page);
+              const seen = await page.evaluate(FIT_SEEN);
+              const tip = await page.evaluate(() => document.querySelector('[data-p3="brand-switcher"]')?.getAttribute('title') ?? null);
+              const narrow = await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
+              tipCheck('up', w, tip, seen, narrow);
+            }
+            ok(tipWrong.length === 0,
+              `29d ${host} ${theme} ${fullName}: the switcher has a tooltip only while its name is cut, down to 380 and back up to 1280, the narrow tier included (${tipWrong.join(' | ') || 'every width, both ways'})`);
+            // The check can only fail if the path the defect needs is taken: a cut name, then the narrow tier (the plugin).
+            if (host === 'figma') ok(sawCut && narrowAfterCut > 0, `29d figma ${theme}: the sweep reaches the narrow tier after the name was cut, so a lingering tooltip would show (cut seen: ${sawCut}, narrow widths after it: ${narrowAfterCut})`);
           }
           ok(missed.length === 0, `29d ${host} ${theme} ${fullName}: across ${FIT_WIDTHS[brand].length} widths the bar draws the measured step, in no more rows than it allows (${missed.join(' | ') || 'every width'})`);
           ok(renamed.length === 0, `29d ${host} ${theme} ${fullName}: every accessible name is unchanged from 1280 at every width, the narrow tier included (${renamed.join(' | ') || 'none moved'})`);
