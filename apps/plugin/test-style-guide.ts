@@ -756,7 +756,14 @@ const makeShim = (pages: N[], cols: ShimCol[], vars: ShimVar[], styles: ShimStyl
       world.fonts.add(fontId(f));
       world.loads.push(fontId(f));
     },
-    createFrame: () => new N('FRAME'),
+    // The host adds a new frame to the CURRENT page at once, 100 × 100 at 0, 0 (#2269). A test that names a current page
+    // gets that; otherwise a new frame is detached until appended, as before.
+    currentPage: null as N | null,
+    createFrame(): N {
+      const f = new N('FRAME');
+      if (this.currentPage) { f.w = 100; f.h = 100; f.x = 0; f.y = 0; this.currentPage.appendChild(f); }
+      return f;
+    },
     getLocalTextStylesAsync: async () => styles,
     createComponent: () => new N('COMPONENT'),
     // The host's default for a new text node: it sizes to its words.
@@ -2744,6 +2751,94 @@ const main = async (): Promise<void> => {
     let n = 0;
     const last = await draw(f28.api, contract, {}, { onTable: (e) => { if (e.status === 'done') n++; }, stop: () => n >= 21 });
     ok(!last.stopped && last.tables.length === 21, `29: a stop that turns true only after the last table is not a stop (${JSON.stringify(last.stopped)})`);
+  }
+
+  console.log('30. the NB master QA (2026-10-06): font-size rows, the palette swatch, the skip count, a filtered run (#2267, #2268, #2261, #2269)');
+  {
+    // #2267: a font-size specimen at the font's own line height. The text cell's text keeps a fixed 20px line, so a 128px
+    // specimen drew a 20px box and spilled over its neighbors (measured live, 2026-10-07: 128px text, a 20px line, a 20px
+    // box; AUTO, 155px). The shim draws every line at one height, so this holds the line height itself, on every
+    // specimen of every font-size table, every mode column.
+    const fz = await phase2File();
+    await draw(fz.api, contract, { types: ['fontSize'] });
+    const sizeTables = [...tablesOn(fz.prim), ...tablesOn(fz.sem)].filter((w) => /^fontSize\|/.test(w.pluginData['prism3-style-guide']));
+    const specimens = sizeTables.flatMap((w) => gridOf(w).findAll((k) => k.type === 'TEXT' && k.characters === 'Abc 123'));
+    const fixed = specimens.filter((t) => (t.lineHeight as { unit?: string } | undefined)?.unit !== 'AUTO');
+    ok(sizeTables.length > 0 && specimens.length >= 20 && fixed.length === 0,
+      `30 #2267: every font-size specimen takes the font's own line height (AUTO), so its row grows to fit it (${sizeTables.length} table(s), ${specimens.length} specimen(s), ${fixed.length} fixed: ${JSON.stringify(fixed[0]?.lineHeight ?? null)})`);
+    // The control: a font-family specimen keeps the cell's line height. Only the size is the specimen's.
+    await draw(fz.api, contract, { types: ['fontFamily'] });
+    const famSpec = tablesOn(fz.prim).filter((w) => /^fontFamily\|/.test(w.pluginData['prism3-style-guide'])).flatMap((w) => gridOf(w).findAll((k) => k.type === 'TEXT' && k.characters === 'Abc 123'));
+    ok(famSpec.length > 0 && famSpec.every((t) => (t.lineHeight as { unit?: string } | undefined)?.unit !== 'AUTO'), `30 #2267: control: a font-family specimen keeps the cell's own line height (${famSpec.length})`);
+
+    // #2268: the palette swatch FILLs its cell (decision 13) and its square grows with it; its edge is the brand's
+    // color.border.secondary (owner, 2026-10-07). The square grows by its constraints, which the host carries into an instance.
+    const squares = (set: N | undefined): N[] => (set?.children ?? []).filter((m) => /^type=(default|border|transparency)$/.test(m.name)).flatMap((m) => m.children.filter((k) => k.name === 'Specimen' || k.name === 'Checker'));
+    const stretched = (k: N): boolean => k.constraints?.horizontal === 'STRETCH' && k.constraints?.vertical === 'STRETCH';
+    const fresh = await fullFile();
+    const freshSet = setsNamed(fresh.pages, '_style-guide-swatches')[0];
+    ok(squares(freshSet).length === 4 && squares(freshSet).every(stretched) && freshSet?.pluginData['prism3-swatches'] === '1',
+      `30 #2268: Set up file builds the filled, border and transparency squares to stretch with the swatch, and marks the set Prism3's (${squares(freshSet).map((k) => JSON.stringify(k.constraints)).join(' ')}; mark ${JSON.stringify(freshSet?.pluginData['prism3-swatches'])})`);
+    ok(setsNamed(fresh.pages, '_style-guide-swatches')[0]?.children.filter((m) => /^type=(text|icon|radius)$/.test(m.name)).flatMap((m) => m.children).every((k) => !stretched(k)),
+      '30 #2268: the text, icon and radius marks keep their own size');
+    // A set Set up file built before this (no mark, nothing stretched) is brought up to date by the run.
+    const old = await fullFile();
+    const oldSet = setsNamed(old.pages, '_style-guide-swatches')[0]!;
+    delete oldSet.pluginData['prism3-swatches'];
+    for (const k of squares(oldSet)) k.constraints = undefined;
+    await draw(old.api, contract);
+    ok(squares(oldSet).every(stretched) && oldSet.pluginData['prism3-swatches'] === '1',
+      `30 #2268: a run brings a set Prism3 built before this up to date: its squares stretch, and it is marked (${squares(oldSet).map((k) => JSON.stringify(k.constraints ?? null)).join(' ')})`);
+    // A set the owner made is never changed: here a default square of 40px, not this builder's 32.
+    const own = await fullFile();
+    const ownSet = setsNamed(own.pages, '_style-guide-swatches')[0]!;
+    delete ownSet.pluginData['prism3-swatches'];
+    for (const k of squares(ownSet)) k.constraints = undefined;
+    const ownSq = ownSet.children.find((m) => m.name === 'type=default')!.children.find((k) => k.name === 'Specimen')!;
+    ownSq.w = 40; ownSq.h = 40;
+    await draw(own.api, contract);
+    ok(squares(ownSet).every((k) => k.constraints === undefined) && ownSet.pluginData['prism3-swatches'] === undefined,
+      `30 #2268: a swatch set the owner made is left as it is: nothing stretched, no mark (${squares(ownSet).map((k) => JSON.stringify(k.constraints ?? null)).join(' ')})`);
+    // The edge: every palette swatch's square is stroked with the brand's color.border.secondary, bound, not a literal.
+    const edgeId = fresh.vars.find((v) => v.name === 'pds3/color/border/secondary')?.id;
+    await draw(fresh.api, contract);
+    const paletteSwatches = tablesOn(fresh.prim).flatMap((w) => gridOf(w).children.filter((k) => k.type === 'INSTANCE' && /^type=/.test(k.mainComponent?.name ?? '')));
+    const squareOf = (inst: N): N | undefined => inst.findAll((k) => k.name === 'Specimen')[0];
+    const plainEdge = paletteSwatches.filter((i) => i.mainComponent?.name !== 'type=border' && boundId(squareOf(i)?.strokes) !== edgeId);
+    ok(!!edgeId && paletteSwatches.length >= 100 && plainEdge.length === 0,
+      `30 #2268: every palette swatch's edge is bound to pds3/color/border/secondary (${paletteSwatches.length} swatches, ${plainEdge.length} not: ${plainEdge[0] ? `${plainEdge[0].mainComponent?.name} ${JSON.stringify(boundId(squareOf(plainEdge[0])?.strokes) ?? null)}` : 'none'})`);
+    const semSwatch = tablesOn(fresh.sem).flatMap((w) => gridOf(w).findAll((k) => k.type === 'INSTANCE')).find((i) => i.mainComponent?.name === 'type=default');
+    ok(!!semSwatch && boundId(squareOf(semSwatch)?.strokes) === undefined, '30 #2268: control: a semantic role swatch, on its own ground, keeps its own edge');
+
+    // #2261: a single skipped table is "1 table", as every other count in the summary reads.
+    const one = (reason: 'no-page' | 'no-cells'): string => styleGuideSummary({ tables: [{ key: 'k', title: 'Brand', page: '↳ Semantic tokens', status: 'skipped', reason }], stale: [], replaced: [], deleted: [], kept: [], unbound: 0, notes: [], misses: [], unmatched: [] }).summary;
+    ok(one('no-page').includes('1 table skipped — this file has no Semantic tokens page') && !one('no-page').includes('1 tables'),
+      `30 #2261: one table skipped for a missing page reads "1 table skipped" (${one('no-page')})`);
+    ok(one('no-cells').includes('1 table skipped — this file has no style-guide cell sets') && !one('no-cells').includes('1 tables'),
+      `30 #2261: one table skipped for missing cell sets reads "1 table skipped" (${one('no-cells')})`);
+
+    // #2269: a filtered run of several palettes on a page that already holds content draws them apart, from each other
+    // and from what was there. (The owner's first NB run limited itself to the primitive palettes.)
+    const titles = tablesOn(fresh.prim).map((w) => w.name.replace(/^Style guide — /, '')).slice(0, 3);
+    const multi = await fullFile();
+    const note = new N('FRAME'); note.name = 'designer note'; note.w = 600; note.h = 400; note.x = 0; note.y = 0;
+    multi.prim.appendChild(note);
+    await draw(multi.api, contract, { tables: titles });
+    const boxes = [note, ...tablesOn(multi.prim)].map((n) => ({ n: n.name, x: Number(n.x), y: Number(n.y), w: n.width, h: n.height }));
+    const hits = boxes.flatMap((a, i) => boxes.slice(i + 1).filter((b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h).map((b) => `${a.n} × ${b.n}`));
+    ok(titles.length === 3 && tablesOn(multi.prim).length === 3 && hits.length === 0,
+      `30 #2269: three palettes drawn in one filtered run on a page with content overlap nothing (${boxes.map((b) => `${b.n} ${b.x},${b.y} ${b.w}×${b.h}`).join(' | ')}${hits.length ? ` — overlap: ${hits.join(', ')}` : ''})`);
+    // THE OWNER'S CASE, found live on the NB copy (2026-10-07): the run started while the page it draws on is the current
+    // page, as it is when a designer is looking at it. The host puts each new frame there at 0, 0 before the run places it,
+    // so a filtered run of tables in two categories (dimension and font) drew the second category's first table on top of
+    // the first row (live: Primary 260,0, and a new category's row at 260,0 too).
+    const cur = await phase2File();
+    (cur.api as unknown as { currentPage: N }).currentPage = cur.prim;
+    await draw(cur.api, contract, { tables: ['Dimension', 'Density', 'Font family', 'Font size (core)'] });
+    const cboxes = tablesOn(cur.prim).map((n) => ({ n: n.name.replace(/^Style guide — /, ''), x: Number(n.x), y: Number(n.y), w: n.width, h: n.height }));
+    const chits = cboxes.flatMap((a, i) => cboxes.slice(i + 1).filter((b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h).map((b) => `${a.n} × ${b.n}`));
+    ok(cboxes.length === 4 && chits.length === 0 && cboxes.find((b) => b.n === 'Dimension')?.x === 0,
+      `30 #2269: drawn from its own page, a filtered run of two categories lays its tables apart, the first at the page's origin (${cboxes.map((b) => `${b.n} ${b.x},${b.y} ${b.w}×${b.h}`).join(' | ')}${chits.length ? ` — overlap: ${chits.join(', ')}` : ''})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
