@@ -141,6 +141,15 @@ const EXEMPT: { file: string; why: string }[] = [
       'example, not the contract. If it ever gains a $comment, move it to class 2 rather than ' +
       'widening this reason.',
   },
+  {
+    file: 'component-axes.json',
+    why:
+      'The axes baseline lint-component-renames.ts reads at the merge base (#2265) — pure DATA: per ' +
+      'def, axis names, sorted value lists and a member count, with no prose field. Written only by ' +
+      'that gate\'s --accept and kept out of regen, because a regenerated baseline would rewrite ' +
+      'itself to agree with a removal. It ships in no payload. If it ever gains a $comment or a ' +
+      'note, move it to class 2 rather than widening this reason.',
+  },
 ];
 
 /**

@@ -55,6 +55,7 @@ import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, Unrecogniz
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
+import { COMPONENT_RENAMES, coordKey, renameCoordinate, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
 // they agree. `write-components.ts` is pure TypeScript against a declared port — it touches no `figma`
@@ -821,8 +822,9 @@ for (const hx of ['#000000', '#333333', '#7f7f7f', '#808080', '#ffffff']) {
   const grayPrimary = storedOklch(rgbToOklch(hexToRgb('#808080')));
   const sameRgb = (c: RGB) => c.r === c.g && c.g === c.b;
   const neutralGray = (t: any) => t.palettes.find((p: any) => p.palette === 'neutral').steps.every((st: any) => sameRgb(st.rgb));
-  // 1. Follow primary (the toggle) with a gray primary, at the neutral's usual chroma 0.006.
-  const follow = brandTheme({ id: 'g2241a', root: 'prism', primary: grayPrimary, neutral: { hue: 40, chroma: 0.006, auto: true } } as any);
+  // 1. Follow primary (the toggle) with a gray primary, at the neutral's usual chroma 0.006, and a gray brand color.
+  const follow = brandTheme({ id: 'g2241a', root: 'prism', primary: grayPrimary, neutral: { hue: 40, chroma: 0.006, auto: true },
+    brandColors: [{ name: 'slate', oklch: storedOklch(rgbToOklch(hexToRgb('#555555'))) }] } as any);
   ok(neutralGray(follow) && follow.shadow.tint.hue === null && sameRgb(follow.shadow.colorRgb),
     `#2241 Q87 A: Follow primary with a gray primary builds a gray neutral and an untinted shadow (neutral all gray: ${neutralGray(follow)}, ` +
     `shadow hue ${follow.shadow.tint.hue}, color ${JSON.stringify(follow.shadow.colorRgb)})`);
@@ -832,11 +834,13 @@ for (const hx of ['#000000', '#333333', '#7f7f7f', '#808080', '#ffffff']) {
   ok(imported.neutral.chroma === 0 && !imported.neutral.auto && neutralGray(it) && it.shadow.tint.hue === null,
     `#2241 Q87 A: an import with a gray primary and no neutral swatches stores a gray neutral (got ${JSON.stringify(imported.neutral)}; ` +
     `neutral all gray: ${neutralGray(it)}, shadow hue ${it.shadow.tint.hue})`);
-  // 3. No note gives the gray primary a hue, in either case.
+  // 3. No note gives the gray primary, or the gray brand color, a hue, in either case.
   const hued = [...follow.notes, ...it.notes].filter((n) => /\(hue 0\b|primary hue \(0\)|primary \(hue 0\)/.test(n));
   const primaryNote = follow.notes.find((n) => n.startsWith('primary:')) ?? '';
-  ok(hued.length === 0 && primaryNote.includes('(no hue)'),
-    `#2241: no decisions-log note gives a gray primary a hue (offending: ${hued.map((n) => `"${n.slice(0, 90)}…"`).join(' | ') || 'none'}; primary note "${primaryNote.slice(0, 90)}")`);
+  const brandColorNote = follow.notes.find((n) => n.startsWith("brand color: 'slate'")) ?? '';
+  ok(hued.length === 0 && primaryNote.includes('(no hue)') && brandColorNote === "brand color: 'slate' added (no hue).",
+    `#2241: no decisions-log note gives a gray primary or a gray brand color a hue (offending: ${hued.map((n) => `"${n.slice(0, 90)}…"`).join(' | ') || 'none'}; ` +
+    `primary note "${primaryNote.slice(0, 90)}"; brand color note "${brandColorNote}")`);
 }
 
 // hex formatting
@@ -6981,6 +6985,40 @@ arm: {
   ok(faint.c > 1e-3 && f.shadow.tint.hue !== null && Math.abs((f.shadow.tint.hue as number) - faint.h) < 1e-9 && !gray(f.shadow.colorRgb),
     `#2184 Q58 B: a faint but real pin (#151415, chroma ${faint.c.toFixed(4)}) still tints the shadow at its own hue ` +
     `(expected ${faint.h.toFixed(2)}, got ${f.shadow.tint.hue}, color ${JSON.stringify(f.shadow.colorRgb)})`);
+}
+
+// DECISIONS-LOG NOTES PRINT NO LONG DECIMALS (#2242). The notes are shipped prose: every brand's tokens carry them
+// as `$extensions.prism3.decisions`, and the reports print them. They interpolated input numbers raw, so a value
+// carrying full converter precision (a pin from a hex, a color picked in the studio) printed as
+// "tinted to hue 89.87556274151122". The shadow note's hue now prints in whole degrees, as the studio shows hue. The
+// other numbers print at the precision the corpus already uses: hue to 2 places, lightness and chroma to 4.
+//
+// INDEPENDENCE: the inputs are written with seven-place values in every field a note interpolates, and the expected
+// whole-degree hue is rounded from the INPUT, not read back from the note. The scan covers every note of every case
+// rather than the lines this fix touched, so a note added later with a raw number fails here too.
+{
+  const LONG = /\d\.\d{5,}/;   // more than 4 decimal places
+  const cases: [string, any][] = [
+    ['A (Follow primary, long brand color and status hues)', { id: 'n2242a', root: 'prism', primary: { l: 0.55, c: 0.1234567, h: 262.1234567 },
+      neutral: { hue: 40, chroma: 0.006, auto: true }, brandColors: [{ name: 'accent', oklch: { l: 0.6, c: 0.1234567, h: 150.1234567 } }],
+      status: { success: { h: 145.1234567, chroma: 0.1 }, danger: { h: 27.1234567, chroma: 0.15 } } }],
+    ['B (a pin from a hex, an out-of-gamut primary)', { id: 'n2242b', root: 'prism', primary: { l: 0.7, c: 0.3456789, h: 200.987654 },
+      neutral: { hue: 40, chroma: 0.006, anchor: rgbToOklch(hexToRgb('#5a6b7c')) } }],
+    // C also carries the dimension, layout and fluid-type inputs the notes print, at seven places (#2273's review).
+    ['C (a long red primary, long radius, layout and fluid-type inputs)', { id: 'n2242c', root: 'prism', primary: { l: 0.55, c: 0.2012345, h: 27.1234567 },
+      neutral: { hue: 40, chroma: 0.006 }, radiusScale: 1.1234567, baseMd: 4.1234567,
+      layout: { breakpoints: [0, 768.1234567, 1024.1234567, 1440.1234567], containerMax: 1440.1234567, containerNarrow: 720.1234567 },
+      typography: { responsive: { fluid: true, minViewport: 375.1234567, maxViewport: 1280.1234567 } } }],
+  ];
+  const offenders: string[] = [];
+  for (const [name, input] of cases) for (const n of brandTheme(input).notes) if (LONG.test(n)) offenders.push(`${name}: "${n.slice(0, 110)}…"`);
+  ok(offenders.length === 0,
+    `#2242 no decisions-log note prints a number with more than 4 decimal places (${offenders.length} offending: ${offenders.slice(0, 3).join(' | ')})`);
+  const a = brandTheme(cases[0][1]);
+  const shadowNote = a.notes.find((n) => n.startsWith('shadow:')) ?? '';
+  const want = `tinted to hue ${Math.round(cases[0][1].primary.h)} at`;
+  ok(shadowNote.includes(want),
+    `#2242 the shadow note prints the tint hue in whole degrees (expected "${want}", rounded from the input's ${cases[0][1].primary.h}; got "${shadowNote.slice(0, 140)}")`);
 }
 
 // PER-MODE SHADOW (Phase D) — a mode re-derives its shadow ramp at its own softness/tint via the SAME
@@ -28136,6 +28174,55 @@ arm: {
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }
+}
+
+// ------------------------------------------------------------------- component renames (#2265)
+// The ledger an in-place update reads to tell a renamed member from a dropped one plus an added one, and
+// the accounting `lint-component-renames.ts` runs over it. Hand-built inputs throughout: the lint's
+// own arms read git and the live projection, and these pin what it concludes from them.
+{
+  // The coordinate key: segment order does not matter, a non-coordinate is null.
+  ok(coordKey('size=small, appearance=filled') === 'appearance=filled, size=small', '#2265 coordKey: segments sort by axis, so two orders share one key');
+  ok(coordKey('appearance=filled, size=small') === coordKey('size=small, appearance=filled'), '#2265 coordKey: Figma reordering a name keeps the member matched');
+  ok(coordKey('Frame 12') === null && coordKey('size=small, size=large') === null && coordKey('=x') === null, '#2265 coordKey: a name with no `=`, an axis named twice, or an empty axis is not a coordinate');
+  ok(coordKey('leading icon=true, size=small') === 'leading icon=true, size=small', '#2265 coordKey: an axis name with a space is kept whole');
+
+  const L: ComponentRename[] = [
+    { def: 'chip', kind: 'value', axis: 'size', from: 'sm', to: 'small', issue: 1 },
+    { def: 'chip', kind: 'value', axis: 'size', from: 'small', to: 's', issue: 2 },
+    { def: 'chip', kind: 'axis', from: 'tone', to: 'appearance', issue: 3 },
+    { def: 'chip', kind: 'drop', axis: 'state', value: 'pressed', issue: 4 },
+  ];
+  const r1 = renameCoordinate('chip', 'size=sm, tone=bold', L);
+  ok(r1.key === 'appearance=bold, size=s' && r1.renamed, `#2265 renameCoordinate: a value chain and an axis rename both apply, and the key re-sorts (got ${r1.key})`);
+  ok(!renameCoordinate('chip', 'size=large', L).renamed, '#2265 renameCoordinate: a coordinate no entry names is unmoved');
+  ok(!renameCoordinate('other', 'size=sm', L).renamed, '#2265 renameCoordinate: an entry applies only to its own def');
+  // Two axes sharing a value name: a rename declared on one must leave the other's value where it is.
+  const own = renameCoordinate('chip', 'end=small, start=small', [{ def: 'chip', kind: 'value', axis: 'start', from: 'small', to: 'tiny', issue: 1 }]);
+  ok(own.key === 'end=small, start=tiny', `#2265 renameCoordinate: a value rename applies only on its own axis, not to the same value on another (got ${own.key})`);
+  let loops = false;
+  try { renameCoordinate('loop', 'a=x', [{ def: 'loop', kind: 'value', axis: 'a', from: 'x', to: 'y', issue: 1 }, { def: 'loop', kind: 'value', axis: 'a', from: 'y', to: 'x', issue: 1 }]); } catch { loops = true; }
+  ok(loops, '#2265 renameCoordinate: a cycle in the ledger throws rather than naming a coordinate');
+  ok(isDeclaredDrop('chip', 'state', 'pressed', L) && !isDeclaredDrop('chip', 'state', 'rest', L), '#2265 isDeclaredDrop: a drop names exactly its own value');
+
+  const before: AxesBaseline = { chip: { axes: { size: ['large', 'sm'], tone: ['bold'], state: ['pressed', 'rest'] }, members: 4 }, tab: { axes: { size: ['small'] }, members: 1 } };
+  const after: AxesBaseline = { chip: { axes: { size: ['large', 's'], appearance: ['bold'], state: ['rest'] }, members: 2 }, tab: { axes: { size: ['small'] }, members: 1 } };
+  ok(renamesUnaccounted(before, after, L).length === 0, `#2265 renames lint: renames, an axis move and a drop, each declared, account for every removal (${renamesUnaccounted(before, after, L).join('; ')})`);
+  const noValue = renamesUnaccounted(before, after, L.filter((r) => r.issue !== 1));
+  ok(noValue.length === 1 && noValue[0].startsWith('chip: size=sm is gone'), `#2265 renames lint: a value that vanished with no entry is reported by name (${noValue.join('; ')})`);
+  const noAxis = renamesUnaccounted(before, after, L.filter((r) => r.kind !== 'axis'));
+  ok(noAxis.some((b) => b.startsWith("chip: axis 'tone' is gone")), `#2265 renames lint: an axis that vanished with no entry is reported (${noAxis.join('; ')})`);
+  const noDrop = renamesUnaccounted(before, after, L.filter((r) => r.kind !== 'drop'));
+  ok(noDrop.some((b) => b.startsWith('chip: state=pressed is gone')), '#2265 renames lint: a removal is not claimed until a drop entry says it was meant');
+  const noDef = renamesUnaccounted(before, { chip: after.chip }, L);
+  ok(noDef.length === 1 && noDef[0].startsWith('tab: the def no longer projects'), '#2265 renames lint: a def that stops projecting needs its own drop');
+  ok(renamesUnaccounted(before, { chip: after.chip }, [...L, { def: 'tab', kind: 'drop', issue: 5 }]).length === 0, '#2265 renames lint: a whole-def drop claims the def');
+  ok(renamesUnaccounted(after, before, []).length > 0 && renamesUnaccounted(before, before, []).length === 0, '#2265 renames lint: an unchanged projection needs nothing; additions never do, removals always do');
+  ok(renamesDangling(after, L).length === 0, `#2265 renames lint: every entry's chain ends at a coordinate the tree projects (${renamesDangling(after, L).join('; ')})`);
+  const dangling = renamesDangling(after, [{ def: 'chip', kind: 'value', axis: 'size', from: 'large', to: 'xl', issue: 6 }]);
+  ok(dangling.length === 1 && dangling[0].includes("ends at 'xl'"), '#2265 renames lint: an entry renaming into a value the tree does not project is refused');
+  ok(renamesDangling(after, [{ def: 'chip', kind: 'drop', issue: 0 }]).some((b) => b.includes('names no issue')), '#2265 renames lint: an entry without an issue is refused');
+  ok(COMPONENT_RENAMES.every((r) => Number.isInteger(r.issue) && r.issue > 0), '#2265 COMPONENT_RENAMES: every entry names its issue');
 }
 
 // ------------------------------------------------------------------- report

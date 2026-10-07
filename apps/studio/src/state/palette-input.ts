@@ -13,7 +13,7 @@
  */
 import type { BrandInput } from '@prism3/engine/theme';
 import { brandTheme } from '@prism3/engine/theme';
-import { hex, oklchToRgb, hexToRgb, rgbToOklch, storedOklch } from '@prism3/engine/color';
+import { ACHROMATIC_C, hex, oklchToRgb, hexToRgb, rgbToOklch, storedOklch } from '@prism3/engine/color';
 import { autoPlaceStep } from '@prism3/engine/ramp';
 import { brandState, lastGoodInput, theme } from './store';
 import { resolvedModes } from './verdict';
@@ -141,21 +141,33 @@ export const setBrandColor = (i: number, h: string): void => {
 
 // ── neutrals ────────────────────────────────────────────────────────────────────────────────────
 /** Follow primary (the hue tracks the primary live) or a custom tint. Leaving Follow snapshots the hue it
- *  was following, so the custom tint starts where Auto left it, with no jump. */
+ *  was following, so the custom tint starts where Auto left it, with no jump. A gray primary has no hue to snapshot:
+ *  Auto showed a gray neutral (chroma 0, owner Q87 A), so the tint starts gray, never at the stored hue 0 (#2241). */
 export const setNeutralFollow = (follow: boolean): void => {
   const n = brandState.neutral;
   if (follow) n.auto = true;
-  else if (n.auto) { n.hue = brandState.primary.h; delete n.auto; }
+  else if (n.auto) {
+    if (brandState.primary.c < ACHROMATIC_C) { n.hue = 0; n.chroma = 0; }
+    else n.hue = brandState.primary.h;
+    delete n.auto;
+  }
 };
 export const setNeutralHue = (v: number): void => { brandState.neutral.hue = v; };
 export const setNeutralChroma = (v: number): void => { brandState.neutral.chroma = v; };
-/** Pin an exact neutral (on), seeded mid-ramp at the hue in effect, or go back to the derived ramp (off). */
+/** Pin an exact neutral (on), seeded mid-ramp at the hue in effect, or go back to the derived ramp (off). Following a
+ *  gray primary, the neutral in effect is gray (Q87 A), so the pin is seeded gray too (#2241). */
 export const setNeutralPinned = (on: boolean): void => {
   const n = brandState.neutral;
   if (!on) { delete n.anchor; return; }
-  const hue = n.auto ? brandState.primary.h : n.hue;
-  n.anchor = { l: 0.5, c: Math.min(n.chroma, 0.02), h: hue };
+  const gray = !!n.auto && brandState.primary.c < ACHROMATIC_C;
+  const hue = gray ? 0 : n.auto ? brandState.primary.h : n.hue;
+  n.anchor = { l: 0.5, c: gray ? 0 : Math.min(n.chroma, 0.02), h: hue };
 };
+
+/** The Palettes preview's line about the neutral ramp, from its step at index 10. A gray ramp has no hue to name, so it
+ *  reads "Gray" (#2241, owner Q96 A), decided by chroma as the engine decides it. */
+export const neutralBoardText = (step: OKLCH | undefined, follows: boolean): string =>
+  `${step && step.c < ACHROMATIC_C ? 'Gray' : `Hue ${Math.round(step?.h ?? 0)}°`}${follows ? ', following primary' : ''}. Text, borders and surfaces draw from it.`;
 export const setNeutralAnchor = (h: string): void => { if (brandState.neutral.anchor) brandState.neutral.anchor = oklchOf(h); };
 
 // ── status colors ───────────────────────────────────────────────────────────────────────────────

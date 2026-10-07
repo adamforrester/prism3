@@ -60,6 +60,37 @@ Each fixed path has its own test, and each mutation failed only its own:
 (p) shows two layers. With the import's branch removed, the engine's Follow fix still draws the ramp gray, but the
 stored brand file carries the leak, and the test reads the file.
 
+### Leaving Follow primary, and the preview line (owner Q96 A, the third review of #2280)
+
+The third review found the stored hue 0 still reaching the user through two Palettes paths. Both are fixed:
+- **The preview's neutral line** (`preview/palettes.ts`) read the ramp's hue with no chroma check, so a gray ramp read
+  "Hue 0°, following primary." Owner **Q96 A**: it reads "Gray, following primary. Text, borders and surfaces draw
+  from it." The line now comes from `neutralBoardText` (`state/palette-input.ts`), decided by the ramp's chroma. A gray
+  ramp that does not follow the primary reads "Gray. Text, borders and surfaces draw from it.", by the same rule
+  that drops ", following primary" today.
+- **Leaving Follow for Custom tint, or pinning from Follow** (`setNeutralFollow(false)`, `setNeutralPinned(true)`)
+  seeded from the primary's stored hue 0 and kept the chroma that Q87 A had overridden. That brought the red cast back:
+  neutral 500 `#797576` against Follow's `#757575`, and the shadow tinted to `{16,11,12}`. Under a gray primary, both
+  now start from what Auto showed. Custom tint writes `{ hue: 0, chroma: 0 }`, byte-identical to the Follow ramp. Pinned
+  writes `{ l: 0.5, c: 0, h: 0 }`. A primary with a hue keeps both writes as they were.
+
+The review also found a mutation that survived: the brand-color note reverted to `(hue …)` failed nothing, because the
+note test had no gray brand color. It has one now.
+
+`main` was merged twice. The first merge brought #2273 and conflicted in `theme.ts`; #2273's `n2`/`n4` rounding is kept
+inside this PR's no-hue branches. The second brought #2291 and merged cleanly.
+
+| Arm | Failures | ✗ line |
+|---|---|---|
+| (s) `neutralBoardText`'s chroma check removed | `test-palette-input` 2 | `✗ a gray ramp under Follow primary reads "Gray, following primary. …" (got "Hue 0°, following primary. …")`, and the same for the Custom-tint line |
+| (t) the preview wired back to its old inline line | `test:chrome` 1, beyond #2272's local four | `✗ #2241 Q88 A: Follow primary with a gray primary, Color › Palettes, web light 1280: the preview's neutral line reads "Gray, following primary. Text, borders and surfaces draw from it." (got "Hue 0°, following primary. Text, borders and surfaces draw from it.")`. That run also lost two cases to load-sensitive clicks (`TY2 A figma dark 380`, `#2192 web light 1280`, each "stopped at a step that threw"). Neither is on this path, and the unmutated run passed both. |
+| (u) `setNeutralFollow`'s gray branch removed | `test-palette-input` 4 | `✗ setNeutralFollow(false) writes {"hue":0,"chroma":0} (got {"hue":0,"chroma":0.006})`, `✗ … shadow untinted (shadow hue 0)`, `✗ no jump: … (500: #797576 vs #757575)` |
+| (v) `setNeutralPinned`'s gray seed removed | `test-palette-input` 2 | `✗ setNeutralPinned(true) seeds the anchor {"l":0.5,"c":0,"h":0} (got {"l":0.5,"c":0.006,"h":0})`, `✗ … shadow untinted (shadow hue 0)` |
+| (w) the brand-color note's guard removed | `test.ts` 1 | `❌ #2241: no decisions-log note gives a gray primary or a gray brand color a hue (offending: "brand color: 'slate' added (hue 0).…" …)` |
+
+**A trap for the next mutation run of `test:chrome`:** a mutated studio source needs *both* builds. A web-only rebuild
+trips the suite's `ui.html freshness` guard, and that ends the run before any assertion.
+
 ### Strings for the owner
 
 New decisions-log prose, drafted for a gray primary (or brand color). These are not covered by Q87/Q88's text:
@@ -72,7 +103,12 @@ New decisions-log prose, drafted for a gray primary (or brand color). These are 
 | brand color note | `brand color: 'x' added (hue 0).` | `brand color: 'x' added (no hue).` |
 | import log | `→ none provided; auto-follows the brand primary { hue 0, chroma 0.005 }` | `→ none provided; the brand primary has no hue, so the neutral is gray { hue 0, chroma 0 }` |
 
-The studio readouts reuse the approved "None" (Q88 A) and add no new words.
+| Palettes preview, neutral line | `Hue 0°, following primary. Text, borders and surfaces draw from it.` | `Gray, following primary. Text, borders and surfaces draw from it.` (Q96 A, approved) |
+| Palettes preview, neutral line, not following | `Hue 0°. Text, borders and surfaces draw from it.` | `Gray. Text, borders and surfaces draw from it.` (follows from Q96 A; owner to confirm) |
+
+The studio readouts reuse the approved "None" (Q88 A) and add no new words. Q95 A approved the primary note, the
+Follow-primary note and the brand color note. The danger note and the import log are not on its list, and wait on
+the owner.
 
 ### Tests and mutations
 

@@ -939,7 +939,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   }
   const kept = await page.evaluate(() => {
     const row = document.querySelector('[data-p3="activity-op"][data-op="apply"]');
-    return { summary: row?.querySelector('[data-p3="op-history"] summary')?.textContent ?? null, items: [...(row?.querySelectorAll('[data-p3="op-history"] li') ?? [])].map((n) => n.textContent ?? '') };
+    return { summary: row?.querySelector('[data-p3="op-history"] summary')?.textContent ?? null, items: [...(row?.querySelectorAll('[data-p3="op-history-entry"]') ?? [])].map((n) => n.textContent ?? '') };
   });
   const wantItems = [6, 5, 4, 3, 2].map((i) => `✓ ${i} roles written`);
   ok(kept.summary === 'Earlier results (5)' && kept.items.length === 5 && kept.items.every((t, j) => t.includes(wantItems[j])),
@@ -1036,7 +1036,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
       state: row?.dataset.state ?? null,
       verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null,
       history: row?.querySelector('[data-p3="op-history"] summary')?.textContent ?? null,
-      items: [...(row?.querySelectorAll('[data-p3="op-history"] li') ?? [])].map((n) => (n.textContent ?? '').replace(/^\d\d:\d\d · /, '')),
+      items: [...(row?.querySelectorAll('[data-p3="op-history-entry"]') ?? [])].map((n) => (n.textContent ?? '').replace(/^\d\d:\d\d · /, '')),
       count: document.querySelector('[data-p3="activity-toggle"] .p3-drawer-count')?.textContent ?? '',
       open: drawer?.dataset.open ?? null,
       status: document.querySelector('[data-p3="activity-status"]')?.textContent ?? null,
@@ -1056,7 +1056,7 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.waitForFunction(() => document.querySelector('[data-p3="activity-op"][data-op="apply"]')?.dataset.state === 'ok', null, { timeout: 5000 }).catch(() => {});
   const after = await page.evaluate(() => {
     const row = document.querySelector('[data-p3="activity-op"][data-op="apply"]');
-    return { verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null, items: [...(row?.querySelectorAll('[data-p3="op-history"] li') ?? [])].map((n) => n.textContent ?? '') };
+    return { verdict: row?.querySelector('[data-p3="op-verdict"]')?.textContent ?? null, items: [...(row?.querySelectorAll('[data-p3="op-history-entry"]') ?? [])].map((n) => n.textContent ?? '') };
   });
   ok((after.verdict ?? '').includes('✓ 42 roles written') && after.items.length === 1 && after.items[0].includes('Refused'),
     `#1957 the running write's verdict lands on the row after a refusal — verdict ${JSON.stringify(after.verdict)}, history ${JSON.stringify(after.items)}`);
@@ -1949,6 +1949,123 @@ for (const how of ['pointer', 'focus']) {
     const texts = await page.evaluate((s) => [...(document.querySelector(s)?.children ?? [])].map((n) => n.textContent), sel);
     ok(JSON.stringify(texts) === JSON.stringify([summary]), `#2177 a summary sent without items shows as its one line, in its own words — read ${JSON.stringify(texts)}`);
     ok(errors.length === 0, `#2177 no items: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+}
+
+// ── #2281: "Earlier results" read one line per item too ─────────────────────────────────────────────
+//
+// Owner decision Q90 A (2026-10-07): the Activity drawer's history uses the format #2177 (AL1 A) gave a run's current
+// details. Each earlier result is its time and verdict, then its items, one per line, in the chrome's mono font, an
+// unbulleted list, no separator at a line's end. A nested list stays on its item's line (AL1 A's exceptions: a conflict
+// refusal, "Also built: …", the style guide's per-table update). No history line sits in a live region.
+//
+// INDEPENDENCE (docs/34). EXPECTED is the item lists authored here, per run kind, with the summary joined from them here.
+// ACTUAL is the built panel's DOM, each line's computed font against the chrome's own `--p3-font-mono` token, and the
+// browser's accessibility tree (CDP `getPartialAXTree`). Neither side reads `activity.ts`. The agent link is untouched:
+// this is the drawer's rendering only, and `test-agent-link.ts`'s `#2177` arms hold the agent's verdict byte for byte.
+//
+// Mutations, each against the built bundle, each failing by name:
+//   · the history joined back into one line → `#2281 <kind> <w>: the earlier results show their items as lines, newest first`
+//   · a history line inside the live region → `#2281 <kind> <w>: no earlier result sits in a live region`
+//   · the last history line dropped → the first arm
+{
+  const BUILT_A = 'Built from tree-a1b2c3d4 at 2026-10-07T09:00:00Z.';
+  const BUILT_B = 'Built from tree-e5f6a7b8 at 2026-10-07T09:20:00Z.';
+  /** Per run kind: two earlier results, oldest first, each its verdict and its items with the separator joining each. */
+  const KINDS = [
+    { op: 'apply', type: 'apply-result', extra: {}, runs: [
+      { headline: '⚠ 4 misses', items: [['', 'palette 118 (+0)'], [', ', 'color 412 (+3)'], [', ', 'type 9 fonts loaded / 40 font vars (+0) / 22 text styles (+0)'],
+        [', ', '1630 bindings'], [', ', '4 misses'], ['. ', BUILT_A]] },
+      { headline: '⚠ 1 refused', items: [['', 'palette 118 (+0)'], [', ', 'color 412 (+0)'], [', ', '1 write refused (color/text/primary)'], ['. ', BUILT_B]] },
+    ] },
+    { op: 'components', type: 'component-result', extra: { completed: true }, runs: [
+      { headline: '⚠ 648, 4 missed', items: [
+        ['', "set 'Button': 648 variants (+0 built, 648 already present), grid 24×27, axes size/variant/state/icon"],
+        [', ', '⚠ 4 misses (focus/ring/offset; icon/size; label/weight; …)'], ['. ', 'Also built: icon, badge'], ['. ', BUILT_A]] },
+      { headline: '✗ Nothing written', items: [
+        ['', 'Nothing was written. 3 conflicts with existing content: Button/size=sm; Button/size=md; Button/size=lg'], ['. ', BUILT_B]] },
+    ] },
+    { op: 'styleguide', type: 'style-guide-result', extra: {}, runs: [
+      { headline: '⚠ 4 drawn, 1 failed', items: [['', 'Primary: Figma refused the write'], ['. ', '3 tables created (Palette, Color roles, Spacing)'], ['. ', BUILT_A]] },
+      { headline: '⚠ 2 updated', items: [['', '2 tables updated in place — Radius: 2 changed; Spacing: 1 changed'],
+        ['. ', '4 tables skipped — this file has no ↳ Semantic tokens page, and Set up file adds it'], ['. ', BUILT_B]] },
+    ] },
+  ];
+  const LIVE = '[aria-live], [role="status"], [role="log"], [role="alert"]';
+  ok(KINDS.length === 3, `#2281 the arm drives every run kind #2177 does: Apply, a component build, the style guide (found ${KINDS.length})`);
+  for (const w of [1280, 380]) for (const k of KINDS) {
+    const { page, errors } = await openPanel();
+    await page.setViewportSize({ width: w, height: w === 380 ? 640 : 900 });
+    // Two runs, then a third: the first two are the earlier results, newest first.
+    const runs = [...k.runs, { headline: '⚠ latest', items: [['', 'the latest run']] }];
+    for (const r of runs) {
+      const items = r.items.map(([, t]) => t);
+      const summary = r.items.map(([sep, t], i) => (i === 0 ? t : sep + t)).join('');
+      await post(page, { type: k.type, ok: false, headline: r.headline, summary, ...k.extra, lines: items });
+      await page.waitForFunction(([op, h]) => document.querySelector(`[data-p3="activity-op"][data-op="${op}"] [data-p3="op-verdict"]`)?.textContent?.includes(h), [k.op, r.headline], { timeout: 5000 }).catch(() => {});
+    }
+    const row = `[data-p3="activity-op"][data-op="${k.op}"]`;
+    await hooks.click(page.locator(`${row} [data-p3="op-history"] > summary`));
+    await page.waitForFunction((s) => document.querySelector(s)?.checkVisibility() === true, `${row} [data-p3="op-history-line"]`, { timeout: 5000 }).catch(() => {});
+    const want = [k.runs[1], k.runs[0]];
+    const seen = await page.evaluate(([r, live]) => {
+      const entries = [...document.querySelectorAll(`${r} [data-p3="op-history-entry"]`)];
+      const mono = getComputedStyle(document.documentElement).getPropertyValue('--p3-font-mono').trim();
+      const lines = [...document.querySelectorAll(`${r} [data-p3="op-history-line"]`)];
+      const status = document.querySelector('[data-p3="activity-status"]');
+      return {
+        heads: entries.map((e) => e.querySelector('[data-p3="op-history-head"]')?.textContent ?? null),
+        texts: entries.map((e) => [...e.querySelectorAll('[data-p3="op-history-line"]')].map((n) => n.textContent)),
+        mono,
+        fonts: lines.map((n) => getComputedStyle(n).fontFamily),
+        bullets: [...document.querySelectorAll(`${r} [data-p3="op-history-lines"]`)].map((n) => getComputedStyle(n).listStyleType),
+        live: [...document.querySelectorAll(`${r} [data-p3="op-history"], ${r} [data-p3="op-history"] *`)].filter((n) => n.closest(live)).length
+          + (status ? status.querySelectorAll('[data-p3="op-history"], [data-p3="op-history-entry"], [data-p3="op-history-head"], [data-p3="op-history-lines"], [data-p3="op-history-line"]').length : 0),
+      };
+    }, [row, LIVE]);
+    ok(JSON.stringify(seen.texts) === JSON.stringify(want.map((r) => r.items.map(([, t]) => t))),
+      `#2281 ${k.op} ${w}: the earlier results show their items as lines, newest first (${want.map((r) => r.items.length).join(' and ')} lines) — read ${JSON.stringify(seen.texts.map((l) => l.map((t) => (t ?? '').slice(0, 30))))}`);
+    ok(seen.heads.length === 2 && seen.heads.every((t, i) => new RegExp(`^\\d\\d:\\d\\d · ${want[i].headline.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`).test(t ?? '')),
+      `#2281 ${k.op} ${w}: each earlier result leads with its time and verdict, nothing after it — read ${JSON.stringify(seen.heads)}`);
+    ok(seen.mono !== '' && seen.fonts.length > 0 && seen.fonts.every((f) => f === seen.mono) && seen.bullets.length === 2 && seen.bullets.every((b) => b === 'none'),
+      `#2281 ${k.op} ${w}: every earlier line is in the chrome's mono font (${seen.mono}), in an unbulleted list — read ${JSON.stringify([...new Set(seen.fonts)])}, ${JSON.stringify(seen.bullets)}`);
+    ok(seen.live === 0, `#2281 ${k.op} ${w}: no earlier result sits in a live region — ${seen.live} history nodes inside one`);
+    // The browser's own reading: per earlier result, a list whose items are its lines, in order.
+    const cdp = await page.context().newCDPSession(page);
+    const read = [];
+    try {
+      await cdp.send('Accessibility.enable');
+      const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+      const { nodeIds: lists } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: `${row} [data-p3="op-history-lines"]` });
+      for (const listId of lists) {
+        const role = (await cdp.send('Accessibility.getPartialAXTree', { nodeId: listId, fetchRelatives: false })).nodes.find((n) => !n.ignored)?.role?.value ?? null;
+        const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: listId, selector: ':scope > *' });
+        const items = [];
+        for (const id of nodeIds) {
+          const t = (await cdp.send('Accessibility.getPartialAXTree', { nodeId: id, fetchRelatives: true })).nodes;
+          const me = t.find((n) => n.backendDOMNodeId !== undefined && !n.ignored && n.role?.value === 'listitem');
+          items.push({ role: me?.role?.value ?? null, words: t.filter((n) => n.parentId === me?.nodeId && n.role?.value === 'StaticText').map((n) => n.name?.value ?? '').join('') });
+        }
+        read.push({ role, items });
+      }
+    } finally { await cdp.detach(); }
+    ok(read.length === 2 && read.every((l, i) => l.role === 'list' && l.items.length === want[i].items.length && l.items.every((x, j) => x.role === 'listitem' && x.words === want[i].items[j][1])),
+      `#2281 ${k.op} ${w}: a screen reader reads each earlier result's lines in order, as a list — read ${JSON.stringify(read.map((l) => `${l.role}: ${l.items.map((x) => `${x.role} ${x.words.slice(0, 20)}`).join(' | ')}`))}`);
+    ok(errors.length === 0, `#2281 ${k.op} ${w}: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+  // An earlier result sent without items (Set up file, or an older host) is its summary as one line.
+  {
+    const { page, errors } = await openPanel();
+    const summary = 'file setup failed: a page named Components already exists';
+    await post(page, { type: 'file-setup-result', ok: false, headline: '✗ setup failed', summary });
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-summary"]'), null, { timeout: 5000 }).catch(() => {});
+    await post(page, { type: 'file-setup-result', ok: false, headline: '✗ setup failed again', summary: 'again' });
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-history-line"]'), null, { timeout: 5000 }).catch(() => {});
+    const texts = await page.evaluate(() => [...document.querySelectorAll('[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-history-line"]')].map((n) => n.textContent));
+    ok(JSON.stringify(texts) === JSON.stringify([summary]), `#2281 an earlier result sent without items shows as its one line, in its own words — read ${JSON.stringify(texts)}`);
+    ok(errors.length === 0, `#2281 no items: no console errors (${errors.slice(0, 2).join(' · ')})`);
     await page.close();
   }
 }

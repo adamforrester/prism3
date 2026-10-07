@@ -11300,6 +11300,11 @@ for (const [form, pin] of [['stored hue 0', { l: 0.3211, c: 1.2e-8, h: 0 }], ['l
     });
     ok(st.readout === 'None' && st.follow === 'Hue follows primary: None.' && !/\b0°/.test(`${st.readout} ${st.follow}`),
       `${where}: the hue readout reads None and the follow line says the primary has none, not 0° (${JSON.stringify(st)})`);
+    // The preview's neutral board, beside the levers, says the same (owner Q96 A), never "Hue 0°".
+    const board = await page.waitForFunction(() => [...document.querySelectorAll('.p3-board-desc')].map((n) => n.textContent ?? '')
+      .find((t) => t.endsWith('Text, borders and surfaces draw from it.')) ?? null, null, { timeout: 5000 }).then((hd) => hd.jsonValue()).catch(() => null);
+    ok(board === 'Gray, following primary. Text, borders and surfaces draw from it.',
+      `${where}: the preview's neutral line reads "Gray, following primary. Text, borders and surfaces draw from it." (got ${JSON.stringify(board)})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
