@@ -266,9 +266,11 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
         continue;
       }
       const m = byName.get(planComponentName(plan));
-      const got = m ? (m as { targetAspectRatio?: unknown }).targetAspectRatio : undefined;
-      ok(typeof got === 'number' && Math.abs(got - expected) < 1e-6,
-        `aspect-lock: ratio=${ratio}'s built frame locks targetAspectRatio ≈ ${expected.toFixed(4)} (read ${typeof got === 'number' ? got.toFixed(4) : String(got)})`);
+      // A `Vector` `{x, y}` on the host (#2295); its ratio is x / y.
+      const v = m ? (m as { targetAspectRatio?: { x?: unknown; y?: unknown } | null }).targetAspectRatio : undefined;
+      const got = v && typeof v.x === 'number' && typeof v.y === 'number' && v.y ? v.x / v.y : undefined;
+      ok(got !== undefined && Math.abs(got - expected) < 1e-6,
+        `aspect-lock: ratio=${ratio}'s built frame locks targetAspectRatio ≈ ${expected.toFixed(4)} (read ${got !== undefined ? got.toFixed(4) : JSON.stringify(v)})`);
     }
     // SCOPE FLOOR: every owner-decided ratio must be represented by a built member, so a def that DROPS
     // one fails here rather than the block quietly checking fewer frames.

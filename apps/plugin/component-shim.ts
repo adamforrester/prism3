@@ -618,8 +618,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // load-bearing: a shim that pre-set a target would pass whether the executor locked or not. Captured
       // from the live getters, NOT from any plan input, so the read-back is a witness of what the executor
       // resized-then-locked, not a copy of what it was told.
-      _targetAspectRatio: undefined as number | undefined,
-      get targetAspectRatio() { return node._targetAspectRatio as number | undefined; },
+      // A `Vector` (#2295), as Figma types it (`targetAspectRatio: Vector | null`): `{x, y}` with the ratio `x / y`,
+      // normalized to `y: 1` at float32, which is what the NB master reads back. It was a bare number here, and the
+      // read-back agreed with that, so it reported every locked frame on the real host as differing from its plan.
+      _targetAspectRatio: undefined as { x: number; y: number } | undefined,
+      get targetAspectRatio() { return node._targetAspectRatio as { x: number; y: number } | undefined; },
       fills: [] as unknown[], strokes: [] as unknown[], children: [] as Node[],
       // A CREATED FRAME STARTS WITH FIGMA'S DEFAULT OPAQUE WHITE FILL (#1387), not `[]`. This models the
       // one axis the audit's fallback lives on: `createFrame()` "hands back an opaque white box" (see the
@@ -760,7 +763,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
         node._aspectLocked = true;
         const w = node.width as number;
         const h = node.height as number;
-        node._targetAspectRatio = h ? w / h : undefined;
+        node._targetAspectRatio = h ? { x: Math.fround(w / h), y: 1 } : undefined;
       },
       // The VALUE alongside the id, because a bound dimension is what SIZES the node live — the getters
       // above read it. Without it the binding is bookkeeping and every node measures the same.

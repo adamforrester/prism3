@@ -49,6 +49,10 @@
  *                  with one line counting them, and a real difference still reads "Would change" (owner Q91 B,
  *                  #2282). Mutations: those members counted as changes → `earlier/headline`; the line dropped →
  *                  `earlier/line`; a set with any of them read as no changes → `earlier/real difference`.
+ *   differ/…       a member that differs from its plan is reported by part, field, plan value and file value, in
+ *                  the dry run and in the capture (#2295); and a fresh image-placeholder build records clean, its
+ *                  aspect lock read as Figma's `{x, y}`. Mutations: the read-back's number-only aspect check →
+ *                  `differ/image-placeholder`; the named lines dropped → `differ/dry run`, `differ/capture`.
  *   file/…         a def with no set is missing, and the verdict's `lines` (#2177) are one per item, the list the
  *                  summary is joined from. Mutation: `lines` sent as the joined summary → `file/lines`.
  *
@@ -505,6 +509,35 @@ section('earlier — a captured file built by an earlier plugin reads no changes
     `earlier/real difference: a hand edit still reads as a change, and the other 44 keep their line (${v2.headline}; ${JSON.stringify(v2.lines)})`);
   const one = previewVerdict({ ...r, sets: [{ ...r.sets[0], counts: { ...r.sets[0].counts, current: 44, revisionUnknown: 1 } }] });
   ok(one.lines.includes('1 built by an earlier plugin. Update it to bring it current.'), `earlier/one: one member reads in the singular (${JSON.stringify(one.lines)})`);
+}
+
+/* ── differ ──────────────────────────────────────────────────────────────────────────────────────────── */
+section('differ — a member that differs from its plan is reported by part and field, plan against file (#2295)');
+{
+  // #2295's reproduction: image-placeholder's aspect lock reads back as Figma's `{x, y}` Vector. Read as a number,
+  // every member of a fresh build "differs from the plan in 1 place", which is what the NB master showed.
+  const IMG = 'image-placeholder';
+  const b = await build(IMG);
+  for (const m of membersOf(b.set)) (m.setSharedPluginData as (ns: string, k: string, v: string) => void)(NS, BASELINE_KEY, '');
+  const cap = (await captureBaselines(b.shim, [{ def: IMG, plans: b.plans }])).sets[0];
+  ok(cap.recorded === 3 && cap.skipped.length === 0, `differ/image-placeholder: a fresh build's 3 members are recorded, none read as differing (${cap.recorded}, ${JSON.stringify(cap.skipped).slice(0, 200)})`);
+}
+{
+  const b = await build(TAG);
+  const m = membersOf(b.set)[3];
+  const planned = String(b.plans.map((p) => planChild(p.root, 'content').bound?.itemSpacing).find(Boolean));
+  // ONE FIELD, planted: the content gap bound to a variable no plan uses.
+  (childNamed(m, 'content').setBoundVariable as (f: string, v: { id: string }) => void)('itemSpacing', { id: await varId(b, 'space/0') });
+  const v = previewVerdict(await previewUpdate(b.shim, [{ def: TAG, plans: b.plans }]));
+  const named = v.lines.filter((l) => l.startsWith('tag · content · bound: '));
+  ok(named.length === 1 && named[0].includes(`the plan says itemSpacing→${planned}`) && /the file has itemSpacing→\S*space\/0/.test(named[0]),
+    `differ/dry run: the one planted field is named, with the plan's value and the file's (${JSON.stringify(named)})`);
+  // The capture of a set built before records, same planted field.
+  for (const x of membersOf(b.set)) (x.setSharedPluginData as (ns: string, k: string, v: string) => void)(NS, BASELINE_KEY, '');
+  const c = captureVerdictText(await captureBaselines(b.shim, [{ def: TAG, plans: b.plans }]));
+  const capNamed = c.lines.filter((l) => l.startsWith(`tag · ${m.name} / content · bound: `));
+  ok(capNamed.length === 1 && capNamed[0].includes(`the plan says itemSpacing→${planned}`) && /the file has itemSpacing→\S*space\/0/.test(capNamed[0]),
+    `differ/capture: the member left out is named with what differs (${JSON.stringify(capNamed)}; ${JSON.stringify(c.lines.slice(0, 1))})`);
 }
 
 /* ── over a file ─────────────────────────────────────────────────────────────────────────────────────── */
