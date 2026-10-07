@@ -11346,7 +11346,15 @@ console.log('\n34. #2272: trim and its tooltip follow the name\'s own cut');
 // Mutations, each in a `wip:` commit, each failing by name (the PR records the lines):
 //   (a) settings not held in wireframe; (b) the line left out in HC dark; (c) the line placed inside the levers region;
 //   (d) Layout left out of the read-only pages; (e) a setting left reachable (the selects); (f) the Jump to links held;
-//   (g) the line back in the hint style.
+//   (g) the line back in the hint style; (h) the hold not watching attributes; (i) a held node skipped though re-enabled.
+//
+// A BRAND CHANGE WHILE HELD (#2284 review, the BLOCK). A page can lift a hold in place: Depth's tint hue syncs its own
+// `disabled` on every brand change (`noHue`). So, once per host (light chrome, 1280), in HC light on Depth & motion with
+// its Show advanced open, the brand is changed with the web's test edit hook, the path an agent edit takes, and every
+// setting is read again: all still held, the tint hue by name. The plugin has no in-place brand change in its UI: a
+// `restore-input` (the committed prism3 with a new tint amount) loads the brand wholesale and returns the preview to
+// Light and the view to its opening page. So there the case reads that the restore lands live (no line, nothing held)
+// and that going back to HC light on Depth & motion holds every setting again, the tint hue by name.
 const RO_DERIVED = [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']];
 const RO_EDITABLE = ['light', 'dark'];
 const RO_PLACES = ['color-fills', 'color-interactive', 'type', 'depth', 'shape', 'layout', 'components'];
@@ -11570,6 +11578,52 @@ for (const host of ['web', 'figma']) {
   }
 }
 
+/** The settings read on Depth & motion: how many there are, which are live, and the tint hue's own state. */
+const RO_DEPTH_READ = ([q, exceptions]) => {
+  const pane = document.querySelector('[data-p3="levers-pane"]');
+  const ops = [...(pane?.querySelectorAll(q) ?? [])].filter((n) => !exceptions.includes(n.getAttribute('data-p3')) && !n.matches('[data-p3="levers-derived-note"]'));
+  const off = (n) => n.matches(':disabled') || (n.getAttribute('aria-disabled') === 'true' && n.tabIndex < 0);
+  const hue = document.querySelector('[data-p3="levers-pane"] [data-p3="shadow-tint-hue"]');
+  return { n: ops.length, live: ops.filter((n) => !off(n)).map((n) => n.getAttribute('data-p3') ?? n.tagName.toLowerCase()),
+    hue: hue ? { disabled: hue.matches(':disabled'), held: hue.getAttribute('data-held') } : null,
+    amount: document.querySelector('[data-p3="levers-pane"] [data-p3="shadow-tint-amount"]')?.value ?? null };
+};
+for (const host of ['web', 'figma']) {
+  const where = `#1984 ${host} light 1280 hc-light on depth, a brand change while held`;
+  const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900, query: host === 'web' ? '?p3-test-hooks' : '' });
+  try {
+    await roShowMode(page, 'hc-light');
+    await openDepth(page);
+    await openTint(page);
+    const before = await page.evaluate(RO_DEPTH_READ, [RO_OPERABLE, RO_EXCEPTIONS]);
+    ok(before.n > 0 && before.live.length === 0 && before.hue?.disabled === true,
+      `${where}: before the change, every setting is held, the tint hue included (${before.n} read; live ${JSON.stringify(before.live)}; hue ${JSON.stringify(before.hue)})`);
+    if (host === 'web') {
+      await page.evaluate(() => window.__prism3TestEdit('shadow.tint.amount', 0.25));
+      await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="shadow-tint-amount"]')?.value === '0.25', null, { timeout: 5000 }).catch(() => {});
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+      const after = await page.evaluate(RO_DEPTH_READ, [RO_OPERABLE, RO_EXCEPTIONS]);
+      const mode = await page.evaluate(() => [...document.querySelectorAll('[data-p3="mode-option"]')].find((b) => b.getAttribute('aria-checked') === 'true')?.dataset.mode ?? document.querySelector('[data-p3="mode-select"]')?.value);
+      ok(after.amount === '0.25' && mode === 'hc-light', `${where}: the brand changed and HC light still shows (amount ${after.amount}, mode ${mode})`);
+      ok(after.n > 0 && after.live.length === 0 && after.hue?.disabled === true,
+        `${where}: after the change, every setting is still held, the tint hue included (${after.n} read; live ${JSON.stringify(after.live)}; hue ${JSON.stringify(after.hue)})`);
+    } else {
+      await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), { ...BOOT_INPUT, shadow: { tint: { ...BOOT_INPUT.shadow?.tint, amount: 0.25 } } });
+      await page.waitForFunction(() => !document.querySelector('[data-p3="levers-derived-note"]'), null, { timeout: 5000 }).catch(() => {});
+      const landed = await page.evaluate(() => ({ line: document.querySelectorAll('[data-p3="levers-derived-note"]').length, held: document.querySelectorAll('[data-p3="levers-pane"] [data-held]').length }));
+      ok(landed.line === 0 && landed.held === 0, `${where}: a restore loads the brand in Light, the panel live: no line, nothing held (${JSON.stringify(landed)})`);
+      await roShowMode(page, 'hc-light');
+      await openDepth(page);
+      await openTint(page);
+      const again = await page.evaluate(RO_DEPTH_READ, [RO_OPERABLE, RO_EXCEPTIONS]);
+      ok(again.amount === '0.25' && again.n > 0 && again.live.length === 0 && again.hue?.disabled === true,
+        `${where}: back in HC light on the restored brand, every setting is held, the tint hue included (amount ${again.amount}; ${again.n} read; live ${JSON.stringify(again.live)}; hue ${JSON.stringify(again.hue)})`);
+    }
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
 hooks.report(ok);
 // THE CONTRAST EXEMPTION, counted per run (F1 A): how many nodes the audit exempted, over how many probes, and where.
 {
