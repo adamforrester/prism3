@@ -7,6 +7,812 @@
 
 ---
 
+## (2026-10-07) — Engine: a pure gray has no hue, rather than ~89.88° of rounding noise (#2241)
+
+**Status:** ENGINE `0.233.0` (`engine: minor`, change note `engine-2241-hueless-gray.md`). CONTRACT
+unchanged; the brand-input schema is unchanged too (the orchestrator's technical decision, recorded on #2280). `regen` moves no committed artifact. Built on
+#2240, whose no-hue rule is the fallback here; opened after #2240 merged.
+
+### What changed
+
+Converting a pure gray (r = g = b) to OKLCH gives chroma ~1e-8 and an atan2 of rounding noise, ~89.88° for every gray.
+Code downstream read that as a real hue. It was the root cause of #2240's blocker, where a pinned `#333333` tinted
+the shadow olive and the studio read ~90°.
+
+- **The converter (`color.ts`).** `rgbToOklch` returns `OklchMeasured`, whose hue is `null` below `ACHROMATIC_C =
+  1e-4` (CSS Color 4's "powerless" hue). Because `null` won't type-check where a number is expected, the typechecker
+  listed every consumer, and there are five, all at the brand-input boundary. A `NaN` would have type-checked
+  silently and flowed into colors. `ACHROMATIC_C` is the one definition of "no hue": #2240's shadow guard now imports it.
+- **The stored form (a technical decision, the orchestrator's, recorded on #2280).** It holds only because every
+  reader checks chroma before it reads a hue. The review of #2280 found two readers that did not, fixed below. `storedOklch()` writes a hue-less color with `h: 0`, CSS Color 4's convention
+  for a missing hue, so brand files keep the schema's numeric hue. The hex import (`classify-colors.ts`), the studio's
+  start from a color (`start-input.ts`) and its color picks (`palette-input.ts` `oklchOf`) all store through it.
+- **The fallback is the owner's no-hue rule (Q58 B, Q73 A),** applied at every consumer:
+  - the shadow of a gray ramp is untinted;
+  - starting from a pure gray gives a **gray neutral** (chroma 0), not one leaning to a noise hue;
+  - Color › Palettes reads **None** for a pinned gray's hue (owner Q88 A, recorded on #2280), on the readout, on the slider's
+    value text, and on the pinned color's OKLCH line.
+- **Legacy files are covered.** The rule reads chroma, never the stored hue, so a brand file saved before #2241,
+  still carrying the 89.88 noise, reads None and stays untinted too.
+
+**Applied beyond the letter of the ruling, flagged for the owner:** Q88 A covers the Palettes hue readout. The same
+"None" also replaces the hue part of the color field's OKLCH line (`oklchMeta`, `OKLCH 0.321 0.000 None`) wherever a
+color has no hue, because it showed the same noise.
+
+### A gray primary has no hue either (owner Q87 A and Q88 A, the review of #2280)
+
+The review found two readers that took a hue-less primary's stored hue 0 as a real hue. Each built a neutral at hue
+0, a faint red cast and the shadow tinted with it (`{"r":16,"g":11,"b":12}`), where `main` built the olive one at
+89.88:
+- **Follow primary** (`theme.ts`): the neutral took the primary's hue at its own chroma;
+- **a design.md import with no neutral swatches** (`classify-colors.ts`), which follows the primary.
+
+Owner **Q87 A**: with a gray primary, a Follow-primary neutral is gray, the same rule as Q58 B and Q73 A, gray in and
+gray out.
+- **Follow primary:** `brandTheme` builds the neutral at chroma 0, and Q73 A's chroma rule then leaves the shadow
+  untinted.
+- **The import:** it stores a gray neutral `{ hue: 0, chroma: 0 }`, as starting from a gray color already does.
+- **The decisions-log notes** give a gray primary (or a gray brand color) no hue: `(no hue)` replaces `(hue 0)`.
+
+Owner **Q88 A**: under Follow primary, a gray primary's Palettes hue readout reads None, and so does the follow line
+("Hue follows primary: None."). The chroma readout shows the 0 the ramp actually uses.
+
+Each fixed path has its own test, and each mutation failed only its own:
+
+| Arm | Failures | ✗ line |
+|---|---|---|
+| (o) the Follow path's chroma override removed | `test.ts` 1 | `#2241 Q87 A: Follow primary with a gray primary builds a gray neutral and an untinted shadow (neutral all gray: false, shadow hue 0, color {"r":16,"g":11,"b":12})` |
+| (p) the import's gray-neutral branch removed | `test.ts` 1 | `#2241 Q87 A: an import with a gray primary and no neutral swatches stores a gray neutral (got {"hue":0,"chroma":0.005,"auto":true} …)` |
+| (q) the primary note's guard removed | `test.ts` 1 | `#2241: no decisions-log note gives a gray primary a hue (offending: "primary: the brand color is pinned at step 450 (hue 0) — …" …)` |
+| (r) the Palettes follow guard removed | `test:chrome` 1 (beyond #2272's local two) | `✗ #2241 Q88 A: Follow primary with a gray primary, Color › Palettes, web light 1280: the hue readout reads None and the follow line says the primary has none, not 0° ({"readout":"0° · follows primary","follow":"Hue follows primary: 0°."})` |
+
+(p) shows two layers. With the import's branch removed, the engine's Follow fix still draws the ramp gray, but the
+stored brand file carries the leak, and the test reads the file.
+
+### Leaving Follow primary, and the preview line (owner Q96 A, the third review of #2280)
+
+The third review found the stored hue 0 still reaching the user through two Palettes paths. Both are fixed:
+- **The preview's neutral line** (`preview/palettes.ts`) read the ramp's hue with no chroma check, so a gray ramp read
+  "Hue 0°, following primary." Owner **Q96 A**: it reads "Gray, following primary. Text, borders and surfaces draw
+  from it." The line now comes from `neutralBoardText` (`state/palette-input.ts`), decided by the ramp's chroma. A gray
+  ramp that does not follow the primary reads "Gray. Text, borders and surfaces draw from it.", by the same rule
+  that drops ", following primary" today.
+- **Leaving Follow for Custom tint, or pinning from Follow** (`setNeutralFollow(false)`, `setNeutralPinned(true)`)
+  seeded from the primary's stored hue 0 and kept the chroma that Q87 A had overridden. That brought the red cast back:
+  neutral 500 `#797576` against Follow's `#757575`, and the shadow tinted to `{16,11,12}`. Under a gray primary, both
+  now start from what Auto showed. Custom tint writes `{ hue: 0, chroma: 0 }`, byte-identical to the Follow ramp. Pinned
+  writes `{ l: 0.5, c: 0, h: 0 }`. A primary with a hue keeps both writes as they were.
+
+The review also found a mutation that survived: the brand-color note reverted to `(hue …)` failed nothing, because the
+note test had no gray brand color. It has one now.
+
+`main` was merged twice. The first merge brought #2273 and conflicted in `theme.ts`; #2273's `n2`/`n4` rounding is kept
+inside this PR's no-hue branches. The second brought #2291 and merged cleanly.
+
+| Arm | Failures | ✗ line |
+|---|---|---|
+| (s) `neutralBoardText`'s chroma check removed | `test-palette-input` 2 | `✗ a gray ramp under Follow primary reads "Gray, following primary. …" (got "Hue 0°, following primary. …")`, and the same for the Custom-tint line |
+| (t) the preview wired back to its old inline line | `test:chrome` 1, beyond #2272's local four | `✗ #2241 Q88 A: Follow primary with a gray primary, Color › Palettes, web light 1280: the preview's neutral line reads "Gray, following primary. Text, borders and surfaces draw from it." (got "Hue 0°, following primary. Text, borders and surfaces draw from it.")`. That run also lost two cases to load-sensitive clicks (`TY2 A figma dark 380`, `#2192 web light 1280`, each "stopped at a step that threw"). Neither is on this path, and the unmutated run passed both. |
+| (u) `setNeutralFollow`'s gray branch removed | `test-palette-input` 4 | `✗ setNeutralFollow(false) writes {"hue":0,"chroma":0} (got {"hue":0,"chroma":0.006})`, `✗ … shadow untinted (shadow hue 0)`, `✗ no jump: … (500: #797576 vs #757575)` |
+| (v) `setNeutralPinned`'s gray seed removed | `test-palette-input` 2 | `✗ setNeutralPinned(true) seeds the anchor {"l":0.5,"c":0,"h":0} (got {"l":0.5,"c":0.006,"h":0})`, `✗ … shadow untinted (shadow hue 0)` |
+| (w) the brand-color note's guard removed | `test.ts` 1 | `❌ #2241: no decisions-log note gives a gray primary or a gray brand color a hue (offending: "brand color: 'slate' added (hue 0).…" …)` |
+
+**The fourth review (owner Q102 A).** Custom tint under a gray primary still read "0°", the stored hue, on the hue
+lever. When the neutral is gray (chroma below `ACHROMATIC_C`), the readout now reads None, with a matching
+`aria-valuetext`, whatever the source: Pinned by the pin's chroma, Custom tint by the neutral's own, Follow primary by
+the primary's. The decision moved out of the DOM code into `neutralHueReadout` (`state/palette-input.ts`), with
+`NO_HUE` beside it, so `test-palette-input` holds every readout. The lever passes its own hue words in; the readouts it
+draws for a hued neutral are byte-identical to before. Q100 A approved the "Gray." line for a neutral that does not
+follow, and Q97 A the danger note and the import log, so every string on this PR is approved.
+
+| Arm | ✗ line |
+|---|---|
+| (x) the Custom tint readout reverted to the stored hue | `✗ owner Q102 A: after the switch to Custom tint the hue readout reads None, not the stored hue (got "0°")` (`test-palette-input` 18/19) |
+
+**A trap for the next mutation run of `test:chrome`:** a mutated studio source needs *both* builds. A web-only rebuild
+trips the suite's `ui.html freshness` guard, and that ends the run before any assertion.
+
+### Strings for the owner
+
+New decisions-log prose, drafted for a gray primary (or brand color). These are not covered by Q87/Q88's text:
+
+| Where | Before | Draft |
+|---|---|---|
+| primary note | `… pinned at step 500 (hue 0) — …` | `… pinned at step 500 (no hue) — …` |
+| Follow-primary note | `neutral: the grays follow the primary hue (0) — change the brand color and the grays follow.` | `neutral: the grays follow the primary, which has no hue, so they are gray.` |
+| danger note | `danger: the primary (hue 0) is not red, so danger gets its own red at hue X.` | `danger: the primary has no hue, so danger gets its own red at hue X.` |
+| brand color note | `brand color: 'x' added (hue 0).` | `brand color: 'x' added (no hue).` |
+| import log | `→ none provided; auto-follows the brand primary { hue 0, chroma 0.005 }` | `→ none provided; the brand primary has no hue, so the neutral is gray { hue 0, chroma 0 }` |
+
+| Palettes preview, neutral line | `Hue 0°, following primary. Text, borders and surfaces draw from it.` | `Gray, following primary. Text, borders and surfaces draw from it.` (Q96 A, approved) |
+| Palettes preview, neutral line, not following | `Hue 0°. Text, borders and surfaces draw from it.` | `Gray. Text, borders and surfaces draw from it.` (Q100 A, approved) |
+
+The studio readouts reuse the approved "None" (Q88 A) and add no new words. Q95 A approved the primary note, the
+Follow-primary note and the brand color note; Q97 A the danger note and the import log.
+
+### Tests and mutations
+
+**Tests.** The engine and consumer arms both failed by name on the old converter: that is mutation (j).
+- **Engine (`test.ts`).** Five pure grays, named as hex (`#000000`, `#333333`, `#7f7f7f`, `#808080`, `#ffffff`), so the
+  expectation never comes from the converter itself:
+  - the converter reports no hue (`null`) for each;
+  - each one's stored form writes hue 0;
+  - the faint REAL color `#151415` keeps its hue (≈ 325.67, measured independently), which holds the threshold
+    from the other side (docs/34 shape 14);
+  - the hex import (`classifyColors`) stores a pure-gray swatch with hue 0.
+- **Studio (`test-start-input.ts`).** Starting from `#808080` or `#333333` stores the primary with hue 0, gives a
+  gray neutral and untinted shadows, and a pick of either is stored with hue 0. A real color (`#3366cc`) still seeds a
+  neutral that leans to its hue.
+- **DOM (`test-chrome.mjs`, a new section at the end).** A pinned pure gray in both stored forms, hue 0 and a legacy
+  file's 89.88. Each must read None on Color › Palettes' hue readout, the hue slider's value text, and the pinned
+  color's OKLCH line, with no 89 or 90 anywhere.
+- **#2184's tests now pin through the stored form,** as a real pick does (`storedOklch`, the studio's `oklchOf`), and
+  `test.ts`'s sRGB round-trip takes it for white and black.
+
+Each mutation ran from a `wip:` commit, asserted it applied, and was restored with `git checkout --`:
+
+| Arm | Failures | ✗ line |
+|---|---|---|
+| (j) the converter's no-hue branch removed (the old converter) | `test.ts` 10, `test-start-input` 4 | `#2241 the converter reports no hue for a pure gray (#333333: got hue 89.87556274151122, chroma 1.2e-8)` (and the other four grays, `#000000` included, whose noise hue happens to be 0 but is still a number), `#2241 a pure gray's stored form writes hue 0 (… "h":89.87556274151122)`, `#2241 the hex import stores a pure-gray swatch with hue 0, not the converter noise (2 gray swatches; noisy: Secondary h 89.87556306659991, Neutral h 89.87556300648211)`, and `✗ #2241 starting from #808080: … (got primary hue 89.87556306659991, neutral {"hue":89.87556306659991,"chroma":0.006} …)` |
+| (l) start-from-a-gray's fallback dropped | `test-start-input` 2 | `✗ #2241 starting from #808080: the primary stores hue 0, the neutral is gray, and the shadow is untinted (got … neutral {"hue":0,"chroma":0.006}, shadow hue 0)`, and the same for `#333333` |
+| (m) the Palettes readout guard dropped | `test:chrome` 2 of 33677 | `✗ #2241 a pinned pure gray (legacy noise hue 89.88) …: … read None, not a hue ({"readout":"90°","aria":"90°","meta":"OKLCH 0.321 0.000 None"})`, and `"0°"` for the stored form |
+| (n) the OKLCH line's guard dropped | `test:chrome` 2 of 33677 | `… ({"readout":"None","aria":"None","meta":"OKLCH 0.321 0.000 89.9°"})`, and `0°` for the stored form |
+
+Under (j), the depth-and-motion tests stay green, and should: their pins then carry the noise hue at a tiny chroma,
+and the shadow rule reads chroma. That is the legacy-file robustness, observed.
+
+### A trap for whoever re-verifies this
+
+`test.ts` is not typechecked, so a converter caller there gets `null` at run time, not a compile error. That is how
+#2184's own tests surfaced (a `toFixed` on null). The typechecker does cover the engine, studio and plugin code, and it
+listed all five boundary sites.
+
+---
+
+## (2026-10-07) — Update dry run: the aspect lock read as Figma's Vector, and every difference named (#2295)
+
+The first `capture-baseline` on the NB master skipped all three image-placeholder members with "differs from the plan in 1 place(s)". The owner knows of no edit, and the live read found every visible property matching the plan.
+
+- **The cause: a read-back that disagreed with the host's type.** Figma types `targetAspectRatio` as `Vector | null`, an `{x, y}` pair whose ratio is `x / y`. The NB master's 4:3 frame reads `{x: 1.3333334, y: 1}`. `anatomy-readback.ts` compared it as a number, so on the real host every locked frame failed, 1:1 included. Both offline shims, the plugin's and the engine's `test.ts`, modeled a number. The read-back agreed with them, so no gate could see it: the `docs/34` permissive-stub shape. Both shims now model the Vector, `x` normalized at float32 with `y: 1`, as the host reads. The check reads the ratio and refuses a bare number, since no host returns one. Engine `patch` note: no artifact moves.
+- **Every difference is now named.** The dry run's verdict lists each field a set differs from its plan in: the part, the property, the plan's value and the file's. `changes` is grouped, so one engine change over 432 members is one line, capped at 8 per set. The capture names each member it leaves out for differing, with what differs. A count alone could not tell a hand edit from an engine change, which is what #2265 exists to separate. Had these lines existed, this issue would have named `targetAspectRatio` on the first run.
+
+### Traps for whoever re-verifies
+
+- The NB master's three image-placeholder members still carry no as-built record. Run `capture-baseline` there again after this merges; they should record.
+- `differ/image-placeholder` reproduces #2295 in the shim only because the shim now models the Vector. Before this, a fresh build read clean there and broken on the host, which is the whole defect.
+- A `bound` difference shows every binding the plan declares on that node against the file's differing one, because `diffAnatomy` reports a node's bindings as one field. A "plan says" with several bindings in it is that, not several differences.
+
+---
+
+## (2026-10-07) — Fields: text-field, select and textarea fill their column when placed FILL (#2292)
+
+**Status:** engine + plugin shim + tests. ENGINE minor (change note `engine-2292-fields-fill.md`), CONTRACT unchanged
+(no token name moves). The three field sets' projected surfaces move (`component-surface.json` accepted). No size, no
+floor value and no visual change: an unplaced field reads at 320 exactly as before.
+
+### The defect
+
+A design-rebuild test placed attached `text-field`, `select` and `textarea` instances in a 505px form column and set
+them to fill it. The label and message spanned 505; the bordered input box stopped at 320. This was deliberate in
+`fillsAxis`: the control held the field's 320 floor (`minWidth`, #1343/#1518) and its parent column hugged, so filling
+it from that column would be circular. It kept hugging, and nothing a host did to the instance reached it.
+
+### The diagnosis that made the fix small
+
+The #1757 `placementWidth` mechanism already solves the circularity for field-label and field-message: the root is
+BUILT at a width (FIXED across) until a host's stretch overrides it. The validator's `boundsX` already counted such a
+root as bounded; the projector's `fillsAxis` did not, because no root with a placement width had a floored child.
+So the fix is two lines of substance:
+
+- `fillsAxis` treats a root built at its `placementWidth` as bounded on x (parity with `boundsX`);
+- each field's root declares `placementWidth: 320`.
+
+The control then fills: FIXED along its row, with the column's STRETCH as the supplier (textarea's through `body`,
+which stretches too). It keeps `minWidth: 320`, so the floor holds; Figma keeps a min width under a fill. All three
+executors (the plugin writer, the paste twin, and `mcp-steps`, which runs the paste payloads) already write
+`placementWidth`, FIXED modes and `layoutAlign` generically, so none changed. The readback already checks the root's
+measured width against `placementWidth`.
+
+### Tradeoff, deliberate
+
+The 320 floor stays on the control. Moving it to the root (or dropping it, which is Prism 2's geometry: root 320,
+inner containers FILL, no floor) would let a field shrink below 320 in a narrow column. That is a design decision,
+held for the owner, and it is #1345's remaining item, so this PR does not close #1345.
+
+### The shim, and two things it now models
+
+- **A filled node keeps its floor** (`component-shim.ts` `fillWidth`): until now no floored part filled, so a fill
+  that ignored the floor could not be seen. Measured: in a 280px column the box stays 320.
+- **A FIXED frame keeps its floor** (`naturalWidth`): the control is FIXED from its own layout write and is built
+  before its parent stretches it. Textarea's corner grip is placed off that width, and read 89 (100 − 11, the
+  `createFrame` default) instead of 309 until the shim honored the floor the host honors.
+
+The engine `figmaStub` models no fill (it reads sizing modes, not stretched geometry), so the measured stretch lives in
+`test:roundtrip`. The engine side pins the plan and both executors' modes (the #1751 parity floors).
+
+### Tests
+
+- `test:roundtrip` `#2292 <field> fills its column`: an instance of every member is appended to a 505px auto-layout
+  column and set to fill it (STRETCH plus the instance's FIXED width). The input box, label and message (textarea:
+  message row) read 505. The unplaced member reads 320 (root and box), and in a 280px column the box keeps 320.
+- `test.ts` `#2292 <field>`: on every member the root is built at 320 and the control FILLS it, keeping its floor.
+- The #1751 parity floors now name each field's control (and textarea's `body`) FIXED with STRETCH, and each root
+  w:320, on both executors.
+- Rewritten because the old shape is gone: `#1345 select control FLEXES` (was AUTO; now FILLS a root built at 320),
+  `#1757 select's wrapping value` (the control is now bounded twice, by its floor and the root's build width, so only
+  removing both refuses), and textarea's `'grow' under a row` refusal (the mutation now hugs the row as well).
+- `#1757`/`#1762` nested-wrap arms widened the field by raising the control's floor. The control now fills a FIXED
+  root, so they widen the root (a designer's resize) instead.
+
+### Mutations (after a `wip:` commit each, restored with `git checkout -- <file>`)
+
+1. Restore the control's hugging (drop the root-`placementWidth` clause from `fillsAxis`):
+   `✗ #2292 text-field fills its column: … (24 members, 24 off — status=default, state=rest: unplaced root/control 320/320; in a 505 column instance/control/label/message 505/320/505/505; in 280, control 320)`,
+   the same for select and textarea, plus `❌ #2292 <field>: … control primary AUTO, layoutAlign undefined` and the
+   three parity floors in `test.ts`.
+2. Break `placementWidth` (the projection stops carrying it to the plan):
+   `✗ #2292 text-field fills its column: … unplaced root/control 100/320; …`, the same for select and textarea, plus
+   `❌ #2292 <field>: … root placementWidth undefined`.
+
+### A trap for whoever re-verifies this
+
+The first run of mutation 2 left text-field and select green. The `#1757` widening arms restored each member to a
+literal 320 after widening it, so they rebuilt the very width the mutation removed, for every block after them. They
+now restore the width they measured.
+
+### Still open
+
+- **Live host:** a nested-instance stretch on a real Figma host (a field set to FILL inside a column, the box at the
+  column's width), and textarea's corner grip following the box via its MAX constraints.
+- **Sequencing (#2265):** this changes component sets, so the client file's field sets should not be rebuilt until
+  its baseline is captured.
+- `fillsAxis`'s sibling-carrier arm (a part filling a hugging parent's cross axis because a sibling holds the floor)
+  now has no consumer among the shipped defs, so deleting it fails no gate: filed as #2294.
+
+---
+
+## (2026-10-07) — Bar fit: the brand switcher's tooltip follows the name's own cut, and §29d reads a cut under one pixel (#2272)
+
+**The finding: the frame was right at 590; the check misread it.** §29d failed locally at 590 (plugin, the long brand
+name, both themes): "the switcher carries a tooltip with its name whole". #2272's cause comment read that as the frame
+choosing `trim` while the name still fit. Measured, it does not fit. Its text is 200.27px wide and the first row has
+534px of room for 534.27px of controls. Under `trim` the name's box is 200px, and the screenshot shows
+`northwind-outdoor-supply-...` with the ellipsis drawn. So the tooltip was right. §29d's `FIT_SEEN` read "cut" as
+`scrollWidth > clientWidth`, both whole pixels (200 and 200), so a 0.27px cut with a visible ellipsis read as whole.
+CI's text metrics put 590 on the `rows` side, which is why CI never saw it.
+
+**The approach tried and dropped.** The first fix stepped `trim` back to `rows` whenever the name was not cut by
+`scrollWidth`. At 590 that drew Export on a third row (§29d: `drew other in 3 row(s)`), because the row really is
+0.27px too wide. `trim` stays the step the sum picks; the step logic is unchanged.
+
+**What changed:**
+- **The frame (`fitBar`).** The tooltip follows the cut, not the step. Under `trim` it is set only while the name's
+  text, a Range read to the fraction of a pixel, is wider than its box by more than one layout unit. A `trim` that
+  leaves the name whole carries no tooltip.
+- **§29d's `FIT_SEEN`.** It reads a cut as the name's box narrower than its text by more than 1/16px, the text
+  measured by a canvas in the name's own computed font. That is a second derivation from the frame's (canvas shaping,
+  against the frame's Range over the laid-out text). Measured, canvas and layout agree to 0.013px at 14px and at 12px,
+  well inside 1/16px, which is well inside the 0.27px cut at 590. With it, 590 reads as `trim`, cut, with the tooltip,
+  and passes on every machine.
+- **Tried first and dropped: the name's box at 1280 as the whole width.** It failed every narrow width on both hosts
+  (`down 560 (narrow): title null, name cut` …, 76 per theme). The narrow tier sets the name in 12px, not 14px, so its
+  whole box is 171.66px and read as cut. The canvas reads the size the tier sets.
+- **§34, new, at the end of `test-chrome.mjs`.** It builds the frame's `trim`-with-room case on every machine:
+  1. at a width 2px wider than the plugin's first row needs (FIT_ORACLE's reading), Export is made 4px wider;
+  2. the frame re-measures on a font-load event;
+  3. the extra width is taken off with an inline style, which the frame does not watch, and the window is resized.
+
+  The frame's sum is then 4px too wide, so it stays on `trim`, and the name fits. The bar must draw two rows, the name
+  whole, and no tooltip. Two controls hold the fixture: before the inflation the bar draws `rows`, and with it the name
+  is really cut and the tooltip is the name.
+
+**Mutations,** each on the committed head, through a harness that asserts the anchor, confirms the mutated text is
+present and restores in `finally` (`git diff` empty after), each with both bundles rebuilt and `test:chrome` run:
+- M1, the frame's tooltip from the step alone: `test:chrome` 34707/34709. Only §34 fails, both themes, e.g. `✗ 33 figma light 592: measured 4px too wide, the bar keeps two rows with the name whole and no tooltip, because nothing is cut (#2272) (drew rows, cut false, rows […], title "northwind-outdoor-supply-co")`. §29d stays green under it, so §34 is the only check that holds the frame's half, in every environment.
+- M2, `FIT_SEEN`'s whole-pixel cut back (`scrollWidth > clientWidth + 0.5`): 34701/34705, and #2272's failure is back at 590 in both themes, in both of §29d's checks: `✗ 29d figma light northwind-outdoor-supply-co: across 91 widths the bar draws the measured step, in no more rows than it allows (590: the switcher carries a tooltip ("northwind-outdoor-supply-co") with its name whole (rows))` and #2262's `✗ 29d figma light northwind-outdoor-supply-co: the switcher has a tooltip only while its name is cut, down to 380 and back up to 1280, the narrow tier included (down 590: title "northwind-outdoor-supply-co", name whole | up 590: …)`. The four fewer assertions are §29d's per-state `trim` checks, which run only where a state reads as cut, so this isn't a truncated run. (The first M2 attempt on this head exited 1 without its output kept; it was re-run with the full log saved, and this is that run.)
+
+**#2262's sweep, merged meanwhile, reads the same cut.** Its down-and-up tooltip check (`tipCheck`) takes
+`FIT_SEEN`'s `cut`, so it now passes `whole` too. Its fragment's trap ("locally this assertion is also red at 590 …
+the name still fits") was this misreading: at 590 the name is cut and the tooltip is right, so that check is green
+locally now.
+
+**Trap for whoever re-verifies:** a sub-pixel question cannot be answered with `scrollWidth`, `clientWidth` or
+`offsetWidth`; they round. Use `getBoundingClientRect()` or a Range.
+
+---
+
+## (2026-10-07) — Component sets: match members, record them as built, and a dry run of an in-place update (#2265, PR 1)
+
+The first of the in-place update PRs from the #2265 design note (owner decision Q85 A, every §10 recommendation). Builds stay add-only and nothing here applies an update. What it adds:
+
+- **Matching.** A set's existing members are matched to the plan by the canonical sorted `axis=value` coordinate (`coordKey` in `packages/engine/component-renames.ts`), with declared renames applied from the `COMPONENT_RENAMES` ledger (empty today). An added axis gives existing members the first plan's value. For a removed axis, the members on the set default's value are kept and the rest are reported as collapsing. A duplicate coordinate, a set mixing axis lists (#1780) or a ledger cycle blocks the set rather than guessing.
+- **`lint-component-renames.ts`** (new gate, git history). It fails a PR in which a def, an axis or a value leaves `schema/component-axes.json` at the merge base with no ledger entry. The baseline is pure data, written only by `--accept`, never by regen, and exempt in `lint-schema-classification.ts`. This PR introduces it, so the base does not track it and arm B reports BOOTSTRAP until this merges.
+- **`EXECUTOR_REVISION`** (#1098) is the stamp's third field. **`lint-executor-revision.ts`** (new gate, git history) fails a code change in the executor (write-components plus every file it reaches by a value import, with comments removed) that did not raise it. A two-field stamp reads as `revisionUnknown`, not as current.
+- **The "as built" baseline** (`apps/plugin/src/member-baseline.ts`): one FNV hash per node, read off the host after the build's own read-backs, never off the plan (`docs/34` shape 11). A binding hashes as its variable id and never its value, so Apply Theme between two dry runs reads as zero hand edits. That is tested by moving every bound value in a built set. Unbound width, height, x and y are not hashed, because auto-layout derives them.
+- **The dry run.** `update-components` over the agent link with `confirm: false` or none (the only mode; `confirm: true` is refused), plus `capture-baseline` for sets built before this. For each set it lists what an update would change, add or deprecate, and what it reports as hand-edited. The panel's Activity shows it. Its result carries `lines` (#2177): one per set, then each closing line, the same list the summary is joined from. The agent link's copy leaves them out, as it does for every result. The panel button that would start it is held for PR 2 (an owner design call). Members from an earlier plugin (stamps from before #1098) are not counted as changes (owner decision Q91 B, #2282). A file with only those reads `✓ No changes found`, and one line counts them and says to update them. On the NB master, every member reads this way after the capture.
+
+### Diagnosis worth keeping
+
+- **Glyph contents are Figma's, not ours.** A GLYPH plan node's children come from Figma's SVG importer as unnamed vectors. Walking them as "extra children" put 30 of 45 button members in the diff on a fresh build. `extraChildren` stops at a GLYPH.
+- **A conflict needs a move.** At first, every hand-edited node read as a conflict. Now a hand-edited node is one only when the plan or the revision moved AND `diffAnatomy` touches that node. This can over-report: the hashes can't tell the edit from the plan change on the same node. It never hides a conflict. A "no conflict when the plan moved elsewhere on the node" assertion was tried and dropped as unachievable without per-field baselines.
+- **Capture writes by position, not by id.** The shim's nodes don't carry unique ids, and writing by id stored every baseline on one member. `captureSet` now writes to the coordinate-named children in `readSetView` order. Capture refuses a member whose anatomy already differs from the plan, so it can't launder a hand edit into the baseline.
+
+### Traps for whoever re-verifies
+
+- **The record format is pinned.** `test-update-components.ts` pins one fixture node's hashes under `BASELINE_V`. A change to what `nodeSignature` reads fails `format/pinned` until `BASELINE_V` is raised and the new hashes are pinned under it. Records already on a file were written by the old signature, so the version is what makes a dry run read them as "no record" rather than as a file full of hand edits. This matters once the NB master's record is captured.
+- **A re-run build must not re-record a skipped member,** or a hand edit made between builds becomes the record and disappears from the dry run. `rerun/records kept` holds this. It was added in review: before it, walking every live member instead of this run's `builtParts` survived the suite.
+- Tag binds every color and gives its one text to a property, so no built tag node holds unowned text or a raw color. The `characters` and unbound-color cases add a caption, record the member as built, then edit it. The shim has no `remove()`, so the deleted-child case splices `children`.
+- The shim's `root.findAllWithCriteria` returns name-only refs (the #681 model), so the shim's own search can't drive a whole-file preview. `test-update-components.ts` wraps the host with a search over `page.children`. The real host is unaffected.
+- The shim's `setBoundVariable` records the binding but does not set the numeric field. A test that only re-binds can't tell "hashes the binding" from "hashes the value". The theme case writes the values too, and that is the only reason the "signature hashes the bound value" mutation fails.
+- Not every plan has `space/075` as its content gap. The plan-change case moves it to `space/999` everywhere.
+- **Not yet verified on a live host:** a capture on the NB master over the agent link; design note §9's two-file key-stability check (appendChild into a published set keeps keys and child ids); Apply Theme followed by a dry run reading zero hand edits. All three are done with the owner after this PR.
+
+---
+
+## (2026-10-07) — Activity: earlier results read one line per item (#2281)
+
+Owner decision Q90 A. The Activity drawer's "Earlier results" now use the format #2271 (#2177, AL1 A) gave a run's current details. Each earlier result is its time and verdict, then its items one per line: the same mono font, an unbulleted list, and no separator at a line's end. AL1 A's single-line items stay one line: a conflict refusal, "Also built: …", and the style guide's per-table update. A result sent without items shows its summary as one line. UI only: no copy changed, no ENGINE note is owed, and the agent link's result is byte-identical, because `forAgent` already leaves `lines` out.
+
+- **The owner's choice on the visible layout:** the entries keep their bullets and indent, and the head (time · verdict) stays in the chrome's UI font. Only the items below it are mono, set in a little (`.p3-op-entry > .p3-op-summary`). The colon that joined head and summary is gone.
+- **Tests** (`test-build-verdict.mjs`, the `#2281` arms, per run kind at 1280 and 380). Two earlier results show their authored items as lines, newest first. Each head reads time · verdict and nothing after it. Every line's computed font equals `--p3-font-mono`. CDP's AX tree reads each result as a `list` of its `listitem`s in order. No history node sits under `aria-live` or a status, log or alert role, and none sits in `activity-status`.
+
+### Traps for whoever re-verifies
+
+- **A mutation must be tested against a rebuilt bundle.** The suite drives `dist/ui.html`, so a source edit without `npm run -w @prism3/plugin build` measures the old UI. After `git checkout -- <file>`, rebuild again, or the next run tests the mutant.
+- The hook guard refuses a `data-p3^="…"` prefix that no member names literally, and any click outside `hooks.click`. The live-region arm spells each history hook out for that reason.
+- Three older history reads (S11's five earlier results, and #1957's two "Refused" arms) read `li` under `op-history`. Since each entry now nests its own list, they read `op-history-entry` instead.
+
+---
+
+## (2026-10-07) — Engine: the decisions-log notes print no long decimals (#2242)
+
+**Status:** ENGINE `0.233.0` (`engine: minor`, change note `engine-2242-note-rounding.md`). CONTRACT
+unchanged. Built on #2240, whose untinted branch of the shadow note this also covers; opened after #2240 merged.
+
+### What changed
+
+The notes are shipped prose: every brand's tokens carry them as `$extensions.prism3.decisions`, and the reports
+print them. They interpolated input numbers raw, so an input carrying full converter precision (a pin from a hex, a
+color picked in the studio) printed as `tinted to hue 89.87556274151122`.
+
+- **The shadow note's tint hue prints in whole degrees,** matching how the studio shows hue (the issue's fix).
+- **Every other number the notes print** is compacted to the precision the corpus already used: hue to 2 places,
+  lightness and chroma to 4, with no trailing zeros. That covers:
+  - the primary's hue and chroma, a brand color's and a status color's hue, a pinned gray's lightness, and an
+    out-of-gamut anchor's OKLCH;
+  - the shadow's softness and amount;
+  - after the review (#2273): the radius scale and base radius, each breakpoint's width, the max and narrow
+    containers, the type ladder's first and last sizes, the display cap, and the fluid-type viewports.
+
+  The review found four of these. A full audit of every interpolation in the note builder found the other five, in
+  the same three notes. Two module-level helpers (`n2`, `n4`) do the formatting, so a new note has one obvious way to print a number.
+
+**Committed artifacts move only on the shadow line**, and only where a tint hue wasn't whole: prism3 266.75 → 267
+and wendys 249.14 → 249, in their tokens and in the reports that print the notes. No other corpus note
+changed, because none carried more precision than these helpers keep. Hence `minor`.
+
+### Test and mutations
+
+`test.ts` builds three brands whose every note-interpolated field carries seven decimal places, between them
+reaching each numeric note:
+- **A:** Follow primary, plus a long brand color and long status hues.
+- **B:** a pin from a hex through the real converter, plus an out-of-gamut primary, which fires the gamut note.
+- **C:** a long red primary, reused for danger, plus a seven-place radius scale and base radius, breakpoints, max and
+  narrow containers, and fluid-type viewports.
+
+Two assertions:
+- **No note prints a number with more than 4 decimal places.** It scans every note of every case, not just the lines
+  this fix touched, so a note added later with a raw number fails here.
+- **The shadow note's hue is whole.** The expected value is rounded from the *input's* hue, never read back from
+  the note.
+
+Both failed by name on the unfixed code (12 offending notes). Each mutation ran from a `wip:` commit, asserted it
+applied, and was restored with `git checkout --`:
+
+| Arm | Failures | ✗ line |
+|---|---|---|
+| (h) the shadow hue back to raw | 2 | `#2242 the shadow note prints the tint hue in whole degrees (expected "tinted to hue 262 at", rounded from the input's 262.1234567; got "… tinted to hue 262.1234567 at 0.15 …")` and the scan (2 offending) |
+| (i) the primary's hue back to raw, a note the shadow fix never touched | 1 | `#2242 no decisions-log note prints a number with more than 4 decimal places (3 offending: … "primary: the brand color is pinned at step 500 (hue 262.1234567) …")` |
+| (s) the radius scale back to raw (the review's round) | 1 | `#2242 no decisions-log note prints a number with more than 4 decimal places (1 offending: C (…): "dimensions: … radius scale 1.1234567…")` |
+| (t) the max container back to raw (the review's round) | 1 | the same assertion, naming case C's `"layout: 4 breakpoints (… xl 1440.12) …"` note |
+
+---
+
+## (2026-10-07) — Top bar: the brand switcher's trim tooltip clears at the narrow tier (#2262, the technical half)
+
+**Status:** UI only (`apps/studio/src/shell/frame.ts`, plus `test-chrome.mjs` §29d). No engine change, no emitted
+artifact moves, no ENGINE bump, CONTRACT unchanged, no new strings, no visual change. #2262 stays open for its other
+half, the long name's arbitrary wrap at the narrow tier, which is the owner's design decision.
+
+### The defect
+
+`fitBar` returns early at the narrow tier (560px and below), before the line that sets or clears the brand switcher's
+`title`. So a tooltip set at the `trim` step (Q83 A, #2257), where the switcher cuts its name with an ellipsis,
+lingered after the bar shrank into narrow. Whether the switcher had a tooltip at a narrow width depended on the path
+taken to get there. The tooltip's text was still the correct full name.
+
+### The fix
+
+The narrow branch clears the switcher's `title` before it returns. The rule is now one rule at every width: the tooltip
+exists only while `trim` cuts the name. The switcher's accessible name is its text, the full brand name at every
+width, and that does not change.
+
+### The test
+
+§29d's tooltip check now covers the narrow tier, both ways. On both hosts and both themes, the long name
+(`northwind-outdoor-supply-co`) is swept from 1280 down to 380, as before, then back up to 1280. At every width the
+switcher has a `title` exactly when its name is cut, and then the title is the full name.
+
+- **The oracle is the render's own `cut`** (`FIT_SEEN`: the name's text wider than its box), never the frame's
+  `data-bar-fit` (docs/34 shape 2).
+- **It can fail (shape 4).** On the plugin, the down sweep must reach the narrow tier after a cut name, which is the
+  path the defect needs. The web never cuts the name, so it can't show the defect, and isn't required to.
+
+### Mutation
+
+After a `wip:` commit, with the narrow-tier clear removed, rebuilt and run:
+
+`✗ 29d figma light northwind-outdoor-supply-co: the switcher has a tooltip only while its name is cut, down to 380 and back up to 1280, the narrow tier included (down 590: title "northwind-outdoor-supply-co", name whole | down 560 (narrow): title "northwind-outdoor-supply-co", name whole | down 550 (narrow): …`
+
+That's 38 narrow widths per theme, on both figma themes: 19 on the way down, from 560 to 380, and 19 on the way back
+up, until `trim` clears it. The unmutated run lists none.
+
+### A trap for whoever re-verifies this
+
+**Locally this assertion is also red at 590, both ways, with or without the fix.** That is #2272: in this environment,
+at 590, the frame chooses `trim` and sets the tooltip, but the name still fits, so nothing is cut. The tooltip follows
+the step, not the cut (noted on #2272). CI's text metrics put 590 on the other side of the edge.
+
+So locally, the evidence that the mutation bites is **which widths** the assertion lists, never whether it is red: the
+failing-assertion count does not move (34623/34627 both times). Read the `(narrow)` entries.
+
+### Not done, on purpose
+
+The long name still wraps the bar arbitrarily at the narrow tier: on the plugin at 460px and below, and on the web at
+about 430px and below. Whether the narrow tier takes Q83 A's ellipsis step too is a visible change and the owner's
+decision, so #2262 stays open for it.
+
+---
+
+## (2026-10-07) — Plugin: the agent link's errors announced to screen readers, once, politely (#2275)
+
+**Status:** branch `ui/2275-agent-status-live`. `apps/plugin/src/agent-link-ui.ts` (one live region, and when it is
+written) and `test:chrome` section 33. UI only: no ENGINE bump (no emitted artifact moves), CONTRACT unchanged. Owner
+decision Q86 B (2026-10-07: announce errors only). Closes #2275.
+
+**No new strings.** The region speaks AS1 A's existing short status, "Agent error" or "Agent not listening", unchanged.
+
+### What changed
+
+The Activity drawer's short agent status (#2213) changed silently, so a screen-reader user learned the link had failed
+only by landing on the row (WCAG 2.2 SC 4.1.3). Now one live region announces it.
+
+- **One region, persistent, polite.** The Agent tile builds it once at mount: a visually hidden (`p3-sr`) `role="status"`
+  with `aria-live="polite"`, appended to `<body>`. Not to the frame: the frame mounts and unmounts with the app view, and a
+  live region that is moved or rebuilt is one a screen reader may stop hearing. Its text is set in place and the node is
+  never replaced.
+- **Only into an error state (Q86 B).** `render` keeps the short status it last drew. When the new one is an error state
+  and differs from it, the region takes the short status's words. So listening → error, listening → not listening, not
+  listening → error and off → error each announce once. A change of the full line alone (a new "last:" time, or a new
+  inbox message under "Agent error") writes nothing.
+- **Out of an error state, the region is emptied (the UI lane's call on #2285, 2026-10-07).** Recovery to "Agent
+  listening" and switching off clear its text, the same node kept. Q86 B's "nothing for recovery" means no announcement,
+  and removing text from a polite region with the default `aria-relevant` (additions text) announces nothing. So the
+  meaning holds, and no stale "Agent error" is left for anyone reading the page in browse mode. The first review round
+  left the text in place and held the question as a design call; it was settled as a technical one, since it does not
+  change what is announced.
+
+### Not done, on purpose
+
+- **The existing Activity status line (`activity-status`) is not reused.** It announces write starts and lives in the
+  drawer, which is rebuilt with the frame. Sharing it would let one announcement overwrite the other.
+- **The web.** It has no agent link (N1 A), so it gets no region.
+
+### Trap for whoever re-verifies
+
+The page already holds an assertive region of its own: the error bar (`error-bar`, `role="alert"`), for engine errors.
+A check for "no assertive region anywhere" fails on it. Section 33 checks that no region **carrying the agent's words** is
+assertive, and reads the agent region's politeness from the accessibility tree (CDP `live`), not its attribute.
+
+### Mutations
+
+Each after a `wip:` commit, on a rebuilt plugin bundle, each failing by name in section 33 and nowhere else. The ✗ lines
+are quoted in the section's header and in the PR: (a) recovery announced, 6 failures; (b) a full-line-only change
+announced, 4; (c) the region replaced per announcement, 40; (d) `assertive`, 12; (e) the region not cleared on a change
+out of an error state, 8. Today's code (no region) fails 66.
+
+---
+
+## (2026-10-07) — Chrome: the build fails a `:hover` rule without the Q28 limit, and `.p3-text-input` skips `aria-disabled` (#2247)
+
+**What.** `chrome.css` has said since #2211 that every hover rule carries Q28's limit,
+`:where(:not(:disabled, [aria-disabled="true"]))`, so a switched-off control changes nothing under the pointer.
+Nothing held that. The #2124 review found two rules that had shipped without it (`.p3-textarea:hover`,
+`.p3-btn.p3-tile:hover`, fixed in #2124's merge) and dropping the limit from either still passed `test:chrome` with 0
+failures. It also found `.p3-text-input:hover:not(:disabled)`, which skipped `:disabled` but not `aria-disabled`.
+
+- **`[hover]`, a new arm of the chrome build's checks** (`apps/studio/chrome/esbuild-plugin.mjs`, beside `[raw]` and
+  `[variables]`). Every `:hover` selector in `chrome.css` must hold `HOVER_LIMIT` as a simple selector of the
+  compound it hovers, the same element. It is an arm and not a new gate file: `buildChromeCss` already runs on every
+  bundle of `apps/studio/src` (web, plugin, site, Vercel's check), so `build-web` and `build-plugin` fail by name and
+  the gate count does not move.
+- **`.p3-text-input:hover`** now carries the limit, so an `aria-disabled="true"` field does not answer hover either.
+  Its weight drops from (0,3,0) to (0,2,0); no other rule sets a text field's edge but `:disabled`, which hover no
+  longer reaches.
+
+**Why it parses, and how it knows it looked.** The oracle is the literal `HOVER_LIMIT`, typed in the plugin, never
+read from `chrome.css`. Each rule's prelude is split into its selector list, each selector into compounds at its
+combinators, each compound into simple selectors, so a limit on an ancestor (`.a:where(…) .b:hover`) does not
+count for the hovered element. Two things keep it from going quiet on an empty set (docs/34 shape 9):
+- **By position, not by count:** every `:hover` in the comment-stripped text must lie inside a prelude the walk
+  read, or it fails as "a :hover the selector parser did not read".
+- **`HOVER_CANARIES`**, run on every build: `chrome.css` today has no nested rule and no hover inside `@media`, so
+  it cannot show the parser still reaches them. Ten literal cases, each with the selector a finding must name.
+
+**The exemptions, `HOVER_EXEMPT`,** are full selector texts with reasons, so an exempted rule that changes is no
+longer exempt, and an entry that matches no selector fails:
+- `.p3-tile:is(:hover, :focus-visible):not([aria-expanded="true"]) > .p3-tile-tip`, a reveal (the tooltip repeats
+  the tile's name), not a control state;
+- `.p3-colorfield:where(:not(:has(:disabled, [aria-disabled="true"]))):hover`, a wrapper whose control is the input
+  inside it, so its limit is the `:has()` form; `test:chrome`'s "color field" kind measures it at run time.
+
+**Mutations,** each on the committed head, each confirmed landed, each restored with `git diff` empty after
+(`npm run -w @prism3/studio build`):
+- (a) the limit dropped from `.p3-textarea:hover`: `✘ [ERROR] p3:chrome-css [hover] apps/studio/src/chrome.css:121: ".p3-textarea:hover" hovers without the Q28 limit … on the element it hovers`. `build-plugin` fails the same line.
+- (b) dropped from `.p3-btn.p3-tile:hover`: `… chrome.css:136: ".p3-btn.p3-tile:hover" hovers without the Q28 limit …`.
+- (c) `.p3-text-input:hover:not(:disabled)` restored: `… chrome.css:795: ".p3-text-input:hover:not(:disabled)" hovers without the Q28 limit …`.
+- (d) an unexempted reveal, `.p3-tile:is(:hover, :focus-within) > .p3-tile-label`: `… chrome.css:158: ".p3-tile:is(:hover, :focus-within) > .p3-tile-label" hovers without the Q28 limit … (on ".p3-tile:is(:hover, :focus-within)")`.
+- Necessity (shape 19): (a) live with only the arm's real scan line removed, the build exits 0. Nothing else catches it.
+- The parser's nested reach removed (a `;` no longer ends a prelude): `[hover] self-check: the hover scan no longer flags a hover in a nested rule`.
+
+**Not done, on purpose.** The textarea and tile kinds are not added to `test:chrome`'s `HOVER_KINDS`. A tile's hover
+rule paints `transparent` over `transparent`, so the arm's control half ("an enabled tile answers hover") can never
+pass. The textarea sits behind the brand menu's Import, which the Q28 tour does not open. The build check reads both
+rules as text, which is what the issue found missing; adding a runtime probe would measure nothing a person sees.
+
+---
+
+## (2026-10-07) — Activity: drag the open drawer's top edge to make it taller (#2176)
+
+**STATUS: branch `ui/2176-drawer-resize`; the owner approved the screenshots on 2026-10-07 (the pill, the 24px keyboard step, and the most height sitting flush with the preview header).** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. One new string, "Resize Activity", the handle's accessible name, approved as AD3. Owner decisions AD1–AD3 (2026-10-05), with the owner's one change from the mock.
+
+**What it does.**
+- **AD1.** At the wide tier, while the drawer is open, a handle sits on its top edge, on both hosts. It is a window splitter (WAI-ARIA): `role="separator"`, `aria-orientation="horizontal"`, `aria-valuenow`, `aria-valuemin` and `aria-valuemax`, in CSS pixels. A pointer drag follows the pointer. Arrow Up and Arrow Down step 24px, and Home and End go to the least and the most (the pattern's optional keys).
+- **The range.** The least is today's open height: the drawer as it draws with no height set, measured each time, so it follows the rows. The most is the drawer's bottom less the preview header's measured bottom (Inspect's header in its place; on the plugin's style guides page, the frame's head). Both ends clamp.
+- **Kept** per person under `prism3:activity-height`. The web uses `localStorage` (`persist-local.ts`). The plugin posts `set-activity-height` from its UI entry, and the main thread keeps it in `figma.clientStorage` and answers `ui-ready` with `activity-height`, the same path as `prism3:theme`.
+- **The owner's change from the mock.** The pill sits inside the drawer, `space-075` (6px) below its top border, like a sheet's grabber. It is `space-500` (40px) wide, where the mock had 32px, and `space-050` (4px) tall, in `icon-2` (a declared 3:1 pair on `bg-page`). The handle's hit box is `hit-min` tall and the pill plus `space-200` a side wide (72px), centered over the bar row's top.
+- **AD2.** No handle at 380. The open drawer stays the full-pane sheet, and a kept height does not size it.
+- **AD3.** The handle's name is "Resize Activity".
+
+**The layout fix the max needed.** Under the two panes, the drawer was the preview column's last grid row. The sub-row (Color's Palettes / Surfaces & fills / Interactive) sets row 4's height, so the preview body could not shrink below it, and on Color the drawer could only reach the sub-row's line, 64px under the header. While a height is kept, the preview body and the drawer now both span the preview column from row 4 down. The drawer is aligned to the end at the kept height, and the body keeps that height free under it as a bottom margin. So the drawer reaches the header on every page. With no kept height, today's grid is unchanged.
+
+**A runtime variable, and the gate that allows it.** The height reaches the stylesheet as `--p3-activity-h`, set on the frame. `chrome/esbuild-plugin.mjs`'s `[variables]` check refused any `--p3-*` the token map does not define. It now has a literal `RUNTIME_VARS` list (`activity-h`, with where it is set). A runtime name still fails if `chrome.css` never reads it, or if the map defines it too. `test:chrome`'s inline-value check already let custom properties through, so the frame's `style` carries only that.
+
+**Gates.**
+- `test:chrome` section 32 (#2213 took 31), both hosts and both themes:
+  - at 1280: the handle drawn only while open; its computed name and role (CDP `getPartialAXTree`); min, now and max against the drawer's first open height and the header's measured bottom;
+  - the pill: inside the border, wider than 32, centered, and at 3:1;
+  - a 24×24 target;
+  - a pointer drag, with `aria-valuenow` equal to the height drawn and the body ending where the drawer starts;
+  - the clamp at both ends, by drag and by End and Home;
+  - Arrow Up and Down;
+  - the height kept, then back after a reload (web `localStorage`; the plugin's posted `set-activity-height` replayed as the `activity-height` reply).
+  - At 380: no handle (through `absent()`, proven on the open sheet), no focus, and a kept height does not size the sheet.
+- The probe counts a focusable separator as a control (`CONTROL`, kind "resize handle"), so section 10's open drawer measures the handle's target and focus like any other.
+- `apps/plugin/test-activity-height.ts` (new, in the plugin's `test`) drives the real `main.ts`: a height is kept under the key, sent back on the next `ui-ready`, and anything that is not a positive number is neither kept nor sent.
+
+**Mutations:** see the PR body; each was run after a `wip:` commit and failed by name.
+
+**Not done, on purpose.** No drag on the 380 sheet (AD2). Enter does not collapse the drawer from the handle (an optional key in the pattern; the bar row already toggles). The plugin's resize grip and the window size are unchanged. The kept height is not clamped when it is stored; it is clamped each time it is drawn, so a taller window gets it back.
+
+---
+
+## (2026-10-07) — the #2232 test section's header says what its mutation measured
+
+**STATUS: branch `test/2232-header-fix`.** Comment only: no behavior, test logic, engine or artifact change. ENGINE bump class: **none owed**. `CONTRACT_VERSION` unchanged. Follow-up to #2255 (#2232), which is merged.
+
+The header of `test-chrome.mjs`'s #2232 section made two claims no run produced:
+- that, with focus on `<body>`, "Shift+Tab then left the page";
+- that under the mutation (the window not focusable) the Shift+Tab arm fails by name.
+
+Measured on #2255: under that mutation **only the click arm fails** (`… after a click on blank space, focus stays in the start window (focus is on body)`, both hosts). The Tab and Shift+Tab arms pass, because in headless Chromium, with everything behind the window inert, both keys from `<body>` land on a control in the window. Both claims came from the issue's description and were written into the comment before the section ran, which is docs/34 shape 20. The header now states what was measured and what the two key arms are for. #2255's own fragment and PR body already said this correctly.
+
+---
+
+## (2026-10-07) — Activity: a run's details read one line per item, console-style (#2177)
+
+**STATUS: branch `ui/2177-activity-lines`, held for the owner's screenshot review.** UI and plugin wire only: no engine change, no emitted artifact moves. ENGINE bump class: **none owed**. `CONTRACT_VERSION` unchanged. **No copy change**: the same words, split into lines. Owner backlog, 2026-10-05. **Closes #2177.**
+
+### What changed
+
+A run's details in the Activity drawer were one long wrapping string. They are now one line per item: the items each summary builder already joins, each in the chrome's mono font (`--p3-font-mono`), a long one wrapping inside the drawer. The lines are a list (`ul`/`li`), so a screen reader reads them in order and says how many.
+
+- **Apply:** one line per axis (palette, color, dims/layout, styles, type, bindings), then one per note (misses, renames, orphans, stranded collections, name-resolved and skipped text styles, unavailable typefaces, refused writes).
+- **Build set:** the set's own facts stay one line (variants, grid, size, axes, properties, refs describe one set). Each reference note, the misses, the stale note, "Also built: …", each page header and a partial write's whereabouts are lines of their own.
+- **Style guide:** one line per part the summary joins with `. `: each failed table, the stop, each count, each note.
+- **Every verdict:** the build note ("Built from … at ….") is its own last line.
+- A summary sent without items (Prune, Read-back, Set up file, or an older host) is its own one line, in the same words, in the same mono list.
+
+### How: structured items, never a re-parse
+
+The split is made at the source, where the items exist. `fromClauses` (`apps/plugin/src/apply-summary.ts`) takes each item and the separator that joins it to the one before (`', '`, `'. '`, `' — '`) and returns both readings: `summary`, the prose every reader had, byte for byte, and `lines`, the same items without their separators. A split in the drawer would have had to re-parse the prose, where a comma inside an item (`(Semi Bold, Bold)`, `(core/palette: 164, color: 268, …)`) is not a boundary. The three verdict kinds carry `lines` beside `summary` (`messages.ts`); the adapter validates it (every entry a string, or the list is dropped and the summary is the one line). The notes that were appended with a leading separator (`refsNote`, `alsoBuiltNote`, `pageHeaderNote`, `partialWriteNote`) gained item siblings (`refsItems`, `alsoBuiltItem`, `pageHeaderItems`, `partialWriteItem`), and each note is now defined from its items, so the two cannot drift.
+
+**The agent link receives exactly what it did.** The dispatcher stores the verdict through `forAgent` (`agent-dispatch.ts`), which drops `lines` by destructuring, so every other key keeps its place; the panel's `forward` keeps it, so an agent's run shows lines in the drawer too. The desktop bridge relays the dispatcher's `agent-result`, never the forwarded message, so it is covered by the same strip.
+
+### Proof that nothing an agent reads moved
+
+A one-off differential, `origin/main` against this branch, the same harnesses on both trees, outputs normalized only for timestamps, timings, random command ids and the build's tree hash. Byte-identical on every record:
+
+- every agent-link result envelope from `test-agent-link.ts`'s harness (40 mailbox results, 261 records);
+- every panel message from 11 real Apply runs through `main.ts` over `test-mcp-paste.ts`'s file model (every example brand over the last, then three again, with renames refused, orphans, stranded collections and skipped text styles in the notes; 3.9 MB), `lines` stripped;
+- every panel message from `test-build-completed.ts`'s real builds (a fresh Badge, the axes-changed refusal, the unknown def) and `test-style-guide-page.ts`'s real style-guide runs, `lines` stripped.
+
+### Tests
+
+- **`test:verdict`** (`test-build-verdict.mjs`, a new `#2177` section at the end): per run kind (Apply, Build set, Style guides), at 1280 and at 380, N items posted show as N lines in order in the host's words; every line's computed font is the chrome's mono token; every line stays inside the drawer, which does not scroll sideways, and at 380 a long line wraps; CDP `getPartialAXTree` reads a `list` of N `listitem`s whose text is the items, in order. The items are authored in the test; the summary is joined from them there. Plus: a summary without items is its one line.
+- **`test-agent-link.ts`:** `parity/<cmd>` now compares the agent's verdict with the panel's post less `lines`; `#2177 agent/<cmd>` asserts the agent's verdict keys, in order, against a literal list of what each kind had before; `#2177 panel/<cmd>` asserts the panel's post carries lines in the summary's words.
+- **`test-build-completed.ts`:** real builds' lines are their summary's items, in order, separated only by the builders' separators, and the set's facts are the first line.
+- **`test-apply-summary.ts`, `test-style-guide.ts`, `test-write-adapter.ts`:** `fromClauses` and the item siblings by literal; the style guide's partial run's two lines; the adapter accepts lines and drops a malformed list.
+- `test-write-components.ts`'s source scan for the stale note follows the new shape (`['. ', staleItem]`).
+
+### Mutations (a `wip:` commit before each), each against the built bundle
+
+- **(a) the lines joined back into one** (`[…].join(" ")` in `paintRow`): `✗ #2177 apply 1280: 9 items show as 9 lines, in order, in the host's words — read 1 lines […]` and `✗ #2177 apply 1280: a screen reader reads the lines in order, as a list of 9 items`, for every kind at 1280 and 380 (12 failures; `340 of 352`).
+- **(b) the last line dropped** (`.slice(0, -1)`): `✗ #2177 apply 1280: 9 items show as 9 lines, … — read 8 lines […]` and `✗ #2177 apply 1280: a screen reader reads the lines in order, as a list of 9 items`, every kind and width, and the no-items arm (13 `#2177` failures, among the older arms that read a one-line summary; `306 of 352`).
+- **(c) a non-mono line** (`.p3-op-line:last-child { font-family: sans-serif }`): `✗ #2177 apply 1280: every line is set in the chrome's mono font ("P3 Chrome Mono", ui-monospace, monospace) — read [… "sans-serif"]`, every kind and width (6 failures; `346 of 352`).
+- **The agent strip removed** (`verdicts.push(m)`): `✗ #2177 agent/apply-theme: the agent's verdict has the keys it had before the drawer drew lines, in order (type, ok, headline, summary, lines)`, the same for build-components and style-guide, and `parity/<cmd>`, `foreign/agent`, `busy/agent-first`.
+
+### Trap for whoever re-checks this
+
+After a CSS mutation, rebuild the plugin once the source is restored. The first "after" screenshots were taken from the bundle mutation (c) left behind, and showed the build note in a proportional font. `CSS.getPlatformFontsForNode` named the cause. The `⚠` glyph falls back from JetBrains Mono (no such glyph in its subset) to the system mono, which is still mono.
+
+### Held for the owner
+
+- **Nested lists stay on their item's line:** "Also built: icon, badge" is one line, not one per set; a conflict refusal ("Nothing was written. 3 conflicts with existing content: a; b; c") is one line, not one per conflict; the style guide's "updated in place — A: …; B: …" is one line, not one per table. Splitting those would change the words (each would need its own lead-in), so it is a copy decision.
+- **Prune, Read-back and Set up file** now show their one-line details in mono too, for one look across the drawer. Their summaries are unchanged.
+- **The joining separators are dropped from the lines** (the `, ` or `. ` between items). A line keeps any punctuation of its own, so the build note and the stale note end with a full stop and the rest do not.
+- **"Earlier results"** keep their one-line `time · verdict: summary` form.
+
+---
+
+## (2026-10-07) — Plugin: the agent link's status in the Activity drawer, and the drawer row on one baseline (#2213)
+
+**Status:** branch `ui/2213-agent-status-drawer`, the owner approved both rounds of screenshots (2026-10-06); ready to merge. `apps/studio/src/shell/activity.ts`
+(`setAgentLinkStatus`, the row's text runs, the open drawer's agent line), `apps/studio/src/chrome.css`
+(`.p3-drawer-text`, `.p3-drawer-link`), `apps/plugin/src/agent-link-ui.ts` (`agentLinkShortStatus`), and tests in
+`apps/plugin/test-agent-link.ts` and `test:chrome` section 31. UI only: no ENGINE bump (no emitted artifact moves), CONTRACT
+unchanged. Owner decisions N1 A, AS1 A and DE1 A (2026-10-06). Closes #2213.
+
+**New strings, approved by the owner (AS1 A):** "Agent listening", "Agent not listening", "Agent error". The full line is
+`agentLinkStatusText`'s existing words, in their existing order (DE1 A).
+
+### What changed
+
+#2124 removed the Agent popover, so the link's status was drawn nowhere. It is now in the Activity drawer, in the plugin
+only.
+
+- **The closed row's short status (AS1 A)**, at the far right of the drawer's bar row, last before the caret.
+  `agentLinkShortStatus` is a small pure formatter beside `agentLinkStatusText`. It returns nothing while the link is off
+  (an old inbox error kept after switch-off included: the UI lane's call on Q1). With the link on, an inbox error reads
+  "Agent error" in the error ink; no transport listening (neither the mailbox nor the bridge) reads "Agent not listening",
+  also in the error ink; otherwise "Agent listening", quiet (`text-2`). The status's `title` is the full line, and its
+  accessible name carries its words and then the full line (a screen-reader-only span after them).
+- **The full line moves into the open drawer.** `agentLinkStatusText(state)` is the body's first line, above the run rows,
+  in the body's note style (`p3-note`). It shows while the link is on, or while it holds an inbox error. So the link
+  switched off with an old error shows "Off — agent commands are ignored." there.
+- **One baseline (the owner's review).** The time ("19:49") sat 1.5px higher than "Clean". The row's items were each
+  centered (`align-items: center`), and centering a 12px run beside a 14px one sets their baselines apart. The text runs
+  (the summary, its time, the counts and the agent status) now sit in one `.p3-drawer-text` run with
+  `align-items: baseline`, and that run is centered in the row with the dot and the caret. The strip's progress bar stays
+  centered. Tokens only: no new value.
+- **The status takes only leftover room.** It keeps the rule from round one: `flex: 1000 1 0%; max-width: max-content`. It
+  starts at no width and grows into the room the row has left, so the summary is never squeezed. The short words fit
+  whole at 380.
+
+### The approach tried and discarded
+
+In round one, `flex: 0 1000 auto` was tried first, to shrink the line before anything else. Flexbox weights shrinking by the
+basis, so the summary still gave up 0.08px, enough to draw "Read-back · Cle…". A `scrollWidth` probe missed it because it
+rounds to whole pixels. The summary is now measured with a `Range` over its contents against its box.
+
+For the baseline, `align-items: baseline` on the whole row was considered and not built. A baseline group sits at the
+row's cross-start, so the text would hug the top of the 36px row while the glyphs stayed centered. A centered run that
+aligns on its baseline inside keeps both.
+
+### Gates, and the mutations that fail them by name
+
+`apps/plugin/test-agent-link.ts` tests `agentLinkShortStatus` on its own, against literal strings, for eight states.
+`test:chrome` section 31 runs the plugin in light and dark, at 1280 and 380. It covers five states (off, listening, on with
+no transport, an inbox error, off with an old error) after a boot read-back, and the web's row for the baseline. The full
+line is `agentLinkStatusText`, bundled from the plugin source and called in the test. The inks are walked from the committed
+emission. The names are read through CDP `getPartialAXTree`. The baselines come from a zero-size inline-block probe after
+each text node. Each mutation was run against rebuilt bundles, with a `wip:` commit first:
+
+- the short status showing the long text → `#2213 figma light 1280 listening: the bar row's agent status reads "Agent listening" (read "Listening — file mailbox, every 1 s · last: status ✓ done (16:35:12)", shown true)` (32 in all).
+- the full line missing from the open drawer → `#2213 figma light 1280 listening: the open drawer's first line is the full line, agentLinkStatusText(state), above the runs (want "Listening — file mailbox, every 1 s · last: status ✓ done (16:35:12)", read null, first false, above the runs true)` (16).
+- "Agent error" in the quiet ink → `#2213 figma light 1280 error: "Agent error" draws in the chrome's error ink, the emission's color.text.danger #a82e2e (read #67696b)` (4).
+- the old alignment (the row's text centered item by item) → `#2213 figma light 1280 off: every text run in the drawer's bar row sits on one baseline, within 0.5px (3 runs, spread 1.5px: "Read-back" 877.5, "· Clean" 877.5, "22:00" 876)` (24).
+
+### Not done, on purpose
+
+- The link does not clear an old inbox error on switch-off (`agent-link.ts`). The UI lane ruled that out of scope.
+- The full line in the open drawer is in the body's quiet note style even when it carries an error. The owner asked for
+  the body's style, and the error is already told in the closed row.
+- The short status stays in the row while the drawer is open, because it is the same row.
+- No dependency on #2177/#2271 (mono detail lines). Whichever lands second takes the merge.
+
+---
+
+## (2026-10-07) — Studio: Italic styles as chips (#2192)
+
+**Status:** `apps/studio/src/ui/lever-kit.ts` (new `chipChoice`), `domains/type.ts` (Italic styles uses it), `chrome.css`
+(one dead rule removed), `test:smoke` section 2f and `test:chrome` sections 20b and 30b (new). No ENGINE bump (no emitted
+artifact moves). CONTRACT unchanged. No copy change: the three words are Q6's. Closes #2192.
+
+### What changed
+
+Owner QA, 2026-10-05: in Type › Italic styles, each text type's full-width segmented control becomes three single-select
+chips, as the heading pass 2 board mocked them. `chipChoice` draws `toggleChip`'s look (`.p3-btn.p3-chip`, the check
+glyph on the pressed chip) as a `role="group"` named by the row, each chip a button with `aria-pressed`, exactly one
+pressed. Its signature is `choice`'s, so the lever's write (`setItalicStyle`) and its hooks (`italic-choice-<value>`) are
+unchanged. The pinned-style case (Italic only disabled, with its reason) and a derived mode (every control disabled) work
+as before, because both set `disabled` on the same buttons. The token stays flush right on the label's line (#2217).
+
+**The keyboard: KB1 A, decided by the owner on 2026-10-06.** Each chip is a Tab stop, Enter or Space presses it, and
+arrow keys do nothing. This is how Personality's chips and the board's mock behave. #2192 asked for "the same keyboard
+behavior as the other single-select chip groups", but none existed: Personality's chips are multi-select, and Density,
+which the issue cited, is a segmented `choice`. The segmented control had a roving tab stop where arrows moved the
+selection. That was radio behavior, and it does not fit `aria-pressed` buttons. A press keeps focus through the redraw
+(the page's hook-and-index restore).
+
+### Equivalence (run once, recorded here)
+
+A scratch probe made ten presses on both hosts and read the saved brand after each one: the persisted
+`prism3:brandInput` on the web, and Apply's `apply-theme` input on figma. It ran first on `origin/main`'s build, the
+segmented control, and then on this branch's build. All 22 saves were byte-identical, and every row's pressed value
+matched after each step. The sequence covered a re-press of the pressed chip (no write) and both lists emptied and
+unset (#2006).
+
+### The gate (test:chrome section 30b, new)
+
+The gate runs on both hosts and both themes, at 1280 and 380:
+- All seven rows, in order, render a `role="group"` of three `.p3-chip` buttons with the literal words, with no segmented
+  part.
+- Each row has exactly one chip pressed, the one prism3 calls for as loaded, and only that chip draws its check.
+- Tab moves between chips in a row. Space presses the focused chip and keeps focus on it.
+- KB1 A: ArrowRight, ArrowLeft, ArrowUp and ArrowDown each leave focus and every row's pressed chip unchanged, and the
+  saved brand is unchanged. Enter presses the focused chip, keeps focus on it, and saves the hand-worked literal (label
+  joins `italics`: `["body","label"]`).
+- Ten steps, each compared with the saved brand: `example-brands.json`'s prism3 with the two lists set to hand-worked
+  literals.
+
+Sections 20b and 2f (`test:smoke`) now read the chips (`aria-pressed`) where they read the radios.
+
+Each mutation came after a `wip:` commit and ran on rebuilt bundles. Each failed by name, and none failed outside 30b:
+- **(a) The code row back on the segmented control** (`choice` for `g === 'code'`) → `#2192 web light 1280: row "code"
+  renders chips, not a segmented control — 4 segmented part(s), group {"role":"radiogroup",…}` (96).
+- **(b) Two chips pressed in a row** (`chipChoice`'s set also presses the first chip) → `#2192 web light 1280: row
+  "display" has exactly one chip pressed, only — pressed ["upright","only"]` (152).
+- **(c) A chip writes the wrong value** (Upright + italic writes Italic only) → `#2192 web light 1280: step 1, "caption"
+  both (key) saves italics ["body","caption"] … — saved italics ["body"], italicDefault ["display","title","caption"]` (96).
+
+The two KB1 A arms, mutated the same way:
+- **(d) Arrows move the selection** (`choice`'s arrow handler added to `chipChoice`) → `#2192 web light 1280: KB1 A,
+  ArrowRight on "label"'s both chip moves neither focus nor the pressed chip — focus on ["label","only"], pressed […]`
+  and `… the four arrow keys save nothing — saved italics ["body","label"]` (40).
+- **(e) Enter ignored** (`chipChoice` prevents Enter's default) → `#2192 web light 1280: KB1 A, Enter on "label"'s both
+  chip presses it and keeps focus on it — pressed ["upright"], focus on ["label","both"]` and `… saves italics
+  ["body","label"] and no italicDefault — saved italics ["body"]` (16).
+
+### Traps for whoever re-verifies
+
+- On the figma host, the gate reads the saved brand from Apply. Each Apply is answered with `apply-result`, so the next
+  one is not held as busy. If the bar's Apply moves (the Figma menu work, #2178), the gate's `saved()` moves with it.
+- `test-hooks.mjs` refuses a `data-p3` spelled with a template. That is why the chip hooks are a literal map
+  (`ITALIC_CHIP`).
+
+---
+
 ## (2026-10-06) — Field label: the name hugs and wraps at a max width, so the required marker follows it (#1762)
 
 **STATUS: PR #1832 open from `lane/field-label-hug`, approved by the owner on 2026-10-06 without screenshots; the live check below is still to run.** Owner decision 2026-09-30, option 3 of #1762, which **changes #1757's decision 2** ("the label wraps at field width"). Decision record: `docs/28` §5.5, indexed in `docs/42`. **ENGINE minor bump to 0.232.0** (the projected component surface moves; change note `packages/engine/changes/lane-field-label-hug.md`). CONTRACT stands.
