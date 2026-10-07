@@ -10,7 +10,8 @@
  * drawer (#2213, the owner's N1 A and AS1 A, 2026-10-06): a short status (`agentLinkShortStatus`) at the far right of its
  * bar row, beside the caret, and the full status line (`agentLinkStatusText`) as the open drawer's first line and the
  * short status's tooltip and accessible name. The tile reports both with each published state (`setAgentLinkStatus`,
- * `shell/activity.ts`). Both are styled by the chrome stylesheet (`apps/studio/src/chrome.css`), so they carry no
+ * `shell/activity.ts`). A change of the short status INTO "Agent error" or "Agent not listening" is announced once,
+ * politely, through one persistent live region the tile owns (#2275, the owner's Q86 B, 2026-10-07; below). Both are styled by the chrome stylesheet (`apps/studio/src/chrome.css`), so they carry no
  * inline value and follow the chrome's theme.
  *
  * It is mounted by the plugin's own UI entry (`ui/entry.ts`) beside the shared studio UI rather than inside
@@ -62,6 +63,20 @@ export const agentLinkShortStatus = (s: AgentLinkState | null): { readonly text:
 
 const post = (m: UiToMain): void => parent.postMessage({ pluginMessage: m }, '*');
 
+/** The one live region for the link's status (#2275, the owner's Q86 B, 2026-10-07: announce errors only). Built once at
+ *  mount, visually hidden (`p3-sr`), polite, and appended to `<body>` rather than to the frame, which mounts and unmounts
+ *  with the app view: a region that is moved or rebuilt is one a screen reader may stop hearing. Its text is updated in
+ *  place and only when the short status changes INTO an error state ("Agent error", "Agent not listening") from any
+ *  other, the short status's own words (AS1 A). Recovery to "Agent listening", switching off, and a change of the full
+ *  line alone (a new "last:" time) leave it untouched, so they announce nothing; it keeps its last words meanwhile. */
+const statusRegion = (): HTMLElement => {
+  const live = hook(h('div', 'p3-sr'), 'agent-status-live');
+  live.setAttribute('role', 'status');
+  live.setAttribute('aria-live', 'polite');
+  document.body.append(live);
+  return live;
+};
+
 let mounted = false;
 
 /** Mount the chip once. Safe to call again: a second call does nothing. */
@@ -69,6 +84,9 @@ export const mountAgentLink = (): void => {
   if (mounted) return;
   mounted = true;
   let state: AgentLinkState | null = null;
+  const live = statusRegion();
+  /** The short status last drawn, so a repeat or a full-line-only change is not a change. */
+  let shownShort: string | null = null;
 
   // The Agent tile (the owner's top-bar decision T7 A, 2026-10-05): a bar tile like Theme, Activity and Export, its
   // glyph over "Agent", the glyph alone when narrow. A click switches the link, the same request the old popover's
@@ -93,6 +111,11 @@ export const mountAgentLink = (): void => {
     // The Activity drawer's agent status (#2213): the short status in its bar row, and the full line while the link is
     // on or holds an inbox error.
     const short = agentLinkShortStatus(state);
+    // Q86 B: into an error state, once. Setting the text replaces its node even when the words match the last
+    // announcement (error, listening, error again), so each entry is a change the screen reader hears.
+    const nextShort = short?.text ?? null;
+    if (short?.error && nextShort !== shownShort) live.textContent = short.text;
+    shownShort = nextShort;
     setAgentLinkStatus({ short: short?.text ?? null, error: !!short?.error,
       full: state && (state.on || state.inboxError) ? agentLinkStatusText(state) : null });
   };
