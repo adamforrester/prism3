@@ -363,7 +363,18 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       const d = hook(h('details', 'p3-op-history'), 'op-history');
       d.append(h('summary', undefined, `Earlier results (${rec.history.length})`));
       const ul = h('ul');
-      for (const x of rec.history) ul.append(h('li', undefined, `${x.t} · ${x.verdict}${x.agent ? ' · Agent' : ''}${x.summary ? `: ${x.summary}` : ''}`));
+      // Each earlier result is its time and verdict, then its details one line per item, as the current run's are
+      // (#2281, owner decision Q90 A): the same mono list, never in the live region, so nothing here is announced.
+      for (const x of rec.history) {
+        const entry = hook(h('li', 'p3-op-entry'), 'op-history-entry');
+        entry.append(hook(h('span', undefined, `${x.t} · ${x.verdict}${x.agent ? ' · Agent' : ''}`), 'op-history-head'));
+        if (x.summary) {
+          const list = hook(h('ul', 'p3-op-summary'), 'op-history-lines');
+          for (const line of x.lines?.length ? x.lines : [x.summary]) list.append(hook(h('li', 'p3-op-line', line), 'op-history-line'));
+          entry.append(list);
+        }
+        ul.append(entry);
+      }
       d.append(ul);
       // A repaint keeps an open history open.
       const was = el.body.querySelector('details');
