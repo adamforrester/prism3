@@ -2268,6 +2268,12 @@ const diffAssign = <T>(map: Record<string, T>, mode: string, cand: T, baseJson: 
   return true;
 };
 
+/** Note prose prints input numbers compactly (#2242). The notes ship (every brand's `$extensions.prism3.decisions`,
+ *  the reports), and an input can carry full converter precision. `n2` is for hues and the other numbers, `n4` for lightness and chroma: the
+ *  precision the corpus already printed, with no trailing zeros (262.10 reads 262.1). */
+const n2 = (x: number): number => +x.toFixed(2);
+const n4 = (x: number): number => +x.toFixed(4);
+
 export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const notes: string[] = [];
   // Descriptive vocabulary (#471) resolves FIRST, so everything downstream sees plain lever values
@@ -2511,7 +2517,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
 
   if (root !== 'prism') notes.push(`namespace: tokens emit under '${root}.*' instead of the default 'prism.*'.`);
   const anchorStep = autoPlaceStep(input.primary.l);
-  notes.push(`primary: the brand color is pinned at step ${anchorStep} (hue ${input.primary.h}) — the ramp is built around it.`);
+  notes.push(`primary: the brand color is pinned at step ${anchorStep} (hue ${n2(input.primary.h)}) — the ramp is built around it.`);
 
   // M-03: a pinned anchor whose chroma is out of sRGB gamut can't be rendered exactly — the
   // engine clamps toward the boundary, which silently nudges lightness AND hue (independent-
@@ -2521,7 +2527,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const gamutNote = (name: string, o: { l: number; c: number; h: number }) => {
     if (inGamut(o)) return;
     const mc = Math.round(maxChroma(o.l, o.h, o.c) * 1000) / 1000;
-    notes.push(`anchor '${name}' (oklch ${o.l} ${o.c} ${o.h}) is outside the sRGB gamut — sRGB shows at most ${mc} chroma (±0.0005) at this lightness and hue, so it ships clamped and its lightness and hue can shift. A chroma at least 0.0005 below ${mc} ships exactly.`);
+    notes.push(`anchor '${name}' (oklch ${n4(o.l)} ${n4(o.c)} ${n2(o.h)}) is outside the sRGB gamut — sRGB shows at most ${mc} chroma (±0.0005) at this lightness and hue, so it ships clamped and its lightness and hue can shift. A chroma at least 0.0005 below ${mc} ships exactly.`);
   };
   gamutNote('primary', input.primary);
   for (const bc of input.brandColors ?? []) gamutNote(bc.name, bc.oklch);
@@ -2552,7 +2558,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const neutralSteps = nAnchor
     ? generateRamp({ hue: neutralRampHue, chroma: nAnchor.c, anchor: { oklch: nAnchor, stepNum: autoPlaceStep(nAnchor.l) } })
     : generateRamp({ hue: neutralRampHue, chroma: input.neutral.chroma });
-  if (nAnchor) notes.push(`neutral: pinned to the brand's gray (lightness ${nAnchor.l}) at step ${autoPlaceStep(nAnchor.l)} — the ramp is built from that gray, not from a hue and chroma.`);
+  if (nAnchor) notes.push(`neutral: pinned to the brand's gray (lightness ${n4(nAnchor.l)}) at step ${autoPlaceStep(nAnchor.l)} — the ramp is built from that gray, not from a hue and chroma.`);
   else if (input.neutral.auto) notes.push(`neutral: the grays follow the primary hue (${Math.round(input.primary.h)}) — change the brand color and the grays follow.`);
 
   const palettes: PaletteBuild[] = [
@@ -2575,7 +2581,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   }
   for (const bc of input.brandColors ?? []) {
     palettes.push({ palette: bc.name, role: 'brand', description: `Brand ${bc.name}`, steps: generateRamp({ hue: bc.oklch.h, chroma: bc.oklch.c, anchor: { oklch: bc.oklch, stepNum: autoPlaceStep(bc.oklch.l) } }) });
-    notes.push(`brand color: '${bc.name}' added (hue ${bc.oklch.h}).`);
+    notes.push(`brand color: '${bc.name}' added (hue ${n2(bc.oklch.h)}).`);
   }
 
   const status = (k: 'success' | 'warning' | 'info') => {
@@ -2587,8 +2593,8 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     // a full accessible ramp, not one measured swatch), but it means a measured status colour
     // won't round-trip exactly, so say so rather than imply the swatch is reproduced.
     notes.push(supplied
-      ? `${k}: the brand's hue ${s.h} — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.`
-      : `${k}: default hue ${s.h} — status.${k} is not set.`);
+      ? `${k}: the brand's hue ${n2(s.h)} — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.`
+      : `${k}: default hue ${n2(s.h)} — status.${k} is not set.`);
     return { palette: k, role: k as Role, description: `${k} status`, steps: statusRamp(s.h, s.chroma) };
   };
   palettes.push(status('success'), status('warning'), status('info'));
@@ -2611,7 +2617,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     // pass below sets roleToPalette.danger; skip the carve/synth so no orphan danger ramp is minted.
   } else if (input.status?.danger) {
     palettes.push({ palette: 'danger', role: 'danger', description: 'danger status (brand-supplied)', steps: statusRamp(input.status.danger.h, input.status.danger.chroma) });
-    notes.push(`danger: the brand's hue ${input.status.danger.h}.`);
+    notes.push(`danger: the brand's hue ${n2(input.status.danger.h)}.`);
   } else if (inRedTerritory(input.primary.h, input.primary.c)) {
     // The brand's own colour IS a saturated red — seed danger FROM the primary ramp rather than
     // synthesising a near-duplicate red. But mint it as its own `danger` palette (a deep copy of
@@ -2622,7 +2628,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     // and it makes the red case consistent with the carve case (which already mints `danger`).
     const primarySteps = palettes.find((p) => p.palette === 'primary')!.steps;
     palettes.push({ palette: 'danger', role: 'danger', description: 'danger status (seeded from the red brand primary — its own ramp so danger stays re-pointable)', steps: primarySteps.map((s) => ({ ...s, oklch: { ...s.oklch }, rgb: { ...s.rgb } })) });
-    notes.push(`danger: the primary (hue ${input.primary.h}, chroma ${input.primary.c}) is a saturated red, so danger reuses its ramp as a separate palette — danger can still be repointed on its own.`);
+    notes.push(`danger: the primary (hue ${n2(input.primary.h)}, chroma ${n4(input.primary.c)}) is a saturated red, so danger reuses its ramp as a separate palette — danger can still be repointed on its own.`);
   } else {
     // Primary is not a saturated red, so carve a dedicated danger red the brand never gave us.
     const d = STATUS_DEFAULTS.danger;
@@ -2631,13 +2637,13 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     // for danger (a near-grey can't signal destruction), even though its hue is in the window.
     const hueIsRed = hueDist(input.primary.h, STATUS_DEFAULTS.danger.h) <= 20;
     notes.push(hueIsRed
-      ? `danger: the primary (hue ${input.primary.h}) is reddish, but its chroma ${input.primary.c} is below the ${RED_CHROMA_FLOOR} floor for danger — a separate red at hue ${d.h} carries destructive actions.`
-      : `danger: the primary (hue ${input.primary.h}) is not red, so danger gets its own red at hue ${d.h}.`);
+      ? `danger: the primary (hue ${n2(input.primary.h)}) is reddish, but its chroma ${n4(input.primary.c)} is below the ${RED_CHROMA_FLOOR} floor for danger — a separate red at hue ${d.h} carries destructive actions.`
+      : `danger: the primary (hue ${n2(input.primary.h)}) is not red, so danger gets its own red at hue ${d.h}.`);
   }
   // Knife-edge note (M-05): flag when the primary hue sits within 3° of the ±20° red boundary —
   // a small hue shift would flip danger between reuse-primary and carve-red.
   if (Math.abs(hueDist(input.primary.h, STATUS_DEFAULTS.danger.h) - 20) <= 3 && input.primary.c >= RED_CHROMA_FLOOR)
-    notes.push(`danger: the primary hue ${input.primary.h} sits near the edge of red (±20° of ${STATUS_DEFAULTS.danger.h}) — a small hue change switches danger between the primary's ramp and its own red.`);
+    notes.push(`danger: the primary hue ${n2(input.primary.h)} sits near the edge of red (±20° of ${STATUS_DEFAULTS.danger.h}) — a small hue change switches danger between the primary's ramp and its own red.`);
 
   // ---- roleColors: general semantic-role rebasing (docs/21) ----
   // Re-base any rebasable role on a declared palette (the general form of actionPalette).
@@ -2764,7 +2770,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
       controlsByMode[m] = controlSizes(lev.density);
     }
   }
-  notes.push(`dimensions: ${baseUnit}px grid, ${spaceBase}px spacing rhythm, '${density}' density (sets component sizes), radius scale ${rScale} (base radius ${baseMd}px).`);
+  notes.push(`dimensions: ${baseUnit}px grid, ${spaceBase}px spacing rhythm, '${density}' density (sets component sizes), radius scale ${n2(rScale)} (base radius ${n2(baseMd)}px).`);
   // #2053: the lever is retired. A brand file that still sets it is told it changes nothing.
   if (input.radiusHairline !== undefined) notes.push(`radius: radiusHairline is retired — radius.hairline (1px) is always emitted, so the setting changes nothing.`);
   notes.push(`motion: '${input.motionPersonality?.tempo ?? 'standard'}' tempo sets the durations; reduced-motion variants keep informational motion and set vestibular motion to 0.`);
@@ -2803,7 +2809,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     notes.push(`motion: easing roles use a different curve per mode — ${Object.entries(easingRolesByMode).map(([m, r]) => `${m} (${Object.entries(r).map(([k, v]) => `${k} → ${v}`).join(', ')})`).join('; ')}; the curves themselves are the same in every mode.`);
   }
   const shadow = buildShadow(shadowTintDefault, input.shadow);
-  notes.push(`shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness ${shadow.softness}; ${shadow.tint.hue === null ? `untinted at ${shadow.tint.amount}${shadow.tint.amount === 0 ? ' (pure black)' : ''}, because ${nAnchor ? 'the pinned gray has no hue' : 'the neutral is gray'}` : `tinted to hue ${shadow.tint.hue} at ${shadow.tint.amount}${shadow.tint.amount === 0 ? ' (pure black)' : ''}`}. Full shadows in light, reduced in dark, where surface lightness carries elevation.`);
+  notes.push(`shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness ${n2(shadow.softness)}; ${shadow.tint.hue === null ? `untinted at ${n2(shadow.tint.amount)}${shadow.tint.amount === 0 ? ' (pure black)' : ''}, because ${nAnchor ? 'the pinned gray has no hue' : 'the neutral is gray'}` : `tinted to hue ${Math.round(shadow.tint.hue)} at ${n2(shadow.tint.amount)}${shadow.tint.amount === 0 ? ' (pure black)' : ''}`}. Full shadows in light, reduced in dark, where surface lightness carries elevation.`);
   // Per-mode SHADOW (Phase D): a customizable mode overriding `shadow` re-derives its ramp via the SAME
   // buildShadow the baseline uses, at the mode's (softness/tint merged over the global). The APPEARANCE
   // decides the layer-set — a dark or dark-based custom mode gets the reduced dark layers; light/light-
@@ -2848,7 +2854,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     notes.push('gradient: none — the brand declares no gradients, and none are added by default.');
   }
   const layout = buildLayout(input.layout);
-  notes.push(`layout: ${layout.breakpoints.length} breakpoints (${layout.breakpoints.map((b) => `${b.name} ${b.px}`).join(', ')}); ${layout.baseColumns}-column grid (${layout.grid.map((g) => g.columns).join('/')} by breakpoint); gutters ${layout.grid.map((g) => g.gutterPx).join('/')}px and margins ${layout.grid.map((g) => g.marginPx).join('/')}px, from the spacing scale; containers max ${layout.containerMax}px, narrow ${layout.containerNarrow}px.`);
+  notes.push(`layout: ${layout.breakpoints.length} breakpoints (${layout.breakpoints.map((b) => `${b.name} ${n2(b.px)}`).join(', ')}); ${layout.baseColumns}-column grid (${layout.grid.map((g) => g.columns).join('/')} by breakpoint); gutters ${layout.grid.map((g) => g.gutterPx).join('/')}px and margins ${layout.grid.map((g) => g.marginPx).join('/')}px, from the spacing scale; containers max ${n2(layout.containerMax)}px, narrow ${n2(layout.containerNarrow)}px.`);
   // #1752 — `buttonLabelWeight: 'default'` puts the `default` role in the label category (the identity
   // otherwise). Before the build, so the composites, the Figma text styles and `weightAvailability` all
   // see it: the button's rebound label style then names a style the brand emits.
@@ -3014,7 +3020,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // The mobile shrink follows the fluid-display curve researched for the type ladder (docs record the
   // source); the line-height ratio and its Figma px materialization are format facts, not decisions,
   // so the note leaves them out.
-  notes.push(`typography: ${typography.sizesPx.length}-step size ladder (${typography.sizesPx[0]}–${typography.sizesPx[typography.sizesPx.length - 1]}px), a fixed set rather than a ratio; weights ${typography.weightRoles.map((w) => w.role).join('/')} → ${typography.weightRoles.map((w) => w.value).join('/')}; families ${typography.families.map((f) => `${f.group} ${f.stack[0]}`).join(', ')}${varFams.length ? ` (variable: ${varFams.join('/')})` : ''}; '${typography.typeScale}' type scale. ${typography.composites.length} text styles: title and display sizes follow the type scale, display tops out at '${reqCeiling}' (${effCap}px), title.2xs is ${(input.typography?.titleFloor ?? 18) === 16 ? 'included' : 'left out'}${(input.typography?.captionFloor ?? 11) === 10 || (input.typography?.sizeFloor ?? 10) === 8 ? `, caption adds ${[(input.typography?.sizeFloor ?? 10) === 8 ? 'caption.xs (8px)' : '', (input.typography?.captionFloor ?? 11) === 10 ? 'caption.sm (10px)' : ''].filter(Boolean).join(' and ')}` : ''}${capNote}. ${typography.fluid ? `${typography.composites.filter((c) => c.sizeMinPx !== c.sizePx).length} styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from ${typography.minViewport} to ${typography.maxViewport}px and desktop and mobile Figma modes.` : 'Sizes are fixed at every viewport.'}`);
+  notes.push(`typography: ${typography.sizesPx.length}-step size ladder (${n2(typography.sizesPx[0])}–${n2(typography.sizesPx[typography.sizesPx.length - 1])}px), a fixed set rather than a ratio; weights ${typography.weightRoles.map((w) => w.role).join('/')} → ${typography.weightRoles.map((w) => w.value).join('/')}; families ${typography.families.map((f) => `${f.group} ${f.stack[0]}`).join(', ')}${varFams.length ? ` (variable: ${varFams.join('/')})` : ''}; '${typography.typeScale}' type scale. ${typography.composites.length} text styles: title and display sizes follow the type scale, display tops out at '${reqCeiling}' (${n2(effCap)}px), title.2xs is ${(input.typography?.titleFloor ?? 18) === 16 ? 'included' : 'left out'}${(input.typography?.captionFloor ?? 11) === 10 || (input.typography?.sizeFloor ?? 10) === 8 ? `, caption adds ${[(input.typography?.sizeFloor ?? 10) === 8 ? 'caption.xs (8px)' : '', (input.typography?.captionFloor ?? 11) === 10 ? 'caption.sm (10px)' : ''].filter(Boolean).join(' and ')}` : ''}${capNote}. ${typography.fluid ? `${typography.composites.filter((c) => c.sizeMinPx !== c.sizePx).length} styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from ${n2(typography.minViewport)} to ${n2(typography.maxViewport)}px and desktop and mobile Figma modes.` : 'Sizes are fixed at every viewport.'}`);
   // Sub-10px flag (#1363). 8px is below every practical legibility floor and below the size range
   // this system's contrast ratios were reasoned about, so an opted-in sub-10px rung is flagged here the
   // way `actionPalette` flags a decoupled action colour — a deliberate, recorded exception rather than a
