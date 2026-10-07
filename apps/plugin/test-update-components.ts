@@ -45,6 +45,10 @@
  *   writes/…       the dry run writes nothing: plugin data and node fields identical before and after.
  *   capture/…      the one-time capture records only members that read back as the current plan, and never
  *                  touches a stamp. Mutation: the diff check dropped from `captureVerdict` → `capture/refuses`.
+ *   earlier/…      a captured file whose members all predate the executor revision reads "✓ No changes found",
+ *                  with one line counting them, and a real difference still reads "Would change" (owner Q91 B,
+ *                  #2282). Mutations: those members counted as changes → `earlier/headline`; the line dropped →
+ *                  `earlier/line`; a set with any of them read as no changes → `earlier/real difference`.
  *   file/…         a def with no set is missing, and the verdict's `lines` (#2177) are one per item, the list the
  *                  summary is joined from. Mutation: `lines` sent as the joined summary → `file/lines`.
  *
@@ -473,6 +477,34 @@ section('capture — the one-time record for sets built before the baseline');
   ok(post.counts.current === 44 && post.counts.noBaseline === 1, `capture/after: the 44 now read current; the edited one still has no record (${post.counts.current}, ${post.counts.noBaseline})`);
   const r2 = await captureBaselines(b.shim, [{ def: TAG, plans: b.plans }]);
   ok(r2.sets[0].recorded === 0 && r2.sets[0].skipped.filter((x) => x.reason === 'already has a baseline').length === 44, 'capture/once: a second capture records nothing over an existing record');
+}
+
+/* ── earlier ─────────────────────────────────────────────────────────────────────────────────────────── */
+section('earlier — a captured file built by an earlier plugin reads no changes, with its own line (owner Q91 B, #2282)');
+{
+  // The NB master's case: every member stamped before the executor revision (#1098), no records, then captured.
+  const b = await build(TAG);
+  for (const m of membersOf(b.set)) {
+    const stamp = (m.getSharedPluginData as (ns: string, k: string) => string)(NS, STAMP_KEY);
+    (m.setSharedPluginData as (ns: string, k: string, v: string) => void)(NS, STAMP_KEY, stamp.split('|').slice(0, 2).join('|'));
+    (m.setSharedPluginData as (ns: string, k: string, v: string) => void)(NS, BASELINE_KEY, '');
+  }
+  const cap = await captureBaselines(b.shim, [{ def: TAG, plans: b.plans }]);
+  ok(cap.sets[0].recorded === 45, `premise: the capture records all 45 (${cap.sets[0].recorded}, ${JSON.stringify(cap.sets[0].skipped.slice(0, 1))})`);
+  const r = await previewUpdate(b.shim, [{ def: TAG, plans: b.plans }]);
+  ok(r.sets[0].counts.revisionUnknown === 45, `premise: all 45 read as from an earlier plugin (${r.sets[0].counts.revisionUnknown})`);
+  const v = previewVerdict(r);
+  ok(v.ok && v.headline === '✓ No changes found', `earlier/headline: members from an earlier plugin are not counted as changes (${v.headline})`);
+  ok(v.lines[0] === `${r.sets[0].set}: no changes (45 members).`, `earlier/set line: the set reads no changes (${v.lines[0]})`);
+  ok(v.lines.includes('45 built by an earlier plugin. Update them to bring them current.'), `earlier/line: a line of its own flags them (${JSON.stringify(v.lines)})`);
+  // A real difference on one member still counts.
+  (childNamed(membersOf(b.set)[3], 'content').setBoundVariable as (f: string, v: { id: string }) => void)('itemSpacing', { id: await varId(b, 'space/0') });
+  const r2 = await previewUpdate(b.shim, [{ def: TAG, plans: b.plans }]);
+  const v2 = previewVerdict(r2);
+  ok(v2.headline === 'Would change 1 of 1' && v2.lines.includes('44 built by an earlier plugin. Update them to bring them current.'),
+    `earlier/real difference: a hand edit still reads as a change, and the other 44 keep their line (${v2.headline}; ${JSON.stringify(v2.lines)})`);
+  const one = previewVerdict({ ...r, sets: [{ ...r.sets[0], counts: { ...r.sets[0].counts, current: 44, revisionUnknown: 1 } }] });
+  ok(one.lines.includes('1 built by an earlier plugin. Update it to bring it current.'), `earlier/one: one member reads in the singular (${JSON.stringify(one.lines)})`);
 }
 
 /* ── over a file ─────────────────────────────────────────────────────────────────────────────────────── */

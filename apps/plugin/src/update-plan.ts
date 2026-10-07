@@ -470,8 +470,13 @@ export const captureBaselines = async (host: UpdateHost, targets: readonly Updat
 const n = (k: number, one: string, many = `${one}s`): string => `${k} ${k === 1 ? one : many}`;
 
 const propChanges = (p: SetPreview): number => Object.values(p.properties).reduce((k, l) => k + l.length, 0);
-/** Every member current, nothing to add, and the set's properties as planned. */
-const upToDate = (p: SetPreview): boolean => p.counts.current === p.counts.members && !p.counts.add && !propChanges(p);
+/** Nothing an update would change: every member current or from an earlier plugin, nothing to add, and the
+ *  set's properties as planned. A member from an earlier plugin (`revisionUnknown`) matches its plan and has no
+ *  hand edit. Its stamp just predates the executor revision, so it can't say which executor wrote it. That is
+ *  not a difference (owner decision Q91 B, #2282), and the verdict flags those members on a line of their own. */
+const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown === p.counts.members && !p.counts.add && !propChanges(p);
+/** No changes, and every member current. */
+const upToDate = (p: SetPreview): boolean => noChanges(p) && !p.counts.revisionUnknown;
 
 /** One set's dry run, as one line. */
 export const previewLine = (p: SetPreview): string => {
@@ -485,24 +490,27 @@ export const previewLine = (p: SetPreview): string => {
     c.handEdited ? `${n(c.handEdited, 'member')} edited by hand` : '',
     c.noBaseline ? `${c.noBaseline} with no as-built record` : '',
     c.unstamped ? `${c.unstamped} not built by Prism3` : '',
-    c.revisionUnknown ? `${c.revisionUnknown} from an earlier plugin` : '',
   ].filter(Boolean);
   if (propChanges(p)) parts.push(n(propChanges(p), 'property change'));
-  return upToDate(p) ? `${p.set}: up to date (${n(c.members, 'member')}).` : `${p.set}: ${n(c.members, 'member')}. ${parts.join(', ')}.`;
+  if (upToDate(p)) return `${p.set}: up to date (${n(c.members, 'member')}).`;
+  if (noChanges(p)) return `${p.set}: no changes (${n(c.members, 'member')}).`;
+  return `${p.set}: ${n(c.members, 'member')}. ${parts.join(', ')}.`;
 };
 
 /** The verdict for a dry run. `ok` is false only where a set could not be checked. `lines` is the Activity drawer's
  *  copy (#2177): one per set, then the closing lines, the same list `summary` is joined from. */
 export const previewVerdict = (r: UpdatePreview): { ok: boolean; headline: string; summary: string; lines: string[] } => {
-  const changing = r.sets.filter((p) => !p.blockers.length && !upToDate(p)).length;
+  const changing = r.sets.filter((p) => !p.blockers.length && !noChanges(p)).length;
+  const earlier = r.sets.filter((p) => !p.blockers.length).reduce((k, p) => k + p.counts.revisionUnknown, 0);
   const blocked = r.sets.filter((p) => p.blockers.length).length + r.refused.length;
   const headline = r.sets.length + r.refused.length === 0 ? 'No sets to check'
     : blocked ? `✗ ${n(blocked, 'set')} can't be checked`
-      : changing ? `Would change ${changing} of ${r.sets.length}` : '✓ All sets up to date';
+      : changing ? `Would change ${changing} of ${r.sets.length}` : earlier ? '✓ No changes found' : '✓ All sets up to date';
   const lines = [
     ...r.sets.map(previewLine),
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
+    earlier ? `${earlier} built by an earlier plugin. Update ${earlier === 1 ? 'it to bring it' : 'them to bring them'} current.` : '',
     'This was a check only. Nothing in the file changed.',
   ].filter(Boolean);
   return { ok: blocked === 0, headline, summary: lines.join('\n'), lines };
