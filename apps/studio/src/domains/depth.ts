@@ -13,7 +13,7 @@
  * `modeLevers[mode].*`, and the control says "Auto: follows Light (‹value›)" until it is set, with Return to Auto once it
  * is. Auto names LIGHT's value in every mode, a custom mode included: the engine resolves these levers from the brand
  * value, never from a custom mode's base (the S9 scoping report, finding 7). A derived mode (HC light, HC dark,
- * wireframe) is read-only: every control is disabled under S4a's line, and the preview is still drawn (Q59). A brand
+ * wireframe) is read-only, held by the frame: the whole levers panel is inert and disabled under one line (N-3 A, #1984), and the preview is still drawn (Q59). A brand
  * with one mode picks its easing per role here too: the legacy table that did it sat inside `rp.modes.length > 1`
  * (#2046).
  *
@@ -54,7 +54,6 @@ export const DEPTH_COPY = {
   autoLight: (v: string): string => `Auto: follows Light (${v})`,
   toAuto: 'Return to Auto',
   editing: (m: string): string => `Editing ${m}, the mode the preview shows.`,
-  derived: (m: string): string => `${m} is auto-derived — read-only. Edit Light or Dark and it follows.`,
   easingRow: (role: string): string => `Easing for ${role}`,
   easingHint: 'The six curves are fixed. Each role picks one.',
   next: 'Continue to Layout',
@@ -361,7 +360,6 @@ export const mountDepthLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     shadows = [];
     pickFocus = null;
     const parts: HTMLElement[] = [h('p', 'p3-intro', PAGE.intro)];
-    if (derived()) parts.push(hook(stateLine(DEPTH_COPY.derived(modeLabel(currentMode))), 'depth-derived'));
     // Elevation, with Shadow tint behind its own Show advanced (D8 A); a search opens it.
     const elev = section('Elevation');
     const e = sectionShell(elev.title, elev.desc, 0);
@@ -386,9 +384,6 @@ export const mountDepthLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     parts.push(nr);
     root.replaceChildren(...parts);
     syncShadows();
-    // A derived mode is read-only, every control on the page (Q59). The info buttons only show a description, and
-    // Elevation's Show advanced only discloses the tint sliders, so both stay live; what it opens is held.
-    if (derived()) for (const n of root.querySelectorAll<HTMLButtonElement | HTMLInputElement>('.p3-lsec :is(button, input, select):not(.p3-info, [data-p3="depth-tint-advanced"])')) n.disabled = true;
     for (const it of items) it.block.setRefused(!!lastError && !!lastEdited && it.key === lastEdited);
     filter();
     if (focusPick && pickFocus) { focusPick = false; (pickFocus as () => void)(); }

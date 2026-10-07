@@ -627,6 +627,12 @@
 .p3-tile[data-on="true"] .p3-agent-dot { display: block; }
 
 /* ── the levers panel (S2 on): sections as white cards on the gray panel (IA-2, V7) ────────── */
+/* N-3 A (#1984): the fieldset that holds a page's levers draws no box of its own; in a derived mode it is `inert` and
+   `disabled`, so every control under it takes the disabled skin below by `:disabled`. Its line sits above it, outside,
+   on the page's own inset. */
+.p3-levers-region { display: contents; }
+.p3-levers-note { padding: var(--p3-space-300) var(--p3-space-300) 0; color: var(--p3-text-2); font-family: var(--p3-font-ui); }
+.p3-levers-note:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: calc(-1 * var(--p3-focus-width)); }
 .p3-levers-body {
   display: grid; gap: var(--p3-space-200); align-content: start; padding: var(--p3-space-300) var(--p3-space-300) var(--p3-space-500);
   color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-normal);

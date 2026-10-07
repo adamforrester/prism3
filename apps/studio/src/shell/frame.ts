@@ -54,10 +54,11 @@
  * give way, each by a measured check that sets `data-bar-fit`, reusing the narrow tier's rules where it has them. See
  * `fitBar`.
  */
-import { page, searchHits, searchQuery, setPage, setSearch, subscribe } from '../state/store';
+import { currentMode, page, searchHits, searchQuery, setPage, setSearch, subscribe } from '../state/store';
+import { isDerived } from '../state/verdict';
 import { INSPECT, TABS, homeOf, isMenuPage, isNewPage, legacyOf, newPageOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type NewPageKey, type Place, type TabId } from './pages';
 import { glyph, h, hook, tile } from './dom';
-import { inspectMenu, modeControl, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
+import { inspectMenu, modeControl, modeLabel, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
 import { mountActivity, type ActivityLend } from './activity';
 import { figmaMenu, type FigmaAction, type FigmaSource } from './figma';
 import { mountBar, type BarLend } from './bar';
@@ -93,17 +94,24 @@ const NEW_PAGES: Record<NewPageKey, {
   /** `lend`: the legacy renderers `main.ts` lends a preview until its slice replaces them (S3: Brand's
    *  Style guide), as Inspect is lent its two legacy views. */
   readonly preview: (host: HTMLElement, cleanups: (() => void)[], lend: PageLends) => void;
+  /** N-3 A (#1984): the page edits the previewed mode, so while the preview shows a derived mode its whole levers
+   *  panel is read-only (`syncDerivedReadOnly` below). Brand and Palettes are brand-wide and stay editable. */
+  readonly derivedReadOnly?: true;
 }> = {
   brand: { levers: mountBrandLevers, preview: mountBrandPreview },
   palettes: { levers: mountPalettesLevers, preview: mountPalettesPreview },
-  fills: { levers: mountFillsLevers, preview: mountSurfacesPreview },
-  interactive: { levers: mountInteractiveLevers, preview: mountInteractivePreview },
-  type: { levers: mountTypeLevers, preview: mountTypePreview },
-  depth: { levers: mountDepthLevers, preview: mountDepthPreview },
-  shape: { levers: mountShapeLevers, preview: mountShapePreview },
-  layout: { levers: mountLayoutLevers, preview: mountLayoutPreview },
-  components: { levers: mountComponentsLevers, preview: mountComponentsPreview },
+  fills: { levers: mountFillsLevers, preview: mountSurfacesPreview, derivedReadOnly: true },
+  interactive: { levers: mountInteractiveLevers, preview: mountInteractivePreview, derivedReadOnly: true },
+  type: { levers: mountTypeLevers, preview: mountTypePreview, derivedReadOnly: true },
+  depth: { levers: mountDepthLevers, preview: mountDepthPreview, derivedReadOnly: true },
+  shape: { levers: mountShapeLevers, preview: mountShapePreview, derivedReadOnly: true },
+  layout: { levers: mountLayoutLevers, preview: mountLayoutPreview, derivedReadOnly: true },
+  components: { levers: mountComponentsLevers, preview: mountComponentsPreview, derivedReadOnly: true },
 };
+
+/** The levers panel's one line while the preview shows a derived mode (N-3 A, #1984). APPROVED (owner, RO1 A,
+ *  2026-10-07). `m` is the mode's name as the mode control shows it (`modeLabel`). */
+export const DERIVED_READONLY_NOTE = (m: string): string => `${m} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`;
 
 /** The product's name, as the studio's top bar shows it (owner, 2026-10-04). */
 const PRODUCT_NAME = 'Prism3 Studio';
@@ -289,6 +297,18 @@ export const mountFrame = (app: HTMLElement, opts: {
   const panes = hook(h('div', 'p3-panes'), 'panes');
   const levers = hook(h('section', 'p3-levers'), 'levers-pane');
   levers.id = 'p3-levers';
+  // N-3 A (owner, 2026-10-05; #1984): ONE read-only state for the whole levers panel while the preview shows a derived
+  // mode (HC light, HC dark, wireframe), in place of each page disabling its own controls. The page's levers are
+  // mounted inside `leversRegion`, a fieldset drawn as `display: contents`, so it adds no box. In a derived mode it is
+  // `inert` (no control takes focus or sits in the accessibility tree) and `disabled` (every native control under it
+  // matches `:disabled`, so each keeps Prism3's disabled skin, F1 A and X4 A, and the contrast audits' exemption,
+  // with no per-control flag). One source of truth: a new lever is read-only there without doing anything. The line
+  // that says why, `leversNote`, sits OUTSIDE the region, first in the pane, so it can be read and focused; in an
+  // editable mode it is not in the document at all. The writes keep their own guards (#2096) as defense in depth.
+  const leversRegion = hook(h('fieldset', 'p3-levers-region'), 'levers-region');
+  leversRegion.setAttribute('role', 'presentation');   // a grouping box for the lock only, never a named group
+  const leversNote = hook(h('p', 'p3-state p3-state-hint p3-levers-note'), 'levers-derived-note');
+  leversNote.tabIndex = -1;
   const preview = hook(h('section', 'p3-preview'), 'preview-pane');
   preview.setAttribute('aria-label', 'Preview');
   // Q2: the preview's title row shares one header height with the tab row, so the two dividers meet at
@@ -481,9 +501,23 @@ export const mountFrame = (app: HTMLElement, opts: {
     for (const c of paneCleanups) c();
     paneCleanups = [];
     levers.replaceChildren();
+    leversRegion.replaceChildren();
     previewBody.replaceChildren();
     mounted = null;
+    syncDerivedReadOnly();
   };
+  /** N-3 A (#1984): the levers panel read-only, with its one line, exactly while a page that edits the previewed mode
+   *  shows a derived mode. Run on every mount, release and mode change. */
+  function syncDerivedReadOnly(): void {
+    const on = mounted !== null && NEW_PAGES[mounted].derivedReadOnly === true && isDerived(currentMode);
+    leversRegion.disabled = on;
+    leversRegion.inert = on;
+    if (on) {
+      leversNote.textContent = DERIVED_READONLY_NOTE(modeLabel(currentMode));
+      if (leversNote.parentNode !== levers || levers.firstChild !== leversNote) levers.prepend(leversNote);
+    } else leversNote.remove();
+  }
+  cleanups.push(subscribe('mode', syncDerivedReadOnly));
   cleanups.push(unmountPanes, () => { for (const c of menuCleanups ?? []) c(); menuCleanups = null; });
   // QA-B9: record which lever section each interaction is in. Records only; an edit handler turns a record
   // into a note, and nothing else moves the preview (V1).
@@ -521,6 +555,10 @@ export const mountFrame = (app: HTMLElement, opts: {
       if (moved) {
         const row = NEW_PAGES[moved];
         row.levers(levers, paneCleanups, opts.lend);
+        // The page mounted into the pane (its scroll container, which it reads as `host`); its nodes move into the
+        // read-only region (N-3 A), which then becomes the pane's content.
+        leversRegion.replaceChildren(...levers.childNodes);
+        levers.replaceChildren(leversRegion);
         row.preview(previewBody, paneCleanups, opts.lend);
         // QA-B9: an edit the levers noted (`noteSectionEdit`, called by Surfaces & fills' and Interactive's edit
         // handlers) reveals the preview section its lever section pairs with. A page whose levers never note one
@@ -533,6 +571,7 @@ export const mountFrame = (app: HTMLElement, opts: {
         previewBody.scrollTo({ top: at?.preview ?? 0, behavior: 'instant' });
       }
       mounted = moved;
+      syncDerivedReadOnly();
     }
 
     // The legacy frame is the panel the tabs control. With nothing selected (a page no tab shows, such as

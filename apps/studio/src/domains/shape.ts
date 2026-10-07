@@ -14,7 +14,7 @@
  * finding 7; `state/shape-input.ts`). In another mode the Density lever keeps the decided sentence ("Spacing follows
  * the brand's density, not the mode's …"). Control shape and Base radius are brand-wide: the same bytes from any
  * editable mode (Q54). A derived mode (HC light, HC dark, wireframe) is read-only, every control on the page (Q59),
- * under S4a's line; the preview is still drawn.
+ * held by the frame: the whole levers panel is inert and disabled under one line (N-3 A, #1984); the preview is still drawn.
  *
  * AN AUTO CHIP. Under Auto the chip of the value the mode follows is the checked one, and choosing it again writes
  * nothing: as Type's selects (which offer "Auto: follows Light (X)" and leave X out), a mode does not pin Light's own
@@ -99,8 +99,6 @@ export const mountShapeLevers = (hostEl: HTMLElement, cleanups: (() => void)[], 
     noteSectionEdit();   // QA-B9: the edit, and only an edit, reveals its preview section
     rebuild();
   };
-  const derivedLine = (): HTMLElement | null =>
-    isDerived(currentMode) ? hook(stateLine(`${modeLabel(currentMode)} is auto-derived — read-only. Edit Light or Dark and it follows.`), 'shape-derived') : null;
 
   /** The per-mode state under a per-mode control: Auto and what it follows, or Return to Auto. */
   const perModeNode = (hk: string, own: boolean, follows: string, onAuto: () => void): HTMLElement => {
@@ -252,8 +250,7 @@ export const mountShapeLevers = (hostEl: HTMLElement, cleanups: (() => void)[], 
     items = [];
     pickFocus = null;
     dragging = null;
-    const derived = derivedLine();
-    const parts: HTMLElement[] = [h('p', 'p3-intro', PAGE.intro), ...(derived ? [derived] : [])];
+    const parts: HTMLElement[] = [h('p', 'p3-intro', PAGE.intro)];
     const everyday = PAGE.sections.filter((s) => !s.advanced);
     const adv = PAGE.sections.filter((s) => s.advanced);
     everyday.forEach((s) => { const x = section(s, PAGE.sections.indexOf(s)); parts.push(x.el); items.push(...x.items); });
@@ -268,9 +265,6 @@ export const mountShapeLevers = (hostEl: HTMLElement, cleanups: (() => void)[], 
     nr.append(next);
     parts.push(nr);
     root.replaceChildren(...parts);
-    // A derived mode is read-only, every control on the page, brand-wide ones included (Q59). The info buttons only
-    // show a description, and Show advanced only discloses, so they stay live; the way to Components only navigates.
-    if (derived) for (const n2 of root.querySelectorAll<HTMLButtonElement | HTMLInputElement>('.p3-lsec :is(button, input):not(.p3-info, [data-p3="shape-advanced"], [data-p3="shape-see-components"])')) n2.disabled = true;
     for (const it of items) it.block?.setRefused(!!lastError && !!lastEdited && it.key === lastEdited);
     filter();
     if (focusPick && pickFocus) { focusPick = false; (pickFocus as () => void)(); }

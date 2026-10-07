@@ -30,7 +30,7 @@
  * (‹value›)" until set, with a way back to Auto. A brand-wide value (the library, the scale, the limits, which
  * weights and styles a text type ships, the pins, each name's step, the nudges, a heading's mobile size) writes the
  * same bytes from any editable mode (the Q54 rule). A derived mode (HC light, HC dark, wireframe) is read-only,
- * every control on the page (Q59, Q74), under S4a's line.
+ * every control on the page (Q59, Q74), held by the frame: the whole levers panel is inert and disabled under one line (N-3 A, #1984).
  *
  * BEHAVIOR-NEUTRAL (the S2 rule). Every write goes through `state/type-input.ts`, which writes what the legacy page
  * wrote, byte for byte on the persisted brand, its traps included (`responsive.fluid` is always written), except
@@ -238,10 +238,6 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     rebuild();
   };
   const fonts = (): HostFonts => lend.fonts();
-
-  /** A derived mode's one line, at the top of the levers: every control on the page is read-only (Q59). S4a's. */
-  const derivedLine = (): HTMLElement | null =>
-    isDerived(currentMode) ? hook(stateLine(`${modeLabel(currentMode)} is auto-derived — read-only. Edit Light or Dark and it follows.`), 'type-derived') : null;
 
   /** A plain name, and its token under it in mono (QA-B2, which reverses Q68's order), as Surfaces & fills' fields. */
   const tokenName = tokenLabel;
@@ -1142,8 +1138,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     const scrollTop = host.scrollTop;
     items = [];
     pickFocus = null;
-    const derived = derivedLine();
-    const parts: HTMLElement[] = [h('p', 'p3-intro', PAGE.intro), ...(derived ? [derived] : [])];
+    const parts: HTMLElement[] = [h('p', 'p3-intro', PAGE.intro)];
     const [libS, famS, scaleS, ...advS] = PAGE.sections;
     const lx = librarySection(libS);
     const fx = familiesSection(famS);
@@ -1170,10 +1165,6 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     root.replaceChildren(...parts);
     const add = root.querySelector<HTMLInputElement>('#p3-face-add');
     if (add && typed && addError) add.value = typed;
-    // A derived mode is read-only, every control on the page, brand-wide ones included (Q59, Q74). The info
-    // buttons only show a description, so they stay; so does Scale's Show advanced (it edits nothing).
-    // Scale's Show advanced only discloses Individual sizes, so it stays live and they can be read; what it opens is held.
-    if (derived) for (const n2 of root.querySelectorAll<HTMLButtonElement | HTMLSelectElement | HTMLInputElement>('.p3-lsec :is(button, select, input):not(.p3-info, [data-p3="scale-advanced"])')) n2.disabled = true;
     for (const it of items) it.block?.setRefused(!!lastError && !!lastEdited && it.key === lastEdited);
     filter();
     if (focusPick && pickFocus) { focusPick = false; (pickFocus as () => void)(); }
