@@ -2744,6 +2744,57 @@
 /**
  * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
  *
+ * 0.232.0 — folded 2026-10-06 from 4 change notes, newest merge first.
+ *
+ * [lane-field-label-hug · minor · d323d0fe] #1762 (owner-decided 2026-09-30, option 3; decision record `docs/28` §5.5, which changes #1757's
+ * decision 2): field-label's name HUGS its text and wraps at a MAX WIDTH instead of filling the row, so the
+ * required marker sits right after the name in Figma rather than at the row's trailing edge ("Label ··· *" at
+ * 320). New `PartDef.wrap: 'hug'` projects `maxWidth` on the text node (no `layoutGrow`, auto width); the max
+ * width is DERIVED — the root's `placementWidth` less one row gap per sibling, in px on the fixed space scale
+ * (`spacePx`) — so field-label's is 320 − 4 = 316 at every member. The marker's own width is not subtracted (a
+ * brand-font advance the engine does not hold), so a long required name overruns 320 by it, and a field
+ * stretched wider in Figma keeps the 316 wrap point: both accepted. Both executors write the max width after the
+ * append (the paste twin splices its line in only where a plan carries one) and read it back. Every host of
+ * field-label (select, text-field, textarea, checkbox-group, radio-group) nests the changed main component.
+ * The projected component surface moves → ENGINE bump. CONTRACT STANDS (no token name moves).
+ *
+ * [engine-2227-floor-on-a-ground · minor · 171c1cb3] A contrast floor must be a step a page ground sits on (#2227, #2239, owner Q57 A). `surfaces.<mode>.floorStep`
+ * on a step that none of `background.primary`, `background.secondary` or `background.tertiary` takes is refused
+ * once the modes resolve, with a sentence naming the steps that are: "surfaces.light.floorStep: 300 is not a step
+ * a light page ground sits on — the floor is the ground every floor-gated role is measured against. Use 50
+ * (background.secondary) or 100 (background.tertiary)." It was accepted before: the Figma color emission threw
+ * on it (`export_theme` -32603), and fills at floorSteps 500–750 shipped at 1.2–2:1 on the page while claiming
+ * 3:1. `validate_brand` and the generating tools report the sentence through the guarded build. The floor-gated
+ * prose (the bold fills, the interactive fills, and the secondary, tertiary, status and link text) now names the
+ * ground the floor sits on rather than always `background.secondary`: a floor held on the tertiary step says
+ * "on background.tertiary". Auto, with no `floorStep`, is never refused, and keeps naming `background.secondary`. That includes a ladder
+ * end (a Black or neutral 950 light page, a White or neutral 050 dark page), where the derived floor is a step
+ * next to the page, not a ground, and every floor-gated claim still measures true on `background.secondary`. No
+ * committed artifact moves.
+ *
+ * [engine-2184-shadow-tint · minor · d17e10d6] #2184 (owner decision, 2026-10-06): with shadow.tint.hue unset, the shadow tint now follows the hue that
+ * actually builds the neutral ramp. That is the primary's hue under Follow primary (neutral.auto), the custom
+ * tint hue under Custom tint, and the pinned gray's hue under Pinned (neutral.anchor), the pin winning over
+ * Follow primary as it does for the ramp. Before this the tint took the stored neutral.hue in all three, which
+ * under Follow primary and Pinned is a hue the ramp ignores and the studio does not show. An explicit
+ * shadow.tint.hue still wins. A gray neutral ramp, one whose chroma is below 1e-4, has no hue: a pure-gray pin
+ * (r = g = b), or a Custom tint or Follow primary at chroma 0. Its shadow is untinted (owner Q58 B and Q73 A,
+ * 2026-10-06): no hue, while the tint amount still lifts it off pure black. The resolved tint hue is then null,
+ * and the studio's hue slider is disabled and reads None rather than the converter's noise hue (#2241). The
+ * baseline and every per-mode shadow ramp change together. No committed artifact moves: every corpus brand
+ * either uses a custom tint, sets an explicit tint, or pins a gray whose hue equals its stored hue, and NB ships
+ * pure-black shadows. A brand outside the corpus under Follow primary or a pinned gray gets a new shadow color
+ * (a 130° to 185° hue move measured ΔE00 2.15 to 2.51 on the base color). The token names do not move, so the
+ * token contract stands.
+ *
+ * [engine-2227-secondary-shared-ground · minor · e8feeab2] The Figma color emission names a ground when a declared `secondary` lands on a step another ground also takes,
+ * instead of throwing (#2227). A page `secondary` on the step of `base`, `tertiary` or an inverse tier left the
+ * floor step aliased by two grounds, and `figmaArtifacts` threw "… which 2 page grounds alias …", so
+ * `export_theme` with `include: ["figma"]` returned -32603 and the plugin's apply failed. The Figma line now
+ * names the first of `background.secondary`, `background.primary`, `background.tertiary`, then the inverse
+ * tiers, that sits on the floor step. The grounds are one color in light, so the line stays true. No committed
+ * artifact moves; a floor step that no ground sits on is unchanged here and waits on #2227's refusal.
+ *
  * 0.231.0 — folded 2026-10-06 from 3 change notes, newest merge first.
  *
  * [engine-2209-score-consumption-guard · minor · b01cd28b] MCP's `score_consumption` refuses a malformed `refs` item or `pairs` entry as an `isError` result, not a
@@ -4666,7 +4717,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.231.0';
+export const ENGINE_VERSION = '0.232.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
