@@ -18,10 +18,11 @@
  * SEARCH (Q3) filters this panel in place: a lever block that does not match its label, description or
  * key is hidden, and so is a section with none that do. Advanced levers are searched too.
  */
+import { ACHROMATIC_C } from '@prism3/engine/color';
 import { brandState, lastError, rebuild, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import {
-  STATUS_ROLES, addBrandColor, anchorStepFor, autoStatus, hexOf, hueName, removeBrandColor, renameBrandColor, setBrandColor,
-  setNeutralAnchor, setNeutralChroma, setNeutralFollow, setNeutralHue, setNeutralPinned, setPrimary, setStatusColor,
+  NO_HUE, STATUS_ROLES, addBrandColor, anchorStepFor, autoStatus, hexOf, hueName, removeBrandColor, renameBrandColor, setBrandColor,
+  neutralHueReadout, setNeutralAnchor, setNeutralChroma, setNeutralFollow, setNeutralHue, setNeutralPinned, setPrimary, setStatusColor,
   removalEffects, setStatusSource, statusSeedHex, statusSource, type StatusRole, type StatusSource,
 } from '../state/palette-input';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
@@ -31,7 +32,8 @@ import { choice, colorField, inlineConfirm, leverBlock, setText, leverOf, select
 
 const PAGE = (DOMAINS.find((d) => d.id === 'color') as { subpages: readonly PageData[] }).subpages.find((p) => p.id === 'palettes')!;
 const pad = (n: number): string => String(n).padStart(3, '0');
-const oklchMeta = (o: { l: number; c: number; h: number }): string => `OKLCH ${o.l.toFixed(3)} ${o.c.toFixed(3)} ${Math.round(o.h * 10) / 10}°`;
+const oklchMeta = (o: { l: number; c: number; h: number }): string =>
+  `OKLCH ${o.l.toFixed(3)} ${o.c.toFixed(3)} ${o.c < ACHROMATIC_C ? NO_HUE : `${Math.round(o.h * 10) / 10}°`}`;
 
 /** The page the Continue button opens: the next Color sub-page, by the store's page key (S4a moved it). */
 const NEXT = { label: 'Surfaces & fills', page: 'fills' } as const;
@@ -204,10 +206,15 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
           const f = !!n.auto;
           src.set(n.anchor ? 'pinned' : f ? 'follow' : 'custom');
           const eff = f ? brandState.primary.h : n.hue;
-          setText(followLine, `Hue follows primary: ${Math.round(eff * 10) / 10}°.`);
+          // A gray primary has no hue to follow (#2241, owner Q88 A): its stored hue 0 never reads as a hue.
+          const followsNone = f && brandState.primary.c < ACHROMATIC_C;
+          setText(followLine, `Hue follows primary: ${followsNone ? NO_HUE : `${Math.round(eff * 10) / 10}°`}.`);
           const h0 = n.anchor ? n.anchor.h : n.hue;
+          // A gray neutral reads None, on the readout and to a screen reader alike, whatever its source (#2241, Q102 A).
+          const readout = neutralHueReadout((h) => sliderReadout(hueL, h));
           hue.set(h0);
-          a.setReadout(n.anchor ? sliderReadout(hueL, h0) : f ? `${Math.round(eff)}° · follows primary` : sliderReadout(hueL, n.hue));
+          if (readout === NO_HUE) hue.el.setAttribute('aria-valuetext', NO_HUE);
+          a.setReadout(readout);
           a.setState(n.anchor ? stateLine(`A pinned neutral sets the ramp: ${hexOf(n.anchor)}. Hue and chroma are its readout.`) : null);
         } },
         ...(p && cf ? [{ block: p, keys: ['neutral.anchor'], sync: () => {
@@ -215,7 +222,9 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
           if (anc) cf.set(hexOf(anc), oklchMeta(anc));
         } }] : []),
         { block: b, keys: ['neutral.chroma'], sync: () => {
-          const c0 = brandState.neutral.anchor ? brandState.neutral.anchor.c : brandState.neutral.chroma;
+          // Following a gray primary, the ramp is built at chroma 0 (owner Q87 A), so that is what the readout shows.
+          const c0 = brandState.neutral.anchor ? brandState.neutral.anchor.c
+            : brandState.neutral.auto && brandState.primary.c < ACHROMATIC_C ? 0 : brandState.neutral.chroma;
           ch.set(c0); b.setReadout(sliderReadout(chL, c0));
         } },
       ];

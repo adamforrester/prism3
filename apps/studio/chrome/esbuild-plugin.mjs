@@ -164,6 +164,11 @@ export const HOVER_CANARIES = [
   ['a hover in a nested rule', '.a { gap: 0; & .b:hover { gap: 0 } }', '& .b:hover'],
   ['a hover inside @media', '@media (min-width: 1px) { .a:hover { gap: 0 } }', '.a:hover'],
   ['a selector across lines', '.a,\n.b:hover\n{ gap: 0 }', '.b:hover'],
+  // :has() names another element (#2290): its hovered element carries the limit itself, and the subject's does not count.
+  ['a limited hover inside :has()', `.a:has(.b${HOVER_LIMIT}:hover) { gap: 0 }`, null],
+  ['a limited hover inside :has(), after a combinator', `.a:has(> .b${HOVER_LIMIT}:hover) { gap: 0 }`, null],
+  ['a limit on the :has() subject only', `.a${HOVER_LIMIT}:has(.b:hover) { gap: 0 }`, `.a${HOVER_LIMIT}:has(.b:hover)`],
+  ['a :has() inside :is(), its hover unlimited', `.a${HOVER_LIMIT}:is(.c, :has(> .b:hover)) { gap: 0 }`, `.a${HOVER_LIMIT}:is(.c, :has(> .b:hover))`],
 ];
 
 /** Splits `s` at each top-level match of `at` (a regex anchored with ^), outside (), [] and strings. */
@@ -199,11 +204,46 @@ const simples = (compound) => {
   out.push(compound.slice(from));
   return out.map((x) => x.replace(/\s+/g, ' ')).filter(Boolean);
 };
+const HOVER_RE = /:hover(?![\w-])/;
+/** Every `:has(…)` argument in `compound`, at any depth (inside `:is()` or `:not()` too), and the compound with each
+ *  argument taken out (`:has()` left empty), so what remains is the compound's own element. */
+const hasArgs = (compound) => {
+  const args = [];
+  let own = '', i = 0;
+  for (;;) {
+    const k = compound.indexOf(':has(', i);
+    if (k < 0) { own += compound.slice(i); break; }
+    let depth = 0, j = k + 4, quote = null;
+    for (; j < compound.length; j++) {
+      const ch = compound[j];
+      if (quote) { if (ch === '\\') j++; else if (ch === quote) quote = null; continue; }
+      if (ch === '"' || ch === '\'') quote = ch;
+      else if (ch === '(') depth++;
+      else if (ch === ')' && --depth === 0) break;
+    }
+    args.push(compound.slice(k + 5, j));
+    own += `${compound.slice(i, k)}:has()`;
+    i = j + 1;
+  }
+  return { args, own };
+};
+/** The compounds of a selector, or of a `:has()` argument's relative selector, that hover without the limit. A `:hover`
+ *  inside `:is()`, `:where()` or `:not()` is the compound's own element, so the compound carries the limit; one inside
+ *  `:has()` is another element, so that argument is read as a selector of its own (#2290). */
+const bareHovers = (sel) => {
+  const out = [];
+  for (const c of splitTop(sel.replace(/^\s*[>+~]\s*/, ''), /^\s*[>+~]\s*|^\s+/)) {
+    const { args, own } = hasArgs(c);
+    if (HOVER_RE.test(own) && !simples(own).includes(HOVER_LIMIT)) out.push(c);
+    for (const a of args) for (const r of splitTop(a, /^,/)) out.push(...bareHovers(r));
+  }
+  return out;
+};
 /**
  * Every [hover] finding in `css`, each naming its selector and line. The selectors are parsed: a rule's prelude is
  * split into its selector list at top-level commas, each selector into compounds at its combinators, and each compound
- * into simple selectors; a compound that mentions `:hover` anywhere must hold HOVER_LIMIT as one of its own simple
- * selectors. Then, by position, every `:hover` in the code must sit inside a prelude the parser read, so a selector
+ * into simple selectors; a compound that hovers must hold HOVER_LIMIT as one of its own simple selectors. A `:hover`
+ * inside `:has()` is the hovered element's, not the subject's, so the limit goes on it (`bareHovers`, #2290). Then, by position, every `:hover` in the code must sit inside a prelude the parser read, so a selector
  * the walk missed fails rather than going unchecked. `exempt` is a list of [selector, reason]; one that matches no
  * selector is a finding too.
  */
@@ -230,7 +270,7 @@ export function hoverFindings(css, where, exempt = []) {
       if (!/:hover(?![\w-])/.test(sel)) continue;
       const s = norm(sel);
       if (exempt.some(([x]) => x === s)) { seen.add(s); continue; }
-      const bare = splitTop(sel, /^\s*[>+~]\s*|^\s+/).filter((c) => /:hover(?![\w-])/.test(c) && !simples(c).includes(HOVER_LIMIT));
+      const bare = bareHovers(sel);
       const on = bare.length === 1 && norm(bare[0]) === s ? '' : ` (on ${bare.map((c) => `"${norm(c)}"`).join(', ')})`;
       if (bare.length) findings.push({ selector: s, msg: `${where}:${lineAt(p.start + p.text.indexOf(sel))}: "${s}" hovers without the Q28 limit ${HOVER_LIMIT} on the element it hovers${on}; add it there, or name the selector in HOVER_EXEMPT (esbuild-plugin.mjs) with a reason` });
     }

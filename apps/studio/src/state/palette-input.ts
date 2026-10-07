@@ -13,7 +13,7 @@
  */
 import type { BrandInput } from '@prism3/engine/theme';
 import { brandTheme } from '@prism3/engine/theme';
-import { hex, oklchToRgb, hexToRgb, rgbToOklch } from '@prism3/engine/color';
+import { ACHROMATIC_C, hex, oklchToRgb, hexToRgb, rgbToOklch, storedOklch } from '@prism3/engine/color';
 import { autoPlaceStep } from '@prism3/engine/ramp';
 import { brandState, lastGoodInput, theme } from './store';
 import { resolvedModes } from './verdict';
@@ -23,7 +23,9 @@ export type StatusRole = typeof STATUS_ROLES[number];
 type OKLCH = { l: number; c: number; h: number };
 
 export const hexOf = (o: OKLCH): string => hex(oklchToRgb(o));
-export const oklchOf = (h: string): OKLCH => rgbToOklch(hexToRgb(h));
+/** A picked hex, in the stored form: a hue-less pick (a pure gray) is written with hue 0, never the converter's noise
+ *  (#2241). */
+export const oklchOf = (h: string): OKLCH => storedOklch(rgbToOklch(hexToRgb(h)));
 /** A six-digit hex, with or without its `#`, or null. */
 export const parseHex = (s: string): string | null => {
   const m = /^#?([0-9a-f]{6})$/i.exec(s.trim());
@@ -139,21 +141,46 @@ export const setBrandColor = (i: number, h: string): void => {
 
 // ── neutrals ────────────────────────────────────────────────────────────────────────────────────
 /** Follow primary (the hue tracks the primary live) or a custom tint. Leaving Follow snapshots the hue it
- *  was following, so the custom tint starts where Auto left it, with no jump. */
+ *  was following, so the custom tint starts where Auto left it, with no jump. A gray primary has no hue to snapshot:
+ *  Auto showed a gray neutral (chroma 0, owner Q87 A), so the tint starts gray, never at the stored hue 0 (#2241). */
 export const setNeutralFollow = (follow: boolean): void => {
   const n = brandState.neutral;
   if (follow) n.auto = true;
-  else if (n.auto) { n.hue = brandState.primary.h; delete n.auto; }
+  else if (n.auto) {
+    if (brandState.primary.c < ACHROMATIC_C) { n.hue = 0; n.chroma = 0; }
+    else n.hue = brandState.primary.h;
+    delete n.auto;
+  }
 };
 export const setNeutralHue = (v: number): void => { brandState.neutral.hue = v; };
 export const setNeutralChroma = (v: number): void => { brandState.neutral.chroma = v; };
-/** Pin an exact neutral (on), seeded mid-ramp at the hue in effect, or go back to the derived ramp (off). */
+/** Pin an exact neutral (on), seeded mid-ramp at the hue in effect, or go back to the derived ramp (off). Following a
+ *  gray primary, the neutral in effect is gray (Q87 A), so the pin is seeded gray too (#2241). */
 export const setNeutralPinned = (on: boolean): void => {
   const n = brandState.neutral;
   if (!on) { delete n.anchor; return; }
-  const hue = n.auto ? brandState.primary.h : n.hue;
-  n.anchor = { l: 0.5, c: Math.min(n.chroma, 0.02), h: hue };
+  const gray = !!n.auto && brandState.primary.c < ACHROMATIC_C;
+  const hue = gray ? 0 : n.auto ? brandState.primary.h : n.hue;
+  n.anchor = { l: 0.5, c: gray ? 0 : Math.min(n.chroma, 0.02), h: hue };
 };
+
+/** What the neutral's hue reads when the neutral has no hue (#2241, owner Q88 A): the shadow slider's approved word. */
+export const NO_HUE = 'None';
+/** The neutral hue lever's readout, `fmt` drawing a real hue in the lever's own words. A gray neutral (chroma below
+ *  `ACHROMATIC_C`) has no hue, so it reads None whatever its source (owner Q102 A): Pinned by the pin's chroma, Custom
+ *  tint by the neutral's own, Follow primary by the primary's (a gray primary builds a gray neutral, Q87 A). Never the
+ *  stored hue 0. */
+export const neutralHueReadout = (fmt: (h: number) => string): string => {
+  const n = brandState.neutral;
+  if (n.anchor) return n.anchor.c < ACHROMATIC_C ? NO_HUE : fmt(n.anchor.h);
+  if (n.auto) return brandState.primary.c < ACHROMATIC_C ? NO_HUE : `${Math.round(brandState.primary.h)}° · follows primary`;
+  return n.chroma < ACHROMATIC_C ? NO_HUE : fmt(n.hue);
+};
+
+/** The Palettes preview's line about the neutral ramp, from its step at index 10. A gray ramp has no hue to name, so it
+ *  reads "Gray" (#2241, owner Q96 A), decided by chroma as the engine decides it. */
+export const neutralBoardText = (step: OKLCH | undefined, follows: boolean): string =>
+  `${step && step.c < ACHROMATIC_C ? 'Gray' : `Hue ${Math.round(step?.h ?? 0)}°`}${follows ? ', following primary' : ''}. Text, borders and surfaces draw from it.`;
 export const setNeutralAnchor = (h: string): void => { if (brandState.neutral.anchor) brandState.neutral.anchor = oklchOf(h); };
 
 // ── status colors ───────────────────────────────────────────────────────────────────────────────

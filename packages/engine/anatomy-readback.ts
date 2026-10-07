@@ -276,12 +276,21 @@ export const FIELDS: Record<string, FieldCheck> = {
   // is the roundtrip's plan-as-oracle check (does the executor honor the plan's ratio); the INDEPENDENT
   // contract check — that the ratio a member LOCKS is the ratio its coordinate names — lives in
   // `test-roundtrip.ts`'s focused aspect-lock block, authored there rather than derived from the def.
+  //
+  // A VECTOR, NOT A NUMBER (#2295). Figma types it `targetAspectRatio: Vector | null`, an `{x, y}` pair whose
+  // ratio is `x / y` (the NB master reads `{x: 1.3333334, y: 1}` on its 4:3 frame, float32). This check read
+  // a number, as both offline shims modeled one, so on the real host it failed on every locked frame: all
+  // three image-placeholder members read "differs from the plan in 1 place" with nothing edited. A number is
+  // refused rather than tolerated, because no host returns one and a reader that accepts it can only be
+  // agreeing with a stub.
   aspectRatio: {
     show: (p) => `targetAspectRatio ≈ ${String(p)}`,
     check: (p, n) => {
-      const got = n.targetAspectRatio;
-      if (typeof got !== 'number') return got === undefined || got === null ? 'NOT LOCKED (no targetAspectRatio)' : str(got);
-      return Math.abs(got - (p as number)) < 1e-6 ? null : String(got);
+      const got = n.targetAspectRatio as { x?: unknown; y?: unknown } | number | null | undefined;
+      if (got === undefined || got === null) return 'NOT LOCKED (no targetAspectRatio)';
+      if (typeof got !== 'object' || typeof got.x !== 'number' || typeof got.y !== 'number' || got.y === 0) return `${str(got)} (not a {x, y} ratio)`;
+      const ratio = got.x / got.y;
+      return Math.abs(ratio - (p as number)) < 1e-6 ? null : `${got.x}:${got.y}`;
     },
   },
   clipsContent: {

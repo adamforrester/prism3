@@ -19,7 +19,7 @@
  */
 import { currentMode, lastGoodInput, subscribe, theme } from '../state/store';
 import { resolvedModes } from '../state/verdict';
-import { STATUS_ROLES, anchorStepFor, rolesByPalette } from '../state/palette-input';
+import { STATUS_ROLES, anchorStepFor, neutralBoardText, rolesByPalette } from '../state/palette-input';
 import { h, hook } from '../shell/dom';
 import { revealGroup, takeEdit } from './follow-edit';
 
@@ -240,9 +240,8 @@ export const mountPalettesPreview = (host: HTMLElement, cleanups: (() => void)[]
     place(boards.brand.body, [...brandNames.filter((n) => pals.includes(n)), ...rest].map((p) => block(p, p === 'primary' ? 'Primary' : p)));
 
     const nPal = theme.palettes.find((p) => p.palette === 'neutral');
-    const nHue = nPal ? Math.round(nPal.steps[10]?.oklch.h ?? 0) : 0;
     const nDesc = boards.neutral.el.querySelector('.p3-board-desc') ?? boards.neutral.el.querySelector('.p3-card-head')!.appendChild(h('p', 'p3-board-desc'));
-    const nText = `Hue ${nHue}°${lastGoodInput.neutral.auto ? ', following primary' : ''}. Text, borders and surfaces draw from it.`;
+    const nText = neutralBoardText(nPal?.steps[10]?.oklch, !!lastGoodInput.neutral.auto);
     if (nDesc.textContent !== nText) nDesc.textContent = nText;
     place(boards.neutral.body, nPal ? [block('neutral', 'neutral')] : []);
 

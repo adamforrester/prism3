@@ -45,13 +45,27 @@ const oklabToLin = (L: number, a: number, b: number) => {
 };
 
 // ---- OKLCH <-> sRGB ----
-export const rgbToOklch = ({ r, g, b }: RGB): OKLCH => {
+/** Below this chroma a color has NO hue (#2241, CSS Color 4's "powerless" hue). A pure gray (r = g = b) converts to
+ *  chroma ~1e-8 and an atan2 of rounding noise (~89.88° for every gray), which code downstream read as a real hue. 1e-4
+ *  sits four orders of magnitude above that noise and well below the faintest real gray in the corpus (#151415,
+ *  chroma 0.0025). The engine's no-hue rule for the shadow tint (#2184, owner Q58 B and Q73 A) reads this same value. */
+export const ACHROMATIC_C = 1e-4;
+/** A MEASURED color: `h` is null when the color has no hue (chroma below `ACHROMATIC_C`), so every caller has to
+ *  decide what a missing hue means rather than inherit the noise. */
+export type OklchMeasured = { l: number; c: number; h: number | null };
+export const rgbToOklch = ({ r, g, b }: RGB): OklchMeasured => {
   const { L, a, b: bb } = linToOklab(srgbToLinear(r), srgbToLinear(g), srgbToLinear(b));
   const c = Math.hypot(a, bb);
+  if (c < ACHROMATIC_C) return { l: L, c, h: null };
   let h = (Math.atan2(bb, a) * 180) / Math.PI;
   if (h < 0) h += 360;
   return { l: L, c, h };
 };
+/** The STORED form, for brand input: a hue-less color is written with `h: 0`, CSS Color 4's convention for a
+ *  missing hue, so brand files keep the schema's numeric hue. That is a technical decision, recorded on #2280, and it
+ *  holds only because every reader checks chroma first: nothing reads a hue whose chroma is below `ACHROMATIC_C`, so
+ *  the 0 is inert. */
+export const storedOklch = (m: OklchMeasured): OKLCH => ({ l: m.l, c: m.c, h: m.h ?? 0 });
 
 /** OKLCH -> linear sRGB triplet (may be out of [0,1] = out of gamut). */
 const oklchToLinRgb = ({ l, c, h }: OKLCH) => {
