@@ -30,7 +30,7 @@ export const isWriteCmd = (cmd: string): cmd is WriteCmd => Object.prototype.has
  *  either runs, a build is refused with the build's own words, which name the build rather than the check;
  *  a known imprecision, kept so the panel and the guard share one operation per Activity row. */
 export const guardFor = (cmd: string): WriteCmd | null =>
-  isWriteCmd(cmd) ? cmd : cmd === 'update-components' || cmd === 'capture-baseline' ? 'build-components' : null;
+  isWriteCmd(cmd) ? cmd : cmd === 'update-components' || cmd === 'capture-baseline' || cmd === 'adopt-members' ? 'build-components' : null;
 
 /** Whether this call of `cmd` writes: every call does, except a prune preview. */
 export const writes = (cmd: WriteCmd, confirm?: boolean): boolean => cmd !== 'prune' || confirm === true;

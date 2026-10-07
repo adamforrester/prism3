@@ -59,6 +59,7 @@ export type AgentActions = {
   /** #2265: the in-place update's dry run (writes nothing) and the one-time baseline capture. */
   updateComponents(def: string | undefined, sink: ActionSink): Promise<void>;
   captureBaseline(def: string | undefined, sink: ActionSink): Promise<void>;
+  adoptMembers(def: string | undefined, sink: ActionSink): Promise<void>;
 };
 
 /** The slice of a page node the census reads. */
@@ -156,6 +157,7 @@ export const ROUTES: { [C in AgentCmd]: Route } = {
   },
   'update-components': (c, a, sink) => a.updateComponents((c as Extract<ValidCommand, { cmd: 'update-components' }>).args.def, sink),
   'capture-baseline': (c, a, sink) => a.captureBaseline((c as Extract<ValidCommand, { cmd: 'capture-baseline' }>).args.def, sink),
+  'adopt-members': (c, a, sink) => a.adoptMembers((c as Extract<ValidCommand, { cmd: 'adopt-members' }>).args.def, sink),
   readback: async (_c, a, sink, d) => {
     await a.seedFromFile(sink);
     sink.data({ components: await d.census() });

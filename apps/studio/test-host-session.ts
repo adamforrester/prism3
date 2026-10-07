@@ -261,7 +261,7 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
 // verdict is not a build's: it lands in its own slot, leaves the build's slot, set record and detail alone, and
 // marks itself the operation's latest so the Activity row shows it.
 {
-  for (const cmd of ['update-components', 'capture-baseline']) {
+  for (const cmd of ['update-components', 'capture-baseline', 'adopt-members']) {
     const run = step(init, { kind: 'agent-started', id: 'u1', cmd });
     ok(same(run.next.agentRun, { id: 'u1', op: 'components', cmd, settled: false, progress: null }),
       `agent-started: ${cmd} runs the components operation, and the run keeps its command`);

@@ -37,7 +37,7 @@ export const AGENT_PROTOCOL_VERSION = 1;
 
 /** Every command this plugin answers, in the order the runbook documents them. Stable ids: renaming one
  *  is a breaking change for every agent that sends it, so it is a version bump, not an edit. */
-export const AGENT_COMMANDS = ['status', 'apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'readback', 'update-components', 'capture-baseline'] as const;
+export const AGENT_COMMANDS = ['status', 'apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'readback', 'update-components', 'capture-baseline', 'adopt-members'] as const;
 export type AgentCmd = (typeof AGENT_COMMANDS)[number];
 
 /** Each command's `args`, exactly as the UI sends the matching message (`messages.ts` `UiToMain`). */
@@ -61,6 +61,9 @@ export type AgentArgs = {
   'update-components': { def?: string; confirm: false };
   /** #2265: record the as-built baseline on members built before it existed. No `def` means every set. */
   'capture-baseline': { def?: string };
+  /** #2283: the one-time Adopt (§10 Q4). Records and stamps members Prism3 did not build, so an update can
+   *  bring them to the plan in place. No `def` means every set. */
+  'adopt-members': { def?: string };
 };
 
 /** A command as it arrives — unvalidated. `parseCommand` turns it into a `ValidCommand` or a reason. */
@@ -226,6 +229,11 @@ export const parseCommand = (raw: unknown): ParsedCommand => {
         return fail('bad-args', 'capture-baseline takes args.def: a component def id, or no def for every set');
       }
       return { ok: true, command: { ...base, cmd: 'capture-baseline', args: args.def === undefined ? {} : { def: args.def } } };
+    case 'adopt-members':
+      if (args.def !== undefined && (typeof args.def !== 'string' || !args.def)) {
+        return fail('bad-args', 'adopt-members takes args.def: a component def id, or no def for every set');
+      }
+      return { ok: true, command: { ...base, cmd: 'adopt-members', args: args.def === undefined ? {} : { def: args.def } } };
     case 'status':
     case 'file-setup':
     case 'readback':

@@ -396,11 +396,31 @@ export type ShimOpts = {
    * Opt-in; unset, `resize` behaves exactly as it always has.
    */
   abortAfterCombine?: boolean;
+
+  /**
+   * IDENTITY, MODELLED (#2265 PR 2): every node gets an `id` when it is made, and a COMPONENT or COMPONENT_SET a
+   * `key` when it becomes one. Neither is ever reassigned, which is Figma's rule and the one an in-place update
+   * rests on: a consumer instance follows its main component by key, and an override on a nested layer by the
+   * child's id. So a member replaced instead of updated shows up as a new key, read off the HOST.
+   *
+   * Opt-in, because the executor's #866/#1279 repairs compare ids, and in the detach modes a twin with an id of its
+   * own would take a branch those modes were not written to reach. Unset, nodes carry no `id` and no `key`, as
+   * before. Both are non-enumerable, so a JSON dump of a node is unchanged either way.
+   */
+  identities?: boolean;
 };
 
 
 export const makeShim = (opts: ShimOpts = {}) => {
   const names = new Set(opts.vars ?? []);
+  // #2265 PR 2 — `identities`: one counter for node ids, one for component keys, never reused.
+  let nodeSeq = 0;
+  let keySeq = 0;
+  const giveKey = (n: Node): void => {
+    if (!opts.identities || Object.getOwnPropertyDescriptor(n, 'key')) return;
+    const k = `K:${++keySeq}`;
+    Object.defineProperty(n, 'key', { configurable: false, enumerable: false, get: () => k });
+  };
   const page = opts.page;
   /** Charges a `burn` to the run's virtual clock (#1800). No busy-wait fallback: see `ShimOpts.burn`. */
   const charge = (ms: number): void => {
@@ -1089,6 +1109,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
         });
       }
     }
+    if (opts.identities) Object.defineProperty(node, 'id', { configurable: true, enumerable: false, writable: true, value: `N:${++nodeSeq}` });
     return node;
   };
 
@@ -1393,7 +1414,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // Inside the build loop, once per built member; the burn is charged on the first one only, so it
       // lands in exactly one chunk (#1848).
       if (opts.burn?.member && !memberBurned) { memberBurned = true; charge(opts.burn.member); }
-      n.type = 'COMPONENT'; return n;
+      n.type = 'COMPONENT'; giveKey(n); return n;
     },
     combineAsVariants: (members: Node[], parent?: unknown) => {
       // Between the build loop's last boundary and the wire loop's first — the window the wire re-stamp
@@ -1412,6 +1433,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
         throw new Error('in combineAsVariants: Expected node id to be a string, got undefined');
       const set = mkNode('COMPONENT_SET');
       set.id = 'SET:1';
+      giveKey(set);
       set.children = members;
       // #1430 — HOST TRUTH, AS PROBED LIVE (2026-09-27, a scratch file and the owner's master file agree):
       // `combineAsVariants` returns a set with the dash rhythm and the radius of a variant-set frame but NO
