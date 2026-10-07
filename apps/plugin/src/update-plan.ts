@@ -3,8 +3,8 @@
  * would change, add, deprecate and report, worked out without writing anything.
  *
  * Build stays add-only (#827, §10 Q6). This module is the first half of the separate update: it reads a
- * set as the file holds it and lays it against the plan the engine would build today. The apply half is
- * PR 2; until it lands, nothing here writes, and `update-components` with `confirm: true` is refused.
+ * set as the file holds it and lays it against the plan the engine would build today, and writes nothing.
+ * The apply half is `update-apply.ts` (PR 2), which acts on exactly what this says, under its `previewHash`.
  *
  * ── MATCHING: THE COORDINATE, CANONICALIZED (§2) ─────────────────────────────────────────────────────
  *
@@ -49,10 +49,14 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { memberStamp, planHalf, revHalf, STAMP_KEY } from './write-components';
 import { NS } from './persist-figma';
-import { baselineDiff, baselineOf, readBaseline, snapshotMember, writeBaseline, type Baseline, type SnapNode } from './member-baseline';
+import { UPDATING_KEY, baselineDiff, baselineOf, readBaseline, snapshotMember, writeBaseline, type Baseline, type SnapNode } from './member-baseline';
 
 /** One member of a set as the dry run reads it. */
-export type HostMember = { name: string; id: string; stamp: string; baseline: Baseline | null; snap: SnapNode };
+export type HostMember = {
+  name: string; id: string; stamp: string; baseline: Baseline | null; snap: SnapNode;
+  /** #2265 PR 2 — set while an update is part-way through this member: the paths it kept as hand edits. */
+  updating?: string[] | null;
+};
 
 /** A set as the dry run reads it: plain data, so the comparison below is pure. */
 export type HostSetView = {
@@ -96,8 +100,15 @@ export type SetPreview = {
    *  Prism3's. Adopt leaves them as they are: claiming one would put two members on one coordinate. */
   held: { member: string; byPrism3: boolean }[];
   renames: { from: string; to: string }[];
+  /** #2265 PR 2 — every rename an update makes, by member name: the matched members' (`renames`) and, under an
+   *  added axis, the dropped members' too, so the set never holds two axis lists (#1780). In the plan's segment
+   *  order. Collapsing members are not moved: an update refuses a set that has them. */
+  moves: { from: string; to: string }[];
   possibleRenames: { from: string; to: string }[];
   handEdits: { member: string; path: string; conflict: boolean; structural: boolean }[];
+  /** #2265 PR 2 — every matched member that is not current, with how it reads; what an apply acts on. Current
+   *  members are left out, so a set with nothing to do carries an empty list. Never capped: an apply must see all. */
+  states: { member: string; state: Exclude<MemberState, 'current'> }[];
   needsChoice: Choice[];
   /** Entries left out of a list past `LIST_CAP`, per list. Absent when nothing was. */
   truncated?: Record<string, number>;
@@ -218,6 +229,16 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   }
   const adds = [...planned.keys()].filter((k) => !byTarget.has(k)).map((k) => planComponentName(planned.get(k)!));
   const renames = matched.filter((l) => l.m.stamp && l.target !== l.from).map((l) => ({ from: l.m.name, to: planComponentName(planned.get(l.target)!) }));
+  // A dropped member's new name, in the first plan's segment order (its own axes, renamed and widened as above).
+  const order = firstPlan ? planComponentName(plans[0]).split(', ').map((seg) => seg.slice(0, seg.indexOf('='))) : [];
+  const named = (target: string): string => {
+    const v = new Map(coordPairs(target));
+    return order.filter((a) => v.has(a)).map((a) => `${a}=${v.get(a)}`).join(', ');
+  };
+  const moves = [
+    ...renames,
+    ...landings.filter((l) => l.m.stamp && drops.includes(l.m.name) && l.target !== l.from).map((l) => ({ from: l.m.name, to: named(l.target) })),
+  ];
 
   // An undeclared rename shows as a drop beside an add that differs in one value: a suggestion only.
   const possibleRenames: { from: string; to: string }[] = [];
@@ -236,12 +257,19 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   const replacements: SetPreview['replacements'] = [];
   const handEdits: SetPreview['handEdits'] = [];
   const rev = String(EXECUTOR_REVISION);
+  const states: SetPreview['states'] = [];
   for (const l of matched) {
     const plan = planned.get(l.target)!;
     const { m } = l;
-    if (!m.stamp) continue;
+    if (!m.stamp) { states.push({ member: m.name, state: 'unstamped' }); continue; }
     const now = baselineOf(m.snap);
-    const edit = m.baseline ? baselineDiff(m.baseline, now) : null;
+    let edit = m.baseline ? baselineDiff(m.baseline, now) : null;
+    // A MEMBER AN UPDATE STOPPED PART-WAY THROUGH (#2265 PR 2) differs from its record by the update's own writes.
+    // Only the paths that update kept as hand edits are still hand edits; the rest it will finish on the next run.
+    if (edit && m.updating) {
+      const kept = new Set(m.updating);
+      edit = { changed: edit.changed.filter((p) => kept.has(p)), added: [], removed: [] };
+    }
     const edited = !!edit && (edit.changed.length + edit.added.length + edit.removed.length > 0);
     const planMoved = planHalf(m.stamp) !== planHalf(memberStamp(plan));
     const revField = m.stamp.split('|').length >= 3 ? revHalf(m.stamp) : null;
@@ -251,6 +279,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       : revField === null ? 'revisionUnknown'
       : 'current';
     counts[state]++;
+    if (state !== 'current') states.push({ member: m.name, state });
     if (state === 'current' || state === 'revisionUnknown') continue;
 
     // The field changes, from the host's snapshot. `member` divergences are the set-level match's own
@@ -361,8 +390,10 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     adoptable,
     held,
     renames: cap('renames', renames),
+    moves,
     possibleRenames: cap('possibleRenames', possibleRenames),
     handEdits: cap('handEdits', handEdits),
+    states,
     needsChoice,
     ...(Object.keys(truncated).length ? { truncated } : {}),
   };
@@ -404,7 +435,12 @@ export const readSetView = async (set: LiveSet, breathe?: () => Promise<void>): 
     if (coordKey(name) === null) { others.push(name); continue; }
     let stamp = '';
     try { stamp = c.getSharedPluginData?.(NS, STAMP_KEY) ?? ''; } catch { stamp = ''; }
-    members.push({ name, id: String(c.id ?? ''), stamp, baseline: readBaseline(c), snap: await snapshotMember(c) });
+    let updating: string[] | null = null;
+    try {
+      const raw = c.getSharedPluginData?.(NS, UPDATING_KEY) ?? '';
+      if (raw) updating = (JSON.parse(raw) as unknown[]).map(String);
+    } catch { updating = []; }
+    members.push({ name, id: String(c.id ?? ''), stamp, baseline: readBaseline(c), snap: await snapshotMember(c), updating });
   }
   let definitions: HostSetView['definitions'] = null;
   try { definitions = (set.componentPropertyDefinitions ?? {}) as HostSetView['definitions']; } catch { definitions = null; }
@@ -556,14 +592,14 @@ export type UpdatePreview = { sets: SetPreview[]; missing: string[]; refused: { 
 /** `update-components` in its dry-run mode: every target's set read and laid against its plans. Writes
  *  nothing. A def with no set in the file is `missing`; a def with two sets of its name is `refused`,
  *  because which one an update should touch is not this command's call. */
-export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>): Promise<UpdatePreview> => {
+export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<UpdatePreview> => {
   const ports = await hostPorts(host);
   const out: UpdatePreview = { sets: [], missing: [], refused: [] };
   for (const t of targets) {
     const { found, name } = locate(host, t);
     if (found.length === 0) { out.missing.push(t.def); continue; }
     if (found.length > 1) { out.refused.push({ def: t.def, reason: `${found.length} sets are named ${name}` }); continue; }
-    out.sets.push(dryRunSet(t.def, t.plans, await readSetView(found[0], breathe), ports));
+    out.sets.push(dryRunSet(t.def, t.plans, await readSetView(found[0], breathe), ports, ledger));
   }
   return out;
 };

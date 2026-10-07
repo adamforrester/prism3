@@ -49,6 +49,11 @@
 import { NS } from './persist-figma';
 
 export const BASELINE_KEY = 'memberAsBuilt';
+/** A member an update is part-way through (#2265 PR 2): written before its first write, cleared after its stamp.
+ *  Its value is the JSON list of the paths the update kept as hand edits. A dry run that finds it reads the
+ *  member's other differences from its record as the update's own writes, not as hand edits, so a run that
+ *  stopped part-way finishes when it is run again instead of keeping its own changes. */
+export const UPDATING_KEY = 'memberUpdating';
 export const BASELINE_V = 2;
 
 /** A node as the snapshot holds it: plain data, read once, so the hash and the read-back both read the
@@ -88,7 +93,7 @@ type LiveNode = Record<string, unknown> & {
 /** The main component an instance points at, as plain data. `getMainComponentAsync` first: the plugin
  *  runs under `documentAccess: dynamic-page`, where the sync `mainComponent` getter throws. The sync
  *  property is the fallback for the shim, which models it as a plain descriptor. */
-const mainOf = async (n: LiveNode): Promise<Record<string, unknown> | null> => {
+export const mainOf = async (n: LiveNode): Promise<Record<string, unknown> | null> => {
   let main: unknown = null;
   try { if (typeof n.getMainComponentAsync === 'function') main = await n.getMainComponentAsync(); } catch { main = null; }
   if (!main) { try { main = n.mainComponent; } catch { main = null; } }

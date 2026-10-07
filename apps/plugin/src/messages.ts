@@ -410,7 +410,7 @@ export type MainToUi =
    *  drawer show it running and mark its result as the agent's. Sent for every valid command, `status`
    *  included; the panel decides which have an operation to show. `finished` follows the command's
    *  terminal verdict, and is sent even when its handler threw and posted none. */
-  | { type: 'agent-started'; id: string; cmd: AgentCmd }
+  | { type: 'agent-started'; id: string; cmd: AgentCmd; apply?: true }
   | { type: 'agent-finished'; id: string; cmd: AgentCmd };
 
 /** Narrow a discriminated union by its `type` tag — the payload a handler actually receives. */

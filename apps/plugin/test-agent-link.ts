@@ -316,12 +316,40 @@ section('update — the dry run and the baseline capture reach their handlers, r
   const up = (ra.result?.data as { update?: { mode?: string; sets?: unknown[]; missing?: string[] } } | undefined)?.update;
   ok(ra.ok === true && up?.mode === 'preview' && Array.isArray(up.sets) && up.sets.length === 0 && (up.missing?.length ?? 0) >= 20,
     `update/all: with no def it checks every projected set, and reports each absent one as missing (${up?.missing?.length})`);
+  const hash = (up as { previewHash?: unknown } | undefined)?.previewHash;
+  ok(typeof hash === 'string' && /^[0-9a-f]{8}$/.test(hash), `update/hash: the check's result carries the previewHash a confirm must echo (${String(hash)})`);
+  // #2265 PR 2 — the apply. Without the check's hash it is refused before any handler runs.
   calls.length = 0;
   const ap = await send('update-components', { confirm: true });
   await tick();
   const rp = (await read(ap.id)) as AgentResult;
-  ok(rp.ok === false && rp.error?.code === 'bad-args' && !calls.includes('updateComponents'),
-    `update/apply: confirm: true is refused as bad-args before any handler runs — apply is not built (${rp.error?.code})`);
+  ok(rp.ok === false && rp.error?.code === 'bad-args' && /previewHash/.test(String(rp.error?.message)) && !calls.includes('updateComponents'),
+    `update/apply needs the hash: confirm: true with no previewHash is refused as bad-args before any handler runs (${rp.error?.code})`);
+  // With it, it reaches the handler carrying that hash, and the panel is told this run applies.
+  const seen: unknown[][] = [];
+  const orig = actions.updateComponents;
+  actions.updateComponents = (...a: unknown[]) => { seen.push(a); return (orig as (...x: unknown[]) => Promise<void>)(...a); };
+  posted.length = 0;
+  const go = await send('update-components', { confirm: true, previewHash: 'abcdef01' });
+  await tick();
+  actions.updateComponents = orig;
+  const started = posted.find((m) => m.type === 'agent-started' && m.id === go.id) as { apply?: unknown } | undefined;
+  ok(seen.length === 1 && seen[0][1] === 'abcdef01' && seen[0][2] === undefined && started?.apply === true,
+    `update/apply: confirm: true with the hash reaches ACTIONS.updateComponents with that hash, and agent-started says apply (${JSON.stringify(seen.map((a) => a[1]))}, ${String(started?.apply)})`);
+  // The choices reach the handler as sent; one the protocol does not know is refused before any handler runs.
+  seen.length = 0;
+  actions.updateComponents = (...a: unknown[]) => { seen.push(a); return (orig as (...x: unknown[]) => Promise<void>)(...a); };
+  const ch = await send('update-components', { confirm: true, previewHash: 'abcdef01', choices: { handEdits: 'accept', noBaseline: 'skip', sets: { tag: { handEdits: 'overwrite', noBaseline: 'update' } } } });
+  await tick();
+  const wrong = await send('update-components', { confirm: true, previewHash: 'abcdef01', choices: { handEdits: 'delete' } });
+  await tick();
+  actions.updateComponents = orig;
+  const rw = (await read(wrong.id)) as AgentResult;
+  void ch;
+  ok(seen.length === 1 && JSON.stringify(seen[0][2]) === JSON.stringify({ handEdits: 'accept', noBaseline: 'skip', sets: { tag: { handEdits: 'overwrite', noBaseline: 'update' } } }) && rw.ok === false && rw.error?.code === 'bad-args',
+    `update/choices: the choices reach ACTIONS.updateComponents as sent, and an unknown one is refused as bad-args (${JSON.stringify(seen.map((a) => a[2]))}, ${rw.error?.code})`);
+  const check = posted.find((m) => m.type === 'agent-started' && m.id === all.id) as { apply?: unknown } | undefined;
+  ok(check === undefined || check.apply === undefined, 'update/check: a check is not marked as an apply');
 }
 
 /* ── style-guide tables + progress (#1778) ───────────────────────────────────────────────────────────── */
