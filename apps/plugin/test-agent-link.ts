@@ -92,6 +92,7 @@ const root = {
   name: 'agent-link test file',
   type: 'DOCUMENT',
   children: [] as unknown[],
+  findAllWithCriteria: () => [],
   getSharedPluginData: (ns: string, key: string) => store.get(k(ns, key)) ?? '',
   setSharedPluginData: (ns: string, key: string, v: string) => {
     if (ns === MAILBOX.ns && !agentSide) pluginWrites.push(key);
@@ -116,6 +117,7 @@ const host: Record<string, unknown> = {
   variables: { getLocalVariableCollectionsAsync: empty, getLocalVariablesAsync: empty },
   getLocalTextStylesAsync: empty, getLocalEffectStylesAsync: empty, getLocalPaintStylesAsync: empty, getLocalGridStylesAsync: empty,
   listAvailableFontsAsync: empty,
+  loadAllPagesAsync: async () => undefined,
 };
 const g = globalThis as Record<string, unknown>;
 g.figma = host;
@@ -233,7 +235,11 @@ const CASES: Case[] = [
   { cmd: 'prune', args: { input: brand, confirm: false }, ui: { type: 'prune', input: brand, confirm: false }, entry: 'prune', verdictType: 'prune-result' },
   { cmd: 'readback', args: {}, ui: { type: 'ui-ready' }, entry: 'seedFromFile', verdictType: 'seed-info' },
 ];
-ok(new Set(CASES.map((c) => c.cmd)).size + 1 === AGENT_COMMANDS.length, 'every write/read command has a case here (status is covered above)');
+// The two update commands (#2265) have no panel twin yet (the panel's control is held for the owner), so they
+// have their own section below rather than a parity case.
+const AGENT_ONLY = ['update-components', 'capture-baseline'];
+ok(new Set(CASES.map((c) => c.cmd)).size + 1 + AGENT_ONLY.length === AGENT_COMMANDS.length && AGENT_ONLY.every((c) => (AGENT_COMMANDS as readonly string[]).includes(c)),
+  'every write/read command has a case here (status is covered above, the agent-only commands below)');
 const results: AgentResult[] = [];
 for (const c of CASES) {
   // The UI path first: what the panel was sent.
@@ -283,6 +289,39 @@ for (const c of CASES) {
   ok(!!(pr.result?.data as { prunePlan?: unknown }).prunePlan, 'prune: the plan behind the preview is structured data');
   const bc = results[CASES.findIndex((c) => c.cmd === 'build-components')];
   ok(Array.isArray(((bc.result?.data as { build?: { known?: unknown } }).build)?.known), 'build-components: the known def ids are structured data');
+}
+
+/* ── update-components + capture-baseline (#2265) ───────────────────────────────────────────────────── */
+section('update — the dry run and the baseline capture reach their handlers, report a verdict, and refuse an apply (#2265)');
+{
+  for (const [cmd, entry] of [['update-components', 'updateComponents'], ['capture-baseline', 'captureBaseline']] as const) {
+    calls.length = 0;
+    posted.length = 0;
+    const { id } = await send(cmd, { def: 'no-such-def' });
+    await tick();
+    const r = (await read(id)) as AgentResult;
+    const v = r.result?.verdict as { type?: string; ok?: boolean; summary?: string } | null;
+    ok(calls.includes(entry) && v?.type === 'component-update-result' && v.ok === false && /no-such-def/.test(String(v.summary)),
+      `update/${cmd}: reaches ACTIONS.${entry}, and an unknown def is a failed component-update-result naming it (${v?.type}, ${String(v?.summary).slice(0, 50)})`);
+    const at = (type: string): number => posted.findIndex((m) => m.type === type && (type === 'component-update-result' || (m.id === id && m.cmd === cmd)));
+    ok(at('agent-started') >= 0 && at('agent-started') < at('component-update-result') && at('component-update-result') < at('agent-finished'),
+      `update/${cmd}: the panel gets agent-started, then the verdict, then agent-finished`);
+  }
+  // No def: every set the engine projects, none of which this file holds. (That a check writes nothing is
+  // `test-update-components.ts`'s, which has sets to write to.)
+  posted.length = 0;
+  const all = await send('update-components', {});
+  await tick();
+  const ra = (await read(all.id)) as AgentResult;
+  const up = (ra.result?.data as { update?: { mode?: string; sets?: unknown[]; missing?: string[] } } | undefined)?.update;
+  ok(ra.ok === true && up?.mode === 'preview' && Array.isArray(up.sets) && up.sets.length === 0 && (up.missing?.length ?? 0) >= 20,
+    `update/all: with no def it checks every projected set, and reports each absent one as missing (${up?.missing?.length})`);
+  calls.length = 0;
+  const ap = await send('update-components', { confirm: true });
+  await tick();
+  const rp = (await read(ap.id)) as AgentResult;
+  ok(rp.ok === false && rp.error?.code === 'bad-args' && !calls.includes('updateComponents'),
+    `update/apply: confirm: true is refused as bad-args before any handler runs — apply is not built (${rp.error?.code})`);
 }
 
 /* ── style-guide tables + progress (#1778) ───────────────────────────────────────────────────────────── */
@@ -629,7 +668,7 @@ section('busy/sink, busy/titles — a refusal reaching the agent\'s sink fails t
   const d = createDispatcher({
     actions: {
       applyTheme: async (_input: unknown, sink: { post(m: unknown): void }) => { sink.post({ type: 'refused', code: 'busy', cmd: 'apply-theme', agent: true, message: MSG }); },
-      buildComponents: noop, fileSetup: noop, styleGuide: noop, prune: noop, seedFromFile: noop,
+      buildComponents: noop, fileSetup: noop, styleGuide: noop, prune: noop, seedFromFile: noop, updateComponents: noop, captureBaseline: noop,
     } as unknown as Parameters<typeof createDispatcher>[0]['actions'],
     status: async () => ({}),
     census: async () => null,

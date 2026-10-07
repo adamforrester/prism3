@@ -87,7 +87,7 @@ jobs:
       # guarantees compose: regen proves the committed emission matches the emitter that produced it,
       # so the merge-base tree is a faithful witness rather than a stale copy.
       #
-      # THE FIRST OF THE GATES IN THIS FILE THAT NEED GIT HISTORY (four since #1807) — see `fetch-depth: 0` on the
+      # THE FIRST OF THE GATES IN THIS FILE THAT NEED GIT HISTORY (six since #2265) — see `fetch-depth: 0` on the
       # checkout above. (This line read "the only gate" until #1252 added the third; the comment below
       # already called itself "the second", so the count had been wrong since the second one landed.)
       # It FAILS rather than skips when it cannot find a base ref: a check that downgrades "cannot run"
@@ -114,6 +114,22 @@ jobs:
       # that only `--accept` rewrites. Also covered by the job-level `fetch-depth: 0` above.
       - name: The projected component surface moved only with ENGINE_VERSION
         run: npx --yes tsx@4 packages/engine/lint-component-surface.ts
+
+      # Two more git-history gates (#2265), both for the in-place component update. The dry run matches
+      # a set's existing members to the plan by variant coordinate, which cannot see a rename: a value
+      # renamed in a def reads as one member dropped and one added, and a dropped member breaks every
+      # instance of it once the library is published. So a rename is DECLARED in COMPONENT_RENAMES, and
+      # this gate fails a PR in which a def, an axis or a value leaves `schema/component-axes.json` with
+      # no entry. The baseline's `from` side is the merge base, read with `git show`, never the tree.
+      - name: A removed component variant is declared in COMPONENT_RENAMES (#2265)
+        run: npx --yes tsx@4 packages/engine/lint-component-renames.ts
+
+      # The dry run reports a member written by an older executor as needing a re-apply, by comparing
+      # the stamp's third field with EXECUTOR_REVISION (#1098). A hand-bumped number is forgotten, and a
+      # forgotten one reports stale members as current. This fails a PR that changes the executor's code
+      # (comments excluded) at the merge base without raising it.
+      - name: "The component executor's code moved only with EXECUTOR_REVISION (#1098, #2265)"
+        run: npx --yes tsx@4 apps/plugin/lint-executor-revision.ts
 
       # The token-NAME contract (#464). Deliberately NOT part of `regen`: regen rewrites every
       # generated artifact, so if the baseline were regenerated a deleted token would rewrite the
@@ -912,7 +928,7 @@ jobs:
       # SHALLOW-CLONE SAFE, deliberately, and verified: the battery builds its OWN bare repo plus two
       # full clones in $TMPDIR (local file:// git, ~2s, no network, never touches this checkout) and
       # reads only the hook file and `git rev-parse --show-toplevel`. Neither needs the history the
-      # depth-1 CI checkout lacks — unlike the three git-HISTORY gates above that rely on
+      # depth-1 CI checkout lacks — unlike the git-HISTORY gates above that rely on
       # `fetch-depth: 0`. Confirmed by running it from a depth-1 clone before wiring (#1123).
       - name: The CLAUDE.md-freshness detector still flags a stale checkout
         run: sh tools/claude-md-freshness/mutations.sh

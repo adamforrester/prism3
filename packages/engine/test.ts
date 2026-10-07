@@ -55,6 +55,7 @@ import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, Unrecogniz
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
+import { COMPONENT_RENAMES, coordKey, renameCoordinate, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
 // they agree. `write-components.ts` is pure TypeScript against a declared port — it touches no `figma`
@@ -28120,6 +28121,55 @@ arm: {
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }
+}
+
+// ------------------------------------------------------------------- component renames (#2265)
+// The ledger an in-place update reads to tell a renamed member from a dropped one plus an added one, and
+// the accounting `lint-component-renames.ts` runs over it. Hand-built inputs throughout: the lint's
+// own arms read git and the live projection, and these pin what it concludes from them.
+{
+  // The coordinate key: segment order does not matter, a non-coordinate is null.
+  ok(coordKey('size=small, appearance=filled') === 'appearance=filled, size=small', '#2265 coordKey: segments sort by axis, so two orders share one key');
+  ok(coordKey('appearance=filled, size=small') === coordKey('size=small, appearance=filled'), '#2265 coordKey: Figma reordering a name keeps the member matched');
+  ok(coordKey('Frame 12') === null && coordKey('size=small, size=large') === null && coordKey('=x') === null, '#2265 coordKey: a name with no `=`, an axis named twice, or an empty axis is not a coordinate');
+  ok(coordKey('leading icon=true, size=small') === 'leading icon=true, size=small', '#2265 coordKey: an axis name with a space is kept whole');
+
+  const L: ComponentRename[] = [
+    { def: 'chip', kind: 'value', axis: 'size', from: 'sm', to: 'small', issue: 1 },
+    { def: 'chip', kind: 'value', axis: 'size', from: 'small', to: 's', issue: 2 },
+    { def: 'chip', kind: 'axis', from: 'tone', to: 'appearance', issue: 3 },
+    { def: 'chip', kind: 'drop', axis: 'state', value: 'pressed', issue: 4 },
+  ];
+  const r1 = renameCoordinate('chip', 'size=sm, tone=bold', L);
+  ok(r1.key === 'appearance=bold, size=s' && r1.renamed, `#2265 renameCoordinate: a value chain and an axis rename both apply, and the key re-sorts (got ${r1.key})`);
+  ok(!renameCoordinate('chip', 'size=large', L).renamed, '#2265 renameCoordinate: a coordinate no entry names is unmoved');
+  ok(!renameCoordinate('other', 'size=sm', L).renamed, '#2265 renameCoordinate: an entry applies only to its own def');
+  // Two axes sharing a value name: a rename declared on one must leave the other's value where it is.
+  const own = renameCoordinate('chip', 'end=small, start=small', [{ def: 'chip', kind: 'value', axis: 'start', from: 'small', to: 'tiny', issue: 1 }]);
+  ok(own.key === 'end=small, start=tiny', `#2265 renameCoordinate: a value rename applies only on its own axis, not to the same value on another (got ${own.key})`);
+  let loops = false;
+  try { renameCoordinate('loop', 'a=x', [{ def: 'loop', kind: 'value', axis: 'a', from: 'x', to: 'y', issue: 1 }, { def: 'loop', kind: 'value', axis: 'a', from: 'y', to: 'x', issue: 1 }]); } catch { loops = true; }
+  ok(loops, '#2265 renameCoordinate: a cycle in the ledger throws rather than naming a coordinate');
+  ok(isDeclaredDrop('chip', 'state', 'pressed', L) && !isDeclaredDrop('chip', 'state', 'rest', L), '#2265 isDeclaredDrop: a drop names exactly its own value');
+
+  const before: AxesBaseline = { chip: { axes: { size: ['large', 'sm'], tone: ['bold'], state: ['pressed', 'rest'] }, members: 4 }, tab: { axes: { size: ['small'] }, members: 1 } };
+  const after: AxesBaseline = { chip: { axes: { size: ['large', 's'], appearance: ['bold'], state: ['rest'] }, members: 2 }, tab: { axes: { size: ['small'] }, members: 1 } };
+  ok(renamesUnaccounted(before, after, L).length === 0, `#2265 renames lint: renames, an axis move and a drop, each declared, account for every removal (${renamesUnaccounted(before, after, L).join('; ')})`);
+  const noValue = renamesUnaccounted(before, after, L.filter((r) => r.issue !== 1));
+  ok(noValue.length === 1 && noValue[0].startsWith('chip: size=sm is gone'), `#2265 renames lint: a value that vanished with no entry is reported by name (${noValue.join('; ')})`);
+  const noAxis = renamesUnaccounted(before, after, L.filter((r) => r.kind !== 'axis'));
+  ok(noAxis.some((b) => b.startsWith("chip: axis 'tone' is gone")), `#2265 renames lint: an axis that vanished with no entry is reported (${noAxis.join('; ')})`);
+  const noDrop = renamesUnaccounted(before, after, L.filter((r) => r.kind !== 'drop'));
+  ok(noDrop.some((b) => b.startsWith('chip: state=pressed is gone')), '#2265 renames lint: a removal is not claimed until a drop entry says it was meant');
+  const noDef = renamesUnaccounted(before, { chip: after.chip }, L);
+  ok(noDef.length === 1 && noDef[0].startsWith('tab: the def no longer projects'), '#2265 renames lint: a def that stops projecting needs its own drop');
+  ok(renamesUnaccounted(before, { chip: after.chip }, [...L, { def: 'tab', kind: 'drop', issue: 5 }]).length === 0, '#2265 renames lint: a whole-def drop claims the def');
+  ok(renamesUnaccounted(after, before, []).length > 0 && renamesUnaccounted(before, before, []).length === 0, '#2265 renames lint: an unchanged projection needs nothing; additions never do, removals always do');
+  ok(renamesDangling(after, L).length === 0, `#2265 renames lint: every entry's chain ends at a coordinate the tree projects (${renamesDangling(after, L).join('; ')})`);
+  const dangling = renamesDangling(after, [{ def: 'chip', kind: 'value', axis: 'size', from: 'large', to: 'xl', issue: 6 }]);
+  ok(dangling.length === 1 && dangling[0].includes("ends at 'xl'"), '#2265 renames lint: an entry renaming into a value the tree does not project is refused');
+  ok(renamesDangling(after, [{ def: 'chip', kind: 'drop', issue: 0 }]).some((b) => b.includes('names no issue')), '#2265 renames lint: an entry without an issue is refused');
+  ok(COMPONENT_RENAMES.every((r) => Number.isInteger(r.issue) && r.issue > 0), '#2265 COMPONENT_RENAMES: every entry names its issue');
 }
 
 // ------------------------------------------------------------------- report

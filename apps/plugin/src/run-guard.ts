@@ -24,6 +24,14 @@ export const TITLE: Readonly<Record<WriteCmd, string>> = {
 
 export const isWriteCmd = (cmd: string): cmd is WriteCmd => Object.prototype.hasOwnProperty.call(TITLE, cmd);
 
+/** The operation a command holds while it runs, or `null` for one that holds none. Every write holds its own.
+ *  The in-place update's two commands (#2265) hold the BUILD: a dry run read while a build writes the same
+ *  set would describe a set half built, and a baseline capture writes the members a build writes. While
+ *  either runs, a build is refused with the build's own words, which name the build rather than the check;
+ *  a known imprecision, kept so the panel and the guard share one operation per Activity row. */
+export const guardFor = (cmd: string): WriteCmd | null =>
+  isWriteCmd(cmd) ? cmd : cmd === 'update-components' || cmd === 'capture-baseline' ? 'build-components' : null;
+
 /** Whether this call of `cmd` writes: every call does, except a prune preview. */
 export const writes = (cmd: WriteCmd, confirm?: boolean): boolean => cmd !== 'prune' || confirm === true;
 

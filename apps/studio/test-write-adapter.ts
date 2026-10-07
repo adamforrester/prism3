@@ -91,6 +91,11 @@ accepts('component-result without a headline', { type: 'component-result', ok: t
   { kind: 'component-result', ok: true, headline: '✓ built', summary: 's', completed: true , lines: null });
 accepts('component-result that completed with misses', { type: 'component-result', ok: false, completed: true, headline: '⚠ 48, 2 missed', summary: 's' },
   { kind: 'component-result', ok: false, headline: '⚠ 48, 2 missed', summary: 's', completed: true , lines: null });
+// #2265: the update check's verdict, its own kind, so it can never be read as a build's.
+accepts('component-update-result', { type: 'component-update-result', ok: true, headline: 'Would change 1 of 26', summary: 's', lines: ['a: 1 to update.', 'b: up to date.'] },
+  { kind: 'component-update-result', ok: true, headline: 'Would change 1 of 26', summary: 's', lines: ['a: 1 to update.', 'b: up to date.'] });
+accepts('component-update-result without a headline', { type: 'component-update-result', ok: false, summary: 's' },
+  { kind: 'component-update-result', ok: false, headline: '✗ check failed', summary: 's', lines: null });
 accepts('component-result that stopped before the set', { type: 'component-result', ok: false, completed: false, headline: '✗ unknown def', summary: 's' },
   { kind: 'component-result', ok: false, headline: '✗ unknown def', summary: 's', completed: false , lines: null });
 accepts('component-result with a malformed completed', { type: 'component-result', ok: false, completed: 'yes', headline: '✗ x', summary: 's' },

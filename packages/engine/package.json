@@ -10,6 +10,7 @@
     "./anatomy-readback": "./anatomy-readback.ts",
     "./button-spacing": "./button-spacing.ts",
     "./color": "./color.ts",
+    "./component-renames": "./component-renames.ts",
     "./component-schema": "./component-schema.ts",
     "./components/button": "./components/button.ts",
     "./components/field-label": "./components/field-label.ts",
