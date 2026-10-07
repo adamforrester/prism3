@@ -365,7 +365,10 @@ export const mountFrame = (app: HTMLElement, opts: {
   // ── Activity (F2), the Figma menu and the Agent tile's slot (S1.4) ───────────────────────────────
   // The drawer sits last in the frame, pinned to the bottom edge, under whichever region shows the page.
   // S11.2 (P1, variant 1): while the Build style guides page shows its run, the drawer does not open by itself for it.
-  const activity = mountActivity({ host, lend: opts.activity, narrow: () => root.dataset.w === 'narrow', quiet: (k) => k === 'styleguide' && isMenuPage(page) }, cleanups);
+  const activity = mountActivity({ host, lend: opts.activity, narrow: () => root.dataset.w === 'narrow', quiet: (k) => k === 'styleguide' && isMenuPage(page),
+    // #2176: the open drawer grows up to just under the preview header (or Inspect's, in its place; or, on a page of
+    // the shell's own, the head). A region not drawn measures 0, so the lowest bottom is the one shown.
+    room: { frame: root, ceiling: () => Math.max(...[head, previewHead, inspectHead].map((n) => n.getBoundingClientRect().bottom)) } }, cleanups);
   const figma = host === 'figma' && opts.figma ? figmaMenu(opts.figma, cleanups) : null;
   const agent = host === 'figma' ? hook(h('div', 'p3-agent-slot'), 'bar-agent') : null;
 

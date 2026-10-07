@@ -139,11 +139,33 @@ export const staleNote = (stale: number, engineVersion: string): string | null =
  * summary reads exactly as before.
  */
 const links = (n: number): string => `${n} property link${n === 1 ? '' : 's'}`;
+/** The clauses `refsNote` joins, each without its leading `, ` (#2177: one line each in the Activity drawer). */
+export const refsItems = (relinked = 0, unset: { refused: number; lost: number; discarded: number } = { refused: 0, lost: 0, discarded: 0 }): string[] =>
+  [
+    relinked ? `${links(relinked)} repaired` : '',
+    unset.refused ? `${links(unset.refused)} still missing — build again to retry` : '',
+    unset.lost ? `${links(unset.lost)} missing — layer not found` : '',
+    unset.discarded ? `${links(unset.discarded)} missing — not kept after writing` : '',
+  ].filter(Boolean);
 export const refsNote = (relinked = 0, unset: { refused: number; lost: number; discarded: number } = { refused: 0, lost: 0, discarded: 0 }): string =>
-  (relinked ? `, ${links(relinked)} repaired` : '') +
-  (unset.refused ? `, ${links(unset.refused)} still missing — build again to retry` : '') +
-  (unset.lost ? `, ${links(unset.lost)} missing — layer not found` : '') +
-  (unset.discarded ? `, ${links(unset.discarded)} missing — not kept after writing` : '');
+  refsItems(relinked, unset).map((x) => `, ${x}`).join('');
+
+/**
+ * A RUN SUMMARY, ITEM BY ITEM (#2177). The Activity drawer shows a run's details one line per item, console-style,
+ * and the items are the ones each summary builder already joins: an axis or a note of the theme write, the set and
+ * each note of a component build, a table or a note of the style guide. Each `Clause` is one item and the separator
+ * that joins it to the item before (`', '`, `'. '`, `' — '`); the first item's separator is never written.
+ *
+ * ONE LIST, TWO READINGS: `summary` is the prose every reader has always had, byte for byte (the agent link reads
+ * only this), and `lines` is the same items without their separators. Built here rather than split in the drawer,
+ * because a split there would re-parse the prose, and a comma inside an item (`(Semi Bold, Bold)`) is not a
+ * boundary. An empty item is dropped from both, as an empty note always appended nothing.
+ */
+export type Clause = readonly [sep: string, text: string];
+export const fromClauses = (cs: readonly Clause[]): { summary: string; lines: string[] } => {
+  const kept = cs.filter(([, t]) => t !== '');
+  return { summary: kept.map(([sep, t], i) => (i === 0 ? t : sep + t)).join(''), lines: kept.map(([, t]) => t) };
+};
 
 /**
  * WHAT A FAILED BUILD LEFT IN THE FILE (#913) — the facts the executor collects on its failure path,
@@ -202,7 +224,7 @@ export const partialWriteHeadline = (f: PartialWriteFacts): string => {
  * what it wrote — the unwind already exists, on a path that does not need a host that has just started
  * refusing calls to accept 648 more.
  */
-export const partialWriteNote = (f: PartialWriteFacts): string => {
+export const partialWriteItem = (f: PartialWriteFacts): string => {
   const parts: string[] = [];
   if (f.loose > 0)
     parts.push(
@@ -216,5 +238,10 @@ export const partialWriteNote = (f: PartialWriteFacts): string => {
     parts.push(`${f.intoExistingSet} member${f.intoExistingSet === 1 ? '' : 's'} had already been added to the set that was in the file, where ${f.intoExistingSet === 1 ? 'it remains' : 'they remain'}`);
   if (f.markError) parts.push(`marking the leftovers also failed (${f.markError})`);
   if (parts.length === 0) return '';
-  return ` — ${parts.join('; ')}. One undo removes the whole build.`;
+  return `${parts.join('; ')}. One undo removes the whole build.`;
+};
+/** The same clause as `partialWriteItem`, joined to the failure's cause by its ` — ` (#2177 split the two). */
+export const partialWriteNote = (f: PartialWriteFacts): string => {
+  const item = partialWriteItem(f);
+  return item ? ` — ${item}` : '';
 };

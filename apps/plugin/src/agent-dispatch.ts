@@ -40,6 +40,14 @@ export type ActionSink = {
   data(d: Record<string, unknown>): void;
 };
 
+/** A verdict as the agent link reads it: the message without `lines`, the Activity drawer's one-line-per-item copy of
+ *  `summary` (#2177). Destructured, so every other key keeps its place and the envelope is the one agents always had. */
+export const forAgent = (m: MainToUi): MainToUi => {
+  if (!('lines' in m)) return m;
+  const { lines: _drawerOnly, ...rest } = m;
+  return rest as MainToUi;
+};
+
 /** The main-thread handlers the UI's buttons reach — built by `main.ts` from its own functions. */
 export type AgentActions = {
   applyTheme(input: BrandInput, sink: ActionSink): Promise<void>;
@@ -222,7 +230,9 @@ export const createDispatcher = (deps: Deps) => {
           if (progress.length < PROGRESS_CAP) progress.push(p);
           deps.onProgress?.(c.id, p);
         } else {
-          verdicts.push(m);
+          // The panel's per-line copy of the summary (#2177) is the drawer's alone: the agent's verdict is the message
+          // without it, byte for byte what it was before the drawer drew lines. The panel's forward keeps it.
+          verdicts.push(forAgent(m));
           try { deps.forward?.(m); } catch { /* the panel is a reader; its failure never fails the command */ }
         }
       },

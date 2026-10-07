@@ -18,7 +18,7 @@
  * Compiled under `tsconfig.main.json` (plugin-typings, `lib` WITHOUT `dom`), so any accidental
  * `document`/`window` reference is a COMPILE error — the two-context split is enforced by types.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsNote, partialWriteHeadline, partialWriteNote } from './apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsItems, partialWriteHeadline, partialWriteItem, fromClauses } from './apply-summary';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { appendBuildNote, buildNote } from '../../studio/src/build-identity';
 import { onUiMessage, postToUi } from './bridge-main';
@@ -43,7 +43,7 @@ import { runStyleGuide, styleGuideSummary, readCatalog, catalogFor, isSetUp } fr
 import type { SgContract } from './style-guide';
 import { resolveAllModes } from '@prism3/engine/modes';
 import { TAXONOMY } from './file-taxonomy';
-import { ensurePageHeader, pageHeaderCopy, pageHeaderNote } from './page-header';
+import { ensurePageHeader, pageHeaderCopy, pageHeaderItems } from './page-header';
 import type { PageHeaderOutcome, HeaderPage } from './page-header';
 import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './build-telemetry';
 import { readFigmaVariables } from './read-figma';
@@ -57,7 +57,7 @@ import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { materializeForBrand } from './brand-def';
-import { prebuildDependencies, alsoBuiltNote, DependencyBuildError, SWAP_TARGET, labelAfterBuilds } from './build-deps';
+import { prebuildDependencies, alsoBuiltItem, DependencyBuildError, SWAP_TARGET, labelAfterBuilds } from './build-deps';
 import type { DepHost } from './build-deps';
 import { button } from '@prism3/engine/components/button';
 import { componentDefs } from '@prism3/engine/components/index';
@@ -84,6 +84,18 @@ const sendThemePref = async (): Promise<void> => {
     if (isThemePref(v)) postToUi({ type: 'theme-pref', pref: v });
   } catch {
     /* storage unavailable: Match Figma */
+  }
+};
+/** The open Activity drawer's height, as the person dragged it (#2176, the owner's AD1): kept like the Theme choice. */
+const ACTIVITY_HEIGHT_KEY = 'prism3:activity-height';
+const isHeight = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0;
+/** Send the kept height, if there is one; nothing kept (or storage unavailable) leaves the drawer at its own height. */
+const sendActivityHeight = async (): Promise<void> => {
+  try {
+    const v: unknown = await figma.clientStorage.getAsync(ACTIVITY_HEIGHT_KEY);
+    if (isHeight(v)) postToUi({ type: 'activity-height', px: v });
+  } catch {
+    /* storage unavailable: the drawer's own height */
   }
 };
 const DEFAULT_SIZE = { width: 1280, height: 900 };
@@ -116,7 +128,13 @@ figma.showUI(__html__, { ...DEFAULT_SIZE, themeColors: true });
  * previous build's variables to this one — the precise confusion #836 is about, inverted.
  */
 const postVerdict = (m: Extract<MainToUi, { type: 'apply-result' | 'component-result' }>, sink: ActionSink): void =>
-  sink.post({ ...m, summary: appendBuildNote(m.summary, PRISM3_BUILD) });
+  sink.post({ ...m, summary: appendBuildNote(m.summary, PRISM3_BUILD), lines: withBuildLine(m.lines) });
+/** The build clause as the last of a verdict's lines (#2177): the note `appendBuildNote` adds to the summary, whole, so
+ *  the two say the same words. */
+const withBuildLine = (lines: string[]): string[] => {
+  const note = buildNote(PRISM3_BUILD);
+  return note === null ? lines : [...lines, note];
+};
 
 /**
  * WHERE A HANDLER REPORTS (the agent link). Every action below takes an `ActionSink` and reports to it
@@ -176,7 +194,8 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     const { colorFiles, floatPlan, fontPlan } = plans;
     if (!guarded.ok) {
       sink.data({ conflicts: guarded.conflicts });
-      postVerdict({ type: 'apply-result', ok: false, headline: conflictHeadline(guarded.conflicts.length), summary: conflictSummary(guarded.conflicts) }, sink);
+      const conflicts = conflictSummary(guarded.conflicts);
+      postVerdict({ type: 'apply-result', ok: false, headline: conflictHeadline(guarded.conflicts.length), summary: conflicts, lines: [conflicts] }, sink);
       return;
     }
     const { mig, r, f, s, gs, tv, ts } = guarded.result;
@@ -215,7 +234,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     ].filter((o) => o.names.length);
     const orphanCount = allOrphans.reduce((n, o) => n + o.names.length, 0);
     const orphanNote = orphanCount
-      ? `, ⚠ ${orphanCount} orphaned variables not in the plan (${allOrphans.map((o) => `${o.name}: ${o.names.length}`).join(', ')}) — likely renames; nothing was deleted`
+      ? `⚠ ${orphanCount} orphaned variables not in the plan (${allOrphans.map((o) => `${o.name}: ${o.names.length}`).join(', ')}) — likely renames; nothing was deleted`
       : '';
     // STRANDED COLLECTIONS (#1152) — the level above the orphan report, and the one no executor can
     // reach. `allOrphans` is assembled FROM the executors, so it can only describe collections a plan
@@ -240,7 +259,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     // still exist and every binding into them still resolves. It is stale, not broken, and the
     // decision to remove it is the designer's, since it may hold variables they bound by hand.
     const strandedNote = stranded.length
-      ? `, ⚠ ${stranded.length} collection${stranded.length === 1 ? '' : 's'} in this file that no plan writes (${stranded.slice(0, 3).join(', ')}${stranded.length > 3 ? '…' : ''}) — left over from an earlier version or hand-made; nothing was deleted`
+      ? `⚠ ${stranded.length} collection${stranded.length === 1 ? '' : 's'} in this file that no plan writes (${stranded.slice(0, 3).join(', ')}${stranded.length > 3 ? '…' : ''}) — left over from an earlier version or hand-made; nothing was deleted`
       : '';
     // Rename migrations (#1013) — the other half of the orphan report above. A variable the plan renamed
     // is moved in place (id preserved, so every binding a designer made comes with it) rather than left
@@ -255,34 +274,37 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
     // for each refusal because that pair is also what makes an applied migration reversible by hand.
     const migrated = mig.outcomes.filter((o) => o.status === 'migrated');
     const migRefused = mig.outcomes.filter((o) => isRefusal(o.status));
-    const renameNote =
-      (migrated.length ? `, ${migrated.length} renamed ${migrated.length === 1 ? 'token' : 'tokens'} migrated in place (bindings kept: ${migrated.slice(0, 3).map((o) => `${o.from}→${o.to}`).join(', ')}${migrated.length > 3 ? '…' : ''})` : '') +
-      (migRefused.length ? `, ⚠ ${migRefused.length} ${migRefused.length === 1 ? 'rename' : 'renames'} refused (${migRefused.slice(0, 2).map((o) => `${o.from}→${o.to}: ${o.status}`).join(', ')}) — nothing moved for those` : '') +
-      (mig.refusals.length ? `, ⚠ rename map invalid, no migrations attempted (${mig.refusals[0]})` : '');
+    const renameNotes = [
+      migrated.length ? `${migrated.length} renamed ${migrated.length === 1 ? 'token' : 'tokens'} migrated in place (bindings kept: ${migrated.slice(0, 3).map((o) => `${o.from}→${o.to}`).join(', ')}${migrated.length > 3 ? '…' : ''})` : '',
+      migRefused.length ? `⚠ ${migRefused.length} ${migRefused.length === 1 ? 'rename' : 'renames'} refused (${migRefused.slice(0, 2).map((o) => `${o.from}→${o.to}: ${o.status}`).join(', ')}) — nothing moved for those` : '',
+      mig.refusals.length ? `⚠ rename map invalid, no migrations attempted (${mig.refusals[0]})` : '',
+    ];
     // #499: styles whose emitted name was corrected (e.g. `Semi Bold` → `SemiBold`). Worth surfacing
     // rather than silently succeeding — it is the difference between "the guess was right" and "the
     // guess was wrong and would have cost these styles before".
-    const resolvedNote = ts.resolvedStyles ? `, ${ts.resolvedStyles} font styles name-resolved` : '';
+    const resolvedNote = ts.resolvedStyles ? `${ts.resolvedStyles} font styles name-resolved` : '';
     const skippedNote = ts.skipped.length
-      ? `, ⚠ ${ts.skipped.length} text styles skipped (font unavailable: ${ts.skipped.slice(0, 3).map((x) => x.name).join(', ')}${ts.skipped.length > 3 ? '…' : ''})`
+      ? `⚠ ${ts.skipped.length} text styles skipped (font unavailable: ${ts.skipped.slice(0, 3).map((x) => x.name).join(', ')}${ts.skipped.length > 3 ? '…' : ''})`
       : '';
     // #680: the fonts loaded ahead of the write, and any face that would not load. Only NAMED faces are
     // listed — a crossed pair that does not exist is the ordinary case (most family × style combinations
     // are not real), and listing those would bury the reportable ones. `refused` should be empty on every
     // healthy apply: it means the preload missed something and the write survived it.
     const fontNote = pf.unavailable.length
-      ? `, ⚠ ${pf.unavailable.length} typeface${pf.unavailable.length === 1 ? '' : 's'} unavailable (${pf.unavailable.slice(0, 3).map((x) => x.face).join(', ')}${pf.unavailable.length > 3 ? '…' : ''})`
+      ? `⚠ ${pf.unavailable.length} typeface${pf.unavailable.length === 1 ? '' : 's'} unavailable (${pf.unavailable.slice(0, 3).map((x) => x.face).join(', ')}${pf.unavailable.length > 3 ? '…' : ''})`
       : '';
     const refusedNote = tv.refused.length
-      ? `, ⚠ ${tv.refused.length} variable writes refused by Figma (${tv.refused[0].name}: ${tv.refused[0].reason.slice(0, 60)})`
+      ? `⚠ ${tv.refused.length} variable writes refused by Figma (${tv.refused[0].name}: ${tv.refused[0].reason.slice(0, 60)})`
       : '';
-    const summary =
-      `palette ${r.paletteTotal} (+${r.paletteCreated}), color ${r.colorTotal} (+${r.colorCreated}), ` +
-      `dims/layout ${f.collections.length} collections (+${floatCreated}), ` +
-      `styles ${s.effects.total} effects (+${s.effects.created}) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound) / ${gs.total} grid styles (+${gs.created}), ` +
-      `type ${pf.loaded} fonts loaded / ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created}), ` +
-      `${r.bound + f.bound + tv.bound + ts.bound} bindings` + (misses ? `, ${misses} misses` : '') +
-      renameNote + orphanNote + strandedNote + resolvedNote + skippedNote + fontNote + refusedNote;
+    // One item per axis and per note, each joined by `, ` (#2177: one line each in the Activity drawer).
+    const { summary, lines } = fromClauses([
+      `palette ${r.paletteTotal} (+${r.paletteCreated})`, `color ${r.colorTotal} (+${r.colorCreated})`,
+      `dims/layout ${f.collections.length} collections (+${floatCreated})`,
+      `styles ${s.effects.total} effects (+${s.effects.created}) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound) / ${gs.total} grid styles (+${gs.created})`,
+      `type ${pf.loaded} fonts loaded / ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created})`,
+      `${r.bound + f.bound + tv.bound + ts.bound} bindings`, misses ? `${misses} misses` : '',
+      ...renameNotes, orphanNote, strandedNote, resolvedNote, skippedNote, fontNote, refusedNote,
+    ].map((x) => [', ', x] as const));
     // Skipped fonts aren't a "failure" (variables still wrote); only true misses flip ok=false. The
     // pill's headline is derived from the COUNTS (see `apply-summary.ts`), never from `summary` — the
     // prose above is edited whenever an axis is added, and re-parsing it would make its wording
@@ -308,9 +330,10 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
         textStylesSkipped: ts.skipped, fontsUnavailable: pf.unavailable, resolvedStyles: ts.resolvedStyles,
       },
     });
-    postVerdict({ type: 'apply-result', ok: misses === 0, headline: applyHeadline(misses, ts.skipped.length), summary }, sink);
+    postVerdict({ type: 'apply-result', ok: misses === 0, headline: applyHeadline(misses, ts.skipped.length), summary, lines }, sink);
   } catch (e) {
-    postVerdict({ type: 'apply-result', ok: false, headline: APPLY_FAILED_HEADLINE, summary: `write failed: ${(e as Error).message}` }, sink);
+    const failure = `write failed: ${(e as Error).message}`;
+    postVerdict({ type: 'apply-result', ok: false, headline: APPLY_FAILED_HEADLINE, summary: failure, lines: [failure] }, sink);
   }
 };
 
@@ -531,10 +554,8 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       // "this build knows …" was already the sentence here, and until #836 nothing said WHICH build that
       // was — the disagreement is between two bundles, so naming only one side of it is half a diagnosis.
       sink.data({ build: { def: defId, known: componentDefs.map((d) => d.id) } });
-      postVerdict({
-        type: 'component-result', ok: false, completed: false, headline: '✗ unknown def',
-        summary: `no component def with id '${defId}' — this build knows ${componentDefs.map((d) => d.id).join(', ')}`,
-      }, sink);
+      const unknown = `no component def with id '${defId}' — this build knows ${componentDefs.map((d) => d.id).join(', ')}`;
+      postVerdict({ type: 'component-result', ok: false, completed: false, headline: '✗ unknown def', summary: unknown, lines: [unknown] }, sink);
       return;
     }
     // REFUSED BY DECLARATION (#869) — the def's own `notStandalone`, quoted verbatim as the summary.
@@ -551,10 +572,8 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
     // The reason is the def's string unedited: whoever declared the ceiling wrote the sentence for this
     // moment, and paraphrasing it here would be a second copy to keep true.
     if (def.figmaProperties?.notStandalone) {
-      postVerdict({
-        type: 'component-result', ok: false, completed: false, headline: '✗ not buildable on its own',
-        summary: def.figmaProperties.notStandalone,
-      }, sink);
+      const why = def.figmaProperties.notStandalone;
+      postVerdict({ type: 'component-result', ok: false, completed: false, headline: '✗ not buildable on its own', summary: why, lines: [why] }, sink);
       return;
     }
     // `controlShape` (#1163) and weight availability (#1605) are BRAND levers, so they enter here — where the
@@ -670,28 +689,32 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       // Cap the miss list rather than the count: `summary` is read in a chrome row that wraps, but a
       // starved file can produce one miss per binding per member and the whole list is not a summary.
       const missNote = r.misses.length
-        ? `, ⚠ ${r.misses.length} misses (${r.misses.slice(0, 3).join('; ')}${r.misses.length > 3 ? '; …' : ''})`
+        ? `⚠ ${r.misses.length} misses (${r.misses.slice(0, 3).join('; ')}${r.misses.length > 3 ? '; …' : ''})`
         : '';
       // THE STALE REASON, appended once (#827) — see `staleNote` for why the reason and the remedy are
       // one clause. Placed after `missNote` because the per-member STALE lines are inside that list, and
       // this is what explains them.
       const stale = staleNote(r.stale, ENGINE_VERSION);
-      const summary = r.emittedComponents !== undefined
+      // One item for the set, then one per note after it (#2177: one line each in the Activity drawer). The set's own
+      // facts (variants, grid, size, axes, properties, refs) describe one set, so they stay one item.
+      const head = r.emittedComponents !== undefined
         // #1012: the no-set arm. `emitAsComponents` defs build SEPARATE `<id>/<glyph>` components, so the
         // grid / axes / properties / refs the set arm prints do not exist — the useful facts are how many
         // components now sit under the folder and how many this run built.
-        ? `${r.emittedComponents.length} '${r.set}/…' components (+${r.added} built, ${r.skipped} already present` +
-          `${r.stale ? `, ${r.stale} stale` : ''})${missNote}${stale ? `. ${stale}` : ''}`
+        ? [`${r.emittedComponents.length} '${r.set}/…' components (+${r.added} built, ${r.skipped} already present` +
+          `${r.stale ? `, ${r.stale} stale` : ''})`]
         // #1780: a refusal is `set: null` too, but there IS a set on the page — the one left untouched.
         : r.axesChanged
-          ? `nothing built — set '${r.axesChanged.set}' on this page varies by different axes and was left as it is${missNote}`
+          ? [`nothing built — set '${r.axesChanged.set}' on this page varies by different axes and was left as it is`]
         : r.set === null
-          ? `nothing assembled — no set on this page and no member built${missNote}`
-          : `set '${r.set}': ${r.variants} variants (+${r.added} built, ${r.skipped} already present` +
+          ? ['nothing assembled — no set on this page and no member built']
+          : [`set '${r.set}': ${r.variants} variants (+${r.added} built, ${r.skipped} already present` +
             `${r.stale ? `, ${r.stale} stale` : ''}), ` +
             `grid ${r.grid[0]}×${r.grid[1]}, ${Math.round(r.size[0])}×${Math.round(r.size[1])}px, ` +
             `axes ${r.axes.join('/') || '—'}, properties ${r.properties.join('/') || '—'}, ` +
-            `${r.refs} refs across ${r.wiredMembers} members${refsNote(r.refsRelinked, r.refsUnsetBy)}${missNote}${stale ? `. ${stale}` : ''}`;
+            `${r.refs} refs across ${r.wiredMembers} members`, ...refsItems(r.refsRelinked, r.refsUnsetBy)];
+      // The stale note is the no-set and set arms' only: a refusal built nothing, so nothing in it can be stale.
+      const staleItem = r.emittedComponents !== undefined || (!r.axesChanged && r.set !== null) ? stale ?? '' : '';
       // #1633: what was built first, so a designer is not surprised by a set they did not ask for.
       // `ok` is NOT `misses.length === 0`, and the difference is the whole reason `skipped` is a number:
       // a re-run skips every member by name and reports each as a miss, so a miss-count test would call
@@ -707,7 +730,10 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
         ok: r.set !== null && r.misses.length === r.skipped,
         completed: r.set !== null,
         headline: componentHeadline(r.added, r.skipped, r.misses.length - r.skipped - r.stale, r.stale, r.refsRelinked),
-        summary: summary + alsoBuiltNote(alsoBuilt) + pageHeaderNote(headers),
+        ...fromClauses([
+          ...head.map((x) => [', ', x] as const), [', ', missNote], ['. ', staleItem],
+          ['. ', alsoBuiltItem(alsoBuilt)], ...pageHeaderItems(headers).map((x) => ['. ', x] as const),
+        ]),
       }, sink);
       verdictPosted = true;
     });
@@ -790,7 +816,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
       postVerdict({
         type: 'component-result', ok: false, completed: false,
         headline: partial ? partialWriteHeadline(partial) : APPLY_FAILED_HEADLINE,
-        summary: `component build failed: ${(e as Error).message}${partial ? partialWriteNote(partial) : ''}`,
+        ...fromClauses([['', `component build failed: ${(e as Error).message}`], [' — ', partial ? partialWriteItem(partial) : '']]),
       }, sink);
     }
   }
@@ -858,7 +884,7 @@ const savedContract = (): { contract: SgContract | null; note: string } => {
     const input = restoreInput(figma.root);
     return { contract: input ? resolveAllModes(brandTheme(input)) : null, note: '' };
   } catch (e) {
-    return { contract: null, note: `. The saved brand did not resolve (${(e as Error).message}), so the contrast column reads "—"` };
+    return { contract: null, note: `The saved brand did not resolve (${(e as Error).message}), so the contrast column reads "—"` };
   }
 };
 
@@ -886,9 +912,13 @@ const styleGuide = async (options: StyleGuideOptions, sink: ActionSink): Promise
     });
     const v = styleGuideSummary(result);
     sink.data({ styleGuide: result });
-    sink.post({ type: 'style-guide-result', ok: v.ok, headline: v.headline, summary: appendBuildNote(v.summary + contractNote, PRISM3_BUILD), ...(result.stopped ? { stopped: result.stopped } : {}) });
+    // The contract note is one more item, joined by `. ` like the rest (#2177).
+    const summary = contractNote ? `${v.summary}. ${contractNote}` : v.summary;
+    const lines = withBuildLine(contractNote ? [...v.lines, contractNote] : v.lines);
+    sink.post({ type: 'style-guide-result', ok: v.ok, headline: v.headline, summary: appendBuildNote(summary, PRISM3_BUILD), lines, ...(result.stopped ? { stopped: result.stopped } : {}) });
   } catch (e) {
-    sink.post({ type: 'style-guide-result', ok: false, headline: '✗ style guide failed', summary: appendBuildNote(`style guide failed: ${(e as Error).message}`, PRISM3_BUILD) });
+    const failure = `style guide failed: ${(e as Error).message}`;
+    sink.post({ type: 'style-guide-result', ok: false, headline: '✗ style guide failed', summary: appendBuildNote(failure, PRISM3_BUILD), lines: withBuildLine([failure]) });
   } finally {
     styleGuideStop = false;
   }
@@ -1091,10 +1121,15 @@ onUiMessage((msg: UiToMain) => {
       // The link is off on every launch; the panel's control starts from this.
       postToUi({ type: 'agent-link-state', state: agentLink.state() });
       void sendThemePref();
+      void sendActivityHeight();
       return;
     case 'set-theme-pref':
       // The Theme menu's choice, kept per person (the owner's top-bar decision, 2026-10-05).
       if (isThemePref(msg.pref)) void figma.clientStorage.setAsync(THEME_PREF_KEY, msg.pref).catch(() => {/* best-effort */});
+      return;
+    case 'set-activity-height':
+      // The Activity drawer's height, kept per person (#2176).
+      if (isHeight(msg.px)) void figma.clientStorage.setAsync(ACTIVITY_HEIGHT_KEY, Math.round(msg.px)).catch(() => {/* best-effort */});
       return;
     case 'apply-theme':
       void ACTIONS.applyTheme(msg.input, uiSink);

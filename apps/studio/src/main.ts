@@ -2606,7 +2606,7 @@ const opReading = (k: OpKey, busy: boolean, settled: Omit<OpReading, 'phase' | '
 };
 /** A write slot's verdict, as a settled reading. */
 const verdictOf = (st: HostSession['applyState']): Omit<OpReading, 'phase' | 'progress' | 'agent'> | null =>
-  st === null || st === 'pending' ? null : { state: st.ok ? 'ok' : 'bad', ref: st, verdict: st.headline, summary: st.summary };
+  st === null || st === 'pending' ? null : { state: st.ok ? 'ok' : 'bad', ref: st, verdict: st.headline, summary: st.summary, lines: st.lines ?? null };
 /** The short verdicts Read-back and Prune stale show on their rows (owner decision #3 on #1956): a word or
  *  a count, with the host's full sentence in the row's details. The other rows' verdicts are already short
  *  headlines. */

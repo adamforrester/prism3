@@ -15,7 +15,9 @@
  *               source that is not a `data:` URI (`scanRawStrict`); or reads a variable that is not
  *               `--p3-*`.
  *   [variables] `chrome.css` reads a `--p3-*` the map does not define, or the map defines one
- *               `chrome.css` never reads (v6 check 6). The map grows with the rules, never ahead.
+ *               `chrome.css` never reads (v6 check 6). The map grows with the rules, never ahead. A
+ *               runtime variable (RUNTIME_VARS, a literal list) is defined by the shell instead; it must be
+ *               read too, and the map may not define it as well (#2176).
  *   [brand]     a chrome color resolves through the brand palette or a brand, link or focus role, in
  *               either theme (v6 check 7), except `--p3-focus-ring` on `color.border.focus`, the one
  *               exception BRAND_ALLOW names (#2144); BRAND_ALLOW itself not exactly that one entry
@@ -57,6 +59,15 @@ import { glyphGaps, glyphWatchFiles } from './glyphs.mjs';
 import { VARS_FOR, PRODUCT_FOR, ALIAS, SHELL_VARS, PAIRS as MOCKUP_PAIRS, PRODUCT_PAIRS, DECORATIVE, INACTIVE } from './spec.mjs';
 
 const PAIRS = [...MOCKUP_PAIRS, ...PRODUCT_PAIRS];
+
+/** RUNTIME VARIABLES (#2176): the `--p3-*` names `chrome.css` may read that no token defines, because the shell sets
+ *  them on an element while it runs, from what the person did, never from a design value. Typed here, one by one, each
+ *  with where it is set. They are custom properties, so `test:chrome`'s inline-value check lets them through, as it
+ *  does every custom property; the [variables] check still fails one `chrome.css` never reads, and one the map
+ *  defines too.
+ *   - `activity-h`: the open Activity drawer's height, as the person dragged it (`src/shell/activity.ts`, set on the
+ *     frame while the drawer is open at the wide tier). */
+export const RUNTIME_VARS = ['activity-h'];
 
 /** The only roles an INACTIVE variable may read (F1 A): the engine's cross-cutting disabled family. Typed here, not
  *  read from `spec.mjs`, so the list that grants the exemption cannot also set what qualifies for it. */
@@ -210,8 +221,10 @@ export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_
     if (!m[1].startsWith('p3-')) fail('raw', `${where}: reads --${m[1]}, which is not a chrome variable (only var(--p3-*) is allowed)`);
   }
 
-  // [variables] used against defined, both ways.
-  const defined = new Set([...names, ...CHROME_FONTS.map(([n]) => n)]);
+  // [variables] used against defined, both ways. A runtime variable (RUNTIME_VARS) counts as defined: the shell sets
+  // it, so the map must not define it too, and like every other it must be read.
+  for (const n of RUNTIME_VARS) if (names.includes(n)) fail('variables', `--p3-${n} is a runtime variable (RUNTIME_VARS, esbuild-plugin.mjs) and a mapped one (SHELL_VARS); it is one or the other`);
+  const defined = new Set([...names, ...CHROME_FONTS.map(([n]) => n), ...RUNTIME_VARS]);
   const used = new Set([...code.matchAll(/var\(\s*--p3-([a-z0-9-]+)/g)].map((m) => m[1]));
   for (const u of used) if (!defined.has(u)) fail('variables', `${where}: undefined variable --p3-${u}`);
   for (const d of defined) if (!used.has(d)) fail('variables', `mapped but unused variable --p3-${d} (${where} never reads it)`);

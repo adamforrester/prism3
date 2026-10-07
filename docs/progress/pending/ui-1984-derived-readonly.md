@@ -1,7 +1,7 @@
 ## (2026-10-07) — Studio: one read-only state for the levers panel in derived modes (#1984)
 
 **Status:** `apps/studio/src/shell/frame.ts` (the read-only region and its line), `chrome.css` (two rules), the seven
-per-mode domain modules (their derived lines and disabling loops removed), and `test:chrome` (new section 32, plus the
+per-mode domain modules (their derived lines and disabling loops removed), and `test:chrome` (new section 33, plus the
 Q59, Q61, #2179 and TY2 A cases moved to the new model). No ENGINE bump: no emitted artifact moves. CONTRACT unchanged.
 Copy: one new line, APPROVED (owner, RO1 A, 2026-10-07). Closes #1984.
 
@@ -49,7 +49,7 @@ opened in Light stays open, so Individual sizes can still be read. Native button
 The jump links are `<a>` and have no disabled skin, so they look live but cannot be used. This was raised with the
 owner on the PR.
 
-### The gate (test:chrome section 32, new)
+### The gate (test:chrome section 33, new)
 
 Both hosts, both chrome themes, 1280 and 380. In each derived mode, on each of the seven pages, the gate checks four
 things:
