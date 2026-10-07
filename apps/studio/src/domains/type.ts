@@ -64,7 +64,7 @@ import { noteSectionEdit } from '../preview/follow-edit';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { choice, leverBlock, leverOf, promoteLever, selectField, stateLine, subLine, switchButton, textField, tokenLabel, type LeverBlock } from '../ui/lever-kit';
+import { chipChoice, choice, leverBlock, leverOf, promoteLever, selectField, stateLine, subLine, switchButton, textField, tokenLabel, type LeverBlock } from '../ui/lever-kit';
 import type { PageLends } from '../preview/brand';
 
 const PAGE = DOMAINS.find((d) => d.id === 'type') as PageData;
@@ -926,8 +926,8 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     return { el: b.el, said: `${b.said} ${S63.link}`.toLowerCase(), key: 'typography.weights', block: b };
   };
 
-  /** Italic styles, one 3-chip per text type (owner decision Q6): Upright, Upright + italic, Italic only. A text
-   *  type that pins a font style cannot be Italic only (the engine refuses it): that chip is disabled with the
+  /** Italic styles, three single-select chips per text type (owner decision Q6; chips, not a segmented control, #2192):
+   *  Upright, Upright + italic, Italic only. A text type that pins a font style cannot be Italic only (the engine refuses it): that chip is disabled with the
    *  reason. Brand-wide. */
   const italics = (): Item => {
     const ty = theme.typography;
@@ -938,7 +938,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     for (const g of TYPE_GROUP_ORDER) {
       const row = hook(h('div', 'p3-titalic'), 'italic-row');
       row.dataset.group = g;
-      const c = choice(`${S63.groupName(g)}: ${S63.italicsLabel}`, 'italic-choice', ITALIC_CHIPS, (v) => edit('typography.italics', () => setItalicStyle(g, v, italicG, italicDefG)));
+      const c = chipChoice(`${S63.groupName(g)}: ${S63.italicsLabel}`, 'italic-choice', ITALIC_CHIPS, (v) => edit('typography.italics', () => setItalicStyle(g, v, italicG, italicDefG)));
       c.el.dataset.group = g;
       const now = italicStyleOf(g, italicG, italicDefG);
       c.set(now);
