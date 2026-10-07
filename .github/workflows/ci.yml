@@ -205,6 +205,35 @@ jobs:
             exit 1
           fi
 
+      # #2323 — CHROMIUM, INSTALLED ONCE PER JOB, AHEAD OF EVERY BROWSER GATE. Four gates drive a real
+      # browser (the plugin verdict and start-screen suites, the studio chrome and smoke suites), and the
+      # install used to sit inside two of them with no time limit. #2299's run hung 75 minutes twice in
+      # `apt-get` fetching Chromium's system packages from Ubuntu's mirror, and it read as a test hang.
+      #
+      # So: the browser is CACHED, keyed on the Playwright version the lockfile resolves, and the
+      # install runs once, here, with its own time limit. Each attempt is bounded (`timeout 240`) and
+      # retried twice, because a mirror stall is transient far more often than it is persistent; three
+      # failures fail the JOB, named, because the install is SETUP FOR A GATE and a gate that silently
+      # does not run is the failure this whole file exists to prevent. Never `continue-on-error`.
+      # `--with-deps` stays: a cache restores the browser, not the system libraries it loads.
+      - name: Resolve the Playwright version (#2323)
+        id: playwright
+        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Cache the Playwright browser (#2323)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: "Install Chromium for the browser gates (#2323)"
+        timeout-minutes: 12
+        run: |
+          for attempt in 1 2 3; do
+            if timeout 240 npx playwright install --with-deps chromium; then exit 0; fi
+            echo "::warning::Chromium install attempt $attempt failed or ran past 4 minutes"
+          done
+          echo "::error::Chromium install timed out or failed after 3 attempts; the browser gates cannot run"
+          exit 1
+
       # The panel's own browser suite (#870) — the SECOND step in this workflow that runs a browser,
       # and it has to be separate from the studio one below. A component build's verdict line is the
       # only place its misses are reported, and a build that ends on a permanent "⋯ Building…" turns a
@@ -219,18 +248,14 @@ jobs:
       # in for the main thread. Hence a plugin-workspace suite and this step's dependence on the
       # "Build plugin" step above rather than on "Build web".
       #
-      # `npx playwright install` is inside the step for the reason the studio step records: the
-      # download is SETUP FOR A GATE, so a failed download must fail the step rather than silently
-      # skip the coverage. Same accepted cost — a transient CDN failure blocks merges — and the same
-      # fix if it bites, which is caching the browser rather than making this advisory.
+      # The browser comes from the install step just above, which fails the job when it cannot install
+      # (#2323); it used to be installed inside this step, for the same "setup for a gate" reason.
       # QUOTED, following the two steps here that already are: the parenthesis makes `(#870)` safe as a
       # plain scalar by YAML's own rule, but the studio suite below records the issue reference being
       # silently truncated on a first CI run, so the convention here is to quote any name carrying one
       # rather than to re-derive the rule per step.
       - name: "Component-build verdict suite (#870)"
-        run: |
-          npx playwright install --with-deps chromium
-          npm run -w @prism3/plugin test:verdict
+        run: npm run -w @prism3/plugin test:verdict
 
       # #874: build every projected def, READ THE RESULT BACK OUT OF THE HOST, and diff it against the
       # plan that built it. docs/14 §4 specified this on 2026-07-03 and nothing built it.
@@ -972,18 +997,13 @@ jobs:
       # is exactly what the three sampled runs were read for. It OUTLIVES the flag — absence being
       # ambiguous is a property of summaries, not of `continue-on-error`.
       #
-      # `npx playwright install` stays INSIDE this step, and the reason inverted. Under the flag it
-      # was so `continue-on-error` covered the download too; that reason is spent. It is kept for the
-      # opposite one: the download is SETUP FOR A GATE, so a failed download must fail the step
-      # rather than silently skip the coverage. KNOWN COST, stated rather than discovered — a
-      # transient CDN failure now blocks merges. That is precisely the ambient-infrastructure risk
-      # the advisory arrangement kept out of the way, and accepting it is part of the flip. If it
-      # bites, the fix is caching the browser, never restoring the flag.
+      # The browser comes from the one install step ahead of the first browser gate (#2323). The
+      # download is SETUP FOR A GATE, so a failed install fails the job there, never silently skips
+      # this coverage. It bit, as this comment said it might (#2299's run hung 75 minutes in apt), and
+      # the fix it named is the one taken: the browser is cached, never made advisory.
       # QUOTED, and it has to be: a bare YAML scalar ends at ` #`, so an unquoted name would be
       # truncated and the issue reference silently dropped — measured on the first CI run of the
       # branch that added this step. Same reason the "Plugin main.js has 0 node: builtins" step above
       # is quoted, one character class along.
       - name: "Studio headless smoke suite (#775)"
-        run: |
-          npx playwright install --with-deps chromium
-          npm run -w @prism3/studio test:smoke
+        run: npm run -w @prism3/studio test:smoke
