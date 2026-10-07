@@ -55,6 +55,7 @@ import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, Unrecogniz
 import { validateComponentDef, VARIANT_AXES, axisKindOf, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, isExcludedCoordinate, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, settleChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, figmaTextStyleName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, applyWeightIntent, applyOutlineInteraction, applyButtonLayout, applySpacingDensity, applyMinWidthRatio, DEFAULT_BUTTON_LAYOUT, isButtonFamily, resolveWeightIntent, DEFAULT_WEIGHT_AVAILABILITY, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, BOXED_RADIUS_RUNG, HAIRLINE_RADIUS_RUNG, CONTROL_SHAPE_RUNG, ROUNDED_RADIUS_RUNG, variantSetErrors, variantNameErrors, glyphLayerOpacities, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
+import { COMPONENT_RENAMES, coordKey, renameCoordinate, isDeclaredDrop, unaccounted as renamesUnaccounted, danglingTargets as renamesDangling, type ComponentRename, type AxesBaseline } from './component-renames';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
 // they agree. `write-components.ts` is pure TypeScript against a declared port — it touches no `figma`
@@ -14283,11 +14284,37 @@ arm: {
     // #1343a — the control carries the 320 floor. A literal on the plan, not a bound token.
     ok(controlOf(select).minWidth === 320,
       `#1343a select control carries the 320 min-width floor (got ${String(controlOf(select).minWidth)})`);
-    // #1345 — and the field FLEXES above that floor rather than being pinned: the control's main-axis
-    // (horizontal, it is a row) sizing is AUTO, not FIXED — Prism 2's `fill` as far as projection can carry
-    // it (#989/#990). A hard-fixed width would read as FIXED here.
-    ok(controlOf(select).primaryAxisSizingMode === 'AUTO',
-      `#1345 select control FLEXES above the floor (primaryAxisSizingMode AUTO, not a hard-fixed width) — got ${String(controlOf(select).primaryAxisSizingMode)}`);
+    // #1345 / #2292 — and the field FLEXES with its placement rather than being pinned: Prism 2's geometry
+    // exactly, `root width 320` with the control FILLING it. The root is BUILT at 320 (`placementWidth`, FIXED
+    // across) and the control FILLS it — FIXED on its main (horizontal, it is a row) axis with the column's
+    // STRETCH as the supplier — so a host's stretch of the instance carries the box with it. Before #2292 the
+    // control hugged above its floor (AUTO, no supplier) and a FILL instance left the box at 320.
+    {
+      const sRoot = figmaAnatomyPlan(select, undefined, { status: 'default', state: 'rest', leading: false } as never).root;
+      const c = controlOf(select);
+      ok(sRoot.placementWidth === 320 && sRoot.counterAxisSizingMode === 'FIXED' && c.primaryAxisSizingMode === 'FIXED' && c.layoutAlign === 'STRETCH' && c.minWidth === 320,
+        `#1345 select control FILLS a root built at 320 (root placementWidth ${String(sRoot.placementWidth)}, counter ${String(sRoot.counterAxisSizingMode)}; control primary ${String(c.primaryAxisSizingMode)}, layoutAlign ${String(c.layoutAlign)}, minWidth ${String(c.minWidth)})`);
+    }
+    // #2292 — THE SAME ON ALL THREE FIELDS, on every member. Expected values are literals authored here (320, the
+    // root FIXED across, the bordered box FIXED along its row with STRETCH, and textarea's `body` between them
+    // FIXED across with STRETCH), not read off a def. The geometry a host's stretch produces is measured in
+    // `apps/plugin/test-roundtrip.ts` (#2292 block); this pins the plan both executors build from.
+    {
+      const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
+      for (const def of [textField, select, textarea]) {
+        const members = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+        const off = members.flatMap((m) => {
+          const r = m.root, ctl = findIn(r, 'control'), body = findIn(r, 'body');
+          const bad: string[] = [];
+          if (r.placementWidth !== 320 || r.counterAxisSizingMode !== 'FIXED') bad.push(`root placementWidth ${String(r.placementWidth)}, counter ${String(r.counterAxisSizingMode)}`);
+          if (!ctl || ctl.primaryAxisSizingMode !== 'FIXED' || ctl.layoutAlign !== 'STRETCH' || ctl.minWidth !== 320) bad.push(`control primary ${String(ctl?.primaryAxisSizingMode)}, layoutAlign ${String(ctl?.layoutAlign)}, minWidth ${String(ctl?.minWidth)}`);
+          if (def === textarea && (body?.counterAxisSizingMode !== 'FIXED' || body?.layoutAlign !== 'STRETCH')) bad.push(`body counter ${String(body?.counterAxisSizingMode)}, layoutAlign ${String(body?.layoutAlign)}`);
+          return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
+        });
+        ok(members.length > 0 && off.length === 0,
+          `#2292 ${def.id}: on every member the root is built at 320 and the bordered control FILLS it (FIXED + STRETCH), keeping its 320 floor (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
+      }
+    }
     //   MUTATION #1343a — remove the floor. The plan drops `control.minWidth`, flipping '#1343a select
     //   control carries the 320 min-width floor' BY NAME.
     const noFloor = { ...select, anatomy: { ...select.anatomy, parts: { ...select.anatomy.parts, control: { ...select.anatomy.parts.control, minWidth: undefined } } } };
@@ -14528,12 +14555,16 @@ arm: {
         "#1757 'placementWidth' on a HUGGING root is refused BY NAME — the hug would overwrite the width it builds at");
       ok(refuses(withFm({ message: { ...fmParts.message, placementWidth: 0 } }), /'placementWidth' that is not a positive number/),
         "#1757 a non-positive 'placementWidth' is refused BY NAME");
-      // SELECT'S VALUE wraps under `content`, which is bounded only because it FILLS its floored control. Take
-      // the control's floor away and nothing bounds `content` — the refusal fires on the value text.
+      // SELECT'S VALUE wraps under `content`, which is bounded because it FILLS its control. Since #2292 the
+      // control is bounded TWICE — its own 320 floor, and the root's 320 build width it fills — so each alone
+      // still bounds it, and only taking BOTH away leaves `content` unbounded: the refusal fires on the value text.
       const sParts = select.anatomy!.parts;
       const unfloored = { ...select, anatomy: { ...select.anatomy!, parts: { ...sParts, control: { ...sParts.control, minWidth: undefined } } } } as ComponentDef;
-      ok(validateComponentDef(select).errors.length === 0 && refuses(unfloored, /'value' declares 'wrap'/, /parent 'content' does not bound/),
-        "#1757 select's wrapping value is bounded THROUGH `content`, which fills the floored control — removing the control's 320 floor refuses the value BY NAME, so the filled parent is load-bearing");
+      const unbuilt = { ...select, anatomy: { ...select.anatomy!, parts: { ...sParts, container: { ...sParts.container, placementWidth: undefined } } } } as ComponentDef;
+      const neither = { ...select, anatomy: { ...select.anatomy!, parts: { ...sParts, control: { ...sParts.control, minWidth: undefined }, container: { ...sParts.container, placementWidth: undefined } } } } as ComponentDef;
+      ok(validateComponentDef(select).errors.length === 0 && validateComponentDef(unfloored).errors.length === 0 && validateComponentDef(unbuilt).errors.length === 0
+        && refuses(neither, /'value' declares 'wrap'/, /parent 'content' does not bound/),
+        "#1757 select's wrapping value is bounded THROUGH `content`, which fills the control — the control's 320 floor and the root's 320 build width (#2292) each bound it, and removing both refuses the value BY NAME, so the filled parent is load-bearing");
     }
 
     // ---- #1762: field-label's name HUGS and wraps at a MAX WIDTH, so the required marker follows it ----
@@ -14594,8 +14625,10 @@ arm: {
       const refuses = (d: ComponentDef, ...res: RegExp[]) => validateComponentDef(d).errors.some((e) => res.every((r) => r.test(e)));
       ok(refuses(withTa({ counter: { ...taParts.counter, grow: true } }), /declares 'grow'/, /only a 'box'/),
         "'grow' on a NON-box part is refused BY NAME");
-      ok(refuses(withTa({ messageRow: { ...taParts.messageRow, crossAxisFill: undefined } }), /declares 'grow'/, /does not bound its main axis/),
-        "'grow' under a row that is neither floored, fixed nor stretched across a column is refused BY NAME — the #989 silent no-op; removing the row's crossAxisFill fires it, so the stretch is load-bearing");
+      // The row is unbounded only when it neither stretches nor fills: since #2292 the root is built at 320, so a
+      // row left at `sizing.x: 'fill'` stays bounded through `body` without its crossAxisFill. Hug it as well.
+      ok(refuses(withTa({ messageRow: { ...taParts.messageRow, crossAxisFill: undefined, layout: { ...taParts.messageRow.layout!, sizing: { ...taParts.messageRow.layout!.sizing, x: 'hug' } } } }), /declares 'grow'/, /does not bound its main axis/),
+        "'grow' under a row that is neither floored, fixed nor stretched across a column is refused BY NAME — the #989 silent no-op; a HUGGING messageRow with no crossAxisFill fires it, so the row's fill is load-bearing");
       ok(refuses(withTa({ container: { ...taParts.container, grow: true } }), /anatomy ROOT and declares 'grow'/),
         "'grow' on the anatomy root is refused BY NAME");
       ok(refuses(withTa({ counter: { ...taParts.counter, paddingTop: 'root-gap' } }), /declares 'paddingTop'/, /only a 'box'/),
@@ -19856,8 +19889,9 @@ arm: {
       // agree. Mutation, by name: drop `Object.assign(kid,c.instanceSizing)` from the paste payload and the
       // parity line below fails on every `message`/`row*` instance.
       //
-      // SELECT AND TEXT-FIELD JOIN (#1757, review finding). Their label and message fill by the CARRIER rule —
-      // the column hugs, and the control beside them holds the 320 floor — which neither textarea (a bounded
+      // SELECT AND TEXT-FIELD JOIN (#1757, review finding). Their label and message filled by the CARRIER rule —
+      // the column hugged, and the control beside them held the 320 floor; since #2292 the column is built at
+      // 320 and every part fills it, the control included — which neither textarea (a bounded
       // cell) nor checkbox-group (a floored container) exercises. The reviewer's mutation stopped nests filling
       // through a floored sibling and only a surface digest noticed. Their floors name those nests, the value
       // row growing inside the control, select's wrapping value text and its control hugging its height. And
@@ -19877,13 +19911,17 @@ arm: {
           return out.sort();
         };
         const FLOORS = new Map<ComponentDef, RegExp[]>([
-          [textarea, [/\/messageRow HORIZONTAL p:FIXED c:AUTO align:STRETCH /, /\/messageCell VERTICAL p:AUTO c:FIXED align:INHERIT grow:1 /, /\/message undefined p:FIXED .*align:STRETCH /, /\/label undefined p:FIXED .*align:STRETCH /]],
+          // #2292: each field's ROOT is built 320 wide (FIXED across) on both hosts, and the bordered control FILLS
+          // it — FIXED along its row with the column's STRETCH (textarea's through `body`, which stretches too).
+          [textarea, [/\/messageRow HORIZONTAL p:FIXED c:AUTO align:STRETCH /, /\/messageCell VERTICAL p:AUTO c:FIXED align:INHERIT grow:1 /, /\/message undefined p:FIXED .*align:STRETCH /, /\/label undefined p:FIXED .*align:STRETCH /,
+            new RegExp(`^/[^/]+/[^/]+ VERTICAL p:AUTO c:FIXED .* w:${BUILD_W}$`), /\/body VERTICAL p:AUTO c:FIXED align:STRETCH /, /\/body\/control HORIZONTAL p:FIXED c:AUTO align:STRETCH /]],
           [checkboxGroup, [/\/row1 undefined p:FIXED .*align:STRETCH /, /\/label undefined p:FIXED .*align:STRETCH /]],
           // radio-group is checkbox-group's twin (#1475), so its row and label stretch the same way (#1757 re-review).
           [radioGroup, [/\/row1 undefined p:FIXED .*align:STRETCH /, /\/label undefined p:FIXED .*align:STRETCH /]],
           [select, [/\/label undefined p:FIXED .*align:STRETCH /, /\/message undefined p:FIXED .*align:STRETCH /, /\/content HORIZONTAL p:FIXED c:AUTO align:INHERIT grow:1 /,
-            /\/control HORIZONTAL p:AUTO c:AUTO /, /\/(value|placeholder) undefined .*grow:1 text:HEIGHT/]],
-          [textField, [/\/label undefined p:FIXED .*align:STRETCH /, /\/message undefined p:FIXED .*align:STRETCH /, /\/content HORIZONTAL p:FIXED c:AUTO align:INHERIT grow:1 /]],
+            /\/control HORIZONTAL p:FIXED c:AUTO align:STRETCH /, /\/(value|placeholder) undefined .*grow:1 text:HEIGHT/, new RegExp(`^/[^/]+/[^/]+ VERTICAL p:AUTO c:FIXED .* w:${BUILD_W}$`)]],
+          [textField, [/\/label undefined p:FIXED .*align:STRETCH /, /\/message undefined p:FIXED .*align:STRETCH /, /\/content HORIZONTAL p:FIXED c:AUTO align:INHERIT grow:1 /,
+            /\/control HORIZONTAL p:FIXED c:FIXED align:STRETCH /, new RegExp(`^/[^/]+/[^/]+ VERTICAL p:AUTO c:FIXED .* w:${BUILD_W}$`)]],
           [fieldMessage, [new RegExp(`^/[^/]+/[^/]+ HORIZONTAL p:FIXED c:AUTO .* w:${BUILD_W}$`), /\/text undefined .*grow:1 text:HEIGHT/]],
           // #1762: field-label's name HUGS (no grow, auto width) and wraps at its 316 max width, on both hosts —
           // the paste twin's spliced max-width line as well as the plugin's.
@@ -28120,6 +28158,55 @@ arm: {
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }
+}
+
+// ------------------------------------------------------------------- component renames (#2265)
+// The ledger an in-place update reads to tell a renamed member from a dropped one plus an added one, and
+// the accounting `lint-component-renames.ts` runs over it. Hand-built inputs throughout: the lint's
+// own arms read git and the live projection, and these pin what it concludes from them.
+{
+  // The coordinate key: segment order does not matter, a non-coordinate is null.
+  ok(coordKey('size=small, appearance=filled') === 'appearance=filled, size=small', '#2265 coordKey: segments sort by axis, so two orders share one key');
+  ok(coordKey('appearance=filled, size=small') === coordKey('size=small, appearance=filled'), '#2265 coordKey: Figma reordering a name keeps the member matched');
+  ok(coordKey('Frame 12') === null && coordKey('size=small, size=large') === null && coordKey('=x') === null, '#2265 coordKey: a name with no `=`, an axis named twice, or an empty axis is not a coordinate');
+  ok(coordKey('leading icon=true, size=small') === 'leading icon=true, size=small', '#2265 coordKey: an axis name with a space is kept whole');
+
+  const L: ComponentRename[] = [
+    { def: 'chip', kind: 'value', axis: 'size', from: 'sm', to: 'small', issue: 1 },
+    { def: 'chip', kind: 'value', axis: 'size', from: 'small', to: 's', issue: 2 },
+    { def: 'chip', kind: 'axis', from: 'tone', to: 'appearance', issue: 3 },
+    { def: 'chip', kind: 'drop', axis: 'state', value: 'pressed', issue: 4 },
+  ];
+  const r1 = renameCoordinate('chip', 'size=sm, tone=bold', L);
+  ok(r1.key === 'appearance=bold, size=s' && r1.renamed, `#2265 renameCoordinate: a value chain and an axis rename both apply, and the key re-sorts (got ${r1.key})`);
+  ok(!renameCoordinate('chip', 'size=large', L).renamed, '#2265 renameCoordinate: a coordinate no entry names is unmoved');
+  ok(!renameCoordinate('other', 'size=sm', L).renamed, '#2265 renameCoordinate: an entry applies only to its own def');
+  // Two axes sharing a value name: a rename declared on one must leave the other's value where it is.
+  const own = renameCoordinate('chip', 'end=small, start=small', [{ def: 'chip', kind: 'value', axis: 'start', from: 'small', to: 'tiny', issue: 1 }]);
+  ok(own.key === 'end=small, start=tiny', `#2265 renameCoordinate: a value rename applies only on its own axis, not to the same value on another (got ${own.key})`);
+  let loops = false;
+  try { renameCoordinate('loop', 'a=x', [{ def: 'loop', kind: 'value', axis: 'a', from: 'x', to: 'y', issue: 1 }, { def: 'loop', kind: 'value', axis: 'a', from: 'y', to: 'x', issue: 1 }]); } catch { loops = true; }
+  ok(loops, '#2265 renameCoordinate: a cycle in the ledger throws rather than naming a coordinate');
+  ok(isDeclaredDrop('chip', 'state', 'pressed', L) && !isDeclaredDrop('chip', 'state', 'rest', L), '#2265 isDeclaredDrop: a drop names exactly its own value');
+
+  const before: AxesBaseline = { chip: { axes: { size: ['large', 'sm'], tone: ['bold'], state: ['pressed', 'rest'] }, members: 4 }, tab: { axes: { size: ['small'] }, members: 1 } };
+  const after: AxesBaseline = { chip: { axes: { size: ['large', 's'], appearance: ['bold'], state: ['rest'] }, members: 2 }, tab: { axes: { size: ['small'] }, members: 1 } };
+  ok(renamesUnaccounted(before, after, L).length === 0, `#2265 renames lint: renames, an axis move and a drop, each declared, account for every removal (${renamesUnaccounted(before, after, L).join('; ')})`);
+  const noValue = renamesUnaccounted(before, after, L.filter((r) => r.issue !== 1));
+  ok(noValue.length === 1 && noValue[0].startsWith('chip: size=sm is gone'), `#2265 renames lint: a value that vanished with no entry is reported by name (${noValue.join('; ')})`);
+  const noAxis = renamesUnaccounted(before, after, L.filter((r) => r.kind !== 'axis'));
+  ok(noAxis.some((b) => b.startsWith("chip: axis 'tone' is gone")), `#2265 renames lint: an axis that vanished with no entry is reported (${noAxis.join('; ')})`);
+  const noDrop = renamesUnaccounted(before, after, L.filter((r) => r.kind !== 'drop'));
+  ok(noDrop.some((b) => b.startsWith('chip: state=pressed is gone')), '#2265 renames lint: a removal is not claimed until a drop entry says it was meant');
+  const noDef = renamesUnaccounted(before, { chip: after.chip }, L);
+  ok(noDef.length === 1 && noDef[0].startsWith('tab: the def no longer projects'), '#2265 renames lint: a def that stops projecting needs its own drop');
+  ok(renamesUnaccounted(before, { chip: after.chip }, [...L, { def: 'tab', kind: 'drop', issue: 5 }]).length === 0, '#2265 renames lint: a whole-def drop claims the def');
+  ok(renamesUnaccounted(after, before, []).length > 0 && renamesUnaccounted(before, before, []).length === 0, '#2265 renames lint: an unchanged projection needs nothing; additions never do, removals always do');
+  ok(renamesDangling(after, L).length === 0, `#2265 renames lint: every entry's chain ends at a coordinate the tree projects (${renamesDangling(after, L).join('; ')})`);
+  const dangling = renamesDangling(after, [{ def: 'chip', kind: 'value', axis: 'size', from: 'large', to: 'xl', issue: 6 }]);
+  ok(dangling.length === 1 && dangling[0].includes("ends at 'xl'"), '#2265 renames lint: an entry renaming into a value the tree does not project is refused');
+  ok(renamesDangling(after, [{ def: 'chip', kind: 'drop', issue: 0 }]).some((b) => b.includes('names no issue')), '#2265 renames lint: an entry without an issue is refused');
+  ok(COMPONENT_RENAMES.every((r) => Number.isInteger(r.issue) && r.issue > 0), '#2265 COMPONENT_RENAMES: every entry names its issue');
 }
 
 // ------------------------------------------------------------------- report

@@ -1,7 +1,7 @@
 ## (2026-10-07) — Studio: one read-only state for the levers panel in derived modes (#1984)
 
 **Status:** `apps/studio/src/shell/frame.ts` (the hold, its exceptions and the line), `chrome.css` (three rules), the seven
-per-mode domain modules (their derived lines and disabling loops removed), and `test:chrome` (new section 34, plus the
+per-mode domain modules (their derived lines and disabling loops removed), and `test:chrome` (new section 35, plus the
 Q59 and TY2 A cases moved to the new model). No ENGINE bump: no emitted artifact moves. CONTRACT unchanged. Copy: one new
 line, APPROVED (owner, RO1 A, 2026-10-07). Closes #1984.
 
@@ -60,7 +60,7 @@ reverses. The fieldset also left each control's own `disabled` property false, s
 property or `aria-disabled`" read had to learn about fieldsets. Holding each control by its own `disabled` puts both
 audits back exactly as they were on `main`.
 
-### The gate (test:chrome section 34, new)
+### The gate (test:chrome section 35, new)
 
 The gate runs on both hosts, both chrome themes, at 1280 and 380. In each derived mode, on each of the seven pages:
 
@@ -97,7 +97,7 @@ pages, line and note classes are literals too, and every page × mode pair is co
   on its own ground ({"classes":false,"glyph":true,"opaque":false,"text":3.81,"icon":3.81})`.
 
 One full `test:chrome` run also timed out once in #2194's Light-mode Type case, which never touches a derived mode. Run
-on its own it passed 20/20 on both hosts, so it was load. #2285 landed first with a section 33, so this one is 34.
+on its own it passed 20/20 on both hosts, so it was load. #2285 (section 33) and #2298 (its 33, renumbered here to 34) landed first, so this one is 35.
 
 ### Moved cases
 

@@ -618,6 +618,8 @@
 .p3-op-prog::-moz-progress-bar { background: var(--p3-icon); }
 .p3-op-history > summary { cursor: pointer; color: var(--p3-text-2); }
 .p3-op-history > ul { margin: var(--p3-space-050) 0 0; padding-left: var(--p3-space-300); }
+/* An earlier result's details (#2281): the current run's mono lines, set in a little under the entry's time and verdict. */
+.p3-op-entry > .p3-op-summary { margin-top: var(--p3-space-050); padding-left: var(--p3-space-150); }
 /* Under the two panes, the drawer is the preview pane's bottom row (plan §3.9). */
 .p3-frame[data-layout="panes"] .p3-drawer { grid-area: drawer; position: static; border-left: 0; }
 /* At 380: the closed drawer is the strip, pinned to the bottom edge; the open drawer is a full-pane sheet

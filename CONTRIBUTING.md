@@ -360,6 +360,27 @@ npx tsx packages/engine/lint-component-surface.ts
                                                     # statement of what a member is (docs/34
                                                     # shape 8); brand-independent, because
                                                     # `figmaAnatomySet` takes a def and no theme
+npx tsx packages/engine/lint-component-renames.ts
+                                                    # a def, an axis or a variant value that leaves
+                                                    # schema/component-axes.json is declared in
+                                                    # COMPONENT_RENAMES — renamed or dropped (#2265).
+                                                    # The update dry run matches members by
+                                                    # coordinate, which cannot see a rename: an
+                                                    # undeclared one reads as a drop plus an add,
+                                                    # and a dropped member breaks its instances once
+                                                    # the library is published. The `from` side is
+                                                    # the baseline at the MERGE BASE, read with git,
+                                                    # so it needs history and FAILS with no base ref;
+                                                    # its in-tree arm checks the baseline is current
+npx tsx apps/plugin/lint-executor-revision.ts
+                                                    # the component executor's code (write-components
+                                                    # and every file it reaches by a value import,
+                                                    # comments excluded) changed only with a raised
+                                                    # EXECUTOR_REVISION (#1098, #2265). The update dry
+                                                    # run reports a member stamped by an older
+                                                    # revision as needing a re-apply; a forgotten
+                                                    # bump reports it as current. Reads the merge
+                                                    # base with git, same history need as above
 npx tsx packages/engine/lint-materialization-renames.ts
                                                     # a materialization rename — one the CONTRACT
                                                     # cannot see, because a Figma collection name and
