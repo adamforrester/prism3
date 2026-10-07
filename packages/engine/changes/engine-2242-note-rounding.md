@@ -8,6 +8,6 @@ in whole degrees, as the studio shows hue. The other numbers the notes print (th
 brand color's and a status color's hue, a pinned gray's lightness, an out-of-gamut anchor's OKLCH, the
 shadow's softness and amount, the radius scale and base radius, each breakpoint's width, the max and narrow
 containers, the type ladder's first and last sizes, the display cap and the fluid-type viewports) print at the
-precision the corpus already used: hue and lightness to 2 places, chroma to 4. Committed artifacts move only
+precision the corpus already used: hue to 2 places, lightness and chroma to 4. Committed artifacts move only
 where a shadow tint hue was not whole: prism3's decisions now read "tinted to hue 267" (was 266.75) and
 wendys's "tinted to hue 249" (was 249.14). No token name or value moves, so the token contract stands.

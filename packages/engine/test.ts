@@ -6937,7 +6937,7 @@ arm: {
 // as `$extensions.prism3.decisions`, and the reports print them. They interpolated input numbers raw, so a value
 // carrying full converter precision (a pin from a hex, a color picked in the studio) printed as
 // "tinted to hue 89.87556274151122". The shadow note's hue now prints in whole degrees, as the studio shows hue. The
-// other numbers print at the precision the corpus already uses: hue and lightness to 2 places, chroma to 4.
+// other numbers print at the precision the corpus already uses: hue to 2 places, lightness and chroma to 4.
 //
 // INDEPENDENCE: the inputs are written with seven-place values in every field a note interpolates, and the expected
 // whole-degree hue is rounded from the INPUT, not read back from the note. The scan covers every note of every case

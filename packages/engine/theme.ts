@@ -2269,7 +2269,7 @@ const diffAssign = <T>(map: Record<string, T>, mode: string, cand: T, baseJson: 
 };
 
 /** Note prose prints input numbers compactly (#2242). The notes ship (every brand's `$extensions.prism3.decisions`,
- *  the reports), and an input can carry full converter precision. `n2` is for hues and lightness, `n4` for chroma: the
+ *  the reports), and an input can carry full converter precision. `n2` is for hues and the other numbers, `n4` for lightness and chroma: the
  *  precision the corpus already printed, with no trailing zeros (262.10 reads 262.1). */
 const n2 = (x: number): number => +x.toFixed(2);
 const n4 = (x: number): number => +x.toFixed(4);

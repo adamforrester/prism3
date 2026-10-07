@@ -10,8 +10,8 @@ print them. They interpolated input numbers raw, so an input carrying full conve
 color picked in the studio) printed as `tinted to hue 89.87556274151122`.
 
 - **The shadow note's tint hue prints in whole degrees,** matching how the studio shows hue (the issue's fix).
-- **Every other number the notes print** is compacted to the precision the corpus already used: hue and lightness
-  to 2 places, chroma to 4, with no trailing zeros. That covers:
+- **Every other number the notes print** is compacted to the precision the corpus already used: hue to 2 places,
+  lightness and chroma to 4, with no trailing zeros. That covers:
   - the primary's hue and chroma, a brand color's and a status color's hue, a pinned gray's lightness, and an
     out-of-gamut anchor's OKLCH;
   - the shadow's softness and amount;
