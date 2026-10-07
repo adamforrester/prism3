@@ -11346,7 +11346,7 @@ console.log('\n34. #2272: trim and its tooltip follow the name\'s own cut');
   const settle = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   const tipOf = (page) => page.evaluate(() => document.querySelector('[data-p3="brand-switcher"]')?.getAttribute('title') ?? null);
   for (const theme of ['light', 'dark']) {
-    const where = `33 figma ${theme}`;
+    const where = `34 figma ${theme}`;
     const { ctx, page, errors } = await open({ host: 'figma', theme, w: 1280, h: 900, query: '?p3-test-hooks' });
     try {
       await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), LONG_BRAND);
@@ -11697,6 +11697,41 @@ for (const host of ['web', 'figma']) {
       return { disabled: hue.matches(':disabled'), held: hue.getAttribute('data-held') };
     });
     ok(relift?.disabled === true, `${where}: the tint hue re-enabled in place, as Depth's own sync does it, is held again (${JSON.stringify(relift)})`);
+    // #2310: the other half of the re-hold, an aria-held widget (not a native control) put back in the tab order in place,
+    // its `aria-disabled` left alone. No page draws such a widget in the levers today, so one is planted in the region,
+    // right after a live ⓘ (a named exception, so the Tab from it is a real one), where the hold catches it as it catches
+    // any node drawn. Held, its tabindex is set back to 0 in place; it must be held again: `aria-disabled="true"`,
+    // `tabindex="-1"`, and a Tab from the ⓘ before it does not land on it. (A `tabindex="-1"` element still takes a
+    // script's `focus()`, by the HTML spec, so that is not what holds it out of reach; the Tab is.)
+    const planted = await page.evaluate(async () => {
+      const region = document.querySelector('[data-p3="levers-pane"] [data-p3="levers-region"]');
+      const info = [...(region?.querySelectorAll('[data-p3="lever-info"]') ?? [])].find((n) => n.getClientRects().length > 0);
+      if (!region || !info) return { found: false };
+      const w = document.createElement('div');
+      w.setAttribute('role', 'slider');
+      w.setAttribute('aria-label', 'Planted widget (#2310)');
+      w.setAttribute('aria-valuenow', '0');
+      w.setAttribute('data-ro-planted', '');
+      w.tabIndex = 0;
+      info.after(w);
+      const frames = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      await frames();
+      const held = { aria: w.getAttribute('aria-disabled'), tabindex: w.getAttribute('tabindex'), mark: w.getAttribute('data-held') };
+      w.tabIndex = 0;   // put back in the tab order in place; aria-disabled left as it is
+      await frames();
+      return { found: true, held, again: { aria: w.getAttribute('aria-disabled'), tabindex: w.getAttribute('tabindex'), mark: w.getAttribute('data-held') } };
+    });
+    ok(planted.found && planted.held?.aria === 'true' && planted.held?.tabindex === '-1' && planted.held?.mark === '0',
+      `${where}: control: an aria widget drawn in the held region is held the aria way, its tabindex recorded (${JSON.stringify(planted)})`);
+    ok(planted.again?.aria === 'true' && planted.again?.tabindex === '-1',
+      `${where}: an aria-held widget put back in the tab order in place, aria-disabled left alone, is held again: tabindex -1 (#2310) (${JSON.stringify(planted.again)})`);
+    if (planted.found) {
+      await page.locator('[data-p3="levers-region"] [data-ro-planted]').evaluate((w) => w.previousElementSibling?.focus());
+      await page.keyboard.press('Tab');
+      const landed = await page.evaluate(() => ({ planted: document.activeElement?.hasAttribute('data-ro-planted') ?? false, on: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName ?? null }));
+      ok(!landed.planted, `${where}: a Tab from the live ⓘ before it does not land on the re-held widget (#2310) (focus on ${landed.on})`);
+      await page.evaluate(() => document.querySelector('[data-ro-planted]')?.remove());
+    }
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
