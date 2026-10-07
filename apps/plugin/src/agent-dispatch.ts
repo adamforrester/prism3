@@ -56,6 +56,9 @@ export type AgentActions = {
   styleGuide(options: StyleGuideOptions, sink: ActionSink): Promise<void>;
   prune(input: BrandInput, confirm: boolean, sink: ActionSink): Promise<void>;
   seedFromFile(sink: ActionSink): Promise<void>;
+  /** #2265: the in-place update's dry run (writes nothing) and the one-time baseline capture. */
+  updateComponents(def: string | undefined, sink: ActionSink): Promise<void>;
+  captureBaseline(def: string | undefined, sink: ActionSink): Promise<void>;
 };
 
 /** The slice of a page node the census reads. */
@@ -151,6 +154,8 @@ export const ROUTES: { [C in AgentCmd]: Route } = {
     const { input, confirm } = (c as Extract<ValidCommand, { cmd: 'prune' }>).args;
     return a.prune(input, confirm, sink);
   },
+  'update-components': (c, a, sink) => a.updateComponents((c as Extract<ValidCommand, { cmd: 'update-components' }>).args.def, sink),
+  'capture-baseline': (c, a, sink) => a.captureBaseline((c as Extract<ValidCommand, { cmd: 'capture-baseline' }>).args.def, sink),
   readback: async (_c, a, sink, d) => {
     await a.seedFromFile(sink);
     sink.data({ components: await d.census() });

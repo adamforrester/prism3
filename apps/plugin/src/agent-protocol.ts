@@ -37,7 +37,7 @@ export const AGENT_PROTOCOL_VERSION = 1;
 
 /** Every command this plugin answers, in the order the runbook documents them. Stable ids: renaming one
  *  is a breaking change for every agent that sends it, so it is a version bump, not an edit. */
-export const AGENT_COMMANDS = ['status', 'apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'readback'] as const;
+export const AGENT_COMMANDS = ['status', 'apply-theme', 'build-components', 'file-setup', 'style-guide', 'prune', 'readback', 'update-components', 'capture-baseline'] as const;
 export type AgentCmd = (typeof AGENT_COMMANDS)[number];
 
 /** Each command's `args`, exactly as the UI sends the matching message (`messages.ts` `UiToMain`). */
@@ -56,6 +56,11 @@ export type AgentArgs = {
   prune: { input: BrandInput; confirm: boolean };
   /** The boot read-back (`seed-info`) plus a census of every component page. Read-only. */
   readback: Record<string, never>;
+  /** #2265: the in-place update. Only the dry run exists, so `confirm` is `false` or absent; `true` is refused
+   *  as bad args until the apply lands. No `def` means every def that projects a set. */
+  'update-components': { def?: string; confirm: false };
+  /** #2265: record the as-built baseline on members built before it existed. No `def` means every set. */
+  'capture-baseline': { def?: string };
 };
 
 /** A command as it arrives — unvalidated. `parseCommand` turns it into a `ValidCommand` or a reason. */
@@ -208,6 +213,19 @@ export const parseCommand = (raw: unknown): ParsedCommand => {
       if (args.pixels !== undefined) opts.retired = ['pixels'];
       return { ok: true, command: { ...base, cmd: 'style-guide', args: opts } };
     }
+    case 'update-components':
+      if (args.def !== undefined && (typeof args.def !== 'string' || !args.def)) {
+        return fail('bad-args', 'update-components takes args.def: a component def id, or no def for every set');
+      }
+      if (args.confirm !== undefined && args.confirm !== false) {
+        return fail('bad-args', 'update-components only checks for now: send confirm: false, or leave it out. Applying an update is not built yet (#2265)');
+      }
+      return { ok: true, command: { ...base, cmd: 'update-components', args: args.def === undefined ? { confirm: false } : { def: args.def, confirm: false } } };
+    case 'capture-baseline':
+      if (args.def !== undefined && (typeof args.def !== 'string' || !args.def)) {
+        return fail('bad-args', 'capture-baseline takes args.def: a component def id, or no def for every set');
+      }
+      return { ok: true, command: { ...base, cmd: 'capture-baseline', args: args.def === undefined ? {} : { def: args.def } } };
     case 'status':
     case 'file-setup':
     case 'readback':

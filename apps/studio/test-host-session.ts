@@ -47,7 +47,7 @@ const plain = (s: HostSession): unknown => ({ ...s, hostFontStyles: [...s.hostFo
 
 /** Every kind the UI's handler receives, written out here rather than read from the code under test. */
 const KINDS = [
-  'apply-result', 'component-result', 'file-setup-result', 'style-guide-result', 'component-progress', 'style-guide-progress',
+  'apply-result', 'component-result', 'component-update-result', 'file-setup-result', 'style-guide-result', 'component-progress', 'style-guide-progress',
   'prune-result', 'seed-info', 'restore-input', 'restore-input-empty', 'restore-input-error', 'font-list',
   'agent-started', 'agent-progress', 'agent-finished', 'refused',
   'style-guide-catalog', 'style-guide-tables', 'style-guide-table',
@@ -67,7 +67,7 @@ ok(typeof (globalThis as { document?: unknown }).document === 'undefined', 'prem
 
 const init = initialHostSession();
 ok(same(plain(init), {
-  seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, componentState: null,
+  seedOutcome: null, inputRecovered: false, restoreError: null, applyState: null, componentState: null, componentUpdate: null, componentLatest: null,
   fileSetupState: null, styleGuideState: null, componentProgress: null, styleGuideProgress: null, styleGuideCatalog: null, styleGuideRun: null, componentDef: null, setBuilds: [], pruneBusy: false, prunePreview: null,
   pruneVerdict: null, openDetail: null, hostFonts: [], hostFontStyles: [], agentRun: null, refused: null,
 }), 'initial session: every slot empty');
@@ -75,15 +75,15 @@ ok(same(plain(init), {
 // ---- the four verdict kinds ------------------------------------------------------------------------------
 // A good verdict closes whatever detail was open; a bad one opens its own. Each lands in its own slot only.
 const verdictCases = [
-  { kind: 'apply-result', slot: 'applyState', detail: 'apply', row: [] },
-  { kind: 'component-result', slot: 'componentState', detail: 'components', row: ['host:components'] },
-  { kind: 'file-setup-result', slot: 'fileSetupState', detail: 'filesetup', row: ['host:filesetup'] },
-  { kind: 'style-guide-result', slot: 'styleGuideState', detail: 'styleguide', row: ['host:styleguide'] },
+  { kind: 'apply-result', slot: 'applyState', detail: 'apply', row: [], also: {} },
+  { kind: 'component-result', slot: 'componentState', detail: 'components', row: ['host:components'], also: { componentLatest: 'build' } },
+  { kind: 'file-setup-result', slot: 'fileSetupState', detail: 'filesetup', row: ['host:filesetup'], also: {} },
+  { kind: 'style-guide-result', slot: 'styleGuideState', detail: 'styleguide', row: ['host:styleguide'], also: {} },
 ] as const;
 for (const c of verdictCases) {
   const from: HostSession = { ...init, [c.slot]: 'pending', openDetail: 'apply' };
   const good = step(from, { kind: c.kind, ok: true, headline: 'H', summary: 'S' });
-  ok(same(plain(good.next), plain({ ...from, [c.slot]: { ok: true, headline: 'H', summary: 'S' }, openDetail: null })),
+  ok(same(plain(good.next), plain({ ...from, [c.slot]: { ok: true, headline: 'H', summary: 'S' }, openDetail: null, ...c.also })),
     `${c.kind}: a clean verdict fills ${c.slot} and closes the open detail, touching nothing else`);
   ok(same(good.topics, ['host', 'host:detail', ...c.row]) && good.effect === null, `${c.kind}: invalidates ${['host', 'host:detail', ...c.row].join(', ')}`);
   const bad = step(from, { kind: c.kind, ok: false, headline: 'X', summary: 'why' });
@@ -229,13 +229,13 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
 // The drawer reads `agentRun`; the action slots stay the panel's own, so the panel's controls are unchanged.
 {
   const started = step(init, { kind: 'agent-started', id: 'a1', cmd: 'apply-theme' });
-  ok(same(started.next.agentRun, { id: 'a1', op: 'apply', settled: false, progress: null }) && started.next.applyState === null,
+  ok(same(started.next.agentRun, { id: 'a1', op: 'apply', cmd: 'apply-theme', settled: false, progress: null }) && started.next.applyState === null,
     'agent-started: an apply-theme run is recorded as the agent\'s, and the apply slot is left alone');
   ok(same(started.topics, ['host']) && started.effect === null, 'agent-started: invalidates host (the drawer)');
   const status = step(init, { kind: 'agent-started', id: 'a0', cmd: 'status' });
   ok(status.next === init && status.topics.length === 0, 'agent-started: a status command runs no operation, so nothing changes');
   const verdict = step(started.next, { kind: 'apply-result', ok: true, headline: 'H', summary: 'S' });
-  ok(same(verdict.next.agentRun, { id: 'a1', op: 'apply', settled: true, progress: null }) && same(verdict.next.applyState, { ok: true, headline: 'H', summary: 'S' }),
+  ok(same(verdict.next.agentRun, { id: 'a1', op: 'apply', cmd: 'apply-theme', settled: true, progress: null }) && same(verdict.next.applyState, { ok: true, headline: 'H', summary: 'S' }),
     'agent run: the apply verdict settles the run and lands in the apply slot');
   const other = step(started.next, { kind: 'component-result', ok: true, completed: true, headline: 'H', summary: 'S' });
   ok(other.next.agentRun?.settled === false, 'agent run: another operation\'s verdict does not settle it');
@@ -254,6 +254,27 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
   const applyRun = step(init, { kind: 'agent-started', id: 'a2', cmd: 'apply-theme' }).next;
   const notBuild = step(applyRun, { kind: 'agent-progress', id: 'a2', phase: 'build', done: 1, total: 2 });
   ok(notBuild.next === applyRun, 'agent-progress: a run that is not a build takes no progress');
+}
+
+// ---- the update check (#2265) ------------------------------------------------------------------------------
+// The dry run and the baseline capture are the components operation (they hold the build's guard), but their
+// verdict is not a build's: it lands in its own slot, leaves the build's slot, set record and detail alone, and
+// marks itself the operation's latest so the Activity row shows it.
+{
+  for (const cmd of ['update-components', 'capture-baseline']) {
+    const run = step(init, { kind: 'agent-started', id: 'u1', cmd });
+    ok(same(run.next.agentRun, { id: 'u1', op: 'components', cmd, settled: false, progress: null }),
+      `agent-started: ${cmd} runs the components operation, and the run keeps its command`);
+  }
+  const built = { ...init, componentState: { ok: true, headline: '✓ built 432', summary: 's' }, componentLatest: 'build' as const, setBuilds: new Map([['button', 'ok' as const]]) };
+  const run = step(built, { kind: 'agent-started', id: 'u1', cmd: 'update-components' }).next;
+  const v = step(run, { kind: 'component-update-result', ok: true, headline: 'Would change 1 of 26', summary: 'button: …' });
+  ok(same(plain(v.next), plain({ ...run, agentRun: { ...run.agentRun!, settled: true }, componentUpdate: { ok: true, headline: 'Would change 1 of 26', summary: 'button: …' }, componentLatest: 'update' })),
+    'component-update-result: fills componentUpdate, marks it latest, settles the agent run, and leaves the build\'s slot and set record alone');
+  ok(same(v.topics, ['host', 'host:components']) && v.effect === null, 'component-update-result: invalidates host and host:components (the Build control the run held busy)');
+  const rebuilt = step({ ...v.next, componentState: 'pending' }, { kind: 'component-result', ok: true, completed: true, headline: 'H', summary: 'S' });
+  ok(rebuilt.next.componentLatest === 'build' && same(rebuilt.next.componentUpdate, v.next.componentUpdate),
+    'component-result after a check: the build is latest again, and the check\'s verdict is kept');
 }
 
 // ---- a declined second write (#1957) ---------------------------------------------------------------------

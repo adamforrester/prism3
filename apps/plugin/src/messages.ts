@@ -254,6 +254,13 @@ export type MainToUi =
     /** The summary's items, one per line (#2177; see `apply-result`): the set, each note after it, what was built
      *  first, each page header. */
     lines: string[] }
+  /** Result of the in-place update's dry run, or of a baseline capture (#2265) — the `{ok, headline, summary}`
+   *  shape, its own kind for the one-kind-per-fact reason: "what would an update change" is not "did my build
+   *  land", and must not overwrite the build's verdict on the Components page. Only the agent link sends the
+   *  two commands today; the panel's control for them is held for the owner (PR 2). */
+  | { type: 'component-update-result'; ok: boolean; headline: string; summary: string;
+    /** The summary's items, one per line (#2177; see `apply-result`): one per set, then each closing line. */
+    lines: string[] }
   /** Result of a `file-setup` scaffold (#1554) — the same `{ok, headline, summary}` shape as
    *  `apply-result` / `component-result`, a DISTINCT variant for the same one-kind-per-fact reason: "did
    *  the page skeleton get laid" is separately true and separately actionable from a theme or component

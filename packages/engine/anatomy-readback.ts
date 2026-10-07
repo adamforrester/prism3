@@ -83,7 +83,7 @@ import type { AnatomyPlan, FigmaNodePlan } from './anatomy-figma.ts';
  *  and naming only what is read keeps this file honest about its own scope. */
 export type HostNode = { name?: unknown; type?: unknown; children?: unknown } & Record<string, unknown>;
 
-/** Resolvers the HOST supplies from its own catalogues — never derived from the plan, or the diff
+/** Resolvers the HOST supplies from its own catalogs — never derived from the plan, or the diff
  *  would resolve an id to the name it was hoping for. */
 export type ReadPorts = {
   /** A bound variable's id → the variable's name as the FILE holds it (brand-rooted). `null` when the
@@ -205,7 +205,7 @@ export const FIELDS: Record<string, FieldCheck> = {
   // caption behind a bound part is not merely overwritten, it is not expressible.
   //
   // This predicate used to compare the bound node against THIS MEMBER'S OWN planned caption, which is a value
-  // no host can hold at that coordinate. It agreed anyway, for one run, because the shim modelled a one-shot
+  // no host can hold at that coordinate. It agreed anyway, for one run, because the shim modeled a one-shot
   // reset that a per-member re-assert could defeat — and a live `field-message` therefore showed the same
   // string on all four statuses while this read green (#1567). So the oracle moves to what the host CAN hold:
   // `textDefault` (the canonical default `planSetProperties` declares) where the plan states one, and this
@@ -228,7 +228,7 @@ export const FIELDS: Record<string, FieldCheck> = {
   textDefault: { reason: 'not a value the host holds on this node — it is the SET-LEVEL text property default (#1018). Read by the `characters` predicate above as the ORACLE for a bound part (#1567), since a bound node displays the property default rather than its own copy; the declaration itself is covered by the property-declaration read-back' },
   textAlignVertical: { reason: 'measured a no-op on every node in the corpus (774 TEXT nodes, none with a bound height) — #1009 states the rule and the check belongs with a node that can move' },
 
-  // ── resolved through a host catalogue ────────────────────────────────────────────────────────
+  // ── resolved through a host catalog ─────────────────────────────────────────────────────────
   bound: {
     show: (p) => Object.entries(p as Record<string, string>).map(([k, v]) => `${k}→${v}`).join(', '),
     check: (p, n, ports) => {
@@ -273,7 +273,7 @@ export const FIELDS: Record<string, FieldCheck> = {
   // The plan carries the numeric proportion; the host reports it back as `targetAspectRatio`, which the
   // executor sets by resizing the frame to the ratio and calling `lockAspectRatio()`. Compared with a
   // tolerance because a ratio is a float (16/9), and the host's own rounding need not be bit-exact. This
-  // is the roundtrip's plan-as-oracle check (does the executor honour the plan's ratio); the INDEPENDENT
+  // is the roundtrip's plan-as-oracle check (does the executor honor the plan's ratio); the INDEPENDENT
   // contract check — that the ratio a member LOCKS is the ratio its coordinate names — lives in
   // `test-roundtrip.ts`'s focused aspect-lock block, authored there rather than derived from the def.
   aspectRatio: {

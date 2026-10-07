@@ -386,6 +386,20 @@ export const GATES: Gate[] = [
     cmd: engine('lint-component-surface.ts'),
   },
   {
+    // A removed variant needs a ledger entry (#2265). Reads the axes baseline at the merge base with
+    // `git show`, so like the two above it needs history and fails when it has no base ref.
+    id: 'lint-component-renames',
+    ciStep: 'A removed component variant is declared in COMPONENT_RENAMES (#2265)',
+    cmd: engine('lint-component-renames.ts'),
+  },
+  {
+    // The executor's code at the merge base against the tree (#1098, #2265). Source only, so it needs
+    // no build; it sits here with the other git-history gates rather than after the plugin build.
+    id: 'lint-executor-revision',
+    ciStep: "The component executor's code moved only with EXECUTOR_REVISION (#1098, #2265)",
+    cmd: [...TSX, 'apps/plugin/lint-executor-revision.ts'],
+  },
+  {
     id: 'drift-coverage',
     ciStep: 'Drift gate still covers the full artifact set',
     after: ['drift'],
