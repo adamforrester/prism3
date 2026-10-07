@@ -1,103 +1,104 @@
 ## (2026-10-07) — Studio: one read-only state for the levers panel in derived modes (#1984)
 
-**Status:** `apps/studio/src/shell/frame.ts` (the read-only region and its line), `chrome.css` (two rules), the seven
+**Status:** `apps/studio/src/shell/frame.ts` (the hold, its exceptions and the line), `chrome.css` (three rules), the seven
 per-mode domain modules (their derived lines and disabling loops removed), and `test:chrome` (new section 33, plus the
-Q59, Q61, #2179 and TY2 A cases moved to the new model). No ENGINE bump: no emitted artifact moves. CONTRACT unchanged.
-Copy: one new line, APPROVED (owner, RO1 A, 2026-10-07). Closes #1984.
+Q59 and TY2 A cases moved to the new model). No ENGINE bump: no emitted artifact moves. CONTRACT unchanged. Copy: one new
+line, APPROVED (owner, RO1 A, 2026-10-07). Closes #1984.
 
 ### What changed
 
-The owner decided on 2026-10-03 that derived modes (HC light, HC dark, wireframe) get one read-only state for the whole
-levers panel instead of disabling each control, and chose N-3 A on 2026-10-05: a panel-level line plus controls that
-can't be used. The frame now mounts each page's levers inside a `fieldset` (`levers-region`, drawn as
-`display: contents`, `role="presentation"`). On the seven pages that edit the previewed mode (Surfaces & fills,
-Interactive, Type, Depth & motion, Shape, Layout, Components; the `derivedReadOnly` flag on their `NEW_PAGES` rows), a
-derived mode makes that fieldset both `inert` and `disabled`:
+The owner decided on 2026-10-03 that derived modes (HC light, HC dark, wireframe) get one read-only state for the levers
+panel instead of each page disabling its own controls. N-3 A (2026-10-05) asked for a panel-level line plus controls
+that can't be used. On review of the first build the owner chose two refinements (2026-10-07):
 
-- `inert` takes every control out of the tab order and out of the accessibility tree in one step.
-- `disabled` on the fieldset makes every native control under it match `:disabled`, so each keeps Prism3's disabled
-  skin (F1 A, X4 A) and the contrast audits' exemption. No control carries its own flag.
+- **RX1 A:** help and navigation stay usable, and only the settings are locked.
+- **RX2 A:** the line takes the studio's existing note style and stays at the top of the panel.
 
-The line, "‹Mode› is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.", is the pane's
-first child, outside the region. It uses `modeLabel`'s name (what the mode control shows) and takes programmatic focus
-(`tabindex="-1"`). In Light and Dark it is not in the document at all. Brand and Palettes are brand-wide, keep no flag,
-and stay editable.
+**The hold.** The frame mounts each page's levers inside `levers-region`, a `div` with `display: contents`. On the seven
+pages that edit the previewed mode (the `derivedReadOnly` flag on their `NEW_PAGES` rows), a derived mode runs
+`holdSettings` over that region. It finds every operable element: native controls, ARIA widgets, editable regions and
+anything in the tab order (#1991's reach). It holds every one that is not one of RX1 A's exceptions (`STAYS_LIVE`):
 
-**The diagnosis that made it small.** The page modules mount into the pane once (`host.replaceChildren(root)`) and read
-`host.scrollTop` to keep their scroll position across a redraw. So the pane has to stay their `host`. The frame moves the
-mounted nodes into the region right after each mount, rather than handing the pages the region, whose `scrollTop` is
-always 0 under `display: contents`. A disabled fieldset was the one mechanism the audits already counted as really
-disabled: `test:chrome`'s exemption predicate notes "`:disabled` (which also covers a control in a disabled fieldset)".
-That kept the skin, the X4 A derived sweep and the exemption unchanged without a new predicate.
+- the ⓘ help buttons (`.p3-info`);
+- the Show advanced folds (`aria-controls="p3-advb-…"`);
+- the Jump to links;
+- the "way to" links (`.p3-deplink`: Shape › Components, Components › Shape, and Type › Layout, the same kind of link);
+- Continue.
 
-**Removed, one source of truth.** Each page's "‹Mode› is auto-derived — read-only…" line (Surfaces & fills drew it in
-every row list and in Gradients) and each page's `querySelectorAll(…).disabled = true` loop, plus the per-row
-`btn.disabled = derived` and Unpair's flag. `DEPTH_COPY.derived` and `COMPONENTS_COPY.derived` went with them.
+A held native control gets its own `disabled`. So it keeps Prism3's disabled skin (F1 A, X4 A) and the contrast audits'
+exemption, leaves the tab order, and reads disabled to assistive technology. Any other widget gets `aria-disabled` and
+`tabindex="-1"`. Each held element is marked `data-held`, so leaving the derived mode frees only what the frame held. A
+page's own disabled controls (the first breakpoint, a locked icon row) stay as the page drew them. A `MutationObserver`
+on the region re-applies the hold whenever a page redraws, for example when a fold opens. One source of truth: a new
+lever is held without doing anything, and no page checks the mode to disable a control.
+
+**The line,** "‹Mode› is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.", is the
+pane's first child, outside the region. It is Build style guides' boxed note, `.p3-sg-note.p3-sg-warn`, unchanged. The
+studio has no tinted neutral note, so this is the existing box with an icon. The line uses `modeLabel`'s name, takes
+programmatic focus (`tabindex="-1"`), and is absent in Light and Dark. Brand and Palettes are brand-wide and stay
+editable.
+
+**Removed, one source of truth:**
+- each page's "‹Mode› is auto-derived — read-only…" line (Surfaces & fills drew it in every row list and in Gradients);
+- each page's `querySelectorAll(…).disabled = true` loop;
+- the per-row `btn.disabled = derived` and Unpair's flag;
+- `DEPTH_COPY.derived` and `COMPONENTS_COPY.derived`.
 
 **Kept, on purpose:**
-- The write-time guards (#2096's refusal in Components' `edit`) stay as defense in depth. The Components Q59 case still
-  dispatches a scripted `input` on the held slider and holds the saved brand byte-identical.
-- `isDerived` checks that decide what is drawn rather than whether it is disabled: no picker drawn open, no "Editing
-  ‹mode›" line, no inline Pair confirm in a derived mode.
-- A Custom mode's surface controls stay disabled by `surfaceSourceOf().editable`. That is the custom-mode rule, not a
-  derived-mode check.
+- **The write-time guards.** #2096's refusal in Components' `edit` stays as defense in depth. The Components Q59 case
+  still dispatches a scripted `input` on the held slider and holds the saved brand byte-identical.
+- **`isDerived` checks that decide what is drawn,** not whether a control is disabled: no picker drawn open, no
+  "Editing ‹mode›" line, no inline Pair confirm in a derived mode.
+- **A Custom mode's surface controls** stay disabled by `surfaceSourceOf().editable`. That is the custom-mode rule, not
+  a derived-mode check.
 
-**What this changes in a derived mode.** Q59 and Q74 kept some controls live in a derived mode: the ⓘ toggletips, the
-Show advanced folds, the "way to" links (Shape › Components, Components › Shape), the jump links and Continue. Under
-`inert` none of them can be reached, as the issue specifies ("no control in the levers panel is focusable"). A fold
-opened in Light stays open, so Individual sizes can still be read. Native buttons among them take the disabled skin.
-The jump links are `<a>` and have no disabled skin, so they look live but cannot be used. This was raised with the
-owner on the PR.
+**The first build, and why it changed.** The first round made the region a `fieldset` that was both `inert` and
+`disabled`. That was one line of mechanism, but it took help and navigation down with the settings, which RX1 A
+reverses. The fieldset also left each control's own `disabled` property false, so both contrast audits' "the `disabled`
+property or `aria-disabled`" read had to learn about fieldsets. Holding each control by its own `disabled` puts both
+audits back exactly as they were on `main`.
 
 ### The gate (test:chrome section 33, new)
 
-Both hosts, both chrome themes, 1280 and 380. In each derived mode, on each of the seven pages, the gate checks four
-things:
+The gate runs on both hosts, both chrome themes, at 1280 and 380. In each derived mode, on each of the seven pages:
 
-- The region is `inert` and `:disabled`.
-- A Tab walk from the line, three stops forward and three back, never lands inside the pane.
-- CDP `Accessibility.getFullAXTree` holds no control-role node under the pane and does hold the line's text.
-- The line reads the literal with the mode's name, sits outside the region, is not under `inert`, and takes focus.
+- Every operable element in the pane that is not a named exception is held, and every named exception drawn is live.
+- A Tab walk from the line through the whole pane stops only on named exceptions, and Shift+Tab leaves the pane.
+- CDP `Accessibility.getFullAXTree` reports every control under the pane disabled except the named exceptions, with a
+  floor on the disabled ones, and holds the line's text.
+- The line reads the literal, sits outside the region, and takes focus. It carries the note's classes and a glyph, with
+  its text at 4.5:1 and its glyph at 3:1 on its own ground.
 
-In Light and Dark, the region is live, there is no line, a control takes focus, and the tree holds controls under the
-pane, so the tree read cannot pass by reading nothing. The modes, their names, the pages and the line are literals in the
-test. Every page × mode pair is counted, so a skipped page fails.
+Once per run, in HC light on Surfaces & fills, the exceptions are shown to work: an ⓘ opens its help, and a Jump to link
+scrolls the pane. In Light and Dark there is no line, a setting takes focus, and the tree holds enabled settings.
+
+The exceptions are a literal list of hooks, so the gate does not read the frame's `STAYS_LIVE` selector. The modes, names,
+pages, line and note classes are literals too, and every page × mode pair is counted.
 
 **Mutations,** each in its own `wip:` commit, run on the section with both bundles rebuilt:
 
-- (a) region not inert in wireframe: 128 failures, all wireframe, e.g. `#1984 web light 1280 wireframe on color-fills:
-  the levers region is inert and disabled (region true, inert false, disabled true)`, `… a Tab walk from the line
-  reaches no control in the levers pane (6 stops — reached a[fills-jump-link], …)`, `… the accessibility tree holds no
-  control under the levers pane (pane found true; 298: button "Continue to Interactive", …)`.
-- (b) line left out in HC dark: 224 failures, all HC dark, e.g. `#1984 web light 1280 hc-dark on color-fills: the
-  panel's line is present and reads "HC dark is auto-derived and can't be edited here. Switch the preview to Light or
-  Dark to edit." (0 drawn, read null)`.
-- (c) line placed inside the region: 504 failures, e.g. `#1984 web light 1280 hc-light on color-fills: the line sits
-  outside the inert region and takes focus (in the pane true, in the region true, under inert true, focus false)`.
-- (d) Layout's flag removed: 144 failures, all on Layout, e.g. `#1984 web light 1280 hc-light on layout: the levers
-  region is inert and disabled (region true, inert false, disabled false)`.
+- (a) settings not held in wireframe: 168 failures, all wireframe, e.g. `#1984 web light 1280 wireframe on color-fills:
+  every setting in the levers pane is held (149 read; live: fill-pick, icons-unpair, gradients-switch, …)`.
+- (b) the line left out in HC dark: 280 failures, all HC dark, e.g. `#1984 web light 1280 hc-dark on color-fills: the
+  panel's line is present and reads "HC dark is auto-derived …" (0 drawn, read null)`.
+- (c) the line placed inside the levers region: 168 failures, e.g. `#1984 web light 1280 hc-light on color-fills: the
+  line sits outside the levers region and takes focus (in the pane true, in the region true, focus true)`.
+- (d) Layout's flag removed: 168 failures, all on Layout, e.g. `#1984 web light 1280 hc-light on layout: every setting in
+  the levers pane is held (28 read; live: bp-input, bp-remove, bp-add, …)`.
+- (e) the selects left out of the hold: 216 failures, e.g. `#1984 web light 1280 hc-light on color-fills: every setting
+  in the levers pane is held (149 read; live: gradient-kind, gradient-interpolation, …)`.
+- (f) the Jump to links held: 16 failures, e.g. `#1984 web light 1280 hc-light on color-fills: help and navigation stay
+  usable (RX1 A): every named exception drawn is live (14 drawn; held: fills-jump-link)`. The held link then refused
+  the jump click, so each context's case stopped there, by name.
+- (g) the line back in the hint style: not yet run (the run was stopped for the night, 2026-10-07).
 
 ### Moved cases
 
-- Q61's Pair button and every Q59 page case read `:disabled`, not the `disabled` property, which a fieldset does not
-  set. Their line checks read `levers-derived-note` and the new copy.
-- Components' "way to Shape left live" became "held with the panel". Type's Show advanced case became "opened in Light,
-  still shows Individual sizes, held".
-- #2179 reads the floor row's computed accessible name only in Light and Dark. In a derived mode it asserts the pickers
-  are out of the tree.
-- TY2 A's hint-line floor went from 16 to 9 (measured). High contrast light now draws one line per page where Surfaces &
-  fills repeated its line in each row list.
+- **Q61's Pair button and every Q59 page case** read `:disabled` instead of the property. That reads the same either way
+  now, and it is what the X4 A sweep reads.
+- **Their line checks** read `levers-derived-note` and the new copy.
+- **TY2 A's hint-line floor** fell from 16 to 2. The derived lines it counted (`.p3-state-hint`, repeated in each
+  Surfaces & fills row list) are gone, and the new line is a note, not a hint. Measured.
 
-### The exemption's disabled read (found by the first full verify)
-
-Both contrast exemptions grant on `:disabled`, and then hold the exempted control to "the `disabled` property or
-`aria-disabled`" (`prop` in `test:chrome`'s probe, `prop` and `disabledProp` in `test:smoke`'s). A control disabled by a
-disabled fieldset has neither. `test:smoke` audits HC light and HC dark, so the first full verify failed 1992
-assertions there, all of them this check on held controls. The read now also accepts a disabled fieldset ancestor,
-`closest('fieldset[disabled]')`. That is the DOM attribute, kept apart from the `:disabled` match that grants the
-exemption. It is `[disabled]` and not the nearest fieldset, because each lever is its own fieldset (`leverBlock`): the
-first try, `closest('fieldset')`, stopped at the lever's and left 196 failures. The focus and activation halves of the
-check are unchanged.
-
-Found on the way, not fixed here: at 380 the Surfaces & fills levers overflow their pane (scrollWidth 454 against 379) on
-`origin/main` too. That is #1975, and the measurement is posted there.
+Found on the way, not fixed here: at 380 the Surfaces & fills levers overflow their pane (scrollWidth 454 against 379),
+on `origin/main` too. That is #1975, and the measurement is posted there.

@@ -244,9 +244,7 @@ const LEGIBILITY_PROBE = (rootSel) => {
     }
     const o = {
       tag: c.tagName.toLowerCase(), cls: typeof c.className === 'string' ? c.className : '', hook: c.getAttribute('data-p3'),
-      // The DOM's own disabled state, read apart from the `:disabled` match that granted the exemption: the control's
-      // property, or (#1984, N-3 A) the property of the disabled fieldset that holds a derived mode's levers.
-      prop: c.disabled === true || !!c.closest('fieldset[disabled]'), aria: c.getAttribute('aria-disabled') === 'true', focusable, clickChanged,
+      prop: c.disabled === true, aria: c.getAttribute('aria-disabled') === 'true', focusable, clickChanged,
       fill: cs.backgroundColor, ink: cs.color, edges: ['Top', 'Right', 'Bottom', 'Left'].map((x) => [cs[`border${x}Color`], cs[`border${x}Style`], parseFloat(cs[`border${x}Width`])]),
     };
     offSeen.set(c, o);
@@ -331,7 +329,7 @@ const LEGIBILITY_PROBE = (rootSel) => {
       if (focusable) { el.blur(); prev?.focus?.(); }
     }
     fields.push({
-      off, focusable, canary: el.hasAttribute('data-ccanary'), disabledProp: el.disabled === true || !!el.closest('fieldset[disabled]'), ariaDisabled: el.getAttribute('aria-disabled') === 'true',
+      off, focusable, canary: el.hasAttribute('data-ccanary'), disabledProp: el.disabled === true, ariaDisabled: el.getAttribute('aria-disabled') === 'true',
       fill: cs.backgroundColor, ink: cs.color,
       edges: ['Top', 'Right', 'Bottom', 'Left'].map((x) => [cs[`border${x}Color`], cs[`border${x}Style`]]),
       ratio: round(ratio(over({ ...col, a: col.a * op }, ground), ground)),
