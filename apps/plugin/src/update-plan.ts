@@ -407,29 +407,44 @@ const liveNode = (set: LiveSet, m: HostMember): { name?: unknown; setSharedPlugi
 /** What `capture-baseline` decides for one member, pure. It records a baseline only where the member is
  *  stamped by the CURRENT plan, has none yet, and reads back with no field difference against that plan:
  *  then the member as it stands is what Prism3 built, and recording it launders nothing. */
-export const captureVerdict = (plan: AnatomyPlan | undefined, m: HostMember, ports: ReadPorts): { record: boolean; reason: string } => {
+/** One field where a member differs from its plan, NAMED (#2295): the part, the property, the plan's value and the
+ *  file's. A count alone ("differs in 1 place") leaves nobody able to tell a hand edit from an engine change. */
+export type Difference = { part: string; field: string; plan: string; file: string };
+
+/** Every field a member's snapshot differs from its plan in, by part (`.` for the member itself). */
+export const differencesOf = (plan: AnatomyPlan, m: HostMember, ports: ReadPorts): Difference[] => {
+  const rootName = plan.root.name;
+  const rel = (p: string): string => (p === rootName ? '.' : p.startsWith(`${rootName}/`) ? p.slice(rootName.length + 1) : p);
+  const out: Difference[] = diffAnatomy([plan], [m.snap as unknown as HostNode], () => m.name, ports)
+    .filter((d) => d.field !== 'member')
+    .map((d) => ({ part: rel(d.path), field: d.field, plan: d.expected, file: d.actual }));
+  const extras: string[] = [];
+  extraChildren(plan.root, m.snap, '.', extras);
+  for (const part of extras) out.push({ part, field: 'children', plan: 'absent', file: 'present' });
+  return out;
+};
+
+export const captureVerdict = (plan: AnatomyPlan | undefined, m: HostMember, ports: ReadPorts): { record: boolean; reason: string; differences?: Difference[] } => {
   if (!plan) return { record: false, reason: 'not in the plan' };
   if (!m.stamp) return { record: false, reason: 'unstamped' };
   if (m.baseline) return { record: false, reason: 'already has a baseline' };
   if (planHalf(m.stamp) !== planHalf(memberStamp(plan))) return { record: false, reason: 'built from an earlier plan' };
-  const divs = diffAnatomy([plan], [m.snap as unknown as HostNode], () => m.name, ports).filter((d) => d.field !== 'member');
-  const extras: string[] = [];
-  extraChildren(plan.root, m.snap, '.', extras);
-  if (divs.length || extras.length) return { record: false, reason: `differs from the plan in ${divs.length + extras.length} place(s)` };
+  const differences = differencesOf(plan, m, ports);
+  if (differences.length) return { record: false, reason: `differs from the plan in ${differences.length} place(s)`, differences };
   return { record: true, reason: 'recorded' };
 };
 
 /** `capture-baseline` over one set: a baseline written on every member `captureVerdict` clears, each
  *  other member reported with its reason. Matching is by coordinate against the plan as it stands; a
  *  member the ledger would rename is not current, so it is not captured. The stamp is never rewritten. */
-export const captureSet = async (set: LiveSet, plans: AnatomyPlan[], ports: ReadPorts, breathe?: () => Promise<void>): Promise<{ recorded: number; skipped: { member: string; reason: string }[] }> => {
+export const captureSet = async (set: LiveSet, plans: AnatomyPlan[], ports: ReadPorts, breathe?: () => Promise<void>): Promise<{ recorded: number; skipped: { member: string; reason: string; differences?: Difference[] }[] }> => {
   const planned = new Map(plans.map((p) => [coordKey(planComponentName(p)), p] as const));
   const view = await readSetView(set, breathe);
   let recorded = 0;
-  const skipped: { member: string; reason: string }[] = [];
+  const skipped: { member: string; reason: string; differences?: Difference[] }[] = [];
   for (const m of view.members) {
     const v = captureVerdict(planned.get(coordKey(m.name)), m, ports);
-    if (!v.record) { skipped.push({ member: m.name, reason: v.reason }); continue; }
+    if (!v.record) { skipped.push({ member: m.name, reason: v.reason, ...(v.differences ? { differences: v.differences } : {}) }); continue; }
     // BY THE NODE ID IT WAS READ FROM (#2301), so a set reordered while it was read cannot put the record on another
     // member. A node that is gone, or no longer carries the name it was read under, is left out.
     const node = liveNode(set, m);
@@ -533,7 +548,7 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
   return out;
 };
 
-export type CaptureResult = { sets: { def: string; set: string; recorded: number; skipped: { member: string; reason: string }[] }[]; missing: string[]; refused: { def: string; reason: string }[] };
+export type CaptureResult = { sets: { def: string; set: string; recorded: number; skipped: { member: string; reason: string; differences?: Difference[] }[] }[]; missing: string[]; refused: { def: string; reason: string }[] };
 
 /** `capture-baseline`: the one-time record for sets built before the baseline existed (§4). */
 export const captureBaselines = async (host: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>): Promise<CaptureResult> => {
@@ -578,6 +593,18 @@ const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisi
 /** No changes, and every member current. */
 const upToDate = (p: SetPreview): boolean => noChanges(p) && !p.counts.revisionUnknown;
 
+/** How many named differences each set's lines carry, so a set that differs everywhere stays a few lines long. */
+export const DIFFERENCE_LINES = 8;
+const partName = (part: string): string => (part === '.' ? 'the member' : part);
+/** One named difference, as a line. DRAFT. */
+export const differenceLine = (where: string, d: { part: string; field: string; plan: string; file: string }, members?: number): string =>
+  `${where} · ${partName(d.part)} · ${d.field}: the plan says ${d.plan}, the file has ${d.file}${members && members > 1 ? ` (${members} members)` : ''}.`;
+/** A set's named differences, capped, with what was left out counted. */
+const namedLines = (where: string, list: { part: string; field: string; plan: string; file: string; members?: number }[]): string[] => [
+  ...list.slice(0, DIFFERENCE_LINES).map((d) => differenceLine(where, d, d.members)),
+  ...(list.length > DIFFERENCE_LINES ? [`${where}: ${list.length - DIFFERENCE_LINES} more differences not listed.`] : []),
+];
+
 /** One set's dry run, as one line. */
 export const previewLine = (p: SetPreview): string => {
   if (p.blockers.length) return `${p.set}: can't be checked. ${p.blockers.join('; ')}.`;
@@ -607,7 +634,10 @@ export const previewVerdict = (r: UpdatePreview): { ok: boolean; headline: strin
     : blocked ? `✗ ${n(blocked, 'set')} can't be checked`
       : changing ? `Would change ${changing} of ${r.sets.length}` : earlier ? '✓ No changes found' : '✓ All sets up to date';
   const lines = [
-    ...r.sets.map(previewLine),
+    // Each set's line, then each field it differs from its plan in, NAMED (#2295): where, what, the plan's value and
+    // the file's. `changes` is grouped by part, field and both values, so one engine change over 432 members is one
+    // line. A bare re-apply (no field moved) is not a difference and is left to the set's own line.
+    ...r.sets.flatMap((p) => [previewLine(p), ...namedLines(p.set, p.changes.filter((c) => c.field !== 'stamp').map((c) => ({ part: c.part, field: c.field, plan: c.to, file: c.from, members: c.members })))]),
     ...r.refused.map((x) => `${x.def}: can't be checked. ${x.reason}.`),
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
     earlier ? `${earlier} built by an earlier plugin. Update ${earlier === 1 ? 'it to bring it' : 'them to bring them'} current.` : '',
@@ -620,11 +650,13 @@ export const previewVerdict = (r: UpdatePreview): { ok: boolean; headline: strin
 export const captureVerdictText = (r: CaptureResult): { ok: boolean; headline: string; summary: string; lines: string[] } => {
   const recorded = r.sets.reduce((k, x) => k + x.recorded, 0);
   const lines = [
-    ...r.sets.map((x) => {
+    ...r.sets.flatMap((x) => {
       const why = [...new Set(x.skipped.map((s) => s.reason))];
-      return x.skipped.length
+      const head = x.skipped.length
         ? `${x.set}: ${n(x.recorded, 'member')} recorded, ${x.skipped.length} left as they are (${why.slice(0, 3).join('; ')}${why.length > 3 ? '; …' : ''}).`
         : `${x.set}: ${n(x.recorded, 'member')} recorded.`;
+      // Each member left out because it differs from its plan, with what differs, NAMED (#2295).
+      return [head, ...namedLines(x.set, x.skipped.flatMap((s) => (s.differences ?? []).map((d) => ({ ...d, part: d.part === '.' ? s.member : `${s.member} / ${d.part}` }))))];
     }),
     ...r.refused.map((x) => `${x.def}: not recorded. ${x.reason}.`),
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
