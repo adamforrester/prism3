@@ -16,7 +16,7 @@
  * backticked and resolvable, facts in structured fields as well as prose, and a versioned JSON Schema
  * (`schema/ai-metadata.schema.json`, `$id` === `AI_METADATA_SCHEMA`) documenting every field.
  */
-import { Theme, CORE_TIER } from './theme';
+import { Theme, CORE_TIER, BODY_XS_DESCRIPTION } from './theme';
 import { resolveAllModes, ResolvedRole } from './modes';
 import { contrast, hexToRgb } from './color';
 
@@ -768,9 +768,15 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
     eyebrow: { desc: 'eyebrow / kicker — small uppercase label above a heading', when: 'A short label sitting above a title or hero (a "kicker").', avoid: 'Do not use as the heading itself (use title) or for body copy.' },
     code: { desc: 'monospace / code type', when: 'Inline code, code blocks, and column-aligned values.', avoid: 'Do not use for prose (use body).' },
   };
+  // body/xs is the one rung whose use is not its group's (#2266, owner Q78 A and Q101 A): metadata, never running text.
+  const BODY_XS = {
+    when: 'Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body\'s line height, so it sits on the body rhythm.',
+    avoid: 'Do not use for running text (use `type.body.sm` or larger). For small print that stands on its own (an image caption, helper text, a footnote), use `type.caption.lg`.',
+  };
   const typography: Record<string, any> = {};
   for (const c of theme.typography.composites) {
-    const d = TYPE_DESC[c.group];
+    const xs = c.group === 'body' && c.variant === 'xs';
+    const d = xs ? { ...TYPE_DESC.body, ...BODY_XS } : TYPE_DESC[c.group];
     // `resolves_to` is the EMITTED composite's own `$value` (AI/A-2). Re-deriving the paths here drifted:
     // line height and letter spacing named `line-height.*` / `letter-spacing.*` long after the
     // composites moved to the `-role` steps, so 155 styles pointed at tokens that do not exist.
@@ -782,7 +788,7 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
     if (c.link && resolves.textDecoration === undefined) resolves.textDecoration = 'underline';
     // Key by the real tree path (`type.<path>`) so aliased_by references resolve.
     typography[`type.${c.path}`] = {
-      $description: `${cap(d.desc)}${c.italic ? ' (italic variant)' : ''}${c.link ? ' (underlined link variant)' : ''}.`,
+      $description: xs ? BODY_XS_DESCRIPTION : `${cap(d.desc)}${c.italic ? ' (italic variant)' : ''}${c.link ? ' (underlined link variant)' : ''}.`,
       meaning: `Type style — ${c.group}${c.variant ? ' ' + c.variant : ''} ${c.weightRole}${c.italic ? ' italic' : ''}${c.link ? ' link' : ''} (${c.sizePx}px, ${c.group} face${c.textCase !== 'none' ? `, ${c.textCase}` : ''})`,
       when_to_use: c.link ? `${d.when} The underlined link variant — pair with a \`text.link.*\` color.` : d.when,
       // AI/A-16: name the non-link twin as a path — `strong-link` pairs with `strong`, not the default.

@@ -5260,7 +5260,13 @@ export const ENGINE_VERSION = '0.232.0';
  * it, the NB fixture included, because `radiusScale` pushes it unconditionally. An added path cannot break a
  * reference. Nothing is removed or retyped. `radiusHairline` stays accepted in brand input and changes nothing.
  */
-export const CONTRACT_VERSION = '14.2.0';
+/**
+ * 14.3.0 (#2266 PR 1, owner Q78 A and Q101 A, 2026-10-07): MINOR. The new `type.body.xs` rung (12px, body's line
+ * height, face and tracking) adds `type.body.xs.default` and `type.body.xs.default-link` to the guaranteed surface.
+ * Its other weights (`strong`, `emphasis`) and the italics follow the brand's body set exactly as `body.sm`'s do, so
+ * they are brand-dependent, as body.sm's are. An added path cannot break a reference. Nothing is removed or retyped.
+ */
+export const CONTRACT_VERSION = '14.3.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

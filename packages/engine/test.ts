@@ -8170,6 +8170,55 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(!lev.some((c) => c.group === 'caption' && c.link), 'links lever → caption link variants removed when not listed');
 }
 
+// ---- body/xs (#2266 PR 1, owner Q78 A and Q101 A) ----
+// A 12px body rung for secondary text and metadata, on body's line height (normal, 1.5: an 18px box), tracking (normal,
+// 0) and family role, carrying the same weight/variant set the brand's body.sm does. Read off the COMMITTED emissions of
+// all five brands, so what ships is what is checked. The description is the owner's words, typed here as a literal
+// (never imported from the engine's constant): an engine that drifted from them fails here, not silently.
+{
+  const XS_DESC = 'Smallest body text, 12px. Secondary text and metadata only, never running text.';
+  const bad: string[] = [];
+  let composites = 0;
+  for (const b of ['aurora', 'harbor', 'nb', 'prism3', 'wendys']) {
+    const tree = JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'));
+    const root = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+    const r = tree[root];
+    const deref = (ref: string) => ref.replace(/^\{|\}$/g, '').split('.').slice(1).reduce((o: any, k) => o?.[k], r);
+    const leaves = (n: any) => Object.keys(n ?? {}).filter((k) => !k.startsWith('$')).sort();
+    const xs = r.type?.body?.xs, sm = r.type?.body?.sm;
+    if (!xs) { bad.push(`${b}: no type.body.xs`); continue; }
+    if (leaves(xs).join() !== leaves(sm).join()) bad.push(`${b}: body.xs carries ${leaves(xs).join('/')} but body.sm carries ${leaves(sm).join('/')}`);
+    const ai = JSON.parse(readFileSync(resolve(HERE, `out/${b}.ai.json`), 'utf8'));
+    const aiType = ai.typography ?? {};
+    for (const k of leaves(xs)) {
+      composites++;
+      const c = xs[k], v = c.$value, ref = sm[k].$value;
+      const where = `${b} body.xs.${k}`;
+      if (v.fontSize !== `{${root}.core.font.size.12}`) bad.push(`${where}: fontSize ${v.fontSize}, not the 12 step`);
+      if (v.lineHeight !== `{${root}.core.font.line-height-role.normal}` || deref(deref(v.lineHeight).$value).$value !== 1.5)
+        bad.push(`${where}: lineHeight ${v.lineHeight}, not the normal role at 1.5`);
+      if (v.letterSpacing !== `{${root}.core.font.letter-spacing-role.normal}`) bad.push(`${where}: letterSpacing ${v.letterSpacing}, not normal`);
+      if (v.fontFamily !== `{${root}.core.font.family.body}`) bad.push(`${where}: fontFamily ${v.fontFamily}, not the body role`);
+      // The weight, italic and underline match body.sm's same-named variant: only the size differs.
+      for (const f of ['fontWeight', 'fontStyle', 'textDecoration']) if (v[f] !== ref[f]) bad.push(`${where}: ${f} ${v[f]} where body.sm.${k} has ${ref[f]}`);
+      if (c.$description !== XS_DESC) bad.push(`${where}: $description "${c.$description}"`);
+      const meta = aiType[`type.body.xs.${k}`];
+      if (meta?.$description !== XS_DESC) bad.push(`${where}: .ai.json $description "${meta?.$description}"`);
+      if (!k.endsWith('-link') && !(meta?.avoid_when ?? '').includes('`type.caption.lg`')) bad.push(`${where}: .ai.json avoid_when does not send standalone small print to caption.lg ("${meta?.avoid_when}")`);
+    }
+  }
+  // The Figma text styles of the four brands that ship them: body/xs is not for running text.
+  for (const b of ['aurora', 'nb', 'prism3', 'wendys']) {
+    const styles = JSON.parse(readFileSync(resolve(HERE, `out/figma/${b}/text-styles.json`), 'utf8')).styles as { name: string; description: string }[];
+    const xs = styles.filter((st) => st.name.startsWith('body/xs/'));
+    if (!xs.length) bad.push(`${b}: no body/xs Figma text style`);
+    for (const st of xs) if (!/ — 12px .+, normal line-height, for secondary text and metadata only\.$/.test(st.description))
+      bad.push(`${b} ${st.name}: Figma description "${st.description}"`);
+  }
+  ok(bad.length === 0 && composites >= 20,
+    `#2266 body/xs: 12px on body's normal line height (1.5), tracking and face, body.sm's variant set, and the owner's description, on all five brands (${composites} composites${bad.length ? `; ${bad.length}: ${bad.slice(0, 4).join(' | ')}` : ''})`);
+}
+
 // ---- weight-role set: extensible + `max` (105.1) ----
 {
   const roles = tBrand('wr-max', {}).typography.weightRoles;
@@ -11330,8 +11379,24 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   const expectedByCorrectedName = new Map<string, any>(preFix.styles.map((s: any) => [String(s.name).replace(/^text\//, ''), s]));
   const emittedByName = new Map<string, any>(ts.styles.map((s: any) => [s.name, s]));
   const missS = [...expectedByCorrectedName.keys()].filter((n) => !emittedByName.has(n));
-  const extraS = [...emittedByName.keys()].filter((n) => !expectedByCorrectedName.has(n));
-  ok(missS.length === 0 && extraS.length === 0, `figma text-styles: same 36 styles as fixture — fix #1 (no \`text/\` wrapper)` + (missS.length ? ` — MISSING ${missS.slice(0, 3).join(',')}` : '') + (extraS.length ? ` — EXTRA ${extraS.slice(0, 3).join(',')}` : ''));
+  // Styles the engine adds beyond NB's own file, each named with its reason. NB's export predates body/xs (#2266, owner
+  // Q78 A), so its four styles are the engine's addition, not a fixture mismatch. Named, never a count, and each must
+  // still be emitted: a stale entry would silently absorb a real future extra.
+  const NB_ENGINE_ADDED_STYLES = ['body/xs/default', 'body/xs/default-link', 'body/xs/strong', 'body/xs/strong-link'];
+  const extraS = [...emittedByName.keys()].filter((n) => !expectedByCorrectedName.has(n) && !NB_ENGINE_ADDED_STYLES.includes(n));
+  const staleAdded = NB_ENGINE_ADDED_STYLES.filter((n) => !emittedByName.has(n) || expectedByCorrectedName.has(n));
+  // The added styles have no fixture twin, so the binding checks below skip them. Each is held to its body/sm twin
+  // instead: every property identical except the size, which binds the 12px step.
+  const addedBad: string[] = [];
+  for (const n of NB_ENGINE_ADDED_STYLES) {
+    const xs: any = emittedByName.get(n), sm: any = emittedByName.get(n.replace('body/xs/', 'body/sm/'));
+    if (!xs || !sm) { addedBad.push(`${n}: ${xs ? 'no body/sm twin' : 'not emitted'}`); continue; }
+    const { fontSize: xsSize, ...xsRest } = xs.properties, { fontSize: smSize, ...smRest } = sm.properties;
+    if (JSON.stringify(xsRest) !== JSON.stringify(smRest)) addedBad.push(`${n}: properties other than the size differ from ${n.replace('body/xs/', 'body/sm/')}`);
+    if (!xsSize?.bound || xsSize.collection !== smSize?.collection || !/\/font\/size\/12$/.test(String(xsSize.variable))) addedBad.push(`${n}: fontSize ${JSON.stringify(xsSize)}`);
+  }
+  ok(addedBad.length === 0, `figma text-styles: each body/xs style binds as its body/sm twin does, with the 12px size (#2266)` + (addedBad.length ? ` — ${addedBad.slice(0, 3).join(' | ')}` : ''));
+  ok(missS.length === 0 && extraS.length === 0 && staleAdded.length === 0, `figma text-styles: the fixture's 36 styles, plus the ${NB_ENGINE_ADDED_STYLES.length} named engine additions (body/xs, #2266) — fix #1 (no \`text/\` wrapper)` + (missS.length ? ` — MISSING ${missS.slice(0, 3).join(',')}` : '') + (extraS.length ? ` — EXTRA ${extraS.slice(0, 3).join(',')}` : '') + (staleAdded.length ? ` — STALE addition ${staleAdded.join(',')}` : ''));
 
   // fix #1 sanity — no emitted style starts with `text/`.
   const wrapped = ts.styles.filter((s) => s.name.startsWith('text/'));

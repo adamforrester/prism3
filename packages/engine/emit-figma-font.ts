@@ -472,6 +472,7 @@ export const buildFigmaTextStyles = (theme: Theme): FigmaTextStylesFile => {
     const description = figmaTextStyleDescription({
       words: `${ext.group}${ext.variant ? ' ' + ext.variant : ''} ${weightRole}${italic ? ' italic' : ''}${ext.link ? ' link' : ''}`,
       group: ext.group,
+      variant: ext.variant,
       minPx: ext.responsive?.fluid ? ext.responsive.min?.px : undefined,
       px: ext.responsive?.fluid ? ext.responsive.max?.px : ext.sizePx,
       face: String(font.family[familyCategory]?.$extensions?.prism3?.face ?? familyCategory),

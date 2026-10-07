@@ -91,6 +91,12 @@ Apply a `type.*` composite for a text style; reference `font.weight-role.emphasi
 role), not the numeric `700`. A brand can re-map its weights and every consumer reflows —
 but only if you referenced the role.
 
+**`type.body.xs.*` and `type.caption.lg.*` are both 12px; pick by use, not size.** Body xs is
+secondary text and metadata set among body text: a timestamp, a count, a meta line under an
+item. It keeps body's line height, so it sits on the body rhythm. Never use it for running
+text; that starts at `type.body.sm.*`. Caption lg is small print that stands on its own (an
+image caption, helper text, a footnote) at caption's tighter line height.
+
 ## The self-check (do this before you finish)
 
 List every **ink-on-surface color pairing** your component renders, each as
