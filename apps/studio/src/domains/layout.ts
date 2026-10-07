@@ -9,8 +9,8 @@
  * FIRST_CLASS, no Show advanced (Q4, R2). Last, the way on to Components.
  *
  * NOTHING HERE VARIES BY MODE. Every lever is brand-wide and writes the same bytes from any editable mode (Q54). A
- * derived mode is read-only, every control on the page (Q59), under S4a's approved line, once at the top; the preview
- * is still drawn.
+ * derived mode is read-only, every control on the page (Q59), held by the frame: the whole levers panel is inert and
+ * disabled under one line (N-3 A, #1984); the preview is still drawn.
  *
  * THE CONTROLS (owner decision D15). The grid columns and each breakpoint's columns, gutter and margin are value
  * pickers (Q65, `ui/value-picker.ts`); a button shows the value the brand holds, even a column count off the offered
@@ -105,10 +105,6 @@ export const mountLayoutLevers = (host: HTMLElement, cleanups: (() => void)[]): 
     noteSectionEdit();
     rebuild();
   };
-
-  /** A derived mode's one line, at the top of the levers (Q59): S4a's approved line. */
-  const derivedLine = (): HTMLElement | null =>
-    isDerived(currentMode) ? hook(stateLine(`${modeLabel(currentMode)} is auto-derived — read-only. Edit Light or Dark and it follows.`), 'layout-derived') : null;
 
   const sectionShell = (s: Section, i: number): HTMLElement => {
     const el = hook(h('section', 'p3-lsec'), 'lever-section');
@@ -326,8 +322,7 @@ export const mountLayoutLevers = (host: HTMLElement, cleanups: (() => void)[]): 
     const scrollTop = host.scrollTop;
     items = [];
     pickFocus = null;
-    const derived = derivedLine();
-    const parts: HTMLElement[] = [h('p', 'p3-intro', PAGE.intro), ...(derived ? [derived] : [])];
+    const parts: HTMLElement[] = [h('p', 'p3-intro', PAGE.intro)];
     PAGE.sections.forEach((s, i) => { const x = BUILDERS[s.title]?.(s, i); if (x) { parts.push(x.el); items.push(...x.items); } });
     // T8: Continue opens the Components TAB on either host (the web's Buttons page until S8; the plugin's Components
     // page), routed by the tab through `pageOfTab` (S7's), never by a hard-coded legacy page key.
@@ -339,8 +334,6 @@ export const mountLayoutLevers = (host: HTMLElement, cleanups: (() => void)[]): 
     nr.append(next);
     parts.push(nr);
     root.replaceChildren(...parts);
-    // Q59: a derived mode is read-only, every control on the page. The info buttons only show a description.
-    if (derived) for (const n of root.querySelectorAll<HTMLButtonElement | HTMLSelectElement | HTMLInputElement>('.p3-lsec :is(button, select, input):not(.p3-info)')) n.disabled = true;
     for (const it of items) it.block?.setRefused(!!lastError && !!lastEdited && it.key === lastEdited);
     filter();
     if (focusPick && pickFocus) { focusPick = false; (pickFocus as () => void)(); }

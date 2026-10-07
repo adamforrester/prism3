@@ -93,8 +93,9 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
 
   // ── Background fills: the page, its tiers, the contrast floor and the inverse fill, for the previewed mode ──
   // One set of controls (owner decision Q22), where S4a drew a Light group and a Dark group: each control
-  // writes `surfaces.<the previewed mode>`, as that mode's group did. A mode with no surfaces of its own (a
-  // derived or a custom mode) shows the ones it is drawn from, disabled, with the line the rows use.
+  // writes `surfaces.<the previewed mode>`, as that mode's group did. A custom mode, which has no surfaces of its own,
+  // shows the ones it is drawn from, disabled, with its own line. A derived mode shows them too, and the frame holds
+  // the whole panel read-only under its one line (N-3 A, #1984).
   // S4f (the owner's QA-B1, QA-B3, QA-B6, QA-B7): the controls are rows in the Foreground rows' pattern, a swatch,
   // the name with its token under it, then the step picker, under two sub-headings at the rows' sub-heading size:
   // "Default" (Primary, which was "Page", Secondary, Tertiary and the contrast floor, with its own info text) and
@@ -199,8 +200,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     };
     const grp = hook(h('div', 'p3-modegroup'), 'surfaces-group');
     grp.dataset.mode = m;
-    const d = derivedLine();
-    grp.append(d ?? (editable ? editingLine() : subLine('Custom modes seed their surfaces from their base mode.')));
+    if (!isDerived(currentMode)) grp.append(editable ? editingLine() : subLine('Custom modes seed their surfaces from their base mode.'));
 
     // ── Default (BG1 A, approved copy: the section title already says "background fills") ──
     const def = hook(h('div', 'p3-fillrows'), 'surface-default-rows');
@@ -334,7 +334,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     if (!steps.length) return null;
     // An icon row is locked to its text row while icons match text (Q50, #1968): read-only, naming what it follows.
     const follows = lockedTo(mode, r);
-    const derived = isDerived(mode) || follows !== null;
+    const locked = follows !== null;
     const ov = overrideOf(mode, r.role);
     const at = stepOfPath(res.path);
     // A role on a fixed primitive (an on-color ink on `white` or `black`) has no step; its Auto names the primitive.
@@ -362,7 +362,8 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     btn.type = 'button';
     btn.id = `p3-pick-${r.role.replace(/\./g, '-')}`;
     btn.dataset.role = r.role;
-    const open = openRole === r.role && !derived;
+    // No picker is drawn open over a derived mode's read-only panel (N-3 A).
+    const open = openRole === r.role && !locked && !isDerived(mode);
     btn.setAttribute('aria-expanded', String(open));
     const now = follows !== null ? `Follows ${follows}` : transparent ? 'Transparent' : `${ov !== undefined ? 'Override' : 'Auto'} · ${atName}`;
     btn.append(h('span', 'p3-btn-label', now));
@@ -373,7 +374,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     }
     btn.append(glyph('chev'));
     btn.setAttribute('aria-label', `${r.label}: ${now}${ratio !== null ? `, ${fmtRatio(ratio)}` : ''}${below ? ', below floor' : ''}${follows !== null ? '' : '. Pick a step'}`);
-    btn.disabled = derived;
+    btn.disabled = locked;
     if (follows !== null) btn.dataset.follows = follows;
     btn.onclick = () => {
       const opening = openRole !== r.role;
@@ -408,8 +409,6 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     return { el: wrap, said: `${r.label} ${r.role}`.toLowerCase(), key: `row:${r.role}`, refmark };
   };
 
-  const derivedLine = (): HTMLElement | null =>
-    isDerived(currentMode) ? stateLine(`${modeLabel(currentMode)} is auto-derived — read-only. Edit Light or Dark and it follows.`) : null;
   const editingLine = (): HTMLElement => subLine(`Editing ${modeLabel(currentMode)}, the mode the preview shows.`);
 
   /** A focus ring, read-only until #1966: a fill row's swatch, name and role, and in place of the picker the step
@@ -435,8 +434,9 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
   const rows = (key: string, list: readonly FillRow[], lead: HTMLElement[] = [], tail: (sub: string | undefined) => Item[] = () => []): Item[] => {
     const box = hook(h('div', 'p3-fillrows'), `${key === 'fills' ? 'fill' : key === 'fields' ? 'field' : key}-rows`);
     const out: Item[] = [];
-    const d = derivedLine();
-    box.append(d ?? editingLine(), ...lead);
+    // A derived mode edits nothing here, so no line names a mode; the frame's line says why (N-3 A).
+    if (!isDerived(currentMode)) box.append(editingLine());
+    box.append(...lead);
     let sub: string | undefined;
     const close = (): void => { for (const it of tail(sub)) { box.append(it.el); out.push(it); } };
     for (const r of list) {
@@ -474,9 +474,8 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     btn.type = 'button';
     btn.dataset.locked = String(paired);
     btn.append(glyph(paired ? 'lock' : 'unlock'), h('span', 'p3-btn-label', paired ? 'Unpair icons from text' : 'Pair icons with text'));
-    // Disabled in a derived mode, as every control on this page is (owner decisions Q56, Q59): HC and wireframe
-    // follow Light and Dark, so the pairing is edited there.
-    btn.disabled = isDerived(currentMode);
+    // Read-only in a derived mode with the rest of the panel (Q56, Q59; held by the frame since N-3 A, #1984): HC and
+    // wireframe follow Light and Dark, so the pairing is edited there.
     note.append(h('p', 'p3-icon-pair-note', paired
       ? 'Icons follow their text color. Unpair them to set icons on their own.'
       : 'Icons are set on their own. Pair them to follow their text color again.'), btn);
@@ -490,7 +489,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
         render();
       };
       const n = iconOverrideCount();
-      if (confirmPair && n && !btn.disabled) {
+      if (confirmPair && n && !isDerived(currentMode)) {
         note.append(inlineConfirm('icons-pair-confirm', {
           title: PAIR_ICONS_CONFIRM.title, body: [PAIR_ICONS_CONFIRM.body(n)], action: PAIR_ICONS_CONFIRM.action,
           onConfirm: () => { confirmPair = false; edit('icons', () => pairIcons()); },
@@ -519,10 +518,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       (v) => edit('gradients', () => setGradientsOn(v)));
     sw.set(on);
     b.el.querySelector('.p3-lever-head')?.append(sw.el);
-    // Read-only in a derived mode (owner decision Q59): every lever on the page is, brand-wide ones included, under
-    // the line the rows use. Gradients are brand-wide, so the line says where they are edited.
-    const d = derivedLine();
-    if (d) b.ctl.append(d);
+    // Read-only in a derived mode (owner decision Q59), brand-wide as they are: the frame holds the panel (N-3 A).
     if (on) {
       const list = hook(h('div', 'p3-glist'), 'gradient-list');
       const palNames = theme.palettes.map((p) => p.palette);
@@ -645,8 +641,6 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
       list.append(addRow);
       b.ctl.append(list);
     }
-    // The switch is in the header, so the whole block is read, less its info button (it opens help, edits nothing).
-    if (d) for (const c of b.el.querySelectorAll<HTMLButtonElement | HTMLInputElement | HTMLSelectElement>('button, input, select')) if (c.getAttribute('data-p3') !== 'lever-info') c.disabled = true;
     return [{ el: b.el, said: `${b.said} stops`, key: 'gradients', block: b }];
   };
 

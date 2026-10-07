@@ -54,10 +54,11 @@
  * give way, each by a measured check that sets `data-bar-fit`, reusing the narrow tier's rules where it has them. See
  * `fitBar`.
  */
-import { page, searchHits, searchQuery, setPage, setSearch, subscribe } from '../state/store';
+import { currentMode, page, searchHits, searchQuery, setPage, setSearch, subscribe } from '../state/store';
+import { isDerived } from '../state/verdict';
 import { INSPECT, TABS, homeOf, isMenuPage, isNewPage, legacyOf, newPageOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type NewPageKey, type Place, type TabId } from './pages';
 import { glyph, h, hook, tile } from './dom';
-import { inspectMenu, modeControl, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
+import { inspectMenu, modeControl, modeLabel, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
 import { mountActivity, type ActivityLend } from './activity';
 import { figmaMenu, type FigmaAction, type FigmaSource } from './figma';
 import { mountBar, type BarLend } from './bar';
@@ -93,17 +94,34 @@ const NEW_PAGES: Record<NewPageKey, {
   /** `lend`: the legacy renderers `main.ts` lends a preview until its slice replaces them (S3: Brand's
    *  Style guide), as Inspect is lent its two legacy views. */
   readonly preview: (host: HTMLElement, cleanups: (() => void)[], lend: PageLends) => void;
+  /** N-3 A (#1984): the page edits the previewed mode, so while the preview shows a derived mode its whole levers
+   *  panel is read-only (`syncDerivedReadOnly` below). Brand and Palettes are brand-wide and stay editable. */
+  readonly derivedReadOnly?: true;
 }> = {
   brand: { levers: mountBrandLevers, preview: mountBrandPreview },
   palettes: { levers: mountPalettesLevers, preview: mountPalettesPreview },
-  fills: { levers: mountFillsLevers, preview: mountSurfacesPreview },
-  interactive: { levers: mountInteractiveLevers, preview: mountInteractivePreview },
-  type: { levers: mountTypeLevers, preview: mountTypePreview },
-  depth: { levers: mountDepthLevers, preview: mountDepthPreview },
-  shape: { levers: mountShapeLevers, preview: mountShapePreview },
-  layout: { levers: mountLayoutLevers, preview: mountLayoutPreview },
-  components: { levers: mountComponentsLevers, preview: mountComponentsPreview },
+  fills: { levers: mountFillsLevers, preview: mountSurfacesPreview, derivedReadOnly: true },
+  interactive: { levers: mountInteractiveLevers, preview: mountInteractivePreview, derivedReadOnly: true },
+  type: { levers: mountTypeLevers, preview: mountTypePreview, derivedReadOnly: true },
+  depth: { levers: mountDepthLevers, preview: mountDepthPreview, derivedReadOnly: true },
+  shape: { levers: mountShapeLevers, preview: mountShapePreview, derivedReadOnly: true },
+  layout: { levers: mountLayoutLevers, preview: mountLayoutPreview, derivedReadOnly: true },
+  components: { levers: mountComponentsLevers, preview: mountComponentsPreview, derivedReadOnly: true },
 };
+
+/** The levers panel's one line while the preview shows a derived mode (N-3 A, #1984). APPROVED (owner, RO1 A,
+ *  2026-10-07). `m` is the mode's name as the mode control shows it (`modeLabel`). */
+export const DERIVED_READONLY_NOTE = (m: string): string => `${m} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`;
+
+/** RX1 A (owner, 2026-10-07): what stays usable in a derived mode's read-only levers panel, because it edits nothing:
+ *  the ⓘ help buttons, the Show advanced folds (each names its body `p3-advb-…`), the Jump to links, the "way to" links
+ *  between pages, and Continue. Everything else in the panel that a keyboard or a pointer can operate is a setting. */
+const STAYS_LIVE = ['.p3-info', '[aria-controls^="p3-advb-"]', '.p3-jump-link', '.p3-deplink', '.p3-next'].join(', ');
+/** Everything a keyboard or a pointer can operate (#1991's reach: native controls, ARIA widgets, editable regions and
+ *  anything in the tab order). */
+const OPERABLE = ['button', 'select', 'textarea', 'input:not([type="hidden"])', 'a[href]', '[contenteditable]:not([contenteditable="false"])',
+  '[tabindex]:not([tabindex="-1"])', ...['button', 'switch', 'checkbox', 'radio', 'slider', 'spinbutton', 'tab', 'menuitem', 'menuitemradio',
+    'menuitemcheckbox', 'option', 'combobox', 'textbox'].map((r) => `[role="${r}"]`)].join(', ');
 
 /** The product's name, as the studio's top bar shows it (owner, 2026-10-04). */
 const PRODUCT_NAME = 'Prism3 Studio';
@@ -289,6 +307,68 @@ export const mountFrame = (app: HTMLElement, opts: {
   const panes = hook(h('div', 'p3-panes'), 'panes');
   const levers = hook(h('section', 'p3-levers'), 'levers-pane');
   levers.id = 'p3-levers';
+  // N-3 A (owner, 2026-10-05; #1984) and RX1 A, RX2 A (owner, 2026-10-07): ONE read-only state for the levers panel
+  // while the preview shows a derived mode (HC light, HC dark, wireframe), in place of each page disabling its own
+  // controls. The page's levers are mounted inside `leversRegion` (`display: contents`, so it adds no box). In a derived
+  // mode `holdSettings` disables every setting in it, the pages' own redraws included (a MutationObserver re-applies it),
+  // and leaves help and navigation usable (`STAYS_LIVE`, RX1 A). A native control gets its own `disabled`, so it keeps
+  // Prism3's disabled skin (F1 A, X4 A), leaves the tab order and reads disabled to assistive technology; any other
+  // widget gets `aria-disabled` and leaves the tab order. One source of truth: a new lever is held without doing
+  // anything, and only what this frame held is released. The line that says why, `leversNote`, sits OUTSIDE the region,
+  // first in the pane, in the studio's boxed note (Build style guides' `.p3-sg-note.p3-sg-warn`, its own warning glyph;
+  // RX2 A, RX3 A), and takes focus; in an editable mode it is not in the document. The writes keep their own guards (#2096).
+  const leversRegion = hook(h('div', 'p3-levers-region'), 'levers-region');
+  const leversNote = hook(h('p', 'p3-sg-note p3-sg-warn p3-levers-note'), 'levers-derived-note');
+  const leversNoteText = h('span', 'p3-sg-warn-text');
+  leversNote.append(glyph('warn'), leversNoteText);
+  leversNote.tabIndex = -1;
+  let holding = false;
+  /** Hold every setting in the region that is not already off: a native control by its `disabled`, any other widget by
+   *  `aria-disabled` and out of the tab order. Marked `data-held`, so a release frees only what this held. */
+  const holdSettings = (): void => {
+    for (const n of leversRegion.querySelectorAll<HTMLElement>(OPERABLE)) {
+      if (n.closest(STAYS_LIVE)) continue;
+      const native = n instanceof HTMLButtonElement || n instanceof HTMLInputElement || n instanceof HTMLSelectElement || n instanceof HTMLTextAreaElement;
+      const held = n.getAttribute('data-held');
+      // Held already: skipped only while it is still held. A page that toggles a control in place (Depth's tint hue on
+      // a brand change, #2284 review) lifts the hold, and it is put back here, its first recorded state kept.
+      if (held !== null) {
+        if (held === 'native' ? (n as HTMLButtonElement).disabled : n.getAttribute('aria-disabled') === 'true' && n.tabIndex === -1) continue;
+        if (held === 'native') (n as HTMLButtonElement).disabled = true;
+        else { n.setAttribute('aria-disabled', 'true'); n.tabIndex = -1; }
+        continue;
+      }
+      if (native) {
+        if (n.disabled) continue;
+        n.disabled = true;
+        n.setAttribute('data-held', 'native');
+      } else {
+        n.setAttribute('data-held', n.getAttribute('tabindex') ?? '');
+        n.setAttribute('aria-disabled', 'true');
+        n.tabIndex = -1;
+      }
+    }
+  };
+  const releaseSettings = (): void => {
+    for (const n of leversRegion.querySelectorAll<HTMLElement>('[data-held]')) {
+      const was = n.getAttribute('data-held')!;
+      n.removeAttribute('data-held');
+      if (was === 'native') { (n as HTMLButtonElement).disabled = false; continue; }
+      n.removeAttribute('aria-disabled');
+      if (was === '') n.removeAttribute('tabindex'); else n.setAttribute('tabindex', was);
+    }
+  };
+  // A page redraws its levers whole on most edits and on its own subscriptions, and toggles some controls in place; what
+  // it draws or re-enables while held is held again. The hold sets the same attributes it watches, so the records it
+  // makes itself are taken and dropped, never fed back (and a second pass would change nothing: it is idempotent).
+  const leversHold = new MutationObserver(() => {
+    if (!holding) return;
+    holdSettings();
+    leversHold.takeRecords();
+  });
+  /** What the hold watches: nodes drawn, and the three attributes a page can lift a hold with. */
+  const HOLD_WATCH: MutationObserverInit = { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled', 'aria-disabled', 'tabindex'] };
+  cleanups.push(() => leversHold.disconnect());
   const preview = hook(h('section', 'p3-preview'), 'preview-pane');
   preview.setAttribute('aria-label', 'Preview');
   // Q2: the preview's title row shares one header height with the tab row, so the two dividers meet at
@@ -484,9 +564,28 @@ export const mountFrame = (app: HTMLElement, opts: {
     for (const c of paneCleanups) c();
     paneCleanups = [];
     levers.replaceChildren();
+    leversRegion.replaceChildren();
     previewBody.replaceChildren();
     mounted = null;
+    syncDerivedReadOnly();
   };
+  /** N-3 A (#1984): the levers panel read-only, with its one line, exactly while a page that edits the previewed mode
+   *  shows a derived mode. Run on every mount, release and mode change. */
+  function syncDerivedReadOnly(): void {
+    const on = mounted !== null && NEW_PAGES[mounted].derivedReadOnly === true && isDerived(currentMode);
+    holding = on;
+    if (on) {
+      holdSettings();
+      leversHold.observe(leversRegion, HOLD_WATCH);
+      leversNoteText.textContent = DERIVED_READONLY_NOTE(modeLabel(currentMode));
+      if (leversNote.parentNode !== levers || levers.firstChild !== leversNote) levers.prepend(leversNote);
+    } else {
+      leversHold.disconnect();
+      releaseSettings();
+      leversNote.remove();
+    }
+  }
+  cleanups.push(subscribe('mode', syncDerivedReadOnly));
   cleanups.push(unmountPanes, () => { for (const c of menuCleanups ?? []) c(); menuCleanups = null; });
   // QA-B9: record which lever section each interaction is in. Records only; an edit handler turns a record
   // into a note, and nothing else moves the preview (V1).
@@ -524,6 +623,10 @@ export const mountFrame = (app: HTMLElement, opts: {
       if (moved) {
         const row = NEW_PAGES[moved];
         row.levers(levers, paneCleanups, opts.lend);
+        // The page mounted into the pane (its scroll container, which it reads as `host`); its nodes move into the
+        // read-only region (N-3 A), which then becomes the pane's content.
+        leversRegion.replaceChildren(...levers.childNodes);
+        levers.replaceChildren(leversRegion);
         row.preview(previewBody, paneCleanups, opts.lend);
         // QA-B9: an edit the levers noted (`noteSectionEdit`, called by Surfaces & fills' and Interactive's edit
         // handlers) reveals the preview section its lever section pairs with. A page whose levers never note one
@@ -536,6 +639,7 @@ export const mountFrame = (app: HTMLElement, opts: {
         previewBody.scrollTo({ top: at?.preview ?? 0, behavior: 'instant' });
       }
       mounted = moved;
+      syncDerivedReadOnly();
     }
 
     // The legacy frame is the panel the tabs control. With nothing selected (a page no tab shows, such as

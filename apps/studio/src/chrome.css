@@ -672,6 +672,11 @@
 .p3-tile[data-on="true"] .p3-agent-dot { display: block; }
 
 /* ── the levers panel (S2 on): sections as white cards on the gray panel (IA-2, V7) ────────── */
+/* N-3 A, RX2 A (#1984): the region that holds a page's levers draws no box of its own. The read-only line above it is
+   Build style guides' boxed note (`.p3-sg-note.p3-sg-warn`, unchanged); this places it on the panel's own inset. */
+.p3-levers-region { display: contents; }
+.p3-levers > .p3-levers-note { margin: var(--p3-space-300) var(--p3-space-300) 0; font-family: var(--p3-font-ui); }
+.p3-levers-note:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 .p3-levers-body {
   display: grid; gap: var(--p3-space-200); align-content: start; padding: var(--p3-space-300) var(--p3-space-300) var(--p3-space-500);
   color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); line-height: var(--p3-lh-normal);
