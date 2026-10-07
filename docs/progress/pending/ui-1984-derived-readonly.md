@@ -30,7 +30,16 @@ A held native control gets its own `disabled`. So it keeps Prism3's disabled ski
 exemption, leaves the tab order, and reads disabled to assistive technology. Any other widget gets `aria-disabled` and
 `tabindex="-1"`. Each held element is marked `data-held`, so leaving the derived mode frees only what the frame held. A
 page's own disabled controls (the first breakpoint, a locked icon row) stay as the page drew them. A `MutationObserver`
-on the region re-applies the hold whenever a page redraws, for example when a fold opens. One source of truth: a new
+on the region re-applies the hold whenever a page redraws, for example when a fold opens, and whenever a page lifts a hold
+in place (`disabled`, `aria-disabled` or `tabindex` changed on a held node). The hold sets those same attributes, so it
+drops the records it makes itself (`takeRecords`), and a second pass would change nothing.
+
+**The review's BLOCK (#2284).** The first version skipped any node already marked `data-held` and watched only
+`childList`. Depth's `noHue` sync sets the tint hue's `disabled` on every brand change, so in a derived mode a brand
+change (an agent edit, the test hook) left the hue drawn enabled, focusable and announced enabled, while the write guard
+silently refused its edits. Now a held node is skipped only while it is still held, and the observer watches the three
+attributes too. The reviewer grepped every other in-place toggle in the seven pages and `ui/`; Depth's is the only live
+one today, and the fix closes the class. One source of truth: a new
 lever is held without doing anything, and no page checks the mode to disable a control.
 
 **The line,** "‹Mode› is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.", is the
@@ -72,7 +81,16 @@ The gate runs on both hosts, both chrome themes, at 1280 and 380. In each derive
   glyph (known by its drawing), with its text at 4.5:1 and its glyph at 3:1 on its own ground.
 
 Once per run, in HC light on Surfaces & fills, the exceptions are shown to work: an ⓘ opens its help, and a Jump to link
-scrolls the pane. In Light and Dark there is no line, a setting takes focus, and the tree holds enabled settings.
+scrolls the pane.
+
+**A brand change while held** (once per host, light chrome, 1280, HC light on Depth & motion with Show advanced open):
+- web: the test edit hook changes the tint amount; every setting is still held, the tint hue by name;
+- plugin: its UI has no in-place brand change. A `restore-input` loads the brand wholesale and returns to Light and the
+  opening page, so the case reads that it lands live (no line, nothing held) and that HC light on Depth holds everything
+  again;
+- both: the tint hue is re-enabled in place exactly as `noHue` does it (`disabled = false`, nothing drawn) and must be
+  held again. A brand change also redraws nodes in the region, which alone triggers the re-hold, so this check is what
+  holds the attribute watch on its own. In Light and Dark there is no line, a setting takes focus, and the tree holds enabled settings.
 
 The exceptions are a literal list of hooks, so the gate does not read the frame's `STAYS_LIVE` selector. The modes, names,
 pages, line and note classes are literals too, and every page × mode pair is counted.
@@ -95,6 +113,13 @@ pages, line and note classes are literals too, and every page × mode pair is co
 - (g) the line back in the hint style: 168 failures, e.g. `#1984 web light 1280 hc-light on color-fills: the line is the
   studio's boxed note (p3-sg-note p3-sg-warn, RX2 A) with its own warning glyph (RX3 A), text at 4.5:1 and glyph at 3:1
   on its own ground ({"classes":false,"glyph":true,"opaque":false,"text":3.81,"icon":3.81})`.
+- (h) the hold not watching attributes (`childList` only): 2 failures, both hosts, e.g. `#1984 web light 1280
+  hc-light on depth, a brand change while held: the tint hue re-enabled in place, as Depth's own sync does it, is held
+  again ({"disabled":false,"held":"native"})`. Before the in-place check existed this arm passed, because the brand
+  change also redraws nodes; that is why the check was added.
+- (i) a held node skipped though re-enabled: 3 failures, e.g. `#1984 web light 1280 hc-light on depth, a brand change
+  while held: after the change, every setting is still held, the tint hue included (10 read; live ["shadow-tint-hue"];
+  hue {"disabled":false,"held":"native"})`.
 
 One full `test:chrome` run also timed out once in #2194's Light-mode Type case, which never touches a derived mode. Run
 on its own it passed 20/20 on both hosts, so it was load. #2285 (section 33) and #2298 (its 33, renumbered here to 34) landed first, so this one is 35.
