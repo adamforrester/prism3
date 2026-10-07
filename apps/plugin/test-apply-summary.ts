@@ -32,7 +32,7 @@
  * reports the nodes as present. The facts here are authored fixtures — the executor's own collection of
  * them is gated against real host state in `test-write-components.ts`.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsNote, partialWriteHeadline, partialWriteNote } from './src/apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, conflictHeadline, componentHeadline, staleNote, refsNote, refsItems, partialWriteHeadline, partialWriteNote, partialWriteItem, fromClauses } from './src/apply-summary';
 import type { PartialWriteFacts } from './src/apply-summary';
 
 let failed = 0;
@@ -285,6 +285,20 @@ ok(componentHeadline(0, 648, 3, 0, 12) === '⚠ 3 misses' && componentHeadline(0
 ok(componentHeadline(4, 644, 0, 0, 12) === '✓ built 4 variants', 'a run that added members leads with what it added');
 const rWorst = [0, 1, 9, 99, 780, 9999].map((n) => componentHeadline(0, 648, 0, 0, n));
 ok(rWorst.every((h) => h.length <= 24), `every repair headline fits the 24-char pill budget (longest "${rWorst.reduce((a, b) => (b.length > a.length ? b : a))}")`);
+
+// #2177: a summary built item by item. Each item is joined by its own separator, an empty one adds nothing (as an empty
+// note always appended nothing), and the lines are the items without their separators. Literals typed here.
+{
+  const c = fromClauses([['', 'palette 118 (+0)'], [', ', ''], [', ', '⚠ 3 text styles skipped (font unavailable: A, B, C)'], ['. ', 'Built from x at y.']]);
+  ok(c.summary === 'palette 118 (+0), ⚠ 3 text styles skipped (font unavailable: A, B, C). Built from x at y.',
+    `#2177 fromClauses: the summary joins each item by its own separator, and an empty item adds nothing (${c.summary})`);
+  ok(JSON.stringify(c.lines) === JSON.stringify(['palette 118 (+0)', '⚠ 3 text styles skipped (font unavailable: A, B, C)', 'Built from x at y.']),
+    `#2177 fromClauses: the lines are the items, a comma inside one not a boundary (${JSON.stringify(c.lines)})`);
+  ok(refsNote(2, { refused: 1, lost: 0, discarded: 3 }) === refsItems(2, { refused: 1, lost: 0, discarded: 3 }).map((x) => `, ${x}`).join('') && refsItems(0, Z).length === 0,
+    '#2177 refsItems: the reference clauses as items, which joined by ", " are refsNote');
+  const pf = facts({ loose: 2, parked: 2, frame: 'F' });
+  ok(partialWriteNote(pf) === ` — ${partialWriteItem(pf)}` && partialWriteItem(facts({})) === '', '#2177 partialWriteItem: the clause without its " — ", and nothing when nothing was left');
+}
 
 console.log(`\nplugin apply-result headline: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

@@ -137,5 +137,28 @@ ok(second?.completed === false && second?.ok === false,
 const unknown = await build('no-such-def');
 ok(unknown?.completed === false && unknown?.ok === false, `C1: an unknown def posts completed: false (completed ${unknown?.completed})`);
 
+// 4. #2177: each verdict's lines are its summary's items, in the summary's words. The oracle is the summary itself, the
+//    prose every reader had before #2177: the lines, in order, are pieces of it, and what lies between them is only the
+//    separators the builders join items with. One long line, or a word the summary does not have, fails it.
+const SEPARATORS = new Set(['', ', ', '. ', ' — ']);
+const isSplitOf = (summary: string, lines: unknown): boolean => {
+  if (!Array.isArray(lines) || lines.length === 0) return false;
+  let at = 0;
+  for (const [i, l] of (lines as unknown[]).entries()) {
+    if (typeof l !== 'string' || l === '') return false;
+    const found = summary.indexOf(l, at);
+    if (found < 0 || !SEPARATORS.has(summary.slice(at, found)) || (i === 0 && found !== 0)) return false;
+    at = found + l.length;
+  }
+  return at === summary.length;
+};
+for (const [name, r, min] of [['the fresh build', first, 3], ['the refused rebuild', second, 2], ['the unknown def', unknown, 2]] as const) {
+  ok(!!r && isSplitOf(String(r.summary), r.lines) && (r.lines as string[]).length >= min,
+    `#2177 ${name}: its lines are its summary's items, in order, in its words, at least ${min} (${JSON.stringify(r?.lines)})`);
+}
+// The set's own facts stay one line; the misses and the build note are lines of their own.
+ok(!!first && /^set '.*refs across \d+ members$/.test(String(first.lines?.[0])) && /^Built from /.test(String(first.lines?.at(-1))),
+  `#2177 the fresh build: the set's facts are its first line, the build note its last (${JSON.stringify(first?.lines?.[0])} … ${JSON.stringify(first?.lines?.at(-1))})`);
+
 console.log(`\n${executed - failed}/${executed} build-completed assertions passed.`);
 process.exit(failed ? 1 : 0);

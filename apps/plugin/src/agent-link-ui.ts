@@ -6,9 +6,12 @@
  * (`apps/studio/src/shell/frame.ts`) and never clears, which the bar places between Theme and Activity. A click
  * switches the link; its name is "Agent", with `aria-pressed` for on or off; a green dot sits on the glyph
  * while the link is on. Until T7 it was the "Agent: Off" chip, which opened a popover holding the switch, a line on
- * what the link does and the link's status; the chip and the popover are gone. The status line's formatter
- * (`agentLinkStatusText`) is kept, and tested, until the owner says where that status is shown. It is styled by the
- * chrome stylesheet (`apps/studio/src/chrome.css`), so it carries no inline value and follows the chrome's theme.
+ * what the link does and the link's status; the chip and the popover are gone. The status now lives in the Activity
+ * drawer (#2213, the owner's N1 A and AS1 A, 2026-10-06): a short status (`agentLinkShortStatus`) at the far right of its
+ * bar row, beside the caret, and the full status line (`agentLinkStatusText`) as the open drawer's first line and the
+ * short status's tooltip and accessible name. The tile reports both with each published state (`setAgentLinkStatus`,
+ * `shell/activity.ts`). Both are styled by the chrome stylesheet (`apps/studio/src/chrome.css`), so they carry no
+ * inline value and follow the chrome's theme.
  *
  * It is mounted by the plugin's own UI entry (`ui/entry.ts`) beside the shared studio UI rather than inside
  * it: the web build carries none of it. The frame mounts and unmounts with the app view (the start screen
@@ -29,12 +32,12 @@ import type { AgentLinkState } from './agent-protocol';
 import { createBridgeRelay } from './agent-bridge-relay';
 import type { WsLike } from './agent-bridge-relay';
 import { glyph, h, hook, tile } from '../../studio/src/shell/dom';
-import { setAgentLinkOn } from '../../studio/src/shell/activity';
+import { setAgentLinkOn, setAgentLinkStatus } from '../../studio/src/shell/activity';
 
 /** The frame's stable slot for the tile, by its hook. */
 const SLOT = '[data-p3="bar-agent"]';
 
-/** The link's status line, from the published state (the old popover's; not drawn since T7, see above). */
+/** The link's full status line, from the published state (the old popover's words; since #2213, the open Activity drawer's first line). */
 export const agentLinkStatusText = (s: AgentLinkState | null): string => {
   if (!s || !s.on) return 'Off — agent commands are ignored.';
   const every = `${Math.round(s.pollMs / 100) / 10} s`;
@@ -45,6 +48,16 @@ export const agentLinkStatusText = (s: AgentLinkState | null): string => {
     : ' · no command yet';
   const inbox = s.inboxError ? ` · ⚠ ${s.inboxError}` : '';
   return listening + last + inbox;
+};
+
+/** The link's short status for the Activity drawer's bar row (#2213, the owner's AS1 A, 2026-10-06): nothing while the
+ *  link is off; "Agent error" (the error ink) for an inbox error; "Agent not listening" (the error ink) while it is on
+ *  with no transport listening; otherwise "Agent listening" (quiet). Pure. */
+export const agentLinkShortStatus = (s: AgentLinkState | null): { readonly text: string; readonly error: boolean } | null => {
+  if (!s || !s.on) return null;
+  if (s.inboxError) return { text: 'Agent error', error: true };
+  if (!s.transports.mailbox && !s.transports.bridge) return { text: 'Agent not listening', error: true };
+  return { text: 'Agent listening', error: false };
 };
 
 const post = (m: UiToMain): void => parent.postMessage({ pluginMessage: m }, '*');
@@ -77,6 +90,11 @@ export const mountAgentLink = (): void => {
     chip.dataset.on = String(on);
     // Activity's name and tooltip say "agent link on" while it is (the owner's top-bar decision, 2026-10-05).
     setAgentLinkOn(on);
+    // The Activity drawer's agent status (#2213): the short status in its bar row, and the full line while the link is
+    // on or holds an inbox error.
+    const short = agentLinkShortStatus(state);
+    setAgentLinkStatus({ short: short?.text ?? null, error: !!short?.error,
+      full: state && (state.on || state.inboxError) ? agentLinkStatusText(state) : null });
   };
   chip.addEventListener('click', () => post({ type: 'agent-link', on: !state?.on }));
 
