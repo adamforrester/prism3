@@ -66,7 +66,7 @@ import { createAgentLink } from './agent-link';
 import { createDispatcher, componentCensus } from './agent-dispatch';
 import type { ActionSink, AgentActions } from './agent-dispatch';
 import { AGENT_COMMANDS, failedResult } from './agent-protocol';
-import { previewUpdate, captureBaselines, previewVerdict, captureVerdictText } from './update-plan';
+import { previewUpdate, captureBaselines, previewVerdict, captureVerdictText, adoptMembers as adoptAll, adoptVerdictText } from './update-plan';
 import type { UpdateHost, UpdateTarget } from './update-plan';
 
 // Show the UI iframe. `__html__` is the bundled shared-UI HTML Figma injects from `manifest.ui`
@@ -881,6 +881,23 @@ const captureBaseline = async (defId: string | undefined, sink: ActionSink): Pro
   }
 };
 
+/** ADOPT (#2283, §10 Q4): record and stamp the members Prism3 did not build, so an update can bring them to the
+ *  plan in place. Writes only plugin data. */
+const adoptMembers = async (defId: string | undefined, sink: ActionSink): Promise<void> => {
+  try {
+    const { targets, unknown, refused } = updateTargets(defId);
+    if (unknown !== null) return unknownDef(unknown, sink);
+    await figma.loadAllPagesAsync();
+    const r = await adoptAll(figma as unknown as UpdateHost, targets, breathe);
+    r.refused.push(...refused);
+    sink.data({ update: { mode: 'adopt', ...r } });
+    postVerdict({ type: 'component-update-result', ...adoptVerdictText(r) }, sink);
+  } catch (e) {
+    const why = (e as Error)?.message ?? String(e);
+    postVerdict({ type: 'component-update-result', ok: false, headline: '✗ adopt failed', summary: why, lines: [why] }, sink);
+  }
+};
+
 /**
  * FILE SETUP (#1554) — scaffold the file's PAGE structure, then build the two template assets.
  *
@@ -1117,6 +1134,7 @@ export const ACTIONS: AgentActions = {
   seedFromFile,
   updateComponents: guarded('build-components', updateComponents),
   captureBaseline: guarded('build-components', captureBaseline),
+  adoptMembers: guarded('build-components', adoptMembers),
 };
 
 /**

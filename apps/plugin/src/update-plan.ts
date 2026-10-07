@@ -19,6 +19,12 @@
  * In this order, the first that applies:
  *
  *   unstamped        no stamp: built by hand, by paste, or before #827. Skipped and reported (§10 Q4).
+ *
+ * AN UNSTAMPED MEMBER IS NEVER A DROP (#2283). A coordinate the plan does not have is a drop, a member an
+ * update would mark deprecated, only when Prism3 built it. One with no stamp is a designer's own member,
+ * so it is skipped and listed under `unstamped`, wherever it lands: off the plan, on a planned coordinate,
+ * or onto a coordinate a removed axis collapses. Where it shares a coordinate with a stamped member, the
+ * stamped one is the match. `adoptSet` is the one-time Adopt that claims such a member (§10 Q4).
  *   noBaseline       no as-built record, so a hand edit cannot be told from an engine change.
  *   handEdited       the as-built record differs from the node now: someone edited it.
  *   update           the plan stamp differs, or the executor revision does.
@@ -80,6 +86,8 @@ export type SetPreview = {
   replacements: { member: string; path: string; reason: string }[];
   adds: string[];
   drops: string[];
+  /** Every coordinate member with no stamp, by name: skipped by the update, never a drop (#2283). */
+  unstamped: string[];
   renames: { from: string; to: string }[];
   possibleRenames: { from: string; to: string }[];
   handEdits: { member: string; path: string; conflict: boolean; structural: boolean }[];
@@ -167,14 +175,19 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], host: HostSetView
   const matched: Landing[] = [];
   const drops: string[] = [];
   const collapse: string[] = [];
+  const unstamped: string[] = [];
   for (const [target, ls] of byTarget) {
-    if (!planned.has(target)) { for (const l of ls) drops.push(l.m.name); continue; }
-    const keep = ls.find((l) => l.exact) ?? ls[0];
+    const ours = ls.filter((l) => l.m.stamp);
+    for (const l of ls) if (!l.m.stamp) unstamped.push(l.m.name);
+    if (!planned.has(target)) { for (const l of ours) drops.push(l.m.name); continue; }
+    // Prism3's own member is the match where there is one; an unstamped member only holds a coordinate
+    // nothing stamped lands on, so the plan does not add a second member there.
+    const keep = ours.find((l) => l.exact) ?? ours[0] ?? ls.find((l) => l.exact) ?? ls[0];
     matched.push(keep);
-    for (const l of ls) if (l !== keep) collapse.push(l.m.name);
+    for (const l of ours) if (l !== keep) collapse.push(l.m.name);
   }
   const adds = [...planned.keys()].filter((k) => !byTarget.has(k)).map((k) => planComponentName(planned.get(k)!));
-  const renames = matched.filter((l) => l.target !== l.from).map((l) => ({ from: l.m.name, to: planComponentName(planned.get(l.target)!) }));
+  const renames = matched.filter((l) => l.m.stamp && l.target !== l.from).map((l) => ({ from: l.m.name, to: planComponentName(planned.get(l.target)!) }));
 
   // An undeclared rename shows as a drop beside an add that differs in one value: a suggestion only.
   const possibleRenames: { from: string; to: string }[] = [];
@@ -188,7 +201,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], host: HostSetView
   }
 
   // ---- each matched member ------------------------------------------------------------------------------
-  const counts = { members: host.members.length, current: 0, update: 0, add: adds.length, drop: drops.length + collapse.length, rename: renames.length, handEdited: 0, noBaseline: 0, unstamped: 0, revisionUnknown: 0, reapplied: 0 };
+  const counts = { members: host.members.length, current: 0, update: 0, add: adds.length, drop: drops.length + collapse.length, rename: renames.length, handEdited: 0, noBaseline: 0, unstamped: unstamped.length, revisionUnknown: 0, reapplied: 0 };
   const changes = new Map<string, Change>();
   const replacements: SetPreview['replacements'] = [];
   const handEdits: SetPreview['handEdits'] = [];
@@ -196,7 +209,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], host: HostSetView
   for (const l of matched) {
     const plan = planned.get(l.target)!;
     const { m } = l;
-    if (!m.stamp) { counts.unstamped++; continue; }
+    if (!m.stamp) continue;
     const now = baselineOf(m.snap);
     const edit = m.baseline ? baselineDiff(m.baseline, now) : null;
     const edited = !!edit && (edit.changed.length + edit.added.length + edit.removed.length > 0);
@@ -314,6 +327,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], host: HostSetView
     replacements: cap('replacements', replacements),
     adds: cap('adds', adds),
     drops: cap('drops', [...drops, ...collapse]),
+    unstamped: cap('unstamped', unstamped),
     renames: cap('renames', renames),
     possibleRenames: cap('possibleRenames', possibleRenames),
     handEdits: cap('handEdits', handEdits),
@@ -402,6 +416,43 @@ export const captureSet = async (set: LiveSet, plans: AnatomyPlan[], ports: Read
   return { recorded, skipped };
 };
 
+/** The plan field an adopted member's stamp carries. It is no plan's stamp, so an adopted member reads `update`,
+ *  never `current`: the member is the designer's as they made it, recorded, and the next update brings it to the
+ *  plan in place (#2283). */
+export const ADOPTED = 'adopted';
+
+/**
+ * ADOPT (§10 Q4, #2283): the one-time claim of a member Prism3 did not build. An unstamped member on a planned
+ * coordinate gets its as-built record as it stands, then a stamp, written last, whose plan field is `ADOPTED`.
+ * From then on it is an ordinary out-of-date member: a later hand edit is told from the update's own writes,
+ * and the update keeps its node, so instances of it keep their link.
+ *
+ * Only a member the plan has a coordinate for, and no stamped member holds, is adopted. Any other is left as it
+ * is with its reason: one off the plan would only be marked deprecated, and one sharing a stamped member's
+ * coordinate is a duplicate, which blocks the set.
+ */
+export const adoptSet = async (set: LiveSet, plans: AnatomyPlan[], breathe?: () => Promise<void>): Promise<{ adopted: number; skipped: { member: string; reason: string }[] }> => {
+  const planned = new Map(plans.map((p) => [coordKey(planComponentName(p)), p] as const));
+  const view = await readSetView(set, breathe);
+  const live = (set.children ?? []).filter((c) => coordKey(String((c as { name?: unknown }).name ?? '')) !== null);
+  const held = new Set(view.members.filter((m) => m.stamp).map((m) => coordKey(m.name)));
+  let adopted = 0;
+  const skipped: { member: string; reason: string }[] = [];
+  for (const [i, m] of view.members.entries()) {
+    if (m.stamp) continue;
+    const k = coordKey(m.name);
+    const plan = planned.get(k);
+    if (!plan) { skipped.push({ member: m.name, reason: 'not in the plan' }); continue; }
+    if (held.has(k)) { skipped.push({ member: m.name, reason: 'a Prism3 member has this coordinate' }); continue; }
+    const node = live[i] as { setSharedPluginData?: (ns: string, k: string, v: string) => void };
+    await writeBaseline(node);
+    const [engine, , rev] = memberStamp(plan).split('|');
+    node.setSharedPluginData?.(NS, STAMP_KEY, `${engine}|${ADOPTED}|${rev}`);
+    adopted++;
+  }
+  return { adopted, skipped };
+};
+
 // ---- over a file ---------------------------------------------------------------------------------------------
 
 /** The host the two commands read: the file's sets and its own variable and style catalogues. */
@@ -461,6 +512,20 @@ export const captureBaselines = async (host: UpdateHost, targets: readonly Updat
     if (found.length === 0) { out.missing.push(t.def); continue; }
     if (found.length > 1) { out.refused.push({ def: t.def, reason: `${found.length} sets are named ${name}` }); continue; }
     out.sets.push({ def: t.def, set: name, ...await captureSet(found[0], t.plans, ports, breathe) });
+  }
+  return out;
+};
+
+export type AdoptResult = { sets: { def: string; set: string; adopted: number; skipped: { member: string; reason: string }[] }[]; missing: string[]; refused: { def: string; reason: string }[] };
+
+/** `capture-baseline` with `adopt: true`: Adopt over every target's set (#2283). */
+export const adoptMembers = async (host: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>): Promise<AdoptResult> => {
+  const out: AdoptResult = { sets: [], missing: [], refused: [] };
+  for (const t of targets) {
+    const { found, name } = locate(host, t);
+    if (found.length === 0) { out.missing.push(t.def); continue; }
+    if (found.length > 1) { out.refused.push({ def: t.def, reason: `${found.length} sets are named ${name}` }); continue; }
+    out.sets.push({ def: t.def, set: name, ...await adoptSet(found[0], t.plans, breathe) });
   }
   return out;
 };
@@ -530,4 +595,21 @@ export const captureVerdictText = (r: CaptureResult): { ok: boolean; headline: s
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
   ].filter(Boolean);
   return { ok: r.refused.length === 0, headline: r.sets.length ? `✓ ${recorded} recorded` : 'No sets to record', summary: lines.join('\n'), lines };
+};
+
+/** The verdict for Adopt (#2283). `lines`, as for the others: one per set, the list `summary` is joined from. */
+export const adoptVerdictText = (r: AdoptResult): { ok: boolean; headline: string; summary: string; lines: string[] } => {
+  const adopted = r.sets.reduce((k, x) => k + x.adopted, 0);
+  const lines = [
+    ...r.sets.map((x) => {
+      const why = [...new Set(x.skipped.map((s) => s.reason))];
+      return x.skipped.length
+        ? `${x.set}: ${n(x.adopted, 'member')} adopted, ${x.skipped.length} left as they are (${why.join('; ')}).`
+        : `${x.set}: ${n(x.adopted, 'member')} adopted.`;
+    }),
+    ...r.refused.map((x) => `${x.def}: not adopted. ${x.reason}.`),
+    r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
+    adopted ? `Run an update to bring ${adopted === 1 ? 'it' : 'them'} in line with the plan.` : '',
+  ].filter(Boolean);
+  return { ok: r.refused.length === 0, headline: r.sets.length ? `✓ ${adopted} adopted` : 'No sets to adopt from', summary: lines.join('\n'), lines };
 };
