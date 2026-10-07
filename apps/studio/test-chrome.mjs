@@ -4045,7 +4045,7 @@ const ICON_SECTION = () => {
   return {
     pairedNote: q('[data-p3="icons-paired"] p')?.textContent ?? null, unpair: q('[data-p3="icons-unpair"]')?.textContent ?? null,
     unpairedNote: q('[data-p3="icons-unpaired"] p')?.textContent ?? null, pair: q('[data-p3="icons-pair"]')?.textContent ?? null,
-    pairDisabled: q('[data-p3="icons-pair"]')?.disabled ?? null, dialogs: document.querySelectorAll('[data-p3="icons-pair-confirm"]').length,
+    pairDisabled: q('[data-p3="icons-pair"]')?.matches(':disabled') ?? null, dialogs: document.querySelectorAll('[data-p3="icons-pair-confirm"]').length,
   };
 };
 const PAIRED_NOTE = 'Icons follow their text color. Unpair them to set icons on their own.';
@@ -4069,7 +4069,7 @@ for (const host of ['web', 'figma']) {
     await showMode(page, mode);
     await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] .p3-state')?.textContent?.includes('auto-derived'), null, { timeout: 5000 }).catch(() => {});
     const s = await page.evaluate(ICON_SECTION);
-    ok(s.pair === 'Pair icons with text' && s.pairDisabled === true, `${host} ${mode} Q61: the Pair button is drawn and disabled (Q59) — read ${JSON.stringify(s)}`);
+    ok(s.pair === 'Pair icons with text' && s.pairDisabled === true, `${host} ${mode} Q61: the Pair button is drawn and disabled (Q59; by the read-only panel since N-3 A, #1984) — read ${JSON.stringify(s)}`);
   }
   await showMode(page, 'light');
   await page.waitForFunction(() => document.querySelector('[data-p3="levers-pane"] [data-p3="icons-pair"]')?.disabled === false, null, { timeout: 5000 }).catch(() => {});
@@ -4212,6 +4212,9 @@ for (const host of ['web', 'figma']) {
 // owner's option 1 on #2193, its mode word from the literal map below.
 {
   const MODE_WORD = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light', 'hc-dark': 'HC dark', wireframe: 'Wireframe' };
+  /** The derived modes, typed here: since N-3 A (#1984) their levers panel is inert, so its pickers have no computed name
+   *  to read; there the check is that the tree holds none of them (section 31 holds the panel itself). */
+  const HELD_MODES = new Set(['hc-light', 'hc-dark', 'wireframe']);
   /** The computed accessible name of every Default background fills picker, in row order. */
   const axNames = async (cdp) => {
     const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
@@ -4286,6 +4289,10 @@ for (const host of ['web', 'figma']) {
         // the label itself when it does not. For prism3 the step is the committed emission's floor (`EMITTED_FLOOR`).
         const names = await axNames(cdp);
         rows.forEach((r, i) => { r.ax = names[i] ?? null; });
+        if (HELD_MODES.has(mode)) {
+          ok(names.length === rows.length && names.every((n) => n === null),
+            `${where}: N-3 A: the read-only panel's pickers are out of the accessibility tree (${names.length} read for ${rows.length} rows: ${JSON.stringify(names)})`);
+        }
         const auto = /^Auto\b/.test(floor.text ?? '');
         if (auto) {
           const step = (/^Auto · ([a-z0-9-]+ [0-9]+)$/.exec(floor.text ?? '') ?? [])[1] ?? null;
@@ -4297,10 +4304,10 @@ for (const host of ['web', 'figma']) {
           // Owner, option 1 on #2193: "Contrast floor, ‹mode›: Auto · ‹step›, follows ‹role›. Pick a step"; with no tier
           // followed, the rows' usual "‹row›, ‹mode›: ‹label›. Pick a step".
           const wantName = `Contrast floor, ${MODE_WORD[mode] ?? mode}: ${floor.text}${follows ? ', follows background.secondary' : ''}. Pick a step`;
-          ok(floor.ax === wantName, `${where}: option 1: the Contrast floor's computed accessible name is ${JSON.stringify(wantName)} — read ${JSON.stringify(floor.ax)}`);
+          if (!HELD_MODES.has(mode)) ok(floor.ax === wantName, `${where}: option 1: the Contrast floor's computed accessible name is ${JSON.stringify(wantName)} — read ${JSON.stringify(floor.ax)}`);
         }
         // WCAG 2.5.3 (label in name): each picker's computed accessible name contains its visible label as one piece.
-        const noLabel = rows.filter((r) => r.pick && !(r.text && (r.ax ?? '').includes(r.text)));
+        const noLabel = HELD_MODES.has(mode) ? [] : rows.filter((r) => r.pick && !(r.text && (r.ax ?? '').includes(r.text)));
         ok(noLabel.length === 0 && names.length === rows.length, `${where}: WCAG 2.5.3: each picker's computed accessible name contains its visible label${noLabel.length ? ` — not: ${noLabel.map((r) => `${r.role} shows ${JSON.stringify(r.text)}, named ${JSON.stringify(r.ax)}`).join('; ')}` : ''} (${names.length} names for ${rows.length} rows)`);
         ok(!!floor.scroll && floor.scroll[0] <= floor.scroll[1], `${where}: FL1 A: the Contrast floor's label fits its button on one line, not cut off (scrollWidth ${floor.scroll?.[0]}, clientWidth ${floor.scroll?.[1]})`);
       }
@@ -4953,22 +4960,22 @@ const chooseAnyMode = async (page, mode) => {
     const DERIVED_CONTROLS_FLOOR = 60;
     for (const [mode, label] of DERIVED) {
       await chooseAnyMode(page, mode);
-      await page.waitForFunction((l) => document.querySelector('[data-p3="interactive-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
+      await page.waitForFunction((l) => document.querySelector('[data-p3="levers-derived-note"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
       const ctls = await page.evaluate(DERIVED_CONTROLS, ['[data-p3="levers-pane"] [data-p3="lever-section"]', DERIVED_CONTROL_QUERY]);
       const d = {
         n: ctls.length,
         enabled: ctls.filter((c) => !c.disabled).map((c) => c.hook),
         hooks: [...new Set(ctls.map((c) => c.hook))],
-        line: await page.evaluate(() => document.querySelector('[data-p3="interactive-derived"]')?.textContent ?? null),
+        line: await page.evaluate(() => document.querySelector('[data-p3="levers-derived-note"]')?.textContent ?? null),
       };
-      ok(d.line === `${label} is auto-derived — read-only. Edit Light or Dark and it follows.`, `Q59: previewing ${label}, the derived line shows ("${d.line}")`);
+      ok(d.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`, `Q59: previewing ${label}, the panel's derived line shows (N-3 A) ("${d.line}")`);
       ok(d.n >= DERIVED_CONTROLS_FLOOR && d.enabled.length === 0,
         `Q59: previewing ${label}, every control on Interactive is disabled (${d.n - d.enabled.length}/${d.n}, floor ${DERIVED_CONTROLS_FLOOR})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
       for (const hk of ['action-palette-select', 'link-palette-select', 'strict-contrast-switch', 'disabled-full-switch', 'disabled-min-chips-3', 'neutral-emphasis-chips-subtle', 'link-rung-hover', 'column-add-open', 'int-pick'])
         ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control is among those held disabled`);
     }
     await chooseAnyMode(page, 'light');
-    const back = await page.evaluate(() => ({ line: !!document.querySelector('[data-p3="interactive-derived"]'), sel: document.querySelector('[data-p3="action-palette-select"]')?.disabled }));
+    const back = await page.evaluate(() => ({ line: !!document.querySelector('[data-p3="levers-derived-note"]'), sel: document.querySelector('[data-p3="action-palette-select"]')?.disabled }));
     ok(!back.line && back.sel === false, `Q59: back in Light, the derived line is gone and the levers are editable (${JSON.stringify(back)})`);
     ok(errors.length === 0, `interactive owner copy: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
@@ -5546,15 +5553,15 @@ for (const host of ['web', 'figma']) {
     const DERIVED_CONTROLS_FLOOR = 150;
     for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']]) {
       await chooseAnyMode(page, mode);
-      await page.waitForFunction((l) => document.querySelector('[data-p3="type-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
+      await page.waitForFunction((l) => document.querySelector('[data-p3="levers-derived-note"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
       const d = await page.evaluate(() => {
         const pane = document.querySelector('[data-p3="levers-pane"]');
         // The info buttons and Scale's Show advanced only disclose; they edit nothing, so they stay live (checked below).
         const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"], [data-p3="scale-advanced"]'));
-        return { n: ctls.length, enabled: ctls.filter((n) => !n.disabled).map((n) => n.getAttribute('data-p3') ?? n.tagName), hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
-          line: document.querySelector('[data-p3="type-derived"]')?.textContent ?? null };
+        return { n: ctls.length, enabled: ctls.filter((n) => !n.matches(':disabled')).map((n) => n.getAttribute('data-p3') ?? n.tagName), hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
+          line: document.querySelector('[data-p3="levers-derived-note"]')?.textContent ?? null };
       });
-      ok(d.line === `${label} is auto-derived — read-only. Edit Light or Dark and it follows.`, `Q59: previewing ${label}, the derived line shows on Type ("${d.line}")`);
+      ok(d.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`, `Q59: previewing ${label}, the panel's derived line shows (N-3 A) on Type ("${d.line}")`);
       ok(d.n >= DERIVED_CONTROLS_FLOOR && d.enabled.length === 0,
         `Q59: previewing ${label}, every control on Type is disabled, the advanced sections included (${d.n - d.enabled.length}/${d.n}, floor ${DERIVED_CONTROLS_FLOOR})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
       for (const hk of ['family-select', 'face-add-input', 'face-add', 'family-all-apply', 'type-scale-compact', 'type-size-desktop', 'type-size-mobile',
@@ -5562,23 +5569,19 @@ for (const host of ['web', 'figma']) {
         'italic-choice-only', 'pin-cut-input', 'lh-pick', 'ls-pick', 'nudge-lh', 'nudge-ls'])
         ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Type is among those held disabled`);
     }
-    // In a derived mode Scale's Show advanced stays openable, so Individual sizes can be read; everything it opens is
-    // disabled (Q59). Closed first, then opened, previewing HC light.
+    // Scale's Show advanced, opened in Light above, stays open in a derived mode, so Individual sizes can be read; since
+    // N-3 A (#1984) the fold is held with the rest of the panel (Q74 kept it live until then), and so is all it opens.
     await chooseAnyMode(page, 'hc-light');
-    await page.waitForFunction(() => !!document.querySelector('[data-p3="type-derived"]'), null, { timeout: 5000 }).catch(() => {});
-    // Bounded, and its failure kept: a fold held disabled is what the check below must report, by name.
-    if ((await page.locator('[data-p3="scale-advanced"]').getAttribute('aria-expanded')) === 'true') await hooks.click(page.locator('[data-p3="scale-advanced"]'), { timeout: 5000 }).catch(() => {});
-    const fold0 = await page.evaluate(() => ({ disabled: document.querySelector('[data-p3="scale-advanced"]')?.disabled, open: document.querySelector('[data-p3="scale-advanced"]')?.getAttribute('aria-expanded') }));
-    await hooks.click(page.locator('[data-p3="scale-advanced"]'), { timeout: 5000 }).catch(() => {});
+    await page.waitForFunction(() => !!document.querySelector('[data-p3="levers-derived-note"]'), null, { timeout: 5000 }).catch(() => {});
     const fold1 = await page.evaluate(() => {
       const b = document.querySelector('#p3-advb-type-scale');
       const ctls = b ? [...b.querySelectorAll('button, select, input')].filter((n) => !n.matches('[data-p3="lever-info"]')) : [];
-      return { open: document.querySelector('[data-p3="scale-advanced"]')?.getAttribute('aria-expanded'), shown: !!b && !b.hidden, n: ctls.length, enabled: ctls.filter((n) => !n.disabled && n.getAttribute('aria-disabled') !== 'true').map((n) => n.getAttribute('data-p3')) };
+      return { held: document.querySelector('[data-p3="scale-advanced"]')?.matches(':disabled') ?? null, open: document.querySelector('[data-p3="scale-advanced"]')?.getAttribute('aria-expanded'), shown: !!b && !b.hidden, n: ctls.length, enabled: ctls.filter((n) => !n.matches(':disabled') && n.getAttribute('aria-disabled') !== 'true').map((n) => n.getAttribute('data-p3')) };
     });
-    ok(fold0.disabled === false && fold1.open === 'true' && fold1.shown && fold1.n >= 10 && fold1.enabled.length === 0,
-      `Q59: previewing HC light, Scale's Show advanced opens Individual sizes read-only: the fold is live and every control inside it is disabled (fold disabled ${fold0.disabled}, open ${fold1.open}, ${fold1.n} controls${fold1.enabled.length ? `, enabled ${[...new Set(fold1.enabled)].join(', ')}` : ''})`);
+    ok(fold1.held === true && fold1.open === 'true' && fold1.shown && fold1.n >= 10 && fold1.enabled.length === 0,
+      `Q59: previewing HC light, Scale's Show advanced, opened in Light, still shows Individual sizes, read-only: the fold and every control inside it are held (fold held ${fold1.held}, open ${fold1.open}, ${fold1.n} controls${fold1.enabled.length ? `, enabled ${[...new Set(fold1.enabled)].join(', ')}` : ''})`);
     await chooseAnyMode(page, 'light');
-    const back = await page.evaluate(() => ({ line: !!document.querySelector('[data-p3="type-derived"]'), sel: document.querySelector('[data-p3="family-select"]')?.disabled, scale: document.querySelector('[data-p3="type-scale-compact"]')?.disabled, weight: document.querySelector('[data-p3="weight-pick"]')?.disabled }));
+    const back = await page.evaluate(() => ({ line: !!document.querySelector('[data-p3="levers-derived-note"]'), sel: document.querySelector('[data-p3="family-select"]')?.disabled, scale: document.querySelector('[data-p3="type-scale-compact"]')?.disabled, weight: document.querySelector('[data-p3="weight-pick"]')?.disabled }));
     ok(!back.line && back.sel === false && back.scale === false && back.weight === false, `Q59: back in Light, Type's derived line is gone and its controls, the advanced ones included, are editable (${JSON.stringify(back)})`);
     ok(errors.length === 0, `type derived: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
@@ -6886,7 +6889,7 @@ for (const host of ['web', 'figma']) {
     const d = await page.evaluate(() => {
       const pane = document.querySelector('[data-p3="levers-pane"]');
       const ctl = [...pane.querySelectorAll('.p3-lsec :is(button, input, select)')].filter((n) => !n.classList.contains('p3-info') && n.dataset.p3 !== 'depth-tint-advanced');
-      return { n: ctl.length, enabled: ctl.filter((n) => !n.disabled).map((n) => n.dataset.p3), line: !!document.querySelector('[data-p3="depth-derived"]'),
+      return { n: ctl.length, enabled: ctl.filter((n) => !n.matches(':disabled')).map((n) => n.dataset.p3), line: !!document.querySelector('[data-p3="levers-derived-note"]'),
         preview: document.querySelectorAll('[data-p3="depth-style-guide"] .psec').length };
     });
     ok(d.n >= 10 && d.enabled.length === 0 && d.line && d.preview === 2,
@@ -7272,21 +7275,21 @@ for (const host of ['web', 'figma']) {
     const LAYOUT_DERIVED_FLOOR = 27;
     for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark']]) {
       await chooseAnyMode(page, mode);
-      await page.waitForFunction((l) => document.querySelector('[data-p3="layout-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
+      await page.waitForFunction((l) => document.querySelector('[data-p3="levers-derived-note"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
       const d = await page.evaluate(() => {
         const pane = document.querySelector('[data-p3="levers-pane"]');
         const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"]'));
-        return { n: ctls.length, enabled: ctls.filter((n) => !n.disabled).map((n) => n.getAttribute('data-p3') ?? n.tagName), hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
-          line: document.querySelector('[data-p3="layout-derived"]')?.textContent ?? null, sections: document.querySelectorAll('[data-p3="layout-style-guide"] .psec').length };
+        return { n: ctls.length, enabled: ctls.filter((n) => !n.matches(':disabled')).map((n) => n.getAttribute('data-p3') ?? n.tagName), hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
+          line: document.querySelector('[data-p3="levers-derived-note"]')?.textContent ?? null, sections: document.querySelectorAll('[data-p3="layout-style-guide"] .psec').length };
       });
-      ok(d.line === `${label} is auto-derived — read-only. Edit Light or Dark and it follows.`, `Q59: previewing ${label}, the derived line shows on Layout ("${d.line}")`);
+      ok(d.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`, `Q59: previewing ${label}, the panel's derived line shows (N-3 A) on Layout ("${d.line}")`);
       ok(d.n >= LAYOUT_DERIVED_FLOOR && d.enabled.length === 0, `Q59: previewing ${label}, every control on Layout is disabled (${d.n - d.enabled.length}/${d.n}, floor ${LAYOUT_DERIVED_FLOOR})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
       for (const hk of ['bp-input', 'bp-remove', 'bp-add', 'layout-columns-pick', 'bp-cols-pick', 'bp-gutter-pick', 'bp-margin-pick', 'container-max-range', 'container-narrow-range'])
         ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Layout is among those held disabled`);
       ok(d.sections === 3, `Q59: previewing ${label}, the Layout preview still draws its three sections (${d.sections})`);
     }
     await chooseAnyMode(page, 'light');
-    const back = await page.evaluate(() => ({ line: !!document.querySelector('[data-p3="layout-derived"]'), add: document.querySelector('[data-p3="bp-add"]')?.disabled, pick: document.querySelector('[data-p3="layout-columns-pick"]')?.disabled }));
+    const back = await page.evaluate(() => ({ line: !!document.querySelector('[data-p3="levers-derived-note"]'), add: document.querySelector('[data-p3="bp-add"]')?.disabled, pick: document.querySelector('[data-p3="layout-columns-pick"]')?.disabled }));
     ok(!back.line && back.add === false && back.pick === false, `Q59: back in Light, Layout's derived line is gone and its controls are editable (${JSON.stringify(back)})`);
     ok(errors.length === 0, `Layout derived: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
@@ -7587,17 +7590,17 @@ for (const host of ['web', 'figma']) {
     await openShapeAdvanced(page);
     for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']]) {
       await chooseAnyMode(page, mode);
-      await page.waitForFunction((l) => document.querySelector('[data-p3="shape-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
+      await page.waitForFunction((l) => document.querySelector('[data-p3="levers-derived-note"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
       const d = await page.evaluate(() => {
         const pane = document.querySelector('[data-p3="levers-pane"]');
         const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"], [data-p3="shape-see-components"]'));
-        return { n: ctls.length, enabled: ctls.filter((n) => !n.disabled).map((n) => n.getAttribute('data-p3') ?? n.tagName), hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
-          line: document.querySelector('[data-p3="shape-derived"]')?.textContent ?? null,
+        return { n: ctls.length, enabled: ctls.filter((n) => !n.matches(':disabled')).map((n) => n.getAttribute('data-p3') ?? n.tagName), hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
+          line: document.querySelector('[data-p3="levers-derived-note"]')?.textContent ?? null,
           preview: [...document.querySelectorAll('[data-p3="shape-style-guide"] .psec-t')].map((t) => t.textContent),
           radius: [...document.querySelectorAll('[data-p3="shape-style-guide"] [data-p3="radius-row"]')].map((r) => [r.dataset.step, r.querySelector('[data-p3="shape-row-label"]')?.textContent ?? null,
             r.querySelector('.shp-sw')?.style.borderRadius ?? null]) };
       });
-      ok(d.line === `${label} is auto-derived — read-only. Edit Light or Dark and it follows.`, `Q59: previewing ${label}, the derived line shows on Shape ("${d.line}")`);
+      ok(d.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`, `Q59: previewing ${label}, the panel's derived line shows (N-3 A) on Shape ("${d.line}")`);
       ok(d.n >= 9 && d.enabled.length === 0, `Q59: previewing ${label}, every control on Shape is disabled, Base radius included (${d.n - d.enabled.length}/${d.n})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
       for (const hk of ['density-choice-compact', 'radius-scale-slider', 'control-shape-choice-pill', 'base-radius-pick']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Shape is among those held disabled`);
       ok(JSON.stringify(d.preview) === JSON.stringify(EXPECT_SHAPE_SPECIMENS), `Q59: previewing ${label}, the Shape preview is still drawn (${d.preview.join(', ')})`);
@@ -7854,8 +7857,8 @@ for (const host of ['web', 'figma']) {
     ok(false, `S8.2 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
 }
-// Q59: in each derived mode every control on Components is disabled but the info toggletips and the way to Shape (it only
-// navigates), under the derived line; the preview is still drawn, the button specimen included.
+// Q59: in each derived mode every control on Components is disabled, under the panel's line; the preview is still drawn,
+// the button specimen included. Since N-3 A (#1984) the whole panel is held, so the way to Shape is held with it.
 {
   const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
   try {
@@ -7865,18 +7868,18 @@ for (const host of ['web', 'figma']) {
     await goPlace(page, 'components');
     for (const [mode, label] of [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']]) {
       await chooseAnyMode(page, mode);
-      await page.waitForFunction((l) => document.querySelector('[data-p3="components-derived"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
+      await page.waitForFunction((l) => document.querySelector('[data-p3="levers-derived-note"]')?.textContent?.startsWith(l), label, { timeout: 5000 }).catch(() => {});
       const d = await page.evaluate(() => {
         const pane = document.querySelector('[data-p3="levers-pane"]');
         const ctls = [...pane.querySelectorAll('[data-p3="lever-section"] :is(button, select, input)')].filter((n) => !n.matches('[data-p3="lever-info"], [data-p3="components-density-link"]'));
-        return { n: ctls.length, enabled: ctls.filter((n) => !n.disabled).map((n) => n.getAttribute('data-p3') ?? n.tagName), hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
-          link: !document.querySelector('[data-p3="components-density-link"]')?.disabled,
-          line: document.querySelector('[data-p3="components-derived"]')?.textContent ?? null,
+        return { n: ctls.length, enabled: ctls.filter((n) => !n.matches(':disabled')).map((n) => n.getAttribute('data-p3') ?? n.tagName), hooks: [...new Set(ctls.map((n) => n.getAttribute('data-p3')))],
+          link: document.querySelector('[data-p3="components-density-link"]')?.matches(':disabled') === true,
+          line: document.querySelector('[data-p3="levers-derived-note"]')?.textContent ?? null,
           preview: [...document.querySelectorAll('[data-p3="components-style-guide"] .psec-t')].map((t) => t.textContent),
           buttons: document.querySelectorAll('[data-p3="components-style-guide"] .btnl-btn').length };
       });
-      ok(d.line === `${label} is auto-derived — read-only. Edit Light or Dark and it follows.`, `Q59: previewing ${label}, the derived line shows on Components ("${d.line}")`);
-      ok(d.n >= 7 && d.enabled.length === 0 && d.link, `Q59: previewing ${label}, every control on Components is disabled (${d.n - d.enabled.length}/${d.n}), the way to Shape left live (${d.link})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
+      ok(d.line === `${label} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`, `Q59: previewing ${label}, the panel's derived line shows (N-3 A) on Components ("${d.line}")`);
+      ok(d.n >= 7 && d.enabled.length === 0 && d.link, `Q59: previewing ${label}, every control on Components is disabled (${d.n - d.enabled.length}/${d.n}), the way to Shape held with the panel (N-3 A: ${d.link})${d.enabled.length ? ` — enabled ${[...new Set(d.enabled)].join(', ')}` : ''}`);
       for (const hk of ['button-icons-choice-edges', 'button-content-size-choice-smaller', 'button-label-weight-choice-default', 'button-min-width-slider']) ok(d.hooks.includes(hk), `Q59: previewing ${label}, the ${hk} control on Components is among those held disabled`);
       ok(JSON.stringify(d.preview) === JSON.stringify(COMPONENTS_PAIRS.map(([, t]) => t)) && d.buttons === 9, `Q59: previewing ${label}, the Components preview is still drawn (${d.preview.join(', ')}; ${d.buttons} buttons)`);
       // #2096: the write itself is refused, not only the DOM's disabled flag. A scripted `input` on the disabled
@@ -9926,8 +9929,10 @@ const HEADING_ADVANCED = {
  *  ⓘ buttons measured, the token labels (`.p3-fill-label`) typed, and the hint lines read in Light and High contrast light. */
 const HEADING_FLOOR = {
   // Heading pass 2: Type's split adds an L1; the seven promoted lever names leave L2 (and four of them were legends).
-  1280: { L1: 35, L2: 65, L3: 20, TH: 21, info: 54, tokenLabels: 288, hints: 16, swept: 77 },
-  380: { L1: 35, L2: 65, L3: 20, TH: 21, info: 54, tokenLabels: 288, hints: 16, swept: 77 },
+  // N-3 A (#1984): High contrast light draws one panel line per page where Surfaces & fills repeated its derived line in
+  // each row list, so the hint lines read fell from 16 to 9 (7 pages' panel line, 2 of Light's own), measured.
+  1280: { L1: 35, L2: 65, L3: 20, TH: 21, info: 54, tokenLabels: 288, hints: 9, swept: 77 },
+  380: { L1: 35, L2: 65, L3: 20, TH: 21, info: 54, tokenLabels: 288, hints: 9, swept: 77 },
 };
 /** Elements a sweep may find with a heading's tag or a heading's weight or size that are not one of the levels, each with
  *  the reason it is not (a selector, then the reason; the reason is held to 20 characters or more). Empty when pass 1
@@ -10607,6 +10612,178 @@ for (const { name, patch, keep, why } of NO_HUE_CASES) {
   } catch (e) {
     ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
+}
+
+// =============================================================================================
+// 31. #1984 (owner decisions 2026-10-03 and N-3 A, 2026-10-05; copy RO1 A, 2026-10-07): while the preview shows a
+//     derived mode, the levers panel is ONE read-only state with one line, on every page that edits the previewed mode
+// =============================================================================================
+// Both hosts, both chrome themes, at 1280 and 380. In each derived mode, on each page below:
+//   · the region that holds the page's levers is `inert`, and a Tab walk reaches no control in the levers pane: from
+//     the line (the pane's first stop), Tab and Shift+Tab both leave the pane;
+//   · the browser's accessibility tree (CDP `Accessibility.getFullAXTree`, never the DOM) holds no control under the
+//     pane, and does hold the line's text;
+//   · the line is present, reads the literal below with the mode's name as the mode control shows it, sits OUTSIDE the
+//     inert region, is not itself inert, and takes focus.
+// In Light and Dark the region is live (not inert, not disabled), there is no line, and the tree does hold controls
+// under the pane (so the tree read above cannot pass by reading nothing).
+//
+// INDEPENDENCE (docs/34). The derived modes, their names, the pages and the line are literals typed here, never read
+// from `verdict.ts`'s `isDerived`, `preview.ts`'s `modeLabel`, the frame's `derivedReadOnly` rows or its
+// `DERIVED_READONLY_NOTE`. Every page × mode pair is counted, so a page the loop skips fails too. Mutations, each in a
+// `wip:` commit, each failing by name (the PR quotes the lines):
+//   (a) the region not inert in wireframe → `… wireframe … the levers region is inert …`, `… the accessibility tree
+//       holds no control under the levers pane …`;
+//   (b) the line left out in HC dark → `… hc-dark …: the panel's line is present and reads …`;
+//   (c) the line placed inside the inert region → `… the line sits outside the inert region and takes focus …`;
+//   (d) Layout left out of the read-only pages → `… on layout: the levers region is inert …`.
+const RO_DERIVED = [['hc-light', 'HC light'], ['hc-dark', 'HC dark'], ['wireframe', 'Wireframe']];
+const RO_EDITABLE = ['light', 'dark'];
+const RO_PLACES = ['color-fills', 'color-interactive', 'type', 'depth', 'shape', 'layout', 'components'];
+const RO_LINE = (name) => `${name} is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.`;
+/** Roles the accessibility tree gives a control: none may sit under the pane in a derived mode. */
+const RO_AX_CONTROLS = new Set(['button', 'checkbox', 'combobox', 'ComboBoxMenuButton', 'ComboBoxSelect', 'PopUpButton', 'listbox', 'link', 'menuitem', 'menuitemcheckbox',
+  'menuitemradio', 'option', 'radio', 'slider', 'spinbutton', 'switch', 'tab', 'textbox', 'searchbox', 'ToggleButton', 'MenuListPopup', 'MenuListOption']);
+/** Show `mode` in the preview, through the mode control (the Preview pane first at 380, then back to Settings). */
+const roShowMode = async (page, mode) => {
+  const narrow = await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
+  if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+  // The control measures whether its radios fit once it is drawn (radios, or a select); read that after it settles.
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const radios = await page.evaluate(() => document.querySelector('[data-p3="mode-control"]')?.parentElement?.dataset.fit === 'radios');
+  if (radios) await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`).first());
+  else await page.locator('[data-p3="mode-select"]').selectOption(mode);
+  await page.waitForFunction((m) => [...document.querySelectorAll('[data-p3="mode-option"]')].some((b) => b.dataset.mode === m && b.getAttribute('aria-checked') === 'true'), mode, { timeout: 5000 }).catch(() => {});
+  if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
+};
+/** The controls the accessibility tree holds under the levers pane, and every name it holds there. */
+const roAxUnderPane = async (page) => {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send('DOM.enable');
+    await cdp.send('Accessibility.enable');
+    const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+    const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: '[data-p3="levers-pane"]' });
+    const { node } = await cdp.send('DOM.describeNode', { nodeId });
+    const { nodes } = await cdp.send('Accessibility.getFullAXTree');
+    const byId = new Map(nodes.map((n) => [n.nodeId, n]));
+    const pane = nodes.find((n) => n.backendDOMNodeId === node.backendNodeId);
+    if (!pane) return { found: false, controls: [], names: [] };
+    const controls = [], names = [];
+    const stack = [...(pane.childIds ?? [])];
+    while (stack.length) {
+      const n = byId.get(stack.pop());
+      if (!n) continue;
+      stack.push(...(n.childIds ?? []));
+      if (n.ignored) continue;
+      const role = n.role?.value ?? '';
+      const name = n.name?.value ?? '';
+      if (RO_AX_CONTROLS.has(role)) controls.push(`${role} "${name}"`);
+      if (name) names.push(name);
+    }
+    return { found: true, controls, names };
+  } finally { await cdp.detach(); }
+};
+/** What the DOM says about the pane: its region, its line, and whether a control in the region can take focus. */
+const RO_READ = () => {
+  const pane = document.querySelector('[data-p3="levers-pane"]');
+  const region = pane?.querySelector('[data-p3="levers-region"]');
+  const lines = [...document.querySelectorAll('[data-p3="levers-derived-note"]')];
+  const line = lines[0] ?? null;
+  const ctl = region?.querySelector('button:not([disabled]), select, input:not([type="hidden"]), [role="switch"]') ?? null;
+  let ctlFocus = null;
+  if (ctl) { ctl.focus(); ctlFocus = document.activeElement === ctl; ctl.blur(); }
+  let lineFocus = false;
+  if (line) { line.focus(); lineFocus = document.activeElement === line; }
+  return {
+    region: !!region, inert: region?.inert ?? null, disabled: region?.matches(':disabled') ?? null,
+    controls: region?.querySelectorAll('button, select, input, textarea').length ?? 0, ctlFocus,
+    lines: lines.length, text: line?.textContent ?? null, inPane: !!line && !!pane?.contains(line),
+    inRegion: !!line && !!region?.contains(line), lineInert: !!line?.closest('[inert]'), lineFocus,
+  };
+};
+/** One Tab and one Shift+Tab from the line: where focus lands, and whether that is inside the pane. */
+const roTabWalk = async (page) => {
+  const at = () => page.evaluate(() => {
+    const a = document.activeElement, pane = document.querySelector('[data-p3="levers-pane"]');
+    return { inPane: !!pane && pane.contains(a) && a !== pane && !a.matches('[data-p3="levers-derived-note"]'),
+      what: a ? `${a.tagName.toLowerCase()}${a.getAttribute('data-p3') ? `[${a.getAttribute('data-p3')}]` : ''}` : null };
+  });
+  const out = [];
+  for (const key of ['Tab', 'Shift+Tab']) {
+    await page.evaluate(() => document.querySelector('[data-p3="levers-derived-note"]')?.focus());
+    // Several stops each way: the first stop out of the pane proves nothing in it is reachable past the line.
+    for (let i = 0; i < 3; i++) { await page.keyboard.press(key); out.push(await at()); }
+  }
+  return out;
+};
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    for (const w of [1280, 380]) {
+      const where = `#1984 ${host} ${theme} ${w}`;
+      const { ctx, page, errors } = await open({ host, theme, w, h: 900 });
+      let visited = 0, step = 'open';
+      try {
+        // The example ships Light, Dark and the two HC modes; wireframe is switched on in Brand › Modes, as Q59's case does.
+        await goPlace(page, 'brand');
+        await hooks.click(page.locator('[data-p3="mode-on-wireframe"]'));
+        await page.waitForFunction(() => !!document.querySelector('[data-p3="mode-option"][data-mode="wireframe"], [data-p3="mode-select"] option[value="wireframe"]'));
+        for (const [mode, name] of RO_DERIVED) {
+          step = `show ${mode}`;
+          await roShowMode(page, mode);
+          for (const place of RO_PLACES) {
+            step = `${mode} on ${place}`;
+            await goPlace(page, place);
+            const at = `${where} ${mode} on ${place}`;
+            const d = await page.evaluate(RO_READ);
+            visited++;
+            ok(d.region && d.inert === true && d.disabled === true,
+              `${at}: the levers region is inert and disabled (region ${d.region}, inert ${d.inert}, disabled ${d.disabled})`);
+            ok(d.lines === 1 && d.text === RO_LINE(name),
+              `${at}: the panel's line is present and reads "${RO_LINE(name)}" (${d.lines} drawn, read ${JSON.stringify(d.text)})`);
+            ok(d.inPane && !d.inRegion && !d.lineInert && d.lineFocus,
+              `${at}: the line sits outside the inert region and takes focus (in the pane ${d.inPane}, in the region ${d.inRegion}, under inert ${d.lineInert}, focus ${d.lineFocus})`);
+            const walk = d.lineFocus ? await roTabWalk(page) : [];
+            const hit = walk.filter((x) => x.inPane);
+            ok(walk.length === 6 && hit.length === 0,
+              `${at}: a Tab walk from the line reaches no control in the levers pane (${walk.length} stops${hit.length ? ` — reached ${hit.map((x) => x.what).join(', ')}` : ''})`);
+            const ax = await roAxUnderPane(page);
+            ok(ax.found && ax.controls.length === 0,
+              `${at}: the accessibility tree holds no control under the levers pane (pane found ${ax.found}${ax.controls.length ? `; ${ax.controls.length}: ${ax.controls.slice(0, 5).join(', ')}` : ''})`);
+            ok(ax.names.includes(RO_LINE(name)), `${at}: the accessibility tree reads the line under the levers pane`);
+            if (SHOTS && place === 'color-fills' && mode !== 'hc-dark') {
+              await page.evaluate(() => document.activeElement?.blur?.());
+              await page.screenshot({ path: join(SHOTS, `1984-${host === 'web' ? 'web' : 'plugin'}-${theme}-${w}-${mode}-fills.png`) });
+            }
+          }
+        }
+        for (const mode of RO_EDITABLE) {
+          step = `show ${mode}`;
+          await roShowMode(page, mode);
+          for (const place of RO_PLACES) {
+            step = `${mode} on ${place}`;
+            await goPlace(page, place);
+            const at = `${where} ${mode} on ${place}`;
+            const d = await page.evaluate(RO_READ);
+            visited++;
+            ok(d.region && d.inert === false && d.disabled === false && d.lines === 0 && d.controls > 0 && d.ctlFocus === true,
+              `${at}: the levers panel is live and has no line (region ${d.region}, inert ${d.inert}, disabled ${d.disabled}, ${d.lines} line(s), ${d.controls} controls, one takes focus ${d.ctlFocus})`);
+            const ax = await roAxUnderPane(page);
+            ok(ax.found && ax.controls.length > 0, `${at}: the accessibility tree holds the panel's controls (${ax.controls.length})`);
+            if (SHOTS && place === 'color-fills' && mode === 'light') {
+              await page.evaluate(() => document.activeElement?.blur?.());
+              await page.screenshot({ path: join(SHOTS, `1984-${host === 'web' ? 'web' : 'plugin'}-${theme}-${w}-light-fills.png`) });
+            }
+          }
+        }
+        ok(visited === RO_PLACES.length * (RO_DERIVED.length + RO_EDITABLE.length),
+          `${where}: every page was read in every mode (${visited} of ${RO_PLACES.length * (RO_DERIVED.length + RO_EDITABLE.length)})`);
+        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where}: the case stopped at a step that threw (${step}) — ${String(e?.message ?? e).split('\n')[0]}`);
+      } finally { await ctx.close(); }
+    }
+  }
 }
 
 hooks.report(ok);
