@@ -10627,6 +10627,148 @@ for (const theme of ['light', 'dark']) {
 }
 
 // =============================================================================================
+// 33. #2275 (owner decision Q86 B, 2026-10-07: announce errors only): the agent link's short status, announced. When it
+//     changes INTO "Agent error" or "Agent not listening", from any other state, one persistent polite live region takes
+//     those words, once. Recovery to "Agent listening", switching off, and a full-line-only change (a new "last:" time,
+//     a new inbox message under the same error) announce nothing. A change OUT of an error state empties the region, the
+//     same node kept, adding no text (the UI lane's call on #2285: a removal from a polite region is not announced, and
+//     no stale "Agent error" is left to read). Plugin, light and dark, 1280 (the web has no link).
+//
+// INDEPENDENCE (docs/34). EXPECTED is typed here: each step's published state (literals, `AgentLinkState`'s shape) and
+// what the region must do on it, worked out by hand from Q86 B's words. ACTUAL is read from the page: a MutationObserver
+// installed on the region before the first state is posted counts every update to it, so a region that is rewritten
+// with the same words, or replaced, is seen as such; the region's politeness is the browser's own reading (CDP
+// `Accessibility.getPartialAXTree`, its `live` property), never the attribute. The region is found by its hook alone.
+//
+// Mutations (#2275), each after a `wip:` commit, on a rebuilt plugin bundle, each failing by name, none outside this
+// section (light shown; dark fails the same lines):
+//   · (a) recovery announced (`short?.error` dropped from the guard in `agent-link-ui.ts` `render`) → `#2275 figma light
+//     1280 error → listening: the live region is emptied in place, announcing nothing (text "Agent listening", removed
+//     ["Agent error"], added ["Agent listening"], same node true)`, the second recovery, and `… off → listening: the live
+//     region announces nothing (read 1 update(s): …)` (6);
+//   · (b) a full-line-only change announced (the short status re-set whenever the full line changes and the short does
+//     not) → `#2275 figma light 1280 a "last:"-only change while listening: the live region announces nothing (read 1
+//     update(s): …)` and `… a new inbox message while in error (the full line only): the live region announces nothing …` (4);
+//   · (c) the region replaced on each announcement instead of updated in place → `#2275 figma light 1280 listening →
+//     error: the one live region is the node present at mount, updated in place, never replaced (same node false,
+//     connected false, …)` and `… announces "Agent error" exactly once (read 0 update(s): [])`, every step after it (40);
+//   · (d) `aria-live="assertive"` → `#2275 figma light 1280: the accessibility tree reads the region as a polite live
+//     region, a status (read {"role":"status","live":"assertive",…})` and `… listening → error: exactly one live region
+//     carries "Agent error", and none carrying it is assertive (… assertive ["agent-status-live"])` (12);
+//   · (e) the region not cleared on a change out of an error state (the `else if` that empties it dropped) → `#2275 figma
+//     light 1280 error → listening: the live region is emptied in place, announcing nothing (text "Agent error", removed
+//     [], added [], same node true)`, and the same for the second recovery, error → off, and off with the error kept (8).
+//   On today's code before #2275 (no region): `#2275 figma light 1280: the live region is present from mount, empty and
+//   visually hidden, before any state is posted (read null)` and every step after it (66).
+// =============================================================================================
+console.log(`\nThe agent link's status, announced (#2275)\n${'='.repeat(78)}`);
+/** Two states that differ from `LINK_STATES.listening` and `.error` in the full line only. Literals. */
+const LINK_LISTENING_LATER = { ...LINK_STATES.listening, lastCommand: { id: 'c2', cmd: 'apply', ok: true, finishedAt: '2026-10-06T16:41:07.000Z', headline: '✓ applied' } };
+const LINK_ERROR_OTHER = { ...LINK_STATES.error, inboxError: 'the inbox could not be read' };
+/** Each step: its name, the state posted, and what the region must do: take these words once; `CLEAR`, be emptied with no
+ *  text added; or null, no update at all. From the mounted page, before any state is posted. Literals, from Q86 B and the
+ *  UI lane's call on #2285. */
+const CLEAR = Symbol('clear');
+const ANNOUNCE_STEPS = [
+  ['first state, off', LINK_STATES.off, null],
+  ['off → listening', LINK_STATES.listening, null],
+  ['a "last:"-only change while listening', LINK_LISTENING_LATER, null],
+  ['listening → error', LINK_STATES.error, 'Agent error'],
+  ['a new inbox message while in error (the full line only)', LINK_ERROR_OTHER, null],
+  ['error → listening', LINK_STATES.listening, CLEAR],
+  ['listening → not listening', LINK_STATES.notListening, 'Agent not listening'],
+  ['not listening → error', LINK_STATES.error, 'Agent error'],
+  ['error → listening, again', LINK_STATES.listening, CLEAR],
+  ['listening → error, again', LINK_STATES.error, 'Agent error'],
+  ['error → off', LINK_STATES.off, CLEAR],
+  ['off → error', LINK_STATES.error, 'Agent error'],
+  ['error → off with the inbox error kept', LINK_STATES.offStale, CLEAR],
+];
+const LIVE_HOOK = '[data-p3="agent-status-live"]';
+for (const theme of ['light', 'dark']) {
+  const where = `#2275 figma ${theme} 1280`;
+  const { ctx, page, errors } = await open({ host: 'figma', theme, w: 1280, h: 900 });
+  try {
+    // Present from mount: before any state is posted, the region is there, empty and visually hidden.
+    const atMount = await page.evaluate((sel) => {
+      const r = document.querySelector(sel);
+      if (!r) return null;
+      const b = r.getBoundingClientRect();
+      return { text: r.textContent, w: b.width, h: b.height, clip: getComputedStyle(r).clipPath };
+    }, LIVE_HOOK);
+    ok(!!atMount && atMount.text === '' && atMount.w <= 1 && atMount.h <= 1,
+      `${where}: the live region is present from mount, empty and visually hidden, before any state is posted (read ${JSON.stringify(atMount)})`);
+    // The counter: every update to the region, from now on; and a listener that counts the states the app has handled
+    // (registered after the app's own, so it runs after the app has rendered each one).
+    await page.evaluate((sel) => {
+      const node = document.querySelector(sel);
+      window.__live = { node, recs: [], handled: 0 };
+      window.addEventListener('message', (e) => { if (e.data?.pluginMessage?.type === 'agent-link-state') window.__live.handled += 1; });
+      if (node) new MutationObserver((rs) => { for (const r of rs) window.__live.recs.push({ type: r.type, added: [...r.addedNodes].map((n) => n.textContent), removed: [...r.removedNodes].map((n) => n.textContent), text: node.textContent }); })
+        .observe(node, { childList: true, characterData: true, subtree: true, attributes: true });
+    }, LIVE_HOOK);
+    let n = 0;
+    for (const [step, state, want] of ANNOUNCE_STEPS) {
+      await page.evaluate(() => { window.__live.recs = []; });
+      await postMsg(page, { type: 'agent-link-state', state });
+      n += 1;
+      await page.waitForFunction((k) => window.__live.handled >= k, n, WAIT).catch(() => {});
+      await settle(page);
+      const r = await page.evaluate((sel) => ({ recs: window.__live.recs, text: window.__live.node?.textContent ?? null, same: document.querySelector(sel) === window.__live.node,
+        connected: !!window.__live.node?.isConnected, count: document.querySelectorAll(sel).length, handled: window.__live.handled }), LIVE_HOOK);
+      const updates = r.recs.filter((x) => x.type !== 'attributes');
+      const watching = r.same && r.connected && r.count === 1 && r.handled === n;
+      ok(watching, `${where} ${step}: the one live region is the node present at mount, updated in place, never replaced (same node ${r.same}, connected ${r.connected}, ${r.count} in the page, ${r.handled} of ${n} states handled)`);
+      if (want === CLEAR) {
+        // Emptied in place: its text is now empty, a removal was observed, and nothing was added (no announcement).
+        const added = r.recs.flatMap((x) => (x.added ?? []).filter((t) => (t ?? '').trim() !== ''));
+        const removed = r.recs.flatMap((x) => x.removed ?? []);
+        ok(watching && r.text === '' && removed.length > 0 && added.length === 0 && updates.every((x) => x.type === 'childList'),
+          `${where} ${step}: the live region is emptied in place, announcing nothing (text ${JSON.stringify(r.text)}, removed ${JSON.stringify(removed)}, added ${JSON.stringify(added)}, same node ${r.same})`);
+      } else if (want) {
+        ok(updates.length === 1 && updates[0].text === want && r.recs.length === 1,
+          `${where} ${step}: the live region announces "${want}" exactly once (read ${updates.length} update(s): ${JSON.stringify(r.recs)})`);
+      } else {
+        hooks.absent(ok, { seen: watching, state: 'the live region present at mount, observed, and the state handled' }, r.recs.length === 0,
+          `${where} ${step}: the live region announces nothing (read ${r.recs.length} update(s): ${JSON.stringify(r.recs)})`);
+      }
+      if (typeof want === 'string') {
+        // Exactly one live region carries the words: no second region, and none carrying them assertive. (The app's
+        // error bar is an alert of its own, for engine errors; it never carries these words.)
+        const lv = await page.evaluate((words) => {
+          const live = [...document.querySelectorAll('[aria-live], [role="status"], [role="alert"], [role="log"], output')]
+            .filter((e) => (e.getAttribute('aria-live') ?? '') !== 'off');
+          const name = (e) => e.getAttribute('data-p3') ?? e.tagName.toLowerCase();
+          const carrying = live.filter((e) => e.textContent.includes(words));
+          return { carrying: carrying.map(name),
+            assertive: carrying.filter((e) => e.getAttribute('aria-live') === 'assertive' || (e.getAttribute('role') === 'alert' && e.getAttribute('aria-live') !== 'polite')).map(name) };
+        }, want);
+        ok(lv.carrying.length === 1 && lv.carrying[0] === 'agent-status-live' && lv.assertive.length === 0,
+          `${where} ${step}: exactly one live region carries "${want}", and none carrying it is assertive (carrying ${JSON.stringify(lv.carrying)}, assertive ${JSON.stringify(lv.assertive)})`);
+      }
+    }
+    // The browser's reading: a polite live region, a status.
+    const cdp = await page.context().newCDPSession(page);
+    let ax = null;
+    try {
+      await cdp.send('DOM.enable');
+      await cdp.send('Accessibility.enable');
+      const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+      const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: LIVE_HOOK });
+      const node = nodeId ? (await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false })).nodes[0] : null;
+      const prop = (k) => node?.properties?.find((p) => p.name === k)?.value?.value ?? null;
+      ax = node ? { role: node.role?.value ?? null, live: prop('live'), atomic: prop('atomic'), ignored: !!node.ignored } : null;
+    } finally { await cdp.detach(); }
+    ok(!!ax && ax.live === 'polite' && ax.role === 'status' && !ax.ignored,
+      `${where}: the accessibility tree reads the region as a polite live region, a status (read ${JSON.stringify(ax)})`);
+    const bad = errors.filter((e) => !/WebSocket/.test(e));
+    ok(bad.length === 0, `${where}: 0 console errors (the agent link's bridge socket aside)${bad.length ? ` — ${bad.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
+
+// =============================================================================================
 // 30b. #2192 (owner QA, 2026-10-05): Type › Italic styles draws single-select chips, not a segmented control, on both
 //      hosts, both themes, at 1280 and 380; the same three words, one chip pressed per row, and the same saved brand
 // =============================================================================================
