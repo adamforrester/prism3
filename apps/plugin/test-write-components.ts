@@ -686,7 +686,8 @@ ok(rRev.stale === 0 && rRev.skipped === 21,
 // `mainSrc` is read at the top of this file, because `SWAP` is parsed out of it before the plans are built.
 ok(/componentHeadline\([^)]*r\.stale[^)]*\)/.test(mainSrc),
   'main.ts passes the stale count to `componentHeadline`, so the pill can outrank `built N` with it');
-ok(/staleNote\(r\.stale,\s*ENGINE_VERSION\)/.test(mainSrc) && /\$\{stale \? `\. \$\{stale\}` : ''\}/.test(mainSrc),
+// Since #2177 the summary is built item by item (`fromClauses`), so the sentence is its own `. `-joined item.
+ok(/staleNote\(r\.stale,\s*ENGINE_VERSION\)/.test(mainSrc) && /const staleItem = [^;]*stale \?\? ''/.test(mainSrc) && /\['\. ', staleItem\]/.test(mainSrc),
   'and appends `staleNote`\'s sentence to the summary the panel shows, rather than computing it into a void');
 ok(/misses\.length - r\.skipped - r\.stale/.test(mainSrc),
   'and subtracts BOTH the skips and the stale lines before reporting real misses — they are all in `misses[]`');

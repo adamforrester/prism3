@@ -224,7 +224,12 @@ export type MainToUi =
    *  UI because this is where the counts exist: deriving a headline by re-parsing the prose downstream
    *  would make the summary's wording load-bearing, and the next edit to it would silently change what
    *  the pill claims. */
-  | { type: 'apply-result'; ok: boolean; headline: string; summary: string }
+  | { type: 'apply-result'; ok: boolean; headline: string; summary: string;
+    /** The summary's items, one per line, for the Activity drawer (#2177): the same words as `summary`, split where
+     *  the builder joins them (per axis, per note), without the joining separator. Built from the one list `summary`
+     *  is joined from (`fromClauses` in `apply-summary.ts`), so the drawer never re-parses the prose. The agent link's
+     *  result leaves it out (`agent-dispatch.ts`), so what an agent reads is unchanged, its keys in their order. */
+    lines: string[] }
   /** Result of a `build-components` write (#483) — the same `{ok, headline, summary}` shape as
    *  `apply-result`, and a DISTINCT variant for the same reason `seed-info` is: one kind per fact.
    *
@@ -242,12 +247,17 @@ export type MainToUi =
      *  throw. The Components page tells "Built with problems" from "Build failed" by this, never by the headline's
      *  words. REQUIRED: the plugin and the panel ship in one bundle, so a post without it is a type error here,
      *  not an older host to accommodate. */
-    completed: boolean }
+    completed: boolean;
+    /** The summary's items, one per line (#2177; see `apply-result`): the set, each note after it, what was built
+     *  first, each page header. */
+    lines: string[] }
   /** Result of the in-place update's dry run, or of a baseline capture (#2265) — the `{ok, headline, summary}`
    *  shape, its own kind for the one-kind-per-fact reason: "what would an update change" is not "did my build
    *  land", and must not overwrite the build's verdict on the Components page. Only the agent link sends the
    *  two commands today; the panel's control for them is held for the owner (PR 2). */
-  | { type: 'component-update-result'; ok: boolean; headline: string; summary: string }
+  | { type: 'component-update-result'; ok: boolean; headline: string; summary: string;
+    /** The summary's items, one per line (#2177; see `apply-result`): one per set, then each closing line. */
+    lines: string[] }
   /** Result of a `file-setup` scaffold (#1554) — the same `{ok, headline, summary}` shape as
    *  `apply-result` / `component-result`, a DISTINCT variant for the same one-kind-per-fact reason: "did
    *  the page skeleton get laid" is separately true and separately actionable from a theme or component
@@ -258,7 +268,9 @@ export type MainToUi =
    *  `summary` names the tables created and updated, the tokens added, removed or changed, and every skip. */
   | { type: 'style-guide-result'; ok: boolean; headline: string; summary: string;
     /** Set when a `style-guide-cancel` stopped the run (S11.2): `done` of the run's `total` tables were reached. */
-    stopped?: { done: number; total: number } }
+    stopped?: { done: number; total: number };
+    /** The summary's items, one per line (#2177; see `apply-result`): each failed table, each count, each note. */
+    lines: string[] }
   /** The answer to `style-guide-catalog-request` (S11.2). `error` is set, and the catalog empty, when the file could
    *  not be read: the page says so rather than showing an empty file as if it had nothing in it. */
   | { type: 'style-guide-catalog'; catalog: StyleGuideCatalog; error?: string }

@@ -35,6 +35,8 @@
  *   writes/…       the dry run writes nothing: plugin data and node fields identical before and after.
  *   capture/…      the one-time capture records only members that read back as the current plan, and never
  *                  touches a stamp. Mutation: the diff check dropped from `captureVerdict` → `capture/refuses`.
+ *   file/…         a def with no set is missing, and the verdict's `lines` (#2177) are one per item, the list the
+ *                  summary is joined from. Mutation: `lines` sent as the joined summary → `file/lines`.
  *
  * Run: `npx tsx apps/plugin/test-update-components.ts`
  */
@@ -48,7 +50,7 @@ import { NS } from './src/persist-figma';
 import { BASELINE_KEY } from './src/member-baseline';
 import { makeShim, type Node, type Page } from './component-shim';
 import {
-  readSetView, dryRunSet, hostPorts, previewUpdate, captureBaselines, previewVerdict,
+  readSetView, dryRunSet, hostPorts, previewUpdate, captureBaselines, previewVerdict, captureVerdictText,
   type HostSetView, type HostMember, type UpdateHost, type SetPreview,
 } from './src/update-plan';
 
@@ -378,6 +380,12 @@ section('file — a def with no set is missing; the verdict says nothing changed
   ok(r.sets.length === 1 && JSON.stringify(r.missing) === '["badge"]', `file/missing: badge has no set in this file (${JSON.stringify(r.missing)})`);
   const v = previewVerdict(r);
   ok(v.ok && /Nothing in the file changed\.$/.test(v.summary) && /Not in this file: badge\./.test(v.summary), `file/words: the summary names the missing set and says this was a check only`);
+  // #2177: the Activity drawer draws one line per item. Three here, authored: the set, the missing def, the closing line.
+  ok(v.lines.length === 3 && v.lines[0].startsWith(`${r.sets[0].set}: `) && v.lines[1] === 'Not in this file: badge.'
+    && v.lines[2] === 'This was a check only. Nothing in the file changed.', `file/lines: one line per set, then each closing line (${JSON.stringify(v.lines)})`);
+  const c = captureVerdictText({ sets: [{ def: TAG, set: 'Tag', recorded: 2, skipped: [] }], missing: ['badge'], refused: [{ def: 'x', reason: 'two sets' }] });
+  ok(JSON.stringify(c.lines) === JSON.stringify(['Tag: 2 members recorded.', 'x: not recorded. two sets.', 'Not in this file: badge.']),
+    `file/capture lines: one line per set, refusal and missing list (${JSON.stringify(c.lines)})`);
 }
 
 console.log(`\n${failed ? `❌ ${failed} FAILED` : '✓ all passed'} — ${executed} assertions executed`);

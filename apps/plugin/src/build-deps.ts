@@ -154,11 +154,14 @@ export const labelAfterBuilds = async <P, T>(
   }
 };
 
+/** The summary item naming what was built first, without its joining `. ` (#2177) — empty when nothing was. */
+export const alsoBuiltItem = (built: readonly BuiltDependency[]): string =>
+  built.length ? `Also built: ${built.map((b) => (b.misses > 0 ? `${b.id} (${b.misses} misses)` : b.id)).join(', ')}` : '';
 /** The summary clause naming what was built first — empty when nothing was. */
-export const alsoBuiltNote = (built: readonly BuiltDependency[]): string =>
-  built.length
-    ? `. Also built: ${built.map((b) => (b.misses > 0 ? `${b.id} (${b.misses} misses)` : b.id)).join(', ')}`
-    : '';
+export const alsoBuiltNote = (built: readonly BuiltDependency[]): string => {
+  const item = alsoBuiltItem(built);
+  return item ? `. ${item}` : '';
+};
 
 /**
  * The component set's placeholder swap target — a component NAME resolved in the FILE, not a def field.

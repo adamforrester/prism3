@@ -78,36 +78,46 @@ const drops = (label: string, data: unknown): void => {
 };
 
 accepts('apply-result', { type: 'apply-result', ok: true, headline: '✓ 12 written', summary: 'counts' },
-  { kind: 'apply-result', ok: true, headline: '✓ 12 written', summary: 'counts' });
+  { kind: 'apply-result', ok: true, headline: '✓ 12 written', summary: 'counts' , lines: null });
 accepts('apply-result without a headline (older host)', { type: 'apply-result', ok: false, summary: 'x' },
-  { kind: 'apply-result', ok: false, headline: '✗ apply failed', summary: 'x' });
+  { kind: 'apply-result', ok: false, headline: '✗ apply failed', summary: 'x' , lines: null });
 // `completed` (UI redesign S8.2, owner decision C1): carried as the host sends it, and never inferred from `ok`: a
 // post without it (a contract break, since `messages.ts` requires it) reads as a build that did not finish.
 accepts('component-result', { type: 'component-result', ok: true, completed: true, headline: '✓ 48 built', summary: 's' },
-  { kind: 'component-result', ok: true, headline: '✓ 48 built', summary: 's', completed: true });
+  { kind: 'component-result', ok: true, headline: '✓ 48 built', summary: 's', completed: true , lines: null });
 accepts('component-result without completed is not read off ok', { type: 'component-result', ok: true, headline: '✓ 48 built', summary: 's' },
-  { kind: 'component-result', ok: true, headline: '✓ 48 built', summary: 's', completed: false });
+  { kind: 'component-result', ok: true, headline: '✓ 48 built', summary: 's', completed: false , lines: null });
 accepts('component-result without a headline', { type: 'component-result', ok: true, completed: true, summary: 's' },
-  { kind: 'component-result', ok: true, headline: '✓ built', summary: 's', completed: true });
+  { kind: 'component-result', ok: true, headline: '✓ built', summary: 's', completed: true , lines: null });
 accepts('component-result that completed with misses', { type: 'component-result', ok: false, completed: true, headline: '⚠ 48, 2 missed', summary: 's' },
-  { kind: 'component-result', ok: false, headline: '⚠ 48, 2 missed', summary: 's', completed: true });
+  { kind: 'component-result', ok: false, headline: '⚠ 48, 2 missed', summary: 's', completed: true , lines: null });
 // #2265: the update check's verdict, its own kind, so it can never be read as a build's.
-accepts('component-update-result', { type: 'component-update-result', ok: true, headline: 'Would change 1 of 26', summary: 's' },
-  { kind: 'component-update-result', ok: true, headline: 'Would change 1 of 26', summary: 's' });
+accepts('component-update-result', { type: 'component-update-result', ok: true, headline: 'Would change 1 of 26', summary: 's', lines: ['a: 1 to update.', 'b: up to date.'] },
+  { kind: 'component-update-result', ok: true, headline: 'Would change 1 of 26', summary: 's', lines: ['a: 1 to update.', 'b: up to date.'] });
 accepts('component-update-result without a headline', { type: 'component-update-result', ok: false, summary: 's' },
-  { kind: 'component-update-result', ok: false, headline: '✗ check failed', summary: 's' });
+  { kind: 'component-update-result', ok: false, headline: '✗ check failed', summary: 's', lines: null });
 accepts('component-result that stopped before the set', { type: 'component-result', ok: false, completed: false, headline: '✗ unknown def', summary: 's' },
-  { kind: 'component-result', ok: false, headline: '✗ unknown def', summary: 's', completed: false });
+  { kind: 'component-result', ok: false, headline: '✗ unknown def', summary: 's', completed: false , lines: null });
 accepts('component-result with a malformed completed', { type: 'component-result', ok: false, completed: 'yes', headline: '✗ x', summary: 's' },
-  { kind: 'component-result', ok: false, headline: '✗ x', summary: 's', completed: false });
+  { kind: 'component-result', ok: false, headline: '✗ x', summary: 's', completed: false , lines: null });
 accepts('file-setup-result', { type: 'file-setup-result', ok: true, headline: '✓ 9 pages', summary: 'p' },
   { kind: 'file-setup-result', ok: true, headline: '✓ 9 pages', summary: 'p' });
 accepts('file-setup-result without a headline', { type: 'file-setup-result', ok: false, summary: 'p' },
   { kind: 'file-setup-result', ok: false, headline: '✗ setup failed', summary: 'p' });
 accepts('style-guide-result', { type: 'style-guide-result', ok: true, headline: '✓ 4 tables', summary: 't' },
-  { kind: 'style-guide-result', ok: true, headline: '✓ 4 tables', summary: 't' });
+  { kind: 'style-guide-result', ok: true, headline: '✓ 4 tables', summary: 't' , lines: null });
+// #2177: a verdict's items, one line each in the Activity drawer. Every entry a string, or the list is dropped whole and
+// the drawer shows the summary as its one line.
+accepts('apply-result with its lines', { type: 'apply-result', ok: true, headline: '✓ applied', summary: 'a, b', lines: ['a', 'b'] },
+  { kind: 'apply-result', ok: true, headline: '✓ applied', summary: 'a, b', lines: ['a', 'b'] });
+accepts('component-result with its lines', { type: 'component-result', ok: true, completed: true, headline: '✓ built', summary: 's. t', lines: ['s', 't'] },
+  { kind: 'component-result', ok: true, headline: '✓ built', summary: 's. t', completed: true, lines: ['s', 't'] });
+accepts('style-guide-result with its lines', { type: 'style-guide-result', ok: true, headline: '✓ 4 tables', summary: 't. u', lines: ['t', 'u'] },
+  { kind: 'style-guide-result', ok: true, headline: '✓ 4 tables', summary: 't. u', lines: ['t', 'u'] });
+accepts('apply-result with a malformed lines leaves them off', { type: 'apply-result', ok: true, headline: '✓ applied', summary: 'a, b', lines: ['a', 2] },
+  { kind: 'apply-result', ok: true, headline: '✓ applied', summary: 'a, b', lines: null });
 accepts('style-guide-result without a headline', { type: 'style-guide-result', ok: true, summary: 't' },
-  { kind: 'style-guide-result', ok: true, headline: '✓ style guide written', summary: 't' });
+  { kind: 'style-guide-result', ok: true, headline: '✓ style guide written', summary: 't' , lines: null });
 accepts('component-progress', { type: 'component-progress', phase: 'wire', done: 3.7, total: 10, chunkMs: 41 },
   { kind: 'component-progress', phase: 'wire', done: 3, total: 10, chunkMs: 41 });
 accepts('style-guide-progress', { type: 'style-guide-progress', done: 6.4, total: 22, tableMs: 900 },
@@ -191,9 +201,9 @@ accepts('style-guide-table failed, with its reason', { type: 'style-guide-table'
 drops('style-guide-table with an unknown status', wire({ type: 'style-guide-table', index: 0, status: 'waiting' }));
 drops('style-guide-table with no index', wire({ type: 'style-guide-table', status: 'done' }));
 accepts('style-guide-result stopped by Cancel', { type: 'style-guide-result', ok: true, headline: '✓ style guide: 3 tables', summary: 's', stopped: { done: 3, total: 22 } },
-  { kind: 'style-guide-result', ok: true, headline: '✓ style guide: 3 tables', summary: 's', stopped: { done: 3, total: 22 } });
+  { kind: 'style-guide-result', ok: true, headline: '✓ style guide: 3 tables', summary: 's', stopped: { done: 3, total: 22 } , lines: null });
 accepts('style-guide-result with a malformed stopped leaves it off', { type: 'style-guide-result', ok: true, headline: '✓ x', summary: 's', stopped: { done: 9, total: 3 } },
-  { kind: 'style-guide-result', ok: true, headline: '✓ x', summary: 's' });
+  { kind: 'style-guide-result', ok: true, headline: '✓ x', summary: 's' , lines: null });
 
 console.log(`\n${executed - failed}/${executed} passed`);
 if (failed) process.exit(1);

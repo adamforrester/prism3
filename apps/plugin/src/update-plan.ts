@@ -491,8 +491,9 @@ export const previewLine = (p: SetPreview): string => {
   return upToDate(p) ? `${p.set}: up to date (${n(c.members, 'member')}).` : `${p.set}: ${n(c.members, 'member')}. ${parts.join(', ')}.`;
 };
 
-/** The verdict for a dry run. `ok` is false only where a set could not be checked. */
-export const previewVerdict = (r: UpdatePreview): { ok: boolean; headline: string; summary: string } => {
+/** The verdict for a dry run. `ok` is false only where a set could not be checked. `lines` is the Activity drawer's
+ *  copy (#2177): one per set, then the closing lines, the same list `summary` is joined from. */
+export const previewVerdict = (r: UpdatePreview): { ok: boolean; headline: string; summary: string; lines: string[] } => {
   const changing = r.sets.filter((p) => !p.blockers.length && !upToDate(p)).length;
   const blocked = r.sets.filter((p) => p.blockers.length).length + r.refused.length;
   const headline = r.sets.length + r.refused.length === 0 ? 'No sets to check'
@@ -504,11 +505,11 @@ export const previewVerdict = (r: UpdatePreview): { ok: boolean; headline: strin
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
     'This was a check only. Nothing in the file changed.',
   ].filter(Boolean);
-  return { ok: blocked === 0, headline, summary: lines.join('\n') };
+  return { ok: blocked === 0, headline, summary: lines.join('\n'), lines };
 };
 
-/** The verdict for a capture. */
-export const captureVerdictText = (r: CaptureResult): { ok: boolean; headline: string; summary: string } => {
+/** The verdict for a capture. `lines`, as for the dry run: one per set, the list `summary` is joined from. */
+export const captureVerdictText = (r: CaptureResult): { ok: boolean; headline: string; summary: string; lines: string[] } => {
   const recorded = r.sets.reduce((k, x) => k + x.recorded, 0);
   const lines = [
     ...r.sets.map((x) => {
@@ -520,5 +521,5 @@ export const captureVerdictText = (r: CaptureResult): { ok: boolean; headline: s
     ...r.refused.map((x) => `${x.def}: not recorded. ${x.reason}.`),
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
   ].filter(Boolean);
-  return { ok: r.refused.length === 0, headline: r.sets.length ? `✓ ${recorded} recorded` : 'No sets to record', summary: lines.join('\n') };
+  return { ok: r.refused.length === 0, headline: r.sets.length ? `✓ ${recorded} recorded` : 'No sets to record', summary: lines.join('\n'), lines };
 };

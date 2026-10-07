@@ -21,7 +21,11 @@
  *   · off: with the link off nothing in `prism3agent` is read or written by the plugin
  *   · stale: a command already queued at switch-on is answered `stale` and not run
  *   · routes/<cmd>: the UI message and the agent command reach the same `ACTIONS` entry
- *   · parity/<cmd>: the agent's `result.verdict` is byte-for-byte what the UI path posted
+ *   · parity/<cmd>: the agent's `result.verdict` is byte-for-byte what the UI path posted, less the panel's `lines`
+ *   · #2177 agent/<cmd>, #2177 panel/<cmd>: the Activity drawer's one-line-per-item copy of a summary (`lines`) reaches
+ *     the panel, and never the agent: the agent's verdict has exactly the keys, in order, its kind had before #2177 (a
+ *     literal list here), so what the link sends is unchanged. (mutations: `forAgent` returning the message whole →
+ *     every `#2177 agent/<cmd>` and `parity/<cmd>` of the three kinds fails; the panel's `lines` dropped → `#2177 panel/<cmd>`)
  *   · brackets/<cmd>: the panel is told the agent's command started and finished, around its verdict (S11)
  *     (mutation: the dispatcher's `onStart` call removed → every `brackets/<cmd>` fails, by name)
  *   · brackets/throw: a handler that throws still sends agent-finished, so the panel's row cannot stick
@@ -63,7 +67,7 @@ import { MAILBOX, AGENT_COMMANDS, AGENT_PROTOCOL_VERSION, resultKey, utf8Bytes }
 import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { storeResult } from './src/agent-link';
 import { envelope, sendSnippet, readSnippet, linkSnippet } from './agent-snippets';
-import { agentLinkStatusText } from './src/agent-link-ui';
+import { agentLinkShortStatus, agentLinkStatusText } from './src/agent-link-ui';
 import { createRunGuard, TITLE } from './src/run-guard';
 import { createDispatcher } from './src/agent-dispatch';
 import { OP_TITLE } from '../studio/src/shell/activity';
@@ -211,6 +215,18 @@ section('status');
 /* ── routes + parity, per command ───────────────────────────────────────────────────────────────────── */
 section('routes/<cmd> + parity/<cmd> — the agent reaches the UI\'s handler and gets the UI\'s verdict');
 type Case = { cmd: string; args: Record<string, unknown>; ui: Record<string, unknown>; entry: string; verdictType: string };
+/** The panel's post less the drawer's `lines` (#2177): what the agent link has always been sent. */
+const withoutLines = (m: Record<string, unknown> | undefined): Record<string, unknown> | undefined => {
+  if (!m) return m;
+  const { lines: _drawer, ...rest } = m;
+  return rest;
+};
+/** Each verdict kind's keys as the agent link read them before #2177, in order: typed here, never read from the code. */
+const AGENT_KEYS: Record<string, string[]> = {
+  'apply-result': ['type', 'ok', 'headline', 'summary'],
+  'component-result': ['type', 'ok', 'completed', 'headline', 'summary'],
+  'style-guide-result': ['type', 'ok', 'headline', 'summary'],
+};
 const CASES: Case[] = [
   { cmd: 'apply-theme', args: { input: brand }, ui: { type: 'apply-theme', input: brand }, entry: 'applyTheme', verdictType: 'apply-result' },
   { cmd: 'build-components', args: { def: 'no-such-def' }, ui: { type: 'build-components', def: 'no-such-def' }, entry: 'buildComponents', verdictType: 'component-result' },
@@ -240,8 +256,17 @@ for (const c of CASES) {
   const r = (await read(id)) as AgentResult;
   results.push(r);
   ok(uiReached && calls.includes(c.entry), `routes/${c.cmd}: the UI message and the agent command both reach ACTIONS.${c.entry}`);
-  ok(!!uiVerdict && JSON.stringify(r.result?.verdict) === JSON.stringify(uiVerdict),
+  ok(!!uiVerdict && JSON.stringify(r.result?.verdict) === JSON.stringify(withoutLines(uiVerdict)),
     `parity/${c.cmd}: result.verdict is exactly the '${c.verdictType}' the panel got${uiVerdict ? ` (${String(uiVerdict.headline ?? uiVerdict.summary).slice(0, 40)})` : ''}`);
+  // #2177: the drawer's lines reach the panel, one per item, and never the agent.
+  const keys = AGENT_KEYS[c.verdictType];
+  if (keys) {
+    ok(JSON.stringify(Object.keys(r.result?.verdict ?? {})) === JSON.stringify(keys),
+      `#2177 agent/${c.cmd}: the agent's verdict has the keys it had before the drawer drew lines, in order (${Object.keys(r.result?.verdict ?? {}).join(', ')})`);
+    const lines = uiVerdict?.lines as unknown;
+    ok(Array.isArray(lines) && lines.length > 0 && lines.every((l) => typeof l === 'string' && l !== '' && String(uiVerdict.summary).includes(l)),
+      `#2177 panel/${c.cmd}: the panel's verdict carries its summary's items as lines, each in the summary's words (${JSON.stringify(lines)})`);
+  }
   // PILLS (the owner's call): the panel shows an agent's verdict as it shows a button's — the same message,
   // except that a prune PREVIEW goes pill-only, so it can never open the confirm dialog on the owner's screen.
   const toPanel = posted.filter((m) => m.type === c.verdictType).pop();
@@ -480,7 +505,7 @@ section('foreign — apply-theme refuses the whole write on content Prism3 did n
     const { id } = await send('apply-theme', { input: brand });
     await tick();
     const r = (await read(id)) as AgentResult;
-    ok(r.ok === false && !!uiVerdict && JSON.stringify(r.result?.verdict) === JSON.stringify(uiVerdict),
+    ok(r.ok === false && !!uiVerdict && JSON.stringify(r.result?.verdict) === JSON.stringify(withoutLines(uiVerdict)),
       'foreign/agent: the agent\'s apply-theme gets the same refusal, byte for byte');
     const data = r.result?.data as { conflicts?: { kind: string; name: string }[] } | undefined;
     ok(JSON.stringify(data?.conflicts?.map((c) => `${c.kind} ${c.name}`)) ===
@@ -586,7 +611,7 @@ section('busy — a second write of an operation, while one is running, is refus
   await release();
   for (let i = 0; i < 400 && timers.size === 0; i++) await settle();
   const fa = (await read(first.id)) as AgentResult;
-  ok(fa.error?.code !== 'busy' && JSON.stringify(fa.result?.verdict) === baseline, 'busy/agent-first: the agent\'s write is unaffected: its verdict is the baseline\'s');
+  ok(fa.error?.code !== 'busy' && JSON.stringify(fa.result?.verdict) === JSON.stringify(withoutLines(JSON.parse(baseline))), 'busy/agent-first: the agent\'s write is unaffected: its verdict is the baseline\'s (less the panel\'s lines, #2177)');
 
   // Released however it ended: a new apply runs.
   posted.length = 0;
@@ -787,6 +812,28 @@ section('state — what the panel shows');
   ok(!!s?.lastCommand && s.lastCommand.cmd === 'status' && s.lastCommand.headline.length > 0, 'the panel is told the last command and its headline');
   ok(/Listening — file mailbox, every 1 s · last: status/.test(agentLinkStatusText(s)), `the chip reads: "${agentLinkStatusText(s)}"`);
   ok(agentLinkStatusText(null) === agentLinkStatusText({ ...s, on: false }), 'and reads off before the first state arrives');
+}
+
+/* ── the short status (#2213, the owner's AS1 A): the Activity drawer's bar row ─────────────────────────── */
+section('short status — the drawer row\'s high-level words (AS1 A)');
+{
+  // The words are the owner's, typed here as literals; the states are built here, not read from the link.
+  const base: AgentLinkState = { v: 1, on: true, since: '2026-10-06T09:00:00.000Z', engineVersion: 'x', build: 'x', pollMs: 1000,
+    transports: { mailbox: true, bridge: false }, lastCommand: null, inboxError: null };
+  const cases: [string, AgentLinkState | null, { text: string; error: boolean } | null][] = [
+    ['no state yet', null, null],
+    ['off', { ...base, on: false, since: null, transports: { mailbox: false, bridge: false } }, null],
+    ['off, a stale inbox error kept', { ...base, on: false, since: null, transports: { mailbox: false, bridge: false }, inboxError: 'the inbox is not a JSON array' }, null],
+    ['on, the mailbox listening', base, { text: 'Agent listening', error: false }],
+    ['on, the bridge alone listening', { ...base, transports: { mailbox: false, bridge: true } }, { text: 'Agent listening', error: false }],
+    ['on, no transport listening', { ...base, transports: { mailbox: false, bridge: false } }, { text: 'Agent not listening', error: true }],
+    ['on, an inbox error', { ...base, inboxError: 'the inbox is not a JSON array' }, { text: 'Agent error', error: true }],
+    ['on, an inbox error and no transport', { ...base, transports: { mailbox: false, bridge: false }, inboxError: 'x' }, { text: 'Agent error', error: true }],
+  ];
+  for (const [name, st, want] of cases) {
+    const got = agentLinkShortStatus(st);
+    ok(JSON.stringify(got) === JSON.stringify(want), `${name}: the short status is ${JSON.stringify(want)} (read ${JSON.stringify(got)})`);
+  }
 }
 
 /* ── switch-off ─────────────────────────────────────────────────────────────────────────────────────── */

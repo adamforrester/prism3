@@ -438,6 +438,21 @@
  * Mutation: the dashed rule back → `X4 A derived: web light: no disabled chrome control, and not the fixed Light row
  * (mode-on-light, read true), draws a dashed edge (439 read) — brand mode-on-light: …` and `… DB1 A: the fixed Light
  * row's box draws Prism3's disabled check box: …` (8 failures).
+ *
+ * #2213 ADDS (owner decisions N1 A and AS1 A, section 31): in the plugin, light and dark, at 1280 and 380, five published
+ * states of the agent link (off; listening; on with no transport; an inbox error; off with a stale inbox error). The
+ * closed row's short status, against the owner's literal words ("Agent listening", "Agent not listening", "Agent error",
+ * none while off): right of the summary and its time, last before the caret, one line and whole, its ink the emission's
+ * `color.text.secondary` or `color.text.danger` at 4.5:1, the summary whole and the caret on the row; its tooltip and its
+ * accessible name (CDP `getPartialAXTree` on its text nodes, and the row's computed name) carry the full line,
+ * `agentLinkStatusText(state)`, bundled for Node and called here. The open drawer's first line, above the runs, is that
+ * full line while the link is on or holds an inbox error, and absent otherwise. Every text run in the bar row sits on one
+ * baseline within 0.5px (a zero-size inline-block probe after each text node), in every state, with a write's count too,
+ * and on the web's row. Mutations, each against the built bundles:
+ *   · the short status showing the long text → `#2213 figma light 1280 listening: the bar row's agent status reads "Agent listening" (read "Listening — file mailbox, …")` (32 in all).
+ *   · the full line missing from the open drawer → `#2213 figma light 1280 listening: the open drawer's first line is the full line, agentLinkStatusText(state), above the runs (… read null …)` (16).
+ *   · "Agent error" in the quiet ink → `#2213 figma light 1280 error: "Agent error" draws in the chrome's error ink, the emission's color.text.danger #a82e2e (read #67696b)` (4).
+ *   · the row's text centered one by one again (`.p3-drawer-text` `align-items: center`) → `#2213 figma light 1280 off: every text run in the drawer's bar row sits on one baseline, within 0.5px (3 runs, spread 1.5px: … "22:00" 876)` (24).
  */
 import { createServer } from 'node:http';
 import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -5661,7 +5676,7 @@ for (const host of ['web', 'figma']) {
         lsec: [...pane.querySelectorAll('[data-p3="lever-section"]')].map((x) => [x.querySelector('.p3-lsec-title')?.textContent ?? null, x.querySelector('.p3-lsec-desc')?.textContent ?? null]),
         psec: [...document.querySelectorAll('[data-p3="type-style-guide"] .psec')].map((x) => [x.querySelector('.psec-t')?.textContent ?? null, x.querySelector('.psec-d')?.textContent ?? null]),
         words: {
-          scale: txt('[data-p3="type-scale"] [role="radio"]'), italic: txt('[data-p3="italic-row"][data-group="body"] [role="radio"]'),
+          scale: txt('[data-p3="type-scale"] [role="radio"]'), italic: txt('[data-p3="italic-row"][data-group="body"] .p3-chip'),
           title: txt('[data-p3="title-floor"] [role="radio"]'), caption: txt('[data-p3="caption-floor"] [role="radio"]'), size: txt('[data-p3="size-floor"] [role="radio"]'),
           fluid: pane.querySelector('[data-p3="lever-typography-responsive"] .p3-lever-name')?.textContent ?? null,
           layout: pane.querySelector('[data-p3="type-fluid-layout"]')?.textContent?.trim() ?? null,
@@ -10353,6 +10368,413 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
     ok(near(t.gaps.count, HT['space-050']), `${where}: the pinned count sits space-050 ${HT['space-050']} under the control — read ${t.gaps.count}`);
     ok(near(t.gaps.inClash, HT['space-100']), `${where}: inside the clash group, Release pinned sizes sits space-100 ${HT['space-100']} under its warning — read ${t.gaps.inClash}`);
     ok(near(t.gaps.clash, HT['space-150']) && near(t.gaps.unresolved, HT['space-150']), `${where}: each warning group sits space-150 ${HT['space-150']} after the line or group before it — read ${JSON.stringify(t.gaps)}`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+
+// =============================================================================================
+// 31. #2213 (owner decisions N1 A and AS1 A, 2026-10-06): the agent link's status in the Activity drawer. The closed
+//     row's short status at its far right, beside the caret; the full status line as the open drawer's first line; and
+//     every text run in the row on one baseline. Plugin, light and dark, 1280 and 380; the web's row for the baseline.
+// =============================================================================================
+console.log(`\nThe agent link's status in the Activity drawer (#2213)\n${'='.repeat(78)}`);
+/** THE FULL LINE, from the plugin's own formatter, bundled for Node from its source and called here with each state
+ *  below. Never read off the page. The SHORT STATUS is not bundled: its words are the owner's (AS1 A), typed below. */
+const LINK_TEXT = await (async () => {
+  const esbuild = await import('esbuild');
+  const out = await esbuild.build({ entryPoints: [join(REPO, 'apps/plugin/src/agent-link-ui.ts')], bundle: true, platform: 'node', format: 'esm', write: false });
+  return (await import(`data:text/javascript;base64,${Buffer.from(out.outputFiles[0].text).toString('base64')}`)).agentLinkStatusText;
+})();
+/** Published states, as the main thread posts them (`AgentLinkState`, `apps/plugin/src/agent-protocol.ts`). Literals. */
+const LINK_STATES = {
+  off: { ...AGENT_ON, on: false, since: null, transports: { mailbox: false, bridge: false } },
+  listening: { ...AGENT_ON, lastCommand: { id: 'c1', cmd: 'status', ok: true, finishedAt: '2026-10-06T16:35:12.000Z', headline: '✓ done' } },
+  notListening: { ...AGENT_ON, transports: { mailbox: false, bridge: false } },
+  error: { ...AGENT_ON, inboxError: 'the inbox is not a JSON array' },
+  offStale: { ...AGENT_ON, on: false, since: null, transports: { mailbox: false, bridge: false }, inboxError: 'the inbox is not a JSON array' },
+};
+/** What each state must draw, typed from the owner's AS1 A: the closed row's short status and its ink (the chrome
+ *  tokens' roles, resolved below from the committed emission, never the stylesheet), or none; and whether the open
+ *  drawer's first line shows the full line (while the link is on, or while it holds an inbox error). Literals. */
+const LINK_WANT = {
+  off: { short: null, full: false },
+  listening: { short: 'Agent listening', ink: 'color.text.secondary', full: true },
+  notListening: { short: 'Agent not listening', ink: 'color.text.danger', full: true },
+  error: { short: 'Agent error', ink: 'color.text.danger', full: true },
+  offStale: { short: null, full: true },
+};
+/** The emission's hex for a chrome role in a chrome theme: the base tree, the dark overlay over it in dark, aliases
+ *  followed here (the same walk as `FOCUS_HEX`, written again so neither leans on the other or on `tokens.mjs`). */
+const LINK_INK = (() => {
+  const out = join(REPO, 'packages', 'engine', 'out');
+  const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
+  const dark = JSON.parse(readFileSync(join(out, 'prism3.dark.overlay.tokens.json'), 'utf8'));
+  const at = (tree, path) => path.split('.').reduce((n, k) => (n && typeof n === 'object' ? n[k] : undefined), tree);
+  const leaf = (mode, path) => { const o = mode === 'dark' ? at(dark, path) : undefined; return o?.$value !== undefined ? o : at(base, path); };
+  const walk = (mode, path, hops = 0) => {
+    const v = leaf(mode, path)?.$value;
+    const m = typeof v === 'string' && /^\{([^}]+)\}$/.exec(v);
+    if (m && hops < 16) return walk(mode, m[1], hops + 1);
+    return typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : null;
+  };
+  const r = {};
+  for (const mode of ['light', 'dark']) for (const role of ['color.text.secondary', 'color.text.danger']) r[`${mode} ${role}`] = walk(mode, `pds3.${role}`);
+  return r;
+})();
+ok(Object.values(LINK_INK).every((x) => /^#[0-9a-f]{6}$/.test(x ?? '')) && LINK_INK['light color.text.danger'] !== LINK_INK['light color.text.secondary'] && LINK_INK['dark color.text.danger'] !== LINK_INK['dark color.text.secondary'],
+  `#2213: the oracle resolved the quiet and the error ink, distinct, in light and dark from the emission (${JSON.stringify(LINK_INK)})`);
+ok(typeof LINK_TEXT === 'function' && /^Listening/.test(LINK_TEXT(LINK_STATES.listening)) && LINK_TEXT(LINK_STATES.error).includes('⚠'),
+  `#2213: the formatter, called here, words each state (${typeof LINK_TEXT === 'function' ? Object.keys(LINK_STATES).map((k) => `${k}: "${LINK_TEXT(LINK_STATES[k])}"`).join('; ') : 'not loaded'})`);
+/** The gap from the short status's right edge to the caret: the row's own gap, at most. Literal. */
+const LINK_CARET_GAP_MAX = 12;
+/** Every text run in the bar row sits on one baseline, within this. Literal (the owner's review). */
+const BASELINE_TOL = 0.5;
+/** The boot read-back the plugin posts, so the drawer's bar row is drawn with a summary (the owner's screenshot:
+ *  "● Read-back · Clean"). Shape from `apps/plugin/src/messages.ts`. */
+const LINK_SEED = { type: 'seed-info', ok: true, present: true, summary: 'Contract holds: 412 variables checked.', failed: 0 };
+
+/** The bar row, as drawn: the short status (or none), the summary, the time, the caret, the status's ink on its ground,
+ *  and the baseline of every text run (a zero-size inline-block probe set after each text node, read, and removed:
+ *  its bottom edge is the baseline of the line it sits on). Text inside the screen-reader-only spans is not drawn. */
+const LINK_PROBE = () => {
+  const row = document.querySelector('[data-p3="activity-toggle"]');
+  const ln = row?.querySelector('[data-p3="activity-agent-link"]') ?? null;
+  const box = (n) => { if (!n) return null; const r = n.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; };
+  const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s ?? ''); if (!m) return null; const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+  const over = (f, g) => ({ r: f.r * f.a + g.r * (1 - f.a), g: f.g * f.a + g.g * (1 - f.a), b: f.b * f.a + g.b * (1 - f.a), a: 1 });
+  const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+  const hex = (c) => `#${[c.r, c.g, c.b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
+  const ground = (el) => { const stack = []; for (let x = el; x && x.nodeType === 1; x = x.parentElement) stack.push(parse(getComputedStyle(x).backgroundColor)); let g = { r: 255, g: 255, b: 255, a: 1 }; for (const c of stack.reverse()) if (c && c.a > 0) g = over(c, g); return g; };
+  const icos = row ? [...row.children].filter((n) => n.tagName.toLowerCase() === 'svg') : [];
+  const caret = icos[icos.length - 1] ?? null;
+  const sum = row?.querySelector('.p3-drawer-last') ?? null;
+  const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false; for (let x = n; x && x.nodeType === 1; x = x.parentElement) if (getComputedStyle(x).display === 'none') return false; return true; };
+  const ownText = (n) => [...n.childNodes].filter((c) => c.nodeType === 3).map((c) => c.textContent).join('');
+  // The baselines.
+  const runs = [];
+  if (row) {
+    const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    for (let t = walker.nextNode(); t; t = walker.nextNode()) if (t.textContent.trim() && !t.parentElement.closest('.p3-sr')) nodes.push(t);
+    for (const t of nodes) {
+      const pr = document.createElement('span');
+      pr.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline';
+      t.after(pr);
+      runs.push({ text: t.textContent.trim().slice(0, 24), y: Math.round(pr.getBoundingClientRect().bottom * 100) / 100 });
+      pr.remove();
+    }
+  }
+  let ink = null;
+  if (ln) {
+    const cs = getComputedStyle(ln);
+    const g = ground(ln);
+    const c = over(parse(cs.color), g);
+    const x = lum(c), y = lum(g);
+    ink = { hex: hex(c), ground: hex(g), ratio: Math.floor(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 100) / 100,
+      lineH: parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.6 };
+  }
+  return {
+    rowShown: vis(row), row: box(row), sum: box(sum), sumText: sum?.textContent ?? null,
+    sumWhole: !!sum && (() => { const rg = document.createRange(); rg.selectNodeContents(sum); return rg.getBoundingClientRect().width <= sum.getBoundingClientRect().width + 0.01; })(),
+    when: box(row?.querySelector('.p3-op-when')), caret: box(caret), line: box(ln), lineShown: vis(ln),
+    text: ln ? ownText(ln) : null, title: ln?.getAttribute('title') ?? null, cut: !!ln && ln.scrollWidth > ln.clientWidth + 1,
+    lastBeforeCaret: !!ln && !ln.nextElementSibling && ln.parentElement?.nextElementSibling === caret, rects: ln ? ln.getClientRects().length : 0, ink, runs,
+  };
+};
+/** The open drawer's body: its agent line (or none), whether it is the body's first drawn line above the run rows (the
+ *  sheet's Close control aside), and its ink on its ground. */
+const DETAIL_PROBE = () => {
+  const body = document.querySelector('[data-p3="activity-body"]');
+  const d = body?.querySelector('[data-p3="activity-agent-detail"]') ?? null;
+  const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false; for (let x = n; x && x.nodeType === 1; x = x.parentElement) if (getComputedStyle(x).display === 'none') return false; return true; };
+  const drawn = body ? [...body.children].filter((n) => vis(n) && n.getAttribute('data-p3') !== 'activity-close') : [];
+  const rows = body?.querySelector('.p3-ops');
+  const firstOp = rows?.querySelector('[data-p3="activity-op"]');
+  return { bodyShown: vis(body), shown: vis(d), text: vis(d) ? d.textContent : null, first: drawn[0] === d,
+    above: !!d && !!firstOp && d.getBoundingClientRect().bottom <= firstOp.getBoundingClientRect().top + 0.5, ops: rows?.children.length ?? 0 };
+};
+/** The short status's and the row's names as the browser computes them (CDP `Accessibility.getPartialAXTree`), never
+ *  the DOM: the tree's entry for each text node inside the status, and the row's computed name. */
+const linkAx = async (page) => {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send('DOM.enable');
+    await cdp.send('Accessibility.enable');
+    const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+    const q = async (sel) => (await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel })).nodeId;
+    const rowId = await q('[data-p3="activity-toggle"]');
+    const lnId = await q('[data-p3="activity-agent-link"]');
+    const rowAx = rowId ? (await cdp.send('Accessibility.getPartialAXTree', { nodeId: rowId, fetchRelatives: false })).nodes[0] : null;
+    let line = null;
+    if (lnId) {
+      const { node } = await cdp.send('DOM.describeNode', { nodeId: lnId, depth: -1 });
+      const textNodes = [];
+      const visit = (n) => { if (n.nodeType === 3) textNodes.push(n); for (const c of n.children ?? []) visit(c); };
+      visit(node);
+      const texts = [];
+      for (const t of textNodes) {
+        const { nodes } = await cdp.send('Accessibility.getPartialAXTree', { backendNodeId: t.backendNodeId, fetchRelatives: false });
+        if (!nodes[0]?.ignored) texts.push(nodes[0]?.name?.value ?? '');
+      }
+      line = texts.join(' ');
+    }
+    return { row: rowAx?.name?.value ?? null, line };
+  } finally { await cdp.detach(); }
+};
+const baselineMiss = (runs) => { const ys = runs.map((r) => r.y); return ys.length ? Math.round((Math.max(...ys) - Math.min(...ys)) * 100) / 100 : null; };
+
+for (const theme of ['light', 'dark']) {
+  for (const { w, h } of WIDTHS.filter((x) => x.w === 1280 || x.w === 380)) {
+    const where = `#2213 figma ${theme} ${w}`;
+    const { ctx, page, errors } = await open({ host: 'figma', theme, w, h });
+    const shoot = (name, sel) => (SHOTS ? page.locator(sel).screenshot({ path: join(SHOTS, `v2-2213-plugin-${theme}-${w}-${name}.png`) }).catch(() => {}) : null);
+    try {
+      await postMsg(page, LINK_SEED);
+      await page.waitForFunction(() => (document.querySelector('[data-p3="activity-toggle"]')?.textContent ?? '').includes('Read-back'), null, WAIT).catch(() => {});
+      for (const [k, state] of Object.entries(LINK_STATES)) {
+        await postMsg(page, { type: 'agent-link-state', state });
+        await page.waitForFunction((on) => document.querySelector('[data-p3="agent-toggle"]')?.getAttribute('aria-pressed') === String(on), state.on, WAIT).catch(() => {});
+        await settle(page);
+        const s = await page.evaluate(LINK_PROBE);
+        const want = LINK_WANT[k];
+        const full = LINK_TEXT(state);
+        if (k !== 'offStale') await shoot(`closed-${k}`, '[data-p3="activity-toggle"]');
+        // One baseline, in every state.
+        const spread = baselineMiss(s.runs);
+        ok(s.runs.length >= 3 && spread !== null && spread <= BASELINE_TOL,
+          `${where} ${k}: every text run in the drawer's bar row sits on one baseline, within ${BASELINE_TOL}px (${s.runs.length} runs, spread ${spread}px: ${s.runs.map((r) => `"${r.text}" ${r.y}`).join(', ')})`);
+        // The closed row's short status.
+        if (!want.short) {
+          hooks.absent(ok, { seen: s.rowShown && s.sumText !== null, state: 'the drawer\'s bar row, drawn with its summary' }, s.line === null,
+            `${where} ${k}: no agent status in the bar row while the link is off (read ${JSON.stringify(s.text)})`);
+        } else {
+          ok(s.lineShown && s.text === want.short, `${where} ${k}: the bar row's agent status reads "${want.short}" (read ${JSON.stringify(s.text)}, shown ${s.lineShown})`);
+          if (s.line) {
+            const leftEdge = Math.max(s.sum?.r ?? 0, s.when?.r ?? 0);
+            const gap = s.caret ? s.caret.l - s.line.r : null;
+            ok(s.line.l >= leftEdge - 0.5 && s.lastBeforeCaret && gap !== null && gap >= 0 && gap <= LINK_CARET_GAP_MAX,
+              `${where} ${k}: the status sits right of the summary and its time, last before the caret, within ${LINK_CARET_GAP_MAX}px of it (status ${s.line.l.toFixed(1)}–${s.line.r.toFixed(1)}, summary and time end ${leftEdge.toFixed(1)}, caret at ${s.caret?.l.toFixed(1)}, last before the caret ${s.lastBeforeCaret})`);
+            ok(s.caret && s.row && s.caret.l >= s.row.l && s.caret.r <= s.row.r + 0.5 && s.sum && s.sum.l >= s.row.l && s.sumWhole,
+              `${where} ${k}: the caret and the whole summary stay on the row (row ${s.row?.l.toFixed(1)}–${s.row?.r.toFixed(1)}, caret ${s.caret?.l.toFixed(1)}–${s.caret?.r.toFixed(1)}, summary "${s.sumText}" whole ${s.sumWhole})`);
+            ok(s.rects === 1 && s.ink && s.line.h <= s.ink.lineH * 1.5 && !s.cut, `${where} ${k}: the status keeps to one line, its words whole (${s.rects} box(es), ${s.line.h.toFixed(1)}px tall, cut ${s.cut})`);
+            const inkHex = LINK_INK[`${theme} ${want.ink}`];
+            ok(s.ink?.hex === inkHex, `${where} ${k}: "${want.short}" draws in ${want.ink === 'color.text.danger' ? 'the chrome\'s error ink' : 'the quiet ink'}, the emission's ${want.ink} ${inkHex} (read ${s.ink?.hex})`);
+            ok(s.ink && s.ink.ratio >= TEXT_MIN, `${where} ${k}: the status holds ${TEXT_MIN}:1 on its ground (${s.ink?.hex} on ${s.ink?.ground}, ${s.ink?.ratio}:1)`);
+            const ax = await linkAx(page);
+            ok(s.title === full, `${where} ${k}: the status's tooltip is the full line, agentLinkStatusText(state) (want "${full}", read "${s.title}")`);
+            ok((ax.line ?? '').includes(want.short) && (ax.line ?? '').includes(full) && (ax.row ?? '').includes(want.short) && (ax.row ?? '').includes(full),
+              `${where} ${k}: the status's accessible name carries its words and the full line: computed "${ax.line}", the row's name "${ax.row}"`);
+          }
+        }
+        // The open drawer's first line: the full line.
+        await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+        await settle(page);
+        const d = await page.evaluate(DETAIL_PROBE);
+        if (want.full) {
+          ok(d.shown && d.text === full && d.first && d.above,
+            `${where} ${k}: the open drawer's first line is the full line, agentLinkStatusText(state), above the runs (want "${full}", read ${JSON.stringify(d.text)}, first ${d.first}, above the runs ${d.above})`);
+          if (k !== 'offStale') await shoot(`open-${k}`, '[data-p3="activity-drawer"]');
+        } else {
+          hooks.absent(ok, { seen: d.bodyShown && d.ops > 0, state: 'the open drawer, its runs drawn' }, !d.shown,
+            `${where} ${k}: the open drawer shows no agent line while the link is off with no inbox error (read ${JSON.stringify(d.text)})`);
+        }
+        await hooks.click(page.locator('[data-p3="activity-toggle"]'), WAIT);
+        await settle(page);
+      }
+      // The counts are a text run too: a write running puts "1 running" in the row, beside the agent status.
+      await postMsg(page, { type: 'agent-link-state', state: LINK_STATES.listening });
+      await hooks.click(page.locator('[data-p3="apply-to-figma"]'), WAIT);
+      await page.waitForFunction(() => !!document.querySelector('[data-p3="activity-toggle"] .p3-drawer-count'), null, WAIT).catch(() => {});
+      const r = await page.evaluate(LINK_PROBE);
+      const spread = baselineMiss(r.runs);
+      ok(r.runs.some((x) => /running/.test(x.text)) && r.runs.length >= 4 && spread !== null && spread <= BASELINE_TOL,
+        `${where} a write running: every text run in the bar row, the count too, sits on one baseline, within ${BASELINE_TOL}px (${r.runs.length} runs, spread ${spread}px: ${r.runs.map((x) => `"${x.text}" ${x.y}`).join(', ')})`);
+      const bad = errors.filter((e) => !/WebSocket/.test(e));
+      ok(bad.length === 0, `${where}: 0 console errors (the agent link's bridge socket aside)${bad.length ? ` — ${bad.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+}
+// The web: no agent link (N1 A: plugin only), and its row, opened by hand, on one baseline too.
+for (const theme of ['light', 'dark']) {
+  for (const { w, h } of WIDTHS.filter((x) => x.w === 1280 || x.w === 380)) {
+    const where = `#2213 web ${theme} ${w}`;
+    const { ctx, page } = await open({ host: 'web', theme, w, h });
+    try {
+      await hooks.click(page.locator('[data-p3="activity-open"]'), WAIT);
+      const s = await page.evaluate(LINK_PROBE);
+      const d = await page.evaluate(DETAIL_PROBE);
+      hooks.absent(ok, { seen: s.rowShown && d.bodyShown, state: 'the studio\'s drawer, opened' }, s.line === null && !d.shown,
+        `${where}: the studio's drawer draws no agent status and no agent line (read ${JSON.stringify(s.text)}, ${JSON.stringify(d.text)})`);
+      const spread = baselineMiss(s.runs);
+      ok(s.runs.length >= 1 && spread !== null && spread <= BASELINE_TOL, `${where}: the drawer's bar row's text sits on one baseline (${s.runs.length} run(s), spread ${spread}px)`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
+    } finally { await ctx.close(); }
+  }
+}
+
+// =============================================================================================
+// 30b. #2192 (owner QA, 2026-10-05): Type › Italic styles draws single-select chips, not a segmented control, on both
+//      hosts, both themes, at 1280 and 380; the same three words, one chip pressed per row, and the same saved brand
+// =============================================================================================
+// Each of the seven rows holds one `role="group"` of three `.p3-btn.p3-chip` buttons with `aria-pressed`, and nothing of
+// the segmented control (`.p3-seg`, `.p3-choice`, a radio or radiogroup). Exactly one chip is pressed in each row, the
+// one prism3's brand as loaded calls for, and only that chip draws its check. The keyboard is KB1 A (owner, decided
+// 2026-10-06), as Personality's chips: each chip is a Tab stop, Space or Enter presses the focused one, which keeps focus
+// through the redraw, and arrow keys do nothing (focus, the pressed chip and the saved brand all unchanged). Every write is read back
+// from the SAVED brand: on the web host the persisted `prism3:brandInput`, on the figma host the `input` Apply posts.
+//
+// INDEPENDENCE (docs/34). The rows, the words and the pressed state as loaded are literals typed here; the loaded state
+// from `schema/example-brands.json`'s prism3 (italics ["body"], italicDefault ["display","title"]). Each step's expected
+// brand is that committed brand with the two lists set to a literal worked out by hand from the rule (Upright: in
+// neither list; Upright + italic: in `italics`; Italic only: in `italicDefault`; text-type order; an emptied list unset,
+// #2006). The same ten clicks were run against the segmented control's build before the change, and its saved brands
+// were byte-identical to the chips' on both hosts (22 saves; the PR records the run). The disabled and derived cases
+// stay where they were: section 20b (a pinned style disables Italic only, with its reason) and Q59 (a derived mode
+// holds italic-choice-only disabled).
+//
+// Mutations (#2192), each after a `wip:` commit, on rebuilt bundles, each failing by name, none outside this section:
+//   · the code row back on the segmented control (`choice` for g === 'code') → `#2192 web light 1280: row "code" renders
+//     chips, not a segmented control — 4 segmented part(s), group {"role":"radiogroup",…}` (96: 8 of these, 88 pressed);
+//   · two chips pressed in a row (`chipChoice`'s set also presses the first chip) → `#2192 web light 1280: row "display"
+//     has exactly one chip pressed, only — pressed ["upright","only"]` (152);
+//   · a chip writing the wrong value (Upright + italic writes Italic only) → `#2192 web light 1280: step 1, "caption" both
+//     (key) saves italics ["body","caption"] and italicDefault ["display","title"] — saved italics ["body"], italicDefault
+//     ["display","title","caption"]` (96: 72 saves, 24 pressed).
+//   KB1 A's two arms, mutated the same way:
+//   · arrows moving the selection (`choice`'s arrow handler in `chipChoice`) → `#2192 web light 1280: KB1 A, ArrowRight on
+//     "label"'s both chip moves neither focus nor the pressed chip — focus on ["label","only"], pressed […]` and `… the four
+//     arrow keys save nothing — saved italics ["body","label"]` (40);
+//   · Enter ignored (`chipChoice` prevents Enter's default) → `#2192 web light 1280: KB1 A, Enter on "label"'s both chip
+//     presses it and keeps focus on it — pressed ["upright"], focus on ["label","both"]` and `… saves italics
+//     ["body","label"] and no italicDefault — saved italics ["body"]` (16).
+console.log(`\nItalic styles chips (#2192)\n${'='.repeat(78)}`);
+/** The text types, in order, and the three words (Q6's, unchanged by #2192). Literal. */
+const ITALIC_GROUPS = ['display', 'title', 'body', 'label', 'caption', 'eyebrow', 'code'];
+const ITALIC_WORDS = [['upright', 'Upright'], ['both', 'Upright + italic'], ['only', 'Italic only']];
+/** Each chip's hook. Literal. */
+const ITALIC_CHIP = { upright: '[data-p3="italic-choice-upright"]', both: '[data-p3="italic-choice-both"]', only: '[data-p3="italic-choice-only"]' };
+/** prism3 as loaded: display and title Italic only, body Upright + italic, the rest Upright. Literal. */
+const ITALIC_LOADED = { display: 'only', title: 'only', body: 'both', label: 'upright', caption: 'upright', eyebrow: 'upright', code: 'upright' };
+/** Each step: the text type, the chip, how it is pressed, and the two lists the saved brand must then hold (undefined:
+ *  unset). Worked out by hand from the rule above; step 3 presses the pressed chip and must write nothing. */
+const ITALIC_STEPS = [
+  ['caption', 'both', 'key', ['body', 'caption'], ['display', 'title']],
+  ['body', 'only', 'click', ['caption'], ['display', 'title', 'body']],
+  ['body', 'only', 'click', ['caption'], ['display', 'title', 'body']],
+  ['display', 'upright', 'click', ['caption'], ['title', 'body']],
+  ['display', 'both', 'click', ['display', 'caption'], ['title', 'body']],
+  ['caption', 'upright', 'click', ['display'], ['title', 'body']],
+  ['body', 'upright', 'click', ['display'], ['title']],
+  ['title', 'upright', 'click', ['display'], undefined],
+  ['display', 'upright', 'click', undefined, undefined],
+  ['body', 'both', 'click', ['body'], undefined],
+];
+const italicBrand = (italics, italicDefault) => {
+  const b = JSON.parse(JSON.stringify(BOOT_INPUT));
+  if (italics) b.typography.italics = italics; else delete b.typography.italics;
+  if (italicDefault) b.typography.italicDefault = italicDefault; else delete b.typography.italicDefault;
+  return b;
+};
+const ITALIC_PROBE = () => [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="italic-row"]')].map((r) => {
+  const chips = [...r.querySelectorAll('.p3-btn.p3-chip')];
+  const group = r.querySelector('[data-p3="italic-choice"]');
+  return {
+    g: r.dataset.group,
+    seg: r.querySelectorAll('.p3-seg, .p3-seg-tab, .p3-choice, [role="radio"], [role="radiogroup"]').length,
+    group: group ? { role: group.getAttribute('role'), label: group.getAttribute('aria-label'), chips: group.querySelectorAll('.p3-btn.p3-chip').length } : null,
+    chips: chips.map((c) => [c.dataset.value, c.textContent.trim(), c.getAttribute('aria-pressed'), c.tagName,
+      (() => { const i = c.querySelector('.p3-ico'); return !!i && getComputedStyle(i).display !== 'none'; })()]),
+  };
+});
+for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+  const where = `#2192 ${host} ${theme} ${w}`;
+  const { ctx, page, errors } = await open({ host, theme, w, h });
+  try {
+    if (w <= 560) await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
+    if (host === 'figma') await recordPosts(page);
+    await goPlace(page, 'type');
+    await showLevers(page, w);
+    await openTypeAdvanced(page);
+    await hooks.need(page, '[data-p3="italic-row"]');
+    /** The saved brand: web, the persisted input; figma, the input of the one apply-theme Apply posts (then the
+     *  main thread's reply, so the next Apply is not held as busy). */
+    const saved = async () => {
+      if (host === 'web') return persisted(page);
+      await hooks.click(page.locator('[data-p3="apply-to-figma"]'), WAIT);
+      const ws = (await takeWrites(page)).filter((m) => m.type === 'apply-theme');
+      await postMsg(page, { type: 'apply-result', ok: true, headline: 'Applied', summary: 'Applied' });
+      await settle(page);
+      return ws.length === 1 ? ws[0].input : { posted: ws.length };
+    };
+    const rows = await page.evaluate(ITALIC_PROBE);
+    ok(JSON.stringify(rows.map((r) => r.g)) === JSON.stringify(ITALIC_GROUPS), `${where}: Italic styles draws a row for each text type, in order — read ${JSON.stringify(rows.map((r) => r.g))}`);
+    for (const r of rows) {
+      const words = r.chips.map(([v, l]) => [v, l]);
+      ok(r.seg === 0 && r.group?.role === 'group' && r.group.chips === 3 && JSON.stringify(words) === JSON.stringify(ITALIC_WORDS) && r.chips.every((c) => c[3] === 'BUTTON' && (c[2] === 'true' || c[2] === 'false')),
+        `${where}: row "${r.g}" renders chips, not a segmented control — ${r.seg} segmented part(s), group ${JSON.stringify(r.group)}, chips ${JSON.stringify(words)}`);
+      const on = r.chips.filter((c) => c[2] === 'true').map((c) => c[0]);
+      ok(on.length === 1 && on[0] === ITALIC_LOADED[r.g], `${where}: row "${r.g}" has exactly one chip pressed, ${ITALIC_LOADED[r.g]} — pressed ${JSON.stringify(on)}`);
+      ok(r.chips.every((c) => c[4] === (c[2] === 'true')), `${where}: row "${r.g}" draws the check on the pressed chip only — ${JSON.stringify(r.chips.map((c) => [c[0], c[4]]))}`);
+    }
+    const s0 = await saved();
+    ok(canon(s0) === canon(BOOT_INPUT), `${where}: before any click, the saved brand is prism3 as loaded — ${wireDiff({ input: s0 }, { input: BOOT_INPUT })}`);
+    const chipSel = (g, v) => `[data-p3="levers-pane"] [data-p3="italic-row"][data-group="${g}"] ${ITALIC_CHIP[v]}`;
+    const chip = (g, v) => page.locator(chipSel(g, v));
+    let i = 0;
+    for (const [g, v, how, italics, italicDefault] of ITALIC_STEPS) {
+      i += 1;
+      if (how === 'key') {
+        // Each chip is a Tab stop: from the row's first chip, Tab reaches the next one; Space presses it.
+        await chip(g, ITALIC_WORDS[0][0]).focus();
+        await page.keyboard.press('Tab');
+        const at = await page.evaluate(() => [document.activeElement?.closest('[data-p3="italic-row"]')?.dataset.group ?? null, document.activeElement?.dataset.value ?? null]);
+        ok(JSON.stringify(at) === JSON.stringify([g, v]), `${where}: Tab moves from "${g}"'s first chip to its next chip, ${v} — focus on ${JSON.stringify(at)}`);
+        await page.keyboard.press('Space');
+      } else await hooks.click(chip(g, v), WAIT);
+      await page.waitForFunction((sel) => document.querySelector(sel)?.getAttribute('aria-pressed') === 'true', chipSel(g, v), { timeout: 5000 }).catch(() => {});
+      if (how === 'key') {
+        const kept = await page.evaluate(() => [document.activeElement?.closest('[data-p3="italic-row"]')?.dataset.group ?? null, document.activeElement?.dataset.value ?? null]);
+        ok(JSON.stringify(kept) === JSON.stringify([g, v]), `${where}: after Space, focus stays on "${g}"'s ${v} chip through the redraw — focus on ${JSON.stringify(kept)}`);
+      }
+      const want = italicBrand(italics, italicDefault);
+      const got = await saved();
+      ok(canon(got) === canon(want), `${where}: step ${i}, "${g}" ${v} (${how}) saves italics ${JSON.stringify(italics)} and italicDefault ${JSON.stringify(italicDefault)} — saved italics ${JSON.stringify(got?.typography?.italics)}, italicDefault ${JSON.stringify(got?.typography?.italicDefault)}; ${wireDiff({ input: got }, { input: want })}`);
+      const on = (await page.evaluate(ITALIC_PROBE)).map((r) => [r.g, r.chips.filter((c) => c[2] === 'true').map((c) => c[0])]);
+      const one = on.every(([, p]) => p.length === 1) && on.find(([x]) => x === g)?.[1][0] === v;
+      ok(one, `${where}: step ${i}, every row still has exactly one chip pressed, and "${g}" has ${v} — pressed ${JSON.stringify(on)}`);
+    }
+    // KB1 A (owner, 2026-10-06): arrow keys do nothing. From label's unpressed Upright + italic chip, each arrow leaves
+    // focus where it was, every row's pressed chip as it was, and the saved brand as the ten steps left it.
+    const focusAt = () => page.evaluate(() => [document.activeElement?.closest('[data-p3="italic-row"]')?.dataset.group ?? null, document.activeElement?.dataset.value ?? null]);
+    const pressedNow = async () => (await page.evaluate(ITALIC_PROBE)).map((r) => [r.g, r.chips.filter((c) => c[2] === 'true').map((c) => c[0])]);
+    const afterSteps = italicBrand(['body'], undefined);
+    await chip('label', 'both').focus();
+    const before = JSON.stringify(await pressedNow());
+    for (const key of ['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown']) {
+      await page.keyboard.press(key);
+      await settle(page);
+      const at = await focusAt(), now = JSON.stringify(await pressedNow());
+      ok(JSON.stringify(at) === JSON.stringify(['label', 'both']) && now === before,
+        `${where}: KB1 A, ${key} on "label"'s both chip moves neither focus nor the pressed chip — focus on ${JSON.stringify(at)}, pressed ${now === before ? 'unchanged' : now}`);
+    }
+    const sArrows = await saved();
+    ok(canon(sArrows) === canon(afterSteps), `${where}: KB1 A, the four arrow keys save nothing — saved italics ${JSON.stringify(sArrows?.typography?.italics)}, italicDefault ${JSON.stringify(sArrows?.typography?.italicDefault)}; ${wireDiff({ input: sArrows }, { input: afterSteps })}`);
+    // KB1 A: Enter presses the focused chip, keeps focus on it, and saves the literal: label joins italics, in text-type order.
+    await chip('label', 'both').focus();
+    await page.keyboard.press('Enter');
+    await page.waitForFunction((sel) => document.querySelector(sel)?.getAttribute('aria-pressed') === 'true', chipSel('label', 'both'), { timeout: 5000 }).catch(() => {});
+    const atEnter = await focusAt();
+    const pEnter = await pressedNow();
+    const wantEnter = italicBrand(['body', 'label'], undefined);
+    const sEnter = await saved();
+    ok(JSON.stringify(pEnter.find(([x]) => x === 'label')?.[1]) === '["both"]' && JSON.stringify(atEnter) === JSON.stringify(['label', 'both']),
+      `${where}: KB1 A, Enter on "label"'s both chip presses it and keeps focus on it — pressed ${JSON.stringify(pEnter.find(([x]) => x === 'label')?.[1])}, focus on ${JSON.stringify(atEnter)}`);
+    ok(canon(sEnter) === canon(wantEnter), `${where}: KB1 A, Enter on "label"'s both chip saves italics ["body","label"] and no italicDefault — saved italics ${JSON.stringify(sEnter?.typography?.italics)}, italicDefault ${JSON.stringify(sEnter?.typography?.italicDefault)}; ${wireDiff({ input: sEnter }, { input: wantEnter })}`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);

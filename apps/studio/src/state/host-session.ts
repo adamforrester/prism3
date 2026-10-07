@@ -25,8 +25,9 @@ import type { StyleGuideCatalog, StyleGuideTableStatus } from '../../../plugin/s
 import { joinSeed, withRecovered, type SeedOutcome } from '../provenance';
 import type { HostTopic } from './store';
 
-/** A terminal verdict on a host action: the pill's headline and the detail behind it. */
-export type Verdict = { ok: boolean; headline: string; summary: string };
+/** A terminal verdict on a host action: the pill's headline and the detail behind it. `lines` is the detail's items, one
+ *  per line in the Activity drawer (#2177), when the host sent them; absent, the summary is one line. */
+export type Verdict = { ok: boolean; headline: string; summary: string; lines?: readonly string[] | null };
 /** An action's slot: `null` = never run this session, `pending` = posted and not answered yet, else the
  *  host's verdict. */
 export type ActionState = Verdict | 'pending' | null;
@@ -295,24 +296,24 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
     case 'apply-result':
       // A bad result opens its own detail; a clean one closes whatever was open, whose counts would
       // otherwise sit beside a pill that has just been replaced.
-      return { ...s, applyState: { ok: m.ok, headline: m.headline, summary: m.summary }, openDetail: m.ok ? null : 'apply' };
+      return { ...s, applyState: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines }, openDetail: m.ok ? null : 'apply' };
     case 'component-result': {
       // The progress clears with the verdict, so a next build's first render cannot show this run's fraction.
       // S8.2 (G9): the verdict that answers the panel's own pending build is recorded against the set it posted.
       const own = s.componentState === 'pending' && s.componentDef !== null;
       const result: SetBuild = m.ok ? 'ok' : m.completed ? 'issues' : 'failed';
       const setBuilds = own ? new Map([...s.setBuilds, [s.componentDef as string, result]]) : s.setBuilds;
-      return { ...s, componentState: { ok: m.ok, headline: m.headline, summary: m.summary }, openDetail: m.ok ? null : 'components', componentProgress: null, componentDef: null, setBuilds, componentLatest: 'build' };
+      return { ...s, componentState: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines }, openDetail: m.ok ? null : 'components', componentProgress: null, componentDef: null, setBuilds, componentLatest: 'build' };
     }
     case 'component-update-result':
       // The build's slot, its progress and its set record are left alone: a check is not a build.
-      return { ...s, componentUpdate: { ok: m.ok, headline: m.headline, summary: m.summary }, componentLatest: 'update' };
+      return { ...s, componentUpdate: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines }, componentLatest: 'update' };
     case 'file-setup-result':
       return { ...s, fileSetupState: { ok: m.ok, headline: m.headline, summary: m.summary }, openDetail: m.ok ? null : 'filesetup' };
     case 'style-guide-result': {
       // S11.2: a stopped run's count lands on the panel's run, which the page keeps showing.
       const run = s.styleGuideRun && s.styleGuideState === 'pending' ? { ...s.styleGuideRun, stopped: m.stopped ?? null } : s.styleGuideRun;
-      return { ...s, styleGuideState: { ok: m.ok, headline: m.headline, summary: m.summary }, openDetail: m.ok ? null : 'styleguide', styleGuideProgress: null, styleGuideRun: run };
+      return { ...s, styleGuideState: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines }, openDetail: m.ok ? null : 'styleguide', styleGuideProgress: null, styleGuideRun: run };
     }
     case 'style-guide-catalog':
       return { ...s, styleGuideCatalog: { catalog: m.catalog, error: m.error } };

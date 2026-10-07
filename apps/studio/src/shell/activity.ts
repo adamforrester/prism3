@@ -48,6 +48,20 @@ export const setAgentLinkOn = (on: boolean): void => {
   for (const f of linkWatchers) f();
 };
 
+/** The agent link's status (#2213; the owner's N1 A and AS1 A, 2026-10-06), as the plugin words it
+ *  (`apps/plugin/src/agent-link-ui.ts`). `short` is the closed row's high-level status ("Agent listening", …), drawn at
+ *  the far right of the drawer's bar row beside the caret, `error` drawing it in the chrome's error ink and otherwise
+ *  quiet; `null` draws none. `full` is the link's whole status line (`agentLinkStatusText`), the open drawer's first line
+ *  and the short status's tooltip and accessible name; `null` draws none. The plugin's Agent tile reports it with each
+ *  published state; the studio never sets it, so on the web there is none. */
+export type AgentLinkStatus = { readonly short: string | null; readonly error: boolean; readonly full: string | null };
+let agentLinkStatus: AgentLinkStatus = { short: null, error: false, full: null };
+export const setAgentLinkStatus = (st: AgentLinkStatus): void => {
+  if (st.short === agentLinkStatus.short && st.error === agentLinkStatus.error && st.full === agentLinkStatus.full) return;
+  agentLinkStatus = { short: st.short, error: st.error, full: st.full };
+  for (const f of linkWatchers) f();
+};
+
 /** F2, v5 Q9: how long the drawer stays open after a success before it collapses by itself. */
 export const COLLAPSE_MS = 4000;
 /** A collapse that comes due while focus or the pointer is inside the drawer waits this long, then looks
@@ -71,6 +85,8 @@ export type OpReading = {
   readonly ref: unknown;
   readonly verdict: string | null;
   readonly summary: string | null;
+  /** The summary's items, one line each (#2177), when the host sent them; otherwise the summary is one line. */
+  readonly lines?: readonly string[] | null;
   readonly phase: string | null;
   readonly progress: { readonly done: number; readonly total: number } | null;
   readonly agent: boolean;
@@ -111,7 +127,7 @@ const clock = (d: Date): string => d.toTimeString().slice(0, 5);
 
 /** One result, as the drawer recorded it. `refused` marks a declined request (#1957), which is only ever
  *  history: it is not the operation's result, so a run that ends with no verdict skips it. */
-type Result = { readonly ok: boolean; readonly verdict: string; readonly summary: string | null; readonly agent: boolean; readonly t: string; readonly ref: unknown; readonly refused?: true };
+type Result = { readonly ok: boolean; readonly verdict: string; readonly summary: string | null; readonly lines?: readonly string[] | null; readonly agent: boolean; readonly t: string; readonly ref: unknown; readonly refused?: true };
 /** One operation's record: what the drawer has seen of it this session. */
 type Rec = { t: string; result: Result | null; history: Result[] };
 
@@ -157,7 +173,10 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   const note = hook(h('p', 'p3-note p3-drawer-note', opts.host === 'figma'
     ? 'Results of Apply, Build and Prune appear here after they run.'
     : 'Nothing has run in this session.'), 'activity-note');
-  body.append(close, rows, note);
+  // The agent link's full status line (#2213, AS1 A): the open drawer's first line, above the runs, while the plugin
+  // reports one.
+  const linkDetail = hook(h('p', 'p3-note p3-drawer-note'), 'activity-agent-detail');
+  body.append(close, linkDetail, rows, note);
   drawer.append(toggle, body);
   // A write's control says it is busy while the write runs, panel or agent, and a polite status line says
   // so once, when it starts (owner decision #4 on #1956, the engine Button's `isPending` aria note). One
@@ -247,7 +266,12 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       // True of this plugin: the build lands each set on its own page and shows it (v6's line).
       if (k === 'components') parts.push(h('p', 'p3-note', "Build set switches Figma to the set's page."));
     } else if (res?.summary) {
-      parts.push(hook(h('p', 'p3-op-summary', res.summary), 'op-summary'));
+      // One line per item, console-style (#2177): the items the host's summary joins, each in the chrome's mono font, a
+      // long one wrapping inside the drawer. A list, so a screen reader reads them in order and says how many. A
+      // summary sent without items is its own one line, in the same words.
+      const list = hook(h('ul', 'p3-op-summary'), 'op-summary');
+      for (const line of res.lines?.length ? res.lines : [res.summary]) list.append(hook(h('li', 'p3-op-line', line), 'op-line'));
+      parts.push(list);
     }
     if (rec.history.length) {
       const d = hook(h('details', 'p3-op-history'), 'op-history');
@@ -274,6 +298,10 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   const paintBar = (): void => {
     const { running, failed } = counts(last);
     const lead = leadOf();
+    // The row's text runs (the summary, its time, the counts and the agent status) share one baseline: they sit in a
+    // baseline-aligned run of their own (#2213, the owner's review), centered in the row with the dot and the caret,
+    // because centering texts of two sizes one by one sets their baselines apart.
+    const lead0: Node[] = [];
     const parts: Node[] = [];
     if (lead) {
       const o = last.ops[lead];
@@ -284,7 +312,8 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
       d.dataset.state = run ? 'run' : rec.result && !rec.result.ok ? 'bad' : 'ok';
       const text = h('span', 'p3-drawer-last');
       text.append(h('b', undefined, OP_TITLE[lead]), ` · ${run ? o.phase ?? 'Running' : rec.result?.verdict ?? ''}`);
-      parts.push(d, text, h('span', 'p3-op-when', rec.t));
+      lead0.push(d);
+      parts.push(text, h('span', 'p3-op-when', rec.t));
       // At 380, the closed strip carries the running style guide's progress (the S11.2 mockup, variant 1).
       if (run && lead === 'styleguide' && o.strip && narrow() && !open) {
         const bar = hook(h('progress', 'p3-op-prog p3-strip-prog'), 'activity-strip-progress') as HTMLProgressElement;
@@ -294,13 +323,24 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
         parts.push(bar);
       }
     } else {
-      parts.push(glyph('pulse'), h('span', 'p3-drawer-last', 'Activity'));
+      lead0.push(glyph('pulse'));
+      parts.push(h('span', 'p3-drawer-last', 'Activity'));
     }
     parts.push(h('span', 'p3-spacer'));
     const count = [running && `${running} running`, failed && attention(failed)].filter(Boolean).join(' · ');
     if (count) parts.push(h('span', 'p3-drawer-count', count));
-    parts.push(glyph('chev'), h('span', 'p3-sr', `${open ? 'Collapse' : 'Expand'} Activity`));
-    toggle.replaceChildren(...parts);
+    // The agent link's short status (#2213, AS1 A), last before the caret. One line, cut short with an ellipsis if the
+    // row has no room for it. Its tooltip is the link's full status line, and so is the rest of its accessible name,
+    // after its visible words.
+    if (agentLinkStatus.short) {
+      const ln = hook(h('span', 'p3-drawer-link', agentLinkStatus.short), 'activity-agent-link');
+      ln.dataset.error = String(agentLinkStatus.error);
+      if (agentLinkStatus.full) { ln.title = agentLinkStatus.full; ln.append(h('span', 'p3-sr', agentLinkStatus.full)); }
+      parts.push(ln);
+    }
+    const runs = h('span', 'p3-drawer-text');
+    runs.append(...parts);
+    toggle.replaceChildren(...lead0, runs, glyph('chev'), h('span', 'p3-sr', `${open ? 'Collapse' : 'Expand'} Activity`));
   };
 
   const paint = (): void => {
@@ -328,6 +368,8 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     const order = [...recs.keys()].map((k) => rowEls.get(k)!.root);
     if (order.length !== rows.children.length || order.some((n, i) => rows.children[i] !== n)) rows.replaceChildren(...order);
     note.hidden = recs.size > 0;
+    linkDetail.textContent = agentLinkStatus.full ?? '';
+    linkDetail.hidden = !agentLinkStatus.full;
   };
 
   /** The collapse that comes due `COLLAPSE_MS` after a success. */
@@ -352,7 +394,7 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     if (!r) { r = { t: '', result: null, history: [] }; recs.set(k, r); }
     return r;
   };
-  const resultOf = (o: OpReading, t: string): Result => ({ ok: o.state === 'ok', verdict: o.verdict ?? '', summary: o.summary, agent: o.agent, t, ref: o.ref });
+  const resultOf = (o: OpReading, t: string): Result => ({ ok: o.state === 'ok', verdict: o.verdict ?? '', summary: o.summary, lines: o.lines ?? null, agent: o.agent, t, ref: o.ref });
   /** The previous result moves to the history, newest first, at most `HISTORY_MAX`. */
   const retire = (rec: Rec): void => {
     if (rec.result) rec.history = [rec.result, ...rec.history].slice(0, HISTORY_MAX);

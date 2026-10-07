@@ -1841,6 +1841,118 @@ for (const how of ['pointer', 'focus']) {
   }
 }
 
+// ── #2177: a run's details read one line per item, console-style ────────────────────────────────────
+//
+// The owner's backlog (2026-10-05): a run's details in the Activity drawer read as one long wrapping string. They now read
+// one line per item: the items the host's summary already joins (an axis or a note of Apply, the set and each note of a
+// build, a table or a note of the style guide), each in the chrome's mono font, a long one wrapping inside the drawer, and
+// read in order as a list. The plugin sends the items beside the summary (`lines`, `fromClauses` in `apply-summary.ts`);
+// the drawer never re-parses the prose.
+//
+// INDEPENDENCE (docs/34). EXPECTED is the item list authored here per run kind, in the real builders' shapes and words;
+// the posted `summary` is those items joined by the kind's own separators, computed here too. ACTUAL is the built panel's
+// DOM (the row's line elements, in order, and each one's computed font) and the browser's accessibility tree (CDP
+// `getPartialAXTree`). The mono font's expected value is the chrome's own token, `--p3-font-mono`, read off the document,
+// never the line's class. Neither side reads `activity.ts`. That the agent link's verdict is unchanged is the main
+// thread's to prove, so it is `test-agent-link.ts`'s `#2177` arms, through the real `main.ts`.
+//
+// Run at 1280 and at 380 (the full-pane sheet), where the long line has to wrap. Mutations, each against the built
+// bundle, each failing by name:
+//   · the lines joined back into one → `#2177 <kind> <w>: N items show as N lines, in order, in the host's words`
+//   · the last line dropped → the same arm (N-1 lines)
+//   · one line not mono → `#2177 <kind> <w>: every line is set in the chrome's mono font`
+{
+  const BUILT = 'Built from tree-a1b2c3d4 at 2026-10-06T09:00:00Z.';
+  /** Per run kind: the posted verdict's items, and the separator each item after the first is joined by. */
+  const KINDS = [
+    { op: 'apply', type: 'apply-result', extra: {}, headline: '⚠ 4 misses', items: [
+      ['', 'palette 118 (+0)'], [', ', 'color 412 (+3)'], [', ', 'dims/layout 4 collections (+0)'],
+      [', ', 'styles 6 effects (+0) / 2 gradients (+0, 4 stops bound) / 3 grid styles (+0)'],
+      [', ', 'type 9 fonts loaded / 40 font vars (+0) / 22 text styles (+0)'], [', ', '1630 bindings'], [', ', '4 misses'],
+      [', ', '⚠ 2 orphaned variables not in the plan (color: 2) — likely renames; nothing was deleted'], ['. ', BUILT],
+    ] },
+    { op: 'components', type: 'component-result', extra: { completed: true }, headline: '⚠ 648, 4 missed', items: [
+      ['', "set 'Button': 648 variants (+0 built, 648 already present), grid 24×27, 2210×1890px, axes size/variant/state/icon, properties label/leading-icon/trailing-icon, 1296 refs across 648 members"],
+      [', ', '⚠ 4 misses (focus/ring/offset; icon/size; label/weight; …)'], ['. ', 'Also built: icon (2 misses)'],
+      ['. ', 'Header added to ↳ Buttons'], ['. ', BUILT],
+    ] },
+    { op: 'styleguide', type: 'style-guide-result', extra: {}, headline: '⚠ 4 drawn, 1 failed', items: [
+      ['', 'Primary: Figma refused the write'], ['. ', '3 tables created (Palette, Color roles, Spacing)'],
+      ['. ', '1 table updated in place — Radius: 2 changed'],
+      ['. ', '4 tables skipped — this file has no ↳ Semantic tokens page, and Set up file adds it'], ['. ', BUILT],
+    ] },
+  ];
+  ok(KINDS.length === 3, `#2177 the arm drives every run kind the issue names: Apply, a component build, the style guide (found ${KINDS.length})`);
+  for (const w of [1280, 380]) for (const k of KINDS) {
+    const items = k.items.map(([, t]) => t);
+    const summary = k.items.map(([sep, t], i) => (i === 0 ? t : sep + t)).join('');
+    const { page, errors } = await openPanel();
+    await page.setViewportSize({ width: w, height: w === 380 ? 640 : 900 });
+    await post(page, { type: k.type, ok: false, headline: k.headline, summary, ...k.extra, lines: items });
+    const sel = `[data-p3="activity-op"][data-op="${k.op}"] [data-p3="op-summary"]`;
+    await page.waitForFunction((s) => document.querySelector(s)?.checkVisibility() === true, sel, { timeout: 5000 }).catch(() => {});
+    const seen = await page.evaluate((s) => {
+      const list = document.querySelector(s);
+      const lines = list ? [...list.children] : [];
+      const body = document.querySelector('[data-p3="activity-body"]');
+      const b = body?.getBoundingClientRect();
+      const mono = getComputedStyle(document.documentElement).getPropertyValue('--p3-font-mono').trim();
+      return {
+        texts: lines.map((n) => n.textContent),
+        fonts: lines.map((n) => getComputedStyle(n).fontFamily),
+        mono,
+        // Each line inside the drawer's body, which scrolls no wider than it is.
+        inside: !!b && lines.length > 0 && lines.every((n) => { const r = n.getBoundingClientRect(); return r.left >= b.left - 0.5 && r.right <= b.right + 0.5; }),
+        noSideScroll: !!body && body.scrollWidth <= body.clientWidth,
+        wraps: lines.some((n) => n.getBoundingClientRect().height > 1.5 * parseFloat(getComputedStyle(n).lineHeight || '0')),
+      };
+    }, sel);
+    ok(JSON.stringify(seen.texts) === JSON.stringify(items),
+      `#2177 ${k.op} ${w}: ${items.length} items show as ${items.length} lines, in order, in the host's words — read ${seen.texts.length} lines ${JSON.stringify(seen.texts.map((t) => (t ?? '').slice(0, 40)))}`);
+    ok(seen.mono !== '' && seen.fonts.length > 0 && seen.fonts.every((f) => f === seen.mono),
+      `#2177 ${k.op} ${w}: every line is set in the chrome's mono font (${seen.mono}) — read ${JSON.stringify([...new Set(seen.fonts)])}`);
+    ok(seen.inside && seen.noSideScroll,
+      `#2177 ${k.op} ${w}: every line stays inside the drawer, which does not scroll sideways — inside ${seen.inside}, no side scroll ${seen.noSideScroll}`);
+    // The longest line (the set's, at 380 Apply's styles line too) is longer than the drawer is wide there.
+    if (w === 380) ok(seen.wraps, `#2177 ${k.op} ${w}: a line longer than the drawer wraps within it — wrapped ${seen.wraps}`);
+    // The browser's own reading: a list whose items are the lines, in order.
+    const cdp = await page.context().newCDPSession(page);
+    let ax = null;
+    try {
+      await cdp.send('Accessibility.enable');
+      const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+      const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel });
+      const { nodes } = await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false });
+      const role = nodes.find((n) => !n.ignored)?.role?.value ?? null;
+      const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: `${sel} > *` });
+      const read = [];
+      for (const id of nodeIds) {
+        const t = (await cdp.send('Accessibility.getPartialAXTree', { nodeId: id, fetchRelatives: true })).nodes;
+        const me = t.find((n) => n.backendDOMNodeId !== undefined && !n.ignored && n.role?.value === 'listitem');
+        const words = t.filter((n) => n.parentId === me?.nodeId && n.role?.value === 'StaticText').map((n) => n.name?.value ?? '').join('');
+        read.push({ role: me?.role?.value ?? null, words });
+      }
+      ax = { role, read };
+    } finally { await cdp.detach(); }
+    ok(ax.role === 'list' && ax.read.length === items.length && ax.read.every((r, i) => r.role === 'listitem' && r.words === items[i]),
+      `#2177 ${k.op} ${w}: a screen reader reads the lines in order, as a list of ${items.length} items — read ${ax.role}, ${JSON.stringify(ax.read.map((r) => `${r.role}: ${r.words.slice(0, 30)}`))}`);
+    ok(errors.length === 0, `#2177 ${k.op} ${w}: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+  // A summary sent without items (Prune, Read-back, Set up file, or an older host) is its own one line, in the same words.
+  {
+    const { page, errors } = await openPanel();
+    const summary = 'file setup failed: a page named Components already exists';
+    await post(page, { type: 'file-setup-result', ok: false, headline: '✗ setup failed', summary });
+    const sel = '[data-p3="activity-op"][data-op="filesetup"] [data-p3="op-summary"]';
+    await page.waitForFunction((s) => document.querySelector(s)?.checkVisibility() === true, sel, { timeout: 5000 }).catch(() => {});
+    const texts = await page.evaluate((s) => [...(document.querySelector(s)?.children ?? [])].map((n) => n.textContent), sel);
+    ok(JSON.stringify(texts) === JSON.stringify([summary]), `#2177 a summary sent without items shows as its one line, in its own words — read ${JSON.stringify(texts)}`);
+    ok(errors.length === 0, `#2177 no items: no console errors (${errors.slice(0, 2).join(' · ')})`);
+    await page.close();
+  }
+}
+
 await browser.close();
 server.close();
 

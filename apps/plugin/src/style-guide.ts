@@ -2014,8 +2014,9 @@ export const bindTarget = (inst: SgNode, display: SwatchType): SgNode | null => 
   return has(own) || !(inst.children ?? []).length ? inst : null;
 };
 
-/** The verdict line for the panel and the agent result. */
-export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline: string; summary: string } => {
+/** The verdict line for the panel and the agent result. `lines` is the summary's items (#2177), the same parts it joins
+ *  with `. `, one line each in the Activity drawer. */
+export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline: string; summary: string; lines: string[] } => {
   const made = r.tables.filter((t) => t.status === 'created');
   const upd = r.tables.filter((t): t is Extract<TableOutcome, { status: 'updated' }> => t.status === 'updated');
   const skipped = r.tables.filter((t): t is Extract<TableOutcome, { status: 'skipped' }> => t.status === 'skipped');
@@ -2073,7 +2074,8 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
     : r.unmatched.length ? `⚠ ${drawn} drawn, ${r.unmatched.length} not found`
     : r.unbound ? `⚠ ${r.unbound} ${r.misses.some((m) => / specimens? (is|are) not (bound|sized|drawn)/.test(m)) ? 'specimens' : 'swatches'} unbound`
     : r.deleted.length ? `✓ ${tables(drawn)}, ${r.deleted.length} deleted` : `✓ style guide: ${tables(drawn)}`;
-  return { ok, headline: headline.length > 24 ? (ok ? '✓ style guide written' : '⚠ style guide partial') : headline, summary: parts.join('. ') || 'Nothing to draw: this file has no variables or text styles of the types this run covers' };
+  const items = parts.join('. ') ? parts : ['Nothing to draw: this file has no variables or text styles of the types this run covers'];
+  return { ok, headline: headline.length > 24 ? (ok ? '✓ style guide written' : '⚠ style guide partial') : headline, summary: items.join('. '), lines: items };
 };
 
 // ── The Build style guides page (UI redesign S11.2) ───────────────────────────────────────────────────
