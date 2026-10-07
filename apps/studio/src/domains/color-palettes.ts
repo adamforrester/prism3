@@ -21,8 +21,8 @@
 import { ACHROMATIC_C } from '@prism3/engine/color';
 import { brandState, lastError, rebuild, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import {
-  STATUS_ROLES, addBrandColor, anchorStepFor, autoStatus, hexOf, hueName, removeBrandColor, renameBrandColor, setBrandColor,
-  setNeutralAnchor, setNeutralChroma, setNeutralFollow, setNeutralHue, setNeutralPinned, setPrimary, setStatusColor,
+  NO_HUE, STATUS_ROLES, addBrandColor, anchorStepFor, autoStatus, hexOf, hueName, removeBrandColor, renameBrandColor, setBrandColor,
+  neutralHueReadout, setNeutralAnchor, setNeutralChroma, setNeutralFollow, setNeutralHue, setNeutralPinned, setPrimary, setStatusColor,
   removalEffects, setStatusSource, statusSeedHex, statusSource, type StatusRole, type StatusSource,
 } from '../state/palette-input';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
@@ -32,9 +32,6 @@ import { choice, colorField, inlineConfirm, leverBlock, setText, leverOf, select
 
 const PAGE = (DOMAINS.find((d) => d.id === 'color') as { subpages: readonly PageData[] }).subpages.find((p) => p.id === 'palettes')!;
 const pad = (n: number): string => String(n).padStart(3, '0');
-/** A hue-less color's hue readout (#2241, owner Q88 A): the shadow slider's approved word (#2184, Q72 A's C2),
- *  never the stored 0 or a legacy file's ~89.88° converter noise. Decided by chroma, as the engine decides it. */
-const NO_HUE = 'None';
 const oklchMeta = (o: { l: number; c: number; h: number }): string =>
   `OKLCH ${o.l.toFixed(3)} ${o.c.toFixed(3)} ${o.c < ACHROMATIC_C ? NO_HUE : `${Math.round(o.h * 10) / 10}°`}`;
 
@@ -213,11 +210,11 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
           const followsNone = f && brandState.primary.c < ACHROMATIC_C;
           setText(followLine, `Hue follows primary: ${followsNone ? NO_HUE : `${Math.round(eff * 10) / 10}°`}.`);
           const h0 = n.anchor ? n.anchor.h : n.hue;
-          // A pinned gray with no hue reads None, on the readout and to a screen reader alike (#2241).
-          const noHue = !!n.anchor && n.anchor.c < ACHROMATIC_C;
+          // A gray neutral reads None, on the readout and to a screen reader alike, whatever its source (#2241, Q102 A).
+          const readout = neutralHueReadout((h) => sliderReadout(hueL, h));
           hue.set(h0);
-          if (noHue) hue.el.setAttribute('aria-valuetext', NO_HUE);
-          a.setReadout(n.anchor ? (noHue ? NO_HUE : sliderReadout(hueL, h0)) : followsNone ? NO_HUE : f ? `${Math.round(eff)}° · follows primary` : sliderReadout(hueL, n.hue));
+          if (readout === NO_HUE) hue.el.setAttribute('aria-valuetext', NO_HUE);
+          a.setReadout(readout);
           a.setState(n.anchor ? stateLine(`A pinned neutral sets the ramp: ${hexOf(n.anchor)}. Hue and chroma are its readout.`) : null);
         } },
         ...(p && cf ? [{ block: p, keys: ['neutral.anchor'], sync: () => {

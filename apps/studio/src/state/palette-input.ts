@@ -164,6 +164,19 @@ export const setNeutralPinned = (on: boolean): void => {
   n.anchor = { l: 0.5, c: gray ? 0 : Math.min(n.chroma, 0.02), h: hue };
 };
 
+/** What the neutral's hue reads when the neutral has no hue (#2241, owner Q88 A): the shadow slider's approved word. */
+export const NO_HUE = 'None';
+/** The neutral hue lever's readout, `fmt` drawing a real hue in the lever's own words. A gray neutral (chroma below
+ *  `ACHROMATIC_C`) has no hue, so it reads None whatever its source (owner Q102 A): Pinned by the pin's chroma, Custom
+ *  tint by the neutral's own, Follow primary by the primary's (a gray primary builds a gray neutral, Q87 A). Never the
+ *  stored hue 0. */
+export const neutralHueReadout = (fmt: (h: number) => string): string => {
+  const n = brandState.neutral;
+  if (n.anchor) return n.anchor.c < ACHROMATIC_C ? NO_HUE : fmt(n.anchor.h);
+  if (n.auto) return brandState.primary.c < ACHROMATIC_C ? NO_HUE : `${Math.round(brandState.primary.h)}° · follows primary`;
+  return n.chroma < ACHROMATIC_C ? NO_HUE : fmt(n.hue);
+};
+
 /** The Palettes preview's line about the neutral ramp, from its step at index 10. A gray ramp has no hue to name, so it
  *  reads "Gray" (#2241, owner Q96 A), decided by chroma as the engine decides it. */
 export const neutralBoardText = (step: OKLCH | undefined, follows: boolean): string =>

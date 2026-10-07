@@ -88,6 +88,18 @@ inside this PR's no-hue branches. The second brought #2291 and merged cleanly.
 | (v) `setNeutralPinned`'s gray seed removed | `test-palette-input` 2 | `✗ setNeutralPinned(true) seeds the anchor {"l":0.5,"c":0,"h":0} (got {"l":0.5,"c":0.006,"h":0})`, `✗ … shadow untinted (shadow hue 0)` |
 | (w) the brand-color note's guard removed | `test.ts` 1 | `❌ #2241: no decisions-log note gives a gray primary or a gray brand color a hue (offending: "brand color: 'slate' added (hue 0).…" …)` |
 
+**The fourth review (owner Q102 A).** Custom tint under a gray primary still read "0°", the stored hue, on the hue
+lever. When the neutral is gray (chroma below `ACHROMATIC_C`), the readout now reads None, with a matching
+`aria-valuetext`, whatever the source: Pinned by the pin's chroma, Custom tint by the neutral's own, Follow primary by
+the primary's. The decision moved out of the DOM code into `neutralHueReadout` (`state/palette-input.ts`), with
+`NO_HUE` beside it, so `test-palette-input` holds every readout. The lever passes its own hue words in; the readouts it
+draws for a hued neutral are byte-identical to before. Q100 A approved the "Gray." line for a neutral that does not
+follow, and Q97 A the danger note and the import log, so every string on this PR is approved.
+
+| Arm | ✗ line |
+|---|---|
+| (x) the Custom tint readout reverted to the stored hue | `✗ owner Q102 A: after the switch to Custom tint the hue readout reads None, not the stored hue (got "0°")` (`test-palette-input` 18/19) |
+
 **A trap for the next mutation run of `test:chrome`:** a mutated studio source needs *both* builds. A web-only rebuild
 trips the suite's `ui.html freshness` guard, and that ends the run before any assertion.
 
@@ -104,11 +116,10 @@ New decisions-log prose, drafted for a gray primary (or brand color). These are 
 | import log | `→ none provided; auto-follows the brand primary { hue 0, chroma 0.005 }` | `→ none provided; the brand primary has no hue, so the neutral is gray { hue 0, chroma 0 }` |
 
 | Palettes preview, neutral line | `Hue 0°, following primary. Text, borders and surfaces draw from it.` | `Gray, following primary. Text, borders and surfaces draw from it.` (Q96 A, approved) |
-| Palettes preview, neutral line, not following | `Hue 0°. Text, borders and surfaces draw from it.` | `Gray. Text, borders and surfaces draw from it.` (follows from Q96 A; owner to confirm) |
+| Palettes preview, neutral line, not following | `Hue 0°. Text, borders and surfaces draw from it.` | `Gray. Text, borders and surfaces draw from it.` (Q100 A, approved) |
 
 The studio readouts reuse the approved "None" (Q88 A) and add no new words. Q95 A approved the primary note, the
-Follow-primary note and the brand color note. The danger note and the import log are not on its list, and wait on
-the owner.
+Follow-primary note and the brand color note; Q97 A the danger note and the import log.
 
 ### Tests and mutations
 

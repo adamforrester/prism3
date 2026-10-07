@@ -40,6 +40,8 @@ const load = (gray: boolean): void => {
 };
 const neutralHexes = (): string[] => store.theme.palettes.find((p) => p.palette === 'neutral')!.steps.map((s) => s.hex);
 const allGray = (): boolean => store.theme.palettes.find((p) => p.palette === 'neutral')!.steps.every((s) => s.rgb.r === s.rgb.g && s.rgb.g === s.rgb.b);
+const fmt = (h: number): string => `${h}°`;   // a stand-in for the lever's own hue words
+const readout = (): string => P.neutralHueReadout(fmt);
 const line = (): string => P.neutralBoardText(store.theme.palettes.find((p) => p.palette === 'neutral')?.steps[10]?.oklch, !!store.lastGoodInput.neutral.auto);
 
 console.log('\n0. The starting point: a gray primary under Follow primary builds a gray, untinted neutral (Q87 A)');
@@ -47,6 +49,7 @@ load(true);
 const autoHexes = neutralHexes();
 ok(store.brandState.primary.h === 0 && store.brandState.primary.c < 1e-4, `the gray primary is stored with hue 0 and no chroma (got h ${store.brandState.primary.h}, c ${store.brandState.primary.c})`);
 ok(allGray() && store.theme.shadow.tint.hue === null, `under Follow primary the neutral is gray at every step and the shadow untinted (shadow hue ${store.theme.shadow.tint.hue})`);
+ok(readout() === 'None', `under Follow primary the hue readout reads None (Q88 A) (got "${readout()}")`);
 
 console.log('\n1. The preview line (owner Q96 A)');
 ok(line() === Q96_FOLLOW, `a gray ramp under Follow primary reads "${Q96_FOLLOW}" (got "${line()}")`);
@@ -59,6 +62,9 @@ ok(JSON.stringify(store.brandState.neutral) === '{"hue":0,"chroma":0}', `setNeut
 ok(allGray() && store.theme.shadow.tint.hue === null, `the custom tint is still gray at every step and the shadow untinted (shadow hue ${store.theme.shadow.tint.hue})`);
 ok(JSON.stringify(neutralHexes()) === JSON.stringify(autoHexes), `no jump: the neutral ramp is byte-identical to what Follow primary showed (500: ${neutralHexes()[10]} vs ${autoHexes[10]})`);
 ok(line() === 'Gray. Text, borders and surfaces draw from it.', `the preview line reads "Gray." without "following primary" (got "${line()}")`);
+ok(readout() === 'None', `owner Q102 A: after the switch to Custom tint the hue readout reads None, not the stored hue (got "${readout()}")`);
+P.setNeutralChroma(0.006);
+ok(readout() === '0°', `Custom tint given a real chroma reads its hue again (got "${readout()}")`);
 
 console.log('\n3. Pinned from Follow, under a gray primary: the pin is seeded gray');
 load(true);
@@ -66,13 +72,16 @@ P.setNeutralPinned(true);
 store.rebuild();
 ok(JSON.stringify(store.brandState.neutral.anchor) === '{"l":0.5,"c":0,"h":0}', `setNeutralPinned(true) seeds the anchor {"l":0.5,"c":0,"h":0} (got ${JSON.stringify(store.brandState.neutral.anchor)})`);
 ok(allGray() && store.theme.shadow.tint.hue === null, `the pinned neutral is gray at every step and the shadow untinted (shadow hue ${store.theme.shadow.tint.hue})`);
+ok(readout() === 'None', `the pinned gray's hue readout reads None (got "${readout()}")`);
 
 console.log('\n4. The other side: a primary with a hue keeps both writes as they were');
 load(false);
 const ph = store.brandState.primary.h;
 ok(ph > 0 && store.brandState.primary.c >= 1e-4, `harbor's primary has a hue (h ${ph})`);
 ok(/^Hue \d+°, following primary\. Text, borders and surfaces draw from it\.$/.test(line()), `a hued ramp under Follow primary still names its hue (got "${line()}")`);
+ok(readout() === '195° · follows primary', `the hue readout under Follow primary names the primary's hue (got "${readout()}")`);
 P.setNeutralFollow(false);
+ok(readout() === '195°', `after the switch to Custom tint, a hued neutral's readout is its hue (got "${readout()}")`);
 ok(JSON.stringify(store.brandState.neutral) === JSON.stringify({ hue: ph, chroma: 0.006 }), `setNeutralFollow(false) snapshots the primary's hue and keeps the chroma (got ${JSON.stringify(store.brandState.neutral)})`);
 load(false);
 P.setNeutralPinned(true);
