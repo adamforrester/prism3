@@ -88,11 +88,16 @@ test. Every page × mode pair is counted, so a skipped page fails.
 - TY2 A's hint-line floor went from 16 to 9 (measured). High contrast light now draws one line per page where Surfaces &
   fills repeated its line in each row list.
 
-### Trap for whoever re-verifies
+### The exemption's disabled read (found by the first full verify)
 
-`test:chrome`'s contrast exemption (`checkExempt`) still requires the `disabled` property or `aria-disabled`
-(`prop: n.disabled`), and a fieldset-disabled control has neither. No audit sweeps a derived mode today, so nothing
-fails. If one is added, a held control will fail its exemption until that predicate reads `:disabled`.
+Both contrast exemptions grant on `:disabled`, and then hold the exempted control to "the `disabled` property or
+`aria-disabled`" (`prop` in `test:chrome`'s probe, `prop` and `disabledProp` in `test:smoke`'s). A control disabled by a
+disabled fieldset has neither. `test:smoke` audits HC light and HC dark, so the first full verify failed 1992
+assertions there, all of them this check on held controls. The read now also accepts a disabled fieldset ancestor,
+`closest('fieldset[disabled]')`. That is the DOM attribute, kept apart from the `:disabled` match that grants the
+exemption. It is `[disabled]` and not the nearest fieldset, because each lever is its own fieldset (`leverBlock`): the
+first try, `closest('fieldset')`, stopped at the lever's and left 196 failures. The focus and activation halves of the
+check are unchanged.
 
 Found on the way, not fixed here: at 380 the Surfaces & fills levers overflow their pane (scrollWidth 454 against 379) on
 `origin/main` too. That is #1975, and the measurement is posted there.
