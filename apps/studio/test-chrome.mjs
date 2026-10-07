@@ -11251,10 +11251,11 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 }
 
 // =============================================================================================
-// 33. #2272: the bar cuts the brand name (`trim`, and its tooltip) only when the name is really cut. The frame picks a
-//     step from one measurement by subtraction (`fitBar`), and where the text metrics put that sum a fraction past the
-//     room, it used to pick `trim` and set the tooltip while the name, laid out, still fit: §29d's 590 on some
-//     machines, never in CI. This builds that state on every machine. At a width 2px wider than the plugin's first row
+// 33. #2272: the switcher's tooltip follows the name's own cut, not the `trim` step. The frame picks a step from one
+//     measurement by subtraction (`fitBar`), and a `trim` can leave the name whole when that measurement runs wider
+//     than the bar now draws; the tooltip used to follow the step there. (§29d's 590 is not that case: there the row
+//     is 0.27px too wide and the name really is cut, with its ellipsis; FIT_SEEN used to read that cut as whole.)
+//     This builds the case on every machine. At a width 2px wider than the plugin's first row
 //     needs (FIT_ORACLE's own reading), one first-row control is made 4px wider and the frame re-measures (a font load,
 //     one of its own re-measure signals); then the extra width is taken off with nothing the frame re-measures on (an
 //     inline style), and the window resized. The frame's sum is now 4px too wide, so it stays on `trim`, and the name

@@ -640,10 +640,10 @@ export const mountFrame = (app: HTMLElement, opts: {
     const sw = barMain.querySelector<HTMLElement>('[data-p3="brand-switcher"]');
     const nameEl = sw?.querySelector<HTMLElement>('.p3-brand-name');
     const full = nameEl?.textContent ?? '';
-    // The tooltip follows the cut, not the step (#2272). At `trim`'s edge the name can get all the width it needs (the
-    // step holds the first row; the row would still wrap without it), and then nothing is cut and nothing needs
-    // repeating. Read on the drawn name, `trim` already set: its text's own width (a Range) past its box, beyond one
-    // layout unit, to the fraction of a pixel that whole-pixel `scrollWidth` and `clientWidth` round away.
+    // The tooltip follows the cut, not the step (#2272). A `trim` can leave the name whole, when the measurement it was
+    // picked from runs wider than the bar now draws, and then nothing is cut and nothing needs repeating. Read on the
+    // drawn name, `trim` already set: its text's own width (a Range) past its box, beyond one layout unit, to the
+    // fraction of a pixel that whole-pixel `scrollWidth` and `clientWidth` round away.
     let cut = false;
     if (nameEl && step === 'trim') {
       const r = document.createRange();
