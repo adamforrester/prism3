@@ -13,6 +13,16 @@
  *                  dropped from the set path → `fresh/baseline`.
  *   edit/…         a binding changed by hand reads handEdited at its path. Mutation: `nodeSignature` stops
  *                  reading bindings → `edit/detected`.
+ *   edit/…         also, one edit of each kind, each against its own mutation: text no property owns
+ *                  (`characters` dropped from the signature → `edit/characters`), a child hidden (`visible`
+ *                  dropped → `edit/visible`), a raw color changed (an unbound paint's color ignored →
+ *                  `edit/unbound color`), and a child deleted, structural (`removed` never filled in
+ *                  `baselineDiff` → `edit/child deleted`).
+ *   rerun/…        a second build into the same file records only the member it adds; every skipped member's
+ *                  record is byte-identical, so a hand edit made between builds is still reported. Mutation:
+ *                  the as-built loop walks every live member instead of `builtParts` → `rerun/records kept`.
+ *   format/…       a fixed node's hashes are pinned per BASELINE_V, so a signature change that does not raise
+ *                  it fails here. Mutation: one more field in the signature → `format/pinned`.
  *   theme/…        what Apply Theme moves (values behind a binding, derived geometry) is NOT a hand edit.
  *                  Mutation: the signature hashes a bound field's value → `theme/no hand edits`.
  *   edit/…         also: with no plan or executor change, a hand edit is never a conflict — the update would
@@ -47,7 +57,7 @@ import type { ComponentRename } from '@prism3/engine/component-renames';
 import { applyComponentPlan, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
-import { BASELINE_KEY } from './src/member-baseline';
+import { BASELINE_KEY, BASELINE_V, baselineOf, writeBaseline, type SnapNode } from './src/member-baseline';
 import { makeShim, type Node, type Page } from './component-shim';
 import {
   readSetView, dryRunSet, hostPorts, previewUpdate, captureBaselines, previewVerdict, captureVerdictText,
@@ -70,7 +80,7 @@ const defOf = (id: string) => {
 };
 const plansOf = (id: string): AnatomyPlan[] => figmaAnatomySet(defOf(id), { swapTarget: SWAP_TARGET });
 
-type Built = { shim: UpdateHost & Record<string, any>; set: Node; plans: AnatomyPlan[]; ports: Awaited<ReturnType<typeof hostPorts>> };
+type Built = { shim: UpdateHost & Record<string, any>; raw: Record<string, any>; page: Page; set: Node; plans: AnatomyPlan[]; ports: Awaited<ReturnType<typeof hostPorts>> };
 /** Every component a plan set reaches for, from the plans: `test-write-components.ts`'s construction. */
 const planComps = (n: { swapTarget?: string; nestTarget?: string; children?: unknown[] }): string[] => [
   ...(n.swapTarget ? [n.swapTarget] : []),
@@ -100,7 +110,8 @@ const build = async (id: string, plans = plansOf(id)): Promise<Built> => {
     ...shim,
     root: { findAllWithCriteria: (c: { types: string[] }) => page.children.filter((n) => c.types.includes(String(n.type))) },
   };
-  return { shim: host, set, plans, ports: await hostPorts(host) };
+  // `raw` is the shim as the executor sees it, for a second build into the same file.
+  return { shim: host, raw: shim, page, set, plans, ports: await hostPorts(host) };
 };
 const membersOf = (set: Node): Node[] => set.children as Node[];
 /** A member's child by name. */
@@ -163,6 +174,98 @@ section('edit — a binding changed by hand reads as a hand edit at its path');
   const added = p2.handEdits.filter((h) => h.member === membersOf(b.set)[5].name);
   ok(added.length >= 1 && added.every((h) => h.structural) && added.some((h) => h.path === 'designer note'),
     `edit/structural: a child added by hand reads as a structural edit at its path (${JSON.stringify(added)})`);
+}
+
+/* ── edit kinds ──────────────────────────────────────────────────────────────────────────────────────── */
+section('edit kinds — text, visibility, an unbound color and a deleted child each read as a hand edit');
+{
+  const b = await build(TAG);
+  const editsOn = async (m: Node) => (await previewUpdate(b.shim, [{ def: TAG, plans: b.plans }])).sets[0].handEdits.filter((h) => h.member === m.name);
+  // Tag binds every color and gives its one text to a property, so no built node holds unowned text or a
+  // raw color. A node that does is added here and recorded as built, as a def with a fixed caption would be.
+  const withCaption = async (m: Node): Promise<Node> => {
+    const t = (b.shim.createText as () => Node)();
+    t.name = 'caption';
+    await (b.raw.loadFontAsync as (f: unknown) => Promise<void>)(t.fontName);
+    t.characters = 'Fixed';
+    t.fills = [{ type: 'SOLID', color: { r: 1, g: 0, b: 0 } }];
+    (childNamed(m, 'content').appendChild as (c: Node) => void)(t);
+    await writeBaseline(m);
+    return t;
+  };
+  const [mText, mVis, mPaint, mGone] = [membersOf(b.set)[1], membersOf(b.set)[2], membersOf(b.set)[4], membersOf(b.set)[6]];
+  const cText = await withCaption(mText);
+  const cPaint = await withCaption(mPaint);
+  ok((await editsOn(mText)).length === 0 && (await editsOn(mPaint)).length === 0, 'premise: a caption recorded as built is not itself a hand edit');
+
+  cText.characters = 'Edited';
+  const eText = await editsOn(mText);
+  ok(eText.length === 1 && eText[0].path === 'content/caption' && !eText[0].structural, `edit/characters: text no property owns, retyped by hand, reads at its path (${JSON.stringify(eText)})`);
+
+  childNamed(childNamed(mVis, 'content'), 'labelCheck').visible = false;
+  const eVis = await editsOn(mVis);
+  ok(eVis.length === 1 && eVis[0].path === 'content/labelCheck' && !eVis[0].structural, `edit/visible: a child hidden by hand reads at its path (${JSON.stringify(eVis)})`);
+
+  cPaint.fills = [{ type: 'SOLID', color: { r: 1, g: 0.5, b: 0 } }];
+  const ePaint = await editsOn(mPaint);
+  ok(ePaint.length === 1 && ePaint[0].path === 'content/caption' && !ePaint[0].structural, `edit/unbound color: a raw color changed by hand reads at its path (${JSON.stringify(ePaint)})`);
+
+  const kids = childNamed(mGone, 'content').children as Node[];
+  const at = kids.findIndex((c) => c.name === 'leadingVisual');
+  ok(at >= 0, 'premise: the member has its leading visual');
+  kids.splice(at, 1);
+  const eGone = await editsOn(mGone);
+  ok(eGone.some((h) => h.path === 'content/leadingVisual') && eGone.every((h) => h.structural), `edit/child deleted: a child deleted by hand is a structural edit at its path (${JSON.stringify(eGone)})`);
+}
+
+/* ── rerun ───────────────────────────────────────────────────────────────────────────────────────────── */
+section('rerun — a second build adds the missing member and leaves every other member\'s record as it was');
+{
+  // A re-run build writes the members it builds and skips the rest. If it re-recorded a skipped member,
+  // a hand edit made in between would become the record, and the dry run would stop seeing it.
+  const full = plansOf(TAG);
+  const left = full[7];
+  const b = await build(TAG, full.filter((p) => p !== left));
+  ok(membersOf(b.set).length === 44, `premise: the first build has 44 of 45 members (${membersOf(b.set).length})`);
+  const m = membersOf(b.set)[3];
+  (childNamed(m, 'content').setBoundVariable as (f: string, v: { id: string }) => void)('itemSpacing', { id: await varId(b, 'space/0') });
+  const recordOf = (n: Node): string => (n.getSharedPluginData as (ns: string, k: string) => string)(NS, BASELINE_KEY);
+  const before = membersOf(b.set).map((n) => [String(n.name), recordOf(n)] as const);
+  const again = await applyComponentPlan(full, b.raw as any);
+  // The executor reports each member it skipped as a miss naming the skip; any other miss is a fault.
+  const odd = again.misses.filter((x) => !/ALREADY PRESENT \(skipped/.test(x));
+  ok(again.misses.length === 44 && odd.length === 0, `premise: the second build skipped the 44 it found and missed nothing else (${again.misses.length}, ${odd[0] ?? ''})`);
+  const set = b.page.children.find((n) => n.type === 'COMPONENT_SET') as Node;
+  const after = new Map(membersOf(set).map((n) => [String(n.name), recordOf(n)] as const));
+  ok(after.size === 45 && !!after.get(planComponentName(left)), `rerun/added: the missing member is built, with its record (${after.size})`);
+  const moved = before.filter(([n, r]) => after.get(n) !== r).map(([n]) => n);
+  ok(moved.length === 0, `rerun/records kept: every skipped member's record is byte-identical before and after (${moved.length} moved: ${moved.slice(0, 2).join('; ')})`);
+  const p = (await previewUpdate(b.shim, [{ def: TAG, plans: full }])).sets[0];
+  ok(p.handEdits.length === 1 && p.handEdits[0].member === m.name && p.handEdits[0].path === 'content',
+    `rerun/edit kept: the hand edit made before the re-run is still reported (${JSON.stringify(p.handEdits)})`);
+}
+
+/* ── format ──────────────────────────────────────────────────────────────────────────────────────────── */
+section('format — what the hash covers is pinned to BASELINE_V');
+{
+  // A change to what \`nodeSignature\` reads changes every stored record's meaning. Records already on a file
+  // were written by the old signature, so the change must raise BASELINE_V, which makes the dry run read
+  // them as "no record" rather than as a file full of hand edits. This pins one hash per version: when it
+  // fails, raise BASELINE_V in member-baseline.ts and pin the new hash here under the new version.
+  const PINNED: Record<number, Record<string, string>> = { 1: { '.': 'e85160da', label: 'e7367361', note: '88ebbfd4', icon: '2df66934' } };
+  const fixture: SnapNode = {
+    name: 'm', type: 'COMPONENT', layoutMode: 'HORIZONTAL', itemSpacing: 4, visible: true, opacity: 1,
+    boundVariables: { paddingLeft: { id: 'V:space/100' } },
+    fills: [{ type: 'SOLID', color: { r: 0.1, g: 0.2, b: 0.3 }, boundVariables: { color: { id: 'V:color/a' } } }],
+    children: [
+      { name: 'label', type: 'TEXT', characters: 'Tag', componentPropertyReferences: { characters: 'label#1:0' }, textStyleId: 'S:body', fills: [{ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }] },
+      { name: 'note', type: 'TEXT', characters: 'Fixed', visible: false, fontSize: 12, strokes: [] },
+      { name: 'icon', type: 'INSTANCE', mainComponent: { name: 'glyph=check', parent: { name: 'Glyph', type: 'COMPONENT_SET' } }, componentProperties: { 'size#1:1': { type: 'VARIANT', value: 'small' } } },
+    ],
+  };
+  const now = baselineOf(fixture).nodes;
+  ok(JSON.stringify(now) === JSON.stringify(PINNED[BASELINE_V]),
+    `format/pinned: the fixture hashes as pinned for BASELINE_V ${BASELINE_V}. If nodeSignature changed on purpose, raise BASELINE_V and pin ${JSON.stringify(now)}`);
 }
 
 /* ── theme ───────────────────────────────────────────────────────────────────────────────────────────── */

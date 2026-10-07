@@ -28110,6 +28110,9 @@ arm: {
   ok(r1.key === 'appearance=bold, size=s' && r1.renamed, `#2265 renameCoordinate: a value chain and an axis rename both apply, and the key re-sorts (got ${r1.key})`);
   ok(!renameCoordinate('chip', 'size=large', L).renamed, '#2265 renameCoordinate: a coordinate no entry names is unmoved');
   ok(!renameCoordinate('other', 'size=sm', L).renamed, '#2265 renameCoordinate: an entry applies only to its own def');
+  // Two axes sharing a value name: a rename declared on one must leave the other's value where it is.
+  const own = renameCoordinate('chip', 'end=small, start=small', [{ def: 'chip', kind: 'value', axis: 'start', from: 'small', to: 'tiny', issue: 1 }]);
+  ok(own.key === 'end=small, start=tiny', `#2265 renameCoordinate: a value rename applies only on its own axis, not to the same value on another (got ${own.key})`);
   let loops = false;
   try { renameCoordinate('loop', 'a=x', [{ def: 'loop', kind: 'value', axis: 'a', from: 'x', to: 'y', issue: 1 }, { def: 'loop', kind: 'value', axis: 'a', from: 'y', to: 'x', issue: 1 }]); } catch { loops = true; }
   ok(loops, '#2265 renameCoordinate: a cycle in the ledger throws rather than naming a coordinate');

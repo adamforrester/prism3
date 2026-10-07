@@ -16,6 +16,9 @@ The first of the in-place update PRs from the #2265 design note (owner decision 
 
 ### Traps for whoever re-verifies
 
+- **The record format is pinned.** `test-update-components.ts` pins one fixture node's hashes under `BASELINE_V`. A change to what `nodeSignature` reads fails `format/pinned` until `BASELINE_V` is raised and the new hashes are pinned under it. Records already on a file were written by the old signature, so the version is what makes a dry run read them as "no record" rather than as a file full of hand edits. This matters once the NB master's record is captured.
+- **A re-run build must not re-record a skipped member,** or a hand edit made between builds becomes the record and disappears from the dry run. `rerun/records kept` holds this. It was added in review: before it, walking every live member instead of this run's `builtParts` survived the suite.
+- Tag binds every color and gives its one text to a property, so no built tag node holds unowned text or a raw color. The `characters` and unbound-color cases add a caption, record the member as built, then edit it. The shim has no `remove()`, so the deleted-child case splices `children`.
 - The shim's `root.findAllWithCriteria` returns name-only refs (the #681 model), so the shim's own search can't drive a whole-file preview. `test-update-components.ts` wraps the host with a search over `page.children`. The real host is unaffected.
 - The shim's `setBoundVariable` records the binding but does not set the numeric field. A test that only re-binds can't tell "hashes the binding" from "hashes the value". The theme case writes the values too, and that is the only reason the "signature hashes the bound value" mutation fails.
 - Not every plan has `space/075` as its content gap. The plan-change case moves it to `space/999` everywhere.
