@@ -8,14 +8,19 @@
  * export is that text, and `src/entry.ts` hands it to `installStyles` with `styles.css`.
  *
  * IT FAILS THE BUILD, naming each failure, on the five checks from `build-v6.mjs` that concern the CSS
- * it produces, plus the inputs they need:
+ * it produces, plus the inputs they need, plus one rule of the product's own, [hover]:
  *
  *   [raw]       `chrome.css` carries a raw hex, color function, length, duration or shadow (v6 check 4);
  *               a named color, `currentColor`, a `var()` fallback, or a `url()` or `image-set()`
  *               source that is not a `data:` URI (`scanRawStrict`); or reads a variable that is not
  *               `--p3-*`.
+ *   [hover]     a `:hover` selector in `chrome.css` lacks the Q28 limit HOVER_LIMIT on the element it hovers, and is
+ *               not one HOVER_EXEMPT names word for word, with a reason (#2247); a HOVER_EXEMPT entry no selector is;
+ *               a `:hover` the parser read in no rule's selector; or a HOVER_CANARIES case the scan no longer reads.
  *   [variables] `chrome.css` reads a `--p3-*` the map does not define, or the map defines one
- *               `chrome.css` never reads (v6 check 6). The map grows with the rules, never ahead.
+ *               `chrome.css` never reads (v6 check 6). The map grows with the rules, never ahead. A
+ *               runtime variable (RUNTIME_VARS, a literal list) is defined by the shell instead; it must be
+ *               read too, and the map may not define it as well (#2176).
  *   [brand]     a chrome color resolves through the brand palette or a brand, link or focus role, in
  *               either theme (v6 check 7), except `--p3-focus-ring` on `color.border.focus`, the one
  *               exception BRAND_ALLOW names (#2144); BRAND_ALLOW itself not exactly that one entry
@@ -57,6 +62,15 @@ import { glyphGaps, glyphWatchFiles } from './glyphs.mjs';
 import { VARS_FOR, PRODUCT_FOR, ALIAS, SHELL_VARS, PAIRS as MOCKUP_PAIRS, PRODUCT_PAIRS, DECORATIVE, INACTIVE } from './spec.mjs';
 
 const PAIRS = [...MOCKUP_PAIRS, ...PRODUCT_PAIRS];
+
+/** RUNTIME VARIABLES (#2176): the `--p3-*` names `chrome.css` may read that no token defines, because the shell sets
+ *  them on an element while it runs, from what the person did, never from a design value. Typed here, one by one, each
+ *  with where it is set. They are custom properties, so `test:chrome`'s inline-value check lets them through, as it
+ *  does every custom property; the [variables] check still fails one `chrome.css` never reads, and one the map
+ *  defines too.
+ *   - `activity-h`: the open Activity drawer's height, as the person dragged it (`src/shell/activity.ts`, set on the
+ *     frame while the drawer is open at the wide tier). */
+export const RUNTIME_VARS = ['activity-h'];
 
 /** The only roles an INACTIVE variable may read (F1 A): the engine's cross-cutting disabled family. Typed here, not
  *  read from `spec.mjs`, so the list that grants the exemption cannot also set what qualifies for it. */
@@ -112,6 +126,124 @@ export const BRAND_CANARIES = [
   ['a non-focus variable on the focus color', ['ctl-edge', 'color.border.focus', C], true],
   ['the focus ring pointed at the primary palette', ['focus-ring', 'core.palette.primary.600', C], true],
 ];
+
+/**
+ * THE Q28 HOVER LIMIT (owner decision Q28 a, 2026-10-05; #2247): a control that is `:disabled` or `aria-disabled="true"`
+ * changes nothing under the pointer, so every `:hover` in `chrome.css` sits in a compound that also carries this
+ * selector, on the same element. Typed here, never read from `chrome.css`, so a rule cannot lower the bar it is held
+ * to. `test:chrome`'s Q28 a arm measures the kinds it hovers at run time; this check reads every rule, those kinds
+ * included, and fails the build on any one that lacks the limit.
+ */
+export const HOVER_LIMIT = ':where(:not(:disabled, [aria-disabled="true"]))';
+/**
+ * THE SELECTORS THAT MAY USE `:hover` WITHOUT THE LIMIT, each typed in full, with its reason. An entry exempts that
+ * exact selector text and nothing else, so an exempted rule that changes is no longer exempt. An entry that matches no
+ * selector in `chrome.css` fails too, so the list cannot outlive its rules.
+ */
+export const HOVER_EXEMPT = [
+  ['.p3-tile:is(:hover, :focus-visible):not([aria-expanded="true"]) > .p3-tile-tip',
+    'a reveal, not a control state: the tooltip repeats the tile\'s name, on hover and on keyboard focus alike, and paints the tip, never the tile'],
+  ['.p3-colorfield:where(:not(:has(:disabled, [aria-disabled="true"]))):hover',
+    'a wrapper, not the control: what switches off is the input inside it, so it carries the limit in its :has() form; test:chrome\'s "color field" kind (form inner) measures it'],
+];
+/**
+ * THE HOVER SCAN'S OWN CANARIES, run on every build before `chrome.css` is scanned. `chrome.css` alone cannot show the
+ * parser still reaches every place a selector can sit: today it has no nested rule and no hover inside `@media`, so a
+ * parser that lost either would pass it unchanged. Each canary is a literal: `flag` is the selector a finding must
+ * name, or null for CSS the scan must pass. A canary that stops flagging, or a must-pass one that starts failing,
+ * fails [hover] by name.
+ */
+export const HOVER_CANARIES = [
+  ['a limited hover', `.a${HOVER_LIMIT}:hover { gap: 0 }`, null],
+  ['a limited hover inside :is()', `.a${HOVER_LIMIT}:is(:hover, :focus) { gap: 0 }`, null],
+  ['a bare hover', '.a:hover { gap: 0 }', '.a:hover'],
+  ['a hover limited for :disabled only', '.a:hover:not(:disabled) { gap: 0 }', '.a:hover:not(:disabled)'],
+  ['a hover inside :is()', '.a:is(:hover, :focus-visible) > .b { gap: 0 }', '.a:is(:hover, :focus-visible) > .b'],
+  ['a limit on the ancestor, not the hovered element', `.a${HOVER_LIMIT} .b:hover { gap: 0 }`, `.a${HOVER_LIMIT} .b:hover`],
+  ['the second selector of a list', `.a${HOVER_LIMIT}:hover, .b:hover { gap: 0 }`, '.b:hover'],
+  ['a hover in a nested rule', '.a { gap: 0; & .b:hover { gap: 0 } }', '& .b:hover'],
+  ['a hover inside @media', '@media (min-width: 1px) { .a:hover { gap: 0 } }', '.a:hover'],
+  ['a selector across lines', '.a,\n.b:hover\n{ gap: 0 }', '.b:hover'],
+];
+
+/** Splits `s` at each top-level match of `at` (a regex anchored with ^), outside (), [] and strings. */
+const splitTop = (s, at) => {
+  const out = [];
+  let depth = 0, quote = null, from = 0;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (quote) { if (ch === '\\') i++; else if (ch === quote) quote = null; continue; }
+    if (ch === '"' || ch === '\'') quote = ch;
+    else if (ch === '(' || ch === '[') depth++;
+    else if (ch === ')' || ch === ']') depth--;
+    else if (depth === 0) {
+      const m = at.exec(s.slice(i));
+      if (m && m[0].length) { out.push(s.slice(from, i)); from = i + m[0].length; i = from - 1; }
+    }
+  }
+  out.push(s.slice(from));
+  return out.map((x) => x.trim()).filter(Boolean);
+};
+/** A compound selector's simple selectors: each starts at a top-level `.`, `#`, `[` or `:` (a `::` stays whole). */
+const simples = (compound) => {
+  const out = [];
+  let depth = 0, quote = null, from = 0;
+  for (let i = 0; i < compound.length; i++) {
+    const ch = compound[i];
+    if (quote) { if (ch === '\\') i++; else if (ch === quote) quote = null; continue; }
+    if (ch === '"' || ch === '\'') { quote = ch; continue; }
+    if (depth === 0 && /[.#[:]/.test(ch) && i > from && !(ch === ':' && compound[i - 1] === ':')) { out.push(compound.slice(from, i)); from = i; }
+    if (ch === '(' || ch === '[') depth++;
+    else if (ch === ')' || ch === ']') depth--;
+  }
+  out.push(compound.slice(from));
+  return out.map((x) => x.replace(/\s+/g, ' ')).filter(Boolean);
+};
+/**
+ * Every [hover] finding in `css`, each naming its selector and line. The selectors are parsed: a rule's prelude is
+ * split into its selector list at top-level commas, each selector into compounds at its combinators, and each compound
+ * into simple selectors; a compound that mentions `:hover` anywhere must hold HOVER_LIMIT as one of its own simple
+ * selectors. Then, by position, every `:hover` in the code must sit inside a prelude the parser read, so a selector
+ * the walk missed fails rather than going unchecked. `exempt` is a list of [selector, reason]; one that matches no
+ * selector is a finding too.
+ */
+export function hoverFindings(css, where, exempt = []) {
+  const findings = [];
+  const code = css.replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, ' '));
+  // The walk runs on a copy with every string's inside blanked, so a brace or a `;` in a string is inert. Offsets match.
+  const mask = code.replace(/(["'])((?:(?!\1)[^\\\n]|\\.)*)\1/g, (_, q, body) => `${q}${'_'.repeat(body.length)}${q}`);
+  const lineAt = (i) => code.slice(0, i).split('\n').length;
+  const norm = (s) => s.replace(/\s+/g, ' ').trim();
+  const preludes = [];
+  let from = 0;
+  for (let i = 0; i < mask.length; i++) {
+    const ch = mask[i];
+    if (ch === '{') {
+      const text = code.slice(from, i);
+      if (!text.trim().startsWith('@')) preludes.push({ start: from, end: i, text });
+      from = i + 1;
+    } else if (ch === '}' || ch === ';') from = i + 1;
+  }
+  const seen = new Set();
+  for (const p of preludes) {
+    for (const sel of splitTop(p.text, /^,/)) {
+      if (!/:hover(?![\w-])/.test(sel)) continue;
+      const s = norm(sel);
+      if (exempt.some(([x]) => x === s)) { seen.add(s); continue; }
+      const bare = splitTop(sel, /^\s*[>+~]\s*|^\s+/).filter((c) => /:hover(?![\w-])/.test(c) && !simples(c).includes(HOVER_LIMIT));
+      const on = bare.length === 1 && norm(bare[0]) === s ? '' : ` (on ${bare.map((c) => `"${norm(c)}"`).join(', ')})`;
+      if (bare.length) findings.push({ selector: s, msg: `${where}:${lineAt(p.start + p.text.indexOf(sel))}: "${s}" hovers without the Q28 limit ${HOVER_LIMIT} on the element it hovers${on}; add it there, or name the selector in HOVER_EXEMPT (esbuild-plugin.mjs) with a reason` });
+    }
+  }
+  for (const m of code.matchAll(/:hover(?![\w-])/g)) {
+    if (!preludes.some((p) => m.index >= p.start && m.index < p.end)) findings.push({ selector: null, msg: `${where}:${lineAt(m.index)}: a :hover the selector parser did not read as part of any rule's selector` });
+  }
+  for (const [x, why] of exempt) {
+    if (!why || !why.trim()) findings.push({ selector: x, msg: `HOVER_EXEMPT (esbuild-plugin.mjs) names "${x}" with no reason` });
+    if (!seen.has(x)) findings.push({ selector: x, msg: `HOVER_EXEMPT (esbuild-plugin.mjs) names "${x}", which no selector in ${where} is, word for word; drop the entry, or retype it with the rule` });
+  }
+  return findings;
+}
 
 export const CHROME_CSS_MODULE = 'p3:chrome-css';
 export const CHROME_CSS_FILE = join(ROOT, 'apps', 'studio', 'src', 'chrome.css');
@@ -210,8 +342,19 @@ export function buildChromeCss({ names = SHELL_VARS, chromeCssFile = CHROME_CSS_
     if (!m[1].startsWith('p3-')) fail('raw', `${where}: reads --${m[1]}, which is not a chrome variable (only var(--p3-*) is allowed)`);
   }
 
-  // [variables] used against defined, both ways.
-  const defined = new Set([...names, ...CHROME_FONTS.map(([n]) => n)]);
+  // [hover] the scan itself first: its canaries (HOVER_CANARIES). Then every :hover rule carries the Q28 limit, but the
+  // selectors HOVER_EXEMPT names.
+  for (const [label, css, flag] of HOVER_CANARIES) {
+    const got = hoverFindings(css, 'canary');
+    if (flag && !got.some((g) => g.selector === flag)) fail('hover', `self-check: the hover scan no longer flags ${label} (want "${flag}", got ${JSON.stringify(got.map((g) => g.msg))})`);
+    if (!flag && got.length) fail('hover', `self-check: the hover scan now refuses ${label}: ${got.map((g) => g.msg).join('; ')}`);
+  }
+  for (const { msg } of hoverFindings(src, where, HOVER_EXEMPT)) fail('hover', msg);
+
+  // [variables] used against defined, both ways. A runtime variable (RUNTIME_VARS) counts as defined: the shell sets
+  // it, so the map must not define it too, and like every other it must be read.
+  for (const n of RUNTIME_VARS) if (names.includes(n)) fail('variables', `--p3-${n} is a runtime variable (RUNTIME_VARS, esbuild-plugin.mjs) and a mapped one (SHELL_VARS); it is one or the other`);
+  const defined = new Set([...names, ...CHROME_FONTS.map(([n]) => n), ...RUNTIME_VARS]);
   const used = new Set([...code.matchAll(/var\(\s*--p3-([a-z0-9-]+)/g)].map((m) => m[1]));
   for (const u of used) if (!defined.has(u)) fail('variables', `${where}: undefined variable --p3-${u}`);
   for (const d of defined) if (!used.has(d)) fail('variables', `mapped but unused variable --p3-${d} (${where} never reads it)`);

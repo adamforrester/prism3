@@ -1327,6 +1327,11 @@ const main = async (): Promise<void> => {
     ok(styleGuideSummary(r).summary.includes('11 tables skipped — this file has no Semantic tokens page'), '7: the skip is named in the summary');
     const partial = styleGuideSummary(r);
     ok(!partial.ok && partial.headline === '⚠ 11 drawn, 11 skipped', `7: a partial run is not a pass — headline "${partial.headline}"`);
+    // #2177: the Activity drawer's lines are the summary's items, the created tables and the skip, each in the summary's
+    // words, and joined by `. ` they are the summary, byte for byte.
+    ok(partial.lines.length === 2 && partial.lines[0].startsWith('11 tables created (') && partial.lines[1] === '11 tables skipped — this file has no Semantic tokens page, and Set up file adds it'
+      && partial.summary === `${partial.lines[0]}. ${partial.lines[1]}`,
+      `7 #2177: the summary's two items are its two lines (${JSON.stringify(partial.lines)})`);
 
     const bare = makeShim([page(PRIM), page(SEM)], c2, v2);
     const r2 = await draw(bare.api, contract);
