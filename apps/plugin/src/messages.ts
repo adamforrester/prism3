@@ -113,7 +113,10 @@ export type UiToMain =
   /** The person chose a chrome theme in the Theme menu (the owner's top-bar decision, 2026-10-05): Match Figma
    *  (`figma`), Light or Dark. The main thread keeps it in `clientStorage`, per person, and sends it back on
    *  `ui-ready` as `theme-pref`. */
-  | { type: 'set-theme-pref'; pref: 'figma' | 'light' | 'dark' };
+  | { type: 'set-theme-pref'; pref: 'figma' | 'light' | 'dark' }
+  /** The person dragged or stepped the open Activity drawer to a height (#2176, the owner's AD1), in CSS pixels. The
+   *  main thread keeps it in `clientStorage`, per person, and sends it back on `ui-ready` as `activity-height`. */
+  | { type: 'set-activity-height'; px: number };
 
 /** A style-guide specimen (#259) — the `type` axis of `_style-guide-swatches` a table row instances. */
 export type SwatchType = 'default' | 'text' | 'icon' | 'border' | 'transparency';
@@ -387,6 +390,9 @@ export type MainToUi =
    *  when nothing was kept: the UI starts on Match Figma. Read by the plugin's UI entry (`ui/entry.ts`), never by the
    *  shared UI body's host messages. */
   | { type: 'theme-pref'; pref: 'figma' | 'light' | 'dark' }
+  /** The Activity drawer's height this person last chose (`set-activity-height`, #2176), read from `clientStorage` on
+   *  `ui-ready`. Not sent when nothing was kept: the drawer opens at its own height. Read by the plugin's UI entry. */
+  | { type: 'activity-height'; px: number }
   /** The result of an `agent-command` — the protocol's own envelope, relayed to the bridge unchanged. */
   | { type: 'agent-result'; result: AgentResult }
   /** A build's progress reading while an agent command runs, streamed to the bridge (#684's reading). */
