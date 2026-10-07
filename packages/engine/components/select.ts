@@ -371,10 +371,10 @@ export const select: ComponentDef = {
         nesting: { kind: 'nest-exposed', variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['size', 'emphasis', 'weight'] },
         // #1503 — FILLS the field's width (`layoutAlign: STRETCH`, with the instance's own FIXED mode since
         // #1751), so the label spans the 320 control rather than hugging narrower above it (Prism 2's inner
-        // containers FILL). Field-label's text wraps inside it (#1757, owner), so a long name wraps at the
-        // field's width instead of running past it.
+        // containers FILL). Field-label's name wraps at its own max width inside it (#1762, owner; it wrapped at
+        // the field's width under #1757), so a long name wraps instead of running past the field.
         crossAxisFill: true,
-        note: 'The accessible name, composed rather than re-declared. Nest-exposed (#1438): its label text, required marker and size/emphasis/weight surface on the select so a designer sets them here; a fix to FieldLabel still reaches this without a copy. Starts at the select default (small / secondary / regular). Fills the field\'s width (#1503), so a long name wraps.',
+        note: 'The accessible name, composed rather than re-declared. Nest-exposed (#1438): its label text, required marker and size/emphasis/weight surface on the select so a designer sets them here; a fix to FieldLabel still reaches this without a copy. Starts at the select default (small / secondary / regular). Fills the field\'s width (#1503); a long name wraps at FieldLabel\'s max width.',
       },
       // THE CONTROL — the bordered, interactive box. The single target: it owns the hit area, the focus
       // ring and the stateful border. Paints its fill, border and the hover overlay wash (`paintSlots`,
