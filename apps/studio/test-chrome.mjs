@@ -10784,11 +10784,14 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
 // =============================================================================================
 // #2232: a click on blank space inside the S12 start window keeps focus in the window, and Tab and Shift+Tab then stay
 //        inside it. Both hosts, 1280. The window traps Tab with a keydown listener on its scrim, so a focus that falls
-//        to <body> (outside the scrim) is a focus the trap never hears: Shift+Tab then left the page. EXPECTED, read
-//        from the DOM: after the click, `document.activeElement` is the window or a control in it; after each key, a
-//        control in it. Blank space is the lede paragraph, which nothing makes focusable.
-//   Mutation: the window not focusable (`tabindex` dropped in `windowShell`) → `#2232 … after a click on blank space,
-//   focus stays in the start window` and `… Shift+Tab …` fail by name.
+//        to <body> (outside the scrim) is a focus the trap never hears. EXPECTED, read from the DOM: after the click,
+//        `document.activeElement` is the window or a control in it; after each key, a control in it. Blank space is
+//        the lede paragraph, which nothing makes focusable.
+//   Mutation: the window not focusable (`tabindex` dropped in `windowShell`, today's code before #2255) → only the
+//   click arm fails, by name: `#2232 … after a click on blank space, focus stays in the start window (focus is on
+//   body)`, on both hosts. The Tab and Shift+Tab arms PASS under it: in headless Chromium, with everything behind the
+//   window inert, both keys from <body> land on a control in the window. They hold the behavior once focus is in the
+//   window; they are not evidence for the mutation.
 // =============================================================================================
 console.log('\n#2232. The start window keeps focus after a click on blank space');
 for (const host of ['web', 'figma']) {
