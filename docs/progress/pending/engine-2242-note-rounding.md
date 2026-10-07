@@ -11,9 +11,15 @@ color picked in the studio) printed as `tinted to hue 89.87556274151122`.
 
 - **The shadow note's tint hue prints in whole degrees,** matching how the studio shows hue (the issue's fix).
 - **Every other number the notes print** is compacted to the precision the corpus already used: hue and lightness
-  to 2 places, chroma to 4, with no trailing zeros. That covers the primary's hue and chroma, a brand color's and a
-  status color's hue, a pinned gray's lightness, an out-of-gamut anchor's OKLCH, and the shadow's softness and
-  amount. Two module-level helpers (`n2`, `n4`) do the formatting, so a new note has one obvious way to print a number.
+  to 2 places, chroma to 4, with no trailing zeros. That covers:
+  - the primary's hue and chroma, a brand color's and a status color's hue, a pinned gray's lightness, and an
+    out-of-gamut anchor's OKLCH;
+  - the shadow's softness and amount;
+  - after the review (#2273): the radius scale and base radius, each breakpoint's width, the max and narrow
+    containers, the type ladder's first and last sizes, the display cap, and the fluid-type viewports.
+
+  The review found four of these. A full audit of every interpolation in the note builder found the other five, in
+  the same three notes. Two module-level helpers (`n2`, `n4`) do the formatting, so a new note has one obvious way to print a number.
 
 **Committed artifacts move only on the shadow line**, and only where a tint hue wasn't whole: prism3 266.75 → 267
 and wendys 249.14 → 249, in their tokens and in the reports that print the notes. No other corpus note
@@ -25,7 +31,8 @@ changed, because none carried more precision than these helpers keep. Hence `min
 reaching each numeric note:
 - **A:** Follow primary, plus a long brand color and long status hues.
 - **B:** a pin from a hex through the real converter, plus an out-of-gamut primary, which fires the gamut note.
-- **C:** a long red primary, reused for danger.
+- **C:** a long red primary, reused for danger, plus a seven-place radius scale and base radius, breakpoints, max and
+  narrow containers, and fluid-type viewports.
 
 Two assertions:
 - **No note prints a number with more than 4 decimal places.** It scans every note of every case, not just the lines
@@ -40,3 +47,5 @@ applied, and was restored with `git checkout --`:
 |---|---|---|
 | (h) the shadow hue back to raw | 2 | `#2242 the shadow note prints the tint hue in whole degrees (expected "tinted to hue 262 at", rounded from the input's 262.1234567; got "… tinted to hue 262.1234567 at 0.15 …")` and the scan (2 offending) |
 | (i) the primary's hue back to raw, a note the shadow fix never touched | 1 | `#2242 no decisions-log note prints a number with more than 4 decimal places (3 offending: … "primary: the brand color is pinned at step 500 (hue 262.1234567) …")` |
+| (s) the radius scale back to raw (the review's round) | 1 | `#2242 no decisions-log note prints a number with more than 4 decimal places (1 offending: C (…): "dimensions: … radius scale 1.1234567…")` |
+| (t) the max container back to raw (the review's round) | 1 | the same assertion, naming case C's `"layout: 4 breakpoints (… xl 1440.12) …"` note |

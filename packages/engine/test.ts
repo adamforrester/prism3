@@ -6950,8 +6950,11 @@ arm: {
       status: { success: { h: 145.1234567, chroma: 0.1 }, danger: { h: 27.1234567, chroma: 0.15 } } }],
     ['B (a pin from a hex, an out-of-gamut primary)', { id: 'n2242b', root: 'prism', primary: { l: 0.7, c: 0.3456789, h: 200.987654 },
       neutral: { hue: 40, chroma: 0.006, anchor: rgbToOklch(hexToRgb('#5a6b7c')) } }],
-    ['C (a long red primary, reused for danger)', { id: 'n2242c', root: 'prism', primary: { l: 0.55, c: 0.2012345, h: 27.1234567 },
-      neutral: { hue: 40, chroma: 0.006 } }],
+    // C also carries the dimension, layout and fluid-type inputs the notes print, at seven places (#2273's review).
+    ['C (a long red primary, long radius, layout and fluid-type inputs)', { id: 'n2242c', root: 'prism', primary: { l: 0.55, c: 0.2012345, h: 27.1234567 },
+      neutral: { hue: 40, chroma: 0.006 }, radiusScale: 1.1234567, baseMd: 4.1234567,
+      layout: { breakpoints: [0, 768.1234567, 1024.1234567, 1440.1234567], containerMax: 1440.1234567, containerNarrow: 720.1234567 },
+      typography: { responsive: { fluid: true, minViewport: 375.1234567, maxViewport: 1280.1234567 } } }],
   ];
   const offenders: string[] = [];
   for (const [name, input] of cases) for (const n of brandTheme(input).notes) if (LONG.test(n)) offenders.push(`${name}: "${n.slice(0, 110)}…"`);
