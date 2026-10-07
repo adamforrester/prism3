@@ -861,19 +861,21 @@ const VERTICAL_ALIGN: Record<string, 'TOP' | 'CENTER' | 'BOTTOM'> = {
 // axis is FIXED. A stretched child left at AUTO hugs, which is the #1751 defect: textarea's `messageRow`
 // was STRETCHed across a 320px field and measured 131px, because `fill` projected as AUTO. So a filled
 // axis projects FIXED here, and the supplier beside it. The primitives rather than Figma's
-// `layoutSizing*: 'FILL'` shorthand: the shorthand flips a HUG parent to FIXED, and every field root here
-// hugs above a floor.
+// `layoutSizing*: 'FILL'` shorthand: the shorthand flips a HUG parent to FIXED.
 //
-// NOT EVERY `fill` CAN FILL, and the exception is what keeps the fields working. A part that HOLDS its
-// parent's size on the axis (the control's 320 `minWidth` floor, or the body that contains it) cannot
-// also take its size from that parent, which is circular: made FIXED, a hugging root would size from its
-// label alone and the floor would overflow it. Such a part keeps hugging, exactly as it did before, and
-// the floor keeps sizing the field. A part fills when its parent is BOUNDED on the axis (a fixed size, a
+// NOT EVERY `fill` CAN FILL. A part that HOLDS a HUGGING parent's size on the axis (a `minWidth` floor, or
+// a box that contains one) cannot also take its size from that parent, which is circular: made FIXED, the
+// hugging parent would size from its other children alone and the floor would overflow it. Such a part
+// keeps hugging, and the floor keeps sizing its parent (the three fields were this case until #2292).
+// A part fills when its parent is BOUNDED on the axis (a fixed size, a
 // `minWidth` floor, or a filled axis of its own), or when the axis is the parent's CROSS axis and a
 // sibling holds the floor the parent hugs to while this part holds none. The root is never filled: it
 // has no parent, and filling a consumer's container is the instance's placement, not the component's.
 // A root that must still hold a width until it is placed — because text inside it wraps — declares a
-// `placementWidth` and is BUILT at it (#1757); a host's stretch then overrides it.
+// `placementWidth` and is BUILT at it (#1757); a host's stretch then overrides it. Such a root is BOUNDED
+// across, so a part under it fills even where it holds a floor (#2292): the three fields build their root at
+// 320 and the control, floor and all, fills it, so an instance set to fill its column stretches the input
+// box with it. The floor stays a `minWidth` on the control, which Figma keeps under a fill.
 type Axis = 'x' | 'y';
 const mainAxisOf = (direction: 'row' | 'column'): Axis => (direction === 'row' ? 'x' : 'y');
 const parentsOf = (def: ComponentDef): Map<string, string> =>
@@ -910,7 +912,10 @@ export const fillsAxis = (def: ComponentDef, name: string, axis: Axis): boolean 
     ? p.layout?.sizing[axis] === 'fill' || (!onMain && !!p.crossAxisFill) || (onMain && !!p.grow)
     : p.kind === 'nest' && !onMain && !!p.crossAxisFill;
   if (!declared) return false;
-  const bounded = pp.layout.sizing[axis] === 'fixed' || (axis === 'x' && pp.minWidth !== undefined) || fillsAxis(def, parent!, axis);
+  // A ROOT BUILT AT ITS PLACEMENT WIDTH (#1757) is bounded across: it is FIXED at that width until a host's
+  // stretch overrides it (#2292) — the validator's `boundsX` reads it the same way.
+  const bounded = pp.layout.sizing[axis] === 'fixed' || (axis === 'x' && pp.minWidth !== undefined)
+    || (axis === 'x' && parent === a.root && pp.placementWidth !== undefined) || fillsAxis(def, parent!, axis);
   if (bounded) return true;
   return !onMain && !floored(def, name, axis) && (pp.children ?? []).some((s) => s !== name && floored(def, s, axis));
 };
