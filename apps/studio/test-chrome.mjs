@@ -952,7 +952,7 @@ const PROBE = (opt) => {
           tag: n.tagName.toLowerCase(), cls: n.getAttribute('class') ?? '',
           // The DOM's own disabled state, apart from the `:disabled` match above: the property, or (#1984, N-3 A) that of
           // the disabled fieldset holding a derived mode's levers.
-          prop: n.disabled === true || n.closest('fieldset')?.disabled === true, aria: n.getAttribute('aria-disabled') === 'true',
+          prop: n.disabled === true || !!n.closest('fieldset[disabled]'), aria: n.getAttribute('aria-disabled') === 'true',
           fill: cs.backgroundColor, ink: cs.color,
           edges: ['Top', 'Right', 'Bottom', 'Left'].map((side) => [cs[`border${side}Color`], cs[`border${side}Style`], parseFloat(cs[`border${side}Width`])]) }) - 1;
         n.setAttribute('data-coff', String(i));
