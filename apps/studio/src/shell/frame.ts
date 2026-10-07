@@ -327,8 +327,17 @@ export const mountFrame = (app: HTMLElement, opts: {
    *  `aria-disabled` and out of the tab order. Marked `data-held`, so a release frees only what this held. */
   const holdSettings = (): void => {
     for (const n of leversRegion.querySelectorAll<HTMLElement>(OPERABLE)) {
-      if (n.closest(STAYS_LIVE) || n.hasAttribute('data-held')) continue;
+      if (n.closest(STAYS_LIVE)) continue;
       const native = n instanceof HTMLButtonElement || n instanceof HTMLInputElement || n instanceof HTMLSelectElement || n instanceof HTMLTextAreaElement;
+      const held = n.getAttribute('data-held');
+      // Held already: skipped only while it is still held. A page that toggles a control in place (Depth's tint hue on
+      // a brand change, #2284 review) lifts the hold, and it is put back here, its first recorded state kept.
+      if (held !== null) {
+        if (held === 'native' ? (n as HTMLButtonElement).disabled : n.getAttribute('aria-disabled') === 'true' && n.tabIndex === -1) continue;
+        if (held === 'native') (n as HTMLButtonElement).disabled = true;
+        else { n.setAttribute('aria-disabled', 'true'); n.tabIndex = -1; }
+        continue;
+      }
       if (native) {
         if (n.disabled) continue;
         n.disabled = true;
@@ -349,8 +358,16 @@ export const mountFrame = (app: HTMLElement, opts: {
       if (was === '') n.removeAttribute('tabindex'); else n.setAttribute('tabindex', was);
     }
   };
-  // A page redraws its levers whole on most edits and on its own subscriptions; what it draws while held is held too.
-  const leversHold = new MutationObserver(() => { if (holding) holdSettings(); });
+  // A page redraws its levers whole on most edits and on its own subscriptions, and toggles some controls in place; what
+  // it draws or re-enables while held is held again. The hold sets the same attributes it watches, so the records it
+  // makes itself are taken and dropped, never fed back (and a second pass would change nothing: it is idempotent).
+  const leversHold = new MutationObserver(() => {
+    if (!holding) return;
+    holdSettings();
+    leversHold.takeRecords();
+  });
+  /** What the hold watches: nodes drawn, and the three attributes a page can lift a hold with. */
+  const HOLD_WATCH: MutationObserverInit = { childList: true, subtree: true, attributes: true, attributeFilter: ['disabled', 'aria-disabled', 'tabindex'] };
   cleanups.push(() => leversHold.disconnect());
   const preview = hook(h('section', 'p3-preview'), 'preview-pane');
   preview.setAttribute('aria-label', 'Preview');
@@ -559,7 +576,7 @@ export const mountFrame = (app: HTMLElement, opts: {
     holding = on;
     if (on) {
       holdSettings();
-      leversHold.observe(leversRegion, { childList: true, subtree: true });
+      leversHold.observe(leversRegion, HOLD_WATCH);
       leversNoteText.textContent = DERIVED_READONLY_NOTE(modeLabel(currentMode));
       if (leversNote.parentNode !== levers || levers.firstChild !== leversNote) levers.prepend(leversNote);
     } else {
