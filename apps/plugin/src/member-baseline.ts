@@ -37,18 +37,27 @@
  *
  * `v` is the format's version. A change to what is hashed changes every hash, so it raises `v`, and a
  * dry run that reads an older `v` reports the member as having no baseline rather than as hand-edited.
+ *
+ * `id` IS THE NODE THE RECORD WAS WRITTEN ON (v2, #2300). Figma's Duplicate copies a member's shared plugin
+ * data, stamp and record included, so a designer's copy carried a Prism3 stamp and read as Prism3's own: off
+ * the plan, a drop, and an update would mark it deprecated. A copy's record names the node it was copied FROM.
+ * The dry run reads a member as a copy when its record names ANOTHER member of the set, never merely when the
+ * id differs, because the host has been measured reassigning member ids after set-level operations (#1473,
+ * #1516); a genuine member whose id moved names no other member. v1 records carry no id, so they read as no
+ * record, and `capture-baseline` records them again.
  */
 import { NS } from './persist-figma';
 
 export const BASELINE_KEY = 'memberAsBuilt';
-export const BASELINE_V = 1;
+export const BASELINE_V = 2;
 
 /** A node as the snapshot holds it: plain data, read once, so the hash and the read-back both read the
  *  same values, and nothing reads a getter Figma forbids under `documentAccess: dynamic-page`. */
 export type SnapNode = Record<string, unknown> & { name: string; type: string; children?: SnapNode[] };
 
-/** The record stored on a member. */
-export type Baseline = { v: number; nodes: Record<string, string> };
+/** The record stored on a member. `id` is the node it was written on (v2); absent only on a record computed from a
+ *  snapshot rather than written to a node. */
+export type Baseline = { v: number; id?: string; nodes: Record<string, string> };
 
 /** The node fields the snapshot copies: everything the hash reads and everything `diffAnatomy` reads. */
 const SNAP_KEYS = [
@@ -251,7 +260,9 @@ export const readBaseline = (node: unknown): Baseline | null => {
 
 /** Snapshot the member as it stands, and store that as its baseline. Returns the baseline written. */
 export const writeBaseline = async (node: unknown): Promise<Baseline> => {
-  const b = baselineOf(await snapshotMember(node));
+  let id = '';
+  try { id = String((node as { id?: unknown }).id ?? ''); } catch { id = ''; }
+  const b: Baseline = { ...baselineOf(await snapshotMember(node)), ...(id ? { id } : {}) };
   (node as DataNode).setSharedPluginData?.(NS, BASELINE_KEY, JSON.stringify(b));
   return b;
 };

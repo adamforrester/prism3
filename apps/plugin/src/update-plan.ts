@@ -128,11 +128,30 @@ const extraChildren = (plan: AnatomyPlan['root'], node: SnapNode, path: string, 
   }
 };
 
+/** A stamp Prism3 wrote (#2300): the engine version, a 16-hex plan stamp or `adopted`, and the executor revision
+ *  (absent on a stamp from before #1098). Anything else is not Prism3's, however it got there. */
+export const STAMP_SHAPE = /^[^|]+\|(?:[0-9a-f]{16}|adopted)(?:\|\d+)?$/;
+
+/**
+ * THE MEMBERS AS PRISM3 OWNS THEM (#2300): a member whose stamp is malformed, or whose as-built record names
+ * ANOTHER member of the set (a Figma Duplicate copies both, so a copy's record names its original), reads as
+ * not built by Prism3. Its stamp is blanked here, once, so every reading below (drops, matches, Adopt, the
+ * capture) treats it as a designer's own member. A record naming a node that is not in the set is no evidence of a
+ * copy: the host has reassigned member ids after set-level operations (#1473, #1516).
+ */
+export const ownedView = (host: HostSetView): HostSetView => {
+  const ids = new Set(host.members.map((m) => m.id).filter(Boolean));
+  const copied = (m: HostMember): boolean => !!m.baseline?.id && !!m.id && m.baseline.id !== m.id && ids.has(m.baseline.id);
+  return { ...host, members: host.members.map((m) => (m.stamp && (!STAMP_SHAPE.test(m.stamp) || copied(m)) ? { ...m, stamp: '' } : m)) };
+};
+
 /**
  * The dry run of one set, pure: the plan for `defId` against the set as `host` holds it.
  * `ports` resolve the host's variable and style ids to names, from the host's own catalogues.
  */
-export const dryRunSet = (defId: string, plans: AnatomyPlan[], host: HostSetView, ports: ReadPorts, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): SetPreview => {
+export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView, ports: ReadPorts, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): SetPreview => {
+  // Copies and malformed stamps read as not built by Prism3 (#2300). The hash below still reads the file as it is.
+  const host = ownedView(read);
   const blockers: string[] = [];
   const planned = new Map<string, AnatomyPlan>();
   for (const p of plans) {
@@ -350,7 +369,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], host: HostSetView
   // THE PREVIEW HASH covers what the preview says AND the file state it was read from — each member's id,
   // stamp and current node hashes — so a confirm (PR 2) can refuse an apply over a file that moved after
   // the preview even where the preview's own text would not have changed.
-  const fingerprint = host.members.map((m) => [m.id, m.name, m.stamp, baselineOf(m.snap).nodes]);
+  const fingerprint = read.members.map((m) => [m.id, m.name, m.stamp, baselineOf(m.snap).nodes]);
   const previewHash = fnv(JSON.stringify([body, fingerprint]));
   return { ...body, previewHash };
 };
@@ -439,7 +458,8 @@ export const captureVerdict = (plan: AnatomyPlan | undefined, m: HostMember, por
  *  member the ledger would rename is not current, so it is not captured. The stamp is never rewritten. */
 export const captureSet = async (set: LiveSet, plans: AnatomyPlan[], ports: ReadPorts, breathe?: () => Promise<void>): Promise<{ recorded: number; skipped: { member: string; reason: string; differences?: Difference[] }[] }> => {
   const planned = new Map(plans.map((p) => [coordKey(planComponentName(p)), p] as const));
-  const view = await readSetView(set, breathe);
+  // A copy or a malformed stamp is not Prism3's (#2300), so its member is not captured: Adopt is its path.
+  const view = ownedView(await readSetView(set, breathe));
   let recorded = 0;
   const skipped: { member: string; reason: string; differences?: Difference[] }[] = [];
   for (const m of view.members) {
@@ -473,7 +493,7 @@ export const ADOPTED = 'adopted';
 export const adoptSet = async (
   defId: string, set: LiveSet, plans: AnatomyPlan[], ports: ReadPorts, breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES,
 ): Promise<{ adopted: number; skipped: { member: string; reason: string }[]; refused?: string }> => {
-  const view = await readSetView(set, breathe);
+  const view = ownedView(await readSetView(set, breathe));
   // THE DRY RUN DECIDES (#2299 review): which members Adopt may claim is the dry run's own matching, renames and axis
   // changes applied, and a set the dry run refuses (two members on one coordinate, two axis lists) is refused here
   // too, whole, with nothing written. Claiming members of a set the update cannot touch would only stamp them.
