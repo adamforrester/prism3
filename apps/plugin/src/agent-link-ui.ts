@@ -68,7 +68,10 @@ const post = (m: UiToMain): void => parent.postMessage({ pluginMessage: m }, '*'
  *  with the app view: a region that is moved or rebuilt is one a screen reader may stop hearing. Its text is updated in
  *  place and only when the short status changes INTO an error state ("Agent error", "Agent not listening") from any
  *  other, the short status's own words (AS1 A). Recovery to "Agent listening", switching off, and a change of the full
- *  line alone (a new "last:" time) leave it untouched, so they announce nothing; it keeps its last words meanwhile. */
+ *  line alone (a new "last:" time) announce nothing. A change OUT of an error state (recovery, or switching off) clears its
+ *  text, the same node kept: a removal from a polite region with the default `aria-relevant` (additions text) is not
+ *  announced, and an emptied region leaves no stale "Agent error" for anyone reading the page (the UI lane's call on
+ *  #2285, 2026-10-07). */
 const statusRegion = (): HTMLElement => {
   const live = hook(h('div', 'p3-sr'), 'agent-status-live');
   live.setAttribute('role', 'status');
@@ -85,8 +88,10 @@ export const mountAgentLink = (): void => {
   mounted = true;
   let state: AgentLinkState | null = null;
   const live = statusRegion();
-  /** The short status last drawn, so a repeat or a full-line-only change is not a change. */
+  /** The short status last drawn, and whether it was an error state, so a repeat or a full-line-only change is not a
+   *  change, and a change out of an error state clears the region. */
   let shownShort: string | null = null;
+  let shownError = false;
 
   // The Agent tile (the owner's top-bar decision T7 A, 2026-10-05): a bar tile like Theme, Activity and Export, its
   // glyph over "Agent", the glyph alone when narrow. A click switches the link, the same request the old popover's
@@ -111,11 +116,12 @@ export const mountAgentLink = (): void => {
     // The Activity drawer's agent status (#2213): the short status in its bar row, and the full line while the link is
     // on or holds an inbox error.
     const short = agentLinkShortStatus(state);
-    // Q86 B: into an error state, once. Setting the text replaces its node even when the words match the last
-    // announcement (error, listening, error again), so each entry is a change the screen reader hears.
+    // Q86 B: into an error state, once; out of one, the region is emptied, which announces nothing.
     const nextShort = short?.text ?? null;
     if (short?.error && nextShort !== shownShort) live.textContent = short.text;
+    else if (!short?.error && shownError) live.textContent = '';
     shownShort = nextShort;
+    shownError = !!short?.error;
     setAgentLinkStatus({ short: short?.text ?? null, error: !!short?.error,
       full: state && (state.on || state.inboxError) ? agentLinkStatusText(state) : null });
   };

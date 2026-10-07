@@ -17,16 +17,17 @@ only by landing on the row (WCAG 2.2 SC 4.1.3). Now one live region announces it
   never replaced.
 - **Only into an error state (Q86 B).** `render` keeps the short status it last drew. When the new one is an error state
   and differs from it, the region takes the short status's words. So listening → error, listening → not listening, not
-  listening → error and off → error each announce once. Recovery to "Agent listening", switching off, and a change of the
-  full line alone (a new "last:" time, or a new inbox message under "Agent error") write nothing.
-- **Re-entry announces again.** Error → listening → error sets the same words a second time. Setting `textContent`
-  replaces the text node even when the words match, so it is a change the screen reader hears.
+  listening → error and off → error each announce once. A change of the full line alone (a new "last:" time, or a new
+  inbox message under "Agent error") writes nothing.
+- **Out of an error state, the region is emptied (the UI lane's call on #2285, 2026-10-07).** Recovery to "Agent
+  listening" and switching off clear its text, the same node kept. Q86 B's "nothing for recovery" means no announcement,
+  and removing text from a polite region with the default `aria-relevant` (additions text) announces nothing. So the
+  meaning holds, and no stale "Agent error" is left for anyone reading the page in browse mode. The first review round
+  left the text in place and held the question as a design call; it was settled as a technical one, since it does not
+  change what is announced.
 
 ### Not done, on purpose
 
-- **The region keeps its last words after recovery.** Clearing it on recovery would be a change to the region, and Q86 B
-  says recovery writes nothing. The text is visually hidden; a browse-mode reader can still land on the stale "Agent
-  error" after the link has recovered. If that matters, it is a design call for the owner, not a technical one.
 - **The existing Activity status line (`activity-status`) is not reused.** It announces write starts and lives in the
   drawer, which is rebuilt with the frame. Sharing it would let one announcement overwrite the other.
 - **The web.** It has no agent link (N1 A), so it gets no region.
@@ -41,4 +42,5 @@ assertive, and reads the agent region's politeness from the accessibility tree (
 
 Each after a `wip:` commit, on a rebuilt plugin bundle, each failing by name in section 33 and nowhere else. The ✗ lines
 are quoted in the section's header and in the PR: (a) recovery announced, 6 failures; (b) a full-line-only change
-announced, 4; (c) the region replaced per announcement, 40; (d) `assertive`, 12. Today's code (no region) fails 66.
+announced, 4; (c) the region replaced per announcement, 40; (d) `assertive`, 12; (e) the region not cleared on a change
+out of an error state, 8. Today's code (no region) fails 66.
