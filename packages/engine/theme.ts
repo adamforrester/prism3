@@ -2511,7 +2511,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
 
   if (root !== 'prism') notes.push(`namespace: tokens emit under '${root}.*' instead of the default 'prism.*'.`);
   const anchorStep = autoPlaceStep(input.primary.l);
-  notes.push(`primary: the brand color is pinned at step ${anchorStep} (hue ${input.primary.h}) — the ramp is built around it.`);
+  notes.push(`primary: the brand color is pinned at step ${anchorStep} (${input.primary.c < ACHROMATIC_C ? 'no hue' : `hue ${input.primary.h}`}) — the ramp is built around it.`);
 
   // M-03: a pinned anchor whose chroma is out of sRGB gamut can't be rendered exactly — the
   // engine clamps toward the boundary, which silently nudges lightness AND hue (independent-
@@ -2534,6 +2534,11 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // `auto` derives the neutral hue from the brand primary at build time (a cohesive cast that
   // re-tracks on recolour) rather than a frozen stored hue; a pinned anchor still wins over it.
   const nHue = input.neutral.auto ? input.primary.h : input.neutral.hue;
+  // A hue-less primary (a gray, chroma below ACHROMATIC_C, #2241): its stored hue 0 is not a hue, so nothing may read it
+  // as one. Follow primary then has no hue to follow, so the neutral is gray, chroma 0 (owner Q87 A), which also leaves
+  // the shadow untinted through Q73 A's rule below. A pin still wins over Follow primary.
+  const primaryHueless = input.primary.c < ACHROMATIC_C;
+  const neutralChroma = input.neutral.auto && primaryHueless ? 0 : input.neutral.chroma;
   // The hue that actually builds the neutral ramp (#2184, owner decision 2026-10-06): the pinned gray's
   // when one is pinned, else `nHue` — the primary's under Follow primary, the custom tint otherwise. One
   // binding for the ramp AND the shadow tint's default, so the shadow cannot follow a stored
@@ -2545,13 +2550,15 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // ACHROMATIC_C (color.ts, #2241) is the same no-hue line the converter draws: one definition of "this gray has no hue".
   // ANY gray ramp, not only a pin (owner Q73 A): a Custom tint or Follow primary at `neutral.chroma` 0 builds a
   // gray ramp too, so the guard reads the chroma that BUILDS the ramp, the pin's or `neutral.chroma`.
-  const neutralRampChroma = nAnchor ? nAnchor.c : input.neutral.chroma;
+  const neutralRampChroma = nAnchor ? nAnchor.c : neutralChroma;
   const shadowTintDefault = neutralRampChroma < ACHROMATIC_C ? null : neutralRampHue;
   const neutralSteps = nAnchor
     ? generateRamp({ hue: neutralRampHue, chroma: nAnchor.c, anchor: { oklch: nAnchor, stepNum: autoPlaceStep(nAnchor.l) } })
-    : generateRamp({ hue: neutralRampHue, chroma: input.neutral.chroma });
+    : generateRamp({ hue: neutralRampHue, chroma: neutralChroma });
   if (nAnchor) notes.push(`neutral: pinned to the brand's gray (lightness ${nAnchor.l}) at step ${autoPlaceStep(nAnchor.l)} — the ramp is built from that gray, not from a hue and chroma.`);
-  else if (input.neutral.auto) notes.push(`neutral: the grays follow the primary hue (${Math.round(input.primary.h)}) — change the brand color and the grays follow.`);
+  else if (input.neutral.auto) notes.push(primaryHueless
+    ? `neutral: the grays follow the primary, which has no hue, so they are gray.`
+    : `neutral: the grays follow the primary hue (${Math.round(input.primary.h)}) — change the brand color and the grays follow.`);
 
   const palettes: PaletteBuild[] = [
     { palette: 'primary', role: 'brand', description: 'Brand primary', steps: generateRamp({ hue: input.primary.h, chroma: input.primary.c, anchor: { oklch: input.primary, stepNum: anchorStep } }) },
@@ -2573,7 +2580,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   }
   for (const bc of input.brandColors ?? []) {
     palettes.push({ palette: bc.name, role: 'brand', description: `Brand ${bc.name}`, steps: generateRamp({ hue: bc.oklch.h, chroma: bc.oklch.c, anchor: { oklch: bc.oklch, stepNum: autoPlaceStep(bc.oklch.l) } }) });
-    notes.push(`brand color: '${bc.name}' added (hue ${bc.oklch.h}).`);
+    notes.push(`brand color: '${bc.name}' added (${bc.oklch.c < ACHROMATIC_C ? 'no hue' : `hue ${bc.oklch.h}`}).`);
   }
 
   const status = (k: 'success' | 'warning' | 'info') => {
@@ -2628,7 +2635,9 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     // Distinguish the two carve reasons (M-05): a red-ish-but-greige primary must NOT be reused
     // for danger (a near-grey can't signal destruction), even though its hue is in the window.
     const hueIsRed = hueDist(input.primary.h, STATUS_DEFAULTS.danger.h) <= 20;
-    notes.push(hueIsRed
+    notes.push(primaryHueless
+      ? `danger: the primary has no hue, so danger gets its own red at hue ${d.h}.`
+      : hueIsRed
       ? `danger: the primary (hue ${input.primary.h}) is reddish, but its chroma ${input.primary.c} is below the ${RED_CHROMA_FLOOR} floor for danger — a separate red at hue ${d.h} carries destructive actions.`
       : `danger: the primary (hue ${input.primary.h}) is not red, so danger gets its own red at hue ${d.h}.`);
   }

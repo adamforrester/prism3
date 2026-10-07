@@ -209,13 +209,15 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
           const f = !!n.auto;
           src.set(n.anchor ? 'pinned' : f ? 'follow' : 'custom');
           const eff = f ? brandState.primary.h : n.hue;
-          setText(followLine, `Hue follows primary: ${Math.round(eff * 10) / 10}°.`);
+          // A gray primary has no hue to follow (#2241, owner Q88 A): its stored hue 0 never reads as a hue.
+          const followsNone = f && brandState.primary.c < ACHROMATIC_C;
+          setText(followLine, `Hue follows primary: ${followsNone ? NO_HUE : `${Math.round(eff * 10) / 10}°`}.`);
           const h0 = n.anchor ? n.anchor.h : n.hue;
           // A pinned gray with no hue reads None, on the readout and to a screen reader alike (#2241).
           const noHue = !!n.anchor && n.anchor.c < ACHROMATIC_C;
           hue.set(h0);
           if (noHue) hue.el.setAttribute('aria-valuetext', NO_HUE);
-          a.setReadout(n.anchor ? (noHue ? NO_HUE : sliderReadout(hueL, h0)) : f ? `${Math.round(eff)}° · follows primary` : sliderReadout(hueL, n.hue));
+          a.setReadout(n.anchor ? (noHue ? NO_HUE : sliderReadout(hueL, h0)) : followsNone ? NO_HUE : f ? `${Math.round(eff)}° · follows primary` : sliderReadout(hueL, n.hue));
           a.setState(n.anchor ? stateLine(`A pinned neutral sets the ramp: ${hexOf(n.anchor)}. Hue and chroma are its readout.`) : null);
         } },
         ...(p && cf ? [{ block: p, keys: ['neutral.anchor'], sync: () => {
@@ -223,7 +225,9 @@ export const mountPalettesLevers = (host: HTMLElement, cleanups: (() => void)[])
           if (anc) cf.set(hexOf(anc), oklchMeta(anc));
         } }] : []),
         { block: b, keys: ['neutral.chroma'], sync: () => {
-          const c0 = brandState.neutral.anchor ? brandState.neutral.anchor.c : brandState.neutral.chroma;
+          // Following a gray primary, the ramp is built at chroma 0 (owner Q87 A), so that is what the readout shows.
+          const c0 = brandState.neutral.anchor ? brandState.neutral.anchor.c
+            : brandState.neutral.auto && brandState.primary.c < ACHROMATIC_C ? 0 : brandState.neutral.chroma;
           ch.set(c0); b.setReadout(sliderReadout(chL, c0));
         } },
       ];

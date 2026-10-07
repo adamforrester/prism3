@@ -10899,6 +10899,36 @@ for (const [form, pin] of [['stored hue 0', { l: 0.3211, c: 1.2e-8, h: 0 }], ['l
   } finally { await ctx.close(); }
 }
 
+// #2241, owner Q88 A (review of #2280): under Follow primary, a GRAY primary has no hue to follow, so Color › Palettes'
+// hue readout reads None and the follow line says so, never "0°" (the stored hue 0) or a legacy file's noise. The primary
+// is #808080 in the stored form a pick writes; the neutral keeps its usual chroma, which Q87 A overrides to gray.
+{
+  const where = '#2241 Q88 A: Follow primary with a gray primary, Color › Palettes, web light 1280';
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await page.evaluate(() => {
+      const blob = JSON.parse(localStorage.getItem('prism3:brandInput'));
+      blob.input.primary = { l: 0.5999, c: 2.2e-8, h: 0 };
+      blob.input.neutral = { hue: 40, chroma: 0.006, auto: true };
+      localStorage.setItem('prism3:brandInput', JSON.stringify(blob));
+    });
+    await page.reload({ waitUntil: 'networkidle' });
+    await hooks.need(page, '[data-p3="frame"]');
+    await goPlace(page, 'color-palettes');
+    await hooks.need(page, '[data-p3="lever-neutral-hue"]');
+    const st = await page.evaluate(() => {
+      const blk = document.querySelector('[data-p3="levers-pane"] [data-p3="lever-neutral-hue"]') ?? document.querySelector('[data-p3="lever-neutral-hue"]');
+      const follow = [...(blk?.querySelectorAll('*') ?? [])].map((n) => n.textContent ?? '').find((t) => t.startsWith('Hue follows primary')) ?? null;
+      return { readout: blk?.querySelector('.p3-readout')?.textContent ?? null, follow };
+    });
+    ok(st.readout === 'None' && st.follow === 'Hue follows primary: None.' && !/\b0°/.test(`${st.readout} ${st.follow}`),
+      `${where}: the hue readout reads None and the follow line says the primary has none, not 0° (${JSON.stringify(st)})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+
 hooks.report(ok);
 // THE CONTRAST EXEMPTION, counted per run (F1 A): how many nodes the audit exempted, over how many probes, and where.
 {

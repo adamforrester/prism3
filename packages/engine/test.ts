@@ -813,6 +813,32 @@ for (const hx of ['#000000', '#333333', '#7f7f7f', '#808080', '#ffffff']) {
     `#2241 the hex import stores a pure-gray swatch with hue 0, not the converter noise (${grays} gray swatches; noisy: ${noisy.join(', ') || 'none'})`);
 }
 
+// A GRAY PRIMARY HAS NO HUE EITHER (#2241, owner Q87 A, review of #2280). Stored as hue 0, it must never be read as one:
+// Follow primary then has no hue to follow, so the neutral is gray (chroma 0) and the shadow untinted. The same holds for
+// a design.md import with no neutral swatches (which follows the primary), and no decisions-log note gives that primary a
+// hue. The primaries are named as hex and stored as a pick or an import stores them; the gray checks are structural.
+{
+  const grayPrimary = storedOklch(rgbToOklch(hexToRgb('#808080')));
+  const sameRgb = (c: RGB) => c.r === c.g && c.g === c.b;
+  const neutralGray = (t: any) => t.palettes.find((p: any) => p.palette === 'neutral').steps.every((st: any) => sameRgb(st.rgb));
+  // 1. Follow primary (the toggle) with a gray primary, at the neutral's usual chroma 0.006.
+  const follow = brandTheme({ id: 'g2241a', root: 'prism', primary: grayPrimary, neutral: { hue: 40, chroma: 0.006, auto: true } } as any);
+  ok(neutralGray(follow) && follow.shadow.tint.hue === null && sameRgb(follow.shadow.colorRgb),
+    `#2241 Q87 A: Follow primary with a gray primary builds a gray neutral and an untinted shadow (neutral all gray: ${neutralGray(follow)}, ` +
+    `shadow hue ${follow.shadow.tint.hue}, color ${JSON.stringify(follow.shadow.colorRgb)})`);
+  // 2. A design.md import whose palette has a gray primary and no neutral swatches.
+  const imported = classifyColors({ Primary: '#333333' }).input;
+  const it = brandTheme({ id: 'g2241b', root: 'prism', ...imported } as any);
+  ok(imported.neutral.chroma === 0 && !imported.neutral.auto && neutralGray(it) && it.shadow.tint.hue === null,
+    `#2241 Q87 A: an import with a gray primary and no neutral swatches stores a gray neutral (got ${JSON.stringify(imported.neutral)}; ` +
+    `neutral all gray: ${neutralGray(it)}, shadow hue ${it.shadow.tint.hue})`);
+  // 3. No note gives the gray primary a hue, in either case.
+  const hued = [...follow.notes, ...it.notes].filter((n) => /\(hue 0\b|primary hue \(0\)|primary \(hue 0\)/.test(n));
+  const primaryNote = follow.notes.find((n) => n.startsWith('primary:')) ?? '';
+  ok(hued.length === 0 && primaryNote.includes('(no hue)'),
+    `#2241: no decisions-log note gives a gray primary a hue (offending: ${hued.map((n) => `"${n.slice(0, 90)}…"`).join(' | ') || 'none'}; primary note "${primaryNote.slice(0, 90)}")`);
+}
+
 // hex formatting
 ok(hex(WHITE) === '#ffffff', 'hex(white)');
 ok(hex(BLACK) === '#000000', 'hex(black)');
