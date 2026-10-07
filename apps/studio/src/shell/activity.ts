@@ -76,6 +76,37 @@ export const OP_TITLE: Readonly<Record<OpKey, string>> = {
   'apply': 'Apply Theme', components: 'Build set', filesetup: 'Set up file', styleguide: 'Style guides', prune: 'Prune stale', readback: 'Read-back',
 };
 
+// ── the open drawer's height (#2176, the owner's AD1–AD3, 2026-10-05) ───────────────────────────────
+// At the wide tier, while the drawer is open, a handle on its top edge drags it taller: from today's open height (the
+// drawer as it draws with no height set) up to just under the preview header. The handle is a window splitter
+// (`role="separator"`): Arrow Up and Arrow Down move it by `HEIGHT_STEP`, Home and End go to the least and the most.
+// The height is kept per person under `prism3:activity-height`: the web keeps it in `localStorage` (`entry.ts`,
+// `persist-local.ts`); the plugin's iframe has no storage, so its UI entry posts each kept height to the main thread,
+// which keeps it in `figma.clientStorage` and sends it back on `ui-ready`, like the Theme choice
+// (`apps/plugin/src/ui/entry.ts`, `apps/plugin/src/main.ts`). At 380 the drawer stays a sheet and draws no handle (AD2).
+
+/** How far one Arrow Up or Arrow Down moves the handle, in CSS pixels. */
+export const HEIGHT_STEP = 24;
+/** A kept height is a positive, finite number of pixels; anything else is no height (today's). */
+export const heightOf = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.round(v) : null);
+let keptHeight: number | null = null;
+let keepHeight: ((px: number) => void) | null = null;
+const heightWatchers = new Set<() => void>();
+/** Each host hands over the height it kept, if any, and how to keep the next one: the web before the first render,
+ *  the plugin's UI entry right after it (its kept height arrives later, through `restoreActivityHeight`). */
+export const initActivityHeight = (kept: unknown, keep: (px: number) => void): void => {
+  keptHeight = heightOf(kept);
+  keepHeight = keep;
+  for (const f of heightWatchers) f();
+};
+/** Plugin only: the height the main thread kept, arriving after launch. Anything that is not a height is ignored. */
+export const restoreActivityHeight = (v: unknown): void => {
+  const px = heightOf(v);
+  if (px === null || px === keptHeight) return;
+  keptHeight = px;
+  for (const f of heightWatchers) f();
+};
+
 /** One operation, as the drawer reads it. `ref` is the state's own value, so a new verdict that replaces
  *  an equal one is still a change. `verdict` and `summary` are the host's, once it has answered; `phase`
  *  and `progress` say how far it has got while it runs. */
@@ -139,7 +170,10 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   /** An operation the page in view shows itself (S11.2, owner decision P1 variant 1: the Build style guides page and
    *  the style guide): the drawer does not open by itself when it starts or fails. Its row, the bar row and the dot
    *  still record it. */
-  readonly quiet?: (k: OpKey) => boolean }, cleanups: (() => void)[]): Activity => {
+  readonly quiet?: (k: OpKey) => boolean;
+  /** #2176: the frame the drawer sits in, which carries the drawn height (`--p3-activity-h`) for the preview pane's
+   *  layout too, and the y, in the viewport, the drawer may grow up to: the preview header's bottom. */
+  readonly room?: { readonly frame: HTMLElement; readonly ceiling: () => number } }, cleanups: (() => void)[]): Activity => {
   const { narrow } = opts;
   const now = opts.now ?? (() => new Date());
   const { read, closeDetail } = opts.lend;
@@ -185,6 +219,21 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   const live = hook(h('p', 'p3-sr p3-live'), 'activity-status');
   live.setAttribute('role', 'status');
 
+  // ── the handle (#2176, AD1–AD3): drag the open drawer taller, at the wide tier ─────────────────────
+  // A window splitter (the WAI-ARIA pattern): focusable, named "Resize Activity" (AD3), its value the drawer's height
+  // in pixels, from today's open height to the room under the preview header. Shown only while the drawer is open;
+  // the stylesheet drops it at the narrow tier (AD2). Its one mark is the pill inside it.
+  const grip = hook(h('div', 'p3-drawer-grip'), 'activity-grip');
+  grip.setAttribute('role', 'separator');
+  grip.setAttribute('aria-orientation', 'horizontal');
+  grip.setAttribute('aria-label', 'Resize Activity');
+  grip.setAttribute('aria-controls', 'p3-activity');
+  grip.tabIndex = 0;
+  const pill = h('span', 'p3-drawer-pill');
+  pill.setAttribute('aria-hidden', 'true');
+  grip.append(pill);
+  drawer.prepend(grip);
+
   // ── state ──────────────────────────────────────────────────────────────────────────────────────
   let open = false;     // the body shows
   let auto = false;     // it opened by itself, so it may collapse by itself
@@ -204,6 +253,43 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
   };
   const clear = (): void => { if (timer !== null) clearTimeout(timer); timer = null; };
   const collapse = (): void => { open = false; auto = false; };
+
+  // ── the height (#2176) ─────────────────────────────────────────────────────────────────────────
+  /** Whether the handle can size the drawer now: open, wide, and in the document. */
+  const sizable = (): boolean => open && !narrow() && drawer.isConnected;
+  /** The drawer's range now: today's open height (the drawer as it draws with no height set), up to the room under the
+   *  ceiling the frame lends. Never less than the first. */
+  const range = (): { min: number; max: number } => {
+    const was = drawer.dataset.sized;
+    drawer.dataset.sized = 'false';
+    const box = drawer.getBoundingClientRect();
+    if (was !== undefined) drawer.dataset.sized = was;
+    const min = Math.ceil(box.height);
+    const max = opts.room ? Math.floor(box.bottom - opts.room.ceiling()) : min;
+    return { min, max: Math.max(min, max) };
+  };
+  const within = (px: number, r: { min: number; max: number }): number => Math.min(r.max, Math.max(r.min, Math.round(px)));
+  /** Draw the kept height, clamped to the range, and say it on the handle. With no kept height the drawer draws as it
+   *  always has. Closed or narrow, no height is drawn. */
+  const sizeDrawer = (): void => {
+    if (!sizable()) {
+      drawer.dataset.sized = 'false';
+      opts.room?.frame.style.removeProperty('--p3-activity-h');
+      return;
+    }
+    const r = range();
+    const px = keptHeight === null ? r.min : within(keptHeight, r);
+    if (keptHeight !== null) opts.room?.frame.style.setProperty('--p3-activity-h', `${px}px`);
+    drawer.dataset.sized = String(keptHeight !== null && !!opts.room);
+    grip.setAttribute('aria-valuemin', String(r.min));
+    grip.setAttribute('aria-valuemax', String(r.max));
+    grip.setAttribute('aria-valuenow', String(px));
+  };
+  /** The height drawn now, as the handle reads it. */
+  const drawnHeight = (r: { min: number; max: number }): number => (keptHeight === null ? r.min : within(keptHeight, r));
+  /** Keep the height the person chose, through the host's store. */
+  const keepNow = (): void => { if (keptHeight !== null) keepHeight?.(keptHeight); };
+  const resize = (px: number, r: { min: number; max: number }): void => { keptHeight = within(px, r); sizeDrawer(); };
 
   // ── painting ───────────────────────────────────────────────────────────────────────────────────
   /** The running operation's phase line and progress bar (v6 `progressHtml`). */
@@ -347,6 +433,9 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     const { running, failed } = counts(last);
     drawer.dataset.open = String(open);
     drawer.dataset.ever = String(recs.size > 0);
+    grip.hidden = !open;
+    // #2176: sized once this paint is done, so today's open height is measured with its rows in place.
+    queueMicrotask(sizeDrawer);
     body.hidden = !open;
     toggle.setAttribute('aria-expanded', String(open));
     button.setAttribute('aria-expanded', String(open));
@@ -505,6 +594,44 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     last = { ...last, ops: { ...last.ops, ...Object.fromEntries((Object.keys(cur.ops) as OpKey[]).filter((k) => cur.ops[k].state === 'running' && last.ops[k]?.state === 'running').map((k) => [k, cur.ops[k]])) } };
     paintBar();
   };
+
+  // The handle (#2176): a drag follows the pointer and keeps the height when it lets go; Arrow Up and Arrow Down step it,
+  // Home and End go to the least and the most (the window splitter pattern), each kept as it lands.
+  let drag: { readonly id: number; readonly y: number; readonly px: number } | null = null;
+  grip.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || !sizable()) return;
+    e.preventDefault();
+    grip.setPointerCapture(e.pointerId);
+    drag = { id: e.pointerId, y: e.clientY, px: drawnHeight(range()) };
+  });
+  grip.addEventListener('pointermove', (e) => {
+    if (drag?.id !== e.pointerId) return;
+    resize(drag.px + (drag.y - e.clientY), range());
+  });
+  const letGo = (e: PointerEvent): void => {
+    if (drag?.id !== e.pointerId) return;
+    drag = null;
+    keepNow();
+  };
+  grip.addEventListener('pointerup', letGo);
+  grip.addEventListener('pointercancel', letGo);
+  grip.addEventListener('keydown', (e) => {
+    if (!sizable() || e.altKey || e.ctrlKey || e.metaKey) return;
+    const r = range();
+    const now = drawnHeight(r);
+    const to = e.key === 'ArrowUp' ? now + HEIGHT_STEP : e.key === 'ArrowDown' ? now - HEIGHT_STEP : e.key === 'Home' ? r.min : e.key === 'End' ? r.max : null;
+    if (to === null) return;
+    e.preventDefault();
+    resize(to, r);
+    keepNow();
+  });
+  // The room changes with the window, and a kept height can arrive from the plugin's main thread after launch.
+  const onWindow = (): void => sizeDrawer();
+  window.addEventListener('resize', onWindow);
+  heightWatchers.add(sizeDrawer);
+  // A page change can move the frame between its layouts, and so the ceiling: sized again once the frame has drawn it.
+  cleanups.push(subscribe('page', () => queueMicrotask(sizeDrawer)));
+  cleanups.push(() => { window.removeEventListener('resize', onWindow); heightWatchers.delete(sizeDrawer); });
 
   button.onclick = () => show(!open, true);
   toggle.onclick = () => show(!open, true);

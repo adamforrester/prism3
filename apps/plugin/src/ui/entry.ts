@@ -11,6 +11,7 @@ import './component-catalog';
 import '../../../studio/src/entry';
 import { mountAgentLink } from '../agent-link-ui';
 import { initFigmaTheme, restoreFigmaTheme } from '../../../studio/src/shell/theme';
+import { initActivityHeight, restoreActivityHeight } from '../../../studio/src/shell/activity';
 import type { UiToMain } from '../messages';
 
 /**
@@ -24,8 +25,12 @@ import type { UiToMain } from '../messages';
 const postMain = (m: UiToMain): void => parent.postMessage({ pluginMessage: m }, '*');
 initFigmaTheme((pref) => postMain({ type: 'set-theme-pref', pref }));
 window.addEventListener('message', (e: MessageEvent) => {
-  const m = e.data && (e.data as { pluginMessage?: { type?: unknown; pref?: unknown } }).pluginMessage;
+  const m = e.data && (e.data as { pluginMessage?: { type?: unknown; pref?: unknown; px?: unknown } }).pluginMessage;
   if (m && m.type === 'theme-pref') restoreFigmaTheme(m.pref);
+  if (m && m.type === 'activity-height') restoreActivityHeight(m.px);
 });
+// The Activity drawer's height (#2176, the owner's AD1), kept the same way: each kept height is posted as
+// `set-activity-height`, and the main thread answers `ui-ready` with the kept one as `activity-height`.
+initActivityHeight(null, (px) => postMain({ type: 'set-activity-height', px }));
 
 mountAgentLink();

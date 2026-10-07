@@ -453,6 +453,12 @@
  *   · the full line missing from the open drawer → `#2213 figma light 1280 listening: the open drawer's first line is the full line, agentLinkStatusText(state), above the runs (… read null …)` (16).
  *   · "Agent error" in the quiet ink → `#2213 figma light 1280 error: "Agent error" draws in the chrome's error ink, the emission's color.text.danger #a82e2e (read #67696b)` (4).
  *   · the row's text centered one by one again (`.p3-drawer-text` `align-items: center`) → `#2213 figma light 1280 off: every text run in the drawer's bar row sits on one baseline, within 0.5px (3 runs, spread 1.5px: … "22:00" 876)` (24).
+ *
+ * #2176 ADDS (section 32; the owner's AD1–AD3): the open Activity drawer's handle, a window splitter, on both hosts and
+ * both themes. At 1280: a pointer drag, the keyboard (Arrow Up and Down, Home and End) with `aria-valuenow` following the
+ * height drawn, the clamp at today's open height and just under the preview header (measured, never a number), the
+ * height kept across a reload, the pill inside the drawer's top border and wider than 32, and the computed name
+ * "Resize Activity". At 380: no handle. The probe counts a focusable separator as a control, kind "resize handle".
  */
 import { createServer } from 'node:http';
 import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -780,7 +786,9 @@ const CONTROL_KINDS = [['p3-brand', 'brand switcher'], ['p3-verdict', 'verdict']
   // S6.3's value picker, first measured open on Depth & motion (S9.2): each value is a button of its own.
   ['p3-vpick', 'picker value'],
   // S13.1: the brand menu's import box; S12: the start window's paste (measured since S13.1 counts every textarea).
-  ['p3-textarea', 'text area'], ['p3-start-paste', 'text area']];
+  ['p3-textarea', 'text area'], ['p3-start-paste', 'text area'],
+  // #2176: the open Activity drawer's handle, a window splitter.
+  ['p3-drawer-grip', 'resize handle']];
 /** Legacy views Inspect lends a host to until their slices replace them (S1.3): pinned light and drawn in
  *  `styles.css`, so outside the chrome, like the legacy page. Named literally, by hook. */
 const INSPECT_LEGACY = ['[data-p3="inspect-contrast-table"]', '[data-p3="inspect-token-list"]',
@@ -947,7 +955,8 @@ const PROBE = (opt) => {
 
   const all = [...(frame?.querySelectorAll('*') ?? [])].filter(inChrome);
   const drawn = all.filter(shown);
-  const CONTROL = 'button, select, textarea, input:not([type="hidden"]), [role="tab"], [role="menuitemradio"], a[href]';
+  // #2176: a focusable separator (the Activity drawer's handle, a window splitter) is a control too.
+  const CONTROL = 'button, select, textarea, input:not([type="hidden"]), [role="tab"], [role="menuitemradio"], a[href], [role="separator"][tabindex]';
 
   // THE CONTRAST EXEMPTION, its predicate (F1 A; see "THE CONTRAST EXEMPTION" above `check`). A measured node is OFF
   // when it is a control, or sits inside one, that is really disabled: `:disabled` (which also covers a control in a
@@ -10864,6 +10873,201 @@ for (const { name, patch, keep, why } of NO_HUE_CASES) {
     });
     ok(st.disabled === true && st.readout === 'None' && st.aria === 'None' && st.hint === why && st.amountEnabled && !/\b(89|90)/.test(`${st.readout} ${st.aria}`),
       `${where}: the hue slider is disabled, reads None (not ~90°), says why ("${why}"), and Amount stays enabled (${JSON.stringify(st)})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+
+// =============================================================================================
+// 32. #2176 (the owner's AD1–AD3, 2026-10-05): drag the Activity drawer's top edge to make it taller. Both hosts, both
+//     themes, at 1280 (the drag) and at 380 (no handle).
+// =============================================================================================
+// AD1: at the wide tier, while the drawer is open, a handle on its top edge. A window splitter (WAI-ARIA): `role=
+// "separator"`, `aria-orientation="horizontal"`, `aria-valuenow`/`-min`/`-max`; Arrow Up and Arrow Down step it, Home and End
+// go to the least and the most. The height runs from today's open height up to just under the preview header, clamped at
+// both ends, and is kept per person under `prism3:activity-height` (web `localStorage`; the plugin posts it to the main
+// thread, which keeps it in `figma.clientStorage` and answers `ui-ready` with it, held on that side by
+// `apps/plugin/test-activity-height.ts`). The owner's change from the mock: the pill sits INSIDE the drawer, below its
+// top border, and is wider than the mock's 32px. AD2: no handle at 380. AD3: its accessible name is "Resize Activity".
+//
+// INDEPENDENCE (docs/34). Every expected value is a literal typed here or a measurement of the rendered page, never read
+// from the drawer's own attributes: the least height is the drawer's height as it first opens, before anything is kept;
+// the most is the drawer's bottom less the PREVIEW HEADER's measured bottom (never a number); a drag's expected height is
+// the start height plus the pointer's travel; a key's step is the literal 24 below. `aria-valuenow` is then held to the
+// height the drawer is MEASURED at. The name is the browser's computed one (CDP `getPartialAXTree`), not the attribute.
+//
+// Mutations, each after a `wip:` commit, each failing here by name:
+//   (a) no clamp at the most (`within` caps at no max)    → `32 … dragged past the preview header, the drawer stops just under it …`
+//   (b) the height not kept (`keepNow` a no-op)           → `32 … the height is kept …` and `… after a reload …`
+//   (c) the arrow keys ignored                            → `32 … Arrow Up steps the drawer 24px taller …`
+//   (d) the handle shown at 380 (the narrow rule dropped) → `32 … 380: the open sheet draws no handle …`
+//   (e) the pill on the border, not inside it             → `32 … the pill sits inside the drawer, below its top border …`
+console.log('\n32. #2176: drag the Activity drawer taller (AD1–AD3)');
+/** AD3, approved: the handle's accessible name. Literal. */
+const GRIP_NAME = 'Resize Activity';
+/** One Arrow Up or Arrow Down, in CSS pixels. Literal. */
+const GRIP_STEP = 24;
+/** The mock's pill was 32px; the owner asked for a little wider. Literal. */
+const MOCK_PILL_W = 32;
+/** The kept height's key, on both hosts. Literal. */
+const HEIGHT_KEY = 'prism3:activity-height';
+const GRIP = '[data-p3="activity-grip"]';
+/** The drawer, the handle, the pill and the preview header, measured as rendered. */
+const gripState = (page) => page.evaluate(() => {
+  const box = (n) => { if (!n) return null; const r = n.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, w: r.width, h: r.height }; };
+  const d = document.querySelector('[data-p3="activity-drawer"]');
+  const g = document.querySelector('[data-p3="activity-grip"]');
+  const p = g?.querySelector('.p3-drawer-pill');
+  const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s ?? ''); if (!m) return null; const v = m[1].split(/[,\s/]+/).filter(Boolean).map(Number); return { r: v[0], g: v[1], b: v[2], a: v.length > 3 ? v[3] : 1 }; };
+  const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+  const ink = p ? parse(getComputedStyle(p).backgroundColor) : null, ground = d ? parse(getComputedStyle(d).backgroundColor) : null;
+  const ratio = ink && ground && ink.a === 1 && ground.a === 1 ? (Math.max(lum(ink), lum(ground)) + 0.05) / (Math.min(lum(ink), lum(ground)) + 0.05) : null;
+  const gs = g ? getComputedStyle(g) : null;
+  return {
+    open: d?.dataset.open === 'true', drawer: box(d), border: d ? parseFloat(getComputedStyle(d).borderTopWidth) : null,
+    grip: box(g), gripShown: !!g && gs.display !== 'none' && g.getClientRects().length > 0 && !g.closest('[hidden]'),
+    pill: box(p), pillRatio: ratio, head: box(document.querySelector('[data-p3="preview-head"]')), body: box(document.querySelector('[data-p3="preview-body"]')),
+    role: g?.getAttribute('role') ?? null, orient: g?.getAttribute('aria-orientation') ?? null, tab: g?.tabIndex ?? null,
+    now: Number(g?.getAttribute('aria-valuenow')), min: Number(g?.getAttribute('aria-valuemin')), max: Number(g?.getAttribute('aria-valuemax')),
+    focus: document.activeElement?.getAttribute('data-p3') ?? null, vh: innerHeight,
+  };
+});
+/** The handle's computed accessible name and role, from the browser's accessibility tree. */
+const gripAx = async (page) => {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send('DOM.enable');
+    await cdp.send('Accessibility.enable');
+    const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+    const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: GRIP });
+    if (!nodeId) return { name: null, role: null };
+    const { nodes } = await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false });
+    const n = nodes.find((x) => !x.ignored);
+    return { name: n?.name?.value ?? null, role: n?.role?.value ?? null };
+  } finally { await cdp.detach(); }
+};
+/** Drag the handle from its center to `y` (a viewport y), in steps, with the mouse. */
+const dragGrip = async (page, y) => {
+  const b = await page.locator(GRIP).boundingBox();
+  const x = b.x + b.width / 2, y0 = b.y + b.height / 2;
+  await page.mouse.move(x, y0);
+  await page.mouse.down();
+  await page.mouse.move(x, y, { steps: 8 });
+  await page.mouse.up();
+  return y0;
+};
+const openDrawer = async (page) => {
+  await hooks.click(page.locator('[data-p3="activity-open"]'));
+  await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, { timeout: 5000 });
+};
+const fx = (n) => (typeof n === 'number' ? Math.round(n * 10) / 10 : n);
+for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+  const where = `32 ${host} ${theme} 1280`;
+  const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+  try {
+    if (host === 'figma') await page.evaluate(() => { window.__heightPosts = []; window.addEventListener('message', (e) => { const m = e.data?.pluginMessage; if (m?.type === 'set-activity-height') window.__heightPosts.push(m.px); }); });
+    // Closed, the handle is not drawn (AD1: only while the drawer is open).
+    const c0 = await gripState(page);
+    hooks.absent(ok, { seen: !!c0.drawer, state: 'the drawer in the frame' }, !c0.open && !c0.gripShown, `${where}: with the drawer closed, no handle is drawn (open ${c0.open}, handle ${c0.gripShown})`);
+    await openDrawer(page);
+    const s0 = await gripState(page);
+    // Today's open height, measured as it first opens with nothing kept: the least the handle may set.
+    const least = s0.drawer.h;
+    // Just under the preview header: the drawer's bottom less the header's measured bottom: the most.
+    const most = s0.drawer.bottom - s0.head.bottom;
+    ok(s0.gripShown && s0.role === 'separator' && s0.orient === 'horizontal' && s0.tab === 0,
+      `${where}: the open drawer draws its handle, a focusable horizontal separator (shown ${s0.gripShown}, role ${s0.role}, orientation ${s0.orient}, tabIndex ${s0.tab})`);
+    const ax = await gripAx(page);
+    ok(ax.name === GRIP_NAME && /^(separator|splitter)$/.test(ax.role ?? ''), `${where}: the handle's computed accessible name is "${GRIP_NAME}" (AD3), as a separator (name ${JSON.stringify(ax.name)}, role ${ax.role})`);
+    ok(near(s0.min, least, 1) && near(s0.now, least, 1) && near(s0.max, most, 1),
+      `${where}: the handle reads the drawer's range: min today's open height ${fx(least)}, now ${fx(least)}, max the room under the preview header ${fx(most)} (min ${s0.min}, now ${s0.now}, max ${s0.max})`);
+    // The owner's change from the mock: the pill inside the drawer, below its top border, wider than 32; and drawn at 3:1.
+    const borderBottom = s0.drawer.top + s0.border;
+    ok(!!s0.pill && s0.pill.top >= borderBottom + 1 && s0.pill.bottom <= s0.drawer.bottom && s0.pill.left >= s0.drawer.left && s0.pill.right <= s0.drawer.right,
+      `${where}: the pill sits inside the drawer, below its top border (border's bottom edge ${fx(borderBottom)}, pill top ${fx(s0.pill?.top)}, ${fx((s0.pill?.top ?? 0) - borderBottom)}px inside)`);
+    ok(!!s0.pill && s0.pill.w > MOCK_PILL_W && s0.pill.h >= 1, `${where}: the pill is wider than the mock's ${MOCK_PILL_W}px (${fx(s0.pill?.w)} × ${fx(s0.pill?.h)})`);
+    ok(near((s0.pill.left + s0.pill.right) / 2, (s0.drawer.left + s0.drawer.right) / 2, 1), `${where}: the pill is centered on the drawer's top edge (pill ${fx((s0.pill.left + s0.pill.right) / 2)}, drawer ${fx((s0.drawer.left + s0.drawer.right) / 2)})`);
+    ok((s0.pillRatio ?? 0) >= NONTEXT_MIN, `${where}: the pill draws at ${NONTEXT_MIN}:1 on the drawer's ground (${s0.pillRatio?.toFixed(2)}:1)`);
+    ok(s0.grip.w >= 24 && s0.grip.h >= 24, `${where}: the handle's target is at least 24 × 24 (${fx(s0.grip.w)} × ${fx(s0.grip.h)})`);
+    // A pointer drag: the drawer follows the pointer's travel, and the preview body keeps the rest of the column.
+    const to = (await page.locator(GRIP).boundingBox()).y - 150;
+    const travel = (await dragGrip(page, to)) - to;
+    const s1 = await gripState(page);
+    ok(near(s1.drawer.h, least + travel, 1), `${where}: a pointer drag up by ${fx(travel)}px makes the drawer that much taller (from ${fx(least)} to ${fx(s1.drawer.h)}, want ${fx(least + travel)})`);
+    ok(near(s1.now, s1.drawer.h, 1) && near(s1.body.bottom, s1.drawer.top, 1) && near(s1.drawer.bottom, s0.drawer.bottom, 1),
+      `${where}: after the drag, aria-valuenow is the height drawn and the preview body ends where the drawer starts (now ${s1.now}, drawn ${fx(s1.drawer.h)}; body bottom ${fx(s1.body.bottom)}, drawer top ${fx(s1.drawer.top)}, bottom ${fx(s1.drawer.bottom)})`);
+    // Clamped at the most: dragged far past the preview header, it stops just under it.
+    await dragGrip(page, 2);
+    const s2 = await gripState(page);
+    ok(near(s2.drawer.top, s0.head.bottom, 1) && near(s2.drawer.h, most, 1) && near(s2.now, most, 1) && s2.drawer.bottom <= s2.vh + 0.5 && near(s2.head.bottom, s0.head.bottom, 0.5),
+      `${where}: dragged past the preview header, the drawer stops just under it (top ${fx(s2.drawer.top)}, header bottom ${fx(s0.head.bottom)}; height ${fx(s2.drawer.h)}, max ${fx(most)}; now ${s2.now}; bottom ${fx(s2.drawer.bottom)} of ${s2.vh})`);
+    // Clamped at the least: dragged far below, it stops at today's open height.
+    await dragGrip(page, 899);
+    const s3 = await gripState(page);
+    ok(near(s3.drawer.h, least, 1) && near(s3.now, least, 1), `${where}: dragged down past today's open height, the drawer stops at it (height ${fx(s3.drawer.h)}, want ${fx(least)}; now ${s3.now})`);
+    // The keyboard (the window splitter pattern): focus the handle, then step it.
+    await page.locator(GRIP).focus();
+    await page.keyboard.press('ArrowUp');
+    const k1 = await gripState(page);
+    ok(k1.focus === 'activity-grip' && near(k1.drawer.h, least + GRIP_STEP, 1) && near(k1.now, k1.drawer.h, 1),
+      `${where}: Arrow Up steps the drawer ${GRIP_STEP}px taller, and aria-valuenow follows (height ${fx(k1.drawer.h)}, want ${fx(least + GRIP_STEP)}; now ${k1.now}; focus ${k1.focus})`);
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('ArrowDown');
+    const k2 = await gripState(page);
+    ok(near(k2.drawer.h, least + 2 * GRIP_STEP, 1) && near(k2.now, k2.drawer.h, 1), `${where}: Arrow Down steps it ${GRIP_STEP}px back (height ${fx(k2.drawer.h)}, want ${fx(least + 2 * GRIP_STEP)}; now ${k2.now})`);
+    await page.keyboard.press('End');
+    const k3 = await gripState(page);
+    ok(near(k3.drawer.h, most, 1) && near(k3.now, most, 1), `${where}: End goes to the most, just under the preview header (height ${fx(k3.drawer.h)}, want ${fx(most)}; now ${k3.now})`);
+    await page.keyboard.press('ArrowUp');
+    const k4 = await gripState(page);
+    ok(near(k4.drawer.h, most, 1) && near(k4.now, most, 1), `${where}: Arrow Up at the most stays there (height ${fx(k4.drawer.h)}; now ${k4.now})`);
+    await page.keyboard.press('Home');
+    await page.keyboard.press('ArrowDown');
+    const k5 = await gripState(page);
+    ok(near(k5.drawer.h, least, 1) && near(k5.now, least, 1), `${where}: Home goes to the least, and Arrow Down there stays (height ${fx(k5.drawer.h)}, want ${fx(least)}; now ${k5.now})`);
+    // Kept per person: three steps up, then a reload.
+    for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowUp');
+    const want = Math.round(least + 3 * GRIP_STEP);
+    if (host === 'web') {
+      const kept = await page.evaluate((k) => localStorage.getItem(k), HEIGHT_KEY);
+      ok(kept === String(want), `${where}: the height is kept in localStorage under ${HEIGHT_KEY} (kept ${JSON.stringify(kept)}, want "${want}")`);
+      await page.reload({ waitUntil: 'networkidle' });
+      await hooks.need(page, '[data-p3="frame"]');
+    } else {
+      const posted = await page.evaluate(() => new Promise((r) => setTimeout(() => r(window.__heightPosts.slice()), 50)));
+      ok(posted.at(-1) === want, `${where}: the height is kept: posted to the main thread as set-activity-height (posted ${JSON.stringify(posted)}, want last ${want})`);
+      // A reload: the main thread answers ui-ready with what it kept (its half: apps/plugin/test-activity-height.ts).
+      await page.reload({ waitUntil: 'load' });
+      await page.evaluate(() => window.postMessage({ pluginMessage: { type: 'restore-input-empty' } }, '*'));
+      await hooks.click(page.locator('[data-p3="start-example"]').filter({ hasText: 'prism3' }));
+      await hooks.need(page, '[data-p3="frame"]');
+      await postMsg(page, { type: 'activity-height', px: posted.at(-1) ?? null });
+    }
+    await openDrawer(page);
+    const r1 = await gripState(page);
+    ok(near(r1.drawer.h, want, 1) && near(r1.now, want, 1), `${where}: after a reload the kept height comes back when the drawer opens (height ${fx(r1.drawer.h)}, want ${want}; now ${r1.now})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// AD2: at 380 the open drawer is the full-pane sheet, with no handle, a kept height or not.
+for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+  const where = `32 ${host} ${theme} 380`;
+  const { ctx, page, errors } = await open({ host, theme, w: 380, h: 420, store: host === 'web' ? { [HEIGHT_KEY]: '200' } : undefined });
+  try {
+    await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
+    if (host === 'figma') await postMsg(page, { type: 'activity-height', px: 200 });
+    await openDrawer(page);
+    const s = await gripState(page);
+    const sheet = await page.evaluate(() => { const b = document.querySelector('[data-p3="activity-body"]'); return !!b && !b.hidden && b.getBoundingClientRect().height > 0; });
+    hooks.absent(ok, { seen: s.open && sheet, state: 'the open sheet' }, !s.gripShown, `${where}: the open sheet draws no handle (AD2) (handle ${s.gripShown}${s.grip ? `, ${fx(s.grip.w)} × ${fx(s.grip.h)}` : ''})`);
+    await page.keyboard.press('Tab');
+    const f = await page.evaluate(() => document.activeElement?.getAttribute('data-p3') ?? null);
+    ok(f !== 'activity-grip', `${where}: the handle takes no focus at 380 (focus on ${f})`);
+    ok(near(s.drawer.bottom, s.vh, 1) && Math.abs(s.drawer.h - 200) > 1, `${where}: a kept height does not size the sheet: it runs to the window's bottom (height ${fx(s.drawer.h)}, bottom ${fx(s.drawer.bottom)} of ${s.vh})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
