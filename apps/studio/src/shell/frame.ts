@@ -631,8 +631,19 @@ export const mountFrame = (app: HTMLElement, opts: {
     const step = fits(f.full) ? null : fits(f.glyphs) ? 'glyphs' : fits(f.logo) ? 'logo' : f.rows !== null && fits(f.rows) ? 'rows' : 'trim';
     if (step) root.dataset.barFit = step; else delete root.dataset.barFit;
     const sw = barMain.querySelector<HTMLElement>('[data-p3="brand-switcher"]');
-    const full = sw?.querySelector('.p3-brand-name')?.textContent ?? '';
-    if (sw && step === 'trim' && full) sw.title = full; else sw?.removeAttribute('title');
+    const nameEl = sw?.querySelector<HTMLElement>('.p3-brand-name');
+    const full = nameEl?.textContent ?? '';
+    // The tooltip follows the cut, not the step (#2272). At `trim`'s edge the name can get all the width it needs (the
+    // step holds the first row; the row would still wrap without it), and then nothing is cut and nothing needs
+    // repeating. Read on the drawn name, `trim` already set: its text's own width (a Range) past its box, beyond one
+    // layout unit, to the fraction of a pixel that whole-pixel `scrollWidth` and `clientWidth` round away.
+    let cut = false;
+    if (nameEl && step === 'trim') {
+      const r = document.createRange();
+      r.selectNodeContents(nameEl);
+      cut = r.getBoundingClientRect().width > nameEl.getBoundingClientRect().width + 1 / 64;
+    }
+    if (sw && cut && full) sw.title = full; else sw?.removeAttribute('title');
   };
   const refit = (): void => { fitWidths = null; fitBar(); };
   const mo = new MutationObserver(refit);

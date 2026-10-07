@@ -622,17 +622,20 @@ const FIT_ORACLE = () => {
   return { narrow, room: Math.round(room * 10) / 10, full, glyphs, logo, rows, fileRow, step, also: [...new Set([lo, step, hi])] };
 };
 /** The bar as DRAWN, classified from the render alone: which labels and which name show, whether the brand switcher's
- *  name is cut short (its text wider than its box), and how its controls fall into rows. `full`, `glyphs` and `logo`
+ *  name is cut short, and how its controls fall into rows. CUT is the name's box narrower than `whole`, the same name's
+ *  box where the full bar shows (1280), beyond one layout unit: a fraction of a pixel, which whole-pixel `scrollWidth`
+ *  and `clientWidth` round away, so a cut under half a pixel used to read as whole (#2272). The frame reads its cut
+ *  another way (its text's Range against its box, at the width drawn), so the two are partners (docs/34, shape 2). `full`, `glyphs` and `logo`
  *  are one row (every tile at one top, the controls box one control tall), the name whole; `rows` is the narrow tier's
  *  two (Pages, Figma and Apply Theme on the second, Apply Theme at its right edge), the name whole; `trim` is the same
  *  rows (one row where there is no file row) with the name cut. Anything else is reported as `other`. */
-const FIT_SEEN = () => {
+const FIT_SEEN = (whole) => {
   const bm = document.querySelector('[data-p3="bar-main"]');
   const drawn = (n) => !!n && n.getClientRects().length > 0 && n.getBoundingClientRect().width > 0 && getComputedStyle(n).display !== 'none';
   const labels = [...bm.querySelectorAll('.p3-tile-label')].map(drawn);
   const name = drawn(bm.querySelector('.p3-mark-name'));
   const bn = bm.querySelector('[data-p3="brand-switcher"] .p3-brand-name');
-  const cut = !!bn && bn.scrollWidth > bn.clientWidth + 0.5;
+  const cut = drawn(bn) && bn.getBoundingClientRect().width < whole - 1 / 64;
   const HOOKS = ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'pages-menu', 'figma-open', 'apply-to-figma'];
   const ctl = (k) => { const n = bm.querySelector(`[data-p3="${k}"]`); return k === 'product-mark' ? n : n?.closest('button') ?? n; };
   const boxes = HOOKS.map((k) => [k, ctl(k)]).filter(([, n]) => drawn(n)).map(([k, n]) => { const r = n.getBoundingClientRect(); return { k, top: r.top, bottom: r.bottom, right: r.right, mid: (r.top + r.bottom) / 2 }; });
@@ -9703,13 +9706,16 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
           const fullName = brand === 'long' ? LONG_NAME : 'prism3';
           let base = null;
           const missed = [], renamed = [];
+          // The name's whole width, where the full bar shows (1280, asserted below): what FIT_SEEN reads a cut against.
+          const whole = await page.evaluate(() => document.querySelector('[data-p3="brand-switcher"] .p3-brand-name')?.getBoundingClientRect().width ?? 0);
+          ok(whole > 0, `29d ${host} ${theme} ${fullName}: the brand name has a width at 1280 to read a cut against (${whole})`);
           for (const w of FIT_WIDTHS[brand]) {
             const where = `29d ${host} ${theme} ${w} ${fullName}`;
             await page.setViewportSize({ width: w, height: 900 });
             await settle(page);
             states++;
             const fit = await page.evaluate(FIT_ORACLE);
-            const seen = await page.evaluate(FIT_SEEN);
+            const seen = await page.evaluate(FIT_SEEN, whole);
             const names = await axBar(cdp);
             const tip = await page.evaluate(() => document.querySelector('[data-p3="brand-switcher"]')?.getAttribute('title') ?? null);
             if (w === 1280) {
@@ -11072,6 +11078,73 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
   } catch (e) {
     ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
+}
+
+// =============================================================================================
+// 33. #2272: the bar cuts the brand name (`trim`, and its tooltip) only when the name is really cut. The frame picks a
+//     step from one measurement by subtraction (`fitBar`), and where the text metrics put that sum a fraction past the
+//     room, it used to pick `trim` and set the tooltip while the name, laid out, still fit: §29d's 590 on some
+//     machines, never in CI. This builds that state on every machine. At a width 2px wider than the plugin's first row
+//     needs (FIT_ORACLE's own reading), one first-row control is made 4px wider and the frame re-measures (a font load,
+//     one of its own re-measure signals); then the extra width is taken off with nothing the frame re-measures on (an
+//     inline style), and the window resized. The frame's sum is now 4px too wide, so it stays on `trim`, and the name
+//     fits its box: the bar must draw two rows (FIT_SEEN), the name whole, and no tooltip. Two controls hold the fixture to what it claims:
+//     before the inflation the bar draws `rows`, and with it the name is really cut and the tooltip is the name.
+// Mutation, failing here by name in every environment: `fitBar`'s tooltip from the step alone, not the cut.
+// =============================================================================================
+console.log('\n33. #2272: trim and its tooltip follow the name\'s own cut');
+{
+  const LONG_NAME = 'northwind-outdoor-supply-co';
+  const LONG_BRAND = { root: 'nw', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true }, id: LONG_NAME };
+  const INFLATE = 4, MARGIN = 2;
+  const settle = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const tipOf = (page) => page.evaluate(() => document.querySelector('[data-p3="brand-switcher"]')?.getAttribute('title') ?? null);
+  for (const theme of ['light', 'dark']) {
+    const where = `33 figma ${theme}`;
+    const { ctx, page, errors } = await open({ host: 'figma', theme, w: 1280, h: 900, query: '?p3-test-hooks' });
+    try {
+      await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), LONG_BRAND);
+      await page.waitForFunction((n) => document.querySelector('[data-p3="brand-switcher"] .p3-brand-name')?.textContent === n, LONG_NAME, { timeout: 5000 }).catch(() => {});
+      await settle(page);
+      const whole = await page.evaluate(() => document.querySelector('[data-p3="brand-switcher"] .p3-brand-name')?.getBoundingClientRect().width ?? 0);
+      ok(whole > 0, `${where}: at 1280 the long name has a width to read a cut against (${whole})`);
+      const at = async (w) => {
+        await page.setViewportSize({ width: w, height: 900 });
+        await settle(page);
+        return { fit: await page.evaluate(FIT_ORACLE), seen: await page.evaluate(FIT_SEEN, whole), tip: await tipOf(page) };
+      };
+      const probe = await at(700);
+      ok(probe.fit.fileRow && typeof probe.fit.rows === 'number', `${where}: the plugin bar has its file row, so a first row to measure (${JSON.stringify(probe.fit)})`);
+      const W = Math.ceil(probe.fit.rows + (700 - probe.fit.room) + MARGIN);
+      const before = await at(W);
+      ok(before.fit.step === 'rows' && before.fit.also.join() === 'rows' && before.seen.step === 'rows' && !before.seen.cut && before.tip === null,
+        `${where} ${W}: control: ${MARGIN}px wider than the first row needs, the bar draws two rows, the name whole, no tooltip (want rows, measured ${before.fit.also.join('/')} with the row ${before.fit.rows} in ${before.fit.room}; drew ${before.seen.step}, cut ${before.seen.cut}, title ${JSON.stringify(before.tip)})`);
+      // One first-row control made wider, and the frame told to measure again.
+      const marked = await page.evaluate((px) => {
+        const bm = document.querySelector('[data-p3="bar-main"]');
+        let c = bm.querySelector('[data-p3="export-open"]');
+        while (c && c.parentElement !== bm) c = c.parentElement;
+        if (!c) return false;
+        c.setAttribute('data-inflate', '');
+        c.style.marginLeft = `${px}px`;
+        document.fonts.dispatchEvent(new Event('loadingdone'));
+        return true;
+      }, INFLATE);
+      await settle(page);
+      const wide = { seen: await page.evaluate(FIT_SEEN, whole), tip: await tipOf(page) };
+      ok(marked && wide.seen.cut && wide.seen.step === 'trim' && wide.tip === LONG_NAME,
+        `${where} ${W}: control: with Export ${INFLATE}px wider the name is really cut, and the tooltip is the name (drew ${wide.seen.step}, cut ${wide.seen.cut}, title ${JSON.stringify(wide.tip)})`);
+      // The width taken off where the frame does not look (an inline style), then a resize: its sum is now too wide.
+      await page.evaluate(() => { const c = document.querySelector('[data-inflate]'); c.style.marginLeft = ''; c.removeAttribute('data-inflate'); });
+      await at(W + 1);
+      const after = await at(W);
+      ok(!after.seen.cut && after.seen.step === 'rows' && after.tip === null,
+        `${where} ${W}: measured ${INFLATE}px too wide, the bar keeps two rows with the name whole and no tooltip, because nothing is cut (#2272) (drew ${after.seen.step}, cut ${after.seen.cut}, rows ${JSON.stringify(after.seen.rows)}, title ${JSON.stringify(after.tip)})`);
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
 }
 
 hooks.report(ok);
