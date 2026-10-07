@@ -25,7 +25,7 @@
  * mode its strip showed. A column anchor in Light is the column's global field; in any other mode it is
  * `modeAnchors` (`setAnchor`). A button set exists across every mode, so it is added and removed from any
  * editable mode (Q54). A derived mode is read-only, EVERY lever on the page, brand-wide ones included (Q59),
- * under S4a's approved line, once at the top.
+ * held by the frame: the whole levers panel is inert and disabled under one line (N-3 A, #1984).
  *
  * BEHAVIOR-NEUTRAL (the S2 rule). Every write goes through `state/interactive-input.ts`, which writes what the
  * legacy page wrote, byte for byte on the persisted brand. The option sets are the legacy page's (owner
@@ -122,10 +122,8 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     rebuild();
   };
 
-  /** A derived mode's one line, at the top of the levers: every lever on the page is read-only there (Q59). */
-  const derivedLine = (): HTMLElement | null =>
-    isDerived(currentMode) ? hook(stateLine(`${modeLabel(currentMode)} is auto-derived — read-only. Edit Light or Dark and it follows.`), 'interactive-derived') : null;
-  /** Which mode the rows edit; nothing in a derived mode, which says so once at the top. */
+  /** Which mode the rows edit; nothing in a derived mode, whose panel the frame holds read-only under its one line
+   *  (Q59; N-3 A, #1984). */
   const editingLine = (): HTMLElement | null => isDerived(currentMode) ? null : subLine(`Editing ${modeLabel(currentMode)}, the mode the preview shows.`);
 
   // ── an enum lever as chips (#1675's rule: two to four options) ──────────────────────────────────
@@ -239,7 +237,6 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     }
     btn.append(glyph('chev'));
     btn.setAttribute('aria-label', `${label}: ${now}${ratio !== null ? `, ${fmtRatio(ratio)}` : ''}${below ? ', below floor' : ''}. Pick a step`);
-    btn.disabled = derived;
     btn.onclick = () => {
       const opening = openRole !== r.role;
       openRole = opening ? r.role : null;
@@ -514,8 +511,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     const scrollTop = host.scrollTop;
     items = [];
     pickers.clear();
-    const derived = derivedLine();
-    const parts: HTMLElement[] = [h('p', 'p3-intro', PAGE.intro), ...(derived ? [derived] : []), jumps()];
+    const parts: HTMLElement[] = [h('p', 'p3-intro', PAGE.intro), jumps()];
     PAGE.sections.forEach((s, i) => { const x = section(s, i); parts.push(x.el); items.push(...x.items); });
 
     const next = hook(h('button', 'p3-btn p3-btn-page p3-next'), 'interactive-continue');
@@ -526,9 +522,6 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     nr.append(next);
     parts.push(nr);
     root.replaceChildren(...parts);
-    // A derived mode is read-only, every lever on the page, brand-wide ones included (owner decision Q59): every
-    // control in a section is disabled. The info buttons only show a description, so they stay.
-    if (derived) for (const n of root.querySelectorAll<HTMLButtonElement | HTMLSelectElement | HTMLInputElement>('.p3-lsec :is(button, select, input):not(.p3-info)')) n.disabled = true;
     markRefused();
     filter();
     if (focusKey) {
