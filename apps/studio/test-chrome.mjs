@@ -11248,7 +11248,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 }
 
 // =============================================================================================
-// 33. #1984 (owner decisions 2026-10-03 and N-3 A, 2026-10-05; copy RO1 A, RX1 A, RX2 A and RX3 A, 2026-10-07): while the
+// 34. #1984 (owner decisions 2026-10-03 and N-3 A, 2026-10-05; copy RO1 A, RX1 A, RX2 A and RX3 A, 2026-10-07): while the
 //     preview shows a derived mode, the levers panel's settings are held as one, under one line; help and navigation stay
 // =============================================================================================
 // Both hosts, both chrome themes, at 1280 and 380. In each derived mode, on each page below:
