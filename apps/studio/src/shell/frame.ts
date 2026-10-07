@@ -315,12 +315,12 @@ export const mountFrame = (app: HTMLElement, opts: {
   // Prism3's disabled skin (F1 A, X4 A), leaves the tab order and reads disabled to assistive technology; any other
   // widget gets `aria-disabled` and leaves the tab order. One source of truth: a new lever is held without doing
   // anything, and only what this frame held is released. The line that says why, `leversNote`, sits OUTSIDE the region,
-  // first in the pane, in the studio's boxed note (Build style guides' `.p3-sg-note.p3-sg-warn`, its info glyph; RX2 A),
-  // and takes focus; in an editable mode it is not in the document. The writes keep their own guards (#2096).
+  // first in the pane, in the studio's boxed note (Build style guides' `.p3-sg-note.p3-sg-warn`, its own warning glyph;
+  // RX2 A, RX3 A), and takes focus; in an editable mode it is not in the document. The writes keep their own guards (#2096).
   const leversRegion = hook(h('div', 'p3-levers-region'), 'levers-region');
   const leversNote = hook(h('p', 'p3-sg-note p3-sg-warn p3-levers-note'), 'levers-derived-note');
   const leversNoteText = h('span', 'p3-sg-warn-text');
-  leversNote.append(glyph('info'), leversNoteText);
+  leversNote.append(glyph('warn'), leversNoteText);
   leversNote.tabIndex = -1;
   let holding = false;
   /** Hold every setting in the region that is not already off: a native control by its `disabled`, any other widget by

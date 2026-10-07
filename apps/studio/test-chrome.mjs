@@ -11078,7 +11078,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 }
 
 // =============================================================================================
-// 33. #1984 (owner decisions 2026-10-03 and N-3 A, 2026-10-05; copy RO1 A, RX1 A and RX2 A, 2026-10-07): while the
+// 33. #1984 (owner decisions 2026-10-03 and N-3 A, 2026-10-05; copy RO1 A, RX1 A, RX2 A and RX3 A, 2026-10-07): while the
 //     preview shows a derived mode, the levers panel's settings are held as one, under one line; help and navigation stay
 // =============================================================================================
 // Both hosts, both chrome themes, at 1280 and 380. In each derived mode, on each page below:
@@ -11088,7 +11088,8 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
 //   · the browser's accessibility tree (CDP `Accessibility.getFullAXTree`, never the DOM) reports every control under the
 //     pane disabled but the named exceptions, and holds at least a floor of disabled ones and the line's text;
 //   · the line reads the literal with the mode's name as the mode control shows it, sits outside the levers region, takes
-//     focus, and is the studio's boxed note (Build style guides' `p3-sg-note p3-sg-warn`, RX2 A) with a glyph, its text
+//     focus, and is the studio's boxed note (Build style guides' `p3-sg-note p3-sg-warn`, RX2 A) with its own warning
+//     glyph (RX3 A), its text
 //     at 4.5:1 and its glyph at 3:1 on its own ground.
 // The exceptions work, once per run of a derived mode on Surfaces & fills: an ⓘ opens its help, a Jump to link scrolls the
 // pane. In Light and Dark there is no line, a setting takes focus, and the tree holds enabled controls under the pane.
@@ -11194,9 +11195,12 @@ const RO_READ = ([q, exceptions, noteClasses]) => {
   const lum = (c) => { const f = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
   const ratio = (a, b) => { const x = lum(a), y = lum(b); return Math.round(((Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)) * 100) / 100; };
   const glyph = line?.querySelector('svg') ?? null;
+  // RX3 A: the note's own warning glyph, known by its drawing (a triangle path, a stem and a dot of radius 0.9), typed
+  // here as HINT_PROBE types the ⓘ's; never the ⓘ (HP3: the ⓘ is only ever a button).
+  const warnGlyph = !!glyph && /^M8 1\.8l6\.6 11\.7H1\.4z$/.test(glyph.querySelector('path')?.getAttribute('d') ?? '') && !!glyph.querySelector('circle[r="0.9"]') && !glyph.querySelector('circle[r="6.2"]');
   const ground = line ? rgb(getComputedStyle(line).backgroundColor) : null;
   const look = line ? {
-    classes: noteClasses.every((c) => line.classList.contains(c)), glyph: !!glyph && glyph.getClientRects().length > 0,
+    classes: noteClasses.every((c) => line.classList.contains(c)), glyph: !!glyph && glyph.getClientRects().length > 0 && warnGlyph,
     opaque: !!ground && (ground.length < 4 || ground[3] === 1),
     text: ground ? ratio(rgb(getComputedStyle(line.querySelector('span') ?? line).color), ground) : null,
     icon: ground && glyph ? ratio(rgb(getComputedStyle(glyph).color), ground) : null,
@@ -11249,7 +11253,7 @@ for (const host of ['web', 'figma']) {
             ok(d.inPane && !d.inRegion && d.lineFocus,
               `${at}: the line sits outside the levers region and takes focus (in the pane ${d.inPane}, in the region ${d.inRegion}, focus ${d.lineFocus})`);
             ok(!!d.look && d.look.classes && d.look.glyph && d.look.opaque && d.look.text >= 4.5 && d.look.icon >= 3,
-              `${at}: the line is the studio's boxed note (${RO_NOTE_CLASSES.join(' ')}, RX2 A) with its glyph, text at 4.5:1 and glyph at 3:1 on its own ground (${JSON.stringify(d.look)})`);
+              `${at}: the line is the studio's boxed note (${RO_NOTE_CLASSES.join(' ')}, RX2 A) with its own warning glyph (RX3 A), text at 4.5:1 and glyph at 3:1 on its own ground (${JSON.stringify(d.look)})`);
             const walk = d.lineFocus ? await roTabWalk(page) : { fwd: [], backInPane: null };
             const strays = walk.fwd.filter((hk) => !RO_EXCEPTIONS.includes(hk));
             ok(d.lineFocus && strays.length === 0 && walk.backInPane === false,

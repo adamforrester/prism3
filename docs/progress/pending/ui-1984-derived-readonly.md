@@ -13,6 +13,7 @@ that can't be used. On review of the first build the owner chose two refinements
 
 - **RX1 A:** help and navigation stay usable, and only the settings are locked.
 - **RX2 A:** the line takes the studio's existing note style and stays at the top of the panel.
+- **RX3 A:** the note keeps its own warning glyph, unchanged, and HP3 (the ⓘ is only ever a button) stays as it is.
 
 **The hold.** The frame mounts each page's levers inside `levers-region`, a `div` with `display: contents`. On the seven
 pages that edit the previewed mode (the `derivedReadOnly` flag on their `NEW_PAGES` rows), a derived mode runs
@@ -33,8 +34,9 @@ on the region re-applies the hold whenever a page redraws, for example when a fo
 lever is held without doing anything, and no page checks the mode to disable a control.
 
 **The line,** "‹Mode› is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.", is the
-pane's first child, outside the region. It is Build style guides' boxed note, `.p3-sg-note.p3-sg-warn`, unchanged. The
-studio has no tinted neutral note, so this is the existing box with an icon. The line uses `modeLabel`'s name, takes
+pane's first child, outside the region. It is Build style guides' boxed note, `.p3-sg-note.p3-sg-warn`, unchanged, its
+own warning glyph included (RX3 A). The studio has no tinted neutral note, so this is the existing box with an icon. An
+info glyph there was tried and dropped: TY2 A's HP3 check fails any ⓘ drawn outside a button in the levers pane. The line uses `modeLabel`'s name, takes
 programmatic focus (`tabindex="-1"`), and is absent in Light and Dark. Brand and Palettes are brand-wide and stay
 editable.
 
@@ -66,8 +68,8 @@ The gate runs on both hosts, both chrome themes, at 1280 and 380. In each derive
 - A Tab walk from the line through the whole pane stops only on named exceptions, and Shift+Tab leaves the pane.
 - CDP `Accessibility.getFullAXTree` reports every control under the pane disabled except the named exceptions, with a
   floor on the disabled ones, and holds the line's text.
-- The line reads the literal, sits outside the region, and takes focus. It carries the note's classes and a glyph, with
-  its text at 4.5:1 and its glyph at 3:1 on its own ground.
+- The line reads the literal, sits outside the region, and takes focus. It carries the note's classes and its warning
+  glyph (known by its drawing), with its text at 4.5:1 and its glyph at 3:1 on its own ground.
 
 Once per run, in HC light on Surfaces & fills, the exceptions are shown to work: an ⓘ opens its help, and a Jump to link
 scrolls the pane. In Light and Dark there is no line, a setting takes focus, and the tree holds enabled settings.
@@ -90,7 +92,13 @@ pages, line and note classes are literals too, and every page × mode pair is co
 - (f) the Jump to links held: 16 failures, e.g. `#1984 web light 1280 hc-light on color-fills: help and navigation stay
   usable (RX1 A): every named exception drawn is live (14 drawn; held: fills-jump-link)`. The held link then refused
   the jump click, so each context's case stopped there, by name.
-- (g) the line back in the hint style: not yet run (the run was stopped for the night, 2026-10-07).
+- (g) the line back in the hint style: 168 failures, e.g. `#1984 web light 1280 hc-light on color-fills: the line is the
+  studio's boxed note (p3-sg-note p3-sg-warn, RX2 A) with its own warning glyph (RX3 A), text at 4.5:1 and glyph at 3:1
+  on its own ground ({"classes":false,"glyph":true,"opaque":false,"text":3.81,"icon":3.81})`.
+
+One full `test:chrome` run also timed out once in #2194's Light-mode Type case, which never touches a derived mode. Run
+on its own it passed 20/20 on both hosts, so it was load. #2285 also adds a section 33; whichever lands second
+renumbers.
 
 ### Moved cases
 
