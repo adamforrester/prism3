@@ -62,6 +62,11 @@
  *                  blocker check dropped → `adopt/blocked`); a member on a coordinate a stamped member lands on is
  *                  left (the held skip dropped → `adopt/held`); each write lands by node id (by position →
  *                  `adopt/by id`).
+ *   copy/…         a member duplicated in Figma (its record names another member) and one with a malformed stamp
+ *                  are not Prism3's, so neither is a drop; a genuine member off the plan still is; and a record
+ *                  naming a node no longer in the set is no copy (#2300). Mutations: copies not detected →
+ *                  `copy/not a drop`; the stamp's shape not checked → `malformed/not a drop`; any differing id read as
+ *                  a copy → `copy/reassigned`.
  *   differ/…       a member that differs from its plan is reported by part, field, plan value and file value, in
  *                  the dry run and in the capture (#2295); and a fresh image-placeholder build records clean, its
  *                  aspect lock read as Figma's `{x, y}`. Mutations: the read-back's number-only aspect check →
@@ -277,7 +282,11 @@ section('format — what the hash covers is pinned to BASELINE_V');
   // were written by the old signature, so the change must raise BASELINE_V, which makes the dry run read
   // them as "no record" rather than as a file full of hand edits. This pins one hash per version: when it
   // fails, raise BASELINE_V in member-baseline.ts and pin the new hash here under the new version.
-  const PINNED: Record<number, Record<string, string>> = { 1: { '.': 'e85160da', label: 'e7367361', note: '88ebbfd4', icon: '2df66934' } };
+  // v2 (#2300) adds the record's node id beside the hashes; the hashes themselves are v1's.
+  const PINNED: Record<number, Record<string, string>> = {
+    1: { '.': 'e85160da', label: 'e7367361', note: '88ebbfd4', icon: '2df66934' },
+    2: { '.': 'e85160da', label: 'e7367361', note: '88ebbfd4', icon: '2df66934' },
+  };
   const fixture: SnapNode = {
     name: 'm', type: 'COMPONENT', layoutMode: 'HORIZONTAL', itemSpacing: 4, visible: true, opacity: 1,
     boundVariables: { paddingLeft: { id: 'V:space/100' } },
@@ -427,7 +436,8 @@ section('axis — an added axis and a removed one');
   // Removed: the file has an `extra` axis the plan dropped. The default's value (a) is kept; b collapses.
   const wide = withMembers(view, (ms) => [
     ...ms.map((m) => ({ ...m, name: `${m.name}, extra=a` })),
-    ...ms.map((m) => ({ ...m, id: `${m.id}b`, name: `${m.name}, extra=b` })),
+    // Each its own Prism3 member, so each record names its own node (#2300); a record naming another member is a copy.
+    ...ms.map((m) => ({ ...m, id: `${m.id}b`, name: `${m.name}, extra=b`, baseline: m.baseline ? { ...m.baseline, id: `${m.id}b` } : null })),
   ]);
   const q = dryRunSet(TAG, b.plans, wide, b.ports);
   ok(q.drops.length === 45 && q.drops.every((d) => d.endsWith('extra=b')) && q.needsChoice.includes('axisCollapse') && q.counts.current === 45,
@@ -534,7 +544,8 @@ section('unstamped — a member Prism3 did not build is skipped, never a drop (#
   const b = await build(TAG);
   const view = await readSetView(b.set as any);
   // A designer's own member on a coordinate the plan does not have, and one Prism3 built there (a real drop).
-  const mk = (from: HostMember, name: string, stamp: string, id: string): HostMember => ({ ...from, id, name, stamp, baseline: stamp ? from.baseline : null });
+  // A Prism3 member's record names its own node (#2300); one naming another member would read as a copy.
+  const mk = (from: HostMember, name: string, stamp: string, id: string): HostMember => ({ ...from, id, name, stamp, baseline: stamp && from.baseline ? { ...from.baseline, id } : null });
   const own = setValue(view.members[0].name, 'size', 'huge');
   const ours = setValue(view.members[1].name, 'size', 'giant');
   const off = withMembers(view, (ms) => [...ms, mk(ms[0], own, '', 'hand:1'), mk(ms[1], ours, ms[1].stamp, 'p3:1')]);
@@ -600,6 +611,41 @@ section('adopt — the one-time claim of members Prism3 did not build (#2283, §
   const v = adoptVerdictText(r);
   ok(v.headline === '✓ 1 adopted' && JSON.stringify(v.lines) === JSON.stringify([`${s.set}: 1 member adopted, 1 left as they are (not in the plan).`, 'Run an update to bring it in line with the plan.']),
     `adopt/words: the verdict counts what it adopted and what it left (${v.headline}; ${JSON.stringify(v.lines)})`);
+}
+
+/* ── copy ────────────────────────────────────────────────────────────────────────────────────────────── */
+section("copy — a member duplicated in Figma, or carrying a malformed stamp, is not Prism3's (#2300)");
+{
+  const b = await build(TAG);
+  const get = (n: Node, k: string): string => (n.getSharedPluginData as (ns: string, k: string) => string)(NS, k);
+  const put = (n: Node, k: string, v: string): void => (n.setSharedPluginData as (ns: string, k: string, v: string) => void)(NS, k, v);
+  const [orig, copy, ours, odd] = [membersOf(b.set)[3], membersOf(b.set)[4], membersOf(b.set)[5], membersOf(b.set)[6]];
+  // Figma's Duplicate: the copy carries the original's plugin data, stamp and record, word for word, then the
+  // designer renames it off the plan.
+  put(copy, STAMP_KEY, get(orig, STAMP_KEY));
+  put(copy, BASELINE_KEY, get(orig, BASELINE_KEY));
+  copy.name = setValue(String(copy.name), 'size', 'huge');
+  // A genuine Prism3 member renamed off the plan (its own stamp and record): still a drop.
+  ours.name = setValue(String(ours.name), 'size', 'giant');
+  // A malformed stamp, off the plan.
+  put(odd, STAMP_KEY, 'garbage');
+  odd.name = setValue(String(odd.name), 'size', 'tiny');
+  ok(JSON.parse(get(copy, BASELINE_KEY)).id === String(orig.id) && String(copy.id) !== String(orig.id), 'premise: the copy\'s record names the original\'s node, not its own');
+  const p = (await previewUpdate(b.shim, [{ def: TAG, plans: b.plans }])).sets[0];
+  ok(!p.drops.includes(String(copy.name)) && p.unstamped.includes(String(copy.name)),
+    `copy/not a drop: the duplicate is not a drop, and is listed as not built by Prism3 (drops ${JSON.stringify(p.drops)})`);
+  ok(!p.drops.includes(String(odd.name)) && p.unstamped.includes(String(odd.name)), `malformed/not a drop: a malformed stamp is not Prism3's (${JSON.stringify(p.unstamped)})`);
+  ok(JSON.stringify(p.drops) === JSON.stringify([String(ours.name)]), `copy/control: a genuine member off the plan is still the one drop (${JSON.stringify(p.drops)})`);
+}
+{
+  // The host reassigned a member's id after the build: its record names a node that is no longer in the set. That is
+  // no copy, and the member is still Prism3's and current.
+  const b = await build(TAG);
+  const m = membersOf(b.set)[8];
+  const rec = JSON.parse((m.getSharedPluginData as (ns: string, k: string) => string)(NS, BASELINE_KEY));
+  (m.setSharedPluginData as (ns: string, k: string, v: string) => void)(NS, BASELINE_KEY, JSON.stringify({ ...rec, id: 'N:gone' }));
+  const p = (await previewUpdate(b.shim, [{ def: TAG, plans: b.plans }])).sets[0];
+  ok(p.counts.current === 45 && p.counts.unstamped === 0, `copy/reassigned: a record naming a node not in the set is not a copy (${JSON.stringify(p.counts)})`);
 }
 
 /* ── adopt, refused and paired ───────────────────────────────────────────────────────────────────────── */
