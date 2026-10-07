@@ -622,7 +622,14 @@ export const mountFrame = (app: HTMLElement, opts: {
     return { full, glyphs: full - labels, logo: full - labels - name, rows: rowBreak ? first - labels - name : null };
   };
   const fitBar = (): void => {
-    if (root.dataset.w === 'narrow') { fitWidths = null; delete root.dataset.barFit; return; }
+    // The switcher's tooltip shows its full name only while `trim` cuts it (Q83 A). The narrow tier draws no step, so
+    // it clears the tooltip too, or one set at `trim` would linger there, depending on the path to that width (#2262).
+    if (root.dataset.w === 'narrow') {
+      fitWidths = null;
+      delete root.dataset.barFit;
+      barMain.querySelector<HTMLElement>('[data-p3="brand-switcher"]')?.removeAttribute('title');
+      return;
+    }
     const room = barMain.getBoundingClientRect().width;
     if (!room) return;   // not laid out yet: the observer calls again once it is
     fitWidths ??= measureFit();
