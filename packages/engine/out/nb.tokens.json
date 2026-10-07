@@ -20973,7 +20973,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.232.0",
+      "version": "0.233.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
