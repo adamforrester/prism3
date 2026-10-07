@@ -17212,8 +17212,9 @@ arm: {
           _aspectLocked: true, _unlocks: 0,
           // #1316: the aspect-ratio LOCK's captured proportion. Starts undefined; `lockAspectRatio()`
           // below captures it and `unlockAspectRatio()` clears it, mirroring the plugin shim.
-          _targetAspectRatio: undefined as number | undefined,
-          get targetAspectRatio() { return node._targetAspectRatio as number | undefined; },
+          // A `Vector` `{x, y}` (#2295), as Figma types it and as the plugin shim models it.
+          _targetAspectRatio: undefined as { x: number; y: number } | undefined,
+          get targetAspectRatio() { return node._targetAspectRatio as { x: number; y: number } | undefined; },
           fills: [], strokes: [], children: [] as unknown[],
           // BORDER-BOX modeled, because the FOOTPRINT read-back has nothing to measure otherwise.
           // Figma's `strokesIncludedInLayout` defaults to ADDING the stroke to an auto-layout frame's
@@ -17360,7 +17361,7 @@ arm: {
             node._aspectLocked = true;
             const w = node.width as number;
             const h = node.height as number;
-            node._targetAspectRatio = h ? w / h : undefined;
+            node._targetAspectRatio = h ? { x: Math.fround(w / h), y: 1 } : undefined;
           },
           // THE EVICTION IS MODELLED (#682): while the aspect ratio is LOCKED, a node cannot hold two
           // independent dimension bindings — the second setter silently evicts the first, last-write-wins,
