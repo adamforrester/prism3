@@ -1,6 +1,6 @@
 ## (2026-10-06) — Plugin: the agent link's status in the Activity drawer, and the drawer row on one baseline (#2213)
 
-**Status:** branch `ui/2213-agent-status-drawer`, held for the owner's screenshot review. `apps/studio/src/shell/activity.ts`
+**Status:** branch `ui/2213-agent-status-drawer`, the owner approved both rounds of screenshots (2026-10-06); ready to merge. `apps/studio/src/shell/activity.ts`
 (`setAgentLinkStatus`, the row's text runs, the open drawer's agent line), `apps/studio/src/chrome.css`
 (`.p3-drawer-text`, `.p3-drawer-link`), `apps/plugin/src/agent-link-ui.ts` (`agentLinkShortStatus`), and tests in
 `apps/plugin/test-agent-link.ts` and `test:chrome` section 31. UI only: no ENGINE bump (no emitted artifact moves), CONTRACT
