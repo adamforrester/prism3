@@ -586,6 +586,66 @@ const hexOfRgb = (s) => {
 const EXEMPTIONS = [];
 const WIDTHS = [{ w: 1280, h: 900 }, { w: 640, h: 900 }, { w: 380, h: 420 }];
 
+/** #2214's ORACLE (the owner's BL1 A+B, BL2 A, BL3 A, 2026-10-06): which fit step the bar should be on, measured here and
+ *  never read from the frame's `data-bar-fit` or its arithmetic. Each candidate row is FORCED with this file's own
+ *  stylesheet (no wrap, no shrink, no spacer, the bar's controls box sized to its content) and read as laid out
+ *  (`scrollWidth`); the room is the controls box's width before anything is forced. The frame derives every step from
+ *  one measurement of the full row by subtraction; this lays each candidate out for real, so the two are partners and
+ *  neither is the other (docs/34, shape 2). Within 1px of the room the answer is ambiguous, and both neighbors are
+ *  accepted (`also`). Above the narrow tier only: at it, the narrow tier's own rules hold, as before. */
+const FIT_ORACLE = () => {
+  const bm = document.querySelector('[data-p3="bar-main"]');
+  const narrow = document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow';
+  const room = bm.getBoundingClientRect().width;
+  const st = document.createElement('style');
+  document.head.append(st);
+  const FORCE = '.p3-bar-main{flex:none!important;width:max-content!important;flex-wrap:nowrap!important}.p3-bar-main>*{flex-shrink:0!important}'
+    + '.p3-bar-main>.p3-spacer{flex:0 0 0!important}.p3-bar-break,.p3-bar-spacer2{display:none!important}';
+  const need = (css) => { st.textContent = FORCE + css; return bm.scrollWidth; };
+  const full = need('.p3-tile-label{display:block!important}.p3-mark-name{display:inline!important}');
+  const glyphs = need('.p3-tile-label{display:none!important}.p3-mark-name{display:inline!important}');
+  const logo = need('.p3-tile-label{display:none!important}.p3-mark-name{display:none!important}');
+  const fileRow = !!bm.querySelector('.p3-bar-break');
+  // The two rows' first row: the controls before the plugin's row break, the rest taken out of the row.
+  const rows = fileRow ? need('.p3-tile-label{display:none!important}.p3-mark-name{display:none!important}.p3-bar-break~*{display:none!important}') : null;
+  st.remove();
+  const steps = [['full', full], ['glyphs', glyphs], ['logo', logo], ...(fileRow ? [['rows', rows]] : [])];
+  // Past the last row that fits as it is, the brand switcher's name is cut short (Q83 A).
+  const pick = (slack) => steps.find(([, x]) => x <= room + slack)?.[0] ?? 'trim';
+  const step = pick(0), lo = pick(-1), hi = pick(1);
+  return { narrow, room: Math.round(room * 10) / 10, full, glyphs, logo, rows, fileRow, step, also: [...new Set([lo, step, hi])] };
+};
+/** The bar as DRAWN, classified from the render alone: which labels and which name show, whether the brand switcher's
+ *  name is cut short (its text wider than its box), and how its controls fall into rows. `full`, `glyphs` and `logo`
+ *  are one row (every tile at one top, the controls box one control tall), the name whole; `rows` is the narrow tier's
+ *  two (Pages, Figma and Apply Theme on the second, Apply Theme at its right edge), the name whole; `trim` is the same
+ *  rows (one row where there is no file row) with the name cut. Anything else is reported as `other`. */
+const FIT_SEEN = () => {
+  const bm = document.querySelector('[data-p3="bar-main"]');
+  const drawn = (n) => !!n && n.getClientRects().length > 0 && n.getBoundingClientRect().width > 0 && getComputedStyle(n).display !== 'none';
+  const labels = [...bm.querySelectorAll('.p3-tile-label')].map(drawn);
+  const name = drawn(bm.querySelector('.p3-mark-name'));
+  const bn = bm.querySelector('[data-p3="brand-switcher"] .p3-brand-name');
+  const cut = !!bn && bn.scrollWidth > bn.clientWidth + 0.5;
+  const HOOKS = ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'pages-menu', 'figma-open', 'apply-to-figma'];
+  const ctl = (k) => { const n = bm.querySelector(`[data-p3="${k}"]`); return k === 'product-mark' ? n : n?.closest('button') ?? n; };
+  const boxes = HOOKS.map((k) => [k, ctl(k)]).filter(([, n]) => drawn(n)).map(([k, n]) => { const r = n.getBoundingClientRect(); return { k, top: r.top, bottom: r.bottom, right: r.right, mid: (r.top + r.bottom) / 2 }; });
+  const rows = [];
+  for (const b of boxes) { const row = rows.find((r) => Math.abs(r[0].mid - b.mid) < 8); if (row) row.push(b); else rows.push([b]); }
+  const tileTops = [...bm.querySelectorAll('.p3-tile')].filter(drawn).map((t) => t.getBoundingClientRect().top);
+  const tall = Math.max(...boxes.map((b) => b.bottom - b.top));
+  const box = bm.getBoundingClientRect();
+  const oneRow = rows.length === 1 && Math.max(...tileTops) - Math.min(...tileTops) <= 1 && box.height <= tall + 1;
+  const row2 = rows[1]?.map((b) => b.k) ?? [];
+  const applyBox = boxes.find((b) => b.k === 'apply-to-figma');
+  const twoRows = rows.length === 2 && JSON.stringify(row2) === JSON.stringify(['pages-menu', 'figma-open', 'apply-to-figma']) && !!applyBox && Math.abs(applyBox.right - box.right) <= 1;
+  const all = labels.length > 0 && labels.every(Boolean), none = labels.every((x) => !x);
+  const fileRow = !!bm.querySelector('.p3-bar-break');
+  const step = cut ? (none && !name && (fileRow ? twoRows : oneRow) ? 'trim' : 'other')
+    : all && name && oneRow ? 'full' : none && name && oneRow ? 'glyphs' : none && !name && oneRow ? 'logo' : none && !name && twoRows ? 'rows' : 'other';
+  return { step, cut, labels: labels.filter(Boolean).length, of: labels.length, name, rows: rows.map((r) => r.map((b) => b.k).join(' ')), height: Math.round(box.height), tall: Math.round(tall) };
+};
+
 /** The places not moved yet. A domain slice that moves a place removes it here, in the same change. Empty since S8.2
  *  moved Components, the last tab: no place shows a legacy page (the plugin's Style guide is a Pages menu page that
  *  no tab shows, `MENU_LEGACY`). */
@@ -1418,8 +1478,13 @@ for (const host of ['web', 'figma']) {
         ok(mk.text === 'Prism3 Studio' && mk.label === 'Prism3 Studio' && mk.role === 'img', `product mark ${where}: the mark reads "Prism3 Studio", as text and as its accessible name (${JSON.stringify({ text: mk.text, label: mk.label, role: mk.role })})`);
         ok(mk.logoShown && mk.logoHidden && !mk.control, `product mark ${where}: the logo is drawn and hidden from assistive tech, and the mark is not a control (${JSON.stringify({ logo: mk.logoShown, hidden: mk.logoHidden, control: mk.control })})`);
         const narrow = column.endsWith('narrow');
-        ok(mk.nameShown === !narrow, `product mark ${where}: the name is ${narrow ? 'dropped at narrow widths (the logo stays)' : 'shown'} (${mk.nameShown ? 'shown' : 'hidden'})`);
-        if (!narrow) {
+        // #2214 (BL1 A+B): above the narrow tier the name drops too when the bar would not fit on one row without it,
+        // which `FIT_ORACLE` measures; an ambiguous width (within 1px) accepts either.
+        const fit = narrow ? null : await page.evaluate(FIT_ORACLE);
+        const nameDrops = !!fit && fit.also.every((x) => ['logo', 'rows', 'trim'].includes(x));
+        const nameMay = !!fit && fit.also.some((x) => ['logo', 'rows', 'trim'].includes(x)) && !nameDrops;
+        ok(nameMay || mk.nameShown === !(narrow || nameDrops), `product mark ${where}: the name is ${narrow ? 'dropped at narrow widths (the logo stays)' : nameDrops ? 'dropped, as the bar would not fit on one row with it (#2214)' : 'shown'} (${mk.nameShown ? 'shown' : 'hidden'}${fit ? `, fit ${JSON.stringify(fit)}` : ''})`);
+        if (mk.nameShown) {
           const t = m.text.find((x) => x.el.startsWith('span.p3-mark-name'));
           ok(!!t && t.r >= TEXT_MIN, `product mark ${where}: "Prism3 Studio" is measured on the top bar at ${TEXT_MIN}:1 (${t ? `${t.r}:1` : 'not measured'})`);
         }
@@ -2177,8 +2242,12 @@ for (const host of ['web', 'figma']) {
           };
         });
         const a0 = await agentState();
-        ok(a0.inBar && a0.name === 'Agent' && a0.pressed === 'false' && !a0.dot && a0.tip === 'Agent' && a0.label === (narrow ? null : 'Agent'),
-          `T7 ${where}: the Agent tile sits in the top bar's Agent slot, named "Agent", aria-pressed false, no dot, ${narrow ? 'its label dropped' : 'labelled "Agent"'} (${JSON.stringify(a0)})`);
+        // #2214: above the narrow tier the label drops when the full bar would not fit on one row (`FIT_ORACLE`).
+        const fitT7 = narrow ? null : await page.evaluate(FIT_ORACLE);
+        const dropT7 = narrow || fitT7.also.every((x) => x !== 'full');
+        const eitherT7 = !dropT7 && fitT7.also.some((x) => x !== 'full');
+        ok(a0.inBar && a0.name === 'Agent' && a0.pressed === 'false' && !a0.dot && a0.tip === 'Agent' && (eitherT7 ? a0.label === null || a0.label === 'Agent' : a0.label === (dropT7 ? null : 'Agent')),
+          `T7 ${where}: the Agent tile sits in the top bar's Agent slot, named "Agent", aria-pressed false, no dot, ${narrow ? 'its label dropped' : dropT7 ? 'its label dropped, as the full bar would not fit on one row (#2214)' : 'labelled "Agent"'} (${JSON.stringify(a0)}${fitT7 ? `, fit ${fitT7.step}` : ''})`);
         hooks.absent(ok, { seen: chip.inBar, state: 'the Agent tile in the top bar' }, !chip.old && !chip.popover && chip.strays.length === 0,
           `D6 ${where}: the old chips are gone — no bottom-left chip, no Agent chip or popover, and nothing outside the frame names an agent or holds a button (found ${JSON.stringify(chip.strays)}, #p3-agent-link ${chip.old ? 'present' : 'absent'}, chip or popover ${chip.popover ? 'present' : 'absent'})`);
         const slot = await page.evaluate(() => { const s0 = document.querySelector('[data-p3="bar-agent"]'); s0.__p3Mark = 'slot'; return true; });
@@ -4346,6 +4415,93 @@ for (const theme of ['light', 'dark']) {
   ok(errors.length === 0, `QA-I2 sweep: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   await ctx.close();
 }
+// #2227 (owner decision Q57 A): the contrast floor picker offers only a step a page ground sits on; the engine
+// refuses any other. THE ORACLE is literal: prism3's grounds, Light white/050/100 and Dark 950/900/850, so the floor's
+// steps are 050 and 100, and 850, 900 and 950. Each offered step, picked, builds: the error bar stays quiet.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await goPlace(page, 'color-fills');
+    const WANT = { light: ['050', '100'], dark: ['850', '900', '950'] };
+    for (const mode of ['light', 'dark']) {
+      await showMode(page, mode);
+      await hooks.click(page.locator('[data-p3="levers-pane"] [data-p3="surface-floor-pick"]'));
+      await hooks.need(page, '[data-p3="levers-pane"] [data-p3="step-picker"]');
+      const steps = await page.locator('[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-step"]').evaluateAll((ns) => ns.map((n) => n.dataset.step));
+      ok(JSON.stringify(steps) === JSON.stringify(WANT[mode]), `#2227: previewing ${mode}, the contrast floor picker offers only the steps a page ground sits on, ${WANT[mode].join(', ')} — read ${steps.join(', ')}`);
+      const refused = [];
+      for (const st of steps) {
+        await hooks.click(page.locator(`[data-p3="levers-pane"] [data-p3="step-picker"] [data-p3="step-picker-step"][data-step="${st}"]`));
+        await page.waitForFunction((k) => document.querySelector('[data-p3="levers-pane"] [data-p3="step-picker"] [aria-pressed="true"]')?.dataset.step === k, st, { timeout: 5000 }).catch(() => {});
+        const bar = await page.evaluate(() => { const e = document.querySelector('[data-p3="error-bar"]'); return e && !e.hidden ? e.textContent?.trim() ?? '' : ''; });
+        if (bar) refused.push(`${st}: ${bar}`);
+      }
+      ok(refused.length === 0, `#2227: previewing ${mode}, every offered floor step builds, and the error bar stays quiet${refused.length ? ` — ${refused.join(' | ')}` : ''}`);
+      await page.keyboard.press('Escape');
+    }
+    ok(errors.length === 0, `#2227: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#2227: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// #2250 (owner decisions Q67 B, Q69 A, Q70 A): the studio's floor sentences, on the real page. THE ORACLE is literal.
+// A background moved off a set floor resets it to Auto with its notice, and the error bar stays quiet; a page with no
+// ground on a neutral step shows the line under the picker; a brief whose floor is off its grounds is refused in the
+// studio's words. The engine's sentence (for agents) is never on screen.
+{
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  const PANE = '[data-p3="levers-pane"]';
+  const ENGINE_WORDS = /surfaces\.(light|dark)\.floorStep|is not a step a|page ground sits on/;
+  const pick = async (hk, step) => {
+    await hooks.click(page.locator(`${PANE} [data-p3="${hk}"]`));
+    await hooks.need(page, `${PANE} [data-p3="step-picker"]`);
+    await hooks.click(page.locator(`${PANE} [data-p3="step-picker"] [data-p3="step-picker-step"][data-step="${step}"]`));
+    await page.waitForFunction((k) => document.querySelector('[data-p3="levers-pane"] [data-p3="step-picker"] [aria-pressed="true"]')?.dataset.step === k, step, { timeout: 5000 }).catch(() => {});
+    await page.keyboard.press('Escape');
+  };
+  const text = (sel) => page.evaluate((q) => { const e = document.querySelector(q); return e ? e.textContent.trim() : null; }, sel);
+  const bar = () => page.evaluate(() => { const e = document.querySelector('[data-p3="error-bar"]'); return e && !e.hidden ? e.textContent?.trim() ?? '' : ''; });
+  const engineOnScreen = () => page.evaluate((src) => new RegExp(src).test(document.body.innerText), ENGINE_WORDS.source);
+  try {
+    await goPlace(page, 'color-fills');
+    await showMode(page, 'light');
+    ok(await page.locator(`${PANE} [data-p3="surface-floor-none"]`).count() === 0, '#2250: with a ground on a neutral step, no empty-picker line shows');
+    await pick('surface-base-pick', 'black');
+    const WANT_NONE = 'No page background in Light sits on a neutral step, so the floor stays Auto.';
+    const none = await text(`${PANE} [data-p3="surface-floor-none"]`);
+    ok(none === WANT_NONE, `#2250: Primary Black: the line under the floor picker reads "${WANT_NONE}" — read ${JSON.stringify(none)}`);
+    await pick('surface-base-pick', 'white');
+    ok(await page.locator(`${PANE} [data-p3="surface-floor-none"]`).count() === 0, '#2250: Primary back to White: the empty-picker line goes');
+    await pick('surface-floor-pick', '050');
+    ok(await page.locator(`${PANE} [data-p3="surface-floor-reset"]`).count() === 0, '#2250: picking a floor shows no reset notice');
+    await pick('surface-secondary-pick', '200');
+    const WANT_RESET = 'The contrast floor is back on Auto — neutral 050 is no longer a page background in Light.';
+    const reset = await text(`${PANE} [data-p3="surface-floor-reset"]`);
+    ok(reset === WANT_RESET, `#2250: floor 050, then Secondary to neutral 200: the notice reads "${WANT_RESET}" — read ${JSON.stringify(reset)}`);
+    const floorNow = await text(`${PANE} [data-p3="surface-floor-pick"]`);
+    ok(/^Auto\b/.test(floorNow ?? ''), `#2250: and the floor row reads Auto — read ${JSON.stringify(floorNow)}`);
+    const b1 = await bar();
+    ok(b1 === '', `#2250: and the error bar stays quiet${b1 ? ` — read ${JSON.stringify(b1)}` : ''}`);
+    await pick('surface-secondary-pick', '100');
+    ok(await page.locator(`${PANE} [data-p3="surface-floor-reset"]`).count() === 0, '#2250: the next edit clears the reset notice');
+    ok(!(await engineOnScreen()), '#2250: the engine\'s floor sentence is nowhere on the page after the edits');
+    // A brief whose floor is off its grounds, through the brand menu's paste.
+    await hooks.click(page.locator('[data-p3="brand-switcher"]'));
+    await hooks.need(page, '[data-p3="brand-menu"]');
+    await hooks.click(page.locator('[data-p3="brand-menu-import"]'));
+    await hooks.need(page, '[data-p3="brand-menu"] [data-p3="import-text"]');
+    await page.fill('[data-p3="import-text"]', '---\nid: floor-off\nprimary: { l: 0.55, c: 0.15, h: 262 }\nneutral: { hue: 262, chroma: 0.006 }\nsurfaces:\n  light: { floorStep: 400 }\n---\n');
+    await hooks.click(page.locator('[data-p3="import-load"]'));
+    await hooks.need(page, '[data-p3="import-error"]');
+    const WANT_IMPORT = 'Line 6: Parsed, but the engine rejected it: The contrast floor has to match a page background in Light. Choose 050 or 100, or remove floorStep to use Auto.';
+    const imp = await text('[data-p3="import-error"]');
+    ok(imp === WANT_IMPORT, `#2250: a pasted brief with floor 400 is refused with the studio sentence, "${WANT_IMPORT}" — read ${JSON.stringify(imp)}`);
+    ok(!(await engineOnScreen()), '#2250: the engine\'s floor sentence is nowhere on the page after the refused paste');
+    ok(errors.length === 0, `#2250: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `#2250: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
 // The step picker, mounted (V9): it opens under its row on the current step, a pick writes the step and keeps
 // the picker's focus, the preview repaints to the emission's own step, Return to Auto reverts, Escape closes it
 // to its button; and nothing of this moves the preview's home (V1).
@@ -5520,7 +5676,7 @@ for (const host of ['web', 'figma']) {
         lsec: [...pane.querySelectorAll('[data-p3="lever-section"]')].map((x) => [x.querySelector('.p3-lsec-title')?.textContent ?? null, x.querySelector('.p3-lsec-desc')?.textContent ?? null]),
         psec: [...document.querySelectorAll('[data-p3="type-style-guide"] .psec')].map((x) => [x.querySelector('.psec-t')?.textContent ?? null, x.querySelector('.psec-d')?.textContent ?? null]),
         words: {
-          scale: txt('[data-p3="type-scale"] [role="radio"]'), italic: txt('[data-p3="italic-row"][data-group="body"] [role="radio"]'),
+          scale: txt('[data-p3="type-scale"] [role="radio"]'), italic: txt('[data-p3="italic-row"][data-group="body"] .p3-chip'),
           title: txt('[data-p3="title-floor"] [role="radio"]'), caption: txt('[data-p3="caption-floor"] [role="radio"]'), size: txt('[data-p3="size-floor"] [role="radio"]'),
           fluid: pane.querySelector('[data-p3="lever-typography-responsive"] .p3-lever-name')?.textContent ?? null,
           layout: pane.querySelector('[data-p3="type-fluid-layout"]')?.textContent?.trim() ?? null,
@@ -8155,12 +8311,17 @@ for (const { w, h } of WIDTHS) {
         for (const x of bp.white) ok(x.bg && x.edge && x.chev, `${where}: bar menus: ${x.k} is a white button with an edge and ▾ (white ${x.bg}, edge ${x.edge}, ▾ ${x.chev})`);
         ok(bp.white.length === (host === 'web' ? 1 : 3), `${where}: bar menus: ${host === 'web' ? 'the brand switcher' : 'the brand switcher, Pages and Figma'} measured (${bp.white.map((x) => x.k).join(', ')})`);
         ok(bp.tiles.length === (host === 'web' ? 4 : 5), `${where}: bar tiles: Contrast, Theme, ${host === 'web' ? '' : 'Agent, '}Activity and Export all measured (${bp.tiles.map((x) => x.k).join(', ')})`);
+        // #2214 (BL1 A+B, BL3 A): above the narrow tier every label drops together when the full bar would not fit on
+        // one row, which `FIT_ORACLE` measures; an ambiguous width (within 1px) accepts either.
+        const fit29 = narrow ? null : await page.evaluate(FIT_ORACLE);
+        const dropped = narrow || fit29.also.every((x) => x !== 'full');
+        const either = !narrow && !dropped && fit29.also.some((x) => x !== 'full');
         for (const t of bp.tiles) {
           const want = TILE_LABEL[t.k];
           const nameOk = t.k === 'export-open' ? t.name === 'Export' : t.k === 'activity-open' ? /^Activity(, |$)/.test(t.name ?? '') : t.k === 'theme-toggle' ? /^Theme: /.test(t.name ?? '') : t.k === 'agent-toggle' ? t.name === 'Agent' : /^Verdict: .+\. Open Inspect, Contrast$/.test(t.name ?? '');
           const tipOk = t.k === 'verdict' ? t.name === `Verdict: ${t.tip}. Open Inspect, Contrast` : t.tip === t.name;
-          ok(t.borderless && t.clear && t.glyph && (narrow ? t.label === null : t.label === want) && t.labelHidden && nameOk && tipOk && t.tipHidden,
-            `${where}: bar tiles: ${t.k} is borderless (${t.borderless && t.clear}) with its glyph (${t.glyph}), ${narrow ? 'its label dropped' : `labelled "${want}"`} ("${t.label}"), named "${t.name}", its tooltip "${t.tip}"`);
+          ok(t.borderless && t.clear && t.glyph && (either ? t.label === null || t.label === want : dropped ? t.label === null : t.label === want) && t.labelHidden && nameOk && tipOk && t.tipHidden,
+            `${where}: bar tiles: ${t.k} is borderless (${t.borderless && t.clear}) with its glyph (${t.glyph}), ${narrow ? 'its label dropped' : dropped ? 'its label dropped, as the full bar would not fit on one row (#2214)' : `labelled "${want}"`} ("${t.label}"), named "${t.name}", its tooltip "${t.tip}"${fit29 ? ` (fit ${fit29.step}: need ${fit29.full} in ${fit29.room})` : ''}`);
         }
         ok(JSON.stringify(bp.filled) === JSON.stringify(host === 'web' ? [] : ['apply-to-figma']), `${where}: bar fill: ${host === 'web' ? 'no control' : 'Apply Theme alone'} is filled (${bp.filled.join(', ') || 'none'})`);
         if (host === 'web' && w === 640) ok(bp.row2.length === 0, `${where}: bar rows: the web's bar is one row at 640 (second row: ${bp.row2.join(', ') || 'none'})`);
@@ -9463,6 +9624,126 @@ for (const host of ['web', 'figma']) {
 }
 
 // =============================================================================================
+// 29d. #2214, the bar's fit (the owner's BL1 A+B, BL2 A, BL3 A and Q83 A, 2026-10-06), both hosts, both themes, swept
+//      across 380–1280: the long brand name every 10px, "prism3" every 30px plus 640, 800, 1000 and 1280 (a coarser
+//      grid for the short name keeps the section near two minutes). Above the narrow tier the bar is one row whenever
+//      it fits; when the full bar would not, every tile label drops together, then the product name beside the logo,
+//      then (the plugin, which has a file row) the narrow tier's two rows, then the brand switcher's name is cut short
+//      with an ellipsis (Q83 A). Never any other wrap: the drawn rows never exceed the step's (1 for full, glyphs and
+//      logo; 2 for rows and, on the plugin, trim; 1 for trim on the web).
+//   · THE EXPECTED STEP is `FIT_ORACLE`'s: each candidate row laid out for real under this file's own forcing
+//     stylesheet and read by `scrollWidth`, against the controls box's width. Never a number written here, and never
+//     the frame's `data-bar-fit`.
+//   · THE DRAWN STEP is `FIT_SEEN`'s, classified from the render alone (labels, name, a cut brand name, rows, tops).
+//   · ACCESSIBLE NAMES are the browser's computed names (CDP `Accessibility.getPartialAXTree`) of every bar control and
+//     the mark, identical at every width, the narrow tier included, to the same brand's at 1280, where the full bar
+//     shows (asserted). While the brand switcher's name is cut, its computed name and its tooltip are the full name.
+//   · A LONG NAME GIVES WAY SOONER: at some width its step is further along than "prism3"'s, and never behind it.
+//   · THE NARROW TIER (560 and below) is unchanged by #2214 and holds its own rules (section 29); here it is held only
+//     to the names.
+// Mutations, each failing here by name: (a) no label drop, (b) the product name never drops, (c) straight to the two
+// rows, (d) the frame's measurement ignores the brand switcher's width, (e) the web excluded, (f) no truncation. See
+// the progress entry.
+// =============================================================================================
+console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
+{
+  const LONG_NAME = 'northwind-outdoor-supply-co';
+  const LONG_BRAND = { root: 'nw', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true }, id: LONG_NAME };
+  const sweep = (step) => { const out = []; for (let w = 1280; w >= 380; w -= step) out.push(w); return out; };
+  const FIT_WIDTHS = {
+    long: sweep(10),
+    short: [...new Set([...sweep(30), 1000, 800, 640])].sort((x, y) => y - x),
+  };
+  const ORDER = ['full', 'glyphs', 'logo', 'rows', 'trim'];
+  const MAX_ROWS = { full: 1, glyphs: 1, logo: 1, rows: 2 };
+  const AX_HOOKS = ['product-mark', 'brand-switcher', 'verdict', 'theme-toggle', 'agent-toggle', 'activity-open', 'export-open', 'pages-menu', 'figma-open', 'apply-to-figma'];
+  /** The computed accessible name of each bar control present, by hook. */
+  const axBar = async (cdp) => {
+    const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+    const out = {};
+    for (const k of AX_HOOKS) {
+      const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: `[data-p3="top-bar"] [data-p3="${k}"]` });
+      if (!nodeId) continue;
+      const { nodes } = await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false });
+      out[k] = nodes.find((n) => !n.ignored)?.name?.value ?? null;
+    }
+    return out;
+  };
+  const settle = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  let states = 0;
+  const trimmedOn = { web: 0, figma: 0 };
+  for (const host of ['web', 'figma']) {
+    const seenBy = { short: {}, long: {} };
+    for (const theme of ['light', 'dark']) {
+      const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900, query: '?p3-test-hooks' });
+      const cdp = await ctx.newCDPSession(page);
+      try {
+        await cdp.send('DOM.enable');
+        await cdp.send('Accessibility.enable');
+        for (const brand of ['short', 'long']) {
+          await page.setViewportSize({ width: 1280, height: 900 });
+          await settle(page);
+          if (brand === 'long') {
+            if (host === 'web') await page.evaluate((n) => window.__prism3TestEdit('id', n), LONG_NAME);
+            else await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), LONG_BRAND);
+            await page.waitForFunction((n) => document.querySelector('[data-p3="brand-switcher"] .p3-brand-name')?.textContent === n, LONG_NAME, { timeout: 5000 }).catch(() => {});
+            const nm = await page.evaluate(() => document.querySelector('[data-p3="brand-switcher"] .p3-brand-name')?.textContent);
+            ok(nm === LONG_NAME, `29d ${host} ${theme}: the long brand loads ("${nm}")`);
+            await settle(page);
+          }
+          const fullName = brand === 'long' ? LONG_NAME : 'prism3';
+          let base = null;
+          const missed = [], renamed = [];
+          for (const w of FIT_WIDTHS[brand]) {
+            const where = `29d ${host} ${theme} ${w} ${fullName}`;
+            await page.setViewportSize({ width: w, height: 900 });
+            await settle(page);
+            states++;
+            const fit = await page.evaluate(FIT_ORACLE);
+            const seen = await page.evaluate(FIT_SEEN);
+            const names = await axBar(cdp);
+            const tip = await page.evaluate(() => document.querySelector('[data-p3="brand-switcher"]')?.getAttribute('title') ?? null);
+            if (w === 1280) {
+              base = names;
+              ok(seen.step === 'full' && seen.labels === seen.of && seen.of >= (host === 'web' ? 4 : 5) && tip === null, `${where}: at 1280 the full bar shows, every tile labelled, no tooltip on the switcher (${JSON.stringify(seen)}, title ${JSON.stringify(tip)})`);
+              ok(Object.keys(names).length === (host === 'web' ? 6 : 10) && Object.values(names).every((v) => !!v) && names['brand-switcher'] === fullName,
+                `${where}: every bar control and the mark have a computed name, the switcher's its brand's (${JSON.stringify(names)})`);
+            } else {
+              const moved = AX_HOOKS.filter((k) => names[k] !== base[k]);
+              if (moved.length) renamed.push(`${w} (${seen.step}): ${moved.map((k) => `${k}: "${base[k]}" → "${names[k]}"`).join('; ')}`);
+            }
+            if (fit.narrow) continue;
+            if (theme === 'light') seenBy[brand][w] = seen.step;
+            if (seen.step === 'trim') trimmedOn[host]++;
+            const allowed = seen.step === 'trim' ? (fit.fileRow ? 2 : 1) : MAX_ROWS[seen.step] ?? 0;
+            if (!fit.also.includes(seen.step) || seen.rows.length > allowed) missed.push(`${w}: want ${fit.also.join('/')} (full ${fit.full}, without labels ${fit.glyphs}, without the name ${fit.logo}${fit.fileRow ? `, first of two rows ${fit.rows}` : ''}, in ${fit.room}), drew ${seen.step} in ${seen.rows.length} row(s) ${JSON.stringify(seen.rows)}`);
+            if (seen.step === 'trim') {
+              ok(names['brand-switcher'] === fullName && tip === fullName, `${where}: the cut brand name keeps the full name as the switcher's accessible name and tooltip (name "${names['brand-switcher']}", title "${tip}")`);
+              ok(seen.rows[0]?.includes('export-open'), `${where}: Export stays on the first row while the brand name is cut (${JSON.stringify(seen.rows)})`);
+            } else if (tip !== null) missed.push(`${w}: the switcher carries a tooltip (${JSON.stringify(tip)}) with its name whole (${seen.step})`);
+            if (SHOTS && host === 'figma' && brand === 'long' && w >= 570 && w <= 590) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `q83-plugin-${theme}-${w}-long-name.png`) });
+            if (SHOTS && [640, 800, 1000, 1280].includes(w) && (w !== 1280 || brand === 'short')) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `final-2214-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}${brand === 'long' ? '-long-name' : ''}.png`) });
+          }
+          ok(missed.length === 0, `29d ${host} ${theme} ${fullName}: across ${FIT_WIDTHS[brand].length} widths the bar draws the measured step, in no more rows than it allows (${missed.join(' | ') || 'every width'})`);
+          ok(renamed.length === 0, `29d ${host} ${theme} ${fullName}: every accessible name is unchanged from 1280 at every width, the narrow tier included (${renamed.join(' | ') || 'none moved'})`);
+        }
+        ok(errors.length === 0, `29d ${host} ${theme}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `29d ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      } finally { await cdp.detach().catch(() => {}); await ctx.close(); }
+    }
+    const idx = (x) => ORDER.indexOf(x);
+    const common = Object.keys(seenBy.short).filter((w) => w in seenBy.long);
+    const later = common.filter((w) => idx(seenBy.long[w]) > idx(seenBy.short[w]));
+    const behind = common.filter((w) => idx(seenBy.long[w]) < idx(seenBy.short[w]));
+    ok(later.length > 0 && behind.length === 0, `29d ${host}: the long name gives way sooner than "prism3" (further along at ${later.join(', ') || 'no width'}; behind at ${behind.join(', ') || 'none'})`);
+  }
+  // Q83 A's case: the plugin's long name reaches the cut name (570–590, Lane D's sweep on #2257).
+  ok(trimmedOn.figma > 0, `29d figma: the long name reaches the cut-name step somewhere in the sweep (${trimmedOn.figma} state(s))`);
+  console.log(`  29d: ${states} bar states swept; the cut name drawn in ${trimmedOn.figma} plugin and ${trimmedOn.web} web state(s).`);
+}
+
+// =============================================================================================
 // 30. The heading rule (heading pass 1 of 2, TY2 A, approved 2026-10-06): three levels on every page, both hosts, both
 //     themes, at 1280 and 380, each level's size, weight, line height and space after held to the chrome tokens' EMITTED values
 // =============================================================================================
@@ -10337,6 +10618,170 @@ for (const theme of ['light', 'dark']) {
 }
 
 // =============================================================================================
+// 30b. #2192 (owner QA, 2026-10-05): Type › Italic styles draws single-select chips, not a segmented control, on both
+//      hosts, both themes, at 1280 and 380; the same three words, one chip pressed per row, and the same saved brand
+// =============================================================================================
+// Each of the seven rows holds one `role="group"` of three `.p3-btn.p3-chip` buttons with `aria-pressed`, and nothing of
+// the segmented control (`.p3-seg`, `.p3-choice`, a radio or radiogroup). Exactly one chip is pressed in each row, the
+// one prism3's brand as loaded calls for, and only that chip draws its check. The keyboard is KB1 A (owner, decided
+// 2026-10-06), as Personality's chips: each chip is a Tab stop, Space or Enter presses the focused one, which keeps focus
+// through the redraw, and arrow keys do nothing (focus, the pressed chip and the saved brand all unchanged). Every write is read back
+// from the SAVED brand: on the web host the persisted `prism3:brandInput`, on the figma host the `input` Apply posts.
+//
+// INDEPENDENCE (docs/34). The rows, the words and the pressed state as loaded are literals typed here; the loaded state
+// from `schema/example-brands.json`'s prism3 (italics ["body"], italicDefault ["display","title"]). Each step's expected
+// brand is that committed brand with the two lists set to a literal worked out by hand from the rule (Upright: in
+// neither list; Upright + italic: in `italics`; Italic only: in `italicDefault`; text-type order; an emptied list unset,
+// #2006). The same ten clicks were run against the segmented control's build before the change, and its saved brands
+// were byte-identical to the chips' on both hosts (22 saves; the PR records the run). The disabled and derived cases
+// stay where they were: section 20b (a pinned style disables Italic only, with its reason) and Q59 (a derived mode
+// holds italic-choice-only disabled).
+//
+// Mutations (#2192), each after a `wip:` commit, on rebuilt bundles, each failing by name, none outside this section:
+//   · the code row back on the segmented control (`choice` for g === 'code') → `#2192 web light 1280: row "code" renders
+//     chips, not a segmented control — 4 segmented part(s), group {"role":"radiogroup",…}` (96: 8 of these, 88 pressed);
+//   · two chips pressed in a row (`chipChoice`'s set also presses the first chip) → `#2192 web light 1280: row "display"
+//     has exactly one chip pressed, only — pressed ["upright","only"]` (152);
+//   · a chip writing the wrong value (Upright + italic writes Italic only) → `#2192 web light 1280: step 1, "caption" both
+//     (key) saves italics ["body","caption"] and italicDefault ["display","title"] — saved italics ["body"], italicDefault
+//     ["display","title","caption"]` (96: 72 saves, 24 pressed).
+//   KB1 A's two arms, mutated the same way:
+//   · arrows moving the selection (`choice`'s arrow handler in `chipChoice`) → `#2192 web light 1280: KB1 A, ArrowRight on
+//     "label"'s both chip moves neither focus nor the pressed chip — focus on ["label","only"], pressed […]` and `… the four
+//     arrow keys save nothing — saved italics ["body","label"]` (40);
+//   · Enter ignored (`chipChoice` prevents Enter's default) → `#2192 web light 1280: KB1 A, Enter on "label"'s both chip
+//     presses it and keeps focus on it — pressed ["upright"], focus on ["label","both"]` and `… saves italics
+//     ["body","label"] and no italicDefault — saved italics ["body"]` (16).
+console.log(`\nItalic styles chips (#2192)\n${'='.repeat(78)}`);
+/** The text types, in order, and the three words (Q6's, unchanged by #2192). Literal. */
+const ITALIC_GROUPS = ['display', 'title', 'body', 'label', 'caption', 'eyebrow', 'code'];
+const ITALIC_WORDS = [['upright', 'Upright'], ['both', 'Upright + italic'], ['only', 'Italic only']];
+/** Each chip's hook. Literal. */
+const ITALIC_CHIP = { upright: '[data-p3="italic-choice-upright"]', both: '[data-p3="italic-choice-both"]', only: '[data-p3="italic-choice-only"]' };
+/** prism3 as loaded: display and title Italic only, body Upright + italic, the rest Upright. Literal. */
+const ITALIC_LOADED = { display: 'only', title: 'only', body: 'both', label: 'upright', caption: 'upright', eyebrow: 'upright', code: 'upright' };
+/** Each step: the text type, the chip, how it is pressed, and the two lists the saved brand must then hold (undefined:
+ *  unset). Worked out by hand from the rule above; step 3 presses the pressed chip and must write nothing. */
+const ITALIC_STEPS = [
+  ['caption', 'both', 'key', ['body', 'caption'], ['display', 'title']],
+  ['body', 'only', 'click', ['caption'], ['display', 'title', 'body']],
+  ['body', 'only', 'click', ['caption'], ['display', 'title', 'body']],
+  ['display', 'upright', 'click', ['caption'], ['title', 'body']],
+  ['display', 'both', 'click', ['display', 'caption'], ['title', 'body']],
+  ['caption', 'upright', 'click', ['display'], ['title', 'body']],
+  ['body', 'upright', 'click', ['display'], ['title']],
+  ['title', 'upright', 'click', ['display'], undefined],
+  ['display', 'upright', 'click', undefined, undefined],
+  ['body', 'both', 'click', ['body'], undefined],
+];
+const italicBrand = (italics, italicDefault) => {
+  const b = JSON.parse(JSON.stringify(BOOT_INPUT));
+  if (italics) b.typography.italics = italics; else delete b.typography.italics;
+  if (italicDefault) b.typography.italicDefault = italicDefault; else delete b.typography.italicDefault;
+  return b;
+};
+const ITALIC_PROBE = () => [...document.querySelectorAll('[data-p3="levers-pane"] [data-p3="italic-row"]')].map((r) => {
+  const chips = [...r.querySelectorAll('.p3-btn.p3-chip')];
+  const group = r.querySelector('[data-p3="italic-choice"]');
+  return {
+    g: r.dataset.group,
+    seg: r.querySelectorAll('.p3-seg, .p3-seg-tab, .p3-choice, [role="radio"], [role="radiogroup"]').length,
+    group: group ? { role: group.getAttribute('role'), label: group.getAttribute('aria-label'), chips: group.querySelectorAll('.p3-btn.p3-chip').length } : null,
+    chips: chips.map((c) => [c.dataset.value, c.textContent.trim(), c.getAttribute('aria-pressed'), c.tagName,
+      (() => { const i = c.querySelector('.p3-ico'); return !!i && getComputedStyle(i).display !== 'none'; })()]),
+  };
+});
+for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
+  const where = `#2192 ${host} ${theme} ${w}`;
+  const { ctx, page, errors } = await open({ host, theme, w, h });
+  try {
+    if (w <= 560) await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow');
+    if (host === 'figma') await recordPosts(page);
+    await goPlace(page, 'type');
+    await showLevers(page, w);
+    await openTypeAdvanced(page);
+    await hooks.need(page, '[data-p3="italic-row"]');
+    /** The saved brand: web, the persisted input; figma, the input of the one apply-theme Apply posts (then the
+     *  main thread's reply, so the next Apply is not held as busy). */
+    const saved = async () => {
+      if (host === 'web') return persisted(page);
+      await hooks.click(page.locator('[data-p3="apply-to-figma"]'), WAIT);
+      const ws = (await takeWrites(page)).filter((m) => m.type === 'apply-theme');
+      await postMsg(page, { type: 'apply-result', ok: true, headline: 'Applied', summary: 'Applied' });
+      await settle(page);
+      return ws.length === 1 ? ws[0].input : { posted: ws.length };
+    };
+    const rows = await page.evaluate(ITALIC_PROBE);
+    ok(JSON.stringify(rows.map((r) => r.g)) === JSON.stringify(ITALIC_GROUPS), `${where}: Italic styles draws a row for each text type, in order — read ${JSON.stringify(rows.map((r) => r.g))}`);
+    for (const r of rows) {
+      const words = r.chips.map(([v, l]) => [v, l]);
+      ok(r.seg === 0 && r.group?.role === 'group' && r.group.chips === 3 && JSON.stringify(words) === JSON.stringify(ITALIC_WORDS) && r.chips.every((c) => c[3] === 'BUTTON' && (c[2] === 'true' || c[2] === 'false')),
+        `${where}: row "${r.g}" renders chips, not a segmented control — ${r.seg} segmented part(s), group ${JSON.stringify(r.group)}, chips ${JSON.stringify(words)}`);
+      const on = r.chips.filter((c) => c[2] === 'true').map((c) => c[0]);
+      ok(on.length === 1 && on[0] === ITALIC_LOADED[r.g], `${where}: row "${r.g}" has exactly one chip pressed, ${ITALIC_LOADED[r.g]} — pressed ${JSON.stringify(on)}`);
+      ok(r.chips.every((c) => c[4] === (c[2] === 'true')), `${where}: row "${r.g}" draws the check on the pressed chip only — ${JSON.stringify(r.chips.map((c) => [c[0], c[4]]))}`);
+    }
+    const s0 = await saved();
+    ok(canon(s0) === canon(BOOT_INPUT), `${where}: before any click, the saved brand is prism3 as loaded — ${wireDiff({ input: s0 }, { input: BOOT_INPUT })}`);
+    const chipSel = (g, v) => `[data-p3="levers-pane"] [data-p3="italic-row"][data-group="${g}"] ${ITALIC_CHIP[v]}`;
+    const chip = (g, v) => page.locator(chipSel(g, v));
+    let i = 0;
+    for (const [g, v, how, italics, italicDefault] of ITALIC_STEPS) {
+      i += 1;
+      if (how === 'key') {
+        // Each chip is a Tab stop: from the row's first chip, Tab reaches the next one; Space presses it.
+        await chip(g, ITALIC_WORDS[0][0]).focus();
+        await page.keyboard.press('Tab');
+        const at = await page.evaluate(() => [document.activeElement?.closest('[data-p3="italic-row"]')?.dataset.group ?? null, document.activeElement?.dataset.value ?? null]);
+        ok(JSON.stringify(at) === JSON.stringify([g, v]), `${where}: Tab moves from "${g}"'s first chip to its next chip, ${v} — focus on ${JSON.stringify(at)}`);
+        await page.keyboard.press('Space');
+      } else await hooks.click(chip(g, v), WAIT);
+      await page.waitForFunction((sel) => document.querySelector(sel)?.getAttribute('aria-pressed') === 'true', chipSel(g, v), { timeout: 5000 }).catch(() => {});
+      if (how === 'key') {
+        const kept = await page.evaluate(() => [document.activeElement?.closest('[data-p3="italic-row"]')?.dataset.group ?? null, document.activeElement?.dataset.value ?? null]);
+        ok(JSON.stringify(kept) === JSON.stringify([g, v]), `${where}: after Space, focus stays on "${g}"'s ${v} chip through the redraw — focus on ${JSON.stringify(kept)}`);
+      }
+      const want = italicBrand(italics, italicDefault);
+      const got = await saved();
+      ok(canon(got) === canon(want), `${where}: step ${i}, "${g}" ${v} (${how}) saves italics ${JSON.stringify(italics)} and italicDefault ${JSON.stringify(italicDefault)} — saved italics ${JSON.stringify(got?.typography?.italics)}, italicDefault ${JSON.stringify(got?.typography?.italicDefault)}; ${wireDiff({ input: got }, { input: want })}`);
+      const on = (await page.evaluate(ITALIC_PROBE)).map((r) => [r.g, r.chips.filter((c) => c[2] === 'true').map((c) => c[0])]);
+      const one = on.every(([, p]) => p.length === 1) && on.find(([x]) => x === g)?.[1][0] === v;
+      ok(one, `${where}: step ${i}, every row still has exactly one chip pressed, and "${g}" has ${v} — pressed ${JSON.stringify(on)}`);
+    }
+    // KB1 A (owner, 2026-10-06): arrow keys do nothing. From label's unpressed Upright + italic chip, each arrow leaves
+    // focus where it was, every row's pressed chip as it was, and the saved brand as the ten steps left it.
+    const focusAt = () => page.evaluate(() => [document.activeElement?.closest('[data-p3="italic-row"]')?.dataset.group ?? null, document.activeElement?.dataset.value ?? null]);
+    const pressedNow = async () => (await page.evaluate(ITALIC_PROBE)).map((r) => [r.g, r.chips.filter((c) => c[2] === 'true').map((c) => c[0])]);
+    const afterSteps = italicBrand(['body'], undefined);
+    await chip('label', 'both').focus();
+    const before = JSON.stringify(await pressedNow());
+    for (const key of ['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown']) {
+      await page.keyboard.press(key);
+      await settle(page);
+      const at = await focusAt(), now = JSON.stringify(await pressedNow());
+      ok(JSON.stringify(at) === JSON.stringify(['label', 'both']) && now === before,
+        `${where}: KB1 A, ${key} on "label"'s both chip moves neither focus nor the pressed chip — focus on ${JSON.stringify(at)}, pressed ${now === before ? 'unchanged' : now}`);
+    }
+    const sArrows = await saved();
+    ok(canon(sArrows) === canon(afterSteps), `${where}: KB1 A, the four arrow keys save nothing — saved italics ${JSON.stringify(sArrows?.typography?.italics)}, italicDefault ${JSON.stringify(sArrows?.typography?.italicDefault)}; ${wireDiff({ input: sArrows }, { input: afterSteps })}`);
+    // KB1 A: Enter presses the focused chip, keeps focus on it, and saves the literal: label joins italics, in text-type order.
+    await chip('label', 'both').focus();
+    await page.keyboard.press('Enter');
+    await page.waitForFunction((sel) => document.querySelector(sel)?.getAttribute('aria-pressed') === 'true', chipSel('label', 'both'), { timeout: 5000 }).catch(() => {});
+    const atEnter = await focusAt();
+    const pEnter = await pressedNow();
+    const wantEnter = italicBrand(['body', 'label'], undefined);
+    const sEnter = await saved();
+    ok(JSON.stringify(pEnter.find(([x]) => x === 'label')?.[1]) === '["both"]' && JSON.stringify(atEnter) === JSON.stringify(['label', 'both']),
+      `${where}: KB1 A, Enter on "label"'s both chip presses it and keeps focus on it — pressed ${JSON.stringify(pEnter.find(([x]) => x === 'label')?.[1])}, focus on ${JSON.stringify(atEnter)}`);
+    ok(canon(sEnter) === canon(wantEnter), `${where}: KB1 A, Enter on "label"'s both chip saves italics ["body","label"] and no italicDefault — saved italics ${JSON.stringify(sEnter?.typography?.italics)}, italicDefault ${JSON.stringify(sEnter?.typography?.italicDefault)}; ${wireDiff({ input: sEnter }, { input: wantEnter })}`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+
+// =============================================================================================
 // #2232: a click on blank space inside the S12 start window keeps focus in the window, and Tab and Shift+Tab then stay
 //        inside it. Both hosts, 1280. The window traps Tab with a keydown listener on its scrim, so a focus that falls
 //        to <body> (outside the scrim) is a focus the trap never hears: Shift+Tab then left the page. EXPECTED, read
@@ -10369,6 +10814,53 @@ for (const host of ['web', 'figma']) {
     await page.keyboard.press('Shift+Tab');
     const t2 = await where2();
     ok(t2.inWindow && !t2.onWindow, `${where}: after a click on blank space, Shift+Tab moves focus to a control in the start window (focus is on ${t2.tag})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+
+// #2184, owner Q58 B (2026-10-06): a PURE-GRAY pin (r = g = b) has no hue, so the shadow is untinted and the Depth &
+// motion hue slider is disabled and reads None, never the converter's ~89.88° noise (#2241). A section of its own at
+// the end of the file: four UI-lane PRs are open against the rest of it. The pins are the OKLCH the studio stores for
+// each hex, as color.ts's rgbToOklch returns it (the engine and unit tests derive the same pins live). prism3 authors
+// its own tint hue, which would win, so it is removed: the case is the DEFAULT path. Amount stays enabled: an untinted
+// shadow still lifts off pure black by its amount (Q58 B's render).
+// Owner Q73 A widened it to ANY gray ramp: a Custom tint or Follow primary at chroma 0 too, each with its own reason line
+// (the pinned form approved in Q72 A, the general form in Q82). The case's `patch` is what replaces the brand's neutral.
+const PINNED_WHY = 'The pinned gray has no hue, so shadows are untinted.', GRAY_WHY = 'The neutral is gray, so shadows are untinted.';
+const NO_HUE_CASES = [
+  { name: 'Q58 B: a pure-gray pin (#333333)', patch: { anchor: { l: 0.3211, c: 1.2e-8, h: 89.88 } }, keep: true, why: PINNED_WHY },
+  { name: 'Q58 B: a pure-gray pin (#808080)', patch: { anchor: { l: 0.5999, c: 2.2e-8, h: 89.88 } }, keep: true, why: PINNED_WHY },
+  { name: 'Q73 A: a gray Custom tint (chroma 0)', patch: { hue: 40, chroma: 0 }, keep: false, why: GRAY_WHY },
+  { name: 'Q73 A: a gray Follow primary (chroma 0)', patch: { hue: 40, chroma: 0, auto: true }, keep: false, why: GRAY_WHY },
+];
+for (const { name, patch, keep, why } of NO_HUE_CASES) {
+  const where = `#2184 ${name}, web light 1280`;
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  try {
+    await page.evaluate(([p, k]) => {
+      const blob = JSON.parse(localStorage.getItem('prism3:brandInput'));
+      blob.input.neutral = k ? { ...blob.input.neutral, ...p } : { ...p };   // a non-pin case drops the brand's own fields
+      if (blob.input.shadow?.tint) delete blob.input.shadow.tint.hue;
+      localStorage.setItem('prism3:brandInput', JSON.stringify(blob));
+    }, [patch, keep]);
+    await page.reload({ waitUntil: 'networkidle' });
+    await hooks.need(page, '[data-p3="frame"]');
+    await openDepth(page);
+    await openTint(page);
+    const st = await page.evaluate(() => {
+      const el = document.querySelector('[data-p3="shadow-tint-hue"]');
+      const field = el?.closest('.p3-field');
+      return {
+        disabled: el?.disabled ?? null, aria: el?.getAttribute('aria-valuetext') ?? null,
+        readout: field?.querySelector('.p3-readout')?.textContent ?? null,
+        hint: [...(field?.querySelectorAll('.p3-state') ?? [])].filter((n) => !n.hidden).map((n) => n.textContent.trim()).join(' | '),
+        amountEnabled: document.querySelector('[data-p3="shadow-tint-amount"]')?.disabled === false,
+      };
+    });
+    ok(st.disabled === true && st.readout === 'None' && st.aria === 'None' && st.hint === why && st.amountEnabled && !/\b(89|90)/.test(`${st.readout} ${st.aria}`),
+      `${where}: the hue slider is disabled, reads None (not ~90°), says why ("${why}"), and Amount stays enabled (${JSON.stringify(st)})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);

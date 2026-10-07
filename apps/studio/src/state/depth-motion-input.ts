@@ -31,8 +31,9 @@ export type TintKey = 'hue' | 'amount';
 
 // ── shadow (legacy `renderShadowEditor`: the Light knob and `mk`, the per-mode `mkPer`) ───────────────
 
-/** The resolved brand value a mode's shadow slider inherits under Auto (`theme.shadow`). */
-export const brandShadowValue = (key: ShadowKey): number =>
+/** The resolved brand value a mode's shadow slider inherits under Auto (`theme.shadow`). `null` only for
+ *  `tint.hue`, when the shadow has no hue to follow (a pure-gray pin, #2184 Q58 B). */
+export const brandShadowValue = (key: ShadowKey): number | null =>
   key === 'softness' ? theme.shadow.softness : theme.shadow.tint[key === 'tint.hue' ? 'hue' : 'amount'];
 /** A mode's own shadow value for `key`, or `undefined` when it follows the brand (Auto). */
 export const shadowOverride = (mode: string, key: ShadowKey): number | undefined =>
@@ -45,7 +46,7 @@ export const authoredTint = (): { hue?: number; amount?: number } | undefined =>
  *  `undefined` (the Auto reset) or lands exactly on `brandValue`, the brand value the slider was drawn against
  *  (`brandShadowValue(key)` unless the caller passes the one it drew). Returns whether the mode holds an
  *  override after the write; always `false` in Light, which IS the brand value. */
-export const setShadow = (mode: string, key: ShadowKey, v: number | undefined, brandValue: number = brandShadowValue(key)): boolean => {
+export const setShadow = (mode: string, key: ShadowKey, v: number | undefined, brandValue: number | null = brandShadowValue(key)): boolean => {
   if (mode === 'light') { setPath(brandState, `shadow.${key}`, v); return false; }
   const overriding = v !== undefined && v !== brandValue;
   setModeLever(mode, `shadow.${key}`, overriding ? v : undefined);

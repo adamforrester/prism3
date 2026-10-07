@@ -302,6 +302,12 @@ export const FIELDS: Record<string, FieldCheck> = {
     show: (p) => `width ${String(p)}`,
     check: (p, n) => (n.width === p ? null : `width ${str(n.width)}`),
   },
+  // ── the hugging wrap's max width (#1762) ──────────────────────────────────────────────────────
+  // Echoed verbatim by the host, so compared directly; an executor that never wrote it reads `null`.
+  maxWidth: {
+    show: (p) => `maxWidth ${String(p)}`,
+    check: (p, n) => (n.maxWidth === p ? null : str(n.maxWidth)),
+  },
   // ── the reserved sides (#1667) ─────────────────────────────────────────────────────────────────
   // "Locked to edges": the side a pinned icon sits on holds a LITERAL padding (inset + icon + gap). The host
   // echoes a plain number, so this compares directly; an executor whose default pass zeroed the side (or

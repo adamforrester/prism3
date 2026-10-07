@@ -582,7 +582,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
     // child in a hugging row, and a FIXED value row with a long value in it, read as if they tracked their text.
     if (opts.layoutModel && fixedOnX(node) && node.type !== 'INSTANCE')
       return typeof node._setW === 'number' ? node._setW : node.type === 'TEXT' ? textNatural(node) : 100;
-    if (node.type === 'TEXT') return textNatural(node);
+    // A HUGGING TEXT WITH A MAX WIDTH (#1762) is as wide as its run up to that width, and wraps there — the
+    // host behavior `wrap: 'hug'` relies on, MODELED here and not yet measured on a live file (see the PR).
+    if (node.type === 'TEXT') return typeof node.maxWidth === 'number' ? Math.min(textNatural(node), node.maxWidth) : textNatural(node);
     // A HIDDEN child takes no cell either, under `layoutModel` — the host lays out visible children only,
     // which is what lets a boolean-driven part be measured on and off (textarea's grip and counter).
     const kids = flowOf(node);
@@ -732,7 +734,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
         // given — one, unless a parent filled it narrower than its natural run.
         if (opts.layoutModel && node.type === 'TEXT') {
           const w = node.width as number;
-          const lines = node.textAutoResize === 'HEIGHT' && w > 0 ? Math.max(1, Math.ceil(textNatural(node) / w)) : 1;
+          // …or, hugging under a max width (#1762), as many as its run takes at the width it clamped to.
+          const wraps = node.textAutoResize === 'HEIGHT' || typeof node.maxWidth === 'number';
+          const lines = wraps && w > 0 ? Math.max(1, Math.ceil(textNatural(node) / w)) : 1;
           return Math.max(litFloor, lines * (opts.textLineBox?.[String(node._textStyleId ?? '').replace(/^S:/, '')] ?? 0));
         }
         const pad = (bv.paddingTop?.value ?? 0) + (bv.paddingBottom?.value ?? 0);

@@ -48,6 +48,11 @@
  * NARROW MODE (Q7) is a width class, `data-w="narrow"`, set from the frame's own width, because the chrome
  * stylesheet may not hold a raw length and a media or container query needs one. Under it the tab row
  * becomes a select, only the top row stays sticky, and the bar's text buttons drop to their glyphs.
+ *
+ * THE BAR'S FIT (#2214, the owner's BL1 A+B, BL2 A, BL3 A). Above the narrow tier, when the full bar would not fit on
+ * one row, the tile labels, then the product name, then the plugin's file row, then the brand name (cut short, Q83 A)
+ * give way, each by a measured check that sets `data-bar-fit`, reusing the narrow tier's rules where it has them. See
+ * `fitBar`.
  */
 import { page, searchHits, searchQuery, setPage, setSearch, subscribe } from '../state/store';
 import { INSPECT, TABS, homeOf, isMenuPage, isNewPage, legacyOf, newPageOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type NewPageKey, type Place, type TabId } from './pages';
@@ -571,10 +576,71 @@ export const mountFrame = (app: HTMLElement, opts: {
     const sticky = getComputedStyle(head).display === 'contents' ? bar : head;
     document.documentElement.style.setProperty('--chrome-h', `${sticky.offsetHeight}px`);
   };
+  // ── the bar's fit (#2214; the owner's BL1 A+B, BL2 A and BL3 A, 2026-10-06) ─────────────────────────────────────
+  // Above the narrow tier, on both hosts, the bar is one row whenever it fits. When the full bar would not, these give
+  // way in order, each by a measured fit check (`data-bar-fit`): every tile label together (`glyphs`; Apply Theme keeps
+  // its text), then the product name beside the logo (`logo`, the logo kept, as at the narrow tier), then the narrow
+  // tier's two rows (`rows`: Pages, Figma and Apply Theme on the second, Apply Theme at the right; only where the bar
+  // has that file row), then the brand switcher's name, cut short with an ellipsis (`trim`, the owner's Q83 A), so the
+  // first row still holds. While it is cut, the full name stays its accessible name (its text) and its tooltip
+  // (`title`). The bar is never wrapped any other way. Each step's width is derived from ONE measurement of
+  // the full bar, everything shown, so it never depends on the step that happens to be drawn and the state cannot
+  // flap; it is taken once per content change (a mutation in the bar's controls, a font load, a change of tier) and
+  // reused while only the width moves. A breakpoint would not hold: a longer brand name needs the steps sooner.
+  type FitWidths = { readonly full: number; readonly glyphs: number; readonly logo: number; readonly rows: number | null };
+  let fitWidths: FitWidths | null = null;
+  const measureFit = (): FitWidths => {
+    delete root.dataset.barFit;   // everything shown; the step is set again before anything is drawn
+    const w = (n: Element | null): number => (n ? n.getBoundingClientRect().width : 0);
+    const gap = parseFloat(getComputedStyle(barMain).columnGap);
+    const rowBreak = barMain.querySelector(':scope > .p3-bar-break');
+    let full = 0, first = 0, n = 0, nFirst = 0, beforeBreak = true, labels = 0, name = 0;
+    for (const c of barMain.children) {
+      if (c === rowBreak) beforeBreak = false;
+      if (c.getClientRects().length === 0) continue;   // not drawn, or a box-less layer (`display: contents`)
+      const cs = getComputedStyle(c);
+      if (cs.position === 'absolute' || cs.position === 'fixed') continue;
+      n++;
+      if (beforeBreak) nFirst++;
+      // A spacer grows into the free space and asks for none, so it adds only its gaps.
+      const own = parseFloat(cs.flexGrow) > 0 ? 0 : w(c) + parseFloat(cs.marginLeft) + parseFloat(cs.marginRight);
+      full += own;
+      if (beforeBreak) first += own;
+    }
+    // A tile is a column, as wide as its widest child: without its label, as wide as its mark.
+    for (const t of barMain.querySelectorAll('.p3-tile')) {
+      if (t.getClientRects().length === 0) continue;
+      labels += Math.max(0, w(t.querySelector('.p3-tile-label')) - w(t.querySelector('.p3-tile-mark')));
+    }
+    const nameNode = barMain.querySelector('.p3-mark-name');
+    if (nameNode && nameNode.getClientRects().length) name = w(nameNode) + parseFloat(getComputedStyle(nameNode.parentElement!).columnGap);
+    full += Math.max(0, n - 1) * gap;
+    first += Math.max(0, nFirst - 1) * gap;
+    return { full, glyphs: full - labels, logo: full - labels - name, rows: rowBreak ? first - labels - name : null };
+  };
+  const fitBar = (): void => {
+    if (root.dataset.w === 'narrow') { fitWidths = null; delete root.dataset.barFit; return; }
+    const room = barMain.getBoundingClientRect().width;
+    if (!room) return;   // not laid out yet: the observer calls again once it is
+    fitWidths ??= measureFit();
+    const fits = (x: number): boolean => x <= room + 0.01;
+    const f = fitWidths;
+    const step = fits(f.full) ? null : fits(f.glyphs) ? 'glyphs' : fits(f.logo) ? 'logo' : f.rows !== null && fits(f.rows) ? 'rows' : 'trim';
+    if (step) root.dataset.barFit = step; else delete root.dataset.barFit;
+    const sw = barMain.querySelector<HTMLElement>('[data-p3="brand-switcher"]');
+    const full = sw?.querySelector('.p3-brand-name')?.textContent ?? '';
+    if (sw && step === 'trim' && full) sw.title = full; else sw?.removeAttribute('title');
+  };
+  const refit = (): void => { fitWidths = null; fitBar(); };
+  const mo = new MutationObserver(refit);
+  mo.observe(barMain, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class', 'hidden', 'aria-busy', 'disabled'] });
+  document.fonts.addEventListener('loadingdone', refit);
+  cleanups.push(() => mo.disconnect(), () => document.fonts.removeEventListener('loadingdone', refit));
   const ro = new ResizeObserver(() => {
     const w = root.getBoundingClientRect().width;
     const tier = w <= NARROW_MAX ? 'narrow' : 'wide';
-    if (root.dataset.w !== tier) root.dataset.w = tier;
+    if (root.dataset.w !== tier) { root.dataset.w = tier; fitWidths = null; }
+    fitBar();
     syncSticky();
   });
   ro.observe(root);

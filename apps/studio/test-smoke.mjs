@@ -3315,11 +3315,12 @@ for (const brand of BRANDS) {
       const leaves = leavesOf(n);
       return leaves.length > 0 && leaves.every(([k, v]) => v.$value?.fontStyle === 'italic' && !/-italic/.test(k));
     }).map(([cat]) => cat).sort();
-    // S6.3: the italic styles are a 3-chip per text type (owner decision Q6); "Italic only" is the italic default.
+    // S6.3: the italic styles are three single-select chips per text type (owner decision Q6; chips since #2192);
+    // "Italic only" is the italic default.
     const shown = await page.evaluate(() => [...document.querySelectorAll('[data-p3="italic-row"]')].map((r) => ({
-      cat: r.dataset.group, idOn: r.querySelector('[data-p3="italic-choice-only"]')?.getAttribute('aria-checked') === 'true',
-      checked: r.querySelectorAll('[role="radio"][aria-checked="true"]').length, found: !!r.querySelector('[data-p3="italic-choice-only"]') && !!r.querySelector('[data-p3="italic-choice-both"]'),
-      iDisabled: r.querySelector('[data-p3="italic-choice-both"]')?.getAttribute('aria-checked') !== 'true',
+      cat: r.dataset.group, idOn: r.querySelector('[data-p3="italic-choice-only"]')?.getAttribute('aria-pressed') === 'true',
+      checked: r.querySelectorAll('[aria-pressed="true"]').length, found: !!r.querySelector('[data-p3="italic-choice-only"]') && !!r.querySelector('[data-p3="italic-choice-both"]'),
+      iDisabled: r.querySelector('[data-p3="italic-choice-both"]')?.getAttribute('aria-pressed') !== 'true',
     })));
     const shownOn = shown.filter((r) => r.idOn).map((r) => r.cat).sort();
     ok(shown.length > 0 && shown.every((r) => r.found) && JSON.stringify(shownOn) === JSON.stringify(expected),

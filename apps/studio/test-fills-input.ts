@@ -49,6 +49,8 @@ import { GROUND_INPUT, resolveAllModes } from '@prism3/engine/modes';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import * as store from './src/state/store';
 import * as F from './src/state/fills-input';
+import { validateDesignMd, importErrorText } from './src/state/start-input';
+import { toDesignMd } from '@prism3/engine/design-md';
 
 let executed = 0, failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -165,16 +167,16 @@ for (const [mode, want] of MODE_RULE) {
 // The writes the controls make for the mode they are handed: that mode's key, nothing else.
 reset();
 F.setSurfaceBase('dark', '100');
-F.setSurfaceFloor('dark', '200');
+F.setSurfaceFloor('dark', '050');
 F.setBandStep('dark', '800');
-ok(JSON.stringify(store.brandState.surfaces?.dark) === JSON.stringify({ base: 100, floorStep: 200, inverseBase: 800 })
+ok(JSON.stringify(store.brandState.surfaces?.dark) === JSON.stringify({ base: 100, floorStep: 50, inverseBase: 800 })
   && JSON.stringify(store.brandState.surfaces?.light) === JSON.stringify(prism3.surfaces?.light),
   `Dark's Page, Contrast floor and Inverse band step write surfaces.dark, and surfaces.light stays as loaded (${JSON.stringify(store.brandState.surfaces)})`);
 F.setSurfaceBase('light', 'white');
 F.setBandPalette('light', 'primary');
 ok(JSON.stringify(store.brandState.surfaces?.light) === JSON.stringify({ base: 'white', inverseBase: { palette: 'primary', step: Number(F.stepsOf('primary').at(-1)) } }),
   `Light's Page and Inverse band palette write surfaces.light, the band seeded at primary's darkest step (${JSON.stringify(store.brandState.surfaces?.light)})`);
-ok(JSON.stringify(store.brandState.surfaces?.dark) === JSON.stringify({ base: 100, floorStep: 200, inverseBase: 800 }), 'and leave surfaces.dark as it was');
+ok(JSON.stringify(store.brandState.surfaces?.dark) === JSON.stringify({ base: 100, floorStep: 50, inverseBase: 800 }), 'and leave surfaces.dark as it was');
 ok(takes(), 'the engine takes the brand with both modes\' surfaces set');
 
 // The token each surface control names (the owner's direction for S4c: the lever names what it sets).
@@ -617,7 +619,6 @@ const FLOOR_CASES: FloorCase[] = [
   { brand: 'prism3', mode: 'light', edit: () => F.setSurfaceTier('light', 'secondary', '200'), label: 'Auto · follows background.secondary (neutral 200)', floor: 'neutral.200', secondary: 'neutral.200', what: 'Secondary at neutral 200' },
   // With a `floorStep` set the engine's floor is that step; the Auto option names the floor Auto would restore.
   { brand: 'prism3', mode: 'light', edit: () => { F.setSurfaceTier('light', 'secondary', '200'); F.setSurfaceFloor('light', '100'); }, label: 'Auto · follows background.secondary (neutral 200)', floor: 'neutral.200', secondary: 'neutral.200', what: 'Secondary at neutral 200, floorStep 100 set' },
-  { brand: 'prism3', mode: 'light', edit: () => { F.setSurfaceBase('light', 'black'); F.setSurfaceFloor('light', '100'); }, label: 'Auto · neutral 950', floor: 'neutral.950', secondary: 'black', what: 'Page Black, floorStep 100 set' },
 ];
 for (const c of FLOOR_CASES) {
   reset((exampleBrands as Record<string, BrandInput>)[c.brand]);
@@ -666,6 +667,118 @@ const textSec = roleIn(allModes(), 'text.secondary', 'light') as { path?: string
 ok(textSecBefore?.against === 'neutral.050' && textSec?.against === 'neutral.200' && textSec.path !== textSecBefore.path,
   `Secondary at neutral 200: the engine re-derives the floor-gated text.secondary against neutral.200 (against ${textSecBefore?.against} → ${textSec?.against}, ${textSecBefore?.path} → ${textSec?.path})`);
 ok(F.floorAutoLabel('dark') === 'Auto · follows background.secondary (neutral 900)', `and Dark's floor Auto is untouched (read ${JSON.stringify(F.floorAutoLabel('dark'))})`);
+
+// ── 10. the contrast floor offers only a page ground's step ───────────────────────────────────────────
+console.log('\n10. The contrast floor picker offers only a step a page ground sits on (owner decision Q57 A, #2227; oracle: literals, the engine)');
+// The steps are typed per case. The engine is the second witness: every neutral step in the mode builds as the
+// floor exactly when it is offered, and is refused by its sentence otherwise.
+const FLOOR_OFFER_CASES: Array<{ mode: 'light' | 'dark'; edit: () => void; want: string[]; what: string }> = [
+  { mode: 'light', edit: () => {}, want: ['050', '100'], what: 'as loaded (Page White, a fixed primitive, not a step)' },
+  { mode: 'dark', edit: () => {}, want: ['850', '900', '950'], what: 'as loaded' },
+  { mode: 'light', edit: () => F.setSurfaceBase('light', '200'), want: ['200', '250', '300'], what: 'Page neutral 200' },
+  { mode: 'light', edit: () => F.setSurfaceTier('light', 'secondary', '200'), want: ['100', '200'], what: 'Secondary at neutral 200' },
+  { mode: 'light', edit: () => F.setSurfaceBase('light', 'black'), want: [], what: 'Page Black (no ground sits on a neutral step)' },
+];
+for (const c of FLOOR_OFFER_CASES) {
+  reset();
+  c.edit();
+  store.rebuild();
+  const got = F.floorGroundSteps(c.mode).map((s) => s.key);
+  const hexOk = F.floorGroundSteps(c.mode).every((s) => s.hex === F.stepHex(nPal, s.key));
+  ok(JSON.stringify(got) === JSON.stringify(c.want) && hexOk,
+    `${c.mode === 'light' ? 'Light' : 'Dark'}, ${c.what}: the floor picker offers ${c.want.length ? c.want.join(', ') : 'no step'} (offered ${got.join(', ') || 'none'})`);
+  const disagree: string[] = [];
+  for (const step of F.stepsOf(nPal)) {
+    const b = structuredClone(store.brandState);
+    (b.surfaces ??= {})[c.mode] = { ...(b.surfaces[c.mode] ?? {}), floorStep: Number(step) };
+    let refused: string | null = null;
+    try { resolveAllModes(brandTheme(b)); } catch (e) { refused = (e as Error).message; }
+    const offered = got.includes(step);
+    const sentence = refused?.startsWith(`surfaces.${c.mode}.floorStep: ${Number(step)} is not a step a ${c.mode} page ground sits on`) ?? false;
+    if (offered ? refused != null : !sentence) disagree.push(`${step} ${offered ? `offered, engine refused: ${refused}` : `not offered, engine ${refused == null ? 'built it' : `threw: ${refused}`}`}`);
+  }
+  ok(disagree.length === 0, `and the engine builds each offered step as the floor and refuses every other by sentence${disagree.length ? ` — ${disagree.join('; ')}` : ''}`);
+}
+
+// ── 11. the studio's floor sentences (owner decisions Q67 B, Q69 A, Q70 A, Q74 B, Q75 A, Q76 A on #2250) ─────────────────────
+console.log('\n11. A floor refusal reads in the studio\'s words; a background that moves off the floor resets it to Auto (Q67 B, Q69 A, Q70 A; oracle: literals)');
+// Every sentence is typed here, never read from the module. The engine's own sentence opens with the key it refuses,
+// so "never shown verbatim" is that it appears nowhere the studio shows a message. An import names the
+// file's own key, `floorStep`, bare (Q76 A), so the pattern is the engine's phrasing, not that word.
+const ENGINE_WORDS = /surfaces\.(light|dark)\.floorStep|is not a step a|page ground sits on/;
+const withFloor = (mode: 'light' | 'dark', floorStep: number, base?: string | number): BrandInput => {
+  const b = structuredClone(prism3);
+  (b.surfaces ??= {})[mode] = { ...(b.surfaces[mode] ?? {}), ...(base !== undefined ? { base } : {}), floorStep } as never;
+  return b;
+};
+const REFUSAL_CASES: Array<{ input: BrandInput; want: string; wantImport: string; what: string }> = [
+  { input: withFloor('light', 400), want: 'The contrast floor has to match a page background in Light. Choose 050 or 100, or return to Auto.',
+    wantImport: 'The contrast floor has to match a page background in Light. Choose 050 or 100, or remove floorStep to use Auto.', what: 'Light, floor 400 on a White page (two steps)' },
+  { input: withFloor('dark', 400), want: 'The contrast floor has to match a page background in Dark. Choose 850, 900 or 950, or return to Auto.',
+    wantImport: 'The contrast floor has to match a page background in Dark. Choose 850, 900 or 950, or remove floorStep to use Auto.', what: 'Dark, floor 400 (three steps)' },
+  { input: withFloor('light', 400, 950), want: 'The contrast floor has to match a page background in Light. Choose 950, or return to Auto.',
+    wantImport: 'The contrast floor has to match a page background in Light. Choose 950, or remove floorStep to use Auto.', what: 'Light, floor 400 on a neutral 950 page (one step)' },
+  { input: withFloor('light', 400, 'black'), want: 'No page background in Light sits on a neutral step, so the contrast floor stays on Auto.',
+    wantImport: 'No page background in Light sits on a neutral step, so the contrast floor stays on Auto.', what: 'Light, floor 400 on a Black page (no step)' },
+  // Both modes off-ground at once: the mode being reworded must be read with the OTHER mode's floor removed too, or
+  // that floor throws and the engine's sentence passes through verbatim (#2250 review). The engine refuses Light first.
+  { input: (() => { const b = withFloor('light', 400); (b.surfaces ??= {}).dark = { ...(b.surfaces.dark ?? {}), floorStep: 400 } as never; return b; })(),
+    want: 'The contrast floor has to match a page background in Light. Choose 050 or 100, or return to Auto.',
+    wantImport: 'The contrast floor has to match a page background in Light. Choose 050 or 100, or remove floorStep to use Auto.', what: 'Light and Dark both floor 400 (both off-ground)' },
+];
+for (const c of REFUSAL_CASES) {
+  let engine: string | null = null;
+  try { resolveAllModes(brandTheme(structuredClone(c.input))); } catch (e) { engine = (e as Error).message; }
+  ok(!!engine && ENGINE_WORDS.test(engine), `#2250 ${c.what}: the engine refuses it in its own words, for agents (threw ${JSON.stringify(engine)})`);
+  reset();
+  Object.assign(store.brandState, structuredClone(c.input));
+  store.rebuild();
+  ok(store.lastError === c.want, `#2250 ${c.what}: the error bar's message is the studio sentence (read ${JSON.stringify(store.lastError)})`);
+  ok(!ENGINE_WORDS.test(store.lastError ?? '') && !/floorStep/.test(store.lastError ?? ''), `#2250 ${c.what}: the error bar's message carries none of the engine's sentence, nor its key`);
+  const imp = validateDesignMd(toDesignMd(c.input));
+  const text = 'error' in imp ? importErrorText(imp.error) : null;
+  ok(!!text && text.includes(`Parsed, but the engine rejected it: ${c.wantImport}`) && 'error' in imp && imp.error.line != null,
+    `#2250 ${c.what}: a design.md import is refused with the studio sentence, on its line (read ${JSON.stringify(text)})`);
+  ok(!ENGINE_WORDS.test(text ?? ''), `#2250 ${c.what}: the import's message carries none of the engine's sentence`);
+}
+// Another refusal keeps the engine's words: only the floor's is reworded.
+reset();
+Object.assign(store.brandState, { surfaces: { light: { base: 12345 } } });
+store.rebuild();
+ok(!!store.lastError && store.lastError.startsWith('surfaces.light.base'), `#2250 a refusal that is not the floor's keeps the engine's words (read ${JSON.stringify(store.lastError)})`);
+
+// Q69 A: a background that moves off a set floor resets it to Auto, with the notice; one that keeps it does not.
+const RESET_CASES: Array<{ floor: string; edit: () => void; reset: boolean; notice: string | null; what: string }> = [
+  { floor: '050', edit: () => F.setSurfaceTier('light', 'secondary', '200'), reset: true,
+    notice: 'The contrast floor is back on Auto — neutral 050 is no longer a page background in Light.', what: 'floor 050, Secondary moves to neutral 200' },
+  { floor: '100', edit: () => F.setSurfaceBase('light', '200'), reset: true,
+    notice: 'The contrast floor is back on Auto — neutral 100 is no longer a page background in Light.', what: 'floor 100, Primary moves to neutral 200' },
+  { floor: '100', edit: () => F.setSurfaceTier('light', 'secondary', '200'), reset: false, notice: null, what: 'floor 100, Secondary moves to neutral 200 (Tertiary keeps 100)' },
+];
+for (const c of RESET_CASES) {
+  reset();
+  F.setSurfaceFloor('light', c.floor);
+  store.rebuild();
+  F.clearFloorReset();
+  c.edit();
+  store.rebuild();
+  const fs = store.brandState.surfaces?.light?.floorStep;
+  ok(c.reset ? fs === undefined : fs === Number(c.floor), `#2250 ${c.what}: the floor ${c.reset ? 'resets to Auto' : `stays ${c.floor}`} (floorStep ${fs})`);
+  ok(store.lastError === null, `#2250 ${c.what}: the brand resolves, so the error bar stays quiet (read ${JSON.stringify(store.lastError)})`);
+  ok(F.floorResetNotice('light') === c.notice, `#2250 ${c.what}: the notice reads ${JSON.stringify(c.notice)} (read ${JSON.stringify(F.floorResetNotice('light'))})`);
+}
+// Return to Auto on a tier moves the grounds too.
+reset();
+F.setSurfaceTier('light', 'secondary', '200');
+F.setSurfaceFloor('light', '200');
+store.rebuild();
+F.clearFloorReset();
+F.setSurfaceTier('light', 'secondary', undefined);
+store.rebuild();
+ok(store.brandState.surfaces?.light?.floorStep === undefined && store.lastError === null
+  && F.floorResetNotice('light') === 'The contrast floor is back on Auto — neutral 200 is no longer a page background in Light.',
+  `#2250 floor 200 on Secondary 200, Secondary back to Auto: the floor resets, with the notice (floorStep ${store.brandState.surfaces?.light?.floorStep}, notice ${JSON.stringify(F.floorResetNotice('light'))})`);
+ok(F.floorResetNotice('dark') === null, '#2250 and the notice is Light\'s alone');
 
 console.log(`\n${executed - failed}/${executed} Surfaces & fills write assertions passed.`);
 if (failed) process.exit(1);

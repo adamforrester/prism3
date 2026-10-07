@@ -1954,13 +1954,13 @@ export type ShadowAxis = {
   inset: ShadowStep;
   colorRgb: RGB;                 // the tinted shadow base (layers vary only alpha)
   softness: number;
-  tint: { hue: number; amount: number };
+  tint: { hue: number | null; amount: number };   // hue null: no hue to follow, the shadow is untinted (#2184, Q58 B)
   // Per-mode shadow (Phase D) — only modes whose `modeLevers.shadow` deviates. Each carries the
   // RE-DERIVED layer-set for that mode's APPEARANCE (light-based → full layers; dark-based → reduced) at
   // the mode's softness/tint, plus the mode's own tinted `colorRgb` (a tint override changes the colour).
   // `layers` is keyed by step name (incl. `inset`). Composites reference nothing here — the shadow leaf
   // attaches `$extensions.prism3.modes.<mode>` from this. Absent ⇒ byte-identical.
-  shadowByMode?: Record<string, { appearance: 'light' | 'dark'; colorRgb: RGB; softness: number; tint: { hue: number; amount: number }; layers: Record<string, ShadowLayer[]> }>;
+  shadowByMode?: Record<string, { appearance: 'light' | 'dark'; colorRgb: RGB; softness: number; tint: { hue: number | null; amount: number }; layers: Record<string, ShadowLayer[]> }>;
 };
 // Base ramp at softness 1 — [keyY, keyBlur, keySpread, keyAlpha, ambY, ambBlur, ambSpread, ambAlpha].
 // Anchored to Tailwind/Polaris/NB curves; offsetY≈blur×0.6–0.7, spread tightens with size.
@@ -1973,9 +1973,13 @@ const SHADOW_BASE: { name: string; key: number[]; amb: number[] }[] = [
   { name: '2xl', key: [6, 12, -6, 0.14], amb: [22, 52, -12, 0.12] },
 ];
 
-const buildShadow = (neutralHue: number, input: BrandInput['shadow'] = {}): ShadowAxis => {
+/** `defaultHue` is the hue that builds the neutral ramp (#2184), the tint's default; an explicit
+ *  `shadow.tint.hue` still wins. `null` means the ramp has no hue to follow (any gray ramp: a pure-gray pin, owner Q58 B, or a Custom tint
+ *  or Follow primary at chroma 0, owner Q73 A):
+ *  the shadow is then UNTINTED, chroma 0, while `amount` still lifts its lightness off pure black. */
+const buildShadow = (defaultHue: number | null, input: BrandInput['shadow'] = {}): ShadowAxis => {
   const softness = input.softness ?? 1;
-  const tint = { hue: input.tint?.hue ?? neutralHue, amount: input.tint?.amount ?? 0.15 };
+  const tint: ShadowAxis['tint'] = { hue: input.tint?.hue ?? defaultHue, amount: input.tint?.amount ?? 0.15 };
   // Shadow base colour: amount 0 = pure black (the NB dialect); any tint lifts it to a hue-tinted
   // dark (Polaris/Comeau: a tinted near-black reads richer than dead grey). Layers reuse this RGB
   // and vary only alpha — one shadow colour per theme.
@@ -2013,7 +2017,9 @@ const buildShadow = (neutralHue: number, input: BrandInput['shadow'] = {}): Shad
   const tintL = 0.13 + 0.17 * tint.amount;
   const colorRgb = tint.amount === 0
     ? { r: 0, g: 0, b: 0 }
-    : oklchToRgb({ l: tintL, c: maxChroma(tintL, tint.hue) * tint.amount, h: tint.hue });
+    : tint.hue === null
+      ? oklchToRgb({ l: tintL, c: 0, h: 0 })   // untinted: no hue, the same lift (Q58 B)
+      : oklchToRgb({ l: tintL, c: maxChroma(tintL, tint.hue) * tint.amount, h: tint.hue });
   const layer = (a: number[]): ShadowLayer => ({ offsetX: 0, offsetY: a[0], blur: Math.round(a[1] * softness), spread: a[2], alpha: a[3] });
   // Dark: same geometry, alpha reduced and ramping UP with elevation (lower steps
   // nearly disappear — the surface lift does the work; top steps keep a whisper).
@@ -2528,9 +2534,24 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // `auto` derives the neutral hue from the brand primary at build time (a cohesive cast that
   // re-tracks on recolour) rather than a frozen stored hue; a pinned anchor still wins over it.
   const nHue = input.neutral.auto ? input.primary.h : input.neutral.hue;
+  // The hue that actually builds the neutral ramp (#2184, owner decision 2026-10-06): the pinned gray's
+  // when one is pinned, else `nHue` — the primary's under Follow primary, the custom tint otherwise. One
+  // binding for the ramp AND the shadow tint's default, so the shadow cannot follow a stored
+  // `neutral.hue` the ramp is not using (which it did under Follow primary and under a pinned gray).
+  const neutralRampHue = nAnchor ? nAnchor.h : nHue;
+  // A pure-gray pin (r = g = b) has NO hue: its chroma is ~1e-8 and the converter reports noise (~89.88°, #2241).
+  // The ramp cannot show that noise at chroma ~0, but a shadow tint would (olive, ΔE00 2.23). So the shadow's
+  // default is null below ACHROMATIC_C, read off the CHROMA, never off the noise hue (owner Q58 B, 2026-10-06).
+  // 1e-4 sits four orders of magnitude above that noise and well below the faintest real pin in the corpus
+  // (nb-redesign's #151415, chroma 0.0025).
+  const ACHROMATIC_C = 1e-4;
+  // ANY gray ramp, not only a pin (owner Q73 A): a Custom tint or Follow primary at `neutral.chroma` 0 builds a
+  // gray ramp too, so the guard reads the chroma that BUILDS the ramp, the pin's or `neutral.chroma`.
+  const neutralRampChroma = nAnchor ? nAnchor.c : input.neutral.chroma;
+  const shadowTintDefault = neutralRampChroma < ACHROMATIC_C ? null : neutralRampHue;
   const neutralSteps = nAnchor
-    ? generateRamp({ hue: nAnchor.h, chroma: nAnchor.c, anchor: { oklch: nAnchor, stepNum: autoPlaceStep(nAnchor.l) } })
-    : generateRamp({ hue: nHue, chroma: input.neutral.chroma });
+    ? generateRamp({ hue: neutralRampHue, chroma: nAnchor.c, anchor: { oklch: nAnchor, stepNum: autoPlaceStep(nAnchor.l) } })
+    : generateRamp({ hue: neutralRampHue, chroma: input.neutral.chroma });
   if (nAnchor) notes.push(`neutral: pinned to the brand's gray (lightness ${nAnchor.l}) at step ${autoPlaceStep(nAnchor.l)} — the ramp is built from that gray, not from a hue and chroma.`);
   else if (input.neutral.auto) notes.push(`neutral: the grays follow the primary hue (${Math.round(input.primary.h)}) — change the brand color and the grays follow.`);
 
@@ -2781,8 +2802,8 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     motion.easingRolesByMode = easingRolesByMode;
     notes.push(`motion: easing roles use a different curve per mode — ${Object.entries(easingRolesByMode).map(([m, r]) => `${m} (${Object.entries(r).map(([k, v]) => `${k} → ${v}`).join(', ')})`).join('; ')}; the curves themselves are the same in every mode.`);
   }
-  const shadow = buildShadow(input.neutral.hue, input.shadow);
-  notes.push(`shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness ${shadow.softness}; tinted to hue ${shadow.tint.hue} at ${shadow.tint.amount}${shadow.tint.amount === 0 ? ' (pure black)' : ''}. Full shadows in light, reduced in dark, where surface lightness carries elevation.`);
+  const shadow = buildShadow(shadowTintDefault, input.shadow);
+  notes.push(`shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness ${shadow.softness}; ${shadow.tint.hue === null ? `untinted at ${shadow.tint.amount}${shadow.tint.amount === 0 ? ' (pure black)' : ''}, because ${nAnchor ? 'the pinned gray has no hue' : 'the neutral is gray'}` : `tinted to hue ${shadow.tint.hue} at ${shadow.tint.amount}${shadow.tint.amount === 0 ? ' (pure black)' : ''}`}. Full shadows in light, reduced in dark, where surface lightness carries elevation.`);
   // Per-mode SHADOW (Phase D): a customizable mode overriding `shadow` re-derives its ramp via the SAME
   // buildShadow the baseline uses, at the mode's (softness/tint merged over the global). The APPEARANCE
   // decides the layer-set — a dark or dark-based custom mode gets the reduced dark layers; light/light-
@@ -2795,7 +2816,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   for (const [mo, lev] of Object.entries(modeLevers)) {
     if (!lev?.shadow) continue;
     const app = shadowAppearance[mo] ?? 'light';
-    const sm = buildShadow(input.neutral.hue, {
+    const sm = buildShadow(shadowTintDefault, {
       softness: lev.shadow.softness ?? input.shadow?.softness,
       tint: { hue: lev.shadow.tint?.hue ?? input.shadow?.tint?.hue, amount: lev.shadow.tint?.amount ?? input.shadow?.tint?.amount },
     });
