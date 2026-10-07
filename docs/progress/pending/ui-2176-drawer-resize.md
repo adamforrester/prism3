@@ -1,6 +1,6 @@
 ## (2026-10-06) — Activity: drag the open drawer's top edge to make it taller (#2176)
 
-**STATUS: branch `ui/2176-drawer-resize`, held for the owner's screenshot review (the pill).** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. One new string, "Resize Activity", the handle's accessible name, approved as AD3. Owner decisions AD1–AD3 (2026-10-05), with the owner's one change from the mock.
+**STATUS: branch `ui/2176-drawer-resize`; the owner approved the screenshots on 2026-10-07 (the pill, the 24px keyboard step, and the most height sitting flush with the preview header).** UI only: no engine change, no emitted artifact moves, no ENGINE bump, `CONTRACT_VERSION` unchanged. One new string, "Resize Activity", the handle's accessible name, approved as AD3. Owner decisions AD1–AD3 (2026-10-05), with the owner's one change from the mock.
 
 **What it does.**
 - **AD1.** At the wide tier, while the drawer is open, a handle sits on its top edge, on both hosts. It is a window splitter (WAI-ARIA): `role="separator"`, `aria-orientation="horizontal"`, `aria-valuenow`, `aria-valuemin` and `aria-valuemax`, in CSS pixels. A pointer drag follows the pointer. Arrow Up and Arrow Down step 24px, and Home and End go to the least and the most (the pattern's optional keys).
@@ -15,7 +15,7 @@
 **A runtime variable, and the gate that allows it.** The height reaches the stylesheet as `--p3-activity-h`, set on the frame. `chrome/esbuild-plugin.mjs`'s `[variables]` check refused any `--p3-*` the token map does not define. It now has a literal `RUNTIME_VARS` list (`activity-h`, with where it is set). A runtime name still fails if `chrome.css` never reads it, or if the map defines it too. `test:chrome`'s inline-value check already let custom properties through, so the frame's `style` carries only that.
 
 **Gates.**
-- `test:chrome` section 31, both hosts and both themes:
+- `test:chrome` section 32 (#2213 took 31), both hosts and both themes:
   - at 1280: the handle drawn only while open; its computed name and role (CDP `getPartialAXTree`); min, now and max against the drawer's first open height and the header's measured bottom;
   - the pill: inside the border, wider than 32, centered, and at 3:1;
   - a 24×24 target;

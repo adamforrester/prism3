@@ -570,6 +570,16 @@
 .p3-drawer[data-open="true"] .p3-drawer-bar > .p3-ico:last-of-type { transform: rotate(180deg); }
 .p3-drawer-last { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .p3-drawer-count { color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: nowrap; }
+/* The bar row's text runs: the summary, its time, the counts and the agent status, on one baseline (#2213, the
+   owner's review). Centered in the row like the dot and the caret, but aligned on their baseline among themselves. */
+.p3-drawer-text { display: flex; align-items: baseline; gap: inherit; flex: 1 1 auto; min-width: 0; }
+.p3-drawer-text > .p3-op-prog { align-self: center; }
+/* The agent link's short status (#2213, the owner's N1 A and AS1 A; plugin only): quiet text at the bar row's far
+   right, beside the caret, and the error ink when the link is in trouble. One line. It takes only the room the row has
+   left (from no width, up to its words' own), so the summary never gives way to it; its tooltip and its accessible
+   name carry the link's full status line. */
+.p3-drawer-link { flex: 1000 1 0%; min-width: 0; max-width: max-content; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--p3-text-2); font-size: var(--p3-fs-12); }
+.p3-drawer-link[data-error="true"] { color: var(--p3-bad-text); }
 .p3-drawer-body {
   display: grid; gap: var(--p3-space-100); align-content: start; min-height: 0;
   max-height: calc(6 * var(--p3-bar-h)); overflow: auto; padding: 0 var(--p3-space-300) var(--p3-space-200);
