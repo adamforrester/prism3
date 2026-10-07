@@ -16,9 +16,14 @@ CI's text metrics put 590 on the `rows` side, which is why CI never saw it.
 - **The frame (`fitBar`).** The tooltip follows the cut, not the step. Under `trim` it is set only while the name's
   text, a Range read to the fraction of a pixel, is wider than its box by more than one layout unit. A `trim` that
   leaves the name whole carries no tooltip.
-- **§29d's `FIT_SEEN`.** It reads a cut as the name's box narrower than the same name's box at 1280, where the full bar
-  shows, by more than one layout unit. That is a second derivation from the frame's: a box at another width, against
-  the text's own Range at this one. With it, 590 reads as `trim`, cut, with the tooltip, and passes on every machine.
+- **§29d's `FIT_SEEN`.** It reads a cut as the name's box narrower than its text by more than 1/16px, the text
+  measured by a canvas in the name's own computed font. That is a second derivation from the frame's (canvas shaping,
+  against the frame's Range over the laid-out text). Measured, canvas and layout agree to 0.013px at 14px and at 12px,
+  well inside 1/16px, which is well inside the 0.27px cut at 590. With it, 590 reads as `trim`, cut, with the tooltip,
+  and passes on every machine.
+- **Tried first and dropped: the name's box at 1280 as the whole width.** It failed every narrow width on both hosts
+  (`down 560 (narrow): title null, name cut` …, 76 per theme). The narrow tier sets the name in 12px, not 14px, so its
+  whole box is 171.66px and read as cut. The canvas reads the size the tier sets.
 - **§33, new, at the end of `test-chrome.mjs`.** It builds the frame's `trim`-with-room case on every machine:
   1. at a width 2px wider than the plugin's first row needs (FIT_ORACLE's reading), Export is made 4px wider;
   2. the frame re-measures on a font-load event;
