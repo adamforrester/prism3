@@ -278,7 +278,7 @@ for (const [id, theme] of themes) {
 // literals for the `prism3` example brand — names, counts and the verdict text are written out here, not
 // read off the plan, so a plan or summary that moves fails by name instead of agreeing with itself.
 const PRISM3 = (exampleBrands as Record<string, BrandInput>).prism3;
-const STYLE_COUNT = 84;          // prism3: 14 effect + 2 paint + 5 grid + 63 text
+const STYLE_COUNT = 92;          // prism3: 14 effect + 2 paint + 5 grid + 71 text (63 + body/xs's 8, #2266)
 const COLLECTION_COUNT = 12;     // core, color, space, radius, size, icon, control, border-width, focus, opacity, layout, type-sets
 const apply = async (f: FileShim) => {
   try { return (await runApplyTheme(PRISM3, f as any)).guarded; }
