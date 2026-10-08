@@ -490,7 +490,12 @@ export const planStyleGuide = (catalog: SgCatalog, contract: SgContract | null, 
       });
     }
   }
-  tables.push(...planVariableTables(catalog, ix, options, wantTypes, wantCollections, referenced, notes));
+  // NO FONT-SIZE TABLE FOR THE TEXT STYLES' RESPONSIVE COLLECTION (owner decision, #2371 Q133 A). Its sizes are the
+  // text styles' own, per mode, and the Text styles table prints them in context; the raw scale is the primitives' Font
+  // size table. Dropped before titles are made unique, so the font-size table left keeps its plain title.
+  const responsive = responsiveCollection(catalog.textStyles ?? [], ix);
+  tables.push(...planVariableTables(catalog, ix, options, wantTypes, wantCollections, referenced, notes)
+    .filter((t) => !(t.type === 'fontSize' && responsive && t.collectionId === responsive.id)));
   if (wantTypes.includes('typography') && !wantCollections) tables.push(...planTextStyles(catalog, ix, options));
   // PHASE 2 TITLES ARE UNIQUE (proposed, owner to confirm): two collections can both hold a font-size table (`core`
   // and `type-sets`), so a title two phase-2 tables share names its collection, "Font size (core)". The tables filter
@@ -663,48 +668,56 @@ const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
       const firsts = [...new Set(members.map((m) => m.v.name.split('/')[0]))];
       const whole = commonPrefix(members.map((m) => m.v.name.split('/').slice(0, -1)));
       const multiRoot = whole.length === 0 && firsts.length > 1 && commonPrefix(members.map((m) => m.v.name.split('/').slice(1, -1))).length > 0;
+      const literal = (m: { v: SgVariable }): boolean => col.modes.every((md) => aliasId(m.v.valuesByMode[md.modeId]) === null);
       for (const root of multiRoot ? firsts : [null]) {
-        const mine = members.filter((m) => root === null || m.v.name.split('/')[0] === root);
-        const prefix = commonPrefix(mine.map((m) => m.v.name.split('/').slice(0, -1)));
-        const primitive = mine.every((m) => col.modes.every((md) => aliasId(m.v.valuesByMode[md.modeId]) === null));
-        const unrooted = type === 'dimension'
-          ? (primitive && prefix.length ? sentence(prefix[prefix.length - 1]) : sentence(col.name))
-          : FONT_LABEL[type as FontKind];
-        const title = root ? `${unrooted} — ${root}` : unrooted;
-        // A REM COLUMN after each Value column, in a table of lengths (dimension, font size, line height, letter
-        // spacing), when REM is on (owner decision, 2026-09-29). A family or a weight is not a length.
-        const lengths = remOn(options) && (type === 'dimension' || type === 'fontSize' || type === 'lineHeight' || type === 'letterSpacing');
-        const rows: SgRow[] = rampSort(mine.map(({ v, kind }) => {
-          const cells: SgCell[] = col.modes.map((m) => {
-            const lit = resolveLiteral(ix, v, m.modeId);
-            const first = aliasId(v.valuesByMode[m.modeId]);
-            const aliasVar = first ? ix.byId.get(first) : undefined;
-            const num = typeof lit === 'number' ? lit : null;
-            const str = typeof lit === 'string' ? lit : null;
-            const value = num === null ? (str ?? '—')
-              : type === 'fontWeight' ? formatWeight(num) : formatPx(num);
-            const rem = lengths ? (num === null ? '—' : formatRem(num)) : undefined;
-            return { modeId: m.modeId, modeName: m.name, value, rem, alias: aliasVar ? aliasVar.name : null, raw: `${first ?? ''}|${lit ?? ''}`, groundId: null, contrast: null, num, str };
+        const inRoot = members.filter((m) => root === null || m.v.name.split('/')[0] === root);
+        // FONT WEIGHT SPLITS (owner decision, #2371 Q133 A): the raw weights are primitives, drawn on Primitive tokens
+        // beside font family and size; the weight roles that alias them stay on Semantic tokens. One table held both,
+        // and a table with any alias in it is semantic, so the raw weights were drawn as roles.
+        const split = type === 'fontWeight' && inRoot.some(literal) && !inRoot.every(literal);
+        for (const mine of split ? [inRoot.filter(literal), inRoot.filter((m) => !literal(m))] : [inRoot]) {
+          const prefix = commonPrefix(mine.map((m) => m.v.name.split('/').slice(0, -1)));
+          const primitive = mine.every(literal);
+          // DRAFT for the owner (#2371): the roles' title when the weights are split, so the two tables' titles differ.
+          const unrooted = type === 'dimension'
+            ? (primitive && prefix.length ? sentence(prefix[prefix.length - 1]) : sentence(col.name))
+            : split && !primitive ? 'Font weight roles' : FONT_LABEL[type as FontKind];
+          const title = root ? `${unrooted} — ${root}` : unrooted;
+          // A REM COLUMN after each Value column, in a table of lengths (dimension, font size, line height, letter
+          // spacing), when REM is on (owner decision, 2026-09-29). A family or a weight is not a length.
+          const lengths = remOn(options) && (type === 'dimension' || type === 'fontSize' || type === 'lineHeight' || type === 'letterSpacing');
+          const rows: SgRow[] = rampSort(mine.map(({ v, kind }) => {
+            const cells: SgCell[] = col.modes.map((m) => {
+              const lit = resolveLiteral(ix, v, m.modeId);
+              const first = aliasId(v.valuesByMode[m.modeId]);
+              const aliasVar = first ? ix.byId.get(first) : undefined;
+              const num = typeof lit === 'number' ? lit : null;
+              const str = typeof lit === 'string' ? lit : null;
+              const value = num === null ? (str ?? '—')
+                : type === 'fontWeight' ? formatWeight(num) : formatPx(num);
+              const rem = lengths ? (num === null ? '—' : formatRem(num)) : undefined;
+              return { modeId: m.modeId, modeName: m.name, value, rem, alias: aliasVar ? aliasVar.name : null, raw: `${first ?? ''}|${lit ?? ''}`, groundId: null, contrast: null, num, str };
+            });
+            return { variableId: v.id, name: v.name, token: v.name.split('/').slice(prefix.length).join('/'), label: humanizeName(v.name.split('/').slice(prefix.length), prefix[prefix.length - 1]), description: v.description ?? '', display: 'default' as SwatchType, cells, specimen: specimenOf(type, kind, options) };
+          }));
+          const n = rows.length;
+          const k = mine.filter((m) => referenced.has(m.v.id)).length;
+          const noun = type === 'dimension' ? `dimension${n === 1 ? '' : 's'}` : `${FONT_LABEL[type as FontKind].toLowerCase()} variable${n === 1 ? '' : 's'}`;
+          const perMode = col.modes.length > 1 ? `, per mode (${col.modes.map((m) => m.name).join(', ')})` : '';
+          const refs = primitive && k ? (k === n ? ', each referenced by another variable' : `, ${k} referenced by another variable`) : '';
+          out.push({
+            key: `${type}|${col.id}|${prefix.join('/')}`,
+            type,
+            kind: primitive ? 'primitive' : 'semantic',
+            page: primitive ? PRIMITIVE_PAGE : SEMANTIC_PAGE,
+            collectionId: col.id,
+            title,
+            description: `${n} ${noun} in ${col.name}${perMode}${refs}`,
+            modes: col.modes,
+            columns: ['Token', ...col.modes.flatMap((m) => [m.name, 'Value', ...(lengths ? ['REM'] : [])]), ...(options.description === false ? [] : ['Description'])],
+            rows,
           });
-          return { variableId: v.id, name: v.name, token: v.name.split('/').slice(prefix.length).join('/'), label: humanizeName(v.name.split('/').slice(prefix.length), prefix[prefix.length - 1]), description: v.description ?? '', display: 'default' as SwatchType, cells, specimen: specimenOf(type, kind, options) };
-        }));
-        const n = rows.length;
-        const k = mine.filter((m) => referenced.has(m.v.id)).length;
-        const noun = type === 'dimension' ? `dimension${n === 1 ? '' : 's'}` : `${FONT_LABEL[type as FontKind].toLowerCase()} variable${n === 1 ? '' : 's'}`;
-        const perMode = col.modes.length > 1 ? `, per mode (${col.modes.map((m) => m.name).join(', ')})` : '';
-        const refs = primitive && k ? (k === n ? ', each referenced by another variable' : `, ${k} referenced by another variable`) : '';
-        out.push({
-          key: `${type}|${col.id}|${prefix.join('/')}`,
-          type,
-          kind: primitive ? 'primitive' : 'semantic',
-          page: primitive ? PRIMITIVE_PAGE : SEMANTIC_PAGE,
-          collectionId: col.id,
-          title,
-          description: `${n} ${noun} in ${col.name}${perMode}${refs}`,
-          modes: col.modes,
-          columns: ['Token', ...col.modes.flatMap((m) => [m.name, 'Value', ...(lengths ? ['REM'] : [])]), ...(options.description === false ? [] : ['Description'])],
-          rows,
-        });
+        }
       }
     }
   }
@@ -729,6 +742,20 @@ const specimenOf = (type: string, kind: VarKind, options: StyleGuideOptions): Sg
   return { kind: 'font', bind };
 };
 
+/** THE RESPONSIVE COLLECTION of the text styles: the one holding the most of their bound font sizes, among collections
+ *  with more than one mode (prism3's `type-sets`: desktop, mobile). The Text styles table takes its modes. */
+const responsiveCollection = (styles: readonly SgTextStyle[], ix: Index): SgCollection | undefined => {
+  const counts = new Map<string, number>();
+  for (const s of styles) {
+    const id = s.boundVariables?.fontSize?.id;
+    const v = id ? ix.byId.get(id) : undefined;
+    const c = v ? ix.collections.get(v.variableCollectionId) : undefined;
+    if (c && c.modes.length > 1) counts.set(c.id, (counts.get(c.id) ?? 0) + 1);
+  }
+  const top = [...counts].sort((a, b) => b[1] - a[1])[0];
+  return top ? ix.collections.get(top[0]) : undefined;
+};
+
 /** The pseudo-collection a text-style table's key names: text styles belong to no variable collection. */
 export const TEXT_STYLES_ID = 'text-styles';
 
@@ -747,15 +774,7 @@ const planTextStyles = (catalog: SgCatalog, ix: Index, options: StyleGuideOption
     const id = s.boundVariables?.[field]?.id;
     return id ? ix.byId.get(id) : undefined;
   };
-  // The responsive collection: the one holding the most bound font sizes, among collections with more than one mode.
-  const counts = new Map<string, number>();
-  for (const s of styles) {
-    const v = boundVar(s, 'fontSize');
-    const c = v ? ix.collections.get(v.variableCollectionId) : undefined;
-    if (c && c.modes.length > 1) counts.set(c.id, (counts.get(c.id) ?? 0) + 1);
-  }
-  const top = [...counts].sort((a, b) => b[1] - a[1])[0];
-  const modeCol = top ? ix.collections.get(top[0]) : undefined;
+  const modeCol = responsiveCollection(styles, ix);
   const modes: readonly SgMode[] = modeCol ? modeCol.modes : [{ modeId: '', name: 'Specimen' }];
   // A bound value in a mode: in the responsive collection, that mode; elsewhere, the variable's own default.
   const inMode = (v: SgVariable, modeId: string): unknown =>
@@ -992,6 +1011,9 @@ export interface StyleGuideApi {
   createFrame(): SgNode;
   /** Phase 2: the file's local text styles, in the file's order. Optional: without it, no text-style table. */
   getLocalTextStylesAsync?(): Promise<readonly unknown[]>;
+  /** The fonts the host has, for the face a family specimen is set in (#2371). Optional: without it, the faces the
+   *  file's text styles use and the cell's own style are tried. */
+  listAvailableFontsAsync?(): Promise<ReadonlyArray<{ fontName: { family: string; style: string } }>>;
   variables: {
     getLocalVariableCollectionsAsync(): Promise<readonly unknown[]>;
     getLocalVariablesAsync(type?: string): Promise<readonly unknown[]>;
@@ -1365,6 +1387,39 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     if (!fonts.has(k)) fonts.set(k, api.loadFontAsync({ family: font.family, style: font.style }).then(() => true, () => { misses.push(`${k} unavailable`); return false; }));
     return fonts.get(k)!;
   };
+  // THE FACE A FAMILY SPECIMEN IS SET IN (#2371): one the family has. In order, the first that loads: the face of a text
+  // style whose family is bound to this variable (the brand's own face for that role), the face of any text style in the
+  // family, the cell's own style, then the first style the host lists for the family. A face tried here and not loaded is
+  // not a miss; the bind names the one it needed if none loads. Null when none does.
+  let available: Promise<Map<string, string[]> | null> | null = null;
+  const stylesOf = async (family: string): Promise<string[] | null> => {
+    available ??= (api.listAvailableFontsAsync ? api.listAvailableFontsAsync() : Promise.resolve(null)).then((fs) => {
+      if (!fs) return null;
+      const by = new Map<string, string[]>();
+      for (const { fontName: f } of fs) { if (!by.has(f.family)) by.set(f.family, []); by.get(f.family)!.push(f.style); }
+      return by;
+    }, () => null);
+    const by = await available;
+    return by ? by.get(family) ?? [] : null;
+  };
+  const tried = new Map<string, Promise<boolean>>();
+  const faceOf = async (family: string, variableId: string, cellStyle: string): Promise<string | null> => {
+    const styles = catalog.textStyles ?? [];
+    const has = await stylesOf(family);
+    const candidates = [...new Set([
+      ...styles.filter((s) => s.boundVariables?.fontFamily?.id === variableId && s.fontName.family === family).map((s) => s.fontName.style),
+      ...styles.filter((s) => s.fontName.family === family).map((s) => s.fontName.style),
+      cellStyle,
+      ...(has ?? []),
+    ])].filter((s) => !has || has.includes(s));
+    for (const style of candidates) {
+      const k = fontKeyOf({ family, style });
+      if (fonts.has(k) && await fonts.get(k)) return style;
+      if (!tried.has(k)) tried.set(k, api.loadFontAsync({ family, style }).then(() => true, () => false));
+      if (await tried.get(k)) { fonts.set(k, Promise.resolve(true)); return style; }
+    }
+    return null;
+  };
   // A text node set in more than one font reads `fontName` as `figma.mixed`: every segment's font is loaded, and
   // one the host does not list is a named miss, never a cell left silently at its sample text.
   const writeText = async (n: SgNode | null | undefined, text: string): Promise<void> => {
@@ -1535,6 +1590,16 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   // table of that category, top-aligned with them (the ones still where the generator left them, else all of them).
   // A category with no row yet starts one TABLE_GAP below the generator's lowest table, at its leftmost x; a page with
   // no table takes it below its lowest content, left-aligned to it.
+  //
+  // MEASURED AT EACH TABLE'S SIZE BEFORE THIS RUN (#2371). A filtered run then moves each table by how much the tables
+  // before it changed (the re-flow below), and that change is counted from the size before the run. A table updated
+  // earlier in the same run is already at its new size, so a new table measured against that size was moved by its
+  // change twice: a row of tables that narrowed (the #2336 gaps gone, a column toggled off) pulled the new table back
+  // over them, and a row above that got shorter pulled a new row up into it. Tables this run created count at their size.
+  const sizeBefore = new Map<SgNode, { w: number; h: number }>();
+  for (const p of pages.values()) for (const n of p.children as readonly SgNode[]) if (n.type === 'FRAME' && n.getPluginData?.(TABLE_KEY)) sizeBefore.set(n, { w: num(n.width), h: num(n.height) });
+  const wOf = (n: SgNode): number => sizeBefore.get(n)?.w ?? num(n.width);
+  const hOf = (n: SgNode): number => sizeBefore.get(n)?.h ?? num(n.height);
   const rowEndOf = new Map<string, { x: number; y: number }>();
   const anchor = (p: SgPage, cat: string): { x: number; y: number } => {
     const k = `${p.name}\u241f${cat}`;
@@ -1545,11 +1610,11 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       const mine = placed(tables.filter((n) => categoryOfKey(n.getPluginData?.(TABLE_KEY) || '') === cat));
       const all = placed(tables);
       rowEndOf.set(k, mine.length
-        ? { x: Math.max(...mine.map((n) => num(n.x) + num(n.width))) + TABLE_GAP, y: Math.min(...mine.map((n) => num(n.y))) }
+        ? { x: Math.max(...mine.map((n) => num(n.x) + wOf(n))) + TABLE_GAP, y: Math.min(...mine.map((n) => num(n.y))) }
         : all.length
-          ? { x: Math.min(...all.map((n) => num(n.x))), y: Math.max(...all.map((n) => num(n.y) + num(n.height))) + TABLE_GAP }
+          ? { x: Math.min(...all.map((n) => num(n.x))), y: Math.max(...all.map((n) => num(n.y) + hOf(n))) + TABLE_GAP }
           : shown.length
-            ? { x: Math.min(...shown.map((n) => num(n.x))), y: Math.max(...shown.map((n) => num(n.y) + num(n.height))) + TABLE_GAP }
+            ? { x: Math.min(...shown.map((n) => num(n.x))), y: Math.max(...shown.map((n) => num(n.y) + hOf(n))) + TABLE_GAP }
             : { x: 0, y: 0 });
     }
     return rowEndOf.get(k)!;
@@ -1640,9 +1705,10 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     for (const c of (wrap.children ?? []) as SgNode[]) if (c.getPluginData?.(PART_KEY) === 'table') c.remove?.();
     const grid = api.createFrame();
     grid.name = 'Table';
-    // White, as the wrap is (#2336): nothing in a table shows the canvas through it. Set on every run, so a table drawn
-    // before this takes it on its next rerun.
-    wrap.fills = CELL_FILL;
+    // White (#2336): nothing in a table shows the canvas through it. The WRAP around it, which holds the title,
+    // description and rule, has no fill (owner, #2371): it sits on whatever canvas is behind it. Both set on every run,
+    // so a table drawn before this takes them on its next rerun.
+    wrap.fills = [];
     grid.fills = CELL_FILL;
     grid.setPluginData?.(PART_KEY, 'table');
     grid.layoutMode = 'GRID';
@@ -1783,7 +1849,13 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
         }
       } else if (spec.bind) {
         what = FONT_LABEL[spec.bind].toLowerCase();
-        const font = (text?.fontName ?? {}) as { family?: unknown; style?: unknown };
+        let font = (text?.fontName ?? {}) as { family?: unknown; style?: unknown };
+        // A FAMILY IN A STYLE IT HAS (#2371): the cell's style is "Regular", and a family with no Regular (one whose only
+        // face is Light Condensed) could not be bound. The text takes the family in a face it has first.
+        if (spec.bind === 'fontFamily' && cell.str && text && typeof font.style === 'string') {
+          const face = await faceOf(cell.str, row.variableId, font.style);
+          if (face && face !== font.style) { try { text.fontName = { family: cell.str, style: face }; font = { family: cell.str, style: face }; } catch { /* named below, unbound */ } }
+        }
         // The host sets a bound family or weight only in a font it has loaded: that family in the cell's style, or the
         // cell's family at that weight.
         const needs = spec.bind === 'fontFamily' && cell.str && typeof font.style === 'string' ? { family: cell.str, style: font.style }
@@ -2191,6 +2263,13 @@ export const catalogFor = (catalog: SgCatalog, contract: SgContract | null, setU
   const plan = planStyleGuide(catalog, contract, {});
   const tableOf = new Map<string, number>();
   plan.tables.forEach((t, i) => { for (const r of t.rows) if (!tableOf.has(r.variableId)) tableOf.set(r.variableId, i); });
+  // A text style's bound font size with no table of its own (the responsive collection's, #2371) is drawn in the Text
+  // styles table, so the page lists it there, not as a later phase.
+  const textTable = plan.tables.findIndex((t) => t.type === 'typography');
+  if (textTable >= 0) for (const st of catalog.textStyles ?? []) {
+    const id = st.boundVariables?.fontSize?.id;
+    if (id && !tableOf.has(id)) tableOf.set(id, textTable);
+  }
   const ix: Index = { byId: new Map(catalog.variables.map((v) => [v.id, v])), collections: new Map(catalog.collections.map((c) => [c.id, c])) };
   const valueOf = (v: SgVariable, col: SgCollection): string => {
     const mode = defaultMode(col);
