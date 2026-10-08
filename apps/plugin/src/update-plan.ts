@@ -139,6 +139,36 @@ const extraChildren = (plan: AnatomyPlan['root'], node: SnapNode, path: string, 
   }
 };
 
+/** Fills the host has where the plan has none, each as a path relative to the member and the file's paint, named
+ *  (#2335). The executor clears such a fill (`claimDefaults`: nobody asked for a fill means no fill), so the update
+ *  removes it, but the read-back checks only the paints a plan declares, and a plan with no fill declares nothing
+ *  to check. A text button's hover wash, dropped by "Text & icon only" (#2324), was cleared with no line saying so.
+ *  TEXT is left out, as the executor leaves it (an unpainted label is reported, never cleared), and so is an
+ *  instance, whose fills are its main's. A GLYPH's imported contents are not walked, as in `extraChildren`. */
+const droppedFills = (plan: AnatomyPlan['root'], node: SnapNode, path: string, ports: ReadPorts, out: { part: string; file: string }[]): void => {
+  const fills = node.fills;
+  if (node.type !== 'TEXT' && node.type !== 'INSTANCE' && !plan.paints?.fills && !plan.gradientFill && Array.isArray(fills) && fills.length)
+    out.push({ part: path, file: fills.map((f) => paintText(f, ports)).join(' + ') });
+  if (plan.type === 'GLYPH' || node.type === 'INSTANCE') return;
+  const planned = new Map((plan.children ?? []).map((c) => [c.name, c] as const));
+  for (const k of node.children ?? []) {
+    const cp = planned.get(k.name);
+    if (cp) droppedFills(cp, k, path === '.' ? k.name : `${path}/${k.name}`, ports, out);
+  }
+};
+/** One paint as a designer would find it: the variable it binds, or its color. */
+const paintText = (raw: unknown, ports: ReadPorts): string => {
+  const p = (raw ?? {}) as { type?: unknown; visible?: unknown; color?: { r: number; g: number; b: number }; opacity?: unknown; boundVariables?: { color?: { id?: unknown } } };
+  const id = p.boundVariables?.color?.id;
+  const hex = (c: { r: number; g: number; b: number }): string =>
+    `#${[c.r, c.g, c.b].map((x) => Math.round(x * 255).toString(16).padStart(2, '0')).join('')}`;
+  const what = typeof id === 'string' ? (ports.varName(id) ?? `a variable this file does not have (${id})`)
+    : p.type === 'SOLID' && p.color ? hex(p.color)
+    : String(p.type).startsWith('GRADIENT') ? 'a gradient' : p.type === 'IMAGE' ? 'an image' : p.type === 'VIDEO' ? 'a video' : 'a paint';
+  const opacity = typeof p.opacity === 'number' && p.opacity < 1 ? ` at ${Math.round(p.opacity * 100)}%` : '';
+  return `${what}${opacity}${p.visible === false ? ', hidden' : ''}`;
+};
+
 /** A stamp Prism3 wrote (#2300): the engine version, a 16-hex plan stamp or `adopted`, and the executor revision
  *  (absent on a stamp from before #1098). Anything else is not Prism3's, however it got there. */
 export const STAMP_SHAPE = /^[^|]+\|(?:[0-9a-f]{16}|adopted)(?:\|\d+)?$/;
@@ -316,7 +346,17 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       if (c.sample.length < 3) c.sample.push(m.name);
       changes.set(k, c);
     }
-    if (state === 'update' && divs.length === 0 && extras.length === 0) {
+    const dropped: { part: string; file: string }[] = [];
+    droppedFills(plan.root, m.snap, '.', ports, dropped);
+    for (const { part, file } of dropped) {
+      touched.add(part);
+      const k = `${part}\u0000fill\u0000${file}\u0000none`;
+      const c = changes.get(k) ?? { part, field: 'fill', from: file, to: 'none', members: 0, sample: [] };
+      c.members++;
+      if (c.sample.length < 3) c.sample.push(m.name);
+      changes.set(k, c);
+    }
+    if (state === 'update' && divs.length === 0 && extras.length === 0 && dropped.length === 0) {
       counts.reapplied++;
       const k = '.\u0000stamp\u0000\u0000';
       const c = changes.get(k) ?? { part: '.', field: 'stamp', from: planMoved ? 'an earlier plan' : 'an earlier executor revision', to: 're-applied — no field-level difference visible', members: 0, sample: [] };
@@ -476,6 +516,9 @@ export const differencesOf = (plan: AnatomyPlan, m: HostMember, ports: ReadPorts
   const extras: string[] = [];
   extraChildren(plan.root, m.snap, '.', extras);
   for (const part of extras) out.push({ part, field: 'children', plan: 'absent', file: 'present' });
+  const dropped: { part: string; file: string }[] = [];
+  droppedFills(plan.root, m.snap, '.', ports, dropped);
+  for (const { part, file } of dropped) out.push({ part, field: 'fill', plan: 'none', file });
   return out;
 };
 

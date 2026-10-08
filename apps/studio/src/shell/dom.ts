@@ -31,6 +31,23 @@ export const h = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: P3Class, 
  *  locate elements by it, no style rule keys on it, and it does not change across a redesign. */
 export const hook = <E extends Element>(n: E, role: string): E => { n.setAttribute('data-p3', role); return n; };
 
+/** THE CHROME'S ONE SWITCH (SG5 A, #2183; concept v6's track and knob): a button with `role="switch"` holding a track
+ *  and a knob, named by `label`. Its state is `aria-checked` alone, with no state words (the owner, 2026-10-08), and its
+ *  focus ring is its own outline (FR1 A). Disabled, it draws Prism3's own disabled switch roles (#2237, `chrome.css`).
+ *  Every chrome switch is made here: the levers' (`switchButton`) and Build style guides'. */
+export const switchEl = (role: string, label: string, onToggle: (on: boolean) => void): { el: HTMLButtonElement; set: (on: boolean) => void } => {
+  const el = hook(h('button', 'p3-switch'), role);
+  el.type = 'button';
+  el.setAttribute('role', 'switch');
+  el.setAttribute('aria-label', label);
+  const track = h('span', 'p3-switch-track');
+  track.setAttribute('aria-hidden', 'true');
+  track.append(h('span', 'p3-switch-knob'));
+  el.append(track);
+  el.onclick = () => onToggle(el.getAttribute('aria-checked') !== 'true');
+  return { el, set: (on) => el.setAttribute('aria-checked', String(on)) };
+};
+
 /** Chrome glyphs: 16 px, a 1.5 px stroke in `currentColor` (concept v6's set, plus `pages` and `export`; S1.3 adds `layers` and `chevl` for Inspect;
  *  S1.4 adds concept v6's `pulse` for Activity and `agent` for the Agent chip; S2 adds `info`, `plus` and `chevr` for the levers panel;
  *  S3 adds concept v6's `warn`). */
