@@ -706,7 +706,6 @@ label.cset-head{cursor:pointer}
 .shp-field{width:180px;border:1px solid transparent}
 .shp-button{width:112px;border:1px solid transparent}
 .shp-tag{width:64px;border:1px solid transparent}
-.shp-check{border:2px solid transparent}
 .fz-list{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-top:4px}
 .fz-warn{font-size:12.5px;background:#fff8ed;border:1px solid #f0d9b5;color:#7a5320;border-radius:var(--r-sm);padding:10px 13px;line-height:1.5;margin:10px 0 0}
 /* minmax(0,1fr), not a bare 1fr — a grid item's automatic minimum is min-content, so a bare

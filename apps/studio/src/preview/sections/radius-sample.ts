@@ -51,7 +51,8 @@ export const radiusSampleSection = (c: SgCtx, o: {
     // The controls on the panel take the page color, so they read against the panel's second tier.
     const s = shapeSample(c, cls, pre, 'background.primary');
     s.style.height = `${height}px`;
-    if (cls === 'shp-check') s.style.width = `${height}px`;
+    // The checkbox is a square box with the 2px edge its definition draws (#1228); inline, as its height is.
+    if (cls === 'shp-check') { s.style.width = `${height}px`; s.style.borderStyle = 'solid'; s.style.borderWidth = '2px'; }
     s.style.borderRadius = `${corner}px`;
     wrap.append(s, tokenPillSpan(ref));
     return wrap;
