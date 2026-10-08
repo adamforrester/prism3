@@ -397,6 +397,18 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
       if ([...keep].some((k) => at === k || at.startsWith(`${k}/`))) continue;
       out.content.push(`${name}/${at}.${d.field}: ${d.actual} (the plan says ${d.expected})`);
     }
+    // A PAINT THE PLAN DOES NOT GIVE (#2369). `diffAnatomy` reads the paints a plan declares, so a node the plan
+    // leaves unpainted is never checked, and a fill a superseded plan gave it would pass. Read here off the live
+    // node, by the build's own rule: a frame the plan gives no fill (and no gradient) or no stroke carries none.
+    const unpainted = (pn: AnatomyPlan['root'], hn: (LiveNode & { fills?: unknown; strokes?: unknown }) | undefined, at: string): void => {
+      if (!hn || pn.type !== 'FRAME' || [...keep].some((k) => at === k || at.startsWith(`${k}/`))) return;
+      const shown = (ps: unknown): number => (Array.isArray(ps) ? ps.filter((x) => (x as { visible?: boolean })?.visible !== false).length : 0);
+      if (!pn.paints?.fills && !pn.gradientFill && shown(hn.fills)) out.content.push(`${name}/${at}.fills: ${shown(hn.fills)} paint(s) (the plan says none)`);
+      if (!pn.paints?.strokes && shown(hn.strokes)) out.content.push(`${name}/${at}.strokes: ${shown(hn.strokes)} paint(s) (the plan says none)`);
+      const kids = (hn.children ?? []) as (LiveNode & { fills?: unknown; strokes?: unknown })[];
+      for (const c of pn.children ?? []) unpainted(c, kids.find((k) => String(k.name ?? '') === c.name), at === '.' ? c.name : `${at}/${c.name}`);
+    };
+    unpainted(pl.root, a as LiveNode & { fills?: unknown; strokes?: unknown }, '.');
   }
   return out;
 };

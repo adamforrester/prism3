@@ -51,6 +51,9 @@
  *                  (a gap; Button's two levers), is updated whole and reads current after; no ✓ verdict while a
  *                  previewed difference is left (#2364). Mutation: `noBaseline` out of the apply's nothing-to-do count →
  *                  `unrecorded/all`, `unrecorded/levers`; with the guard gone too → `unrecorded/honest`.
+ *   root/…         a member ROOT the plan gives no fill (a text button's hover wash, under a plan that drops it) is left
+ *                  with none, and the verdict fails when one is not (#2369). Mutations: the executor's neutral claims
+ *                  skipping an in-place root → `root/cleared`; with verify's unpainted check gone too → `root/verified`.
  *   apply/blocked  a set the dry run refuses (two members on one coordinate) is refused by the apply too: the
  *                  dry run's reason returned, every member byte-identical, no version saved (#2328 review). Mutation:
  *                  the apply's own blocker check dropped from `preflight` → `apply/blocked`.
@@ -567,6 +570,31 @@ section('unrecorded — a member with no as-built record is updated and named, n
   const again = await previewUpdate(w.host, [{ def: 'button', plans: next }]);
   ok(again.sets[0]?.counts.current === members && previewVerdict(again).headline === '✓ All sets up to date',
     `unrecorded/levers converge: the next dry run reads every member current, minWidth and textStyle included (${JSON.stringify(again.sets[0]?.changes.map((c) => c.field))}; ${previewVerdict(again).headline})`);
+}
+
+{
+  // #2369: a member ROOT the plan gives no fill keeps the fill it was built with. Button under "Text button hover:
+  // Fill" washes its text hover and pressed members on the member root; under the default "Text & icon only" the
+  // plan gives those roots no fill. The update must clear it, and its verify must see it when it does not.
+  // Mutations: the in-place root skipped by the executor's neutral claims → `root/cleared` (the verify then fails
+  // the verdict, so `root/verified` holds); with the verify's unpainted check dropped too → `root/verified` as well.
+  const def = componentDefs.find((d) => d.id === 'button')!;
+  const was = figmaAnatomySet(materializeForBrand(def, { buttonTextHover: 'fill' } as never), { swapTarget: SWAP_TARGET });
+  const next = figmaAnatomySet(materializeForBrand(def, null), { swapTarget: SWAP_TARGET });
+  const w = await world('button', was, {
+    extraVars: next.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
+    extraStyles: next.flatMap((p) => planTextStyles(p.root)),
+  });
+  const bare = new Set(next.filter((p) => !p.root.paints?.fills && !p.root.gradientFill).map((p) => planComponentName(p)));
+  const painted = (m: Node): boolean => ((m.fills as { visible?: boolean }[] | undefined) ?? []).some((f) => f.visible !== false);
+  const washed = membersOf(w.set()).filter((m) => bare.has(String(m.name)) && painted(m)).length;
+  ok(washed === 48, `premise: under Fill, 48 members the default plan leaves unfilled carry a wash on the member root (${washed})`);
+  const pre = await previewUpdate(w.host, [{ def: 'button', plans: next }]);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: 'button', plans: next }], previewHashOf(pre));
+  const left = membersOf(w.set()).filter((m) => bare.has(String(m.name)) && painted(m)).map((m) => String(m.name));
+  ok(left.length === 0, `root/cleared: every member root the plan gives no fill is left with none (${left.length} still washed${left.length ? `, e.g. ${left[0]}` : ''})`);
+  const v = applyVerdict(res);
+  ok(v.ok === (left.length === 0), `root/verified: the verdict fails exactly when a member root keeps a fill the plan does not give it (${v.headline}; ${left.length} washed)`);
 }
 
 /* ── swap ────────────────────────────────────────────────────────────────────────────────────────────── */
