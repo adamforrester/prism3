@@ -174,7 +174,8 @@
  *     table is HUG" fails; a text cell left hugging → "5: every text cell FILLs its track, both axes" fails.
  *   - (review of f95a2cb3 and the owner decisions of 2026-09-29; docs/00-progress.md 2026-09-29) the track gap left at 0
  *     → "5: every table's grid has a 2px gap…" and "2: the table and its header are as wide as its grid, 2854px…"
- *     fail; the swatch's FIXED sizing dropped → "5: every swatch keeps its component's 48 × 48, FIXED…" fails; the
+ *     fail (since #2336 the gap is 0, and a 2px gap fails "5: no table's grid has a gap…", "2: … 2828px…" and "32:
+ *     every row line runs across every column…"); the swatch's FIXED sizing dropped → "5: every swatch keeps its component's 48 × 48, FIXED…" fails; the
  *     filtered run's gap-closing re-stack restored → "13: a filtered run whose table keeps its height moves no
  *     table…", "13: a table a designer moved and a table with no position record are left alone…" and "13:
  *     shrinking back by 100px…" fail; the header-width miss dropped → "10: a header the host will not size…" fails;
@@ -816,12 +817,13 @@ const prism3Variables = (): { cols: ShimCol[]; vars: ShimVar[] } => {
 const input = parseDesignMd(readFileSync(join(here, '../../packages/engine/examples/prism3.design.md'), 'utf8')).input;
 const contract = resolveAllModes(brandTheme(input));
 
-/** The owner-cell Text table's width (section 2): its fourteen HUG tracks, 2,828px by the shim's own metric, and the
- *  thirteen 2px gaps between them. */
-const TEXT_OWNER_W = 2828 + 13 * 2;
+/** The owner-cell Text table's width (section 2): its fourteen HUG tracks, 2,828px by the shim's own metric, with no
+ *  gap between them since #2336 (the row lines are drawn; they were 2px gaps). */
+const TEXT_OWNER_W = 2828;
 /** The first three semantic tables' x in a row (decision 16): Background at the row's start, then each 160px after the
- *  one before it, whose widths the shim measures as 2,361 (Background) and 3,173 (Foreground). */
-const XS_THREE = ['Background 0', 'Foreground 2521', 'Text 5854'];
+ *  one before it, whose widths the shim measures as 2,335 (Background) and 3,147 (Foreground): fourteen tracks each,
+ *  with no gap between them since #2336 (2,361 and 3,173 with the thirteen 2px gaps). */
+const XS_THREE = ['Background 0', `Foreground ${2335 + 160}`, `Text ${2335 + 160 + 3147 + 160}`];
 /** A 120-character description widens the Text table's description column from 662 (its longest, 90 characters:
  *  630 + 16 + 16) to 872 (840 + 16 + 16): 210px. */
 const WIDEN_TEXT = 210;
@@ -831,11 +833,11 @@ const WIDEN_PRIMARY = 532;
 /** A 100-character description widens Density's description column from its "Description" header (11 characters:
  *  77 + 16 + 16 = 109) to 732 (700 + 16 + 16): 623px. */
 const WIDEN_DENSITY = 623;
-/** Two new steps add two rows to Dimension, each 44px (a text cell: 20 + 12 + 12) and its 2px gap: 92px. */
-const GROW_DIMENSION = 92;
-/** An 80-step dimension table: 81 rows of 44px and 80 gaps of 2px, 3,724, and the wrapper's 40px between its header
- *  (0px tall in the shim) and its grid: 3,764px. */
-const RAMP_H = 3764;
+/** Two new steps add two rows to Dimension, each 44px (a text cell: 20 + 12 + 12), with no gap since #2336: 88px. */
+const GROW_DIMENSION = 2 * 44;
+/** An 80-step dimension table: 81 rows of 44px, no gaps since #2336, 3,564, and the wrapper's 40px between its header
+ *  (0px tall in the shim) and its grid: 3,604px. */
+const RAMP_H = 81 * 44 + 40;
 const PRIM = '↳ Primitive tokens';
 const SEM = '↳ Semantic tokens';
 const FC = '↳ File Components';
@@ -969,7 +971,9 @@ const gridOf = (wrap: N | undefined): N => {
 const cellAt = (grid: N, r: number, c: number): N | undefined => grid.children.find((k) => k.gridRow === r && k.gridCol === c);
 const textIn = (n: N | undefined): string => (n?.findAll((k) => k.type === 'TEXT') ?? []).map((t) => t.characters).join(' | ');
 const rowOf = (grid: N, token: string): number => grid.children.find((k) => k.gridCol === 0 && textIn(k) === token)?.gridRow ?? -1;
-const boundId = (paints: unknown): string | undefined => (paints as { boundVariables?: { color?: { id: string } } }[] | undefined)?.[0]?.boundVariables?.color?.id;
+/** The variable a node's paints are bound to: the bound paint among them, wherever it sits. A fill swatch paints its color
+ *  over the cell's white since #2336, so its bound paint is the second, on top. */
+const boundId = (paints: unknown): string | undefined => (paints as { boundVariables?: { color?: { id: string } } }[] | undefined)?.find((p) => p?.boundVariables?.color)?.boundVariables?.color?.id;
 /** The width a node's content needs, read off the shim's own metric — never the plugin's arithmetic. A wrapped
  *  text needs only its box; any other text needs its words on one line. */
 const need = (n: N): number => {
@@ -1079,7 +1083,8 @@ const main = async (): Promise<void> => {
     // The owner's type=default carries its fill on the component itself, with no layers inside (live: 368 misses).
     const bgT = tableFrame(sem, 'Background');
     const bgG = bgT ? gridOf(bgT) : undefined;
-    const bgSw = bgG ? cellAt(bgG, rowOf(bgG, 'primary'), 1)?.children[0] : undefined;
+    // A fill is the swatch itself, filling its cell (#2331), so the cell IS the owner's layerless instance.
+    const bgSw = bgG ? cellAt(bgG, rowOf(bgG, 'primary'), 1) : undefined;
     ok(bgSw?.mainComponent?.name === 'type=Default' && boundId(bgSw?.fills) === vars.find((v) => v.name === 'pds3/color/background/primary')!.id, "2: a type=default swatch with no layers binds the instance's own fill");
     ok(run.unbound === 0 && styleGuideSummary(run).headline === '✓ style guide: 11 tables', '2: nothing unbound — headline "✓ style guide: 11 tables"');
     // The owner's cells are a fixed 120px and clip; drawn, each hugs its words and no column cuts one off.
@@ -1171,10 +1176,11 @@ const main = async (): Promise<void> => {
     ok(textCells.length > 0 && hugging.length === 0, `5: every text cell FILLs its track, both axes (${hugging.length} of ${textCells.length} do not)`);
     const grounds = grids.flatMap((x) => x.children.filter((k) => k.name === 'Ground'));
     ok(grounds.length > 0 && grounds.every((k) => k.lsh === 'FILL' && k.layoutSizingVertical === 'FILL'), '5: every specimen ground FILLs its track, both axes');
-    // THE OWNER'S EXAMPLES (owner decisions, 2026-09-29): a 2px gap between tracks, rows and columns alike, and the swatch
-    // at its component's fixed size inside a cell that FILLs its track. 48 is the built swatch member's size (48 × 48).
-    const offGap = grids.filter((x) => x.gridRowGap !== 2 || x.gridColumnGap !== 2);
-    ok(offGap.length === 0, `5: every table's grid has a 2px gap between its rows and between its columns (${offGap.slice(0, 3).map((x) => `${x.parent?.name}: ${x.gridRowGap}/${x.gridColumnGap}`).join('; ')})`);
+    // NO GAP BETWEEN TRACKS (owner, #2336 review, 2026-10-08; the 2px of 2026-09-29 were the row dividers, and showed the
+    // canvas through), and a mark at its component's fixed size inside a cell that FILLs its track. 48 is the built
+    // swatch member's size (48 × 48).
+    const offGap = grids.filter((x) => x.gridRowGap !== 0 || x.gridColumnGap !== 0);
+    ok(offGap.length === 0, `5: no table's grid has a gap between its rows or its columns: the row lines are drawn (${offGap.slice(0, 3).map((x) => `${x.parent?.name}: ${x.gridRowGap}/${x.gridColumnGap}`).join('; ')})`);
     const swatchesIn = grounds.flatMap((k) => k.children.filter((c) => c.type === 'INSTANCE'));
     const stretched = swatchesIn.filter((x) => x.lsh !== 'FIXED' || x.layoutSizingVertical !== 'FIXED' || x.width !== 48 || x.height !== 48);
     ok(swatchesIn.length === grounds.length && stretched.length === 0 && grounds.every((k) => k.width > 48),
@@ -1205,7 +1211,7 @@ const main = async (): Promise<void> => {
     ok(boundId(cellAt(icon, rowOf(icon, 'on-brand'), 1)?.fills) === idOf('pds3/color/foreground/brand'), '5: icon/on-brand is drawn on foreground/brand');
     const neutral = gridOf(tableFrame(f.prim, 'Neutral')!);
     const nr = rowOf(neutral, '050');
-    ok(boundId(cellAt(neutral, nr, 1)?.findOne((k) => k.name === 'Specimen')?.fills) === idOf('pds3/core/palette/neutral/050'), '5: a primitive swatch is bound to its step');
+    ok(boundId(cellAt(neutral, nr, 1)?.fills) === idOf('pds3/core/palette/neutral/050'), '5: a primitive swatch is bound to its step, on the instance itself (#2336)');
     ok(cellAt(neutral, nr, 1)?.explicitVariableModes['VariableCollectionId:core'] === 'core:0', '5: a primitive swatch pins its one mode');
 
     // THE SPECIMEN BY ROLE (owner decision 13, 2026-09-29). A palette row: no ground, its cell the type=default swatch
@@ -1243,13 +1249,13 @@ const main = async (): Promise<void> => {
     ok(bcell.name === 'Ground' && bsw?.mainComponent?.name === 'type=border' && boundId(bsw.findOne((k) => k.name === 'Specimen')?.strokes) === idOf(firstBorder)
       && boundId(bsw.findOne((k) => k.name === 'Specimen')?.fills) === undefined,
       `5: a border.* row draws the type=border member, its stroke bound to the token and not its fill, on its ground (${bsw?.mainComponent?.name})`);
-    // A fill role: the type=default swatch, 48 × 48, its fill bound to the token, on its ground.
+    // A fill role: the type=default swatch IS the cell, filling it, its own fill bound to the token, on no ground (#2331,
+    // #2336).
     const bgG = gridOf(tableFrame(f.sem, 'Background')!);
-    const fcell = cellAt(bgG, rowOf(bgG, 'secondary'), 1)!;
-    const fsw = fcell.children[0];
-    ok(fcell.name === 'Ground' && fcell.lsh === 'FILL' && fsw?.mainComponent?.name === 'type=default' && fsw.width === 48 && fsw.height === 48
-      && boundId(fsw.findOne((k) => k.name === 'Specimen')?.fills) === idOf('pds3/color/background/secondary'),
-      `5: a fill row keeps its 48 × 48 swatch on its ground (${fcell.name}, ${fsw?.mainComponent?.name} ${fsw?.width}×${fsw?.height})`);
+    const fsw = cellAt(bgG, rowOf(bgG, 'secondary'), 1)!;
+    ok(fsw.type === 'INSTANCE' && fsw.mainComponent?.name === 'type=default' && fsw.lsh === 'FILL' && fsw.layoutSizingVertical === 'FILL'
+      && boundId(fsw.fills) === idOf('pds3/color/background/secondary'),
+      `5: a fill row's swatch fills its cell, on no ground (#2331) (${fsw.type} ${fsw.name}, ${fsw.mainComponent?.name}, ${fsw.lsh}/${String(fsw.layoutSizingVertical)})`);
     const border = gridOf(tableFrame(f.sem, 'Border')!);
     const bs = cellAt(border, 1, 1)?.children[0];
     ok(bs?.mainComponent?.name === 'type=border' && boundId(bs?.findOne((k) => k.name === 'Specimen')?.strokes) === idOf(f.vars.filter((v) => v.name.startsWith('pds3/color/border/'))[0].name), '5: a border role binds the stroke');
@@ -1454,17 +1460,22 @@ const main = async (): Promise<void> => {
     ok(prim.name === 'Style guide — Primary — nbds' && pTitle.characters === 'Primary — nbds', `9: an earlier run's title is rewritten to name its root (${prim.name} / ${pTitle.characters})`);
     ok(nTitle.characters === 'Grays' && neu.name === 'Style guide — Neutral — nbds', '9: a title the designer typed is kept');
 
-    // A swatch member with layers and no paint anywhere: nothing binds, and the verdict says how many — 75
-    // prism3 roles draw the plain swatch, in four modes: 300. (74 and 296 on main; the #1743 merge adds
-    // `interactive.primary.subtle-fill.selected`, one plain-swatch role, and 267 semantic rows become 268.)
+    // A swatch member with layers and no paint anywhere. A FILL swatch still binds: since #2336 the instance paints the
+    // color itself, edge to edge, so the 75 prism3 roles that draw the plain swatch, in four modes, are 300 bound
+    // swatches. A MARK still needs a layer to paint: a text member with a group and no text binds nothing, and the
+    // verdict says how many: 61 text roles (a `text` segment first among text, icon and border, counted in the emitted
+    // color.light.json), in four modes, 244.
     const fc = page(FC), sgc = page('Style Guide Components'), sem = page(SEM);
     const sw = ownerSet('_style-guide-swatches', ['type=Default', 'type=Text'], true);
     const def = sw.children[0]; def.fills = []; const grp = new N('GROUP'); grp.name = 'Group'; def.appendChild(grp);
+    const txt = sw.children[1]; for (const k of [...txt.children]) k.remove(); txt.fills = []; const tgrp = new N('GROUP'); tgrp.name = 'Group'; txt.appendChild(tgrp);
     sgc.appendChild(sw); sgc.appendChild(ownerSet('_style-guide-text-cells', ['color=dark, textAlign=left, type=header, padding=default', 'color=white, textAlign=left, type=default, padding=default'], false));
     const u = await draw(makeShim([fc, sgc, sem], prism3Variables().cols, prism3Variables().vars).api, contract, { collections: ['color'] });
     const us = styleGuideSummary(u);
-    ok(u.unbound === 300 && !us.ok && us.headline === '⚠ 300 swatches unbound', `9: unbound swatches are not a pass — headline "${us.headline}"`);
-    ok(us.summary.includes('300 swatches in type=Default have no layer that takes a fill'), '9: the summary counts them per variant');
+    const plainBound = tablesOn(sem).flatMap((w) => gridOf(w).children.filter((k) => k.mainComponent?.name === 'type=Default' && boundId(k.fills) !== undefined));
+    ok(plainBound.length === 300, `9: a plain swatch with no layer that takes a fill still binds: the instance paints the color itself (#2336) (${plainBound.length} of 300)`);
+    ok(u.unbound === 244 && !us.ok && us.headline === '⚠ 244 swatches unbound', `9: unbound swatches are not a pass — headline "${us.headline}"`);
+    ok(us.summary.includes('244 swatches in type=Text have no layer that takes a fill'), `9: the summary counts them per variant (${us.summary.slice(0, 120)})`);
 
     // Named values first in the file's order, then the numeric steps ascending.
     const named = { collections: cols, variables: [...vars, ...['white', 'black'].map((n, i) => ({ id: `VariableID:legacy:n${i}`, name: `legacy/ramp/${n}`, variableCollectionId: 'VariableCollectionId:legacy', resolvedType: 'COLOR', description: '', valuesByMode: { 'legacy:0': { r: 1, g: 1, b: 1, a: 1 } } }))] };
@@ -1621,8 +1632,9 @@ const main = async (): Promise<void> => {
       ["a cell's auto-layout padding changed", (t) => { const c = valueCell(t); c.paddingLeft = Number(c.paddingLeft ?? 0) + 8; }],
       ["a swatch swapped to another component", (t) => { const sw = swatch(t); const other = sw.mainComponent!.parent!.children.find((m) => m !== sw.mainComponent)!; sw.mainComponent = other; }],
       ["a header's component property toggled", (t) => { const h = t.children[0]; h.componentProperties!['Description#1:0'].value = false; }],
-      // The Specimen inside a swatch: its parent is not auto layout, so hiding it moves no size the fingerprint reads.
-      ['a swatch layer hidden, nothing else', (t) => { const sp = swatch(t).findOne((k) => k.name === 'Specimen')!; if (swatch(t).layoutMode) throw new Error('swatch is auto layout'); sp.visible = false; }],
+      // The Specimen inside a swatch: its parent is not auto layout, so showing it moves no size the fingerprint reads. A
+      // fill swatch draws it hidden since #2336 (the instance paints the color), so the edit shows it again.
+      ['a swatch layer shown, nothing else', (t) => { const sp = swatch(t).findOne((k) => k.name === 'Specimen')!; if (swatch(t).layoutMode) throw new Error('swatch is auto layout'); sp.visible = true; }],
       ['a cell renamed in the layers panel', (t) => { const c = valueCell(t); c.name = `${c.name} (edited)`; }],
       ["the reviewer's example: a shadow, 8px corners and one cell made bold", (t) => { t.effects = [{ type: 'DROP_SHADOW', visible: true, color: { r: 0, g: 0, b: 0, a: 0.25 }, offset: { x: 0, y: 4 }, radius: 8 }]; t.cornerRadius = 8; valueText(t).fontName = { family: 'Inter', style: 'Bold' }; }],
     ];
@@ -1982,9 +1994,11 @@ const main = async (): Promise<void> => {
       `16: a mode-varying spacing draws a bound bar per mode, pinned: compact 8px, comfortable 12px (${barIn(c0)?.width}, ${barIn(c1)?.width})`);
     ok(textIn(cellAt(dg, gap, 2)) === '8px' && textIn(cellAt(dg, gap, 3)) === '0.5rem' && textIn(cellAt(dg, gap, 5)) === '12px' && textIn(cellAt(dg, gap, 6)) === '0.75rem',
       '16: its values per mode, each with its own REM column: "8px" · "0.5rem", "12px" · "0.75rem"');
-    // RADIUS: the swatches set's type=radius member at its fixed size, its corner bound to the variable, no ground.
+    // RADIUS: the swatches set's type=radius member at its fixed size, its corner bound to the variable, no ground. It
+    // sits in a white cell of its own that FILLs the track (#2336), so the cell is solid and its row line runs through.
     const rg = gridOf(tableFrame(p2.sem, 'Radius')!);
-    const md = cellAt(rg, rowOf(rg, 'md'), 1);
+    const rbox = cellAt(rg, rowOf(rg, 'md'), 1);
+    const md = rbox?.name === 'Cell' && rbox.lsh === 'FILL' ? rbox.children[0] : undefined;
     ok(md?.type === 'INSTANCE' && md.mainComponent?.name === 'type=radius' && md.lsh === 'FIXED' && md.width === 48 && md.height === 48
       && md.findOne((k) => k.name === 'radius-example')?.boundVariables.topLeftRadius?.id === p2Id('pds3/radius/md') && md.explicitVariableModes['VariableCollectionId:radius'] === 'radius:0',
       `16: radius/md draws the type=radius swatch, 48 × 48 and FIXED, its corner bound to radius/md (${md?.mainComponent?.name}, ${md?.width}×${md?.height})`);
@@ -2445,10 +2459,11 @@ const main = async (): Promise<void> => {
     const rw = await phase2File();
     await draw(rw.api, contract);
     const at = (title: string): string => { const w = tableFrame(rw.prim, title)!; return `${w.x},${w.y}`; };
-    // The Primitive page holds two categories: dimension (Dimension 610 wide, its REM column included and 1,970 tall, Density, Step) and font
-    // variables (Font family 974 wide, …). The font row starts 160px below the dimension row's tallest table.
-    ok(JSON.stringify(['Dimension', 'Density', 'Font family', 'Font size (core)'].map(at)) === JSON.stringify(['0,0', '770,0', '0,2130', '1134,2130']),
-      `23: two categories, two tables each, at literal positions: Dimension 0,0 and Density 770,0; Font family 0,2130 and Font size (core) 1134,2130 (${['Dimension', 'Density', 'Font family', 'Font size (core)'].map(at).join(' | ')})`);
+    // The Primitive page holds two categories: dimension (Dimension 602 wide, its REM column included and 1,888 tall, Density, Step) and font
+    // variables (Font family 968 wide, …). The font row starts 160px below the dimension row's tallest table. No gap
+    // between tracks since #2336: with the 2px gaps these were 610, 1,970 and 974.
+    ok(JSON.stringify(['Dimension', 'Density', 'Font family', 'Font size (core)'].map(at)) === JSON.stringify(['0,0', '762,0', '0,2048', '1128,2048']),
+      `23: two categories, two tables each, at literal positions: Dimension 0,0 and Density 762,0; Font family 0,2048 and Font size (core) 1128,2048 (${['Dimension', 'Density', 'Font family', 'Font size (core)'].map(at).join(' | ')})`);
     const rowOfCat = (cat: RegExp): N[] => tablesOn(rw.prim).filter((w) => cat.test(w.pluginData['prism3-style-guide'])).sort((a, b) => a.x - b.x);
     const dimRow = rowOfCat(/^dimension\|/), fontRow = rowOfCat(/^(fontFamily|fontSize|fontWeight|lineHeight|letterSpacing)\|/);
     const rowGaps = (ns: N[]): number[] => ns.slice(1).map((n, i) => n.x - (ns[i].x + ns[i].width));
@@ -2799,16 +2814,9 @@ const main = async (): Promise<void> => {
     await draw(own.api, contract);
     ok(squares(ownSet).every((k) => k.constraints === undefined) && ownSet.pluginData['prism3-swatches'] === undefined,
       `30 #2268: a swatch set the owner made is left as it is: nothing stretched, no mark (${squares(ownSet).map((k) => JSON.stringify(k.constraints ?? null)).join(' ')})`);
-    // The edge: every palette swatch's square is stroked with the brand's color.border.secondary, bound, not a literal.
-    const edgeId = fresh.vars.find((v) => v.name === 'pds3/color/border/secondary')?.id;
+    // The edge (#2268, #2331) is gone (owner, #2336 review, 2026-10-08): a fill swatch has no outline, and the cell's
+    // row line bounds it. Section 32 holds that, and the swatch's fill to the edge.
     await draw(fresh.api, contract);
-    const paletteSwatches = tablesOn(fresh.prim).flatMap((w) => gridOf(w).children.filter((k) => k.type === 'INSTANCE' && /^type=/.test(k.mainComponent?.name ?? '')));
-    const squareOf = (inst: N): N | undefined => inst.findAll((k) => k.name === 'Specimen')[0];
-    const plainEdge = paletteSwatches.filter((i) => i.mainComponent?.name !== 'type=border' && boundId(squareOf(i)?.strokes) !== edgeId);
-    ok(!!edgeId && paletteSwatches.length >= 100 && plainEdge.length === 0,
-      `30 #2268: every palette swatch's edge is bound to pds3/color/border/secondary (${paletteSwatches.length} swatches, ${plainEdge.length} not: ${plainEdge[0] ? `${plainEdge[0].mainComponent?.name} ${JSON.stringify(boundId(squareOf(plainEdge[0])?.strokes) ?? null)}` : 'none'})`);
-    const semSwatch = tablesOn(fresh.sem).flatMap((w) => gridOf(w).findAll((k) => k.type === 'INSTANCE')).find((i) => i.mainComponent?.name === 'type=default');
-    ok(!!semSwatch && boundId(squareOf(semSwatch)?.strokes) === undefined, '30 #2268: control: a semantic role swatch, on its own ground, keeps its own edge');
 
     // #2261: a single skipped table is "1 table", as every other count in the summary reads.
     const one = (reason: 'no-page' | 'no-cells'): string => styleGuideSummary({ tables: [{ key: 'k', title: 'Brand', page: '↳ Semantic tokens', status: 'skipped', reason }], stale: [], replaced: [], deleted: [], kept: [], unbound: 0, notes: [], misses: [], unmatched: [] }).summary;
@@ -2839,6 +2847,95 @@ const main = async (): Promise<void> => {
     const chits = cboxes.flatMap((a, i) => cboxes.slice(i + 1).filter((b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h).map((b) => `${a.n} × ${b.n}`));
     ok(cboxes.length === 4 && chits.length === 0 && cboxes.find((b) => b.n === 'Dimension')?.x === 0,
       `30 #2269: drawn from its own page, a filtered run of two categories lays its tables apart, the first at the page's origin (${cboxes.map((b) => `${b.n} ${b.x},${b.y} ${b.w}×${b.h}`).join(' | ')}${chits.length ? ` — overlap: ${chits.join(', ')}` : ''})`);
+  }
+
+  console.log('31. inverse samples (#2331): only an inverse text, border or icon sample sits on the inverse background; every fill swatch fills its cell');
+  {
+    const inv = await fullFile();
+    await draw(inv.api, contract, { tables: ['Inverse', 'Border', 'Text', 'Background'] });
+    const idOf = (name: string): string | undefined => inv.vars.find((v) => v.name === name)?.id;
+    const INV_GROUND = idOf('pds3/color/inverse/background/primary');
+    const PAGE_GROUND = idOf('pds3/color/background/primary');
+    const sample = (title: string, token: string): N | undefined => { const g = gridOf(tableFrame(inv.sem, title)); const r = rowOf(g, token); return r < 0 ? undefined : cellAt(g, r, 1); };
+    const say = (n: N | undefined): string => (n ? `${n.type} ${n.name}${n.name === 'Ground' ? ` on ${JSON.stringify(boundId(n.fills) ?? null)}` : ''}` : 'no such row');
+    // The defect the owner reported: an inverse TEXT sample on white, where #F7F7F7 cannot be seen. Its path has an
+    // `inverse` segment; the table's common prefix (`pds3/color/inverse`) does not count against that.
+    for (const token of ['text/primary', 'border/primary', 'icon/primary']) {
+      const c = sample('Inverse', token);
+      ok(!!INV_GROUND && c?.name === 'Ground' && boundId(c.fills) === INV_GROUND,
+        `31: an inverse ${token.split('/')[0]} sample (inverse/${token}) sits on the inverse background (${say(c)}; want ${INV_GROUND})`);
+    }
+    // THE OWNER'S FILE has no saved brand, so the run has no contract (the NB copy, 2026-10-08): the ground then comes
+    // from the path below the table's own prefix, `…/inverse`, which no longer says inverse. The detection reads the
+    // whole name, so it still lands on the inverse background.
+    const bare = await fullFile();
+    await draw(bare.api, null, { tables: ['Inverse'] });
+    const bareG = gridOf(tableFrame(bare.sem, 'Inverse'));
+    const bareText = cellAt(bareG, rowOf(bareG, 'text/primary'), 1);
+    ok(bareText?.name === 'Ground' && boundId(bareText.fills) === bare.vars.find((v) => v.name === 'pds3/color/inverse/background/primary')?.id,
+      `31: with no saved brand (no contract), an inverse text sample still sits on the inverse background, detected from its whole path (${say(bareText)})`);
+    // An inverse FILL is a swatch: it fills its cell and never sits on the inverse backdrop.
+    const fill = sample('Inverse', 'background/primary');
+    ok(fill?.type === 'INSTANCE' && fill.lsh === 'FILL' && boundId(fill.fills) === INV_GROUND,
+      `31: an inverse fill (inverse/background/primary) fills its cell as its own swatch, on no backdrop (${say(fill)})`);
+    // A non-inverse border (and text) sample is never on the inverse background: its page ground.
+    for (const [title, token] of [['Border', 'primary'], ['Text', 'primary']] as const) {
+      const c = sample(title, token);
+      ok(!!PAGE_GROUND && c?.name === 'Ground' && boundId(c.fills) === PAGE_GROUND && boundId(c.fills) !== INV_GROUND,
+        `31: a non-inverse ${title.toLowerCase()} sample (${title.toLowerCase()}/${token}) sits on the page ground, not the inverse one (${say(c)})`);
+    }
+  }
+
+  console.log('32. the chrome (#2336): every cell and the table are solid white, the row lines are drawn and run across every column, and a fill swatch fills its cell with no outline');
+  {
+    // Every table the generator draws: the color tables of the full file and the dimension, font and text-style tables
+    // of the phase-2 file.
+    const full = await fullFile();
+    await draw(full.api, contract);
+    const p2 = await phase2File();
+    await draw(p2.api, contract);
+    const wraps = [...tablesOn(full.prim), ...tablesOn(full.sem), ...tablesOn(p2.prim), ...tablesOn(p2.sem)];
+    type P = { type?: string; visible?: boolean; opacity?: number; color?: { r?: number; g?: number; b?: number; a?: number } };
+    const paints = (ps: unknown): P[] => (Array.isArray(ps) ? ps as P[] : []);
+    // A paint that hides the canvas: a visible solid, at full opacity and full alpha. Read off the drawn node.
+    const hides = (p: P): boolean => p.type === 'SOLID' && p.visible !== false && (p.opacity ?? 1) === 1 && (p.color?.a ?? 1) === 1;
+    const isRgb = (p: P | undefined, r: number, g: number, b: number): boolean => !!p && hides(p) && [p.color?.r, p.color?.g, p.color?.b].every((x, i) => Math.round(Number(x) * 255) === [r, g, b][i]);
+    const white = (ps: unknown): boolean => isRgb(paints(ps)[0], 255, 255, 255);
+    const say = (k: N): string => `${k.parent?.parent?.name?.replace('Style guide — ', '')} r${k.gridRow} c${k.gridCol} ${k.type} ${k.mainComponent?.name ?? k.name}`;
+    const cells = wraps.flatMap((w) => gridOf(w).children);
+    const seeThrough = cells.filter((k) => !paints(k.fills).some(hides));
+    ok(wraps.length >= 20 && cells.length > 3000 && seeThrough.length === 0,
+      `32: no cell in any table is transparent: each has a solid fill (${wraps.length} tables, ${cells.length} cells; ${seeThrough.length} see-through: ${seeThrough.slice(0, 3).map(say).join('; ')})`);
+    const bodyText = cells.filter((k) => k.gridRow > 0 && k.mainComponent?.parent?.name === '_style-guide-text-cells');
+    const offWhite = bodyText.filter((k) => !white(k.fills));
+    ok(bodyText.length > 1000 && offWhite.length === 0, `32: every body text cell is the chrome's fixed #FFFFFF (${offWhite.length} of ${bodyText.length} not: ${offWhite.slice(0, 2).map(say).join('; ')})`);
+    const radiusCells = cells.filter((k) => k.name === 'Cell');
+    ok(radiusCells.length > 0 && radiusCells.every((k) => white(k.fills)), `32: a radius specimen's own cell is #FFFFFF (${radiusCells.length})`);
+    const openFrames = wraps.filter((w) => !white(w.fills) || !white(gridOf(w).fills));
+    ok(openFrames.length === 0, `32: every table frame and the wrap around it are #FFFFFF (${openFrames.length} not: ${openFrames.slice(0, 3).map((w) => w.name).join(', ')})`);
+    // THE ROW LINES: a 1px #E0E0E0 bottom edge, inside, on every cell of every row, in every column, with no gap between
+    // tracks, so each line runs unbroken across the table.
+    const ruled = (k: N | undefined): boolean => !!k && paints(k.strokes).length === 1 && isRgb(paints(k.strokes)[0], 224, 224, 224)
+      && k.strokeAlign === 'INSIDE' && k.strokeBottomWeight === 1 && k.strokeTopWeight === 0 && k.strokeLeftWeight === 0 && k.strokeRightWeight === 0;
+    const breaks = wraps.flatMap((w) => {
+      const g = gridOf(w);
+      const out: string[] = [];
+      if (g.gridColumnGap !== 0 || g.gridRowGap !== 0) out.push(`${w.name}: gaps ${g.gridRowGap}/${g.gridColumnGap}`);
+      for (let r = 0; r < Number(g.gridRowCount); r++) for (let c = 0; c < Number(g.gridColumnCount); c++) if (!ruled(cellAt(g, r, c))) out.push(`${w.name.replace('Style guide — ', '')} r${r} c${c}`);
+      return out;
+    });
+    ok(breaks.length === 0, `32: every row line runs across every column: each cell carries a 1px #E0E0E0 bottom line, with no gap between tracks (${breaks.length} breaks: ${breaks.slice(0, 4).join('; ')})`);
+    const primary = gridOf(tableFrame(full.prim, 'Primary'));
+    const swCol = primary.children.filter((k) => k.gridCol === 1 && k.gridRow > 0);
+    ok(swCol.length >= 20 && swCol.every(ruled), `32: the row lines span the swatch column, the one that broke them (${swCol.filter((k) => !ruled(k)).length} of ${swCol.length} unruled)`);
+    // A FILL SWATCH, palette and semantic alike: the color is the instance's own fill, over white, to the cell's edge,
+    // its member's layers hidden, and no outline but the row line.
+    const fills = cells.filter((k) => k.type === 'INSTANCE' && k.mainComponent?.parent?.name === '_style-guide-swatches' && k.mainComponent?.name !== 'type=radius');
+    const semFills = fills.filter((k) => tablesOn(full.sem).includes(k.parent!.parent!));
+    const notToEdge = fills.filter((k) => k.lsh !== 'FILL' || k.layoutSizingVertical !== 'FILL' || !white(k.fills) || paints(k.fills).length !== 2 || boundId(k.fills) === undefined
+      || k.children.some((c) => c.visible !== false) || !ruled(k));
+    ok(fills.length > 300 && semFills.length > 50 && notToEdge.length === 0,
+      `32: every fill swatch fills its cell to the edge, the color over white, no layer showing and no outline but the row line (${fills.length} swatches, ${semFills.length} semantic; ${notToEdge.length} not: ${notToEdge.slice(0, 2).map(say).join('; ')})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
