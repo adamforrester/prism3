@@ -266,6 +266,10 @@ ok(refuses, 'premise: the engine refuses an empty object as a BrandInput');
     ok(same(run.next.agentRun, { id: 'u1', op: 'components', cmd, settled: false, progress: null }),
       `agent-started: ${cmd} runs the components operation, and the run keeps its command`);
   }
+  // #2265 PR 2 — an applied update keeps its own name, so the drawer reads it as updating, not checking.
+  const confirmed = step(init, { kind: 'agent-started', id: 'u2', cmd: 'update-components', confirmed: true });
+  ok(same(confirmed.next.agentRun, { id: 'u2', op: 'components', cmd: 'update-components:confirmed', settled: false, progress: null }),
+    'agent-started: a confirmed update-components runs the components operation as update-components:confirmed');
   const built = { ...init, componentState: { ok: true, headline: '✓ built 432', summary: 's' }, componentLatest: 'build' as const, setBuilds: new Map([['button', 'ok' as const]]) };
   const run = step(built, { kind: 'agent-started', id: 'u1', cmd: 'update-components' }).next;
   const v = step(run, { kind: 'component-update-result', ok: true, headline: 'Would change 1 of 26', summary: 'button: …' });

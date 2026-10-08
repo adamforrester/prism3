@@ -63,13 +63,13 @@
  */
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 import { ENGINE_VERSION } from '@prism3/engine/version';
-import { MAILBOX, AGENT_COMMANDS, AGENT_PROTOCOL_VERSION, resultKey, utf8Bytes } from './src/agent-protocol';
+import { MAILBOX, AGENT_COMMANDS, AGENT_PROTOCOL_VERSION, resultKey, utf8Bytes, parseCommand } from './src/agent-protocol';
 import type { AgentResult, AgentLinkState } from './src/agent-protocol';
 import { storeResult } from './src/agent-link';
 import { envelope, sendSnippet, readSnippet, linkSnippet } from './agent-snippets';
 import { agentLinkShortStatus, agentLinkStatusText } from './src/agent-link-ui';
 import { createRunGuard, TITLE } from './src/run-guard';
-import { createDispatcher } from './src/agent-dispatch';
+import { createDispatcher, ROUTES } from './src/agent-dispatch';
 import { OP_TITLE } from '../studio/src/shell/activity';
 
 let failed = 0;
@@ -316,12 +316,85 @@ section('update — the dry run and the baseline capture reach their handlers, r
   const up = (ra.result?.data as { update?: { mode?: string; sets?: unknown[]; missing?: string[] } } | undefined)?.update;
   ok(ra.ok === true && up?.mode === 'preview' && Array.isArray(up.sets) && up.sets.length === 0 && (up.missing?.length ?? 0) >= 20,
     `update/all: with no def it checks every projected set, and reports each absent one as missing (${up?.missing?.length})`);
+  const hash = (up as { previewHash?: unknown } | undefined)?.previewHash;
+  ok(typeof hash === 'string' && /^[0-9a-f]{8}$/.test(hash), `update/hash: the check's result carries the previewHash a confirm must echo (${String(hash)})`);
+  // #2265 PR 2 — the apply. Without the check's hash it is refused before any handler runs.
   calls.length = 0;
   const ap = await send('update-components', { confirm: true });
   await tick();
   const rp = (await read(ap.id)) as AgentResult;
-  ok(rp.ok === false && rp.error?.code === 'bad-args' && !calls.includes('updateComponents'),
-    `update/apply: confirm: true is refused as bad-args before any handler runs — apply is not built (${rp.error?.code})`);
+  ok(rp.ok === false && rp.error?.code === 'bad-args' && /previewHash/.test(String(rp.error?.message)) && !calls.includes('updateComponents'),
+    `update/apply needs the hash: confirm: true with no previewHash is refused as bad-args before any handler runs (${rp.error?.code})`);
+  // With it, it reaches the handler carrying that hash, and the panel is told this run applies.
+  const seen: unknown[][] = [];
+  const orig = actions.updateComponents;
+  actions.updateComponents = (...a: unknown[]) => { seen.push(a); return (orig as (...x: unknown[]) => Promise<void>)(...a); };
+  posted.length = 0;
+  const go = await send('update-components', { confirm: true, previewHash: 'abcdef01' });
+  await tick();
+  actions.updateComponents = orig;
+  const started = posted.find((m) => m.type === 'agent-started' && m.id === go.id) as { apply?: unknown } | undefined;
+  ok(seen.length === 1 && seen[0][1] === 'abcdef01' && seen[0][2] === undefined && started?.apply === true,
+    `update/apply: confirm: true with the hash reaches ACTIONS.updateComponents with that hash, and agent-started says apply (${JSON.stringify(seen.map((a) => a[1]))}, ${String(started?.apply)})`);
+  // The choices reach the handler as sent; one the protocol does not know is refused before any handler runs.
+  seen.length = 0;
+  actions.updateComponents = (...a: unknown[]) => { seen.push(a); return (orig as (...x: unknown[]) => Promise<void>)(...a); };
+  const ch = await send('update-components', { confirm: true, previewHash: 'abcdef01', choices: { handEdits: 'accept', noBaseline: 'skip', sets: { tag: { handEdits: 'overwrite', noBaseline: 'update' } } } });
+  await tick();
+  const wrong = await send('update-components', { confirm: true, previewHash: 'abcdef01', choices: { handEdits: 'delete' } });
+  await tick();
+  actions.updateComponents = orig;
+  const rw = (await read(wrong.id)) as AgentResult;
+  void ch;
+  ok(seen.length === 1 && JSON.stringify(seen[0][2]) === JSON.stringify({ handEdits: 'accept', noBaseline: 'skip', sets: { tag: { handEdits: 'overwrite', noBaseline: 'update' } } }) && rw.ok === false && rw.error?.code === 'bad-args',
+    `update/choices: the choices reach ACTIONS.updateComponents as sent, and an unknown one is refused as bad-args (${JSON.stringify(seen.map((a) => a[2]))}, ${rw.error?.code})`);
+  const check = posted.find((m) => m.type === 'agent-started' && m.id === all.id) as { apply?: unknown } | undefined;
+  ok(check === undefined || check.apply === undefined, 'update/check: a check is not marked as an apply');
+  // Without `confirm: true` nothing is applied, whatever else is sent (#2328 review, M5). Two layers hold this: the
+  // protocol rebuilds a no-confirm command from `def` alone, and the dispatcher passes a hash and choices only on a
+  // confirm. The hash sent is the file's real one, from `update/all`, so an apply let through would pass the hash
+  // check rather than stop on a mismatch. Each must reach the handler as a check (no hash, no choices), come back
+  // as a check, not be announced as an apply, and save no version or write any plugin data outside the mailbox.
+  // End to end, each layer covers the other, so one layer mutated alone is harmless there: each is also held on its
+  // own. Mutations: the protocol passing the hash through on `confirm: false` → `update/no confirm protocol`; the
+  // dispatcher forwarding it whatever `confirm` says → `update/no confirm dispatch`; both → `update/no confirm` too.
+  const versions: string[] = [];
+  host.saveVersionHistoryAsync = async (t: string) => { versions.push(t); return { id: 'v' }; };
+  const fileData = () => [...store.keys()].filter((x) => !x.startsWith(`${MAILBOX.ns}\u0000`)).map((x) => `${x}=${store.get(x)}`).sort().join('\n');
+  const hashSent = typeof hash === 'string' ? hash : 'abcdef01';
+  for (const [label, args] of [
+    ['no confirm', { previewHash: hashSent, choices: { handEdits: 'overwrite', noBaseline: 'update' } }],
+    ['confirm: false', { confirm: false, previewHash: hashSent, choices: { handEdits: 'overwrite', noBaseline: 'update' } }],
+  ] as const) {
+    seen.length = 0;
+    versions.length = 0;
+    const dataBefore = fileData();
+    actions.updateComponents = (...a: unknown[]) => { seen.push(a); return (orig as (...x: unknown[]) => Promise<void>)(...a); };
+    posted.length = 0;
+    const nc = await send('update-components', args);
+    await tick();
+    actions.updateComponents = orig;
+    const rn = (await read(nc.id)) as AgentResult;
+    const mode = (rn.result?.data as { update?: { mode?: string } } | undefined)?.update?.mode;
+    const st = posted.find((m) => m.type === 'agent-started' && m.id === nc.id) as { apply?: unknown } | undefined;
+    ok(seen.length === 1 && seen[0][1] === null && seen[0][2] === undefined && mode === 'preview' && st?.apply !== true && versions.length === 0 && fileData() === dataBefore,
+      `update/no confirm (${label}): a hash and choices sent without confirm: true reach ACTIONS.updateComponents as a check (hash ${JSON.stringify(seen[0]?.[1])}, choices ${JSON.stringify(seen[0]?.[2])}), come back as one (${mode}), are not announced as an apply (${String(st?.apply)}), and save no version (${versions.length}) or write any plugin data`);
+  }
+  delete host.saveVersionHistoryAsync;
+  for (const [label, args] of [['no confirm', { previewHash: hashSent, choices: { handEdits: 'overwrite' } }], ['confirm: false', { confirm: false, previewHash: hashSent, choices: { handEdits: 'overwrite' } }]] as const) {
+    const pc = parseCommand({ v: AGENT_PROTOCOL_VERSION, id: 'nc-p', cmd: 'update-components', args, issuedAt: '2026-10-08T00:00:00Z' });
+    const pa = pc.ok ? (pc.command.args as Record<string, unknown>) : null;
+    ok(!!pa && pa.confirm === false && !('previewHash' in pa) && !('choices' in pa),
+      `update/no confirm protocol (${label}): the command is rebuilt as a check, with no previewHash and no choices (${JSON.stringify(pa)})`);
+  }
+  {
+    const got: unknown[][] = [];
+    const fake = { updateComponents: async (...a: unknown[]) => { got.push(a); } } as unknown as Parameters<(typeof ROUTES)['update-components']>[1];
+    const forged = { v: AGENT_PROTOCOL_VERSION, id: 'nc-d', issuedAt: '2026-10-08T00:00:00Z', cmd: 'update-components', args: { confirm: false, previewHash: hashSent, choices: { handEdits: 'overwrite' } } } as unknown as Parameters<(typeof ROUTES)['update-components']>[0];
+    await ROUTES['update-components'](forged, fake, {} as Parameters<(typeof ROUTES)['update-components']>[2], {} as Parameters<(typeof ROUTES)['update-components']>[3]);
+    ok(got.length === 1 && got[0][1] === null && got[0][2] === undefined,
+      `update/no confirm dispatch: a confirm: false command that carries a hash and choices reaches the handler with neither (hash ${JSON.stringify(got[0]?.[1])}, choices ${JSON.stringify(got[0]?.[2])})`);
+  }
 }
 
 /* ── style-guide tables + progress (#1778) ───────────────────────────────────────────────────────────── */

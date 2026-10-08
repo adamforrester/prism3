@@ -28,6 +28,7 @@
  */
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { AGENT_PROTOCOL_VERSION, parseCommand, failedResult } from './agent-protocol';
+import type { UpdateChoiceArgs } from './agent-protocol';
 import type { AgentResult, AgentTransport, AgentProgress, ValidCommand, AgentCmd } from './agent-protocol';
 import type { MainToUi, StyleGuideOptions } from './messages';
 import type { BrandInput } from '@prism3/engine/theme';
@@ -57,7 +58,8 @@ export type AgentActions = {
   prune(input: BrandInput, confirm: boolean, sink: ActionSink): Promise<void>;
   seedFromFile(sink: ActionSink): Promise<void>;
   /** #2265: the in-place update's dry run (writes nothing) and the one-time baseline capture. */
-  updateComponents(def: string | undefined, sink: ActionSink): Promise<void>;
+  /** `previewHash` is `null` for a check and the check's hash for an apply (#2265 PR 2); `choices`, an apply's. */
+  updateComponents(def: string | undefined, previewHash: string | null, choices: UpdateChoiceArgs | undefined, sink: ActionSink): Promise<void>;
   captureBaseline(def: string | undefined, sink: ActionSink): Promise<void>;
   adoptMembers(def: string | undefined, sink: ActionSink): Promise<void>;
 };
@@ -135,7 +137,8 @@ type Deps = {
    *  Activity drawer shows an agent's command running the way it shows a button's; the forwarded verdict
    *  alone cannot say when it began, or that a command which threw has ended. Reports only: neither
    *  writes to the file, and a throw from either never fails the command. */
-  onStart?(id: string, cmd: AgentCmd): void;
+  /** `apply` marks a confirmed `update-components` (#2265 PR 2), so the panel can tell an update from a check. */
+  onStart?(id: string, cmd: AgentCmd, apply?: boolean): void;
   onFinish?(id: string, cmd: AgentCmd): void;
   /** A valid command the plugin declines before it runs (#1957): a write whose operation is already
    *  running. Asked before `onStart`, so a declined command is never shown as running; what it returns is
@@ -155,7 +158,10 @@ export const ROUTES: { [C in AgentCmd]: Route } = {
     const { input, confirm } = (c as Extract<ValidCommand, { cmd: 'prune' }>).args;
     return a.prune(input, confirm, sink);
   },
-  'update-components': (c, a, sink) => a.updateComponents((c as Extract<ValidCommand, { cmd: 'update-components' }>).args.def, sink),
+  'update-components': (c, a, sink) => {
+    const args = (c as Extract<ValidCommand, { cmd: 'update-components' }>).args;
+    return a.updateComponents(args.def, args.confirm ? args.previewHash : null, args.confirm ? args.choices : undefined, sink);
+  },
   'capture-baseline': (c, a, sink) => a.captureBaseline((c as Extract<ValidCommand, { cmd: 'capture-baseline' }>).args.def, sink),
   'adopt-members': (c, a, sink) => a.adoptMembers((c as Extract<ValidCommand, { cmd: 'adopt-members' }>).args.def, sink),
   readback: async (_c, a, sink, d) => {
@@ -249,7 +255,7 @@ export const createDispatcher = (deps: Deps) => {
       if (logs.length < LOG_CAP) logs.push(line); else logsDropped++;
       deps.onLog?.(c.id, line);
     };
-    try { deps.onStart?.(c.id, c.cmd); } catch { /* a reader; see `forward` */ }
+    try { deps.onStart?.(c.id, c.cmd, c.cmd === 'update-components' && c.args.confirm === true); } catch { /* a reader; see `forward` */ }
     try {
       await teeConsole(onLine, () => ROUTES[c.cmd](c, deps.actions, sink, deps));
     } catch (e) {

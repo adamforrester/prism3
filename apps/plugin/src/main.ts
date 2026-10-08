@@ -34,7 +34,8 @@ import { rootOf } from '@prism3/engine/figma-names';
 import { conflictSummary } from './preflight';
 import { runApplyTheme } from './apply-theme';
 import { applyComponentPlan, partialWriteOf } from './write-components';
-import type { ComponentProgress, CompPageTarget, CompNode } from './write-components';
+import type { ComponentProgress, CompPageTarget, CompNode, ComponentsApi } from './write-components';
+import { applyUpdate, applyVerdict, previewHashOf, type ApplyHost, type UpdateChoices } from './update-apply';
 import { scaffoldSkeleton, resolveComponentPage } from './file-setup';
 import { ensureFileComponents } from './file-components';
 import { ensureStyleGuideCells } from './style-guide-cells';
@@ -851,18 +852,29 @@ const unknownDef = (defId: string, sink: ActionSink): void => {
   postVerdict({ type: 'component-update-result', ok: false, headline: '✗ unknown def', summary: why, lines: [why] }, sink);
 };
 
-const updateComponents = async (defId: string | undefined, sink: ActionSink): Promise<void> => {
+const updateComponents = async (defId: string | undefined, previewHash: string | null, choices: UpdateChoices | undefined, sink: ActionSink): Promise<void> => {
   try {
     const { targets, unknown, refused } = updateTargets(defId);
     if (unknown !== null) return unknownDef(unknown, sink);
     await figma.loadAllPagesAsync();
-    const r = await previewUpdate(figma as unknown as UpdateHost, targets, breathe);
+    if (previewHash === null) {
+      const r = await previewUpdate(figma as unknown as UpdateHost, targets, breathe);
+      r.refused.push(...refused);
+      // The hash a confirm must echo, over the file as this check read it (#2265 PR 2).
+      sink.data({ update: { mode: 'preview', previewHash: previewHashOf(r), ...r } });
+      postVerdict({ type: 'component-update-result', ...previewVerdict(r) }, sink);
+      return;
+    }
+    // THE APPLY (#2265 PR 2): the same plans the check laid against the file, applied over it only while it still
+    // hashes as the check did. `figma` is both the file the check reads and the executor's port.
+    const descriptionOf = (def: string): string | undefined => componentDefs.find((d) => d.id === def)?.summary;
+    const r = await applyUpdate(figma as unknown as ApplyHost, figma as unknown as ComponentsApi, targets, previewHash, { descriptionOf, breathe, ...(choices ? { choices } : {}) });
     r.refused.push(...refused);
-    sink.data({ update: { mode: 'preview', ...r } });
-    postVerdict({ type: 'component-update-result', ...previewVerdict(r) }, sink);
+    sink.data({ update: { mode: 'apply', ...r } });
+    postVerdict({ type: 'component-update-result', ...applyVerdict(r) }, sink);
   } catch (e) {
     const why = (e as Error)?.message ?? String(e);
-    postVerdict({ type: 'component-update-result', ok: false, headline: '✗ check failed', summary: why, lines: [why] }, sink);
+    postVerdict({ type: 'component-update-result', ok: false, headline: previewHash === null ? '✗ check failed' : '✗ update failed', summary: why, lines: [why] }, sink);
   }
 };
 
@@ -1149,7 +1161,7 @@ const dispatch = createDispatcher({
   onProgress: (id, progress) => postToUi({ type: 'agent-progress', id, progress }),
   onLog: (id, line) => postToUi({ type: 'agent-log', id, line }),
   // The Activity drawer's agent rows (UI redesign S11): when a command starts, and when it has ended.
-  onStart: (id, cmd) => postToUi({ type: 'agent-started', id, cmd }),
+  onStart: (id, cmd, apply) => postToUi({ type: 'agent-started', id, cmd, ...(apply ? { apply: true as const } : {}) }),
   onFinish: (id, cmd) => postToUi({ type: 'agent-finished', id, cmd }),
   // #1957: an agent's write of an operation that is already running is declined before it starts.
   refuse: (c) => {

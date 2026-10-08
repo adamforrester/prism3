@@ -56,14 +56,43 @@ export type AgentArgs = {
   prune: { input: BrandInput; confirm: boolean };
   /** The boot read-back (`seed-info`) plus a census of every component page. Read-only. */
   readback: Record<string, never>;
-  /** #2265: the in-place update. Only the dry run exists, so `confirm` is `false` or absent; `true` is refused
-   *  as bad args until the apply lands. No `def` means every def that projects a set. */
-  'update-components': { def?: string; confirm: false };
+  /** #2265: the in-place update. `confirm: false` (or absent) checks and writes nothing, and its result carries a
+   *  `previewHash`; `confirm: true` applies the update that check described, and must echo that `previewHash`
+   *  (PR 2). The plugin reads the file again and refuses when it no longer hashes the same. No `def` means every
+   *  def that projects a set. */
+  'update-components': { def?: string; confirm: false } | { def?: string; confirm: true; previewHash: string; choices?: UpdateChoiceArgs };
   /** #2265: record the as-built baseline on members built before it existed. No `def` means every set. */
   'capture-baseline': { def?: string };
   /** #2283: the one-time Adopt (§10 Q4). Records and stamps members Prism3 did not build, so an update can
    *  bring them to the plan in place. No `def` means every set. */
   'adopt-members': { def?: string };
+};
+
+/** #2265 PR 2 — what an applied update does with hand edits (design note §5): `keep` (the default), `overwrite` or
+ *  `accept`, for every set, or per set by name. Dropped members are never deleted, so there is no choice for them. */
+export type UpdateChoiceArgs = {
+  handEdits?: 'keep' | 'overwrite' | 'accept'; noBaseline?: 'update' | 'skip';
+  sets?: Record<string, { handEdits?: 'keep' | 'overwrite' | 'accept'; noBaseline?: 'update' | 'skip' }>;
+};
+const HAND_EDIT_CHOICES = ['keep', 'overwrite', 'accept'] as const;
+const NO_RECORD_CHOICES = ['update', 'skip'] as const;
+/** `undefined` for no choices, the choices when well formed, or the reason they are not. */
+const parseChoices = (raw: unknown): UpdateChoiceArgs | undefined | string => {
+  if (raw === undefined) return undefined;
+  const bad = `update-components takes args.choices as { handEdits?: ${HAND_EDIT_CHOICES.join(' | ')}, noBaseline?: ${NO_RECORD_CHOICES.join(' | ')}, sets?: { <set>: { handEdits, noBaseline } } }`;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return bad;
+  const r = raw as Record<string, unknown>;
+  if (Object.keys(r).some((k) => k !== 'handEdits' && k !== 'noBaseline' && k !== 'sets')) return bad;
+  const one = (v: unknown): boolean => v === undefined || (HAND_EDIT_CHOICES as readonly unknown[]).includes(v);
+  const rec = (v: unknown): boolean => v === undefined || (NO_RECORD_CHOICES as readonly unknown[]).includes(v);
+  if (!one(r.handEdits) || !rec(r.noBaseline)) return bad;
+  if (r.sets !== undefined) {
+    if (!r.sets || typeof r.sets !== 'object' || Array.isArray(r.sets)) return bad;
+    for (const v of Object.values(r.sets as Record<string, unknown>)) {
+      if (!v || typeof v !== 'object' || Object.keys(v).some((k) => k !== 'handEdits' && k !== 'noBaseline') || !one((v as { handEdits?: unknown }).handEdits) || !rec((v as { noBaseline?: unknown }).noBaseline)) return bad;
+    }
+  }
+  return r as UpdateChoiceArgs;
 };
 
 /** A command as it arrives — unvalidated. `parseCommand` turns it into a `ValidCommand` or a reason. */
@@ -220,8 +249,16 @@ export const parseCommand = (raw: unknown): ParsedCommand => {
       if (args.def !== undefined && (typeof args.def !== 'string' || !args.def)) {
         return fail('bad-args', 'update-components takes args.def: a component def id, or no def for every set');
       }
-      if (args.confirm !== undefined && args.confirm !== false) {
-        return fail('bad-args', 'update-components only checks for now: send confirm: false, or leave it out. Applying an update is not built yet (#2265)');
+      if (args.confirm !== undefined && typeof args.confirm !== 'boolean') {
+        return fail('bad-args', 'update-components takes args.confirm: false (or none) to check, true to apply');
+      }
+      if (args.confirm === true) {
+        if (typeof args.previewHash !== 'string' || !args.previewHash) {
+          return fail('bad-args', 'update-components with confirm: true needs args.previewHash: the previewHash its check returned');
+        }
+        const choices = parseChoices(args.choices);
+        if (typeof choices === 'string') return fail('bad-args', choices);
+        return { ok: true, command: { ...base, cmd: 'update-components', args: { ...(args.def === undefined ? {} : { def: args.def as string }), confirm: true, previewHash: args.previewHash, ...(choices ? { choices } : {}) } } };
       }
       return { ok: true, command: { ...base, cmd: 'update-components', args: args.def === undefined ? { confirm: false } : { def: args.def, confirm: false } } };
     case 'capture-baseline':

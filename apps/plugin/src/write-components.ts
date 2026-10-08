@@ -60,7 +60,7 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { tailOf } from '@prism3/engine/figma-names';
 import { NS } from './persist-figma';
 import { EXECUTOR_REVISION } from './executor-revision';
-import { writeBaseline } from './member-baseline';
+import { BASELINE_KEY, UPDATING_KEY, baselineOf, mainOf, readBaseline, snapshotMember, writeBaseline } from './member-baseline';
 // #1318 — the ONE gradient-stop binder, shared with the Paint Style executor rather than written twice.
 import { bindGradientStops } from './write-styles';
 import type { VariableAlias, Rgba } from './write-styles';
@@ -247,6 +247,14 @@ export interface CompNode {
   leadingTrim?: unknown;
   resize?(width: number, height: number): void;
   appendChild?(child: CompNode): void;
+  /** #2265 PR 2 — the in-place update's three structural calls. `insertChild` MOVES a node that has a parent and
+   *  keeps its id, `remove` takes a child the plan no longer has out of a member, and `swapComponent` points an
+   *  instance at another main and keeps the instance node. The build path calls none of them. */
+  insertChild?(index: number, child: CompNode): void;
+  remove?(): void;
+  swapComponent?(component: unknown): void;
+  /** Read by the update to pair a member's existing children with the plan's, by name. */
+  readonly children?: readonly CompNode[];
   findAll?(predicate?: (node: CompNode) => boolean): unknown[];
   findOne?(predicate: (node: CompNode) => boolean): unknown;
   /** The node's parent, walked by `findOwnPart` (#1428) to reject a name-match that lives INSIDE a nested
@@ -292,6 +300,9 @@ export interface CompSet extends CompNode {
   readonly children?: readonly CompNode[];
   readonly componentPropertyDefinitions?: Record<string, { type?: string; variantOptions?: readonly string[] }>;
   addComponentProperty?(name: string, type: string, defaultValue: string | boolean): string;
+  /** #2265 PR 2 — a default changed in place (the property keeps its id), and a property removed. */
+  editComponentProperty?(key: string, edit: { name?: string; defaultValue?: string | boolean }): string;
+  deleteComponentProperty?(key: string): void;
 }
 
 /** The minimal `figma` surface the component executor needs — declared as a port so the Node harness
@@ -396,6 +407,8 @@ export interface CompPageTarget {
  *  same field set the paste payload returns, so the parity gate compares like with like rather than
  *  translating between two report shapes — with ONE addition, `skipped`, documented on the field. */
 export type ComponentApplyResult = {
+  /** #2265 PR 2 — the members this run configured in place, by name. Absent on a build. */
+  updatedInPlace?: string[];
   /** The set's name, or `null` when nothing could be assembled (the one hard failure here). */
   set: string | null;
   id: string;
@@ -609,6 +622,21 @@ export type ComponentApplyOptions = {
    *  built root) and `findOne` (the once-per-run existing-set lookup) — which is exactly the `currentPage`
    *  shape, so both satisfy `CompPageTarget`. */
   targetPage?: CompPageTarget;
+  /** THE IN-PLACE UPDATE (#2265 PR 2, owner decision Q85 A). Absent, the build is add-only, as it has always been
+   *  (#827, §10 Q6). Present, the members it names are CONFIGURED IN PLACE by the same `build` that makes a fresh
+   *  member, so the two executors cannot drift (design note §3): the member node, every child the plan still has
+   *  and the set itself keep their identity. Built by `update-apply.ts`, never by hand. */
+  update?: ComponentUpdate;
+};
+
+/** What `ComponentApplyOptions.update` names. */
+export type ComponentUpdate = {
+  /** Existing members to configure in place, by coordinate (after the update's renames), each with the paths of
+   *  the nodes a designer edited by hand: those are left as they are (owner decision Q1, keep and report). */
+  members: ReadonlyMap<string, { keep: ReadonlySet<string>; accept?: boolean }>;
+  /** Members the plan no longer has, kept in the set and marked deprecated (Q2). The layout pass leaves them
+   *  where they are, as it leaves any child it has no cell for, and does not report them as strays. */
+  retained?: ReadonlySet<string>;
 };
 
 /** The value of a single-axis member coordinate — `name=search` → `search` (#1012). The
@@ -1537,6 +1565,33 @@ const writeComponentSet = async (
       : 'OTHER';
   };
 
+  /** #2265 PR 2 — can this existing node be configured as plan node `n`, or does the plan's type need a new one? The
+   *  read-back's own map (`anatomy-readback.ts` HOST_TYPE): a GLYPH is a FRAME, either instance kind an INSTANCE, and
+   *  an INSTANCE_SWAP with no target in this file a placeholder FRAME, as the build makes it. */
+  const fitsHost = (n: FigmaNodePlan, k: CompNode): boolean => {
+    const want = n.type === 'TEXT' ? 'TEXT'
+      : n.type === 'NESTED_INSTANCE' ? 'INSTANCE'
+      : n.type === 'INSTANCE_SWAP' ? (n.swapTarget && compByName.get(n.swapTarget) ? 'INSTANCE' : 'FRAME')
+      : 'FRAME';
+    return k.type === want;
+  };
+
+  /** #2265 PR 2 — does this existing instance already point at `target`? By key where both carry one (Figma's own
+   *  identity for a component), else by name and the node it sits in, so a set's `size=small` is never mistaken for
+   *  another set's. Read through `mainOf`, which uses `getMainComponentAsync` under `documentAccess: dynamic-page`. */
+  const mainIs = async (inst: Wr, target: unknown): Promise<boolean> => {
+    const now = await mainOf(inst as unknown as Parameters<typeof mainOf>[0]);
+    if (!now) return false;
+    const t = target as { key?: unknown; name?: unknown; parent?: { name?: unknown } | null };
+    let tKey: unknown;
+    try { tKey = t.key; } catch { tKey = undefined; }
+    if (typeof tKey === 'string' && tKey && typeof now.key === 'string') return now.key === tKey;
+    let tParent: unknown;
+    try { tParent = t.parent?.name; } catch { tParent = undefined; }
+    const nowParent = (now.parent as { name?: string } | null)?.name;
+    return now.name === String(t.name ?? '') && (nowParent ?? '') === String(tParent ?? '');
+  };
+
   /** Build one node and its subtree. Returns `null` for a NESTED_INSTANCE whose shared component is
    *  absent — no placeholder, deliberately, and every such return records a miss. The same refusal
    *  serves both nest kinds, for different reasons:
@@ -1554,9 +1609,22 @@ const writeComponentSet = async (
    *  Optional, and threaded through the recursion rather than closed over, because it is PER MEMBER — one
    *  map shared across the whole set would collide on part names, which are unique within a member and
    *  identical across all 648 of them. */
-  const build = async (n: FigmaNodePlan, parts?: Map<string, Wr>, expose?: Wr[]): Promise<Wr | null> => {
+  /**
+   *  IN PLACE (#2265 PR 2): `ex` is the node the file already holds for `n`, and when it is given NOTHING IS
+   *  CREATED for `n` itself. Every write below lands on `ex`, in the order a fresh build makes it, which is the
+   *  point: one sequence of writes, measured once, for both a new member and an updated one (design note §3).
+   *  The three things a fresh node never needs are the only additions: an instance is SWAPPED to the plan's
+   *  main where it points elsewhere, a glyph keeps its frame and takes a fresh import's vectors, and the
+   *  node's existing children are paired with the plan's BY NAME — kept where the type still fits, replaced
+   *  where it does not, inserted where missing, removed where the plan no longer has them.
+   *
+   *  `keep` holds the paths (`.` for the member, then child names joined by `/`) of the nodes a designer edited
+   *  by hand (owner decision Q1): such a node keeps every field of its own, and only its children are visited.
+   *  A build passes none of `ex`, `keep` or `path`, and runs exactly as it always has. */
+  const build = async (n: FigmaNodePlan, parts?: Map<string, Wr>, expose?: Wr[], ex?: Wr, keep?: ReadonlySet<string>, path = '.'): Promise<Wr | null> => {
     let node: Wr;
-    if (n.type === 'TEXT') node = wr(api.createText());
+    const kept = !!ex && !!keep?.has(path);
+    if (n.type === 'TEXT') node = ex ?? wr(api.createText());
     else if (n.type === 'INSTANCE_SWAP') {
       const target = n.swapTarget ? compByName.get(n.swapTarget) : undefined;
       if (!n.swapTarget) misses.push(`${n.name}.swapTarget -> (none nominated; built as a placeholder frame)`);
@@ -1564,7 +1632,12 @@ const writeComponentSet = async (
       // the file holds under it nor what to do about it. The advice names `n.swapTarget` itself rather
       // than relying on this prefix, because misses render concatenated — see `swapMissAdvice`'s header.
       else if (!target) misses.push(`${n.name}.swapTarget -> ${n.swapTarget} (${swapMissAdvice(swapFound(n.swapTarget), n.swapTarget)}; ${SWAP_PLACEHOLDER})`);
-      node = wr(target ? target.createInstance() : api.createFrame());
+      if (ex) {
+        // IN PLACE: the instance stays and points at the plan's target. A placeholder frame the plan now has a
+        // target for never reaches here: `fitsHost` sends it down the replace path, as a type change.
+        node = ex;
+        if (target && !kept && !(await mainIs(ex, target))) ex.swapComponent?.(target);
+      } else node = wr(target ? target.createInstance() : api.createFrame());
     } else if (n.type === 'NESTED_INSTANCE') {
       // A PLAIN COMPONENT FIRST, then a SET the def named a coordinate in (#681). Order matters and is
       // not arbitrary: a file can hold both a component and a set under one name, and the plain component
@@ -1590,7 +1663,14 @@ const writeComponentSet = async (
         misses.push(`${n.name}${res.miss}`);
         return null;
       }
-      if (res) {
+      if (ex) {
+        // IN PLACE: the nested instance stays and is swapped to the member the plan now resolves to. A target the
+        // file cannot resolve is reported below, as on a build, and the instance is left pointing where it did.
+        const to = res ? res.member : nested;
+        if (to && !kept && !(await mainIs(ex, to))) ex.swapComponent?.(to);
+        if (!to) misses.push(`${n.name}.nestTarget -> ${n.nestTarget} (not resolvable in this file; the existing instance was left as it is)`);
+        node = ex;
+      } else if (res) {
         // The MEMBER is what gets instantiated, not the set — Figma has no "instance of a set".
         node = wr(res.member.createInstance!());
       } else if (!nested) {
@@ -1637,7 +1717,25 @@ const writeComponentSet = async (
       //
       // Figma's OWN SVG importer, per the port's note. It returns a FRAME on the document's artboard with
       // the outline inside, so `node` here is the artboard and the glyph is its child.
-      node = wr(api.createNodeFromSvg(n.glyphSvg ?? ''));
+      // IN PLACE: the glyph's FRAME is kept (it is the node a host swaps and an override points at) and its
+      // vectors are replaced with a fresh import's, which are Figma's and never in the plan.
+      node = ex ?? wr(api.createNodeFromSvg(n.glyphSvg ?? ''));
+      if (ex && !kept) {
+        // ONLY A CHANGED GLYPH TAKES NEW VECTORS. A fresh import of the plan's SVG is laid against the vectors the
+        // frame holds, path by path; where they match, the import is discarded and the vectors keep their ids, so
+        // an override on one in a file using the library survives an update that did not touch the glyph.
+        const fresh = wr(api.createNodeFromSvg(n.glyphSvg ?? ''));
+        // THE ARTBOARD READ-BACK (below) asks what the IMPORT measured, so in place it reads the fresh import: the
+        // frame the file holds is already sized by its host's binding.
+        if (n.glyphViewBox && (fresh.width !== n.glyphViewBox[0] || fresh.height !== n.glyphViewBox[1]))
+          misses.push(`${n.name}.glyphViewBox -> ${n.glyphViewBox[0]}x${n.glyphViewBox[1]} (the imported frame reads ${fresh.width}x${fresh.height}; the glyph was sized to its ink rather than to its artboard, so every host binding a square would distort it)`);
+        const sig = (k: Wr): string => (k.children ?? []).map((v) => JSON.stringify([v.type, (v as { vectorPaths?: unknown }).vectorPaths ?? null, Math.round(v.width ?? 0), Math.round(v.height ?? 0)])).join('|');
+        if (sig(fresh) !== sig(ex)) {
+          for (const old of [...(ex.children ?? [])]) wr(old).remove?.();
+          for (const v of [...(fresh.children ?? [])]) ex.appendChild?.(v);
+        }
+        fresh.remove?.();
+      }
       // READ BACK THE GEOMETRY, and this is the read-back the whole issue turns on. Every other read-back
       // in this executor asks whether a write Figma ACCEPTED was retained; this one asks whether anything
       // was DRAWN, because a frame with a valid name and no outline inside is indistinguishable — from
@@ -1656,7 +1754,7 @@ const writeComponentSet = async (
       // that is #864's own class rather than a hypothetical: `minus` is 14×2 of drawing on a 24×24
       // artboard, and a member sized to its drawing distorts inside the square every host binds onto the
       // slot it swaps a glyph into (`size.{size}.icon`).
-      if (n.glyphViewBox && (node.width !== n.glyphViewBox[0] || node.height !== n.glyphViewBox[1]))
+      if (!ex && n.glyphViewBox && (node.width !== n.glyphViewBox[0] || node.height !== n.glyphViewBox[1]))
         misses.push(`${n.name}.glyphViewBox -> ${n.glyphViewBox[0]}x${n.glyphViewBox[1]} (the imported frame reads ${node.width}x${node.height}; the glyph was sized to its ink rather than to its artboard, so every host binding a square would distort it)`);
       // SCALE, on the OUTLINE and not on the frame. The frame is resized by whoever instances it — a host
       // binds `size.{size}.icon` onto its own slot — and a child left at Figma's MIN/MIN default keeps the
@@ -1671,236 +1769,271 @@ const writeComponentSet = async (
       // the `figma_execute` payload's own glyph resize (`anatomy-figma.ts`).
       if (n.glyphPx) node.resize?.(n.glyphPx, n.glyphPx);
     } else {
-      node = wr(api.createFrame());
+      node = ex ?? wr(api.createFrame());
       // THREADED FROM THE PLAN (#1316), default false — unchanged for every existing box, which omits the
       // field. Only `image-placeholder`'s frame opts into clipping, so a dropped photo cannot overflow it.
-      node.clipsContent = n.clipsContent ?? false;
+      if (!kept) node.clipsContent = n.clipsContent ?? false;
     }
     // LOOSE FROM THE MOMENT IT EXISTS (#913), one line for all six creation branches above. Figma parents
     // a created node to the current page immediately, so a node that exists is a node a designer can see —
-    // and every line below this one can throw.
-    trail.loose.add(node);
-    node.name = n.name;
-    // NODE-VISIBILITY BOOLEAN (#1331): a hidden-by-default part is BUILT hidden; its `leading icon` switch
-    // (wired below) toggles it. Applied HERE, in the shared build path, rather than in `claimDefaults` —
-    // that helper returns early for an INSTANCE (a slot's node is an INSTANCE, and it must not neutralize
-    // one), yet a boolean legitimately hides an instance. Carried only when false, so every other node is
-    // unchanged. `claimDefaults` still makes the #865 `visible` CLAIM on the non-instance nodes it reaches.
-    if (n?.visible === false) node.visible = false;
-    // Before ANY dimension binding — see the header note. Unconditional, unlike the
-    // `constrainProportions` form this replaced: that needed an `in` guard because it lives on
-    // `LayoutMixin`, which not every node type has. `unlockAspectRatio` is on `AspectRatioLockMixin`,
-    // which all four types built here carry, so a guard would only hide a port that had gone wrong.
-    node.unlockAspectRatio?.();
+    // and every line below this one can throw. A node the file already held is not loose: it is where it was.
+    if (!ex) trail.loose.add(node);
+    // The member's own name is its coordinate, which the update has already set; every other node is matched by
+    // its name, so the write would change nothing.
+    if (!ex) node.name = n.name;
+    // THE NODE'S OWN FIELDS, every one of them, in the order a build writes them — skipped whole for a node edited by
+    // hand (`kept`). The children below are visited either way: each has its own record and its own verdict.
+    const own = async (): Promise<{ id: string; name: string } | undefined> => {
+      // NODE-VISIBILITY BOOLEAN (#1331): a hidden-by-default part is BUILT hidden; its `leading icon` switch
+      // (wired below) toggles it. Applied HERE, in the shared build path, rather than in `claimDefaults` —
+      // that helper returns early for an INSTANCE (a slot's node is an INSTANCE, and it must not neutralize
+      // one), yet a boolean legitimately hides an instance. Carried only when false, so every other node is
+      // unchanged. `claimDefaults` still makes the #865 `visible` CLAIM on the non-instance nodes it reaches.
+      if (n?.visible === false) node.visible = false;
+      // IN PLACE, an INSTANCE the plan shows is made visible again: `claimDefaults` claims `visible` on every other
+      // node type, and returns early on an instance so as not to override its main's design.
+      else if (ex && node.type === 'INSTANCE') node.visible = true;
+      // Before ANY dimension binding — see the header note. Unconditional, unlike the
+      // `constrainProportions` form this replaced: that needed an `in` guard because it lives on
+      // `LayoutMixin`, which not every node type has. `unlockAspectRatio` is on `AspectRatioLockMixin`,
+      // which all four types built here carry, so a guard would only hide a port that had gone wrong.
+      node.unlockAspectRatio?.();
 
-    // #1567 — HELD for the re-apply after `claimDefaults` (see the note at that call). Captured here rather
-    // than re-resolved down there so the two writes cannot disagree about which style this node takes.
-    let appliedStyle: { id: string; name: string } | undefined;
-    if (n.textStyle) {
-      const st = styleByName.get(n.textStyle);
-      if (!st) misses.push(`${n.name}.textStyle -> ${n.textStyle}`);
-      else {
-        // The STYLE'S OWN font, loaded before the style is applied: `setTextStyleIdAsync` pulls in a
-        // family/style pair that need not be the one `createText` starts on, and Figma requires a font
-        // to be loaded before any text write. A hard-coded `Inter Regular` would be a guess about a
-        // brand's typography.
-        if (st.fontName) {
-          try { await api.loadFontAsync(st.fontName); }
-          catch (err) { misses.push(`${n.name}.font -> ${st.fontName.family} ${st.fontName.style} (${(err as Error).message})`); }
+      // #1567 — HELD for the re-apply after `claimDefaults` (see the note at that call). Captured here rather
+      // than re-resolved down there so the two writes cannot disagree about which style this node takes.
+      let appliedStyle: { id: string; name: string } | undefined;
+      if (n.textStyle) {
+        const st = styleByName.get(n.textStyle);
+        if (!st) misses.push(`${n.name}.textStyle -> ${n.textStyle}`);
+        else {
+          // The STYLE'S OWN font, loaded before the style is applied: `setTextStyleIdAsync` pulls in a
+          // family/style pair that need not be the one `createText` starts on, and Figma requires a font
+          // to be loaded before any text write. A hard-coded `Inter Regular` would be a guess about a
+          // brand's typography.
+          if (st.fontName) {
+            try { await api.loadFontAsync(st.fontName); }
+            catch (err) { misses.push(`${n.name}.font -> ${st.fontName.family} ${st.fontName.style} (${(err as Error).message})`); }
+          }
+          await node.setTextStyleIdAsync?.(st.id);
+          appliedStyle = st;
         }
-        await node.setTextStyleIdAsync?.(st.id);
-        appliedStyle = st;
       }
-    }
-    // The PLACEHOLDER copy, after the style so it is written on a node already carrying the right font.
-    // Both orders work (measured); this one is chosen for reading order.
-    if (typeof n.characters === 'string') {
-      // #1599 — THE FONT FLOOR. Writing `characters` requires the node's CURRENT font to be loaded (a
-      // hard Figma rule), and the style path above loads only the STYLE'S font, inside the branch where
-      // the style is FOUND. So whenever the style is missing (the observed field-label case — 252 text
-      // nodes emptied by one absent `body/sm/strong`), or the style carries no font, or its font fails
-      // to load, nothing loads a font at all and every character write below throws and is DISCARDED.
-      // Load the node's OWN current font here too, independent of the style path: a floor that lets text
-      // land in the fallback font rather than vanish. When a style applied, this font IS the style's and
-      // is already loaded, so the load is a no-op. `fontName` is `FontName | figma.mixed`; the object
-      // shape check both skips a mixed-font node (placeholders are single-font) and narrows the union to
-      // what `loadFontAsync` accepts — the same "compare shape, never name figma.mixed" the port takes
-      // for `textStyleId`. A load that throws (a brand face not installed) is RECORDED and the write is
-      // still attempted, the #680 posture: report what was skipped, write everything else.
-      const fn = node.fontName;
-      if (fn && typeof fn === 'object') {
-        try { await api.loadFontAsync(fn); }
-        catch (err) { misses.push(`${n.name}.font -> ${fn.family} ${fn.style} (${(err as Error).message})`); }
+      // The PLACEHOLDER copy, after the style so it is written on a node already carrying the right font.
+      // Both orders work (measured); this one is chosen for reading order.
+      // IN PLACE, a TEXT node already bound to a property is skipped: its `characters` IS the set's one shared default
+      // (#1567, measured), so a write here would change every member's caption, and the property phase owns it.
+      const boundText = !!ex && !!((node.componentPropertyReferences ?? undefined) as Record<string, string> | undefined)?.characters;
+      if (typeof n.characters === 'string' && !boundText) {
+        // #1599 — THE FONT FLOOR. Writing `characters` requires the node's CURRENT font to be loaded (a
+        // hard Figma rule), and the style path above loads only the STYLE'S font, inside the branch where
+        // the style is FOUND. So whenever the style is missing (the observed field-label case — 252 text
+        // nodes emptied by one absent `body/sm/strong`), or the style carries no font, or its font fails
+        // to load, nothing loads a font at all and every character write below throws and is DISCARDED.
+        // Load the node's OWN current font here too, independent of the style path: a floor that lets text
+        // land in the fallback font rather than vanish. When a style applied, this font IS the style's and
+        // is already loaded, so the load is a no-op. `fontName` is `FontName | figma.mixed`; the object
+        // shape check both skips a mixed-font node (placeholders are single-font) and narrows the union to
+        // what `loadFontAsync` accepts — the same "compare shape, never name figma.mixed" the port takes
+        // for `textStyleId`. A load that throws (a brand face not installed) is RECORDED and the write is
+        // still attempted, the #680 posture: report what was skipped, write everything else.
+        const fn = node.fontName;
+        if (fn && typeof fn === 'object') {
+          try { await api.loadFontAsync(fn); }
+          catch (err) { misses.push(`${n.name}.font -> ${fn.family} ${fn.style} (${(err as Error).message})`); }
+        }
+        try { node.characters = n.characters; }
+        catch (err) { misses.push(`${n.name}.characters -> ${JSON.stringify(n.characters)} (${(err as Error).message})`); }
+        // READ BACK: a text node that silently kept nothing is the empty-label set #510 shipped.
+        if (node.characters !== n.characters)
+          misses.push(`${n.name}.characters -> DISCARDED (set ${JSON.stringify(n.characters)}, reads ${JSON.stringify(node.characters)})`);
       }
-      try { node.characters = n.characters; }
-      catch (err) { misses.push(`${n.name}.characters -> ${JSON.stringify(n.characters)} (${(err as Error).message})`); }
-      // READ BACK: a text node that silently kept nothing is the empty-label set #510 shipped.
-      if (node.characters !== n.characters)
-        misses.push(`${n.name}.characters -> DISCARDED (set ${JSON.stringify(n.characters)}, reads ${JSON.stringify(node.characters)})`);
-    }
-    // AFTER the text style, because a text style does not carry it and could not overwrite it —
-    // `TextStyle` in `@figma/plugin-typings` has no alignment field on either axis (#1009, measured).
-    // READ BACK like `characters` above, and for the same reason: the executor is not the oracle for
-    // what the node kept. `textAlignVertical` is a `TextNode` property, so a plan that ever carried it
-    // on a frame would fail HERE, loudly and by name, rather than in the live file — `anatomyErrors`
-    // refuses that plan first, and this is the second of the two directions.
-    if (n.textAlignVertical) {
-      try { node.textAlignVertical = n.textAlignVertical; }
-      catch (err) { misses.push(`${n.name}.textAlignVertical -> ${n.textAlignVertical} (${(err as Error).message})`); }
-      if (node.textAlignVertical !== undefined && node.textAlignVertical !== n.textAlignVertical)
-        misses.push(`${n.name}.textAlignVertical -> DISCARDED (set ${n.textAlignVertical}, reads ${String(node.textAlignVertical)})`);
-    }
-    if (n.effectStyle) {
-      const ef = effectByName.get(n.effectStyle);
-      if (!ef) misses.push(`${n.name}.effectStyle -> ${n.effectStyle}`);
-      else await node.setEffectStyleIdAsync?.(ef.id);
-    }
-    if (n.layoutMode) {
-      // THE ROOT'S BUILD WIDTH (#1757, `FigmaNodePlan.placementWidth`): a root whose `fill` has no placement
-      // in its own def is built at this width, so a wrapping text inside it reflows at it rather than
-      // freezing at its default string's. BEFORE the modes below, because Figma switches a resized axis to
-      // FIXED — the plan's modes are written after it and stand. Read back. Lockstep with the paste executor.
-      if (n.placementWidth) {
-        node.resize?.(n.placementWidth, node.height as number);
-        if (node.width !== n.placementWidth) misses.push(`${n.name}.placementWidth -> DISCARDED (set ${n.placementWidth}, reads ${String(node.width)})`);
+      // AFTER the text style, because a text style does not carry it and could not overwrite it —
+      // `TextStyle` in `@figma/plugin-typings` has no alignment field on either axis (#1009, measured).
+      // READ BACK like `characters` above, and for the same reason: the executor is not the oracle for
+      // what the node kept. `textAlignVertical` is a `TextNode` property, so a plan that ever carried it
+      // on a frame would fail HERE, loudly and by name, rather than in the live file — `anatomyErrors`
+      // refuses that plan first, and this is the second of the two directions.
+      if (n.textAlignVertical) {
+        try { node.textAlignVertical = n.textAlignVertical; }
+        catch (err) { misses.push(`${n.name}.textAlignVertical -> ${n.textAlignVertical} (${(err as Error).message})`); }
+        if (node.textAlignVertical !== undefined && node.textAlignVertical !== n.textAlignVertical)
+          misses.push(`${n.name}.textAlignVertical -> DISCARDED (set ${n.textAlignVertical}, reads ${String(node.textAlignVertical)})`);
       }
-      node.layoutMode = n.layoutMode;
-      node.primaryAxisAlignItems = n.primaryAxisAlignItems;
-      node.counterAxisAlignItems = n.counterAxisAlignItems;
-      node.primaryAxisSizingMode = n.primaryAxisSizingMode;
-      node.counterAxisSizingMode = n.counterAxisSizingMode;
-      // THE MIN-WIDTH FLOOR (#1343a, #1345). Inside the `layoutMode` branch because Figma accepts a
-      // minimum width only on an auto-layout frame (the schema refuses `minWidth` on a layout-less box).
-      // Written only when the plan carries it, so every other frame is untouched.
-      if (n.minWidth !== undefined) node.minWidth = n.minWidth;
-      // THE RESERVED SIDES (#1667): literal padding beside a pinned icon (`FigmaNodePlan.paddingPx`), written
-      // before the children so every later pass measures the final width. `claimDefaults` leaves them alone.
-      if (n.paddingPx) Object.assign(node, n.paddingPx);
-    }
+      // IN PLACE, a style the plan no longer names is cleared, so the node does not keep one by default.
+      if (ex && !n.textStyle && typeof node.textStyleId === 'string' && node.textStyleId) {
+        try { await node.setTextStyleIdAsync?.(''); }
+        catch (err) { misses.push(`${n.name}.textStyle -> could not be cleared (${(err as Error).message})`); }
+      }
+      if (ex && !n.effectStyle && typeof (node as { effectStyleId?: unknown }).effectStyleId === 'string' && (node as { effectStyleId?: string }).effectStyleId) {
+        try { await node.setEffectStyleIdAsync?.(''); }
+        catch (err) { misses.push(`${n.name}.effectStyle -> could not be cleared (${(err as Error).message})`); }
+      }
+      if (n.effectStyle) {
+        const ef = effectByName.get(n.effectStyle);
+        if (!ef) misses.push(`${n.name}.effectStyle -> ${n.effectStyle}`);
+        else await node.setEffectStyleIdAsync?.(ef.id);
+      }
+      if (n.layoutMode) {
+        // THE ROOT'S BUILD WIDTH (#1757, `FigmaNodePlan.placementWidth`): a root whose `fill` has no placement
+        // in its own def is built at this width, so a wrapping text inside it reflows at it rather than
+        // freezing at its default string's. BEFORE the modes below, because Figma switches a resized axis to
+        // FIXED — the plan's modes are written after it and stand. Read back. Lockstep with the paste executor.
+        if (n.placementWidth) {
+          node.resize?.(n.placementWidth, node.height as number);
+          if (node.width !== n.placementWidth) misses.push(`${n.name}.placementWidth -> DISCARDED (set ${n.placementWidth}, reads ${String(node.width)})`);
+        }
+        node.layoutMode = n.layoutMode;
+        node.primaryAxisAlignItems = n.primaryAxisAlignItems;
+        node.counterAxisAlignItems = n.counterAxisAlignItems;
+        node.primaryAxisSizingMode = n.primaryAxisSizingMode;
+        node.counterAxisSizingMode = n.counterAxisSizingMode;
+        // THE MIN-WIDTH FLOOR (#1343a, #1345). Inside the `layoutMode` branch because Figma accepts a
+        // minimum width only on an auto-layout frame (the schema refuses `minWidth` on a layout-less box).
+        // Written only when the plan carries it, so every other frame is untouched.
+        if (n.minWidth !== undefined) node.minWidth = n.minWidth;
+        // THE RESERVED SIDES (#1667): literal padding beside a pinned icon (`FigmaNodePlan.paddingPx`), written
+        // before the children so every later pass measures the final width. `claimDefaults` leaves them alone.
+        if (n.paddingPx) Object.assign(node, n.paddingPx);
+      }
 
-    // THE ASPECT-RATIO LOCK (#1316). Establish the proportion by resizing, THEN lock, THEN let the bind
-    // loop bind the SINGLE nominal dimension — Figma derives the other axis from the lock. Ordered after
-    // layoutMode and before the bind loop for that reason: the lock is captured from the resized box, and
-    // the one dimension is bound afterward, so there is no second binding for the lock to evict (the
-    // mirror of `unlockAspectRatio` above, which the two-dimension case needs). Both `resize` and
-    // `lockAspectRatio` are `?.()` per the port's optional-everything rule.
-    if (n.aspectRatio) {
-      node.resize?.(n.aspectRatio, 1);
-      node.lockAspectRatio?.();
-    }
+      // THE ASPECT-RATIO LOCK (#1316). Establish the proportion by resizing, THEN lock, THEN let the bind
+      // loop bind the SINGLE nominal dimension — Figma derives the other axis from the lock. Ordered after
+      // layoutMode and before the bind loop for that reason: the lock is captured from the resized box, and
+      // the one dimension is bound afterward, so there is no second binding for the lock to evict (the
+      // mirror of `unlockAspectRatio` above, which the two-dimension case needs). Both `resize` and
+      // `lockAspectRatio` are `?.()` per the port's optional-everything rule.
+      if (n.aspectRatio) {
+        // IN PLACE, the dimension the bind loop below binds is already bound, and a bound dimension wins over the
+        // resize, so the lock would capture the old box. Cleared first; the bind loop binds it again.
+        if (ex) { node.setBoundVariable?.('width', null); node.setBoundVariable?.('height', null); }
+        node.resize?.(n.aspectRatio, 1);
+        node.lockAspectRatio?.();
+      }
 
-    // `wrote` is what was ACTUALLY set, not what the plan declared — a name that does not resolve is
-    // skipped. The read-back iterates this so an unresolved name reports its one true cause instead of
-    // also claiming Figma discarded a write that was never attempted.
-    const wrote: string[] = [];
-    for (const [prop, varName] of Object.entries(n.bound)) {
-      const v = byName.get(varName);
-      if (!v) { misses.push(`${n.name}.${prop} -> ${varName}`); continue; }
-      node.setBoundVariable?.(prop, v);
-      wrote.push(prop);
-    }
+      // `wrote` is what was ACTUALLY set, not what the plan declared — a name that does not resolve is
+      // skipped. The read-back iterates this so an unresolved name reports its one true cause instead of
+      // also claiming Figma discarded a write that was never attempted.
+      const wrote: string[] = [];
+      for (const [prop, varName] of Object.entries(n.bound)) {
+        const v = byName.get(varName);
+        if (!v) { misses.push(`${n.name}.${prop} -> ${varName}`); continue; }
+        node.setBoundVariable?.(prop, v);
+        wrote.push(prop);
+      }
+      // IN PLACE, a binding the plan no longer declares is removed. Paints are bound in their arrays, below, and a
+      // bound `strokeWeight` reads back on its four sides (#1332), so neither is a stray here. An INSTANCE's
+      // bindings are its main's until the plan says otherwise (the ring's are cleared by its parent), so they stay.
+      if (ex && node.type !== 'INSTANCE') {
+        const planned = new Set(Object.keys(n.bound));
+        if (planned.has('strokeWeight')) for (const side of ['strokeTopWeight', 'strokeRightWeight', 'strokeBottomWeight', 'strokeLeftWeight']) planned.add(side);
+        for (const field of Object.keys((node.boundVariables ?? {}) as Record<string, unknown>))
+          if (!planned.has(field) && field !== 'fills' && field !== 'strokes') node.setBoundVariable?.(field, null);
+      }
 
-    // PAINTS — a fourth API shape, and the returned paint must be assigned BACK into the array.
-    const paint = (varName: string, where: string): unknown => {
-      const v = byName.get(varName);
-      if (!v) { misses.push(`${n.name}.${where} -> ${varName}`); return null; }
-      return api.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }, 'color', v);
+      // PAINTS — a fourth API shape, and the returned paint must be assigned BACK into the array.
+      const paint = (varName: string, where: string): unknown => {
+        const v = byName.get(varName);
+        if (!v) { misses.push(`${n.name}.${where} -> ${varName}`); return null; }
+        return api.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }, 'color', v);
+      };
+      // Same reason as `wrote`: only a paint that was actually assigned can have been discarded.
+      let paintedFills = false;
+      let paintedStrokes = false;
+      // Every bound paint is OPAQUE. A `solid-tint` hover's tint lives in the wash VARIABLE it binds (#1614,
+      // #1646): the host resets a bound paint's opacity whenever Apply Theme rewrites that paint's variable,
+      // so a tint carried on the paint lasted only until the next re-apply. Lockstep with the paste executor.
+      if (n.paints?.fills) {
+        const p = paint(n.paints.fills, 'fills');
+        if (p) { node.fills = [p]; paintedFills = true; }
+        // DECLARED BUT UNRESOLVABLE → transparent, NEVER Figma's opaque white default (#1387). The
+        // component set is brand-agnostic — it binds `interactive.<family>.overlay.{hover,pressed}` on
+        // outline/text hover/pressed unconditionally — while that wash is EMITTED only under
+        // `outlineInteraction: 'overlay-neutral'`. On a brand built with `'none'` or `'solid-tint'`, the
+        // wash variable is absent from this file, `paint()` returns null (and has already reported the
+        // miss), and the frame keeps Figma's default `#ffffff` opaque fill — the "SOLID #ffffff, opacity 1,
+        // unbound" the 2026-09-09 host-truth audit found on 324 button members. Clearing to `[]` renders the
+        // lever's intended clean no-change hover instead. This EXTENDS `claimDefaults`' own rule ("nobody
+        // asked for a fill means no fill, not a white one") from UNCLAIMED to CLAIMED-BUT-UNRESOLVABLE: the
+        // two states are indistinguishable to a viewer and neither may be the frame's arbitrary white.
+        // TEXT is exempt for the same reason `claimDefaults` reports rather than neutralizes it — `[]` is
+        // invisible text, a worse defect than an unpainted box.
+        // #1608 closed the CAUSE upstream: `materializeForBrand` now rebinds (solid-tint) or drops (none) the
+        // wash before projection, so a correctly materialized build no longer reaches this branch for it. It
+        // stays as the floor for any other declared-but-unresolvable fill (a stale file, a held inverse tint).
+        else if (node.type !== 'TEXT') node.fills = [];
+      }
+      // A GRADIENT FILL (#1318) — the veil's directional washes. Each stop is bound through the Paint Style
+      // executor's own binder, onto the stop (`setBoundVariableForPaint` takes only a solid). The stop colour
+      // is a placeholder the variable overrides, like the solid path's black, so a stop whose variable the
+      // file lacks leaves the node CLEAR rather than half a gradient in placeholder black — #1387's rule for
+      // an unresolvable fill. The miss strings are the paste payload's, byte for byte (the parity gate).
+      let paintedGradient = false;
+      if (n.gradientFill) {
+        const res = bindGradientStops(
+          n.gradientFill.stops.map((s) => ({ position: s.position, color: GRADIENT_STOP_PLACEHOLDER, alias: s.variable })),
+          byName,
+          (v) => api.variables.createVariableAlias(v),
+          (name) => misses.push(`${n.name}.fills -> ${name}`),
+        );
+        if (res.bound === n.gradientFill.stops.length) {
+          node.fills = [{ type: 'GRADIENT_LINEAR', gradientTransform: n.gradientFill.gradientTransform, gradientStops: res.stops }];
+          paintedGradient = true;
+        } else node.fills = [];
+      }
+      if (n.paints?.strokes) {
+        const p = paint(n.paints.strokes, 'strokes');
+        if (p) {
+          node.strokes = [p];
+          paintedStrokes = true;
+          // A stroke variable with no weight binds correctly and paints nothing visible.
+          //
+          // GATED ON `wrote` (#1266). A part declaring `strokeWidth` had `strokeWeight` BOUND in the loop
+          // above, and a literal assignment after a binding unbinds it: the border would come out as the
+          // right paint at a hardcoded 1px, re-theming on color and frozen on width. That is what the focus
+          // ring shipped as. `wrote` rather than `n.bound`, so a name that failed to resolve still gets the
+          // fallback and paints something.
+          if (!node.strokeWeight && !wrote.includes('strokeWeight')) node.strokeWeight = 1;
+          node.strokeAlign = 'INSIDE';
+          // BORDER-BOX, and Figma defaults the other way: left alone, the stroke is ADDED to the
+          // auto-layout size, so an outline button measured 62 where its filled sibling measured 60 —
+          // swapping `appearance` moved the footprint, the one thing a variant axis must not do.
+          //
+          // GATED ON AUTO-LAYOUT: Figma only ALLOWS this property on an auto-layout frame and THROWS on a
+          // `layoutMode: NONE` one — and this branch runs on any STROKED node, which since PR-B includes the
+          // standalone focus ring: a stroked (#1266), absolute, layoutMode-NONE root frame. Unguarded the
+          // throw was UNCAUGHT here (unlike `claimDefaults`' `set`), so it propagated to the top-level catch
+          // and PARKED the ring at 100×100 — fatal, and cascading to every def that nests it. The border-box
+          // motive is moot on an absolute node anyway: with no auto-layout there is no footprint for the
+          // stroke to grow. `&& node.layoutMode` so an undefined layoutMode (a non-auto-layout frame) is
+          // skipped, not compared true against `'NONE'`.
+          if ('strokesIncludedInLayout' in node && node.layoutMode && node.layoutMode !== 'NONE') node.strokesIncludedInLayout = false;
+        }
+      }
+      if (n.descendantFills) {
+        // The ink lives on the VECTORs INSIDE the node, never on the node itself — a fill on the wrapper is
+        // a painted square behind the glyph. True of a swapped instance, where a HOST is pushing ink down,
+        // and true of a `GLYPH`, whose wrapper is the artboard Figma's importer returned. One field, one
+        // meaning, from whichever side.
+        const vecs = node.findAll ? node.findAll((x) => x.type === 'VECTOR') : [];
+        if (vecs.length === 0)
+          misses.push(`${n.name}.descendantFills -> ${n.descendantFills} (no VECTOR inside this node to paint)`);
+        for (const vec of vecs) {
+          const p = paint(n.descendantFills, 'descendantFills');
+          if (p) wr(vec as CompNode).fills = [p];
+        }
+      }
+
+      // READ BACK. The name resolved and the setter did not throw, which is not the same as the binding
+      // being there — a Figma setter that accepts a call is not a Figma setter that honoured it.
+      const got = (node.boundVariables ?? {}) as Record<string, unknown>;
+      for (const prop of wrote)
+        if (!weightHeld(got, prop)) misses.push(`${n.name}.${prop} -> DISCARDED (resolved, set, not retained)`);
+      if (paintedFills && !boundPaint(node.fills)) misses.push(`${n.name}.fills -> DISCARDED (paint set, not retained)`);
+      if (paintedGradient && !boundGradient(node.fills, n.gradientFill!.stops.length)) misses.push(`${n.name}.fills -> DISCARDED (gradient set, not retained)`);
+      if (paintedStrokes && !boundPaint(node.strokes)) misses.push(`${n.name}.strokes -> DISCARDED (paint set, not retained)`);
+      return appliedStyle;
     };
-    // Same reason as `wrote`: only a paint that was actually assigned can have been discarded.
-    let paintedFills = false;
-    let paintedStrokes = false;
-    // Every bound paint is OPAQUE. A `solid-tint` hover's tint lives in the wash VARIABLE it binds (#1614,
-    // #1646): the host resets a bound paint's opacity whenever Apply Theme rewrites that paint's variable,
-    // so a tint carried on the paint lasted only until the next re-apply. Lockstep with the paste executor.
-    if (n.paints?.fills) {
-      const p = paint(n.paints.fills, 'fills');
-      if (p) { node.fills = [p]; paintedFills = true; }
-      // DECLARED BUT UNRESOLVABLE → transparent, NEVER Figma's opaque white default (#1387). The
-      // component set is brand-agnostic — it binds `interactive.<family>.overlay.{hover,pressed}` on
-      // outline/text hover/pressed unconditionally — while that wash is EMITTED only under
-      // `outlineInteraction: 'overlay-neutral'`. On a brand built with `'none'` or `'solid-tint'`, the
-      // wash variable is absent from this file, `paint()` returns null (and has already reported the
-      // miss), and the frame keeps Figma's default `#ffffff` opaque fill — the "SOLID #ffffff, opacity 1,
-      // unbound" the 2026-09-09 host-truth audit found on 324 button members. Clearing to `[]` renders the
-      // lever's intended clean no-change hover instead. This EXTENDS `claimDefaults`' own rule ("nobody
-      // asked for a fill means no fill, not a white one") from UNCLAIMED to CLAIMED-BUT-UNRESOLVABLE: the
-      // two states are indistinguishable to a viewer and neither may be the frame's arbitrary white.
-      // TEXT is exempt for the same reason `claimDefaults` reports rather than neutralizes it — `[]` is
-      // invisible text, a worse defect than an unpainted box.
-      // #1608 closed the CAUSE upstream: `materializeForBrand` now rebinds (solid-tint) or drops (none) the
-      // wash before projection, so a correctly materialized build no longer reaches this branch for it. It
-      // stays as the floor for any other declared-but-unresolvable fill (a stale file, a held inverse tint).
-      else if (node.type !== 'TEXT') node.fills = [];
-    }
-    // A GRADIENT FILL (#1318) — the veil's directional washes. Each stop is bound through the Paint Style
-    // executor's own binder, onto the stop (`setBoundVariableForPaint` takes only a solid). The stop colour
-    // is a placeholder the variable overrides, like the solid path's black, so a stop whose variable the
-    // file lacks leaves the node CLEAR rather than half a gradient in placeholder black — #1387's rule for
-    // an unresolvable fill. The miss strings are the paste payload's, byte for byte (the parity gate).
-    let paintedGradient = false;
-    if (n.gradientFill) {
-      const res = bindGradientStops(
-        n.gradientFill.stops.map((s) => ({ position: s.position, color: GRADIENT_STOP_PLACEHOLDER, alias: s.variable })),
-        byName,
-        (v) => api.variables.createVariableAlias(v),
-        (name) => misses.push(`${n.name}.fills -> ${name}`),
-      );
-      if (res.bound === n.gradientFill.stops.length) {
-        node.fills = [{ type: 'GRADIENT_LINEAR', gradientTransform: n.gradientFill.gradientTransform, gradientStops: res.stops }];
-        paintedGradient = true;
-      } else node.fills = [];
-    }
-    if (n.paints?.strokes) {
-      const p = paint(n.paints.strokes, 'strokes');
-      if (p) {
-        node.strokes = [p];
-        paintedStrokes = true;
-        // A stroke variable with no weight binds correctly and paints nothing visible.
-        //
-        // GATED ON `wrote` (#1266). A part declaring `strokeWidth` had `strokeWeight` BOUND in the loop
-        // above, and a literal assignment after a binding unbinds it: the border would come out as the
-        // right paint at a hardcoded 1px, re-theming on color and frozen on width. That is what the focus
-        // ring shipped as. `wrote` rather than `n.bound`, so a name that failed to resolve still gets the
-        // fallback and paints something.
-        if (!node.strokeWeight && !wrote.includes('strokeWeight')) node.strokeWeight = 1;
-        node.strokeAlign = 'INSIDE';
-        // BORDER-BOX, and Figma defaults the other way: left alone, the stroke is ADDED to the
-        // auto-layout size, so an outline button measured 62 where its filled sibling measured 60 —
-        // swapping `appearance` moved the footprint, the one thing a variant axis must not do.
-        //
-        // GATED ON AUTO-LAYOUT: Figma only ALLOWS this property on an auto-layout frame and THROWS on a
-        // `layoutMode: NONE` one — and this branch runs on any STROKED node, which since PR-B includes the
-        // standalone focus ring: a stroked (#1266), absolute, layoutMode-NONE root frame. Unguarded the
-        // throw was UNCAUGHT here (unlike `claimDefaults`' `set`), so it propagated to the top-level catch
-        // and PARKED the ring at 100×100 — fatal, and cascading to every def that nests it. The border-box
-        // motive is moot on an absolute node anyway: with no auto-layout there is no footprint for the
-        // stroke to grow. `&& node.layoutMode` so an undefined layoutMode (a non-auto-layout frame) is
-        // skipped, not compared true against `'NONE'`.
-        if ('strokesIncludedInLayout' in node && node.layoutMode && node.layoutMode !== 'NONE') node.strokesIncludedInLayout = false;
-      }
-    }
-    if (n.descendantFills) {
-      // The ink lives on the VECTORs INSIDE the node, never on the node itself — a fill on the wrapper is
-      // a painted square behind the glyph. True of a swapped instance, where a HOST is pushing ink down,
-      // and true of a `GLYPH`, whose wrapper is the artboard Figma's importer returned. One field, one
-      // meaning, from whichever side.
-      const vecs = node.findAll ? node.findAll((x) => x.type === 'VECTOR') : [];
-      if (vecs.length === 0)
-        misses.push(`${n.name}.descendantFills -> ${n.descendantFills} (no VECTOR inside this node to paint)`);
-      for (const vec of vecs) {
-        const p = paint(n.descendantFills, 'descendantFills');
-        if (p) wr(vec as CompNode).fills = [p];
-      }
-    }
-
-    // READ BACK. The name resolved and the setter did not throw, which is not the same as the binding
-    // being there — a Figma setter that accepts a call is not a Figma setter that honoured it.
-    const got = (node.boundVariables ?? {}) as Record<string, unknown>;
-    for (const prop of wrote)
-      if (!weightHeld(got, prop)) misses.push(`${n.name}.${prop} -> DISCARDED (resolved, set, not retained)`);
-    if (paintedFills && !boundPaint(node.fills)) misses.push(`${n.name}.fills -> DISCARDED (paint set, not retained)`);
-    if (paintedGradient && !boundGradient(node.fills, n.gradientFill!.stops.length)) misses.push(`${n.name}.fills -> DISCARDED (gradient set, not retained)`);
-    if (paintedStrokes && !boundPaint(node.strokes)) misses.push(`${n.name}.strokes -> DISCARDED (paint set, not retained)`);
+    const appliedStyle = kept ? undefined : await own();
 
     // FLOW CHILDREN FIRST, absolute ones after — three passes, because an absolute child is positioned
     // against its parent's FINAL size and the parent hugs its flow content. One loop would read
@@ -1911,12 +2044,28 @@ const writeComponentSet = async (
     // This parent's DIRECT children by part name (#848) — the sibling boxes `absoluteCenterOn` measures
     // against. Sibling-scoped on purpose; see the centering loop for why the wider `parts` map is wrong.
     const byPart = new Map<string, Wr>();
+    // IN PLACE (#2265 PR 2): the node's existing children, each paired at most once with the plan child of its name.
+    // A GLYPH's are the fresh import's, never the plan's, so they are not paired; an INSTANCE's are its main's.
+    const pool = ex && n.type !== 'GLYPH' && node.type !== 'INSTANCE' ? [...((node.children ?? []) as Wr[])] : [];
+    const paired = new Set<Wr>();
+    let at = 0;
     for (const c of n.children) {
-      const kid = await build(c, parts, expose);
+      const cand = pool.find((k) => !paired.has(k) && k.name === c.name);
+      if (cand) paired.add(cand);
+      const fits = !!cand && fitsHost(c, cand);
+      const kid = await build(c, parts, expose, fits ? cand : undefined, keep, path === '.' ? c.name : `${path}/${c.name}`);
       if (!kid) continue;   // a missing shared component — one precise miss, the rest still builds
-      node.appendChild?.(kid);
-      // NO LONGER LOOSE (#913): it has a parent, and its ancestor is what the marking would gather.
-      trail.loose.delete(kid);
+      if (ex) {
+        // A TYPE CHANGE IS A REPLACEMENT, the one way an update changes a child's id; the dry run lists each one.
+        if (cand && !fits) wr(cand).remove?.();
+        if (((node.children ?? []) as Wr[])[at] !== kid) node.insertChild?.(at, kid);
+        at++;
+        if (kid !== cand) trail.loose.delete(kid);
+      } else {
+        node.appendChild?.(kid);
+        // NO LONGER LOOSE (#913): it has a parent, and its ancestor is what the marking would gather.
+        trail.loose.delete(kid);
+      }
       // REGISTERED HERE AND NOWHERE ELSE (#701) — on the child, after it built, inside the parent's loop.
       // That placement is the whole correctness argument, because it makes this map's membership match
       // `findOne`'s reach EXACTLY, and the two must agree or the fast path is a behaviour change:
@@ -1981,6 +2130,9 @@ const writeComponentSet = async (
         }
       }
     }
+    // IN PLACE, a child the plan no longer has is removed: the member then holds what the plan says, and the
+    // dry run listed it ("removed — not in the plan").
+    for (const k of pool) if (!paired.has(k)) k.remove?.();
     // A CENTERED absolute child (#612's pending spinner with no visual cell to take). NOT resized:
     // unlike the ring it keeps its own square size, and its `size` binding is already on it — `resize`
     // would clear that binding.
@@ -2136,7 +2288,7 @@ const writeComponentSet = async (
     // else was declared. Placed after the child loop rather than beside `createFrame()` so that a value
     // the plan set is never overwritten by a default — the ordering is the whole correctness argument,
     // and putting it at creation time would have neutralized the plan instead of Figma.
-    claimDefaults(node, n, misses, 'created');
+    if (!kept) claimDefaults(node, n, misses, 'created');
     // #1567 — RE-APPLY THE TEXT STYLE, BECAUSE `claimDefaults` ABOVE JUST DETACHED IT.
     //
     // HOST-MEASURED (2026-09-22, Figma console, a scratch page removed afterwards): with a named text style
@@ -2175,7 +2327,7 @@ const writeComponentSet = async (
     // glyph — measured at 36 of `checkbox`'s 90 white frames, which is why a fix touching only the
     // `createFrame` path would have left a third of them in place. `imported` mode skips fills, strokes
     // and constraints: those three are claimed here by `glyphSvg` and by the `SCALE` write above.
-    if (n.type === 'GLYPH') {
+    if (n.type === 'GLYPH' && !kept) {
       // Each VECTOR, in document order, takes the opacity its `<path>` declares (`glyphLayerOpacities`).
       const layerOps = glyphLayerOpacities(n.glyphSvg ?? '');
       let vi = 0;
@@ -2286,10 +2438,31 @@ const writeComponentSet = async (
   const builtParts = new Map<string, Map<string, Wr>>();
   let skipped = 0;
   let stale = 0;
+  // #2265 PR 2 — the members this run configured in place, each with the paths it kept as hand edits.
+  const updated = new Map<string, { keep: ReadonlySet<string>; accept?: boolean }>();
   for (let i = 0; i < cells.length; i++) {
     const spec = cells[i];
     const existing = have.get(spec.name);
-    if (existing) {
+    const inPlace = existing ? opts.update?.members.get(spec.name) : undefined;
+    if (existing && inPlace) {
+      // THE IN-PLACE UPDATE (#2265 PR 2). The member node stays; `build` configures it and every child the plan
+      // still has. The marker goes on BEFORE the first write and comes off after the stamp, which is written LAST
+      // (below, after the wire loop and every read-back), so a run that stops here leaves a member that reads out
+      // of date and whose changes so far read as the update's own, and the next run finishes it (§7).
+      wr(existing).setSharedPluginData?.(NS, UPDATING_KEY, JSON.stringify([...inPlace.keep]));
+      const parts = new Map<string, Wr>();
+      const expose: Wr[] = [];
+      await build(spec.root, parts, expose, wr(existing), inPlace.keep, '.');
+      for (const inst of expose) {
+        if (inst.isExposedInstance === true) continue;
+        try { inst.isExposedInstance = true; }
+        catch (err) { misses.push(`${spec.name}.nestExpose -> REFUSED (${(err as Error)?.message ?? String(err)})`); continue; }
+        if (inst.isExposedInstance !== true)
+          misses.push(`${spec.name}.nestExpose -> DISCARDED (set true, reads ${String(inst.isExposedInstance)}; the nested instance's properties will not surface on the parent)`);
+      }
+      builtParts.set(spec.name, parts);
+      updated.set(spec.name, inPlace);
+    } else if (existing) {
       // #827: A NAME MATCH IS NOT PROOF THE MEMBER IS CORRECT. Both branches skip — this build does not
       // rebuild either one, because rebuilding means replacing the component node, and instances track
       // their main component by id: a rebuild would orphan every instance a designer had already placed.
@@ -2514,15 +2687,38 @@ const writeComponentSet = async (
     const cell = cellOf[i];
     // A member whose name is not a coordinate this generator emits — someone's manual copy. Left where
     // it is and reported, because silently relocating it to a guessed cell is worse than visible.
-    if (!cell) { stray.push(`member ${c.name} -> NOT A GENERATED VARIANT (left in place; it will not follow the grid)`); return; }
+    if (!cell) {
+      // A member the update kept and marked deprecated (#2265 PR 2) is expected here, not a stray.
+      if (!opts.update?.retained?.has(String(c.name))) stray.push(`member ${c.name} -> NOT A GENERATED VARIANT (left in place; it will not follow the grid)`);
+      return;
+    }
     const m = wr(c);
     m.x = PAD + at(colW, cell.col);
     m.y = PAD + at(rowH, cell.row);
   });
+  // #2265 PR 2 — THE MEMBERS AN UPDATE KEPT AND MARKED DEPRECATED have no cell in the plan's grid, which the
+  // members still in the plan now fill, so left where they were they would sit on top of them. They go in one row
+  // below the grid, in the order the set holds them. A PLACEHOLDER: where deprecated members sit is the owner's
+  // call (held on the PR), and this is only the arrangement that keeps every member visible.
+  let retainedRow = 0;
+  let retainedW = 0;
+  if (opts.update?.retained?.size) {
+    let x = PAD;
+    const y = PAD + at(rowH, rowH.length);
+    members.forEach((c, i) => {
+      if (cellOf[i] || !opts.update!.retained!.has(String(c.name))) return;
+      const m = wr(c);
+      m.x = x;
+      m.y = y;
+      x += (c.width ?? 0) + GAP;
+      retainedRow = Math.max(retainedRow, c.height ?? 0);
+    });
+    if (retainedRow) retainedW = x - GAP + PAD;
+  }
   // RESIZE, because appending does NOT grow the set's frame: a member appended at x=208 to a 184-wide
   // set leaves it 184 wide, with the member outside its own box, and nothing throws.
-  const wantW = Math.max(1, at(colW, colW.length) - GAP + 2 * PAD);
-  const wantH = Math.max(1, at(rowH, rowH.length) - GAP + 2 * PAD);
+  const wantW = Math.max(1, at(colW, colW.length) - GAP + 2 * PAD, retainedW);
+  const wantH = Math.max(1, at(rowH, rowH.length) - GAP + 2 * PAD + (retainedRow ? retainedRow + GAP : 0));
   if (colW.length && rowH.length) set.resize?.(wantW, wantH);
   // READ BACK THE BOX, because `resize` is the one call here with no other witness. Compared against
   // the offline expectation rather than against the members, so a resize that ran and landed somewhere
@@ -3216,8 +3412,28 @@ const writeComponentSet = async (
   for (const mName of builtParts.keys()) {
     const m = liveMembers.get(mName);
     if (!m) { asBuiltMiss.push(`${mName}.asBuilt -> NOT RECORDED (the member is not in the set to read)`); continue; }
-    try { await writeBaseline(m); }
-    catch (err) { asBuiltMiss.push(`${mName}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`); }
+    const entry = updated.get(mName);
+    const keep = entry?.keep;
+    try {
+      if (!entry) await writeBaseline(m);
+      else {
+        // AN UPDATED MEMBER'S RECORD (#2265 PR 2): the host as it now stands, EXCEPT each node kept as a hand edit,
+        // which keeps the hash it had. Recording the edit as built would launder it: the next dry run would stop
+        // reporting it, and the next update would overwrite it (owner decision Q1, keep and report).
+        const prior = readBaseline(m);
+        const now = baselineOf(await snapshotMember(m));
+        // …unless the owner ACCEPTED the edits as the new record (`accept`, design note §5): then the host as it
+        // stands is the record, and the dry run stops listing them.
+        if (!entry.accept) for (const p of keep!) if (prior?.nodes[p] !== undefined) now.nodes[p] = prior.nodes[p];
+        // The node it is written on, as `writeBaseline` records it (#2300): a copy's record names its original.
+        m.setSharedPluginData?.(NS, BASELINE_KEY, JSON.stringify({ ...now, ...(m.id ? { id: String(m.id) } : {}) }));
+      }
+    } catch (err) { asBuiltMiss.push(`${mName}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`); continue; }
+    if (entry) {
+      // THE STAMP, LAST (§7): only now does the member read current. Then the marker comes off.
+      m.setSharedPluginData?.(NS, STAMP_KEY, stampByMember.get(mName) ?? '');
+      m.setSharedPluginData?.(NS, UPDATING_KEY, '');
+    }
   }
   const allMisses = misses.concat(stray, boxMiss, axisMiss, coincident, footprint, propMiss, asBuiltMiss);
 
@@ -3240,6 +3456,7 @@ const writeComponentSet = async (
   });
 
   return {
+    ...(opts.update ? { updatedInPlace: [...updated.keys()] } : {}),
     set: String(set.name ?? component),
     id: String(set.id ?? ''),
     variants: members.length,

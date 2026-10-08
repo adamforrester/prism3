@@ -1553,9 +1553,9 @@ const styleGuidePendingText = (): string => {
   const p = host.styleGuideState === 'pending' ? host.styleGuideProgress : agentReading('styleguide');
   return p ? `Drawing table ${Math.min(p.done + 1, p.total)} of ${p.total}…` : PENDING_TEXT.styleguide;
 };
-/** The phase line while an agent's update check, baseline capture or Adopt runs (#2265, #2283). None builds
- *  anything, so none may read as a build. DRAFT words, for the owner. */
-const CHECK_TEXT: Readonly<Record<string, string>> = { 'update-components': 'Checking the sets…', 'capture-baseline': 'Recording the sets as built…', 'adopt-members': 'Adopting members…' };
+/** The phase line while an agent's update check, update, baseline capture or Adopt runs (#2265, #2283). None of
+ *  them is a build, so none may read as one. Approved words (Q114 A). */
+const CHECK_TEXT: Readonly<Record<string, string>> = { 'update-components': 'Checking the sets…', 'update-components:confirmed': 'Updating the sets…', 'capture-baseline': 'Recording the sets as built…', 'adopt-members': 'Adopting members…' };
 /** The phase line before a build's first boundary reports (#2088). A build the panel started names its set,
  *  by the catalog's display name for the id it posted (`componentDef`); one an agent started is a set the panel
  *  was not told, so the line names none (the owner's wording, 2026-10-05). Before #2088 this said "Button"
