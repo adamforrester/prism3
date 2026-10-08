@@ -62,7 +62,14 @@ export const stepKey = (list: readonly HTMLElement[], from: HTMLElement, key: st
  *  select of the same modes, as concept v6 does when its preview is slim (its `modesel`), and come back when
  *  they fit again. Which one shows is measured from the radios' own widths whenever the header resizes or the
  *  mode set changes; a scroll that hides an option is never left on screen. */
-export const modeControl = (cleanups: (() => void)[]): HTMLElement => {
+export type ModeControl = {
+  readonly el: HTMLElement;
+  /** PM1 B (owner, 2026-10-08; #2321): hold the control in Prism3's disabled skin, every radio and the select by
+   *  their own `disabled` (#2284's pattern: out of the tab order, disabled to assistive technology), described by
+   *  `why`, the id of the line that says why. `null` releases it. */
+  readonly hold: (why: string | null) => void;
+};
+export const modeControl = (cleanups: (() => void)[]): ModeControl => {
   const wrap = h('div', 'p3-modes-wrap');
   const group = hook(h('div', 'p3-seg p3-modes'), 'mode-control');
   const selWrap = h('div', 'p3-selwrap p3-modes-select');
@@ -83,6 +90,14 @@ export const modeControl = (cleanups: (() => void)[]): HTMLElement => {
   group.setAttribute('aria-label', 'Preview mode');
   let radios: HTMLButtonElement[] = [];
   let shape = '';
+  let why: string | null = null;
+  /** The hold, put on every radio and the select; re-run when the radios are redrawn for a new mode set. */
+  const applyHold = (): void => {
+    for (const n of [...radios, select]) {
+      if (n.disabled !== (why !== null)) n.disabled = why !== null;
+      if (why) n.setAttribute('aria-describedby', why); else n.removeAttribute('aria-describedby');
+    }
+  };
   const paint = (): void => {
     const v = verdict();
     const modes = rp.modes as readonly string[];
@@ -98,6 +113,7 @@ export const modeControl = (cleanups: (() => void)[]): HTMLElement => {
         return b;
       });
       group.replaceChildren(...radios);
+      applyHold();
       queueMicrotask(fit);
     }
     for (const b of radios) {
@@ -144,7 +160,7 @@ export const modeControl = (cleanups: (() => void)[]): HTMLElement => {
   const ro = new ResizeObserver(fit);
   queueMicrotask(() => { if (wrap.parentElement) ro.observe(wrap.parentElement); fit(); });
   cleanups.push(() => ro.disconnect());
-  return wrap;
+  return { el: wrap, hold: (w) => { why = w; applyHold(); } };
 };
 
 // ── the verdict on the top bar ─────────────────────────────────────────────────────────────────────
