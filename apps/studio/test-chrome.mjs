@@ -794,7 +794,9 @@ const CONTROL_KINDS = [['p3-brand', 'brand switcher'], ['p3-verdict', 'verdict']
   // S13.1: the brand menu's import box; S12: the start window's paste (measured since S13.1 counts every textarea).
   ['p3-textarea', 'text area'], ['p3-start-paste', 'text area'],
   // #2176: the open Activity drawer's handle, a window splitter.
-  ['p3-drawer-grip', 'resize handle']];
+  ['p3-drawer-grip', 'resize handle'],
+  // #2183: the chrome's one switch, track and knob (it was a page button, `p3-btn`, while it was the dot-and-word kind).
+  ['p3-switch', 'switch']];
 /** Legacy views Inspect lends a host to until their slices replace them (S1.3): pinned light and drawn in
  *  `styles.css`, so outside the chrome, like the legacy page. Named literally, by hook. */
 const INSPECT_LEGACY = ['[data-p3="inspect-contrast-table"]', '[data-p3="inspect-token-list"]',
@@ -1066,6 +1068,26 @@ const PROBE = (opt) => {
     boxes.checks.push(label(c));
     if (!measuredHosts.has(c)) boxes.unmeasured.push(label(c));
   }
+  // #2183: a switch's track is its indicator, inside the control, as a check box is, so the control loop never reads it:
+  // its edge or its fill against the ground around the switch, whichever stands out more, and its knob against the track
+  // it sits in, so on and off are each identifiable (SC 1.4.11). A switched-off one goes through the exemption, as every
+  // measured node does. Represented, not counted: every drawn switch must have had its track and knob measured.
+  const switches = { measured: 0, unmeasured: [] };
+  for (const sw of drawn.filter((n) => n.matches('[role="switch"]') && frame?.contains(n))) {
+    const tr = sw.querySelector(':scope > .p3-switch-track'), kn = tr?.querySelector(':scope > .p3-switch-knob');
+    if (!tr || !kn) { switches.unmeasured.push(label(sw)); continue; }
+    const cs = getComputedStyle(tr);
+    const outside = groundOf(sw);
+    const sides = ['Top', 'Right', 'Bottom', 'Left'].filter((x) => parseFloat(cs[`border${x}Width`]) >= 1 && cs[`border${x}Style`] !== 'none');
+    const edge = sides.map((x) => parse(cs[`border${x}Color`], `${label(sw)} track border`)).filter((c) => c && c.a > 0).map((c) => ratio(over(c, outside), outside));
+    const fill = parse(cs.backgroundColor, `${label(sw)} track fill`);
+    const fillR = fill && fill.a > 0 ? ratio(over(fill, outside), outside) : 1;
+    edges.push({ el: `switch track in ${label(sw)}`, side: 'track', r: fl(Math.max(edge.length ? Math.min(...edge) : 1, fillR)), off: offOf(tr), canary: !!sw.closest('[data-ccanary]') });
+    const knob = parse(getComputedStyle(kn).backgroundColor, `${label(sw)} knob`);
+    const under = groundOf(tr);
+    if (knob) edges.push({ el: `switch knob in ${label(sw)}`, side: 'knob', r: fl(ratio(over(knob, under), under)), off: offOf(kn), canary: !!sw.closest('[data-ccanary]') });
+    switches.measured++;
+  }
   // glyphs
   const glyphs = [];
   for (const svg of drawn.filter((n) => n.matches('svg.p3-ico'))) {
@@ -1100,7 +1122,7 @@ const PROBE = (opt) => {
     place, layout: frame?.dataset.layout, w: frame?.dataset.w, theme: document.documentElement.dataset.theme,
     inspectShown: [...document.querySelectorAll('[data-p3="inspect-body"]')].some(shown), panesShown: [...document.querySelectorAll('[data-p3="levers-pane"], [data-p3="preview-body"]')].some(shown),
     leversShown: [...document.querySelectorAll('[data-p3="levers-pane"]')].some(shown), previewShown: [...document.querySelectorAll('[data-p3="preview-body"]')].some(shown),
-    text, fields, controls, unclassified, edges, glyphs, shadows, inline, unparsed, boxes,
+    text, fields, controls, unclassified, edges, glyphs, shadows, inline, unparsed, boxes, switches,
     offs: offs.map(({ node, ...o }) => o),
     // The chrome theme as the generated CSS sets it (`color-scheme` on the root), so the oracle is read for the theme drawn.
     scheme: getComputedStyle(document.documentElement).colorScheme,
@@ -1453,6 +1475,7 @@ const check = (m, where, column, floor = FLOORS[column], { state = 'page', extra
   // One line per control (its weakest side), so the message names every control that fails.
   const weak = [...new Map(m.edges.filter((e) => e.r < NONTEXT_MIN && e.off < 0).sort((a, b) => b.r - a.r).map((e) => [e.el, e])).values()];
   ok(m.boxes.unhosted.length === 0, `${where}: every drawn check box is measured under its control, or is the always-on Light row's (${m.boxes.measured} measured, ${m.boxes.fixed} fixed)${m.boxes.unhosted.length ? ` — no check control holds the box in ${m.boxes.unhosted.slice(0, 4).join(', ')}` : ''}`);
+  ok(m.switches.unmeasured.length === 0, `${where}: every drawn switch had its track and knob measured (${m.switches.measured})${m.switches.unmeasured.length ? ` — not the track-and-knob kind: ${m.switches.unmeasured.slice(0, 4).join(', ')}` : ''}`);
   ok(m.boxes.unmeasured.length === 0, `${where}: every drawn check control had its box measured (${m.boxes.checks.length} check control(s))${m.boxes.unmeasured.length ? ` — no box measured in ${m.boxes.unmeasured.slice(0, 4).join(', ')}` : ''}`);
   ok(weak.length === 0, `${where}: every control edge and indicator clears ${NONTEXT_MIN}:1${weak.length ? ` — ${weak.slice(0, 6).map((e) => `edge ${e.el} ${e.r}:1 < ${NONTEXT_MIN}`).join(' | ')}` : ''}`);
   // THE CONTRAST EXEMPTION: every node it exempted is still held to all three of its conditions.
