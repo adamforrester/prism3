@@ -216,6 +216,13 @@ jobs:
       # failures fail the JOB, named, because the install is SETUP FOR A GATE and a gate that silently
       # does not run is the failure this whole file exists to prevent. Never `continue-on-error`.
       # `--with-deps` stays: a cache restores the browser, not the system libraries it loads.
+      #
+      # #2348: a stalled attempt's root `apt-get` survived `timeout` and kept the dpkg lock, so every retry
+      # died on "Could not get lock". The loop now lives in `.github/scripts/install-chromium.sh`, which
+      # bounds apt itself (fetch timeouts and retries, a lock wait) and clears a leftover `apt-get` and runs
+      # `dpkg --configure -a` before each retry. Its test, with a stand-in that leaves a lock-holding child,
+      # is `.github/scripts/test-install-chromium.sh`. 15 minutes: three 4-minute attempts, and up to 90 s
+      # of clearing before each retry, so the step's own limit never cuts off the named error.
       - name: Resolve the Playwright version (#2323)
         id: playwright
         run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
@@ -225,14 +232,8 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - name: "Install Chromium for the browser gates (#2323)"
-        timeout-minutes: 12
-        run: |
-          for attempt in 1 2 3; do
-            if timeout 240 npx playwright install --with-deps chromium; then exit 0; fi
-            echo "::warning::Chromium install attempt $attempt failed or ran past 4 minutes"
-          done
-          echo "::error::Chromium install timed out or failed after 3 attempts; the browser gates cannot run"
-          exit 1
+        timeout-minutes: 15
+        run: bash .github/scripts/install-chromium.sh
 
       # The panel's own browser suite (#870) — the SECOND step in this workflow that runs a browser,
       # and it has to be separate from the studio one below. A component build's verdict line is the

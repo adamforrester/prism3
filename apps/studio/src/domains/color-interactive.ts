@@ -389,7 +389,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
   const strict = (): Item => {
     const L = leverOf('strictInteractiveContrast')!;
     const b = leverBlock('strictInteractiveContrast', { forId: 'p3-strict-switch' });
-    const sw = switchButton('p3-strict-switch', L.label, 'strict-contrast-switch', { on: 'On', off: 'Off' },
+    const sw = switchButton('p3-strict-switch', L.label, 'strict-contrast-switch',
       (v) => edit('strictInteractiveContrast', () => setStrictInteractiveContrast(v)));
     sw.set(!!brandState.strictInteractiveContrast);
     b.ctl.append(sw.el, subLine(STRICT_CAPTION));
@@ -431,7 +431,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
   const disabledSwitch = (): Item => {
     const b = leverBlock('disabledStrategy', { label: DISABLED_SWITCH.label, forId: 'p3-disabled-switch' });
     const full = isFull();
-    const sw = switchButton('p3-disabled-switch', DISABLED_SWITCH.label, 'disabled-full-switch', { on: 'On', off: 'Off' },
+    const sw = switchButton('p3-disabled-switch', DISABLED_SWITCH.label, 'disabled-full-switch',
       (on) => edit('disabledStrategy', () => setLever('disabledStrategy', on ? 'full' : 'reduced')));
     sw.set(full);
     const caption = full ? DISABLED_SWITCH.on : DISABLED_SWITCH.off;

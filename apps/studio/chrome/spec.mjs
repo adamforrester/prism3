@@ -137,9 +137,9 @@ export const PRODUCT_VARS = [
   // engine's text field definition binds (`packages/engine/components/text-field.ts`: `disabled.fill`, `disabled.border`
   // and the ON-FILL ink, since the field always has a fill). It sits on no surface, so no `inverse.*` set. Same role in
   // both themes; the dark overlay moves the value. Contrast-exempt as inactive (INACTIVE, below).
-  ['disabled-fill', 'color.disabled.fill', 'color.disabled.fill', C, 'a disabled text field\'s fill; a disabled filled button\'s fill (F1 A, X4 A)'],
-  ['disabled-edge', 'color.disabled.border', 'color.disabled.border', C, 'a disabled text field\'s edge (F1 A)'],
-  ['disabled-ink', 'color.disabled.on-fill', 'color.disabled.on-fill', C, 'a disabled text field\'s value; a disabled filled button\'s label and glyph (F1 A, X4 A)'],
+  ['disabled-fill', 'color.disabled.fill', 'color.disabled.fill', C, 'a disabled text field\'s fill; a disabled filled button\'s fill; a disabled switch\'s track (F1 A, X4 A, #2237)'],
+  ['disabled-edge', 'color.disabled.border', 'color.disabled.border', C, 'a disabled text field\'s edge; a disabled switch\'s track edge (F1 A, #2237)'],
+  ['disabled-ink', 'color.disabled.on-fill', 'color.disabled.on-fill', C, 'a disabled text field\'s value; a disabled filled button\'s label and glyph; a disabled switch\'s knob (F1 A, X4 A, #2237)'],
   // X4 A (owner, 2026-10-05, #2155): a disabled button takes Prism3's own disabled button skin, per appearance, as
   // `packages/engine/components/button.ts` and `icon-button.ts` bind it. Filled (Apply Theme, Continue, Discard): the
   // fill above and the on-fill ink, no edge. Outline (every page-colored button) and text (every ghost button): no
