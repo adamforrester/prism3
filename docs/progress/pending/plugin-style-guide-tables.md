@@ -2,7 +2,7 @@
 
 For the owner's client showing (2026-10-08). The plugin's main-thread drawing (`apps/plugin/src/style-guide.ts`,
 `style-guide-cells.ts`); the Build style guides panel and the old Style guide page are untouched. Each defect was
-reproduced live on the NB copy ("NB Stance Design System (Copy)") with `main`'s code, run from a bundle of the plugin's
+reproduced live on the NB copy with `main`'s code, run from a bundle of the plugin's
 own `runStyleGuide` loaded through the Desktop Bridge, then redrawn with the fix; every table and set added was removed.
 
 **#2267, font-size rows.** A font-size specimen bound only `fontSize`, and the text cell's text keeps a fixed 20px line,
