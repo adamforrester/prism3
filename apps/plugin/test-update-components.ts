@@ -453,6 +453,29 @@ section('axis — an added axis and a removed one');
     `axis/removed: extra=a members kept and current, the 45 extra=b members collapse and need a choice (${q.drops.length}, ${q.needsChoice.join(', ')})`);
 }
 
+/* ── a field gains `size` (#2266) ────────────────────────────────────────────────────────────────────── */
+section('size — a field set built before #2266 gains the size axis, and every member lands on medium');
+{
+  // The pre-#2266 file: text-field's 24 members, named without `size` (status × state). They were the medium
+  // field, so medium is where they must land. Simulated as the `axis` case above does: the built set's medium
+  // members with the segment stripped.
+  const b = await build('text-field');
+  const view = await readSetView(b.set as any);
+  const strip = (name: string) => name.split(', ').filter((s) => !s.startsWith('size=')).join(', ');
+  const pre = withMembers(view, (ms) => ms.filter((m) => m.name.split(', ').includes('size=medium')).map((m) => ({ ...m, name: strip(m.name) })));
+  const p = dryRunSet('text-field', b.plans, pre, b.ports);
+  ok(pre.members.length === 24 && p.renames.length === 24 && p.renames.every((r) => r.to.split(', ').includes('size=medium'))
+    && p.adds.length === 48 && p.drops.length === 0 && p.blockers.length === 0,
+    `size/lands: the 24 old members are renamed onto size=medium in place, 48 small and large members are added, none dropped (${p.renames.length} renames, ${p.adds.length} adds, ${p.drops.length} drops, ${p.blockers.length} blockers; first ${p.renames[0]?.to})`);
+  // THE ORDER DECIDES IT (docs/34: the arm above can fail). The same set laid against the plans in the
+  // ladder's own order (small first) lands every old member on small: the rewrite #2266's medium-first order avoids.
+  const ladder = ['small', 'medium', 'large'];
+  const smallFirst = [...b.plans].sort((x, y) => ladder.indexOf(String(x.size)) - ladder.indexOf(String(y.size)));
+  const q = dryRunSet('text-field', smallFirst, pre, b.ports);
+  ok(q.renames.length === 24 && q.renames.every((r) => r.to.split(', ').includes('size=small')),
+    `size/order: with small first the same members would land on size=small (${q.renames[0]?.to})`);
+}
+
 /* ── blocked ─────────────────────────────────────────────────────────────────────────────────────────── */
 section('blocked — a set the update cannot read safely is refused, not guessed at');
 {
