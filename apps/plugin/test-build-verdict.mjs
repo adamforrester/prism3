@@ -1217,28 +1217,37 @@ for (const how of ['pointer', 'focus']) {
 //
 // MUTATIONS: the delay removed from `.p3-spin::before` → `#1990 the spinner's arc waits …`; the arc drawn
 // before its fade (base `opacity: 1`) → `#1990 the arc is not drawn at once …`; the arc never shown →
-// `#1990 … and is drawn after the delay`. Removing the delay alone does not fail the at-start arm: with no
-// delay the fast fade is over before the first read.
+// `#1990 … and is drawn after the delay`. Removing the delay fails the delay arm and, measured, the at-start
+// arm too (opacity 1 at insertion).
+//
+// WHEN EACH IS READ (#2332): the at-start state is read inside the page, by a MutationObserver installed before
+// the post, in the microtask after `.p3-spin` is inserted. No frame has run, so the arc's own animation is still
+// pending in its delay, however slow the runner. A read from the test side, after `waitForSelector` and an
+// `evaluate`, could land after the delay on a cold runner and see the arc already drawn. The drawn state is
+// waited for, bounded, rather than read once after a fixed sleep.
 {
   const { page, errors } = await openPanel();
-  await post(page, { type: 'agent-started', id: 'sp1', cmd: 'apply-theme' });
   const sel = '[data-p3="apply-to-figma"] .p3-spin';
-  await page.waitForSelector(sel, { timeout: 5000 }).catch(() => {});
-  const probe = () => page.evaluate((q) => {
-    const n = document.querySelector(q);
-    if (!n) return null;
+  await page.evaluate((q) => {
     const ms = (t) => t.split(',').map((x) => x.trim()).map((x) => x.endsWith('ms') ? parseFloat(x) : parseFloat(x) * 1000);
-    const b = getComputedStyle(n, '::before');
-    return { delays: ms(b.animationDelay), names: b.animationName, opacity: Number(b.opacity) };
+    const read = (n) => { const b = getComputedStyle(n, '::before'); return { delays: ms(b.animationDelay), names: b.animationName, opacity: Number(b.opacity) }; };
+    const mo = new MutationObserver(() => {
+      const n = document.querySelector(q);
+      if (n) { window.__p3SpinAtStart = read(n); mo.disconnect(); }
+    });
+    mo.observe(document.body, { childList: true, subtree: true });
   }, sel);
-  const early = await probe();
-  await page.waitForTimeout(900);
-  const late = await probe();
+  await post(page, { type: 'agent-started', id: 'sp1', cmd: 'apply-theme' });
+  await page.waitForFunction(() => !!window.__p3SpinAtStart, null, { timeout: 5000 }).catch(() => {});
+  const early = await page.evaluate(() => window.__p3SpinAtStart ?? null);
+  const drawn = (q) => { const n = document.querySelector(q); return !!n && Number(getComputedStyle(n, '::before').opacity) === 1; };
+  await page.waitForFunction(drawn, sel, { timeout: 5000 }).catch(() => {});
+  const late = await page.evaluate((q) => { const n = document.querySelector(q); return n ? { opacity: Number(getComputedStyle(n, '::before').opacity) } : null; }, sel);
   const delay = early?.delays[0] ?? 0;
   ok(!!early && /p3-spin-show/.test(early.names) && delay >= 200 && delay <= 500,
     `#1990 the spinner's arc waits before it fades in, inside the 200 to 500 ms anti-flash window — delay ${delay} ms, animations ${early?.names}`);
   ok(!!early && early.opacity === 0, `#1990 the arc is not drawn at once — opacity at start ${early?.opacity}`);
-  ok(!!late && late.opacity === 1, `#1990 … and is drawn after the delay — opacity at 900 ms ${late?.opacity}`);
+  ok(!!late && late.opacity === 1, `#1990 … and is drawn after the delay — opacity after waiting up to 5 s ${late?.opacity}`);
   ok(errors.length === 0, `#1990 spinner: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
