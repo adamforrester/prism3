@@ -433,6 +433,18 @@
           "description": "The ground the button sits on. `default` for a normal page; `inverse` for a dark or brand-filled band, where the button binds its `color.inverse.*` counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance — the same answer the nested focus ring gives."
         },
         {
+          "name": "inset",
+          "type": "enum: 'default' | 'flush-start' | 'flush-end'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "flush-start",
+            "flush-end"
+          ],
+          "description": "Text appearance only. `flush-start` or `flush-end` removes the inline padding on that side, so the label lines up with the content above and below it. A flush button hovers by color only, and its hit target keeps its size."
+        },
+        {
           "name": "fullWidth",
           "type": "boolean",
           "default": false,
@@ -536,6 +548,14 @@
             "inverse"
           ],
           "kind": "authoring"
+        },
+        "inset": {
+          "values": [
+            "default",
+            "flush-start",
+            "flush-end"
+          ],
+          "kind": "authoring"
         }
       },
       "accessibility": {
@@ -572,9 +592,12 @@
           "Underline the label of a button at appearance=text, at rest and in every state, disabled included, with its underlined label style (`type.label.sm.emphasis-link`, `type.label.md.emphasis-link`, `type.label.lg.emphasis-link`); the underline is fixed, not a brand setting",
           "Never fill a button at appearance=text at rest; under the brand's `buttonTextHover` setting `text` (Text & icon only, the default), change only its label and icon colors on hover and pressed",
           "On a brand whose `buttonTextHover` is `fill` (Fill), also give a button at appearance=text the overlay wash on hover and pressed, as outline buttons take it",
+          "Set inset=flush-start or inset=flush-end on a button at appearance=text that starts or ends a column of content, so its label lines up with the content edge; give that side `padding-inline-start: 0` or `padding-inline-end: 0` and justify the content toward it, and keep the hit area at its full size",
+          "Never fill a flush button on hover or pressed, whatever the brand's `buttonTextHover` is: with no padding on one side the fill would hug the label; only its label and icon colors change",
           "Use isInactive (focusable) for a control blocked by satisfiable state; reserve disabled for the irrelevant"
         ],
         "dont": [
+          "Set a flush inset on a filled or outline button — their visible edge needs its padding; flush is for appearance=text",
           "Use a button for navigation to a URL — use a link / link-button",
           "Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills",
           "Use native disabled on a relevant-but-blocked control (dead end for keyboard/SR users)",
@@ -694,6 +717,18 @@
           "description": "The ground the button sits on. `default` for a normal page; `inverse` for a dark or brand-filled band, where the button binds its `color.inverse.*` counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance — the same answer the nested focus ring gives."
         },
         {
+          "name": "inset",
+          "type": "enum: 'default' | 'flush-start' | 'flush-end'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "flush-start",
+            "flush-end"
+          ],
+          "description": "Text appearance only. `flush-start` or `flush-end` removes the inline padding on that side, so the label lines up with the content above and below it. A flush button hovers by color only, and its hit target keeps its size."
+        },
+        {
           "name": "fullWidth",
           "type": "boolean",
           "default": false,
@@ -797,6 +832,14 @@
             "inverse"
           ],
           "kind": "authoring"
+        },
+        "inset": {
+          "values": [
+            "default",
+            "flush-start",
+            "flush-end"
+          ],
+          "kind": "authoring"
         }
       },
       "accessibility": {
@@ -833,10 +876,13 @@
           "Underline the label of a button at appearance=text, at rest and in every state, disabled included, with its underlined label style (`type.label.sm.emphasis-link`, `type.label.md.emphasis-link`, `type.label.lg.emphasis-link`); the underline is fixed, not a brand setting",
           "Never fill a button at appearance=text at rest; under the brand's `buttonTextHover` setting `text` (Text & icon only, the default), change only its label and icon colors on hover and pressed",
           "On a brand whose `buttonTextHover` is `fill` (Fill), also give a button at appearance=text the overlay wash on hover and pressed, as outline buttons take it",
+          "Set inset=flush-start or inset=flush-end on a button at appearance=text that starts or ends a column of content, so its label lines up with the content edge; give that side `padding-inline-start: 0` or `padding-inline-end: 0` and justify the content toward it, and keep the hit area at its full size",
+          "Never fill a flush button on hover or pressed, whatever the brand's `buttonTextHover` is: with no padding on one side the fill would hug the label; only its label and icon colors change",
           "Use isInactive (focusable) for a control blocked by satisfiable state; reserve disabled for the irrelevant",
           "Place it beside a neutral escape (\"Cancel\" / \"Keep\"), never alone; on a delete confirmation the safe choice is often the filled button and the destructive action sits at a lower appearance beside it"
         ],
         "dont": [
+          "Set a flush inset on a filled or outline button — their visible edge needs its padding; flush is for appearance=text",
           "Use a button for navigation to a URL — use a link / link-button",
           "Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills",
           "Use native disabled on a relevant-but-blocked control (dead end for keyboard/SR users)",
@@ -957,6 +1003,18 @@
           "description": "The ground the button sits on. `default` for a normal page; `inverse` for a dark or brand-filled band, where the button binds its `color.inverse.*` counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance — the same answer the nested focus ring gives."
         },
         {
+          "name": "inset",
+          "type": "enum: 'default' | 'flush-start' | 'flush-end'",
+          "default": "default",
+          "required": false,
+          "values": [
+            "default",
+            "flush-start",
+            "flush-end"
+          ],
+          "description": "Text appearance only. `flush-start` or `flush-end` removes the inline padding on that side, so the label lines up with the content above and below it. A flush button hovers by color only, and its hit target keeps its size."
+        },
+        {
           "name": "fullWidth",
           "type": "boolean",
           "default": false,
@@ -1060,6 +1118,14 @@
             "inverse"
           ],
           "kind": "authoring"
+        },
+        "inset": {
+          "values": [
+            "default",
+            "flush-start",
+            "flush-end"
+          ],
+          "kind": "authoring"
         }
       },
       "accessibility": {
@@ -1096,9 +1162,12 @@
           "Underline the label of a button at appearance=text, at rest and in every state, disabled included, with its underlined label style (`type.label.sm.emphasis-link`, `type.label.md.emphasis-link`, `type.label.lg.emphasis-link`); the underline is fixed, not a brand setting",
           "Never fill a button at appearance=text at rest; under the brand's `buttonTextHover` setting `text` (Text & icon only, the default), change only its label and icon colors on hover and pressed",
           "On a brand whose `buttonTextHover` is `fill` (Fill), also give a button at appearance=text the overlay wash on hover and pressed, as outline buttons take it",
+          "Set inset=flush-start or inset=flush-end on a button at appearance=text that starts or ends a column of content, so its label lines up with the content edge; give that side `padding-inline-start: 0` or `padding-inline-end: 0` and justify the content toward it, and keep the hit area at its full size",
+          "Never fill a flush button on hover or pressed, whatever the brand's `buttonTextHover` is: with no padding on one side the fill would hug the label; only its label and icon colors change",
           "Use isInactive (focusable) for a control blocked by satisfiable state; reserve disabled for the irrelevant"
         ],
         "dont": [
+          "Set a flush inset on a filled or outline button — their visible edge needs its padding; flush is for appearance=text",
           "Use a button for navigation to a URL — use a link / link-button",
           "Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills",
           "Use native disabled on a relevant-but-blocked control (dead end for keyboard/SR users)",

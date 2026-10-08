@@ -27,6 +27,11 @@
         "outline",
         "text"
       ],
+      "inset": [
+        "default",
+        "flush-end",
+        "flush-start"
+      ],
       "leading icon": [
         "false",
         "true"
@@ -53,7 +58,7 @@
         "true"
       ]
     },
-    "members": 432
+    "members": 720
   },
   "button-destructive": {
     "axes": {
@@ -62,6 +67,11 @@
         "outline",
         "text"
       ],
+      "inset": [
+        "default",
+        "flush-end",
+        "flush-start"
+      ],
       "leading icon": [
         "false",
         "true"
@@ -88,7 +98,7 @@
         "true"
       ]
     },
-    "members": 432
+    "members": 720
   },
   "button-neutral": {
     "axes": {
@@ -97,6 +107,11 @@
         "outline",
         "text"
       ],
+      "inset": [
+        "default",
+        "flush-end",
+        "flush-start"
+      ],
       "leading icon": [
         "false",
         "true"
@@ -123,7 +138,7 @@
         "true"
       ]
     },
-    "members": 432
+    "members": 720
   },
   "checkbox-control": {
     "axes": {

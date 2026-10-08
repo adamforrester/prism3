@@ -3328,8 +3328,10 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const f = (n.fills as { boundVariables?: { color?: { id?: string } } }[] | undefined) ?? [];
     return f.length ? String(f[0]?.boundVariables?.color?.id ?? 'UNBOUND').replace(/^V:/, '') : 'NONE';
   };
+  // `inset=default` (#2350): a flush text member never fills, under any method; the engine's #2350 arm holds that.
   const hoverMembers = (page: Page, surface: string) => members(page).filter((m) =>
-    /appearance=(outline|text)/.test(String(m.name)) && /state=(hover|pressed)/.test(String(m.name)) && new RegExp(`surface=${surface}`).test(String(m.name)));
+    /appearance=(outline|text)/.test(String(m.name)) && /state=(hover|pressed)/.test(String(m.name)) && new RegExp(`surface=${surface}`).test(String(m.name))
+    && /inset=default/.test(String(m.name)));
   const fillMisses = (misses: string[]) => misses.filter((m) => /\.fills -> /.test(m));
 
   // (a) SOLID-TINT (#1614, #1646) — the TINTED-WASH VARIABLE lands where the neutral wash did, bound at paint
