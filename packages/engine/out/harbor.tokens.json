@@ -18583,7 +18583,7 @@
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
+            "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with text.link.* color).",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -18662,7 +18662,7 @@
               "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
+            "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with text.link.* color).",
             "$extensions": {
               "prism3": {
                 "role": "composite",
