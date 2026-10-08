@@ -19,9 +19,12 @@ ground. An INVERSE token's ground is now the collection's `inverse/background/pr
 and never an inverse one (the page ground instead). The contrast column measures what it measured before.
 
 **The cause of the owner's invisible inverse text.** The ground came from the path below the table's common prefix, and
-the Inverse table's prefix is `<root>/color/inverse` itself: with no saved brand (the NB copy) `inverse/text/primary`
-read as `text/primary` and drew on the white page ground, where `#F7F7F7` cannot be seen. In the shim the same branch
-puts inverse text on the page ground even with prism3's contract (M1 below), so the old code was never held on this.
+the Inverse table's prefix is `<root>/color/inverse` itself: with a saved brand, `inverse/text/primary` resolved as
+`text/primary` and drew on the white page ground, where `#F7F7F7` cannot be seen. In the shim the old branch does exactly
+that with prism3's contract (M1 below), so the old code was never held on this. The NB copy has no saved brand, and
+there the old fallback happened to land on the inverse ground: its visible defect was the inverse fills sitting on a
+dark backdrop, which the live "before" screenshot shows. `isInverse` reads the whole name, so the answer no longer
+depends on whether the file has a saved brand.
 
 **Tests** (`test-style-guide.ts`): section 31, new: inverse text, border and icon samples on the inverse background, with
 and without a saved brand; an inverse fill as its own swatch, on no backdrop; non-inverse border and text samples on the
