@@ -2075,6 +2075,9 @@ console.log(`\nThe preview header — the mode control and Inspect (Color › Su
 /** The default theme's modes, as the mode control must show them, and which are derived (hatched): the
  *  owner's mode model (Q1, model B) and the engine's mode registry, typed here. */
 const EXPECT_MODES = [['light', 'Light', false], ['dark', 'Dark', false], ['hc-light', 'HC light', true], ['hc-dark', 'HC dark', true]];
+/** How many of the mode control's radios and select are held (`disabled` or `aria-disabled`): 0 where it is live. */
+const modeHeld = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="mode-option"], [data-p3="mode-select"]')]
+  .filter((n) => n.disabled || n.getAttribute('aria-disabled') === 'true').length);
 const modeState = (page) => page.evaluate(() => ({
   radios: [...document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]')].map((b) => ({
     mode: b.dataset.mode, label: b.querySelector('.p3-mode-name')?.textContent, checked: b.getAttribute('aria-checked'), role: b.getAttribute('role'),
@@ -2086,6 +2089,10 @@ for (const theme of ['light', 'dark']) {
   const where = `web ${theme} 1280 / color-fills`;
   const { ctx, page, errors } = await open({ host: 'web', theme, w: 1280, h: 900 });
   await goPlace(page, 'color-fills');
+  // #2321: the control is live here (only Palettes holds it). Held, every click below would wait on it and stop the run.
+  const held0 = await modeHeld(page);
+  ok(held0 === 0, `${where}: the mode control is live on Surfaces & fills, where the preview shows every mode (#2321; ${held0} held)`);
+  if (held0) { await ctx.close(); continue; }
   const st = await modeState(page);
   ok(st.group === 'radiogroup', `${where}: the mode control is a radiogroup (role "${st.group}")`);
   ok(JSON.stringify(st.radios.map((r) => [r.mode, r.label])) === JSON.stringify(EXPECT_MODES.map(([m, l]) => [m, l])), `${where}: the mode control offers ${EXPECT_MODES.map(([, l]) => l).join(', ')} — read ${st.radios.map((r) => r.label).join(', ')}`);
@@ -2601,6 +2608,9 @@ for (const host of ['web', 'figma']) {
     // scale's ink is Light's text.primary, whatever mode was chosen before.
     for (const [mode] of EXPECT_MODES) {
       await goPlace(page, 'color-fills');
+      const held0 = await modeHeld(page);
+      ok(held0 === 0, `specimen ground: palettes ${host} ${theme} 1280: the mode control is live on Surfaces & fills, so ${mode} can be chosen there (#2321; ${held0} held)`);
+      if (held0) continue;
       await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
       await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
       await goPlace(page, 'color-palettes');
