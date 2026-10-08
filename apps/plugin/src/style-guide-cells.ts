@@ -42,6 +42,8 @@ export interface CellNode extends FNode {
   topLeftRadius?: unknown;
   /** A layer's constraints inside a frame without auto layout (the spacing bracket's parts). */
   constraints?: unknown;
+  setPluginData?(key: string, value: string): void;
+  getPluginData?(key: string): string;
   readonly width?: number;
   readonly height?: number;
   readonly parent?: CellNode | null;
@@ -118,6 +120,48 @@ const CELL_FILL: Record<string, string> = { white: '#FFFFFF', secondary: '#F7F7F
 const SWATCH_SIZE = 48;
 const SPECIMEN = 32;
 const INSET = (SWATCH_SIZE - SPECIMEN) / 2;
+
+/** The plugin data a swatch set Set up file built carries (#2268): a set the owner made has none, and is never changed. */
+export const SWATCHES_BUILT_KEY = 'prism3-swatches';
+/** The members whose square fills the swatch, and so must grow with it (#2268): a palette swatch FILLs its table cell
+ *  (decision 13), and an instance grows its layers only by their constraints. `text` and `icon` keep a mark of their
+ *  own size; `radius` shows one corner of a fixed shape. */
+export const STRETCHED_SWATCHES = ['default', 'border', 'transparency'] as const;
+const STRETCH = { horizontal: 'STRETCH', vertical: 'STRETCH' } as const;
+const isStretched = (c: unknown): boolean => {
+  const k = c as { horizontal?: unknown; vertical?: unknown } | undefined;
+  return k?.horizontal === 'STRETCH' && k?.vertical === 'STRETCH';
+};
+/** The square layers of a stretched member: its `Specimen` and, for `transparency`, the `Checker` beneath it. */
+const squaresOf = (member: CellNode): CellNode[] => ((member.children ?? []) as CellNode[]).filter((k) => k.name === 'Specimen' || k.name === 'Checker');
+/**
+ * BRING A SWATCH SET SET UP FILE BUILT UP TO DATE (#2268). Sets built before the squares stretched draw a palette swatch
+ * as a 32px square pinned to the top left of a cell that has grown around it: small and off-center. Each stretched
+ * member's squares are set to stretch, which the host carries into every instance. Only a set Prism3 built is changed:
+ * one marked `SWATCHES_BUILT_KEY`, or, from before the mark, one whose members are still exactly what this builder drew
+ * (a 48px member, a 32px square at 8, 8, nothing else in it). A set the owner made is left as it is. Returns how many
+ * layers it changed.
+ */
+export const stretchSwatches = (set: CellNode): number => {
+  const members = ((set.children ?? []) as CellNode[]);
+  const typeOf = (m: CellNode): string => String(m.name ?? '').replace(/^type=/i, '').trim().toLowerCase();
+  const ours = (m: CellNode): boolean => {
+    const sq = squaresOf(m);
+    const kids = (m.children ?? []) as CellNode[];
+    return m.width === SWATCH_SIZE && m.height === SWATCH_SIZE && sq.length === kids.length && sq.length > 0
+      && sq.every((k) => k.width === SPECIMEN && k.height === SPECIMEN && Number(k.x) === INSET && Number(k.y) === INSET);
+  };
+  const marked = set.getPluginData?.(SWATCHES_BUILT_KEY) === '1';
+  const stretched = members.filter((m) => (STRETCHED_SWATCHES as readonly string[]).includes(typeOf(m)));
+  if (!marked && !stretched.every((m) => ours(m) || squaresOf(m).every((k) => isStretched(k.constraints)))) return 0;
+  let changed = 0;
+  for (const m of stretched) for (const k of squaresOf(m)) {
+    if (isStretched(k.constraints)) continue;
+    try { k.constraints = { ...STRETCH }; changed++; } catch { /* a host that refuses it leaves the square as drawn */ }
+  }
+  if (changed) set.setPluginData?.(SWATCHES_BUILT_KEY, '1');
+  return changed;
+};
 
 const box = (api: FileComponentsApi, name: string, w: number, h: number): CellNode => {
   const f = api.createFrame() as CellNode;
@@ -209,6 +253,9 @@ const buildSwatches = (api: FileComponentsApi, page: CellsPage, loaded: Set<stri
   const set = api.combineAsVariants(members, page) as CellNode;
   set.name = SWATCH_SET;
   stackVariants(set, members);
+  // The squares stretch with the swatch, and the set says Prism3 built it (#2268).
+  for (const m of members) if ((STRETCHED_SWATCHES as readonly string[]).includes(String(m.name).replace(/^type=/, ''))) for (const k of squaresOf(m)) k.constraints = { ...STRETCH };
+  set.setPluginData?.(SWATCHES_BUILT_KEY, '1');
   return set;
 };
 
