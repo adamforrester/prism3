@@ -71,6 +71,11 @@
  *                  the dry run and in the capture (#2295); and a fresh image-placeholder build records clean, its
  *                  aspect lock read as Figma's `{x, y}`. Mutations: the read-back's number-only aspect check →
  *                  `differ/image-placeholder`; the named lines dropped → `differ/dry run`, `differ/capture`.
+ *   dropped/…      a fill the plan no longer has is named as a difference (#2335): a text button built under "Text
+ *                  button hover: Fill" and planned under "Text & icon only" (#2324) lists its hover and pressed wash,
+ *                  `fill: the plan says none, the file has <the wash>`, per variable with its member count; and the
+ *                  capture leaves out a member with a fill added by hand where its plan has none. Mutation: `droppedFills` never called → `dropped/dry run`,
+ *                  `dropped/capture`.
  *   file/…         a def with no set is missing, and the verdict's `lines` (#2177) are one per item, the list the
  *                  summary is joined from. Mutation: `lines` sent as the joined summary → `file/lines`.
  *
@@ -79,6 +84,10 @@
 import { figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planComponentName } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { componentDefs } from '@prism3/engine/components/index';
+import { parseDesignMd } from '@prism3/engine/design-md';
+import type { BrandInput } from '@prism3/engine/theme';
+import { readFileSync } from 'node:fs';
+import { materializeForBrand } from './src/brand-def';
 import type { ComponentRename } from '@prism3/engine/component-renames';
 import { applyComponentPlan, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
@@ -734,6 +743,49 @@ section('differ — a member that differs from its plan is reported by part and 
   const capNamed = c.lines.filter((l) => l.startsWith(`tag · ${m.name} / content · bound: `));
   ok(capNamed.length === 1 && capNamed[0].includes(`the plan says itemSpacing→${planned}`) && /the file has itemSpacing→\S*space\/0/.test(capNamed[0]),
     `differ/capture: the member left out is named with what differs (${JSON.stringify(capNamed)}; ${JSON.stringify(c.lines.slice(0, 1))})`);
+}
+
+/* ── dropped ─────────────────────────────────────────────────────────────────────────────────────────── */
+section('dropped — a fill the plan no longer has is named, plan against file (#2335)');
+{
+  // #2335's reproduction: NB's Button built under "Text button hover: Fill", then planned under the default "Text &
+  // icon only" (#2324), where the text appearance's hover and pressed members have no wash. The executor clears a
+  // fill the plan does not ask for, so the update removes the wash; the dry run must say so before it does.
+  const nb = parseDesignMd(readFileSync(new URL('../../packages/engine/examples/nb-redesign.design.md', import.meta.url), 'utf8')).input as BrandInput;
+  const plansFor = (input: BrandInput): AnatomyPlan[] => figmaAnatomySet(materializeForBrand(defOf('button'), input), { swapTarget: SWAP_TARGET });
+  const fill = plansFor({ ...nb, buttonTextHover: 'fill' } as BrandInput);
+  const textOnly = plansFor({ ...nb, buttonTextHover: 'text' } as BrandInput);
+  const b = await build('button', fill);
+  const washed = (ps: AnatomyPlan[]) => ps.filter((p) => /appearance=text/.test(planComponentName(p)) && /state=(hover|pressed)/.test(planComponentName(p)) && !!p.root.paints?.fills);
+  ok(washed(fill).length === 48 && washed(textOnly).length === 0,
+    `premise: under Fill the 48 text hover and pressed members (2 states × 3 sizes × 4 slot combos × 2 grounds) plan a fill, and under Text & icon only none does (${washed(fill).length}, ${washed(textOnly).length})`);
+  // Each member's wash, as the file holds it: the variable's name in this file, read from the built node.
+  const wash = async (state: string, ground: string): Promise<string> => {
+    const m = memberNamed(b.set, (n) => n.includes('appearance=text') && n.includes(`state=${state}`) && n.includes(`surface=${ground}`));
+    const id = (m.fills as { boundVariables?: { color?: { id?: string } } }[])[0]?.boundVariables?.color?.id;
+    return String(id ? b.ports.varName(id) : 'NO BOUND FILL');
+  };
+  const want = (await Promise.all(['hover', 'pressed'].flatMap((st) => ['default', 'inverse'].map((g) => wash(st, g)))))
+    .map((v) => `button · the member · fill: the plan says none, the file has ${v} (12 members).`);
+  ok(want.every((l) => /interactive\/primary\/overlay\/(hover|pressed)/.test(l)), `premise: the built text hover and pressed members carry the primary overlay wash (${JSON.stringify(want)})`);
+  const v = previewVerdict(await previewUpdate(b.shim, [{ def: 'button', plans: textOnly }]));
+  const lines = v.lines.filter((l) => l.startsWith('button · ') && l.includes(' fill: '));
+  ok(JSON.stringify([...lines].sort()) === JSON.stringify([...want].sort()),
+    `dropped/dry run: the wash on the 48 members is named, one line per variable, the plan's none against the file's (${JSON.stringify(lines)})`);
+}
+{
+  // The capture asks the same question of a member stamped by the CURRENT plan: a fill added by hand to a node the
+  // plan leaves unpainted means the member is not as Prism3 built it, so it is not recorded as if it were.
+  const b = await build(TAG);
+  const m = membersOf(b.set)[5];
+  const planned = b.plans.find((p) => planComponentName(p) === m.name)!;
+  ok(!planChild(planned.root, 'content').paints?.fills, `premise: ${m.name}'s content has no fill in its plan`);
+  childNamed(m, 'content').fills = [{ type: 'SOLID', color: { r: 1, g: 0, b: 0 }, opacity: 0.5 }];
+  for (const x of membersOf(b.set)) (x.setSharedPluginData as (ns: string, k: string, v: string) => void)(NS, BASELINE_KEY, '');
+  const c = captureVerdictText(await captureBaselines(b.shim, [{ def: TAG, plans: b.plans }]));
+  const named = c.lines.filter((l) => l.startsWith(`tag · ${m.name} / content · fill: `));
+  ok(JSON.stringify(named) === JSON.stringify([`tag · ${m.name} / content · fill: the plan says none, the file has #ff0000 at 50%.`]),
+    `dropped/capture: the member with a fill added by hand is left out, the fill named (${JSON.stringify(named)}; ${JSON.stringify(c.lines.slice(0, 1))})`);
 }
 
 /* ── over a file ─────────────────────────────────────────────────────────────────────────────────────── */

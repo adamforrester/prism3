@@ -82,6 +82,12 @@
  *      draws the other 21, the verdict is "⚠ 21 drawn, 1 failed", and a redraw by the table's key draws it alone.
  *  29. CANCEL (owner decision P7): a stop read after table 3 ends the run there, deletes no superseded table (the control
  *      run to the end does), and the verdict says where it stopped; a stop after the last table is no stop.
+ *  33. THE OWNER'S QA OF A REAL BRAND FILE (#2371): a mixed filtered run, tables narrowed or shortened in place and one
+ *      created beside or below them, overlaps nothing and keeps the 160px gap; no font-size table for the text styles'
+ *      responsive collection (type-sets), listed under Text styles on the page, and an earlier run's one deleted; the raw
+ *      font weights on Primitive tokens and the weight roles on Semantic tokens, read off the emission; no fill on a
+ *      table's outer frame (section 32); a family with no Regular set in its role's face, or the host's first style
+ *      for it, and bound.
  *
  * INDEPENDENCE (docs/34): expected values are literals written here. The ratios (19.42, 18.13, 21) and the
  * failing 3.27 (neutral/400 on white, computed by hand from the WCAG formula), 6.44 (foreground.brand on
@@ -198,6 +204,16 @@
  *     each table's exact list", "25: REM off: every planned cell has no REM" and their four drawn arms fail, and nothing
  *     outside 25 does; REM forced off, `const lengths = false && …` → the four "25: REM on…" arms fail, with 11 arms
  *     of 16, 17, 19 and 23.
+ *
+ *   - (#2371, each on a committed head, the file restored from a saved copy) a new table placed against the tables' sizes
+ *     after this run's updates rather than before it → "33: a mixed run, tables narrowed in place and one created in their
+ *     row, overlaps nothing…" and "33: a mixed run whose row got shorter starts a new category's row 160px below it…" fail;
+ *     the type-sets font-size table kept → "33: no font-size table for the type-sets collection…", "33: a type-sets
+ *     font-size table an earlier run drew is deleted…" fail; the page's Text styles mapping dropped → "33: the Build style
+ *     guides page lists the 21 type-sets sizes under Text styles…" fails; font weight not split → "33: the 6 raw font
+ *     weights are their own table…" fails; the wrap left white, or its line removed (the shim's new frame is white, as the
+ *     host's is) → "32: no table's outer frame … has a fill" fails; the family set in the cell's own style → "33: the
+ *     display family, which has no Regular here…" and three more fail.
  *
  * THE SHIM IGNORES A RESIZE THE HOST IGNORES: a FIXED text inside an instance keeps its main component's width under
  * `resize` (live, 2026-09-28). Before the shim modeled it, every width assertion passed over one-word-a-line text.
@@ -762,6 +778,8 @@ const makeShim = (pages: N[], cols: ShimCol[], vars: ShimVar[], styles: ShimStyl
     currentPage: null as N | null,
     createFrame(): N {
       const f = new N('FRAME');
+      // The host's new frame is white (#2371): a frame the plugin leaves unfilled must clear it, or it stays white.
+      f.fills = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 1, g: 1, b: 1 } }];
       if (this.currentPage) { f.w = 100; f.h = 100; f.x = 0; f.y = 0; this.currentPage.appendChild(f); }
       return f;
     },
@@ -1937,8 +1955,8 @@ const main = async (): Promise<void> => {
   /** The bar inside a spacing cell. */
   const barIn = (cell: N | undefined): N | null => cell?.findOne((k) => /^spacing-(filled|line)-example$/.test(k.name)) ?? null;
   {
-    ok(JSON.stringify(tablesOn(p2.prim).map((w) => w.name.replace('Style guide — ', '')).sort()) === JSON.stringify(['Density', 'Dimension', 'Font family', 'Font size (core)', 'Font size (type-sets)', 'Letter spacing', 'Line height', 'Step'])
-      && JSON.stringify(tablesOn(p2.sem).map((w) => w.name.replace('Style guide — ', '')).sort()) === JSON.stringify(['Font weight', 'Radius', 'Size', 'Space', 'Text styles']),
+    ok(JSON.stringify(tablesOn(p2.prim).map((w) => w.name.replace('Style guide — ', '')).sort()) === JSON.stringify(['Density', 'Dimension', 'Font family', 'Font size', 'Font weight', 'Letter spacing', 'Line height', 'Step'])
+      && JSON.stringify(tablesOn(p2.sem).map((w) => w.name.replace('Style guide — ', '')).sort()) === JSON.stringify(['Font weight roles', 'Radius', 'Size', 'Space', 'Text styles']),
       `16: a table per collection and type, the scales on ↳ Primitive tokens and the roles on ↳ Semantic tokens (${tablesOn(p2.prim).map((w) => w.name).join(', ')} | ${tablesOn(p2.sem).map((w) => w.name).join(', ')})`);
     ok(p2First.tables.length === 13 && p2First.tables.every((t) => t.status === 'created') && styleGuideSummary(p2First).headline === '✓ style guide: 13 tables', `16: 13 tables, all created: "${styleGuideSummary(p2First).headline}"`);
     const space = tableFrame(p2.sem, 'Space')!;
@@ -2022,7 +2040,7 @@ const main = async (): Promise<void> => {
     /** The Text node of a font specimen. */
     const textOf = (cell: N | undefined): N | null => cell?.findOne((k) => k.type === 'TEXT') ?? null;
     const bindings = (t: N | null): string => Object.keys(t?.boundVariables ?? {}).sort().join(',');
-    const size = gridOf(tableFrame(p2.prim, 'Font size (core)')!);
+    const size = gridOf(tableFrame(p2.prim, 'Font size')!);
     const s16 = textOf(cellAt(size, rowOf(size, '16'), 1));
     ok(s16?.characters === 'Abc 123' && bindings(s16) === 'fontSize' && s16?.boundVariables.fontSize.id === p2Id('pds3/core/font/size/16'),
       `17: font size 16's specimen is "Abc 123" with fontSize alone bound to it (${s16?.characters}, bound ${bindings(s16)})`);
@@ -2031,33 +2049,29 @@ const main = async (): Promise<void> => {
     const fDisplay = textOf(cellAt(fam, rowOf(fam, 'display'), 1));
     ok(bindings(fDisplay) === 'fontFamily' && fDisplay?.boundVariables.fontFamily.id === p2Id('pds3/core/font/family/display') && textIn(cellAt(fam, rowOf(fam, 'display'), 2)) === 'Playfair Display',
       `17: font family display binds fontFamily alone and reads "Playfair Display" (${bindings(fDisplay)})`);
-    const wt = gridOf(tableFrame(p2.sem, 'Font weight')!);
-    const w600 = textOf(cellAt(wt, rowOf(wt, 'weight/600'), 1));
-    ok(bindings(w600) === 'fontWeight' && w600?.boundVariables.fontWeight.id === p2Id('pds3/core/font/weight/600') && textIn(cellAt(wt, rowOf(wt, 'weight/600'), 2)) === '600 · Semi Bold',
-      `17: font weight 600 binds fontWeight alone and reads "600 · Semi Bold" (${bindings(w600)}, "${textIn(cellAt(wt, rowOf(wt, 'weight/600'), 2))}")`);
-    ok(textIn(cellAt(wt, rowOf(wt, 'weight-role/strong'), 2)) === '600 · Semi Bold | ↗ | pds3/core/font/weight/600', '17: a weight role reads its weight and its alias');
+    // The raw weights on Primitive tokens and the weight roles on Semantic tokens, each its own table (#2371).
+    const wt = gridOf(tableFrame(p2.prim, 'Font weight')!);
+    const w600 = textOf(cellAt(wt, rowOf(wt, '600'), 1));
+    ok(bindings(w600) === 'fontWeight' && w600?.boundVariables.fontWeight.id === p2Id('pds3/core/font/weight/600') && textIn(cellAt(wt, rowOf(wt, '600'), 2)) === '600 · Semi Bold',
+      `17: font weight 600 binds fontWeight alone and reads "600 · Semi Bold" (${bindings(w600)}, "${textIn(cellAt(wt, rowOf(wt, '600'), 2))}")`);
+    const wr = gridOf(tableFrame(p2.sem, 'Font weight roles')!);
+    ok(textIn(cellAt(wr, rowOf(wr, 'strong'), 2)) === '600 · Semi Bold | ↗ | pds3/core/font/weight/600', '17: a weight role reads its weight and its alias');
     const lh = gridOf(tableFrame(p2.prim, 'Line height')!);
     const ls = gridOf(tableFrame(p2.prim, 'Letter spacing')!);
     ok(bindings(textOf(cellAt(lh, 1, 1))) === 'lineHeight' && textIn(cellAt(lh, 1, 2)) === '24px' && textIn(cellAt(lh, 1, 3)) === '1.5rem'
       && bindings(textOf(cellAt(ls, 1, 1))) === 'letterSpacing' && textIn(cellAt(ls, 1, 2)) === '-0.5px' && textIn(cellAt(ls, 1, 3)) === '-0.0312rem',
       `17: a line height binds lineHeight ("24px" · "1.5rem"), a letter spacing letterSpacing ("${textIn(cellAt(ls, 1, 2))}" · "${textIn(cellAt(ls, 1, 3))}")`);
     // A FAMILY OR A WEIGHT IS NOT A LENGTH: no REM column.
-    ok(!headerRow(tableFrame(p2.prim, 'Font family')!).includes('REM') && !headerRow(tableFrame(p2.sem, 'Font weight')!).includes('REM'), '17: the font family and font weight tables have no REM column');
-    // A FLUID size: one specimen per type-sets mode, each pinned, each value in its mode.
-    const fluid = tableFrame(p2.prim, 'Font size (type-sets)')!;
-    const fg = gridOf(fluid);
-    const d3 = rowOf(fg, 'display/3xl/emphasis');
-    ok(JSON.stringify(headerRow(fluid)) === JSON.stringify(['Token', 'desktop', 'Value', 'REM', 'mobile', 'Value', 'REM', 'Description'])
-      && cellAt(fg, d3, 1)?.explicitVariableModes['VariableCollectionId:ts'] === 'ts:0' && cellAt(fg, d3, 4)?.explicitVariableModes['VariableCollectionId:ts'] === 'ts:1'
-      && textIn(cellAt(fg, d3, 2)) === '160px' && textIn(cellAt(fg, d3, 3)) === '10rem' && textIn(cellAt(fg, d3, 5)) === '48px' && textIn(cellAt(fg, d3, 6)) === '3rem',
-      `17: a fluid size draws desktop and mobile side by side, pinned: 160px · 10rem and 48px · 3rem, each REM in its own column (${[2, 3, 5, 6].map((c) => textIn(cellAt(fg, d3, c))).join(' / ')})`);
+    ok(!headerRow(tableFrame(p2.prim, 'Font family')!).includes('REM') && !headerRow(tableFrame(p2.prim, 'Font weight')!).includes('REM') && !headerRow(tableFrame(p2.sem, 'Font weight roles')!).includes('REM'), '17: the font family and font weight tables have no REM column');
+    // The FLUID sizes (type-sets, desktop and mobile) have no table of their own since #2371: the Text styles table prints
+    // them per mode, pinned (section 18). Section 33 holds that the table is gone.
     // The display override: Generic binds nothing; Size binds fontSize on a weight row.
     const gen = await phase2File();
     await draw(gen.api, contract, { types: ['fontWeight'], fontDisplay: 'generic' });
-    const gw = gridOf(tableFrame(gen.sem, 'Font weight')!);
+    const gw = gridOf(tableFrame(gen.prim, 'Font weight')!);
     ok(bindings(textOf(cellAt(gw, 1, 1))) === '', '17: Display "Generic" draws "Abc 123" with nothing bound');
     await draw(gen.api, contract, { types: ['fontWeight'], fontDisplay: 'size' });
-    ok(bindings(textOf(cellAt(gridOf(tableFrame(gen.sem, 'Font weight')!), 1, 1))) === 'fontSize', '17: Display "Size" binds fontSize instead');
+    ok(bindings(textOf(cellAt(gridOf(tableFrame(gen.prim, 'Font weight')!), 1, 1))) === 'fontSize', '17: Display "Size" binds fontSize instead');
   }
 
   console.log('18. phase 2: text styles (#259)');
@@ -2143,12 +2157,19 @@ const main = async (): Promise<void> => {
     ok(remOnly.tables.every((t) => t.status === 'updated' && !t.diff.changed.length), '19: switching REM off changes no row');
     // THE TABLES FILTER on the new tables: by title, a disambiguated title, and a key.
     const before = new Map([...tablesOn(p2.sem), ...tablesOn(p2.prim)].map((w) => [w.name, gridOf(w).id]));
-    const f1 = await draw(p2.api, contract, { tables: ['space', 'Font size (type-sets)', 'dimension|VariableCollectionId:radius|pds3/radius'] });
+    const f1 = await draw(p2.api, contract, { tables: ['space', 'Font size', 'dimension|VariableCollectionId:radius|pds3/radius'] });
     const redrawn = [...tablesOn(p2.sem), ...tablesOn(p2.prim)].filter((w) => before.get(w.name) !== gridOf(w).id).map((w) => w.name).sort();
-    ok(JSON.stringify(f1.tables.map((t) => t.title).sort()) === JSON.stringify(['Font size (type-sets)', 'Radius', 'Space']) && JSON.stringify(redrawn) === JSON.stringify(['Style guide — Font size (type-sets)', 'Style guide — Radius', 'Style guide — Space'])
+    ok(JSON.stringify(f1.tables.map((t) => t.title).sort()) === JSON.stringify(['Font size', 'Radius', 'Space']) && JSON.stringify(redrawn) === JSON.stringify(['Style guide — Font size', 'Style guide — Radius', 'Style guide — Space'])
       && f1.unmatched.length === 0,
-      `19: tables: [space, Font size (type-sets), the radius key] draws those three and no other (${redrawn.join(', ')})`);
-    ok((await draw(p2.api, contract, { tables: ['Font size'] })).unmatched.length === 1, '19: "Font size" alone matches neither disambiguated title, and is reported');
+      `19: tables: [space, Font size, the radius key] draws those three and no other (${redrawn.join(', ')})`);
+    // A DISAMBIGUATED TITLE: a second collection with font sizes (one mode, so not the text styles' responsive one) makes
+    // the two font-size tables "Font size (core)" and "Font size (metrics)".
+    const dup = await phase2File();
+    dup.vars.push({ id: 'VariableID:metrics:fs', name: 'metrics/font-size/body', variableCollectionId: 'VariableCollectionId:metrics', resolvedType: 'FLOAT', description: '', valuesByMode: { 'metrics:0': 15 }, scopes: ['FONT_SIZE'] });
+    const d1 = await draw(dup.api, contract, { tables: ['Font size (metrics)'] });
+    ok(JSON.stringify(d1.tables.map((t) => t.title)) === JSON.stringify(['Font size (metrics)']) && d1.unmatched.length === 0,
+      `19: tables: [Font size (metrics)] draws the disambiguated table alone (${d1.tables.map((t) => t.title).join(', ')})`);
+    ok((await draw(dup.api, contract, { tables: ['Font size'] })).unmatched.length === 1, '19: "Font size" alone matches neither disambiguated title, and is reported');
     // THE PHASE BOUNDARY: a type outside it is named, not drawn; the later-phase variables are counted.
     const out = await draw(p2.api, contract, { types: ['dimension', 'shadow'] });
     ok(out.tables.length === 6 && out.tables.every((t) => t.key.startsWith('dimension|')) && out.notes.includes('shadow: not in this phase — this phase draws color, dimension, fontFamily, fontSize, fontWeight, lineHeight, letterSpacing, typography'),
@@ -2157,7 +2178,7 @@ const main = async (): Promise<void> => {
     // A HOST THAT REFUSES A BINDING: counted, named, not a pass.
     const nb = await phase2File();
     refuseBinding = true;
-    const refused = await draw(nb.api, contract, { tables: ['Radius', 'Font weight'] });
+    const refused = await draw(nb.api, contract, { tables: ['Radius', 'Font weight', 'Font weight roles'] });
     refuseBinding = false;
     const v = styleGuideSummary(refused);
     ok(refused.unbound === 21 && !v.ok && v.summary.includes('10 type=radius specimens are not bound to their variable') && v.summary.includes('11 font weight specimens are not bound to their variable'),
@@ -2195,7 +2216,7 @@ const main = async (): Promise<void> => {
     const ts20 = tableFrame(t20.sem, 'Text styles')!;
     const space20 = tableFrame(t20.sem, 'Space')!;
     ok(headerRow(ts20)[0] === 'Name' && nameOf(ts20, 'display/3xl/emphasis') === 'Display 3XL Emphasis' && nameOf(space20, '050') === 'Space 050'
-      && nameOf(tableFrame(t20.sem, 'Size')!, 'xs/height') === 'XS Height' && nameOf(tableFrame(t20.prim, 'Font size (core)')!, '16') === 'Size 16',
+      && nameOf(tableFrame(t20.sem, 'Size')!, 'xs/height') === 'XS Height' && nameOf(tableFrame(t20.prim, 'Font size')!, '16') === 'Size 16',
       `20: a text style reads "Display 3XL Emphasis", a dimension "Space 050" and "XS Height", a font size "Size 16" (${nameOf(ts20, 'display/3xl/emphasis')}, ${nameOf(space20, '050')})`);
     // A DESIGNER'S EDIT SURVIVES; an unedited title follows a rename.
     const titleText = (w: N, token: string): N => cellAt(gridOf(w), rowBy(gridOf(w), token), 0)!.findOne((k) => k.type === 'TEXT')!;
@@ -2458,12 +2479,12 @@ const main = async (): Promise<void> => {
   {
     const rw = await phase2File();
     await draw(rw.api, contract);
-    const at = (title: string): string => { const w = tableFrame(rw.prim, title)!; return `${w.x},${w.y}`; };
+    const at = (title: string): string => { const w = tableFrame(rw.prim, title); return w ? `${w.x},${w.y}` : `no ${title} table`; };
     // The Primitive page holds two categories: dimension (Dimension 602 wide, its REM column included and 1,888 tall, Density, Step) and font
     // variables (Font family 968 wide, …). The font row starts 160px below the dimension row's tallest table. No gap
     // between tracks since #2336: with the 2px gaps these were 610, 1,970 and 974.
-    ok(JSON.stringify(['Dimension', 'Density', 'Font family', 'Font size (core)'].map(at)) === JSON.stringify(['0,0', '762,0', '0,2048', '1128,2048']),
-      `23: two categories, two tables each, at literal positions: Dimension 0,0 and Density 762,0; Font family 0,2048 and Font size (core) 1128,2048 (${['Dimension', 'Density', 'Font family', 'Font size (core)'].map(at).join(' | ')})`);
+    ok(JSON.stringify(['Dimension', 'Density', 'Font family', 'Font size'].map(at)) === JSON.stringify(['0,0', '762,0', '0,2048', '1128,2048']),
+      `23: two categories, two tables each, at literal positions: Dimension 0,0 and Density 762,0; Font family 0,2048 and Font size 1128,2048 (${['Dimension', 'Density', 'Font family', 'Font size'].map(at).join(' | ')})`);
     const rowOfCat = (cat: RegExp): N[] => tablesOn(rw.prim).filter((w) => cat.test(w.pluginData['prism3-style-guide'])).sort((a, b) => a.x - b.x);
     const dimRow = rowOfCat(/^dimension\|/), fontRow = rowOfCat(/^(fontFamily|fontSize|fontWeight|lineHeight|letterSpacing)\|/);
     const rowGaps = (ns: N[]): number[] => ns.slice(1).map((n, i) => n.x - (ns[i].x + ns[i].width));
@@ -2561,18 +2582,16 @@ const main = async (): Promise<void> => {
     const REM_ON: Record<string, string[]> = {
       'Density': ['Token', 'compact', 'Value', 'REM', 'comfortable', 'Value', 'REM', 'Description'],
       'Dimension': ONE_ON, 'Step': ONE_ON, 'Size': ONE_ON, 'Space': ONE_ON, 'Radius': ONE_ON,
-      'Font size (core)': ONE_ON,
-      'Font size (type-sets)': ['Token', 'desktop', 'Value', 'REM', 'mobile', 'Value', 'REM', 'Description'],
+      'Font size': ONE_ON,
       'Line height': ONE_ON, 'Letter spacing': ONE_ON,
-      'Font family': ONE_OFF, 'Font weight': ONE_OFF,
+      'Font family': ONE_OFF, 'Font weight': ONE_OFF, 'Font weight roles': ONE_OFF,
     };
     const REM_OFF: Record<string, string[]> = {
       'Density': ['Token', 'compact', 'Value', 'comfortable', 'Value', 'Description'],
       'Dimension': ONE_OFF, 'Step': ONE_OFF, 'Size': ONE_OFF, 'Space': ONE_OFF, 'Radius': ONE_OFF,
-      'Font size (core)': ONE_OFF,
-      'Font size (type-sets)': ['Token', 'desktop', 'Value', 'mobile', 'Value', 'Description'],
+      'Font size': ONE_OFF,
       'Line height': ONE_OFF, 'Letter spacing': ONE_OFF,
-      'Font family': ONE_OFF, 'Font weight': ONE_OFF,
+      'Font family': ONE_OFF, 'Font weight': ONE_OFF, 'Font weight roles': ONE_OFF,
     };
     const TITLES = JSON.stringify(Object.keys(REM_ON).sort());
     const REM_CELL = /^(-?\d+(\.\d+)?rem|—)$/;
@@ -2842,7 +2861,7 @@ const main = async (): Promise<void> => {
     // the first row (live: Primary 260,0, and a new category's row at 260,0 too).
     const cur = await phase2File();
     (cur.api as unknown as { currentPage: N }).currentPage = cur.prim;
-    await draw(cur.api, contract, { tables: ['Dimension', 'Density', 'Font family', 'Font size (core)'] });
+    await draw(cur.api, contract, { tables: ['Dimension', 'Density', 'Font family', 'Font size'] });
     const cboxes = tablesOn(cur.prim).map((n) => ({ n: n.name.replace(/^Style guide — /, ''), x: Number(n.x), y: Number(n.y), w: n.width, h: n.height }));
     const chits = cboxes.flatMap((a, i) => cboxes.slice(i + 1).filter((b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h).map((b) => `${a.n} × ${b.n}`));
     ok(cboxes.length === 4 && chits.length === 0 && cboxes.find((b) => b.n === 'Dimension')?.x === 0,
@@ -2911,8 +2930,12 @@ const main = async (): Promise<void> => {
     ok(bodyText.length > 1000 && offWhite.length === 0, `32: every body text cell is the chrome's fixed #FFFFFF (${offWhite.length} of ${bodyText.length} not: ${offWhite.slice(0, 2).map(say).join('; ')})`);
     const radiusCells = cells.filter((k) => k.name === 'Cell');
     ok(radiusCells.length > 0 && radiusCells.every((k) => white(k.fills)), `32: a radius specimen's own cell is #FFFFFF (${radiusCells.length})`);
-    const openFrames = wraps.filter((w) => !white(w.fills) || !white(gridOf(w).fills));
-    ok(openFrames.length === 0, `32: every table frame and the wrap around it are #FFFFFF (${openFrames.length} not: ${openFrames.slice(0, 3).map((w) => w.name).join(', ')})`);
+    // The table frame is white; the WRAP around it (title, description and rule) has no fill since #2371: it sits on the
+    // canvas, and only the table itself is solid.
+    const openFrames = wraps.filter((w) => !white(gridOf(w).fills));
+    ok(openFrames.length === 0, `32: every table frame is #FFFFFF (${openFrames.length} not: ${openFrames.slice(0, 3).map((w) => w.name).join(', ')})`);
+    const filledWraps = wraps.filter((w) => paints(w.fills).some((p) => p.visible !== false));
+    ok(filledWraps.length === 0, `32: no table's outer frame, the wrap holding its title, description and rule, has a fill (#2371; ${filledWraps.length} of ${wraps.length} filled: ${filledWraps.slice(0, 3).map((w) => w.name).join(', ')})`);
     // THE ROW LINES: a 1px #E0E0E0 bottom edge, inside, on every cell of every row, in every column, with no gap between
     // tracks, so each line runs unbroken across the table.
     const ruled = (k: N | undefined): boolean => !!k && paints(k.strokes).length === 1 && isRgb(paints(k.strokes)[0], 224, 224, 224)
@@ -2936,6 +2959,119 @@ const main = async (): Promise<void> => {
       || k.children.some((c) => c.visible !== false) || !ruled(k));
     ok(fills.length > 300 && semFills.length > 50 && notToEdge.length === 0,
       `32: every fill swatch fills its cell to the edge, the color over white, no layer showing and no outline but the row line (${fills.length} swatches, ${semFills.length} semantic; ${notToEdge.length} not: ${notToEdge.slice(0, 2).map(say).join('; ')})`);
+  }
+
+  console.log('33. the owner\'s QA of a real brand file (#2371): a mixed run never overlaps, no type-sets font-size table, font weight split, a family in a face it has');
+  {
+    /** Every pair of the generator's tables on a page whose boxes intersect, read off the drawn frames. */
+    const overlapsOn = (p: N): string[] => {
+      const b = tablesOn(p).map((n) => ({ n: n.name.replace(/^Style guide — /, ''), x: Number(n.x), y: Number(n.y), w: n.width, h: n.height }));
+      return b.flatMap((a, i) => b.slice(i + 1).filter((c) => a.x < c.x + c.w && c.x < a.x + a.w && a.y < c.y + c.h && c.y < a.y + a.h)
+        .map((c) => `${a.n} ${a.x},${a.y} ${a.w}×${a.h} × ${c.n} ${c.x},${c.y} ${c.w}×${c.h}`));
+    };
+    const GAP = 160;
+    // (1) A MIXED RUN, filtered as the Build style guides page sends it when not every table is picked: tables updated in
+    // place and tables created in one run. Here the updated ones NARROW (the Description column toggled off), as every
+    // table did when #2336 removed its 2px gaps, and the new one joins their row. It lands one gap after them.
+    const mx = await phase2File();
+    await draw(mx.api, contract, { tables: ['Dimension', 'Density'] });
+    const wide = tableFrame(mx.prim, 'Dimension')!.width;
+    const mixed = await draw(mx.api, contract, { tables: ['Dimension', 'Density', 'Step'], description: false });
+    const [dim, den, step] = ['Dimension', 'Density', 'Step'].map((t) => tableFrame(mx.prim, t)!);
+    ok(JSON.stringify(mixed.tables.map((t) => `${t.title} ${t.status}`)) === JSON.stringify(['Dimension updated', 'Density updated', 'Step created']) && dim.width < wide
+      && overlapsOn(mx.prim).length === 0 && Number(step.x) === Number(den.x) + den.width + GAP && Number(den.x) === Number(dim.x) + dim.width + GAP,
+      `33: a mixed run, tables narrowed in place and one created in their row, overlaps nothing; each sits ${GAP}px after the one before (Dimension ${dim.x} ${dim.width}, was ${wide}; Density ${den.x} ${den.width}; Step ${step.x}${overlapsOn(mx.prim).length ? `; overlap: ${overlapsOn(mx.prim).join('; ')}` : ''})`);
+    // The same, down the page: the dimension row gets SHORTER (twelve steps gone) and a new category's first table, Font
+    // family, starts its row below it.
+    const mv = await phase2File();
+    await draw(mv.api, contract, { tables: ['Dimension', 'Density'] });
+    const tall = tableFrame(mv.prim, 'Dimension')!.height;
+    const gone = mv.vars.filter((v) => /^pds3\/core\/dimension\//.test(v.name)).slice(-12).map((v) => v.id);
+    for (const id of gone) mv.vars.splice(mv.vars.findIndex((v) => v.id === id), 1);
+    await draw(mv.api, contract, { tables: ['Dimension', 'Density', 'Font family'] });
+    const [vdim, vden, vfam] = ['Dimension', 'Density', 'Font family'].map((t) => tableFrame(mv.prim, t)!);
+    const rowBottom = Math.max(Number(vdim.y) + vdim.height, Number(vden.y) + vden.height);
+    ok(gone.length === 12 && vdim.height < tall && overlapsOn(mv.prim).length === 0 && Number(vfam.y) === rowBottom + GAP && Number(vfam.x) === Number(vdim.x),
+      `33: a mixed run whose row got shorter starts a new category's row ${GAP}px below it, over nothing (Dimension ${vdim.height} tall, was ${tall}; Font family at ${vfam.x},${vfam.y}, the row ends at ${rowBottom}${overlapsOn(mv.prim).length ? `; overlap: ${overlapsOn(mv.prim).join('; ')}` : ''})`);
+    // And unfiltered: a run that updates some tables and creates the rest re-flows every row, over nothing.
+    const mf = await phase2File();
+    await draw(mf.api, contract, { tables: ['Dimension', 'Space', 'Font family'] });
+    const all = await draw(mf.api, contract, { description: false });
+    ok(all.tables.some((t) => t.status === 'updated') && all.tables.some((t) => t.status === 'created') && overlapsOn(mf.prim).length === 0 && overlapsOn(mf.sem).length === 0,
+      `33: an unfiltered mixed run overlaps nothing on either page (${[...overlapsOn(mf.prim), ...overlapsOn(mf.sem)].join('; ') || 'none'})`);
+
+    // (2) NO FONT-SIZE TABLE FOR THE TEXT STYLES' RESPONSIVE COLLECTION (owner decision Q133 A): type-sets, desktop and
+    // mobile, whose 21 sizes the Text styles table prints per mode. The count is the emission's own, read here.
+    const tsNames = (JSON.parse(readFileSync(join(OUT, 'type-sets.desktop.json'), 'utf8')) as { variables: { name: string }[] }).variables.map((v) => v.name);
+    const fx2 = phase2Variables();
+    const cat2: SgCatalog = { collections: fx2.cols, variables: fx2.vars, textStyles: fx2.styles };
+    const plan2 = planStyleGuide(cat2, contract);
+    const tsTables = plan2.tables.filter((t) => t.type === 'fontSize' && t.collectionId === 'VariableCollectionId:ts');
+    ok(tsNames.length === 21 && tsTables.length === 0 && plan2.tables.filter((t) => t.type === 'fontSize').map((t) => t.title).join() === 'Font size',
+      `33: no font-size table for the type-sets collection; the one left is the primitives', titled "Font size" (${plan2.tables.filter((t) => t.type === 'fontSize').map((t) => `${t.title} ${t.collectionId}`).join(', ')})`);
+    const page2 = catalogFor(cat2, contract, true);
+    const tsItems = page2.collections.find((c) => c.name === 'type-sets')?.items ?? [];
+    const inText = tsItems.filter((it) => page2.tables[it.table]?.title === 'Text styles');
+    ok(tsItems.length === 21 && inText.length === 21,
+      `33: the Build style guides page lists the 21 type-sets sizes under Text styles, not as a later phase (${inText.length} of ${tsItems.length}; ${tsItems.filter((it) => page2.tables[it.table]?.title !== 'Text styles').slice(0, 2).map((it) => `${it.name} → ${it.table}`).join(', ')})`);
+    // An earlier run's type-sets table is superseded: drawn while the file had no text styles, deleted unedited once it does.
+    const old2 = await phase2File();
+    const kept2 = old2.styles.splice(0, old2.styles.length);
+    await draw(old2.api, contract);
+    const hadOld = !!tableFrame(old2.prim, 'Font size (type-sets)');
+    old2.styles.push(...kept2);
+    const re2 = await draw(old2.api, contract);
+    ok(hadOld && !tableFrame(old2.prim, 'Font size (type-sets)') && re2.deleted.includes('Style guide — Font size (type-sets)') && !!tableFrame(old2.prim, 'Font size'),
+      `33: a type-sets font-size table an earlier run drew is deleted, unedited, and the primitives' table is "Font size" (before: ${hadOld}; deleted: ${re2.deleted.join(', ') || 'none'})`);
+
+    // (3) FONT WEIGHT SPLIT (owner decision Q133 A): the raw weights on Primitive tokens beside font family and size, the
+    // weight roles on Semantic tokens. Which is which is read off the emission: a literal is a raw weight, an alias a role.
+    const fontEm = (JSON.parse(readFileSync(join(OUT, 'core.font.json'), 'utf8')) as { variables: { name: string; resolvedType: string; alias: unknown; scopes?: string[] }[] }).variables
+      .filter((v) => v.scopes?.includes('FONT_WEIGHT'));
+    const rawW = fontEm.filter((v) => !v.alias).map((v) => v.name.split('/').pop()!);
+    const roleW = fontEm.filter((v) => v.alias).map((v) => v.name.split('/').pop()!);
+    const tokensOf = (w: N | undefined): string[] => (w ? gridOf(w).children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn) : []);
+    const w3 = await phase2File();
+    await draw(w3.api, contract, { types: ['fontWeight'] });
+    const rawT = tableFrame(w3.prim, 'Font weight');
+    const roleT = tableFrame(w3.sem, 'Font weight roles');
+    ok(rawW.length === 6 && roleW.length === 5 && JSON.stringify(tokensOf(rawT)) === JSON.stringify(rawW) && JSON.stringify(tokensOf(roleT)) === JSON.stringify(roleW)
+      && !tableFrame(w3.sem, 'Font weight') && !tableFrame(w3.prim, 'Font weight roles'),
+      `33: the ${rawW.length} raw font weights are their own table on Primitive tokens and the ${roleW.length} weight roles theirs on Semantic tokens (primitive: ${tokensOf(rawT).join(', ')}; semantic: ${tokensOf(roleT).join(', ')})`);
+    // On the Primitive page they sit in the font row, beside font family and size.
+    const w3b = await phase2File();
+    await draw(w3b.api, contract);
+    const fontRow = tablesOn(w3b.prim).filter((w) => w.y === tableFrame(w3b.prim, 'Font family')!.y).map((w) => w.name.replace(/^Style guide — /, ''));
+    ok(['Font family', 'Font size', 'Font weight'].every((t) => fontRow.includes(t)), `33: font weight sits in the font row, beside font family and size (${fontRow.join(', ')})`);
+
+    // (5) A FAMILY IN A FACE IT HAS: the owner's file has its display and title families in one face only, and the
+    // specimen asked for Regular. Here Playfair Display has no Regular; the text styles set display and title in Medium
+    // Italic (the emission's `font/style/display/emphasis` and `title/emphasis`, typed here), so the specimens take that
+    // face and stay bound to their variables, with no miss.
+    const f5 = await phase2File();
+    f5.fontFails.add('Playfair Display Regular');
+    const r5 = await draw(f5.api, contract, { tables: ['Font family'] });
+    const fam5 = gridOf(tableFrame(f5.prim, 'Font family'));
+    const spec5 = (token: string): N | null => cellAt(fam5, rowOf(fam5, token), 1)?.findOne((k) => k.type === 'TEXT') ?? null;
+    const say5 = (t: N | null): string => `${fontId(t?.fontName)}, bound ${t?.boundVariables.fontFamily?.id ?? 'nothing'}`;
+    for (const role of ['display', 'title']) {
+      const t = spec5(role);
+      ok(fontId(t?.fontName) === 'Playfair Display Medium Italic' && t?.boundVariables.fontFamily?.id === f5.vars.find((v) => v.name === `pds3/core/font/family/${role}`)?.id,
+        `33: the ${role} family, which has no Regular here, is set in its role's face and bound (${say5(t)})`);
+    }
+    ok(r5.unbound === 0 && !r5.misses.some((m) => /unavailable|not bound/.test(m)) && styleGuideSummary(r5).ok,
+      `33: no family specimen unbound and no font named unavailable (${r5.unbound} unbound; ${r5.misses.join(' / ') || 'no misses'})`);
+    // A family no text style uses, whose only face is Light Condensed: the first style the host lists for it.
+    const f5b = await phase2File();
+    f5b.vars.push({ id: 'VariableID:metrics:fam', name: 'metrics/font-family/condensed', variableCollectionId: 'VariableCollectionId:metrics', resolvedType: 'STRING', description: '', valuesByMode: { 'metrics:0': 'Proof Condensed' }, scopes: ['FONT_FAMILY'] });
+    f5b.fontFails.add('Proof Condensed Regular');
+    (f5b.api as unknown as { listAvailableFontsAsync: () => Promise<{ fontName: { family: string; style: string } }[]> }).listAvailableFontsAsync = async () =>
+      [{ fontName: { family: 'Inter', style: 'Regular' } }, { fontName: { family: 'Proof Condensed', style: 'Light Condensed' } }];
+    const r5b = await draw(f5b.api, contract, { tables: ['Font family (metrics)'] });
+    const g5b = gridOf(tableFrame(f5b.prim, 'Font family (metrics)'));
+    const t5b = cellAt(g5b, 1, 1)?.findOne((k) => k.type === 'TEXT') ?? null;
+    ok(fontId(t5b?.fontName) === 'Proof Condensed Light Condensed' && t5b?.boundVariables.fontFamily?.id === 'VariableID:metrics:fam' && r5b.unbound === 0 && !r5b.misses.some((m) => /unavailable/.test(m)),
+      `33: a family with no text style and only a Light Condensed face is set in it and bound (${say5(t5b)}; ${r5b.misses.join(' / ') || 'no misses'})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }

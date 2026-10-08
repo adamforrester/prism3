@@ -24,7 +24,7 @@ import {
   treesOf, defaultOpen, boxOf, countsOf, summaryText, drawLabel, kindsOf, hasLengths, byTitles, drawOptions, DEFAULT_OPTIONS,
   keepSelection, type SgNode, type PageOptions,
 } from '../state/style-guides';
-import { glyph, h, hook, type P3Class } from './dom';
+import { glyph, h, hook, switchEl, type P3Class } from './dom';
 
 /** What `main.ts` lends the page: the host's facts, and the writes. */
 export type StyleGuidesLend = {
@@ -164,21 +164,13 @@ export const mountStyleGuides = (root: HTMLElement, lend: StyleGuidesLend, narro
     b.onclick = () => { if (!disabled) onToggle(); };
     return b;
   };
-  /** The switch (SG5 A, concept v6's track and knob): a button with `role="switch"`, so its focus ring is its own
+  /** The switch (SG5 A): the chrome's one track-and-knob switch (`switchEl`, #2183), so its focus ring is its own
    *  outline, on the chrome's focus color (FR1 A), where the ring audit reads it. */
   const sw = (key: keyof PageOptions, label: string): HTMLElement => {
-    const b = hook(h('button', 'p3-sg-switch'), `sg-opt-${kebab(String(key))}`);
-    b.type = 'button';
-    b.setAttribute('role', 'switch');
-    b.setAttribute('aria-label', label);
-    b.dataset.key = String(key);
-    b.setAttribute('aria-checked', String(S.opt[key] === true));
-    b.onclick = () => { (S.opt as Record<string, unknown>)[key] = !(S.opt[key] === true); paint(); };
-    const track = h('span', 'p3-sg-track');
-    track.setAttribute('aria-hidden', 'true');
-    track.append(h('span', 'p3-sg-knob'));
-    b.append(track);
-    return b;
+    const s = switchEl(`sg-opt-${kebab(String(key))}`, label, (on) => { (S.opt as Record<string, unknown>)[key] = on; paint(); });
+    s.el.dataset.key = String(key);
+    s.set(S.opt[key] === true);
+    return s.el;
   };
   const select = (role: string, label: string, opts: readonly (readonly [string, string])[], cur: string, onChange: (v: string) => void, disabled = false): HTMLElement => {
     const wrap = h('div', 'p3-selwrap');
