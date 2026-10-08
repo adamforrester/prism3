@@ -16,7 +16,7 @@
 import { leverManifest } from '@prism3/engine/levers';
 import type { Lever } from '@prism3/engine/levers';
 import { leverHook } from '../levers/controls';
-import { glyph, h, hook } from '../shell/dom';
+import { glyph, h, hook, switchEl } from '../shell/dom';
 
 export const leverOf = (key: string): Lever | undefined => leverManifest.find((l) => l.key === key);
 const slug = (k: string): string => leverHook(k).slice('lever-'.length);
@@ -303,24 +303,14 @@ export const selectField = (id: string, label: string, role: string, onChange: (
   };
 };
 
-/** A switch: a button with `role="switch"`, a dot and its state in words (the S1.4 Agent switch's form). */
-export const switchButton = (id: string, label: string, role: string, words: { on: string; off: string }, onToggle: (on: boolean) => void): {
+/** A lever's switch: the chrome's one track-and-knob switch (`switchEl`, #2183), with the `id` its lever's label
+ *  points at. It replaced the dot-and-word switch (the S1.4 Agent switch's form); its state is no longer in words. */
+export const switchButton = (id: string, label: string, role: string, onToggle: (on: boolean) => void): {
   el: HTMLButtonElement; set: (on: boolean) => void;
 } => {
-  const el = hook(h('button', 'p3-btn p3-btn-page p3-switch'), role);
-  el.type = 'button';
-  el.id = id;
-  el.setAttribute('role', 'switch');
-  el.setAttribute('aria-label', label);
-  const dot = h('span', 'p3-dot p3-switch-dot');
-  dot.setAttribute('aria-hidden', 'true');
-  const text = h('span', 'p3-btn-label');
-  el.append(dot, text);
-  el.onclick = () => onToggle(el.getAttribute('aria-checked') !== 'true');
-  return {
-    el,
-    set: (on) => { el.setAttribute('aria-checked', String(on)); el.dataset.on = String(on); setText(text, on ? words.on : words.off); },
-  };
+  const sw = switchEl(role, label, onToggle);
+  sw.el.id = id;
+  return sw;
 };
 
 /** The add button a growing list ends on (V7's dashed add row; the owner's QA-I4, 2026-10-02): full width, a

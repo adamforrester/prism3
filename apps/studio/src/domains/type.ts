@@ -743,7 +743,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     // its switch stays live: turning it on is the way out (B8b's rule).
     {
       const b = leverBlock('typography.responsive', { label: S63.fluidLabel, desc: S63.fluidTip, group: true });
-      const sw = switchButton('p3-type-fluid', S63.fluidLabel, 'type-fluid', { on: 'On', off: 'Off' }, (on) => edit('typography.responsive', () => setFluid(on)));
+      const sw = switchButton('p3-type-fluid', S63.fluidLabel, 'type-fluid', (on) => edit('typography.responsive', () => setFluid(on)));
       const fluidOn = brandState.typography?.responsive?.fluid ?? ty.fluid;
       sw.set(fluidOn);
       const mobiles = fluidOn ? fluidBlocked() : [];
