@@ -6,6 +6,7 @@ Owner decision Q109 A: a same-named hand-made icon is kept, Adopt is never offer
 - **Ownership is the stamp, never the name.** A hand-made icon, even one under a Prism3 glyph's exact name, is unstamped. It holds its coordinate, so that glyph is never built beside it (Q109 A), and it is never written, captured or deprecated. A duplicate is no Prism3 icon (#2300). Adopt lists the single defs as not offered (Q109 B), without failing.
 - **The apply** maps each coordinate to the node's own name (`name=check` ↔ `icon/check`) for its renames, deprecations and verify, and builds in the executor's emit mode. There is no set node, so identity is checked per member, and a deprecated icon gets its description prefix but no `retained` list.
 - **The executor's emit branch** now finishes an updated component as a set member is finished: record, then stamp, then marker off, through one shared `finishUpdated`. Before this it returned first, so an updated icon would never have taken its stamp and would have kept its in-progress marker. In an update, a component the plan gained goes in the first grid slot no existing one holds.
+- **`EXECUTOR_REVISION` 2 → 3:** the emit branch's code changed. Every member built before this reads as out of date, with no field difference visible, until an update re-applies it.
 - **Every member read as not built by Prism3 is named in the apply's outcome,** off-plan ones included. Before this, only those on a planned coordinate were named, on the set path too.
 
 ### Traps for whoever re-verifies
