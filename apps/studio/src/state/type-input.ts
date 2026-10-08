@@ -30,7 +30,7 @@
  */
 import {
   brandTheme, typefaceSlug, derivedRungFor, shiftRung, REQUIRED_WEIGHT_ROLES, PER_MODE_SIZE_GROUPS,
-  LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, DISPLAY_VARIANTS, TYPE_LINK_DEFAULT,
+  LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TRACKING_SHIFT_KEYS, DISPLAY_VARIANTS, TYPE_LINK_DEFAULT,
 } from '@prism3/engine/theme';
 import type { BrandInput, Theme, TypographyInput, PerModeSizeGroup, FacePin } from '@prism3/engine/theme';
 import { brandState, theme, getPath, setPath, setModeLever } from './store';
@@ -176,7 +176,8 @@ export const setRepoint = (mode: string, field: RungField, rung: string, to: str
 export const setShift = (g: string, field: ShiftField, n: number): void => {
   setPath(brandState, `typography.${field}.${g}`, n === 0 ? undefined : n);
 };
-const keysOf = (field: ShiftField): readonly string[] => (field === 'leadingShift' ? LINE_HEIGHT_KEYS : LETTER_SPACING_KEYS);
+// A tracking nudge steps along the six roles it always has (#2322): `TRACKING_SHIFT_KEYS`, the engine's own.
+const keysOf = (field: ShiftField): readonly string[] => (field === 'leadingShift' ? LINE_HEIGHT_KEYS : TRACKING_SHIFT_KEYS);
 /** The nudges that MOVE at least one of the category's styles (#377), engine-bounded to ±5. */
 export const nudgeSteps = (group: string, field: ShiftField, ty: Typography = theme.typography): number[] => {
   const keys = keysOf(field);

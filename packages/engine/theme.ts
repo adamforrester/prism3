@@ -1048,8 +1048,15 @@ const MONO_FALLBACK = ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'L
 // value that is still a reading leading rather than a heading one.
 export const LINE_HEIGHT_KEYS = ['tight', 'snug', 'compact', 'cozy', 'normal', 'relaxed', 'loose'] as const;
 export type LineHeightKey = typeof LINE_HEIGHT_KEYS[number];
-export const LETTER_SPACING_KEYS = ['tighter', 'tight', 'snug', 'normal', 'wide', 'wider'] as const;
+// #2322 (owner, 2026-10-08) — three roles between and beyond the six: `tightest` (−4%, display headings), `snugger`
+// (−1.5%, between tight and snug) and `open` (+1%, between normal and wide). The six keep their names and values.
+export const LETTER_SPACING_KEYS = ['tightest', 'tighter', 'tight', 'snugger', 'snug', 'normal', 'open', 'wide', 'wider'] as const;
 export type LetterSpacingKey = typeof LETTER_SPACING_KEYS[number];
+/** THE STEPS A TRACKING NUDGE MOVES ALONG (`trackingShift`, the Type view's nudge): the six roles from before
+ *  #2322, unchanged. A nudge counts rungs, so inserting `snugger` and `open` into its path would move every brand
+ *  that nudges a group: one step tighter from `snug` would land on −1.5% instead of −2%. The new roles are for a
+ *  role or the chrome to bind by name; whether a nudge should use them too is a separate choice. */
+export const TRACKING_SHIFT_KEYS = ['tighter', 'tight', 'snug', 'normal', 'wide', 'wider'] as const satisfies readonly LetterSpacingKey[];
 /** The PRIMITIVE ladders (#377). Curated and locked: a brand binds a role to a step, it does not
  *  re-anchor a step's value. That is the whole point of numeric keys — `line-height.150` must be 1.50
  *  or the name lies, which is exactly why value-editing had to go.
@@ -1088,9 +1095,27 @@ const LINE_HEIGHTS: { key: LineHeightKey; value: number }[] = [
   { key: 'normal', value: 1.5 }, { key: 'relaxed', value: 1.65 }, { key: 'loose', value: 1.75 },
 ];
 const LETTER_SPACINGS: { key: LetterSpacingKey; em: number }[] = [
-  { key: 'tighter', em: -0.03 }, { key: 'tight', em: -0.02 }, { key: 'snug', em: -0.01 }, { key: 'normal', em: 0 },
+  { key: 'tightest', em: -0.04 }, { key: 'tighter', em: -0.03 }, { key: 'tight', em: -0.02 }, { key: 'snugger', em: -0.015 },
+  { key: 'snug', em: -0.01 }, { key: 'normal', em: 0 }, { key: 'open', em: 0.01 },
   { key: 'wide', em: 0.02 }, { key: 'wider', em: 0.05 },
 ];
+/** The roles #2322 added. Each, when a brand does not set it, takes its default CLAMPED between its two resolved
+ *  neighbors, so a brand that re-anchored a neighbor past it (`tighter: -0.05`) still builds: `tightest` then sits
+ *  at `tighter`'s value rather than crossing it, which the order check would refuse. A neighbor's value is on the
+ *  ladder, so the clamped value is too. */
+const ADDED_TRACKING = new Set<LetterSpacingKey>(['tightest', 'snugger', 'open']);
+const resolveLetterSpacings = (t: { letterSpacings?: Partial<Record<LetterSpacingKey, number>> }): { key: LetterSpacingKey; em: number }[] => {
+  const ems = LETTER_SPACINGS.map((l) => (ADDED_TRACKING.has(l.key) ? undefined : t.letterSpacings?.[l.key] ?? l.em));
+  LETTER_SPACINGS.forEach((l, i) => {
+    if (!ADDED_TRACKING.has(l.key)) return;
+    const set = t.letterSpacings?.[l.key];
+    if (set !== undefined) { ems[i] = set; return; }
+    const prev = ems.slice(0, i).reverse().find((v) => v !== undefined);
+    const next = ems.slice(i + 1).find((v) => v !== undefined);
+    ems[i] = Math.min(next ?? Infinity, Math.max(prev ?? -Infinity, l.em));
+  });
+  return LETTER_SPACINGS.map((l, i) => ({ key: l.key, em: ems[i]! }));
+};
 const WEIGHT_ROLE_DEFAULT: Record<WeightRoleName, number> = { subtle: 300, default: 400, emphasis: 600, strong: 700, max: 900 };
 // The numeric weights the token contract guarantees whatever the roles say (#1718). Deliberately a
 // literal list, NOT derived from WEIGHT_ROLE_DEFAULT: it is the contract's promise, and the default
@@ -1635,7 +1660,7 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
         // The derived rung is size-sensitive; the per-group nudge shifts that curve
         // rather than replacing it, so `title` keeps tightening as it grows.
         lineHeight: shiftRung(LINE_HEIGHT_KEYS, lineHeightFor(group, sizePx), leadShift[group] ?? 0),
-        tracking: shiftRung(LETTER_SPACING_KEYS, trackingFor(group, sizePx), trackShift[group] ?? 0),
+        tracking: shiftRung(TRACKING_SHIFT_KEYS, trackingFor(group, sizePx), trackShift[group] ?? 0),
         textCase: group === 'eyebrow' ? 'uppercase' : 'none',
       });
     };
@@ -1842,8 +1867,7 @@ const deriveTypefaces = (library: string[] = [], ...bindingSets: FontFamilyBindi
 // than silently reverting to the curated default.
 export const brandLineHeights = (t: TypographyInput = {}): { key: string; value: number }[] =>
   LINE_HEIGHTS.map((l) => ({ key: l.key, value: t.lineHeights?.[l.key] ?? l.value }));
-export const brandLetterSpacings = (t: TypographyInput = {}): { key: string; em: number }[] =>
-  LETTER_SPACINGS.map((l) => ({ key: l.key, em: t.letterSpacings?.[l.key] ?? l.em }));
+export const brandLetterSpacings = (t: TypographyInput = {}): { key: string; em: number }[] => resolveLetterSpacings(t);
 
 const buildTypography = (t: TypographyInput = {}): Typography => {
   // Same bounds as the per-mode levers — guard typos, not taste.
@@ -1876,7 +1900,7 @@ const buildTypography = (t: TypographyInput = {}): Typography => {
         throw new Error(`typography.${field}: '${keys[i]}' (${resolved[i]}) resolves below '${keys[i - 1]}' (${resolved[i - 1]}) — the rung names are a relative-emphasis ramp, so they must stay in order. Re-point the roles instead of crossing them.`);
   };
   ordered('lineHeights', LINE_HEIGHT_KEYS, LINE_HEIGHTS.map((l) => t.lineHeights?.[l.key] ?? l.value));
-  ordered('letterSpacings', LETTER_SPACING_KEYS, LETTER_SPACINGS.map((l) => t.letterSpacings?.[l.key] ?? l.em));
+  ordered('letterSpacings', LETTER_SPACING_KEYS, resolveLetterSpacings(t).map((l) => l.em));
   // A nudge beyond ±5 rungs is meaningless (the leading ramp is 7 long, tracking is 6) — almost certainly a typo.
   for (const [field, map] of [['leadingShift', t.leadingShift], ['trackingShift', t.trackingShift]] as const)
     for (const [g, n] of Object.entries(map ?? {}))
