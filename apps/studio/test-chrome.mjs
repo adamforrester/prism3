@@ -7759,7 +7759,7 @@ for (const { w, h } of WIDTHS) {
 // =============================================================================================
 console.log(`\nComponents (S8.2)\n${'='.repeat(78)}`);
 /** The lever keys pages.ts places on Components (G6 A), by hook. Literal. */
-const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'lever-button-label-weight', 'lever-button-min-width-multiplier'];
+const COMPONENTS_LEVERS = ['lever-button-icons', 'lever-button-content-size', 'lever-button-label-weight', 'lever-button-text-hover', 'lever-button-min-width-multiplier'];
 /** The lever sections and the preview sections they pair with (Q23), in order. Literal. */
 const COMPONENTS_PAIRS = [['Button', 'Button'], ['Component sets', 'Component sets']];
 /** The page's copy, approved by the owner (2026-10-05), verbatim. */

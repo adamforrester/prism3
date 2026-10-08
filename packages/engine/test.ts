@@ -9457,6 +9457,8 @@ arm: {
       ['buttonContentSize', 'smaller'],
       ['buttonIcons', 'edges'],
       ['buttonMinWidthMultiplier', 1], ['buttonMinWidthMultiplier', 4],
+      // #2324: "Text button hover: Fill" moves only the materialized button defs (the text appearance's wash).
+      ['buttonTextHover', 'fill'],
       // `hairline` joined `boxed` and `pill` with #2053: the rung is always emitted now, so the shape moves only the
       // materialized defs (its radius binding), as the other two do.
       ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
@@ -11407,15 +11409,16 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
   const emittedByName = new Map<string, any>(ts.styles.map((s: any) => [s.name, s]));
   const missS = [...expectedByCorrectedName.keys()].filter((n) => !emittedByName.has(n));
   // Styles the engine adds beyond NB's own file, each named with its reason. NB's export predates body/xs (#2266, owner
-  // Q78 A), so its four styles are the engine's addition, not a fixture mismatch. Named, never a count, and each must
-  // still be emitted: a stale entry would silently absorb a real future extra.
-  const NB_ENGINE_ADDED_STYLES = ['body/xs/default', 'body/xs/default-link', 'body/xs/strong', 'body/xs/strong-link'];
+  // Q78 A) and the always-underlined label (#2324, owner Q110), so those styles are the engine's additions, not a fixture
+  // mismatch. Named, never a count, and each must still be emitted: a stale entry would silently absorb a real future extra.
+  const NB_ENGINE_ADDED_STYLES = ['body/xs/default', 'body/xs/default-link', 'body/xs/strong', 'body/xs/strong-link',
+    'label/sm/emphasis-link', 'label/md/emphasis-link', 'label/lg/emphasis-link'];
   const extraS = [...emittedByName.keys()].filter((n) => !expectedByCorrectedName.has(n) && !NB_ENGINE_ADDED_STYLES.includes(n));
   const staleAdded = NB_ENGINE_ADDED_STYLES.filter((n) => !emittedByName.has(n) || expectedByCorrectedName.has(n));
-  // The added styles have no fixture twin, so the binding checks below skip them. Each is held to its body/sm twin
-  // instead: every property identical except the size, which binds the 12px step.
+  // The added styles have no fixture twin, so the binding checks below skip them. Each body/xs style is held to its
+  // body/sm twin instead: every property identical except the size, which binds the 12px step.
   const addedBad: string[] = [];
-  for (const n of NB_ENGINE_ADDED_STYLES) {
+  for (const n of NB_ENGINE_ADDED_STYLES.filter((x) => x.startsWith('body/xs/'))) {
     const xs: any = emittedByName.get(n), sm: any = emittedByName.get(n.replace('body/xs/', 'body/sm/'));
     if (!xs || !sm) { addedBad.push(`${n}: ${xs ? 'no body/sm twin' : 'not emitted'}`); continue; }
     const { fontSize: xsSize, ...xsRest } = xs.properties, { fontSize: smSize, ...smRest } = sm.properties;
@@ -11423,7 +11426,18 @@ const NB_KNOWN_SCOPE_DIVERGENCES: { name: string; nb: string[]; engine: string[]
     if (!xsSize?.bound || xsSize.collection !== smSize?.collection || !/\/font\/size\/12$/.test(String(xsSize.variable))) addedBad.push(`${n}: fontSize ${JSON.stringify(xsSize)}`);
   }
   ok(addedBad.length === 0, `figma text-styles: each body/xs style binds as its body/sm twin does, with the 12px size (#2266)` + (addedBad.length ? ` — ${addedBad.slice(0, 3).join(' | ')}` : ''));
-  ok(missS.length === 0 && extraS.length === 0 && staleAdded.length === 0, `figma text-styles: the fixture's 36 styles, plus the ${NB_ENGINE_ADDED_STYLES.length} named engine additions (body/xs, #2266) — fix #1 (no \`text/\` wrapper)` + (missS.length ? ` — MISSING ${missS.slice(0, 3).join(',')}` : '') + (extraS.length ? ` — EXTRA ${extraS.slice(0, 3).join(',')}` : '') + (staleAdded.length ? ` — STALE addition ${staleAdded.join(',')}` : ''));
+  ok(missS.length === 0 && extraS.length === 0 && staleAdded.length === 0, `figma text-styles: the fixture's styles, plus the ${NB_ENGINE_ADDED_STYLES.length} named engine additions (body/xs, #2266; label links, #2324) — fix #1 (no \`text/\` wrapper)` + (missS.length ? ` — MISSING ${missS.slice(0, 3).join(',')}` : '') + (extraS.length ? ` — EXTRA ${extraS.slice(0, 3).join(',')}` : '') + (staleAdded.length ? ` — STALE addition ${staleAdded.join(',')}` : ''));
+  // Each label link is held to its plain twin (#2324): every property identical, and the underline its only difference.
+  const linkBad: string[] = [];
+  for (const n of NB_ENGINE_ADDED_STYLES.filter((x) => x.startsWith('label/'))) {
+    const ln: any = emittedByName.get(n), plain: any = emittedByName.get(n.replace(/-link$/, ''));
+    if (!ln || !plain) { linkBad.push(`${n}: ${ln ? 'no plain twin' : 'not emitted'}`); continue; }
+    const { textDecoration: lnDeco, ...lnRest } = ln.properties, { textDecoration: plDeco, ...plRest } = plain.properties;
+    if (JSON.stringify(lnRest) !== JSON.stringify(plRest)) linkBad.push(`${n}: properties other than the underline differ from ${n.replace(/-link$/, '')}`);
+    if (JSON.stringify(lnDeco) !== JSON.stringify({ bindable: false, value: 'UNDERLINE' }) || JSON.stringify(plDeco) !== JSON.stringify({ bindable: false, value: 'NONE' }))
+      linkBad.push(`${n}: textDecoration ${JSON.stringify(lnDeco)} (its twin ${JSON.stringify(plDeco)})`);
+  }
+  ok(linkBad.length === 0, `figma text-styles: each label link style is its plain twin with the underline added, and only that (#2324)` + (linkBad.length ? ` — ${linkBad.slice(0, 3).join(' | ')}` : ''));
 
   // fix #1 sanity — no emitted style starts with `text/`.
   const wrapped = ts.styles.filter((s) => s.name.startsWith('text/'));
@@ -14122,7 +14136,7 @@ arm: {
         const m = applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, content, labelWeight }, heightOf(t));
         SIZES.forEach((size, i) => {
           const style = paths[i].split('.').slice(1).join('/');   // type.label.sm.default → label/sm/default
-          const got = [m.tokens[`size.${size}.type`], labelStyle(m, size).join()];
+          const got = [m.tokens[`size.${size}.filled.type`], labelStyle(m, size).join()];   // filled/rest (#2324: one key per appearance)
           ok(got[0] === paths[i] && got[1] === style,
             `#1752 label weight binding: ${def.id}@${size} at ${content} + ${labelWeight} binds ${paths[i]} (text style ${style}) — got ${got.join(' / ')}`);
         });
@@ -14166,7 +14180,7 @@ arm: {
     }
     for (const def of FAMILY) {
       const m = applyButtonLayout(def, DEFAULT_BUTTON_LAYOUT, () => 44);
-      ok(SIZES.every((s, i) => m.tokens[`size.${s}.type`] === ['type.label.sm.emphasis', 'type.label.md.emphasis', 'type.label.lg.emphasis'][i]),
+      ok(SIZES.every((s, i) => m.tokens[`size.${s}.filled.type`] === ['type.label.sm.emphasis', 'type.label.md.emphasis', 'type.label.lg.emphasis'][i]),
         `#1752 identity: ${def.id} at Emphasis binds type.label.{sm,md,lg}.emphasis, as authored`);
     }
 
@@ -15251,9 +15265,11 @@ arm: {
     // pressed}`) — the same treatment #1282 gave outline, extended to the text appearance so its ink
     // steps with state under the lightening inverse overlay. Written, not derived from the def —
     // counting the def's own keys to check the def's own keys is `docs/34` shape 1, and this arm's job
-    // is to notice a binding QUIETLY going missing from one sibling. 24 = filled 5 + outline 11
-    // (border/label/icon ×3 states + overlay ×2) + text 8 (label/icon ×3 states + overlay ×2).
-    ok(famCount === 24, `#1223 ${d.id} carries its full interactive.${fam} skin — 24 bindings (got ${famCount})`);
+    // is to notice a binding QUIETLY going missing from one sibling. 22 = filled 5 + outline 11
+    // (border/label/icon ×3 states + overlay ×2) + text 6 (label/icon ×3 states). The text appearance's overlay ×2
+    // left the def in #2324: by default a text button keys no wash ("Text button hover: Text & icon only"), and
+    // "Fill" copies outline's in the materializer, so the raw def's text skin is its ink alone.
+    ok(famCount === 22, `#1223 ${d.id} carries its full interactive.${fam} skin — 22 bindings (got ${famCount})`);
   }
 
   const guidance = [button.docs!.usage, ...button.docs!.do, ...button.docs!.dont].join(' ');
@@ -16293,10 +16309,11 @@ arm: {
       `#1608 the wash binders the lever reaches: button ×3, icon-button ×3, select, tag, text-field, textarea (${binders.join(', ')})`);
 
     // BY-NAME MUTATION, in-suite: the RAW def (no wrap) under solid-tint misses the page wash — the 96-miss
-    // shape the owner saw. The wrap is what makes the gate above green.
+    // shape the owner saw, outline's 48 and text's 48. Since #2324 the text appearance keys no wash by default, so the
+    // raw button misses outline's 48. The wrap is what makes the gate above green.
     const raw = missesOf({ ...nbTheme(), outlineInteraction: 'solid-tint' }, false).out.filter((m) => m.def === 'button');
-    ok(raw.length === 96 && raw.some((m) => m.v === 'color/interactive/primary/overlay/hover'),
-      `#1608 MUTATION: unmaterialized, solid-tint NB button misses color/interactive/primary/overlay/{hover,pressed} — 96, the owner's count (${raw.length})`);
+    ok(raw.length === 48 && raw.some((m) => m.v === 'color/interactive/primary/overlay/hover'),
+      `#1608 MUTATION: unmaterialized, solid-tint NB button misses color/interactive/primary/overlay/{hover,pressed} — 48, outline's half of the owner's 96 (${raw.length})`);
   }
 
   // The drift gate bites: a broken def is caught (missing avoid_when + an unresolvable binding).
@@ -16591,7 +16608,9 @@ arm: {
     // declared a `colour` axis would agree with itself perfectly, which is exactly the agreement the
     // gate is supposed to be unable to reach. The list is written here, and the corpus is checked
     // against IT.
-    const TYPE_KEY_AXES = ['size', 'weight'] as const;
+    // `appearance` joined in #2324 (owner Q110): a text button's label binds its underlined twin, so the button family's
+    // label type crosses size × appearance. A deliberate widening, recorded here so the next one has to be too.
+    const TYPE_KEY_AXES = ['size', 'weight', 'appearance'] as const;
     // The (def, part) pairs that template a `type` key, and the axes each one names — authored from
     // reading the six defs, and asserted below to be exactly the set the corpus contains. Both
     // directions matter: a seventh binding added without a row here fails, and a row naming a binding
@@ -16616,9 +16635,11 @@ arm: {
       // raise the number. It landed: `type.label.{sm,md,lg}` = 12/14/18, so button now discriminates
       // into three. Re-pointing `size.large.type` back to `md` (or dropping the `lg` rung) drops this to
       // two and fails this arm BY NAME. All three siblings come off one factory, so all three move together.
-      { def: button, part: 'label', axes: { size: 3 } },
-      { def: buttonDestructive, part: 'label', axes: { size: 3 } },
-      { def: buttonNeutral, part: 'label', axes: { size: 3 } },
+      // × appearance since #2324: three appearances, TWO styles — filled and outline share the label style, and text
+      // binds its underlined twin. Collapsing text back onto `emphasis` drops this to one and fails BY NAME.
+      { def: button, part: 'label', axes: { size: 3, appearance: 2 } },
+      { def: buttonDestructive, part: 'label', axes: { size: 3, appearance: 2 } },
+      { def: buttonNeutral, part: 'label', axes: { size: 3, appearance: 2 } },
       { def: checkboxRow, part: 'label', axes: { size: 3 } },
       { def: radioRow, part: 'label', axes: { size: 3 } },
       // TWO, and not a collapse: `switch-row` declares `size: [small, medium]` only, on its brief's own
@@ -16872,7 +16893,10 @@ arm: {
     ok(!!parts(skin('outline', 'hover')).box.fills && !!parts(skin('outline', 'hover')).box.strokes, 'anatomy/paint: the overlay does not displace the border — a hovered outline carries both a wash and a stroke');
     const textRest = parts(skin('text'));
     ok(!textRest.box.fills && !textRest.box.strokes, 'anatomy/paint: `text` keys neither fill nor border — a ghost button is genuinely unpainted at rest');
-    ok(parts(skin('text', 'hover')).box.fills === figmaVarName(button.tokens['text.overlay.hover']), 'anatomy/paint: `text` hover paints its overlay too');
+    // #2324 (owner Q110): by default ("Text button hover: Text & icon only") a text button keys no wash on hover or
+    // pressed either; its label and icon carry the state. "Fill" is held in the #2324 block, through the materializer.
+    ok(!parts(skin('text', 'hover')).box.fills && !parts(skin('text', 'pressed')).box.fills,
+      'anatomy/paint: `text` keys no wash on hover or pressed by default (#2324) — the label and icon carry the state');
 
     // `disabled` is cross-cutting over INTENT (docs/20 §7) — one treatment, so the lookup switches
     // namespace rather than falling back within the interactive one. A disabled destructive button
@@ -21638,13 +21662,15 @@ arm: {
       // mutation strips all three to make the pressed row fall fully back to rest. Stripping the overlay
       // alone no longer collapses the row (the stepped ink still differs), which is the fix itself, not a
       // counter fault; the mutation targets every pressed-state `text` differentiator so the fall-back is
-      // total. All three keys are family-neutral (no intent prefix, #1223), so exactly three match.
+      // total. All three keys are family-neutral (no intent prefix, #1223), so exactly three matched — until #2324,
+      // which took the text appearance's wash out of the def (default "Text & icon only"): the ink keys are the two
+      // differentiators left, so exactly two match.
       const noPressedText = {
         ...button,
         tokens: Object.fromEntries(Object.entries(button.tokens).filter(([k]) => !/^text\.(overlay|label|icon)\.pressed$/.test(k))),
       } as ComponentDef;
-      ok(Object.keys(noPressedText.tokens).length === Object.keys(button.tokens).length - 3,
-        'figmaProperties: the mutation for the pressed-text counter actually applied — 3 keys removed');
+      ok(Object.keys(noPressedText.tokens).length === Object.keys(button.tokens).length - 2,
+        'figmaProperties: the mutation for the pressed-text counter actually applied — 2 keys removed');
       const mutated = countFor(noPressedText, withNames);
       ok(total(mutated) === 12 && mutated.get('pressed') === 12,
         `figmaProperties: the duplicate counter still COUNTS — stripping the pressed \`text\` differentiators (\`text.{overlay,label,icon}.pressed\`) brings back exactly the 12 rows #536 item 1 removed (${JSON.stringify([...mutated])})`);
@@ -26727,6 +26753,31 @@ arm: {
     'wendys solid-tint light inverse.interactive.destructive.subtle-fill.pressed text': 4.09,
     'wendys solid-tint light inverse.interactive.primary.subtle-fill.pressed glyph': 3.82,
     'wendys solid-tint light inverse.interactive.primary.subtle-fill.pressed text': 3.82,
+    // #2324 — Neutral's ink walks now (owner, recorded on #2324, 2026-10-08: "even if the interactive states don't
+    // meet contrast that's fine"), so its pressed ink on the inverse band's tinted pressed wash joins the held cells,
+    // the same shape as primary's and destructive's above: solid-tint, light, inverse, pressed, at 4.09-4.11:1.
+    'aurora solid-tint light inverse.interactive.neutral.subtle-fill.pressed glyph': 4.11,
+    'aurora solid-tint light inverse.interactive.neutral.subtle-fill.pressed text': 4.11,
+    'harbor solid-tint light inverse.interactive.neutral.subtle-fill.pressed glyph': 4.1,
+    'harbor solid-tint light inverse.interactive.neutral.subtle-fill.pressed text': 4.1,
+    'minimal solid-tint light inverse.interactive.neutral.subtle-fill.pressed glyph': 4.1,
+    'minimal solid-tint light inverse.interactive.neutral.subtle-fill.pressed text': 4.1,
+    'minimal-bp2 solid-tint light inverse.interactive.neutral.subtle-fill.pressed glyph': 4.1,
+    'minimal-bp2 solid-tint light inverse.interactive.neutral.subtle-fill.pressed text': 4.1,
+    'minimal-compact solid-tint light inverse.interactive.neutral.subtle-fill.pressed glyph': 4.1,
+    'minimal-compact solid-tint light inverse.interactive.neutral.subtle-fill.pressed text': 4.1,
+    'minimal-levers solid-tint light inverse.interactive.neutral.subtle-fill.pressed glyph': 4.1,
+    'minimal-levers solid-tint light inverse.interactive.neutral.subtle-fill.pressed text': 4.1,
+    'minimal-weight-swap solid-tint light inverse.interactive.neutral.subtle-fill.pressed glyph': 4.1,
+    'minimal-weight-swap solid-tint light inverse.interactive.neutral.subtle-fill.pressed text': 4.1,
+    'minimal-weights solid-tint light inverse.interactive.neutral.subtle-fill.pressed glyph': 4.1,
+    'minimal-weights solid-tint light inverse.interactive.neutral.subtle-fill.pressed text': 4.1,
+    'nb solid-tint light inverse.interactive.neutral.subtle-fill.pressed glyph': 4.09,
+    'nb solid-tint light inverse.interactive.neutral.subtle-fill.pressed text': 4.09,
+    'nb-master solid-tint light inverse.interactive.neutral.subtle-fill.pressed glyph': 4.09,
+    'nb-master solid-tint light inverse.interactive.neutral.subtle-fill.pressed text': 4.09,
+    'wendys solid-tint light inverse.interactive.neutral.subtle-fill.pressed glyph': 4.09,
+    'wendys solid-tint light inverse.interactive.neutral.subtle-fill.pressed text': 4.09,
   };
   // Own WCAG math — relative luminance and alpha compositing over sRGB hex, independent of `color.ts`.
   const rgb = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255);
@@ -26737,7 +26788,10 @@ arm: {
   const roleOf = (v: string) => v.replace(/^color\//, '').replace(/\//g, '.');
   const walk = (n: FigmaNodePlan): FigmaNodePlan[] => [n, ...n.children.flatMap(walk)];
   // `materializeForBrand`'s chain, in its order (apps/plugin/src/brand-def.ts).
-  const materialize = (def: ComponentDef, input: Partial<BrandInput>, t: Theme): ComponentDef =>
+  // #2324: the sweep runs under "Text button hover: Fill", where the text appearance takes the method's wash as it did
+  // before, so every cell and contrast arm below measures what it always did. The default ("Text & icon only") keys no
+  // wash, and the pass after this one holds that: no text member's hover or pressed box is filled at all.
+  const materialize = (def: ComponentDef, input: Partial<BrandInput>, t: Theme, textHover: 'text' | 'fill' = 'fill'): ComponentDef =>
     applyButtonLayout(
       applyOutlineInteraction(applyWeightIntent(applyControlShape(def, input.controlShape ?? 'rounded'), weightAvailability(t.typography)), t.outlineInteraction),
       {
@@ -26745,6 +26799,7 @@ arm: {
         content: input.buttonContentSize ?? DEFAULT_BUTTON_LAYOUT.content,
         minWidthMultiplier: input.buttonMinWidthMultiplier ?? DEFAULT_BUTTON_LAYOUT.minWidthMultiplier,
         labelWeight: input.buttonLabelWeight ?? DEFAULT_BUTTON_LAYOUT.labelWeight,
+        textHover,
       },
       sizeRefPx(t.dims.sizes));
 
@@ -26816,6 +26871,21 @@ arm: {
     .filter((k) => expectCells.get(k) !== cells.get(k)).map((k) => `${k} expected ${expectCells.get(k) ?? 0}, measured ${cells.get(k) ?? 0}`);
   ok(cellDrift.length === 0,
     `#1387 every family × surface × ink kind × state measured its full cell count — ${BUTTON_CELLS} per button-family label or glyph, ${ICON_BUTTON_GLYPH_CELLS} per icon-button glyph (${cellDrift.length}${cellDrift.length ? `: ${cellDrift.slice(0, 4).join('; ')}` : ''})`);
+  // #2324 — THE DEFAULT, "Text button hover: Text & icon only": every text member's hover and pressed box carries no
+  // fill, on every brand and every outline method, both surfaces. Counted, so a pass that looked at nothing fails.
+  const filledText: string[] = [];
+  let bareLooked = 0;
+  for (const { id, theme, input } of brands) for (const method of METHODS) {
+    const t = { ...theme, outlineInteraction: method };
+    for (const def of FAMILIES.filter((d) => !d.id.startsWith('icon-button'))) for (const p of figmaAnatomySet(materialize(def, input, t, 'text'))) {
+      const name = planComponentName(p);
+      if (!/appearance=text\b/.test(name) || !/state=(hover|pressed)/.test(name)) continue;
+      bareLooked++;
+      if (p.root.paints?.fills !== undefined) filledText.push(`${id} @ ${method}: ${def.id} ${name} fills ${p.root.paints.fills}`);
+    }
+  }
+  ok(bareLooked === brands.length * METHODS.length * 3 * 48 && filledText.length === 0,
+    `#2324 by default no text button is filled on hover or pressed — ${bareLooked} of ${brands.length * METHODS.length * 3 * 48} members looked at, ${filledText.length} filled${filledText.length ? `: ${filledText.slice(0, 3).join('; ')}` : ''}`);
   ok(wrongFill.length === 0,
     `#1387 every quiet button hover/pressed container fill is the method's emitted color variable on its own surface — overlay wash, tinted wash, or none — never a literal, a miss, or dropped (${wrongFill.length}${wrongFill.length ? `: ${wrongFill.slice(0, 4).join('; ')}` : ''})`);
   ok(lowHover.length === 0,
@@ -28353,6 +28423,73 @@ arm: {
   ok(dangling.length === 1 && dangling[0].includes("ends at 'xl'"), '#2265 renames lint: an entry renaming into a value the tree does not project is refused');
   ok(renamesDangling(after, [{ def: 'chip', kind: 'drop', issue: 0 }]).some((b) => b.includes('names no issue')), '#2265 renames lint: an entry without an issue is refused');
   ok(COMPONENT_RENAMES.every((r) => Number.isInteger(r.issue) && r.issue > 0), '#2265 COMPONENT_RENAMES: every entry names its issue');
+}
+
+// ------------------------------------------------------------------- #2324: the text-button underline
+// Owner decisions on #2324 (Q110 and the 2026-10-08 answers): a button at the text appearance underlines its label at
+// rest and in every state, disabled included; the underline is fixed; a text button is never filled at rest, and by
+// default ("Text button hover: Text & icon only") not on hover or pressed either, while "Fill" gives it the wash on
+// hover and pressed; and Neutral follows the same rule, its ink walking on hover and pressed. Button, Destructive and
+// Neutral alike. EXPECTED is typed here as literals (the style names, the six Figma states, the member counts), never
+// read from the def, the materializer or the emission it checks (docs/34).
+{
+  const FAMILY = [button, buttonDestructive, buttonNeutral];
+  const STATES = ['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'disabled'];   // the Figma set's six
+  const LINK: Record<string, string> = { small: 'label/sm/emphasis-link', medium: 'label/md/emphasis-link', large: 'label/lg/emphasis-link' };
+  const PLAIN: Record<string, string> = { small: 'label/sm/emphasis', medium: 'label/md/emphasis', large: 'label/lg/emphasis' };
+  const axis = (name: string, a: string) => new RegExp(`${a}=([\\w-]+)`).exec(name)?.[1] ?? '';
+  const labelOf = (p: AnatomyPlan) => planTextStyles(p.root).filter((x) => x.startsWith('label/'));
+  for (const def of FAMILY) {
+    const set = figmaAnatomySet(applyButtonLayout(def, DEFAULT_BUTTON_LAYOUT, () => 44));
+    // 1. PER STATE: every text member at that state binds its size's underlined label, and only that.
+    for (const st of STATES) {
+      const at = set.filter((p) => axis(planComponentName(p), 'appearance') === 'text' && axis(planComponentName(p), 'state') === st);
+      const bad = at.filter((p) => { const l = labelOf(p); return l.length !== 1 || l[0] !== LINK[axis(planComponentName(p), 'size')]; });
+      ok(at.length === 24 && bad.length === 0,
+        `#2324 ${def.id} text ${st}: every member's label is underlined, its size's link style (${at.length} of 24 members${bad.length ? `; ${bad.slice(0, 2).map((p) => `${planComponentName(p)} → ${labelOf(p).join(',')}`).join(' | ')}` : ''})`);
+    }
+    // 2. Filled and outline never are: their labels keep the plain style at every state.
+    const others = set.filter((p) => axis(planComponentName(p), 'appearance') !== 'text');
+    const underlined = others.filter((p) => { const l = labelOf(p); return l.length !== 1 || l[0] !== PLAIN[axis(planComponentName(p), 'size')]; });
+    ok(others.length === 288 && underlined.length === 0,
+      `#2324 ${def.id}: no filled or outline label is underlined (${others.length} of 288 members${underlined.length ? `; ${planComponentName(underlined[0])} → ${labelOf(underlined[0]).join(',')}` : ''})`);
+    // 3. The wash. Default: no text member is filled at any state. Fill: hover and pressed take outline's wash, and
+    //    rest (and every other state) still takes none.
+    const textFills = (layout: ButtonLayout) => figmaAnatomySet(applyButtonLayout(def, layout, () => 44))
+      .filter((p) => axis(planComponentName(p), 'appearance') === 'text' && axis(planComponentName(p), 'surface') === 'default')
+      .map((p) => [axis(planComponentName(p), 'state'), p.root.paints?.fills] as const);
+    const byDefault = textFills(DEFAULT_BUTTON_LAYOUT).filter(([, f]) => f !== undefined);
+    ok(byDefault.length === 0,
+      `#2324 ${def.id}: by default ("Text & icon only") no text member is filled at any state (${byDefault.length}${byDefault.length ? `: ${byDefault[0].join(' ')}` : ''})`);
+    const fam = def.id === 'button' ? 'primary' : def.id === 'button-destructive' ? 'destructive' : 'neutral';
+    const filled = textFills({ ...DEFAULT_BUTTON_LAYOUT, textHover: 'fill' });
+    const wrong = filled.filter(([st, f]) => (st === 'hover' || st === 'pressed') !== (f === `color/interactive/${fam}/overlay/${st}`));
+    ok(filled.length === 72 && wrong.length === 0,
+      `#2324 ${def.id}: under "Fill" the text appearance takes color/interactive/${fam}/overlay/{hover,pressed} on hover and pressed only, never at rest (${wrong.length}${wrong.length ? `: ${wrong.slice(0, 2).map((w) => w.join(' ')).join(' | ')}` : ''})`);
+  }
+  // 4. NEUTRAL WALKS (the owner: "one consistent rule across all buttons"): on every corpus brand and mode, its text
+  //    ink is three distinct colors at rest, hover and pressed, and so are its icon and border inks, as primary's are.
+  const flat: string[] = [];
+  let modesLooked = 0;
+  for (const { id, theme } of corpus()) for (const m of resolveAllModes(theme)) {
+    modesLooked++;
+    // Both grounds: the page and the inverse band, where the dark-band twin has its own derivation (`invColumn`).
+    for (const ground of ['', 'inverse.']) for (const kind of ['text', 'icon', 'border']) {
+      const hexes = ['rest', 'hover', 'pressed'].map((st) => m.roles[`${ground}interactive.neutral.${kind}.${st}`]?.hex);
+      if (hexes.some((h) => !h) || new Set(hexes).size !== 3) flat.push(`${id} ${m.mode} ${ground}${kind}: ${hexes.join(' ')}`);
+    }
+  }
+  ok(modesLooked >= 40 && flat.length === 0,
+    `#2324 Neutral's interactive text, icon and border inks step on hover and pressed in every corpus mode, on the page and on the inverse band (${modesLooked} modes${flat.length ? `; flat: ${flat.slice(0, 3).join(' | ')}` : ''})`);
+  // 5. THE EMISSION: every corpus brand's tree carries the three underlined label styles, whatever its
+  //    `typography.links` says, each underlined and otherwise its plain twin; and so does a brand that lists no links.
+  const labelLinks = (t: Theme) => t.typography.composites.filter((c) => c.group === 'label' && c.link).map((c) => c.path).sort();
+  const WANT_PATHS = ['label.lg.emphasis-link', 'label.md.emphasis-link', 'label.sm.emphasis-link'];
+  const missingLinks = corpus().filter(({ theme }) => !WANT_PATHS.every((x) => labelLinks(theme).includes(x))).map(({ id }) => id);
+  ok(corpus().length >= 8 && missingLinks.length === 0, `#2324 every corpus brand mints the three underlined label styles (${missingLinks.join(', ') || 'all'})`);
+  const noLinks = brandTheme({ ...MINIMAL_BRAND, typography: { links: [] } } as BrandInput);
+  ok(JSON.stringify(labelLinks(noLinks)) === JSON.stringify(WANT_PATHS),
+    `#2324 the underline is fixed: a brand with typography.links: [] still mints them (${labelLinks(noLinks).join(', ') || 'none'})`);
 }
 
 // ------------------------------------------------------------------- report

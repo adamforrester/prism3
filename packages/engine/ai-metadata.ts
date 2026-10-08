@@ -790,9 +790,14 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
     typography[`type.${c.path}`] = {
       $description: xs ? BODY_XS_DESCRIPTION : `${cap(d.desc)}${c.italic ? ' (italic variant)' : ''}${c.link ? ' (underlined link variant)' : ''}.`,
       meaning: `Type style — ${c.group}${c.variant ? ' ' + c.variant : ''} ${c.weightRole}${c.italic ? ' italic' : ''}${c.link ? ' link' : ''} (${c.sizePx}px, ${c.group} face${c.textCase !== 'none' ? `, ${c.textCase}` : ''})`,
-      when_to_use: c.link ? `${d.when} The underlined link variant — pair with a \`text.link.*\` color.` : d.when,
+      // #2324: a label's underlined variant is a text button's label, in the button's own ink, never a `text.link.*` link.
+      when_to_use: c.link && c.group === 'label'
+        ? 'The label of a button at the text appearance, at rest and in every state. The underline is fixed.'
+        : c.link ? `${d.when} The underlined link variant — pair with a \`text.link.*\` color.` : d.when,
       // AI/A-16: name the non-link twin as a path — `strong-link` pairs with `strong`, not the default.
-      avoid_when: c.link ? `Do not use for non-link text (use \`type.${c.path.replace(/-link$/, '')}\`).` : d.avoid,
+      avoid_when: c.link && c.group === 'label'
+        ? `Do not use for a filled or outline button's label (use \`type.${c.path.replace(/-link$/, '')}\`).`
+        : c.link ? `Do not use for non-link text (use \`type.${c.path.replace(/-link$/, '')}\`).` : d.avoid,
       resolves_to: resolves,
     };
   }

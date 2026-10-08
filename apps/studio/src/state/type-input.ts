@@ -30,7 +30,7 @@
  */
 import {
   brandTheme, typefaceSlug, derivedRungFor, shiftRung, REQUIRED_WEIGHT_ROLES, PER_MODE_SIZE_GROUPS,
-  LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TRACKING_SHIFT_KEYS, DISPLAY_VARIANTS, TYPE_LINK_DEFAULT,
+  LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TRACKING_SHIFT_KEYS, DISPLAY_VARIANTS, TYPE_LINK_DEFAULT, TYPE_LINK_ALWAYS,
 } from '@prism3/engine/theme';
 import type { BrandInput, Theme, TypographyInput, PerModeSizeGroup, FacePin } from '@prism3/engine/theme';
 import { brandState, theme, getPath, setPath, setModeLever } from './store';
@@ -134,13 +134,19 @@ export const setItalic = (g: string, on: boolean, current: ReadonlySet<string>):
   const next = toggled(g, on, current);
   setPath(brandState, 'typography.italics', next.length ? next : undefined);
 };
+/** Why a category's Link cell cannot be cleared, or undefined when it can (#2324): labels are always underlined,
+ *  because a text button underlines its label. DRAFT words, for the owner. */
+export const linkLock = (g: string): string | undefined =>
+  ((TYPE_LINK_ALWAYS as readonly string[]).includes(g) ? 'Always on for labels: a text button’s label is underlined.' : undefined);
 /** Whether `list` holds exactly the engine's default link categories, in any order. */
 const isLinkDefault = (list: readonly string[]): boolean =>
   list.length === TYPE_LINK_DEFAULT.length && TYPE_LINK_DEFAULT.every((x) => list.includes(x));
 /** The underlined-link variants. A list equal to the engine's default UNSETS `typography.links` (#2006); an
  *  emptied list is written `[]`, because the engine reads an absent `links` as the default, not as none. */
 export const setLink = (g: string, on: boolean, current: ReadonlySet<string>): void => {
-  const next = toggled(g, on, current);
+  // A category the engine always underlines (#2324: labels) is never written: it is not the brand's to set, and
+  // writing it would make a list that is otherwise the default read as a change.
+  const next = toggled(g, on, current).filter((x) => !(TYPE_LINK_ALWAYS as readonly string[]).includes(x));
   setPath(brandState, 'typography.links', isLinkDefault(next) ? undefined : next);
 };
 
