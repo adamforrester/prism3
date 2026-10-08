@@ -1,8 +1,9 @@
 /** The Style guide's radius sample (UI redesign S7, owner decision D18 B): a small sample of the brand's radius on
  *  Brand's Style guide, beside the type sample, so the brand's shape reads without opening Shape. A panel at the
- *  first container size (`radius.xl`) holding a field (`radius.sm`, as TextField binds it), a button (the radius
- *  Button binds under the brand's Control shape) and a tag (`radius.round`, as Tag binds it), each at the control
- *  height its definition uses in the previewed mode, each named by its token.
+ *  first container size (`radius.xl`) holding a field, a button and a checkbox (each the radius its definition binds
+ *  under the brand's Control shape: `radius.sm`, the shape's button rung and the checkbox's clamped corner, all three
+ *  `radius.hairline` under Hairline, #2361) and a tag (`radius.round`, as Tag binds it), each at the height its
+ *  definition uses in the previewed mode, each named by its token. The checkbox (#2361) is DRAFT, pending the owner.
  *
  *  RADIUS AND SHADOW (D18 B asks for one radius-and-shadow sample; S7 drew the radius, S9.2 added the shadow). The
  *  panel is the one element a shadow sits on: it takes `shadow.sm`, the step the preview spec's Card binds, resolved for
@@ -20,10 +21,11 @@ import type { ControlShape } from '@prism3/engine/scale';
 import { el, hook, palSection, specimen, tokenPillSpan, type SgCtx } from './kit';
 import { radiusIn, shapeRef, shapeSample } from './radius';
 import { heightsIn } from './control-heights';
+import { controlRadius } from '@prism3/engine/scale';
 
 /** The section's copy. DRAFT, pending the owner (S9.2 widened S7's draft, "Radius sample" / "The brand’s radius on a
- *  panel, a field, a button and a tag.", to cover the shadow). */
-export const RADIUS_SAMPLE = { title: 'Radius and shadow sample', desc: 'The brand’s radius on a panel, a field, a button and a tag, and its shadow on the panel.' };
+ *  panel, a field, a button and a tag.", to cover the shadow; #2361 added the checkbox). */
+export const RADIUS_SAMPLE = { title: 'Radius and shadow sample', desc: 'The brand’s radius on a panel, a field, a button, a checkbox and a tag, and its shadow on the panel.' };
 /** The shadow step the panel takes: the preview spec's Card binding (`packages/engine/preview.ts`). */
 export const SAMPLE_SHADOW = 'shadow.sm';
 
@@ -43,18 +45,24 @@ export const radiusSampleSection = (c: SgCtx, o: {
   panel.style.borderColor = c.paint(c.cur, `${pre}border.primary`);
   panel.style.borderRadius = `${px('radius.xl')}px`;
   if (o.shadow) panel.style.boxShadow = o.shadow;   // the resolved CSS for the previewed mode
-  const item = (ref: string, cls: string, height: number, role: string): HTMLElement => {
+  const item = (ref: string, cls: string, height: number, role: string, corner = px(ref)): HTMLElement => {
     const wrap = hook(el('div', 'shp-item'), role);
     wrap.dataset.ref = ref;
     // The controls on the panel take the page color, so they read against the panel's second tier.
     const s = shapeSample(c, cls, pre, 'background.primary');
     s.style.height = `${height}px`;
-    s.style.borderRadius = `${px(ref)}px`;
+    if (cls === 'shp-check') s.style.width = `${height}px`;
+    s.style.borderRadius = `${corner}px`;
     wrap.append(s, tokenPillSpan(ref));
     return wrap;
   };
   const row = el('div', 'shp-items');
-  row.append(item('radius.sm', 'shp-field', h('md'), 'radius-sample-field'), item(shapeRef(o.shape), 'shp-button', h('md'), 'radius-sample-button'),
+  // The checkbox's medium box, and its corner: `radius.hairline` under Hairline, else its own per-rung clamp
+  // (`control.size.md.radius`, the engine's `controlRadius` off this mode's `radius.sm` and box edge).
+  const check = (o.dims.controlsByMode?.[o.mode] ?? o.dims.controls).find((z) => z.name === 'md')?.height ?? 0;
+  const checkRef = shapeRef(o.shape, 'Checkbox.Control', 'control.size.md.radius');
+  row.append(item(shapeRef(o.shape, 'TextField', 'radius.sm'), 'shp-field', h('md'), 'radius-sample-field'), item(shapeRef(o.shape), 'shp-button', h('md'), 'radius-sample-button'),
+    item(checkRef, 'shp-check', check, 'radius-sample-checkbox', checkRef.startsWith('radius.') ? px(checkRef) : controlRadius(check, px('radius.sm'))),
     item('radius.round', 'shp-tag', h('sm'), 'radius-sample-tag'));
   const pills = el('div', 'shp-pills');
   pills.append(tokenPillSpan('radius.xl'), ...(o.shadow ? [hook(tokenPillSpan(SAMPLE_SHADOW), 'radius-sample-shadow')] : []));
