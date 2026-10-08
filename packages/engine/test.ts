@@ -14630,7 +14630,8 @@ arm: {
       // (`write-components.ts`, exercised by `test-roundtrip.ts`) only ever compares members that share a
       // group and the two QA misses cannot recur. The same assertion shape field-message's #1010 block makes.
       const ipGroups = planSetLayout(figmaAnatomySet(imgPlaceholder, {}), 'test').cells.map((c) => c.group).join(' | ');
-      ok(ipGroups === 'ratio=1:1 | ratio=4:3 | ratio=16:9',
+      // #2345: seven ratios, tallest to widest — typed here, not read from the def.
+      ok(ipGroups === 'ratio=2:3 | ratio=3:4 | ratio=4:5 | ratio=1:1 | ratio=4:3 | ratio=3:2 | ratio=16:9',
         `#1515 image-placeholder: the declared exemption reaches the engine's cohort key — every ratio is its own cohort, so the footprint read-back no longer compares 720×540 against 720×720 (got '${ipGroups}')`);
       // (c) MUTATION — DROP THE ASPECT LOCK. `ratio` still projects and still carries `footprintVaries`, but
       // with no `aspectRatio` deriving from it and no `presentWhen` gating it, nothing about the box varies,
@@ -14640,6 +14641,66 @@ arm: {
       const noLock = { ...imgPlaceholder, anatomy: { ...imgPlaceholder.anatomy, parts: { ...imgPlaceholder.anatomy.parts, frame: { ...imgPlaceholder.anatomy.parts.frame, aspectRatio: undefined } } } } as ComponentDef;
       ok(figmaPropertyErrors(noLock).some((e) => /footprintVaries: 'ratio' neither gates a part/.test(e) && /aspect-ratio lock/.test(e)),
         `#1515 MUTATION: with the frame's aspectRatio lock removed, 'ratio' moves the box for no reason and footprintVaries: ['ratio'] is refused BY NAME (got [${figmaPropertyErrors(noLock).filter((e) => /footprintVaries/.test(e)).join('; ') || 'NOTHING — the aspect-lock acceptance became a blanket'}])`);
+    }
+
+    // ---- #2345: seven ratios, a marker that scales with the frame, and a Marker boolean ----
+    // EXPECTED is typed here from the issue (owner direction 2026-10-07) — the ratio list, each ratio's
+    // number, the boolean's name and default — never read from the def or the projector. ACTUAL is the
+    // projected plan set, so a ratio dropped, a number mis-parsed, the placement or the boolean reverted
+    // each fails a line below by name.
+    {
+      const RATIOS: [string, number][] = [['2:3', 2 / 3], ['3:4', 3 / 4], ['4:5', 4 / 5], ['1:1', 1], ['4:3', 4 / 3], ['3:2', 3 / 2], ['16:9', 16 / 9]];
+      const ipSet = figmaAnatomySet(imgPlaceholder, {});
+      ok(ipSet.length === RATIOS.length, `#2345 image-placeholder projects ${RATIOS.length} members, one per ratio (got ${ipSet.length})`);
+      for (const [ratio, want] of RATIOS) {
+        const plan = ipSet.find((p) => p.coord.ratio === ratio);
+        const got = plan?.root.aspectRatio;
+        ok(got !== undefined && Math.abs(got - want) < 1e-9, `#2345 ratio=${ratio}: the frame locks to ${want.toFixed(4)} (got ${String(got)})`);
+      }
+      // THE MARKER — on every member, lifted, centered, constrained SCALE (the plan's `absoluteScale`).
+      const markers = ipSet.map((p) => [p.coord.ratio, (p.root.children ?? []).find((c) => c.name === 'marker')] as const);
+      const unscaled = markers.filter(([, m]) => !(m?.absoluteCenter === true && m?.absoluteScale === true)).map(([r]) => r);
+      ok(unscaled.length === 0, `#2345 the marker scales with the frame on every member: absoluteCenter + absoluteScale (missing on ${JSON.stringify(unscaled)})`);
+      // …and still sizes off its 180px literal at the nominal width, with no dimension bound (a bound size
+      // would hold against the SCALE constraint).
+      ok(markers.every(([, m]) => m?.glyphPx === 180 && Object.keys(m.bound).length === 0),
+        `#2345 the scaling marker keeps the 180px literal and binds no dimension (got ${JSON.stringify(markers.map(([r, m]) => [r, m?.glyphPx, m && Object.keys(m.bound)]))})`);
+      // THE MARKER BOOLEAN — declared on the set, default on, and wired to the marker on every member.
+      const props = planSetProperties(ipSet);
+      ok(JSON.stringify(props) === JSON.stringify([{ name: 'Marker', type: 'BOOLEAN', default: true }]),
+        `#2345 the set declares one property, the BOOLEAN 'Marker', default on (got ${JSON.stringify(props)})`);
+      const unwired = markers.filter(([, m]) => m?.visibleProp !== 'Marker' || m?.visible === false).map(([r]) => r);
+      ok(unwired.length === 0, `#2345 every member's marker is driven by 'Marker' and built visible (unwired or hidden on ${JSON.stringify(unwired)})`);
+      // The code side carries the same switch at the same default, so both surfaces start in the empty state.
+      const sm = imgPlaceholder.props.find((p) => p.name === 'showMarker');
+      ok(sm?.type === 'boolean' && sm.default === true, `#2345 the code prop showMarker is a boolean defaulting to true (got ${JSON.stringify(sm && { type: sm.type, default: sm.default })})`);
+
+      // THE REFUSAL ARMS `PartDef.scaleWithParent` adds, each pinned BY NAME (docs/34).
+      const frame = imgPlaceholder.anatomy.parts.frame;
+      const mk = (parts: Record<string, unknown>): ComponentDef => ({ ...imgPlaceholder, anatomy: { ...imgPlaceholder.anatomy, parts: { ...imgPlaceholder.anatomy.parts, ...parts } } }) as ComponentDef;
+      const errs = (d: ComponentDef): string[] => validateComponentDef(d).errors.filter((e) => /scaleWithParent/.test(e));
+      ok(errs(imgPlaceholder).length === 0, `#2345 premise: the shipped def validates clean on scaleWithParent (got ${JSON.stringify(errs(imgPlaceholder))})`);
+      // (a) the parent carries no aspect lock — SCALE on an unlocked frame stretches the square glyph.
+      const unlocked = errs(mk({ frame: { ...frame, aspectRatio: undefined, height: 'nominal-side' } }));
+      ok(unlocked.some((e) => /carries no 'aspectRatio' lock/.test(e)), `#2345 scaleWithParent under a parent with no aspect lock is refused BY NAME (got ${JSON.stringify(unlocked)})`);
+      // (b) no glyphPx — a bound size holds against the constraint.
+      const sized = errs(mk({ marker: { ...marker, glyphPx: undefined, size: 'nominal-side' } }));
+      ok(sized.some((e) => /declares 'scaleWithParent' but no 'glyphPx'/.test(e)), `#2345 scaleWithParent without glyphPx is refused BY NAME (got ${JSON.stringify(sized)})`);
+      // (c) beside a corner pin — two placements for one node.
+      const cornered = errs(mk({ marker: { ...marker, corner: 'bottom-right', inset: 'nominal-side' } }));
+      ok(cornered.some((e) => /BOTH 'scaleWithParent' and 'corner'/.test(e)), `#2345 scaleWithParent beside corner is refused BY NAME (got ${JSON.stringify(cornered)})`);
+      // (d) on a non-vector — the projector reads it only on a vector.
+      const onBox = errs(mk({ frame: { ...frame, scaleWithParent: true } }));
+      ok(onBox.some((e) => /kind 'box' but declares 'scaleWithParent'/.test(e)), `#2345 scaleWithParent on a box is refused BY NAME (got ${JSON.stringify(onBox)})`);
+      // (e) under a parent with no auto-layout — Figma ignores layoutPositioning there, silently.
+      const noLayout = errs(mk({ frame: { ...frame, layout: undefined } }));
+      ok(noLayout.some((e) => /which is not an auto-layout 'box'/.test(e)), `#2345 scaleWithParent under a parent with no auto-layout is refused BY NAME (got ${JSON.stringify(noLayout)})`);
+      // (f) `false` authored — a switch that is on or absent.
+      const off = errs(mk({ marker: { ...marker, scaleWithParent: false } }));
+      ok(off.some((e) => /declares scaleWithParent false/.test(e)), `#2345 scaleWithParent: false is refused BY NAME (got ${JSON.stringify(off)})`);
+      // (g) on the ROOT — no parent to scale with.
+      const rootGlyph = { ...(rootGlyphDef as unknown as ComponentDef), anatomy: { root: 'g', parts: { g: { kind: 'vector' as const, role: 'target' as const, glyph: 'image', glyphPx: 180, scaleWithParent: true } } } } as unknown as ComponentDef;
+      ok(errs(rootGlyph).some((e) => /is the anatomy ROOT and declares 'scaleWithParent'/.test(e)), `#2345 scaleWithParent on the ROOT is refused BY NAME (got ${JSON.stringify(errs(rootGlyph))})`);
     }
 
     // ---- #1424: the labelled ROW wraps a long label instead of overflowing ----
@@ -18164,6 +18225,43 @@ arm: {
       const taRun = await runPayload(planToPluginJs(ta), taOpts);
       ok(!taRun.misses.some((m) => /minHeight/.test(m)),
         `anatomy/textarea paste: at 16px × 165% (79.2px, stored single-precision) the reserved-rows floor reads back as KEPT (${JSON.stringify(taRun.misses.filter((m) => /minHeight|minLines/.test(m)))})`);
+    }
+
+    // ---- #2345: the image-placeholder marker is built OUT OF FLOW, CENTERED and SCALE/SCALE, on BOTH legs ----
+    // The plan-level arm proves the plan says so; this proves each EXECUTOR writes it. The expected
+    // constraints are the literal 'SCALE' typed here, and the centering is measured against the PARENT'S
+    // OWN live box as the stub reports it — not against a number either executor computed.
+    {
+      const ipDef = componentDefs.find((d) => d.id === 'image-placeholder')!;
+      const ip = figmaAnatomySet(ipDef, {}).find((q) => q.coord.ratio === '4:3')!;
+      const ipOpts: StubOpts = { vars: [...planBoundVars(ip.root), ...planPaintVars(ip.root)], styles: planTextStyles(ip.root), comps: [] };
+      const markerFacts = (page: StubPage): string => {
+        // The paste payload puts the member on the page; the plugin executor puts it inside its set.
+        const all = page.children.flatMap((c) => [c, ...(((c as Record<string, unknown>).children as Record<string, unknown>[] | undefined) ?? [])]);
+        const root = all.find((c) => c.name === planComponentName(ip)) as Record<string, unknown> | undefined;
+        const kid = ((root?.children as Record<string, unknown>[] | undefined) ?? []).find((c) => c.name === 'marker');
+        if (!root || !kid) return `no ${root ? 'marker' : 'member'} on the page`;
+        const c = kid.constraints as { horizontal?: string; vertical?: string } | null;
+        const cx = ((root.width as number) - (kid.width as number)) / 2, cy = ((root.height as number) - (kid.height as number)) / 2;
+        const centered = Math.abs((kid.x as number) - cx) < 0.01 && Math.abs((kid.y as number) - cy) < 0.01;
+        return `${String(kid.layoutPositioning)} ${c?.horizontal}/${c?.vertical} ${centered ? 'centered' : `off-center (${String(kid.x)},${String(kid.y)} want ${cx},${cy})`}`;
+      };
+      const WANT_MARKER = 'ABSOLUTE SCALE/SCALE centered';
+      const pastePage: StubPage = { children: [] };
+      const pasted = await runPayload(planToPluginJs(ip), { ...ipOpts, page: pastePage });
+      ok(markerFacts(pastePage) === WANT_MARKER && pasted.misses.length === 0,
+        `#2345 paste leg: the image-placeholder marker is ${WANT_MARKER} (got '${markerFacts(pastePage)}'; misses ${JSON.stringify(pasted.misses)})`);
+      const plugPage: StubPage = { children: [] };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the stub satisfies ComponentsApi
+      const plugged = await applyComponentPlan([ip], makeFigmaStub({ ...ipOpts, page: plugPage }) as any);
+      ok(markerFacts(plugPage) === WANT_MARKER && plugged.misses.length === 0,
+        `#2345 plugin leg: the image-placeholder marker is ${WANT_MARKER} (got '${markerFacts(plugPage)}'; misses ${JSON.stringify(plugged.misses)})`);
+      // POSITIVE CONTROL on the constraint's other branch: an overlay centered WITHOUT `absoluteScale` (the
+      // spinner's shape) still takes CENTER/CENTER, so the switch is the field and not an unconditional SCALE.
+      const centerOnly: AnatomyPlan = { ...ip, root: { ...ip.root, children: ip.root.children.map((c) => (c.name === 'marker' ? { ...c, absoluteScale: undefined } : c)) } };
+      const ctlPage: StubPage = { children: [] };
+      await runPayload(planToPluginJs(centerOnly), { ...ipOpts, page: ctlPage });
+      ok(markerFacts(ctlPage) === 'ABSOLUTE CENTER/CENTER centered', `#2345 control: without absoluteScale the centered child keeps CENTER/CENTER (got '${markerFacts(ctlPage)}')`);
     }
 
     // ---- #1302: the stub's `textAlignVertical` refusal is LIVE ------------------------------------------

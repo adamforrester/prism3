@@ -316,6 +316,12 @@ export type FigmaNodePlan = {
    *  measure and the executor does the arithmetic against the LIVE box, the same division of labor
    *  `absoluteInset` uses for a value Figma will not let us bind. */
   absoluteCenterOn?: string;
+  /** With `absoluteCenter`: constrain the centered child `SCALE`/`SCALE` instead of `CENTER`/`CENTER`, so it
+   *  keeps its FRACTION of the parent when an instance is resized rather than its size (#2345,
+   *  `PartDef.scaleWithParent`). Uniform only because the parent is aspect-locked, which the schema
+   *  requires. A boolean like `absoluteCenter`, for its reason: nothing brand-varying to carry. Carried ONLY
+   *  on such a child, so every other plan is byte-identical. */
+  absoluteScale?: boolean;
   /** For a `GLYPH` pinned into its parent's bottom-right corner (`PartDef.corner`, textarea's resize grip):
    *  taken out of the auto-layout flow and placed `inset` in from the corner's two edges, where this is the
    *  inset's variable NAME. Resolved to a number at paste, never bound — `x`/`y` take no variable, the same
@@ -1826,6 +1832,10 @@ export const figmaAnatomyPlan = (
       // THE CORNER PIN (textarea's resize grip): a glyph lifted out of the flow into its parent's corner.
       // Only on a pinned vector, so every other plan is byte-identical; the schema requires the inset.
       ...(p.kind === 'vector' && p.corner && p.inset ? { cornerInset: varOf(p.inset) } : {}),
+      // A GLYPH THAT SCALES WITH ITS ASPECT-LOCKED PARENT (#2345, `PartDef.scaleWithParent`): lifted and
+      // centered by the overlay's own path, then constrained SCALE/SCALE. Only on such a vector, so every
+      // other plan is byte-identical.
+      ...(p.kind === 'vector' && p.scaleWithParent ? { absoluteCenter: true, absoluteScale: true } : {}),
       // The out-of-flow half of the #612 fix, on the two nodes it concerns: the overlay is centered
       // absolutely, and the part it covers holds its cell at zero opacity. Both are keyed off
       // `overlaidPart`, so when the overlay lands on a real cell (`replaces` present) neither appears
@@ -3833,8 +3843,9 @@ ${PIN_LIFT_SLOT}
     if(on){kid.x=on.x+(on.width-kid.width)/2;kid.y=on.y+(on.height-kid.height)/2;}
     else{kid.x=(node.width-kid.width)/2;kid.y=(node.height-kid.height)/2;}
     // Centered on both axes so the spinner stays over the label's middle when a designer resizes the
-    // variant. STRETCH would distort it; CENTER is the constraint that matches the geometry.
-    kid.constraints={horizontal:'CENTER',vertical:'CENTER'};
+    // variant. STRETCH would distort it; CENTER is the constraint that matches the geometry. A glyph that
+    // scales with its aspect-locked parent (#2345, \`absoluteScale\`) takes SCALE instead, keeping its fraction.
+    const k=c.absoluteScale?'SCALE':'CENTER';kid.constraints={horizontal:k,vertical:k};
     // READ BACK, same discipline as the ring's. A centered child that quietly stayed in the flow ADDS a
     // cell — which is the precise defect this whole mechanism exists to prevent, so it must not fail
     // silently: the button would grow by the spinner's cell exactly as it did before #612.

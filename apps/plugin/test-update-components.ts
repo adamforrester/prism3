@@ -725,7 +725,7 @@ section('differ — a member that differs from its plan is reported by part and 
   const b = await build(IMG);
   for (const m of membersOf(b.set)) (m.setSharedPluginData as (ns: string, k: string, v: string) => void)(NS, BASELINE_KEY, '');
   const cap = (await captureBaselines(b.shim, [{ def: IMG, plans: b.plans }])).sets[0];
-  ok(cap.recorded === 3 && cap.skipped.length === 0, `differ/image-placeholder: a fresh build's 3 members are recorded, none read as differing (${cap.recorded}, ${JSON.stringify(cap.skipped).slice(0, 200)})`);
+  ok(cap.recorded === 7 && cap.skipped.length === 0, `differ/image-placeholder: a fresh build's 7 members (#2345) are recorded, none read as differing (${cap.recorded}, ${JSON.stringify(cap.skipped).slice(0, 200)})`);
 }
 {
   const b = await build(TAG);

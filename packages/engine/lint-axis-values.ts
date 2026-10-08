@@ -573,7 +573,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'ratio',
-    values: ['1:1', '4:3', '16:9'],
+    values: ['2:3', '3:4', '4:5', '1:1', '4:3', '3:2', '16:9'],
     defs: ['image-placeholder'],
     relation: 'sole',
     reason:
@@ -583,7 +583,8 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + '`W:H`: the lock is derived from the value rather than mapped by a second per-variant table. '
       + 'Distinct from `size` (a scale rung on a named ladder) and `width` (a single main-axis length) — '
       + 'this is a width-to-height proportion that holds while the actual dimensions flex, argued in '
-      + '`VARIANT_AXES`. THREE values, the three ratios the owner settled on.',
+      + '`VARIANT_AXES`. SEVEN values: the three the owner settled on in #1316, plus the portrait 2:3, 3:4 '
+      + 'and 4:5 and the landscape 3:2 a measured commerce file needed (#2345), ordered tallest to widest.',
   },
 ];
 

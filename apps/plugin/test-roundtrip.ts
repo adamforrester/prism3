@@ -244,7 +244,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 // This is the "aspect-lock read-back" the verify checklist places in test:roundtrip. It builds the def
 // through the shared shim exactly as the corpus loop does, then reads each member's frame back.
 {
-  const CONTRACT: Record<string, number> = { '1:1': 1, '4:3': 4 / 3, '16:9': 16 / 9 };
+  // #2345 added the portrait 2:3, 3:4, 4:5 and the landscape 3:2 (owner direction 2026-10-07).
+  const CONTRACT: Record<string, number> = { '2:3': 2 / 3, '3:4': 3 / 4, '4:5': 4 / 5, '1:1': 1, '4:3': 4 / 3, '3:2': 3 / 2, '16:9': 16 / 9 };
   const def = componentDefs.find((d) => d.id === 'image-placeholder');
   ok(!!def, 'aspect-lock: the image-placeholder def is registered and projects');
   if (def) {
