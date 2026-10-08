@@ -47,6 +47,10 @@
  *                  without a record, never read as having no hand edits; `choices.noBaseline: 'skip'` leaves it.
  *                  Mutations: the default skips → `unrecorded/updated`; not listed → `unrecorded/updated`,
  *                  `unrecorded/words`.
+ *   unrecorded/all, unrecorded/levers  a set whose members ALL lack a record (so none reads `update`), its plan moved
+ *                  (a gap; Button's two levers), is updated whole and reads current after; no ✓ verdict while a
+ *                  previewed difference is left (#2364). Mutation: `noBaseline` out of the apply's nothing-to-do count →
+ *                  `unrecorded/all`, `unrecorded/levers`; with the guard gone too → `unrecorded/honest`.
  *   apply/blocked  a set the dry run refuses (two members on one coordinate) is refused by the apply too: the
  *                  dry run's reason returned, every member byte-identical, no version saved (#2328 review). Mutation:
  *                  the apply's own blocker check dropped from `preflight` → `apply/blocked`.
@@ -67,9 +71,10 @@ import { componentDefs } from '@prism3/engine/components/index';
 import { applyComponentPlan, STAMP_KEY } from './src/write-components';
 import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
+import { materializeForBrand } from './src/brand-def';
 import { BASELINE_KEY } from './src/member-baseline';
 import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
-import { previewUpdate, type UpdateHost, type UpdateTarget } from './src/update-plan';
+import { previewUpdate, previewVerdict, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { applyUpdate, applyVerdict, previewHashOf, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
 
 let failed = 0;
@@ -97,11 +102,11 @@ const planChild = (n: PlanNode, name: string): PlanNode => n.children!.find((c) 
 type World = { host: ApplyHost; api: Record<string, any>; page: Page; set: () => Node; plans: AnatomyPlan[] };
 /** A fresh file holding one set, built by the executor, with identities on. `extraVars` are variables the file
  *  holds beyond the plans', for a later plan to bind. */
-const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[]; extraComps?: string[]; unavailableFonts?: { family: string; style: string }[]; refuseVersion?: boolean; allowMisses?: string[] } = {}): Promise<World> => {
+const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[]; extraStyles?: string[]; extraComps?: string[]; unavailableFonts?: { family: string; style: string }[]; refuseVersion?: boolean; allowMisses?: string[] } = {}): Promise<World> => {
   const page: Page = { children: [] };
   const api = makeShim({
     vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0', ...(o.extraVars ?? [])])],
-    styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
+    styles: [...new Set([...plans.flatMap((p) => planTextStyles(p.root)), ...(o.extraStyles ?? [])])],
     effects: [...new Set(plans.flatMap((p) => planEffectStyles(p.root)))],
     comps: [...new Set([SWAP_TARGET, 'focus-ring', ...plans.flatMap((p) => planComps(p.root)), ...(o.extraComps ?? [])])],
     page,
@@ -508,6 +513,60 @@ section('unrecorded — a member with no as-built record is updated and named, n
   ok((childNamed(m, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === await varIdOf(w, 'space/999'), 'unrecorded/written: its content gap is the plan\'s');
   const post = (await previewUpdate(w.host, [{ def: TAG, plans: moveGap(w.plans) }])).sets[0];
   ok(post.counts.current === 45 && post.counts.noBaseline === 0, `unrecorded/recorded: it now has a record, and reads current (${JSON.stringify(post.counts)})`);
+}
+
+{
+  // #2364, the NB master's first live apply: EVERY member of the set was out of date when the record was captured,
+  // so none was recorded, and the plan then moved (a lever). Each member reads `noBaseline`, none `update`. The dry
+  // run said "Would change"; the apply called the set already up to date and wrote nothing, and the next dry run
+  // read the same differences. Mutation: `noBaseline` left out of the apply's "nothing to do" count →
+  // `unrecorded/all`, `unrecorded/all written`, `unrecorded/all converges`, `unrecorded/honest`.
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  for (const m of membersOf(w.set())) (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, '');
+  const next = moveGap(w.plans);
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: next }]);
+  const c0 = pre.sets[0]?.counts;
+  ok(c0?.noBaseline === 45 && c0.update === 0 && previewVerdict(pre).headline === 'Would change 1 of 1',
+    `premise: every member reads no as-built record, none "to update", and the dry run says the set would change (${JSON.stringify(c0)}; ${previewVerdict(pre).headline})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre));
+  const o = res.outcomes[0];
+  const v = applyVerdict(res);
+  ok(o?.updated.length === 45 && o.unrecorded.length === 45,
+    `unrecorded/all: every member the dry run listed is updated, each named as without a record (${o?.updated.length} updated, ${o?.unrecorded.length} unrecorded; ${v.headline})`);
+  const gap = await varIdOf(w, 'space/999');
+  const written = membersOf(w.set()).filter((m) => (childNamed(m, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === gap).length;
+  ok(written === 45, `unrecorded/all written: every member's content gap is the plan's (${written} of 45)`);
+  const again = await previewUpdate(w.host, [{ def: TAG, plans: next }]);
+  ok(again.sets[0]?.counts.current === 45 && previewVerdict(again).headline === '✓ All sets up to date',
+    `unrecorded/all converges: the next dry run reads every member current (${JSON.stringify(again.sets[0]?.counts)}; ${previewVerdict(again).headline})`);
+  // The verdict says ✓ only when the next dry run finds nothing left of what this one previewed.
+  const left = (again.sets[0]?.changes ?? []).filter((x) => x.field !== 'stamp').length;
+  ok(!v.ok || left === 0, `unrecorded/honest: no ✓ verdict while a previewed difference is left in the file (${v.headline}; ${left} left)`);
+}
+
+{
+  // #2364 on the NB master's own fields: Button, every record cleared, then the two levers that moved there. The plan
+  // changes each member's minimum width and its label's text style; the update must write both, every member.
+  const def = componentDefs.find((d) => d.id === 'button')!;
+  const was = figmaAnatomySet(materializeForBrand(def, null), { swapTarget: SWAP_TARGET });
+  const next = figmaAnatomySet(materializeForBrand(def, { buttonLabelWeight: 'default', buttonMinWidthMultiplier: 1 } as never), { swapTarget: SWAP_TARGET });
+  const w = await world('button', was, {
+    extraVars: next.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
+    extraStyles: next.flatMap((p) => planTextStyles(p.root)),
+    extraComps: next.flatMap((p) => planComps(p.root)),
+  });
+  for (const m of membersOf(w.set())) (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, '');
+  const pre = await previewUpdate(w.host, [{ def: 'button', plans: next }]);
+  const fields = new Set((pre.sets[0]?.changes ?? []).map((c) => c.field));
+  ok(pre.sets[0]?.counts.update === 0 && fields.has('minWidth') && fields.has('textStyle') && previewVerdict(pre).headline === 'Would change 1 of 1',
+    `premise: no member reads "to update", and the dry run names minWidth and textStyle (${[...fields].join(', ')}; ${previewVerdict(pre).headline})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: 'button', plans: next }], previewHashOf(pre));
+  const members = membersOf(w.set()).length;
+  ok(res.outcomes[0]?.updated.length === members && applyVerdict(res).ok,
+    `unrecorded/levers: every button member is updated (${res.outcomes[0]?.updated.length} of ${members}; ${applyVerdict(res).headline})`);
+  const again = await previewUpdate(w.host, [{ def: 'button', plans: next }]);
+  ok(again.sets[0]?.counts.current === members && previewVerdict(again).headline === '✓ All sets up to date',
+    `unrecorded/levers converge: the next dry run reads every member current, minWidth and textStyle included (${JSON.stringify(again.sets[0]?.changes.map((c) => c.field))}; ${previewVerdict(again).headline})`);
 }
 
 /* ── swap ────────────────────────────────────────────────────────────────────────────────────────────── */
