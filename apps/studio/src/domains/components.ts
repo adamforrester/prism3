@@ -90,7 +90,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     const go = hook(h('button', 'p3-btn p3-btn-ghost p3-deplink'), 'components-density-link');
     go.type = 'button';
     go.append(h('span', 'p3-btn-label', COMPONENTS_COPY.densityLink), glyph('chevr'));
-    go.onclick = () => setPage(pageOfTab('shape', host()));
+    go.onclick = () => setPage(pageOfTab('shape'));
     const ctl = h('div', 'p3-lever-ctl');
     ctl.append(subLine(COMPONENTS_COPY.density), go);
     box.append(head, ctl);
