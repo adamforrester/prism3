@@ -1,7 +1,7 @@
 ---
 engine: minor
 ---
-{{ENGINE_VERSION}}: `controlShape: hairline` puts fields and the checkbox on the 1px corner too (#2361,
+`controlShape: hairline` puts fields and the checkbox on the 1px corner too (#2361,
 owner 2026-10-08, "1px corners everywhere", consistency first). `applyControlShape` now also repoints, under
 `hairline` only, text-field, select and textarea's field corner (`radius.sm`) and checkbox-control's per-rung
 clamped corner (`control.size.<rung>.radius`) to `radius.hairline`. The defs are named by id in
