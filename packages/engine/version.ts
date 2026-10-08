@@ -2744,6 +2744,37 @@
 /**
  * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
  *
+ * 0.234.0 — folded 2026-10-08 from 3 change notes, newest merge first.
+ *
+ * [engine-2324-text-button-underline · minor · 4f70b47e] #2324 (owner Q110 and the 2026-10-08 answers): a button at the text appearance underlines its label, at rest and in
+ * every state, disabled included, on Button, Destructive and Neutral. The underline is fixed. Every brand now mints
+ * underlined label styles, `type.label.{sm,md,lg}.emphasis-link` (and `default-link` under `buttonLabelWeight: default`),
+ * whatever `typography.links` lists; they describe themselves as a text button's label, not a `text.link.*` link.
+ * Text-appearance buttons bind them through a per-appearance label key, `size.<size>.<appearance>.type`. A text button
+ * is never filled at rest, and by default not on hover or pressed either: a new Button option, `buttonTextHover`
+ * ("Text button hover": `text`, "Text & icon only", the default; or `fill`, "Fill"), gives it the outline appearance's
+ * overlay wash on hover and pressed. Neutral's interactive ink now walks like the other families (rest unchanged; hover
+ * and pressed reflect toward the middle of the ramp, 950 to 850 and 750 in light; 025 to 100 and 200 on the inverse
+ * band), so its text and outline buttons change on hover and pressed, on both grounds; its border follows. The token contract gains the three label link paths
+ * (CONTRACT 14.4.0 to 14.5.0).
+ *
+ * [studio-2322-heading-type · minor · a2bfc7cb] #2322: three tracking roles join the type ramp, between and beyond the six: tightest (-4%), snugger (-1.5%, between
+ * tight and snug) and open (+1%, between normal and wide). Their steps were already on the locked ladder; every brand
+ * now emits them, and the token contract adds the six paths (CONTRACT_VERSION 14.4.0). The six roles before them keep
+ * their names and values, and no composite binds a new role, so no brand's type moves. A tracking nudge still steps
+ * along the six (TRACKING_SHIFT_KEYS). A new role a brand does not set takes its default, clamped between its two
+ * resolved neighbors, so a brand that re-anchored a neighbor past it still builds.
+ *
+ * [engine-2266-body-xs · minor · 30189907] #2266 PR 1 (owner Q78 A and Q101 A): a new body rung, `type.body.xs`. It is 12px, on body's line height (normal,
+ * 1.5, an 18px box), tracking (normal, 0) and family role, with the same weight and variant set each brand's
+ * body.sm carries, italics included where a brand ships them. Every body.xs composite's DTCG $description and its
+ * .ai.json $description read, verbatim: "Smallest body text, 12px. Secondary text and metadata only, never running
+ * text." The .ai.json when_to_use and avoid_when say when to use it and when to use caption.lg (also 12px)
+ * instead. Its Figma text styles say "for secondary text and metadata only" where body's say "for running text".
+ * Every brand gains four (prism3 eight) composites and text styles. No existing token moves. The token contract
+ * gains type.body.xs.default and default-link (CONTRACT 14.2.0 to 14.3.0). No component binds body.xs yet: that is
+ * PR 2.
+ *
  * 0.233.0 — folded 2026-10-07 from 4 change notes, newest merge first.
  *
  * [engine-2241-hueless-gray · minor · 12b57a36] #2241: a pure gray has no hue. Below a chroma of 1e-4 (ACHROMATIC_C, color.ts) the OKLCH converter used to
@@ -4755,7 +4786,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.233.0';
+export const ENGINE_VERSION = '0.234.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
