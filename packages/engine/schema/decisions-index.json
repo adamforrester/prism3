@@ -278,6 +278,13 @@
       "title": "the field label's name hugs its text and wraps at a max width, so the required marker follows it",
       "doc": "docs/28-component-anatomy-schema.md",
       "section": "5.5"
+    },
+    {
+      "date": "2026-10-06",
+      "issue": null,
+      "title": "never detach a Prism3 component to match a design; place it attached and file the differences",
+      "doc": "docs/46-never-detach.md",
+      "section": null
     }
   ]
 }

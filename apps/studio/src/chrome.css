@@ -220,6 +220,12 @@
   animation: p3-spin-show var(--p3-dur-fast) linear calc(var(--p3-dur-fast) * 3) both, p3-spin var(--p3-dur-spin) linear infinite;
 }
 .p3-btn-primary .p3-spin::before { border-top-color: var(--p3-inv-text); }
+/* A control's spinner is made with its label, at mount, and held invisible until the control turns busy, and
+   an invisible element still runs its animations: the wait and the fade would be spent unseen, long before
+   any write (#2332). So it holds no animation until then, and they start when the control turns busy. A
+   spinner made when it is shown (a style-guide table being drawn) is not in a control and starts at once. */
+:is(.p3-btn, .p3-menu-item):not([aria-busy="true"]) .p3-spin,
+:is(.p3-btn, .p3-menu-item):not([aria-busy="true"]) .p3-spin::before { animation: none; }
 @media (prefers-reduced-motion: reduce) { .p3-spin::before { animation-duration: var(--p3-dur-fast), var(--p3-dur-spin-reduced); } }
 @keyframes p3-spin-hide { to { color: transparent; } }
 @keyframes p3-spin-show { to { opacity: 1; } }
