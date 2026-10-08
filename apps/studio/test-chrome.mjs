@@ -174,8 +174,10 @@
  *   · MOVED PAGES: `NEW_PAGES` (literal) beside `LEGACY_PAGES`; every place is in exactly one, and a moved place
  *     renders the two panes (one at 380), never the legacy frame.
  *   · SPECIMEN GROUND (plan §6.1, §9.1): every specimen root in the Palettes preview sits on the brand's
- *     `background.primary` for the previewed mode, both hosts, both chrome themes, every mode. Oracle: the
- *     committed emission, its alias chain resolved here in Node; the rendered ground is composited.
+ *     `background.primary`, both hosts, both chrome themes. Palettes always shows Light (PM1 B, #2321): it is
+ *     entered from every mode, and every strip sits on Light's ground, the opacity scale inked in Light's
+ *     `text.primary`. Oracle: the committed emission, its alias chain resolved here in Node; the rendered ground is
+ *     composited.
  *   · CONTROLS REPRESENTED: each manifest key v6 homes on Palettes (`PALETTES_LEVERS`, literal, with its tier
  *     and hook) renders its `lever-*` hook exactly once, the advanced ones only behind Show advanced; a lever
  *     block that is none of them fails as unclassified. The new controls are classified (`CONTROL_KINDS`).
@@ -1298,7 +1300,9 @@ const holdsOff = async (page, i) => {
       place: document.querySelector('[data-p3="frame"]')?.dataset.place ?? null, open });
   }, x);
   const before = await read(sel);
-  const focused = await page.evaluate((x) => { const n = document.querySelector(x); document.activeElement?.blur?.(); n?.focus(); return !!n && document.activeElement === n; }, sel);
+  // The focus this found is put back at the end (#2321): the probe reads the control, it must not move the page under
+  // test. A held control measured while a menu is open (the mode control on Palettes) otherwise left focus on nothing.
+  const focused = await page.evaluate((x) => { const n = document.querySelector(x); window.__coffPrev = document.activeElement; document.activeElement?.blur?.(); n?.focus(); return !!n && document.activeElement === n; }, sel);
   await page.locator(sel).pressSequentially('7', { timeout: 1000 }).catch(() => {});
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   const after = await read(sel);
@@ -1309,6 +1313,7 @@ const holdsOff = async (page, i) => {
   await page.evaluate((x) => { const n = document.querySelector(x); if (n) HTMLElement.prototype.click.call(n); }, sel);
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   const w1 = await world(sel);
+  await page.evaluate(() => { const p = window.__coffPrev; delete window.__coffPrev; if (p && p !== document.body && p.isConnected) p.focus?.(); });
   return { ax, inert, focused, changed: JSON.stringify(before) !== JSON.stringify(after), clicked: w0 !== w1 };
 };
 /** THE EXEMPTION'S CANARY (F1 A, X4 A, #2174): beside the real disabled control `sel`, plant a copy that is NOT
@@ -2515,7 +2520,7 @@ for (const host of ['web', 'figma']) {
 }
 
 // =============================================================================================
-// 11. S2: specimens sit on the brand's page color for the previewed mode, never on the chrome's card
+// 11. S2: specimens sit on the brand's page color for the previewed mode (Palettes: always Light, #2321), never on the chrome's card
 // =============================================================================================
 console.log(`\nSpecimen grounds — Color › Palettes and Brand (plan §6.1, §9.1)\n${'='.repeat(78)}`);
 /** THE ORACLE, resolved in Node from the engine's committed emission, never from the page: a mode's role (under
@@ -3227,7 +3232,7 @@ console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
   // The mode does not move it. On Palettes the mode control is held (PM1 B, #2321): a click on Dark changes neither
   // the mode nor the preview's scroll.
   const before = await toBottom();
-  await page.locator('[data-p3="mode-option"][data-mode="dark"]').click({ force: true });
+  await page.locator('[data-p3="mode-option"][data-mode="dark"]').dispatchEvent('click');
   const held = await page.evaluate(() => document.querySelector('[data-p3="mode-option"][aria-checked="true"]')?.dataset.mode);
   ok((await state('primary')).top === before && held === 'light', `Q4: a click on the held mode control changes neither the mode nor the preview's scroll (mode ${held}, scrollTop ${(await state('primary')).top}, was ${before})`);
   if (SHOTS) await page.screenshot({ path: join(SHOTS, 's2-q4-after-edit.png') });

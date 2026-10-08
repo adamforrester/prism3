@@ -75,7 +75,8 @@ export const modeControl = (cleanups: (() => void)[]): ModeControl => {
   const selWrap = h('div', 'p3-selwrap p3-modes-select');
   const select = hook(h('select', 'p3-select'), 'mode-select');
   select.setAttribute('aria-label', 'Preview mode');
-  select.onchange = () => { if (currentMode !== select.value) setCurrentMode(select.value as typeof currentMode); };
+  // A held control writes nothing, whatever reaches its handler (a scripted event reaches a disabled one; #2321).
+  select.onchange = () => { if (!select.disabled && currentMode !== select.value) setCurrentMode(select.value as typeof currentMode); };
   selWrap.append(select, glyph('chev'));
   wrap.append(group, selWrap);
   wrap.dataset.fit = 'radios';
@@ -109,7 +110,7 @@ export const modeControl = (cleanups: (() => void)[]): ModeControl => {
         b.dataset.mode = m;
         b.setAttribute('role', 'radio');
         if (isDerived(m)) b.dataset.derived = 'true';
-        b.onclick = () => { if (currentMode !== m) setCurrentMode(m as typeof currentMode); };
+        b.onclick = () => { if (!b.disabled && currentMode !== m) setCurrentMode(m as typeof currentMode); };
         return b;
       });
       group.replaceChildren(...radios);
