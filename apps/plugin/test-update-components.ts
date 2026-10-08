@@ -812,7 +812,7 @@ const buildSingle = async (id: string) => {
   const a = await adoptMembers(ic.host, [ic.target]);
   ok(JSON.stringify([logo, own].map((n) => [...(n._pluginData as Map<string, string>)])) === before && pd(own, STAMP_KEY) === '',
     'single/never touched: neither the capture nor Adopt writes anything on the owner\'s icons');
-  ok(JSON.stringify(a.notOffered) === '["icon"]' && a.sets.length === 0 && adoptVerdictText(a).ok && adoptVerdictText(a).lines.some((l) => /Adopt is not offered for icon/.test(l)),
+  ok(JSON.stringify(a.notOffered) === '["icon"]' && a.sets.length === 0 && adoptVerdictText(a).ok && adoptVerdictText(a).lines.includes("Adopt doesn't apply to icon. Hand-made ones are left as they are."),
     `single/no adopt: Adopt is not offered for the icons, and says so without failing (Q109 B) (${JSON.stringify(adoptVerdictText(a).lines)})`);
 }
 {

@@ -811,7 +811,7 @@ export const adoptVerdictText = (r: AdoptResult): { ok: boolean; headline: strin
         : `${x.set}: ${n(x.adopted, 'member')} adopted.`;
     }),
     ...r.refused.map((x) => `${x.def}: not adopted. ${x.reason}.`),
-    r.notOffered?.length ? `Adopt is not offered for ${r.notOffered.join(', ')}: a hand-made one is the designer's own.` : '',
+    r.notOffered?.length ? `Adopt doesn't apply to ${r.notOffered.join(', ')}. Hand-made ones are left as they are.` : '',
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
     adopted ? `Run an update to bring ${adopted === 1 ? 'it' : 'them'} in line with the plan.` : '',
   ].filter(Boolean);
