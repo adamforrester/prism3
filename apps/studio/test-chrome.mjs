@@ -6035,26 +6035,51 @@ for (const host of ['web', 'figma']) {
       } finally { await ctx.close(); }
     }
     {
+      // Each step waits, bounded, on the state the step before it produces, never on a fixed time (#2339: the figma
+      // arm's click timed out at 30 s in CI, twice, and never locally). The pick has landed when Release pinned
+      // sizes is drawn; the picker is gone before Release is read; Release's box holds still across two frames
+      // before it is clicked. The state waits do not throw: a pin or a release that never lands fails the named
+      // arms below, with what the page shows. A step that does throw is named, with Playwright's own reason.
       const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+      const BTN = '[data-p3="type-size-desktop"][data-group="display"][data-variant="md"]';
+      const PICK = '[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="56"]';
+      const CLOSE = '[data-p3="value-picker-close"]';
+      const RELEASE = '[data-p3="type-scale-release"]';
+      const BOUND = { timeout: 10000 };
+      let step = 'open Type';
       try {
         await goPlace(page, 'type');
-        await openTypeAdvanced(page);
-        const btn = '[data-p3="type-size-desktop"][data-group="display"][data-variant="md"]';
-        await hooks.click(page.locator(btn));
-        await hooks.click(page.locator('[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="56"]'));
-        if (await page.locator('[data-p3="value-picker-close"]').count()) await hooks.click(page.locator('[data-p3="value-picker-close"]'));
-        await page.waitForFunction(() => !!document.querySelector('[data-p3="type-scale-release"]'), null, { timeout: 5000 }).catch(() => {});
+        step = 'open Show advanced'; await openTypeAdvanced(page);
+        step = 'open the value picker for display md'; await hooks.click(page.locator(BTN), BOUND);
+        step = 'pick 56px'; await hooks.click(page.locator(PICK), BOUND);
+        await page.waitForFunction((q) => !!document.querySelector(q), RELEASE, BOUND).catch(() => {});
+        step = 'close the value picker';
+        if (await page.locator(CLOSE).count()) await hooks.click(page.locator(CLOSE), BOUND);
+        await page.waitForFunction(() => !document.querySelector('[data-p3="value-picker"]'), null, BOUND).catch(() => {});
         const s = await scaleState(page);
         ok(s.pinned && s.expressive.off && s.expressive.why === CLASH, `#2194: ${host}: with display md set to 56px, Expressive is disabled with "${CLASH}" (${JSON.stringify(s.expressive)})`);
         ok(s.clash && s.release && s.refused.length === 0, `#2194: ${host}: a real pinned-size clash still shows the clash message and Release pinned sizes, and no other reason (${JSON.stringify(s)})`);
         ok(!s.compact.off, `#2194: ${host}: the same pin builds under Compact, so its chip stays live`);
-        await hooks.click(page.locator('[data-p3="type-scale-release"]'));
-        await page.waitForFunction(() => !document.querySelector('[data-p3="type-scale-release"]'), null, { timeout: 5000 }).catch(() => {});
+        step = 'Release pinned sizes holding still';
+        await page.waitForFunction((q) => {
+          const n = document.querySelector(q);
+          const box = n ? JSON.stringify(n.getBoundingClientRect()) : null;
+          const w = (window.__p3Hold ??= { box: null, still: 0 });
+          w.still = box !== null && box === w.box ? w.still + 1 : 0;
+          w.box = box;
+          return w.still >= 2;
+        }, RELEASE, { ...BOUND, polling: 'raf' }).catch(() => {});
+        step = 'click Release pinned sizes'; await hooks.click(page.locator(RELEASE), BOUND);
+        await page.waitForFunction((q) => !document.querySelector(q), RELEASE, BOUND).catch(() => {});
         const r = await scaleState(page);
         ok(!r.pinned && !r.expressive.off && !r.release && !r.clash, `#2194: ${host}: Release pinned sizes clears the clash and Expressive is live again (${JSON.stringify(r)})`);
         ok(errors.length === 0, `#2194: ${host}: the pinned clash: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `#2194 pinned clash ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        const why = String(e?.message ?? e).replace(/\u001b\[[0-9;]*m/g, '').split('\n').map((l) => l.trim()).filter(Boolean);
+        // The call log's last line that says why the action could not run (covered, moving, hidden, detached), not
+        // its retry bookkeeping ("waiting 500ms").
+        const reason = [...why].reverse().find((l) => /intercepts|not (visible|stable|enabled)|detached|receive pointer|outside of the viewport/.test(l));
+        ok(false, `#2194 pinned clash ${host}: the case stopped at "${step}" — ${why[0]}${reason ? ` · ${reason}` : ''}`);
       } finally { await ctx.close(); }
     }
   }
