@@ -4554,6 +4554,24 @@
               }
             }
           },
+          "10": {
+            "$type": "dimension",
+            "$value": "0.01em",
+            "$description": "letter spacing 0.01em (ladder step 10)",
+            "$extensions": {
+              "prism3": {
+                "generated": true,
+                "em": 0.01,
+                "figma": {
+                  "kind": "style-part",
+                  "field": "letterSpacing",
+                  "unit": "PERCENT",
+                  "percent": 1,
+                  "note": "Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)"
+                }
+              }
+            }
+          },
           "20": {
             "$type": "dimension",
             "$value": "0.02em",
@@ -4585,6 +4603,24 @@
                   "field": "letterSpacing",
                   "unit": "PERCENT",
                   "percent": 5,
+                  "note": "Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)"
+                }
+              }
+            }
+          },
+          "neg-40": {
+            "$type": "dimension",
+            "$value": "-0.04em",
+            "$description": "letter spacing -0.04em (ladder step neg-40)",
+            "$extensions": {
+              "prism3": {
+                "generated": true,
+                "em": -0.04,
+                "figma": {
+                  "kind": "style-part",
+                  "field": "letterSpacing",
+                  "unit": "PERCENT",
+                  "percent": -4,
                   "note": "Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)"
                 }
               }
@@ -4626,6 +4662,24 @@
               }
             }
           },
+          "neg-15": {
+            "$type": "dimension",
+            "$value": "-0.015em",
+            "$description": "letter spacing -0.015em (ladder step neg-15)",
+            "$extensions": {
+              "prism3": {
+                "generated": true,
+                "em": -0.015,
+                "figma": {
+                  "kind": "style-part",
+                  "field": "letterSpacing",
+                  "unit": "PERCENT",
+                  "percent": -1.5,
+                  "note": "Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)"
+                }
+              }
+            }
+          },
           "neg-10": {
             "$type": "dimension",
             "$value": "-0.01em",
@@ -4646,6 +4700,17 @@
           }
         },
         "letter-spacing-role": {
+          "tightest": {
+            "$type": "dimension",
+            "$value": "{ads.core.font.letter-spacing.neg-40}",
+            "$description": "letter-spacing role 'tightest' → -0.04em — a relative-emphasis name a mode may re-point; the step itself never changes",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "ads.core.font.letter-spacing.neg-40"
+              }
+            }
+          },
           "tighter": {
             "$type": "dimension",
             "$value": "{ads.core.font.letter-spacing.neg-30}",
@@ -4668,6 +4733,17 @@
               }
             }
           },
+          "snugger": {
+            "$type": "dimension",
+            "$value": "{ads.core.font.letter-spacing.neg-15}",
+            "$description": "letter-spacing role 'snugger' → -0.015em — a relative-emphasis name a mode may re-point; the step itself never changes",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "ads.core.font.letter-spacing.neg-15"
+              }
+            }
+          },
           "snug": {
             "$type": "dimension",
             "$value": "{ads.core.font.letter-spacing.neg-10}",
@@ -4687,6 +4763,17 @@
               "prism3": {
                 "role": "semantic",
                 "aliasOf": "ads.core.font.letter-spacing.0"
+              }
+            }
+          },
+          "open": {
+            "$type": "dimension",
+            "$value": "{ads.core.font.letter-spacing.10}",
+            "$description": "letter-spacing role 'open' → 0.01em — a relative-emphasis name a mode may re-point; the step itself never changes",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "ads.core.font.letter-spacing.10"
               }
             }
           },

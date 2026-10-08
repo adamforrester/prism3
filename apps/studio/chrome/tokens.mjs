@@ -145,6 +145,11 @@ export const TILE_VARS = [
   ['lh-compact', 'core.font.line-height-role.compact', N],
   ['lh-cozy', 'core.font.line-height-role.cozy', N], ['lh-normal', 'core.font.line-height-role.normal', N],
   ['ls-snug', 'core.font.letter-spacing-role.snug', D],
+  // #2322 (owner, 2026-10-08): the headings' tracking and the view titles' weight. The view titles take Bold at
+  // `tightest` (−4%), section headings `tighter` (−3%), group headings `snugger` (−1.5%), card titles `open` (+1%).
+  ['ls-tightest', 'core.font.letter-spacing-role.tightest', D], ['ls-tighter', 'core.font.letter-spacing-role.tighter', D],
+  ['ls-snugger', 'core.font.letter-spacing-role.snugger', D], ['ls-open', 'core.font.letter-spacing-role.open', D],
+  ['fw-bold', 'core.font.weight.700', N],
   // motion
   ['dur-fast', 'motion.duration.fast', T], ['dur-spin', 'motion.duration.spin', T],
   ['dur-fast-reduced', 'motion.duration-reduced.fast', T],

@@ -9776,7 +9776,7 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
 // 30. The heading rule (heading pass 1 of 2, TY2 A, approved 2026-10-06): three levels on every page, both hosts, both
 //     themes, at 1280 and 380, each level's size, weight, line height and space after held to the chrome tokens' EMITTED values
 // =============================================================================================
-// L1 section title: fs-16 / fw-strong / lh-compact / ls-snug; its description space-050 under it, its content space-300
+// L1 section title: fs-16 / fw-strong / lh-compact / ls-tighter (#2322; ls-snug before); its description space-050 under it, its content space-300
 // after the head. L2 group heading (a lever's name, a row list's sub-heading, an Interactive group's title, a Grid
 // breakpoint's name): fs-14 / fw-strong / lh-compact; its content space-150 after its row, or space-050 when what follows
 // is the lever's own one-line description. L3 field label: fs-14 / fw-emphasis / lh-compact, in color.text.primary; its
@@ -9860,6 +9860,8 @@ const HEADING_TOKEN_PATHS = {
   'fs-12': 'core.font.size.12', 'fs-14': 'core.font.size.14', 'fs-16': 'core.font.size.16',
   'fw-default': 'core.font.weight-role.default', 'fw-emphasis': 'core.font.weight-role.emphasis', 'fw-strong': 'core.font.weight-role.strong',
   'lh-compact': 'core.font.line-height-role.compact', 'ls-snug': 'core.font.letter-spacing-role.snug',
+  // #2322 (owner, 2026-10-08): L1 section titles at `tighter` (−3%), L2 group headings at `snugger` (−1.5%).
+  'ls-tighter': 'core.font.letter-spacing-role.tighter', 'ls-snugger': 'core.font.letter-spacing-role.snugger',
   'space-050': 'space.050', 'space-100': 'space.100', 'space-150': 'space.150', 'space-300': 'space.300', 'hit-min': 'core.dimension.24',
   text: 'color.text.primary', 'text-2': 'color.text.secondary',
 };
@@ -9889,13 +9891,14 @@ const HT = (() => {
   const ink = (name, mode) => { const v = walk(mode, `${root}.${HEADING_TOKEN_PATHS[name]}`); return typeof v === 'string' ? v.toLowerCase() : null; };
   return { ...t, ink: { text: { light: ink('text', 'light'), dark: ink('text', 'dark') }, 'text-2': { light: ink('text-2', 'light'), dark: ink('text-2', 'dark') } } };
 })();
+ok(HT['ls-tighter']?.em === -0.03 && HT['ls-snugger']?.em === -0.015, `#2322: the oracle resolved L1's and L2's tracking from the emission, tighter −3% and snugger −1.5% (${JSON.stringify([HT['ls-tighter'], HT['ls-snugger']])})`);
 ok(HT['fs-14'] === 14 && HT['fs-16'] === 16 && HT['fw-strong'] === 600 && HT['fw-emphasis'] === 500 && HT['fw-default'] === 400
   && HT['lh-compact'] === 1.25 && HT['space-150'] === 12 && HT['hit-min'] >= 24 && Object.values(HT.ink).every((m) => /^#[0-9a-f]{6}$/.test(m.light ?? '') && /^#[0-9a-f]{6}$/.test(m.dark ?? '') && m.light !== m.dark),
   `TY2 A: the oracle resolved the rule's chrome tokens from the emission (${JSON.stringify(HT)})`);
 /** Each level's type, as chrome tokens. */
 const LEVEL_TYPE = {
-  L1: { fs: 'fs-16', fw: 'fw-strong', ls: 'ls-snug' },
-  L2: { fs: 'fs-14', fw: 'fw-strong' },
+  L1: { fs: 'fs-16', fw: 'fw-strong', ls: 'ls-tighter' },
+  L2: { fs: 'fs-14', fw: 'fw-strong', ls: 'ls-snugger' },
   L3: { fs: 'fs-14', fw: 'fw-emphasis', ink: 'text' },
   TH: { fs: 'fs-12', fw: 'fw-emphasis', ink: 'text-2' },
 };
@@ -10213,7 +10216,7 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
           if (f.fs !== HT[ty.fs]) miss.push(`fs ${f.fs}, want ${ty.fs} ${HT[ty.fs]}`);
           if (f.fw !== HT[ty.fw]) miss.push(`fw ${f.fw}, want ${ty.fw} ${HT[ty.fw]}`);
           if (f.level !== 'TH' && !near(f.lh, HT[ty.fs] * HT['lh-compact'], 0.05)) miss.push(`line height ${f.lh}, want lh-compact ${HT[ty.fs] * HT['lh-compact']}`);
-          if (ty.ls && !near(f.ls, HT[ty.fs] * HT['ls-snug'].em, 0.05)) miss.push(`letter spacing ${f.ls}, want ls-snug ${HT[ty.fs] * HT['ls-snug'].em}`);
+          if (ty.ls && !near(f.ls, HT[ty.fs] * HT[ty.ls].em, 0.05)) miss.push(`letter spacing ${f.ls}, want ${ty.ls} ${HT[ty.fs] * HT[ty.ls].em}`);
           if (ty.ink && f.color !== startRgb(HT.ink[ty.ink][theme])) miss.push(`ink ${f.color}, want ${HEADING_TOKEN_PATHS[ty.ink]} ${HT.ink[ty.ink][theme]}`);
           // The space after it.
           if (f.level === 'L1') {
@@ -10403,6 +10406,32 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
   } catch (e) {
     ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
+}
+
+// #2322 (owner, 2026-10-08): the view title takes Bold at −4% (`tightest`), and the cards' small-capital titles +1% (`open`).
+// The heading rule above exempts page titles, so these two are held here. Expected values are literals (owner decision),
+// cross-checked against the emission's own paths, never read from the chrome CSS.
+console.log(`\nThe view and card titles (#2322)\n${'='.repeat(78)}`);
+{
+  const out = join(REPO, 'packages', 'engine', 'out');
+  const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
+  const root = base.$extensions?.prism3?.root;
+  const at = (path) => path.split('.').reduce((n, k) => (n && typeof n === 'object' ? n[k] : undefined), base);
+  const deref = (path, hops = 0) => { const v = at(path)?.$value; const m = typeof v === 'string' && /^\{([^}]+)\}$/.exec(v); return m && hops < 16 ? deref(m[1], hops + 1) : v; };
+  ok(deref(`${root}.core.font.letter-spacing-role.tightest`) === '-0.04em' && deref(`${root}.core.font.letter-spacing-role.open`) === '0.01em' && deref(`${root}.core.font.weight.700`) === 700,
+    `#2322: the emission carries tightest −4%, open +1% and weight 700 (${[deref(`${root}.core.font.letter-spacing-role.tightest`), deref(`${root}.core.font.letter-spacing-role.open`), deref(`${root}.core.font.weight.700`)].join(', ')})`);
+  for (const theme of ['light', 'dark']) {
+    const { ctx, page } = await open({ host: 'web', theme, w: 1280, h: 900 });
+    const got = await page.evaluate(() => {
+      const read = (sel) => { const n = document.querySelector(sel); if (!n) return null; const cs = getComputedStyle(n); return { fs: parseFloat(cs.fontSize), fw: Number(cs.fontWeight), ls: parseFloat(cs.letterSpacing) || 0 }; };
+      return { view: read('[data-p3="preview-title"]'), card: read('.p3-card-title') };
+    });
+    ok(!!got.view && got.view.fs === 20 && got.view.fw === 700 && Math.abs(got.view.ls - 20 * -0.04) < 0.05,
+      `#2322 web ${theme} 1280: the view title is 20px Bold at −4% (${JSON.stringify(got.view)})`);
+    ok(!!got.card && got.card.fs === 12 && got.card.fw === 500 && Math.abs(got.card.ls - 12 * 0.01) < 0.05,
+      `#2322 web ${theme} 1280: a card's title is 12px at +1% (${JSON.stringify(got.card)})`);
+    await ctx.close();
+  }
 }
 
 // =============================================================================================

@@ -5304,7 +5304,13 @@ export const ENGINE_VERSION = '0.233.0';
  * Its other weights (`strong`, `emphasis`) and the italics follow the brand's body set exactly as `body.sm`'s do, so
  * they are brand-dependent, as body.sm's are. An added path cannot break a reference. Nothing is removed or retyped.
  */
-export const CONTRACT_VERSION = '14.3.0';
+/**
+ * 14.4.0 (#2322, owner 2026-10-08): MINOR. Three tracking roles join the guaranteed surface, with their steps:
+ * `core.font.letter-spacing-role.tightest` (−4%, `letter-spacing.neg-40`), `.snugger` (−1.5%, `neg-15`) and `.open`
+ * (+1%, `letter-spacing.10`). All three steps were already on the locked ladder; only roles bind them now. The six
+ * roles before them keep their names and values, so nothing a consumer reads moves. Nothing is removed or retyped.
+ */
+export const CONTRACT_VERSION = '14.4.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
