@@ -457,7 +457,7 @@ export const applyUpdate = async (
   return res;
 };
 
-// ---- the words (DRAFT, for the owner: #2265 §8) -------------------------------------------------------------
+// ---- the words (approved, Q114 A; #2265 §8) -----------------------------------------------------------------
 
 const n = (k: number, one: string, many = `${one}s`): string => `${k} ${k === 1 ? one : many}`;
 
