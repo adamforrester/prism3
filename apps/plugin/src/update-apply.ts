@@ -50,11 +50,11 @@ import { diffAnatomy, type HostNode } from '@prism3/engine/anatomy-readback';
 import { planBoundVars, planComponentName, planEffectStyles, planPaintVars, planSetProperties, planTextStyles, type AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { tailOf } from '@prism3/engine/figma-names';
 import type { ComponentRename } from '@prism3/engine/component-renames';
-import { applyComponentPlan, type ComponentApplyResult, type ComponentsApi, type CompPageTarget } from './write-components';
+import { applyComponentPlan, emitCoordValue, type ComponentApplyResult, type ComponentsApi, type CompPageTarget } from './write-components';
 import { planTargets, presentNames } from './build-deps';
 import { NS } from './persist-figma';
 import { snapshotMember } from './member-baseline';
-import { hostPorts, previewUpdate, readSetView, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
+import { hostPorts, previewUpdate, readSetView, readSingleView, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 
 /** The set's record of the members an update kept and marked deprecated (Q2): a JSON list of member names. */
 export const RETAINED_KEY = 'retained';
@@ -148,6 +148,30 @@ const idOf = (n: unknown): string => { try { return String((n as LiveNode).id ??
 const keyOf = (n: unknown): string => { try { const k = (n as LiveNode).key; return typeof k === 'string' ? k : ''; } catch { return ''; } };
 const kidsOf = (n: unknown): LiveNode[] => { try { return [...((n as LiveNode).children ?? [])] as LiveNode[]; } catch { return []; } };
 
+/**
+ * A MEMBER'S TWO NAMES (#2296): its coordinate, which the dry run speaks (`name=check`), and the node's own, which the
+ * file holds. The same for a set member; for a single component the node is `<component>/<value>`. `coordOf` reads a
+ * node's name back to the coordinate, and `hostOf` the other way, so the renames, the deprecations and the verify
+ * below find the node a coordinate names on either kind of def.
+ */
+const namesFor = (t: UpdateTarget): { coordOf: (host: string) => string; hostOf: (coord: string) => string } => {
+  if (!t.single) return { coordOf: (h) => h, hostOf: (c) => c };
+  const prefix = `${t.plans[0]?.component ?? t.def}/`;
+  const first = t.plans[0] ? planComponentName(t.plans[0]) : 'name=';
+  const axis = first.slice(0, first.indexOf('='));
+  return {
+    coordOf: (h) => (h.startsWith(prefix) ? `${axis}=${h.slice(prefix.length)}` : h),
+    hostOf: (c) => `${prefix}${emitCoordValue(c)}`,
+  };
+};
+/** The file's live "set" for a target: the set node, or for a single-component def (#2296) a stand-in whose
+ *  children are its components, found anywhere in the file. */
+const liveFor = async (host: ApplyHost, t: UpdateTarget, name: string): Promise<LiveSet | undefined> =>
+  t.single ? (await readSingleView(host, t)).set as LiveSet
+    : (host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as LiveSet[]).find((s) => String(s.name ?? '') === name);
+/** The page a target's components sit on, for the build's placement: the set's, or the first single component's. */
+const pageFor = (t: UpdateTarget, live: LiveSet): CompPageTarget | undefined => pageOf(t.single ? kidsOf(live)[0] : live);
+
 /** Every child's id the plan names, by path, walking plan and host together. A glyph's contents are Figma's
  *  import (replaced on purpose) and an instance's are its main's, so neither is walked. */
 const childIds = (plan: AnatomyPlan['root'], node: unknown, path: string, out: Map<string, string>): void => {
@@ -200,7 +224,8 @@ const preflight = async (api: ComponentsApi, t: UpdateTarget, p: SetPreview, liv
   const hostAxes = p.axes.from.join(',');
   if (hostAxes !== p.axes.to.join(',') && p.unstamped.length)
     return `the axes change, and ${p.unstamped.length} member${p.unstamped.length === 1 ? '' : 's'} not built by Prism3 would be left on the old ones (${p.unstamped.slice(0, 3).join('; ')})`;
-  const names = live.children ? kidsOf(live).map((c) => String(c.name ?? '')) : [];
+  const { coordOf } = namesFor(t);
+  const names = live.children ? kidsOf(live).map((c) => coordOf(String(c.name ?? ''))) : [];
   const after = new Map(names.map((n) => [n, n] as const));
   for (const m of p.moves) { after.delete(m.from); }
   for (const m of p.moves) {
@@ -273,6 +298,9 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
     for (const e of edits) kept.push({ member: at, path: e.path });
     members.set(at, { keep, ...(choice === 'accept' ? { accept: true } : {}) });
   }
+  // Every member the dry run read as not built by Prism3 is named, the ones off the plan too (a designer's own icon
+  // under the def's prefix, #2296): the update never writes them, and the verdict says so rather than leaving them out.
+  for (const u of p.unstamped) if (!skipped.some((x) => x.member === u)) skipped.push({ member: u, reason: 'not built by Prism3' });
   return { members, skipped, kept, unrecorded };
 };
 
@@ -286,12 +314,14 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   const plans = new Map(t.plans.map((x) => [planComponentName(x), x] as const));
 
   // ── THE IDENTITY BEFORE ─────────────────────────────────────────────────────────────────────────────────
+  // A single-component def (#2296) has no set: its key and id are empty on both sides, and identity is per member.
+  const { coordOf, hostOf } = namesFor(t);
   const setKey = keyOf(live);
   const setId = idOf(live);
   const moved = new Map(p.moves.map((m) => [m.from, m.to] as const));
   const before = new Map<string, { id: string; key: string; ref: unknown; kids: Map<string, string> }>();
   for (const c of kidsOf(live)) {
-    const name = String(c.name ?? '');
+    const name = coordOf(String(c.name ?? ''));
     const at = moved.get(name) ?? name;
     const kids = new Map<string, string>();
     const pl = plans.get(at);
@@ -301,10 +331,10 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   const replaced = new Set(p.replacements.map((r) => `${moved.get(r.member) ?? r.member}\u0000${r.path}`));
 
   // ── RENAMES, ONE SYNCHRONOUS BLOCK (#1780): no `await` between the first and the last ─────────────────────
-  const byName = new Map(kidsOf(live).map((c) => [String(c.name ?? ''), c] as const));
+  const byName = new Map(kidsOf(live).map((c) => [coordOf(String(c.name ?? '')), c] as const));
   for (const m of p.moves) {
     const n = byName.get(m.from) as { name?: string } | undefined;
-    if (n) { n.name = m.to; out.renamed++; }
+    if (n) { n.name = hostOf(m.to); out.renamed++; }
   }
 
   // ── PROPERTIES: a retype or a removal deletes (the build's pass adds the retyped one back); a default is edited
@@ -336,7 +366,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   let retained: string[] = [];
   try { retained = JSON.parse(live.getSharedPluginData?.(NS, RETAINED_KEY) || '[]') as string[]; } catch { retained = []; }
   for (const d of dropNames) {
-    const n = kidsOf(live).find((c) => String(c.name ?? '') === d) as { description?: string } | undefined;
+    const n = kidsOf(live).find((c) => coordOf(String(c.name ?? '')) === d) as { description?: string } | undefined;
     if (!n) continue;
     if (!String(n.description ?? '').startsWith(DEPRECATED_PREFIX)) n.description = DEPRECATED_PREFIX + String(n.description ?? '');
     if (!retained.includes(d)) retained.push(d);
@@ -350,7 +380,9 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
     r = await applyComponentPlan(t.plans, api, {
       ...(opts.description ? { description: opts.description } : {}),
       ...(opts.yieldTo ? { yieldTo: opts.yieldTo } : {}),
-      ...(pageOf(live) ? { targetPage: pageOf(live) } : {}),
+      ...(pageFor(t, live) ? { targetPage: pageFor(t, live) } : {}),
+      // A single-component def is built and updated as the build makes it: separate components, no set (#2296).
+      ...(t.single ? { emitAsComponents: true } : {}),
       update: { members: work.members, retained: new Set(retained) },
     });
   } catch (err) {
@@ -363,9 +395,10 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   out.misses = r.misses.filter((x) => !/^member .* -> (ALREADY PRESENT|STALE) /.test(x));
 
   // ── VERIFY (a): IDENTITY, OFF THE HOST ─────────────────────────────────────────────────────────────────────
-  const now = (host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as LiveSet[]).find((s) => idOf(s) === setId || (setKey && keyOf(s) === setKey)) ?? live;
+  const now = t.single ? (await liveFor(host, t, p.set)) ?? live
+    : (host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as LiveSet[]).find((s) => idOf(s) === setId || (setKey && keyOf(s) === setKey)) ?? live;
   if (keyOf(now) !== setKey || idOf(now) !== setId) out.identity.push(`the set: key ${setKey} → ${keyOf(now)}, id ${setId} → ${idOf(now)}`);
-  const after = new Map(kidsOf(now).map((c) => [String(c.name ?? ''), c] as const));
+  const after = new Map(kidsOf(now).map((c) => [coordOf(String(c.name ?? '')), c] as const));
   for (const [name, b] of before) {
     const a = after.get(name);
     if (!a) { out.identity.push(`${name}: no longer in the set`); continue; }
@@ -421,13 +454,11 @@ export const applyUpdate = async (
   }
   // PREFLIGHT EVERY SET, before anything is written anywhere.
   const present = presentNames(api as unknown as Parameters<typeof presentNames>[0]);
-  const liveOf = new Map<string, LiveSet>();
-  for (const s of host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as LiveSet[]) liveOf.set(String(s.name ?? ''), s);
   const ordered = nestedFirst(targets);
   const ready: { t: UpdateTarget; p: SetPreview; live: LiveSet }[] = [];
   for (const t of ordered) {
     const p = preview.sets.find((s) => s.set === (t.plans[0]?.component ?? t.def));
-    const live = p ? liveOf.get(p.set) : undefined;
+    const live = p ? await liveFor(host, t, p.set) : undefined;
     if (!p || !live) continue;
     const why = await preflight(api, t, p, live, present);
     if (why) { res.outcomes.push({ def: t.def, set: p.set, refused: why, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: [], misses: [] }); continue; }
@@ -449,7 +480,7 @@ export const applyUpdate = async (
   }
   for (const { t, p, live } of ready) {
     // Re-read: a nested set updated just before this one changed what this one's instances point at.
-    const fresh = (host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as LiveSet[]).find((s) => String(s.name ?? '') === p.set) ?? live;
+    const fresh = (await liveFor(host, t, p.set)) ?? live;
     const o = await applySet(host, api, t, p, fresh, { description: opts.descriptionOf?.(t.def), yieldTo: opts.yieldTo, handEdits: choiceFor(opts.choices, p.set), noBaseline: noRecordFor(opts.choices, p.set) });
     res.outcomes.push(o);
     if (o.stopped) break;

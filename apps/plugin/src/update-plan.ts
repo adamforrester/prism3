@@ -56,6 +56,8 @@ export type HostMember = {
   name: string; id: string; stamp: string; baseline: Baseline | null; snap: SnapNode;
   /** #2265 PR 2 — set while an update is part-way through this member: the paths it kept as hand edits. */
   updating?: string[] | null;
+  /** #2296 — the node's own name where it is not the coordinate: a single component's `icon/check` for `name=check`. */
+  nodeName?: string;
 };
 
 /** A set as the dry run reads it: plain data, so the comparison below is pure. */
@@ -70,6 +72,9 @@ export type HostSetView = {
   others: string[];
   /** The set's property definitions, or `null` when the host would not give them (#1780). */
   definitions: Record<string, { type?: string; defaultValue?: unknown }> | null;
+  /** #2296 — a def built as single components (`emitAsComponents`): no set node, no property definitions, and each
+   *  member a top-level component found anywhere in the file. */
+  single?: boolean;
 };
 
 export type MemberState = 'current' | 'update' | 'handEdited' | 'unstamped' | 'noBaseline' | 'revisionUnknown';
@@ -341,7 +346,9 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
 
   // ---- the set's properties ------------------------------------------------------------------------------
   const properties: SetPreview['properties'] = { add: [], edit: [], rename: [], retype: [], remove: [] };
-  if (host.definitions === null) {
+  // A single-component def (#2296) has no set, so there are no definitions to read and nothing to compare.
+  if (host.single) { /* no properties */ }
+  else if (host.definitions === null) {
     if (!blockers.some((b) => b.includes('#1780'))) blockers.push("the set's property definitions could not be read");
   } else {
     let wanted: ReturnType<typeof planSetProperties> = [];
@@ -422,6 +429,20 @@ const pageOf = (n: unknown): string => {
 
 /** A set as plain data: every coordinate child snapshotted with its stamp and stored baseline. Reads
  *  only; each host read is guarded, so a getter that throws is a fact in the view rather than a crash. */
+/** One member as plain data: its stamp, record, in-progress marker and snapshot, each host read guarded. `name` is
+ *  its coordinate; `nodeName`, the node's own name where that differs (#2296). */
+const readMember = async (raw: unknown, name: string, nodeName?: string): Promise<HostMember> => {
+  const c = raw as { id?: unknown; getSharedPluginData?: (ns: string, k: string) => string };
+  let stamp = '';
+  try { stamp = c.getSharedPluginData?.(NS, STAMP_KEY) ?? ''; } catch { stamp = ''; }
+  let updating: string[] | null = null;
+  try {
+    const marker = c.getSharedPluginData?.(NS, UPDATING_KEY) ?? '';
+    if (marker) updating = (JSON.parse(marker) as unknown[]).map(String);
+  } catch { updating = []; }
+  return { name, id: String(c.id ?? ''), stamp, baseline: readBaseline(c), snap: await snapshotMember(c), updating, ...(nodeName ? { nodeName } : {}) };
+};
+
 export const readSetView = async (set: LiveSet, breathe?: () => Promise<void>): Promise<HostSetView> => {
   const members: HostMember[] = [];
   const others: string[] = [];
@@ -430,17 +451,9 @@ export const readSetView = async (set: LiveSet, breathe?: () => Promise<void>): 
     // A 432-member set is about 13,000 nodes to read; handing the thread back every few members keeps
     // Figma responsive while it runs (#684's reason).
     if (breathe && ++n % 24 === 0) await breathe();
-    const c = raw as { name?: unknown; id?: unknown; getSharedPluginData?: (ns: string, k: string) => string };
-    const name = String(c.name ?? '');
+    const name = String((raw as { name?: unknown }).name ?? '');
     if (coordKey(name) === null) { others.push(name); continue; }
-    let stamp = '';
-    try { stamp = c.getSharedPluginData?.(NS, STAMP_KEY) ?? ''; } catch { stamp = ''; }
-    let updating: string[] | null = null;
-    try {
-      const raw = c.getSharedPluginData?.(NS, UPDATING_KEY) ?? '';
-      if (raw) updating = (JSON.parse(raw) as unknown[]).map(String);
-    } catch { updating = []; }
-    members.push({ name, id: String(c.id ?? ''), stamp, baseline: readBaseline(c), snap: await snapshotMember(c), updating });
+    members.push(await readMember(raw, name));
   }
   let definitions: HostSetView['definitions'] = null;
   try { definitions = (set.componentPropertyDefinitions ?? {}) as HostSetView['definitions']; } catch { definitions = null; }
@@ -456,7 +469,7 @@ export const MOVED = 'it moved or is gone since it was read';
 const liveNode = (set: LiveSet, m: HostMember): { name?: unknown; setSharedPluginData?: (ns: string, k: string, v: string) => void } | null => {
   if (!m.id) return null;
   const node = (set.children ?? []).find((c) => String((c as { id?: unknown }).id ?? '') === m.id) as { name?: unknown } | undefined;
-  return node && String(node.name ?? '') === m.name ? node : null;
+  return node && String(node.name ?? '') === (m.nodeName ?? m.name) ? node : null;
 };
 
 /** What `capture-baseline` decides for one member, pure. It records a baseline only where the member is
@@ -492,10 +505,11 @@ export const captureVerdict = (plan: AnatomyPlan | undefined, m: HostMember, por
 /** `capture-baseline` over one set: a baseline written on every member `captureVerdict` clears, each
  *  other member reported with its reason. Matching is by coordinate against the plan as it stands; a
  *  member the ledger would rename is not current, so it is not captured. The stamp is never rewritten. */
-export const captureSet = async (set: LiveSet, plans: AnatomyPlan[], ports: ReadPorts, breathe?: () => Promise<void>): Promise<{ recorded: number; skipped: { member: string; reason: string; differences?: Difference[] }[] }> => {
+export const captureSet = async (set: LiveSet, plans: AnatomyPlan[], ports: ReadPorts, breathe?: () => Promise<void>, read?: HostSetView): Promise<{ recorded: number; skipped: { member: string; reason: string; differences?: Difference[] }[] }> => {
   const planned = new Map(plans.map((p) => [coordKey(planComponentName(p)), p] as const));
   // A copy or a malformed stamp is not Prism3's (#2300), so its member is not captured: Adopt is its path.
-  const view = ownedView(await readSetView(set, breathe));
+  // `read` is a view already taken (a single-component def's, #2296); else the set is read here.
+  const view = ownedView(read ?? await readSetView(set, breathe));
   let recorded = 0;
   const skipped: { member: string; reason: string; differences?: Difference[] }[] = [];
   for (const m of view.members) {
@@ -567,7 +581,11 @@ export type UpdateHost = {
 };
 
 /** One def to check: its id and the plans the engine would build for it today. */
-export type UpdateTarget = { def: string; plans: AnatomyPlan[] };
+export type UpdateTarget = {
+  def: string; plans: AnatomyPlan[];
+  /** #2296 — built as single top-level components (`emitAsComponents`: the icons, the spinner), not as a set. */
+  single?: boolean;
+};
 
 /** The ports, from the FILE's catalogues. A resolver built from the plan would map every id to the name
  *  the comparison hopes for, and see no difference anywhere (`test-roundtrip.ts` says the same). */
@@ -587,6 +605,62 @@ const locate = (host: UpdateHost, t: UpdateTarget): Located => {
   return { found, name };
 };
 
+/**
+ * A SINGLE-COMPONENT DEF, READ AS ONE SET (#2296, owner decision Q109). An `emitAsComponents` def (the icons, the
+ * spinner) leaves no set: each member is a top-level COMPONENT named `<component>/<value>`. They are read here into
+ * the same view a set gives, so the dry run, the capture and the apply run unchanged on them.
+ *
+ *   - THE WHOLE FILE is searched (Q109 C), as the build's own lookup does, so an icon moved to another page is still
+ *     found and updated in place, not rebuilt as a second one.
+ *   - Each `<component>/<value>` is the member `<axis>=<value>`: one axis, so the mapping back is exact. A name with a
+ *     further `/` is no member value, and is listed under `others`, never read.
+ *   - OWNERSHIP IS THE STAMP, NEVER THE NAME: the dry run's own reading (`ownedView`, #2300) decides. A hand-made
+ *     icon, even one carrying a Prism3 glyph's exact name, is unstamped: it holds its coordinate, so that glyph is
+ *     never built beside it (Q109 A), and it is never written.
+ *
+ * `set` is a stand-in for the by-id lookups the capture and Adopt make: its children are the components read.
+ */
+export const readSingleView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>): Promise<{ view: HostSetView; set: LiveSet }> => {
+  const component = t.plans[0]?.component ?? t.def;
+  const prefix = `${component}/`;
+  const first = t.plans[0] ? coordKey(planComponentName(t.plans[0])) : null;
+  const axis = first ? coordPairs(first)[0][0] : 'name';
+  const comps = (host.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly unknown[]).filter((c) => {
+    const x = c as { name?: unknown; parent?: { type?: unknown } | null };
+    let parentType: unknown;
+    try { parentType = x.parent?.type; } catch { parentType = undefined; }
+    return String(x.name ?? '').startsWith(prefix) && parentType !== 'COMPONENT_SET';
+  });
+  const members: HostMember[] = [];
+  const others: string[] = [];
+  let k = 0;
+  for (const c of comps) {
+    if (breathe && ++k % 24 === 0) await breathe();
+    const nodeName = String((c as { name?: unknown }).name ?? '');
+    const value = nodeName.slice(prefix.length);
+    if (!value || value.includes('/') || value.includes(', ') || value.includes('=')) { others.push(nodeName); continue; }
+    members.push(await readMember(c, `${axis}=${value}`, nodeName));
+  }
+  const page = comps.length ? pageOf(comps[0]) : '';
+  return {
+    view: { name: component, id: '', key: '', page, members, others, definitions: null, single: true },
+    set: { name: component, children: comps } as LiveSet,
+  };
+};
+
+/** A target's view, set or single, or why there is none to read. */
+type Viewed = { kind: 'missing' } | { kind: 'refused'; reason: string } | { kind: 'found'; name: string; set: LiveSet; view: HostSetView };
+const locateView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>): Promise<Viewed> => {
+  if (t.single) {
+    const { view, set } = await readSingleView(host, t, breathe);
+    return view.members.length + view.others.length ? { kind: 'found', name: view.name, set, view } : { kind: 'missing' };
+  }
+  const { found, name } = locate(host, t);
+  if (found.length === 0) return { kind: 'missing' };
+  if (found.length > 1) return { kind: 'refused', reason: `${found.length} sets are named ${name}` };
+  return { kind: 'found', name, set: found[0], view: await readSetView(found[0], breathe) };
+};
+
 export type UpdatePreview = { sets: SetPreview[]; missing: string[]; refused: { def: string; reason: string }[] };
 
 /** `update-components` in its dry-run mode: every target's set read and laid against its plans. Writes
@@ -596,10 +670,10 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
   const ports = await hostPorts(host);
   const out: UpdatePreview = { sets: [], missing: [], refused: [] };
   for (const t of targets) {
-    const { found, name } = locate(host, t);
-    if (found.length === 0) { out.missing.push(t.def); continue; }
-    if (found.length > 1) { out.refused.push({ def: t.def, reason: `${found.length} sets are named ${name}` }); continue; }
-    out.sets.push(dryRunSet(t.def, t.plans, await readSetView(found[0], breathe), ports, ledger));
+    const v = await locateView(host, t, breathe);
+    if (v.kind === 'missing') { out.missing.push(t.def); continue; }
+    if (v.kind === 'refused') { out.refused.push({ def: t.def, reason: v.reason }); continue; }
+    out.sets.push(dryRunSet(t.def, t.plans, v.view, ports, ledger));
   }
   return out;
 };
@@ -611,21 +685,27 @@ export const captureBaselines = async (host: UpdateHost, targets: readonly Updat
   const ports = await hostPorts(host);
   const out: CaptureResult = { sets: [], missing: [], refused: [] };
   for (const t of targets) {
-    const { found, name } = locate(host, t);
-    if (found.length === 0) { out.missing.push(t.def); continue; }
-    if (found.length > 1) { out.refused.push({ def: t.def, reason: `${found.length} sets are named ${name}` }); continue; }
-    out.sets.push({ def: t.def, set: name, ...await captureSet(found[0], t.plans, ports, breathe) });
+    const v = await locateView(host, t, breathe);
+    if (v.kind === 'missing') { out.missing.push(t.def); continue; }
+    if (v.kind === 'refused') { out.refused.push({ def: t.def, reason: v.reason }); continue; }
+    out.sets.push({ def: t.def, set: v.name, ...await captureSet(v.set, t.plans, ports, breathe, v.view) });
   }
   return out;
 };
 
-export type AdoptResult = { sets: { def: string; set: string; adopted: number; skipped: { member: string; reason: string }[] }[]; missing: string[]; refused: { def: string; reason: string }[] };
+export type AdoptResult = {
+  sets: { def: string; set: string; adopted: number; skipped: { member: string; reason: string }[] }[]; missing: string[]; refused: { def: string; reason: string }[];
+  /** #2296, owner decision Q109 B — the single-component defs Adopt is never offered for: a hand-made icon or spinner
+   *  is the designer's own. Listed, not refused, so a whole-file Adopt does not read as failed for them. */
+  notOffered?: string[];
+};
 
 /** `capture-baseline` with `adopt: true`: Adopt over every target's set (#2283). */
 export const adoptMembers = async (host: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<AdoptResult> => {
   const ports = await hostPorts(host);
   const out: AdoptResult = { sets: [], missing: [], refused: [] };
   for (const t of targets) {
+    if (t.single) { (out.notOffered ??= []).push(t.def); continue; }
     const { found, name } = locate(host, t);
     if (found.length === 0) { out.missing.push(t.def); continue; }
     if (found.length > 1) { out.refused.push({ def: t.def, reason: `${found.length} sets are named ${name}` }); continue; }
@@ -731,6 +811,7 @@ export const adoptVerdictText = (r: AdoptResult): { ok: boolean; headline: strin
         : `${x.set}: ${n(x.adopted, 'member')} adopted.`;
     }),
     ...r.refused.map((x) => `${x.def}: not adopted. ${x.reason}.`),
+    r.notOffered?.length ? `Adopt is not offered for ${r.notOffered.join(', ')}: a hand-made one is the designer's own.` : '',
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
     adopted ? `Run an update to bring ${adopted === 1 ? 'it' : 'them'} in line with the plan.` : '',
   ].filter(Boolean);

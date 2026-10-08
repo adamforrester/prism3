@@ -53,6 +53,10 @@
  *   apply/copy     with the original's coordinate dropped, only the original is marked deprecated; a Figma duplicate
  *                  of it and an unstamped member off the plan keep their description, stamp and record exactly
  *                  (#2328 review). Mutation: the deprecations take the unstamped members too → `apply/copy`.
+ *   single/…       the icons, built as single components, updated in place (#2296): every key and id kept, each icon
+ *                  finished (record, stamp last, marker off) as a set member is; an added glyph placed in a free
+ *                  slot, never over another; the owner's hand-made icon untouched. Mutations: the emit branch's
+ *                  finish skipped → `single/finished`; adds laid out from the origin → `single/add`.
  *   noop/…         a set already current: no version, no write.
  *   order/…        nested sets are updated first.
  *
@@ -352,6 +356,70 @@ const dumpSet = (set: Node): string => JSON.stringify(membersOf(set).map((m) => 
   ok(JSON.stringify(o?.deprecated) === JSON.stringify([String(orig.name)]) && String(orig.description ?? '').startsWith(DEPRECATED_PREFIX)
     && JSON.stringify(retained) === JSON.stringify([String(orig.name)]) && keep(dup) === dupBefore && keep(own) === ownBefore,
     `apply/copy: only the original is marked deprecated; the duplicate and the hand-made member keep their description, stamp and record (${JSON.stringify(o?.deprecated)}; ${JSON.stringify(retained)}; dup ${keep(dup) === dupBefore ? 'kept' : 'changed'}, own ${keep(own) === ownBefore ? 'kept' : 'changed'})`);
+}
+
+/* ── single ──────────────────────────────────────────────────────────────────────────────────────────── */
+section('single — the icons, updated in place as single components (#2296)');
+const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = []) => {
+  const page: Page = { children: [] };
+  const api = makeShim({
+    vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), ...extraVars])],
+    comps: [], page, liveRoot: true, identities: true, liveComponents: true,
+  }) as any;
+  const built = await applyComponentPlan(plans, api, { emitAsComponents: true });
+  if (built.misses.length) throw new Error(`premise: icons built with ${built.misses.length} miss(es): ${built.misses[0]}`);
+  const all = (types: string[]): Node[] => {
+    const out: Node[] = [];
+    const walk = (n: Node): void => { if (types.includes(String(n.type))) out.push(n); if (n.type !== 'INSTANCE') for (const c of (n.children as Node[] | undefined) ?? []) walk(c); };
+    for (const n of page.children) walk(n);
+    return out;
+  };
+  const host = { ...api, root: { ...api.root, findAllWithCriteria: (c: { types: string[] }) => all(c.types) } } as unknown as ApplyHost;
+  const comps = (): Node[] => page.children.filter((n) => n.type === 'COMPONENT');
+  return { page, api, host, comps };
+};
+{
+  const plans = plansOf('icon');
+  const w = await singleWorld(plans, ['color/icon/secondary']);
+  const before = new Map(w.comps().map((c) => [String(c.name), { key: String(c.key), id: String(c.id) }] as const));
+  const next = plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; (q.root as unknown as Record<string, unknown>).descendantFills = 'color/icon/secondary'; return q; });
+  const t = { def: 'icon', plans: next, single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  ok(pre.sets[0]?.counts.update === 44, `premise: the dry run reads all 44 icons out of date (${JSON.stringify(pre.sets[0]?.counts)})`);
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  const v = applyVerdict(res);
+  ok(v.ok && v.headline === '✓ updated 44 in place', `single/update: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 220)})`);
+  const after = new Map(w.comps().map((c) => [String(c.name), { key: String(c.key), id: String(c.id) }] as const));
+  ok(after.size === 44 && [...before].every(([n, b]) => after.get(n)?.key === b.key && after.get(n)?.id === b.id), 'single/keys: every icon keeps its key and id');
+  const sec = (await w.api.variables.getLocalVariablesAsync()).find((x: { name: string }) => x.name.endsWith('/color/icon/secondary')).id;
+  const inked = w.comps().filter((c) => ((c.children as Node[]) ?? []).filter((k) => k.type === 'VECTOR').every((k) => (k.fills as { boundVariables?: { color?: { id: string } } }[])[0]?.boundVariables?.color?.id === sec)).length;
+  ok(inked === 44, `single/written: every icon's ink is the plan's new color (${inked})`);
+  const post = (await previewUpdate(w.host, [t])).sets[0];
+  const markers = w.comps().filter((c) => (c.getSharedPluginData as (a: string, b: string) => string)(NS, 'memberUpdating') !== '').length;
+  ok(post.counts.current === 44 && markers === 0, `single/finished: each icon is finished as a set member is, current with its marker off (${JSON.stringify(post.counts)}, ${markers} markers left)`);
+}
+{
+  const plans = plansOf('icon');
+  const w = await singleWorld(plans.filter((_, i) => i !== 5));
+  const res = await applyUpdate(w.host, w.api as any, [{ def: 'icon', plans, single: true }], previewHashOf(await previewUpdate(w.host, [{ def: 'icon', plans, single: true }])));
+  const at = w.comps().map((c) => `${c.x},${c.y}`);
+  ok(res.outcomes[0]?.added === 1 && w.comps().length === 44 && new Set(at).size === at.length,
+    `single/add: the glyph the plan gained is built, in a slot no other icon holds (${res.outcomes[0]?.added}, ${w.comps().length} icons, ${new Set(at).size} distinct places)`);
+}
+{
+  const plans = plansOf('icon');
+  const w = await singleWorld(plans, ['color/icon/secondary']);
+  const f = (w.api.createFrame as () => Node)();
+  const own = (w.api.createComponentFromNode as (n: Node) => Node)(f);
+  own.name = 'icon/my-logo';
+  if (!w.page.children.includes(own)) w.page.children.push(own);
+  const dump = (): string => JSON.stringify([own.name, own.fills, [...(own._pluginData as Map<string, string>)]]);
+  const before = dump();
+  const next = plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; (q.root as unknown as Record<string, unknown>).descendantFills = 'color/icon/secondary'; return q; });
+  const t = { def: 'icon', plans: next, single: true };
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(await previewUpdate(w.host, [t])));
+  ok(applyVerdict(res).ok && dump() === before && res.outcomes[0]?.skipped.some((x) => x.member === 'name=my-logo' && x.reason === 'not built by Prism3'),
+    `single/owner: the owner's hand-made icon is left exactly as it is, and named (${JSON.stringify(res.outcomes[0]?.skipped)})`);
 }
 
 /* ── noop ────────────────────────────────────────────────────────────────────────────────────────────── */

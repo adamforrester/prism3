@@ -2440,6 +2440,27 @@ const writeComponentSet = async (
   let stale = 0;
   // #2265 PR 2 — the members this run configured in place, each with the paths it kept as hand edits.
   const updated = new Map<string, { keep: ReadonlySet<string>; accept?: boolean }>();
+  /**
+   * AN UPDATED MEMBER, FINISHED (#2265 PR 2): its record, then its stamp, then the in-progress marker off. One helper
+   * for the set path and the single-component path (#2296), so an icon is finished as a set member is. The record is
+   * the host as it now stands, EXCEPT each node kept as a hand edit, which keeps the hash it had: recording the edit
+   * as built would launder it, so the next dry run would stop reporting it and the next update would overwrite it
+   * (owner decision Q1, keep and report). Unless the owner ACCEPTED the edits as the new record (`accept`, design
+   * note §5): then the host as it stands is the record. The node it is written on goes in too (#2300). Returns the
+   * miss, if the record could not be written; the stamp then stays as it was, so the member still reads out of date.
+   */
+  const finishUpdated = async (m: CompNode, mName: string, entry: { keep: ReadonlySet<string>; accept?: boolean }): Promise<string | null> => {
+    try {
+      const prior = readBaseline(m);
+      const now = baselineOf(await snapshotMember(m));
+      if (!entry.accept) for (const p of entry.keep) if (prior?.nodes[p] !== undefined) now.nodes[p] = prior.nodes[p];
+      m.setSharedPluginData?.(NS, BASELINE_KEY, JSON.stringify({ ...now, ...(m.id ? { id: String(m.id) } : {}) }));
+    } catch (err) { return `${mName}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`; }
+    // THE STAMP, LAST (§7): only now does the member read current. Then the marker comes off.
+    m.setSharedPluginData?.(NS, STAMP_KEY, stampByMember.get(mName) ?? '');
+    m.setSharedPluginData?.(NS, UPDATING_KEY, '');
+    return null;
+  };
   for (let i = 0; i < cells.length; i++) {
     const spec = cells[i];
     const existing = have.get(spec.name);
@@ -2551,6 +2572,18 @@ const writeComponentSet = async (
     const emitted: string[] = [];
     const cols = Math.max(1, Math.ceil(Math.sqrt(fresh.length)));
     const PITCH = 48;   // a fixed grid pitch — cosmetic; the assets panel groups by slash name, not by x/y
+    // IN AN UPDATE (#2296), a component the plan gained goes in the first slot of that grid no existing component
+    // of this def already holds, never over one. A build lays out from the origin: everything there is its own.
+    const taken = new Set<string>();
+    if (opts.update) for (const c of (dest.children ?? []) as CompNode[])
+      if (c.type === 'COMPONENT' && String(c.name ?? '').startsWith(`${component}/`) && !fresh.includes(c)) taken.add(`${c.x},${c.y}`);
+    let slot = 0;
+    const nextSlot = (): number => {
+      for (;; slot++) {
+        const x = (slot % cols) * PITCH, y = Math.floor(slot / cols) * PITCH;
+        if (!taken.has(`${x},${y}`)) { taken.add(`${x},${y}`); return slot++; }
+      }
+    };
     fresh.forEach((c, i) => {
       const newName = `${component}/${emitCoordValue(String(c.name))}`;
       wr(c).name = newName;
@@ -2562,15 +2595,25 @@ const writeComponentSet = async (
       // A SIMPLE GRID so N components are not stacked at the origin. Fixed pitch rather than measured
       // widths, because the layout here is a nicety (a designer opens the folder, not the canvas), not the
       // measured column pitch the set path needs to keep hug-width members from overlapping.
-      wr(c).x = (i % cols) * PITCH;
-      wr(c).y = Math.floor(i / cols) * PITCH;
+      const at = opts.update ? nextSlot() : i;
+      wr(c).x = (at % cols) * PITCH;
+      wr(c).y = Math.floor(at / cols) * PITCH;
     });
     // THE "AS BUILT" BASELINE (#2265), as on the set path: after the last write, on this run's members only.
     for (const c of fresh) {
       try { await writeBaseline(c); }
       catch (err) { misses.push(`${String(c.name)}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`); }
     }
+    // THE MEMBERS THIS RUN UPDATED IN PLACE (#2296), finished as a set member is: record, stamp last, marker off. Before
+    // this the emit branch returned first, so an updated icon would never take its new stamp and would keep its marker.
+    for (const [mName, entry] of updated) {
+      const m = have.get(mName);
+      if (!m) { misses.push(`${mName}.asBuilt -> NOT RECORDED (the component is not in the file to read)`); continue; }
+      const miss = await finishUpdated(m, mName, entry);
+      if (miss) misses.push(miss);
+    }
     return {
+      ...(opts.update ? { updatedInPlace: [...updated.keys()] } : {}),
       // `component` (the def id, e.g. `icon`) is the GROUP label — non-null so the caller's `ok` and its
       // summary resolve, and `emittedComponents` below is what routes the summary to the no-set arm.
       set: component,
@@ -3413,27 +3456,13 @@ const writeComponentSet = async (
     const m = liveMembers.get(mName);
     if (!m) { asBuiltMiss.push(`${mName}.asBuilt -> NOT RECORDED (the member is not in the set to read)`); continue; }
     const entry = updated.get(mName);
-    const keep = entry?.keep;
-    try {
-      if (!entry) await writeBaseline(m);
-      else {
-        // AN UPDATED MEMBER'S RECORD (#2265 PR 2): the host as it now stands, EXCEPT each node kept as a hand edit,
-        // which keeps the hash it had. Recording the edit as built would launder it: the next dry run would stop
-        // reporting it, and the next update would overwrite it (owner decision Q1, keep and report).
-        const prior = readBaseline(m);
-        const now = baselineOf(await snapshotMember(m));
-        // …unless the owner ACCEPTED the edits as the new record (`accept`, design note §5): then the host as it
-        // stands is the record, and the dry run stops listing them.
-        if (!entry.accept) for (const p of keep!) if (prior?.nodes[p] !== undefined) now.nodes[p] = prior.nodes[p];
-        // The node it is written on, as `writeBaseline` records it (#2300): a copy's record names its original.
-        m.setSharedPluginData?.(NS, BASELINE_KEY, JSON.stringify({ ...now, ...(m.id ? { id: String(m.id) } : {}) }));
-      }
-    } catch (err) { asBuiltMiss.push(`${mName}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`); continue; }
     if (entry) {
-      // THE STAMP, LAST (§7): only now does the member read current. Then the marker comes off.
-      m.setSharedPluginData?.(NS, STAMP_KEY, stampByMember.get(mName) ?? '');
-      m.setSharedPluginData?.(NS, UPDATING_KEY, '');
+      const miss = await finishUpdated(m, mName, entry);
+      if (miss) asBuiltMiss.push(miss);
+      continue;
     }
+    try { await writeBaseline(m); }
+    catch (err) { asBuiltMiss.push(`${mName}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`); }
   }
   const allMisses = misses.concat(stray, boxMiss, axisMiss, coincident, footprint, propMiss, asBuiltMiss);
 

@@ -408,6 +408,13 @@ export type ShimOpts = {
    * before. Both are non-enumerable, so a JSON dump of a node is unchanged either way.
    */
   identities?: boolean;
+  /**
+   * TOP-LEVEL COMPONENTS ANSWER AS THEMSELVES (#2296), under `liveRoot`. A criteria search for COMPONENT returns the
+   * page's own top-level component NODES, not name-only references, as Figma does: an icon or spinner the build
+   * emitted is a node the update can read and configure in place. Opt-in, because an existing case may rely on a
+   * reference's own `id` (`73:…`) as an INSTANCE_SWAP default, and a node without `identities` has none.
+   */
+  liveComponents?: boolean;
   /** `saveVersionHistoryAsync` refuses (#2265 PR 2, §10 Q7): the update must then write nothing. */
   refuseVersion?: boolean;
 };
@@ -1370,7 +1377,15 @@ export const makeShim = (opts: ShimOpts = {}) => {
             const members = live.map((c) => mkRef(String(c.name), seq++, c, owner));
             if (types.includes('COMPONENT_SET')) found.push(mkSet(String(n.name), members));
             if (types.includes('COMPONENT')) for (const m of members) found.push(m);
-          } else if (n.type === 'COMPONENT' && types.includes('COMPONENT')) found.push(mkRef(String(n.name), seq++));
+          } else if (n.type === 'COMPONENT' && types.includes('COMPONENT')) {
+            if (opts.liveComponents) {
+              // The node itself, instanceable as Figma's is (#2296).
+              const ref = mkRef(String(n.name), seq++, n);
+              if (!Object.getOwnPropertyDescriptor(n, 'createInstance'))
+                Object.defineProperty(n, 'createInstance', { configurable: true, enumerable: false, value: ref.createInstance });
+              found.push(n as unknown as ReturnType<typeof mkRef>);
+            } else found.push(mkRef(String(n.name), seq++));
+          }
         }
         return found;
       },
