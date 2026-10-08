@@ -312,7 +312,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
       grp.tabIndex = -1;
       grp.dataset.column = col;
       const head = h('div', 'p3-icol-head');
-      const t = h('h4', 'p3-icol-title', name);
+      const t = h('h3', 'p3-icol-title', name);
       t.id = `${grp.id}-t`;
       grp.setAttribute('aria-labelledby', t.id);
       const pal = interactivePaletteOf(rows[0]);
@@ -467,7 +467,7 @@ export const mountInteractiveLevers = (host: HTMLElement, cleanups: (() => void)
     const el = hook(h('section', 'p3-lsec'), 'lever-section');
     el.id = `p3-lsec-interactive-${i}`;
     const head = h('div', 'p3-lsec-head');
-    const title = h('h3', 'p3-lsec-title', s.title);
+    const title = h('h2', 'p3-lsec-title', s.title);
     title.id = `${el.id}-t`;
     el.setAttribute('aria-labelledby', title.id);
     head.append(title);

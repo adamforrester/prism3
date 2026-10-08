@@ -204,7 +204,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
 
     // ── Default (BG1 A, approved copy: the section title already says "background fills") ──
     const def = hook(h('div', 'p3-fillrows'), 'surface-default-rows');
-    def.append(h('h4', 'p3-rows-sub p3-rows-sub-first', 'Default'));
+    def.append(h('h3', 'p3-rows-sub p3-rows-sub-first', 'Default'));
     // Primary (QA-B3: "Page" was its name; it is `background.primary`): white, black, or a neutral step, in the step
     // picker (Q45). No Auto: an unset base reads as the mode's default. A pick writes the key exactly as the Page
     // control wrote it (`setSurfaceBase`).
@@ -251,7 +251,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
 
     // ── Inverse (BG1 A, approved copy) ──
     const inv = hook(h('div', 'p3-fillrows'), 'surface-inverse-rows');
-    inv.append(h('h4', 'p3-rows-sub', 'Inverse'));
+    inv.append(h('h3', 'p3-rows-sub', 'Inverse'));
     // The inverse fill's palette first (#898; Q55: it stays a select). Choosing one is its own write: it seeds the
     // darkest step (`setBandPalette`).
     const band = bandOf(m);
@@ -440,7 +440,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     let sub: string | undefined;
     const close = (): void => { for (const it of tail(sub)) { box.append(it.el); out.push(it); } };
     for (const r of list) {
-      if (r.sub) { close(); sub = r.sub; box.append(h('h4', 'p3-rows-sub', r.sub)); }
+      if (r.sub) { close(); sub = r.sub; box.append(h('h3', 'p3-rows-sub', r.sub)); }
       const it = row(r);
       if (it) { box.append(it.el); out.push(it); }
     }
@@ -652,7 +652,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     el.id = `p3-lsec-fills-${i}`;
     el.tabIndex = -1;   // a jump link's target takes focus
     const head = h('div', 'p3-lsec-head');
-    const title = h('h3', 'p3-lsec-title', s.title);
+    const title = h('h2', 'p3-lsec-title', s.title);
     title.id = `${el.id}-t`;
     el.setAttribute('aria-labelledby', title.id);
     head.append(title);

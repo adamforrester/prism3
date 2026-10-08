@@ -454,6 +454,44 @@ const LIST = CAT.tables.slice(0, 4).map((t) => ({ key: t.key, title: t.title, pa
   await page.close();
 }
 
+// ── #2313: an agent's run after a panel run ──────────────────────────────────────────────────────
+// The page lists the PANEL's run, table by table. An agent's `style-guide` run posts no tables (the main thread sends
+// them to the panel's sink only) but its verdict is forwarded to the panel, bracketed by `agent-started` and
+// `agent-finished` exactly as the plugin's agent dispatch posts them. Before #2313 that verdict replaced the panel's
+// headline and kept the panel's table list, so the page read as if the agent's run had drawn the panel's two tables.
+// The page now drops the panel's list when an agent's run ends, so no headline sits beside tables it did not draw; the
+// agent's verdict is Activity's, as it was with no earlier panel run. Expected values are typed here.
+// Mutation (the reducer keeping `styleGuideRun` on an agent's verdict) → `#2313: after an agent's run, the page shows
+// no verdict beside the panel's earlier tables …`.
+console.log("\nan agent's run after a panel run (#2313)");
+{
+  const { page, errors } = await openPage();
+  await post(page, { type: 'style-guide-catalog', catalog: CAT });
+  await treeDrawn(page);
+  await hooks.click(page.locator('[data-p3="sg-draw"]'));
+  await posted(page, 'style-guide', 1);
+  await post(page, { type: 'style-guide-tables', tables: LIST.slice(0, 2) });
+  await post(page, { type: 'style-guide-table', index: 0, status: 'done' });
+  await post(page, { type: 'style-guide-table', index: 1, status: 'done' });
+  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 2 tables', summary: '2 tables drawn' });
+  await until(page, "the panel run's verdict drawn", () => document.querySelector('[data-p3="sg-verdict"]')?.textContent === '✓ style guide: 2 tables');
+  let st = await read(page);
+  ok(st.verdict === '✓ style guide: 2 tables' && JSON.stringify(st.tables) === JSON.stringify(['Core — base:Done', 'Primary:Done']),
+    `#2313 control: the panel's own run shows its verdict beside its two tables (${JSON.stringify({ verdict: st.verdict, tables: st.tables })})`);
+  await post(page, { type: 'agent-started', id: 'sg-agent-1', cmd: 'style-guide' });
+  await post(page, { type: 'style-guide-progress', done: 0, total: 5, tableMs: 0 });
+  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 5 tables', summary: '5 tables drawn' });
+  await post(page, { type: 'agent-finished', id: 'sg-agent-1', cmd: 'style-guide' });
+  await until(page, "the agent's run handled: the panel's headline gone", () => document.querySelector('[data-p3="sg-verdict"]')?.textContent !== '✓ style guide: 2 tables');
+  st = await read(page);
+  ok(!(st.verdict === '✓ style guide: 5 tables' && st.tables.length > 0),
+    `#2313: after an agent's run, the page shows no verdict beside the panel's earlier tables (verdict "${st.verdict}", tables ${JSON.stringify(st.tables)})`);
+  ok(st.verdict === null && st.tables.length === 0 && st.summary !== null,
+    `#2313: the page drops the panel's earlier run and shows its selection summary again (verdict "${st.verdict}", tables ${JSON.stringify(st.tables)}, summary "${st.summary}")`);
+  ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
 // ── 380 (P9) ─────────────────────────────────────────────────────────────────────────────────────
 console.log('\nat 380 (P9)');
 {
