@@ -222,7 +222,7 @@ export const select: ComponentDef = {
 
   // The spacing this spec states at comfortable, which density moves one step along the space ladder
   // (the spacing model, 2026-09-29). `root-gap` stays put: the field stack's spacing is not a density call.
-  densitySpacing: ['gap', 'size.{size}.pad-x', 'size.{size}.pad-y'],
+  densitySpacing: ['size.{size}.gap', 'size.{size}.pad-x', 'size.{size}.pad-y'],
 
   tokens: {
     // ── GEOMETRY ─────────────────────────────────────────────────────────────────────────────────
@@ -237,8 +237,8 @@ export const select: ComponentDef = {
     // floor; small buttons stay the knowing exception below it (owner). text-field binds the same floor
     // since #1494, so the single-line fields share it. Per size since #2266: the rungs are at the end of
     // this block (`size.{size}.min-height`).
-    // The control's internal spacing (value ↔ chevron, and the leading glyph ↔ value).
-    'gap': 'space.100',
+    // The control's internal spacing (value ↔ chevron, and the leading glyph ↔ value) is per size since
+    // #2266 (`size.{size}.gap`, 8px at every size), beside the padding it is ordered under (#325).
     // The stack spacing between label, control and message.
     'root-gap': 'space.100',
     // The chevron and any leading glyph share one artboard rung.
@@ -340,14 +340,17 @@ export const select: ComponentDef = {
     'size.small.min-height': 'size.md.min-height',
     'size.small.pad-x': 'space.200',
     'size.small.pad-y': 'space.075',
+    'size.small.gap': 'space.100',
     'size.small.type': 'type.body.sm.default',
     'size.medium.min-height': 'size.md.min-height',
     'size.medium.pad-x': 'space.200',
     'size.medium.pad-y': 'space.100',
+    'size.medium.gap': 'space.100',
     'size.medium.type': 'type.body.md.default',
     'size.large.min-height': 'size.lg.height',
     'size.large.pad-x': 'space.300',
     'size.large.pad-y': 'space.100',
+    'size.large.gap': 'space.100',
     'size.large.type': 'type.body.lg.default',
   },
 
@@ -447,7 +450,7 @@ export const select: ComponentDef = {
         // inside `content`, not against the box edge), so `inlineVisual` is omitted and both inline sides
         // fall back to the label inset.
         padding: { block: 'size.{size}.pad-y', inlineLabel: 'size.{size}.pad-x' },
-        gap: 'gap',
+        gap: 'size.{size}.gap',
         children: ['content', 'chevron', 'focusRing'],
       },
       // THE VALUE ROW — leading glyph + value text. Grows across the control on both surfaces (#1751): FIXED
@@ -456,7 +459,7 @@ export const select: ComponentDef = {
       content: {
         kind: 'box',
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
-        gap: 'gap',
+        gap: 'size.{size}.gap',
         children: ['leadingVisual', 'placeholder', 'value'],
       },
       // THE OPTIONAL LEADING GLYPH. A swap slot whose PRESENCE is a node-visibility BOOLEAN (#1331): the

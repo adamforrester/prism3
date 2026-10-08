@@ -177,12 +177,13 @@ export const textField: ComponentDef = {
 
   // The spacing this spec states at comfortable, which density moves one step along the space ladder
   // (the spacing model, 2026-09-29). `root-gap` stays put: the field stack's spacing is not a density call.
-  densitySpacing: ['gap', 'size.{size}.pad-x', 'size.{size}.pad-y'],
+  densitySpacing: ['size.{size}.gap', 'size.{size}.pad-x', 'size.{size}.pad-y'],
 
   tokens: {
     // ── GEOMETRY (the size-independent keys; the per-size rungs are at the end of this block) ─────────
     'radius': 'radius.sm',
-    'gap': 'space.100',
+    // The control's internal spacing is per size since #2266 (`size.{size}.gap`, 8px at every size), beside
+    // the padding it is ordered under (#325).
     // The stack spacing between label, control and message.
     'root-gap': 'space.100',
     // The leading and trailing glyphs share one artboard rung.
@@ -304,16 +305,19 @@ export const textField: ComponentDef = {
     'size.small.height': 'size.md.min-height',
     'size.small.pad-x': 'space.200',
     'size.small.pad-y': 'space.075',
+    'size.small.gap': 'space.100',
     'size.small.type': 'type.body.sm.default',
     'size.small.caret-height': 'control.size.sm.line-box',
     'size.medium.height': 'size.md.min-height',
     'size.medium.pad-x': 'space.200',
     'size.medium.pad-y': 'space.100',
+    'size.medium.gap': 'space.100',
     'size.medium.type': 'type.body.md.default',
     'size.medium.caret-height': 'control.size.md.line-box',
     'size.large.height': 'size.lg.height',
     'size.large.pad-x': 'space.300',
     'size.large.pad-y': 'space.100',
+    'size.large.gap': 'space.100',
     'size.large.type': 'type.body.lg.default',
     'size.large.caret-height': 'control.size.lg.line-box',
   },
@@ -385,7 +389,7 @@ export const textField: ComponentDef = {
         // Symmetric padding — the leading glyph sits inside `content`, not against the box edge, so no #326
         // slot-aware asymmetry; both inline sides fall back to the label inset.
         padding: { block: 'size.{size}.pad-y', inlineLabel: 'size.{size}.pad-x' },
-        gap: 'gap',
+        gap: 'size.{size}.gap',
         children: ['content', 'trailingVisual', 'focusRing'],
       },
       // THE VALUE ROW — leading glyph + value text. Grows across the control on both surfaces (#1751): FIXED
@@ -397,7 +401,7 @@ export const textField: ComponentDef = {
         // behavior: in code the input scrolls with the caret, so the full text stays reachable, and in Figma
         // it is cut at this frame's edge, with no ellipsis, rather than drawing over the trailing affix.
         clipsContent: true,
-        gap: 'gap',
+        gap: 'size.{size}.gap',
         children: ['leadingVisual', 'entry'],
       },
       // THE OPTIONAL LEADING GLYPH. A swap slot whose PRESENCE is a node-visibility BOOLEAN (#1331): the node
