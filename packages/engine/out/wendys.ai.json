@@ -6721,6 +6721,60 @@
         "letterSpacing": "{wds.core.font.letter-spacing-role.snug}"
       }
     },
+    "type.body.xs.default": {
+      "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
+      "meaning": "Type style — body xs default (12px, body face)",
+      "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm.",
+      "avoid_when": "Do not use for running text (use `type.body.sm` or larger). For small print that stands on its own (an image caption, helper text, a footnote), use `type.caption.lg`.",
+      "resolves_to": {
+        "fontFamily": "{wds.core.font.family.body}",
+        "fontSize": "{wds.core.font.size.12}",
+        "fontWeight": "{wds.core.font.weight-role.default}",
+        "lineHeight": "{wds.core.font.line-height-role.normal}",
+        "letterSpacing": "{wds.core.font.letter-spacing-role.normal}"
+      }
+    },
+    "type.body.xs.default-link": {
+      "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
+      "meaning": "Type style — body xs default link (12px, body face)",
+      "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm. The underlined link variant — pair with a `text.link.*` color.",
+      "avoid_when": "Do not use for non-link text (use `type.body.xs.default`).",
+      "resolves_to": {
+        "fontFamily": "{wds.core.font.family.body}",
+        "fontSize": "{wds.core.font.size.12}",
+        "fontWeight": "{wds.core.font.weight-role.default}",
+        "lineHeight": "{wds.core.font.line-height-role.normal}",
+        "letterSpacing": "{wds.core.font.letter-spacing-role.normal}",
+        "textDecoration": "underline"
+      }
+    },
+    "type.body.xs.strong": {
+      "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
+      "meaning": "Type style — body xs strong (12px, body face)",
+      "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm.",
+      "avoid_when": "Do not use for running text (use `type.body.sm` or larger). For small print that stands on its own (an image caption, helper text, a footnote), use `type.caption.lg`.",
+      "resolves_to": {
+        "fontFamily": "{wds.core.font.family.body}",
+        "fontSize": "{wds.core.font.size.12}",
+        "fontWeight": "{wds.core.font.weight-role.strong}",
+        "lineHeight": "{wds.core.font.line-height-role.normal}",
+        "letterSpacing": "{wds.core.font.letter-spacing-role.normal}"
+      }
+    },
+    "type.body.xs.strong-link": {
+      "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
+      "meaning": "Type style — body xs strong link (12px, body face)",
+      "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm. The underlined link variant — pair with a `text.link.*` color.",
+      "avoid_when": "Do not use for non-link text (use `type.body.xs.strong`).",
+      "resolves_to": {
+        "fontFamily": "{wds.core.font.family.body}",
+        "fontSize": "{wds.core.font.size.12}",
+        "fontWeight": "{wds.core.font.weight-role.strong}",
+        "lineHeight": "{wds.core.font.line-height-role.normal}",
+        "letterSpacing": "{wds.core.font.letter-spacing-role.normal}",
+        "textDecoration": "underline"
+      }
+    },
     "type.body.sm.default": {
       "$description": "Running text / default UI copy.",
       "meaning": "Type style — body sm default (14px, body face)",
@@ -7105,6 +7159,8 @@
         "type.body.md.default-link",
         "type.body.sm.default",
         "type.body.sm.default-link",
+        "type.body.xs.default",
+        "type.body.xs.default-link",
         "type.caption.lg.default",
         "type.caption.lg.default-link",
         "type.caption.md.default",
@@ -7140,6 +7196,8 @@
         "type.body.md.strong-link",
         "type.body.sm.strong",
         "type.body.sm.strong-link",
+        "type.body.xs.strong",
+        "type.body.xs.strong-link",
         "type.caption.lg.strong",
         "type.caption.lg.strong-link",
         "type.caption.md.strong",
@@ -10743,6 +10801,10 @@
         "type.body.sm.default-link",
         "type.body.sm.strong",
         "type.body.sm.strong-link",
+        "type.body.xs.default",
+        "type.body.xs.default-link",
+        "type.body.xs.strong",
+        "type.body.xs.strong-link",
         "type.caption.lg.default",
         "type.caption.lg.default-link",
         "type.caption.lg.strong",
@@ -10787,6 +10849,10 @@
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a type style (`type.*`, in the typography tier of this file), not the raw size/weight.",
       "aliased_by": [
+        "type.body.xs.default",
+        "type.body.xs.default-link",
+        "type.body.xs.strong",
+        "type.body.xs.strong-link",
         "type.caption.lg.default",
         "type.caption.lg.default-link",
         "type.caption.lg.strong",
@@ -11001,6 +11067,8 @@
         "type.body.md.default-link",
         "type.body.sm.default",
         "type.body.sm.default-link",
+        "type.body.xs.default",
+        "type.body.xs.default-link",
         "type.caption.lg.default",
         "type.caption.lg.default-link",
         "type.caption.md.default",
@@ -11036,6 +11104,8 @@
         "type.body.md.strong-link",
         "type.body.sm.strong",
         "type.body.sm.strong-link",
+        "type.body.xs.strong",
+        "type.body.xs.strong-link",
         "type.caption.lg.strong",
         "type.caption.lg.strong-link",
         "type.caption.md.strong",
@@ -11144,6 +11214,10 @@
         "type.body.sm.default-link",
         "type.body.sm.strong",
         "type.body.sm.strong-link",
+        "type.body.xs.default",
+        "type.body.xs.default-link",
+        "type.body.xs.strong",
+        "type.body.xs.strong-link",
         "type.code.inline.default"
       ]
     },
@@ -11184,6 +11258,10 @@
         "type.body.sm.default-link",
         "type.body.sm.strong",
         "type.body.sm.strong-link",
+        "type.body.xs.default",
+        "type.body.xs.default-link",
+        "type.body.xs.strong",
+        "type.body.xs.strong-link",
         "type.caption.lg.default",
         "type.caption.lg.default-link",
         "type.caption.lg.strong",

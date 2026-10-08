@@ -1202,6 +1202,206 @@
       }
     },
     {
+      "name": "body/xs/default",
+      "description": "body xs default — 12px Roboto, normal line-height, for secondary text and metadata only.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "wds/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "wds/core/font/style/body/default",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "wds/core/font/size/12",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "body/xs/default-link",
+      "description": "body xs default link — 12px Roboto, normal line-height, for secondary text and metadata only.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "wds/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "wds/core/font/style/body/default",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "wds/core/font/size/12",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 400
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
+      "name": "body/xs/strong",
+      "description": "body xs strong — 12px Roboto, normal line-height, for secondary text and metadata only.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "wds/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "wds/core/font/style/body/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "wds/core/font/size/12",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 700
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "body/xs/strong-link",
+      "description": "body xs strong link — 12px Roboto, normal line-height, for secondary text and metadata only.",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "wds/core/font/family/body",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": true,
+          "variable": "wds/core/font/style/body/strong",
+          "collection": "core",
+          "resolvedType": "STRING"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "wds/core/font/size/12",
+          "collection": "core",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": false,
+          "value": 700
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 150
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 0
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "ORIGINAL"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "UNDERLINE"
+        }
+      }
+    },
+    {
       "name": "label/lg/emphasis",
       "description": "label lg emphasis — 18px wendysFresh, snug line-height, for control and form labels.",
       "properties": {

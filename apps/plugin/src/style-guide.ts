@@ -1343,8 +1343,9 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     plan.tables.forEach((t, index) => { skip(t, 'no-cells'); run.onTable?.({ index, status: 'failed', reason: SKIP_REASON(t, 'no-cells') }); });
     return { tables: out, stale: [], replaced: [], deleted: [], kept: [], unbound: 0, notes: plan.notes, misses, unmatched: plan.unmatched };
   }
-  // A palette swatch FILLs its cell; a swatch set Set up file built before its squares stretched is brought up to date
-  // first, so the square grows with the cell (#2268). A set the owner made is never changed (`stretchSwatches`).
+  // A swatch set Set up file built before its squares stretched is brought up to date (#2268), so a member a designer
+  // places at any size grows its square with it. A table's fill swatch no longer shows the square (#2336: the instance
+  // paints the color edge to edge), so this is the set's repair, not the table's. A set the owner made is never changed.
   if (plan.tables.some((t) => t.kind === 'primitive')) stretchSwatches(swatches);
   const allSets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly SgNode[];
   const headerSet = allSets.find((n) => n.name === SECTION_HEADER_SET) ?? allSets.find((n) => isTemplateSet(n.name, SECTION_HEADER_SET));
