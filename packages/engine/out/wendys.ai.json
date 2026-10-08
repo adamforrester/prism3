@@ -7263,6 +7263,13 @@
       "avoid_when": "Do not apply it on its own — a type style sets it together with the size and weight it was chosen for.",
       "resolves_to": "{wds.core.font.line-height.175}"
     },
+    "core.font.letter-spacing-role.tightest": {
+      "$description": "letter-spacing role 'tightest' → -0.04em — a relative-emphasis name a mode may re-point; the step itself never changes",
+      "meaning": "Letter-spacing role — tightest",
+      "when_to_use": "A letter-spacing value, named by purpose. Reach for it through a type style (`type.*`).",
+      "avoid_when": "Do not apply it on its own — a type style sets it together with the size and weight it was chosen for.",
+      "resolves_to": "{wds.core.font.letter-spacing.neg-40}"
+    },
     "core.font.letter-spacing-role.tighter": {
       "$description": "letter-spacing role 'tighter' → -0.03em — a relative-emphasis name a mode may re-point; the step itself never changes",
       "meaning": "Letter-spacing role — tighter",
@@ -7277,6 +7284,13 @@
       "avoid_when": "Do not apply it on its own — a type style sets it together with the size and weight it was chosen for.",
       "resolves_to": "{wds.core.font.letter-spacing.neg-20}"
     },
+    "core.font.letter-spacing-role.snugger": {
+      "$description": "letter-spacing role 'snugger' → -0.015em — a relative-emphasis name a mode may re-point; the step itself never changes",
+      "meaning": "Letter-spacing role — snugger",
+      "when_to_use": "A letter-spacing value, named by purpose. Reach for it through a type style (`type.*`).",
+      "avoid_when": "Do not apply it on its own — a type style sets it together with the size and weight it was chosen for.",
+      "resolves_to": "{wds.core.font.letter-spacing.neg-15}"
+    },
     "core.font.letter-spacing-role.snug": {
       "$description": "letter-spacing role 'snug' → -0.01em — a relative-emphasis name a mode may re-point; the step itself never changes",
       "meaning": "Letter-spacing role — snug",
@@ -7290,6 +7304,13 @@
       "when_to_use": "A letter-spacing value, named by purpose. Reach for it through a type style (`type.*`).",
       "avoid_when": "Do not apply it on its own — a type style sets it together with the size and weight it was chosen for.",
       "resolves_to": "{wds.core.font.letter-spacing.0}"
+    },
+    "core.font.letter-spacing-role.open": {
+      "$description": "letter-spacing role 'open' → 0.01em — a relative-emphasis name a mode may re-point; the step itself never changes",
+      "meaning": "Letter-spacing role — open",
+      "when_to_use": "A letter-spacing value, named by purpose. Reach for it through a type style (`type.*`).",
+      "avoid_when": "Do not apply it on its own — a type style sets it together with the size and weight it was chosen for.",
+      "resolves_to": "{wds.core.font.letter-spacing.10}"
     },
     "core.font.letter-spacing-role.wide": {
       "$description": "letter-spacing role 'wide' → 0.02em — a relative-emphasis name a mode may re-point; the step itself never changes",
@@ -11198,6 +11219,15 @@
         "type.label.sm.emphasis"
       ]
     },
+    "core.font.letter-spacing.10": {
+      "$description": "letter spacing 0.01em (ladder step 10)",
+      "meaning": "Letter-spacing primitive — 10 (em)",
+      "tier": "primitive",
+      "consume": "Private primitive — reach for it through a type style (`type.*`, in the typography tier of this file), not the raw size/weight.",
+      "aliased_by": [
+        "core.font.letter-spacing-role.open"
+      ]
+    },
     "core.font.letter-spacing.20": {
       "$description": "letter spacing 0.02em (ladder step 20)",
       "meaning": "Letter-spacing primitive — 20 (em)",
@@ -11217,6 +11247,15 @@
         "type.eyebrow.lg.emphasis",
         "type.eyebrow.md.emphasis",
         "type.eyebrow.sm.emphasis"
+      ]
+    },
+    "core.font.letter-spacing.neg-40": {
+      "$description": "letter spacing -0.04em (ladder step neg-40)",
+      "meaning": "Letter-spacing primitive — neg-40 (em)",
+      "tier": "primitive",
+      "consume": "Private primitive — reach for it through a type style (`type.*`, in the typography tier of this file), not the raw size/weight.",
+      "aliased_by": [
+        "core.font.letter-spacing-role.tightest"
       ]
     },
     "core.font.letter-spacing.neg-30": {
@@ -11241,6 +11280,15 @@
         "type.display.lg.strong",
         "type.display.md.strong",
         "type.display.sm.strong"
+      ]
+    },
+    "core.font.letter-spacing.neg-15": {
+      "$description": "letter spacing -0.015em (ladder step neg-15)",
+      "meaning": "Letter-spacing primitive — neg-15 (em)",
+      "tier": "primitive",
+      "consume": "Private primitive — reach for it through a type style (`type.*`, in the typography tier of this file), not the raw size/weight.",
+      "aliased_by": [
+        "core.font.letter-spacing-role.snugger"
       ]
     },
     "core.font.letter-spacing.neg-10": {

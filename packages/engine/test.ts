@@ -15,7 +15,7 @@ import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, 
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale, ICON_SIZES, sizeRefPx, componentSizes, controlSizes, dimensionGrid, spaceScale, densitySpace, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
-import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, type Theme } from './theme';
+import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, TRACKING_SHIFT_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey, weightAvailability, type Theme } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes, overrideGroundRgb, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS, pureExtremeInk } from './modes';
 import { groundsOf } from './grounds';
@@ -7580,6 +7580,31 @@ arm: {
 // a group, monotonic per group, count inside the KB's 15–25 (12 floor when a brand
 // caps display), and the floor/ceiling levers behave.
 const tBrand = (id: string, ty: any) => brandTheme({ id, primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, typography: ty });
+// #2322 — three tracking roles between and beyond the six (owner, 2026-10-08): tightest −4%, snugger −1.5%, open +1%.
+// Expected values are written here, never read from theme.ts.
+{
+  const em = (t: ReturnType<typeof tBrand>, k: string): number | undefined => t.typography.letterSpacings.find((l) => l.key === k)?.em;
+  const d = tBrand('ls-2322', {});
+  ok(JSON.stringify(d.typography.letterSpacings.map((l) => [l.key, l.em])) === JSON.stringify([
+    ['tightest', -0.04], ['tighter', -0.03], ['tight', -0.02], ['snugger', -0.015], ['snug', -0.01], ['normal', 0], ['open', 0.01], ['wide', 0.02], ['wider', 0.05],
+  ]), `#2322 the tracking roles, in order, at their values (${JSON.stringify(d.typography.letterSpacings.map((l) => [l.key, l.em]))})`);
+  // A brand that re-anchored a neighbor past a new role still builds: the new role sits at the neighbor's value.
+  // A build that throws is this arm's failure too, by name: without the clamp, the order check refuses such a brand.
+  const tryBrand = (id: string, ty: any): ReturnType<typeof tBrand> | Error => { try { return tBrand(id, ty); } catch (e) { return e as Error; } };
+  const past = tryBrand('ls-2322-past', { letterSpacings: { tighter: -0.05 } });
+  ok(!(past instanceof Error) && em(past, 'tightest') === -0.05 && em(past, 'tighter') === -0.05,
+    `#2322 tighter re-anchored to −5%: the brand builds, and tightest clamps to −5% rather than crossing it (${past instanceof Error ? `threw: ${past.message.slice(0, 90)}` : em(past, 'tightest')})`);
+  const narrow = tryBrand('ls-2322-narrow', { letterSpacings: { wide: 0.005 } });
+  ok(!(narrow instanceof Error) && em(narrow, 'open') === 0.005,
+    `#2322 wide re-anchored to +0.5%: the brand builds, and open clamps to +0.5% (${narrow instanceof Error ? `threw: ${narrow.message.slice(0, 90)}` : em(narrow, 'open')})`);
+  // A brand may bind a new role itself, on the ladder.
+  const own = tBrand('ls-2322-own', { letterSpacings: { snugger: -0.02 } });
+  ok(em(own, 'snugger') === -0.02, `#2322 a brand binds snugger itself, on the ladder and in order (${em(own, 'snugger')})`);
+  // A tracking nudge still steps along the six roles it always has: one step tighter from title's snug is tight.
+  const nudged = tBrand('ls-2322-nudge', { trackingShift: { title: -1 } });
+  const titles = [...new Set(nudged.typography.composites.filter((c) => c.group === 'title').map((c) => c.tracking))];
+  ok(JSON.stringify(titles) === '["tight"]', `#2322 a nudge one step tighter from snug lands on tight, never on snugger (${JSON.stringify(titles)})`);
+}
 const typeCases: [string, any][] = [
   ['default', {}],
   ['expressive', { typeScale: 'expressive' }],
@@ -8297,7 +8322,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 {
   const dTheme = tBrand('nudge-range', { families: { text: 'Inter' } });
   const idxOf = (field: 'leadingShift' | 'trackingShift', g: any, px: number) =>
-    (field === 'leadingShift' ? LINE_HEIGHT_KEYS : LETTER_SPACING_KEYS).indexOf(derivedRungFor(field, g, px) as any);
+    (field === 'leadingShift' ? LINE_HEIGHT_KEYS : TRACKING_SHIFT_KEYS).indexOf(derivedRungFor(field, g, px) as any);
   // display sits at the TIGHT end of the leading ramp, which is why a ±2 cap made `loose` unreachable.
   ok(idxOf('leadingShift', 'display', 160) === 0, 'display derives the tightest leading rung');
   // The DISTANCE display must travel to reach `loose`, whatever the ramp length — the point is that a
@@ -8305,7 +8330,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(LINE_HEIGHT_KEYS.length - 1 - idxOf('leadingShift', 'display', 160) === LINE_HEIGHT_KEYS.length - 1,
     `display → loose needs +${LINE_HEIGHT_KEYS.length - 1}, so any smaller cap hides a reachable rung`);
   // eyebrow sits at the WIDE end of the tracking ramp — the opposite failure: +1/+2 were no-ops.
-  ok(idxOf('trackingShift', 'eyebrow', 12) === LETTER_SPACING_KEYS.length - 1,
+  ok(idxOf('trackingShift', 'eyebrow', 12) === TRACKING_SHIFT_KEYS.length - 1,
     'eyebrow derives the widest tracking rung, so every positive tracking nudge on it is a no-op');
   // body sits mid-ramp: both directions live, neither reaching the engine's ±5 bound.
   // By NAME plus a mid-ramp check, not by index: the index moved when #388 inserted `cozy` above it,

@@ -333,7 +333,7 @@
   display: flex; align-items: center; gap: var(--p3-space-150); padding: var(--p3-space-150) var(--p3-space-300);
   border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1);
 }
-.p3-bardlg-title { flex: 1 1 auto; margin: 0; font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); }
+.p3-bardlg-title { flex: 1 1 auto; margin: 0; font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-tighter); }
 .p3-bardlg-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: 0; overflow: hidden; }
 .p3-bardlg-col { display: flex; flex-direction: column; gap: var(--p3-space-150); min-width: 0; padding: var(--p3-space-200) var(--p3-space-300); overflow-y: auto; }
 .p3-export-out { background: var(--p3-fill-1); border-left: var(--p3-bw-hairline) solid var(--p3-line-1); }
@@ -395,7 +395,7 @@
 /* ── the preview header (S1.3): title, the mode control and Inspect, on one row (Q2) ─────── */
 .p3-preview-title {
   margin: 0; flex: none; color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-20);
-  font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); white-space: nowrap;
+  font-weight: var(--p3-fw-bold); letter-spacing: var(--p3-ls-tightest); line-height: var(--p3-lh-compact); white-space: nowrap;
 }
 .p3-preview-head > .p3-popwrap { margin-left: auto; }
 /* A button on the page ground takes the page's edge (B1), not the bar's. */
@@ -439,7 +439,7 @@
 .p3-card-body { display: grid; gap: var(--p3-space-200); }
 .p3-card-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--p3-space-150); }
 .p3-card-title {
-  margin: 0; font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis); letter-spacing: var(--p3-ls-wide);
+  margin: 0; font-size: var(--p3-fs-12); font-weight: var(--p3-fw-emphasis); letter-spacing: var(--p3-ls-open);
   text-transform: uppercase; line-height: var(--p3-lh-compact);
 }
 .p3-card-sub, .p3-note { color: var(--p3-text-2); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); line-height: var(--p3-lh-normal); }
@@ -678,19 +678,19 @@
 }
 .p3-lsec[hidden], .p3-lever[hidden], .p3-levers-body [hidden] { display: none; }
 .p3-lsec-head { display: grid; gap: var(--p3-space-050); }
-.p3-lsec-title { margin: 0; font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snug); line-height: var(--p3-lh-compact); }
+.p3-lsec-title { margin: 0; font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-tighter); line-height: var(--p3-lh-compact); }
 .p3-lsec-desc { margin: 0; color: var(--p3-text-2); line-height: var(--p3-lh-cozy); }
 /* One lever: 8px from its label to its control. */
 .p3-lever { display: grid; gap: var(--p3-space-100); min-width: 0; margin: 0; padding: 0; border: 0; }
 .p3-lever-head { display: flex; align-items: center; gap: var(--p3-space-050); width: 100%; padding: 0; float: none; }
 /* ── the heading rule (TY2 A): three levels, every value an existing chrome variable ─────────────────
-   L1 section title (.p3-lsec-title, above): fs-16 / fw-strong / lh-compact / ls-snug; its description space-050
+   L1 section title (.p3-lsec-title, above): fs-16 / fw-strong / lh-compact / ls-tighter (#2322); its description space-050
    under it (.p3-lsec-head's gap); its content space-300 after the head (.p3-lsec's gap).
    L2 group heading (a lever's name, .p3-rows-sub, .p3-icol-title, .p3-lgrid-name > b): fs-14 / fw-strong /
-   lh-compact; its content starts space-150 after it, whatever that content is.
+   lh-compact / ls-snugger (#2322); its content starts space-150 after it, whatever that content is.
    L3 field label (.p3-field-label, .p3-fill-label): fs-14 / fw-emphasis / lh-compact, primary ink; its control
    space-050 after it. Table headers are not a level (below). test:chrome section 29 measures all three. */
-.p3-lever-name { font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
+.p3-lever-name { font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snugger); line-height: var(--p3-lh-compact); }
 /* The head row is as tall as its line: the lever's gap (space-100) plus space-050 makes the L2's space-150. A group
    lever's head is a <legend>, which the fieldset's grid gap does not reach, so it carries the whole space-150. */
 .p3-lever-head { padding-block-end: var(--p3-space-050); }
@@ -867,7 +867,7 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 }
 .p3-hero.p3-hero-sm { width: var(--p3-ctl-h); height: var(--p3-ctl-h); }
 .p3-palh-name { display: grid; gap: var(--p3-space-075); min-width: 0; }
-.p3-pal-title { font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snug); line-height: var(--p3-lh-compact); }
+.p3-pal-title { font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-tighter); line-height: var(--p3-lh-compact); }
 .p3-palh-meta { display: flex; flex-wrap: wrap; gap: var(--p3-space-075) var(--p3-space-100); align-items: center; }
 .p3-pal-hex { font-family: var(--p3-font-mono); font-size: var(--p3-fs-14); }
 .p3-tokchip {
@@ -1001,7 +1001,7 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 /* S4d: a group's sub-heading inside a section's rows (the preview's "Inverse"), the Icon section's pairing note,
    and the jump links to each section (Q49). Color › Interactive's jump links (S5.2) take these same rules, once,
    so the two pages draw one control. */
-.p3-rows-sub { margin: var(--p3-space-150) 0 0; padding-top: var(--p3-space-150); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
+.p3-rows-sub { margin: var(--p3-space-150) 0 0; padding-top: var(--p3-space-150); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snugger); line-height: var(--p3-lh-compact); }
 .p3-rows-sub[hidden], .p3-icon-pair[hidden] { display: none; }
 .p3-icon-pair { display: grid; gap: var(--p3-space-100); justify-items: start; }
 .p3-icon-pair-note { margin: 0; line-height: var(--p3-lh-cozy); }
@@ -1032,7 +1032,7 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 .p3-icol[hidden], .p3-irow-group[hidden], .p3-icol-add[hidden] { display: none; }
 .p3-icol:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); border-radius: var(--p3-radius-md); }
 .p3-icol-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--p3-space-100); }
-.p3-icol-title { margin: 0; font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
+.p3-icol-title { margin: 0; font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snugger); line-height: var(--p3-lh-compact); }
 /* L2: the group's first row starts space-150 after its heading row (the group's gap is space-300). */
 .p3-icol-head { margin-block-end: calc(var(--p3-space-150) - var(--p3-space-300)); }
 .p3-irow-group { display: grid; gap: var(--p3-space-300); }
@@ -1129,7 +1129,7 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 .p3-lgrid-name { display: flex; align-items: baseline; gap: var(--p3-space-100); padding: 0; float: left; width: 100%; }
 /* L2: each breakpoint's name is a group heading at fw-strong (it was the UA's <b> bold, off-token); the fieldset's
    gap (space-100) plus space-050 makes its space-150. */
-.p3-lgrid-name > b { font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
+.p3-lgrid-name > b { font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snugger); line-height: var(--p3-lh-compact); }
 .p3-lgrid-name { padding-block-end: var(--p3-space-050); }
 .p3-lgrid-name + * { clear: both; }
 .p3-lrow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--p3-space-150); align-items: center; }
@@ -1171,7 +1171,7 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 }
 .p3-dialog-title {
   flex: 1 1 auto; min-width: 0; margin: 0; color: var(--p3-text); font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong);
-  letter-spacing: var(--p3-ls-snug); line-height: var(--p3-lh-compact);
+  letter-spacing: var(--p3-ls-tighter); line-height: var(--p3-lh-compact);
 }
 .p3-dialog-body { display: grid; gap: var(--p3-space-200); min-height: 0; overflow: auto; padding: var(--p3-space-300); }
 .p3-dialog-foot {
@@ -1190,7 +1190,7 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
   border: var(--p3-bw-hairline) solid var(--p3-line-1); border-radius: var(--p3-radius-xl); background: var(--p3-bg-page);
 }
 .p3-start-text { display: grid; gap: var(--p3-space-050); min-width: 0; }
-.p3-start-title { margin: 0; color: var(--p3-text); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
+.p3-start-title { margin: 0; color: var(--p3-text); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snugger); line-height: var(--p3-lh-compact); }
 .p3-start-desc { color: var(--p3-text-2); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); }
 .p3-start-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p3-space-100); margin-top: var(--p3-space-150); }
 .p3-start-row > .p3-start-go { margin-left: auto; }
@@ -1239,7 +1239,7 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 }
 .p3-sg-head { display: grid; gap: var(--p3-space-100); }
 .p3-sg-hrow { display: flex; align-items: center; gap: var(--p3-space-200); }
-.p3-sg-title { margin: 0; flex: 1 1 auto; font-size: var(--p3-fs-20); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snug); line-height: var(--p3-lh-compact); }
+.p3-sg-title { margin: 0; flex: 1 1 auto; font-size: var(--p3-fs-20); font-weight: var(--p3-fw-bold); letter-spacing: var(--p3-ls-tightest); line-height: var(--p3-lh-compact); }
 .p3-sg-intro { margin: 0; color: var(--p3-text-2); line-height: var(--p3-lh-cozy); }
 .p3-sg-note { display: flex; align-items: center; gap: var(--p3-space-100); margin: 0; color: var(--p3-text-2); font-size: var(--p3-fs-12); line-height: var(--p3-lh-cozy); }
 .p3-sg-note > .p3-ico { color: var(--p3-icon-2); }
@@ -1256,7 +1256,7 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
   display: grid; gap: var(--p3-space-200); min-width: 0; padding: var(--p3-space-300); border-radius: var(--p3-radius-xl);
   border: var(--p3-bw-hairline) solid var(--p3-line-1); background: var(--p3-bg-page);
 }
-.p3-sg-sec-title { margin: 0; font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snug); line-height: var(--p3-lh-compact); }
+.p3-sg-sec-title { margin: 0; font-size: var(--p3-fs-16); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-tighter); line-height: var(--p3-lh-compact); }
 /* The heading rule (TY2 A, #2215): a card's title is L1, so its content starts space-300 after it; the card's gap is
    space-200, which the untitled Draw card keeps. (Its page title, .p3-sg-title, is a page title, not a level.) */
 .p3-sg-sec-title { margin-block-end: calc(var(--p3-space-300) - var(--p3-space-200)); }
@@ -1348,7 +1348,7 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-sg-ogroup:first-child { padding-top: 0; border-top: 0; }
 /* L2 (TY2 A, #2215): an option group's title is a group heading, fs-14 / fw-strong / lh-compact in primary ink; its first
    lever starts space-150 after it (the group's gap). */
-.p3-sg-ogroup-title { margin: 0; color: var(--p3-text); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); line-height: var(--p3-lh-compact); }
+.p3-sg-ogroup-title { margin: 0; color: var(--p3-text); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-strong); letter-spacing: var(--p3-ls-snugger); line-height: var(--p3-lh-compact); }
 .p3-sg-lever { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--p3-space-050) var(--p3-space-200); }
 .p3-sg-lever-wide { grid-template-columns: minmax(0, 1fr); }
 /* L3 (TY2 A, SH1 A, #2215): a lever inside an option group reads as a field (held decision 7, as Interactive's Neutral

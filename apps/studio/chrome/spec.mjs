@@ -195,6 +195,8 @@ export const SHELL_VARS = [
   // at 16, the strong weight and snug tracking v6 sets them in, cozy leading for notes, the warning glyph, the
   // checkerboard's second ground, the picker step's edge, and the two sizes above.
   'fs-16', 'fw-strong', 'ls-snug', 'lh-cozy', 'warn-icon', 'fill-2', 'field-edge', 'hero-sw', 'step-w',
+  // #2322: the headings' tracking (view titles, section and group headings, card titles) and the view titles' Bold.
+  'ls-tightest', 'ls-tighter', 'ls-snugger', 'ls-open', 'fw-bold',
   // S4a: the gradient editor's bar on Color › Surfaces & fills.
   'gbar-h',
   // S11 (owner decision #4 on #1956): a running write's spinner, its delay and turn, and the reduced turn.
