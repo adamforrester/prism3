@@ -281,6 +281,24 @@
       "description": "The weight of a button label: Emphasis (600 by default) or Default (400). Default adds that weight to the label styles. Tags and badges keep Emphasis."
     },
     {
+      "key": "buttonTextHover",
+      "group": "form",
+      "label": "Text button hover",
+      "control": "enum",
+      "default": "text",
+      "options": [
+        {
+          "value": "text",
+          "label": "Text & icon only"
+        },
+        {
+          "value": "fill",
+          "label": "Fill"
+        }
+      ],
+      "description": "What a text button does on hover and when pressed. Text & icon only changes the label and icon colors. Fill also fills the button. A text button is never filled at rest."
+    },
+    {
       "key": "buttonMinWidthMultiplier",
       "group": "form",
       "label": "Button minimum width",
@@ -467,7 +485,7 @@
       "control": "list",
       "advanced": true,
       "itemLabel": "type role",
-      "description": "Which text types get an underlined link style. The default is body and caption."
+      "description": "Which text types get an underlined link style. The default is body and caption. Labels are always included: a text button’s label is underlined."
     },
     {
       "key": "typography.italics",

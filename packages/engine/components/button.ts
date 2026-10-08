@@ -33,7 +33,7 @@
  * the Neutral Button is not hover-less. outline/text hover uses the overlay wash (assumes
  * `outlineInteraction: overlay-neutral`, the default). `ghost` is retired — a quiet button is the
  * Neutral Button at `appearance=text`. (The `type.label.lg` gap is CLOSED — #1260 minted the rung at
- * 18px/emphasis and `size.large.type` binds it.)
+ * 18px/emphasis and `size.large.{appearance}.type` binds it; the text appearance binds its underlined twin, #2324.)
  */
 import { ComponentDef } from '../component-schema';
 import { BUTTON_SPACING } from '../button-spacing';
@@ -107,8 +107,8 @@ const intentTokens = (family: IntentFamily): Record<string, string> => ({
   // — and the overlay wash stays the separate mechanism it always was, keyed at both states below. On the
   // default (page) surface the roles resolve to the page ink and the step is contrast-safe by
   // construction; the projector's `color.* → color.inverse.*` rewrite gives the inverse band its own
-  // stepped ink, which is where the failure lived. Neutral's ink is `walkable: false`, so its three
-  // states collapse onto rest exactly as `outline` neutral does — no change to a neutral text button.
+  // stepped ink, which is where the failure lived. Neutral's ink walks too since #2324 (950 → 850 → 750, reflected,
+  // as it has no step further out), so a Neutral text button changes on hover and press like the others.
   // (Part 2 — the `filled` inverse-primary `on-fill` holding constant while the fill darkens — is a
   // separate, design-carrying fix (#1351 part 2) and is deliberately NOT touched here.)
   'text.label': `color.interactive.${family}.text.rest`,
@@ -119,8 +119,10 @@ const intentTokens = (family: IntentFamily): Record<string, string> => ({
   'text.icon': `color.interactive.${family}.icon.rest`,
   'text.icon.hover': `color.interactive.${family}.icon.hover`,
   'text.icon.pressed': `color.interactive.${family}.icon.pressed`,
-  'text.overlay.hover': `color.interactive.${family}.overlay.hover`,
-  'text.overlay.pressed': `color.interactive.${family}.overlay.pressed`,
+  // #2324 (owner Q110): a text button is never filled at rest, and by default not on hover or press either: its
+  // label and icon change color and its underline carries the affordance ("Text button hover: Text & icon only").
+  // So the text appearance keys no overlay wash. A brand that turns on "Fill" gets the wash back on hover and
+  // pressed, from the outline appearance's keys, in `applyButtonLayout` (`anatomy-figma.ts`).
 });
 
 /**
@@ -328,11 +330,17 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     ...(BUTTON_SPACING_AT['small']),
     'size.small.height': 'size.sm.height',
     'size.small.icon': 'icon.size.xs',
-    'size.small.type': 'type.label.sm.emphasis',
+    'size.small.filled.type': 'type.label.sm.emphasis',
+    'size.small.outline.type': 'type.label.sm.emphasis',
+    // #2324 (owner Q110): a text button's label is underlined at rest and in every state; the underline is fixed.
+    'size.small.text.type': 'type.label.sm.emphasis-link',
     ...(BUTTON_SPACING_AT['medium']),
     'size.medium.height': 'size.md.height',
     'size.medium.icon': 'icon.size.sm',
-    'size.medium.type': 'type.label.md.emphasis',
+    'size.medium.filled.type': 'type.label.md.emphasis',
+    'size.medium.outline.type': 'type.label.md.emphasis',
+    // #2324 (owner Q110): a text button's label is underlined at rest and in every state; the underline is fixed.
+    'size.medium.text.type': 'type.label.md.emphasis-link',
     ...(BUTTON_SPACING_AT['large']),
     'size.large.height': 'size.lg.height',
     'size.large.icon': 'icon.size.md',
@@ -344,7 +352,10 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // `type.label.{sm,md,lg}` = 12/14/18 — and the sweep's authored expectation moves to 3 in step, so
     // re-pointing this back to `md` fails that gate by name (docs/34). Label is reading/UI text, exempt
     // from the typeScale shift, so `lg` resolves to 18px in every density (the owner's comfortable target).
-    'size.large.type': 'type.label.lg.emphasis',
+    'size.large.filled.type': 'type.label.lg.emphasis',
+    'size.large.outline.type': 'type.label.lg.emphasis',
+    // #2324 (owner Q110): a text button's label is underlined at rest and in every state; the underline is fixed.
+    'size.large.text.type': 'type.label.lg.emphasis-link',
 
     // THE PER-FAMILY PAINT — the full appearance × slot × state skin, bound to `interactive.<family>.*`.
     // Authored once in `intentTokens` above and spread here so the three components cannot silently
@@ -454,7 +465,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       // FILE by the caller and its content is the designer's to change, so there is no variant for the
       // def to fix — which is exactly what `swap` says.
       leadingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'Icon / avatar / counter / spinner before the label.' },
-      label: { kind: 'text', optional: false, type: 'size.{size}.type', note: 'Its own node so truncation, wrap and line-height are controllable independently of the row.' },
+      label: { kind: 'text', optional: false, type: 'size.{size}.{appearance}.type', note: 'Its own node so truncation, wrap and line-height are controllable independently of the row.' },
       trailingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'Icon / caret / indicator after the label. Not split into visual + action (docs/28 §5.3): the condition that split rested on — a pending state needing its own slot — is already carried by leadingVisual + isPending.' },
       spinner: {
         kind: 'overlay',
@@ -667,6 +678,10 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       'On a brand whose `buttonContentSize` is `smaller` (One step smaller), give a medium button the small size\'s label style and icon size (`type.label.sm.emphasis`, `icon.size.xs`) at the medium height and padding; small and large buttons keep their own',
       // #1752 — the fourth setting. Same shape as the line above: the setting, its option label, what it binds.
       'On a brand whose `buttonLabelWeight` is `default` (Default), set every size\'s label in the `default` weight of its label style (`type.label.sm.default`, `type.label.md.default`, `type.label.lg.default`) instead of `emphasis`; with One step smaller, a medium button takes `type.label.sm.default`',
+      // #2324 (owner Q110) — the text appearance's underline, fixed, and the fifth setting. DRAFT words, for the owner.
+      'Underline the label of a button at appearance=text, at rest and in every state, disabled included, with its underlined label style (`type.label.sm.emphasis-link`, `type.label.md.emphasis-link`, `type.label.lg.emphasis-link`); the underline is fixed, not a brand setting',
+      'Never fill a button at appearance=text at rest; under the brand\'s `buttonTextHover` setting `text` (Text & icon only, the default), change only its label and icon colors on hover and pressed',
+      'On a brand whose `buttonTextHover` is `fill` (Fill), also give a button at appearance=text the overlay wash on hover and pressed, as outline buttons take it',
       'Use isInactive (focusable) for a control blocked by satisfiable state; reserve disabled for the irrelevant',
       ...sibling.do,
     ],

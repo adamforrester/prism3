@@ -56,7 +56,7 @@
  * regions by BORDER (the ≥4.5:1 border target), not by near-invisible tints.
  */
 import { LARGE_TEXT_ONLY, BODY_TEXT_FLOOR } from './figma-description';
-import { RGB, contrast, hex, hexToRgb, composite, deltaE2000, emittedAlpha } from './color';
+import { RGB, contrast, hex, hexToRgb, composite, deltaE2000, emittedAlpha, luminance } from './color';
 import { Step } from './ramp';
 import { Theme, SurfaceSpec, InverseSurfaceSpec, SurfacesConfig, Role } from './theme';
 
@@ -1358,14 +1358,23 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   };
   // The outline / text ink, per interactive state (docs/20 §2) — `text.{rest,hover,pressed}`. rest is
   // the gated pick; hover/pressed walk the palette toward MORE contrast (like the fill states), so an
-  // outline/text control "comes forward" as the user engages. `walkable` is false for neutral, whose ink
-  // is already the strongest neutral (no palette position to step) — its states collapse onto rest.
+  // outline/text control "comes forward" as the user engages. Neutral's ink is already the strongest neutral, so it
+  // has no step toward more contrast: `walk`'s L-01 reflection steps it the other way (950 → 850 → 750), so a Neutral
+  // text button still changes on hover and press (#2324, owner: "one consistent rule across all buttons"; the rest
+  // ink is unchanged). `walkable` stays a parameter for a family that should not move.
   // `ground` / `against` default to the page surface (`background.primary`) — the ordinary interactive
   // ink ground. `destructive` overrides them to the worst-case page tier (`background.tertiary`) so its
   // label/icon clears the floor on every surface it can sit on, not merely on white (#1352); see the
   // destructive call site. The default keeps every other column byte-identical.
+  /** A neutral candidate's step number, so its ink can walk (#2324): its own step, or, for HC's pure black or white
+   *  (off the ramp), the ramp step nearest it in luminance, so the reflection starts from the ramp's end. */
+  const neutralStepNum = (c: Cand): number => (neutral.find((st) => `${ns}.${r2p.neutral}.${st.key}` === c.path)
+    ?? neutral.reduce((a, b) => (Math.abs(luminance(b.rgb) - luminance(c.rgb)) < Math.abs(luminance(a.rgb) - luminance(c.rgb)) ? b : a))).num;
   const iText = (name: string, restCand: Cand, palette: string, walkable: boolean, ground: RGB = baseRgb, against = 'background.primary'): Record<string, Cand> => {
     const restNum = (restCand as RatedNum).num;
+    // A walk needs the rest's step number; without one the scan below never leaves the loop (#2324 found this
+    // with neutral, whose candidates carried none). Refused by name rather than hung.
+    if (walkable && !Number.isFinite(restNum)) throw new Error(`modes: interactive.${name}.text walks from a rest candidate with no step number (${restCand.path})`);
     const byState: Record<string, Cand> = {};
     for (const st of ['default', 'hover', 'pressed'] as const) {
       const stKey = st === 'default' ? 'rest' : st;
@@ -1461,15 +1470,17 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   iFill('neutral', neutralStepR(neutralAnchor), r2p.neutral, neutralStrong ? cfg.nonTextMin : 0);
   // #576: neutral's border now FOLLOWS THE INK, like every colored family — the former special-case
   // mid-gray edge (`pickMinPass`, 400–550) is retired. The neutral ink is `pickMostExtreme` (near-black
-  // in light / near-white in dark) and `walkable: false`, so the three border states collapse onto rest
-  // exactly as the ink does. This reads LOUDER than the old grey — a near-black (or near-white) edge
+  // in light / near-white in dark) and, since #2324, walks like every family (reflected toward the middle, as
+  // it has no step further out), so the border's states follow the ink's. This reads LOUDER than the old grey — a near-black (or near-white) edge
   // matching its label — which is the DECIDED outcome (owner, on #576), not a regression to re-report.
   // Contrast-safe by construction: the ink already cleared `secondaryMin` against the ground, a stricter
   // bar than the border's `nonTextMin`, so a matching edge can never fail its gate. The one thing lost is
   // the border's own state walk (hover/pressed shifting), and that is correct: an edge that MATCHES a
   // stateless ink is itself stateless, the same rule the colored families follow — their border walks
   // only because their ink does.
-  const nText = iText('neutral', pickMostExtreme(textCands, baseRgb), r2p.neutral, false);   // strongest neutral — states collapse onto rest
+  // The strongest neutral, given its step number so it can walk (#2324; `neutralStepNum`).
+  const nRest = pickMostExtreme(textCands, baseRgb);
+  const nText = iText('neutral', { ...nRest, num: neutralStepNum(nRest) } as RatedNum, r2p.neutral, true);   // its states reflect inward (#2324)
   iBorder('neutral', nText, baseRgb, '', 'background.primary');
 
   // extensible interactive columns (docs/20 §3) — N opt-in `interactive.<name>.*` families, each
@@ -1518,12 +1529,14 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // The FILL below stays on `invRgb` regardless — a near-white CTA sits on the dark band itself.
   const invColumn = (name: string, palette: string | null, anchor: number, textGround: RGB = invRgb, textAgainst = 'inverse.background.primary'): void => {
     const textRest: Rated = palette ? rated(chromatic(palette, anchor, textGround, cfg.secondaryMin), textGround) : pickMostExtreme(textCands, textGround);
-    const textNum = (textRest as RatedNum).num;
+    // Neutral (no palette here) walks on the neutral ramp too since #2324, from its step number, as on the page.
+    const walkPalette = palette ?? r2p.neutral;
+    const textNum = palette ? (textRest as RatedNum).num : neutralStepNum(textRest);
     const invInk: Record<string, Cand> = {};
     for (const st of ['default', 'hover', 'pressed'] as const) {
       const stKey = st === 'default' ? 'rest' : st;
-      const c: Cand = (st === 'default' || !palette) ? textRest
-        : walk(palette, textNum, stateRungs(st), -dir, guardFrom(contrast(textRest.rgb, textGround), textGround, cfg.secondaryMin));
+      const c: Cand = st === 'default' ? textRest
+        : walk(walkPalette, textNum, stateRungs(st), -dir, guardFrom(contrast(textRest.rgb, textGround), textGround, cfg.secondaryMin));
       put(`inverse.interactive.${name}.text.${stKey}`, rated(c, textGround),
         `${name} interactive ink on an inverse surface — ${stKey} (outline / text on the inverse band)`, textAgainst, cfg.secondaryMin);
       // #1471 — the inverse GLYPH ink twin, value-identical to the inverse outline/text ink above (the

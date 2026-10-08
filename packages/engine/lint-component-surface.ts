@@ -316,6 +316,10 @@ const BUTTON_SURFACE_CONFIGS: { id: string; layout: ButtonLayout }[] = [
   // then binds `type.label.sm.default`). The default, Emphasis, is `button-default` above, unchanged.
   { id: 'button-label-default', layout: { ...DEFAULT_BUTTON_LAYOUT, labelWeight: 'default' } },
   { id: 'button-smaller-label-default', layout: { ...DEFAULT_BUTTON_LAYOUT, content: 'smaller', labelWeight: 'default' } },
+  // #2324 — "Text button hover: Fill" (the text appearance takes the wash on hover and pressed), and composed with
+  // "Button label weight: Default" (the underlined label keeps its tail). The default, "Text & icon only", is above.
+  { id: 'button-text-fill', layout: { ...DEFAULT_BUTTON_LAYOUT, textHover: 'fill' } },
+  { id: 'button-text-fill-label-default', layout: { ...DEFAULT_BUTTON_LAYOUT, textHover: 'fill', labelWeight: 'default' } },
 ];
 
 const liveDefs = (): Record<string, Surface> => {

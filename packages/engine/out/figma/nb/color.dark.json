@@ -2024,14 +2024,14 @@
       ],
       "description": "Neutral label, hover — 4.5:1 on background/primary (outline, text)",
       "value": {
-        "r": 0.9647058844566345,
-        "g": 0.9686274528503418,
-        "b": 0.9686274528503418,
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/025"
+        "name": "nbds/core/palette/neutral/100"
       }
     },
     {
@@ -2042,14 +2042,14 @@
       ],
       "description": "Neutral label, pressed — 4.5:1 on background/primary (outline, text)",
       "value": {
-        "r": 0.9647058844566345,
-        "g": 0.9686274528503418,
-        "b": 0.9686274528503418,
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/025"
+        "name": "nbds/core/palette/neutral/200"
       }
     },
     {
@@ -2082,14 +2082,14 @@
       ],
       "description": "Neutral icon, hover — 4.5:1 on background/primary (outline, ghost, text)",
       "value": {
-        "r": 0.9647058844566345,
-        "g": 0.9686274528503418,
-        "b": 0.9686274528503418,
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/025"
+        "name": "nbds/core/palette/neutral/100"
       }
     },
     {
@@ -2102,14 +2102,14 @@
       ],
       "description": "Neutral icon, pressed — 4.5:1 on background/primary (outline, ghost, text)",
       "value": {
-        "r": 0.9647058844566345,
-        "g": 0.9686274528503418,
-        "b": 0.9686274528503418,
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/025"
+        "name": "nbds/core/palette/neutral/200"
       }
     },
     {
@@ -2138,14 +2138,14 @@
       ],
       "description": "Neutral outline edge, hover — 3:1 on background/primary, follows the label",
       "value": {
-        "r": 0.9647058844566345,
-        "g": 0.9686274528503418,
-        "b": 0.9686274528503418,
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/025"
+        "name": "nbds/core/palette/neutral/100"
       }
     },
     {
@@ -2156,14 +2156,14 @@
       ],
       "description": "Neutral outline edge, pressed — 3:1 on background/primary, follows the label",
       "value": {
-        "r": 0.9647058844566345,
-        "g": 0.9686274528503418,
-        "b": 0.9686274528503418,
+        "r": 0.7450980544090271,
+        "g": 0.7568627595901489,
+        "b": 0.7686274647712708,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/025"
+        "name": "nbds/core/palette/neutral/200"
       }
     },
     {
@@ -3734,14 +3734,14 @@
       ],
       "description": "Neutral label, hover — 4.5:1 on inverse/background/primary (outline, text)",
       "value": {
-        "r": 0.0470588244497776,
-        "g": 0.05098039284348488,
-        "b": 0.05882352963089943,
+        "r": 0.12156862765550613,
+        "g": 0.13333334028720856,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/950"
+        "name": "nbds/core/palette/neutral/850"
       }
     },
     {
@@ -3752,14 +3752,14 @@
       ],
       "description": "Neutral label, pressed — 4.5:1 on inverse/background/primary (outline, text)",
       "value": {
-        "r": 0.0470588244497776,
-        "g": 0.05098039284348488,
-        "b": 0.05882352963089943,
+        "r": 0.20392157137393951,
+        "g": 0.21960784494876862,
+        "b": 0.23529411852359772,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/950"
+        "name": "nbds/core/palette/neutral/750"
       }
     },
     {
@@ -3792,14 +3792,14 @@
       ],
       "description": "Neutral icon, hover — 4.5:1 on inverse/background/primary (outline, ghost, text)",
       "value": {
-        "r": 0.0470588244497776,
-        "g": 0.05098039284348488,
-        "b": 0.05882352963089943,
+        "r": 0.12156862765550613,
+        "g": 0.13333334028720856,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/950"
+        "name": "nbds/core/palette/neutral/850"
       }
     },
     {
@@ -3812,14 +3812,14 @@
       ],
       "description": "Neutral icon, pressed — 4.5:1 on inverse/background/primary (outline, ghost, text)",
       "value": {
-        "r": 0.0470588244497776,
-        "g": 0.05098039284348488,
-        "b": 0.05882352963089943,
+        "r": 0.20392157137393951,
+        "g": 0.21960784494876862,
+        "b": 0.23529411852359772,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/950"
+        "name": "nbds/core/palette/neutral/750"
       }
     },
     {
@@ -3963,14 +3963,14 @@
       ],
       "description": "Neutral outline edge, hover — 3:1 on inverse/background/primary, follows the label",
       "value": {
-        "r": 0.0470588244497776,
-        "g": 0.05098039284348488,
-        "b": 0.05882352963089943,
+        "r": 0.12156862765550613,
+        "g": 0.13333334028720856,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/950"
+        "name": "nbds/core/palette/neutral/850"
       }
     },
     {
@@ -3981,14 +3981,14 @@
       ],
       "description": "Neutral outline edge, pressed — 3:1 on inverse/background/primary, follows the label",
       "value": {
-        "r": 0.0470588244497776,
-        "g": 0.05098039284348488,
-        "b": 0.05882352963089943,
+        "r": 0.20392157137393951,
+        "g": 0.21960784494876862,
+        "b": 0.23529411852359772,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/950"
+        "name": "nbds/core/palette/neutral/750"
       }
     },
     {

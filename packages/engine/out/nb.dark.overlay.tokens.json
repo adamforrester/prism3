@@ -2374,7 +2374,7 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.core.palette.neutral.025}",
+              "$value": "{nbds.core.palette.neutral.100}",
               "$description": "neutral interactive ink — hover (outline / text appearance)",
               "$extensions": {
                 "prism3": {
@@ -2389,8 +2389,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "nbds.core.palette.neutral.025",
-                  "contrast": 18.11,
+                  "aliasOf": "nbds.core.palette.neutral.100",
+                  "contrast": 14.13,
                   "against": "background.primary",
                   "min": 4.5
                 }
@@ -2398,7 +2398,7 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{nbds.core.palette.neutral.025}",
+              "$value": "{nbds.core.palette.neutral.200}",
               "$description": "neutral interactive ink — pressed (outline / text appearance)",
               "$extensions": {
                 "prism3": {
@@ -2413,8 +2413,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "nbds.core.palette.neutral.025",
-                  "contrast": 18.11,
+                  "aliasOf": "nbds.core.palette.neutral.200",
+                  "contrast": 10.75,
                   "against": "background.primary",
                   "min": 4.5
                 }
@@ -2448,7 +2448,7 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.core.palette.neutral.025}",
+              "$value": "{nbds.core.palette.neutral.100}",
               "$description": "neutral interactive icon ink — hover (the glyph in an outline / ghost / text control)",
               "$extensions": {
                 "prism3": {
@@ -2463,8 +2463,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "nbds.core.palette.neutral.025",
-                  "contrast": 18.11,
+                  "aliasOf": "nbds.core.palette.neutral.100",
+                  "contrast": 14.13,
                   "against": "background.primary",
                   "min": 4.5
                 }
@@ -2472,7 +2472,7 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{nbds.core.palette.neutral.025}",
+              "$value": "{nbds.core.palette.neutral.200}",
               "$description": "neutral interactive icon ink — pressed (the glyph in an outline / ghost / text control)",
               "$extensions": {
                 "prism3": {
@@ -2487,8 +2487,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "nbds.core.palette.neutral.025",
-                  "contrast": 18.11,
+                  "aliasOf": "nbds.core.palette.neutral.200",
+                  "contrast": 10.75,
                   "against": "background.primary",
                   "min": 4.5
                 }
@@ -2522,7 +2522,7 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.core.palette.neutral.025}",
+              "$value": "{nbds.core.palette.neutral.100}",
               "$description": "neutral interactive border — hover (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
@@ -2537,8 +2537,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "nbds.core.palette.neutral.025",
-                  "contrast": 18.11,
+                  "aliasOf": "nbds.core.palette.neutral.100",
+                  "contrast": 14.13,
                   "against": "background.primary",
                   "min": 3
                 }
@@ -2546,7 +2546,7 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{nbds.core.palette.neutral.025}",
+              "$value": "{nbds.core.palette.neutral.200}",
               "$description": "neutral interactive border — pressed (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
@@ -2561,8 +2561,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "nbds.core.palette.neutral.025",
-                  "contrast": 18.11,
+                  "aliasOf": "nbds.core.palette.neutral.200",
+                  "contrast": 10.75,
                   "against": "background.primary",
                   "min": 3
                 }
@@ -4228,7 +4228,7 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.950}",
+                "$value": "{nbds.core.palette.neutral.850}",
                 "$description": "neutral interactive ink on an inverse surface — hover (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
@@ -4243,8 +4243,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.neutral.950",
-                    "contrast": 18.11,
+                    "aliasOf": "nbds.core.palette.neutral.850",
+                    "contrast": 14.91,
                     "against": "inverse.background.primary",
                     "min": 4.5
                   }
@@ -4252,7 +4252,7 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.950}",
+                "$value": "{nbds.core.palette.neutral.750}",
                 "$description": "neutral interactive ink on an inverse surface — pressed (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
@@ -4267,8 +4267,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.neutral.950",
-                    "contrast": 18.11,
+                    "aliasOf": "nbds.core.palette.neutral.750",
+                    "contrast": 11.01,
                     "against": "inverse.background.primary",
                     "min": 4.5
                   }
@@ -4302,7 +4302,7 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.950}",
+                "$value": "{nbds.core.palette.neutral.850}",
                 "$description": "neutral interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
@@ -4317,8 +4317,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.neutral.950",
-                    "contrast": 18.11,
+                    "aliasOf": "nbds.core.palette.neutral.850",
+                    "contrast": 14.91,
                     "against": "inverse.background.primary",
                     "min": 4.5
                   }
@@ -4326,7 +4326,7 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.950}",
+                "$value": "{nbds.core.palette.neutral.750}",
                 "$description": "neutral interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
@@ -4341,8 +4341,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.neutral.950",
-                    "contrast": 18.11,
+                    "aliasOf": "nbds.core.palette.neutral.750",
+                    "contrast": 11.01,
                     "against": "inverse.background.primary",
                     "min": 4.5
                   }
@@ -4522,7 +4522,7 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.950}",
+                "$value": "{nbds.core.palette.neutral.850}",
                 "$description": "neutral interactive border on an inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
@@ -4537,8 +4537,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.neutral.950",
-                    "contrast": 18.11,
+                    "aliasOf": "nbds.core.palette.neutral.850",
+                    "contrast": 14.91,
                     "against": "inverse.background.primary",
                     "min": 3
                   }
@@ -4546,7 +4546,7 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.950}",
+                "$value": "{nbds.core.palette.neutral.750}",
                 "$description": "neutral interactive border on an inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
@@ -4561,8 +4561,8 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "nbds.core.palette.neutral.950",
-                    "contrast": 18.11,
+                    "aliasOf": "nbds.core.palette.neutral.750",
+                    "contrast": 11.01,
                     "against": "inverse.background.primary",
                     "min": 3
                   }
