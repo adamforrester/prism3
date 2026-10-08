@@ -224,7 +224,7 @@
           "label": "Pill"
         }
       ],
-      "description": "The corner shape of buttons and other controls that can round fully. Boxed is sharp (0px). Hairline gives buttons, fields and checkboxes a 1px corner. Rounded follows radius softness. Pill rounds the ends fully, whatever the softness."
+      "description": "The corner shape of buttons, fields and checkboxes. Hairline gives buttons, fields and checkboxes a 1px corner, and Boxed gives them a sharp 0px corner. Rounded follows radius softness. Pill rounds the ends of buttons fully, whatever the softness; fields and checkboxes keep their own corner."
     },
     {
       "key": "buttonIcons",

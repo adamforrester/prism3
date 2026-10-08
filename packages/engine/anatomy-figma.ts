@@ -1991,7 +1991,7 @@ export const isPillable = (def: ComponentDef): boolean => !!def.anatomy?.derived
  * repointed exactly as before — its default plan is byte-identical.
  *
  * NARROW BY CONSTRUCTION: it rewrites ONLY refs equal to the rounded rung and ONLY for pill-able defs, plus,
- * under `hairline` alone, the field and checkbox corners `HAIRLINE_CORNER_REFS` names by def id (#2361).
+ * under `boxed` and `hairline` alone, the field and checkbox corners `FIELD_CORNER_REFS` names by def id (#2361).
  * `switch`/`radio` carry no `pill-radius` derivation, so `isPillable` is false and they pass through
  * untouched — and even were they pill-able, their `radius.round` ref is not the rounded rung, so the lever
  * cannot reach the one binding that already gives them their intrinsic pill/circle.
@@ -1999,19 +1999,22 @@ export const isPillable = (def: ComponentDef): boolean => !!def.anatomy?.derived
 export const ROUNDED_RADIUS_RUNG = 'radius.md';
 
 /**
- * `hairline` REACHES FIELDS AND THE CHECKBOX TOO (#2361, owner 2026-10-08: "1px corners everywhere", for
- * consistency first). The other three shapes still reach only the pill-able set: a pill field or a pill
- * checkbox would be wrong, and whether `boxed` should follow is held for the owner.
- *
- * Each entry is a def id and the corner refs it repoints to `radius.hairline`. SELECTED BY ID, NOT BY REF, and
- * that is the point: `radius.sm` is also Badge's `status.radius`, which a field setting must not reach. The
- * checkbox's refs are its per-rung clamped corner (#1015, `controlRadius`): 1px is below that clamp on every
- * edge of 8px or more (`snap2(edge ÷ 8)` ≥ 2 there, and the smallest control rung is 12px), so the clamp still
- * holds and the `control.size.*.radius` tokens are emitted unchanged. `radio-control` and `switch-control` are
- * not listed: their `radius.round` is intrinsic, as under every other shape. Rows and groups nest the control,
- * so they carry no corner of their own to repoint.
+ * `boxed` AND `hairline` REACH FIELDS AND THE CHECKBOX TOO (#2361, owner 2026-10-08: "1px corners everywhere",
+ * for consistency first; Q139 added `boxed`, the same way). `rounded` and `pill` still reach only the pill-able
+ * set: a pill field or a pill checkbox would be wrong, and `rounded` is the identity.
  */
-export const HAIRLINE_CORNER_REFS: Readonly<Record<string, readonly string[]>> = {
+export const FIELD_CORNER_SHAPES: readonly ControlShape[] = ['boxed', 'hairline'];
+
+/**
+ * Each entry is a def id and the corner refs it repoints to the shape's rung (`radius.none` or `radius.hairline`).
+ * SELECTED BY ID, NOT BY REF, and that is the point: `radius.sm` is also Badge's `status.radius`, which a field
+ * setting must not reach. The checkbox's refs are its per-rung clamped corner (#1015, `controlRadius`): 0px and
+ * 1px are both below that clamp on every edge of 8px or more (`snap2(edge ÷ 8)` ≥ 2 there, and the smallest
+ * control rung is 12px), so the clamp still holds and the `control.size.*.radius` tokens are emitted unchanged.
+ * `radio-control` and `switch-control` are not listed: their `radius.round` is intrinsic, as under every other
+ * shape. Rows and groups nest the control, so they carry no corner of their own to repoint.
+ */
+export const FIELD_CORNER_REFS: Readonly<Record<string, readonly string[]>> = {
   'text-field': ['radius.sm'],
   select: ['radius.sm'],
   textarea: ['radius.sm'],
@@ -2021,11 +2024,11 @@ export const HAIRLINE_CORNER_REFS: Readonly<Record<string, readonly string[]>> =
 export const applyControlShape = (def: ComponentDef, shape: ControlShape): ComponentDef => {
   const target = CONTROL_SHAPE_RUNG[shape];
   if (target === null) return def;
-  const hairlineRefs = shape === 'hairline' ? HAIRLINE_CORNER_REFS[def.id] : undefined;
-  if (!isPillable(def) && !hairlineRefs) return def;
+  const fieldRefs = FIELD_CORNER_SHAPES.includes(shape) ? FIELD_CORNER_REFS[def.id] : undefined;
+  if (!isPillable(def) && !fieldRefs) return def;
   const tokens = Object.fromEntries(
     Object.entries(def.tokens).map(([k, ref]) => [k,
-      (isPillable(def) && ref === ROUNDED_RADIUS_RUNG) || !!hairlineRefs?.includes(ref) ? target : ref]),
+      (isPillable(def) && ref === ROUNDED_RADIUS_RUNG) || !!fieldRefs?.includes(ref) ? target : ref]),
   );
   return { ...def, tokens };
 };

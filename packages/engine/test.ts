@@ -13898,7 +13898,7 @@ arm: {
     }
 
     // (#2361) HAIRLINE IS 1px EVERYWHERE — buttons, fields and the checkbox (owner, 2026-10-08). SUBJECT =
-    // `applyControlShape` (and its `HAIRLINE_CORNER_REFS`); ORACLE = the projected plan's corner bindings, against
+    // `applyControlShape` (and its `FIELD_CORNER_REFS`); ORACLE = the projected plan's corner bindings, against
     // var names spelled out here, never read off the map (docs/34). One named assertion per family, so a revert
     // of any one family's rewrite fails that family's line by name.
     {
@@ -13920,7 +13920,8 @@ arm: {
           ok(JSON.stringify(hair) === '["radius/hairline"]', `#2361 hairline: ${id}${size ? `@${size}` : ''} binds radius/hairline (${hair.join(', ') || 'none'})`);
           const rounded = corners(applyControlShape(def(id), 'rounded'), size);
           ok(JSON.stringify(rounded) === '["radius/sm"]', `#2361 rounded: ${id}${size ? `@${size}` : ''} still binds radius/sm (${rounded.join(', ') || 'none'})`);
-          for (const other of ['boxed', 'pill'] as const) {
+          // Pill stays buttons-only (a pill field would be wrong). Boxed reaches fields too: its own arm, below.
+          for (const other of ['pill'] as const) {
             const o = corners(applyControlShape(def(id), other), size);
             ok(JSON.stringify(o) === '["radius/sm"]', `#2361 ${other}: ${id}${size ? `@${size}` : ''} is untouched, radius/sm (${o.join(', ') || 'none'})`);
           }
@@ -13949,6 +13950,36 @@ arm: {
       // Other radii are unchanged: Badge's status corner is also radius.sm, and the field setting must not reach it.
       const badge = def('badge');
       ok(applyControlShape(badge, 'hairline') === badge, '#2361 hairline: badge is the identity (its status radius.sm is not a field corner)');
+
+      // (#2361, Q139) BOXED REACHES FIELDS AND THE CHECKBOX TOO, the same way Hairline does: the 0px corner on every
+      // family. Same SUBJECT and ORACLE as above; one named assertion per family, so a revert of any one fails by name.
+      for (const size of def('button').variants?.size ?? []) {
+        const got = corners(applyControlShape(def('button'), 'boxed'), size);
+        ok(JSON.stringify(got) === '["radius/none"]', `#2361 boxed: button@${size} binds radius/none (${got.join(', ') || 'none'})`);
+      }
+      for (const id of ['text-field', 'select', 'textarea']) {
+        const sizes: (string | undefined)[] = def(id).variants?.size ?? [undefined];
+        for (const size of sizes) {
+          const got = corners(applyControlShape(def(id), 'boxed'), size);
+          ok(JSON.stringify(got) === '["radius/none"]', `#2361 boxed: ${id}${size ? `@${size}` : ''} binds radius/none (${got.join(', ') || 'none'})`);
+        }
+      }
+      // The checkbox: 0px is inside its clamp on every edge (the clamp is never negative), so it binds the 0px rung
+      // at every size; under Pill it keeps its own clamped corner (Pill stays buttons-only).
+      for (const size of def('checkbox-control').variants?.size ?? []) {
+        const got = corners(applyControlShape(def('checkbox-control'), 'boxed'), size);
+        ok(JSON.stringify(got) === '["radius/none"]', `#2361 boxed: checkbox-control@${size} binds radius/none (${got.join(', ') || 'none'})`);
+        const pill = corners(applyControlShape(def('checkbox-control'), 'pill'), size);
+        ok(JSON.stringify(pill) === `["control/size/${RUNG[size]}/radius"]`,
+          `#2361 pill: checkbox-control@${size} keeps its clamped corner control/size/${RUNG[size]}/radius (${pill.join(', ') || 'none'})`);
+      }
+      for (const id of ['radio-control', 'switch-control']) {
+        for (const size of def(id).variants?.size ?? []) {
+          const got = corners(applyControlShape(def(id), 'boxed'), size);
+          ok(got.length > 0 && got.every((v) => v === 'radius/round'), `#2361 boxed: ${id}@${size} stays radius/round (${got.join(', ') || 'none'})`);
+        }
+      }
+      ok(applyControlShape(badge, 'boxed') === badge, '#2361 boxed: badge is the identity (its status radius.sm is not a field corner)');
     }
   }
 
