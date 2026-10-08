@@ -119,11 +119,22 @@ const OPERABLE = ['button', 'select', 'textarea', 'input:not([type="hidden"])', 
   '[tabindex]:not([tabindex="-1"])', ...['button', 'switch', 'checkbox', 'radio', 'slider', 'spinbutton', 'tab', 'menuitem', 'menuitemradio',
     'menuitemcheckbox', 'option', 'combobox', 'textbox'].map((r) => `[role="${r}"]`)].join(', ');
 
+/** PM1 B and Q111 (owner, 2026-10-08; #2321): the pages drawn in Light whatever mode was chosen, their mode control
+ *  held on Light. Palettes' ramps are the same in every mode, so it is pinned: the opacity scale and the strips' ground
+ *  show Light (`preview/palettes.ts`). The chosen mode is kept, so the page after Palettes shows it again: the Color tab
+ *  opens on Palettes, and passing through it must not reset the mode chosen on another page. */
+const LIGHT_PINNED: readonly NewPageKey[] = ['palettes'];
+/** Why the mode control is held there. DRAFT copy for the owner (docs/voice-standard.md). */
+export const LIGHT_PINNED_NOTE = 'Palettes are the same in every mode, so they always show in Light.';
+
 /** The product's name, as the studio's top bar shows it (owner, 2026-10-04). */
 const PRODUCT_NAME = 'Prism3 Studio';
 
 /** The frame width at or below which it lays out as one narrow column (concept v6's `appNarrow`). */
 export const NARROW_MAX = 560;
+/** #1975: the levers pane width below which it is `data-fit="snug"`: narrower than the 380 its pages are laid out for,
+ *  which the two panes reach at 640 and 800 (the 42% column). A width class for the same reason as narrow mode. */
+export const LEVERS_SNUG_MAX = 360;
 
 export type Frame = {
   /** The sticky region: the bar, the notices and the tab row. */
@@ -360,7 +371,8 @@ export const mountFrame = (app: HTMLElement, opts: {
   const previewHead = hook(h('div', 'p3-preview-head'), 'preview-head');
   const previewTitle = hook(h('h2', 'p3-preview-title'), 'preview-title');
   previewTitle.id = 'p3-preview-title';
-  previewHead.append(previewTitle, modeControl(cleanups), inspectMenu((v, opener) => openInspect(v, opener), cleanups));
+  const modes = modeControl(cleanups);
+  previewHead.append(previewTitle, modes.el, inspectMenu((v, opener) => openInspect(v, opener), cleanups));
   // V1: the body shows the page's one home view, named by `data-view`. It changes on a tab or sub-page
   // change and on nothing else. Each domain slice draws its view here (S2 first).
   const previewBody = hook(h('div', 'p3-preview-body'), 'preview-body');
@@ -548,6 +560,9 @@ export const mountFrame = (app: HTMLElement, opts: {
   /** N-3 A (#1984): the levers panel read-only, with its one line, exactly while a page that edits the previewed mode
    *  shows a derived mode. Run on every mount, release and mode change. */
   function syncDerivedReadOnly(): void {
+    // PM1 B, Q111 (#2321): a Light-pinned page holds the mode control on Light while it shows.
+    const pinned = mounted !== null && LIGHT_PINNED.includes(mounted);
+    modes.lock(pinned ? LIGHT_PINNED_NOTE : null, pinned ? 'light' : '');
     const on = mounted !== null && NEW_PAGES[mounted].derivedReadOnly === true && isDerived(currentMode);
     holding = on;
     if (on) {
@@ -741,6 +756,12 @@ export const mountFrame = (app: HTMLElement, opts: {
   ro.observe(head);
   ro.observe(bar);
   cleanups.push(() => ro.disconnect());
+  const leversFit = new ResizeObserver(() => {
+    const fit = levers.clientWidth > 0 && levers.clientWidth < LEVERS_SNUG_MAX ? 'snug' : 'full';
+    if (levers.dataset.fit !== fit) levers.dataset.fit = fit;
+  });
+  leversFit.observe(levers);
+  cleanups.push(() => leversFit.disconnect());
   root.dataset.w = app.getBoundingClientRect().width <= NARROW_MAX ? 'narrow' : 'wide';
 
   render();
