@@ -19730,6 +19730,332 @@
         }
       },
       "body": {
+        "xs": {
+          "default": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{pds3.core.font.family.body}",
+              "fontSize": "{pds3.core.font.size.12}",
+              "fontWeight": "{pds3.core.font.weight-role.default}",
+              "lineHeight": "{pds3.core.font.line-height-role.normal}",
+              "letterSpacing": "{pds3.core.font.letter-spacing-role.normal}"
+            },
+            "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
+            "$extensions": {
+              "prism3": {
+                "role": "composite",
+                "group": "body",
+                "variant": "xs",
+                "weightRole": "default",
+                "sizePx": 12,
+                "responsive": {
+                  "fluid": false,
+                  "px": 12
+                },
+                "figma": {
+                  "kind": "text-style",
+                  "styleType": "TEXT",
+                  "binds": [
+                    "fontFamily",
+                    "fontSize",
+                    "fontStyle"
+                  ],
+                  "baked": [
+                    "lineHeight",
+                    "letterSpacing"
+                  ],
+                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                }
+              }
+            }
+          },
+          "default-link": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{pds3.core.font.family.body}",
+              "fontSize": "{pds3.core.font.size.12}",
+              "fontWeight": "{pds3.core.font.weight-role.default}",
+              "lineHeight": "{pds3.core.font.line-height-role.normal}",
+              "letterSpacing": "{pds3.core.font.letter-spacing-role.normal}",
+              "textDecoration": "underline"
+            },
+            "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with text.link.* color).",
+            "$extensions": {
+              "prism3": {
+                "role": "composite",
+                "group": "body",
+                "variant": "xs",
+                "weightRole": "default",
+                "sizePx": 12,
+                "link": true,
+                "responsive": {
+                  "fluid": false,
+                  "px": 12
+                },
+                "figma": {
+                  "kind": "text-style",
+                  "styleType": "TEXT",
+                  "binds": [
+                    "fontFamily",
+                    "fontSize",
+                    "fontStyle"
+                  ],
+                  "baked": [
+                    "lineHeight",
+                    "letterSpacing",
+                    "textDecoration"
+                  ],
+                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                }
+              }
+            }
+          },
+          "default-italic": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{pds3.core.font.family.body}",
+              "fontSize": "{pds3.core.font.size.12}",
+              "fontWeight": "{pds3.core.font.weight-role.default}",
+              "lineHeight": "{pds3.core.font.line-height-role.normal}",
+              "letterSpacing": "{pds3.core.font.letter-spacing-role.normal}",
+              "fontStyle": "italic"
+            },
+            "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
+            "$extensions": {
+              "prism3": {
+                "role": "composite",
+                "group": "body",
+                "variant": "xs",
+                "weightRole": "default",
+                "sizePx": 12,
+                "italic": true,
+                "responsive": {
+                  "fluid": false,
+                  "px": 12
+                },
+                "figma": {
+                  "kind": "text-style",
+                  "styleType": "TEXT",
+                  "binds": [
+                    "fontFamily",
+                    "fontSize",
+                    "fontStyle"
+                  ],
+                  "baked": [
+                    "lineHeight",
+                    "letterSpacing"
+                  ],
+                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                }
+              }
+            }
+          },
+          "default-italic-link": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{pds3.core.font.family.body}",
+              "fontSize": "{pds3.core.font.size.12}",
+              "fontWeight": "{pds3.core.font.weight-role.default}",
+              "lineHeight": "{pds3.core.font.line-height-role.normal}",
+              "letterSpacing": "{pds3.core.font.letter-spacing-role.normal}",
+              "fontStyle": "italic",
+              "textDecoration": "underline"
+            },
+            "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with text.link.* color).",
+            "$extensions": {
+              "prism3": {
+                "role": "composite",
+                "group": "body",
+                "variant": "xs",
+                "weightRole": "default",
+                "sizePx": 12,
+                "italic": true,
+                "link": true,
+                "responsive": {
+                  "fluid": false,
+                  "px": 12
+                },
+                "figma": {
+                  "kind": "text-style",
+                  "styleType": "TEXT",
+                  "binds": [
+                    "fontFamily",
+                    "fontSize",
+                    "fontStyle"
+                  ],
+                  "baked": [
+                    "lineHeight",
+                    "letterSpacing",
+                    "textDecoration"
+                  ],
+                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                }
+              }
+            }
+          },
+          "strong": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{pds3.core.font.family.body}",
+              "fontSize": "{pds3.core.font.size.12}",
+              "fontWeight": "{pds3.core.font.weight-role.strong}",
+              "lineHeight": "{pds3.core.font.line-height-role.normal}",
+              "letterSpacing": "{pds3.core.font.letter-spacing-role.normal}"
+            },
+            "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
+            "$extensions": {
+              "prism3": {
+                "role": "composite",
+                "group": "body",
+                "variant": "xs",
+                "weightRole": "strong",
+                "sizePx": 12,
+                "responsive": {
+                  "fluid": false,
+                  "px": 12
+                },
+                "figma": {
+                  "kind": "text-style",
+                  "styleType": "TEXT",
+                  "binds": [
+                    "fontFamily",
+                    "fontSize",
+                    "fontStyle"
+                  ],
+                  "baked": [
+                    "lineHeight",
+                    "letterSpacing"
+                  ],
+                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                }
+              }
+            }
+          },
+          "strong-link": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{pds3.core.font.family.body}",
+              "fontSize": "{pds3.core.font.size.12}",
+              "fontWeight": "{pds3.core.font.weight-role.strong}",
+              "lineHeight": "{pds3.core.font.line-height-role.normal}",
+              "letterSpacing": "{pds3.core.font.letter-spacing-role.normal}",
+              "textDecoration": "underline"
+            },
+            "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with text.link.* color).",
+            "$extensions": {
+              "prism3": {
+                "role": "composite",
+                "group": "body",
+                "variant": "xs",
+                "weightRole": "strong",
+                "sizePx": 12,
+                "link": true,
+                "responsive": {
+                  "fluid": false,
+                  "px": 12
+                },
+                "figma": {
+                  "kind": "text-style",
+                  "styleType": "TEXT",
+                  "binds": [
+                    "fontFamily",
+                    "fontSize",
+                    "fontStyle"
+                  ],
+                  "baked": [
+                    "lineHeight",
+                    "letterSpacing",
+                    "textDecoration"
+                  ],
+                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                }
+              }
+            }
+          },
+          "strong-italic": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{pds3.core.font.family.body}",
+              "fontSize": "{pds3.core.font.size.12}",
+              "fontWeight": "{pds3.core.font.weight-role.strong}",
+              "lineHeight": "{pds3.core.font.line-height-role.normal}",
+              "letterSpacing": "{pds3.core.font.letter-spacing-role.normal}",
+              "fontStyle": "italic"
+            },
+            "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
+            "$extensions": {
+              "prism3": {
+                "role": "composite",
+                "group": "body",
+                "variant": "xs",
+                "weightRole": "strong",
+                "sizePx": 12,
+                "italic": true,
+                "responsive": {
+                  "fluid": false,
+                  "px": 12
+                },
+                "figma": {
+                  "kind": "text-style",
+                  "styleType": "TEXT",
+                  "binds": [
+                    "fontFamily",
+                    "fontSize",
+                    "fontStyle"
+                  ],
+                  "baked": [
+                    "lineHeight",
+                    "letterSpacing"
+                  ],
+                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                }
+              }
+            }
+          },
+          "strong-italic-link": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{pds3.core.font.family.body}",
+              "fontSize": "{pds3.core.font.size.12}",
+              "fontWeight": "{pds3.core.font.weight-role.strong}",
+              "lineHeight": "{pds3.core.font.line-height-role.normal}",
+              "letterSpacing": "{pds3.core.font.letter-spacing-role.normal}",
+              "fontStyle": "italic",
+              "textDecoration": "underline"
+            },
+            "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text. Underlined (link — pair with text.link.* color).",
+            "$extensions": {
+              "prism3": {
+                "role": "composite",
+                "group": "body",
+                "variant": "xs",
+                "weightRole": "strong",
+                "sizePx": 12,
+                "italic": true,
+                "link": true,
+                "responsive": {
+                  "fluid": false,
+                  "px": 12
+                },
+                "figma": {
+                  "kind": "text-style",
+                  "styleType": "TEXT",
+                  "binds": [
+                    "fontFamily",
+                    "fontSize",
+                    "fontStyle"
+                  ],
+                  "baked": [
+                    "lineHeight",
+                    "letterSpacing",
+                    "textDecoration"
+                  ],
+                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                }
+              }
+            }
+          }
+        },
         "sm": {
           "default": {
             "$type": "typography",
@@ -23208,7 +23534,7 @@
         "shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness 1; tinted to hue 267 at 0.35. Full shadows in light, reduced in dark, where surface lightness carries elevation.",
         "gradient: 2 brand gradient(s) — brand (linear 135°, 2 stops), glow (radial, 2 stops). Stops alias the color ramps and blend in oklch; Figma gets a 5-stop sRGB version. Contrast for text on a gradient is computed at its worst-contrast stop.",
         "layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); 12-column grid (4/8/12/12/12 by breakpoint); gutters 16/16/24/24/32px and margins 16/24/24/32/48px, from the spacing scale; containers max 1440px, narrow 720px.",
-        "typography: 22-step size ladder (10–160px), a fixed set rather than a ratio; weights subtle/default/emphasis/strong/max → 300/400/500/600/900; families display Playfair Display, title Playfair Display, body Inter, label Inter, caption Inter, eyebrow Inter, code JetBrains Mono; 'default' type scale. 63 text styles: title and display sizes follow the type scale, display tops out at '3xl' (160px), title.2xs is left out. 21 styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from 375 to 1280px and desktop and mobile Figma modes.",
+        "typography: 22-step size ladder (10–160px), a fixed set rather than a ratio; weights subtle/default/emphasis/strong/max → 300/400/500/600/900; families display Playfair Display, title Playfair Display, body Inter, label Inter, caption Inter, eyebrow Inter, code JetBrains Mono; 'default' type scale. 71 text styles: title and display sizes follow the type scale, display tops out at '3xl' (160px), title.2xs is left out. 21 styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from 375 to 1280px and desktop and mobile Figma modes.",
         "disabled: 'reduced' (default) — disabled text and icons clear 3:1 against the contrast floor: dimmed but legible, never below 3:1, without the WCAG 1.4.3/1.4.11 inactive-component exemption. disabledStrategy 'full' raises them to 4.5:1.",
         "interactive overlays: 'overlay-neutral' (default) — outline and text controls, rows and menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-checked on the blended surface. 'solid-tint' uses the control's own fill at an opacity step instead; 'none' adds no hover.",
         "neutral interactive emphasis: 'subtle' (default) — a light gray fill; inverse-surface variants are always generated.",

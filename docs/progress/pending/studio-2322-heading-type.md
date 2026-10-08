@@ -16,7 +16,7 @@ The owner approved the type specimen sheet (current against proposed, light and 
 
 The values come from chrome tokens resolved from the default Prism3 theme, as every chrome value does. The top bar's wordmark (`.p3-mark`) is unchanged.
 
-**Engine:** the three steps were already on the locked ladder; only roles bind them now. The token contract adds six paths (`CONTRACT_VERSION` 14.3.0, re-accepted), with a `minor` change note. No brand's type moves: no composite binds a new role.
+**Engine:** the three steps were already on the locked ladder; only roles bind them now. The token contract adds six paths (`CONTRACT_VERSION` 14.4.0, re-accepted), with a `minor` change note. No brand's type moves: no composite binds a new role.
 
 ### Diagnosis worth keeping
 

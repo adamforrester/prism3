@@ -320,9 +320,10 @@ export const TYPE_PURPOSE: Record<string, string> = {
  * `display xl strong — 48→112px Clash Display, tight line-height, for hero headlines.` The name words
  * stay the lead so `apps/plugin/src/prune-figma.ts` can still recognize an engine text style by them.
  */
-export const figmaTextStyleDescription = (s: { words: string; group: string; minPx?: number; px: number; face: string; lineHeight: string }): string => {
+export const figmaTextStyleDescription = (s: { words: string; group: string; variant?: string; minPx?: number; px: number; face: string; lineHeight: string }): string => {
   const size = s.minPx !== undefined && s.minPx !== s.px ? `${s.minPx}→${s.px}px` : `${s.px}px`;
-  const purpose = TYPE_PURPOSE[s.group];
+  // body/xs is not for running text (#2266, owner Q101 A), so its style says what it is for.
+  const purpose = s.group === 'body' && s.variant === 'xs' ? 'secondary text and metadata only' : TYPE_PURPOSE[s.group];
   if (!purpose) throw new Error(`figma-description: no purpose for the type group '${s.group}' — add it to TYPE_PURPOSE`);
   return `${s.words} — ${size} ${s.face}, ${s.lineHeight} line-height, for ${purpose}.`;
 };

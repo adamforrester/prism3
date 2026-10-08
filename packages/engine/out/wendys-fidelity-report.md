@@ -8,7 +8,7 @@
 ## Headline
 
 - **Anchor reproduction** — provided `primary` `#C8102E` vs generated `primary.500` `#c8102e`: **ΔE00 0.00** (≈0 confirms exact-anchor preservation).
-- **Aliases**: 1416/1416 resolve · **mode contrast contracts**: 896/896 hold.
+- **Aliases**: 1436/1436 resolve · **mode contrast contracts**: 896/896 hold.
 - **`primary` on white**: the engine measures **5.88:1** (clears small-text AA). The engine measures every contract, so if the brief's prose states a different figure, the *measured* value governs — a stale contrast claim in the source can't propagate.
 - Palettes generated: primary, neutral, secondary, tertiary, success, warning, info, danger · danger draws from `danger`.
 - x-prism3 levers: root=wds.
@@ -200,7 +200,7 @@ Observed elevation is single-layer CSS `box-shadow` strings; the engine generate
 - shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness 1; tinted to hue 249 at 0.15. Full shadows in light, reduced in dark, where surface lightness carries elevation.
 - gradient: none — the brand declares no gradients, and none are added by default.
 - layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); 12-column grid (4/8/12/12/12 by breakpoint); gutters 16/16/24/24/32px and margins 16/24/24/32/48px, from the spacing scale; containers max 1440px, narrow 720px.
-- typography: 22-step size ladder (10–160px), a fixed set rather than a ratio; weights subtle/default/emphasis/strong/max → 300/400/600/700/900; families display wendysFresh, title wendysFresh, body Roboto, label wendysFresh, caption Roboto, eyebrow wendysFresh, code JetBrains Mono; 'default' type scale. 39 text styles: title and display sizes follow the type scale, display tops out at '3xl' (160px), title.2xs is left out. 11 styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from 375 to 1280px and desktop and mobile Figma modes.
+- typography: 22-step size ladder (10–160px), a fixed set rather than a ratio; weights subtle/default/emphasis/strong/max → 300/400/600/700/900; families display wendysFresh, title wendysFresh, body Roboto, label wendysFresh, caption Roboto, eyebrow wendysFresh, code JetBrains Mono; 'default' type scale. 43 text styles: title and display sizes follow the type scale, display tops out at '3xl' (160px), title.2xs is left out. 11 styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from 375 to 1280px and desktop and mobile Figma modes.
 - disabled: 'reduced' (default) — disabled text and icons clear 3:1 against the contrast floor: dimmed but legible, never below 3:1, without the WCAG 1.4.3/1.4.11 inactive-component exemption. disabledStrategy 'full' raises them to 4.5:1.
 - interactive overlays: 'overlay-neutral' (default) — outline and text controls, rows and menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-checked on the blended surface. 'solid-tint' uses the control's own fill at an opacity step instead; 'none' adds no hover.
 - neutral interactive emphasis: 'subtle' (default) — a light gray fill; inverse-surface variants are always generated.

@@ -1394,7 +1394,9 @@ const trackingFor = (group: TypeGroup, px: number): string =>
 const TYPE_VARIANTS: Record<TypeGroup, [string, number][]> = {
   display: [['sm', 48], ['md', 64], ['lg', 80], ['xl', 96], ['2xl', 128], ['3xl', 160]],
   title: [['xs', 18], ['sm', 20], ['md', 24], ['lg', 28], ['xl', 32], ['2xl', 40]],
-  body: [['sm', 14], ['md', 16], ['lg', 18]],
+  // `xs` = 12 (#2266, owner Q78 A): secondary text and metadata set among body text, on body's line height and face.
+  // Not for running text, which is what its description says wherever it ships (BODY_XS_DESCRIPTION).
+  body: [['xs', 12], ['sm', 14], ['md', 16], ['lg', 18]],
   // `lg` = 18 at the label tier's own weight (emphasis/600), added #1260 for the large button label,
   // whose target the owner resolved to 18px/emphasis (2026-09-17). This is deliberately the body-lg
   // SIZE at the label WEIGHT — the two rejected routes were `lg`=16 (following the 12/14 progression,
@@ -1412,6 +1414,10 @@ const TYPE_VARIANTS: Record<TypeGroup, [string, number][]> = {
   eyebrow: [['sm', 12], ['md', 14], ['lg', 20]],
   code: [['inline', 14]],
 };
+/** body/xs's description, verbatim (#2266, owner Q101 A, item 9): the DTCG `$description` of every body.xs composite
+ *  and its `.ai.json` `$description`. body/xs is the one rung whose use differs from its group's (running text), so it
+ *  carries its own words rather than the generated ones. */
+export const BODY_XS_DESCRIPTION = 'Smallest body text, 12px. Secondary text and metadata only, never running text.';
 const TYPE_SCALE_SHIFT = { compact: -1, default: 0, expressive: 1 } as const;
 /** The display rung names, smallest→largest — the domain of `displayCeiling` (#328). */
 export const DISPLAY_VARIANTS = ['sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;

@@ -42,7 +42,7 @@ import type { RGB } from '@prism3/engine/color';
 import { SECTION_HEADER_SET, isTemplateSet } from './file-components';
 import { HEADER_VARIANT } from './page-header';
 import { TAXONOMY, allLeaves, leafPageName } from './file-taxonomy';
-import { findCellSets, pickVariant, SAMPLE_TEXT, SPACING_CELL_SET, SWATCH_SET, TEXT_CELL_SET } from './style-guide-cells';
+import { findCellSets, pickVariant, SAMPLE_TEXT, SPACING_CELL_SET, SWATCH_SET, TEXT_CELL_SET, stretchSwatches } from './style-guide-cells';
 import type { CellNode } from './style-guide-cells';
 import { realYield } from './write-components';
 import type { YieldFn } from './write-components';
@@ -958,6 +958,8 @@ export interface SgNode extends CellNode {
   /** Phase 2: apply a text style to a text node (the dynamic-page form). */
   setTextStyleIdAsync?(id: string): Promise<void>;
   textStyleId?: unknown;
+  /** A text's line height: a font-size specimen takes the font's own (`AUTO`, #2267). */
+  lineHeight?: unknown;
   /** A floor on an auto-layout or grid child's size (a palette swatch that FILLs its cell). */
   minWidth?: unknown;
   minHeight?: unknown;
@@ -1312,6 +1314,20 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     plan.tables.forEach((t, index) => { skip(t, 'no-cells'); run.onTable?.({ index, status: 'failed', reason: SKIP_REASON(t, 'no-cells') }); });
     return { tables: out, stale: [], replaced: [], deleted: [], kept: [], unbound: 0, notes: plan.notes, misses, unmatched: plan.unmatched };
   }
+  // A palette swatch FILLs its cell; a swatch set Set up file built before its squares stretched is brought up to date
+  // first, so the square grows with the cell (#2268). A set the owner made is never changed (`stretchSwatches`).
+  if (plan.tables.some((t) => t.kind === 'primitive')) stretchSwatches(swatches);
+  // THE PALETTE SWATCH'S EDGE (#2268, owner, 2026-10-07): a hairline bound to the brand's `color.border.secondary`, the
+  // neutral edge that clears 3:1 on white, so a near-white step stays outlined on its white cell. Found by its path under
+  // the configurable root, the row's own root first (a file can hold two); a file without it keeps the swatch's hairline.
+  const rootOf = (name: string): string => name.split('/')[0];
+  const edges = catalog.variables.filter((v) => v.resolvedType === 'COLOR' && /(^|\/)color\/border\/secondary$/.test(v.name));
+  const nameById = new Map(catalog.variables.map((v) => [v.id, v.name]));
+  const edgeFor = (variableId: string): unknown => {
+    const root = rootOf(nameById.get(variableId) ?? '');
+    const hit = edges.find((v) => rootOf(v.name) === root) ?? edges[0];
+    return hit ? variableById.get(hit.id) : undefined;
+  };
   const allSets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly SgNode[];
   const headerSet = allSets.find((n) => n.name === SECTION_HEADER_SET) ?? allSets.find((n) => isTemplateSet(n.name, SECTION_HEADER_SET));
   const headerVariant = headerSet?.children?.find((c) => c.name === HEADER_VARIANT) as SgNode | undefined;
@@ -1516,6 +1532,10 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       if (titleNode?.characters === t.title) wrap.setPluginData?.(TITLE_KEY, t.title);
       if (descNode?.characters === t.description) wrap.setPluginData?.(DESC_KEY, t.description);
     } else {
+      // Measured BEFORE the frame exists (#2269): the host adds a new frame to the CURRENT page at once, 100 × 100 at
+      // 0, 0, so on the page being drawn (where a designer usually is) a measurement taken after `createFrame` counted
+      // the table itself, and every new category's row anchored on it, at the same place.
+      const at = anchor(page, categoryOfKey(t.key));
       wrap = api.createFrame();
       wrap.name = `Style guide — ${t.title}`;
       wrap.layoutMode = 'VERTICAL';
@@ -1524,8 +1544,6 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       wrap.itemSpacing = 40;
       wrap.fills = [];
       wrap.setPluginData?.(TABLE_KEY, t.key);
-      // Measured BEFORE the new frame joins the page, so it does not count itself.
-      const at = anchor(page, categoryOfKey(t.key));
       page.appendChild(wrap);
       wrap.x = at.x;
       wrap.y = at.y;
@@ -1707,6 +1725,10 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
         bound = (!needs || await ensureFont(needs)) && bindTo(text, spec.bind, variable);
       }
       if (!bound) missAt(unboundSpec, what, where);
+      // A FONT SIZE AT THE FONT'S OWN LINE HEIGHT (#2267): the text cell's text keeps a fixed 20px line, so a 128px
+      // specimen drew a 20px box, its glyphs spilling over the rows around it while the row stayed one line tall. Auto
+      // is the font's own height at that size, so the row grows to fit it.
+      if (spec.kind === 'font' && spec.bind === 'fontSize' && text) { try { text.lineHeight = { unit: 'AUTO' }; } catch { /* the host keeps the cell's own */ } }
       fit(inst);
       place(inst, r, c);
     };
@@ -1741,9 +1763,18 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
         for (const x of row.extra ?? []) place(await textCell(options.aliases !== false && x.alias ? 'value alias' : 'default', 'white', x.value, x.alias), r + 1, c++);
       } else for (const cell of row.cells) {
         if (t.kind === 'primitive') {
-          // A palette row: the swatch alone, at its own size, in the cell (decision 13).
+          // A palette row: the swatch alone, filling its cell (decision 13), its edge the brand's border (#2268).
           const sw = swatchOf(row, cell, collection);
-          if (sw) { grid.appendChildAt?.(sw.inst, r + 1, c); fillCell(sw.inst); }
+          if (sw) {
+            grid.appendChildAt?.(sw.inst, r + 1, c);
+            fillCell(sw.inst);
+            const target = row.display === 'border' ? null : bindTarget(sw.inst, row.display);
+            const edgeVariable = edgeFor(row.variableId);
+            if (target && edgeVariable) {
+              target.strokes = [api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', edgeVariable)];
+              if (!(num(target.strokeWeight) > 0)) { target.strokeWeight = 1; target.strokeAlign = 'INSIDE'; }
+            }
+          }
           c++;
         } else place(specimen(row, cell, collection), r + 1, c++);
         const chip = options.aliases !== false && cell.alias;
@@ -2037,9 +2068,9 @@ export const styleGuideSummary = (r: StyleGuideResult): { ok: boolean; headline:
     parts.push(`${tables(upd.length)} updated in place — ${changes.length ? changes.join('; ') : 'no token changes'}`);
   }
   const noCells = skipped.filter((t) => t.reason === 'no-cells');
-  if (noCells.length) parts.push(`${noCells.length} tables skipped — this file has no style-guide cell sets, and Set up file adds them`);
+  if (noCells.length) parts.push(`${tables(noCells.length)} skipped — this file has no style-guide cell sets, and Set up file adds them`);
   const noPage = [...new Set(skipped.filter((t) => t.reason === 'no-page').map((t) => t.page))];
-  for (const p of noPage) parts.push(`${skipped.filter((t) => t.page === p).length} tables skipped — this file has no ${p.replace(/^↳\s*/, '')} page, and Set up file adds it`);
+  for (const p of noPage) parts.push(`${tables(skipped.filter((t) => t.page === p).length)} skipped — this file has no ${p.replace(/^↳\s*/, '')} page, and Set up file adds it`);
   // Superseded tables: the deleted ones by name, since a deletion names its scope; the kept ones grouped by the
   // reason each was kept; a table from before the fingerprint apart, with what to do about it. Wording proposed,
   // owner to confirm (docs/45 §8).
