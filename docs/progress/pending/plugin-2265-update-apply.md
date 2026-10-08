@@ -17,6 +17,8 @@ The apply half of the in-place update, per the #2265 design note and owner decis
 - **A glyph's vectors are replaced only when the glyph changed.** A fresh import is compared path by path with the vectors the frame holds, and discarded when they match. Replacing them on every update would drop any override a consumer file made on them.
 - **An INSTANCE_SWAP default is a node id the dry run cannot compare,** so the apply moves it to the plan's target's id wherever it points elsewhere. Without that, a swap-target change re-pointed every member and left an instance placed fresh showing the old icon.
 
+- **Two guards held only upstream, found in review.** Both the apply's own refusal of a set the dry run blocks and its keeping copied or hand-made members out of the deprecations were enforced, but held only by the dry-run suites; removing either from `update-apply.ts` passed everything. `apply/blocked` and `apply/copy` now hold each one. With the blocker check gone, the apply saves a named version and dies mid-write on the set's definitions, and the arm catches that throw as its failure.
+
 ### Traps for whoever re-verifies
 
 - **The two-file publish check (design note §9, steps 1–6) gates publishing the NB library**, not this PR's merge or its use on the NB master (owner, 2026-10-07).

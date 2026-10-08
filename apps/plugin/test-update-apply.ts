@@ -47,6 +47,12 @@
  *                  without a record, never read as having no hand edits; `choices.noBaseline: 'skip'` leaves it.
  *                  Mutations: the default skips → `unrecorded/updated`; not listed → `unrecorded/updated`,
  *                  `unrecorded/words`.
+ *   apply/blocked  a set the dry run refuses (two members on one coordinate) is refused by the apply too: the
+ *                  dry run's reason returned, every member byte-identical, no version saved (#2328 review). Mutation:
+ *                  the apply's own blocker check dropped from `preflight` → `apply/blocked`.
+ *   apply/copy     with the original's coordinate dropped, only the original is marked deprecated; a Figma duplicate
+ *                  of it and an unstamped member off the plan keep their description, stamp and record exactly
+ *                  (#2328 review). Mutation: the deprecations take the unstamped members too → `apply/copy`.
  *   noop/…         a set already current: no version, no write.
  *   order/…        nested sets are updated first.
  *
@@ -298,6 +304,54 @@ section('version — refused, nothing is written');
   const { res } = await confirm(w, [{ def: TAG, plans: moveGap(w.plans) }]);
   ok(!!res.refusedAll && /named version could not be saved/.test(res.refusedAll), `version/refused: ${res.refusedAll}`);
   ok(membersOf(w.set()).map((m) => (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY)).join() === stamps, 'version/nothing written: no member was touched');
+}
+
+/* ── apply, guarded ──────────────────────────────────────────────────────────────────────────────────── */
+section('apply, guarded — a set the dry run refuses is not written, and only Prism3\'s own members are deprecated (#2328 review)');
+/** Every member as the file holds it: its name, description, plugin data, and each child's id and bindings. */
+const dumpSet = (set: Node): string => JSON.stringify(membersOf(set).map((m) => [m.name, m.description ?? '', [...((m._pluginData as Map<string, string>) ?? new Map())],
+  (m.findAll as () => Node[])().map((k) => [k.name, k.id, k.boundVariables, k.fills])]));
+{
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  // Two members on one planned coordinate, both Prism3's: the dry run refuses the set rather than pick one.
+  const [a, b] = [membersOf(w.set())[5], membersOf(w.set())[6]];
+  b.name = a.name;
+  const next = moveGap(w.plans);
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: next }]);
+  ok(pre.sets[0]?.blockers.some((x) => /share the coordinate/.test(x)), `premise: the dry run refuses the set (${pre.sets[0]?.blockers[0]?.slice(0, 60)})`);
+  const before = dumpSet(w.set());
+  // A throw is a failure of this arm too, by name: an apply that goes ahead on a blocked set can die mid-write on it.
+  let res: Awaited<ReturnType<typeof applyUpdate>>;
+  try { res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre)); }
+  catch (err) { res = { outcomes: [{ def: TAG, set: TAG, refused: undefined, updated: ['(threw)'], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: 'keep', identity: [], content: [], misses: [], stopped: String((err as Error).message) }], missing: [], refused: [] }; }
+  const o = res.outcomes[0];
+  ok(!!o?.refused && /share the coordinate/.test(o.refused) && o.updated.length === 0 && dumpSet(w.set()) === before && w.api._versions.length === 0 && !applyVerdict(res).ok,
+    `apply/blocked: the set is refused with the dry run's reason, every member byte-identical, no version saved (${o?.refused?.slice(0, 70) ?? `not refused${o?.stopped ? `: the apply threw (${o.stopped.slice(0, 80)})` : ''}`}; ${w.api._versions.length} versions; ${applyVerdict(res).headline})`);
+}
+{
+  const w = await world(TAG);
+  const pd = (n: Node, k: string): string => (n.getSharedPluginData as (a: string, b: string) => string)(NS, k);
+  const put = (n: Node, k: string, v: string): void => (n.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, k, v);
+  const [orig, dup, own] = [membersOf(w.set())[3], membersOf(w.set())[4], membersOf(w.set())[5]];
+  // A Figma Duplicate of the original (its stamp and record copied, its own id), renamed off the plan; and a
+  // member a designer made, unstamped, off the plan too.
+  for (const k of [STAMP_KEY, BASELINE_KEY]) put(dup, k, pd(orig, k));
+  dup.name = String(dup.name).replace(/size=\w+/, 'size=huge');
+  for (const k of [STAMP_KEY, BASELINE_KEY]) put(own, k, '');
+  own.name = String(own.name).replace(/size=\w+/, 'size=giant');
+  dup.description = 'Designer copy.';
+  own.description = 'Hand-made.';
+  const keep = (n: Node): string => JSON.stringify([n.description, pd(n, STAMP_KEY), pd(n, BASELINE_KEY)]);
+  const [dupBefore, ownBefore] = [keep(dup), keep(own)];
+  // The plan drops the original's coordinate.
+  const fewer = w.plans.filter((p) => planComponentName(p) !== String(orig.name));
+  ok(fewer.length === w.plans.length - 1, 'premise: the plan drops exactly the original\'s coordinate');
+  const { res } = await confirm(w, [{ def: TAG, plans: fewer }]);
+  const o = res.outcomes[0];
+  const retained = JSON.parse(pd(w.set(), RETAINED_KEY) || '[]') as string[];
+  ok(JSON.stringify(o?.deprecated) === JSON.stringify([String(orig.name)]) && String(orig.description ?? '').startsWith(DEPRECATED_PREFIX)
+    && JSON.stringify(retained) === JSON.stringify([String(orig.name)]) && keep(dup) === dupBefore && keep(own) === ownBefore,
+    `apply/copy: only the original is marked deprecated; the duplicate and the hand-made member keep their description, stamp and record (${JSON.stringify(o?.deprecated)}; ${JSON.stringify(retained)}; dup ${keep(dup) === dupBefore ? 'kept' : 'changed'}, own ${keep(own) === ownBefore ? 'kept' : 'changed'})`);
 }
 
 /* ── noop ────────────────────────────────────────────────────────────────────────────────────────────── */
