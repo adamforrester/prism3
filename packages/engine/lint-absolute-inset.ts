@@ -201,15 +201,22 @@ const OUT_FIGMA = join(import.meta.dirname, 'out', 'figma');
  * GAPS THAT ARE LEGITIMATELY ZERO, keyed `<def>.<part>` → the reason, which must say what supplies
  * the separation instead.
  *
- * Empty today, and it is a real case rather than a hypothetical hook: `focus.ring.offset-field`
- * resolves to 0 in every brand on purpose — `text-field` binds it, and `focus-ring`'s own `offset`
- * prop documents why ("an input's own border already supplies the separation and a gap there reads as
- * a double border"). `text-field` has no `anatomy` yet, so nothing projects it; the day it does, this
- * gate fails until a human writes the reason down here. That friction is the feature, for the same
- * argument `schema/payload-manifest.json` is authored rather than regenerated: a gate that decided
- * for itself which zeroes were intended would have classified #801's as intended too.
+ * The case this header predicted arrived with #2266: `focus.ring.offset-field` resolves to 0 in every
+ * brand on purpose, and `focus-ring`'s own `offset` prop documents why ("an input's own border already
+ * supplies the separation and a gap there reads as a double border"). The three fields bound it long
+ * before this gate saw them — the scan below walks only defs with a `size` axis, and the fields had none
+ * until #2266 projected one — so the day it did, this gate failed until the reason was written down here.
+ * That friction is the feature, for the same argument `schema/payload-manifest.json` is authored rather
+ * than regenerated: a gate that decided for itself which zeroes were intended would have classified #801's
+ * as intended too.
  */
-const ZERO_OK: Record<string, string> = {};
+const FIELD_RING =
+  "the FIELD offset (`focus.ring.offset-field`, 0 in every brand) is focus-ring's own `offset: 'field'`: the input's border is the separation, and a gap outside it reads as a double border (focus-ring.ts, the `offset` prop). The ring still compensates its own stroke (`strokeInset: 'ring-width'`), so it is drawn outside the border, never across it";
+const ZERO_OK: Record<string, string> = {
+  'text-field.focusRing': FIELD_RING,
+  'select.focusRing': FIELD_RING,
+  'textarea.focusRing': FIELD_RING,
+};
 
 /**
  * The scope floor. `docs/34`: a gate with a scope asserts each promised surface is REPRESENTED, never

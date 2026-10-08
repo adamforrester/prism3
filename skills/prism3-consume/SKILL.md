@@ -97,6 +97,13 @@ item. It keeps body's line height, so it sits on the body rhythm. Never use it f
 text; that starts at `type.body.sm.*`. Caption lg is small print that stands on its own (an
 image caption, helper text, a footnote) at caption's tighter line height.
 
+**A field's label sits one body step below its input.** Text field, select and textarea share
+one `size`: `small` is a 12px label over a 14px input, `medium` (the default) 14 over 16, and
+`large` 16 over 18. The message below stays 11px at every size. `small` is for fine pointers
+only: under `@media (pointer: coarse)`, set the small input's font size to 16px, because iOS
+Safari zooms the page when it focuses an input under 16px. Don't stop the zoom with
+`maximum-scale=1`: that blocks pinch zoom too.
+
 ## The self-check (do this before you finish)
 
 List every **ink-on-surface color pairing** your component renders, each as

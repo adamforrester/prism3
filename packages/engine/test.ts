@@ -14477,6 +14477,93 @@ arm: {
           `#2292/#2266 ${def.id}: on every member the root is built at 320 and the bordered control FILLS it (FIXED + STRETCH) down to its 120 floor (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
       }
     }
+    // ---- #2266: ONE FIELD SIZING SYSTEM (owner decisions Q84 A, Q101 A, Q99 B) ----
+    // Every EXPECTED value below is a literal authored here from the design note's §3 table, never read off a
+    // def (docs/34): the label is one body step below the input at every size (12/14, 14/16, 16/18), small keeps
+    // the 44px floor, the message stays 11px, and a field shrinks to a 120 floor. ACTUAL is the emitted plan,
+    // and the px arm reads the five committed brand emissions. Each arm names its def and size.
+    {
+      const SIZES = ['small', 'medium', 'large'] as const;
+      type Sz = typeof SIZES[number];
+      const LABEL_STYLE: Record<Sz, string> = { small: 'body/xs', medium: 'body/sm', large: 'body/md' };
+      const INPUT_STYLE: Record<Sz, string> = { small: 'body/sm', medium: 'body/md', large: 'body/lg' };
+      const LABEL_PX: Record<Sz, number> = { small: 12, medium: 14, large: 16 };
+      const INPUT_PX: Record<Sz, number> = { small: 14, medium: 16, large: 18 };
+      const HEIGHT: Record<Sz, string> = { small: 'size/md/min-height', medium: 'size/md/min-height', large: 'size/lg/height' };
+      const CARET: Record<Sz, string> = { small: 'control/size/sm/line-box', medium: 'control/size/md/line-box', large: 'control/size/lg/line-box' };
+      const PAD: Record<Sz, string> = { small: 'space/075 space/200', medium: 'space/100 space/200', large: 'space/100 space/300' };
+      const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
+
+      // (1) field-label, re-laddered 12 / 14 / 16: both text parts, both weights, at each size.
+      for (const size of SIZES) {
+        const got: string[] = [];
+        for (const weight of ['regular', 'bold'] as const) {
+          const root = figmaAnatomyPlan(fieldLabel, size, { emphasis: 'secondary', weight, state: 'rest' } as never).root;
+          for (const part of ['text', 'indicator']) got.push(`${weight}/${part}:${String(findIn(root, part)?.textStyle)}`);
+        }
+        const want = [`regular/text:${LABEL_STYLE[size]}/default`, `regular/indicator:${LABEL_STYLE[size]}/default`, `bold/text:${LABEL_STYLE[size]}/strong`, `bold/indicator:${LABEL_STYLE[size]}/strong`];
+        ok(got.join(' ') === want.join(' '),
+          `#2266 field-label size=${size}: the name and the marker set ${LABEL_STYLE[size]} at both weights (got ${got.join(' ')})`);
+      }
+
+      // (2) the three fields, at each size: the nested label follows, the input type scales, the geometry moves.
+      for (const def of [textField, select, textarea]) {
+        for (const size of SIZES) {
+          const empty = figmaAnatomyPlan(def, size, { status: 'default', state: 'focus-visible' } as never).root;
+          const filled = figmaAnatomyPlan(def, size, { status: 'default', state: 'filled' } as never).root;
+          const label = findIn(empty, 'label');
+          const ctl = findIn(empty, 'control');
+          const bad: string[] = [];
+          if (label?.nestVariant?.size !== size) bad.push(`label nests size=${String(label?.nestVariant?.size)}`);
+          if (findIn(empty, 'placeholder')?.textStyle !== `${INPUT_STYLE[size]}/default`) bad.push(`placeholder ${String(findIn(empty, 'placeholder')?.textStyle)}`);
+          if (findIn(filled, 'value')?.textStyle !== `${INPUT_STYLE[size]}/default`) bad.push(`value ${String(findIn(filled, 'value')?.textStyle)}`);
+          if (`${String(ctl?.bound.paddingTop)} ${String(ctl?.bound.paddingLeft)}` !== PAD[size]) bad.push(`padding ${String(ctl?.bound.paddingTop)} ${String(ctl?.bound.paddingLeft)}`);
+          if (ctl?.minWidth !== 120) bad.push(`minWidth ${String(ctl?.minWidth)}`);
+          // The height: text-field FIXES it, select floors it (a wrapped value grows), textarea binds none (rows).
+          const h = def === textField ? ctl?.bound.height : def === select ? ctl?.bound.minHeight : undefined;
+          if (def !== textarea && h !== HEIGHT[size]) bad.push(`height ${String(h)}`);
+          if (def === textarea && (ctl?.bound.height !== undefined || ctl?.bound.minHeight !== undefined)) bad.push(`textarea binds a height (${String(ctl?.bound.height ?? ctl?.bound.minHeight)})`);
+          if (def !== select && findIn(empty, 'caret')?.bound.height !== CARET[size]) bad.push(`caret ${String(findIn(empty, 'caret')?.bound.height)}`);
+          // The message stays one size (Q8): the nest names only its status, never a size.
+          if (Object.keys(findIn(empty, 'message')?.nestVariant ?? {}).join() !== 'status') bad.push(`message nests ${JSON.stringify(findIn(empty, 'message')?.nestVariant)}`);
+          ok(bad.length === 0,
+            `#2266 ${def.id} size=${size}: label ${LABEL_STYLE[size]} over input ${INPUT_STYLE[size]}, height ${def === textarea ? 'from rows' : HEIGHT[size]}, padding ${PAD[size]}, a 120 floor${bad.length ? ` — WRONG: ${bad.join('; ')}` : ''}`);
+        }
+        // 72 members, led by medium: the default variant, and where an in-place update (#2265) lands every member
+        // of a set built before #2266 (they were all the medium field).
+        const set = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+        ok(set.length === 72 && set[0].size === 'medium' && SIZES.every((sz) => set.filter((p) => p.size === sz).length === 24),
+          `#2266 ${def.id}: the set is 72 members, 24 per size, led by size=medium (got ${set.length}, first ${String(set[0]?.size)})`);
+      }
+
+      // (3) the pairs in px, in every committed brand emission: the label exactly one body step (2px) under the input.
+      const files = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f));
+      const pxWrong: string[] = [];
+      for (const f of files) {
+        const t = JSON.parse(readFileSync(resolve(HERE, 'out', f), 'utf8'));
+        const r = t[Object.keys(t).find((k) => !k.startsWith('$'))!];
+        const px = (style: string): number | undefined => {
+          const [, step] = style.split('/');
+          return r?.type?.body?.[step]?.default?.$extensions?.prism3?.sizePx;
+        };
+        for (const size of SIZES) {
+          const l = px(LABEL_STYLE[size]), i = px(INPUT_STYLE[size]);
+          if (l !== LABEL_PX[size] || i !== INPUT_PX[size]) pxWrong.push(`${f} ${size}: ${String(l)} over ${String(i)}`);
+        }
+      }
+      ok(files.length >= 5 && pxWrong.length === 0,
+        `#2266 every brand pairs a 12 / 14 / 16 label with a 14 / 16 / 18 input (${files.length} emissions${pxWrong.length ? ` — WRONG: ${pxWrong.join('; ')}` : ''})`);
+
+      // (4) the group legends follow the ladder (Q2): a medium group nests the medium, bold label, now 14px bold.
+      for (const g of [checkboxGroup, radioGroup]) {
+        const legend = findIn(figmaAnatomyPlan(g, 'medium', {} as never).root, 'label');
+        const v = legend?.nestVariant ?? {};
+        const style = findIn(figmaAnatomyPlan(fieldLabel, String(v.size), { emphasis: String(v.emphasis), weight: String(v.weight), state: 'rest' } as never).root, 'text')?.textStyle;
+        ok(v.size === 'medium' && v.weight === 'bold' && style === 'body/sm/strong',
+          `#2266 ${g.id} size=medium: the legend is the medium bold label, body/sm/strong (14px bold) — got size=${String(v.size)}, weight=${String(v.weight)}, ${String(style)}`);
+      }
+    }
+
     //   MUTATION #1343a — remove the floor. The plan drops `control.minWidth`, flipping '#1343a select
     //   control carries the 320 min-width floor' BY NAME.
     const noFloor = { ...select, anatomy: { ...select.anatomy, parts: { ...select.anatomy.parts, control: { ...select.anatomy.parts.control, minWidth: undefined } } } };

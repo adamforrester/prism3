@@ -150,7 +150,10 @@ type Relation =
   /** No value is in canonical. Loud, and therefore the cheap kind of divergence. */
   | 'disjoint'
   /** Shares some, disagrees on others. Reads as alignment while disagreeing — argue this one hardest. */
-  | 'overlapping';
+  | 'overlapping'
+  /** Exactly canonical's values, in another ORDER (#2266). The first value is the rest coordinate and the
+   *  Figma default variant, so a reordering is a real choice, declared rather than read as a duplicate. */
+  | 'reordered';
 
 type AxisValueSet = {
   readonly axis: VariantAxis;
@@ -379,6 +382,19 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'button and icon-button siblings among them by way of their shared factories (#1223, #1225). '
       + 'Rungs are named rather than numbered so a brand can re-derive the dimensions behind them without '
       + 'the names going stale.',
+  },
+  {
+    axis: 'size',
+    values: ['medium', 'small', 'large'],
+    defs: ['text-field', 'select', 'textarea'],
+    relation: 'reordered',
+    reason:
+      'The canonical ladder, led by `medium` (#2266, the field sizing system). The first value is the set\'s '
+      + 'first member, which is Figma\'s default variant AND the value an in-place update (#2265) gives every '
+      + 'existing member of a set that gains this axis. Every field built before #2266 is the medium field, so '
+      + 'medium first keeps those members\' look as well as their keys; `small` first would rewrite them as '
+      + 'the small field in place. The code enum (`props.size`) keeps the ladder\'s own order; '
+      + '`lint-rung-names.ts` DEFAULT_FIRST admits the split. Held for the owner on #2266.',
   },
   {
     axis: 'size',
@@ -785,7 +801,8 @@ const relate = (vals: readonly string[], canon: readonly string[]): Relation => 
   const v = new Set(vals);
   const shared = [...v].filter((x) => c.has(x)).length;
   if (!shared) return 'disjoint';
-  if (shared === v.size && shared === c.size) return 'canonical'; // identical — a duplicate entry
+  if (shared === v.size && shared === c.size)
+    return vals.join(',') === canon.join(',') ? 'canonical' : 'reordered'; // identical — a duplicate entry, or another order
   if (shared === v.size) return 'subset';
   if (shared === c.size) return 'superset';
   return 'overlapping';

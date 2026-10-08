@@ -407,6 +407,11 @@
   },
   "select": {
     "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
       "state": [
         "disabled",
         "filled",
@@ -422,7 +427,7 @@
         "warning"
       ]
     },
-    "members": 24
+    "members": 72
   },
   "spinner": {
     "axes": {
@@ -492,6 +497,11 @@
   },
   "text-field": {
     "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
       "state": [
         "disabled",
         "filled",
@@ -507,10 +517,15 @@
         "warning"
       ]
     },
-    "members": 24
+    "members": 72
   },
   "textarea": {
     "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
       "state": [
         "disabled",
         "filled",
@@ -526,7 +541,7 @@
         "warning"
       ]
     },
-    "members": 24
+    "members": 72
   },
   "veil": {
     "axes": {
