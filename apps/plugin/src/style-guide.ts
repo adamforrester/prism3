@@ -902,6 +902,14 @@ const fallbackGround = (catalog: SgCatalog, col: SgCollection, tail: readonly st
   }), near);
 };
 
+/** AN INVERSE TOKEN (#2331): one whose path has an `inverse` segment, read off the WHOLE variable name. Never off the path
+ *  below a table's common prefix: the Inverse table's prefix is `<root>/color/inverse` itself, so `inverse/text/primary`
+ *  read there as `text/primary` and drew on the white page ground, where `#F7F7F7` cannot be seen (the owner's report). */
+export const isInverse = (name: string): boolean => /(^|\/)inverse(\/|$)/.test(name);
+/** A sample the swatch draws AS ITS COLOR, filling its cell (#2331): a fill, translucent or not. Text, border and icon
+ *  samples are marks drawn on a ground instead. */
+export const isFillSample = (display: SwatchType): boolean => display === 'default' || display === 'transparency';
+
 /** The mode a ground resolves in: this mode when it shares the collection, its own default otherwise. */
 const groundModeFor = (ix: Index, col: SgCollection, v: SgVariable, modeId: string): string =>
   v.variableCollectionId === col.id ? modeId : (defaultMode(ix.collections.get(v.variableCollectionId)) ?? modeId);
@@ -1317,11 +1325,12 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
   // A palette swatch FILLs its cell; a swatch set Set up file built before its squares stretched is brought up to date
   // first, so the square grows with the cell (#2268). A set the owner made is never changed (`stretchSwatches`).
   if (plan.tables.some((t) => t.kind === 'primitive')) stretchSwatches(swatches);
-  // THE PALETTE SWATCH'S EDGE (#2268, owner, 2026-10-07): a hairline bound to the brand's `color.border.secondary`, the
-  // neutral edge that clears 3:1 on white, so a near-white step stays outlined on its white cell. Found by its path under
-  // the configurable root, the row's own root first (a file can hold two); a file without it keeps the swatch's hairline.
+  // THE FILL SWATCH'S EDGE (#2268; owner, 2026-10-08, #2331 Q115: light, not dark): a hairline bound to the brand's
+  // `color.border.primary`, the lightest border role, on every fill swatch, palette and semantic alike. Found by its
+  // path under the configurable root, the row's own root first (a file can hold two); a file without it keeps the
+  // swatch's hairline.
   const rootOf = (name: string): string => name.split('/')[0];
-  const edges = catalog.variables.filter((v) => v.resolvedType === 'COLOR' && /(^|\/)color\/border\/secondary$/.test(v.name));
+  const edges = catalog.variables.filter((v) => v.resolvedType === 'COLOR' && /(^|\/)color\/border\/primary$/.test(v.name));
   const nameById = new Map(catalog.variables.map((v) => [v.id, v.name]));
   const edgeFor = (variableId: string): unknown => {
     const root = rootOf(nameById.get(variableId) ?? '');
@@ -1460,14 +1469,43 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     try { inst.layoutSizingVertical = 'FILL'; } catch { /* a host that refuses it leaves the swatch at its size */ }
     try { inst.minWidth = SWATCH_MIN; inst.minHeight = SWATCH_MIN; } catch { /* no floor where the host has none */ }
   };
-  const specimen = (row: SgRow, cell: SgCell, collection: unknown): SgNode => {
+  /** A FILL SWATCH (#2268, #2331): the swatch alone, filling its cell (decision 13), its square stroked with the brand's
+   *  light edge. Palette steps and semantic fills alike, inverse fills included: the color itself is the sample, so it
+   *  never sits on a backdrop. */
+  const fillSwatch = (into: SgNode, row: SgRow, cell: SgCell, collection: unknown, r: number, c: number): void => {
+    const sw = swatchOf(row, cell, collection);
+    if (!sw) return;
+    into.appendChildAt?.(sw.inst, r, c);
+    fillCell(sw.inst);
+    const target = row.display === 'border' ? null : bindTarget(sw.inst, row.display);
+    const edgeVariable = edgeFor(row.variableId);
+    if (target && edgeVariable) {
+      target.strokes = [api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', edgeVariable)];
+      if (!(num(target.strokeWeight) > 0)) { target.strokeWeight = 1; target.strokeAlign = 'INSIDE'; }
+    }
+  };
+  /** WHERE A MARK IS DRAWN (#2331): a text, border or icon sample sits on a ground. An INVERSE token's sits on the
+   *  collection's inverse background, found by path; every other sits on the ground its role is contracted against, and
+   *  never on an inverse one (the page ground instead). The contrast column still measures what it measured. */
+  const groundFor = (row: SgRow, cell: SgCell, collectionId: string): unknown => {
+    const col = catalog.collections.find((c) => c.id === collectionId);
+    const byPath = (want: string[]): unknown => {
+      const hit = col ? fallbackGround(catalog, col, want, new Set(), row.name) : null;
+      return hit ? variableById.get(hit.id) : undefined;
+    };
+    if (isInverse(row.name)) return byPath(['inverse', 'background', 'primary']);
+    const own = cell.groundId ? catalog.variables.find((v) => v.id === cell.groundId) : undefined;
+    if (own && !isInverse(own.name)) return variableById.get(own.id);
+    return byPath(['background', 'primary']);
+  };
+  const specimen = (row: SgRow, cell: SgCell, collection: unknown, collectionId: string): SgNode => {
     const ground = api.createFrame();
     ground.name = 'Ground';
     ground.layoutMode = 'HORIZONTAL';
     ground.primaryAxisSizingMode = 'AUTO';
     ground.counterAxisSizingMode = 'AUTO';
     ground.paddingTop = 12; ground.paddingBottom = 12; ground.paddingLeft = 16; ground.paddingRight = 16;
-    const groundVariable = cell.groundId ? variableById.get(cell.groundId) : undefined;
+    const groundVariable = groundFor(row, cell, collectionId);
     ground.fills = groundVariable ? [api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', groundVariable)] : WHITE;
     ground.setExplicitVariableModeForCollection?.(collection, cell.modeId);
     const sw = swatchOf(row, cell, collection);
@@ -1762,21 +1800,10 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
         }
         for (const x of row.extra ?? []) place(await textCell(options.aliases !== false && x.alias ? 'value alias' : 'default', 'white', x.value, x.alias), r + 1, c++);
       } else for (const cell of row.cells) {
-        if (t.kind === 'primitive') {
-          // A palette row: the swatch alone, filling its cell (decision 13), its edge the brand's border (#2268).
-          const sw = swatchOf(row, cell, collection);
-          if (sw) {
-            grid.appendChildAt?.(sw.inst, r + 1, c);
-            fillCell(sw.inst);
-            const target = row.display === 'border' ? null : bindTarget(sw.inst, row.display);
-            const edgeVariable = edgeFor(row.variableId);
-            if (target && edgeVariable) {
-              target.strokes = [api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', edgeVariable)];
-              if (!(num(target.strokeWeight) > 0)) { target.strokeWeight = 1; target.strokeAlign = 'INSIDE'; }
-            }
-          }
-          c++;
-        } else place(specimen(row, cell, collection), r + 1, c++);
+        // A palette step, or a semantic FILL (inverse fills included): the swatch fills its cell (#2268, #2331). A text,
+        // border or icon role: its mark on its ground, the inverse background for an inverse token (#2331).
+        if (t.kind === 'primitive' || isFillSample(row.display)) fillSwatch(grid, row, cell, collection, r + 1, c++);
+        else place(specimen(row, cell, collection, t.collectionId), r + 1, c++);
         const chip = options.aliases !== false && cell.alias;
         place(await textCell(chip ? 'value alias' : 'default', 'white', cell.value, cell.alias), r + 1, c++);
         if (t.kind === 'semantic') place(await textCell('default', 'white', contrastText(cell.contrast)), r + 1, c++);

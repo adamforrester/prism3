@@ -1079,7 +1079,8 @@ const main = async (): Promise<void> => {
     // The owner's type=default carries its fill on the component itself, with no layers inside (live: 368 misses).
     const bgT = tableFrame(sem, 'Background');
     const bgG = bgT ? gridOf(bgT) : undefined;
-    const bgSw = bgG ? cellAt(bgG, rowOf(bgG, 'primary'), 1)?.children[0] : undefined;
+    // A fill is the swatch itself, filling its cell (#2331), so the cell IS the owner's layerless instance.
+    const bgSw = bgG ? cellAt(bgG, rowOf(bgG, 'primary'), 1) : undefined;
     ok(bgSw?.mainComponent?.name === 'type=Default' && boundId(bgSw?.fills) === vars.find((v) => v.name === 'pds3/color/background/primary')!.id, "2: a type=default swatch with no layers binds the instance's own fill");
     ok(run.unbound === 0 && styleGuideSummary(run).headline === '✓ style guide: 11 tables', '2: nothing unbound — headline "✓ style guide: 11 tables"');
     // The owner's cells are a fixed 120px and clip; drawn, each hugs its words and no column cuts one off.
@@ -1243,13 +1244,12 @@ const main = async (): Promise<void> => {
     ok(bcell.name === 'Ground' && bsw?.mainComponent?.name === 'type=border' && boundId(bsw.findOne((k) => k.name === 'Specimen')?.strokes) === idOf(firstBorder)
       && boundId(bsw.findOne((k) => k.name === 'Specimen')?.fills) === undefined,
       `5: a border.* row draws the type=border member, its stroke bound to the token and not its fill, on its ground (${bsw?.mainComponent?.name})`);
-    // A fill role: the type=default swatch, 48 × 48, its fill bound to the token, on its ground.
+    // A fill role: the type=default swatch IS the cell, filling it, its fill bound to the token, on no ground (#2331).
     const bgG = gridOf(tableFrame(f.sem, 'Background')!);
-    const fcell = cellAt(bgG, rowOf(bgG, 'secondary'), 1)!;
-    const fsw = fcell.children[0];
-    ok(fcell.name === 'Ground' && fcell.lsh === 'FILL' && fsw?.mainComponent?.name === 'type=default' && fsw.width === 48 && fsw.height === 48
+    const fsw = cellAt(bgG, rowOf(bgG, 'secondary'), 1)!;
+    ok(fsw.type === 'INSTANCE' && fsw.mainComponent?.name === 'type=default' && fsw.lsh === 'FILL' && fsw.layoutSizingVertical === 'FILL'
       && boundId(fsw.findOne((k) => k.name === 'Specimen')?.fills) === idOf('pds3/color/background/secondary'),
-      `5: a fill row keeps its 48 × 48 swatch on its ground (${fcell.name}, ${fsw?.mainComponent?.name} ${fsw?.width}×${fsw?.height})`);
+      `5: a fill row's swatch fills its cell, on no ground (#2331) (${fsw.type} ${fsw.name}, ${fsw.mainComponent?.name}, ${fsw.lsh}/${String(fsw.layoutSizingVertical)})`);
     const border = gridOf(tableFrame(f.sem, 'Border')!);
     const bs = cellAt(border, 1, 1)?.children[0];
     ok(bs?.mainComponent?.name === 'type=border' && boundId(bs?.findOne((k) => k.name === 'Specimen')?.strokes) === idOf(f.vars.filter((v) => v.name.startsWith('pds3/color/border/'))[0].name), '5: a border role binds the stroke');
@@ -2800,15 +2800,17 @@ const main = async (): Promise<void> => {
     ok(squares(ownSet).every((k) => k.constraints === undefined) && ownSet.pluginData['prism3-swatches'] === undefined,
       `30 #2268: a swatch set the owner made is left as it is: nothing stretched, no mark (${squares(ownSet).map((k) => JSON.stringify(k.constraints ?? null)).join(' ')})`);
     // The edge: every palette swatch's square is stroked with the brand's color.border.secondary, bound, not a literal.
-    const edgeId = fresh.vars.find((v) => v.name === 'pds3/color/border/secondary')?.id;
+    // The owner's later call (#2331 Q115, 2026-10-08): the light edge, color.border.primary, not border.secondary.
+    const edgeId = fresh.vars.find((v) => v.name === 'pds3/color/border/primary')?.id;
     await draw(fresh.api, contract);
     const paletteSwatches = tablesOn(fresh.prim).flatMap((w) => gridOf(w).children.filter((k) => k.type === 'INSTANCE' && /^type=/.test(k.mainComponent?.name ?? '')));
     const squareOf = (inst: N): N | undefined => inst.findAll((k) => k.name === 'Specimen')[0];
     const plainEdge = paletteSwatches.filter((i) => i.mainComponent?.name !== 'type=border' && boundId(squareOf(i)?.strokes) !== edgeId);
     ok(!!edgeId && paletteSwatches.length >= 100 && plainEdge.length === 0,
-      `30 #2268: every palette swatch's edge is bound to pds3/color/border/secondary (${paletteSwatches.length} swatches, ${plainEdge.length} not: ${plainEdge[0] ? `${plainEdge[0].mainComponent?.name} ${JSON.stringify(boundId(squareOf(plainEdge[0])?.strokes) ?? null)}` : 'none'})`);
-    const semSwatch = tablesOn(fresh.sem).flatMap((w) => gridOf(w).findAll((k) => k.type === 'INSTANCE')).find((i) => i.mainComponent?.name === 'type=default');
-    ok(!!semSwatch && boundId(squareOf(semSwatch)?.strokes) === undefined, '30 #2268: control: a semantic role swatch, on its own ground, keeps its own edge');
+      `30 #2268: every palette swatch's edge is bound to pds3/color/border/primary, the light edge (#2331) (${paletteSwatches.length} swatches, ${plainEdge.length} not: ${plainEdge[0] ? `${plainEdge[0].mainComponent?.name} ${JSON.stringify(boundId(squareOf(plainEdge[0])?.strokes) ?? null)}` : 'none'})`);
+    // A semantic fill is a fill swatch too (#2331): the same light edge. A border role keeps its own stroke, the token.
+    const semSwatch = tablesOn(fresh.sem).flatMap((w) => gridOf(w).children).find((i) => i.type === 'INSTANCE' && i.mainComponent?.name === 'type=default');
+    ok(!!semSwatch && boundId(squareOf(semSwatch)?.strokes) === edgeId, `30 #2268: a semantic fill swatch takes the same light edge (#2331) (${JSON.stringify(boundId(semSwatch ? squareOf(semSwatch)?.strokes : undefined) ?? null)})`);
 
     // #2261: a single skipped table is "1 table", as every other count in the summary reads.
     const one = (reason: 'no-page' | 'no-cells'): string => styleGuideSummary({ tables: [{ key: 'k', title: 'Brand', page: '↳ Semantic tokens', status: 'skipped', reason }], stale: [], replaced: [], deleted: [], kept: [], unbound: 0, notes: [], misses: [], unmatched: [] }).summary;
@@ -2839,6 +2841,43 @@ const main = async (): Promise<void> => {
     const chits = cboxes.flatMap((a, i) => cboxes.slice(i + 1).filter((b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h).map((b) => `${a.n} × ${b.n}`));
     ok(cboxes.length === 4 && chits.length === 0 && cboxes.find((b) => b.n === 'Dimension')?.x === 0,
       `30 #2269: drawn from its own page, a filtered run of two categories lays its tables apart, the first at the page's origin (${cboxes.map((b) => `${b.n} ${b.x},${b.y} ${b.w}×${b.h}`).join(' | ')}${chits.length ? ` — overlap: ${chits.join(', ')}` : ''})`);
+  }
+
+  console.log('31. inverse samples (#2331): only an inverse text, border or icon sample sits on the inverse background; every fill swatch fills its cell');
+  {
+    const inv = await fullFile();
+    await draw(inv.api, contract, { tables: ['Inverse', 'Border', 'Text', 'Background'] });
+    const idOf = (name: string): string | undefined => inv.vars.find((v) => v.name === name)?.id;
+    const INV_GROUND = idOf('pds3/color/inverse/background/primary');
+    const PAGE_GROUND = idOf('pds3/color/background/primary');
+    const sample = (title: string, token: string): N | undefined => { const g = gridOf(tableFrame(inv.sem, title)); const r = rowOf(g, token); return r < 0 ? undefined : cellAt(g, r, 1); };
+    const say = (n: N | undefined): string => (n ? `${n.type} ${n.name}${n.name === 'Ground' ? ` on ${JSON.stringify(boundId(n.fills) ?? null)}` : ''}` : 'no such row');
+    // The defect the owner reported: an inverse TEXT sample on white, where #F7F7F7 cannot be seen. Its path has an
+    // `inverse` segment; the table's common prefix (`pds3/color/inverse`) does not count against that.
+    for (const token of ['text/primary', 'border/primary', 'icon/primary']) {
+      const c = sample('Inverse', token);
+      ok(!!INV_GROUND && c?.name === 'Ground' && boundId(c.fills) === INV_GROUND,
+        `31: an inverse ${token.split('/')[0]} sample (inverse/${token}) sits on the inverse background (${say(c)}; want ${INV_GROUND})`);
+    }
+    // THE OWNER'S FILE has no saved brand, so the run has no contract (the NB copy, 2026-10-08): the ground then comes
+    // from the path below the table's own prefix, `…/inverse`, which no longer says inverse. The detection reads the
+    // whole name, so it still lands on the inverse background.
+    const bare = await fullFile();
+    await draw(bare.api, null, { tables: ['Inverse'] });
+    const bareG = gridOf(tableFrame(bare.sem, 'Inverse'));
+    const bareText = cellAt(bareG, rowOf(bareG, 'text/primary'), 1);
+    ok(bareText?.name === 'Ground' && boundId(bareText.fills) === bare.vars.find((v) => v.name === 'pds3/color/inverse/background/primary')?.id,
+      `31: with no saved brand (no contract), an inverse text sample still sits on the inverse background, detected from its whole path (${say(bareText)})`);
+    // An inverse FILL is a swatch: it fills its cell and never sits on the inverse backdrop.
+    const fill = sample('Inverse', 'background/primary');
+    ok(fill?.type === 'INSTANCE' && fill.lsh === 'FILL' && boundId(fill.findOne((k) => k.name === 'Specimen')?.fills) === INV_GROUND,
+      `31: an inverse fill (inverse/background/primary) fills its cell as its own swatch, on no backdrop (${say(fill)})`);
+    // A non-inverse border (and text) sample is never on the inverse background: its page ground.
+    for (const [title, token] of [['Border', 'primary'], ['Text', 'primary']] as const) {
+      const c = sample(title, token);
+      ok(!!PAGE_GROUND && c?.name === 'Ground' && boundId(c.fills) === PAGE_GROUND && boundId(c.fills) !== INV_GROUND,
+        `31: a non-inverse ${title.toLowerCase()} sample (${title.toLowerCase()}/${token}) sits on the page ground, not the inverse one (${say(c)})`);
+    }
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
