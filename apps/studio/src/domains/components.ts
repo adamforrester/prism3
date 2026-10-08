@@ -21,10 +21,10 @@
  * legacy repaint tier and never imports `main.ts` (`test-shell-imports.ts`), and it imports no component definition:
  * the catalog is `state/component-catalog.ts`'s (`check:ignore` fails by name if a definition reaches the web bundle).
  */
-import type { ButtonContentSize, ButtonIcons, ButtonLabelWeight } from '@prism3/engine/scale';
+import type { ButtonContentSize, ButtonIcons, ButtonLabelWeight, ButtonTextHover } from '@prism3/engine/scale';
 import { brandState, currentMode, getPath, lastError, rebuild, searchQuery, setPage, setSearchHits, subscribe } from '../state/store';
 import { isDerived } from '../state/verdict';
-import { setButtonContentSize, setButtonIcons, setButtonLabelWeight, setButtonMinWidth } from '../state/button-input';
+import { setButtonContentSize, setButtonIcons, setButtonLabelWeight, setButtonMinWidth, setButtonTextHover } from '../state/button-input';
 import { brandDensity } from '../state/shape-input';
 import { componentCatalog } from '../state/component-catalog';
 import { noteSectionEdit } from '../preview/follow-edit';
@@ -52,6 +52,7 @@ const BUTTON_OPTION_WRITES: Readonly<Record<string, (v: string) => void>> = {
   buttonIcons: (v) => setButtonIcons(v as ButtonIcons),
   buttonContentSize: (v) => setButtonContentSize(v as ButtonContentSize),
   buttonLabelWeight: (v) => setButtonLabelWeight(v as ButtonLabelWeight),
+  buttonTextHover: (v) => setButtonTextHover(v as ButtonTextHover),
 };
 
 /** Something drawn that search can hide and a refusal can mark. */
@@ -153,6 +154,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
   const BUILDERS: Record<string, () => Item> = {
     densityLink, sets,
     buttonIcons: () => chips('buttonIcons'), buttonContentSize: () => chips('buttonContentSize'), buttonLabelWeight: () => chips('buttonLabelWeight'),
+    buttonTextHover: () => chips('buttonTextHover'),
     buttonMinWidthMultiplier: minWidth,
   };
   const section = (s: Section, i: number): { el: HTMLElement; items: Item[] } => {

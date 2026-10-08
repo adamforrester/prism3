@@ -14,7 +14,7 @@
  *                     / hex; primitives under palette). This is what makes the system white-label.
  */
 import { generateRamp, peakChromaL, autoPlaceStep, Step } from './ramp';
-import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight, iconSizes, IconSizeStep, controlSizes, ControlSizeStep, SPACE_BASE, GRID_BASE } from './scale';
+import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, iconSizes, IconSizeStep, controlSizes, ControlSizeStep, SPACE_BASE, GRID_BASE } from './scale';
 import { oklchToRgb, RGB, contrast, hex as rgbHex, inGamut, maxChroma, deltaE2000, ACHROMATIC_C } from './color';
 import type { ModeName, BuiltinModeName, ModeOverrides } from './modes';
 import { resolveVocabulary } from './vocabulary';
@@ -629,6 +629,10 @@ export type BrandInput = {
    *  ADD token paths: under 'default' the label category ships the `default` role (unioned into
    *  `typography.weights.label` in `brandTheme`), so the binding always names a style the brand emits. */
   buttonLabelWeight?: ButtonLabelWeight;
+  /** #2324 — "Text button hover": 'text' (default, "Text & icon only": the label and icon change color) | 'fill'
+   *  (the container also takes the overlay wash on hover and pressed, never at rest). Materialized by
+   *  `applyButtonLayout` like the levers above; it emits no token and moves no token name. */
+  buttonTextHover?: ButtonTextHover;
 };
 
 /**
@@ -1383,6 +1387,10 @@ export const weightAvailability = (typography: Typography): Partial<Record<TypeG
 // (textDecoration isn't Figma-bindable — a separate text style); the link COLOUR
 // stays `text.link.*` and is applied alongside.
 export const TYPE_LINK_DEFAULT: readonly TypeGroup[] = ['body', 'caption'];
+/** Roles that ALWAYS get their underlined variant, whatever `typography.links` lists (#2324, owner Q110): a button at
+ *  the text appearance underlines its label at rest and in every state, and the underline is fixed, not a brand
+ *  setting. Its color is the button's own ink (`interactive.<family>.text.*`), not `text.link.*`. */
+export const TYPE_LINK_ALWAYS: readonly TypeGroup[] = ['label'];
 const TYPE_TRACK_DEFAULT: Record<TypeGroup, string> = {
   display: 'tight', title: 'snug', label: 'normal', eyebrow: 'wider',
   body: 'normal', caption: 'normal', code: 'normal',
@@ -1589,7 +1597,7 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
     if (req && !roles.includes(req.role))
       throw new Error(`typography.weights.${g}: the '${g}' category must include '${req.role}', because ${req.why}. Add '${req.role}' back (the set given is ${roles.join('/')}).`);
   }
-  const linkGroups = new Set(t.links ?? TYPE_LINK_DEFAULT);
+  const linkGroups = new Set([...(t.links ?? TYPE_LINK_DEFAULT), ...TYPE_LINK_ALWAYS]);
   const italicGroups = new Set(t.italics ?? []);   // default none — italics are opt-in per role
   // #1296 — categories whose DEFAULT cut is italic (default none). Each is a refusal-checked choice: an
   // unknown category name, and a category also listed in `italics`, fail here by name.
@@ -2514,6 +2522,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     { path: 'buttonIcons', value: input.buttonIcons, options: ['attached', 'edges'] },
     { path: 'buttonContentSize', value: input.buttonContentSize, options: ['match', 'smaller'] },
     { path: 'buttonLabelWeight', value: input.buttonLabelWeight, options: ['default', 'emphasis'] },
+    { path: 'buttonTextHover', value: input.buttonTextHover, options: ['text', 'fill'] },
     { path: 'typography.typeScale', value: input.typography?.typeScale, options: ['compact', 'default', 'expressive'] },
     { path: 'typography.displayCeiling', value: input.typography?.displayCeiling, options: DISPLAY_VARIANTS },
     { path: 'typography.titleFloor', value: input.typography?.titleFloor, options: [16, 18] },

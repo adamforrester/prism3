@@ -408,6 +408,8 @@ export type ShimOpts = {
    * before. Both are non-enumerable, so a JSON dump of a node is unchanged either way.
    */
   identities?: boolean;
+  /** `saveVersionHistoryAsync` refuses (#2265 PR 2, §10 Q7): the update must then write nothing. */
+  refuseVersion?: boolean;
 };
 
 
@@ -415,11 +417,21 @@ export const makeShim = (opts: ShimOpts = {}) => {
   const names = new Set(opts.vars ?? []);
   // #2265 PR 2 — `identities`: one counter for node ids, one for component keys, never reused.
   let nodeSeq = 0;
+  /** Every node `remove()` took out, in order — read by a test, never by the executor. */
+  const removedNodes: Node[] = [];
   let keySeq = 0;
   const giveKey = (n: Node): void => {
     if (!opts.identities || Object.getOwnPropertyDescriptor(n, 'key')) return;
     const k = `K:${++keySeq}`;
     Object.defineProperty(n, 'key', { configurable: false, enumerable: false, get: () => k });
+  };
+  /** Take a node out of whatever holds it: its parent's children and the page. */
+  const detach = (c: Node): void => {
+    const from = c.parent as Node | null;
+    const kids = from?.children as Node[] | undefined;
+    if (kids) { const i = kids.indexOf(c); if (i >= 0) kids.splice(i, 1); }
+    if (page) { const i = page.children.indexOf(c); if (i >= 0) page.children.splice(i, 1); }
+    c.parent = null;
   };
   const page = opts.page;
   /** Charges a `burn` to the run's virtual clock (#1800). No busy-wait fallback: see `ShimOpts.burn`. */
@@ -896,6 +908,25 @@ export const makeShim = (opts: ShimOpts = {}) => {
         Object.defineProperty(node, 'height', { configurable: true, get: () => (bv.height ? bv.height.value ?? 0 : h), set: (v: number) => { h = v; } });
       },
       appendChild(c: Node) { c.parent = node; (node.children as Node[]).push(c); },
+      // #2265 PR 2 — REORDER WITHOUT REPLACING: Figma's `insertChild` moves a node that already has a parent, and
+      // the node keeps its id. Modelled as a move for that reason, so an update that reorders keeps identity.
+      insertChild(i: number, c: Node) {
+        detach(c);
+        c.parent = node;
+        (node.children as Node[]).splice(Math.max(0, Math.min(i, (node.children as Node[]).length)), 0, c);
+      },
+      // #2265 PR 2 — GONE FOR GOOD. A removed node is out of the tree; a member removed from a set is a member
+      // whose instances, in a file using the library, stop updating after the next publish. Counted, so a test
+      // can say nothing was removed without trusting the executor's own report.
+      remove() { detach(node); node.removed = true; removedNodes.push(node); },
+      // #2265 PR 2 — `InstanceNode.swapComponent`: the instance node stays, and points at another main.
+      swapComponent(c: { createInstance?: () => Node }) {
+        const tmp = c.createInstance?.();
+        if (!tmp) throw new Error('in swapComponent: Expected a component');
+        carryMain(tmp, node);
+        if (tmp._main) node._main = tmp._main;
+        node._swaps = ((node._swaps as number | undefined) ?? 0) + 1;
+      },
       // Walks descendants for real. The executor finds each part by NAME inside every member to wire its
       // property reference, so a stub finding nothing would let the whole wiring loop no-op with every
       // assertion below still passing.
@@ -1233,6 +1264,15 @@ export const makeShim = (opts: ShimOpts = {}) => {
     },
     // Zero-cost unless a run asks for the burn (`opts.burn.setup`). This is the last of the pre-build-loop
     loadAllPagesAsync: async () => { if (opts.burn?.setup) charge(opts.burn.setup); },
+    // #2265 PR 2, §10 Q7 — a named version, saved before an update writes anything. Recorded, so a test can read
+    // that one was saved and in what order against the writes; refusable, so the refusal path is reachable.
+    _versions: [] as string[],
+    _removed: removedNodes,
+    saveVersionHistoryAsync: async (title: string) => {
+      if (opts.refuseVersion) throw new Error('in saveVersionHistoryAsync: this plugin may not save versions');
+      (shim._versions as string[]).push(title);
+      return { id: `VER:${(shim._versions as string[]).length}` };
+    },
     // WHAT A CRITERIA SEARCH ACTUALLY RETURNS (#681). `types: ['COMPONENT']` matches `ComponentNode`
     // only, so this honors the criteria rather than ignoring them — the previous flat map returned every
     // entry as a bare COMPONENT whatever it was, which is exactly why the live defect could not be
@@ -1674,6 +1714,29 @@ export const makeShim = (opts: ShimOpts = {}) => {
         // host doing anything to the set's identity.
         if (opts.staleSetAfterProperty != null && ++propsMade >= opts.staleSetAfterProperty) killSet();
         return key;
+      };
+      // #2265 PR 2 — EDIT AND DELETE, the other two property methods an in-place update needs. An edit keeps the
+      // property's id (`#…` suffix), so references to it and consumer overrides of it survive; a delete drops the
+      // property and every reference to it, which is why the update lists a retype as lost overrides.
+      set.editComponentProperty = (key: string, edit: { name?: string; defaultValue?: unknown }) => {
+        if (dead) throw staleErr('editComponentProperty');
+        const d = defs[key];
+        if (!d) throw new Error(`in editComponentProperty: Could not find a component property with name: '${key}'`);
+        if (edit.defaultValue !== undefined) d.defaultValue = edit.defaultValue;
+        if (edit.name === undefined) return key;
+        const renamed = `${edit.name}#${key.split('#')[1]}`;
+        delete defs[key];
+        defs[renamed] = d;
+        return renamed;
+      };
+      set.deleteComponentProperty = (key: string) => {
+        if (dead) throw staleErr('deleteComponentProperty');
+        if (!defs[key]) throw new Error(`in deleteComponentProperty: Could not find a component property with name: '${key}'`);
+        delete defs[key];
+        for (const n of (set.findAll as () => Node[])()) {
+          const refs = n.componentPropertyReferences as Record<string, string> | null;
+          if (refs) for (const [f, id] of Object.entries(refs)) if (id === key) delete refs[f];
+        }
       };
       set.declaredIds = () => Object.keys(defs);
       guardRefs(set, (id) => defs[id]);

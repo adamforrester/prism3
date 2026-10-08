@@ -268,7 +268,8 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       return s;
     case 'agent-started': {
       const op = AGENT_OP[m.cmd];
-      return op ? { ...s, agentRun: { id: m.id, op, cmd: m.cmd, settled: false, progress: null } } : s;
+      // A confirmed update (#2265 PR 2) keeps its own name, so the drawer can say it is updating, not checking.
+      return op ? { ...s, agentRun: { id: m.id, op, cmd: m.confirmed ? `${m.cmd}:confirmed` : m.cmd, settled: false, progress: null } } : s;
     }
     case 'agent-progress': {
       const r = s.agentRun;

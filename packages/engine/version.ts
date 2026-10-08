@@ -5310,7 +5310,14 @@ export const ENGINE_VERSION = '0.233.0';
  * (+1%, `letter-spacing.10`). All three steps were already on the locked ladder; only roles bind them now. The six
  * roles before them keep their names and values, so nothing a consumer reads moves. Nothing is removed or retyped.
  */
-export const CONTRACT_VERSION = '14.4.0';
+/**
+ * 14.5.0 (#2324, owner Q110, 2026-10-08): MINOR. Labels are always underlined-capable: `type.label.{sm,md,lg}.emphasis-link`
+ * join the guaranteed surface, minted for every brand whatever `typography.links` lists, because a button at the text
+ * appearance underlines its label at rest and in every state (the underline is fixed). `default-link` follows the
+ * brand's label weights, as `default` does, so it is brand-dependent. An added path cannot break a reference.
+ * Nothing is removed or retyped.
+ */
+export const CONTRACT_VERSION = '14.5.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

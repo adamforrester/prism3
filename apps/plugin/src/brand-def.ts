@@ -61,6 +61,7 @@ export const brandButtonLayout = (input: BrandInput | null): ButtonLayout => ({
   content: input?.buttonContentSize ?? DEFAULT_BUTTON_LAYOUT.content,
   minWidthMultiplier: input?.buttonMinWidthMultiplier ?? DEFAULT_BUTTON_LAYOUT.minWidthMultiplier,
   labelWeight: input?.buttonLabelWeight ?? DEFAULT_BUTTON_LAYOUT.labelWeight,
+  textHover: input?.buttonTextHover ?? DEFAULT_BUTTON_LAYOUT.textHover,
 });
 
 /** `def` resolved against the brand: corner shape, then weight intent (#1605's owner-locked order), then

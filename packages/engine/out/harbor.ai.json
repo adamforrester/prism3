@@ -1655,10 +1655,10 @@
       "when_to_use": "The ink for outline and text neutral interactive elements (no fill behind it) on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use on a filled neutral control (use `interactive.neutral.on-fill`).",
       "mode_overrides": {
-        "light": "{hds.core.palette.neutral.950}",
-        "dark": "{hds.core.palette.neutral.025}",
-        "hc-light": "{hds.core.palette.black}",
-        "hc-dark": "{hds.core.palette.white}"
+        "light": "{hds.core.palette.neutral.850}",
+        "dark": "{hds.core.palette.neutral.100}",
+        "hc-light": "{hds.core.palette.neutral.850}",
+        "hc-dark": "{hds.core.palette.neutral.100}"
       },
       "sits_on": [
         "background.primary",
@@ -1672,7 +1672,7 @@
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 15.98,
+          "ratio": 13.2,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -1683,10 +1683,10 @@
       "when_to_use": "The icon for outline and text neutral interactive elements (no fill behind it) on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use on a filled neutral control (use `interactive.neutral.on-fill`).",
       "mode_overrides": {
-        "light": "{hds.core.palette.neutral.950}",
-        "dark": "{hds.core.palette.neutral.025}",
-        "hc-light": "{hds.core.palette.black}",
-        "hc-dark": "{hds.core.palette.white}"
+        "light": "{hds.core.palette.neutral.850}",
+        "dark": "{hds.core.palette.neutral.100}",
+        "hc-light": "{hds.core.palette.neutral.850}",
+        "hc-dark": "{hds.core.palette.neutral.100}"
       },
       "sits_on": [
         "background.primary",
@@ -1700,7 +1700,7 @@
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 15.98,
+          "ratio": 13.2,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -1711,10 +1711,10 @@
       "when_to_use": "The ink for outline and text neutral interactive elements (no fill behind it) while pressed. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use on a filled neutral control (use `interactive.neutral.on-fill`).",
       "mode_overrides": {
-        "light": "{hds.core.palette.neutral.950}",
-        "dark": "{hds.core.palette.neutral.025}",
-        "hc-light": "{hds.core.palette.black}",
-        "hc-dark": "{hds.core.palette.white}"
+        "light": "{hds.core.palette.neutral.750}",
+        "dark": "{hds.core.palette.neutral.200}",
+        "hc-light": "{hds.core.palette.neutral.750}",
+        "hc-dark": "{hds.core.palette.neutral.200}"
       },
       "sits_on": [
         "background.primary",
@@ -1728,7 +1728,7 @@
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 15.98,
+          "ratio": 9.76,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -1739,10 +1739,10 @@
       "when_to_use": "The icon for outline and text neutral interactive elements (no fill behind it) while pressed. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use on a filled neutral control (use `interactive.neutral.on-fill`).",
       "mode_overrides": {
-        "light": "{hds.core.palette.neutral.950}",
-        "dark": "{hds.core.palette.neutral.025}",
-        "hc-light": "{hds.core.palette.black}",
-        "hc-dark": "{hds.core.palette.white}"
+        "light": "{hds.core.palette.neutral.750}",
+        "dark": "{hds.core.palette.neutral.200}",
+        "hc-light": "{hds.core.palette.neutral.750}",
+        "hc-dark": "{hds.core.palette.neutral.200}"
       },
       "sits_on": [
         "background.primary",
@@ -1756,7 +1756,7 @@
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 15.98,
+          "ratio": 9.76,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -1793,10 +1793,10 @@
       "when_to_use": "The border of an outline neutral interactive element on pointer hover.",
       "avoid_when": "Do not use as ink (use `interactive.neutral.text.*`) or as a page divider (use `border.primary`).",
       "mode_overrides": {
-        "light": "{hds.core.palette.neutral.950}",
-        "dark": "{hds.core.palette.neutral.025}",
-        "hc-light": "{hds.core.palette.black}",
-        "hc-dark": "{hds.core.palette.white}"
+        "light": "{hds.core.palette.neutral.850}",
+        "dark": "{hds.core.palette.neutral.100}",
+        "hc-light": "{hds.core.palette.neutral.850}",
+        "hc-dark": "{hds.core.palette.neutral.100}"
       },
       "sits_on": [
         "background.primary"
@@ -1808,7 +1808,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 15.98,
+          "ratio": 13.2,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -1819,10 +1819,10 @@
       "when_to_use": "The border of an outline neutral interactive element while pressed.",
       "avoid_when": "Do not use as ink (use `interactive.neutral.text.*`) or as a page divider (use `border.primary`).",
       "mode_overrides": {
-        "light": "{hds.core.palette.neutral.950}",
-        "dark": "{hds.core.palette.neutral.025}",
-        "hc-light": "{hds.core.palette.black}",
-        "hc-dark": "{hds.core.palette.white}"
+        "light": "{hds.core.palette.neutral.750}",
+        "dark": "{hds.core.palette.neutral.200}",
+        "hc-light": "{hds.core.palette.neutral.750}",
+        "hc-dark": "{hds.core.palette.neutral.200}"
       },
       "sits_on": [
         "background.primary"
@@ -1834,7 +1834,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 15.98,
+          "ratio": 9.76,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -2637,10 +2637,10 @@
       "when_to_use": "The ink for outline and text neutral interactive elements (no fill behind it) on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.text.hover`. Do not use on a filled neutral control (use `inverse.interactive.neutral.on-fill`).",
       "mode_overrides": {
-        "light": "{hds.core.palette.neutral.025}",
-        "dark": "{hds.core.palette.neutral.950}",
-        "hc-light": "{hds.core.palette.white}",
-        "hc-dark": "{hds.core.palette.black}"
+        "light": "{hds.core.palette.neutral.100}",
+        "dark": "{hds.core.palette.neutral.850}",
+        "hc-light": "{hds.core.palette.neutral.100}",
+        "hc-dark": "{hds.core.palette.neutral.850}"
       },
       "sits_on": [
         "inverse.background.primary",
@@ -2654,7 +2654,7 @@
         {
           "token": "inverse.background.primary",
           "min": "4.5:1",
-          "ratio": 18.11,
+          "ratio": 14.05,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2665,10 +2665,10 @@
       "when_to_use": "The icon for outline and text neutral interactive elements (no fill behind it) on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.icon.hover`. Do not use on a filled neutral control (use `inverse.interactive.neutral.on-fill`).",
       "mode_overrides": {
-        "light": "{hds.core.palette.neutral.025}",
-        "dark": "{hds.core.palette.neutral.950}",
-        "hc-light": "{hds.core.palette.white}",
-        "hc-dark": "{hds.core.palette.black}"
+        "light": "{hds.core.palette.neutral.100}",
+        "dark": "{hds.core.palette.neutral.850}",
+        "hc-light": "{hds.core.palette.neutral.100}",
+        "hc-dark": "{hds.core.palette.neutral.850}"
       },
       "sits_on": [
         "inverse.background.primary",
@@ -2682,7 +2682,7 @@
         {
           "token": "inverse.background.primary",
           "min": "4.5:1",
-          "ratio": 18.11,
+          "ratio": 14.05,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2693,10 +2693,10 @@
       "when_to_use": "The ink for outline and text neutral interactive elements (no fill behind it) while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.text.pressed`. Do not use on a filled neutral control (use `inverse.interactive.neutral.on-fill`).",
       "mode_overrides": {
-        "light": "{hds.core.palette.neutral.025}",
-        "dark": "{hds.core.palette.neutral.950}",
-        "hc-light": "{hds.core.palette.white}",
-        "hc-dark": "{hds.core.palette.black}"
+        "light": "{hds.core.palette.neutral.200}",
+        "dark": "{hds.core.palette.neutral.750}",
+        "hc-light": "{hds.core.palette.neutral.200}",
+        "hc-dark": "{hds.core.palette.neutral.750}"
       },
       "sits_on": [
         "inverse.background.primary",
@@ -2710,7 +2710,7 @@
         {
           "token": "inverse.background.primary",
           "min": "4.5:1",
-          "ratio": 18.11,
+          "ratio": 10.79,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2721,10 +2721,10 @@
       "when_to_use": "The icon for outline and text neutral interactive elements (no fill behind it) while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.icon.pressed`. Do not use on a filled neutral control (use `inverse.interactive.neutral.on-fill`).",
       "mode_overrides": {
-        "light": "{hds.core.palette.neutral.025}",
-        "dark": "{hds.core.palette.neutral.950}",
-        "hc-light": "{hds.core.palette.white}",
-        "hc-dark": "{hds.core.palette.black}"
+        "light": "{hds.core.palette.neutral.200}",
+        "dark": "{hds.core.palette.neutral.750}",
+        "hc-light": "{hds.core.palette.neutral.200}",
+        "hc-dark": "{hds.core.palette.neutral.750}"
       },
       "sits_on": [
         "inverse.background.primary",
@@ -2738,7 +2738,7 @@
         {
           "token": "inverse.background.primary",
           "min": "4.5:1",
-          "ratio": 18.11,
+          "ratio": 10.79,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2901,10 +2901,10 @@
       "when_to_use": "The border of an outline neutral interactive element on pointer hover. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.border.hover`. Do not use as ink (use `interactive.neutral.text.*`) or as a page divider (use `inverse.border.primary`).",
       "mode_overrides": {
-        "light": "{hds.core.palette.neutral.025}",
-        "dark": "{hds.core.palette.neutral.950}",
-        "hc-light": "{hds.core.palette.white}",
-        "hc-dark": "{hds.core.palette.black}"
+        "light": "{hds.core.palette.neutral.100}",
+        "dark": "{hds.core.palette.neutral.850}",
+        "hc-light": "{hds.core.palette.neutral.100}",
+        "hc-dark": "{hds.core.palette.neutral.850}"
       },
       "sits_on": [
         "inverse.background.primary"
@@ -2916,7 +2916,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 18.11,
+          "ratio": 14.05,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2927,10 +2927,10 @@
       "when_to_use": "The border of an outline neutral interactive element while pressed. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.border.pressed`. Do not use as ink (use `interactive.neutral.text.*`) or as a page divider (use `inverse.border.primary`).",
       "mode_overrides": {
-        "light": "{hds.core.palette.neutral.025}",
-        "dark": "{hds.core.palette.neutral.950}",
-        "hc-light": "{hds.core.palette.white}",
-        "hc-dark": "{hds.core.palette.black}"
+        "light": "{hds.core.palette.neutral.200}",
+        "dark": "{hds.core.palette.neutral.750}",
+        "hc-light": "{hds.core.palette.neutral.200}",
+        "hc-dark": "{hds.core.palette.neutral.750}"
       },
       "sits_on": [
         "inverse.background.primary"
@@ -2942,7 +2942,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 18.11,
+          "ratio": 10.79,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -6924,6 +6924,20 @@
         "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
       }
     },
+    "type.label.sm.emphasis-link": {
+      "$description": "UI label type — buttons, form labels, tabs, chips (underlined link variant).",
+      "meaning": "Type style — label sm emphasis link (12px, label face)",
+      "when_to_use": "The label of a button at the text appearance, at rest and in every state. The underline is fixed.",
+      "avoid_when": "Do not use for a filled or outline button's label (use `type.label.sm.emphasis`).",
+      "resolves_to": {
+        "fontFamily": "{hds.core.font.family.label}",
+        "fontSize": "{hds.core.font.size.12}",
+        "fontWeight": "{hds.core.font.weight-role.emphasis}",
+        "lineHeight": "{hds.core.font.line-height-role.snug}",
+        "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+        "textDecoration": "underline"
+      }
+    },
     "type.label.md.emphasis": {
       "$description": "UI label type — buttons, form labels, tabs, chips.",
       "meaning": "Type style — label md emphasis (14px, label face)",
@@ -6937,6 +6951,20 @@
         "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
       }
     },
+    "type.label.md.emphasis-link": {
+      "$description": "UI label type — buttons, form labels, tabs, chips (underlined link variant).",
+      "meaning": "Type style — label md emphasis link (14px, label face)",
+      "when_to_use": "The label of a button at the text appearance, at rest and in every state. The underline is fixed.",
+      "avoid_when": "Do not use for a filled or outline button's label (use `type.label.md.emphasis`).",
+      "resolves_to": {
+        "fontFamily": "{hds.core.font.family.label}",
+        "fontSize": "{hds.core.font.size.14}",
+        "fontWeight": "{hds.core.font.weight-role.emphasis}",
+        "lineHeight": "{hds.core.font.line-height-role.snug}",
+        "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+        "textDecoration": "underline"
+      }
+    },
     "type.label.lg.emphasis": {
       "$description": "UI label type — buttons, form labels, tabs, chips.",
       "meaning": "Type style — label lg emphasis (18px, label face)",
@@ -6948,6 +6976,20 @@
         "fontWeight": "{hds.core.font.weight-role.emphasis}",
         "lineHeight": "{hds.core.font.line-height-role.snug}",
         "letterSpacing": "{hds.core.font.letter-spacing-role.normal}"
+      }
+    },
+    "type.label.lg.emphasis-link": {
+      "$description": "UI label type — buttons, form labels, tabs, chips (underlined link variant).",
+      "meaning": "Type style — label lg emphasis link (18px, label face)",
+      "when_to_use": "The label of a button at the text appearance, at rest and in every state. The underline is fixed.",
+      "avoid_when": "Do not use for a filled or outline button's label (use `type.label.lg.emphasis`).",
+      "resolves_to": {
+        "fontFamily": "{hds.core.font.family.label}",
+        "fontSize": "{hds.core.font.size.18}",
+        "fontWeight": "{hds.core.font.weight-role.emphasis}",
+        "lineHeight": "{hds.core.font.line-height-role.snug}",
+        "letterSpacing": "{hds.core.font.letter-spacing-role.normal}",
+        "textDecoration": "underline"
       }
     },
     "type.caption.md.default": {
@@ -7153,8 +7195,11 @@
         "type.eyebrow.md.emphasis",
         "type.eyebrow.sm.emphasis",
         "type.label.lg.emphasis",
+        "type.label.lg.emphasis-link",
         "type.label.md.emphasis",
-        "type.label.sm.emphasis"
+        "type.label.md.emphasis-link",
+        "type.label.sm.emphasis",
+        "type.label.sm.emphasis-link"
       ]
     },
     "core.font.weight-role.strong": {
@@ -8054,15 +8099,9 @@
         "color.icon.on-warning",
         "color.icon.primary",
         "color.interactive.destructive.on-fill",
-        "color.interactive.neutral.border.hover",
-        "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.border.rest",
-        "color.interactive.neutral.icon.hover",
-        "color.interactive.neutral.icon.pressed",
         "color.interactive.neutral.icon.rest",
         "color.interactive.neutral.on-fill",
-        "color.interactive.neutral.text.hover",
-        "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
         "color.interactive.primary.on-fill",
         "color.inverse.background.primary",
@@ -8074,16 +8113,10 @@
         "color.inverse.icon.primary",
         "color.inverse.interactive.destructive.fill.rest",
         "color.inverse.interactive.destructive.on-fill",
-        "color.inverse.interactive.neutral.border.hover",
-        "color.inverse.interactive.neutral.border.pressed",
         "color.inverse.interactive.neutral.border.rest",
         "color.inverse.interactive.neutral.fill.rest",
-        "color.inverse.interactive.neutral.icon.hover",
-        "color.inverse.interactive.neutral.icon.pressed",
         "color.inverse.interactive.neutral.icon.rest",
         "color.inverse.interactive.neutral.on-fill",
-        "color.inverse.interactive.neutral.text.hover",
-        "color.inverse.interactive.neutral.text.pressed",
         "color.inverse.interactive.neutral.text.rest",
         "color.inverse.interactive.primary.fill.rest",
         "color.inverse.interactive.primary.on-fill",
@@ -8116,15 +8149,9 @@
         "color.icon.on-warning",
         "color.icon.primary",
         "color.interactive.destructive.on-fill",
-        "color.interactive.neutral.border.hover",
-        "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.border.rest",
-        "color.interactive.neutral.icon.hover",
-        "color.interactive.neutral.icon.pressed",
         "color.interactive.neutral.icon.rest",
         "color.interactive.neutral.on-fill",
-        "color.interactive.neutral.text.hover",
-        "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
         "color.interactive.primary.on-fill",
         "color.inverse.background.primary",
@@ -8136,16 +8163,10 @@
         "color.inverse.icon.primary",
         "color.inverse.interactive.destructive.fill.rest",
         "color.inverse.interactive.destructive.on-fill",
-        "color.inverse.interactive.neutral.border.hover",
-        "color.inverse.interactive.neutral.border.pressed",
         "color.inverse.interactive.neutral.border.rest",
         "color.inverse.interactive.neutral.fill.rest",
-        "color.inverse.interactive.neutral.icon.hover",
-        "color.inverse.interactive.neutral.icon.pressed",
         "color.inverse.interactive.neutral.icon.rest",
         "color.inverse.interactive.neutral.on-fill",
-        "color.inverse.interactive.neutral.text.hover",
-        "color.inverse.interactive.neutral.text.pressed",
         "color.inverse.interactive.neutral.text.rest",
         "color.inverse.interactive.primary.fill.rest",
         "color.inverse.interactive.primary.on-fill",
@@ -8582,12 +8603,18 @@
       "aliased_by": [
         "color.background.secondary",
         "color.foreground.primary",
+        "color.interactive.neutral.border.hover",
+        "color.interactive.neutral.icon.hover",
+        "color.interactive.neutral.text.hover",
         "color.inverse.background.tertiary",
         "color.inverse.foreground.secondary",
         "color.inverse.interactive.destructive.fill.focused",
         "color.inverse.interactive.destructive.fill.hover",
+        "color.inverse.interactive.neutral.border.hover",
         "color.inverse.interactive.neutral.fill.focused",
         "color.inverse.interactive.neutral.fill.hover",
+        "color.inverse.interactive.neutral.icon.hover",
+        "color.inverse.interactive.neutral.text.hover",
         "color.inverse.interactive.primary.fill.focused",
         "color.inverse.interactive.primary.fill.hover"
       ]
@@ -8618,11 +8645,17 @@
         "color.disabled.border",
         "color.disabled.fill",
         "color.foreground.tertiary",
+        "color.interactive.neutral.border.pressed",
+        "color.interactive.neutral.icon.pressed",
+        "color.interactive.neutral.text.pressed",
         "color.inverse.border.primary",
         "color.inverse.interactive.destructive.fill.pressed",
         "color.inverse.interactive.destructive.fill.selected",
+        "color.inverse.interactive.neutral.border.pressed",
         "color.inverse.interactive.neutral.fill.pressed",
         "color.inverse.interactive.neutral.fill.selected",
+        "color.inverse.interactive.neutral.icon.pressed",
+        "color.inverse.interactive.neutral.text.pressed",
         "color.inverse.interactive.primary.fill.pressed",
         "color.inverse.interactive.primary.fill.selected"
       ]
@@ -8818,7 +8851,13 @@
         "color.border.primary",
         "color.disabled.border",
         "color.disabled.fill",
-        "color.interactive.neutral.fill.hover"
+        "color.interactive.neutral.border.pressed",
+        "color.interactive.neutral.fill.hover",
+        "color.interactive.neutral.icon.pressed",
+        "color.interactive.neutral.text.pressed",
+        "color.inverse.interactive.neutral.border.pressed",
+        "color.inverse.interactive.neutral.icon.pressed",
+        "color.inverse.interactive.neutral.text.pressed"
       ]
     },
     "core.palette.neutral.800": {
@@ -8850,11 +8889,17 @@
       "aliased_by": [
         "color.background.tertiary",
         "color.foreground.secondary",
+        "color.interactive.neutral.border.hover",
         "color.interactive.neutral.fill.focused",
         "color.interactive.neutral.fill.rest",
         "color.interactive.neutral.fill.selected",
+        "color.interactive.neutral.icon.hover",
+        "color.interactive.neutral.text.hover",
         "color.inverse.background.tertiary",
-        "color.inverse.foreground.secondary"
+        "color.inverse.foreground.secondary",
+        "color.inverse.interactive.neutral.border.hover",
+        "color.inverse.interactive.neutral.icon.hover",
+        "color.inverse.interactive.neutral.text.hover"
       ]
     },
     "core.palette.neutral.900": {
@@ -8886,28 +8931,16 @@
         "color.background.primary",
         "color.border.tertiary",
         "color.icon.primary",
-        "color.interactive.neutral.border.hover",
-        "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.border.rest",
-        "color.interactive.neutral.icon.hover",
-        "color.interactive.neutral.icon.pressed",
         "color.interactive.neutral.icon.rest",
         "color.interactive.neutral.on-fill",
-        "color.interactive.neutral.text.hover",
-        "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
         "color.inverse.background.primary",
         "color.inverse.border.tertiary",
         "color.inverse.icon.primary",
-        "color.inverse.interactive.neutral.border.hover",
-        "color.inverse.interactive.neutral.border.pressed",
         "color.inverse.interactive.neutral.border.rest",
-        "color.inverse.interactive.neutral.icon.hover",
-        "color.inverse.interactive.neutral.icon.pressed",
         "color.inverse.interactive.neutral.icon.rest",
         "color.inverse.interactive.neutral.on-fill",
-        "color.inverse.interactive.neutral.text.hover",
-        "color.inverse.interactive.neutral.text.pressed",
         "color.inverse.interactive.neutral.text.rest",
         "color.inverse.text.primary",
         "color.text.primary"
@@ -8923,28 +8956,16 @@
         "color.border.tertiary",
         "color.icon.on-brand",
         "color.icon.primary",
-        "color.interactive.neutral.border.hover",
-        "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.border.rest",
-        "color.interactive.neutral.icon.hover",
-        "color.interactive.neutral.icon.pressed",
         "color.interactive.neutral.icon.rest",
         "color.interactive.neutral.on-fill",
-        "color.interactive.neutral.text.hover",
-        "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
         "color.inverse.background.primary",
         "color.inverse.border.tertiary",
         "color.inverse.icon.primary",
-        "color.inverse.interactive.neutral.border.hover",
-        "color.inverse.interactive.neutral.border.pressed",
         "color.inverse.interactive.neutral.border.rest",
-        "color.inverse.interactive.neutral.icon.hover",
-        "color.inverse.interactive.neutral.icon.pressed",
         "color.inverse.interactive.neutral.icon.rest",
         "color.inverse.interactive.neutral.on-fill",
-        "color.inverse.interactive.neutral.text.hover",
-        "color.inverse.interactive.neutral.text.pressed",
         "color.inverse.interactive.neutral.text.rest",
         "color.inverse.text.primary",
         "color.text.on-brand",
@@ -10517,8 +10538,11 @@
         "type.eyebrow.md.emphasis",
         "type.eyebrow.sm.emphasis",
         "type.label.lg.emphasis",
+        "type.label.lg.emphasis-link",
         "type.label.md.emphasis",
+        "type.label.md.emphasis-link",
         "type.label.sm.emphasis",
+        "type.label.sm.emphasis-link",
         "type.title.2xl.strong",
         "type.title.lg.strong",
         "type.title.md.strong",
@@ -10571,7 +10595,8 @@
         "type.caption.lg.strong",
         "type.caption.lg.strong-link",
         "type.eyebrow.md.emphasis",
-        "type.label.sm.emphasis"
+        "type.label.sm.emphasis",
+        "type.label.sm.emphasis-link"
       ]
     },
     "core.font.size.14": {
@@ -10585,7 +10610,8 @@
         "type.body.sm.strong",
         "type.body.sm.strong-link",
         "type.code.inline.default",
-        "type.label.md.emphasis"
+        "type.label.md.emphasis",
+        "type.label.md.emphasis-link"
       ]
     },
     "core.font.size.16": {
@@ -10614,6 +10640,7 @@
         "type.body.lg.strong-link",
         "type.eyebrow.lg.emphasis",
         "type.label.lg.emphasis",
+        "type.label.lg.emphasis-link",
         "type.title.sm.strong"
       ]
     },
@@ -10798,8 +10825,11 @@
         "type.eyebrow.md.emphasis",
         "type.eyebrow.sm.emphasis",
         "type.label.lg.emphasis",
+        "type.label.lg.emphasis-link",
         "type.label.md.emphasis",
-        "type.label.sm.emphasis"
+        "type.label.md.emphasis-link",
+        "type.label.sm.emphasis",
+        "type.label.sm.emphasis-link"
       ]
     },
     "core.font.weight.700": {
@@ -10870,8 +10900,11 @@
         "type.eyebrow.md.emphasis",
         "type.eyebrow.sm.emphasis",
         "type.label.lg.emphasis",
+        "type.label.lg.emphasis-link",
         "type.label.md.emphasis",
+        "type.label.md.emphasis-link",
         "type.label.sm.emphasis",
+        "type.label.sm.emphasis-link",
         "type.title.2xl.strong",
         "type.title.xl.strong"
       ]
@@ -10983,8 +11016,11 @@
         "type.caption.md.strong-link",
         "type.code.inline.default",
         "type.label.lg.emphasis",
+        "type.label.lg.emphasis-link",
         "type.label.md.emphasis",
-        "type.label.sm.emphasis"
+        "type.label.md.emphasis-link",
+        "type.label.sm.emphasis",
+        "type.label.sm.emphasis-link"
       ]
     },
     "core.font.letter-spacing.10": {

@@ -330,6 +330,7 @@ export const DOMAINS = [
           { ctl: 'enum', keys: ['buttonIcons'], drive: 'button' },
           { ctl: 'enum', keys: ['buttonContentSize'], drive: 'button' },
           { ctl: 'enum', keys: ['buttonLabelWeight'], drive: 'button' },
+          { ctl: 'enum', keys: ['buttonTextHover'], drive: 'button' },
           { ctl: 'slider', keys: ['buttonMinWidthMultiplier'], drive: 'button' },
         ],
       },

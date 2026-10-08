@@ -315,7 +315,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   // filled / read-only, the placeholder layer everywhere else. Typed from that rule, not read off a def.
   const fieldLayer = (c: Record<string, string | undefined>): string[] => [c.state === 'filled' || c.state === 'read-only' ? 'value' : 'placeholder'];
   const STYLE_CONTRACT: Record<string, { parts: string[] | ((c: Record<string, string | undefined>) => string[]); style: (c: Record<string, string | undefined>) => string }> = {
-    button:          { parts: ['label'], style: (c) => ({ small: 'label/sm/emphasis', medium: 'label/md/emphasis', large: 'label/lg/emphasis' } as Record<string, string>)[c.size!] },
+    // #2324: a text button's label is its underlined twin, at every state.
+    button:          { parts: ['label'], style: (c) => `${({ small: 'label/sm/emphasis', medium: 'label/md/emphasis', large: 'label/lg/emphasis' } as Record<string, string>)[c.size!]}${c.appearance === 'text' ? '-link' : ''}` },
     'field-message': { parts: ['text'],  style: () => 'caption/md/default' },
     'text-field':    { parts: fieldLayer, style: () => 'body/md/default' },
     textarea:        { parts: fieldLayer, style: () => 'body/md/default' },

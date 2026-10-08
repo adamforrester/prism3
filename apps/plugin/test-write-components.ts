@@ -742,9 +742,11 @@ ok(freshFrame.length === 1 && freshFrame[0].type === 'SOLID' && !freshFrame[0].b
 // The audit's exact coordinates: outline/text × hover/pressed declare the overlay wash on the container
 // (DEFAULT surface — F1's scope; this medium grid carries no `surface` axis). Reading the declared fill
 // off the PLAN, so the floor is independent of what the executor did with it.
+// Since #2324 the raw def's text appearance keys no wash ("Text button hover: Text & icon only"), so the members that
+// declare it are outline's two; they still exercise the neutralize path, and "Fill" is held in #1646 below.
 const overlayMembers = grid.filter((p) => /\/overlay\/(hover|pressed)$/.test((p.root as { paints?: { fills?: string } }).paints?.fills ?? ''));
-ok(overlayMembers.length === 4,
-  `#1387 reachable: the 4 outline/text × hover/pressed members declare the overlay wash fill the audit flagged, so the bare build exercises the neutralize path on exactly those containers (${overlayMembers.map(planComponentName).join(', ')})`);
+ok(overlayMembers.length === 2,
+  `#1387 reachable: the 2 outline × hover/pressed members declare the overlay wash fill the audit flagged, so the bare build exercises the neutralize path on exactly those containers (${overlayMembers.map(planComponentName).join(', ')})`);
 const whitePage: Page = { children: [] };
 await run(grid, { comps: full().comps, page: whitePage });
 const walkNodes = (n: Node, out: Node[]): Node[] => { out.push(n); for (const c of ((n.children as Node[]) ?? [])) walkNodes(c, out); return out; };
@@ -3333,7 +3335,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   // (a) SOLID-TINT (#1614, #1646) — the TINTED-WASH VARIABLE lands where the neutral wash did, bound at paint
   // opacity 1: the tint lives in the variable (its per-mode value is the fill's alias at an opacity), because
   // the host resets a bound paint's opacity whenever Apply Theme rewrites that paint's variable.
-  const tint = { ...nbInput, outlineInteraction: 'solid-tint' } as BrandInput;
+  // "Text button hover: Fill" (#2324) so the text appearance takes the tinted wash too, as it did before the default
+  // became "Text & icon only": the arm then holds that Fill composes with solid-tint, on both appearances.
+  const tint = { ...nbInput, outlineInteraction: 'solid-tint', buttonTextHover: 'fill' } as BrandInput;
   const tintPlans = figmaAnatomySet(materializeForBrand(button, tint), { swapTarget: SWAP });
   const tintPage: Page = { children: [] };
   const tintShim = makeShim({ ...hostFor(tint, tintPlans), page: tintPage });
@@ -3450,7 +3454,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const def = materializeForBrand(button, { ...nbInput, ...extra } as BrandInput);
     const root = figmaAnatomyPlan(def, 'medium', { leading: true, trailing: true, swapTarget: SWAP, appearance: 'filled', state: 'rest' }).root;
     return {
-      type: def.tokens['size.medium.type'], icon: def.tokens['size.medium.icon'], style: planTextStyles(root).join(),
+      type: def.tokens['size.medium.filled.type'], icon: def.tokens['size.medium.icon'], style: planTextStyles(root).join(),
       floor: root.minWidth, pins: root.children.filter((c) => c.pin).map((c) => `${c.name}:${c.pin!.edge}:${c.pin!.inset}`).join(),
     };
   };
@@ -4752,6 +4756,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     ['buttonContentSize', 'smaller'],
     ['buttonIcons', 'edges'],
     ['buttonMinWidthMultiplier', 1], ['buttonMinWidthMultiplier', 4],
+    ['buttonTextHover', 'fill'],
     ['controlShape', 'boxed'], ['controlShape', 'hairline'], ['controlShape', 'pill'],
   ];
   const getIn = (o: any, key: string): unknown => key.split('.').reduce((a, p) => a?.[p], o);

@@ -1662,54 +1662,6 @@
                   "min": 7
                 }
               }
-            },
-            "hover": {
-              "$type": "color",
-              "$value": "{pds3.core.palette.black}",
-              "$description": "neutral interactive ink — hover (outline / text appearance)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  },
-                  "aliasOf": "pds3.core.palette.black",
-                  "contrast": 21,
-                  "against": "background.primary",
-                  "min": 7
-                }
-              }
-            },
-            "pressed": {
-              "$type": "color",
-              "$value": "{pds3.core.palette.black}",
-              "$description": "neutral interactive ink — pressed (outline / text appearance)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  },
-                  "aliasOf": "pds3.core.palette.black",
-                  "contrast": 21,
-                  "against": "background.primary",
-                  "min": 7
-                }
-              }
             }
           },
           "icon": {
@@ -1736,54 +1688,6 @@
                   "min": 7
                 }
               }
-            },
-            "hover": {
-              "$type": "color",
-              "$value": "{pds3.core.palette.black}",
-              "$description": "neutral interactive icon ink — hover (the glyph in an outline / ghost / text control)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  },
-                  "aliasOf": "pds3.core.palette.black",
-                  "contrast": 21,
-                  "against": "background.primary",
-                  "min": 7
-                }
-              }
-            },
-            "pressed": {
-              "$type": "color",
-              "$value": "{pds3.core.palette.black}",
-              "$description": "neutral interactive icon ink — pressed (the glyph in an outline / ghost / text control)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  },
-                  "aliasOf": "pds3.core.palette.black",
-                  "contrast": 21,
-                  "against": "background.primary",
-                  "min": 7
-                }
-              }
             }
           },
           "border": {
@@ -1791,54 +1695,6 @@
               "$type": "color",
               "$value": "{pds3.core.palette.black}",
               "$description": "neutral interactive border — rest (the outline edge; follows the ink)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  },
-                  "aliasOf": "pds3.core.palette.black",
-                  "contrast": 21,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              }
-            },
-            "hover": {
-              "$type": "color",
-              "$value": "{pds3.core.palette.black}",
-              "$description": "neutral interactive border — hover (the outline edge; follows the ink)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  },
-                  "aliasOf": "pds3.core.palette.black",
-                  "contrast": 21,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              }
-            },
-            "pressed": {
-              "$type": "color",
-              "$value": "{pds3.core.palette.black}",
-              "$description": "neutral interactive border — pressed (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -3039,54 +2895,6 @@
                     "min": 7
                   }
                 }
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.white}",
-                "$description": "neutral interactive ink on an inverse surface — hover (outline / text on the inverse band)",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    },
-                    "aliasOf": "pds3.core.palette.white",
-                    "contrast": 21,
-                    "against": "inverse.background.primary",
-                    "min": 7
-                  }
-                }
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.white}",
-                "$description": "neutral interactive ink on an inverse surface — pressed (outline / text on the inverse band)",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    },
-                    "aliasOf": "pds3.core.palette.white",
-                    "contrast": 21,
-                    "against": "inverse.background.primary",
-                    "min": 7
-                  }
-                }
               }
             },
             "icon": {
@@ -3094,54 +2902,6 @@
                 "$type": "color",
                 "$value": "{pds3.core.palette.white}",
                 "$description": "neutral interactive icon ink on an inverse surface — rest (the glyph in an outline / ghost / text control on the inverse band)",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    },
-                    "aliasOf": "pds3.core.palette.white",
-                    "contrast": 21,
-                    "against": "inverse.background.primary",
-                    "min": 7
-                  }
-                }
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.white}",
-                "$description": "neutral interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    },
-                    "aliasOf": "pds3.core.palette.white",
-                    "contrast": 21,
-                    "against": "inverse.background.primary",
-                    "min": 7
-                  }
-                }
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.white}",
-                "$description": "neutral interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -3192,54 +2952,6 @@
                 "$type": "color",
                 "$value": "{pds3.core.palette.white}",
                 "$description": "neutral interactive border on an inverse surface — rest (the outline edge; follows the ink)",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    },
-                    "aliasOf": "pds3.core.palette.white",
-                    "contrast": 21,
-                    "against": "inverse.background.primary",
-                    "min": 4.5
-                  }
-                }
-              },
-              "hover": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.white}",
-                "$description": "neutral interactive border on an inverse surface — hover (the outline edge; follows the ink)",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    },
-                    "aliasOf": "pds3.core.palette.white",
-                    "contrast": 21,
-                    "against": "inverse.background.primary",
-                    "min": 4.5
-                  }
-                }
-              },
-              "pressed": {
-                "$type": "color",
-                "$value": "{pds3.core.palette.white}",
-                "$description": "neutral interactive border on an inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
