@@ -1689,6 +1689,11 @@ console.log(`\n#1031 — fields in a dark theme\n${'='.repeat(78)}`);
   await hooks.need(page, '[data-p3="style-guides"]');
   await page.evaluate((c) => window.postMessage({ pluginMessage: { type: 'style-guide-catalog', catalog: c } }, '*'), SG_RING_CATALOG);
   await hooks.need(page, '[data-p3="sg-collection"]');
+  // #2341: the per-kind option groups (Color value, Color sample, …) render after the catalog's selection settles, which
+  // can land after sg-collection on a slow runner. Wait for the floor before measuring; on a timeout the count below
+  // still fails by name, so a field that is really missing is not hidden by the wait.
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="style-guides"] :is(input[type="text"], input:not([type]), select, textarea)')]
+    .filter((n) => n.getBoundingClientRect().width > 0 && !n.disabled).length >= 3, null, { timeout: 10000 }).catch(() => {});
   const f = await page.evaluate(() => {
     const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s.trim()); const p = m ? m[1].split(/[,\s/]+/).filter(Boolean).map(Number) : [0, 0, 0, 0]; return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
     const lum = (c) => { const f2 = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f2(c.r) + 0.7152 * f2(c.g) + 0.0722 * f2(c.b); };
