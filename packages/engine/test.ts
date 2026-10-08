@@ -26684,7 +26684,14 @@ arm: {
 // rest), and on #1387 the owner chose to KEEP that exemption for the quiet pressed cells below. Every pressed
 // label and glyph below 4.5:1 is pinned per brand, with its exact ratio, in `HELD_PRESSED`: a cell that
 // appears, moves, or starts to pass fails by name. Today they are all `solid-tint` on the inverse band in
-// light mode — primary 3.47–3.82:1 and destructive 4.09–4.48:1 across the corpus and the NB master.
+// light mode — primary 3.47–3.82:1, destructive 4.09–4.48:1 and neutral 4.09–4.11:1 across the corpus and the NB
+// master.
+//
+// THE GENERAL RULE (owner Q121, recorded on #2349, 2026-10-08): "Interactive states not needing to pass contrast
+// applies to all interactive states across the board. Ideally they do, but it's not necessary." It covers every
+// interactive state (hover, pressed, focus) on every button appearance and family, so a cell here is held under that
+// rule, not accepted case by case. The register stays a register: pinned at its exact ratio, so a state that MOVES
+// still fails by name and is looked at, which is the "ideally they do" half.
 {
   const FAMILIES = [button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral];
   const METHODS = ['overlay-neutral', 'solid-tint', 'none'] as const;
@@ -26753,9 +26760,9 @@ arm: {
     'wendys solid-tint light inverse.interactive.destructive.subtle-fill.pressed text': 4.09,
     'wendys solid-tint light inverse.interactive.primary.subtle-fill.pressed glyph': 3.82,
     'wendys solid-tint light inverse.interactive.primary.subtle-fill.pressed text': 3.82,
-    // #2324 — Neutral's ink walks now (owner, recorded on #2324, 2026-10-08: "even if the interactive states don't
-    // meet contrast that's fine"), so its pressed ink on the inverse band's tinted pressed wash joins the held cells,
-    // the same shape as primary's and destructive's above: solid-tint, light, inverse, pressed, at 4.09-4.11:1.
+    // #2324 — Neutral's ink walks now, so its pressed ink on the inverse band's tinted pressed wash joins the held
+    // cells, the same shape as primary's and destructive's above: solid-tint, light, inverse, pressed, at 4.09-4.11:1.
+    // Held under the general rule (owner Q121, see the header): interactive states need not pass contrast.
     'aurora solid-tint light inverse.interactive.neutral.subtle-fill.pressed glyph': 4.11,
     'aurora solid-tint light inverse.interactive.neutral.subtle-fill.pressed text': 4.11,
     'harbor solid-tint light inverse.interactive.neutral.subtle-fill.pressed glyph': 4.1,

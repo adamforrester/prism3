@@ -1,13 +1,15 @@
 ## (2026-10-08) — Buttons: a text button's label is always underlined, and "Text button hover" chooses its wash (#2324)
 
 **Status:** engine, plugin and studio. ENGINE minor (change note). CONTRACT 14.4.0 → 14.5.0 (MINOR: three label link
-paths join the guaranteed surface). Owner decisions, all recorded on #2324:
+paths join the guaranteed surface). Owner decisions, recorded on #2324 and, for the last two, on #2349:
 - **Q110:** the label is always underlined, at rest and in every state; the underline is fixed, not a brand setting;
   a text button is never filled at rest; the default is color only.
 - **The 2026-10-08 answers** (owner → Lane C's lead → Lane C, recorded by Lane C):
   - the setting is "Text button hover", options "Text & icon only" (the default) and "Fill";
   - Neutral follows the same rule, its ink walking 950 → 850 → 750;
   - a disabled text button stays underlined.
+- **Q120 A:** every drafted string in this PR is approved as written.
+- **Q121:** interactive states need not pass contrast, across the board (the rule, below).
 
 Button, Destructive and Neutral alike (one `makeButton` factory). Icon Button has no text appearance.
 
@@ -38,11 +40,13 @@ Button, Destructive and Neutral alike (one `makeButton` factory). Icon Button ha
   in HC). So does its inverse-band twin, which has its own derivation (`invColumn`, where neutral passed no palette):
   025 → 100 → 200 on the dark band. On prism3, harbor and aurora every state lands at 9.7:1 or above in every mode on
   both grounds. Values only; no name moves.
-  - **One contrast consequence, held on the owner's answer** ("even if the interactive states don't meet contrast
-    that's fine"). Neutral's pressed ink on the inverse band's tinted pressed wash (solid-tint brands, light mode)
-    lands at 4.09–4.11:1. That's 22 cells across the corpus and NB master, the same shape as the primary and
-    destructive cells #1387 already holds, and now in its register. It reaches Neutral **outline** buttons on the
-    inverse band under solid-tint, and text buttons under "Fill".
+  - **The general rule this rests on (owner Q121, recorded on #2349):** *"Interactive states not needing to pass
+    contrast applies to all interactive states across the board. Ideally they do, but it's not necessary."* It
+    covers every interactive state (hover, pressed, focus) on every button appearance and family, so it's a rule,
+    not an exception list. #1387's register cites it in its header and keeps pinning each sub-4.5 cell at its exact
+    ratio, so a state that moves still fails by name and gets looked at. Neutral's walk adds cells of the shape the
+    register already held: its pressed ink on the inverse band's tinted pressed wash (solid-tint brands, light mode)
+    at 4.09–4.11:1, reaching Neutral outline buttons there and text buttons under "Fill".
 
 ### The bug found on the way
 
