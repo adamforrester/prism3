@@ -543,6 +543,25 @@ section('unrecorded — a member with no as-built record is updated and named, n
   const left = (again.sets[0]?.changes ?? []).filter((x) => x.field !== 'stamp').length;
   ok(!v.ok || left === 0, `unrecorded/honest: no ✓ verdict while a previewed difference is left in the file (${v.headline}; ${left} left)`);
 }
+{
+  // The same set under `choices.noBaseline: 'skip'` (#2364 review): every member is left, by the choice, so nothing
+  // the dry run listed is done. The verdict is NOT UPDATED, never "already up to date" (the owner's choice, 2026-10-08).
+  // Mutation: the all-skipped set not counted as not updated → `unrecorded/skip` (the headline falls back to ✓).
+  const w = await world(TAG, plansOf(TAG), { extraVars: ['space/999'] });
+  for (const m of membersOf(w.set())) (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, '');
+  const next = moveGap(w.plans);
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: next }]);
+  const before = (pre.sets[0]?.changes ?? []).filter((x) => x.field !== 'stamp').length;
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: next }], previewHashOf(pre), { choices: { noBaseline: 'skip' } });
+  const o = res.outcomes[0];
+  const v = applyVerdict(res);
+  ok(!v.ok && v.headline === '✗ 1 set not updated' && o?.skipped.length === 45 && o.skipped.every((x) => x.reason === 'no as-built record') && v.lines[0] === 'tag: 45 left as they are.',
+    `unrecorded/skip: with noBaseline: 'skip' every member is left, named, and the verdict says the set was not updated (${v.headline}; ${o?.skipped.length} left; ${v.lines[0]})`);
+  const again = await previewUpdate(w.host, [{ def: TAG, plans: next }]);
+  const after = (again.sets[0]?.changes ?? []).filter((x) => x.field !== 'stamp').length;
+  ok(before > 0 && after === before && previewVerdict(again).headline === 'Would change 1 of 1',
+    `unrecorded/skip left: the next dry run lists the same differences (${before} before, ${after} after; ${previewVerdict(again).headline})`);
+}
 
 {
   // #2364 on the NB master's own fields: Button, every record cleared, then the two levers that moved there. The plan

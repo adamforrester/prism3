@@ -477,7 +477,11 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   }
   const stopped = r.outcomes.find((o) => o.stopped);
   const failed = r.outcomes.filter((o) => o.identity.length || o.content.length);
-  const refused = r.outcomes.filter((o) => o.refused).length + r.refused.length;
+  // A set the apply entered and wrote nothing to, every member it would have written left as it is (`noBaseline:
+  // 'skip'`, a layer added by hand, a member that would need replacing), still holds what its dry run listed. It is
+  // NOT UPDATED, never "already up to date" (#2364 review; the owner's choice, 2026-10-08: the approved headline).
+  const idle = r.outcomes.filter((o) => !o.refused && !o.stopped && o.skipped.length && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length).length;
+  const refused = r.outcomes.filter((o) => o.refused).length + r.refused.length + idle;
   const updated = r.outcomes.reduce((k, o) => k + o.updated.length, 0);
   const added = r.outcomes.reduce((k, o) => k + o.added, 0);
   const deprecated = r.outcomes.reduce((k, o) => k + o.deprecated.length, 0);
