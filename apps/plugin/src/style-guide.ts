@@ -902,6 +902,14 @@ const fallbackGround = (catalog: SgCatalog, col: SgCollection, tail: readonly st
   }), near);
 };
 
+/** AN INVERSE TOKEN (#2331): one whose path has an `inverse` segment, read off the WHOLE variable name. Never off the path
+ *  below a table's common prefix: the Inverse table's prefix is `<root>/color/inverse` itself, so `inverse/text/primary`
+ *  read there as `text/primary` and drew on the white page ground, where `#F7F7F7` cannot be seen (the owner's report). */
+export const isInverse = (name: string): boolean => /(^|\/)inverse(\/|$)/.test(name);
+/** A sample the swatch draws AS ITS COLOR, filling its cell (#2331): a fill, translucent or not. Text, border and icon
+ *  samples are marks drawn on a ground instead. */
+export const isFillSample = (display: SwatchType): boolean => display === 'default' || display === 'transparency';
+
 /** The mode a ground resolves in: this mode when it shares the collection, its own default otherwise. */
 const groundModeFor = (ix: Index, col: SgCollection, v: SgVariable, modeId: string): string =>
   v.variableCollectionId === col.id ? modeId : (defaultMode(ix.collections.get(v.variableCollectionId)) ?? modeId);
@@ -1098,8 +1106,29 @@ const TABLE_GAP = 160;
  *  itself, 80px, "close to the 83px in their file and not much smaller"). The swatch still FILLs its cell both ways;
  *  80 is only the minimum, so a HUG track cannot shrink it below that. */
 const SWATCH_MIN = 80;
-/** The gap between a table's tracks, rows and columns alike: the owner's examples' 2px (owner decision, 2026-09-29). */
-const TRACK_GAP = 2;
+/** No gap between a table's tracks (owner, #2336 review, 2026-10-08). The 2px gaps of 2026-09-29 were the row
+ *  dividers, and they were transparent: on a dark canvas or viewer the dark showed through, and the row lines broke
+ *  at every column. The dividers are drawn lines now (`GRID_LINE`), continuous across every column. */
+const TRACK_GAP = 0;
+/** THE STYLE GUIDE'S CHROME (owner, #2336 review, 2026-10-08): every cell, the table frame and the table's wrap are a
+ *  solid #FFFFFF, and every cell's bottom edge is a 1px #E0E0E0 line. Fixed, not tokens, by the owner's call: this is
+ *  the style guide's own chrome, not the brand's. Nothing in a table is transparent, so it reads the same on a light
+ *  or a dark canvas. */
+const CELL_FILL = WHITE;
+const GRID_LINE = [{ type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 224 / 255, g: 224 / 255, b: 224 / 255 } }];
+/** A paint that hides what is behind it: a visible solid at full opacity and full alpha. A bound paint counts by its
+ *  own opacity; its variable's alpha is the brand's (a palette or ground color is opaque). */
+const opaque = (paints: unknown): boolean => Array.isArray(paints) && paints.some((p) => {
+  const x = p as { type?: unknown; visible?: unknown; opacity?: unknown; color?: { a?: unknown } };
+  return x.type === 'SOLID' && x.visible !== false && (x.opacity ?? 1) === 1 && (x.color?.a ?? 1) === 1;
+});
+/** A cell's row line: its bottom edge, inside, so the line spans the cell's whole width and adds nothing to its size. */
+const ruleBelow = (n: SgNode): void => {
+  n.strokes = GRID_LINE;
+  n.strokeAlign = 'INSIDE';
+  n.strokeTopWeight = 0; n.strokeRightWeight = 0; n.strokeLeftWeight = 0;
+  n.strokeBottomWeight = 1;
+};
 const PART_KEY = 'prism3-style-guide-part';
 /** The header text a run wrote, so the next run can tell its own words from a designer's. */
 const TITLE_KEY = 'prism3-style-guide-title';
@@ -1314,20 +1343,10 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     plan.tables.forEach((t, index) => { skip(t, 'no-cells'); run.onTable?.({ index, status: 'failed', reason: SKIP_REASON(t, 'no-cells') }); });
     return { tables: out, stale: [], replaced: [], deleted: [], kept: [], unbound: 0, notes: plan.notes, misses, unmatched: plan.unmatched };
   }
-  // A palette swatch FILLs its cell; a swatch set Set up file built before its squares stretched is brought up to date
-  // first, so the square grows with the cell (#2268). A set the owner made is never changed (`stretchSwatches`).
+  // A swatch set Set up file built before its squares stretched is brought up to date (#2268), so a member a designer
+  // places at any size grows its square with it. A table's fill swatch no longer shows the square (#2336: the instance
+  // paints the color edge to edge), so this is the set's repair, not the table's. A set the owner made is never changed.
   if (plan.tables.some((t) => t.kind === 'primitive')) stretchSwatches(swatches);
-  // THE PALETTE SWATCH'S EDGE (#2268, owner, 2026-10-07): a hairline bound to the brand's `color.border.secondary`, the
-  // neutral edge that clears 3:1 on white, so a near-white step stays outlined on its white cell. Found by its path under
-  // the configurable root, the row's own root first (a file can hold two); a file without it keeps the swatch's hairline.
-  const rootOf = (name: string): string => name.split('/')[0];
-  const edges = catalog.variables.filter((v) => v.resolvedType === 'COLOR' && /(^|\/)color\/border\/secondary$/.test(v.name));
-  const nameById = new Map(catalog.variables.map((v) => [v.id, v.name]));
-  const edgeFor = (variableId: string): unknown => {
-    const root = rootOf(nameById.get(variableId) ?? '');
-    const hit = edges.find((v) => rootOf(v.name) === root) ?? edges[0];
-    return hit ? variableById.get(hit.id) : undefined;
-  };
   const allSets = api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly SgNode[];
   const headerSet = allSets.find((n) => n.name === SECTION_HEADER_SET) ?? allSets.find((n) => isTemplateSet(n.name, SECTION_HEADER_SET));
   const headerVariant = headerSet?.children?.find((c) => c.name === HEADER_VARIANT) as SgNode | undefined;
@@ -1460,14 +1479,46 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     try { inst.layoutSizingVertical = 'FILL'; } catch { /* a host that refuses it leaves the swatch at its size */ }
     try { inst.minWidth = SWATCH_MIN; inst.minHeight = SWATCH_MIN; } catch { /* no floor where the host has none */ }
   };
-  const specimen = (row: SgRow, cell: SgCell, collection: unknown): SgNode => {
+  /** A FILL SWATCH (#2268, #2331; owner, #2336 review, 2026-10-08): the color fills its cell to the edge. Palette steps
+   *  and semantic fills alike, inverse fills included: the color itself is the sample, so it never sits on a backdrop,
+   *  and it has no outline: the cell's row lines bound it. The instance paints the color itself, over the cell's white
+   *  (the last paint is on top, so a translucent color reads over white, never over the canvas), and the member's own
+   *  layers are hidden: a layer inside an instance grows only by its constraints, so its square kept an 8px inset. */
+  const fillSwatch = (into: SgNode, row: SgRow, cell: SgCell, collection: unknown, r: number, c: number): void => {
+    const v = variantOf(swatches, { type: row.display }, `type=${row.display}`);
+    if (!v?.createInstance) return;
+    const inst = v.createInstance() as SgNode;
+    const variable = variableById.get(row.variableId);
+    if (variable) inst.fills = [...CELL_FILL, api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', variable)];
+    else { inst.fills = CELL_FILL; unboundIn.set(String(v.name), (unboundIn.get(String(v.name)) ?? 0) + 1); }
+    for (const k of (inst.children ?? []) as SgNode[]) k.visible = false;
+    inst.setExplicitVariableModeForCollection?.(collection, cell.modeId);
+    into.appendChildAt?.(inst, r, c);
+    fillCell(inst);
+    ruleBelow(inst);
+  };
+  /** WHERE A MARK IS DRAWN (#2331): a text, border or icon sample sits on a ground. An INVERSE token's sits on the
+   *  collection's inverse background, found by path; every other sits on the ground its role is contracted against, and
+   *  never on an inverse one (the page ground instead). The contrast column still measures what it measured. */
+  const groundFor = (row: SgRow, cell: SgCell, collectionId: string): unknown => {
+    const col = catalog.collections.find((c) => c.id === collectionId);
+    const byPath = (want: string[]): unknown => {
+      const hit = col ? fallbackGround(catalog, col, want, new Set(), row.name) : null;
+      return hit ? variableById.get(hit.id) : undefined;
+    };
+    if (isInverse(row.name)) return byPath(['inverse', 'background', 'primary']);
+    const own = cell.groundId ? catalog.variables.find((v) => v.id === cell.groundId) : undefined;
+    if (own && !isInverse(own.name)) return variableById.get(own.id);
+    return byPath(['background', 'primary']);
+  };
+  const specimen = (row: SgRow, cell: SgCell, collection: unknown, collectionId: string): SgNode => {
     const ground = api.createFrame();
     ground.name = 'Ground';
     ground.layoutMode = 'HORIZONTAL';
     ground.primaryAxisSizingMode = 'AUTO';
     ground.counterAxisSizingMode = 'AUTO';
     ground.paddingTop = 12; ground.paddingBottom = 12; ground.paddingLeft = 16; ground.paddingRight = 16;
-    const groundVariable = cell.groundId ? variableById.get(cell.groundId) : undefined;
+    const groundVariable = groundFor(row, cell, collectionId);
     ground.fills = groundVariable ? [api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', groundVariable)] : WHITE;
     ground.setExplicitVariableModeForCollection?.(collection, cell.modeId);
     const sw = swatchOf(row, cell, collection);
@@ -1542,7 +1593,6 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       wrap.primaryAxisSizingMode = 'AUTO';
       wrap.counterAxisSizingMode = 'AUTO';
       wrap.itemSpacing = 40;
-      wrap.fills = [];
       wrap.setPluginData?.(TABLE_KEY, t.key);
       page.appendChild(wrap);
       wrap.x = at.x;
@@ -1590,12 +1640,15 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     for (const c of (wrap.children ?? []) as SgNode[]) if (c.getPluginData?.(PART_KEY) === 'table') c.remove?.();
     const grid = api.createFrame();
     grid.name = 'Table';
-    grid.fills = [];
+    // White, as the wrap is (#2336): nothing in a table shows the canvas through it. Set on every run, so a table drawn
+    // before this takes it on its next rerun.
+    wrap.fills = CELL_FILL;
+    grid.fills = CELL_FILL;
     grid.setPluginData?.(PART_KEY, 'table');
     grid.layoutMode = 'GRID';
     grid.gridRowCount = t.rows.length + 1;
     grid.gridColumnCount = t.columns.length;
-    // A 2px gap between tracks, both ways, as in the owner's examples (owner decision, 2026-09-29, #259).
+    // No gap between tracks (#2336): the row lines are drawn, not left as gaps.
     grid.gridRowGap = TRACK_GAP;
     grid.gridColumnGap = TRACK_GAP;
     // THE OWNER'S GRID MODEL (owner decision, 2026-09-29, #259), measured live on their "↳ Style Guide Examples":
@@ -1617,11 +1670,16 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
     // A cell FILLs its track, both axes: a text cell hugs its words (`fit`), and the track takes that width; the
     // specimen's ground fills the track too, so the ground reaches the cell's edges however wide the column is. A
     // palette row's swatch is the one cell that does not: it keeps its component's size (decision 13).
-    const place = (n: SgNode | null, r: number, c: number): void => {
+    // EVERY CELL IS SOLID AND RULED (#2336): a body cell is the chrome's fixed white; a header cell and a mark's ground
+    // keep their own fill (the header's band, the ground the mark is drawn on), white only where that is not solid.
+    // Every cell takes its row line, so the lines run unbroken across every column.
+    const place = (n: SgNode | null, r: number, c: number, ownFill = false): void => {
       if (!n) return;
       grid.appendChildAt?.(n, r, c);
       sizing(n, 'FILL');
       try { n.layoutSizingVertical = 'FILL'; } catch { /* a host that refuses it leaves the cell hugging */ }
+      if (!ownFill || !opaque(n.fills)) n.fills = CELL_FILL;
+      ruleBelow(n);
     };
     /**
      * A PHASE-2 SPECIMEN (#259), bound to the row's variable and pinned to its column's mode, as a color swatch is:
@@ -1691,8 +1749,17 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
         const target = radiusLayer(inst);
         if (!target) missAt(noLayer, 'type=radius', where);
         else if (!RADIUS_CORNERS.map((k) => bindTo(target, k, variable)).every(Boolean)) missAt(unboundSpec, 'type=radius', where);
-        grid.appendChildAt?.(inst, r, c);
+        // The member keeps its fixed size, so it sits in a cell of its own that FILLs the track, white and ruled (#2336):
+        // drawn bare, the cell around it was transparent and the row line broke at this column.
+        const box = api.createFrame();
+        box.name = 'Cell';
+        box.layoutMode = 'HORIZONTAL';
+        box.primaryAxisSizingMode = 'AUTO';
+        box.counterAxisSizingMode = 'AUTO';
+        box.paddingTop = 12; box.paddingBottom = 12; box.paddingLeft = 16; box.paddingRight = 16;
+        box.appendChild?.(inst);
         keepSize({ inst, w: num(v.width), h: num(v.height) });
+        place(box, r, c);
         return;
       }
       const inst = await textCell('default', 'white', SAMPLE_TEXT);
@@ -1736,7 +1803,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       const h = await textCell('header', headerColor, t.columns[c]);
       // The Name column's header is part of the title column: its width follows the titles, so the fingerprint skips it.
       if (options.titleCell && c === 0) h?.setPluginData?.(NAME_CELL_KEY, NAME_HEADER);
-      place(h, 0, c);
+      place(h, 0, c, true);
     }
     // YIELD WITHIN A BIG TABLE (#1778): whole rows at a time, about `CELLS_PER_YIELD` cells between yields.
     const rowsPerYield = Math.max(1, Math.floor(CELLS_PER_YIELD / t.columns.length));
@@ -1762,21 +1829,10 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
         }
         for (const x of row.extra ?? []) place(await textCell(options.aliases !== false && x.alias ? 'value alias' : 'default', 'white', x.value, x.alias), r + 1, c++);
       } else for (const cell of row.cells) {
-        if (t.kind === 'primitive') {
-          // A palette row: the swatch alone, filling its cell (decision 13), its edge the brand's border (#2268).
-          const sw = swatchOf(row, cell, collection);
-          if (sw) {
-            grid.appendChildAt?.(sw.inst, r + 1, c);
-            fillCell(sw.inst);
-            const target = row.display === 'border' ? null : bindTarget(sw.inst, row.display);
-            const edgeVariable = edgeFor(row.variableId);
-            if (target && edgeVariable) {
-              target.strokes = [api.variables.setBoundVariableForPaint(PLACEHOLDER_PAINT, 'color', edgeVariable)];
-              if (!(num(target.strokeWeight) > 0)) { target.strokeWeight = 1; target.strokeAlign = 'INSIDE'; }
-            }
-          }
-          c++;
-        } else place(specimen(row, cell, collection), r + 1, c++);
+        // A palette step, or a semantic FILL (inverse fills included): the swatch fills its cell (#2268, #2331). A text,
+        // border or icon role: its mark on its ground, the inverse background for an inverse token (#2331).
+        if (t.kind === 'primitive' || isFillSample(row.display)) fillSwatch(grid, row, cell, collection, r + 1, c++);
+        else place(specimen(row, cell, collection, t.collectionId), r + 1, c++, true);
         const chip = options.aliases !== false && cell.alias;
         place(await textCell(chip ? 'value alias' : 'default', 'white', cell.value, cell.alias), r + 1, c++);
         if (t.kind === 'semantic') place(await textCell('default', 'white', contrastText(cell.contrast)), r + 1, c++);
