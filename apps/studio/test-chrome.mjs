@@ -9340,7 +9340,7 @@ const HOVER_KINDS = [
   ['chip', '.p3-btn.p3-chip:not([aria-pressed="true"])', 'native'],
   ['check', '.p3-btn.p3-check:not([aria-checked="true"])', 'aria'],
   ['matrix check', '.p3-btn.p3-mcheck:not([aria-checked="true"])', 'aria'],
-  ['switch', '.p3-btn.p3-switch', 'native'],
+  ['switch', '.p3-switch', 'native'],
   ['segmented tab', '[data-p3="levers-pane"] .p3-seg-tab:not([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"])', 'native'],
   ['select', '[data-p3="levers-pane"] .p3-select', 'native'],
   ['color field', '.p3-colorfield', 'inner'],
@@ -11746,6 +11746,128 @@ for (const host of ['web', 'figma']) {
   } catch (e) {
     ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
+}
+// #2183 + #2237: ONE SWITCH (SG5 A), AND A DISABLED SWITCH IN PRISM3'S OWN DISABLED SWITCH ROLES (owner Q52 B / DS2 A,
+// SW1 D; the owner's answers of 2026-10-08: no state words, no glyph on the knob, the lever's name keeps its ink).
+// Every chrome switch is the track-and-knob kind: a `role="switch"` button holding exactly one track that holds exactly
+// one knob, with no dot and no words; it keeps its name and its state, and a click turns it and moves its knob. Each
+// lever switch is named here by hook, so a switch that is not drawn fails by name rather than shrinking a count. A
+// disabled switch draws, on and off alike, the roles the engine's switch definition binds (`switch-control.ts`), typed
+// here and resolved through `PRISM3_DISABLED` from the committed emission, never from the studio's CSS (docs/34): the
+// track on `color.disabled.fill`, its edge on `color.disabled.border` on all four sides, the knob on
+// `color.disabled.on-fill`. The outline button's roles (`disabled.icon` edge) are named in the failure. Both hosts, both
+// chrome themes; switched off the way the app switches it off (`disabled`), and in a derived mode's read-only panel.
+// Mutations, each failing by name:
+//   · `switchEl` given back a dot and its state word → `… is the track-and-knob kind …` for every switch, both hosts.
+//   · the disabled knob on `--p3-disabled-icon` (the outline button's role) → `… a disabled … switch draws Prism3's
+//     disabled switch …`, on and off, both hosts and both themes.
+const SWITCH_HOOKS = [['type', 'type-fluid', openTypeAdvanced], ['color-interactive', 'strict-contrast-switch', null],
+  ['color-interactive', 'disabled-full-switch', null], ['color-fills', 'gradients-switch', null]];
+/** The disabled switch skin, typed from `switch-control.ts`'s disabled keys: track `disabled.fill`, edge
+ *  `disabled.border`, thumb `disabled.indicator.on-fill` = `color.disabled.on-fill`. */
+const SWITCH_DISABLED = (scheme) => {
+  const d = PRISM3_DISABLED[scheme];
+  return d ? { track: d.fill, edge: d.edge, knob: d.ink, button: d.icon } : null;
+};
+/** What a switch is and draws: its parts, its name and state, the track's fill and four edges and the knob's fill. */
+const READ_SWITCH = (sel) => {
+  const b = document.querySelector(sel);
+  if (!b) return null;
+  const tr = b.querySelector(':scope > .p3-switch-track'), kn = tr?.querySelector(':scope > .p3-switch-knob');
+  const t = tr ? getComputedStyle(tr) : null, k = kn ? getComputedStyle(kn) : null;
+  return {
+    role: b.getAttribute('role'), checked: b.getAttribute('aria-checked'), name: b.getAttribute('aria-label'),
+    kind: !!tr && !!kn && b.children.length === 1 && tr.children.length === 1, dot: !!b.querySelector('.p3-dot'), words: b.textContent.trim(),
+    fill: t?.backgroundColor ?? null, edges: t ? ['Top', 'Right', 'Bottom', 'Left'].map((x) => [t[`border${x}Color`], t[`border${x}Style`], parseFloat(t[`border${x}Width`])]) : [],
+    knob: k?.backgroundColor ?? null, knobX: kn && tr ? Math.round(kn.getBoundingClientRect().left - tr.getBoundingClientRect().left) : null,
+    off: b.matches(':disabled') || b.getAttribute('aria-disabled') === 'true',
+  };
+};
+/** One verdict on a disabled switch: the three roles as drawn, against SWITCH_DISABLED. */
+const switchSkin = (r, scheme) => {
+  const want = SWITCH_DISABLED(scheme);
+  const got = { ...drawnSkin({ fill: r.fill, edges: r.edges, ink: r.knob }) };
+  const drew = { track: got.fill, edge: got.edge, knob: got.ink };
+  const pass = !!want && drew.track === want.track && drew.edge === want.edge && drew.knob === want.knob;
+  const button = !!want && (drew.edge === want.button || drew.knob === want.button);
+  return { pass, want, drew, button };
+};
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    const where = `#2183 ${host} ${theme}`;
+    const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
+    try {
+      const scheme = await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
+      const kindOf = (r, label) => ok(!!r && r.kind && !r.dot && r.words === '',
+        `${where}: ${label} is the track-and-knob kind: one track holding one knob, no dot and no state words (${JSON.stringify(r && { kind: r.kind, dot: r.dot, words: r.words })})`);
+      const disabledLook = async (sel, label, how) => {
+        const r = await page.evaluate(READ_SWITCH, sel);
+        const v = r ? switchSkin(r, scheme) : null;
+        ok(!!r && r.off && !!v?.pass,
+          `${where}: a disabled ${label} switch (${how}, ${r?.checked === 'true' ? 'on' : 'off'}) draws Prism3's disabled switch: track color.disabled.fill ${v?.want?.track}, edge color.disabled.border ${v?.want?.edge}, knob color.disabled.on-fill ${v?.want?.knob} (drew ${JSON.stringify(v?.drew)}${v?.button ? ', the outline button\'s disabled.icon' : ''})`);
+        return r;
+      };
+      for (const [place, hk, reveal] of SWITCH_HOOKS) {
+        await goPlace(page, place);
+        if (reveal) await reveal(page).catch(() => {});
+        const sel = `[data-p3="${hk}"]`;
+        const r0 = await page.evaluate(READ_SWITCH, sel);
+        ok(!!r0, `${where}: the ${hk} switch is drawn on ${place}`);
+        if (!r0) continue;
+        kindOf(r0, `the ${hk} switch`);
+        ok(r0.role === 'switch' && ['true', 'false'].includes(r0.checked) && !!r0.name, `${where}: the ${hk} switch keeps its role, its state and its name (${JSON.stringify({ role: r0.role, checked: r0.checked, name: r0.name })})`);
+        if (r0.off) continue;
+        // A click turns it and moves its knob; a second click puts the brand back.
+        await hooks.click(page.locator(sel));
+        await settle(page);
+        const r1 = await page.evaluate(READ_SWITCH, sel);
+        ok(!!r1 && r1.checked !== r0.checked && r1.knobX !== r0.knobX, `${where}: a click turns the ${hk} switch and moves its knob (${r0.checked} → ${r1?.checked}, knob ${r0.knobX} → ${r1?.knobX})`);
+        // Disabled the way the app disables a switch (`disabled`), in this state and then the other.
+        for (const _ of [0, 1]) {
+          await page.evaluate((x) => { const b = document.querySelector(x); if (b) b.disabled = true; }, sel);
+          await disabledLook(sel, hk, 'disabled');
+          await page.evaluate((x) => { const b = document.querySelector(x); if (b) b.disabled = false; }, sel);
+          await hooks.click(page.locator(sel));
+          await settle(page);
+        }
+      }
+      // A derived mode's read-only panel holds every switch (N-3 A): each held switch draws the same roles.
+      await goPlace(page, 'color-interactive');
+      await showMode(page, 'hc-light');
+      await settle(page);
+      await disabledLook('[data-p3="strict-contrast-switch"]', 'strict-contrast-switch', 'held in the read-only panel');
+      await showMode(page, 'light');
+      // EVERY switch the chrome draws, on every page this host has: the track-and-knob kind, and at least the four above.
+      const found = new Set();
+      for (const place of NEW_PAGES) {
+        await goPlace(page, place);
+        if (place === 'type') await openTypeAdvanced(page).catch(() => {});
+        const all = await page.evaluate(() => [...document.querySelectorAll('[data-p3="frame"] [role="switch"]')].map((n) => n.getAttribute('data-p3')));
+        for (const hk of all) {
+          if (found.has(hk)) continue;
+          found.add(hk);
+          kindOf(await page.evaluate(READ_SWITCH, `[data-p3="${hk}"]`), `the ${hk} switch (found on ${place})`);
+        }
+      }
+      ok(SWITCH_HOOKS.every(([, hk]) => found.has(hk)), `${where}: the sweep met every lever switch named above (${[...found].join(', ')})`);
+      // The plugin's Build style guides page: its switches are the same one switch, and one disabled draws the same roles.
+      if (host === 'figma') {
+        await openStyleGuides(page);
+        const sg = await page.evaluate(() => [...document.querySelectorAll('[data-p3="style-guides"] [role="switch"]')].map((n) => n.getAttribute('data-p3')));
+        ok(sg.length > 0, `${where}: the Build style guides page draws switches (${sg.length})`);
+        for (const hk of sg) kindOf(await page.evaluate(READ_SWITCH, `[data-p3="${hk}"]`), `the Build style guides ${hk} switch`);
+        if (sg[0]) {
+          const sel = `[data-p3="${sg[0]}"]`;
+          await page.evaluate((x) => { const b = document.querySelector(x); if (b) b.disabled = true; }, sel);
+          await disabledLook(sel, `Build style guides ${sg[0]}`, 'disabled');
+          await page.evaluate((x) => { const b = document.querySelector(x); if (b) b.disabled = false; }, sel);
+        }
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
 }
 // #2238: the check box is measured on both hosts, in both chrome themes, somewhere in the sweep.
 for (const [k, n] of Object.entries(BOXES_BY)) ok(n > 0, `#2238 ${k}: the contrast audit measured check boxes in the sweep (${n})`);
