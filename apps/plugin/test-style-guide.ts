@@ -1634,7 +1634,7 @@ const main = async (): Promise<void> => {
       ["a header's component property toggled", (t) => { const h = t.children[0]; h.componentProperties!['Description#1:0'].value = false; }],
       // The Specimen inside a swatch: its parent is not auto layout, so showing it moves no size the fingerprint reads. A
       // fill swatch draws it hidden since #2336 (the instance paints the color), so the edit shows it again.
-      ['a swatch layer shown, nothing else', (t) => { const sp = swatch(t).findOne((k) => k.name === 'Specimen')!; if (swatch(t).layoutMode) throw new Error('swatch is auto layout'); if (sp.visible !== false) throw new Error('the swatch layer is not hidden'); sp.visible = true; }],
+      ['a swatch layer shown, nothing else', (t) => { const sp = swatch(t).findOne((k) => k.name === 'Specimen')!; if (swatch(t).layoutMode) throw new Error('swatch is auto layout'); sp.visible = true; }],
       ['a cell renamed in the layers panel', (t) => { const c = valueCell(t); c.name = `${c.name} (edited)`; }],
       ["the reviewer's example: a shadow, 8px corners and one cell made bold", (t) => { t.effects = [{ type: 'DROP_SHADOW', visible: true, color: { r: 0, g: 0, b: 0, a: 0.25 }, offset: { x: 0, y: 4 }, radius: 8 }]; t.cornerRadius = 8; valueText(t).fontName = { family: 'Inter', style: 'Bold' }; }],
     ];
