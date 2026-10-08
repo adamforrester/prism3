@@ -237,7 +237,7 @@ const CASES: Case[] = [
 ];
 // The two update commands (#2265) have no panel twin yet (the panel's control is held for the owner), so they
 // have their own section below rather than a parity case.
-const AGENT_ONLY = ['update-components', 'capture-baseline'];
+const AGENT_ONLY = ['update-components', 'capture-baseline', 'adopt-members'];
 ok(new Set(CASES.map((c) => c.cmd)).size + 1 + AGENT_ONLY.length === AGENT_COMMANDS.length && AGENT_ONLY.every((c) => (AGENT_COMMANDS as readonly string[]).includes(c)),
   'every write/read command has a case here (status is covered above, the agent-only commands below)');
 const results: AgentResult[] = [];
@@ -294,7 +294,7 @@ for (const c of CASES) {
 /* ── update-components + capture-baseline (#2265) ───────────────────────────────────────────────────── */
 section('update — the dry run and the baseline capture reach their handlers, report a verdict, and refuse an apply (#2265)');
 {
-  for (const [cmd, entry] of [['update-components', 'updateComponents'], ['capture-baseline', 'captureBaseline']] as const) {
+  for (const [cmd, entry] of [['update-components', 'updateComponents'], ['capture-baseline', 'captureBaseline'], ['adopt-members', 'adoptMembers']] as const) {
     calls.length = 0;
     posted.length = 0;
     const { id } = await send(cmd, { def: 'no-such-def' });
@@ -668,7 +668,7 @@ section('busy/sink, busy/titles — a refusal reaching the agent\'s sink fails t
   const d = createDispatcher({
     actions: {
       applyTheme: async (_input: unknown, sink: { post(m: unknown): void }) => { sink.post({ type: 'refused', code: 'busy', cmd: 'apply-theme', agent: true, message: MSG }); },
-      buildComponents: noop, fileSetup: noop, styleGuide: noop, prune: noop, seedFromFile: noop, updateComponents: noop, captureBaseline: noop,
+      buildComponents: noop, fileSetup: noop, styleGuide: noop, prune: noop, seedFromFile: noop, updateComponents: noop, captureBaseline: noop, adoptMembers: noop,
     } as unknown as Parameters<typeof createDispatcher>[0]['actions'],
     status: async () => ({}),
     census: async () => null,

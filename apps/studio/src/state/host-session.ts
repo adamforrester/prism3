@@ -48,7 +48,7 @@ export const AGENT_OP: Readonly<Record<string, OpKey>> = {
   prune: 'prune', readback: 'readback',
   // #2265: the update's dry run and the baseline capture read every set and hold the build's guard, so they
   // are the components operation. Only the agent link sends them today.
-  'update-components': 'components', 'capture-baseline': 'components',
+  'update-components': 'components', 'capture-baseline': 'components', 'adopt-members': 'components',
 };
 /** Which operation's verdict a host message is. */
 const VERDICT_OP: Partial<Record<HostMessage['kind'], OpKey>> = {

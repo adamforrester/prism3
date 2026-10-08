@@ -2568,9 +2568,9 @@ const closeOpenDetail = (): void => { if (host.openDetail === null) return; setH
 /** The static pending texts, one per write that has one: the page rows' pills and the Activity drawer's
  *  phase line read the same words. */
 const PENDING_TEXT = { apply: 'Writing to Figma…', filesetup: 'Setting up file…', styleguide: 'Drawing the style guide…' } as const;
-/** The phase line while an agent's update check or baseline capture runs (#2265). Neither builds anything, so
- *  neither may read as a build. DRAFT words, for the owner. */
-const CHECK_TEXT: Readonly<Record<string, string>> = { 'update-components': 'Checking the sets…', 'capture-baseline': 'Recording the sets as built…' };
+/** The phase line while an agent's update check, baseline capture or Adopt runs (#2265, #2283). None builds
+ *  anything, so none may read as a build. DRAFT words, for the owner. */
+const CHECK_TEXT: Readonly<Record<string, string>> = { 'update-components': 'Checking the sets…', 'capture-baseline': 'Recording the sets as built…', 'adopt-members': 'Adopting members…' };
 /** The phase line before a build's first boundary reports (#2088). A build the panel started names its set,
  *  by the catalog's display name for the id it posted (`componentDef`); one an agent started is a set the panel
  *  was not told, so the line names none (the owner's wording, 2026-10-05). Before #2088 this said "Button"

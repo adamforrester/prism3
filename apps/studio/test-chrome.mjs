@@ -1038,6 +1038,42 @@ const PROBE = (opt) => {
       edges.push({ el: label(el), side, r: fl(ratio(over(c, outside), outside)), off: offOf(el), canary: !!el.closest('[data-ccanary]') });
     }
   }
+  // #2238: a check control's own box (`.p3-check-box`) is its indicator, inside the control, so the loop above never
+  // reads it. Each drawn box is measured as a boundary against the ground around it: its edge, or its fill, whichever
+  // stands out more (SC 1.4.11 asks that the box be identifiable, by either). Its control is the nearest check host,
+  // a CONTROL or an element with a checkbox role, so a box under an enabled one is held to 3:1 and one under a switched-off
+  // one goes through the exemption, as every other measured node does. The always-on Light row (`.p3-check-fixed`, a
+  // fixed fact and not a control, owner decision DB1 A) is set aside by that literal class; a box under neither fails.
+  const CHECK_HOST = `${CONTROL}, [role="checkbox"], [role="menuitemcheckbox"], [role="switch"]`;
+  // Represented, not merely counted: every drawn check control (`.p3-check` that is a check host, read by the control's
+  // own class, not the box's) must have had its box measured, so a box renamed or dropped under a live check fails.
+  const boxes = { measured: 0, fixed: 0, unhosted: [], checks: [], unmeasured: [] };
+  const measuredHosts = new Set();
+  for (const box of drawn.filter((n) => n.matches('.p3-check-box'))) {
+    const host = box.parentElement?.closest(CHECK_HOST);
+    if (!host || !frame?.contains(host)) {
+      const fx = box.closest('.p3-check-fixed');
+      if (fx && !fx.matches('[role], [tabindex]')) boxes.fixed++;
+      else boxes.unhosted.push(label(box.parentElement ?? box));
+      continue;
+    }
+    const cs = getComputedStyle(box);
+    const outside = groundOf(box.parentElement);
+    const sides = ['Top', 'Right', 'Bottom', 'Left'].filter((x) => parseFloat(cs[`border${x}Width`]) >= 1 && cs[`border${x}Style`] !== 'none');
+    const edge = sides.map((x) => parse(cs[`border${x}Color`], `${label(host)} check box border`)).filter((c) => c && c.a > 0)
+      .map((c) => ratio(over(c, outside), outside));
+    const fill = parse(cs.backgroundColor, `${label(host)} check box fill`);
+    const fillR = fill && fill.a > 0 ? ratio(over(fill, outside), outside) : 1;
+    // The weakest side of the edge, so one faint side is not hidden by three strong ones; then the fill, if stronger.
+    const r = Math.max(edge.length ? Math.min(...edge) : 1, fillR);
+    edges.push({ el: `check box in ${label(host)}`, side: 'box', r: fl(r), off: offOf(box), canary: !!box.closest('[data-ccanary]') });
+    boxes.measured++;
+    measuredHosts.add(host);
+  }
+  for (const c of drawn.filter((n) => n.matches('.p3-check') && n.matches(CHECK_HOST))) {
+    boxes.checks.push(label(c));
+    if (!measuredHosts.has(c)) boxes.unmeasured.push(label(c));
+  }
   // glyphs
   const glyphs = [];
   for (const svg of drawn.filter((n) => n.matches('svg.p3-ico'))) {
@@ -1074,7 +1110,7 @@ const PROBE = (opt) => {
     inspectShown: [...document.querySelectorAll('[data-p3="inspect-body"]')].some(shown), panesShown: [...document.querySelectorAll('[data-p3="levers-pane"], [data-p3="preview-body"]')].some(shown),
     leversShown: [...document.querySelectorAll('[data-p3="levers-pane"]')].some(shown), previewShown: [...document.querySelectorAll('[data-p3="preview-body"]')].some(shown),
     legacyPage: document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage,
-    text, fields, controls, unclassified, edges, glyphs, shadows, inline, unparsed,
+    text, fields, controls, unclassified, edges, glyphs, shadows, inline, unparsed, boxes,
     offs: offs.map(({ node, ...o }) => o),
     // The chrome theme as the generated CSS sets it (`color-scheme` on the root), so the oracle is read for the theme drawn.
     scheme: getComputedStyle(document.documentElement).colorScheme,
@@ -1381,7 +1417,11 @@ const checkExempt = (m, where) => {
  *  panes), 'inspect' (Inspect over the legacy frame, or over a moved place's preview), 'sheet' (the Activity
  *  drawer as the full-pane sheet at 380, S1.4), or 'preview' (a moved place on its narrow Preview pane).
  *  `extra`: hooks this state adds. */
+/** #2238: check boxes measured, per host and chrome theme, over the whole run (asserted at the end, every pair > 0). */
+const BOXES_BY = { 'web light': 0, 'web dark': 0, 'figma light': 0, 'figma dark': 0 };
 const check = (m, where, column, floor = FLOORS[column], { state = 'page', extra = [], only = null } = {}) => {
+  const boxKey = `${String(column).split(' ')[0]} ${m.scheme}`;
+  if (boxKey in BOXES_BY) BOXES_BY[boxKey] += m.boxes.measured;
   ok(m.unparsed.length === 0, `${where}: every computed color the probe met was parsed${m.unparsed.length ? ` — ${m.unparsed.slice(0, 3).join(' | ')}` : ''}`);
   // the two lists: every place is in exactly one
   const listed = LEGACY_PAGES.includes(m.place), moved = NEW_PAGES.includes(m.place);
@@ -1426,6 +1466,8 @@ const check = (m, where, column, floor = FLOORS[column], { state = 'page', extra
   ok(m.edges.length >= floor.edges, `${where}: measured ${m.edges.length} control edges and indicators (floor ${floor.edges})`);
   // One line per control (its weakest side), so the message names every control that fails.
   const weak = [...new Map(m.edges.filter((e) => e.r < NONTEXT_MIN && e.off < 0).sort((a, b) => b.r - a.r).map((e) => [e.el, e])).values()];
+  ok(m.boxes.unhosted.length === 0, `${where}: every drawn check box is measured under its control, or is the always-on Light row's (${m.boxes.measured} measured, ${m.boxes.fixed} fixed)${m.boxes.unhosted.length ? ` — no check control holds the box in ${m.boxes.unhosted.slice(0, 4).join(', ')}` : ''}`);
+  ok(m.boxes.unmeasured.length === 0, `${where}: every drawn check control had its box measured (${m.boxes.checks.length} check control(s))${m.boxes.unmeasured.length ? ` — no box measured in ${m.boxes.unmeasured.slice(0, 4).join(', ')}` : ''}`);
   ok(weak.length === 0, `${where}: every control edge and indicator clears ${NONTEXT_MIN}:1${weak.length ? ` — ${weak.slice(0, 6).map((e) => `edge ${e.el} ${e.r}:1 < ${NONTEXT_MIN}`).join(' | ')}` : ''}`);
   // THE CONTRAST EXEMPTION: every node it exempted is still held to all three of its conditions.
   checkExempt(m, where);
@@ -11346,7 +11388,7 @@ console.log('\n34. #2272: trim and its tooltip follow the name\'s own cut');
   const settle = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   const tipOf = (page) => page.evaluate(() => document.querySelector('[data-p3="brand-switcher"]')?.getAttribute('title') ?? null);
   for (const theme of ['light', 'dark']) {
-    const where = `33 figma ${theme}`;
+    const where = `34 figma ${theme}`;
     const { ctx, page, errors } = await open({ host: 'figma', theme, w: 1280, h: 900, query: '?p3-test-hooks' });
     try {
       await page.evaluate((i) => window.postMessage({ pluginMessage: { type: 'restore-input', input: i } }, '*'), LONG_BRAND);
@@ -11697,11 +11739,48 @@ for (const host of ['web', 'figma']) {
       return { disabled: hue.matches(':disabled'), held: hue.getAttribute('data-held') };
     });
     ok(relift?.disabled === true, `${where}: the tint hue re-enabled in place, as Depth's own sync does it, is held again (${JSON.stringify(relift)})`);
+    // #2310: the other half of the re-hold, an aria-held widget (not a native control) put back in the tab order in place,
+    // its `aria-disabled` left alone. No page draws such a widget in the levers today, so one is planted in the region,
+    // right after a live ⓘ (a named exception, so the Tab from it is a real one), where the hold catches it as it catches
+    // any node drawn. Held, its tabindex is set back to 0 in place; it must be held again: `aria-disabled="true"`,
+    // `tabindex="-1"`, and a Tab from the ⓘ before it does not land on it. (A `tabindex="-1"` element still takes a
+    // script's `focus()`, by the HTML spec, so that is not what holds it out of reach; the Tab is.)
+    const planted = await page.evaluate(async () => {
+      const region = document.querySelector('[data-p3="levers-pane"] [data-p3="levers-region"]');
+      const info = [...(region?.querySelectorAll('[data-p3="lever-info"]') ?? [])].find((n) => n.getClientRects().length > 0);
+      if (!region || !info) return { found: false };
+      const w = document.createElement('div');
+      w.setAttribute('role', 'slider');
+      w.setAttribute('aria-label', 'Planted widget (#2310)');
+      w.setAttribute('aria-valuenow', '0');
+      w.setAttribute('data-ro-planted', '');
+      w.tabIndex = 0;
+      info.after(w);
+      const frames = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      await frames();
+      const held = { aria: w.getAttribute('aria-disabled'), tabindex: w.getAttribute('tabindex'), mark: w.getAttribute('data-held') };
+      w.tabIndex = 0;   // put back in the tab order in place; aria-disabled left as it is
+      await frames();
+      return { found: true, held, again: { aria: w.getAttribute('aria-disabled'), tabindex: w.getAttribute('tabindex'), mark: w.getAttribute('data-held') } };
+    });
+    ok(planted.found && planted.held?.aria === 'true' && planted.held?.tabindex === '-1' && planted.held?.mark === '0',
+      `${where}: control: an aria widget drawn in the held region is held the aria way, its tabindex recorded (${JSON.stringify(planted)})`);
+    ok(planted.again?.aria === 'true' && planted.again?.tabindex === '-1',
+      `${where}: an aria-held widget put back in the tab order in place, aria-disabled left alone, is held again: tabindex -1 (#2310) (${JSON.stringify(planted.again)})`);
+    if (planted.found) {
+      await page.locator('[data-p3="levers-region"] [data-ro-planted]').evaluate((w) => w.previousElementSibling?.focus());
+      await page.keyboard.press('Tab');
+      const landed = await page.evaluate(() => ({ planted: document.activeElement?.hasAttribute('data-ro-planted') ?? false, on: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName ?? null }));
+      ok(!landed.planted, `${where}: a Tab from the live ⓘ before it does not land on the re-held widget (#2310) (focus on ${landed.on})`);
+      await page.evaluate(() => document.querySelector('[data-ro-planted]')?.remove());
+    }
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
   } finally { await ctx.close(); }
 }
+// #2238: the check box is measured on both hosts, in both chrome themes, somewhere in the sweep.
+for (const [k, n] of Object.entries(BOXES_BY)) ok(n > 0, `#2238 ${k}: the contrast audit measured check boxes in the sweep (${n})`);
 hooks.report(ok);
 // THE CONTRAST EXEMPTION, counted per run (F1 A): how many nodes the audit exempted, over how many probes, and where.
 {

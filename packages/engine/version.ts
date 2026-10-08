@@ -2744,6 +2744,44 @@
 /**
  * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
  *
+ * 0.233.0 — folded 2026-10-07 from 4 change notes, newest merge first.
+ *
+ * [engine-2241-hueless-gray · minor · 12b57a36] #2241: a pure gray has no hue. Below a chroma of 1e-4 (ACHROMATIC_C, color.ts) the OKLCH converter used to
+ * return an atan2 of rounding noise, about 89.88 degrees for every gray, and code downstream treated it as a
+ * real hue. rgbToOklch now returns a measured color whose hue is null there (CSS Color 4's "powerless" hue), so
+ * every caller must decide what a missing hue means. At the brand-input boundary (the hex import, the studio's
+ * start from a color and its color picks) a hue-less color is stored with hue 0, CSS Color 4's convention for a
+ * missing hue, so brand files keep the schema's numeric hue (a technical decision, recorded on #2280: it holds
+ * because every reader checks chroma first). Nothing reads a hue below the threshold: the shadow tint's no-hue
+ * rule (#2184, owner Q58 B and Q73 A) reads the same ACHROMATIC_C, starting from a pure gray now gives a gray
+ * neutral rather than one leaning to a noise hue, and so does a gray primary under Follow primary or a design.md
+ * import with no neutral swatches (owner Q87 A), whose notes now say it has no hue. No corpus color is a pure
+ * gray, so no committed artifact moves.
+ *
+ * [plugin-2295-name-differences · patch · db0f11c0] #2295: the anatomy read-back reads an aspect-locked frame's targetAspectRatio as Figma types it, a {x, y}
+ * Vector whose ratio is x / y, instead of as a number. On the real host the number-only check failed on every
+ * locked frame, so all three image-placeholder members on the NB master read as differing from their plan with
+ * nothing edited. No committed artifact moves.
+ *
+ * [engine-2292-fields-fill · minor · 8df125d7] #2292: text-field, select and textarea fill their column when placed FILL. Each field's root is now built at
+ * 320 (`placementWidth`, the #1757 mechanism field-label and field-message already use), and `fillsAxis` treats a
+ * root built at its placement width as bounded across, so the bordered control (textarea's through `body`) FILLS
+ * the root, FIXED along its row with the column's STRETCH, keeping its `minWidth: 320` floor. An unplaced field
+ * still reads at 320; an instance set to fill a 505px column now has its input box at 505, where it stayed at 320.
+ * Projected component surfaces move (the three field sets' roots and controls); no token name moves, so
+ * CONTRACT_VERSION stands. No size, floor value or visual changes.
+ *
+ * [engine-2242-note-rounding · minor · 03be6777] #2242: the decisions-log notes print no long decimals. They are shipped prose (every brand's
+ * $extensions.prism3.decisions, and the reports), and they interpolated input numbers raw, so a value carrying
+ * full converter precision printed as "tinted to hue 89.87556274151122". The shadow note now prints its tint hue
+ * in whole degrees, as the studio shows hue. The other numbers the notes print (the primary's hue and chroma, a
+ * brand color's and a status color's hue, a pinned gray's lightness, an out-of-gamut anchor's OKLCH, the
+ * shadow's softness and amount, the radius scale and base radius, each breakpoint's width, the max and narrow
+ * containers, the type ladder's first and last sizes, the display cap and the fluid-type viewports) print at the
+ * precision the corpus already used: hue to 2 places, lightness and chroma to 4. Committed artifacts move only
+ * where a shadow tint hue was not whole: prism3's decisions now read "tinted to hue 267" (was 266.75) and
+ * wendys's "tinted to hue 249" (was 249.14). No token name or value moves, so the token contract stands.
+ *
  * 0.232.0 — folded 2026-10-06 from 4 change notes, newest merge first.
  *
  * [lane-field-label-hug · minor · d323d0fe] #1762 (owner-decided 2026-09-30, option 3; decision record `docs/28` §5.5, which changes #1757's
@@ -4717,7 +4755,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.232.0';
+export const ENGINE_VERSION = '0.233.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
