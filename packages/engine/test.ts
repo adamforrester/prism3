@@ -13898,6 +13898,60 @@ arm: {
       ok(validateBrandInput({ ...seed, controlShape: 'nope' } as any).length > 0,
         'controlShape: an unknown shape is still REJECTED — the enum widened, it did not open');
     }
+
+    // (#2361) HAIRLINE IS 1px EVERYWHERE — buttons, fields and the checkbox (owner, 2026-10-08). SUBJECT =
+    // `applyControlShape` (and its `HAIRLINE_CORNER_REFS`); ORACLE = the projected plan's corner bindings, against
+    // var names spelled out here, never read off the map (docs/34). One named assertion per family, so a revert
+    // of any one family's rewrite fails that family's line by name.
+    {
+      const corners = (d: ComponentDef, size: string | undefined): string[] =>
+        [...new Set(planBoundVars(figmaAnatomyPlan(d, size, {} as never).root).filter((v) => /^radius\/|^control\/size\/[a-z]+\/radius$/.test(v)))].sort();
+      const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+      const def = (id: string) => componentDefs.find((x) => x.id === id)!;
+      // Buttons: the shape's original reach, restated here so all four families sit in one place.
+      for (const size of def('button').variants?.size ?? []) {
+        const got = corners(applyControlShape(def('button'), 'hairline'), size);
+        ok(JSON.stringify(got) === '["radius/hairline"]', `#2361 hairline: button@${size} binds radius/hairline (${got.join(', ') || 'none'})`);
+      }
+      // Fields: each one by name, and each binds the field rung radius/sm under rounded (the identity).
+      for (const id of ['text-field', 'select', 'textarea']) {
+        // A field projects one size (no `size` axis), so it may declare none: project it once, at `undefined`.
+        const sizes: (string | undefined)[] = def(id).variants?.size ?? [undefined];
+        for (const size of sizes) {
+          const hair = corners(applyControlShape(def(id), 'hairline'), size);
+          ok(JSON.stringify(hair) === '["radius/hairline"]', `#2361 hairline: ${id}${size ? `@${size}` : ''} binds radius/hairline (${hair.join(', ') || 'none'})`);
+          const rounded = corners(applyControlShape(def(id), 'rounded'), size);
+          ok(JSON.stringify(rounded) === '["radius/sm"]', `#2361 rounded: ${id}${size ? `@${size}` : ''} still binds radius/sm (${rounded.join(', ') || 'none'})`);
+          for (const other of ['boxed', 'pill'] as const) {
+            const o = corners(applyControlShape(def(id), other), size);
+            ok(JSON.stringify(o) === '["radius/sm"]', `#2361 ${other}: ${id}${size ? `@${size}` : ''} is untouched, radius/sm (${o.join(', ') || 'none'})`);
+          }
+        }
+      }
+      // The checkbox: its per-rung clamped corner gives way to the 1px rung at every size.
+      for (const size of def('checkbox-control').variants?.size ?? []) {
+        const hair = corners(applyControlShape(def('checkbox-control'), 'hairline'), size);
+        ok(JSON.stringify(hair) === '["radius/hairline"]', `#2361 hairline: checkbox-control@${size} binds radius/hairline (${hair.join(', ') || 'none'})`);
+        const rounded = corners(applyControlShape(def('checkbox-control'), 'rounded'), size);
+        ok(JSON.stringify(rounded) === `["control/size/${RUNG[size]}/radius"]`,
+          `#2361 rounded: checkbox-control@${size} still binds its clamped corner control/size/${RUNG[size]}/radius (${rounded.join(', ') || 'none'})`);
+      }
+      // The clamp still holds under hairline: 1px never exceeds min(radius.sm, snap2(edge ÷ 8)) while every
+      // control edge is at least 8px (snap2 of 1 or more is 2 or more). Spelled out, not read off `controlRadius`.
+      const edges = (['compact', 'comfortable', 'spacious'] as const).flatMap((dn) => controlSizes(dn).map((c) => c.height));
+      ok(edges.length > 0 && Math.min(...edges) >= 8,
+        `#2361 hairline: every control edge is at least 8px, so the 1px corner stays inside the checkbox clamp (smallest ${Math.min(...edges)}px)`);
+      // The radio stays round (and the switch with it), whatever the shape.
+      for (const id of ['radio-control', 'switch-control']) {
+        for (const size of def(id).variants?.size ?? []) {
+          const got = corners(applyControlShape(def(id), 'hairline'), size);
+          ok(got.length > 0 && got.every((v) => v === 'radius/round'), `#2361 hairline: ${id}@${size} stays radius/round (${got.join(', ') || 'none'})`);
+        }
+      }
+      // Other radii are unchanged: Badge's status corner is also radius.sm, and the field setting must not reach it.
+      const badge = def('badge');
+      ok(applyControlShape(badge, 'hairline') === badge, '#2361 hairline: badge is the identity (its status radius.sm is not a field corner)');
+    }
   }
 
   // #1667 — THE BUTTON LEVERS: a derived minimum width in BOTH icon placements, "Locked to edges", and

@@ -1181,6 +1181,13 @@ npm run test:chrome  -w @prism3/studio      # the new shell's chrome, measured a
                                             #   legacy frame map. Its colors are read from the render;
                                             #   lint:contrast reads the declaration — partners, not
                                             #   copies. Same one-off browser as test:smoke
+npm run test:export-parity -w @prism3/studio # #2351 gap 1: the web and plugin token exports of every
+                                            #   committed brand a UI can load are BYTE-IDENTICAL to each
+                                            #   other and to out/<id>.tokens.json. Downloads from BOTH
+                                            #   built bundles (start screen → Export → Download), so run
+                                            #   it AFTER the web and plugin builds. The expected file is
+                                            #   the engine's Node CLI emission, so a defect both bundles
+                                            #   share still fails. Same one-off browser as test:smoke
 npm run lint:contrast -w @prism3/studio     # studio chrome clears its own contrast floors — STATIC, the
                                             #   token VALUES. Its complement is test:smoke above, which
                                             #   measures what RENDERS; neither subsumes the other (a
@@ -1405,6 +1412,17 @@ npx tsx tools/exporter-comparison/gate.ts # the two DTCG exporters agree where a
                                           # values differ at 3 of its 5 breakpoints. A green
                                           # `paired types` means the two sides agree on type, NOT that
                                           # the pairing is right
+npm run test:readback-parity -w @prism3/plugin # #2351 gap 2 (offline): the plugin's Apply Theme,
+                                          # written into the file shim (apps/plugin/file-shim.ts), exports
+                                          # through TokenPress's real exporter to the same DTCG as the
+                                          # engine's committed Figma emission. Differences print by path
+                                          # (ADDED / REMOVED / RETYPED / VALUE / DESCRIPTION), each count
+                                          # asserted at 0; the one tolerance is half an 8-bit step inside
+                                          # a color. Grid and gradient styles, which no exporter reads,
+                                          # are compared as written; the tinted wash TokenPress cannot
+                                          # read is carved out as a bijection (#2365). Run after the
+                                          # exporter gate above, which holds the emission's export to
+                                          # the engine's DTCG.
 npm run check:consumability -w @prism3/tokens  # a STOCK Style Dictionary over EVERY emitted brand —
                                           # characterization gate: pins each brand's mode collapse
                                           # (permanent, #609); asserts as a RULE that the conforming

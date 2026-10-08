@@ -57,7 +57,8 @@ export const SHAPE_COPY = {
   densityTip: 'Sets every control height, and moves each component’s padding and gaps one step on the spacing scale.',
   softnessLabel: 'Radius softness',
   softnessTip: 'How round every radius size is, from sharp (0) to round (2). The pill sizes and the 1px radius stay fixed.',
-  shapeTip: 'The shape of buttons and icon buttons. Boxed is square, hairline is a 1px radius, rounded follows radius softness, and pill is fully round at any height.',
+  // #2361 — DRAFT for the owner: hairline now reaches fields and checkboxes too.
+  shapeTip: 'The shape of buttons and icon buttons. Boxed is square, and rounded follows radius softness. Hairline gives buttons, fields and checkboxes a 1px radius. Pill is fully round at any height.',
   baseLabel: 'Base radius',
   baseTip: 'The medium radius at standard softness, from 2 to 12px. Every other radius size is a multiple of it.',
   baseHint: 'The medium radius at standard softness. The other sizes scale from it.',
