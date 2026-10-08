@@ -127,12 +127,13 @@ const planComps = (n: { swapTarget?: string; nestTarget?: string; children?: unk
 /** A fresh file holding one set, built by the executor. Every name the plans reach for is in the file. */
 const build = async (id: string, plans = plansOf(id)): Promise<Built> => {
   const page: Page = { children: [] };
+  const comps = [...new Set([SWAP_TARGET, 'focus-ring', ...plans.flatMap((p) => planComps(p.root))])];
   const shim = makeShim({
     // `space/0` is in no plan: it is the variable the hand edits below bind to.
     vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0'])],
     styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
     effects: [...new Set(plans.flatMap((p) => planEffectStyles(p.root)))],
-    comps: [...new Set([SWAP_TARGET, 'focus-ring', ...plans.flatMap((p) => planComps(p.root))])],
+    comps,
     page,
     liveRoot: true,
     // Node ids, so Adopt and the capture can be held to writing by id (#2301).
@@ -144,10 +145,17 @@ const build = async (id: string, plans = plansOf(id)): Promise<Built> => {
   const set = page.children.find((n) => n.type === 'COMPONENT_SET') as Node;
   // The shim's criteria search answers the EXECUTOR's lookup with name-only references (#681), which is
   // the question that search is modeled for. The update reads the sets themselves, as Figma returns them,
-  // so this host's search hands back the page's live nodes; the catalogues stay the shim's.
+  // so this host's search hands back the page's live nodes; the catalogues stay the shim's. The components the
+  // build nested (`focus-ring`, the `icon/*` glyphs, #2380) are in the file too, as a COMPONENT search finds them:
+  // the dry run refuses a set whose nested components are absent.
   const host = {
     ...shim,
-    root: { findAllWithCriteria: (c: { types: string[] }) => page.children.filter((n) => c.types.includes(String(n.type))) },
+    root: {
+      findAllWithCriteria: (c: { types: string[] }) => [
+        ...page.children.filter((n) => c.types.includes(String(n.type))),
+        ...(c.types.includes('COMPONENT') ? comps.map((name) => ({ name, type: 'COMPONENT' })) : []),
+      ],
+    },
   };
   // `raw` is the shim as the executor sees it, for a second build into the same file.
   return { shim: host, raw: shim, page, set, plans, ports: await hostPorts(host) };

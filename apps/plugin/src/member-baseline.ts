@@ -112,11 +112,11 @@ export const mainOf = async (n: LiveNode): Promise<Record<string, unknown> | nul
 /**
  * A member as plain data: one object per node, the fields above copied once, each read in its own
  * `try` because a host getter can throw on a node type that lacks the field. Children are walked, except
- * an instance's (see the header). `parent.width` is kept, non-enumerable, for the one read-back predicate
- * that measures against the parent.
+ * an instance's (see the header). `parent.width` and `parent.height` are kept, non-enumerable, for the two
+ * read-back predicates that measure against the parent (`pin`, and the inset icon's `glyphInset`, #2380).
  */
 export const snapshotMember = async (root: unknown): Promise<SnapNode> => {
-  const walk = async (raw: unknown, parentWidth: unknown): Promise<SnapNode> => {
+  const walk = async (raw: unknown, parentWidth: unknown, parentHeight: unknown): Promise<SnapNode> => {
     const n = raw as LiveNode;
     const out: SnapNode = { name: String(n.name ?? ''), type: String(n.type ?? '') };
     for (const k of SNAP_KEYS) {
@@ -126,7 +126,7 @@ export const snapshotMember = async (root: unknown): Promise<SnapNode> => {
       const p = plain(v);
       if (p !== undefined) out[k] = p;
     }
-    Object.defineProperty(out, 'parent', { enumerable: false, value: { width: parentWidth } });
+    Object.defineProperty(out, 'parent', { enumerable: false, value: { width: parentWidth, height: parentHeight } });
     if (out.type === 'INSTANCE') {
       const main = await mainOf(n);
       if (main) out.mainComponent = main;
@@ -136,11 +136,11 @@ export const snapshotMember = async (root: unknown): Promise<SnapNode> => {
     try { kids = Array.isArray(n.children) ? (n.children as unknown[]) : []; } catch { kids = []; }
     if (kids.length) {
       out.children = [];
-      for (const k of kids) out.children.push(await walk(k, out.width));
+      for (const k of kids) out.children.push(await walk(k, out.width, out.height));
     }
     return out;
   };
-  return walk(root, undefined);
+  return walk(root, undefined, undefined);
 };
 
 // ---- the hash -------------------------------------------------------------------------------------------

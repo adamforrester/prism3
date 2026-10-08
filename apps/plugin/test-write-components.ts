@@ -2492,10 +2492,11 @@ ok(fmCollapse.length === 0 && fmRun.misses.length === 0,
 
 const fmMembers = fmPage.children[0].children as Node[];
 const fmKids = (m: Node): Node[] => (m.children as Node[]) ?? [];
-/** The glyph ARTBOARD: `createNodeFromSvg` returns a FRAME wrapping the outline, and it is the only
- *  FRAME a member of this def has — the member itself is the row, the caption is a TEXT. */
-const fmArt = (m: Node): Node[] => fmKids(m).filter((c) => c.type === 'FRAME');
-const fmVecs = (n: Node): Node[] => (n.findAll as (p: (x: Node) => boolean) => Node[])((x) => x.type === 'VECTOR');
+/** The status glyph: since #2380 an INSTANCE of its icon component, the only instance a member of this def
+ *  has — the member itself is the row, the caption is a TEXT. */
+const fmArt = (m: Node): Node[] => fmKids(m).filter((c) => c.type === 'INSTANCE');
+// Guarded: a member missing its instance reads as no vectors (and fails the arms below by name) rather than throwing.
+const fmVecs = (n: Node | undefined): Node[] => (n?.findAll ? (n.findAll as (p: (x: Node) => boolean) => Node[])((x) => x.type === 'VECTOR') : []);
 /** The variable a paint points at, by NAME — the shim ids variables `V:<name>`. */
 const fmInk = (n: Node): string =>
   String((n.fills as { boundVariables?: { color?: { id?: string } } }[])[0]?.boundVariables?.color?.id ?? 'none').replace(/^V:/, '');
@@ -2525,69 +2526,142 @@ ok(fmCollapse.length === 0,
   `#1575 field-message declares one caption, so no collapse is reported (${fmCollapse.length ? fmCollapse.join('; ') : 'none'})`);
 
 // (1) THE DEFAULT MEMBER HAS NO GLYPH, and the three validation members have exactly one each. Read as a
-// COUNT PER MEMBER rather than a total: 3 artboards across 4 members is also what "two on error, one on
+// COUNT PER MEMBER rather than a total: 3 glyphs across 4 members is also what "two on error, one on
 // success, none on warning" looks like, and that tree would satisfy every other arm below.
 const fmArtCounts = fmMembers.map((m) => fmArt(m).length).join(',');
 ok(fmArtCounts === '0,1,1,1',
-  `#1010 the default member is caption-only and each validation member carries exactly one glyph artboard (${fmArtCounts})`);
+  `#1010 #2380 the default member is caption-only and each validation member carries exactly one icon instance (${fmArtCounts})`);
 
-// (2) SOMETHING WAS DRAWN. #864's own finding is that this is the question a valid-looking tree cannot
-// answer: a named frame with no outline inside is indistinguishable from a glyph that rendered, and "the
-// node has children" passes on an empty group. So: a VECTOR, with a non-zero box, per member.
-const fmDrawn = fmMembers.slice(1).map((m) => fmVecs(fmArt(m)[0]).filter((v) => (v.width as number) > 0 && (v.height as number) > 0));
-ok(fmDrawn.every((vs) => vs.length === 1),
-  `#1010 each validation member's artboard holds exactly one VECTOR with a non-zero box — ink, not an empty artboard (${fmDrawn.map((vs) => vs.length).join(',')})`);
+// (2) EACH GLYPH IS AN INSTANCE OF ITS ICON COMPONENT (#2380, owner decision Q137 A), and a DIFFERENT one per
+// status. EXPECTED is typed out from the def's own reading of the reference (error is the triangle, warning the
+// circle — see `field-message.ts`), never read back off the plan: a projection that drew the glyph inline again
+// builds no INSTANCE and fails here by name, and one that named the wrong icon fails on the list.
+const FM_ICONS = 'icon/warning-triangle | icon/error-circle | icon/check-circle';
+const fmMain = (n: Node | undefined): string => String((n as { mainComponent?: { name?: string } } | undefined)?.mainComponent?.name ?? 'not an instance');
+const fmIcons = fmMembers.slice(1).map((m) => fmMain(fmArt(m)[0])).join(' | ');
+ok(fmIcons === FM_ICONS,
+  `#2380 field-message: each status glyph is an INSTANCE of its icon component — error, warning, success (${fmIcons})`);
 
-// (3) AND IT IS A DIFFERENT DRAWING PER TONE, which is the assertion the placeholder failed. Three
-// identical FPO circles in three inks satisfied everything above this line; what they could not do is
-// differ in geometry. Asserted as a RELATIONSHIP — three distinct outlines — rather than against three
-// expected shapes, because the expected shapes would have to be derived from `ICON_PATHS` the same way the
-// glyph itself is, and an oracle computed from the subject cannot fail (docs/34 §2).
-//
-// ON `vectorPaths` RATHER THAN THE BOX, which is the first thing this arm was written against and was
-// wrong: `error-circle` and `check-circle` are one 20px ring with different marks inside, so they measure
-// IDENTICALLY — 20.0x20.0 both, live as well as here. Two of the three tones would have compared equal and
-// the arm would have failed for the right reason with the wrong diagnosis. The subpath data is the level at
-// which "a different drawing" is a fact about the node rather than about its extent.
-const fmPaths = fmDrawn.map((vs) => JSON.stringify(vs[0].vectorPaths));
-ok(fmDrawn.every((vs) => (vs[0].vectorPaths as unknown[]).length >= 2) && new Set(fmPaths).size === 3,
-  `#1010 the three tones draw three DIFFERENT outlines — pairwise distinct subpaths, so one placeholder in three colors fails here (${fmDrawn.map((vs) => (vs[0].vectorPaths as unknown[]).length).join(',')} subpaths, ${new Set(fmPaths).size} distinct)`);
+// (3) NO GLYPH DRAWN INLINE: no FRAME is left in a member (an imported glyph lands as a FRAME wrapping its
+// outline), so the instance is not sitting beside a stale inline copy.
+ok(fmMembers.every((m) => !fmKids(m).some((c) => c.type === 'FRAME')),
+  `#2380 field-message: no inline glyph artboard is left beside the instance (${fmMembers.map((m) => fmKids(m).filter((c) => c.type === 'FRAME').length).join(',')})`);
 
-// (4) BOTH AXES BOUND, to the same variable. Two facts in one arm, and the second is not decoration: a
-// node still holding Figma's aspect-ratio lock silently EVICTS the first dimension binding when the
-// second is set (#682), so "both axes bound" is only reachable through the `unlockAspectRatio()` call.
+// (4) BOTH AXES BOUND, to the same variable, the size the glyph had before #2380. Two facts in one arm, and the
+// second is not decoration: a node still holding Figma's aspect-ratio lock silently EVICTS the first dimension
+// binding when the second is set (#682), so "both axes bound" is only reachable through `unlockAspectRatio()`.
 const fmSizes = fmMembers.slice(1).map((m) => {
-  const bv = fmArt(m)[0].boundVariables as Record<string, { id?: string }>;
+  const bv = (fmArt(m)[0]?.boundVariables ?? {}) as Record<string, { id?: string }>;
   return `${String(bv.width?.id).replace(/^V:/, '')}+${String(bv.height?.id).replace(/^V:/, '')}`;
 });
 ok(fmSizes.every((s) => s === 'icon/size/xs+icon/size/xs'),
-  `#1010 every glyph binds BOTH axes to the caption-scale artboard rung (${fmSizes.join(', ')})`);
+  `#1010 #2380 every icon instance binds BOTH axes to the caption-scale rung (${fmSizes.join(', ')})`);
 
-// (5) THE INK IS ON THE OUTLINE AND NOT ON THE ARTBOARD (#864) — a fill on the wrapper is a painted
-// square behind the glyph, which is what an instance-swapped placeholder looked like.
-const fmVecInk = fmDrawn.map((vs) => fmInk(vs[0])).join(' | ');
+// (5) THE INK IS ON THE OUTLINE INSIDE THE INSTANCE (`descendantFills`) — the way a host inks an icon it
+// swaps into a slot — and not on the instance, where it would paint a square behind the glyph.
+const fmVecInk = fmMembers.slice(1).map((m) => fmVecs(fmArt(m)[0]).map(fmInk).join('+')).join(' | ');
 ok(fmVecInk === 'color/icon/danger | color/icon/warning | color/icon/success',
-  `#1010 each outline carries its status's semantic ink (${fmVecInk})`);
-ok(fmMembers.slice(1).every((m) => (fmArt(m)[0].fills as unknown[]).length === 0),
-  `#1010 ...and the artboard itself is unpainted, so the glyph is ink rather than a coloured square (${fmMembers.slice(1).map((m) => (fmArt(m)[0].fills as unknown[]).length).join(',')})`);
+  `#1010 each icon's outline carries its status's semantic ink (${fmVecInk})`);
+ok(fmMembers.slice(1).every((m) => ((fmArt(m)[0]?.fills as unknown[] | undefined) ?? []).length === 0),
+  `#1010 ...and the instance itself is unpainted, so the glyph is ink rather than a colored square (${fmMembers.slice(1).map((m) => ((fmArt(m)[0]?.fills as unknown[] | undefined) ?? []).length).join(',')})`);
 
-// (6) THE OUTLINE SCALES WITH ITS FRAME. The artboard is 24px of viewBox bound to a 16px variable, and a
-// child left at Figma's MIN/MIN default keeps the 24 — so the member would show the glyph's top-left
-// corner. Every other arm here passes on that tree.
-ok(fmDrawn.every((vs) => JSON.stringify(vs[0].constraints) === JSON.stringify({ horizontal: 'SCALE', vertical: 'SCALE' })),
-  `#1010 the outline is set to SCALE on both axes, so a 24px drawing fits the 16px artboard (${JSON.stringify(fmDrawn[0][0].constraints)})`);
-
-// (7) NO PLACEHOLDER SURVIVES, stated on the two things the old projection left in the file: an INSTANCE
-// node (the nominated FPO component) and an INSTANCE_SWAP property on the set. Both are absent now, and
-// absent for the same reason — `figmaProperties.swaps` is empty and no part nests. The swap target is
-// still PASSED to `figmaAnatomySet` above, so this is not passing by omission: the def ignores it.
+// (6) NO SWAP PROPERTY (owner decision Q137 A): the icons are real instances, but nothing nominates them for
+// swapping — a designer swaps one by hand. The set declares no INSTANCE_SWAP property, and the only instances
+// in it are the icon components.
 const fmAllNodes = fmMembers.flatMap((m) => [m, ...(m.findAll as () => Node[])()]);
-ok(!fmAllNodes.some((n) => n.type === 'INSTANCE'),
-  `#1010 no INSTANCE anywhere in the built set — the placeholder was a nominated component, and nothing nominates one now (${fmAllNodes.filter((n) => n.type === 'INSTANCE').length})`);
+ok(fmAllNodes.filter((n) => n.type === 'INSTANCE').every((n) => fmMain(n).startsWith('icon/')),
+  `#2380 every INSTANCE in the built set is an icon component (${fmAllNodes.filter((n) => n.type === 'INSTANCE').map(fmMain).join(', ')})`);
 ok(!fmRun.properties.some((p) => p.indexOf('INSTANCE_SWAP') >= 0),
   `#1010 ...and the set declares no INSTANCE_SWAP property, so a designer cannot put a check mark on the error member (${fmRun.properties.join('/')})`);
 ok(fmRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 1,
   `#1010 the caption is still a TEXT property, so removing the swap did not take the text wiring with it (${fmRun.properties.join('/')})`);
+
+// =============================================================================================
+// #2380 — EVERY ICON-SET GLYPH INSIDE A COMPONENT IS AN INSTANCE OF ITS ICON COMPONENT
+// =============================================================================================
+// Owner decision Q137 A: a glyph drawn from the icon set is placed as an instance of `icon/<name>`, sized by the
+// part, inked by `descendantFills`, with no swap property. Before #2380 each was an inline import of the same
+// outline, which did not follow the icon set and whose geometry drifted inside its frame on the NB master
+// (#2379). One row per affected part, built through the real executor against the shim.
+//
+// EXPECTED IS TYPED HERE, never read off the plan: the icon each part draws and the variable its box binds are
+// the def's own choices, transcribed below (the bindings are the ones the inline glyph frames carried before
+// #2380, so the move to an instance keeps the size). ACTUAL is read off the host: the node's type, the main
+// component the instance says it is of, and the variable ids the shim recorded. A projection reverted to the
+// inline import builds a FRAME wrapping a VECTOR where each row wants an INSTANCE, and fails by name.
+//
+// `size` names the variable both axes bind, with `{size}` standing for the member's own size rung token
+// (`sm`/`md`/`lg`); `px` is a literal glyph size; `inset` is checkbox's 0.8 of its box (#1346), where the
+// part is a frame bound to the box and the instance its one child, named `glyph`.
+{
+  type IconRow = { def: string; part: string; icon: string; size?: string; px?: number; inset?: number };
+  const ICON_ROWS: IconRow[] = [
+    { def: 'field-message', part: 'iconError', icon: 'icon/warning-triangle', size: 'icon/size/xs' },
+    { def: 'field-message', part: 'iconWarning', icon: 'icon/error-circle', size: 'icon/size/xs' },
+    { def: 'field-message', part: 'iconSuccess', icon: 'icon/check-circle', size: 'icon/size/xs' },
+    { def: 'checkbox-control', part: 'mark', icon: 'icon/check', size: 'control/size/{size}/height', inset: 0.8 },
+    { def: 'checkbox-control', part: 'dash', icon: 'icon/minus', size: 'control/size/{size}/height', inset: 0.8 },
+    { def: 'switch-control', part: 'onGlyph', icon: 'icon/check', size: 'control/size/{size}/thumb' },
+    { def: 'switch-control', part: 'offGlyph', icon: 'icon/close', size: 'control/size/{size}/thumb' },
+    { def: 'tag', part: 'check', icon: 'icon/check', size: 'icon/size/{size}' },
+    { def: 'tag', part: 'dismissGlyph', icon: 'icon/close', size: 'icon/size/{size}' },
+    { def: 'select', part: 'chevron', icon: 'icon/chevron-down', size: 'icon/size/sm' },
+    { def: 'textarea', part: 'grip', icon: 'icon/resize-grip', size: 'icon/size/xs' },
+    { def: 'image-placeholder', part: 'marker', icon: 'icon/image', px: 180 },
+  ];
+  const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  const mainName = (n: Node | undefined): string => String((n as { mainComponent?: { name?: string } } | undefined)?.mainComponent?.name ?? '(not an instance)');
+  const boundId = (n: Node, k: string): string => String(((n.boundVariables ?? {}) as Record<string, { id?: string }>)[k]?.id ?? '(unbound)').replace(/^V:/, '');
+  const findPart = (n: Node, name: string): Node | undefined => {
+    if (n.name === name) return n;
+    if (n.type === 'INSTANCE') return undefined;
+    for (const c of (n.children as Node[] | undefined) ?? []) { const f = findPart(c, name); if (f) return f; }
+    return undefined;
+  };
+  const builtByDef = new Map<string, { plans: AnatomyPlan[]; members: Node[] }>();
+  for (const id of [...new Set(ICON_ROWS.map((r) => r.def))]) {
+    const def = componentDefs.find((d) => d.id === id)!;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP });
+    const page: Page = { children: [] };
+    const res = await run(plans, { ...fullFor(plans), page });
+    ok(res.misses.length === 0, `#2380 ${id} builds with no misses, the icon components present in the file (${res.misses.slice(0, 2).join('; ') || 'none'})`);
+    builtByDef.set(id, { plans, members: (page.children.find((c) => c.type === 'COMPONENT_SET')?.children as Node[]) ?? [] });
+  }
+  for (const row of ICON_ROWS) {
+    const { plans, members } = builtByDef.get(row.def)!;
+    const bad: string[] = [];
+    let seen = 0;
+    members.forEach((m, i) => {
+      const node = findPart(m, row.part);
+      if (!node) return;
+      seen++;
+      const size = (plans[i]?.size && RUNG[plans[i].size!]) ?? '';
+      const want = row.size?.replace('{size}', size);
+      const inst = row.inset !== undefined ? ((node.children as Node[] | undefined) ?? []).find((c) => c.name === 'glyph') : node;
+      if (row.inset !== undefined && node.type !== 'FRAME') bad.push(`${m.name}: the part is a ${node.type}, not the frame that holds the inset icon`);
+      if (!inst || inst.type !== 'INSTANCE' || mainName(inst) !== row.icon) {
+        bad.push(`${m.name}: ${inst ? `${inst.type} of ${mainName(inst)}` : 'no instance'}, not an INSTANCE of ${row.icon}`);
+        return;
+      }
+      // THE SIZE. On the part's own node: the instance itself, or the inset frame (whose instance is then
+      // checked at 0.8 of it, on the host's numbers).
+      if (want && (boundId(node, 'width') !== want || boundId(node, 'height') !== want))
+        bad.push(`${m.name}: binds ${boundId(node, 'width')}×${boundId(node, 'height')}, not ${want} on both axes`);
+      if (row.px !== undefined && (inst.width !== row.px || inst.height !== row.px))
+        bad.push(`${m.name}: ${String(inst.width)}×${String(inst.height)}, not the ${row.px}px literal`);
+      if (row.inset !== undefined) {
+        const W = node.width as number, H = node.height as number;
+        const ok2 = (a: unknown, b: number): boolean => typeof a === 'number' && Math.abs(a - b) < 0.01;
+        if (!(W > 0) || !ok2(inst.width, W * row.inset) || !ok2(inst.height, H * row.inset) || !ok2(inst.x, (W * (1 - row.inset)) / 2) || !ok2(inst.y, (H * (1 - row.inset)) / 2))
+          bad.push(`${m.name}: the icon is ${String(inst.width)}×${String(inst.height)} at ${String(inst.x)},${String(inst.y)} in a ${W}×${H} frame, not ${row.inset} of it, centered`);
+        if (JSON.stringify(inst.constraints) !== JSON.stringify({ horizontal: 'SCALE', vertical: 'SCALE' }))
+          bad.push(`${m.name}: constraints ${JSON.stringify(inst.constraints)}, not SCALE/SCALE, so a resized box would leave the icon behind`);
+      }
+    });
+    ok(seen > 0 && bad.length === 0,
+      `#2380 ${row.def}.${row.part}: an INSTANCE of ${row.icon} at ${row.inset !== undefined ? `${row.inset} of its ${row.size} box` : row.px !== undefined ? `${row.px}px` : row.size} on every member that draws it (${seen} member(s)${bad.length ? `; ${bad.slice(0, 2).join(' | ')}` : ''})`);
+  }
+}
 
 // =============================================================================================
 // #913 — A PARTIAL WRITE IS MARKED, AND THE MARKING CANNOT MAKE THINGS WORSE
@@ -3547,11 +3621,12 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(!held.order.includes('focus-ring') && JSON.stringify(heldBuilt.map((b) => b.id)) === JSON.stringify(['icon', 'spinner']),
     `#1633 existing focus-ring: never rebuilt — only icon and spinner are built (${held.order.join(', ') || 'nothing'})`);
 
-  // (d) A CHAIN — checkbox-group → checkbox-row → checkbox-control → focus-ring, plus the group's label.
+  // (d) A CHAIN — checkbox-group → checkbox-row → checkbox-control → focus-ring and icon (#2380: the check and
+  // dash are instances of `icon/check` / `icon/minus`), plus the group's label.
   const chain = fileWith();
   await prebuildDependencies(byDef('checkbox-group'), chain.ctx);
-  ok(JSON.stringify(chain.order) === JSON.stringify(['field-label', 'focus-ring', 'checkbox-control', 'checkbox-row']),
-    `#1633 chain: checkbox-group's nests build deepest first — field-label, focus-ring, checkbox-control, checkbox-row (${chain.order.join(', ')})`);
+  ok(JSON.stringify(chain.order) === JSON.stringify(['field-label', 'focus-ring', 'icon', 'checkbox-control', 'checkbox-row']),
+    `#1633 #2380 chain: checkbox-group's nests build deepest first — field-label, focus-ring, icon, checkbox-control, checkbox-row (${chain.order.join(', ')})`);
   const groupRun = await chain.build(byDef('checkbox-group'));
   const nestMiss = groupRun.misses.filter((m) => m.indexOf('.nestTarget ->') >= 0 || m.indexOf('.nestVariant ->') >= 0);
   ok(nestMiss.length === 0, `#1633 chain: checkbox-group then builds with 0 nest misses (${nestMiss.length}${nestMiss.length ? ` — ${nestMiss[0]}` : ''})`);

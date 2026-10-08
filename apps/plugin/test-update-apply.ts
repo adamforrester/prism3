@@ -643,6 +643,102 @@ section('corpus — every def, re-applied in place by an executor revision bump,
   ok(bad.length === 0 && ran === defs.length, `corpus/in place: all ${defs.length} defs re-applied with every key and id kept, read back clean, and current after (${ran} clean; ${bad.slice(0, 4).join(' || ')})`);
 }
 
+/* ── inline glyph → icon instance (#2380) ────────────────────────────────────────────────────────────── */
+section('icons — a set built with inline glyphs updates to icon instances, as a named difference (#2380)');
+{
+  // THE PRE-#2380 SHAPE, rebuilt from today's plans: every icon instance turned back into the inline glyph it
+  // replaced — a GLYPH importing the icon's outline at the same binding, and checkbox's inset frame back into a
+  // glyph on the padded artboard (`-3 -3 30 30`, #1346). The file has the icon components already (built first,
+  // as the dry run requires), so only the members change.
+  // Each icon's own document, as the `icon` def projects it (the outline the inline glyph imported), and the same
+  // document on the padded artboard for the inset.
+  const iconDoc = new Map(plansOf('icon').map((p) => [`icon/${String(p.coord.name)}`, String(p.root.glyphSvg)] as const));
+  const doc = (target: string, padded: boolean): string => {
+    const d = iconDoc.get(target);
+    if (!d) throw new Error(`premise: no icon document for ${target}`);
+    return padded ? d.replace('width="24" height="24" viewBox="0 0 24 24"', 'width="30" height="30" viewBox="-3 -3 30 30"') : d;
+  };
+  const legacy = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    const walk = (n: PlanNode): PlanNode => {
+      const inset = n.type === 'FRAME' && n.children.length === 1 && n.children[0].glyphInset ? n.children[0] : undefined;
+      if (inset) {
+        const { nestTarget, descendantFills } = inset;
+        return { ...n, type: 'GLYPH', glyphSvg: doc(nestTarget!, true), glyphViewBox: [30, 30], ...(descendantFills ? { descendantFills } : {}), children: [] };
+      }
+      if (n.type === 'NESTED_INSTANCE' && n.nestTarget?.startsWith('icon/')) {
+        const { nestTarget, ...rest } = n;
+        return { ...rest, type: 'GLYPH', glyphSvg: doc(nestTarget, false), glyphViewBox: [24, 24] };
+      }
+      return { ...n, children: n.children.map(walk) };
+    };
+    q.root = walk(q.root);
+    return q;
+  });
+  const iconsOf = (plans: AnatomyPlan[]): string[] => [...new Set(plans.flatMap((p) => planComps(p.root)).filter((c) => c.startsWith('icon/')))];
+  const findPart = (n: Node, name: string): Node | undefined => {
+    if (n.name === name) return n;
+    if (n.type === 'INSTANCE') return undefined;
+    for (const c of (n.children as Node[] | undefined) ?? []) { const f = findPart(c, name); if (f) return f; }
+    return undefined;
+  };
+  const mainName = (n: Node | undefined): string => String((n as { mainComponent?: { name?: string } } | undefined)?.mainComponent?.name ?? '(not an instance)');
+
+  // FIELD-MESSAGE: the glyph's node is REPLACED — a FRAME cannot become an INSTANCE — so its id changes.
+  {
+    const plans = plansOf('field-message');
+    const w = await world('field-message', legacy(plans), { extraComps: iconsOf(plans) });
+    const err = (): Node | undefined => { const m = membersOf(w.set()).find((x) => String(x.name) === 'status=error'); return m && findPart(m, 'iconError'); };
+    const before = identityOf(w.set());
+    const oldErr = err();
+    ok(oldErr?.type === 'FRAME', `premise: the error member's glyph is an inline FRAME before the update (${String(oldErr?.type)})`);
+    const { pre, res } = await confirm(w, [{ def: 'field-message', plans }]);
+    const named = pre.sets[0].changes.filter((c) => c.part.endsWith('iconError') && (c.field === 'type' || c.field === 'nestTarget'));
+    // The read-back's `nestTarget` predicate is what names it: the file holds a FRAME where the plan wants an instance.
+    ok(named.some((c) => c.field === 'nestTarget' && /^FRAME/.test(c.from) && /icon\/warning-triangle/.test(c.to)),
+      `icons/dry run: the error glyph's move is NAMED — the file's FRAME against the plan's instance of icon/warning-triangle — not a silent re-apply (${JSON.stringify(named.map((c) => [c.field, c.from, c.to]))})`);
+    // The default member draws no glyph, so it is current; the three status members change.
+    ok(pre.sets[0].counts.update === 3 && pre.sets[0].counts.current === 1 && !pre.sets[0].blockers.length, `icons/dry run: the 3 status members read out of date and the glyph-free default current, none blocked (${JSON.stringify(pre.sets[0].counts)})`);
+    ok(applyVerdict(res).ok, `icons/apply: ${applyVerdict(res).headline} (${JSON.stringify(applyVerdict(res).lines).slice(0, 240)})`);
+    const after = identityOf(w.set());
+    const newErr = err();
+    ok(newErr?.type === 'INSTANCE' && mainName(newErr) === 'icon/warning-triangle', `icons/after: the error glyph is an INSTANCE of icon/warning-triangle (${String(newErr?.type)} of ${mainName(newErr)})`);
+    ok(!!oldErr && !!newErr && oldErr.id !== newErr.id, `icons/child id: the glyph's node is replaced, so its id CHANGES (${String(oldErr?.id)} → ${String(newErr?.id)}) — an override on the old inline glyph does not carry over`);
+    const membersKept = [...before.members].every(([name, b]) => after.members.get(name)?.id === b.id && after.members.get(name)?.key === b.key);
+    ok(membersKept, 'icons/members: every member keeps its key and id; only the glyph node is new');
+    const post = (await previewUpdate(w.host, [{ def: 'field-message', plans }])).sets[0];
+    ok(post.counts.current === 4, `icons/current: the next dry run reads all 4 current (${JSON.stringify(post.counts)})`);
+  }
+
+  // CHECKBOX-CONTROL: the `mark` frame still fits, so it is KEPT (its id stays) and only its contents change.
+  {
+    const plans = plansOf('checkbox-control');
+    const w = await world('checkbox-control', legacy(plans), { extraComps: iconsOf(plans) });
+    const checked = (): Node => membersOf(w.set()).find((x) => /selection=checked/.test(String(x.name)))!;
+    const oldMark = findPart(checked(), 'mark');
+    ok(oldMark?.type === 'FRAME' && ((oldMark.children as Node[]) ?? []).some((c) => c.type === 'VECTOR'), `premise: the check is an inline glyph frame holding a VECTOR before the update`);
+    const { pre, res } = await confirm(w, [{ def: 'checkbox-control', plans }]);
+    ok(applyVerdict(res).ok && !pre.sets[0].blockers.length, `icons/apply: ${applyVerdict(res).headline}`);
+    const mark = findPart(checked(), 'mark');
+    const glyph = ((mark?.children as Node[] | undefined) ?? []).find((c) => c.name === 'glyph');
+    ok(!!mark && mark.id === oldMark?.id, `icons/mark id: the mark frame is kept, so its id stays (${String(oldMark?.id)} → ${String(mark?.id)})`);
+    ok(glyph?.type === 'INSTANCE' && mainName(glyph) === 'icon/check' && ((mark?.children as Node[]) ?? []).length === 1,
+      `icons/mark contents: the inline VECTOR is gone and the frame holds one INSTANCE of icon/check (${((mark?.children as Node[]) ?? []).map((c) => `${c.type}:${mainName(c)}`).join(', ')})`);
+  }
+
+  // NOT IN THIS FILE: an update that needs an icon the file lacks is refused, naming it, and writes nothing.
+  {
+    const plans = plansOf('field-message');
+    const w = await world('field-message', legacy(plans));
+    const stamps = membersOf(w.set()).map((m) => (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY)).join();
+    const pre = await previewUpdate(w.host, [{ def: 'field-message', plans }]);
+    const b = pre.sets[0].blockers.join('; ');
+    ok(/Not in this file: icon\/check-circle, icon\/error-circle, icon\/warning-triangle\. Build icon first/.test(b), `icons/absent: the dry run refuses the set and names the icons to build first (${b})`);
+    await applyUpdate(w.host, w.api as any, [{ def: 'field-message', plans }], previewHashOf(pre));
+    ok(membersOf(w.set()).map((m) => (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY)).join() === stamps, 'icons/absent: nothing is written — every stamp is as it was');
+  }
+}
+
 void STYLE_FONT; void BASELINE_KEY;
 console.log(`\n${failed ? `❌ ${failed} FAILED` : '✓ all passed'} — ${executed} assertions executed`);
 if (failed) process.exit(1);
