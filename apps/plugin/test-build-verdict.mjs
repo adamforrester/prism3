@@ -1217,26 +1217,34 @@ for (const how of ['pointer', 'focus']) {
 //
 // MUTATIONS: the delay removed from `.p3-spin::before` → `#1990 the spinner's arc waits …`; the arc drawn
 // before its fade (base `opacity: 1`) → `#1990 the arc is not drawn at once …`; the arc never shown →
-// `#1990 … and is drawn after the delay`. Removing the delay fails the delay arm and, measured, the at-start
-// arm too (opacity 1 at insertion).
+// `#1990 … and is drawn after the delay`. Removing the delay fails the delay arm alone: the fade then starts
+// from 0 when the control turns busy, so the at-start read is still 0.
 //
-// WHEN EACH IS READ (#2332): the at-start state is read inside the page, by a MutationObserver installed before
-// the post, in the microtask after `.p3-spin` is inserted. No frame has run, so the arc's own animation is still
-// pending in its delay, however slow the runner. A read from the test side, after `waitForSelector` and an
-// `evaluate`, could land after the delay on a cold runner and see the arc already drawn. The drawn state is
-// waited for, bounded, rather than read once after a fixed sleep.
+// WHEN EACH IS READ (#2332). The spinner is made with the control's label at mount and held invisible until
+// the control turns busy, and an invisible element still runs its animations; so before #2332's fix the wait
+// and the fade were spent at mount, and every apply that came later drew the arc at once. The arm puts the
+// panel in that state, not at a time: it waits until the mounted spinner runs no fade (with the defect, its
+// mount-time fade is waited out; with the fix there is none). Then the at-start state is read inside the page,
+// by a MutationObserver, in the microtask after the control's `aria-busy` turns true, before any frame. The
+// drawn state is waited for, bounded. MUTATION: the fix removed (the `animation: none` hold in `chrome.css`)
+// → `#1990 the arc is not drawn at once — opacity at start 1`.
 {
   const { page, errors } = await openPanel();
-  const sel = '[data-p3="apply-to-figma"] .p3-spin';
-  await page.evaluate((q) => {
+  const ctl = '[data-p3="apply-to-figma"]';
+  const sel = `${ctl} .p3-spin`;
+  await page.waitForFunction((q) => {
+    const n = document.querySelector(q);
+    return !!n && !n.getAnimations({ subtree: true }).some((x) => x.animationName === 'p3-spin-show' && x.playState !== 'finished');
+  }, sel, { timeout: 5000 }).catch(() => {});
+  await page.evaluate(([c, q]) => {
     const ms = (t) => t.split(',').map((x) => x.trim()).map((x) => x.endsWith('ms') ? parseFloat(x) : parseFloat(x) * 1000);
     const read = (n) => { const b = getComputedStyle(n, '::before'); return { delays: ms(b.animationDelay), names: b.animationName, opacity: Number(b.opacity) }; };
     const mo = new MutationObserver(() => {
       const n = document.querySelector(q);
-      if (n) { window.__p3SpinAtStart = read(n); mo.disconnect(); }
+      if (n && document.querySelector(c)?.getAttribute('aria-busy') === 'true') { window.__p3SpinAtStart = read(n); mo.disconnect(); }
     });
-    mo.observe(document.body, { childList: true, subtree: true });
-  }, sel);
+    mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['aria-busy'] });
+  }, [ctl, sel]);
   await post(page, { type: 'agent-started', id: 'sp1', cmd: 'apply-theme' });
   await page.waitForFunction(() => !!window.__p3SpinAtStart, null, { timeout: 5000 }).catch(() => {});
   const early = await page.evaluate(() => window.__p3SpinAtStart ?? null);
