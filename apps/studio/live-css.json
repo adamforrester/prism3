@@ -2,10 +2,10 @@
  "file": "apps/studio/src/styles.css",
  "note": "Written only by `node apps/studio/lint-live-css.mjs --accept` (#2201). Never by regen, never by the gate.",
  "coverage": {
-  "web|light": 226,
-  "web|dark": 65,
-  "figma|light": 163,
-  "figma|dark": 64
+  "web|light": 263,
+  "web|dark": 81,
+  "figma|light": 195,
+  "figma|dark": 80
  },
  "live": {
   ":root #1": {
@@ -130,38 +130,6 @@
     "url": "/index.html"
    }
   },
-  ".hit-min #1": {
-   "sel": ".hit-min",
-   "conds": [],
-   "props": [
-    "position"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".hit-min::before #1": {
-   "sel": ".hit-min::before",
-   "conds": [],
-   "props": [
-    "content",
-    "height",
-    "left",
-    "position",
-    "top",
-    "transform",
-    "width"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
   "#app #1": {
    "sel": "#app",
    "conds": [],
@@ -181,52 +149,6 @@
     "host": "web",
     "scheme": "light",
     "url": "/index.html"
-   }
-  },
-  ".modebar #1": {
-   "sel": ".modebar",
-   "conds": [],
-   "props": [
-    "background-attachment",
-    "background-clip",
-    "background-color",
-    "background-image",
-    "background-origin",
-    "background-position-x",
-    "background-position-y",
-    "background-repeat",
-    "background-size",
-    "padding-bottom",
-    "padding-left",
-    "padding-right",
-    "padding-top",
-    "position",
-    "top",
-    "transition-behavior",
-    "transition-delay",
-    "transition-duration",
-    "transition-property",
-    "transition-timing-function",
-    "z-index"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".modebar.stuck #1": {
-   "sel": ".modebar.stuck",
-   "conds": [],
-   "props": [
-    "box-shadow"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
    }
   },
   ".logo #1": {
@@ -254,19 +176,6 @@
     "host": "web",
     "scheme": "light",
     "url": "/index.html"
-   }
-  },
-  ".barmenu-wrap #1": {
-   "sel": ".barmenu-wrap",
-   "conds": [],
-   "props": [
-    "position"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/plugin?figma=light"
    }
   },
   ".barbtn #1": {
@@ -336,10 +245,10 @@
     "white-space-collapse"
    ],
    "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
+    "suite": "test:smoke",
+    "host": "web",
+    "scheme": "light",
+    "url": "/index.html"
    }
   },
   ".barbtn:hover #1": {
@@ -352,474 +261,10 @@
     "border-top-color"
    ],
    "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".applystat #1": {
-   "sel": ".applystat",
-   "conds": [],
-   "props": [
-    "align-items",
-    "background-attachment",
-    "background-clip",
-    "background-color",
-    "background-image",
-    "background-origin",
-    "background-position-x",
-    "background-position-y",
-    "background-repeat",
-    "background-size",
-    "border-bottom-color",
-    "border-bottom-left-radius",
-    "border-bottom-right-radius",
-    "border-bottom-style",
-    "border-bottom-width",
-    "border-image-outset",
-    "border-image-repeat",
-    "border-image-slice",
-    "border-image-source",
-    "border-image-width",
-    "border-left-color",
-    "border-left-style",
-    "border-left-width",
-    "border-right-color",
-    "border-right-style",
-    "border-right-width",
-    "border-top-color",
-    "border-top-left-radius",
-    "border-top-right-radius",
-    "border-top-style",
-    "border-top-width",
-    "color",
-    "column-gap",
-    "cursor",
-    "display",
-    "font-family",
-    "font-feature-settings",
-    "font-kerning",
-    "font-language-override",
-    "font-optical-sizing",
-    "font-size",
-    "font-size-adjust",
-    "font-stretch",
-    "font-style",
-    "font-variant-alternates",
-    "font-variant-caps",
-    "font-variant-east-asian",
-    "font-variant-emoji",
-    "font-variant-ligatures",
-    "font-variant-numeric",
-    "font-variant-position",
-    "font-variation-settings",
-    "font-weight",
-    "line-height",
-    "padding-bottom",
-    "padding-left",
-    "padding-right",
-    "padding-top",
-    "row-gap",
-    "text-wrap-mode",
-    "white-space-collapse"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/plugin?figma=light"
-   }
-  },
-  ".applystat.ok #1": {
-   "sel": ".applystat.ok",
-   "conds": [],
-   "props": [
-    "background-attachment",
-    "background-clip",
-    "background-color",
-    "background-image",
-    "background-origin",
-    "background-position-x",
-    "background-position-y",
-    "background-repeat",
-    "background-size",
-    "border-bottom-color",
-    "border-left-color",
-    "border-right-color",
-    "border-top-color",
-    "color"
-   ],
-   "seen": {
-    "suite": "test:verdict",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/"
-   }
-  },
-  ".applystat.bad #1": {
-   "sel": ".applystat.bad",
-   "conds": [],
-   "props": [
-    "background-attachment",
-    "background-clip",
-    "background-color",
-    "background-image",
-    "background-origin",
-    "background-position-x",
-    "background-position-y",
-    "background-repeat",
-    "background-size",
-    "border-bottom-color",
-    "border-left-color",
-    "border-right-color",
-    "border-top-color",
-    "color"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/plugin?figma=light"
-   }
-  },
-  ".applystat .caret #1": {
-   "sel": ".applystat .caret",
-   "conds": [],
-   "props": [
-    "color",
-    "margin-left",
-    "opacity"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/plugin?figma=light"
-   }
-  },
-  ".cw-note #1": {
-   "sel": ".cw-note",
-   "conds": [],
-   "props": [
-    "background-attachment",
-    "background-clip",
-    "background-color",
-    "background-image",
-    "background-origin",
-    "background-position-x",
-    "background-position-y",
-    "background-repeat",
-    "background-size",
-    "border-bottom-color",
-    "border-bottom-left-radius",
-    "border-bottom-right-radius",
-    "border-bottom-style",
-    "border-bottom-width",
-    "border-image-outset",
-    "border-image-repeat",
-    "border-image-slice",
-    "border-image-source",
-    "border-image-width",
-    "border-left-color",
-    "border-left-style",
-    "border-left-width",
-    "border-right-color",
-    "border-right-style",
-    "border-right-width",
-    "border-top-color",
-    "border-top-left-radius",
-    "border-top-right-radius",
-    "border-top-style",
-    "border-top-width",
-    "color",
-    "font-size",
-    "line-height",
-    "margin-bottom",
-    "margin-left",
-    "margin-right",
-    "margin-top",
-    "padding-bottom",
-    "padding-left",
-    "padding-right",
-    "padding-top"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".fs-row #1": {
-   "sel": ".fs-row",
-   "conds": [],
-   "props": [
-    "align-items",
-    "column-gap",
-    "display",
-    "flex-wrap",
-    "margin-bottom",
-    "margin-left",
-    "margin-right",
-    "margin-top",
-    "row-gap"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".brandmenu #1": {
-   "sel": ".brandmenu",
-   "conds": [],
-   "props": [
-    "background-attachment",
-    "background-clip",
-    "background-color",
-    "background-image",
-    "background-origin",
-    "background-position-x",
-    "background-position-y",
-    "background-repeat",
-    "background-size",
-    "border-bottom-color",
-    "border-bottom-left-radius",
-    "border-bottom-right-radius",
-    "border-bottom-style",
-    "border-bottom-width",
-    "border-image-outset",
-    "border-image-repeat",
-    "border-image-slice",
-    "border-image-source",
-    "border-image-width",
-    "border-left-color",
-    "border-left-style",
-    "border-left-width",
-    "border-right-color",
-    "border-right-style",
-    "border-right-width",
-    "border-top-color",
-    "border-top-left-radius",
-    "border-top-right-radius",
-    "border-top-style",
-    "border-top-width",
-    "box-shadow",
-    "column-gap",
-    "display",
-    "flex-direction",
-    "max-height",
-    "overflow-y",
-    "padding-bottom",
-    "padding-left",
-    "padding-right",
-    "padding-top",
-    "position",
-    "right",
-    "row-gap",
-    "top",
-    "width",
-    "z-index"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/plugin?figma=light"
-   }
-  },
-  ".bm-cap #1": {
-   "sel": ".bm-cap",
-   "conds": [],
-   "props": [
-    "color",
-    "font-size",
-    "font-weight",
-    "letter-spacing",
-    "margin-bottom",
-    "margin-left",
-    "margin-right",
-    "margin-top",
-    "text-transform"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/plugin?figma=light"
-   }
-  },
-  ".bm-div #1": {
-   "sel": ".bm-div",
-   "conds": [],
-   "props": [
-    "background-attachment",
-    "background-clip",
-    "background-color",
-    "background-image",
-    "background-origin",
-    "background-position-x",
-    "background-position-y",
-    "background-repeat",
-    "background-size",
-    "height",
-    "margin-bottom",
-    "margin-left",
-    "margin-right",
-    "margin-top"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/plugin?figma=light"
-   }
-  },
-  ".shell #1": {
-   "sel": ".shell",
-   "conds": [],
-   "props": [
-    "margin-bottom",
-    "margin-left",
-    "margin-right",
-    "margin-top",
-    "max-width",
-    "padding-bottom",
-    "padding-left",
-    "padding-right",
-    "padding-top"
-   ],
-   "seen": {
-    "suite": "test:chrome",
+    "suite": "test:smoke",
     "host": "web",
     "scheme": "light",
     "url": "/index.html"
-   }
-  },
-  ".stage-t #1": {
-   "sel": ".stage-t",
-   "conds": [],
-   "props": [
-    "column-gap",
-    "display",
-    "flex-direction",
-    "line-height",
-    "row-gap"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/plugin?figma=light"
-   }
-  },
-  ".stage-t b #1": {
-   "sel": ".stage-t b",
-   "conds": [],
-   "props": [
-    "font-size",
-    "font-weight"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/plugin?figma=light"
-   }
-  },
-  ".stage-t small #1": {
-   "sel": ".stage-t small",
-   "conds": [],
-   "props": [
-    "color",
-    "font-size"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/plugin?figma=light"
-   }
-  },
-  ".rail-note #1": {
-   "sel": ".rail-note",
-   "conds": [],
-   "props": [
-    "border-top-color",
-    "border-top-style",
-    "border-top-width",
-    "color",
-    "font-size",
-    "line-height",
-    "margin-bottom",
-    "margin-left",
-    "margin-right",
-    "margin-top",
-    "padding-top"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/plugin?figma=light"
-   }
-  },
-  ".hero #1": {
-   "sel": ".hero",
-   "conds": [],
-   "props": [
-    "padding-bottom",
-    "padding-left",
-    "padding-right",
-    "padding-top"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".hero h1 #1": {
-   "sel": ".hero h1",
-   "conds": [],
-   "props": [
-    "font-size",
-    "font-weight",
-    "letter-spacing",
-    "line-height",
-    "margin-bottom",
-    "margin-left",
-    "margin-right",
-    "margin-top"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".lede #1": {
-   "sel": ".lede",
-   "conds": [],
-   "props": [
-    "color",
-    "font-size",
-    "line-height",
-    "margin-bottom",
-    "margin-left",
-    "margin-right",
-    "margin-top",
-    "max-width"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
    }
   },
   ".psec #1": {
@@ -1351,231 +796,6 @@
     "url": "/index.html"
    }
   },
-  ".knob #1": {
-   "sel": ".knob",
-   "conds": [],
-   "props": [
-    "border-bottom-color",
-    "border-bottom-style",
-    "border-bottom-width",
-    "padding-bottom",
-    "padding-left",
-    "padding-right",
-    "padding-top"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".knob:last-child #1": {
-   "sel": ".knob:last-child",
-   "conds": [],
-   "props": [
-    "border-bottom-color",
-    "border-bottom-style",
-    "border-bottom-width"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".knob-label #1": {
-   "sel": ".knob-label",
-   "conds": [],
-   "props": [
-    "display",
-    "font-size",
-    "font-weight"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".knob-body #1": {
-   "sel": ".knob-body",
-   "conds": [],
-   "props": [
-    "align-items",
-    "column-gap",
-    "display",
-    "row-gap"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  "input.toggle #1": {
-   "sel": "input.toggle",
-   "conds": [],
-   "props": [
-    "appearance",
-    "background-attachment",
-    "background-clip",
-    "background-color",
-    "background-image",
-    "background-origin",
-    "background-position-x",
-    "background-position-y",
-    "background-repeat",
-    "background-size",
-    "border-bottom-left-radius",
-    "border-bottom-right-radius",
-    "border-top-left-radius",
-    "border-top-right-radius",
-    "cursor",
-    "flex-basis",
-    "flex-grow",
-    "flex-shrink",
-    "height",
-    "margin-bottom",
-    "margin-left",
-    "margin-right",
-    "margin-top",
-    "position",
-    "transition-behavior",
-    "transition-delay",
-    "transition-duration",
-    "transition-property",
-    "transition-timing-function",
-    "width"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  "input.toggle::after #1": {
-   "sel": "input.toggle::after",
-   "conds": [],
-   "props": [
-    "background-attachment",
-    "background-clip",
-    "background-color",
-    "background-image",
-    "background-origin",
-    "background-position-x",
-    "background-position-y",
-    "background-repeat",
-    "background-size",
-    "border-bottom-left-radius",
-    "border-bottom-right-radius",
-    "border-top-left-radius",
-    "border-top-right-radius",
-    "box-shadow",
-    "content",
-    "height",
-    "left",
-    "position",
-    "top",
-    "transition-behavior",
-    "transition-delay",
-    "transition-duration",
-    "transition-property",
-    "transition-timing-function",
-    "width"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  "input.toggle:checked #1": {
-   "sel": "input.toggle:checked",
-   "conds": [],
-   "props": [
-    "background-attachment",
-    "background-clip",
-    "background-color",
-    "background-image",
-    "background-origin",
-    "background-position-x",
-    "background-position-y",
-    "background-repeat",
-    "background-size"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  "input.toggle:checked::after #1": {
-   "sel": "input.toggle:checked::after",
-   "conds": [],
-   "props": [
-    "transform"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".knob .select #1": {
-   "sel": ".knob .select",
-   "conds": [],
-   "props": [
-    "margin-top"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".knob-val #1": {
-   "sel": ".knob-val",
-   "conds": [],
-   "props": [
-    "color",
-    "font-size",
-    "font-variant-numeric"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".knob-desc #1": {
-   "sel": ".knob-desc",
-   "conds": [],
-   "props": [
-    "color",
-    "font-size",
-    "line-height",
-    "margin-bottom",
-    "margin-left",
-    "margin-right",
-    "margin-top"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
   ".sh-tintblock #1": {
    "sel": ".sh-tintblock",
    "conds": [],
@@ -1588,9 +808,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".sh-tintout #1": {
@@ -1603,9 +823,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".sh-tintcell #1": {
@@ -1620,9 +840,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".sh-tintchip #1": {
@@ -1662,9 +882,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".sh-tintfill #1": {
@@ -1676,9 +896,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".sh-tintcap #1": {
@@ -1693,9 +913,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".sh-tintnote #1": {
@@ -1709,9 +929,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".sh-tintnote b #1": {
@@ -1724,9 +944,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".spec-metarow #1": {
@@ -1741,9 +961,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".pv-tscroll #1": {
@@ -1884,9 +1104,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".sh-cell .tpill #1": {
@@ -1897,9 +1117,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".sh-cell #1": {
@@ -1914,9 +1134,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".sh-card #1": {
@@ -1941,9 +1161,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".sh-lab #1": {
@@ -1955,9 +1175,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-ramp #1": {
@@ -1968,9 +1188,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-ramp td:nth-child(2) #1": {
@@ -1982,9 +1202,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-ramp-name #1": {
@@ -1998,9 +1218,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-ramp-ms #1": {
@@ -2011,9 +1231,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-ramp-note #1": {
@@ -2025,9 +1245,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-ramp-foot #1": {
@@ -2043,9 +1263,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-ms-strip #1": {
@@ -2060,9 +1280,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-ms-chip #1": {
@@ -2111,9 +1331,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-ms-val #1": {
@@ -2126,9 +1346,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-ez-strip #1": {
@@ -2143,9 +1363,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-ez-card #1": {
@@ -2161,9 +1381,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-ez-stage #1": {
@@ -2208,9 +1428,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-ez-card .tpill #1": {
@@ -2227,9 +1447,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-spring-card .tpill #1": {
@@ -2246,9 +1466,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-ms-chip .tpill #1": {
@@ -2265,9 +1485,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-colmeta .tpill #1": {
@@ -2284,9 +1504,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-ez-name #1": {
@@ -2299,9 +1519,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-ez-bez #1": {
@@ -2313,9 +1533,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-spring-grid #1": {
@@ -2330,9 +1550,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-spring-card #1": {
@@ -2381,9 +1601,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-spring-nums #1": {
@@ -2399,9 +1619,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-toolbar #1": {
@@ -2418,9 +1638,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-slowmo #1": {
@@ -2436,9 +1656,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-slowmo-sel #1": {
@@ -2503,9 +1723,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-grid #1": {
@@ -2523,9 +1743,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   "@media (max-width: 760px) » .mo-grid #1": {
@@ -2558,9 +1778,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-stage #1": {
@@ -2604,9 +1824,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-stage-svg #1": {
@@ -2623,9 +1843,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-stage-axis #1": {
@@ -2637,9 +1857,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-stage-line #1": {
@@ -2652,9 +1872,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-dot #1": {
@@ -2685,9 +1905,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-colmeta #1": {
@@ -2701,9 +1921,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-colname #1": {
@@ -2715,9 +1935,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-meta #1": {
@@ -2729,9 +1949,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-coldesc #1": {
@@ -2743,9 +1963,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-replay #1": {
@@ -2811,9 +2031,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-replay:hover #1": {
@@ -2828,9 +2048,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".dm-block #1": {
@@ -2841,9 +2061,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".dm-block:first-child #1": {
@@ -2854,9 +2074,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".dm-block .sub-lab #1": {
@@ -2870,9 +2090,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".dm-desc #1": {
@@ -2889,9 +2109,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".dm-sub #1": {
@@ -2902,9 +2122,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".dm-sub .sub-lab #1": {
@@ -2918,9 +2138,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".dm-block .sh-list #1": {
@@ -2946,9 +2166,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".dm-block .sh-apart #1": {
@@ -2967,9 +2187,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".dm-block .sh-card #1": {
@@ -2983,9 +2203,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".dm-block .sh-lab #1": {
@@ -2996,9 +2216,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".sh-css #1": {
@@ -3014,9 +2234,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".dm-block .sh-tintcap #1": {
@@ -3027,9 +2247,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".dm-block .sh-tintnote #1": {
@@ -3040,9 +2260,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".dm-block .mo-toolbar #1": {
@@ -3061,9 +2281,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".dm-block .mo-replay #1": {
@@ -3074,9 +2294,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".dm-block .mo-slowmo #1": {
@@ -3087,9 +2307,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-ramp-dur #1": {
@@ -3100,9 +2320,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-bar #1": {
@@ -3128,9 +2348,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-spin #1": {
@@ -3149,9 +2369,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-spin .mo-ramp-foot #1": {
@@ -3163,9 +2383,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-spin .dm-desc #1": {
@@ -3179,9 +2399,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-spin-loop #1": {
@@ -3218,9 +2438,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-ez-roles #1": {
@@ -3234,9 +2454,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".mo-ez-role #1": {
@@ -3274,9 +2494,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".dm-block .mo-ramp-note #1": {
@@ -3287,9 +2507,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".dm-block .mo-meta #1": {
@@ -3300,9 +2520,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".dm-block .mo-coldesc #1": {
@@ -3313,9 +2533,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".dm-block .mo-ez-bez #1": {
@@ -3326,9 +2546,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".dm-block .mo-spring-nums #1": {
@@ -3339,9 +2559,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".btnl-list #1": {
@@ -4367,228 +3587,6 @@
     "url": "/index.html"
    }
   },
-  ".modectx #1": {
-   "sel": ".modectx",
-   "conds": [],
-   "props": [
-    "align-items",
-    "column-gap",
-    "display",
-    "justify-content",
-    "margin-bottom",
-    "margin-left",
-    "margin-right",
-    "margin-top",
-    "padding-bottom",
-    "padding-left",
-    "padding-right",
-    "padding-top",
-    "row-gap"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".mctx-modes #1": {
-   "sel": ".mctx-modes",
-   "conds": [],
-   "props": [
-    "align-items",
-    "column-gap",
-    "display",
-    "flex-wrap",
-    "overflow-x",
-    "row-gap",
-    "scrollbar-width"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".mctx-cap #1": {
-   "sel": ".mctx-cap",
-   "conds": [],
-   "props": [
-    "color",
-    "font-size",
-    "font-weight",
-    "letter-spacing",
-    "margin-right",
-    "text-transform"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".mctx-b #1": {
-   "sel": ".mctx-b",
-   "conds": [],
-   "props": [
-    "align-items",
-    "background-attachment",
-    "background-clip",
-    "background-color",
-    "background-image",
-    "background-origin",
-    "background-position-x",
-    "background-position-y",
-    "background-repeat",
-    "background-size",
-    "border-bottom-color",
-    "border-bottom-left-radius",
-    "border-bottom-right-radius",
-    "border-bottom-style",
-    "border-bottom-width",
-    "border-image-outset",
-    "border-image-repeat",
-    "border-image-slice",
-    "border-image-source",
-    "border-image-width",
-    "border-left-color",
-    "border-left-style",
-    "border-left-width",
-    "border-right-color",
-    "border-right-style",
-    "border-right-width",
-    "border-top-color",
-    "border-top-left-radius",
-    "border-top-right-radius",
-    "border-top-style",
-    "border-top-width",
-    "color",
-    "column-gap",
-    "cursor",
-    "display",
-    "font-family",
-    "font-feature-settings",
-    "font-kerning",
-    "font-language-override",
-    "font-optical-sizing",
-    "font-size",
-    "font-size-adjust",
-    "font-stretch",
-    "font-style",
-    "font-variant-alternates",
-    "font-variant-caps",
-    "font-variant-east-asian",
-    "font-variant-emoji",
-    "font-variant-ligatures",
-    "font-variant-numeric",
-    "font-variant-position",
-    "font-variation-settings",
-    "font-weight",
-    "line-height",
-    "padding-bottom",
-    "padding-left",
-    "padding-right",
-    "padding-top",
-    "row-gap"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".mctx-b:hover #1": {
-   "sel": ".mctx-b:hover",
-   "conds": [],
-   "props": [
-    "border-bottom-color",
-    "border-left-color",
-    "border-right-color",
-    "border-top-color"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".mctx-b.on #1": {
-   "sel": ".mctx-b.on",
-   "conds": [],
-   "props": [
-    "background-attachment",
-    "background-clip",
-    "background-color",
-    "background-image",
-    "background-origin",
-    "background-position-x",
-    "background-position-y",
-    "background-repeat",
-    "background-size",
-    "border-bottom-color",
-    "border-left-color",
-    "border-right-color",
-    "border-top-color",
-    "box-shadow",
-    "color",
-    "font-weight"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".mctx-vo #1": {
-   "sel": ".mctx-vo",
-   "conds": [],
-   "props": [
-    "border-bottom-color",
-    "border-bottom-left-radius",
-    "border-bottom-right-radius",
-    "border-bottom-style",
-    "border-bottom-width",
-    "border-image-outset",
-    "border-image-repeat",
-    "border-image-slice",
-    "border-image-source",
-    "border-image-width",
-    "border-left-color",
-    "border-left-style",
-    "border-left-width",
-    "border-right-color",
-    "border-right-style",
-    "border-right-width",
-    "border-top-color",
-    "border-top-left-radius",
-    "border-top-right-radius",
-    "border-top-style",
-    "border-top-width",
-    "color",
-    "font-size",
-    "font-weight",
-    "letter-spacing",
-    "line-height",
-    "padding-bottom",
-    "padding-left",
-    "padding-right",
-    "padding-top",
-    "text-transform",
-    "text-wrap-mode",
-    "white-space-collapse"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
   ".tpill #1": {
    "sel": ".tpill",
    "conds": [],
@@ -4779,149 +3777,6 @@
     "url": "/index.html"
    }
   },
-  ".contracts #1": {
-   "sel": ".contracts",
-   "conds": [],
-   "props": [
-    "background-attachment",
-    "background-clip",
-    "background-color",
-    "background-image",
-    "background-origin",
-    "background-position-x",
-    "background-position-y",
-    "background-repeat",
-    "background-size",
-    "border-bottom-color",
-    "border-bottom-left-radius",
-    "border-bottom-right-radius",
-    "border-bottom-style",
-    "border-bottom-width",
-    "border-image-outset",
-    "border-image-repeat",
-    "border-image-slice",
-    "border-image-source",
-    "border-image-width",
-    "border-left-color",
-    "border-left-style",
-    "border-left-width",
-    "border-right-color",
-    "border-right-style",
-    "border-right-width",
-    "border-top-color",
-    "border-top-left-radius",
-    "border-top-right-radius",
-    "border-top-style",
-    "border-top-width",
-    "padding-bottom",
-    "padding-left",
-    "padding-right",
-    "padding-top"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".contracts-sum #1": {
-   "sel": ".contracts-sum",
-   "conds": [],
-   "props": [
-    "align-items",
-    "column-gap",
-    "cursor",
-    "display",
-    "list-style-image",
-    "list-style-position",
-    "list-style-type",
-    "row-gap"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".contracts-sum::-webkit-details-marker #1": {
-   "sel": ".contracts-sum::-webkit-details-marker",
-   "conds": [],
-   "props": [
-    "display"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".contracts-sum::before #1": {
-   "sel": ".contracts-sum::before",
-   "conds": [],
-   "props": [
-    "align-self",
-    "color",
-    "content",
-    "font-size",
-    "transition-behavior",
-    "transition-delay",
-    "transition-duration",
-    "transition-property",
-    "transition-timing-function"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".contracts[open] .contracts-sum::before #1": {
-   "sel": ".contracts[open] .contracts-sum::before",
-   "conds": [],
-   "props": [
-    "transform"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".contracts-t #1": {
-   "sel": ".contracts-t",
-   "conds": [],
-   "props": [
-    "color",
-    "font-size",
-    "font-weight"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
-  ".contracts-hint #1": {
-   "sel": ".contracts-hint",
-   "conds": [],
-   "props": [
-    "color",
-    "font-size",
-    "font-weight"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
   ".ctable #1": {
    "sel": ".ctable",
    "conds": [],
@@ -4933,9 +3788,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".ctable th #1": {
@@ -4953,9 +3808,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".ctable td #1": {
@@ -4973,9 +3828,9 @@
    ],
    "seen": {
     "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
+    "host": "figma",
+    "scheme": "dark",
+    "url": "/plugin?figma=dark"
    }
   },
   ".ctable .mcol #1": {
@@ -7082,74 +5937,6 @@
     "url": "/index.html"
    }
   },
-  ".tf-in #1": {
-   "sel": ".tf-in",
-   "conds": [],
-   "props": [
-    "background-attachment",
-    "background-clip",
-    "background-color",
-    "background-image",
-    "background-origin",
-    "background-position-x",
-    "background-position-y",
-    "background-repeat",
-    "background-size",
-    "border-bottom-color",
-    "border-bottom-left-radius",
-    "border-bottom-right-radius",
-    "border-bottom-style",
-    "border-bottom-width",
-    "border-image-outset",
-    "border-image-repeat",
-    "border-image-slice",
-    "border-image-source",
-    "border-image-width",
-    "border-left-color",
-    "border-left-style",
-    "border-left-width",
-    "border-right-color",
-    "border-right-style",
-    "border-right-width",
-    "border-top-color",
-    "border-top-left-radius",
-    "border-top-right-radius",
-    "border-top-style",
-    "border-top-width",
-    "color",
-    "font-family",
-    "font-feature-settings",
-    "font-kerning",
-    "font-language-override",
-    "font-optical-sizing",
-    "font-size",
-    "font-size-adjust",
-    "font-stretch",
-    "font-style",
-    "font-variant-alternates",
-    "font-variant-caps",
-    "font-variant-east-asian",
-    "font-variant-emoji",
-    "font-variant-ligatures",
-    "font-variant-numeric",
-    "font-variant-position",
-    "font-variation-settings",
-    "font-weight",
-    "line-height",
-    "min-width",
-    "padding-bottom",
-    "padding-left",
-    "padding-right",
-    "padding-top",
-    "width"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "dark",
-    "url": "/plugin?figma=dark"
-   }
-  },
   ".tf-stat #1": {
    "sel": ".tf-stat",
    "conds": [],
@@ -7327,7 +6114,7 @@
    "seen": {
     "suite": "test:chrome",
     "host": "web",
-    "scheme": "light",
+    "scheme": "dark",
     "url": "/index.html"
    }
   },
@@ -7341,7 +6128,7 @@
    "seen": {
     "suite": "test:chrome",
     "host": "web",
-    "scheme": "light",
+    "scheme": "dark",
     "url": "/index.html"
    }
   },
@@ -7372,7 +6159,7 @@
    "seen": {
     "suite": "test:chrome",
     "host": "web",
-    "scheme": "light",
+    "scheme": "dark",
     "url": "/index.html"
    }
   },
@@ -7406,7 +6193,7 @@
    "seen": {
     "suite": "test:chrome",
     "host": "web",
-    "scheme": "light",
+    "scheme": "dark",
     "url": "/index.html"
    }
   },
@@ -7440,7 +6227,7 @@
    "seen": {
     "suite": "test:chrome",
     "host": "web",
-    "scheme": "light",
+    "scheme": "dark",
     "url": "/index.html"
    }
   },
@@ -7470,7 +6257,7 @@
    "seen": {
     "suite": "test:chrome",
     "host": "web",
-    "scheme": "light",
+    "scheme": "dark",
     "url": "/index.html"
    }
   },
@@ -7485,7 +6272,7 @@
    "seen": {
     "suite": "test:chrome",
     "host": "web",
-    "scheme": "light",
+    "scheme": "dark",
     "url": "/index.html"
    }
   },
@@ -7518,7 +6305,7 @@
    "seen": {
     "suite": "test:chrome",
     "host": "web",
-    "scheme": "light",
+    "scheme": "dark",
     "url": "/index.html"
    }
   },
@@ -7535,7 +6322,7 @@
    "seen": {
     "suite": "test:chrome",
     "host": "web",
-    "scheme": "light",
+    "scheme": "dark",
     "url": "/index.html"
    }
   },
@@ -7577,7 +6364,7 @@
    "seen": {
     "suite": "test:chrome",
     "host": "web",
-    "scheme": "light",
+    "scheme": "dark",
     "url": "/index.html"
    }
   },
@@ -7594,7 +6381,7 @@
    "seen": {
     "suite": "test:chrome",
     "host": "web",
-    "scheme": "light",
+    "scheme": "dark",
     "url": "/index.html"
    }
   },
@@ -7624,7 +6411,7 @@
    "seen": {
     "suite": "test:chrome",
     "host": "web",
-    "scheme": "light",
+    "scheme": "dark",
     "url": "/index.html"
    }
   },
@@ -7882,224 +6669,6 @@
     "url": "/index.html"
    }
   },
-  "@media (max-width: 640px) » .shell #1": {
-   "sel": ".shell",
-   "conds": [
-    [
-     "media",
-     "(max-width: 640px)"
-    ]
-   ],
-   "props": [
-    "padding-bottom",
-    "padding-left",
-    "padding-right",
-    "padding-top"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
-   }
-  },
-  "@media (max-width: 640px) » .barmenu-wrap #1": {
-   "sel": ".barmenu-wrap",
-   "conds": [
-    [
-     "media",
-     "(max-width: 640px)"
-    ]
-   ],
-   "props": [
-    "position"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/plugin?figma=light"
-   }
-  },
-  "@media (max-width: 640px) » .brandmenu #1": {
-   "sel": ".brandmenu",
-   "conds": [
-    [
-     "media",
-     "(max-width: 640px)"
-    ]
-   ],
-   "props": [
-    "max-width"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/plugin?figma=light"
-   }
-  },
-  "@media (max-width: 640px) » .hero h1 #1": {
-   "sel": ".hero h1",
-   "conds": [
-    [
-     "media",
-     "(max-width: 640px)"
-    ]
-   ],
-   "props": [
-    "font-size",
-    "letter-spacing"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/plugin?figma=light"
-   }
-  },
-  "@media (max-width: 640px) » .lede #1": {
-   "sel": ".lede",
-   "conds": [
-    [
-     "media",
-     "(max-width: 640px)"
-    ]
-   ],
-   "props": [
-    "font-size",
-    "margin-top"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/plugin?figma=light"
-   }
-  },
-  ".navmenu #1": {
-   "sel": ".navmenu",
-   "conds": [],
-   "props": [
-    "max-height",
-    "overflow-y",
-    "width"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/plugin?figma=light"
-   }
-  },
-  ".nav-item #1": {
-   "sel": ".nav-item",
-   "conds": [],
-   "props": [
-    "background-attachment",
-    "background-clip",
-    "background-color",
-    "background-image",
-    "background-origin",
-    "background-position-x",
-    "background-position-y",
-    "background-repeat",
-    "background-size",
-    "border-bottom-color",
-    "border-bottom-left-radius",
-    "border-bottom-right-radius",
-    "border-bottom-style",
-    "border-bottom-width",
-    "border-image-outset",
-    "border-image-repeat",
-    "border-image-slice",
-    "border-image-source",
-    "border-image-width",
-    "border-left-color",
-    "border-left-style",
-    "border-left-width",
-    "border-right-color",
-    "border-right-style",
-    "border-right-width",
-    "border-top-color",
-    "border-top-left-radius",
-    "border-top-right-radius",
-    "border-top-style",
-    "border-top-width",
-    "color",
-    "cursor",
-    "display",
-    "font-family",
-    "font-feature-settings",
-    "font-kerning",
-    "font-language-override",
-    "font-optical-sizing",
-    "font-size",
-    "font-size-adjust",
-    "font-stretch",
-    "font-style",
-    "font-variant-alternates",
-    "font-variant-caps",
-    "font-variant-east-asian",
-    "font-variant-emoji",
-    "font-variant-ligatures",
-    "font-variant-numeric",
-    "font-variant-position",
-    "font-variation-settings",
-    "font-weight",
-    "line-height",
-    "padding-bottom",
-    "padding-left",
-    "padding-right",
-    "padding-top",
-    "text-align",
-    "width"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/plugin?figma=light"
-   }
-  },
-  ".nav-item:hover #1": {
-   "sel": ".nav-item:hover",
-   "conds": [],
-   "props": [
-    "background-attachment",
-    "background-clip",
-    "background-color",
-    "background-image",
-    "background-origin",
-    "background-position-x",
-    "background-position-y",
-    "background-repeat",
-    "background-size"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/plugin?figma=light"
-   }
-  },
-  ".navmenu .rail-note #1": {
-   "sel": ".navmenu .rail-note",
-   "conds": [],
-   "props": [
-    "margin-bottom",
-    "margin-left",
-    "margin-right",
-    "margin-top",
-    "padding-top"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/plugin?figma=light"
-   }
-  },
   "@media (max-width: 480px) » #app #1": {
    "sel": "#app",
    "conds": [
@@ -8119,45 +6688,6 @@
     "host": "web",
     "scheme": "light",
     "url": "/index.html"
-   }
-  },
-  "@media (max-width: 480px) » .shell #1": {
-   "sel": ".shell",
-   "conds": [
-    [
-     "media",
-     "(max-width: 480px)"
-    ]
-   ],
-   "props": [
-    "padding-bottom",
-    "padding-left",
-    "padding-right",
-    "padding-top"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "web",
-    "scheme": "light",
-    "url": "/index.html"
-   }
-  },
-  "@media (max-width: 480px) » .hero h1 #1": {
-   "sel": ".hero h1",
-   "conds": [
-    [
-     "media",
-     "(max-width: 480px)"
-    ]
-   ],
-   "props": [
-    "font-size"
-   ],
-   "seen": {
-    "suite": "test:chrome",
-    "host": "figma",
-    "scheme": "light",
-    "url": "/plugin?figma=light"
    }
   },
   "@media (max-width: 480px) » .ctable #1": {
@@ -8487,7 +7017,6 @@
   ".start-chip:hover #1",
   ".start-chip .dot #1",
   ".chrome #1",
-  "@media (prefers-reduced-motion: reduce) » .modebar #1",
   ".brandmark #1",
   ".wordmark #1",
   ".barbtn.open #1",
@@ -8496,7 +7025,6 @@
   ".barbtn.primary:hover #1",
   ".bar-seed #1",
   ".bar-seed.bad #1",
-  ".cw-note b #1",
   ".start-file #1",
   ".start-upload #1",
   ".start-imp-err #1",
@@ -8527,11 +7055,6 @@
   ".select:disabled #1",
   ".select.sm #1",
   ".select.fill #1",
-  ".knob > .knob-body #1",
-  ".knob input[type=\"range\"] #1",
-  "input.toggle:disabled #1",
-  ".knob input:disabled #1",
-  ".knob-val.ro #1",
   ".chips #1",
   ".chips-legend #1",
   ".stage-vol #1",
@@ -8543,7 +7066,6 @@
   ".cset-off .cset-name #1",
   ".cset-reason #2",
   ".cs-preview #1",
-  ".mctx-modes > * #1",
   ".genview #1",
   ".genview-t #1",
   ".genview-d #1",
@@ -8565,8 +7087,6 @@
   ".fz-list #1",
   "@media (max-width: 900px) » .pfield.r #1",
   "@media (max-width: 640px) » .lab #1",
-  "@media (max-width: 380px) » .wordmark #1",
-  ".nav-item.cur #1",
-  ".nav-item.cur .stage-t b #1"
+  "@media (max-width: 380px) » .wordmark #1"
  ]
 }

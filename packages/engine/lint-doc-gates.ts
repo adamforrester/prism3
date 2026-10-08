@@ -252,10 +252,13 @@ const NOT_A_DISTINCT_GATE = new Set<string>(['Drift gate still covers the full a
  * shelling out. That is a stronger scope than the prose arms use, and it is the right one for exactly
  * the reason arm 3 is bidirectional: this list's promise is "everything CI does".
  *
- * TWO exceptions, declared by NAME rather than inferred, because a shape rule ("exclude anything
+ * FOUR exceptions, declared by NAME rather than inferred, because a shape rule ("exclude anything
  * without a gate token") would silently widen the day someone adds another non-asserting step:
  *
  *   - `npm ci` installs and asserts nothing.
+ *   - The Chromium install for the browser gates, and the step that resolves the Playwright version its
+ *     cache is keyed on (#2323). They install and assert nothing either; `verify.ts` stands in for the
+ *     browser with `chromiumPrecondition`, as it did when the install sat inside the gate steps.
  *   - The runner's own `--list` step. `verify.ts` must not carry a gate that runs `verify.ts`: it
  *     already runs those self-checks at import, in-process, before its first gate — so the row would
  *     re-run them in a subprocess and report the result of asking itself. `docs/34` shape 2 in
@@ -263,11 +266,13 @@ const NOT_A_DISTINCT_GATE = new Set<string>(['Drift gate still covers the full a
  */
 const NOT_A_RUNNABLE_GATE = new Set<string>([
   'Install workspace deps',
+  'Resolve the Playwright version (#2323)',
+  'Install Chromium for the browser gates (#2323)',
   "The gate runner's list and order are sound",
 ]);
 
 /** `ci.yml` steps arm 3 requires `verify.ts` to carry: everything with a `run:`, minus the named
- *  install step. */
+ *  install steps. */
 export const runnableCiSteps = (steps: Step[]): Step[] =>
   steps.filter((s) => s.run.trim() && !NOT_A_RUNNABLE_GATE.has(s.name));
 

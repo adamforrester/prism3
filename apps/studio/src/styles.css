@@ -100,8 +100,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
  * --hit-dx/--hit-dy (CSS px, default 0 = centered) bias the box off-center for a host packed too
  * tightly to expand symmetrically without eating a neighboring target's edge. The legacy Layout page's
  * breakpoint remove button (.adv-x, #559) was why these exist; it left with that page in UI redesign S10. */
-.hit-min{position:relative}
-.hit-min::before{content:'';position:absolute;top:50%;left:50%;width:max(24px,100%);height:max(24px,100%);transform:translate(calc(-50% + var(--hit-dx,0px)),calc(-50% + var(--hit-dy,0px)))}
+
 #app{max-width:1200px;margin:0 auto;padding:0 40px 120px}
 
 /* First-run start screen */
@@ -129,18 +128,11 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .start-chip .dot{width:12px;height:12px;border-radius:50%;flex:none}
 
 .chrome{position:sticky;top:0;z-index:20;background:var(--paper)}
-/* Sticky at the chrome's lower edge so the mode context still never scrolls away — the property
-   it had as tier 2 of the header, preserved through the move (#432). Background is required:
-   page content scrolls underneath it. z-index sits below .chrome (20) so it tucks, not overlaps. */
-.modebar{position:sticky;top:var(--chrome-h,120px);z-index:15;background:var(--paper);padding:10px 2px 14px;transition:box-shadow .16s ease}
-/* Only while actually stuck — see syncStuck. Soft and short-throw: it should read as the bar
-   sitting above the page, not as a drop shadow on a card. */
-.modebar.stuck{box-shadow:0 10px 14px -12px rgba(20,22,30,.42)}
-@media(prefers-reduced-motion:reduce){.modebar{transition:none}}
+
 .brandmark{display:flex;align-items:center;gap:11px}
 .logo{width:18px;height:18px;border-radius:var(--r-xs);background:conic-gradient(from 210deg,#5e4bc3,#0088be,#2f6833,#a13731,#5e4bc3)}
 .wordmark{font-weight:640;letter-spacing:-0.02em;font-size:16px}
-.barmenu-wrap{position:relative}
+
 .barbtn{display:flex;align-items:center;gap:9px;font:inherit;font-weight:560;border:1px solid var(--line2);background:var(--panel);padding:8px 13px;border-radius:var(--r-sm);font-size:13.5px;cursor:pointer;color:var(--ink);white-space:nowrap}
 .barbtn.open,.barbtn:hover{border-color:var(--ink2)}
 .barbtn .caret{color:var(--faint);margin-left:2px}
@@ -148,55 +140,13 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .barbtn.primary:hover{background:var(--ink2);border-color:var(--ink2)}
 .bar-seed{font-size:11.5px;color:var(--muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar-seed.bad{color:#a12}
-/* The apply status pill + its detail row. The pill is bounded and single-line like .bar-seed — that
-   constraint is fine for a ≤24-char headline and was only wrong for the 150-char summary, which now
-   lives in the detail row below the bar. Colors come from the #285 status set on the #446 tint grounds:
-   that exact pairing (--ok on --ok-tint, --danger on --danger-tint) is what lint:contrast already
-   measures, so the pill inherits a checked ratio instead of inventing a green. */
-.applystat{display:flex;align-items:center;gap:7px;font:inherit;font-size:11.5px;font-weight:560;border:1px solid var(--line2);background:var(--panel);border-radius:999px;padding:5px 10px;cursor:pointer;color:var(--ink2);white-space:nowrap}
-.applystat.ok{background:var(--ok-tint);border-color:var(--ok-edge);color:var(--ok)}
-.applystat.bad{background:var(--danger-tint);border-color:var(--danger-edge);color:var(--danger)}
-.applystat .caret{color:currentColor;opacity:.65;margin-left:0}
+
 /* The detail row moved to the Activity drawer in UI redesign S1.4 and takes the chrome's .p3-detail
    there (chrome.css), so its legacy rule went with it. */
-/* #718 — the Components page's internal notice and its control row.
-   --muted on --paper, NOT --faint: at 13px this is a paragraph to read rather than a caption to
-   glance at, and lint:contrast holds --muted on --paper (the worse of the two grounds) to 4.5:1.
-   Modeled on .sl-note, which is the same shape — an inset explanatory block inside a
-   .psec — so this adds a rule and not a new pattern. The bold lifts only the "Internal —
-   experimental." lead-in to --ink2, which lint:contrast also holds at 4.5:1 on both grounds. */
-.cw-note{font-size:13px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 13px;line-height:1.55;margin:14px 0 0}
-.cw-note b{color:var(--ink2);font-weight:640}
-/* The file-setup button + its status pill on one line (#1558). align-items:center rather than baseline:
-   the pill is a 999px capsule with its own padding, so its text baseline sits above the button's and
-   aligning on that baseline would push the capsule visibly high. */
-.fs-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0 0}
-/* max-height + scroll: the menu had neither, which was survivable while it was short. Folding the
-   mode set in (#432) pushed it to ~716px, and at a 700px-tall window it ran 89px past the bottom
-   of the viewport with the last items simply unreachable. Bounded to the space below the header. */
-.brandmenu{position:absolute;top:calc(100% + 8px);right:0;width:288px;max-height:calc(100vh - var(--chrome-h, 120px) - 24px);overflow-y:auto;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:12px;z-index:20;display:flex;flex-direction:column;gap:2px;box-shadow:0 12px 32px -8px rgba(24,24,27,.20),0 4px 12px -4px rgba(24,24,27,.12)}
 
-.bm-cap{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:600;margin:4px 2px 6px}
-.bm-div{height:1px;background:var(--line);margin:8px 0}
-/* The brand menu's items, the import box and the export dialog are the chrome's since UI redesign S13.1
-   (chrome.css, shell/bar.ts). What stays here is what the plugin's Pages menu (.brandmenu.navmenu, .bm-cap,
-   .bm-div) still draws until S11.2. */
 .start-file{display:none}
 .start-upload{display:inline-flex;align-items:center;gap:6px}
 .start-imp-err{margin:9px 0 0;font-size:12px;color:#a12;line-height:1.5}
-
-/* The legacy page's column, inside the new frame's full-width legacy frame (UI redesign S1.2). It carries
-   the box #app used to: the 1200px cap and its gutters. The rail that sat in its first column is gone;
-   its destinations are the Pages menu in the top bar. */
-.shell{max-width:1120px;margin:20px auto 0;padding:0 40px 120px}
-.stage-t{display:flex;flex-direction:column;line-height:1.3;gap:2px}
-.stage-t b{font-weight:600;font-size:13.5px}
-.stage-t small{color:var(--faint);font-size:11.5px}
-.rail-note{color:var(--muted);font-size:12px;line-height:1.6;margin:22px 8px 0;padding-top:20px;border-top:1px solid var(--line)}
-
-.hero{padding:6px 0 4px}
-.hero h1{margin:0;font-size:40px;font-weight:660;letter-spacing:-0.03em;line-height:1.08}
-.lede{color:var(--muted);max-width:60ch;margin:18px 0 0;font-size:16px;line-height:1.65}
 
 /* Each primitive section pairs its control card (left) with the ramps it drives (right),
    so a change to the card is always visible in the palette beside it (#158). */
@@ -302,23 +252,7 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .sub-lab{margin:34px 0 12px}
 .sub-lab:first-child{margin-top:8px}
 .sub-t{font-size:12.5px;font-weight:680;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin:0}
-.knob{padding:14px 0;border-bottom:1px solid var(--line)}
-.knob:last-child{border-bottom:0}
-.knob-label{display:block;font-weight:600;font-size:13.5px}
-.knob-body{display:flex;align-items:center;gap:10px}
-.knob > .knob-body{margin-top:8px}
-.knob input[type=range]{flex:1;accent-color:var(--ink)}
-/* Toggle rendered as a switch (pill track + sliding thumb), not a native checkbox. */
-input.toggle{appearance:none;-webkit-appearance:none;flex:none;width:38px;height:22px;margin:0;border-radius:999px;background:var(--line2);position:relative;cursor:pointer;transition:background .15s ease}
-input.toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s ease}
-input.toggle:checked{background:var(--ink)}
-input.toggle:checked::after{transform:translateX(16px)}
-input.toggle:disabled{opacity:.5;cursor:default}
-.knob input:disabled{opacity:.5}
-.knob .select{margin-top:8px}
-.knob-val{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px}
-.knob-val.ro{margin-top:6px}
-.knob-desc{margin:7px 0 0;font-size:12px;color:var(--faint);line-height:1.5}
+
 /* Segmented chips (#1675): a native radio group. The radio covers its chip, unpainted, so the chip's
    box is the hit box (>= 24px tall, WCAG 2.5.8) and a click anywhere on it checks the radio. The
    selected chip is filled, bold and check-marked, so the state is not carried by color alone; focus
@@ -515,42 +449,7 @@ label.cset-head{cursor:pointer}
 /* Controls-beside-previews pages (#264 Layout, #265 Size & radius): each control sits next to its live
    preview, so a change is visible without scrolling. */
 .cs-preview{min-width:0}
-/* Mode-context strip (#171) — one mode at a time; sticky so the context stays reachable while
-   scrolling the stage. The whole stage below reflects the selected mode. */
-.modectx{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0;padding:0}
-/* Control bars are BARE (#485). A white card is what a CONTENT section looks like, so a control bar
-   wearing one reads as a sibling of the thing it operates rather than as the operator: .tok-ctrls
-   rendered background #ffffff / border 1px / radius 10, byte-for-byte the section card directly
-   below it. Stripping the card leaves cards meaning exactly one thing. Safe for the sticky bar
-   because the opaque ground lives on .modebar, the sticky HOST, not on .modectx -- scrolled content
-   is still occluded and .stuck still carries the shadow. */
-/* Scroll, never wrap. Wrapping was affordable in the header, where the bar owned the full window
-   width; in the content column it is narrower, so a brand with several modes wrapped to a second
-   row and spent real vertical space on every page — worst on mobile, where it was already a
-   second sticky strip. Overflow scrolls instead, so the bar's height is constant at any mode count. */
-.mctx-modes{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin}
-.mctx-modes>*{flex:none}
-.mctx-cap{font-size:11px;font-weight:640;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-right:6px}
-.mctx-b{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line2);background:var(--paper);border-radius:var(--r-sm);padding:5px 11px;font:inherit;font-size:13px;color:var(--ink2);cursor:pointer}
-.mctx-b:hover{border-color:var(--ink)}
-/* #439 — the selected chip is a WHITE ground with an ink border plus a 1px ring, not a solid ink
-   fill. Mode is a SCOPE, not a destination: dressing it as the loudest tab on the page made it
-   heavier than the rail that chooses the page, which only got worse when the bar moved into the
-   content column (#432). The ring keeps it findable without it shouting.
-   The read-only marker no longer needs a white-on-dark variant either. */
-/* INSET ring, not an outset one. An outset ring is painted OUTSIDE the border box, and this chip
-   lives in .mctx-modes, which scrolls (#432). Setting overflow-x:auto makes overflow-y compute
-   to auto as well -- per spec, visible on one axis becomes auto when the other is not visible --
-   so the strip clips vertically, and the strip is exactly as tall as its chips. Measured: chip
-   box 116.9-149.1, ring wanted 115.9-150.1, clipped top AND bottom, leaving the sides only.
-   Inset paints the same 2px of contiguous ink (1px border + 1px ring) entirely within the
-   border box, so it looks the same, cannot be clipped, and changes no outer dimension. */
-.mctx-b.on{background:var(--panel);color:var(--ink);border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);font-weight:560}
-/* "View only", not "auto": these modes are derived and the engine REFUSES per-mode levers on them,
-   so the honest fact is that you cannot edit here — which is what a user needs, where "auto" only
-   described how the mode was produced. Sits inside the chip rather than as a caption beneath it:
-   after the wrap-to-scroll change (#432) the bar spends width freely and height not at all. */
-.mctx-vo{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;color:var(--faint);border:1px solid var(--line2);border-radius:4px;padding:0 4px;line-height:1.5;white-space:nowrap}
+
 /* A2a — generated-mode (HC/wireframe) read-only view: an explanation + a per-mode contract verdict. */
 .genview{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px 24px;margin:8px 0 0}
 .genview-t{margin:0;font-size:16px;font-weight:640;letter-spacing:-0.01em}
@@ -587,13 +486,7 @@ label.cset-head{cursor:pointer}
 .sg-failpill{padding-right:19px}
 .sg-failpill .sg-fx{position:absolute;right:6px;top:2px;margin:0}
 .psec-h{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.contracts{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:18px 20px}
-.contracts-sum{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:10px}
-.contracts-sum::-webkit-details-marker{display:none}
-.contracts-sum::before{content:'▸';color:var(--faint);font-size:11px;align-self:center;transition:transform .12s ease}
-.contracts[open] .contracts-sum::before{transform:rotate(90deg)}
-.contracts-t{font-size:15px;font-weight:620;color:var(--ink)}
-.contracts-hint{font-size:11.5px;font-weight:500;color:var(--faint)}
+
 .ctable{width:100%;border-collapse:collapse;margin-top:12px;font-size:12px}
 .ctable th,.ctable td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
 .ctable .mcol{text-align:center}
@@ -762,7 +655,7 @@ label.cset-head{cursor:pointer}
 /* #415 — the three-card binding grid (.tf-grid/.tf-card/.tf-role/.tf-desc) is gone with the three
    family roles it was sized for; seven categories read as a table on the tab's shared grid. Deleted
    rather than left inert, which is the .errbar-global lesson from #388. */
-.tf-in{width:100%;padding:7px 9px;border:1px solid var(--line2);border-radius:var(--r-xs);font:inherit;font-size:13px;background:var(--paper);color:var(--ink);min-width:0}
+
 .tf-stat{font-size:11px;font-weight:600}
 /* A token pill is white-space:nowrap, so its full single-line width is its MIN-CONTENT contribution
    and the 148px column width property is only a hint it happily blows past — the intrinsic-width trap
@@ -831,20 +724,15 @@ label.cset-head{cursor:pointer}
    edge and hung 9px off at 360px. Dropping the wrappers to static makes the actions row itself the
    containing block, so both panels align to the row's right edge — the one edge that is always
    flush with the viewport gutter, whatever the buttons ahead of them are doing. */
-@media(max-width:640px){#app,.shell{padding:0 16px 72px}.barmenu-wrap{position:static}.brandmenu{max-width:calc(100vw - 24px)}.hero h1{font-size:28px;letter-spacing:-0.02em}.lede{font-size:15px;margin-top:14px}.lab{padding:0 3px}}
+@media(max-width:640px){#app{padding:0 16px 72px}.lab{padding:0 3px}}
 /* The start screen's mark: the wordmark goes as the column narrows, and the logo stays. */
 @media(max-width:380px){.wordmark{display:none}}
-.navmenu{width:300px;max-height:calc(100vh - 130px);overflow-y:auto}
-.nav-item{display:flex;width:100%;text-align:left;border:0;background:none;font:inherit;padding:9px 8px;border-radius:var(--r-xs);cursor:pointer;color:var(--ink2)}
-.nav-item:hover{background:var(--paper)}
-.nav-item.cur{background:var(--paper)}
-.nav-item.cur .stage-t b{color:var(--ink)}
-.navmenu .rail-note{margin:14px 8px 2px;padding-top:12px}
+
 /* The contrast + breakpoint tables have more columns than 456px can hold, and neither shrinks:
    ly-table pushed the page 57px, ctable was silently clipped by an ancestor (worse — the cells
    were unreadable rather than reachable). display:block turns each into its own scroll box, so
    the table scrolls and the page does not. Applied only here; both fit unaided at 640+. */
-@media(max-width:480px){#app,.shell{padding:0 12px 64px}.hero h1{font-size:24px}.ctable{display:block;overflow-x:auto}}
+@media(max-width:480px){#app{padding:0 12px 64px}.ctable{display:block;overflow-x:auto}}
 /* Plugin resize grip (#144) — plugin-only; a Figma iframe has no window chrome of its own.
    touch-action:none so the pointer capture owns the gesture instead of the page scrolling. */
 .resize-grip{position:fixed;right:0;bottom:0;width:16px;height:16px;z-index:60;cursor:nwse-resize;touch-action:none;color:var(--faint)}

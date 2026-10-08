@@ -240,6 +240,14 @@ CI step (#1897): the `ci.yml` step, its `verify.ts` row, and its lines in `CLAUD
 `CONTRIBUTING.md` §3 and the PR template, or `lint-doc-gates.ts` fails. *Mutation:* leave one `applyFull()` call
 → the S1 guard (section 3.10) fails naming the file.
 
+*Status (2026-10-07, H12 #2289, owner PG1 A and Q107 A).* Done: the legacy frame, the Pages menu and the old Style
+guide page it opened (the last legacy page), `NAV`, `setVolatile`, `paintVolatile`, the mode strip and its mode badges
+(`SECTION_MODE_SCOPE`), the legacy workspace and its region reconcile, the legacy settings search, `pages.ts`'s
+`legacy` lists and `LegacyPageKey`, and the `styles.css` rules only those drew (`lint:live-css --accept`, each named).
+`test-removed-legacy.ts` keeps the names out. `mode-audit.mjs` had already gone (S8.3). Left: `apply` and
+`applyFull`, which the bar's writers still call (`applyFull` is a bare `rebuild()` now), and `lint:contrast`'s legacy
+pairs.
+
 ---
 
 ## 3. S1, the shell, in detail
