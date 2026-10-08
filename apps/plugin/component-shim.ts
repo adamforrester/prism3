@@ -408,6 +408,12 @@ export type ShimOpts = {
    * before. Both are non-enumerable, so a JSON dump of a node is unchanged either way.
    */
   identities?: boolean;
+  /** #2379 — A FRAME'S `SCALE` CHILDREN SCALE WITH IT, as on the host: a resize, or a bound width or height that
+   *  changes the frame's size, scales every child whose constraints are SCALE on both axes by the same ratio.
+   *  The fresh build depends on it (a glyph imports at its 24px artboard; its bound size brings it to 16), and an
+   *  in-place glyph replacement that appends 24px vectors to a 16px frame with no resize never gets it. Opt-in,
+   *  because suites written before it read a glyph's vectors at their import size. */
+  scaleConstrained?: boolean;
   /** `saveVersionHistoryAsync` refuses (#2265 PR 2, §10 Q7): the update must then write nothing. */
   refuseVersion?: boolean;
 };
@@ -532,8 +538,28 @@ export const makeShim = (opts: ShimOpts = {}) => {
       }
     });
   };
+  /** #2379 — A COLOR VARIABLE RESOLVES TO A COLOR, one per name, never black: what a bound paint's stored color is
+   *  checked against. A `color/` name the test overrides keeps the override. */
+  const colorVar = (name: string): boolean => name.startsWith('color/') && !(opts.varOverrides && name in opts.varOverrides);
+  const colorOf = (name: string): { r: number; g: number; b: number; a: number } => {
+    const h = [...name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+    // A wash resolves with its alpha, as the emitted `…/overlay/{hover,pressed}` variables do.
+    return { r: ((h & 0xff) + 16) / 300, g: (((h >> 8) & 0xff) + 16) / 300, b: (((h >> 16) & 0xff) + 16) / 300, a: /\/overlay\//.test(name) ? 0.1 : 1 };
+  };
+  /** #2379 — `scaleConstrained`: after `n` changed size from `w0`×`h0`, scale its SCALE children by the same ratio. */
+  const scaleKids = (n: Node, w0: number, h0: number): void => {
+    const w1 = n.width as number, h1 = n.height as number;
+    if (!(w0 > 0 && h0 > 0) || (w0 === w1 && h0 === h1)) return;
+    const sx = w1 / w0, sy = h1 / h0;
+    for (const c of (n.children as Node[] | undefined) ?? []) {
+      const k = c.constraints as { horizontal?: string; vertical?: string } | null;
+      if (k?.horizontal !== 'SCALE' || k?.vertical !== 'SCALE') continue;
+      c.x = (c.x as number) * sx; c.y = (c.y as number) * sy;
+      (c.resize as (w: number, h: number) => void)?.((c.width as number) * sx, (c.height as number) * sy);
+    }
+  };
   const mkVar = (name: string) => ({
-    id: `V:${name}`, name: `${SHIM_ROOT}/${name}`, value: opts.varPx?.[name] ?? varValue(name), resolveForConsumer: () => ({ value: resolvedValue(name) }),
+    id: `V:${name}`, name: `${SHIM_ROOT}/${name}`, value: opts.varPx?.[name] ?? varValue(name), resolveForConsumer: () => ({ value: colorVar(name) ? colorOf(name) : resolvedValue(name) }),
     get valuesByMode(): Record<string, unknown> { return varValues.get(name) ?? {}; },
     setValueForMode: (modeId: string, value: unknown): void => rewriteVar(name, modeId, value),
   });
@@ -821,6 +847,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // shim reproduces it rather than merely counting the call — without this, `unlockAspectRatio()`
       // could be deleted from the executor and every geometry assertion here would still pass.
       setBoundVariable(prop: string, v: { id: string; value?: number } | null) {
+        const was = opts.scaleConstrained && (prop === 'width' || prop === 'height') ? [node.width as number, node.height as number] as const : null;
+        try {
         const bv = node.boundVariables as Record<string, unknown>;
         // NULL UNBINDS (#1388) — Figma's overload for removing a binding, which the focus ring uses to
         // clear its inherited `width`/`height` before the host resizes it. Delete the key so the gate on
@@ -840,6 +868,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
           return;
         }
         bv[prop] = { id: v.id, value: v.value };
+        } finally { if (was) scaleKids(node, was[0], was[1]); }
       },
       // APPLYING A STYLE RE-RESOLVES THE TEXT, so Figma demands the style's font be loaded FIRST — and
       // nothing a previous run loaded counts (#680). Modelled because an unconditional success makes the
@@ -890,6 +919,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // which no claim needed until a HEIGHT beside a caption was measured. Resize-then-bind is the only
       // order the executors use; the ring clears its bindings before it resizes.
       resize(w: number, h: number) {
+        const was = opts.scaleConstrained ? [node.width as number, node.height as number] as const : null;
+        try { return resizeTo(w, h); } finally { if (was) scaleKids(node, was[0], was[1]); }
+        function resizeTo(w: number, h: number): void {
         const bv = node.boundVariables as Record<string, { value?: number }>;
         // AN AUTO-LAYOUT FRAME, under `layoutModel` (#1757): the resize sets the width a FIXED axis holds, and a
         // HUG axis goes on hugging its children — so a root built at its `placementWidth` is 320 across and as
@@ -906,6 +938,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
         }
         Object.defineProperty(node, 'width', { configurable: true, get: () => (bv.width ? bv.width.value ?? 0 : w), set: (v: number) => { w = v; } });
         Object.defineProperty(node, 'height', { configurable: true, get: () => (bv.height ? bv.height.value ?? 0 : h), set: (v: number) => { h = v; } });
+        }
       },
       appendChild(c: Node) { c.parent = node; (node.children as Node[]).push(c); },
       // #2265 PR 2 — REORDER WITHOUT REPLACING: Figma's `insertChild` moves a node that already has a parent, and

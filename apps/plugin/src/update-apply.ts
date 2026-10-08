@@ -50,10 +50,10 @@ import { diffAnatomy, type HostNode } from '@prism3/engine/anatomy-readback';
 import { planBoundVars, planComponentName, planEffectStyles, planPaintVars, planSetProperties, planTextStyles, type AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { tailOf } from '@prism3/engine/figma-names';
 import type { ComponentRename } from '@prism3/engine/component-renames';
-import { applyComponentPlan, type ComponentApplyResult, type ComponentsApi, type CompPageTarget } from './write-components';
+import { applyComponentPlan, memberStamp, STAMP_KEY, type ComponentApplyResult, type ComponentsApi, type CompPageTarget } from './write-components';
 import { planTargets, presentNames } from './build-deps';
 import { NS } from './persist-figma';
-import { snapshotMember } from './member-baseline';
+import { baselineDiff, baselineOf, readBaseline, snapshotMember } from './member-baseline';
 import { hostPorts, previewUpdate, readSetView, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 
 /** The set's record of the members an update kept and marked deprecated (Q2): a JSON list of member names. */
@@ -124,6 +124,9 @@ export type SetOutcome = {
   misses: string[];
   /** Set when the run stopped in this set. */
   stopped?: string;
+  /** Members the dry run read as built by an earlier plugin and otherwise unchanged (`revisionUnknown`): given the
+   *  current stamp and nothing else (#2379). */
+  restamped?: string[];
 };
 
 export type ApplyResult = {
@@ -146,6 +149,12 @@ type LiveSet = LiveNode & {
 
 const idOf = (n: unknown): string => { try { return String((n as LiveNode).id ?? ''); } catch { return ''; } };
 const keyOf = (n: unknown): string => { try { const k = (n as LiveNode).key; return typeof k === 'string' ? k : ''; } catch { return ''; } };
+type RGB = { r: number; g: number; b: number };
+type Painted = LiveNode & { fills?: unknown; strokes?: unknown; width?: unknown; height?: unknown; x?: unknown; y?: unknown };
+const isRGB = (v: unknown): v is RGB => !!v && typeof v === 'object' && ['r', 'g', 'b'].every((k) => typeof (v as Record<string, unknown>)[k] === 'number');
+const sameRGB = (a: RGB, b: RGB): boolean => ['r', 'g', 'b'].every((k) => Math.abs((a as Record<string, number>)[k] - (b as Record<string, number>)[k]) < 1.5 / 255);
+const hexOf = (c: RGB): string => `#${[c.r, c.g, c.b].map((x) => Math.round(x * 255).toString(16).padStart(2, '0')).join('')}`;
+const vectorsOf = (n: Painted): Painted[] => { const out: Painted[] = []; for (const c of (n.children ?? []) as Painted[]) { if (c.type === 'VECTOR') out.push(c); else out.push(...vectorsOf(c)); } return out; };
 const kidsOf = (n: unknown): LiveNode[] => { try { return [...((n as LiveNode).children ?? [])] as LiveNode[]; } catch { return []; } };
 
 /** Every child's id the plan names, by path, walking plan and host together. A glyph's contents are Figma's
@@ -246,19 +255,24 @@ const preflight = async (api: ComponentsApi, t: UpdateTarget, p: SetPreview, liv
 };
 
 /** Which members this update configures, which it leaves, and why, from the dry run alone. */
-const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): { members: Map<string, { keep: Set<string>; accept?: boolean }>; skipped: { member: string; reason: string }[]; kept: { member: string; path: string }[]; unrecorded: string[] } => {
+const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): { members: Map<string, { keep: Set<string>; accept?: boolean }>; skipped: { member: string; reason: string }[]; kept: { member: string; path: string }[]; unrecorded: string[]; restamp: string[] } => {
   const byMember = new Map<string, SetPreview['handEdits']>();
   for (const h of p.handEdits) byMember.set(h.member, [...(byMember.get(h.member) ?? []), h]);
   const members = new Map<string, { keep: Set<string>; accept?: boolean }>();
   const skipped: { member: string; reason: string }[] = [];
   const kept: { member: string; path: string }[] = [];
   const unrecorded: string[] = [];
+  const restamp: string[] = [];
   const moved = new Map(p.moves.map((m) => [m.from, m.to] as const));
   const rootReplaced = new Set(p.replacements.filter((r) => r.path === '.').map((r) => r.member));
   for (const s of p.states) {
     const at = moved.get(s.member) ?? s.member;
     const edits = byMember.get(s.member) ?? [];
     if (s.state === 'unstamped') { skipped.push({ member: s.member, reason: 'not built by Prism3' }); continue; }
+    // NO CHANGES (#2379): a member the dry run reads as built by an earlier plugin matches its plan and its record.
+    // The build's pass is never run over it: on the NB master that pass, over 16 such sets, is what broke them. It
+    // takes the current stamp, and nothing else is written.
+    if (s.state === 'revisionUnknown') { restamp.push(at); continue; }
     if (s.state === 'noBaseline') {
       // NEVER READ AS "NO HAND EDITS": with no record there is no check, and the verdict says so by name.
       if (noRecord === 'skip') { skipped.push({ member: s.member, reason: 'no as-built record' }); continue; }
@@ -273,7 +287,31 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
     for (const e of edits) kept.push({ member: at, path: e.path });
     members.set(at, { keep, ...(choice === 'accept' ? { accept: true } : {}) });
   }
-  return { members, skipped, kept, unrecorded };
+  return { members, skipped, kept, unrecorded, restamp };
+};
+
+/** The members `plan` left for the current stamp alone (#2379). Each is checked against its record first, and again
+ *  after: a member that differs from it is not stamped, and anything written to one while it was stamped is a
+ *  content failure, by name. */
+const restampMembers = async (live: LiveSet, names: readonly string[], plans: ReadonlyMap<string, AnatomyPlan>, out: SetOutcome): Promise<void> => {
+  out.restamped = [];
+  const byName = new Map(kidsOf(live).map((c) => [String(c.name ?? ''), c as LiveNode & { setSharedPluginData?(ns: string, k: string, v: string): void }] as const));
+  for (const name of names) {
+    const m = byName.get(name);
+    const pl = plans.get(name);
+    if (!m || !pl) { out.skipped.push({ member: name, reason: 'not in the set to stamp' }); continue; }
+    const rec = readBaseline(m);
+    const now = baselineOf(await snapshotMember(m));
+    const d = rec ? baselineDiff(rec, now) : null;
+    if (!d || d.changed.length + d.added.length + d.removed.length) {
+      out.content.push(`${name}: differs from its record (${d ? [...d.changed, ...d.added, ...d.removed].slice(0, 3).join(', ') : 'no record'}), so it was not stamped`);
+      continue;
+    }
+    m.setSharedPluginData?.(NS, STAMP_KEY, memberStamp(pl));
+    const after = baselineDiff(rec!, baselineOf(await snapshotMember(m)));
+    if (after.changed.length + after.added.length + after.removed.length) out.content.push(`${name}: changed while it was stamped (${[...after.changed, ...after.added, ...after.removed].slice(0, 3).join(', ')})`);
+    out.restamped.push(name);
+  }
 };
 
 /** One set: renames, property changes, deprecations, then the build's own pass in update mode, then verify. */
@@ -383,6 +421,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
 
   // ── VERIFY (b): CONTENT, every updated member against its plan, apart from the hand edits kept ──────────────
   const ports = await hostPorts(host);
+  const varById = new Map((await api.variables.getLocalVariablesAsync()).map((v) => [String((v as { id?: unknown }).id ?? ''), v as unknown as { name: string; resolveForConsumer(n: unknown): { value: unknown } }] as const));
   for (const name of out.updated) {
     const a = after.get(name);
     const pl = plans.get(name);
@@ -397,7 +436,41 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
       if ([...keep].some((k) => at === k || at.startsWith(`${k}/`))) continue;
       out.content.push(`${name}/${at}.${d.field}: ${d.actual} (the plan says ${d.expected})`);
     }
+    // WHAT THE HOST DRAWS (#2379). `diffAnatomy` reads which variable a paint is bound to; the host draws the paint's
+    // own stored color, which an in-place rewrite left black on the NB master while every binding held. So every
+    // bound paint's stored color must be the one its variable resolves to for that node, and a glyph's vectors must
+    // sit inside its frame, as a fresh build leaves them. Read off the live node, never off the plan.
+    const walk = (pn: AnatomyPlan['root'], hn: Painted | undefined, at: string): void => {
+      if (!hn || [...keep].some((k) => at === k || at.startsWith(`${k}/`))) return;
+      if (pn.type !== 'INSTANCE_SWAP' && pn.type !== 'NESTED_INSTANCE') {
+        for (const field of ['fills', 'strokes'] as const) {
+          const ps = hn[field];
+          if (!Array.isArray(ps)) continue;
+          for (const p of ps as { color?: RGB; opacity?: number; boundVariables?: { color?: { id?: string } } }[]) {
+            const v = p?.boundVariables?.color?.id ? varById.get(p.boundVariables.color.id) : undefined;
+            if (!v || !p.color) continue;
+            let want: unknown;
+            try { want = v.resolveForConsumer(hn).value; } catch { continue; }
+            if (!isRGB(want)) continue;
+            const wa = (want as unknown as { a?: unknown }).a; const wantA = typeof wa === 'number' ? wa : 1;
+            const gotA = p.opacity ?? 1;
+            if (sameRGB(p.color, want) && Math.abs(gotA - wantA) < 0.01) continue;
+            out.content.push(`${name}/${at}.${field}: stored ${hexOf(p.color)} at ${Math.round(gotA * 100)}%, but ${tailOf(v.name) ?? v.name} resolves to ${hexOf(want)} at ${Math.round(wantA * 100)}%`);
+          }
+        }
+      }
+      if (pn.type === 'GLYPH') {
+        const W = Number(hn.width ?? 0), H = Number(hn.height ?? 0);
+        const over = vectorsOf(hn).filter((x) => Number(x.x) < -0.5 || Number(x.y) < -0.5 || Number(x.x) + Number(x.width) > W + 0.5 || Number(x.y) + Number(x.height) > H + 0.5);
+        for (const x of over) out.content.push(`${name}/${at}.glyph: a vector ${Number(x.width).toFixed(1)}×${Number(x.height).toFixed(1)} at ${Number(x.x).toFixed(1)},${Number(x.y).toFixed(1)} overflows its ${W}×${H} frame`);
+        return;
+      }
+      const kids = (hn.children ?? []) as Painted[];
+      for (const c of pn.children ?? []) walk(c, kids.find((k) => String(k.name ?? '') === c.name), at === '.' ? c.name : `${at}/${c.name}`);
+    };
+    walk(pl.root, a as Painted, '.');
   }
+  if (work.restamp.length) await restampMembers(now, work.restamp, plans, out);
   return out;
 };
 
@@ -424,15 +497,18 @@ export const applyUpdate = async (
   const liveOf = new Map<string, LiveSet>();
   for (const s of host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as LiveSet[]) liveOf.set(String(s.name ?? ''), s);
   const ordered = nestedFirst(targets);
-  const ready: { t: UpdateTarget; p: SetPreview; live: LiveSet }[] = [];
+  const ready: { t: UpdateTarget; p: SetPreview; live: LiveSet; stampOnly?: boolean }[] = [];
   for (const t of ordered) {
     const p = preview.sets.find((s) => s.set === (t.plans[0]?.component ?? t.def));
     const live = p ? liveOf.get(p.set) : undefined;
     if (!p || !live) continue;
     const why = await preflight(api, t, p, live, present);
     if (why) { res.outcomes.push({ def: t.def, set: p.set, refused: why, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: [], misses: [] }); continue; }
-    const nothing = p.counts.update + p.counts.handEdited + p.counts.add + p.counts.drop + p.counts.rename + p.counts.revisionUnknown === 0
+    // Nothing for the build's pass to do. A member from an earlier plugin (`revisionUnknown`) is not work for it
+    // (#2379): it takes only the current stamp, so a set of nothing else is stamped and never built over.
+    const nothing = p.counts.update + p.counts.handEdited + p.counts.add + p.counts.drop + p.counts.rename === 0
       && Object.values(p.properties).every((l) => l.length === 0);
+    if (nothing && p.counts.revisionUnknown) { ready.push({ t, p, live, stampOnly: true }); continue; }
     if (nothing) { res.outcomes.push({ def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: [], misses: [] }); continue; }
     ready.push({ t, p, live });
   }
@@ -447,9 +523,16 @@ export const applyUpdate = async (
     res.refusedAll = `the named version could not be saved (${(err as Error)?.message ?? String(err)}), so nothing was written`;
     return res;
   }
-  for (const { t, p, live } of ready) {
+  for (const { t, p, live, stampOnly } of ready) {
     // Re-read: a nested set updated just before this one changed what this one's instances point at.
     const fresh = (host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as LiveSet[]).find((s) => String(s.name ?? '') === p.set) ?? live;
+    if (stampOnly) {
+      const o: SetOutcome = { def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: [], misses: [] };
+      const w = plan(p, choiceFor(opts.choices, p.set), noRecordFor(opts.choices, p.set));
+      await restampMembers(fresh, w.restamp, new Map(t.plans.map((x) => [planComponentName(x), x] as const)), o);
+      res.outcomes.push(o);
+      continue;
+    }
     const o = await applySet(host, api, t, p, fresh, { description: opts.descriptionOf?.(t.def), yieldTo: opts.yieldTo, handEdits: choiceFor(opts.choices, p.set), noBaseline: noRecordFor(opts.choices, p.set) });
     res.outcomes.push(o);
     if (o.stopped) break;

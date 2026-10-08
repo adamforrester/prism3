@@ -53,6 +53,13 @@
  *   apply/copy     with the original's coordinate dropped, only the original is marked deprecated; a Figma duplicate
  *                  of it and an unstamped member off the plan keep their description, stamp and record exactly
  *                  (#2328 review). Mutation: the deprecations take the unstamped members too → `apply/copy`.
+ *   nochange/…     a set the dry run reads as "no changes" (every member built by an earlier plugin) takes its stamps and
+ *                  nothing else, read by a write log the test installs on the shim's nodes (#2379). Mutation: those
+ *                  members sent through the build's pass again → `nochange/writes` (7,575 other writes).
+ *   drawn/…        after an update in place, every bound paint stores the color and alpha its variable resolves to, and
+ *                  every glyph's vectors fit its frame, read by the test off the shim's nodes (#2379). Mutations: the
+ *                  paint base left black, or its alpha dropped → `drawn/paints`; the fresh glyph import not scaled to
+ *                  its frame → `drawn/glyphs`.
  *   noop/…         a set already current: no version, no write.
  *   order/…        nested sets are updated first.
  *
@@ -69,7 +76,7 @@ import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
 import { BASELINE_KEY } from './src/member-baseline';
 import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
-import { previewUpdate, type UpdateHost, type UpdateTarget } from './src/update-plan';
+import { previewUpdate, previewVerdict, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { applyUpdate, applyVerdict, previewHashOf, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
 
 let failed = 0;
@@ -107,6 +114,7 @@ const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[];
     page,
     liveRoot: true,
     identities: true,
+    scaleConstrained: true,
     refuseVersion: o.refuseVersion,
   }) as any;
   const built = await applyComponentPlan(plans, api);
@@ -508,6 +516,103 @@ section('unrecorded — a member with no as-built record is updated and named, n
   ok((childNamed(m, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === await varIdOf(w, 'space/999'), 'unrecorded/written: its content gap is the plan\'s');
   const post = (await previewUpdate(w.host, [{ def: TAG, plans: moveGap(w.plans) }])).sets[0];
   ok(post.counts.current === 45 && post.counts.noBaseline === 0, `unrecorded/recorded: it now has a record, and reads current (${JSON.stringify(post.counts)})`);
+}
+
+/* ── no change ───────────────────────────────────────────────────────────────────────────────────────── */
+section('no change — a member the dry run calls "no changes" is written nothing but its stamp and record (#2379)');
+/** Every write the host takes under `root`, from here on: a property assigned, or a method that changes the node
+ *  called. Installed by the TEST on the shim's own nodes (a property becomes an accessor that logs its set; a
+ *  method is wrapped), so the update's own report of what it wrote is never the witness (docs/34). */
+const watchWrites = (root: Node): string[] => {
+  const log: string[] = [];
+  const walk = (n: Node, path: string): void => {
+    for (const k of Object.keys(n)) {
+      if (k === 'children' || k === 'parent') continue;
+      const d = Object.getOwnPropertyDescriptor(n, k);
+      if (!d || !d.configurable) continue;
+      if (typeof d.value === 'function') {
+        if (/^(get|find|export|load)/.test(k)) continue;
+        const f = d.value as (...a: unknown[]) => unknown;
+        Object.defineProperty(n, k, { configurable: true, enumerable: d.enumerable, writable: true,
+          value: (...a: unknown[]) => { log.push(`${path} ${k}(${a.slice(0, 2).map((x) => (typeof x === 'string' ? x : typeof x)).join(', ')})`); return f.apply(n, a); } });
+      } else if ('value' in d) {
+        let v = d.value;
+        Object.defineProperty(n, k, { configurable: true, enumerable: d.enumerable, get: () => v, set: (x) => { log.push(`${path} .${k} =`); v = x; } });
+      }
+    }
+    for (const c of (n.children as Node[] | undefined) ?? []) walk(c, `${path}/${String(c.name)}`);
+  };
+  walk(root, String(root.name));
+  return log;
+};
+{
+  // The NB master's 16 sets: every member built by an earlier plugin, its stamp without the executor-revision
+  // field, matching its plan and its record. The dry run reads "no changes"; the apply wrote the build's whole pass
+  // over them. Mutation: those members sent to the build's update pass again → `nochange/writes`.
+  const w = await world(TAG);
+  for (const m of membersOf(w.set())) {
+    const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.split('|').slice(0, 2).join('|'));
+  }
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
+  const c0 = pre.sets[0]?.counts;
+  ok(c0?.revisionUnknown === 45 && /built by an earlier plugin/.test(previewVerdict(pre).lines.join(' ')) && /no changes/.test(previewVerdict(pre).lines[0] ?? ''),
+    `premise: all 45 members read "built by an earlier plugin", and the set reads no changes (${JSON.stringify(c0)}; ${previewVerdict(pre).lines[0]})`);
+  const log = watchWrites(w.set());
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(pre));
+  const other = log.filter((x) => !new RegExp(`setSharedPluginData\\(${NS}, (${STAMP_KEY}|${BASELINE_KEY})\\)$`).test(x));
+  ok(other.length === 0, `nochange/writes: nothing is written to the set or its members but each member's stamp and record (${other.length} other writes${other.length ? `, e.g. ${other.slice(0, 3).join(' | ')}` : ''})`);
+  const again = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
+  ok(applyVerdict(res).ok && again.sets[0]?.counts.current === 45,
+    `nochange/current: each member then reads current (${JSON.stringify(again.sets[0]?.counts)}; ${applyVerdict(res).headline})`);
+}
+
+/* ── what the host draws ────────────────────────────────────────────────────────────────────────────────── */
+section('what the host draws — after an update in place, every bound paint shows its own color and every glyph fits its frame (#2379)');
+{
+  // Read by THE TEST off the shim's nodes (docs/34: the update's own verify cannot witness itself). Four defs, built
+  // and then re-applied in place by a revision bump, so every paint is rewritten and every glyph re-laid. The shim keeps a
+  // paint's stored color as given (as the in-place host did) and scales SCALE children with their frame.
+  // Mutations: the paint base left black → `drawn/paints`; the glyph import not scaled to its frame → `drawn/glyphs`.
+  const bad: string[] = [];
+  const glyphs: string[] = [];
+  const hex = (c: { r: number; g: number; b: number }): string => `#${[c.r, c.g, c.b].map((x) => Math.round(x * 255).toString(16).padStart(2, '0')).join('')}`;
+  let paints = 0, glyphCount = 0, washes = 0;
+  for (const id of ['tag', 'field-message', 'checkbox-control', 'badge']) {
+    const w = await world(id, plansOf(id), { extraVars: ['space/999'] });
+    const vars = new Map((await w.api.variables.getLocalVariablesAsync()).map((v: { id: string }) => [v.id, v] as const));
+    // Re-applied by an executor revision bump, as `corpus/in place` does: every member reads "to update".
+    for (const m of membersOf(w.set())) {
+      const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+      (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, '|0'));
+    }
+    const next = w.plans;
+    const pre = await previewUpdate(w.host, [{ def: id, plans: next }]);
+    await applyUpdate(w.host, w.api as any, [{ def: id, plans: next }], previewHashOf(pre));
+    const glyphNames = new Set<string>();
+    const planWalk = (n: AnatomyPlan['root']): void => { if (n.type === 'GLYPH') glyphNames.add(n.name); for (const c of n.children ?? []) planWalk(c); };
+    for (const p of next) planWalk(p.root);
+    const walk = (n: Node, at: string): void => {
+      for (const field of ['fills', 'strokes'] as const) for (const p of (n[field] as { color?: { r: number; g: number; b: number }; opacity?: number; boundVariables?: { color?: { id: string } } }[] | undefined) ?? []) {
+        const v = p?.boundVariables?.color ? vars.get(p.boundVariables.color.id) as { resolveForConsumer(n: unknown): { value: { r: number; g: number; b: number; a?: number } } } | undefined : undefined;
+        if (!v || !p.color) continue;
+        paints++;
+        const want = v.resolveForConsumer(n).value;
+        if (want.a !== undefined && want.a < 1) washes++;
+        if (hex(p.color) !== hex(want) || Math.abs((p.opacity ?? 1) - (want.a ?? 1)) > 0.01) bad.push(`${id} ${at}.${field} ${hex(p.color)}@${p.opacity ?? 1} (resolves ${hex(want)}@${want.a ?? 1})`);
+      }
+      if (glyphNames.has(String(n.name)) && n.type === 'FRAME') {
+        glyphCount++;
+        const W = n.width as number, H = n.height as number;
+        for (const v of ((n.children as Node[]) ?? []).filter((k) => k.type === 'VECTOR'))
+          if ((v.x as number) + (v.width as number) > W + 0.5 || (v.y as number) + (v.height as number) > H + 0.5) glyphs.push(`${id} ${at} ${(v.width as number).toFixed(1)}×${(v.height as number).toFixed(1)} in ${W}×${H}`);
+      }
+      for (const c of (n.children as Node[] | undefined) ?? []) walk(c, `${at}/${String(c.name)}`);
+    };
+    walk(w.set(), id);
+  }
+  ok(paints > 100 && washes > 0 && bad.length === 0, `drawn/paints: every bound paint, after an update in place, stores the color and alpha its variable resolves to (${paints} paints, ${washes} washes; ${bad.length} wrong${bad.length ? `, e.g. ${bad.slice(0, 2).join(' | ')}` : ''})`);
+  ok(glyphCount > 10 && glyphs.length === 0, `drawn/glyphs: every glyph's vectors fit its frame after an update in place (${glyphCount} glyphs; ${glyphs.length} overflow${glyphs.length ? `, e.g. ${glyphs.slice(0, 2).join(' | ')}` : ''})`);
 }
 
 /* ── swap ────────────────────────────────────────────────────────────────────────────────────────────── */
