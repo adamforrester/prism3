@@ -299,6 +299,16 @@ jobs:
       - name: New shell chrome suite (UI redesign S1.2)
         run: npm run -w @prism3/studio test:chrome
 
+      # #2351 gap 1: the web studio's token export and the plugin's token export of the same brand are
+      # BYTE-IDENTICAL, and both are the committed out/<id>.tokens.json byte for byte. Drives both built
+      # bundles in Chromium through the person's own path (start screen → Export → Download, default
+      # settings) over every committed brand a UI can load, discovered from out/*.tokens.json and placed
+      # in both directions (nb, the regression fixture, is excluded with its reason). The expected file
+      # is the engine's Node CLI emission, which runs no studio code, so a defect shared by both bundles
+      # still fails. AFTER BOTH BUILDS. The browser comes from the verdict step.
+      - name: "The web and plugin token exports agree, byte for byte (#2351)"
+        run: npm run -w @prism3/studio test:export-parity
+
       # #2201: deleting a LIVE rule from apps/studio/src/styles.css left every suite green (the review of
       # #2116 deleted `.sg-g3`, whose class kit.ts builds at run time, and the style guide's three-column
       # grid fell to one column under a green verify). EXPECTED is apps/studio/live-css.json — the rules
@@ -343,6 +353,17 @@ jobs:
       # PAIR, which is 71-73 paths per brand — ~14% of the paired surface — that it cannot type-check.
       - name: The two DTCG exporters agree where a difference would be a defect
         run: npx --yes tsx@4 tools/exporter-comparison/gate.ts
+
+      # #2351 gap 2 (offline): after the plugin's Apply Theme writes a brand into the file shim
+      # (apps/plugin/file-shim.ts, shared with test-mcp-paste.ts), TokenPress's real exporter over that
+      # file gives the same DTCG as over the engine's committed Figma emission. Every difference is printed
+      # by path as ADDED / REMOVED / RETYPED / VALUE / DESCRIPTION and each count is asserted at 0; the one
+      # tolerance is half an 8-bit step inside a color. Grid and gradient styles, which no exporter reads,
+      # are compared as written. The tinted wash (alias with opacity), which TokenPress cannot read, is
+      # carved out as a bijection and checked as written (#2365). After the exporter gate, which holds the
+      # emission's export to the engine's DTCG.
+      - name: "The plugin's applied file exports what the engine emits (#2351)"
+        run: npm run -w @prism3/plugin test:readback-parity
 
       # Can a STRANGER consume what the engine emits? This runs Style Dictionary with a deliberately
       # naive config — no preprocessors, no custom transforms — because that is the only configuration
