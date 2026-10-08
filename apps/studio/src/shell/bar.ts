@@ -17,8 +17,8 @@
  * `main.ts`'s, and it reopens S12's start window over the studio (`startReopened`, `syncStart`), leaving the brand and
  * its origin in place until a path is chosen.
  *
- * WHAT IS LEFT LENT AS A NODE: the plugin's Pages menu (`pages`), the legacy page list the plugin keeps for the Style
- * guide until S11.2 moves it into the Figma menu. It is placed where it was, after Export.
+ * NOTHING IS LENT AS A NODE. The plugin's Pages menu, the last one, went with the old Style guide page in H12 (#2289,
+ * owner PG1 A): "Build style guides…" in the Figma menu is the way in.
  *
  * KEYBOARD (the brand menu): the switcher opens it on a click, Enter, Space or Arrow Down, with focus on the current
  * example (or the first item); Arrow keys, Home and End move between its items; Escape closes it back to the switcher;
@@ -103,8 +103,6 @@ export type BarLend = {
   readonly act: BarActions;
   /** The design.md import's accepted file types. */
   readonly importAccept: string;
-  /** The plugin's Pages menu, a legacy node (until S11.2), or null where the host offers no legacy page. */
-  readonly pages: (() => HTMLElement | null) | null;
 };
 
 /** The shell's nodes the bar places, the same nodes every time. */
@@ -198,15 +196,14 @@ export const mountBar = (lend: BarLend, placed: BarPlaced, cleanups: (() => void
     exp.setAttribute('aria-expanded', String(v.exportOpen));
 
     // The bar's order (the owner's top-bar decision, 2026-10-05, "A · Menu bar"): the mark, the brand switcher,
-    // Contrast, a spacer, Theme, the Agent tile's slot (plugin; T7 A), Activity, Export, then on the plugin the Pages
-    // menu, the Figma menu and Apply Theme. On the web Export is the last control, and its right edge
+    // Contrast, a spacer, Theme, the Agent tile's slot (plugin; T7 A), Activity, Export, then on the plugin the Figma
+    // menu and Apply Theme (the Pages menu went in H12, #2289). On the web Export is the last control, and its right edge
     // is the page content's. At the narrow tier the plugin's file actions take a second row (`rowBreak`), Apply Theme
     // on its right (`spacer2`); above it both draw nothing. The shell's nodes are placed, never re-minted, so one that
     // holds focus keeps it.
-    const pages = lend.pages ? lend.pages() : null;
-    const fileRow = !!(pages || placed.figma || applyBtn);
+    const fileRow = !!(placed.figma || applyBtn);
     const order: (HTMLElement | null)[] = [placed.mark, brandWrap, placed.verdict, spacer, placed.theme, placed.agent, placed.activity, exportWrap,
-      fileRow ? rowBreak : null, pages, placed.figma, fileRow ? spacer2 : null, applyBtn, layer];
+      fileRow ? rowBreak : null, placed.figma, fileRow ? spacer2 : null, applyBtn, layer];
     const want = order.filter((n): n is HTMLElement => !!n);
     if (want.length !== root.children.length || want.some((n, i) => root.children[i] !== n)) root.replaceChildren(...want);
 

@@ -144,6 +144,8 @@ const read = (page) => page.evaluate(() => {
     drawerOpen: drawer?.dataset.open === 'true',
     dot: q('[data-p3="activity-open"] .p3-status-dot')?.dataset.state ?? null,
     sgRowTitle: sgRow?.querySelector('[data-p3="op-head"] b')?.textContent ?? null,
+    sgRowExpanded: sgRow?.querySelector('[data-p3="op-head"]')?.getAttribute('aria-expanded') ?? null,
+    sgRowSummary: sgRow?.querySelector('[data-p3="op-summary"]')?.textContent ?? null,
     actbar: !!q('[data-p3="sg-actbar"] [data-p3="sg-draw"]'),
     runBeforeCols: (() => { const run = q('[data-p3="sg-run"]'); const what = q('[data-p3="sg-what"]'); return !!run && !!what && !!(run.compareDocumentPosition(what) & Node.DOCUMENT_POSITION_FOLLOWING); })(),
     layout: q('[data-p3="frame"]')?.dataset.layout ?? null,
@@ -244,10 +246,11 @@ console.log('\nopening the page, and Set up file (H10–H12, P8)');
   st = await read(page);
   ok(!st.warning && st.draw?.disabled === false && st.draw.label === 'Draw 7 tables' && st.summary === '7 tables · 10 variables, 1 text style',
     `P8, P12: once set up, Draw is on, "Draw 7 tables", "7 tables · 10 variables, 1 text style" (${JSON.stringify({ draw: st.draw, summary: st.summary })})`);
-  // H12: the legacy page stays in the Pages menu until the cleanup.
-  await hooks.click(page.locator('[data-p3="pages-menu"]'));
-  ok(await page.locator('[data-p3="rail-page-style-guide"]').count() === 1, 'H12: the legacy Style guide page is still in the Pages menu');
-  await page.keyboard.press('Escape');
+  // H12 (#2289, owner PG1 A): the Pages menu and the old Style guide page it opened are gone, so the Figma menu's Build
+  // style guides is the only way in. Read by the accessible name, since the menu's hook went with it.
+  const pagesBtn = await page.evaluate(() => ({ bar: !!document.querySelector('[data-p3="top-bar"] [data-p3="figma-open"]'),
+    n: [...document.querySelectorAll('[data-p3="top-bar"] button')].filter((b) => b.getAttribute('aria-label') === 'Pages' || b.textContent.trim() === 'Pages').length }));
+  ok(pagesBtn.bar && pagesBtn.n === 0, `H12: the top bar has its Figma menu and no Pages menu (Figma menu ${pagesBtn.bar}, Pages buttons ${pagesBtn.n})`);
   ok(errors.length === 0, `no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
@@ -430,7 +433,9 @@ const LIST = CAT.tables.slice(0, 4).map((t) => ({ key: t.key, title: t.title, pa
   await hooks.click(page.locator('[data-p3="sg-verdict"]'));
   await until(page, 'Activity opened from the verdict pill', () => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true');
   st = await read(page);
-  ok(st.drawerOpen === true, `the page's verdict pill opens Activity (open ${st.drawerOpen})`);
+  // F2, re-hosted from test:chrome in H12 (#2289): the old page's row verdict was its other host, and went with the page.
+  ok(st.drawerOpen === true && st.sgRowExpanded === 'true' && !!st.sgRowSummary,
+    `the page's verdict pill opens Activity on its Style guide row, expanded, with its summary (open ${st.drawerOpen}, expanded ${st.sgRowExpanded}, summary "${st.sgRowSummary}")`);
   await hooks.click(page.locator('[data-p3="activity-toggle"]'));
   // Close returns to where the menu was opened from (Brand).
   await hooks.click(page.locator('[data-p3="sg-close"]'));

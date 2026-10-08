@@ -155,7 +155,8 @@ export interface StyleGuideOptions {
   /** Args an older agent-link caller sent that no longer do anything (owner decision 20 removed `pixels`): accepted,
    *  ignored, and each said in the result's notes. Set by the agent link, never by the panel. */
   retired?: 'pixels'[];
-  /** Print lengths in REM as well, at a 16px base. Default on. */
+  /** Print lengths in REM as well, at a 16px base. On when left out, which only an agent-link caller does: the Build
+   *  style guides page always sends it, off by default (owner decision Q107 A). */
   rem?: boolean;
   /** The spacing specimen for every dimension row: `filled` (default) or `line`. `auto` means `filled`. */
   dimensionDisplay?: DimensionDisplay;

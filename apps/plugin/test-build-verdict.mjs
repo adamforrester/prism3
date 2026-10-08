@@ -114,14 +114,31 @@ const UI = join(ROOT, 'dist/ui.html');
 // The guard fails any hook this file names that never rendered, by name (`../studio/test-hooks.mjs`).
 const hooks = hookGuard(import.meta.url);
 
-/** A legacy page, reached through the Pages menu (UI redesign S1.2): the old rail moved into the top bar
- *  with its `rail-page-<key>` hooks. Opens the menu, clicks the destination, and waits for the legacy frame
- *  to say it shows that page (`data-legacy-page`, the hook's suffix) — a real condition, not a sleep. */
-const gotoRail = async (page, selector) => {
-  if (await page.locator('[data-p3="pages-menu-list"]').count() === 0) await hooks.click(page.locator('[data-p3="pages-menu"]'));
-  await hooks.click(page.locator(selector));
-  await page.waitForFunction((s) => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage === s,
-    hooks.role(selector).slice('rail-page-'.length));
+/** A small file for the Build style guides page, typed here: one table of each kind, so its tree and every option
+ *  group draw. */
+const SG_CATALOG = {
+  setUp: true,
+  collections: [
+    { id: 'C:core', name: 'core', modes: ['Default'], items: [{ name: 'pds3/core/palette/primary/100', table: 0, value: '#E0E0FF' }, { name: 'pds3/core/dimension/4', table: 1, value: '4px' }, { name: 'pds3/core/font/size/16', table: 2, value: '16' }] },
+    { id: 'text-styles', name: 'Text styles', modes: [], textStyles: true, items: [{ name: 'body/md', table: 3, value: '' }] },
+  ],
+  tables: [
+    { key: 'color|C:core|pds3/core/palette/primary', title: 'Primary', kind: 'color', page: 'Primitive tokens', rows: 1 },
+    { key: 'dimension|C:core|pds3/core/dimension', title: 'Dimension', kind: 'dimension', page: 'Primitive tokens', rows: 1 },
+    { key: 'fontSize|C:core|pds3/core/font/size', title: 'Font size', kind: 'font', page: 'Primitive tokens', rows: 1 },
+    { key: 'typography|text-styles|body', title: 'Text styles', kind: 'text', page: 'Semantic tokens', rows: 1 },
+  ],
+  notes: [],
+};
+/** The plugin's one page outside the tabs, Build style guides (S11.2), opened from the Figma menu as a designer opens it,
+ *  with `SG_CATALOG` posted, waiting on its Collection select: a real condition, not a sleep. It replaced the old Style
+ *  guide page the Pages menu opened (`gotoRail`, which went with both in H12, #2289). */
+const openStyleGuides = async (page) => {
+  await hooks.click(page.locator('[data-p3="figma-open"]'));
+  await hooks.click(page.locator('[data-p3="figma-option-style-guide"]'));
+  await hooks.need(page, '[data-p3="style-guides"]');
+  await page.evaluate((c) => window.postMessage({ pluginMessage: { type: 'style-guide-catalog', catalog: c } }, '*'), SG_CATALOG);
+  await hooks.need(page, '[data-p3="sg-collection"]');
 };
 
 // ---- the assertion harness -------------------------------------------------------------------
@@ -652,119 +669,15 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   }
 }
 
-// ── #259: the style-guide step reaches its verdict, and its options cross the bridge ──────────────
+// ── #259, #1785, Q19, #1778 on the old Style guide page: RETIRED in H12 (#2289, owner PG1 A and Q107 A) ─────
 //
-// The same #870 shape on a new control: `style-guide-result` has to repaint the PAGE's row, not only the
-// chrome, or the button sits on "Drawing…" after a run that finished. And the Customize options are only
-// worth having if they reach the main thread, so the outgoing message is captured off the bus — the UI's
-// `parent.postMessage` lands on this window — and its options compared with the values picked here.
-// EXPECTED is authored in the words on screen; nothing reads `styleGuideState` (docs/34 shape 16).
-{
-  const { page, errors } = await openPanel();
-  await page.evaluate(() => {
-    window.__sent = [];
-    window.addEventListener('message', (e) => { const m = e.data && e.data.pluginMessage; if (m && m.type === 'style-guide') window.__sent.push(m); });
-  });
-  await gotoRail(page, '[data-p3="rail-page-style-guide"]');
-  await hooks.need(page, '[data-p3="style-guide-draw"]', { timeout: 5000 });
-  const readSg = () => page.evaluate(() => {
-    const btn = document.querySelector('[data-p3="style-guide-draw"]');
-    const det = document.querySelector('[data-p3="style-guide-customize"]');
-    return {
-      button: btn ? btn.textContent : null,
-      disabled: btn ? btn.disabled : null,
-      verdict: [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-verdict"]')].map((n) => n.textContent),
-      pendingText: [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-pill"]')].map((n) => n.textContent),
-      customize: det ? { open: det.open, text: det.textContent } : null,
-      sent: window.__sent,
-    };
-  });
-  const before = await readSg();
-  ok(before.button === '▦ Draw style guide' && before.disabled === false, `#259 the Style guide page offers "▦ Draw style guide", enabled — read "${before.button}", disabled ${before.disabled}`);
-  ok(before.customize !== null && before.customize.open === false, '#259 the per-type options fold away under a closed "Customize"');
-  ok(/Color value/.test(before.customize?.text ?? '') && /Display style/.test(before.customize?.text ?? '') && /From each token’s role/.test(before.customize?.text ?? ''),
-    '#259 Customize carries Color value and Display style, the display defaulting to the token\'s role');
-  ok(['Dimension display', 'Font variable display', 'REM', 'Paragraph spacing', 'Text decoration', 'Title cell'].every((w) => (before.customize?.text ?? '').includes(w)),
-    '#259 phase 2: Customize carries Dimension display, Font variable display, REM, Paragraph spacing and Text decoration');
-  // Owner decision 20: the Pixels toggle is removed, since the base value always prints.
-  ok(!(before.customize?.text ?? '').includes('Pixels'), '#259 decision 20: Customize has no Pixels field');
-
-  await hooks.click(page.locator('[data-p3="style-guide-customize"] summary'));
-  await page.locator('[data-p3="style-guide-value-format"] select').selectOption('hsl');
-  await page.locator('[data-p3="style-guide-display"] select').selectOption('border');
-  // #259 phase 2: a dimension display, a font-variable display, REM off and paragraph spacing on, each knob
-  // found by its own hook.
-  await page.locator('[data-p3="style-guide-dimension-display"] select').selectOption('line');
-  await page.locator('[data-p3="style-guide-font-display"] select').selectOption('weight');
-  await hooks.click(page.locator('[data-p3="style-guide-rem"] input'), { force: true });
-  await hooks.click(page.locator('[data-p3="style-guide-paragraph-spacing"] input'), { force: true });
-  await hooks.click(page.locator('[data-p3="style-guide-title-cell"] input'), { force: true });
-  // #1778: the Tables field — titles separated by commas on one line, sent as a list, blanks dropped.
-  await page.locator('[data-p3="style-guide-tables"] textarea').fill('Primary — nbds,  Text — pds3, ');
-  const clicked = await hooks.click(page.locator('[data-p3="style-guide-draw"]'), { timeout: 4000 }).then(() => true, () => false);
-  ok(clicked, '#259 the Draw style guide control can be clicked');
-  // postMessage delivers asynchronously; a real condition rather than a sleep.
-  await page.waitForFunction(() => window.__sent.length > 0, null, { timeout: 3000 }).catch(() => {});
-  const pending = await readSg();
-  ok(pending.button === '… Drawing…' && pending.disabled === true, `#259 a run in flight reads "… Drawing…", disabled — read "${pending.button}", disabled ${pending.disabled}`);
-  ok(pending.sent.length === 1 && pending.sent[0].options?.valueFormat === 'hsl' && pending.sent[0].options?.display === 'border',
-    `#259 the click posts one style-guide message carrying the picked options — sent ${JSON.stringify(pending.sent)}`);
-  const p2 = pending.sent[0]?.options ?? {};
-  ok(p2.dimensionDisplay === 'line' && p2.fontDisplay === 'weight' && p2.rem === false && p2.paragraphSpacing === true && p2.titleCell === true && p2.pixels === undefined && p2.textDecoration === undefined,
-    `#259 phase 2: the dimension and font displays, REM off and paragraph spacing on cross the bridge; untouched toggles are not sent — sent ${JSON.stringify(p2)}`);
-  ok(JSON.stringify(pending.sent[0]?.options?.tables) === JSON.stringify(['Primary — nbds', 'Text — pds3']),
-    `#1778 the Tables field crosses the bridge as a list of titles — sent ${JSON.stringify(pending.sent[0]?.options?.tables)}`);
-  // #1778: a progress reading rewrites the page's pending pill in place.
-  await post(page, { type: 'style-guide-progress', done: 6, total: 22, tableMs: 900 });
-  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-pill"]')].some((n) => n.textContent === 'Drawing table 7 of 22…'), null, { timeout: 3000 }).catch(() => {});
-  const counting = await readSg();
-  ok(counting.pendingText.length === 1 && counting.pendingText[0] === 'Drawing table 7 of 22…', `#1778 a run in flight counts its tables on the page's row — read ${JSON.stringify(counting.pendingText)}`);
-
-  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 22 tables', summary: '22 tables: 11 on ↳ Primitive tokens, 11 on ↳ Semantic tokens' });
-  await page.waitForFunction(() => document.querySelector('[data-p3="style-guide-draw"]')?.textContent === '▦ Draw style guide', null, { timeout: 5000 }).catch(() => {});
-  const done = await readSg();
-  ok(done.button === '▦ Draw style guide' && done.disabled === false, `#259 the verdict re-enables the control on the page — read "${done.button}", disabled ${done.disabled}`);
-  ok(done.verdict.length === 1 && done.verdict[0].includes('✓ style guide: 22 tables'), `#259 exactly one verdict pill on the page's row, in the headline's words — read ${JSON.stringify(done.verdict)}`);
-
-  // #1785: a run the AGENT LINK started, which the panel did not click for. While it runs (`agent-started` until its
-  // verdict lands) the page's button is busy, so a click cannot start a second run over it: the rule the other writes
-  // already follow (owner decision #4 on #1956). The main thread's run guard (#1957) refuses a second run regardless.
-  await post(page, { type: 'agent-started', id: 'sg1', cmd: 'style-guide' });
-  await page.waitForFunction(() => document.querySelector('[data-p3="style-guide-draw"]')?.textContent === '… Drawing…', null, { timeout: 3000 }).catch(() => {});
-  const agentRun = await readSg();
-  ok(agentRun.button === '… Drawing…' && agentRun.disabled === true,
-    `#1785 an agent-link style guide in flight makes the page's button busy, disabled — read "${agentRun.button}", disabled ${agentRun.disabled}`);
-  // Owner decision Q19 b: the agent's table readings (the dispatcher's `agent-progress`, phase `table`) count on the
-  // page's row and on the Activity drawer's Style guide row, in the panel run's words.
-  await post(page, { type: 'agent-progress', id: 'sg1', progress: { at: '2026-10-05T00:00:00.000Z', phase: 'table', done: 6, total: 22, chunkMs: 900 } });
-  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-pill"]')].some((n) => n.textContent === 'Drawing table 7 of 22…'), null, { timeout: 3000 }).catch(() => {});
-  const agentCount = await page.evaluate(() => ({
-    row: [...document.querySelectorAll('[data-p3="style-guide-row"] [data-p3="status-pill"]')].map((n) => n.textContent),
-    drawer: [...document.querySelectorAll('[data-p3="activity-op"][data-op="styleguide"] [data-p3="op-progress"]')].map((n) => n.textContent),
-  }));
-  ok(JSON.stringify(agentCount.row) === JSON.stringify(['Drawing table 7 of 22…']),
-    `Q19 an agent-link style guide counts its tables on the page's row — read ${JSON.stringify(agentCount.row)}`);
-  ok(JSON.stringify(agentCount.drawer) === JSON.stringify(['Drawing table 7 of 22…']),
-    `Q19 an agent-link style guide counts its tables on the Activity drawer's Style guide row — read ${JSON.stringify(agentCount.drawer)}`);
-  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 1 table', summary: '1 table updated in place — no token changes' });
-  await post(page, { type: 'agent-finished', id: 'sg1', cmd: 'style-guide' });
-  await page.waitForFunction(() => document.querySelector('[data-p3="style-guide-draw"]')?.textContent === '▦ Draw style guide', null, { timeout: 5000 }).catch(() => {});
-  const agentDone = await readSg();
-  ok(agentDone.disabled === false && agentDone.verdict.length === 1 && agentDone.verdict[0].includes('✓ style guide: 1 table'), `#1785 the agent's verdict ends it on the page's row — read ${JSON.stringify(agentDone.verdict)}`);
-
-  // The Tables field with a line break splits on line breaks ONLY, so a title with a comma in it survives.
-  const custom = page.locator('[data-p3="style-guide-customize"]');
-  if (!(await custom.evaluate((d) => d.open))) await hooks.click(custom.locator('summary'));
-  await page.locator('[data-p3="style-guide-tables"] textarea').fill('Brand, legacy — nbds\nText — pds3\n');
-  await hooks.click(page.locator('[data-p3="style-guide-draw"]'), { timeout: 4000 }).catch(() => {});
-  await page.waitForFunction(() => window.__sent.length > 1, null, { timeout: 3000 }).catch(() => {});
-  const lines = await readSg();
-  ok(JSON.stringify(lines.sent[1]?.options?.tables) === JSON.stringify(['Brand, legacy — nbds', 'Text — pds3']),
-    `#1778 a Tables field with a line break sends a title a line, its comma kept — sent ${JSON.stringify(lines.sent[1]?.options?.tables)}`);
-  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 2 tables', summary: '2 tables updated in place' });
-  ok(errors.length === 0, `#259 no console errors (${errors.slice(0, 2).join(' · ')})`);
-  await page.close();
-}
+// The old page went with the Pages menu. What this arm held moves or goes, as the owner decided (Q107 A):
+//   · the options crossing the bridge, and the run's verdict, pending text and Draw's busy state: the Build style
+//     guides page's own, held by `test-style-guides-page.mjs` (its `style-guide` posts and its run line);
+//   · an agent's run shown on the page (#1785, Q19): Activity shows it, accepted (Q107 A, item 3; #2313 tracks a
+//     suspected stale table list on the new page);
+//   · the Tables field's comma lists and key matching (#1778): accepted lost (Q107 A, item 2), the new page's "Draw by
+//     table title" box takes one title a line.
 
 // ── #1845: File setup reaches its verdict (RE-HOSTED in S8.2: the Figma menu is its one control) ──────────────
 //
@@ -1064,42 +977,10 @@ for (const [n, label] of [[2, 'the small regime — the ordinary client failure'
   await page.close();
 }
 
-// ── S11: a page row's verdict opens the Activity drawer on that operation's row ─────────────────────
+// ── S11: a page row's verdict opens the Activity drawer on that operation's row: MOVED in H12 (#2289) ──────────
 //
-// Two rows, the asked-for one second and neither expanded (both clean, so both collapsed, #483): a reveal
-// that expanded the first row, or every row, cannot pass by coinciding with the target. RE-HOSTED in S8.2: Set up
-// file has no page row now (G8 A), so the row clicked is the Style guide page's, the one page row left with a verdict.
-{
-  const { page, errors } = await openPanel();
-  await post(page, { type: 'apply-result', ok: true, headline: '✓ 42 roles written', summary: '42 roles written' });
-  await post(page, { type: 'style-guide-result', ok: true, headline: '✓ style guide: 22 tables', summary: '22 tables drawn' });
-  await page.waitForFunction(() => document.querySelectorAll('[data-p3="activity-op"]').length === 2, null, { timeout: 5000 }).catch(() => {});
-  await gotoRail(page, '[data-p3="rail-page-style-guide"]');
-  await hooks.need(page, '[data-p3="style-guide-row"]');
-  const before = await page.evaluate(() => ({
-    order: [...document.querySelectorAll('[data-p3="activity-op"]')].map((n) => n.dataset.op),
-    expanded: [...document.querySelectorAll('[data-p3="activity-op"] [data-p3="op-head"]')].map((n) => n.getAttribute('aria-expanded')),
-    open: document.querySelector('[data-p3="activity-drawer"]')?.dataset.open,
-  }));
-  ok(JSON.stringify(before.order) === '["apply","styleguide"]' && before.expanded.every((e) => e === 'false') && before.open === 'false',
-    `S11 reveal premise: two clean rows, Style guide second, neither expanded, the drawer closed — ${JSON.stringify(before)}`);
-  const pill = page.locator('[data-p3="style-guide-row"] [data-p3="status-verdict"]');
-  const caret = await pill.evaluate((n) => { const c = n.querySelector('.caret'); return c ? { text: c.textContent, hidden: c.getAttribute('aria-hidden'), name: n.getAttribute('aria-label') } : null; }).catch(() => null);
-  ok(caret?.text === '▾' && caret.hidden === 'true' && (caret.name ?? '').startsWith('✓ style guide: 22 tables'),
-    `S11 the page row's verdict keeps its caret (owner decision #5 on #1956), hidden from its name — read ${JSON.stringify(caret)}`);
-  const clicked = await hooks.click(pill, { timeout: 4000 }).then(() => true, () => false);
-  ok(clicked, 'S11 the style guide verdict on the page row can be clicked');
-  await page.waitForFunction(() => document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', null, { timeout: 5000 }).catch(() => {});
-  const shown = await page.evaluate(() => {
-    const head = (k) => document.querySelector(`[data-p3="activity-op"][data-op="${k}"] [data-p3="op-head"]`)?.getAttribute('aria-expanded');
-    const sum = document.querySelector('[data-p3="activity-op"][data-op="styleguide"] [data-p3="op-summary"]');
-    return { open: document.querySelector('[data-p3="activity-drawer"]')?.dataset.open === 'true', expanded: head('styleguide'), other: head('apply'), summary: sum && sum.checkVisibility() ? sum.textContent : null };
-  });
-  ok(shown.open && shown.expanded === 'true' && shown.other === 'false' && (shown.summary ?? '').includes('22 tables drawn'),
-    `S11 clicking it opens the drawer with the Style guide row expanded, and only that row — open ${shown.open}, expanded ${shown.expanded}, Apply Theme ${shown.other}, summary ${JSON.stringify(shown.summary)}`);
-  ok(errors.length === 0, `S11 reveal: no console errors (${errors.slice(0, 2).join(' · ')})`);
-  await page.close();
-}
+// The old Style guide page's row verdict was the last page row with one, and went with the page. Build style guides'
+// own verdict pill opens Activity on its Style guide row, expanded, with its summary: `test-style-guides-page.mjs`.
 
 // ── S11: the 4 s collapse waits while the pointer, or focus, is inside the drawer (concept v6) ──────────
 //
@@ -1391,11 +1272,12 @@ for (const how of ['pointer', 'focus']) {
   ok(VERDICTS.length === 4, `#1890 the drawer arm drives all 4 verdict kinds (found ${VERDICTS.length})`);
   for (const { op, msg: v } of VERDICTS) {
     const { page, errors } = await openPanel();
-    // On a legacy page, which scrolls the document under the sticky head this arm measures: the Components page moved to
-    // the two panes in S8.2, whose panes scroll on their own, so the arm moved to the plugin's one legacy page left, the
-    // Style guide, at a height that makes the document scroll.
+    // On the plugin's one full page, Build style guides, whose head is the frame's sticky box (in the two panes it is
+    // `display: contents`), at a short height. Until H12 (#2289) this arm sat on the old Style guide page, the last
+    // layout that scrolled the document under the head; none does now (the panes and this page scroll on their own), so
+    // the drawer's pin is read as geometry, its bottom edge on the window's, and the scrolled reads went with that page.
     await page.setViewportSize({ width: 1280, height: 480 });
-    await gotoRail(page, '[data-p3="rail-page-style-guide"]');
+    await openStyleGuides(page);
     // v6 lists an operation only once it has run, so before the verdict the drawer holds no such row: the
     // read below is of the row this verdict made.
     const before = await page.evaluate((k) => ({ drawer: !!document.querySelector('[data-p3="activity-drawer"]'), row: !!document.querySelector(`[data-p3="activity-op"][data-op="${k}"]`) }), op);
@@ -1414,7 +1296,6 @@ for (const how of ['pointer', 'focus']) {
       const cs = chrome ? getComputedStyle(chrome) : null;
       const style = document.documentElement.getAttribute('style');
       const drawer = document.querySelector('[data-p3="activity-drawer"]');
-      const ds = drawer ? getComputedStyle(drawer) : null;
       const inView = () => { const r = detail?.getBoundingClientRect(); return !!r && r.height > 0 && r.top >= 0 && r.bottom <= window.innerHeight; };
       const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
       window.scrollTo(0, maxScroll);
@@ -1427,8 +1308,8 @@ for (const how of ['pointer', 'focus']) {
         chromeHeight: chrome ? chrome.offsetHeight : null,
         chromeSticky: !!cs && cs.position === 'sticky' && cs.display !== 'contents',
         drawerHolds: !!(drawer && detail && drawer.contains(detail)),
-        drawerPinned: !!ds && ds.position === 'sticky' && ds.bottom === '0px' && drawer.dataset.open === 'true',
-        scrolls: maxScroll > 0, atTop, atBottom,
+        drawerPinned: !!drawer && drawer.dataset.open === 'true' && Math.abs(drawer.getBoundingClientRect().bottom - window.innerHeight) <= 1,
+        documentScrolls: maxScroll > 0, atTop, atBottom,
         detailOpen: !!detail && detail.checkVisibility(),
       };
     }, op);
@@ -1436,8 +1317,8 @@ for (const how of ['pointer', 'focus']) {
     ok((seen.summary ?? '').includes(v.summary.slice(0, 24)), `#1890 ${v.type}: the open row carries the host's own summary — read ${JSON.stringify(seen.summary)}`);
     ok(seen.drawerHolds && seen.drawerPinned,
       `#1890 ${v.type}: the summary opens in the Activity drawer, and the drawer is open and pinned to the bottom edge — in drawer ${seen.drawerHolds}, pinned and open ${seen.drawerPinned}`);
-    ok(seen.scrolls && seen.atTop && seen.atBottom,
-      `#1890 ${v.type}: the open summary stays in view with the page scrolled to its top and to its bottom — page scrolls ${seen.scrolls}, in view at top ${seen.atTop}, at bottom ${seen.atBottom}`);
+    ok(!seen.documentScrolls && seen.atTop,
+      `#1890 ${v.type}: the open summary is in view, on a page that does not scroll the document (H12) — document scrolls ${seen.documentScrolls}, in view ${seen.atTop}`);
     ok(seen.chromeSticky && seen.finalChromeH === `${seen.chromeHeight}px`,
       `#1890 ${v.type}: --chrome-h equals the sticky chrome's rendered height after the verdict — --chrome-h ${seen.finalChromeH}, chrome ${seen.chromeHeight}px, sticky ${seen.chromeSticky}`);
     ok(errors.length === 0, `#1890 ${v.type}: no console errors (${errors.slice(0, 2).join(' · ')})`);

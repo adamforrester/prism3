@@ -535,8 +535,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
       });
     }
     scratch?.remove();
-    const legacy = document.querySelector('[data-p3="legacy-frame"]');
-    return { text, fields, unparsed, legacyScheme: legacy ? getComputedStyle(legacy).colorScheme : null, scheme: getComputedStyle(document.documentElement).colorScheme };
+    return { text, fields, unparsed, scheme: getComputedStyle(document.documentElement).colorScheme };
   };
 
   // The bars, AUTHORED here as WCAG states them — not imported from the studio suite, so a change to one
@@ -708,6 +707,21 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
   let unparsedTotal = 0;
   let textTotal = 0, fieldTotal = 0, worst = { ratio: Infinity, where: '' };
   const pagesSeen = new Set();
+  /** A small file for the Build style guides page, typed here: one table of each kind, so every option group draws. */
+  const SG_CATALOG = {
+    setUp: true,
+    collections: [
+      { id: 'C:core', name: 'core', modes: ['Default'], items: [{ name: 'pds3/core/palette/primary/100', table: 0, value: '#E0E0FF' }, { name: 'pds3/core/dimension/4', table: 1, value: '4px' }, { name: 'pds3/core/font/size/16', table: 2, value: '16' }] },
+      { id: 'text-styles', name: 'Text styles', modes: [], textStyles: true, items: [{ name: 'body/md', table: 3, value: '' }] },
+    ],
+    tables: [
+      { key: 'color|C:core|pds3/core/palette/primary', title: 'Primary', kind: 'color', page: 'Primitive tokens', rows: 1 },
+      { key: 'dimension|C:core|pds3/core/dimension', title: 'Dimension', kind: 'dimension', page: 'Primitive tokens', rows: 1 },
+      { key: 'fontSize|C:core|pds3/core/font/size', title: 'Font size', kind: 'font', page: 'Primitive tokens', rows: 1 },
+      { key: 'typography|text-styles|body', title: 'Text styles', kind: 'text', page: 'Semantic tokens', rows: 1 },
+    ],
+    notes: [],
+  };
   const tabsSeen = new Set();
   /** The moved tabs the sweep measures (S8.2), each by its tab's hook and its levers' hook. Literal. */
   const TAB_SWEEP = [
@@ -732,7 +746,6 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
     const mismatched = m.fields.filter((f) => /\bdark\b/.test(f.scheme) && f.groundLum > 0.5);
     ok(mismatched.length === 0,
       `${where}: no form control resolves a dark color-scheme over a light ground — that hands the UA the field ink, caret and option lists (#1031)${mismatched.length ? ` — ${mismatched.slice(0, 3).map((f) => `${f.hook ?? f.cls} "${f.scheme}" on a ground at luminance ${f.groundLum}`).join(' | ')}` : ''}`);
-    if (m.legacyScheme !== null) ok(!/\bdark\b/.test(m.legacyScheme), `${where}: the legacy frame resolves a light color-scheme ("${m.legacyScheme}"), pinned until each page moves (D2)`);
     ok(m.text.length >= STATE_TEXT_FLOOR, `${where}: measured ${m.text.length} text nodes (floor ${STATE_TEXT_FLOOR})`);
     // X4 A: a label in a really disabled button, under its bar, is exempt as an inactive component, and held here instead.
     const exemptText = m.text.filter(isExemptText);
@@ -826,20 +839,18 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
         await hooks.click(page.locator('[data-p3="start-example"]').first());
         await waitStart(page, false);
         await hooks.need(page, '[data-p3="frame"]');   // the app view (Color › Palettes draws the two panes from S2)
-        // The old rail is the Pages menu now (UI redesign S1.2), with the rail's hooks on its items.
-        await hooks.click(page.locator('[data-p3="pages-menu"]'));
-        await hooks.need(page, '[data-p3="pages-menu-list"]');
-        const rail = await page.$$eval('[data-p3^="rail-page-"]', (els) => els.map((e) => ({
-          hook: e.getAttribute('data-p3'), label: e.querySelector('[data-p3="rail-item-label"]')?.textContent.trim() ?? '' })));
-        await hooks.click(page.locator('[data-p3="pages-menu"]'));
-        for (const { hook, label } of rail) {
-          await hooks.click(page.locator('[data-p3="pages-menu"]'));
-          await hooks.click(page.locator(`[data-p3="${hook}"]`));
-          await page.waitForFunction((h) => document.querySelector('[data-p3="legacy-frame"]')?.dataset.legacyPage === h.slice('rail-page-'.length), hook);
-          await page.evaluate(() => document.fonts.ready);
-          pagesSeen.add(hook);
-          await measure(page, `${tag} / ${label}`);
-        }
+        // The plugin's one page outside the tabs, Build style guides (S11.2), opened from the Figma menu as a designer
+        // opens it and given a small file, so its tree and every option group draw. It replaced the old Style guide page
+        // the Pages menu opened, which went in H12 (#2289, owner PG1 A).
+        await hooks.click(page.locator('[data-p3="figma-open"]'));
+        await hooks.click(page.locator('[data-p3="figma-option-style-guide"]'));
+        await hooks.need(page, '[data-p3="style-guides"]');
+        await page.evaluate((c) => window.postMessage({ pluginMessage: { type: 'style-guide-catalog', catalog: c } }, '*'), SG_CATALOG);
+        await hooks.need(page, '[data-p3="sg-collection"]');
+        await page.evaluate(() => document.fonts.ready);
+        pagesSeen.add('style-guides');
+        await measure(page, `${tag} / Build style guides`);
+        await hooks.click(page.locator('[data-p3="sg-close"]'));
         // The tabs, each by its tab hook and its levers' hook (UI redesign S8.2): Components moved off the Pages menu to
         // its own tab, so the plugin-only build controls are measured there, and every other moved tab with it, since
         // the menu now holds the Style guide alone.
@@ -879,10 +890,10 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
     }
   }
   // REPRESENTED, not counted: the build controls only this bundle has must be among those measured. Since S8.2 they are
-  // the Components TAB's (its Build button and set choices), not a Pages menu page's; the menu's one page left, the
-  // Style guide, must be measured too.
+  // the Components TAB's (its Build button and set choices); the plugin's one page outside the tabs, Build style guides,
+  // must be measured too (the old Style guide page, the Pages menu's, until H12).
   ok(tabsSeen.has(hooks.role('[data-p3="tab-components"]')), `the Components tab, with the plugin-only build controls, was measured (saw ${[...tabsSeen].join(', ') || 'no tabs'})`);
-  ok(pagesSeen.has(hooks.role('[data-p3="rail-page-style-guide"]')), `the plugin's one Pages menu page, the Style guide, was measured (saw ${[...pagesSeen].join(', ') || 'no pages'})`);
+  ok(pagesSeen.has('style-guides'), `the plugin's one page outside the tabs, Build style guides, was measured (saw ${[...pagesSeen].join(', ') || 'no pages'})`);
   ok(textTotal >= SWEEP_TEXT_FLOOR, `measured ${textTotal} text nodes across the panel sweep (floor ${SWEEP_TEXT_FLOOR})`);
   ok(fieldTotal >= SWEEP_FIELD_FLOOR, `measured ${fieldTotal} form controls across the panel sweep (floor ${SWEEP_FIELD_FLOOR})`);
   // F1 A, counted: Layout's first breakpoint field is disabled by design (D13), so every Layout tab measured must exempt it.
@@ -898,7 +909,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
   const noImport = startTags.filter((t) => !BUTTON_EXEMPTIONS.some(([w, hk]) => w === t && hk === 'start-import'));
   ok(noImport.length === 0, `every start moment measured exempted the disabled Import button's label (X4 A) — exempted ${BUTTON_EXEMPTIONS.length}${noImport.length ? `; none in ${noImport.join(', ')}` : ''}`);
   console.log(`  Contrast exemption (inactive buttons, WCAG 2.2 SC 1.4.3; X4 A): ${BUTTON_EXEMPTIONS.length} label(s) exempted in ${new Set(BUTTON_EXEMPTIONS.map(([w]) => w)).size} state(s): ${[...new Set(BUTTON_EXEMPTIONS.map(([w, h]) => `${w} (${h})`))].join(', ')}.`);
-  console.log(`  ${pagesSeen.size} rail page(s) and ${tabsSeen.size} tabs × 2 schemes × 2 Figma themes, plus the start moment at both sizes: ${textTotal} text nodes, ${fieldTotal} form controls.`);
+  console.log(`  ${pagesSeen.size} menu page(s) and ${tabsSeen.size} tabs × 2 schemes × 2 Figma themes, plus the start moment at both sizes: ${textTotal} text nodes, ${fieldTotal} form controls.`);
   console.log(`  Lowest chrome text: ${worst.ratio}:1 — ${worst.where}`);
   console.log(`  Unparsed colors: ${unparsedTotal} (every one fails by name).`);
 }

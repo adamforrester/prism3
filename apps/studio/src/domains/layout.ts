@@ -34,7 +34,7 @@ import {
   COLUMN_CHOICES, MAX_BREAKPOINTS, MIN_BREAKPOINTS, addBreakpoint, autoGrid, breakpointsOf, editBreakpoint, overrideOf,
   namesFor, removeBreakpoint, setColumnOverride, setColumns, setContainer, setGapOverride, type BreakpointResult, type ContainerKey, type GapField,
 } from '../state/layout-input';
-import { DOMAINS, LAYOUT_LABELS, pageOfTab, type Host, type PageData, type Section } from '../shell/pages';
+import { DOMAINS, LAYOUT_LABELS, pageOfTab, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
 import { addRowButton, leverBlock, leverOf, promoteLever, slider, sliderReadout, stateLine, textField, tokenLabel, type LeverBlock } from '../ui/lever-kit';
@@ -42,8 +42,6 @@ import { noteSectionEdit } from '../preview/follow-edit';
 import { valuePicker, type PickerValue, type ValuePickerOpts } from '../ui/value-picker';
 
 const PAGE = DOMAINS.find((d) => d.id === 'layout') as PageData;
-/** The host this bundle runs in (the build's define, as Shape reads it), for routing Continue by tab. */
-const hostKind = (): Host => (PRISM3_HOST === 'figma' ? 'figma' : 'web');
 
 /** The page's copy, APPROVED by the owner (S10 scope, D11–D17), verbatim. */
 export const LAYOUT_COPY = {
@@ -329,7 +327,7 @@ export const mountLayoutLevers = (host: HTMLElement, cleanups: (() => void)[]): 
     const next = hook(h('button', 'p3-btn p3-btn-page p3-next'), 'layout-continue');
     next.type = 'button';
     next.append(h('span', 'p3-btn-label', LAYOUT_COPY.next), glyph('chevr'));
-    next.onclick = () => setPage(pageOfTab('components', hostKind()));
+    next.onclick = () => setPage(pageOfTab('components'));
     const nr = h('div', 'p3-nextrow');
     nr.append(next);
     parts.push(nr);

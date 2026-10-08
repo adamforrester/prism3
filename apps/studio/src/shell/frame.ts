@@ -1,31 +1,27 @@
 /**
  * The frame (UI redesign S1.2, `docs/superpowers/ui-redesign/implementation-plan.md` §3.3–3.6 and §4):
- * the top bar, the tab row with Color's sub-row, the two panes, the legacy frame, and narrow mode.
+ * the top bar, the tab row with Color's sub-row, the two panes, the menu page, and narrow mode.
  *
- * WHAT IT OWNS AND WHAT IT LENDS. The frame is mounted once per app view and outlives every legacy
- * render, so a tab keeps focus across the page change it causes. It lends two slots to the legacy code in
- * `main.ts`, which fills them on every `build()`: the notices row (the error strip, which the shell draws,
- * `notices.ts`, mounted where `main.ts` declares the `error` surface) and the legacy page itself. Since S13.1
- * the top bar's controls are the shell's (`bar.ts`): the brand switcher and its menu, Export and its dialog, and
- * the plugin's Apply Theme and prune review, drawn over the state `main.ts` lends; only the plugin's Pages menu
- * is still a legacy node, lent until S11.2. Everything else here is the shell's own.
+ * WHAT IT OWNS AND WHAT IT LENDS. The frame is mounted once per app view and outlives every render, so a tab keeps
+ * focus across the page change it causes. It lends one slot to `main.ts`, which fills it on every `build()`: the
+ * notices row (the error strip, which the shell draws, `notices.ts`, mounted where `main.ts` declares the `error`
+ * surface). Since S13.1 the top bar's controls are the shell's (`bar.ts`): the brand switcher and its menu, Export and
+ * its dialog, and the plugin's Apply Theme and prune review, drawn over the state `main.ts` lends. The legacy frame
+ * and the plugin's Pages menu, the last legacy nodes, went in H12 (#2289). Everything else here is the shell's own.
  *
  * HOW IT TALKS TO THE REST OF THE APP: store setters out, store topics in (plan §3.10). A tab click calls
- * `setPage`; the legacy frame repaints because `main.ts` subscribes to `page`, and the tab row repaints
- * its selection because it subscribes too. Nothing here calls a legacy repaint tier, and
- * `test-shell-imports.ts` (a test, run by `npm test`) fails any file under `shell/` that names one.
+ * `setPage`, and the tab row repaints its selection because it subscribes to `page`. Nothing here calls a legacy
+ * repaint tier, and `test-shell-imports.ts` (a test, run by `npm test`) fails any file under `shell/` that names one.
  *
- * WHAT EACH PAGE SHOWS. A legacy page (`pages.ts`, `status: 'legacy'`) shows its legacy page in the
- * full-width legacy frame under the tab row, pinned light (D1, D2). (Depth & motion's local switch between its two
- * legacy pages, D8, went when S9.2 moved the page.) A moved page (`status: 'new'`: Color › Palettes from S2, Brand from S3, Surfaces & fills
+ * WHAT EACH PAGE SHOWS. Every tab's page (`pages.ts`; Color › Palettes from S2, Brand from S3, Surfaces & fills
  * from S4a, Interactive from S5.2, Type from S6.2, Shape from S7, Depth & motion from S9.2, Layout from S10, Components
  * from S8.2) shows the two panes: its levers module draws the levers pane and its preview module the preview body (`NEW_PAGES`
- * below), each mounted once per visit and released, subscriptions included, when the place changes.
+ * below), each mounted once per visit and released, subscriptions included, when the place changes. A page a menu
+ * opens (the Figma menu's Build style guides, S11.2) shows full width, in the `page` layout.
  *
  * S1.3 fills the preview header and adds Inspect (`preview.ts`): the title of the page's one home view
  * (V1), the mode control (Q1) and the Inspect menu, on one row (Q2). The preview body names its home in
- * `data-view`, which changes on a place change and nothing else. Inspect opens over the preview, or over
- * the legacy frame while the page is legacy (it is the page's preview until its slice moves it), and closes
+ * `data-view`, which changes on a place change and nothing else. Inspect opens over the preview and closes
  * back to it, scroll and focus included. A place change closes it. The verdict on the bar opens it on
  * Contrast. `main.ts` lends Inspect two legacy views as callbacks, `inspect.contrast` (the contract table)
  * and `inspect.tokens` (the token list, which takes Inspect's own `repaint`). Their bodies live in `main.ts`,
@@ -56,7 +52,7 @@
  */
 import { currentMode, page, searchHits, searchQuery, setPage, setSearch, subscribe } from '../state/store';
 import { isDerived } from '../state/verdict';
-import { INSPECT, TABS, homeOf, isMenuPage, isNewPage, legacyOf, newPageOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type NewPageKey, type Place, type TabId } from './pages';
+import { INSPECT, TABS, homeOf, isMenuPage, newPageOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type NewPageKey, type Place, type TabId } from './pages';
 import { glyph, h, hook, tile } from './dom';
 import { inspectMenu, modeControl, modeLabel, paintInspectView, stepKey, verdictButton, type InspectLegacy } from './preview';
 import { mountActivity, type ActivityLend } from './activity';
@@ -143,12 +139,10 @@ export type Frame = {
   readonly figma: HTMLElement | null;
   /** Slot: the notices row, under the top bar: the error strip (`notices.ts`). */
   readonly notices: HTMLElement;
-  /** Slot: the legacy page, inside the legacy frame. */
-  readonly legacyPage: HTMLElement;
   /** The Agent tile's stable, empty slot (IA-3, plugin only), placed by the bar between Theme and Activity (T7). The
    *  plugin's entry mounts the tile into it; nothing here or in the bar ever clears it. */
   readonly agent: HTMLElement | null;
-  /** Publish the sticky region's height as `--chrome-h`, which the legacy mode strip sticks below. */
+  /** Publish the sticky region's height as `--chrome-h`. */
   readonly syncSticky: () => void;
   /** The layer a window opens in, over everything the frame draws (S12: the start window and its guard). Empty, and
    *  drawn as nothing, while no window is open. */
@@ -157,9 +151,8 @@ export type Frame = {
   readonly unmount: () => void;
 };
 
-const kebab = (k: string): string => k.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
-const PANEL_ID = 'p3-panel';
-const LEGACY_PAGE_ID = 'p3-legacy-page';
+/** The levers pane, the panel the tabs control. */
+const PANEL_ID = 'p3-levers';
 
 /** Arrow keys, Home and End move along a tablist and select as they go (automatic activation, as in
  *  concept v6). Returns the tab to select, or null for any other key. */
@@ -212,7 +205,7 @@ export const mountFrame = (app: HTMLElement, opts: {
 }): Frame => {
   const { host } = opts;
   const cleanups: (() => void)[] = [];
-  let place: Place | null = placeOfPage(page, host, null);
+  let place: Place | null = placeOfPage(page);
 
   app.classList.add('p3-app');
   const root = hook(h('div', 'p3-frame'), 'frame');
@@ -231,8 +224,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   mark.append(logo, h('span', 'p3-mark-name', PRODUCT_NAME));
   bar.append(barSlot);
 
-  // The narrow Settings / Preview toggle (Q7). It switches the two panes, so it is hidden while the page
-  // is legacy, which in S1.2 is always.
+  // The narrow Settings / Preview toggle (Q7). It switches the two panes.
   const paneToggle = hook(h('div', 'p3-seg p3-pane-toggle'), 'pane-toggle');
   paneToggle.setAttribute('role', 'group');
   paneToggle.setAttribute('aria-label', 'Show');
@@ -290,23 +282,14 @@ export const mountFrame = (app: HTMLElement, opts: {
   // the line. So they are their own row, after the tab row, rather than part of it.
   const subRow = hook(h('div', 'p3-subnav'), 'sub-nav');
 
-  // ── notices, the legacy frame, the panes ────────────────────────────────────────────────────────
-  // The notices row sits under the top bar, full width (S13.1): the error strip, in the chrome's theme. The legacy
-  // frame is a legacy surface, pinned light (D2): `data-theme="light"` resets the chrome variables and
-  // `color-scheme` beneath it, so its fields keep dark UA ink (#1031).
+  // ── notices, the panes ──────────────────────────────────────────────────────────────────────────
+  // The notices row sits under the top bar, full width (S13.1): the error strip, in the chrome's theme.
   const notices = hook(h('div', 'p3-notices'), 'notices');
   head.append(bar, notices, nav, subRow);
 
-  const legacy = hook(h('main', 'p3-legacy'), 'legacy-frame');
-  legacy.id = PANEL_ID;
-  legacy.dataset.theme = 'light';
-  const legacyPage = hook(h('div', 'p3-legacy-page'), 'legacy-page');
-  legacyPage.id = LEGACY_PAGE_ID;
-  legacy.append(legacyPage);
-
   const panes = hook(h('div', 'p3-panes'), 'panes');
   const levers = hook(h('section', 'p3-levers'), 'levers-pane');
-  levers.id = 'p3-levers';
+  levers.id = PANEL_ID;
   // N-3 A (owner, 2026-10-05; #1984) and RX1 A, RX2 A (owner, 2026-10-07): ONE read-only state for the levers panel
   // while the preview shows a derived mode (HC light, HC dark, wireframe), in place of each page disabling its own
   // controls. The page's levers are mounted inside `leversRegion` (`display: contents`, so it adds no box). In a derived
@@ -386,9 +369,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   preview.append(previewHead, previewBody);
   panes.append(levers, preview);
 
-  // ── Inspect (F1): over the preview, or over the legacy frame while the page is legacy ──────────────
-  // The legacy frame is the page's preview until its slice moves it, so Inspect covers it the same way
-  // and closes back to it, with its scroll position.
+  // ── Inspect (F1): over the preview ────────────────────────────────────────────────────────────────
   const inspect = hook(h('section', 'p3-inspect'), 'inspect');
   inspect.setAttribute('aria-label', 'Inspect');
   const inspectHead = hook(h('div', 'p3-inspect-head'), 'inspect-head');
@@ -440,7 +421,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   menuPage.tabIndex = -1;
   // S12: the window layer, last, so a window is drawn over the drawer too.
   const layer = hook(h('div', 'p3-layer'), 'layer');
-  root.append(head, legacy, panes, menuPage, inspect, activity.drawer, layer);
+  root.append(head, panes, menuPage, inspect, activity.drawer, layer);
   app.append(root);
 
   // The verdict, on the bar, after the brand switcher; then the bar's controls (S13.1), which place the shell's nodes.
@@ -480,7 +461,7 @@ export const mountFrame = (app: HTMLElement, opts: {
     if (first) paintInspect();
     inspectTabEls[INSPECT.findIndex(([id]) => id === v)].focus();
   }
-  /** Close Inspect, back to the page's preview (or its legacy page), where it was. */
+  /** Close Inspect, back to the page's preview, where it was. */
   function closeInspect(refocus = true): void {
     if (!inspecting) return;
     inspecting = null;
@@ -490,26 +471,21 @@ export const mountFrame = (app: HTMLElement, opts: {
     previewBody.scrollTop = previewBack;
     const back = opener && opener.isConnected && opener.getClientRects().length ? opener : null;
     opener = null;
-    if (refocus) (back ?? (root.dataset.layout === 'panes' ? previewTitle : root.dataset.layout === 'page' ? menuPage : legacy)).focus?.();
+    if (refocus) (back ?? (root.dataset.layout === 'page' ? menuPage : previewTitle)).focus?.();
   }
   previewTitle.tabIndex = -1;
-  legacy.tabIndex = -1;
 
   // ── selection ───────────────────────────────────────────────────────────────────────────────────
   let subFor: TabId | null = null;
   let subTabs: HTMLButtonElement[] = [];
 
-  /** Select a place. A moved page is the store's page itself; a legacy place shows its first legacy page
-   *  unless it already shows the current one. */
+  /** Select a place: its page is the store's page itself. */
   const go = (p: Place): void => {
     // V1: a page change shows the new page's home, so Inspect closes with it (as in concept v6).
     if (inspecting && (p.tab !== place?.tab || p.sub !== place?.sub)) closeInspect(false);
     place = p;
     const moved = newPageOf(p);
-    if (moved) { if (page !== moved) setPage(moved); else render(); return; }
-    const pages = legacyOf(p, host);
-    if (pages.length && !(pages as readonly string[]).includes(page)) setPage(pages[0]);   // `page` repaints the legacy frame
-    else render();
+    if (moved && page !== moved) setPage(moved); else render();
   };
 
   const buildSubRow = (): void => {
@@ -596,10 +572,8 @@ export const mountFrame = (app: HTMLElement, opts: {
   let menuCleanups: (() => void)[] | null = null;
   const render = (): void => {
     const onMenu = isMenuPage(page) && !!opts.styleGuides;
-    const pages = place ? legacyOf(place, host) : isNewPage(page) || isMenuPage(page) ? [] : [page];
-    const isLegacy = pages.length > 0;
     // Written only when the layout a place calls for changes, never on every render.
-    const layout = onMenu ? 'page' : isLegacy ? 'legacy' : 'panes';
+    const layout = onMenu ? 'page' : 'panes';
     if (onMenu && !menuCleanups) {
       menuCleanups = [];
       mountStyleGuides(menuPage, opts.styleGuides!, () => root.dataset.w === 'narrow', menuCleanups);
@@ -642,18 +616,13 @@ export const mountFrame = (app: HTMLElement, opts: {
       syncDerivedReadOnly();
     }
 
-    // The legacy frame is the panel the tabs control. With nothing selected (a page no tab shows, such as
-    // the plugin's Style guide) it is a plain region.
-    // On a moved page the levers pane is that panel instead, and the tabs point at it.
+    // The levers pane is the panel the tabs control. With nothing selected (a page no tab shows, the menu page) it
+    // is a plain region.
     const labelledBy = place ? (place.sub ? `p3-sub-${place.sub}` : `p3-tab-${place.tab}`) : null;
-    const panel = isLegacy ? legacy : levers;
-    const other = isLegacy ? levers : legacy;
-    other.removeAttribute('role'); other.removeAttribute('aria-labelledby');
-    if (!isLegacy) levers.setAttribute('aria-label', 'Settings'); else levers.removeAttribute('aria-label');
-    if (labelledBy) { panel.setAttribute('role', 'tabpanel'); panel.setAttribute('aria-labelledby', labelledBy); }
-    else { panel.removeAttribute('role'); panel.removeAttribute('aria-labelledby'); }
-    for (const t of [...tabs, ...subTabs]) t.setAttribute('aria-controls', panel.id);
-    if (isLegacy) legacy.dataset.legacyPage = kebab(page); else delete legacy.dataset.legacyPage;
+    levers.setAttribute('aria-label', 'Settings');
+    if (labelledBy) { levers.setAttribute('role', 'tabpanel'); levers.setAttribute('aria-labelledby', labelledBy); }
+    else { levers.removeAttribute('role'); levers.removeAttribute('aria-labelledby'); }
+    for (const t of [...tabs, ...subTabs]) t.setAttribute('aria-controls', PANEL_ID);
     root.dataset.place = place ? placeId(place) : '';
 
     // V1: the preview names the page's one home view. Nothing but a place change moves it.
@@ -673,7 +642,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   // A page change from anywhere: a tab, the Pages menu, a Continue button, a brand load.
   cleanups.push(subscribe('page', () => {
     const was = place;
-    place = placeOfPage(page, host, place);
+    place = placeOfPage(page);
     if (inspecting && (place?.tab !== was?.tab || place?.sub !== was?.sub)) closeInspect(false);
     render();
   }));
@@ -777,7 +746,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   render();
 
   return {
-    head, bar: barSlot, barMain, notices, legacyPage, verdict, syncSticky, layer,
+    head, bar: barSlot, barMain, notices, verdict, syncSticky, layer,
     activity: activity.button, figma, agent,
     unmount: () => {
       for (const c of cleanups) c();

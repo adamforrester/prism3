@@ -10,16 +10,16 @@
  *
  * Classes here take the `p3-` scope, which `styles.css` does not use. State is read from ARIA attributes
  * and from the frame's `data-w` (width tier), `data-bar-fit` (the wide bar's fit step, #2214) and `data-layout`
- * (legacy or panes), never from a shared state class.
+ * (panes or page; the legacy layout went in H12, #2289), never from a shared state class.
  *
  * WHAT THIS STYLES: the frame (`src/shell/frame.ts`), meaning the top bar, the tab row with Color's
- * sub-row, the notices row, the legacy frame's Depth & motion switch and the two panes (S1.2); the
+ * sub-row, the notices row and the two panes (S1.2); the
  * preview header, the mode control, the verdict and Inspect (`src/shell/preview.ts`, S1.3); and the
  * Activity button and drawer, the Figma menu and the plugin's Agent tile (S1.4, T7); the levers panel, the
  * Palettes preview and the step picker (S2: `src/domains/`, `src/preview/`, `src/ui/`); the brand menu, the
  * export and prune dialogs and the error strip (S13.1: `src/shell/bar.ts`, `src/shell/notices.ts`). The
- * legacy surfaces inside it (the legacy page and the plugin's Pages menu) keep `styles.css` and are pinned
- * light with `data-theme="light"`. So no rule here sets a font or a color
+ * legacy views lent into Inspect and the previews keep `styles.css` and are pinned light with `data-theme="light"`
+ * (the legacy page and the plugin's Pages menu, the others, went in H12). So no rule here sets a font or a color
  * on a container that holds legacy content: each chrome control sets its own, and legacy text keeps
  * inheriting the legacy body's.
  *
@@ -30,7 +30,7 @@
  * The comments here ship in both bundles, so they are held to US English and the voice standard.
  */
 
-/* The app view's root gives up the legacy column box; the legacy page's column carries it now. */
+/* The app view's root gives up the legacy column box: the frame lays out the full width. */
 #app.p3-app { max-width: none; margin: 0; padding: 0; }
 
 /* ── the frame ───────────────────────────────────────────────────────────────────────────── */
@@ -279,8 +279,6 @@
 .p3-search-input:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
 .p3-search-status { flex: none; color: var(--p3-text-2); font-size: var(--p3-fs-12); white-space: nowrap; }
 .p3-search-status:empty { display: none; }
-/* A setting the query does not match, and a section with none that do, on a legacy page. */
-.p3-legacy [data-search-hidden] { display: none !important; }
 
 /* Color's sub-pages, and the Depth & motion switch: a segmented tablist. Its track is the top bar's step,
    so it reads on the gray tab row in both themes, and the selected segment's edge is measured against
@@ -360,10 +358,6 @@
 .p3-bardlg-import { display: grid; gap: var(--p3-space-075); padding: var(--p3-space-150) var(--p3-space-300); border-top: var(--p3-bw-hairline) solid var(--p3-line-1); }
 .p3-bardlg-import > .p3-menu-item { justify-self: start; }
 
-/* ── the legacy frame (D1) ───────────────────────────────────────────────────────────────── */
-/* No background: the legacy page draws on the legacy body's ground, as it always has. */
-.p3-legacy { display: block; }
-
 /* ── the two panes (shown from the first moved page, S2) ─────────────────────────────────── */
 /* The tab row and the preview's title row share ONE grid row (Q2), so the two dividers sit at one y
    whatever either row holds. The sub-pages open the levers column under the line (Q1). */
@@ -383,7 +377,6 @@
 .p3-frame[data-layout="panes"] .p3-nav .p3-tabs { gap: var(--p3-space-150); }
 .p3-frame[data-layout="panes"] .p3-subnav { grid-area: subnav; border-bottom: 0; }
 .p3-frame[data-layout="panes"] .p3-subnav .p3-seg { display: flex; width: 100%; }
-.p3-frame[data-layout="panes"] .p3-legacy { display: none; }
 .p3-levers {
   grid-area: levers; min-width: 0; min-height: 0; overflow: auto; background: var(--p3-levers-bg);
   border-right: var(--p3-bw-hairline) solid var(--p3-line-1);
@@ -421,13 +414,10 @@
 }
 .p3-mode-count { font-size: var(--p3-fs-12); }
 
-/* ── Inspect (S1.3): over the preview, or over the legacy frame while the page is legacy ───── */
+/* ── Inspect (S1.3): over the preview ──────────────────────────────────────────────────────── */
 /* No chrome rule sets a font or a color on Inspect's body: it holds legacy views, pinned light, whose text
    inherits the legacy body's. The shell's own parts (cards, notes) set theirs. */
 .p3-inspect { display: none; }
-.p3-frame[data-layout="legacy"]:not([data-inspect=""]) { position: fixed; inset: 0; display: flex; flex-direction: column; }
-.p3-frame[data-layout="legacy"]:not([data-inspect=""]) .p3-legacy { display: none; }
-.p3-frame[data-layout="legacy"]:not([data-inspect=""]) .p3-inspect { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
 .p3-inspect-head {
   display: flex; align-items: center; gap: var(--p3-space-200); flex: none; min-height: var(--p3-bar-h);
   padding: 0 var(--p3-space-300); background: var(--p3-bg-page); border-bottom: var(--p3-bw-hairline) solid var(--p3-line-1);
@@ -627,7 +617,7 @@
 .p3-frame[data-w="narrow"] .p3-drawer-bar { min-height: var(--p3-ctl-h-sm); gap: var(--p3-space-075); padding: var(--p3-space-050) var(--p3-space-150); }
 .p3-frame[data-w="narrow"] .p3-drawer-body { padding: 0 var(--p3-space-150) var(--p3-space-200); }
 .p3-frame[data-w="narrow"]:has(> .p3-drawer[data-open="true"]) { position: fixed; inset: 0; display: flex; flex-direction: column; }
-.p3-frame[data-w="narrow"]:has(> .p3-drawer[data-open="true"]) :is(.p3-nav, .p3-subnav, .p3-notices, .p3-legacy, .p3-panes, .p3-inspect) { display: none; }
+.p3-frame[data-w="narrow"]:has(> .p3-drawer[data-open="true"]) :is(.p3-nav, .p3-subnav, .p3-notices, .p3-panes, .p3-inspect) { display: none; }
 .p3-frame[data-w="narrow"] .p3-drawer[data-open="true"] { flex: 1 1 auto; border-top: 0; }
 .p3-frame[data-w="narrow"] .p3-drawer[data-open="true"] .p3-drawer-body { flex: 1 1 auto; max-height: none; }
 .p3-frame[data-w="narrow"] .p3-drawer[data-open="true"] .p3-drawer-close { display: inline-flex; }
@@ -1234,7 +1224,7 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 /* Its own layout (`data-layout="page"`): the head, the page scrolling under it, the drawer at the foot. */
 .p3-sgpage { display: none; }
 .p3-frame[data-layout="page"] { position: fixed; inset: 0; display: flex; flex-direction: column; }
-.p3-frame[data-layout="page"] :is(.p3-legacy, .p3-panes) { display: none; }
+.p3-frame[data-layout="page"] .p3-panes { display: none; }
 .p3-frame[data-layout="page"] .p3-sgpage { display: block; flex: 1 1 auto; min-height: 0; overflow: auto; background: var(--p3-levers-bg); }
 .p3-frame[data-layout="page"]:not([data-inspect=""]) .p3-sgpage { display: none; }
 .p3-frame[data-layout="page"]:not([data-inspect=""]) .p3-inspect { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }

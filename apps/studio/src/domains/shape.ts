@@ -33,7 +33,7 @@ import { isDerived } from '../state/verdict';
 import { brandBaseMd, brandControlShape, densityIn, radiusScaleIn, setBaseMd, setControlShape, setDensity, setRadiusScale } from '../state/shape-input';
 import type { ControlShape, Density } from '@prism3/engine/scale';
 import { noteSectionEdit } from '../preview/follow-edit';
-import { DOMAINS, pageOfTab, type Host, type PageData, type Section } from '../shell/pages';
+import { DOMAINS, pageOfTab, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
 import { choice, leverBlock, leverOf, promoteLever, slider, sliderReadout, stateLine, subLine, type LeverBlock } from '../ui/lever-kit';
@@ -41,9 +41,6 @@ import { valuePicker } from '../ui/value-picker';
 import type { PageLends } from '../preview/brand';
 
 const PAGE = DOMAINS.find((d) => d.id === 'shape') as PageData;
-/** The host this bundle was built for (`PRISM3_HOST`, a build-time define), so the tab routes below land on the
- *  page each host shows. */
-const host = (): Host => (PRISM3_HOST === 'figma' ? 'figma' : 'web');
 
 /** The page's own copy (S7). APPROVED by the owner on 2026-10-04 unless marked DRAFT. */
 export const SHAPE_COPY = {
@@ -133,7 +130,7 @@ export const mountShapeLevers = (hostEl: HTMLElement, cleanups: (() => void)[], 
     const go = hook(h('button', 'p3-btn p3-btn-ghost p3-deplink'), 'shape-see-components');
     go.type = 'button';
     go.append(h('span', 'p3-btn-label', SHAPE_COPY.paddingLink), glyph('chevr'));
-    go.onclick = () => setPage(pageOfTab('components', host()));
+    go.onclick = () => setPage(pageOfTab('components'));
     pad.append(subLine(SHAPE_COPY.padding), go);
     b.ctl.append(pad);
     return { el: b.el, said: `${b.said} ${opts.map((o) => o.l).join(' ')}`.toLowerCase(), key: 'density', block: b };
@@ -260,7 +257,7 @@ export const mountShapeLevers = (hostEl: HTMLElement, cleanups: (() => void)[], 
     const next = hook(h('button', 'p3-btn p3-btn-page p3-next'), 'shape-continue');
     next.type = 'button';
     next.append(h('span', 'p3-btn-label', SHAPE_COPY.next), glyph('chevr'));
-    next.onclick = () => setPage(pageOfTab('depth', host()));
+    next.onclick = () => setPage(pageOfTab('depth'));
     const nr = h('div', 'p3-nextrow');
     nr.append(next);
     parts.push(nr);
