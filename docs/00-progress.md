@@ -7,6 +7,804 @@
 
 ---
 
+## (2026-10-08) — Buttons: a text button's label is always underlined, and "Text button hover" chooses its wash (#2324)
+
+**Status:** engine, plugin and studio. ENGINE minor (change note). CONTRACT 14.4.0 → 14.5.0 (MINOR: three label link
+paths join the guaranteed surface). Owner decisions, recorded on #2324 and, for the last two, on #2349:
+- **Q110:** the label is always underlined, at rest and in every state; the underline is fixed, not a brand setting;
+  a text button is never filled at rest; the default is color only.
+- **The 2026-10-08 answers** (owner → Lane C's lead → Lane C, recorded by Lane C):
+  - the setting is "Text button hover", options "Text & icon only" (the default) and "Fill";
+  - Neutral follows the same rule, its ink walking 950 → 850 → 750;
+  - a disabled text button stays underlined.
+- **Q120 A:** every drafted string in this PR is approved as written.
+- **Q121:** interactive states need not pass contrast, across the board (the rule, below).
+
+Button, Destructive and Neutral alike (one `makeButton` factory). Icon Button has no text appearance.
+
+### What changed
+
+- **Label link styles, always minted.** `theme.ts` mints `-link` twins for the groups in `typography.links` (default
+  body and caption). `label` is now in `TYPE_LINK_ALWAYS`, unioned in whatever the brand lists, so every brand ships
+  `type.label.{sm,md,lg}.emphasis-link` (and `default-link` under `buttonLabelWeight: default`). In Figma they are
+  `label/{sm,md,lg}/emphasis-link`, `textDecoration: UNDERLINE`.
+  - Their DTCG description ends "underlined (a text button's label)", not the link wording, because a button label
+    takes the button's own ink.
+  - Their `.ai.json` `when_to_use` and `avoid_when` say so too.
+  - The studio's Type page shows label's Link cell on and locked. `setLink` never writes `label`, so a list that is
+    otherwise the default still reads as the default.
+- **The button binds them at `appearance=text`.** The label's type key is per appearance now,
+  `size.{size}.{appearance}.type`: text binds the `-link` twin, filled and outline the plain style, at every state.
+  `applyButtonLayout`'s two label rewrites walk every appearance's key. "Button label weight: Default" keeps the
+  underline tail: `emphasis-link` becomes `default-link`.
+- **"Text button hover" (`buttonTextHover: 'text' | 'fill'`, default `text`).** The raw def's text appearance keys
+  no wash any more. Under "Fill", `applyButtonLayout` copies the outline appearance's hover and pressed wash onto it.
+  Those keys already carry the brand's outline method (`applyOutlineInteraction` runs first), so "Fill" reproduces
+  the old text behavior on every brand and method, solid-tint and none included.
+  - It's a lever in the Components tab, beside the other Button options.
+  - It's threaded through `brand-def.ts`, `lint-lever-sweep`, the surface rows and the schema.
+- **Neutral walks.** `modes.ts` built neutral's interactive ink with `walkable: false`, so its text, icon and border
+  states were one color. Under the color-only default, a Neutral text button would have changed nothing on hover.
+  Now it walks, and `walk()`'s L-01 reflection steps it inward (950 → 850 → 750 in light; from pure black or white
+  in HC). So does its inverse-band twin, which has its own derivation (`invColumn`, where neutral passed no palette):
+  025 → 100 → 200 on the dark band. On prism3, harbor and aurora every state lands at 9.7:1 or above in every mode on
+  both grounds. Values only; no name moves.
+  - **The general rule this rests on (owner Q121, recorded on #2349):** *"Interactive states not needing to pass
+    contrast applies to all interactive states across the board. Ideally they do, but it's not necessary."* It
+    covers every interactive state (hover, pressed, focus) on every button appearance and family, so it's a rule,
+    not an exception list. #1387's register cites it in its header and keeps pinning each sub-4.5 cell at its exact
+    ratio, so a state that moves still fails by name and gets looked at. Neutral's walk adds cells of the shape the
+    register already held: its pressed ink on the inverse band's tinted pressed wash (solid-tint brands, light mode)
+    at 4.09–4.11:1, reaching Neutral outline buttons there and text buttons under "Fill".
+
+### The bug found on the way
+
+Neutral's rest candidate carried no `num`, so the first `walkable: true` run hung forever: `fromNum + 50·k` is `NaN`,
+and `NaN` is never out of range. The neutral rest now gets its step number: its own step, or for HC's pure
+black/white the ramp step nearest it in luminance. `iText` refuses a walk from a rest with no number, by name,
+rather than hang.
+
+### A projector rule, made explicit
+
+A STRUCTURE-ONLY projection (a coordinate that names no grid axis, which many tests use) can't fill
+`size.{size}.{appearance}.type`. `resolveKey` now resolves a binding key's missing axis at that axis's declared prop
+default, the component a consumer gets by leaving the prop unset. It reaches binding keys only. Paints and the
+member's coordinate stay structure-only, and a real member, which gives every axis, never takes it. #1248's throw
+still fires when an axis has no default.
+
+### Tests and mutations
+
+- **`test.ts`, a new #2324 block:**
+  - **Per family:**
+    - at each of the six Figma states, all 24 text members bind their size's underlined label;
+    - the 288 filled and outline members never do;
+    - by default no text member is filled at any state;
+    - under "Fill", hover and pressed take `interactive.<family>.overlay.*` and no other state does.
+  - **Neutral's text, icon and border inks** are three distinct colors in all 40 corpus modes.
+  - **Every corpus brand mints the three label link styles,** and so does a brand with `typography.links: []`.
+- **#1387's quiet-button sweep** runs under "Fill", so its cell counts and contrast arms measure what they always did.
+  A new pass holds the default: no text hover or pressed member is filled on any corpus brand or NB master, at any
+  outline method, and the pass counts the members it looked at.
+- **Counts that move by design, each restated from first principles:**
+  - #1223's skin, 24 → 22 (text's two wash keys left the def);
+  - #1608's raw-button misses, 96 → 48 (outline's half of the owner's 96);
+  - the pressed-text counter, 3 → 2 keys;
+  - #1248's type-key grid, where the button family crosses size × appearance into 2 styles and `appearance` joins
+    the authored axis vocabulary;
+  - prism3's text styles in the plugin tests, 63 → 66 (and 84 → 87);
+  - the NB fixture test's named engine additions, plus a twin check (each label link is its plain twin with the
+    underline added, and only that);
+  - test-roundtrip's style contract (`-link` at text).
+- **#1646 (plugin)** holds "Fill" composing with solid-tint, its 48/48/96 kept.
+- **#1812** lists `buttonTextHover="fill"` as tree-blind, in both halves.
+
+Each mutation ran from a `wip:` commit and was restored with `git checkout --`:
+
+| Arm | Fails by name |
+|---|---|
+| the underline dropped (text binds `emphasis`) | `#2324 button text rest: every member's label is underlined …` and the other five states, ×3 families, plus #1248's `DISCRIMINATES across 'appearance'` (21) |
+| `label` out of `TYPE_LINK_ALWAYS` | `#1296/#1718 prism3 emits every guaranteed contract path (568/571; missing type.label.*.emphasis-link)`, the NB `STALE addition`, the twin check, and every Button binding resolving (24) |
+| the "Fill" add-back removed | `#2324 button: under "Fill" the text appearance takes color/interactive/primary/overlay/{hover,pressed} …` ×3, and #1387's cells and fills (5) |
+| neutral's inverse walk reverted (`invColumn` back to rest at every state) | `#2324 Neutral's interactive text, icon and border inks step … on the page and on the inverse band (… nb light inverse.text: #f6f7f7 #f6f7f7 #f6f7f7 …)`, and #1387's register reads the 22 held cells as stale |
+| neutral back to `walkable: false` | `#2324 Neutral's interactive text, icon and border inks step on hover and pressed in every corpus mode (… nb light text: #0c0d0f #0c0d0f #0c0d0f …)` |
+
+### Filed, not fixed here
+
+#2335: the update dry run lists no named difference for a fill the plan drops. On the NB master, the hover and
+pressed text members read `update` (their label's text style moved), but the cleared wash isn't listed.
+
+### Traps for whoever re-verifies this
+
+- **The inverse band has its own interactive-ink derivation.** The first version walked only the page side; the
+  smoke suite's #576 edge check caught the inverse twin still flat. A check over `interactive.*` must also read
+  `inverse.interactive.*`.
+
+- **Two PRs took the next contract MINOR first:** #2312 (body/xs, 14.3.0) and #2338 (the tracking roles, 14.4.0).
+  This PR moved to 14.5.0 and unions its NB text-style additions with #2312's. On each such merge, `git` auto-merges
+  `token-contract.json` into a baseline holding both PRs' paths under the other's version. The fix is `main`'s
+  baseline restored, then `--accept`, never the merged file.
+- **A test that projects a button needs `appearance` only if it asserts a member;** a structure-only plan takes the
+  prop default (see above).
+
+---
+
+## (2026-10-08) — test:chrome: the Build style guides field count waits for the option groups before measuring (#2341)
+
+**Status:** test only (`apps/studio/test-chrome.mjs`, section 4, the #1031 arm re-hosted on the Build style guides page by
+H12). No product code, no emitted artifact, no ENGINE bump, CONTRACT unchanged.
+
+`main`'s CI failed twice in a row in the chrome suite with `✗ figma dark / Build style guides: measured 2 field(s) on
+the page (floor 3 …)`, at `30189907` and again at `a2bfc7cb`. The same tree passed `test:chrome` locally.
+
+- **The cause:** the arm waited only for `sg-collection` and then counted. The per-kind option groups (Color value,
+  Color sample, Font sample) are built from the catalog's selection (`kindsOf(cat, S.sel)`), which renders after the
+  Collection select. On a slow runner the count landed between the two.
+- **The fix:** before measuring, the arm waits up to 10s for the floor of three enabled, visible fields, using the
+  same selector the measurement uses. The wait's timeout is swallowed, so the floor check below still reports the
+  measured count by name.
+- **Trap for whoever re-checks this:** "Table header" in the floor message is a segmented control, not a field, and the
+  selector doesn't count it. What reaches the floor is Collection plus the per-kind selects. The message was left as it
+  was; it's a label, not the assertion.
+
+---
+
+## (2026-10-08) — Component sets: apply an in-place update (#2265, PR 2)
+
+The apply half of the in-place update, per the #2265 design note and owner decision Q85 A (every §10 recommendation). `update-components` with `confirm: true` and the check's `previewHash` now applies what the check described. The plugin reads the file again and refuses if it no longer hashes the same. Build stays add-only. **Agent link only** (scope narrowed by the owner, 2026-10-07): the panel's "Update set…" button, the review dialog, the `staleNote` and #1780 remedy wording, and the §8 pills move to PR 3, all owner copy and held.
+
+- **Nothing is replaced that the plan does not force.** The set node, every member node (its component key) and every child the plan still has (its id) are kept. A member is configured by the build's own `build`, given the node the file already holds, so an update writes what a build writes, in the same order, with no second executor to drift (§3). Children are paired by name. Three plan changes make a new node, each listed by the dry run: a child whose type changed, a renamed part (the old one removed, the new one built), and a property whose type changed (deleted, then re-added).
+- **The defaults.** Hand edits are kept and reported (Q1): the node keeps its own fields, and its record keeps its old hash, so the next dry run still lists it. A confirm's `choices` can say `overwrite` (the plan's values written over the edit, the record reset) or `accept` (the edit stays and becomes the record), for every set or per set (design note §5). Dropped members are kept and marked deprecated, never deleted (Q2). Owner decision Q104 A: the description becomes `Deprecated — no longer generated by Prism3. ` followed by the member's own description, and the set's `retained` list records them. There is no delete choice. A member with no as-built record is updated by default and named in the verdict as updated without one, never read as having no hand edits; `choices.noBaseline: 'skip'` leaves it (the NB master's 24 field-label members are this case). Unstamped members, members with no record, and members with a layer added or removed by hand are skipped. A set an axis removal would collapse is refused.
+- **The order (§7).** Preflight first, writing nothing: the hash, every font, and every variable, style and nested or swapped component the plans name. Then a named version, once (Q7). If the host refuses it, nothing is written. Then each set, nested sets first (Q8): member renames in one synchronous block, property deletes and default edits, deprecations, then the build's pass in update mode. Each member's stamp is written last, after wiring and its record.
+- **Verify, off the host.** The set's key, every member's key and id, and every child's id are captured before and compared after, apart from the replacements the dry run listed. Then `diffAnatomy` runs on every updated member, apart from the kept hand edits. Either failing fails the verdict.
+- `EXECUTOR_REVISION` 1 → 2: the executor's code changed. Every member built before this reads as out of date, with no field difference visible, until an update re-applies it.
+
+### Diagnosis worth keeping
+
+- **The stamp cannot be written straight after the member is configured,** which is the design note's step 3. Wiring changes each node's `componentPropertyReferences`, which the as-built hash covers. A record written before wiring would read the update's own references as a hand edit on the next dry run. So per member, in order: configure, wire, read back, record, then stamp.
+- **A run that stops part-way must not read its own writes as hand edits.** Configured nodes differ from a record the run never got to rewrite. So a `memberUpdating` marker goes on before a member's first write and comes off after its stamp. A dry run that finds it reads that member's differences as the update's, except on the paths it kept. `stop/out of date` and `stop/finished` hold this. With the marker ignored, 20 members read as hand-edited and never converge.
+- **A kept hand edit would be laundered by re-recording the member.** An updated member's record is the host as it now stands, except each kept path keeps its old hash.
+- **The corpus arm found two in-place-only defects that no Tag case reached.** First, the glyph artboard read-back measured the existing frame, which its host's binding sizes, so in place it now reads the fresh import. Second, an aspect-locked root already holds its bound dimension, and a bound dimension wins over the resize, so the lock captured the old box. The bound dimensions are now cleared first. Every one of the 24 defs now re-applies with every key and id kept and reads back clean.
+- **A glyph's vectors are replaced only when the glyph changed.** A fresh import is compared path by path with the vectors the frame holds, and discarded when they match. Replacing them on every update would drop any override a consumer file made on them.
+- **An INSTANCE_SWAP default is a node id the dry run cannot compare,** so the apply moves it to the plan's target's id wherever it points elsewhere. Without that, a swap-target change re-pointed every member and left an instance placed fresh showing the old icon.
+
+- **Two guards held only upstream, found in review.** Both the apply's own refusal of a set the dry run blocks and its keeping copied or hand-made members out of the deprecations were enforced, but held only by the dry-run suites; removing either from `update-apply.ts` passed everything. `apply/blocked` and `apply/copy` now hold each one. With the blocker check gone, the apply saves a named version and dies mid-write on the set's definitions, and the arm catches that throw as its failure.
+- **An apply needs `confirm: true`, and no test held that either (#2328 review, M5).** Two layers refuse it: the protocol rebuilds a no-confirm `update-components` from `def` alone, and the dispatcher passes a hash and choices only on a confirm. End to end each covers the other, so either one removed alone passed everything, and both removed let `{ confirm: false, previewHash }` apply. `update/no confirm` (in `test-agent-link.ts`, through the real `main.ts`, with the file's real hash) holds the path end to end: a check reaches the handler, the result is a check, no version is saved and no plugin data is written. `update/no confirm protocol` and `update/no confirm dispatch` hold each layer on its own, so each layer's mutation fails by name.
+
+### Traps for whoever re-verifies
+
+- **The two-file publish check (design note §9, steps 1–6) gates publishing the NB library**, not this PR's merge or its use on the NB master (owner, 2026-10-07).
+- An updated member's record carries the node id it was written on, the same as a build's (#2300). `keys/record id` holds it. Without it, every member the update touched would lose the id, and could later read as a copy.
+
+- The shim's identities are opt-in (`identities`). The executor's #866/#1279 repairs compare ids, and in the detach modes a twin with an id would take branches those modes were not written for. Both ids and keys are non-enumerable, so no node dump changes.
+- The test host answers `COMPONENT_SET` searches with the page's live sets, and everything else with the shim's own lookups. The executor finds its set through `dest.findOne`, so both see the same nodes.
+- Deprecated members are laid out in one row below the grid. Left where they were, they sat under the members now filling their cells. This is a placeholder: where they go is the owner's call.
+- **Not verified on a live host** (listed on the PR): the two-file key-stability check, `saveVersionHistoryAsync` for this plugin, overrides surviving `swapComponent`, `insertChild` and `editComponentProperty`, the publish dialog's view of an update, a run stopped by closing the plugin, and Apply Theme followed by an update.
+
+---
+
+## (2026-10-08) — Style guide tables: solid white cells with drawn row lines, every fill swatch fills its cell to the edge, only inverse text, border and icon samples sit on the inverse background (#2331)
+
+The owner's direction after reviewing #2330's screenshots (#2331), then their review of #2336 (2026-10-08). The
+plugin's main-thread drawing (`apps/plugin/src/style-guide.ts`) only; the Build style guides panel is untouched.
+
+**The root cause the owner found in review: the tables were transparent where they read dark.** A swatch cell had no
+fill, the row dividers were the grid's 2px gaps, and the table frame and its wrap had `fills = []`. On a dark canvas or
+viewer the dark showed through all three. Every fix below follows from it.
+
+**1. Nothing in a table is transparent.** Every body cell is a fixed `#FFFFFF`; the table frame and the wrap around it
+too, set on every run, so a table drawn before this takes it on its next rerun. A header cell and a mark's ground keep
+their own fill (the header's band; the ground a text, border or icon sample is drawn on), white only where it is not
+solid. Fixed, not tokens, by the owner's call: this is the style guide's own chrome, not the brand's.
+
+**2. The row lines are drawn, continuous across every column.** Every cell takes a 1px `#E0E0E0` bottom stroke, inside,
+and the grid's gaps go to 0 (they were the dividers, 2px since 2026-09-29). Before, a text cell carried its member's own
+bottom stroke and a swatch cell carried none, so the line broke at the swatch column. The radius specimen keeps its
+member's fixed size inside a cell of its own (`Cell`) that fills the track, white and ruled; drawn bare, the area around
+it was transparent and its column broke the line too. With no column gap the header cells now meet as one band.
+
+**3. Every fill swatch fills its cell to the edge, with no outline.** Palette steps and semantic fills alike (display
+`default` or `transparency`: backgrounds, foregrounds, interactive fills, overlays, inverse fills included), on no
+ground. The instance paints the color itself, over the cell's white, and the member's own layers are hidden. A layer
+inside an instance grows only by its constraints, so the square kept #2330's 8px inset; painting the instance is the
+one way to reach the edge in any set, the owner's included. The `color/border/primary` hairline of the first #2331 pass
+(itself replacing #2330's `border/secondary`) is gone: the cell's row lines bound the swatch. Measured live before
+relying on it: the LAST paint in `fills` is on top (a frame with `[white, red]` exports `<rect fill="white"/>` then
+`<rect fill="#FF0000"/>`), so a translucent color reads over white, never over the canvas. The cost: a `transparency`
+role no longer shows its checker, because the checker is one of the hidden layers.
+
+**4. Only an inverse mark sits on the inverse background** (approved, unchanged by the review). A text ("Aa"), border or
+icon sample is still drawn on a ground. An INVERSE token's ground is the collection's `inverse/background/primary`,
+detected by `isInverse`: an `inverse` segment anywhere in the WHOLE variable name. Every other mark keeps the ground its
+role is contracted against, and never an inverse one (the page ground instead). The contrast column is unchanged.
+
+**The cause of the owner's invisible inverse text.** The ground came from the path below the table's common prefix, and
+the Inverse table's prefix is `<root>/color/inverse` itself: with a saved brand, `inverse/text/primary` resolved as
+`text/primary` and drew on the white page ground, where `#F7F7F7` cannot be seen. In the shim the old branch does exactly
+that with prism3's contract (M1 below), so the old code was never held on this. The NB copy has no saved brand, and
+there the old fallback happened to land on the inverse ground: its visible defect was the inverse fills sitting on a
+dark backdrop. `isInverse` reads the whole name, so the answer no longer depends on whether the file has a saved brand.
+
+**A fill swatch can no longer be unbound.** The instance always takes a fill, so the "N swatches in type=X have no layer
+that takes a fill" verdict now comes only from marks. Section 9 moved with it: the owner's layerless plain swatch binds
+(300 fill swatches), and a text member with no text layer is the unbound case, 244 of them: 61 text roles (counted
+independently in the emitted `color.light.json`) in four modes. `stretchSwatches` still repairs an old set, but a
+table's fill swatch no longer shows the square it stretches.
+
+**Live, on the NB copy** (this branch's `runStyleGuide` bundled and checksum-matched to the local build, then removed
+with its tables and cell sets): Primary, Background and Inverse drew `✓ style guide: 3 tables`, and the drawn nodes
+read back as section 32 asserts: 729 cells, none see-through, every one ruled `#E0E0E0` at the bottom, gaps 0/0, table
+and wrap `#FFFFFF`, 70 fill swatches at FILL with the color over white and no layer showing, 568 body text cells
+`#FFFFFF`. Screenshotted on Figma's light (`#F5F5F5`) and dark (`#1E1E1E`) canvas colors as a 64px backdrop. **One
+consequence held for the owner:** with row lines only and no outline, a white fill (NB `background/primary`, `#FFFFFF`)
+reads as an empty cell, and a near-white one (`inverse/interactive/primary/fill/rest`, `#F6F7F7`) nearly so.
+
+**Tests** (`test-style-guide.ts`): section 32, new, over every table of both shim files (35 tables, 6,225 cells), read
+off the drawn nodes: no cell is transparent; every body text cell is `#FFFFFF`; a radius specimen's own cell is
+`#FFFFFF`; every table frame and wrap is `#FFFFFF`; every cell of every row in every column carries the 1px `#E0E0E0`
+bottom line, with no gap; the swatch column specifically; and every fill swatch fills its cell, its color over white,
+no layer showing, no outline but the row line. Section 31 (new in the first pass) holds the inverse marks. The
+literal geometry in sections 2, 10, 23 and 24 drops exactly its gaps: 13 per 14-column table (26px), 4 for Dimension,
+41 rows of Dimension (82px), 80 for the 81-row ramp (160px); each constant now states its arithmetic.
+
+**Mutations,** each on a committed head through the #2272 harness (anchor asserted, mutated text present, restored in
+`finally`, `git diff` empty after), against `npx tsx apps/plugin/test-style-guide.ts`. M1–M3 ran on the first pass
+(`521f4d83`); M5–M10 on this one:
+- M1, inverse detection dropped from the ground: `✗ 31: an inverse text sample (inverse/text/primary) sits on the inverse background (FRAME Ground on "VariableID:color:0"; want VariableID:color:144)`, the same for border and icon, and `✗ 31: with no saved brand (no contract), an inverse text sample still sits on the inverse background, detected from its whole path`.
+- M2, fills drawn on a ground again: `✗ 31: an inverse fill (inverse/background/primary) fills its cell as its own swatch, on no backdrop (FRAME Ground on "VariableID:color:144")`, with `✗ 5: a fill row's swatch fills its cell, on no ground (#2331)`.
+- M3, the detection widened to every border: `✗ 31: a non-inverse border sample (border/primary) sits on the page ground, not the inverse one (FRAME Ground on "VariableID:color:144")`.
+- M5, a cell's white fill removed: `✗ 32: no cell in any table is transparent: each has a solid fill (35 tables, 6225 cells; 83 see-through: Dimension r1 c1 INSTANCE display=filled; …)` and `✗ 32: a radius specimen's own cell is #FFFFFF (10)`.
+- M6, the swatch's white underlay dropped: `✗ 32: every fill swatch fills its cell to the edge, the color over white, … (584 swatches, 416 semantic; 584 not: …)`.
+- M7, the table frame transparent again: `✗ 32: every table frame and the wrap around it are #FFFFFF (35 not: …)`.
+- M8, the swatch's row line dropped: `✗ 32: every row line runs across every column … (584 breaks: Core — base r1 c1; …)` and `✗ 32: the row lines span the swatch column, the one that broke them (20 of 20 unruled)`.
+- M9, the 2px gap back: `✗ 5: no table's grid has a gap between its rows or its columns …`, `✗ 32: every row line runs across every column … (35 breaks: … gaps 2/2; …)`, and the literal-geometry arms of 2, 10, 23 and 24.
+- M10, the member's layers left showing: `✗ 32: every fill swatch fills its cell to the edge … (584 not: …)` and `✗ 11: a replaced table with a swatch layer shown, nothing else by hand is kept, reported as edited`. Its first run crashed rather than failing by name: section 11's edit threw when the layer was not already hidden, which ended the suite before section 32. The throw is gone; the edit now simply changes nothing under M10, and both arms fail by name.
+
+---
+
+## (2026-10-08) — Studio headings: Bold, tighter view titles and tighter section and group headings, on three new tracking roles (#2322)
+
+The owner approved the type specimen sheet (current against proposed, light and dark), then settled how to wire it (2026-10-08):
+- **Three new tracking roles** in every brand's ramp: `tightest` −4%, `snugger` −1.5% (between `tight` and `snug`) and `open` +1% (between `normal` and `wide`). The six existing roles keep their names and values. No +1.5% step for now.
+- **The section heading's −2.5% snaps to −3%** (`tighter`).
+- **No new line-height role.** The 20px titles' approved 1.2 stays at 1.25 (`compact`), what they use today.
+
+**What changed in the studio's chrome:**
+
+| Heading | Weight | Tracking | Line height |
+|---|---|---|---|
+| View title (`.p3-preview-title`) and Style guides title (`.p3-sg-title`) | Bold 700 | `tightest` | 1.25 |
+| Every L1 section heading (lever sections, palette names, style-guide sections, both dialog titles) | 600 | `tighter` | — |
+| Every L2 group heading (lever names, row groups, column titles, breakpoint names, the start screen's title, style-guide option groups) | 600 | `snugger` | — |
+| Card titles | 500 | `open` | — |
+
+The values come from chrome tokens resolved from the default Prism3 theme, as every chrome value does. The top bar's wordmark (`.p3-mark`) is unchanged.
+
+**Engine:** the three steps were already on the locked ladder; only roles bind them now. The token contract adds six paths (`CONTRACT_VERSION` 14.4.0, re-accepted), with a `minor` change note. No brand's type moves: no composite binds a new role.
+
+### Diagnosis worth keeping
+
+- **A tracking nudge counts steps along the role list,** so inserting `snugger` and `open` into it would have moved every brand that nudges a group: one step tighter from `snug` would land on −1.5% instead of −2%. The nudge keeps the six (`TRACKING_SHIFT_KEYS`), in the engine and in the studio's nudge control. Whether it should step through all nine is filed as #2337, the owner's call.
+- **Brands may re-anchor a role's value, and the engine refuses a ramp out of order.** A brand that set `tighter` to −5% would have made the new `tightest` (−4%) cross it, and its build would throw. A new role a brand does not set takes its default clamped between its resolved neighbors, which keeps it on the ladder. No corpus brand re-anchors tracking.
+- **The engine mints a step only when a named role binds it** (#328), which is why "add the steps" meant adding named roles. That made the role names the owner's call.
+
+### Traps for whoever re-verifies
+
+- `test:chrome`'s heading rule (TY2 A) now expects L1 at `ls-tighter` and L2 at `ls-snugger`, as literal paths in its oracle. A new `#2322` arm holds the view title (Bold, −4%) and the card title (+1%), which the rule exempts as page titles.
+- The studio's "Line height and letter spacing" lever and the Type preview's letter-spacing table list all nine roles, with no code change: both read the engine's role list. The new roles read "Not used" until a style binds them.
+- The specimen sheet and the before-and-after screenshots (web, light and dark, 1280 and 380) are in the owner's Desktop folder, `Prism3 type specimen (#2322)`, outside the repo.
+
+---
+
+## (2026-10-08) — Engine: body/xs, a 12px body rung for secondary text and metadata (#2266, PR 1)
+
+**Status:** engine and the consume skill. ENGINE minor (change note). CONTRACT 14.2.0 → 14.3.0 (MINOR). No component
+changes: PR 2 (field sizing) is the first to bind body/xs. Owner decisions: Q78 A (add body/xs) and Q101 A (the design
+note's §9, item 9: the description as drafted), both recorded on #2266.
+
+### What changed
+
+- **The rung.** `body` gains `xs` = 12px ahead of `sm`/`md`/`lg` (`theme.ts` `TYPE_VARIANTS`). It is body, so it
+  takes body's line height (normal, 1.5: an 18px box), tracking (normal, 0), family role and weight and variant set,
+  with no code of its own. On every brand it carries exactly what body.sm carries: four composites (default, strong,
+  each with a link) on aurora, harbor, nb and wendys, and eight on prism3, which ships italics. 12 is on every brand's
+  size ladder. Body is reading text, so it is exempt from the type-scale shift and from size overrides, as before.
+- **Its words.** The owner's sentence, verbatim, is every body.xs composite's DTCG `$description` and its `.ai.json`
+  `$description`: "Smallest body text, 12px. Secondary text and metadata only, never running text." (one constant,
+  `BODY_XS_DESCRIPTION`). That replaces the generated description for this rung only, because the generated one is
+  built from the group's purpose, and body's is running text. The `.ai.json` `when_to_use` and `avoid_when` say
+  when to reach for caption.lg (also 12px) instead. The Figma text styles end "for secondary text and metadata
+  only." where body's end "for running text."
+- **The consume skill** says how to pick between `type.body.xs.*` and `type.caption.lg.*`: body xs inside body text,
+  on its rhythm; caption lg for small print that stands alone.
+- **The contract** gains `type.body.xs.default` and `type.body.xs.default-link`. Its other weights are
+  brand-dependent, as body.sm's are, because some corpus brand ships a single body weight. The design note's §7
+  said six guaranteed names; it is two. That claim was read off body.sm's paths without checking which were
+  brand-dependent.
+
+### Tests and mutations
+
+- **`test.ts`, a new body/xs block.** It reads the COMMITTED emissions of all five brands. Each body.xs composite must:
+  - bind the 12 step, the normal line-height role (followed to its 1.5), normal tracking and the body family;
+  - match its body.sm twin's weight, style and decoration;
+  - carry the owner's sentence, typed as a literal (never imported) in both descriptions;
+  - send standalone small print to caption.lg in `avoid_when`.
+
+  It also checks that the Figma text styles end with the metadata purpose.
+- **The NB text-style fixture test** compared the emitted styles to NB's own file, which predates body/xs. The four
+  body/xs styles are now a named list of engine additions, each required to still be emitted (a stale entry fails).
+  Since they have no fixture twin, each is held to its body/sm twin instead: identical bindings except the size,
+  which must bind `font/size/12`.
+
+- **Plugin tests that pin prism3's text-style count as a literal** move from 63 to 71, and its style total from 84
+  to 92 (`test-write-preflight.ts`, `test-style-guide.ts`): eight body/xs styles. They are literals on purpose, so
+  a plan that moves fails by name, and this one moved by design.
+
+Each mutation ran from a `wip:` commit and was restored with `git checkout --`:
+
+| Arm | ✗ line |
+|---|---|
+| (a) the `xs` rung removed | `❌ #2266 body/xs: … (0 composites; 9: aurora: no type.body.xs · harbor: no type.body.xs · …)`, alongside the contract's own `❌ #1296/#1718 prism3 emits every guaranteed contract path (568/570; missing type.body.xs.default, type.body.xs.default-link)`, both figma text-style checks (`STALE addition body/xs/…`, `not emitted`) and the consume skill's sidecar check (6 in all) |
+| (b) the DTCG `$description` back to the generated one | `❌ #2266 body/xs: … (24 composites; 24: aurora body.xs.default: $description "body xs default — 12px Inter, normal line-height, default weight, normal tracking" · …)` (1) |
+| (c) the `.ai.json` `$description` back to the group's | `❌ #2266 body/xs: … (24: aurora body.xs.default: .ai.json $description "Running text / default UI copy." · …)` (1) |
+| (d) the `.ai.json` `when_to_use`/`avoid_when` back to the group's | `❌ #2266 body/xs: … (12: aurora body.xs.default: .ai.json avoid_when does not send standalone small print to caption.lg ("Do not use for headings …") · …)` (1) |
+| (e) the Figma purpose back to "running text" | `❌ #2266 body/xs: … (20: aurora body/xs/default: Figma description "body xs default — 12px Inter, normal line-height, for running text." · …)` (1) |
+
+### A trap for whoever re-verifies this
+
+The contract's guaranteed set is the INTERSECTION over its corpus of ten brands, not the five example brands. So
+"body.sm carries six names" (read off the baseline's path list) and "body.sm guarantees six" are different claims:
+four of its six are brand-dependent. Read `token-contract.ts --check`'s ADDED lines, never the baseline's list.
+
+---
+
+## (2026-10-08) — Style guide tables: font-size rows fit their specimens, palette swatches fill their cells with an edge, tables drawn from their own page no longer stack, "1 table skipped" (#2267, #2268, #2269, #2261; #2270 ruled out)
+
+For the owner's client showing (2026-10-08). The plugin's main-thread drawing (`apps/plugin/src/style-guide.ts`,
+`style-guide-cells.ts`); the Build style guides panel and the old Style guide page are untouched. Each defect was
+reproduced live on the NB copy with `main`'s code, run from a bundle of the plugin's
+own `runStyleGuide` loaded through the Desktop Bridge, then redrawn with the fix; every table and set added was removed.
+
+**#2267, font-size rows.** A font-size specimen bound only `fontSize`, and the text cell's text keeps a fixed 20px line,
+so a 128px specimen drew a 20px box and its glyphs spilled over the rows around it (measured live: 128px at a 20px line
+is a 20px box; at `AUTO`, 155px). Real Figma grows a HUG grid row to its tallest FILL cell, so the row was never the
+problem. Fix: a font-size specimen takes `lineHeight: AUTO`. Live: the type-sets table went from 774px to 1376px tall,
+no overlap. (The text-style table binds the whole style, its own line height included, and is unchanged.)
+
+**#2268, palette swatches** (owner calls 2026-10-07: fill the cell; edge `color.border.secondary`, 3.28:1 on white).
+The swatch set's `type=default` is a 48px member with a 32px `Specimen` at 8, 8, pinned top-left: the table FILLs the
+instance to its cell (decision 13), but a layer grows inside an instance only by its constraints, so the square stayed
+32px in the top-left corner. Fixes:
+- Set up file builds the default, border and transparency squares (and the checker) to `STRETCH` and marks the set
+  `prism3-swatches`.
+- `stretchSwatches`: a run that draws a palette table brings a set Prism3 built before this up to date in place, a set
+  marked, or one still exactly this builder's geometry (owner call: the run repairs its own set). A set the owner made is
+  never changed.
+- Each palette swatch's square is stroked with the file's `<root>/color/border/secondary`, bound, the row's own root
+  first; a border-display swatch keeps its own stroke.
+
+Live: the old, unmarked set on the copy was repaired by the run (squares `STRETCH`, marked), and 025 and 050 read as
+outlined squares filling their cells.
+
+**#2269, tables stacked.** The host adds a new frame to the CURRENT page at once, 100 × 100 at 0, 0. The run created the
+table frame, tagged it, and only then measured where it goes, so on the page being drawn (where a designer usually is)
+it counted itself: every new category's row anchored on that fresh frame, at 260, 0. A filtered run does not re-flow, so
+the tables stayed on top of each other. Live, from the Primitive tokens page with `main`'s code: Font size (type-sets) and
+Container both drew at 260, 0 over Primary (the owner's report). The #2161 probe, and this lane's first live pass, ran
+with another page current, which is why neither saw it. Fix: measure before `createFrame`. The comment above the old
+measurement already said "Measured BEFORE the new frame joins the page" (docs/34 shape 20: the intent, not the code).
+The shim's `createFrame` now joins a test's current page the same way.
+
+Found on the way and filed, not fixed (one concern per PR): **#2327**, a filtered run that creates two rows pushes the
+second down twice (a gap of the first row's height; no overlap).
+
+**#2261.** Both skip parts of the summary now use the summary's own plural (`1 table skipped — …`); owner call 2026-10-07.
+
+**#2270, ruled out.** The panel posts exactly the selected tables' keys (`drawOptions`, held by `test-style-guides.ts`),
+the run's filter draws exactly those (`narrow`, section 13), and live a filtered run of three palettes drew exactly
+three. The panel's Kinds no longer filter anything (they choose which option groups show). The extra tables in the
+owner's file most likely came from another run and were then stacked by #2269; that cannot be confirmed from here.
+
+**Tests:** `test-style-guide.ts` section 30, an arm per fix. **Mutations**, each on the committed head through the #2272
+harness (anchor asserted, mutated text present, restored in `finally`, `git diff` empty after), each failing exactly its
+own arm:
+- the AUTO line height dropped: `✗ 30 #2267: every font-size specimen takes the font's own line height (AUTO), so its row grows to fit it (2 table(s), 64 specimen(s), 64 fixed: null)`;
+- the squares not built to stretch: `✗ 30 #2268: Set up file builds the filled, border and transparency squares to stretch with the swatch, and marks the set Prism3's (   ; mark "1")`;
+- the repair a no-op: `✗ 30 #2268: a run brings a set Prism3 built before this up to date: its squares stretch, and it is marked (null null null null)`;
+- the owner-set guard removed: `✗ 30 #2268: a swatch set the owner made is left as it is: nothing stretched, no mark ({"horizontal":"STRETCH",…})`;
+- the edge binding removed: `✗ 30 #2268: every palette swatch's edge is bound to pds3/color/border/secondary (168 swatches, 168 not: type=default null)`;
+- one skip back to "tables": `✗ 30 #2261: one table skipped for missing cell sets reads "1 table skipped" (1 tables skipped — …)`;
+- the measurement back after `createFrame`: `✗ 30 #2269: drawn from its own page, a filtered run of two categories lays its tables apart, the first at the page's origin (Dimension 260,0 … | Font family 260,0 … — overlap: Dimension × Font family, …)`, the live 260, 0 exactly.
+
+**Trap for whoever re-verifies:** reproduce #2269 with the target page CURRENT. With any other page current it does not
+show, live or in the shim.
+
+---
+
+## (2026-10-08) — Studio: the plugin's Pages menu and the old Style guide page go, and the legacy page path with them (#2289, H12)
+
+**Status:** UI only (`apps/studio/src`, `apps/plugin/src/messages.ts`'s one comment, and the browser suites). No engine
+change, no emitted artifact moves, no ENGINE bump, CONTRACT unchanged. Owner decisions: H12 A (the cleanup), PG1 A
+(remove the Pages button and the old Style guide page; "Build style guides…" in the Figma menu is the one way in), and
+Q107 A (the four differences the old page had are accepted: REM keeps the new page's default, off; comma lists and key
+matching in the Tables filter go; an agent's run shows in Activity, not on the page; P8 stands).
+
+### The one visible change
+
+The plugin's top bar loses its "Pages ▾" button. At 1280 the Figma menu moves left beside Export; at the narrow tier the
+second row reads Figma ▾ · Apply Theme. The web never drew the menu (G19 A). Screenshots of the real bar at 1280 and
+380, before and after, are on #2289 for the owner.
+
+### What went, and why it was dead
+
+`styleGuide` was the last legacy page: every tab's `legacy` list was already empty (S8.2), and `MENU_LEGACY` held only
+it. Removing it emptied the legacy page path, so everything that existed only to draw a legacy page went too:
+
+- **`main.ts`:** the Pages menu (`renderPagesMenu`, `renderNavMenu`), the rail data (`NAV`, `railNav`, `isFirstView`),
+  the old page (`renderStyleGuidePage`, its Customize fold and its row, `syncStyleGuideRow`, `styleGuideOptions`), the
+  row status pill (`renderApplyStatus`, with the pending-pill sets that only it filled), `PAGE_RENDERERS` and
+  `PAGE_COPY`, the legacy workspace (`renderWorkspace`'s legacy half, `chromedWorkspace`, the region reconcile, the
+  volatile painter `setVolatile`/`paintVolatile`, the mode badges), the old mode strip (`renderModeStrip`,
+  `renderModeContext`, its sticky shadow and its `mode-strip` chrome surface), and the legacy settings search.
+  `styleGuidePendingText` stays: the Activity drawer reads it.
+- **`shell/pages.ts`:** the `legacy` lists, `LegacyPageKey`, `legacyOf`, `MENU_LEGACY`. `placeOfPage` and `pageOfTab`
+  lose their host and keep-place arguments, which only a legacy page needed. `status` stays, `new` on every page, as the
+  field `NewPageKey` is derived from.
+- **`shell/frame.ts`:** the legacy frame and its `legacy` layout. The levers pane is the tabs' panel on every page.
+- **`shell/bar.ts`:** the `pages` slot.
+- **CSS:** the `styles.css` rules only those drew, dropped through `lint:live-css --accept` with no `--allow`, each key
+  named below; and `chrome.css`'s legacy-layout rules, which `lint:live-css` does not cover (the frame never sets
+  `data-layout="legacy"` and nothing mints `.p3-legacy`).
+
+**Proof it was dead, three ways.**
+- `tsc --noUnusedLocals` against a baseline taken before the first edit: every declaration it flagged as newly unused
+  was removed, round by round, until the list matched the baseline.
+- The esbuild metafile of both bundles, before and after: no module left either bundle (the dead code sat inside live
+  modules), and `main.ts` shrank by 25,139 bytes in each.
+- `lint:live-css`'s sweep, riding the four browser suites, decided which CSS rules nothing draws any more.
+
+### Tests
+
+- **New: `test-removed-legacy.ts`** (in the studio `test` script). A literal list of the removed identifiers and hooks;
+  every `.ts` file under `apps/studio/src` and `apps/plugin/src` is parsed and any identifier or string literal naming
+  one fails, by file, line and name. Comments do not count, so the history notes stay. Non-vacuous: a planted fixture
+  must report every name, and the scan must read the files that held them.
+- **#1031 moved, not deleted** (test:chrome §4, as Q107 A asks): from the old page's Customize selects to the Build style
+  guides page's own fields, in the plugin's dark theme. The rule is read from each field's own ground: a field on a
+  dark ground resolves a dark color-scheme, and every value inks at 4.5:1. The disabled Mode select is exempt (F1 A).
+- **The plugin's start-moment sweep** (test:start) measures Build style guides in place of the old page.
+- **The row verdict that opens Activity on its row, expanded,** moved to `test-style-guides-page.mjs`, on the new page's
+  own pill.
+- **#1890's drawer arm** moved to Build style guides. No layout scrolls the document under the sticky head any more (the
+  panes and the menu page scroll on their own), so the drawer's pin is read as geometry and the scrolled reads went.
+- **Retired with reasons in place:** test:verdict's #259/#1785/Q19/#1778 arm (the old page's options, agent run and
+  Tables field; Q107 A) and the S11 page-row arm; test:chrome's G19 Pages-menu row and C3 Pages-menu stamp checks.
+  test:chrome §26 holds the Pages menu's absence on both hosts by its accessible name.
+- **test:smoke** asserts the app view's chrome roster is exactly `brand-bar` and `error` (it was three, with the legacy
+  `mode-strip` the web never mounted), every declared surface mounted, and no legacy frame.
+
+Mutations, each from a `wip:` commit and restored with `git checkout --`:
+
+| Arm | ✗ line |
+|---|---|
+| `MENU_LEGACY` re-added to `shell/pages.ts` | `✗ no file names a removed name or hook — apps/studio/src/shell/pages.ts:420 MENU_LEGACY` |
+| the `'pages-menu'` hook string re-added to `shell/bar.ts` | `✗ no file names a removed name or hook — apps/studio/src/shell/bar.ts:204 'pages-menu'` |
+| the new page's selects forced to `color-scheme: light` in the dark chrome (#1031's own defect) | `✗ figma dark / Build style guides: every field resolves its own ground's color-scheme and inks its value at 4.5:1 — sg-collection "" light on a dark ground 18.13:1 \| sg-opt-value-format "hex" light on a dark ground …` (test:chrome, the only failure of 36638) |
+
+
+### The CSS that went
+
+**59 `styles.css` rules that were live before and are drawn by no page now.** The first `lint:live-css --accept` sweep
+moved them from live to dead with no `--allow`. They were then removed by key:
+`.hit-min #1`, `.hit-min::before #1`, `.modebar #1`, `.modebar.stuck #1`, `.barmenu-wrap #1`, `.applystat #1`, `.applystat.ok #1`, `.applystat.bad #1`, `.applystat .caret #1`, `.cw-note #1`, `.fs-row #1`, `.brandmenu #1`, `.bm-cap #1`, `.bm-div #1`, `.shell #1`, `.stage-t #1`, `.stage-t b #1`, `.stage-t small #1`, `.rail-note #1`, `.hero #1`, `.hero h1 #1`, `.lede #1`, `.knob #1`, `.knob:last-child #1`, `.knob-label #1`, `.knob-body #1`, `input.toggle #1`, `input.toggle::after #1`, `input.toggle:checked #1`, `input.toggle:checked::after #1`, `.knob .select #1`, `.knob-val #1`, `.knob-desc #1`, `.modectx #1`, `.mctx-modes #1`, `.mctx-cap #1`, `.mctx-b #1`, `.mctx-b:hover #1`, `.mctx-b.on #1`, `.mctx-vo #1`, `.contracts #1`, `.contracts-sum #1`, `.contracts-sum::-webkit-details-marker #1`, `.contracts-sum::before #1`, `.contracts[open] .contracts-sum::before #1`, `.contracts-t #1`, `.contracts-hint #1`, `.tf-in #1`, `@media (max-width: 640px) » .shell #1`, `@media (max-width: 640px) » .barmenu-wrap #1`, `@media (max-width: 640px) » .brandmenu #1`, `@media (max-width: 640px) » .hero h1 #1`, `@media (max-width: 640px) » .lede #1`, `.navmenu #1`, `.nav-item #1`, `.nav-item:hover #1`, `.navmenu .rail-note #1`, `@media (max-width: 480px) » .shell #1`, `@media (max-width: 480px) » .hero h1 #1`.
+
+**11 companions of the same families**, already undrawn in the old baseline, were removed with them:
+`@media(prefers-reduced-motion:reduce) » .modebar`, `.cw-note b`, `.knob > .knob-body`, `.knob input[type=range]`,
+`input.toggle:disabled`, `.knob input:disabled`, `.knob-val.ro`, `.mctx-modes>*`, `.nav-item.cur` and
+`.nav-item.cur .stage-t b`. So were the comments they left with nothing under them. A second `--accept` rewrote the
+baseline over the result.
+
+### Traps for whoever re-verifies this
+
+`test-hooks` fails a suite that names a `data-p3` hook no page renders, so a check that something is ABSENT cannot use
+the removed hook's literal. Absence here is read by class (`.p3-legacy`) or by accessible name ("Pages").
+
+`lint:live-css --accept --dry-run` names only the rules an accept would FORGET, meaning live rules already gone from
+the CSS. It cannot list rules that went undrawn while still in the CSS. So the order is: change the app, `--accept`
+for real, diff the old baseline's `live` keys against the new one's, remove those rules, then `--accept` again. The
+first sweep of this change also failed once on a click timeout (`#1984 web light 380`, under load) and passed on the
+rerun: `--accept` refuses a partial sweep, so it is safe to rerun.
+
+---
+
+## (2026-10-08) — CI: Chromium installed once per job, cached and time-bounded (#2323)
+
+Two attempts of #2299's CI run hung over 75 minutes each in the verdict suite's step. Each stalled in `apt-get`, fetching Chromium's system packages from Ubuntu's mirror, before any test ran. `ci.yml` installed Chromium inside two gate steps (the plugin verdict suite and the studio smoke suite), neither with a time limit, so a mirror stall burned the whole job and read as a test hang.
+
+- **One install step, ahead of the first browser gate.** Every browser gate runs after it: verdict, start, chrome, live-css and smoke. The browser is cached under `~/.cache/ms-playwright`, keyed on the Playwright version the lockfile resolves. `--with-deps` stays, because a cache restores the browser, not the system libraries it loads.
+- **Bounded, and still a gate's setup.** `timeout-minutes: 12`. Each attempt is bounded at 4 minutes, and the install is tried three times, since a mirror stall is more often transient than persistent. Three failures fail the job with "Chromium install timed out or failed after 3 attempts; the browser gates cannot run". Never `continue-on-error`. The two old comments that named this fix ("caching the browser, never restoring the flag") now point at it.
+- `lint-doc-gates.ts` lists the install step and the version-resolving step in `NOT_A_RUNNABLE_GATE`, beside `npm ci`. They install and assert nothing, and `verify.ts` stands in for the browser with `chromiumPrecondition`.
+
+### Traps for whoever re-verifies
+
+- **The loop was exercised locally, not under Actions,** with `false`, a once-failing command and `sleep 5` in place of the install, and a 1 s bound. It fails the job, retries a one-off failure, and bounds a hang. The first CI run on this branch is the real check: the cache step should report a miss, then a hit on the next run.
+- **`SETUP_LINES` still allows `npx playwright install --with-deps chromium` inside a gate step.** No step carries that line now, but the gate's self-tests use it, so emptying it is a change of its own.
+
+---
+
+## (2026-10-07) — Update dry run: a member duplicated in Figma, or with a malformed stamp, is not Prism3's (#2300)
+
+Settles #2300 before #2265 PR 2 applies anything. Found in review of #2299: any non-empty stamp counted as Prism3's.
+
+- **Figma's Duplicate copies a member's shared plugin data**, stamp and record included. So a designer's copy, renamed off the plan, read as a Prism3 drop, and an update would have marked it deprecated. That's the harm #2283 prevents for hand-made members, reached another way.
+- **The as-built record now names the node it was written on** (`BASELINE_V` 1 → 2). A copy's record names its original. One step in the dry run, `ownedView`, reads a member as not built by Prism3 when its record names another member of the set, or when its stamp does not have Prism3's shape (engine, a 16-hex plan stamp or `adopted`, an optional revision). The capture and Adopt read through the same step. A copy is then a designer's member like any other: skipped, listed, and adoptable.
+
+### Diagnosis worth keeping
+
+- **"Names another member", never "the id differs".** The host has been measured reassigning member ids after set-level operations (#1473, #1516). A genuine member whose id moved names a node that is no longer in the set, and it must stay Prism3's. `copy/reassigned` holds this, and fails if any differing id reads as a copy.
+
+### Traps for whoever re-verifies
+
+- **v1 records read as no record.** The NB master's records, captured after #2278, go back to "no as-built record" until `capture-baseline` runs again. It has to run there after #2295 anyway, so one run covers both.
+- **A copy of a member with no record can't be told from its original.** There is no record to name a node. Capture closes that for every planned member. A dropped member is never captured, so a copy of one still reads as Prism3's.
+- **#2265 PR 2 writes records in its own merge path** (kept hand edits keep their old hash). It must carry the node id too, or every member it updates would lose its id.
+
+---
+
+## (2026-10-07) — test:chrome: §35 re-holds an aria-held widget put back in the tab order, and §34's labels read "34" (#2310, #2311)
+
+**#2310, the gap.** `holdSettings` (`apps/studio/src/shell/frame.ts`) puts a hold back on a node a page lifted in
+place. A native control counts as still held only while it is `disabled`. Any other widget counts as still held only
+while it is `aria-disabled="true"` and at `tabindex="-1"`. §35 held only the native half: Depth's tint hue re-enabled
+in place. Dropping the `tabindex` half survived the suite (the #2284 review).
+
+**The arm** (§35, the brand-change-while-held case, on both hosts):
+1. A `div role="slider" tabindex="0"` is planted in the held levers region, right after a live ⓘ. No page draws such a
+   widget there today, so the test supplies one. The hold catches it as it catches any node drawn: the control half
+   asserts `aria-disabled="true"`, `tabindex="-1"` and its old tabindex recorded (`data-held="0"`).
+2. Its `tabindex` is set back to 0 in place, with `aria-disabled` left alone.
+3. It must be held again: `tabindex="-1"`, and a Tab from the ⓘ before it does not land on it.
+
+**One part of #2310's done-when is not asserted, on purpose:** "`focus()` doesn't land on it". By the HTML spec a
+`tabindex="-1"` element still takes a script's `focus()`, so a correctly held widget would fail it too. What keeps a
+held widget out of reach is the tab order, so the arm checks the Tab.
+
+**#2311.** #2284 renumbered #2298's section from §33 to §34, since #2275 had taken §33, but the section's failure labels
+still began `33 …`. They all come from one `where` string, which now reads `34 figma ${theme}`. No `33 …` label is left
+in `test-chrome.mjs`; #2275's own labels read `#2275 …`. (#2298's fragment quotes an old run's `✗ 33 figma light 592`
+line verbatim, as the record of that run, and stays as it is.)
+
+**Mutation** (#2310's reviewer's own), on the committed head through the #2272 harness (anchor asserted, mutated text
+present, restored in `finally`, `git diff` empty after), both bundles rebuilt and `test:chrome` run: the still-held test
+without its `tabindex` half (`n.getAttribute('aria-disabled') === 'true'` alone). 36216/36220, the full count run;
+the arm fails by name on both hosts, the control half still passing:
+- `✗ #1984 web light 1280 hc-light on depth, a brand change while held: an aria-held widget put back in the tab order in place, aria-disabled left alone, is held again: tabindex -1 (#2310) ({"aria":"true","tabindex":"0","mark":"0"})`
+- `✗ #1984 web light 1280 hc-light on depth, a brand change while held: a Tab from the live ⓘ before it does not land on the re-held widget (#2310) (focus on DIV)`
+- and the same two on figma.
+
+---
+
+## (2026-10-07) — Update dry run: a member Prism3 did not build is never a drop, and a one-time Adopt (#2283)
+
+Settles #2283 before the apply (#2265 PR 2), per design note Q4 and owner decision Q85 A: unstamped members are skipped, with a one-time Adopt.
+
+- **Never a drop.** A coordinate member with no stamp is a designer's own. The dry run used to count one off the plan as a drop, a member the update would mark deprecated. Now it is never a drop and never a collapse onto a removed axis's default. Where it shares a coordinate with a stamped member, the stamped one is the match. Every such member is named in a new `unstamped` list and counted on the approved line "N not built by Prism3".
+- **Adopt** is `adopt-members` over the agent link (`{def?}`). It claims an unstamped member on a planned coordinate that no stamped member holds. It writes the as-built record as the member stands, then, last, a stamp whose plan field is `adopted`. That is no plan's stamp, so an adopted member reads `update`, never `current`. The next update brings it to the plan in place, keeping its node. A member off the plan is left as it is, since adopting it would only mark it deprecated. It holds the build's run guard, like the other two update commands.
+
+- **Adopt follows the dry run (#2299 review).** Adopt claims exactly the members the dry run's matching marks `adoptable`: renames and axis changes applied, nothing landing there first. A set the dry run refuses, such as two hand-made members on one coordinate, is refused whole, with nothing written. Before this, Adopt stamped both members of a set the update would then refuse, and told the designer to run that update.
+- **By node id (#2301).** Adopt and `capture-baseline` write only to the node id each member was read from, and leave out a member whose node moved or is gone. They used to pair by position, so a set reordered while it was read put the write on another member. The shim now gives every node an id (`identities`, opt-in) so this can be tested.
+
+### Diagnosis worth keeping
+
+- The drop was not the only path. Under a removed axis, `keep = exact ?? first` could pick the designer's member on the default value over Prism3's on another value, collapsing Prism3's own member. `unstamped/stamped wins` holds the preference.
+- **Why `adopted` and not the plan's stamp:** stamping the plan's own stamp would make the dry run call a hand-made member current while it differs from the plan. `adopt/reads update` fails if it does.
+
+### Traps for whoever re-verifies
+
+- The stamp is built in `update-plan.ts` from `ENGINE_VERSION` and `EXECUTOR_REVISION`, not by a new helper in `write-components.ts`. A code change there is an executor change, and `lint-executor-revision` would ask for a revision bump that nothing else in this PR needs.
+- No panel control: Adopt, like the dry run and the capture, is agent-link only until the owner settles the panel button (#2265 PR 2).
+- **The held skip was unreachable as first written.** It compared exact names, and two members on one exact coordinate are a duplicate the dry run refuses anyway. It is reachable only through the dry run's matching: a declared rename moves a stamped member onto a hand-made member's coordinate. `adopt/held` builds exactly that.
+- **A reorder must be a new array in the shim.** The host's `children` is a fresh array on every read, so a reorder during the read leaves the read in progress alone. Reversing the shim's one array in place made the read see some members twice, which looked like a duplicate.
+
+---
+
+## (2026-10-07) — test:chrome: the contrast audit measures a check control's own box (#2238)
+
+**The gap.** The probe's non-text arm read each control's own border against the ground outside it. A check control's
+indicator, its `.p3-check-box`, is a span inside the control, so nothing read it. Found in the review of #2235: the
+always-on Light row turned into an enabled checkbox (`role="checkbox"`, `aria-checked="true"`, `tabIndex = 0`) kept its
+disabled box, and the box measured 1.80:1 while no contrast assertion fired.
+
+**The fix** (`apps/studio/test-chrome.mjs`, the PROBE and `check`):
+- **Every drawn `.p3-check-box` is measured** as a boundary against the ground around it. The reading is its weakest
+  edge side, or its fill if the fill stands out more (SC 1.4.11 asks that the box be identifiable, by either). It joins
+  the existing edge list, so a box under an enabled control is held to 3:1 and one under a switched-off control goes
+  through the contrast exemption like every other measured node.
+- **Its control is the nearest check host:** a CONTROL, or an element with a `checkbox`, `menuitemcheckbox` or `switch`
+  role. That last part is the reviewer's case: a `div` with a checkbox role is not a CONTROL, so the control loop never
+  saw it.
+- **The always-on Light row is set aside by its literal class** (`.p3-check-fixed`, with no role and no tabindex of its
+  own; a fixed fact, not a control, DB1 A). A box under neither a host nor that row fails by name.
+- **Represented, not merely counted:**
+  - every drawn `.p3-check` control, read by the control's own class rather than the box's, must have had its box
+    measured;
+  - and every host × chrome theme pair (web and figma, light and dark) must have measured at least one box over the run.
+
+No visible change: every live check box already clears 3:1 (unchecked, the field edge; checked, the text fill).
+
+**Mutations,** each on the committed head through the #2272 harness (anchor asserted, mutated text present, restored
+in `finally`, `git diff` empty after), with both bundles rebuilt and `test:chrome` run:
+- (a) the reviewer's: the Light row made an enabled checkbox (`role="checkbox"`, `aria-checked="true"`,
+  `tabIndex = 0`) in `src/domains/brand.ts`. 35288/35345. The new arm fails by name on both hosts, both themes, every
+  width, e.g. `✗ web light 1280 / brand: every control edge and indicator clears 3:1 — edge check box in div[mode-on-light] "LightAlways generated: it’s th" 1.8:1 < 3` (1.65:1 in dark). The focus-ring lines and #2235's DB1 A line fire too, as before.
+- (b) the probe's box selector misspelled (`.p3-check-boxx`). 35314/35343, the full count run. 21 lines, e.g.
+  `✗ web light 1280 / brand: every drawn check control had its box measured (4 check control(s)) — no box measured in button[mode-on-dark] …`, plus the four run-wide lines, e.g. `✗ #2238 web light: the contrast audit measured check boxes in the sweep (0)`.
+
+---
+
+## (2026-10-07) — Studio: one read-only state for the levers panel in derived modes (#1984)
+
+**Status:** `apps/studio/src/shell/frame.ts` (the hold, its exceptions and the line), `chrome.css` (three rules), the seven
+per-mode domain modules (their derived lines and disabling loops removed), and `test:chrome` (new section 35, plus the
+Q59 and TY2 A cases moved to the new model). No ENGINE bump: no emitted artifact moves. CONTRACT unchanged. Copy: one new
+line, APPROVED (owner, RO1 A, 2026-10-07). Closes #1984.
+
+### What changed
+
+The owner decided on 2026-10-03 that derived modes (HC light, HC dark, wireframe) get one read-only state for the levers
+panel instead of each page disabling its own controls. N-3 A (2026-10-05) asked for a panel-level line plus controls
+that can't be used. On review of the first build the owner chose two refinements (2026-10-07):
+
+- **RX1 A:** help and navigation stay usable, and only the settings are locked.
+- **RX2 A:** the line takes the studio's existing note style and stays at the top of the panel.
+- **RX3 A:** the note keeps its own warning glyph, unchanged, and HP3 (the ⓘ is only ever a button) stays as it is.
+
+**The hold.** The frame mounts each page's levers inside `levers-region`, a `div` with `display: contents`. On the seven
+pages that edit the previewed mode (the `derivedReadOnly` flag on their `NEW_PAGES` rows), a derived mode runs
+`holdSettings` over that region. It finds every operable element: native controls, ARIA widgets, editable regions and
+anything in the tab order (#1991's reach). It holds every one that is not one of RX1 A's exceptions (`STAYS_LIVE`):
+
+- the ⓘ help buttons (`.p3-info`);
+- the Show advanced folds (`aria-controls="p3-advb-…"`);
+- the Jump to links;
+- the "way to" links (`.p3-deplink`: Shape › Components, Components › Shape, and Type › Layout, the same kind of link);
+- Continue.
+
+A held native control gets its own `disabled`. So it keeps Prism3's disabled skin (F1 A, X4 A) and the contrast audits'
+exemption, leaves the tab order, and reads disabled to assistive technology. Any other widget gets `aria-disabled` and
+`tabindex="-1"`. Each held element is marked `data-held`, so leaving the derived mode frees only what the frame held. A
+page's own disabled controls (the first breakpoint, a locked icon row) stay as the page drew them. A `MutationObserver`
+on the region re-applies the hold whenever a page redraws, for example when a fold opens, and whenever a page lifts a hold
+in place (`disabled`, `aria-disabled` or `tabindex` changed on a held node). The hold sets those same attributes, so it
+drops the records it makes itself (`takeRecords`), and a second pass would change nothing.
+
+**The review's BLOCK (#2284).** The first version skipped any node already marked `data-held` and watched only
+`childList`. Depth's `noHue` sync sets the tint hue's `disabled` on every brand change, so in a derived mode a brand
+change (an agent edit, the test hook) left the hue drawn enabled, focusable and announced enabled, while the write guard
+silently refused its edits. Now a held node is skipped only while it is still held, and the observer watches the three
+attributes too. The reviewer grepped every other in-place toggle in the seven pages and `ui/`; Depth's is the only live
+one today, and the fix closes the class. One source of truth: a new
+lever is held without doing anything, and no page checks the mode to disable a control.
+
+**The line,** "‹Mode› is auto-derived and can't be edited here. Switch the preview to Light or Dark to edit.", is the
+pane's first child, outside the region. It is Build style guides' boxed note, `.p3-sg-note.p3-sg-warn`, unchanged, its
+own warning glyph included (RX3 A). The studio has no tinted neutral note, so this is the existing box with an icon. An
+info glyph there was tried and dropped: TY2 A's HP3 check fails any ⓘ drawn outside a button in the levers pane. The line uses `modeLabel`'s name, takes
+programmatic focus (`tabindex="-1"`), and is absent in Light and Dark. Brand and Palettes are brand-wide and stay
+editable.
+
+**Removed, one source of truth:**
+- each page's "‹Mode› is auto-derived — read-only…" line (Surfaces & fills drew it in every row list and in Gradients);
+- each page's `querySelectorAll(…).disabled = true` loop;
+- the per-row `btn.disabled = derived` and Unpair's flag;
+- `DEPTH_COPY.derived` and `COMPONENTS_COPY.derived`.
+
+**Kept, on purpose:**
+- **The write-time guards.** #2096's refusal in Components' `edit` stays as defense in depth. The Components Q59 case
+  still dispatches a scripted `input` on the held slider and holds the saved brand byte-identical.
+- **`isDerived` checks that decide what is drawn,** not whether a control is disabled: no picker drawn open, no
+  "Editing ‹mode›" line, no inline Pair confirm in a derived mode.
+- **A Custom mode's surface controls** stay disabled by `surfaceSourceOf().editable`. That is the custom-mode rule, not
+  a derived-mode check.
+
+**The first build, and why it changed.** The first round made the region a `fieldset` that was both `inert` and
+`disabled`. That was one line of mechanism, but it took help and navigation down with the settings, which RX1 A
+reverses. The fieldset also left each control's own `disabled` property false, so both contrast audits' "the `disabled`
+property or `aria-disabled`" read had to learn about fieldsets. Holding each control by its own `disabled` puts both
+audits back exactly as they were on `main`.
+
+### The gate (test:chrome section 35, new)
+
+The gate runs on both hosts, both chrome themes, at 1280 and 380. In each derived mode, on each of the seven pages:
+
+- Every operable element in the pane that is not a named exception is held, and every named exception drawn is live.
+- A Tab walk from the line through the whole pane stops only on named exceptions, and Shift+Tab leaves the pane.
+- CDP `Accessibility.getFullAXTree` reports every control under the pane disabled except the named exceptions, with a
+  floor on the disabled ones, and holds the line's text.
+- The line reads the literal, sits outside the region, and takes focus. It carries the note's classes and its warning
+  glyph (known by its drawing), with its text at 4.5:1 and its glyph at 3:1 on its own ground.
+
+Once per run, in HC light on Surfaces & fills, the exceptions are shown to work: an ⓘ opens its help, and a Jump to link
+scrolls the pane.
+
+**A brand change while held** (once per host, light chrome, 1280, HC light on Depth & motion with Show advanced open):
+- web: the test edit hook changes the tint amount; every setting is still held, the tint hue by name;
+- plugin: its UI has no in-place brand change. A `restore-input` loads the brand wholesale and returns to Light and the
+  opening page, so the case reads that it lands live (no line, nothing held) and that HC light on Depth holds everything
+  again;
+- both: the tint hue is re-enabled in place exactly as `noHue` does it (`disabled = false`, nothing drawn) and must be
+  held again. A brand change also redraws nodes in the region, which alone triggers the re-hold, so this check is what
+  holds the attribute watch on its own. In Light and Dark there is no line, a setting takes focus, and the tree holds enabled settings.
+
+The exceptions are a literal list of hooks, so the gate does not read the frame's `STAYS_LIVE` selector. The modes, names,
+pages, line and note classes are literals too, and every page × mode pair is counted.
+
+**Mutations,** each in its own `wip:` commit, run on the section with both bundles rebuilt:
+
+- (a) settings not held in wireframe: 168 failures, all wireframe, e.g. `#1984 web light 1280 wireframe on color-fills:
+  every setting in the levers pane is held (149 read; live: fill-pick, icons-unpair, gradients-switch, …)`.
+- (b) the line left out in HC dark: 280 failures, all HC dark, e.g. `#1984 web light 1280 hc-dark on color-fills: the
+  panel's line is present and reads "HC dark is auto-derived …" (0 drawn, read null)`.
+- (c) the line placed inside the levers region: 168 failures, e.g. `#1984 web light 1280 hc-light on color-fills: the
+  line sits outside the levers region and takes focus (in the pane true, in the region true, focus true)`.
+- (d) Layout's flag removed: 168 failures, all on Layout, e.g. `#1984 web light 1280 hc-light on layout: every setting in
+  the levers pane is held (28 read; live: bp-input, bp-remove, bp-add, …)`.
+- (e) the selects left out of the hold: 216 failures, e.g. `#1984 web light 1280 hc-light on color-fills: every setting
+  in the levers pane is held (149 read; live: gradient-kind, gradient-interpolation, …)`.
+- (f) the Jump to links held: 16 failures, e.g. `#1984 web light 1280 hc-light on color-fills: help and navigation stay
+  usable (RX1 A): every named exception drawn is live (14 drawn; held: fills-jump-link)`. The held link then refused
+  the jump click, so each context's case stopped there, by name.
+- (g) the line back in the hint style: 168 failures, e.g. `#1984 web light 1280 hc-light on color-fills: the line is the
+  studio's boxed note (p3-sg-note p3-sg-warn, RX2 A) with its own warning glyph (RX3 A), text at 4.5:1 and glyph at 3:1
+  on its own ground ({"classes":false,"glyph":true,"opaque":false,"text":3.81,"icon":3.81})`.
+- (h) the hold not watching attributes (`childList` only): 2 failures, both hosts, e.g. `#1984 web light 1280
+  hc-light on depth, a brand change while held: the tint hue re-enabled in place, as Depth's own sync does it, is held
+  again ({"disabled":false,"held":"native"})`. Before the in-place check existed this arm passed, because the brand
+  change also redraws nodes; that is why the check was added.
+- (i) a held node skipped though re-enabled: 3 failures, e.g. `#1984 web light 1280 hc-light on depth, a brand change
+  while held: after the change, every setting is still held, the tint hue included (10 read; live ["shadow-tint-hue"];
+  hue {"disabled":false,"held":"native"})`.
+
+One full `test:chrome` run also timed out once in #2194's Light-mode Type case, which never touches a derived mode. Run
+on its own it passed 20/20 on both hosts, so it was load. #2285 (section 33) and #2298 (its 33, renumbered here to 34) landed first, so this one is 35.
+
+### Moved cases
+
+- **Q61's Pair button and every Q59 page case** read `:disabled` instead of the property. That reads the same either way
+  now, and it is what the X4 A sweep reads.
+- **Their line checks** read `levers-derived-note` and the new copy.
+- **TY2 A's hint-line floor** fell from 16 to 2. The derived lines it counted (`.p3-state-hint`, repeated in each
+  Surfaces & fills row list) are gone, and the new line is a note, not a hint. Measured.
+
+Found on the way, not fixed here: at 380 the Surfaces & fills levers overflow their pane (scrollWidth 454 against 379),
+on `origin/main` too. That is #1975, and the measurement is posted there.
+
+---
+
+## (2026-10-07) — Chrome: a `:hover` inside `:has()` carries the Q28 limit on the element it hovers (#2290)
+
+**The gap.** The `[hover]` check (#2247) read a compound as hovering if `:hover` appeared anywhere in it, `:has()`
+arguments included, and passed it if that compound carried the limit. So `.a:where(:not(:disabled, [aria-disabled="true"])):has(.b:hover)`
+passed, though what is hovered is `.b`, the control that can be switched off. Found in the review of #2286.
+
+**The fix** (`apps/studio/chrome/esbuild-plugin.mjs`):
+- **`bareHovers`** reads each `:has()` argument, at any depth (inside `:is()` or `:not()` too), as a relative selector
+  of its own, so its hovered compound must hold the limit itself. A `:hover` inside `:is()`, `:where()` or `:not()`
+  stays the compound's own element, as before.
+- **The subject's limit no longer counts** for a hover inside its `:has()`. Nothing in `chrome.css` hovers inside
+  `:has()` today, so no rule changes and nothing on screen moves. The one `:has()` rule, the color field, has its limit
+  in a `:has()` and hovers its own element; it stays in HOVER_EXEMPT, unchanged.
+- **Four new HOVER_CANARIES, both forms literal:** a limited hover inside `:has()`, and one after a combinator, must
+  pass; a limit on the `:has()` subject only, and a `:has()` inside `:is()` with an unlimited hover, must fail.
+
+**Mutations,** each on the committed head through the #2247 harness (anchor asserted, mutated text present, restored
+in `finally`, `git diff` empty after), against `npm run -w @prism3/studio build`:
+- (a) a rule added with the limit only on the subject, `.p3-colorfield:where(…):has(.p3-color-input:hover)`:
+  `✘ [ERROR] p3:chrome-css [hover] apps/studio/src/chrome.css:743: ".p3-colorfield:where(:not(:disabled, [aria-disabled="true"])):has(.p3-color-input:hover)" hovers without the Q28 limit … on the element it hovers (on ".p3-color-input:hover")`.
+- (b) the control: the same rule with the limit on `.p3-color-input`. The build passes.
+- (c) the check back to the whole-compound rule: four self-checks fail by name, including `self-check: the hover scan no longer flags a limit on the :has() subject only (want ".a:where(…):has(.b:hover)", got [])`, which is #2290's gap, and `self-check: the hover scan now refuses a limited hover inside :has()`.
+
+---
+
 ## (2026-10-07) — Engine: a pure gray has no hue, rather than ~89.88° of rounding noise (#2241)
 
 **Status:** ENGINE `0.233.0` (`engine: minor`, change note `engine-2241-hueless-gray.md`). CONTRACT
