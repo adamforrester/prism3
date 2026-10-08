@@ -37,7 +37,7 @@ import {
   authoredTint, brandShadowValue, easingOverride, setEasingRole, setShadow, shadowOverride, setTempo, tempoOverride, type ShadowKey,
 } from '../state/depth-motion-input';
 import { noteSectionEdit } from '../preview/follow-edit';
-import { DOMAINS, pageOfTab, type Host, type PageData } from '../shell/pages';
+import { DOMAINS, pageOfTab, type PageData } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
 import { valuePicker } from '../ui/value-picker';
@@ -45,7 +45,6 @@ import { choice, leverBlock, leverOf, setText, slider, sliderReadout, stateLine,
 
 const PAGE = DOMAINS.find((d) => d.id === 'depth') as PageData;
 const section = (title: string) => PAGE.sections.find((s) => s.title === title)!;
-const HOST: Host = PRISM3_HOST === 'figma' ? 'figma' : 'web';
 
 /** The page's own copy. APPROVED (owner, 2026-10-04) unless marked DRAFT; the DRAFT strings are in the S9.2
  *  fragment's "Copy for owner approval" block. */
@@ -378,7 +377,7 @@ export const mountDepthLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const next = hook(h('button', 'p3-btn p3-btn-page p3-next'), 'depth-continue');
     next.type = 'button';
     next.append(h('span', 'p3-btn-label', DEPTH_COPY.next), glyph('chevr'));
-    next.onclick = () => setPage(pageOfTab('layout', HOST));   // by tab (S7's pageOfTab): Layout's legacy page until S10
+    next.onclick = () => setPage(pageOfTab('layout'));   // by tab (S7's pageOfTab)
     const nr = h('div', 'p3-nextrow');
     nr.append(next);
     parts.push(nr);

@@ -26,17 +26,15 @@ import { resolveAllModes } from '@prism3/engine/modes';
 import { toDesignMd } from '@prism3/engine/design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
 import { hostCommit, type HostCommit } from './write-adapter';
-import { initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type DetailKey, type OpKey } from './state/host-session';
-import type { StyleGuideOptionsMsg } from './write-adapter';
+import { initialHostSession, reduce, topicsFor, brandEffectFor, type HostSession, type OpKey } from './state/host-session';
 import { emToPercentLabel } from './em-percent';
 import { mountFrame, type Frame } from './shell/frame';
-import { isMenuPage, isNewPage, pageOfTab, type LegacyPageKey } from './shell/pages';
+import { isMenuPage, isNewPage, pageOfTab } from './shell/pages';
 import type { StyleGuidesLend } from './shell/style-guides';
 import type { ActivityReading, OpReading } from './shell/activity';
 import type { FigmaAction } from './shell/figma';
 import type { BarActions, BarView, ExportBlock, ExportView } from './shell/bar';
 import { errorStrip, type ErrorStrip } from './shell/notices';
-import { glyph, pendingLabel, setBusy } from './shell/dom';
 // The start window (UI redesign S12) and what it shares with the brand menu's import: one check for every paste and
 // every file, with the error naming its line (owner decision S7).
 import { openStart, type StartChoice, type StartWindow } from './shell/start';
@@ -47,7 +45,7 @@ import {
 // Color › Surfaces & fills draws the same five sections from the same modules.
 import {
   SG_SURFACES, colorPath, ground as sharedGround, oppositeOf, palSection, sgContext, specimen, subHead,
-  tokenPillSpan, withInverseBadge, VIEW_ONLY, type SgRole,
+  tokenPillSpan, withInverseBadge, type SgRole,
 } from './preview/sections/kit';
 import {
   COLOR_SECTIONS, disabledSection, interactiveSection, typeSampleSection, radiusSampleSection, RADIUS_SAMPLE, SAMPLE_SHADOW,
@@ -73,8 +71,8 @@ import {
 // bindings here: read freely, reassigned only through its setters.
 import {
   BRANDS, brandState, provenance, bootProvenance, theme, lastGoodInput, rp, currentMode, lastError, page,
-  firstRun, rebuild, ensureThemeFresh, loadInput, clearOrigin, setCurrentMode, setPage,
-  getPath, setPath, subscribe, invalidate, searchQuery, searchHits, setSearchHits,
+  firstRun, rebuild, ensureThemeFresh, loadInput, clearOrigin, setPage,
+  getPath, setPath, subscribe, invalidate,
   type Mode, type PageKey,
 } from './state/store';
 
@@ -85,93 +83,6 @@ import {
 // The start paths' brands ("Start blank", a color's seed) moved to `state/start-input.ts` with the start window (S12).
 
 const MODE_LABEL: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light', 'hc-dark': 'HC dark', wireframe: 'Wireframe' };
-
-// ---- stages ----------------------------------------------------------------
-// The rail is data (docs/23 §7): a flat list of focused destinations, each one page. A page's facets
-// are sections within it, not separate rail rows. `view:true` marks a non-authoring destination
-// (Preview, Components) — it sits after a divider with no ordinal. Order is the sequence a theme
-// composes in: primitives → how they're applied (surfaces / interactive) → type → form
-// (elevation/size/layout/motion) → look at the whole (Preview) → write something out (Components).
-const NAV = [
-  // UI redesign S8.2 moved the Button options (Size & radius's last block) and the component build (the Components
-  // page) to the Components tab (`domains/components.ts`, `preview/components.ts`), so their two rows are gone. What is
-  // left is the plugin's Style guide, until S11.2 moves it into the Figma menu; the web offers no destination, so it
-  // draws no Pages menu (owner decision G19 A).
-  // #259 — the style-guide step, after Apply theme: it documents the variables Apply wrote, so it follows the
-  // authoring pages and Preview. Figma-only: it draws on the canvas, so the web rail omits it (docs/23 §7's rule for a
-  // destination that only makes sense in the Figma channel).
-  // Placement and label are proposed, owner to confirm (docs/45).
-  { key: 'styleGuide', label: 'Style guide', sub: 'Token tables on the Figma canvas', view: true, figmaOnly: true },
-] as const satisfies readonly { key: LegacyPageKey; label: string; sub: string; view?: boolean; figmaOnly?: boolean }[];
-/** THE OTHER DIRECTION (#1846). `satisfies` above makes every rail row name a `PageKey`; this makes every
- *  `PageKey` have a rail row. `PageKey` used to be DERIVED from `NAV`, so the second half held by
- *  construction; since F2 hand-listed it in `state/store.ts`, a new key with no row compiled, and the page
- *  was reachable only by a `setPage` nobody could click to. Two hand-written lists, checked against each
- *  other both ways, is the independence docs/34 asks for. A missing row fails `typecheck` here, naming the
- *  key in `missingNavRow`. */
-type PageWithoutNavRow = Exclude<LegacyPageKey, (typeof NAV)[number]['key']>;
-const everyPageHasANavRow: [PageWithoutNavRow] extends [never] ? true : { missingNavRow: PageWithoutNavRow } = true;
-void everyPageHasANavRow;
-
-/** The destinations this HOST offers. `figmaOnly` entries are absent from the web rail, not disabled
- *  in it — a grayed row still claims the destination exists and just will not open (the same call
- *  `renderModeStrip` makes about hiding rather than disabling the mode bar).
- *
- *  Read by BOTH consumers — the sidebar and the narrow-width `Pages` menu. Filtering one and not the
- *  other is the shape that would ship: the menu is the rail below 900px, so a Figma-only destination
- *  left in it would be reachable on a phone-width web page and unreachable on a desktop one. */
-const railNav = (): readonly (typeof NAV)[number][] => NAV.filter((s) => !('figmaOnly' in s && s.figmaOnly) || commit.isFigma);
-
-/** Is `i` the first `view` destination in `nav`? — the one place the authoring/result divider goes.
- *
- *  Shared by the sidebar and the `Pages` menu, which is the point: this WAS `if ('view' in s && s.view)`
- *  duplicated in both, correct only while there was exactly one view destination. Adding a second (this
- *  ticket's Components, and later docs/23 §6's Output) would have drawn a rule between every pair. */
-const isView = (s: (typeof NAV)[number]): boolean => 'view' in s && s.view === true;
-const isFirstView = (nav: readonly (typeof NAV)[number][], i: number): boolean =>
-  isView(nav[i]) && !nav.slice(0, i).some(isView);
-
-// `pageOfLever` and `leversFor`, the routing table only the Motion page read (#958), went with that page in UI redesign
-// S9.2: every page now names its levers, and `test-pages.ts` plus `test:chrome`'s rendered coverage hold that each
-// manifest lever has a home that draws it. (`leverByKey`, their last reader's lookup, went with the Button options in S8.2.)
-
-// ---- engine read-model -----------------------------------------------------
-// `theme`, `rp`, `lastGoodInput` and `lastError`, with `rebuild()` and its last-good rule, live in
-// `state/store.ts`; what follows is how this file repaints from them.
-
-// paint() repaints only the current stage's volatile region (ramps or preview) so
-// input focus is never lost; applyFull() re-renders the workspace REGION BY REGION (structural
-// edits — add/remove color, Derive⇄Pin, stage switch); build() re-renders the shell.
-let paintVolatile: () => void = () => {};
-/** The nodes the CURRENT page's `paintVolatile` writes into — see `setVolatile`. Read only by
- *  `renderWorkspace`'s region reconcile, which must never keep a live region that holds one. */
-let volatileHosts: readonly HTMLElement[] = [];
-/** Assign the page's volatile painter AND declare the nodes it writes into. Both halves in one call
- *  because they are one fact, and the render granularity added by #771 makes the second half
- *  load-bearing rather than documentation.
- *
- *  WHY THE DECLARATION EXISTS. `renderWorkspace` no longer destroys the page; it builds the next page
- *  detached and KEEPS every live region whose content is unchanged (that is the whole of #771). A page
- *  renderer's painter closes over nodes it built in that detached tree — `vol` in `renderScreen`, the
- *  `.cs-preview` boxes in the retired `controlSplitPage`.
- *  If the reconcile keeps the LIVE region those nodes correspond to, the freshly-assigned painter is
- *  left writing into a tree that was never attached, and every later `apply()` paints into nothing.
- *
- *  That is not a hypothetical: it is the same failure the retired Components page guarded against in
- *  the other direction ("a page that skips the assignment leaves the previous page's closure live, and
- *  the next `apply()` paints specimens into nodes this render already detached"). #771 gave that failure
- *  a second door, so it gets a mechanism rather than a second comment. Declaring a host makes its region
- *  ineligible to be kept — the fresh node always wins there, so the closure is always live.
- *
- *  DECLARE THE OUTERMOST NODE THE PAINTER REACCHES INTO, not every leaf: eligibility is tested with
- *  `contains`, so naming a section covers everything the painter touches inside it.
- *
- *  THIS IS THE ONLY WRITER OF `paintVolatile`. A renderer that assigns the binding directly gets no
- *  protection at all — its painter can be orphaned by the very next commit, silently. */
-const setVolatile = (hosts: readonly HTMLElement[], paint: () => void): void => {
-  volatileHosts = hosts;
-  paintVolatile = paint;
-};
 /** The error strip (`shell/notices.ts`, UI redesign S13.1), minted with the `error` surface on every view. */
 let globalErr: ErrorStrip | null = null;
 /** Keep the global error bar honest after every rebuild. `lastError` is set by `rebuild()`'s catch and
@@ -206,14 +117,10 @@ const syncErrorBar = (): void => {
 // them one at a time. These two lines used to read `renderModeStrip(); syncErrorBar();` — two of the
 // four surfaces, hand-listed in two refresh paths, which is the shape that let #388's error bar be
 // reachable from exactly one page. A surface added to the declaration is picked up here for free.
-const apply = (): void => { rebuild(); syncChrome(); paintVolatile(); };
-// `applyFull` names no surface either, and it does not call `syncChrome()` DIRECTLY: `renderWorkspace`
-// runs the pass itself, once, after the region reconcile has landed (#771). That is the second half of
-// the mode strip's `syncLast` — last within the pass, and the pass last within the render — because
-// `renderModeStrip` ends in a `--chrome-h` re-measure, and a layout read taken before the page it sits
-// on top of has settled publishes a height measured against the outgoing layout. The roster is still
-// the only list; the ordering is declared in it rather than restored by a hand-listed call here.
-const applyFull = (): void => { rebuild(); renderWorkspace(); };
+const apply = (): void => { rebuild(); syncChrome(); };
+// `applyFull`, for a structural edit, rebuilds and nothing more since H12 (#2289): the legacy workspace it
+// re-rendered is gone, and every page repaints from the `brand` topic.
+const applyFull = (): void => { rebuild(); };
 
 // ---- scoped styles: the class-name law (#770) --------------------------------
 //
@@ -374,18 +281,6 @@ const selectEl = (mods: string | Mix = ''): HTMLSelectElement => el(
   // mix(), which is the one shape that legitimately crosses (#770).
   typeof mods === 'string' ? (mods ? `select ${mods}` : 'select') : mix('select', mods.cls),
 ) as HTMLSelectElement;
-/** The on/off toggle switch (doc 24 C3) — a `.toggle` checkbox paired with its On/Off `.knob-val`
- *  readout, returned as a `knobBody`. `onToggle(checked)` fires after the readout updates; the caller
- *  runs its own `apply()` / `applyFull()`. */
-const toggleField = (checked: boolean, onToggle: (checked: boolean) => void): HTMLElement => {
-  const input = el('input') as HTMLInputElement;
-  // #559 — hit-min's ::before widens the hit box; `.toggle`'s own 38px width is already past the
-  // floor, so the pseudo overlays that axis rather than narrowing it. A declared cross-scope pairing.
-  input.type = 'checkbox'; input.className = mix('toggle', 'hit-min').cls; input.checked = checked;
-  const val = el('span', 'knob-val', checked ? 'On' : 'Off');
-  input.onchange = () => { val.textContent = input.checked ? 'On' : 'Off'; onToggle(input.checked); };
-  return knobBody(input, val);
-};
 /** The resolvable DTCG path for a colour role, for every pill that shows one. One tier, one rule.
  *
  *  This used to be a TIER LOOKUP, and it is worth knowing why it is not one any more, because a pill is
@@ -459,25 +354,10 @@ const addButton = (label: string, onClick: () => void, cls = ''): HTMLButtonElem
   btn.onclick = onClick;
   return btn;
 };
-/** The `div.knob-body` row — a control input paired with its `knob-val` readout (slider / toggle). */
-const knobBody = (...kids: Node[]): HTMLElement => { const r = el('div', 'knob-body'); r.append(...kids); return r; };
-/** The knob scaffold: `label.knob-label`, the control body (one node or several), then `p.knob-desc`.
- *  Every control — generic or bespoke — shares this shape. */
-const knob = (label: string | null, body: Node | Node[], desc: string): HTMLElement => {
-  const wrap = el('div', 'knob');
-  // A chip group names itself with its own `<legend>` (#1675), so it takes no `label` beside it.
-  if (label !== null) wrap.append(el('label', 'knob-label', label));
-  wrap.append(...(Array.isArray(body) ? body : [body]));
-  wrap.append(hook(el('p', 'knob-desc', desc), 'control-description'));
-  return wrap;
-};
 // The COMMIT host (docs/22 #110) — distinct from the preview: "materialise this theme".
 // On web it's inert (the export bar downloads); in the Figma plugin it posts the BrandInput to
 // the main thread (→ #108 applyWritePlan) and receives the #109 read-back seed summary on boot.
 export const commit = hostCommit();
-/** The Customize options (#259). Session state, not persisted with the brand: they shape a drawing of the
- *  file's variables, not the brand itself. Proposed, owner to confirm (docs/45). */
-const styleGuideOptions: StyleGuideOptionsMsg = {};
 /** Everything the host has told this UI, and where each host action stands: one value, whose fields and
  *  their rationale live in `state/host-session.ts` (F3). A host message changes it only through `reduce`
  *  there; the UI's own actions below (a button going pending, a pill opening its detail) reassign it
@@ -544,114 +424,6 @@ export const handleHostMessage: Parameters<HostCommit['onHostMessage']>[0] = (m)
   // chip click, which is the only reason it is not still in here.
   else if (effect === 'startFresh' && provenance === bootProvenance) { clearOrigin(); build(); }
   for (const t of topicsFor(m, prev, host)) invalidate(t);
-};
-
-
-// ===========================================================================
-// Section containers and the mode-scope badge, shared by the legacy pages
-// ===========================================================================
-
-// A per-role section container with a heading.
-/** Which sections answer to the mode bar. MEASURED, not asserted — every entry came from
- *  `mode-audit.mjs`, which switched Light→Dark and diffed each section, and gated this map
- *  (`--check-badges`) on the web's legacy pages until UI redesign S8.3 deleted it with the last of them.
- *  The web draws no legacy page now; the map goes with the mode strip in S13.
- *
- *  Two states, not three (#439). The audit distinguishes `displays` (the preview re-resolves, the
- *  control does not) from `inert` (nothing changes), and that split is real and worth keeping in the
- *  tool — but it is not ACTIONABLE: in both cases the answer to "can I edit this per mode?" is no.
- *  Three labels made two of them sound like the same thing, which is exactly how it read in review.
- *
- *  Scope: the six pages that carry a mode bar. Typography edits every mode as columns and has no bar
- *  (#416), so its "editing all modes" case is deliberately not covered here — it is not in the
- *  audit's output, and a badge nobody measured is the thing this map exists to avoid. */
-type ModeScope = 'per-mode' | 'shared';
-const SECTION_MODE_SCOPE: Record<string, ModeScope> = {
-  // (Surfaces & fills left the mode bar's pages in UI redesign S4a: it draws the two panes, where the rows say
-  // which mode they edit, and its Backgrounds, Foreground fills and Text sections went with the legacy page.)
-  // (Interactive left the mode bar's pages in UI redesign S5.2: it draws the two panes, where the rows say
-  // which mode they edit.)
-  // (Size & radius' Corner radius, Density & size, Spacing grid and Primitive scales left with the Shape page in UI
-  // redesign S7; its Buttons section has no entry, #1912.)
-  // (Elevation and Motion left the mode bar's pages in UI redesign S9.2: Depth & motion draws the two panes, where
-  // each control says which mode it edits.)
-  // Preview — read-only end to end
-  'Background': 'shared', 'Foreground': 'shared', 'Text color': 'shared', 'Border': 'shared',
-  'Icon': 'shared', 'Disabled': 'shared', 'Interactive': 'shared',
-};
-
-// `VIEW_ONLY` and `viewOnly()` (#574: a control that changes the VIEW, not a token, which `attachModeBadges`
-// skips when deciding editability) live in `preview/sections/kit.ts` (UI redesign S9.1), with the Motion specimen
-// that marks its playback select.
-/** A SPECIMEN: an element whose ink is the BRAND's, previewed — as against the studio's own chrome (#779).
- *  The smoke suite holds chrome text to WCAG (4.5:1, 3:1 large) and a specimen to the contract of what it
- *  previews, and it cannot tell the two apart from class names: prefixes are per-surface, so `sg-lab` is a
- *  specimen and `sg-rn` beside it is chrome. The render site knows, so the render site says — the same
- *  reasoning, and the same shape, as `viewOnly` above. Every site that paints ink from a brand token calls
- *  this; `test-smoke.mjs` fails on inline ink it finds unmarked, so a new specimen cannot land as chrome. */
-// `SPECIMEN` and `specimen()` live in `preview/sections/kit.ts` (UI redesign S4a), so the shared Style guide
-// sections mark their specimens with the same attribute this file does. `specimenPair` (#1652) and
-// `legibleInkOn` (#555) moved there in UI redesign S5.1 with the Interactive section, their only reader.
-/** Value editors only — what the three-state badge (and `mode-audit.mjs`, until S8.3) meant by "a control".
- *  `button` is excluded because the buttons in these sections play a motion preview or expand a
- *  disclosure; `[data-view-only]` because a playback speed is not a token. */
-const TOKEN_CONTROL_SEL =
-  `input:not([disabled]):not([${VIEW_ONLY}]), select:not([disabled]):not([${VIEW_ONLY}]), textarea:not([disabled]):not([${VIEW_ONLY}])`;
-
-/** The badge: label + scope, one grammar across both states, and deliberately ACHROMATIC.
- *  Hue is reserved for the contrast verdicts (--ok / --danger, #446) — neither mode state is good or
- *  bad, so tinting one would borrow a meaning that does not apply. Fill says "the bar reaches this";
- *  dashed outline says it does not. */
-const modeScopeBadge = (scope: ModeScope, hasControls: boolean): HTMLElement => {
-  // THREE states, not two (#437). "Shared · All modes" was covering two situations that are not the
-  // same offer to a reader: five sections whose controls edit ONE value every mode then uses
-  // (Outline button hover, Disabled, Icon colors, Easing, Motion) and six with no control at all
-  // (Focus ring, since moved to Surfaces & fills; Spacing grid, Primitive scales, Elevation ramp, Duration ramp, Springs). Measured,
-  // not assumed — the six have zero inputs between them. Saying "Shared" over a control you can turn
-  // understates it; saying it over a specimen you cannot touch overstates it.
-  //
-  // Editability is detected from the rendered section rather than declared in SECTION_MODE_SCOPE, so
-  // it cannot drift: a section that gains or loses a control re-badges itself. Only the per-mode axis
-  // stays hand-declared, because no amount of DOM inspection can tell you WHICH mode a select writes
-  // to. Buttons do not count — the ones present here play a motion preview, they do not set a value.
-  const perMode = scope === 'per-mode' && !DERIVED_MODES.has(currentMode);
-  // #545 — a per-mode section rendered while the bar holds a DERIVED mode is inert BY DESIGN: the
-  // engine only ever accepts per-mode edits for a mode it does not itself generate, so a control
-  // rendering here is not evidence it works here. This has to be tested BEFORE `hasControls`, not
-  // folded into the `editable` OR below it: the kept guard two branches down already covered the
-  // no-controls half of this case correctly ("HC light is derived — it cannot be edited"), but
-  // `editable = perMode || hasControls` let `hasControls` win outright whenever a per-mode section's
-  // controls DID render in a derived mode, badging "Editing · All modes" — a worse lie than the
-  // "Editing HC light" the old comment already warned about, because it additionally claims every
-  // mode is being edited when none is, for this section. Still unreachable by measurement today (the
-  // page scaffolds hide per-mode sections' controls entirely on a derived mode, per `renderScreen` /
-  // `controlSplitPage`), which is exactly why the bug was invisible rather than absent — kept as a
-  // guard the same way the branch two lines down is, not decoration.
-  const derivedPerMode = scope === 'per-mode' && DERIVED_MODES.has(currentMode);
-  const editable = perMode || (hasControls && !derivedPerMode);
-  const b = hook(el('span', 'msb' + (editable ? ' on' : '')), 'mode-scope-badge');
-  const mode = MODE_LABEL[currentMode] ?? currentMode;
-  if (perMode) b.append(el('span', 'msb-k', 'Editing'), el('span', 'msb-v', mode));
-  else if (hasControls && !derivedPerMode) b.append(el('span', 'msb-k', 'Editing'), el('span', 'msb-v', 'All modes'));
-  else b.append(el('span', 'msb-k', 'Non-editable'));
-  b.title = perMode
-    ? `Controls in this section write to ${mode} only.`
-    : hasControls && !derivedPerMode
-      ? 'Controls here set one value that every mode then uses. What you see still re-resolves per mode.'
-      // UNREACHABLE TODAY, kept as a guard, and the distinction matters — #512 rightly killed a
-      // decoration whose comment claimed a mechanism that never fired. Measured across all six bar
-      // pages in HC light: Surfaces, Interactive and Size render ZERO sections, and the only two that
-      // survive (Elevation ramp, Motion) are both `shared`. So no per-mode section is ever badged in
-      // a derived mode. This branch stays because it is not decoration but a correctness guard: if a
-      // page ever does render one there, the alternative — before #545 — was a badge reading
-      // "Editing · All modes" over controls the engine refuses (doc 26 states this trap for columns).
-      // `derivedPerMode` above now catches that case ahead of `hasControls` too, so both the
-      // no-controls and controls-present halves land here. Re-measure before deleting it; do not
-      // assume it still cannot fire.
-      : scope === 'per-mode'
-        ? `${mode} is derived — it cannot be edited. Switch to a customizable mode to edit this section.`
-        : 'Derived from the values above. Nothing in this section is directly editable.';
-  return b;
 };
 
 // `palSection` lives in `preview/sections/kit.ts` (UI redesign S4a), shared with the Style guide's sections.
@@ -848,9 +620,8 @@ const tokTierOf = (node: TreeNode): TokTier =>
 const COMPOSITE_PART: Record<string, string> = {
   fontFamily: 'Family', fontSize: 'Size', fontWeight: 'Weight', lineHeight: 'Leading', letterSpacing: 'Tracking',
 };
-/** `repaint` redraws the list after one of its own controls changes: the legacy Preview page's live slot,
- *  or Inspect's body (S1.3), which lends its own. */
-const renderPreviewTokens = (host: HTMLElement, repaint: () => void = paintVolatile): void => {
+/** `repaint` redraws the list after one of its own controls changes: Inspect's body (S1.3), which lends its own. */
+const renderPreviewTokens = (host: HTMLElement, repaint: () => void): void => {
   ensureThemeFresh();                   // #1196 — the live token list shows the same namespace the export would emit
   const tree = buildTree(theme).tree;
   const root = (tree.$extensions?.prism3?.root as string) ?? Object.keys(tree).find((k) => !k.startsWith('$'))!;
@@ -1154,11 +925,6 @@ const renderPreviewStyleGuide = (host: HTMLElement, repaint: () => void): void =
   host.append(ground(interactiveSection(c, { method: theme.outlineInteraction, surface: surf.key })));
 };
 
-const PAGE_COPY: Record<LegacyPageKey, [string, string]> = {
-  // (Size & radius's and Components' ledes went with the pages, UI redesign S8.2.)
-  styleGuide: ['Style guide.', 'Token tables drawn from this file’s variables and text styles: colors, dimensions, font variables and text styles, each scale on Primitive tokens and each role on Semantic tokens. One column per mode, each specimen bound to its variable; a color role’s swatch sits on the ground its contrast is measured against. Run it after Apply Theme.'],
-};
-
 
 // === Mode context control (#171) ==========================================================
 // A workspace-level single-select switcher that puts the WHOLE stage into ONE mode at a time —
@@ -1177,41 +943,6 @@ const DERIVED_MODES = new Set<string>(['hc-light', 'hc-dark', 'wireframe']);
  *  click reaches the engine and the user reads a raw internal error string. */
 const modeIsEditable = (m: string): boolean => !DERIVED_MODES.has(m);
 const modeAllPass = (m: Mode): boolean => rp.contracts.every((ct) => !ct.byMode[m] || ct.byMode[m]!.pass);
-
-const renderModeContext = (): HTMLElement => {
-  const strip = el('div', 'modectx');
-  const left = el('div', 'mctx-modes');
-  // Stays "Mode" (#439). Swapping it to "Editing" was considered and rejected: it would have to
-  // become "Viewing" on a derived mode, and a label that mutates under you is worse than a neutral
-  // one. The editable-vs-read-only fact lives on the chip it applies to instead.
-  left.append(el('span', 'mctx-cap', 'Mode'));
-  for (const m of rp.modes) {
-    const derived = DERIVED_MODES.has(m);
-    const b = hook(el('button', 'mctx-b' + (m === currentMode ? ' on' : '') + (derived ? ' derived' : '')) as HTMLButtonElement, 'mode-tab');
-    b.append(hook(el('span', 'mctx-name', MODE_LABEL[m] ?? m), 'mode-tab-name'));
-    if (derived) b.append(el('span', 'mctx-vo', 'view only'));
-    // No per-mode contrast mark here any more (#54 retired, owner decision): a pass/fail glyph on a
-    // mode SELECTOR is theme health riding on a control that selects scope, and contrast is reported
-    // where it is actionable — the contract tables, the derived-mode panel, and at export. Four green
-    // ticks that are always green teach nothing; the same information is still one page away, and
-    // `modeAllPass` still drives the read-only panel's verdict chip.
-    // Wireframe is a mechanical grayscale, not contrast-derived (see renderGeneratedNote's own copy for
-    // that mode) — the tooltip must not overclaim for it the way the HC modes' derivation legitimately can.
-    if (derived) b.title = m === 'wireframe'
-      ? 'Auto-derived — a mechanical grayscale, not contrast-derived. A read-only verification view.'
-      : 'Auto-derived from your contrast contracts — a read-only verification view.';
-    // `renderWorkspace` repaints the strip itself now (#771), so the mode-change branch does not also
-    // ask for it. The re-click branch still does: it repaints ONLY the strip, on purpose.
-    b.onclick = () => { if (currentMode !== m) { setCurrentMode(m); renderWorkspace(); } else { renderModeStrip(); } };
-    left.append(b);
-  }
-  strip.append(left);
-
-  // No "Edit modes" control here any more (#432): managing WHICH modes exist is brand configuration,
-  // not a per-page action, so it lives on Brand › Modes (#1943). This strip is now purely a selector — which
-  // is also what lets it scroll rather than wrap, since it no longer has to reserve room for a button.
-  return strip;
-};
 
 /** A2a — the read-only view shown when a GENERATED mode (HC / wireframe) is selected. These modes are
  *  auto-derived and never hand-tuned, so the editing controls are replaced by an explanation + a
@@ -1261,186 +992,13 @@ let sgSurface = 'background.primary';
  *  (owner decision G8 A), and its result shows in the Activity drawer. Shipped UI text: US-English +
  *  `docs/voice-standard.md`. */
 const FILE_SETUP_LABEL = 'Set up file';
-
-// The Components page (#718), its component-row and file-setup-row plumbing (`syncComponentRow`, `syncFileSetupRow`
-// and their two subscriptions) went in UI redesign S8.2: the build is the Components tab's (`preview/components.ts`,
-// through `lend.sets`, which `runBuild` below backs), Set up file is the Figma menu's alone (G8 A), and both results
-// show in the Activity drawer, which already had their rows (S11).
-
-/** The style-guide button's label (#259). Proposed, owner to confirm — the one string a reviewer changes. */
-const STYLE_GUIDE_LABEL = 'Draw style guide';
-
-/**
- * The Style guide page (#259, phases 1–2: color, dimension, font variables, text styles) — the step after Apply
- * theme. One button draws the token tables from the file's own variables and text styles; the per-type options
- * fold away under Customize, every one with a default, so
- * the button alone does the common case. The specimen is chosen from each token's role unless Display style
- * overrides it (owner decision 8).
- *
- * Figma-only (`railNav()` omits it on web), and `commit.isFigma` is re-checked, since a direct caller would otherwise
- * draw a control whose `postStyleGuide` is inert. Nothing here repaints with a lever, so its volatile set is empty.
- */
-const renderStyleGuidePage = (host: PageHost): void => {
-  const [title, lede] = PAGE_COPY.styleGuide;
-  host.append(hero(title, lede));
-  setVolatile([], () => {});
-  if (!commit.isFigma) return;
-
-  const sec = palSection('Token tables', 'Draws or updates one table per palette, role family, dimension collection and font-variable kind, and one for the text styles.');
-  const note = el('p', 'cw-note');
-  note.append(document.createTextNode('Needs the pages and cell components Set up file adds. A rerun updates each table in place.'));
-  sec.append(note);
-
-  // CUSTOMIZE — folded by default: every option has a default, so the button alone draws the common case.
-  const det = hook(el('details', 'contracts') as HTMLDetailsElement, 'style-guide-customize');
-  const sum = el('summary', 'contracts-sum');
-  sum.append(el('span', 'contracts-t', 'Customize'), el('span', 'contracts-hint', 'value format · header · display style · units · columns · tables'));
-  det.append(sum);
-  const pick = <K extends 'valueFormat' | 'header' | 'display' | 'dimensionDisplay' | 'fontDisplay'>(key: K, opts: [string, string][], fallback: string): HTMLSelectElement => {
-    const s = selectEl();
-    for (const [v, t] of opts) s.append(optionEl(v, t, (styleGuideOptions[key] ?? fallback) === v));
-    s.onchange = () => { (styleGuideOptions as Record<string, unknown>)[key] = s.value; };
-    return s;
-  };
-  det.append(
-    hook(knob('Color value', pick('valueFormat', [['hex', 'Hex'], ['rgba', 'RGB-A'], ['hsl', 'HSL'], ['hsb', 'HSB']], 'hex'), 'How each value cell prints the color. A translucent hex adds its alpha as a percentage.'), 'style-guide-value-format'),
-    knob('Table header', pick('header', [['dark', 'Dark'], ['light', 'Light']], 'dark'), 'The header row’s fill.'),
-    hook(knob('Display style', pick('display', [['auto', 'From each token’s role'], ['default', 'Generic'], ['text', 'Text color'], ['border', 'Border color'], ['icon', 'Icon color'], ['transparency', 'Transparency']], 'auto'),
-      'The specimen each row draws. By default a text role draws “Aa”, a border role an outline, an icon role a diamond, and a translucent value a checkerboard.'), 'style-guide-display'),
-    // #259 phase 2: the dimension and font-variable specimens, the REM column, and the text-style columns.
-    hook(knob('Dimension display', pick('dimensionDisplay', [['filled', 'Filled bar'], ['line', 'Bracket']], 'filled'),
-      'One style for every dimension row, drawn at its value. A radius draws a rounded corner either way.'), 'style-guide-dimension-display'),
-    hook(knob('Font variable display', pick('fontDisplay', [['auto', 'From each variable’s kind'], ['generic', 'Generic'], ['family', 'Family'], ['size', 'Size'], ['weight', 'Weight'], ['letterSpacing', 'Letter spacing'], ['lineHeight', 'Line height']], 'auto'),
-      '“Abc 123” with one property bound to the variable. By default each variable binds the property it is for.'), 'style-guide-font-display'),
-    hook(knob('REM', toggleField(styleGuideOptions.rem ?? true, (on) => { styleGuideOptions.rem = on; }), 'Add a REM column beside each length, at a 16px base.'), 'style-guide-rem'),
-    knob('Aliases', toggleField(styleGuideOptions.aliases ?? true, (on) => { styleGuideOptions.aliases = on; }), 'Show the variable each value aliases, as a chip beside it.'),
-    knob('Description', toggleField(styleGuideOptions.description ?? true, (on) => { styleGuideOptions.description = on; }), 'Add a column with each variable’s description.'),
-    hook(knob('Paragraph spacing', toggleField(styleGuideOptions.paragraphSpacing ?? false, (on) => { styleGuideOptions.paragraphSpacing = on; }), 'Add a paragraph-spacing column to the text-style table.'), 'style-guide-paragraph-spacing'),
-    knob('Text decoration', toggleField(styleGuideOptions.textDecoration ?? false, (on) => { styleGuideOptions.textDecoration = on; }), 'Add a text-decoration column to the text-style table.'),
-    hook(knob('Title cell', toggleField(styleGuideOptions.titleCell ?? false, (on) => { styleGuideOptions.titleCell = on; }), 'Add a leading Name column to every table, “Text Primary” for text/primary. An edited name is kept on the next run.'), 'style-guide-title-cell'),
-    hook(knob('Tables', tablesField(), 'Draws only the tables named, by title (Primary — nbds): one a line, or several on one line separated by commas. A title with a comma in it goes on a line of its own. Empty draws every table.'), 'style-guide-tables'),
-  );
-  sec.append(det);
-
-  const row = hook(el('div', 'fs-row'), 'style-guide-row');
-  styleGuideRow = row;
-  const btn = hook(el('button', 'barbtn') as HTMLButtonElement, 'style-guide-draw');
-  styleGuideBtn = btn;
-  btn.title = 'Draws the token tables from this file’s variables and text styles. Safe to re-run — it updates tables in place.';
-  btn.onclick = () => {
-    setHost({ styleGuideState: 'pending', styleGuideProgress: null, openDetail: null });
-    hostChanged(); syncStyleGuideRow();
-    commit.postStyleGuide({ ...styleGuideOptions });
-  };
-  row.append(btn);
-  syncStyleGuideRow({ staged: true });
-  sec.append(row);
-  host.append(sec);
-};
-
-/** The Tables filter (#1778): table titles, sent as `tables` and left out when empty. One title a line, or
- *  several on one line separated by commas: a field with a line break splits on line breaks ONLY, so a title
- *  with a comma in it survives on a line of its own. A text field rather than a checklist of titles: the titles
- *  are the main thread's plan of this file's variables, which the panel does not hold until a run reports them.
- *  A name that matches nothing comes back in the verdict with the titles this run can draw. */
-const tableNames = (text: string): string[] =>
-  text.split(/\r?\n/.test(text) ? /\r?\n/ : ',').map((x) => x.trim()).filter(Boolean);
-const tablesField = (): HTMLTextAreaElement => {
-  const input = el('textarea', 'tf-in') as HTMLTextAreaElement;
-  input.rows = 2; input.spellcheck = false; input.placeholder = 'Every table';
-  input.setAttribute('aria-label', 'Tables to draw: one a line, or separated by commas');
-  const kept = styleGuideOptions.tables ?? [];
-  // Shown again the way it reads back: a line each (every line closed, so one title still reads as a line)
-  // once any title holds a comma.
-  input.value = kept.some((x) => x.includes(',')) ? kept.map((x) => `${x}\n`).join('') : kept.join(', ');
-  input.oninput = () => {
-    const names = tableNames(input.value);
-    if (names.length) styleGuideOptions.tables = names; else delete styleGuideOptions.tables;
-  };
-  return input;
-};
-
-/** The style guide's live pending text (#1778): the table being drawn, counted from 1. Before the first
- *  reading, and from a host build older than this one, the pre-#1778 string. The reading is the panel's own
- *  run's, or else an agent's (owner decision Q19 b): one text for both. */
-const styleGuidePendingText = (): string => {
-  const p = host.styleGuideState === 'pending' ? host.styleGuideProgress : agentReading('styleguide');
-  return p ? `Drawing table ${Math.min(p.done + 1, p.total)} of ${p.total}…` : PENDING_TEXT.styleguide;
-};
-/** The live style-guide pending pills, for `componentPendingEls`' reason: rewritten in place on `host:progress`. */
-const styleGuidePendingEls = new Set<HTMLElement>();
-
-/** The style-guide row's status, refreshed in place (#259): the build's and file setup's old row mechanism (#870), in
- *  its own slot. `staged` is true on the render path, where the row is built detached and reconciled in (#771); the
- *  message path writes only into a row that is on screen. */
-let styleGuideRow: HTMLElement | null = null;
-let styleGuideBtn: HTMLButtonElement | null = null;
-const syncStyleGuideRow = (opts: { staged?: true } = {}): void => {
-  const row = styleGuideRow;
-  if (!row || !styleGuideBtn) return;
-  if (!opts.staged && !row.isConnected) return;
-  // #1785: busy while an agent's style guide draws too (owner decision #4 on #1956, the other writes' rule), so
-  // the panel cannot start a second run over it. The main thread's run guard (#1957) refuses one regardless.
-  // An agent's run shows on the row as the panel's own pending run does, its table count included (Q19 b).
-  const byAgent = host.styleGuideState !== 'pending' && agentRunning('styleguide');
-  const pending = host.styleGuideState === 'pending' || byAgent;
-  styleGuideBtn.textContent = pending ? '… Drawing…' : `▦ ${STYLE_GUIDE_LABEL}`;
-  styleGuideBtn.disabled = pending;
-  row.querySelector(':scope > .bar-seed, :scope > .applystat')?.remove();
-  const shown = byAgent ? 'pending' : host.styleGuideState;
-  if (shown) row.prepend(renderApplyStatus(shown, 'styleguide'));
-};
-subscribe('host:styleguide', () => syncStyleGuideRow());
-// An agent's run starting or ending is told on `host` (`agent-started`, `agent-finished`).
-subscribe('host', () => syncStyleGuideRow());
-
-// Font availability (`fontAvailable`, `faceStatus`) and the advisory weight map (`knownWeightsOf`,
-// `WEIGHT_NAME`) live in `ui/fonts.ts` (UI redesign S6.1). The Type controls and the fixed ladders the legacy
-// Typography page drew here moved to `domains/type.ts` and `preview/sections/` (UI redesign S6.3).
-
-// `TYPE_GROUP_ORDER` lives in `state/type-input.ts`; the Type preview's sections in `preview/sections/` (UI redesign
-// S6.1 to S6.3), drawn by `preview/type.ts`.
-
-// The radius ramp and the Control shape specimen moved to the Shape preview in UI redesign S7 (`preview/sections/
-// radius.ts`), reading the ladder itself (`theme.dims.radius`) rather than a hand list resolved through `rp.dims`.
-
-// The button-layout specimen (#1667) is `preview/sections/button-layout.ts`'s, drawn by the Components preview since UI
-// redesign S8.2, with the engine's corner for the brand's Control shape in the previewed mode (#2049).
-
-// The shadow steps (`shadowRampSection`, with `SHADOW_STEPS`) live in `preview/sections/shadow-ramp.ts` (UI redesign
-// S9.1), drawn by the Depth & motion preview (S9.2).
-
-// The control heights, the spacing steps and the building blocks moved to the Shape preview in UI redesign S7
-// (`preview/sections/control-heights.ts`, `spacing.ts`, `shape-building-blocks.ts`).
-
-
-// The inverse-surface + icon specimens were retired here (#69): the inverse column is now a first-class
-// row in every interactive matrix section (Fill · inverse / Text · inverse / On-fill · inverse), and the
-// icon-contrast payoff is the "Icon colors" global section's match-vs-distinct example — no separate
-// preview needed.
-
-
-// The gradient editor went with the legacy Surfaces page (UI redesign S4a): Color › Surfaces & fills edits the
-// gradients (`domains/color-fills.ts`), through the same writes (`state/fills-input.ts`).
-
-
-
-// ---- shared bits -----------------------------------------------------------
-const hero = (title: string, lede: string): HTMLElement => {
-  const h = el('div', 'hero');
-  if (title) h.append(hook(el('h1', undefined, title), 'page-title'));
-  if (lede) h.append(el('p', 'lede', lede));
-  return h;
-};
 // ---- shell -----------------------------------------------------------------
 /** The root every view mounts into. Handed over by `entry.ts` (`mountApp`) before the first `build()`,
  *  rather than looked up while this module loads (#896). */
 let app: HTMLElement;
 export const mountApp = (root: HTMLElement): void => { app = root; };
-let workspace: HTMLElement;
 /** The new frame (S1.2), mounted by the first `build()` and kept; the start window opens in its layer (S12). */
-let frame: Frame | null = null;
-let modeStripHost: HTMLElement;   // top of the WORKSPACE — the mode bar sits with what it scopes (#432)
+let frame: Frame | null = null;   // top of the WORKSPACE — the mode bar sits with what it scopes (#432)
 let chromeHost: HTMLElement;      // the sticky header, measured into --chrome-h
 
 // ---- page chrome — the declared floor every view carries (#772) --------------------------------
@@ -1491,9 +1049,9 @@ type ChromeSurface = {
    *  "is this surface actually there" is answerable from the rendered page rather than from this file. */
   readonly key: string;
   /** `root` surfaces are mounted by `mountView` into the chrome header on the start view, and into the
-   *  frame's notices row on the app view; `bar` surfaces into the frame's top bar (UI redesign S1.2);
-   *  `workspace` surfaces are minted by `renderWorkspace` alongside the page they scope. */
-  readonly home: 'bar' | 'root' | 'workspace';
+   *  frame's notices row on the app view; `bar` surfaces into the frame's top bar (UI redesign S1.2). (The
+   *  `workspace` home, the legacy mode strip's, went with the legacy workspace in H12, #2289.) */
+  readonly home: 'bar' | 'root';
   /** Which root views carry it. */
   readonly views: readonly RootView[];
   /** Mint the node. The mounter stamps and appends it, so a surface cannot land unstamped or in the
@@ -1505,15 +1063,6 @@ type ChromeSurface = {
    *  its own events and holds live UI state says so by leaving this out, instead of being refreshed
    *  out from under the person using it. */
   readonly sync?: () => void;
-  /** Sync LAST in the pass, after every other surface has been refreshed.
-   *
-   *  DECLARED rather than positional, because the constraint is a property of the surface and appending
-   *  a fifth entry below the one that needs it must not silently take the slot. One surface needs it
-   *  today: `renderModeStrip` ends in a `--chrome-h` re-measure, and a layout read taken before the rest
-   *  of the pass has settled publishes a height measured against the outgoing layout. That is the same
-   *  class of defect #771 traced #485 to — a layout read against a workspace that had been emptied — so
-   *  the ordering is stated here instead of being restored by a hand-listed call in `applyFull()`. */
-  readonly syncLast?: true;
 };
 
 /** Every reference below is wrapped in an arrow rather than passed as a value. A function declared LATER
@@ -1543,20 +1092,8 @@ const CHROME_SURFACES: readonly ChromeSurface[] = [
     mount: () => { globalErr = errorStrip(); return globalErr.node; },
     sync: () => syncErrorBar(),
   },
-  {
-    key: 'mode-strip', home: 'workspace', views: ['app'],
-    // Page furniture, not header chrome (#432) — it scopes the CONTROLS, so it lives with them, and
-    // this declaration does not move it back. What brings it into the list is its REFRESH, which was
-    // hand-listed in `apply()`/`applyFull()` right beside `syncErrorBar()`: `currentMode`'s "on" state
-    // and the derived-mode "view only" tag both track every edit. Its PLACEMENT stays in
-    // `renderWorkspace`, which is the only code that knows where the page's hero (and, on Preview, its
-    // view switcher) ended up — a position no declaration here could state.
-    mount: () => { modeStripHost = el('div', 'modebar'); return modeStripHost; },
-    sync: () => renderModeStrip(),
-    // See `syncLast`. Since #771 this surface is also a reconcilable REGION, so its refresh has to come
-    // after the page it sits on has landed as well as after the rest of the pass.
-    syncLast: true,
-  },
+  // (The legacy mode strip, `mode-strip`, went with the legacy workspace it sat in, H12 #2289: every page's preview
+  // header carries the mode control.)
 ];
 
 /** Mount every declared surface of `home` that `view` carries. MOUNT ONLY — the sync pass is a
@@ -1581,17 +1118,11 @@ const mountSurfaces = (home: ChromeSurface['home'], view: RootView, host: HTMLEl
   }
 };
 
-/** THE ONLY refresh path. `apply()` calls this instead of naming surfaces one at a time, and
- *  `applyFull()` reaches it through `renderWorkspace` for the ordering reason stated there — which is
- *  what makes "a new surface cannot be forgotten" true of the refresh half as well as the mount half.
- *  Each `sync` guards its own host, so this is safe before the first build.
- *
- *  Two passes, not one, because `syncLast` is declared data (see the field). Iterating the array once
- *  would make the ordering a fact about where an entry happens to sit in the literal — exactly the kind
- *  of unwritten convention this whole declaration replaced. */
+/** THE ONLY refresh path. `apply()` calls this instead of naming surfaces one at a time, which is what makes
+ *  "a new surface cannot be forgotten" true of the refresh half as well as the mount half. Each `sync` guards its
+ *  own host, so this is safe before the first build. */
 const syncChrome = (): void => {
-  for (const s of CHROME_SURFACES) if (!s.syncLast) s.sync?.();
-  for (const s of CHROME_SURFACES) if (s.syncLast) s.sync?.();
+  for (const s of CHROME_SURFACES) s.sync?.();
 };
 
 /** The keys `view` promises to carry, published on `<html data-chrome-roster>` — a separate attribute
@@ -1607,7 +1138,7 @@ const chromeRoster = (view: RootView): string[] =>
  *  what the next page-like view would have done by copying it. Routing both root views through here
  *  means "which surfaces does this view carry" is answered by the declaration rather than by whichever
  *  branch of `build()` happened to be written first. */
-const mountView = (view: RootView, body: () => HTMLElement): void => {
+const mountView = (view: RootView): void => {
   document.documentElement.dataset.chromeRoster = chromeRoster(view).join(' ');
   {
     // THE APP VIEW LIVES IN THE NEW FRAME (UI redesign S1.2, `shell/frame.ts`): the top bar, the tab row
@@ -1635,7 +1166,7 @@ const mountView = (view: RootView, body: () => HTMLElement): void => {
         // The product mark's logo, `styles.css`'s fixed gradient, lent like the views above.
         logo: () => el('span', 'logo'),
         // S13.1: the top bar's brand menu, Export and the plugin's dialogs, drawn by the shell over this file's state.
-        bar: { read: barRead, exportView, act: barActions, importAccept: IMPORT_ACCEPT, pages: commit.isFigma ? renderPagesMenu : null },
+        bar: { read: barRead, exportView, act: barActions, importAccept: IMPORT_ACCEPT },
         // S11.2: the Build style guides page's reads and writes, plugin only.
         styleGuides: commit.isFigma ? styleGuidesLend : null,
       });
@@ -1647,7 +1178,6 @@ const mountView = (view: RootView, body: () => HTMLElement): void => {
     mountSurfaces('bar', view, frame.bar);
     barChanged();   // as `renderBar` ran on every build: the examples' marker, the menus' state
     mountSurfaces('root', view, frame.notices);
-    frame.legacyPage.replaceChildren(body());
   }
   // Sync AFTER the append, never before: a surface's first paint is its sync, and the initial state is
   // always DERIVED — page nav re-runs `build()`, so a hardcoded "hidden" at mount would drop a live
@@ -1674,7 +1204,6 @@ declare const CHROMED: unique symbol;
  *  the same check — not by widening the brand, and never by an `as PageHost` at a call site, which would
  *  be the whole floor gone. */
 type PageHost = HTMLElement & { readonly [CHROMED]: true };
-type PageRenderer = (host: PageHost) => void;
 
 /** Compile-time proof that the brand is load-bearing, at zero runtime cost. If `PageHost` ever loses
  *  it, a plain `HTMLElement` satisfies it, `Assert` is instantiated with `false`, and
@@ -1682,80 +1211,6 @@ type PageRenderer = (host: PageHost) => void;
  *  structural back to advisory without the gate saying so. */
 type Assert<T extends true> = T;
 type PageHostIsUnforgeable = Assert<HTMLElement extends PageHost ? false : true>;
-
-/** Mint the page host — the only producer of `PageHost`, and it verifies before it vouches: the type
- *  says a page cannot be rendered without the chrome, this says the chrome is really in the DOCUMENT
- *  rather than merely declared. Compared against the published roster, so it checks what was PROMISED
- *  for this view rather than a second hardcoded list. `ws` is deliberately not inspected — see the type
- *  above for why that is the point and not an omission, and note the consequence for the caller: the
- *  workspace-home surfaces must be mounted BEFORE a page is staged, or this reports them missing.
- *
- *  REPORTS, does not throw. A missing surface means an engine error could go unseen, which is bad; a
- *  throw here renders nothing at all, which is worse. The console is not a dead end — the smoke suite
- *  asserts zero console errors across all 72 page × mode × brand states — so this is fatal in CI and
- *  legible rather than blank in front of a user. */
-const chromedWorkspace = (ws: HTMLElement): PageHost => {
-  const missing = (document.documentElement.dataset.chromeRoster ?? '').split(' ')
-    .filter((k) => k && !document.querySelector(`[data-chrome="${k}"]`));
-  if (missing.length) {
-    console.error(`page chrome missing: ${missing.join(', ')} — an engine error may not be visible on this page (#772)`);
-  }
-  return ws as PageHost;
-};
-
-/** #268 — the switcher appears only where a mode-varying control actually exists.
- *
- *  The governing rule is the one #268 proposed and #176's decision 2 implies: modes live in the
- *  SEMANTIC layer, so a purely primitive surface has nothing to switch. This is deliberately a
- *  predicate rather than a per-page flag — placement is DERIVED from what a page contains, so a new
- *  page inherits the right answer instead of needing a decision.
- *
- *  Pages fail it unconditionally:
- *   • (`layout` was one until UI redesign S10 moved Layout into the two panes: nothing layout-related exists in
- *     `ModeLevers` or carries a `*ByMode` field; its preview header carries the mode control for the ground.)
- *   • `palettes` — a ramp is mode-invariant, and choosing which STEP a mode lands on is a Surfaces
- *     concern, not a Palettes one (see the in-function measurement below).
- *   • (`typography` was a third until UI redesign S6.2 moved Type into the two panes.)
- *
- *  `preview` is a fourth, conditional case: it fails outside the style-guide view, where every mode is
- *  already rendered as its own column (see the per-view measurement in the function body).
- *
- *  IT IS A NEGATIVE LIST, whatever this comment claimed before #718 ("stated as a POSITIVE list of the
- *  pages that have the axis, not `!== 'layout'`"). The body has always been four `return false` cases
- *  over a `return true` default, so a page added later is GRANTED the switcher rather than asked for
- *  it. Corrected rather than restructured: the claim was the load-bearing part, and it was wrong about
- *  the code directly beneath it. #718's `components` page is the case it predicted — a page with no
- *  mode axis at all, which arrived and inherited a bar it has nothing to drive. */
-const pageHasModeVaryingControl = (): boolean => {
-  // (#718's Components page, which took no mode input, moved to the two panes in UI redesign S8.2.)
-  // A moved page (Color › Palettes from UI redesign S2) draws no legacy workspace, so it has no strip:
-  // its preview header carries the mode control.
-  if (isNewPage(page) || isMenuPage(page)) return false;
-  // (Typography's column-per-mode rule, #416, went with the page, UI redesign S6.2: Type draws the two panes.)
-  // (The Preview page's per-view rule went with the page, UI redesign S3: the Style guide is Brand's
-  // preview, whose header carries the mode control, and its other two views are Inspect's.)
-  return true;
-};
-
-/** Repaint the mode-selector strip at the top of the workspace (#432) — page furniture, not header
- *  chrome. Reached as the `mode-strip` surface's `sync` (never called by name from a refresh path), plus
- *  directly from the menu-toggle branch of the mode buttons; it carries no per-mode contrast marks any
- *  more (#54 retired, owner decision), but currentMode's "on" state still needs a refresh. No-op before
- *  the first build (the start screen has no workspace yet).
- *
- *  It writes into `modeStripHost`, which since #771 is a PERSISTENT node the region reconcile keeps
- *  rather than one re-minted per render — so "the roster refreshed the strip" and "the strip on screen
- *  is current" cannot come apart. `mountSurfaces` is what holds that; see its idempotence note. */
-function renderModeStrip(): void {
-  if (!modeStripHost) return;
-  modeStripHost.innerHTML = '';
-  // Hidden, never disabled: a greyed-out switcher still claims the page has modes and just won't let
-  // you use them. `currentMode` is untouched, so leaving and returning restores the mode you were in.
-  if (!firstRun() && pageHasModeVaryingControl()) modeStripHost.append(renderModeContext());
-  // A page with no bar must not leave an empty sticky box holding its own padding.
-  modeStripHost.style.display = modeStripHost.childElementCount ? '' : 'none';
-  syncChromeHeight();
-}
 
 /** `--chrome-h` positions the sticky rail AND the sticky mode bar, so it must track the real header.
  *  It used to be read off the mode strip's parent — fine while the strip lived in the chrome, wrong
@@ -1767,346 +1222,10 @@ function syncChromeHeight(): void {
   if (frame) frame.syncSticky();
   else if (chromeHost) document.documentElement.style.setProperty('--chrome-h', `${chromeHost.offsetHeight}px`);
 }
-/** The sticky region's height, as last published. */
-const chromeHeight = (): number => parseFloat(document.documentElement.style.getPropertyValue('--chrome-h')) || 0;
-
-/** Every destination in the rail, keyed by `PageKey` — so a page added to `NAV` fails to compile
- *  until it is registered here, and registered as a `PageRenderer`, which can only be called with a
- *  host the chrome mounter produced. */
-const PAGE_RENDERERS: Record<LegacyPageKey, PageRenderer> = {
-  styleGuide: renderStyleGuidePage,
-};
-/** Attach the mode badge to every section on the page, in ONE post-render pass.
- *
- *  Deliberately not done inside the section builders: there are already THREE ways a `.psec` comes
- *  into existence — `palSection`, `renderPaletteSection` (its own `.psec-h`, which also carries a
- *  remove button), and `renderGlobalBehavior`, which assembles bare `.psec` nodes with no head at
- *  all. Wiring each one means a fourth builder silently ships without badges, which is the same
- *  shape as the negative mode-bar rule that let Palettes keep an inert switcher for a month (#430).
- *  A pass over the rendered DOM cannot be forgotten by code that does not know it exists.
- *
- *  Placement follows whatever head the section has, so the badge lands top-right in all three:
- *  both head variants are already `justify-content:space-between` flex rows; a headless section
- *  gets the badge positioned against its own box instead. */
-const attachModeBadges = (root: HTMLElement): void => {
-  // Badges belong to the pages that carry a mode bar — the scope SECTION_MODE_SCOPE already states,
-  // now enforced instead of assumed. It was assumed, and the assumption broke: the map is keyed by
-  // section TITLE, and the token list builds its sections with `palSection(capitalize(category))`,
-  // so its `icon` category minted a section titled `Icon` that collided with the Style guide's
-  // 'Icon' entry. One stray "Shared / All modes" badge on the token list, on the one category out of
-  // ~14 whose name happened to match. The token list is a read-only listing with no bar, and it
-  // already states its own mode scope per section ("mode-invariant, one value" / "each mode aliases
-  // its own target") from the token data rather than from a name — strictly better information than
-  // the badge. Gating on the bar's own predicate fixes the collision at the root rather than by
-  // renaming one of the two sections, which would leave the next collision to be found by eye.
-  if (!pageHasModeVaryingControl()) return;
-  for (const sec of [...root.querySelectorAll('.psec')] as HTMLElement[]) {
-    if (sec.querySelector('.msb')) continue;
-    const title = sec.querySelector('.psec-t')?.textContent?.trim();
-    const scope = title ? SECTION_MODE_SCOPE[title] : undefined;
-    if (!scope) continue;
-    // Value editors only — see TOKEN_CONTROL_SEL. `button` was excluded from the start for this exact
-    // hazard, and the reasoning was right but ONE ELEMENT TYPE TOO NARROW (#574): Motion has both a
-    // preview button (excluded) and a playback `select` (counted), so the specimen badged itself
-    // "Editing · All modes". The old comment here claimed "every section with a real control has at
-    // least one input/select, and every section without one has zero of anything" — true when written,
-    // false the moment a view-state select appeared, and nothing re-checked it. Measured on all six bar
-    // pages: of the 98 controls this selector counts, 95 provably mutate the persisted brand, one is
-    // single-option, one re-renders before it can be read, and the only genuinely quiet one is the
-    // playback select — which is now marked rather than assumed away.
-    const hasControls = sec.querySelector(TOKEN_CONTROL_SEL) !== null;
-    // ONE path, not two (#562). A section with no head gets one BUILT here — its title + description
-    // moved into a `.psec-txt`, exactly the shape `palSection` produces — rather than the badge being
-    // absolutely positioned against the section box. That old fallback (`top:0;right:0`) is what put
-    // the badge flush against the border on four Interactive sections: outside the section's own 20/24
-    // padding, and with none of the flex head's under-720px column reflow. Those four now call
-    // `palSection` like the rest, so this branch is unreached today. It is kept, and made correct,
-    // because the value of a post-render pass is that a NEW section builder cannot forget it — and
-    // "cannot forget" buys nothing if what it falls back to is misplaced.
-    let head = sec.querySelector('.psec-head') ?? sec.querySelector('.psec-h');
-    if (!head) {
-      const built = hook(el('div', 'psec-head'), 'section-head'), txt = el('div', 'psec-txt');
-      for (const n of [...sec.children] as HTMLElement[])
-        if (n.classList.contains('psec-t') || n.classList.contains('psec-d')) txt.append(n);
-      built.append(txt); sec.prepend(built); head = built;
-    }
-    head.append(modeScopeBadge(scope, hasControls));
-  }
-};
-
-// ---- render granularity: the workspace REGION (#771) -----------------------------------------
-//
-// THE UNIT. A workspace region is one direct child of `workspace` — the hero, the mode bar, each
-// `.psec` section, the `.stage-vol` specimen box, the odd loose note. `renderWorkspace` builds the
-// next page DETACHED and reconciles it against the live one region by region: a region whose content
-// is unchanged is left alone, a region whose content changed is swapped in place, and the workspace
-// itself is never emptied.
-//
-// WHAT THAT REPLACES, AND WHY IT IS NOT JUST A TIDY-UP. The old body was `workspace.innerHTML = ''`
-// followed by a full rebuild, so #485's every-select-jumps-to-the-top was not a scroll bug — it was
-// the browser correctly clamping `scrollY` against a document that momentarily had no content. #485
-// fixed the SYMPTOM at the right level (save/restore around the teardown, so every caller got it at
-// once) and said so; the teardown is what this removes. Because the container now always holds a full
-// page's worth of height, there is no moment to clamp against and nothing to restore. That is the
-// falsifiable part: delete the reconcile and the jump comes back; delete the save/restore and it does
-// not. The save/restore is gone.
-//
-// AND THE OTHER DIRECTION, WHICH IS THE WORSE BUG. A granularity change that UNDER-repaints does not
-// announce itself — the page just quietly stops agreeing with its own controls. Two things hold that
-// line. (1) The keep test is a SIGNATURE of the rendered region, not a guess about what an edit can
-// reach: serialized markup plus the live value of every control in it, so anything the renderer would
-// have drawn differently forces the swap, including a section's mode badge (`attachModeBadges` runs on
-// the staged tree, before the comparison). (2) A region holding a declared volatile host is never
-// kept — see `setVolatile` for the orphaned-painter failure that rule exists to make impossible.
-//
-// THE ONE REGION THAT IS ALSO CHROME. The mode strip is a workspace-home surface on the #772 roster AND
-// a direct child of `.ws`, so it is reached twice — once by `syncChrome`, once by this reconcile — and
-// the two have to agree about which node they mean. They do, by construction rather than by care: the
-// strip is minted ONCE per `.ws` (`mountSurfaces` is idempotent), so there is a single node, it is the
-// same object in `want` and in `live`, and the reconcile keeps it on IDENTITY without ever comparing its
-// content. A second node cannot appear to be double-rendered, and a kept node cannot be a stale twin the
-// roster believes it refreshed. The ordering that closes it: `syncChrome()` runs AFTER the reconcile, so
-// the strip's content is written last, into the node that is on screen.
-/** Stable identity for a region, so an inserted or removed section shifts nothing else. Titled
- *  sections key on their title; the rest key on tag + class. Duplicates get an ordinal — the token
- *  list really does mint two sections named `Icon` (see `attachModeBadges`), and a key collision here
- *  would silently pair two different sections and swap one for the other. */
-const regionKey = (n: HTMLElement, seen: Map<string, number>): string => {
-  const base = n.classList.contains('psec')
-    ? `psec:${n.querySelector('.psec-t')?.textContent?.trim() ?? ''}`
-    : `${n.tagName}.${n.className}`;
-  const nth = (seen.get(base) ?? 0) + 1;
-  seen.set(base, nth);
-  return nth === 1 ? base : `${base}#${nth}`;
-};
-/** Everything about a region that a reader could see. Markup carries structure, text, inline styles
- *  and reflected attributes; it does NOT carry `select.value` / `input.checked` / `input.value`, which
- *  the renderers set as PROPERTIES — a select whose resolved option moved would serialize identically
- *  and be kept showing the old choice. That is the under-repaint this second half exists to prevent. */
-const regionSignature = (n: HTMLElement): string => {
-  const live: string[] = [];
-  for (const c of n.querySelectorAll('input,select,textarea')) {
-    if (c instanceof HTMLSelectElement) live.push(`s${c.selectedIndex}${c.value}`);
-    else if (c instanceof HTMLInputElement) live.push(`i${c.value}${c.checked ? 1 : 0}`);
-    else live.push(`t${(c as HTMLTextAreaElement).value}`);
-  }
-  // `JSON.stringify` on the array rather than a joined string: the parts are self-delimiting, so no
-  // control-character separator is needed and no control value can forge a boundary.
-  return JSON.stringify(live) + n.outerHTML;
-};
-/** Carry a user's open/closed disclosure state from the live region onto its replacement, and do it
- *  BEFORE the signature is taken. `<details open>` is a reflected attribute, so without this a section
- *  the user had expanded ("Contrast on this page") would differ from every freshly built one — it would
- *  be swapped on every commit for a difference the user made, and it would snap shut each time. Skipped
- *  when the counts differ, which means the region's structure genuinely changed. */
-const carryDisclosure = (from: HTMLElement, to: HTMLElement): void => {
-  const a = from.querySelectorAll('details'), b = to.querySelectorAll('details');
-  if (a.length !== b.length) return;
-  for (let i = 0; i < a.length; i++) (b[i] as HTMLDetailsElement).open = (a[i] as HTMLDetailsElement).open;
-};
-/** Bring `host`'s children into `want`'s order and content, touching as little as possible.
- *
- *  The ONE invariant that matters: `host` is never empty at any point in this loop. A replacement is
- *  an atomic `replaceWith`, an insertion happens before the removal it pairs with, and leftovers go
- *  last — so the document keeps its height throughout and `scrollY` is never clamped. Emptying first
- *  and refilling would be simpler and would reintroduce #485 exactly. */
-const reconcileRegions = (host: HTMLElement, want: readonly HTMLElement[]): { kept: number; swapped: number } => {
-  const seen = new Map<string, number>();
-  const live = new Map<string, HTMLElement>();
-  for (const n of [...host.children] as HTMLElement[]) live.set(regionKey(n, seen), n);
-  const keys = new Map<string, number>();
-  let kept = 0, swapped = 0;
-  let ref: Element | null = host.firstElementChild;
-  for (const fresh of want) {
-    const key = regionKey(fresh, keys);
-    const prev = live.get(key);
-    live.delete(key);
-    let place = fresh;
-    // Identity, not signature — reached only by a workspace-home CHROME surface (#772), which is a
-    // region and a declared surface at once. It is the same node in `live` and in `want`, so it is kept
-    // without being compared: its content belongs to its `sync`, which runs after this reconcile. That
-    // is what keeps "the roster refreshed it" and "the strip on screen is current" from coming apart,
-    // and it is also why there is exactly one strip — `mountSurfaces` does not re-mint one to compete.
-    if (prev === fresh) { place = prev; kept++; }
-    // The volatile test asks about the FRESH region, not the live one. The declared hosts belong to
-    // the render that just ran, so they live in the staged tree; `prev.contains(h)` would be false for
-    // every one of them and every region would look keepable. Getting this backwards is silent — the
-    // page renders correctly once and then stops responding to `apply()`.
-    else if (prev && !volatileHosts.some((h) => fresh === h || fresh.contains(h))) {
-      const before = regionSignature(prev);
-      carryDisclosure(prev, fresh);
-      if (before === regionSignature(fresh)) { place = prev; kept++; } else swapped++;
-    } else swapped++;
-    if (place === ref) { ref = ref.nextElementSibling; continue; }   // already in position, unchanged
-    if (prev && prev === ref) { ref = ref.nextElementSibling; prev.replaceWith(place); continue; }
-    host.insertBefore(place, ref);
-    if (prev && prev !== place) prev.remove();
-  }
-  for (const gone of live.values()) gone.remove();
-  return { kept, swapped };
-};
-
-// HOST SUBSCRIPTIONS (P2) are taken ONCE, at module load, beside each painter — never per mount. The
-// legacy surfaces are re-minted on every render (`CHROME_SURFACES` on every `mountView`, each page row on
-// every `renderWorkspace`) and none has an unmount hook, so a subscription taken at mount would stack one
-// painter per render. Permanent subscriptions whose painters ask whether their surface is live are what
-// the switch did, with the same guards. The new shell (S1) subscribes on mount and unsubscribes on unmount.
-//
-// `fonts`: no legacy surface reads `host.hostFonts` since UI redesign S6.2. The Type page's library and
-// type-ahead read it through `lend.fonts` and subscribe to `fonts` themselves, on mount.
-/** The mode the legacy page was last drawn in (see the `mode` subscription). */
-let paintedMode: Mode | null = null;
-function renderWorkspace(): void {
-  paintedMode = currentMode;
-  // A MOVED PAGE (UI redesign S2 on) draws in the frame's two panes, from its own modules, and the legacy
-  // frame is hidden. Nothing legacy is drawn for it, and the volatile painter is emptied, so a legacy write
-  // that still calls `apply()` (the bar's) repaints no page that is gone.
-  if (isNewPage(page) || isMenuPage(page)) { workspace.replaceChildren(); setVolatile([], () => {}); return; }
-  // The workspace-home chrome surfaces (#772) — today that is the mode strip, page furniture rather
-  // than global chrome (#432). Mounted from the DECLARATION rather than by name, so a second piece of
-  // page furniture cannot arrive here wired to one of its two obligations.
-  //
-  // FIRST, and both halves of that are load-bearing under #771.
-  //   • It is the ONE write to the live workspace that precedes the reconcile, and it is only ever an
-  //     append into an EMPTY container: `mountSurfaces` is idempotent, and the only way the workspace
-  //     loses its surfaces is `build()` minting a fresh `.ws`. So no live content is disturbed and there
-  //     is no moment of clamped document height — #485's actual mechanism — on any other call.
-  //   • It has to precede the STAGED page render, because `chromedWorkspace` verifies the published
-  //     roster against the DOCUMENT. On the first render into a fresh workspace the strip is not in it
-  //     yet, so staging first would report `mode-strip` missing on every page navigation and trip CI's
-  //     zero-console-errors assertion.
-  // Not re-minted per render, which the idempotence is there for: the strip is the one region whose
-  // content `renderModeStrip` owns directly, so a fresh node each pass would hand the reconcile
-  // something it could only treat as new (a swap on every commit) and leave `syncChrome` refreshing a
-  // node the reconcile had already replaced. `currentMode` is module state, so the SELECTION survives.
-  mountSurfaces('workspace', 'app', workspace);
-  // THE PAGE IS BUILT DETACHED and reconciled in region by region (#771). Nothing below touches the live
-  // workspace until `reconcileRegions`, which is what makes each swap atomic and the workspace never
-  // empty.
-  //
-  // `chromedWorkspace` is still the ONLY producer of the host `PAGE_RENDERERS` will accept, and the
-  // staged tree needs no weakening of the brand to go through it: what it vouches for is that the
-  // declared floor is mounted in the DOCUMENT this tree is being staged for — a fact about the VIEW, not
-  // about the node — and it never inspected its argument. So `PAGE_RENDERERS[page](staged)` on the raw
-  // element is still `TS2345`, and the answer to "will an engine error be visible on the page this
-  // renderer is about to draw" is still checked before a page renderer runs.
-  const staged = el('div');
-  PAGE_RENDERERS[page](chromedWorkspace(staged));
-  attachModeBadges(staged);
-  // The bar belongs UNDER the page's title + lede, not above it. It scopes the CONTROLS; the hero is
-  // the page's identity, and a scope control sitting above the name of the thing it scopes reads as
-  // chrome again — which is what moving it out of the header (#432) was meant to stop. Positioned
-  // here rather than inside each page renderer for the same reason the badges are: there is more than
-  // one renderer, and a new one would forget.
-  // Below the hero — and below a VIEW switcher when one immediately follows it. On Preview the
-  // Style guide / Contrast contracts / Token list segment changes what the page shows, and the bar
-  // is hidden on two of those three (#452). With the bar above the segment, switching views made
-  // the segment itself jump up and down the page; below it, the segment holds still and only the
-  // thing that actually varies moves. A control that changes the page outranks a control that
-  // scopes it.
-  const regions = [...staged.children] as HTMLElement[];
-  const heroAt = regions.findIndex((n) => n.classList.contains('hero'));
-  let barAt = heroAt < 0 ? 0 : heroAt + 1;
-  if (heroAt >= 0 && regions[barAt]?.classList.contains('pvseg')) barAt++;
-  // A workspace-home surface is ALSO a region — a direct child of `.ws` — so every one of them has to be
-  // in `want` or the reconcile would remove as a leftover the node `mountSurfaces` just appended. Read
-  // back off the `data-chrome` stamps rather than named as `modeStripHost`, so that stays true of a
-  // second surface. Their POSITION is still stated here and only here, which is #772's own reason for
-  // leaving placement out of the declaration: this is the only code that knows where the hero ended up.
-  regions.splice(barAt, 0, ...workspace.querySelectorAll<HTMLElement>(':scope > [data-chrome]'));
-  // A chip group's arrow keys commit on every press, and a commit that changes anything else in the
-  // region (an example, a warning line) swaps the region, taking the focused radio with it. Focus would
-  // fall to <body> and the second arrow press would do nothing. So the focused radio is found again by
-  // its group name and value in the swapped-in region, and focused there.
-  const focusedRadio = document.activeElement instanceof HTMLInputElement && document.activeElement.type === 'radio'
-    && workspace.contains(document.activeElement) ? document.activeElement : null;
-  const radioName = focusedRadio?.name, radioValue = focusedRadio?.value;
-  // The search marks are cleared off the live regions first, so a region a search hid is compared on its
-  // content alone and kept when nothing else changed; `applySearch` marks the result again below.
-  clearSearchMarks();
-  reconcileRegions(workspace, regions);
-  if (focusedRadio && !focusedRadio.isConnected && radioName) {
-    const again = [...workspace.querySelectorAll<HTMLInputElement>('input[type="radio"]')]
-      .find((r) => r.name === radioName && r.value === radioValue);
-    again?.focus({ preventScroll: true });
-  }
-  // Every declared surface refreshed ONCE, after the regions have landed — the placement half of the
-  // mode strip's `syncLast` (see `applyFull`). The workspace is in the document by now, so every
-  // surface's paint is honest: `syncErrorBar` judges itself by `isConnected` (#772), and syncing before
-  // the reconcile would report a correct-but-not-yet-placed surface as the very defect it exists to find.
-  syncChrome();
-  applySearch();
-  syncStuck();
-}
-
-// ---- settings search over a legacy page (UI redesign S1.2, the owner's QA note Q3) -------------------
-// The search field lives in the new frame's levers header and writes `searchQuery` (`setSearch`); this
-// legacy surface subscribes to it, the P2 way, and filters the legacy page in view to it: a pass over the
-// rendered DOM that marks what does not match, never a re-render, so the field keeps its caret. A setting
-// is a `.knob`, matched on its label, its description and its lever key; a workspace region with no
-// matching setting is hidden with it, except the page's hero and the chrome surfaces. The count goes back
-// through `setSearchHits` for the field's status line. Bespoke editors (palette rows, the surfaces
-// grid, the gradient editor) are not knobs and are hidden while a search runs; real search over every
-// lever, with the page it lives on, arrives with the levers panel from S2.
-const SEARCH_HIDDEN = 'data-search-hidden';
-const clearSearchMarks = (): void => {
-  for (const n of workspace?.querySelectorAll(`[${SEARCH_HIDDEN}]`) ?? []) n.removeAttribute(SEARCH_HIDDEN);
-};
-function applySearch(): void {
-  // A moved page filters its own levers panel and reports its own count (S2).
-  if (!workspace?.isConnected || isNewPage(page) || isMenuPage(page)) return;
-  clearSearchMarks();
-  const q = searchQuery.trim().toLowerCase();
-  if (!q) { if (searchHits !== null) setSearchHits(null); return; }
-  const said = (k: Element): string => [
-    k.querySelector(':scope > .knob-label, .chips-legend')?.textContent ?? '',
-    k.querySelector('[data-p3="control-description"]')?.textContent ?? '',
-    ...[...k.querySelectorAll('[data-p3^="lever-"]')].map((n) => (n.getAttribute('data-p3') ?? '').slice('lever-'.length).replace(/-/g, ' ')),
-  ].join(' ').toLowerCase();
-  let hits = 0;
-  for (const k of workspace.querySelectorAll('.knob')) {
-    if (said(k).includes(q)) hits++;
-    else k.setAttribute(SEARCH_HIDDEN, '');
-  }
-  for (const r of workspace.children) {
-    if (r.classList.contains('hero') || r.hasAttribute('data-chrome')) continue;
-    if (!r.querySelector(`.knob:not([${SEARCH_HIDDEN}])`)) r.setAttribute(SEARCH_HIDDEN, '');
-  }
-  setSearchHits(hits);
-}
-subscribe('search', () => applySearch());
-
-/** The bar is sticky, so page content slides under it. Without a shadow that reads as a hard cut at
- *  the bar's own background colour rather than as a layer. `.stuck` is applied only once the bar has
- *  actually reached its sticky position, so a page scrolled to the top shows no shadow at all — a
- *  permanent one would claim there is content above when there is not.
- *
- *  Measured against the LIVE chrome height rather than a baked offset: the global error bar lives in
- *  the chrome and changes its height when it appears, which would leave a fixed threshold wrong for
- *  exactly the situation where the user is reading an error. */
-function syncStuck(): void {
-  if (!modeStripHost) return;
-  const chromeH = chromeHeight();
-  modeStripHost.classList.toggle('stuck', modeStripHost.getBoundingClientRect().top <= chromeH + 0.5);
-}
-let stuckBound = false;
-const bindStuck = (): void => {
-  if (stuckBound) return;
-  stuckBound = true;
-  let queued = false;
-  const onScroll = (): void => {
-    if (queued) return;
-    queued = true;
-    requestAnimationFrame(() => { queued = false; syncStuck(); });
-  };
-  addEventListener('scroll', onScroll, { passive: true });
-  addEventListener('resize', onScroll, { passive: true });
-};
 
 // ---- brand setup — selector menu: name + namespace, switch / new / import --------
 let brandMenuOpen = false;
 let exportMenuOpen = false;
-let navMenuOpen = false;
 // #723: which artifact the export dialog is on, and the shape settings for it. The settings persist
 // across opens within a session — a designer who wants underscores wants them for the next export too
 // — but deliberately NOT into `persist-local`: they describe an output, not the brand, and #721's
@@ -2141,22 +1260,13 @@ subscribe('page', () => { if (frame && !loading && !firstRun()) build(); });
 // AN EDIT ON A MOVED PAGE REPAINTS THE LEGACY CHROME THROUGH THE STORE (UI redesign S2). A moved page's
 // controls call `rebuild()` and nothing else; the `brand` topic repaints its levers, its preview and the
 // shell, and this repaints the legacy chrome around them (the engine-error bar, the bar's brand switcher
-// and dirty state), which `apply()` used to do by name. Only while a moved page is in view: on a legacy page
-// the writer still calls `apply()`, which syncs the chrome itself, so this would run it twice.
+// and dirty state), which `apply()` used to do by name. Only while a tab's page is in view, as before H12 (#2289).
 subscribe('brand', () => { if (frame && !loading && !firstRun() && isNewPage(page)) syncChrome(); });
 
 // A NAME TYPED ON THE BRAND PAGE REACHES THE BAR THROUGH THE STORE (UI redesign S3). Brand › Identity writes
 // the name per keystroke without a rebuild (#1196), and `syncIdentity` tells the `identity` topic; the brand
 // switcher's name is patched in place, as the brand menu's Name field used to patch it by name.
 // (The bar subscribes to `identity` itself since S13.1, `shell/bar.ts`.)
-
-// A MODE CHANGE FROM THE NEW SHELL REPAINTS THE LEGACY PAGE THROUGH THE STORE (UI redesign S1.3). The
-// preview's mode control calls `setCurrentMode` and nothing else; the legacy writer (the mode strip) calls it
-// and then repaints itself. So this waits a microtask and repaints only when the legacy page was last drawn in another mode: a legacy writer has already repainted by
-// then, and the shell's control has not. One permanent subscription, the P2 pattern.
-subscribe('mode', () => queueMicrotask(() => {
-  if (frame && !loading && !firstRun() && paintedMode !== currentMode) renderWorkspace();
-}));
 
 /** Replace the working brand wholesale (switch / new / import / host restore) and re-render.
  *
@@ -2379,8 +1489,8 @@ const exportView = (): ExportView => {
 const barActions: BarActions = {
   // Closing the menu discards a staged load with it (#1033): an unanswered "Replace the current brand?" must not be
   // waiting behind a reopened menu.
-  toggleMenu: () => { brandMenuOpen = !brandMenuOpen; exportMenuOpen = false; navMenuOpen = false; if (!brandMenuOpen) { importOpen = false; pendingLoad = null; } barChanged(); },
-  closeMenu: () => { brandMenuOpen = false; navMenuOpen = false; importOpen = false; pendingLoad = null; barChanged(); },
+  toggleMenu: () => { brandMenuOpen = !brandMenuOpen; exportMenuOpen = false; if (!brandMenuOpen) { importOpen = false; pendingLoad = null; } barChanged(); },
+  closeMenu: () => { brandMenuOpen = false; importOpen = false; pendingLoad = null; barChanged(); },
   // #1033: through the guard, not straight to `loadBrand`. The confirm fires only when there are edits to lose.
   example: (name) => stageLoad(BRANDS[name], { kind: 'example', id: name }),
   // BOTH HOSTS reopen the start (#1197), now a window over the studio (UI redesign S12). The working brand and its
@@ -2400,7 +1510,7 @@ const barActions: BarActions = {
   },
   replace: () => { const p = pendingLoad; if (!p) return; pendingLoad = null; loadBrand(p.input, p.origin); },
   cancelReplace: () => { pendingLoad = null; barChanged(); },
-  toggleExport: () => { exportMenuOpen = !exportMenuOpen; brandMenuOpen = false; navMenuOpen = false; importOpen = false; barChanged(); },
+  toggleExport: () => { exportMenuOpen = !exportMenuOpen; brandMenuOpen = false; importOpen = false; barChanged(); },
   closeExport: () => { exportMenuOpen = false; barChanged(); },
   // Escape closes the dialog and its import box with it, as it always has.
   escapeExport: () => { exportMenuOpen = false; importOpen = false; barChanged(); },
@@ -2419,138 +1529,6 @@ const barActions: BarActions = {
   },
 };
 
-/** The Apply-to-Figma status pill — reached only in the plugin, via the `commit.isFigma` branch.
- *
- *  Not dead-code-eliminated on web, whatever the branch's own comment used to claim. Measured: the web
- *  bundle contains this function and its class names, because `isFigma` is a RUNTIME property of the
- *  commit host, not the build-time `PRISM3_HOST` define. What IS eliminated is `figmaCommit`'s body in
- *  `write-adapter.ts` (no `pluginMessage` reaches the web bundle), so nothing here can ever fire — the
- *  branch is unreachable rather than absent. Behavior is identical either way; only the claim was wrong.
- *
- *  A headline plus an on-demand detail, NOT one line of prose. The main thread's summary is ~150
- *  characters spanning five axes; the bar pill was `max-width:220px` with `nowrap` + ellipsis, so a
- *  result reading "…, 4 misses" rendered as "palette 118 (+0), color 2…" — the miss count computed
- *  correctly and then discarded by a CSS rule. The headline carries the verdict at pill scale and the
- *  detail carries what a designer chasing a miss actually needs, wrapped rather than clipped.
- *
- *  Pending renders as text with no disclosure: there is nothing to expand yet, and a control that
- *  appears and then changes meaning when the result lands is worse than one that appears with it.
- *
- *  Shared by both write pills since #483 — `which` says whose verdict this is. Parameterised rather than
- *  copied because everything here except the pending text and the accessible name is the same for both,
- *  and the parts that are easiest to get wrong (the 24-char headline, `aria-expanded`/`aria-controls`
- *  agreeing with the row that is actually open) are exactly the parts a copy would drift on. */
-/** The live pending text for the component build (#684).
- *
- *  PHASE NAMED, NOT JUST A FRACTION, because there are two loops over the same member count — building
- *  members, then wiring property references across them. A bare "412 of 648" would run to 648 and then
- *  restart at 1, which reads as a build that failed and started over. Naming the phase makes the reset
- *  the expected thing it is.
- *
- *  Before the first boundary reports there is no fraction to show, so this is `firstPhase` (#2088) — which
- *  is also what a host build older than this one leaves on screen for the whole build.
- *
- *  NOT SUBJECT TO THE 24-CHAR PILL BUDGET, unlike the headlines in `apply-summary.ts`: pending renders as
- *  `.bar-seed` text, not the `.applystat` pill, and `.bar-seed` ellipsizes at 220px rather than clipping a
- *  verdict. The longest string here is "Wiring references… 648 of 648" at 29 characters. */
-const componentPendingText = (): string => {
-  const p = host.componentProgress;
-  if (!p) return firstPhase();
-  // #1679: the reference back-off's waits. Owner's wording, and no fraction — a pass count is not progress
-  // through the set, and the waits grow, so "3 of 6" would suggest the pause is half over when it is not.
-  if (p.phase === 'retry') return 'Retrying property links…';
-  const label = p.phase === 'build' ? 'Building members' : 'Wiring references';
-  return `${label}… ${p.done} of ${p.total}`;
-};
-/** The live pending `<span>`s, so a chunk boundary can rewrite their text instead of re-rendering the
- *  bar (see the `component-progress` handler). Held from the last render and never read for state — if a
- *  host re-renders for another reason its entry is replaced, and a stale entry simply takes the text on a
- *  detached node while the fresh one already renders the current fraction.
- *
- *  A SET, NOT ONE SLOT (#870), because `componentState === 'pending'` is rendered TWICE — once into the
- *  chrome bar and once into the Components page's own row — and both are on screen at the same time
- *  whenever a designer starts a build from the page and stays there. A single slot made them compete for
- *  it: `renderApplyStatus` overwrote the field on every call, so the last pill rendered won and the other
- *  one kept the pre-#684 placeholder for the whole build. Measured in the built plugin bundle before the
- *  fix — with the page open, the page's row counted up while the bar sat frozen at "Building the Button
- *  set…" through all 54 boundaries; navigated away, the bar counted correctly, which is what made this
- *  look like a bar bug rather than a shared-cache bug.
- *
- *  PRUNED AT WRITE TIME BY `isConnected`, not cleared by the renderers that mint into it. Both hosts
- *  discard their pill wholesale on re-render, so entries do go stale and an unbounded set would leak
- *  detached nodes across a session — but asking each renderer to clear first puts the obligation on code
- *  that does not know this set exists, which is how a third host would silently reintroduce the freeze.
- *  Dropping a node the moment it is found detached needs no cooperation and is the same `isConnected`
- *  test `syncErrorBar` judges itself by. Live membership is at most one per host that renders the pill. */
-const componentPendingEls = new Set<HTMLElement>();
-
-// `host:progress` — a TEXT SWAP, NOT a bar repaint. This fires at every chunk boundary — 27 per phase, so 54
-// times, in a 648-member build at CHUNK = 24 — and rebuilding the bar discards and remakes every control in
-// it, which would blur whatever the designer had focused and reset the brand switcher's open state
-// mid-build. The pending pill is the only thing that changed, so it is the only thing rewritten.
-//
-// EVERY live pill, not one (#870): the bar and the Components page each render their own, and writing to a
-// single cached node left whichever rendered first frozen at the placeholder for the whole build.
-subscribe('host:progress', () => {
-  const text = componentPendingText();
-  for (const node of componentPendingEls) {
-    // A detached node is a pill whose host has re-rendered since. Dropped rather than written to, so the
-    // set stays bounded without any renderer having to know it exists — see the field.
-    if (node.isConnected) node.textContent = text;
-    else componentPendingEls.delete(node);
-  }
-  // #1778: the style guide's pills, the same way.
-  const sg = styleGuidePendingText();
-  for (const node of styleGuidePendingEls) {
-    if (node.isConnected) node.textContent = sg;
-    else styleGuidePendingEls.delete(node);
-  }
-});
-
-function renderApplyStatus(state: Exclude<HostSession['applyState'], null>, which: DetailKey): HTMLElement {
-  const noun = which === 'apply' ? 'apply' : which === 'filesetup' ? 'file setup' : which === 'styleguide' ? 'style guide' : 'component build';
-  // A page row's pill, in the legacy frame's own classes, which its row sync looks up to replace. Since UI
-  // redesign S11 it is the row's only copy: the bar's moved into the Activity drawer, which draws its own.
-  const pendingPill = (text: string): HTMLElement => hook(el('span', 'bar-seed', text), 'status-pill');
-  if (state === 'pending') {
-    // The theme write's pending text is static and the component build's is not (#684), so only the
-    // latter is cached for in-place updates. A theme apply writes variables and answers in well under a
-    // second; a 648-member build takes tens of seconds, which is precisely why it reports.
-    if (which === 'apply') return pendingPill(PENDING_TEXT.apply);
-    // File setup posts a single terminal result with no progress boundaries (#1558), so its pending text
-    // is static like the theme write's rather than cached like the component build's.
-    if (which === 'filesetup') return pendingPill(PENDING_TEXT.filesetup);
-    if (which === 'styleguide') {
-      // #1778: the run reports each table, so this pill is cached for in-place updates like the component build's.
-      const node = pendingPill(styleGuidePendingText());
-      styleGuidePendingEls.add(node);
-      return node;
-    }
-    const node = pendingPill(componentPendingText());
-    // ADDED, not assigned (#870). Two hosts render this pill and both can be live at once; see
-    // `componentPendingEls` for the measurement that an assignment left one of them frozen.
-    componentPendingEls.add(node);
-    return node;
-  }
-  const btn = hook(el('button', 'applystat' + (state.ok ? ' ok' : ' bad')) as HTMLButtonElement, 'status-verdict');
-  btn.type = 'button';
-  // The headline is a bare text node, not a span: it needs no styling of its own (the pill sets the
-  // type and color), and an element with a class but no rule is a name reserved against nothing — the
-  // shape the scope law (#770) exists to make unspellable.
-  // The caret stays as the pill's sign that it opens something (owner decision #5 on #1956); it is the
-  // pre-S11 caret, unturned, because what it opens is the drawer, not a row under it. The name carries
-  // the headline, so the glyph is hidden from it.
-  const caret = el('span', 'caret', '▾');
-  caret.setAttribute('aria-hidden', 'true');
-  btn.append(document.createTextNode(state.headline), caret);
-  // The pill shows its result in the Activity drawer (S11), which holds the detail now: the click asks for
-  // it through `openDetail`, and the drawer opens on it and answers. It discloses nothing in place, so it
-  // carries no `aria-expanded`; `aria-controls` names the drawer it opens.
-  btn.setAttribute('aria-controls', 'p3-activity');
-  btn.setAttribute('aria-label', `${state.headline} — ${noun} details in Activity`);
-  btn.onclick = () => { setHost({ openDetail: which }); hostChanged(); };
-  return btn;
-}
 
 // The bar's host subscription, guarded on the chrome being mounted — the guard the switch carried.
 // (The bar subscribes to `host` itself since S13.1, `shell/bar.ts`.)
@@ -2568,6 +1546,13 @@ const closeOpenDetail = (): void => { if (host.openDetail === null) return; setH
 /** The static pending texts, one per write that has one: the page rows' pills and the Activity drawer's
  *  phase line read the same words. */
 const PENDING_TEXT = { apply: 'Writing to Figma…', filesetup: 'Setting up file…', styleguide: 'Drawing the style guide…' } as const;
+/** The style guide's live pending text (#1778), for the Activity drawer: the table being drawn, counted from 1. Before
+ *  the first reading, and from a host build older than this one, the pre-#1778 string. The reading is the panel's own
+ *  run's, or else an agent's (owner decision Q19 b): one text for both. */
+const styleGuidePendingText = (): string => {
+  const p = host.styleGuideState === 'pending' ? host.styleGuideProgress : agentReading('styleguide');
+  return p ? `Drawing table ${Math.min(p.done + 1, p.total)} of ${p.total}…` : PENDING_TEXT.styleguide;
+};
 /** The phase line while an agent's update check, baseline capture or Adopt runs (#2265, #2283). None builds
  *  anything, so none may read as a build. DRAFT words, for the owner. */
 const CHECK_TEXT: Readonly<Record<string, string>> = { 'update-components': 'Checking the sets…', 'capture-baseline': 'Recording the sets as built…', 'adopt-members': 'Adopting members…' };
@@ -2804,7 +1789,7 @@ const styleGuidesLend: StyleGuidesLend = {
   },
   cancel: () => commit.cancelStyleGuide(),
   setUp: () => runFileSetup(),
-  close: () => setPage(styleGuidesBack ?? pageOfTab('brand', 'figma')),
+  close: () => setPage(styleGuidesBack ?? pageOfTab('brand')),
   showResult: () => { setHost({ openDetail: 'styleguide' }); hostChanged(); },
 };
 
@@ -2824,85 +1809,10 @@ const figmaActions = (): FigmaAction[] => [
     disabled: pruneBlocked() || !!restoreFailure, hint: restoreFailure ? RESTORE_OFF_HINT : PRUNE_HINT, run: runPrune },
   { id: 'file-setup', label: FILE_SETUP_LABEL, busy: fileSetupBusy() ? 'Setting up…' : null, disabled: false, run: runFileSetup },
   // S8.2 (owner decision G2 A): Build set… opens the Components tab, where the set is chosen and built.
-  { id: 'build', label: 'Build set…', busy: null, disabled: false, run: () => setPage(pageOfTab('components', commit.isFigma ? 'figma' : 'web')) },
-  // S11.2 (owner decision H10, H11): "Build style guides…" opens the new page. The legacy Style guide page stays in the
-  // Pages menu until the cleanup that follows (H12).
+  { id: 'build', label: 'Build set…', busy: null, disabled: false, run: () => setPage(pageOfTab('components')) },
+  // S11.2 (owner decision H10, H11): "Build style guides…" opens the new page, the only way in since H12 (PG1 A).
   { id: 'style-guide', label: 'Build style guides…', busy: null, disabled: false, run: openStyleGuides },
 ];
-
-/** A legacy surface opened from the new chrome, pinned light (D2): `data-theme="light"` resets the chrome
- *  variables and `color-scheme` beneath it, so its fields keep dark UA ink on their light ground in a dark
- *  theme (#1031). Since S13.1 the plugin's Pages menu list is the one left. */
-const pinLight = <E extends HTMLElement>(n: E): E => { n.dataset.theme = 'light'; return n; };
-
-/** The plugin's Pages menu (D1, D5): the old rail, as a menu, lent to the top bar (`shell/bar.ts`), which places it
- *  after Export. What is left of `renderBar` (UI redesign S13.1): the shell draws every other control on the bar. It
- *  keeps the Style guide reachable by its old name until S11.2 moves it into the Figma menu, and S13 removes the
- *  menu. A host with no destination left draws none (owner decision G19 A): the web since S8.2. */
-const renderPagesMenu = (): HTMLElement | null => {
-  if (!railNav().length) { navMenuOpen = false; return null; }
-  const nWrap = el('div', 'barmenu-wrap');
-  // A white button with ▾ at every width (the owner's top-bar decision, 2026-10-05): at 380 it starts the second row.
-  const nav = hook(el('button', 'p3-btn') as HTMLButtonElement, 'pages-menu');
-  nav.type = 'button';
-  nav.append(el('span', 'p3-btn-label', 'Pages'), glyph('chev'));
-  nav.setAttribute('aria-label', 'Pages');
-  nav.setAttribute('aria-expanded', String(navMenuOpen));
-  nav.onclick = (e) => {
-    e.stopPropagation();
-    navMenuOpen = !navMenuOpen; brandMenuOpen = false; exportMenuOpen = false; importOpen = false;
-    barChanged();
-  };
-  nWrap.append(nav);
-  if (navMenuOpen) nWrap.append(pinLight(renderNavMenu()));
-  if (!pagesOutsideBound) {
-    // Bound once: a click outside the Pages menu's wrap closes it. The brand menu's own dismissal is the bar's.
-    document.addEventListener('mousedown', (e) => {
-      if (navMenuOpen && !(e.target as HTMLElement).closest('.barmenu-wrap')) { navMenuOpen = false; barChanged(); }
-    });
-    pagesOutsideBound = true;
-  }
-  return nWrap;
-};
-let pagesOutsideBound = false;
-
-/** The rail's destinations as a dropdown, for the widths where the rail is not a sidebar. Renders
- *  from the same `railNav()` data and reuses the rail's own `.stage-t` title+subtitle block, so the
- *  subtitles survive the move — they are doing real work ("Surfaces & fills / Backgrounds, text,
- *  gradients" teaches what the page is) and a bare label list would drop them. The divider before
- *  the `view` destinations and the ordering note both come across too, so nothing the sidebar shows
- *  is silently lost on the way into the menu. */
-const renderNavMenu = (): HTMLElement => {
-  // menu variant — navmenu re-skins the shared popover
-  const menu = hook(el('div', mix('brandmenu', 'navmenu')), 'pages-menu-list');
-  menu.append(el('div', 'bm-cap', 'Pages'));
-  const nav = railNav();
-  nav.forEach((s, i) => {
-    // ONE divider before the FIRST view destination, not one before each. It marks the boundary between
-    // authoring the theme and looking at / writing out the result — a second rule between Preview and
-    // Components would separate two things on the same side of that boundary. Written as "the first
-    // view entry" rather than a hardcoded index so the rule survives another `view` destination
-    // (docs/23 §6's deferred Output group is exactly that) and survives `figmaOnly` filtering, which
-    // changes which index the boundary lands on between the two hosts.
-    if (isFirstView(nav, i)) menu.append(el('div', 'bm-div'));
-    // The rail's hooks and its `active` state came with it (S1.2, plan §4), so the suites' page sweep
-    // reaches every legacy page the way it did: `rail-page-<key>` in kebab-case, the label on its own hook.
-    const it = hook(el('button', 'nav-item' + (s.key === page ? ' cur active' : '')) as HTMLButtonElement, `rail-page-${s.key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`);
-    const t = el('span', 'stage-t');
-    t.append(hook(el('b', undefined, s.label), 'rail-item-label'), el('small', undefined, s.sub));
-    it.append(t);
-    it.onclick = () => {
-      navMenuOpen = false;
-      // `setPage` alone: the `page` subscriber re-renders the legacy frame, and with it this bar.
-      if (page !== s.key) setPage(s.key); else barChanged();
-    };
-    menu.append(it);
-  });
-  menu.append(el('p', 'rail-note', 'Ordered the way a theme composes — palettes first, then how they’re applied to surfaces and interaction, then type and form.'));
-  // The build stamp (#474) stood here until UI redesign S8.2; it is at the foot of the Inspect menu now, on both hosts
-  // (owner decision C3 A), since the web has no Pages menu (G19).
-  return menu;
-};
 
 // ---- the start window (UI redesign S12) --------------------------------------------------------------
 // It opens over the studio on the first run (no origin yet) and when "+ New brand" reopens it; any load closes it.
@@ -2939,16 +1849,9 @@ export const build = (): void => {
   // The studio always renders, and the start window opens over it (UI redesign S12, owner decision G10 A): on the
   // first run (no origin yet) and after "+ New brand". Until S12 the start was a root view of its own, outside the
   // frame and pinned light.
-  // The rail is gone (UI redesign S1.2, D1): the tab row in the frame navigates, and the old rail
-  // survives as the Pages menu in the top bar (`renderNavMenu`), with its hooks and its build stamp.
-  const shell = el('div', 'shell');
-  workspace = hook(el('section', 'ws'), 'workspace');
-  shell.append(workspace);
-  mountView('app', () => shell);
-  bindStuck();
-  // After `mountView`, never inside its `body()`: `renderWorkspace` measures real geometry (`syncStuck`
-  // reads a bounding rect against the live `--chrome-h`), and a detached shell measures zero.
-  renderWorkspace();
+  // The rail is gone (UI redesign S1.2, D1): the tab row in the frame navigates. The old rail's last trace, the plugin's
+  // Pages menu, went with the old Style guide page in H12 (#2289, owner PG1 A).
+  mountView('app');
   syncStart();
 };
 

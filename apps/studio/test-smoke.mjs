@@ -985,11 +985,9 @@ const INTER_INSTALLED = () => {
   };
 };
 const fontStatusSeen = new Map();   // `${brand} / ${mode} / ${text}` -> { drawn, worst }
-/** The chrome surfaces whose home is the legacy WORKSPACE (`CHROME_SURFACES` in `src/main.ts`, `home: 'workspace'`),
- *  typed here. The roster is published per VIEW, and the app view still promises the legacy mode strip because the
- *  plugin's Style guide draws it; on the web the workspace is drawn by no place (each state below asserts that no legacy
- *  page is drawn), so these are left out of the "declared and mounted" check exactly while that holds. */
-const WORKSPACE_SURFACES = ['mode-strip'];
+/** The app view's chrome surfaces (`CHROME_SURFACES` in `src/main.ts`), typed here. The legacy workspace's one, the
+ *  mode strip, went with the legacy workspace in H12 (#2289), so every declared surface must be mounted. */
+const APP_SURFACES = ['brand-bar', 'error'];
 const sweptPlaces = new Set();
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand, undefined, { interInstalled: true });
@@ -1030,7 +1028,8 @@ for (const brand of BRANDS) {
       // --- key DOM assertions ------------------------------------------------------------------
       const dom = await page.evaluate(() => {
         const err = document.querySelector('[data-p3="error-bar"]');
-        const lf = document.querySelector('[data-p3="legacy-frame"]');
+        // H12 (#2289): the legacy frame is gone; the two panes are what a tab's page draws.
+        const lf = document.querySelector('.p3-legacy');
         // The page-chrome floor (#772), read from what the app DECLARES rather than from a list restated here.
         const roster = (document.documentElement.dataset.chromeRoster ?? '').split(' ').filter(Boolean);
         return {
@@ -1043,7 +1042,7 @@ for (const brand of BRANDS) {
           errorBarMounted: !!err,
           errorBarText: err?.textContent?.trim() ?? '',
           legacyMounted: !!lf,
-          legacyPage: lf?.dataset.legacyPage ?? null,
+          panesMounted: !!document.querySelector('[data-p3="panes"]'),
           // MODE AGREEMENT: the radios that are checked, and the select that stands in for them when the header is
           // slim, both read here, so a place that resets the mode or a control that drifts from the other fails.
           modeOn: [...document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]')].filter((n) => n.getAttribute('aria-checked') === 'true').map((n) => n.dataset.mode),
@@ -1055,18 +1054,15 @@ for (const brand of BRANDS) {
       ok(dom.title.length > 0, `${where}: the preview header names the view ("${dom.title}")`);
       // "Not blank": the levers pane carries controls. A derived mode holds them disabled (Q59), never removes them.
       ok(dom.controls > 0, `${where}: the levers pane renders ${dom.controls} control(s)`);
-      ok(dom.roster.length >= 3, `${where}: the view publishes its chrome roster (${dom.roster.join(', ') || 'EMPTY'})`);
+      ok(JSON.stringify([...dom.roster].sort()) === JSON.stringify(APP_SURFACES), `${where}: the view publishes its chrome roster, ${APP_SURFACES.join(' and ')} (${dom.roster.join(', ') || 'EMPTY'})`);
       ok(dom.roster.includes('error'), `${where}: the roster names the engine-error surface — #388's defect was one page rendering it and the rest not`);
-      const mustMount = dom.legacyPage === null ? dom.chromeMissing.filter((k) => !WORKSPACE_SURFACES.includes(k)) : dom.chromeMissing;
-      ok(dom.roster.some((k) => !WORKSPACE_SURFACES.includes(k)) && mustMount.length === 0,
-        `${where}: every declared chrome surface outside the legacy workspace is mounted${mustMount.length ? ` — missing ${mustMount.join(', ')}` : ''}`);
+      ok(dom.roster.length > 0 && dom.chromeMissing.length === 0,
+        `${where}: every declared chrome surface is mounted${dom.chromeMissing.length ? ` — missing ${dom.chromeMissing.join(', ')}` : ''}`);
       hooks.absent(ok, { seen: dom.errorBarMounted, state: 'the global error bar mounted, found by its hook' },
         !dom.errorBarShown, `${where}: the global error bar is hidden${dom.errorBarShown ? ` — "${dom.errorBarText}"` : ''}`);
       ok(dom.overflowX <= 1, `${where}: no horizontal overflow (${dom.overflowX}px past the viewport)`);
-      // No legacy page anywhere a designer can go on the web (and so no legacy mode strip, which only a legacy page drew):
-      // what smoke §2b's #485 drive, chrome §4's web arm and chrome §9's strip sync held in place until this sweep.
-      hooks.absent(ok, { seen: dom.legacyMounted, state: 'the legacy frame mounted, found by its hook' },
-        dom.legacyPage === null, `${where}: no legacy page is drawn (the legacy frame names ${JSON.stringify(dom.legacyPage)})`);
+      // No legacy frame anywhere (H12, #2289): the frame draws the two panes, and no legacy page or legacy mode strip.
+      ok(dom.panesMounted && !dom.legacyMounted, `${where}: the frame draws the two panes and no legacy frame (panes ${dom.panesMounted}, legacy frame ${dom.legacyMounted})`);
       ok(dom.modeOn.length === 1 && dom.modeOn[0] === mode && dom.modeSelect === mode,
         `${where}: mode agreement — the preview header marks exactly ${mode}, in its radios and its select (radios ${JSON.stringify(dom.modeOn)}, select ${JSON.stringify(dom.modeSelect)})`);
 

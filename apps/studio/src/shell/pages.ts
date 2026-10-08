@@ -14,15 +14,12 @@
  * focus, so a section has nothing to bring. A duplicate key in an object literal here is a compile error
  * (TS1117), so `typecheck` is the duplicate-key check `build-v6.mjs` needed a second parser for.
  *
- * LEGACY PAGES. Until a domain slice moves a page, it shows one or more legacy pages in the full-width
- * legacy frame (D1). `legacy` names them, in the order the frame offers them; plan §4's table is the
- * source. A slice moves a page by emptying its list and setting its `status` to `new` (S2: Color › Palettes; S3: Brand;
- * S4a: Color › Surfaces & fills; S5.2: Color › Interactive; S6.2: Type; S7: Shape; S9.2: Depth & motion; S10: Layout;
- * S8.2: Components, the last tab);
- * S13 deletes both fields. The store's `page` then holds the moved page's id (`NewPageKey`). `PageKey`, the legacy page
- * keys the store's `page` holds, is DERIVED from these lists (plus the Figma menu's Style guide), so a
- * slice that empties a list takes the key out of the type, and `NAV` in `main.ts` (checked against
- * `PageKey` both ways) fails `typecheck` until its row goes too.
+ * NO LEGACY PAGES. Each tab once showed legacy pages in a full-width legacy frame (D1) until its slice moved it
+ * (S2: Color › Palettes; S3: Brand; S4a: Color › Surfaces & fills; S5.2: Color › Interactive; S6.2: Type; S7: Shape;
+ * S9.2: Depth & motion; S10: Layout; S8.2: Components, the last tab). The last legacy page, the plugin's old Style
+ * guide behind the Pages menu, went in H12 (#2289, owner PG1 A), and the `legacy` lists, the legacy frame and the
+ * Pages menu went with it. The store's `page` holds a moved page's id (`NewPageKey`) or a menu page's (`MenuPageKey`).
+ * `status` is `new` on every page; it is kept as the field `NewPageKey` is derived from.
  *
  * The prose here (`intro`, `desc`, section titles) is concept v6's, verbatim, except where an owner decision
  * replaced it (marked where it does). It ships in the bundle.
@@ -108,7 +105,6 @@ export type InspectId = (typeof INSPECT)[number][0];
  *  that are not manifest levers. `drive` names the preview part the row drives (Q4, deferred). */
 export type Row = { readonly ctl: string; readonly keys?: readonly string[]; readonly schemaOnly?: readonly string[]; readonly drive?: string };
 export type Section = { readonly title: string; readonly desc?: string; readonly advanced?: boolean; readonly rows: readonly Row[] };
-type LegacyList = readonly string[] | { readonly web: readonly string[]; readonly figma: readonly string[] };
 /** A page: a tab without sub-pages, or a sub-page. */
 export type PageData = {
   readonly id: string; readonly label: string; readonly home: ViewId; readonly intro: string;
@@ -117,10 +113,9 @@ export type PageData = {
    *  Color's Surfaces & fills and Interactive only. The Roles matrix that was to draw them is not built (owner
    *  decision Q31, folded into #1969); `test-pages.ts` still holds the coverage. */
   readonly roles?: readonly string[];
-  /** `legacy` until the page's slice moves it, then `new` (S2 moved Color › Palettes first). A `new` page
-   *  draws the two panes from its own modules (`NEW_PAGES` in `frame.ts`) and names no legacy page. */
-  readonly status: 'legacy' | 'new';
-  readonly legacy: LegacyList;
+  /** `new` on every page since the last slice moved its tab: the page draws the two panes from its own modules
+   *  (`NEW_PAGES` in `frame.ts`). */
+  readonly status: 'new';
 };
 /** A tab. Either it is a page itself, or it holds sub-pages and has no home or sections of its own. */
 export type Domain = PageData | { readonly id: string; readonly label: string; readonly subpages: readonly PageData[] };
@@ -135,7 +130,6 @@ export const DOMAINS = [
     ],
     // S3: moved. Its levers are `domains/brand.ts`, its preview `preview/brand.ts` (the Style guide, lent).
     status: 'new',
-    legacy: [],
   },
   {
     id: 'color', label: 'Color', subpages: [
@@ -155,7 +149,6 @@ export const DOMAINS = [
         ],
         // S2: moved. Its levers are `domains/color-palettes.ts`, its preview `preview/palettes.ts`.
         status: 'new',
-        legacy: [],
       },
       {
         // The intro and the Background fills, Scrim and Fields copy are the owner's (Q26, Q27, Q29, QA-B10). Background
@@ -193,7 +186,6 @@ export const DOMAINS = [
         ],
         // S4a: moved. Its levers are `domains/color-fills.ts`, its preview `preview/surfaces.ts`.
         status: 'new',
-        legacy: [],
       },
       {
         id: 'interactive', label: 'Interactive', home: 'interactive', intro: 'How actions, links and disabled states draw from the palettes, and the floors they meet.',
@@ -235,7 +227,6 @@ export const DOMAINS = [
         ],
         // S5.2: moved. Its levers are `domains/color-interactive.ts`, its preview `preview/interactive.ts`.
         status: 'new',
-        legacy: [],
       },
     ],
   },
@@ -282,7 +273,6 @@ export const DOMAINS = [
     ],
     // S6.2: moved; S6.3 retired the lent legacy region. Its levers are `domains/type.ts`, its preview `preview/type.ts`.
     status: 'new',
-    legacy: [],
   },
   {
     // S7: the owner's names (E2, 2026-10-04: "Radius" in names and headings, overriding D16's swap to "corner"); the
@@ -297,7 +287,6 @@ export const DOMAINS = [
     ],
     // S7: moved. Its levers are `domains/shape.ts`, its preview `preview/shape.ts`.
     status: 'new',
-    legacy: [],
   },
   {
     // S9.2: moved. One page and one preview for both topics (V4, owner decision v5 Q3): Elevation then Motion. The
@@ -313,7 +302,6 @@ export const DOMAINS = [
     ],
     // Its levers are `domains/depth.ts`, its preview `preview/depth.ts`.
     status: 'new',
-    legacy: [],
   },
   {
     // S10: the intro is v6's with "column" taken out (owner decision D11: "columns" is for the grid only); the section
@@ -327,7 +315,6 @@ export const DOMAINS = [
     ],
     // S10: moved. Its levers are `domains/layout.ts`, its preview `preview/layout.ts`.
     status: 'new',
-    legacy: [],
   },
   {
     // S8.2: moved, one page on both hosts (owner decisions G2, G5, G6 A). The Button options and their preview, then the
@@ -349,13 +336,8 @@ export const DOMAINS = [
       { title: 'Component sets', desc: SETS_DESC, rows: [{ ctl: 'sets' }] },
     ],
     status: 'new',
-    legacy: [],
   },
 ] as const satisfies readonly Domain[];
-
-/** Legacy pages no tab shows: the Figma menu's Style guide (plugin), reached from the Pages menu until S11
- *  moves it into the Figma menu (§4's last row). */
-export const MENU_LEGACY = ['styleGuide'] as const;
 
 /** Pages a menu opens that no tab shows and that are not legacy (UI redesign S11.2): the Figma menu's Build style
  *  guides, drawn by the shell (`shell/style-guides.ts`) in its own full-width layout, with no tab selected. */
@@ -367,20 +349,15 @@ export const isMenuPage = (k: string): k is MenuPageKey => (MENU_PAGES as readon
 type DomainT = (typeof DOMAINS)[number];
 type SubOf<D> = D extends { readonly subpages: readonly (infer S)[] } ? S : never;
 type PageT = Exclude<DomainT, { readonly subpages: unknown }> | SubOf<DomainT>;
-type KeysOf<L> = L extends readonly (infer K)[] ? K : L extends { readonly web: readonly (infer A)[]; readonly figma: readonly (infer B)[] } ? A | B : never;
 
 /** The tabs (IA-1). */
 export type TabId = DomainT['id'];
 /** Color's sub-pages. */
 export type ColorSubId = SubOf<DomainT>['id'];
-/** The legacy page keys: every key a page's `legacy` list names, plus the Figma menu's. Derived, so it
- *  shrinks as each slice empties a list (§3.7, #1846). `NAV` in `main.ts` is checked against this. */
-export type LegacyPageKey = KeysOf<PageT['legacy']> | (typeof MENU_LEGACY)[number];
 /** The pages a slice has moved (`status: 'new'`), by id. Derived, so it grows as each slice moves one. */
 export type NewPageKey = Extract<PageT, { readonly status: 'new' }>['id'];
-/** What the store's `page` holds: a legacy page, or a moved page by its id. The two sets never share a
- *  key: a slice that moves a page takes its legacy key out of the first set in the same change. */
-export type PageKey = LegacyPageKey | NewPageKey | MenuPageKey;
+/** What the store's `page` holds: a moved page by its id, or a page a menu opens. */
+export type PageKey = NewPageKey | MenuPageKey;
 
 /** A place the tab row can select: a tab, or a Color sub-page. */
 export type Place = { readonly tab: TabId; readonly sub?: ColorSubId };
@@ -396,19 +373,13 @@ export const pageOf = (p: Place): PageData | null => {
   return d as PageData;
 };
 
-const listFor = (l: LegacyList | undefined, host: Host): readonly LegacyPageKey[] =>
-  (!l ? [] : Array.isArray(l) ? l : (l as { readonly [H in Host]: readonly string[] })[host]) as readonly LegacyPageKey[];
-
-/** The legacy pages a place shows on this host. Empty for a page a slice has moved. */
-export const legacyOf = (p: Place, host: Host): readonly LegacyPageKey[] => listFor(pageOf(p)?.legacy, host);
-
 /** The moved pages' ids, from the data. */
 export const NEW_PAGE_KEYS: readonly NewPageKey[] = (DOMAINS as readonly Domain[])
   .flatMap((d) => ('subpages' in d ? d.subpages : [d as PageData]))
   .filter((p) => p.status === 'new').map((p) => p.id as NewPageKey);
 /** Is `k` a moved page (drawn in the two panes), rather than a legacy page? */
 export const isNewPage = (k: PageKey): k is NewPageKey => (NEW_PAGE_KEYS as readonly string[]).includes(k);
-/** The moved page a place is, or null when the place is legacy. */
+/** The moved page a place is (every place is one since H12), or null for a place that names no page. */
 export const newPageOf = (p: Place): NewPageKey | null => {
   const d = pageOf(p);
   return d && d.status === 'new' ? (d.id as NewPageKey) : null;
@@ -427,25 +398,15 @@ export const placeOfTab = (id: TabId): Place => {
 /** Every place, in tab order: a tab without sub-pages, or each sub-page of a tab with them. */
 export const PLACES: readonly Place[] = TABS.flatMap((t) => (t.subs ? t.subs.map((s) => ({ tab: t.id, sub: s.id })) : [{ tab: t.id }]));
 
-/** The place that shows `page`, for a page change that did not come from the tab row (the Pages menu, a
- *  brand load). `keep` wins when it already shows the page, so moving between two tabs that share a
- *  legacy page never jumps the selection (its one case, Shape and Components on the web, ended with S8.2; the rule
- *  stays until S13 deletes `legacy`). Null when no place shows the
- *  page (the plugin's Style guide, a Figma menu item from S1.4 on). */
-export const placeOfPage = (page: PageKey, host: Host, keep: Place | null): Place | null => {
+/** The place that shows `page`, for a page change that did not come from the tab row (a Continue button, a brand
+ *  load). Null for a page a menu opens (the Figma menu's Build style guides), which no place shows. */
+export const placeOfPage = (page: PageKey): Place | null => {
   if (isMenuPage(page)) return null;
-  if (isNewPage(page)) return PLACES.find((p) => newPageOf(p) === page) ?? null;
-  if (keep && legacyOf(keep, host).includes(page)) return keep;
-  return PLACES.find((p) => legacyOf(p, host).includes(page)) ?? null;
+  return PLACES.find((p) => newPageOf(p) === page) ?? null;
 };
 
-/** The page a tab opens on this host: its moved page, or its first legacy page (S7: "Continue to Depth & motion"
- *  and Shape's "See Components" route by tab, so a later slice moving that tab needs no edit at the caller, and
- *  Components lands on its own legacy page per host). */
-export const pageOfTab = (id: TabId, host: Host): PageKey => {
-  const p = placeOfTab(id);
-  return newPageOf(p) ?? legacyOf(p, host)[0];
-};
+/** The page a tab opens (S7: "Continue to Depth & motion" and Shape's "See Components" route by tab). */
+export const pageOfTab = (id: TabId): PageKey => newPageOf(placeOfTab(id))!;
 
 /** Stable id for a place, used in element ids and hooks: `brand`, `color-palettes`. */
 export const placeId = (p: Place): string => (p.sub ? `${p.tab}-${p.sub}` : p.tab);
