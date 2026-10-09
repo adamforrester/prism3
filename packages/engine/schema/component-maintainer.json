@@ -827,6 +827,42 @@
           "A leading icon rung one smaller than the control rung (Button's #1350 offset) would suit a text-bearing tag; it is an owner exception in `lint-rung-names.ts`, so the 1:1 rung ships and the offset is held."
         ]
       }
+    },
+    "tab": {
+      "codeOnly": [
+        "The tab in code — a <button role=\"tab\"> with aria-selected (true or false, on every tab) and aria-controls naming its panel. The tab list owns roving tabindex: the selected tab is tabindex=\"0\", the rest -1.",
+        "The underline slide — in code the selected underline is one element owned by the tab list that moves and resizes to the selected tab (about 150–200ms). Figma draws it per tab. Under prefers-reduced-motion it snaps.",
+        "The count — read as part of the tab name (\"Reviews, 12 items\") through visually hidden text, never as a lone number.",
+        "RTL — logical properties mirror the row: the leading icon moves to the right of the label and the count to its left.",
+        "text expansion — the label never wraps or truncates in a horizontal list; the list scrolls instead.",
+        "The hit-target expansion — a small tab is 36px tall on comfortable density; reaching 44px there is a code-side hit area larger than the visible box."
+      ],
+      "notes": {
+        "contested": [
+          "DRAFT for #2416. Style (line only, or line and contained), selected ink, hover wash, size axis, the count badge and the names Tab and Tabs are owner calls held on the issue."
+        ],
+        "unverified": [],
+        "evolution": []
+      }
+    },
+    "tabs": {
+      "codeOnly": [
+        "The tab list in code — role=\"tablist\" with an accessible name, and aria-orientation when vertical. One tab stop: the selected tab is tabindex=\"0\", the rest -1. Arrow keys move between tabs (Left and Right, or Up and Down when vertical), Home and End go to the first and last, and disabled tabs are skipped.",
+        "The panel — role=\"tabpanel\", aria-labelledby naming its tab and tabindex=\"0\", so Tab after the list lands on the panel. Not drawn in Figma: the panel is the content below the list.",
+        "Panel mounting — the default mounts a panel when it is first shown; keep it mounted when it holds state (a half-filled form), or mount all panels when find-in-page or print must reach them.",
+        "The selected underline in code — one element owned by the list that moves to the selected tab, sitting on the baseline (it overlaps the 1px line).",
+        "Overflow — a horizontal list never wraps. When the tabs do not fit, it scrolls with a fade at the cut edge, or ends in a \"More\" menu.",
+        "RTL — the row mirrors, the first tab sits rightmost, and Left and Right follow reading order: in RTL, Left moves to the next tab.",
+        "A disabled selected tab — if the selected tab becomes disabled, move tabindex=\"0\" to the nearest enabled tab.",
+        "Deep links — a tab can be bound to a hash or query parameter through the History API, with no route change."
+      ],
+      "notes": {
+        "contested": [
+          "DRAFT for #2416. Every design call is held on the issue."
+        ],
+        "unverified": [],
+        "evolution": []
+      }
     }
   }
 }
