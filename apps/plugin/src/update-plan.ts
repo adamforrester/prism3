@@ -752,9 +752,30 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
     const v = await locateView(host, t, breathe, ports.drawVars);
     if (v.kind === 'missing') { out.missing.push(t.def); continue; }
     if (v.kind === 'refused') { out.refused.push({ def: t.def, reason: v.reason }); continue; }
-    out.sets.push(dryRunSet(t.def, t.plans, v.view, ports, ledger));
+    const preview = dryRunSet(t.def, t.plans, v.view, ports, ledger);
+    // A NESTED COMPONENT THE FILE DOES NOT HAVE (#2380). Since every icon-set glyph is an instance of
+    // `icon/<glyph>`, an update can need a component the file was built without — an older field-message
+    // drew its glyphs inline. The executor would report a miss for each and leave the old glyph where it
+    // was, so the set is refused here instead, naming what to build first. The build path pre-builds these
+    // (`prebuildDependencies`); an update does not build other components.
+    const absent = absentNests(host, t.plans);
+    if (absent.length) preview.blockers.push(`Not in this file: ${absent.join(', ')}. Build ${[...new Set(absent.map((a) => a.split('/')[0]))].join(', ')} first, then run the update again`);
+    out.sets.push(preview);
   }
   return out;
+};
+
+/** The components the plans nest that no COMPONENT or COMPONENT_SET in the file is named (#2380). */
+const absentNests = (host: UpdateHost, plans: readonly AnatomyPlan[]): string[] => {
+  const want = new Set<string>();
+  const walk = (n: { nestTarget?: string; children?: readonly unknown[] }): void => {
+    if (n.nestTarget) want.add(n.nestTarget);
+    for (const c of (n.children ?? []) as { nestTarget?: string; children?: readonly unknown[] }[]) walk(c);
+  };
+  for (const p of plans) walk(p.root);
+  if (!want.size) return [];
+  const have = new Set(host.root.findAllWithCriteria({ types: ['COMPONENT', 'COMPONENT_SET'] }).map((n) => String((n as { name?: unknown }).name ?? '')));
+  return [...want].filter((w) => !have.has(w)).sort();
 };
 
 export type CaptureResult = { sets: { def: string; set: string; recorded: number; skipped: { member: string; reason: string; differences?: Difference[] }[] }[]; missing: string[]; refused: { def: string; reason: string }[] };

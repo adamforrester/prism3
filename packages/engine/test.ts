@@ -83,6 +83,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve, dirname, join, relative } from 'node:path';
 const HERE = dirname(fileURLToPath(import.meta.url));
 
+/** The `icon/<glyph>` components a plan nests (#2380) — FIXTURE SETUP for the stub file, so a paste that is
+ *  expected to run clean has the icon components a real file would have had built first. Never an expected
+ *  value: the instance assertions below type their expected `icon/<glyph>` names out. */
+const planIconComps = (n: { nestTarget?: string; children?: readonly unknown[] }): string[] => [
+  ...(n.nestTarget?.startsWith('icon/') ? [n.nestTarget] : []),
+  ...((n.children ?? []) as { nestTarget?: string; children?: readonly unknown[] }[]).flatMap(planIconComps),
+];
+
 import { Session as InspectorSession } from 'node:inspector/promises';
 
 // ---- #1268 EVERY ASSERTION SITE RAN — a section going quiet is a failure, not a smaller pass ----------
@@ -14789,8 +14797,9 @@ arm: {
     const imgPlaceholder = componentDefs.find((d) => d.id === 'image-placeholder')!;
     const markerOf = (d: ComponentDef): FigmaNodePlan => {
       const root = figmaAnatomyPlan(d, undefined, { ratio: '4:3' } as never).root;
-      const m = (root.children ?? []).find((c) => c.type === 'GLYPH');
-      if (!m) throw new Error(`image-placeholder projection has no GLYPH marker (got [${(root.children ?? []).map((c) => `${c.name}:${c.type}`).join(', ')}])`);
+      // By NAME since #2380: the marker is an instance of `icon/image` now, not a GLYPH.
+      const m = (root.children ?? []).find((c) => c.name === 'marker');
+      if (!m) throw new Error(`image-placeholder projection has no marker (got [${(root.children ?? []).map((c) => `${c.name}:${c.type}`).join(', ')}])`);
       return m;
     };
     // (a) the plan carries the literal, and it is a REAL enlargement past every icon rung (xl = 40) — a
@@ -19161,7 +19170,7 @@ arm: {
         const p = unstroked[0] ?? set[0];
         const at = planComponentName(p);
         const page: StubPage = { children: [] };
-        const r = await runPayload(planToPluginJs(p), { vars: [...planBoundVars(p.root), ...planPaintVars(p.root)], styles: planTextStyles(p.root), comps: ['FPO-default-icon'], page });
+        const r = await runPayload(planToPluginJs(p), { vars: [...planBoundVars(p.root), ...planPaintVars(p.root)], styles: planTextStyles(p.root), comps: ['FPO-default-icon', ...planIconComps(p.root)], page });
         const box = page.children[0] && partOf(page.children[0]);
         ok(r.misses.length === 0 && !!box,
           `anatomy/${def.id} #1228 reachable: the payload pastes clean at ${at} and its \`${part}\` was found (${JSON.stringify(r.misses)})`);
@@ -20800,7 +20809,7 @@ arm: {
         const fmOpts = {
           vars: fmSet.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
           styles: fmSet.flatMap((p) => planTextStyles(p.root)),
-          comps: [] as string[],
+          comps: [...new Set(fmSet.flatMap((p) => planIconComps(p.root)))],
         };
         const fmPastePage: StubPage = { children: [] };
         const fmPlugPage: StubPage = { children: [] };
@@ -20812,11 +20821,51 @@ arm: {
         // #1393 — THE GLYPH'S IMPORTED SUBTREE, in lockstep. `createNodeFromSvg` bypasses `createFrame()`, so both
         // executors claim the nodes inside a GLYPH in 'imported' mode; the button grid above builds no glyph, so
         // this is where that branch is compared. FLOOR: the page really holds an imported VECTOR to compare.
+        // On the SPINNER since #2380: field-message's status glyphs are instances of `icon/*` now and import
+        // nothing, and the spinner's composed glyph (`COMPONENT_GLYPHS`) is one that is still drawn inline.
         {
-          const plugFm = claims(fmPlugPage);
-          const fmDiff = claimDiff(plugFm, claims(fmPastePage));
+          const spSet = figmaAnatomySet(spinner, { swapTarget: 'FPO-default-icon' });
+          const spOpts = { vars: spSet.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), styles: spSet.flatMap((p) => planTextStyles(p.root)) };
+          const spPastePage: StubPage = { children: [] };
+          const spPlugPage: StubPage = { children: [] };
+          await runPayload(planSetToPluginJs(spSet), { ...spOpts, page: spPastePage });
+          await plugRun(spSet, { ...spOpts, page: spPlugPage });
+          const plugFm = claims(spPlugPage);
+          const fmDiff = claimDiff(plugFm, claims(spPastePage));
           ok(plugFm.some((r) => / VECTOR \[/.test(r)) && fmDiff.length === 0,
             `#1393 lockstep (GLYPH): both executors claim a glyph's imported subtree identically — plugin vs paste differ on ${fmDiff.length}: ${fmDiff.slice(0, 2).join(' | ').slice(0, 600)}`);
+        }
+
+        // #2380 — THE INSET ICON, THROUGH THE PASTE EXECUTOR AND IN LOCKSTEP WITH THE PLUGIN. checkbox's check is an
+        // instance of `icon/check` inside the box-bound `mark` frame, placed at 0.8 of it (#1346) by the PARENT
+        // after the flow pass. The plugin's placement is read back by `apps/plugin/test-roundtrip.ts`; this is the
+        // paste executor's (`PAYLOAD_INSET`), which no other reader sees. EXPECTED is Prism 2's 0.8, typed here.
+        {
+          const cbChecked = figmaAnatomySet(checkboxControl, {}).filter((p) => p.coord.selection === 'checked');
+          const cbOpts = { vars: cbChecked.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), styles: cbChecked.flatMap((p) => planTextStyles(p.root)), comps: ['focus-ring', ...new Set(cbChecked.flatMap((p) => planIconComps(p.root)))] };
+          const cbPastePage: StubPage = { children: [] };
+          const cbPlugPage: StubPage = { children: [] };
+          const cbPasted = await runPayload(planSetToPluginJs(cbChecked), { ...cbOpts, page: cbPastePage });
+          await plugRun(cbChecked, { ...cbOpts, page: cbPlugPage });
+          const insets = (page: StubPage): string[] => {
+            const out: string[] = [];
+            const walk = (n: Record<string, unknown>): void => {
+              if (n.name === 'mark') {
+                const g = ((n.children as Record<string, unknown>[] | undefined) ?? []).find((c) => c.name === 'glyph');
+                const W = n.width as number, H = n.height as number;
+                out.push(!g ? 'no glyph' : `${g.type} ${Number(((g.width as number) / W).toFixed(4))}x${Number(((g.height as number) / H).toFixed(4))} at ${Number(((g.x as number) / W).toFixed(4))},${Number(((g.y as number) / H).toFixed(4))} ${JSON.stringify(g.constraints)}`);
+              }
+              for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) walk(c);
+            };
+            for (const c of page.children as Record<string, unknown>[]) walk(c);
+            return out;
+          };
+          const WANT = `INSTANCE 0.8x0.8 at 0.1,0.1 ${JSON.stringify({ horizontal: 'SCALE', vertical: 'SCALE' })}`;
+          const pasteI = insets(cbPastePage);
+          ok(cbPasted.misses.length === 0 && pasteI.length === cbChecked.length && pasteI.every((x) => x === WANT),
+            `#2380 paste: every checked checkbox's icon is an instance at 0.8 of its mark frame, centered, SCALE/SCALE (${pasteI.length}/${cbChecked.length}: ${[...new Set(pasteI)].join(' | ')}${cbPasted.misses.length ? `; misses: ${cbPasted.misses.slice(0, 2).join(' | ')}` : ''})`);
+          ok(JSON.stringify(insets(cbPlugPage)) === JSON.stringify(pasteI),
+            `#2380 lockstep: both executors place the inset icon identically (plugin ${[...new Set(insets(cbPlugPage))].join(' | ')} vs paste ${[...new Set(pasteI)].join(' | ')})`);
         }
 
         // #1670 — THE SPINNER'S LAYER OPACITY, THROUGH THE PASTE EXECUTOR AND IN LOCKSTEP WITH THE PLUGIN. The
@@ -24926,30 +24975,29 @@ arm: {
   ok(cbGlyphs({}) === 'neither',
     `checkbox-control: and with neither axis supplied — the structure-only plan a consumer asking "what parts does this def have" gets (got '${cbGlyphs({})}')`);
 
-  // #1346 — THE INNER GLYPH IS INSET TO PRISM 2's 0.80 MARK-TO-BOX RATIO, pinned on the PROJECTED
-  // artboard rather than on the def's `glyphScale` field, so a revert to the old full-bleed mark fails
-  // HERE by name, not only in the projector that produced it. EXPECTED is authored from the Prism 2
-  // MEASUREMENT — `checkFill` 16 inside a 20px control box (the focus frame is 28 at offset −4, so the
-  // box is 28 − 2×4 = 20), giving 16/20 = 0.80, `reference/Prism2/component-specs/checkboxes.json` —
-  // independent of the engine. ACTUAL is the drawn grid's fraction of its artboard, read back from the
-  // plan: the mark FRAME binds the control box (asserted first), and the emitter pads the artboard to
-  // `grid / scale`, so the rendered mark is `grid / artboard` of the box. A mutation setting `glyphScale`
-  // back to 1 pads to the bare 24 grid, makes the ratio 1.0, and fails these by name. Not "it resolves"
-  // (docs/34 shape 5) — the VALUE 0.80 is asserted, transcribed from Prism 2, not read off the def.
+  // #1346 — THE INNER GLYPH IS INSET TO PRISM 2's 0.80 MARK-TO-BOX RATIO, pinned on the PROJECTED plan
+  // rather than on the def's `glyphScale` field, so a revert to the old full-bleed mark fails HERE by name,
+  // not only in the projector that produced it. EXPECTED is authored from the Prism 2 MEASUREMENT —
+  // `checkFill` 16 inside a 20px control box (the focus frame is 28 at offset −4, so the box is 28 − 2×4 =
+  // 20), giving 16/20 = 0.80, `reference/Prism2/component-specs/checkboxes.json` — independent of the engine.
+  // Since #2380 the mark is an INSTANCE of `icon/check` inside a `mark` frame bound to the control box, and
+  // ACTUAL is the fraction of that frame the instance is placed at (`glyphInset`), read off the plan. Before
+  // #2380 it was the padded artboard's grid fraction; the ink lands in the same place either way, 0.8 × box ×
+  // the grid. A mutation setting `glyphScale` back to 1 projects the instance full-bleed (no `glyphInset`,
+  // no wrapper) and fails these by name. Not "it resolves" (docs/34 shape 5) — the VALUE 0.80 is asserted,
+  // transcribed from Prism 2, not read off the def.
   const PRISM2_MARK_TO_BOX = 0.8;                                   // checkFill 16 / control box 20
-  const grid = Number(ICON_VIEWBOX.split(/\s+/)[2]);                // the 24-unit source grid, parsed
   const glyphNode = (part: string, selection: string) => {
     const f = (n: any): any => (n.name === part ? n : (n.children ?? []).map(f).find(Boolean));
     return f(figmaAnatomyPlan(checkboxControl, 'medium', { selection, state: 'rest' } as never).root);
   };
-  ok((checkboxControl.anatomy!.parts.mark as any).size === 'size.{size}.control',
-    `checkbox-control: the mark FRAME binds the control box ('size.{size}.control'), so the padded artboard is what insets the ink and the ratio below is box-relative (got size='${(checkboxControl.anatomy!.parts.mark as any).size}')`);
-  const markRatio = grid / (glyphNode('mark', 'checked').glyphViewBox as [number, number])[0];
-  ok(Math.abs(markRatio - PRISM2_MARK_TO_BOX) < 1e-9,
-    `checkbox-control: the check renders at Prism 2's ${PRISM2_MARK_TO_BOX} of the box — the 24-grid fills ${markRatio.toFixed(4)} of its ${(glyphNode('mark', 'checked').glyphViewBox as [number, number])[0]}px artboard, and the frame is box-bound, so a revert to a full-bleed 24px artboard (ratio 1.0) restores the oversized mark #1346 shrank (got ${markRatio.toFixed(4)})`);
-  const dashRatio = grid / (glyphNode('dash', 'indeterminate').glyphViewBox as [number, number])[0];
-  ok(Math.abs(dashRatio - PRISM2_MARK_TO_BOX) < 1e-9,
-    `checkbox-control: the dash renders at the same ${PRISM2_MARK_TO_BOX} of the box as the check (Prism 2 sizes subtractFill identically to checkFill), pinned separately so a change to one part cannot pass on the other's ratio (got ${dashRatio.toFixed(4)})`);
+  ok((checkboxControl.anatomy!.parts.mark as any).size === 'size.{size}.control' && glyphNode('mark', 'checked')?.bound?.width === 'control/size/md/height',
+    `checkbox-control: the mark FRAME binds the control box ('size.{size}.control'), so the inset below is box-relative (got size='${(checkboxControl.anatomy!.parts.mark as any).size}', bound width '${glyphNode('mark', 'checked')?.bound?.width}')`);
+  const insetOf = (part: string, selection: string): unknown => (glyphNode(part, selection)?.children ?? []).find((c: any) => c.type === 'NESTED_INSTANCE')?.glyphInset;
+  ok(insetOf('mark', 'checked') === PRISM2_MARK_TO_BOX,
+    `checkbox-control: the check renders at Prism 2's ${PRISM2_MARK_TO_BOX} of the box — its icon instance sits at that fraction of the box-bound mark frame, so a revert to a full-bleed instance restores the oversized mark #1346 shrank (got ${String(insetOf('mark', 'checked'))})`);
+  ok(insetOf('dash', 'indeterminate') === PRISM2_MARK_TO_BOX,
+    `checkbox-control: the dash renders at the same ${PRISM2_MARK_TO_BOX} of the box as the check (Prism 2 sizes subtractFill identically to checkFill), pinned separately so a change to one part cannot pass on the other's ratio (got ${String(insetOf('dash', 'indeterminate'))})`);
 
   // ---- the same three directions as a RULE over every gated part, because the block above is
   // ---- CHECKBOX-SHAPED and the second def to use the mechanism does not fit it (#910) -------------
