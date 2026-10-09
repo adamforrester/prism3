@@ -45,7 +45,7 @@ import { nbTheme } from '@prism3/engine/nb-fixture';
 import { sizeRefPx } from '@prism3/engine/scale';
 import { tailOf } from '@prism3/engine/figma-names';
 import { applyComponentPlan } from './src/write-components';
-import { makeShim } from './component-shim';
+import { makeShim, varValue } from './component-shim';
 import { materializeForBrand } from './src/brand-def';
 import { prebuildDependencies } from './src/build-deps';
 import type { ComponentDef } from '@prism3/engine/component-schema';
@@ -1682,6 +1682,42 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       ok(members.length > 0 && off.length === 0,
         `#2292 ${id} fills its column: on every member an unplaced field reads 320 (root and box), an instance set to FILL a ${COLUMN}px column has its input box, label and ${id === 'textarea' ? 'message row' : 'message'} at ${COLUMN}, in a ${NARROW}px column the box shrinks to ${NARROW} (#2266, Q99 B), and in a ${NARROWER}px column it holds its 120 floor (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
     }
+  }
+
+  // ---- #2344 (owner decision Q156 A): a group carries up to eight rows, seven behind Figma-only booleans ----
+  // Read off the built set: exactly seven BOOLEAN properties, "Option 2" to "Option 8", the first two on; every
+  // member builds all eight rows, row 1 unwired and always shown, row N wired to "Option N" and built visible
+  // for N <= 3. Then every toggle turned ON (each wired row made visible, as the host does when its boolean
+  // flips): all eight rows read back, each spanning the group less its inline padding (`space/0`, the shim's
+  // synthetic `varValue`), and the group grows taller than its three-row default. Expected values are literals.
+  for (const id of ['checkbox-group', 'radio-group']) {
+    const members = await setOf(id);
+    const set = page.children.find((c) => c.name === id && c.type === 'COMPONENT_SET') as Node | undefined;
+    const defs = (set?.componentPropertyDefinitions ?? {}) as Record<string, { type: string; defaultValue?: unknown }>;
+    const bools = Object.entries(defs).filter(([, d]) => d.type === 'BOOLEAN').map(([k, d]) => `${k.split('#')[0]}=${String(d.defaultValue)}`);
+    const WANT = ['Option 2=true', 'Option 3=true', 'Option 4=false', 'Option 5=false', 'Option 6=false', 'Option 7=false', 'Option 8=false'];
+    ok(JSON.stringify(bools) === JSON.stringify(WANT), `#2344 ${id}: the set carries exactly the seven row toggles, Option 2 and 3 on (${bools.join(', ')})`);
+    const keyOf = (name: string) => Object.keys(defs).find((k) => k.split('#')[0] === name);
+    const off: string[] = [];
+    for (const m of members) {
+      const rows = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => find(m, `row${n}`));
+      if (rows.some((r) => !r)) { off.push(`${m.name}: rows ${rows.map((r, i) => (r ? '' : `row${i + 1} missing`)).filter(Boolean).join(', ')}`); continue; }
+      const wired = rows.map((r) => ((r!.componentPropertyReferences ?? {}) as { visible?: string }).visible);
+      const shown = rows.map((r) => r!.visible !== false);
+      if (wired[0] !== undefined || wired.slice(1).some((k, i) => k !== keyOf(`Option ${i + 2}`)))
+        off.push(`${m.name}: wiring ${wired.map((k) => (k ? k.split('#')[0] : 'none')).join('/')}`);
+      if (JSON.stringify(shown) !== JSON.stringify([true, true, true, false, false, false, false, false]))
+        off.push(`${m.name}: built visible ${shown.join('/')}`);
+      const before = H(m);
+      for (const r of rows) r!.visible = true;
+      const span = W(m) - 2 * varValue('space/0');
+      const widths = rows.map((r) => W(r));
+      const after = H(m);
+      rows.forEach((r, i) => { r!.visible = shown[i]; });
+      if (!(widths.every((w) => w === span) && after > before)) off.push(`${m.name}: all on, row widths ${widths.join('/')} (want ${span}), height ${before} → ${after}`);
+    }
+    ok(members.length === 3 && off.length === 0,
+      `#2344 ${id}: every member builds eight rows, row 1 always shown and rows 2-8 wired to Option 2-8 with three shown, and with every toggle on all eight span the group and it grows (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
   }
 }
 

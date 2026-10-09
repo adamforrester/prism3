@@ -1069,7 +1069,7 @@ const SET_BORDER = {
  *  properties genuinely require the node's font to be loaded, and a TEXT plan with no `textStyle` never
  *  loaded one. A throw here would lose a member that had otherwise built correctly, to fix its
  *  alignment. */
-const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode: ClaimMode, layerOpacity?: number): void => {
+const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode: ClaimMode, layerOpacity?: number, inPlaceMember = false): void => {
   const where = n?.name ?? 'set';
   const set = (prop: keyof CompNode, value: unknown): void => {
     try { (node as Record<string, unknown>)[prop as string] = value; }
@@ -1081,9 +1081,12 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
   // designer — so `fills = []` on an instance is not a neutral value, it is a LOCAL OVERRIDE that erases
   // the component's design. On a `nest-fixed` focus ring that means deleting the ring. Same for a
   // COMPONENT, whose properties came from the frame `createComponentFromNode` consumed — already
-  // neutralized here, one call earlier, as that frame.
+  // neutralized here, one call earlier, as that frame. EXCEPT A MEMBER CONFIGURED IN PLACE (#2369): it was a
+  // component before this build began, so no frame of it was ever neutralized on this pass, and a fill a
+  // superseded plan gave its root (a text button's hover wash) would stay. It takes the claims a fresh member's
+  // frame takes, which leaves it where a fresh build would. The paste twin builds fresh only, so it has no such case.
   const t = node.type;
-  if (t === 'INSTANCE' || t === 'COMPONENT') return;
+  if (t === 'INSTANCE' || (t === 'COMPONENT' && !inPlaceMember)) return;
 
   // #1430 — THE SET CARRIES THE VARIANT-SET FRAME. A purple dashed outline with a 5px radius is how a
   // designer PICKS THE SET OUT on a canvas full of ordinary frames — and #865 neutralized the set to a bare
@@ -2310,7 +2313,7 @@ const writeComponentSet = async (
     // else was declared. Placed after the child loop rather than beside `createFrame()` so that a value
     // the plan set is never overwritten by a default — the ordering is the whole correctness argument,
     // and putting it at creation time would have neutralized the plan instead of Figma.
-    if (!kept) claimDefaults(node, n, misses, 'created');
+    if (!kept) claimDefaults(node, n, misses, 'created', undefined, !!ex && path === '.');
     // #1567 — RE-APPLY THE TEXT STYLE, BECAUSE `claimDefaults` ABOVE JUST DETACHED IT.
     //
     // HOST-MEASURED (2026-09-22, Figma console, a scratch page removed afterwards): with a named text style
