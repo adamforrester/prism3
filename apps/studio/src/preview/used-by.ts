@@ -49,7 +49,11 @@ export const USED_BY = {
     boxed: {
       "radius.none": [
         "Button",
-        "IconButton"
+        "IconButton",
+        "TextField",
+        "Textarea",
+        "Checkbox.Control",
+        "Select"
       ],
       "radius.round": [
         "IconButton",
@@ -59,9 +63,6 @@ export const USED_BY = {
         "Tag"
       ],
       "radius.sm": [
-        "TextField",
-        "Textarea",
-        "Select",
         "Badge"
       ]
     },
