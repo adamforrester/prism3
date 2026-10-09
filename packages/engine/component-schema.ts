@@ -671,23 +671,23 @@ export type PartDef = {
    *  naming a glyph that survives the swap is untouched, and every def naming one that does not fails at
    *  projection instead of building an empty square. */
   glyph?: string;
-  /** THE FRACTION OF ITS ARTBOARD A `vector`'s DRAWN GRID OCCUPIES (#1346). A glyph's 24-unit source grid
-   *  fills its artboard by default (`glyphScale` absent ≡ `1`): the frame is bound to its host size and the
-   *  ink renders at whatever proportion the artwork itself draws (`check` draws ~71% of the grid). A control
-   *  whose reference sits its glyph SMALLER than the box needs a second, optical inset ON TOP of that
-   *  artwork inset — and expressing it by SHRINKING THE FRAME would mint a per-rung control token (a
-   *  guaranteed name, a CONTRACT bump), because the plan is brand-agnostic and a frame binds a VARIABLE.
-   *  So the inset is baked into the emitted glyph DOCUMENT instead: the projector pads the artboard to
-   *  `grid / glyphScale` (centered, so the path `d` and the shared vocabulary are untouched), and the
-   *  same host binding renders the grid at `glyphScale` of the frame. A def-local literal, not a token —
-   *  `token-contract.ts --check` stays put. Prism 2's checkbox is the motivating case: its `checkFill`
-   *  (16) sits at 0.80 of its control box (20 = focus frame 28 − 2×4), so `mark`/`dash` carry
-   *  `glyphScale: 0.8`. `0 < glyphScale ≤ 1`; `1` is the no-op default and is not authored. `lint-glyph-
-   *  geometry.ts` re-derives the padded artboard from a scale it declares independently, so a value moving
-   *  in either file fails by name; the Figma import of a padded (negative-origin) artboard is a real-host
-   *  fact this offline model cannot verify, recorded in the def's `notes.unverified`. */
+  /** THE FRACTION OF ITS BOX A `vector`'s ICON OCCUPIES (#1346). An icon fills its part's box by default
+   *  (`glyphScale` absent ≡ `1`): the box is bound to its host size and the ink renders at whatever
+   *  proportion the artwork itself draws (`check` draws ~71% of the grid). A control whose reference sits its
+   *  glyph SMALLER than the box needs a second, optical inset ON TOP of that artwork inset — and binding a
+   *  smaller size would mint a per-rung control token (a guaranteed name, a CONTRACT bump), because the plan
+   *  is brand-agnostic and a frame binds a VARIABLE. So the part projects as a FRAME bound to the box, holding
+   *  the icon INSTANCE (#2380) placed at `glyphScale` of it, centered, with SCALE constraints
+   *  (`FigmaNodePlan.glyphInset`). Before #2380 the glyph document's artboard was padded to `grid / glyphScale`
+   *  instead; the ink lands in the same place. A def-local literal, not a token — `token-contract.ts --check`
+   *  stays put. Prism 2's checkbox is the motivating case: its `checkFill` (16) sits at 0.80 of its control box
+   *  (20 = focus frame 28 − 2×4), so `mark`/`dash` carry `glyphScale: 0.8`. `0 < glyphScale ≤ 1`; `1` is the
+   *  no-op default and is not authored. Only an icon-set glyph can carry it (the projector throws otherwise).
+   *  `lint-glyph-geometry.ts` declares the scale independently (`SCALED_GLYPH`), so a value moving in either
+   *  file fails by name; whether Figma applies the SCALE constraints when a binding resizes the frame is a
+   *  real-host fact recorded in the def's `notes.unverified`. */
   glyphScale?: number;
-  /** For a NON-ROOT `vector`: a LITERAL square px the glyph frame is BUILT at, instead of binding a token
+  /** For a NON-ROOT `vector`: a LITERAL square px the glyph (since #2380, the icon instance) is BUILT at, instead of binding a token
    *  via `size` (#1340). A def-local literal (the `minWidth`/`glyphScale` precedent), so it mints no
    *  emitted token name and `token-contract.ts --check` stays put — the point over a token binding here.
    *

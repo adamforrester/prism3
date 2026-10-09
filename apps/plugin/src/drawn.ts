@@ -7,8 +7,10 @@
  * reads which variable a paint binds and the fields a plan declares.
  *
  *   paints  every bound SOLID paint stores the color and alpha (as its opacity) its variable resolves to, for that
- *           node. An INSTANCE is not read: its paints are its main's.
- *   glyphs  every frame that holds only vectors holds them inside its own bounds.
+ *           node. In an INSTANCE only its vectors are read: an icon instance's ink is an override the executor writes
+ *           there (`descendantFills`, #2389), and an update rewrites it; the rest of an instance is its main's.
+ *   glyphs  every frame that holds only vectors holds them inside its own bounds; and so does an icon COMPONENT,
+ *           whose root is the glyph (#2389: every icon-set glyph is now an instance of one, so its geometry lives there).
  *
  * Plan-free on purpose: a fault here is a fault whatever the plan says, so a member whose record was captured over
  * the damage still reads as damaged. The dry run makes such a member "to update", never current; the apply's verify
@@ -19,7 +21,7 @@ export type DrawVar = { name: string; resolveForConsumer(consumer: unknown): { v
 /** `part` is `.` for the member, then child names joined by `/`, as the dry run and verify name parts. */
 export type DrawnFault = { part: string; field: 'fills' | 'strokes' | 'glyph'; file: string; want: string };
 
-type Live = { name?: unknown; type?: unknown; fills?: unknown; strokes?: unknown; x?: unknown; y?: unknown; width?: unknown; height?: unknown; children?: readonly unknown[] };
+type Live = { name?: unknown; type?: unknown; fills?: unknown; strokes?: unknown; x?: unknown; y?: unknown; width?: unknown; height?: unknown; children?: readonly unknown[]; findAll?(f: (n: Live) => boolean): Live[] };
 type RGBA = { r: number; g: number; b: number; a?: number };
 
 const isRGB = (v: unknown): v is RGBA => !!v && typeof v === 'object' && ['r', 'g', 'b'].every((k) => typeof (v as Record<string, unknown>)[k] === 'number');
@@ -35,8 +37,7 @@ export const varsById = async (host: { variables: { getLocalVariablesAsync(): Pr
  *  everything under it) unread: a hand edit the update keeps. */
 export const drawnFaults = (root: unknown, vars: ReadonlyMap<string, DrawVar>, skip: (part: string) => boolean = () => false): DrawnFault[] => {
   const out: DrawnFault[] = [];
-  const walk = (n: Live, part: string): void => {
-    if (skip(part) || n.type === 'INSTANCE') return;
+  const paints = (n: Live, part: string): void => {
     for (const field of ['fills', 'strokes'] as const) {
       const ps = n[field];
       if (!Array.isArray(ps)) continue;
@@ -53,15 +54,25 @@ export const drawnFaults = (root: unknown, vars: ReadonlyMap<string, DrawVar>, s
         if (!same) out.push({ part, field, file: `stored ${hex(got)} at ${pct(gotA)}`, want: `${tail(v.name)}, which resolves to ${hex(want)} at ${pct(wantA)}` });
       }
     }
+  };
+  const walk = (n: Live, part: string): void => {
+    if (skip(part)) return;
+    if (n.type === 'INSTANCE') {
+      let vecs: Live[] = [];
+      try { vecs = typeof n.findAll === 'function' ? n.findAll((x) => x.type === 'VECTOR') : []; } catch { vecs = []; }
+      for (const v of vecs) paints(v, part);
+      return;
+    }
+    paints(n, part);
     const kids = (Array.isArray(n.children) ? n.children : []) as Live[];
-    if (n.type === 'FRAME' && kids.length && kids.every((k) => k.type === 'VECTOR')) {
+    if ((n.type === 'FRAME' || n.type === 'COMPONENT') && kids.length && kids.every((k) => k.type === 'VECTOR')) {
       const W = Number(n.width ?? 0), H = Number(n.height ?? 0);
       for (const k of kids) {
         const x = Number(k.x ?? 0), y = Number(k.y ?? 0), w = Number(k.width ?? 0), h = Number(k.height ?? 0);
         if (x < -0.5 || y < -0.5 || x + w > W + 0.5 || y + h > H + 0.5)
           out.push({ part, field: 'glyph', file: `a vector ${w.toFixed(1)}×${h.toFixed(1)} at ${x.toFixed(1)},${y.toFixed(1)}`, want: `inside its ${W}×${H} frame` });
       }
-      return;
+      // …and on into the vectors, whose own paints are the glyph's ink: a glyph's geometry and its ink are both drawn.
     }
     for (const k of kids) walk(k, part === '.' ? String(k.name ?? '') : `${part}/${String(k.name ?? '')}`);
   };

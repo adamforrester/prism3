@@ -298,7 +298,9 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "buildable": true,
     "reason": null,
     "members": 4,
-    "nests": []
+    "nests": [
+      "icon"
+    ]
   },
   {
     "id": "text-field",
@@ -391,6 +393,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 84,
     "nests": [
       "field-label",
+      "icon",
       "field-message",
       "focus-ring"
     ]
@@ -406,7 +409,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "reason": null,
     "members": 54,
     "nests": [
-      "focus-ring"
+      "focus-ring",
+      "icon"
     ]
   },
   {
@@ -518,6 +522,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "reason": null,
     "members": 24,
     "nests": [
+      "icon",
       "focus-ring"
     ]
   },
@@ -620,7 +625,9 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "buildable": true,
     "reason": null,
     "members": 3,
-    "nests": []
+    "nests": [
+      "icon"
+    ]
   },
   {
     "id": "spinner",

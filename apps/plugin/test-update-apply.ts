@@ -713,7 +713,9 @@ section('damage under a record — a member drawn wrong reads "to update" whatev
   const w = await world(TAG);
   const members = membersOf(w.set());
   const paintHit = members[2]; // a member whose root binds its fill
-  const glyphHit = members.find((m) => /selection=selected/.test(String(m.name)))!;
+  // A second paint, not a glyph: since #2389 a set member's glyph is an icon instance, whose geometry is the icon
+  // component's. Glyph damage under a current record is `single/glyph damage`'s, on the icons themselves.
+  const glyphHit = members[5];
   const blacken = (n: Node): boolean => {
     for (const f of ['fills', 'strokes'] as const) {
       const ps = n[f] as { boundVariables?: { color?: unknown } }[] | undefined;
@@ -722,8 +724,7 @@ section('damage under a record — a member drawn wrong reads "to update" whatev
     return ((n.children as Node[] | undefined) ?? []).some(blacken);
   };
   ok(blacken(paintHit), 'premise: a bound paint on the member is left storing black, its binding intact');
-  const glyph = (glyphHit.findAll as (f: (n: Node) => boolean) => Node[])((n) => n.type === 'FRAME' && ((n.children as Node[]) ?? []).length > 0 && (n.children as Node[]).every((k) => k.type === 'VECTOR'))[0];
-  for (const v of (glyph.children as Node[])) { v.x = (v.x as number) * 1.5; v.y = (v.y as number) * 1.5; (v.resize as (a: number, b: number) => void)((v.width as number) * 1.5, (v.height as number) * 1.5); }
+  ok(blacken(glyphHit), 'premise: a second member is left storing black under its binding');
   for (const m of [paintHit, glyphHit]) (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, JSON.stringify({ ...baselineOf(await snapshotMember(m)), id: String(m.id) }));
   for (const m of members) {
     const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
@@ -733,7 +734,7 @@ section('damage under a record — a member drawn wrong reads "to update" whatev
   const st = pre.sets[0];
   const stateOf = (m: Node): string => st.states.find((x) => x.member === String(m.name))?.state ?? 'current';
   const named = new Set(st.changes.map((c) => c.field));
-  ok(stateOf(paintHit) === 'update' && stateOf(glyphHit) === 'update' && st.counts.revisionUnknown === 43 && named.has('fills') && named.has('glyph') && previewVerdict(pre).headline === 'Would change 1 of 1',
+  ok(stateOf(paintHit) === 'update' && stateOf(glyphHit) === 'update' && st.counts.revisionUnknown === 43 && (named.has('fills') || named.has('strokes')) && previewVerdict(pre).headline === 'Would change 1 of 1',
     `damage/dry run: the two damaged members read "to update", named, though their records match and their stamps are an earlier plugin's (${stateOf(paintHit)}, ${stateOf(glyphHit)}; ${st.counts.revisionUnknown} from an earlier plugin; ${[...named].join(', ')}; ${previewVerdict(pre).headline})`);
   const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(pre));
   const vars = await varsById(w.api as any);
@@ -784,6 +785,37 @@ section('damage under a record — a member drawn wrong reads "to update" whatev
     `damage/over edit: the member reads "to update", its hand edit kept and listed, its damage repaired (${st}; edits ${JSON.stringify(edits)}; ${left.length} faults left; ${applyVerdict(res).headline})`);
 }
 
+{
+  // AN ICON INSTANCE'S INK (#2389 with #2379): a set member's icon-set glyph is an instance of its icon component, inked
+  // by an override on the instance's vector (`descendantFills`), which an update rewrites. That override left storing
+  // black under its binding, the record matching and every stamp an earlier plugin's, reads "to update" and is repaired.
+  // Mutation: the draw check skipping instances whole → `instance/ink`.
+  const w = await world(TAG);
+  let hitMember: Node | undefined;
+  let vec: Node | undefined;
+  for (const m of membersOf(w.set())) {
+    for (const inst of (m.findAll as (f: (n: Node) => boolean) => Node[])((n) => n.type === 'INSTANCE')) {
+      const v = ((inst.findAll as ((f: (n: Node) => boolean) => Node[]) | undefined)?.((n) => n.type === 'VECTOR') ?? [])
+        .find((x) => Array.isArray(x.fills) && (x.fills as { boundVariables?: { color?: unknown } }[]).some((p) => p?.boundVariables?.color));
+      if (v) { hitMember = m; vec = v; break; }
+    }
+    if (vec) break;
+  }
+  ok(!!vec, `premise: a member holds an icon instance inked by a bound override (${String(hitMember?.name)})`);
+  vec!.fills = (vec!.fills as object[]).map((p) => ({ ...p, color: { r: 0, g: 0, b: 0 }, opacity: 1 }));
+  for (const m of membersOf(w.set())) {
+    const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.split('|').slice(0, 2).join('|'));
+  }
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
+  const stateOf = pre.sets[0].states.find((x) => x.member === String(hitMember!.name))?.state;
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(pre));
+  const vars = await varsById(w.api as any);
+  const left = membersOf(w.set()).flatMap((m) => drawnFaults(m, vars));
+  ok(stateOf === 'update' && left.length === 0 && applyVerdict(res).ok,
+    `instance/ink: an icon instance's ink override storing black reads "to update" and is repaired (${stateOf}; ${pre.sets[0].changes.map((c) => `${c.part} ${c.field}: ${c.from}`).slice(0, 2).join(' | ')}; ${left.length} faults after; ${applyVerdict(res).headline})`);
+}
+
 /* ── verify reads what the host draws ──────────────────────────────────────────────────────────────────── */
 section('verify reads what the host draws — damage the HOST makes behind the executor is named by verify (#2379 review)');
 {
@@ -813,8 +845,64 @@ section('verify reads what the host draws — damage the HOST makes behind the e
   const content = res.outcomes[0]?.content ?? [];
   ok(!applyVerdict(res).ok && content.some((l) => /\.fills: stored #000000 at 100% \(the plan says .*, which resolves to #[0-9a-f]{6} at \d+%\)$/.test(l)),
     `verify/drawn paints: a paint the host left black under its binding fails verify, named (${applyVerdict(res).headline}; ${content.find((l) => /stored #000000/.test(l)) ?? content[0]})`);
-  ok(content.some((l) => /\.glyph: a vector [\d.]+×[\d.]+ at [\d.]+,[\d.]+ \(the plan says inside its 16×16 frame\)$/.test(l)),
-    `verify/drawn glyphs: a glyph the host did not scale to its frame fails verify, named (${content.find((l) => /\.glyph:/.test(l)) ?? 'no glyph line'})`);
+}
+
+{
+  // GLYPHS, SINCE #2389, LIVE IN THE ICON AND SPINNER COMPONENTS: a set member's icon-set glyph is an instance of an icon
+  // component, so its geometry is the component's. Re-applied in place by a revision bump, the host refusing to scale an
+  // imported glyph to its frame (behind the executor), the update's own verify must name it. The spinner's sizes are the
+  // glyphs drawn at a size other than their import's. Mutation: verify's draw check dropped → `verify/drawn glyphs`.
+  const plans = plansOf('spinner');
+  const w = await singleWorld(plans);
+  for (const c of w.comps()) {
+    const st = (c.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+    (c.setSharedPluginData as (a: string, b: string, cc: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, '|0'));
+  }
+  const svg = w.api.createNodeFromSvg;
+  w.api.createNodeFromSvg = (src: string) => {
+    const n = svg(src) as Node;
+    const resize = n.resize as (a: number, b: number) => void;
+    n.resize = (a: number, b: number) => {
+      const kids = ((n.children as Node[]) ?? []).map((c) => [c, c.x, c.y, c.width, c.height] as const);
+      resize(a, b);
+      for (const [c, x, y, cw, ch] of kids) { c.x = x; c.y = y; (c.resize as (a: number, b: number) => void)(cw as number, ch as number); }
+    };
+    return n;
+  };
+  const t = { def: 'spinner', plans, single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  const content = res.outcomes[0]?.content ?? [];
+  ok(!applyVerdict(res).ok && content.some((l) => /\.glyph: a vector [\d.]+×[\d.]+ at [\d.]+,[\d.]+ \(the plan says inside its [\d.]+×[\d.]+ frame\)$/.test(l)),
+    `verify/drawn glyphs: a spinner glyph the host did not scale to its frame fails verify, named (${applyVerdict(res).headline}; ${content.find((l) => /\.glyph:/.test(l)) ?? 'no glyph line'})`);
+}
+{
+  // The same, read by THE TEST off the shim's nodes, with the executor as it is: after an update in place, every glyph
+  // the icons and the spinner hold fits its frame. Mutation: the fresh glyph import not scaled to its frame →
+  // `drawn/glyphs`.
+  let count = 0;
+  const over: string[] = [];
+  for (const id of ['icon', 'spinner']) {
+    const plans = plansOf(id);
+    const w = await singleWorld(plans);
+    for (const c of w.comps()) {
+      const st = (c.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+      (c.setSharedPluginData as (a: string, b: string, cc: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, '|0'));
+    }
+    const t = { def: id, plans, single: true };
+    await applyUpdate(w.host, w.api as any, [t], previewHashOf(await previewUpdate(w.host, [t])));
+    const walk = (n: Node, at: string): void => {
+      const kids = (n.children as Node[] | undefined) ?? [];
+      if ((n.type === 'FRAME' || n.type === 'COMPONENT') && kids.length && kids.every((k) => k.type === 'VECTOR')) {
+        count++;
+        for (const v of kids) if ((v.x as number) + (v.width as number) > (n.width as number) + 0.5 || (v.y as number) + (v.height as number) > (n.height as number) + 0.5)
+          over.push(`${at} ${(v.width as number).toFixed(1)}×${(v.height as number).toFixed(1)} in ${n.width}×${n.height}`);
+      }
+      for (const k of kids) walk(k, `${at}/${String(k.name)}`);
+    };
+    for (const c of w.comps()) walk(c, String(c.name));
+  }
+  ok(count >= 48 && over.length === 0, `drawn/glyphs: every glyph the icons and the spinner hold fits its frame after an update in place (${count} glyphs; ${over.length} overflow${over.length ? `, e.g. ${over.slice(0, 2).join(' | ')}` : ''})`);
 }
 
 /* ── a mixed set ──────────────────────────────────────────────────────────────────────────────────────── */
@@ -893,6 +981,30 @@ section('mixed — in a set the build updates, a member from an earlier plugin s
     `single/damage repaired: the update re-applies that icon, which then draws its variable's color; the other 43 take their stamps; all 44 read current (${applyVerdict(res).headline}; ${res.outcomes[0]?.updated.length} updated, ${res.outcomes[0]?.restamped?.length} stamped; ${left.length} faults; ${again.counts.current} current)`);
 }
 
+{
+  // GLYPH DAMAGE ON AN ICON COMPONENT UNDER A CURRENT RECORD (#2389 with #2379): an icon's vectors left past its frame (2.5×: its glyph sits 12px in 24, so the NB master's 1.5× still fits),
+  // which its record cannot see (unbound geometry is not hashed), every stamp an earlier plugin's. The icon component's
+  // root IS the glyph since #2389, and every instance of it draws what it holds. It must read "to update" and be
+  // re-laid. Mutation: the draw check reading only FRAME glyphs → `single/glyph damage`.
+  const plans = plansOf('icon');
+  const w = await singleWorld(plans);
+  const hit = w.comps()[1];
+  for (const v of (hit.children as Node[])) { (v.resize as (a: number, b: number) => void)((v.width as number) * 2.5, (v.height as number) * 2.5); } // past its 24px frame
+  for (const c of w.comps()) {
+    const st = (c.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+    (c.setSharedPluginData as (a: string, b: string, cc: string) => void)(NS, STAMP_KEY, st.split('|').slice(0, 2).join('|'));
+  }
+  const t = { def: 'icon', plans, single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  const st = pre.sets[0];
+  const stateOf = st?.states.find((x) => x.member === `name=${String(hit.name).replace(/^icon\//, '')}`)?.state;
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  const vars = await varsById(w.api as any);
+  const left = w.comps().flatMap((c) => drawnFaults(c, vars));
+  ok(stateOf === 'update' && st?.changes.some((c) => c.field === 'glyph') && left.length === 0 && res.outcomes[0]?.updated.length === 1,
+    `single/glyph damage: an icon whose vectors overflow its frame reads "to update", named, and is re-laid (${stateOf}; ${st?.changes.map((c) => `${c.field}: ${c.from}`).join(' | ')}; ${left.length} faults after; ${applyVerdict(res).headline})`);
+}
+
 /* ── what the host draws ────────────────────────────────────────────────────────────────────────────────── */
 section('what the host draws — after an update in place, every bound paint shows its own color and every glyph fits its frame (#2379)');
 {
@@ -938,7 +1050,6 @@ section('what the host draws — after an update in place, every bound paint sho
     walk(w.set(), id);
   }
   ok(paints > 100 && washes > 0 && bad.length === 0, `drawn/paints: every bound paint, after an update in place, stores the color and alpha its variable resolves to (${paints} paints, ${washes} washes; ${bad.length} wrong${bad.length ? `, e.g. ${bad.slice(0, 2).join(' | ')}` : ''})`);
-  ok(glyphCount > 10 && glyphs.length === 0, `drawn/glyphs: every glyph's vectors fit its frame after an update in place (${glyphCount} glyphs; ${glyphs.length} overflow${glyphs.length ? `, e.g. ${glyphs.slice(0, 2).join(' | ')}` : ''})`);
 }
 
 {
@@ -1170,6 +1281,102 @@ section('corpus — every def, re-applied in place by an executor revision bump,
     else ran++;
   }
   ok(bad.length === 0 && ran === defs.length, `corpus/in place: all ${defs.length} defs re-applied with every key and id kept, read back clean, and current after (${ran} clean; ${bad.slice(0, 4).join(' || ')})`);
+}
+
+/* ── inline glyph → icon instance (#2380) ────────────────────────────────────────────────────────────── */
+section('icons — a set built with inline glyphs updates to icon instances, as a named difference (#2380)');
+{
+  // THE PRE-#2380 SHAPE, rebuilt from today's plans: every icon instance turned back into the inline glyph it
+  // replaced — a GLYPH importing the icon's outline at the same binding, and checkbox's inset frame back into a
+  // glyph on the padded artboard (`-3 -3 30 30`, #1346). The file has the icon components already (built first,
+  // as the dry run requires), so only the members change.
+  // Each icon's own document, as the `icon` def projects it (the outline the inline glyph imported), and the same
+  // document on the padded artboard for the inset.
+  const iconDoc = new Map(plansOf('icon').map((p) => [`icon/${String(p.coord.name)}`, String(p.root.glyphSvg)] as const));
+  const doc = (target: string, padded: boolean): string => {
+    const d = iconDoc.get(target);
+    if (!d) throw new Error(`premise: no icon document for ${target}`);
+    return padded ? d.replace('width="24" height="24" viewBox="0 0 24 24"', 'width="30" height="30" viewBox="-3 -3 30 30"') : d;
+  };
+  const legacy = (plans: AnatomyPlan[]): AnatomyPlan[] => plans.map((p) => {
+    const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan;
+    const walk = (n: PlanNode): PlanNode => {
+      const inset = n.type === 'FRAME' && n.children.length === 1 && n.children[0].glyphInset ? n.children[0] : undefined;
+      if (inset) {
+        const { nestTarget, descendantFills } = inset;
+        return { ...n, type: 'GLYPH', glyphSvg: doc(nestTarget!, true), glyphViewBox: [30, 30], ...(descendantFills ? { descendantFills } : {}), children: [] };
+      }
+      if (n.type === 'NESTED_INSTANCE' && n.nestTarget?.startsWith('icon/')) {
+        const { nestTarget, ...rest } = n;
+        return { ...rest, type: 'GLYPH', glyphSvg: doc(nestTarget, false), glyphViewBox: [24, 24] };
+      }
+      return { ...n, children: n.children.map(walk) };
+    };
+    q.root = walk(q.root);
+    return q;
+  });
+  const iconsOf = (plans: AnatomyPlan[]): string[] => [...new Set(plans.flatMap((p) => planComps(p.root)).filter((c) => c.startsWith('icon/')))];
+  const findPart = (n: Node, name: string): Node | undefined => {
+    if (n.name === name) return n;
+    if (n.type === 'INSTANCE') return undefined;
+    for (const c of (n.children as Node[] | undefined) ?? []) { const f = findPart(c, name); if (f) return f; }
+    return undefined;
+  };
+  const mainName = (n: Node | undefined): string => String((n as { mainComponent?: { name?: string } } | undefined)?.mainComponent?.name ?? '(not an instance)');
+
+  // FIELD-MESSAGE: the glyph's node is REPLACED — a FRAME cannot become an INSTANCE — so its id changes.
+  {
+    const plans = plansOf('field-message');
+    const w = await world('field-message', legacy(plans), { extraComps: iconsOf(plans) });
+    const err = (): Node | undefined => { const m = membersOf(w.set()).find((x) => String(x.name) === 'status=error'); return m && findPart(m, 'iconError'); };
+    const before = identityOf(w.set());
+    const oldErr = err();
+    ok(oldErr?.type === 'FRAME', `premise: the error member's glyph is an inline FRAME before the update (${String(oldErr?.type)})`);
+    const { pre, res } = await confirm(w, [{ def: 'field-message', plans }]);
+    const named = pre.sets[0].changes.filter((c) => c.part.endsWith('iconError') && (c.field === 'type' || c.field === 'nestTarget'));
+    // The read-back's `nestTarget` predicate is what names it: the file holds a FRAME where the plan wants an instance.
+    ok(named.some((c) => c.field === 'nestTarget' && /^FRAME/.test(c.from) && /icon\/warning-triangle/.test(c.to)),
+      `icons/dry run: the error glyph's move is NAMED — the file's FRAME against the plan's instance of icon/warning-triangle — not a silent re-apply (${JSON.stringify(named.map((c) => [c.field, c.from, c.to]))})`);
+    // The default member draws no glyph, so it is current; the three status members change.
+    ok(pre.sets[0].counts.update === 3 && pre.sets[0].counts.current === 1 && !pre.sets[0].blockers.length, `icons/dry run: the 3 status members read out of date and the glyph-free default current, none blocked (${JSON.stringify(pre.sets[0].counts)})`);
+    ok(applyVerdict(res).ok, `icons/apply: ${applyVerdict(res).headline} (${JSON.stringify(applyVerdict(res).lines).slice(0, 240)})`);
+    const after = identityOf(w.set());
+    const newErr = err();
+    ok(newErr?.type === 'INSTANCE' && mainName(newErr) === 'icon/warning-triangle', `icons/after: the error glyph is an INSTANCE of icon/warning-triangle (${String(newErr?.type)} of ${mainName(newErr)})`);
+    ok(!!oldErr && !!newErr && oldErr.id !== newErr.id, `icons/child id: the glyph's node is replaced, so its id CHANGES (${String(oldErr?.id)} → ${String(newErr?.id)}) — an override on the old inline glyph does not carry over`);
+    const membersKept = [...before.members].every(([name, b]) => after.members.get(name)?.id === b.id && after.members.get(name)?.key === b.key);
+    ok(membersKept, 'icons/members: every member keeps its key and id; only the glyph node is new');
+    const post = (await previewUpdate(w.host, [{ def: 'field-message', plans }])).sets[0];
+    ok(post.counts.current === 4, `icons/current: the next dry run reads all 4 current (${JSON.stringify(post.counts)})`);
+  }
+
+  // CHECKBOX-CONTROL: the `mark` frame still fits, so it is KEPT (its id stays) and only its contents change.
+  {
+    const plans = plansOf('checkbox-control');
+    const w = await world('checkbox-control', legacy(plans), { extraComps: iconsOf(plans) });
+    const checked = (): Node => membersOf(w.set()).find((x) => /selection=checked/.test(String(x.name)))!;
+    const oldMark = findPart(checked(), 'mark');
+    ok(oldMark?.type === 'FRAME' && ((oldMark.children as Node[]) ?? []).some((c) => c.type === 'VECTOR'), `premise: the check is an inline glyph frame holding a VECTOR before the update`);
+    const { pre, res } = await confirm(w, [{ def: 'checkbox-control', plans }]);
+    ok(applyVerdict(res).ok && !pre.sets[0].blockers.length, `icons/apply: ${applyVerdict(res).headline}`);
+    const mark = findPart(checked(), 'mark');
+    const glyph = ((mark?.children as Node[] | undefined) ?? []).find((c) => c.name === 'glyph');
+    ok(!!mark && mark.id === oldMark?.id, `icons/mark id: the mark frame is kept, so its id stays (${String(oldMark?.id)} → ${String(mark?.id)})`);
+    ok(glyph?.type === 'INSTANCE' && mainName(glyph) === 'icon/check' && ((mark?.children as Node[]) ?? []).length === 1,
+      `icons/mark contents: the inline VECTOR is gone and the frame holds one INSTANCE of icon/check (${((mark?.children as Node[]) ?? []).map((c) => `${c.type}:${mainName(c)}`).join(', ')})`);
+  }
+
+  // NOT IN THIS FILE: an update that needs an icon the file lacks is refused, naming it, and writes nothing.
+  {
+    const plans = plansOf('field-message');
+    const w = await world('field-message', legacy(plans));
+    const stamps = membersOf(w.set()).map((m) => (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY)).join();
+    const pre = await previewUpdate(w.host, [{ def: 'field-message', plans }]);
+    const b = pre.sets[0].blockers.join('; ');
+    ok(/Not in this file: icon\/check-circle, icon\/error-circle, icon\/warning-triangle\. Build icon first/.test(b), `icons/absent: the dry run refuses the set and names the icons to build first (${b})`);
+    await applyUpdate(w.host, w.api as any, [{ def: 'field-message', plans }], previewHashOf(pre));
+    ok(membersOf(w.set()).map((m) => (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY)).join() === stamps, 'icons/absent: nothing is written — every stamp is as it was');
+  }
 }
 
 void STYLE_FONT; void BASELINE_KEY;
