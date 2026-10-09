@@ -378,7 +378,8 @@ border-width). The **4** uncovered — `motion`, `breakpoint`, `grid`, `containe
    **aurora + wendys full-materialise** follow-up from #50 remains open (its
    own PR — end-to-end variable-artefact import for both brands, not just the
    wireframe subset). Once that lands, the [Figma-emitter] queue's only
-   remaining spec item is **motion**, still deferred.
+   remaining spec item is **motion**, still deferred. *(Motion has since shipped, #2394; see
+   item 5 below.)*
 1. **Typography — ✅ DONE (2026-07-02, #31).** `font` (38) + `font-fluid` (10 × mobile/desktop)
    byte-reproduce the fixtures; 36 text styles apply the six §4 fixes and gate against the
    corrected expectation (not the pre-fix `text-styles.json` snapshot). `tree.ts` LH/LS
@@ -439,6 +440,20 @@ border-width). The **4** uncovered — `motion`, `breakpoint`, `grid`, `containe
    **⏸ DEFERRED (2026-07-04, #50): probed the Plugin API — `TIME` is not in the FLOAT-var
    scope enum yet (only `ALL_SCOPES`/`CORNER_RADIUS`/`WIDTH_HEIGHT`/`GAP`/… surfaced; `TIME`
    rejected). Defer per the rule above; revisit when the scope lands.**
+   **✅ DONE (2026-10-09, #2394, owner decision Q146 A), as plain FLOAT.** Re-probed: `VariableScope`
+   still has no `TIME` (or any duration) member, in `@figma/plugin-typings` 1.131.0 and in the live
+   reference at developers.figma.com/docs/plugins/api/VariableScope, both read 2026-10-09. The owner
+   chose to emit anyway: every brand's `motion` collection (`out/figma/<brand>/motion.json`) carries
+   `motion/duration-ms/*` (the literal primitives, hidden from publishing),
+   `motion/duration/*`, `motion/duration-reduced/*` and `motion/stagger` (aliases into them, exactly as
+   the DTCG aliases them), all FLOAT **milliseconds** with **`scopes: []`**: no Figma property binds a
+   duration, so no picker offers one. A per-mode tempo (`modeLevers.<mode>.tempo`) becomes a mode, the
+   semantics re-pointing at that mode's primitive (the radius precedent); no committed brand uses it.
+   Apply Theme writes the collection through `buildFloatWritePlan`. On export, TokenPress types every
+   `motion/duration…` FLOAT, and `motion/stagger`, back to DTCG `duration`; `test:readback-parity`
+   holds every exported motion leaf to `out/<brand>.tokens.json` by path, type and milliseconds.
+   `easing`/`easing-role`/`spring`/`transition` stay DTCG-only, with no companion file: the style
+   guide's motion table reads them from the DTCG (#2353).
 6. **✅ DONE (2026-07-04, #50) — Generalise** — emit aurora + wendys too (prove brand-agnostic).
    No fixtures for those, so gated on structural validity (every axis emits the right shape;
    every colour/dims/layout alias resolves *within each brand*; no namespace leakage — `figName`

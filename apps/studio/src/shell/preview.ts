@@ -61,19 +61,22 @@ export const stepKey = (list: readonly HTMLElement[], from: HTMLElement, key: st
  *  modes than fit beside the title (a custom mode or two) does not wrap it. Instead the radios give way to a
  *  select of the same modes, as concept v6 does when its preview is slim (its `modesel`), and come back when
  *  they fit again. Which one shows is measured from the radios' own widths whenever the header resizes or the
- *  mode set changes; a scroll that hides an option is never left on screen.
- *
- *  `lock(reason, shows)` holds the whole control (owner Q111, #2321: on Palettes, which is drawn in Light whatever mode
- *  was chosen): every radio and the select natively `disabled`, the way the levers panel holds a setting in a derived
- *  mode (#2284), `shows` checked in place of the chosen mode, and `reason` as the group's description and tooltip. The
- *  chosen mode is left as it is, so the next page shows it again. `lock(null)` releases it. */
-export const modeControl = (cleanups: (() => void)[]): { el: HTMLElement; lock: (reason: string | null, shows?: string) => void } => {
+ *  mode set changes; a scroll that hides an option is never left on screen. */
+export type ModeControl = {
+  readonly el: HTMLElement;
+  /** PM1 B (owner, 2026-10-08; #2321): hold the control in Prism3's disabled skin, every radio and the select by
+   *  their own `disabled` (#2284's pattern: out of the tab order, disabled to assistive technology), described by
+   *  `why`, the id of the line that says why. `null` releases it. */
+  readonly hold: (why: string | null) => void;
+};
+export const modeControl = (cleanups: (() => void)[]): ModeControl => {
   const wrap = h('div', 'p3-modes-wrap');
   const group = hook(h('div', 'p3-seg p3-modes'), 'mode-control');
   const selWrap = h('div', 'p3-selwrap p3-modes-select');
   const select = hook(h('select', 'p3-select'), 'mode-select');
   select.setAttribute('aria-label', 'Preview mode');
-  select.onchange = () => { if (currentMode !== select.value) setCurrentMode(select.value as typeof currentMode); };
+  // A held control writes nothing, whatever reaches its handler (a scripted event reaches a disabled one; #2321).
+  select.onchange = () => { if (!select.disabled && currentMode !== select.value) setCurrentMode(select.value as typeof currentMode); };
   selWrap.append(select, glyph('chev'));
   wrap.append(group, selWrap);
   wrap.dataset.fit = 'radios';
@@ -88,19 +91,13 @@ export const modeControl = (cleanups: (() => void)[]): { el: HTMLElement; lock: 
   group.setAttribute('aria-label', 'Preview mode');
   let radios: HTMLButtonElement[] = [];
   let shape = '';
-  let locked: string | null = null;
-  let lockedShows = '';
-  /** The mode the control marks: the chosen one, or the one a held page is drawn in. */
-  const shown = (): string => (locked !== null ? lockedShows : currentMode);
-  const applyLock = (): void => {
-    for (const b of radios) b.disabled = locked !== null;
-    select.disabled = locked !== null;
-    for (const n of [group, select]) {
-      if (locked === null) n.removeAttribute('aria-description');
-      else n.setAttribute('aria-description', locked);
+  let why: string | null = null;
+  /** The hold, put on every radio and the select; re-run when the radios are redrawn for a new mode set. */
+  const applyHold = (): void => {
+    for (const n of [...radios, select]) {
+      if (n.disabled !== (why !== null)) n.disabled = why !== null;
+      if (why) n.setAttribute('aria-describedby', why); else n.removeAttribute('aria-describedby');
     }
-    if (locked === null) wrap.removeAttribute('title'); else wrap.title = locked;
-    wrap.dataset.locked = String(locked !== null);
   };
   const paint = (): void => {
     const v = verdict();
@@ -113,17 +110,17 @@ export const modeControl = (cleanups: (() => void)[]): { el: HTMLElement; lock: 
         b.dataset.mode = m;
         b.setAttribute('role', 'radio');
         if (isDerived(m)) b.dataset.derived = 'true';
-        b.onclick = () => { if (currentMode !== m) setCurrentMode(m as typeof currentMode); };
+        b.onclick = () => { if (!b.disabled && currentMode !== m) setCurrentMode(m as typeof currentMode); };
         return b;
       });
       group.replaceChildren(...radios);
-      applyLock();
+      applyHold();
       queueMicrotask(fit);
     }
     for (const b of radios) {
       const m = b.dataset.mode!;
       const f = v.per.find((x) => x.mode === m)?.f ?? 0;
-      const on = m === shown();
+      const on = m === currentMode;
       // Redrawn only when what it says moved (S2: the control is on screen beside the levers now, so a
       // same-value redraw on every edit cost a layout of the header each time).
       const sig = `${f}|${on}`;
@@ -148,7 +145,7 @@ export const modeControl = (cleanups: (() => void)[]): { el: HTMLElement; lock: 
       select.dataset.sig = sig;
       select.replaceChildren(...opts.map(([m, l]) => { const o = h('option', undefined, l); o.value = m; return o; }));
     }
-    if (select.value !== shown()) select.value = shown();
+    if (select.value !== currentMode) select.value = currentMode;
   };
   group.addEventListener('keydown', (e) => {
     const to = stepKey(radios, e.target as HTMLElement, e.key);
@@ -164,16 +161,7 @@ export const modeControl = (cleanups: (() => void)[]): { el: HTMLElement; lock: 
   const ro = new ResizeObserver(fit);
   queueMicrotask(() => { if (wrap.parentElement) ro.observe(wrap.parentElement); fit(); });
   cleanups.push(() => ro.disconnect());
-  return {
-    el: wrap,
-    lock: (reason, shows = '') => {
-      if (reason === locked && shows === lockedShows) return;
-      locked = reason;
-      lockedShows = shows;
-      applyLock();
-      paint();
-    },
-  };
+  return { el: wrap, hold: (w) => { why = w; applyHold(); } };
 };
 
 // ── the verdict on the top bar ─────────────────────────────────────────────────────────────────────

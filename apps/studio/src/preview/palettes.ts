@@ -8,23 +8,30 @@
  * a strip, five when the preview is narrow, so the labels stay under their squares.
  *
  * SPECIMENS SIT ON THE BRAND'S PAGE, NOT ON THE CHROME (concept v6's finding, plan §9.1). Every strip is
- * a specimen root (`data-p3="specimen"`) painted with the brand's own `background.primary` in Light (PM1 B, #2321:
- * Palettes is drawn in Light whatever mode was chosen), so a step reads against the page it will be used on. `test:chrome` checks each root's
+ * a specimen root (`data-p3="specimen"`) painted with the brand's own `background.primary` for the mode
+ * the preview shows, so a step reads against the page it will be used on. `test:chrome` checks each root's
  * composited ground against the engine's value, resolved in Node. The labels are chrome text and sit on
  * the chrome card, outside the roots. The alpha ramps are the exception, named here: they are the same
  * constants for every brand and draw on a checkerboard, as v6 drew them, so their transparency shows.
  *
- * HOW IT REPAINTS: by store subscription (`brand`), never through a legacy tier. A ramp does not vary by mode, and the
- * page color under it and the opacity scale's ink are Light's (PM1 B), so a mode change repaints nothing here.
+ * PINNED TO LIGHT (owner decision PM1 B, 2026-10-08; #2321). A ramp does not vary by mode; only the page color
+ * under the strips and the opacity scale's ink did. Palettes always shows Light: the frame switches the preview to
+ * Light on the way in, holds the mode control disabled while Palettes is up, and puts back the mode the person had on
+ * the way out (`syncModePin` in `shell/frame.ts`). So `currentMode` is Light here, and the grounds and the opacity
+ * ink read it. The line that says why, `PALETTES_LIGHT_NOTE`, opens the preview and describes the held control.
+ *
+ * HOW IT REPAINTS: by store subscription (`brand`, `mode`), never through a legacy tier.
  */
-import { lastGoodInput, subscribe, theme } from '../state/store';
-
-/** PM1 B (owner, 2026-10-08; #2321): the mode Palettes is drawn in, whatever mode the preview shows elsewhere. */
-const PALETTES_MODE = 'light';
+import { currentMode, lastGoodInput, subscribe, theme } from '../state/store';
 import { resolvedModes } from '../state/verdict';
 import { STATUS_ROLES, anchorStepFor, neutralBoardText, rolesByPalette } from '../state/palette-input';
 import { h, hook } from '../shell/dom';
 import { revealGroup, takeEdit } from './follow-edit';
+
+/** Why the mode control is held on Palettes (PM1 B, #2321). DRAFT copy, for the owner. */
+export const PALETTES_LIGHT_NOTE = 'Palettes always show Light. Ramps are the same in every mode.';
+/** The note's id: the held mode control names it as its description. */
+export const PALETTES_LIGHT_NOTE_ID = 'p3-palettes-light-note';
 
 /** The preview width below which a strip holds five squares instead of ten. */
 const SLIM_MAX = 560;
@@ -41,9 +48,9 @@ type StepLike = { num: number; key: string; hex: string };
  *  face drawing one glyph in the chrome is what `test:chrome`'s font check refuses. */
 const anchorMark = (): HTMLElement => { const m = h('span', 'p3-ancmark'); m.setAttribute('aria-hidden', 'true'); return m; };
 
-/** The brand's page color in Light (PM1 B): the ground every specimen root is painted on. */
+/** The brand's page color for the mode the preview shows: the ground every specimen root is painted on. */
 export const pageGround = (): string => {
-  const m = resolvedModes(theme).find((x) => x.mode === PALETTES_MODE) ?? resolvedModes(theme)[0];
+  const m = resolvedModes(theme).find((x) => x.mode === currentMode) ?? resolvedModes(theme)[0];
   return m.roles['background.primary']?.hex ?? '#ffffff';
 };
 
@@ -178,7 +185,9 @@ export const mountPalettesPreview = (host: HTMLElement, cleanups: (() => void)[]
     status: board('Status palettes', 'Success, warning, danger and info. Auto reuses a brand color when its hue fits, or makes one.', 'board-status'),
     alpha: board('Alpha and opacity', 'On a checkerboard, so the alpha shows.', 'board-alpha'),
   };
-  root.append(boards.brand.el, boards.neutral.el, boards.status.el, boards.alpha.el);
+  const note = hook(h('p', 'p3-note', PALETTES_LIGHT_NOTE), 'palettes-light-note');
+  note.id = PALETTES_LIGHT_NOTE_ID;
+  root.append(note, boards.brand.el, boards.neutral.el, boards.status.el, boards.alpha.el);
   let cache = new Map<string, HTMLElement>();
   let next = new Map<string, HTMLElement>();
   const keyed = (key: string, make: () => HTMLElement): HTMLElement => {
@@ -255,7 +264,7 @@ export const mountPalettesPreview = (host: HTMLElement, cleanups: (() => void)[]
       return keyed(['reuse', r, src, borrowed, stepsKey(src)].join('|'), () => reuseLine(r, src, borrowed));
     }));
 
-    const ink = resolvedModes(theme).find((x) => x.mode === PALETTES_MODE)?.roles['text.primary']?.hex ?? '#000000';
+    const ink = resolvedModes(theme).find((x) => x.mode === currentMode)?.roles['text.primary']?.hex ?? '#000000';
     const alphaRamp = (base: 'black' | 'white'): HTMLElement => keyed(['alpha', base, per].join('|'), () => {
       const blk = hook(h('div', 'p3-pal'), 'alpha-ramp');
       const head = h('div', 'p3-palh');
@@ -318,7 +327,7 @@ export const mountPalettesPreview = (host: HTMLElement, cleanups: (() => void)[]
   ro.observe(host);
   cleanups.push(() => ro.disconnect());
   // Q4 trial: after an edit's repaint, reveal the palette the edit changed (`follow-edit.ts`).
-  cleanups.push(subscribe('brand', () => { render(); const p = takeEdit(); if (p) revealGroup(host, p); }));
+  cleanups.push(subscribe('brand', () => { render(); const p = takeEdit(); if (p) revealGroup(host, p); }), subscribe('mode', render));
   const w0 = host.getBoundingClientRect().width;
   per = w0 > 0 && w0 < SLIM_MAX ? 5 : 10;
   render();

@@ -1069,7 +1069,7 @@ const SET_BORDER = {
  *  properties genuinely require the node's font to be loaded, and a TEXT plan with no `textStyle` never
  *  loaded one. A throw here would lose a member that had otherwise built correctly, to fix its
  *  alignment. */
-const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode: ClaimMode, layerOpacity?: number): void => {
+const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode: ClaimMode, layerOpacity?: number, inPlaceMember = false): void => {
   const where = n?.name ?? 'set';
   const set = (prop: keyof CompNode, value: unknown): void => {
     try { (node as Record<string, unknown>)[prop as string] = value; }
@@ -1081,9 +1081,12 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
   // designer — so `fills = []` on an instance is not a neutral value, it is a LOCAL OVERRIDE that erases
   // the component's design. On a `nest-fixed` focus ring that means deleting the ring. Same for a
   // COMPONENT, whose properties came from the frame `createComponentFromNode` consumed — already
-  // neutralized here, one call earlier, as that frame.
+  // neutralized here, one call earlier, as that frame. EXCEPT A MEMBER CONFIGURED IN PLACE (#2369): it was a
+  // component before this build began, so no frame of it was ever neutralized on this pass, and a fill a
+  // superseded plan gave its root (a text button's hover wash) would stay. It takes the claims a fresh member's
+  // frame takes, which leaves it where a fresh build would. The paste twin builds fresh only, so it has no such case.
   const t = node.type;
-  if (t === 'INSTANCE' || t === 'COMPONENT') return;
+  if (t === 'INSTANCE' || (t === 'COMPONENT' && !inPlaceMember)) return;
 
   // #1430 — THE SET CARRIES THE VARIANT-SET FRAME. A purple dashed outline with a 5px radius is how a
   // designer PICKS THE SET OUT on a canvas full of ordinary frames — and #865 neutralized the set to a bare
@@ -1725,10 +1728,17 @@ const writeComponentSet = async (
         // frame holds, path by path; where they match, the import is discarded and the vectors keep their ids, so
         // an override on one in a file using the library survives an update that did not touch the glyph.
         const fresh = wr(api.createNodeFromSvg(n.glyphSvg ?? ''));
+        // AT THE FRAME'S OWN SIZE (#2379). The import arrives at its artboard (24); the frame the file holds is at its
+        // host's size (16), and its vectors were scaled there when its size was bound. Scaled here first, by the same
+        // SCALE constraints, so the two compare like for like and a replacement lands at the size the frame draws it.
+        // Unscaled, every in-place glyph read as changed and took 24px vectors into a 16px frame: 1.5× on the NB master.
+        const fw = Number(fresh.width ?? 0), fh = Number(fresh.height ?? 0);
+        for (const v of (fresh.findAll?.((x) => x.type === 'VECTOR') ?? [])) wr(v as CompNode).constraints = { horizontal: 'SCALE', vertical: 'SCALE' };
         // THE ARTBOARD READ-BACK (below) asks what the IMPORT measured, so in place it reads the fresh import: the
         // frame the file holds is already sized by its host's binding.
         if (n.glyphViewBox && (fresh.width !== n.glyphViewBox[0] || fresh.height !== n.glyphViewBox[1]))
           misses.push(`${n.name}.glyphViewBox -> ${n.glyphViewBox[0]}x${n.glyphViewBox[1]} (the imported frame reads ${fresh.width}x${fresh.height}; the glyph was sized to its ink rather than to its artboard, so every host binding a square would distort it)`);
+        if (fw > 0 && fh > 0 && (fw !== ex.width || fh !== ex.height)) fresh.resize?.(Number(ex.width), Number(ex.height));
         const sig = (k: Wr): string => (k.children ?? []).map((v) => JSON.stringify([v.type, (v as { vectorPaths?: unknown }).vectorPaths ?? null, Math.round(v.width ?? 0), Math.round(v.height ?? 0)])).join('|');
         if (sig(fresh) !== sig(ex)) {
           for (const old of [...(ex.children ?? [])]) wr(old).remove?.();
@@ -1934,7 +1944,22 @@ const writeComponentSet = async (
       const paint = (varName: string, where: string): unknown => {
         const v = byName.get(varName);
         if (!v) { misses.push(`${n.name}.${where} -> ${varName}`); return null; }
-        return api.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }, 'color', v);
+        // THE BASE IS THE VARIABLE'S OWN COLOR for this node, never black (#2379). The host DRAWS the paint's stored
+        // color; a fresh build ends re-resolved, but in place the host kept the black base on every paint it rewrote,
+        // and the NB master's 16 sets drew solid black over every binding. Black only where nothing resolves.
+        // A WASH VARIABLE'S ALPHA IS THE PAINT'S OPACITY, as the host itself sets it on a fresh build and on every Apply
+        // Theme (#1614's reset): the tint still lives in the variable, and this is only what the host would draw from
+        // it. Left at 1 in place, a 10% overlay wash drew solid black.
+        let base = { r: 0, g: 0, b: 0 };
+        let alpha = 1;
+        try {
+          const rv = (v as { resolveForConsumer?(n: unknown): { value: unknown } }).resolveForConsumer?.(node)?.value as { r?: unknown; g?: unknown; b?: unknown; a?: unknown } | undefined;
+          if (rv && typeof rv.r === 'number' && typeof rv.g === 'number' && typeof rv.b === 'number') {
+            base = { r: rv.r, g: rv.g, b: rv.b };
+            if (typeof rv.a === 'number' && rv.a < 1) alpha = rv.a;
+          }
+        } catch { /* unresolvable here: the black base, as before */ }
+        return api.variables.setBoundVariableForPaint({ type: 'SOLID', color: base, ...(alpha < 1 ? { opacity: alpha } : {}) }, 'color', v);
       };
       // Same reason as `wrote`: only a paint that was actually assigned can have been discarded.
       let paintedFills = false;
@@ -2288,7 +2313,7 @@ const writeComponentSet = async (
     // else was declared. Placed after the child loop rather than beside `createFrame()` so that a value
     // the plan set is never overwritten by a default — the ordering is the whole correctness argument,
     // and putting it at creation time would have neutralized the plan instead of Figma.
-    if (!kept) claimDefaults(node, n, misses, 'created');
+    if (!kept) claimDefaults(node, n, misses, 'created', undefined, !!ex && path === '.');
     // #1567 — RE-APPLY THE TEXT STYLE, BECAUSE `claimDefaults` ABOVE JUST DETACHED IT.
     //
     // HOST-MEASURED (2026-09-22, Figma console, a scratch page removed afterwards): with a named text style
@@ -2693,8 +2718,11 @@ const writeComponentSet = async (
       return;
     }
     const m = wr(c);
-    m.x = PAD + at(colW, cell.col);
-    m.y = PAD + at(rowH, cell.row);
+    // ONLY WHERE IT MOVES (#2379): an update re-lays the grid over members it leaves alone (a member from an earlier
+    // plugin takes only its stamp), and a write that puts back the same number is still a write to the host.
+    const x = PAD + at(colW, cell.col), y = PAD + at(rowH, cell.row);
+    if (m.x !== x) m.x = x;
+    if (m.y !== y) m.y = y;
   });
   // #2265 PR 2 — THE MEMBERS AN UPDATE KEPT AND MARKED DEPRECATED have no cell in the plan's grid, which the
   // members still in the plan now fill, so left where they were they would sit on top of them. They go in one row

@@ -1,47 +1,15 @@
-## (2026-10-08) — Studio QA: Palettes drawn in Light with its mode control held (#2321), the levers fit between the tiers (#1975), and the narrow plugin's bar no longer draws over the error line (#2105)
+## (2026-10-08) — Studio QA: the levers fit between the tiers (#1975), and the narrow plugin's bar no longer draws over the error line (#2105)
 
 The UI redesign's last QA batch, part 1 of 2: the layout and bar items. #2262 (a long brand name at the narrow tier)
-is held for the owner. The question and three options are on the issue.
+was held for the owner, who has since chosen #2262 A; it is recorded on the issue for whichever lane builds it.
 
-### #2321: Palettes, Q111 and PM1 B
-
-**The decisions.** Q111: on Palettes the mode selector is disabled, in the standard disabled look, not hidden. PM1 B:
-Palettes is pinned to Light, so the strips' ground and the opacity scale always show Light. The UI lane's check found that
-those two are the only things on Palettes that varied by mode.
-
-**What PM1 B means in code, and why it isn't "set the mode to Light."** The first build did that: mounting Palettes called
-`setCurrentMode('light')`. `test:chrome` section 9 showed the cost. The Color tab opens on Palettes, so Components → HC
-light → Color → Surfaces & fills went through Palettes and arrived in Light, with the chosen mode silently reset. The
-shipped reading draws Palettes in Light without touching the chosen mode:
-- `preview/palettes.ts` reads its ground and the opacity scale's ink from Light (`PALETTES_MODE`) and no longer repaints on
-  `mode`.
-- `modeControl` (`shell/preview.ts`) gets `lock(reason, shows)`. Every radio and the select are natively `disabled`, the
-  way the levers panel holds a setting in a derived mode (#2284). `shows` (Light) is checked in place of the chosen mode,
-  and the reason is the group's and the select's `aria-description` and the control's tooltip.
-- `frame.ts` locks it while a page in `LIGHT_PINNED` (Palettes) is mounted, from `syncDerivedReadOnly`, which already runs
-  on every mount, release and mode change.
-
-Leaving Palettes, the control is live again and shows the mode chosen before it. This reading is flagged to the owner on
-the PR.
-
-**DRAFT copy for the owner:** "Palettes are the same in every mode, so they always show in Light."
-
-**Held for the owner: the look of a held segmented control.** #2284's pattern gives a held native control `disabled`, and a
-button takes Prism3's disabled roles for its appearance (X4 A) only when it is `.p3-btn` or `.p3-vpick`. A segmented
-option (`.p3-seg-tab`) has no disabled rule, so held mode radios draw as live ones (no hover, `cursor` unchanged). The
-derived-mode panel's held choices (Shape's Density, Interactive's Outline hover) already look like this on `main`.
-Defining a segmented control's disabled look is a design call. It would change the derived-mode choices too, so it isn't
-made here. The question is on #2321.
-
-**Tests.** `test:chrome` section 9 holds the control on Palettes at boot: every radio and the select disabled, Light
-checked, the reason typed in the test. Off Palettes it is live with no reason. With HC dark chosen, Palettes holds Light,
-and the next page shows HC dark again. Section 11 (S2 SPECIMEN GROUND, reworked as the owner's note asked) chooses each
-mode on Brand, opens Palettes, and holds every strip to LIGHT's `background.primary` from the emission. `test:smoke`'s
-Palettes loop does the same over the corpus, and its mode agreement marks Light on Palettes. Tests that switched modes on
-the opening page now start elsewhere: section 9's behavior arms move to Surfaces & fills, the X4 A derived sweep starts on
-Surfaces & fills and leaves Palettes out, HP3 reads Palettes in Light only, `showMode` is a no-op for the mode already
-shown, and smoke's #2080 focus case runs on Brand. Q4's "the mode does not move the preview" is retired, because no mode
-change happens on Palettes now.
+**#2321 is not in this PR (owner DUP1 A, 2026-10-09).** This branch first carried its own build of #2321 (Palettes drawn
+in Light, its mode control held). The UI lane's #2387 built the same thing with the owner-approved copy, the approved
+held-segment look and the previous mode restored on leaving, and landed first. So this PR dropped its #2321 part when it
+merged `main`: its `preview/palettes.ts` and `modeControl().lock` changes, `frame.ts`'s `LIGHT_PINNED` lock and DRAFT
+reason line, its `test:chrome` arms (sections 9, 11, the Q4 trial, X4 A, HP3, #1984 and `showMode`) and its `test:smoke`
+arms. Each of those files takes #2387's version. What remains is #1975 and #2105, whose screenshots the owner approved
+(2026-10-09).
 
 ### #1975: the levers between the tiers
 
@@ -91,10 +59,6 @@ must end at or above the line's top, the line must scroll, and the levers pane m
 ### Mutations
 
 Each one was run after a `wip:` commit, on rebuilt bundles, and failed by name:
-- the lock removed (`modes.lock(null, '')`) → `Q111 web light 1280 / color-palettes: on Palettes every mode radio and the
-  select are disabled, Light checked, and the control says why …` and `PM1 B … Palettes holds the control on Light` (4).
-- Palettes drawn in Dark (`PALETTES_MODE = 'dark'`) → `specimen ground: palettes web light 1280, light chosen on Brand:
-  primary-1 is a specimen root on background.primary #ffffff — is #0d0d0e` (every strip).
 - the sub-nav's `min-width: 0` and wrap removed → `#1975 web light 640: interactive (color-sub-interactive) takes a pointer
   at its center — is under another element at its center, …` (800 and 640, both hosts).
 - the segmented choices' wrap removed → `#1975 web light 640: the levers fit their pane on every moved page (9 read) —
