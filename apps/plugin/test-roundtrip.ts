@@ -313,7 +313,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   // THE OWNER-DECIDED CONTRACT — a LITERAL table keyed by coordinate, never `figmaTextStyleName(def.type)`.
   // A field's text layer depends on the STATE since Option C (owner decision, 2026-09-26): the value layer at
   // filled / read-only, the placeholder layer everywhere else. Typed from that rule, not read off a def.
-  const fieldLayer = (c: Record<string, string | undefined>): string[] => [c.state === 'filled' || c.state === 'read-only' ? 'value' : 'placeholder'];
+  // The field family shows the value at filled, read-only and, since #2318, the focused field that holds one.
+  const fieldLayer = (c: Record<string, string | undefined>): string[] => [c.state === 'filled' || c.state === 'focus-visible-filled' || c.state === 'read-only' ? 'value' : 'placeholder'];
   const STYLE_CONTRACT: Record<string, { parts: string[] | ((c: Record<string, string | undefined>) => string[]); style: (c: Record<string, string | undefined>) => string }> = {
     // #2324: a text button's label is its underlined twin, at every state.
     button:          { parts: ['label'], style: (c) => `${({ small: 'label/sm/emphasis', medium: 'label/md/emphasis', large: 'label/lg/emphasis' } as Record<string, string>)[c.size!]}${c.appearance === 'text' ? '-link' : ''}` },
@@ -492,7 +493,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   ok(!!liKey && defs[liKey!].type === 'BOOLEAN',
     `#1331 host-truth: the built set carries a 'leading icon' BOOLEAN property (host holds ${liKey})`);
   const lvs = members.map((m) => findByName(m, 'leadingVisual'));
-  ok(members.length === 72 && lvs.every(Boolean),
+  ok(members.length === 84 && lvs.every(Boolean),
     `#1331 host-truth: the leading glyph node is built into EVERY member (${lvs.filter(Boolean).length}/${members.length})`);
   ok(lvs.length > 0 && lvs.every((lv) => lv.visible === false),
     '#1331 host-truth: every built leading glyph reads back `visible=false` — built hidden by default, not dropped');
@@ -541,7 +542,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   // this, the miss-count assertion below could pass because the fixture never built the colliding node.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim
   const naive = members[0]?.findOne?.((x: any) => x.name === 'placeholder');
-  ok(members.length === 72 && !!naive && (naive as { _inNestedInstance?: boolean })._inNestedInstance === true,
+  ok(members.length === 84 && !!naive && (naive as { _inNestedInstance?: boolean })._inNestedInstance === true,
     `#1428 reachability: a naive descending findOne on a built select member returns a nested-instance \`placeholder\` (the wrong node the fix defends against) — collision materialised (${members.length} members)`);
   const textRefMisses = res.misses.filter((m) => /\b(placeholder|value)\.characters\b/.test(m));
   ok(res.wiredMembers === plans.length && textRefMisses.length === 0,
