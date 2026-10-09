@@ -408,6 +408,13 @@ export type ShimOpts = {
    * before. Both are non-enumerable, so a JSON dump of a node is unchanged either way.
    */
   identities?: boolean;
+  /**
+   * TOP-LEVEL COMPONENTS ANSWER AS THEMSELVES (#2296), under `liveRoot`. A criteria search for COMPONENT returns the
+   * page's own top-level component NODES, not name-only references, as Figma does: an icon or spinner the build
+   * emitted is a node the update can read and configure in place. Opt-in, because an existing case may rely on a
+   * reference's own `id` (`73:…`) as an INSTANCE_SWAP default, and a node without `identities` has none.
+   */
+  liveComponents?: boolean;
   /** #2379 — A FRAME'S `SCALE` CHILDREN SCALE WITH IT, as on the host: a resize, or a bound width or height that
    *  changes the frame's size, scales every child whose constraints are SCALE on both axes by the same ratio.
    *  The fresh build depends on it (a glyph imports at its 24px artboard; its bound size brings it to 16), and an
@@ -622,8 +629,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
   };
   const innerX = (p: Node): number => (p.width as number) - padX(p) - strokeX(p);
   const gapOf = (p: Node): number => (p.boundVariables as Record<string, { value?: number }>).itemSpacing?.value ?? 0;
-  /** A node's own width FLOOR — a literal `minWidth`, or one bound to a variable. */
+  /** A node's own width FLOOR — a literal `minWidth`, or one bound to a variable. An INSTANCE that sets none keeps
+   *  its main's, as on the host, where an instance inherits every property it does not override (Q152.3: a row's
+   *  floor is on its ROOT, so a placed row is floored by its main, where a field's floor sits inside it). */
   const floorOf = (n: Node): number => {
+    if (n.type === 'INSTANCE' && n.minWidth === undefined && n._main) return floorOf(n._main as Node);
     const bvW = (n.boundVariables as Record<string, { value?: number }>).minWidth?.value;
     return Math.max(typeof n.minWidth === 'number' ? n.minWidth : 0, typeof bvW === 'number' ? bvW : 0);
   };
@@ -1434,7 +1444,15 @@ export const makeShim = (opts: ShimOpts = {}) => {
             const members = live.map((c) => mkRef(String(c.name), seq++, c, owner));
             if (types.includes('COMPONENT_SET')) found.push(mkSet(String(n.name), members));
             if (types.includes('COMPONENT')) for (const m of members) found.push(m);
-          } else if (n.type === 'COMPONENT' && types.includes('COMPONENT')) found.push(mkRef(String(n.name), seq++));
+          } else if (n.type === 'COMPONENT' && types.includes('COMPONENT')) {
+            if (opts.liveComponents) {
+              // The node itself, instanceable as Figma's is (#2296).
+              const ref = mkRef(String(n.name), seq++, n);
+              if (!Object.getOwnPropertyDescriptor(n, 'createInstance'))
+                Object.defineProperty(n, 'createInstance', { configurable: true, enumerable: false, value: ref.createInstance });
+              found.push(n as unknown as ReturnType<typeof mkRef>);
+            } else found.push(mkRef(String(n.name), seq++));
+          }
         }
         return found;
       },

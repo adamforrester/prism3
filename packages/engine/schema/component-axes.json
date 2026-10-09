@@ -428,6 +428,7 @@
         "disabled",
         "filled",
         "focus-visible",
+        "focus-visible-filled",
         "hover",
         "read-only",
         "rest"
@@ -439,7 +440,7 @@
         "warning"
       ]
     },
-    "members": 72
+    "members": 84
   },
   "spinner": {
     "axes": {
@@ -518,6 +519,7 @@
         "disabled",
         "filled",
         "focus-visible",
+        "focus-visible-filled",
         "hover",
         "read-only",
         "rest"
@@ -529,7 +531,7 @@
         "warning"
       ]
     },
-    "members": 72
+    "members": 84
   },
   "textarea": {
     "axes": {
@@ -542,6 +544,7 @@
         "disabled",
         "filled",
         "focus-visible",
+        "focus-visible-filled",
         "hover",
         "read-only",
         "rest"
@@ -553,7 +556,7 @@
         "warning"
       ]
     },
-    "members": 72
+    "members": 84
   },
   "veil": {
     "axes": {

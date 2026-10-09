@@ -289,7 +289,12 @@ export const mountFrame = (app: HTMLElement, opts: {
   // ── notices, the panes ──────────────────────────────────────────────────────────────────────────
   // The notices row sits under the top bar, full width (S13.1): the error strip, in the chrome's theme.
   const notices = hook(h('div', 'p3-notices'), 'notices');
-  head.append(bar, notices, nav, subRow);
+  // #2212: the page's one h1, for a reader who moves by headings: the page's name, as its tab (or Color's sub-page tab)
+  // shows it, so no new words. Visually hidden (the preview's title is the visible one), and ahead of the tab row and both panes, so the
+  // levers' h2 sections and the preview's h2 follow it at every width, whichever narrow pane shows. The Build style
+  // guides page draws its own h1, so this one is out of the document there.
+  const pageHeading = hook(h('h1', 'p3-sr'), 'page-heading');
+  head.append(bar, notices, pageHeading, nav, subRow);
 
   const panes = hook(h('div', 'p3-panes'), 'panes');
   const levers = hook(h('section', 'p3-levers'), 'levers-pane');
@@ -660,6 +665,11 @@ export const mountFrame = (app: HTMLElement, opts: {
     // V1: the preview names the page's one home view. Nothing but a place change moves it.
     const home = place ? homeOf(place) : null;
     previewTitle.textContent = home ? viewLabel(home) : '';
+    const tabOf = place ? TABS.find((t) => t.id === place!.tab) : undefined;
+    const pageName = (place?.sub ? tabOf?.subs?.find((x) => x.id === place!.sub)?.label : tabOf?.label) ?? '';
+    pageHeading.textContent = pageName;
+    if (onMenu || !pageName) pageHeading.remove();
+    else if (!pageHeading.isConnected) head.insertBefore(pageHeading, nav);
     if (home) previewBody.dataset.view = home; else delete previewBody.dataset.view;
 
     root.dataset.inspect = inspecting ?? '';
