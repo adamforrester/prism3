@@ -1,0 +1,252 @@
+{
+  "$collection": "motion",
+  "$mode": "Default",
+  "variables": [
+    {
+      "name": "wds/motion/duration-ms/0",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "0ms — duration primitive",
+      "value": 0,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "wds/motion/duration-ms/40",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "40ms — duration primitive",
+      "value": 40,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "wds/motion/duration-ms/50",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "50ms — duration primitive",
+      "value": 50,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "wds/motion/duration-ms/100",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "100ms — duration primitive",
+      "value": 100,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "wds/motion/duration-ms/200",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "200ms — duration primitive",
+      "value": 200,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "wds/motion/duration-ms/300",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "300ms — duration primitive",
+      "value": 300,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "wds/motion/duration-ms/500",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "500ms — duration primitive",
+      "value": 500,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "wds/motion/duration-ms/800",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "800ms — duration primitive",
+      "value": 800,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "wds/motion/duration-ms/2600",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "2600ms — duration primitive",
+      "value": 2600,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "wds/motion/duration/instant",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "50ms — instant duration",
+      "value": 50,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/motion/duration-ms/50"
+      }
+    },
+    {
+      "name": "wds/motion/duration/fast",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "100ms — fast duration",
+      "value": 100,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/motion/duration-ms/100"
+      }
+    },
+    {
+      "name": "wds/motion/duration/normal",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "200ms — normal duration",
+      "value": 200,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/motion/duration-ms/200"
+      }
+    },
+    {
+      "name": "wds/motion/duration/moderate",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "300ms — moderate duration",
+      "value": 300,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/motion/duration-ms/300"
+      }
+    },
+    {
+      "name": "wds/motion/duration/slow",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "500ms — slow duration",
+      "value": 500,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/motion/duration-ms/500"
+      }
+    },
+    {
+      "name": "wds/motion/duration/slower",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "800ms — slower duration",
+      "value": 800,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/motion/duration-ms/800"
+      }
+    },
+    {
+      "name": "wds/motion/duration/spin",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "800ms per spinner turn, at every tempo",
+      "value": 800,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/motion/duration-ms/800"
+      }
+    },
+    {
+      "name": "wds/motion/duration-reduced/instant",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "50ms — instant duration with reduce motion on",
+      "value": 50,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/motion/duration-ms/50"
+      }
+    },
+    {
+      "name": "wds/motion/duration-reduced/fast",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "100ms — fast duration with reduce motion on",
+      "value": 100,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/motion/duration-ms/100"
+      }
+    },
+    {
+      "name": "wds/motion/duration-reduced/normal",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "50ms — normal duration with reduce motion on",
+      "value": 50,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/motion/duration-ms/50"
+      }
+    },
+    {
+      "name": "wds/motion/duration-reduced/moderate",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "0ms — moderate duration with reduce motion on",
+      "value": 0,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/motion/duration-ms/0"
+      }
+    },
+    {
+      "name": "wds/motion/duration-reduced/slow",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "0ms — slow duration with reduce motion on",
+      "value": 0,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/motion/duration-ms/0"
+      }
+    },
+    {
+      "name": "wds/motion/duration-reduced/slower",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "0ms — slower duration with reduce motion on",
+      "value": 0,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/motion/duration-ms/0"
+      }
+    },
+    {
+      "name": "wds/motion/duration-reduced/spin",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "2600ms per spinner turn with reduce motion on",
+      "value": 2600,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/motion/duration-ms/2600"
+      }
+    },
+    {
+      "name": "wds/motion/stagger",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "40ms between siblings",
+      "value": 40,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "wds/motion/duration-ms/40"
+      }
+    }
+  ]
+}

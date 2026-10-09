@@ -172,7 +172,7 @@ const setValue = (name: string, axis: string, value: string): string =>
 console.log('update dry run + as-built baseline (#2265) — against the in-memory shim\n');
 
 // The subject is TAG: 45 members on four axes, small enough to rebuild per case, with nested frames and
-// bindings on every level. BUTTON, the 432-member set the NB library publishes, runs once at full size.
+// bindings on every level. BUTTON, the 576-member set (432 before #2350's flush text members), runs at full size.
 const TAG = 'tag';
 
 /* ── fresh ───────────────────────────────────────────────────────────────────────────────────────────── */
@@ -180,15 +180,46 @@ section('fresh — a set the executor just built reads current, every member car
 {
   const b = await build('button');
   const view = await readSetView(b.set as any);
-  ok(view.members.length === 432 && view.others.length === 0, `fresh/read: 432 coordinate members read, none set aside (${view.members.length}, ${view.others.length})`);
+  ok(view.members.length === 576 && view.others.length === 0, `fresh/read: 576 coordinate members read, none set aside (${view.members.length}, ${view.others.length})`);
   ok(view.members.every((m) => m.baseline !== null && Object.keys(m.baseline.nodes).length >= 2),
     `fresh/baseline: every member carries an as-built record with its nodes (${view.members.filter((m) => m.baseline).length} of ${view.members.length})`);
   ok(view.members.every((m) => m.stamp.split('|').length === 3), 'fresh/stamp: every stamp has its three fields');
   const p = dryRunSet('button', b.plans, view, b.ports);
-  ok(p.counts.current === 432 && p.counts.update + p.counts.handEdited + p.counts.noBaseline + p.counts.add + p.counts.drop === 0 && !p.blockers.length,
-    `fresh/current: all 432 current, nothing to add, drop or update (${JSON.stringify(p.counts)})`);
+  ok(p.counts.current === 576 && p.counts.update + p.counts.handEdited + p.counts.noBaseline + p.counts.add + p.counts.drop === 0 && !p.blockers.length,
+    `fresh/current: all 576 current, nothing to add, drop or update (${JSON.stringify(p.counts)})`);
   ok(Object.values(p.properties).every((l) => l.length === 0), `fresh/properties: the set's properties are as planned (${JSON.stringify(p.properties).slice(0, 120)})`);
   ok(p.needsChoice.length === 0 && /^✓ All sets up to date$/.test(previewVerdict({ sets: [p], missing: [], refused: [] }).headline), 'fresh/verdict: up to date, nothing to choose');
+}
+
+/* ── #2350: a new axis on an existing set ─────────────────────────────────────────────────────────────── */
+section('#2350 inset — a Button set built before the flush axis renames its 432 members onto inset=default and adds 144');
+{
+  // The set as it was before #2350: the same def with the axis, its exclusion and the container's `flush` taken off.
+  const def = defOf('button');
+  const { inset: _inset, ...variants } = def.variants as Record<string, string[]>;
+  const root = def.anatomy!.root;
+  const { flush: _flush, ...rootPart } = def.anatomy!.parts[root];
+  const before = {
+    ...def,
+    variants,
+    props: def.props.filter((p) => p.name !== 'inset'),
+    axisKinds: Object.fromEntries(Object.entries(def.axisKinds ?? {}).filter(([a]) => a !== 'inset')),
+    anatomy: { ...def.anatomy!, parts: { ...def.anatomy!.parts, [root]: rootPart } },
+    figmaProperties: { ...def.figmaProperties!, variantAxes: def.figmaProperties!.variantAxes!.filter((a) => a !== 'inset'), excludeCoordinates: undefined },
+  } as typeof def;
+  const old = await build('button', figmaAnatomySet(before, { swapTarget: SWAP_TARGET }));
+  const view = await readSetView(old.set as any);
+  ok(view.members.length === 432 && view.members.every((m) => !/inset=/.test(m.name)), `#2350 premise: the old set has 432 members and no inset axis (${view.members.length})`);
+  const p = dryRunSet('button', plansOf('button'), view, old.ports);
+  // Expected, by hand: every old member lands on `inset=default` (the first plan's value), and the flush text members
+  // are new — 3 size × 2 surface × 6 state × 4 slot = 144. Nothing is dropped or collapsed.
+  ok(p.counts.rename === 432 && p.counts.add === 144 && p.counts.drop === 0 && !p.blockers.length && !p.needsChoice.includes('axisCollapse'),
+    `#2350 dry run: 432 renamed, 144 added, 0 dropped, no blocker (${JSON.stringify({ rename: p.counts.rename, add: p.counts.add, drop: p.counts.drop, blockers: p.blockers.length })})`);
+  const notJustInset = p.renames.filter((r) => r.from.replace(/(surface=[\w-]+)/, '$1, inset=default') !== r.to);
+  ok(p.renames.length === 432 && notJustInset.length === 0,
+    `#2350 dry run: each rename is the old name with inset=default added after its surface (${notJustInset.length}${notJustInset.length ? `: ${notJustInset[0].from} → ${notJustInset[0].to}` : ''})`);
+  // A variant axis is reported as the set's axis list moving, not as a component property (those are text, swap, boolean).
+  ok(p.axes.to.includes('inset') && !p.axes.from.includes('inset'), `#2350 dry run: the set's axes gain inset (${p.axes.from.join(', ')} → ${p.axes.to.join(', ')})`);
 }
 
 /* ── edit ────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -451,6 +482,29 @@ section('axis — an added axis and a removed one');
   const q = dryRunSet(TAG, b.plans, wide, b.ports);
   ok(q.drops.length === 45 && q.drops.every((d) => d.endsWith('extra=b')) && q.needsChoice.includes('axisCollapse') && q.counts.current === 45,
     `axis/removed: extra=a members kept and current, the 45 extra=b members collapse and need a choice (${q.drops.length}, ${q.needsChoice.join(', ')})`);
+}
+
+/* ── a field gains `size` (#2266) ────────────────────────────────────────────────────────────────────── */
+section('size — a field set built before #2266 gains the size axis, and every member lands on medium');
+{
+  // The pre-#2266 file: text-field's 24 members, named without `size` (status × state). They were the medium
+  // field, so medium is where they must land. Simulated as the `axis` case above does: the built set's medium
+  // members with the segment stripped.
+  const b = await build('text-field');
+  const view = await readSetView(b.set as any);
+  const strip = (name: string) => name.split(', ').filter((s) => !s.startsWith('size=')).join(', ');
+  const pre = withMembers(view, (ms) => ms.filter((m) => m.name.split(', ').includes('size=medium')).map((m) => ({ ...m, name: strip(m.name) })));
+  const p = dryRunSet('text-field', b.plans, pre, b.ports);
+  ok(pre.members.length === 24 && p.renames.length === 24 && p.renames.every((r) => r.to.split(', ').includes('size=medium'))
+    && p.adds.length === 48 && p.drops.length === 0 && p.blockers.length === 0,
+    `size/lands: the 24 old members are renamed onto size=medium in place, 48 small and large members are added, none dropped (${p.renames.length} renames, ${p.adds.length} adds, ${p.drops.length} drops, ${p.blockers.length} blockers; first ${p.renames[0]?.to})`);
+  // THE ORDER DECIDES IT (docs/34: the arm above can fail). The same set laid against the plans in the
+  // ladder's own order (small first) lands every old member on small: the rewrite #2266's medium-first order avoids.
+  const ladder = ['small', 'medium', 'large'];
+  const smallFirst = [...b.plans].sort((x, y) => ladder.indexOf(String(x.size)) - ladder.indexOf(String(y.size)));
+  const q = dryRunSet('text-field', smallFirst, pre, b.ports);
+  ok(q.renames.length === 24 && q.renames.every((r) => r.to.split(', ').includes('size=small')),
+    `size/order: with small first the same members would land on size=small (${q.renames[0]?.to})`);
 }
 
 /* ── blocked ─────────────────────────────────────────────────────────────────────────────────────────── */

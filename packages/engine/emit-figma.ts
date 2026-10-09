@@ -108,10 +108,10 @@ export { COLOR_MODES, figName, parseColor, buildFigmaColor } from './emit-figma-
 // DIMS + LAYOUT FLOAT axes — extracted node-free (#146) so they bundle into the Figma plugin
 // (like the colour core). Imported for the CLI below + re-exported so every `from './emit-figma'`
 // importer (and `test.ts`) stay unchanged.
-import { buildFigmaDims, buildFigmaLayout } from './emit-figma-dims';
+import { buildFigmaDims, buildFigmaLayout, buildFigmaMotion } from './emit-figma-dims';
 import type { FigmaDimsCollections } from './emit-figma-dims';
 export type { FigmaDimsCollections } from './emit-figma-dims';
-export { buildFigmaDims, buildFigmaLayout, LAYOUT_MODES } from './emit-figma-dims';
+export { buildFigmaDims, buildFigmaLayout, buildFigmaMotion, LAYOUT_MODES } from './emit-figma-dims';
 // SHADOW (Effect Styles) + GRADIENT (Paint Styles) — extracted node-free (shadow/gradient lane) so
 // they bundle into the plugin. Imported for the CLI below + re-exported so every `from './emit-figma'`
 // importer (and `test.ts`) stay unchanged.
@@ -237,6 +237,11 @@ export const figmaArtifacts = (theme: Theme): { artifacts: FigmaArtifact[]; summ
 
   const layout = buildFigmaLayout(theme);
   for (const l of layout) add(`layout.${l.$mode}.json`, l);
+  // MOTION (#2394) — FLOAT milliseconds, no scope. Same single-vs-per-mode rule as `radius`: a brand with
+  // no per-mode tempo emits one `motion.json`; one whose mode levers move the tempo emits one per mode.
+  const motion = buildFigmaMotion(theme);
+  if (motion.length === 1) add('motion.json', motion[0]);
+  else for (const m of motion) add(`motion.${m.$mode}.json`, m);
   const shadows = buildFigmaShadow(theme);
   add('shadow-styles.json', shadows);
   const gradients = buildFigmaGradient(theme);
@@ -246,7 +251,7 @@ export const figmaArtifacts = (theme: Theme): { artifacts: FigmaArtifact[]; summ
   // breakpoints = N styles; the variables stay the responsive source of truth.
   const gridStyles = buildFigmaGridStyles(theme);
   add('grid-styles.json', gridStyles);
-  const summary = `core ${palette.variables.length + dims.dimension.variables.length + fontFiles[0].variables.length} (palette ${palette.variables.length} + dimension ${dims.dimension.variables.length} + font ${fontFiles[0].variables.length}${fontFiles.length > 1 ? `×${fontFiles.length}modes` : ''}) + color ${color.length}×${color[0].variables.length} + font-fluid ${fluid.length}×${fluid[0].variables.length} + text-styles ${textStyles.styles.length} + dims ${dimsCount} (${Object.keys(dims).length - 1} colls) + layout ${layout.length}×${layout[0].variables.length} + shadow ${shadows.styles.length} + gradient ${gradients.styles.length} + grid ${gridStyles.styles.length}`;
+  const summary = `core ${palette.variables.length + dims.dimension.variables.length + fontFiles[0].variables.length} (palette ${palette.variables.length} + dimension ${dims.dimension.variables.length} + font ${fontFiles[0].variables.length}${fontFiles.length > 1 ? `×${fontFiles.length}modes` : ''}) + color ${color.length}×${color[0].variables.length} + font-fluid ${fluid.length}×${fluid[0].variables.length} + text-styles ${textStyles.styles.length} + dims ${dimsCount} (${Object.keys(dims).length - 1} colls) + layout ${layout.length}×${layout[0].variables.length} + motion ${motion.length}×${motion[0].variables.length} + shadow ${shadows.styles.length} + gradient ${gradients.styles.length} + grid ${gridStyles.styles.length}`;
   return { artifacts, summary };
 };
 

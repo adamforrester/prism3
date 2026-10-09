@@ -1721,10 +1721,19 @@ console.log(`\n#1031 — fields in a dark theme\n${'='.repeat(78)}`);
   await page.evaluate((c) => window.postMessage({ pluginMessage: { type: 'style-guide-catalog', catalog: c } }, '*'), SG_RING_CATALOG);
   await hooks.need(page, '[data-p3="sg-collection"]');
   // #2341: the per-kind option groups (Color value, Color sample, …) render after the catalog's selection settles, which
-  // can land after sg-collection on a slow runner. Wait for the floor before measuring; on a timeout the count below
-  // still fails by name, so a field that is really missing is not hidden by the wait.
-  await page.waitForFunction(() => [...document.querySelectorAll('[data-p3="style-guides"] :is(input[type="text"], input:not([type]), select, textarea)')]
-    .filter((n) => n.getBoundingClientRect().width > 0 && !n.disabled).length >= 3, null, { timeout: 10000 }).catch(() => {});
+  // can land after sg-collection on a slow runner. Wait until every expected field is measurable before measuring; on a
+  // timeout the hook check below still fails by name, so a field that is really missing is not hidden by the wait.
+  // #2356: the expected fields are a literal list of hooks, not a floor. SG_RING_CATALOG selects one table of each kind,
+  // so the page draws Collection, the titles box, and the color and font option groups' selects. (Mode is disabled and
+  // exempt; Table header and Dimension display are segmented controls, and the switches are not text fields, so none is
+  // counted.) A floor of 3 passed with the whole color group missing. Kept literal on purpose: deriving it from the page
+  // or the catalog would make it agree with whatever the page draws (docs/34 shape 1).
+  const SG_FIELDS = ['sg-collection', 'sg-titles-input', 'sg-opt-value-format', 'sg-opt-color-sample', 'sg-opt-font-sample'];
+  await page.waitForFunction((want) => {
+    const have = new Set([...document.querySelectorAll('[data-p3="style-guides"] :is(input[type="text"], input:not([type]), select, textarea)')]
+      .filter((n) => n.getBoundingClientRect().width > 0 && !n.disabled).map((n) => n.getAttribute('data-p3')));
+    return want.every((x) => have.has(x));
+  }, SG_FIELDS, { timeout: 10000 }).catch(() => {});
   const f = await page.evaluate(() => {
     const parse = (s) => { const m = /^rgba?\(([^)]+)\)$/.exec(s.trim()); const p = m ? m[1].split(/[,\s/]+/).filter(Boolean).map(Number) : [0, 0, 0, 0]; return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
     const lum = (c) => { const f2 = (v) => { const x = v / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f2(c.r) + 0.7152 * f2(c.g) + 0.0722 * f2(c.b); };
@@ -1740,7 +1749,8 @@ console.log(`\n#1031 — fields in a dark theme\n${'='.repeat(78)}`);
   });
   const where = `${host} dark / Build style guides`;
   ok(/\bdark\b/.test(f.doc), `${where}: the document resolves a dark color-scheme ("${f.doc}") — the premise this check is about`);
-  ok(f.fields.length >= 3, `${where}: measured ${f.fields.length} field(s) on the page (floor 3: Collection, Table header, Color value)`);
+  const missing = SG_FIELDS.filter((x) => !f.fields.some((y) => y.name === x));
+  ok(missing.length === 0, `${where}: every expected field is measured, by hook (counted: enabled, visible text inputs, selects and textareas; expected ${SG_FIELDS.join(', ')}; measured ${f.fields.map((x) => x.name).join(', ') || 'none'})${missing.length ? ` — missing ${missing.join(', ')}` : ''}`);
   const bad = f.fields.filter((x) => /\bdark\b/.test(x.scheme) !== x.darkGround || x.r < TEXT_MIN);
   ok(bad.length === 0, `${where}: every field resolves its own ground's color-scheme and inks its value at ${TEXT_MIN}:1${bad.length ? ` — ${bad.map((x) => `${x.name} "${x.value}" ${x.scheme} on a ${x.darkGround ? 'dark' : 'light'} ground ${x.r}:1`).join(' | ')}` : ''}`);
   await ctx.close();
