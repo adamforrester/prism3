@@ -911,6 +911,9 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 [data-per="5"] .p3-palh-anchor { grid-column: 1 / -1; justify-items: start; grid-auto-flow: column; align-items: center; justify-content: start; }
 .p3-checker { background: repeating-conic-gradient(var(--p3-fill-2) 0% 25%, var(--p3-bg-page) 0% 50%) 0 0 / var(--p3-space-150) var(--p3-space-150); }
 .p3-sr { position: absolute; width: var(--p3-bw-hairline); height: var(--p3-bw-hairline); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* #2212: the frame's hidden h1 takes no browser margin and is set in the chrome's own face at its default size and weight,
+   not the page's system stack or the browser's bold heading (test:chrome's font audit reads every chrome text node). */
+h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-default); }
 /* The Activity status line rides in the top bar, outside the drawer (so it is in the document before the
    drawer is drawn), and takes the chrome face itself rather than inheriting it (S11). */
 .p3-live { margin: 0; color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); }

@@ -14962,9 +14962,17 @@ arm: {
         //     axis, so a wrapping label never shrinks or stretches the control.
         ok(controlBox?.layoutGrow === undefined && controlBox?.counterAxisSizingMode === 'FIXED',
           `#1424 ${def.id}: the controlBox stays fixed/hug — it does not grow (layoutGrow ${String(controlBox?.layoutGrow)}) and its cross axis is FIXED (${String(controlBox?.counterAxisSizingMode)})`);
-        // (c) THE WIDTH FLOOR that makes the fill resolve (Prism 2's root width 320).
-        ok(row?.minWidth === 320,
-          `#1424 ${def.id}: the row carries the 320 min-width floor so the fill has space to resolve against (got ${String(row?.minWidth)})`);
+        // (c) THE WIDTH THAT MAKES THE FILL RESOLVE, on every member (owner decision Q152.3: Q99 B reaches the
+        //     rows). The row is BUILT at Prism 2's root width 320 (`placementWidth`, FIXED along its horizontal
+        //     main axis) and floors at the fields' 120 (Q152.2), so it shrinks with a narrower column instead of
+        //     holding at 320 and overflowing it. Expected values are literals typed here, never read off a def.
+        const rowOff = figmaAnatomySet(def, {}).flatMap((m) => {
+          const r = m.root;
+          return r.name === 'row' && r.placementWidth === 320 && r.primaryAxisSizingMode === 'FIXED' && r.minWidth === 120 ? []
+            : [`${planComponentName(m)}: ${r.name} placementWidth ${String(r.placementWidth)}, primary ${String(r.primaryAxisSizingMode)}, minWidth ${String(r.minWidth)}`];
+        });
+        ok(row?.minWidth === 120 && rowOff.length === 0,
+          `#1424/Q152.3 ${def.id}: on every member the row is built at 320 and floors at 120, so it shrinks with its column (${rowOff.length} off — ${rowOff[0] ?? 'none'})`);
         //   MUTATION #1424 — revert the label to fixed/hug-no-wrap. Dropping `wrap` returns the label to a
         //   hugging text node that overflows: the plan drops layoutGrow AND textAutoResize, flipping (a) BY NAME.
         const noWrapLabel = { ...def.anatomy.parts.label, wrap: undefined };
@@ -14982,13 +14990,27 @@ arm: {
       ok(validateComponentDef(wrapOnBox as ComponentDef).errors.some((e) => /declares 'wrap'/.test(e) && /only a 'text' part/.test(e)),
         "#1424 'wrap' on a NON-text part is refused BY NAME — only a text part fills its row and reflows; on any other kind it would validate clean and reach the wrong branch");
       // (b) wrap under a FLOORLESS parent — the #989 silent no-op: `layoutGrow` fills REMAINING space and a
-      //     hugging row has none, so the label hugs its glyphs and overflows though it validated. Stripping the
-      //     row's real `minWidth: 320` (keeping the label's `wrap`) fires this on exactly the row that carries
-      //     the floor — which is what makes the row's minWidth LOAD-BEARING rather than decorative.
-      const floorlessRow = { ...radioRow.anatomy.parts.row, minWidth: undefined };
+      //     hugging row has none, so the label hugs its glyphs and overflows though it validated. Returning the
+      //     row to a HUGGING root with neither its build width nor its floor (keeping the label's `wrap`) fires
+      //     this on exactly the row that carries them, which is what makes them LOAD-BEARING rather than
+      //     decorative. Both go: since Q152.3 the root's `placementWidth` alone already bounds the label.
+      const rp = radioRow.anatomy.parts.row;
+      const floorlessRow = { ...rp, minWidth: undefined, placementWidth: undefined, layout: { ...rp.layout!, sizing: { ...rp.layout!.sizing, x: 'hug' as const } } };
       const floorless = { ...radioRow, anatomy: { ...radioRow.anatomy, parts: { ...radioRow.anatomy.parts, row: floorlessRow } } };
       ok(validateComponentDef(floorless as ComponentDef).errors.some((e) => /declares 'wrap'/.test(e) && /does not bound its main-axis width/.test(e)),
-        "#1424 a 'wrap' label under a floorless row is refused BY NAME — layoutGrow fills remaining space and a hugging parent has none, the #989 silent no-op; removing the row's minWidth fires this, so the floor is load-bearing");
+        "#1424 a 'wrap' label under a floorless row is refused BY NAME — layoutGrow fills remaining space and a hugging parent has none, the #989 silent no-op; a hugging row with no build width and no floor fires this, so they are load-bearing");
+    }
+
+    // ---- Q155 A: the GROUPS follow their rows — built at 320, filling their column down to the 120 floor ----
+    // A group's root is a column, so its width is the COUNTER axis (FIXED), where a row's is its primary. Literals
+    // typed here; the column geometry is measured in `apps/plugin/test-roundtrip.ts` (Q155 block).
+    for (const def of [checkboxGroup, radioGroup] as ComponentDef[]) {
+      const off = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' }).flatMap((m) => {
+        const r = m.root;
+        return r.placementWidth === 320 && r.counterAxisSizingMode === 'FIXED' && r.minWidth === 120 ? []
+          : [`${planComponentName(m)}: ${r.name} placementWidth ${String(r.placementWidth)}, counter ${String(r.counterAxisSizingMode)}, minWidth ${String(r.minWidth)}`];
+      });
+      ok(off.length === 0, `Q155 ${def.id}: on every member the group is built at 320 and floors at 120, so it shrinks with its column (${off.length} off — ${off[0] ?? 'none'})`);
     }
 
     // ---- #1757: a ROOT's build width (`placementWidth`), and the wrap bounds it and a filled parent supply ----
