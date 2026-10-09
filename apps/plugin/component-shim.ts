@@ -537,7 +537,13 @@ export const makeShim = (opts: ShimOpts = {}) => {
    * a test can read what the variable itself now holds. Inert until something calls `setValueForMode`.
    */
   const varValues = new Map<string, Record<string, unknown>>();
-  const walk = (n: Node, f: (n: Node) => void): void => { f(n); for (const k of (n.children as Node[] | undefined) ?? []) walk(k, f); };
+  const walk = (n: Node, f: (n: Node) => void): void => {
+    f(n);
+    // An instance's vectors are reachable only through `findAll` here (#2389: an icon instance's ink is an override on
+    // them), and a rewritten variable re-resolves them as it does every paint bound to it.
+    if (n.type === 'INSTANCE' && typeof n.findAll === 'function') for (const v of (n.findAll as (p: (x: Node) => boolean) => Node[])((x) => x.type === 'VECTOR')) f(v);
+    for (const k of (n.children as Node[] | undefined) ?? []) walk(k, f);
+  };
   const rewriteVar = (name: string, modeId: string, value: unknown): void => {
     varValues.set(name, { ...(varValues.get(name) ?? {}), [modeId]: value });
     const id = `V:${name}`;
