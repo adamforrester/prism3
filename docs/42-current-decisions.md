@@ -103,6 +103,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 | a style-guide spacing specimen's example frame rests 0.01 wide with no padding, since an instance's layer never hugs narrower than its main; a zero value's specimen is hidden and counts as drawn; every padding bind is followed by FIXED, then HUG, so a value smaller than the frame's last width still takes it | 2026-09-30 | `docs/45-style-guide-generator.md` §2 | #259 |
 | a PR declares the engine bump in a change note, and a fold assigns one version per batch | 2026-09-30 | `docs/30-versioning-and-compatibility.md` | #1807 |
 | never detach a Prism3 component to match a design; place it attached and file the differences | 2026-10-06 | `docs/46-never-detach.md` | — |
+| emit a conforming DTCG projection beside the canonical `$extensions` tree, so Style Dictionary is a consumability gate rather than a dependency *(decided 2026-08-07; indexed 2026-10-09, after `19` §9 had described it as open for two months — the first code-layer decision in this table)* | 2026-08-07 | `docs/19-code-library-and-dx.md` §9 | #609 |
 
 ## Known gaps, named rather than silent
 

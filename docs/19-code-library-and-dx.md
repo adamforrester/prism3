@@ -255,8 +255,49 @@ required regardless of whether Style Dictionary is in the pipeline. Leaving it t
 writes it independently and unverified, which relocates the risk the token contract exists to prevent
 to somewhere we cannot gate.
 
-The mode decision this forces is filed as **#609**, with the unified-export target (`12 §11`) as its
+The mode decision this forces was filed as **#609**, with the unified-export target (`12 §11`) as its
 motivating use case — whatever this layer consumes is whatever that decision produces.
+
+### Decided (2026-08-07, #609): emit a conforming DTCG projection beside the canonical tree
+
+**Recorded here 2026-10-09, two months late, and the lateness is the point.** Everything above this
+heading is a correct account of the 2026-08-06 spike. The two paragraphs before it were not — they
+described #609 as open and as *"the gating decision for this whole layer"* for two months after it
+closed, in the one section a developer would read to learn whether Style Dictionary is in the
+pipeline. The claim was never checkable: `42` exists because **nothing in this repo catches a
+decision superseded by a later decision**, and the code-layer docs carry no indexed decision at all,
+so this section had no gate and no index row to go stale against. This heading is the first of
+either.
+
+**What was decided.** #609 closed *completed* on 2026-08-07 — option C of four. The canonical
+`$extensions.prism3.modes` tree stays the source of truth, because it is the only shape that holds
+three orthogonal axes (theme × breakpoint × viewport) and the alias graph. **Beside it the engine
+emits flattened, mode-resolved trees that are valid standalone DTCG.** Two merged PRs did it: #639
+(*"Emit a conforming DTCG projection beside the canonical tree"*) and #631, which added
+`packages/tokens` — a stock Style Dictionary over the emitted DTCG, proving the output is consumable
+with no custom code.
+
+**So the answer to "do we ship with Style Dictionary" is neither yes nor no, and the distinction
+matters to anyone building on this.** Style Dictionary is a **gate**, not a dependency: `packages/tokens`
+runs it to prove a conforming consumer reads our output unmodified. The engine neither imports it nor
+needs it. A consumer may use SD, or any conforming tool, or none.
+
+**What finding 1 above still means, re-verified 2026-10-09.** The generalization holds, and it is now
+a statement about the *canonical* tree rather than about the emission as a whole: Style Dictionary's own
+DTCG page documents *"first-class support for the DTCG format"* as of version 4, says the 2025.10 format
+*"is not fully supported yet — this is a work in progress in v5"*, and **does not mention `$extensions`
+anywhere**. A conforming consumer is still blind to the canonical tree's modes. What changed is that it
+is no longer pointed at the canonical tree.
+
+**Two constraints survive and are the ones to carry into the code library:**
+
+- **Style Dictionary stays in a workspace and is never imported by the engine core** — the sentence
+  below this section, unchanged. The buildless, no-`npm install` invariant is what lets the engine
+  bundle into the Figma plugin sandbox.
+- **A production SD configuration must be a second file, never merged into the consumer one.**
+  `packages/tokens/README.md` and `38` Arc 4 both state it, and the reason is that the consumer
+  configuration's value is *entirely conditional on staying naive* — a config taught about our modes
+  stops proving the thing it exists to prove.
 
 **Style Dictionary would be this repo's first real runtime dependency.** It belongs in a workspace
 alongside `apps/studio`/`apps/plugin`, never imported by the engine core — the buildless, no-`npm install` invariant
