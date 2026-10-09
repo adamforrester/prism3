@@ -48,6 +48,7 @@
  * is baked in.
  */
 import { ComponentDef } from '../component-schema';
+import { FOCUSED_FILLED_CARET } from '../field-focus';
 
 export const textField: ComponentDef = {
   id: 'text-field',
@@ -126,7 +127,7 @@ export const textField: ComponentDef = {
   //
   // `filled` (owner decision, 2026-09-25, Prism 2's `Filled` on `reference/Prism2/component-specs/text-field.json`)
   // is the PROJECTED member that holds a value. rest / hover / focus-visible show the placeholder.
-  states: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only', 'pending', 'empty'],
+  states: ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only', 'pending', 'empty'],
   // `status` is field-message's status axis by name and value — the alignment that lets the nested message
   // follow it (see the header). `style` stays as a code-API axis (one value, not projected — admitted in
   // `anatomy.codeOnly`).
@@ -245,6 +246,8 @@ export const textField: ComponentDef = {
     'border': 'color.field.border.rest',
     'border.hover': 'color.field.border.hover',
     'border.focus-visible': 'color.border.focus',
+    // #2318 (owner Q157): the focused field that holds a value keeps the focus border, as `focus-visible` does.
+    'border.focus-visible-filled': 'color.border.focus',
     // read-only keeps the editable field's boundary (owner decision, 2026-09-29, #1710): `field.border.rest`
     // clears 3:1 on the darkest permissible ground, and it is the quietest neutral step that does, so read-only
     // is told apart by its semantics and the affordances its member does not draw (no caret, no hover wash), not by a fainter
@@ -265,18 +268,21 @@ export const textField: ComponentDef = {
     'error.border.rest': 'color.border.danger',
     'error.border.hover': 'color.border.danger',
     'error.border.focus-visible': 'color.border.danger',
+    'error.border.focus-visible-filled': 'color.border.danger',
     'error.border.read-only': 'color.border.danger',
     'error.border.empty': 'color.border.danger',
     'error.border.filled': 'color.border.danger',
     'warning.border.rest': 'color.border.warning',
     'warning.border.hover': 'color.border.warning',
     'warning.border.focus-visible': 'color.border.warning',
+    'warning.border.focus-visible-filled': 'color.border.warning',
     'warning.border.read-only': 'color.border.warning',
     'warning.border.empty': 'color.border.warning',
     'warning.border.filled': 'color.border.warning',
     'success.border.rest': 'color.border.success',
     'success.border.hover': 'color.border.success',
     'success.border.focus-visible': 'color.border.success',
+    'success.border.focus-visible-filled': 'color.border.success',
     'success.border.read-only': 'color.border.success',
     'success.border.empty': 'color.border.success',
     'success.border.filled': 'color.border.success',
@@ -432,8 +438,10 @@ export const textField: ComponentDef = {
         width: 'caret-width',
         height: 'size.{size}.caret-height',
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fixed', y: 'fixed' } },
-        presentWhen: { state: ['focus-visible'] },
-        note: 'The insertion point on the focused empty field, immediately before the placeholder, in the value ink. Code draws the native caret, colored by `caret-color`.',
+        // Also on the focused field that holds a value (#2318, behind `FOCUSED_FILLED_CARET`), at the START of the value:
+        // one caret node per field, since two parts cannot share the `caret` paint slot.
+        presentWhen: { state: ['focus-visible', ...(FOCUSED_FILLED_CARET ? ['focus-visible-filled'] : [])] },
+        note: 'The insertion point on the focused field, in the value ink: before the placeholder when empty, at the start of the value when it holds one. Code draws the native caret where the user is typing, colored by `caret-color`.',
       },
       // THE TWO TEXT LAYERS (Option C, owner decision 2026-09-26). #1567 measured on the live host that a
       // bound TEXT node shows its set's ONE default, and field-message met the same limit in #1575, so one
@@ -448,8 +456,8 @@ export const textField: ComponentDef = {
       value: {
         kind: 'text',
         type: 'size.{size}.type',
-        presentWhen: { state: ['filled', 'read-only', 'pending'] },
-        note: 'The entered value, in the value ink. Shown on the filled and read-only field. One line, never ellipsized (#1758): in code it scrolls with the caret, and in Figma a long value clips at the value row\'s edge.',
+        presentWhen: { state: ['filled', 'focus-visible-filled', 'read-only', 'pending'] },
+        note: 'The entered value, in the value ink. Shown on the filled, focused filled and read-only field. One line, never ellipsized (#1758): in code it scrolls with the caret, and in Figma a long value clips at the value row\'s edge.',
       },
       // THE TRAILING AFFIX — the clear-button / password-reveal edge control that select's chevron slot is
       // NOT. Modeled exactly as the leading glyph (an optional swap slot painted the `icon` ink, its presence
@@ -469,7 +477,8 @@ export const textField: ComponentDef = {
       // axis). The ring owns its own COLOR, so no `focus-ring` color key is bound in `tokens`.
       focusRing: {
         kind: 'absolute',
-        when: 'focus-visible',
+        // At both focus states (#2318): the empty field and the one holding a value are rung alike.
+        when: ['focus-visible', 'focus-visible-filled'],
         nests: 'focus-ring',
         inset: 'ring-offset',
         strokeInset: 'ring-width',
@@ -496,7 +505,7 @@ export const textField: ComponentDef = {
       'the SMALL field on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses an input whose text is under 16px, and the small field\'s input is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small input\'s font size to 16px, which keeps the page still. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. On a touch device the small field therefore pairs a 12px label with a 16px input. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).',
       'style — the outline / filled / underline treatment is theming, not an API axis: `style` carries the single value `outline` and filled/underline are a brand skin over the same anatomy, so there is nothing for a Figma variant to enumerate. Admitted here rather than projected.',
       'pending — a real STATE (a spinner replaces an adornment while async validation/value resolves, and the field sets aria-busy), deliberately NOT a Figma variant. Its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix — the pending member would differ from `rest` only by a node Figma cannot animate — so it stays in `states` (the code tier carries it) and is admitted OUT of the projected `stateAxis`.',
-      'empty — a real STATE in code (the field holds no value, so it shows the placeholder), NOT a Figma variant: in Figma the empty field IS the rest, hover and focus-visible members, which show the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left blank" coordinate) and is held out of the projected `stateAxis` with `pending`, leaving size(3) × status(4) × state(6) = 72 members over rest / hover / filled / focus-visible / disabled / read-only. In code the placeholder and the value are one <input>: its `placeholder` attribute and its value, never two elements.',
+      'empty — a real STATE in code (the field holds no value, so it shows the placeholder), NOT a Figma variant: in Figma the empty field IS the rest, hover and focus-visible members, which show the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left blank" coordinate) and is held out of the projected `stateAxis` with `pending`, leaving size(3) × status(4) × state(7) = 84 members over rest / hover / filled / focus-visible / focus-visible-filled / disabled / read-only. In code the placeholder and the value are one <input>: its `placeholder` attribute and its value, never two elements.',
       'the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser\'s native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder\'s muted one.',
       'the TRAILING AFFIX is an INTERACTIVE control in code — a clear or reveal button that is its own Tab stop with its own accessible name (see the `trailingIcon` / `clearable` props and the a11y block) and RETURNS focus to the input when it acts. Figma has no accessibility tree and no node-to-node reference, so `trailingVisual` projects ONLY the glyph: a member cannot express that the affix is focusable, labeled, or that activating it clears the field. The presence boolean + swap carry which glyph shows and whether it shows; the interaction is the host\'s.',
       'prefix / suffix — the TEXT affixes (a currency symbol, a unit) are code-API props with no Figma part. The field projects the two glyph slots (`leadingIcon` / `trailingIcon`); a text affix is a string beside the value in the same row, and adding it to the projection is a separate anatomy decision (#1699).',
@@ -509,11 +518,11 @@ export const textField: ComponentDef = {
   // How this projects into Figma (#1494, #2266). `size` and `status` are the variant axes; `state` projects the five
   // interactive states (read-only INCLUDED — select gained it in #1699) plus `filled`, the member holding a
   // value. The leading and trailing glyphs' PRESENCE and the message's are node-visibility BOOLEANS, NOT variant
-  // axes, so none multiplies the set: size(3) × status(4) × state(6) = 72 members. `pending` and `empty` are real states (see `states` and the codeOnly
+  // axes, so none multiplies the set: size(3) × status(4) × state(7) = 84 members. `pending` and `empty` are real states (see `states` and the codeOnly
   // entries leading with those names) but are deliberately absent from this projected axis.
   figmaProperties: {
     variantAxes: ['size', 'status'],
-    stateAxis: { name: 'state', values: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only'] },
+    stateAxis: { name: 'state', values: ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only'] },
     // `state` across the columns — the axis a designer reads a control's skin across, and the widest here.
     gridAxis: 'state',
     // TWO TEXT PROPERTIES (Option C, owner decision 2026-09-26), lowercase per #1333, projecting first in the
@@ -524,7 +533,7 @@ export const textField: ComponentDef = {
       value: { part: 'value', default: 'Entered text' },
     },
     // THREE NODE-VISIBILITY BOOLEANS (#1331/#1412/#1494), none a variant axis — each toggles a part's
-    // `visible` in place, so none multiplies the set (still 72 members).
+    // `visible` in place, so none multiplies the set (still 84 members).
     //   · `leadingIcon`: `leadingVisual` is emitted hidden (default false) and the `leading icon` switch shows it.
     //   · `trailingIcon`: `trailingVisual` is emitted hidden (default false) and the `trailing icon` switch shows it.
     //   · `showMessage`: the composed `message` nest is emitted VISIBLE (default true — the message is part of the

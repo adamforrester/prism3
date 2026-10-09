@@ -836,8 +836,12 @@ export type PartDef = {
    *  declared AND validated, and the projection still could not use any of it, because *when* was the
    *  one fact nobody had written down. **A declaration that omits its trigger is not projectable,
    *  however complete it looks** — and it looks complete precisely because every field that exists
-   *  is filled in. */
-  when?: string;
+   *  is filled in.
+   *
+   *  An `overlay` names ONE state. An `absolute` part may name a LIST (#2318): the focus ring rings the field at
+   *  `focus-visible` AND at `focus-visible-filled`, one part at both states rather than two rings. Read it through
+   *  `whenStates`, never as a string. */
+  when?: string | readonly string[];
   /** For `absolute`: the NAME of a component that must already exist in the file, which this part
    *  materializes as an INSTANCE of rather than authoring from nothing.
    *
@@ -1618,6 +1622,9 @@ export type ComponentDef = {
 export const SUMMARY_MAX = 100;
 
 export const statesOf = (def: ComponentDef): readonly string[] => def.states ?? [];
+/** The states a part's `when` names, one or a list (#2318): empty when it names none. */
+export const whenStates = (p: { when?: string | readonly string[] } | undefined): readonly string[] =>
+  p?.when === undefined ? [] : typeof p.when === 'string' ? [p.when] : p.when;
 export const variantsOf = (def: ComponentDef): Record<string, string[] | undefined> => def.variants ?? {};
 
 /**
@@ -2552,10 +2559,18 @@ export const BOX_PAINT_SLOTS = ['overlay', 'fill', 'border', 'indicator', 'caret
  * of `empty`, not a synonym for any entry: `rest`/`hover`/`focus-visible` now show the placeholder (the
  * empty field at each interaction), and `filled` is the one coordinate whose text is a value in value ink.
  * `empty` stays for code, where emptiness is a content condition that co-occurs with every interaction.
+ *
+ * ── `focus-visible-filled`, THE TWELFTH (#2318, owner decision Q157, 2026-10-09) ──────────────────────
+ *
+ * The same three fields project the FOCUSED field that HOLDS A VALUE: the focus ring and focus border of
+ * `focus-visible` around the value of `filled`. Neither of those two expresses it (`focus-visible` is the empty
+ * focused field; `filled` is the value at rest), and in code focus and value are independent, so a field being
+ * typed in is both. The design-rebuild test had to place an active password field as `filled`, losing its focus
+ * border. A distinct interaction, so it clears the bar above.
  */
 export const STATES = [
   'rest', 'hover', 'pressed', 'focus-visible', 'disabled',
-  'pending', 'inactive', 'read-only', 'error', 'empty', 'filled',
+  'pending', 'inactive', 'read-only', 'error', 'empty', 'filled', 'focus-visible-filled',
 ] as const;
 
 /** One member of the closed state vocabulary. `ComponentDef.states` is `State[]`, so an unknown state
@@ -3658,6 +3673,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       // validates clean, reads complete, and no projection can place it — which is exactly how the
       // spinner sat in this def while `state=pending` emitted a plan byte-identical to `rest`.
       if (!p.when) e.push(`anatomy part '${n}': an overlay must declare the state it appears in ('when') — without it nothing can project it`);
+      else if (typeof p.when !== 'string') e.push(`anatomy part '${n}': an overlay's when names ONE state, not a list (${p.when.join(', ')}) — it replaces a part on exactly one state`);
       else if (!statesOf(def).includes(p.when)) e.push(`anatomy part '${n}': when '${p.when}' is not one of states [${statesOf(def).join(', ')}]`);
       // The fallback target must exist and must NOT be optional. An optional one reintroduces the
       // defect one level down: if the part the overlay falls back to overlaying can itself be absent,
@@ -3683,8 +3699,8 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       // Same requirement, same reason as an overlay's: a part that never says WHEN it appears is
       // decorative declaration. The ring appears on exactly one state and a projection cannot guess
       // which — #536 item 2's lesson applied before the kind has a chance to repeat it.
-      if (!p.when) e.push(`anatomy part '${n}': an absolute part must declare the state it appears in ('when') — without it nothing can project it`);
-      else if (!statesOf(def).includes(p.when)) e.push(`anatomy part '${n}': when '${p.when}' is not one of states [${statesOf(def).join(', ')}]`);
+      if (!whenStates(p).length) e.push(`anatomy part '${n}': an absolute part must declare the state it appears in ('when', one state or a list) — without it nothing can project it`);
+      else for (const w of whenStates(p)) if (!statesOf(def).includes(w)) e.push(`anatomy part '${n}': when '${w}' is not one of states [${statesOf(def).join(', ')}]`);
       // `nests` is REQUIRED rather than optional, and this is the decision from `PartDef.nests` made
       // enforceable: an `absolute` with nothing nominated would have to be authored from scratch, which
       // is the N-way duplication the shared ring exists to avoid. Half-supporting both shapes would
