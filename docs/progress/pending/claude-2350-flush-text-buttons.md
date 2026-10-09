@@ -63,6 +63,9 @@ its PR when the owner decided Q145. This rework replaces it on the same branch. 
 - **`apps/studio/gen-component-catalog.ts --write` is not in `regen.ts`.** A member-count change leaves
   `component-catalog-data.ts` stale until it runs; `test-component-catalog.ts` names it.
 - **`schema/component-axes.json` is not in `regen.ts` either**: `lint-component-renames.ts --accept` rewrites it.
+- **`schema/paint-census.json` is `lint-paint.ts --accept`, not regen.** Read the diff before accepting: from
+  `main` each family's set goes 432 → 576 members and 1218 → 1512 paint assignments, about 2 per flush member (the
+  label and icon inks, no wash).
 - **Commit the change note before `lint-emission-version`.** It compares commits, and fails until the note is
   committed.
 - **Three sweeps skip flush members on purpose.** #1387's quiet-hover sweep, the plugin's #1646/#1608 solid-tint and

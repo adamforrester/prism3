@@ -27,38 +27,38 @@
     },
     "button": {
       "set": {
-        "members": 720,
-        "assignments": 1806,
-        "sha256": "6ef87b29e60e5884c186aea462c80636a87adf3c36fd1527b69660d013068491"
+        "members": 576,
+        "assignments": 1512,
+        "sha256": "65067c92ba6ecaf3985d9d21330000bcdae4866b824bf971552df05fdfec5a64"
       },
       "grid": {
-        "members": 420,
-        "assignments": 1452,
-        "sha256": "ccf1988d70149a77dfc469a9611b95f1853369e4bfd3b30133837716292a74cd"
+        "members": 336,
+        "assignments": 1200,
+        "sha256": "a245cc89668bb3d8e9b4308ca3bd77d17281af4b293bfb5839cc165f808aea55"
       }
     },
     "button-destructive": {
       "set": {
-        "members": 720,
-        "assignments": 1806,
-        "sha256": "14dd8b771baa7a1916a4c02aa717e73b71e4c6b21c380095f68b67368b3ddba1"
+        "members": 576,
+        "assignments": 1512,
+        "sha256": "0e99307b197c357f9a4338fa459bd109782cf29f5c9cacaef4c41a647af2b6d5"
       },
       "grid": {
-        "members": 420,
-        "assignments": 1452,
-        "sha256": "7515f159171ef33b70aa365294179b8b639af88a95c64a38c44e4721a6e8c0ce"
+        "members": 336,
+        "assignments": 1200,
+        "sha256": "b4b8b9c207b945b1ee39cf7457932257b599cfe1ce72536939bc03ddd5a895c2"
       }
     },
     "button-neutral": {
       "set": {
-        "members": 720,
-        "assignments": 1806,
-        "sha256": "03d5848f533303b1671364b3b99531958f454d165b55e2f151cc430a5be96d28"
+        "members": 576,
+        "assignments": 1512,
+        "sha256": "97c72b261a5a223ea87d14b7cc7a50c5c3e3c76d5e97a7427a92bab9cb34e674"
       },
       "grid": {
-        "members": 420,
-        "assignments": 1452,
-        "sha256": "4f5992114adf33eb373730352e55fa7099e11fb926bff882accecfce26258e80"
+        "members": 336,
+        "assignments": 1200,
+        "sha256": "03da1fb372ebf308ce60b4394e649c3016409fd39d7cceeed849a3a9b1c9b85f"
       }
     },
     "icon-button": {
