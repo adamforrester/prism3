@@ -11,8 +11,9 @@ moved out beside the header. A first build never hit this because the header is 
 
 **The fix, in `write-components.ts` only.** `pageBoxes` marks the header (an INSTANCE or detached FRAME named
 `_section-header`, any case: an instance of a variant carries its set's name). `placeNewSet` leaves the header
-out of the content it measures, and when the header is all the page holds it places the set on the header's
-left edge, 80px below the header's bottom: where `page-header.ts` puts a header relative to the content, read
+out of the content it measures, and when the page has a header and no set it places the set 80px below the
+header's bottom, on the header's left edge (pushed right only by a node in that row, never lifted to a stray
+node's `y`): where `page-header.ts` puts a header relative to the content, read
 in reverse. Siblings then follow the existing rule. An existing set is never passed to `placeNewSet`, so its
 position is untouched, as before.
 
@@ -23,12 +24,20 @@ than imported from `page-header.ts`: a value import would pull `page-header.ts` 
 so `EXECUTOR_REVISION` goes 4 → 5: the in-place update's dry run will report members as needing a re-apply
 once, with no field difference.
 
-**Verified.** `test-write-components.ts` (f) and (g): a page holding only a header at 100,-300 (1000x220)
-gets the rebuilt set at 100,0 and its sibling at 1040,0; a page with a header and a set the designer moved to
-300,500 keeps it there and puts the new one at 1240,500. All literals. With main's `placeNewSet` restored,
-(f) fails by name: "got 1260,-300", the live report's shape.
+**Verified.** `test-write-components.ts` (f)–(i), every expected position a literal. (f): a page holding only
+an instance header named `_Section-header` (capital S, as `file-components.ts` names the set) at 100,-300
+(1000x220) gets the rebuilt set at 100,0 and its sibling at 1040,0. (g): a header and a set the designer moved
+to 300,500 keeps it there and puts the new one at 1240,500. (h): a detached FRAME header gets the set at 100,0.
+(i): a header plus a stray note beside it and no set still gets the set at 100,0 (top-aligned with the stray it
+went to 1660,-300); a stray in the row under the header pushes it to 460,0. Mutations, each failing by name:
+the header's height dropped from the below-header `y` (got 1260,-220); a case-sensitive name match (got
+1260,-300); instances only (the FRAME case, got 1260,-300); the page with a stray node measured as content
+(got 1660,-300). The first review found the last three surviving against the original fixtures, which used a
+lowercase name, an instance only, and no stray node.
 
 **Not covered.** The header is found by name. A designer who renames the header instance makes it ordinary
 content again, and the old beside-it placement returns for that page. Matching by main component would need
-an async read per top-level node; not done until a renamed header is seen. Live verification on a scratch
+an async read per top-level node; not done until a renamed header is seen. And `pageBoxes` reads top-level
+nodes only, so a header a designer moved inside a Section is not seen as the header (`page-header.ts` does find
+it there): the Section is measured as ordinary content and the set lands beside it, the pre-fix shape. Live verification on a scratch
 file is still owed before use on a client file.
