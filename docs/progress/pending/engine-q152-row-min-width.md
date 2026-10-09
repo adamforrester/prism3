@@ -1,7 +1,7 @@
 ## (2026-10-09) — Checkbox and radio rows and groups shrink with their column, like the fields (owner Q152.3, Q155 A)
 
-**Status:** engine (two defs), plugin tests and the component shim. ENGINE minor (change note): the projected
-component surface moves for both rows. No token name or value moves, so CONTRACT is unchanged. Owner decisions,
+**Status:** engine (four defs), plugin tests and the component shim. ENGINE minor (change note): the projected
+component surface moves for both rows and both groups. No token name or value moves, so CONTRACT is unchanged. Owner decisions,
 recorded on #2266: **Q152.3** (Q99 B reaches checkbox-row and radio-row; their root `minWidth: 320` goes, as a
 follow-up PR to #2388) and **Q152.2** (the minimum width is 120px); and, on #2409, **Q155 A** (the groups follow
 their rows: checkbox-group and radio-group drop their own 320 minimum the same way).
