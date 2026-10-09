@@ -11,6 +11,8 @@ Owner decision Q109 A: a same-named hand-made icon is kept, Adopt is never offer
 
 - **With #2396's stamp-only path:** an icon or spinner from an earlier plugin (`revisionUnknown`) takes only its stamp, found by its node's own name (`icon/check` for `name=check`). `single/stamped` holds it: 44 icons stamped, 0 other writes. Mutation: the restamp looked up by coordinate → `single/stamped` (0 stamped).
 
+- **The draw check reads single components too** (#2363 review): an icon drawn black under its binding, its record matching and its stamp an earlier plugin's, reads "to update" and is repaired, while the other 43 take their stamps. `single/damage` (+ `repaired`) holds it. Mutation: `readSingleView` read without the file's variables → both fail (`✓ already up to date; 0 updated, 44 stamped; 1 faults`).
+
 ### Traps for whoever re-verifies
 
 - **The shim gains `liveComponents`** (opt-in, under `liveRoot`): a COMPONENT search returns the page's top-level component nodes themselves, as Figma does, not name-only references. Without it, the executor had no node to configure an icon in place. It is opt-in because an existing case may use a reference's own `id` as an INSTANCE_SWAP default.

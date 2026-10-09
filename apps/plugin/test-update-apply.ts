@@ -865,6 +865,34 @@ section('mixed — in a set the build updates, a member from an earlier plugin s
     `single/stamped: each icon takes its stamp and nothing else, and all 44 read current (${res.outcomes[0]?.restamped?.length} stamped; ${other.length} other writes; ${JSON.stringify(again.counts)}; ${applyVerdict(res).headline})`);
 }
 
+{
+  // A DAMAGED ICON UNDER A CURRENT RECORD (#2363 review): an icon's glyph vector stores black under its intact binding,
+  // which its record cannot see (a bound paint is hashed by its variable), and every stamp is an earlier plugin's. The
+  // draw check reads single components as it reads set members, so that icon is "to update" and is repaired; the other
+  // 43 take only their stamps. Mutation: `readSingleView` read without the file's variables → `single/damage`.
+  const plans = plansOf('icon');
+  const w = await singleWorld(plans);
+  const hit = w.comps()[0];
+  const vec = (hit.findAll as (f: (n: Node) => boolean) => Node[])((n) => n.type === 'VECTOR' && Array.isArray(n.fills) && (n.fills as { boundVariables?: { color?: unknown } }[]).some((p) => p?.boundVariables?.color))[0];
+  vec.fills = (vec.fills as object[]).map((p) => ({ ...p, color: { r: 0, g: 0, b: 0 }, opacity: 1 }));
+  for (const c of w.comps()) {
+    const st = (c.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+    (c.setSharedPluginData as (a: string, b: string, cc: string) => void)(NS, STAMP_KEY, st.split('|').slice(0, 2).join('|'));
+  }
+  const t = { def: 'icon', plans, single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  const st = pre.sets[0];
+  const stateOf = st?.states.find((x) => x.member === `name=${String(hit.name).replace(/^icon\//, '')}`)?.state;
+  ok(stateOf === 'update' && st?.counts.revisionUnknown === 43 && st.changes.some((c) => c.field === 'fills' && /stored #000000/.test(c.from)),
+    `single/damage: the icon drawn black under its binding reads "to update", named, though its record matches and its stamp is an earlier plugin's (${stateOf}; ${st?.counts.revisionUnknown} from an earlier plugin; ${st?.changes.map((c) => `${c.field}: ${c.from}`).join(' | ')})`);
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  const vars = await varsById(w.api as any);
+  const left = w.comps().flatMap((c) => drawnFaults(c, vars));
+  const again = (await previewUpdate(w.host, [t])).sets[0];
+  ok(applyVerdict(res).ok && res.outcomes[0]?.updated.length === 1 && res.outcomes[0]?.restamped?.length === 43 && left.length === 0 && again.counts.current === 44,
+    `single/damage repaired: the update re-applies that icon, which then draws its variable's color; the other 43 take their stamps; all 44 read current (${applyVerdict(res).headline}; ${res.outcomes[0]?.updated.length} updated, ${res.outcomes[0]?.restamped?.length} stamped; ${left.length} faults; ${again.counts.current} current)`);
+}
+
 /* ── what the host draws ────────────────────────────────────────────────────────────────────────────────── */
 section('what the host draws — after an update in place, every bound paint shows its own color and every glyph fits its frame (#2379)');
 {
