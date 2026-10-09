@@ -50,10 +50,11 @@ import { diffAnatomy, type HostNode } from '@prism3/engine/anatomy-readback';
 import { planBoundVars, planComponentName, planEffectStyles, planPaintVars, planSetProperties, planTextStyles, type AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { tailOf } from '@prism3/engine/figma-names';
 import type { ComponentRename } from '@prism3/engine/component-renames';
-import { applyComponentPlan, type ComponentApplyResult, type ComponentsApi, type CompPageTarget } from './write-components';
+import { applyComponentPlan, memberStamp, STAMP_KEY, type ComponentApplyResult, type ComponentsApi, type CompPageTarget } from './write-components';
 import { planTargets, presentNames } from './build-deps';
 import { NS } from './persist-figma';
-import { snapshotMember } from './member-baseline';
+import { baselineDiff, baselineOf, readBaseline, snapshotMember } from './member-baseline';
+import { drawnFaults, faultLine, varsById } from './drawn';
 import { hostPorts, previewUpdate, readSetView, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 
 /** The set's record of the members an update kept and marked deprecated (Q2): a JSON list of member names. */
@@ -113,6 +114,8 @@ export type SetOutcome = {
   skipped: { member: string; reason: string }[];
   /** Members updated with no as-built record, so with no hand-edit check (`choices.noBaseline`, default `update`). */
   unrecorded: string[];
+  /** Of `unrecorded`, those whose record was from an earlier format (#2379 review). */
+  earlierRecord?: string[];
   /** Hand edits, by member and path, and what this run did with them (`choices.handEdits`). */
   kept: { member: string; path: string }[];
   handEdits: HandEditChoice;
@@ -124,6 +127,9 @@ export type SetOutcome = {
   misses: string[];
   /** Set when the run stopped in this set. */
   stopped?: string;
+  /** Members the dry run read as built by an earlier plugin and otherwise unchanged (`revisionUnknown`): given the
+   *  current stamp and nothing else (#2379). */
+  restamped?: string[];
 };
 
 export type ApplyResult = {
@@ -246,23 +252,30 @@ const preflight = async (api: ComponentsApi, t: UpdateTarget, p: SetPreview, liv
 };
 
 /** Which members this update configures, which it leaves, and why, from the dry run alone. */
-const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): { members: Map<string, { keep: Set<string>; accept?: boolean }>; skipped: { member: string; reason: string }[]; kept: { member: string; path: string }[]; unrecorded: string[] } => {
+const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): { members: Map<string, { keep: Set<string>; accept?: boolean }>; skipped: { member: string; reason: string }[]; kept: { member: string; path: string }[]; unrecorded: string[]; restamp: string[]; earlierRecord: string[] } => {
   const byMember = new Map<string, SetPreview['handEdits']>();
   for (const h of p.handEdits) byMember.set(h.member, [...(byMember.get(h.member) ?? []), h]);
   const members = new Map<string, { keep: Set<string>; accept?: boolean }>();
   const skipped: { member: string; reason: string }[] = [];
   const kept: { member: string; path: string }[] = [];
   const unrecorded: string[] = [];
+  const restamp: string[] = [];
+  const earlierRecord: string[] = [];
   const moved = new Map(p.moves.map((m) => [m.from, m.to] as const));
   const rootReplaced = new Set(p.replacements.filter((r) => r.path === '.').map((r) => r.member));
   for (const s of p.states) {
     const at = moved.get(s.member) ?? s.member;
     const edits = byMember.get(s.member) ?? [];
     if (s.state === 'unstamped') { skipped.push({ member: s.member, reason: 'not built by Prism3' }); continue; }
+    // NO CHANGES (#2379): a member the dry run reads as built by an earlier plugin matches its plan and its record.
+    // The build's pass is never run over it: on the NB master that pass, over 16 such sets, is what broke them. It
+    // takes the current stamp, and nothing else is written.
+    if (s.state === 'revisionUnknown') { restamp.push(at); continue; }
     if (s.state === 'noBaseline') {
       // NEVER READ AS "NO HAND EDITS": with no record there is no check, and the verdict says so by name.
       if (noRecord === 'skip') { skipped.push({ member: s.member, reason: 'no as-built record' }); continue; }
       unrecorded.push(at);
+      if (s.earlierRecord) earlierRecord.push(at);
       members.set(at, { keep: new Set<string>() });
       continue;
     }
@@ -273,7 +286,31 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
     for (const e of edits) kept.push({ member: at, path: e.path });
     members.set(at, { keep, ...(choice === 'accept' ? { accept: true } : {}) });
   }
-  return { members, skipped, kept, unrecorded };
+  return { members, skipped, kept, unrecorded, restamp, earlierRecord };
+};
+
+/** The members `plan` left for the current stamp alone (#2379). Each is checked against its record first, and again
+ *  after: a member that differs from it is not stamped, and anything written to one while it was stamped is a
+ *  content failure, by name. */
+const restampMembers = async (live: LiveSet, names: readonly string[], plans: ReadonlyMap<string, AnatomyPlan>, out: SetOutcome): Promise<void> => {
+  out.restamped = [];
+  const byName = new Map(kidsOf(live).map((c) => [String(c.name ?? ''), c as LiveNode & { setSharedPluginData?(ns: string, k: string, v: string): void }] as const));
+  for (const name of names) {
+    const m = byName.get(name);
+    const pl = plans.get(name);
+    if (!m || !pl) { out.skipped.push({ member: name, reason: 'not in the set to stamp' }); continue; }
+    const rec = readBaseline(m);
+    const now = baselineOf(await snapshotMember(m));
+    const d = rec ? baselineDiff(rec, now) : null;
+    if (!d || d.changed.length + d.added.length + d.removed.length) {
+      out.content.push(`${name}: differs from its record (${d ? [...d.changed, ...d.added, ...d.removed].slice(0, 3).join(', ') : 'no record'}), so it was not stamped`);
+      continue;
+    }
+    m.setSharedPluginData?.(NS, STAMP_KEY, memberStamp(pl));
+    const after = baselineDiff(rec!, baselineOf(await snapshotMember(m)));
+    if (after.changed.length + after.added.length + after.removed.length) out.content.push(`${name}: changed while it was stamped (${[...after.changed, ...after.added, ...after.removed].slice(0, 3).join(', ')})`);
+    out.restamped.push(name);
+  }
 };
 
 /** One set: renames, property changes, deprecations, then the build's own pass in update mode, then verify. */
@@ -282,6 +319,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   const work = plan(p, opts.handEdits, opts.noBaseline);
   out.skipped = work.skipped;
   out.unrecorded = work.unrecorded;
+  if (work.earlierRecord.length) out.earlierRecord = work.earlierRecord;
   out.kept = work.kept;
   const plans = new Map(t.plans.map((x) => [planComponentName(x), x] as const));
 
@@ -383,6 +421,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
 
   // ── VERIFY (b): CONTENT, every updated member against its plan, apart from the hand edits kept ──────────────
   const ports = await hostPorts(host);
+  const varById = await varsById(api as unknown as Parameters<typeof varsById>[0]);
   for (const name of out.updated) {
     const a = after.get(name);
     const pl = plans.get(name);
@@ -409,7 +448,11 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
       for (const c of pn.children ?? []) unpainted(c, kids.find((k) => String(k.name ?? '') === c.name), at === '.' ? c.name : `${at}/${c.name}`);
     };
     unpainted(pl.root, a as LiveNode & { fills?: unknown; strokes?: unknown }, '.');
+    // WHAT THE HOST DRAWS (#2379): the paint's stored color and alpha, and a glyph's vectors where they sit, which
+    // `diffAnatomy` does not read. The dry run judges a member by the same check (`drawn.ts`).
+    for (const f of drawnFaults(a, varById, (part) => [...keep].some((k) => part === k || part.startsWith(`${k}/`)))) out.content.push(faultLine(name, f));
   }
+  if (work.restamp.length) await restampMembers(now, work.restamp, plans, out);
   return out;
 };
 
@@ -436,17 +479,19 @@ export const applyUpdate = async (
   const liveOf = new Map<string, LiveSet>();
   for (const s of host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as LiveSet[]) liveOf.set(String(s.name ?? ''), s);
   const ordered = nestedFirst(targets);
-  const ready: { t: UpdateTarget; p: SetPreview; live: LiveSet }[] = [];
+  const ready: { t: UpdateTarget; p: SetPreview; live: LiveSet; stampOnly?: boolean }[] = [];
   for (const t of ordered) {
     const p = preview.sets.find((s) => s.set === (t.plans[0]?.component ?? t.def));
     const live = p ? liveOf.get(p.set) : undefined;
     if (!p || !live) continue;
     const why = await preflight(api, t, p, live, present);
     if (why) { res.outcomes.push({ def: t.def, set: p.set, refused: why, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: [], misses: [] }); continue; }
-    // Every member state the apply writes counts here, `noBaseline` included (#2364): a set whose members all lack a
-    // record reads no `update` at all, and was called already up to date while the dry run listed its differences.
-    const nothing = p.counts.update + p.counts.handEdited + p.counts.noBaseline + p.counts.add + p.counts.drop + p.counts.rename + p.counts.revisionUnknown === 0
+    // Nothing for the build's pass to do. `noBaseline` counts (#2364): a set whose members all lack a record reads no
+    // `update`, and was called already up to date. A member from an earlier plugin (`revisionUnknown`) does not (#2379):
+    // it takes only the current stamp, so a set of nothing else is stamped and never built over.
+    const nothing = p.counts.update + p.counts.handEdited + p.counts.noBaseline + p.counts.add + p.counts.drop + p.counts.rename === 0
       && Object.values(p.properties).every((l) => l.length === 0);
+    if (nothing && p.counts.revisionUnknown) { ready.push({ t, p, live, stampOnly: true }); continue; }
     if (nothing) {
       // A set left alone must not leave a difference the dry run named: each is a failure of this set, by name,
       // the way verify's content check names a field an applied member still holds. Never "already up to date".
@@ -467,9 +512,16 @@ export const applyUpdate = async (
     res.refusedAll = `the named version could not be saved (${(err as Error)?.message ?? String(err)}), so nothing was written`;
     return res;
   }
-  for (const { t, p, live } of ready) {
+  for (const { t, p, live, stampOnly } of ready) {
     // Re-read: a nested set updated just before this one changed what this one's instances point at.
     const fresh = (host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as LiveSet[]).find((s) => String(s.name ?? '') === p.set) ?? live;
+    if (stampOnly) {
+      const o: SetOutcome = { def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: [], misses: [] };
+      const w = plan(p, choiceFor(opts.choices, p.set), noRecordFor(opts.choices, p.set));
+      await restampMembers(fresh, w.restamp, new Map(t.plans.map((x) => [planComponentName(x), x] as const)), o);
+      res.outcomes.push(o);
+      continue;
+    }
     const o = await applySet(host, api, t, p, fresh, { description: opts.descriptionOf?.(t.def), yieldTo: opts.yieldTo, handEdits: choiceFor(opts.choices, p.set), noBaseline: noRecordFor(opts.choices, p.set) });
     res.outcomes.push(o);
     if (o.stopped) break;
@@ -489,7 +541,11 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   }
   const stopped = r.outcomes.find((o) => o.stopped);
   const failed = r.outcomes.filter((o) => o.identity.length || o.content.length);
-  const refused = r.outcomes.filter((o) => o.refused).length + r.refused.length;
+  // A set the apply entered and wrote nothing to, every member it would have written left as it is (`noBaseline:
+  // 'skip'`, a layer added by hand, a member that would need replacing), still holds what its dry run listed. It is
+  // NOT UPDATED, never "already up to date" (#2364 review; the owner's choice, 2026-10-08: the approved headline).
+  const idle = r.outcomes.filter((o) => !o.refused && !o.stopped && o.skipped.length && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length).length;
+  const refused = r.outcomes.filter((o) => o.refused).length + r.refused.length + idle;
   const updated = r.outcomes.reduce((k, o) => k + o.updated.length, 0);
   const added = r.outcomes.reduce((k, o) => k + o.added, 0);
   const deprecated = r.outcomes.reduce((k, o) => k + o.deprecated.length, 0);
@@ -507,7 +563,9 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
       o.renamed ? `${o.renamed} renamed` : '',
       o.deprecated.length ? `${o.deprecated.length} marked deprecated` : '',
       o.kept.length ? `${n(o.kept.length, 'hand edit')} ${o.handEdits === 'overwrite' ? 'overwritten' : o.handEdits === 'accept' ? 'accepted as built' : 'kept'}` : '',
-      o.unrecorded.length ? `${o.unrecorded.length} of them without an as-built record` : '',
+      o.unrecorded.length - (o.earlierRecord?.length ?? 0) ? `${o.unrecorded.length - (o.earlierRecord?.length ?? 0)} of them without an as-built record` : '',
+      // The owner's wording (2026-10-09).
+      o.earlierRecord?.length ? `${o.earlierRecord.length} of them recorded by an earlier plugin version` : '',
       o.skipped.length ? `${o.skipped.length} left as they are` : '',
     ].filter(Boolean);
     lines.push(parts.length ? `${o.set}: ${parts.join(', ')}.` : `${o.set}: already up to date.`);

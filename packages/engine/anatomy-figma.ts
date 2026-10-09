@@ -1450,14 +1450,20 @@ export const figmaAnatomyPlan = (
     if (px === undefined) throw new Error(`${def.id}: part '${part}' has a per-size ${what} with no entry for size '${size}'`);
     return px;
   };
+  const parentOf = parentsOf(def);
+  // IS THIS BOX FLUSH at this coordinate (#2350): its `flush.axis` holds `flush.value`. A coordinate that does not
+  // give the axis is the box as authored, the conservative reading `positionOf` takes.
+  const isFlush = (p: PartDef | undefined): boolean => !!p?.flush && axisValue(p.flush.axis) === p.flush.value;
   // The pin a node carries (#1667): its own when it is a pinned part (only ever projected when present),
-  // or the replaced cell's when it is the overlay that took that cell.
+  // or the replaced cell's when it is the overlay that took that cell. In a flush parent (#2350) it sits AT
+  // the edge: the inset it was pinned at was that side's padding, and a flush box has none.
   const pinOf = (name: string): FigmaNodePlan['pin'] => {
     const from = activeOverlay && name === activeOverlay[0] && replacedByOverlay ? replacedByOverlay : name;
     const pin = a.parts[from]?.pin;
-    return pin ? { edge: pin.edge === 'start' ? 'MIN' : 'MAX', inset: perSize(from, 'pin inset', pin.inset) } : undefined;
+    if (!pin) return undefined;
+    const flushed = isFlush(a.parts[parentOf.get(from) ?? '']);
+    return { edge: pin.edge === 'start' ? 'MIN' : 'MAX', inset: flushed ? 0 : perSize(from, 'pin inset', pin.inset) };
   };
-  const parentOf = parentsOf(def);
   const node = (name: string, p: PartDef): FigmaNodePlan => {
     // WHERE THIS PART FILLS (#1751), and the parent-side supplier each axis takes — see `fillsAxis`.
     const parentName = parentOf.get(name);
@@ -1545,8 +1551,16 @@ export const figmaAnatomyPlan = (
           if (!pin || !slotPresent(c)) continue;
           const side = pin.edge === 'start' ? 'paddingLeft' : 'paddingRight';
           delete bound[side];
-          paddingPx[side] = perSize(c, 'pin reserve', pin.reserve);
+          // In a flush box (#2350) the reserve drops the inset the icon is no longer pinned at (`pinOf`).
+          paddingPx[side] = perSize(c, 'pin reserve', pin.reserve) - (isFlush(p) ? perSize(c, 'pin inset', pin.inset) : 0);
         }
+        // FLUSH (#2350, owner Q145 A): both inline paddings bind the def's zero step instead of the label or
+        // visual inset, so the content sits on whichever edge it shares with the content around it. A pinned
+        // cell's side already took its reserve above, less the inset, and keeps it: the reserve holds the icon's
+        // room, not padding.
+        if (isFlush(p))
+          for (const side of ['paddingLeft', 'paddingRight'] as const)
+            if (paddingPx[side] === undefined) bound[side] = varOf(p.flush!.key);
       }
     } else if (p.kind === 'absolute') {
       // NOTHING in `bound`, deliberately. An absolute part's geometry is its position and its size, and
@@ -1620,6 +1634,9 @@ export const figmaAnatomyPlan = (
       let fill: string | undefined;
       for (const slot of declared) {
         if (slot === 'border') continue; // the one EDGE slot — it reaches `strokes`, never `fills`
+        // A FLUSH box paints no wash (#2350, owner Q143 item 2): with no padding it would hug the content, so a
+        // flush text button hovers by color only, under "Fill" too.
+        if (slot === 'overlay' && isFlush(p)) continue;
         fill = paintOf(slot);
         if (fill) break;
       }
@@ -1749,7 +1766,9 @@ export const figmaAnatomyPlan = (
       ...(p.kind === 'box' && name === a.root && p.placementWidth !== undefined ? { placementWidth: p.placementWidth } : {}),
       // The auto-layout width floor (#1343a, #1345), carried ONLY when the def sets it so every other
       // box's plan is byte-identical — a literal px the def states, not a bound token (`PartDef.minWidth`).
-      ...(p.kind === 'box' && p.minWidth !== undefined ? { minWidth: minWidthAt(name, p.minWidth) } : {}),
+      // A FLUSH box (#2350) has none: it hugs its content, so a floor wider than the label never leaves slack
+      // between the label and the edge it aligns to. Its height, and so its hit target, is unchanged.
+      ...(p.kind === 'box' && p.minWidth !== undefined && !isFlush(p) ? { minWidth: minWidthAt(name, p.minWidth) } : {}),
       // THE RESERVED SIDES (#1667), computed with the padding above — see `paddingPx`.
       ...(Object.keys(paddingPx).length ? { paddingPx } : {}),
       // THE PIN (#1667), on a filled pinned slot, or on the overlay that took a pinned cell — the spinner
@@ -1990,17 +2009,45 @@ export const isPillable = (def: ComponentDef): boolean => !!def.anatomy?.derived
  * circular one stays circular, and `button` (which still binds `radius.md` under the key `radius`) is
  * repointed exactly as before — its default plan is byte-identical.
  *
- * NARROW BY CONSTRUCTION: it rewrites ONLY refs equal to the rounded rung and ONLY for pill-able defs.
+ * NARROW BY CONSTRUCTION: it rewrites ONLY refs equal to the rounded rung and ONLY for pill-able defs, plus,
+ * under `boxed` and `hairline` alone, the field and checkbox corners `FIELD_CORNER_REFS` names by def id (#2361).
  * `switch`/`radio` carry no `pill-radius` derivation, so `isPillable` is false and they pass through
  * untouched — and even were they pill-able, their `radius.round` ref is not the rounded rung, so the lever
  * cannot reach the one binding that already gives them their intrinsic pill/circle.
  */
 export const ROUNDED_RADIUS_RUNG = 'radius.md';
+
+/**
+ * `boxed` AND `hairline` REACH FIELDS AND THE CHECKBOX TOO (#2361, owner 2026-10-08: "1px corners everywhere",
+ * for consistency first; Q139 added `boxed`, the same way). `rounded` and `pill` still reach only the pill-able
+ * set: a pill field or a pill checkbox would be wrong, and `rounded` is the identity.
+ */
+export const FIELD_CORNER_SHAPES: readonly ControlShape[] = ['boxed', 'hairline'];
+
+/**
+ * Each entry is a def id and the corner refs it repoints to the shape's rung (`radius.none` or `radius.hairline`).
+ * SELECTED BY ID, NOT BY REF, and that is the point: `radius.sm` is also Badge's `status.radius`, which a field
+ * setting must not reach. The checkbox's refs are its per-rung clamped corner (#1015, `controlRadius`): 0px and
+ * 1px are both below that clamp on every edge of 8px or more (`snap2(edge ÷ 8)` ≥ 2 there, and the smallest
+ * control rung is 12px), so the clamp still holds and the `control.size.*.radius` tokens are emitted unchanged.
+ * `radio-control` and `switch-control` are not listed: their `radius.round` is intrinsic, as under every other
+ * shape. Rows and groups nest the control, so they carry no corner of their own to repoint.
+ */
+export const FIELD_CORNER_REFS: Readonly<Record<string, readonly string[]>> = {
+  'text-field': ['radius.sm'],
+  select: ['radius.sm'],
+  textarea: ['radius.sm'],
+  'checkbox-control': ['control.size.sm.radius', 'control.size.md.radius', 'control.size.lg.radius'],
+};
+
 export const applyControlShape = (def: ComponentDef, shape: ControlShape): ComponentDef => {
   const target = CONTROL_SHAPE_RUNG[shape];
-  if (target === null || !isPillable(def)) return def;
+  if (target === null) return def;
+  const fieldRefs = FIELD_CORNER_SHAPES.includes(shape) ? FIELD_CORNER_REFS[def.id] : undefined;
+  if (!isPillable(def) && !fieldRefs) return def;
   const tokens = Object.fromEntries(
-    Object.entries(def.tokens).map(([k, ref]) => [k, ref === ROUNDED_RADIUS_RUNG ? target : ref]),
+    Object.entries(def.tokens).map(([k, ref]) => [k,
+      (isPillable(def) && ref === ROUNDED_RADIUS_RUNG) || !!fieldRefs?.includes(ref) ? target : ref]),
   );
   return { ...def, tokens };
 };

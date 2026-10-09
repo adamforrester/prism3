@@ -514,7 +514,7 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
   const gradients = (): Item[] => {
     const b = leverBlock('gradients', { forId: 'p3-gradients-switch' });
     const on = !!brandState.gradients;
-    const sw = switchButton('p3-gradients-switch', 'Gradients', 'gradients-switch', { on: 'On', off: 'Off: no gradients emitted' },
+    const sw = switchButton('p3-gradients-switch', 'Gradients', 'gradients-switch',
       (v) => edit('gradients', () => setGradientsOn(v)));
     sw.set(on);
     b.el.querySelector('.p3-lever-head')?.append(sw.el);

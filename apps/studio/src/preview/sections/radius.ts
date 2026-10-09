@@ -40,10 +40,12 @@ export const radiusIn = (dims: Theme['dims'], modes: readonly string[], mode: st
   const zero = mode === 'wireframe' && modes.includes('wireframe');
   return dims.radius.map((r) => ({ name: r.name, px: zero ? 0 : (byMode?.find((s) => s.name === r.name)?.px ?? r.px), pill: !!r.pill }));
 };
-/** The radius size a pill-able control binds under each Control shape, by the index (the engine's repoint). */
-export const shapeRef = (shape: ControlShape): string => {
+/** The radius size `user` binds under each Control shape, by the index (the engine's repoint): a pill-able control
+ *  by default, or another definition by its index name (#2361: `TextField` and `Checkbox.Control` move under Hairline).
+ *  `fallback` is what it binds when the index names no `radius.*` size for it (the checkbox's own clamped corner). */
+export const shapeRef = (shape: ControlShape, user = 'Button', fallback = 'radius.md'): string => {
   const m = USED_BY.radius[shape] as Record<string, readonly string[]>;
-  return Object.keys(m).find((k) => m[k].includes('Button')) ?? 'radius.md';
+  return Object.keys(m).find((k) => m[k].includes(user)) ?? fallback;
 };
 /** The definitions that bind `ref` under `shape`. */
 export const radiusUsers = (shape: ControlShape, ref: string): readonly string[] => (USED_BY.radius[shape] as Record<string, readonly string[]>)[ref] ?? [];

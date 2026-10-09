@@ -107,7 +107,8 @@ export const leverManifest: Lever[] = [
     description: 'Sets control heights, and moves each component’s padding and gaps one step on the spacing scale. Token names stay the same; their values change. Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.' },
   { key: 'controlShape', group: 'form', label: 'Control shape', control: 'enum', default: 'rounded',
     options: enumOpts(['boxed', 'Boxed'], ['hairline', 'Hairline'], ['rounded', 'Rounded'], ['pill', 'Pill']),
-    description: 'The corner shape of buttons and other controls that can round fully. Boxed is sharp (0px). Hairline is a 1px corner. Rounded follows radius softness. Pill rounds the ends fully, whatever the softness.' },
+    // #2361 — Hairline's sentence is the owner's (Q139); Boxed's reach (Q139 item 3) is a DRAFT for the owner.
+    description: 'The corner shape of buttons, fields and checkboxes. Hairline gives buttons, fields and checkboxes a 1px corner, and Boxed gives them a sharp 0px corner. Rounded follows radius softness. Pill rounds the ends of buttons fully, whatever the softness; fields and checkboxes keep their own corner.' },
   // The button levers (#1667). Labels and option labels are the owner's exact words.
   { key: 'buttonIcons', group: 'form', label: 'Button icons', control: 'enum', default: 'attached',
     options: enumOpts(['attached', 'Attached to label'], ['edges', 'Locked to edges']),

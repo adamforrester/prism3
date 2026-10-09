@@ -3278,7 +3278,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `#1605 NB field-label: every built text node carries a text style the NB host holds (${nbApplied.length} text nodes, ${nbApplied.filter((st) => st === '').length} unstyled)`);
   ok(!nbApplied.some((st) => /^body\/.+\/strong$/.test(st)) && !nbRun.misses.some((m) => /body\/[^/]+\/strong/.test(m)),
     `#1605 NB field-label applies NO body/*/strong — a style NB never emits (misses: ${nbRun.misses.filter((m) => /\.textStyle ->/.test(m)).slice(0, 3).join('; ') || 'none'})`);
-  const NB_EXPECTED = ['body/lg/default', 'body/lg/emphasis', 'body/md/default', 'body/md/emphasis', 'body/sm/default', 'body/sm/emphasis'];
+  // #2266: the label ladder is body xs / sm / md (12 / 14 / 16).
+  const NB_EXPECTED = ['body/md/default', 'body/md/emphasis', 'body/sm/default', 'body/sm/emphasis', 'body/xs/default', 'body/xs/emphasis'];
   ok(JSON.stringify([...new Set(nbApplied)].sort()) === JSON.stringify(NB_EXPECTED),
     `#1605 NB field-label applies exactly the body default/emphasis styles, bold → emphasis (${[...new Set(nbApplied)].sort().join(', ')})`);
   ok(nbRun.variants === 24, `#1605 NB keeps the weight axis — two distinct body roles, 24 members (${nbRun.variants})`);
@@ -3291,7 +3292,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const oneRun = await run(onePlans, { ...fullFor(onePlans), styles: emittedStyles(oneWeight), page: onePage });
   ok(oneRun.variants === 12 && oneRun.added === 12,
     `#1605 a single-body-weight brand builds 12 field-label members, not 24 — the weight axis collapses (variants=${oneRun.variants}, added=${oneRun.added})`);
-  ok(nbRun.axes.some((a) => a.startsWith('weight:')) && !oneRun.axes.some((a) => a.startsWith('weight:')) && [...new Set(appliedStyles(onePage))].sort().join(',') === 'body/lg/default,body/md/default,body/sm/default',
+  ok(nbRun.axes.some((a) => a.startsWith('weight:')) && !oneRun.axes.some((a) => a.startsWith('weight:')) && [...new Set(appliedStyles(onePage))].sort().join(',') === 'body/md/default,body/sm/default,body/xs/default',
     `#1605 ...with no weight axis on the set (NB keeps one) and only body/*/default applied (axes ${oneRun.axes.join('/')}; ${[...new Set(appliedStyles(onePage))].sort().join(', ')})`);
 
   // (c) NO BRAND — `null` is the identity on both levers, so a themeless file builds exactly as before.
@@ -3328,8 +3329,10 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const f = (n.fills as { boundVariables?: { color?: { id?: string } } }[] | undefined) ?? [];
     return f.length ? String(f[0]?.boundVariables?.color?.id ?? 'UNBOUND').replace(/^V:/, '') : 'NONE';
   };
+  // `inset=default` (#2350): a flush text member never fills, under any method; the engine's #2350 arm holds that.
   const hoverMembers = (page: Page, surface: string) => members(page).filter((m) =>
-    /appearance=(outline|text)/.test(String(m.name)) && /state=(hover|pressed)/.test(String(m.name)) && new RegExp(`surface=${surface}`).test(String(m.name)));
+    /appearance=(outline|text)/.test(String(m.name)) && /state=(hover|pressed)/.test(String(m.name)) && new RegExp(`surface=${surface}`).test(String(m.name))
+    && /inset=default/.test(String(m.name)));
   const fillMisses = (misses: string[]) => misses.filter((m) => /\.fills -> /.test(m));
 
   // (a) SOLID-TINT (#1614, #1646) — the TINTED-WASH VARIABLE lands where the neutral wash did, bound at paint
@@ -3628,7 +3631,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 // ones. Three runs of the real executor over the same plans, differing only in how `weight` is classified
 // and whether the bold width is reserved, with the shim's `textAdvance` standing in for NB's wider cut.
 {
-  const BOLD_WIDER = { 'body/sm/strong': 1 };
+  // `small` is body xs since #2266 (12 / 14 / 16), so the seed widens that rung's bold.
+  const BOLD_WIDER = { 'body/xs/strong': 1 };
   const measure = async (plans: AnatomyPlan[]) => {
     const page: Page = { children: [] };
     const r = await run(plans, { ...fullFor(plans), page, textAdvance: BOLD_WIDER });
@@ -3745,7 +3749,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   // The live report's counts, hand-copied: 15 on text-field (3 statuses x 5 states), 12 on select (3 x 4).
   // One more state column since the field family's `filled` (2026-09-25): 3 x 6 and 3 x 5. And select's
   // `read-only` column since #1699: 3 x 6 on both.
-  const LIVE_MISSES: Record<string, number> = { 'text-field': 18, select: 18 };
+  // And three sizes since #2266: the same 18 per size, 3 x 18.
+  const LIVE_MISSES: Record<string, number> = { 'text-field': 54, select: 54 };
   for (const id of ['text-field', 'select']) {
     const shipped = await buildFile(byDef(id), SHORT);
     const fm = shipped.boxes('field-message');
@@ -3786,7 +3791,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 {
   const ROWS = 3;
   const textarea = componentDefs.find((d) => d.id === 'textarea')!;
-  const taPlans = figmaAnatomySet(materializeForBrand(textarea, null), { swapTarget: SWAP });
+  // The medium column (#2266): the 24 members this block was written for, in body md. Small and large set the
+  // value one body step down and up; their rows are the same rule over another line height.
+  const taPlans = figmaAnatomySet(materializeForBrand(textarea, null), { swapTarget: SWAP }).filter((p) => p.size === 'medium');
   // The VALUE text's style — the control's text layer, found by name, now that the counter adds a caption.
   // Since Option C (owner decision, 2026-09-26) that is the `placeholder` or the `value` layer, whichever
   // the member's state shows; both set in the one style.
@@ -3802,7 +3809,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   const buildTextarea = async (m: Metrics, def: ComponentDef = textarea) => {
     const defs = componentDefs.map((d) => (d.id === 'textarea' ? def : d));
-    const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+    // The textarea's medium column (#2266): the 24 members these arms were written for.
+    const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP }).filter((p) => d.id !== 'textarea' || p.size === 'medium');
     const all = defs.flatMap((d) => { try { return project(d); } catch { return []; } });
     const f = fullFor(all);
     const page: Page = { children: [] };
@@ -3872,7 +3880,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   // Set here to a number no other shim value takes (the ring constants are 2), so a placement that read the
   // wrong variable, or none, lands somewhere else.
   const INSET = 3;
-  const taPlans = figmaAnatomySet(materializeForBrand(textarea, null), { swapTarget: SWAP });
+  // The medium column (#2266): the 24 members this block was written for.
+  const taPlans = figmaAnatomySet(materializeForBrand(textarea, null), { swapTarget: SWAP }).filter((p) => p.size === 'medium');
   const styles = [...new Set(taPlans.flatMap((p) => planTextStyles(p.root)))];
   const VALUE = 'body/md/default';
   const CAPTION = 'caption/md/default';
@@ -3904,7 +3913,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   const buildIt = async (def: ComponentDef, captionBox: number) => {
     const defs = componentDefs.map((d) => (d.id === 'textarea' ? def : d));
-    const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP });
+    // The textarea's medium column (#2266): the 24 members these arms were written for.
+    const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP }).filter((p) => d.id !== 'textarea' || p.size === 'medium');
     const all = defs.flatMap((d) => { try { return project(d); } catch { return []; } });
     const f = fullFor(all);
     const page: Page = { children: [] };
@@ -4092,6 +4102,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     return pxOf(nbTreeAll, segs.reduce<any>((o, k) => o?.[k], nbTreeAll[Object.keys(nbTreeAll)[0]]));
   };
   const STATUSES = ['default', 'error', 'warning', 'success'];
+  // #2266: every field projects three sizes. Each member is keyed by its size too.
+  const SIZES = ['small', 'medium', 'large'];
   const named = (n: Node, name: string): Node | undefined => n.name === name ? n : ((n.children as Node[]) ?? []).map((c) => named(c, name)).find(Boolean);
   const parentOf = (n: Node, child: Node): Node | undefined => ((n.children as Node[]) ?? []).includes(child) ? n : ((n.children as Node[]) ?? []).map((c) => parentOf(c, child)).find(Boolean);
   const boundName = (n: Node, prop: string): string | undefined => ((n.boundVariables as Record<string, { id?: string }> | undefined)?.[prop]?.id ?? '').replace(/^V:/, '') || undefined;
@@ -4116,8 +4128,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     for (const m of members) {
       const coord = Object.fromEntries(String(m.name).split(', ').map((kv) => kv.split('=')));
       const state = coord.state;
-      seen.add(`${coord.status}|${state}`);
-      boxAt.set(`${coord.status}|${state}`, `${Math.round(m.width as number)}x${Math.round(m.height as number)}`);
+      seen.add(`${coord.size}|${coord.status}|${state}`);
+      boxAt.set(`${coord.size}|${coord.status}|${state}`, `${Math.round(m.width as number)}x${Math.round(m.height as number)}`);
       const ph = named(m, 'placeholder');
       const val = named(m, 'value');
       if (!(state in want)) { wrong.push(`${m.name}: a state the owner's rule does not name`); continue; }
@@ -4143,11 +4155,11 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       else if (!ph || kids[kids.indexOf(caret) + 1] !== ph) caretWrong.push(`${m.name}: caret is not immediately before the placeholder (row [${kids.map((k) => k.name).join(', ')}])`);
       else if (!hName || !(Math.abs(nbVarPx(hName) - lineWant) < 1e-6)) caretWrong.push(`${m.name}: caret height ${hName} is ${hName ? nbVarPx(hName) : '?'}px on NB, want one line of the value type, ${lineWant}px`);
     }
-    const missing = STATUSES.flatMap((st) => Object.keys(want).filter((s2) => !seen.has(`${st}|${s2}`)).map((s2) => `status=${st}, state=${s2}`));
-    ok(r.misses.length === 0 && members.length === STATUSES.length * Object.keys(want).length && wrong.length === 0 && missing.length === 0,
+    const missing = SIZES.flatMap((sz) => STATUSES.flatMap((st) => Object.keys(want).filter((s2) => !seen.has(`${sz}|${st}|${s2}`)).map((s2) => `size=${sz}, status=${st}, state=${s2}`)));
+    ok(r.misses.length === 0 && members.length === SIZES.length * STATUSES.length * Object.keys(want).length && wrong.length === 0 && missing.length === 0,
       `field ink (${id}): on all ${members.length} members exactly one text layer shows, the owner's for its state, in the owner's ink and on its own property — placeholder ${PLACEHOLDER} at rest/hover/focus-visible, ${DISABLED} at disabled, value ${VALUE} at filled${'read-only' in want ? '/read-only' : ''} (${wrong.length} wrong — ${wrong[0] ?? 'none'}; ${missing.length} missing — ${missing[0] ?? 'none'}; ${r.misses[0] ?? '0 misses'})`);
-    const drift = STATUSES.filter((st) => boxAt.get(`${st}|focus-visible`) !== boxAt.get(`${st}|rest`)).map((st) => `status=${st}: focus-visible ${boxAt.get(`${st}|focus-visible`)}, rest ${boxAt.get(`${st}|rest`)}`);
-    const caretMembers = STATUSES.length * CARET_AT[id].length;
+    const drift = SIZES.flatMap((sz) => STATUSES.filter((st) => boxAt.get(`${sz}|${st}|focus-visible`) !== boxAt.get(`${sz}|${st}|rest`)).map((st) => `size=${sz}, status=${st}: focus-visible ${boxAt.get(`${sz}|${st}|focus-visible`)}, rest ${boxAt.get(`${sz}|${st}|rest`)}`));
+    const caretMembers = SIZES.length * STATUSES.length * CARET_AT[id].length;
     ok(caretWrong.length === 0 && carets === caretMembers && drift.length === 0 && !r.misses.some((x) => x.startsWith('footprint -> ')),
       `field caret (${id}): ${caretMembers ? `a caret on exactly the ${caretMembers} focus-visible members — ${CARET_INK}, ${CARET_WIDTH} wide, one value line tall, immediately before the placeholder — and each focus-visible member measures its rest sibling` : 'no caret on any member'} (${carets} caret(s); ${caretWrong.length} wrong — ${caretWrong[0] ?? 'none'}; ${drift.length} footprint drift — ${drift[0] ?? 'none'})`);
   }

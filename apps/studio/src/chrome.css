@@ -220,6 +220,12 @@
   animation: p3-spin-show var(--p3-dur-fast) linear calc(var(--p3-dur-fast) * 3) both, p3-spin var(--p3-dur-spin) linear infinite;
 }
 .p3-btn-primary .p3-spin::before { border-top-color: var(--p3-inv-text); }
+/* A control's spinner is made with its label, at mount, and held invisible until the control turns busy, and
+   an invisible element still runs its animations: the wait and the fade would be spent unseen, long before
+   any write (#2332). So it holds no animation until then, and they start when the control turns busy. A
+   spinner made when it is shown (a style-guide table being drawn) is not in a control and starts at once. */
+:is(.p3-btn, .p3-menu-item):not([aria-busy="true"]) .p3-spin,
+:is(.p3-btn, .p3-menu-item):not([aria-busy="true"]) .p3-spin::before { animation: none; }
 @media (prefers-reduced-motion: reduce) { .p3-spin::before { animation-duration: var(--p3-dur-fast), var(--p3-dur-spin-reduced); } }
 @keyframes p3-spin-hide { to { color: transparent; } }
 @keyframes p3-spin-show { to { opacity: 1; } }
@@ -756,9 +762,6 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
    to follow (#2184, owner Q58 B). The accent token is the owner's (Q72 A). */
 .p3-range:disabled { accent-color: var(--p3-disabled-ink); cursor: not-allowed; }
 .p3-choice { display: flex; width: 100%; }
-.p3-switch { justify-self: start; }
-.p3-switch-dot { box-sizing: border-box; border: var(--p3-bw-hairline) solid var(--p3-icon-2); }
-.p3-switch[data-on="true"] .p3-switch-dot { background: var(--p3-ok-icon); border-color: var(--p3-ok-icon); }
 .p3-list { display: grid; gap: var(--p3-space-100); }
 /* L3: a field label over a list (Gradients' Stops) has its first row space-050 after it, as a control would. */
 .p3-list > .p3-field-label { margin-block-end: calc(var(--p3-space-050) - var(--p3-space-100)); }
@@ -1356,25 +1359,30 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
    name, or the lever's own hint under a name and its control) starts space-050 after it: the lever's row gap. */
 .p3-sg-lever-name { color: var(--p3-text); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); }
 .p3-sg-hint { grid-column: 1 / -1; }
-/* The switch (concept v6's, SG5 A): a button with `role="switch"` holding a track and a knob. Its ring is its own
-   outline, on the focus color (FR1 A). */
-.p3-sg-switch {
-  display: inline-flex; align-items: center; min-height: var(--p3-ctl-h-xs); padding: 0; border: 0; border-radius: var(--p3-radius-pill);
+/* THE CHROME'S ONE SWITCH (concept v6's, SG5 A; every switch since #2183, `switchEl` in shell/dom.ts): a button with
+   `role="switch"` holding a track and a knob, its state in `aria-checked` alone. Its ring is its own outline, on the
+   focus color (FR1 A). In a lever's control column it sits at the start of its row. */
+.p3-switch {
+  display: inline-flex; align-items: center; justify-self: start; min-height: var(--p3-ctl-h-xs); padding: 0; border: 0; border-radius: var(--p3-radius-pill);
   background: transparent; cursor: pointer;
 }
-.p3-sg-switch:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
-.p3-sg-track {
+.p3-switch:focus-visible { outline: var(--p3-focus-width) solid var(--p3-focus-ring); outline-offset: var(--p3-focus-offset); }
+.p3-switch-track {
   position: relative; flex: none; width: var(--p3-track-w); height: var(--p3-track-h); border-radius: var(--p3-radius-pill);
   border: var(--p3-bw-hairline) solid var(--p3-edge); background: var(--p3-bg-page); pointer-events: none;
 }
-.p3-sg-knob {
+.p3-switch-knob {
   position: absolute; top: calc(var(--p3-thumb-inset) - var(--p3-bw-hairline)); left: calc(var(--p3-thumb-inset) - var(--p3-bw-hairline));
   width: var(--p3-thumb); height: var(--p3-thumb); border-radius: var(--p3-radius-pill); background: var(--p3-icon-2);
   transition: transform var(--p3-transition-dur) var(--p3-transition-ease);
 }
-.p3-sg-switch[aria-checked="true"] .p3-sg-track { background: var(--p3-inv-bg); border-color: var(--p3-inv-bg); }
-.p3-sg-switch[aria-checked="true"] .p3-sg-knob { background: var(--p3-inv-text); transform: translateX(calc(var(--p3-track-w) - var(--p3-thumb) - 2 * var(--p3-thumb-inset))); }
-@media (prefers-reduced-motion: reduce) { .p3-sg-knob { transition: none; } }
+.p3-switch[aria-checked="true"] .p3-switch-track { background: var(--p3-inv-bg); border-color: var(--p3-inv-bg); }
+.p3-switch[aria-checked="true"] .p3-switch-knob { background: var(--p3-inv-text); transform: translateX(calc(var(--p3-track-w) - var(--p3-thumb) - 2 * var(--p3-thumb-inset))); }
+/* Hover (Q28 a: every enabled control kind answers hover), on the chrome's own control cues: off, the track's edge steps
+   to the field hover edge, as a field's and a page button's do; on, the track steps to the filled button's hover fill. */
+.p3-switch:where(:not(:disabled, [aria-disabled="true"])):hover .p3-switch-track { border-color: var(--p3-field-edge-hover); }
+.p3-switch[aria-checked="true"]:where(:not(:disabled, [aria-disabled="true"])):hover .p3-switch-track { background: var(--p3-inv-bg-2); border-color: var(--p3-inv-bg-2); }
+@media (prefers-reduced-motion: reduce) { .p3-switch-knob { transition: none; } }
 /* At 380: one column, the run's table list first, and Draw pinned to the bottom of the page. */
 .p3-frame[data-w="narrow"] .p3-sg { padding: var(--p3-space-200) var(--p3-space-150) var(--p3-space-300); gap: var(--p3-space-200); }
 .p3-frame[data-w="narrow"] .p3-sg-cols, .p3-frame[data-w="narrow"] .p3-sg-selrow { grid-template-columns: minmax(0, 1fr); }
@@ -1407,9 +1415,15 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 }
 .p3-btn:is(.p3-btn-primary, .p3-next, .p3-btn-danger):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-ico { color: var(--p3-disabled-ink); }
 /* What a disabled button holds: the mode check's box takes Prism3's disabled check box (its fill, edge and on-fill
-   mark), and the switch's dot, a glyph, takes the glyph's role. The always-on Light row's box takes the same check box
-   (DB1 A, #2208), so "can't change" has one look. */
+   mark). The always-on Light row's box takes the same check box (DB1 A, #2208), so "can't change" has one look. */
 :is(.p3-check:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]), .p3-check-fixed) .p3-check-box { background: var(--p3-disabled-fill); border-color: var(--p3-disabled-edge); }
 :is(.p3-check:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]), .p3-check-fixed) .p3-check-box > .p3-ico { color: var(--p3-disabled-ink); }
-.p3-switch:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-switch-dot { border-color: var(--p3-disabled-icon); }
-.p3-switch[data-on="true"]:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-switch-dot { background: var(--p3-disabled-icon); }
+/* A disabled switch: Prism3's own disabled switch (owner Q52 B / DS2 A, SW1 D; #2237), the roles the engine's switch
+   definition binds (`packages/engine/components/switch-control.ts`), on and off alike: the track's fill on
+   `disabled-fill` (`color.disabled.fill`), its edge on `disabled-edge` (`color.disabled.border`) and the knob on
+   `disabled-ink` (`color.disabled.on-fill`), never the outline button's `disabled-icon`. The engine's thumb glyph and
+   row label have no element here: the chrome's knob is plain, and the lever's name keeps its ink, as every lever name
+   does in the read-only panel (the owner, 2026-10-08). The knob keeps its side, so on and off still read apart. */
+.p3-switch:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) { cursor: not-allowed; }
+.p3-switch:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-switch-track { background: var(--p3-disabled-fill); border-color: var(--p3-disabled-edge); }
+.p3-switch:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-switch-knob { background: var(--p3-disabled-ink); }
