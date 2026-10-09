@@ -827,6 +827,49 @@
           "A leading icon rung one smaller than the control rung (Button's #1350 offset) would suit a text-bearing tag; it is an owner exception in `lint-rung-names.ts`, so the 1:1 rung ships and the offset is held."
         ]
       }
+    },
+    "accordion-item": {
+      "codeOnly": [
+        "the heading wrapper — the header button sits inside an <hN> of the level `headingLevel` names (default 3). Figma has no heading level; the outline is a code contract.",
+        "the panel region — role=\"region\" with aria-labelledby pointing at the header button, and the button carries aria-expanded and aria-controls. A closed panel is `hidden` (out of the page, the tab order and assistive technology).",
+        "the panel content — `children` takes any node. Figma draws one placeholder paragraph.",
+        "the height animation — the panel eases open and closed (motion.transition.enter / exit); under reduced motion it snaps. Figma variants carry no motion.",
+        "the asymmetric panel inset — the panel wants no top inset (the header's bottom padding already spaces it) and a larger bottom one; `PaddingDef.block` is one value for both, so the draft uses a small symmetric inset.",
+        "the panel ink — the panel text paints the `label` slot, the header's interactive neutral ink, because a text part can ask only for `label`; it should be page ink (`color.text.primary`) that does not follow the header's hover or disabled state. A second text ink is an engine change.",
+        "RTL — the header mirrors through logical properties: the indicator moves to the left edge and the title aligns right. The chevron and the plus/minus are vertically symmetric, so no glyph mirrors.",
+        "text expansion — the title wraps; the header uses min-height, never a fixed height, and the indicator holds the first line."
+      ],
+      "notes": {
+        "contested": [
+          "The expansion axis name. `VARIANT_AXES` is closed and has no `expansion`; this draft adds it. The alternative is `selection: [collapsed, expanded]`, which misnames the distinction. Held for the owner.",
+          "The indicator: chevron (field default) vs plus/minus (the design-rebuild test). An axis doubles the set; chevron-only keeps 30 members. Held for the owner.",
+          "The header type: `type.body.{rung}.strong` (draft) vs `type.label.{rung}.emphasis` (14px snug, wraps tightly) vs `type.title.*` (the brand display face, loud). Held for the owner.",
+          "The divider role: `color.border.secondary` (draft, \"divider\") vs `color.border.primary` (decorative ~1.4:1). Held for the owner.",
+          "The contained (boxed card) variant from the brief is not drafted; flush only. Held for the owner."
+        ],
+        "unverified": [
+          "The asymmetric panel inset needs `PaddingDef` to carry start and end block values; the draft uses a symmetric one."
+        ],
+        "evolution": []
+      }
+    },
+    "accordion": {
+      "codeOnly": [
+        "the item count — in code the count is `children`; the Figma set carries eight items behind toggles.",
+        "the list wrapper — the items may sit in a <ul>/<li> so a screen reader announces \"item X of N\". A standalone item is never in a list.",
+        "the open-state model — `type`, `value`, `defaultValue` and `onValueChange` coordinate the items; single mode closes the others when one opens. Native <details name=\"...\"> gives single mode with no script.",
+        "expand all / collapse all — an optional control above a long set. Not drafted.",
+        "scroll into view — after opening, scroll the header into view if a tall panel pushed it off screen.",
+        "deep links — a URL fragment can seed defaultValue so a linked section opens on load."
+      ],
+      "notes": {
+        "contested": [
+          "The default number of items shown (3, matching the checkbox and radio groups) and the toggle names (\"Item 2\" ... \"Item 8\"). Held for the owner.",
+          "The top divider. Held for the owner."
+        ],
+        "unverified": [],
+        "evolution": []
+      }
     }
   }
 }

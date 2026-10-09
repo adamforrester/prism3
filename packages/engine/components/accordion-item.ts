@@ -76,6 +76,8 @@ export const accordionItem: ComponentDef = {
 
     // ── THE DIVIDER: a hairline under each item, the "stronger border / divider" role.
     'fill': 'color.border.secondary',
+    // The disabled branch asks for `disabled.<slot>`; unbound, the divider vanishes on a disabled item.
+    'disabled.fill': 'color.border.secondary',
     'divider-width': 'border-width.hairline',
 
     // ── PER SIZE. The header floor is 44px at every size (select's small-size rule); size moves type,
