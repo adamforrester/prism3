@@ -12240,7 +12240,7 @@ for (const host of ['web', 'figma']) {
 //     the mode the test chose, Dark, chosen on Surfaces & fills; on Palettes it is Light (#2321, PM1 B). 640 is here for
 //     the select: the four radios give way to it there, and each host must have read the select at least once. Only
 //     Surfaces & fills, Palettes and Brand are read at 640, places reached by a control the levers column draws whole at
-//     that width (the column's own fit there is #1975 and #2105's);
+//     that width (the Color sub-row runs under the preview there, #1975);
 //   · at 1280, ArrowRight moves the selection along the tab row and the sub-row, and the tree follows (the tab pattern's
 //     automatic activation, unchanged here);
 //   · on Build style guides no tab is reported selected and no sub-tab is exposed.
