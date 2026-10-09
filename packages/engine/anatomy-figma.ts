@@ -1678,7 +1678,8 @@ export const figmaAnatomyPlan = (
       // painted square BEHIND the glyph — the exact failure `descendantFills` was invented to avoid, met
       // from the other side. So the ink goes where the ink has always gone: on the VECTOR, found by
       // descendant search. One field, one meaning, whoever is pushing.
-      const ink = paintOf('icon');
+      // DRAFT #2427: a vector may name its ink slot, as a text part does (#796).
+      const ink = paintOf(p.paintSlot ?? 'icon');
       if (ink) descendantFills = ink;
     } else if (p.kind === 'slot' || p.kind === 'overlay') {
       // There is no `color/interactive/{intent}/icon` variable — icon ink routes through `on-fill` /

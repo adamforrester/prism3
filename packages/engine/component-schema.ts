@@ -4244,12 +4244,12 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // `paintSlot` is the TEXT kind's field (#796) — the only branch that reads it. On any other kind it
     // would validate clean and be silently ignored, which is this whole pass's defect class: a field an
     // author reasonably believes took effect.
-    if (p.kind !== 'text' && p.paintSlot !== undefined)
+    if (p.kind !== 'text' && p.kind !== 'vector' && p.paintSlot !== undefined) // DRAFT #2427: a vector may name its ink slot
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'paintSlot' — only a 'text' part chooses which ink slot it asks for; every other kind's paint follows from its kind`);
     // And the word must be one the projector DISPATCHES, checked against the same oracle `paintKeyErrors`
     // uses. Without this, `paintSlot: 'indicatr'` resolves no paint and the part projects unpainted —
     // the #784 shape arriving through the field that exists to prevent it.
-    if (p.kind === 'text' && p.paintSlot !== undefined && !(PAINT_SLOTS as readonly string[]).includes(p.paintSlot))
+    if ((p.kind === 'text' || p.kind === 'vector') && p.paintSlot !== undefined && !(PAINT_SLOTS as readonly string[]).includes(p.paintSlot))
       e.push(`anatomy part '${n}': paintSlot '${p.paintSlot}' is not a slot the projector dispatches — it asks only for [${PAINT_SLOTS.join(', ')}]. A part naming a word outside that list resolves no paint and projects unpainted. Do NOT add it to PAINT_SLOTS to clear this: a new slot needs a distinct ink ROLE and a real dispatch behind it (see PAINT_SLOTS)`);
     // ---- `paintSlots`, the BOX kind's field (#933) ----
     // The same wrong-kind rule as `paintSlot` above, for the same reason: only the box branch reads it,
