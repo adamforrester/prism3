@@ -12151,6 +12151,81 @@ for (const host of ['web', 'figma']) {
     }
   }
 }
+// =============================================================================================
+// 37. #2212: every page's heading outline, read from the browser's accessibility tree
+// =============================================================================================
+// Both hosts, light chrome, at 1280 and at 380 (the Settings pane and the Preview pane), on every place, and the plugin's
+// Build style guides page. The outline is read from CDP `Accessibility.getFullAXTree` (never the DOM), walked from the
+// root in tree order, ignored nodes dropped: every node with the role "heading" and its level. Each outline must open on
+// its one level-1 heading, hold no other, and never skip a level after the one before it (a 2 then a 4 fails). The h1's
+// name is the page's name as its tab shows it, typed here (PAGE_H1), never read from `pages.ts` or `frame.ts`.
+// Mutations, each failing here by name (the PR records the lines): the frame's h1 left out; a levers section title back
+// at h3; a row list's sub-heading back at h4; the preview's sub-head back at h3 is not a skip (3 then 3) and is not
+// asserted here: the level rule is "no skip", and section 30 holds the levers' visual levels.
+const PAGE_H1 = { brand: 'Brand', 'color-palettes': 'Palettes', 'color-fills': 'Surfaces & fills', 'color-interactive': 'Interactive',
+  type: 'Type', shape: 'Shape', depth: 'Depth & motion', layout: 'Layout', components: 'Components' };
+const SG_H1 = 'Build style guides';
+/** At least this many headings per outline (Shape, Depth & motion and Components at 380 on their Settings pane, the
+ *  fewest: the h1 and the page's two sections). */
+const OUTLINE_FLOOR = 3;
+const outlineOf = async (page) => {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send('Accessibility.enable');
+    const { nodes } = await cdp.send('Accessibility.getFullAXTree');
+    const byId = new Map(nodes.map((n) => [n.nodeId, n]));
+    const root = nodes.find((n) => !n.parentId) ?? nodes[0];
+    const out = [];
+    const walk = (id) => {
+      const n = byId.get(id);
+      if (!n) return;
+      if (!n.ignored && n.role?.value === 'heading') {
+        const lv = Number(n.properties?.find((p) => p.name === 'level')?.value?.value ?? 0);
+        out.push([lv, (n.name?.value ?? '').trim()]);
+      }
+      for (const c of n.childIds ?? []) walk(c);
+    };
+    walk(root.nodeId);
+    return out;
+  } finally { await cdp.detach(); }
+};
+const checkOutline = (o, where, h1) => {
+  const ones = o.filter(([l]) => l === 1);
+  const skips = [];
+  for (let i = 1; i < o.length; i++) if (o[i][0] > o[i - 1][0] + 1) skips.push(`h${o[i - 1][0]} "${o[i - 1][1]}" then h${o[i][0]} "${o[i][1]}"`);
+  const show = o.slice(0, 8).map(([l, n]) => `h${l} ${n}`).join(' | ');
+  ok(o.length >= OUTLINE_FLOOR, `#2212 ${where}: the accessibility tree holds ${o.length} headings (floor ${OUTLINE_FLOOR})`);
+  ok(o[0]?.[0] === 1 && ones.length === 1 && ones[0][1] === h1, `#2212 ${where}: the outline opens on one h1, "${h1}", and holds no other — read ${show}`);
+  ok(skips.length === 0, `#2212 ${where}: no heading skips a level after the one before it${skips.length ? ` — ${skips.slice(0, 4).join(' | ')}` : ''}`);
+};
+console.log(`\nHeading outline (#2212)\n${'='.repeat(78)}`);
+for (const host of ['web', 'figma']) {
+  for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 900 }]) {
+    const where0 = `${host} light ${w}`;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w, h });
+    try {
+      const seen = new Set();
+      for (const place of NEW_PAGES) {
+        await goPlace(page, place);
+        seen.add(place);
+        checkOutline(await outlineOf(page), `${where0} / ${place}${w <= 560 ? ' (Settings)' : ''}`, PAGE_H1[place]);
+        if (w <= 560) {
+          await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+          checkOutline(await outlineOf(page), `${where0} / ${place} (Preview)`, PAGE_H1[place]);
+          await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
+        }
+      }
+      ok(NEW_PAGES.every((p) => seen.has(p)), `#2212 ${where0}: every place's outline was read (${[...seen].join(', ')})`);
+      if (host === 'figma') {
+        await openStyleGuides(page);
+        checkOutline(await outlineOf(page), `${where0} / Build style guides`, SG_H1);
+      }
+      ok(errors.length === 0, `#2212 ${where0}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `#2212 ${where0}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+}
 // #2238: the check box is measured on both hosts, in both chrome themes, somewhere in the sweep.
 for (const [k, n] of Object.entries(BOXES_BY)) ok(n > 0, `#2238 ${k}: the contrast audit measured check boxes in the sweep (${n})`);
 hooks.report(ok);

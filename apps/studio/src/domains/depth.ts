@@ -316,7 +316,7 @@ export const mountDepthLevers = (host: HTMLElement, cleanups: (() => void)[]): v
     const el = hook(h('section', 'p3-lsec'), 'lever-section');
     el.id = `p3-lsec-depth-${i}`;
     const head = h('div', 'p3-lsec-head');
-    const t = h('h3', 'p3-lsec-title', title);
+    const t = h('h2', 'p3-lsec-title', title);
     t.id = `${el.id}-t`;
     el.setAttribute('aria-labelledby', t.id);
     head.append(t);

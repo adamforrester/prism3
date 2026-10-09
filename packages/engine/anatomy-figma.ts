@@ -23,7 +23,7 @@
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
 import type { AxisKind, ComponentDef, PartDef, SizingMode } from './component-schema';
-import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
+import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, whenStates, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
 import type { ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth, spacePx, visibleGapStep } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
@@ -484,6 +484,19 @@ export type FigmaNodePlan = {
    *  PARENT after the append, beside `layoutAlign`, because the child neutralizer returns early on an
    *  instance. Carried ONLY on a `nest` that fills (`fillsAxis`), so every other plan is byte-identical. */
   instanceSizing?: { primaryAxisSizingMode?: 'FIXED'; counterAxisSizingMode?: 'FIXED' };
+  /** For the icon instance inside an INSET part (#2380, #1346): the fraction of its parent frame's box the
+   *  instance occupies, centered — checkbox's `mark` and `dash` at 0.8. Carried ONLY on that child, so every
+   *  other plan is byte-identical.
+   *
+   *  A FRACTION, not a size: the parent frame carries the bound box (`size.{size}.control`), and the PARENT
+   *  places this child after its own size is written — sized `glyphInset` of the parent's width and height,
+   *  at `(1 - glyphInset) / 2` of each from the top-left, with `SCALE` constraints so a box the brand or a
+   *  mode later resizes scales the instance with it. No token is minted for 0.8 × box (the reason #1346 padded
+   *  the artboard instead), and the ink lands where the padded artboard drew it: 0.8 × box × the grid.
+   *
+   *  The parent has no auto-layout, so the position holds. Read back against the parent's box
+   *  (`anatomy-readback.ts`). */
+  glyphInset?: number;
   /** For a `GLYPH`: the literal square px the glyph frame is built at (#1340). Carried ONLY when the def
    *  sets it, so every existing glyph's plan is byte-identical; the executor resizes the imported frame to
    *  it after the SVG import (the outline's SCALE constraints scale the drawn grid to fill), instead of
@@ -761,32 +774,16 @@ const viewBoxDims = (): [number, number] => {
  * which is what makes `emit-icons.ts`'s assertions about the source assertions about this too.
  */
 /**
- * THE ARTBOARD a glyph document declares, PADDED by `glyphScale` (#1346). Absent (or `1`) is the set's
- * own square untouched; a scale in `(0, 1)` pads the artboard to `grid / scale` and shifts its origin so
- * the SAME drawn path is CENTERED in the larger canvas — the ink then occupies `scale` of the frame, and
- * the host's existing size binding renders it at `scale` of the box with the path `d` and the shared
- * vocabulary byte-unchanged. Shrinking the FRAME instead would mint a per-rung control token (the plan
- * is brand-agnostic, a frame binds a variable, a new emitted name is a CONTRACT bump); padding the
- * DOCUMENT is a def-local literal, so `token-contract.ts --check` stays put. Returns the `viewBox`
- * string and the `[w, h]` the built frame must come back as — one derivation for both, so the document
- * and its read-back cannot disagree; `lint-glyph-geometry.ts` re-derives this independently from a scale
- * it declares itself, which is what makes the padding falsifiable rather than self-consistent. */
-const glyphArtboard = (scale?: number): { viewBox: string; dims: [number, number] } => {
-  const [w, h] = viewBoxDims();
-  if (scale === undefined || scale === 1) return { viewBox: ICON_VIEWBOX, dims: [w, h] };
-  // Rounded to a 4-decimal grid so `24 / 0.8` is the clean 30 the artboard wants rather than the
-  // 29.999999999999996 IEEE division hands back — a stray tail would ship in the emitted document and
-  // in the frame's read-back box. `lint-glyph-geometry.ts` re-derives with the SAME rounding (stated in
-  // its header), independently, so the two agree by construction rather than by sharing this code.
-  const r = (v: number): number => Math.round(v * 1e4) / 1e4;
-  const [minX, minY] = ICON_VIEWBOX.split(/\s+/).map(Number);
-  const padW = r(w / scale), padH = r(h / scale);          // the drawn grid is `scale` of the padded box
-  const offX = r(minX - (padW - w) / 2), offY = r(minY - (padH - h) / 2);  // center the SAME path, `d` unshifted
-  return { viewBox: `${offX} ${offY} ${padW} ${padH}`, dims: [padW, padH] };
-};
+ * THE ARTBOARD a glyph document declares: the set's own square, as the `viewBox` string and the `[w, h]` the
+ * built frame must come back as — one derivation for both, so the document and its read-back cannot disagree.
+ * It used to be padded by `glyphScale` (#1346) to inset checkbox's marks; since #2380 an icon-set glyph is an
+ * instance of its icon component and the inset is placed on that instance (`FigmaNodePlan.glyphInset`), so
+ * every glyph still drawn inline is drawn on the unpadded square.
+ */
+const glyphArtboard = (): { viewBox: string; dims: [number, number] } => ({ viewBox: ICON_VIEWBOX, dims: viewBoxDims() });
 
-const glyphDocument = (path: string, fillRule?: string, scale?: number): string => {
-  const ab = glyphArtboard(scale);
+const glyphDocument = (path: string, fillRule?: string): string => {
+  const ab = glyphArtboard();
   return `<svg width="${ab.dims[0]}" height="${ab.dims[1]}" viewBox="${ab.viewBox}" fill="none" xmlns="http://www.w3.org/2000/svg">` +
   // `fill-rule` is written only when the source declared a non-default one (#1012). It sits BEFORE `d`
   // the way the source authored it, and it is the attribute that keeps a lettered disc's counters cut
@@ -797,24 +794,31 @@ const glyphDocument = (path: string, fillRule?: string, scale?: number): string 
 };
 
 /** `glyphDocument` for a resolved glyph NAME — looks its path and (sparse) winding rule up together, so
- *  the two lookups stay in one place and the caller passes a name rather than re-deriving both (#1012).
- *  `scale` pads the artboard per `glyphScale` (#1346); absent leaves the set's own square untouched. */
-const glyphSvgFor = (defId: string, part: string, glyph: string | undefined, scale?: number): string => {
+ *  the two lookups stay in one place and the caller passes a name rather than re-deriving both (#1012). */
+const glyphSvgFor = (defId: string, part: string, glyph: string | undefined): string => {
   // A COMPONENT-OWNED glyph (#1670) is looked up first: geometry a component draws that is deliberately not
   // in the icon set (the spinner), composed of several filled layers, each carrying its own layer opacity.
   // Same artboard, same `fill="currentColor"` convention, one `<path>` per layer in drawing order; `id`
-  // names the layer the importer builds. `glyphScale` is refused for it — nothing needs it, and the padded
-  // artboard is an icon-set idea.
+  // names the layer the importer builds.
   const layers = glyph ? COMPONENT_GLYPHS[glyph] : undefined;
   if (layers) {
-    if (scale !== undefined && scale !== 1) throw new Error(`${defId}: anatomy part '${part}' scales the component glyph '${glyph}', and a composed glyph draws on the set's own artboard`);
     const ab = glyphArtboard();
     return `<svg width="${ab.dims[0]}" height="${ab.dims[1]}" viewBox="${ab.viewBox}" fill="none" xmlns="http://www.w3.org/2000/svg">` +
       layers.map((l) => `<path id="${l.id}" ${l.fillRule ? `fill-rule="${l.fillRule}" ` : ''}${l.opacity !== undefined ? `opacity="${l.opacity}" ` : ''}d="${l.d}" fill="currentColor"/>`).join('') +
       '</svg>';
   }
-  return glyphDocument(glyphPath(defId, part, glyph), glyph ? ICON_FILL_RULES[glyph as keyof typeof ICON_PATHS] : undefined, scale);
+  return glyphDocument(glyphPath(defId, part, glyph), glyph ? ICON_FILL_RULES[glyph as keyof typeof ICON_PATHS] : undefined);
 };
+
+/** The def whose emitted components ARE the icon set: `icon`, which is `emitAsComponents`, so each glyph is
+ *  its own top-level component named `icon/<glyph>` (#1012). Every icon-set glyph inside another component is
+ *  an instance of one of them (#2380). */
+export const ICON_DEF_ID = 'icon';
+/** The component a glyph of the icon set is an instance of (#2380). */
+export const iconComponentName = (glyph: string): string => `${ICON_DEF_ID}/${glyph}`;
+/** The layer name of the icon instance an INSET part wraps (#2380, `FigmaNodePlan.glyphInset`): checkbox's
+ *  `mark` and `dash` are each a frame holding one instance named this. */
+export const ICON_INSET_CHILD = 'glyph';
 
 /**
  * The layer opacity each `<path>` of a glyph document declares, in document order — 1 where it declares none.
@@ -1347,7 +1351,8 @@ export const figmaAnatomyPlan = (
     // rule the spinner's does and a second def gets it for free. This is what closes #536 item 3's
     // measured symptom: `state=focus-visible` emitted a plan byte-identical to `rest` in all 108 rows,
     // because the ring was not a part at all and nothing else distinguishes focus.
-    if (p?.kind === 'absolute') return !!p.when && p.when === state;
+    // A list since #2318: the field's ring is present at `focus-visible` and at `focus-visible-filled`.
+    if (p?.kind === 'absolute') return state !== undefined && whenStates(p).includes(state);
     return !p?.optional;
   };
 
@@ -1736,12 +1741,41 @@ export const figmaAnatomyPlan = (
     const ownTarget = p.kind === 'overlay' && p.nests ? nestedSwapTarget(def.id, name, p.nests, p.size ? resolveKey(p.size, 'binding') : undefined) : undefined;
     const propertyRef = ownTarget ? undefined : drivenBy.get(cellName);
 
-    return {
+    // AN ICON-SET GLYPH IS AN INSTANCE OF ITS ICON COMPONENT (#2380, owner decision Q137 A). A `vector` part
+    // whose glyph is in the icon set (`ICON_SOURCES`) is built as an instance of `icon/<name>`, the component
+    // the `icon` def emits for it, not as an inline import of the same outline. The inline import does not
+    // follow the icon set: a brand that swaps an icon, or a set that redraws one, left every component's copy
+    // behind, and the copies' geometry could drift inside their frames (#2379). The instance keeps the part's
+    // size binding (or `glyphPx`) and takes its ink as `descendantFills`, the way a host inks the icon it swaps
+    // into a slot. No swap PROPERTY is projected (`propertyRef` stays the part's own, which a vector never
+    // has): the designer can still swap the instance by hand.
+    //
+    // Two kinds of vector stay inline: a COMPONENT-OWNED glyph (`COMPONENT_GLYPHS`, the spinner, #1670), which
+    // is deliberately not in the icon set, and the `icon` def's own glyph, which IS the component instanced
+    // here. `glyphPath` runs first so a name outside the vocabulary still throws with its own message.
+    const glyphName = p.kind === 'vector' ? resolveGlyph(def.id, name, p.glyph, paintCoord) : undefined;
+    const iconTarget = glyphName !== undefined && !COMPONENT_GLYPHS[glyphName] && def.id !== ICON_DEF_ID
+      ? (glyphPath(def.id, name, glyphName), iconComponentName(glyphName))
+      : undefined;
+    // THE INSET (#1346), on an instance. `glyphScale` sits the icon at that fraction of the part's box. The
+    // part becomes a FRAME carrying the box binding, and the instance inside it is placed and sized at
+    // `glyphInset` of the frame by the executor, with SCALE constraints so a re-themed box scales it along.
+    // See `FigmaNodePlan.glyphInset`.
+    const scale = p.kind === 'vector' && p.glyphScale !== undefined && p.glyphScale !== 1 ? p.glyphScale : undefined;
+    if (scale !== undefined && !iconTarget)
+      throw new Error(`${def.id}: anatomy part '${name}' declares glyphScale, but its glyph '${glyphName}' is not an icon-set glyph — the inset is applied to an instance of the icon component, so only an icon-set glyph can carry it`);
+    const glyphInset = iconTarget ? scale : undefined;
+
+    const out: FigmaNodePlan = {
       name,
       // `nest` (#1226 PR-A) projects the SAME `NESTED_INSTANCE` as `absolute` — the difference is the flow,
       // not the node type: a `nest` carries no `absoluteInset`, so it stays a normal flow child (a cell),
       // where an `absolute` is positioned out of the flow below. The plugin builds both by `createInstance`.
-      type: p.kind === 'text' ? 'TEXT' : p.kind === 'box' ? 'FRAME' : (p.kind === 'absolute' || p.kind === 'nest') ? 'NESTED_INSTANCE' : p.kind === 'vector' ? 'GLYPH' : 'INSTANCE_SWAP',
+      type: p.kind === 'text' ? 'TEXT' : p.kind === 'box' ? 'FRAME' : (p.kind === 'absolute' || p.kind === 'nest') ? 'NESTED_INSTANCE'
+        : p.kind === 'vector' ? (iconTarget ? (glyphInset !== undefined ? 'FRAME' : 'NESTED_INSTANCE') : 'GLYPH') : 'INSTANCE_SWAP',
+      // The icon component, on the instance itself when it is the part's own node (#2380). An inset instance
+      // carries it one level down, on the child the wrapper is given below.
+      ...(iconTarget && glyphInset === undefined ? { nestTarget: iconTarget } : {}),
       // THE GEOMETRY, resolved from the vocabulary at projection (#864). A name that no longer resolves
       // THROWS rather than projecting an empty outline, which is the whole reason the def carries a name
       // instead of path data: #864 was four artboards that built without throwing and contained nothing,
@@ -1753,12 +1787,11 @@ export const figmaAnatomyPlan = (
       // `paintCoord` rather than `coord` for the same reason paint keys use it: it is the grid coordinate
       // WITH `size` folded in, so `glyph: '{size}'` — an optically-sized glyph set, which no def has today
       // but which the field's grammar allows — resolves instead of throwing on an axis that is in fact known.
-      ...(p.kind === 'vector'
+      // Only on a glyph still drawn inline: an icon-set glyph is an instance and carries no document (#2380).
+      ...(p.kind === 'vector' && !iconTarget
         ? {
-            glyphSvg: glyphSvgFor(def.id, name, resolveGlyph(def.id, name, p.glyph, paintCoord), p.glyphScale),
-            // The artboard PADDED by `glyphScale` (#1346), not the set's bare square: the two come from
-            // one `glyphArtboard` call so the document and the box its executor reads back cannot disagree.
-            glyphViewBox: glyphArtboard(p.glyphScale).dims,
+            glyphSvg: glyphSvgFor(def.id, name, glyphName),
+            glyphViewBox: glyphArtboard().dims,
           }
         : {}),
       // THE ASPECT-RATIO LOCK (#1316), carried as the numeric proportion so each executor can resize the
@@ -1878,7 +1911,8 @@ export const figmaAnatomyPlan = (
       ...(ownTarget ? { swapTarget: ownTarget } : (p.kind === 'slot' || p.kind === 'overlay') && slots.swapTarget ? { swapTarget: slots.swapTarget } : {}),
       ...(Object.keys(paints).length ? { paints } : {}),
       ...(gradientFill ? { gradientFill } : {}),
-      ...(descendantFills ? { descendantFills } : {}),
+      // An inset instance's ink travels with it, onto the child (below): the wrapper frame draws nothing.
+      ...(descendantFills && glyphInset === undefined ? { descendantFills } : {}),
       ...(p.layout
         ? {
             layoutMode: p.layout.direction === 'row' ? ('HORIZONTAL' as const) : ('VERTICAL' as const),
@@ -1896,6 +1930,19 @@ export const figmaAnatomyPlan = (
       bound,
       children: kids,
     };
+    // THE INSET WRAPPER (#2380, #1346): the part's FRAME keeps its name, its box binding and its booleans; the
+    // instance is its one child, named `ICON_INSET_CHILD`, carrying the icon, the ink and the fraction.
+    if (iconTarget && glyphInset !== undefined)
+      out.children = [{
+        name: ICON_INSET_CHILD,
+        type: 'NESTED_INSTANCE',
+        nestTarget: iconTarget,
+        glyphInset,
+        ...(descendantFills ? { descendantFills } : {}),
+        bound: {},
+        children: [],
+      }];
+    return out;
   };
 
   return {
@@ -3482,6 +3529,25 @@ const PAYLOAD_CORNER = `  for(const c of n.children){
 `;
 const hasCorner = (n: FigmaNodePlan): boolean => n.cornerInset !== undefined || n.children.some(hasCorner);
 /**
+ * THE INSET ICON (#2380, #1346): checkbox's check and dash, an instance of `icon/check` / `icon/minus` placed at
+ * `glyphInset` of the frame that holds it, centered, with SCALE constraints so a box the brand or a mode
+ * resizes scales the icon with it. After the flow pass, on the frame's own bound box. Spliced ONLY for a
+ * payload whose plans carry `glyphInset`, the corner pin's budget reason (#1798). Lockstep with the plugin
+ * executor (`write-components.ts`), miss wording included.
+ */
+const INSET_SLOT = '__INSET__';
+const PAYLOAD_INSET = `
+  for(const c of n.children){
+    if(!c.glyphInset)continue;
+    const kid=boxes.get(c.name);
+    if(!kid)continue;
+    const s=c.glyphInset,w=node.width,h=node.height;
+    kid.resize(w*s,h*s);kid.x=w*(1-s)/2;kid.y=h*(1-s)/2;
+    kid.constraints={horizontal:'SCALE',vertical:'SCALE'};
+    if(Math.abs(kid.width-w*s)>0.01||Math.abs(kid.height-h*s)>0.01)misses.push(c.name+'.glyphInset -> DISCARDED (set '+(w*s)+'x'+(h*s)+', '+s+' of the '+w+'x'+h+' box; reads '+kid.width+'x'+kid.height+')');
+  }`;
+const hasInset = (n: FigmaNodePlan): boolean => n.glyphInset !== undefined || n.children.some(hasInset);
+/**
  * THE ROOT'S BUILD WIDTH (#1757, `placementWidth`), spliced into the \`layoutMode\` branch ONLY for a payload
  * whose plans carry one — the `MIN_LINES_SLOT` budget decision again: shell bytes ship in every chunk and
  * count against the indivisible-unit headroom (#1798). The resize comes BEFORE the five layout writes:
@@ -3533,6 +3599,7 @@ const payloadBuildFor = (roots: FigmaNodePlan[]): string =>
     .replace(PIN_LIFT_SLOT, roots.some(hasPin) ? PAYLOAD_PIN_LIFT : '')
     .replace(PIN_SLOT, roots.some(hasPin) ? PAYLOAD_PIN : '')
     .replace(CORNER_SLOT, roots.some(hasCorner) ? PAYLOAD_CORNER : '')
+    .replace(INSET_SLOT, roots.some(hasInset) ? PAYLOAD_INSET : '')
     .replace(PLACEMENT_SLOT, roots.some(hasPlacement) ? PAYLOAD_PLACEMENT : '')
     .replace(MAX_WIDTH_SLOT, roots.some(hasMaxWidth) ? PAYLOAD_MAX_WIDTH : '')
     .replace(GRADIENT_SLOT, roots.some(hasGradient) ? PAYLOAD_GRADIENT : '')
@@ -3682,16 +3749,16 @@ const build=async(n)=>{
     // Figma's MIN/MIN constraint keeps the 24px it was drawn at, so a 16px instance would show the
     // top-left corner of the glyph. This is the one property of the import we override.
     for(const v of drawn)v.constraints={horizontal:'SCALE',vertical:'SCALE'};
-    // THE LITERAL GLYPH SIZE (#1340). A non-root glyph whose def states \`glyphPx\` is not sized by an
-    // instancing host and binds no \`size\` variable, so the frame stays at its 24px import — a stray small
-    // mark in a large frame. Resize it to the literal here, AFTER the artboard read-back above (which sees
-    // the import's own 24px) and BEFORE the bind loop below (this node binds no dimension, so the resize is
-    // never cleared — resize-then-bind, the #500 order the anatomy gate checks). The outline's SCALE
-    // constraints, just set, scale the drawn grid to fill the resized frame.
-    if(n.glyphPx)node.resize(n.glyphPx,n.glyphPx);
   }
   else{node=figma.createFrame();node.clipsContent=n.clipsContent===true;}
   node.name=n.name;
+  // THE LITERAL GLYPH SIZE (#1340), on a glyph or, since #2380, on the icon INSTANCE an icon-set glyph builds
+  // as (image-placeholder's 180px marker). Neither is sized by a host or binds a \`size\` variable, so it stays
+  // at its 24px artboard unless resized here: AFTER a glyph's artboard read-back above (which sees the
+  // import's own 24px) and BEFORE the bind loop below (no dimension is bound, so the resize is never cleared —
+  // resize-then-bind, the #500 order the anatomy gate checks). The outline's SCALE constraints scale the drawn
+  // grid to fill it. Twin of the plugin executor's.
+  if(n.glyphPx)node.resize(n.glyphPx,n.glyphPx);
   // NODE-VISIBILITY BOOLEAN (#1331): a hidden-by-default part is BUILT hidden, and its \`leading icon\`
   // switch (wired below) toggles it. Carried only when false, so every other node keeps Figma's default.
   if(n.visible===false)node.visible=false;
@@ -3963,7 +4030,7 @@ ${CORNER_SLOT}  // Applied by the PARENT, because every fact here is about the c
     if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (set ABSOLUTE, reads '+kid.layoutPositioning+'; the ring would take a cell in the row)');
   }
   // #1393 — AND IT HAS TO BE LAST: every write above declares something; this declares nothing else was.
-${PIN_SLOT}
+${PIN_SLOT}${INSET_SLOT}
   claimDefaults(node,n,'created');
   // RE-APPLY THE TEXT STYLE, because \`claimDefaults\`' \`paragraphSpacing\`/\`leadingTrim\` just detached it
   // (#1567, host-measured). No \`loadFontAsync\`: the style's font was loaded above, in this same run.

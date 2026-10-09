@@ -36,20 +36,20 @@
  * the result to the outline. So this gate asserts the declared dimensions are present, SQUARE, equal
  * to the viewBox's own, and that the ink fits inside them.
  *
- * ── THE PADDED ARTBOARD, WHERE A CONTROL INSETS ITS GLYPH (`SCALED_GLYPH`, #1346) ───────────────
+ * ── ICON-SET GLYPHS INSIDE A COMPONENT ARE INSTANCES (`ICON_INSTANCE_PREFIX`, #2380) ──────────────
  *
- * A `vector` part may carry `glyphScale` — the fraction of its artboard the drawn grid occupies — to
- * sit a mark SMALLER than the box that hosts it (checkbox's check is Prism 2's 0.80). The projector
- * pads the emitted document's artboard to `grid ÷ scale`, centred, so the same host size binding
- * renders the grid at `scale` of the frame with the path `d` untouched. That relaxes arm D's "the
- * artboard is the set's own square" for exactly those parts — so the scale is DECLARED here in
- * `SCALED_GLYPH` and compared to the def's `glyphScale` by value in both directions, and arm D's
- * expected box is RE-DERIVED here by `paddedArtboard` (never imported from the projector's
- * `glyphArtboard`), so a wrong pad fails rather than agreeing with itself. The pad only enlarges a
- * SQUARE canvas: the square and ink-fit checks still hold, and an unscaled part is byte-identical to
- * before. The Figma import of a negative-origin viewBox is a real-host fact this offline gate cannot
- * see (recorded in the def's `notes.unverified`); what it pins is the SUBMITTED document and its
- * declared box.
+ * Owner decision Q137 A: a vector part in any def but `icon` whose glyph is in the icon set is built as an
+ * INSTANCE of the icon component (`icon/<glyph>`), never as an inline document — the inline copy did not
+ * follow the icon set, and its geometry drifted inside its frame on a live file (#2379). So for those parts
+ * the arms below that read a document do not apply, and an instance arm replaces them: at every coordinate
+ * the part appears, the node is a `NESTED_INSTANCE` whose target is `icon/` + the glyph `FIXED_GLYPH`
+ * records (the second author, compared to the def), it carries no document, and it binds a square or a
+ * literal `glyphPx`. A projection that drew the glyph inline again fails here by name.
+ *
+ * THE INSET (`SCALED_GLYPH`, #1346). checkbox's check and dash sit at 0.8 of the control box. Since #2380 the
+ * part is a FRAME bound to the box holding one instance placed at that fraction (`glyphInset`), not a padded
+ * artboard. `SCALED_GLYPH` stays the second author of the number: compared to the def's `glyphScale` and to
+ * the plan's `glyphInset`, both by value, both directions.
  *
  * ── INDEPENDENCE, WHICH IS THE WHOLE DESIGN (`docs/34`) ─────────────────────────────────────────
  *
@@ -72,8 +72,8 @@
  *
  * ── BOTH DIRECTIONS, SO IT CANNOT PASS OVER AN EMPTY SET ────────────────────────────────────────
  *
- *   · Every def declaring a `kind: 'vector'` part must be REPRESENTED by a projected GLYPH node
- *     (`MUST_COVER`). Without this, a projector that stopped emitting `type: 'GLYPH'` altogether
+ *   · Every def declaring a `kind: 'vector'` part must be REPRESENTED by a projected GLYPH node, or by the
+ *     icon instance an icon-set glyph builds as (`MUST_COVER`). Without this, a projector that stopped emitting `type: 'GLYPH'` altogether
  *     satisfies everything above vacuously and this file reports clean over nothing.
  *   · Every name in the vocabulary must be carried by exactly one member, and every member must carry
  *     a name in the vocabulary. A member count would pass on 40 copies of `check`.
@@ -127,7 +127,20 @@ import type { ComponentDef } from './component-schema';
  * covered — including by being deleted — this file fails rather than reporting clean over a smaller
  * set. A count would read that as a pass.
  */
-const MUST_COVER = ['icon.glyph', 'checkbox-control.mark', 'checkbox-control.dash', 'textarea.grip', 'spinner.ring', 'tag.check', 'tag.dismissGlyph'];
+const MUST_COVER = [
+  'icon.glyph', 'spinner.ring',
+  // The icon INSTANCES (#2380): every icon-set glyph inside another component.
+  'checkbox-control.mark', 'checkbox-control.dash', 'textarea.grip', 'tag.check', 'tag.dismissGlyph',
+  'field-message.iconError', 'field-message.iconWarning', 'field-message.iconSuccess',
+  'switch-control.onGlyph', 'switch-control.offGlyph', 'select.chevron', 'image-placeholder.marker',
+];
+
+/** The component name prefix an icon-set glyph is an instance of (#2380): `icon/<glyph>`, the component the
+ *  `icon` def emits per glyph (`emitAsComponents`). TYPED here, not imported from `anatomy-figma.ts`'s
+ *  `iconComponentName`, which is what the projector calls — the duplicated spelling is the check. */
+const ICON_INSTANCE_PREFIX = 'icon/';
+/** The def whose own glyph IS the icon component, and so is drawn inline (the one GLYPH an icon-set name keeps). */
+const ICON_DEF = 'icon';
 
 /**
  * COMPOSED GLYPHS (#1670) — a vector part whose glyph is not in the icon set and draws several filled
@@ -374,27 +387,21 @@ const declaredViewBox = (): { minX: number; minY: number; w: number; h: number }
 };
 
 /**
- * PARTS WHOSE GLYPH IS INSET BY A PADDED ARTBOARD (#1346), keyed `<def>.<part>` → the scale and why.
+ * PARTS WHOSE ICON IS INSET IN ITS BOX (#1346), keyed `<def>.<part>` → the scale and why.
  *
- * `glyphScale` on a `vector` part pads the emitted artboard to `grid ÷ scale` (centred) so the drawn grid
- * renders at `scale` of the frame — a control whose reference sits its mark smaller than the box, without
- * minting a per-rung control token. This table is the SECOND author of that number, exactly as
+ * `glyphScale` on a `vector` part sits its icon at that fraction of the part's box — a control whose
+ * reference sits its mark smaller than the box, without minting a per-rung control token. Since #2380 the
+ * part projects as a FRAME bound to the box with the icon INSTANCE inside it at `glyphInset` of the frame
+ * (before, the document's artboard was padded). This table is the SECOND author of the number, exactly as
  * `FIXED_GLYPH` is the second author of a fixed part's glyph name: the def declares `glyphScale`, this
- * declares the scale it EXPECTS, and the two are compared by value in BOTH directions — a def scaling a
- * part this table does not list fails, and an entry for a part the def no longer scales fails as stale.
- * Without it, "the artboard is the set's own square" (arm D) could not be relaxed for an inset part
- * without being relaxed for every part, which would let a genuinely wrong artboard through.
- *
- * The padded viewBox arm D checks against is re-derived HERE by `paddedArtboard`, NOT imported from
- * `glyphArtboard` in `anatomy-figma.ts` (which the projector calls) — the duplicated derivation IS the
- * check, same rule as `declaredViewBox`'s re-parse below. The 1e4 rounding is duplicated with it on
- * purpose: `24 / 0.8` is `29.999999999999996` in IEEE, and both sides must round it to 30 the same way
- * or a correct document would read as a mismatch.
+ * declares the scale it EXPECTS, the plan carries `glyphInset`, and all three are compared by value — a def
+ * scaling a part this table does not list fails, and an entry for a part the def no longer scales fails as
+ * stale.
  */
 const SCALED_GLYPH: Record<string, { scale: number; why: string }> = {
   'checkbox-control.mark': {
     scale: 0.8,
-    why: "the check inset to 0.80 of the box (#1346), matching Prism 2's `checkFill` (16) in its 20px control square. A padded artboard rather than a shrunk frame, because shrinking the frame would mint a guaranteed `control.size.*.mark` token and bump CONTRACT",
+    why: "the check inset to 0.80 of the box (#1346), matching Prism 2's `checkFill` (16) in its 20px control square. The icon instance is placed at that fraction of a box-bound frame (#2380) rather than bound to a smaller size, because a smaller size would mint a guaranteed `control.size.*.mark` token and bump CONTRACT",
   },
   'checkbox-control.dash': {
     scale: 0.8,
@@ -403,19 +410,6 @@ const SCALED_GLYPH: Record<string, { scale: number; why: string }> = {
 };
 
 type Box = { x: number; y: number; w: number; h: number };
-
-/** The artboard a `glyphScale` pads to, re-derived independently of the projector (see `SCALED_GLYPH`).
- *  Mirrors `glyphArtboard` in `anatomy-figma.ts` — grid ÷ scale, centred on the same origin, 1e4-rounded
- *  — but is a second implementation on purpose so a wrong pad in the projector fails here. */
-const paddedArtboard = (base: { minX: number; minY: number; w: number; h: number }, scale?: number)
-  : { viewBox: string; dims: [number, number]; minX: number; minY: number; w: number; h: number } => {
-  if (scale === undefined || scale === 1)
-    return { viewBox: ICON_VIEWBOX, dims: [base.w, base.h], ...base };
-  const r = (v: number): number => Math.round(v * 1e4) / 1e4;
-  const w = r(base.w / scale), h = r(base.h / scale);
-  const minX = r(base.minX - (w - base.w) / 2), minY = r(base.minY - (h - base.h) / 2);
-  return { viewBox: `${minX} ${minY} ${w} ${h}`, dims: [w, h], minX, minY, w, h };
-};
 
 /**
  * THE INK a path draws, as a bounding box. Nothing else in this repo measures this, so it is not a
@@ -650,14 +644,15 @@ for (const def of componentDefs as ComponentDef[]) {
     }
     const scaled = SCALED_GLYPH[key];
     if (part.glyphScale !== undefined && !scaled) {
-      failures.push(`${def.id}.${partName}: the def declares glyphScale ${part.glyphScale} and SCALED_GLYPH records no inset for it — an undeclared artboard pad would let arm D's "the artboard is the set's own square" be relaxed with nothing checking to what. Add '${key}' to SCALED_GLYPH with the scale and why.`);
+      failures.push(`${def.id}.${partName}: the def declares glyphScale ${part.glyphScale} and SCALED_GLYPH records no inset for it — an undeclared inset would draw the icon at a fraction of its box with nothing checking which. Add '${key}' to SCALED_GLYPH with the scale and why.`);
       continue;
     }
     if (scaled && part.glyphScale !== scaled.scale) {
-      failures.push(`${def.id}.${partName}: the def scales the glyph by ${part.glyphScale ?? '(none)'} and SCALED_GLYPH records ${scaled.scale}. One of the two moved. Arm D re-derives the padded artboard from the record, so a wrong def scale would draw a mark at the wrong size on an artboard this file still calls correct.`);
+      failures.push(`${def.id}.${partName}: the def scales the glyph by ${part.glyphScale ?? '(none)'} and SCALED_GLYPH records ${scaled.scale}. One of the two moved, so the icon would be placed at a fraction of its box this file does not expect.`);
       continue;
     }
-    const pvb = paddedArtboard(vb, part.glyphScale);
+    // A glyph still drawn inline is drawn on the set's own square (the padded artboard is gone since #2380).
+    const pvb = { viewBox: ICON_VIEWBOX, dims: [vb.w, vb.h] as [number, number], ...vb };
     // The axis the glyph template names, read from the DEF. `'{name}'` → `name`; a literal glyph name is
     // a DIFFERENT claim (one shape at every coordinate) and must be recorded in `FIXED_GLYPH` with the
     // name it draws, so a fixed glyph is admitted by decision rather than by the absence of a rule.
@@ -696,6 +691,67 @@ for (const def of componentDefs as ComponentDef[]) {
     }
 
     covered.add(key);
+
+    // ---- THE ICON INSTANCE ARM (#2380) --------------------------------------------------------------
+    // An icon-set glyph in any def but `icon` is an instance of `icon/<glyph>`, never a document. EXPECTED is
+    // the glyph this file records (FIXED_GLYPH, already compared to the def above) or the member's own axis
+    // value, behind the prefix typed in this file. ACTUAL is the plan node with the part's name.
+    if (def.id !== ICON_DEF) {
+      const gatedHere = (coord: Record<string, string | undefined>): boolean =>
+        Object.entries(part.presentWhen ?? {}).every(([a, vs]) => coord[a] !== undefined && vs.includes(coord[a]!));
+      let seenAt = 0;
+      for (const plan of set) {
+        const coord = plan.coord as Record<string, string | undefined>;
+        const member = axis ? coord[axis] : fixed!.glyph;
+        const at = JSON.stringify(plan.coord);
+        const nodes = allNodes(plan).filter((n) => n.name === partName);
+        const want = gatedHere(coord) ? 1 : 0;
+        if (nodes.length !== want) {
+          failures.push(`${def.id}.${partName}: ${nodes.length} node(s) named '${partName}' at ${at}, expected exactly ${want}${part.presentWhen ? ` (presentWhen ${JSON.stringify(part.presentWhen)} is ${want ? 'satisfied' : 'NOT satisfied'} here)` : ''}.`);
+          continue;
+        }
+        if (!want) continue;
+        seenAt++;
+        const node = nodes[0];
+        const target = `${ICON_INSTANCE_PREFIX}${member}`;
+        if (node.type === 'GLYPH' || node.glyphSvg !== undefined) {
+          failures.push(`${def.id}.${partName} @ ${at}: drawn INLINE (${node.type} carrying a document), not as an instance of ${target} — an inline copy does not follow the icon set, and its geometry drifts inside its frame (#2379, #2380).`);
+          continue;
+        }
+        const inst = scaled ? (node.children ?? [])[0] : node;
+        if (scaled) {
+          if (node.type !== 'FRAME' || (node.children ?? []).length !== 1)
+            failures.push(`${def.id}.${partName} @ ${at}: an inset icon is a FRAME holding exactly one instance, and this is a ${node.type} with ${(node.children ?? []).length} child(ren).`);
+          if (!node.bound.width || node.bound.width !== node.bound.height)
+            failures.push(`${def.id}.${partName} @ ${at}: the inset frame binds ${node.bound.width ?? '(nothing)'}×${node.bound.height ?? '(nothing)'}, not one variable on both axes — the inset is a fraction of a square box.`);
+          if (inst?.glyphInset !== scaled.scale)
+            failures.push(`${def.id}.${partName} @ ${at}: the icon is placed at ${String(inst?.glyphInset)} of its box and SCALED_GLYPH records ${scaled.scale}.`);
+        } else if (node.glyphInset !== undefined)
+          failures.push(`${def.id}.${partName} @ ${at}: carries glyphInset ${node.glyphInset}, and SCALED_GLYPH records no inset for it.`);
+        if (!inst || inst.type !== 'NESTED_INSTANCE' || inst.nestTarget !== target) {
+          failures.push(`${def.id}.${partName} @ ${at}: expected an instance of ${target}, got ${inst ? `${inst.type}${inst.nestTarget ? ` of ${inst.nestTarget}` : ''}` : 'nothing'}.`);
+          continue;
+        }
+        if (inst.glyphSvg !== undefined || inst.glyphViewBox !== undefined || inst.nestVariant !== undefined)
+          failures.push(`${def.id}.${partName} @ ${at}: the instance carries ${inst.glyphSvg !== undefined ? 'a glyph document' : inst.glyphViewBox !== undefined ? 'a glyphViewBox' : 'a nestVariant'} — an icon component is a plain component, drawn by the icon def, not here.`);
+        if (inst.propertyRef !== undefined)
+          failures.push(`${def.id}.${partName} @ ${at}: the instance is driven by a component property (${JSON.stringify(inst.propertyRef)}) — owner decision Q137 A adds no swap property for these.`);
+        if (!scaled && !(node.glyphPx && node.glyphPx > 0) && !(node.bound.width && node.bound.width === node.bound.height))
+          failures.push(`${def.id}.${partName} @ ${at}: the instance binds ${node.bound.width ?? '(nothing)'}×${node.bound.height ?? '(nothing)'} and states no glyphPx — an icon is sized as a square.`);
+        if (!inst.descendantFills)
+          failures.push(`${def.id}.${partName} @ ${at}: the instance carries no descendantFills, so the icon would show its component's own ink rather than this part's.`);
+        glyphChecks++;
+      }
+      if (!seenAt)
+        failures.push(`${def.id}.${partName}: appeared at NONE of the set's ${set.length} members, so the instance arm measured nothing.`);
+      notes.push(`${key}: instance of ${ICON_INSTANCE_PREFIX}${axis ? `{${axis}}` : fixed!.glyph} at ${seenAt}/${set.length} member(s)${scaled ? `, inset ${scaled.scale} of its box` : ''}${part.presentWhen ? `, gated ${JSON.stringify(part.presentWhen)}` : ''}`);
+      continue;
+    }
+
+    if (scaled) {
+      failures.push(`${def.id}.${partName}: SCALED_GLYPH records an inset for a glyph drawn inline — an inset is placed on an icon instance (#2380), so it would be ignored here.`);
+      continue;
+    }
     const seenNames = new Map<string, string>();  // axis value (or the fixed name) → the `d` its document carries
     // A VARIANT-GATED part (#910) is legitimately absent at most coordinates, so the count arm below has
     // to know WHICH. Read off `presentWhen` in the def, and asserted in BOTH directions: a gated part
