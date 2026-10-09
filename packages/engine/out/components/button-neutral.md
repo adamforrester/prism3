@@ -26,10 +26,13 @@ Use for an immediate action in the current context — submit/save/reset a form,
 - Underline the label of a button at appearance=text, at rest and in every state, disabled included, with its underlined label style (`type.label.sm.emphasis-link`, `type.label.md.emphasis-link`, `type.label.lg.emphasis-link`); the underline is fixed, not a brand setting
 - Never fill a button at appearance=text at rest; under the brand's `buttonTextHover` setting `text` (Text & icon only, the default), change only its label and icon colors on hover and pressed
 - On a brand whose `buttonTextHover` is `fill` (Fill), also give a button at appearance=text the overlay wash on hover and pressed, as outline buttons take it
+- Set inset=flush on a button at appearance=text that starts, ends or centers a row of content, so its label lines up with the content edge; give it `padding-inline: 0` and no `min-inline-size`, and keep its hit area at least its default sibling's size
+- Never fill a flush button on hover or pressed, whatever the brand's `buttonTextHover` is: with no padding the fill would hug the label; only its label and icon colors change
 - Use isInactive (focusable) for a control blocked by satisfiable state; reserve disabled for the irrelevant
 
 ### Don't
 
+- Set inset=flush on a filled or outline button — their visible edge needs its padding; flush is for appearance=text
 - Use a button for navigation to a URL — use a link / link-button
 - Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills
 - Use native disabled on a relevant-but-blocked control (dead end for keyboard/SR users)
@@ -61,6 +64,7 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 | `appearance` | enum: 'filled' \| 'outline' \| 'text' | `filled` | no | Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.) |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Control size — drives height, padding, and label type. |
 | `surface` | enum: 'default' \| 'inverse' | `default` | no | The ground the button sits on. `default` for a normal page; `inverse` for a dark or brand-filled band, where the button binds its `color.inverse.*` counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance — the same answer the nested focus ring gives. |
+| `inset` | enum: 'default' \| 'flush' | `default` | no | Text appearance only. `flush` removes the inline padding on both sides, so the label lines up with the content edge above and below it, whether the button starts, ends or centers a row. A flush button hovers by color only, and its hit target keeps its height. |
 | `fullWidth` | boolean | `false` | no | Stretch to container. Aliases: block / isFullWidth. |
 | `type` | enum: 'button' \| 'submit' \| 'reset' | `button` | no | Opinionated default 'button' to neutralize the platform's submit-on-enter-in-form trap; require 'submit' explicitly. |
 | `isPending` | boolean | `false` | no | Delays the spinner, preserves width, keeps focus (aria-disabled, not native disabled), suppresses re-fire, announces busy. Preferred over `loading`. |
@@ -83,6 +87,7 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 | `size` | `small`, `medium`, `large` | once, when authored |
 | `width` | `auto`, `full` | once, when authored |
 | `surface` | `default`, `inverse` | once, when authored |
+| `inset` | `default`, `flush` | once, when authored |
 
 ## Accessibility
 
