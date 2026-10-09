@@ -4085,9 +4085,10 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     select: { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], 'focus-visible-filled': ['value', VALUE], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
   };
   // Which defs draw the caret, and at which states. select is typed empty on purpose (see above).
-  // #2318: the focused field that holds a value draws the caret too, at the start of the value, while
-  // `FOCUSED_FILLED_CARET` is on (the owner is re-deciding it, Q157.3; flip this line with the switch).
-  const CARET_AT: Record<string, string[]> = { 'text-field': ['focus-visible', 'focus-visible-filled'], textarea: ['focus-visible', 'focus-visible-filled'], select: [] };
+  // The `caret` part: the empty focused field only. The focused field that holds a value draws its caret AFTER the value
+  // in its own `caretEnd` part, on text-field only (#2318, owner Q166 C), held below.
+  const CARET_AT: Record<string, string[]> = { 'text-field': ['focus-visible'], textarea: ['focus-visible'], select: [] };
+  const CARET_END_AT: Record<string, string[]> = { 'text-field': ['focus-visible-filled'], textarea: [], select: [] };
   const CARET_INK = 'color/text/primary';
   const CARET_WIDTH = 'border-width/hairline';
   // One line of NB's value type: the emitted style's font size (through NB's own tree) × its line height.
@@ -4125,6 +4126,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const members = ((set?.children as Node[] | undefined) ?? []);
     const wrong: string[] = [];
     const caretWrong: string[] = [];
+    const endWrong: string[] = [];
+    let endCarets = 0;
     const seen = new Set<string>();
     const boxAt = new Map<string, string>();
     let carets = 0;
@@ -4143,6 +4146,20 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       else if (other) wrong.push(`${m.name}: both layers present, want ${layer} only`);
       else if (paintVar(shown, 'fills') !== ink) wrong.push(`${m.name}: ${layer} ${paintVar(shown, 'fills')}, want ${ink}`);
       else if (refProp(shown) !== layer) wrong.push(`${m.name}: the ${layer} layer references '${refProp(shown)}', want its own '${layer}' property`);
+      // The END caret (#2318, owner Q166 C): after the value, on text-field's focused field that holds one, and nowhere else.
+      const caretEnd = named(m, 'caretEnd');
+      const endDue = CARET_END_AT[id].includes(state);
+      if (endDue !== !!caretEnd) endWrong.push(`${m.name}: end caret ${caretEnd ? 'present' : 'absent'}, want ${endDue ? 'present' : 'absent'}`);
+      else if (caretEnd) {
+        endCarets++;
+        const ekids = ((parentOf(m, caretEnd)?.children as Node[]) ?? []);
+        const eh = boundName(caretEnd, 'height');
+        const eline = shown ? nbLineOf(String(shown._textStyleId ?? '').replace(/^S:/, '')) : NaN;
+        if (ekids[ekids.indexOf(caretEnd) - 1] !== shown || layer !== 'value') endWrong.push(`${m.name}: end caret is not immediately after the value (row [${ekids.map((k) => k.name).join(', ')}])`);
+        else if (paintVar(caretEnd, 'fills') !== CARET_INK) endWrong.push(`${m.name}: end caret ${paintVar(caretEnd, 'fills')}, want ${CARET_INK}`);
+        else if (boundName(caretEnd, 'width') !== CARET_WIDTH) endWrong.push(`${m.name}: end caret width ${boundName(caretEnd, 'width')}, want ${CARET_WIDTH}`);
+        else if (!eh || !(Math.abs(nbVarPx(eh) - eline) < 1e-6)) endWrong.push(`${m.name}: end caret height ${eh} is ${eh ? nbVarPx(eh) : '?'}px on NB, want one line of the value type, ${eline}px`);
+      }
       // The caret.
       const caret = named(m, 'caret');
       const due = CARET_AT[id].includes(state);
@@ -4166,6 +4183,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const caretMembers = SIZES.length * STATUSES.length * CARET_AT[id].length;
     ok(caretWrong.length === 0 && carets === caretMembers && drift.length === 0 && !r.misses.some((x) => x.startsWith('footprint -> ')),
       `field caret (${id}): ${caretMembers ? `a caret on exactly the ${caretMembers} focused members — ${CARET_INK}, ${CARET_WIDTH} wide, one value line tall, immediately before the placeholder (or the value, when it holds one) — and each focus-visible member measures its rest sibling` : 'no caret on any member'} (${carets} caret(s); ${caretWrong.length} wrong — ${caretWrong[0] ?? 'none'}; ${drift.length} footprint drift — ${drift[0] ?? 'none'})`);
+    const endMembers = SIZES.length * STATUSES.length * CARET_END_AT[id].length;
+    ok(endWrong.length === 0 && endCarets === endMembers,
+      `field end caret (${id}): ${endMembers ? `a caret immediately after the value on exactly the ${endMembers} focused members that hold one — ${CARET_INK}, ${CARET_WIDTH} wide, one value line tall` : 'no end caret on any member'} (${endCarets} end caret(s)${endWrong.length ? `; ${endWrong.length} wrong — ${endWrong.slice(0, 2).join('; ')}` : ''})`);
   }
 }
 

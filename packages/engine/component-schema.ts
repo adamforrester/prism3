@@ -2436,12 +2436,18 @@ export const fillKey = (
  * any of the three repaints a sibling. Its dispatch is the box branch, which calls `paintOf` on every
  * slot a box declares, so it sits in `BOX_PAINT_SLOTS` too: the caret is a bar that draws itself, the
  * radio dot's case.
+ *
+ * `caret-end` (#2318, owner decision Q166 C, 2026-10-09) is the same role on a SECOND node: text-field's focused field
+ * that holds a value draws its insertion point AFTER the value, where it is, while `caret` stays before the
+ * placeholder on the empty focused field. Node order is fixed per set, so the two positions are two parts, and the
+ * projector resolves a slot once per def (two parts claiming `caret` would bind one variable for both, which
+ * `anatomyErrors` refuses). So the second caret takes its own slot, bound to the same value ink.
  */
 /** The reserved `presentWhen` key that gates a part on the projected STATE rather than on a variant axis
  *  (owner decision, 2026-09-26). See `PartDef.presentWhen`. */
 export const STATE_GATE = 'state';
 
-export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon', 'indicator', 'caret'] as const;
+export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon', 'indicator', 'caret', 'caret-end'] as const;
 
 /**
  * The paint slots a SLOT-FREE template is allowed to answer (#758).
@@ -2499,7 +2505,7 @@ export const PRIMARY_PAINT_SLOTS = new Set(['fill', 'label', 'icon', 'indicator'
  * than by a list the projector also keeps: `border` is the only edge slot, so it is the only one that
  * reaches `strokes`, and everything else competes for the single `fills` array in declaration order.
  */
-export const BOX_PAINT_SLOTS = ['overlay', 'fill', 'border', 'indicator', 'caret'] as const;
+export const BOX_PAINT_SLOTS = ['overlay', 'fill', 'border', 'indicator', 'caret', 'caret-end'] as const;
 
 /**
  * The RUNTIME INTERACTION STATES a def may declare (#821, argued in `docs/39` §7(a)).
@@ -3598,9 +3604,10 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // a caret that is secretly a container.
   for (const n of names) {
     const p = parts[n];
-    if (p.kind !== 'box' || !(p.paintSlots ?? []).includes('caret')) continue;
+    const caretSlot = (p.paintSlots ?? []).find((s) => s === 'caret' || s === 'caret-end');
+    if (p.kind !== 'box' || !caretSlot) continue;
     if ((p.children ?? []).length)
-      e.push(`anatomy part '${n}' declares paintSlots 'caret' and has children [${p.children!.join(', ')}] — the caret is a bar that draws itself, so a child is content its fill would paint behind (#864). Keep the caret a childless box beside the text it precedes`);
+      e.push(`anatomy part '${n}' declares paintSlots '${caretSlot}' and has children [${p.children!.join(', ')}] — the caret is a bar that draws itself, so a child is content its fill would paint behind (#864). Keep the caret a childless box beside the text it precedes`);
   }
 
   // Every binding key anatomy names must be a slot the component actually binds, AT EVERY COORDINATE

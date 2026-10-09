@@ -90,7 +90,6 @@
  * switch holding the two) would still leave a stray gap with the footer on and both inside it off.
  */
 import { ComponentDef } from '../component-schema';
-import { FOCUSED_FILLED_CARET } from '../field-focus';
 
 export const textarea: ComponentDef = {
   id: 'textarea',
@@ -362,10 +361,10 @@ export const textarea: ComponentDef = {
         width: 'caret-width',
         height: 'size.{size}.caret-height',
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fixed', y: 'fixed' } },
-        // Also on the focused field that holds a value (#2318, behind `FOCUSED_FILLED_CARET`): at the START of the value,
-        // since the value fills the box and wraps and Figma cannot place a node after its last character.
-        presentWhen: { state: ['focus-visible', ...(FOCUSED_FILLED_CARET ? ['focus-visible-filled'] : [])] },
-        note: 'The insertion point on the focused field, in the value ink: before the placeholder when empty, at the start of the value when it holds one. Code draws the native caret where the user is typing, colored by `caret-color`.',
+        // Not on the focused field that holds a value (#2318, owner Q166 C): the value fills the box and wraps, so nothing
+        // can follow its last character, and the owner chose no caret there over one at its start.
+        presentWhen: { state: ['focus-visible'] },
+        note: 'The insertion point on the focused empty field, immediately before the placeholder, in the value ink. Code draws the native caret, colored by `caret-color`.',
       },
       // THE TWO TEXT LAYERS (Option C) — text-field's, for #1567's measured reason: a bound TEXT node shows
       // its set's ONE default, so a placeholder and a value can differ per member only as two nodes. Each

@@ -70,7 +70,6 @@ import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { FOCUSED_FILLED_CARET } from './field-focus';
 import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
@@ -14669,8 +14668,9 @@ arm: {
       // (2b) #2318 (owner decision Q157, 2026-10-09): THE FOCUSED FIELD THAT HOLDS A VALUE, `state=focus-visible-filled`,
       // on all three fields at every size and status. What it shows is typed here from the decision, never read off the
       // def: the value in the value ink and no placeholder, the focus ring, the focus border at default status and the
-      // status's own border otherwise, and the caret before the value exactly when `FOCUSED_FILLED_CARET` is on (select has
-      // none either way). ACTUAL is the emitted plan. And the set carries the 12 new members per field, 4 per size.
+      // status's own border otherwise, and (owner Q166 C) on text-field ONLY a caret immediately AFTER the value, in its own
+      // `caretEnd` part, with no caret before it; textarea and select draw no caret at all. ACTUAL is the emitted plan. And
+      // the set carries the 12 new members per field, 4 per size.
       {
         const BORDER: Record<string, string> = { default: 'color/border/focus', error: 'color/border/danger', warning: 'color/border/warning', success: 'color/border/success' };
         const order = (n: AnatomyPlan['root'], acc: string[] = []): string[] => { acc.push(n.name); for (const k of n.children) order(k, acc); return acc; };
@@ -14688,15 +14688,18 @@ arm: {
             const ctl = findIn(root, 'control');
             if (ctl?.paints?.strokes !== BORDER[status]) bad.push(`${at}: border ${String(ctl?.paints?.strokes)}, want ${BORDER[status]}`);
             const names = order(root);
-            const wantCaret = FOCUSED_FILLED_CARET && def !== select;
-            const caretAt = names.indexOf('caret');
-            if (wantCaret && !(caretAt >= 0 && caretAt < names.indexOf('value'))) bad.push(`${at}: no caret before the value`);
-            if (!wantCaret && caretAt >= 0) bad.push(`${at}: a caret is drawn`);
+            if (names.includes('caret')) bad.push(`${at}: a caret is drawn before the value`);
+            if (def === textField) {
+              const endAt = names.indexOf('caretEnd');
+              const end = findIn(root, 'caretEnd');
+              if (endAt < 0 || names[endAt - 1] !== 'value') bad.push(`${at}: no caret immediately after the value (${names.join(' ')})`);
+              else if (end?.paints?.fills !== 'color/text/primary') bad.push(`${at}: end caret ink ${String(end?.paints?.fills)}`);
+            } else if (names.includes('caretEnd')) bad.push(`${at}: an end caret is drawn`);
           }
           const set = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
           const added = set.filter((p) => planComponentName(p).includes('state=focus-visible-filled'));
           ok(bad.length === 0 && seen === 12 && added.length === 12,
-            `#2318 ${def.id}: the focused field that holds a value shows the value in text.primary, no placeholder, the focus ring and the focus (or status) border, ${FOCUSED_FILLED_CARET && def !== select ? 'with the caret before the value' : 'with no caret'}, in all 12 new members (${added.length} built${bad.length ? `; WRONG: ${bad.slice(0, 4).join(' | ')}` : ''})`);
+            `#2318 ${def.id}: the focused field that holds a value shows the value in text.primary, no placeholder, the focus ring and the focus (or status) border, ${def === textField ? 'with the caret immediately after the value' : 'with no caret'}, in all 12 new members (${added.length} built${bad.length ? `; WRONG: ${bad.slice(0, 4).join(' | ')}` : ''})`);
         }
       }
 

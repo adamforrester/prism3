@@ -48,7 +48,6 @@
  * is baked in.
  */
 import { ComponentDef } from '../component-schema';
-import { FOCUSED_FILLED_CARET } from '../field-focus';
 
 export const textField: ComponentDef = {
   id: 'text-field',
@@ -237,6 +236,8 @@ export const textField: ComponentDef = {
     // sm/md/lg's font size × line height, asserted per rung in `tree.ts` (#1201/#1220), the same `type` this
     // field's text binds at each size (`size.{size}.caret-height`, below).
     'caret': 'color.text.primary',
+    // The end caret (#2318, owner Q166 C): the focused field that holds a value, after the value, in the same ink.
+    'caret-end': 'color.text.primary',
     'caret-width': 'border-width.hairline',
 
     // ── BORDER — stateful, with the status-led swaps (border-ONLY). `border` (bare) is the rest value;
@@ -426,7 +427,8 @@ export const textField: ComponentDef = {
       entry: {
         kind: 'box',
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
-        children: ['caret', 'placeholder', 'value'],
+        // `caretEnd` follows the value (#2318, owner Q166 C): the focused field that holds a value.
+        children: ['caret', 'placeholder', 'value', 'caretEnd'],
       },
       // THE FOCUS CARET (owner decision, 2026-09-26) — present only at focus-visible (`presentWhen` on the
       // state, the schema's `STATE_GATE`). A childless bar painting its own `caret` slot. One hairline wide and
@@ -438,10 +440,22 @@ export const textField: ComponentDef = {
         width: 'caret-width',
         height: 'size.{size}.caret-height',
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fixed', y: 'fixed' } },
-        // Also on the focused field that holds a value (#2318, behind `FOCUSED_FILLED_CARET`), at the START of the value:
-        // one caret node per field, since two parts cannot share the `caret` paint slot.
-        presentWhen: { state: ['focus-visible', ...(FOCUSED_FILLED_CARET ? ['focus-visible-filled'] : [])] },
-        note: 'The insertion point on the focused field, in the value ink: before the placeholder when empty, at the start of the value when it holds one. Code draws the native caret where the user is typing, colored by `caret-color`.',
+        presentWhen: { state: ['focus-visible'] },
+        note: 'The insertion point on the focused empty field, immediately before the placeholder, in the value ink. Code draws the native caret, colored by `caret-color`.',
+      },
+      // THE END CARET (#2318, owner decision Q166 C, 2026-10-09): the focused field that holds a value draws its insertion
+      // point AFTER the value, where it is. The same bar as `caret`, in its own `caret-end` slot (two parts cannot share
+      // one), present only at `focus-visible-filled`. Text field only: textarea's value fills the box and wraps, so
+      // nothing can follow its last character, and select has no insertion point.
+      caretEnd: {
+        kind: 'box',
+        role: 'presentation',
+        paintSlots: ['caret-end'],
+        width: 'caret-width',
+        height: 'size.{size}.caret-height',
+        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fixed', y: 'fixed' } },
+        presentWhen: { state: ['focus-visible-filled'] },
+        note: 'The insertion point on the focused field that holds a value, immediately after the value, in the value ink. Code draws the native caret where the user is typing.',
       },
       // THE TWO TEXT LAYERS (Option C, owner decision 2026-09-26). #1567 measured on the live host that a
       // bound TEXT node shows its set's ONE default, and field-message met the same limit in #1575, so one
