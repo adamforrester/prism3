@@ -57,6 +57,13 @@
  *   apply/copy     with the original's coordinate dropped, only the original is marked deprecated; a Figma duplicate
  *                  of it and an unstamped member off the plan keep their description, stamp and record exactly
  *                  (#2328 review). Mutation: the deprecations take the unstamped members too → `apply/copy`.
+ *   nochange/…     a set the dry run reads as "no changes" (every member built by an earlier plugin) takes its stamps and
+ *                  nothing else, read by a write log the test installs on the shim's nodes (#2379). Mutation: those
+ *                  members sent through the build's pass again → `nochange/writes` (7,575 other writes).
+ *   drawn/…        after an update in place, every bound paint stores the color and alpha its variable resolves to, and
+ *                  every glyph's vectors fit its frame, read by the test off the shim's nodes (#2379). Mutations: the
+ *                  paint base left black, or its alpha dropped → `drawn/paints`; the fresh glyph import not scaled to
+ *                  its frame → `drawn/glyphs`.
  *   noop/…         a set already current: no version, no write.
  *   order/…        nested sets are updated first.
  *
@@ -74,7 +81,9 @@ import { NS } from './src/persist-figma';
 import { materializeForBrand } from './src/brand-def';
 import { BASELINE_KEY } from './src/member-baseline';
 import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
-import { previewUpdate, previewVerdict, type UpdateHost, type UpdateTarget } from './src/update-plan';
+import { captureBaselines, previewUpdate, previewVerdict, type UpdateHost, type UpdateTarget } from './src/update-plan';
+import { drawnFaults, faultLine, varsById } from './src/drawn';
+import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
 import { applyUpdate, applyVerdict, previewHashOf, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
 
 let failed = 0;
@@ -102,7 +111,7 @@ const planChild = (n: PlanNode, name: string): PlanNode => n.children!.find((c) 
 type World = { host: ApplyHost; api: Record<string, any>; page: Page; set: () => Node; plans: AnatomyPlan[] };
 /** A fresh file holding one set, built by the executor, with identities on. `extraVars` are variables the file
  *  holds beyond the plans', for a later plan to bind. */
-const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[]; extraStyles?: string[]; extraComps?: string[]; unavailableFonts?: { family: string; style: string }[]; refuseVersion?: boolean; allowMisses?: string[] } = {}): Promise<World> => {
+const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[]; extraStyles?: string[]; extraComps?: string[]; keyPrefix?: string; styleIdPrefix?: string; unavailableFonts?: { family: string; style: string }[]; refuseVersion?: boolean; allowMisses?: string[] } = {}): Promise<World> => {
   const page: Page = { children: [] };
   const api = makeShim({
     vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0', ...(o.extraVars ?? [])])],
@@ -112,6 +121,9 @@ const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[];
     page,
     liveRoot: true,
     identities: true,
+    scaleConstrained: true,
+    keyPrefix: o.keyPrefix,
+    styleIdPrefix: o.styleIdPrefix,
     refuseVersion: o.refuseVersion,
   }) as any;
   const built = await applyComponentPlan(plans, api);
@@ -513,6 +525,298 @@ section('unrecorded — a member with no as-built record is updated and named, n
   ok((childNamed(m, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === await varIdOf(w, 'space/999'), 'unrecorded/written: its content gap is the plan\'s');
   const post = (await previewUpdate(w.host, [{ def: TAG, plans: moveGap(w.plans) }])).sets[0];
   ok(post.counts.current === 45 && post.counts.noBaseline === 0, `unrecorded/recorded: it now has a record, and reads current (${JSON.stringify(post.counts)})`);
+}
+
+/* ── no change ───────────────────────────────────────────────────────────────────────────────────────── */
+section('no change — a member the dry run calls "no changes" is written nothing but its stamp and record (#2379)');
+/** Every write the host takes under `root`, from here on: a property assigned, or a method that changes the node
+ *  called. Installed by the TEST on the shim's own nodes (a property becomes an accessor that logs its set; a
+ *  method is wrapped), so the update's own report of what it wrote is never the witness (docs/34). */
+const watchWrites = (root: Node): string[] => {
+  const log: string[] = [];
+  const walk = (n: Node, path: string): void => {
+    for (const k of Object.keys(n)) {
+      if (k === 'children' || k === 'parent') continue;
+      const d = Object.getOwnPropertyDescriptor(n, k);
+      if (!d || !d.configurable) continue;
+      if (typeof d.value === 'function') {
+        if (/^(get|find|export|load)/.test(k)) continue;
+        const f = d.value as (...a: unknown[]) => unknown;
+        Object.defineProperty(n, k, { configurable: true, enumerable: d.enumerable, writable: true,
+          value: (...a: unknown[]) => { log.push(`${path} ${k}(${a.slice(0, 2).map((x) => (typeof x === 'string' ? x : typeof x)).join(', ')})`); return f.apply(n, a); } });
+      } else if ('value' in d) {
+        let v = d.value;
+        Object.defineProperty(n, k, { configurable: true, enumerable: d.enumerable, get: () => v, set: (x) => { log.push(`${path} .${k} =`); v = x; } });
+      }
+    }
+    for (const c of (n.children as Node[] | undefined) ?? []) walk(c, `${path}/${String(c.name)}`);
+  };
+  walk(root, String(root.name));
+  return log;
+};
+{
+  // The NB master's 16 sets: every member built by an earlier plugin, its stamp without the executor-revision
+  // field, matching its plan and its record. The dry run reads "no changes"; the apply wrote the build's whole pass
+  // over them. Mutation: those members sent to the build's update pass again → `nochange/writes`.
+  const w = await world(TAG);
+  for (const m of membersOf(w.set())) {
+    const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.split('|').slice(0, 2).join('|'));
+  }
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
+  const c0 = pre.sets[0]?.counts;
+  ok(c0?.revisionUnknown === 45 && /built by an earlier plugin/.test(previewVerdict(pre).lines.join(' ')) && /no changes/.test(previewVerdict(pre).lines[0] ?? ''),
+    `premise: all 45 members read "built by an earlier plugin", and the set reads no changes (${JSON.stringify(c0)}; ${previewVerdict(pre).lines[0]})`);
+  const log = watchWrites(w.set());
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(pre));
+  const other = log.filter((x) => !new RegExp(`setSharedPluginData\\(${NS}, (${STAMP_KEY}|${BASELINE_KEY})\\)$`).test(x));
+  ok(other.length === 0, `nochange/writes: nothing is written to the set or its members but each member's stamp and record (${other.length} other writes${other.length ? `, e.g. ${other.slice(0, 3).join(' | ')}` : ''})`);
+  const again = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
+  ok(applyVerdict(res).ok && again.sets[0]?.counts.current === 45,
+    `nochange/current: each member then reads current (${JSON.stringify(again.sets[0]?.counts)}; ${applyVerdict(res).headline})`);
+}
+
+/* ── the record's format ──────────────────────────────────────────────────────────────────────────────── */
+section('format — a record reads the same in a copy of the file, and a record of an earlier format is no record (#2379 review)');
+{
+  // A DUPLICATE OF THE FILE (Lane D, on a copy of the NB master): the same components and styles under the same names,
+  // with new keys and style ids, as Figma gives a copy. A record that hashed keys read every instance and styled text
+  // there as a hand edit, on sets nobody had edited. Mutations: an instance's main hashed by key → `format/duplicate`;
+  // a text style hashed by id → `format/duplicate`.
+  const g = globalThis as { figma?: unknown };
+  const had = g.figma;
+  g.figma = { getStyleByIdAsync: async (id: string) => ({ name: id.replace(/^S:(B:)?/, '') }) };
+  resetStyleNames();
+  try {
+    const a = await world(TAG);
+    const b = await world(TAG, plansOf(TAG), { keyPrefix: 'KB', styleIdPrefix: 'B:' });
+    const firstOf = (set: Node, t: string): Node | undefined => (membersOf(set).flatMap((m) => (m.findAll as (f: (n: Node) => boolean) => Node[])((n) => n.type === t)))[0];
+    const keyA = String(((firstOf(a.set(), 'INSTANCE')?.mainComponent ?? {}) as { key?: unknown }).key ?? '');
+    const keyB = String(((firstOf(b.set(), 'INSTANCE')?.mainComponent ?? {}) as { key?: unknown }).key ?? '');
+    const styled = (set: Node): string => String(membersOf(set).flatMap((m) => (m.findAll as (f: (n: Node) => boolean) => Node[])((n) => n.type === 'TEXT' && !!n.textStyleId))[0]?.textStyleId ?? '');
+    ok(!!keyA && !!keyB && keyA !== keyB && styled(a.set()) !== styled(b.set()) && !!styled(b.set()),
+      `premise: the copy's instances point at mains with other keys, and its text at styles with other ids (${keyA} / ${keyB}; ${styled(a.set())} / ${styled(b.set())})`);
+    const byName = new Map(membersOf(a.set()).map((m) => [String(m.name), m] as const));
+    for (const m of membersOf(b.set())) {
+      const src = byName.get(String(m.name))!;
+      const pd = (n: Node, k: string): string => (n.getSharedPluginData as (a: string, b: string) => string)(NS, k);
+      (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, pd(src, STAMP_KEY));
+      (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, JSON.stringify({ ...JSON.parse(pd(src, BASELINE_KEY)), id: String(m.id) }));
+    }
+    const p = (await previewUpdate(b.host, [{ def: TAG, plans: b.plans }])).sets[0];
+    ok(p.counts.handEdited === 0 && p.counts.current === 45, `format/duplicate: in a copy of the file, every member reads current and none as edited by hand (${JSON.stringify(p.counts)}; ${p.handEdits.slice(0, 2).map((h) => `${h.member} ${h.path}`).join(' | ')})`);
+  } finally { g.figma = had; resetStyleNames(); }
+}
+{
+  // A RECORD OF AN EARLIER FORMAT is no record: never compared, so never a hand edit. The members read as having none,
+  // and the update brings them to the plan and records them anew (Q113 A). Its instance hashes differ, as a v2 record's
+  // keyed ones do. Mutation: `readBaseline` reading another `v` → `format/earlier`.
+  const w = await world(TAG);
+  for (const m of membersOf(w.set())) {
+    const rec = JSON.parse((m.getSharedPluginData as (a: string, b: string) => string)(NS, BASELINE_KEY)) as { v: number; nodes: Record<string, string> };
+    const inst = new Set((m.findAll as (f: (n: Node) => boolean) => Node[])((n) => n.type === 'INSTANCE').map((n) => String(n.name)));
+    for (const k of Object.keys(rec.nodes)) if (inst.has(k.split('/').pop()!.replace(/#\d+$/, ''))) rec.nodes[k] = '00000000';
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, JSON.stringify({ ...rec, v: BASELINE_V - 1 }));
+  }
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
+  const p = pre.sets[0];
+  ok(p.counts.handEdited === 0 && p.counts.noBaseline === 45, `format/earlier: a record of an earlier format reads as no record, never as a hand edit (${JSON.stringify(p.counts)})`);
+  // Named as what it is, in the owner's words (2026-10-09), in the dry run and in the apply. Mutation: the count left
+  // with the members that never had a record → `format/earlier words`.
+  const dry = previewVerdict(pre).lines[0];
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(pre));
+  const done = applyVerdict(res).lines[0];
+  ok(dry === 'tag: 45 members. 45 recorded by an earlier plugin version, read as having no as-built record.' && done === 'tag: 45 updated in place, 45 of them recorded by an earlier plugin version.',
+    `format/earlier words: the dry run and the apply say the record is an earlier version's (${dry} | ${done})`);
+  const again = (await previewUpdate(w.host, [{ def: TAG, plans: w.plans }])).sets[0];
+  ok(again.counts.current === 45, `format/earlier recorded: after the update each member has a record of this format, and reads current (${JSON.stringify(again.counts)})`);
+}
+
+/* ── damage under a current record ────────────────────────────────────────────────────────────────────── */
+section('damage under a record — a member drawn wrong reads "to update" whatever its stamp and record say (#2379 review)');
+{
+  // Lane D's case, the NB master's likely state: paint and glyph damage planted behind the executor, then a record
+  // captured over it, and the stamp from an earlier plugin. Only the draw check can tell. Mutation: the dry run's
+  // draw check dropped from its classification → `damage/dry run`, `damage/repaired`.
+  const w = await world(TAG);
+  const members = membersOf(w.set());
+  const paintHit = members[2]; // a member whose root binds its fill
+  const glyphHit = members.find((m) => /selection=selected/.test(String(m.name)))!;
+  const blacken = (n: Node): boolean => {
+    for (const f of ['fills', 'strokes'] as const) {
+      const ps = n[f] as { boundVariables?: { color?: unknown } }[] | undefined;
+      if (Array.isArray(ps) && ps.some((p) => p?.boundVariables?.color)) { n[f] = ps.map((p) => (p?.boundVariables?.color ? { ...p, color: { r: 0, g: 0, b: 0 }, opacity: 1 } : p)); return true; }
+    }
+    return ((n.children as Node[] | undefined) ?? []).some(blacken);
+  };
+  ok(blacken(paintHit), 'premise: a bound paint on the member is left storing black, its binding intact');
+  const glyph = (glyphHit.findAll as (f: (n: Node) => boolean) => Node[])((n) => n.type === 'FRAME' && ((n.children as Node[]) ?? []).length > 0 && (n.children as Node[]).every((k) => k.type === 'VECTOR'))[0];
+  for (const v of (glyph.children as Node[])) { v.x = (v.x as number) * 1.5; v.y = (v.y as number) * 1.5; (v.resize as (a: number, b: number) => void)((v.width as number) * 1.5, (v.height as number) * 1.5); }
+  for (const m of [paintHit, glyphHit]) (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, JSON.stringify({ ...baselineOf(await snapshotMember(m)), id: String(m.id) }));
+  for (const m of members) {
+    const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.split('|').slice(0, 2).join('|'));
+  }
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
+  const st = pre.sets[0];
+  const stateOf = (m: Node): string => st.states.find((x) => x.member === String(m.name))?.state ?? 'current';
+  const named = new Set(st.changes.map((c) => c.field));
+  ok(stateOf(paintHit) === 'update' && stateOf(glyphHit) === 'update' && st.counts.revisionUnknown === 43 && named.has('fills') && named.has('glyph') && previewVerdict(pre).headline === 'Would change 1 of 1',
+    `damage/dry run: the two damaged members read "to update", named, though their records match and their stamps are an earlier plugin's (${stateOf(paintHit)}, ${stateOf(glyphHit)}; ${st.counts.revisionUnknown} from an earlier plugin; ${[...named].join(', ')}; ${previewVerdict(pre).headline})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(pre));
+  const vars = await varsById(w.api as any);
+  const left = membersOf(w.set()).flatMap((m) => drawnFaults(m, vars).map((f) => faultLine(String(m.name), f)));
+  const again = (await previewUpdate(w.host, [{ def: TAG, plans: w.plans }])).sets[0];
+  ok(applyVerdict(res).ok && left.length === 0 && again.counts.current === 45 && res.outcomes[0]?.updated.length === 2 && res.outcomes[0]?.restamped?.length === 43,
+    `damage/repaired: the update re-applies the two, which then draw as planned; the other 43 take only their stamps; all 45 read current (${applyVerdict(res).headline}; ${res.outcomes[0]?.updated.length} updated, ${res.outcomes[0]?.restamped?.length} stamped; ${left.length} faults left${left.length ? `, e.g. ${left[0]}` : ''}; ${again.counts.current} current)`);
+}
+{
+  // Capture never records over damage: a damaged member with no record is left out, named. Mutation: the draw faults
+  // left out of `differencesOf` → `damage/capture`.
+  const w = await world(TAG);
+  const m = membersOf(w.set())[2];
+  for (const f of ['fills', 'strokes'] as const) {
+    const ps = m[f] as { boundVariables?: { color?: unknown } }[] | undefined;
+    if (Array.isArray(ps) && ps.some((p) => p?.boundVariables?.color)) m[f] = ps.map((p) => (p?.boundVariables?.color ? { ...p, color: { r: 0, g: 0, b: 0 }, opacity: 1 } : p));
+  }
+  (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, '');
+  const cap = await captureBaselines(w.host, [{ def: TAG, plans: w.plans }]);
+  const skip = cap.sets[0]?.skipped.find((x) => x.member === String(m.name));
+  ok(!!skip && (skip.differences ?? []).some((d) => d.field === 'fills' && /stored #000000/.test(d.file)) && !(m.getSharedPluginData as (a: string, b: string) => string)(NS, BASELINE_KEY),
+    `damage/capture: a member drawn wrong is not recorded, and the capture names the paint (${skip?.reason}; ${JSON.stringify(skip?.differences?.slice(0, 1))})`);
+}
+
+{
+  // DAMAGE OUTRANKS A HAND EDIT (#2379 review): a member whose record mismatches somewhere (a real hand edit, on its
+  // content) and that also draws wrong (a paint storing black on its root) is "to update", not "edited by hand". The
+  // edit is kept and still reported; the damage is repaired. With the edit read first, the default (keep) would skip
+  // the member, and the black would stay. Mutation: the hand edit classified before the damage → `damage/over edit`.
+  const w = await world(TAG);
+  const m = membersOf(w.set())[3];
+  const zero = await varIdOf(w, 'space/0');
+  (childNamed(m, 'content').setBoundVariable as (f: string, v: { id: string }) => void)('itemSpacing', { id: zero });
+  let hit = '';
+  for (const f of ['fills', 'strokes'] as const) {
+    const ps = m[f] as { boundVariables?: { color?: unknown } }[] | undefined;
+    if (!hit && Array.isArray(ps) && ps.some((p) => p?.boundVariables?.color)) { m[f] = ps.map((p) => (p?.boundVariables?.color ? { ...p, color: { r: 0, g: 0, b: 0 }, opacity: 1 } : p)); hit = f; }
+  }
+  ok(!!hit, `premise: the member's root binds a paint, now storing black (${hit})`);
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
+  const st = pre.sets[0].states.find((x) => x.member === String(m.name))?.state;
+  const edits = pre.sets[0].handEdits.filter((h) => h.member === String(m.name)).map((h) => h.path);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(pre));
+  const vars = await varsById(w.api as any);
+  const left = drawnFaults(m, vars);
+  ok(st === 'update' && JSON.stringify(edits) === '["content"]' && left.length === 0
+    && (childNamed(m, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === zero && res.outcomes[0]?.kept.some((k) => k.path === 'content'),
+    `damage/over edit: the member reads "to update", its hand edit kept and listed, its damage repaired (${st}; edits ${JSON.stringify(edits)}; ${left.length} faults left; ${applyVerdict(res).headline})`);
+}
+
+/* ── verify reads what the host draws ──────────────────────────────────────────────────────────────────── */
+section('verify reads what the host draws — damage the HOST makes behind the executor is named by verify (#2379 review)');
+{
+  // The host, not the executor, misbehaves here: it ignores the base a paint is bound on (as it kept the black base
+  // on the NB master), and it does not scale an imported glyph to its frame. The executor is unchanged, so only the
+  // update's own verify can catch it. Mutation: verify's draw check dropped → `verify/drawn paints`, `verify/drawn glyphs`.
+  const w = await world(TAG);
+  for (const m of membersOf(w.set())) {
+    const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, '|0'));
+  }
+  const bind = w.api.variables.setBoundVariableForPaint;
+  w.api.variables.setBoundVariableForPaint = (p: object, f: string, v: unknown) => bind({ ...p, color: { r: 0, g: 0, b: 0 }, opacity: undefined }, f, v);
+  const svg = w.api.createNodeFromSvg;
+  w.api.createNodeFromSvg = (src: string) => {
+    const n = svg(src) as Node;
+    const resize = n.resize as (a: number, b: number) => void;
+    n.resize = (a: number, b: number) => {
+      const kids = ((n.children as Node[]) ?? []).map((c) => [c, c.x, c.y, c.width, c.height] as const);
+      resize(a, b);
+      for (const [c, x, y, cw, ch] of kids) { c.x = x; c.y = y; (c.resize as (a: number, b: number) => void)(cw as number, ch as number); }
+    };
+    return n;
+  };
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(pre));
+  const content = res.outcomes[0]?.content ?? [];
+  ok(!applyVerdict(res).ok && content.some((l) => /\.fills: stored #000000 at 100% \(the plan says .*, which resolves to #[0-9a-f]{6} at \d+%\)$/.test(l)),
+    `verify/drawn paints: a paint the host left black under its binding fails verify, named (${applyVerdict(res).headline}; ${content.find((l) => /stored #000000/.test(l)) ?? content[0]})`);
+  ok(content.some((l) => /\.glyph: a vector [\d.]+×[\d.]+ at [\d.]+,[\d.]+ \(the plan says inside its 16×16 frame\)$/.test(l)),
+    `verify/drawn glyphs: a glyph the host did not scale to its frame fails verify, named (${content.find((l) => /\.glyph:/.test(l)) ?? 'no glyph line'})`);
+}
+
+/* ── a mixed set ──────────────────────────────────────────────────────────────────────────────────────── */
+section('mixed — in a set the build updates, a member from an earlier plugin still takes only its stamp (#2379 review)');
+{
+  // Half the members out of date (the executor revision bumped), half from an earlier plugin. The build updates the
+  // first half; the second takes its stamp and nothing else, read by the test's write log on those members alone.
+  // Its place in the set's grid is the set's layout: it moves only if the grid does, and here the grid does not.
+  // Mutations: the restamp after the build's pass dropped → `mixed/stamped`; the grid writing positions that did not
+  // move → `mixed/only stamps`.
+  const w = await world(TAG);
+  const members = membersOf(w.set());
+  const earlier = members.filter((_, i) => i % 2 === 1);
+  for (const [i, m] of members.entries()) {
+    const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, i % 2 ? st.split('|').slice(0, 2).join('|') : st.replace(/\|[^|]*$/, '|0'));
+  }
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
+  ok(pre.sets[0]?.counts.update === 23 && pre.sets[0]?.counts.revisionUnknown === 22, `premise: 23 members to update, 22 from an earlier plugin (${JSON.stringify(pre.sets[0]?.counts)})`);
+  const logs = earlier.map((m) => watchWrites(m));
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(pre));
+  const other = logs.flat().filter((x) => !new RegExp(`setSharedPluginData\\(${NS}, (${STAMP_KEY}|${BASELINE_KEY})\\)$`).test(x));
+  const again = (await previewUpdate(w.host, [{ def: TAG, plans: w.plans }])).sets[0];
+  ok(res.outcomes[0]?.updated.length === 23 && res.outcomes[0]?.restamped?.length === 22 && again.counts.current === 45,
+    `mixed/stamped: the 23 are updated and the 22 stamped, and all 45 then read current (${res.outcomes[0]?.updated.length} updated, ${res.outcomes[0]?.restamped?.length} stamped; ${JSON.stringify(again.counts)})`);
+  ok(other.length === 0, `mixed/only stamps: the 22 from an earlier plugin take nothing but their stamps and records (${other.length} other writes${other.length ? `, e.g. ${other.slice(0, 3).join(' | ')}` : ''})`);
+}
+
+/* ── what the host draws ────────────────────────────────────────────────────────────────────────────────── */
+section('what the host draws — after an update in place, every bound paint shows its own color and every glyph fits its frame (#2379)');
+{
+  // Read by THE TEST off the shim's nodes (docs/34: the update's own verify cannot witness itself). Four defs, built
+  // and then re-applied in place by a revision bump, so every paint is rewritten and every glyph re-laid. The shim keeps a
+  // paint's stored color as given (as the in-place host did) and scales SCALE children with their frame.
+  // Mutations: the paint base left black → `drawn/paints`; the glyph import not scaled to its frame → `drawn/glyphs`.
+  const bad: string[] = [];
+  const glyphs: string[] = [];
+  const hex = (c: { r: number; g: number; b: number }): string => `#${[c.r, c.g, c.b].map((x) => Math.round(x * 255).toString(16).padStart(2, '0')).join('')}`;
+  let paints = 0, glyphCount = 0, washes = 0;
+  for (const id of ['tag', 'field-message', 'checkbox-control', 'badge']) {
+    const w = await world(id, plansOf(id), { extraVars: ['space/999'] });
+    const vars = new Map((await w.api.variables.getLocalVariablesAsync()).map((v: { id: string }) => [v.id, v] as const));
+    // Re-applied by an executor revision bump, as `corpus/in place` does: every member reads "to update".
+    for (const m of membersOf(w.set())) {
+      const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+      (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, '|0'));
+    }
+    const next = w.plans;
+    const pre = await previewUpdate(w.host, [{ def: id, plans: next }]);
+    await applyUpdate(w.host, w.api as any, [{ def: id, plans: next }], previewHashOf(pre));
+    const glyphNames = new Set<string>();
+    const planWalk = (n: AnatomyPlan['root']): void => { if (n.type === 'GLYPH') glyphNames.add(n.name); for (const c of n.children ?? []) planWalk(c); };
+    for (const p of next) planWalk(p.root);
+    const walk = (n: Node, at: string): void => {
+      for (const field of ['fills', 'strokes'] as const) for (const p of (n[field] as { color?: { r: number; g: number; b: number }; opacity?: number; boundVariables?: { color?: { id: string } } }[] | undefined) ?? []) {
+        const v = p?.boundVariables?.color ? vars.get(p.boundVariables.color.id) as { resolveForConsumer(n: unknown): { value: { r: number; g: number; b: number; a?: number } } } | undefined : undefined;
+        if (!v || !p.color) continue;
+        paints++;
+        const want = v.resolveForConsumer(n).value;
+        if (want.a !== undefined && want.a < 1) washes++;
+        if (hex(p.color) !== hex(want) || Math.abs((p.opacity ?? 1) - (want.a ?? 1)) > 0.01) bad.push(`${id} ${at}.${field} ${hex(p.color)}@${p.opacity ?? 1} (resolves ${hex(want)}@${want.a ?? 1})`);
+      }
+      if (glyphNames.has(String(n.name)) && n.type === 'FRAME') {
+        glyphCount++;
+        const W = n.width as number, H = n.height as number;
+        for (const v of ((n.children as Node[]) ?? []).filter((k) => k.type === 'VECTOR'))
+          if ((v.x as number) + (v.width as number) > W + 0.5 || (v.y as number) + (v.height as number) > H + 0.5) glyphs.push(`${id} ${at} ${(v.width as number).toFixed(1)}×${(v.height as number).toFixed(1)} in ${W}×${H}`);
+      }
+      for (const c of (n.children as Node[] | undefined) ?? []) walk(c, `${at}/${String(c.name)}`);
+    };
+    walk(w.set(), id);
+  }
+  ok(paints > 100 && washes > 0 && bad.length === 0, `drawn/paints: every bound paint, after an update in place, stores the color and alpha its variable resolves to (${paints} paints, ${washes} washes; ${bad.length} wrong${bad.length ? `, e.g. ${bad.slice(0, 2).join(' | ')}` : ''})`);
+  ok(glyphCount > 10 && glyphs.length === 0, `drawn/glyphs: every glyph's vectors fit its frame after an update in place (${glyphCount} glyphs; ${glyphs.length} overflow${glyphs.length ? `, e.g. ${glyphs.slice(0, 2).join(' | ')}` : ''})`);
 }
 
 {

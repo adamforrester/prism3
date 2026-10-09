@@ -408,6 +408,17 @@ export type ShimOpts = {
    * before. Both are non-enumerable, so a JSON dump of a node is unchanged either way.
    */
   identities?: boolean;
+  /** #2379 — A FRAME'S `SCALE` CHILDREN SCALE WITH IT, as on the host: a resize, or a bound width or height that
+   *  changes the frame's size, scales every child whose constraints are SCALE on both axes by the same ratio.
+   *  The fresh build depends on it (a glyph imports at its 24px artboard; its bound size brings it to 16), and an
+   *  in-place glyph replacement that appends 24px vectors to a 16px frame with no resize never gets it. Opt-in,
+   *  because suites written before it read a glyph's vectors at their import size. */
+  scaleConstrained?: boolean;
+  /** #2379 review — A DUPLICATED FILE: the same components and styles under the same names, with keys and style ids
+   *  of its own (Figma gives a copy new ones). `keyPrefix` replaces the `K` of every component key; `styleIdPrefix`
+   *  goes after `S:` in every style id. A test builds two files that differ only in these. */
+  keyPrefix?: string;
+  styleIdPrefix?: string;
   /** `saveVersionHistoryAsync` refuses (#2265 PR 2, §10 Q7): the update must then write nothing. */
   refuseVersion?: boolean;
 };
@@ -422,7 +433,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
   let keySeq = 0;
   const giveKey = (n: Node): void => {
     if (!opts.identities || Object.getOwnPropertyDescriptor(n, 'key')) return;
-    const k = `K:${++keySeq}`;
+    const k = `${opts.keyPrefix ?? 'K'}:${++keySeq}`;
     Object.defineProperty(n, 'key', { configurable: false, enumerable: false, get: () => k });
   };
   /** Take a node out of whatever holds it: its parent's children and the page. */
@@ -478,7 +489,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
   const windowMembers = new Set(opts.refuseRefsWindow?.members ?? []);
   let windowOpenedAt: number | undefined;
   const unavailable = new Set((opts.unavailableFonts ?? []).map(fontKey));
-  const textStyles = (opts.styles ?? []).map((name) => ({ id: `S:${name}`, name, fontName: opts.styleFont ?? STYLE_FONT }));
+  const textStyles = (opts.styles ?? []).map((name) => ({ id: `S:${opts.styleIdPrefix ?? ''}${name}`, name, fontName: opts.styleFont ?? STYLE_FONT }));
   const fontOfStyle = (id: string): FontName | undefined => textStyles.find((s) => s.id === id)?.fontName;
   // Members LEAVE the page when they join a set, as they do live — otherwise `set.children` and the
   // page disagree about who owns what, which is the state the skip-by-name check reads.
@@ -524,16 +535,44 @@ export const makeShim = (opts: ShimOpts = {}) => {
     varValues.set(name, { ...(varValues.get(name) ?? {}), [modeId]: value });
     const id = `V:${name}`;
     const boundHere = (p: unknown) => (p as { boundVariables?: { color?: { id?: string } } } | null)?.boundVariables?.color?.id === id;
+    // #2379 — AND THE STORED COLOR FOLLOWS THE NEW VALUE, its alpha as the paint's opacity (the live fresh build stored a
+    // 10% wash at opacity 0.1). An opaque value resets the opacity to 1, which is what #1646 measured: the tint was on
+    // the paint then, and the variable opaque.
+    const c = value && typeof value === 'object' && typeof (value as { r?: unknown }).r === 'number' ? value as { r: number; g: number; b: number; a?: number } : null;
     for (const top of page?.children ?? []) walk(top, (n) => {
       for (const key of ['fills', 'strokes'] as const) {
         const arr = n[key];
-        if (!Array.isArray(arr) || !arr.some((p) => boundHere(p) && ((p as { opacity?: number }).opacity ?? 1) !== 1)) continue;
-        n[key] = arr.map((p) => (boundHere(p) ? { ...(p as object), opacity: 1 } : p));
+        if (!Array.isArray(arr) || !arr.some((p) => boundHere(p))) continue;
+        if (!c && !arr.some((p) => boundHere(p) && ((p as { opacity?: number }).opacity ?? 1) !== 1)) continue;
+        n[key] = arr.map((p) => (!boundHere(p) ? p : c ? { ...(p as object), color: { r: c.r, g: c.g, b: c.b }, opacity: c.a ?? 1 } : { ...(p as object), opacity: 1 }));
       }
     });
   };
+  /** #2379 — A COLOR VARIABLE RESOLVES TO A COLOR, one per name, never black: what a bound paint's stored color is
+   *  checked against. A `color/` name the test overrides keeps the override. */
+  const colorVar = (name: string): boolean => name.startsWith('color/') && !(opts.varOverrides && name in opts.varOverrides);
+  const colorOf = (name: string): { r: number; g: number; b: number; a: number } => {
+    // A value the test wrote (`setValueForMode`) is what the variable now resolves to.
+    const set = Object.values(varValues.get(name) ?? {}).find((x) => x && typeof x === 'object' && typeof (x as { r?: unknown }).r === 'number') as { r: number; g: number; b: number; a?: number } | undefined;
+    if (set) return { r: set.r, g: set.g, b: set.b, a: set.a ?? 1 };
+    const h = [...name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+    // A wash resolves with its alpha, as the emitted `…/overlay/{hover,pressed}` variables do.
+    return { r: ((h & 0xff) + 16) / 300, g: (((h >> 8) & 0xff) + 16) / 300, b: (((h >> 16) & 0xff) + 16) / 300, a: /\/overlay\//.test(name) ? 0.1 : 1 };
+  };
+  /** #2379 — `scaleConstrained`: after `n` changed size from `w0`×`h0`, scale its SCALE children by the same ratio. */
+  const scaleKids = (n: Node, w0: number, h0: number): void => {
+    const w1 = n.width as number, h1 = n.height as number;
+    if (!(w0 > 0 && h0 > 0) || (w0 === w1 && h0 === h1)) return;
+    const sx = w1 / w0, sy = h1 / h0;
+    for (const c of (n.children as Node[] | undefined) ?? []) {
+      const k = c.constraints as { horizontal?: string; vertical?: string } | null;
+      if (k?.horizontal !== 'SCALE' || k?.vertical !== 'SCALE') continue;
+      c.x = (c.x as number) * sx; c.y = (c.y as number) * sy;
+      (c.resize as (w: number, h: number) => void)?.((c.width as number) * sx, (c.height as number) * sy);
+    }
+  };
   const mkVar = (name: string) => ({
-    id: `V:${name}`, name: `${SHIM_ROOT}/${name}`, value: opts.varPx?.[name] ?? varValue(name), resolveForConsumer: () => ({ value: resolvedValue(name) }),
+    id: `V:${name}`, name: `${SHIM_ROOT}/${name}`, value: opts.varPx?.[name] ?? varValue(name), resolveForConsumer: () => ({ value: colorVar(name) ? colorOf(name) : resolvedValue(name) }),
     get valuesByMode(): Record<string, unknown> { return varValues.get(name) ?? {}; },
     setValueForMode: (modeId: string, value: unknown): void => rewriteVar(name, modeId, value),
   });
@@ -839,6 +878,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // shim reproduces it rather than merely counting the call — without this, `unlockAspectRatio()`
       // could be deleted from the executor and every geometry assertion here would still pass.
       setBoundVariable(prop: string, v: { id: string; value?: number } | null) {
+        const was = opts.scaleConstrained && (prop === 'width' || prop === 'height') ? [node.width as number, node.height as number] as const : null;
+        try {
         const bv = node.boundVariables as Record<string, unknown>;
         // NULL UNBINDS (#1388) — Figma's overload for removing a binding, which the focus ring uses to
         // clear its inherited `width`/`height` before the host resizes it. Delete the key so the gate on
@@ -858,6 +899,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
           return;
         }
         bv[prop] = { id: v.id, value: v.value };
+        } finally { if (was) scaleKids(node, was[0], was[1]); }
       },
       // APPLYING A STYLE RE-RESOLVES THE TEXT, so Figma demands the style's font be loaded FIRST — and
       // nothing a previous run loaded counts (#680). Modelled because an unconditional success makes the
@@ -908,6 +950,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // which no claim needed until a HEIGHT beside a caption was measured. Resize-then-bind is the only
       // order the executors use; the ring clears its bindings before it resizes.
       resize(w: number, h: number) {
+        const was = opts.scaleConstrained ? [node.width as number, node.height as number] as const : null;
+        try { return resizeTo(w, h); } finally { if (was) scaleKids(node, was[0], was[1]); }
+        function resizeTo(w: number, h: number): void {
         const bv = node.boundVariables as Record<string, { value?: number }>;
         // AN AUTO-LAYOUT FRAME, under `layoutModel` (#1757): the resize sets the width a FIXED axis holds, and a
         // HUG axis goes on hugging its children — so a root built at its `placementWidth` is 320 across and as
@@ -924,6 +969,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
         }
         Object.defineProperty(node, 'width', { configurable: true, get: () => (bv.width ? bv.width.value ?? 0 : w), set: (v: number) => { w = v; } });
         Object.defineProperty(node, 'height', { configurable: true, get: () => (bv.height ? bv.height.value ?? 0 : h), set: (v: number) => { h = v; } });
+        }
       },
       appendChild(c: Node) { c.parent = node; (node.children as Node[]).push(c); },
       // #2265 PR 2 — REORDER WITHOUT REPLACING: Figma's `insertChild` moves a node that already has a parent, and
@@ -1318,7 +1364,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
             // node tree still serializes — and NON-ENUMERABLE, so spreading or diffing a node's own keys does
             // not grow a field the executor never wrote. The read-back reads it to tell `checkbox-row/size=small`
             // from `switch-row/size=small`, which share every other property this shim models.
-            Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: { name, type: 'COMPONENT', parent: { ...owner } } });
+            Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: { name, type: 'COMPONENT', parent: { ...owner }, ...(opts.identities ? { key: `${opts.keyPrefix ?? 'K'}:${name}` } : {}) } });
             // An instance measures what its MAIN measures (`layoutModel`, a member this run built).
             // A FILLED instance (#1751) measures the width its parent gives it, and is as tall as its main
             // laid out at that width — so a message that wraps in a narrower field reads taller here too.
@@ -1781,6 +1827,25 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // LAST, after the append: `killSet` installs the twin AT the original's coordinate in `page.children`,
       // so killing before the set is on the page would leave nothing findable and no repair to test.
       if (opts.staleSetAfterProperty === 0) killSet();
+      // #2379 — A COMBINE RE-RESOLVES THE SET'S BOUND PAINTS, as the host did live (scratch file, 2026-10-08): a fresh
+      // build ended storing each paint's variable color and a wash's alpha as its opacity, though the executor bound
+      // them on another base. An update in place never combines, which is why it kept the base on the host.
+      walk(set, (n) => {
+        for (const key of ['fills', 'strokes'] as const) {
+          const arr = n[key];
+          if (!Array.isArray(arr)) continue;
+          let moved = false;
+          const next = arr.map((p) => {
+            const id = (p as { boundVariables?: { color?: { id?: string } } })?.boundVariables?.color?.id;
+            const name = id?.startsWith('V:') ? id.slice(2) : null;
+            if (!name || !colorVar(name) || (p as { type?: string }).type !== 'SOLID') return p;
+            const c = colorOf(name);
+            moved = true;
+            return { ...(p as object), color: { r: c.r, g: c.g, b: c.b }, opacity: c.a };
+          });
+          if (moved) n[key] = next;
+        }
+      });
       return set;
     },
     // A page the executor can SEARCH, not just append to. It finds its set here by name and type, so
