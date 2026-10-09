@@ -346,7 +346,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ],
     "buildable": true,
     "reason": null,
-    "members": 72,
+    "members": 84,
     "nests": [
       "field-label",
       "icon",
@@ -388,7 +388,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ],
     "buildable": true,
     "reason": null,
-    "members": 72,
+    "members": 84,
     "nests": [
       "field-label",
       "field-message",
@@ -590,7 +590,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ],
     "buildable": true,
     "reason": null,
-    "members": 72,
+    "members": 84,
     "nests": [
       "field-label",
       "icon",

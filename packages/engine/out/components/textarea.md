@@ -69,7 +69,7 @@ Counter reads "240 / 280" or "40 characters remaining"; over-limit reads "12 cha
 
 ## States
 
-`rest`, `hover`, `filled`, `focus-visible`, `disabled`, `read-only`, `pending`, `empty`
+`rest`, `hover`, `filled`, `focus-visible`, `focus-visible-filled`, `disabled`, `read-only`, `pending`, `empty`
 
 ## Variants
 

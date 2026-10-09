@@ -3749,8 +3749,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   // The live report's counts, hand-copied: 15 on text-field (3 statuses x 5 states), 12 on select (3 x 4).
   // One more state column since the field family's `filled` (2026-09-25): 3 x 6 and 3 x 5. And select's
   // `read-only` column since #1699: 3 x 6 on both.
-  // And three sizes since #2266: the same 18 per size, 3 x 18.
-  const LIVE_MISSES: Record<string, number> = { 'text-field': 54, select: 54 };
+  // And three sizes since #2266: the same 18 per size, 3 x 18. And #2318's `focus-visible-filled` column: 3 x 7 per
+  // size, 3 x 21.
+  const LIVE_MISSES: Record<string, number> = { 'text-field': 63, select: 63 };
   for (const id of ['text-field', 'select']) {
     const shipped = await buildFile(byDef(id), SHORT);
     const fm = shipped.boxes('field-message');
@@ -3809,7 +3810,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   const buildTextarea = async (m: Metrics, def: ComponentDef = textarea) => {
     const defs = componentDefs.map((d) => (d.id === 'textarea' ? def : d));
-    // The textarea's medium column (#2266): the 24 members these arms were written for.
+    // The textarea's medium column (#2266): the 24 members these arms were written for, 28 since #2318.
     const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP }).filter((p) => d.id !== 'textarea' || p.size === 'medium');
     const all = defs.flatMap((d) => { try { return project(d); } catch { return []; } });
     const f = fullFor(all);
@@ -3847,8 +3848,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   for (const [label, m] of CASES) {
     const want = ROWS * lineOf(m) + 2 * PAD_Y;
     const b = await buildTextarea(m);
-    ok(b.controls.length === 24 && b.controls.every(Boolean) && b.heights.length === 1 && Math.abs(b.heights[0] - want) <= 0.01 && b.foot.length === 0 && b.r.misses.length === 0,
-      `textarea rows (${label}): every one of the 24 controls measures ${ROWS} × ${lineOf(m)} + 2 × ${PAD_Y} = ${want} (got [${b.heights.join(', ')}] over ${b.controls.length} member(s); ${b.foot.length} footprint misses; ${b.r.misses.length} misses${b.r.misses.length ? ` — ${b.r.misses[0]}` : ''})`);
+    ok(b.controls.length === 28 && b.controls.every(Boolean) && b.heights.length === 1 && Math.abs(b.heights[0] - want) <= 0.01 && b.foot.length === 0 && b.r.misses.length === 0,
+      `textarea rows (${label}): every one of the 28 controls measures ${ROWS} × ${lineOf(m)} + 2 × ${PAD_Y} = ${want} (got [${b.heights.join(', ')}] over ${b.controls.length} member(s); ${b.foot.length} footprint misses; ${b.r.misses.length} misses${b.r.misses.length ? ` — ${b.r.misses[0]}` : ''})`);
   }
 
   // (d) MUTATION, BY NAME: without `lines` the value text is one line and the control is one line tall.
@@ -3880,7 +3881,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   // Set here to a number no other shim value takes (the ring constants are 2), so a placement that read the
   // wrong variable, or none, lands somewhere else.
   const INSET = 3;
-  // The medium column (#2266): the 24 members this block was written for.
+  // The medium column (#2266): the 24 members this block was written for, 28 since #2318.
   const taPlans = figmaAnatomySet(materializeForBrand(textarea, null), { swapTarget: SWAP }).filter((p) => p.size === 'medium');
   const styles = [...new Set(taPlans.flatMap((p) => planTextStyles(p.root)))];
   const VALUE = 'body/md/default';
@@ -3913,7 +3914,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   const buildIt = async (def: ComponentDef, captionBox: number) => {
     const defs = componentDefs.map((d) => (d.id === 'textarea' ? def : d));
-    // The textarea's medium column (#2266): the 24 members these arms were written for.
+    // The textarea's medium column (#2266): the 24 members these arms were written for, 28 since #2318.
     const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP }).filter((p) => d.id !== 'textarea' || p.size === 'medium');
     const all = defs.flatMap((d) => { try { return project(d); } catch { return []; } });
     const f = fullFor(all);
@@ -3933,8 +3934,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   };
 
   const b = await buildIt(textarea, GRIP - 1);
-  ok(b.members.length === 24 && b.r.misses.length === 0,
-    `textarea grip/counter: the set builds 24 members with 0 misses (${b.members.length}; ${b.r.misses[0] ?? 'none'})`);
+  ok(b.members.length === 28 && b.r.misses.length === 0,
+    `textarea grip/counter: the set builds 28 members with 0 misses (${b.members.length}; ${b.r.misses[0] ?? 'none'})`);
 
   // ---- the grip: a `resize handle` boolean, ON by default, on every member ----
   const handle = boolProp(b.set, 'resize handle');
@@ -3956,8 +3957,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       || g.width !== GRIP || g.height !== GRIP || Math.abs((g.x as number) - wantX) > 1e-6 || Math.abs((g.y as number) - wantY) > 1e-6)
       cornerMiss.push(`${m.name}: ${String(g.layoutPositioning)} ${JSON.stringify(c)} ${g.width}x${g.height} at (${g.x}, ${g.y}), want ABSOLUTE MAX/MAX ${GRIP}x${GRIP} at (${wantX}, ${wantY})`);
   }
-  ok(b.members.length === 24 && cornerMiss.length === 0,
-    `textarea grip corner: on all 24 members the ${GRIP}px grip is ABSOLUTE, constrained MAX/MAX, at (control − ${GRIP} − ${INSET}) on both axes (${cornerMiss.length} off — ${cornerMiss[0] ?? 'none'})`);
+  ok(b.members.length === 28 && cornerMiss.length === 0,
+    `textarea grip corner: on all 28 members the ${GRIP}px grip is ABSOLUTE, constrained MAX/MAX, at (control − ${GRIP} − ${INSET}) on both axes (${cornerMiss.length} off — ${cornerMiss[0] ?? 'none'})`);
 
   // ---- the grip moves no box: the control and the member measure alike with it on and off ----
   // With a value that exactly fills the text's line, ONE more character of width wraps it (the seed checks
@@ -3981,10 +3982,10 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const on = [box(ctl), box(m)];
     if (on.join() !== off.join()) gripFoot.push(`${m.name}: control ${on[0]} with the grip, ${off[0]} without; member ${on[1]} vs ${off[1]}`);
   }
-  ok(b.members.length === 24 && contentDriven === 24,
+  ok(b.members.length === 28 && contentDriven === 28,
     `textarea grip footprint seed: on every member a value that exactly fills the text box wraps with one more character and grows the control taller, so a glyph in the flow would show in its height (${contentDriven}/24)`);
-  ok(b.members.length === 24 && gripFoot.length === 0,
-    `textarea grip footprint: the control and the member measure alike with the grip on and off, on all 24 members (${gripFoot.length} moved — ${gripFoot[0] ?? 'none'})`);
+  ok(b.members.length === 28 && gripFoot.length === 0,
+    `textarea grip footprint: the control and the member measure alike with the grip on and off, on all 28 members (${gripFoot.length} moved — ${gripFoot[0] ?? 'none'})`);
 
   // ---- the counter and the message: two INDEPENDENT booleans (the owner's answer 2, 2026-09-25) ----
   // Each switch drives its own layer, and neither layer holds the other, so all four combinations exist.
@@ -4007,7 +4008,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `textarea counter default: a 'character count' BOOLEAN defaulting to false drives a layer holding the counter, and all 24 members build it hidden (${JSON.stringify(count)}; ${countLayers.filter((l) => l && l.visible === false).length} hidden)`);
   ok(msg?.type === 'BOOLEAN' && msg.defaultValue === true
     && msgLayers.every((l, i) => l && l.visible !== false && find(l, 'message') !== undefined && !find(l, 'counter') && !find(countLayers[i], 'message')),
-    `textarea counter independent: the 'message' BOOLEAN (default true) drives a layer holding the message and NOT the counter, and the counter's layer holds no message, on all 24 members (${JSON.stringify(msg)})`);
+    `textarea counter independent: the 'message' BOOLEAN (default true) drives a layer holding the message and NOT the counter, and the counter's layer holds no message, on all 28 members (${JSON.stringify(msg)})`);
   const rows = b.members.map((m) => find(m, 'messageRow'));
   // #1751: the row FILLS (stretched AND its own width FIXED — the stretch alone hugs) and packs to its END,
   // the message's layer GROWS beside the counter, and the counter's layer HUGS its caption.
@@ -4048,8 +4049,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       ml.visible = true;
       cl.visible = false;
     }
-    ok(bb.members.length === 24 && bb.r.misses.length === 0 && off.length === 0 && cells === 96,
-      `textarea counter footprint (caption line box ${captionBox}, glyph ${GRIP}): message only, counter only, both and neither each measure label + gap + control, plus one gap and the taller shown part when any is shown, on all 24 members (${cells}/96; ${off.length} off — ${off[0] ?? 'none'})`);
+    ok(bb.members.length === 28 && bb.r.misses.length === 0 && off.length === 0 && cells === 112,
+      `textarea counter footprint (caption line box ${captionBox}, glyph ${GRIP}): message only, counter only, both and neither each measure label + gap + control, plus one gap and the taller shown part when any is shown, on all 28 members (${cells}/96; ${off.length} off — ${off[0] ?? 'none'})`);
   }
 }
 
@@ -4078,13 +4079,16 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const DISABLED = 'color/disabled/on-fill';   // the placeholder sits on the disabled fill
   type Layer = 'placeholder' | 'value';
   const INK: Record<string, Record<string, [Layer, string]>> = {
-    'text-field': { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
-    textarea: { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
+    'text-field': { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], 'focus-visible-filled': ['value', VALUE], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
+    textarea: { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], 'focus-visible-filled': ['value', VALUE], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
     // select's `read-only` (#1699 decision 2, text-field's state set) shows the value, as on text-field.
-    select: { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
+    select: { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], 'focus-visible-filled': ['value', VALUE], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
   };
   // Which defs draw the caret, and at which states. select is typed empty on purpose (see above).
+  // The `caret` part: the empty focused field only. The focused field that holds a value draws its caret AFTER the value
+  // in its own `caretEnd` part, on text-field only (#2318, owner Q166 C), held below.
   const CARET_AT: Record<string, string[]> = { 'text-field': ['focus-visible'], textarea: ['focus-visible'], select: [] };
+  const CARET_END_AT: Record<string, string[]> = { 'text-field': ['focus-visible-filled'], textarea: [], select: [] };
   const CARET_INK = 'color/text/primary';
   const CARET_WIDTH = 'border-width/hairline';
   // One line of NB's value type: the emitted style's font size (through NB's own tree) × its line height.
@@ -4122,6 +4126,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const members = ((set?.children as Node[] | undefined) ?? []);
     const wrong: string[] = [];
     const caretWrong: string[] = [];
+    const endWrong: string[] = [];
+    let endCarets = 0;
     const seen = new Set<string>();
     const boxAt = new Map<string, string>();
     let carets = 0;
@@ -4140,6 +4146,20 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       else if (other) wrong.push(`${m.name}: both layers present, want ${layer} only`);
       else if (paintVar(shown, 'fills') !== ink) wrong.push(`${m.name}: ${layer} ${paintVar(shown, 'fills')}, want ${ink}`);
       else if (refProp(shown) !== layer) wrong.push(`${m.name}: the ${layer} layer references '${refProp(shown)}', want its own '${layer}' property`);
+      // The END caret (#2318, owner Q166 C): after the value, on text-field's focused field that holds one, and nowhere else.
+      const caretEnd = named(m, 'caretEnd');
+      const endDue = CARET_END_AT[id].includes(state);
+      if (endDue !== !!caretEnd) endWrong.push(`${m.name}: end caret ${caretEnd ? 'present' : 'absent'}, want ${endDue ? 'present' : 'absent'}`);
+      else if (caretEnd) {
+        endCarets++;
+        const ekids = ((parentOf(m, caretEnd)?.children as Node[]) ?? []);
+        const eh = boundName(caretEnd, 'height');
+        const eline = shown ? nbLineOf(String(shown._textStyleId ?? '').replace(/^S:/, '')) : NaN;
+        if (ekids[ekids.indexOf(caretEnd) - 1] !== shown || layer !== 'value') endWrong.push(`${m.name}: end caret is not immediately after the value (row [${ekids.map((k) => k.name).join(', ')}])`);
+        else if (paintVar(caretEnd, 'fills') !== CARET_INK) endWrong.push(`${m.name}: end caret ${paintVar(caretEnd, 'fills')}, want ${CARET_INK}`);
+        else if (boundName(caretEnd, 'width') !== CARET_WIDTH) endWrong.push(`${m.name}: end caret width ${boundName(caretEnd, 'width')}, want ${CARET_WIDTH}`);
+        else if (!eh || !(Math.abs(nbVarPx(eh) - eline) < 1e-6)) endWrong.push(`${m.name}: end caret height ${eh} is ${eh ? nbVarPx(eh) : '?'}px on NB, want one line of the value type, ${eline}px`);
+      }
       // The caret.
       const caret = named(m, 'caret');
       const due = CARET_AT[id].includes(state);
@@ -4148,11 +4168,12 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       if (!caret) continue;
       const row = parentOf(m, caret);
       const kids = ((row?.children as Node[]) ?? []);
-      const lineWant = ph ? nbLineOf(String(ph._textStyleId ?? '').replace(/^S:/, '')) : NaN;
+      // The caret precedes the text the state shows: the placeholder when empty, the value on a focused filled field (#2318).
+      const lineWant = shown ? nbLineOf(String(shown._textStyleId ?? '').replace(/^S:/, '')) : NaN;
       const hName = boundName(caret, 'height');
       if (paintVar(caret, 'fills') !== CARET_INK) caretWrong.push(`${m.name}: caret ${paintVar(caret, 'fills')}, want ${CARET_INK}`);
       else if (boundName(caret, 'width') !== CARET_WIDTH) caretWrong.push(`${m.name}: caret width ${boundName(caret, 'width')}, want ${CARET_WIDTH}`);
-      else if (!ph || kids[kids.indexOf(caret) + 1] !== ph) caretWrong.push(`${m.name}: caret is not immediately before the placeholder (row [${kids.map((k) => k.name).join(', ')}])`);
+      else if (!shown || kids[kids.indexOf(caret) + 1] !== shown) caretWrong.push(`${m.name}: caret is not immediately before the ${layer} (row [${kids.map((k) => k.name).join(', ')}])`);
       else if (!hName || !(Math.abs(nbVarPx(hName) - lineWant) < 1e-6)) caretWrong.push(`${m.name}: caret height ${hName} is ${hName ? nbVarPx(hName) : '?'}px on NB, want one line of the value type, ${lineWant}px`);
     }
     const missing = SIZES.flatMap((sz) => STATUSES.flatMap((st) => Object.keys(want).filter((s2) => !seen.has(`${sz}|${st}|${s2}`)).map((s2) => `size=${sz}, status=${st}, state=${s2}`)));
@@ -4161,7 +4182,10 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const drift = SIZES.flatMap((sz) => STATUSES.filter((st) => boxAt.get(`${sz}|${st}|focus-visible`) !== boxAt.get(`${sz}|${st}|rest`)).map((st) => `size=${sz}, status=${st}: focus-visible ${boxAt.get(`${sz}|${st}|focus-visible`)}, rest ${boxAt.get(`${sz}|${st}|rest`)}`));
     const caretMembers = SIZES.length * STATUSES.length * CARET_AT[id].length;
     ok(caretWrong.length === 0 && carets === caretMembers && drift.length === 0 && !r.misses.some((x) => x.startsWith('footprint -> ')),
-      `field caret (${id}): ${caretMembers ? `a caret on exactly the ${caretMembers} focus-visible members — ${CARET_INK}, ${CARET_WIDTH} wide, one value line tall, immediately before the placeholder — and each focus-visible member measures its rest sibling` : 'no caret on any member'} (${carets} caret(s); ${caretWrong.length} wrong — ${caretWrong[0] ?? 'none'}; ${drift.length} footprint drift — ${drift[0] ?? 'none'})`);
+      `field caret (${id}): ${caretMembers ? `a caret on exactly the ${caretMembers} focused members — ${CARET_INK}, ${CARET_WIDTH} wide, one value line tall, immediately before the placeholder (or the value, when it holds one) — and each focus-visible member measures its rest sibling` : 'no caret on any member'} (${carets} caret(s); ${caretWrong.length} wrong — ${caretWrong[0] ?? 'none'}; ${drift.length} footprint drift — ${drift[0] ?? 'none'})`);
+    const endMembers = SIZES.length * STATUSES.length * CARET_END_AT[id].length;
+    ok(endWrong.length === 0 && endCarets === endMembers,
+      `field end caret (${id}): ${endMembers ? `a caret immediately after the value on exactly the ${endMembers} focused members that hold one — ${CARET_INK}, ${CARET_WIDTH} wide, one value line tall` : 'no end caret on any member'} (${endCarets} end caret(s)${endWrong.length ? `; ${endWrong.length} wrong — ${endWrong.slice(0, 2).join('; ')}` : ''})`);
   }
 }
 

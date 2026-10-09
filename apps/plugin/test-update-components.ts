@@ -71,6 +71,12 @@
  *                  the dry run and in the capture (#2295); and a fresh image-placeholder build records clean, its
  *                  aspect lock read as Figma's `{x, y}`. Mutations: the read-back's number-only aspect check →
  *                  `differ/image-placeholder`; the named lines dropped → `differ/dry run`, `differ/capture`.
+ *   single/…       an icon or spinner def, built as single components (#2296, owner decision Q109), is read as one
+ *                  set: found anywhere in the file, captured, and a hand edit on one reported. A hand-made icon, even
+ *                  one carrying a Prism3 glyph's exact name, is never written and holds its coordinate (Q109 A); a
+ *                  duplicated one is no Prism3 icon; Adopt is not offered (Q109 B). Mutations: the single reader
+ *                  dropped → `single/found`; the stamp check dropped (name as ownership) → `single/owner icons`;
+ *                  the search limited to the page's top level → `single/moved`.
  *   dropped/…      a fill the plan no longer has is named as a difference (#2335): a text button built under "Text
  *                  button hover: Fill" and planned under "Text & icon only" (#2324) lists its hover and pressed wash,
  *                  `fill: the plan says none, the file has <the wash>`, per variable with its member count; and the
@@ -495,7 +501,8 @@ section('axis — an added axis and a removed one');
 /* ── a field gains `size` (#2266) ────────────────────────────────────────────────────────────────────── */
 section('size — a field set built before #2266 gains the size axis, and every member lands on medium');
 {
-  // The pre-#2266 file: text-field's 24 members, named without `size` (status × state). They were the medium
+  // The pre-#2266 file: text-field's medium members, named without `size` (status × state: 24 then, 28 since #2318's
+  // `focus-visible-filled` column, which this fixture is built from). They were the medium
   // field, so medium is where they must land. Simulated as the `axis` case above does: the built set's medium
   // members with the segment stripped.
   const b = await build('text-field');
@@ -503,15 +510,15 @@ section('size — a field set built before #2266 gains the size axis, and every 
   const strip = (name: string) => name.split(', ').filter((s) => !s.startsWith('size=')).join(', ');
   const pre = withMembers(view, (ms) => ms.filter((m) => m.name.split(', ').includes('size=medium')).map((m) => ({ ...m, name: strip(m.name) })));
   const p = dryRunSet('text-field', b.plans, pre, b.ports);
-  ok(pre.members.length === 24 && p.renames.length === 24 && p.renames.every((r) => r.to.split(', ').includes('size=medium'))
-    && p.adds.length === 48 && p.drops.length === 0 && p.blockers.length === 0,
-    `size/lands: the 24 old members are renamed onto size=medium in place, 48 small and large members are added, none dropped (${p.renames.length} renames, ${p.adds.length} adds, ${p.drops.length} drops, ${p.blockers.length} blockers; first ${p.renames[0]?.to})`);
+  ok(pre.members.length === 28 && p.renames.length === 28 && p.renames.every((r) => r.to.split(', ').includes('size=medium'))
+    && p.adds.length === 56 && p.drops.length === 0 && p.blockers.length === 0,
+    `size/lands: the 28 old members are renamed onto size=medium in place, 56 small and large members are added, none dropped (${p.renames.length} renames, ${p.adds.length} adds, ${p.drops.length} drops, ${p.blockers.length} blockers; first ${p.renames[0]?.to})`);
   // THE ORDER DECIDES IT (docs/34: the arm above can fail). The same set laid against the plans in the
   // ladder's own order (small first) lands every old member on small: the rewrite #2266's medium-first order avoids.
   const ladder = ['small', 'medium', 'large'];
   const smallFirst = [...b.plans].sort((x, y) => ladder.indexOf(String(x.size)) - ladder.indexOf(String(y.size)));
   const q = dryRunSet('text-field', smallFirst, pre, b.ports);
-  ok(q.renames.length === 24 && q.renames.every((r) => r.to.split(', ').includes('size=small')),
+  ok(q.renames.length === 28 && q.renames.every((r) => r.to.split(', ').includes('size=small')),
     `size/order: with small first the same members would land on size=small (${q.renames[0]?.to})`);
 }
 
@@ -805,6 +812,103 @@ section('differ — a member that differs from its plan is reported by part and 
   const capNamed = c.lines.filter((l) => l.startsWith(`tag · ${m.name} / content · bound: `));
   ok(capNamed.length === 1 && capNamed[0].includes(`the plan says itemSpacing→${planned}`) && /the file has itemSpacing→\S*space\/0/.test(capNamed[0]),
     `differ/capture: the member left out is named with what differs (${JSON.stringify(capNamed)}; ${JSON.stringify(c.lines.slice(0, 1))})`);
+}
+
+/* ── single ──────────────────────────────────────────────────────────────────────────────────────────── */
+section('single — the icons and the spinner, built as single components, read as one set (#2296, owner Q109)');
+/** A file holding one single-component def, emitted by the executor. The host's COMPONENT search walks the whole
+ *  tree, as Figma's does, so a component moved into a frame is still found (Q109 C). */
+const buildSingle = async (id: string) => {
+  const plans = plansOf(id);
+  const page: Page = { children: [] };
+  const shim = makeShim({
+    vars: [...new Set(plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
+    styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set(plans.flatMap((p) => planEffectStyles(p.root)))],
+    // No component seeded: the icons' own `icon/FPO-default-icon` is one of the glyphs this build makes.
+    // #2379: SCALE children follow their frame, as on the host, so a built glyph fits its frame.
+    comps: [], page, liveRoot: true, identities: true, liveComponents: true, scaleConstrained: true,
+  }) as any;
+  const built = await applyComponentPlan(plans, shim, { emitAsComponents: true });
+  if (built.misses.length) throw new Error(`premise: ${id} built with ${built.misses.length} miss(es): ${built.misses[0]}`);
+  const all = (types: string[]): Node[] => {
+    const out: Node[] = [];
+    const walk = (n: Node): void => { if (types.includes(String(n.type))) out.push(n); if (n.type !== 'INSTANCE') for (const c of (n.children as Node[] | undefined) ?? []) walk(c); };
+    for (const n of page.children) walk(n);
+    return out;
+  };
+  const host = { ...shim, root: { findAllWithCriteria: (c: { types: string[] }) => all(c.types) } } as UpdateHost & Record<string, any>;
+  const comps = (): Node[] => page.children.filter((n) => n.type === 'COMPONENT');
+  const named = (name: string): Node => all(['COMPONENT']).find((n) => n.name === name)!;
+  /** A component a designer made by hand, on the page. */
+  const handMade = (name: string): Node => {
+    const f = (shim.createFrame as () => Node)();
+    const c = (shim.createComponentFromNode as (n: Node) => Node)(f);
+    c.name = name;
+    if (!page.children.includes(c)) page.children.push(c);
+    return c;
+  };
+  return { plans, page, shim, host, comps, named, handMade, target: { def: id, plans, single: true } };
+};
+{
+  const ic = await buildSingle('icon');
+  const pd = (n: Node, k: string): string => (n.getSharedPluginData as (a: string, b: string) => string)(NS, k);
+  ok(ic.comps().length === 44 && ic.comps().every((c) => String(c.name).startsWith('icon/')), `premise: 44 icons built as single components (${ic.comps().length})`);
+  const r = await previewUpdate(ic.host, [ic.target]);
+  ok(r.missing.length === 0 && r.sets.length === 1 && r.sets[0].counts.current === 44 && r.sets[0].counts.members === 44,
+    `single/found: the icons are read as one set of 44, all current, not "Not in this file" (${JSON.stringify(r.missing)}, ${JSON.stringify(r.sets[0]?.counts)})`);
+  // The capture of a file built before records existed.
+  for (const c of ic.comps()) (c.setSharedPluginData as (a: string, b: string, v: string) => void)(NS, BASELINE_KEY, '');
+  const cap = await captureBaselines(ic.host, [ic.target]);
+  ok(cap.sets[0]?.recorded === 44 && ic.comps().every((c) => pd(c, BASELINE_KEY) !== ''), `single/capture: all 44 recorded (${cap.sets[0]?.recorded}, ${JSON.stringify(cap.sets[0]?.skipped.slice(0, 1))})`);
+  // One icon edited by hand.
+  const check = ic.named('icon/check');
+  check.opacity = 0.5;
+  const e = (await previewUpdate(ic.host, [ic.target])).sets[0];
+  ok(e.counts.handEdited === 1 && e.handEdits.length === 1 && e.handEdits[0].member === 'name=check' && e.handEdits[0].path === '.',
+    `single/edit: the edited icon is reported by name, at the component itself, and the rest stay current (${JSON.stringify(e.handEdits)}, ${e.counts.current})`);
+}
+{
+  // The owner's own icons: one under a name no plan has, and one under a Prism3 glyph's exact name (the built one gone).
+  const ic = await buildSingle('icon');
+  const pd = (n: Node, k: string): string => (n.getSharedPluginData as (a: string, b: string) => string)(NS, k);
+  const gone = ic.named('icon/check');
+  ic.page.children.splice(ic.page.children.indexOf(gone), 1);
+  const logo = ic.handMade('icon/my-logo');
+  const own = ic.handMade('icon/check');
+  const before = JSON.stringify([logo, own].map((n) => [...(n._pluginData as Map<string, string>)]));
+  const p = (await previewUpdate(ic.host, [ic.target])).sets[0];
+  ok(p.unstamped.includes('name=my-logo') && p.unstamped.includes('name=check') && !p.drops.length && !p.adds.includes('name=check'),
+    `single/owner icons: both are listed as not built by Prism3; the owner's icon/check holds its coordinate, so no Prism3 check is added beside it (Q109 A) (${JSON.stringify(p.unstamped)}, adds ${JSON.stringify(p.adds)})`);
+  for (const c of ic.comps()) if (c !== logo && c !== own) (c.setSharedPluginData as (a: string, b: string, v: string) => void)(NS, BASELINE_KEY, '');
+  await captureBaselines(ic.host, [ic.target]);
+  const a = await adoptMembers(ic.host, [ic.target]);
+  ok(JSON.stringify([logo, own].map((n) => [...(n._pluginData as Map<string, string>)])) === before && pd(own, STAMP_KEY) === '',
+    'single/never touched: neither the capture nor Adopt writes anything on the owner\'s icons');
+  ok(JSON.stringify(a.notOffered) === '["icon"]' && a.sets.length === 0 && adoptVerdictText(a).ok && adoptVerdictText(a).lines.includes("Adopt doesn't apply to icon. Hand-made ones are left as they are."),
+    `single/no adopt: Adopt is not offered for the icons, and says so without failing (Q109 B) (${JSON.stringify(adoptVerdictText(a).lines)})`);
+}
+{
+  // A plugin-built icon moved into a frame on the page is still found (Q109 C), and a duplicate is no Prism3 icon.
+  const ic = await buildSingle('icon');
+  const moved = ic.named('icon/close');
+  const frame = (ic.shim.createFrame as () => Node)();
+  ic.page.children.splice(ic.page.children.indexOf(moved), 1);
+  (frame.appendChild as (c: Node) => void)(moved);
+  ic.page.children.push(frame);
+  const dup = ic.handMade('icon/zz-copy');
+  const src = ic.named('icon/check');
+  for (const k of [STAMP_KEY, BASELINE_KEY]) (dup.setSharedPluginData as (a: string, b: string, v: string) => void)(NS, k, (src.getSharedPluginData as (a: string, b: string) => string)(NS, k));
+  const p = (await previewUpdate(ic.host, [ic.target])).sets[0];
+  ok(p.counts.current === 44 && !p.adds.length, `single/moved: the icon moved into a frame is found and current, not re-added (${p.counts.current}, adds ${JSON.stringify(p.adds)})`);
+  ok(!p.drops.includes('name=zz-copy') && p.unstamped.includes('name=zz-copy'), `single/copy: a duplicated icon is not Prism3's, so not a drop (#2300) (${JSON.stringify(p.drops)})`);
+}
+{
+  const sp = await buildSingle('spinner');
+  for (const c of sp.comps()) (c.setSharedPluginData as (a: string, b: string, v: string) => void)(NS, BASELINE_KEY, '');
+  const cap = await captureBaselines(sp.host, [sp.target]);
+  const p = (await previewUpdate(sp.host, [sp.target])).sets[0];
+  ok(cap.sets[0]?.recorded === 4 && p.counts.current === 4, `single/spinner: the four spinner sizes are read, captured and current (${cap.sets[0]?.recorded}, ${JSON.stringify(p.counts)})`);
 }
 
 /* ── dropped ─────────────────────────────────────────────────────────────────────────────────────────── */

@@ -14657,11 +14657,50 @@ arm: {
           ok(bad.length === 0,
             `#2266 ${def.id} size=${size}: label ${LABEL_STYLE[size]} over input ${INPUT_STYLE[size]}, height ${def === textarea ? 'from rows' : HEIGHT[size]}, padding ${PAD[size]}, a 120 floor${bad.length ? ` — WRONG: ${bad.join('; ')}` : ''}`);
         }
-        // 72 members, led by medium: the default variant, and where an in-place update (#2265) lands every member
-        // of a set built before #2266 (they were all the medium field).
+        // 84 members, led by medium: the default variant, and where an in-place update (#2265) lands every member
+        // of a set built before #2266 (they were all the medium field). 72 until #2318's `focus-visible-filled`
+        // column (size 3 × status 4 × state 7; 28 per size).
         const set = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
-        ok(set.length === 72 && set[0].size === 'medium' && SIZES.every((sz) => set.filter((p) => p.size === sz).length === 24),
-          `#2266 ${def.id}: the set is 72 members, 24 per size, led by size=medium (got ${set.length}, first ${String(set[0]?.size)})`);
+        ok(set.length === 84 && set[0].size === 'medium' && SIZES.every((sz) => set.filter((p) => p.size === sz).length === 28),
+          `#2266 ${def.id}: the set is 84 members, 28 per size, led by size=medium (got ${set.length}, first ${String(set[0]?.size)})`);
+      }
+
+      // (2b) #2318 (owner decision Q157, 2026-10-09): THE FOCUSED FIELD THAT HOLDS A VALUE, `state=focus-visible-filled`,
+      // on all three fields at every size and status. What it shows is typed here from the decision, never read off the
+      // def: the value in the value ink and no placeholder, the focus ring, the focus border at default status and the
+      // status's own border otherwise, and (owner Q166 C) on text-field ONLY a caret immediately AFTER the value, in its own
+      // `caretEnd` part, with no caret before it; textarea and select draw no caret at all. ACTUAL is the emitted plan. And
+      // the set carries the 12 new members per field, 4 per size.
+      {
+        const BORDER: Record<string, string> = { default: 'color/border/focus', error: 'color/border/danger', warning: 'color/border/warning', success: 'color/border/success' };
+        const order = (n: AnatomyPlan['root'], acc: string[] = []): string[] => { acc.push(n.name); for (const k of n.children) order(k, acc); return acc; };
+        for (const def of [textField, select, textarea]) {
+          const bad: string[] = [];
+          let seen = 0;
+          for (const size of SIZES) for (const status of Object.keys(BORDER)) {
+            const root = figmaAnatomyPlan(def, size, { status, state: 'focus-visible-filled' } as never).root;
+            const at = `${size}/${status}`;
+            seen++;
+            const value = findIn(root, 'value');
+            if (value?.paints?.fills !== 'color/text/primary') bad.push(`${at}: value ink ${String(value?.paints?.fills)}`);
+            if (findIn(root, 'placeholder')) bad.push(`${at}: the placeholder is drawn`);
+            if (!findIn(root, 'focusRing')) bad.push(`${at}: no focus ring`);
+            const ctl = findIn(root, 'control');
+            if (ctl?.paints?.strokes !== BORDER[status]) bad.push(`${at}: border ${String(ctl?.paints?.strokes)}, want ${BORDER[status]}`);
+            const names = order(root);
+            if (names.includes('caret')) bad.push(`${at}: a caret is drawn before the value`);
+            if (def === textField) {
+              const endAt = names.indexOf('caretEnd');
+              const end = findIn(root, 'caretEnd');
+              if (endAt < 0 || names[endAt - 1] !== 'value') bad.push(`${at}: no caret immediately after the value (${names.join(' ')})`);
+              else if (end?.paints?.fills !== 'color/text/primary') bad.push(`${at}: end caret ink ${String(end?.paints?.fills)}`);
+            } else if (names.includes('caretEnd')) bad.push(`${at}: an end caret is drawn`);
+          }
+          const set = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+          const added = set.filter((p) => planComponentName(p).includes('state=focus-visible-filled'));
+          ok(bad.length === 0 && seen === 12 && added.length === 12,
+            `#2318 ${def.id}: the focused field that holds a value shows the value in text.primary, no placeholder, the focus ring and the focus (or status) border, ${def === textField ? 'with the caret immediately after the value' : 'with no caret'}, in all 12 new members (${added.length} built${bad.length ? `; WRONG: ${bad.slice(0, 4).join(' | ')}` : ''})`);
+        }
       }
 
       // (3) the pairs in px, in every committed brand emission: the label exactly one body step (2px) under the input.
@@ -14923,9 +14962,17 @@ arm: {
         //     axis, so a wrapping label never shrinks or stretches the control.
         ok(controlBox?.layoutGrow === undefined && controlBox?.counterAxisSizingMode === 'FIXED',
           `#1424 ${def.id}: the controlBox stays fixed/hug — it does not grow (layoutGrow ${String(controlBox?.layoutGrow)}) and its cross axis is FIXED (${String(controlBox?.counterAxisSizingMode)})`);
-        // (c) THE WIDTH FLOOR that makes the fill resolve (Prism 2's root width 320).
-        ok(row?.minWidth === 320,
-          `#1424 ${def.id}: the row carries the 320 min-width floor so the fill has space to resolve against (got ${String(row?.minWidth)})`);
+        // (c) THE WIDTH THAT MAKES THE FILL RESOLVE, on every member (owner decision Q152.3: Q99 B reaches the
+        //     rows). The row is BUILT at Prism 2's root width 320 (`placementWidth`, FIXED along its horizontal
+        //     main axis) and floors at the fields' 120 (Q152.2), so it shrinks with a narrower column instead of
+        //     holding at 320 and overflowing it. Expected values are literals typed here, never read off a def.
+        const rowOff = figmaAnatomySet(def, {}).flatMap((m) => {
+          const r = m.root;
+          return r.name === 'row' && r.placementWidth === 320 && r.primaryAxisSizingMode === 'FIXED' && r.minWidth === 120 ? []
+            : [`${planComponentName(m)}: ${r.name} placementWidth ${String(r.placementWidth)}, primary ${String(r.primaryAxisSizingMode)}, minWidth ${String(r.minWidth)}`];
+        });
+        ok(row?.minWidth === 120 && rowOff.length === 0,
+          `#1424/Q152.3 ${def.id}: on every member the row is built at 320 and floors at 120, so it shrinks with its column (${rowOff.length} off — ${rowOff[0] ?? 'none'})`);
         //   MUTATION #1424 — revert the label to fixed/hug-no-wrap. Dropping `wrap` returns the label to a
         //   hugging text node that overflows: the plan drops layoutGrow AND textAutoResize, flipping (a) BY NAME.
         const noWrapLabel = { ...def.anatomy.parts.label, wrap: undefined };
@@ -14943,13 +14990,27 @@ arm: {
       ok(validateComponentDef(wrapOnBox as ComponentDef).errors.some((e) => /declares 'wrap'/.test(e) && /only a 'text' part/.test(e)),
         "#1424 'wrap' on a NON-text part is refused BY NAME — only a text part fills its row and reflows; on any other kind it would validate clean and reach the wrong branch");
       // (b) wrap under a FLOORLESS parent — the #989 silent no-op: `layoutGrow` fills REMAINING space and a
-      //     hugging row has none, so the label hugs its glyphs and overflows though it validated. Stripping the
-      //     row's real `minWidth: 320` (keeping the label's `wrap`) fires this on exactly the row that carries
-      //     the floor — which is what makes the row's minWidth LOAD-BEARING rather than decorative.
-      const floorlessRow = { ...radioRow.anatomy.parts.row, minWidth: undefined };
+      //     hugging row has none, so the label hugs its glyphs and overflows though it validated. Returning the
+      //     row to a HUGGING root with neither its build width nor its floor (keeping the label's `wrap`) fires
+      //     this on exactly the row that carries them, which is what makes them LOAD-BEARING rather than
+      //     decorative. Both go: since Q152.3 the root's `placementWidth` alone already bounds the label.
+      const rp = radioRow.anatomy.parts.row;
+      const floorlessRow = { ...rp, minWidth: undefined, placementWidth: undefined, layout: { ...rp.layout!, sizing: { ...rp.layout!.sizing, x: 'hug' as const } } };
       const floorless = { ...radioRow, anatomy: { ...radioRow.anatomy, parts: { ...radioRow.anatomy.parts, row: floorlessRow } } };
       ok(validateComponentDef(floorless as ComponentDef).errors.some((e) => /declares 'wrap'/.test(e) && /does not bound its main-axis width/.test(e)),
-        "#1424 a 'wrap' label under a floorless row is refused BY NAME — layoutGrow fills remaining space and a hugging parent has none, the #989 silent no-op; removing the row's minWidth fires this, so the floor is load-bearing");
+        "#1424 a 'wrap' label under a floorless row is refused BY NAME — layoutGrow fills remaining space and a hugging parent has none, the #989 silent no-op; a hugging row with no build width and no floor fires this, so they are load-bearing");
+    }
+
+    // ---- Q155 A: the GROUPS follow their rows — built at 320, filling their column down to the 120 floor ----
+    // A group's root is a column, so its width is the COUNTER axis (FIXED), where a row's is its primary. Literals
+    // typed here; the column geometry is measured in `apps/plugin/test-roundtrip.ts` (Q155 block).
+    for (const def of [checkboxGroup, radioGroup] as ComponentDef[]) {
+      const off = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' }).flatMap((m) => {
+        const r = m.root;
+        return r.placementWidth === 320 && r.counterAxisSizingMode === 'FIXED' && r.minWidth === 120 ? []
+          : [`${planComponentName(m)}: ${r.name} placementWidth ${String(r.placementWidth)}, counter ${String(r.counterAxisSizingMode)}, minWidth ${String(r.minWidth)}`];
+      });
+      ok(off.length === 0, `Q155 ${def.id}: on every member the group is built at 320 and floors at 120, so it shrinks with its column (${off.length} off — ${off[0] ?? 'none'})`);
     }
 
     // ---- #1757: a ROOT's build width (`placementWidth`), and the wrap bounds it and a filled parent supply ----
@@ -15107,14 +15168,14 @@ arm: {
     // block below for the halving.
     const projStates = select.figmaProperties!.stateAxis!.values;
     const V = select.variants!.status!.length;                 // status: 4
-    const St = projStates.length;                               // rest/hover/filled/focus-visible/disabled/read-only: 6
+    const St = projStates.length;                               // rest/hover/filled/focus-visible/focus-visible-filled/disabled/read-only: 7
     const Sz = select.variants!.size!.length;                   // size: 3 (#2266)
     const set = figmaAnatomySet(select);
     // (a) empty is absent from the PROJECTED axis, and the enumeration matches the product WITHOUT it.
     ok(!projStates.includes('empty'),
       `#1344 'empty' is NOT a projected Figma state (stateAxis = [${projStates.join(', ')}])`);
-    ok(set.length === Sz * V * St && set.length === 72,
-      `#1344 select projects size(${Sz})×status(${V})×state(${St}) = ${Sz * V * St} members (the size axis since #2266, the filled column since 2026-09-25, the read-only column since #1699; 84 with the empty column; leading is a boolean since #1331, not a ×2 axis)`);
+    ok(set.length === Sz * V * St && set.length === 84,
+      `#1344 select projects size(${Sz})×status(${V})×state(${St}) = ${Sz * V * St} members (the size axis since #2266, the filled column since 2026-09-25, the read-only column since #1699, the focus-visible-filled column since #2318; 96 with the empty column; leading is a boolean since #1331, not a ×2 axis)`);
     ok(!set.some((p) => planComponentName(p).includes('empty')),
       '#1344 no projected member names the empty state');
     // (b) empty IS still a real state — the placeholder-vs-value ink distinction is carried internally, and
@@ -15132,7 +15193,7 @@ arm: {
     //   names the empty state' BY NAME.
     const projMutant = { ...select, figmaProperties: { ...select.figmaProperties!, stateAxis: { name: 'state', values: [...projStates, 'empty'] } } };
     const mutSet = figmaAnatomySet(projMutant as ComponentDef);
-    ok(mutSet.length === 84 && mutSet.some((p) => planComponentName(p).includes('empty')),
+    ok(mutSet.length === 96 && mutSet.some((p) => planComponentName(p).includes('empty')),
       `#1344 MUTATION A: restoring 'empty' to the projected stateAxis rebuilds the empty column (set ${set.length} → ${mutSet.length}), flipping '#1344 select projects … 24 members' to failing`);
     //   MUTATION B — drop `empty` from `states`. `label.empty` / `error.border.empty` then name a state the
     //   def no longer declares, so `validateComponentDef` reports them as unreachable paint keys — the
@@ -15170,8 +15231,8 @@ arm: {
       '#1331 the leading glyph node carries the content swap AND the visibility boolean on ONE node (mainComponent + visible)');
 
     // (3) the set HALVES: status(4) × state(6) = 24 (with the 2026-09-25 filled column and #1699's read-only), from 48 as a ×2 axis.
-    ok(sset.length === 72,
-      `#1331 select projects 72 members (144 with the leading ×2 axis; the boolean halves it) — got ${sset.length}`);
+    ok(sset.length === 84,
+      `#1331 select projects 84 members (168 with the leading ×2 axis; the boolean halves it) — got ${sset.length}`);
 
     // (4) planSetProperties declares `leading icon` as a BOOLEAN defaulting to the built (hidden) visibility,
     //     ordered ABOVE the swap it gates (the #1380 `leading icon` → `↳ swap leading icon` panel nesting).
@@ -15196,8 +15257,8 @@ arm: {
     //     boolean replaced. Flips "#1331 select projects 24 members" BY NAME.
     const asAxis = { ...select, figmaProperties: { ...fp, booleans: {}, slotAxes: [{ name: 'leading', part: 'leadingVisual', figmaName: 'leading icon' }] } };
     const asAxisSet = figmaAnatomySet(asAxis as never, { swapTarget: 'FPO-default-icon' });
-    ok(asAxisSet.length === 144 && asAxisSet.some((p) => !findLV(p.root)) && asAxisSet.some((p) => !!findLV(p.root)),
-      `#1331 MUTATION: reverting leading to a variant axis re-doubles the set to 144 and drops the node in the false members (${asAxisSet.length} members) — the multiplication the boolean replaced`);
+    ok(asAxisSet.length === 168 && asAxisSet.some((p) => !findLV(p.root)) && asAxisSet.some((p) => !!findLV(p.root)),
+      `#1331 MUTATION: reverting leading to a variant axis re-doubles the set to 168 and drops the node in the false members (${asAxisSet.length} members) — the multiplication the boolean replaced`);
 
     // (7) VALIDATOR ARMS (new refusals, by-name).
     //   (a) the LOOSENING is real: select's leadingVisual carries a swap AND a boolean and validates clean
@@ -15280,8 +15341,8 @@ arm: {
       '#1426 the built visibility TRACKS the boolean default — flipping showMessage default→false builds every message node `visible:false`, so the shown-by-default assertion is not measuring a constant');
 
     // (3) the boolean does NOT multiply the set — still status(4) × state(5) = 20 members.
-    ok(sset.length === 72,
-      `#1426 the showMessage boolean toggles a part in place and does not multiply the set — still 72 members, size(3) × status(4) × state(6) (got ${sset.length})`);
+    ok(sset.length === 84,
+      `#1426 the showMessage boolean toggles a part in place and does not multiply the set — still 84 members, size(3) × status(4) × state(7) (got ${sset.length})`);
 
     // (4) planSetProperties declares `message` as a BOOLEAN defaulting to the built (shown) visibility.
     const props = planSetProperties(sset);
@@ -16211,7 +16272,7 @@ arm: {
 
     // (B) DECISION 2 — select gains read-only and pending, text-field's state set (the literal below is the
     //     decision, not text-field's array read back). read-only PROJECTS; pending does not.
-    const FIELD_STATES = ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only', 'pending', 'empty'];
+    const FIELD_STATES = ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only', 'pending', 'empty'];
     ok(FIELD_STATES.every((st) => (select.states as string[]).includes(st)) && select.states.length === FIELD_STATES.length,
       `#1699 select carries the field family's state set, read-only and pending included (got [${select.states.join(', ')}])`);
     const selProj = select.figmaProperties!.stateAxis!.values;
@@ -17482,6 +17543,10 @@ arm: {
       ({ ...x, parts: { ...x.parts, focusRing: { ...x.parts.focusRing, ...patch } as AnatomyDef['parts'][string] } });
     broke('an absolute part with no `when` fails — nothing could project it', /must declare the state it appears in/, ring({ when: undefined }));
     broke('an absolute part whose `when` is not a state fails', /is not one of states/, ring({ when: 'nope' }));
+    // #2318: an absolute part's `when` may be a LIST (the field ring at both focus states); each entry is held to the
+    // def's states, and an empty list is no trigger at all.
+    broke('an absolute part whose `when` LIST names a state the def lacks fails, by that state', /when 'nope' is not one of states/, ring({ when: ['focus-visible', 'nope'] }));
+    broke('an absolute part whose `when` is an EMPTY list fails — nothing could project it', /must declare the state it appears in/, ring({ when: [] }));
     broke('an absolute part nominating no component to nest fails — the alternative is N-way duplication', /nominates no component to nest/, ring({ nests: undefined }));
     broke('an absolute part with no `inset` fails — a ring flush against the border is WCAG 1.4.11', /binds no 'inset'/, ring({ inset: undefined }));
     // Not caught by the single-target check above, which counts targets: one absolute target is still
@@ -19946,7 +20011,7 @@ arm: {
           for (const c of cs) if (c.variants.length > 1 && c.js.length > b) over.push(`${b}: chunk ${c.index + 1} of ${cs.length}, ${c.variants.length} variants, ${c.js.length} B`);
           if (JSON.stringify(cs.flatMap((c) => c.variants)) !== taNames) lost.push(b);
         }
-        ok(budgets === 124 && taPlans.length === 24 && over.length === 0,
+        ok(budgets === 124 && taPlans.length === 28 && over.length === 0,
           `#1814 at every one of 124 budgets, no shipped chunk of more than one variant is over the budget (${taPlans.length} variants; ${over.length} over${over.length ? `: ${over.slice(0, 3).join('; ')}` : ''})`);
         ok(lost.length === 0,
           `#1814 ...and every budget ships all 24 variants once, in plan order (${lost.length ? `not at ${lost.slice(0, 5).join(', ')}` : 'all 124'})`);
@@ -20313,7 +20378,7 @@ arm: {
           return undefined;
         };
         const collided = members.filter((m) => descend(m, 'text'));
-        ok(members.length === 72 && collided.length === members.length,
+        ok(members.length === 84 && collided.length === members.length,
           `#1428 reachability (paste): every built select member carries a colliding nested-instance \`text\` (${collided.length}/${members.length})`);
         const textMisses = run.misses.filter((m) => /\btext\.characters\b/.test(m));
         ok(textMisses.length === 0,
@@ -21676,7 +21741,7 @@ arm: {
       ibBroke('a state gate naming an UNDECLARED state fails', /gates presence on state='typing', which is not one of states/, tfPart('caret', { presentWhen: { state: ['typing'] } }));
       ibBroke('a state gate reaching NO projected state fails — the part is absent from every member', /gates presence on state=\[empty, pending\], none of which figmaProperties\.stateAxis projects/, tfPart('caret', { presentWhen: { state: ['empty', 'pending'] } }));
       ibBroke('a state gate with no values fails', /gates presence on 'state' with no values/, tfPart('caret', { presentWhen: { state: [] } }));
-      ibBroke('a state gate naming EVERY projected state fails as a no-op', /gates presence on all 6 projected states/, tfPart('caret', { presentWhen: { state: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only'] } }));
+      ibBroke('a state gate naming EVERY projected state fails as a no-op', /gates presence on all 7 projected states/, tfPart('caret', { presentWhen: { state: ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only'] } }));
       ibBroke('a state gate on a def with no stateAxis fails', /gates presence on 'state', but figmaProperties declares no stateAxis/,
         { ...tfPart('caret', { presentWhen: { state: ['focus-visible'] } }), figmaProperties: { ...tf.figmaProperties!, stateAxis: undefined } } as ComponentDef);
       // The reserved key is unambiguous only while no VARIANT axis can be named `state`; the closed vocabulary
@@ -23853,6 +23918,11 @@ arm: {
     spinner: { ...button.anatomy!.parts.spinner, when: 'nope' } } } } as ComponentDef;
   ok(validateComponentDef(badWhen).errors.some((x) => /is not one of states/.test(x)),
     '#536 gate: an overlay whose `when` is not a declared state fails validation');
+  // #2318 widened `when` to a list for ABSOLUTE parts only: an overlay replaces a part on exactly one state.
+  const listWhen = { ...button, anatomy: { ...button.anatomy!, parts: { ...button.anatomy!.parts,
+    spinner: { ...button.anatomy!.parts.spinner, when: ['pending', 'rest'] } } } } as ComponentDef;
+  ok(validateComponentDef(listWhen).errors.some((x) => /an overlay's when names ONE state, not a list/.test(x)),
+    '#2318 gate: an overlay whose `when` is a LIST fails validation — only an absolute part may name several states');
 }
 
 // ---- #536 item 6: the slot x size grid, gated offline after the live probe ----------------------
