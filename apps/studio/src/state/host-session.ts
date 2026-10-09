@@ -313,7 +313,10 @@ export const reduce = (prev: HostSession, m: HostMessage): HostSession => {
       return { ...s, fileSetupState: { ok: m.ok, headline: m.headline, summary: m.summary }, openDetail: m.ok ? null : 'filesetup' };
     case 'style-guide-result': {
       // S11.2: a stopped run's count lands on the panel's run, which the page keeps showing.
-      const run = s.styleGuideRun && s.styleGuideState === 'pending' ? { ...s.styleGuideRun, stopped: m.stopped ?? null } : s.styleGuideRun;
+      // #2313: an agent's verdict (its run open in `prev`, the panel's own not pending) drew no table the page lists, so
+      // the panel's earlier run goes: its list beside this headline would read as the agent's run.
+      const agents = prev.agentRun?.op === 'styleguide' && !prev.agentRun.settled && s.styleGuideState !== 'pending';
+      const run = agents ? null : s.styleGuideRun && s.styleGuideState === 'pending' ? { ...s.styleGuideRun, stopped: m.stopped ?? null } : s.styleGuideRun;
       return { ...s, styleGuideState: { ok: m.ok, headline: m.headline, summary: m.summary, lines: m.lines }, openDetail: m.ok ? null : 'styleguide', styleGuideProgress: null, styleGuideRun: run };
     }
     case 'style-guide-catalog':
