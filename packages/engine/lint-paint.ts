@@ -279,6 +279,8 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the empty coordinate, the common "required field left unchosen" error',
   'select|error.border.filled':
     'status `error` maps to the `danger` border role — the filled coordinate (owner decision, 2026-09-25), bound so a field holding an invalid value keeps the danger boundary',
+  'select|error.border.focus-visible-filled':
+    'status `error` maps to the `danger` border role — the focused coordinate that holds a value (#2318, owner Q157), bound so an invalid value keeps the danger boundary while the field is focused (the ring carries the focus signal on top)',
   'select|error.border.read-only':
     "status `error` maps to the `danger` border role — the read-only coordinate (#1699, text-field's state set), bound so an errored read-only select keeps the danger boundary",
   // `text-field`'s validation axis is spelled `status` for the same reason select's is (its values are the
@@ -303,6 +305,8 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the empty coordinate, the common "required field left blank" error',
   'text-field|error.border.filled':
     'status `error` maps to the `danger` border role — the filled coordinate (owner decision, 2026-09-25), bound so a field holding an invalid value keeps the danger boundary',
+  'text-field|error.border.focus-visible-filled':
+    'status `error` maps to the `danger` border role — the focused coordinate that holds a value (#2318, owner Q157), bound so an invalid value keeps the danger boundary while the field is focused (the ring carries the focus signal on top)',
   // `textarea` took text-field's status axis and its border keys verbatim (#1623 sign-off, C1/TA-4), so it
   // carries the same `error` → `danger` mapping at the same five coordinates, and for the same reason.
   'textarea|error.border.rest':
@@ -317,6 +321,8 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the empty coordinate, the common "required field left blank" error',
   'textarea|error.border.filled':
     'status `error` maps to the `danger` border role — the filled coordinate (owner decision, 2026-09-25), bound so a field holding an invalid value keeps the danger boundary',
+  'textarea|error.border.focus-visible-filled':
+    'status `error` maps to the `danger` border role — the focused coordinate that holds a value (#2318, owner Q157), bound so an invalid value keeps the danger boundary while the field is focused (the ring carries the focus signal on top)',
   // `badge` keys its paint `{tone}.{type}.{emphasis}.{slot}`, so the TONE leads and arm 1 reads it. Three
   // shapes need an exception, and every other badge key satisfies the rule on its own: the bold fills
   // (`foreground.<tone>`), the subtle labels (`text.<tone>`) and the subtle edges (`border.<tone>`) carry the

@@ -27,6 +27,10 @@
         "outline",
         "text"
       ],
+      "inset": [
+        "default",
+        "flush"
+      ],
       "leading icon": [
         "false",
         "true"
@@ -53,7 +57,7 @@
         "true"
       ]
     },
-    "members": 432
+    "members": 576
   },
   "button-destructive": {
     "axes": {
@@ -62,6 +66,10 @@
         "outline",
         "text"
       ],
+      "inset": [
+        "default",
+        "flush"
+      ],
       "leading icon": [
         "false",
         "true"
@@ -88,7 +96,7 @@
         "true"
       ]
     },
-    "members": 432
+    "members": 576
   },
   "button-neutral": {
     "axes": {
@@ -97,6 +105,10 @@
         "outline",
         "text"
       ],
+      "inset": [
+        "default",
+        "flush"
+      ],
       "leading icon": [
         "false",
         "true"
@@ -123,7 +135,7 @@
         "true"
       ]
     },
-    "members": 432
+    "members": 576
   },
   "checkbox-control": {
     "axes": {
@@ -407,10 +419,16 @@
   },
   "select": {
     "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
       "state": [
         "disabled",
         "filled",
         "focus-visible",
+        "focus-visible-filled",
         "hover",
         "read-only",
         "rest"
@@ -422,7 +440,7 @@
         "warning"
       ]
     },
-    "members": 24
+    "members": 84
   },
   "spinner": {
     "axes": {
@@ -492,10 +510,16 @@
   },
   "text-field": {
     "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
       "state": [
         "disabled",
         "filled",
         "focus-visible",
+        "focus-visible-filled",
         "hover",
         "read-only",
         "rest"
@@ -507,14 +531,20 @@
         "warning"
       ]
     },
-    "members": 24
+    "members": 84
   },
   "textarea": {
     "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
       "state": [
         "disabled",
         "filled",
         "focus-visible",
+        "focus-visible-filled",
         "hover",
         "read-only",
         "rest"
@@ -526,7 +556,7 @@
         "warning"
       ]
     },
-    "members": 24
+    "members": 84
   },
   "veil": {
     "axes": {

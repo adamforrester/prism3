@@ -11,7 +11,7 @@ A control for choosing ONE value from a known, bounded set — the closed, nativ
 
 ## Usage
 
-Use to choose ONE value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage's status from the validation state. The open menu is the platform's — prefer a native \<select> where its OS menu is acceptable. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group.
+Use to choose ONE value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage's status from the validation state. The open menu is the platform's — prefer a native \<select> where its OS menu is acceptable. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.
 
 ### Do
 
@@ -63,15 +63,17 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain n
 | `isPending` | boolean | `false` | no | Async options are loading — a spinner replaces the chevron and the control sets aria-busy. Not an empty state: the option list is still arriving. The same name Button and TextField use. |
 | `id` | string | — | no | Wiring + form submission; auto-generated with useId if omitted, tying the label to the control and stitching the aria-describedby chain to the message. |
 | `name` | string | — | no | A real control name so the field works uncontrolled, in a native form, and with Server Actions. |
+| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Three tiers that scale the value type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small control to 16px, because iOS Safari zooms the page when it focuses a control under 16px. The same prop, with the same values, as TextField and Textarea. |
 
 ## States
 
-`rest`, `hover`, `filled`, `focus-visible`, `disabled`, `read-only`, `pending`, `empty`
+`rest`, `hover`, `filled`, `focus-visible`, `focus-visible-filled`, `disabled`, `read-only`, `pending`, `empty`
 
 ## Variants
 
 | Axis | Values | Changes |
 | --- | --- | --- |
+| `size` | `medium`, `small`, `large` | once, when authored |
 | `status` | `default`, `error`, `warning`, `success` | at runtime |
 
 ## Accessibility

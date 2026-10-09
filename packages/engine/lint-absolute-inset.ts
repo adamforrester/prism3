@@ -201,15 +201,22 @@ const OUT_FIGMA = join(import.meta.dirname, 'out', 'figma');
  * GAPS THAT ARE LEGITIMATELY ZERO, keyed `<def>.<part>` → the reason, which must say what supplies
  * the separation instead.
  *
- * Empty today, and it is a real case rather than a hypothetical hook: `focus.ring.offset-field`
- * resolves to 0 in every brand on purpose — `text-field` binds it, and `focus-ring`'s own `offset`
- * prop documents why ("an input's own border already supplies the separation and a gap there reads as
- * a double border"). `text-field` has no `anatomy` yet, so nothing projects it; the day it does, this
- * gate fails until a human writes the reason down here. That friction is the feature, for the same
- * argument `schema/payload-manifest.json` is authored rather than regenerated: a gate that decided
- * for itself which zeroes were intended would have classified #801's as intended too.
+ * The case this header predicted arrived with #2266: `focus.ring.offset-field` resolves to 0 in every
+ * brand on purpose, and `focus-ring`'s own `offset` prop documents why ("an input's own border already
+ * supplies the separation and a gap there reads as a double border"). The three fields bound it long
+ * before this gate saw them — the scan below walks only defs with a `size` axis, and the fields had none
+ * until #2266 projected one — so the day it did, this gate failed until the reason was written down here.
+ * That friction is the feature, for the same argument `schema/payload-manifest.json` is authored rather
+ * than regenerated: a gate that decided for itself which zeroes were intended would have classified #801's
+ * as intended too.
  */
-const ZERO_OK: Record<string, string> = {};
+const FIELD_RING =
+  "the FIELD offset (`focus.ring.offset-field`, 0 in every brand) is focus-ring's own `offset: 'field'`: the input's border is the separation, and a gap outside it reads as a double border (focus-ring.ts, the `offset` prop). The ring still compensates its own stroke (`strokeInset: 'ring-width'`), so it is drawn outside the border, never across it";
+const ZERO_OK: Record<string, string> = {
+  'text-field.focusRing': FIELD_RING,
+  'select.focusRing': FIELD_RING,
+  'textarea.focusRing': FIELD_RING,
+};
 
 /**
  * The scope floor. `docs/34`: a gate with a scope asserts each promised surface is REPRESENTED, never
@@ -314,12 +321,16 @@ const sited = (n: FigmaNodePlan, parent: FigmaNodePlan | null = null): Sited[] =
  *  projector emitted anything at all. `when` is carried because it is the state the inset is
  *  supposed to appear at, and at no other. `strokeKey` is OPTIONAL on the def and its absence is a
  *  claim ("this part's nested component draws nothing inward"), which C tests rather than trusts. */
-type Declared = { part: string; insetKey: string; strokeKey?: string; when?: string };
+type Declared = { part: string; insetKey: string; strokeKey?: string; when?: readonly string[] };
+/** The def's `when`, one state or a list (#2318: the field ring names two), read HERE as a list rather than through
+ *  the schema's helper, so this gate keeps its own reading of the declaration. */
+const whenList = (w: unknown): readonly string[] | undefined =>
+  typeof w === 'string' ? [w] : Array.isArray(w) ? w.map(String) : undefined;
 const declaredInsets = (def: ComponentDef): Declared[] =>
   Object.entries(def.anatomy?.parts ?? {})
-    .map(([part, p]) => ({ part, ...(p as { kind?: string; inset?: string; strokeInset?: string; when?: string }) }))
+    .map(([part, p]) => ({ part, ...(p as { kind?: string; inset?: string; strokeInset?: string; when?: unknown }) }))
     .filter((p): p is typeof p & { kind: string; inset: string } => p.kind === 'absolute' && typeof p.inset === 'string')
-    .map(({ part, inset, strokeInset, when }) => ({ part, insetKey: inset, strokeKey: strokeInset, when }));
+    .map(({ part, inset, strokeInset, when }) => ({ part, insetKey: inset, strokeKey: strokeInset, when: whenList(when) }));
 
 /** THE GEOMETRY A GAP IMPLIES, restated so a failure prints coordinates a reader can check against a
  *  Figma inspector. `gap` is the background a designer sees; `stroke` is what the nested component
@@ -381,16 +392,16 @@ for (const def of componentDefs) {
 
         // ---- D, second direction: an inset appears only where the def says it should ------------
         if (!node.absoluteInset) {
-          if (d && d.when !== undefined && d.when === state)
-            failures.push(`${at}: the def declares '${node.name}' inset and gates it on state '${d.when}', which THIS coordinate is — and the plan gives it no absoluteInset, so the part projects flush`);
+          if (d && d.when !== undefined && state !== undefined && d.when.includes(state))
+            failures.push(`${at}: the def declares '${node.name}' inset and gates it on state '${state}', which THIS coordinate is — and the plan gives it no absoluteInset, so the part projects flush`);
           continue;
         }
         if (!d) {
           failures.push(`${at}: the plan gives '${node.name}' an absoluteInset ('${node.absoluteInset}') and the DEF declares no absolute inset for that part — the two disagree about whether this part is inset at all`);
           continue;
         }
-        if (d.when !== undefined && d.when !== state) {
-          failures.push(`${at}: '${node.name}' carries an absoluteInset at a coordinate its own \`when: '${d.when}'\` excludes — an inset projected at every state grows every member of the set by 2× the offset, silently`);
+        if (d.when !== undefined && (state === undefined || !d.when.includes(state))) {
+          failures.push(`${at}: '${node.name}' carries an absoluteInset at a coordinate its own \`when: '${d.when.join("', '")}'\` excludes — an inset projected at every state grows every member of the set by 2× the offset, silently`);
           continue;
         }
         reached.add(node.name);
@@ -505,8 +516,8 @@ for (const def of componentDefs) {
   // ---- D, first direction: the vacuous-pass guard ------------------------------------------------
   for (const { part, when } of declared)
     if (!reached.has(part))
-      failures.push(`${def.id}: the def declares '${part}' as an absolute part with an inset${when ? ` gated on state '${when}'` : ''}, and NO projected coordinate carried one. Either the projector stopped emitting absoluteInset — in which case every check above passed over an empty set — or '${when}' is not in def.states.`);
-  notes.push(`${def.id}: ${declared.length} declared inset part(s) — ${declared.map((d) => `${d.part} (${d.insetKey}${d.strokeKey ? ` + ${d.strokeKey}` : ''}${d.when ? ` @ ${d.when}` : ''})`).join(', ')}`);
+      failures.push(`${def.id}: the def declares '${part}' as an absolute part with an inset${when ? ` gated on state '${when.join("', '")}'` : ''}, and NO projected coordinate carried one. Either the projector stopped emitting absoluteInset — in which case every check above passed over an empty set — or '${when?.join("', '")}' is not in def.states.`);
+  notes.push(`${def.id}: ${declared.length} declared inset part(s) — ${declared.map((d) => `${d.part} (${d.insetKey}${d.strokeKey ? ` + ${d.strokeKey}` : ''}${d.when ? ` @ ${d.when.join('/')}` : ''})`).join(', ')}`);
 }
 
 // ---- E: THE CORNER PIN (textarea's resize grip) ------------------------------------------------------

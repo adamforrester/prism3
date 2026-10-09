@@ -57,8 +57,8 @@ export const SHAPE_COPY = {
   densityTip: 'Sets every control height, and moves each component’s padding and gaps one step on the spacing scale.',
   softnessLabel: 'Radius softness',
   softnessTip: 'How round every radius size is, from sharp (0) to round (2). The pill sizes and the 1px radius stay fixed.',
-  // #2361 — DRAFT for the owner: hairline now reaches fields and checkboxes too.
-  shapeTip: 'The shape of buttons and icon buttons. Boxed is square, and rounded follows radius softness. Hairline gives buttons, fields and checkboxes a 1px radius. Pill is fully round at any height.',
+  // #2361 — DRAFT for the owner: leads with what the shape reaches (Q139); Boxed reaches fields and checkboxes too.
+  shapeTip: 'Hairline gives buttons, fields and checkboxes a 1px corner, and Boxed gives them a sharp 0px corner. Rounded follows radius softness. Pill rounds buttons fully at any height; fields and checkboxes keep their own corner.',
   baseLabel: 'Base radius',
   baseTip: 'The medium radius at standard softness, from 2 to 12px. Every other radius size is a multiple of it.',
   baseHint: 'The medium radius at standard softness. The other sizes scale from it.',
@@ -203,7 +203,7 @@ export const mountShapeLevers = (hostEl: HTMLElement, cleanups: (() => void)[], 
     const el = hook(h('section', 'p3-lsec'), 'lever-section');
     el.id = `p3-lsec-shape-${i}`;
     const head = h('div', 'p3-lsec-head');
-    const t = h('h3', 'p3-lsec-title', s.title);
+    const t = h('h2', 'p3-lsec-title', s.title);
     t.id = `${el.id}-t`;
     el.setAttribute('aria-labelledby', t.id);
     head.append(t);

@@ -71,6 +71,12 @@
  *                  the dry run and in the capture (#2295); and a fresh image-placeholder build records clean, its
  *                  aspect lock read as Figma's `{x, y}`. Mutations: the read-back's number-only aspect check →
  *                  `differ/image-placeholder`; the named lines dropped → `differ/dry run`, `differ/capture`.
+ *   single/…       an icon or spinner def, built as single components (#2296, owner decision Q109), is read as one
+ *                  set: found anywhere in the file, captured, and a hand edit on one reported. A hand-made icon, even
+ *                  one carrying a Prism3 glyph's exact name, is never written and holds its coordinate (Q109 A); a
+ *                  duplicated one is no Prism3 icon; Adopt is not offered (Q109 B). Mutations: the single reader
+ *                  dropped → `single/found`; the stamp check dropped (name as ownership) → `single/owner icons`;
+ *                  the search limited to the page's top level → `single/moved`.
  *   dropped/…      a fill the plan no longer has is named as a difference (#2335): a text button built under "Text
  *                  button hover: Fill" and planned under "Text & icon only" (#2324) lists its hover and pressed wash,
  *                  `fill: the plan says none, the file has <the wash>`, per variable with its member count; and the
@@ -138,6 +144,8 @@ const build = async (id: string, plans = plansOf(id)): Promise<Built> => {
     liveRoot: true,
     // Node ids, so Adopt and the capture can be held to writing by id (#2301).
     identities: true,
+    // #2379: the host scales a frame's SCALE children with it, so a built glyph's vectors fit its frame.
+    scaleConstrained: true,
   }) as any;
   const built = await applyComponentPlan(plans, shim);
   // A build that missed is a harness fault; the dry run would then be reading a set the executor never finished.
@@ -180,7 +188,7 @@ const setValue = (name: string, axis: string, value: string): string =>
 console.log('update dry run + as-built baseline (#2265) — against the in-memory shim\n');
 
 // The subject is TAG: 45 members on four axes, small enough to rebuild per case, with nested frames and
-// bindings on every level. BUTTON, the 432-member set the NB library publishes, runs once at full size.
+// bindings on every level. BUTTON, the 576-member set (432 before #2350's flush text members), runs at full size.
 const TAG = 'tag';
 
 /* ── fresh ───────────────────────────────────────────────────────────────────────────────────────────── */
@@ -188,15 +196,46 @@ section('fresh — a set the executor just built reads current, every member car
 {
   const b = await build('button');
   const view = await readSetView(b.set as any);
-  ok(view.members.length === 432 && view.others.length === 0, `fresh/read: 432 coordinate members read, none set aside (${view.members.length}, ${view.others.length})`);
+  ok(view.members.length === 576 && view.others.length === 0, `fresh/read: 576 coordinate members read, none set aside (${view.members.length}, ${view.others.length})`);
   ok(view.members.every((m) => m.baseline !== null && Object.keys(m.baseline.nodes).length >= 2),
     `fresh/baseline: every member carries an as-built record with its nodes (${view.members.filter((m) => m.baseline).length} of ${view.members.length})`);
   ok(view.members.every((m) => m.stamp.split('|').length === 3), 'fresh/stamp: every stamp has its three fields');
   const p = dryRunSet('button', b.plans, view, b.ports);
-  ok(p.counts.current === 432 && p.counts.update + p.counts.handEdited + p.counts.noBaseline + p.counts.add + p.counts.drop === 0 && !p.blockers.length,
-    `fresh/current: all 432 current, nothing to add, drop or update (${JSON.stringify(p.counts)})`);
+  ok(p.counts.current === 576 && p.counts.update + p.counts.handEdited + p.counts.noBaseline + p.counts.add + p.counts.drop === 0 && !p.blockers.length,
+    `fresh/current: all 576 current, nothing to add, drop or update (${JSON.stringify(p.counts)})`);
   ok(Object.values(p.properties).every((l) => l.length === 0), `fresh/properties: the set's properties are as planned (${JSON.stringify(p.properties).slice(0, 120)})`);
   ok(p.needsChoice.length === 0 && /^✓ All sets up to date$/.test(previewVerdict({ sets: [p], missing: [], refused: [] }).headline), 'fresh/verdict: up to date, nothing to choose');
+}
+
+/* ── #2350: a new axis on an existing set ─────────────────────────────────────────────────────────────── */
+section('#2350 inset — a Button set built before the flush axis renames its 432 members onto inset=default and adds 144');
+{
+  // The set as it was before #2350: the same def with the axis, its exclusion and the container's `flush` taken off.
+  const def = defOf('button');
+  const { inset: _inset, ...variants } = def.variants as Record<string, string[]>;
+  const root = def.anatomy!.root;
+  const { flush: _flush, ...rootPart } = def.anatomy!.parts[root];
+  const before = {
+    ...def,
+    variants,
+    props: def.props.filter((p) => p.name !== 'inset'),
+    axisKinds: Object.fromEntries(Object.entries(def.axisKinds ?? {}).filter(([a]) => a !== 'inset')),
+    anatomy: { ...def.anatomy!, parts: { ...def.anatomy!.parts, [root]: rootPart } },
+    figmaProperties: { ...def.figmaProperties!, variantAxes: def.figmaProperties!.variantAxes!.filter((a) => a !== 'inset'), excludeCoordinates: undefined },
+  } as typeof def;
+  const old = await build('button', figmaAnatomySet(before, { swapTarget: SWAP_TARGET }));
+  const view = await readSetView(old.set as any);
+  ok(view.members.length === 432 && view.members.every((m) => !/inset=/.test(m.name)), `#2350 premise: the old set has 432 members and no inset axis (${view.members.length})`);
+  const p = dryRunSet('button', plansOf('button'), view, old.ports);
+  // Expected, by hand: every old member lands on `inset=default` (the first plan's value), and the flush text members
+  // are new — 3 size × 2 surface × 6 state × 4 slot = 144. Nothing is dropped or collapsed.
+  ok(p.counts.rename === 432 && p.counts.add === 144 && p.counts.drop === 0 && !p.blockers.length && !p.needsChoice.includes('axisCollapse'),
+    `#2350 dry run: 432 renamed, 144 added, 0 dropped, no blocker (${JSON.stringify({ rename: p.counts.rename, add: p.counts.add, drop: p.counts.drop, blockers: p.blockers.length })})`);
+  const notJustInset = p.renames.filter((r) => r.from.replace(/(surface=[\w-]+)/, '$1, inset=default') !== r.to);
+  ok(p.renames.length === 432 && notJustInset.length === 0,
+    `#2350 dry run: each rename is the old name with inset=default added after its surface (${notJustInset.length}${notJustInset.length ? `: ${notJustInset[0].from} → ${notJustInset[0].to}` : ''})`);
+  // A variant axis is reported as the set's axis list moving, not as a component property (those are text, swap, boolean).
+  ok(p.axes.to.includes('inset') && !p.axes.from.includes('inset'), `#2350 dry run: the set's axes gain inset (${p.axes.from.join(', ')} → ${p.axes.to.join(', ')})`);
 }
 
 /* ── edit ────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -303,6 +342,8 @@ section('format — what the hash covers is pinned to BASELINE_V');
   const PINNED: Record<number, Record<string, string>> = {
     1: { '.': 'e85160da', label: 'e7367361', note: '88ebbfd4', icon: '2df66934' },
     2: { '.': 'e85160da', label: 'e7367361', note: '88ebbfd4', icon: '2df66934' },
+    // 3 (#2379 review) hashes an instance's main and a style by name; this fixture has neither, so its hashes hold.
+    3: { '.': 'e85160da', label: 'e7367361', note: '88ebbfd4', icon: '2df66934' },
   };
   const fixture: SnapNode = {
     name: 'm', type: 'COMPONENT', layoutMode: 'HORIZONTAL', itemSpacing: 4, visible: true, opacity: 1,
@@ -333,14 +374,18 @@ section('theme — what Apply Theme moves is not a hand edit');
     // A bound field reads its variable's resolved value on the host. The shim records the binding and
     // leaves the field unset, so the value the theme moves is written here, where Figma would show it.
     for (const k of Object.keys(bv)) if (k !== 'fills' && k !== 'strokes' && nudge(k, 3)) movedBound++;
-    for (const k of ['width', 'height', 'x', 'y']) if (typeof n[k] === 'number' && !bv[k]) nudge(k, 7);
-    for (const f of ['fills', 'strokes']) {
-      const paints = n[f];
-      if (Array.isArray(paints)) n[f] = paints.map((p: any) => (p?.boundVariables?.color ? { ...p, color: { r: 0.11, g: 0.22, b: 0.33 } } : p));
-    }
+    // A glyph's vectors are not re-derived by a theme: they stay where their frame scaled them (#2379 reads them there).
+    for (const k of ['width', 'height', 'x', 'y']) if (n.type !== 'VECTOR' && typeof n[k] === 'number' && !bv[k]) nudge(k, 7);
+    // A bound paint's color moves with its VARIABLE (#2379): Apply Theme rewrites the variable, and the host
+    // re-resolves every paint bound to it. Collected here and rewritten below, the way Apply Theme does it.
+    for (const f of ['fills', 'strokes']) for (const p of (Array.isArray(n[f]) ? n[f] : []) as any[]) if (p?.boundVariables?.color?.id) paintVars.add(p.boundVariables.color.id);
     for (const c of (n.children as Node[] | undefined) ?? []) walk(c);
   };
+  const paintVars = new Set<string>();
   for (const m of membersOf(b.set)) walk(m);
+  // Each keeps its own alpha: a theme moves a wash's color, not the fact that it is a wash.
+  for (const v of (await b.shim.variables.getLocalVariablesAsync()) as { id: string; setValueForMode(m: string, v: unknown): void; resolveForConsumer(n: unknown): { value: { a?: number } } }[])
+    if (paintVars.has(v.id)) v.setValueForMode('theme', { r: 0.11, g: 0.22, b: 0.33, a: v.resolveForConsumer(null).value?.a ?? 1 });
   ok(moved > 200 && movedBound > 100, `premise: the theme moved values on many nodes, many of them behind a binding (${moved}, ${movedBound} bound)`);
   const p = (await previewUpdate(b.shim, [{ def: TAG, plans: b.plans }])).sets[0];
   ok(p.handEdits.length === 0 && p.counts.current === 45, `theme/no hand edits: every member still current after the values moved (${p.handEdits.length} edits, ${p.counts.current} current)`);
@@ -459,6 +504,30 @@ section('axis — an added axis and a removed one');
   const q = dryRunSet(TAG, b.plans, wide, b.ports);
   ok(q.drops.length === 45 && q.drops.every((d) => d.endsWith('extra=b')) && q.needsChoice.includes('axisCollapse') && q.counts.current === 45,
     `axis/removed: extra=a members kept and current, the 45 extra=b members collapse and need a choice (${q.drops.length}, ${q.needsChoice.join(', ')})`);
+}
+
+/* ── a field gains `size` (#2266) ────────────────────────────────────────────────────────────────────── */
+section('size — a field set built before #2266 gains the size axis, and every member lands on medium');
+{
+  // The pre-#2266 file: text-field's medium members, named without `size` (status × state: 24 then, 28 since #2318's
+  // `focus-visible-filled` column, which this fixture is built from). They were the medium
+  // field, so medium is where they must land. Simulated as the `axis` case above does: the built set's medium
+  // members with the segment stripped.
+  const b = await build('text-field');
+  const view = await readSetView(b.set as any);
+  const strip = (name: string) => name.split(', ').filter((s) => !s.startsWith('size=')).join(', ');
+  const pre = withMembers(view, (ms) => ms.filter((m) => m.name.split(', ').includes('size=medium')).map((m) => ({ ...m, name: strip(m.name) })));
+  const p = dryRunSet('text-field', b.plans, pre, b.ports);
+  ok(pre.members.length === 28 && p.renames.length === 28 && p.renames.every((r) => r.to.split(', ').includes('size=medium'))
+    && p.adds.length === 56 && p.drops.length === 0 && p.blockers.length === 0,
+    `size/lands: the 28 old members are renamed onto size=medium in place, 56 small and large members are added, none dropped (${p.renames.length} renames, ${p.adds.length} adds, ${p.drops.length} drops, ${p.blockers.length} blockers; first ${p.renames[0]?.to})`);
+  // THE ORDER DECIDES IT (docs/34: the arm above can fail). The same set laid against the plans in the
+  // ladder's own order (small first) lands every old member on small: the rewrite #2266's medium-first order avoids.
+  const ladder = ['small', 'medium', 'large'];
+  const smallFirst = [...b.plans].sort((x, y) => ladder.indexOf(String(x.size)) - ladder.indexOf(String(y.size)));
+  const q = dryRunSet('text-field', smallFirst, pre, b.ports);
+  ok(q.renames.length === 28 && q.renames.every((r) => r.to.split(', ').includes('size=small')),
+    `size/order: with small first the same members would land on size=small (${q.renames[0]?.to})`);
 }
 
 /* ── blocked ─────────────────────────────────────────────────────────────────────────────────────────── */
@@ -753,6 +822,103 @@ section('differ — a member that differs from its plan is reported by part and 
     `differ/capture: the member left out is named with what differs (${JSON.stringify(capNamed)}; ${JSON.stringify(c.lines.slice(0, 1))})`);
 }
 
+/* ── single ──────────────────────────────────────────────────────────────────────────────────────────── */
+section('single — the icons and the spinner, built as single components, read as one set (#2296, owner Q109)');
+/** A file holding one single-component def, emitted by the executor. The host's COMPONENT search walks the whole
+ *  tree, as Figma's does, so a component moved into a frame is still found (Q109 C). */
+const buildSingle = async (id: string) => {
+  const plans = plansOf(id);
+  const page: Page = { children: [] };
+  const shim = makeShim({
+    vars: [...new Set(plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))],
+    styles: [...new Set(plans.flatMap((p) => planTextStyles(p.root)))],
+    effects: [...new Set(plans.flatMap((p) => planEffectStyles(p.root)))],
+    // No component seeded: the icons' own `icon/FPO-default-icon` is one of the glyphs this build makes.
+    // #2379: SCALE children follow their frame, as on the host, so a built glyph fits its frame.
+    comps: [], page, liveRoot: true, identities: true, liveComponents: true, scaleConstrained: true,
+  }) as any;
+  const built = await applyComponentPlan(plans, shim, { emitAsComponents: true });
+  if (built.misses.length) throw new Error(`premise: ${id} built with ${built.misses.length} miss(es): ${built.misses[0]}`);
+  const all = (types: string[]): Node[] => {
+    const out: Node[] = [];
+    const walk = (n: Node): void => { if (types.includes(String(n.type))) out.push(n); if (n.type !== 'INSTANCE') for (const c of (n.children as Node[] | undefined) ?? []) walk(c); };
+    for (const n of page.children) walk(n);
+    return out;
+  };
+  const host = { ...shim, root: { findAllWithCriteria: (c: { types: string[] }) => all(c.types) } } as UpdateHost & Record<string, any>;
+  const comps = (): Node[] => page.children.filter((n) => n.type === 'COMPONENT');
+  const named = (name: string): Node => all(['COMPONENT']).find((n) => n.name === name)!;
+  /** A component a designer made by hand, on the page. */
+  const handMade = (name: string): Node => {
+    const f = (shim.createFrame as () => Node)();
+    const c = (shim.createComponentFromNode as (n: Node) => Node)(f);
+    c.name = name;
+    if (!page.children.includes(c)) page.children.push(c);
+    return c;
+  };
+  return { plans, page, shim, host, comps, named, handMade, target: { def: id, plans, single: true } };
+};
+{
+  const ic = await buildSingle('icon');
+  const pd = (n: Node, k: string): string => (n.getSharedPluginData as (a: string, b: string) => string)(NS, k);
+  ok(ic.comps().length === 44 && ic.comps().every((c) => String(c.name).startsWith('icon/')), `premise: 44 icons built as single components (${ic.comps().length})`);
+  const r = await previewUpdate(ic.host, [ic.target]);
+  ok(r.missing.length === 0 && r.sets.length === 1 && r.sets[0].counts.current === 44 && r.sets[0].counts.members === 44,
+    `single/found: the icons are read as one set of 44, all current, not "Not in this file" (${JSON.stringify(r.missing)}, ${JSON.stringify(r.sets[0]?.counts)})`);
+  // The capture of a file built before records existed.
+  for (const c of ic.comps()) (c.setSharedPluginData as (a: string, b: string, v: string) => void)(NS, BASELINE_KEY, '');
+  const cap = await captureBaselines(ic.host, [ic.target]);
+  ok(cap.sets[0]?.recorded === 44 && ic.comps().every((c) => pd(c, BASELINE_KEY) !== ''), `single/capture: all 44 recorded (${cap.sets[0]?.recorded}, ${JSON.stringify(cap.sets[0]?.skipped.slice(0, 1))})`);
+  // One icon edited by hand.
+  const check = ic.named('icon/check');
+  check.opacity = 0.5;
+  const e = (await previewUpdate(ic.host, [ic.target])).sets[0];
+  ok(e.counts.handEdited === 1 && e.handEdits.length === 1 && e.handEdits[0].member === 'name=check' && e.handEdits[0].path === '.',
+    `single/edit: the edited icon is reported by name, at the component itself, and the rest stay current (${JSON.stringify(e.handEdits)}, ${e.counts.current})`);
+}
+{
+  // The owner's own icons: one under a name no plan has, and one under a Prism3 glyph's exact name (the built one gone).
+  const ic = await buildSingle('icon');
+  const pd = (n: Node, k: string): string => (n.getSharedPluginData as (a: string, b: string) => string)(NS, k);
+  const gone = ic.named('icon/check');
+  ic.page.children.splice(ic.page.children.indexOf(gone), 1);
+  const logo = ic.handMade('icon/my-logo');
+  const own = ic.handMade('icon/check');
+  const before = JSON.stringify([logo, own].map((n) => [...(n._pluginData as Map<string, string>)]));
+  const p = (await previewUpdate(ic.host, [ic.target])).sets[0];
+  ok(p.unstamped.includes('name=my-logo') && p.unstamped.includes('name=check') && !p.drops.length && !p.adds.includes('name=check'),
+    `single/owner icons: both are listed as not built by Prism3; the owner's icon/check holds its coordinate, so no Prism3 check is added beside it (Q109 A) (${JSON.stringify(p.unstamped)}, adds ${JSON.stringify(p.adds)})`);
+  for (const c of ic.comps()) if (c !== logo && c !== own) (c.setSharedPluginData as (a: string, b: string, v: string) => void)(NS, BASELINE_KEY, '');
+  await captureBaselines(ic.host, [ic.target]);
+  const a = await adoptMembers(ic.host, [ic.target]);
+  ok(JSON.stringify([logo, own].map((n) => [...(n._pluginData as Map<string, string>)])) === before && pd(own, STAMP_KEY) === '',
+    'single/never touched: neither the capture nor Adopt writes anything on the owner\'s icons');
+  ok(JSON.stringify(a.notOffered) === '["icon"]' && a.sets.length === 0 && adoptVerdictText(a).ok && adoptVerdictText(a).lines.includes("Adopt doesn't apply to icon. Hand-made ones are left as they are."),
+    `single/no adopt: Adopt is not offered for the icons, and says so without failing (Q109 B) (${JSON.stringify(adoptVerdictText(a).lines)})`);
+}
+{
+  // A plugin-built icon moved into a frame on the page is still found (Q109 C), and a duplicate is no Prism3 icon.
+  const ic = await buildSingle('icon');
+  const moved = ic.named('icon/close');
+  const frame = (ic.shim.createFrame as () => Node)();
+  ic.page.children.splice(ic.page.children.indexOf(moved), 1);
+  (frame.appendChild as (c: Node) => void)(moved);
+  ic.page.children.push(frame);
+  const dup = ic.handMade('icon/zz-copy');
+  const src = ic.named('icon/check');
+  for (const k of [STAMP_KEY, BASELINE_KEY]) (dup.setSharedPluginData as (a: string, b: string, v: string) => void)(NS, k, (src.getSharedPluginData as (a: string, b: string) => string)(NS, k));
+  const p = (await previewUpdate(ic.host, [ic.target])).sets[0];
+  ok(p.counts.current === 44 && !p.adds.length, `single/moved: the icon moved into a frame is found and current, not re-added (${p.counts.current}, adds ${JSON.stringify(p.adds)})`);
+  ok(!p.drops.includes('name=zz-copy') && p.unstamped.includes('name=zz-copy'), `single/copy: a duplicated icon is not Prism3's, so not a drop (#2300) (${JSON.stringify(p.drops)})`);
+}
+{
+  const sp = await buildSingle('spinner');
+  for (const c of sp.comps()) (c.setSharedPluginData as (a: string, b: string, v: string) => void)(NS, BASELINE_KEY, '');
+  const cap = await captureBaselines(sp.host, [sp.target]);
+  const p = (await previewUpdate(sp.host, [sp.target])).sets[0];
+  ok(cap.sets[0]?.recorded === 4 && p.counts.current === 4, `single/spinner: the four spinner sizes are read, captured and current (${cap.sets[0]?.recorded}, ${JSON.stringify(p.counts)})`);
+}
+
 /* ── dropped ─────────────────────────────────────────────────────────────────────────────────────────── */
 section('dropped — a fill the plan no longer has is named, plan against file (#2335)');
 {
@@ -770,8 +936,11 @@ section('dropped — a fill the plan no longer has is named, plan against file (
   // Each member's wash, as the file holds it: the variable's name in this file, read from the built node.
   const wash = async (state: string, ground: string): Promise<string> => {
     const m = memberNamed(b.set, (n) => n.includes('appearance=text') && n.includes(`state=${state}`) && n.includes(`surface=${ground}`));
-    const id = (m.fills as { boundVariables?: { color?: { id?: string } } }[])[0]?.boundVariables?.color?.id;
-    return String(id ? b.ports.varName(id) : 'NO BOUND FILL');
+    const f = (m.fills as { opacity?: number; boundVariables?: { color?: { id?: string } } }[])[0];
+    const id = f?.boundVariables?.color?.id;
+    // The wash's opacity as the file holds it (a fresh build stores the variable's alpha, #2379), as the line names it.
+    const at = typeof f?.opacity === 'number' && f.opacity < 1 ? ` at ${Math.round(f.opacity * 100)}%` : '';
+    return String(id ? b.ports.varName(id) : 'NO BOUND FILL') + at;
   };
   const want = (await Promise.all(['hover', 'pressed'].flatMap((st) => ['default', 'inverse'].map((g) => wash(st, g)))))
     .map((v) => `button · the member · fill: the plan says none, the file has ${v} (12 members).`);

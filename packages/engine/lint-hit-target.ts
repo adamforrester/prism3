@@ -126,8 +126,8 @@ const resolvePx = (tree: any, root: string, path: string): number | undefined =>
 // ── THE INTERACTIVE CONTROLS AND THEIR HIT-TARGET BINDING ────────────────────────────────────────
 // Per control, the KEY in `def.tokens` whose value is the token bound as the hit-target dimension at a
 // given size. Read THROUGH `def.tokens` so a reverted binding is caught. `single` marks a control with no
-// `size` variant axis whose projected control binds the one `md` min-height rung (`select`, and `text-field`
-// since #1494); every other control is measured at its declared DEFAULT size.
+// `size` variant axis whose projected control binds the one `md` min-height rung (none since #2266, when
+// `select` and `text-field` gained the size axis); every other control is measured at its declared DEFAULT size.
 type Binding = { key: (size: string) => string; why: string; single?: boolean };
 const INTERACTIVE: Record<string, Binding> = {
   'button': { key: (s) => `size.${s}.height`, why: 'the button box height' },
@@ -136,8 +136,9 @@ const INTERACTIVE: Record<string, Binding> = {
   'icon-button': { key: (s) => `size.${s}.side`, why: 'the square icon-button side' },
   'icon-button-destructive': { key: (s) => `size.${s}.side`, why: 'the square icon-button side' },
   'icon-button-neutral': { key: (s) => `size.${s}.side`, why: 'the square icon-button side' },
-  'text-field': { key: () => 'min-height', why: 'size.md.min-height, the interactive floor (#1494/#1437) — text-field projects a single md rung like select, so its representative tap target is that rung, not the code-API size ladder', single: true },
-  'select': { key: () => 'min-height', why: 'size.md.min-height, the interactive floor (#1437)', single: true },
+  // The two single-line fields are sized since #2266; each size binds the floor (`size.md.min-height`) or above.
+  'text-field': { key: (s) => `size.${s}.height`, why: 'the field control height — size.md.min-height, the interactive floor, at small and medium (#1437, #2266 Q6)' },
+  'select': { key: (s) => `size.${s}.min-height`, why: 'the select control floor — size.md.min-height, the interactive floor, at small and medium (#1437, #2266 Q6)' },
   'switch-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled switch row floor' },
   'checkbox-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled checkbox row floor' },
   'radio-row': { key: (s) => `size.${s}.min-height`, why: 'the labelled radio row floor' },
@@ -375,15 +376,17 @@ for (const id of SMALL_SIZE) {
 
 // ── EXCEPTION 2: compact density — exempt from the floor, and self-justified as genuinely below it ──
 // The default control on compact (size.md at 36) must be below the floor, or the compact exception is
-// exempting something that already meets it. `text-field` is a representative field control here.
-const compactMdPath = (componentDefs.find((d) => d.id === 'text-field')!.tokens as Record<string, string>)['size.medium.height'];
+// exempting something that already meets it. `button` is the representative control here: the fields bind
+// the 44 floor (`size.md.min-height`) at every density since #1437, and text-field's code ladder followed
+// its projection onto that floor in #2266, so a field no longer measures what compact exempts.
+const compactMdPath = (componentDefs.find((d) => d.id === 'button')!.tokens as Record<string, string>)['size.medium.height'];
 const compactMdPx = resolvePx(compactBuild.tree, compactBuild.root, compactMdPath);
 if (compactMdPx === undefined) {
-  failures.push(`cannot measure the default field height on the compact build — the compact exception is unverifiable.`);
+  failures.push(`cannot measure the default button height on the compact build — the compact exception is unverifiable.`);
 } else {
   const bad = violation(compactMdPx, 'exception');
   rows.push(`compact density → ${compactMdPath} = ${compactMdPx}px [PERMANENT exception: compact density, exempt from the floor]${bad ? '  ✗' : ''}`);
-  if (bad) failures.push(`compact density: the default field control measures ${compactMdPx}px >= ${FLOOR_PX} — compact no longer runs below the floor, so the compact-density exception is stale and should be reconsidered.`);
+  if (bad) failures.push(`compact density: the default button measures ${compactMdPx}px >= ${FLOOR_PX} — compact no longer runs below the floor, so the compact-density exception is stale and should be reconsidered.`);
 }
 
 // ── NON-EMPTY FLOOR: the gate must be holding at least one control TO the floor (docs/34) ──────────

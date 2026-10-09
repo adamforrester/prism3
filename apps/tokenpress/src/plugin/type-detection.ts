@@ -211,6 +211,13 @@ export class TokenTypeDetector {
   isMotionDurationVariable(variableName: string): boolean {
     const lowerName = variableName.toLowerCase();
 
+    // A stagger (the gap between siblings in a sequence) is a duration whose name carries none of the
+    // MOTION patterns: `motion/stagger`, under any namespace (prism3 #2394).
+    const segments = lowerName.split('/');
+    if (segments.indexOf('motion') !== -1 && segments[segments.length - 1] === 'stagger') {
+      return true;
+    }
+
     // Check against predefined patterns
     if (matchesPattern(variableName, TYPE_DETECTION_PATTERNS.MOTION)) {
       // Exclude easing tokens (should be string type)

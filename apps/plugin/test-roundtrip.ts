@@ -45,7 +45,7 @@ import { nbTheme } from '@prism3/engine/nb-fixture';
 import { sizeRefPx } from '@prism3/engine/scale';
 import { tailOf } from '@prism3/engine/figma-names';
 import { applyComponentPlan } from './src/write-components';
-import { makeShim } from './component-shim';
+import { makeShim, varValue } from './component-shim';
 import { materializeForBrand } from './src/brand-def';
 import { prebuildDependencies } from './src/build-deps';
 import type { ComponentDef } from '@prism3/engine/component-schema';
@@ -313,20 +313,23 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   // THE OWNER-DECIDED CONTRACT — a LITERAL table keyed by coordinate, never `figmaTextStyleName(def.type)`.
   // A field's text layer depends on the STATE since Option C (owner decision, 2026-09-26): the value layer at
   // filled / read-only, the placeholder layer everywhere else. Typed from that rule, not read off a def.
-  const fieldLayer = (c: Record<string, string | undefined>): string[] => [c.state === 'filled' || c.state === 'read-only' ? 'value' : 'placeholder'];
+  // The field family shows the value at filled, read-only and, since #2318, the focused field that holds one.
+  const fieldLayer = (c: Record<string, string | undefined>): string[] => [c.state === 'filled' || c.state === 'focus-visible-filled' || c.state === 'read-only' ? 'value' : 'placeholder'];
   const STYLE_CONTRACT: Record<string, { parts: string[] | ((c: Record<string, string | undefined>) => string[]); style: (c: Record<string, string | undefined>) => string }> = {
     // #2324: a text button's label is its underlined twin, at every state.
     button:          { parts: ['label'], style: (c) => `${({ small: 'label/sm/emphasis', medium: 'label/md/emphasis', large: 'label/lg/emphasis' } as Record<string, string>)[c.size!]}${c.appearance === 'text' ? '-link' : ''}` },
     'field-message': { parts: ['text'],  style: () => 'caption/md/default' },
-    'text-field':    { parts: fieldLayer, style: () => 'body/md/default' },
-    textarea:        { parts: fieldLayer, style: () => 'body/md/default' },
-    select:          { parts: fieldLayer, style: () => 'body/md/default' },
+    // #2266: the input type scales with the field's size, one body step above its label.
+    'text-field':    { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
+    textarea:        { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
+    select:          { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     'checkbox-row':  { parts: ['label'], style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     'radio-row':     { parts: ['label'], style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     'field-label':   { parts: ['text', 'indicator'], style: (c) => (({
-      'small/regular': 'body/sm/default', 'small/bold': 'body/sm/strong',
-      'medium/regular': 'body/md/default', 'medium/bold': 'body/md/strong',
-      'large/regular': 'body/lg/default', 'large/bold': 'body/lg/strong',
+      // #2266: re-laddered 12 / 14 / 16.
+      'small/regular': 'body/xs/default', 'small/bold': 'body/xs/strong',
+      'medium/regular': 'body/sm/default', 'medium/bold': 'body/sm/strong',
+      'large/regular': 'body/md/default', 'large/bold': 'body/md/strong',
     } as Record<string, string>)[`${c.size}/${c.weight}`]) },
   };
 
@@ -490,7 +493,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   ok(!!liKey && defs[liKey!].type === 'BOOLEAN',
     `#1331 host-truth: the built set carries a 'leading icon' BOOLEAN property (host holds ${liKey})`);
   const lvs = members.map((m) => findByName(m, 'leadingVisual'));
-  ok(members.length === 24 && lvs.every(Boolean),
+  ok(members.length === 84 && lvs.every(Boolean),
     `#1331 host-truth: the leading glyph node is built into EVERY member (${lvs.filter(Boolean).length}/${members.length})`);
   ok(lvs.length > 0 && lvs.every((lv) => lv.visible === false),
     '#1331 host-truth: every built leading glyph reads back `visible=false` — built hidden by default, not dropped');
@@ -539,7 +542,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   // this, the miss-count assertion below could pass because the fixture never built the colliding node.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim
   const naive = members[0]?.findOne?.((x: any) => x.name === 'placeholder');
-  ok(members.length === 24 && !!naive && (naive as { _inNestedInstance?: boolean })._inNestedInstance === true,
+  ok(members.length === 84 && !!naive && (naive as { _inNestedInstance?: boolean })._inNestedInstance === true,
     `#1428 reachability: a naive descending findOne on a built select member returns a nested-instance \`placeholder\` (the wrong node the fix defends against) — collision materialised (${members.length} members)`);
   const textRefMisses = res.misses.filter((m) => /\b(placeholder|value)\.characters\b/.test(m));
   ok(res.wiredMembers === plans.length && textRefMisses.length === 0,
@@ -1041,8 +1044,10 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
     await applyComponentPlan(plans, shim as any, {});
     const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
-    ok(members.length > 0 && members.every((m) => (m as { minWidth?: unknown }).minWidth === 320),
-      `#1503 host-truth: every ${id} member reads back minWidth=320 — the width floor the rows fill (e.g. minWidth=${String((members[0] as { minWidth?: unknown })?.minWidth)})`);
+    // Q155 A: the group is BUILT at 320 and floors at the fields' 120, so it shrinks with its column (measured in the
+    // Q152.3/Q155 block below).
+    ok(members.length > 0 && members.every((m) => (m as { minWidth?: unknown }).minWidth === 120 && (m as { width?: unknown }).width === 320),
+      `#1503/Q155 host-truth: every ${id} member reads back width 320 and minWidth=120 — built at Prism 2's width, the floor the fields take (e.g. width=${String((members[0] as { width?: unknown })?.width)}, minWidth=${String((members[0] as { minWidth?: unknown })?.minWidth)})`);
   }
 }
 
@@ -1074,10 +1079,11 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     // empty set. This also fires if the control part is renamed or dropped from the def.
     ok(members.length > 0 && controls.every(Boolean),
       `#1518 host-truth: text-field builds a 'control' into every member (${controls.filter(Boolean).length}/${members.length})`);
-    // THE WIDTH FLOOR — read back off the built control. Oracle 320 authored here; drop `minWidth: 320` from the
-    // control PartDef and this reads back `undefined`, failing by name.
-    ok(controls.length > 0 && controls.every((c) => (c as { minWidth?: unknown })?.minWidth === 320),
-      `#1518 host-truth: every text-field control reads back minWidth=320 — the owner-settled default width (e.g. minWidth=${String((controls[0] as { minWidth?: unknown })?.minWidth)})`);
+    // THE WIDTH FLOOR — read back off the built control. Oracle 120 authored here (#2266, owner decision Q99 B:
+    // a field shrinks with its column; 320 is the root's built width, #2292). Drop `minWidth` from the control
+    // PartDef and this reads back `undefined`, failing by name.
+    ok(controls.length > 0 && controls.every((c) => (c as { minWidth?: unknown })?.minWidth === 120),
+      `#1518/#2266 host-truth: every text-field control reads back minWidth=120 — a field shrinks with its column (e.g. minWidth=${String((controls[0] as { minWidth?: unknown })?.minWidth)})`);
   }
 }
 
@@ -1637,6 +1643,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   {
     const COLUMN = 505;
     const NARROW = 280;
+    // #2266 (Q99 B): under the 120 floor the box stops shrinking and overflows the column.
+    const NARROWER = 100;
     const placedAt = (memberName: string, setName: string, column: number) => {
       // Looked up per call: a set this block builds (textarea) is not in the file until `setOf` builds it.
       const sets = shim.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as { name: string; children?: { name: string; createInstance?: () => Node }[] }[];
@@ -1665,15 +1673,95 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
         const unplaced = [W(m), W(find(m, 'control'))];
         const wide = placedAt(String(m.name), id, COLUMN);
         const narrow = placedAt(String(m.name), id, NARROW);
-        if (!wide || !narrow) { off.push(`${m.name}: no instance`); continue; }
+        const narrower = placedAt(String(m.name), id, NARROWER);
+        if (!wide || !narrow || !narrower) { off.push(`${m.name}: no instance`); continue; }
         const placed = [W(wide), inside(wide, 'control'), inside(wide, 'label'), inside(wide, id === 'textarea' ? 'messageRow' : 'message')];
         const tight = inside(narrow, 'control');
-        if (!(unplaced[0] === 320 && unplaced[1] === 320 && placed.every((w) => w === COLUMN) && tight === 320))
-          off.push(`${m.name}: unplaced root/control ${unplaced.join('/')}; in a ${COLUMN} column instance/control/label/${id === 'textarea' ? 'messageRow' : 'message'} ${placed.join('/')}; in ${NARROW}, control ${tight}`);
+        const floor = inside(narrower, 'control');
+        if (!(unplaced[0] === 320 && unplaced[1] === 320 && placed.every((w) => w === COLUMN) && tight === NARROW && floor === 120))
+          off.push(`${m.name}: unplaced root/control ${unplaced.join('/')}; in a ${COLUMN} column instance/control/label/${id === 'textarea' ? 'messageRow' : 'message'} ${placed.join('/')}; in ${NARROW}, control ${tight}; in ${NARROWER}, control ${floor}`);
       }
       ok(members.length > 0 && off.length === 0,
-        `#2292 ${id} fills its column: on every member an unplaced field reads 320 (root and box), an instance set to FILL a ${COLUMN}px column has its input box, label and ${id === 'textarea' ? 'message row' : 'message'} at ${COLUMN}, and in a ${NARROW}px column the box keeps its 320 floor (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
+        `#2292 ${id} fills its column: on every member an unplaced field reads 320 (root and box), an instance set to FILL a ${COLUMN}px column has its input box, label and ${id === 'textarea' ? 'message row' : 'message'} at ${COLUMN}, in a ${NARROW}px column the box shrinks to ${NARROW} (#2266, Q99 B), and in a ${NARROWER}px column it holds its 120 floor (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
     }
+    // Q152.3 (Q99 B reaches the rows): checkbox-row and radio-row are built at 320 and shrink with their column to
+    // the same 120 floor. The row IS the root, so the instance's own width is the row's, and the label, which fills
+    // the row, is the row less its control box and one gap. Literals: 320, 505, 280, and 120 in a 100px column.
+    for (const id of ['checkbox-row', 'radio-row']) {
+      const members = await setOf(id);
+      const off: string[] = [];
+      for (const m of members) {
+        const wide = placedAt(String(m.name), id, COLUMN);
+        const narrow = placedAt(String(m.name), id, NARROW);
+        const narrower = placedAt(String(m.name), id, NARROWER);
+        if (!wide || !narrow || !narrower) { off.push(`${m.name}: no instance`); continue; }
+        // A row's width is its MAIN axis, so FILL sets the instance's primary mode where a field's sets its counter.
+        for (const inst of [wide, narrow, narrower]) inst.primaryAxisSizingMode = 'FIXED';
+        const label = inside(wide, 'label');
+        const widths = [W(m), W(wide), W(narrow), W(narrower)];
+        if (!(widths[0] === 320 && widths[1] === COLUMN && widths[2] === NARROW && widths[3] === 120 && label > 320 && label < COLUMN))
+          off.push(`${m.name}: unplaced ${widths[0]}; in ${COLUMN}/${NARROW}/${NARROWER} columns ${widths.slice(1).join('/')}; label in ${COLUMN} ${label}`);
+      }
+      ok(members.length > 0 && off.length === 0,
+        `Q152.3 ${id} fills its column: on every member an unplaced row reads 320, an instance set to FILL a ${COLUMN}px column is ${COLUMN} wide with its label filling the rest, in a ${NARROW}px column it shrinks to ${NARROW}, and in a ${NARROWER}px column it holds its 120 floor (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
+    }
+    // Q155 A: checkbox-group and radio-group follow their rows. A group's root is a COLUMN, so FILL sets the instance's
+    // counter mode (the fields' case), and every row inside spans what the group is given. Literals as above.
+    for (const id of ['checkbox-group', 'radio-group']) {
+      const members = await setOf(id);
+      const off: string[] = [];
+      for (const m of members) {
+        const wide = placedAt(String(m.name), id, COLUMN);
+        const narrow = placedAt(String(m.name), id, NARROW);
+        const narrower = placedAt(String(m.name), id, NARROWER);
+        if (!wide || !narrow || !narrower) { off.push(`${m.name}: no instance`); continue; }
+        const widths = [W(m), W(wide), W(narrow), W(narrower)];
+        // The rows span the group less its inline padding, `space/0` on both sides: 0px in every brand, but the
+        // shim's own synthetic value here (its `varValue`, the harness's input), so it is taken from there.
+        const span = COLUMN - 2 * varValue('space/0');
+        const rows = ['row1', 'row2', 'row3'].map((r) => inside(wide, r));
+        if (!(widths[0] === 320 && widths[1] === COLUMN && widths[2] === NARROW && widths[3] === 120 && rows.every((w) => w === span)))
+          off.push(`${m.name}: unplaced ${widths[0]}; in ${COLUMN}/${NARROW}/${NARROWER} columns ${widths.slice(1).join('/')}; rows in ${COLUMN} ${rows.join('/')}`);
+      }
+      ok(members.length > 0 && off.length === 0,
+        `Q155 ${id} fills its column: on every member an unplaced group reads 320, an instance set to FILL a ${COLUMN}px column is ${COLUMN} wide with every row spanning it (less its inline padding), in a ${NARROW}px column it shrinks to ${NARROW}, and in a ${NARROWER}px column it holds its 120 floor (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
+    }
+  }
+
+  // ---- #2344 (owner decision Q156 A): a group carries up to eight rows, seven behind Figma-only booleans ----
+  // Read off the built set: exactly seven BOOLEAN properties, "Option 2" to "Option 8", the first two on; every
+  // member builds all eight rows, row 1 unwired and always shown, row N wired to "Option N" and built visible
+  // for N <= 3. Then every toggle turned ON (each wired row made visible, as the host does when its boolean
+  // flips): all eight rows read back, each spanning the group less its inline padding (`space/0`, the shim's
+  // synthetic `varValue`), and the group grows taller than its three-row default. Expected values are literals.
+  for (const id of ['checkbox-group', 'radio-group']) {
+    const members = await setOf(id);
+    const set = page.children.find((c) => c.name === id && c.type === 'COMPONENT_SET') as Node | undefined;
+    const defs = (set?.componentPropertyDefinitions ?? {}) as Record<string, { type: string; defaultValue?: unknown }>;
+    const bools = Object.entries(defs).filter(([, d]) => d.type === 'BOOLEAN').map(([k, d]) => `${k.split('#')[0]}=${String(d.defaultValue)}`);
+    const WANT = ['Option 2=true', 'Option 3=true', 'Option 4=false', 'Option 5=false', 'Option 6=false', 'Option 7=false', 'Option 8=false'];
+    ok(JSON.stringify(bools) === JSON.stringify(WANT), `#2344 ${id}: the set carries exactly the seven row toggles, Option 2 and 3 on (${bools.join(', ')})`);
+    const keyOf = (name: string) => Object.keys(defs).find((k) => k.split('#')[0] === name);
+    const off: string[] = [];
+    for (const m of members) {
+      const rows = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => find(m, `row${n}`));
+      if (rows.some((r) => !r)) { off.push(`${m.name}: rows ${rows.map((r, i) => (r ? '' : `row${i + 1} missing`)).filter(Boolean).join(', ')}`); continue; }
+      const wired = rows.map((r) => ((r!.componentPropertyReferences ?? {}) as { visible?: string }).visible);
+      const shown = rows.map((r) => r!.visible !== false);
+      if (wired[0] !== undefined || wired.slice(1).some((k, i) => k !== keyOf(`Option ${i + 2}`)))
+        off.push(`${m.name}: wiring ${wired.map((k) => (k ? k.split('#')[0] : 'none')).join('/')}`);
+      if (JSON.stringify(shown) !== JSON.stringify([true, true, true, false, false, false, false, false]))
+        off.push(`${m.name}: built visible ${shown.join('/')}`);
+      const before = H(m);
+      for (const r of rows) r!.visible = true;
+      const span = W(m) - 2 * varValue('space/0');
+      const widths = rows.map((r) => W(r));
+      const after = H(m);
+      rows.forEach((r, i) => { r!.visible = shown[i]; });
+      if (!(widths.every((w) => w === span) && after > before)) off.push(`${m.name}: all on, row widths ${widths.join('/')} (want ${span}), height ${before} → ${after}`);
+    }
+    ok(members.length === 3 && off.length === 0,
+      `#2344 ${id}: every member builds eight rows, row 1 always shown and rows 2-8 wired to Option 2-8 with three shown, and with every toggle on all eight span the group and it grows (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
   }
 }
 

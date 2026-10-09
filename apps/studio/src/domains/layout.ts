@@ -108,7 +108,7 @@ export const mountLayoutLevers = (host: HTMLElement, cleanups: (() => void)[]): 
     const el = hook(h('section', 'p3-lsec'), 'lever-section');
     el.id = `p3-lsec-layout-${i}`;
     const head = h('div', 'p3-lsec-head');
-    const title = h('h3', 'p3-lsec-title', s.title);
+    const title = h('h2', 'p3-lsec-title', s.title);
     title.id = `${el.id}-t`;
     el.setAttribute('aria-labelledby', title.id);
     head.append(title);

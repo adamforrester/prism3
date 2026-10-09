@@ -93,7 +93,7 @@ export const palSection = (title: string, sub: string): HTMLElement => {
   return sec;
 };
 /** A sub-heading inside a section. */
-export const subHead = (title: string): HTMLElement => { const s = el('div', 'sub-lab'); s.append(el('h3', 'sub-t', title)); return s; };
+export const subHead = (title: string): HTMLElement => { const s = el('div', 'sub-lab'); s.append(el('h4', 'sub-t', title)); return s; };
 
 /** The resolvable DTCG path for a color role. #1148 collapsed the pointer and value tiers into one `color`,
  *  so every role has the short name (the history is in `main.ts`'s git log, #1013 → #1148). */

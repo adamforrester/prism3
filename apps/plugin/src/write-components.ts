@@ -1069,7 +1069,7 @@ const SET_BORDER = {
  *  properties genuinely require the node's font to be loaded, and a TEXT plan with no `textStyle` never
  *  loaded one. A throw here would lose a member that had otherwise built correctly, to fix its
  *  alignment. */
-const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode: ClaimMode, layerOpacity?: number): void => {
+const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode: ClaimMode, layerOpacity?: number, inPlaceMember = false): void => {
   const where = n?.name ?? 'set';
   const set = (prop: keyof CompNode, value: unknown): void => {
     try { (node as Record<string, unknown>)[prop as string] = value; }
@@ -1081,9 +1081,12 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
   // designer — so `fills = []` on an instance is not a neutral value, it is a LOCAL OVERRIDE that erases
   // the component's design. On a `nest-fixed` focus ring that means deleting the ring. Same for a
   // COMPONENT, whose properties came from the frame `createComponentFromNode` consumed — already
-  // neutralized here, one call earlier, as that frame.
+  // neutralized here, one call earlier, as that frame. EXCEPT A MEMBER CONFIGURED IN PLACE (#2369): it was a
+  // component before this build began, so no frame of it was ever neutralized on this pass, and a fill a
+  // superseded plan gave its root (a text button's hover wash) would stay. It takes the claims a fresh member's
+  // frame takes, which leaves it where a fresh build would. The paste twin builds fresh only, so it has no such case.
   const t = node.type;
-  if (t === 'INSTANCE' || t === 'COMPONENT') return;
+  if (t === 'INSTANCE' || (t === 'COMPONENT' && !inPlaceMember)) return;
 
   // #1430 — THE SET CARRIES THE VARIANT-SET FRAME. A purple dashed outline with a 5px radius is how a
   // designer PICKS THE SET OUT on a canvas full of ordinary frames — and #865 neutralized the set to a bare
@@ -1725,10 +1728,17 @@ const writeComponentSet = async (
         // frame holds, path by path; where they match, the import is discarded and the vectors keep their ids, so
         // an override on one in a file using the library survives an update that did not touch the glyph.
         const fresh = wr(api.createNodeFromSvg(n.glyphSvg ?? ''));
+        // AT THE FRAME'S OWN SIZE (#2379). The import arrives at its artboard (24); the frame the file holds is at its
+        // host's size (16), and its vectors were scaled there when its size was bound. Scaled here first, by the same
+        // SCALE constraints, so the two compare like for like and a replacement lands at the size the frame draws it.
+        // Unscaled, every in-place glyph read as changed and took 24px vectors into a 16px frame: 1.5× on the NB master.
+        const fw = Number(fresh.width ?? 0), fh = Number(fresh.height ?? 0);
+        for (const v of (fresh.findAll?.((x) => x.type === 'VECTOR') ?? [])) wr(v as CompNode).constraints = { horizontal: 'SCALE', vertical: 'SCALE' };
         // THE ARTBOARD READ-BACK (below) asks what the IMPORT measured, so in place it reads the fresh import: the
         // frame the file holds is already sized by its host's binding.
         if (n.glyphViewBox && (fresh.width !== n.glyphViewBox[0] || fresh.height !== n.glyphViewBox[1]))
           misses.push(`${n.name}.glyphViewBox -> ${n.glyphViewBox[0]}x${n.glyphViewBox[1]} (the imported frame reads ${fresh.width}x${fresh.height}; the glyph was sized to its ink rather than to its artboard, so every host binding a square would distort it)`);
+        if (fw > 0 && fh > 0 && (fw !== ex.width || fh !== ex.height)) fresh.resize?.(Number(ex.width), Number(ex.height));
         const sig = (k: Wr): string => (k.children ?? []).map((v) => JSON.stringify([v.type, (v as { vectorPaths?: unknown }).vectorPaths ?? null, Math.round(v.width ?? 0), Math.round(v.height ?? 0)])).join('|');
         if (sig(fresh) !== sig(ex)) {
           for (const old of [...(ex.children ?? [])]) wr(old).remove?.();
@@ -1939,7 +1949,22 @@ const writeComponentSet = async (
       const paint = (varName: string, where: string): unknown => {
         const v = byName.get(varName);
         if (!v) { misses.push(`${n.name}.${where} -> ${varName}`); return null; }
-        return api.variables.setBoundVariableForPaint({ type: 'SOLID', color: { r: 0, g: 0, b: 0 } }, 'color', v);
+        // THE BASE IS THE VARIABLE'S OWN COLOR for this node, never black (#2379). The host DRAWS the paint's stored
+        // color; a fresh build ends re-resolved, but in place the host kept the black base on every paint it rewrote,
+        // and the NB master's 16 sets drew solid black over every binding. Black only where nothing resolves.
+        // A WASH VARIABLE'S ALPHA IS THE PAINT'S OPACITY, as the host itself sets it on a fresh build and on every Apply
+        // Theme (#1614's reset): the tint still lives in the variable, and this is only what the host would draw from
+        // it. Left at 1 in place, a 10% overlay wash drew solid black.
+        let base = { r: 0, g: 0, b: 0 };
+        let alpha = 1;
+        try {
+          const rv = (v as { resolveForConsumer?(n: unknown): { value: unknown } }).resolveForConsumer?.(node)?.value as { r?: unknown; g?: unknown; b?: unknown; a?: unknown } | undefined;
+          if (rv && typeof rv.r === 'number' && typeof rv.g === 'number' && typeof rv.b === 'number') {
+            base = { r: rv.r, g: rv.g, b: rv.b };
+            if (typeof rv.a === 'number' && rv.a < 1) alpha = rv.a;
+          }
+        } catch { /* unresolvable here: the black base, as before */ }
+        return api.variables.setBoundVariableForPaint({ type: 'SOLID', color: base, ...(alpha < 1 ? { opacity: alpha } : {}) }, 'color', v);
       };
       // Same reason as `wrote`: only a paint that was actually assigned can have been discarded.
       let paintedFills = false;
@@ -2311,7 +2336,7 @@ const writeComponentSet = async (
       if (Math.abs((kid.width ?? 0) - w * s) > 0.01 || Math.abs((kid.height ?? 0) - h * s) > 0.01)
         misses.push(`${c.name}.glyphInset -> DISCARDED (set ${w * s}x${h * s}, ${s} of the ${w}x${h} box; reads ${String(kid.width)}x${String(kid.height)})`);
     }
-    if (!kept) claimDefaults(node, n, misses, 'created');
+    if (!kept) claimDefaults(node, n, misses, 'created', undefined, !!ex && path === '.');
     // #1567 — RE-APPLY THE TEXT STYLE, BECAUSE `claimDefaults` ABOVE JUST DETACHED IT.
     //
     // HOST-MEASURED (2026-09-22, Figma console, a scratch page removed afterwards): with a named text style
@@ -2463,6 +2488,27 @@ const writeComponentSet = async (
   let stale = 0;
   // #2265 PR 2 — the members this run configured in place, each with the paths it kept as hand edits.
   const updated = new Map<string, { keep: ReadonlySet<string>; accept?: boolean }>();
+  /**
+   * AN UPDATED MEMBER, FINISHED (#2265 PR 2): its record, then its stamp, then the in-progress marker off. One helper
+   * for the set path and the single-component path (#2296), so an icon is finished as a set member is. The record is
+   * the host as it now stands, EXCEPT each node kept as a hand edit, which keeps the hash it had: recording the edit
+   * as built would launder it, so the next dry run would stop reporting it and the next update would overwrite it
+   * (owner decision Q1, keep and report). Unless the owner ACCEPTED the edits as the new record (`accept`, design
+   * note §5): then the host as it stands is the record. The node it is written on goes in too (#2300). Returns the
+   * miss, if the record could not be written; the stamp then stays as it was, so the member still reads out of date.
+   */
+  const finishUpdated = async (m: CompNode, mName: string, entry: { keep: ReadonlySet<string>; accept?: boolean }): Promise<string | null> => {
+    try {
+      const prior = readBaseline(m);
+      const now = baselineOf(await snapshotMember(m));
+      if (!entry.accept) for (const p of entry.keep) if (prior?.nodes[p] !== undefined) now.nodes[p] = prior.nodes[p];
+      m.setSharedPluginData?.(NS, BASELINE_KEY, JSON.stringify({ ...now, ...(m.id ? { id: String(m.id) } : {}) }));
+    } catch (err) { return `${mName}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`; }
+    // THE STAMP, LAST (§7): only now does the member read current. Then the marker comes off.
+    m.setSharedPluginData?.(NS, STAMP_KEY, stampByMember.get(mName) ?? '');
+    m.setSharedPluginData?.(NS, UPDATING_KEY, '');
+    return null;
+  };
   for (let i = 0; i < cells.length; i++) {
     const spec = cells[i];
     const existing = have.get(spec.name);
@@ -2574,6 +2620,18 @@ const writeComponentSet = async (
     const emitted: string[] = [];
     const cols = Math.max(1, Math.ceil(Math.sqrt(fresh.length)));
     const PITCH = 48;   // a fixed grid pitch — cosmetic; the assets panel groups by slash name, not by x/y
+    // IN AN UPDATE (#2296), a component the plan gained goes in the first slot of that grid no existing component
+    // of this def already holds, never over one. A build lays out from the origin: everything there is its own.
+    const taken = new Set<string>();
+    if (opts.update) for (const c of (dest.children ?? []) as CompNode[])
+      if (c.type === 'COMPONENT' && String(c.name ?? '').startsWith(`${component}/`) && !fresh.includes(c)) taken.add(`${c.x},${c.y}`);
+    let slot = 0;
+    const nextSlot = (): number => {
+      for (;; slot++) {
+        const x = (slot % cols) * PITCH, y = Math.floor(slot / cols) * PITCH;
+        if (!taken.has(`${x},${y}`)) { taken.add(`${x},${y}`); return slot++; }
+      }
+    };
     fresh.forEach((c, i) => {
       const newName = `${component}/${emitCoordValue(String(c.name))}`;
       wr(c).name = newName;
@@ -2585,15 +2643,25 @@ const writeComponentSet = async (
       // A SIMPLE GRID so N components are not stacked at the origin. Fixed pitch rather than measured
       // widths, because the layout here is a nicety (a designer opens the folder, not the canvas), not the
       // measured column pitch the set path needs to keep hug-width members from overlapping.
-      wr(c).x = (i % cols) * PITCH;
-      wr(c).y = Math.floor(i / cols) * PITCH;
+      const at = opts.update ? nextSlot() : i;
+      wr(c).x = (at % cols) * PITCH;
+      wr(c).y = Math.floor(at / cols) * PITCH;
     });
     // THE "AS BUILT" BASELINE (#2265), as on the set path: after the last write, on this run's members only.
     for (const c of fresh) {
       try { await writeBaseline(c); }
       catch (err) { misses.push(`${String(c.name)}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`); }
     }
+    // THE MEMBERS THIS RUN UPDATED IN PLACE (#2296), finished as a set member is: record, stamp last, marker off. Before
+    // this the emit branch returned first, so an updated icon would never take its new stamp and would keep its marker.
+    for (const [mName, entry] of updated) {
+      const m = have.get(mName);
+      if (!m) { misses.push(`${mName}.asBuilt -> NOT RECORDED (the component is not in the file to read)`); continue; }
+      const miss = await finishUpdated(m, mName, entry);
+      if (miss) misses.push(miss);
+    }
     return {
+      ...(opts.update ? { updatedInPlace: [...updated.keys()] } : {}),
       // `component` (the def id, e.g. `icon`) is the GROUP label — non-null so the caller's `ok` and its
       // summary resolve, and `emittedComponents` below is what routes the summary to the no-set arm.
       set: component,
@@ -2716,8 +2784,11 @@ const writeComponentSet = async (
       return;
     }
     const m = wr(c);
-    m.x = PAD + at(colW, cell.col);
-    m.y = PAD + at(rowH, cell.row);
+    // ONLY WHERE IT MOVES (#2379): an update re-lays the grid over members it leaves alone (a member from an earlier
+    // plugin takes only its stamp), and a write that puts back the same number is still a write to the host.
+    const x = PAD + at(colW, cell.col), y = PAD + at(rowH, cell.row);
+    if (m.x !== x) m.x = x;
+    if (m.y !== y) m.y = y;
   });
   // #2265 PR 2 — THE MEMBERS AN UPDATE KEPT AND MARKED DEPRECATED have no cell in the plan's grid, which the
   // members still in the plan now fill, so left where they were they would sit on top of them. They go in one row
@@ -3436,27 +3507,13 @@ const writeComponentSet = async (
     const m = liveMembers.get(mName);
     if (!m) { asBuiltMiss.push(`${mName}.asBuilt -> NOT RECORDED (the member is not in the set to read)`); continue; }
     const entry = updated.get(mName);
-    const keep = entry?.keep;
-    try {
-      if (!entry) await writeBaseline(m);
-      else {
-        // AN UPDATED MEMBER'S RECORD (#2265 PR 2): the host as it now stands, EXCEPT each node kept as a hand edit,
-        // which keeps the hash it had. Recording the edit as built would launder it: the next dry run would stop
-        // reporting it, and the next update would overwrite it (owner decision Q1, keep and report).
-        const prior = readBaseline(m);
-        const now = baselineOf(await snapshotMember(m));
-        // …unless the owner ACCEPTED the edits as the new record (`accept`, design note §5): then the host as it
-        // stands is the record, and the dry run stops listing them.
-        if (!entry.accept) for (const p of keep!) if (prior?.nodes[p] !== undefined) now.nodes[p] = prior.nodes[p];
-        // The node it is written on, as `writeBaseline` records it (#2300): a copy's record names its original.
-        m.setSharedPluginData?.(NS, BASELINE_KEY, JSON.stringify({ ...now, ...(m.id ? { id: String(m.id) } : {}) }));
-      }
-    } catch (err) { asBuiltMiss.push(`${mName}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`); continue; }
     if (entry) {
-      // THE STAMP, LAST (§7): only now does the member read current. Then the marker comes off.
-      m.setSharedPluginData?.(NS, STAMP_KEY, stampByMember.get(mName) ?? '');
-      m.setSharedPluginData?.(NS, UPDATING_KEY, '');
+      const miss = await finishUpdated(m, mName, entry);
+      if (miss) asBuiltMiss.push(miss);
+      continue;
     }
+    try { await writeBaseline(m); }
+    catch (err) { asBuiltMiss.push(`${mName}.asBuilt -> NOT RECORDED (${(err as Error)?.message ?? String(err)})`); }
   }
   const allMisses = misses.concat(stray, boxMiss, axisMiss, coincident, footprint, propMiss, asBuiltMiss);
 

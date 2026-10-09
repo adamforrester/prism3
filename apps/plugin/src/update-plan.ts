@@ -49,13 +49,22 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { EXECUTOR_REVISION } from './executor-revision';
 import { memberStamp, planHalf, revHalf, STAMP_KEY } from './write-components';
 import { NS } from './persist-figma';
-import { UPDATING_KEY, baselineDiff, baselineOf, readBaseline, snapshotMember, writeBaseline, type Baseline, type SnapNode } from './member-baseline';
+import { BASELINE_V, UPDATING_KEY, baselineDiff, baselineOf, readBaseline, recordFormat, snapshotMember, writeBaseline, type Baseline, type SnapNode } from './member-baseline';
+import { drawnFaults, type DrawnFault, type DrawVar } from './drawn';
 
 /** One member of a set as the dry run reads it. */
 export type HostMember = {
   name: string; id: string; stamp: string; baseline: Baseline | null; snap: SnapNode;
   /** #2265 PR 2 — set while an update is part-way through this member: the paths it kept as hand edits. */
   updating?: string[] | null;
+  /** #2296 — the node's own name where it is not the coordinate: a single component's `icon/check` for `name=check`. */
+  nodeName?: string;
+  /** #2379 — how the member draws other than its variables and glyph frames say (`drawn.ts`), read off the live
+   *  node. Any one makes the member "to update", whatever its stamp and its record say: a record captured over the
+   *  damage would otherwise certify it. */
+  drawn?: DrawnFault[];
+  /** #2379 review — it carries a record, but in an earlier format, so it is read as having none (`baseline` null). */
+  earlierRecord?: boolean;
 };
 
 /** A set as the dry run reads it: plain data, so the comparison below is pure. */
@@ -70,6 +79,9 @@ export type HostSetView = {
   others: string[];
   /** The set's property definitions, or `null` when the host would not give them (#1780). */
   definitions: Record<string, { type?: string; defaultValue?: unknown }> | null;
+  /** #2296 — a def built as single components (`emitAsComponents`): no set node, no property definitions, and each
+   *  member a top-level component found anywhere in the file. */
+  single?: boolean;
 };
 
 export type MemberState = 'current' | 'update' | 'handEdited' | 'unstamped' | 'noBaseline' | 'revisionUnknown';
@@ -83,7 +95,9 @@ export type SetPreview = {
   page: string;
   setKey: string;
   previewHash: string;
-  counts: { members: number; current: number; update: number; add: number; drop: number; rename: number; handEdited: number; noBaseline: number; unstamped: number; revisionUnknown: number; reapplied: number };
+  counts: { members: number; current: number; update: number; add: number; drop: number; rename: number; handEdited: number; noBaseline: number; unstamped: number; revisionUnknown: number; reapplied: number;
+    /** Of `noBaseline`, those whose record is from an earlier format (#2379 review). */
+    earlierRecord?: number };
   blockers: string[];
   axes: { from: string[]; to: string[]; renames: { from: string; to: string }[] };
   properties: { add: Prop[]; edit: Prop[]; rename: Prop[]; retype: Prop[]; remove: Prop[] };
@@ -108,7 +122,7 @@ export type SetPreview = {
   handEdits: { member: string; path: string; conflict: boolean; structural: boolean }[];
   /** #2265 PR 2 — every matched member that is not current, with how it reads; what an apply acts on. Current
    *  members are left out, so a set with nothing to do carries an empty list. Never capped: an apply must see all. */
-  states: { member: string; state: Exclude<MemberState, 'current'> }[];
+  states: { member: string; state: Exclude<MemberState, 'current'>; earlierRecord?: true }[];
   needsChoice: Choice[];
   /** Entries left out of a list past `LIST_CAP`, per list. Absent when nothing was. */
   truncated?: Record<string, number>;
@@ -282,7 +296,7 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
   }
 
   // ---- each matched member ------------------------------------------------------------------------------
-  const counts = { members: host.members.length, current: 0, update: 0, add: adds.length, drop: drops.length + collapse.length, rename: renames.length, handEdited: 0, noBaseline: 0, unstamped: unstamped.length, revisionUnknown: 0, reapplied: 0 };
+  const counts: SetPreview['counts'] = { members: host.members.length, current: 0, update: 0, add: adds.length, drop: drops.length + collapse.length, rename: renames.length, handEdited: 0, noBaseline: 0, unstamped: unstamped.length, revisionUnknown: 0, reapplied: 0 };
   const changes = new Map<string, Change>();
   const replacements: SetPreview['replacements'] = [];
   const handEdits: SetPreview['handEdits'] = [];
@@ -300,16 +314,28 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       const kept = new Set(m.updating);
       edit = { changed: edit.changed.filter((p) => kept.has(p)), added: [], removed: [] };
     }
+    // A DAMAGED MEMBER IS "TO UPDATE" FIRST (#2379 review): it draws other than its variables and frames say, which no
+    // record, matching or not, makes right. Its damaged parts are never kept as hand edits, so the update overwrites
+    // them; a hand edit anywhere else on it is still kept and reported.
+    const damaged = m.drawn ?? [];
+    if (damaged.length && edit) {
+      const parts = damaged.map((f) => f.part);
+      const hit = (p: string): boolean => parts.some((d) => p === d || (d !== '.' && p.startsWith(`${d}/`)));
+      edit = { ...edit, changed: edit.changed.filter((p) => !hit(p)) };
+    }
     const edited = !!edit && (edit.changed.length + edit.added.length + edit.removed.length > 0);
     const planMoved = planHalf(m.stamp) !== planHalf(memberStamp(plan));
     const revField = m.stamp.split('|').length >= 3 ? revHalf(m.stamp) : null;
-    const state: MemberState = !m.baseline ? 'noBaseline'
+    const state: MemberState = damaged.length ? 'update'
+      : !m.baseline ? 'noBaseline'
       : edited ? 'handEdited'
       : planMoved || (revField !== null && revField !== rev) ? 'update'
       : revField === null ? 'revisionUnknown'
       : 'current';
     counts[state]++;
-    if (state !== 'current') states.push({ member: m.name, state });
+    const earlier = state === 'noBaseline' && !!m.earlierRecord;
+    if (earlier) counts.earlierRecord = (counts.earlierRecord ?? 0) + 1;
+    if (state !== 'current') states.push({ member: m.name, state, ...(earlier ? { earlierRecord: true as const } : {}) });
     if (state === 'current' || state === 'revisionUnknown') continue;
 
     // The field changes, from the host's snapshot. `member` divergences are the set-level match's own
@@ -356,7 +382,15 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       if (c.sample.length < 3) c.sample.push(m.name);
       changes.set(k, c);
     }
-    if (state === 'update' && divs.length === 0 && extras.length === 0 && dropped.length === 0) {
+    for (const f of m.drawn ?? []) {
+      touched.add(f.part);
+      const k = `${f.part}\u0000${f.field}\u0000${f.file}\u0000${f.want}`;
+      const c = changes.get(k) ?? { part: f.part, field: f.field, from: f.file, to: f.want, members: 0, sample: [] };
+      c.members++;
+      if (c.sample.length < 3) c.sample.push(m.name);
+      changes.set(k, c);
+    }
+    if (state === 'update' && divs.length === 0 && extras.length === 0 && dropped.length === 0 && !(m.drawn ?? []).length) {
       counts.reapplied++;
       const k = '.\u0000stamp\u0000\u0000';
       const c = changes.get(k) ?? { part: '.', field: 'stamp', from: planMoved ? 'an earlier plan' : 'an earlier executor revision', to: 're-applied — no field-level difference visible', members: 0, sample: [] };
@@ -381,7 +415,9 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
 
   // ---- the set's properties ------------------------------------------------------------------------------
   const properties: SetPreview['properties'] = { add: [], edit: [], rename: [], retype: [], remove: [] };
-  if (host.definitions === null) {
+  // A single-component def (#2296) has no set, so there are no definitions to read and nothing to compare.
+  if (host.single) { /* no properties */ }
+  else if (host.definitions === null) {
     if (!blockers.some((b) => b.includes('#1780'))) blockers.push("the set's property definitions could not be read");
   } else {
     let wanted: ReturnType<typeof planSetProperties> = [];
@@ -462,7 +498,24 @@ const pageOf = (n: unknown): string => {
 
 /** A set as plain data: every coordinate child snapshotted with its stamp and stored baseline. Reads
  *  only; each host read is guarded, so a getter that throws is a fact in the view rather than a crash. */
-export const readSetView = async (set: LiveSet, breathe?: () => Promise<void>): Promise<HostSetView> => {
+/** One member as plain data: its stamp, record, in-progress marker and snapshot, each host read guarded. `name` is
+ *  its coordinate; `nodeName`, the node's own name where that differs (#2296). */
+const readMember = async (raw: unknown, name: string, nodeName?: string, drawVars?: ReadonlyMap<string, DrawVar>): Promise<HostMember> => {
+  const c = raw as { id?: unknown; getSharedPluginData?: (ns: string, k: string) => string };
+  let stamp = '';
+  try { stamp = c.getSharedPluginData?.(NS, STAMP_KEY) ?? ''; } catch { stamp = ''; }
+  let updating: string[] | null = null;
+  try {
+    const marker = c.getSharedPluginData?.(NS, UPDATING_KEY) ?? '';
+    if (marker) updating = (JSON.parse(marker) as unknown[]).map(String);
+  } catch { updating = []; }
+  const baseline = readBaseline(c);
+  const fmt = baseline ? null : recordFormat(c);
+  return { name, id: String(c.id ?? ''), stamp, baseline, snap: await snapshotMember(c), updating, ...(nodeName ? { nodeName } : {}),
+    ...(drawVars ? { drawn: drawnFaults(c, drawVars) } : {}), ...(fmt !== null && fmt !== BASELINE_V ? { earlierRecord: true } : {}) };
+};
+
+export const readSetView = async (set: LiveSet, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>): Promise<HostSetView> => {
   const members: HostMember[] = [];
   const others: string[] = [];
   let n = 0;
@@ -470,17 +523,9 @@ export const readSetView = async (set: LiveSet, breathe?: () => Promise<void>): 
     // A 432-member set is about 13,000 nodes to read; handing the thread back every few members keeps
     // Figma responsive while it runs (#684's reason).
     if (breathe && ++n % 24 === 0) await breathe();
-    const c = raw as { name?: unknown; id?: unknown; getSharedPluginData?: (ns: string, k: string) => string };
-    const name = String(c.name ?? '');
+    const name = String((raw as { name?: unknown }).name ?? '');
     if (coordKey(name) === null) { others.push(name); continue; }
-    let stamp = '';
-    try { stamp = c.getSharedPluginData?.(NS, STAMP_KEY) ?? ''; } catch { stamp = ''; }
-    let updating: string[] | null = null;
-    try {
-      const raw = c.getSharedPluginData?.(NS, UPDATING_KEY) ?? '';
-      if (raw) updating = (JSON.parse(raw) as unknown[]).map(String);
-    } catch { updating = []; }
-    members.push({ name, id: String(c.id ?? ''), stamp, baseline: readBaseline(c), snap: await snapshotMember(c), updating });
+    members.push(await readMember(raw, name, undefined, drawVars));
   }
   let definitions: HostSetView['definitions'] = null;
   try { definitions = (set.componentPropertyDefinitions ?? {}) as HostSetView['definitions']; } catch { definitions = null; }
@@ -496,7 +541,7 @@ export const MOVED = 'it moved or is gone since it was read';
 const liveNode = (set: LiveSet, m: HostMember): { name?: unknown; setSharedPluginData?: (ns: string, k: string, v: string) => void } | null => {
   if (!m.id) return null;
   const node = (set.children ?? []).find((c) => String((c as { id?: unknown }).id ?? '') === m.id) as { name?: unknown } | undefined;
-  return node && String(node.name ?? '') === m.name ? node : null;
+  return node && String(node.name ?? '') === (m.nodeName ?? m.name) ? node : null;
 };
 
 /** What `capture-baseline` decides for one member, pure. It records a baseline only where the member is
@@ -519,6 +564,7 @@ export const differencesOf = (plan: AnatomyPlan, m: HostMember, ports: ReadPorts
   const dropped: { part: string; file: string }[] = [];
   droppedFills(plan.root, m.snap, '.', ports, dropped);
   for (const { part, file } of dropped) out.push({ part, field: 'fill', plan: 'none', file });
+  for (const f of m.drawn ?? []) out.push({ part: f.part, field: f.field, plan: f.want, file: f.file });
   return out;
 };
 
@@ -535,10 +581,11 @@ export const captureVerdict = (plan: AnatomyPlan | undefined, m: HostMember, por
 /** `capture-baseline` over one set: a baseline written on every member `captureVerdict` clears, each
  *  other member reported with its reason. Matching is by coordinate against the plan as it stands; a
  *  member the ledger would rename is not current, so it is not captured. The stamp is never rewritten. */
-export const captureSet = async (set: LiveSet, plans: AnatomyPlan[], ports: ReadPorts, breathe?: () => Promise<void>): Promise<{ recorded: number; skipped: { member: string; reason: string; differences?: Difference[] }[] }> => {
+export const captureSet = async (set: LiveSet, plans: AnatomyPlan[], ports: ReadPorts, breathe?: () => Promise<void>, read?: HostSetView): Promise<{ recorded: number; skipped: { member: string; reason: string; differences?: Difference[] }[] }> => {
   const planned = new Map(plans.map((p) => [coordKey(planComponentName(p)), p] as const));
   // A copy or a malformed stamp is not Prism3's (#2300), so its member is not captured: Adopt is its path.
-  const view = ownedView(await readSetView(set, breathe));
+  // `read` is a view already taken (a single-component def's, #2296); else the set is read here.
+  const view = ownedView(read ?? await readSetView(set, breathe, (ports as UpdatePorts).drawVars));
   let recorded = 0;
   const skipped: { member: string; reason: string; differences?: Difference[] }[] = [];
   for (const m of view.members) {
@@ -572,7 +619,7 @@ export const ADOPTED = 'adopted';
 export const adoptSet = async (
   defId: string, set: LiveSet, plans: AnatomyPlan[], ports: ReadPorts, breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES,
 ): Promise<{ adopted: number; skipped: { member: string; reason: string }[]; refused?: string }> => {
-  const view = ownedView(await readSetView(set, breathe));
+  const view = ownedView(await readSetView(set, breathe, (ports as UpdatePorts).drawVars));
   // THE DRY RUN DECIDES (#2299 review): which members Adopt may claim is the dry run's own matching, renames and axis
   // changes applied, and a set the dry run refuses (two members on one coordinate, two axis lists) is refused here
   // too, whole, with nothing written. Claiming members of a set the update cannot touch would only stamp them.
@@ -610,16 +657,23 @@ export type UpdateHost = {
 };
 
 /** One def to check: its id and the plans the engine would build for it today. */
-export type UpdateTarget = { def: string; plans: AnatomyPlan[] };
+export type UpdateTarget = {
+  def: string; plans: AnatomyPlan[];
+  /** #2296 — built as single top-level components (`emitAsComponents`: the icons, the spinner), not as a set. */
+  single?: boolean;
+};
 
 /** The ports, from the FILE's catalogues. A resolver built from the plan would map every id to the name
  *  the comparison hopes for, and see no difference anywhere (`test-roundtrip.ts` says the same). */
-export const hostPorts = async (host: UpdateHost): Promise<ReadPorts> => {
+/** The read ports, and the variables `drawn.ts` resolves a paint against (#2379). */
+export type UpdatePorts = ReadPorts & { drawVars?: ReadonlyMap<string, DrawVar> };
+export const hostPorts = async (host: UpdateHost): Promise<UpdatePorts> => {
   const vars = await host.variables.getLocalVariablesAsync();
   const styles = [...await host.getLocalTextStylesAsync(), ...await host.getLocalEffectStylesAsync()];
   const v = new Map(vars.map((x) => [x.id, x.name] as const));
   const st = new Map(styles.map((x) => [x.id, x.name] as const));
-  return { varName: (id) => v.get(id) ?? null, styleName: (id) => st.get(id) ?? null };
+  const drawVars = new Map(vars.filter((x) => typeof (x as { resolveForConsumer?: unknown }).resolveForConsumer === 'function').map((x) => [x.id, x as unknown as DrawVar] as const));
+  return { varName: (id) => v.get(id) ?? null, styleName: (id) => st.get(id) ?? null, drawVars };
 };
 
 type Located = { found: LiveSet[]; name: string };
@@ -628,6 +682,62 @@ const locate = (host: UpdateHost, t: UpdateTarget): Located => {
   const found = host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] })
     .filter((n) => (n as { name?: unknown }).name === name) as LiveSet[];
   return { found, name };
+};
+
+/**
+ * A SINGLE-COMPONENT DEF, READ AS ONE SET (#2296, owner decision Q109). An `emitAsComponents` def (the icons, the
+ * spinner) leaves no set: each member is a top-level COMPONENT named `<component>/<value>`. They are read here into
+ * the same view a set gives, so the dry run, the capture and the apply run unchanged on them.
+ *
+ *   - THE WHOLE FILE is searched (Q109 C), as the build's own lookup does, so an icon moved to another page is still
+ *     found and updated in place, not rebuilt as a second one.
+ *   - Each `<component>/<value>` is the member `<axis>=<value>`: one axis, so the mapping back is exact. A name with a
+ *     further `/` is no member value, and is listed under `others`, never read.
+ *   - OWNERSHIP IS THE STAMP, NEVER THE NAME: the dry run's own reading (`ownedView`, #2300) decides. A hand-made
+ *     icon, even one carrying a Prism3 glyph's exact name, is unstamped: it holds its coordinate, so that glyph is
+ *     never built beside it (Q109 A), and it is never written.
+ *
+ * `set` is a stand-in for the by-id lookups the capture and Adopt make: its children are the components read.
+ */
+export const readSingleView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>): Promise<{ view: HostSetView; set: LiveSet }> => {
+  const component = t.plans[0]?.component ?? t.def;
+  const prefix = `${component}/`;
+  const first = t.plans[0] ? coordKey(planComponentName(t.plans[0])) : null;
+  const axis = first ? coordPairs(first)[0][0] : 'name';
+  const comps = (host.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly unknown[]).filter((c) => {
+    const x = c as { name?: unknown; parent?: { type?: unknown } | null };
+    let parentType: unknown;
+    try { parentType = x.parent?.type; } catch { parentType = undefined; }
+    return String(x.name ?? '').startsWith(prefix) && parentType !== 'COMPONENT_SET';
+  });
+  const members: HostMember[] = [];
+  const others: string[] = [];
+  let k = 0;
+  for (const c of comps) {
+    if (breathe && ++k % 24 === 0) await breathe();
+    const nodeName = String((c as { name?: unknown }).name ?? '');
+    const value = nodeName.slice(prefix.length);
+    if (!value || value.includes('/') || value.includes(', ') || value.includes('=')) { others.push(nodeName); continue; }
+    members.push(await readMember(c, `${axis}=${value}`, nodeName, drawVars));
+  }
+  const page = comps.length ? pageOf(comps[0]) : '';
+  return {
+    view: { name: component, id: '', key: '', page, members, others, definitions: null, single: true },
+    set: { name: component, children: comps } as LiveSet,
+  };
+};
+
+/** A target's view, set or single, or why there is none to read. */
+type Viewed = { kind: 'missing' } | { kind: 'refused'; reason: string } | { kind: 'found'; name: string; set: LiveSet; view: HostSetView };
+const locateView = async (host: UpdateHost, t: UpdateTarget, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>): Promise<Viewed> => {
+  if (t.single) {
+    const { view, set } = await readSingleView(host, t, breathe, drawVars);
+    return view.members.length + view.others.length ? { kind: 'found', name: view.name, set, view } : { kind: 'missing' };
+  }
+  const { found, name } = locate(host, t);
+  if (found.length === 0) return { kind: 'missing' };
+  if (found.length > 1) return { kind: 'refused', reason: `${found.length} sets are named ${name}` };
+  return { kind: 'found', name, set: found[0], view: await readSetView(found[0], breathe, drawVars) };
 };
 
 export type UpdatePreview = { sets: SetPreview[]; missing: string[]; refused: { def: string; reason: string }[] };
@@ -639,10 +749,10 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
   const ports = await hostPorts(host);
   const out: UpdatePreview = { sets: [], missing: [], refused: [] };
   for (const t of targets) {
-    const { found, name } = locate(host, t);
-    if (found.length === 0) { out.missing.push(t.def); continue; }
-    if (found.length > 1) { out.refused.push({ def: t.def, reason: `${found.length} sets are named ${name}` }); continue; }
-    const preview = dryRunSet(t.def, t.plans, await readSetView(found[0], breathe), ports, ledger);
+    const v = await locateView(host, t, breathe, ports.drawVars);
+    if (v.kind === 'missing') { out.missing.push(t.def); continue; }
+    if (v.kind === 'refused') { out.refused.push({ def: t.def, reason: v.reason }); continue; }
+    const preview = dryRunSet(t.def, t.plans, v.view, ports, ledger);
     // A NESTED COMPONENT THE FILE DOES NOT HAVE (#2380). Since every icon-set glyph is an instance of
     // `icon/<glyph>`, an update can need a component the file was built without — an older field-message
     // drew its glyphs inline. The executor would report a miss for each and leave the old glyph where it
@@ -675,21 +785,27 @@ export const captureBaselines = async (host: UpdateHost, targets: readonly Updat
   const ports = await hostPorts(host);
   const out: CaptureResult = { sets: [], missing: [], refused: [] };
   for (const t of targets) {
-    const { found, name } = locate(host, t);
-    if (found.length === 0) { out.missing.push(t.def); continue; }
-    if (found.length > 1) { out.refused.push({ def: t.def, reason: `${found.length} sets are named ${name}` }); continue; }
-    out.sets.push({ def: t.def, set: name, ...await captureSet(found[0], t.plans, ports, breathe) });
+    const v = await locateView(host, t, breathe, ports.drawVars);
+    if (v.kind === 'missing') { out.missing.push(t.def); continue; }
+    if (v.kind === 'refused') { out.refused.push({ def: t.def, reason: v.reason }); continue; }
+    out.sets.push({ def: t.def, set: v.name, ...await captureSet(v.set, t.plans, ports, breathe, v.view) });
   }
   return out;
 };
 
-export type AdoptResult = { sets: { def: string; set: string; adopted: number; skipped: { member: string; reason: string }[] }[]; missing: string[]; refused: { def: string; reason: string }[] };
+export type AdoptResult = {
+  sets: { def: string; set: string; adopted: number; skipped: { member: string; reason: string }[] }[]; missing: string[]; refused: { def: string; reason: string }[];
+  /** #2296, owner decision Q109 B — the single-component defs Adopt is never offered for: a hand-made icon or spinner
+   *  is the designer's own. Listed, not refused, so a whole-file Adopt does not read as failed for them. */
+  notOffered?: string[];
+};
 
 /** `capture-baseline` with `adopt: true`: Adopt over every target's set (#2283). */
 export const adoptMembers = async (host: UpdateHost, targets: readonly UpdateTarget[], breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES): Promise<AdoptResult> => {
   const ports = await hostPorts(host);
   const out: AdoptResult = { sets: [], missing: [], refused: [] };
   for (const t of targets) {
+    if (t.single) { (out.notOffered ??= []).push(t.def); continue; }
     const { found, name } = locate(host, t);
     if (found.length === 0) { out.missing.push(t.def); continue; }
     if (found.length > 1) { out.refused.push({ def: t.def, reason: `${found.length} sets are named ${name}` }); continue; }
@@ -735,7 +851,9 @@ export const previewLine = (p: SetPreview): string => {
     c.drop ? `${c.drop} to mark deprecated` : '',
     c.rename ? `${c.rename} to rename` : '',
     c.handEdited ? `${n(c.handEdited, 'member')} edited by hand` : '',
-    c.noBaseline ? `${c.noBaseline} with no as-built record` : '',
+    c.noBaseline - (c.earlierRecord ?? 0) ? `${c.noBaseline - (c.earlierRecord ?? 0)} with no as-built record` : '',
+    // The owner's wording (2026-10-09): a record from an earlier format is named as one, not as a missing record.
+    c.earlierRecord ? `${c.earlierRecord} recorded by an earlier plugin version, read as having no as-built record` : '',
     c.unstamped ? `${c.unstamped} not built by Prism3` : '',
   ].filter(Boolean);
   if (propChanges(p)) parts.push(n(propChanges(p), 'property change'));
@@ -795,6 +913,7 @@ export const adoptVerdictText = (r: AdoptResult): { ok: boolean; headline: strin
         : `${x.set}: ${n(x.adopted, 'member')} adopted.`;
     }),
     ...r.refused.map((x) => `${x.def}: not adopted. ${x.reason}.`),
+    r.notOffered?.length ? `Adopt doesn't apply to ${r.notOffered.join(', ')}. Hand-made ones are left as they are.` : '',
     r.missing.length ? `Not in this file: ${r.missing.join(', ')}.` : '',
     adopted ? `Run an update to bring ${adopted === 1 ? 'it' : 'them'} in line with the plan.` : '',
   ].filter(Boolean);
