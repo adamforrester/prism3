@@ -12226,6 +12226,141 @@ for (const host of ['web', 'figma']) {
     } finally { await ctx.close(); }
   }
 }
+// =============================================================================================
+// 40. #1821: the current page, the current Color page and the previewed mode, as assistive technology reads them
+// =============================================================================================
+// Both hosts, light chrome, at 1280 and at 380 on every place, at 640 on three (below), and the plugin's Build style guides page. Every state is
+// read from CDP `Accessibility.getPartialAXTree`, one node per control (never an attribute or a class): a tab's
+// `selected`, a radio's `checked`, a select's value. The controls are found by hook, never by role, so a control that
+// lost its role is still read (and then carries no state, and fails).
+//   · the tab row: the tab the tree reports selected (or, at 380, the select's value) is the place's domain, and only it;
+//     at 1280 the row exposes every domain's tab, in order;
+//   · Color's sub-row: on a Color page, the one sub-tab reported selected is the page; off Color, no sub-tab is exposed;
+//   · the preview's mode control: the one radio reported checked (or, where the radios give way, the select's value) is
+//     the mode the test chose, Dark, chosen on Surfaces & fills; on Palettes it is Light (#2321, PM1 B). 640 is here for
+//     the select: the four radios give way to it there, and each host must have read the select at least once. Only
+//     Surfaces & fills, Palettes and Brand are read at 640, places reached by a control the levers column draws whole at
+//     that width (the column's own fit there is #1975 and #2105's);
+//   · at 1280, ArrowRight moves the selection along the tab row and the sub-row, and the tree follows (the tab pattern's
+//     automatic activation, unchanged here);
+//   · on Build style guides no tab is reported selected and no sub-tab is exposed.
+// INDEPENDENCE (docs/34). Page names, domain names, the sub-page names, the chosen mode and its label are literals typed
+// here, never read from `pages.ts`, `frame.ts` or `preview.ts`. Every case is counted, so a skipped one fails.
+// Mutations, each in a `wip:` commit, each failing here by name (the PR records the lines): (a) the tab row's selection
+// left out; (b) the sub-row's selection left out; (c) two tabs marked selected.
+const CS_TABS = ['Brand', 'Color', 'Type', 'Shape', 'Depth & motion', 'Layout', 'Components'];
+const CS_SUBS = ['Palettes', 'Surfaces & fills', 'Interactive'];
+/** Each place: the domain the tab row must report, and the Color page the sub-row must report (null: no sub-row). */
+const CS_PLACES = {
+  brand: ['Brand', null], 'color-palettes': ['Color', 'Palettes'], 'color-fills': ['Color', 'Surfaces & fills'],
+  'color-interactive': ['Color', 'Interactive'], type: ['Type', null], shape: ['Shape', null], depth: ['Depth & motion', null],
+  layout: ['Layout', null], components: ['Components', null],
+};
+/** At 640: the places read there (the select's width), each reached by a control drawn whole at that width. */
+const CS_AT_640 = ['color-fills', 'color-palettes', 'brand'];
+const CS_MODE = 'dark';
+const CS_MODE_LABEL = 'Dark';
+/** Palettes always previews Light (#2321, PM1 B), whatever was chosen elsewhere. */
+const CS_PALETTES_LABEL = 'Light';
+/** Every node `selector` matches, as the accessibility tree reports it (ignored ones dropped). */
+const csAx = async (page, selector) => {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send('DOM.enable');
+    await cdp.send('Accessibility.enable');
+    const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+    const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector });
+    const out = [];
+    for (const nodeId of nodeIds) {
+      const n = (await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false })).nodes[0];
+      if (!n || n.ignored) continue;
+      const prop = (k) => n.properties?.find((p) => p.name === k)?.value?.value;
+      out.push({ role: n.role?.value ?? '', name: (n.name?.value ?? '').trim(), value: String(n.value?.value ?? '').trim(),
+        selected: prop('selected') === true, checked: String(prop('checked')) === 'true' });
+    }
+    return out;
+  } finally { await cdp.detach(); }
+};
+/** What a group reports current: every tab selected, every radio checked, every select's value. */
+const csCurrent = (nodes) => [...nodes.filter((n) => n.selected || n.checked).map((n) => n.name),
+  ...nodes.filter((n) => n.role === 'combobox' && n.value).map((n) => n.value)];
+/** A mode's label, from a radio's name ("Dark, all pairs at or above floor") or the select's ("Dark · all pass"). */
+const csModeLabel = (s) => s.split(/,| · | \(/)[0].trim();
+const CS_TAB_ROW = '[data-p3="tab-row"] [data-p3^="tab-"]';
+const CS_SUB_ROW = '[data-p3="sub-nav"] button';
+const CS_MODES = '[data-p3="mode-option"], [data-p3="mode-select"]';
+console.log(`\nCurrent page and previewed mode, as assistive technology reads them (#1821)\n${'='.repeat(78)}`);
+for (const host of ['web', 'figma']) {
+  let selects = 0;
+  for (const w of [1280, 640, 380]) {
+    const where = `#1821 ${host} ${w}`;
+    const narrow = w <= 560;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w, h: 900 });
+    let cases = 0, step = 'open';
+    try {
+      step = `choose ${CS_MODE} on color-fills`;
+      await goPlace(page, 'color-fills');
+      await roShowMode(page, CS_MODE);
+      const places = Object.entries(CS_PLACES).filter(([p]) => w !== 640 || CS_AT_640.includes(p));
+      for (const [place, [tab, sub]] of places) {
+        step = `read ${place}`;
+        await goPlace(page, place);
+        const at = `${where} / ${place}`;
+        const row = await csAx(page, CS_TAB_ROW);
+        const tabs = row.filter((n) => n.role === 'tab');
+        if (!narrow) ok(JSON.stringify(tabs.map((n) => n.name)) === JSON.stringify(CS_TABS), `${at}: the tab row exposes every domain's tab, in order (read ${JSON.stringify(tabs.map((n) => `${n.role} ${n.name}`))})`);
+        else ok(row.some((n) => n.role === 'combobox'), `${at}: the tab row exposes its select (read ${JSON.stringify(row.map((n) => n.role))})`);
+        const rowCur = csCurrent(row);
+        ok(JSON.stringify(rowCur) === JSON.stringify([tab]), `${at}: the tab row reports ${tab} current, and only it (read ${JSON.stringify(rowCur)})`);
+        const subs = await csAx(page, CS_SUB_ROW);
+        const subCur = csCurrent(subs);
+        if (sub) {
+          ok(JSON.stringify(subs.map((n) => `${n.role} ${n.name}`)) === JSON.stringify(CS_SUBS.map((s) => `tab ${s}`)), `${at}: Color's sub-row exposes every Color page as a tab, in order (read ${JSON.stringify(subs.map((n) => `${n.role} ${n.name}`))})`);
+          ok(JSON.stringify(subCur) === JSON.stringify([sub]), `${at}: Color's sub-row reports ${sub} current, and only it (read ${JSON.stringify(subCur)})`);
+        } else ok(subs.length === 0, `${at}: off Color, no sub-row is exposed (read ${JSON.stringify(subs.map((n) => n.name))})`);
+        if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+        await settle(page);
+        const want = place === 'color-palettes' ? CS_PALETTES_LABEL : CS_MODE_LABEL;
+        const modes = await csAx(page, CS_MODES);
+        const modeCur = csCurrent(modes).map(csModeLabel);
+        if (modes.some((n) => n.role === 'combobox')) selects++;
+        ok(modes.length > 0, `${at}: the preview's mode control is exposed (read ${JSON.stringify(modes.map((n) => n.role))})`);
+        ok(JSON.stringify(modeCur) === JSON.stringify([want]), `${at}: the mode control reports ${want} checked, and only it (read ${JSON.stringify(csCurrent(modes))})`);
+        if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
+        cases++;
+      }
+      const due = w === 640 ? CS_AT_640.length : Object.keys(CS_PLACES).length;
+      ok(cases === due && due > 0, `${where}: every place was read (${cases} of ${due})`);
+      if (w === 1280) {
+        step = 'ArrowRight along the tab row';
+        await goPlace(page, 'brand');
+        await page.locator('[data-p3="tab-brand"]').focus();
+        await page.keyboard.press('ArrowRight');
+        await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place?.startsWith('color'));
+        const k1 = csCurrent(await csAx(page, CS_TAB_ROW));
+        ok(JSON.stringify(k1) === '["Color"]', `${where}: ArrowRight from Brand on the tab row moves the selection to Color, as the tree reports it (read ${JSON.stringify(k1)})`);
+        step = 'ArrowRight along the sub-row';
+        await goPlace(page, 'color-palettes');
+        await page.locator('[data-p3="color-sub-palettes"]').focus();
+        await page.keyboard.press('ArrowRight');
+        await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'color-fills');
+        const k2 = csCurrent(await csAx(page, CS_SUB_ROW));
+        ok(JSON.stringify(k2) === '["Surfaces & fills"]', `${where}: ArrowRight from Palettes on Color's sub-row moves the selection to Surfaces & fills, as the tree reports it (read ${JSON.stringify(k2)})`);
+      }
+      if (host === 'figma') {
+        step = 'Build style guides';
+        await openStyleGuides(page);
+        const sgCur = csCurrent(await csAx(page, CS_TAB_ROW));
+        const sgSubs = await csAx(page, CS_SUB_ROW);
+        ok(sgCur.length === 0 && sgSubs.length === 0, `${where} / Build style guides: no tab is reported current and no sub-row is exposed (read ${JSON.stringify(sgCur)}, ${sgSubs.length} sub-tab(s))`);
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw (${step}) — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+  ok(selects > 0, `#1821 ${host}: the mode control's select was read at least once (${selects} place(s))`);
+}
 // #2238: the check box is measured on both hosts, in both chrome themes, somewhere in the sweep.
 for (const [k, n] of Object.entries(BOXES_BY)) ok(n > 0, `#2238 ${k}: the contrast audit measured check boxes in the sweep (${n})`);
 hooks.report(ok);
