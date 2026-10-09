@@ -78,6 +78,13 @@ hit areas, so the design file shows only the label-width box.
 }
 ```
 
+**Keep a flush button's hit area clear of its neighbors.** The extension reaches past the label by
+half of what the label lacks, on each side: (44px − label width) / 2 at medium and large, and
+(24px − label width) / 2 at small. Leave at least that much between the label and the next
+control, and between two flush buttons the two reaches added together, so a tap never lands on
+the wrong control (WCAG 2.5.8). Beside the label, 22px is always enough at medium and large, and
+12px at small.
+
 **3. Let modes resolve — don't hardcode a mode's value.**
 A color role resolves differently per mode (`light` / `dark` / `hc-light` / `hc-dark`),
 carried in the role's `mode_overrides`. Bind the **role**; the mode drives the value. Never
