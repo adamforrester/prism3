@@ -35,6 +35,15 @@
  *     does not measure fails. Before the marker, the × slot was found by the hand-written entry alone, and
  *     deleting the entry left every gate green — the list was its own only witness (docs/34 shape 1).
  *
+ * FLUSH MEMBERS (#2408, owner Q154 A). A flush text button (`PartDef.flush`, #2350) keeps its height and drops
+ * its minimum width, so its visible box is only as wide as its label. The walk below reads HEIGHT, so it passes a
+ * flush member on its height alone and says nothing about a width that can now be narrower than 44px. The owner's
+ * rule is that the hit area is at least 44×44 in CODE, through an invisible extension, and Figma is unchanged. No
+ * emitted token can carry that, so this gate does not measure it; it requires the def to STATE it. Every measured
+ * def with a flush part must be in FLUSH_MEMBERS (and every entry must have one), and each must carry a `codeOnly`
+ * entry that names the flush button, the 44×44 hit area and the `::before` extension. The phrases are literals
+ * here, never read off the def (docs/34), so deleting the sentence from `button.ts` fails this gate by name.
+ *
  * `select` binds `size.md.min-height` = `max(size.md.height, 44)` (#1426/#1437); the field/row family
  * otherwise binds the size rung directly, which is 44px at the comfortable `md` and 56px at the spacious
  * `md`, so a control at its default size clears the floor on both densities.
@@ -154,6 +163,20 @@ const INTERACTIVE: Record<string, Binding> = {
 // marker, fails by name.
 const INNER_TARGETS: Record<string, { key: (size: string) => string; why: string }> = {
   'tag.dismiss': { key: (s) => `size.${s}.height`, why: "the dismissible tag's × slot, a square the tag's height (owner, 2026-09-28) — the target itself or a part of a whole-tag target, the owner's open call; it clears the floor either way" },
+};
+
+// ── FLUSH MEMBERS (#2408): the defs whose flush member drops its width floor, so its hit area is code-side ────
+// Authored here and compared both ways with the defs' own `flush` fields, so a new flush def cannot arrive with
+// only its height measured. The code-side rule each must state, as literals (owner Q154 A):
+const FLUSH_MEMBERS = new Set(['button', 'button-destructive', 'button-neutral']);
+// Phrases of the RULE, not words that occur anyway: the same entry already says "Apple HIG 44×44" and "(::before /
+// absolute overlay)", so bare `44×44` and `::before` passed with the flush sentence deleted (measured).
+const FLUSH_RULE = [/flush/, /at least 44×44/, /::before`? inset outward/];
+/** The `codeOnly` entry that states the code-side hit area, or the phrases no entry carries. Pure, so the
+ *  self-check can drive it. */
+const flushRuleGap = (codeOnly: readonly string[]): string[] => {
+  const best = codeOnly.map((c) => FLUSH_RULE.filter((re) => !re.test(c))).sort((a, b) => a.length - b.length)[0];
+  return (best ?? FLUSH_RULE).map((re) => re.source);
 };
 
 /** The defs carved out as a size-level exception: a small button (owner, #1443) and a small tag (owner,
@@ -360,6 +383,33 @@ for (const [id, inner] of Object.entries(INNER_TARGETS)) {
   const bad = violation(minPx, 'floor');
   rows.push(`${id}/${size} → ${tokenPath} = ${minPx}px (min over ${FLOOR_DENSITIES.join('+')}) [floor, inner target]${bad ? '  ✗' : ''}`);
   if (bad) failures.push(`${id}/${size} (${inner.why}, ${tokenPath}) ${bad} on a ${measured.find((m) => m.px === minPx)!.density} brand — a target inside a control must meet the floor too.`);
+}
+
+// ── FLUSH MEMBERS (#2408): the height above passes a flush member; its width floor is a code-side rule ──
+{
+  const FLUSH_CASES: Array<{ why: string; codeOnly: string[]; fires: boolean }> = [
+    { why: 'the rule stated in one entry', codeOnly: ['touch-target-expansion — a flush button\'s hit area is at least 44×44, through a transparent ::before inset outward'], fires: false },
+    { why: 'THE MUTATION: the flush sentence deleted, the entry\'s other 44×44 and ::before left', codeOnly: ['touch-target-expansion — the hit box is decoupled (::before / absolute overlay), reconciling Apple HIG 44×44; a flush button hugs its label'], fires: true },
+    { why: 'the phrases split across two entries do not state one rule', codeOnly: ['a flush hit area of at least 44×44', 'a ::before inset outward'], fires: true },
+    { why: 'an empty codeOnly', codeOnly: [], fires: true },
+  ];
+  for (const c of FLUSH_CASES)
+    if ((flushRuleGap(c.codeOnly).length > 0) !== c.fires) failures.push(`flushRuleGap, ${c.why}: should ${c.fires ? 'FIRE' : 'pass'}, but did not.`);
+}
+for (const def of componentDefs) {
+  if (!(def.id in INTERACTIVE)) continue;
+  const flushes = Object.values(def.anatomy?.parts ?? {}).some((p) => p.flush);
+  if (flushes && !FLUSH_MEMBERS.has(def.id))
+    failures.push(`${def.id}: has a flush part, which drops its width floor, and FLUSH_MEMBERS does not list it — its hit target is measured on height alone. Add it, and state the 44×44 code-side hit area in its codeOnly.`);
+  if (!flushes && FLUSH_MEMBERS.has(def.id))
+    failures.push(`FLUSH_MEMBERS names '${def.id}', which has no flush part — a stale entry.`);
+}
+for (const id of FLUSH_MEMBERS) {
+  const def = componentDefs.find((d) => d.id === id);
+  if (!def || !(id in INTERACTIVE)) { failures.push(`FLUSH_MEMBERS names '${id}', which is not an INTERACTIVE def.`); continue; }
+  const gap = flushRuleGap(def.anatomy?.codeOnly ?? []);
+  rows.push(`${id}/inset=flush → width floor dropped; hit area ≥ 44×44 in code (codeOnly) [code-side rule, #2408]${gap.length ? '  ✗' : ''}`);
+  if (gap.length) failures.push(`${id}/inset=flush: no codeOnly entry states the code-side hit area (missing ${gap.join(', ')}) — a flush member has no width floor, so the height measured above does not cover it. State that its hit area is at least 44×44 in code through a ::before extension (owner Q154 A, #2408).`);
 }
 
 // ── EXCEPTION 1: small size — asserted ACTUALLY below the floor on comfortable (self-justified) ──

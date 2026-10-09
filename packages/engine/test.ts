@@ -28949,6 +28949,36 @@ arm: {
     `#2350 icon buttons have no flush inset (${iconFlush.join(', ') || 'none'})`);
 }
 
+// ------------------------------------------------------------------- #2408: a flush button's hit area is 44×44 in code
+// Owner Q154 A: a flush text button has no visual minimum width, so its box is label-width and can be narrower
+// than 44px, and its hit area is at least 44×44 in code through an invisible extension. Figma has no hit areas,
+// so the rule lives in prose only, and nothing but this arm (and lint-hit-target's FLUSH arm) holds it there.
+// Each surface the rule ships on is read directly, and every expected phrase is a literal here, never read off the
+// def (docs/34): the def's `codeOnly` and `docs.do`, the generated components.ai.json, and the consume skill.
+{
+  // Phrases of the rule, not bare `44×44` / `::before`: the codeOnly entry says "Apple HIG 44×44" and "(::before /
+  // absolute overlay)" already, and bare words passed with the flush sentence deleted (measured).
+  const RULE = [/at least\s+44×44/, /::before`? inset outward/, /centered on the label/];
+  const missing = (text: string | undefined) => RULE.filter((re) => !re.test(text ?? '')).map((re) => re.source);
+  const aiDoc = JSON.parse(readFileSync(resolve(HERE, './out/components/components.ai.json'), 'utf8')) as { components: unknown };
+  const aiComponents = (Array.isArray(aiDoc.components) ? aiDoc.components : Object.values(aiDoc.components as object)) as Array<{ id: string; docs?: { do?: string[] } }>;
+  for (const def of [button, buttonDestructive, buttonNeutral]) {
+    const code = def.anatomy!.codeOnly.find((c) => /flush/.test(c));
+    ok(!!code && missing(code).length === 0,
+      `#2408 ${def.id}: codeOnly states a flush button's hit area is at least 44×44 in code, through a transparent ::before inset outward and centered on the label (missing: ${code ? missing(code).join(', ') || 'none' : 'no flush entry'})`);
+    const line = def.docs?.do?.find((d) => /^Set inset=flush/.test(d));
+    ok(!!line && missing(line).length === 0,
+      `#2408 ${def.id}: docs.do tells the developer to extend a flush button's hit area to 44×44 with the ::before technique (missing: ${line ? missing(line).join(', ') || 'none' : 'no inset=flush line'})`);
+    const aiLine = aiComponents.find((c) => c.id === def.id)?.docs?.do?.find((d) => /^Set inset=flush/.test(d));
+    ok(!!aiLine && missing(aiLine).length === 0,
+      `#2408 ${def.id}: components.ai.json carries the 44×44 flush hit-area rule in docs.do (missing: ${aiLine ? missing(aiLine).join(', ') || 'none' : 'no inset=flush line'})`);
+  }
+  const skill = readFileSync(resolve(HERE, '../../skills/prism3-consume/SKILL.md'), 'utf8');
+  const para = skill.split(/\n\s*\n/).find((b) => /inset=flush/.test(b) && /44×44/.test(b));
+  ok(!!para && missing(para).length === 0,
+    `#2408 prism3-consume: the skill tells the agent a flush text button keeps a 44×44 hit area in code, with the ::before technique (missing: ${para ? missing(para).join(', ') || 'none' : 'no paragraph names inset=flush and 44×44'})`);
+}
+
 // ------------------------------------------------------------------- report
 console.log(`\nPrism3 engine tests: ${pass} passed, ${fails.length} failed`);
 
