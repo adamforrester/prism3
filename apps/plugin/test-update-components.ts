@@ -137,6 +137,8 @@ const build = async (id: string, plans = plansOf(id)): Promise<Built> => {
     liveRoot: true,
     // Node ids, so Adopt and the capture can be held to writing by id (#2301).
     identities: true,
+    // #2379: the host scales a frame's SCALE children with it, so a built glyph's vectors fit its frame.
+    scaleConstrained: true,
   }) as any;
   const built = await applyComponentPlan(plans, shim);
   // A build that missed is a harness fault; the dry run would then be reading a set the executor never finished.
@@ -326,6 +328,8 @@ section('format — what the hash covers is pinned to BASELINE_V');
   const PINNED: Record<number, Record<string, string>> = {
     1: { '.': 'e85160da', label: 'e7367361', note: '88ebbfd4', icon: '2df66934' },
     2: { '.': 'e85160da', label: 'e7367361', note: '88ebbfd4', icon: '2df66934' },
+    // 3 (#2379 review) hashes an instance's main and a style by name; this fixture has neither, so its hashes hold.
+    3: { '.': 'e85160da', label: 'e7367361', note: '88ebbfd4', icon: '2df66934' },
   };
   const fixture: SnapNode = {
     name: 'm', type: 'COMPONENT', layoutMode: 'HORIZONTAL', itemSpacing: 4, visible: true, opacity: 1,
@@ -356,14 +360,18 @@ section('theme — what Apply Theme moves is not a hand edit');
     // A bound field reads its variable's resolved value on the host. The shim records the binding and
     // leaves the field unset, so the value the theme moves is written here, where Figma would show it.
     for (const k of Object.keys(bv)) if (k !== 'fills' && k !== 'strokes' && nudge(k, 3)) movedBound++;
-    for (const k of ['width', 'height', 'x', 'y']) if (typeof n[k] === 'number' && !bv[k]) nudge(k, 7);
-    for (const f of ['fills', 'strokes']) {
-      const paints = n[f];
-      if (Array.isArray(paints)) n[f] = paints.map((p: any) => (p?.boundVariables?.color ? { ...p, color: { r: 0.11, g: 0.22, b: 0.33 } } : p));
-    }
+    // A glyph's vectors are not re-derived by a theme: they stay where their frame scaled them (#2379 reads them there).
+    for (const k of ['width', 'height', 'x', 'y']) if (n.type !== 'VECTOR' && typeof n[k] === 'number' && !bv[k]) nudge(k, 7);
+    // A bound paint's color moves with its VARIABLE (#2379): Apply Theme rewrites the variable, and the host
+    // re-resolves every paint bound to it. Collected here and rewritten below, the way Apply Theme does it.
+    for (const f of ['fills', 'strokes']) for (const p of (Array.isArray(n[f]) ? n[f] : []) as any[]) if (p?.boundVariables?.color?.id) paintVars.add(p.boundVariables.color.id);
     for (const c of (n.children as Node[] | undefined) ?? []) walk(c);
   };
+  const paintVars = new Set<string>();
   for (const m of membersOf(b.set)) walk(m);
+  // Each keeps its own alpha: a theme moves a wash's color, not the fact that it is a wash.
+  for (const v of (await b.shim.variables.getLocalVariablesAsync()) as { id: string; setValueForMode(m: string, v: unknown): void; resolveForConsumer(n: unknown): { value: { a?: number } } }[])
+    if (paintVars.has(v.id)) v.setValueForMode('theme', { r: 0.11, g: 0.22, b: 0.33, a: v.resolveForConsumer(null).value?.a ?? 1 });
   ok(moved > 200 && movedBound > 100, `premise: the theme moved values on many nodes, many of them behind a binding (${moved}, ${movedBound} bound)`);
   const p = (await previewUpdate(b.shim, [{ def: TAG, plans: b.plans }])).sets[0];
   ok(p.handEdits.length === 0 && p.counts.current === 45, `theme/no hand edits: every member still current after the values moved (${p.handEdits.length} edits, ${p.counts.current} current)`);
@@ -817,8 +825,11 @@ section('dropped — a fill the plan no longer has is named, plan against file (
   // Each member's wash, as the file holds it: the variable's name in this file, read from the built node.
   const wash = async (state: string, ground: string): Promise<string> => {
     const m = memberNamed(b.set, (n) => n.includes('appearance=text') && n.includes(`state=${state}`) && n.includes(`surface=${ground}`));
-    const id = (m.fills as { boundVariables?: { color?: { id?: string } } }[])[0]?.boundVariables?.color?.id;
-    return String(id ? b.ports.varName(id) : 'NO BOUND FILL');
+    const f = (m.fills as { opacity?: number; boundVariables?: { color?: { id?: string } } }[])[0];
+    const id = f?.boundVariables?.color?.id;
+    // The wash's opacity as the file holds it (a fresh build stores the variable's alpha, #2379), as the line names it.
+    const at = typeof f?.opacity === 'number' && f.opacity < 1 ? ` at ${Math.round(f.opacity * 100)}%` : '';
+    return String(id ? b.ports.varName(id) : 'NO BOUND FILL') + at;
   };
   const want = (await Promise.all(['hover', 'pressed'].flatMap((st) => ['default', 'inverse'].map((g) => wash(st, g)))))
     .map((v) => `button · the member · fill: the plan says none, the file has ${v} (12 members).`);
