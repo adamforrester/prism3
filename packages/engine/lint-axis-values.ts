@@ -150,7 +150,10 @@ type Relation =
   /** No value is in canonical. Loud, and therefore the cheap kind of divergence. */
   | 'disjoint'
   /** Shares some, disagrees on others. Reads as alignment while disagreeing — argue this one hardest. */
-  | 'overlapping';
+  | 'overlapping'
+  /** Exactly canonical's values, in another ORDER (#2266). The first value is the rest coordinate and the
+   *  Figma default variant, so a reordering is a real choice, declared rather than read as a duplicate. */
+  | 'reordered';
 
 type AxisValueSet = {
   readonly axis: VariantAxis;
@@ -382,6 +385,19 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'size',
+    values: ['medium', 'small', 'large'],
+    defs: ['text-field', 'select', 'textarea'],
+    relation: 'reordered',
+    reason:
+      'The canonical ladder, led by `medium` (#2266, the field sizing system). The first value is the set\'s '
+      + 'first member, which is Figma\'s default variant AND the value an in-place update (#2265) gives every '
+      + 'existing member of a set that gains this axis. Every field built before #2266 is the medium field, so '
+      + 'medium first keeps those members\' look as well as their keys; `small` first would rewrite them as '
+      + 'the small field in place. The code enum (`props.size`) keeps the ladder\'s own order; '
+      + '`lint-rung-names.ts` DEFAULT_FIRST admits the split. Held for the owner on #2266.',
+  },
+  {
+    axis: 'size',
     values: ['x-small', 'small', 'medium', 'large'],
     defs: ['spinner'],
     relation: 'superset',
@@ -586,6 +602,20 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + '`VARIANT_AXES`. SEVEN values: the three the owner settled on in #1316, plus the portrait 2:3, 3:4 '
       + 'and 4:5 and the landscape 3:2 a measured commerce file needed (#2345), ordered tallest to widest.',
   },
+  {
+    axis: 'inset',
+    values: ['default', 'flush'],
+    defs: ['button', 'button-destructive', 'button-neutral'],
+    relation: 'sole',
+    reason:
+      'Whether a text button keeps its inline padding (#2350, owner Q143 and Q145 A, name and values DRAFT): '
+      + 'the button as authored, or with no inline padding on either side, so its label lines up with the '
+      + 'content edge above and below whether it starts, ends or centers a row. `default` LEADS because it is '
+      + 'the code default and every member before #2350. One value, not one per side: a flush button has no '
+      + 'visible box, so the side it is not aligned to shows nothing either way. The text appearance only '
+      + '(`excludeCoordinates`). Distinct from `width` (how much of the container it takes) and `offset` (a '
+      + 'nested part\'s displacement) — this is whether the control has inline padding, argued in `VARIANT_AXES`.',
+  },
 ];
 
 /** A reason shorter than this is a label, not a justification. Crude on purpose — see SCOPE above. */
@@ -786,7 +816,8 @@ const relate = (vals: readonly string[], canon: readonly string[]): Relation => 
   const v = new Set(vals);
   const shared = [...v].filter((x) => c.has(x)).length;
   if (!shared) return 'disjoint';
-  if (shared === v.size && shared === c.size) return 'canonical'; // identical — a duplicate entry
+  if (shared === v.size && shared === c.size)
+    return vals.join(',') === canon.join(',') ? 'canonical' : 'reordered'; // identical — a duplicate entry, or another order
   if (shared === v.size) return 'subset';
   if (shared === c.size) return 'superset';
   return 'overlapping';

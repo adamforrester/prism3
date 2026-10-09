@@ -6898,8 +6898,8 @@
     "type.body.xs.default": {
       "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
       "meaning": "Type style — body xs default (12px, body face)",
-      "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm.",
-      "avoid_when": "Do not use for running text (use `type.body.sm` or larger). For small print that stands on its own (an image caption, helper text, a footnote), use `type.caption.lg`.",
+      "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for running text (use `type.body.sm` or larger). For small print that stands on its own (an image caption, helper text, a footnote), use `type.caption.lg`. Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{pds3.core.font.family.body}",
         "fontSize": "{pds3.core.font.size.12}",
@@ -6925,8 +6925,8 @@
     "type.body.xs.default-italic": {
       "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
       "meaning": "Type style — body xs default italic (12px, body face)",
-      "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm.",
-      "avoid_when": "Do not use for running text (use `type.body.sm` or larger). For small print that stands on its own (an image caption, helper text, a footnote), use `type.caption.lg`.",
+      "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for running text (use `type.body.sm` or larger). For small print that stands on its own (an image caption, helper text, a footnote), use `type.caption.lg`. Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{pds3.core.font.family.body}",
         "fontSize": "{pds3.core.font.size.12}",
@@ -6954,8 +6954,8 @@
     "type.body.xs.strong": {
       "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
       "meaning": "Type style — body xs strong (12px, body face)",
-      "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm.",
-      "avoid_when": "Do not use for running text (use `type.body.sm` or larger). For small print that stands on its own (an image caption, helper text, a footnote), use `type.caption.lg`.",
+      "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for running text (use `type.body.sm` or larger). For small print that stands on its own (an image caption, helper text, a footnote), use `type.caption.lg`. Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{pds3.core.font.family.body}",
         "fontSize": "{pds3.core.font.size.12}",
@@ -6981,8 +6981,8 @@
     "type.body.xs.strong-italic": {
       "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
       "meaning": "Type style — body xs strong italic (12px, body face)",
-      "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm.",
-      "avoid_when": "Do not use for running text (use `type.body.sm` or larger). For small print that stands on its own (an image caption, helper text, a footnote), use `type.caption.lg`.",
+      "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for running text (use `type.body.sm` or larger). For small print that stands on its own (an image caption, helper text, a footnote), use `type.caption.lg`. Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{pds3.core.font.family.body}",
         "fontSize": "{pds3.core.font.size.12}",
@@ -7010,8 +7010,8 @@
     "type.body.sm.default": {
       "$description": "Running text / default UI copy.",
       "meaning": "Type style — body sm default (14px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text.",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{pds3.core.font.family.body}",
         "fontSize": "{pds3.core.font.size.14}",
@@ -7037,8 +7037,8 @@
     "type.body.sm.default-italic": {
       "$description": "Running text / default UI copy (italic variant).",
       "meaning": "Type style — body sm default italic (14px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text.",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{pds3.core.font.family.body}",
         "fontSize": "{pds3.core.font.size.14}",
@@ -7066,8 +7066,8 @@
     "type.body.sm.strong": {
       "$description": "Running text / default UI copy.",
       "meaning": "Type style — body sm strong (14px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text.",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{pds3.core.font.family.body}",
         "fontSize": "{pds3.core.font.size.14}",
@@ -7093,8 +7093,8 @@
     "type.body.sm.strong-italic": {
       "$description": "Running text / default UI copy (italic variant).",
       "meaning": "Type style — body sm strong italic (14px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text.",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{pds3.core.font.family.body}",
         "fontSize": "{pds3.core.font.size.14}",
@@ -7122,8 +7122,8 @@
     "type.body.md.default": {
       "$description": "Running text / default UI copy.",
       "meaning": "Type style — body md default (16px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text.",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{pds3.core.font.family.body}",
         "fontSize": "{pds3.core.font.size.16}",
@@ -7149,8 +7149,8 @@
     "type.body.md.default-italic": {
       "$description": "Running text / default UI copy (italic variant).",
       "meaning": "Type style — body md default italic (16px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text.",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{pds3.core.font.family.body}",
         "fontSize": "{pds3.core.font.size.16}",
@@ -7178,8 +7178,8 @@
     "type.body.md.strong": {
       "$description": "Running text / default UI copy.",
       "meaning": "Type style — body md strong (16px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text.",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{pds3.core.font.family.body}",
         "fontSize": "{pds3.core.font.size.16}",
@@ -7205,8 +7205,8 @@
     "type.body.md.strong-italic": {
       "$description": "Running text / default UI copy (italic variant).",
       "meaning": "Type style — body md strong italic (16px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text.",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{pds3.core.font.family.body}",
         "fontSize": "{pds3.core.font.size.16}",
@@ -7234,8 +7234,8 @@
     "type.body.lg.default": {
       "$description": "Running text / default UI copy.",
       "meaning": "Type style — body lg default (18px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text.",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{pds3.core.font.family.body}",
         "fontSize": "{pds3.core.font.size.18}",
@@ -7261,8 +7261,8 @@
     "type.body.lg.default-italic": {
       "$description": "Running text / default UI copy (italic variant).",
       "meaning": "Type style — body lg default italic (18px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text.",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{pds3.core.font.family.body}",
         "fontSize": "{pds3.core.font.size.18}",
@@ -7290,8 +7290,8 @@
     "type.body.lg.strong": {
       "$description": "Running text / default UI copy.",
       "meaning": "Type style — body lg strong (18px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text.",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{pds3.core.font.family.body}",
         "fontSize": "{pds3.core.font.size.18}",
@@ -7317,8 +7317,8 @@
     "type.body.lg.strong-italic": {
       "$description": "Running text / default UI copy (italic variant).",
       "meaning": "Type style — body lg strong italic (18px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text.",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{pds3.core.font.family.body}",
         "fontSize": "{pds3.core.font.size.18}",
@@ -7427,8 +7427,8 @@
     "type.caption.md.default": {
       "$description": "Caption / secondary small text.",
       "meaning": "Type style — caption md default (11px, caption face)",
-      "when_to_use": "Image captions, helper text, metadata, footnotes.",
-      "avoid_when": "Do not use for primary reading text (use body).",
+      "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{pds3.core.font.family.caption}",
         "fontSize": "{pds3.core.font.size.11}",
@@ -7454,8 +7454,8 @@
     "type.caption.md.strong": {
       "$description": "Caption / secondary small text.",
       "meaning": "Type style — caption md strong (11px, caption face)",
-      "when_to_use": "Image captions, helper text, metadata, footnotes.",
-      "avoid_when": "Do not use for primary reading text (use body).",
+      "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{pds3.core.font.family.caption}",
         "fontSize": "{pds3.core.font.size.11}",
@@ -7481,8 +7481,8 @@
     "type.caption.lg.default": {
       "$description": "Caption / secondary small text.",
       "meaning": "Type style — caption lg default (12px, caption face)",
-      "when_to_use": "Image captions, helper text, metadata, footnotes.",
-      "avoid_when": "Do not use for primary reading text (use body).",
+      "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{pds3.core.font.family.caption}",
         "fontSize": "{pds3.core.font.size.12}",
@@ -7508,8 +7508,8 @@
     "type.caption.lg.strong": {
       "$description": "Caption / secondary small text.",
       "meaning": "Type style — caption lg strong (12px, caption face)",
-      "when_to_use": "Image captions, helper text, metadata, footnotes.",
-      "avoid_when": "Do not use for primary reading text (use body).",
+      "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{pds3.core.font.family.caption}",
         "fontSize": "{pds3.core.font.size.12}",

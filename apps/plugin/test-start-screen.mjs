@@ -471,7 +471,7 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
         clickChanged = snap() !== before;
       }
       const o = {
-        tag: c.tagName.toLowerCase(), cls: typeof c.className === 'string' ? c.className : '', hook: c.getAttribute('data-p3'),
+        tag: c.tagName.toLowerCase(), cls: typeof c.className === 'string' ? c.className : '', hook: c.getAttribute('data-p3'), checked: c.getAttribute('aria-checked'),
         prop: c.disabled === true, aria: c.getAttribute('aria-disabled') === 'true', focusable, clickChanged,
         fill: cs.backgroundColor, ink: cs.color, edges: ['Top', 'Right', 'Bottom', 'Left'].map((x) => [cs[`border${x}Color`], cs[`border${x}Style`], parseFloat(cs[`border${x}Width`])]),
       };
@@ -587,6 +587,9 @@ console.log('\n8. the built panel is legible in both schemes and both Figma them
   const DISABLED_APPEARANCE = (o) => {
     if (['input', 'select', 'textarea'].includes(o.tag)) return 'field';
     const c = new Set(o.cls.split(/\s+/));
+    // The preview's mode control, held on Palettes (#2321): a segment takes the skin of what it draws at rest. The one
+    // selected draws an edge, so outline; the others draw none, so text (as X4 A maps the outline and ghost buttons).
+    if (c.has('p3-mode')) return o.checked === 'true' ? 'outline' : 'text';
     if (['p3-btn-primary', 'p3-next', 'p3-btn-danger'].some((k) => c.has(k))) return 'filled';
     if (['p3-btn-ghost', 'p3-check'].some((k) => c.has(k))) return 'text';
     return 'outline';

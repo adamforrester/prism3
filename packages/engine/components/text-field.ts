@@ -107,7 +107,7 @@ export const textField: ComponentDef = {
     // measured, `props` reach no emitted artifact and no Figma property, so nothing downstream carries
     // this name. Renaming only the state would have left one def spelling one concept two ways.
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Async validation/value — a spinner replaces an adornment without reflow; sets aria-busy; does not block typing unless intended.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Three tiers (height + padding). A single bordered (outline) style; filled/underline are theming, not API.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Three tiers that scale the input type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small input to 16px, because iOS Safari zooms the page when it focuses an input under 16px. A single bordered (outline) style; filled/underline are theming, not API.' },
     { name: 'id', type: 'string', required: false, description: 'Wiring + form submission; auto-generated with useId if omitted, tying label→input and the aria-describedby chain.' },
     { name: 'name', type: 'string', required: false, description: 'A real <input name> so the field works uncontrolled, in a native <form>, with useFormStatus / Server Actions, and the Constraint Validation API.' },
   ],
@@ -129,20 +129,27 @@ export const textField: ComponentDef = {
   states: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only', 'pending', 'empty'],
   // `status` is field-message's status axis by name and value — the alignment that lets the nested message
   // follow it (see the header). `style` stays as a code-API axis (one value, not projected — admitted in
-  // `anatomy.codeOnly`). SIZE IS NOT A VARIANTS AXIS: the `size` PROP + the `size.{small,medium,large}.*`
-  // geometry tokens are the code-API size ladder, and Figma projects the single `md` rung (the bare geometry
-  // keys). It is deliberately NOT in `variants`, because `size` is `figmaAnatomyPlan`'s positional argument:
-  // a def that DECLARES sizes must PROJECT one (the #795 guard throws on a declared-but-unprojected size), so
-  // "size in variants but not projected" is unrepresentable. This is exactly select's shape — select carries
-  // no `size` axis either and binds bare `md` geometry — so the single-projected-size field is expressed by
-  // the prop + tokens, not by a variant axis. The `size —` codeOnly entry records this for a reader.
+  // `anatomy.codeOnly`).
+  //
+  // SIZE IS A PROJECTED AXIS (#2266, owner decisions Q84 A and Q101 A: one field sizing system). Until then
+  // Figma carried the single `md` rung and `size` was a code-only prop. Now each size scales the input type
+  // (`body.sm/md/lg`), the nested label (one step below, by `follow`), the padding and the height.
+  //
+  // `medium` FIRST, deliberately, and the order is load-bearing rather than cosmetic. The set's first member
+  // is Figma's default variant, and it is also where an in-place update (#2265) lands every member of a set
+  // that GAINS this axis: `dryRunSet` gives an added axis the value the first plan carries. Every text-field
+  // built before #2266 IS the medium field (a 14 label over a 16 input, 44 tall), so medium first keeps those
+  // members' keys AND their look; `small` first would rewrite every existing field as the small one in place.
+  // It also makes the Figma default match the code default (`size: medium`). Owner-visible: the panel and
+  // the grid read medium, small, large (held on #2266).
   variants: {
+    size: ['medium', 'small', 'large'],
     style: ['outline'], // default; filled/underline are theming, not an API axis (not projected)
     status: ['default', 'error', 'warning', 'success'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
-  // `status` changes live as validation runs.
-  axisKinds: { style: 'authoring', status: 'runtime' },
+  // `status` changes live as validation runs; `size` is picked once per field.
+  axisKinds: { size: 'authoring', style: 'authoring', status: 'runtime' },
 
   // INPUT CHROME ONLY — label + message color/type live in field-label / field-message (composed).
   // Border is the one stateful slot: rest/hover from field.*, focus/read-only from generic border roles,
@@ -170,18 +177,13 @@ export const textField: ComponentDef = {
 
   // The spacing this spec states at comfortable, which density moves one step along the space ladder
   // (the spacing model, 2026-09-29). `root-gap` stays put: the field stack's spacing is not a density call.
-  densitySpacing: ['pad-x', 'pad-y', 'gap', 'size.{size}.pad-x', 'size.{size}.pad-y'],
+  densitySpacing: ['size.{size}.gap', 'size.{size}.pad-x', 'size.{size}.pad-y'],
 
   tokens: {
-    // ── GEOMETRY (bare keys — the SINGLE PROJECTED SIZE, the `md` rung, mirroring select) ──────────
+    // ── GEOMETRY (the size-independent keys; the per-size rungs are at the end of this block) ─────────
     'radius': 'radius.sm',
-    // #1437's 44px interactive-target floor, bound as select binds it: `size.md.min-height` = max(md, 44),
-    // so the input control meets the WCAG 2.5.5 enhanced target at every density. A field control IS the
-    // tap target. The code-API `size.{small,medium,large}.height` rungs below stay on the plain height.
-    'min-height': 'size.md.min-height',
-    'pad-x': 'space.200',
-    'pad-y': 'space.100',
-    'gap': 'space.100',
+    // The control's internal spacing is per size since #2266 (`size.{size}.gap`, 8px at every size), beside
+    // the padding it is ordered under (#325).
     // The stack spacing between label, control and message.
     'root-gap': 'space.100',
     // The leading and trailing glyphs share one artboard rung.
@@ -192,8 +194,6 @@ export const textField: ComponentDef = {
     // the FIELD offset is 0 — an input's own border supplies the separation.
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset-field',
-    // The value ink's type — running body text, one line.
-    'type': 'type.body.md.default',
 
     // ── FILL + HOVER WASH — the field chrome (#1341/#1342, inherited from select). `field.fill` is
     // TRANSPARENT by default, so at rest the control shows the page; hover does NOT swap to a solid but lays
@@ -232,12 +232,11 @@ export const textField: ComponentDef = {
     // ── THE FOCUS CARET (owner decision, 2026-09-26) — a thin bar immediately before the placeholder on the
     // focus-visible member, where every platform keeps the placeholder and draws the caret in the field's
     // text color. Its own `caret` slot, because at focus-visible `label` is the placeholder's secondary ink.
-    // Hairline wide and exactly one line of the value's type tall: `control.size.md.line-box` is body md's
-    // font size × line height, asserted per rung in `tree.ts` (#1201/#1220), the same `type` this field's
-    // text binds.
+    // Hairline wide and exactly one line of the value's type tall: `control.size.{sm,md,lg}.line-box` is body
+    // sm/md/lg's font size × line height, asserted per rung in `tree.ts` (#1201/#1220), the same `type` this
+    // field's text binds at each size (`size.{size}.caret-height`, below).
     'caret': 'color.text.primary',
     'caret-width': 'border-width.hairline',
-    'caret-height': 'control.size.md.line-box',
 
     // ── BORDER — stateful, with the status-led swaps (border-ONLY). `border` (bare) is the rest value;
     // `border.hover` / `border.focus-visible` / `border.read-only` are the interactive states;
@@ -296,19 +295,31 @@ export const textField: ComponentDef = {
     'disabled.label.on-fill': 'color.disabled.on-fill',
     'disabled.icon.on-fill': 'color.disabled.on-fill',
 
-    // ── CODE-API SIZE GEOMETRY — the small/medium/large rungs a code consumer picks from, kept as the size
-    // axis (#1494). NOT projected: Figma renders the single `md` rung above; the `size` axis is admitted out
-    // in `anatomy.codeOnly`. Unreferenced by the anatomy (which binds the bare `md` keys), which is fine —
-    // `anatomyErrors` requires the keys the anatomy names to exist, not the reverse.
-    'size.small.height': 'size.sm.height',
+    // ── THE SIZE RUNGS (#2266) — projected since the field sizing system; the code API picks the same rung.
+    // HEIGHT: #1437's 44px interactive-target floor holds at every size (owner decision Q6). `size.md.min-height`
+    // = max(size.md.height, 44), so small and medium both bind it: small is smaller TYPE and padding, not a
+    // smaller target (`size.sm.height` is 36, under the floor). Large binds its own taller rung.
+    // TYPE: the input scales with the field (Q5, answering #862) — small 14, medium 16, large 18 — and the
+    // nested label sits one body step below it (field-label's own ladder, 12 / 14 / 16). The caret is one line
+    // of that type tall.
+    'size.small.height': 'size.md.min-height',
     'size.small.pad-x': 'space.200',
     'size.small.pad-y': 'space.075',
-    'size.medium.height': 'size.md.height',
+    'size.small.gap': 'space.100',
+    'size.small.type': 'type.body.sm.default',
+    'size.small.caret-height': 'control.size.sm.line-box',
+    'size.medium.height': 'size.md.min-height',
     'size.medium.pad-x': 'space.200',
     'size.medium.pad-y': 'space.100',
+    'size.medium.gap': 'space.100',
+    'size.medium.type': 'type.body.md.default',
+    'size.medium.caret-height': 'control.size.md.line-box',
     'size.large.height': 'size.lg.height',
     'size.large.pad-x': 'space.300',
     'size.large.pad-y': 'space.100',
+    'size.large.gap': 'space.100',
+    'size.large.type': 'type.body.lg.default',
+    'size.large.caret-height': 'control.size.lg.line-box',
   },
 
   // ── ANATOMY (#1494) — a column composing the two nested field parts around the input control ─────
@@ -343,40 +354,42 @@ export const textField: ComponentDef = {
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-exposed', variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['size', 'emphasis', 'weight'] },
+        // `size` FOLLOWS the field's (#2266): a small field nests the small label, so the pair stays one body step
+        // apart at every size. `emphasis` and `weight` stay the consumer's.
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'] },
         // FILLS the field's width (#1757, select's #1503 shape): the label stretches across the column the
         // control holds at 320. The name wraps at field-label's own max width (#1762), not the field's.
         crossAxisFill: true,
-        note: 'The accessible name, composed rather than re-declared. Nest-exposed: its label text, required marker and size/emphasis/weight surface on the text-field; a fix to FieldLabel still reaches this without a copy. Starts at the field default (small / secondary / regular). Fills the field\'s width; a long name wraps at FieldLabel\'s max width.',
+        note: 'The accessible name, composed rather than re-declared. Its size follows the field\'s, one step below the input; its label text, required marker, emphasis and weight surface on the text-field. A fix to FieldLabel still reaches this without a copy. Starts secondary and regular. Fills the field\'s width; a long name wraps at FieldLabel\'s max width.',
       },
       // THE CONTROL — the bordered, interactive input box. The single target: it owns the hit area, the focus
       // ring and the stateful border. Paints its fill, border and the hover overlay wash (`paintSlots`,
-      // precedence overlay > fill — #1341/#1342); holds the field's width (its 320 floor) and a fixed
-      // single-line height floored at 44px (#1437). `content` grows across it (#1751), so the trailing affix
+      // precedence overlay > fill — #1341/#1342); fills the field's width (down to its 120 floor) at a fixed
+      // single-line height floored at 44px (#1437) at every size. `content` grows across it (#1751), so the trailing affix
       // sits at the trailing edge at every value length.
       control: {
         kind: 'box',
         role: 'target',
         paintSlots: ['overlay', 'fill', 'border'],
         layout: { direction: 'row', align: 'center', justify: 'space-between', sizing: { x: 'fill', y: 'fixed' } },
-        height: 'min-height',
-        // THE COMFORTABLE DEFAULT WIDTH (#1518, owner: parity with select) — a MIN-WIDTH not a fixed width,
-        // the `select` #1345 precedent adopted key-for-key. The floor sits on the visible control; the label
-        // and message stretch across the column (#1751) and `content` grows inside the control, so the whole
-        // field reads at 320. Since #2292 the control FILLS the root, which is built at 320 (`placementWidth`),
-        // so a field set to fill its column stretches the box; the floor still holds it at 320 or wider. A long value does
-        // not widen it: it clips at `content`'s edge (#1758, below). A LITERAL, not a token — 320 is a
-        // projection default in 8px increments, not a semantic `field.width` role (#1343 owner decision) — so
-        // no emitted token NAME moves and `CONTRACT_VERSION` stands.
-        minWidth: 320,
+        height: 'size.{size}.height',
+        // FIELDS SHRINK TO THEIR COLUMN (#1345, owner decision Q99 B, #2266). The comfortable default width
+        // (320, #1518) is the ROOT's `placementWidth` (#2292), so an unplaced field still reads at 320 and a
+        // field set to fill its column stretches the box. This floor used to be 320 too, which held a field in
+        // a narrower column at 320 and overflowed it; it is now a small minimum, so the field shrinks with its
+        // column. 120 holds the padding, a glyph and a few characters (DRAFT for the owner on #2266). A long value
+        // does not widen it: it clips at `content`'s edge (#1758, below). A LITERAL, not a token — a projection
+        // default in 8px increments, not a semantic `field.width` role (#1343 owner decision) — so no emitted
+        // token NAME moves.
+        minWidth: 120,
         radius: 'radius',
         // The edge weight (#1266's field) — 1px field hairline, bound rather than left to the executors'
         // fallback so a brand re-runging its border floor moves it.
         strokeWidth: 'border-width',
         // Symmetric padding — the leading glyph sits inside `content`, not against the box edge, so no #326
         // slot-aware asymmetry; both inline sides fall back to the label inset.
-        padding: { block: 'pad-y', inlineLabel: 'pad-x' },
-        gap: 'gap',
+        padding: { block: 'size.{size}.pad-y', inlineLabel: 'size.{size}.pad-x' },
+        gap: 'size.{size}.gap',
         children: ['content', 'trailingVisual', 'focusRing'],
       },
       // THE VALUE ROW — leading glyph + value text. Grows across the control on both surfaces (#1751): FIXED
@@ -388,7 +401,7 @@ export const textField: ComponentDef = {
         // behavior: in code the input scrolls with the caret, so the full text stays reachable, and in Figma
         // it is cut at this frame's edge, with no ellipsis, rather than drawing over the trailing affix.
         clipsContent: true,
-        gap: 'gap',
+        gap: 'size.{size}.gap',
         children: ['leadingVisual', 'entry'],
       },
       // THE OPTIONAL LEADING GLYPH. A swap slot whose PRESENCE is a node-visibility BOOLEAN (#1331): the node
@@ -411,13 +424,13 @@ export const textField: ComponentDef = {
       },
       // THE FOCUS CARET (owner decision, 2026-09-26) — present only at focus-visible (`presentWhen` on the
       // state, the schema's `STATE_GATE`). A childless bar painting its own `caret` slot. One hairline wide and
-      // one value line tall, so it adds no height, and 1px of width inside a control held at its 320 floor.
+      // one value line tall at each size, so it adds no height, and 1px of width inside the control.
       caret: {
         kind: 'box',
         role: 'presentation',
         paintSlots: ['caret'],
         width: 'caret-width',
-        height: 'caret-height',
+        height: 'size.{size}.caret-height',
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fixed', y: 'fixed' } },
         presentWhen: { state: ['focus-visible'] },
         note: 'The insertion point on the focused empty field, immediately before the placeholder, in the value ink. Code draws the native caret, colored by `caret-color`.',
@@ -428,13 +441,13 @@ export const textField: ComponentDef = {
       // nodes, each with its own TEXT property and default, gated on complementary states, can.
       placeholder: {
         kind: 'text',
-        type: 'type',
+        type: 'size.{size}.type',
         presentWhen: { state: ['rest', 'hover', 'focus-visible', 'disabled', 'empty'] },
         note: 'The placeholder, in the placeholder ink (the disabled ink when disabled). Shown on the empty field: rest, hover, focus and disabled. One line; a long one clips at the value row\'s edge.',
       },
       value: {
         kind: 'text',
-        type: 'type',
+        type: 'size.{size}.type',
         presentWhen: { state: ['filled', 'read-only', 'pending'] },
         note: 'The entered value, in the value ink. Shown on the filled and read-only field. One line, never ellipsized (#1758): in code it scrolls with the caret, and in Figma a long value clips at the value row\'s edge.',
       },
@@ -474,16 +487,16 @@ export const textField: ComponentDef = {
         nesting: { kind: 'nest-fixed', variant: { status: 'default' }, follow: ['status'] },
         optional: true,
         // FILLS the field's width (#1757, owner: parity with select and textarea): the message stretches across
-        // the column the control holds at 320, so a long message wraps at the field's width.
+        // the field's column, so a long message wraps at the field's width. One size at every field size (Q8).
         crossAxisFill: true,
         note: 'Helper or validation text, composed rather than re-declared. Its status follows the field\'s validation by name, so error / warning / success reach the message without a value mapping. Shown by default; the `showMessage` boolean hides the whole part where the field has nothing to say. Fills the field\'s width, so a long message wraps.',
       },
     },
     codeOnly: [
-      'size — the small / medium / large ladder is a code-API PROP + geometry tokens (`size.{small,medium,large}.*`), NOT a variants axis and NOT a projected Figma variant. Figma renders the single `md` rung (the bare geometry keys — the field control is one interactive target, and a projected size axis would triple the set for geometry a designer reads off one member); a code consumer picks the density via the `size` prop. It is kept off `variants` deliberately: `size` is `figmaAnatomyPlan`\'s positional argument, so a declared size axis MUST project a rung (#795), which is why select — the template for this def — also expresses its single size as bare `md` geometry rather than a `size` variant. Same not-projected posture as the `style` axis, reached a different way.',
+      'the SMALL field on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses an input whose text is under 16px, and the small field\'s input is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small input\'s font size to 16px, which keeps the page still. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. On a touch device the small field therefore pairs a 12px label with a 16px input. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).',
       'style — the outline / filled / underline treatment is theming, not an API axis: `style` carries the single value `outline` and filled/underline are a brand skin over the same anatomy, so there is nothing for a Figma variant to enumerate. Admitted here rather than projected.',
       'pending — a real STATE (a spinner replaces an adornment while async validation/value resolves, and the field sets aria-busy), deliberately NOT a Figma variant. Its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix — the pending member would differ from `rest` only by a node Figma cannot animate — so it stays in `states` (the code tier carries it) and is admitted OUT of the projected `stateAxis`.',
-      'empty — a real STATE in code (the field holds no value, so it shows the placeholder), NOT a Figma variant: in Figma the empty field IS the rest, hover and focus-visible members, which show the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left blank" coordinate) and is held out of the projected `stateAxis` with `pending`, leaving status(4) × state(6) = 24 members over rest / hover / filled / focus-visible / disabled / read-only. In code the placeholder and the value are one <input>: its `placeholder` attribute and its value, never two elements.',
+      'empty — a real STATE in code (the field holds no value, so it shows the placeholder), NOT a Figma variant: in Figma the empty field IS the rest, hover and focus-visible members, which show the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left blank" coordinate) and is held out of the projected `stateAxis` with `pending`, leaving size(3) × status(4) × state(6) = 72 members over rest / hover / filled / focus-visible / disabled / read-only. In code the placeholder and the value are one <input>: its `placeholder` attribute and its value, never two elements.',
       'the FOCUS CARET — Figma draws a static bar before the placeholder on the focus-visible member. Code draws the browser\'s native caret, blinking, at the insertion point, with `caret-color` set from `color.text.primary` (the `caret` binding), so it keeps the value ink over the placeholder\'s muted one.',
       'the TRAILING AFFIX is an INTERACTIVE control in code — a clear or reveal button that is its own Tab stop with its own accessible name (see the `trailingIcon` / `clearable` props and the a11y block) and RETURNS focus to the input when it acts. Figma has no accessibility tree and no node-to-node reference, so `trailingVisual` projects ONLY the glyph: a member cannot express that the affix is focusable, labeled, or that activating it clears the field. The presence boolean + swap carry which glyph shows and whether it shows; the interaction is the host\'s.',
       'prefix / suffix — the TEXT affixes (a currency symbol, a unit) are code-API props with no Figma part. The field projects the two glyph slots (`leadingIcon` / `trailingIcon`); a text affix is a string beside the value in the same row, and adding it to the projection is a separate anatomy decision (#1699).',
@@ -493,13 +506,13 @@ export const textField: ComponentDef = {
     ],
   },
 
-  // How this projects into Figma (#1494). `status` is the one variant axis; `state` projects the five
+  // How this projects into Figma (#1494, #2266). `size` and `status` are the variant axes; `state` projects the five
   // interactive states (read-only INCLUDED — select gained it in #1699) plus `filled`, the member holding a
   // value. The leading and trailing glyphs' PRESENCE and the message's are node-visibility BOOLEANS, NOT variant
-  // axes, so none multiplies the set: status(4) × state(6) = 24 members. `pending` and `empty` are real states (see `states` and the codeOnly
+  // axes, so none multiplies the set: size(3) × status(4) × state(6) = 72 members. `pending` and `empty` are real states (see `states` and the codeOnly
   // entries leading with those names) but are deliberately absent from this projected axis.
   figmaProperties: {
-    variantAxes: ['status'],
+    variantAxes: ['size', 'status'],
     stateAxis: { name: 'state', values: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only'] },
     // `state` across the columns — the axis a designer reads a control's skin across, and the widest here.
     gridAxis: 'state',
@@ -511,7 +524,7 @@ export const textField: ComponentDef = {
       value: { part: 'value', default: 'Entered text' },
     },
     // THREE NODE-VISIBILITY BOOLEANS (#1331/#1412/#1494), none a variant axis — each toggles a part's
-    // `visible` in place, so none multiplies the set (still 24 members).
+    // `visible` in place, so none multiplies the set (still 72 members).
     //   · `leadingIcon`: `leadingVisual` is emitted hidden (default false) and the `leading icon` switch shows it.
     //   · `trailingIcon`: `trailingVisual` is emitted hidden (default false) and the `trailing icon` switch shows it.
     //   · `showMessage`: the composed `message` nest is emitted VISIBLE (default true — the message is part of the
@@ -553,7 +566,7 @@ export const textField: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use for free-form, non-enumerable single-line input — names, titles, SKUs, identifiers, short queries. Always render a visible label; show the format in helper text before failure; keep validation timing with the form library. The field nests FieldLabel above and FieldMessage below; the host wires the ids and aria-describedby chain.',
+    usage: 'Use for free-form, non-enumerable single-line input — names, titles, SKUs, identifiers, short queries. Always render a visible label; show the format in helper text before failure; keep validation timing with the form library. The field nests FieldLabel above and FieldMessage below; the host wires the ids and aria-describedby chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small input renders at 16px, because a smaller input makes iOS zoom the page on focus.',
     do: [
       'Always render a visible, associated label (FieldLabel) — visually-hidden only for search',
       'Distinguish readOnly (copyable, submitted, full-contrast) from disabled (silent, exempt)',
@@ -606,7 +619,7 @@ export const textField: ComponentDef = {
     ],
     unverified: [
       'Polaris migration to framework-agnostic Web Components (<s-text-field>, Shadow DOM) — needs _source-text backing, shared with the Button brief (brief §11, §14).',
-      'The field\'s width (#1518, #1757, #2292): the root is built at 320 (`placementWidth`), the control fills it above its own `minWidth: 320` floor, the label and the message stretch across it (`crossAxisFill`, with the nested instance\'s own FIXED mode), and `content` grows inside the control. So an unplaced field reads at 320 and a field set to fill its column stretches the input box with it, the message wraps at that width, the label\'s name wraps at FieldLabel\'s own 316 max width (#1762), and a long value clips at `content`\'s edge instead of widening the field. Measured on the offline host; whether the live host keeps a stretch on a nested INSTANCE is the standing nesting caveat.',
+      'The field\'s width (#1518, #1757, #2292): the root is built at 320 (`placementWidth`), the control fills it down to its own `minWidth: 120` floor (#2266, Q99 B: a field shrinks with a narrower column), the label and the message stretch across it (`crossAxisFill`, with the nested instance\'s own FIXED mode), and `content` grows inside the control. So an unplaced field reads at 320 and a field set to fill its column stretches the input box with it, the message wraps at that width, the label\'s name wraps at FieldLabel\'s own 316 max width (#1762), and a long value clips at `content`\'s edge instead of widening the field. Measured on the offline host; whether the live host keeps a stretch on a nested INSTANCE is the standing nesting caveat.',
       'A long value or placeholder CLIPS at `content`\'s edge in Figma (`clipsContent`, #1758), with no ellipsis — the native single-line input it stands for scrolls with the caret, so the full text stays reachable in code. The clip is modelled offline; the live host has not been checked.',
       'The leading and trailing glyphs are node-visibility BOOLEANS (#1331/#1494): each node is built hidden and shown by its switch. In Figma auto-layout a `visible:false` child is excluded from the flow, so a hidden glyph should add no gap — but whether a real host reflows `content` / the control when a switch toggles is a host question no Node gate answers. Symptom on a real host: a persistent gap where a hidden glyph sits, or the trailing affix not pinning tight when off.',
     ],

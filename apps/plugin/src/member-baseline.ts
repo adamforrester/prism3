@@ -54,7 +54,10 @@ export const BASELINE_KEY = 'memberAsBuilt';
  *  member's other differences from its record as the update's own writes, not as hand edits, so a run that
  *  stopped part-way finishes when it is run again instead of keeping its own changes. */
 export const UPDATING_KEY = 'memberUpdating';
-export const BASELINE_V = 2;
+/** 3 (#2379 review): an instance's main and a node's text or effect style are hashed by NAME, never by key. A file
+ *  Figma duplicates gives its components and styles new keys, so a v2 record read every instance and styled text in a
+ *  copy as a hand edit. A record in another `v` is not read at all (`readBaseline`): the member has no record. */
+export const BASELINE_V = 3;
 
 /** A node as the snapshot holds it: plain data, read once, so the hash and the read-back both read the
  *  same values, and nothing reads a getter Figma forbids under `documentAccess: dynamic-page`. */
@@ -115,6 +118,24 @@ export const mainOf = async (n: LiveNode): Promise<Record<string, unknown> | nul
  * an instance's (see the header). `parent.width` is kept, non-enumerable, for the one read-back predicate
  * that measures against the parent.
  */
+/** A style's NAME by its id, from the host when there is one (the plugin), cached for the run; the id itself where
+ *  there is no host to ask (a shim names its styles `S:<name>`). Names, not ids, because an id carries the style's key,
+ *  and a duplicated file gives every style a new one (#2379 review). */
+const styleNames = new Map<string, string>();
+const styleNameOf = async (id: string): Promise<string> => {
+  if (styleNames.has(id)) return styleNames.get(id)!;
+  let name = id;
+  try {
+    const host = (globalThis as { figma?: { getStyleByIdAsync?(id: string): Promise<{ name?: unknown } | null> } }).figma;
+    const st = host?.getStyleByIdAsync ? await host.getStyleByIdAsync(id) : null;
+    if (st && typeof st.name === 'string' && st.name) name = st.name;
+  } catch { /* the id, as before */ }
+  styleNames.set(id, name);
+  return name;
+};
+/** Drops the style-name cache: a test that renames or re-ids styles between reads. */
+export const resetStyleNames = (): void => styleNames.clear();
+
 export const snapshotMember = async (root: unknown): Promise<SnapNode> => {
   const walk = async (raw: unknown, parentWidth: unknown): Promise<SnapNode> => {
     const n = raw as LiveNode;
@@ -126,6 +147,8 @@ export const snapshotMember = async (root: unknown): Promise<SnapNode> => {
       const p = plain(v);
       if (p !== undefined) out[k] = p;
     }
+    for (const [k, to] of [['textStyleId', 'textStyleName'], ['effectStyleId', 'effectStyleName']] as const)
+      if (typeof out[k] === 'string' && out[k]) out[to] = await styleNameOf(out[k] as string);
     Object.defineProperty(out, 'parent', { enumerable: false, value: { width: parentWidth } });
     if (out.type === 'INSTANCE') {
       const main = await mainOf(n);
@@ -207,16 +230,17 @@ export const nodeSignature = (n: SnapNode): string => {
     if (Array.isArray(v)) sig[k] = v.map(paintSig);
     else if (v !== undefined) { const b = (bv[k] as unknown[] | undefined)?.map(idOf); sig[k] = b ?? v; }
   }
-  if (typeof n.textStyleId === 'string' && n.textStyleId) sig.textStyle = n.textStyleId;
+  if (typeof n.textStyleId === 'string' && n.textStyleId) sig.textStyle = n.textStyleName ?? n.textStyleId;
   else for (const k of ['fontSize', 'lineHeight', 'fontName', 'letterSpacing'] as const) if (n[k] !== undefined) sig[k] = JSON.stringify(n[k], (_k, v) => round(v));
-  if (typeof n.effectStyleId === 'string' && n.effectStyleId) sig.effectStyle = n.effectStyleId;
+  if (typeof n.effectStyleId === 'string' && n.effectStyleId) sig.effectStyle = n.effectStyleName ?? n.effectStyleId;
   else if (Array.isArray(n.effects) && n.effects.length) sig.effects = JSON.stringify(n.effects, (_k, v) => round(v));
   const refs = (n.componentPropertyReferences ?? null) as Record<string, string> | null;
   if (refs && Object.keys(refs).length) sig.refs = Object.entries(refs).sort(([a], [b]) => (a < b ? -1 : 1));
   if (typeof n.characters === 'string' && !refs?.characters) sig.characters = n.characters;
   if (n.type === 'INSTANCE') {
     const m = n.mainComponent as { name?: string; key?: string; parent?: { name?: string; type?: string } | null } | undefined;
-    sig.main = m?.key ?? (m?.parent?.type === 'COMPONENT_SET' ? `${m.parent.name}/${m.name}` : m?.name ?? null);
+    // By name (v3): the key is the file's, and a duplicate of the file gives the main a new one.
+    sig.main = m?.parent?.type === 'COMPONENT_SET' ? `${m.parent.name}/${m.name}` : m?.name ?? null;
     const props = n.componentProperties as Record<string, { type?: unknown; value?: unknown }> | undefined;
     if (props) sig.props = Object.entries(props).map(([k, p]) => [k, p?.type, p?.value]).sort(([a], [b]) => (String(a) < String(b) ? -1 : 1));
   }
@@ -251,6 +275,16 @@ export const baselineOf = (snap: SnapNode): Baseline => {
 };
 
 type DataNode = { getSharedPluginData?: (ns: string, k: string) => string; setSharedPluginData?: (ns: string, k: string, v: string) => void };
+
+/** The format (`v`) of the record a member carries, whatever it is, or `null` for none or an unreadable one: tells a
+ *  member whose record is from an earlier format (and so is not read) from one that never had a record. */
+export const recordFormat = (node: unknown): number | null => {
+  try {
+    const raw = (node as DataNode).getSharedPluginData?.(NS, BASELINE_KEY) ?? '';
+    const v = raw ? (JSON.parse(raw) as { v?: unknown }).v : null;
+    return typeof v === 'number' ? v : null;
+  } catch { return null; }
+};
 
 /** The stored baseline, or `null` for a member that has none, an unreadable one, or one in another `v`. */
 export const readBaseline = (node: unknown): Baseline | null => {
