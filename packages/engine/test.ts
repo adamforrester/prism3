@@ -4252,9 +4252,10 @@ arm: {
   // Nine collections, ten axes: #1097 merged `core-palette`/`core-dimension`/`core-font` into ONE `core`
   // collection, so `core/dimension` is a SLICE of a collection rather than a collection of its own. The
   // count moves 10 → 9 for that reason and no other.
-  const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'layout'];
+  // `motion` joined in #2394: FLOAT milliseconds, the first float collection with no scope.
+  const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'layout', 'motion'];
   ok(EXPECTED.every((n) => names.includes(n)) && names.length === EXPECTED.length,
-    `float-plan: ten collections present (${names.join(', ')})`);
+    `float-plan: eleven collections present (${names.join(', ')})`);
 
   // Single-mode dims axes vs per-breakpoint layout.
   ok(auroraFloat.find((c) => c.name === 'core')!.modes.join(',') === 'Default',
@@ -23321,6 +23322,89 @@ arm: {
     'figmaArtifacts: every artifact parses as JSON');
   ok(new Set(arts.map((a) => a.path)).size === arts.length,
     'figmaArtifacts: no two artifacts claim the same path (a collision would silently drop a file)');
+}
+
+// ---- motion in Figma (#2394): FLOAT milliseconds, no scope, the DTCG's names ---------------------------
+// EXPECTED is typed here, row by row, from the DTCG motion ramp of each brief (`out/<brand>.tokens.json`,
+// read once by hand) — never from the emitter. `[name below the root, ms, alias target below the root]`;
+// a primitive has no alias. NB runs the standard tempo; aurora runs snappy, so its ramp is a different
+// set of numbers, including a 30ms stagger and an 80ms primitive NB does not have.
+{
+  type Row = [string, number, string | null];
+  const prim = (ms: number): Row => [`motion/duration-ms/${ms}`, ms, null];
+  const sem = (name: string, ms: number): Row => [`motion/${name}`, ms, `motion/duration-ms/${ms}`];
+  const NB_MOTION: Row[] = [
+    ...[0, 40, 50, 100, 200, 300, 500, 800, 2600].map(prim),
+    sem('duration/instant', 50), sem('duration/fast', 100), sem('duration/normal', 200), sem('duration/moderate', 300),
+    sem('duration/slow', 500), sem('duration/slower', 800), sem('duration/spin', 800),
+    sem('duration-reduced/instant', 50), sem('duration-reduced/fast', 100), sem('duration-reduced/normal', 50),
+    sem('duration-reduced/moderate', 0), sem('duration-reduced/slow', 0), sem('duration-reduced/slower', 0),
+    sem('duration-reduced/spin', 2600),
+    sem('stagger', 40),
+  ];
+  const AURORA_MOTION: Row[] = [
+    ...[0, 30, 40, 50, 80, 160, 240, 400, 640, 800, 2600].map(prim),
+    sem('duration/instant', 40), sem('duration/fast', 80), sem('duration/normal', 160), sem('duration/moderate', 240),
+    sem('duration/slow', 400), sem('duration/slower', 640), sem('duration/spin', 800),
+    sem('duration-reduced/instant', 40), sem('duration-reduced/fast', 80), sem('duration-reduced/normal', 50),
+    sem('duration-reduced/moderate', 0), sem('duration-reduced/slow', 0), sem('duration-reduced/slower', 0),
+    sem('duration-reduced/spin', 2600),
+    sem('stagger', 30),
+  ];
+
+  /** The emitted `motion.json` of a theme, through the same shell regen writes with. */
+  const motionFile = (theme: Theme): FigmaCollectionFile | undefined => {
+    const a = figmaArtifacts(theme).artifacts.find((x) => x.path === 'motion.json');
+    return a ? JSON.parse(a.content) : undefined;
+  };
+  const check = (brand: string, theme: Theme | undefined, expected: Row[]): void => {
+    if (!theme) return;
+    const root = theme.root;
+    const file = motionFile(theme);
+    ok(!!file && file.$collection === 'motion' && file.$mode === 'Default',
+      `motion (${brand}): one motion.json, collection motion, mode Default (${file ? `${file.$collection}/${file.$mode}` : 'absent'})`);
+    if (!file) return;
+    const byName = new Map(file.variables.map((v) => [v.name, v]));
+    for (const [tail, ms, alias] of expected) {
+      const v = byName.get(`${root}/${tail}`);
+      ok(!!v, `motion (${brand}): ${tail} is emitted`);
+      if (!v) continue;
+      ok(v.value === ms, `motion (${brand}): ${tail} is ${ms}ms (got ${v.value})`);
+      ok((v.alias?.name ?? null) === (alias ? `${root}/${alias}` : null),
+        `motion (${brand}): ${tail} aliases ${alias ?? 'nothing'} (got ${v.alias?.name ?? 'nothing'})`);
+      ok(v.resolvedType === 'FLOAT' && Array.isArray(v.scopes) && v.scopes.length === 0,
+        `motion (${brand}): ${tail} is a FLOAT with no scope (Figma has no time scope) — got ${v.resolvedType} [${v.scopes}]`);
+      ok(!!v.hiddenFromPublishing === (alias === null),
+        `motion (${brand}): ${tail} is ${alias === null ? 'hidden from publishing (a primitive)' : 'published (a semantic)'}`);
+    }
+    const extra = file.variables.map((v) => v.name).filter((n) => !expected.some(([t]) => `${root}/${t}` === n));
+    ok(extra.length === 0 && file.variables.length === expected.length,
+      `motion (${brand}): exactly the ${expected.length} expected variables${extra.length ? ` — extra: ${extra.join(', ')}` : ''}`);
+  };
+  check('nb', nbTheme(), NB_MOTION);
+  check('aurora', exampleTheme('aurora', () => brandTheme(exampleBrands()['aurora'] as BrandInput)), AURORA_MOTION);
+
+  // Apply Theme writes it: the float plan carries the collection, same rows.
+  const nbMotionPlan = buildFloatWritePlan(nbTheme()).find((c) => c.name === 'motion');
+  ok(!!nbMotionPlan && nbMotionPlan.modes.join() === 'Default' && nbMotionPlan.create.length === NB_MOTION.length,
+    `motion: the float write plan carries the motion collection, one Default mode, ${NB_MOTION.length} rows (${nbMotionPlan?.create.length})`);
+  ok(!!nbMotionPlan && nbMotionPlan.aliases.find((a) => a.name === `${NB_ROOT}/motion/stagger`)?.targetsByMode[0] === `${NB_ROOT}/motion/duration-ms/40`,
+    'motion: the float plan binds nb stagger to the 40ms primitive');
+
+  // A per-mode tempo (dark runs relaxed, ×1.3) becomes a mode, the radius way: the semantic re-points at the
+  // mode's primitive, and the files switch to per-mode names. Relaxed normal is 260ms, stagger 50ms.
+  const pm = brandTheme({ id: 'mm', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 }, modeLevers: { dark: { tempo: 'relaxed' } } } as unknown as BrandInput);
+  const pmPaths = figmaArtifacts(pm).artifacts.map((a) => a.path).filter((p) => /^motion\./.test(p)).sort();
+  ok(pmPaths.join() === 'motion.Default.json,motion.dark.json', `motion: a per-mode tempo switches to per-mode files (${pmPaths.join()})`);
+  const pmPlan = buildFloatWritePlan(pm).find((c) => c.name === 'motion');
+  const pmNormal = pmPlan?.create.find((r) => r.name === `${pm.root}/motion/duration/normal`);
+  const pmNormalAlias = pmPlan?.aliases.find((a) => a.name === `${pm.root}/motion/duration/normal`);
+  ok(pmPlan?.modes.join() === 'Default,dark' && pmNormal?.valuesByMode.join() === '200,260'
+    && pmNormalAlias?.targetsByMode.join() === `${pm.root}/motion/duration-ms/200,${pm.root}/motion/duration-ms/260`,
+    `motion: dark re-points duration/normal 200 → 260ms (modes ${pmPlan?.modes.join()}, values ${pmNormal?.valuesByMode.join()})`);
+  ok(pmPlan?.create.find((r) => r.name === `${pm.root}/motion/stagger`)?.valuesByMode.join() === '40,50',
+    'motion: dark re-points stagger 40 → 50ms');
+  ok(/260ms in dark/.test(pmNormal?.description ?? ''), `motion: the one description names the dark value (${pmNormal?.description})`);
 }
 
 // ---- export_theme: the manifest is the result, and outDir is model-controlled ------------------

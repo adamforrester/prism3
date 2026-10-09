@@ -85,6 +85,9 @@ const ADDED: Record<string, number> = {
   // #709 — OPACITY-scoped values exported 100× out of DTCG range. The pre-existing coverage
   // asserted the `$type` and never the value, which is how a 100× range error passed a green suite.
   'tests/unit/opacity-percent-to-fraction.test.ts': 11,
+  // prism3 #2394 — `motion/stagger` is a duration, not a number; written into Figma as a FLOAT with no
+  // scope, it is typed back by name like the rest of `motion/duration…`.
+  'tests/unit/motion-stagger-duration.test.ts': 4,
 };
 
 // ---- the harness checks itself first -------------------------------------------------------
