@@ -74,7 +74,6 @@ export const imagePlaceholder: ComponentDef = {
 
   props: [
     { name: 'ratio', type: "enum: '2:3' | '3:4' | '4:5' | '1:1' | '4:3' | '3:2' | '16:9'", values: ['2:3', '3:4', '4:5', '1:1', '4:3', '3:2', '16:9'], default: '4:3', required: false, description: 'The width-to-height PROPORTION the frame holds while its actual size flexes — portrait (2:3, 3:4 for apparel tiles, 4:5), a square (1:1), or landscape (the classic photo ratio 4:3, 3:2, widescreen 16:9). It is an aspect-ratio LOCK, not a pair of fixed dimensions: the frame derives its height from its width (or the reverse) so the shape survives being resized. Pick it from the media the frame will hold.' },
-    { name: 'showMarker', type: 'boolean', required: false, default: true, description: 'Whether the centered "no image" marker draws. On by default, for the empty state; turn it off once an image is supplied, so the marker never sits on top of the photo. The Figma set carries it as the `Marker` boolean, default on, so both surfaces start from the same default.' },
   ],
 
   // `[]` — an image placeholder is not interactive of itself. Dropping an image onto it is a native
@@ -174,6 +173,7 @@ export const imagePlaceholder: ComponentDef = {
       'aspect-lock derive — the frame holds its RATIO while its real size flexes, and Figma expresses that as an aspect-ratio LOCK (`lockAspectRatio()`) that DERIVES the second dimension from the first. The engine binds ONE nominal dimension and locks the ratio; that a variable BINDING on the single axis makes Figma derive the other at PASTE time (as a resize does) is a live-file behavior no offline host can witness, filed for the real-host round-trip arm (`tools/component-roundtrip/`). What the offline gates hold is the lock capturing the right ratio, read back as `targetAspectRatio`.',
       'raster swap — dropping an actual photograph onto the frame is a NATIVE Figma action (an image fill), not a modeled slot or variant. This def models the frame and its empty state; the image the designer supplies is theirs.',
       'scrim/veil and play-circle overlays — DEFERRED to a follow-up (#1316 residue, owner-held). A wash for text over the image nests the `veil` component, and a video affordance nests the `play-circle` glyph; both are compositions this core empty-state frame does not carry. Named here so the absence reads as a deferral rather than a gap.',
+      'marker — in code the "no image" marker draws while no image is supplied and goes once one is, so it is derived, not a prop (owner decision Q163.4b A). Figma cannot tell that a fill is a photograph, so the Figma set carries a Figma-only `Marker` toggle, on by default, that a designer turns off once an image is in.',
       'the ratio is a magnitude of SHAPE, not a state — 2:3 through 16:9 is a proportion a designer selects, carried by Figma as a variant coordinate, never a runtime state. An image placeholder has no interaction states at all (`states: []`).',
     ],
   },
@@ -194,8 +194,10 @@ export const imagePlaceholder: ComponentDef = {
     // ONE boolean (#2345): `Marker` shows or hides the "no image" marker. Figma has no signal a component can
     // read for "an image fill is on this frame", so a designer who drops a photo on turns the marker off here.
     // A node-visibility boolean (#1331), not an image-bearing variant, so the set stays at seven members
-    // rather than fourteen. Default on, matching `showMarker`'s code default.
-    booleans: { showMarker: { part: 'marker', default: true, figmaName: 'Marker' } },
+    // rather than fourteen. Default on, so a fresh instance shows the empty state. FIGMA-ONLY (#2419's form, owner
+    // decision Q163.4b A): code has no `showMarker` prop, because in code the marker follows whether an image is
+    // supplied (see `codeOnly`), and a prop could only disagree with that.
+    booleans: { marker: { part: 'marker', default: true, figmaName: 'Marker', figmaOnly: true } },
   },
 
   accessibility: {

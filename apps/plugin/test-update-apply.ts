@@ -1065,7 +1065,6 @@ section('image-placeholder — the NB master\'s 3-member set reaches 7 ratios, a
   void _o; void _s;
   const before2345 = {
     ...now,
-    props: now.props.filter((p) => p.name !== 'showMarker'),
     variants: { ratio: ['1:1', '4:3', '16:9'] },
     anatomy: { ...now.anatomy, parts: { ...now.anatomy.parts, marker: oldMarker } },
     figmaProperties: { ...now.figmaProperties, booleans: {} },

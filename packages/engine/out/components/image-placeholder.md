@@ -48,7 +48,6 @@ The frame holds no copy. Where its ratio surfaces in a UI, name the proportion (
 | Name | Type | Default | Required | Description |
 | --- | --- | --- | --- | --- |
 | `ratio` | enum: '2:3' \| '3:4' \| '4:5' \| '1:1' \| '4:3' \| '3:2' \| '16:9' | `4:3` | no | The width-to-height PROPORTION the frame holds while its actual size flexes — portrait (2:3, 3:4 for apparel tiles, 4:5), a square (1:1), or landscape (the classic photo ratio 4:3, 3:2, widescreen 16:9). It is an aspect-ratio LOCK, not a pair of fixed dimensions: the frame derives its height from its width (or the reverse) so the shape survives being resized. Pick it from the media the frame will hold. |
-| `showMarker` | boolean | `true` | no | Whether the centered "no image" marker draws. On by default, for the empty state; turn it off once an image is supplied, so the marker never sits on top of the photo. The Figma set carries it as the `Marker` boolean, default on, so both surfaces start from the same default. |
 
 ## States
 

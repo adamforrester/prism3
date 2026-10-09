@@ -14889,9 +14889,11 @@ arm: {
         `#2345 the set declares one property, the BOOLEAN 'Marker', default on (got ${JSON.stringify(props)})`);
       const unwired = markers.filter(([, m]) => m?.visibleProp !== 'Marker' || m?.visible === false).map(([r]) => r);
       ok(unwired.length === 0, `#2345 every member's marker is driven by 'Marker' and built visible (unwired or hidden on ${JSON.stringify(unwired)})`);
-      // The code side carries the same switch at the same default, so both surfaces start in the empty state.
-      const sm = imgPlaceholder.props.find((p) => p.name === 'showMarker');
-      ok(sm?.type === 'boolean' && sm.default === true, `#2345 the code prop showMarker is a boolean defaulting to true (got ${JSON.stringify(sm && { type: sm.type, default: sm.default })})`);
+      // FIGMA-ONLY (owner decision Q163.4b A): no code prop drives it, because in code the marker follows whether an
+      // image is supplied. The boolean is declared figmaOnly, and no prop by either name exists.
+      const mb = Object.values(imgPlaceholder.figmaProperties?.booleans ?? {}).find((v) => typeof v !== 'string' && v.figmaName === 'Marker');
+      ok(typeof mb === 'object' && mb.figmaOnly === true && !imgPlaceholder.props.some((p) => /^(showMarker|marker)$/i.test(p.name)),
+        `#2345/Q163.4b the Marker boolean is Figma-only and no code prop drives it (figmaOnly ${String(typeof mb === 'object' && mb.figmaOnly)}; props ${imgPlaceholder.props.map((p) => p.name).join(', ')})`);
 
       // THE REFUSAL ARMS `PartDef.scaleWithParent` adds, each pinned BY NAME (docs/34).
       const frame = imgPlaceholder.anatomy.parts.frame;
