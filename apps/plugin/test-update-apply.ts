@@ -78,7 +78,7 @@ import { BASELINE_KEY } from './src/member-baseline';
 import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
 import { captureBaselines, previewUpdate, previewVerdict, type UpdateHost, type UpdateTarget } from './src/update-plan';
 import { drawnFaults, faultLine, varsById } from './src/drawn';
-import { baselineOf, snapshotMember } from './src/member-baseline';
+import { BASELINE_V, baselineOf, resetStyleNames, snapshotMember } from './src/member-baseline';
 import { applyUpdate, applyVerdict, previewHashOf, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
 
 let failed = 0;
@@ -106,7 +106,7 @@ const planChild = (n: PlanNode, name: string): PlanNode => n.children!.find((c) 
 type World = { host: ApplyHost; api: Record<string, any>; page: Page; set: () => Node; plans: AnatomyPlan[] };
 /** A fresh file holding one set, built by the executor, with identities on. `extraVars` are variables the file
  *  holds beyond the plans', for a later plan to bind. */
-const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[]; extraComps?: string[]; unavailableFonts?: { family: string; style: string }[]; refuseVersion?: boolean; allowMisses?: string[] } = {}): Promise<World> => {
+const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[]; extraComps?: string[]; keyPrefix?: string; styleIdPrefix?: string; unavailableFonts?: { family: string; style: string }[]; refuseVersion?: boolean; allowMisses?: string[] } = {}): Promise<World> => {
   const page: Page = { children: [] };
   const api = makeShim({
     vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), 'space/0', ...(o.extraVars ?? [])])],
@@ -117,6 +117,8 @@ const world = async (id: string, plans = plansOf(id), o: { extraVars?: string[];
     liveRoot: true,
     identities: true,
     scaleConstrained: true,
+    keyPrefix: o.keyPrefix,
+    styleIdPrefix: o.styleIdPrefix,
     refuseVersion: o.refuseVersion,
   }) as any;
   const built = await applyComponentPlan(plans, api);
@@ -569,6 +571,62 @@ const watchWrites = (root: Node): string[] => {
     `nochange/current: each member then reads current (${JSON.stringify(again.sets[0]?.counts)}; ${applyVerdict(res).headline})`);
 }
 
+/* ── the record's format ──────────────────────────────────────────────────────────────────────────────── */
+section('format — a record reads the same in a copy of the file, and a record of an earlier format is no record (#2379 review)');
+{
+  // A DUPLICATE OF THE FILE (Lane D, on a copy of the NB master): the same components and styles under the same names,
+  // with new keys and style ids, as Figma gives a copy. A record that hashed keys read every instance and styled text
+  // there as a hand edit, on sets nobody had edited. Mutations: an instance's main hashed by key → `format/duplicate`;
+  // a text style hashed by id → `format/duplicate`.
+  const g = globalThis as { figma?: unknown };
+  const had = g.figma;
+  g.figma = { getStyleByIdAsync: async (id: string) => ({ name: id.replace(/^S:(B:)?/, '') }) };
+  resetStyleNames();
+  try {
+    const a = await world(TAG);
+    const b = await world(TAG, plansOf(TAG), { keyPrefix: 'KB', styleIdPrefix: 'B:' });
+    const firstOf = (set: Node, t: string): Node | undefined => (membersOf(set).flatMap((m) => (m.findAll as (f: (n: Node) => boolean) => Node[])((n) => n.type === t)))[0];
+    const keyA = String(((firstOf(a.set(), 'INSTANCE')?.mainComponent ?? {}) as { key?: unknown }).key ?? '');
+    const keyB = String(((firstOf(b.set(), 'INSTANCE')?.mainComponent ?? {}) as { key?: unknown }).key ?? '');
+    const styled = (set: Node): string => String(membersOf(set).flatMap((m) => (m.findAll as (f: (n: Node) => boolean) => Node[])((n) => n.type === 'TEXT' && !!n.textStyleId))[0]?.textStyleId ?? '');
+    ok(!!keyA && !!keyB && keyA !== keyB && styled(a.set()) !== styled(b.set()) && !!styled(b.set()),
+      `premise: the copy's instances point at mains with other keys, and its text at styles with other ids (${keyA} / ${keyB}; ${styled(a.set())} / ${styled(b.set())})`);
+    const byName = new Map(membersOf(a.set()).map((m) => [String(m.name), m] as const));
+    for (const m of membersOf(b.set())) {
+      const src = byName.get(String(m.name))!;
+      const pd = (n: Node, k: string): string => (n.getSharedPluginData as (a: string, b: string) => string)(NS, k);
+      (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, pd(src, STAMP_KEY));
+      (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, JSON.stringify({ ...JSON.parse(pd(src, BASELINE_KEY)), id: String(m.id) }));
+    }
+    const p = (await previewUpdate(b.host, [{ def: TAG, plans: b.plans }])).sets[0];
+    ok(p.counts.handEdited === 0 && p.counts.current === 45, `format/duplicate: in a copy of the file, every member reads current and none as edited by hand (${JSON.stringify(p.counts)}; ${p.handEdits.slice(0, 2).map((h) => `${h.member} ${h.path}`).join(' | ')})`);
+  } finally { g.figma = had; resetStyleNames(); }
+}
+{
+  // A RECORD OF AN EARLIER FORMAT is no record: never compared, so never a hand edit. The members read as having none,
+  // and the update brings them to the plan and records them anew (Q113 A). Its instance hashes differ, as a v2 record's
+  // keyed ones do. Mutation: `readBaseline` reading another `v` → `format/earlier`.
+  const w = await world(TAG);
+  for (const m of membersOf(w.set())) {
+    const rec = JSON.parse((m.getSharedPluginData as (a: string, b: string) => string)(NS, BASELINE_KEY)) as { v: number; nodes: Record<string, string> };
+    const inst = new Set((m.findAll as (f: (n: Node) => boolean) => Node[])((n) => n.type === 'INSTANCE').map((n) => String(n.name)));
+    for (const k of Object.keys(rec.nodes)) if (inst.has(k.split('/').pop()!.replace(/#\d+$/, ''))) rec.nodes[k] = '00000000';
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, JSON.stringify({ ...rec, v: BASELINE_V - 1 }));
+  }
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
+  const p = pre.sets[0];
+  ok(p.counts.handEdited === 0 && p.counts.noBaseline === 45, `format/earlier: a record of an earlier format reads as no record, never as a hand edit (${JSON.stringify(p.counts)})`);
+  // Named as what it is, in the owner's words (2026-10-09), in the dry run and in the apply. Mutation: the count left
+  // with the members that never had a record → `format/earlier words`.
+  const dry = previewVerdict(pre).lines[0];
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(pre));
+  const done = applyVerdict(res).lines[0];
+  ok(dry === 'tag: 45 members. 45 recorded by an earlier plugin version, read as having no as-built record.' && done === 'tag: 45 updated in place, 45 of them recorded by an earlier plugin version.',
+    `format/earlier words: the dry run and the apply say the record is an earlier version's (${dry} | ${done})`);
+  const again = (await previewUpdate(w.host, [{ def: TAG, plans: w.plans }])).sets[0];
+  ok(again.counts.current === 45, `format/earlier recorded: after the update each member has a record of this format, and reads current (${JSON.stringify(again.counts)})`);
+}
+
 /* ── damage under a current record ────────────────────────────────────────────────────────────────────── */
 section('damage under a record — a member drawn wrong reads "to update" whatever its stamp and record say (#2379 review)');
 {
@@ -621,6 +679,32 @@ section('damage under a record — a member drawn wrong reads "to update" whatev
   const skip = cap.sets[0]?.skipped.find((x) => x.member === String(m.name));
   ok(!!skip && (skip.differences ?? []).some((d) => d.field === 'fills' && /stored #000000/.test(d.file)) && !(m.getSharedPluginData as (a: string, b: string) => string)(NS, BASELINE_KEY),
     `damage/capture: a member drawn wrong is not recorded, and the capture names the paint (${skip?.reason}; ${JSON.stringify(skip?.differences?.slice(0, 1))})`);
+}
+
+{
+  // DAMAGE OUTRANKS A HAND EDIT (#2379 review): a member whose record mismatches somewhere (a real hand edit, on its
+  // content) and that also draws wrong (a paint storing black on its root) is "to update", not "edited by hand". The
+  // edit is kept and still reported; the damage is repaired. With the edit read first, the default (keep) would skip
+  // the member, and the black would stay. Mutation: the hand edit classified before the damage → `damage/over edit`.
+  const w = await world(TAG);
+  const m = membersOf(w.set())[3];
+  const zero = await varIdOf(w, 'space/0');
+  (childNamed(m, 'content').setBoundVariable as (f: string, v: { id: string }) => void)('itemSpacing', { id: zero });
+  let hit = '';
+  for (const f of ['fills', 'strokes'] as const) {
+    const ps = m[f] as { boundVariables?: { color?: unknown } }[] | undefined;
+    if (!hit && Array.isArray(ps) && ps.some((p) => p?.boundVariables?.color)) { m[f] = ps.map((p) => (p?.boundVariables?.color ? { ...p, color: { r: 0, g: 0, b: 0 }, opacity: 1 } : p)); hit = f; }
+  }
+  ok(!!hit, `premise: the member's root binds a paint, now storing black (${hit})`);
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
+  const st = pre.sets[0].states.find((x) => x.member === String(m.name))?.state;
+  const edits = pre.sets[0].handEdits.filter((h) => h.member === String(m.name)).map((h) => h.path);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(pre));
+  const vars = await varsById(w.api as any);
+  const left = drawnFaults(m, vars);
+  ok(st === 'update' && JSON.stringify(edits) === '["content"]' && left.length === 0
+    && (childNamed(m, 'content').boundVariables as Record<string, { id: string }>).itemSpacing?.id === zero && res.outcomes[0]?.kept.some((k) => k.path === 'content'),
+    `damage/over edit: the member reads "to update", its hand edit kept and listed, its damage repaired (${st}; edits ${JSON.stringify(edits)}; ${left.length} faults left; ${applyVerdict(res).headline})`);
 }
 
 /* ── verify reads what the host draws ──────────────────────────────────────────────────────────────────── */

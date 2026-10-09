@@ -114,6 +114,8 @@ export type SetOutcome = {
   skipped: { member: string; reason: string }[];
   /** Members updated with no as-built record, so with no hand-edit check (`choices.noBaseline`, default `update`). */
   unrecorded: string[];
+  /** Of `unrecorded`, those whose record was from an earlier format (#2379 review). */
+  earlierRecord?: string[];
   /** Hand edits, by member and path, and what this run did with them (`choices.handEdits`). */
   kept: { member: string; path: string }[];
   handEdits: HandEditChoice;
@@ -250,7 +252,7 @@ const preflight = async (api: ComponentsApi, t: UpdateTarget, p: SetPreview, liv
 };
 
 /** Which members this update configures, which it leaves, and why, from the dry run alone. */
-const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): { members: Map<string, { keep: Set<string>; accept?: boolean }>; skipped: { member: string; reason: string }[]; kept: { member: string; path: string }[]; unrecorded: string[]; restamp: string[] } => {
+const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): { members: Map<string, { keep: Set<string>; accept?: boolean }>; skipped: { member: string; reason: string }[]; kept: { member: string; path: string }[]; unrecorded: string[]; restamp: string[]; earlierRecord: string[] } => {
   const byMember = new Map<string, SetPreview['handEdits']>();
   for (const h of p.handEdits) byMember.set(h.member, [...(byMember.get(h.member) ?? []), h]);
   const members = new Map<string, { keep: Set<string>; accept?: boolean }>();
@@ -258,6 +260,7 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
   const kept: { member: string; path: string }[] = [];
   const unrecorded: string[] = [];
   const restamp: string[] = [];
+  const earlierRecord: string[] = [];
   const moved = new Map(p.moves.map((m) => [m.from, m.to] as const));
   const rootReplaced = new Set(p.replacements.filter((r) => r.path === '.').map((r) => r.member));
   for (const s of p.states) {
@@ -272,6 +275,7 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
       // NEVER READ AS "NO HAND EDITS": with no record there is no check, and the verdict says so by name.
       if (noRecord === 'skip') { skipped.push({ member: s.member, reason: 'no as-built record' }); continue; }
       unrecorded.push(at);
+      if (s.earlierRecord) earlierRecord.push(at);
       members.set(at, { keep: new Set<string>() });
       continue;
     }
@@ -282,7 +286,7 @@ const plan = (p: SetPreview, choice: HandEditChoice, noRecord: NoRecordChoice): 
     for (const e of edits) kept.push({ member: at, path: e.path });
     members.set(at, { keep, ...(choice === 'accept' ? { accept: true } : {}) });
   }
-  return { members, skipped, kept, unrecorded, restamp };
+  return { members, skipped, kept, unrecorded, restamp, earlierRecord };
 };
 
 /** The members `plan` left for the current stamp alone (#2379). Each is checked against its record first, and again
@@ -315,6 +319,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
   const work = plan(p, opts.handEdits, opts.noBaseline);
   out.skipped = work.skipped;
   out.unrecorded = work.unrecorded;
+  if (work.earlierRecord.length) out.earlierRecord = work.earlierRecord;
   out.kept = work.kept;
   const plans = new Map(t.plans.map((x) => [planComponentName(x), x] as const));
 
@@ -535,7 +540,9 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
       o.renamed ? `${o.renamed} renamed` : '',
       o.deprecated.length ? `${o.deprecated.length} marked deprecated` : '',
       o.kept.length ? `${n(o.kept.length, 'hand edit')} ${o.handEdits === 'overwrite' ? 'overwritten' : o.handEdits === 'accept' ? 'accepted as built' : 'kept'}` : '',
-      o.unrecorded.length ? `${o.unrecorded.length} of them without an as-built record` : '',
+      o.unrecorded.length - (o.earlierRecord?.length ?? 0) ? `${o.unrecorded.length - (o.earlierRecord?.length ?? 0)} of them without an as-built record` : '',
+      // The owner's wording (2026-10-09).
+      o.earlierRecord?.length ? `${o.earlierRecord.length} of them recorded by an earlier plugin version` : '',
       o.skipped.length ? `${o.skipped.length} left as they are` : '',
     ].filter(Boolean);
     lines.push(parts.length ? `${o.set}: ${parts.join(', ')}.` : `${o.set}: already up to date.`);

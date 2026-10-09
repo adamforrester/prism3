@@ -297,6 +297,8 @@ section('format — what the hash covers is pinned to BASELINE_V');
   const PINNED: Record<number, Record<string, string>> = {
     1: { '.': 'e85160da', label: 'e7367361', note: '88ebbfd4', icon: '2df66934' },
     2: { '.': 'e85160da', label: 'e7367361', note: '88ebbfd4', icon: '2df66934' },
+    // 3 (#2379 review) hashes an instance's main and a style by name; this fixture has neither, so its hashes hold.
+    3: { '.': 'e85160da', label: 'e7367361', note: '88ebbfd4', icon: '2df66934' },
   };
   const fixture: SnapNode = {
     name: 'm', type: 'COMPONENT', layoutMode: 'HORIZONTAL', itemSpacing: 4, visible: true, opacity: 1,

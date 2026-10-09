@@ -414,6 +414,11 @@ export type ShimOpts = {
    *  in-place glyph replacement that appends 24px vectors to a 16px frame with no resize never gets it. Opt-in,
    *  because suites written before it read a glyph's vectors at their import size. */
   scaleConstrained?: boolean;
+  /** #2379 review — A DUPLICATED FILE: the same components and styles under the same names, with keys and style ids
+   *  of its own (Figma gives a copy new ones). `keyPrefix` replaces the `K` of every component key; `styleIdPrefix`
+   *  goes after `S:` in every style id. A test builds two files that differ only in these. */
+  keyPrefix?: string;
+  styleIdPrefix?: string;
   /** `saveVersionHistoryAsync` refuses (#2265 PR 2, §10 Q7): the update must then write nothing. */
   refuseVersion?: boolean;
 };
@@ -428,7 +433,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
   let keySeq = 0;
   const giveKey = (n: Node): void => {
     if (!opts.identities || Object.getOwnPropertyDescriptor(n, 'key')) return;
-    const k = `K:${++keySeq}`;
+    const k = `${opts.keyPrefix ?? 'K'}:${++keySeq}`;
     Object.defineProperty(n, 'key', { configurable: false, enumerable: false, get: () => k });
   };
   /** Take a node out of whatever holds it: its parent's children and the page. */
@@ -484,7 +489,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
   const windowMembers = new Set(opts.refuseRefsWindow?.members ?? []);
   let windowOpenedAt: number | undefined;
   const unavailable = new Set((opts.unavailableFonts ?? []).map(fontKey));
-  const textStyles = (opts.styles ?? []).map((name) => ({ id: `S:${name}`, name, fontName: opts.styleFont ?? STYLE_FONT }));
+  const textStyles = (opts.styles ?? []).map((name) => ({ id: `S:${opts.styleIdPrefix ?? ''}${name}`, name, fontName: opts.styleFont ?? STYLE_FONT }));
   const fontOfStyle = (id: string): FontName | undefined => textStyles.find((s) => s.id === id)?.fontName;
   // Members LEAVE the page when they join a set, as they do live — otherwise `set.children` and the
   // page disagree about who owns what, which is the state the skip-by-name check reads.
@@ -1341,7 +1346,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
             // node tree still serializes — and NON-ENUMERABLE, so spreading or diffing a node's own keys does
             // not grow a field the executor never wrote. The read-back reads it to tell `checkbox-row/size=small`
             // from `switch-row/size=small`, which share every other property this shim models.
-            Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: { name, type: 'COMPONENT', parent: { ...owner } } });
+            Object.defineProperty(inst, 'mainComponent', { configurable: true, enumerable: false, writable: true, value: { name, type: 'COMPONENT', parent: { ...owner }, ...(opts.identities ? { key: `${opts.keyPrefix ?? 'K'}:${name}` } : {}) } });
             // An instance measures what its MAIN measures (`layoutModel`, a member this run built).
             // A FILLED instance (#1751) measures the width its parent gives it, and is as tall as its main
             // laid out at that width — so a message that wraps in a narrower field reads taller here too.

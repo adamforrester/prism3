@@ -70,3 +70,28 @@ The scratch file ran the same plugin build as the NB master, driven over the age
   | verify's draw check dropped | `verify/drawn paints`, `verify/drawn glyphs` |
   | the mixed set's restamp dropped | `mixed/stamped` |
   | the grid writing unmoved positions | `mixed/only stamps` (44 writes) |
+
+### Review round 2: hand-edit false positives in a duplicated file (Lane D, on a copy of the NB master)
+
+A read-only dry run on a **duplicate** of the NB master, with this PR's build, read almost every set as edited by hand (icon-button 216/216, tag 45/45, text-field 24/24, and so on), though the owner had made no edits.
+
+- **The cause, measured read-only on the duplicate.** Each node's record hash was recomputed live and compared with the stored one. Every frame matched, bound variables included. Only **instances**, hashed by their main component's key, and **styled text**, hashed by `textStyleId` (which embeds the style's key), mismatched. Figma gives a duplicated file's local components and styles new keys, so a v2 record can't be read in a copy of its file. Nothing in this PR changed the record's format; `member-baseline.ts` was untouched since #2328.
+- **Record format v3** (`BASELINE_V` 2 → 3). An instance's main is hashed by set and name, and a text or effect style by its name (`figma.getStyleByIdAsync`, cached per run), never by a key. Variable ids survive duplication, so bindings keep them.
+- **A record of an earlier format is never read** (`readBaseline` refuses another `v`). The member has no record, never a hand edit. With #2367 (#2364) on `main`, the update brings it to the plan and records it again. The verdict names it, in the owner's words (2026-10-09):
+  - dry run: `N recorded by an earlier plugin version, read as having no as-built record`;
+  - apply: `N of them recorded by an earlier plugin version`.
+- **Damage outranks a hand edit.** A member with a draw fault is "to update" first, and its damaged parts are dropped from its hand edits, so they're overwritten. Any other hand edit on it is kept and reported. A member with a layer added or removed by hand is still skipped, because its paths can't be trusted.
+- **The shim:** `keyPrefix` and `styleIdPrefix` make a second file with the same names and new keys. A seeded component's main carries a key under `identities`, as on the host.
+- **Tests:**
+  - `format/duplicate`: the original's records in the copy, every member current, 0 hand edits.
+  - `format/earlier` (+ `words`, `recorded`).
+  - `damage/over edit`.
+- **Mutations, each failing by name:**
+
+  | Mutation | Fails |
+  |---|---|
+  | main hashed by key | `format/duplicate` (`handEdited: 45`, the duplicate's shape) |
+  | style hashed by id | `format/duplicate` |
+  | `readBaseline` reading another `v` | `format/earlier` |
+  | the hand edit classified first | `damage/over edit` |
+- `format/pinned`'s fixture has no instance or styled text, so it hashes the same under v3, and is pinned for 3.
