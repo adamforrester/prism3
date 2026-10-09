@@ -19,12 +19,14 @@ It sits right after `focus-visible` on the state axis, so the grid's new column 
   `empty` note's member count), which no update module reads and the plugin bundle does not carry.
 The update path itself is unchanged (it's Lane A's).
 
-**The caret (Q157.3, re-asked): one switch.** `FOCUSED_FILLED_CARET` in `packages/engine/field-focus.ts`, read by
-text-field and textarea. On (the default here): the member draws the field's existing caret at the START of the value.
-Off: no caret. The end of the value, as first proposed, isn't reachable with one caret node: two parts can't share the
-`caret` paint slot (the anatomy gate refuses it, "the projector resolves a slot once"), and textarea's value fills the box
-and wraps, so nothing can follow its last character. Drawing it at the end on text-field would take a new paint slot, a
-schema vocabulary addition, which is left until the owner answers.
+**The caret: at the end of the value, on text-field only (owner decision Q166 C, 2026-10-09).** The first build kept it
+behind a switch while Q157.3 was re-asked, at the START of the value, because one caret node can't reach the end: two
+parts can't share the `caret` paint slot (the anatomy gate refuses it, "the projector resolves a slot once"). The owner
+then chose C, so text-field gains a second caret part, `caretEnd`, after the value in the entry row, present only at
+`focus-visible-filled`, on a new `caret-end` paint slot bound to the same `text.primary`. `caret-end` joins `PAINT_SLOTS`
+and `BOX_PAINT_SLOTS` with its reason, and the "a caret is a childless bar" rule covers both slots. Textarea and select
+draw no caret at the new state: textarea's value fills the box and wraps, so nothing can follow its last character, and
+select has no insertion point. The switch (`field-focus.ts`) is gone with the question.
 
 **Schema: an absolute part's `when` may be a list.** The focus ring is an `absolute` part, and its `when` named one state,
 so it couldn't show at both focus states. `when?: string | readonly string[]`, read through `whenStates`; the validator
@@ -34,12 +36,16 @@ replaces a part on exactly one). `lint-absolute-inset` reads the list with its o
 
 **Tests:** a new `#2318` arm per field reads the projected plan at every size and status of the new member, with the
 expectations typed from the decision: the value in `color/text/primary`, no placeholder, the ring, the focus or status
-border, and the caret before the value exactly when the switch is on (never on select), plus 12 built members. New
+border, and on text-field only a caret immediately after the value (no caret before it, none on textarea or select),
+plus 12 built members. On the built host, `test-write-components.ts`'s `field end caret` arm reads the end caret's
+position, ink, width and one-line height on every text-field member at the new state, and its absence everywhere else. New
 validator arms: a `when` list naming an undeclared state, an empty list, and an overlay given a list each fail by name.
 The member-count literals of #2266, #1344, #1331, #1426, #1699, #1814 and #1428 move from 72 to 84 (with their
 mutation counterparts, 84 → 96 and 144 → 168).
 
 **Mutations,** through the #2272 harness against the engine suite, each failing by name:
+- M3, the end caret moved before the value: `❌ #2318 text-field: … WRONG: small/default: no caret immediately after the
+  value …`, and on the built host `✗ field end caret (text-field): … end caret is not immediately after the value …`.
 - M1, text-field's new member drawn with the placeholder: `❌ #2318 text-field: … WRONG: small/default: value ink
   undefined | small/default: the placeholder is drawn …`.
 - M2, select's ring back to `focus-visible` alone: `❌ #2318 select: … WRONG: small/default: no focus ring | …`.
