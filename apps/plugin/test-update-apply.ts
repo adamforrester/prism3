@@ -843,6 +843,28 @@ section('mixed — in a set the build updates, a member from an earlier plugin s
   ok(other.length === 0, `mixed/only stamps: the 22 from an earlier plugin take nothing but their stamps and records (${other.length} other writes${other.length ? `, e.g. ${other.slice(0, 3).join(' | ')}` : ''})`);
 }
 
+{
+  // THE ICONS FROM AN EARLIER PLUGIN (#2296 with #2379): single components whose stamps predate the executor revision
+  // read "no changes", and take their stamps and nothing else, found by their own names (`icon/check` for
+  // `name=check`). Mutation: the restamp looked up by coordinate rather than node name → `single/stamped`.
+  const plans = plansOf('icon');
+  const w = await singleWorld(plans);
+  for (const c of w.comps()) {
+    const st = (c.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+    (c.setSharedPluginData as (a: string, b: string, cc: string) => void)(NS, STAMP_KEY, st.split('|').slice(0, 2).join('|'));
+  }
+  const t = { def: 'icon', plans, single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  ok(pre.sets[0]?.counts.revisionUnknown === 44 && previewVerdict(pre).headline === '✓ No changes found',
+    `premise: all 44 icons read "built by an earlier plugin", and nothing changes (${JSON.stringify(pre.sets[0]?.counts)}; ${previewVerdict(pre).headline})`);
+  const logs = w.comps().map((c) => watchWrites(c));
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  const other = logs.flat().filter((x) => !new RegExp(`setSharedPluginData\\(${NS}, (${STAMP_KEY}|${BASELINE_KEY})\\)$`).test(x));
+  const again = (await previewUpdate(w.host, [t])).sets[0];
+  ok(res.outcomes[0]?.restamped?.length === 44 && other.length === 0 && again.counts.current === 44,
+    `single/stamped: each icon takes its stamp and nothing else, and all 44 read current (${res.outcomes[0]?.restamped?.length} stamped; ${other.length} other writes; ${JSON.stringify(again.counts)}; ${applyVerdict(res).headline})`);
+}
+
 /* ── what the host draws ────────────────────────────────────────────────────────────────────────────────── */
 section('what the host draws — after an update in place, every bound paint shows its own color and every glyph fits its frame (#2379)');
 {

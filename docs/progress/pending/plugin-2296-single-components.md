@@ -6,8 +6,10 @@ Owner decision Q109 A: a same-named hand-made icon is kept, Adopt is never offer
 - **Ownership is the stamp, never the name.** A hand-made icon, even one under a Prism3 glyph's exact name, is unstamped. It holds its coordinate, so that glyph is never built beside it (Q109 A), and it is never written, captured or deprecated. A duplicate is no Prism3 icon (#2300). Adopt lists the single defs as not offered (Q109 B), without failing.
 - **The apply** maps each coordinate to the node's own name (`name=check` ↔ `icon/check`) for its renames, deprecations and verify, and builds in the executor's emit mode. There is no set node, so identity is checked per member, and a deprecated icon gets its description prefix but no `retained` list.
 - **The executor's emit branch** now finishes an updated component as a set member is finished: record, then stamp, then marker off, through one shared `finishUpdated`. Before this it returned first, so an updated icon would never have taken its stamp and would have kept its in-progress marker. In an update, a component the plan gained goes in the first grid slot no existing one holds.
-- **`EXECUTOR_REVISION` 2 → 3:** the emit branch's code changed. Every member built before this reads as out of date, with no field difference visible, until an update re-applies it.
+- **`EXECUTOR_REVISION` 4 → 5:** the emit branch's code changed (#2396 took 3 and #2377 took 4 on `main`). Every member built before this reads as out of date, with no field difference visible, until an update re-applies it.
 - **Every member read as not built by Prism3 is named in the apply's outcome,** off-plan ones included. Before this, only those on a planned coordinate were named, on the set path too.
+
+- **With #2396's stamp-only path:** an icon or spinner from an earlier plugin (`revisionUnknown`) takes only its stamp, found by its node's own name (`icon/check` for `name=check`). `single/stamped` holds it: 44 icons stamped, 0 other writes. Mutation: the restamp looked up by coordinate → `single/stamped` (0 stamped).
 
 ### Traps for whoever re-verifies
 
