@@ -27,5 +27,5 @@ Aurora (Compact refused for the title floor) and prism3 with display md pinned a
 
 ### Not done, on purpose
 
-- **Rows with no drawn reason keep `title` alone:** the 16px and 18px title floor chips (`S63.titleFloorCompact`, `S63.titleFloorPinned`) and Italic styles' "Italic only" (`S63.italicPinned`). They have no visible line to point at, and drawing one would be new visible copy, which is the owner's call.
+- **Rows with no drawn reason keep `title` alone:** the 16px and 18px title floor chips (`S63.titleFloorCompact`, `S63.titleFloorPinned`) and Italic styles' "Italic only" (`S63.italicPinned`). They have no visible line to point at, and drawing one would be new visible copy, which is the owner's call. Filed as #2451.
 - **The visible state lines stay where they are.** The region repeats their words, so a browse-mode reader meets each line twice, once beside the chips and once at the end of the page. This is the same cost #2171's run line carries.
