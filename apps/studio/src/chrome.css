@@ -9,7 +9,7 @@
  * variable unread. See `apps/studio/chrome/esbuild-plugin.mjs`.
  *
  * Classes here take the `p3-` scope, which `styles.css` does not use. State is read from ARIA attributes
- * and from the frame's `data-w` (width tier), `data-bar-fit` (the wide bar's fit step, #2214) and `data-layout`
+ * and from the frame's `data-w` (width tier), `data-bar-fit` (the bar's fit step, #2214; at the narrow tier only `trim`, #2262) and `data-layout`
  * (panes or page; the legacy layout went in H12, #2289), never from a shared state class.
  *
  * WHAT THIS STYLES: the frame (`src/shell/frame.ts`), meaning the top bar, the tab row with Color's
@@ -491,7 +491,7 @@
 /* The narrow tier's rules for the tile labels, the product name and the two rows also serve the wide bar's fit steps
    (#2214, BL1 A+B): `frame.ts` (`fitBar`) sets `data-bar-fit` when the full bar would not fit on one row. `glyphs`
    drops the labels, `logo` the name too, `rows` takes the two rows as well, and `trim` (Q83 A) also cuts the brand
-   switcher's name short, below. */
+   switcher's name short, below. The narrow tier takes `trim` too (#2262), when its own first row would not fit. */
 .p3-frame:is([data-w="narrow"], [data-bar-fit="logo"], [data-bar-fit="rows"], [data-bar-fit="trim"]) .p3-mark-name { display: none; }
 .p3-frame[data-w="narrow"] :is(.p3-btn, .p3-brand) { min-height: var(--p3-ctl-h-xs); font-size: var(--p3-fs-12); }
 .p3-frame[data-w="narrow"] .p3-brand { padding: 0 var(--p3-space-100); }

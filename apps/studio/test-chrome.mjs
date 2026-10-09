@@ -605,7 +605,9 @@ const WIDTHS = [{ w: 1280, h: 900 }, { w: 640, h: 900 }, { w: 380, h: 420 }];
  *  (`scrollWidth`); the room is the controls box's width before anything is forced. The frame derives every step from
  *  one measurement of the full row by subtraction; this lays each candidate out for real, so the two are partners and
  *  neither is the other (docs/34, shape 2). Within 1px of the room the answer is ambiguous, and both neighbors are
- *  accepted (`also`). Above the narrow tier only: at it, the narrow tier's own rules hold, as before. */
+ *  accepted (`also`). At the narrow tier (#2262, the owner's A) the bar's rows are its own, labels and product name
+ *  already dropped: the one candidate is its designed first row (`rows` with a file row, `logo` without), and past it
+ *  the brand switcher's name is cut. */
 const FIT_ORACLE = () => {
   const bm = document.querySelector('[data-p3="bar-main"]');
   const narrow = document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow';
@@ -622,7 +624,8 @@ const FIT_ORACLE = () => {
   // The two rows' first row: the controls before the plugin's row break, the rest taken out of the row.
   const rows = fileRow ? need('.p3-tile-label{display:none!important}.p3-mark-name{display:none!important}.p3-bar-break~*{display:none!important}') : null;
   st.remove();
-  const steps = [['full', full], ['glyphs', glyphs], ['logo', logo], ...(fileRow ? [['rows', rows]] : [])];
+  const steps = narrow ? [fileRow ? ['rows', rows] : ['logo', logo]]
+    : [['full', full], ['glyphs', glyphs], ['logo', logo], ...(fileRow ? [['rows', rows]] : [])];
   // Past the last row that fits as it is, the brand switcher's name is cut short (Q83 A).
   const pick = (slack) => steps.find(([, x]) => x <= room + slack)?.[0] ?? 'trim';
   const step = pick(0), lo = pick(-1), hi = pick(1);
@@ -9703,12 +9706,17 @@ for (const host of ['web', 'figma']) {
 //     the mark, identical at every width, the narrow tier included, to the same brand's at 1280, where the full bar
 //     shows (asserted). While the brand switcher's name is cut, its computed name and its tooltip are the full name.
 //   · A LONG NAME GIVES WAY SOONER: at some width its step is further along than "prism3"'s, and never behind it.
-//   · THE NARROW TIER (560 and below) is unchanged by #2214 and holds its own rules (section 29); here it is held to the
-//     names and, since #2262, to the tooltip: down to 380 and back up, the switcher carries a `title` only while its
-//     name is cut, so a tooltip set at `trim` cannot linger into the narrow tier.
+//   · THE NARROW TIER (560 and below) keeps its own rows (section 29): the labels and the product name dropped, and on
+//     the plugin the file row below. Since #2262 (the owner's A, 2026-10-09) it takes Q83 A's step too: when its first
+//     row would not fit, the switcher's name is cut, and the bar still draws no more rows than its narrow layout allows
+//     (the plugin 2, the web 1). The long name is swept here every 10px from 560 down to 380 like every other width,
+//     held to the oracle's step, the rows, the computed name and the tooltip, and each host must reach the cut name at
+//     this tier. Down to 380 and back up, the switcher carries a `title` only while its name is cut, so a tooltip set at
+//     `trim` cannot linger.
 // Mutations, each failing here by name: (a) no label drop, (b) the product name never drops, (c) straight to the two
-// rows, (d) the frame's measurement ignores the brand switcher's width, (e) the web excluded, (f) no truncation. See
-// the progress entry.
+// rows, (d) the frame's measurement ignores the brand switcher's width, (e) the web excluded, (f) no truncation; and
+// for #2262, (g) the narrow tier's early return put back, (h) no tooltip while the name is cut at the narrow tier. See
+// the progress entries.
 // =============================================================================================
 console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
 {
@@ -9737,6 +9745,7 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
   const settle = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   let states = 0;
   const trimmedOn = { web: 0, figma: 0 };
+  const narrowTrim = { web: 0, figma: 0 };
   for (const host of ['web', 'figma']) {
     const seenBy = { short: {}, long: {} };
     for (const theme of ['light', 'dark']) {
@@ -9789,16 +9798,16 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
               tipCheck('down', w, tip, seen, fit.narrow);
               if (seen.cut) sawCut = true; else if (fit.narrow && sawCut) narrowAfterCut++;
             }
-            if (fit.narrow) continue;
-            if (theme === 'light') seenBy[brand][w] = seen.step;
-            if (seen.step === 'trim') trimmedOn[host]++;
+            if (theme === 'light' && !fit.narrow) seenBy[brand][w] = seen.step;
+            if (seen.step === 'trim') (fit.narrow ? narrowTrim : trimmedOn)[host]++;
             const allowed = seen.step === 'trim' ? (fit.fileRow ? 2 : 1) : MAX_ROWS[seen.step] ?? 0;
             if (!fit.also.includes(seen.step) || seen.rows.length > allowed) missed.push(`${w}: want ${fit.also.join('/')} (full ${fit.full}, without labels ${fit.glyphs}, without the name ${fit.logo}${fit.fileRow ? `, first of two rows ${fit.rows}` : ''}, in ${fit.room}), drew ${seen.step} in ${seen.rows.length} row(s) ${JSON.stringify(seen.rows)}`);
             if (seen.step === 'trim') {
-              ok(names['brand-switcher'] === fullName && tip === fullName, `${where}: the cut brand name keeps the full name as the switcher's accessible name and tooltip (name "${names['brand-switcher']}", title "${tip}")`);
+              ok(names['brand-switcher'] === fullName && tip === fullName, `${where}${fit.narrow ? ' (narrow)' : ''}: the cut brand name keeps the full name as the switcher's accessible name and tooltip (name "${names['brand-switcher']}", title "${tip}")`);
               ok(seen.rows[0]?.includes('export-open'), `${where}: Export stays on the first row while the brand name is cut (${JSON.stringify(seen.rows)})`);
             } else if (tip !== null) missed.push(`${w}: the switcher carries a tooltip (${JSON.stringify(tip)}) with its name whole (${seen.step})`);
             if (SHOTS && host === 'figma' && brand === 'long' && w >= 570 && w <= 590) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `q83-plugin-${theme}-${w}-long-name.png`) });
+            if (SHOTS && brand === 'long' && (host === 'figma' ? [460, 380] : [430, 380]).includes(w)) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `2262-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-long-name.png`) });
             if (SHOTS && [640, 800, 1000, 1280].includes(w) && (w !== 1280 || brand === 'short')) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `final-2214-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}${brand === 'long' ? '-long-name' : ''}.png`) });
           }
           if (brand === 'long') {
@@ -9832,7 +9841,10 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
   }
   // Q83 A's case: the plugin's long name reaches the cut name (570–590, Lane D's sweep on #2257).
   ok(trimmedOn.figma > 0, `29d figma: the long name reaches the cut-name step somewhere in the sweep (${trimmedOn.figma} state(s))`);
-  console.log(`  29d: ${states} bar states swept; the cut name drawn in ${trimmedOn.figma} plugin and ${trimmedOn.web} web state(s).`);
+  // #2262's case: at the narrow tier the long name wrapped the bar (the plugin at 460 and below, the web at about 430 and
+  // below), so each host must reach the cut name there, or the narrow half of the sweep proves nothing.
+  for (const host of ['figma', 'web']) ok(narrowTrim[host] > 0, `29d ${host}: the long name reaches the cut-name step at the narrow tier (${narrowTrim[host]} state(s))`);
+  console.log(`  29d: ${states} bar states swept; the cut name drawn in ${trimmedOn.figma} plugin and ${trimmedOn.web} web state(s) above the narrow tier, ${narrowTrim.figma} and ${narrowTrim.web} at it.`);
 }
 
 // =============================================================================================
