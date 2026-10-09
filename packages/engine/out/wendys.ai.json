@@ -1655,10 +1655,10 @@
       "when_to_use": "The ink for outline and text neutral interactive elements (no fill behind it) on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use on a filled neutral control (use `interactive.neutral.on-fill`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.neutral.950}",
-        "dark": "{wds.core.palette.neutral.025}",
-        "hc-light": "{wds.core.palette.black}",
-        "hc-dark": "{wds.core.palette.white}"
+        "light": "{wds.core.palette.neutral.850}",
+        "dark": "{wds.core.palette.neutral.100}",
+        "hc-light": "{wds.core.palette.neutral.850}",
+        "hc-dark": "{wds.core.palette.neutral.100}"
       },
       "sits_on": [
         "background.primary",
@@ -1672,7 +1672,7 @@
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 19.43,
+          "ratio": 15.95,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -1683,10 +1683,10 @@
       "when_to_use": "The icon for outline and text neutral interactive elements (no fill behind it) on pointer hover. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use on a filled neutral control (use `interactive.neutral.on-fill`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.neutral.950}",
-        "dark": "{wds.core.palette.neutral.025}",
-        "hc-light": "{wds.core.palette.black}",
-        "hc-dark": "{wds.core.palette.white}"
+        "light": "{wds.core.palette.neutral.850}",
+        "dark": "{wds.core.palette.neutral.100}",
+        "hc-light": "{wds.core.palette.neutral.850}",
+        "hc-dark": "{wds.core.palette.neutral.100}"
       },
       "sits_on": [
         "background.primary",
@@ -1700,7 +1700,7 @@
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 19.43,
+          "ratio": 15.95,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -1711,10 +1711,10 @@
       "when_to_use": "The ink for outline and text neutral interactive elements (no fill behind it) while pressed. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use on a filled neutral control (use `interactive.neutral.on-fill`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.neutral.950}",
-        "dark": "{wds.core.palette.neutral.025}",
-        "hc-light": "{wds.core.palette.black}",
-        "hc-dark": "{wds.core.palette.white}"
+        "light": "{wds.core.palette.neutral.750}",
+        "dark": "{wds.core.palette.neutral.200}",
+        "hc-light": "{wds.core.palette.neutral.750}",
+        "hc-dark": "{wds.core.palette.neutral.200}"
       },
       "sits_on": [
         "background.primary",
@@ -1728,7 +1728,7 @@
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 19.43,
+          "ratio": 11.75,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -1739,10 +1739,10 @@
       "when_to_use": "The icon for outline and text neutral interactive elements (no fill behind it) while pressed. Clears 4.5:1 in every mode on `background.primary`, `background.secondary`, `background.tertiary`, `foreground.primary`, `foreground.secondary` and `foreground.tertiary`.",
       "avoid_when": "Do not use on a filled neutral control (use `interactive.neutral.on-fill`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.neutral.950}",
-        "dark": "{wds.core.palette.neutral.025}",
-        "hc-light": "{wds.core.palette.black}",
-        "hc-dark": "{wds.core.palette.white}"
+        "light": "{wds.core.palette.neutral.750}",
+        "dark": "{wds.core.palette.neutral.200}",
+        "hc-light": "{wds.core.palette.neutral.750}",
+        "hc-dark": "{wds.core.palette.neutral.200}"
       },
       "sits_on": [
         "background.primary",
@@ -1756,7 +1756,7 @@
         {
           "token": "background.primary",
           "min": "4.5:1",
-          "ratio": 19.43,
+          "ratio": 11.75,
           "requirement": "MUST clear 4.5:1 against `background.primary` in every mode."
         }
       ]
@@ -1793,10 +1793,10 @@
       "when_to_use": "The border of an outline neutral interactive element on pointer hover.",
       "avoid_when": "Do not use as ink (use `interactive.neutral.text.*`) or as a page divider (use `border.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.neutral.950}",
-        "dark": "{wds.core.palette.neutral.025}",
-        "hc-light": "{wds.core.palette.black}",
-        "hc-dark": "{wds.core.palette.white}"
+        "light": "{wds.core.palette.neutral.850}",
+        "dark": "{wds.core.palette.neutral.100}",
+        "hc-light": "{wds.core.palette.neutral.850}",
+        "hc-dark": "{wds.core.palette.neutral.100}"
       },
       "sits_on": [
         "background.primary"
@@ -1808,7 +1808,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 19.43,
+          "ratio": 15.95,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -1819,10 +1819,10 @@
       "when_to_use": "The border of an outline neutral interactive element while pressed.",
       "avoid_when": "Do not use as ink (use `interactive.neutral.text.*`) or as a page divider (use `border.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.neutral.950}",
-        "dark": "{wds.core.palette.neutral.025}",
-        "hc-light": "{wds.core.palette.black}",
-        "hc-dark": "{wds.core.palette.white}"
+        "light": "{wds.core.palette.neutral.750}",
+        "dark": "{wds.core.palette.neutral.200}",
+        "hc-light": "{wds.core.palette.neutral.750}",
+        "hc-dark": "{wds.core.palette.neutral.200}"
       },
       "sits_on": [
         "background.primary"
@@ -1834,7 +1834,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 19.43,
+          "ratio": 11.75,
           "requirement": "MUST clear 3:1 against `background.primary` in every mode."
         }
       ]
@@ -2637,10 +2637,10 @@
       "when_to_use": "The ink for outline and text neutral interactive elements (no fill behind it) on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.text.hover`. Do not use on a filled neutral control (use `inverse.interactive.neutral.on-fill`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.neutral.025}",
-        "dark": "{wds.core.palette.neutral.950}",
-        "hc-light": "{wds.core.palette.white}",
-        "hc-dark": "{wds.core.palette.black}"
+        "light": "{wds.core.palette.neutral.100}",
+        "dark": "{wds.core.palette.neutral.850}",
+        "hc-light": "{wds.core.palette.neutral.100}",
+        "hc-dark": "{wds.core.palette.neutral.850}"
       },
       "sits_on": [
         "inverse.background.primary",
@@ -2654,7 +2654,7 @@
         {
           "token": "inverse.background.primary",
           "min": "4.5:1",
-          "ratio": 18.13,
+          "ratio": 14.04,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2665,10 +2665,10 @@
       "when_to_use": "The icon for outline and text neutral interactive elements (no fill behind it) on pointer hover. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.icon.hover`. Do not use on a filled neutral control (use `inverse.interactive.neutral.on-fill`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.neutral.025}",
-        "dark": "{wds.core.palette.neutral.950}",
-        "hc-light": "{wds.core.palette.white}",
-        "hc-dark": "{wds.core.palette.black}"
+        "light": "{wds.core.palette.neutral.100}",
+        "dark": "{wds.core.palette.neutral.850}",
+        "hc-light": "{wds.core.palette.neutral.100}",
+        "hc-dark": "{wds.core.palette.neutral.850}"
       },
       "sits_on": [
         "inverse.background.primary",
@@ -2682,7 +2682,7 @@
         {
           "token": "inverse.background.primary",
           "min": "4.5:1",
-          "ratio": 18.13,
+          "ratio": 14.04,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2693,10 +2693,10 @@
       "when_to_use": "The ink for outline and text neutral interactive elements (no fill behind it) while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.text.pressed`. Do not use on a filled neutral control (use `inverse.interactive.neutral.on-fill`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.neutral.025}",
-        "dark": "{wds.core.palette.neutral.950}",
-        "hc-light": "{wds.core.palette.white}",
-        "hc-dark": "{wds.core.palette.black}"
+        "light": "{wds.core.palette.neutral.200}",
+        "dark": "{wds.core.palette.neutral.750}",
+        "hc-light": "{wds.core.palette.neutral.200}",
+        "hc-dark": "{wds.core.palette.neutral.750}"
       },
       "sits_on": [
         "inverse.background.primary",
@@ -2710,7 +2710,7 @@
         {
           "token": "inverse.background.primary",
           "min": "4.5:1",
-          "ratio": 18.13,
+          "ratio": 10.78,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2721,10 +2721,10 @@
       "when_to_use": "The icon for outline and text neutral interactive elements (no fill behind it) while pressed. Clears 4.5:1 in every mode on `inverse.background.primary`, `inverse.background.secondary`, `inverse.background.tertiary`, `inverse.foreground.primary`, `inverse.foreground.secondary` and `inverse.foreground.tertiary`. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.icon.pressed`. Do not use on a filled neutral control (use `inverse.interactive.neutral.on-fill`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.neutral.025}",
-        "dark": "{wds.core.palette.neutral.950}",
-        "hc-light": "{wds.core.palette.white}",
-        "hc-dark": "{wds.core.palette.black}"
+        "light": "{wds.core.palette.neutral.200}",
+        "dark": "{wds.core.palette.neutral.750}",
+        "hc-light": "{wds.core.palette.neutral.200}",
+        "hc-dark": "{wds.core.palette.neutral.750}"
       },
       "sits_on": [
         "inverse.background.primary",
@@ -2738,7 +2738,7 @@
         {
           "token": "inverse.background.primary",
           "min": "4.5:1",
-          "ratio": 18.13,
+          "ratio": 10.78,
           "requirement": "MUST clear 4.5:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2901,10 +2901,10 @@
       "when_to_use": "The border of an outline neutral interactive element on pointer hover. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.border.hover`. Do not use as ink (use `interactive.neutral.text.*`) or as a page divider (use `inverse.border.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.neutral.025}",
-        "dark": "{wds.core.palette.neutral.950}",
-        "hc-light": "{wds.core.palette.white}",
-        "hc-dark": "{wds.core.palette.black}"
+        "light": "{wds.core.palette.neutral.100}",
+        "dark": "{wds.core.palette.neutral.850}",
+        "hc-light": "{wds.core.palette.neutral.100}",
+        "hc-dark": "{wds.core.palette.neutral.850}"
       },
       "sits_on": [
         "inverse.background.primary"
@@ -2916,7 +2916,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 18.13,
+          "ratio": 14.04,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -2927,10 +2927,10 @@
       "when_to_use": "The border of an outline neutral interactive element while pressed. Only on an `inverse.*` ground — a dark band on a light page, or the reverse.",
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.border.pressed`. Do not use as ink (use `interactive.neutral.text.*`) or as a page divider (use `inverse.border.primary`).",
       "mode_overrides": {
-        "light": "{wds.core.palette.neutral.025}",
-        "dark": "{wds.core.palette.neutral.950}",
-        "hc-light": "{wds.core.palette.white}",
-        "hc-dark": "{wds.core.palette.black}"
+        "light": "{wds.core.palette.neutral.200}",
+        "dark": "{wds.core.palette.neutral.750}",
+        "hc-light": "{wds.core.palette.neutral.200}",
+        "hc-dark": "{wds.core.palette.neutral.750}"
       },
       "sits_on": [
         "inverse.background.primary"
@@ -2942,7 +2942,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 18.13,
+          "ratio": 10.78,
           "requirement": "MUST clear 3:1 against `inverse.background.primary` in every mode."
         }
       ]
@@ -6724,8 +6724,8 @@
     "type.body.xs.default": {
       "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
       "meaning": "Type style — body xs default (12px, body face)",
-      "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm.",
-      "avoid_when": "Do not use for running text (use `type.body.sm` or larger). For small print that stands on its own (an image caption, helper text, a footnote), use `type.caption.lg`.",
+      "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for running text (use `type.body.sm` or larger). For small print that stands on its own (an image caption, helper text, a footnote), use `type.caption.lg`. Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{wds.core.font.family.body}",
         "fontSize": "{wds.core.font.size.12}",
@@ -6751,8 +6751,8 @@
     "type.body.xs.strong": {
       "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
       "meaning": "Type style — body xs strong (12px, body face)",
-      "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm.",
-      "avoid_when": "Do not use for running text (use `type.body.sm` or larger). For small print that stands on its own (an image caption, helper text, a footnote), use `type.caption.lg`.",
+      "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for running text (use `type.body.sm` or larger). For small print that stands on its own (an image caption, helper text, a footnote), use `type.caption.lg`. Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{wds.core.font.family.body}",
         "fontSize": "{wds.core.font.size.12}",
@@ -6778,8 +6778,8 @@
     "type.body.sm.default": {
       "$description": "Running text / default UI copy.",
       "meaning": "Type style — body sm default (14px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text.",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{wds.core.font.family.body}",
         "fontSize": "{wds.core.font.size.14}",
@@ -6805,8 +6805,8 @@
     "type.body.sm.strong": {
       "$description": "Running text / default UI copy.",
       "meaning": "Type style — body sm strong (14px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text.",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{wds.core.font.family.body}",
         "fontSize": "{wds.core.font.size.14}",
@@ -6832,8 +6832,8 @@
     "type.body.md.default": {
       "$description": "Running text / default UI copy.",
       "meaning": "Type style — body md default (16px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text.",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{wds.core.font.family.body}",
         "fontSize": "{wds.core.font.size.16}",
@@ -6859,8 +6859,8 @@
     "type.body.md.strong": {
       "$description": "Running text / default UI copy.",
       "meaning": "Type style — body md strong (16px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text.",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{wds.core.font.family.body}",
         "fontSize": "{wds.core.font.size.16}",
@@ -6886,8 +6886,8 @@
     "type.body.lg.default": {
       "$description": "Running text / default UI copy.",
       "meaning": "Type style — body lg default (18px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text.",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{wds.core.font.family.body}",
         "fontSize": "{wds.core.font.size.18}",
@@ -6913,8 +6913,8 @@
     "type.body.lg.strong": {
       "$description": "Running text / default UI copy.",
       "meaning": "Type style — body lg strong (18px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text.",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{wds.core.font.family.body}",
         "fontSize": "{wds.core.font.size.18}",
@@ -6950,6 +6950,20 @@
         "letterSpacing": "{wds.core.font.letter-spacing-role.normal}"
       }
     },
+    "type.label.sm.emphasis-link": {
+      "$description": "UI label type — buttons, form labels, tabs, chips (underlined link variant).",
+      "meaning": "Type style — label sm emphasis link (12px, label face)",
+      "when_to_use": "The label of a button at the text appearance, at rest and in every state. The underline is fixed.",
+      "avoid_when": "Do not use for a filled or outline button's label (use `type.label.sm.emphasis`).",
+      "resolves_to": {
+        "fontFamily": "{wds.core.font.family.label}",
+        "fontSize": "{wds.core.font.size.12}",
+        "fontWeight": "{wds.core.font.weight-role.emphasis}",
+        "lineHeight": "{wds.core.font.line-height-role.snug}",
+        "letterSpacing": "{wds.core.font.letter-spacing-role.normal}",
+        "textDecoration": "underline"
+      }
+    },
     "type.label.md.emphasis": {
       "$description": "UI label type — buttons, form labels, tabs, chips.",
       "meaning": "Type style — label md emphasis (14px, label face)",
@@ -6961,6 +6975,20 @@
         "fontWeight": "{wds.core.font.weight-role.emphasis}",
         "lineHeight": "{wds.core.font.line-height-role.snug}",
         "letterSpacing": "{wds.core.font.letter-spacing-role.normal}"
+      }
+    },
+    "type.label.md.emphasis-link": {
+      "$description": "UI label type — buttons, form labels, tabs, chips (underlined link variant).",
+      "meaning": "Type style — label md emphasis link (14px, label face)",
+      "when_to_use": "The label of a button at the text appearance, at rest and in every state. The underline is fixed.",
+      "avoid_when": "Do not use for a filled or outline button's label (use `type.label.md.emphasis`).",
+      "resolves_to": {
+        "fontFamily": "{wds.core.font.family.label}",
+        "fontSize": "{wds.core.font.size.14}",
+        "fontWeight": "{wds.core.font.weight-role.emphasis}",
+        "lineHeight": "{wds.core.font.line-height-role.snug}",
+        "letterSpacing": "{wds.core.font.letter-spacing-role.normal}",
+        "textDecoration": "underline"
       }
     },
     "type.label.lg.emphasis": {
@@ -6976,11 +7004,25 @@
         "letterSpacing": "{wds.core.font.letter-spacing-role.normal}"
       }
     },
+    "type.label.lg.emphasis-link": {
+      "$description": "UI label type — buttons, form labels, tabs, chips (underlined link variant).",
+      "meaning": "Type style — label lg emphasis link (18px, label face)",
+      "when_to_use": "The label of a button at the text appearance, at rest and in every state. The underline is fixed.",
+      "avoid_when": "Do not use for a filled or outline button's label (use `type.label.lg.emphasis`).",
+      "resolves_to": {
+        "fontFamily": "{wds.core.font.family.label}",
+        "fontSize": "{wds.core.font.size.18}",
+        "fontWeight": "{wds.core.font.weight-role.emphasis}",
+        "lineHeight": "{wds.core.font.line-height-role.snug}",
+        "letterSpacing": "{wds.core.font.letter-spacing-role.normal}",
+        "textDecoration": "underline"
+      }
+    },
     "type.caption.md.default": {
       "$description": "Caption / secondary small text.",
       "meaning": "Type style — caption md default (11px, caption face)",
-      "when_to_use": "Image captions, helper text, metadata, footnotes.",
-      "avoid_when": "Do not use for primary reading text (use body).",
+      "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{wds.core.font.family.caption}",
         "fontSize": "{wds.core.font.size.11}",
@@ -7006,8 +7048,8 @@
     "type.caption.md.strong": {
       "$description": "Caption / secondary small text.",
       "meaning": "Type style — caption md strong (11px, caption face)",
-      "when_to_use": "Image captions, helper text, metadata, footnotes.",
-      "avoid_when": "Do not use for primary reading text (use body).",
+      "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{wds.core.font.family.caption}",
         "fontSize": "{wds.core.font.size.11}",
@@ -7033,8 +7075,8 @@
     "type.caption.lg.default": {
       "$description": "Caption / secondary small text.",
       "meaning": "Type style — caption lg default (12px, caption face)",
-      "when_to_use": "Image captions, helper text, metadata, footnotes.",
-      "avoid_when": "Do not use for primary reading text (use body).",
+      "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{wds.core.font.family.caption}",
         "fontSize": "{wds.core.font.size.12}",
@@ -7060,8 +7102,8 @@
     "type.caption.lg.strong": {
       "$description": "Caption / secondary small text.",
       "meaning": "Type style — caption lg strong (12px, caption face)",
-      "when_to_use": "Image captions, helper text, metadata, footnotes.",
-      "avoid_when": "Do not use for primary reading text (use body).",
+      "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{wds.core.font.family.caption}",
         "fontSize": "{wds.core.font.size.12}",
@@ -7179,8 +7221,11 @@
         "type.eyebrow.md.emphasis",
         "type.eyebrow.sm.emphasis",
         "type.label.lg.emphasis",
+        "type.label.lg.emphasis-link",
         "type.label.md.emphasis",
-        "type.label.sm.emphasis"
+        "type.label.md.emphasis-link",
+        "type.label.sm.emphasis",
+        "type.label.sm.emphasis-link"
       ]
     },
     "core.font.weight-role.strong": {
@@ -8080,15 +8125,9 @@
         "color.icon.on-warning",
         "color.icon.primary",
         "color.interactive.destructive.on-fill",
-        "color.interactive.neutral.border.hover",
-        "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.border.rest",
-        "color.interactive.neutral.icon.hover",
-        "color.interactive.neutral.icon.pressed",
         "color.interactive.neutral.icon.rest",
         "color.interactive.neutral.on-fill",
-        "color.interactive.neutral.text.hover",
-        "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
         "color.interactive.primary.on-fill",
         "color.inverse.background.primary",
@@ -8100,16 +8139,10 @@
         "color.inverse.icon.primary",
         "color.inverse.interactive.destructive.fill.rest",
         "color.inverse.interactive.destructive.on-fill",
-        "color.inverse.interactive.neutral.border.hover",
-        "color.inverse.interactive.neutral.border.pressed",
         "color.inverse.interactive.neutral.border.rest",
         "color.inverse.interactive.neutral.fill.rest",
-        "color.inverse.interactive.neutral.icon.hover",
-        "color.inverse.interactive.neutral.icon.pressed",
         "color.inverse.interactive.neutral.icon.rest",
         "color.inverse.interactive.neutral.on-fill",
-        "color.inverse.interactive.neutral.text.hover",
-        "color.inverse.interactive.neutral.text.pressed",
         "color.inverse.interactive.neutral.text.rest",
         "color.inverse.interactive.primary.fill.rest",
         "color.inverse.interactive.primary.on-fill",
@@ -8142,15 +8175,9 @@
         "color.icon.on-warning",
         "color.icon.primary",
         "color.interactive.destructive.on-fill",
-        "color.interactive.neutral.border.hover",
-        "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.border.rest",
-        "color.interactive.neutral.icon.hover",
-        "color.interactive.neutral.icon.pressed",
         "color.interactive.neutral.icon.rest",
         "color.interactive.neutral.on-fill",
-        "color.interactive.neutral.text.hover",
-        "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
         "color.interactive.primary.on-fill",
         "color.inverse.background.primary",
@@ -8162,16 +8189,10 @@
         "color.inverse.icon.primary",
         "color.inverse.interactive.destructive.fill.rest",
         "color.inverse.interactive.destructive.on-fill",
-        "color.inverse.interactive.neutral.border.hover",
-        "color.inverse.interactive.neutral.border.pressed",
         "color.inverse.interactive.neutral.border.rest",
         "color.inverse.interactive.neutral.fill.rest",
-        "color.inverse.interactive.neutral.icon.hover",
-        "color.inverse.interactive.neutral.icon.pressed",
         "color.inverse.interactive.neutral.icon.rest",
         "color.inverse.interactive.neutral.on-fill",
-        "color.inverse.interactive.neutral.text.hover",
-        "color.inverse.interactive.neutral.text.pressed",
         "color.inverse.interactive.neutral.text.rest",
         "color.inverse.interactive.primary.fill.rest",
         "color.inverse.interactive.primary.on-fill",
@@ -8607,12 +8628,18 @@
         "color.background.tertiary",
         "color.border.primary",
         "color.foreground.secondary",
+        "color.interactive.neutral.border.hover",
+        "color.interactive.neutral.icon.hover",
+        "color.interactive.neutral.text.hover",
         "color.inverse.background.tertiary",
         "color.inverse.foreground.secondary",
         "color.inverse.interactive.destructive.fill.focused",
         "color.inverse.interactive.destructive.fill.hover",
+        "color.inverse.interactive.neutral.border.hover",
         "color.inverse.interactive.neutral.fill.focused",
         "color.inverse.interactive.neutral.fill.hover",
+        "color.inverse.interactive.neutral.icon.hover",
+        "color.inverse.interactive.neutral.text.hover",
         "color.inverse.interactive.primary.fill.focused",
         "color.inverse.interactive.primary.fill.hover"
       ]
@@ -8640,11 +8667,17 @@
       "aliased_by": [
         "color.disabled.border",
         "color.disabled.fill",
+        "color.interactive.neutral.border.pressed",
+        "color.interactive.neutral.icon.pressed",
+        "color.interactive.neutral.text.pressed",
         "color.inverse.border.primary",
         "color.inverse.interactive.destructive.fill.pressed",
         "color.inverse.interactive.destructive.fill.selected",
+        "color.inverse.interactive.neutral.border.pressed",
         "color.inverse.interactive.neutral.fill.pressed",
         "color.inverse.interactive.neutral.fill.selected",
+        "color.inverse.interactive.neutral.icon.pressed",
+        "color.inverse.interactive.neutral.text.pressed",
         "color.inverse.interactive.primary.fill.pressed",
         "color.inverse.interactive.primary.fill.selected"
       ]
@@ -8834,7 +8867,13 @@
         "color.border.primary",
         "color.disabled.border",
         "color.disabled.fill",
-        "color.interactive.neutral.fill.hover"
+        "color.interactive.neutral.border.pressed",
+        "color.interactive.neutral.fill.hover",
+        "color.interactive.neutral.icon.pressed",
+        "color.interactive.neutral.text.pressed",
+        "color.inverse.interactive.neutral.border.pressed",
+        "color.inverse.interactive.neutral.icon.pressed",
+        "color.inverse.interactive.neutral.text.pressed"
       ]
     },
     "core.palette.neutral.800": {
@@ -8866,11 +8905,17 @@
       "aliased_by": [
         "color.background.tertiary",
         "color.foreground.secondary",
+        "color.interactive.neutral.border.hover",
         "color.interactive.neutral.fill.focused",
         "color.interactive.neutral.fill.rest",
         "color.interactive.neutral.fill.selected",
+        "color.interactive.neutral.icon.hover",
+        "color.interactive.neutral.text.hover",
         "color.inverse.background.tertiary",
-        "color.inverse.foreground.secondary"
+        "color.inverse.foreground.secondary",
+        "color.inverse.interactive.neutral.border.hover",
+        "color.inverse.interactive.neutral.icon.hover",
+        "color.inverse.interactive.neutral.text.hover"
       ]
     },
     "core.palette.neutral.900": {
@@ -8902,28 +8947,16 @@
         "color.background.primary",
         "color.border.tertiary",
         "color.icon.primary",
-        "color.interactive.neutral.border.hover",
-        "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.border.rest",
-        "color.interactive.neutral.icon.hover",
-        "color.interactive.neutral.icon.pressed",
         "color.interactive.neutral.icon.rest",
         "color.interactive.neutral.on-fill",
-        "color.interactive.neutral.text.hover",
-        "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
         "color.inverse.background.primary",
         "color.inverse.border.tertiary",
         "color.inverse.icon.primary",
-        "color.inverse.interactive.neutral.border.hover",
-        "color.inverse.interactive.neutral.border.pressed",
         "color.inverse.interactive.neutral.border.rest",
-        "color.inverse.interactive.neutral.icon.hover",
-        "color.inverse.interactive.neutral.icon.pressed",
         "color.inverse.interactive.neutral.icon.rest",
         "color.inverse.interactive.neutral.on-fill",
-        "color.inverse.interactive.neutral.text.hover",
-        "color.inverse.interactive.neutral.text.pressed",
         "color.inverse.interactive.neutral.text.rest",
         "color.inverse.text.primary",
         "color.text.primary"
@@ -8939,28 +8972,16 @@
         "color.border.tertiary",
         "color.icon.on-brand",
         "color.icon.primary",
-        "color.interactive.neutral.border.hover",
-        "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.border.rest",
-        "color.interactive.neutral.icon.hover",
-        "color.interactive.neutral.icon.pressed",
         "color.interactive.neutral.icon.rest",
         "color.interactive.neutral.on-fill",
-        "color.interactive.neutral.text.hover",
-        "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
         "color.inverse.background.primary",
         "color.inverse.border.tertiary",
         "color.inverse.icon.primary",
-        "color.inverse.interactive.neutral.border.hover",
-        "color.inverse.interactive.neutral.border.pressed",
         "color.inverse.interactive.neutral.border.rest",
-        "color.inverse.interactive.neutral.icon.hover",
-        "color.inverse.interactive.neutral.icon.pressed",
         "color.inverse.interactive.neutral.icon.rest",
         "color.inverse.interactive.neutral.on-fill",
-        "color.inverse.interactive.neutral.text.hover",
-        "color.inverse.interactive.neutral.text.pressed",
         "color.inverse.interactive.neutral.text.rest",
         "color.inverse.text.primary",
         "color.text.on-brand",
@@ -10792,8 +10813,11 @@
         "type.eyebrow.md.emphasis",
         "type.eyebrow.sm.emphasis",
         "type.label.lg.emphasis",
+        "type.label.lg.emphasis-link",
         "type.label.md.emphasis",
+        "type.label.md.emphasis-link",
         "type.label.sm.emphasis",
+        "type.label.sm.emphasis-link",
         "type.title.2xl.strong",
         "type.title.lg.strong",
         "type.title.md.strong",
@@ -10879,7 +10903,8 @@
         "type.caption.lg.strong",
         "type.caption.lg.strong-link",
         "type.eyebrow.sm.emphasis",
-        "type.label.sm.emphasis"
+        "type.label.sm.emphasis",
+        "type.label.sm.emphasis-link"
       ]
     },
     "core.font.size.14": {
@@ -10894,7 +10919,8 @@
         "type.body.sm.strong-link",
         "type.code.inline.default",
         "type.eyebrow.md.emphasis",
-        "type.label.md.emphasis"
+        "type.label.md.emphasis",
+        "type.label.md.emphasis-link"
       ]
     },
     "core.font.size.16": {
@@ -10921,6 +10947,7 @@
         "type.body.lg.strong-link",
         "type.eyebrow.lg.emphasis",
         "type.label.lg.emphasis",
+        "type.label.lg.emphasis-link",
         "type.title.xs.strong"
       ]
     },
@@ -11108,8 +11135,11 @@
         "type.eyebrow.md.emphasis",
         "type.eyebrow.sm.emphasis",
         "type.label.lg.emphasis",
+        "type.label.lg.emphasis-link",
         "type.label.md.emphasis",
-        "type.label.sm.emphasis"
+        "type.label.md.emphasis-link",
+        "type.label.sm.emphasis",
+        "type.label.sm.emphasis-link"
       ]
     },
     "core.font.weight.700": {
@@ -11180,8 +11210,11 @@
         "type.eyebrow.md.emphasis",
         "type.eyebrow.sm.emphasis",
         "type.label.lg.emphasis",
+        "type.label.lg.emphasis-link",
         "type.label.md.emphasis",
+        "type.label.md.emphasis-link",
         "type.label.sm.emphasis",
+        "type.label.sm.emphasis-link",
         "type.title.2xl.strong",
         "type.title.lg.strong",
         "type.title.xl.strong"
@@ -11293,8 +11326,11 @@
         "type.caption.md.strong-link",
         "type.code.inline.default",
         "type.label.lg.emphasis",
+        "type.label.lg.emphasis-link",
         "type.label.md.emphasis",
-        "type.label.sm.emphasis"
+        "type.label.md.emphasis-link",
+        "type.label.sm.emphasis",
+        "type.label.sm.emphasis-link"
       ]
     },
     "core.font.letter-spacing.10": {

@@ -190,7 +190,8 @@ ok(ty() === with3({ links: ['title'] }), `a second link toggle reads the set the
 
   reset('aurora');
   before = JSON.stringify(structuredClone(store.brandState));
-  ok(JSON.stringify([...linkSet()].sort()) === JSON.stringify(LINK_DEFAULT), `aurora as loaded ships links on body and caption, the default (${[...linkSet()]})`);
+  // #2324: label is always underlined (a text button's label), so it ships beside the default body and caption.
+  ok(JSON.stringify([...linkSet()].sort()) === JSON.stringify([...LINK_DEFAULT, 'label'].sort()), `aurora as loaded ships links on body and caption, the default, and on label, which always ships them (${[...linkSet()]})`);
   T.setLink('title', true, linkSet());
   ok(JSON.stringify((store.brandState.typography as any).links) === '["title","body","caption"]' && takes(),
     `setLink(title, on) on a default brand writes links ["title","body","caption"] (${ty()})`);
@@ -201,8 +202,11 @@ ok(ty() === with3({ links: ['title'] }), `a second link toggle reads the set the
   T.setLink('body', false, linkSet());
   ok(JSON.stringify((store.brandState.typography as any).links) === '["caption"]', `setLink(body, off) on a default brand writes links ["caption"] (${ty()})`);
   T.setLink('caption', false, linkSet());
-  ok(JSON.stringify((store.brandState.typography as any).links) === '[]' && takes() && linkSet().size === 0,
-    `unticking every link writes links [] and the engine emits zero link composites — no underlined links (${ty()})`);
+  // #2324: label's link styles are fixed, so they are what is left; its cell is locked, so it never writes it.
+  ok(JSON.stringify((store.brandState.typography as any).links) === '[]' && takes() && JSON.stringify([...linkSet()]) === '["label"]',
+    `unticking every link writes links [] and the engine emits only label's fixed link composites (${ty()})`);
+  ok(T.linkLock('label') !== undefined && T.linkLock('body') === undefined && T.linkLock('caption') === undefined,
+    `label's Link cell is locked, and body's and caption's are not (#2324): ${JSON.stringify([T.linkLock('label'), T.linkLock('body')])}`);
 }
 
 console.log('\n5. Line height and letter spacing: bindings, per-mode swaps, nudges');

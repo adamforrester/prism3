@@ -323,7 +323,7 @@ export const environmentProblems = async (): Promise<string[]> => {
 /** The artifact-count meta-check, taken from the drift gate's ALREADY-CAPTURED output rather than by
  *  running `regen.ts --check` a second time (it is among the slowest gates here). This is what
  *  buffering per gate buys — point 2 paying for itself. Mirrors `ci.yml`'s own step. */
-const EXPECTED_ARTIFACTS = 171;
+const EXPECTED_ARTIFACTS = 175;
 
 /* #775's window closed 2026-08-20 and the smoke suite gates in both CI and this runner, so the
  * date constant and its clock read are GONE rather than left at a passed date. They existed to stop
@@ -535,6 +535,16 @@ export const GATES: Gate[] = [
     precondition: chromiumPrecondition,
   },
   {
+    // #2351 gap 1: the web and plugin token exports of every committed brand are byte-identical to each
+    // other and to out/<id>.tokens.json. It downloads from BOTH built bundles, so it runs after both builds.
+    id: 'export-parity',
+    ciStep: 'The web and plugin token exports agree, byte for byte (#2351)',
+    cmd: ws('@prism3/studio', 'test:export-parity'),
+    after: ['build-web', 'build-plugin'],
+    why: 'it downloads the export from the built dist/main.js and dist/ui.html in a browser',
+    precondition: chromiumPrecondition,
+  },
+  {
     // #2201: a live styles.css rule is not removed without an explicit accept. STATIC at check time — it
     // parses the current styles.css with Chromium's CSS parser (hence the precondition) and compares it to
     // apps/studio/live-css.json, the rules the browser suites' pages were seen to draw. It reads neither
@@ -571,6 +581,16 @@ export const GATES: Gate[] = [
     cmd: [...TSX, 'tools/exporter-comparison/gate.ts'],
     after: ['tokenpress-build'],
     why: "it executes TokenPress's real TokenExporter in memory",
+  },
+  {
+    // #2351 gap 2 (offline): the plugin's Apply Theme, written into the file shim, exports through TokenPress's
+    // real exporter to the same DTCG as the engine's Figma emission does. After the exporter gate, which holds
+    // that emission's export to the engine's DTCG, so a failure there explains one here.
+    id: 'readback-parity',
+    ciStep: "The plugin's applied file exports what the engine emits (#2351)",
+    cmd: ws('@prism3/plugin', 'test:readback-parity'),
+    after: ['exporter-comparison'],
+    why: 'it holds the applied file to the emission whose export the exporter gate holds to the engine',
   },
   {
     id: 'consumability',

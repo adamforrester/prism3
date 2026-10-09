@@ -2744,6 +2744,84 @@
 /**
  * ── FOLDED CHANGE NOTES (#1807) — `fold.ts` writes each fold directly below this line, newest first. ──
  *
+ * 0.235.0 — folded 2026-10-09 from 5 change notes, newest merge first.
+ *
+ * [claude-2350-flush-text-buttons · minor · 982f0f58] Flush text buttons in 0.235.0 (#2350 part 1, owner Q143 items 1 and 2, the correction to item 3, and Q145 A).
+ * Button, Destructive and Neutral gain an `inset` axis, `default | flush` (name, values and wording DRAFT for the owner),
+ * on the text appearance only: `figmaProperties.excludeCoordinates` removes it from filled and outline, so each set grows
+ * from 432 to 576 members (144 flush text members). A flush member binds both inline paddings to `space.0` and drops the
+ * #1667 minimum width, so it hugs its label and the label sits on whichever content edge it aligns to: start, end, or
+ * both in a centered row. Under "Locked to edges" both pinned icons sit at the edge, each side's reserve less the inset.
+ * The container paints no overlay wash, so a flush button hovers by color only even when the brand's "Text button hover"
+ * is "Fill". The height is the default sibling's, so the hit target keeps its floor. Expressed by a new box field,
+ * `PartDef.flush: { axis, value, key }`, validated in `anatomyErrors`, and a twenty-first axis name, `inset`, in
+ * `VARIANT_AXES`. Icon buttons get no flush. No token name or value moves; CONTRACT unchanged.
+ *
+ * [claude-field-sizing-2266 · minor · 337f166c] One field sizing system, in 0.235.0 (#2266, owner decisions Q84 A, Q101 A and Q99 B). field-label is re-laddered to 12 / 14 / 16 (`type.body.xs/sm/md`), so each label sits one body step below the input of its field size. text-field, select and textarea project `size` small / medium / large as a Figma variant (24 to 72 members each; select gains the size prop for the first time). The input type scales with the size (`type.body.sm/md/lg`, 14 / 16 / 18), and so do the caret, the padding and the height. Small and medium keep the 44px floor (`size.md.min-height`) and large takes `size.lg.height`. The nested label follows the field's size instead of exposing it. The variant order leads with `medium`, so the default variant is the medium field and an in-place update lands every pre-existing member on it. The three controls' width floor drops from 320 to 120 (DRAFT), so a field shrinks with a narrower column; the root is still built at 320. The group legends follow the re-laddered label (a medium legend is 14 bold). field-message stays 11px. The small size is documented as fine-pointer only: under `@media (pointer: coarse)` the code sets the small input to 16px, so iOS does not zoom on focus. No token name moves, so CONTRACT is unchanged.
+ *
+ * [claude-motion-figma-2394 · minor · cea29b76] Motion reaches Figma (#2394, owner decision Q146 A). Every brand's Figma emission gains a `motion`
+ * collection, `out/figma/<brand>/motion.json`: the `motion.duration-ms` primitives (hidden from publishing),
+ * and `motion.duration`, `motion.duration-reduced` and `motion.stagger` aliasing them, all as FLOAT
+ * milliseconds. The variables carry no scope, because Figma's VariableScope has no time member (plugin-typings
+ * 1.131.0 and the live API reference, both checked 2026-10-09) and no Figma property binds a duration. A brand
+ * whose mode levers run a different tempo gets one mode per such mode, the semantic aliasing that mode's
+ * primitive (the radius precedent). Apply Theme writes the collection through the float write plan. Easing,
+ * spring and transition stay DTCG-only: Figma has no variable type for them. The DTCG output is unchanged, so
+ * CONTRACT is unchanged.
+ *
+ * [claude-2361-boxed-corners · minor · 2f75e708] `controlShape: boxed` puts fields and the checkbox on the 0px corner too, the same way Hairline does (#2361,
+ * owner decision Q139, 2026-10-08). `applyControlShape` now repoints, under `boxed` as well as `hairline`,
+ * text-field, select and textarea's field corner (`radius.sm`) and checkbox-control's per-rung clamped corner
+ * (`control.size.<rung>.radius`), to the shape's rung (`radius.none` under Boxed). The map is renamed from
+ * `HAIRLINE_CORNER_REFS` to `FIELD_CORNER_REFS`, and the shapes that reach it are named in `FIELD_CORNER_SHAPES`.
+ * The defs are still named by id, never selected by ref, so Badge's status corner (also `radius.sm`) stays put.
+ * The checkbox clamp still holds: 0px is below `snap2(edge / 8)` on every edge. Radio and switch keep
+ * `radius.round`. Pill and Rounded reach only buttons and icon buttons, as before. No token name or value moves,
+ * so CONTRACT is unchanged; a Boxed brand's in-place component update shows the four defs' corners as named
+ * differences.
+ *
+ * [claude-2361-hairline-corners · minor · 920b1f7f] `controlShape: hairline` puts fields and the checkbox on the 1px corner too (#2361,
+ * owner 2026-10-08, "1px corners everywhere", consistency first). `applyControlShape` now also repoints, under
+ * `hairline` only, text-field, select and textarea's field corner (`radius.sm`) and checkbox-control's per-rung
+ * clamped corner (`control.size.<rung>.radius`) to `radius.hairline`. The defs are named by id in
+ * `HAIRLINE_CORNER_REFS`, never selected by ref, because Badge's status corner also binds `radius.sm`. The
+ * checkbox clamp still holds: 1px is below `snap2(edge / 8)` on every control edge of 8px or more, and the
+ * smallest is 12px. Radio and switch keep `radius.round`. Boxed, Rounded and Pill reach only buttons and icon
+ * buttons, as before. No token name or value moves, so CONTRACT is unchanged; the change is which existing rung
+ * four defs bind at build time, which a Hairline brand's in-place component update shows as named differences
+ * on those members.
+ *
+ * 0.234.0 — folded 2026-10-08 from 3 change notes, newest merge first.
+ *
+ * [engine-2324-text-button-underline · minor · 4f70b47e] #2324 (owner Q110 and the 2026-10-08 answers): a button at the text appearance underlines its label, at rest and in
+ * every state, disabled included, on Button, Destructive and Neutral. The underline is fixed. Every brand now mints
+ * underlined label styles, `type.label.{sm,md,lg}.emphasis-link` (and `default-link` under `buttonLabelWeight: default`),
+ * whatever `typography.links` lists; they describe themselves as a text button's label, not a `text.link.*` link.
+ * Text-appearance buttons bind them through a per-appearance label key, `size.<size>.<appearance>.type`. A text button
+ * is never filled at rest, and by default not on hover or pressed either: a new Button option, `buttonTextHover`
+ * ("Text button hover": `text`, "Text & icon only", the default; or `fill`, "Fill"), gives it the outline appearance's
+ * overlay wash on hover and pressed. Neutral's interactive ink now walks like the other families (rest unchanged; hover
+ * and pressed reflect toward the middle of the ramp, 950 to 850 and 750 in light; 025 to 100 and 200 on the inverse
+ * band), so its text and outline buttons change on hover and pressed, on both grounds; its border follows. The token contract gains the three label link paths
+ * (CONTRACT 14.4.0 to 14.5.0).
+ *
+ * [studio-2322-heading-type · minor · a2bfc7cb] #2322: three tracking roles join the type ramp, between and beyond the six: tightest (-4%), snugger (-1.5%, between
+ * tight and snug) and open (+1%, between normal and wide). Their steps were already on the locked ladder; every brand
+ * now emits them, and the token contract adds the six paths (CONTRACT_VERSION 14.4.0). The six roles before them keep
+ * their names and values, and no composite binds a new role, so no brand's type moves. A tracking nudge still steps
+ * along the six (TRACKING_SHIFT_KEYS). A new role a brand does not set takes its default, clamped between its two
+ * resolved neighbors, so a brand that re-anchored a neighbor past it still builds.
+ *
+ * [engine-2266-body-xs · minor · 30189907] #2266 PR 1 (owner Q78 A and Q101 A): a new body rung, `type.body.xs`. It is 12px, on body's line height (normal,
+ * 1.5, an 18px box), tracking (normal, 0) and family role, with the same weight and variant set each brand's
+ * body.sm carries, italics included where a brand ships them. Every body.xs composite's DTCG $description and its
+ * .ai.json $description read, verbatim: "Smallest body text, 12px. Secondary text and metadata only, never running
+ * text." The .ai.json when_to_use and avoid_when say when to use it and when to use caption.lg (also 12px)
+ * instead. Its Figma text styles say "for secondary text and metadata only" where body's say "for running text".
+ * Every brand gains four (prism3 eight) composites and text styles. No existing token moves. The token contract
+ * gains type.body.xs.default and default-link (CONTRACT 14.2.0 to 14.3.0). No component binds body.xs yet: that is
+ * PR 2.
+ *
  * 0.233.0 — folded 2026-10-07 from 4 change notes, newest merge first.
  *
  * [engine-2241-hueless-gray · minor · 12b57a36] #2241: a pure gray has no hue. Below a chroma of 1e-4 (ACHROMATIC_C, color.ts) the OKLCH converter used to
@@ -4755,7 +4833,7 @@
  * `$extensions.generator.version` so the producer stamp tracks the release that moved the promised surface.
  * (#1479)
  */
-export const ENGINE_VERSION = '0.233.0';
+export const ENGINE_VERSION = '0.235.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -5310,7 +5388,14 @@ export const ENGINE_VERSION = '0.233.0';
  * (+1%, `letter-spacing.10`). All three steps were already on the locked ladder; only roles bind them now. The six
  * roles before them keep their names and values, so nothing a consumer reads moves. Nothing is removed or retyped.
  */
-export const CONTRACT_VERSION = '14.4.0';
+/**
+ * 14.5.0 (#2324, owner Q110, 2026-10-08): MINOR. Labels are always underlined-capable: `type.label.{sm,md,lg}.emphasis-link`
+ * join the guaranteed surface, minted for every brand whatever `typography.links` lists, because a button at the text
+ * appearance underlines its label at rest and in every state (the underline is fixed). `default-link` follows the
+ * brand's label weights, as `default` does, so it is brand-dependent. An added path cannot break a reference.
+ * Nothing is removed or retyped.
+ */
+export const CONTRACT_VERSION = '14.5.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

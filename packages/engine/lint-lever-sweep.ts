@@ -181,6 +181,7 @@ const materialize = (def: ComponentDef, input: BrandInput, theme: Theme): Compon
       content: input.buttonContentSize ?? DEFAULT_BUTTON_LAYOUT.content,
       minWidthMultiplier: input.buttonMinWidthMultiplier ?? DEFAULT_BUTTON_LAYOUT.minWidthMultiplier,
       labelWeight: input.buttonLabelWeight ?? DEFAULT_BUTTON_LAYOUT.labelWeight,
+      textHover: input.buttonTextHover ?? DEFAULT_BUTTON_LAYOUT.textHover,
     },
     sizeRefPx(theme.dims.sizes)), sizeRefPx(theme.dims.sizes));
 

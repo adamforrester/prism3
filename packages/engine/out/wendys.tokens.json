@@ -10330,34 +10330,34 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{wds.core.palette.neutral.950}",
+              "$value": "{wds.core.palette.neutral.850}",
               "$description": "neutral interactive ink — hover (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.neutral.950",
-                  "contrast": 19.43,
+                  "aliasOf": "wds.core.palette.neutral.850",
+                  "contrast": 15.95,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.neutral.025}",
-                      "aliasOf": "wds.core.palette.neutral.025",
-                      "contrast": 18.13,
+                      "$value": "{wds.core.palette.neutral.100}",
+                      "aliasOf": "wds.core.palette.neutral.100",
+                      "contrast": 14.04,
                       "against": "background.primary",
                       "min": 4.5
                     },
                     "hc-light": {
-                      "$value": "{wds.core.palette.black}",
-                      "aliasOf": "wds.core.palette.black",
-                      "contrast": 21,
+                      "$value": "{wds.core.palette.neutral.850}",
+                      "aliasOf": "wds.core.palette.neutral.850",
+                      "contrast": 15.95,
                       "against": "background.primary",
                       "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{wds.core.palette.white}",
-                      "aliasOf": "wds.core.palette.white",
-                      "contrast": 21,
+                      "$value": "{wds.core.palette.neutral.100}",
+                      "aliasOf": "wds.core.palette.neutral.100",
+                      "contrast": 15.18,
                       "against": "background.primary",
                       "min": 7
                     }
@@ -10377,34 +10377,34 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{wds.core.palette.neutral.950}",
+              "$value": "{wds.core.palette.neutral.750}",
               "$description": "neutral interactive ink — pressed (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.neutral.950",
-                  "contrast": 19.43,
+                  "aliasOf": "wds.core.palette.neutral.750",
+                  "contrast": 11.75,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.neutral.025}",
-                      "aliasOf": "wds.core.palette.neutral.025",
-                      "contrast": 18.13,
+                      "$value": "{wds.core.palette.neutral.200}",
+                      "aliasOf": "wds.core.palette.neutral.200",
+                      "contrast": 10.78,
                       "against": "background.primary",
                       "min": 4.5
                     },
                     "hc-light": {
-                      "$value": "{wds.core.palette.black}",
-                      "aliasOf": "wds.core.palette.black",
-                      "contrast": 21,
+                      "$value": "{wds.core.palette.neutral.750}",
+                      "aliasOf": "wds.core.palette.neutral.750",
+                      "contrast": 11.75,
                       "against": "background.primary",
                       "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{wds.core.palette.white}",
-                      "aliasOf": "wds.core.palette.white",
-                      "contrast": 21,
+                      "$value": "{wds.core.palette.neutral.200}",
+                      "aliasOf": "wds.core.palette.neutral.200",
+                      "contrast": 11.65,
                       "against": "background.primary",
                       "min": 7
                     }
@@ -10473,34 +10473,34 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{wds.core.palette.neutral.950}",
+              "$value": "{wds.core.palette.neutral.850}",
               "$description": "neutral interactive icon ink — hover (the glyph in an outline / ghost / text control)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.neutral.950",
-                  "contrast": 19.43,
+                  "aliasOf": "wds.core.palette.neutral.850",
+                  "contrast": 15.95,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.neutral.025}",
-                      "aliasOf": "wds.core.palette.neutral.025",
-                      "contrast": 18.13,
+                      "$value": "{wds.core.palette.neutral.100}",
+                      "aliasOf": "wds.core.palette.neutral.100",
+                      "contrast": 14.04,
                       "against": "background.primary",
                       "min": 4.5
                     },
                     "hc-light": {
-                      "$value": "{wds.core.palette.black}",
-                      "aliasOf": "wds.core.palette.black",
-                      "contrast": 21,
+                      "$value": "{wds.core.palette.neutral.850}",
+                      "aliasOf": "wds.core.palette.neutral.850",
+                      "contrast": 15.95,
                       "against": "background.primary",
                       "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{wds.core.palette.white}",
-                      "aliasOf": "wds.core.palette.white",
-                      "contrast": 21,
+                      "$value": "{wds.core.palette.neutral.100}",
+                      "aliasOf": "wds.core.palette.neutral.100",
+                      "contrast": 15.18,
                       "against": "background.primary",
                       "min": 7
                     }
@@ -10520,34 +10520,34 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{wds.core.palette.neutral.950}",
+              "$value": "{wds.core.palette.neutral.750}",
               "$description": "neutral interactive icon ink — pressed (the glyph in an outline / ghost / text control)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.neutral.950",
-                  "contrast": 19.43,
+                  "aliasOf": "wds.core.palette.neutral.750",
+                  "contrast": 11.75,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.neutral.025}",
-                      "aliasOf": "wds.core.palette.neutral.025",
-                      "contrast": 18.13,
+                      "$value": "{wds.core.palette.neutral.200}",
+                      "aliasOf": "wds.core.palette.neutral.200",
+                      "contrast": 10.78,
                       "against": "background.primary",
                       "min": 4.5
                     },
                     "hc-light": {
-                      "$value": "{wds.core.palette.black}",
-                      "aliasOf": "wds.core.palette.black",
-                      "contrast": 21,
+                      "$value": "{wds.core.palette.neutral.750}",
+                      "aliasOf": "wds.core.palette.neutral.750",
+                      "contrast": 11.75,
                       "against": "background.primary",
                       "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{wds.core.palette.white}",
-                      "aliasOf": "wds.core.palette.white",
-                      "contrast": 21,
+                      "$value": "{wds.core.palette.neutral.200}",
+                      "aliasOf": "wds.core.palette.neutral.200",
+                      "contrast": 11.65,
                       "against": "background.primary",
                       "min": 7
                     }
@@ -10616,34 +10616,34 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{wds.core.palette.neutral.950}",
+              "$value": "{wds.core.palette.neutral.850}",
               "$description": "neutral interactive border — hover (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.neutral.950",
-                  "contrast": 19.43,
+                  "aliasOf": "wds.core.palette.neutral.850",
+                  "contrast": 15.95,
                   "against": "background.primary",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.neutral.025}",
-                      "aliasOf": "wds.core.palette.neutral.025",
-                      "contrast": 18.13,
+                      "$value": "{wds.core.palette.neutral.100}",
+                      "aliasOf": "wds.core.palette.neutral.100",
+                      "contrast": 14.04,
                       "against": "background.primary",
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{wds.core.palette.black}",
-                      "aliasOf": "wds.core.palette.black",
-                      "contrast": 21,
+                      "$value": "{wds.core.palette.neutral.850}",
+                      "aliasOf": "wds.core.palette.neutral.850",
+                      "contrast": 15.95,
                       "against": "background.primary",
                       "min": 4.5
                     },
                     "hc-dark": {
-                      "$value": "{wds.core.palette.white}",
-                      "aliasOf": "wds.core.palette.white",
-                      "contrast": 21,
+                      "$value": "{wds.core.palette.neutral.100}",
+                      "aliasOf": "wds.core.palette.neutral.100",
+                      "contrast": 15.18,
                       "against": "background.primary",
                       "min": 4.5
                     }
@@ -10663,34 +10663,34 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{wds.core.palette.neutral.950}",
+              "$value": "{wds.core.palette.neutral.750}",
               "$description": "neutral interactive border — pressed (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "wds.core.palette.neutral.950",
-                  "contrast": 19.43,
+                  "aliasOf": "wds.core.palette.neutral.750",
+                  "contrast": 11.75,
                   "against": "background.primary",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{wds.core.palette.neutral.025}",
-                      "aliasOf": "wds.core.palette.neutral.025",
-                      "contrast": 18.13,
+                      "$value": "{wds.core.palette.neutral.200}",
+                      "aliasOf": "wds.core.palette.neutral.200",
+                      "contrast": 10.78,
                       "against": "background.primary",
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{wds.core.palette.black}",
-                      "aliasOf": "wds.core.palette.black",
-                      "contrast": 21,
+                      "$value": "{wds.core.palette.neutral.750}",
+                      "aliasOf": "wds.core.palette.neutral.750",
+                      "contrast": 11.75,
                       "against": "background.primary",
                       "min": 4.5
                     },
                     "hc-dark": {
-                      "$value": "{wds.core.palette.white}",
-                      "aliasOf": "wds.core.palette.white",
-                      "contrast": 21,
+                      "$value": "{wds.core.palette.neutral.200}",
+                      "aliasOf": "wds.core.palette.neutral.200",
+                      "contrast": 11.65,
                       "against": "background.primary",
                       "min": 4.5
                     }
@@ -14680,34 +14680,34 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{wds.core.palette.neutral.025}",
+                "$value": "{wds.core.palette.neutral.100}",
                 "$description": "neutral interactive ink on an inverse surface — hover (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "wds.core.palette.neutral.025",
-                    "contrast": 18.13,
+                    "aliasOf": "wds.core.palette.neutral.100",
+                    "contrast": 14.04,
                     "against": "inverse.background.primary",
                     "min": 4.5,
                     "modes": {
                       "dark": {
-                        "$value": "{wds.core.palette.neutral.950}",
-                        "aliasOf": "wds.core.palette.neutral.950",
-                        "contrast": 18.13,
+                        "$value": "{wds.core.palette.neutral.850}",
+                        "aliasOf": "wds.core.palette.neutral.850",
+                        "contrast": 14.89,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-light": {
-                        "$value": "{wds.core.palette.white}",
-                        "aliasOf": "wds.core.palette.white",
-                        "contrast": 21,
+                        "$value": "{wds.core.palette.neutral.100}",
+                        "aliasOf": "wds.core.palette.neutral.100",
+                        "contrast": 15.18,
                         "against": "inverse.background.primary",
                         "min": 7
                       },
                       "hc-dark": {
-                        "$value": "{wds.core.palette.black}",
-                        "aliasOf": "wds.core.palette.black",
-                        "contrast": 21,
+                        "$value": "{wds.core.palette.neutral.850}",
+                        "aliasOf": "wds.core.palette.neutral.850",
+                        "contrast": 15.95,
                         "against": "inverse.background.primary",
                         "min": 7
                       }
@@ -14727,34 +14727,34 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{wds.core.palette.neutral.025}",
+                "$value": "{wds.core.palette.neutral.200}",
                 "$description": "neutral interactive ink on an inverse surface — pressed (outline / text on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "wds.core.palette.neutral.025",
-                    "contrast": 18.13,
+                    "aliasOf": "wds.core.palette.neutral.200",
+                    "contrast": 10.78,
                     "against": "inverse.background.primary",
                     "min": 4.5,
                     "modes": {
                       "dark": {
-                        "$value": "{wds.core.palette.neutral.950}",
-                        "aliasOf": "wds.core.palette.neutral.950",
-                        "contrast": 18.13,
+                        "$value": "{wds.core.palette.neutral.750}",
+                        "aliasOf": "wds.core.palette.neutral.750",
+                        "contrast": 10.97,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-light": {
-                        "$value": "{wds.core.palette.white}",
-                        "aliasOf": "wds.core.palette.white",
-                        "contrast": 21,
+                        "$value": "{wds.core.palette.neutral.200}",
+                        "aliasOf": "wds.core.palette.neutral.200",
+                        "contrast": 11.65,
                         "against": "inverse.background.primary",
                         "min": 7
                       },
                       "hc-dark": {
-                        "$value": "{wds.core.palette.black}",
-                        "aliasOf": "wds.core.palette.black",
-                        "contrast": 21,
+                        "$value": "{wds.core.palette.neutral.750}",
+                        "aliasOf": "wds.core.palette.neutral.750",
+                        "contrast": 11.75,
                         "against": "inverse.background.primary",
                         "min": 7
                       }
@@ -14823,34 +14823,34 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{wds.core.palette.neutral.025}",
+                "$value": "{wds.core.palette.neutral.100}",
                 "$description": "neutral interactive icon ink on an inverse surface — hover (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "wds.core.palette.neutral.025",
-                    "contrast": 18.13,
+                    "aliasOf": "wds.core.palette.neutral.100",
+                    "contrast": 14.04,
                     "against": "inverse.background.primary",
                     "min": 4.5,
                     "modes": {
                       "dark": {
-                        "$value": "{wds.core.palette.neutral.950}",
-                        "aliasOf": "wds.core.palette.neutral.950",
-                        "contrast": 18.13,
+                        "$value": "{wds.core.palette.neutral.850}",
+                        "aliasOf": "wds.core.palette.neutral.850",
+                        "contrast": 14.89,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-light": {
-                        "$value": "{wds.core.palette.white}",
-                        "aliasOf": "wds.core.palette.white",
-                        "contrast": 21,
+                        "$value": "{wds.core.palette.neutral.100}",
+                        "aliasOf": "wds.core.palette.neutral.100",
+                        "contrast": 15.18,
                         "against": "inverse.background.primary",
                         "min": 7
                       },
                       "hc-dark": {
-                        "$value": "{wds.core.palette.black}",
-                        "aliasOf": "wds.core.palette.black",
-                        "contrast": 21,
+                        "$value": "{wds.core.palette.neutral.850}",
+                        "aliasOf": "wds.core.palette.neutral.850",
+                        "contrast": 15.95,
                         "against": "inverse.background.primary",
                         "min": 7
                       }
@@ -14870,34 +14870,34 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{wds.core.palette.neutral.025}",
+                "$value": "{wds.core.palette.neutral.200}",
                 "$description": "neutral interactive icon ink on an inverse surface — pressed (the glyph in an outline / ghost / text control on the inverse band)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "wds.core.palette.neutral.025",
-                    "contrast": 18.13,
+                    "aliasOf": "wds.core.palette.neutral.200",
+                    "contrast": 10.78,
                     "against": "inverse.background.primary",
                     "min": 4.5,
                     "modes": {
                       "dark": {
-                        "$value": "{wds.core.palette.neutral.950}",
-                        "aliasOf": "wds.core.palette.neutral.950",
-                        "contrast": 18.13,
+                        "$value": "{wds.core.palette.neutral.750}",
+                        "aliasOf": "wds.core.palette.neutral.750",
+                        "contrast": 10.97,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-light": {
-                        "$value": "{wds.core.palette.white}",
-                        "aliasOf": "wds.core.palette.white",
-                        "contrast": 21,
+                        "$value": "{wds.core.palette.neutral.200}",
+                        "aliasOf": "wds.core.palette.neutral.200",
+                        "contrast": 11.65,
                         "against": "inverse.background.primary",
                         "min": 7
                       },
                       "hc-dark": {
-                        "$value": "{wds.core.palette.black}",
-                        "aliasOf": "wds.core.palette.black",
-                        "contrast": 21,
+                        "$value": "{wds.core.palette.neutral.750}",
+                        "aliasOf": "wds.core.palette.neutral.750",
+                        "contrast": 11.75,
                         "against": "inverse.background.primary",
                         "min": 7
                       }
@@ -15250,34 +15250,34 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{wds.core.palette.neutral.025}",
+                "$value": "{wds.core.palette.neutral.100}",
                 "$description": "neutral interactive border on an inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "wds.core.palette.neutral.025",
-                    "contrast": 18.13,
+                    "aliasOf": "wds.core.palette.neutral.100",
+                    "contrast": 14.04,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{wds.core.palette.neutral.950}",
-                        "aliasOf": "wds.core.palette.neutral.950",
-                        "contrast": 18.13,
+                        "$value": "{wds.core.palette.neutral.850}",
+                        "aliasOf": "wds.core.palette.neutral.850",
+                        "contrast": 14.89,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{wds.core.palette.white}",
-                        "aliasOf": "wds.core.palette.white",
-                        "contrast": 21,
+                        "$value": "{wds.core.palette.neutral.100}",
+                        "aliasOf": "wds.core.palette.neutral.100",
+                        "contrast": 15.18,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{wds.core.palette.black}",
-                        "aliasOf": "wds.core.palette.black",
-                        "contrast": 21,
+                        "$value": "{wds.core.palette.neutral.850}",
+                        "aliasOf": "wds.core.palette.neutral.850",
+                        "contrast": 15.95,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -15297,34 +15297,34 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{wds.core.palette.neutral.025}",
+                "$value": "{wds.core.palette.neutral.200}",
                 "$description": "neutral interactive border on an inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "wds.core.palette.neutral.025",
-                    "contrast": 18.13,
+                    "aliasOf": "wds.core.palette.neutral.200",
+                    "contrast": 10.78,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{wds.core.palette.neutral.950}",
-                        "aliasOf": "wds.core.palette.neutral.950",
-                        "contrast": 18.13,
+                        "$value": "{wds.core.palette.neutral.750}",
+                        "aliasOf": "wds.core.palette.neutral.750",
+                        "contrast": 10.97,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{wds.core.palette.white}",
-                        "aliasOf": "wds.core.palette.white",
-                        "contrast": 21,
+                        "$value": "{wds.core.palette.neutral.200}",
+                        "aliasOf": "wds.core.palette.neutral.200",
+                        "contrast": 11.65,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{wds.core.palette.black}",
-                        "aliasOf": "wds.core.palette.black",
-                        "contrast": 21,
+                        "$value": "{wds.core.palette.neutral.750}",
+                        "aliasOf": "wds.core.palette.neutral.750",
+                        "contrast": 11.75,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -20137,6 +20137,47 @@
                 }
               }
             }
+          },
+          "emphasis-link": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{wds.core.font.family.label}",
+              "fontSize": "{wds.core.font.size.12}",
+              "fontWeight": "{wds.core.font.weight-role.emphasis}",
+              "lineHeight": "{wds.core.font.line-height-role.snug}",
+              "letterSpacing": "{wds.core.font.letter-spacing-role.normal}",
+              "textDecoration": "underline"
+            },
+            "$description": "label sm emphasis link — 12px wendysFresh, snug line-height, emphasis weight, normal tracking, underlined (a text button's label)",
+            "$extensions": {
+              "prism3": {
+                "role": "composite",
+                "group": "label",
+                "variant": "sm",
+                "weightRole": "emphasis",
+                "sizePx": 12,
+                "link": true,
+                "responsive": {
+                  "fluid": false,
+                  "px": 12
+                },
+                "figma": {
+                  "kind": "text-style",
+                  "styleType": "TEXT",
+                  "binds": [
+                    "fontFamily",
+                    "fontSize",
+                    "fontStyle"
+                  ],
+                  "baked": [
+                    "lineHeight",
+                    "letterSpacing",
+                    "textDecoration"
+                  ],
+                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                }
+              }
+            }
           }
         },
         "md": {
@@ -20177,6 +20218,47 @@
                 }
               }
             }
+          },
+          "emphasis-link": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{wds.core.font.family.label}",
+              "fontSize": "{wds.core.font.size.14}",
+              "fontWeight": "{wds.core.font.weight-role.emphasis}",
+              "lineHeight": "{wds.core.font.line-height-role.snug}",
+              "letterSpacing": "{wds.core.font.letter-spacing-role.normal}",
+              "textDecoration": "underline"
+            },
+            "$description": "label md emphasis link — 14px wendysFresh, snug line-height, emphasis weight, normal tracking, underlined (a text button's label)",
+            "$extensions": {
+              "prism3": {
+                "role": "composite",
+                "group": "label",
+                "variant": "md",
+                "weightRole": "emphasis",
+                "sizePx": 14,
+                "link": true,
+                "responsive": {
+                  "fluid": false,
+                  "px": 14
+                },
+                "figma": {
+                  "kind": "text-style",
+                  "styleType": "TEXT",
+                  "binds": [
+                    "fontFamily",
+                    "fontSize",
+                    "fontStyle"
+                  ],
+                  "baked": [
+                    "lineHeight",
+                    "letterSpacing",
+                    "textDecoration"
+                  ],
+                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                }
+              }
+            }
           }
         },
         "lg": {
@@ -20212,6 +20294,47 @@
                   "baked": [
                     "lineHeight",
                     "letterSpacing"
+                  ],
+                  "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
+                }
+              }
+            }
+          },
+          "emphasis-link": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{wds.core.font.family.label}",
+              "fontSize": "{wds.core.font.size.18}",
+              "fontWeight": "{wds.core.font.weight-role.emphasis}",
+              "lineHeight": "{wds.core.font.line-height-role.snug}",
+              "letterSpacing": "{wds.core.font.letter-spacing-role.normal}",
+              "textDecoration": "underline"
+            },
+            "$description": "label lg emphasis link — 18px wendysFresh, snug line-height, emphasis weight, normal tracking, underlined (a text button's label)",
+            "$extensions": {
+              "prism3": {
+                "role": "composite",
+                "group": "label",
+                "variant": "lg",
+                "weightRole": "emphasis",
+                "sizePx": 18,
+                "link": true,
+                "responsive": {
+                  "fluid": false,
+                  "px": 18
+                },
+                "figma": {
+                  "kind": "text-style",
+                  "styleType": "TEXT",
+                  "binds": [
+                    "fontFamily",
+                    "fontSize",
+                    "fontStyle"
+                  ],
+                  "baked": [
+                    "lineHeight",
+                    "letterSpacing",
+                    "textDecoration"
                   ],
                   "note": "Figma Text Style; fontFamily/fontSize/fontStyle bind their variables (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle binds a STRING cut variable (#1485), the single weight/style control the Text Style has, holding the Figma style name: a facePin (#1368) sets it verbatim (e.g. Light Condensed — the width cut the numeric weight axis cannot reach), else it is the weight-role numeric run through a weight-to-style-name table (the italic named-instance, e.g. Bold Italic, when $value carries fontStyle:italic). The numeric fontWeight stays parallel data ($value.fontWeight aliases the weight-role primitive) but is no longer bound on the style."
                 }
@@ -22440,7 +22563,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.233.0",
+      "version": "0.235.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
@@ -22462,7 +22585,7 @@
         "shadow: 6 steps (xs–2xl) of two layers each, plus a one-layer inset, softness 1; tinted to hue 249 at 0.15. Full shadows in light, reduced in dark, where surface lightness carries elevation.",
         "gradient: none — the brand declares no gradients, and none are added by default.",
         "layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); 12-column grid (4/8/12/12/12 by breakpoint); gutters 16/16/24/24/32px and margins 16/24/24/32/48px, from the spacing scale; containers max 1440px, narrow 720px.",
-        "typography: 22-step size ladder (10–160px), a fixed set rather than a ratio; weights subtle/default/emphasis/strong/max → 300/400/600/700/900; families display wendysFresh, title wendysFresh, body Roboto, label wendysFresh, caption Roboto, eyebrow wendysFresh, code JetBrains Mono; 'default' type scale. 43 text styles: title and display sizes follow the type scale, display tops out at '3xl' (160px), title.2xs is left out. 11 styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from 375 to 1280px and desktop and mobile Figma modes.",
+        "typography: 22-step size ladder (10–160px), a fixed set rather than a ratio; weights subtle/default/emphasis/strong/max → 300/400/600/700/900; families display wendysFresh, title wendysFresh, body Roboto, label wendysFresh, caption Roboto, eyebrow wendysFresh, code JetBrains Mono; 'default' type scale. 46 text styles: title and display sizes follow the type scale, display tops out at '3xl' (160px), title.2xs is left out. 11 styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from 375 to 1280px and desktop and mobile Figma modes.",
         "disabled: 'reduced' (default) — disabled text and icons clear 3:1 against the contrast floor: dimmed but legible, never below 3:1, without the WCAG 1.4.3/1.4.11 inactive-component exemption. disabledStrategy 'full' raises them to 4.5:1.",
         "interactive overlays: 'overlay-neutral' (default) — outline and text controls, rows and menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-checked on the blended surface. 'solid-tint' uses the control's own fill at an opacity step instead; 'none' adds no hover.",
         "neutral interactive emphasis: 'subtle' (default) — a light gray fill; inverse-surface variants are always generated.",

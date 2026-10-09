@@ -235,6 +235,21 @@ export const figmaBorderWidthDescription = (px: number): string => (px ? `${px}p
 export const figmaIconSizeDescription = (px: number, rung: string): string => `${px}px icon artboard — pairs with size/${rung}`;
 export const figmaOpacityDescription = (pct: number): string => `${pct}% opacity`;
 
+// ── motion (#2394) ───────────────────────────────────────────────────────────────────────────────
+// Figma has no time scope, so a duration is a plain number of milliseconds bound to nothing; the line
+// says what the number is for. `byMode` is the per-mode ms where a mode's tempo moves it — one
+// description covers every mode, so a moved value is named in the same parenthetical shape as a percent.
+
+const msWithModes = (ms: number, byMode: Array<[string, number]>): string =>
+  byMode.length ? `${ms}ms (${byMode.map(([m, v]) => `${v}ms in ${m}`).join('; ')})` : `${ms}ms`;
+export const figmaDurationPrimitiveDescription = (ms: number): string => `${ms}ms — duration primitive`;
+export const figmaDurationDescription = (role: string, ms: number, byMode: Array<[string, number]>, reduced: boolean): string => {
+  const t = msWithModes(ms, byMode);
+  if (role === 'spin') return reduced ? `${t} per spinner turn with reduce motion on` : `${t} per spinner turn, at every tempo`;
+  return reduced ? `${t} — ${role} duration with reduce motion on` : `${t} — ${role} duration`;
+};
+export const figmaStaggerDescription = (ms: number, byMode: Array<[string, number]>): string => `${msWithModes(ms, byMode)} between siblings`;
+
 /** `size/<rung>/<prop>` — dimensions only; a component's padding and gaps bind `space/*` (the spacing model). */
 export const figmaSizeDescription = (prop: string, px: number): string => {
   switch (prop) {

@@ -52,7 +52,7 @@ import {
   TYPE_GROUP_ORDER, addLibraryFace, inLibrary, removeLibraryFace, setAllFamilies, setFamily,
   setTypeScale, shapeBlocked, releasePinnedSizes, pinnedSizeCount, rowsOf, widestRowsOf, brandSizePin, modeSizePin, viewportPin,
   setSizePin, setMobileSize, setFluid, setResponsiveViewport, viewportRefusal, setDisplayCeiling, ceilingPx, ceilingBlocked, titleFloorBlocked, fluidBlocked, setTitleFloor, setCaptionFloor, setSizeFloor,
-  setWeightRole, toggleCategoryWeight, categoryWeightLock, setLink, setItalicStyle, italicStyleOf, setFacePin,
+  setWeightRole, toggleCategoryWeight, categoryWeightLock, setLink, linkLock, setItalicStyle, italicStyleOf, setFacePin,
   setRungBinding, setRepoint, setShift, nudgeSteps, resolvedRungs, type ItalicStyle, type RungField,
 } from '../state/type-input';
 import { HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER } from '@prism3/engine/theme';
@@ -743,7 +743,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     // its switch stays live: turning it on is the way out (B8b's rule).
     {
       const b = leverBlock('typography.responsive', { label: S63.fluidLabel, desc: S63.fluidTip, group: true });
-      const sw = switchButton('p3-type-fluid', S63.fluidLabel, 'type-fluid', { on: 'On', off: 'Off' }, (on) => edit('typography.responsive', () => setFluid(on)));
+      const sw = switchButton('p3-type-fluid', S63.fluidLabel, 'type-fluid', (on) => edit('typography.responsive', () => setFluid(on)));
       const fluidOn = brandState.typography?.responsive?.fluid ?? ty.fluid;
       sw.set(fluidOn);
       const mobiles = fluidOn ? fluidBlocked() : [];
@@ -915,7 +915,7 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
         c.dataset.role = r;
         row.append(c);
       }
-      row.append(cell('link-cell', `${S63.groupName(g)}, ${S63.link}`, linkG.has(g), undefined, () => edit('typography.links', () => setLink(g, !linkG.has(g), linkG))));
+      row.append(cell('link-cell', `${S63.groupName(g)}, ${S63.link}`, linkG.has(g), linkLock(g), () => edit('typography.links', () => setLink(g, !linkG.has(g), linkG))));
       grid.append(row);
     }
     b.ctl.append(grid);

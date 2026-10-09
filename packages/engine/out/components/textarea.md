@@ -12,7 +12,7 @@ A control for free-form text expected to wrap across multiple lines — comments
 
 ## Usage
 
-Use for free-form text expected to exceed one line — comments, descriptions, messages, feedback, multi-line addresses. Pick the sizing model by context: fixed-height-plus-scroll for a field inside a long form (so the form does not reflow as the user types), auto-grow for a composer (so the message box follows the message). Right-size the initial rows to the expected input. Compose FieldLabel above and FieldMessage below exactly as TextField does; the host wires the ids and the aria-describedby chain.
+Use for free-form text expected to exceed one line — comments, descriptions, messages, feedback, multi-line addresses. Pick the sizing model by context: fixed-height-plus-scroll for a field inside a long form (so the form does not reflow as the user types), auto-grow for a composer (so the message box follows the message). Right-size the initial rows to the expected input. Compose FieldLabel above and FieldMessage below exactly as TextField does; the host wires the ids and the aria-describedby chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small field renders at 16px, because a smaller field makes iOS zoom the page on focus.
 
 ### Do
 
@@ -65,7 +65,7 @@ Counter reads "240 / 280" or "40 characters remaining"; over-limit reads "12 cha
 | `submitOnEnter` | boolean | `false` | no | Composer opt-in: Enter submits, Shift+Enter inserts a newline. NOT the base default — Enter inserting a newline is the platform contract a multi-line field advertises via aria-multiline, and hijacking it silently can lose a screen-reader user a drafted message. Whenever true, pair it with a real visible submit button and a visible "Shift+Enter for a new line" hint (SC 3.3.2). A composer that submits on Enter by default is its own specialization, named MessageComposer or ChatInput (brief §3, §10), not this base field. |
 | `validation` | enum: 'default' \| 'error' \| 'warning' \| 'success' | `default` | no | The validation state. Each non-default status swaps the field border to its own boundary (border-only — `error` → danger, `warning` → warning, `success` → success) and sets the composed message to the matching status; `default` is neutral. `error` also sets aria-invalid. The same prop, with the same values, as TextField and Select. |
 | `validationMessage` | string \| node | — | no | The validation text shown at error / warning / success, added to aria-describedby. For error, say what is wrong AND how to fix it, with the number when it is a length limit (SC 3.3.3), never "Invalid". |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Scales type and padding ONLY — height belongs to rows / auto-grow, so the substrate's height tiers do not transfer. |
+| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Scales the value type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. NOT the height: that belongs to rows / auto-grow, so the reserved rows grow with the type's line height. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small textarea to 16px, because iOS Safari zooms the page when it focuses a field under 16px. The same prop, with the same values, as TextField and Select. |
 
 ## States
 
@@ -75,6 +75,7 @@ Counter reads "240 / 280" or "40 characters remaining"; over-limit reads "12 cha
 
 | Axis | Values | Changes |
 | --- | --- | --- |
+| `size` | `medium`, `small`, `large` | once, when authored |
 | `style` | `outline` | once, when authored |
 | `status` | `default`, `error`, `warning`, `success` | at runtime |
 

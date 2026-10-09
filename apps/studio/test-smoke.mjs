@@ -3870,6 +3870,7 @@ const COMPONENT_CHIPS = [
   { key: 'buttonIcons', group: '[data-p3="lever-button-icons"]' },
   { key: 'buttonContentSize', group: '[data-p3="lever-button-content-size"]' },
   { key: 'buttonLabelWeight', group: '[data-p3="lever-button-label-weight"]' },
+  { key: 'buttonTextHover', group: '[data-p3="lever-button-text-hover"]' },   // #2324, "Text button hover"
 ];
 /** The radius size a button binds under each Control shape (the engine's `CONTROL_SHAPE_RUNG` over `radius.md`). Literal. */
 const SHAPE_STEP = { rounded: 'md', pill: 'capsule', boxed: 'none', hairline: 'hairline' };
@@ -4021,7 +4022,7 @@ ok(componentChipGroups >= COMPONENT_CHIPS.length * 2 && buttonSpecimens === BRAN
     const gs = [...document.querySelectorAll('[data-p3="components-levers"] [role="radiogroup"]')];
     return { tier: document.querySelector('[data-p3="frame"]')?.dataset.w, groups: gs.length, over: gs.map((g) => g.scrollWidth - g.clientWidth).filter((x) => x > 1).length };
   });
-  ok(tier === 'narrow' && groups === 3 && over === 0, `at 380px every Button option chip group fits the levers panel (${groups} groups, ${over} overflow, frame tier ${tier})`);
+  ok(tier === 'narrow' && groups === 4 && over === 0, `at 380px every Button option chip group fits the levers panel (${groups} groups, ${over} overflow, frame tier ${tier})`);
   await ctx.close();
 }
 
@@ -4699,7 +4700,9 @@ console.log(`\nThe outline edge (#576)\n${'='.repeat(78)}`);
 const EDGE_FAMILIES = ['primary', 'neutral', 'destructive'];
 // Which families' border states WALK. Read from the engine's behavior, restated here on purpose: this is
 // the duplication that makes the assertion a comparison instead of a tautology.
-const EDGE_WALKS = new Set(['primary', 'destructive']);
+// Neutral joined in #2324 (owner, 2026-10-08: "one consistent rule across all buttons"): its ink, and so its
+// border, now walks, reflected toward the ramp's middle since it has no step further out.
+const EDGE_WALKS = new Set(['primary', 'destructive', 'neutral']);
 
 /** One Border row, read as a whole: its swatch, its label, and its nested Hover and Pressed rows. */
 const readEdgeRow = (page, role) => page.evaluate((r) => {

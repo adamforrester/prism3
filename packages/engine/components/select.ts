@@ -109,10 +109,12 @@
  *
  * ── DEFAULT WIDTH: A MIN-WIDTH FLOOR ON THE CONTROL, NOT A TOKEN (#1343a, #1345) ──────────────────
  *
- * The control carries `minWidth: 320` — a LITERAL, not a token. Prism 2's select is `root width 320 ·
+ * The comfortable width is 320, a LITERAL, not a token. Prism 2's select is `root width 320 ·
  * HUG` with its inner containers FILLing that width (`reference/Prism2/component-specs/select.json`).
- * The floor sits on the visible control; since #2292 the root is BUILT at 320 (`placementWidth`, Prism 2's
- * root width) and the control fills it, so a select set to fill its column stretches the box. Since #1751
+ * Since #2292 the root is BUILT at 320 (`placementWidth`, Prism 2's root width) and the control fills it,
+ * so a select set to fill its column stretches the box. Since #2266 (owner decision Q99 B, closing #1345)
+ * the control's own floor is a small `minWidth: 120`, not 320, so a select in a narrower column shrinks
+ * with it rather than overflowing it. Since #1751
  * the label and message stretch across that column and `content` grows inside the control, so the field
  * reads at 320 until a host places it. A long value does not widen it: the value WRAPS and the control grows TALLER (#1758,
  * owner decision on #1757), so the control hugs its height above a 44px floor rather than fixing it. 320
@@ -163,6 +165,8 @@ export const select: ComponentDef = {
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Async options are loading — a spinner replaces the chevron and the control sets aria-busy. Not an empty state: the option list is still arriving. The same name Button and TextField use.' },
     { name: 'id', type: 'string', required: false, description: 'Wiring + form submission; auto-generated with useId if omitted, tying the label to the control and stitching the aria-describedby chain to the message.' },
     { name: 'name', type: 'string', required: false, description: 'A real control name so the field works uncontrolled, in a native form, and with Server Actions.' },
+    // #2266 — the field sizing system, shared with TextField and Textarea (lifting #1699 decision 2's deferral).
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Three tiers that scale the value type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small control to 16px, because iOS Safari zooms the page when it focuses a control under 16px. The same prop, with the same values, as TextField and Textarea.' },
   ],
 
   // The CLOSED control's states. `empty` is the coordinate at which the displayed text is the
@@ -184,16 +188,22 @@ export const select: ComponentDef = {
   // admitted in `codeOnly` exactly as text-field admits it).
   states: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only', 'pending', 'empty'],
 
-  // ONE axis, `status`, and it IS `field-message`'s status axis by name and value — the alignment that lets
-  // the nested message follow it (see the header). No `size` axis: the control binds the single `md` rung,
-  // as text-field and textarea project one. The brief's `size` and its other axes are recorded as undeclared
-  // in `notes.contested` (#1699 decision 2 keeps `size` deferred).
+  // `status` IS `field-message`'s status axis by name and value — the alignment that lets the nested message
+  // follow it (see the header).
+  //
+  // `size` (#2266, owner decisions Q84 A and Q101 A, lifting #1699 decision 2's deferral): the field sizing
+  // system text-field and textarea share. Each size scales the value type (`body.sm/md/lg`), the nested
+  // label (one step below, by `follow`) and the padding; every size keeps the 44px floor. `medium` FIRST,
+  // and load-bearing: the first member is Figma's default variant AND the value an in-place update (#2265)
+  // gives every member of a set that gains this axis, so each select built before #2266 (the medium field)
+  // keeps its key and its look. text-field's `variants` comment has the full argument.
   variants: {
+    size: ['medium', 'small', 'large'],
     status: ['default', 'error', 'warning', 'success'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
-  // `status` changes live as validation runs.
-  axisKinds: { status: 'runtime' },
+  // `status` changes live as validation runs; `size` is picked once per field.
+  axisKinds: { size: 'authoring', status: 'runtime' },
 
   // THE PAINT GRAMMAR. Status-led-and-state-qualified first (so the `error` border swap WINS over the
   // interactive state progression at every coordinate — see the header's precedence note), then
@@ -212,7 +222,7 @@ export const select: ComponentDef = {
 
   // The spacing this spec states at comfortable, which density moves one step along the space ladder
   // (the spacing model, 2026-09-29). `root-gap` stays put: the field stack's spacing is not a density call.
-  densitySpacing: ['pad-x', 'pad-y', 'gap'],
+  densitySpacing: ['size.{size}.gap', 'size.{size}.pad-x', 'size.{size}.pad-y'],
 
   tokens: {
     // ── GEOMETRY ─────────────────────────────────────────────────────────────────────────────────
@@ -225,12 +235,10 @@ export const select: ComponentDef = {
     // which clears SC 2.5.8 (24) but not the enhanced target; `size.md.min-height` = max(md, 44) lifts the
     // sub-44 densities and leaves a spacious 56 alone. A field control IS the tap target, so it takes the
     // floor; small buttons stay the knowing exception below it (owner). text-field binds the same floor
-    // since #1494, so the single-line fields share it.
-    'min-height': 'size.md.min-height',
-    'pad-x': 'space.200',
-    'pad-y': 'space.100',
-    // The control's internal spacing (value ↔ chevron, and the leading glyph ↔ value).
-    'gap': 'space.100',
+    // since #1494, so the single-line fields share it. Per size since #2266: the rungs are at the end of
+    // this block (`size.{size}.min-height`).
+    // The control's internal spacing (value ↔ chevron, and the leading glyph ↔ value) is per size since
+    // #2266 (`size.{size}.gap`, 8px at every size), beside the padding it is ordered under (#325).
     // The stack spacing between label, control and message.
     'root-gap': 'space.100',
     // The chevron and any leading glyph share one artboard rung.
@@ -243,8 +251,6 @@ export const select: ComponentDef = {
     // bound here.
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset-field',
-    // The value ink's type — running body text, one line.
-    'type': 'type.body.md.default',
 
     // ── FILL + HOVER WASH — the field chrome (#1341/#1342, owner-decided). `field.fill` is TRANSPARENT by
     // default, so at rest the control shows the page. Hover does NOT swap the fill to a solid; it lays a
@@ -328,6 +334,24 @@ export const select: ComponentDef = {
     'disabled.border': 'color.disabled.border',
     'disabled.label.on-fill': 'color.disabled.on-fill',
     'disabled.icon.on-fill': 'color.disabled.on-fill',
+    // ── THE SIZE RUNGS (#2266) — text-field's ladder key for key. Small and medium floor at
+    // `size.md.min-height` (= max(md, 44): small is smaller type and padding, not a smaller target, owner
+    // decision Q6); large at its own taller rung. The value type scales with the field (Q5): 14 / 16 / 18.
+    'size.small.min-height': 'size.md.min-height',
+    'size.small.pad-x': 'space.200',
+    'size.small.pad-y': 'space.075',
+    'size.small.gap': 'space.100',
+    'size.small.type': 'type.body.sm.default',
+    'size.medium.min-height': 'size.md.min-height',
+    'size.medium.pad-x': 'space.200',
+    'size.medium.pad-y': 'space.100',
+    'size.medium.gap': 'space.100',
+    'size.medium.type': 'type.body.md.default',
+    'size.large.min-height': 'size.lg.height',
+    'size.large.pad-x': 'space.300',
+    'size.large.pad-y': 'space.100',
+    'size.large.gap': 'space.100',
+    'size.large.type': 'type.body.lg.default',
   },
 
   // ── ANATOMY — a column composing the two nested field parts around the control box ───────────────
@@ -373,7 +397,9 @@ export const select: ComponentDef = {
       label: {
         kind: 'nest',
         nests: 'field-label',
-        nesting: { kind: 'nest-exposed', variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['size', 'emphasis', 'weight'] },
+        // `size` FOLLOWS the select's (#2266), so the label stays one body step below the value at every size;
+        // `emphasis` and `weight` stay the consumer's.
+        nesting: { kind: 'nest-exposed', variant: { size: 'medium', emphasis: 'secondary', weight: 'regular', state: 'rest' }, expose: ['emphasis', 'weight'], follow: ['size'] },
         // #1503 — FILLS the field's width (`layoutAlign: STRETCH`, with the instance's own FIXED mode since
         // #1751), so the label spans the 320 control rather than hugging narrower above it (Prism 2's inner
         // containers FILL). Field-label's name wraps at its own max width inside it (#1762, owner; it wrapped at
@@ -383,7 +409,7 @@ export const select: ComponentDef = {
       },
       // THE CONTROL — the bordered, interactive box. The single target: it owns the hit area, the focus
       // ring and the stateful border. Paints its fill, border and the hover overlay wash (`paintSlots`,
-      // precedence overlay > fill — #1341/#1342); holds the field's width (its 320 floor) and hugs its height
+      // precedence overlay > fill — #1341/#1342); fills the field's width (down to its 120 floor) and hugs its height
       // above a 44px floor, so a wrapping value grows it taller (#1758).
       control: {
         kind: 'box',
@@ -402,17 +428,20 @@ export const select: ComponentDef = {
         // Prism 2's input is the same (`minHeight: 44`, HUG vertically). One line measures what it did:
         // block padding × 2 plus the body line box is below 44 in every emitted brand.
         layout: { direction: 'row', align: 'center', justify: 'space-between', sizing: { x: 'fill', y: 'hug' } },
-        minHeight: 'min-height',
+        minHeight: 'size.{size}.min-height',
         // THE COMFORTABLE DEFAULT WIDTH (#1343a, #1345), a MIN-WIDTH not a fixed width. Prism 2's select
         // is `root width 320 · HUG` with its inner containers FILLing that width. The field is floored HERE,
         // on the visible control, so the field reads at 320 in Figma; the label, message and `content` fill
         // from that width (#1751). Since #2292 the control FILLS the root, which is built at 320
-        // (`placementWidth`), so a select set to fill its column stretches the box; the floor still holds it
-        // at 320 or wider. A long value wraps rather than widening it (#1758). A
-        // literal, not a token — 320 is a projection default in 8px increments, not a semantic value that
-        // earns a `field.width` role (#1343 owner decision). So no emitted token NAME moves and
-        // `CONTRACT_VERSION` stands.
-        minWidth: 320,
+        // (`placementWidth`), so a select set to fill its column stretches the box. A long value wraps rather
+        // than widening it (#1758). A literal, not a token — a projection default in 8px increments, not a
+        // semantic value that earns a `field.width` role (#1343 owner decision). So no emitted token NAME moves.
+        //
+        // FIELDS SHRINK TO THEIR COLUMN (#1345, owner decision Q99 B, #2266). The floor here was 320 as well,
+        // which held a select in a narrower column at 320. It is now a small minimum, so the select shrinks with
+        // its column; 320 stays the width an unplaced select reads at (the root's). 120 holds the padding, the
+        // chevron and a few characters (DRAFT for the owner on #2266).
+        minWidth: 120,
         radius: 'radius',
         // The edge weight (#1266's field) — 1px, the field hairline, bound rather than left to the
         // executors' fallback so a brand re-runging its border floor moves it.
@@ -420,8 +449,8 @@ export const select: ComponentDef = {
         // Symmetric padding — a select does not take #326's slot-aware asymmetry (the leading glyph sits
         // inside `content`, not against the box edge), so `inlineVisual` is omitted and both inline sides
         // fall back to the label inset.
-        padding: { block: 'pad-y', inlineLabel: 'pad-x' },
-        gap: 'gap',
+        padding: { block: 'size.{size}.pad-y', inlineLabel: 'size.{size}.pad-x' },
+        gap: 'size.{size}.gap',
         children: ['content', 'chevron', 'focusRing'],
       },
       // THE VALUE ROW — leading glyph + value text. Grows across the control on both surfaces (#1751): FIXED
@@ -430,7 +459,7 @@ export const select: ComponentDef = {
       content: {
         kind: 'box',
         layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
-        gap: 'gap',
+        gap: 'size.{size}.gap',
         children: ['leadingVisual', 'placeholder', 'value'],
       },
       // THE OPTIONAL LEADING GLYPH. A swap slot whose PRESENCE is a node-visibility BOOLEAN (#1331): the
@@ -455,14 +484,14 @@ export const select: ComponentDef = {
       // Each grows across `content` and reflows inside it; the control hugs the height they take.
       placeholder: {
         kind: 'text',
-        type: 'type',
+        type: 'size.{size}.type',
         presentWhen: { state: ['rest', 'hover', 'focus-visible', 'disabled', 'empty'] },
         wrap: true,
         note: 'The prompt before a choice is made, in the placeholder ink (the disabled ink when disabled). Shown on the empty control: rest, hover, focus and disabled. Wraps rather than truncating, and the control grows taller.',
       },
       value: {
         kind: 'text',
-        type: 'type',
+        type: 'size.{size}.type',
         presentWhen: { state: ['filled', 'read-only', 'pending'] },
         wrap: true,
         note: 'The chosen option\'s label, in the value ink. Shown on the filled and read-only control. Wraps rather than truncating (#1758), and the control grows taller.',
@@ -514,9 +543,10 @@ export const select: ComponentDef = {
       },
     },
     codeOnly: [
+      'the SMALL select on a COARSE POINTER (#2266, owner decision Q7 A) — iOS Safari zooms the page when it focuses a control whose text is under 16px, and the small select\'s value is 14px. So `small` is for fine pointers: under `@media (pointer: coarse)` the code sets the small control\'s font size to 16px. The token (`type.body.sm`) and the Figma member stay at 14, because Figma has no focus zoom. Never `maximum-scale=1` in the viewport meta: it blocks pinch zoom as well (WCAG 1.4.4).',
       'the OPEN MENU / listbox — the whole option list is the platform\'s (a native `<select>`\'s popup is OS-drawn; a custom one is a separate listbox/popover surface). This def models the CLOSED control only, so there is no `expanded` state and no option-list anatomy. A designer building the open menu reaches for a menu/listbox component, not a variant of this one.',
       'the label / describedby WIRING — the host generates ids (useId), ties the FieldLabel to the control, stitches the FieldMessage into aria-describedby, and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the nested label and message sit near the control and are associated by proximity alone (the same ceiling `field-label` and `field-message` each hit). aria-expanded / aria-haspopup describe the popup this def does not model.',
-      'empty — a real STATE in code (nothing is chosen, so the control shows the placeholder), NOT a Figma variant (#1344): in Figma the empty control IS the rest, hover and focus-visible members, showing the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left unchosen" coordinate) and is held out of the projected `stateAxis`, leaving status(4) × state(6) = 24 members with read-only. In code the prompt and the chosen label are one control\'s content, never two elements.',
+      'empty — a real STATE in code (nothing is chosen, so the control shows the placeholder), NOT a Figma variant (#1344): in Figma the empty control IS the rest, hover and focus-visible members, showing the `placeholder` layer in `text.secondary`, and `filled` is the member showing the `value` layer in `text.primary`. In code emptiness is a content condition that co-occurs with every interaction, so `empty` stays in `states` (`label.empty` and `error.border.empty` keep the "required field left unchosen" coordinate) and is held out of the projected `stateAxis`, leaving size(3) × status(4) × state(6) = 72 members with read-only. In code the prompt and the chosen label are one control\'s content, never two elements.',
       'the nested LABEL\'s disabled dimming — select fixes the FieldLabel to `state=rest` because field-label\'s state vocabulary (rest / disabled) is not select\'s (rest / hover / filled / focus-visible / disabled / read-only / pending / empty), so it cannot be followed by value. In code a disabled select dims its label; in Figma the nested label reads at its rest configuration regardless. A projection limit, not a design choice.',
       'pending — a real STATE (async options are loading: a spinner replaces the chevron and the control sets aria-busy), deliberately NOT a Figma variant, text-field\'s posture. Its delta is a runtime spinner swap with no distinct static skin a designer picks from a matrix, so it stays in `states` and is held out of the projected `stateAxis`, leaving status(4) × state(6) = 24 members.',
       'the NATIVE <select> has no readonly attribute, only disabled (KB select brief §4, §11). The projected read-only member shows the value at full contrast behind the editable field\'s boundary (`field.border.rest`, #1710); in code that member is the custom control with aria-readonly, or a hidden input mirroring the value for form submission.',
@@ -524,15 +554,15 @@ export const select: ComponentDef = {
     ],
   },
 
-  // How this projects into Figma. `status` is the one variant axis; `state` projects as the state axis. The
+  // How this projects into Figma. `size` (#2266) and `status` are the variant axes; `state` projects as the state axis. The
   // leading glyph's PRESENCE is a node-visibility BOOLEAN (`booleans` below), NOT a variant axis, so it does
-  // NOT multiply the set: status(4) × state(6) = 24 members (20 before `read-only`, #1699; 16 before `filled`;
+  // NOT multiply the set: size(3) × status(4) × state(6) = 72 members (24 before `size`, #2266; 20 before `read-only`, #1699; 16 before `filled`;
   // 32 while `leading` was a slot ×2 axis — the #1331 conversion). `empty` and `pending` are real states (see
   // `states` and the `codeOnly` entries leading with those names) but are deliberately absent from this
   // projected axis (#1344) — the code carries them, a designer does not pick them; that is why `state` lists
   // six values while `states` lists eight.
   figmaProperties: {
-    variantAxes: ['status'],
+    variantAxes: ['size', 'status'],
     stateAxis: { name: 'state', values: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only'] },
     // NO slot axis. The leading glyph's presence was a `leading` slot ×2 variant axis until #1331; it is now
     // a node-visibility BOOLEAN (`booleans` below). A select's glyph sits INSIDE `content`, not against the
@@ -549,7 +579,7 @@ export const select: ComponentDef = {
       value: { part: 'value', default: 'Selected option' },
     },
     // TWO NODE-VISIBILITY BOOLEANS (#1331/#1426), neither a variant axis — both toggle a part's `visible`
-    // in place, so neither multiplies the set (still 24 members).
+    // in place, so neither multiplies the set (still 72 members).
     //   · `leadingIcon` (#1331): `leadingVisual` is emitted at every member with `visible: false` (hidden by
     //     default, matching the prop's "Hidden by default"), and the `leading icon` switch toggles it. Panel
     //     label `leading icon` (the #1380 canon, preserved from the retired slot axis); the code prop stays
@@ -595,7 +625,7 @@ export const select: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use to choose ONE value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage\'s status from the validation state. The open menu is the platform\'s — prefer a native <select> where its OS menu is acceptable. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group.',
+    usage: 'Use to choose ONE value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage\'s status from the validation state. The open menu is the platform\'s — prefer a native <select> where its OS menu is acceptable. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.',
     do: [
       'Render a visible, associated label (FieldLabel) above the control',
       'Show a muted placeholder as a prompt, never as the label or a real option',
@@ -645,7 +675,7 @@ export const select: ComponentDef = {
     contested: [
       'Native <select> vs a custom listbox — this def models the closed control both share and leaves the open menu to the platform (native-first). A fully custom, styleable menu is a separate listbox/popover surface, chosen when the native menu\'s look is unacceptable and the extra ARIA cost is accepted.',
       'SINGLE vs MULTIPLE choice — the brief carries a `multiple` prop (§3, §15: value becomes an array, Space toggles and keeps the list open, a token or count summary, leading checkboxes). This def is single-choice by decision (#1699, owner-delegated): a choice of several values goes to Checkbox.Group, or to a multi-select, not built yet. The alternative is `multiple` here, which changes the keyboard contract and the value type, so it is a second component\'s worth of behavior behind one flag.',
-      'THE BRIEF\'S OTHER VARIANT AXES, NOT DECLARED (brief §4, §15). `size` [small, medium, large] is deferred (#1699 decision 2): the control binds the single `md` rung, and adding the ladder is text-field\'s `props.size` + `size.*` shape, a separate decision. `density` [comfortable, compact] follows the brand\'s density lever rather than a per-component axis. `selection` [single, multiple] and `multi-summary` [count, tokens] are the single-choice decision above. `rendering` [native, custom] is the native-first call in the first entry: this def models the closed control both share. `mode: creatable` blurs toward a combobox (brief §4) and belongs with that component, not built yet. None is in `VARIANT_AXES` today, which is closed (#847).',
+      'THE BRIEF\'S OTHER VARIANT AXES, NOT DECLARED (brief §4, §15). `size` [small, medium, large] was deferred (#1699 decision 2) and is now declared and projected (#2266, the field sizing system). `density` [comfortable, compact] follows the brand\'s density lever rather than a per-component axis. `selection` [single, multiple] and `multi-summary` [count, tokens] are the single-choice decision above. `rendering` [native, custom] is the native-first call in the first entry: this def models the closed control both share. `mode: creatable` blurs toward a combobox (brief §4) and belongs with that component, not built yet. None is in `VARIANT_AXES` today, which is closed (#847).',
       'error as a border swap vs a full validation border set — settled as text-field settles it. Until #1517 error was the ONLY status that colored the border; #1517 (owner-directed, Prism 2 parity) extended the swap to warning and success, which the token tier already emits as `border.warning`/`border.success`, so every non-default status now colors its own boundary AND carries the message.',
     ],
     unverified: [

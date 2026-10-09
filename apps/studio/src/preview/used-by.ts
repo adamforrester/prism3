@@ -49,7 +49,11 @@ export const USED_BY = {
     boxed: {
       "radius.none": [
         "Button",
-        "IconButton"
+        "IconButton",
+        "TextField",
+        "Textarea",
+        "Checkbox.Control",
+        "Select"
       ],
       "radius.round": [
         "IconButton",
@@ -59,16 +63,17 @@ export const USED_BY = {
         "Tag"
       ],
       "radius.sm": [
-        "TextField",
-        "Textarea",
-        "Select",
         "Badge"
       ]
     },
     hairline: {
       "radius.hairline": [
         "Button",
-        "IconButton"
+        "IconButton",
+        "TextField",
+        "Textarea",
+        "Checkbox.Control",
+        "Select"
       ],
       "radius.round": [
         "IconButton",
@@ -78,9 +83,6 @@ export const USED_BY = {
         "Tag"
       ],
       "radius.sm": [
-        "TextField",
-        "Textarea",
-        "Select",
         "Badge"
       ]
     }
@@ -92,13 +94,13 @@ export const USED_BY = {
       "TextField",
       "Checkbox.Row",
       "Radio.Row",
+      "Select",
       "Tag"
     ],
     "size.md.height": [
       "FocusRing",
       "Button",
       "IconButton",
-      "TextField",
       "Checkbox.Row",
       "Radio.Row",
       "Switch.Row",
@@ -107,7 +109,6 @@ export const USED_BY = {
     "size.sm.height": [
       "Button",
       "IconButton",
-      "TextField",
       "Checkbox.Row",
       "Radio.Row",
       "Switch.Row",

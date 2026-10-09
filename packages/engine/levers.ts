@@ -107,7 +107,8 @@ export const leverManifest: Lever[] = [
     description: 'Sets control heights, and moves each component’s padding and gaps one step on the spacing scale. Token names stay the same; their values change. Spacing follows the brand’s density, not the mode’s: a mode’s density changes control heights only.' },
   { key: 'controlShape', group: 'form', label: 'Control shape', control: 'enum', default: 'rounded',
     options: enumOpts(['boxed', 'Boxed'], ['hairline', 'Hairline'], ['rounded', 'Rounded'], ['pill', 'Pill']),
-    description: 'The corner shape of buttons and other controls that can round fully. Boxed is sharp (0px). Hairline is a 1px corner. Rounded follows radius softness. Pill rounds the ends fully, whatever the softness.' },
+    // #2361 — Hairline's sentence is the owner's (Q139); Boxed's reach (Q139 item 3) is a DRAFT for the owner.
+    description: 'The corner shape of buttons, fields and checkboxes. Hairline gives buttons, fields and checkboxes a 1px corner, and Boxed gives them a sharp 0px corner. Rounded follows radius softness. Pill rounds the ends of buttons fully, whatever the softness; fields and checkboxes keep their own corner.' },
   // The button levers (#1667). Labels and option labels are the owner's exact words.
   { key: 'buttonIcons', group: 'form', label: 'Button icons', control: 'enum', default: 'attached',
     options: enumOpts(['attached', 'Attached to label'], ['edges', 'Locked to edges']),
@@ -119,6 +120,10 @@ export const leverManifest: Lever[] = [
   { key: 'buttonLabelWeight', group: 'form', label: 'Button label weight', control: 'enum', default: 'emphasis',
     options: enumOpts(['default', 'Default'], ['emphasis', 'Emphasis']),
     description: 'The weight of a button label: Emphasis (600 by default) or Default (400). Default adds that weight to the label styles. Tags and badges keep Emphasis.' },
+  // #2324 — label and option labels are the owner's words (2026-10-08); the description is a DRAFT for the owner.
+  { key: 'buttonTextHover', group: 'form', label: 'Text button hover', control: 'enum', default: 'text',
+    options: enumOpts(['text', 'Text & icon only'], ['fill', 'Fill']),
+    description: 'What a text button does on hover and when pressed. Text & icon only changes the label and icon colors. Fill also fills the button. A text button is never filled at rest.' },
   { key: 'buttonMinWidthMultiplier', group: 'form', label: 'Button minimum width', control: 'slider', default: 2.25, min: 1, max: 4, step: 0.25, unit: '× height',
     description: 'A button is at least its height times this wide, rounded up to the 8px grid, so a short label never makes a stubby button.' },
   { key: 'baseMd', group: 'form', label: 'Base radius', control: 'slider', advanced: true, default: 4, min: 2, max: 12, step: 1, unit: 'px',
@@ -153,7 +158,7 @@ export const leverManifest: Lever[] = [
   { key: 'typography.weights', group: 'type', label: 'Weights each text type ships', control: 'object', advanced: true,
     description: 'Which weights each text type ships. Each weight is a text style at every size. Every text type keeps at least one; label keeps Emphasis, and body and caption keep Default, because buttons and form controls use them.' },
   { key: 'typography.links', group: 'type', label: 'Underlined link styles', control: 'list', advanced: true, itemLabel: 'type role',
-    description: 'Which text types get an underlined link style. The default is body and caption.' },
+    description: 'Which text types get an underlined link style. The default is body and caption. Labels are always included: a text button’s label is underlined.' },
   { key: 'typography.italics', group: 'type', label: 'Italic styles', control: 'list', advanced: true, itemLabel: 'type role',
     description: 'Which text types ship an italic style for each weight. The default is none.' },
   { key: 'typography.italicDefault', group: 'type', label: 'Italic-only text types', control: 'list', advanced: true, itemLabel: 'type role',

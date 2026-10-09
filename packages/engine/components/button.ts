@@ -33,7 +33,7 @@
  * the Neutral Button is not hover-less. outline/text hover uses the overlay wash (assumes
  * `outlineInteraction: overlay-neutral`, the default). `ghost` is retired — a quiet button is the
  * Neutral Button at `appearance=text`. (The `type.label.lg` gap is CLOSED — #1260 minted the rung at
- * 18px/emphasis and `size.large.type` binds it.)
+ * 18px/emphasis and `size.large.{appearance}.type` binds it; the text appearance binds its underlined twin, #2324.)
  */
 import { ComponentDef } from '../component-schema';
 import { BUTTON_SPACING } from '../button-spacing';
@@ -107,8 +107,8 @@ const intentTokens = (family: IntentFamily): Record<string, string> => ({
   // — and the overlay wash stays the separate mechanism it always was, keyed at both states below. On the
   // default (page) surface the roles resolve to the page ink and the step is contrast-safe by
   // construction; the projector's `color.* → color.inverse.*` rewrite gives the inverse band its own
-  // stepped ink, which is where the failure lived. Neutral's ink is `walkable: false`, so its three
-  // states collapse onto rest exactly as `outline` neutral does — no change to a neutral text button.
+  // stepped ink, which is where the failure lived. Neutral's ink walks too since #2324 (950 → 850 → 750, reflected,
+  // as it has no step further out), so a Neutral text button changes on hover and press like the others.
   // (Part 2 — the `filled` inverse-primary `on-fill` holding constant while the fill darkens — is a
   // separate, design-carrying fix (#1351 part 2) and is deliberately NOT touched here.)
   'text.label': `color.interactive.${family}.text.rest`,
@@ -119,8 +119,10 @@ const intentTokens = (family: IntentFamily): Record<string, string> => ({
   'text.icon': `color.interactive.${family}.icon.rest`,
   'text.icon.hover': `color.interactive.${family}.icon.hover`,
   'text.icon.pressed': `color.interactive.${family}.icon.pressed`,
-  'text.overlay.hover': `color.interactive.${family}.overlay.hover`,
-  'text.overlay.pressed': `color.interactive.${family}.overlay.pressed`,
+  // #2324 (owner Q110): a text button is never filled at rest, and by default not on hover or press either: its
+  // label and icon change color and its underline carries the affordance ("Text button hover: Text & icon only").
+  // So the text appearance keys no overlay wash. A brand that turns on "Fill" gets the wash back on hover and
+  // pressed, from the outline appearance's keys, in `applyButtonLayout` (`anatomy-figma.ts`).
 });
 
 /**
@@ -175,6 +177,8 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     { name: 'appearance', type: "enum: 'filled' | 'outline' | 'text'", values: ['filled', 'outline', 'text'], default: 'filled', required: false, description: 'Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Control size — drives height, padding, and label type.' },
     { name: 'surface', type: "enum: 'default' | 'inverse'", values: ['default', 'inverse'], default: 'default', required: false, description: 'The ground the button sits on. `default` for a normal page; `inverse` for a dark or brand-filled band, where the button binds its `color.inverse.*` counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance — the same answer the nested focus ring gives.' },
+    // #2350 (owner Q143) — DRAFT name, values and wording, for the owner.
+    { name: 'inset', type: "enum: 'default' | 'flush'", values: ['default', 'flush'], default: 'default', required: false, description: 'Text appearance only. `flush` removes the inline padding on both sides, so the label lines up with the content edge above and below it, whether the button starts, ends or centers a row. A flush button hovers by color only, and its hit target keeps its height.' },
     { name: 'fullWidth', type: 'boolean', default: false, required: false, description: 'Stretch to container. Aliases: block / isFullWidth.' },
     { name: 'type', type: "enum: 'button' | 'submit' | 'reset'", values: ['button', 'submit', 'reset'], default: 'button', required: false, description: "Opinionated default 'button' to neutralize the platform's submit-on-enter-in-form trap; require 'submit' explicitly." },
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Delays the spinner, preserves width, keeps focus (aria-disabled, not native disabled), suppresses re-fire, announces busy. Preferred over `loading`.' },
@@ -207,11 +211,17 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // the transform supplies the values. (The intent-family segment the grammar once led with is gone with
     // #1223 — intent is the component now — so the collision is one arity shorter but the conclusion holds.)
     surface: ['default', 'inverse'],
+    // FLUSH (#2350, owner Q143 and Q145 A): a text button drops its inline padding on both sides, so its label lines
+    // up with the content edge above and below it. One value, not one per side: a flush button has no visible box, so
+    // padding on the side it isn't aligned to would change nothing visible. `default` leads, so the set's first member
+    // and the code default stay as they were. The text appearance only: `figmaProperties.excludeCoordinates` removes
+    // it from filled and outline, whose visible edge needs its padding. Applied by the container's `flush` field.
+    inset: ['default', 'flush'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.
   // appearance stays RUNTIME, the strict default: a toggle button that fills when selected is the owner's
   // bold-when-selected shape (#1611), so an outline member must keep its filled sibling's box.
-  axisKinds: { appearance: 'runtime', size: 'authoring', width: 'authoring', surface: 'authoring' },
+  axisKinds: { appearance: 'runtime', size: 'authoring', width: 'authoring', surface: 'authoring', inset: 'authoring' },
   // NO `modifiers` AXIS (#845), and its three values were three different things, which is the whole
   // defect: an axis's values are mutually exclusive coordinates along ONE dimension, and a button can
   // carry a leading visual AND a trailing visual simultaneously while `pending` is a coordinate on the
@@ -289,6 +299,9 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     'focus-ring': 'color.border.focus',
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset',
+    // A flush button's padding (#2350): the zero step, bound rather than left a literal 0, so the designer reads
+    // `space/0` on both sides and a brand cannot move it. Zero by meaning: a pinned icon sits at the edge.
+    'inset.flush': 'space.0',
 
     // per-size geometry + label type. The height is the shared `size.*` rung; the spacing is this spec's
     // own, as `space.*` steps at COMFORTABLE density (the spacing model, 2026-09-29), and density moves each
@@ -328,11 +341,17 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     ...(BUTTON_SPACING_AT['small']),
     'size.small.height': 'size.sm.height',
     'size.small.icon': 'icon.size.xs',
-    'size.small.type': 'type.label.sm.emphasis',
+    'size.small.filled.type': 'type.label.sm.emphasis',
+    'size.small.outline.type': 'type.label.sm.emphasis',
+    // #2324 (owner Q110): a text button's label is underlined at rest and in every state; the underline is fixed.
+    'size.small.text.type': 'type.label.sm.emphasis-link',
     ...(BUTTON_SPACING_AT['medium']),
     'size.medium.height': 'size.md.height',
     'size.medium.icon': 'icon.size.sm',
-    'size.medium.type': 'type.label.md.emphasis',
+    'size.medium.filled.type': 'type.label.md.emphasis',
+    'size.medium.outline.type': 'type.label.md.emphasis',
+    // #2324 (owner Q110): a text button's label is underlined at rest and in every state; the underline is fixed.
+    'size.medium.text.type': 'type.label.md.emphasis-link',
     ...(BUTTON_SPACING_AT['large']),
     'size.large.height': 'size.lg.height',
     'size.large.icon': 'icon.size.md',
@@ -344,7 +363,10 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // `type.label.{sm,md,lg}` = 12/14/18 — and the sweep's authored expectation moves to 3 in step, so
     // re-pointing this back to `md` fails that gate by name (docs/34). Label is reading/UI text, exempt
     // from the typeScale shift, so `lg` resolves to 18px in every density (the owner's comfortable target).
-    'size.large.type': 'type.label.lg.emphasis',
+    'size.large.filled.type': 'type.label.lg.emphasis',
+    'size.large.outline.type': 'type.label.lg.emphasis',
+    // #2324 (owner Q110): a text button's label is underlined at rest and in every state; the underline is fixed.
+    'size.large.text.type': 'type.label.lg.emphasis-link',
 
     // THE PER-FAMILY PAINT — the full appearance × slot × state skin, bound to `interactive.<family>.*`.
     // Authored once in `intentTokens` above and spread here so the three components cannot silently
@@ -449,12 +471,16 @@ const makeButton = (id: string, name: string, summary: string, description: stri
         // 1 and not 2. Names the def's own key rather than the token, exactly as `radius` above and as
         // checkbox/radio/switch do.
         strokeWidth: 'border-width',
+        // #2350 — the flush member. Both inline paddings bind `inset.flush` (0), the `minWidth` floor above is
+        // dropped so the button hugs its label, and the container paints no wash (owner Q143 item 2: a flush button
+        // hovers by color only). The height is untouched, so the hit target keeps its floor.
+        flush: { axis: 'inset', value: 'flush', key: 'inset.flush' },
       },
       // `nesting: swap` on all three swap-materialized parts (#681). A slot's target is nominated per
       // FILE by the caller and its content is the designer's to change, so there is no variant for the
       // def to fix — which is exactly what `swap` says.
       leadingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'Icon / avatar / counter / spinner before the label.' },
-      label: { kind: 'text', optional: false, type: 'size.{size}.type', note: 'Its own node so truncation, wrap and line-height are controllable independently of the row.' },
+      label: { kind: 'text', optional: false, type: 'size.{size}.{appearance}.type', note: 'Its own node so truncation, wrap and line-height are controllable independently of the row.' },
       trailingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'Icon / caret / indicator after the label. Not split into visual + action (docs/28 §5.3): the condition that split rested on — a pending state needing its own slot — is already carried by leadingVisual + isPending.' },
       spinner: {
         kind: 'overlay',
@@ -502,7 +528,7 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // The ceilings. Each is structure the neutral vocabulary can state and Figma provably cannot
     // hold, so it is recorded rather than silently lost in the projection.
     codeOnly: [
-      'touch-target-expansion — the optical box and the hit box are deliberately decoupled (::before / absolute overlay), reconciling the WCAG 2.5.8 24×24 floor with Apple HIG 44×44 without inflating a compact button. Figma has no concept of a hit area larger than the frame.',
+      'touch-target-expansion — the optical box and the hit box are deliberately decoupled (::before / absolute overlay), reconciling the WCAG 2.5.8 24×24 floor with Apple HIG 44×44 without inflating a compact button. Figma has no concept of a hit area larger than the frame. A flush text button (#2350) keeps its default sibling\'s height, so the hit target keeps its floor; it drops the minimum width and hugs its label, and in code the hit area extends past the label into the gutter on both sides (at least the default sibling\'s width), which Figma cannot show.',
       'focus-ring-offset — the ring GEOMETRY now projects (an absolute sibling nesting the shared `focus-ring`), but its position is FROZEN at paste: Figma\'s x/y accept no variable binding, so the payload resolves `focus.ring.offset` AND `focus.ring.width` to numbers, sums them, and writes the result (#801 — the ring\'s stroke is drawn INSIDE its own bounds, so the gap the brand asked for has to be widened by the stroke that eats it). Two names freeze exactly as one did. Every bound paint re-themes when a brand changes; an already-pasted ring does not move. AND A REBUILD DOES NOT MOVE IT EITHER, which is the half worth writing down: the executor finds the set by name on the current page and skips each member by name, reporting `✓ already built` without writing any geometry — so to pick up a corrected ring position you must DELETE the existing component set, or build onto a fresh page. This is not specific to the ring; it is true of any geometry, paint or constraint change to an already-pasted set, and it is tracked as #827 because name-based idempotence cannot tell "already built correctly" from "built by an older engine". The `:focus-visible` CONDITION remains unprojectable — Figma carries the ring as a variant coordinate a designer selects, not as a state a pointer triggers.',
       'focus-ring STROKE, WIDTH and RADIUS — owned by the nested `focus-ring` component, not by this def. `focus-ring`, `ring-width` and `ring-offset` are bound in `tokens`, and since #801 BOTH numbers reach a Figma node as this def\'s own absolute geometry: the host positions the part at -(offset + width), because the ring draws its stroke inside its own bounds and would otherwise consume the whole gap. Since #1266 the width reaches the RING\'s node too, as its bound `strokeWeight` — so the compensation and the stroke it compensates for are finally the same number, which for three releases they were not. So this def verifies that a ring is nominated and where it sits, including the compensation that makes "where" visible, and nothing more. Sharing the ring is still the right call — the ring is one shared thing (`focus.ring.*` and `color.border.focus` are top-level families) and authoring it N ways in N hosts would be worse. But the UNGATED PART IS NOT A CONSEQUENCE OF SHARING IT, which is what this entry once claimed: it is projector and schema gaps, neither of them a trade anybody made. ALL THREE are now CLOSED, and what took the third one\'s place is smaller than the third one was. PAINT (closed #758 → #784): `paintOf` once keyed every lookup as `{intent}.{appearance}.{slot}`, so a def whose axes are surface/tone resolved nothing; #758 replaced that with each def\'s own `paintKeys` and #784 corrected the ring\'s keys to the slot vocabulary the projector dispatches. STRUCTURE (closed #795): this entry said `figmaAnatomySet` refuses any variant axis outside intent/appearance/size and `planComponentName` always writes a `size=` coordinate the ring has no axis for, so a ring member could never match the coordinate this def nests by — #795 deleted the axis list and made `size=` conditional on the def declaring `size`, and `focus-ring` now projects two members named exactly `surface=default` / `surface=inverse`, which is what this def\'s `nesting: { variant: { surface: \'default\' }, follow: [\'surface\'] }` asks for (re-verified against `nestVariantMatch`). STROKE WIDTH (closed #1266): `PartDef` gained `strokeWidth`, `focus-ring`\'s `ring` part binds it, and every projected member carries a bound `strokeWeight`. Before it, both executors fell through to `if (!node.strokeWeight) … = 1` and the ring pasted at 1px in every brand — half its declared thickness, and 3px of visible gap where 2 was designed, because the compensation above had already assumed 2. What is LEFT is one keyword: `PartDef` has no field for a stroke\'s style, and cannot usefully have one, because Figma expresses `solid`/`dashed` as a `dashPattern` of pixel runs rather than as a keyword — so `focus.ring.style` resolves against every brand and has nowhere to bind. A schema decision under #740. Read the remaining gap as "the ring pastes without its dash style", not as "the ring pastes without its stroke".',
       'min-width derivation — a literal per size at build (#1667): height × multiplier, rounded up to 8px, from baseline-density heights. Frozen, not live; a per-mode density keeps the baseline floor.',
@@ -551,7 +577,11 @@ const makeButton = (id: string, name: string, summary: string, description: stri
     // #1223 — `intent` is NO LONGER an axis here. Each of the three button components fixes one family,
     // so its set is appearance(3) × size(3) × surface(2) × state(6) × slot-combos(4) = 432 members; the
     // former single 1296-member set is now three 432-member sets (Button / Destructive / Neutral).
-    variantAxes: ['appearance', 'size', 'surface'],
+    // `inset` PROJECTS (#2350) — padding is the container's, so it is an axis for the presence axes' reason below.
+    variantAxes: ['appearance', 'size', 'surface', 'inset'],
+    // FLUSH IS THE TEXT APPEARANCE'S ALONE (#2350, owner Q143): filled and outline have a visible edge, which needs
+    // its padding. So the set has no flush filled or outline member: 432 + 144 flush text members = 576.
+    excludeCoordinates: [{ appearance: ['filled', 'outline'], inset: ['flush'] }],
     // Six of the seven in `states` above — still the single source (#487 §0.4). The legacy sheet's
     // six (`active`, `focused`, `loading`) are deliberately NOT codified: they are that sheet's names
     // for `pressed`, `focus-visible` and `pending`.
@@ -667,10 +697,18 @@ const makeButton = (id: string, name: string, summary: string, description: stri
       'On a brand whose `buttonContentSize` is `smaller` (One step smaller), give a medium button the small size\'s label style and icon size (`type.label.sm.emphasis`, `icon.size.xs`) at the medium height and padding; small and large buttons keep their own',
       // #1752 — the fourth setting. Same shape as the line above: the setting, its option label, what it binds.
       'On a brand whose `buttonLabelWeight` is `default` (Default), set every size\'s label in the `default` weight of its label style (`type.label.sm.default`, `type.label.md.default`, `type.label.lg.default`) instead of `emphasis`; with One step smaller, a medium button takes `type.label.sm.default`',
+      // #2324 (owner Q110) — the text appearance's underline, fixed, and the fifth setting. DRAFT words, for the owner.
+      'Underline the label of a button at appearance=text, at rest and in every state, disabled included, with its underlined label style (`type.label.sm.emphasis-link`, `type.label.md.emphasis-link`, `type.label.lg.emphasis-link`); the underline is fixed, not a brand setting',
+      'Never fill a button at appearance=text at rest; under the brand\'s `buttonTextHover` setting `text` (Text & icon only, the default), change only its label and icon colors on hover and pressed',
+      'On a brand whose `buttonTextHover` is `fill` (Fill), also give a button at appearance=text the overlay wash on hover and pressed, as outline buttons take it',
+      // #2350 (owner Q143) — DRAFT words, for the owner.
+      'Set inset=flush on a button at appearance=text that starts, ends or centers a row of content, so its label lines up with the content edge; give it `padding-inline: 0` and no `min-inline-size`, and keep its hit area at least its default sibling\'s size',
+      'Never fill a flush button on hover or pressed, whatever the brand\'s `buttonTextHover` is: with no padding the fill would hug the label; only its label and icon colors change',
       'Use isInactive (focusable) for a control blocked by satisfiable state; reserve disabled for the irrelevant',
       ...sibling.do,
     ],
     dont: [
+      'Set inset=flush on a filled or outline button — their visible edge needs its padding; flush is for appearance=text',
       'Use a button for navigation to a URL — use a link / link-button',
       'Stack multiple filled buttons competing for attention — differentiate rank by appearance, not by adding fills',
       'Use native disabled on a relevant-but-blocked control (dead end for keyboard/SR users)',

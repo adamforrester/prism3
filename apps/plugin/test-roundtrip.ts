@@ -315,17 +315,20 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   // filled / read-only, the placeholder layer everywhere else. Typed from that rule, not read off a def.
   const fieldLayer = (c: Record<string, string | undefined>): string[] => [c.state === 'filled' || c.state === 'read-only' ? 'value' : 'placeholder'];
   const STYLE_CONTRACT: Record<string, { parts: string[] | ((c: Record<string, string | undefined>) => string[]); style: (c: Record<string, string | undefined>) => string }> = {
-    button:          { parts: ['label'], style: (c) => ({ small: 'label/sm/emphasis', medium: 'label/md/emphasis', large: 'label/lg/emphasis' } as Record<string, string>)[c.size!] },
+    // #2324: a text button's label is its underlined twin, at every state.
+    button:          { parts: ['label'], style: (c) => `${({ small: 'label/sm/emphasis', medium: 'label/md/emphasis', large: 'label/lg/emphasis' } as Record<string, string>)[c.size!]}${c.appearance === 'text' ? '-link' : ''}` },
     'field-message': { parts: ['text'],  style: () => 'caption/md/default' },
-    'text-field':    { parts: fieldLayer, style: () => 'body/md/default' },
-    textarea:        { parts: fieldLayer, style: () => 'body/md/default' },
-    select:          { parts: fieldLayer, style: () => 'body/md/default' },
+    // #2266: the input type scales with the field's size, one body step above its label.
+    'text-field':    { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
+    textarea:        { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
+    select:          { parts: fieldLayer, style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     'checkbox-row':  { parts: ['label'], style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     'radio-row':     { parts: ['label'], style: (c) => ({ small: 'body/sm/default', medium: 'body/md/default', large: 'body/lg/default' } as Record<string, string>)[c.size!] },
     'field-label':   { parts: ['text', 'indicator'], style: (c) => (({
-      'small/regular': 'body/sm/default', 'small/bold': 'body/sm/strong',
-      'medium/regular': 'body/md/default', 'medium/bold': 'body/md/strong',
-      'large/regular': 'body/lg/default', 'large/bold': 'body/lg/strong',
+      // #2266: re-laddered 12 / 14 / 16.
+      'small/regular': 'body/xs/default', 'small/bold': 'body/xs/strong',
+      'medium/regular': 'body/sm/default', 'medium/bold': 'body/sm/strong',
+      'large/regular': 'body/md/default', 'large/bold': 'body/md/strong',
     } as Record<string, string>)[`${c.size}/${c.weight}`]) },
   };
 
@@ -489,7 +492,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   ok(!!liKey && defs[liKey!].type === 'BOOLEAN',
     `#1331 host-truth: the built set carries a 'leading icon' BOOLEAN property (host holds ${liKey})`);
   const lvs = members.map((m) => findByName(m, 'leadingVisual'));
-  ok(members.length === 24 && lvs.every(Boolean),
+  ok(members.length === 72 && lvs.every(Boolean),
     `#1331 host-truth: the leading glyph node is built into EVERY member (${lvs.filter(Boolean).length}/${members.length})`);
   ok(lvs.length > 0 && lvs.every((lv) => lv.visible === false),
     '#1331 host-truth: every built leading glyph reads back `visible=false` — built hidden by default, not dropped');
@@ -538,7 +541,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   // this, the miss-count assertion below could pass because the fixture never built the colliding node.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim
   const naive = members[0]?.findOne?.((x: any) => x.name === 'placeholder');
-  ok(members.length === 24 && !!naive && (naive as { _inNestedInstance?: boolean })._inNestedInstance === true,
+  ok(members.length === 72 && !!naive && (naive as { _inNestedInstance?: boolean })._inNestedInstance === true,
     `#1428 reachability: a naive descending findOne on a built select member returns a nested-instance \`placeholder\` (the wrong node the fix defends against) — collision materialised (${members.length} members)`);
   const textRefMisses = res.misses.filter((m) => /\b(placeholder|value)\.characters\b/.test(m));
   ok(res.wiredMembers === plans.length && textRefMisses.length === 0,
@@ -1073,10 +1076,11 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     // empty set. This also fires if the control part is renamed or dropped from the def.
     ok(members.length > 0 && controls.every(Boolean),
       `#1518 host-truth: text-field builds a 'control' into every member (${controls.filter(Boolean).length}/${members.length})`);
-    // THE WIDTH FLOOR — read back off the built control. Oracle 320 authored here; drop `minWidth: 320` from the
-    // control PartDef and this reads back `undefined`, failing by name.
-    ok(controls.length > 0 && controls.every((c) => (c as { minWidth?: unknown })?.minWidth === 320),
-      `#1518 host-truth: every text-field control reads back minWidth=320 — the owner-settled default width (e.g. minWidth=${String((controls[0] as { minWidth?: unknown })?.minWidth)})`);
+    // THE WIDTH FLOOR — read back off the built control. Oracle 120 authored here (#2266, owner decision Q99 B:
+    // a field shrinks with its column; 320 is the root's built width, #2292). Drop `minWidth` from the control
+    // PartDef and this reads back `undefined`, failing by name.
+    ok(controls.length > 0 && controls.every((c) => (c as { minWidth?: unknown })?.minWidth === 120),
+      `#1518/#2266 host-truth: every text-field control reads back minWidth=120 — a field shrinks with its column (e.g. minWidth=${String((controls[0] as { minWidth?: unknown })?.minWidth)})`);
   }
 }
 
@@ -1636,6 +1640,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   {
     const COLUMN = 505;
     const NARROW = 280;
+    // #2266 (Q99 B): under the 120 floor the box stops shrinking and overflows the column.
+    const NARROWER = 100;
     const placedAt = (memberName: string, setName: string, column: number) => {
       // Looked up per call: a set this block builds (textarea) is not in the file until `setOf` builds it.
       const sets = shim.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as { name: string; children?: { name: string; createInstance?: () => Node }[] }[];
@@ -1664,14 +1670,16 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
         const unplaced = [W(m), W(find(m, 'control'))];
         const wide = placedAt(String(m.name), id, COLUMN);
         const narrow = placedAt(String(m.name), id, NARROW);
-        if (!wide || !narrow) { off.push(`${m.name}: no instance`); continue; }
+        const narrower = placedAt(String(m.name), id, NARROWER);
+        if (!wide || !narrow || !narrower) { off.push(`${m.name}: no instance`); continue; }
         const placed = [W(wide), inside(wide, 'control'), inside(wide, 'label'), inside(wide, id === 'textarea' ? 'messageRow' : 'message')];
         const tight = inside(narrow, 'control');
-        if (!(unplaced[0] === 320 && unplaced[1] === 320 && placed.every((w) => w === COLUMN) && tight === 320))
-          off.push(`${m.name}: unplaced root/control ${unplaced.join('/')}; in a ${COLUMN} column instance/control/label/${id === 'textarea' ? 'messageRow' : 'message'} ${placed.join('/')}; in ${NARROW}, control ${tight}`);
+        const floor = inside(narrower, 'control');
+        if (!(unplaced[0] === 320 && unplaced[1] === 320 && placed.every((w) => w === COLUMN) && tight === NARROW && floor === 120))
+          off.push(`${m.name}: unplaced root/control ${unplaced.join('/')}; in a ${COLUMN} column instance/control/label/${id === 'textarea' ? 'messageRow' : 'message'} ${placed.join('/')}; in ${NARROW}, control ${tight}; in ${NARROWER}, control ${floor}`);
       }
       ok(members.length > 0 && off.length === 0,
-        `#2292 ${id} fills its column: on every member an unplaced field reads 320 (root and box), an instance set to FILL a ${COLUMN}px column has its input box, label and ${id === 'textarea' ? 'message row' : 'message'} at ${COLUMN}, and in a ${NARROW}px column the box keeps its 320 floor (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
+        `#2292 ${id} fills its column: on every member an unplaced field reads 320 (root and box), an instance set to FILL a ${COLUMN}px column has its input box, label and ${id === 'textarea' ? 'message row' : 'message'} at ${COLUMN}, in a ${NARROW}px column the box shrinks to ${NARROW} (#2266, Q99 B), and in a ${NARROWER}px column it holds its 120 floor (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
     }
   }
 }

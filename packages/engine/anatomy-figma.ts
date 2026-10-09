@@ -24,7 +24,7 @@
  */
 import type { AxisKind, ComponentDef, PartDef, SizingMode } from './component-schema';
 import { axisKindOf, densitySizeValues, densitySpacingKeys, visibleGapKeys, fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, STATE_GATE, statesOf, variantsOf, slotAxisFigmaName, swapPart, swapFigmaName, textFigmaName, booleanPartsOf, booleanFigmaName, booleanDefault, figmaVariantCount, figmaAxisNames, isExcludedCoordinate, WEIGHT_INTENTS } from './component-schema';
-import type { ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight, Density } from './scale';
+import type { ControlShape, ButtonIcons, ButtonContentSize, ButtonLabelWeight, ButtonTextHover, Density } from './scale';
 import { buttonMinWidth, DEFAULT_MIN_WIDTH_MULTIPLIER, densitySpacingStep, ratioMinWidth, spacePx, visibleGapStep } from './scale';
 // #1602 — the weight-role ladder and the default per-category weights, for resolving a component's
 // weight INTENT against a brand's available roles. Value + type imports from `theme.ts`, which imports
@@ -1109,8 +1109,21 @@ export const figmaAnatomyPlan = (
   // a geometry or type key that cannot fill means the node projects with no size or no type style —
   // the silent-loss shape this file keeps finding. `anatomyErrors` refuses a placeholder naming no
   // declared axis, so the reachable case is a coordinate that legitimately lacks the axis.
+  // A STRUCTURE-ONLY projection (a coordinate that gives none of a key's axes but size) resolves a binding key at the
+  // axis's declared prop DEFAULT (#2324). That is not a silent drop: it is the component a consumer gets by leaving
+  // the prop unset. It reaches binding keys only — paints and the member's coordinate stay structure-only — and only
+  // an axis the coordinate does not give at all, so a real member, which gives every axis, never takes it.
+  const propDefault = (axis: string): string | undefined => {
+    const d = def.props?.find((p) => p.name === axis)?.default;
+    return typeof d === 'string' && (def.variants as Record<string, readonly string[]> | undefined)?.[axis]?.includes(d) ? d : undefined;
+  };
   const resolveKey = (key: string, what: string): string => {
-    const resolved = fillKey(key, paintCoord);
+    let resolved = fillKey(key, paintCoord);
+    if (resolved === undefined) {
+      const missing = paintKeyPlaceholders(key).filter((p) => !paintCoord[p] && axisValue(p) === undefined);
+      const fill = Object.fromEntries(missing.map((p) => [p, propDefault(p)]).filter(([, v]) => v !== undefined));
+      if (Object.keys(fill).length === missing.length) resolved = fillKey(key, { ...paintCoord, ...fill });
+    }
     if (resolved === undefined)
       throw new Error(`${def.id}: anatomy names ${what} key '${key}', whose placeholders [${paintKeyPlaceholders(key).filter((p) => !paintCoord[p]).join(', ')}] have no value at this coordinate ${JSON.stringify(paintCoord)} — the member would project with that binding silently dropped`);
     const ref = def.tokens[resolved];
@@ -1437,14 +1450,20 @@ export const figmaAnatomyPlan = (
     if (px === undefined) throw new Error(`${def.id}: part '${part}' has a per-size ${what} with no entry for size '${size}'`);
     return px;
   };
+  const parentOf = parentsOf(def);
+  // IS THIS BOX FLUSH at this coordinate (#2350): its `flush.axis` holds `flush.value`. A coordinate that does not
+  // give the axis is the box as authored, the conservative reading `positionOf` takes.
+  const isFlush = (p: PartDef | undefined): boolean => !!p?.flush && axisValue(p.flush.axis) === p.flush.value;
   // The pin a node carries (#1667): its own when it is a pinned part (only ever projected when present),
-  // or the replaced cell's when it is the overlay that took that cell.
+  // or the replaced cell's when it is the overlay that took that cell. In a flush parent (#2350) it sits AT
+  // the edge: the inset it was pinned at was that side's padding, and a flush box has none.
   const pinOf = (name: string): FigmaNodePlan['pin'] => {
     const from = activeOverlay && name === activeOverlay[0] && replacedByOverlay ? replacedByOverlay : name;
     const pin = a.parts[from]?.pin;
-    return pin ? { edge: pin.edge === 'start' ? 'MIN' : 'MAX', inset: perSize(from, 'pin inset', pin.inset) } : undefined;
+    if (!pin) return undefined;
+    const flushed = isFlush(a.parts[parentOf.get(from) ?? '']);
+    return { edge: pin.edge === 'start' ? 'MIN' : 'MAX', inset: flushed ? 0 : perSize(from, 'pin inset', pin.inset) };
   };
-  const parentOf = parentsOf(def);
   const node = (name: string, p: PartDef): FigmaNodePlan => {
     // WHERE THIS PART FILLS (#1751), and the parent-side supplier each axis takes — see `fillsAxis`.
     const parentName = parentOf.get(name);
@@ -1532,8 +1551,16 @@ export const figmaAnatomyPlan = (
           if (!pin || !slotPresent(c)) continue;
           const side = pin.edge === 'start' ? 'paddingLeft' : 'paddingRight';
           delete bound[side];
-          paddingPx[side] = perSize(c, 'pin reserve', pin.reserve);
+          // In a flush box (#2350) the reserve drops the inset the icon is no longer pinned at (`pinOf`).
+          paddingPx[side] = perSize(c, 'pin reserve', pin.reserve) - (isFlush(p) ? perSize(c, 'pin inset', pin.inset) : 0);
         }
+        // FLUSH (#2350, owner Q145 A): both inline paddings bind the def's zero step instead of the label or
+        // visual inset, so the content sits on whichever edge it shares with the content around it. A pinned
+        // cell's side already took its reserve above, less the inset, and keeps it: the reserve holds the icon's
+        // room, not padding.
+        if (isFlush(p))
+          for (const side of ['paddingLeft', 'paddingRight'] as const)
+            if (paddingPx[side] === undefined) bound[side] = varOf(p.flush!.key);
       }
     } else if (p.kind === 'absolute') {
       // NOTHING in `bound`, deliberately. An absolute part's geometry is its position and its size, and
@@ -1607,6 +1634,9 @@ export const figmaAnatomyPlan = (
       let fill: string | undefined;
       for (const slot of declared) {
         if (slot === 'border') continue; // the one EDGE slot — it reaches `strokes`, never `fills`
+        // A FLUSH box paints no wash (#2350, owner Q143 item 2): with no padding it would hug the content, so a
+        // flush text button hovers by color only, under "Fill" too.
+        if (slot === 'overlay' && isFlush(p)) continue;
         fill = paintOf(slot);
         if (fill) break;
       }
@@ -1736,7 +1766,9 @@ export const figmaAnatomyPlan = (
       ...(p.kind === 'box' && name === a.root && p.placementWidth !== undefined ? { placementWidth: p.placementWidth } : {}),
       // The auto-layout width floor (#1343a, #1345), carried ONLY when the def sets it so every other
       // box's plan is byte-identical — a literal px the def states, not a bound token (`PartDef.minWidth`).
-      ...(p.kind === 'box' && p.minWidth !== undefined ? { minWidth: minWidthAt(name, p.minWidth) } : {}),
+      // A FLUSH box (#2350) has none: it hugs its content, so a floor wider than the label never leaves slack
+      // between the label and the edge it aligns to. Its height, and so its hit target, is unchanged.
+      ...(p.kind === 'box' && p.minWidth !== undefined && !isFlush(p) ? { minWidth: minWidthAt(name, p.minWidth) } : {}),
       // THE RESERVED SIDES (#1667), computed with the padding above — see `paddingPx`.
       ...(Object.keys(paddingPx).length ? { paddingPx } : {}),
       // THE PIN (#1667), on a filled pinned slot, or on the overlay that took a pinned cell — the spinner
@@ -1977,17 +2009,45 @@ export const isPillable = (def: ComponentDef): boolean => !!def.anatomy?.derived
  * circular one stays circular, and `button` (which still binds `radius.md` under the key `radius`) is
  * repointed exactly as before — its default plan is byte-identical.
  *
- * NARROW BY CONSTRUCTION: it rewrites ONLY refs equal to the rounded rung and ONLY for pill-able defs.
+ * NARROW BY CONSTRUCTION: it rewrites ONLY refs equal to the rounded rung and ONLY for pill-able defs, plus,
+ * under `boxed` and `hairline` alone, the field and checkbox corners `FIELD_CORNER_REFS` names by def id (#2361).
  * `switch`/`radio` carry no `pill-radius` derivation, so `isPillable` is false and they pass through
  * untouched — and even were they pill-able, their `radius.round` ref is not the rounded rung, so the lever
  * cannot reach the one binding that already gives them their intrinsic pill/circle.
  */
 export const ROUNDED_RADIUS_RUNG = 'radius.md';
+
+/**
+ * `boxed` AND `hairline` REACH FIELDS AND THE CHECKBOX TOO (#2361, owner 2026-10-08: "1px corners everywhere",
+ * for consistency first; Q139 added `boxed`, the same way). `rounded` and `pill` still reach only the pill-able
+ * set: a pill field or a pill checkbox would be wrong, and `rounded` is the identity.
+ */
+export const FIELD_CORNER_SHAPES: readonly ControlShape[] = ['boxed', 'hairline'];
+
+/**
+ * Each entry is a def id and the corner refs it repoints to the shape's rung (`radius.none` or `radius.hairline`).
+ * SELECTED BY ID, NOT BY REF, and that is the point: `radius.sm` is also Badge's `status.radius`, which a field
+ * setting must not reach. The checkbox's refs are its per-rung clamped corner (#1015, `controlRadius`): 0px and
+ * 1px are both below that clamp on every edge of 8px or more (`snap2(edge ÷ 8)` ≥ 2 there, and the smallest
+ * control rung is 12px), so the clamp still holds and the `control.size.*.radius` tokens are emitted unchanged.
+ * `radio-control` and `switch-control` are not listed: their `radius.round` is intrinsic, as under every other
+ * shape. Rows and groups nest the control, so they carry no corner of their own to repoint.
+ */
+export const FIELD_CORNER_REFS: Readonly<Record<string, readonly string[]>> = {
+  'text-field': ['radius.sm'],
+  select: ['radius.sm'],
+  textarea: ['radius.sm'],
+  'checkbox-control': ['control.size.sm.radius', 'control.size.md.radius', 'control.size.lg.radius'],
+};
+
 export const applyControlShape = (def: ComponentDef, shape: ControlShape): ComponentDef => {
   const target = CONTROL_SHAPE_RUNG[shape];
-  if (target === null || !isPillable(def)) return def;
+  if (target === null) return def;
+  const fieldRefs = FIELD_CORNER_SHAPES.includes(shape) ? FIELD_CORNER_REFS[def.id] : undefined;
+  if (!isPillable(def) && !fieldRefs) return def;
   const tokens = Object.fromEntries(
-    Object.entries(def.tokens).map(([k, ref]) => [k, ref === ROUNDED_RADIUS_RUNG ? target : ref]),
+    Object.entries(def.tokens).map(([k, ref]) => [k,
+      (isPillable(def) && ref === ROUNDED_RADIUS_RUNG) || !!fieldRefs?.includes(ref) ? target : ref]),
   );
   return { ...def, tokens };
 };
@@ -2008,8 +2068,8 @@ export const MIN_WIDTH_DERIVATION = 'min-width';
 export const isButtonFamily = (def: ComponentDef): boolean => !!def.anatomy?.derived?.[MIN_WIDTH_DERIVATION];
 
 /** The button settings, as `materializeForBrand` reads them off a brand: #1667's three and #1752's label weight. */
-export type ButtonLayout = { icons: ButtonIcons; content: ButtonContentSize; minWidthMultiplier: number; labelWeight: ButtonLabelWeight };
-export const DEFAULT_BUTTON_LAYOUT: ButtonLayout = { icons: 'attached', content: 'match', minWidthMultiplier: DEFAULT_MIN_WIDTH_MULTIPLIER, labelWeight: 'emphasis' };
+export type ButtonLayout = { icons: ButtonIcons; content: ButtonContentSize; minWidthMultiplier: number; labelWeight: ButtonLabelWeight; textHover: ButtonTextHover };
+export const DEFAULT_BUTTON_LAYOUT: ButtonLayout = { icons: 'attached', content: 'match', minWidthMultiplier: DEFAULT_MIN_WIDTH_MULTIPLIER, labelWeight: 'emphasis', textHover: 'text' };
 
 /** "One step smaller" (#1667): the ONE size whose content moves, and the size it borrows from. Medium only,
  *  and deliberately: New Balance's 44px button (our `size.md.height`) carries a 12px label and a 16px icon,
@@ -2018,9 +2078,16 @@ export const DEFAULT_BUTTON_LAYOUT: ButtonLayout = { icons: 'attached', content:
  *  (the spinner reads the icon key too, so it shrinks with the icon it stands in for). */
 export const CONTENT_OFFSET = { size: 'medium', from: 'small', keys: ['type', 'icon'] } as const;
 
-/** "Button label weight" (#1752): the per-size key whose ref names the label's text style. Its ref is
- *  `type.label.<rung>.<role>`, and under `labelWeight: 'default'` the role tail becomes `default`. */
+/** "Button label weight" (#1752): the per-size key whose ref names the label's text style, one per appearance since
+ *  #2324 (`size.<size>.<appearance>.type`). Its ref is `type.label.<rung>.<role>`, the text appearance's with a
+ *  `-link` tail (its underlined twin), and under `labelWeight: 'default'` the role becomes `default`, the tail kept. */
 export const LABEL_TYPE_KEY = 'type';
+/** The def's per-size, per-appearance label type keys (#2324): `size.<size>.<appearance>.type`. */
+const labelTypeKeys = (def: ComponentDef, size: string): string[] =>
+  (def.variants?.appearance ?? []).map((ap) => `size.${size}.${ap}.${LABEL_TYPE_KEY}`);
+/** "Text button hover: Fill" (#2324): the text appearance's hover and pressed wash, copied from the outline
+ *  appearance's keys, which already carry the brand's outline method (`applyOutlineInteraction` runs first). */
+export const TEXT_FILL_STATES = ['hover', 'pressed'] as const;
 
 /**
  * Materialize a button-family def for a brand's button settings (#1667, #1752). Identity for any def outside
@@ -2047,7 +2114,10 @@ export const LABEL_TYPE_KEY = 'type';
  *      `default` role of its label rung (`type.label.md.emphasis` → `type.label.md.default`), after step 3,
  *      so a medium button at "One step smaller" binds `type.label.sm.default`. Button family only — `tag`
  *      and `badge` bind the same label styles and are outside the set. `brandTheme` makes the brand ship
- *      the role (`BUTTON_LABEL_DEFAULT_ROLE`). `emphasis`, the default, is today's binding.
+ *      the role (`BUTTON_LABEL_DEFAULT_ROLE`). `emphasis`, the default, is today's binding. Each appearance's key
+ *      moves (#2324), and the text appearance keeps its underline: `emphasis-link` becomes `default-link`.
+ *   5. "Text button hover" (`textHover: 'fill'`, #2324). The text appearance takes the outline appearance's hover
+ *      and pressed wash. `text`, the default, keys none: the label and icon change color, and nothing fills.
  *
  * THROWS when a size's number does not resolve: a button with no floor, or a pinned icon with no reserve,
  * at one size is the silent-loss shape, and the caller always has the brand's numbers in hand.
@@ -2062,7 +2132,10 @@ export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (
   let tokens = def.tokens;
   if (layout.content === 'smaller') {
     tokens = { ...def.tokens };
-    for (const k of CONTENT_OFFSET.keys) {
+    // The label type is one key per appearance (#2324), so "type" moves each appearance's key onto its own.
+    const pairs = CONTENT_OFFSET.keys.flatMap((k) => (k === LABEL_TYPE_KEY
+      ? (def.variants?.appearance ?? []).map((ap) => `${ap}.${k}`) : [k]));
+    for (const k of pairs) {
       const from = def.tokens[`size.${CONTENT_OFFSET.from}.${k}`];
       if (!from || !def.tokens[`size.${CONTENT_OFFSET.size}.${k}`])
         throw new Error(`${def.id}: "One step smaller" moves size.${CONTENT_OFFSET.size}.${k} onto size.${CONTENT_OFFSET.from}.${k}, and the def binds no such pair`);
@@ -2075,14 +2148,24 @@ export const applyButtonLayout = (def: ComponentDef, layout: ButtonLayout, px: (
   //    step smaller" already holds small's label ref here, and its role tail moves with the others.
   if (layout.labelWeight === 'default') {
     tokens = { ...tokens };
-    for (const v of sizes) {
-      const key = `size.${v}.${LABEL_TYPE_KEY}`;
+    for (const v of sizes) for (const key of labelTypeKeys(def, v)) {
       const segs = tokens[key]?.split('.') ?? [];
       if (segs.length !== 4 || segs[0] !== 'type' || segs[1] !== 'label')
         throw new Error(`${def.id}: "Button label weight" rebinds ${key} to type.label.<rung>.${BUTTON_LABEL_DEFAULT_ROLE}, and the def binds ${tokens[key] ?? 'nothing'} there`);
-      // The role `brandTheme` unions into the label category for this setting, so the style is emitted.
-      segs[3] = BUTTON_LABEL_DEFAULT_ROLE;
+      // The role `brandTheme` unions into the label category for this setting, so the style is emitted; the text
+      // appearance's underline tail (#2324) is kept, and `brandTheme` mints that twin too (labels always link).
+      segs[3] = `${BUTTON_LABEL_DEFAULT_ROLE}${segs[3].endsWith('-link') ? '-link' : ''}`;
       tokens[key] = segs.join('.');
+    }
+  }
+  // 5. "Text button hover" (#2324). The def's text appearance keys no wash (the default, "Text & icon only"); under
+  //    "Fill" it takes the outline appearance's hover and pressed wash, never a rest one: a text button is never
+  //    filled at rest. A brand whose outline method keys no wash (`outlineInteraction: 'none'`) has none to give.
+  if (layout.textHover === 'fill') {
+    tokens = { ...tokens };
+    for (const st of TEXT_FILL_STATES) {
+      const wash = tokens[`outline.overlay.${st}`];
+      if (wash) tokens[`text.overlay.${st}`] = wash;
     }
   }
   // A def key (`size.{size}.gap`) at one size → px, through the (possibly rebound) token map.
