@@ -35,6 +35,18 @@ states the code-side hit area` (3) and `test.ts`'s `#2408 <def>: codeOnly states
 restored and regenerated, with the skill paragraph removed, fails `#2408 <def>: docs.do …` (3), `#2408 <def>:
 components.ai.json carries …` (3) and `#2408 prism3-consume: …` (1).
 
-**Trap for whoever re-verifies:** the rule applies at every size, including small, which is otherwise a permanent
-below-floor exception. The exception is about the visual box; the code-side extension is the reconciliation the
-`touch-target-expansion` entry already describes.
+**Owner decision Q170 (2026-10-09): the wording is approved, and the rule covers medium and large only (B).** The
+first draft applied the 44×44 hit area "at every size". The owner scoped it to medium and large flush buttons; a small
+button stays the permanent below-floor exception it already is (`SMALL_SIZE`), with no code-side extension owed. The
+qualifier is the only new wording: the `codeOnly` sentence says "at least 44×44 at medium and large sizes", the
+`docs.do` line says "and, at medium and large sizes, extend its hit area", and the skill paragraph's lead and its
+second sentence name medium and large. `lint-hit-target`'s FLUSH arm and `test.ts`'s `#2408` arm both require the
+literal scope ("at medium and large sizes") and refuse an entry that names small, every size or all sizes. The gate
+also checks each flush def's `size` axis against its literal `FLUSH_SIZES` (medium, large) plus `FLUSH_EXEMPT_SIZES`
+(small), so a new size fails until someone decides its hit area. Mutations, each on a committed tree: the qualifier
+back to "at every size", small re-added ("at small, medium and large sizes"), and medium dropped ("at large sizes")
+each fail `lint-hit-target`'s `<def>/inset=flush: no codeOnly entry states the code-side hit area at medium and large
+only` and `test.ts`'s `#2408 <def>: codeOnly states a medium or large flush button's hit area …`.
+
+**Trap for whoever re-verifies:** "not small" is held only as prose plus these two witnesses. Nothing in Figma or in
+the tokens distinguishes a small flush button's hit area, so the scope cannot be measured, only stated.
