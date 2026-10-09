@@ -1,9 +1,10 @@
-## (2026-10-09) — Checkbox-row and radio-row shrink with their column, like the fields (owner Q152.3)
+## (2026-10-09) — Checkbox and radio rows and groups shrink with their column, like the fields (owner Q152.3, Q155 A)
 
 **Status:** engine (two defs), plugin tests and the component shim. ENGINE minor (change note): the projected
 component surface moves for both rows. No token name or value moves, so CONTRACT is unchanged. Owner decisions,
 recorded on #2266: **Q152.3** (Q99 B reaches checkbox-row and radio-row; their root `minWidth: 320` goes, as a
-follow-up PR to #2388) and **Q152.2** (the minimum width is 120px).
+follow-up PR to #2388) and **Q152.2** (the minimum width is 120px); and, on #2409, **Q155 A** (the groups follow
+their rows: checkbox-group and radio-group drop their own 320 minimum the same way).
 
 ### What changed
 
@@ -15,8 +16,10 @@ Both rows now size the way #2292 and #2266 size the fields:
 - **The label** still fills the row and wraps. `placementWidth` alone bounds it, so the floor is only the
   smallest width the row will take.
 
-Checkbox-group and radio-group keep their own 320 container floor. Q152.3 names the rows only; whether Q99 B also
-reaches the groups is asked on the PR.
+**The groups (Q155 A).** Checkbox-group's and radio-group's container floored at `minWidth: 320` (#1503's
+resolution of Prism 2's fixed-320 root). It is now built at 320 (`placementWidth`; its root was already
+`sizing.x: 'fill'`) with `minWidth: 120`. The rows still stretch to whatever width the group has. Without this,
+a group in a narrow column held at 320 even though its rows could shrink.
 
 ### Tests and mutations
 
@@ -27,6 +30,14 @@ reaches the groups is asked on the PR.
 - **`test-roundtrip.ts`, a new Q152.3 arm (host truth, in the shim):** each member is placed as a FILL instance
   in a 505px, a 280px and a 100px column, and must read 320 unplaced, then 505 (its label filling what the control
   box and gap leave), 280, and 120.
+- **`test.ts`, a new Q155 pin:** every member of both groups is built at 320 (its counter axis FIXED, since a
+  group's root is a column) with minWidth 120.
+- **`test-roundtrip.ts`:**
+  - #1503's host-truth floor check now reads width 320 and minWidth 120 (it read minWidth 320).
+  - A new `Q155 <group> fills its column` arm places each member as a FILL instance in 505, 280 and 100px columns.
+    It expects 505 with every row spanning it, then 280, then 120. "Spanning" is the column less the group's
+    inline `space/0` padding: 0px in every brand, but the shim's synthetic `varValue` here, so the test reads it
+    from the shim's own input.
 - **The shim:** an instance with no `minWidth` of its own now takes its main's, as an instance does on the host. A
   field's floor sits inside it, measured on the main, so nothing measured a floor on an instance's own root until
   now. Without this the 100px column read 100.
@@ -36,6 +47,7 @@ Each mutation ran from a `wip:` commit and was restored with `git checkout --`:
 | Arm | Fails by name |
 |---|---|
 | checkbox-row's floor back to 320 | `❌ #1424/Q152.3 checkbox-row: on every member the row is built at 320 and floors at 120 … (3 off — size=small: row placementWidth 320, primary FIXED, minWidth 320)` and `✗ Q152.3 checkbox-row fills its column …` |
+| checkbox-group's floor back to 320 | `❌ Q155 checkbox-group: on every member the group is built at 320 and floors at 120 … (3 off — size=small: container placementWidth 320, counter FIXED, minWidth 320)`, `✗ #1503/Q155 host-truth: every checkbox-group member reads back width 320 and minWidth=120 …` and `✗ Q155 checkbox-group fills its column …` |
 | radio-row reverted whole to `main` | `❌ #1424/Q152.3 radio-row: … (3 off — size=small: row placementWidth undefined, primary AUTO, minWidth 320)` and `✗ Q152.3 radio-row fills its column …` |
 
 ### Screenshots

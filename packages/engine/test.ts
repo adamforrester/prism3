@@ -14883,6 +14883,18 @@ arm: {
         "#1424 a 'wrap' label under a floorless row is refused BY NAME — layoutGrow fills remaining space and a hugging parent has none, the #989 silent no-op; a hugging row with no build width and no floor fires this, so they are load-bearing");
     }
 
+    // ---- Q155 A: the GROUPS follow their rows — built at 320, filling their column down to the 120 floor ----
+    // A group's root is a column, so its width is the COUNTER axis (FIXED), where a row's is its primary. Literals
+    // typed here; the column geometry is measured in `apps/plugin/test-roundtrip.ts` (Q155 block).
+    for (const def of [checkboxGroup, radioGroup] as ComponentDef[]) {
+      const off = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' }).flatMap((m) => {
+        const r = m.root;
+        return r.placementWidth === 320 && r.counterAxisSizingMode === 'FIXED' && r.minWidth === 120 ? []
+          : [`${planComponentName(m)}: ${r.name} placementWidth ${String(r.placementWidth)}, counter ${String(r.counterAxisSizingMode)}, minWidth ${String(r.minWidth)}`];
+      });
+      ok(off.length === 0, `Q155 ${def.id}: on every member the group is built at 320 and floors at 120, so it shrinks with its column (${off.length} off — ${off[0] ?? 'none'})`);
+    }
+
     // ---- #1757: a ROOT's build width (`placementWidth`), and the wrap bounds it and a filled parent supply ----
     // The review's blocking finding: field-message's caption wrapped under a root that HUGGED, so the text froze
     // at its default string's width (~150px). The wrap validator took any `fill` root as bounded; it now takes a

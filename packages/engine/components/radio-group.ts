@@ -176,7 +176,12 @@ export const radioGroup: ComponentDef = {
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         gap: 'gap',
         padding: { block: 'pad-y', inlineLabel: 'pad-x' },
-        minWidth: 320,
+        // BUILT AT 320, SHRINKS TO ITS COLUMN (owner decision Q155 A: the groups follow their rows, Q152.3). The
+        // group used to floor at Prism 2's 320, which held it at 320 in a narrower column even once its rows
+        // could shrink. It is now BUILT at 320 (`placementWidth`, the fields' #2292 mechanism) and fills its
+        // column down to the fields' 120 floor (Q152.2); the rows still stretch to whatever it is.
+        placementWidth: 320,
+        minWidth: 120,
         children: ['label', 'row1', 'row2', 'row3'],
       },
       // THE NESTED GROUP LABEL (nest-fixed, FOLLOWING size). An in-flow instance of `field-label`, configured
@@ -339,7 +344,7 @@ export const radioGroup: ComponentDef = {
     ],
     evolution: [
       'RESOLVED (#1699): `required` now DEFAULTS TO `false`, the brief\'s default (§15). It had defaulted `true` only because the nested FieldLabel built its required marker on by default; #1699 moved FieldLabel\'s own default to `false`, so the group follows the brief and the code default agrees with the Figma default (marker hidden) again.',
-      'THE WIDTH/FILL MODEL IS `checkbox-group`\'S RESOLVED ONE, COPIED DELIBERATELY (#1503, #1475, owner Option B). The audit found every column-stacking form group hugged its width with rows that did NOT fill it, where Prism 2 gives a fixed 320px root with rows set to FILL — because the projection could not emit cross-axis child FILL. #1503 added that capability (`crossAxisFill` → `layoutAlign: STRETCH`) plus a `minWidth` width floor, and landed it on `checkbox-group` FIRST; this def mirrors it verbatim (container `minWidth: 320`, rows `crossAxisFill`), so the two match by sharing ONE resolution rather than each guessing — building `radio-group` to a different width model is the one outcome that guarantees they never match. `test:roundtrip` asserts each row reads back `layoutAlign: STRETCH` on the offline host (a real-host confirmation is the standing nesting caveat in `unverified`).',
+      'THE WIDTH/FILL MODEL IS `checkbox-group`\'S RESOLVED ONE, COPIED DELIBERATELY (#1503, #1475, owner Option B). The audit found every column-stacking form group hugged its width with rows that did NOT fill it, where Prism 2 gives a fixed 320px root with rows set to FILL — because the projection could not emit cross-axis child FILL. #1503 added that capability (`crossAxisFill` → `layoutAlign: STRETCH`) plus a `minWidth` width floor, and landed it on `checkbox-group` FIRST; this def mirrors it verbatim (since owner decision Q155 A, the container BUILT at 320 and filling its column down to a 120 floor; rows `crossAxisFill`), so the two match by sharing ONE resolution rather than each guessing — building `radio-group` to a different width model is the one outcome that guarantees they never match. `test:roundtrip` asserts each row reads back `layoutAlign: STRETCH` on the offline host (a real-host confirmation is the standing nesting caveat in `unverified`).',
       'THE INTER-ROW GAP IS RESOLVED (#1623 sign-off), shared with `checkbox-group`. Each `radio-row` carries 12px of block padding and so spaces itself, so the group binds a 0px gap (`space.0`) and adds no stack gap on top. The provisional size-keyed gap this entry used to hold is gone; the group\'s `size` axis still scales its label and rows through `follow`.',
       'Field POV (brief §13): the group became the mandatory first-class component, owning `name`, the single value and validation; composition replaced the options array (Fluent v9 deprecating `ChoiceGroup` is the marker); and `role="radiogroup"` + `aria-labelledby` replaced `fieldset`/`legend`.',
     ],

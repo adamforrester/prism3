@@ -215,7 +215,7 @@
     },
     "checkbox-group": {
       "members": 3,
-      "sha256": "896726dc7afd27e128be698b2d0c434eee5352e4e01e1b678e7d21860bf69476"
+      "sha256": "9531e62bc93ea5eda2f5bf4e203b4b2faec0b171944568c8e0267fb0490ca05e"
     },
     "radio-control": {
       "members": 30,
@@ -227,7 +227,7 @@
     },
     "radio-group": {
       "members": 3,
-      "sha256": "b2114b571d886cfca46e7e912667e341dc3f7115238a014842705a8da7b95ada"
+      "sha256": "125286b03cca3217b3d92143323f0af5e711a4ddf17fd0dcfd3dc684ba2d3215"
     },
     "switch-control": {
       "members": 24,

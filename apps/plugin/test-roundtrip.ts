@@ -45,7 +45,7 @@ import { nbTheme } from '@prism3/engine/nb-fixture';
 import { sizeRefPx } from '@prism3/engine/scale';
 import { tailOf } from '@prism3/engine/figma-names';
 import { applyComponentPlan } from './src/write-components';
-import { makeShim } from './component-shim';
+import { makeShim, varValue } from './component-shim';
 import { materializeForBrand } from './src/brand-def';
 import { prebuildDependencies } from './src/build-deps';
 import type { ComponentDef } from '@prism3/engine/component-schema';
@@ -1043,8 +1043,10 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
     await applyComponentPlan(plans, shim as any, {});
     const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
-    ok(members.length > 0 && members.every((m) => (m as { minWidth?: unknown }).minWidth === 320),
-      `#1503 host-truth: every ${id} member reads back minWidth=320 — the width floor the rows fill (e.g. minWidth=${String((members[0] as { minWidth?: unknown })?.minWidth)})`);
+    // Q155 A: the group is BUILT at 320 and floors at the fields' 120, so it shrinks with its column (measured in the
+    // Q152.3/Q155 block below).
+    ok(members.length > 0 && members.every((m) => (m as { minWidth?: unknown }).minWidth === 120 && (m as { width?: unknown }).width === 320),
+      `#1503/Q155 host-truth: every ${id} member reads back width 320 and minWidth=120 — built at Prism 2's width, the floor the fields take (e.g. width=${String((members[0] as { width?: unknown })?.width)}, minWidth=${String((members[0] as { minWidth?: unknown })?.minWidth)})`);
   }
 }
 
@@ -1701,6 +1703,27 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       }
       ok(members.length > 0 && off.length === 0,
         `Q152.3 ${id} fills its column: on every member an unplaced row reads 320, an instance set to FILL a ${COLUMN}px column is ${COLUMN} wide with its label filling the rest, in a ${NARROW}px column it shrinks to ${NARROW}, and in a ${NARROWER}px column it holds its 120 floor (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
+    }
+    // Q155 A: checkbox-group and radio-group follow their rows. A group's root is a COLUMN, so FILL sets the instance's
+    // counter mode (the fields' case), and every row inside spans what the group is given. Literals as above.
+    for (const id of ['checkbox-group', 'radio-group']) {
+      const members = await setOf(id);
+      const off: string[] = [];
+      for (const m of members) {
+        const wide = placedAt(String(m.name), id, COLUMN);
+        const narrow = placedAt(String(m.name), id, NARROW);
+        const narrower = placedAt(String(m.name), id, NARROWER);
+        if (!wide || !narrow || !narrower) { off.push(`${m.name}: no instance`); continue; }
+        const widths = [W(m), W(wide), W(narrow), W(narrower)];
+        // The rows span the group less its inline padding, `space/0` on both sides: 0px in every brand, but the
+        // shim's own synthetic value here (its `varValue`, the harness's input), so it is taken from there.
+        const span = COLUMN - 2 * varValue('space/0');
+        const rows = ['row1', 'row2', 'row3'].map((r) => inside(wide, r));
+        if (!(widths[0] === 320 && widths[1] === COLUMN && widths[2] === NARROW && widths[3] === 120 && rows.every((w) => w === span)))
+          off.push(`${m.name}: unplaced ${widths[0]}; in ${COLUMN}/${NARROW}/${NARROWER} columns ${widths.slice(1).join('/')}; rows in ${COLUMN} ${rows.join('/')}`);
+      }
+      ok(members.length > 0 && off.length === 0,
+        `Q155 ${id} fills its column: on every member an unplaced group reads 320, an instance set to FILL a ${COLUMN}px column is ${COLUMN} wide with every row spanning it (less its inline padding), in a ${NARROW}px column it shrinks to ${NARROW}, and in a ${NARROWER}px column it holds its 120 floor (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
     }
   }
 }
