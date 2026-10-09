@@ -137,6 +137,8 @@ const build = async (id: string, plans = plansOf(id)): Promise<Built> => {
     liveRoot: true,
     // Node ids, so Adopt and the capture can be held to writing by id (#2301).
     identities: true,
+    // #2379: the host scales a frame's SCALE children with it, so a built glyph's vectors fit its frame.
+    scaleConstrained: true,
   }) as any;
   const built = await applyComponentPlan(plans, shim);
   // A build that missed is a harness fault; the dry run would then be reading a set the executor never finished.
@@ -172,7 +174,7 @@ const setValue = (name: string, axis: string, value: string): string =>
 console.log('update dry run + as-built baseline (#2265) — against the in-memory shim\n');
 
 // The subject is TAG: 45 members on four axes, small enough to rebuild per case, with nested frames and
-// bindings on every level. BUTTON, the 432-member set the NB library publishes, runs once at full size.
+// bindings on every level. BUTTON, the 576-member set (432 before #2350's flush text members), runs at full size.
 const TAG = 'tag';
 
 /* ── fresh ───────────────────────────────────────────────────────────────────────────────────────────── */
@@ -180,15 +182,46 @@ section('fresh — a set the executor just built reads current, every member car
 {
   const b = await build('button');
   const view = await readSetView(b.set as any);
-  ok(view.members.length === 432 && view.others.length === 0, `fresh/read: 432 coordinate members read, none set aside (${view.members.length}, ${view.others.length})`);
+  ok(view.members.length === 576 && view.others.length === 0, `fresh/read: 576 coordinate members read, none set aside (${view.members.length}, ${view.others.length})`);
   ok(view.members.every((m) => m.baseline !== null && Object.keys(m.baseline.nodes).length >= 2),
     `fresh/baseline: every member carries an as-built record with its nodes (${view.members.filter((m) => m.baseline).length} of ${view.members.length})`);
   ok(view.members.every((m) => m.stamp.split('|').length === 3), 'fresh/stamp: every stamp has its three fields');
   const p = dryRunSet('button', b.plans, view, b.ports);
-  ok(p.counts.current === 432 && p.counts.update + p.counts.handEdited + p.counts.noBaseline + p.counts.add + p.counts.drop === 0 && !p.blockers.length,
-    `fresh/current: all 432 current, nothing to add, drop or update (${JSON.stringify(p.counts)})`);
+  ok(p.counts.current === 576 && p.counts.update + p.counts.handEdited + p.counts.noBaseline + p.counts.add + p.counts.drop === 0 && !p.blockers.length,
+    `fresh/current: all 576 current, nothing to add, drop or update (${JSON.stringify(p.counts)})`);
   ok(Object.values(p.properties).every((l) => l.length === 0), `fresh/properties: the set's properties are as planned (${JSON.stringify(p.properties).slice(0, 120)})`);
   ok(p.needsChoice.length === 0 && /^✓ All sets up to date$/.test(previewVerdict({ sets: [p], missing: [], refused: [] }).headline), 'fresh/verdict: up to date, nothing to choose');
+}
+
+/* ── #2350: a new axis on an existing set ─────────────────────────────────────────────────────────────── */
+section('#2350 inset — a Button set built before the flush axis renames its 432 members onto inset=default and adds 144');
+{
+  // The set as it was before #2350: the same def with the axis, its exclusion and the container's `flush` taken off.
+  const def = defOf('button');
+  const { inset: _inset, ...variants } = def.variants as Record<string, string[]>;
+  const root = def.anatomy!.root;
+  const { flush: _flush, ...rootPart } = def.anatomy!.parts[root];
+  const before = {
+    ...def,
+    variants,
+    props: def.props.filter((p) => p.name !== 'inset'),
+    axisKinds: Object.fromEntries(Object.entries(def.axisKinds ?? {}).filter(([a]) => a !== 'inset')),
+    anatomy: { ...def.anatomy!, parts: { ...def.anatomy!.parts, [root]: rootPart } },
+    figmaProperties: { ...def.figmaProperties!, variantAxes: def.figmaProperties!.variantAxes!.filter((a) => a !== 'inset'), excludeCoordinates: undefined },
+  } as typeof def;
+  const old = await build('button', figmaAnatomySet(before, { swapTarget: SWAP_TARGET }));
+  const view = await readSetView(old.set as any);
+  ok(view.members.length === 432 && view.members.every((m) => !/inset=/.test(m.name)), `#2350 premise: the old set has 432 members and no inset axis (${view.members.length})`);
+  const p = dryRunSet('button', plansOf('button'), view, old.ports);
+  // Expected, by hand: every old member lands on `inset=default` (the first plan's value), and the flush text members
+  // are new — 3 size × 2 surface × 6 state × 4 slot = 144. Nothing is dropped or collapsed.
+  ok(p.counts.rename === 432 && p.counts.add === 144 && p.counts.drop === 0 && !p.blockers.length && !p.needsChoice.includes('axisCollapse'),
+    `#2350 dry run: 432 renamed, 144 added, 0 dropped, no blocker (${JSON.stringify({ rename: p.counts.rename, add: p.counts.add, drop: p.counts.drop, blockers: p.blockers.length })})`);
+  const notJustInset = p.renames.filter((r) => r.from.replace(/(surface=[\w-]+)/, '$1, inset=default') !== r.to);
+  ok(p.renames.length === 432 && notJustInset.length === 0,
+    `#2350 dry run: each rename is the old name with inset=default added after its surface (${notJustInset.length}${notJustInset.length ? `: ${notJustInset[0].from} → ${notJustInset[0].to}` : ''})`);
+  // A variant axis is reported as the set's axis list moving, not as a component property (those are text, swap, boolean).
+  ok(p.axes.to.includes('inset') && !p.axes.from.includes('inset'), `#2350 dry run: the set's axes gain inset (${p.axes.from.join(', ')} → ${p.axes.to.join(', ')})`);
 }
 
 /* ── edit ────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -295,6 +328,8 @@ section('format — what the hash covers is pinned to BASELINE_V');
   const PINNED: Record<number, Record<string, string>> = {
     1: { '.': 'e85160da', label: 'e7367361', note: '88ebbfd4', icon: '2df66934' },
     2: { '.': 'e85160da', label: 'e7367361', note: '88ebbfd4', icon: '2df66934' },
+    // 3 (#2379 review) hashes an instance's main and a style by name; this fixture has neither, so its hashes hold.
+    3: { '.': 'e85160da', label: 'e7367361', note: '88ebbfd4', icon: '2df66934' },
   };
   const fixture: SnapNode = {
     name: 'm', type: 'COMPONENT', layoutMode: 'HORIZONTAL', itemSpacing: 4, visible: true, opacity: 1,
@@ -325,14 +360,18 @@ section('theme — what Apply Theme moves is not a hand edit');
     // A bound field reads its variable's resolved value on the host. The shim records the binding and
     // leaves the field unset, so the value the theme moves is written here, where Figma would show it.
     for (const k of Object.keys(bv)) if (k !== 'fills' && k !== 'strokes' && nudge(k, 3)) movedBound++;
-    for (const k of ['width', 'height', 'x', 'y']) if (typeof n[k] === 'number' && !bv[k]) nudge(k, 7);
-    for (const f of ['fills', 'strokes']) {
-      const paints = n[f];
-      if (Array.isArray(paints)) n[f] = paints.map((p: any) => (p?.boundVariables?.color ? { ...p, color: { r: 0.11, g: 0.22, b: 0.33 } } : p));
-    }
+    // A glyph's vectors are not re-derived by a theme: they stay where their frame scaled them (#2379 reads them there).
+    for (const k of ['width', 'height', 'x', 'y']) if (n.type !== 'VECTOR' && typeof n[k] === 'number' && !bv[k]) nudge(k, 7);
+    // A bound paint's color moves with its VARIABLE (#2379): Apply Theme rewrites the variable, and the host
+    // re-resolves every paint bound to it. Collected here and rewritten below, the way Apply Theme does it.
+    for (const f of ['fills', 'strokes']) for (const p of (Array.isArray(n[f]) ? n[f] : []) as any[]) if (p?.boundVariables?.color?.id) paintVars.add(p.boundVariables.color.id);
     for (const c of (n.children as Node[] | undefined) ?? []) walk(c);
   };
+  const paintVars = new Set<string>();
   for (const m of membersOf(b.set)) walk(m);
+  // Each keeps its own alpha: a theme moves a wash's color, not the fact that it is a wash.
+  for (const v of (await b.shim.variables.getLocalVariablesAsync()) as { id: string; setValueForMode(m: string, v: unknown): void; resolveForConsumer(n: unknown): { value: { a?: number } } }[])
+    if (paintVars.has(v.id)) v.setValueForMode('theme', { r: 0.11, g: 0.22, b: 0.33, a: v.resolveForConsumer(null).value?.a ?? 1 });
   ok(moved > 200 && movedBound > 100, `premise: the theme moved values on many nodes, many of them behind a binding (${moved}, ${movedBound} bound)`);
   const p = (await previewUpdate(b.shim, [{ def: TAG, plans: b.plans }])).sets[0];
   ok(p.handEdits.length === 0 && p.counts.current === 45, `theme/no hand edits: every member still current after the values moved (${p.handEdits.length} edits, ${p.counts.current} current)`);
@@ -451,6 +490,29 @@ section('axis — an added axis and a removed one');
   const q = dryRunSet(TAG, b.plans, wide, b.ports);
   ok(q.drops.length === 45 && q.drops.every((d) => d.endsWith('extra=b')) && q.needsChoice.includes('axisCollapse') && q.counts.current === 45,
     `axis/removed: extra=a members kept and current, the 45 extra=b members collapse and need a choice (${q.drops.length}, ${q.needsChoice.join(', ')})`);
+}
+
+/* ── a field gains `size` (#2266) ────────────────────────────────────────────────────────────────────── */
+section('size — a field set built before #2266 gains the size axis, and every member lands on medium');
+{
+  // The pre-#2266 file: text-field's 24 members, named without `size` (status × state). They were the medium
+  // field, so medium is where they must land. Simulated as the `axis` case above does: the built set's medium
+  // members with the segment stripped.
+  const b = await build('text-field');
+  const view = await readSetView(b.set as any);
+  const strip = (name: string) => name.split(', ').filter((s) => !s.startsWith('size=')).join(', ');
+  const pre = withMembers(view, (ms) => ms.filter((m) => m.name.split(', ').includes('size=medium')).map((m) => ({ ...m, name: strip(m.name) })));
+  const p = dryRunSet('text-field', b.plans, pre, b.ports);
+  ok(pre.members.length === 24 && p.renames.length === 24 && p.renames.every((r) => r.to.split(', ').includes('size=medium'))
+    && p.adds.length === 48 && p.drops.length === 0 && p.blockers.length === 0,
+    `size/lands: the 24 old members are renamed onto size=medium in place, 48 small and large members are added, none dropped (${p.renames.length} renames, ${p.adds.length} adds, ${p.drops.length} drops, ${p.blockers.length} blockers; first ${p.renames[0]?.to})`);
+  // THE ORDER DECIDES IT (docs/34: the arm above can fail). The same set laid against the plans in the
+  // ladder's own order (small first) lands every old member on small: the rewrite #2266's medium-first order avoids.
+  const ladder = ['small', 'medium', 'large'];
+  const smallFirst = [...b.plans].sort((x, y) => ladder.indexOf(String(x.size)) - ladder.indexOf(String(y.size)));
+  const q = dryRunSet('text-field', smallFirst, pre, b.ports);
+  ok(q.renames.length === 24 && q.renames.every((r) => r.to.split(', ').includes('size=small')),
+    `size/order: with small first the same members would land on size=small (${q.renames[0]?.to})`);
 }
 
 /* ── blocked ─────────────────────────────────────────────────────────────────────────────────────────── */
@@ -762,8 +824,11 @@ section('dropped — a fill the plan no longer has is named, plan against file (
   // Each member's wash, as the file holds it: the variable's name in this file, read from the built node.
   const wash = async (state: string, ground: string): Promise<string> => {
     const m = memberNamed(b.set, (n) => n.includes('appearance=text') && n.includes(`state=${state}`) && n.includes(`surface=${ground}`));
-    const id = (m.fills as { boundVariables?: { color?: { id?: string } } }[])[0]?.boundVariables?.color?.id;
-    return String(id ? b.ports.varName(id) : 'NO BOUND FILL');
+    const f = (m.fills as { opacity?: number; boundVariables?: { color?: { id?: string } } }[])[0];
+    const id = f?.boundVariables?.color?.id;
+    // The wash's opacity as the file holds it (a fresh build stores the variable's alpha, #2379), as the line names it.
+    const at = typeof f?.opacity === 'number' && f.opacity < 1 ? ` at ${Math.round(f.opacity * 100)}%` : '';
+    return String(id ? b.ports.varName(id) : 'NO BOUND FILL') + at;
   };
   const want = (await Promise.all(['hover', 'pressed'].flatMap((st) => ['default', 'inverse'].map((g) => wash(st, g)))))
     .map((v) => `button · the member · fill: the plan says none, the file has ${v} (12 members).`);

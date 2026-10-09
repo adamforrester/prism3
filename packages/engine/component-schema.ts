@@ -609,6 +609,25 @@ export type PartDef = {
    *  Refused on a non-`box` kind, on a `box` with no `layout`, without a bound `height`, beside `minWidth` or
    *  `minWidthKey` (two floors on one axis), and when not a positive number. */
   minWidthRatio?: number;
+  /** For `box` parts: a FLUSH member, chosen by a variant axis (#2350, owner Q143 and Q145 A). At a coordinate
+   *  where `axis` is `value`, BOTH of the box's inline paddings bind `key` (a zero step, `space.0`) instead of
+   *  the label or visual inset, so the content sits on whichever edge it shares with the content above and
+   *  below: start, end, or both in a centered row. Three things follow at that coordinate, and the projector
+   *  applies all three from this one field:
+   *    · the box drops its literal `minWidth` floor (#1667) and hugs its content: a floor wider than the label
+   *      would leave slack on one side or both, and the label would sit away from the edge it aligns to. The
+   *      height is untouched, so the hit target's floor (`lint-hit-target`) is the default sibling's;
+   *    · a cell PINNED on either side (`pin`, "Locked to edges") sits at the edge, and its reserve drops the
+   *      inset it no longer has, which is why `key` must be a zero step;
+   *    · the box paints no `overlay` wash: with no padding a wash hugs the content (owner Q143 item 2: a flush
+   *      button hovers by color only).
+   *  Any other value of the axis is the box as authored. Text buttons carry it (the `text` appearance only, the
+   *  rest removed by `figmaProperties.excludeCoordinates`). Code reads it as `padding-inline: 0` and no
+   *  `min-width`, with no hover background; the hit area may extend past the visual box.
+   *
+   *  Refused on a non-`box` kind, without `padding` and `layout`, with an `axis` that is not a projected
+   *  variant axis, with a `value` that is not on it or is its first (default) value, and with an unbound `key`. */
+  flush?: { axis: string; value: string; key: string };
   /** For `box` parts: the name of a VARIANT axis whose values are `W:H` ratio strings, from which the
    *  box's aspect-ratio LOCK is derived per member (#1316). image-placeholder declares `aspectRatio:
    *  'ratio'` and a `ratio` axis of `['1:1', '4:3', '16:9']`; the projector parses the member's own
@@ -1162,8 +1181,16 @@ export type FigmaProperties = {
    *
    *  An empty object is a meaningful statement — "considered, and none survive" — and is preferred to
    *  omitting the field: a schema that lists booleans it cannot honor is worse than one that admits there
-   *  are none. */
-  booleans?: Record<string, string | { part: string | readonly string[]; default?: boolean; figmaName?: string }>;
+   *  are none.
+   *
+   *  A FIGMA-ONLY BOOLEAN (`figmaOnly: true`, #2344, owner decision Q156 A). Every other boolean drives a
+   *  declared prop: the Figma toggle and the code prop are one switch on two surfaces. A group's row count is
+   *  not that. In code it is `children` (any number of rows); in Figma it is a fixed stack of nested rows,
+   *  each past the first behind a toggle. Declaring seven `showOptionN` props to satisfy the rule would put
+   *  seven props on the public API that no code consumer should set. So a `figmaOnly` entry names no prop:
+   *  its KEY must NOT be a declared prop (it would then be both), and it must carry a `figmaName`, because
+   *  with no prop there is no code name for the panel to fall back to. */
+  booleans?: Record<string, string | { part: string | readonly string[]; default?: boolean; figmaName?: string; figmaOnly?: boolean }>;
   /** prop name → the `kind: 'text'` part it drives, plus the PLACEHOLDER the component ships with.
    *
    *  THE ODD SHAPE OUT, and deliberately so: `booleans` and `swaps` are bare part names because
@@ -1826,7 +1853,7 @@ export const swapFigmaName = (prop: string, v: string | { part: string; figmaNam
 /** A `texts` entry's Figma panel name — its `figmaName` decoupling (#1380) or, absent one, the prop KEY. */
 export const textFigmaName = (prop: string, t: { figmaName?: string }): string => t.figmaName ?? prop;
 
-type BooleanEntry = string | { part: string | readonly string[]; default?: boolean; figmaName?: string };
+type BooleanEntry = string | { part: string | readonly string[]; default?: boolean; figmaName?: string; figmaOnly?: boolean };
 /** The parts whose `visible` a `booleans` entry drives — bare string, `{ part }`, or `{ part: [...] }`
  *  (#1331; the list form is switch-control's `State icon`, one toggle over two glyphs). Always a list. */
 export const booleanPartsOf = (v: BooleanEntry): readonly string[] =>
@@ -2091,9 +2118,9 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // Takes `prop → part name` and the Figma FIELD the property drives. `texts`/`swaps`/`booleans` each carry
   // a richer shape, normalized to `prop → part` by the callers below rather than this helper learning three
   // shapes — the relational checks are identical for all three and the difference is one field.
-  const checkMap = (label: string, map: Record<string, string> | undefined, field: string, kind?: PartKind, requireOptional = false): void => {
+  const checkMap = (label: string, map: Record<string, string> | undefined, field: string, kind?: PartKind, requireOptional = false, figmaOnly = false): void => {
     for (const [prop, part] of Object.entries(map ?? {})) {
-      if (!propNames.has(prop)) e.push(`figmaProperties.${label}: '${prop}' is not a declared prop`);
+      if (!figmaOnly && !propNames.has(prop)) e.push(`figmaProperties.${label}: '${prop}' is not a declared prop`);
       const p = parts[part];
       if (!p) { e.push(`figmaProperties.${label}.${prop} → part '${part}' does not exist in anatomy.parts`); continue; }
       if (kind && p.kind !== kind) e.push(`figmaProperties.${label}.${prop} → part '${part}' is kind '${p.kind}', expected '${kind}'`);
@@ -2118,8 +2145,15 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // `requireOptional`, because the anatomy must allow the part to be hidden.
   // One `checkMap` call per targeted part: the list form (`part: [...]`) names several nodes for one prop,
   // and a `prop → part` record can hold only one of them.
-  for (const [p, v] of Object.entries(fp.booleans ?? {}))
-    for (const part of booleanPartsOf(v)) checkMap('booleans', { [p]: part }, 'visible', undefined, true);
+  for (const [p, v] of Object.entries(fp.booleans ?? {})) {
+    const figmaOnly = typeof v !== 'string' && v.figmaOnly === true;
+    for (const part of booleanPartsOf(v)) checkMap('booleans', { [p]: part }, 'visible', undefined, true, figmaOnly);
+    // A Figma-only boolean (#2344) names no prop, so it must not BE one, and needs its own panel name.
+    if (figmaOnly && propNames.has(p))
+      e.push(`figmaProperties.booleans.${p} is figmaOnly but '${p}' is also a declared prop — a Figma-only toggle has no code prop; drop 'figmaOnly' to drive the prop, or rename the key`);
+    if (figmaOnly && !(typeof v !== 'string' && v.figmaName))
+      e.push(`figmaProperties.booleans.${p} is figmaOnly but has no figmaName — with no prop there is no code name for the Figma panel to show, so the label must be stated`);
+  }
 
   // A BOOLEAN toggles its parts' `visible` in place (#1331). A part it targets may ALSO carry a VARIANT
   // presence gate, and the composition is defined, not left open: the gate decides WHICH members carry the
@@ -2908,12 +2942,26 @@ export type State = (typeof STATES)[number];
  * treatment and `shape` a corner silhouette; none is an orientation across the surface. Naming it `intensity`
  * would claim a fade is a weaker wash, which it is not at its named edge; naming it `style` would put a
  * spatial choice into a stroke axis. `lint-axis-values.ts` carries the five values as a `sole` set.
+ *
+ * ── `inset`: THE TWENTY-FIRST NAME, FOR A FLUSH TEXT BUTTON (owner Q143 and Q145 A, 2026-10-08, #2350) ──
+ *
+ * `inset` (`default | flush`) is WHETHER a control keeps its inline padding, or drops it on both sides so its
+ * content lines up with the content edge above and below it (the name and values are the owner's, DRAFT). It
+ * clears this list's bar the way `direction` did: a distinct kind of distinction no existing name expresses,
+ * with the nearest defeated. `width` is how much of its container a control takes (a drag, `auto | full`);
+ * `offset` is a nested part's DISPLACEMENT from its host; `direction` is where a veil's wash sits; `shape` is a
+ * corner silhouette; `size` is a rung on a ladder that moves every dimension together. None says "this control
+ * has no inline padding". Naming it `width` would claim a flush button is a width choice, when its height is
+ * its default sibling's and only its padding moves. Read by the container's `flush` field (`PartDef.flush`),
+ * which names the axis and its flush value, so a def using another value set stays expressible. An AUTHORING
+ * axis: a button is flush where it is placed and never changes on screen. `lint-axis-values.ts` carries the two
+ * values as a `sole` set.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
-  'status', 'emphasis', 'shape', 'type', 'direction',
+  'status', 'emphasis', 'shape', 'type', 'direction', 'inset',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -3547,7 +3595,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
   // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
   const bindingKeys = (p: PartDef): string[] =>
-    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop]
+    [p.gap, p.height, p.minHeight, p.minWidthKey, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual, p.padding?.inlineEnd, p.paddingTop, p.flush?.key]
       .filter((k): k is string => typeof k === 'string');
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
@@ -4316,6 +4364,25 @@ const anatomyErrors = (def: ComponentDef): string[] => {
         e.push(`anatomy part '${n}' declares 'minWidthRatio' beside '${p.minWidth !== undefined ? 'minWidth' : 'minWidthKey'}' — two floors on one axis, so one of them is not the floor`);
       if (!(typeof p.minWidthRatio === 'number' && p.minWidthRatio > 0))
         e.push(`anatomy part '${n}' declares a 'minWidthRatio' that is not a positive number`);
+    }
+    // ---- `flush`, a member that drops its inline padding on both sides (#2350) ----
+    // Each rule is a way the field would validate and then flush nothing, or flush everything: a kind with no
+    // padding to drop, an axis the set never enumerates, a value no member takes, or the axis's default (the
+    // value every member that does not give the axis reads). The key's binding is checked with every other
+    // binding key above.
+    if (p.flush !== undefined) {
+      const f = p.flush;
+      if (p.kind !== 'box' || !p.padding || !p.layout)
+        e.push(`anatomy part '${n}' declares 'flush' but is not a 'box' with 'padding' and 'layout' — flush drops the inline padding of an auto-layout row, so a part with neither has nothing to flush`);
+      const values = variantsOf(def)[f.axis];
+      if (!values)
+        e.push(`anatomy part '${n}' flushes on '${f.axis}', which is not one of this def's variant axes [${Object.keys(variantsOf(def)).join(', ') || 'none'}] — the projector never supplies it, so no member is flush`);
+      else {
+        if (!(def.figmaProperties?.variantAxes ?? []).includes(f.axis))
+          e.push(`anatomy part '${n}' flushes on '${f.axis}', which figmaProperties.variantAxes does not project — the set is enumerated over the projected axes only, so no member would be flush`);
+        if (!values.includes(f.value)) e.push(`anatomy part '${n}' flushes at '${f.axis}=${f.value}', which is not a value of that axis [${values.join(', ')}]`);
+        else if (values[0] === f.value) e.push(`anatomy part '${n}' flushes at '${f.axis}=${f.value}', the axis's first value — the default member would be flush, and so would the code default`);
+      }
     }
     // ---- `padding.inlineEnd`, the trailing side's own key (the spacing model, 2026-09-29) ----
     if (p.padding?.inlineEnd !== undefined && p.padding.inlineVisual !== undefined)

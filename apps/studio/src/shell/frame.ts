@@ -50,7 +50,7 @@
  * give way, each by a measured check that sets `data-bar-fit`, reusing the narrow tier's rules where it has them. See
  * `fitBar`.
  */
-import { currentMode, page, searchHits, searchQuery, setPage, setSearch, subscribe } from '../state/store';
+import { currentMode, page, rp, searchHits, searchQuery, setCurrentMode, setPage, setSearch, subscribe } from '../state/store';
 import { isDerived } from '../state/verdict';
 import { INSPECT, TABS, homeOf, isMenuPage, newPageOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type NewPageKey, type Place, type TabId } from './pages';
 import { glyph, h, hook, tile } from './dom';
@@ -61,7 +61,7 @@ import { mountBar, type BarLend } from './bar';
 import { mountStyleGuides, type StyleGuidesLend } from './style-guides';
 import { THEME_CHOICES, onThemeChange, setThemePref, themeChoice } from './theme';
 import { mountPalettesLevers } from '../domains/color-palettes';
-import { mountPalettesPreview } from '../preview/palettes';
+import { PALETTES_LIGHT_NOTE_ID, mountPalettesPreview } from '../preview/palettes';
 import { mountBrandLevers } from '../domains/brand';
 import { mountBrandPreview, type PageLends } from '../preview/brand';
 import { mountFillsLevers } from '../domains/color-fills';
@@ -93,9 +93,12 @@ const NEW_PAGES: Record<NewPageKey, {
   /** N-3 A (#1984): the page edits the previewed mode, so while the preview shows a derived mode its whole levers
    *  panel is read-only (`syncDerivedReadOnly` below). Brand and Palettes are brand-wide and stay editable. */
   readonly derivedReadOnly?: true;
+  /** PM1 B (owner, 2026-10-08; #2321): the page always shows Light, and the mode control is held disabled while it is
+   *  up, described by the page's line at `id` (`syncModePin` below). */
+  readonly pinsLight?: { readonly why: string };
 }> = {
   brand: { levers: mountBrandLevers, preview: mountBrandPreview },
-  palettes: { levers: mountPalettesLevers, preview: mountPalettesPreview },
+  palettes: { levers: mountPalettesLevers, preview: mountPalettesPreview, pinsLight: { why: PALETTES_LIGHT_NOTE_ID } },
   fills: { levers: mountFillsLevers, preview: mountSurfacesPreview, derivedReadOnly: true },
   interactive: { levers: mountInteractiveLevers, preview: mountInteractivePreview, derivedReadOnly: true },
   type: { levers: mountTypeLevers, preview: mountTypePreview, derivedReadOnly: true },
@@ -365,7 +368,8 @@ export const mountFrame = (app: HTMLElement, opts: {
   const previewHead = hook(h('div', 'p3-preview-head'), 'preview-head');
   const previewTitle = hook(h('h2', 'p3-preview-title'), 'preview-title');
   previewTitle.id = 'p3-preview-title';
-  previewHead.append(previewTitle, modeControl(cleanups), inspectMenu((v, opener) => openInspect(v, opener), cleanups));
+  const modes = modeControl(cleanups);
+  previewHead.append(previewTitle, modes.el, inspectMenu((v, opener) => openInspect(v, opener), cleanups));
   // V1: the body shows the page's one home view, named by `data-view`. It changes on a tab or sub-page
   // change and on nothing else. Each domain slice draws its view here (S2 first).
   const previewBody = hook(h('div', 'p3-preview-body'), 'preview-body');
@@ -567,6 +571,32 @@ export const mountFrame = (app: HTMLElement, opts: {
     }
   }
   cleanups.push(subscribe('mode', syncDerivedReadOnly));
+  // PM1 B (owner, 2026-10-08; #2321): a page that pins Light (Palettes). On the way in, the preview is switched to
+  // Light, the mode the person had is kept, and the mode control is held in the disabled skin. On the way out, the
+  // kept mode is put back, if the brand still ships it. The pin writes the store's own mode, so everything that reads
+  // it (the page, Inspect, the verdict) agrees with what the held control shows. A mode written by anything else
+  // while pinned (a brand loaded, which starts at the brand's first mode) is the new starting point: the kept mode is
+  // dropped, and nothing is put back.
+  let pinned = false;
+  let keptMode: typeof currentMode | null = null;
+  let pinWriting = false;
+  const pinWrite = (m: typeof currentMode): void => { pinWriting = true; try { setCurrentMode(m); } finally { pinWriting = false; } };
+  /** Run as the place changes, before the next page is mounted, so it mounts in the mode it will show. */
+  const syncModePin = (next: NewPageKey | null): void => {
+    const pin = next !== null ? NEW_PAGES[next].pinsLight ?? null : null;
+    if (pin && !pinned) {
+      pinned = true;
+      keptMode = currentMode === 'light' ? null : currentMode;
+      if (keptMode !== null) pinWrite('light');
+    } else if (!pin && pinned) {
+      pinned = false;
+      const back = keptMode;
+      keptMode = null;
+      if (back !== null && back !== currentMode && (rp.modes as readonly string[]).includes(back)) pinWrite(back);
+    }
+    modes.hold(pin ? pin.why : null);
+  };
+  cleanups.push(subscribe('mode', () => { if (pinned && !pinWriting) keptMode = null; }));
   cleanups.push(unmountPanes, () => { for (const c of menuCleanups ?? []) c(); menuCleanups = null; });
   // QA-B9: record which lever section each interaction is in. Records only; an edit handler turns a record
   // into a note, and nothing else moves the preview (V1).
@@ -599,6 +629,7 @@ export const mountFrame = (app: HTMLElement, opts: {
     const moved = place && !onMenu ? newPageOf(place) : null;
     if (moved !== mounted) {
       unmountPanes();
+      syncModePin(moved);
       if (moved) {
         const row = NEW_PAGES[moved];
         row.levers(levers, paneCleanups, opts.lend);

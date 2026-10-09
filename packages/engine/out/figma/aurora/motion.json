@@ -1,0 +1,270 @@
+{
+  "$collection": "motion",
+  "$mode": "Default",
+  "variables": [
+    {
+      "name": "ads/motion/duration-ms/0",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "0ms — duration primitive",
+      "value": 0,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/motion/duration-ms/30",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "30ms — duration primitive",
+      "value": 30,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/motion/duration-ms/40",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "40ms — duration primitive",
+      "value": 40,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/motion/duration-ms/50",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "50ms — duration primitive",
+      "value": 50,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/motion/duration-ms/80",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "80ms — duration primitive",
+      "value": 80,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/motion/duration-ms/160",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "160ms — duration primitive",
+      "value": 160,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/motion/duration-ms/240",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "240ms — duration primitive",
+      "value": 240,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/motion/duration-ms/400",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "400ms — duration primitive",
+      "value": 400,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/motion/duration-ms/640",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "640ms — duration primitive",
+      "value": 640,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/motion/duration-ms/800",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "800ms — duration primitive",
+      "value": 800,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/motion/duration-ms/2600",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "2600ms — duration primitive",
+      "value": 2600,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "ads/motion/duration/instant",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "40ms — instant duration",
+      "value": 40,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/40"
+      }
+    },
+    {
+      "name": "ads/motion/duration/fast",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "80ms — fast duration",
+      "value": 80,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/80"
+      }
+    },
+    {
+      "name": "ads/motion/duration/normal",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "160ms — normal duration",
+      "value": 160,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/160"
+      }
+    },
+    {
+      "name": "ads/motion/duration/moderate",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "240ms — moderate duration",
+      "value": 240,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/240"
+      }
+    },
+    {
+      "name": "ads/motion/duration/slow",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "400ms — slow duration",
+      "value": 400,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/400"
+      }
+    },
+    {
+      "name": "ads/motion/duration/slower",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "640ms — slower duration",
+      "value": 640,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/640"
+      }
+    },
+    {
+      "name": "ads/motion/duration/spin",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "800ms per spinner turn, at every tempo",
+      "value": 800,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/800"
+      }
+    },
+    {
+      "name": "ads/motion/duration-reduced/instant",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "40ms — instant duration with reduce motion on",
+      "value": 40,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/40"
+      }
+    },
+    {
+      "name": "ads/motion/duration-reduced/fast",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "80ms — fast duration with reduce motion on",
+      "value": 80,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/80"
+      }
+    },
+    {
+      "name": "ads/motion/duration-reduced/normal",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "50ms — normal duration with reduce motion on",
+      "value": 50,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/50"
+      }
+    },
+    {
+      "name": "ads/motion/duration-reduced/moderate",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "0ms — moderate duration with reduce motion on",
+      "value": 0,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/0"
+      }
+    },
+    {
+      "name": "ads/motion/duration-reduced/slow",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "0ms — slow duration with reduce motion on",
+      "value": 0,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/0"
+      }
+    },
+    {
+      "name": "ads/motion/duration-reduced/slower",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "0ms — slower duration with reduce motion on",
+      "value": 0,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/0"
+      }
+    },
+    {
+      "name": "ads/motion/duration-reduced/spin",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "2600ms per spinner turn with reduce motion on",
+      "value": 2600,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/2600"
+      }
+    },
+    {
+      "name": "ads/motion/stagger",
+      "resolvedType": "FLOAT",
+      "scopes": [],
+      "description": "30ms between siblings",
+      "value": 30,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "ads/motion/duration-ms/30"
+      }
+    }
+  ]
+}

@@ -2,7 +2,7 @@
  *  Brand's Style guide, beside the type sample, so the brand's shape reads without opening Shape. A panel at the
  *  first container size (`radius.xl`) holding a field, a button and a checkbox (each the radius its definition binds
  *  under the brand's Control shape: `radius.sm`, the shape's button rung and the checkbox's clamped corner, all three
- *  `radius.hairline` under Hairline, #2361) and a tag (`radius.round`, as Tag binds it), each at the height its
+ *  `radius.hairline` under Hairline and `radius.none` under Boxed, #2361) and a tag (`radius.round`, as Tag binds it), each at the height its
  *  definition uses in the previewed mode, each named by its token. The checkbox (#2361) is DRAFT, pending the owner.
  *
  *  RADIUS AND SHADOW (D18 B asks for one radius-and-shadow sample; S7 drew the radius, S9.2 added the shadow). The
@@ -58,7 +58,7 @@ export const radiusSampleSection = (c: SgCtx, o: {
     return wrap;
   };
   const row = el('div', 'shp-items');
-  // The checkbox's medium box, and its corner: `radius.hairline` under Hairline, else its own per-rung clamp
+  // The checkbox's medium box, and its corner: `radius.hairline` under Hairline, `radius.none` under Boxed, else its own per-rung clamp
   // (`control.size.md.radius`, the engine's `controlRadius` off this mode's `radius.sm` and box edge).
   const check = (o.dims.controlsByMode?.[o.mode] ?? o.dims.controls).find((z) => z.name === 'md')?.height ?? 0;
   const checkRef = shapeRef(o.shape, 'Checkbox.Control', 'control.size.md.radius');

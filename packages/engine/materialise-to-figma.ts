@@ -212,6 +212,9 @@ const FLOAT_AXES: { stem: string; modes: string[] | null }[] = [
   { stem: 'focus', modes: null },
   { stem: 'opacity', modes: null },
   { stem: 'layout', modes: ['sm', 'md', 'lg', 'xl', '2xl'] },
+  // #2394 — per-mode only for a brand whose mode levers run a different tempo; every mode such a lever can
+  // name is probed, since a brand with no per-mode tempo emits the single `motion.json`.
+  { stem: 'motion', modes: ['Default', 'light', 'dark', 'hc-light', 'hc-dark', 'wireframe'] },
 ];
 
 /** The files backing one float axis, in mode order. A single-mode axis is `<stem>.json`; a

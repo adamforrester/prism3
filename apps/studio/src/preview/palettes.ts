@@ -14,14 +14,24 @@
  * the chrome card, outside the roots. The alpha ramps are the exception, named here: they are the same
  * constants for every brand and draw on a checkerboard, as v6 drew them, so their transparency shows.
  *
- * HOW IT REPAINTS: by store subscription (`brand`, `mode`), never through a legacy tier. A ramp does not
- * vary by mode; the page color under it does, so the mode control changes the grounds.
+ * PINNED TO LIGHT (owner decision PM1 B, 2026-10-08; #2321). A ramp does not vary by mode; only the page color
+ * under the strips and the opacity scale's ink did. Palettes always shows Light: the frame switches the preview to
+ * Light on the way in, holds the mode control disabled while Palettes is up, and puts back the mode the person had on
+ * the way out (`syncModePin` in `shell/frame.ts`). So `currentMode` is Light here, and the grounds and the opacity
+ * ink read it. The line that says why, `PALETTES_LIGHT_NOTE`, opens the preview and describes the held control.
+ *
+ * HOW IT REPAINTS: by store subscription (`brand`, `mode`), never through a legacy tier.
  */
 import { currentMode, lastGoodInput, subscribe, theme } from '../state/store';
 import { resolvedModes } from '../state/verdict';
 import { STATUS_ROLES, anchorStepFor, neutralBoardText, rolesByPalette } from '../state/palette-input';
 import { h, hook } from '../shell/dom';
 import { revealGroup, takeEdit } from './follow-edit';
+
+/** Why the mode control is held on Palettes (PM1 B, #2321). DRAFT copy, for the owner. */
+export const PALETTES_LIGHT_NOTE = 'Palettes always show Light. Ramps are the same in every mode.';
+/** The note's id: the held mode control names it as its description. */
+export const PALETTES_LIGHT_NOTE_ID = 'p3-palettes-light-note';
 
 /** The preview width below which a strip holds five squares instead of ten. */
 const SLIM_MAX = 560;
@@ -175,7 +185,9 @@ export const mountPalettesPreview = (host: HTMLElement, cleanups: (() => void)[]
     status: board('Status palettes', 'Success, warning, danger and info. Auto reuses a brand color when its hue fits, or makes one.', 'board-status'),
     alpha: board('Alpha and opacity', 'On a checkerboard, so the alpha shows.', 'board-alpha'),
   };
-  root.append(boards.brand.el, boards.neutral.el, boards.status.el, boards.alpha.el);
+  const note = hook(h('p', 'p3-note', PALETTES_LIGHT_NOTE), 'palettes-light-note');
+  note.id = PALETTES_LIGHT_NOTE_ID;
+  root.append(note, boards.brand.el, boards.neutral.el, boards.status.el, boards.alpha.el);
   let cache = new Map<string, HTMLElement>();
   let next = new Map<string, HTMLElement>();
   const keyed = (key: string, make: () => HTMLElement): HTMLElement => {

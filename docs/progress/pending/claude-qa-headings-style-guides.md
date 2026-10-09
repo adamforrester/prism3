@@ -27,7 +27,7 @@ the page's name, so the tab's label is used instead. With no `font` of its own, 
 2em, which the embedded Inter doesn't carry, and `test:chrome`'s font audit refused it as a device face. `h1.p3-sr` now
 sets `margin: 0; font: inherit`.
 
-**The test.** `test:chrome` section 36 reads the outline from the browser's accessibility tree (CDP
+**The test.** `test:chrome` section 37 reads the outline from the browser's accessibility tree (CDP
 `Accessibility.getFullAXTree`, walked in tree order, ignored nodes dropped), never the DOM. It runs on both hosts at 1280
 and at 380, on every place, on the Settings pane and on the Preview pane at 380, and on the plugin's Build style guides
 page. Each outline must open on exactly one h1, named as the page's tab (typed in the test), and never skip a level.
