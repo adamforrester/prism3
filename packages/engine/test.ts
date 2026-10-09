@@ -8249,6 +8249,46 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     `#2266 body/xs: 12px on body's normal line height (1.5), tracking and face, body.sm's variant set, and the owner's description, on all five brands (${composites} composites${bad.length ? `; ${bad.length}: ${bad.slice(0, 4).join(' | ')}` : ''})`);
 }
 
+// ---- strikethrough is a modifier, not a style (#2340, owner Q150 D) ----
+// Read off the COMMITTED `.ai.json` of all five brands, with the words that must be there typed here as literals (never
+// imported from `ai-metadata.ts`): every body and caption composite but the `-link` variants tells an agent to strike
+// text with a line-through modifier on this style, names the hidden text, and says no strikethrough style exists; no
+// other entry carries it; no composite is struck; and the consume skill carries the accessible price pattern.
+{
+  const bad: string[] = [];
+  let carried = 0;
+  for (const b of ['aurora', 'harbor', 'nb', 'prism3', 'wendys']) {
+    const groups = new Set<string>();
+    const aiType = JSON.parse(readFileSync(resolve(HERE, `out/${b}.ai.json`), 'utf8')).typography ?? {};
+    const tree = JSON.parse(readFileSync(resolve(HERE, `out/${b}.tokens.json`), 'utf8'));
+    const r = tree[Object.keys(tree).find((k) => !k.startsWith('$'))!];
+    for (const [key, e] of Object.entries(aiType) as [string, { when_to_use?: string; avoid_when?: string }][]) {
+      if (!key.startsWith('type.')) continue;
+      const scoped = /^type\.(body|caption)\./.test(key) && !key.endsWith('-link');
+      const when = e.when_to_use ?? '', avoid = e.avoid_when ?? '';
+      const says = when.includes('plus a line-through modifier') && when.includes('`text-decoration-line: line-through`')
+        && when.includes('a strikethrough override on the style in Figma') && when.includes('"Original price:"')
+        && avoid.includes('Do not look for or mint a strikethrough style');
+      if (scoped) { carried++; groups.add(key.split('.')[1]); if (!says) bad.push(`${b} ${key}: no strikethrough guidance ("${when}" / "${avoid}")`); }
+      else if (/strikethrough|line-through/.test(`${when} ${avoid}`)) bad.push(`${b} ${key}: carries strikethrough guidance outside body and caption's plain styles`);
+      if (/strike/i.test(key)) bad.push(`${b} ${key}: a strikethrough style was minted`);
+    }
+    const walk = (n: any, path: string): void => {
+      if (!n || typeof n !== 'object') return;
+      if (n.$type === 'typography' && /line-through/i.test(String(n.$value?.textDecoration ?? ''))) bad.push(`${b} ${path}: a struck composite`);
+      for (const k of Object.keys(n)) if (!k.startsWith('$')) walk(n[k], `${path}.${k}`);
+    };
+    walk(r.type, 'type');
+    // Represented, not counted: each brand's body and caption both carry it.
+    for (const g of ['body', 'caption']) if (!groups.has(g)) bad.push(`${b}: no type.${g} entry to carry the guidance`);
+  }
+  const skill = readFileSync(resolve(HERE, '../../skills/prism3-consume/SKILL.md'), 'utf8');
+  for (const want of ['**Strikethrough is a modifier, not a style.**', '<del><span class="visually-hidden">Original price: </span>', '<ins><span class="visually-hidden">Sale price: </span>'])
+    if (!skill.includes(want)) bad.push(`prism3-consume: no "${want}"`);
+  ok(bad.length === 0,
+    `#2340: strikethrough is a modifier on body and caption's styles, never a style, in all five brands' .ai.json, and the consume skill carries the accessible price pattern (${carried} entries${bad.length ? `; ${bad.length}: ${bad.slice(0, 4).join(' | ')}` : ''})`);
+}
+
 // ---- weight-role set: extensible + `max` (105.1) ----
 {
   const roles = tBrand('wr-max', {}).typography.weightRoles;
