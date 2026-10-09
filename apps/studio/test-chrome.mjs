@@ -12235,8 +12235,9 @@ for (const host of ['web', 'figma']) {
 //     two reaches added), then a non-flush neighbor at one reach: every point of each flush button's floor-wide hit area
 //     hits that button, the neighbor's own box hits only the neighbor, and the hit area really reaches the floor;
 //   · CONTROL: the same pair two pixels closer than the two reaches must show the overlap, or the probe sees nothing.
-// Mutations, each failing by name: the skill's 22px bound lowered to 16px → `… flush buttons at the skill's 16px bound
-// … overlap`; the sketch's 44px raised to 48px → the same arm at the exact gap; the probe's floor narrowed → the control.
+// Mutations, each failing by name: the skill's 22px bound lowered to 16px → `… two 1px flush buttons at the skill's 16px
+// bound … keep their 44px hit areas apart — overlap …` (and the 6px pair: 16px is enough from a 12px label on); the
+// sketch's 44px raised to 48px → the same arm at the bound AND at the exact gap, the neighbor's own box included.
 {
   const where = '#2437 flush hit area';
   const skill = readFileSync(join(REPO, 'skills/prism3-consume/SKILL.md'), 'utf8');
