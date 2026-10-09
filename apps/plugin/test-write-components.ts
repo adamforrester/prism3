@@ -4128,6 +4128,14 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const caretWrong: string[] = [];
     const endWrong: string[] = [];
     let endCarets = 0;
+    // #2439: WHERE the end caret is drawn, on the shim's layout model, not only its order. Its x must be the value's right
+    // edge with no gap, the value must HUG its text (the shim's text metric, 6px a character with no style advance in this
+    // build, typed here as the shim's own figure: a value stretched to fill the row would push the bar away from the last
+    // character), and the bar must sit inside `content`'s clip.
+    const SHIM_CHAR_W = 6;
+    const posWrong: string[] = [];
+    let positioned = 0;
+    const absX = (n: Node, top: Node): number => { let x = 0; for (let k: Node | null | undefined = n; k && k !== top; k = k.parent as Node | null) x += (k.x as number) || 0; return x; };
     const seen = new Set<string>();
     const boxAt = new Map<string, string>();
     let carets = 0;
@@ -4159,6 +4167,17 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
         else if (paintVar(caretEnd, 'fills') !== CARET_INK) endWrong.push(`${m.name}: end caret ${paintVar(caretEnd, 'fills')}, want ${CARET_INK}`);
         else if (boundName(caretEnd, 'width') !== CARET_WIDTH) endWrong.push(`${m.name}: end caret width ${boundName(caretEnd, 'width')}, want ${CARET_WIDTH}`);
         else if (!eh || !(Math.abs(nbVarPx(eh) - eline) < 1e-6)) endWrong.push(`${m.name}: end caret height ${eh} is ${eh ? nbVarPx(eh) : '?'}px on NB, want one line of the value type, ${eline}px`);
+        if (shown) {
+          const content = named(m, 'content');
+          const valueRight = (shown.x as number) + (shown.width as number);
+          const textW = String(shown.characters ?? '').length * SHIM_CHAR_W;
+          const caretRight = absX(caretEnd, m) + (caretEnd.width as number);
+          const clipRight = content ? absX(content, m) + (content.width as number) : NaN;
+          if (Math.abs((caretEnd.x as number) - valueRight) > 1e-6) posWrong.push(`${m.name}: end caret x ${caretEnd.x}, want the value's right edge ${valueRight} (no gap)`);
+          else if (Math.abs((shown.width as number) - textW) > 1e-6) posWrong.push(`${m.name}: the value is ${shown.width}px wide around ${textW}px of text — it does not hug its text, so the bar is not at its last character`);
+          else if (!(caretRight <= clipRight + 1e-6)) posWrong.push(`${m.name}: end caret's right edge ${caretRight} is past content's clip at ${clipRight}`);
+          else positioned++;
+        }
       }
       // The caret.
       const caret = named(m, 'caret');
@@ -4186,6 +4205,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const endMembers = SIZES.length * STATUSES.length * CARET_END_AT[id].length;
     ok(endWrong.length === 0 && endCarets === endMembers,
       `field end caret (${id}): ${endMembers ? `a caret immediately after the value on exactly the ${endMembers} focused members that hold one — ${CARET_INK}, ${CARET_WIDTH} wide, one value line tall` : 'no end caret on any member'} (${endCarets} end caret(s)${endWrong.length ? `; ${endWrong.length} wrong — ${endWrong.slice(0, 2).join('; ')}` : ''})`);
+    ok(posWrong.length === 0 && positioned === endMembers,
+      `field end caret position (${id}, #2439): ${endMembers ? `on all ${endMembers} focused members that hold a value, the bar starts at the value's right edge with no gap, the value hugs its text, and the bar is inside content's clip` : 'no end caret to place'} (${positioned} placed${posWrong.length ? `; ${posWrong.length} wrong — ${posWrong.slice(0, 2).join('; ')}` : ''})`);
   }
 }
 
