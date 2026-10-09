@@ -847,27 +847,30 @@ const pageBoxes = (page: CompPageTarget): PageBox[] =>
  * read left to right in the order they were built — which is the taxonomy's order (`file-taxonomy.ts`)
  * whenever a family is built as one run (dependencies first) or in the order the page lists them.
  *
- * `y` is the top of the existing COMPONENT_SETs, or of all content other than the page header when the page has
- * no set yet.
+ * `y` is the top of the existing COMPONENT_SETs; on a page with no set yet, the header's bottom plus
+ * `PAGE_HEADER_GAP` when it has a header (below), else the top of all content.
  *
- * BELOW THE HEADER WHEN IT IS ALL THE PAGE HOLDS (#2405). A page whose sets were deleted and rebuilt keeps its
+ * BELOW THE HEADER WHEN THE PAGE HAS NO SET YET (#2405). A page whose sets were deleted and rebuilt keeps its
  * header, and the header is not content to sit beside: measured as content, it put the first rebuilt set
- * `SET_GAP` right of the header, and its siblings beside that. So on a page with a header and nothing else,
- * the set goes where the first build put it relative to the header: on the header's left edge, its top
- * `PAGE_HEADER_GAP` below the header's bottom. Its siblings then top-align with it, as on a fresh page.
+ * `SET_GAP` right of the header, and its siblings beside that. So on a page with a header and no set, the set
+ * goes where the first build put it relative to the header: its top `PAGE_HEADER_GAP` below the header's
+ * bottom, on the header's left edge. Any other node in that band (a stray note, a frame) pushes it right by
+ * the same row rule, but it stays below the header and never takes a stray node's `y`. Its siblings then
+ * top-align with it, as on a fresh page.
  *
  * A SET THAT ALREADY EXISTS IS NEVER PASSED HERE: a rebuild keeps the set a designer may have moved, the
  * "designer's placement wins" rule `page-header.ts` follows for the header.
  */
 export const placeNewSet = (existing: readonly PageBox[], height: number): { x: number; y: number } | null => {
   if (existing.length === 0) return null;
-  const content = existing.filter((b) => !b.header);
-  if (content.length === 0) {
-    const h = existing[0];
-    return { x: h.x, y: h.y + h.height + PAGE_HEADER_GAP };
+  const sets = existing.filter((b) => !b.header && b.type === 'COMPONENT_SET');
+  const h = existing.find((b) => b.header);
+  if (h && sets.length === 0) {
+    const y = h.y + h.height + PAGE_HEADER_GAP;
+    const band = existing.filter((b) => b.y < y + height && b.y + b.height > y);
+    return { x: Math.max(h.x, ...band.map((b) => b.x + b.width + SET_GAP)), y };
   }
-  const sets = content.filter((b) => b.type === 'COMPONENT_SET');
-  const y = Math.min(...(sets.length ? sets : content).map((b) => b.y));
+  const y = Math.min(...(sets.length ? sets : existing).map((b) => b.y));
   const band = existing.filter((b) => b.y < y + height && b.y + b.height > y);
   // An empty band happens only when every node there has zero height; then everything counts.
   const x = Math.max(...(band.length ? band : existing).map((b) => b.x + b.width)) + SET_GAP;

@@ -4823,9 +4823,10 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   // (f) #2405 — A PAGE THAT HOLDS ONLY ITS SECTION HEADER. Live: the sets on a component page were deleted and
   // rebuilt, and every one landed right of the header instead of under it. The header is an INSTANCE named
-  // as its set is, in the case the owner's file uses, at 100,-300, 1000x220. Expected: the header's left edge
-  // (100) and its bottom (-300 + 220 = -80) + 80 = 0. On main this lands at 1100 + 160 = 1260, -300.
-  const header = (): Node => ({ type: 'INSTANCE', name: '_section-header', x: 100, y: -300, width: 1000, height: 220 } as Node);
+  // exactly as `file-components.ts` names its set, `_Section-header` with a capital S, so a case-sensitive
+  // match fails here, at 100,-300, 1000x220. Expected: the header's left edge (100) and its bottom
+  // (-300 + 220 = -80) + 80 = 0. On main this lands at 1100 + 160 = 1260, -300.
+  const header = (type = 'INSTANCE'): Node => ({ type, name: '_Section-header', x: 100, y: -300, width: 1000, height: 220 } as Node);
   const pgH: Page = { children: [header()] };
   await run(grid, { ...full(), page: pgH });
   const underHeader = pgH.children.find((n) => n.name === 'button')!;
@@ -4849,6 +4850,31 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const nextToKept = pgHS.children.find((n) => n.name === 'button-destructive')!;
   ok(at(kept) === '300,500' && at(nextToKept) === '1240,500',
     `#2405 with a header and an existing set, the existing set stays at 300,500 and the new one lands beside it at 1240,500 (got ${at(kept)} and ${at(nextToKept)})`);
+
+  // (h) #2405 — A DETACHED HEADER. A designer who detaches the header instance leaves a FRAME of the same name;
+  // it is still the header, so the set goes under it at 100,0 as in (f), not beside it at 1260,-300.
+  const pgF: Page = { children: [header('FRAME')] };
+  await run(grid, { ...full(), page: pgF });
+  const underDetached = pgF.children.find((n) => n.name === 'button')!;
+  ok(at(underDetached) === '100,0',
+    `#2405 on a page holding only a detached (FRAME) section header, a rebuilt set lands under it at 100,0, never beside it (got ${at(underDetached)})`);
+
+  // (i) #2405 — A HEADER, A STRAY NODE AND NO SET. A note frame left beside the header at 1300,-300 (200x100)
+  // is not a set to top-align with: the set still goes under the header at 100,0. Top-aligned with the stray
+  // it would land at -300, right of both: 1500 + 160 = 1660.
+  const stray = (x: number, y: number): Node => ({ type: 'FRAME', name: 'note', x, y, width: 200, height: 100 } as Node);
+  const pgHN: Page = { children: [header(), stray(1300, -300)] };
+  await run(grid, { ...full(), page: pgHN });
+  const underWithStray = pgHN.children.find((n) => n.name === 'button')!;
+  ok(at(underWithStray) === '100,0',
+    `#2405 on a page with a section header, a stray non-set node beside it and no set, the set lands under the header at 100,0, never beside it (got ${at(underWithStray)})`);
+  // ...and a stray node in the row under the header (100,0, 200x100) pushes the set right, still under the
+  // header: 100 + 200 + 160 = 460, y 0.
+  const pgHB: Page = { children: [header(), stray(100, 0)] };
+  await run(grid, { ...full(), page: pgHB });
+  const pastStray = pgHB.children.find((n) => n.name === 'button')!;
+  ok(at(pastStray) === '460,0',
+    `#2405 a stray node in the row under the header pushes the set right of it, still under the header, at 460,0 (got ${at(pastStray)})`);
 }
 
 // ---- #1750: page headers are placed after ALL of a run's builds, once per page ------------------------
