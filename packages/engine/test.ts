@@ -14860,6 +14860,45 @@ arm: {
         `#1515 MUTATION: with the frame's aspectRatio lock removed, 'ratio' moves the box for no reason and footprintVaries: ['ratio'] is refused BY NAME (got [${figmaPropertyErrors(noLock).filter((e) => /footprintVaries/.test(e)).join('; ') || 'NOTHING — the aspect-lock acceptance became a blanket'}])`);
     }
 
+    // ---- #2344 (owner decision Q156 A): the groups carry up to EIGHT rows, seven behind Figma-only booleans ----
+    // Prism 2's mechanism at eight rows: row 1 always shown, rows 2-8 each behind a node-visibility boolean named
+    // "Option N", three rows shown by default. The booleans are Figma-only: no code prop drives them (in code the
+    // count is `children`). Expected values are literals typed here, never read off the defs.
+    {
+      const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
+      const ROWS = ['row1', 'row2', 'row3', 'row4', 'row5', 'row6', 'row7', 'row8'];
+      for (const def of [checkboxGroup, radioGroup] as ComponentDef[]) {
+        const members = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+        const off = members.flatMap((m) => {
+          const kids = m.root.children.map((k) => k.name);
+          const bad: string[] = [];
+          if (JSON.stringify(kids) !== JSON.stringify(['label', ...ROWS])) bad.push(`children ${kids.join(',')}`);
+          ROWS.forEach((r, i) => {
+            const n = findIn(m.root, r);
+            const wantProp = i === 0 ? undefined : `Option ${i + 1}`;
+            const wantHidden = i >= 3;
+            if (n?.visibleProp !== wantProp || (n?.visible === false) !== wantHidden) bad.push(`${r} visibleProp ${String(n?.visibleProp)}, visible ${String(n?.visible)}`);
+          });
+          return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
+        });
+        ok(members.length === 3 && off.length === 0,
+          `#2344 ${def.id}: every member nests eight rows, row 1 always shown, rows 2-8 behind "Option 2"-"Option 8", rows 1-3 shown as built (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
+        const props = planSetProperties(members).filter((p) => p.type === 'BOOLEAN').map((p) => `${p.name}=${String(p.default)}`);
+        ok(JSON.stringify(props) === JSON.stringify(['Option 2=true', 'Option 3=true', 'Option 4=false', 'Option 5=false', 'Option 6=false', 'Option 7=false', 'Option 8=false']),
+          `#2344 ${def.id}: the set declares exactly the seven row toggles, Option 2 and 3 on (${props.join(', ')})`);
+        ok(!(def.props ?? []).some((p) => /^option\d$/i.test(p.name) || /^showOption/i.test(p.name)),
+          `#2344 ${def.id}: no code prop drives a row toggle (owner Q156 A: the toggles are Figma-only; in code the count is children)`);
+      }
+      // The two refusals the Figma-only form adds, each by name (docs/34: a new refusal owes its own mutation).
+      const withBool = (v: unknown) => ({ ...checkboxGroup, figmaProperties: { ...checkboxGroup.figmaProperties, booleans: { ...checkboxGroup.figmaProperties!.booleans, ...(v as object) } } }) as ComponentDef;
+      ok(validateComponentDef(withBool({ disabled: { part: 'row8', figmaName: 'Option 8', figmaOnly: true } })).errors.some((e) => /booleans\.disabled is figmaOnly but 'disabled' is also a declared prop/.test(e)),
+        "#2344 a figmaOnly boolean whose key is a declared prop is refused BY NAME — it would be a code prop and a Figma-only toggle at once");
+      ok(validateComponentDef(withBool({ option8: { part: 'row8', default: false, figmaOnly: true } })).errors.some((e) => /booleans\.option8 is figmaOnly but has no figmaName/.test(e)),
+        '#2344 a figmaOnly boolean with no figmaName is refused BY NAME — with no prop there is no code name for the panel');
+      ok(validateComponentDef(withBool({ option8: { part: 'row8', default: false, figmaName: 'Option 8' } })).errors.some((e) => /figmaProperties\.booleans: 'option8' is not a declared prop/.test(e)),
+        '#2344 without figmaOnly, a boolean naming no declared prop is still refused BY NAME');
+    }
+
     // ---- #1424: the labelled ROW wraps a long label instead of overflowing ----
     // Prism 2's radio-button-row / checkbox-row let a long label WRAP to a second line with the control
     // top-anchored (the description text is `layoutSizingHorizontal: FILL`). The engine expresses that as

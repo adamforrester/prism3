@@ -243,7 +243,7 @@ const LEGIBILITY_PROBE = (rootSel) => {
       clickChanged = snap() !== before;
     }
     const o = {
-      tag: c.tagName.toLowerCase(), cls: typeof c.className === 'string' ? c.className : '', hook: c.getAttribute('data-p3'),
+      tag: c.tagName.toLowerCase(), cls: typeof c.className === 'string' ? c.className : '', hook: c.getAttribute('data-p3'), checked: c.getAttribute('aria-checked'),
       prop: c.disabled === true, aria: c.getAttribute('aria-disabled') === 'true', focusable, clickChanged,
       fill: cs.backgroundColor, ink: cs.color, edges: ['Top', 'Right', 'Bottom', 'Left'].map((x) => [cs[`border${x}Color`], cs[`border${x}Style`], parseFloat(cs[`border${x}Width`])]),
     };
@@ -458,6 +458,9 @@ const PRISM3_DISABLED = await (async () => {
 const DISABLED_APPEARANCE = (o) => {
   if (['input', 'select', 'textarea'].includes(o.tag)) return 'field';
   const c = new Set(o.cls.split(/\s+/));
+  // The preview's mode control, held on Palettes (#2321): a segment takes the skin of what it draws at rest. The one
+  // selected draws an edge, so outline; the others draw none, so text (as X4 A maps the outline and ghost buttons).
+  if (c.has('p3-mode')) return o.checked === 'true' ? 'outline' : 'text';
   if (['p3-btn-primary', 'p3-next', 'p3-btn-danger'].some((k) => c.has(k))) return 'filled';
   if (['p3-btn-ghost', 'p3-check'].some((k) => c.has(k))) return 'text';
   return 'outline';
@@ -1063,8 +1066,11 @@ for (const brand of BRANDS) {
       ok(dom.overflowX <= 1, `${where}: no horizontal overflow (${dom.overflowX}px past the viewport)`);
       // No legacy frame anywhere (H12, #2289): the frame draws the two panes, and no legacy page or legacy mode strip.
       ok(dom.panesMounted && !dom.legacyMounted, `${where}: the frame draws the two panes and no legacy frame (panes ${dom.panesMounted}, legacy frame ${dom.legacyMounted})`);
-      ok(dom.modeOn.length === 1 && dom.modeOn[0] === mode && dom.modeSelect === mode,
-        `${where}: mode agreement — the preview header marks exactly ${mode}, in its radios and its select (radios ${JSON.stringify(dom.modeOn)}, select ${JSON.stringify(dom.modeSelect)})`);
+      // Palettes always shows Light, its mode control held (owner decision PM1 B, #2321), and the next place shows the
+      // chosen mode again: so the walk reads Light there, and the chosen mode everywhere else.
+      const shows = place === 'color-palettes' ? 'light' : mode;
+      ok(dom.modeOn.length === 1 && dom.modeOn[0] === shows && dom.modeSelect === shows,
+        `${where}: mode agreement — the preview header marks exactly ${shows}, in its radios and its select (radios ${JSON.stringify(dom.modeOn)}, select ${JSON.stringify(dom.modeSelect)})`);
 
       // --- rendered contrast -------------------------------------------------------------------
       await settle(page, where);
@@ -1433,10 +1439,16 @@ for (const [bi, brand] of BRANDS.entries()) {
   const emission = await loadEmission(brand);
   const modes = (await page.locator('[data-p3="mode-option"]').evaluateAll((ns) => ns.map((n) => n.dataset.mode)));
   ok(modes.length >= 2, `${brand} / Palettes: the mode control offers ${modes.length} modes (${modes.join(', ')})`);
+  // PM1 B (owner, 2026-10-08; #2321): Palettes always shows Light. Each mode is chosen on Surfaces & fills, and Palettes
+  // is entered from it: the ramps are the emission's, and every strip sits on Light's background.primary.
   for (const mode of modes) {
+    await hooks.click(page.locator('[data-p3="color-sub-fills"]'));
+    await hooks.need(page, '[data-p3="fills-levers"]');
     await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
     await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
-    const where = `${brand} / Palettes / ${mode}`;
+    await hooks.click(page.locator('[data-p3="color-sub-palettes"]'));
+    await hooks.need(page, '[data-p3="palettes-levers"]');
+    const where = `${brand} / Palettes / entered from ${mode}`;
     palettesStates++;
     const errs = drain();
     ok(errs.length === 0, `${where}: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
@@ -1446,8 +1458,10 @@ for (const [bi, brand] of BRANDS.entries()) {
       errorBar: (() => { const e = document.querySelector('[data-p3="error-bar"]'); return { mounted: !!e, shown: !!e && getComputedStyle(e).display !== 'none' }; })(),
     }));
     checkRamps(where, want, shown);
-    const page0 = emission?.role('background.primary', mode)?.hex;
-    ok(!!page0, `${where}: the emission names this mode's background.primary (${page0})`);
+    const page0 = emission?.role('background.primary', 'light')?.hex;
+    ok(!!page0, `${where}: the emission names Light's background.primary (${page0})`);
+    const marked = await page.evaluate(() => [...document.querySelectorAll('[data-p3="mode-option"]')].filter((n) => n.getAttribute('aria-checked') === 'true').map((n) => n.dataset.mode));
+    ok(JSON.stringify(marked) === '["light"]', `${where}: the preview header marks Light (${JSON.stringify(marked)})`);
     for (const name of expectStrips ?? []) {
       const st = shown.strips.find((x) => x.name === name);
       ok(!!st && st.root && st.ground === page0, `${where}: strip ${name} is a specimen root on the emission's background.primary ${page0}${!st ? ' — not drawn' : !st.root ? ' — not a specimen root' : st.ground !== page0 ? ` — on ${st.ground}` : ''}`);
@@ -1462,9 +1476,8 @@ for (const [bi, brand] of BRANDS.entries()) {
   // (`recolor` in `preview/palettes.ts`). Switching to the next corpus brand from the brand menu takes that
   // path for every ramp both brands draw alike, and the squares must then show the NEW brand's emission.
   const next = BRANDS[(bi + 1) % BRANDS.length];
-  // Back to the first mode, which a brand load resets to, so the page color under the ramps is the same
+  // Palettes shows Light (PM1 B), the mode a brand load resets to, so the page color under the ramps is the same
   // before and after and the ramps are not rebuilt for a change of ground.
-  await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${modes[0]}"]`));
   await page.evaluate(() => { for (const b of document.querySelectorAll('[data-p3="preview-body"] [data-p3="palette"]')) b.__kept = true; });
   await hooks.click(page.locator('[data-p3="brand-switcher"]'));
   await hooks.click(page.locator('[data-p3="brand-menu"] [data-p3="brand-menu-example"]').filter({ hasText: next }).first());
@@ -5271,6 +5284,9 @@ for (const c of REFUSED_CASES) {
 // vacuous). BY-NAME MUTATION: make `paint` rebuild the radios every call → the same-node arm fails.
 {
   const { ctx, page, drain } = await openBrand(BRANDS[0]);
+  // On Surfaces & fills: on the opening Palettes the mode control is held (PM1 B, #2321).
+  await hooks.click(page.locator('[data-p3="color-sub-fills"]'));
+  await hooks.need(page, '[data-p3="fills-levers"]');
   await hooks.need(page, '[data-p3="mode-control"]');
   const first = page.locator('[data-p3="mode-control"] [data-p3="mode-option"][aria-checked="true"]');
   await hooks.need(page, first);

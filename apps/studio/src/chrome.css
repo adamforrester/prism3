@@ -9,7 +9,7 @@
  * variable unread. See `apps/studio/chrome/esbuild-plugin.mjs`.
  *
  * Classes here take the `p3-` scope, which `styles.css` does not use. State is read from ARIA attributes
- * and from the frame's `data-w` (width tier), `data-bar-fit` (the wide bar's fit step, #2214) and `data-layout`
+ * and from the frame's `data-w` (width tier), `data-bar-fit` (the bar's fit step, #2214; at the narrow tier only `trim`, #2262) and `data-layout`
  * (panes or page; the legacy layout went in H12, #2289), never from a shared state class.
  *
  * WHAT THIS STYLES: the frame (`src/shell/frame.ts`), meaning the top bar, the tab row with Color's
@@ -491,7 +491,7 @@
 /* The narrow tier's rules for the tile labels, the product name and the two rows also serve the wide bar's fit steps
    (#2214, BL1 A+B): `frame.ts` (`fitBar`) sets `data-bar-fit` when the full bar would not fit on one row. `glyphs`
    drops the labels, `logo` the name too, `rows` takes the two rows as well, and `trim` (Q83 A) also cuts the brand
-   switcher's name short, below. */
+   switcher's name short, below. The narrow tier takes `trim` too (#2262), when its own first row would not fit. */
 .p3-frame:is([data-w="narrow"], [data-bar-fit="logo"], [data-bar-fit="rows"], [data-bar-fit="trim"]) .p3-mark-name { display: none; }
 .p3-frame[data-w="narrow"] :is(.p3-btn, .p3-brand) { min-height: var(--p3-ctl-h-xs); font-size: var(--p3-fs-12); }
 .p3-frame[data-w="narrow"] .p3-brand { padding: 0 var(--p3-space-100); }
@@ -1272,7 +1272,7 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 .p3-sg-field-name { padding: 0; font-size: var(--p3-fs-14); font-weight: var(--p3-fw-emphasis); line-height: var(--p3-lh-compact); color: var(--p3-text); }
 legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 /* A disabled select takes the disabled field (F1 A), as the text field does: no dashed edge (#2155). */
-.p3-sg .p3-select:disabled { background: var(--p3-disabled-fill); border-color: var(--p3-disabled-edge); color: var(--p3-disabled-ink); cursor: not-allowed; }
+:is(.p3-sg, .p3-modes-select) .p3-select:disabled { background: var(--p3-disabled-fill); border-color: var(--p3-disabled-edge); color: var(--p3-disabled-ink); cursor: not-allowed; }
 .p3-sg-kinds { display: grid; gap: var(--p3-space-100); min-width: 0; margin: 0; padding: 0; border: 0; }
 .p3-sg-chips { display: flex; flex-wrap: wrap; gap: var(--p3-space-100); }
 .p3-sg-chips > .p3-sg-check { width: auto; border-color: var(--p3-edge); }
@@ -1403,13 +1403,15 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
    edge. Filled (Apply Theme, Continue, Discard): the disabled fill and the on-fill ink, no edge. A running write's
    control is `aria-disabled` and `aria-busy`: it is pending, not disabled, so it keeps its look (S11). These rules sit
    last so they win over a state rule of the same weight (a chosen chip, a set picker). Contrast-exempt as an inactive
-   component (WCAG 2.2 SC 1.4.3 and 1.4.11), and the audits hold each one to these roles while it is really disabled. */
-:is(.p3-btn, .p3-vpick):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) {
+   component (WCAG 2.2 SC 1.4.3 and 1.4.11), and the audits hold each one to these roles while it is really disabled.
+   The preview's mode control, held on Palettes (PM1 B, #2321), takes the same rules by what each segment draws at
+   rest: the selected one has an edge, so it is the outline skin; the others have none, so they are the text skin. */
+:is(.p3-btn, .p3-vpick, .p3-mode):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) {
   cursor: not-allowed; background-color: transparent; border-style: solid; border-color: var(--p3-disabled-icon); color: var(--p3-disabled-text);
 }
-:is(.p3-btn, .p3-vpick):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) * { color: inherit; }
-:is(.p3-btn, .p3-vpick):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-ico { color: var(--p3-disabled-icon); }
-.p3-btn:is(.p3-btn-ghost, .p3-check):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) { border-color: transparent; }
+:is(.p3-btn, .p3-vpick, .p3-mode):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) * { color: inherit; }
+:is(.p3-btn, .p3-vpick, .p3-mode):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-ico { color: var(--p3-disabled-icon); }
+:is(.p3-btn:is(.p3-btn-ghost, .p3-check), .p3-mode:not([aria-checked="true"])):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) { border-color: transparent; }
 .p3-btn:is(.p3-btn-primary, .p3-next, .p3-btn-danger):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) {
   background-color: var(--p3-disabled-fill); border-color: transparent; color: var(--p3-disabled-ink);
 }
