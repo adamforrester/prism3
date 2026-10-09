@@ -50,12 +50,17 @@ import { EXECUTOR_REVISION } from './executor-revision';
 import { memberStamp, planHalf, revHalf, STAMP_KEY } from './write-components';
 import { NS } from './persist-figma';
 import { UPDATING_KEY, baselineDiff, baselineOf, readBaseline, snapshotMember, writeBaseline, type Baseline, type SnapNode } from './member-baseline';
+import { drawnFaults, type DrawnFault, type DrawVar } from './drawn';
 
 /** One member of a set as the dry run reads it. */
 export type HostMember = {
   name: string; id: string; stamp: string; baseline: Baseline | null; snap: SnapNode;
   /** #2265 PR 2 — set while an update is part-way through this member: the paths it kept as hand edits. */
   updating?: string[] | null;
+  /** #2379 — how the member draws other than its variables and glyph frames say (`drawn.ts`), read off the live
+   *  node. Any one makes the member "to update", whatever its stamp and its record say: a record captured over the
+   *  damage would otherwise certify it. */
+  drawn?: DrawnFault[];
 };
 
 /** A set as the dry run reads it: plain data, so the comparison below is pure. */
@@ -305,7 +310,8 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
     const revField = m.stamp.split('|').length >= 3 ? revHalf(m.stamp) : null;
     const state: MemberState = !m.baseline ? 'noBaseline'
       : edited ? 'handEdited'
-      : planMoved || (revField !== null && revField !== rev) ? 'update'
+      // A member that draws other than its variables and frames say is "to update" (#2379), however current its stamp.
+      : planMoved || (revField !== null && revField !== rev) || (m.drawn ?? []).length > 0 ? 'update'
       : revField === null ? 'revisionUnknown'
       : 'current';
     counts[state]++;
@@ -356,7 +362,15 @@ export const dryRunSet = (defId: string, plans: AnatomyPlan[], read: HostSetView
       if (c.sample.length < 3) c.sample.push(m.name);
       changes.set(k, c);
     }
-    if (state === 'update' && divs.length === 0 && extras.length === 0 && dropped.length === 0) {
+    for (const f of m.drawn ?? []) {
+      touched.add(f.part);
+      const k = `${f.part}\u0000${f.field}\u0000${f.file}\u0000${f.want}`;
+      const c = changes.get(k) ?? { part: f.part, field: f.field, from: f.file, to: f.want, members: 0, sample: [] };
+      c.members++;
+      if (c.sample.length < 3) c.sample.push(m.name);
+      changes.set(k, c);
+    }
+    if (state === 'update' && divs.length === 0 && extras.length === 0 && dropped.length === 0 && !(m.drawn ?? []).length) {
       counts.reapplied++;
       const k = '.\u0000stamp\u0000\u0000';
       const c = changes.get(k) ?? { part: '.', field: 'stamp', from: planMoved ? 'an earlier plan' : 'an earlier executor revision', to: 're-applied — no field-level difference visible', members: 0, sample: [] };
@@ -462,7 +476,7 @@ const pageOf = (n: unknown): string => {
 
 /** A set as plain data: every coordinate child snapshotted with its stamp and stored baseline. Reads
  *  only; each host read is guarded, so a getter that throws is a fact in the view rather than a crash. */
-export const readSetView = async (set: LiveSet, breathe?: () => Promise<void>): Promise<HostSetView> => {
+export const readSetView = async (set: LiveSet, breathe?: () => Promise<void>, drawVars?: ReadonlyMap<string, DrawVar>): Promise<HostSetView> => {
   const members: HostMember[] = [];
   const others: string[] = [];
   let n = 0;
@@ -480,7 +494,7 @@ export const readSetView = async (set: LiveSet, breathe?: () => Promise<void>): 
       const raw = c.getSharedPluginData?.(NS, UPDATING_KEY) ?? '';
       if (raw) updating = (JSON.parse(raw) as unknown[]).map(String);
     } catch { updating = []; }
-    members.push({ name, id: String(c.id ?? ''), stamp, baseline: readBaseline(c), snap: await snapshotMember(c), updating });
+    members.push({ name, id: String(c.id ?? ''), stamp, baseline: readBaseline(c), snap: await snapshotMember(c), updating, ...(drawVars ? { drawn: drawnFaults(c, drawVars) } : {}) });
   }
   let definitions: HostSetView['definitions'] = null;
   try { definitions = (set.componentPropertyDefinitions ?? {}) as HostSetView['definitions']; } catch { definitions = null; }
@@ -519,6 +533,7 @@ export const differencesOf = (plan: AnatomyPlan, m: HostMember, ports: ReadPorts
   const dropped: { part: string; file: string }[] = [];
   droppedFills(plan.root, m.snap, '.', ports, dropped);
   for (const { part, file } of dropped) out.push({ part, field: 'fill', plan: 'none', file });
+  for (const f of m.drawn ?? []) out.push({ part: f.part, field: f.field, plan: f.want, file: f.file });
   return out;
 };
 
@@ -538,7 +553,7 @@ export const captureVerdict = (plan: AnatomyPlan | undefined, m: HostMember, por
 export const captureSet = async (set: LiveSet, plans: AnatomyPlan[], ports: ReadPorts, breathe?: () => Promise<void>): Promise<{ recorded: number; skipped: { member: string; reason: string; differences?: Difference[] }[] }> => {
   const planned = new Map(plans.map((p) => [coordKey(planComponentName(p)), p] as const));
   // A copy or a malformed stamp is not Prism3's (#2300), so its member is not captured: Adopt is its path.
-  const view = ownedView(await readSetView(set, breathe));
+  const view = ownedView(await readSetView(set, breathe, (ports as UpdatePorts).drawVars));
   let recorded = 0;
   const skipped: { member: string; reason: string; differences?: Difference[] }[] = [];
   for (const m of view.members) {
@@ -572,7 +587,7 @@ export const ADOPTED = 'adopted';
 export const adoptSet = async (
   defId: string, set: LiveSet, plans: AnatomyPlan[], ports: ReadPorts, breathe?: () => Promise<void>, ledger: readonly ComponentRename[] = COMPONENT_RENAMES,
 ): Promise<{ adopted: number; skipped: { member: string; reason: string }[]; refused?: string }> => {
-  const view = ownedView(await readSetView(set, breathe));
+  const view = ownedView(await readSetView(set, breathe, (ports as UpdatePorts).drawVars));
   // THE DRY RUN DECIDES (#2299 review): which members Adopt may claim is the dry run's own matching, renames and axis
   // changes applied, and a set the dry run refuses (two members on one coordinate, two axis lists) is refused here
   // too, whole, with nothing written. Claiming members of a set the update cannot touch would only stamp them.
@@ -614,12 +629,15 @@ export type UpdateTarget = { def: string; plans: AnatomyPlan[] };
 
 /** The ports, from the FILE's catalogues. A resolver built from the plan would map every id to the name
  *  the comparison hopes for, and see no difference anywhere (`test-roundtrip.ts` says the same). */
-export const hostPorts = async (host: UpdateHost): Promise<ReadPorts> => {
+/** The read ports, and the variables `drawn.ts` resolves a paint against (#2379). */
+export type UpdatePorts = ReadPorts & { drawVars?: ReadonlyMap<string, DrawVar> };
+export const hostPorts = async (host: UpdateHost): Promise<UpdatePorts> => {
   const vars = await host.variables.getLocalVariablesAsync();
   const styles = [...await host.getLocalTextStylesAsync(), ...await host.getLocalEffectStylesAsync()];
   const v = new Map(vars.map((x) => [x.id, x.name] as const));
   const st = new Map(styles.map((x) => [x.id, x.name] as const));
-  return { varName: (id) => v.get(id) ?? null, styleName: (id) => st.get(id) ?? null };
+  const drawVars = new Map(vars.filter((x) => typeof (x as { resolveForConsumer?: unknown }).resolveForConsumer === 'function').map((x) => [x.id, x as unknown as DrawVar] as const));
+  return { varName: (id) => v.get(id) ?? null, styleName: (id) => st.get(id) ?? null, drawVars };
 };
 
 type Located = { found: LiveSet[]; name: string };
@@ -642,7 +660,7 @@ export const previewUpdate = async (host: UpdateHost, targets: readonly UpdateTa
     const { found, name } = locate(host, t);
     if (found.length === 0) { out.missing.push(t.def); continue; }
     if (found.length > 1) { out.refused.push({ def: t.def, reason: `${found.length} sets are named ${name}` }); continue; }
-    out.sets.push(dryRunSet(t.def, t.plans, await readSetView(found[0], breathe), ports, ledger));
+    out.sets.push(dryRunSet(t.def, t.plans, await readSetView(found[0], breathe, ports.drawVars), ports, ledger));
   }
   return out;
 };

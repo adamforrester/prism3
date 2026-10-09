@@ -54,6 +54,7 @@ import { applyComponentPlan, memberStamp, STAMP_KEY, type ComponentApplyResult, 
 import { planTargets, presentNames } from './build-deps';
 import { NS } from './persist-figma';
 import { baselineDiff, baselineOf, readBaseline, snapshotMember } from './member-baseline';
+import { drawnFaults, faultLine, varsById } from './drawn';
 import { hostPorts, previewUpdate, readSetView, type SetPreview, type UpdateHost, type UpdatePreview, type UpdateTarget } from './update-plan';
 
 /** The set's record of the members an update kept and marked deprecated (Q2): a JSON list of member names. */
@@ -149,12 +150,6 @@ type LiveSet = LiveNode & {
 
 const idOf = (n: unknown): string => { try { return String((n as LiveNode).id ?? ''); } catch { return ''; } };
 const keyOf = (n: unknown): string => { try { const k = (n as LiveNode).key; return typeof k === 'string' ? k : ''; } catch { return ''; } };
-type RGB = { r: number; g: number; b: number };
-type Painted = LiveNode & { fills?: unknown; strokes?: unknown; width?: unknown; height?: unknown; x?: unknown; y?: unknown };
-const isRGB = (v: unknown): v is RGB => !!v && typeof v === 'object' && ['r', 'g', 'b'].every((k) => typeof (v as Record<string, unknown>)[k] === 'number');
-const sameRGB = (a: RGB, b: RGB): boolean => ['r', 'g', 'b'].every((k) => Math.abs((a as Record<string, number>)[k] - (b as Record<string, number>)[k]) < 1.5 / 255);
-const hexOf = (c: RGB): string => `#${[c.r, c.g, c.b].map((x) => Math.round(x * 255).toString(16).padStart(2, '0')).join('')}`;
-const vectorsOf = (n: Painted): Painted[] => { const out: Painted[] = []; for (const c of (n.children ?? []) as Painted[]) { if (c.type === 'VECTOR') out.push(c); else out.push(...vectorsOf(c)); } return out; };
 const kidsOf = (n: unknown): LiveNode[] => { try { return [...((n as LiveNode).children ?? [])] as LiveNode[]; } catch { return []; } };
 
 /** Every child's id the plan names, by path, walking plan and host together. A glyph's contents are Figma's
@@ -421,7 +416,7 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
 
   // ── VERIFY (b): CONTENT, every updated member against its plan, apart from the hand edits kept ──────────────
   const ports = await hostPorts(host);
-  const varById = new Map((await api.variables.getLocalVariablesAsync()).map((v) => [String((v as { id?: unknown }).id ?? ''), v as unknown as { name: string; resolveForConsumer(n: unknown): { value: unknown } }] as const));
+  const varById = await varsById(api as unknown as Parameters<typeof varsById>[0]);
   for (const name of out.updated) {
     const a = after.get(name);
     const pl = plans.get(name);
@@ -436,39 +431,9 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
       if ([...keep].some((k) => at === k || at.startsWith(`${k}/`))) continue;
       out.content.push(`${name}/${at}.${d.field}: ${d.actual} (the plan says ${d.expected})`);
     }
-    // WHAT THE HOST DRAWS (#2379). `diffAnatomy` reads which variable a paint is bound to; the host draws the paint's
-    // own stored color, which an in-place rewrite left black on the NB master while every binding held. So every
-    // bound paint's stored color must be the one its variable resolves to for that node, and a glyph's vectors must
-    // sit inside its frame, as a fresh build leaves them. Read off the live node, never off the plan.
-    const walk = (pn: AnatomyPlan['root'], hn: Painted | undefined, at: string): void => {
-      if (!hn || [...keep].some((k) => at === k || at.startsWith(`${k}/`))) return;
-      if (pn.type !== 'INSTANCE_SWAP' && pn.type !== 'NESTED_INSTANCE') {
-        for (const field of ['fills', 'strokes'] as const) {
-          const ps = hn[field];
-          if (!Array.isArray(ps)) continue;
-          for (const p of ps as { color?: RGB; opacity?: number; boundVariables?: { color?: { id?: string } } }[]) {
-            const v = p?.boundVariables?.color?.id ? varById.get(p.boundVariables.color.id) : undefined;
-            if (!v || !p.color) continue;
-            let want: unknown;
-            try { want = v.resolveForConsumer(hn).value; } catch { continue; }
-            if (!isRGB(want)) continue;
-            const wa = (want as unknown as { a?: unknown }).a; const wantA = typeof wa === 'number' ? wa : 1;
-            const gotA = p.opacity ?? 1;
-            if (sameRGB(p.color, want) && Math.abs(gotA - wantA) < 0.01) continue;
-            out.content.push(`${name}/${at}.${field}: stored ${hexOf(p.color)} at ${Math.round(gotA * 100)}%, but ${tailOf(v.name) ?? v.name} resolves to ${hexOf(want)} at ${Math.round(wantA * 100)}%`);
-          }
-        }
-      }
-      if (pn.type === 'GLYPH') {
-        const W = Number(hn.width ?? 0), H = Number(hn.height ?? 0);
-        const over = vectorsOf(hn).filter((x) => Number(x.x) < -0.5 || Number(x.y) < -0.5 || Number(x.x) + Number(x.width) > W + 0.5 || Number(x.y) + Number(x.height) > H + 0.5);
-        for (const x of over) out.content.push(`${name}/${at}.glyph: a vector ${Number(x.width).toFixed(1)}×${Number(x.height).toFixed(1)} at ${Number(x.x).toFixed(1)},${Number(x.y).toFixed(1)} overflows its ${W}×${H} frame`);
-        return;
-      }
-      const kids = (hn.children ?? []) as Painted[];
-      for (const c of pn.children ?? []) walk(c, kids.find((k) => String(k.name ?? '') === c.name), at === '.' ? c.name : `${at}/${c.name}`);
-    };
-    walk(pl.root, a as Painted, '.');
+    // WHAT THE HOST DRAWS (#2379): the paint's stored color and alpha, and a glyph's vectors where they sit, which
+    // `diffAnatomy` does not read. The dry run judges a member by the same check (`drawn.ts`).
+    for (const f of drawnFaults(a, varById, (part) => [...keep].some((k) => part === k || part.startsWith(`${k}/`)))) out.content.push(faultLine(name, f));
   }
   if (work.restamp.length) await restampMembers(now, work.restamp, plans, out);
   return out;

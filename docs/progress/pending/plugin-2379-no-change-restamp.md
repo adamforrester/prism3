@@ -51,3 +51,22 @@ The scratch file ran the same plugin build as the NB master, driven over the age
 - **Bound paints in an MCP screenshot or export draw their stored color.** Read the stored color and `resolveForConsumer` before calling a paint broken or fine.
 - **The dry run still can't see this damage.** On the damaged sets it read only "to update" (the revision moved), naming no field. Filed separately.
 - **The NB master's glyphs, after the restore, are still the 1.5× ones.** A confirmed update with this build re-lays them at the right size, as step 1 showed live. Run it on a duplicate first.
+
+### Review round (Lane D, on cefb6b74)
+
+- **A record captured over damage certified it.** The stamp-only path checked a member only against its own record. A member storing black under an intact binding, or holding a 1.5× glyph, whose record was captured that way, read current and was stamped current. That's most likely the NB master's real state. Now one draw check (`drawn.ts`) runs on the live node in the dry run itself: a member drawn other than its variables and frames say is **"to update"**, with each fault named, however current its stamp and record. It never reaches the stamp-only path, and the update re-applies it. The same faults are differences to `capture-baseline`, so a damaged member is never recorded. The apply's verify (b) uses the same function.
+- **Verify's two checks are held.** `verify/drawn paints` and `verify/drawn glyphs` plant the damage in the host, behind the executor: a host that ignores the paint base, and one that doesn't scale an imported glyph. They assert verify's named lines.
+- **The restamp in a mixed set is held.** In `mixed/…`, 23 members are to update and 22 are from an earlier plugin: the 22 take only stamps and records, and all 45 read current. This arm found that the grid re-wrote every member's position on every pass, putting back the same numbers. The grid now writes a position only where it moves.
+- **The shim, closer to the host again:**
+  - A combine re-resolves the set's bound paints, color and wash alpha, as the live fresh build showed.
+  - Rewriting a color variable moves its paints' stored color to the new value, alpha as opacity. An opaque value resets opacity to 1, as #1646 measured.
+  - `test-update-components` runs with `scaleConstrained`. Its theme test now moves bound colors through their variables, and leaves glyph vectors alone, rather than writing paint colors and vector positions by hand. Its own mutation (the signature hashing a bound paint's color) still fails it, with 120 edits.
+- **Mutations, each failing by name:**
+
+  | Mutation | Fails |
+  |---|---|
+  | the dry run's draw check dropped | `damage/dry run`, `damage/repaired` (Lane D's case exactly: `✓ already up to date; 45 stamped; 2 faults left`) |
+  | faults left out of `differencesOf` | `damage/capture` |
+  | verify's draw check dropped | `verify/drawn paints`, `verify/drawn glyphs` |
+  | the mixed set's restamp dropped | `mixed/stamped` |
+  | the grid writing unmoved positions | `mixed/only stamps` (44 writes) |

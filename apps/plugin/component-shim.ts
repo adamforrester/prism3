@@ -530,11 +530,16 @@ export const makeShim = (opts: ShimOpts = {}) => {
     varValues.set(name, { ...(varValues.get(name) ?? {}), [modeId]: value });
     const id = `V:${name}`;
     const boundHere = (p: unknown) => (p as { boundVariables?: { color?: { id?: string } } } | null)?.boundVariables?.color?.id === id;
+    // #2379 — AND THE STORED COLOR FOLLOWS THE NEW VALUE, its alpha as the paint's opacity (the live fresh build stored a
+    // 10% wash at opacity 0.1). An opaque value resets the opacity to 1, which is what #1646 measured: the tint was on
+    // the paint then, and the variable opaque.
+    const c = value && typeof value === 'object' && typeof (value as { r?: unknown }).r === 'number' ? value as { r: number; g: number; b: number; a?: number } : null;
     for (const top of page?.children ?? []) walk(top, (n) => {
       for (const key of ['fills', 'strokes'] as const) {
         const arr = n[key];
-        if (!Array.isArray(arr) || !arr.some((p) => boundHere(p) && ((p as { opacity?: number }).opacity ?? 1) !== 1)) continue;
-        n[key] = arr.map((p) => (boundHere(p) ? { ...(p as object), opacity: 1 } : p));
+        if (!Array.isArray(arr) || !arr.some((p) => boundHere(p))) continue;
+        if (!c && !arr.some((p) => boundHere(p) && ((p as { opacity?: number }).opacity ?? 1) !== 1)) continue;
+        n[key] = arr.map((p) => (!boundHere(p) ? p : c ? { ...(p as object), color: { r: c.r, g: c.g, b: c.b }, opacity: c.a ?? 1 } : { ...(p as object), opacity: 1 }));
       }
     });
   };
@@ -542,6 +547,9 @@ export const makeShim = (opts: ShimOpts = {}) => {
    *  checked against. A `color/` name the test overrides keeps the override. */
   const colorVar = (name: string): boolean => name.startsWith('color/') && !(opts.varOverrides && name in opts.varOverrides);
   const colorOf = (name: string): { r: number; g: number; b: number; a: number } => {
+    // A value the test wrote (`setValueForMode`) is what the variable now resolves to.
+    const set = Object.values(varValues.get(name) ?? {}).find((x) => x && typeof x === 'object' && typeof (x as { r?: unknown }).r === 'number') as { r: number; g: number; b: number; a?: number } | undefined;
+    if (set) return { r: set.r, g: set.g, b: set.b, a: set.a ?? 1 };
     const h = [...name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
     // A wash resolves with its alpha, as the emitted `…/overlay/{hover,pressed}` variables do.
     return { r: ((h & 0xff) + 16) / 300, g: (((h >> 8) & 0xff) + 16) / 300, b: (((h >> 16) & 0xff) + 16) / 300, a: /\/overlay\//.test(name) ? 0.1 : 1 };
@@ -1796,6 +1804,25 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // LAST, after the append: `killSet` installs the twin AT the original's coordinate in `page.children`,
       // so killing before the set is on the page would leave nothing findable and no repair to test.
       if (opts.staleSetAfterProperty === 0) killSet();
+      // #2379 — A COMBINE RE-RESOLVES THE SET'S BOUND PAINTS, as the host did live (scratch file, 2026-10-08): a fresh
+      // build ended storing each paint's variable color and a wash's alpha as its opacity, though the executor bound
+      // them on another base. An update in place never combines, which is why it kept the base on the host.
+      walk(set, (n) => {
+        for (const key of ['fills', 'strokes'] as const) {
+          const arr = n[key];
+          if (!Array.isArray(arr)) continue;
+          let moved = false;
+          const next = arr.map((p) => {
+            const id = (p as { boundVariables?: { color?: { id?: string } } })?.boundVariables?.color?.id;
+            const name = id?.startsWith('V:') ? id.slice(2) : null;
+            if (!name || !colorVar(name) || (p as { type?: string }).type !== 'SOLID') return p;
+            const c = colorOf(name);
+            moved = true;
+            return { ...(p as object), color: { r: c.r, g: c.g, b: c.b }, opacity: c.a };
+          });
+          if (moved) n[key] = next;
+        }
+      });
       return set;
     },
     // A page the executor can SEARCH, not just append to. It finds its set here by name and type, so

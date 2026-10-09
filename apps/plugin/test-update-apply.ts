@@ -76,7 +76,9 @@ import { SWAP_TARGET } from './src/build-deps';
 import { NS } from './src/persist-figma';
 import { BASELINE_KEY } from './src/member-baseline';
 import { makeShim, STYLE_FONT, type Node, type Page } from './component-shim';
-import { previewUpdate, previewVerdict, type UpdateHost, type UpdateTarget } from './src/update-plan';
+import { captureBaselines, previewUpdate, previewVerdict, type UpdateHost, type UpdateTarget } from './src/update-plan';
+import { drawnFaults, faultLine, varsById } from './src/drawn';
+import { baselineOf, snapshotMember } from './src/member-baseline';
 import { applyUpdate, applyVerdict, previewHashOf, DEPRECATED_PREFIX, RETAINED_KEY, nestedFirst, type ApplyHost } from './src/update-apply';
 
 let failed = 0;
@@ -565,6 +567,119 @@ const watchWrites = (root: Node): string[] => {
   const again = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
   ok(applyVerdict(res).ok && again.sets[0]?.counts.current === 45,
     `nochange/current: each member then reads current (${JSON.stringify(again.sets[0]?.counts)}; ${applyVerdict(res).headline})`);
+}
+
+/* ── damage under a current record ────────────────────────────────────────────────────────────────────── */
+section('damage under a record — a member drawn wrong reads "to update" whatever its stamp and record say (#2379 review)');
+{
+  // Lane D's case, the NB master's likely state: paint and glyph damage planted behind the executor, then a record
+  // captured over it, and the stamp from an earlier plugin. Only the draw check can tell. Mutation: the dry run's
+  // draw check dropped from its classification → `damage/dry run`, `damage/repaired`.
+  const w = await world(TAG);
+  const members = membersOf(w.set());
+  const paintHit = members[2]; // a member whose root binds its fill
+  const glyphHit = members.find((m) => /selection=selected/.test(String(m.name)))!;
+  const blacken = (n: Node): boolean => {
+    for (const f of ['fills', 'strokes'] as const) {
+      const ps = n[f] as { boundVariables?: { color?: unknown } }[] | undefined;
+      if (Array.isArray(ps) && ps.some((p) => p?.boundVariables?.color)) { n[f] = ps.map((p) => (p?.boundVariables?.color ? { ...p, color: { r: 0, g: 0, b: 0 }, opacity: 1 } : p)); return true; }
+    }
+    return ((n.children as Node[] | undefined) ?? []).some(blacken);
+  };
+  ok(blacken(paintHit), 'premise: a bound paint on the member is left storing black, its binding intact');
+  const glyph = (glyphHit.findAll as (f: (n: Node) => boolean) => Node[])((n) => n.type === 'FRAME' && ((n.children as Node[]) ?? []).length > 0 && (n.children as Node[]).every((k) => k.type === 'VECTOR'))[0];
+  for (const v of (glyph.children as Node[])) { v.x = (v.x as number) * 1.5; v.y = (v.y as number) * 1.5; (v.resize as (a: number, b: number) => void)((v.width as number) * 1.5, (v.height as number) * 1.5); }
+  for (const m of [paintHit, glyphHit]) (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, JSON.stringify({ ...baselineOf(await snapshotMember(m)), id: String(m.id) }));
+  for (const m of members) {
+    const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.split('|').slice(0, 2).join('|'));
+  }
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
+  const st = pre.sets[0];
+  const stateOf = (m: Node): string => st.states.find((x) => x.member === String(m.name))?.state ?? 'current';
+  const named = new Set(st.changes.map((c) => c.field));
+  ok(stateOf(paintHit) === 'update' && stateOf(glyphHit) === 'update' && st.counts.revisionUnknown === 43 && named.has('fills') && named.has('glyph') && previewVerdict(pre).headline === 'Would change 1 of 1',
+    `damage/dry run: the two damaged members read "to update", named, though their records match and their stamps are an earlier plugin's (${stateOf(paintHit)}, ${stateOf(glyphHit)}; ${st.counts.revisionUnknown} from an earlier plugin; ${[...named].join(', ')}; ${previewVerdict(pre).headline})`);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(pre));
+  const vars = await varsById(w.api as any);
+  const left = membersOf(w.set()).flatMap((m) => drawnFaults(m, vars).map((f) => faultLine(String(m.name), f)));
+  const again = (await previewUpdate(w.host, [{ def: TAG, plans: w.plans }])).sets[0];
+  ok(applyVerdict(res).ok && left.length === 0 && again.counts.current === 45 && res.outcomes[0]?.updated.length === 2 && res.outcomes[0]?.restamped?.length === 43,
+    `damage/repaired: the update re-applies the two, which then draw as planned; the other 43 take only their stamps; all 45 read current (${applyVerdict(res).headline}; ${res.outcomes[0]?.updated.length} updated, ${res.outcomes[0]?.restamped?.length} stamped; ${left.length} faults left${left.length ? `, e.g. ${left[0]}` : ''}; ${again.counts.current} current)`);
+}
+{
+  // Capture never records over damage: a damaged member with no record is left out, named. Mutation: the draw faults
+  // left out of `differencesOf` → `damage/capture`.
+  const w = await world(TAG);
+  const m = membersOf(w.set())[2];
+  for (const f of ['fills', 'strokes'] as const) {
+    const ps = m[f] as { boundVariables?: { color?: unknown } }[] | undefined;
+    if (Array.isArray(ps) && ps.some((p) => p?.boundVariables?.color)) m[f] = ps.map((p) => (p?.boundVariables?.color ? { ...p, color: { r: 0, g: 0, b: 0 }, opacity: 1 } : p));
+  }
+  (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, BASELINE_KEY, '');
+  const cap = await captureBaselines(w.host, [{ def: TAG, plans: w.plans }]);
+  const skip = cap.sets[0]?.skipped.find((x) => x.member === String(m.name));
+  ok(!!skip && (skip.differences ?? []).some((d) => d.field === 'fills' && /stored #000000/.test(d.file)) && !(m.getSharedPluginData as (a: string, b: string) => string)(NS, BASELINE_KEY),
+    `damage/capture: a member drawn wrong is not recorded, and the capture names the paint (${skip?.reason}; ${JSON.stringify(skip?.differences?.slice(0, 1))})`);
+}
+
+/* ── verify reads what the host draws ──────────────────────────────────────────────────────────────────── */
+section('verify reads what the host draws — damage the HOST makes behind the executor is named by verify (#2379 review)');
+{
+  // The host, not the executor, misbehaves here: it ignores the base a paint is bound on (as it kept the black base
+  // on the NB master), and it does not scale an imported glyph to its frame. The executor is unchanged, so only the
+  // update's own verify can catch it. Mutation: verify's draw check dropped → `verify/drawn paints`, `verify/drawn glyphs`.
+  const w = await world(TAG);
+  for (const m of membersOf(w.set())) {
+    const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, st.replace(/\|[^|]*$/, '|0'));
+  }
+  const bind = w.api.variables.setBoundVariableForPaint;
+  w.api.variables.setBoundVariableForPaint = (p: object, f: string, v: unknown) => bind({ ...p, color: { r: 0, g: 0, b: 0 }, opacity: undefined }, f, v);
+  const svg = w.api.createNodeFromSvg;
+  w.api.createNodeFromSvg = (src: string) => {
+    const n = svg(src) as Node;
+    const resize = n.resize as (a: number, b: number) => void;
+    n.resize = (a: number, b: number) => {
+      const kids = ((n.children as Node[]) ?? []).map((c) => [c, c.x, c.y, c.width, c.height] as const);
+      resize(a, b);
+      for (const [c, x, y, cw, ch] of kids) { c.x = x; c.y = y; (c.resize as (a: number, b: number) => void)(cw as number, ch as number); }
+    };
+    return n;
+  };
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(pre));
+  const content = res.outcomes[0]?.content ?? [];
+  ok(!applyVerdict(res).ok && content.some((l) => /\.fills: stored #000000 at 100% \(the plan says .*, which resolves to #[0-9a-f]{6} at \d+%\)$/.test(l)),
+    `verify/drawn paints: a paint the host left black under its binding fails verify, named (${applyVerdict(res).headline}; ${content.find((l) => /stored #000000/.test(l)) ?? content[0]})`);
+  ok(content.some((l) => /\.glyph: a vector [\d.]+×[\d.]+ at [\d.]+,[\d.]+ \(the plan says inside its 16×16 frame\)$/.test(l)),
+    `verify/drawn glyphs: a glyph the host did not scale to its frame fails verify, named (${content.find((l) => /\.glyph:/.test(l)) ?? 'no glyph line'})`);
+}
+
+/* ── a mixed set ──────────────────────────────────────────────────────────────────────────────────────── */
+section('mixed — in a set the build updates, a member from an earlier plugin still takes only its stamp (#2379 review)');
+{
+  // Half the members out of date (the executor revision bumped), half from an earlier plugin. The build updates the
+  // first half; the second takes its stamp and nothing else, read by the test's write log on those members alone.
+  // Its place in the set's grid is the set's layout: it moves only if the grid does, and here the grid does not.
+  // Mutations: the restamp after the build's pass dropped → `mixed/stamped`; the grid writing positions that did not
+  // move → `mixed/only stamps`.
+  const w = await world(TAG);
+  const members = membersOf(w.set());
+  const earlier = members.filter((_, i) => i % 2 === 1);
+  for (const [i, m] of members.entries()) {
+    const st = (m.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+    (m.setSharedPluginData as (a: string, b: string, c: string) => void)(NS, STAMP_KEY, i % 2 ? st.split('|').slice(0, 2).join('|') : st.replace(/\|[^|]*$/, '|0'));
+  }
+  const pre = await previewUpdate(w.host, [{ def: TAG, plans: w.plans }]);
+  ok(pre.sets[0]?.counts.update === 23 && pre.sets[0]?.counts.revisionUnknown === 22, `premise: 23 members to update, 22 from an earlier plugin (${JSON.stringify(pre.sets[0]?.counts)})`);
+  const logs = earlier.map((m) => watchWrites(m));
+  const res = await applyUpdate(w.host, w.api as any, [{ def: TAG, plans: w.plans }], previewHashOf(pre));
+  const other = logs.flat().filter((x) => !new RegExp(`setSharedPluginData\\(${NS}, (${STAMP_KEY}|${BASELINE_KEY})\\)$`).test(x));
+  const again = (await previewUpdate(w.host, [{ def: TAG, plans: w.plans }])).sets[0];
+  ok(res.outcomes[0]?.updated.length === 23 && res.outcomes[0]?.restamped?.length === 22 && again.counts.current === 45,
+    `mixed/stamped: the 23 are updated and the 22 stamped, and all 45 then read current (${res.outcomes[0]?.updated.length} updated, ${res.outcomes[0]?.restamped?.length} stamped; ${JSON.stringify(again.counts)})`);
+  ok(other.length === 0, `mixed/only stamps: the 22 from an earlier plugin take nothing but their stamps and records (${other.length} other writes${other.length ? `, e.g. ${other.slice(0, 3).join(' | ')}` : ''})`);
 }
 
 /* ── what the host draws ────────────────────────────────────────────────────────────────────────────────── */

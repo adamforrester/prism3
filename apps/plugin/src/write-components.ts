@@ -2715,8 +2715,11 @@ const writeComponentSet = async (
       return;
     }
     const m = wr(c);
-    m.x = PAD + at(colW, cell.col);
-    m.y = PAD + at(rowH, cell.row);
+    // ONLY WHERE IT MOVES (#2379): an update re-lays the grid over members it leaves alone (a member from an earlier
+    // plugin takes only its stamp), and a write that puts back the same number is still a write to the host.
+    const x = PAD + at(colW, cell.col), y = PAD + at(rowH, cell.row);
+    if (m.x !== x) m.x = x;
+    if (m.y !== y) m.y = y;
   });
   // #2265 PR 2 — THE MEMBERS AN UPDATE KEPT AND MARKED DEPRECATED have no cell in the plan's grid, which the
   // members still in the plan now fill, so left where they were they would sit on top of them. They go in one row
