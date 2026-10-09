@@ -12226,6 +12226,174 @@ for (const host of ['web', 'figma']) {
     } finally { await ctx.close(); }
   }
 }
+// =============================================================================================
+// 42. #2233: the choice rows' accessibility, on Type › Type scale (the rows `choice()` draws and `stateLine` annotates).
+//     Both hosts, light, 1280. Four arms, one per defect:
+//   · (1) THE REASON REACHES THE KEYBOARD. A disabled chip takes no focus, so its reason, drawn as a line under the chips,
+//     describes the GROUP: Aurora's refused Compact (the title floor's sentence) and prism3's pinned clash (the clash
+//     sentence on Expressive). Read from CDP `Accessibility.getPartialAXTree`, the radiogroup's own `description`, never the
+//     attribute; and the line it comes from is drawn (it has a box), so no new words are said.
+//   · (2) THE STATE LINES ARE ANNOUNCED, IN PLACE. The row's one polite region (hook `choice-live`, `data-key` the lever's
+//     key) is observed by a MutationObserver installed before display md is set to 56px: it takes the pinned count and the
+//     clash sentence as added text, stays the node it was, and is the one region carrying the clash; Release removes both
+//     lines from that same node and adds nothing. The browser reads it as a polite status (CDP `live`).
+//   · (3) THE ARROWS PASS OVER A DISABLED CHIP. Real key presses on Aurora (Compact, Default, Expressive; Compact refused):
+//     ArrowRight from Expressive wraps past Compact to Default, and ArrowLeft from Default wraps past Compact to Expressive,
+//     focus and the checked chip moving together. (The chip rows, `chipChoice`, keep KB1 A: no arrows; section 30b.)
+//   · (4) FOCUS AFTER RELEASE PINNED SIZES. The button goes once it has worked; focus lands on Type scale's checked chip
+//     (prism3's Default), the group's Tab stop, never on the page.
+//
+// INDEPENDENCE (docs/34). EXPECTED is typed here: the two approved sentences (S63.scaleTitleFloor and S63.scaleClash),
+// the pinned count's words for one size, the chip order and which chip each press reaches, and the chip focus lands on,
+// each worked out by hand from the issue and the manifest's option order. ACTUAL is the browser's: the accessibility tree,
+// a MutationObserver's records, `document.activeElement` after real key presses and a real click. Nothing is read from
+// `type.ts` or `lever-kit.ts`.
+//
+// Mutations (#2233), each after a `wip:` commit, on both rebuilt bundles, each failing here by name (web shown; figma
+// fails the same lines), none outside this section:
+//   · (a) `aria-describedby` dropped from `refuseOption` → `§42 web light 1280 Aurora: (1) the refused Compact chip's reason
+//     describes the Type scale group, … (read {"role":"radiogroup","description":"",…}, lines [])`, and the pinned clash's (4);
+//   · (b) a new region made on every redraw → `§42 web light 1280 prism3 pinned clash: (2) the row's live region is the node
+//     it was before the edit, updated in place, never replaced (same node false, connected false, 1 for the row)`, the
+//     words arm and the release arm (6);
+//   · (c) the arrows back to the next chip, disabled or not → `§42 web light 1280 Aurora: (3) ArrowRight from Expressive
+//     passes over the disabled Compact to Default, … read {"focus":"type-scale-expressive",…}` and the ArrowLeft arm (4);
+//   · (d) no focus after Release → `§42 web light 1280 prism3: (4) after Release pinned sizes, focus is on Type scale's
+//     checked chip, Default (read {"focus":"BODY","checked":null,"release":false})` (2).
+// =============================================================================================
+console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after Release (#2233)\n${'='.repeat(78)}`);
+{
+  const CLASH = 'Some sizes you set would clash at this scale. Release them to switch.';
+  const FLOOR = "Compact can't be used while the title floor is 16px. Raise the title floor to use it.";
+  const PINNED_ONE = '1 size is set individually. They keep their size when the scale moves.';
+  const GROUP = '[data-p3="type-scale"]';
+  const LIVE = '[data-p3="choice-live"][data-key="typography.typeScale"]';
+  const BOUND = { timeout: 10000 };
+  /** The browser's reading of one node: role, description, and live politeness. */
+  const axOf = async (page, sel) => {
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      await cdp.send('DOM.enable');
+      await cdp.send('Accessibility.enable');
+      const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+      const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel });
+      const node = nodeId ? (await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false })).nodes[0] : null;
+      const prop = (k) => node?.properties?.find((p) => p.name === k)?.value?.value ?? null;
+      return node ? { role: node.role?.value ?? null, description: node.description?.value ?? '', live: prop('live'), ignored: !!node.ignored } : null;
+    } finally { await cdp.detach(); }
+  };
+  /** The drawn lines the group's description points at: each id's text and whether it has a box. */
+  const describedLines = (page) => page.evaluate((g) => (document.querySelector(g)?.getAttribute('aria-describedby') ?? '').split(' ').filter(Boolean)
+    .map((id) => { const n = document.getElementById(id); const b = n?.getBoundingClientRect(); return { text: n?.textContent?.trim() ?? null, drawn: !!b && b.width > 0 && b.height > 0 }; }), GROUP);
+  for (const host of ['web', 'figma']) {
+    const where0 = `§42 ${host} light 1280`;
+    // ── Aurora: Compact refused for the title floor. Arms 1 and 3. ──
+    {
+      const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900, brand: 'aurora' });
+      let step = 'open Type';
+      try {
+        await goPlace(page, 'type');
+        await hooks.need(page, '[data-p3="type-scale-compact"]');
+        step = 'read the group';
+        const ax = await axOf(page, GROUP);
+        const lines = await describedLines(page);
+        ok(!!ax && ax.role === 'radiogroup' && ax.description === FLOOR && lines.length === 1 && lines[0].text === FLOOR && lines[0].drawn,
+          `${where0} Aurora: (1) the refused Compact chip's reason describes the Type scale group, from the drawn line under the chips (read ${JSON.stringify(ax)}, lines ${JSON.stringify(lines)})`);
+        step = 'arrow keys';
+        const at = () => page.evaluate((g) => ({ focus: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName ?? null,
+          checked: document.querySelector(`${g} [aria-checked="true"]`)?.getAttribute('data-p3') ?? null,
+          compactOff: document.querySelector('[data-p3="type-scale-compact"]')?.disabled ?? null }), GROUP);
+        await page.locator('[data-p3="type-scale-expressive"]').focus();
+        const s0 = await at();
+        await page.keyboard.press('ArrowRight');
+        await page.waitForFunction((g) => document.querySelector(`${g} [aria-checked="true"]`)?.getAttribute('data-p3') === 'type-scale-default', GROUP, BOUND).catch(() => {});
+        await settle(page);
+        const s1 = await at();
+        ok(s0.focus === 'type-scale-expressive' && s0.compactOff === true && s1.focus === 'type-scale-default' && s1.checked === 'type-scale-default',
+          `${where0} Aurora: (3) ArrowRight from Expressive passes over the disabled Compact to Default, focus and the checked chip together (from ${JSON.stringify(s0)}, read ${JSON.stringify(s1)})`);
+        await page.keyboard.press('ArrowLeft');
+        await page.waitForFunction((g) => document.querySelector(`${g} [aria-checked="true"]`)?.getAttribute('data-p3') === 'type-scale-expressive', GROUP, BOUND).catch(() => {});
+        await settle(page);
+        const s2 = await at();
+        ok(s1.focus === 'type-scale-default' && s1.compactOff === true && s2.focus === 'type-scale-expressive' && s2.checked === 'type-scale-expressive',
+          `${where0} Aurora: (3) ArrowLeft from Default passes over the disabled Compact to Expressive, focus and the checked chip together (from ${JSON.stringify(s1)}, read ${JSON.stringify(s2)})`);
+        ok(errors.length === 0, `${where0} Aurora: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where0} Aurora: the case stopped at "${step}" — ${stopped(e)}`);
+      } finally { await ctx.close(); }
+    }
+    // ── prism3: a pinned clash, then Release. Arms 1, 2 and 4. ──
+    {
+      const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+      const BTN = '[data-p3="type-size-desktop"][data-group="display"][data-variant="md"]';
+      const PICK = '[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="56"]';
+      const CLOSE = '[data-p3="value-picker-close"]';
+      const RELEASE = '[data-p3="type-scale-release"]';
+      let step = 'open Type';
+      try {
+        await goPlace(page, 'type');
+        step = 'open Show advanced'; await openTypeAdvanced(page);
+        await settle(page);
+        step = 'watch the live region';
+        const before = await page.evaluate((sel) => {
+          const node = document.querySelector(sel);
+          window.__p3live = { node, recs: [] };
+          if (node) new MutationObserver((rs) => { for (const r of rs) window.__p3live.recs.push({ type: r.type, added: [...r.addedNodes].map((n) => n.textContent), removed: [...r.removedNodes].map((n) => n.textContent) }); })
+            .observe(node, { childList: true, characterData: true, subtree: true });
+          return node ? { text: node.textContent, count: document.querySelectorAll(sel).length } : null;
+        }, LIVE);
+        ok(!!before && before.text === '' && before.count === 1, `${where0} prism3: (2) Type scale has its one live region before any edit, saying nothing (read ${JSON.stringify(before)})`);
+        step = 'open the value picker for display md'; await hooks.click(page.locator(BTN), BOUND);
+        step = 'pick 56px'; await hooks.click(page.locator(PICK), BOUND);
+        await page.waitForFunction((q) => !!document.querySelector(q), RELEASE, BOUND).catch(() => {});
+        step = 'close the value picker';
+        if (await page.locator(CLOSE).count()) await hooks.click(page.locator(CLOSE), BOUND);
+        await page.waitForFunction(() => !document.querySelector('[data-p3="value-picker"]'), null, BOUND).catch(() => {});
+        await settle(page);
+        step = 'read the clash';
+        const ax = await axOf(page, GROUP);
+        const lines = await describedLines(page);
+        ok(!!ax && ax.description === CLASH && lines.length === 1 && lines[0].text === CLASH && lines[0].drawn,
+          `${where0} prism3 pinned clash: (1) the refused Expressive chip's reason describes the Type scale group, from the drawn clash line (read ${JSON.stringify(ax)}, lines ${JSON.stringify(lines)})`);
+        const live = () => page.evaluate((sel) => ({ recs: window.__p3live.recs, paras: [...(window.__p3live.node?.children ?? [])].map((c) => c.textContent),
+          same: document.querySelector(sel) === window.__p3live.node, connected: !!window.__p3live.node?.isConnected, count: document.querySelectorAll(sel).length,
+          carrying: [...document.querySelectorAll('[aria-live], [role="status"], [role="alert"], [role="log"], output')].filter((e) => (e.getAttribute('aria-live') ?? '') !== 'off' && e.textContent.includes('would clash')).length }), LIVE);
+        const l1 = await live();
+        const added1 = l1.recs.flatMap((x) => x.added).filter((t) => (t ?? '').trim());
+        ok(l1.same && l1.connected && l1.count === 1, `${where0} prism3 pinned clash: (2) the row's live region is the node it was before the edit, updated in place, never replaced (same node ${l1.same}, connected ${l1.connected}, ${l1.count} for the row)`);
+        ok(JSON.stringify(l1.paras) === JSON.stringify([PINNED_ONE, CLASH]) && added1.includes(CLASH) && added1.includes(PINNED_ONE) && l1.carrying === 1,
+          `${where0} prism3 pinned clash: (2) the live region says the pinned count and the clash, as added text, and is the one live region carrying the clash (says ${JSON.stringify(l1.paras)}, added ${JSON.stringify(added1)}, ${l1.carrying} carrying it)`);
+        const lax = await axOf(page, LIVE);
+        ok(!!lax && lax.live === 'polite' && lax.role === 'status' && !lax.ignored, `${where0}: (2) the accessibility tree reads the row's region as a polite live region, a status (read ${JSON.stringify(lax)})`);
+        step = 'Release pinned sizes holding still';
+        await page.evaluate(() => { window.__p3live.recs = []; });
+        await page.waitForFunction((q) => {
+          const n = document.querySelector(q);
+          const box = n ? JSON.stringify(n.getBoundingClientRect()) : null;
+          const w = (window.__p3Hold ??= { box: null, still: 0 });
+          w.still = box !== null && box === w.box ? w.still + 1 : 0;
+          w.box = box;
+          return w.still >= 2;
+        }, RELEASE, { ...BOUND, polling: 'raf' }).catch(() => {});
+        step = 'click Release pinned sizes'; await hooks.click(page.locator(RELEASE), BOUND);
+        await page.waitForFunction((q) => !document.querySelector(q), RELEASE, BOUND).catch(() => {});
+        await settle(page);
+        const f = await page.evaluate(() => ({ focus: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName ?? null,
+          checked: document.activeElement?.getAttribute('aria-checked') ?? null, release: !!document.querySelector('[data-p3="type-scale-release"]') }));
+        ok(!f.release && f.focus === 'type-scale-default' && f.checked === 'true',
+          `${where0} prism3: (4) after Release pinned sizes, focus is on Type scale's checked chip, Default (read ${JSON.stringify(f)})`);
+        const l2 = await live();
+        const added2 = l2.recs.flatMap((x) => x.added).filter((t) => (t ?? '').trim());
+        const removed2 = l2.recs.flatMap((x) => x.removed);
+        ok(l2.same && l2.connected && l2.count === 1 && l2.paras.length === 0 && removed2.includes(CLASH) && added2.length === 0,
+          `${where0} prism3 released: (2) the live region is emptied in place, adding nothing (says ${JSON.stringify(l2.paras)}, removed ${JSON.stringify(removed2)}, added ${JSON.stringify(added2)}, same node ${l2.same})`);
+        ok(errors.length === 0, `${where0} prism3: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where0} prism3: the case stopped at "${step}" — ${stopped(e)}`);
+      } finally { await ctx.close(); }
+    }
+  }
+}
 // #2238: the check box is measured on both hosts, in both chrome themes, somewhere in the sweep.
 for (const [k, n] of Object.entries(BOXES_BY)) ok(n > 0, `#2238 ${k}: the contrast audit measured check boxes in the sweep (${n})`);
 hooks.report(ok);
