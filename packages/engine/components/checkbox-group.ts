@@ -159,7 +159,12 @@ export const checkboxGroup: ComponentDef = {
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         gap: 'gap',
         padding: { block: 'pad-y', inlineLabel: 'pad-x' },
-        minWidth: 320,
+        // BUILT AT 320, SHRINKS TO ITS COLUMN (owner decision Q155 A: the groups follow their rows, Q152.3). The
+        // group used to floor at Prism 2's 320, which held it at 320 in a narrower column even once its rows
+        // could shrink. It is now BUILT at 320 (`placementWidth`, the fields' #2292 mechanism) and fills its
+        // column down to the fields' 120 floor (Q152.2); the rows still stretch to whatever it is.
+        placementWidth: 320,
+        minWidth: 120,
         children: ['label', 'row1', 'row2', 'row3', 'row4', 'row5', 'row6', 'row7', 'row8'],
       },
       // THE NESTED GROUP LABEL (nest-fixed, FOLLOWING size). An in-flow instance of `field-label`,
@@ -372,7 +377,7 @@ export const checkboxGroup: ComponentDef = {
     evolution: [
       'RESOLVED (#1699): `required` now DEFAULTS TO `false`, the brief\'s default (§15). It had defaulted `true` only because the nested FieldLabel built its required marker on by default; #1699 moved FieldLabel\'s own default to `false`, so the group follows the brief and the code default agrees with the Figma default (marker hidden) again.',
       'THE INTER-ROW GAP IS RESOLVED (#1623 sign-off). Each `checkbox-row` carries 12px of block padding and so spaces itself, so the group binds a 0px gap (`space.0`) and adds no stack gap on top. The provisional size-keyed gap this entry used to hold is gone; the group\'s `size` axis still scales its label and rows through `follow`.',
-      'THE WIDTH/FILL MODEL IS RESOLVED (#1503, owner Option B: follow Prism 2). Prism 2\'s group is a fixed-320 root with rows set to FILL; this def now realizes that with the container floored at `minWidth: 320` and each row `crossAxisFill` (→ `layoutAlign: STRETCH`), the projection capability #1503 added. A `minWidth` floor rather than a fixed width keeps the group responsive (reads at 320, flexes above), the `select` #1345 precedent. `radio-group` mirrors this exactly, so the two groups match by SHARING one resolution (#1475). The inter-row gap was settled separately (0px, #1623 sign-off, the entry above).',
+      'THE WIDTH/FILL MODEL IS RESOLVED (#1503, owner Option B: follow Prism 2). Prism 2\'s group is a fixed-320 root with rows set to FILL; this def realized that with the container floored at `minWidth: 320` and each row `crossAxisFill` (→ `layoutAlign: STRETCH`), the projection capability #1503 added. Since owner decision Q155 A the group follows its rows (Q152.3) and the fields: it is BUILT at 320 (`placementWidth`) and fills its column down to a 120 floor, so it reads at 320 unplaced and shrinks with a narrower column. `radio-group` mirrors this exactly, so the two groups match by SHARING one resolution (#1475). The inter-row gap was settled separately (0px, #1623 sign-off, the entry above).',
       'Field POV (brief §13): the group became a first-class component owning the value array and group validation, replacing ad-hoc hand-wired fieldsets; and `role="group"` + `aria-labelledby` replaced `fieldset`/`legend`, driven by fieldset\'s CSS-layout quirks.',
     ],
   },
