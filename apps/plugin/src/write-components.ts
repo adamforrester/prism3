@@ -814,14 +814,25 @@ const memberAxisLists = (set: CompSet): string[][] => {
  */
 export const SET_GAP = 160;
 
-/** A top-level node's box on a page, as `placeNewSet` reads it. */
-export type PageBox = { type?: string; x: number; y: number; width: number; height: number };
+/** A top-level node's box on a page, as `placeNewSet` reads it. `header` marks the page's section header. */
+export type PageBox = { type?: string; x: number; y: number; width: number; height: number; header?: boolean };
+
+/**
+ * THE PAGE HEADER, AS PLACEMENT SEES IT (#2405). `page-header.ts` owns the header; these two restate its set
+ * name and its gap rather than importing them, because a value import from here pulls that module into the
+ * executor's import walk (`lint-executor-revision.ts`) and every later edit to it would then need a bump.
+ * `test-page-header.ts` holds the two copies equal.
+ */
+export const PAGE_HEADER_NAME = '_section-header';
+export const PAGE_HEADER_GAP = 80;
 
 /** The boxes of a page's top-level nodes, VISIBLE OR NOT: a hidden node is still somewhere a set could be
- *  dropped on top of, and showing it again would reveal the overlap. */
+ *  dropped on top of, and showing it again would reveal the overlap. The header is found by name, in any case,
+ *  as an instance or a detached frame: an instance of a variant carries its set's name. */
 const pageBoxes = (page: CompPageTarget): PageBox[] =>
-  ((page.children ?? []) as { type?: string; x?: number; y?: number; width?: number; height?: number }[]).map((n) => ({
+  ((page.children ?? []) as { type?: string; name?: string; x?: number; y?: number; width?: number; height?: number }[]).map((n) => ({
     type: n.type, x: n.x ?? 0, y: n.y ?? 0, width: n.width ?? 0, height: n.height ?? 0,
+    header: (n.type === 'INSTANCE' || n.type === 'FRAME') && typeof n.name === 'string' && n.name.toLowerCase() === PAGE_HEADER_NAME,
   }));
 
 /**
@@ -836,15 +847,27 @@ const pageBoxes = (page: CompPageTarget): PageBox[] =>
  * read left to right in the order they were built — which is the taxonomy's order (`file-taxonomy.ts`)
  * whenever a family is built as one run (dependencies first) or in the order the page lists them.
  *
- * `y` is the top of the existing COMPONENT_SETs, or of all content when the page has no set yet.
+ * `y` is the top of the existing COMPONENT_SETs, or of all content other than the page header when the page has
+ * no set yet.
+ *
+ * BELOW THE HEADER WHEN IT IS ALL THE PAGE HOLDS (#2405). A page whose sets were deleted and rebuilt keeps its
+ * header, and the header is not content to sit beside: measured as content, it put the first rebuilt set
+ * `SET_GAP` right of the header, and its siblings beside that. So on a page with a header and nothing else,
+ * the set goes where the first build put it relative to the header: on the header's left edge, its top
+ * `PAGE_HEADER_GAP` below the header's bottom. Its siblings then top-align with it, as on a fresh page.
  *
  * A SET THAT ALREADY EXISTS IS NEVER PASSED HERE: a rebuild keeps the set a designer may have moved, the
  * "designer's placement wins" rule `page-header.ts` follows for the header.
  */
 export const placeNewSet = (existing: readonly PageBox[], height: number): { x: number; y: number } | null => {
   if (existing.length === 0) return null;
-  const sets = existing.filter((b) => b.type === 'COMPONENT_SET');
-  const y = Math.min(...(sets.length ? sets : existing).map((b) => b.y));
+  const content = existing.filter((b) => !b.header);
+  if (content.length === 0) {
+    const h = existing[0];
+    return { x: h.x, y: h.y + h.height + PAGE_HEADER_GAP };
+  }
+  const sets = content.filter((b) => b.type === 'COMPONENT_SET');
+  const y = Math.min(...(sets.length ? sets : content).map((b) => b.y));
   const band = existing.filter((b) => b.y < y + height && b.y + b.height > y);
   // An empty band happens only when every node there has zero height; then everything counts.
   const x = Math.max(...(band.length ? band : existing).map((b) => b.x + b.width)) + SET_GAP;

@@ -4700,6 +4700,35 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const rAgain = await run(grid, { ...full(), page: pg });
   ok(rAgain.set === 'button' && rAgain.added === 0 && at(first) === '5000,7000' && at(second) === '940,0',
     `#1750 a rebuild leaves a set the designer moved where they put it, and its sibling where it was (button at ${at(first)}, button-destructive at ${at(second)})`);
+
+  // (f) #2405 — A PAGE THAT HOLDS ONLY ITS SECTION HEADER. Live: the sets on a component page were deleted and
+  // rebuilt, and every one landed right of the header instead of under it. The header is an INSTANCE named
+  // as its set is, in the case the owner's file uses, at 100,-300, 1000x220. Expected: the header's left edge
+  // (100) and its bottom (-300 + 220 = -80) + 80 = 0. On main this lands at 1100 + 160 = 1260, -300.
+  const header = (): Node => ({ type: 'INSTANCE', name: '_section-header', x: 100, y: -300, width: 1000, height: 220 } as Node);
+  const pgH: Page = { children: [header()] };
+  await run(grid, { ...full(), page: pgH });
+  const underHeader = pgH.children.find((n) => n.name === 'button')!;
+  ok(at(underHeader) === '100,0',
+    `#2405 on a page holding only its section header, a rebuilt set lands under it on its left edge, 80 below, at 100,0, never beside it (got ${at(underHeader)})`);
+  // ...and its sibling then top-aligns with it, beside it, as on a fresh page: 100 + 780 + 160 = 1040.
+  await run(destructive, { ...fullFor(destructive), page: pgH });
+  const besideRebuilt = pgH.children.find((n) => n.name === 'button-destructive')!;
+  ok(at(besideRebuilt) === '1040,0',
+    `#2405 the rebuilt set's sibling lands beside it under the header at 1040,0 (got ${at(besideRebuilt)})`);
+
+  // (g) #2405 — A HEADER AND AN EXISTING SET THE DESIGNER PLACED. The existing set stays where it is (300,500),
+  // and the new one top-aligns with it, beside it: 300 + 780 + 160 = 1240, y 500 — not under the header.
+  const pgHS: Page = { children: [header()] };
+  await run(grid, { ...full(), page: pgHS });
+  const kept = pgHS.children.find((n) => n.name === 'button')!;
+  kept.x = 300;
+  kept.y = 500;
+  await run(grid, { ...full(), page: pgHS });
+  await run(destructive, { ...fullFor(destructive), page: pgHS });
+  const nextToKept = pgHS.children.find((n) => n.name === 'button-destructive')!;
+  ok(at(kept) === '300,500' && at(nextToKept) === '1240,500',
+    `#2405 with a header and an existing set, the existing set stays at 300,500 and the new one lands beside it at 1240,500 (got ${at(kept)} and ${at(nextToKept)})`);
 }
 
 // ---- #1750: page headers are placed after ALL of a run's builds, once per page ------------------------
