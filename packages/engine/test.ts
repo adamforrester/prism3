@@ -14011,8 +14011,10 @@ arm: {
         const att = figmaAnatomySet(applyButtonLayout(def, DEFAULT_BUTTON_LAYOUT, heightOf(t)));
         const strip = (p: AnatomyPlan) => { const r = { ...p.root } as Record<string, unknown>; delete r.minWidth; return JSON.stringify({ ...p, root: r }); };
         const same = base.length === att.length && base.every((p, i) => strip(att[i]) === JSON.stringify(p));
-        ok(same && att.every((p) => p.root.minWidth !== undefined && p.root.primaryAxisSizingMode === 'AUTO' && !p.root.paddingPx && p.root.children.every((c) => !c.pin)),
-          `#1667 attached: ${def.id} projects today's plan plus a root minWidth on all ${att.length} members — hug root, icons in flow, label unchanged`);
+        // A flush text member (#2350) hugs its label and has no floor; the #2350 arm holds that half, against its sibling.
+        const flushOrNot = (p: AnatomyPlan) => /(^|, )inset=flush(,|$)/.test(planComponentName(p));
+        ok(same && att.every((p) => (p.root.minWidth !== undefined) !== flushOrNot(p) && p.root.primaryAxisSizingMode === 'AUTO' && !p.root.paddingPx && p.root.children.every((c) => !c.pin)),
+          `#1667 attached: ${def.id} projects today's plan plus a root minWidth on all ${att.filter((p) => !flushOrNot(p)).length} inset=default members — hug root, icons in flow, label unchanged`);
       }
     }
 
@@ -20833,16 +20835,16 @@ arm: {
 
         // THE FULL SET'S SHAPE, as two literals a hand-count justifies rather than a product of
         // `.length`s. 432 = 3 appearance × 3 size × 2 surface × 6 state × 2 leading × 2 trailing; with
-        // `state` across, that is 6 columns and 432/6 = 72 rows. #2350's `inset` adds the text appearance's two
-        // flush sides: 2 × 3 size × 2 surface × 6 state × 4 slot = 288 more, so 720 members and 120 rows. #1223 split `intent` out into sibling
+        // `state` across, that is 6 columns and 432/6 = 72 rows. #2350's `inset` adds the text appearance's flush
+        // members: 3 size × 2 surface × 6 state × 4 slot = 144 more, so 576 members and 96 rows. #1223 split `intent` out into sibling
         // components, so the axis that used to triple this count is gone — each of the three Button
         // components now lays out this same 72×6 shape. The `surface` axis (#1134) still doubles both the
         // member count and the row count, which is the price a variant a designer selects is worth
         // paying. Written as literals deliberately: a shape computed from the axes is the declaration
         // restating itself, which is the defect the 189-vs-756 miscount already cost this repo once.
         const fullLayout = planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), '#656 full');
-        ok(fullLayout.colKey === 'state' && fullLayout.rows === 120 && fullLayout.cols === 6,
-          `#656: the full Button set lays out 120 rows × 6 columns with 'state' across — got ${fullLayout.rows}×${fullLayout.cols} on '${fullLayout.colKey}' (the inherited axis gave 216×2)`);
+        ok(fullLayout.colKey === 'state' && fullLayout.rows === 96 && fullLayout.cols === 6,
+          `#656: the full Button set lays out 96 rows × 6 columns with 'state' across — got ${fullLayout.rows}×${fullLayout.cols} on '${fullLayout.colKey}' (the inherited axis gave 216×2)`);
         ok(JSON.stringify(fullLayout.colVals) === JSON.stringify(['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'disabled']),
           `#656: the columns run in the def's own state order, so the table reads left to right the way the states are declared — got ${JSON.stringify(fullLayout.colVals)}`);
         // And the row keys are every OTHER varying axis. `rowKeys` used to be `varying.slice(0, -1)`,
@@ -21807,10 +21809,10 @@ arm: {
     // rows it would have contributed each render as their `rest` sibling, since `anatomy-figma.ts` has
     // no `inactive` paint branch (the shared-paint intent is a TOKEN-tier decision the emitter has not
     // implemented; #563 review measured this).
-    // #2350's `inset` makes it 720: the 432 at `inset=default`, plus the text appearance's two flush sides
-    // (2 × 3 size × 2 surface × 6 state × 4 slot = 288). Filled and outline have no flush member (`excludeCoordinates`).
+    // #2350's `inset` makes it 576: the 432 at `inset=default`, plus the text appearance's flush members
+    // (3 size × 2 surface × 6 state × 4 slot = 144). Filled and outline have no flush member (`excludeCoordinates`).
     const projected = figmaVariantCount(button);
-    ok(projected === 720, `figmaProperties: Button projects ${projected} variants (3 appearance × 3 size × 2 surface × 6 state × 2 leading × 2 trailing, + 288 flush text)`);
+    ok(projected === 576, `figmaProperties: Button projects ${projected} variants (3 appearance × 3 size × 2 surface × 6 state × 2 leading × 2 trailing, + 144 flush text)`);
 
     // THE GATE THAT WOULD HAVE CAUGHT THE GAP, and the reason the count above is now derived rather
     // than restated. `projected === 189` was computed from `variantAxes × stateAxis` — the same
@@ -21841,24 +21843,24 @@ arm: {
     // and never becomes a Figma variant (#487 §0.4). Re-deriving this from `states.length` gives 504 and
     // makes the gate look wrong when it is the derivation that is. THE 2 IS THE surface AXIS (#1134). The
     // `intent` axis that used to triple this is gone since #1223 — it is a sibling component now. #2350 adds
-    // the text appearance's two flush sides: 2 inset × 3 size × 2 surface × 6 state × 4 slot = 288, so 720.
+    // the text appearance's flush members: 3 size × 2 surface × 6 state × 4 slot = 144, so 576.
     const fullSet = figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' });
-    ok(fullSet.length === 720, `figmaAnatomySet: enumerates 720 plans for Button (${fullSet.length})`);
+    ok(fullSet.length === 576, `figmaAnatomySet: enumerates 576 plans for Button (${fullSet.length})`);
     // Every coordinate distinct. A loop that pins an axis instead of iterating it produces N plans with
     // ONE name, which `planSetLayout` later refuses as a duplicate — but by then it is a runtime failure
     // inside Figma rather than a test failure here.
-    ok(new Set(fullSet.map(planComponentName)).size === 720,
-      `figmaAnatomySet: every plan carries a distinct variant name (${new Set(fullSet.map(planComponentName)).size}/720)`);
+    ok(new Set(fullSet.map(planComponentName)).size === 576,
+      `figmaAnatomySet: every plan carries a distinct variant name (${new Set(fullSet.map(planComponentName)).size}/576)`);
     // And the plans are the SAME plans the hand-written loops produce — byte-identical, in order. This is
     // what makes the extraction a refactor rather than a second implementation: if the two ever disagree,
     // the three call sites below and the plugin's trigger are building different sets from one def. The
     // loop nesting mirrors `figmaAnatomySet`'s fold exactly — gridAxes (appearance, surface) in
     // declaration order, then size, then state, then the two slot booleans — so `surface` sits between
     // `appearance` and `size`, not at the end (#1134). #1223 dropped the `intent` grid loop with the axis.
-    // #2350: `inset` is the third grid axis, and the flush sides exist at `appearance=text` only, written out here
+    // #2350: `inset` is the third grid axis, and the flush members exist at `appearance=text` only, written out here
     // rather than read from `excludeCoordinates`.
     const handRolled: AnatomyPlan[] = [];
-    for (const ap of button.variants.appearance!) for (const su of button.variants.surface!) for (const ins of ['default', 'flush-start', 'flush-end']) {
+    for (const ap of button.variants.appearance!) for (const su of button.variants.surface!) for (const ins of ['default', 'flush']) {
       if (ap !== 'text' && ins !== 'default') continue;
       for (const sz of button.variants.size) for (const st of fp.stateAxis!.values) for (const ld of [true, false]) for (const tr of [true, false])
         handRolled.push(figmaAnatomyPlan(button, sz, { leading: ld, trailing: tr, swapTarget: 'FPO-default-icon', appearance: ap, surface: su, inset: ins, state: st }));
@@ -21887,12 +21889,12 @@ arm: {
       const cleanNames = figmaAnatomySet(button).map(planComponentName);
       const withBogus = [...cleanNames, 'appearance=outline, surface=inverse, inset=default, size=small, state=disabled, leading icon=true, trailing icon=ΩΩ'];
       const bogusErrs = variantNameErrors(button, withBogus);
-      ok(bogusErrs.some((e) => /721 member\(s\), but the declared axes multiply to 720/.test(e)),
-        `variant-product self-check: the #1355 721st member (433rd before #2350) fails the COUNT arm by name (${bogusErrs.length} error(s))`);
+      ok(bogusErrs.some((e) => /577 member\(s\), but the declared axes multiply to 576/.test(e)),
+        `variant-product self-check: the #1355 577th member (433rd before #2350) fails the COUNT arm by name (${bogusErrs.length} error(s))`);
       ok(bogusErrs.some((e) => /axis 'trailing icon=ΩΩ' in member .* is outside its declared values \{true, false\}/.test(e)),
         'variant-product self-check: the ΩΩ garbage value fails the VALUE-DOMAIN arm by name');
       ok(variantNameErrors(button, cleanNames).length === 0,
-        'variant-product self-check: the clean 720-member set reports nothing');
+        'variant-product self-check: the clean 576-member set reports nothing');
     }
 
     // THE VEIL BEFORE #1318 — value × intensity, solid washes only. Built by removing exactly what #1318 added
@@ -22065,8 +22067,8 @@ arm: {
       ok(threw, label);
     };
     const fifthAxis = figmaAnatomySet({ ...button, variants: { ...button.variants, tone: ['a', 'b'] }, figmaProperties: { ...fp, variantAxes: [...fp.variantAxes, 'tone'] } } as ComponentDef, { swapTarget: 'FPO-default-icon' });
-    ok(fifthAxis.length === 720 * 2,
-      `figmaAnatomySet: an EXTRA declared variant axis is enumerated, not refused — 720 × 2 tone values (got ${fifthAxis.length})`);
+    ok(fifthAxis.length === 576 * 2,
+      `figmaAnatomySet: an EXTRA declared variant axis is enumerated, not refused — 576 × 2 tone values (got ${fifthAxis.length})`);
     // AND IT REACHES THE NAME, which is the half that matters. A set of 432 whose members carry no
     // `tone=` segment is precisely the silent omission the old throw prevented: the count doubles, every
     // plan is distinct on some other axis, and the axis the def declared is nowhere. Asserted on the
@@ -22074,8 +22076,8 @@ arm: {
     // `planSetLayout` both read — a coord entry nothing writes into the name is invisible downstream.
     ok(fifthAxis.every((p) => /(^|, )tone=(a|b)(,|$)/.test(planComponentName(p))),
       'figmaAnatomySet: every member of that set is NAMED for the extra axis — the count alone would pass while the axis vanished, which is the 189-vs-756 shape');
-    ok(new Set(fifthAxis.map(planComponentName)).size === 720 * 2,
-      `figmaAnatomySet: all 1440 names are distinct, so the new axis widens the grid rather than duplicating a coordinate (got ${new Set(fifthAxis.map(planComponentName)).size})`);
+    ok(new Set(fifthAxis.map(planComponentName)).size === 576 * 2,
+      `figmaAnatomySet: all 1152 names are distinct, so the new axis widens the grid rather than duplicating a coordinate (got ${new Set(fifthAxis.map(planComponentName)).size})`);
     // THE NO-COORDINATE GATE (#795, and #802's class exactly: every layer accepted and nothing read the
     // count). Both shapes are covered because they are different authoring mistakes: an EMPTY axis list,
     // and a declared axis whose `variants` entry is empty. The second is the one no other check can see.
@@ -26890,7 +26892,7 @@ arm: {
       if (!/appearance=(outline|text|ghost)/.test(name)) continue;
       // #2350: a flush text button never fills (owner Q143 item 2), so it is outside this sweep of the fills; the
       // flush arm (#2350, below) holds that it paints none under "Fill" too.
-      if (/inset=flush-/.test(name)) continue;
+      if (/inset=flush\b/.test(name)) continue;
       const state = /state=(hover|pressed)/.exec(name)?.[1];
       if (!state) continue;
       looked++;
@@ -26956,9 +26958,9 @@ arm: {
       if (p.root.paints?.fills !== undefined) filledText.push(`${id} @ ${method}: ${def.id} ${name} fills ${p.root.paints.fills}`);
     }
   }
-  // 144 text hover/pressed members per family: 3 size × 2 surface × 2 state × 4 slot = 48, at each of #2350's 3 insets.
-  ok(bareLooked === brands.length * METHODS.length * 3 * 144 && filledText.length === 0,
-    `#2324 by default no text button is filled on hover or pressed — ${bareLooked} of ${brands.length * METHODS.length * 3 * 144} members looked at, ${filledText.length} filled${filledText.length ? `: ${filledText.slice(0, 3).join('; ')}` : ''}`);
+  // 96 text hover/pressed members per family: 3 size × 2 surface × 2 state × 4 slot = 48, at each of #2350's 2 insets.
+  ok(bareLooked === brands.length * METHODS.length * 3 * 96 && filledText.length === 0,
+    `#2324 by default no text button is filled on hover or pressed — ${bareLooked} of ${brands.length * METHODS.length * 3 * 96} members looked at, ${filledText.length} filled${filledText.length ? `: ${filledText.slice(0, 3).join('; ')}` : ''}`);
   ok(wrongFill.length === 0,
     `#1387 every quiet button hover/pressed container fill is the method's emitted color variable on its own surface — overlay wash, tinted wash, or none — never a literal, a miss, or dropped (${wrongFill.length}${wrongFill.length ? `: ${wrongFill.slice(0, 4).join('; ')}` : ''})`);
   ok(lowHover.length === 0,
@@ -28518,9 +28520,9 @@ arm: {
     for (const st of STATES) {
       const at = set.filter((p) => axis(planComponentName(p), 'appearance') === 'text' && axis(planComponentName(p), 'state') === st);
       const bad = at.filter((p) => { const l = labelOf(p); return l.length !== 1 || l[0] !== LINK[axis(planComponentName(p), 'size')]; });
-      // 72 = 3 size × 2 surface × 4 slot at each of #2350's 3 insets: a flush text button is underlined too.
-      ok(at.length === 72 && bad.length === 0,
-        `#2324 ${def.id} text ${st}: every member's label is underlined, its size's link style (${at.length} of 72 members${bad.length ? `; ${bad.slice(0, 2).map((p) => `${planComponentName(p)} → ${labelOf(p).join(',')}`).join(' | ')}` : ''})`);
+      // 48 = 3 size × 2 surface × 4 slot at each of #2350's 2 insets: a flush text button is underlined too.
+      ok(at.length === 48 && bad.length === 0,
+        `#2324 ${def.id} text ${st}: every member's label is underlined, its size's link style (${at.length} of 48 members${bad.length ? `; ${bad.slice(0, 2).map((p) => `${planComponentName(p)} → ${labelOf(p).join(',')}`).join(' | ')}` : ''})`);
     }
     // 2. Filled and outline never are: their labels keep the plain style at every state.
     const others = set.filter((p) => axis(planComponentName(p), 'appearance') !== 'text');
@@ -28568,16 +28570,16 @@ arm: {
 }
 
 // ------------------------------------------------------------------- #2350: flush text buttons
-// Owner decisions on #2350 (Q143 items 1 and 2, and the correction to item 3): a TEXT button can drop its inline padding
-// on one side, `inset: flush-start | flush-end`, so its label lines up with the content edge; the hit target keeps its
-// floor; a flush button hovers by color only, even under "Text button hover: Fill"; filled and outline buttons, and icon
-// buttons, get no flush. Button, Destructive and Neutral alike. EXPECTED is typed here (the zero step's Figma name, the
-// distributions, the counts, the pinned reserves from the spacing model's comfortable steps), or read off the member's
-// own `inset=default` sibling, which the flush code never touches — never from the def's `flush` field (docs/34).
+// Owner decisions on #2350 (Q143 items 1 and 2, the correction to item 3, and Q145 A): a TEXT button can drop its inline
+// padding on BOTH sides, `inset: default | flush`, so its label lines up with the content edge whether it starts, ends or
+// centers a row; the hit target keeps its floor (the height is the default sibling's); a flush button hovers by color
+// only, even under "Text button hover: Fill"; filled and outline buttons, and icon buttons, get no flush. Button,
+// Destructive and Neutral alike. EXPECTED is typed here (the zero step's Figma name, the counts, the pinned reserves from
+// the spacing model's comfortable steps), or read off the member's own `inset=default` sibling, which the flush code
+// never touches — never from the def's `flush` field (docs/34).
 {
   const FAMILY = [button, buttonDestructive, buttonNeutral];
   const ZERO = 'space/0';
-  const JUSTIFY_AT: Record<string, string> = { default: 'CENTER', 'flush-start': 'MIN', 'flush-end': 'MAX' };
   // A hand resolver for `applyButtonLayout` (no brand): comfortable heights 36/44/56, icons 16/20/24, `space.N` = N% of 8px.
   const px = (ref: string): number | undefined => {
     const [head, a, b] = ref.split('.');
@@ -28587,39 +28589,39 @@ arm: {
     return undefined;
   };
   const axis = (name: string, a: string) => new RegExp(`(?:^|, )${a}=([\\w-]+)`).exec(name)?.[1] ?? '';
-  const siblingName = (name: string) => name.replace(/inset=flush-(start|end)/, 'inset=default');
+  const siblingName = (name: string) => name.replace(/inset=flush/, 'inset=default');
   for (const def of FAMILY) {
     const fam = def.id === 'button' ? 'primary' : def.id === 'button-destructive' ? 'destructive' : 'neutral';
     const set = figmaAnatomySet(applyButtonLayout(def, DEFAULT_BUTTON_LAYOUT, px));
     const byName = new Map(set.map((p) => [planComponentName(p), p]));
-    // 1. THE GRID. 720 members; the 288 flush ones are all text (2 sides × 3 size × 2 surface × 6 state × 4 slot), and
-    //    no filled or outline member is flush.
+    // 1. THE GRID. 576 members (432 before #2350); the 144 flush ones are all text (3 size × 2 surface × 6 state × 4
+    //    slot), and no filled or outline member is flush.
     const flush = set.filter((p) => axis(planComponentName(p), 'inset') !== 'default');
     const leaked = flush.filter((p) => axis(planComponentName(p), 'appearance') !== 'text');
-    ok(set.length === 720 && flush.length === 288 && leaked.length === 0,
-      `#2350 ${def.id}: flush is the text appearance's alone — 720 members, 288 flush, 0 filled or outline (${set.length}, ${flush.length}, ${leaked.length}${leaked.length ? `: ${planComponentName(leaked[0])}` : ''})`);
-    // 2. PER SIDE × SIZE: the flush side binds the zero step, the other side keeps its default sibling's binding, the row
-    //    distributes toward the flush side, and the hit box — the height and the minimum width — is the sibling's.
-    for (const side of ['flush-start', 'flush-end']) for (const size of ['small', 'medium', 'large']) {
-      const at = flush.filter((p) => axis(planComponentName(p), 'inset') === side && axis(planComponentName(p), 'size') === size);
+    ok(set.length === 576 && flush.length === 144 && leaked.length === 0,
+      `#2350 ${def.id}: flush is the text appearance's alone — 576 members, 144 flush, 0 filled or outline (${set.length}, ${flush.length}, ${leaked.length}${leaked.length ? `: ${planComponentName(leaked[0])}` : ''})`);
+    // 2. PER SIZE: both inline sides bind the zero step where the default sibling binds neither, the distribution and the
+    //    height are the sibling's (so the hit target keeps its floor), and the minimum width the sibling holds is gone,
+    //    so the button hugs its label and the label sits on both edges.
+    for (const size of ['small', 'medium', 'large']) {
+      const at = flush.filter((p) => axis(planComponentName(p), 'size') === size);
       const bad: string[] = [];
       for (const p of at) {
         const name = planComponentName(p);
         const sib = byName.get(siblingName(name));
         if (!sib) { bad.push(`${name}: no default sibling`); continue; }
-        const [flat, kept] = side === 'flush-start' ? ['paddingLeft', 'paddingRight'] : ['paddingRight', 'paddingLeft'];
-        if (p.root.bound[flat] !== ZERO) bad.push(`${name}: ${flat} ${p.root.bound[flat]}`);
-        if (sib.root.bound[flat] === ZERO) bad.push(`${name}: its default sibling is flush too`);
-        if (p.root.bound[kept] !== sib.root.bound[kept]) bad.push(`${name}: ${kept} ${p.root.bound[kept]} vs ${sib.root.bound[kept]}`);
-        if (p.root.primaryAxisAlignItems !== JUSTIFY_AT[side] || sib.root.primaryAxisAlignItems !== JUSTIFY_AT.default)
-          bad.push(`${name}: distributes ${p.root.primaryAxisAlignItems} (sibling ${sib.root.primaryAxisAlignItems})`);
+        for (const side of ['paddingLeft', 'paddingRight']) {
+          if (p.root.bound[side] !== ZERO) bad.push(`${name}: ${side} ${p.root.bound[side]}`);
+          if (sib.root.bound[side] === ZERO) bad.push(`${name}: its default sibling's ${side} is ${ZERO} too`);
+        }
+        if (p.root.primaryAxisAlignItems !== sib.root.primaryAxisAlignItems) bad.push(`${name}: distributes ${p.root.primaryAxisAlignItems} (sibling ${sib.root.primaryAxisAlignItems})`);
         if (p.root.bound.height !== sib.root.bound.height || !p.root.bound.height) bad.push(`${name}: height ${p.root.bound.height} vs ${sib.root.bound.height}`);
-        if (p.root.minWidth !== sib.root.minWidth || !(Number(p.root.minWidth) > 0)) bad.push(`${name}: minWidth ${p.root.minWidth} vs ${sib.root.minWidth}`);
+        if (p.root.minWidth !== undefined || !(Number(sib.root.minWidth) > 0)) bad.push(`${name}: minWidth ${p.root.minWidth} (sibling ${sib.root.minWidth})`);
       }
       ok(at.length === 48 && bad.length === 0,
-        `#2350 ${def.id} ${side} ${size}: the flush side binds ${ZERO}, the other keeps its padding, the row sits toward the flush side, and the height and minimum width are the default sibling's (${at.length} of 48${bad.length ? `; ${bad.slice(0, 2).join(' | ')}` : ''})`);
+        `#2350 ${def.id} flush ${size}: both sides bind ${ZERO}, the button hugs its label with no minimum width, and the height and distribution are the default sibling's (${at.length} of 48${bad.length ? `; ${bad.slice(0, 2).join(' | ')}` : ''})`);
     }
-    // 3. HOVER: under "Fill", a flush member is never filled at any state, while its default sibling takes the wash on
+  // 3. HOVER: under "Fill", a flush member is never filled at any state, while its default sibling takes the wash on
     //    hover and pressed (so the arm is not passing over a brand with no wash). Its ink still steps.
     const fillSet = figmaAnatomySet(applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, textHover: 'fill' }, px));
     const fillByName = new Map(fillSet.map((p) => [planComponentName(p), p]));
@@ -28640,46 +28642,43 @@ arm: {
       const ink = (q: AnatomyPlan) => q.root.children.find((c) => c.name === 'label')?.paints?.fills;
       if (!ink(p) || ink(p) !== ink(sib)) stillInk.push(`${name} ink ${ink(p)} vs ${ink(sib)}`);
     }
-    ok(filledFlush.length === 0 && hovered === 96,
-      `#2350 ${def.id}: under "Fill" no flush member is filled at any state (${filledFlush.length} filled, ${hovered} of 96 flush hover/pressed members looked at${filledFlush.length ? `: ${filledFlush.slice(0, 2).join(' | ')}` : ''})`);
+    ok(filledFlush.length === 0 && hovered === 48,
+      `#2350 ${def.id}: under "Fill" no flush member is filled at any state (${filledFlush.length} filled, ${hovered} of 48 flush hover/pressed members looked at${filledFlush.length ? `: ${filledFlush.slice(0, 2).join(' | ')}` : ''})`);
     ok(washless.length === 0 && stillInk.length === 0,
       `#2350 ${def.id}: under "Fill" each flush member's default sibling takes color/interactive/${fam}/overlay/{hover,pressed}, and the flush member's label ink is the sibling's (${washless.length + stillInk.length}${washless.length + stillInk.length ? `: ${[...washless, ...stillInk].slice(0, 2).join(' | ')}` : ''})`);
-    // 4. "LOCKED TO EDGES": a pinned icon on the flush side sits at the edge, and its side reserves the icon and the gap
-    //    only; the far side keeps the visual padding in its reserve. Comfortable steps (`button-spacing.ts`): small
-    //    12 + 16 + 8, medium 12 + 20 + 8, large 16 + 24 + 12.
-    const RESERVE: Record<string, number> = { small: 36, medium: 40, large: 52 };
-    const INSET: Record<string, number> = { small: 12, medium: 12, large: 16 };
+    // 4. "LOCKED TO EDGES": both pinned icons sit at the edge, and each side reserves the icon and the gap only.
+    //    Comfortable steps (`button-spacing.ts`): small 12 + 16 + 8, medium 12 + 20 + 8, large 16 + 24 + 12, less the
+    //    12/12/16 inset a flush button does not have.
+    const RESERVE: Record<string, number> = { small: 24, medium: 28, large: 36 };
     const edgeSet = figmaAnatomySet(applyButtonLayout(def, { ...DEFAULT_BUTTON_LAYOUT, icons: 'edges' }, px));
     const pinBad: string[] = [];
     let pinned = 0;
     for (const p of edgeSet) {
       const name = planComponentName(p);
-      const side = axis(name, 'inset');
-      if (side === 'default' || axis(name, 'leading icon') !== 'true' || axis(name, 'trailing icon') !== 'true' || axis(name, 'state') !== 'rest') continue;
+      if (axis(name, 'inset') === 'default' || axis(name, 'leading icon') !== 'true' || axis(name, 'trailing icon') !== 'true' || axis(name, 'state') !== 'rest') continue;
       pinned++;
       const size = axis(name, 'size');
       const pinOf = (part: string) => p.root.children.find((c) => c.name === part)?.pin;
-      const [flatPart, keptPart, flatPad, keptPad] = side === 'flush-start'
-        ? ['leadingVisual', 'trailingVisual', 'paddingLeft', 'paddingRight'] as const
-        : ['trailingVisual', 'leadingVisual', 'paddingRight', 'paddingLeft'] as const;
-      if (pinOf(flatPart)?.inset !== 0) pinBad.push(`${name}: ${flatPart} pinned at ${pinOf(flatPart)?.inset}`);
-      if (pinOf(keptPart)?.inset !== INSET[size]) pinBad.push(`${name}: ${keptPart} pinned at ${pinOf(keptPart)?.inset}`);
-      if (p.root.paddingPx?.[flatPad] !== RESERVE[size] - INSET[size]) pinBad.push(`${name}: ${flatPad} reserves ${p.root.paddingPx?.[flatPad]}`);
-      if (p.root.paddingPx?.[keptPad] !== RESERVE[size]) pinBad.push(`${name}: ${keptPad} reserves ${p.root.paddingPx?.[keptPad]}`);
+      for (const [part, pad] of [['leadingVisual', 'paddingLeft'], ['trailingVisual', 'paddingRight']] as const) {
+        if (pinOf(part)?.inset !== 0) pinBad.push(`${name}: ${part} pinned at ${pinOf(part)?.inset}`);
+        if (p.root.paddingPx?.[pad] !== RESERVE[size]) pinBad.push(`${name}: ${pad} reserves ${p.root.paddingPx?.[pad]}`);
+      }
     }
-    ok(pinned === 12 && pinBad.length === 0,
-      `#2350 ${def.id}: under "Locked to edges" the flush side's icon sits at the edge and reserves the icon and gap only (${pinned} of 12 members${pinBad.length ? `; ${pinBad.slice(0, 2).join(' | ')}` : ''})`);
+    ok(pinned === 6 && pinBad.length === 0,
+      `#2350 ${def.id}: under "Locked to edges" both icons of a flush button sit at the edge and reserve the icon and gap only (${pinned} of 6 members${pinBad.length ? `; ${pinBad.slice(0, 2).join(' | ')}` : ''})`);
   }
-  // 5. THE SCHEMA REFUSES A FLUSH THAT WOULD FLUSH NOTHING, each by name.
+  // 5. THE SCHEMA REFUSES A FLUSH THAT WOULD FLUSH NOTHING, OR EVERYTHING, each by name.
   const root = button.anatomy!.root;
   const withFlush = (f: Record<string, string>) => validateComponentDef({ ...button, anatomy: { ...button.anatomy!, parts: { ...button.anatomy!.parts, [root]: { ...button.anatomy!.parts[root], flush: f } } } } as ComponentDef).errors;
-  ok(withFlush({ axis: 'tone', start: 'flush-start', end: 'flush-end', key: 'inset.flush' }).some((x) => /flushes on 'tone', which is not one of this def's variant axes/.test(x)),
+  ok(withFlush({ axis: 'tone', value: 'flush', key: 'inset.flush' }).some((x) => /flushes on 'tone', which is not one of this def's variant axes/.test(x)),
     '#2350 schema: a flush axis the def does not declare is refused by name');
-  ok(withFlush({ axis: 'inset', start: 'flush-left', end: 'flush-end', key: 'inset.flush' }).some((x) => /flushes start at 'inset=flush-left', which is not a value of that axis/.test(x)),
+  ok(withFlush({ axis: 'inset', value: 'flush-start', key: 'inset.flush' }).some((x) => /flushes at 'inset=flush-start', which is not a value of that axis/.test(x)),
     '#2350 schema: a flush value the axis does not declare is refused by name');
-  ok(withFlush({ axis: 'inset', start: 'flush-start', end: 'flush-end', key: 'inset.none' }).some((x) => /binding key 'inset\.none' is not a slot in tokens/.test(x)),
+  ok(withFlush({ axis: 'inset', value: 'default', key: 'inset.flush' }).some((x) => /flushes at 'inset=default', the axis's first value/.test(x)),
+    '#2350 schema: flushing at the axis\'s default value is refused by name');
+  ok(withFlush({ axis: 'inset', value: 'flush', key: 'inset.none' }).some((x) => /binding key 'inset\.none' is not a slot in tokens/.test(x)),
     '#2350 schema: an unbound flush key is refused by name');
-  ok(withFlush({ axis: 'inset', start: 'flush-start', end: 'flush-end', key: 'inset.flush' }).length === 0,
+  ok(withFlush({ axis: 'inset', value: 'flush', key: 'inset.flush' }).length === 0,
     '#2350 schema: the button\'s own flush validates clean');
   // 6. ICON BUTTONS GET NO FLUSH (the correction to Q143 item 3): no icon-button def declares the axis.
   const iconFlush = componentDefs.filter((d) => d.id.startsWith('icon-button') && 'inset' in (d.variants ?? {})).map((d) => d.id);

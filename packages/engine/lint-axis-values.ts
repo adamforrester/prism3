@@ -587,16 +587,17 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   },
   {
     axis: 'inset',
-    values: ['default', 'flush-start', 'flush-end'],
+    values: ['default', 'flush'],
     defs: ['button', 'button-destructive', 'button-neutral'],
     relation: 'sole',
     reason:
-      'A text button\'s FLUSH SIDE (#2350, owner Q143, name and values DRAFT) — the button as authored, or '
-      + 'with no inline padding at its start or its end, so its label lines up with the content edge above '
-      + 'and below. `default` LEADS because it is the code default and every member before #2350. `start`/'
-      + '`end` are logical sides, so the flush follows the reading direction under RTL. The text appearance '
-      + 'only (`excludeCoordinates`). Distinct from `width` (how much of the container it takes) and '
-      + '`offset` (a nested part\'s displacement) — this is which side has no padding, argued in `VARIANT_AXES`.',
+      'Whether a text button keeps its inline padding (#2350, owner Q143 and Q145 A, name and values DRAFT): '
+      + 'the button as authored, or with no inline padding on either side, so its label lines up with the '
+      + 'content edge above and below whether it starts, ends or centers a row. `default` LEADS because it is '
+      + 'the code default and every member before #2350. One value, not one per side: a flush button has no '
+      + 'visible box, so the side it is not aligned to shows nothing either way. The text appearance only '
+      + '(`excludeCoordinates`). Distinct from `width` (how much of the container it takes) and `offset` (a '
+      + 'nested part\'s displacement) — this is whether the control has inline padding, argued in `VARIANT_AXES`.',
   },
 ];
 

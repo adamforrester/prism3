@@ -172,7 +172,7 @@ const setValue = (name: string, axis: string, value: string): string =>
 console.log('update dry run + as-built baseline (#2265) — against the in-memory shim\n');
 
 // The subject is TAG: 45 members on four axes, small enough to rebuild per case, with nested frames and
-// bindings on every level. BUTTON, the 720-member set (432 before #2350's flush text members), runs at full size.
+// bindings on every level. BUTTON, the 576-member set (432 before #2350's flush text members), runs at full size.
 const TAG = 'tag';
 
 /* ── fresh ───────────────────────────────────────────────────────────────────────────────────────────── */
@@ -180,19 +180,19 @@ section('fresh — a set the executor just built reads current, every member car
 {
   const b = await build('button');
   const view = await readSetView(b.set as any);
-  ok(view.members.length === 720 && view.others.length === 0, `fresh/read: 720 coordinate members read, none set aside (${view.members.length}, ${view.others.length})`);
+  ok(view.members.length === 576 && view.others.length === 0, `fresh/read: 576 coordinate members read, none set aside (${view.members.length}, ${view.others.length})`);
   ok(view.members.every((m) => m.baseline !== null && Object.keys(m.baseline.nodes).length >= 2),
     `fresh/baseline: every member carries an as-built record with its nodes (${view.members.filter((m) => m.baseline).length} of ${view.members.length})`);
   ok(view.members.every((m) => m.stamp.split('|').length === 3), 'fresh/stamp: every stamp has its three fields');
   const p = dryRunSet('button', b.plans, view, b.ports);
-  ok(p.counts.current === 720 && p.counts.update + p.counts.handEdited + p.counts.noBaseline + p.counts.add + p.counts.drop === 0 && !p.blockers.length,
-    `fresh/current: all 720 current, nothing to add, drop or update (${JSON.stringify(p.counts)})`);
+  ok(p.counts.current === 576 && p.counts.update + p.counts.handEdited + p.counts.noBaseline + p.counts.add + p.counts.drop === 0 && !p.blockers.length,
+    `fresh/current: all 576 current, nothing to add, drop or update (${JSON.stringify(p.counts)})`);
   ok(Object.values(p.properties).every((l) => l.length === 0), `fresh/properties: the set's properties are as planned (${JSON.stringify(p.properties).slice(0, 120)})`);
   ok(p.needsChoice.length === 0 && /^✓ All sets up to date$/.test(previewVerdict({ sets: [p], missing: [], refused: [] }).headline), 'fresh/verdict: up to date, nothing to choose');
 }
 
 /* ── #2350: a new axis on an existing set ─────────────────────────────────────────────────────────────── */
-section('#2350 inset — a Button set built before the flush axis renames its 432 members onto inset=default and adds 288');
+section('#2350 inset — a Button set built before the flush axis renames its 432 members onto inset=default and adds 144');
 {
   // The set as it was before #2350: the same def with the axis, its exclusion and the container's `flush` taken off.
   const def = defOf('button');
@@ -212,9 +212,9 @@ section('#2350 inset — a Button set built before the flush axis renames its 43
   ok(view.members.length === 432 && view.members.every((m) => !/inset=/.test(m.name)), `#2350 premise: the old set has 432 members and no inset axis (${view.members.length})`);
   const p = dryRunSet('button', plansOf('button'), view, old.ports);
   // Expected, by hand: every old member lands on `inset=default` (the first plan's value), and the flush text members
-  // are new — 2 sides × 3 size × 2 surface × 6 state × 4 slot = 288. Nothing is dropped or collapsed.
-  ok(p.counts.rename === 432 && p.counts.add === 288 && p.counts.drop === 0 && !p.blockers.length && !p.needsChoice.includes('axisCollapse'),
-    `#2350 dry run: 432 renamed, 288 added, 0 dropped, no blocker (${JSON.stringify({ rename: p.counts.rename, add: p.counts.add, drop: p.counts.drop, blockers: p.blockers.length })})`);
+  // are new — 3 size × 2 surface × 6 state × 4 slot = 144. Nothing is dropped or collapsed.
+  ok(p.counts.rename === 432 && p.counts.add === 144 && p.counts.drop === 0 && !p.blockers.length && !p.needsChoice.includes('axisCollapse'),
+    `#2350 dry run: 432 renamed, 144 added, 0 dropped, no blocker (${JSON.stringify({ rename: p.counts.rename, add: p.counts.add, drop: p.counts.drop, blockers: p.blockers.length })})`);
   const notJustInset = p.renames.filter((r) => r.from.replace(/(surface=[\w-]+)/, '$1, inset=default') !== r.to);
   ok(p.renames.length === 432 && notJustInset.length === 0,
     `#2350 dry run: each rename is the old name with inset=default added after its surface (${notJustInset.length}${notJustInset.length ? `: ${notJustInset[0].from} → ${notJustInset[0].to}` : ''})`);

@@ -1451,21 +1451,17 @@ export const figmaAnatomyPlan = (
     return px;
   };
   const parentOf = parentsOf(def);
-  // THE SIDE A BOX IS FLUSH ON at this coordinate (#2350), or undefined: its `flush.axis` holds `start` or `end`.
-  // A coordinate that does not give the axis is the box as authored, the conservative reading `positionOf` takes.
-  const flushSideOf = (p: PartDef | undefined): 'start' | 'end' | undefined => {
-    if (!p?.flush) return undefined;
-    const v = axisValue(p.flush.axis);
-    return v === p.flush.start ? 'start' : v === p.flush.end ? 'end' : undefined;
-  };
+  // IS THIS BOX FLUSH at this coordinate (#2350): its `flush.axis` holds `flush.value`. A coordinate that does not
+  // give the axis is the box as authored, the conservative reading `positionOf` takes.
+  const isFlush = (p: PartDef | undefined): boolean => !!p?.flush && axisValue(p.flush.axis) === p.flush.value;
   // The pin a node carries (#1667): its own when it is a pinned part (only ever projected when present),
-  // or the replaced cell's when it is the overlay that took that cell. On its parent's flush side (#2350) it
-  // sits AT the edge: the inset it was pinned at was that side's padding, and the flush side has none.
+  // or the replaced cell's when it is the overlay that took that cell. In a flush parent (#2350) it sits AT
+  // the edge: the inset it was pinned at was that side's padding, and a flush box has none.
   const pinOf = (name: string): FigmaNodePlan['pin'] => {
     const from = activeOverlay && name === activeOverlay[0] && replacedByOverlay ? replacedByOverlay : name;
     const pin = a.parts[from]?.pin;
     if (!pin) return undefined;
-    const flushed = flushSideOf(a.parts[parentOf.get(from) ?? '']) === pin.edge;
+    const flushed = isFlush(a.parts[parentOf.get(from) ?? '']);
     return { edge: pin.edge === 'start' ? 'MIN' : 'MAX', inset: flushed ? 0 : perSize(from, 'pin inset', pin.inset) };
   };
   const node = (name: string, p: PartDef): FigmaNodePlan => {
@@ -1555,17 +1551,16 @@ export const figmaAnatomyPlan = (
           if (!pin || !slotPresent(c)) continue;
           const side = pin.edge === 'start' ? 'paddingLeft' : 'paddingRight';
           delete bound[side];
-          // On the flush side (#2350) the reserve drops the inset the icon is no longer pinned at (`pinOf`).
-          paddingPx[side] = perSize(c, 'pin reserve', pin.reserve) - (flushSideOf(p) === pin.edge ? perSize(c, 'pin inset', pin.inset) : 0);
+          // In a flush box (#2350) the reserve drops the inset the icon is no longer pinned at (`pinOf`).
+          paddingPx[side] = perSize(c, 'pin reserve', pin.reserve) - (isFlush(p) ? perSize(c, 'pin inset', pin.inset) : 0);
         }
-        // THE FLUSH SIDE (#2350): its padding binds the def's zero step instead of the label or visual inset, so
-        // the content sits on the edge it shares with the content around it. A pinned cell on that side already
-        // took its reserve above, less the inset, and keeps it: the reserve holds the icon's room, not padding.
-        const flush = flushSideOf(p);
-        if (flush) {
-          const side = flush === 'start' ? 'paddingLeft' : 'paddingRight';
-          if (paddingPx[side] === undefined) bound[side] = varOf(p.flush!.key);
-        }
+        // FLUSH (#2350, owner Q145 A): both inline paddings bind the def's zero step instead of the label or
+        // visual inset, so the content sits on whichever edge it shares with the content around it. A pinned
+        // cell's side already took its reserve above, less the inset, and keeps it: the reserve holds the icon's
+        // room, not padding.
+        if (isFlush(p))
+          for (const side of ['paddingLeft', 'paddingRight'] as const)
+            if (paddingPx[side] === undefined) bound[side] = varOf(p.flush!.key);
       }
     } else if (p.kind === 'absolute') {
       // NOTHING in `bound`, deliberately. An absolute part's geometry is its position and its size, and
@@ -1639,9 +1634,9 @@ export const figmaAnatomyPlan = (
       let fill: string | undefined;
       for (const slot of declared) {
         if (slot === 'border') continue; // the one EDGE slot — it reaches `strokes`, never `fills`
-        // A FLUSH box paints no wash (#2350, owner Q143 item 2): with no padding on one side it would hug the
-        // content there, so a flush text button hovers by color only, under "Fill" too.
-        if (slot === 'overlay' && flushSideOf(p)) continue;
+        // A FLUSH box paints no wash (#2350, owner Q143 item 2): with no padding it would hug the content, so a
+        // flush text button hovers by color only, under "Fill" too.
+        if (slot === 'overlay' && isFlush(p)) continue;
         fill = paintOf(slot);
         if (fill) break;
       }
@@ -1771,7 +1766,9 @@ export const figmaAnatomyPlan = (
       ...(p.kind === 'box' && name === a.root && p.placementWidth !== undefined ? { placementWidth: p.placementWidth } : {}),
       // The auto-layout width floor (#1343a, #1345), carried ONLY when the def sets it so every other
       // box's plan is byte-identical — a literal px the def states, not a bound token (`PartDef.minWidth`).
-      ...(p.kind === 'box' && p.minWidth !== undefined ? { minWidth: minWidthAt(name, p.minWidth) } : {}),
+      // A FLUSH box (#2350) has none: it hugs its content, so a floor wider than the label never leaves slack
+      // between the label and the edge it aligns to. Its height, and so its hit target, is unchanged.
+      ...(p.kind === 'box' && p.minWidth !== undefined && !isFlush(p) ? { minWidth: minWidthAt(name, p.minWidth) } : {}),
       // THE RESERVED SIDES (#1667), computed with the padding above — see `paddingPx`.
       ...(Object.keys(paddingPx).length ? { paddingPx } : {}),
       // THE PIN (#1667), on a filled pinned slot, or on the overlay that took a pinned cell — the spinner
@@ -1878,9 +1875,7 @@ export const figmaAnatomyPlan = (
             // A traveling child's declared position OVERRIDES the parent's own justify at this
             // coordinate (#990) — see `positionOf`. Absent one, the def's justify is projected unchanged,
             // so every existing plan is byte-identical.
-            // A FLUSH box (#2350) distributes toward its flush side, so a floor wider than the content leaves
-            // the slack on the far side instead of centering the content away from the edge.
-            primaryAxisAlignItems: JUSTIFY[positionOf(childNames) ?? flushSideOf(p) ?? p.layout.justify],
+            primaryAxisAlignItems: JUSTIFY[positionOf(childNames) ?? p.layout.justify],
             counterAxisAlignItems: ALIGN[p.layout.align],
             // BY DIRECTION (#1751): a row's primary axis is its width and a column's is its height, so the
             // modes are read off the axis each one names — not `x` then `y`, which swapped every column's.
