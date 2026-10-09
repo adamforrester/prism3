@@ -97,6 +97,21 @@ item. It keeps body's line height, so it sits on the body rhythm. Never use it f
 text; that starts at `type.body.sm.*`. Caption lg is small print that stands on its own (an
 image caption, helper text, a footnote) at caption's tighter line height.
 
+**Strikethrough is a modifier, not a style.** Prism3 has no strikethrough text style, so don't
+look for one or invent one (rule 1). A struck run, such as a was-price beside a sale price, uses
+the same `type.*` composite as the text around it, with `text-decoration-line: line-through` on
+top. In Figma that's a strikethrough override on the applied style, which the dev specs show as
+"Text decoration: Strikethrough". The line alone says nothing to a screen reader, and most don't
+announce `<del>` or `<s>`, so put the meaning in visually hidden text:
+
+```html
+<del><span class="visually-hidden">Original price: </span>$69.99</del>
+<ins><span class="visually-hidden">Sale price: </span>$55.99</ins>
+```
+
+Translate the hidden words with the rest of the page. Struck text is still content, so it still
+needs 4.5:1 against its surface.
+
 **A field's label sits one body step below its input.** Text field, select and textarea share
 one `size`: `small` is a 12px label over a 14px input, `medium` (the default) 14 over 16, and
 `large` 16 over 18. The message below stays 11px at every size. `small` is for fine pointers
