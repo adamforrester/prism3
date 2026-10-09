@@ -33,8 +33,9 @@
  *
  * ── THE DEFAULTS FOLLOW THE HOSTS (#1699 decision 4, owner-delegated) ────────────────────────────
  *
- * `required: false`, `size: small`, `emphasis: secondary` — the configuration every host already nests
- * (select, text-field and textarea at small / secondary; the two groups at secondary), and a host's own
+ * `required: false`, `size: small`, `emphasis: secondary` — the configuration the hosts nested at #1699
+ * (select, text-field and textarea at small / secondary; the two groups at secondary; since #2266 every host
+ * passes its own size through, so the size default is only the standalone label's), and a host's own
  * `required` prop defaults false. The code defaults and the Figma set's default member now agree: the
  * `emphasis` values are ordered `[secondary, primary]` so the set's FIRST member (Figma's default variant
  * is the set's first child) is small / secondary / regular / rest, and the `required` boolean builds the
@@ -65,7 +66,7 @@ export const fieldLabel: ComponentDef = {
     // beside the label; OFF — the default since #1699 — hides it. Direct mapping — the prop's default is the
     // marker's BUILT visibility, so no inverted-boolean mechanism is needed (see `figmaProperties`).
     { name: 'required', type: 'boolean', default: false, required: false, description: 'Whether the field is required. ON shows the marker beside the label; OFF, the default, hides it — the host\'s own `required` prop defaults off too. Never the sole signal: the field also carries required / aria-required, so the state is not marker-only.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'small', required: false, description: 'Three steps. Scales the TYPE (`type.body.{sm,md,lg}` = 14/16/18px), not padding alone. `small`, the default, is what every field host nests. The two groups pass their own size through; select, text-field and textarea each project one size and nest the `small` label.' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'small', required: false, description: 'Three steps. Scales the TYPE (`type.body.{xs,sm,md}` = 12/14/16px), not padding alone, one body step below the input of the same field size. Every field host passes its own size through, so a small field nests the small label. `small`, the default, is the 12px label.' },
     { name: 'emphasis', type: "enum: 'secondary' | 'primary'", values: ['secondary', 'primary'], default: 'secondary', required: false, description: 'The label\'s ink. `secondary`, the default, is the de-emphasized label every field host nests; `primary` is the full-strength ink for a label that has to lead. Semantic ROLES, never shades — `color.text.{primary,secondary}` — so a brand changing its text palette carries this without the def moving.' },
     { name: 'weight', type: "enum: 'regular' | 'bold'", values: ['regular', 'bold'], default: 'regular', required: false, description: 'How heavy the label reads. These are intents, not role names: `regular` resolves the brand\'s default body weight, `bold` the heaviest body weight the brand ships — Bold (700) on a brand that ships it, Medium (500) where that is its heaviest body cut. Use it for a label that has to carry a section, not for emphasis inside a form — a form where every label is bold has no emphasis in it.' },
     // #1339 — DISABLED IS A STATE, NOT A PROP. The old `disabled` boolean prop duplicated the `disabled`
@@ -229,12 +230,18 @@ export const fieldLabel: ComponentDef = {
     // and `{size: Large, weight: Bold}` variants are authored and carry 16px/Bold and 18px/Bold. Six
     // keys, and every one of them is reachable — `lint-paint`'s grid census and the projected member
     // set both go 3 → 6.
-    'size.small.regular.text': 'type.body.sm.default',
-    'size.medium.regular.text': 'type.body.md.default',
-    'size.large.regular.text': 'type.body.lg.default',
-    'size.small.bold.text': 'type.body.sm.strong',
-    'size.medium.bold.text': 'type.body.md.strong',
-    'size.large.bold.text': 'type.body.lg.strong',
+    //
+    // RE-LADDERED TO 12 / 14 / 16 (#2266, owner decisions Q84 A and Q101 A): ONE FIELD SIZING SYSTEM. Each
+    // label size sits exactly one body step below the input of the same field size (small 12 over a 14 input,
+    // medium 14 over 16, large 16 over 18), so `small` → `body.xs`, `medium` → `body.sm`, `large` → `body.md`.
+    // A medium field reproduces the old default exactly (a 14 label over a 16 input); a standalone default
+    // (`small`) label moved from 14 to 12 (Q1). Prism 2's 14/16/18 ladder above is the history, no longer the match.
+    'size.small.regular.text': 'type.body.xs.default',
+    'size.medium.regular.text': 'type.body.sm.default',
+    'size.large.regular.text': 'type.body.md.default',
+    'size.small.bold.text': 'type.body.xs.strong',
+    'size.medium.bold.text': 'type.body.sm.strong',
+    'size.large.bold.text': 'type.body.md.strong',
   },
 
   // TWO TEXT NODES IN A ROW, and the def's whole structure is that plus the gap between them. The

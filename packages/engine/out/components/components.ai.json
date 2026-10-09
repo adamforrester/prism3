@@ -1888,7 +1888,7 @@
             "medium",
             "large"
           ],
-          "description": "Three steps. Scales the TYPE (`type.body.{sm,md,lg}` = 14/16/18px), not padding alone. `small`, the default, is what every field host nests. The two groups pass their own size through; select, text-field and textarea each project one size and nest the `small` label."
+          "description": "Three steps. Scales the TYPE (`type.body.{xs,sm,md}` = 12/14/16px), not padding alone, one body step below the input of the same field size. Every field host passes its own size through, so a small field nests the small label. `small`, the default, is the 12px label."
         },
         {
           "name": "emphasis",
@@ -2316,7 +2316,7 @@
             "medium",
             "large"
           ],
-          "description": "Three tiers (height + padding). A single bordered (outline) style; filled/underline are theming, not API."
+          "description": "Three tiers that scale the input type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small input to 16px, because iOS Safari zooms the page when it focuses an input under 16px. A single bordered (outline) style; filled/underline are theming, not API."
         },
         {
           "name": "id",
@@ -2342,6 +2342,14 @@
         "empty"
       ],
       "variants": {
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "authoring"
+        },
         "style": {
           "values": [
             "outline"
@@ -2378,7 +2386,7 @@
         "emptyPattern": "The empty state is the label plus an optional placeholder — there is no separate empty UI."
       },
       "docs": {
-        "usage": "Use for free-form, non-enumerable single-line input — names, titles, SKUs, identifiers, short queries. Always render a visible label; show the format in helper text before failure; keep validation timing with the form library. The field nests FieldLabel above and FieldMessage below; the host wires the ids and aria-describedby chain.",
+        "usage": "Use for free-form, non-enumerable single-line input — names, titles, SKUs, identifiers, short queries. Always render a visible label; show the format in helper text before failure; keep validation timing with the form library. The field nests FieldLabel above and FieldMessage below; the host wires the ids and aria-describedby chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small input renders at 16px, because a smaller input makes iOS zoom the page on focus.",
         "do": [
           "Always render a visible, associated label (FieldLabel) — visually-hidden only for search",
           "Distinguish readOnly (copyable, submitted, full-contrast) from disabled (silent, exempt)",
@@ -2572,7 +2580,7 @@
             "medium",
             "large"
           ],
-          "description": "Scales type and padding ONLY — height belongs to rows / auto-grow, so the substrate's height tiers do not transfer."
+          "description": "Scales the value type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. NOT the height: that belongs to rows / auto-grow, so the reserved rows grow with the type's line height. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small textarea to 16px, because iOS Safari zooms the page when it focuses a field under 16px. The same prop, with the same values, as TextField and Select."
         }
       ],
       "states": [
@@ -2586,6 +2594,14 @@
         "empty"
       ],
       "variants": {
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "authoring"
+        },
         "style": {
           "values": [
             "outline"
@@ -2623,7 +2639,7 @@
         "emptyPattern": "Label plus an optional placeholder. The placeholder may model the expected SHAPE (\"Describe the issue, including steps to reproduce\") but still vanishes on the first keystroke — and the recall cost is higher here than on a single-line field, because a user may write several paragraphs, tab away, and come back to a prompt that is long gone. Nothing load-bearing lives in it."
       },
       "docs": {
-        "usage": "Use for free-form text expected to exceed one line — comments, descriptions, messages, feedback, multi-line addresses. Pick the sizing model by context: fixed-height-plus-scroll for a field inside a long form (so the form does not reflow as the user types), auto-grow for a composer (so the message box follows the message). Right-size the initial rows to the expected input. Compose FieldLabel above and FieldMessage below exactly as TextField does; the host wires the ids and the aria-describedby chain.",
+        "usage": "Use for free-form text expected to exceed one line — comments, descriptions, messages, feedback, multi-line addresses. Pick the sizing model by context: fixed-height-plus-scroll for a field inside a long form (so the form does not reflow as the user types), auto-grow for a composer (so the message box follows the message). Right-size the initial rows to the expected input. Compose FieldLabel above and FieldMessage below exactly as TextField does; the host wires the ids and the aria-describedby chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small field renders at 16px, because a smaller field makes iOS zoom the page on focus.",
         "do": [
           "Set maxRows whenever auto-growing — uncapped growth pushes the submit affordance off-screen on a long paste",
           "Enforce a character limit softly (allow over, flag invalid, block submit) and count by grapheme, not by string length",
@@ -4126,6 +4142,18 @@
           "type": "string",
           "required": false,
           "description": "A real control name so the field works uncontrolled, in a native form, and with Server Actions."
+        },
+        {
+          "name": "size",
+          "type": "enum: 'small' | 'medium' | 'large'",
+          "default": "medium",
+          "required": false,
+          "values": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "description": "Three tiers that scale the value type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small control to 16px, because iOS Safari zooms the page when it focuses a control under 16px. The same prop, with the same values, as TextField and Textarea."
         }
       ],
       "states": [
@@ -4139,6 +4167,14 @@
         "empty"
       ],
       "variants": {
+        "size": {
+          "values": [
+            "medium",
+            "small",
+            "large"
+          ],
+          "kind": "authoring"
+        },
         "status": {
           "values": [
             "default",
@@ -4167,7 +4203,7 @@
         "errorPattern": "What is wrong AND how to fix it (SC 3.3.3); icon + text, not color-only (carried by the nested field-message)."
       },
       "docs": {
-        "usage": "Use to choose ONE value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage's status from the validation state. The open menu is the platform's — prefer a native <select> where its OS menu is acceptable. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group.",
+        "usage": "Use to choose ONE value from a known, bounded set where the options are not worth showing all at once. Always render a visible label (the nested FieldLabel); show the constraint in helper text before failure; drive the nested FieldMessage's status from the validation state. The open menu is the platform's — prefer a native <select> where its OS menu is acceptable. The select band is roughly 5–15 familiar options: at 4–5 or fewer an always-visible Radio.Group reads better, and past about 15 a filtering combobox (not built yet) scans better. One value only; for several, use a Checkbox.Group. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small control renders at 16px, because a smaller control makes iOS zoom the page on focus.",
         "do": [
           "Render a visible, associated label (FieldLabel) above the control",
           "Show a muted placeholder as a prompt, never as the label or a real option",

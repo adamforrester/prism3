@@ -220,13 +220,17 @@ const ICON_OFFSET_DEFS: Record<string, string> = {
  */
 const OFFSET_DEFAULT_RUNG = RUNG_ORDER[RUNG_ORDER.indexOf(DEFAULT_RUNG) - 1];
 
+/** Two rungs below `md` — `field-label`'s small label since #2266 (12px, `body.xs`), by the same rule-not-binding
+ *  derivation as `OFFSET_DEFAULT_RUNG`. Today this is `xs`. */
+const LABEL_DEFAULT_RUNG = RUNG_ORDER[RUNG_ORDER.indexOf(DEFAULT_RUNG) - 2];
+
 /**
  * THE OWNER-SANCTIONED HOST-ALIGNED DEFAULT (#1699 decision 4, owner-delegated 2026-09-27). A NESTED PART
- * whose default follows the configuration every host nests it at, rather than `md`. `field-label` is the
- * one instance: select, text-field and textarea each nest the `small` label, so its code default is
- * `small` and the set's first member (the Figma default) is the small one. Keyed by def id → the reason;
- * EVERY tier family on a listed def is expected at `OFFSET_DEFAULT_RUNG` (one rung below `md`), because
- * the label's only sized families are its two type weights and both move with the size.
+ * whose default is not `md`. `field-label` is the one instance: its code default is `small` and the set's
+ * first member (the Figma default) is the small one (#1699). Since #2266 (the field sizing system, owner
+ * decisions Q84 A / Q101 A) the label sits one body step BELOW the input of its field size, so `small` is
+ * 12px, `body.xs`: EVERY tier family on a listed def is expected at `LABEL_DEFAULT_RUNG` (two rungs below
+ * `md`), because the label's only sized families are its two type weights and both move with the size.
  *
  * Same shape as ICON_OFFSET_DEFS, and the same guarantees: the expectation is the RULE (`md` minus one),
  * never the def's own binding, so a revert to `medium` (→ `md`) and a slip to any other rung both fail
@@ -234,12 +238,12 @@ const OFFSET_DEFAULT_RUNG = RUNG_ORDER[RUNG_ORDER.indexOf(DEFAULT_RUNG) - 1];
  * its default).
  */
 const HOST_DEFAULT_DEFS: Record<string, string> = {
-  'field-label': 'a nested field part: every host nests the small label (select, text-field and textarea project one size and nest `small`), so the default follows the hosts (#1699 decision 4)',
+  'field-label': 'a nested field part whose default is the small label (#1699 decision 4), and the small label is 12px since the field sizing system put each label one body step below its field\'s input (#2266) — every host now passes its own size through',
 };
 
 /** The default rung EXPECTED for one (def, tier family): the sanctioned offset where listed, else `md`. */
 const expectedDefaultRung = (defId: string, family: string): string =>
-  ICON_OFFSET_DEFS[defId] === family || defId in HOST_DEFAULT_DEFS ? OFFSET_DEFAULT_RUNG : DEFAULT_RUNG;
+  defId in HOST_DEFAULT_DEFS ? LABEL_DEFAULT_RUNG : ICON_OFFSET_DEFS[defId] === family ? OFFSET_DEFAULT_RUNG : DEFAULT_RUNG;
 
 /**
  * DEFS WITH NO SIZE AXIS, admitted by name with the reason. Checked in BOTH directions: a def here
@@ -252,7 +256,6 @@ const NO_SIZE_AXIS: Record<string, string> = {
   'field-message': 'validation copy takes one type role; its axis is `status`, and size follows the field it belongs to',
   'veil': 'a media wash is full-bleed and has no size RUNG — its axes are `value` × `intensity`, and its only dimension binding is a NOMINAL standalone square (`container.narrow`), overwritten by the designer resizing it over the image; there is no size ladder to compare against the tier',
   'image-placeholder': 'a media frame has no size RUNG — its axis is `ratio` (an aspect PROPORTION, not a scale ladder), its one dimension binding is a NOMINAL width (`container.narrow`) the designer resizes, and its glyph size is a def-local literal (`glyphPx`, #1340), not a rung; there is no size ladder to compare against the tier (#1316)',
-  'select': 'the size ladder is deferred (#1699 decision 2; the brief\'s `size` is recorded in `notes.contested`), so there is no size axis and no `size.{size}.*` ladder — the control binds the `md` rung of the field geometry FLATLY (`min-height` → size.md.min-height, `pad-x`/`pad-y`, `gap`), one value each rather than an enum, so there is no rung set to compare against the tier',
 };
 
 /**
@@ -272,8 +275,6 @@ const NO_SIZE_AXIS: Record<string, string> = {
  */
 const LADDER_STATED_ONCE: Record<string, string> = {
   icon: 'its Figma grid is the 40-glyph `name` axis (#864), and a def cannot declare a `variants` axis it does not project — so the ladder lives in `props.size` and `tokens` only',
-  textarea: 'since its Figma projection it PROJECTS a single `md` rung (text-field\'s shape), and a def cannot declare a `variants` axis it does not project (#795) — so the small/medium/large ladder lives in `props.size` + the `size.{small,medium,large}.pad-*` tokens only, while the projected control binds the bare `md` padding keys',
-  'text-field': 'since #1494 it PROJECTS a single `md` rung (mirroring select), and a def cannot declare a `variants` axis it does not project (`figmaAnatomySet`/`figmaAnatomyPlan` refuse a declared-but-unprojected size, #795) — so the small/medium/large ladder lives in `props.size` + the `size.{small,medium,large}.*` tokens only, while the projected control binds the bare `md` geometry keys',
 };
 
 /**
@@ -296,8 +297,21 @@ const LADDER_STATED_ONCE: Record<string, string> = {
  * the reason, both directions: an admitted def that binds a tier rung at its default is stale, and a def whose
  * default reaches only spacing and is not admitted fails as before.
  */
-const SPACING_ONLY_LADDER: Record<string, string> = {
-  textarea: 'its size ladder is padding only (`size.{small,medium,large}.pad-*`, a code-API prop; brief §4 "typography and padding only", and the type is the projected `md`), and padding is a `space.*` step since the spacing model, so no size key reaches a tier rung',
+const SPACING_ONLY_LADDER: Record<string, string> = {};
+
+/**
+ * DEFS WHOSE FIGMA ORDER LEADS WITH THE DEFAULT (#2266). The code enum (`props.size.values`) is the LADDER and
+ * walks up it, which arm 2 checks; `variants.size` is the FIGMA order, and its first value is the set's default
+ * variant. For these three the Figma order puts `medium` first, so the default variant matches the code default
+ * AND an in-place update (#2265) lands every member of a set that gains this axis on `medium` — the field each
+ * of them was before #2266 (the reason is in text-field's `variants` comment). The two statements must still
+ * hold the SAME values, and the variants must lead with the prop's default; any other reordering still fails.
+ * Both directions: an admitted def whose two orders already agree is a stale admission.
+ */
+const DEFAULT_FIRST: Record<string, string> = {
+  'text-field': 'the Figma default and the in-place-update landing value are `medium`, the field before #2266',
+  select: 'the Figma default and the in-place-update landing value are `medium`, the select before #2266',
+  textarea: 'the Figma default and the in-place-update landing value are `medium`, the textarea before #2266',
 };
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
@@ -320,7 +334,7 @@ const MUST_COVER = [
   'icon', 'spinner',
   'button', 'button-destructive', 'button-neutral',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
-  'field-label', 'text-field', 'textarea', 'tag',
+  'field-label', 'text-field', 'textarea', 'select', 'tag',
   'checkbox-control', 'checkbox-row', 'checkbox-group',
   'radio-control', 'radio-row', 'radio-group',
   'switch-control', 'switch-row',
@@ -449,7 +463,15 @@ for (const def of componentDefs) {
     failures.push(`${def.id}: declares props.size [${values.join(', ')}] but no variants.size, and is not admitted in LADDER_STATED_ONCE. One of this gate's two authored halves is missing, so the enum-vs-variants comparison silently does not run. Admit it there with the reason, or restore the axis.`);
   if (variants && statedOnce)
     failures.push(`${def.id}: admitted in LADDER_STATED_ONCE as stating its ladder once, but it now declares variants.size [${variants.join(', ')}]. The admission is STALE — remove it in the same PR and let the comparison run.`);
-  if (variants && variants.join(',') !== values.join(','))
+  if (variants && def.id in DEFAULT_FIRST) {
+    const dflt = enumOf(def).default;
+    if ([...variants].sort().join(',') !== [...values].sort().join(','))
+      failures.push(`${def.id}: props.size.values is [${values.join(', ')}] but variants.size is [${variants.join(', ')}] — one ladder stated twice, holding different values. A consumer reads the prop; the projector reads the variants.`);
+    else if (variants[0] !== dflt)
+      failures.push(`${def.id}: admitted in DEFAULT_FIRST, so variants.size must lead with the prop's default '${dflt}', but it leads with '${variants[0]}' (${DEFAULT_FIRST[def.id]}).`);
+    else if (variants.join(',') === values.join(','))
+      failures.push(`${def.id}: admitted in DEFAULT_FIRST, but variants.size [${variants.join(', ')}] is already in the prop's order. The admission is STALE — remove it in the same PR.`);
+  } else if (variants && variants.join(',') !== values.join(','))
     failures.push(`${def.id}: props.size.values is [${values.join(', ')}] but variants.size is [${variants.join(', ')}] — one ladder stated twice, disagreeing. A consumer reads the prop; the projector reads the variants.`);
 
   // ---- SIZE BY FOLLOW ONLY (#1623 sign-off): the admission, re-checked structurally ------------------
@@ -556,7 +578,7 @@ for (const def of componentDefs) {
       const sanctioned = ICON_OFFSET_DEFS[def.id] === family;
       const hostAligned = def.id in HOST_DEFAULT_DEFS;
       failures.push(hostAligned
-        ? `${def.id}: size defaults to '${dflt}', whose family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — the #1699 host-aligned default is '${want}', one rung below '${DEFAULT_RUNG}', because every host nests this part at that rung (${HOST_DEFAULT_DEFS[def.id]}). A revert to '${DEFAULT_RUNG}' puts the code default and the Figma default back out of step with every host.`
+        ? `${def.id}: size defaults to '${dflt}', whose family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — the #1699/#2266 default is '${want}', two rungs below '${DEFAULT_RUNG}' (${HOST_DEFAULT_DEFS[def.id]}). A revert to the old 14/16/18 ladder lands on '${OFFSET_DEFAULT_RUNG}' and breaks the one-step pairing with every field's input.`
         : sanctioned
         ? `${def.id}: size defaults to '${dflt}', whose OWNER-SANCTIONED icon family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — the #1350 offset is that the button family's icon resolves to '${want}', exactly one rung below '${DEFAULT_RUNG}'. A revert to '${DEFAULT_RUNG}' or any other rung breaks the offset invariant: it resolves and typechecks, so only this gate sees it.`
         : `${def.id}: size defaults to '${dflt}', whose family '${family}' reaches tier rung(s) ${wrong.map((r) => `'${r}'`).join(', ')} — the rule (#756, docs/28 §5.2) is that a default resolves to '${DEFAULT_RUNG}'. A default one rung off is the #756 offset itself: it resolves, it typechecks, and the same icon renders one size standalone and another inside a default-size control.`);
@@ -610,7 +632,7 @@ for (const id of Object.keys(HOST_DEFAULT_DEFS)) {
     continue;
   }
   if (!defaultFamiliesByDef.get(id)?.size)
-    failures.push(`STALE ADMISSION: HOST_DEFAULT_DEFS sanctions '${id}' defaulting one rung below '${DEFAULT_RUNG}', but no binding is reached at its default size '${enumOf(def).default}'. Remove the admission or restore the binding.`);
+    failures.push(`STALE ADMISSION: HOST_DEFAULT_DEFS sanctions '${id}' defaulting two rungs below '${DEFAULT_RUNG}', but no binding is reached at its default size '${enumOf(def).default}'. Remove the admission or restore the binding.`);
 }
 
 console.log(`Rung names — ${covered.size} def(s) with a size axis, ${arm1Checks} enum→path check(s) across ${brands.length} brand(s) (${brands.join(', ')}), ${arm2Families} tier family(ies) ordered.`);

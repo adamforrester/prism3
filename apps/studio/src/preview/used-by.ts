@@ -94,13 +94,13 @@ export const USED_BY = {
       "TextField",
       "Checkbox.Row",
       "Radio.Row",
+      "Select",
       "Tag"
     ],
     "size.md.height": [
       "FocusRing",
       "Button",
       "IconButton",
-      "TextField",
       "Checkbox.Row",
       "Radio.Row",
       "Switch.Row",
@@ -109,7 +109,6 @@ export const USED_BY = {
     "size.sm.height": [
       "Button",
       "IconButton",
-      "TextField",
       "Checkbox.Row",
       "Radio.Row",
       "Switch.Row",

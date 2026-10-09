@@ -3574,9 +3574,10 @@ for (const b of brands) {
     const BUTTONISH: Spec = { keys: ['padding-x', 'padding-x-visual', 'padding-y', 'gap'], sizes: ['small', 'medium', 'large'] };
     const SPECS: Record<string, Spec & { bare?: string[] }> = {
       button: BUTTONISH, 'button-destructive': BUTTONISH, 'button-neutral': BUTTONISH,
-      'text-field': { keys: ['pad-x', 'pad-y'], sizes: ['small', 'medium', 'large'], bare: ['pad-x', 'pad-y', 'gap'] },
-      textarea: { keys: ['pad-x', 'pad-y'], sizes: ['small', 'medium', 'large'], bare: ['pad-x', 'pad-y'] },
-      select: { keys: [], sizes: [], bare: ['pad-x', 'pad-y', 'gap'] },
+      // The three fields project `size` since #2266, so every spacing key is a per-size rung; the bare `md` keys are gone.
+      'text-field': { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
+      textarea: { keys: ['pad-x', 'pad-y'], sizes: ['small', 'medium', 'large'] },
+      select: { keys: ['pad-x', 'pad-y', 'gap'], sizes: ['small', 'medium', 'large'] },
       'checkbox-row': { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       'radio-row': { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       'switch-row': { keys: ['gap'], sizes: ['small', 'medium'] },
@@ -3586,9 +3587,9 @@ for (const b of brands) {
     const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
     const EXPECTED: Record<string, Record<typeof densities[number], string>> = {
       button: BTN, 'button-destructive': BTN, 'button-neutral': BTN,
-      'text-field': { compact: 'bare 12/6/6 · small 12/4 · medium 12/6 · large 20/6', comfortable: 'bare 16/8/8 · small 16/6 · medium 16/8 · large 24/8', spacious: 'bare 20/12/12 · small 20/8 · medium 20/12 · large 32/12' },
-      textarea: { compact: 'bare 12/6 · small 12/4 · medium 12/6 · large 20/6', comfortable: 'bare 16/8 · small 16/6 · medium 16/8 · large 24/8', spacious: 'bare 20/12 · small 20/8 · medium 20/12 · large 32/12' },
-      select: { compact: 'bare 12/6/6', comfortable: 'bare 16/8/8', spacious: 'bare 20/12/12' },
+      'text-field': { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
+      textarea: { compact: 'small 12/4 · medium 12/6 · large 20/6', comfortable: 'small 16/6 · medium 16/8 · large 24/8', spacious: 'small 20/8 · medium 20/12 · large 32/12' },
+      select: { compact: 'small 12/4/6 · medium 12/6/6 · large 20/6/6', comfortable: 'small 16/6/8 · medium 16/8/8 · large 24/8/8', spacious: 'small 20/8/12 · medium 20/12/12 · large 32/12/12' },
       'checkbox-row': ROWS, 'radio-row': ROWS,
       'switch-row': { compact: 'small 6 · medium 6', comfortable: 'small 8 · medium 8', spacious: 'small 12 · medium 12' },
       // Tag: padding-x / select icon→label / dismissible VISIBLE icon→label (owner, 2026-09-29: 6/8/8) /
@@ -3626,7 +3627,8 @@ for (const b of brands) {
       button: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'button-destructive': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'button-neutral': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
-      'text-field': ['gap'], select: ['gap'],
+      'text-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      select: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'checkbox-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'radio-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'switch-row': ['size.small.gap', 'size.medium.gap'],
@@ -3659,8 +3661,8 @@ for (const b of brands) {
     const P326: [string, string][] = [['gap', 'padding-x-visual'], ['padding-x-visual', 'padding-x'], ['gap', 'padding-x']];
     const RULES: Record<string, { prefix: 'sized' | 'bare'; lt: [string, string][] }> = {
       button: { prefix: 'sized', lt: P326 }, 'button-destructive': { prefix: 'sized', lt: P326 }, 'button-neutral': { prefix: 'sized', lt: P326 },
-      'text-field': { prefix: 'bare', lt: [['gap', 'pad-x']] },
-      select: { prefix: 'bare', lt: [['gap', 'pad-x']] },
+      'text-field': { prefix: 'sized', lt: [['gap', 'pad-x']] },
+      select: { prefix: 'sized', lt: [['gap', 'pad-x']] },
       // Tag's icon→label is VISIBLE, the content gap plus the label row's leading inset (owner, 2026-09-29), per
       // type: the sum is what must stay under the padding. A `+` key is summed.
       tag: { prefix: 'sized', lt: [['select.gap+select.label-inset', 'padding-x'], ['dismissible.gap+dismissible.label-inset', 'padding-x'], ['check-gap', 'padding-x']] },
@@ -14499,7 +14501,7 @@ arm: {
     // The one `icon` key paints the chevron's vector and the leading swap's descendants; both must come
     // back `color/icon/primary`, matching the value text. EXPECTED is the authored role, ACTUAL the pixel.
     const iconInk = (leading: boolean): string[] =>
-      [...new Set(planPaintVars(figmaAnatomyPlan(select, undefined, { status: 'default', state: 'rest', leading, swapTarget: 'FPO-default-icon' } as never).root)
+      [...new Set(planPaintVars(figmaAnatomyPlan(select, 'medium', { status: 'default', state: 'rest', leading, swapTarget: 'FPO-default-icon' } as never).root)
         .filter((v) => v.startsWith('color/icon/')))].sort();
     ok(JSON.stringify(iconInk(true)) === JSON.stringify(['color/icon/primary']),
       `#1343 select icon ink is PRIMARY on every glyph (chevron + leading), never secondary (got ${iconInk(true).join(', ') || 'none'})`);
@@ -14508,7 +14510,7 @@ arm: {
     //   MUTATION: revert `icon` → secondary. Both glyphs then project `color/icon/secondary`, flipping the
     //   two assertions above BY NAME.
     const inkMutant = { ...select, tokens: { ...select.tokens, icon: 'color.icon.secondary' } };
-    const mutInk = [...new Set(planPaintVars(figmaAnatomyPlan(inkMutant as ComponentDef, undefined, { status: 'default', state: 'rest', leading: true, swapTarget: 'FPO-default-icon' } as never).root)
+    const mutInk = [...new Set(planPaintVars(figmaAnatomyPlan(inkMutant as ComponentDef, 'medium', { status: 'default', state: 'rest', leading: true, swapTarget: 'FPO-default-icon' } as never).root)
       .filter((v) => v.startsWith('color/icon/')))];
     ok(JSON.stringify(mutInk) === JSON.stringify(['color/icon/secondary']),
       `#1343 MUTATION: reverting select.icon → color.icon.secondary makes both glyphs project color/icon/secondary, flipping '#1343 select icon ink is PRIMARY' to failing (got ${mutInk.join(', ') || 'none'})`);
@@ -14521,23 +14523,24 @@ arm: {
     // Prism 2's rendered geometry, the one way projection allows. EXPECTED is the authored literal 320 and
     // the responsive contract; ACTUAL is read off the emitted plan.
     const controlOf = (d: ComponentDef): AnatomyPlan['root'] => {
-      const root = figmaAnatomyPlan(d, undefined, { status: 'default', state: 'rest', leading: false } as never).root;
+      const root = figmaAnatomyPlan(d, 'medium', { status: 'default', state: 'rest', leading: false } as never).root;
       const ctrl = (root.children ?? []).find((c) => c.name === 'control');
       if (!ctrl) throw new Error(`select projection has no 'control' child (got [${(root.children ?? []).map((c) => c.name).join(', ')}])`);
       return ctrl;
     };
-    // #1343a — the control carries the 320 floor. A literal on the plan, not a bound token.
-    ok(controlOf(select).minWidth === 320,
-      `#1343a select control carries the 320 min-width floor (got ${String(controlOf(select).minWidth)})`);
+    // #1343a — the control carries a floor. A literal on the plan, not a bound token. 120 since #2266 (owner
+    // decision Q99 B, closing #1345: a field shrinks with a narrower column); 320 is the root's built width.
+    ok(controlOf(select).minWidth === 120,
+      `#1343a/#2266 select control carries the 120 min-width floor, not 320 (got ${String(controlOf(select).minWidth)})`);
     // #1345 / #2292 — and the field FLEXES with its placement rather than being pinned: Prism 2's geometry
     // exactly, `root width 320` with the control FILLING it. The root is BUILT at 320 (`placementWidth`, FIXED
     // across) and the control FILLS it — FIXED on its main (horizontal, it is a row) axis with the column's
     // STRETCH as the supplier — so a host's stretch of the instance carries the box with it. Before #2292 the
     // control hugged above its floor (AUTO, no supplier) and a FILL instance left the box at 320.
     {
-      const sRoot = figmaAnatomyPlan(select, undefined, { status: 'default', state: 'rest', leading: false } as never).root;
+      const sRoot = figmaAnatomyPlan(select, 'medium', { status: 'default', state: 'rest', leading: false } as never).root;
       const c = controlOf(select);
-      ok(sRoot.placementWidth === 320 && sRoot.counterAxisSizingMode === 'FIXED' && c.primaryAxisSizingMode === 'FIXED' && c.layoutAlign === 'STRETCH' && c.minWidth === 320,
+      ok(sRoot.placementWidth === 320 && sRoot.counterAxisSizingMode === 'FIXED' && c.primaryAxisSizingMode === 'FIXED' && c.layoutAlign === 'STRETCH' && c.minWidth === 120,
         `#1345 select control FILLS a root built at 320 (root placementWidth ${String(sRoot.placementWidth)}, counter ${String(sRoot.counterAxisSizingMode)}; control primary ${String(c.primaryAxisSizingMode)}, layoutAlign ${String(c.layoutAlign)}, minWidth ${String(c.minWidth)})`);
     }
     // #2292 — THE SAME ON ALL THREE FIELDS, on every member. Expected values are literals authored here (320, the
@@ -14552,19 +14555,106 @@ arm: {
           const r = m.root, ctl = findIn(r, 'control'), body = findIn(r, 'body');
           const bad: string[] = [];
           if (r.placementWidth !== 320 || r.counterAxisSizingMode !== 'FIXED') bad.push(`root placementWidth ${String(r.placementWidth)}, counter ${String(r.counterAxisSizingMode)}`);
-          if (!ctl || ctl.primaryAxisSizingMode !== 'FIXED' || ctl.layoutAlign !== 'STRETCH' || ctl.minWidth !== 320) bad.push(`control primary ${String(ctl?.primaryAxisSizingMode)}, layoutAlign ${String(ctl?.layoutAlign)}, minWidth ${String(ctl?.minWidth)}`);
+          if (!ctl || ctl.primaryAxisSizingMode !== 'FIXED' || ctl.layoutAlign !== 'STRETCH' || ctl.minWidth !== 120) bad.push(`control primary ${String(ctl?.primaryAxisSizingMode)}, layoutAlign ${String(ctl?.layoutAlign)}, minWidth ${String(ctl?.minWidth)}`);
           if (def === textarea && (body?.counterAxisSizingMode !== 'FIXED' || body?.layoutAlign !== 'STRETCH')) bad.push(`body counter ${String(body?.counterAxisSizingMode)}, layoutAlign ${String(body?.layoutAlign)}`);
           return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
         });
         ok(members.length > 0 && off.length === 0,
-          `#2292 ${def.id}: on every member the root is built at 320 and the bordered control FILLS it (FIXED + STRETCH), keeping its 320 floor (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
+          `#2292/#2266 ${def.id}: on every member the root is built at 320 and the bordered control FILLS it (FIXED + STRETCH) down to its 120 floor (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
       }
     }
+    // ---- #2266: ONE FIELD SIZING SYSTEM (owner decisions Q84 A, Q101 A, Q99 B) ----
+    // Every EXPECTED value below is a literal authored here from the design note's §3 table, never read off a
+    // def (docs/34): the label is one body step below the input at every size (12/14, 14/16, 16/18), small keeps
+    // the 44px floor, the message stays 11px, and a field shrinks to a 120 floor. ACTUAL is the emitted plan,
+    // and the px arm reads the five committed brand emissions. Each arm names its def and size.
+    {
+      const SIZES = ['small', 'medium', 'large'] as const;
+      type Sz = typeof SIZES[number];
+      const LABEL_STYLE: Record<Sz, string> = { small: 'body/xs', medium: 'body/sm', large: 'body/md' };
+      const INPUT_STYLE: Record<Sz, string> = { small: 'body/sm', medium: 'body/md', large: 'body/lg' };
+      const LABEL_PX: Record<Sz, number> = { small: 12, medium: 14, large: 16 };
+      const INPUT_PX: Record<Sz, number> = { small: 14, medium: 16, large: 18 };
+      const HEIGHT: Record<Sz, string> = { small: 'size/md/min-height', medium: 'size/md/min-height', large: 'size/lg/height' };
+      const CARET: Record<Sz, string> = { small: 'control/size/sm/line-box', medium: 'control/size/md/line-box', large: 'control/size/lg/line-box' };
+      const PAD: Record<Sz, string> = { small: 'space/075 space/200', medium: 'space/100 space/200', large: 'space/100 space/300' };
+      const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
+
+      // (1) field-label, re-laddered 12 / 14 / 16: both text parts, both weights, at each size.
+      for (const size of SIZES) {
+        const got: string[] = [];
+        for (const weight of ['regular', 'bold'] as const) {
+          const root = figmaAnatomyPlan(fieldLabel, size, { emphasis: 'secondary', weight, state: 'rest' } as never).root;
+          for (const part of ['text', 'indicator']) got.push(`${weight}/${part}:${String(findIn(root, part)?.textStyle)}`);
+        }
+        const want = [`regular/text:${LABEL_STYLE[size]}/default`, `regular/indicator:${LABEL_STYLE[size]}/default`, `bold/text:${LABEL_STYLE[size]}/strong`, `bold/indicator:${LABEL_STYLE[size]}/strong`];
+        ok(got.join(' ') === want.join(' '),
+          `#2266 field-label size=${size}: the name and the marker set ${LABEL_STYLE[size]} at both weights (got ${got.join(' ')})`);
+      }
+
+      // (2) the three fields, at each size: the nested label follows, the input type scales, the geometry moves.
+      for (const def of [textField, select, textarea]) {
+        for (const size of SIZES) {
+          const empty = figmaAnatomyPlan(def, size, { status: 'default', state: 'focus-visible' } as never).root;
+          const filled = figmaAnatomyPlan(def, size, { status: 'default', state: 'filled' } as never).root;
+          const label = findIn(empty, 'label');
+          const ctl = findIn(empty, 'control');
+          const bad: string[] = [];
+          if (label?.nestVariant?.size !== size) bad.push(`label nests size=${String(label?.nestVariant?.size)}`);
+          if (findIn(empty, 'placeholder')?.textStyle !== `${INPUT_STYLE[size]}/default`) bad.push(`placeholder ${String(findIn(empty, 'placeholder')?.textStyle)}`);
+          if (findIn(filled, 'value')?.textStyle !== `${INPUT_STYLE[size]}/default`) bad.push(`value ${String(findIn(filled, 'value')?.textStyle)}`);
+          if (`${String(ctl?.bound.paddingTop)} ${String(ctl?.bound.paddingLeft)}` !== PAD[size]) bad.push(`padding ${String(ctl?.bound.paddingTop)} ${String(ctl?.bound.paddingLeft)}`);
+          if (ctl?.minWidth !== 120) bad.push(`minWidth ${String(ctl?.minWidth)}`);
+          // The height: text-field FIXES it, select floors it (a wrapped value grows), textarea binds none (rows).
+          const h = def === textField ? ctl?.bound.height : def === select ? ctl?.bound.minHeight : undefined;
+          if (def !== textarea && h !== HEIGHT[size]) bad.push(`height ${String(h)}`);
+          if (def === textarea && (ctl?.bound.height !== undefined || ctl?.bound.minHeight !== undefined)) bad.push(`textarea binds a height (${String(ctl?.bound.height ?? ctl?.bound.minHeight)})`);
+          if (def !== select && findIn(empty, 'caret')?.bound.height !== CARET[size]) bad.push(`caret ${String(findIn(empty, 'caret')?.bound.height)}`);
+          // The message stays one size (Q8): the nest names only its status, never a size.
+          if (Object.keys(findIn(empty, 'message')?.nestVariant ?? {}).join() !== 'status') bad.push(`message nests ${JSON.stringify(findIn(empty, 'message')?.nestVariant)}`);
+          ok(bad.length === 0,
+            `#2266 ${def.id} size=${size}: label ${LABEL_STYLE[size]} over input ${INPUT_STYLE[size]}, height ${def === textarea ? 'from rows' : HEIGHT[size]}, padding ${PAD[size]}, a 120 floor${bad.length ? ` — WRONG: ${bad.join('; ')}` : ''}`);
+        }
+        // 72 members, led by medium: the default variant, and where an in-place update (#2265) lands every member
+        // of a set built before #2266 (they were all the medium field).
+        const set = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+        ok(set.length === 72 && set[0].size === 'medium' && SIZES.every((sz) => set.filter((p) => p.size === sz).length === 24),
+          `#2266 ${def.id}: the set is 72 members, 24 per size, led by size=medium (got ${set.length}, first ${String(set[0]?.size)})`);
+      }
+
+      // (3) the pairs in px, in every committed brand emission: the label exactly one body step (2px) under the input.
+      const files = readdirSync(resolve(HERE, 'out')).filter((f) => /^[a-z0-9-]+\.tokens\.json$/.test(f));
+      const pxWrong: string[] = [];
+      for (const f of files) {
+        const t = JSON.parse(readFileSync(resolve(HERE, 'out', f), 'utf8'));
+        const r = t[Object.keys(t).find((k) => !k.startsWith('$'))!];
+        const px = (style: string): number | undefined => {
+          const [, step] = style.split('/');
+          return r?.type?.body?.[step]?.default?.$extensions?.prism3?.sizePx;
+        };
+        for (const size of SIZES) {
+          const l = px(LABEL_STYLE[size]), i = px(INPUT_STYLE[size]);
+          if (l !== LABEL_PX[size] || i !== INPUT_PX[size]) pxWrong.push(`${f} ${size}: ${String(l)} over ${String(i)}`);
+        }
+      }
+      ok(files.length >= 5 && pxWrong.length === 0,
+        `#2266 every brand pairs a 12 / 14 / 16 label with a 14 / 16 / 18 input (${files.length} emissions${pxWrong.length ? ` — WRONG: ${pxWrong.join('; ')}` : ''})`);
+
+      // (4) the group legends follow the ladder (Q2): a medium group nests the medium, bold label, now 14px bold.
+      for (const g of [checkboxGroup, radioGroup]) {
+        const legend = findIn(figmaAnatomyPlan(g, 'medium', {} as never).root, 'label');
+        const v = legend?.nestVariant ?? {};
+        const style = findIn(figmaAnatomyPlan(fieldLabel, String(v.size), { emphasis: String(v.emphasis), weight: String(v.weight), state: 'rest' } as never).root, 'text')?.textStyle;
+        ok(v.size === 'medium' && v.weight === 'bold' && style === 'body/sm/strong',
+          `#2266 ${g.id} size=medium: the legend is the medium bold label, body/sm/strong (14px bold) — got size=${String(v.size)}, weight=${String(v.weight)}, ${String(style)}`);
+      }
+    }
+
     //   MUTATION #1343a — remove the floor. The plan drops `control.minWidth`, flipping '#1343a select
     //   control carries the 320 min-width floor' BY NAME.
     const noFloor = { ...select, anatomy: { ...select.anatomy, parts: { ...select.anatomy.parts, control: { ...select.anatomy.parts.control, minWidth: undefined } } } };
     ok(controlOf(noFloor as ComponentDef).minWidth === undefined,
-      `#1343a MUTATION: removing control.minWidth drops the 320 floor from the plan (got ${String(controlOf(noFloor as ComponentDef).minWidth)}), flipping '#1343a select control carries the 320 min-width floor' to failing`);
+      `#1343a MUTATION: removing control.minWidth drops the floor from the plan (got ${String(controlOf(noFloor as ComponentDef).minWidth)}), flipping '#1343a/#2266 select control carries the 120 min-width floor' to failing`);
     //   MUTATION #1345 — pin the width. Flipping the control's main-axis sizing 'fill' → 'fixed' turns its
     //   primaryAxisSizingMode AUTO → FIXED, so the field sits at a hard size, flipping '#1345 select control
     //   FLEXES' BY NAME.
@@ -14937,12 +15027,13 @@ arm: {
     const projStates = select.figmaProperties!.stateAxis!.values;
     const V = select.variants!.status!.length;                 // status: 4
     const St = projStates.length;                               // rest/hover/filled/focus-visible/disabled/read-only: 6
+    const Sz = select.variants!.size!.length;                   // size: 3 (#2266)
     const set = figmaAnatomySet(select);
     // (a) empty is absent from the PROJECTED axis, and the enumeration matches the product WITHOUT it.
     ok(!projStates.includes('empty'),
       `#1344 'empty' is NOT a projected Figma state (stateAxis = [${projStates.join(', ')}])`);
-    ok(set.length === V * St && set.length === 24,
-      `#1344 select projects status(${V})×state(${St}) = ${V * St} members (the filled column since 2026-09-25, the read-only column since #1699; 28 with the empty column; leading is a boolean since #1331, not a ×2 axis)`);
+    ok(set.length === Sz * V * St && set.length === 72,
+      `#1344 select projects size(${Sz})×status(${V})×state(${St}) = ${Sz * V * St} members (the size axis since #2266, the filled column since 2026-09-25, the read-only column since #1699; 84 with the empty column; leading is a boolean since #1331, not a ×2 axis)`);
     ok(!set.some((p) => planComponentName(p).includes('empty')),
       '#1344 no projected member names the empty state');
     // (b) empty IS still a real state — the placeholder-vs-value ink distinction is carried internally, and
@@ -14951,7 +15042,7 @@ arm: {
       "#1344 'empty' stays in `states` — the placeholder-vs-value ink is carried internally, not dropped");
     ok(select.tokens!['label.empty'] === 'color.text.secondary',
       "#1344 the placeholder ink `label.empty` → color.text.secondary is still bound (the muted body ink since #1518)");
-    const emptyInk = planPaintVars(figmaAnatomyPlan(select, undefined, { status: 'default', state: 'empty' } as never).root)
+    const emptyInk = planPaintVars(figmaAnatomyPlan(select, 'medium', { status: 'default', state: 'empty' } as never).root)
       .filter((v) => v === 'color/text/secondary');
     ok(emptyInk.length === 1,
       '#1344 the placeholder ink is reached at the declared empty coordinate (text paints color/text/secondary)');
@@ -14960,7 +15051,7 @@ arm: {
     //   names the empty state' BY NAME.
     const projMutant = { ...select, figmaProperties: { ...select.figmaProperties!, stateAxis: { name: 'state', values: [...projStates, 'empty'] } } };
     const mutSet = figmaAnatomySet(projMutant as ComponentDef);
-    ok(mutSet.length === 28 && mutSet.some((p) => planComponentName(p).includes('empty')),
+    ok(mutSet.length === 84 && mutSet.some((p) => planComponentName(p).includes('empty')),
       `#1344 MUTATION A: restoring 'empty' to the projected stateAxis rebuilds the empty column (set ${set.length} → ${mutSet.length}), flipping '#1344 select projects … 24 members' to failing`);
     //   MUTATION B — drop `empty` from `states`. `label.empty` / `error.border.empty` then name a state the
     //   def no longer declares, so `validateComponentDef` reports them as unreachable paint keys — the
@@ -14998,8 +15089,8 @@ arm: {
       '#1331 the leading glyph node carries the content swap AND the visibility boolean on ONE node (mainComponent + visible)');
 
     // (3) the set HALVES: status(4) × state(6) = 24 (with the 2026-09-25 filled column and #1699's read-only), from 48 as a ×2 axis.
-    ok(sset.length === 24,
-      `#1331 select projects 24 members (48 with the leading ×2 axis; the boolean halves it) — got ${sset.length}`);
+    ok(sset.length === 72,
+      `#1331 select projects 72 members (144 with the leading ×2 axis; the boolean halves it) — got ${sset.length}`);
 
     // (4) planSetProperties declares `leading icon` as a BOOLEAN defaulting to the built (hidden) visibility,
     //     ordered ABOVE the swap it gates (the #1380 `leading icon` → `↳ swap leading icon` panel nesting).
@@ -15024,8 +15115,8 @@ arm: {
     //     boolean replaced. Flips "#1331 select projects 24 members" BY NAME.
     const asAxis = { ...select, figmaProperties: { ...fp, booleans: {}, slotAxes: [{ name: 'leading', part: 'leadingVisual', figmaName: 'leading icon' }] } };
     const asAxisSet = figmaAnatomySet(asAxis as never, { swapTarget: 'FPO-default-icon' });
-    ok(asAxisSet.length === 48 && asAxisSet.some((p) => !findLV(p.root)) && asAxisSet.some((p) => !!findLV(p.root)),
-      `#1331 MUTATION: reverting leading to a variant axis re-doubles the set to 48 and drops the node in the false members (${asAxisSet.length} members) — the multiplication the boolean replaced`);
+    ok(asAxisSet.length === 144 && asAxisSet.some((p) => !findLV(p.root)) && asAxisSet.some((p) => !!findLV(p.root)),
+      `#1331 MUTATION: reverting leading to a variant axis re-doubles the set to 144 and drops the node in the false members (${asAxisSet.length} members) — the multiplication the boolean replaced`);
 
     // (7) VALIDATOR ARMS (new refusals, by-name).
     //   (a) the LOOSENING is real: select's leadingVisual carries a swap AND a boolean and validates clean
@@ -15072,7 +15163,7 @@ arm: {
   {
     const fp = select.figmaProperties!;
     const ctrlOf = (d: ComponentDef): { primaryAxisAlignItems?: string } => {
-      const root = figmaAnatomyPlan(d, undefined, { status: 'default', state: 'rest' } as never).root;
+      const root = figmaAnatomyPlan(d, 'medium', { status: 'default', state: 'rest' } as never).root;
       const c = (root.children ?? []).find((x: { name?: string }) => x.name === 'control');
       if (!c) throw new Error(`select projection has no 'control' child (got [${(root.children ?? []).map((x: { name?: string }) => x.name).join(', ')}])`);
       return c as { primaryAxisAlignItems?: string };
@@ -15108,8 +15199,8 @@ arm: {
       '#1426 the built visibility TRACKS the boolean default — flipping showMessage default→false builds every message node `visible:false`, so the shown-by-default assertion is not measuring a constant');
 
     // (3) the boolean does NOT multiply the set — still status(4) × state(5) = 20 members.
-    ok(sset.length === 24,
-      `#1426 the showMessage boolean toggles a part in place and does not multiply the set — still 24 members (got ${sset.length})`);
+    ok(sset.length === 72,
+      `#1426 the showMessage boolean toggles a part in place and does not multiply the set — still 72 members, size(3) × status(4) × state(6) (got ${sset.length})`);
 
     // (4) planSetProperties declares `message` as a BOOLEAN defaulting to the built (shown) visibility.
     const props = planSetProperties(sset);
@@ -15167,8 +15258,10 @@ arm: {
       `#1437 the floor DOES work: the compact fixture's size.md.height=${aMd.height.$extensions.prism3.px} is lifted to min-height=${aMd['min-height'].$extensions.prism3.px} (a constant would coincide)`);
     // select binds the FLOOR, not the plain rung — the binding mutation. Reverting to `size.md.height`
     // resolves the control to 36px on a compact brand (the fact below), below the enhanced target.
-    ok(select.tokens!['min-height'] === 'size.md.min-height',
-      `#1437 select's control binds size.md.min-height (the floor), not size.md.height (got ${select.tokens!['min-height']})`);
+    // Per size since #2266: small and medium both take the floor (owner decision Q6: small is smaller type, not a
+    // smaller target); large takes its own taller rung.
+    ok(select.tokens!['size.small.min-height'] === 'size.md.min-height' && select.tokens!['size.medium.min-height'] === 'size.md.min-height' && select.tokens!['size.large.min-height'] === 'size.lg.height',
+      `#1437/#2266 select's control binds size.md.min-height (the floor) at small and medium, size.lg.height at large, never size.sm.height or size.md.height (got ${['small', 'medium', 'large'].map((v) => select.tokens![`size.${v}.min-height`]).join(' / ')})`);
     ok(aMd.height.$extensions.prism3.px < AAA_TARGET_PX,
       `#1437 MUTATION basis: reverting select's binding to size.md.height would resolve ${aMd.height.$extensions.prism3.px}px on a compact brand — below the ${AAA_TARGET_PX}px target, the regression the floor binding prevents`);
   }
@@ -15242,17 +15335,20 @@ arm: {
     const labelPart = select.anatomy!.parts.label;
     ok(labelPart.nesting?.kind === 'nest-exposed',
       `#1438 select's label nest is nest-exposed (got ${labelPart.nesting?.kind})`);
+    // #2266: `size` moved from exposed to FOLLOWED — the select's own size drives the label's, so the pair stays
+    // one body step apart; the other two author axes stay the consumer's.
     ok(labelPart.nesting?.kind === 'nest-exposed'
-      && JSON.stringify([...labelPart.nesting.expose].sort()) === JSON.stringify(['emphasis', 'size', 'weight']),
-      `#1438 select exposes field-label's author axes [size, emphasis, weight] (got ${labelPart.nesting?.kind === 'nest-exposed' ? labelPart.nesting.expose.join(', ') : 'n/a'})`);
+      && JSON.stringify([...labelPart.nesting.expose].sort()) === JSON.stringify(['emphasis', 'weight'])
+      && JSON.stringify(labelPart.nesting.follow ?? []) === JSON.stringify(['size']),
+      `#1438/#2266 select exposes field-label's author axes [emphasis, weight] and follows [size] (got expose ${labelPart.nesting?.kind === 'nest-exposed' ? labelPart.nesting.expose.join(', ') : 'n/a'}, follow ${labelPart.nesting?.kind === 'nest-exposed' ? (labelPart.nesting.follow ?? []).join(', ') : 'n/a'})`);
     const findLabel = (n: any): any => (n.name === 'label' ? n : (n.children ?? []).map(findLabel).find(Boolean));
-    const labelNode = findLabel(figmaAnatomyPlan(select, undefined, { status: 'default', state: 'rest' } as never).root);
-    ok(labelNode && Array.isArray(labelNode.nestExpose) && labelNode.nestExpose.length === 3,
+    const labelNode = findLabel(figmaAnatomyPlan(select, 'medium', { status: 'default', state: 'rest' } as never).root);
+    ok(labelNode && Array.isArray(labelNode.nestExpose) && labelNode.nestExpose.length === 2,
       `#1438 the projected label node carries nestExpose (${labelNode?.nestExpose?.join(', ') ?? 'MISSING'})`);
     // MUTATION: reverting the label to nest-fixed drops nestExpose from the projected node BY NAME.
     const fixedLabel = { ...select.anatomy!.parts.label, nesting: { kind: 'nest-fixed' as const, variant: { size: 'small', emphasis: 'secondary', weight: 'regular', state: 'rest' } } };
     const fixed = { ...select, anatomy: { ...select.anatomy!, parts: { ...select.anatomy!.parts, label: fixedLabel } } };
-    const fixedLabelNode = findLabel(figmaAnatomyPlan(fixed as ComponentDef, undefined, { status: 'default', state: 'rest' } as never).root);
+    const fixedLabelNode = findLabel(figmaAnatomyPlan(fixed as ComponentDef, 'medium', { status: 'default', state: 'rest' } as never).root);
     ok(fixedLabelNode && fixedLabelNode.nestExpose === undefined,
       `#1438 MUTATION: reverting the label nest to nest-fixed drops nestExpose from the projected node (got ${JSON.stringify(fixedLabelNode?.nestExpose)}), flipping '#1438 the projected label node carries nestExpose' BY NAME`);
     ok(validateComponentDef(select).errors.length === 0,
@@ -15930,8 +16026,8 @@ arm: {
   ok((['small', 'medium', 'large'] as const).every((sz, i) =>
     (['regular', 'bold'] as const).every((w, j) =>
       fieldLabel.tokens[`size.${sz}.${w}.text`]
-        === `type.body.${(['sm', 'md', 'lg'] as const)[i]}.${(['default', 'strong'] as const)[j]}`)),
-    'component: FieldLabel binds the full 3 x 2 size x weight type grid onto type.body.{sm,md,lg}.{default,strong} (#1248/#872/#862)');
+        === `type.body.${(['xs', 'sm', 'md'] as const)[i]}.${(['default', 'strong'] as const)[j]}`)),
+    'component: FieldLabel binds the full 3 x 2 size x weight type grid onto type.body.{xs,sm,md}.{default,strong} — 12 / 14 / 16, re-laddered by #2266 (#1248/#872/#862)');
   // The two weights must land on DIFFERENT roles, as its own arm rather than inferred from the grid
   // above. The grid pins six NAMES; this pins the CONSEQUENCE — that choosing `bold` changes
   // something. A def whose six keys all pointed at `.default` would satisfy every "the key resolves"
@@ -15946,8 +16042,8 @@ arm: {
   // into a row, and reading it at `bold` would pin a cell no consumer lands in having chosen nothing.
   ok(fieldLabel.props.find((p) => p.name === 'size')?.default === 'small'
     && fieldLabel.props.find((p) => p.name === 'weight')?.default === 'regular'
-    && fieldLabel.tokens['size.small.regular.text'] === 'type.body.sm.default',
-    'component: FieldLabel\'s default size x weight resolves to the `sm` rung at `default` (#756 arm 3, #1248, #1699)');
+    && fieldLabel.tokens['size.small.regular.text'] === 'type.body.xs.default',
+    'component: FieldLabel\'s default size x weight resolves to the `xs` rung at `default` — 12px since #2266 (#756 arm 3, #1248, #1699)');
 
   // ---- #1338: the required marker is a NODE-VISIBILITY BOOLEAN, reconciling away the `indicator` axis ----
   // The SECOND consumer of the #1412 mechanism (after select's leading glyph), and the FIRST that defaults
@@ -16043,12 +16139,12 @@ arm: {
     //     The projected read-only member, read off the PLAN: the editable field's boundary (`field.border.rest`,
     //     owner decision 2026-09-29, #1710), the value at full contrast, no placeholder; an error status keeps the
     //     danger boundary at read-only.
-    const roPlan = figmaAnatomyPlan(select, undefined, { status: 'default', state: 'read-only' } as never).root;
+    const roPlan = figmaAnatomyPlan(select, 'medium', { status: 'default', state: 'read-only' } as never).root;
     ok(findPart(roPlan, 'control')?.paints?.strokes === 'color/field/border/rest'
       && findPart(roPlan, 'value')?.paints?.fills === 'color/text/primary'
       && !findPart(roPlan, 'placeholder'),
       `#1699/#1710 select's read-only member draws the editable field border (field.border.rest) and the value in text.primary, with no placeholder (border ${String(findPart(roPlan, 'control')?.paints?.strokes)})`);
-    const roErr = figmaAnatomyPlan(select, undefined, { status: 'error', state: 'read-only' } as never).root;
+    const roErr = figmaAnatomyPlan(select, 'medium', { status: 'error', state: 'read-only' } as never).root;
     ok(findPart(roErr, 'control')?.paints?.strokes === 'color/border/danger',
       `#1699 select's error status keeps the danger border at read-only (got ${String(findPart(roErr, 'control')?.paints?.strokes)})`);
 
@@ -16067,12 +16163,14 @@ arm: {
       ok(gReq === false && gReq === flDefault('required'),
         `#1699 ${g.id}'s required default is false (brief §15) and agrees with the nested field-label's marker default (group ${String(gReq)}, label ${String(flDefault('required'))})`);
     }
+    // Since #2266 the three field hosts are sized, and the label's SIZE follows the host's (pinned per member in
+    // the #2266 block); what stays the label's own default is its emphasis.
     const hostCoords = [select, textField, textarea].map((d) => {
-      const lp = d.anatomy!.parts.label as { nesting?: { variant?: Record<string, string> } };
-      return `${d.id}:${lp.nesting?.variant?.size}/${lp.nesting?.variant?.emphasis}`;
+      const lp = d.anatomy!.parts.label as { nesting?: { variant?: Record<string, string>; follow?: readonly string[] } };
+      return `${d.id}:follow[${(lp.nesting?.follow ?? []).join(',')}]/${lp.nesting?.variant?.emphasis}`;
     });
-    ok(hostCoords.every((c) => c.endsWith(`:${String(flDefault('size'))}/${String(flDefault('emphasis'))}`)),
-      `#1699 every single-size field host nests the label at its code default size and emphasis ([${hostCoords.join(', ')}])`);
+    ok(hostCoords.every((c) => c.endsWith(`:follow[size]/${String(flDefault('emphasis'))}`)),
+      `#1699/#2266 every field host nests the label following its own size, at the label's default emphasis ([${hostCoords.join(', ')}])`);
     //     And the FIGMA default (the set's first member — Figma's default variant is the first child) is the
     //     same cell, with the marker built hidden.
     const flFirst = figmaAnatomySet(fieldLabel)[0];
@@ -16712,7 +16810,7 @@ arm: {
     // own factory and the factory copies the anatomy. Found by DIRECTION 1 below on its first run —
     // the authored table disagreed with the corpus and said so — which is the two-direction check
     // earning its place immediately rather than in principle.
-    const TYPE_GRID: { def: ComponentDef; part: string; axes: Readonly<Record<string, number>> }[] = [
+    const TYPE_GRID: { def: ComponentDef; part: string; axes: Readonly<Record<string, number>>; at?: Readonly<Record<string, string>> }[] = [
       // THREE SIZE VALUES, THREE STYLES — full discrimination as of #1260, which minted `type.label.lg`
       // (18px / emphasis) and re-pointed `size.large.type` at it. Until then this authored `2`: there
       // was no `lg` rung, so `size.large.type` reused `type.label.md.emphasis` (the same role as
@@ -16738,6 +16836,15 @@ arm: {
       // The two text nodes of `field-label`, the only bindings in the corpus that cross two axes.
       { def: fieldLabel, part: 'text', axes: { size: 3, weight: 2 } },
       { def: fieldLabel, part: 'indicator', axes: { size: 3, weight: 2 } },
+      // THE THREE FIELDS (#2266): the input type scales with the field, `body.sm/md/lg`, on both text layers.
+      // `at` holds the value layer's own state: it exists only on the filled member.
+      // Three sizes, three styles; pointing two sizes at one role drops a count here BY NAME.
+      { def: textField, part: 'placeholder', axes: { size: 3 } },
+      { def: textField, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
+      { def: select, part: 'placeholder', axes: { size: 3 } },
+      { def: select, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
+      { def: textarea, part: 'placeholder', axes: { size: 3 } },
+      { def: textarea, part: 'value', axes: { size: 3 }, at: { state: 'filled' } },
     ];
 
     // DIRECTION 1 — the authored table is the corpus. Discovered by walking every def's anatomy for a
@@ -16782,8 +16889,8 @@ arm: {
       const variants = row.def.variants ?? {};
       // The coordinate every other axis is held at — the def's FIRST declared value per axis, which is
       // the rest coordinate by this repo's own ordering convention (see `AxisValueSet.values`).
-      const base: Record<string, string> = Object.fromEntries(
-        Object.entries(variants).filter(([a]) => a !== 'size').map(([a, vs]) => [a, vs[0]]));
+      const base: Record<string, string> = { ...Object.fromEntries(
+        Object.entries(variants).filter(([a]) => a !== 'size').map(([a, vs]) => [a, vs[0]])), ...(row.at ?? {}) };
       for (const [axis, expectedDistinct] of Object.entries(row.axes)) {
         const values = variants[axis] ?? [];
         ok(values.length >= 2,
@@ -19746,7 +19853,8 @@ arm: {
       // which carries the properties, measures over the budget it was packed to, so a variant has to move. Judged
       // on the SHIPPED payloads against the budget the test passed in: `js.length`, never the packer's `bytes`.
       {
-        const taPlans = figmaAnatomySet(componentDefs.find((d) => d.id === 'textarea')!, { swapTarget: 'FPO-default-icon' });
+        // The medium column only since #2266 (the set is 72 across three sizes): the 24 members this arm was sized on.
+        const taPlans = figmaAnatomySet(componentDefs.find((d) => d.id === 'textarea')!, { swapTarget: 'FPO-default-icon' }).filter((p) => p.size === 'medium');
         const taNames = JSON.stringify(taPlans.map(planComponentName));
         const over: string[] = [];
         const lost: number[] = [];
@@ -20124,7 +20232,7 @@ arm: {
           return undefined;
         };
         const collided = members.filter((m) => descend(m, 'text'));
-        ok(members.length === 24 && collided.length === members.length,
+        ok(members.length === 72 && collided.length === members.length,
           `#1428 reachability (paste): every built select member carries a colliding nested-instance \`text\` (${collided.length}/${members.length})`);
         const textMisses = run.misses.filter((m) => /\btext\.characters\b/.test(m));
         ok(textMisses.length === 0,
