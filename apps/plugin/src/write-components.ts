@@ -1777,13 +1777,18 @@ const writeComponentSet = async (
       // import's own 24px) and BEFORE the bind loop below (this node binds no dimension, so the resize is
       // never cleared). The outline's SCALE constraints, just set, scale the drawn grid to fill it. Twin of
       // the `figma_execute` payload's own glyph resize (`anatomy-figma.ts`).
-      if (n.glyphPx) node.resize?.(n.glyphPx, n.glyphPx);
     } else {
       node = ex ?? wr(api.createFrame());
       // THREADED FROM THE PLAN (#1316), default false — unchanged for every existing box, which omits the
       // field. Only `image-placeholder`'s frame opts into clipping, so a dropped photo cannot overflow it.
       if (!kept) node.clipsContent = n.clipsContent ?? false;
     }
+    // THE LITERAL GLYPH SIZE (#1340), for a glyph and, since #2380, for the icon INSTANCE an icon-set glyph
+    // builds as (image-placeholder's 180px marker). Neither binds a `size` variable, so each stays at its 24px
+    // artboard unless resized here, BEFORE the bind loop (no dimension is bound, so nothing clears it). A
+    // glyph's outline carries SCALE constraints (set above); an icon component's does too, from its own build,
+    // so the drawn grid fills the resized box either way. Twin of the paste payload's own resize.
+    if (n.glyphPx && !kept) node.resize?.(n.glyphPx, n.glyphPx);
     // LOOSE FROM THE MOMENT IT EXISTS (#913), one line for all six creation branches above. Figma parents
     // a created node to the current page immediately, so a node that exists is a node a designer can see —
     // and every line below this one can throw. A node the file already held is not loose: it is where it was.
@@ -2066,6 +2071,7 @@ const writeComponentSet = async (
     const absolutes: [FigmaNodePlan, Wr][] = [];
     const centered: [FigmaNodePlan, Wr][] = [];
     const pinned: [FigmaNodePlan, Wr][] = [];
+    const insets: [FigmaNodePlan, Wr][] = [];
     // This parent's DIRECT children by part name (#848) — the sibling boxes `absoluteCenterOn` measures
     // against. Sibling-scoped on purpose; see the centering loop for why the wider `parts` map is wrong.
     const byPart = new Map<string, Wr>();
@@ -2112,6 +2118,7 @@ const writeComponentSet = async (
       // A PINNED child (#1667) leaves the flow the moment it is appended, so it never counts in the hug and
       // the width it is placed against below is final. See the pinned pass.
       if (c.pin) { kid.layoutPositioning = 'ABSOLUTE'; pinned.push([c, kid]); }
+      if (c.glyphInset) insets.push([c, kid]);
       // Written straight rather than bound: a brand does not get to theme a label under a spinner to
       // half-visible. `visible:false` would yield the cell and collapse the button.
       if (c.zeroOpacity) kid.opacity = 0;
@@ -2313,6 +2320,22 @@ const writeComponentSet = async (
     // else was declared. Placed after the child loop rather than beside `createFrame()` so that a value
     // the plan set is never overwritten by a default — the ordering is the whole correctness argument,
     // and putting it at creation time would have neutralized the plan instead of Figma.
+    // THE INSET ICON (#2380, #1346): checkbox's check and dash, an instance of `icon/check` / `icon/minus` at
+    // `glyphInset` of the frame that holds it. Placed after the flow pass, on the frame's own bound box, and
+    // given SCALE constraints so the brand or a mode resizing that box scales the icon with it — the inset
+    // stays a fraction of the box rather than freezing at the px it was built at. Read back against the box,
+    // since a resize an instance refused would leave the icon at its own 24px. Twin of the paste payload's.
+    for (const [c, kid] of insets) {
+      const s = c.glyphInset!;
+      const w = node.width ?? 0;
+      const h = node.height ?? 0;
+      kid.resize?.(w * s, h * s);
+      kid.x = (w * (1 - s)) / 2;
+      kid.y = (h * (1 - s)) / 2;
+      kid.constraints = { horizontal: 'SCALE', vertical: 'SCALE' };
+      if (Math.abs((kid.width ?? 0) - w * s) > 0.01 || Math.abs((kid.height ?? 0) - h * s) > 0.01)
+        misses.push(`${c.name}.glyphInset -> DISCARDED (set ${w * s}x${h * s}, ${s} of the ${w}x${h} box; reads ${String(kid.width)}x${String(kid.height)})`);
+    }
     if (!kept) claimDefaults(node, n, misses, 'created', undefined, !!ex && path === '.');
     // #1567 — RE-APPLY THE TEXT STYLE, BECAUSE `claimDefaults` ABOVE JUST DETACHED IT.
     //
