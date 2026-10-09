@@ -12151,6 +12151,132 @@ for (const host of ['web', 'figma']) {
     }
   }
 }
+// =============================================================================================
+// 38. #2383: the preview header's mode select shows its whole selected label, and the header never runs sideways
+// =============================================================================================
+// Both hosts, both chrome themes, at 640, 800, 380 and 1280; on Palettes (held to Light, #2321), Interactive and Surfaces &
+// fills; on Interactive and Surfaces & fills in each of the four modes the select can show. In each case:
+//   · when the select is drawn, its chosen option's text, set in the select's own computed font, fits the select's
+//     content box (its width less its borders and padding): the label is never cut, to "Lig" or to nothing;
+//   · the chosen option reads the mode's label, a literal typed here, so a select drawing the wrong mode fails too;
+//   · when the radios are drawn instead, the checked radio's name is not cut (its `scrollWidth` within its
+//     `clientWidth`) and the radio sits wholly inside the group;
+//   · the header has no horizontal overflow, and the title, the mode control and Inspect each sit wholly inside it;
+//   · the title is never cut (its `scrollWidth` within its `clientWidth`).
+// At 640, the width the issue was found at, the select must be the control drawn, on each host and theme, so the check
+// above is not passed vacuously by the radios.
+// INDEPENDENCE (docs/34). The modes and their labels are literals typed here, never read from `preview.ts`'s
+// `MODE_LABEL` or the engine's mode registry; the text's width is measured from a probe span in the select's computed
+// font, never from the select's own width or `data-fit`. Every case is counted, so a skipped one fails.
+// Mutation (in a `wip:` commit): the select's wrap given back `flex: 0 1 auto; min-width: 0` and the select `width:
+// 100%`, so it shrinks below its text → `#2383 web light 640 on color-interactive in light: the mode select shows its
+// whole label …` fails by name.
+console.log(`\n#2383: the preview header's mode select shows its whole label\n${'='.repeat(78)}`);
+/** The select's chosen option reads this, then " · " and the mode's verdict (which this check does not read). Literal. */
+const MS_LABEL = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light (derived)', 'hc-dark': 'HC dark (derived)' };
+/** The checked radio's name, when the radios are drawn. Literal. */
+const MS_RADIO = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light', 'hc-dark': 'HC dark' };
+const MS_PLACES = { 'color-palettes': ['light'], 'color-interactive': Object.keys(MS_LABEL), 'color-fills': Object.keys(MS_LABEL) };
+const MS_WIDTHS = [640, 800, 380, 1280];
+/** The preview header as drawn: which control shows, and every width the checks above compare. Runs in the page. */
+const MS_READ = () => {
+  const head = document.querySelector('[data-p3="preview-head"]');
+  const title = document.querySelector('[data-p3="preview-title"]');
+  const group = document.querySelector('[data-p3="mode-control"]');
+  const sel = document.querySelector('[data-p3="mode-select"]');
+  const insp = document.querySelector('[data-p3="inspect-open"]');
+  const shown = (n) => !!n && n.getClientRects().length > 0 && getComputedStyle(n).visibility !== 'hidden';
+  const hb = head.getBoundingClientRect();
+  const inside = (n) => { const b = n.getBoundingClientRect(); return b.left >= hb.left - 0.5 && b.right <= hb.right + 0.5 && b.top >= hb.top - 0.5 && b.bottom <= hb.bottom + 0.5; };
+  const out = { showing: shown(group) ? 'radios' : shown(sel) ? 'select' : 'none', headOver: head.scrollWidth - head.clientWidth,
+    title: title.textContent, titleCut: title.scrollWidth - title.clientWidth, titleIn: inside(title), inspIn: shown(insp) && inside(insp) };
+  if (out.showing === 'select') {
+    const cs = getComputedStyle(sel);
+    const text = sel.selectedOptions[0]?.textContent ?? '';
+    const probe = document.createElement('span');
+    for (const p of ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'fontStretch', 'letterSpacing', 'wordSpacing', 'textTransform', 'fontKerning', 'fontFeatureSettings', 'fontVariant'])
+      probe.style[p] = cs[p];
+    probe.style.whiteSpace = 'pre';
+    probe.style.position = 'absolute';
+    probe.style.visibility = 'hidden';
+    probe.textContent = text;
+    document.body.append(probe);
+    const textW = probe.getBoundingClientRect().width;
+    probe.remove();
+    const px = (k) => parseFloat(cs[k]) || 0;
+    const box = sel.getBoundingClientRect().width - px('borderLeftWidth') - px('borderRightWidth') - px('paddingLeft') - px('paddingRight');
+    Object.assign(out, { text, value: sel.value, textW: Math.round(textW * 10) / 10, box: Math.round(box * 10) / 10, ctlIn: inside(sel) });
+  } else if (out.showing === 'radios') {
+    const on = group.querySelector('[aria-checked="true"]');
+    const name = on?.querySelector('.p3-mode-name');
+    const g = group.getBoundingClientRect(), b = on?.getBoundingClientRect();
+    Object.assign(out, { text: name?.textContent ?? '', value: on?.dataset.mode ?? null, nameCut: name ? name.scrollWidth - name.clientWidth : null,
+      radioIn: !!b && b.left >= g.left - 0.5 && b.right <= g.right + 0.5, ctlIn: inside(group) });
+  }
+  return out;
+};
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    for (const w of MS_WIDTHS) {
+      const where = `#2383 ${host} ${theme} ${w}`;
+      const narrow = w <= 560;
+      const { ctx, page, errors } = await open({ host, theme, w, h: 900 });
+      const toPreview = async () => { if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]')); };
+      const toSettings = async () => { if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]')); };
+      const settle = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+      let cases = 0, selects = 0, step = 'open';
+      const want = Object.values(MS_PLACES).reduce((a, m) => a + m.length, 0);
+      try {
+        // The select moving to its own row changes the header's height inside its own ResizeObserver's callback; a loop
+        // there is reported as a window error event, which neither \`pageerror\` nor the console catches. Counted here.
+        await page.evaluate(() => { window.__p3RoLoop = []; addEventListener('error', (e) => { if (/ResizeObserver/.test(e.message ?? '')) window.__p3RoLoop.push(e.message); }); });
+        for (const [place, modes] of Object.entries(MS_PLACES)) {
+          for (const mode of modes) {
+            step = `${place} in ${mode}`;
+            if (place === 'color-interactive' && (w === 640 || w === 800)) {
+              // As in section 19b: at 640 and 800 the preview covers the sub-nav's last tab, so the keyboard reaches Interactive.
+              await hooks.click(page.locator('[data-p3="tab-color"]'));
+              await page.locator('[data-p3="color-sub-interactive"]').focus();
+              await page.keyboard.press('Enter');
+              await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'color-interactive');
+              await page.evaluate(() => document.fonts.ready);
+            } else await goPlace(page, place);
+            if (place !== 'color-palettes') await roShowMode(page, mode);
+            await toPreview();
+            await settle();
+            const at = `${where} on ${place} in ${mode}`;
+            const r = await page.evaluate(MS_READ);
+            if (r.showing === 'select') {
+              selects++;
+              ok(r.value === mode && r.text.startsWith(`${MS_LABEL[mode]} · `), `${at}: the mode select's chosen option reads "${MS_LABEL[mode]} · …" (reads ${JSON.stringify(r.text)}, value ${r.value})`);
+              ok(r.textW <= r.box + 0.5, `${at}: the mode select shows its whole label, ${JSON.stringify(r.text)} (${r.textW}px of text in a ${r.box}px content box)`);
+            } else {
+              ok(r.showing === 'radios' && r.value === mode && r.text === MS_RADIO[mode], `${at}: the checked mode radio reads "${MS_RADIO[mode]}" (shows the ${r.showing}, reading ${JSON.stringify(r.text)}, mode ${r.value})`);
+              ok(r.nameCut !== null && r.nameCut <= 0 && r.radioIn, `${at}: the checked mode radio shows its whole name (cut by ${r.nameCut}px; inside the group ${r.radioIn})`);
+            }
+            ok(r.headOver <= 0 && r.ctlIn && r.titleIn && r.inspIn, `${at}: the preview header has no horizontal overflow and holds the title, the mode control and Inspect (overflow ${r.headOver}px; inside: title ${r.titleIn}, mode control ${r.ctlIn}, Inspect ${r.inspIn})`);
+            ok(r.titleCut <= 0, `${at}: the preview title "${r.title}" is not cut (by ${r.titleCut}px)`);
+            if (SHOTS && (w === 640 || w === 800) && (place === 'color-palettes' || (place === 'color-interactive' && (mode === 'light' || mode === 'hc-light')))) {
+              await page.evaluate(() => document.activeElement?.blur?.());
+              const hb = await page.locator('[data-p3="preview-head"]').boundingBox();
+              await page.screenshot({ path: join(SHOTS, `2383-${host === 'web' ? 'web' : 'plugin'}-${theme}-${w}-${place.slice('color-'.length)}-${mode}.png`),
+                clip: { x: 0, y: 0, width: w, height: Math.ceil(hb.y + hb.height) + 48 } });
+            }
+            await toSettings();
+            cases++;
+          }
+        }
+        ok(cases === want, `${where}: every case ran (${cases} of ${want})`);
+        if (w === 640) ok(selects === want, `${where}: at 640 the mode control is the select in every case, so its label is measured (${selects} of ${want})`);
+        const loop = await page.evaluate(() => window.__p3RoLoop);
+        ok(loop.length === 0, `${where}: no ResizeObserver loop error from the header (${loop.length}${loop.length ? ` — ${loop[0]}` : ''})`);
+        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where}: the case stopped at a step that threw (${step}) — ${String(e?.message ?? e).split('\n')[0]}`);
+      } finally { await ctx.close(); }
+    }
+  }
+}
 // #2238: the check box is measured on both hosts, in both chrome themes, somewhere in the sweep.
 for (const [k, n] of Object.entries(BOXES_BY)) ok(n > 0, `#2238 ${k}: the contrast audit measured check boxes in the sweep (${n})`);
 hooks.report(ok);

@@ -414,6 +414,14 @@
 /* More modes than fit (S3 review): the select of the same modes instead, never a clipped radio (concept v6's
    slim preview). */
 .p3-modes-wrap[data-fit="select"] > .p3-modes, .p3-modes-wrap:not([data-fit="select"]) > .p3-modes-select { display: none; }
+/* #2383: the select is never narrower than its longest option, so the chosen mode's name is never cut (at 640 it read
+   "Lig", or nothing). A select at `width: 100%` gives no width of its own to its flex parent, so it shrank to its caret.
+   Where the title, the select and Inspect do not fit one row, the select takes its own row under the title and Inspect
+   stays on the title's row. `fit` in `shell/preview.ts` decides that and sets `data-row`. The title never truncates. */
+.p3-modes-wrap[data-fit="select"], .p3-modes-wrap[data-fit="select"] > .p3-modes-select { flex: none; }
+.p3-modes-select > .p3-select { width: auto; }
+.p3-preview-head:has(> .p3-modes-wrap[data-row="own"]) { flex-wrap: wrap; row-gap: var(--p3-space-100); padding-block: var(--p3-space-100); }
+.p3-modes-wrap[data-row="own"] { order: 1; flex-basis: 100%; }
 .p3-mode { flex: none; gap: var(--p3-space-075); padding: 0 var(--p3-space-150); }
 .p3-mode[data-derived="true"]:not([aria-checked="true"]) {
   background-image: repeating-linear-gradient(135deg, transparent 0 var(--p3-space-050), var(--p3-fill-1) var(--p3-space-050) var(--p3-space-100));
