@@ -308,23 +308,23 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "pad-x",
-        "ref": "space.200"
-      },
-      {
-        "key": "pad-y",
+        "key": "size.medium.gap",
         "ref": "space.100"
       },
       {
-        "key": "gap",
+        "key": "size.small.gap",
         "ref": "space.100"
       },
       {
-        "key": "size.small.pad-x",
-        "ref": "space.200"
+        "key": "size.large.gap",
+        "ref": "space.100"
       },
       {
         "key": "size.medium.pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.small.pad-x",
         "ref": "space.200"
       },
       {
@@ -332,12 +332,12 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.300"
       },
       {
-        "key": "size.small.pad-y",
-        "ref": "space.075"
-      },
-      {
         "key": "size.medium.pad-y",
         "ref": "space.100"
+      },
+      {
+        "key": "size.small.pad-y",
+        "ref": "space.075"
       },
       {
         "key": "size.large.pad-y",
@@ -346,7 +346,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ],
     "buildable": true,
     "reason": null,
-    "members": 24,
+    "members": 72,
     "nests": [
       "field-label",
       "icon",
@@ -362,19 +362,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "pad-x",
+        "key": "size.medium.pad-x",
         "ref": "space.200"
-      },
-      {
-        "key": "pad-y",
-        "ref": "space.100"
       },
       {
         "key": "size.small.pad-x",
-        "ref": "space.200"
-      },
-      {
-        "key": "size.medium.pad-x",
         "ref": "space.200"
       },
       {
@@ -382,12 +374,12 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.300"
       },
       {
-        "key": "size.small.pad-y",
-        "ref": "space.075"
-      },
-      {
         "key": "size.medium.pad-y",
         "ref": "space.100"
+      },
+      {
+        "key": "size.small.pad-y",
+        "ref": "space.075"
       },
       {
         "key": "size.large.pad-y",
@@ -396,7 +388,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ],
     "buildable": true,
     "reason": null,
-    "members": 24,
+    "members": 72,
     "nests": [
       "field-label",
       "field-message",
@@ -560,21 +552,45 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "pad-x",
-        "ref": "space.200"
-      },
-      {
-        "key": "pad-y",
+        "key": "size.medium.gap",
         "ref": "space.100"
       },
       {
-        "key": "gap",
+        "key": "size.small.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.medium.pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.small.pad-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.large.pad-x",
+        "ref": "space.300"
+      },
+      {
+        "key": "size.medium.pad-y",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.small.pad-y",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.large.pad-y",
         "ref": "space.100"
       }
     ],
     "buildable": true,
     "reason": null,
-    "members": 24,
+    "members": 72,
     "nests": [
       "field-label",
       "icon",
