@@ -141,7 +141,7 @@ export const mountComponentsLevers = (hostEl: HTMLElement, cleanups: (() => void
     const el = hook(h('section', 'p3-lsec'), 'lever-section');
     el.id = `p3-lsec-components-${i}`;
     const head = h('div', 'p3-lsec-head');
-    const t = h('h3', 'p3-lsec-title', s.title);
+    const t = h('h2', 'p3-lsec-title', s.title);
     t.id = `${el.id}-t`;
     el.setAttribute('aria-labelledby', t.id);
     head.append(t);

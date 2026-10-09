@@ -9,7 +9,7 @@
  * variable unread. See `apps/studio/chrome/esbuild-plugin.mjs`.
  *
  * Classes here take the `p3-` scope, which `styles.css` does not use. State is read from ARIA attributes
- * and from the frame's `data-w` (width tier), `data-bar-fit` (the wide bar's fit step, #2214) and `data-layout`
+ * and from the frame's `data-w` (width tier), `data-bar-fit` (the bar's fit step, #2214; at the narrow tier only `trim`, #2262) and `data-layout`
  * (panes or page; the legacy layout went in H12, #2289), never from a shared state class.
  *
  * WHAT THIS STYLES: the frame (`src/shell/frame.ts`), meaning the top bar, the tab row with Color's
@@ -495,7 +495,7 @@
 /* The narrow tier's rules for the tile labels, the product name and the two rows also serve the wide bar's fit steps
    (#2214, BL1 A+B): `frame.ts` (`fitBar`) sets `data-bar-fit` when the full bar would not fit on one row. `glyphs`
    drops the labels, `logo` the name too, `rows` takes the two rows as well, and `trim` (Q83 A) also cuts the brand
-   switcher's name short, below. */
+   switcher's name short, below. The narrow tier takes `trim` too (#2262), when its own first row would not fit. */
 .p3-frame:is([data-w="narrow"], [data-bar-fit="logo"], [data-bar-fit="rows"], [data-bar-fit="trim"]) .p3-mark-name { display: none; }
 .p3-frame[data-w="narrow"] :is(.p3-btn, .p3-brand) { min-height: var(--p3-ctl-h-xs); font-size: var(--p3-fs-12); }
 .p3-frame[data-w="narrow"] .p3-brand { padding: 0 var(--p3-space-100); }
@@ -942,6 +942,9 @@ fieldset.p3-lever > legend.p3-lever-head { padding-block-end: var(--p3-space-150
 [data-per="5"] .p3-palh-anchor { grid-column: 1 / -1; justify-items: start; grid-auto-flow: column; align-items: center; justify-content: start; }
 .p3-checker { background: repeating-conic-gradient(var(--p3-fill-2) 0% 25%, var(--p3-bg-page) 0% 50%) 0 0 / var(--p3-space-150) var(--p3-space-150); }
 .p3-sr { position: absolute; width: var(--p3-bw-hairline); height: var(--p3-bw-hairline); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* #2212: the frame's hidden h1 takes no browser margin and is set in the chrome's own face at its default size and weight,
+   not the page's system stack or the browser's bold heading (test:chrome's font audit reads every chrome text node). */
+h1.p3-sr { margin: 0; font-family: var(--p3-font-ui); font-size: var(--p3-fs-14); font-weight: var(--p3-fw-default); }
 /* The Activity status line rides in the top bar, outside the drawer (so it is in the document before the
    drawer is drawn), and takes the chrome face itself rather than inheriting it (S11). */
 .p3-live { margin: 0; color: var(--p3-text); font-family: var(--p3-font-ui); font-size: var(--p3-fs-12); }

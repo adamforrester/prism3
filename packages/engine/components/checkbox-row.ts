@@ -270,18 +270,19 @@ export const checkboxRow: ComponentDef = {
         // control against its label is done one level down, INSIDE `controlBox`, which is exactly one
         // line-box tall; top-aligning that box here lands it on the first line. So a single-line label
         // reads centered and a wrapping one keeps the control on line one.
-        layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
+        layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         gap: 'size.{size}.gap',
         // TOP/BOTTOM PADDING (#1433b) from Prism 2's row (`space.150` = 12px on nb); inline sides zero
         // (`space.0`). See the `pad-y`/`pad-x` tokens above for the source and why inline is a literal zero.
         padding: { block: 'pad-y', inlineLabel: 'pad-x' },
-        // THE WIDTH FLOOR THAT LETS THE LABEL WRAP (#1424). A hugging row is exactly as wide as its
-        // children, so a `layoutGrow` label would have no remaining space to fill and would hug its own
-        // text and overflow. `minWidth` gives the row a comfortable floor — Prism 2's checkbox-row
-        // `root width 320` — so the label FILLS the remainder and WRAPS (the `select` precedent, #1345:
-        // a literal projection floor, not a bound token, so CONTRACT holds). The row still HUGS above the
-        // floor, so a short consent line stays compact. Real-host wrap is offline-unverified (see notes).
-        minWidth: 320,
+        // BUILT AT 320, SHRINKS TO ITS COLUMN (#1424, then owner decision Q152.3: Q99 B reaches the rows). The label
+        // FILLS the row and WRAPS, so the row's width must be bounded or a `layoutGrow` label has no remaining space
+        // to fill. The root is BUILT at Prism 2's checkbox-row `root width 320` (`placementWidth`, the fields' #2292
+        // mechanism), so an unplaced row still reads at 320, and a row set to fill its column stretches with it.
+        // The floor is the fields' 120 (owner Q152.2): it used to be 320, which held a row in a narrower column
+        // at 320 and overflowed it. Both are literal projection defaults, not bound tokens, so CONTRACT holds.
+        placementWidth: 320,
+        minWidth: 120,
         children: ['controlBox', 'label'],
       },
       // THE ALIGNMENT BOX (#1201, building the fix #1009 filed). A structural wrapper exactly one line of

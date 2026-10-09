@@ -11,6 +11,9 @@ reason line, its `test:chrome` arms (sections 9, 11, the Q4 trial, X4 A, HP3, #1
 arms. Each of those files takes #2387's version. What remains is #1975 and #2105, whose screenshots the owner approved
 (2026-10-09).
 
+**Section number.** This PR's `test:chrome` section was 37 until #2395 landed its own 37 (#2212, the heading outline),
+so it is 38 here. The open #2441 (#2383) also uses 38; whichever of the two lands second renumbers.
+
 ### #1975: the levers between the tiers
 
 **The defect, measured.** At 800 and 640 the levers column is 42% of the window (335 and 268px), narrower than the 380 the
@@ -38,7 +41,7 @@ Token namespace, side by side, came out 77px each against its 80px floor. On `ma
 because the card overflowed into the pane's padding (namespace's right edge at 258 of 268). `scrollWidth` doesn't count
 that, so the overflow was invisible to the issue's own measure. The snug insets give them back their room.
 
-**Test:** `test:chrome` section 37, both hosts at 640 and 380 and the web at 800. Each Color sub-tab is hit-tested at its
+**Test:** `test:chrome` section 38, both hosts at 640 and 380 and the web at 800. Each Color sub-tab is hit-tested at its
 center (the element there is the tab) and then clicked by pointer, and each moved page, every Show advanced open, holds
 `scrollWidth ≤ clientWidth`.
 
@@ -53,7 +56,7 @@ pane (0px).
 scrolls inside itself. Whether a long line clamps or scrolls was left to the UI lane. It scrolls, so every word stays
 reachable.
 
-**Test:** `test:chrome` section 37, the plugin at 380 × 420 in both Figma themes with the refused `#1989` brand. The bar
+**Test:** `test:chrome` section 38, the plugin at 380 × 420 in both Figma themes with the refused `#1989` brand. The bar
 must end at or above the line's top, the line must scroll, and the levers pane must keep at least 40px.
 
 ### Mutations

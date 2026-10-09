@@ -610,7 +610,9 @@ const WIDTHS = [{ w: 1280, h: 900 }, { w: 640, h: 900 }, { w: 380, h: 420 }];
  *  (`scrollWidth`); the room is the controls box's width before anything is forced. The frame derives every step from
  *  one measurement of the full row by subtraction; this lays each candidate out for real, so the two are partners and
  *  neither is the other (docs/34, shape 2). Within 1px of the room the answer is ambiguous, and both neighbors are
- *  accepted (`also`). Above the narrow tier only: at it, the narrow tier's own rules hold, as before. */
+ *  accepted (`also`). At the narrow tier (#2262, the owner's A) the bar's rows are its own, labels and product name
+ *  already dropped: the one candidate is its designed first row (`rows` with a file row, `logo` without), and past it
+ *  the brand switcher's name is cut. */
 const FIT_ORACLE = () => {
   const bm = document.querySelector('[data-p3="bar-main"]');
   const narrow = document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow';
@@ -627,7 +629,8 @@ const FIT_ORACLE = () => {
   // The two rows' first row: the controls before the plugin's row break, the rest taken out of the row.
   const rows = fileRow ? need('.p3-tile-label{display:none!important}.p3-mark-name{display:none!important}.p3-bar-break~*{display:none!important}') : null;
   st.remove();
-  const steps = [['full', full], ['glyphs', glyphs], ['logo', logo], ...(fileRow ? [['rows', rows]] : [])];
+  const steps = narrow ? [fileRow ? ['rows', rows] : ['logo', logo]]
+    : [['full', full], ['glyphs', glyphs], ['logo', logo], ...(fileRow ? [['rows', rows]] : [])];
   // Past the last row that fits as it is, the brand switcher's name is cut short (Q83 A).
   const pick = (slack) => steps.find(([, x]) => x <= room + slack)?.[0] ?? 'trim';
   const step = pick(0), lo = pick(-1), hi = pick(1);
@@ -9763,12 +9766,17 @@ for (const host of ['web', 'figma']) {
 //     the mark, identical at every width, the narrow tier included, to the same brand's at 1280, where the full bar
 //     shows (asserted). While the brand switcher's name is cut, its computed name and its tooltip are the full name.
 //   · A LONG NAME GIVES WAY SOONER: at some width its step is further along than "prism3"'s, and never behind it.
-//   · THE NARROW TIER (560 and below) is unchanged by #2214 and holds its own rules (section 29); here it is held to the
-//     names and, since #2262, to the tooltip: down to 380 and back up, the switcher carries a `title` only while its
-//     name is cut, so a tooltip set at `trim` cannot linger into the narrow tier.
+//   · THE NARROW TIER (560 and below) keeps its own rows (section 29): the labels and the product name dropped, and on
+//     the plugin the file row below. Since #2262 (the owner's A, 2026-10-09) it takes Q83 A's step too: when its first
+//     row would not fit, the switcher's name is cut, and the bar still draws no more rows than its narrow layout allows
+//     (the plugin 2, the web 1). The long name is swept here every 10px from 560 down to 380 like every other width,
+//     held to the oracle's step, the rows, the computed name and the tooltip, and each host must reach the cut name at
+//     this tier. Down to 380 and back up, the switcher carries a `title` only while its name is cut, so a tooltip set at
+//     `trim` cannot linger.
 // Mutations, each failing here by name: (a) no label drop, (b) the product name never drops, (c) straight to the two
-// rows, (d) the frame's measurement ignores the brand switcher's width, (e) the web excluded, (f) no truncation. See
-// the progress entry.
+// rows, (d) the frame's measurement ignores the brand switcher's width, (e) the web excluded, (f) no truncation; and
+// for #2262, (g) the narrow tier's early return put back, (h) no tooltip while the name is cut at the narrow tier. See
+// the progress entries.
 // =============================================================================================
 console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
 {
@@ -9797,6 +9805,7 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
   const settle = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   let states = 0;
   const trimmedOn = { web: 0, figma: 0 };
+  const narrowTrim = { web: 0, figma: 0 };
   for (const host of ['web', 'figma']) {
     const seenBy = { short: {}, long: {} };
     for (const theme of ['light', 'dark']) {
@@ -9849,16 +9858,16 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
               tipCheck('down', w, tip, seen, fit.narrow);
               if (seen.cut) sawCut = true; else if (fit.narrow && sawCut) narrowAfterCut++;
             }
-            if (fit.narrow) continue;
-            if (theme === 'light') seenBy[brand][w] = seen.step;
-            if (seen.step === 'trim') trimmedOn[host]++;
+            if (theme === 'light' && !fit.narrow) seenBy[brand][w] = seen.step;
+            if (seen.step === 'trim') (fit.narrow ? narrowTrim : trimmedOn)[host]++;
             const allowed = seen.step === 'trim' ? (fit.fileRow ? 2 : 1) : MAX_ROWS[seen.step] ?? 0;
             if (!fit.also.includes(seen.step) || seen.rows.length > allowed) missed.push(`${w}: want ${fit.also.join('/')} (full ${fit.full}, without labels ${fit.glyphs}, without the name ${fit.logo}${fit.fileRow ? `, first of two rows ${fit.rows}` : ''}, in ${fit.room}), drew ${seen.step} in ${seen.rows.length} row(s) ${JSON.stringify(seen.rows)}`);
             if (seen.step === 'trim') {
-              ok(names['brand-switcher'] === fullName && tip === fullName, `${where}: the cut brand name keeps the full name as the switcher's accessible name and tooltip (name "${names['brand-switcher']}", title "${tip}")`);
+              ok(names['brand-switcher'] === fullName && tip === fullName, `${where}${fit.narrow ? ' (narrow)' : ''}: the cut brand name keeps the full name as the switcher's accessible name and tooltip (name "${names['brand-switcher']}", title "${tip}")`);
               ok(seen.rows[0]?.includes('export-open'), `${where}: Export stays on the first row while the brand name is cut (${JSON.stringify(seen.rows)})`);
             } else if (tip !== null) missed.push(`${w}: the switcher carries a tooltip (${JSON.stringify(tip)}) with its name whole (${seen.step})`);
             if (SHOTS && host === 'figma' && brand === 'long' && w >= 570 && w <= 590) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `q83-plugin-${theme}-${w}-long-name.png`) });
+            if (SHOTS && brand === 'long' && (host === 'figma' ? [460, 380] : [430, 380]).includes(w)) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `2262-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-long-name.png`) });
             if (SHOTS && [640, 800, 1000, 1280].includes(w) && (w !== 1280 || brand === 'short')) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `final-2214-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}${brand === 'long' ? '-long-name' : ''}.png`) });
           }
           if (brand === 'long') {
@@ -9892,7 +9901,10 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
   }
   // Q83 A's case: the plugin's long name reaches the cut name (570–590, Lane D's sweep on #2257).
   ok(trimmedOn.figma > 0, `29d figma: the long name reaches the cut-name step somewhere in the sweep (${trimmedOn.figma} state(s))`);
-  console.log(`  29d: ${states} bar states swept; the cut name drawn in ${trimmedOn.figma} plugin and ${trimmedOn.web} web state(s).`);
+  // #2262's case: at the narrow tier the long name wrapped the bar (the plugin at 460 and below, the web at about 430 and
+  // below), so each host must reach the cut name there, or the narrow half of the sweep proves nothing.
+  for (const host of ['figma', 'web']) ok(narrowTrim[host] > 0, `29d ${host}: the long name reaches the cut-name step at the narrow tier (${narrowTrim[host]} state(s))`);
+  console.log(`  29d: ${states} bar states swept; the cut name drawn in ${trimmedOn.figma} plugin and ${trimmedOn.web} web state(s) above the narrow tier, ${narrowTrim.figma} and ${narrowTrim.web} at it.`);
 }
 
 // =============================================================================================
@@ -12140,7 +12152,82 @@ for (const host of ['web', 'figma']) {
   }
 }
 // =============================================================================================
-// 37. #1975 and #2105: the two panes at the widths between the tiers, and the narrow plugin's bar over its error line
+// 37. #2212: every page's heading outline, read from the browser's accessibility tree
+// =============================================================================================
+// Both hosts, light chrome, at 1280 and at 380 (the Settings pane and the Preview pane), on every place, and the plugin's
+// Build style guides page. The outline is read from CDP `Accessibility.getFullAXTree` (never the DOM), walked from the
+// root in tree order, ignored nodes dropped: every node with the role "heading" and its level. Each outline must open on
+// its one level-1 heading, hold no other, and never skip a level after the one before it (a 2 then a 4 fails). The h1's
+// name is the page's name as its tab shows it, typed here (PAGE_H1), never read from `pages.ts` or `frame.ts`.
+// Mutations, each failing here by name (the PR records the lines): the frame's h1 left out; a levers section title back
+// at h3; a row list's sub-heading back at h4; the preview's sub-head back at h3 is not a skip (3 then 3) and is not
+// asserted here: the level rule is "no skip", and section 30 holds the levers' visual levels.
+const PAGE_H1 = { brand: 'Brand', 'color-palettes': 'Palettes', 'color-fills': 'Surfaces & fills', 'color-interactive': 'Interactive',
+  type: 'Type', shape: 'Shape', depth: 'Depth & motion', layout: 'Layout', components: 'Components' };
+const SG_H1 = 'Build style guides';
+/** At least this many headings per outline (Shape, Depth & motion and Components at 380 on their Settings pane, the
+ *  fewest: the h1 and the page's two sections). */
+const OUTLINE_FLOOR = 3;
+const outlineOf = async (page) => {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send('Accessibility.enable');
+    const { nodes } = await cdp.send('Accessibility.getFullAXTree');
+    const byId = new Map(nodes.map((n) => [n.nodeId, n]));
+    const root = nodes.find((n) => !n.parentId) ?? nodes[0];
+    const out = [];
+    const walk = (id) => {
+      const n = byId.get(id);
+      if (!n) return;
+      if (!n.ignored && n.role?.value === 'heading') {
+        const lv = Number(n.properties?.find((p) => p.name === 'level')?.value?.value ?? 0);
+        out.push([lv, (n.name?.value ?? '').trim()]);
+      }
+      for (const c of n.childIds ?? []) walk(c);
+    };
+    walk(root.nodeId);
+    return out;
+  } finally { await cdp.detach(); }
+};
+const checkOutline = (o, where, h1) => {
+  const ones = o.filter(([l]) => l === 1);
+  const skips = [];
+  for (let i = 1; i < o.length; i++) if (o[i][0] > o[i - 1][0] + 1) skips.push(`h${o[i - 1][0]} "${o[i - 1][1]}" then h${o[i][0]} "${o[i][1]}"`);
+  const show = o.slice(0, 8).map(([l, n]) => `h${l} ${n}`).join(' | ');
+  ok(o.length >= OUTLINE_FLOOR, `#2212 ${where}: the accessibility tree holds ${o.length} headings (floor ${OUTLINE_FLOOR})`);
+  ok(o[0]?.[0] === 1 && ones.length === 1 && ones[0][1] === h1, `#2212 ${where}: the outline opens on one h1, "${h1}", and holds no other — read ${show}`);
+  ok(skips.length === 0, `#2212 ${where}: no heading skips a level after the one before it${skips.length ? ` — ${skips.slice(0, 4).join(' | ')}` : ''}`);
+};
+console.log(`\nHeading outline (#2212)\n${'='.repeat(78)}`);
+for (const host of ['web', 'figma']) {
+  for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 900 }]) {
+    const where0 = `${host} light ${w}`;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w, h });
+    try {
+      const seen = new Set();
+      for (const place of NEW_PAGES) {
+        await goPlace(page, place);
+        seen.add(place);
+        checkOutline(await outlineOf(page), `${where0} / ${place}${w <= 560 ? ' (Settings)' : ''}`, PAGE_H1[place]);
+        if (w <= 560) {
+          await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+          checkOutline(await outlineOf(page), `${where0} / ${place} (Preview)`, PAGE_H1[place]);
+          await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
+        }
+      }
+      ok(NEW_PAGES.every((p) => seen.has(p)), `#2212 ${where0}: every place's outline was read (${[...seen].join(', ')})`);
+      if (host === 'figma') {
+        await openStyleGuides(page);
+        checkOutline(await outlineOf(page), `${where0} / Build style guides`, SG_H1);
+      }
+      ok(errors.length === 0, `#2212 ${where0}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `#2212 ${where0}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+}
+// =============================================================================================
+// 38. #1975 and #2105: the two panes at the widths between the tiers, and the narrow plugin's bar over its error line
 // =============================================================================================
 // #1975. At 800 and 640 the levers column is 42% of the window (335 and 268px), narrower than the 380 its pages were laid
 // out for. Every Color sub-tab must be reachable by a POINTER: the element at its center is the tab itself (a hit test in
