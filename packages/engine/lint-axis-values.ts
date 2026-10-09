@@ -601,6 +601,20 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'this is a width-to-height proportion that holds while the actual dimensions flex, argued in '
       + '`VARIANT_AXES`. THREE values, the three ratios the owner settled on.',
   },
+  {
+    axis: 'inset',
+    values: ['default', 'flush'],
+    defs: ['button', 'button-destructive', 'button-neutral'],
+    relation: 'sole',
+    reason:
+      'Whether a text button keeps its inline padding (#2350, owner Q143 and Q145 A, name and values DRAFT): '
+      + 'the button as authored, or with no inline padding on either side, so its label lines up with the '
+      + 'content edge above and below whether it starts, ends or centers a row. `default` LEADS because it is '
+      + 'the code default and every member before #2350. One value, not one per side: a flush button has no '
+      + 'visible box, so the side it is not aligned to shows nothing either way. The text appearance only '
+      + '(`excludeCoordinates`). Distinct from `width` (how much of the container it takes) and `offset` (a '
+      + 'nested part\'s displacement) — this is whether the control has inline padding, argued in `VARIANT_AXES`.',
+  },
 ];
 
 /** A reason shorter than this is a label, not a justification. Crude on purpose — see SCOPE above. */
