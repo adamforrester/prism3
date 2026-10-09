@@ -29106,6 +29106,50 @@ arm: {
     `#2350 icon buttons have no flush inset (${iconFlush.join(', ') || 'none'})`);
 }
 
+// ------------------------------------------------------------------- #2408: a flush button's hit area is 44×44 in code
+// Owner Q154 A: a flush text button has no visual minimum width, so its box is label-width and can be narrower
+// than 44px, and its hit area is at least 44×44 in code through an invisible extension. Figma has no hit areas,
+// so the rule lives in prose only, and nothing but this arm (and lint-hit-target's FLUSH arm) holds it there.
+// Each surface the rule ships on is read directly, and every expected phrase is a literal here, never read off the
+// def (docs/34): the def's `codeOnly` and `docs.do`, the generated components.ai.json, and the consume skill.
+{
+  // Phrases of the rule, not bare `44×44` / `::before`: the codeOnly entry says "Apple HIG 44×44" and "(::before /
+  // absolute overlay)" already, and bare words passed with the flush sentence deleted (measured).
+  // Owner Q170 B: 44×44 covers medium and large flush buttons; owner Q174 B: a small one is at least 24×24, the
+  // WCAG 2.5.8 floor. Each surface names both scopes, and none puts small, or every size, at 44×44.
+  const RULE = [/at least\s+44×44/, /::before`? inset outward/, /centered on the label/, /[Aa]t medium and large sizes/, /at least 24×24(px)? at small\b/];
+  const OVERSCOPE = /44×44(px)? at small\b|\bsmall, medium\b|every size|all sizes/;
+  const missing = (text: string | undefined) => [
+    ...RULE.filter((re) => !re.test(text ?? '')).map((re) => re.source),
+    ...(OVERSCOPE.test(text ?? '') ? [`over-scoped: ${OVERSCOPE.source}`] : []),
+  ];
+  const aiDoc = JSON.parse(readFileSync(resolve(HERE, './out/components/components.ai.json'), 'utf8')) as { components: unknown };
+  const aiComponents = (Array.isArray(aiDoc.components) ? aiDoc.components : Object.values(aiDoc.components as object)) as Array<{ id: string; docs?: { do?: string[] } }>;
+  for (const def of [button, buttonDestructive, buttonNeutral]) {
+    const code = def.anatomy!.codeOnly.find((c) => /flush/.test(c));
+    ok(!!code && missing(code).length === 0,
+      `#2408 ${def.id}: codeOnly states a medium or large flush button's hit area is at least 44×44 in code and a small one's at least 24×24, through a transparent ::before inset outward and centered on the label (missing: ${code ? missing(code).join(', ') || 'none' : 'no flush entry'})`);
+    const line = def.docs?.do?.find((d) => /^Set inset=flush/.test(d));
+    ok(!!line && missing(line).length === 0,
+      `#2408 ${def.id}: docs.do tells the developer to extend a medium or large flush button's hit area to 44×44 and a small one's to 24×24, with the ::before technique (missing: ${line ? missing(line).join(', ') || 'none' : 'no inset=flush line'})`);
+    const aiLine = aiComponents.find((c) => c.id === def.id)?.docs?.do?.find((d) => /^Set inset=flush/.test(d));
+    ok(!!aiLine && missing(aiLine).length === 0,
+      `#2408 ${def.id}: components.ai.json carries the flush hit-area rule, 44×44 at medium and large and 24×24 at small, in docs.do (missing: ${aiLine ? missing(aiLine).join(', ') || 'none' : 'no inset=flush line'})`);
+  }
+  // #2443: lint-hit-target's size scopes, read from its source and held to literals here, so widening or narrowing
+  // either constant fails by name (the gate's size-axis check reads only their union).
+  const gateSrc = readFileSync(resolve(HERE, './lint-hit-target.ts'), 'utf8');
+  const constOf = (name: string) => gateSrc.match(new RegExp(`^const ${name} = (\\[[^\\]]*\\]);`, 'm'))?.[1];
+  ok(constOf('FLUSH_SIZES') === "['medium', 'large']",
+    `#2443 lint-hit-target: FLUSH_SIZES is exactly ['medium', 'large'], the 44×44 flush scope (owner Q170 B) (got: ${constOf('FLUSH_SIZES') ?? 'not found'})`);
+  ok(constOf('FLUSH_SMALL_SIZES') === "['small']",
+    `#2443 lint-hit-target: FLUSH_SMALL_SIZES is exactly ['small'], the 24×24 flush scope (owner Q174 B) (got: ${constOf('FLUSH_SMALL_SIZES') ?? 'not found'})`);
+  const skill = readFileSync(resolve(HERE, '../../skills/prism3-consume/SKILL.md'), 'utf8');
+  const para = skill.split(/\n\s*\n/).find((b) => /inset=flush/.test(b) && /44×44/.test(b));
+  ok(!!para && missing(para).length === 0,
+    `#2408 prism3-consume: the skill tells the agent a medium or large flush text button keeps a 44×44 hit area in code and a small one 24×24, with the ::before technique (missing: ${para ? missing(para).join(', ') || 'none' : 'no paragraph names inset=flush and 44×44'})`);
+}
+
 // ------------------------------------------------------------------- report
 console.log(`\nPrism3 engine tests: ${pass} passed, ${fails.length} failed`);
 
