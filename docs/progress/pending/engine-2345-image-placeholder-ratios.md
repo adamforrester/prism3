@@ -43,7 +43,7 @@ from a `wip:` commit:
   outside this change; filed as #2386.
 - **The marker is an icon-set glyph** (`image`), not component geometry, so #2380 will turn it into an `icon/image`
   instance. `absoluteScale` is node-type independent, so it carries over.
-- **`EXECUTOR_REVISION` takes the next number after #2389's.** Every built member reads as needing a re-apply in the next dry run, which is
+- **`EXECUTOR_REVISION` 6 → 7, the next after #2389's.** Every built member reads as needing a re-apply in the next dry run, which is
   correct.
 
 Engine {{ENGINE_VERSION}}.

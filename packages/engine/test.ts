@@ -18584,7 +18584,10 @@ arm: {
     {
       const ipDef = componentDefs.find((d) => d.id === 'image-placeholder')!;
       const ip = figmaAnatomySet(ipDef, {}).find((q) => q.coord.ratio === '4:3')!;
-      const ipOpts: StubOpts = { vars: [...planBoundVars(ip.root), ...planPaintVars(ip.root)], styles: planTextStyles(ip.root), comps: [] };
+      // Since #2389 the marker is an instance of `icon/image`, so the file holds that icon component, as a real one
+      // would (the plugin builds icons first).
+      const nested = (n: AnatomyPlan['root']): string[] => [...(n.nestTarget ? [n.nestTarget] : []), ...(n.children ?? []).flatMap(nested)];
+      const ipOpts: StubOpts = { vars: [...planBoundVars(ip.root), ...planPaintVars(ip.root)], styles: planTextStyles(ip.root), comps: nested(ip.root) };
       const markerFacts = (page: StubPage): string => {
         // The paste payload puts the member on the page; the plugin executor puts it inside its set.
         const all = page.children.flatMap((c) => [c, ...(((c as Record<string, unknown>).children as Record<string, unknown>[] | undefined) ?? [])]);
