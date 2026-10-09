@@ -43,10 +43,10 @@
  * def with a flush part must be in FLUSH_MEMBERS (and every entry must have one), and each must carry a `codeOnly`
  * entry that names the flush button, the 44×44 hit area and the `::before` extension. The phrases are literals
  * here, never read off the def (docs/34), so deleting the sentence from `button.ts` fails this gate by name.
- * The rule covers MEDIUM and LARGE only (owner Q170 B): a small button is already a permanent below-floor
- * exception (SMALL_SIZE). So the entry must scope it to exactly those sizes, and must not name small or every
- * size; FLUSH_SIZES and FLUSH_EXEMPT_SIZES are literals checked against each def's own `size` axis, so a new
- * size cannot arrive unscoped.
+ * The 44×44 covers MEDIUM and LARGE (owner Q170 B); a SMALL flush button's hit area is at least 24×24 in code,
+ * the WCAG 2.5.8 floor (owner Q174 B). So the entry must state both, and must not put small, or every size, at
+ * 44×44. FLUSH_SIZES and FLUSH_SMALL_SIZES are checked against each def's own `size` axis, so a new size cannot
+ * arrive unscoped, and against literals below (#2443), so widening or narrowing either fails by name.
  *
  * `select` binds `size.md.min-height` = `max(size.md.height, 44)` (#1426/#1437); the field/row family
  * otherwise binds the size rung directly, which is 44px at the comfortable `md` and 56px at the spacious
@@ -175,12 +175,12 @@ const INNER_TARGETS: Record<string, { key: (size: string) => string; why: string
 const FLUSH_MEMBERS = new Set(['button', 'button-destructive', 'button-neutral']);
 // Phrases of the RULE, not words that occur anyway: the same entry already says "Apple HIG 44×44" and "(::before /
 // absolute overlay)", so bare `44×44` and `::before` passed with the flush sentence deleted (measured).
-// Owner Q170 B: the rule covers medium and large, not small, so the entry names exactly that scope.
-const FLUSH_RULE = [/flush/, /at least 44×44 at medium and large sizes/, /::before`? inset outward/];
-// …and must not widen it back: small, or every size, in the same entry is the rule over-scoped.
-const FLUSH_OVERSCOPE = /\bsmall\b|every size|all sizes/;
+// Owner Q170 B: 44×44 at medium and large; owner Q174 B: 24×24 at small. The entry names both scopes.
+const FLUSH_RULE = [/flush/, /at least 44×44 at medium and large sizes/, /at least 24×24 at small\b/, /::before`? inset outward/];
+// …and must not widen the 44×44 back: small, or every size, at 44×44 is the rule over-scoped.
+const FLUSH_OVERSCOPE = /44×44 at small\b|\bsmall, medium\b|every size|all sizes/;
 const FLUSH_SIZES = ['medium', 'large'];
-const FLUSH_EXEMPT_SIZES = ['small'];
+const FLUSH_SMALL_SIZES = ['small'];
 /** The `codeOnly` entry that states the code-side hit area, or the phrases no entry carries (an over-scoped
  *  entry reports the over-scope pattern). Pure, so the self-check can drive it. */
 const flushRuleGap = (codeOnly: readonly string[]): string[] => {
@@ -398,16 +398,24 @@ for (const [id, inner] of Object.entries(INNER_TARGETS)) {
 // ── FLUSH MEMBERS (#2408): the height above passes a flush member; its width floor is a code-side rule ──
 {
   const FLUSH_CASES: Array<{ why: string; codeOnly: string[]; fires: boolean }> = [
-    { why: 'the rule stated in one entry', codeOnly: ['touch-target-expansion — a flush button\'s hit area is at least 44×44 at medium and large sizes, through a transparent ::before inset outward'], fires: false },
+    { why: 'the rule stated in one entry', codeOnly: ['touch-target-expansion — a flush button\'s hit area is at least 44×44 at medium and large sizes, and at least 24×24 at small, through a transparent ::before inset outward'], fires: false },
     { why: 'THE MUTATION: the size qualifier dropped back to every size', codeOnly: ['touch-target-expansion — a flush button\'s hit area is at least 44×44 at every size, through a transparent ::before inset outward'], fires: true },
-    { why: 'THE MUTATION: small re-added to the scope', codeOnly: ['touch-target-expansion — a flush button\'s hit area is at least 44×44 at small, medium and large sizes, through a transparent ::before inset outward'], fires: true },
-    { why: 'THE MUTATION: medium dropped from the scope', codeOnly: ['touch-target-expansion — a flush button\'s hit area is at least 44×44 at large sizes, through a transparent ::before inset outward'], fires: true },
+    { why: 'THE MUTATION: the small clause removed', codeOnly: ['touch-target-expansion — a flush button\'s hit area is at least 44×44 at medium and large sizes, through a transparent ::before inset outward'], fires: true },
+    { why: 'THE MUTATION: small at 44×44', codeOnly: ['touch-target-expansion — a flush button\'s hit area is at least 44×44 at medium and large sizes, and at least 44×44 at small, through a transparent ::before inset outward'], fires: true },
+    { why: 'THE MUTATION: small re-added to the 44×44 scope', codeOnly: ['touch-target-expansion — a flush button\'s hit area is at least 44×44 at small, medium and large sizes, and at least 24×24 at small, through a transparent ::before inset outward'], fires: true },
+    { why: 'THE MUTATION: medium dropped from the scope', codeOnly: ['touch-target-expansion — a flush button\'s hit area is at least 44×44 at large sizes, and at least 24×24 at small, through a transparent ::before inset outward'], fires: true },
     { why: 'THE MUTATION: the flush sentence deleted, the entry\'s other 44×44 and ::before left', codeOnly: ['touch-target-expansion — the hit box is decoupled (::before / absolute overlay), reconciling Apple HIG 44×44; a flush button hugs its label'], fires: true },
     { why: 'the phrases split across two entries do not state one rule', codeOnly: ['a flush hit area of at least 44×44', 'a ::before inset outward'], fires: true },
     { why: 'an empty codeOnly', codeOnly: [], fires: true },
   ];
   for (const c of FLUSH_CASES)
     if ((flushRuleGap(c.codeOnly).length > 0) !== c.fires) failures.push(`flushRuleGap, ${c.why}: should ${c.fires ? 'FIRE' : 'pass'}, but did not.`);
+  // #2443: the size scopes against literals (owner Q170 B, Q174 B), so widening or narrowing either constant fails
+  // here by name rather than passing on the def's size axis, which only checks their union.
+  if (FLUSH_SIZES.join() !== 'medium,large')
+    failures.push(`FLUSH_SIZES is [${FLUSH_SIZES.join(', ')}], but the 44×44 flush hit area is owed at medium and large only (owner Q170 B).`);
+  if (FLUSH_SMALL_SIZES.join() !== 'small')
+    failures.push(`FLUSH_SMALL_SIZES is [${FLUSH_SMALL_SIZES.join(', ')}], but the 24×24 flush hit area is owed at small only (owner Q174 B).`);
 }
 for (const def of componentDefs) {
   if (!(def.id in INTERACTIVE)) continue;
@@ -421,12 +429,12 @@ for (const id of FLUSH_MEMBERS) {
   const def = componentDefs.find((d) => d.id === id);
   if (!def || !(id in INTERACTIVE)) { failures.push(`FLUSH_MEMBERS names '${id}', which is not an INTERACTIVE def.`); continue; }
   const sizes = [...((def.variants?.size as string[] | undefined) ?? [])].sort();
-  const scoped = [...FLUSH_SIZES, ...FLUSH_EXEMPT_SIZES].sort();
+  const scoped = [...FLUSH_SIZES, ...FLUSH_SMALL_SIZES].sort();
   if (sizes.join() !== scoped.join())
-    failures.push(`${id}: size axis is [${sizes.join(', ')}], but the flush rule scopes [${FLUSH_SIZES.join(', ')}] and exempts [${FLUSH_EXEMPT_SIZES.join(', ')}] — decide the new size's hit area with the owner (Q170), then list it here.`);
+    failures.push(`${id}: size axis is [${sizes.join(', ')}], but the flush rule scopes 44×44 to [${FLUSH_SIZES.join(', ')}] and 24×24 to [${FLUSH_SMALL_SIZES.join(', ')}] — decide the new size's hit area with the owner (Q170, Q174), then list it here.`);
   const gap = flushRuleGap(def.anatomy?.codeOnly ?? []);
-  rows.push(`${id}/inset=flush → width floor dropped; hit area ≥ 44×44 in code at ${FLUSH_SIZES.join(' and ')}, not ${FLUSH_EXEMPT_SIZES.join(', ')} (codeOnly) [code-side rule, #2408, Q170 B]${gap.length ? '  ✗' : ''}`);
-  if (gap.length) failures.push(`${id}/inset=flush: no codeOnly entry states the code-side hit area at medium and large only (missing or over-scoped: ${gap.join(', ')}) — a flush member has no width floor, so the height measured above does not cover it. State that its hit area is at least 44×44 at medium and large sizes in code through a ::before extension, and do not extend it to small (owner Q154 A, Q170 B, #2408).`);
+  rows.push(`${id}/inset=flush → width floor dropped; hit area ≥ 44×44 in code at ${FLUSH_SIZES.join(' and ')}, ≥ 24×24 at ${FLUSH_SMALL_SIZES.join(', ')} (codeOnly) [code-side rule, #2408, Q170 B, Q174 B]${gap.length ? '  ✗' : ''}`);
+  if (gap.length) failures.push(`${id}/inset=flush: no codeOnly entry states the code-side hit area, 44×44 at medium and large and 24×24 at small (missing or over-scoped: ${gap.join(', ')}) — a flush member has no width floor, so the height measured above does not cover it. State that its hit area is at least 44×44 at medium and large sizes and at least 24×24 at small in code through a ::before extension (owner Q154 A, Q170 B, Q174 B, #2408).`);
 }
 
 // ── EXCEPTION 1: small size — asserted ACTUALLY below the floor on comfortable (self-justified) ──

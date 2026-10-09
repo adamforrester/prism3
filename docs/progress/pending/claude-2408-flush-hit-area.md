@@ -48,5 +48,17 @@ back to "at every size", small re-added ("at small, medium and large sizes"), an
 each fail `lint-hit-target`'s `<def>/inset=flush: no codeOnly entry states the code-side hit area at medium and large
 only` and `test.ts`'s `#2408 <def>: codeOnly states a medium or large flush button's hit area …`.
 
-**Trap for whoever re-verifies:** "not small" is held only as prose plus these two witnesses. Nothing in Figma or in
-the tokens distinguishes a small flush button's hit area, so the scope cannot be measured, only stated.
+**Owner decision Q174 B (2026-10-09): a small flush button's hit area is at least 24×24 in code**, the WCAG 2.2 AA
+2.5.8 floor; medium and large keep 44×44. This replaces Q170 B's "not small": a small flush button keeps its height,
+but its width is the label's, so a short label could fall under 24px wide with nothing owed. One clause per surface,
+every approved word kept: `codeOnly` adds "and at least 24×24 at small", `docs.do` adds "; extend it the same way to
+at least 24×24px at small", the skill adds "Extend it the same way to at least 24×24px at small." (and its CSS
+comment notes 24px). `lint-hit-target`'s FLUSH arm and `test.ts`'s `#2408` arm now require the literal "at least
+24×24 at small" and refuse 44×44 at small; `FLUSH_EXEMPT_SIZES` became `FLUSH_SMALL_SIZES`. **#2443 closed here:**
+`FLUSH_SIZES` fed only the size-axis check, which reads the union, so widening it to small passed. Both constants
+are now held to literals, in the gate's self-check and in `test.ts` (`#2443 lint-hit-target: …`, read from the gate's
+source). Mutations, each on a committed tree: the small clause removed, small at 44×44, medium dropped, and
+`FLUSH_SIZES` widened each fail by name (lines in the PR's Ready comment).
+
+**Trap for whoever re-verifies:** the per-size scope is held only as prose plus these two witnesses. Nothing in Figma or in
+the tokens distinguishes a flush button's hit area by size, so the scopes cannot be measured, only stated.

@@ -66,15 +66,15 @@ copying a comfortable px value.
 inline padding and its minimum width, so its box is only as wide as its label and the label
 lines up with the content edge. At medium and large sizes, the hit area doesn't shrink with
 the box: extend it to at least 44×44px with a transparent `::before` inset outward and
-centered on the label. Figma has no hit areas, so the design file shows only the label-width
-box.
+centered on the label. Extend it the same way to at least 24×24px at small. Figma has no
+hit areas, so the design file shows only the label-width box.
 
 ```css
 .flush-button { position: relative; }
 .flush-button::before {
   content: "";
   position: absolute;
-  inset: min(0px, (100% - 44px) / 2); /* negative only on an axis under 44px */
+  inset: min(0px, (100% - 44px) / 2); /* negative only on an axis under 44px; 24px at small */
 }
 ```
 
