@@ -12227,7 +12227,7 @@ for (const host of ['web', 'figma']) {
   }
 }
 // =============================================================================================
-// 40. #2383: the preview header's mode select shows its whole selected label, and the header never runs sideways
+// 41. #2383: the preview header's mode select shows its whole selected label, and the header never runs sideways
 // =============================================================================================
 // Both hosts, both chrome themes, at 640, 800, 380 and 1280; on Palettes (held to Light, #2321), Interactive and Surfaces &
 // fills; on Interactive and Surfaces & fills in each of the four modes the select can show. In each case:
