@@ -5,7 +5,7 @@ Found by Lane B while fixing #2335. On an in-place update, a member root whose p
 - **The cause.** The executor's neutral claims (`claimDefaults`, #865) are what clear a fill nobody asked for, and they return at once on a `COMPONENT`. That holds for a fresh build, where a member's root is neutralized as a frame and becomes a component afterwards. In place, the root was already a component, so it was never neutralized. Inner frames were, which is why only the member root, where a button's wash sits, was affected.
 - **The fix (`write-components.ts`).** `build` tells `claimDefaults` when it is configuring an existing member's root (`ex` given, path `.`). That root takes the claims a fresh member's frame takes, so it ends where a fresh build would. The paste twin (`PAYLOAD_BUILD`) builds fresh only, so it has no such case and stays as it is.
 - **The verify (`update-apply.ts`).** `diffAnatomy` reads only the paints a plan declares, so a node the plan leaves unpainted was never checked. Verify (b) now also walks each updated member against its plan, by name, and reports a frame the plan gives no fill (and no gradient) or no stroke that carries a visible one, as a content difference. Hand-edited paths kept under Q1 are skipped, as in the rest of verify.
-- **`EXECUTOR_REVISION` 2 → 3.** #2363 (#2296) raises the same number. Whichever merges second takes 4.
+- **`EXECUTOR_REVISION` 3 → 4.** #2396 (#2379) took 3; #2363 (#2296) and #2389 take 5 and 6 after this.
 
 ### Tests (`test-update-apply.ts`, `root/…`)
 
