@@ -1181,8 +1181,16 @@ export type FigmaProperties = {
    *
    *  An empty object is a meaningful statement — "considered, and none survive" — and is preferred to
    *  omitting the field: a schema that lists booleans it cannot honor is worse than one that admits there
-   *  are none. */
-  booleans?: Record<string, string | { part: string | readonly string[]; default?: boolean; figmaName?: string }>;
+   *  are none.
+   *
+   *  A FIGMA-ONLY BOOLEAN (`figmaOnly: true`, #2344, owner decision Q156 A). Every other boolean drives a
+   *  declared prop: the Figma toggle and the code prop are one switch on two surfaces. A group's row count is
+   *  not that. In code it is `children` (any number of rows); in Figma it is a fixed stack of nested rows,
+   *  each past the first behind a toggle. Declaring seven `showOptionN` props to satisfy the rule would put
+   *  seven props on the public API that no code consumer should set. So a `figmaOnly` entry names no prop:
+   *  its KEY must NOT be a declared prop (it would then be both), and it must carry a `figmaName`, because
+   *  with no prop there is no code name for the panel to fall back to. */
+  booleans?: Record<string, string | { part: string | readonly string[]; default?: boolean; figmaName?: string; figmaOnly?: boolean }>;
   /** prop name → the `kind: 'text'` part it drives, plus the PLACEHOLDER the component ships with.
    *
    *  THE ODD SHAPE OUT, and deliberately so: `booleans` and `swaps` are bare part names because
@@ -1845,7 +1853,7 @@ export const swapFigmaName = (prop: string, v: string | { part: string; figmaNam
 /** A `texts` entry's Figma panel name — its `figmaName` decoupling (#1380) or, absent one, the prop KEY. */
 export const textFigmaName = (prop: string, t: { figmaName?: string }): string => t.figmaName ?? prop;
 
-type BooleanEntry = string | { part: string | readonly string[]; default?: boolean; figmaName?: string };
+type BooleanEntry = string | { part: string | readonly string[]; default?: boolean; figmaName?: string; figmaOnly?: boolean };
 /** The parts whose `visible` a `booleans` entry drives — bare string, `{ part }`, or `{ part: [...] }`
  *  (#1331; the list form is switch-control's `State icon`, one toggle over two glyphs). Always a list. */
 export const booleanPartsOf = (v: BooleanEntry): readonly string[] =>
@@ -2110,9 +2118,9 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // Takes `prop → part name` and the Figma FIELD the property drives. `texts`/`swaps`/`booleans` each carry
   // a richer shape, normalized to `prop → part` by the callers below rather than this helper learning three
   // shapes — the relational checks are identical for all three and the difference is one field.
-  const checkMap = (label: string, map: Record<string, string> | undefined, field: string, kind?: PartKind, requireOptional = false): void => {
+  const checkMap = (label: string, map: Record<string, string> | undefined, field: string, kind?: PartKind, requireOptional = false, figmaOnly = false): void => {
     for (const [prop, part] of Object.entries(map ?? {})) {
-      if (!propNames.has(prop)) e.push(`figmaProperties.${label}: '${prop}' is not a declared prop`);
+      if (!figmaOnly && !propNames.has(prop)) e.push(`figmaProperties.${label}: '${prop}' is not a declared prop`);
       const p = parts[part];
       if (!p) { e.push(`figmaProperties.${label}.${prop} → part '${part}' does not exist in anatomy.parts`); continue; }
       if (kind && p.kind !== kind) e.push(`figmaProperties.${label}.${prop} → part '${part}' is kind '${p.kind}', expected '${kind}'`);
@@ -2137,8 +2145,15 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // `requireOptional`, because the anatomy must allow the part to be hidden.
   // One `checkMap` call per targeted part: the list form (`part: [...]`) names several nodes for one prop,
   // and a `prop → part` record can hold only one of them.
-  for (const [p, v] of Object.entries(fp.booleans ?? {}))
-    for (const part of booleanPartsOf(v)) checkMap('booleans', { [p]: part }, 'visible', undefined, true);
+  for (const [p, v] of Object.entries(fp.booleans ?? {})) {
+    const figmaOnly = typeof v !== 'string' && v.figmaOnly === true;
+    for (const part of booleanPartsOf(v)) checkMap('booleans', { [p]: part }, 'visible', undefined, true, figmaOnly);
+    // A Figma-only boolean (#2344) names no prop, so it must not BE one, and needs its own panel name.
+    if (figmaOnly && propNames.has(p))
+      e.push(`figmaProperties.booleans.${p} is figmaOnly but '${p}' is also a declared prop — a Figma-only toggle has no code prop; drop 'figmaOnly' to drive the prop, or rename the key`);
+    if (figmaOnly && !(typeof v !== 'string' && v.figmaName))
+      e.push(`figmaProperties.booleans.${p} is figmaOnly but has no figmaName — with no prop there is no code name for the Figma panel to show, so the label must be stated`);
+  }
 
   // A BOOLEAN toggles its parts' `visible` in place (#1331). A part it targets may ALSO carry a VARIANT
   // presence gate, and the composition is defined, not left open: the gate decides WHICH members carry the
