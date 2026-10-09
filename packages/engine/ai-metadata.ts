@@ -773,10 +773,17 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
     when: 'Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body\'s line height, so it sits on the body rhythm.',
     avoid: 'Do not use for running text (use `type.body.sm` or larger). For small print that stands on its own (an image caption, helper text, a footnote), use `type.caption.lg`.',
   };
+  // STRIKETHROUGH IS A MODIFIER, NOT A STYLE (#2340, owner Q150 D): body and caption carry the guidance, since a
+  // was-price or a zeroed-out line is set in them. No composite is minted for it; the meaning lives in the hidden text.
+  const STRIKE = {
+    when: 'Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text ("Original price:", "Sale price:").',
+    avoid: 'Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.',
+  };
   const typography: Record<string, any> = {};
   for (const c of theme.typography.composites) {
     const xs = c.group === 'body' && c.variant === 'xs';
     const d = xs ? { ...TYPE_DESC.body, ...BODY_XS } : TYPE_DESC[c.group];
+    const struck = (c.group === 'body' || c.group === 'caption') && !c.link;
     // `resolves_to` is the EMITTED composite's own `$value` (AI/A-2). Re-deriving the paths here drifted:
     // line height and letter spacing named `line-height.*` / `letter-spacing.*` long after the
     // composites moved to the `-role` steps, so 155 styles pointed at tokens that do not exist.
@@ -793,11 +800,13 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
       // #2324: a label's underlined variant is a text button's label, in the button's own ink, never a `text.link.*` link.
       when_to_use: c.link && c.group === 'label'
         ? 'The label of a button at the text appearance, at rest and in every state. The underline is fixed.'
-        : c.link ? `${d.when} The underlined link variant — pair with a \`text.link.*\` color.` : d.when,
+        : c.link ? `${d.when} The underlined link variant — pair with a \`text.link.*\` color.`
+        : struck ? `${d.when} ${STRIKE.when}` : d.when,
       // AI/A-16: name the non-link twin as a path — `strong-link` pairs with `strong`, not the default.
       avoid_when: c.link && c.group === 'label'
         ? `Do not use for a filled or outline button's label (use \`type.${c.path.replace(/-link$/, '')}\`).`
-        : c.link ? `Do not use for non-link text (use \`type.${c.path.replace(/-link$/, '')}\`).` : d.avoid,
+        : c.link ? `Do not use for non-link text (use \`type.${c.path.replace(/-link$/, '')}\`).`
+        : struck ? `${d.avoid} ${STRIKE.avoid}` : d.avoid,
       resolves_to: resolves,
     };
   }
