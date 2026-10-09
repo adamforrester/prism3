@@ -841,7 +841,8 @@ const updateTargets = (defId: string | undefined): { targets: UpdateTarget[]; un
   const targets: UpdateTarget[] = [];
   const refused: { def: string; reason: string }[] = [];
   for (const d of defs) {
-    try { targets.push({ def: d.id, plans: figmaAnatomySet(materializeForBrand(d, brandInput), { swapTarget: SWAP_TARGET }) }); }
+    // `single` (#2296): an `emitAsComponents` def (the icons, the spinner) is read as single components, not a set.
+    try { targets.push({ def: d.id, plans: figmaAnatomySet(materializeForBrand(d, brandInput), { swapTarget: SWAP_TARGET }), ...(d.figmaProperties?.emitAsComponents ? { single: true } : {}) }); }
     catch (e) { refused.push({ def: d.id, reason: `the engine could not plan it (${(e as Error)?.message ?? String(e)})` }); }
   }
   return { targets, unknown: null, refused };

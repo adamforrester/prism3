@@ -60,6 +60,10 @@
  *   apply/copy     with the original's coordinate dropped, only the original is marked deprecated; a Figma duplicate
  *                  of it and an unstamped member off the plan keep their description, stamp and record exactly
  *                  (#2328 review). Mutation: the deprecations take the unstamped members too → `apply/copy`.
+ *   single/…       the icons, built as single components, updated in place (#2296): every key and id kept, each icon
+ *                  finished (record, stamp last, marker off) as a set member is; an added glyph placed in a free
+ *                  slot, never over another; the owner's hand-made icon untouched. Mutations: the emit branch's
+ *                  finish skipped → `single/finished`; adds laid out from the origin → `single/add`.
  *   nochange/…     a set the dry run reads as "no changes" (every member built by an earlier plugin) takes its stamps and
  *                  nothing else, read by a write log the test installs on the shim's nodes (#2379). Mutation: those
  *                  members sent through the build's pass again → `nochange/writes` (7,575 other writes).
@@ -372,6 +376,71 @@ const dumpSet = (set: Node): string => JSON.stringify(membersOf(set).map((m) => 
   ok(JSON.stringify(o?.deprecated) === JSON.stringify([String(orig.name)]) && String(orig.description ?? '').startsWith(DEPRECATED_PREFIX)
     && JSON.stringify(retained) === JSON.stringify([String(orig.name)]) && keep(dup) === dupBefore && keep(own) === ownBefore,
     `apply/copy: only the original is marked deprecated; the duplicate and the hand-made member keep their description, stamp and record (${JSON.stringify(o?.deprecated)}; ${JSON.stringify(retained)}; dup ${keep(dup) === dupBefore ? 'kept' : 'changed'}, own ${keep(own) === ownBefore ? 'kept' : 'changed'})`);
+}
+
+/* ── single ──────────────────────────────────────────────────────────────────────────────────────────── */
+section('single — the icons, updated in place as single components (#2296)');
+const singleWorld = async (plans: AnatomyPlan[], extraVars: string[] = []) => {
+  const page: Page = { children: [] };
+  const api = makeShim({
+    vars: [...new Set([...plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), ...extraVars])],
+    // #2379: SCALE children follow their frame, as on the host, so a built glyph fits its frame.
+    comps: [], page, liveRoot: true, identities: true, liveComponents: true, scaleConstrained: true,
+  }) as any;
+  const built = await applyComponentPlan(plans, api, { emitAsComponents: true });
+  if (built.misses.length) throw new Error(`premise: icons built with ${built.misses.length} miss(es): ${built.misses[0]}`);
+  const all = (types: string[]): Node[] => {
+    const out: Node[] = [];
+    const walk = (n: Node): void => { if (types.includes(String(n.type))) out.push(n); if (n.type !== 'INSTANCE') for (const c of (n.children as Node[] | undefined) ?? []) walk(c); };
+    for (const n of page.children) walk(n);
+    return out;
+  };
+  const host = { ...api, root: { ...api.root, findAllWithCriteria: (c: { types: string[] }) => all(c.types) } } as unknown as ApplyHost;
+  const comps = (): Node[] => page.children.filter((n) => n.type === 'COMPONENT');
+  return { page, api, host, comps };
+};
+{
+  const plans = plansOf('icon');
+  const w = await singleWorld(plans, ['color/icon/secondary']);
+  const before = new Map(w.comps().map((c) => [String(c.name), { key: String(c.key), id: String(c.id) }] as const));
+  const next = plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; (q.root as unknown as Record<string, unknown>).descendantFills = 'color/icon/secondary'; return q; });
+  const t = { def: 'icon', plans: next, single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  ok(pre.sets[0]?.counts.update === 44, `premise: the dry run reads all 44 icons out of date (${JSON.stringify(pre.sets[0]?.counts)})`);
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  const v = applyVerdict(res);
+  ok(v.ok && v.headline === '✓ updated 44 in place', `single/update: ${v.headline} (${v.lines.slice(0, 2).join(' | ').slice(0, 220)})`);
+  const after = new Map(w.comps().map((c) => [String(c.name), { key: String(c.key), id: String(c.id) }] as const));
+  ok(after.size === 44 && [...before].every(([n, b]) => after.get(n)?.key === b.key && after.get(n)?.id === b.id), 'single/keys: every icon keeps its key and id');
+  const sec = (await w.api.variables.getLocalVariablesAsync()).find((x: { name: string }) => x.name.endsWith('/color/icon/secondary')).id;
+  const inked = w.comps().filter((c) => ((c.children as Node[]) ?? []).filter((k) => k.type === 'VECTOR').every((k) => (k.fills as { boundVariables?: { color?: { id: string } } }[])[0]?.boundVariables?.color?.id === sec)).length;
+  ok(inked === 44, `single/written: every icon's ink is the plan's new color (${inked})`);
+  const post = (await previewUpdate(w.host, [t])).sets[0];
+  const markers = w.comps().filter((c) => (c.getSharedPluginData as (a: string, b: string) => string)(NS, 'memberUpdating') !== '').length;
+  ok(post.counts.current === 44 && markers === 0, `single/finished: each icon is finished as a set member is, current with its marker off (${JSON.stringify(post.counts)}, ${markers} markers left)`);
+}
+{
+  const plans = plansOf('icon');
+  const w = await singleWorld(plans.filter((_, i) => i !== 5));
+  const res = await applyUpdate(w.host, w.api as any, [{ def: 'icon', plans, single: true }], previewHashOf(await previewUpdate(w.host, [{ def: 'icon', plans, single: true }])));
+  const at = w.comps().map((c) => `${c.x},${c.y}`);
+  ok(res.outcomes[0]?.added === 1 && w.comps().length === 44 && new Set(at).size === at.length,
+    `single/add: the glyph the plan gained is built, in a slot no other icon holds (${res.outcomes[0]?.added}, ${w.comps().length} icons, ${new Set(at).size} distinct places)`);
+}
+{
+  const plans = plansOf('icon');
+  const w = await singleWorld(plans, ['color/icon/secondary']);
+  const f = (w.api.createFrame as () => Node)();
+  const own = (w.api.createComponentFromNode as (n: Node) => Node)(f);
+  own.name = 'icon/my-logo';
+  if (!w.page.children.includes(own)) w.page.children.push(own);
+  const dump = (): string => JSON.stringify([own.name, own.fills, [...(own._pluginData as Map<string, string>)]]);
+  const before = dump();
+  const next = plans.map((p) => { const q = JSON.parse(JSON.stringify(p)) as AnatomyPlan; (q.root as unknown as Record<string, unknown>).descendantFills = 'color/icon/secondary'; return q; });
+  const t = { def: 'icon', plans: next, single: true };
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(await previewUpdate(w.host, [t])));
+  ok(applyVerdict(res).ok && dump() === before && res.outcomes[0]?.skipped.some((x) => x.member === 'name=my-logo' && x.reason === 'not built by Prism3'),
+    `single/owner: the owner's hand-made icon is left exactly as it is, and named (${JSON.stringify(res.outcomes[0]?.skipped)})`);
 }
 
 /* ── noop ────────────────────────────────────────────────────────────────────────────────────────────── */
@@ -772,6 +841,56 @@ section('mixed — in a set the build updates, a member from an earlier plugin s
   ok(res.outcomes[0]?.updated.length === 23 && res.outcomes[0]?.restamped?.length === 22 && again.counts.current === 45,
     `mixed/stamped: the 23 are updated and the 22 stamped, and all 45 then read current (${res.outcomes[0]?.updated.length} updated, ${res.outcomes[0]?.restamped?.length} stamped; ${JSON.stringify(again.counts)})`);
   ok(other.length === 0, `mixed/only stamps: the 22 from an earlier plugin take nothing but their stamps and records (${other.length} other writes${other.length ? `, e.g. ${other.slice(0, 3).join(' | ')}` : ''})`);
+}
+
+{
+  // THE ICONS FROM AN EARLIER PLUGIN (#2296 with #2379): single components whose stamps predate the executor revision
+  // read "no changes", and take their stamps and nothing else, found by their own names (`icon/check` for
+  // `name=check`). Mutation: the restamp looked up by coordinate rather than node name → `single/stamped`.
+  const plans = plansOf('icon');
+  const w = await singleWorld(plans);
+  for (const c of w.comps()) {
+    const st = (c.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+    (c.setSharedPluginData as (a: string, b: string, cc: string) => void)(NS, STAMP_KEY, st.split('|').slice(0, 2).join('|'));
+  }
+  const t = { def: 'icon', plans, single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  ok(pre.sets[0]?.counts.revisionUnknown === 44 && previewVerdict(pre).headline === '✓ No changes found',
+    `premise: all 44 icons read "built by an earlier plugin", and nothing changes (${JSON.stringify(pre.sets[0]?.counts)}; ${previewVerdict(pre).headline})`);
+  const logs = w.comps().map((c) => watchWrites(c));
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  const other = logs.flat().filter((x) => !new RegExp(`setSharedPluginData\\(${NS}, (${STAMP_KEY}|${BASELINE_KEY})\\)$`).test(x));
+  const again = (await previewUpdate(w.host, [t])).sets[0];
+  ok(res.outcomes[0]?.restamped?.length === 44 && other.length === 0 && again.counts.current === 44,
+    `single/stamped: each icon takes its stamp and nothing else, and all 44 read current (${res.outcomes[0]?.restamped?.length} stamped; ${other.length} other writes; ${JSON.stringify(again.counts)}; ${applyVerdict(res).headline})`);
+}
+
+{
+  // A DAMAGED ICON UNDER A CURRENT RECORD (#2363 review): an icon's glyph vector stores black under its intact binding,
+  // which its record cannot see (a bound paint is hashed by its variable), and every stamp is an earlier plugin's. The
+  // draw check reads single components as it reads set members, so that icon is "to update" and is repaired; the other
+  // 43 take only their stamps. Mutation: `readSingleView` read without the file's variables → `single/damage`.
+  const plans = plansOf('icon');
+  const w = await singleWorld(plans);
+  const hit = w.comps()[0];
+  const vec = (hit.findAll as (f: (n: Node) => boolean) => Node[])((n) => n.type === 'VECTOR' && Array.isArray(n.fills) && (n.fills as { boundVariables?: { color?: unknown } }[]).some((p) => p?.boundVariables?.color))[0];
+  vec.fills = (vec.fills as object[]).map((p) => ({ ...p, color: { r: 0, g: 0, b: 0 }, opacity: 1 }));
+  for (const c of w.comps()) {
+    const st = (c.getSharedPluginData as (a: string, b: string) => string)(NS, STAMP_KEY);
+    (c.setSharedPluginData as (a: string, b: string, cc: string) => void)(NS, STAMP_KEY, st.split('|').slice(0, 2).join('|'));
+  }
+  const t = { def: 'icon', plans, single: true };
+  const pre = await previewUpdate(w.host, [t]);
+  const st = pre.sets[0];
+  const stateOf = st?.states.find((x) => x.member === `name=${String(hit.name).replace(/^icon\//, '')}`)?.state;
+  ok(stateOf === 'update' && st?.counts.revisionUnknown === 43 && st.changes.some((c) => c.field === 'fills' && /stored #000000/.test(c.from)),
+    `single/damage: the icon drawn black under its binding reads "to update", named, though its record matches and its stamp is an earlier plugin's (${stateOf}; ${st?.counts.revisionUnknown} from an earlier plugin; ${st?.changes.map((c) => `${c.field}: ${c.from}`).join(' | ')})`);
+  const res = await applyUpdate(w.host, w.api as any, [t], previewHashOf(pre));
+  const vars = await varsById(w.api as any);
+  const left = w.comps().flatMap((c) => drawnFaults(c, vars));
+  const again = (await previewUpdate(w.host, [t])).sets[0];
+  ok(applyVerdict(res).ok && res.outcomes[0]?.updated.length === 1 && res.outcomes[0]?.restamped?.length === 43 && left.length === 0 && again.counts.current === 44,
+    `single/damage repaired: the update re-applies that icon, which then draws its variable's color; the other 43 take their stamps; all 44 read current (${applyVerdict(res).headline}; ${res.outcomes[0]?.updated.length} updated, ${res.outcomes[0]?.restamped?.length} stamped; ${left.length} faults; ${again.counts.current} current)`);
 }
 
 /* ── what the host draws ────────────────────────────────────────────────────────────────────────────────── */
