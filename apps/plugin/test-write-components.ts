@@ -2492,10 +2492,11 @@ ok(fmCollapse.length === 0 && fmRun.misses.length === 0,
 
 const fmMembers = fmPage.children[0].children as Node[];
 const fmKids = (m: Node): Node[] => (m.children as Node[]) ?? [];
-/** The glyph ARTBOARD: `createNodeFromSvg` returns a FRAME wrapping the outline, and it is the only
- *  FRAME a member of this def has — the member itself is the row, the caption is a TEXT. */
-const fmArt = (m: Node): Node[] => fmKids(m).filter((c) => c.type === 'FRAME');
-const fmVecs = (n: Node): Node[] => (n.findAll as (p: (x: Node) => boolean) => Node[])((x) => x.type === 'VECTOR');
+/** The status glyph: since #2380 an INSTANCE of its icon component, the only instance a member of this def
+ *  has — the member itself is the row, the caption is a TEXT. */
+const fmArt = (m: Node): Node[] => fmKids(m).filter((c) => c.type === 'INSTANCE');
+// Guarded: a member missing its instance reads as no vectors (and fails the arms below by name) rather than throwing.
+const fmVecs = (n: Node | undefined): Node[] => (n?.findAll ? (n.findAll as (p: (x: Node) => boolean) => Node[])((x) => x.type === 'VECTOR') : []);
 /** The variable a paint points at, by NAME — the shim ids variables `V:<name>`. */
 const fmInk = (n: Node): string =>
   String((n.fills as { boundVariables?: { color?: { id?: string } } }[])[0]?.boundVariables?.color?.id ?? 'none').replace(/^V:/, '');
@@ -2525,69 +2526,142 @@ ok(fmCollapse.length === 0,
   `#1575 field-message declares one caption, so no collapse is reported (${fmCollapse.length ? fmCollapse.join('; ') : 'none'})`);
 
 // (1) THE DEFAULT MEMBER HAS NO GLYPH, and the three validation members have exactly one each. Read as a
-// COUNT PER MEMBER rather than a total: 3 artboards across 4 members is also what "two on error, one on
+// COUNT PER MEMBER rather than a total: 3 glyphs across 4 members is also what "two on error, one on
 // success, none on warning" looks like, and that tree would satisfy every other arm below.
 const fmArtCounts = fmMembers.map((m) => fmArt(m).length).join(',');
 ok(fmArtCounts === '0,1,1,1',
-  `#1010 the default member is caption-only and each validation member carries exactly one glyph artboard (${fmArtCounts})`);
+  `#1010 #2380 the default member is caption-only and each validation member carries exactly one icon instance (${fmArtCounts})`);
 
-// (2) SOMETHING WAS DRAWN. #864's own finding is that this is the question a valid-looking tree cannot
-// answer: a named frame with no outline inside is indistinguishable from a glyph that rendered, and "the
-// node has children" passes on an empty group. So: a VECTOR, with a non-zero box, per member.
-const fmDrawn = fmMembers.slice(1).map((m) => fmVecs(fmArt(m)[0]).filter((v) => (v.width as number) > 0 && (v.height as number) > 0));
-ok(fmDrawn.every((vs) => vs.length === 1),
-  `#1010 each validation member's artboard holds exactly one VECTOR with a non-zero box — ink, not an empty artboard (${fmDrawn.map((vs) => vs.length).join(',')})`);
+// (2) EACH GLYPH IS AN INSTANCE OF ITS ICON COMPONENT (#2380, owner decision Q137 A), and a DIFFERENT one per
+// status. EXPECTED is typed out from the def's own reading of the reference (error is the triangle, warning the
+// circle — see `field-message.ts`), never read back off the plan: a projection that drew the glyph inline again
+// builds no INSTANCE and fails here by name, and one that named the wrong icon fails on the list.
+const FM_ICONS = 'icon/warning-triangle | icon/error-circle | icon/check-circle';
+const fmMain = (n: Node | undefined): string => String((n as { mainComponent?: { name?: string } } | undefined)?.mainComponent?.name ?? 'not an instance');
+const fmIcons = fmMembers.slice(1).map((m) => fmMain(fmArt(m)[0])).join(' | ');
+ok(fmIcons === FM_ICONS,
+  `#2380 field-message: each status glyph is an INSTANCE of its icon component — error, warning, success (${fmIcons})`);
 
-// (3) AND IT IS A DIFFERENT DRAWING PER TONE, which is the assertion the placeholder failed. Three
-// identical FPO circles in three inks satisfied everything above this line; what they could not do is
-// differ in geometry. Asserted as a RELATIONSHIP — three distinct outlines — rather than against three
-// expected shapes, because the expected shapes would have to be derived from `ICON_PATHS` the same way the
-// glyph itself is, and an oracle computed from the subject cannot fail (docs/34 §2).
-//
-// ON `vectorPaths` RATHER THAN THE BOX, which is the first thing this arm was written against and was
-// wrong: `error-circle` and `check-circle` are one 20px ring with different marks inside, so they measure
-// IDENTICALLY — 20.0x20.0 both, live as well as here. Two of the three tones would have compared equal and
-// the arm would have failed for the right reason with the wrong diagnosis. The subpath data is the level at
-// which "a different drawing" is a fact about the node rather than about its extent.
-const fmPaths = fmDrawn.map((vs) => JSON.stringify(vs[0].vectorPaths));
-ok(fmDrawn.every((vs) => (vs[0].vectorPaths as unknown[]).length >= 2) && new Set(fmPaths).size === 3,
-  `#1010 the three tones draw three DIFFERENT outlines — pairwise distinct subpaths, so one placeholder in three colors fails here (${fmDrawn.map((vs) => (vs[0].vectorPaths as unknown[]).length).join(',')} subpaths, ${new Set(fmPaths).size} distinct)`);
+// (3) NO GLYPH DRAWN INLINE: no FRAME is left in a member (an imported glyph lands as a FRAME wrapping its
+// outline), so the instance is not sitting beside a stale inline copy.
+ok(fmMembers.every((m) => !fmKids(m).some((c) => c.type === 'FRAME')),
+  `#2380 field-message: no inline glyph artboard is left beside the instance (${fmMembers.map((m) => fmKids(m).filter((c) => c.type === 'FRAME').length).join(',')})`);
 
-// (4) BOTH AXES BOUND, to the same variable. Two facts in one arm, and the second is not decoration: a
-// node still holding Figma's aspect-ratio lock silently EVICTS the first dimension binding when the
-// second is set (#682), so "both axes bound" is only reachable through the `unlockAspectRatio()` call.
+// (4) BOTH AXES BOUND, to the same variable, the size the glyph had before #2380. Two facts in one arm, and the
+// second is not decoration: a node still holding Figma's aspect-ratio lock silently EVICTS the first dimension
+// binding when the second is set (#682), so "both axes bound" is only reachable through `unlockAspectRatio()`.
 const fmSizes = fmMembers.slice(1).map((m) => {
-  const bv = fmArt(m)[0].boundVariables as Record<string, { id?: string }>;
+  const bv = (fmArt(m)[0]?.boundVariables ?? {}) as Record<string, { id?: string }>;
   return `${String(bv.width?.id).replace(/^V:/, '')}+${String(bv.height?.id).replace(/^V:/, '')}`;
 });
 ok(fmSizes.every((s) => s === 'icon/size/xs+icon/size/xs'),
-  `#1010 every glyph binds BOTH axes to the caption-scale artboard rung (${fmSizes.join(', ')})`);
+  `#1010 #2380 every icon instance binds BOTH axes to the caption-scale rung (${fmSizes.join(', ')})`);
 
-// (5) THE INK IS ON THE OUTLINE AND NOT ON THE ARTBOARD (#864) — a fill on the wrapper is a painted
-// square behind the glyph, which is what an instance-swapped placeholder looked like.
-const fmVecInk = fmDrawn.map((vs) => fmInk(vs[0])).join(' | ');
+// (5) THE INK IS ON THE OUTLINE INSIDE THE INSTANCE (`descendantFills`) — the way a host inks an icon it
+// swaps into a slot — and not on the instance, where it would paint a square behind the glyph.
+const fmVecInk = fmMembers.slice(1).map((m) => fmVecs(fmArt(m)[0]).map(fmInk).join('+')).join(' | ');
 ok(fmVecInk === 'color/icon/danger | color/icon/warning | color/icon/success',
-  `#1010 each outline carries its status's semantic ink (${fmVecInk})`);
-ok(fmMembers.slice(1).every((m) => (fmArt(m)[0].fills as unknown[]).length === 0),
-  `#1010 ...and the artboard itself is unpainted, so the glyph is ink rather than a coloured square (${fmMembers.slice(1).map((m) => (fmArt(m)[0].fills as unknown[]).length).join(',')})`);
+  `#1010 each icon's outline carries its status's semantic ink (${fmVecInk})`);
+ok(fmMembers.slice(1).every((m) => ((fmArt(m)[0]?.fills as unknown[] | undefined) ?? []).length === 0),
+  `#1010 ...and the instance itself is unpainted, so the glyph is ink rather than a colored square (${fmMembers.slice(1).map((m) => ((fmArt(m)[0]?.fills as unknown[] | undefined) ?? []).length).join(',')})`);
 
-// (6) THE OUTLINE SCALES WITH ITS FRAME. The artboard is 24px of viewBox bound to a 16px variable, and a
-// child left at Figma's MIN/MIN default keeps the 24 — so the member would show the glyph's top-left
-// corner. Every other arm here passes on that tree.
-ok(fmDrawn.every((vs) => JSON.stringify(vs[0].constraints) === JSON.stringify({ horizontal: 'SCALE', vertical: 'SCALE' })),
-  `#1010 the outline is set to SCALE on both axes, so a 24px drawing fits the 16px artboard (${JSON.stringify(fmDrawn[0][0].constraints)})`);
-
-// (7) NO PLACEHOLDER SURVIVES, stated on the two things the old projection left in the file: an INSTANCE
-// node (the nominated FPO component) and an INSTANCE_SWAP property on the set. Both are absent now, and
-// absent for the same reason — `figmaProperties.swaps` is empty and no part nests. The swap target is
-// still PASSED to `figmaAnatomySet` above, so this is not passing by omission: the def ignores it.
+// (6) NO SWAP PROPERTY (owner decision Q137 A): the icons are real instances, but nothing nominates them for
+// swapping — a designer swaps one by hand. The set declares no INSTANCE_SWAP property, and the only instances
+// in it are the icon components.
 const fmAllNodes = fmMembers.flatMap((m) => [m, ...(m.findAll as () => Node[])()]);
-ok(!fmAllNodes.some((n) => n.type === 'INSTANCE'),
-  `#1010 no INSTANCE anywhere in the built set — the placeholder was a nominated component, and nothing nominates one now (${fmAllNodes.filter((n) => n.type === 'INSTANCE').length})`);
+ok(fmAllNodes.filter((n) => n.type === 'INSTANCE').every((n) => fmMain(n).startsWith('icon/')),
+  `#2380 every INSTANCE in the built set is an icon component (${fmAllNodes.filter((n) => n.type === 'INSTANCE').map(fmMain).join(', ')})`);
 ok(!fmRun.properties.some((p) => p.indexOf('INSTANCE_SWAP') >= 0),
   `#1010 ...and the set declares no INSTANCE_SWAP property, so a designer cannot put a check mark on the error member (${fmRun.properties.join('/')})`);
 ok(fmRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 1,
   `#1010 the caption is still a TEXT property, so removing the swap did not take the text wiring with it (${fmRun.properties.join('/')})`);
+
+// =============================================================================================
+// #2380 — EVERY ICON-SET GLYPH INSIDE A COMPONENT IS AN INSTANCE OF ITS ICON COMPONENT
+// =============================================================================================
+// Owner decision Q137 A: a glyph drawn from the icon set is placed as an instance of `icon/<name>`, sized by the
+// part, inked by `descendantFills`, with no swap property. Before #2380 each was an inline import of the same
+// outline, which did not follow the icon set and whose geometry drifted inside its frame on the NB master
+// (#2379). One row per affected part, built through the real executor against the shim.
+//
+// EXPECTED IS TYPED HERE, never read off the plan: the icon each part draws and the variable its box binds are
+// the def's own choices, transcribed below (the bindings are the ones the inline glyph frames carried before
+// #2380, so the move to an instance keeps the size). ACTUAL is read off the host: the node's type, the main
+// component the instance says it is of, and the variable ids the shim recorded. A projection reverted to the
+// inline import builds a FRAME wrapping a VECTOR where each row wants an INSTANCE, and fails by name.
+//
+// `size` names the variable both axes bind, with `{size}` standing for the member's own size rung token
+// (`sm`/`md`/`lg`); `px` is a literal glyph size; `inset` is checkbox's 0.8 of its box (#1346), where the
+// part is a frame bound to the box and the instance its one child, named `glyph`.
+{
+  type IconRow = { def: string; part: string; icon: string; size?: string; px?: number; inset?: number };
+  const ICON_ROWS: IconRow[] = [
+    { def: 'field-message', part: 'iconError', icon: 'icon/warning-triangle', size: 'icon/size/xs' },
+    { def: 'field-message', part: 'iconWarning', icon: 'icon/error-circle', size: 'icon/size/xs' },
+    { def: 'field-message', part: 'iconSuccess', icon: 'icon/check-circle', size: 'icon/size/xs' },
+    { def: 'checkbox-control', part: 'mark', icon: 'icon/check', size: 'control/size/{size}/height', inset: 0.8 },
+    { def: 'checkbox-control', part: 'dash', icon: 'icon/minus', size: 'control/size/{size}/height', inset: 0.8 },
+    { def: 'switch-control', part: 'onGlyph', icon: 'icon/check', size: 'control/size/{size}/thumb' },
+    { def: 'switch-control', part: 'offGlyph', icon: 'icon/close', size: 'control/size/{size}/thumb' },
+    { def: 'tag', part: 'check', icon: 'icon/check', size: 'icon/size/{size}' },
+    { def: 'tag', part: 'dismissGlyph', icon: 'icon/close', size: 'icon/size/{size}' },
+    { def: 'select', part: 'chevron', icon: 'icon/chevron-down', size: 'icon/size/sm' },
+    { def: 'textarea', part: 'grip', icon: 'icon/resize-grip', size: 'icon/size/xs' },
+    { def: 'image-placeholder', part: 'marker', icon: 'icon/image', px: 180 },
+  ];
+  const RUNG: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+  const mainName = (n: Node | undefined): string => String((n as { mainComponent?: { name?: string } } | undefined)?.mainComponent?.name ?? '(not an instance)');
+  const boundId = (n: Node, k: string): string => String(((n.boundVariables ?? {}) as Record<string, { id?: string }>)[k]?.id ?? '(unbound)').replace(/^V:/, '');
+  const findPart = (n: Node, name: string): Node | undefined => {
+    if (n.name === name) return n;
+    if (n.type === 'INSTANCE') return undefined;
+    for (const c of (n.children as Node[] | undefined) ?? []) { const f = findPart(c, name); if (f) return f; }
+    return undefined;
+  };
+  const builtByDef = new Map<string, { plans: AnatomyPlan[]; members: Node[] }>();
+  for (const id of [...new Set(ICON_ROWS.map((r) => r.def))]) {
+    const def = componentDefs.find((d) => d.id === id)!;
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP });
+    const page: Page = { children: [] };
+    const res = await run(plans, { ...fullFor(plans), page });
+    ok(res.misses.length === 0, `#2380 ${id} builds with no misses, the icon components present in the file (${res.misses.slice(0, 2).join('; ') || 'none'})`);
+    builtByDef.set(id, { plans, members: (page.children.find((c) => c.type === 'COMPONENT_SET')?.children as Node[]) ?? [] });
+  }
+  for (const row of ICON_ROWS) {
+    const { plans, members } = builtByDef.get(row.def)!;
+    const bad: string[] = [];
+    let seen = 0;
+    members.forEach((m, i) => {
+      const node = findPart(m, row.part);
+      if (!node) return;
+      seen++;
+      const size = (plans[i]?.size && RUNG[plans[i].size!]) ?? '';
+      const want = row.size?.replace('{size}', size);
+      const inst = row.inset !== undefined ? ((node.children as Node[] | undefined) ?? []).find((c) => c.name === 'glyph') : node;
+      if (row.inset !== undefined && node.type !== 'FRAME') bad.push(`${m.name}: the part is a ${node.type}, not the frame that holds the inset icon`);
+      if (!inst || inst.type !== 'INSTANCE' || mainName(inst) !== row.icon) {
+        bad.push(`${m.name}: ${inst ? `${inst.type} of ${mainName(inst)}` : 'no instance'}, not an INSTANCE of ${row.icon}`);
+        return;
+      }
+      // THE SIZE. On the part's own node: the instance itself, or the inset frame (whose instance is then
+      // checked at 0.8 of it, on the host's numbers).
+      if (want && (boundId(node, 'width') !== want || boundId(node, 'height') !== want))
+        bad.push(`${m.name}: binds ${boundId(node, 'width')}×${boundId(node, 'height')}, not ${want} on both axes`);
+      if (row.px !== undefined && (inst.width !== row.px || inst.height !== row.px))
+        bad.push(`${m.name}: ${String(inst.width)}×${String(inst.height)}, not the ${row.px}px literal`);
+      if (row.inset !== undefined) {
+        const W = node.width as number, H = node.height as number;
+        const ok2 = (a: unknown, b: number): boolean => typeof a === 'number' && Math.abs(a - b) < 0.01;
+        if (!(W > 0) || !ok2(inst.width, W * row.inset) || !ok2(inst.height, H * row.inset) || !ok2(inst.x, (W * (1 - row.inset)) / 2) || !ok2(inst.y, (H * (1 - row.inset)) / 2))
+          bad.push(`${m.name}: the icon is ${String(inst.width)}×${String(inst.height)} at ${String(inst.x)},${String(inst.y)} in a ${W}×${H} frame, not ${row.inset} of it, centered`);
+        if (JSON.stringify(inst.constraints) !== JSON.stringify({ horizontal: 'SCALE', vertical: 'SCALE' }))
+          bad.push(`${m.name}: constraints ${JSON.stringify(inst.constraints)}, not SCALE/SCALE, so a resized box would leave the icon behind`);
+      }
+    });
+    ok(seen > 0 && bad.length === 0,
+      `#2380 ${row.def}.${row.part}: an INSTANCE of ${row.icon} at ${row.inset !== undefined ? `${row.inset} of its ${row.size} box` : row.px !== undefined ? `${row.px}px` : row.size} on every member that draws it (${seen} member(s)${bad.length ? `; ${bad.slice(0, 2).join(' | ')}` : ''})`);
+  }
+}
 
 // =============================================================================================
 // #913 — A PARTIAL WRITE IS MARKED, AND THE MARKING CANNOT MAKE THINGS WORSE
@@ -3550,11 +3624,12 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(!held.order.includes('focus-ring') && JSON.stringify(heldBuilt.map((b) => b.id)) === JSON.stringify(['icon', 'spinner']),
     `#1633 existing focus-ring: never rebuilt — only icon and spinner are built (${held.order.join(', ') || 'nothing'})`);
 
-  // (d) A CHAIN — checkbox-group → checkbox-row → checkbox-control → focus-ring, plus the group's label.
+  // (d) A CHAIN — checkbox-group → checkbox-row → checkbox-control → focus-ring and icon (#2380: the check and
+  // dash are instances of `icon/check` / `icon/minus`), plus the group's label.
   const chain = fileWith();
   await prebuildDependencies(byDef('checkbox-group'), chain.ctx);
-  ok(JSON.stringify(chain.order) === JSON.stringify(['field-label', 'focus-ring', 'checkbox-control', 'checkbox-row']),
-    `#1633 chain: checkbox-group's nests build deepest first — field-label, focus-ring, checkbox-control, checkbox-row (${chain.order.join(', ')})`);
+  ok(JSON.stringify(chain.order) === JSON.stringify(['field-label', 'focus-ring', 'icon', 'checkbox-control', 'checkbox-row']),
+    `#1633 #2380 chain: checkbox-group's nests build deepest first — field-label, focus-ring, icon, checkbox-control, checkbox-row (${chain.order.join(', ')})`);
   const groupRun = await chain.build(byDef('checkbox-group'));
   const nestMiss = groupRun.misses.filter((m) => m.indexOf('.nestTarget ->') >= 0 || m.indexOf('.nestVariant ->') >= 0);
   ok(nestMiss.length === 0, `#1633 chain: checkbox-group then builds with 0 nest misses (${nestMiss.length}${nestMiss.length ? ` — ${nestMiss[0]}` : ''})`);
@@ -3749,8 +3824,9 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   // The live report's counts, hand-copied: 15 on text-field (3 statuses x 5 states), 12 on select (3 x 4).
   // One more state column since the field family's `filled` (2026-09-25): 3 x 6 and 3 x 5. And select's
   // `read-only` column since #1699: 3 x 6 on both.
-  // And three sizes since #2266: the same 18 per size, 3 x 18.
-  const LIVE_MISSES: Record<string, number> = { 'text-field': 54, select: 54 };
+  // And three sizes since #2266: the same 18 per size, 3 x 18. And #2318's `focus-visible-filled` column: 3 x 7 per
+  // size, 3 x 21.
+  const LIVE_MISSES: Record<string, number> = { 'text-field': 63, select: 63 };
   for (const id of ['text-field', 'select']) {
     const shipped = await buildFile(byDef(id), SHORT);
     const fm = shipped.boxes('field-message');
@@ -3809,7 +3885,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   const buildTextarea = async (m: Metrics, def: ComponentDef = textarea) => {
     const defs = componentDefs.map((d) => (d.id === 'textarea' ? def : d));
-    // The textarea's medium column (#2266): the 24 members these arms were written for.
+    // The textarea's medium column (#2266): the 24 members these arms were written for, 28 since #2318.
     const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP }).filter((p) => d.id !== 'textarea' || p.size === 'medium');
     const all = defs.flatMap((d) => { try { return project(d); } catch { return []; } });
     const f = fullFor(all);
@@ -3847,8 +3923,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   for (const [label, m] of CASES) {
     const want = ROWS * lineOf(m) + 2 * PAD_Y;
     const b = await buildTextarea(m);
-    ok(b.controls.length === 24 && b.controls.every(Boolean) && b.heights.length === 1 && Math.abs(b.heights[0] - want) <= 0.01 && b.foot.length === 0 && b.r.misses.length === 0,
-      `textarea rows (${label}): every one of the 24 controls measures ${ROWS} × ${lineOf(m)} + 2 × ${PAD_Y} = ${want} (got [${b.heights.join(', ')}] over ${b.controls.length} member(s); ${b.foot.length} footprint misses; ${b.r.misses.length} misses${b.r.misses.length ? ` — ${b.r.misses[0]}` : ''})`);
+    ok(b.controls.length === 28 && b.controls.every(Boolean) && b.heights.length === 1 && Math.abs(b.heights[0] - want) <= 0.01 && b.foot.length === 0 && b.r.misses.length === 0,
+      `textarea rows (${label}): every one of the 28 controls measures ${ROWS} × ${lineOf(m)} + 2 × ${PAD_Y} = ${want} (got [${b.heights.join(', ')}] over ${b.controls.length} member(s); ${b.foot.length} footprint misses; ${b.r.misses.length} misses${b.r.misses.length ? ` — ${b.r.misses[0]}` : ''})`);
   }
 
   // (d) MUTATION, BY NAME: without `lines` the value text is one line and the control is one line tall.
@@ -3880,7 +3956,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   // Set here to a number no other shim value takes (the ring constants are 2), so a placement that read the
   // wrong variable, or none, lands somewhere else.
   const INSET = 3;
-  // The medium column (#2266): the 24 members this block was written for.
+  // The medium column (#2266): the 24 members this block was written for, 28 since #2318.
   const taPlans = figmaAnatomySet(materializeForBrand(textarea, null), { swapTarget: SWAP }).filter((p) => p.size === 'medium');
   const styles = [...new Set(taPlans.flatMap((p) => planTextStyles(p.root)))];
   const VALUE = 'body/md/default';
@@ -3913,7 +3989,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
 
   const buildIt = async (def: ComponentDef, captionBox: number) => {
     const defs = componentDefs.map((d) => (d.id === 'textarea' ? def : d));
-    // The textarea's medium column (#2266): the 24 members these arms were written for.
+    // The textarea's medium column (#2266): the 24 members these arms were written for, 28 since #2318.
     const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP }).filter((p) => d.id !== 'textarea' || p.size === 'medium');
     const all = defs.flatMap((d) => { try { return project(d); } catch { return []; } });
     const f = fullFor(all);
@@ -3933,8 +4009,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   };
 
   const b = await buildIt(textarea, GRIP - 1);
-  ok(b.members.length === 24 && b.r.misses.length === 0,
-    `textarea grip/counter: the set builds 24 members with 0 misses (${b.members.length}; ${b.r.misses[0] ?? 'none'})`);
+  ok(b.members.length === 28 && b.r.misses.length === 0,
+    `textarea grip/counter: the set builds 28 members with 0 misses (${b.members.length}; ${b.r.misses[0] ?? 'none'})`);
 
   // ---- the grip: a `resize handle` boolean, ON by default, on every member ----
   const handle = boolProp(b.set, 'resize handle');
@@ -3956,8 +4032,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       || g.width !== GRIP || g.height !== GRIP || Math.abs((g.x as number) - wantX) > 1e-6 || Math.abs((g.y as number) - wantY) > 1e-6)
       cornerMiss.push(`${m.name}: ${String(g.layoutPositioning)} ${JSON.stringify(c)} ${g.width}x${g.height} at (${g.x}, ${g.y}), want ABSOLUTE MAX/MAX ${GRIP}x${GRIP} at (${wantX}, ${wantY})`);
   }
-  ok(b.members.length === 24 && cornerMiss.length === 0,
-    `textarea grip corner: on all 24 members the ${GRIP}px grip is ABSOLUTE, constrained MAX/MAX, at (control − ${GRIP} − ${INSET}) on both axes (${cornerMiss.length} off — ${cornerMiss[0] ?? 'none'})`);
+  ok(b.members.length === 28 && cornerMiss.length === 0,
+    `textarea grip corner: on all 28 members the ${GRIP}px grip is ABSOLUTE, constrained MAX/MAX, at (control − ${GRIP} − ${INSET}) on both axes (${cornerMiss.length} off — ${cornerMiss[0] ?? 'none'})`);
 
   // ---- the grip moves no box: the control and the member measure alike with it on and off ----
   // With a value that exactly fills the text's line, ONE more character of width wraps it (the seed checks
@@ -3981,10 +4057,10 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const on = [box(ctl), box(m)];
     if (on.join() !== off.join()) gripFoot.push(`${m.name}: control ${on[0]} with the grip, ${off[0]} without; member ${on[1]} vs ${off[1]}`);
   }
-  ok(b.members.length === 24 && contentDriven === 24,
+  ok(b.members.length === 28 && contentDriven === 28,
     `textarea grip footprint seed: on every member a value that exactly fills the text box wraps with one more character and grows the control taller, so a glyph in the flow would show in its height (${contentDriven}/24)`);
-  ok(b.members.length === 24 && gripFoot.length === 0,
-    `textarea grip footprint: the control and the member measure alike with the grip on and off, on all 24 members (${gripFoot.length} moved — ${gripFoot[0] ?? 'none'})`);
+  ok(b.members.length === 28 && gripFoot.length === 0,
+    `textarea grip footprint: the control and the member measure alike with the grip on and off, on all 28 members (${gripFoot.length} moved — ${gripFoot[0] ?? 'none'})`);
 
   // ---- the counter and the message: two INDEPENDENT booleans (the owner's answer 2, 2026-09-25) ----
   // Each switch drives its own layer, and neither layer holds the other, so all four combinations exist.
@@ -4007,7 +4083,7 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `textarea counter default: a 'character count' BOOLEAN defaulting to false drives a layer holding the counter, and all 24 members build it hidden (${JSON.stringify(count)}; ${countLayers.filter((l) => l && l.visible === false).length} hidden)`);
   ok(msg?.type === 'BOOLEAN' && msg.defaultValue === true
     && msgLayers.every((l, i) => l && l.visible !== false && find(l, 'message') !== undefined && !find(l, 'counter') && !find(countLayers[i], 'message')),
-    `textarea counter independent: the 'message' BOOLEAN (default true) drives a layer holding the message and NOT the counter, and the counter's layer holds no message, on all 24 members (${JSON.stringify(msg)})`);
+    `textarea counter independent: the 'message' BOOLEAN (default true) drives a layer holding the message and NOT the counter, and the counter's layer holds no message, on all 28 members (${JSON.stringify(msg)})`);
   const rows = b.members.map((m) => find(m, 'messageRow'));
   // #1751: the row FILLS (stretched AND its own width FIXED — the stretch alone hugs) and packs to its END,
   // the message's layer GROWS beside the counter, and the counter's layer HUGS its caption.
@@ -4048,8 +4124,8 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       ml.visible = true;
       cl.visible = false;
     }
-    ok(bb.members.length === 24 && bb.r.misses.length === 0 && off.length === 0 && cells === 96,
-      `textarea counter footprint (caption line box ${captionBox}, glyph ${GRIP}): message only, counter only, both and neither each measure label + gap + control, plus one gap and the taller shown part when any is shown, on all 24 members (${cells}/96; ${off.length} off — ${off[0] ?? 'none'})`);
+    ok(bb.members.length === 28 && bb.r.misses.length === 0 && off.length === 0 && cells === 112,
+      `textarea counter footprint (caption line box ${captionBox}, glyph ${GRIP}): message only, counter only, both and neither each measure label + gap + control, plus one gap and the taller shown part when any is shown, on all 28 members (${cells}/96; ${off.length} off — ${off[0] ?? 'none'})`);
   }
 }
 
@@ -4078,13 +4154,16 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   const DISABLED = 'color/disabled/on-fill';   // the placeholder sits on the disabled fill
   type Layer = 'placeholder' | 'value';
   const INK: Record<string, Record<string, [Layer, string]>> = {
-    'text-field': { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
-    textarea: { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
+    'text-field': { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], 'focus-visible-filled': ['value', VALUE], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
+    textarea: { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], 'focus-visible-filled': ['value', VALUE], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
     // select's `read-only` (#1699 decision 2, text-field's state set) shows the value, as on text-field.
-    select: { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
+    select: { rest: ['placeholder', PLACEHOLDER], hover: ['placeholder', PLACEHOLDER], filled: ['value', VALUE], 'focus-visible': ['placeholder', PLACEHOLDER], 'focus-visible-filled': ['value', VALUE], disabled: ['placeholder', DISABLED], 'read-only': ['value', VALUE] },
   };
   // Which defs draw the caret, and at which states. select is typed empty on purpose (see above).
+  // The `caret` part: the empty focused field only. The focused field that holds a value draws its caret AFTER the value
+  // in its own `caretEnd` part, on text-field only (#2318, owner Q166 C), held below.
   const CARET_AT: Record<string, string[]> = { 'text-field': ['focus-visible'], textarea: ['focus-visible'], select: [] };
+  const CARET_END_AT: Record<string, string[]> = { 'text-field': ['focus-visible-filled'], textarea: [], select: [] };
   const CARET_INK = 'color/text/primary';
   const CARET_WIDTH = 'border-width/hairline';
   // One line of NB's value type: the emitted style's font size (through NB's own tree) × its line height.
@@ -4122,6 +4201,16 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const members = ((set?.children as Node[] | undefined) ?? []);
     const wrong: string[] = [];
     const caretWrong: string[] = [];
+    const endWrong: string[] = [];
+    let endCarets = 0;
+    // #2439: WHERE the end caret is drawn, on the shim's layout model, not only its order. Its x must be the value's right
+    // edge with no gap, the value must HUG its text (the shim's text metric, 6px a character with no style advance in this
+    // build, typed here as the shim's own figure: a value stretched to fill the row would push the bar away from the last
+    // character), and the bar must sit inside `content`'s clip.
+    const SHIM_CHAR_W = 6;
+    const posWrong: string[] = [];
+    let positioned = 0;
+    const absX = (n: Node, top: Node): number => { let x = 0; for (let k: Node | null | undefined = n; k && k !== top; k = k.parent as Node | null) x += (k.x as number) || 0; return x; };
     const seen = new Set<string>();
     const boxAt = new Map<string, string>();
     let carets = 0;
@@ -4140,6 +4229,31 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       else if (other) wrong.push(`${m.name}: both layers present, want ${layer} only`);
       else if (paintVar(shown, 'fills') !== ink) wrong.push(`${m.name}: ${layer} ${paintVar(shown, 'fills')}, want ${ink}`);
       else if (refProp(shown) !== layer) wrong.push(`${m.name}: the ${layer} layer references '${refProp(shown)}', want its own '${layer}' property`);
+      // The END caret (#2318, owner Q166 C): after the value, on text-field's focused field that holds one, and nowhere else.
+      const caretEnd = named(m, 'caretEnd');
+      const endDue = CARET_END_AT[id].includes(state);
+      if (endDue !== !!caretEnd) endWrong.push(`${m.name}: end caret ${caretEnd ? 'present' : 'absent'}, want ${endDue ? 'present' : 'absent'}`);
+      else if (caretEnd) {
+        endCarets++;
+        const ekids = ((parentOf(m, caretEnd)?.children as Node[]) ?? []);
+        const eh = boundName(caretEnd, 'height');
+        const eline = shown ? nbLineOf(String(shown._textStyleId ?? '').replace(/^S:/, '')) : NaN;
+        if (ekids[ekids.indexOf(caretEnd) - 1] !== shown || layer !== 'value') endWrong.push(`${m.name}: end caret is not immediately after the value (row [${ekids.map((k) => k.name).join(', ')}])`);
+        else if (paintVar(caretEnd, 'fills') !== CARET_INK) endWrong.push(`${m.name}: end caret ${paintVar(caretEnd, 'fills')}, want ${CARET_INK}`);
+        else if (boundName(caretEnd, 'width') !== CARET_WIDTH) endWrong.push(`${m.name}: end caret width ${boundName(caretEnd, 'width')}, want ${CARET_WIDTH}`);
+        else if (!eh || !(Math.abs(nbVarPx(eh) - eline) < 1e-6)) endWrong.push(`${m.name}: end caret height ${eh} is ${eh ? nbVarPx(eh) : '?'}px on NB, want one line of the value type, ${eline}px`);
+        if (shown) {
+          const content = named(m, 'content');
+          const valueRight = (shown.x as number) + (shown.width as number);
+          const textW = String(shown.characters ?? '').length * SHIM_CHAR_W;
+          const caretRight = absX(caretEnd, m) + (caretEnd.width as number);
+          const clipRight = content ? absX(content, m) + (content.width as number) : NaN;
+          if (Math.abs((caretEnd.x as number) - valueRight) > 1e-6) posWrong.push(`${m.name}: end caret x ${caretEnd.x}, want the value's right edge ${valueRight} (no gap)`);
+          else if (Math.abs((shown.width as number) - textW) > 1e-6) posWrong.push(`${m.name}: the value is ${shown.width}px wide around ${textW}px of text — it does not hug its text, so the bar is not at its last character`);
+          else if (!(caretRight <= clipRight + 1e-6)) posWrong.push(`${m.name}: end caret's right edge ${caretRight} is past content's clip at ${clipRight}`);
+          else positioned++;
+        }
+      }
       // The caret.
       const caret = named(m, 'caret');
       const due = CARET_AT[id].includes(state);
@@ -4148,11 +4262,12 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
       if (!caret) continue;
       const row = parentOf(m, caret);
       const kids = ((row?.children as Node[]) ?? []);
-      const lineWant = ph ? nbLineOf(String(ph._textStyleId ?? '').replace(/^S:/, '')) : NaN;
+      // The caret precedes the text the state shows: the placeholder when empty, the value on a focused filled field (#2318).
+      const lineWant = shown ? nbLineOf(String(shown._textStyleId ?? '').replace(/^S:/, '')) : NaN;
       const hName = boundName(caret, 'height');
       if (paintVar(caret, 'fills') !== CARET_INK) caretWrong.push(`${m.name}: caret ${paintVar(caret, 'fills')}, want ${CARET_INK}`);
       else if (boundName(caret, 'width') !== CARET_WIDTH) caretWrong.push(`${m.name}: caret width ${boundName(caret, 'width')}, want ${CARET_WIDTH}`);
-      else if (!ph || kids[kids.indexOf(caret) + 1] !== ph) caretWrong.push(`${m.name}: caret is not immediately before the placeholder (row [${kids.map((k) => k.name).join(', ')}])`);
+      else if (!shown || kids[kids.indexOf(caret) + 1] !== shown) caretWrong.push(`${m.name}: caret is not immediately before the ${layer} (row [${kids.map((k) => k.name).join(', ')}])`);
       else if (!hName || !(Math.abs(nbVarPx(hName) - lineWant) < 1e-6)) caretWrong.push(`${m.name}: caret height ${hName} is ${hName ? nbVarPx(hName) : '?'}px on NB, want one line of the value type, ${lineWant}px`);
     }
     const missing = SIZES.flatMap((sz) => STATUSES.flatMap((st) => Object.keys(want).filter((s2) => !seen.has(`${sz}|${st}|${s2}`)).map((s2) => `size=${sz}, status=${st}, state=${s2}`)));
@@ -4161,7 +4276,12 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     const drift = SIZES.flatMap((sz) => STATUSES.filter((st) => boxAt.get(`${sz}|${st}|focus-visible`) !== boxAt.get(`${sz}|${st}|rest`)).map((st) => `size=${sz}, status=${st}: focus-visible ${boxAt.get(`${sz}|${st}|focus-visible`)}, rest ${boxAt.get(`${sz}|${st}|rest`)}`));
     const caretMembers = SIZES.length * STATUSES.length * CARET_AT[id].length;
     ok(caretWrong.length === 0 && carets === caretMembers && drift.length === 0 && !r.misses.some((x) => x.startsWith('footprint -> ')),
-      `field caret (${id}): ${caretMembers ? `a caret on exactly the ${caretMembers} focus-visible members — ${CARET_INK}, ${CARET_WIDTH} wide, one value line tall, immediately before the placeholder — and each focus-visible member measures its rest sibling` : 'no caret on any member'} (${carets} caret(s); ${caretWrong.length} wrong — ${caretWrong[0] ?? 'none'}; ${drift.length} footprint drift — ${drift[0] ?? 'none'})`);
+      `field caret (${id}): ${caretMembers ? `a caret on exactly the ${caretMembers} focused members — ${CARET_INK}, ${CARET_WIDTH} wide, one value line tall, immediately before the placeholder (or the value, when it holds one) — and each focus-visible member measures its rest sibling` : 'no caret on any member'} (${carets} caret(s); ${caretWrong.length} wrong — ${caretWrong[0] ?? 'none'}; ${drift.length} footprint drift — ${drift[0] ?? 'none'})`);
+    const endMembers = SIZES.length * STATUSES.length * CARET_END_AT[id].length;
+    ok(endWrong.length === 0 && endCarets === endMembers,
+      `field end caret (${id}): ${endMembers ? `a caret immediately after the value on exactly the ${endMembers} focused members that hold one — ${CARET_INK}, ${CARET_WIDTH} wide, one value line tall` : 'no end caret on any member'} (${endCarets} end caret(s)${endWrong.length ? `; ${endWrong.length} wrong — ${endWrong.slice(0, 2).join('; ')}` : ''})`);
+    ok(posWrong.length === 0 && positioned === endMembers,
+      `field end caret position (${id}, #2439): ${endMembers ? `on all ${endMembers} focused members that hold a value, the bar starts at the value's right edge with no gap, the value hugs its text, and the bar is inside content's clip` : 'no end caret to place'} (${positioned} placed${posWrong.length ? `; ${posWrong.length} wrong — ${posWrong.slice(0, 2).join('; ')}` : ''})`);
   }
 }
 

@@ -174,8 +174,10 @@
  *   · MOVED PAGES: `NEW_PAGES` (literal) beside `LEGACY_PAGES`; every place is in exactly one, and a moved place
  *     renders the two panes (one at 380), never the legacy frame.
  *   · SPECIMEN GROUND (plan §6.1, §9.1): every specimen root in the Palettes preview sits on the brand's
- *     `background.primary` for the previewed mode, both hosts, both chrome themes, every mode. Oracle: the
- *     committed emission, its alias chain resolved here in Node; the rendered ground is composited.
+ *     `background.primary`, both hosts, both chrome themes. Palettes always shows Light (PM1 B, #2321): it is
+ *     entered from every mode, and every strip sits on Light's ground, the opacity scale inked in Light's
+ *     `text.primary`. Oracle: the committed emission, its alias chain resolved here in Node; the rendered ground is
+ *     composited.
  *   · CONTROLS REPRESENTED: each manifest key v6 homes on Palettes (`PALETTES_LEVERS`, literal, with its tier
  *     and hook) renders its `lever-*` hook exactly once, the advanced ones only behind Show advanced; a lever
  *     block that is none of them fails as unclassified. The new controls are classified (`CONTROL_KINDS`).
@@ -555,6 +557,9 @@ const PRISM3_DISABLED = (() => {
 const DISABLED_APPEARANCE = (o) => {
   if (['input', 'select', 'textarea'].includes(o.tag)) return 'field';
   const c = new Set(o.cls.split(/\s+/));
+  // The preview's mode control, held on Palettes (#2321): a segment takes the skin of what it draws at rest. The one
+  // selected draws an edge, so outline; the others draw none, so text (as X4 A maps the outline and ghost buttons).
+  if (c.has('p3-mode')) return o.checked === 'true' ? 'outline' : 'text';
   if (['p3-btn-primary', 'p3-next', 'p3-btn-danger'].some((k) => c.has(k))) return 'filled';
   if (['p3-btn-ghost', 'p3-check'].some((k) => c.has(k))) return 'text';
   return 'outline';
@@ -605,7 +610,9 @@ const WIDTHS = [{ w: 1280, h: 900 }, { w: 640, h: 900 }, { w: 380, h: 420 }];
  *  (`scrollWidth`); the room is the controls box's width before anything is forced. The frame derives every step from
  *  one measurement of the full row by subtraction; this lays each candidate out for real, so the two are partners and
  *  neither is the other (docs/34, shape 2). Within 1px of the room the answer is ambiguous, and both neighbors are
- *  accepted (`also`). Above the narrow tier only: at it, the narrow tier's own rules hold, as before. */
+ *  accepted (`also`). At the narrow tier (#2262, the owner's A) the bar's rows are its own, labels and product name
+ *  already dropped: the one candidate is its designed first row (`rows` with a file row, `logo` without), and past it
+ *  the brand switcher's name is cut. */
 const FIT_ORACLE = () => {
   const bm = document.querySelector('[data-p3="bar-main"]');
   const narrow = document.querySelector('[data-p3="frame"]')?.dataset.w === 'narrow';
@@ -622,7 +629,8 @@ const FIT_ORACLE = () => {
   // The two rows' first row: the controls before the plugin's row break, the rest taken out of the row.
   const rows = fileRow ? need('.p3-tile-label{display:none!important}.p3-mark-name{display:none!important}.p3-bar-break~*{display:none!important}') : null;
   st.remove();
-  const steps = [['full', full], ['glyphs', glyphs], ['logo', logo], ...(fileRow ? [['rows', rows]] : [])];
+  const steps = narrow ? [fileRow ? ['rows', rows] : ['logo', logo]]
+    : [['full', full], ['glyphs', glyphs], ['logo', logo], ...(fileRow ? [['rows', rows]] : [])];
   // Past the last row that fits as it is, the brand switcher's name is cut short (Q83 A).
   const pick = (slack) => steps.find(([, x]) => x <= room + slack)?.[0] ?? 'trim';
   const step = pick(0), lo = pick(-1), hi = pick(1);
@@ -977,7 +985,7 @@ const PROBE = (opt) => {
       if (i < 0) {
         const cs = getComputedStyle(n);
         i = offs.push({ node: n, el: label(n), hook: n.getAttribute('data-p3'), canary: n.hasAttribute('data-ccanary'),
-          tag: n.tagName.toLowerCase(), cls: n.getAttribute('class') ?? '',
+          tag: n.tagName.toLowerCase(), cls: n.getAttribute('class') ?? '', checked: n.getAttribute('aria-checked'),
           prop: n.disabled === true, aria: n.getAttribute('aria-disabled') === 'true',
           fill: cs.backgroundColor, ink: cs.color,
           edges: ['Top', 'Right', 'Bottom', 'Left'].map((side) => [cs[`border${side}Color`], cs[`border${side}Style`], parseFloat(cs[`border${side}Width`])]) }) - 1;
@@ -1317,7 +1325,9 @@ const holdsOff = async (page, i) => {
       place: document.querySelector('[data-p3="frame"]')?.dataset.place ?? null, open });
   }, x);
   const before = await read(sel);
-  const focused = await page.evaluate((x) => { const n = document.querySelector(x); document.activeElement?.blur?.(); n?.focus(); return !!n && document.activeElement === n; }, sel);
+  // The focus this found is put back at the end (#2321): the probe reads the control, it must not move the page under
+  // test. A held control measured while a menu is open (the mode control on Palettes) otherwise left focus on nothing.
+  const focused = await page.evaluate((x) => { const n = document.querySelector(x); window.__coffPrev = document.activeElement; document.activeElement?.blur?.(); n?.focus(); return !!n && document.activeElement === n; }, sel);
   await page.locator(sel).pressSequentially('7', { timeout: 1000 }).catch(() => {});
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   const after = await read(sel);
@@ -1328,6 +1338,7 @@ const holdsOff = async (page, i) => {
   await page.evaluate((x) => { const n = document.querySelector(x); if (n) HTMLElement.prototype.click.call(n); }, sel);
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   const w1 = await world(sel);
+  await page.evaluate(() => { const p = window.__coffPrev; delete window.__coffPrev; if (p && p !== document.body && p.isConnected) p.focus?.(); });
   return { ax, inert, focused, changed: JSON.stringify(before) !== JSON.stringify(after), clicked: w0 !== w1 };
 };
 /** THE EXEMPTION'S CANARY (F1 A, X4 A, #2174): beside the real disabled control `sel`, plant a copy that is NOT
@@ -2096,10 +2107,13 @@ for (const host of ['web', 'figma']) {
 // =============================================================================================
 // 9. The preview header in the two-pane layout, on Color › Palettes (S2: for real, nothing forced)
 // =============================================================================================
-console.log(`\nThe preview header — the mode control and Inspect (Color › Palettes)\n${'='.repeat(78)}`);
+console.log(`\nThe preview header — the mode control and Inspect (Color › Surfaces & fills)\n${'='.repeat(78)}`);
 /** The default theme's modes, as the mode control must show them, and which are derived (hatched): the
  *  owner's mode model (Q1, model B) and the engine's mode registry, typed here. */
 const EXPECT_MODES = [['light', 'Light', false], ['dark', 'Dark', false], ['hc-light', 'HC light', true], ['hc-dark', 'HC dark', true]];
+/** How many of the mode control's radios and select are held (`disabled` or `aria-disabled`): 0 where it is live. */
+const modeHeld = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="mode-option"], [data-p3="mode-select"]')]
+  .filter((n) => n.disabled || n.getAttribute('aria-disabled') === 'true').length);
 const modeState = (page) => page.evaluate(() => ({
   radios: [...document.querySelectorAll('[data-p3="mode-control"] [data-p3="mode-option"]')].map((b) => ({
     mode: b.dataset.mode, label: b.querySelector('.p3-mode-name')?.textContent, checked: b.getAttribute('aria-checked'), role: b.getAttribute('role'),
@@ -2107,8 +2121,14 @@ const modeState = (page) => page.evaluate(() => ({
   group: document.querySelector('[data-p3="mode-control"]')?.getAttribute('role'),
 }));
 for (const theme of ['light', 'dark']) {
-  const where = `web ${theme} 1280 / color-palettes`;
+  // On Surfaces & fills, a page that previews every mode: on Palettes the control is held (PM1 B, #2321; section 36).
+  const where = `web ${theme} 1280 / color-fills`;
   const { ctx, page, errors } = await open({ host: 'web', theme, w: 1280, h: 900 });
+  await goPlace(page, 'color-fills');
+  // #2321: the control is live here (only Palettes holds it). Held, every click below would wait on it and stop the run.
+  const held0 = await modeHeld(page);
+  ok(held0 === 0, `${where}: the mode control is live on Surfaces & fills, where the preview shows every mode (#2321; ${held0} held)`);
+  if (held0) { await ctx.close(); continue; }
   const st = await modeState(page);
   ok(st.group === 'radiogroup', `${where}: the mode control is a radiogroup (role "${st.group}")`);
   ok(JSON.stringify(st.radios.map((r) => [r.mode, r.label])) === JSON.stringify(EXPECT_MODES.map(([m, l]) => [m, l])), `${where}: the mode control offers ${EXPECT_MODES.map(([, l]) => l).join(', ')} — read ${st.radios.map((r) => r.label).join(', ')}`);
@@ -2126,12 +2146,13 @@ for (const theme of ['light', 'dark']) {
   // The legacy mode strip's sync check is RETIRED (S8.2 moved the last legacy page with a strip), and the hold S8.2 left
   // here is RETIRED in S8.3: `test:smoke` section 1 walks every place in every mode and asserts no legacy page (and so no
   // legacy strip) is drawn, and that every place's header marks the one mode chosen (mode agreement).
-  // The mode chosen on one page is the mode every page draws in: HC light, chosen on Components, holds on Palettes.
+  // The mode chosen on one page is the mode every page that previews modes draws in: HC light, chosen on Components,
+  // holds on Surfaces & fills. (Palettes always shows Light, PM1 B; section 36.)
   await goPlace(page, 'components');
   await hooks.click(page.locator('[data-p3="mode-option"][data-mode="hc-light"]'));
-  await goPlace(page, 'color-palettes');
+  await goPlace(page, 'color-fills');
   const b = await modeState(page);
-  ok(b.radios.find((r) => r.mode === 'hc-light')?.checked === 'true', `${where}: HC light, chosen on Components, is the mode Palettes shows (${b.radios.filter((r) => r.checked === 'true').map((r) => r.mode)})`);
+  ok(b.radios.find((r) => r.mode === 'hc-light')?.checked === 'true', `${where}: HC light, chosen on Components, is the mode Surfaces & fills shows (${b.radios.filter((r) => r.checked === 'true').map((r) => r.mode)})`);
   // Arrow keys move along the radios and choose as they go.
   await page.locator('[data-p3="mode-option"][data-mode="hc-light"]').focus();
   await page.keyboard.press('ArrowRight');
@@ -2542,12 +2563,12 @@ for (const host of ['web', 'figma']) {
 }
 
 // =============================================================================================
-// 11. S2: specimens sit on the brand's page color for the previewed mode, never on the chrome's card
+// 11. S2: specimens sit on the brand's page color for the previewed mode (Palettes: always Light, #2321), never on the chrome's card
 // =============================================================================================
 console.log(`\nSpecimen grounds — Color › Palettes and Brand (plan §6.1, §9.1)\n${'='.repeat(78)}`);
-/** THE ORACLE, resolved in Node from the engine's committed emission, never from the page: each mode's
- *  `color.background.primary`, its alias chain followed through the base tree with that mode's overlay. */
-const EMITTED = (() => {
+/** THE ORACLE, resolved in Node from the engine's committed emission, never from the page: a mode's role (under
+ *  `color.`), its alias chain followed through the base tree with that mode's overlay. */
+const EMITTED_AT = (() => {
   const out = join(REPO, 'packages/engine/out');
   const base = JSON.parse(readFileSync(join(out, 'prism3.tokens.json'), 'utf8'));
   const root = Object.keys(base).find((k) => !k.startsWith('$'));
@@ -2566,8 +2587,14 @@ const EMITTED = (() => {
     const m = /^\{(.+)\}$/.exec(v);
     return m ? resolveHex(tree, m[1], seen + 1) : v.toLowerCase();
   };
-  return Object.fromEntries(['light', 'dark', 'hc-light', 'hc-dark'].map((m) => [m, resolveHex(withOverlay(m), `${root}.color.background.primary`)]));
+  return (mode, role) => resolveHex(withOverlay(mode), `${root}.color.${role}`);
 })();
+/** Each mode's `color.background.primary`. */
+const EMITTED = Object.fromEntries(['light', 'dark', 'hc-light', 'hc-dark'].map((m) => [m, EMITTED_AT(m, 'background.primary')]));
+/** PM1 B (#2321): Palettes always shows Light, so its opacity scale's ink is Light's `color.text.primary`. */
+const EMITTED_LIGHT_INK = EMITTED_AT('light', 'text.primary');
+ok(/^#[0-9a-f]{6}$/.test(EMITTED_LIGHT_INK ?? '') && EMITTED_LIGHT_INK !== EMITTED_AT('dark', 'text.primary'),
+  `the oracle resolved Light's text.primary (${EMITTED_LIGHT_INK}) from the emission, and Dark's differs (${EMITTED_AT('dark', 'text.primary')}), so an opacity scale in the wrong mode can fail`);
 ok(Object.values(EMITTED).every((x) => /^#[0-9a-f]{6}$/.test(x ?? '')), `the oracle resolved background.primary for every mode from the emission (${JSON.stringify(EMITTED)})`);
 ok(EMITTED.light !== EMITTED.dark, `the oracle's light and dark page colors differ (${EMITTED.light}, ${EMITTED.dark}), so a specimen on the wrong ground can fail`);
 /** EXPECTED, by name (represented, not counted; docs/34): every strip the default theme's Palettes preview
@@ -2602,11 +2629,43 @@ const groundsOf = (page) => page.evaluate(() => {
  *  it (#1942, owner decision Q67, S6.2), and the radius sample follows it (owner decision D18 B, S7; its heading is
  *  DRAFT). */
 const STYLE_GUIDE_ROOTS = ['Type sample', 'Radius and shadow sample', 'Background', 'Foreground', 'Text color', 'Border', 'Icon', 'Disabled', 'Interactive'];
-/** Each moved place's preview, with the specimens it must draw, by name. */
-const SPECIMEN_PLACES = { 'color-palettes': ['palettes', EXPECT_SPECIMENS], brand: ['brand', STYLE_GUIDE_ROOTS] };
+/** Each moved place's preview whose specimens follow the previewed mode, with the specimens it must draw, by name. */
+const SPECIMEN_PLACES = { brand: ['brand', STYLE_GUIDE_ROOTS] };
+/** The opacity scale's squares, each as its computed paint (`#rrggbb`; the scale's opacity is a separate property). */
+const opacityInksOf = (page) => page.evaluate(() => [...document.querySelectorAll('[data-p3="preview-body"] [data-p3="opacity-scale"] .p3-sq')].map((q) => {
+  const m = /^rgba?\(([^)]+)\)$/.exec(getComputedStyle(q).backgroundColor.trim());
+  return m ? `#${m[1].split(/[,\s/]+/).filter(Boolean).slice(0, 3).map((x) => Math.round(Number(x)).toString(16).padStart(2, '0')).join('')}` : '?';
+}));
 for (const host of ['web', 'figma']) {
   for (const theme of ['light', 'dark']) {
     const { ctx, page } = await open({ host, theme, w: 1280, h: 900 });
+    // PM1 B (owner, 2026-10-08; #2321): Palettes always shows Light. Each mode is chosen on Surfaces & fills, then Palettes
+    // is entered: every strip, opacity-1 and opacity-2 included, sits on Light's background.primary, and the opacity
+    // scale's ink is Light's text.primary, whatever mode was chosen before.
+    for (const [mode] of EXPECT_MODES) {
+      await goPlace(page, 'color-fills');
+      const held0 = await modeHeld(page);
+      ok(held0 === 0, `specimen ground: palettes ${host} ${theme} 1280: the mode control is live on Surfaces & fills, so ${mode} can be chosen there (#2321; ${held0} held)`);
+      if (held0) continue;
+      await hooks.click(page.locator(`[data-p3="mode-option"][data-mode="${mode}"]`));
+      await page.waitForFunction((m) => document.querySelector(`[data-p3="mode-option"][data-mode="${m}"]`)?.getAttribute('aria-checked') === 'true', mode);
+      await goPlace(page, 'color-palettes');
+      const where = `${host} ${theme} 1280, entered from ${mode}`;
+      const want = EMITTED.light;
+      const g = await groundsOf(page);
+      for (const name of EXPECT_SPECIMENS) {
+        const st = g.strips.find((x) => x.name === name);
+        ok(!!st && st.root && st.ground === want, `specimen ground: palettes ${where}: ${name} is a specimen root on Light's background.primary ${want}${
+          !st ? ' — not drawn' : !st.root ? ` — not a specimen root, on ${st.ground === g.card ? `the chrome card (${st.ground})` : st.ground}` : st.ground !== want ? ` — ${st.ground === g.card ? `is the chrome card (${st.ground})` : `is ${st.ground}`}` : ''}`);
+      }
+      const unlisted = g.strips.filter((x) => !EXPECT_SPECIMENS.includes(x.name)).map((x) => x.name);
+      ok(unlisted.length === 0, `specimen ground: palettes ${where}: every strip drawn is a listed specimen${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
+      const inks = await opacityInksOf(page);
+      ok(inks.length === 12 && inks.every((c) => c === EMITTED_LIGHT_INK),
+        `specimen ground: palettes ${where}: the opacity scale's 12 squares are inked in Light's text.primary ${EMITTED_LIGHT_INK} (read ${inks.length}: ${[...new Set(inks)].join(', ')})`);
+    }
+    await goPlace(page, 'color-fills');
+    await hooks.click(page.locator('[data-p3="mode-option"][data-mode="light"]'));
     for (const [place, [label, expect]] of Object.entries(SPECIMEN_PLACES)) {
       await goPlace(page, place);
       for (const [mode] of EXPECT_MODES) {
@@ -3216,10 +3275,12 @@ console.log(`\nQ4 trial — an edit reveals its palette\n${'='.repeat(78)}`);
   ok(atOnce(r3) && r3.instant, `Q4: under reduced motion the reveal asks for one instant scroll, in the edit itself — asked ${JSON.stringify(r3.asked)}${r3.inFrames ? ', in a frame' : ''}`);
   ok(between(t3, e3.top) === 0 && t3[t3.length - 1] === e3.top, `Q4: under reduced motion the preview does not move after the jump (${JSON.stringify([...new Set(t3)])})`);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
-  // The mode does not move it.
+  // The mode does not move it. On Palettes the mode control is held (PM1 B, #2321): a click on Dark changes neither
+  // the mode nor the preview's scroll.
   const before = await toBottom();
-  await hooks.click(page.locator('[data-p3="mode-option"][data-mode="dark"]'));
-  ok((await state('primary')).top === before, `Q4: changing the mode does not move the preview (scrollTop ${(await state('primary')).top}, was ${before})`);
+  await page.locator('[data-p3="mode-option"][data-mode="dark"]').dispatchEvent('click');
+  const held = await page.evaluate(() => document.querySelector('[data-p3="mode-option"][aria-checked="true"]')?.dataset.mode);
+  ok((await state('primary')).top === before && held === 'light', `Q4: a click on the held mode control changes neither the mode nor the preview's scroll (mode ${held}, scrollTop ${(await state('primary')).top}, was ${before})`);
   if (SHOTS) await page.screenshot({ path: join(SHOTS, 's2-q4-after-edit.png') });
   ok(errors.length === 0, `Q4: 0 console errors${errors.length ? ` — ${errors[0]}` : ''}`);
   await ctx.close();
@@ -9286,7 +9347,7 @@ const DISABLED_READ = (sel) => {
   const drawn = (e) => e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
   const side = ['Top', 'Right', 'Bottom', 'Left'];
   return {
-    tag: n.tagName.toLowerCase(), cls: n.getAttribute('class') ?? '', hook: n.getAttribute('data-p3'),
+    tag: n.tagName.toLowerCase(), cls: n.getAttribute('class') ?? '', hook: n.getAttribute('data-p3'), checked: n.getAttribute('aria-checked'),
     off: n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true',
     fill: cs.backgroundColor, ink: cs.color, edges: side.map((x) => [cs[`border${x}Color`], cs[`border${x}Style`], parseFloat(cs[`border${x}Width`])]),
     labels: inside.filter((e) => drawn(e) && !e.closest('svg') && [...e.childNodes].some((t) => t.nodeType === 3 && t.textContent.trim())).map((e) => getComputedStyle(e).color),
@@ -9477,6 +9538,8 @@ for (const host of ['web', 'figma']) {
     const where = `X4 A derived: ${host} ${theme}`;
     const { ctx, page, errors } = await open({ host, theme, w: 1280, h: 900 });
     try {
+      // Chosen on Surfaces & fills: on Palettes the mode control is held, and Palettes shows Light (PM1 B, #2321).
+      await goPlace(page, 'color-fills');
       await showMode(page, 'hc-light');
       const scheme = await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
       let buttons = 0, controls = 0;
@@ -9703,12 +9766,17 @@ for (const host of ['web', 'figma']) {
 //     the mark, identical at every width, the narrow tier included, to the same brand's at 1280, where the full bar
 //     shows (asserted). While the brand switcher's name is cut, its computed name and its tooltip are the full name.
 //   · A LONG NAME GIVES WAY SOONER: at some width its step is further along than "prism3"'s, and never behind it.
-//   · THE NARROW TIER (560 and below) is unchanged by #2214 and holds its own rules (section 29); here it is held to the
-//     names and, since #2262, to the tooltip: down to 380 and back up, the switcher carries a `title` only while its
-//     name is cut, so a tooltip set at `trim` cannot linger into the narrow tier.
+//   · THE NARROW TIER (560 and below) keeps its own rows (section 29): the labels and the product name dropped, and on
+//     the plugin the file row below. Since #2262 (the owner's A, 2026-10-09) it takes Q83 A's step too: when its first
+//     row would not fit, the switcher's name is cut, and the bar still draws no more rows than its narrow layout allows
+//     (the plugin 2, the web 1). The long name is swept here every 10px from 560 down to 380 like every other width,
+//     held to the oracle's step, the rows, the computed name and the tooltip, and each host must reach the cut name at
+//     this tier. Down to 380 and back up, the switcher carries a `title` only while its name is cut, so a tooltip set at
+//     `trim` cannot linger.
 // Mutations, each failing here by name: (a) no label drop, (b) the product name never drops, (c) straight to the two
-// rows, (d) the frame's measurement ignores the brand switcher's width, (e) the web excluded, (f) no truncation. See
-// the progress entry.
+// rows, (d) the frame's measurement ignores the brand switcher's width, (e) the web excluded, (f) no truncation; and
+// for #2262, (g) the narrow tier's early return put back, (h) no tooltip while the name is cut at the narrow tier. See
+// the progress entries.
 // =============================================================================================
 console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
 {
@@ -9737,6 +9805,7 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
   const settle = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   let states = 0;
   const trimmedOn = { web: 0, figma: 0 };
+  const narrowTrim = { web: 0, figma: 0 };
   for (const host of ['web', 'figma']) {
     const seenBy = { short: {}, long: {} };
     for (const theme of ['light', 'dark']) {
@@ -9789,16 +9858,16 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
               tipCheck('down', w, tip, seen, fit.narrow);
               if (seen.cut) sawCut = true; else if (fit.narrow && sawCut) narrowAfterCut++;
             }
-            if (fit.narrow) continue;
-            if (theme === 'light') seenBy[brand][w] = seen.step;
-            if (seen.step === 'trim') trimmedOn[host]++;
+            if (theme === 'light' && !fit.narrow) seenBy[brand][w] = seen.step;
+            if (seen.step === 'trim') (fit.narrow ? narrowTrim : trimmedOn)[host]++;
             const allowed = seen.step === 'trim' ? (fit.fileRow ? 2 : 1) : MAX_ROWS[seen.step] ?? 0;
             if (!fit.also.includes(seen.step) || seen.rows.length > allowed) missed.push(`${w}: want ${fit.also.join('/')} (full ${fit.full}, without labels ${fit.glyphs}, without the name ${fit.logo}${fit.fileRow ? `, first of two rows ${fit.rows}` : ''}, in ${fit.room}), drew ${seen.step} in ${seen.rows.length} row(s) ${JSON.stringify(seen.rows)}`);
             if (seen.step === 'trim') {
-              ok(names['brand-switcher'] === fullName && tip === fullName, `${where}: the cut brand name keeps the full name as the switcher's accessible name and tooltip (name "${names['brand-switcher']}", title "${tip}")`);
+              ok(names['brand-switcher'] === fullName && tip === fullName, `${where}${fit.narrow ? ' (narrow)' : ''}: the cut brand name keeps the full name as the switcher's accessible name and tooltip (name "${names['brand-switcher']}", title "${tip}")`);
               ok(seen.rows[0]?.includes('export-open'), `${where}: Export stays on the first row while the brand name is cut (${JSON.stringify(seen.rows)})`);
             } else if (tip !== null) missed.push(`${w}: the switcher carries a tooltip (${JSON.stringify(tip)}) with its name whole (${seen.step})`);
             if (SHOTS && host === 'figma' && brand === 'long' && w >= 570 && w <= 590) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `q83-plugin-${theme}-${w}-long-name.png`) });
+            if (SHOTS && brand === 'long' && (host === 'figma' ? [460, 380] : [430, 380]).includes(w)) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `2262-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}-long-name.png`) });
             if (SHOTS && [640, 800, 1000, 1280].includes(w) && (w !== 1280 || brand === 'short')) await page.locator('[data-p3="top-bar"]').screenshot({ path: join(SHOTS, `final-2214-${host === 'web' ? 'studio' : 'plugin'}-${theme}-${w}${brand === 'long' ? '-long-name' : ''}.png`) });
           }
           if (brand === 'long') {
@@ -9832,7 +9901,10 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
   }
   // Q83 A's case: the plugin's long name reaches the cut name (570–590, Lane D's sweep on #2257).
   ok(trimmedOn.figma > 0, `29d figma: the long name reaches the cut-name step somewhere in the sweep (${trimmedOn.figma} state(s))`);
-  console.log(`  29d: ${states} bar states swept; the cut name drawn in ${trimmedOn.figma} plugin and ${trimmedOn.web} web state(s).`);
+  // #2262's case: at the narrow tier the long name wrapped the bar (the plugin at 460 and below, the web at about 430 and
+  // below), so each host must reach the cut name there, or the narrow half of the sweep proves nothing.
+  for (const host of ['figma', 'web']) ok(narrowTrim[host] > 0, `29d ${host}: the long name reaches the cut-name step at the narrow tier (${narrowTrim[host]} state(s))`);
+  console.log(`  29d: ${states} bar states swept; the cut name drawn in ${trimmedOn.figma} plugin and ${trimmedOn.web} web state(s) above the narrow tier, ${narrowTrim.figma} and ${narrowTrim.web} at it.`);
 }
 
 // =============================================================================================
@@ -10373,8 +10445,12 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
         // The style guides page has no levers pane, preview or mode control: the HP3 read below is the nine pages'.
         if (sg) continue;
         // HP3: no hint line draws a glyph, and no ⓘ glyph is drawn outside a button. Read in Light and again in High
-        // contrast light, where the derived-mode line shows on most pages.
-        for (const mode of ['light', 'hc-light']) {
+        // contrast light, where the derived-mode line shows on most pages. Palettes always shows Light, its mode control
+        // held (PM1 B, #2321), so it is read in Light only.
+        for (const mode of place === 'color-palettes' ? ['light'] : ['light', 'hc-light']) {
+          if (place === 'color-palettes') { await showLevers(page, w); const hp = await page.evaluate(HINT_PROBE); tally.hints += hp.hints.length;
+            for (const hl of hp.hints) ok(hl.glyphs === 0, `HP3 ${at} (${mode}): hint line ${hl.hook ?? '(no hook)'} draws a glyph — "${hl.text}"`);
+            ok(hp.stray.length === 0, `HP3 ${at} (${mode}): a non-button ⓘ glyph is drawn — ${hp.stray.join(' | ')}`); continue; }
           if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
           await showMode(page, mode);
           await showLevers(page, w);
@@ -10383,8 +10459,10 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
           for (const hl of hp.hints) ok(hl.glyphs === 0, `HP3 ${at} (${mode}): hint line ${hl.hook ?? '(no hook)'} draws a glyph — "${hl.text}"`);
           ok(hp.stray.length === 0, `HP3 ${at} (${mode}): a non-button ⓘ glyph is drawn — ${hp.stray.join(' | ')}`);
         }
-        if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
-        await showMode(page, 'light');
+        if (place !== 'color-palettes') {
+          if (w <= 560) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+          await showMode(page, 'light');
+        }
         await showLevers(page, w);   // the narrow tab select is drawn only over the levers
       }
       console.log(`  ${where}: ${JSON.stringify(tally)}${host === 'figma' ? `, style guides ${JSON.stringify(sgTally)}` : ''}`);
@@ -11734,8 +11812,9 @@ for (const host of ['web', 'figma']) {
   const where = `#1984 ${host} light 1280 hc-light on depth, a brand change while held`;
   const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900, query: host === 'web' ? '?p3-test-hooks' : '' });
   try {
-    await roShowMode(page, 'hc-light');
+    // On Depth & motion, not the opening Palettes, where the mode control is held (PM1 B, #2321).
     await openDepth(page);
+    await roShowMode(page, 'hc-light');
     await openTint(page);
     const before = await page.evaluate(RO_DEPTH_READ, [RO_OPERABLE, RO_EXCEPTIONS]);
     ok(before.n > 0 && before.live.length === 0 && before.hue?.disabled === true,
@@ -11754,8 +11833,8 @@ for (const host of ['web', 'figma']) {
       await page.waitForFunction(() => !document.querySelector('[data-p3="levers-derived-note"]'), null, { timeout: 5000 }).catch(() => {});
       const landed = await page.evaluate(() => ({ line: document.querySelectorAll('[data-p3="levers-derived-note"]').length, held: document.querySelectorAll('[data-p3="levers-pane"] [data-held]').length }));
       ok(landed.line === 0 && landed.held === 0, `${where}: a restore loads the brand in Light, the panel live: no line, nothing held (${JSON.stringify(landed)})`);
-      await roShowMode(page, 'hc-light');
       await openDepth(page);
+      await roShowMode(page, 'hc-light');
       await openTint(page);
       const again = await page.evaluate(RO_DEPTH_READ, [RO_OPERABLE, RO_EXCEPTIONS]);
       ok(again.amount === '0.25' && again.n > 0 && again.live.length === 0 && again.hue?.disabled === true,
@@ -11929,6 +12008,221 @@ for (const host of ['web', 'figma']) {
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
       ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+}
+// =============================================================================================
+// 36. #2321 (owner decisions Q111 and PM1 B, 2026-10-08): on Palettes the mode control is held, in the standard
+//     disabled skin, and Palettes always shows Light; leaving it puts back the mode the person had
+// =============================================================================================
+// Both hosts, both chrome themes, at 1280 and 380. For each of Dark, HC light and HC dark, chosen on Surfaces & fills:
+//   · Palettes is entered, and its mode control is held: every radio and the select carry `disabled` or `aria-disabled`,
+//     none takes focus, Shift+Tab from Inspect does not land in it, and the browser's accessibility tree (CDP
+//     `Accessibility.getFullAXTree`, never the DOM) reports every one of them it exposes disabled;
+//   · the held control reads Light (the radio checked, or the select's chosen option, as drawn);
+//   · the reason line is drawn once, reads the literal, and is shown;
+//   · leaving for Surfaces & fills puts back the mode chosen there, the control live again: no radio or select disabled,
+//     Shift+Tab from Inspect lands in it, the tree reports it enabled, and no reason line anywhere.
+// Then every other page is read once: the control live and no reason line (a page held by mistake fails by name).
+// What Palettes draws in Light (its grounds and the opacity scale's ink, from the emission) is section 11's.
+//
+// INDEPENDENCE (docs/34). The pages, the modes, the label "Light" and the line are literals typed here, never read from
+// `frame.ts`'s `pinsLight` rows, `preview.ts` or `palettes.ts`'s `PALETTES_LIGHT_NOTE`; the line is found by its text,
+// not by its hook. Every case is counted, so a skipped one fails.
+// Mutations, each in a `wip:` commit, each failing by name (the PR records the lines): (a) the control left live on
+// Palettes; (b) the control held on Surfaces & fills; (c) the Light pin dropped, so Palettes draws Dark; (d) the mode
+// the person had not put back on the way out.
+const PM_FROM = ['dark', 'hc-light', 'hc-dark'];
+const PM_LIVE_PLACES = ['brand', 'color-fills', 'color-interactive', 'type', 'depth', 'shape', 'layout', 'components'];
+const PM_LINE = 'Palettes always show Light. Ramps are the same in every mode.';
+const PM_LABEL = 'Light';
+/** The mode control as drawn, and every element whose own text is the line. Runs in the page. */
+const PM_READ = (line) => {
+  const group = document.querySelector('[data-p3="mode-control"]');
+  const sel = document.querySelector('[data-p3="mode-select"]');
+  const radios = [...document.querySelectorAll('[data-p3="mode-option"]')];
+  const shown = (n) => !!n && n.getClientRects().length > 0 && getComputedStyle(n).visibility !== 'hidden';
+  const off = (n) => n.matches(':disabled') || n.getAttribute('aria-disabled') === 'true';
+  const showing = shown(group) ? 'radios' : shown(sel) ? 'select' : 'none';
+  const checked = radios.filter((r) => r.getAttribute('aria-checked') === 'true').map((r) => r.dataset.mode);
+  const reads = showing === 'radios' ? radios.find((r) => r.getAttribute('aria-checked') === 'true')?.querySelector('.p3-mode-name')?.textContent ?? null
+    : showing === 'select' ? sel.selectedOptions[0]?.textContent ?? null : null;
+  const controls = [...radios, ...(sel ? [sel] : [])];
+  const before = document.activeElement;
+  const focusable = controls.filter((n) => { n.focus(); const took = document.activeElement === n; n.blur(); return took; }).map((n) => n.dataset.mode ?? 'select');
+  before?.focus?.();
+  const lines = [...document.querySelectorAll('body *')].filter((n) => n.textContent.trim() === line && ![...n.children].some((c) => c.textContent.trim() === line));
+  return { showing, checked, value: sel?.value ?? null, reads, n: controls.length, off: controls.filter(off).length, focusable,
+    lines: lines.length, lineShown: lines.some(shown) };
+};
+/** Shift+Tab from Inspect, the control after the mode control in the header: does focus land in the mode control? */
+const pmShiftTab = async (page) => {
+  await page.locator('[data-p3="inspect-open"]').focus();
+  await page.keyboard.press('Shift+Tab');
+  return page.evaluate(() => { const a = document.activeElement; return { inModes: !!a?.closest('.p3-modes-wrap'), on: a?.getAttribute('data-p3') ?? a?.tagName ?? null }; });
+};
+/** The mode control's radios and select as the accessibility tree reports them: how many it exposes, how many disabled. */
+const pmAx = async (page) => {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send('DOM.enable');
+    await cdp.send('Accessibility.enable');
+    const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+    const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: '[data-p3="mode-option"], [data-p3="mode-select"]' });
+    const want = new Set();
+    for (const id of nodeIds) want.add((await cdp.send('DOM.describeNode', { nodeId: id })).node.backendNodeId);
+    const { nodes } = await cdp.send('Accessibility.getFullAXTree');
+    const hit = nodes.filter((n) => want.has(n.backendDOMNodeId) && !n.ignored);
+    const disabled = hit.filter((n) => n.properties?.find((p) => p.name === 'disabled')?.value?.value === true).length;
+    return { exposed: hit.length, disabled, roles: [...new Set(hit.map((n) => n.role?.value))] };
+  } finally { await cdp.detach(); }
+};
+console.log(`\n#2321: Palettes pins Light and holds the mode control (Q111, PM1 B)\n${'='.repeat(78)}`);
+for (const host of ['web', 'figma']) {
+  for (const theme of ['light', 'dark']) {
+    for (const w of [1280, 380]) {
+      const where = `#2321 ${host} ${theme} ${w}`;
+      const narrow = w <= 560;
+      const { ctx, page, errors } = await open({ host, theme, w, h: 900 });
+      const toPreview = async () => { if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]')); };
+      const toSettings = async () => { if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]')); };
+      const shot = async (name) => { if (SHOTS) await page.screenshot({ path: join(SHOTS, `2321-${host === 'web' ? 'web' : 'plugin'}-${theme}-${w}-${name}.png`) }); };
+      let cases = 0, step = 'open';
+      try {
+        for (const pre of PM_FROM) {
+          step = `choose ${pre} on color-fills`;
+          await goPlace(page, 'color-fills');
+          await roShowMode(page, pre);
+          step = `enter color-palettes from ${pre}`;
+          await goPlace(page, 'color-palettes');
+          await toPreview();
+          const at = `${where} entered from ${pre}`;
+          const r = await page.evaluate(PM_READ, PM_LINE);
+          ok(r.n > 0 && r.off === r.n, `${at}: on Palettes the mode control is disabled: every radio and the select carry disabled or aria-disabled (${r.off} of ${r.n})`);
+          const st = await pmShiftTab(page);
+          ok(r.focusable.length === 0 && !st.inModes, `${at}: on Palettes the mode control is out of the Tab order: none takes focus (took ${JSON.stringify(r.focusable)}), and Shift+Tab from Inspect does not land in it (landed on ${st.on})`);
+          const ax = await pmAx(page);
+          ok(ax.exposed > 0 && ax.disabled === ax.exposed, `${at}: on Palettes the accessibility tree reports the mode control disabled (${ax.disabled} of ${ax.exposed} exposed disabled; roles ${ax.roles.join(', ')})`);
+          ok(r.reads?.startsWith(PM_LABEL) && JSON.stringify(r.checked) === '["light"]' && r.value === 'light',
+            `${at}: the held mode control reads ${PM_LABEL} (shows the ${r.showing}, reading ${JSON.stringify(r.reads)}; checked ${JSON.stringify(r.checked)}, select ${r.value})`);
+          ok(r.lines === 1 && r.lineShown, `${at}: the reason line is drawn once on Palettes and shown, reading "${PM_LINE}" (${r.lines} drawn, shown ${r.lineShown})`);
+          if (pre === 'dark') {
+            await page.locator('[data-p3="preview-body"]').evaluate((n) => { n.scrollTop = 0; });
+            await page.evaluate(() => document.activeElement?.blur?.());
+            await shot('palettes-top-from-dark');
+            await page.locator('[data-p3="opacity-scale"]').scrollIntoViewIfNeeded();
+            await shot('palettes-opacity-from-dark');
+            await page.locator('[data-p3="preview-body"]').evaluate((n) => { n.scrollTop = 0; });
+          }
+          await toSettings();
+          step = `leave color-palettes (from ${pre})`;
+          await goPlace(page, 'color-fills');
+          await toPreview();
+          const b = await page.evaluate(PM_READ, PM_LINE);
+          ok(JSON.stringify(b.checked) === JSON.stringify([pre]) && b.value === pre,
+            `${at}: leaving Palettes for Surfaces & fills restores ${pre} (checked ${JSON.stringify(b.checked)}, select ${b.value})`);
+          const bt = await pmShiftTab(page);
+          const bax = await pmAx(page);
+          ok(b.n > 0 && b.off === 0 && bt.inModes && bax.exposed > 0 && bax.disabled === 0 && b.lines === 0,
+            `${at}: on color-fills, after Palettes, the mode control is live and the reason line is absent (${b.off} of ${b.n} disabled; Shift+Tab from Inspect lands in it ${bt.inModes}; tree ${bax.disabled} of ${bax.exposed} disabled; ${b.lines} line(s))`);
+          if (pre === 'dark') { await page.evaluate(() => document.activeElement?.blur?.()); await shot('fills-restored-dark'); }
+          await toSettings();
+          cases++;
+        }
+        for (const place of PM_LIVE_PLACES) {
+          step = `read ${place}`;
+          await goPlace(page, place);
+          await toPreview();
+          const at = `${where} on ${place}`;
+          const r = await page.evaluate(PM_READ, PM_LINE);
+          const st = await pmShiftTab(page);
+          const ax = await pmAx(page);
+          ok(r.n > 0 && r.off === 0 && st.inModes && ax.exposed > 0 && ax.disabled === 0,
+            `${at}: the mode control is live (${r.off} of ${r.n} disabled; Shift+Tab from Inspect lands in it ${st.inModes}; tree ${ax.disabled} of ${ax.exposed} disabled)`);
+          ok(r.lines === 0, `${at}: the reason line is absent (${r.lines} drawn)`);
+          await toSettings();
+          cases++;
+        }
+        ok(cases === PM_FROM.length + PM_LIVE_PLACES.length, `${where}: every case ran (${cases} of ${PM_FROM.length + PM_LIVE_PLACES.length})`);
+        ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where}: the case stopped at a step that threw (${step}) — ${String(e?.message ?? e).split('\n')[0]}`);
+      } finally { await ctx.close(); }
+    }
+  }
+}
+// =============================================================================================
+// 37. #2212: every page's heading outline, read from the browser's accessibility tree
+// =============================================================================================
+// Both hosts, light chrome, at 1280 and at 380 (the Settings pane and the Preview pane), on every place, and the plugin's
+// Build style guides page. The outline is read from CDP `Accessibility.getFullAXTree` (never the DOM), walked from the
+// root in tree order, ignored nodes dropped: every node with the role "heading" and its level. Each outline must open on
+// its one level-1 heading, hold no other, and never skip a level after the one before it (a 2 then a 4 fails). The h1's
+// name is the page's name as its tab shows it, typed here (PAGE_H1), never read from `pages.ts` or `frame.ts`.
+// Mutations, each failing here by name (the PR records the lines): the frame's h1 left out; a levers section title back
+// at h3; a row list's sub-heading back at h4; the preview's sub-head back at h3 is not a skip (3 then 3) and is not
+// asserted here: the level rule is "no skip", and section 30 holds the levers' visual levels.
+const PAGE_H1 = { brand: 'Brand', 'color-palettes': 'Palettes', 'color-fills': 'Surfaces & fills', 'color-interactive': 'Interactive',
+  type: 'Type', shape: 'Shape', depth: 'Depth & motion', layout: 'Layout', components: 'Components' };
+const SG_H1 = 'Build style guides';
+/** At least this many headings per outline (Shape, Depth & motion and Components at 380 on their Settings pane, the
+ *  fewest: the h1 and the page's two sections). */
+const OUTLINE_FLOOR = 3;
+const outlineOf = async (page) => {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send('Accessibility.enable');
+    const { nodes } = await cdp.send('Accessibility.getFullAXTree');
+    const byId = new Map(nodes.map((n) => [n.nodeId, n]));
+    const root = nodes.find((n) => !n.parentId) ?? nodes[0];
+    const out = [];
+    const walk = (id) => {
+      const n = byId.get(id);
+      if (!n) return;
+      if (!n.ignored && n.role?.value === 'heading') {
+        const lv = Number(n.properties?.find((p) => p.name === 'level')?.value?.value ?? 0);
+        out.push([lv, (n.name?.value ?? '').trim()]);
+      }
+      for (const c of n.childIds ?? []) walk(c);
+    };
+    walk(root.nodeId);
+    return out;
+  } finally { await cdp.detach(); }
+};
+const checkOutline = (o, where, h1) => {
+  const ones = o.filter(([l]) => l === 1);
+  const skips = [];
+  for (let i = 1; i < o.length; i++) if (o[i][0] > o[i - 1][0] + 1) skips.push(`h${o[i - 1][0]} "${o[i - 1][1]}" then h${o[i][0]} "${o[i][1]}"`);
+  const show = o.slice(0, 8).map(([l, n]) => `h${l} ${n}`).join(' | ');
+  ok(o.length >= OUTLINE_FLOOR, `#2212 ${where}: the accessibility tree holds ${o.length} headings (floor ${OUTLINE_FLOOR})`);
+  ok(o[0]?.[0] === 1 && ones.length === 1 && ones[0][1] === h1, `#2212 ${where}: the outline opens on one h1, "${h1}", and holds no other — read ${show}`);
+  ok(skips.length === 0, `#2212 ${where}: no heading skips a level after the one before it${skips.length ? ` — ${skips.slice(0, 4).join(' | ')}` : ''}`);
+};
+console.log(`\nHeading outline (#2212)\n${'='.repeat(78)}`);
+for (const host of ['web', 'figma']) {
+  for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 900 }]) {
+    const where0 = `${host} light ${w}`;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w, h });
+    try {
+      const seen = new Set();
+      for (const place of NEW_PAGES) {
+        await goPlace(page, place);
+        seen.add(place);
+        checkOutline(await outlineOf(page), `${where0} / ${place}${w <= 560 ? ' (Settings)' : ''}`, PAGE_H1[place]);
+        if (w <= 560) {
+          await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+          checkOutline(await outlineOf(page), `${where0} / ${place} (Preview)`, PAGE_H1[place]);
+          await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
+        }
+      }
+      ok(NEW_PAGES.every((p) => seen.has(p)), `#2212 ${where0}: every place's outline was read (${[...seen].join(', ')})`);
+      if (host === 'figma') {
+        await openStyleGuides(page);
+        checkOutline(await outlineOf(page), `${where0} / Build style guides`, SG_H1);
+      }
+      ok(errors.length === 0, `#2212 ${where0}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `#2212 ${where0}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
     } finally { await ctx.close(); }
   }
 }

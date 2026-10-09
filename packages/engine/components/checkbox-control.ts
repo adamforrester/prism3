@@ -65,16 +65,15 @@
  * Rendered check ink then goes 70.7% → 0.80 × 70.7% = **56.6%** of box width, and the dash 58.3% → 46.6%,
  * which is Prism 2's proportion. NOT an arbitrary nudge — the 0.80 is Prism 2's measured mark ratio.
  *
- * WHY A PADDED ARTBOARD (`glyphScale: 0.8`) AND NOT A SMALLER FRAME. Shrinking the frame needs the mark
- * to bind a variable worth 0.80 × box at every rung and density — and the only sub-box control token,
+ * WHY AN INSET INSTANCE (`glyphScale: 0.8`) AND NOT A SMALLER BOUND SIZE. Binding a smaller size needs the
+ * mark to bind a variable worth 0.80 × box at every rung and density — and the only sub-box control token,
  * `control.size.*.dot`, is 0.5 (the radio dot). A new `control.size.*.mark` token would track correctly
  * but is a GUARANTEED name (every corpus brand emits `control.size.*`, so it is in the contract's 577),
  * which forces a CONTRACT MINOR bump — the exact class #910's `dot` and #997's `inset` each bumped for.
- * The plan is brand-agnostic (a frame binds a variable, never a per-brand literal), so there is no
- * value-only way to shrink the frame. Instead `glyphScale` pads the emitted glyph DOCUMENT's artboard to
- * `grid ÷ 0.8` centered (the path `d` and the shared vocabulary untouched), so the host's existing box
- * binding renders the grid at 0.80. That is a def-local literal, not a token: ENGINE bumps for the moved
- * geometry, CONTRACT holds at 10.0.0 (`token-contract.ts --check` confirms the guaranteed 577 unchanged).
+ * Instead the mark is a frame bound to the box, and the check inside it is an instance of `icon/check`
+ * (#2380) placed at 0.8 of that frame, centered, with SCALE constraints so it follows the box when the brand
+ * or a mode resizes it. Before #2380 the same 0.8 was a padded glyph artboard (`grid ÷ 0.8`); the ink lands
+ * in the same place. A def-local literal, not a token: CONTRACT holds (`token-contract.ts --check`).
  * Switch's own thumb glyph keeps its full-frame inset — Prism 2 sizes that differently (16/24 in the
  * handle), and this is checkbox's calibration alone (#1346), not a corpus-wide re-inset.
  */
@@ -214,18 +213,18 @@ export const checkboxControl: ComponentDef = {
         note: 'The control square AND the nominal hit-target marker. The real hit target is the whole labeled ROW, which lives on `checkbox-row`; this square is not independently clickable. `role: target` is here only because the schema requires exactly one per anatomy — the same nominal marker `focus-ring`\'s `ring` part carries.',
       },
       // THE CHECK. The FRAME is bound to the control box (`size.{size}.control`), and `glyphScale: 0.8`
-      // (#1346) pads the emitted artboard so the drawn grid — and the ~71% of it the `check` artwork
-      // draws — renders at 0.8 of that box, matching Prism 2's `checkFill` (16) sitting at 0.80 of its
-      // 20px control square (see the header for the measurement and why the frame is NOT shrunk).
+      // (#1346) places the `icon/check` instance inside it at 0.8 of the box (#2380), so the ~71% of the grid
+      // the `check` artwork draws renders at 0.8 of that, matching Prism 2's `checkFill` (16) sitting at 0.80
+      // of its 20px control square (see the header for the measurement and why no smaller size is bound).
       mark: {
         kind: 'vector',
         glyph: 'check',
         size: 'size.{size}.control',
         glyphScale: 0.8,
         presentWhen: { selection: ['checked'] },
-        note: 'The check, inset to 0.8 of the box (#1346) via a padded artboard rather than a shrunk frame. Its ink is `checked.icon` (`descendantFills`, never a fill on the artboard — #864). Its draw transition is stated in `motion`; the Figma members are static.',
+        note: 'The check, an instance of the check icon inset to 0.8 of the box (#1346). Its ink is `checked.icon`, applied to the outline inside the instance. Its draw transition is stated in `motion`; the Figma members are static.',
       },
-      // THE DASH. Same geometry and the same `glyphScale: 0.8` inset; only the outline differs, which is
+      // THE DASH. Same geometry and the same `glyphScale: 0.8` inset (an `icon/minus` instance); only the icon differs, which is
       // the whole of what separates `indeterminate` from `checked` in this def's tokens. Prism 2 sizes
       // its `subtractFill` identically to `checkFill` (both 16 in the 20px box), so the dash takes the
       // same 0.80 ratio as the check.
@@ -235,7 +234,7 @@ export const checkboxControl: ComponentDef = {
         size: 'size.{size}.control',
         glyphScale: 0.8,
         presentWhen: { selection: ['indeterminate'] },
-        note: 'The mixed-state dash, inset to 0.8 of the box (#1346), the same as the check. Never the sole signal — `aria-checked="mixed"` carries it to assistive tech, which the host row sets.',
+        note: 'The mixed-state dash, an instance of the minus icon inset to 0.8 of the box (#1346), the same as the check. Never the sole signal — `aria-checked="mixed"` carries it to assistive tech, which the host row sets.',
       },
       // The focus ring, verbatim from the pre-split checkbox: on the control, offset 2 (`focus.ring.offset`,
       // not the field\'s flush 0), the offsets summing to site the ring at -(2+2) = -4 (#801).
@@ -339,7 +338,7 @@ export const checkboxControl: ComponentDef = {
     unverified: [
       'NESTED-INSTANCE SIZING IS UNMEASURED ON A REAL HOST. No def used `kind: nest` in flow before #1226 step 2. The row has since been built in Figma (the owner\'s plugin-import QA rounds), but no recorded read-back measures the nested instance\'s sizing there. The control instance must HUG (sit at its own square) rather than FILL the row\'s line-box wrapper — it binds `size` on the nest part so its own square is pinned, and the wrapper centers it — but whether the instance\'s inherited sizing mode cooperates with the row\'s auto-layout is a real-host question the offline shim cannot answer. The symptom to look for: a control instance stretched to the line-box height instead of centered within it.',
       'THE INHERITED FOCUS-RING BINDING, now two layers deep (#1280). The ring binds a nominal square side and an instance inherits its main component\'s bindings; #1280 left it open whether that nominal side survives `resize()` when inherited through an instance. After this split the ring is nested inside the control and the control inside the row, so an inherited dimension binding would have to be cleared twice. Batches with #1290. The symptom: a nested ring sitting at the md control height instead of hugging its host\'s box.',
-      'THE PADDED-ARTBOARD GLYPH INSET IS UNVERIFIED ON A REAL HOST (#1346). `glyphScale: 0.8` emits the mark/dash on an artboard padded to `grid ÷ 0.8` with a NEGATIVE viewBox origin (`-3 -3 30 30`) so the same path centers in the larger canvas. The offline model asserts the document, the read-back box (`glyphViewBox` = the padded dims) and the ink-fit; what it cannot see is whether `figma.createNodeFromSvg` positions a negative-origin viewBox as centered and whether the imported vector holds 0.80 through the frame\'s subsequent resize to the box. Same posture as the nest-sizing note above. The symptom to look for: a check that renders full-bleed (the pad was ignored) or off-center toward the top-left (the negative origin was dropped).',
+      'THE INSET ICON IS UNVERIFIED ON A REAL HOST (#2380, #1346). The check and the dash are `icon/check` and `icon/minus` instances placed at 0.8 of a frame bound to the box, with SCALE constraints. The offline model asserts the placement and the read-back measures it against the parent box; what it cannot see is whether Figma applies the SCALE constraints when a variable binding (a brand or a mode) resizes the frame, so the icon keeps 0.8 of the new box. Before #2380 the open question was a padded, negative-origin glyph artboard, which no longer exists.',
     ],
     evolution: [
       // Moved from `contested` (#1700): decided by #1226, so it is evolution.

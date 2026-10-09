@@ -671,23 +671,23 @@ export type PartDef = {
    *  naming a glyph that survives the swap is untouched, and every def naming one that does not fails at
    *  projection instead of building an empty square. */
   glyph?: string;
-  /** THE FRACTION OF ITS ARTBOARD A `vector`'s DRAWN GRID OCCUPIES (#1346). A glyph's 24-unit source grid
-   *  fills its artboard by default (`glyphScale` absent ≡ `1`): the frame is bound to its host size and the
-   *  ink renders at whatever proportion the artwork itself draws (`check` draws ~71% of the grid). A control
-   *  whose reference sits its glyph SMALLER than the box needs a second, optical inset ON TOP of that
-   *  artwork inset — and expressing it by SHRINKING THE FRAME would mint a per-rung control token (a
-   *  guaranteed name, a CONTRACT bump), because the plan is brand-agnostic and a frame binds a VARIABLE.
-   *  So the inset is baked into the emitted glyph DOCUMENT instead: the projector pads the artboard to
-   *  `grid / glyphScale` (centered, so the path `d` and the shared vocabulary are untouched), and the
-   *  same host binding renders the grid at `glyphScale` of the frame. A def-local literal, not a token —
-   *  `token-contract.ts --check` stays put. Prism 2's checkbox is the motivating case: its `checkFill`
-   *  (16) sits at 0.80 of its control box (20 = focus frame 28 − 2×4), so `mark`/`dash` carry
-   *  `glyphScale: 0.8`. `0 < glyphScale ≤ 1`; `1` is the no-op default and is not authored. `lint-glyph-
-   *  geometry.ts` re-derives the padded artboard from a scale it declares independently, so a value moving
-   *  in either file fails by name; the Figma import of a padded (negative-origin) artboard is a real-host
-   *  fact this offline model cannot verify, recorded in the def's `notes.unverified`. */
+  /** THE FRACTION OF ITS BOX A `vector`'s ICON OCCUPIES (#1346). An icon fills its part's box by default
+   *  (`glyphScale` absent ≡ `1`): the box is bound to its host size and the ink renders at whatever
+   *  proportion the artwork itself draws (`check` draws ~71% of the grid). A control whose reference sits its
+   *  glyph SMALLER than the box needs a second, optical inset ON TOP of that artwork inset — and binding a
+   *  smaller size would mint a per-rung control token (a guaranteed name, a CONTRACT bump), because the plan
+   *  is brand-agnostic and a frame binds a VARIABLE. So the part projects as a FRAME bound to the box, holding
+   *  the icon INSTANCE (#2380) placed at `glyphScale` of it, centered, with SCALE constraints
+   *  (`FigmaNodePlan.glyphInset`). Before #2380 the glyph document's artboard was padded to `grid / glyphScale`
+   *  instead; the ink lands in the same place. A def-local literal, not a token — `token-contract.ts --check`
+   *  stays put. Prism 2's checkbox is the motivating case: its `checkFill` (16) sits at 0.80 of its control box
+   *  (20 = focus frame 28 − 2×4), so `mark`/`dash` carry `glyphScale: 0.8`. `0 < glyphScale ≤ 1`; `1` is the
+   *  no-op default and is not authored. Only an icon-set glyph can carry it (the projector throws otherwise).
+   *  `lint-glyph-geometry.ts` declares the scale independently (`SCALED_GLYPH`), so a value moving in either
+   *  file fails by name; whether Figma applies the SCALE constraints when a binding resizes the frame is a
+   *  real-host fact recorded in the def's `notes.unverified`. */
   glyphScale?: number;
-  /** For a NON-ROOT `vector`: a LITERAL square px the glyph frame is BUILT at, instead of binding a token
+  /** For a NON-ROOT `vector`: a LITERAL square px the glyph (since #2380, the icon instance) is BUILT at, instead of binding a token
    *  via `size` (#1340). A def-local literal (the `minWidth`/`glyphScale` precedent), so it mints no
    *  emitted token name and `token-contract.ts --check` stays put — the point over a token binding here.
    *
@@ -836,8 +836,12 @@ export type PartDef = {
    *  declared AND validated, and the projection still could not use any of it, because *when* was the
    *  one fact nobody had written down. **A declaration that omits its trigger is not projectable,
    *  however complete it looks** — and it looks complete precisely because every field that exists
-   *  is filled in. */
-  when?: string;
+   *  is filled in.
+   *
+   *  An `overlay` names ONE state. An `absolute` part may name a LIST (#2318): the focus ring rings the field at
+   *  `focus-visible` AND at `focus-visible-filled`, one part at both states rather than two rings. Read it through
+   *  `whenStates`, never as a string. */
+  when?: string | readonly string[];
   /** For `absolute`: the NAME of a component that must already exist in the file, which this part
    *  materializes as an INSTANCE of rather than authoring from nothing.
    *
@@ -1181,8 +1185,16 @@ export type FigmaProperties = {
    *
    *  An empty object is a meaningful statement — "considered, and none survive" — and is preferred to
    *  omitting the field: a schema that lists booleans it cannot honor is worse than one that admits there
-   *  are none. */
-  booleans?: Record<string, string | { part: string | readonly string[]; default?: boolean; figmaName?: string }>;
+   *  are none.
+   *
+   *  A FIGMA-ONLY BOOLEAN (`figmaOnly: true`, #2344, owner decision Q156 A). Every other boolean drives a
+   *  declared prop: the Figma toggle and the code prop are one switch on two surfaces. A group's row count is
+   *  not that. In code it is `children` (any number of rows); in Figma it is a fixed stack of nested rows,
+   *  each past the first behind a toggle. Declaring seven `showOptionN` props to satisfy the rule would put
+   *  seven props on the public API that no code consumer should set. So a `figmaOnly` entry names no prop:
+   *  its KEY must NOT be a declared prop (it would then be both), and it must carry a `figmaName`, because
+   *  with no prop there is no code name for the panel to fall back to. */
+  booleans?: Record<string, string | { part: string | readonly string[]; default?: boolean; figmaName?: string; figmaOnly?: boolean }>;
   /** prop name → the `kind: 'text'` part it drives, plus the PLACEHOLDER the component ships with.
    *
    *  THE ODD SHAPE OUT, and deliberately so: `booleans` and `swaps` are bare part names because
@@ -1618,6 +1630,9 @@ export type ComponentDef = {
 export const SUMMARY_MAX = 100;
 
 export const statesOf = (def: ComponentDef): readonly string[] => def.states ?? [];
+/** The states a part's `when` names, one or a list (#2318): empty when it names none. */
+export const whenStates = (p: { when?: string | readonly string[] } | undefined): readonly string[] =>
+  p?.when === undefined ? [] : typeof p.when === 'string' ? [p.when] : p.when;
 export const variantsOf = (def: ComponentDef): Record<string, string[] | undefined> => def.variants ?? {};
 
 /**
@@ -1845,7 +1860,7 @@ export const swapFigmaName = (prop: string, v: string | { part: string; figmaNam
 /** A `texts` entry's Figma panel name — its `figmaName` decoupling (#1380) or, absent one, the prop KEY. */
 export const textFigmaName = (prop: string, t: { figmaName?: string }): string => t.figmaName ?? prop;
 
-type BooleanEntry = string | { part: string | readonly string[]; default?: boolean; figmaName?: string };
+type BooleanEntry = string | { part: string | readonly string[]; default?: boolean; figmaName?: string; figmaOnly?: boolean };
 /** The parts whose `visible` a `booleans` entry drives — bare string, `{ part }`, or `{ part: [...] }`
  *  (#1331; the list form is switch-control's `State icon`, one toggle over two glyphs). Always a list. */
 export const booleanPartsOf = (v: BooleanEntry): readonly string[] =>
@@ -2110,9 +2125,9 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // Takes `prop → part name` and the Figma FIELD the property drives. `texts`/`swaps`/`booleans` each carry
   // a richer shape, normalized to `prop → part` by the callers below rather than this helper learning three
   // shapes — the relational checks are identical for all three and the difference is one field.
-  const checkMap = (label: string, map: Record<string, string> | undefined, field: string, kind?: PartKind, requireOptional = false): void => {
+  const checkMap = (label: string, map: Record<string, string> | undefined, field: string, kind?: PartKind, requireOptional = false, figmaOnly = false): void => {
     for (const [prop, part] of Object.entries(map ?? {})) {
-      if (!propNames.has(prop)) e.push(`figmaProperties.${label}: '${prop}' is not a declared prop`);
+      if (!figmaOnly && !propNames.has(prop)) e.push(`figmaProperties.${label}: '${prop}' is not a declared prop`);
       const p = parts[part];
       if (!p) { e.push(`figmaProperties.${label}.${prop} → part '${part}' does not exist in anatomy.parts`); continue; }
       if (kind && p.kind !== kind) e.push(`figmaProperties.${label}.${prop} → part '${part}' is kind '${p.kind}', expected '${kind}'`);
@@ -2137,8 +2152,15 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // `requireOptional`, because the anatomy must allow the part to be hidden.
   // One `checkMap` call per targeted part: the list form (`part: [...]`) names several nodes for one prop,
   // and a `prop → part` record can hold only one of them.
-  for (const [p, v] of Object.entries(fp.booleans ?? {}))
-    for (const part of booleanPartsOf(v)) checkMap('booleans', { [p]: part }, 'visible', undefined, true);
+  for (const [p, v] of Object.entries(fp.booleans ?? {})) {
+    const figmaOnly = typeof v !== 'string' && v.figmaOnly === true;
+    for (const part of booleanPartsOf(v)) checkMap('booleans', { [p]: part }, 'visible', undefined, true, figmaOnly);
+    // A Figma-only boolean (#2344) names no prop, so it must not BE one, and needs its own panel name.
+    if (figmaOnly && propNames.has(p))
+      e.push(`figmaProperties.booleans.${p} is figmaOnly but '${p}' is also a declared prop — a Figma-only toggle has no code prop; drop 'figmaOnly' to drive the prop, or rename the key`);
+    if (figmaOnly && !(typeof v !== 'string' && v.figmaName))
+      e.push(`figmaProperties.booleans.${p} is figmaOnly but has no figmaName — with no prop there is no code name for the Figma panel to show, so the label must be stated`);
+  }
 
   // A BOOLEAN toggles its parts' `visible` in place (#1331). A part it targets may ALSO carry a VARIANT
   // presence gate, and the composition is defined, not left open: the gate decides WHICH members carry the
@@ -2414,12 +2436,18 @@ export const fillKey = (
  * any of the three repaints a sibling. Its dispatch is the box branch, which calls `paintOf` on every
  * slot a box declares, so it sits in `BOX_PAINT_SLOTS` too: the caret is a bar that draws itself, the
  * radio dot's case.
+ *
+ * `caret-end` (#2318, owner decision Q166 C, 2026-10-09) is the same role on a SECOND node: text-field's focused field
+ * that holds a value draws its insertion point AFTER the value, where it is, while `caret` stays before the
+ * placeholder on the empty focused field. Node order is fixed per set, so the two positions are two parts, and the
+ * projector resolves a slot once per def (two parts claiming `caret` would bind one variable for both, which
+ * `anatomyErrors` refuses). So the second caret takes its own slot, bound to the same value ink.
  */
 /** The reserved `presentWhen` key that gates a part on the projected STATE rather than on a variant axis
  *  (owner decision, 2026-09-26). See `PartDef.presentWhen`. */
 export const STATE_GATE = 'state';
 
-export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon', 'indicator', 'caret'] as const;
+export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon', 'indicator', 'caret', 'caret-end'] as const;
 
 /**
  * The paint slots a SLOT-FREE template is allowed to answer (#758).
@@ -2477,7 +2505,7 @@ export const PRIMARY_PAINT_SLOTS = new Set(['fill', 'label', 'icon', 'indicator'
  * than by a list the projector also keeps: `border` is the only edge slot, so it is the only one that
  * reaches `strokes`, and everything else competes for the single `fills` array in declaration order.
  */
-export const BOX_PAINT_SLOTS = ['overlay', 'fill', 'border', 'indicator', 'caret'] as const;
+export const BOX_PAINT_SLOTS = ['overlay', 'fill', 'border', 'indicator', 'caret', 'caret-end'] as const;
 
 /**
  * The RUNTIME INTERACTION STATES a def may declare (#821, argued in `docs/39` §7(a)).
@@ -2552,10 +2580,18 @@ export const BOX_PAINT_SLOTS = ['overlay', 'fill', 'border', 'indicator', 'caret
  * of `empty`, not a synonym for any entry: `rest`/`hover`/`focus-visible` now show the placeholder (the
  * empty field at each interaction), and `filled` is the one coordinate whose text is a value in value ink.
  * `empty` stays for code, where emptiness is a content condition that co-occurs with every interaction.
+ *
+ * ── `focus-visible-filled`, THE TWELFTH (#2318, owner decision Q157, 2026-10-09) ──────────────────────
+ *
+ * The same three fields project the FOCUSED field that HOLDS A VALUE: the focus ring and focus border of
+ * `focus-visible` around the value of `filled`. Neither of those two expresses it (`focus-visible` is the empty
+ * focused field; `filled` is the value at rest), and in code focus and value are independent, so a field being
+ * typed in is both. The design-rebuild test had to place an active password field as `filled`, losing its focus
+ * border. A distinct interaction, so it clears the bar above.
  */
 export const STATES = [
   'rest', 'hover', 'pressed', 'focus-visible', 'disabled',
-  'pending', 'inactive', 'read-only', 'error', 'empty', 'filled',
+  'pending', 'inactive', 'read-only', 'error', 'empty', 'filled', 'focus-visible-filled',
 ] as const;
 
 /** One member of the closed state vocabulary. `ComponentDef.states` is `State[]`, so an unknown state
@@ -3568,9 +3604,10 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // a caret that is secretly a container.
   for (const n of names) {
     const p = parts[n];
-    if (p.kind !== 'box' || !(p.paintSlots ?? []).includes('caret')) continue;
+    const caretSlot = (p.paintSlots ?? []).find((s) => s === 'caret' || s === 'caret-end');
+    if (p.kind !== 'box' || !caretSlot) continue;
     if ((p.children ?? []).length)
-      e.push(`anatomy part '${n}' declares paintSlots 'caret' and has children [${p.children!.join(', ')}] — the caret is a bar that draws itself, so a child is content its fill would paint behind (#864). Keep the caret a childless box beside the text it precedes`);
+      e.push(`anatomy part '${n}' declares paintSlots '${caretSlot}' and has children [${p.children!.join(', ')}] — the caret is a bar that draws itself, so a child is content its fill would paint behind (#864). Keep the caret a childless box beside the text it precedes`);
   }
 
   // Every binding key anatomy names must be a slot the component actually binds, AT EVERY COORDINATE
@@ -3658,6 +3695,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       // validates clean, reads complete, and no projection can place it — which is exactly how the
       // spinner sat in this def while `state=pending` emitted a plan byte-identical to `rest`.
       if (!p.when) e.push(`anatomy part '${n}': an overlay must declare the state it appears in ('when') — without it nothing can project it`);
+      else if (typeof p.when !== 'string') e.push(`anatomy part '${n}': an overlay's when names ONE state, not a list (${p.when.join(', ')}) — it replaces a part on exactly one state`);
       else if (!statesOf(def).includes(p.when)) e.push(`anatomy part '${n}': when '${p.when}' is not one of states [${statesOf(def).join(', ')}]`);
       // The fallback target must exist and must NOT be optional. An optional one reintroduces the
       // defect one level down: if the part the overlay falls back to overlaying can itself be absent,
@@ -3683,8 +3721,8 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       // Same requirement, same reason as an overlay's: a part that never says WHEN it appears is
       // decorative declaration. The ring appears on exactly one state and a projection cannot guess
       // which — #536 item 2's lesson applied before the kind has a chance to repeat it.
-      if (!p.when) e.push(`anatomy part '${n}': an absolute part must declare the state it appears in ('when') — without it nothing can project it`);
-      else if (!statesOf(def).includes(p.when)) e.push(`anatomy part '${n}': when '${p.when}' is not one of states [${statesOf(def).join(', ')}]`);
+      if (!whenStates(p).length) e.push(`anatomy part '${n}': an absolute part must declare the state it appears in ('when', one state or a list) — without it nothing can project it`);
+      else for (const w of whenStates(p)) if (!statesOf(def).includes(w)) e.push(`anatomy part '${n}': when '${w}' is not one of states [${statesOf(def).join(', ')}]`);
       // `nests` is REQUIRED rather than optional, and this is the decision from `PartDef.nests` made
       // enforceable: an `absolute` with nothing nominated would have to be authored from scratch, which
       // is the N-way duplication the shared ring exists to avoid. Half-supporting both shapes would

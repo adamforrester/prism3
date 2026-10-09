@@ -83,6 +83,14 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve, dirname, join, relative } from 'node:path';
 const HERE = dirname(fileURLToPath(import.meta.url));
 
+/** The `icon/<glyph>` components a plan nests (#2380) — FIXTURE SETUP for the stub file, so a paste that is
+ *  expected to run clean has the icon components a real file would have had built first. Never an expected
+ *  value: the instance assertions below type their expected `icon/<glyph>` names out. */
+const planIconComps = (n: { nestTarget?: string; children?: readonly unknown[] }): string[] => [
+  ...(n.nestTarget?.startsWith('icon/') ? [n.nestTarget] : []),
+  ...((n.children ?? []) as { nestTarget?: string; children?: readonly unknown[] }[]).flatMap(planIconComps),
+];
+
 import { Session as InspectorSession } from 'node:inspector/promises';
 
 // ---- #1268 EVERY ASSERTION SITE RAN — a section going quiet is a failure, not a smaller pass ----------
@@ -14657,11 +14665,50 @@ arm: {
           ok(bad.length === 0,
             `#2266 ${def.id} size=${size}: label ${LABEL_STYLE[size]} over input ${INPUT_STYLE[size]}, height ${def === textarea ? 'from rows' : HEIGHT[size]}, padding ${PAD[size]}, a 120 floor${bad.length ? ` — WRONG: ${bad.join('; ')}` : ''}`);
         }
-        // 72 members, led by medium: the default variant, and where an in-place update (#2265) lands every member
-        // of a set built before #2266 (they were all the medium field).
+        // 84 members, led by medium: the default variant, and where an in-place update (#2265) lands every member
+        // of a set built before #2266 (they were all the medium field). 72 until #2318's `focus-visible-filled`
+        // column (size 3 × status 4 × state 7; 28 per size).
         const set = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
-        ok(set.length === 72 && set[0].size === 'medium' && SIZES.every((sz) => set.filter((p) => p.size === sz).length === 24),
-          `#2266 ${def.id}: the set is 72 members, 24 per size, led by size=medium (got ${set.length}, first ${String(set[0]?.size)})`);
+        ok(set.length === 84 && set[0].size === 'medium' && SIZES.every((sz) => set.filter((p) => p.size === sz).length === 28),
+          `#2266 ${def.id}: the set is 84 members, 28 per size, led by size=medium (got ${set.length}, first ${String(set[0]?.size)})`);
+      }
+
+      // (2b) #2318 (owner decision Q157, 2026-10-09): THE FOCUSED FIELD THAT HOLDS A VALUE, `state=focus-visible-filled`,
+      // on all three fields at every size and status. What it shows is typed here from the decision, never read off the
+      // def: the value in the value ink and no placeholder, the focus ring, the focus border at default status and the
+      // status's own border otherwise, and (owner Q166 C) on text-field ONLY a caret immediately AFTER the value, in its own
+      // `caretEnd` part, with no caret before it; textarea and select draw no caret at all. ACTUAL is the emitted plan. And
+      // the set carries the 12 new members per field, 4 per size.
+      {
+        const BORDER: Record<string, string> = { default: 'color/border/focus', error: 'color/border/danger', warning: 'color/border/warning', success: 'color/border/success' };
+        const order = (n: AnatomyPlan['root'], acc: string[] = []): string[] => { acc.push(n.name); for (const k of n.children) order(k, acc); return acc; };
+        for (const def of [textField, select, textarea]) {
+          const bad: string[] = [];
+          let seen = 0;
+          for (const size of SIZES) for (const status of Object.keys(BORDER)) {
+            const root = figmaAnatomyPlan(def, size, { status, state: 'focus-visible-filled' } as never).root;
+            const at = `${size}/${status}`;
+            seen++;
+            const value = findIn(root, 'value');
+            if (value?.paints?.fills !== 'color/text/primary') bad.push(`${at}: value ink ${String(value?.paints?.fills)}`);
+            if (findIn(root, 'placeholder')) bad.push(`${at}: the placeholder is drawn`);
+            if (!findIn(root, 'focusRing')) bad.push(`${at}: no focus ring`);
+            const ctl = findIn(root, 'control');
+            if (ctl?.paints?.strokes !== BORDER[status]) bad.push(`${at}: border ${String(ctl?.paints?.strokes)}, want ${BORDER[status]}`);
+            const names = order(root);
+            if (names.includes('caret')) bad.push(`${at}: a caret is drawn before the value`);
+            if (def === textField) {
+              const endAt = names.indexOf('caretEnd');
+              const end = findIn(root, 'caretEnd');
+              if (endAt < 0 || names[endAt - 1] !== 'value') bad.push(`${at}: no caret immediately after the value (${names.join(' ')})`);
+              else if (end?.paints?.fills !== 'color/text/primary') bad.push(`${at}: end caret ink ${String(end?.paints?.fills)}`);
+            } else if (names.includes('caretEnd')) bad.push(`${at}: an end caret is drawn`);
+          }
+          const set = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+          const added = set.filter((p) => planComponentName(p).includes('state=focus-visible-filled'));
+          ok(bad.length === 0 && seen === 12 && added.length === 12,
+            `#2318 ${def.id}: the focused field that holds a value shows the value in text.primary, no placeholder, the focus ring and the focus (or status) border, ${def === textField ? 'with the caret immediately after the value' : 'with no caret'}, in all 12 new members (${added.length} built${bad.length ? `; WRONG: ${bad.slice(0, 4).join(' | ')}` : ''})`);
+        }
       }
 
       // (3) the pairs in px, in every committed brand emission: the label exactly one body step (2px) under the input.
@@ -14750,8 +14797,9 @@ arm: {
     const imgPlaceholder = componentDefs.find((d) => d.id === 'image-placeholder')!;
     const markerOf = (d: ComponentDef): FigmaNodePlan => {
       const root = figmaAnatomyPlan(d, undefined, { ratio: '4:3' } as never).root;
-      const m = (root.children ?? []).find((c) => c.type === 'GLYPH');
-      if (!m) throw new Error(`image-placeholder projection has no GLYPH marker (got [${(root.children ?? []).map((c) => `${c.name}:${c.type}`).join(', ')}])`);
+      // By NAME since #2380: the marker is an instance of `icon/image` now, not a GLYPH.
+      const m = (root.children ?? []).find((c) => c.name === 'marker');
+      if (!m) throw new Error(`image-placeholder projection has no marker (got [${(root.children ?? []).map((c) => `${c.name}:${c.type}`).join(', ')}])`);
       return m;
     };
     // (a) the plan carries the literal, and it is a REAL enlargement past every icon rung (xl = 40) — a
@@ -14860,6 +14908,45 @@ arm: {
         `#1515 MUTATION: with the frame's aspectRatio lock removed, 'ratio' moves the box for no reason and footprintVaries: ['ratio'] is refused BY NAME (got [${figmaPropertyErrors(noLock).filter((e) => /footprintVaries/.test(e)).join('; ') || 'NOTHING — the aspect-lock acceptance became a blanket'}])`);
     }
 
+    // ---- #2344 (owner decision Q156 A): the groups carry up to EIGHT rows, seven behind Figma-only booleans ----
+    // Prism 2's mechanism at eight rows: row 1 always shown, rows 2-8 each behind a node-visibility boolean named
+    // "Option N", three rows shown by default. The booleans are Figma-only: no code prop drives them (in code the
+    // count is `children`). Expected values are literals typed here, never read off the defs.
+    {
+      const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
+      const ROWS = ['row1', 'row2', 'row3', 'row4', 'row5', 'row6', 'row7', 'row8'];
+      for (const def of [checkboxGroup, radioGroup] as ComponentDef[]) {
+        const members = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+        const off = members.flatMap((m) => {
+          const kids = m.root.children.map((k) => k.name);
+          const bad: string[] = [];
+          if (JSON.stringify(kids) !== JSON.stringify(['label', ...ROWS])) bad.push(`children ${kids.join(',')}`);
+          ROWS.forEach((r, i) => {
+            const n = findIn(m.root, r);
+            const wantProp = i === 0 ? undefined : `Option ${i + 1}`;
+            const wantHidden = i >= 3;
+            if (n?.visibleProp !== wantProp || (n?.visible === false) !== wantHidden) bad.push(`${r} visibleProp ${String(n?.visibleProp)}, visible ${String(n?.visible)}`);
+          });
+          return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
+        });
+        ok(members.length === 3 && off.length === 0,
+          `#2344 ${def.id}: every member nests eight rows, row 1 always shown, rows 2-8 behind "Option 2"-"Option 8", rows 1-3 shown as built (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
+        const props = planSetProperties(members).filter((p) => p.type === 'BOOLEAN').map((p) => `${p.name}=${String(p.default)}`);
+        ok(JSON.stringify(props) === JSON.stringify(['Option 2=true', 'Option 3=true', 'Option 4=false', 'Option 5=false', 'Option 6=false', 'Option 7=false', 'Option 8=false']),
+          `#2344 ${def.id}: the set declares exactly the seven row toggles, Option 2 and 3 on (${props.join(', ')})`);
+        ok(!(def.props ?? []).some((p) => /^option\d$/i.test(p.name) || /^showOption/i.test(p.name)),
+          `#2344 ${def.id}: no code prop drives a row toggle (owner Q156 A: the toggles are Figma-only; in code the count is children)`);
+      }
+      // The two refusals the Figma-only form adds, each by name (docs/34: a new refusal owes its own mutation).
+      const withBool = (v: unknown) => ({ ...checkboxGroup, figmaProperties: { ...checkboxGroup.figmaProperties, booleans: { ...checkboxGroup.figmaProperties!.booleans, ...(v as object) } } }) as ComponentDef;
+      ok(validateComponentDef(withBool({ disabled: { part: 'row8', figmaName: 'Option 8', figmaOnly: true } })).errors.some((e) => /booleans\.disabled is figmaOnly but 'disabled' is also a declared prop/.test(e)),
+        "#2344 a figmaOnly boolean whose key is a declared prop is refused BY NAME — it would be a code prop and a Figma-only toggle at once");
+      ok(validateComponentDef(withBool({ option8: { part: 'row8', default: false, figmaOnly: true } })).errors.some((e) => /booleans\.option8 is figmaOnly but has no figmaName/.test(e)),
+        '#2344 a figmaOnly boolean with no figmaName is refused BY NAME — with no prop there is no code name for the panel');
+      ok(validateComponentDef(withBool({ option8: { part: 'row8', default: false, figmaName: 'Option 8' } })).errors.some((e) => /figmaProperties\.booleans: 'option8' is not a declared prop/.test(e)),
+        '#2344 without figmaOnly, a boolean naming no declared prop is still refused BY NAME');
+    }
+
     // ---- #1424: the labelled ROW wraps a long label instead of overflowing ----
     // Prism 2's radio-button-row / checkbox-row let a long label WRAP to a second line with the control
     // top-anchored (the description text is `layoutSizingHorizontal: FILL`). The engine expresses that as
@@ -14884,9 +14971,17 @@ arm: {
         //     axis, so a wrapping label never shrinks or stretches the control.
         ok(controlBox?.layoutGrow === undefined && controlBox?.counterAxisSizingMode === 'FIXED',
           `#1424 ${def.id}: the controlBox stays fixed/hug — it does not grow (layoutGrow ${String(controlBox?.layoutGrow)}) and its cross axis is FIXED (${String(controlBox?.counterAxisSizingMode)})`);
-        // (c) THE WIDTH FLOOR that makes the fill resolve (Prism 2's root width 320).
-        ok(row?.minWidth === 320,
-          `#1424 ${def.id}: the row carries the 320 min-width floor so the fill has space to resolve against (got ${String(row?.minWidth)})`);
+        // (c) THE WIDTH THAT MAKES THE FILL RESOLVE, on every member (owner decision Q152.3: Q99 B reaches the
+        //     rows). The row is BUILT at Prism 2's root width 320 (`placementWidth`, FIXED along its horizontal
+        //     main axis) and floors at the fields' 120 (Q152.2), so it shrinks with a narrower column instead of
+        //     holding at 320 and overflowing it. Expected values are literals typed here, never read off a def.
+        const rowOff = figmaAnatomySet(def, {}).flatMap((m) => {
+          const r = m.root;
+          return r.name === 'row' && r.placementWidth === 320 && r.primaryAxisSizingMode === 'FIXED' && r.minWidth === 120 ? []
+            : [`${planComponentName(m)}: ${r.name} placementWidth ${String(r.placementWidth)}, primary ${String(r.primaryAxisSizingMode)}, minWidth ${String(r.minWidth)}`];
+        });
+        ok(row?.minWidth === 120 && rowOff.length === 0,
+          `#1424/Q152.3 ${def.id}: on every member the row is built at 320 and floors at 120, so it shrinks with its column (${rowOff.length} off — ${rowOff[0] ?? 'none'})`);
         //   MUTATION #1424 — revert the label to fixed/hug-no-wrap. Dropping `wrap` returns the label to a
         //   hugging text node that overflows: the plan drops layoutGrow AND textAutoResize, flipping (a) BY NAME.
         const noWrapLabel = { ...def.anatomy.parts.label, wrap: undefined };
@@ -14904,13 +14999,27 @@ arm: {
       ok(validateComponentDef(wrapOnBox as ComponentDef).errors.some((e) => /declares 'wrap'/.test(e) && /only a 'text' part/.test(e)),
         "#1424 'wrap' on a NON-text part is refused BY NAME — only a text part fills its row and reflows; on any other kind it would validate clean and reach the wrong branch");
       // (b) wrap under a FLOORLESS parent — the #989 silent no-op: `layoutGrow` fills REMAINING space and a
-      //     hugging row has none, so the label hugs its glyphs and overflows though it validated. Stripping the
-      //     row's real `minWidth: 320` (keeping the label's `wrap`) fires this on exactly the row that carries
-      //     the floor — which is what makes the row's minWidth LOAD-BEARING rather than decorative.
-      const floorlessRow = { ...radioRow.anatomy.parts.row, minWidth: undefined };
+      //     hugging row has none, so the label hugs its glyphs and overflows though it validated. Returning the
+      //     row to a HUGGING root with neither its build width nor its floor (keeping the label's `wrap`) fires
+      //     this on exactly the row that carries them, which is what makes them LOAD-BEARING rather than
+      //     decorative. Both go: since Q152.3 the root's `placementWidth` alone already bounds the label.
+      const rp = radioRow.anatomy.parts.row;
+      const floorlessRow = { ...rp, minWidth: undefined, placementWidth: undefined, layout: { ...rp.layout!, sizing: { ...rp.layout!.sizing, x: 'hug' as const } } };
       const floorless = { ...radioRow, anatomy: { ...radioRow.anatomy, parts: { ...radioRow.anatomy.parts, row: floorlessRow } } };
       ok(validateComponentDef(floorless as ComponentDef).errors.some((e) => /declares 'wrap'/.test(e) && /does not bound its main-axis width/.test(e)),
-        "#1424 a 'wrap' label under a floorless row is refused BY NAME — layoutGrow fills remaining space and a hugging parent has none, the #989 silent no-op; removing the row's minWidth fires this, so the floor is load-bearing");
+        "#1424 a 'wrap' label under a floorless row is refused BY NAME — layoutGrow fills remaining space and a hugging parent has none, the #989 silent no-op; a hugging row with no build width and no floor fires this, so they are load-bearing");
+    }
+
+    // ---- Q155 A: the GROUPS follow their rows — built at 320, filling their column down to the 120 floor ----
+    // A group's root is a column, so its width is the COUNTER axis (FIXED), where a row's is its primary. Literals
+    // typed here; the column geometry is measured in `apps/plugin/test-roundtrip.ts` (Q155 block).
+    for (const def of [checkboxGroup, radioGroup] as ComponentDef[]) {
+      const off = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' }).flatMap((m) => {
+        const r = m.root;
+        return r.placementWidth === 320 && r.counterAxisSizingMode === 'FIXED' && r.minWidth === 120 ? []
+          : [`${planComponentName(m)}: ${r.name} placementWidth ${String(r.placementWidth)}, counter ${String(r.counterAxisSizingMode)}, minWidth ${String(r.minWidth)}`];
+      });
+      ok(off.length === 0, `Q155 ${def.id}: on every member the group is built at 320 and floors at 120, so it shrinks with its column (${off.length} off — ${off[0] ?? 'none'})`);
     }
 
     // ---- #1757: a ROOT's build width (`placementWidth`), and the wrap bounds it and a filled parent supply ----
@@ -15068,14 +15177,14 @@ arm: {
     // block below for the halving.
     const projStates = select.figmaProperties!.stateAxis!.values;
     const V = select.variants!.status!.length;                 // status: 4
-    const St = projStates.length;                               // rest/hover/filled/focus-visible/disabled/read-only: 6
+    const St = projStates.length;                               // rest/hover/filled/focus-visible/focus-visible-filled/disabled/read-only: 7
     const Sz = select.variants!.size!.length;                   // size: 3 (#2266)
     const set = figmaAnatomySet(select);
     // (a) empty is absent from the PROJECTED axis, and the enumeration matches the product WITHOUT it.
     ok(!projStates.includes('empty'),
       `#1344 'empty' is NOT a projected Figma state (stateAxis = [${projStates.join(', ')}])`);
-    ok(set.length === Sz * V * St && set.length === 72,
-      `#1344 select projects size(${Sz})×status(${V})×state(${St}) = ${Sz * V * St} members (the size axis since #2266, the filled column since 2026-09-25, the read-only column since #1699; 84 with the empty column; leading is a boolean since #1331, not a ×2 axis)`);
+    ok(set.length === Sz * V * St && set.length === 84,
+      `#1344 select projects size(${Sz})×status(${V})×state(${St}) = ${Sz * V * St} members (the size axis since #2266, the filled column since 2026-09-25, the read-only column since #1699, the focus-visible-filled column since #2318; 96 with the empty column; leading is a boolean since #1331, not a ×2 axis)`);
     ok(!set.some((p) => planComponentName(p).includes('empty')),
       '#1344 no projected member names the empty state');
     // (b) empty IS still a real state — the placeholder-vs-value ink distinction is carried internally, and
@@ -15093,7 +15202,7 @@ arm: {
     //   names the empty state' BY NAME.
     const projMutant = { ...select, figmaProperties: { ...select.figmaProperties!, stateAxis: { name: 'state', values: [...projStates, 'empty'] } } };
     const mutSet = figmaAnatomySet(projMutant as ComponentDef);
-    ok(mutSet.length === 84 && mutSet.some((p) => planComponentName(p).includes('empty')),
+    ok(mutSet.length === 96 && mutSet.some((p) => planComponentName(p).includes('empty')),
       `#1344 MUTATION A: restoring 'empty' to the projected stateAxis rebuilds the empty column (set ${set.length} → ${mutSet.length}), flipping '#1344 select projects … 24 members' to failing`);
     //   MUTATION B — drop `empty` from `states`. `label.empty` / `error.border.empty` then name a state the
     //   def no longer declares, so `validateComponentDef` reports them as unreachable paint keys — the
@@ -15131,8 +15240,8 @@ arm: {
       '#1331 the leading glyph node carries the content swap AND the visibility boolean on ONE node (mainComponent + visible)');
 
     // (3) the set HALVES: status(4) × state(6) = 24 (with the 2026-09-25 filled column and #1699's read-only), from 48 as a ×2 axis.
-    ok(sset.length === 72,
-      `#1331 select projects 72 members (144 with the leading ×2 axis; the boolean halves it) — got ${sset.length}`);
+    ok(sset.length === 84,
+      `#1331 select projects 84 members (168 with the leading ×2 axis; the boolean halves it) — got ${sset.length}`);
 
     // (4) planSetProperties declares `leading icon` as a BOOLEAN defaulting to the built (hidden) visibility,
     //     ordered ABOVE the swap it gates (the #1380 `leading icon` → `↳ swap leading icon` panel nesting).
@@ -15157,8 +15266,8 @@ arm: {
     //     boolean replaced. Flips "#1331 select projects 24 members" BY NAME.
     const asAxis = { ...select, figmaProperties: { ...fp, booleans: {}, slotAxes: [{ name: 'leading', part: 'leadingVisual', figmaName: 'leading icon' }] } };
     const asAxisSet = figmaAnatomySet(asAxis as never, { swapTarget: 'FPO-default-icon' });
-    ok(asAxisSet.length === 144 && asAxisSet.some((p) => !findLV(p.root)) && asAxisSet.some((p) => !!findLV(p.root)),
-      `#1331 MUTATION: reverting leading to a variant axis re-doubles the set to 144 and drops the node in the false members (${asAxisSet.length} members) — the multiplication the boolean replaced`);
+    ok(asAxisSet.length === 168 && asAxisSet.some((p) => !findLV(p.root)) && asAxisSet.some((p) => !!findLV(p.root)),
+      `#1331 MUTATION: reverting leading to a variant axis re-doubles the set to 168 and drops the node in the false members (${asAxisSet.length} members) — the multiplication the boolean replaced`);
 
     // (7) VALIDATOR ARMS (new refusals, by-name).
     //   (a) the LOOSENING is real: select's leadingVisual carries a swap AND a boolean and validates clean
@@ -15241,8 +15350,8 @@ arm: {
       '#1426 the built visibility TRACKS the boolean default — flipping showMessage default→false builds every message node `visible:false`, so the shown-by-default assertion is not measuring a constant');
 
     // (3) the boolean does NOT multiply the set — still status(4) × state(5) = 20 members.
-    ok(sset.length === 72,
-      `#1426 the showMessage boolean toggles a part in place and does not multiply the set — still 72 members, size(3) × status(4) × state(6) (got ${sset.length})`);
+    ok(sset.length === 84,
+      `#1426 the showMessage boolean toggles a part in place and does not multiply the set — still 84 members, size(3) × status(4) × state(7) (got ${sset.length})`);
 
     // (4) planSetProperties declares `message` as a BOOLEAN defaulting to the built (shown) visibility.
     const props = planSetProperties(sset);
@@ -16172,7 +16281,7 @@ arm: {
 
     // (B) DECISION 2 — select gains read-only and pending, text-field's state set (the literal below is the
     //     decision, not text-field's array read back). read-only PROJECTS; pending does not.
-    const FIELD_STATES = ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only', 'pending', 'empty'];
+    const FIELD_STATES = ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only', 'pending', 'empty'];
     ok(FIELD_STATES.every((st) => (select.states as string[]).includes(st)) && select.states.length === FIELD_STATES.length,
       `#1699 select carries the field family's state set, read-only and pending included (got [${select.states.join(', ')}])`);
     const selProj = select.figmaProperties!.stateAxis!.values;
@@ -17443,6 +17552,10 @@ arm: {
       ({ ...x, parts: { ...x.parts, focusRing: { ...x.parts.focusRing, ...patch } as AnatomyDef['parts'][string] } });
     broke('an absolute part with no `when` fails — nothing could project it', /must declare the state it appears in/, ring({ when: undefined }));
     broke('an absolute part whose `when` is not a state fails', /is not one of states/, ring({ when: 'nope' }));
+    // #2318: an absolute part's `when` may be a LIST (the field ring at both focus states); each entry is held to the
+    // def's states, and an empty list is no trigger at all.
+    broke('an absolute part whose `when` LIST names a state the def lacks fails, by that state', /when 'nope' is not one of states/, ring({ when: ['focus-visible', 'nope'] }));
+    broke('an absolute part whose `when` is an EMPTY list fails — nothing could project it', /must declare the state it appears in/, ring({ when: [] }));
     broke('an absolute part nominating no component to nest fails — the alternative is N-way duplication', /nominates no component to nest/, ring({ nests: undefined }));
     broke('an absolute part with no `inset` fails — a ring flush against the border is WCAG 1.4.11', /binds no 'inset'/, ring({ inset: undefined }));
     // Not caught by the single-target check above, which counts targets: one absolute target is still
@@ -19057,7 +19170,7 @@ arm: {
         const p = unstroked[0] ?? set[0];
         const at = planComponentName(p);
         const page: StubPage = { children: [] };
-        const r = await runPayload(planToPluginJs(p), { vars: [...planBoundVars(p.root), ...planPaintVars(p.root)], styles: planTextStyles(p.root), comps: ['FPO-default-icon'], page });
+        const r = await runPayload(planToPluginJs(p), { vars: [...planBoundVars(p.root), ...planPaintVars(p.root)], styles: planTextStyles(p.root), comps: ['FPO-default-icon', ...planIconComps(p.root)], page });
         const box = page.children[0] && partOf(page.children[0]);
         ok(r.misses.length === 0 && !!box,
           `anatomy/${def.id} #1228 reachable: the payload pastes clean at ${at} and its \`${part}\` was found (${JSON.stringify(r.misses)})`);
@@ -19907,7 +20020,7 @@ arm: {
           for (const c of cs) if (c.variants.length > 1 && c.js.length > b) over.push(`${b}: chunk ${c.index + 1} of ${cs.length}, ${c.variants.length} variants, ${c.js.length} B`);
           if (JSON.stringify(cs.flatMap((c) => c.variants)) !== taNames) lost.push(b);
         }
-        ok(budgets === 124 && taPlans.length === 24 && over.length === 0,
+        ok(budgets === 124 && taPlans.length === 28 && over.length === 0,
           `#1814 at every one of 124 budgets, no shipped chunk of more than one variant is over the budget (${taPlans.length} variants; ${over.length} over${over.length ? `: ${over.slice(0, 3).join('; ')}` : ''})`);
         ok(lost.length === 0,
           `#1814 ...and every budget ships all 24 variants once, in plan order (${lost.length ? `not at ${lost.slice(0, 5).join(', ')}` : 'all 124'})`);
@@ -20274,7 +20387,7 @@ arm: {
           return undefined;
         };
         const collided = members.filter((m) => descend(m, 'text'));
-        ok(members.length === 72 && collided.length === members.length,
+        ok(members.length === 84 && collided.length === members.length,
           `#1428 reachability (paste): every built select member carries a colliding nested-instance \`text\` (${collided.length}/${members.length})`);
         const textMisses = run.misses.filter((m) => /\btext\.characters\b/.test(m));
         ok(textMisses.length === 0,
@@ -20696,7 +20809,7 @@ arm: {
         const fmOpts = {
           vars: fmSet.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
           styles: fmSet.flatMap((p) => planTextStyles(p.root)),
-          comps: [] as string[],
+          comps: [...new Set(fmSet.flatMap((p) => planIconComps(p.root)))],
         };
         const fmPastePage: StubPage = { children: [] };
         const fmPlugPage: StubPage = { children: [] };
@@ -20708,11 +20821,51 @@ arm: {
         // #1393 — THE GLYPH'S IMPORTED SUBTREE, in lockstep. `createNodeFromSvg` bypasses `createFrame()`, so both
         // executors claim the nodes inside a GLYPH in 'imported' mode; the button grid above builds no glyph, so
         // this is where that branch is compared. FLOOR: the page really holds an imported VECTOR to compare.
+        // On the SPINNER since #2380: field-message's status glyphs are instances of `icon/*` now and import
+        // nothing, and the spinner's composed glyph (`COMPONENT_GLYPHS`) is one that is still drawn inline.
         {
-          const plugFm = claims(fmPlugPage);
-          const fmDiff = claimDiff(plugFm, claims(fmPastePage));
+          const spSet = figmaAnatomySet(spinner, { swapTarget: 'FPO-default-icon' });
+          const spOpts = { vars: spSet.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), styles: spSet.flatMap((p) => planTextStyles(p.root)) };
+          const spPastePage: StubPage = { children: [] };
+          const spPlugPage: StubPage = { children: [] };
+          await runPayload(planSetToPluginJs(spSet), { ...spOpts, page: spPastePage });
+          await plugRun(spSet, { ...spOpts, page: spPlugPage });
+          const plugFm = claims(spPlugPage);
+          const fmDiff = claimDiff(plugFm, claims(spPastePage));
           ok(plugFm.some((r) => / VECTOR \[/.test(r)) && fmDiff.length === 0,
             `#1393 lockstep (GLYPH): both executors claim a glyph's imported subtree identically — plugin vs paste differ on ${fmDiff.length}: ${fmDiff.slice(0, 2).join(' | ').slice(0, 600)}`);
+        }
+
+        // #2380 — THE INSET ICON, THROUGH THE PASTE EXECUTOR AND IN LOCKSTEP WITH THE PLUGIN. checkbox's check is an
+        // instance of `icon/check` inside the box-bound `mark` frame, placed at 0.8 of it (#1346) by the PARENT
+        // after the flow pass. The plugin's placement is read back by `apps/plugin/test-roundtrip.ts`; this is the
+        // paste executor's (`PAYLOAD_INSET`), which no other reader sees. EXPECTED is Prism 2's 0.8, typed here.
+        {
+          const cbChecked = figmaAnatomySet(checkboxControl, {}).filter((p) => p.coord.selection === 'checked');
+          const cbOpts = { vars: cbChecked.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), styles: cbChecked.flatMap((p) => planTextStyles(p.root)), comps: ['focus-ring', ...new Set(cbChecked.flatMap((p) => planIconComps(p.root)))] };
+          const cbPastePage: StubPage = { children: [] };
+          const cbPlugPage: StubPage = { children: [] };
+          const cbPasted = await runPayload(planSetToPluginJs(cbChecked), { ...cbOpts, page: cbPastePage });
+          await plugRun(cbChecked, { ...cbOpts, page: cbPlugPage });
+          const insets = (page: StubPage): string[] => {
+            const out: string[] = [];
+            const walk = (n: Record<string, unknown>): void => {
+              if (n.name === 'mark') {
+                const g = ((n.children as Record<string, unknown>[] | undefined) ?? []).find((c) => c.name === 'glyph');
+                const W = n.width as number, H = n.height as number;
+                out.push(!g ? 'no glyph' : `${g.type} ${Number(((g.width as number) / W).toFixed(4))}x${Number(((g.height as number) / H).toFixed(4))} at ${Number(((g.x as number) / W).toFixed(4))},${Number(((g.y as number) / H).toFixed(4))} ${JSON.stringify(g.constraints)}`);
+              }
+              for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) walk(c);
+            };
+            for (const c of page.children as Record<string, unknown>[]) walk(c);
+            return out;
+          };
+          const WANT = `INSTANCE 0.8x0.8 at 0.1,0.1 ${JSON.stringify({ horizontal: 'SCALE', vertical: 'SCALE' })}`;
+          const pasteI = insets(cbPastePage);
+          ok(cbPasted.misses.length === 0 && pasteI.length === cbChecked.length && pasteI.every((x) => x === WANT),
+            `#2380 paste: every checked checkbox's icon is an instance at 0.8 of its mark frame, centered, SCALE/SCALE (${pasteI.length}/${cbChecked.length}: ${[...new Set(pasteI)].join(' | ')}${cbPasted.misses.length ? `; misses: ${cbPasted.misses.slice(0, 2).join(' | ')}` : ''})`);
+          ok(JSON.stringify(insets(cbPlugPage)) === JSON.stringify(pasteI),
+            `#2380 lockstep: both executors place the inset icon identically (plugin ${[...new Set(insets(cbPlugPage))].join(' | ')} vs paste ${[...new Set(pasteI)].join(' | ')})`);
         }
 
         // #1670 — THE SPINNER'S LAYER OPACITY, THROUGH THE PASTE EXECUTOR AND IN LOCKSTEP WITH THE PLUGIN. The
@@ -21637,7 +21790,7 @@ arm: {
       ibBroke('a state gate naming an UNDECLARED state fails', /gates presence on state='typing', which is not one of states/, tfPart('caret', { presentWhen: { state: ['typing'] } }));
       ibBroke('a state gate reaching NO projected state fails — the part is absent from every member', /gates presence on state=\[empty, pending\], none of which figmaProperties\.stateAxis projects/, tfPart('caret', { presentWhen: { state: ['empty', 'pending'] } }));
       ibBroke('a state gate with no values fails', /gates presence on 'state' with no values/, tfPart('caret', { presentWhen: { state: [] } }));
-      ibBroke('a state gate naming EVERY projected state fails as a no-op', /gates presence on all 6 projected states/, tfPart('caret', { presentWhen: { state: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only'] } }));
+      ibBroke('a state gate naming EVERY projected state fails as a no-op', /gates presence on all 7 projected states/, tfPart('caret', { presentWhen: { state: ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only'] } }));
       ibBroke('a state gate on a def with no stateAxis fails', /gates presence on 'state', but figmaProperties declares no stateAxis/,
         { ...tfPart('caret', { presentWhen: { state: ['focus-visible'] } }), figmaProperties: { ...tf.figmaProperties!, stateAxis: undefined } } as ComponentDef);
       // The reserved key is unambiguous only while no VARIANT axis can be named `state`; the closed vocabulary
@@ -23814,6 +23967,11 @@ arm: {
     spinner: { ...button.anatomy!.parts.spinner, when: 'nope' } } } } as ComponentDef;
   ok(validateComponentDef(badWhen).errors.some((x) => /is not one of states/.test(x)),
     '#536 gate: an overlay whose `when` is not a declared state fails validation');
+  // #2318 widened `when` to a list for ABSOLUTE parts only: an overlay replaces a part on exactly one state.
+  const listWhen = { ...button, anatomy: { ...button.anatomy!, parts: { ...button.anatomy!.parts,
+    spinner: { ...button.anatomy!.parts.spinner, when: ['pending', 'rest'] } } } } as ComponentDef;
+  ok(validateComponentDef(listWhen).errors.some((x) => /an overlay's when names ONE state, not a list/.test(x)),
+    '#2318 gate: an overlay whose `when` is a LIST fails validation — only an absolute part may name several states');
 }
 
 // ---- #536 item 6: the slot x size grid, gated offline after the live probe ----------------------
@@ -24817,30 +24975,29 @@ arm: {
   ok(cbGlyphs({}) === 'neither',
     `checkbox-control: and with neither axis supplied — the structure-only plan a consumer asking "what parts does this def have" gets (got '${cbGlyphs({})}')`);
 
-  // #1346 — THE INNER GLYPH IS INSET TO PRISM 2's 0.80 MARK-TO-BOX RATIO, pinned on the PROJECTED
-  // artboard rather than on the def's `glyphScale` field, so a revert to the old full-bleed mark fails
-  // HERE by name, not only in the projector that produced it. EXPECTED is authored from the Prism 2
-  // MEASUREMENT — `checkFill` 16 inside a 20px control box (the focus frame is 28 at offset −4, so the
-  // box is 28 − 2×4 = 20), giving 16/20 = 0.80, `reference/Prism2/component-specs/checkboxes.json` —
-  // independent of the engine. ACTUAL is the drawn grid's fraction of its artboard, read back from the
-  // plan: the mark FRAME binds the control box (asserted first), and the emitter pads the artboard to
-  // `grid / scale`, so the rendered mark is `grid / artboard` of the box. A mutation setting `glyphScale`
-  // back to 1 pads to the bare 24 grid, makes the ratio 1.0, and fails these by name. Not "it resolves"
-  // (docs/34 shape 5) — the VALUE 0.80 is asserted, transcribed from Prism 2, not read off the def.
+  // #1346 — THE INNER GLYPH IS INSET TO PRISM 2's 0.80 MARK-TO-BOX RATIO, pinned on the PROJECTED plan
+  // rather than on the def's `glyphScale` field, so a revert to the old full-bleed mark fails HERE by name,
+  // not only in the projector that produced it. EXPECTED is authored from the Prism 2 MEASUREMENT —
+  // `checkFill` 16 inside a 20px control box (the focus frame is 28 at offset −4, so the box is 28 − 2×4 =
+  // 20), giving 16/20 = 0.80, `reference/Prism2/component-specs/checkboxes.json` — independent of the engine.
+  // Since #2380 the mark is an INSTANCE of `icon/check` inside a `mark` frame bound to the control box, and
+  // ACTUAL is the fraction of that frame the instance is placed at (`glyphInset`), read off the plan. Before
+  // #2380 it was the padded artboard's grid fraction; the ink lands in the same place either way, 0.8 × box ×
+  // the grid. A mutation setting `glyphScale` back to 1 projects the instance full-bleed (no `glyphInset`,
+  // no wrapper) and fails these by name. Not "it resolves" (docs/34 shape 5) — the VALUE 0.80 is asserted,
+  // transcribed from Prism 2, not read off the def.
   const PRISM2_MARK_TO_BOX = 0.8;                                   // checkFill 16 / control box 20
-  const grid = Number(ICON_VIEWBOX.split(/\s+/)[2]);                // the 24-unit source grid, parsed
   const glyphNode = (part: string, selection: string) => {
     const f = (n: any): any => (n.name === part ? n : (n.children ?? []).map(f).find(Boolean));
     return f(figmaAnatomyPlan(checkboxControl, 'medium', { selection, state: 'rest' } as never).root);
   };
-  ok((checkboxControl.anatomy!.parts.mark as any).size === 'size.{size}.control',
-    `checkbox-control: the mark FRAME binds the control box ('size.{size}.control'), so the padded artboard is what insets the ink and the ratio below is box-relative (got size='${(checkboxControl.anatomy!.parts.mark as any).size}')`);
-  const markRatio = grid / (glyphNode('mark', 'checked').glyphViewBox as [number, number])[0];
-  ok(Math.abs(markRatio - PRISM2_MARK_TO_BOX) < 1e-9,
-    `checkbox-control: the check renders at Prism 2's ${PRISM2_MARK_TO_BOX} of the box — the 24-grid fills ${markRatio.toFixed(4)} of its ${(glyphNode('mark', 'checked').glyphViewBox as [number, number])[0]}px artboard, and the frame is box-bound, so a revert to a full-bleed 24px artboard (ratio 1.0) restores the oversized mark #1346 shrank (got ${markRatio.toFixed(4)})`);
-  const dashRatio = grid / (glyphNode('dash', 'indeterminate').glyphViewBox as [number, number])[0];
-  ok(Math.abs(dashRatio - PRISM2_MARK_TO_BOX) < 1e-9,
-    `checkbox-control: the dash renders at the same ${PRISM2_MARK_TO_BOX} of the box as the check (Prism 2 sizes subtractFill identically to checkFill), pinned separately so a change to one part cannot pass on the other's ratio (got ${dashRatio.toFixed(4)})`);
+  ok((checkboxControl.anatomy!.parts.mark as any).size === 'size.{size}.control' && glyphNode('mark', 'checked')?.bound?.width === 'control/size/md/height',
+    `checkbox-control: the mark FRAME binds the control box ('size.{size}.control'), so the inset below is box-relative (got size='${(checkboxControl.anatomy!.parts.mark as any).size}', bound width '${glyphNode('mark', 'checked')?.bound?.width}')`);
+  const insetOf = (part: string, selection: string): unknown => (glyphNode(part, selection)?.children ?? []).find((c: any) => c.type === 'NESTED_INSTANCE')?.glyphInset;
+  ok(insetOf('mark', 'checked') === PRISM2_MARK_TO_BOX,
+    `checkbox-control: the check renders at Prism 2's ${PRISM2_MARK_TO_BOX} of the box — its icon instance sits at that fraction of the box-bound mark frame, so a revert to a full-bleed instance restores the oversized mark #1346 shrank (got ${String(insetOf('mark', 'checked'))})`);
+  ok(insetOf('dash', 'indeterminate') === PRISM2_MARK_TO_BOX,
+    `checkbox-control: the dash renders at the same ${PRISM2_MARK_TO_BOX} of the box as the check (Prism 2 sizes subtractFill identically to checkFill), pinned separately so a change to one part cannot pass on the other's ratio (got ${String(insetOf('dash', 'indeterminate'))})`);
 
   // ---- the same three directions as a RULE over every gated part, because the block above is
   // ---- CHECKBOX-SHAPED and the second def to use the mechanism does not fit it (#910) -------------

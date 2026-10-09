@@ -47,10 +47,11 @@
  *
  * THE BAR'S FIT (#2214, the owner's BL1 A+B, BL2 A, BL3 A). Above the narrow tier, when the full bar would not fit on
  * one row, the tile labels, then the product name, then the plugin's file row, then the brand name (cut short, Q83 A)
- * give way, each by a measured check that sets `data-bar-fit`, reusing the narrow tier's rules where it has them. See
+ * give way, each by a measured check that sets `data-bar-fit`, reusing the narrow tier's rules where it has them. At the
+ * narrow tier (#2262, the owner's A), whose rows are its own, only the last step applies: the brand name is cut. See
  * `fitBar`.
  */
-import { currentMode, page, searchHits, searchQuery, setPage, setSearch, subscribe } from '../state/store';
+import { currentMode, page, rp, searchHits, searchQuery, setCurrentMode, setPage, setSearch, subscribe } from '../state/store';
 import { isDerived } from '../state/verdict';
 import { INSPECT, TABS, homeOf, isMenuPage, newPageOf, placeId, placeOfPage, placeOfTab, viewLabel, type Host, type InspectId, type NewPageKey, type Place, type TabId } from './pages';
 import { glyph, h, hook, tile } from './dom';
@@ -61,7 +62,7 @@ import { mountBar, type BarLend } from './bar';
 import { mountStyleGuides, type StyleGuidesLend } from './style-guides';
 import { THEME_CHOICES, onThemeChange, setThemePref, themeChoice } from './theme';
 import { mountPalettesLevers } from '../domains/color-palettes';
-import { mountPalettesPreview } from '../preview/palettes';
+import { PALETTES_LIGHT_NOTE_ID, mountPalettesPreview } from '../preview/palettes';
 import { mountBrandLevers } from '../domains/brand';
 import { mountBrandPreview, type PageLends } from '../preview/brand';
 import { mountFillsLevers } from '../domains/color-fills';
@@ -93,9 +94,12 @@ const NEW_PAGES: Record<NewPageKey, {
   /** N-3 A (#1984): the page edits the previewed mode, so while the preview shows a derived mode its whole levers
    *  panel is read-only (`syncDerivedReadOnly` below). Brand and Palettes are brand-wide and stay editable. */
   readonly derivedReadOnly?: true;
+  /** PM1 B (owner, 2026-10-08; #2321): the page always shows Light, and the mode control is held disabled while it is
+   *  up, described by the page's line at `id` (`syncModePin` below). */
+  readonly pinsLight?: { readonly why: string };
 }> = {
   brand: { levers: mountBrandLevers, preview: mountBrandPreview },
-  palettes: { levers: mountPalettesLevers, preview: mountPalettesPreview },
+  palettes: { levers: mountPalettesLevers, preview: mountPalettesPreview, pinsLight: { why: PALETTES_LIGHT_NOTE_ID } },
   fills: { levers: mountFillsLevers, preview: mountSurfacesPreview, derivedReadOnly: true },
   interactive: { levers: mountInteractiveLevers, preview: mountInteractivePreview, derivedReadOnly: true },
   type: { levers: mountTypeLevers, preview: mountTypePreview, derivedReadOnly: true },
@@ -285,7 +289,12 @@ export const mountFrame = (app: HTMLElement, opts: {
   // ── notices, the panes ──────────────────────────────────────────────────────────────────────────
   // The notices row sits under the top bar, full width (S13.1): the error strip, in the chrome's theme.
   const notices = hook(h('div', 'p3-notices'), 'notices');
-  head.append(bar, notices, nav, subRow);
+  // #2212: the page's one h1, for a reader who moves by headings: the page's name, as its tab (or Color's sub-page tab)
+  // shows it, so no new words. Visually hidden (the preview's title is the visible one), and ahead of the tab row and both panes, so the
+  // levers' h2 sections and the preview's h2 follow it at every width, whichever narrow pane shows. The Build style
+  // guides page draws its own h1, so this one is out of the document there.
+  const pageHeading = hook(h('h1', 'p3-sr'), 'page-heading');
+  head.append(bar, notices, pageHeading, nav, subRow);
 
   const panes = hook(h('div', 'p3-panes'), 'panes');
   const levers = hook(h('section', 'p3-levers'), 'levers-pane');
@@ -360,7 +369,8 @@ export const mountFrame = (app: HTMLElement, opts: {
   const previewHead = hook(h('div', 'p3-preview-head'), 'preview-head');
   const previewTitle = hook(h('h2', 'p3-preview-title'), 'preview-title');
   previewTitle.id = 'p3-preview-title';
-  previewHead.append(previewTitle, modeControl(cleanups), inspectMenu((v, opener) => openInspect(v, opener), cleanups));
+  const modes = modeControl(cleanups);
+  previewHead.append(previewTitle, modes.el, inspectMenu((v, opener) => openInspect(v, opener), cleanups));
   // V1: the body shows the page's one home view, named by `data-view`. It changes on a tab or sub-page
   // change and on nothing else. Each domain slice draws its view here (S2 first).
   const previewBody = hook(h('div', 'p3-preview-body'), 'preview-body');
@@ -562,6 +572,32 @@ export const mountFrame = (app: HTMLElement, opts: {
     }
   }
   cleanups.push(subscribe('mode', syncDerivedReadOnly));
+  // PM1 B (owner, 2026-10-08; #2321): a page that pins Light (Palettes). On the way in, the preview is switched to
+  // Light, the mode the person had is kept, and the mode control is held in the disabled skin. On the way out, the
+  // kept mode is put back, if the brand still ships it. The pin writes the store's own mode, so everything that reads
+  // it (the page, Inspect, the verdict) agrees with what the held control shows. A mode written by anything else
+  // while pinned (a brand loaded, which starts at the brand's first mode) is the new starting point: the kept mode is
+  // dropped, and nothing is put back.
+  let pinned = false;
+  let keptMode: typeof currentMode | null = null;
+  let pinWriting = false;
+  const pinWrite = (m: typeof currentMode): void => { pinWriting = true; try { setCurrentMode(m); } finally { pinWriting = false; } };
+  /** Run as the place changes, before the next page is mounted, so it mounts in the mode it will show. */
+  const syncModePin = (next: NewPageKey | null): void => {
+    const pin = next !== null ? NEW_PAGES[next].pinsLight ?? null : null;
+    if (pin && !pinned) {
+      pinned = true;
+      keptMode = currentMode === 'light' ? null : currentMode;
+      if (keptMode !== null) pinWrite('light');
+    } else if (!pin && pinned) {
+      pinned = false;
+      const back = keptMode;
+      keptMode = null;
+      if (back !== null && back !== currentMode && (rp.modes as readonly string[]).includes(back)) pinWrite(back);
+    }
+    modes.hold(pin ? pin.why : null);
+  };
+  cleanups.push(subscribe('mode', () => { if (pinned && !pinWriting) keptMode = null; }));
   cleanups.push(unmountPanes, () => { for (const c of menuCleanups ?? []) c(); menuCleanups = null; });
   // QA-B9: record which lever section each interaction is in. Records only; an edit handler turns a record
   // into a note, and nothing else moves the preview (V1).
@@ -594,6 +630,7 @@ export const mountFrame = (app: HTMLElement, opts: {
     const moved = place && !onMenu ? newPageOf(place) : null;
     if (moved !== mounted) {
       unmountPanes();
+      syncModePin(moved);
       if (moved) {
         const row = NEW_PAGES[moved];
         row.levers(levers, paneCleanups, opts.lend);
@@ -628,6 +665,11 @@ export const mountFrame = (app: HTMLElement, opts: {
     // V1: the preview names the page's one home view. Nothing but a place change moves it.
     const home = place ? homeOf(place) : null;
     previewTitle.textContent = home ? viewLabel(home) : '';
+    const tabOf = place ? TABS.find((t) => t.id === place!.tab) : undefined;
+    const pageName = (place?.sub ? tabOf?.subs?.find((x) => x.id === place!.sub)?.label : tabOf?.label) ?? '';
+    pageHeading.textContent = pageName;
+    if (onMenu || !pageName) pageHeading.remove();
+    else if (!pageHeading.isConnected) head.insertBefore(pageHeading, nav);
     if (home) previewBody.dataset.view = home; else delete previewBody.dataset.view;
 
     root.dataset.inspect = inspecting ?? '';
@@ -663,6 +705,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   // the full bar, everything shown, so it never depends on the step that happens to be drawn and the state cannot
   // flap; it is taken once per content change (a mutation in the bar's controls, a font load, a change of tier) and
   // reused while only the width moves. A breakpoint would not hold: a longer brand name needs the steps sooner.
+  // At the narrow tier only the cut name applies (#2262); see `fitBar`.
   type FitWidths = { readonly full: number; readonly glyphs: number; readonly logo: number; readonly rows: number | null };
   let fitWidths: FitWidths | null = null;
   const measureFit = (): FitWidths => {
@@ -695,20 +738,17 @@ export const mountFrame = (app: HTMLElement, opts: {
     return { full, glyphs: full - labels, logo: full - labels - name, rows: rowBreak ? first - labels - name : null };
   };
   const fitBar = (): void => {
-    // The switcher's tooltip shows its full name only while `trim` cuts it (Q83 A). The narrow tier draws no step, so
-    // it clears the tooltip too, or one set at `trim` would linger there, depending on the path to that width (#2262).
-    if (root.dataset.w === 'narrow') {
-      fitWidths = null;
-      delete root.dataset.barFit;
-      barMain.querySelector<HTMLElement>('[data-p3="brand-switcher"]')?.removeAttribute('title');
-      return;
-    }
     const room = barMain.getBoundingClientRect().width;
     if (!room) return;   // not laid out yet: the observer calls again once it is
     fitWidths ??= measureFit();
     const fits = (x: number): boolean => x <= room + 0.01;
     const f = fitWidths;
-    const step = fits(f.full) ? null : fits(f.glyphs) ? 'glyphs' : fits(f.logo) ? 'logo' : f.rows !== null && fits(f.rows) ? 'rows' : 'trim';
+    // The narrow tier (#2262, the owner's A, 2026-10-09) already draws its own rows: the labels and the product name
+    // dropped, and on the plugin the file row below. Its one step is Q83 A's: when its first row would not fit, the
+    // brand switcher's name is cut, by the same measured check, so a long name never wraps that row anywhere else. The
+    // measurement is taken under the narrow rules (a change of tier clears it), so the labels and name add nothing.
+    const step = root.dataset.w === 'narrow' ? (fits(f.rows ?? f.full) ? null : 'trim')
+      : fits(f.full) ? null : fits(f.glyphs) ? 'glyphs' : fits(f.logo) ? 'logo' : f.rows !== null && fits(f.rows) ? 'rows' : 'trim';
     if (step) root.dataset.barFit = step; else delete root.dataset.barFit;
     const sw = barMain.querySelector<HTMLElement>('[data-p3="brand-switcher"]');
     const nameEl = sw?.querySelector<HTMLElement>('.p3-brand-name');

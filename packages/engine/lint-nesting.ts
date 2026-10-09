@@ -30,6 +30,15 @@
  * surface`'s, which fails by name on the digest. A per-host floor DERIVED from the nest edges would be the
  * circular gate the discipline forbids; the independent form is a claim about focus rings, a different gate.
  *
+ *  ── glyph-resolves ──  (#2380) every icon-set glyph a def draws outside `icon` is an INSTANCE of the icon
+ *     component `icon/<glyph>`, so it is a nest edge too: the def depends on `icon` being built first, exactly
+ *     as a focus-ring host depends on `focus-ring`. These edges are read off the def's `vector` parts (a
+ *     `glyph` named in the icon vocabulary and not a component-owned glyph), and each must name a glyph the
+ *     icon def actually emits a component for. EXPECTED is the icon def's own `name` axis values (the members
+ *     it builds); SUBJECT is the `glyph` string authored in the consuming def. Renaming a def's glyph to one
+ *     the icon def has no member for fails THIS arm by name. The edges join the acyclic walk, so a def that
+ *     `icon` nested would be caught as a cycle. Floor: at least one glyph edge exists.
+ *
  * NOT an ORDERING gate. #1226 PR-A considered and REJECTED a gate asserting `components/index.ts`'s array
  * order matches the nest graph, because nothing reads that order (the file's own header says so, and the
  * plugin builds one def per invocation) — a gate that fails on a reorder while protecting no consumer is
@@ -37,6 +46,8 @@
  * it guarantees an order EXISTS without pinning the array to one.
  */
 import { componentDefs } from './components/index';
+import { ICON_NAMES } from './icon-glyphs';
+import { COMPONENT_GLYPHS } from './component-glyphs';
 
 type Edge = { from: string; part: string; to: string };
 
@@ -45,6 +56,18 @@ const edges: Edge[] = [];
 for (const def of componentDefs)
   for (const [part, p] of Object.entries(def.anatomy?.parts ?? {}))
     if (p.nests) edges.push({ from: def.id, part, to: p.nests });
+
+// THE GLYPH EDGES (#2380): an icon-set glyph outside `icon` is an instance of `icon/<glyph>`. The def id is
+// typed here; the glyph is the def's own string. A templated glyph (`{name}`) is the icon def's own and draws.
+const ICON = 'icon';
+type GlyphEdge = Edge & { glyph: string };
+const glyphEdges: GlyphEdge[] = [];
+for (const def of componentDefs) {
+  if (def.id === ICON) continue;
+  for (const [part, p] of Object.entries(def.anatomy?.parts ?? {}))
+    if (p.kind === 'vector' && p.glyph && !p.glyph.includes('{') && !COMPONENT_GLYPHS[p.glyph] && (ICON_NAMES as readonly string[]).includes(p.glyph))
+      glyphEdges.push({ from: def.id, part, to: ICON, glyph: p.glyph });
+}
 
 const fail: string[] = [];
 
@@ -63,6 +86,19 @@ if (edges.length === 0) {
 for (const e of edges)
   if (!ids.has(e.to))
     fail.push(`nest-resolves: ${e.from}.${e.part} nests '${e.to}', which is not a component in componentDefs (have: ${[...ids].join(', ')}) — a designer building ${e.from} would find its nested target never appears`);
+
+// ── ARM 1b: glyph-resolves (#2380) ─────────────────────────────────────────────────────────────────
+// The icon def must exist and emit a component for each glyph a def draws as its instance. EXPECTED is the
+// icon def's `name` axis — the members it builds — not the vocabulary the consuming def was validated against.
+const iconDef = componentDefs.find((d) => d.id === ICON);
+const iconMembers = new Set<string>((iconDef?.variants?.name ?? []) as string[]);
+if (glyphEdges.length === 0)
+  fail.push(`glyph floor: no def draws an icon-set glyph as an instance of '${ICON}/<glyph>' — the arm below passes vacuously over none, so an empty set is itself the failure (#2380 has a dozen)`);
+for (const e of glyphEdges)
+  if (!iconDef) fail.push(`glyph-resolves: ${e.from}.${e.part} draws '${e.glyph}' as an instance of '${ICON}/${e.glyph}', and there is no '${ICON}' def to build it`);
+  else if (!iconMembers.has(e.glyph))
+    fail.push(`glyph-resolves: ${e.from}.${e.part} draws '${e.glyph}' as an instance of '${ICON}/${e.glyph}', and the '${ICON}' def builds no member named '${e.glyph}' — the instance would resolve to nothing`);
+edges.push(...glyphEdges);
 
 // ── ARM 2: acyclic ───────────────────────────────────────────────────────────────────────────────
 // Standard DFS three-colour cycle detection over the nests graph. Only edges whose target resolves are
@@ -88,4 +124,4 @@ if (fail.length) {
   for (const f of fail) console.error(`  · ${f}`);
   process.exit(1);
 }
-console.log(`✓ lint-nesting: ${edges.length} nest edge(s) across ${componentDefs.length} defs — every target resolves and the graph is acyclic.`);
+console.log(`✓ lint-nesting: ${edges.length - glyphEdges.length} nest edge(s) and ${glyphEdges.length} icon-instance edge(s) across ${componentDefs.length} defs — every target resolves and the graph is acyclic.`);
