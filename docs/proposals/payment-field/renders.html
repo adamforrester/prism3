@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Payment field plan renders</title>
+<!--
+  PLAN RENDERS for the payment field proposal (#2429). Not Figma output, and not built from a def:
+  hand-drawn HTML at the text-field's documented geometry (44px control, 16px padding, 8px gap, 4px
+  radius, body md 16 input, label 14, message 12) with one generated brand's resolved values for the
+  roles named in the proposal's token contract. Card marks are NEUTRAL PLACEHOLDERS — no network
+  artwork appears here or anywhere in this directory.
+  PNGs beside this file are screenshots of each <section>, taken with Playwright and Chromium.
+-->
+<style>
+  :root {
+    --text-primary: #0d0d0e;      /* color.text.primary */
+    --text-secondary: #68686d;    /* color.text.secondary (placeholder, helper) */
+    --text-danger: #a13731;       /* color.text.danger (via field-message) */
+    --field-border: #818286;      /* color.field.border.rest */
+    --field-border-hover: #68686d;/* color.field.border.hover */
+    --border-danger: #b5413a;     /* color.border.danger */
+    --border-focus: #007cbb;      /* color.border.focus */
+    --icon-primary: #0d0d0e;      /* color.icon.primary */
+    --icon-tertiary: #818286;     /* color.icon.secondary/tertiary (neutral mark ink) */
+    --bg: #ffffff;                /* color.background.primary */
+    --bg-2: #e9e9ea;              /* color.background.secondary */
+    --disabled-fill: #ceced0;
+    --disabled-ink: #68686d;
+    --note: #6b4fbb;              /* annotation ink — NOT a Prism3 role */
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f4f4f5; font: 14px/1.4 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--text-primary); }
+  .sheet { background: var(--bg); padding: 32px; margin: 0; display: inline-block; min-width: 960px; }
+  .sheet h1 { font-size: 18px; margin: 0 0 4px; }
+  .sheet .sub { color: var(--text-secondary); margin: 0 0 24px; font-size: 13px; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .02em; padding: 2px 6px; border-radius: 3px; background: #efeaff; color: var(--note); margin-left: 6px; vertical-align: 2px; }
+  .row { display: flex; gap: 48px; align-items: flex-start; flex-wrap: wrap; }
+  .col { display: flex; flex-direction: column; gap: 8px; }
+  .cap { font-size: 12px; color: var(--note); font-weight: 600; margin-bottom: 8px; }
+
+  /* group */
+  fieldset.pf { border: 0; margin: 0; padding: 0; width: 360px; display: flex; flex-direction: column; gap: 16px; }
+  fieldset.pf.wide { width: 560px; }
+  .legend { font-size: 16px; font-weight: 600; margin-bottom: -4px; }
+  .pair { display: flex; gap: 16px; }
+  .pair > .tf { flex: 1; min-width: 0; }
+
+  /* text-field (medium) */
+  .tf { display: flex; flex-direction: column; gap: 8px; }
+  .tf .lbl { font-size: 14px; color: var(--text-secondary); }
+  .tf .ctl { position: relative; height: 44px; border: 1px solid var(--field-border); border-radius: 4px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 16px; }
+  .tf .ph { color: var(--text-secondary); }
+  .tf .val { color: var(--text-primary); direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; }
+  .tf .msg { font-size: 12px; color: var(--text-secondary); display: flex; gap: 4px; align-items: flex-start; }
+  .tf.err .ctl { border-color: var(--border-danger); }
+  .tf.err .msg { color: var(--text-danger); }
+  .tf.focus .ctl { border-color: var(--border-focus); box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--border-focus); }
+  .tf.dis .ctl { background: var(--disabled-fill); border-color: var(--disabled-fill); color: var(--disabled-ink); }
+  .tf.dis .ph { color: var(--disabled-ink); }
+  .caret { display: inline-block; width: 1px; height: 22px; background: var(--text-primary); vertical-align: middle; }
+  .tf.sm .ctl { font-size: 14px; padding: 0 16px; } .tf.sm .lbl { font-size: 12px; }
+  .tf.lg .ctl { height: 52px; font-size: 18px; padding: 0 24px; } .tf.lg .lbl { font-size: 16px; }
+
+  /* neutral mark placeholder: 8:5 card shape, no artwork */
+  .mark { flex: none; width: 32px; height: 20px; border-radius: 3px; border: 1px dashed var(--icon-tertiary); display: inline-flex; align-items: center; justify-content: center; font-size: 7px; font-weight: 700; letter-spacing: .04em; color: var(--icon-tertiary); }
+  .mark.solid { border-style: solid; background: var(--bg-2); color: var(--text-secondary); }
+  .mark.lg { width: 38px; height: 24px; font-size: 8px; }
+  /* generic card glyph (core-icon style, retinted, not a logo) */
+  .glyph { flex: none; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; }
+  .glyph svg { width: 20px; height: 20px; }
+  .info { width: 16px; height: 16px; flex: none; }
+
+  .marks { display: flex; gap: 6px; align-items: center; }
+
+  /* annotations */
+  .anno { position: relative; }
+  .pin { position: absolute; width: 20px; height: 20px; border-radius: 50%; background: var(--note); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  ol.key { margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.55; max-width: 420px; }
+  ol.key li::marker { color: var(--note); font-weight: 700; }
+
+  /* combined single box (alternative C) */
+  .combo { height: 44px; border: 1px solid var(--field-border); border-radius: 4px; display: flex; align-items: center; padding: 0 16px; gap: 12px; font-size: 16px; width: 460px; }
+  .combo .seg { color: var(--text-secondary); white-space: nowrap; }
+  .combo .num { flex: 1; display: flex; gap: 8px; align-items: center; }
+
+  .rtl { direction: rtl; }
+  .rtl .tf .ctl { text-align: right; }
+  .divider { height: 1px; background: #e4e4e7; margin: 28px 0; }
+</style>
+</head>
+<body>
+
+<!-- ========== 01 RECOMMENDED: anatomy ========== -->
+<section class="sheet" id="r01">
+  <h1>Payment field — recommended shape (A), anatomy <span class="tag">PLAN RENDER — NOT FIGMA</span></h1>
+  <p class="sub">A group of nested text fields under one legend. Medium size, stacked layout. Marks are neutral placeholders; no network artwork.</p>
+  <div class="row">
+    <div class="anno">
+      <fieldset class="pf">
+        <div class="legend">Card details</div>
+        <div class="tf">
+          <div class="lbl">Card number</div>
+          <div class="ctl"><span class="ph">1234 1234 1234 1234</span><span class="mark">MARK</span></div>
+          <div class="msg">The card type shows when you start typing.</div>
+        </div>
+        <div class="pair">
+          <div class="tf">
+            <div class="lbl">Expiration date</div>
+            <div class="ctl"><span class="ph">MM / YY</span></div>
+          </div>
+          <div class="tf">
+            <div class="lbl">Security code</div>
+            <div class="ctl"><span class="ph">3–4 digits</span>
+              <svg class="info" viewBox="0 0 24 24" fill="var(--icon-primary)"><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10Zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM11 7h2v2h-2V7Zm0 4h2v6h-2v-6Z"/></svg>
+            </div>
+          </div>
+        </div>
+        <div class="tf">
+          <div class="lbl">ZIP or postal code</div>
+          <div class="ctl"><span class="ph"></span></div>
+        </div>
+      </fieldset>
+      <div class="pin" style="left:-28px; top:0">1</div>
+      <div class="pin" style="left:-28px; top:44px">2</div>
+      <div class="pin" style="left:366px; top:52px">3</div>
+      <div class="pin" style="left:-28px; top:150px">4</div>
+      <div class="pin" style="left:366px; top:180px">5</div>
+      <div class="pin" style="left:-28px; top:250px">6</div>
+    </div>
+    <div class="col">
+      <div class="cap">Parts</div>
+      <ol class="key">
+        <li><b>legend</b> — the group's name. Nests FieldLabel (a <code>&lt;fieldset&gt;</code>/<code>&lt;legend&gt;</code> in code). Text editable.</li>
+        <li><b>number</b> — nested TextField, <code>inputmode="numeric"</code>, <code>autocomplete="cc-number"</code>. Value stays LTR.</li>
+        <li><b>cardMark</b> — a swap slot at the number field's trailing edge, card-shaped (8:5), aria-hidden. Holds a neutral placeholder until the client nominates artwork.</li>
+        <li><b>expiry</b> — nested TextField, one input <code>cc-exp</code>, "MM / YY" shown in the label hint or placeholder.</li>
+        <li><b>securityCode</b> — nested TextField <code>cc-csc</code>; its trailing info glyph opens help in code (its own button).</li>
+        <li><b>postalCode</b> — nested TextField <code>postal-code</code>, behind a Figma-only toggle (on by default).</li>
+      </ol>
+      <div class="cap" style="margin-top:12px">Each nested field keeps its own label, message, status and state.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 02 STATES ========== -->
+<section class="sheet" id="r02">
+  <h1>States live on each nested field <span class="tag">PLAN RENDER — NOT FIGMA</span></h1>
+  <p class="sub">The group has no state axis of its own. A designer sets each nested field's status and state through exposed nested properties.</p>
+  <div class="row">
+    <div class="col">
+      <div class="cap">Typing: card type detected</div>
+      <fieldset class="pf">
+        <div class="legend">Card details</div>
+        <div class="tf focus">
+          <div class="lbl">Card number</div>
+          <div class="ctl"><span class="val">4242 4242 4242<span class="caret"></span></span><span class="mark solid">MARK</span></div>
+          <div class="msg">The card type shows when you start typing.</div>
+        </div>
+        <div class="pair">
+          <div class="tf"><div class="lbl">Expiration date</div><div class="ctl"><span class="ph">MM / YY</span></div></div>
+          <div class="tf"><div class="lbl">Security code</div><div class="ctl"><span class="ph">3–4 digits</span></div></div>
+        </div>
+      </fieldset>
+    </div>
+    <div class="col">
+      <div class="cap">Error on one part, message under that part</div>
+      <fieldset class="pf">
+        <div class="legend">Card details</div>
+        <div class="tf">
+          <div class="lbl">Card number</div>
+          <div class="ctl"><span class="val">4242 4242 4242 4242</span><span class="mark solid">MARK</span></div>
+        </div>
+        <div class="pair">
+          <div class="tf err"><div class="lbl">Expiration date</div><div class="ctl"><span class="val">04 / 19</span></div>
+            <div class="msg"><svg class="info" viewBox="0 0 24 24" fill="var(--text-danger)"><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10Zm-1-7v2h2v-2h-2Zm0-8v6h2V7h-2Z"/></svg>Enter a date in the future, such as 08 / 29.</div></div>
+          <div class="tf"><div class="lbl">Security code</div><div class="ctl"><span class="ph">3–4 digits</span></div></div>
+        </div>
+      </fieldset>
+    </div>
+    <div class="col">
+      <div class="cap">Disabled (whole group)</div>
+      <fieldset class="pf">
+        <div class="legend" style="color:var(--disabled-ink)">Card details</div>
+        <div class="tf dis"><div class="lbl">Card number</div><div class="ctl"><span class="ph">1234 1234 1234 1234</span><span class="mark">MARK</span></div></div>
+        <div class="pair">
+          <div class="tf dis"><div class="lbl">Expiration date</div><div class="ctl"><span class="ph">MM / YY</span></div></div>
+          <div class="tf dis"><div class="lbl">Security code</div><div class="ctl"><span class="ph">3–4 digits</span></div></div>
+        </div>
+      </fieldset>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 03 LAYOUTS + SIZES ========== -->
+<section class="sheet" id="r03">
+  <h1>Layout axis and size axis <span class="tag">PLAN RENDER — NOT FIGMA</span></h1>
+  <p class="sub">layout = stacked | inline; size = small | medium | large (the field sizing system, followed by every nested field). 2 × 3 = 6 members.</p>
+  <div class="row">
+    <div class="col">
+      <div class="cap">layout = stacked (default; any column ≥ 280)</div>
+      <fieldset class="pf">
+        <div class="legend">Card details</div>
+        <div class="tf"><div class="lbl">Card number</div><div class="ctl"><span class="ph">1234 1234 1234 1234</span><span class="mark">MARK</span></div></div>
+        <div class="pair">
+          <div class="tf"><div class="lbl">Expiration date</div><div class="ctl"><span class="ph">MM / YY</span></div></div>
+          <div class="tf"><div class="lbl">Security code</div><div class="ctl"><span class="ph">3–4 digits</span></div></div>
+        </div>
+        <div class="tf"><div class="lbl">ZIP or postal code</div><div class="ctl"></div></div>
+      </fieldset>
+    </div>
+    <div class="col">
+      <div class="cap">layout = inline (wide columns; wraps to stacked under its breakpoint in code)</div>
+      <fieldset class="pf wide">
+        <div class="legend">Card details</div>
+        <div class="pair">
+          <div class="tf" style="flex:2.2"><div class="lbl">Card number</div><div class="ctl"><span class="ph">1234 1234 1234 1234</span><span class="mark">MARK</span></div></div>
+          <div class="tf"><div class="lbl">Expiration date</div><div class="ctl"><span class="ph">MM / YY</span></div></div>
+          <div class="tf"><div class="lbl">Security code</div><div class="ctl"><span class="ph">3–4</span></div></div>
+        </div>
+        <div class="pair"><div class="tf" style="max-width:172px"><div class="lbl">ZIP or postal code</div><div class="ctl"></div></div></div>
+      </fieldset>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="row">
+    <div class="col"><div class="cap">small (fine pointers; 44px target kept)</div>
+      <div class="tf sm" style="width:300px"><div class="lbl">Card number</div><div class="ctl"><span class="ph">1234 1234 1234 1234</span><span class="mark">MARK</span></div></div></div>
+    <div class="col"><div class="cap">medium (default)</div>
+      <div class="tf" style="width:300px"><div class="lbl">Card number</div><div class="ctl"><span class="ph">1234 1234 1234 1234</span><span class="mark">MARK</span></div></div></div>
+    <div class="col"><div class="cap">large</div>
+      <div class="tf lg" style="width:320px"><div class="lbl">Card number</div><div class="ctl"><span class="ph">1234 1234 1234 1234</span><span class="mark lg">MARK</span></div></div></div>
+  </div>
+</section>
+
+<!-- ========== 04 ALTERNATIVES ========== -->
+<section class="sheet" id="r04">
+  <h1>Alternatives considered <span class="tag">PLAN RENDER — NOT FIGMA</span></h1>
+  <p class="sub">B: only a card-number field (a TextField specialization) and no group. C: one combined bordered box holding three inputs.</p>
+  <div class="row">
+    <div class="col">
+      <div class="cap">B — CardNumberField only; the page composes the rest from TextField</div>
+      <div class="tf" style="width:360px"><div class="lbl">Card number</div><div class="ctl"><span class="val">4242 4242 4242 4242</span><span class="mark solid">MARK</span></div><div class="msg">Members: size 3 × status 4 × state 7 = 84</div></div>
+      <div class="pair" style="width:360px">
+        <div class="tf"><div class="lbl">Expiration date</div><div class="ctl"><span class="ph">MM / YY</span></div></div>
+        <div class="tf"><div class="lbl">Security code</div><div class="ctl"><span class="ph">3–4 digits</span></div></div>
+      </div>
+      <div class="cap" style="color:var(--text-secondary); font-weight:400">The two lower fields are plain TextFields, placed by the designer.</div>
+    </div>
+    <div class="col">
+      <div class="cap">C — combined single box (not recommended)</div>
+      <div class="tf"><div class="lbl">Card</div>
+        <div class="combo"><span class="num"><span class="mark">MARK</span><span class="ph">Card number</span></span><span class="seg">MM / YY</span><span class="seg">CVC</span></div>
+        <div class="msg">One border and one message for three inputs: an error cannot say which part failed by position.</div>
+      </div>
+      <div class="tf err" style="margin-top:12px"><div class="lbl">Card</div>
+        <div class="combo" style="border-color:var(--border-danger)"><span class="num"><span class="mark solid">MARK</span><span class="val">4242 4242 4242 4242</span></span><span class="val">04 / 19</span><span class="seg">CVC</span></div>
+        <div class="msg">Your card's expiration date is in the past.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 05 CARD MARKS + RTL ========== -->
+<section class="sheet" id="r05">
+  <h1>Card-mark options and RTL <span class="tag">PLAN RENDER — NOT FIGMA</span></h1>
+  <p class="sub">What the trailing slot holds before and after detection. Every "MARK" box is a placeholder for artwork the client obtains from the network or its acquirer.</p>
+  <div class="row">
+    <div class="col">
+      <div class="cap">(a) Slot shows the generic card glyph until detected</div>
+      <div class="tf" style="width:300px"><div class="lbl">Card number</div><div class="ctl"><span class="ph">1234 1234 1234 1234</span>
+        <span class="glyph"><svg viewBox="0 0 24 24" fill="var(--icon-primary)"><path d="M3 3h18a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm17 8H4v8h16v-8Zm0-2V5H4v4h16Zm-6 6h4v2h-4v-2Z"/></svg></span></div></div>
+      <div class="cap" style="font-weight:400;color:var(--text-secondary)">A core glyph, retinted like any icon. Not a mark.</div>
+    </div>
+    <div class="col">
+      <div class="cap">(b) Accepted marks above, detected mark inside</div>
+      <div class="tf" style="width:300px"><div class="lbl" style="display:flex;justify-content:space-between;align-items:center">Card number <span class="marks"><span class="mark">MARK</span><span class="mark">MARK</span><span class="mark">MARK</span></span></div>
+        <div class="ctl"><span class="val">4242 4242</span><span class="mark solid">MARK</span></div></div>
+      <div class="cap" style="font-weight:400;color:var(--text-secondary)">Equal size and spacing for every accepted mark.</div>
+    </div>
+    <div class="col">
+      <div class="cap">(c) Slot empty until detected</div>
+      <div class="tf" style="width:300px"><div class="lbl">Card number</div><div class="ctl"><span class="ph">1234 1234 1234 1234</span></div></div>
+      <div class="cap" style="font-weight:400;color:var(--text-secondary)">No reserved width: the value never shifts, the slot appears at the edge.</div>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="row">
+    <div class="col rtl" dir="rtl">
+      <div class="cap">RTL page: labels, layout and the mark mirror; digits stay LTR</div>
+      <fieldset class="pf">
+        <div class="legend">تفاصيل البطاقة</div>
+        <div class="tf"><div class="lbl">رقم البطاقة</div><div class="ctl"><span class="val" dir="ltr">4242 4242 4242 4242</span><span class="mark solid">MARK</span></div></div>
+        <div class="pair">
+          <div class="tf"><div class="lbl">تاريخ الانتهاء</div><div class="ctl"><span class="val" dir="ltr">08 / 29</span></div></div>
+          <div class="tf"><div class="lbl">رمز الأمان</div><div class="ctl"><span class="val" dir="ltr">123</span></div></div>
+        </div>
+      </fieldset>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
