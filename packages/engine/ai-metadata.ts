@@ -512,7 +512,7 @@ export type AiMetadataOptions = { tokensFile?: string };
 
 /** The sidecar's schema id. The JSON Schema at `schema/ai-metadata.schema.json` carries the same `$id`,
  *  and a test holds the two equal — bump both together when a field is added, renamed or removed. */
-export const AI_METADATA_SCHEMA = 'prism3-ai-metadata/0.4';
+export const AI_METADATA_SCHEMA = 'prism3-ai-metadata/0.5';
 
 /** The one normative sentence (AI/C-1) — a check a reader can run with `tokens.json` alone: resolve both
  *  roles in each mode, composite a translucent one over its ground, compare with `min`. `lint-voice.ts`
@@ -775,9 +775,15 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
   };
   // STRIKETHROUGH IS A MODIFIER, NOT A STYLE (#2340, owner Q150 D): body and caption carry the guidance, since a
   // was-price or a zeroed-out line is set in them. No composite is minted for it; the meaning lives in the hidden text.
+  // How to apply it differs by surface, so that half is DATA keyed by surface (#2411, owner Q167 call 3), never
+  // prose naming one tool: `when_to_use` keeps only the rule that holds everywhere.
   const STRIKE = {
-    when: 'Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text ("Original price:", "Sale price:").',
-    avoid: 'Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.',
+    when: 'Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text ("Original price:", "Sale price:").',
+    avoid: 'Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.',
+    modifiers: { strikethrough: {
+      code: '`<del>` or `<s>`, with `text-decoration-line: line-through`.',
+      figma: 'A strikethrough override on the applied style.',
+    } },
   };
   const typography: Record<string, any> = {};
   for (const c of theme.typography.composites) {
@@ -808,6 +814,7 @@ export const buildAiMetadata = (theme: Theme, tree: any, opts: AiMetadataOptions
         : c.link ? `Do not use for non-link text (use \`type.${c.path.replace(/-link$/, '')}\`).`
         : struck ? `${d.avoid} ${STRIKE.avoid}` : d.avoid,
       resolves_to: resolves,
+      ...(struck ? { modifiers: STRIKE.modifiers } : {}),
     };
   }
   for (const w of theme.typography.weightRoles) {

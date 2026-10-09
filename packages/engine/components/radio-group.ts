@@ -100,7 +100,7 @@ export const radioGroup: ComponentDef = {
     // REQUIRED (#1698, decision 2) — the brief's §15 marks it `required: true`, and this prop's own text
     // says it is what makes the set exclusive. `test.ts` #1698 pins it by name.
     { name: 'name', type: 'string', required: true, description: 'The shared control name — LOAD-BEARING here, not a submission convenience: it is what enforces browser-level exclusivity across the set, so every group sets one. An individual option NEVER sets its own, which would break exclusivity outright.' },
-    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Disables the whole set — every row and the label dim, driven by the group\'s context (the native disabled is the source of truth). Not projected as a Figma state; the group has no disabled treatment of its own.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Disables the whole set — every row and the label dim, driven by the group\'s context (the native disabled is the source of truth). The group has no disabled treatment of its own.' },
   ],
 
   // No interactive state of the group's OWN — Prism 2's group is a single configuration. The rows and the
@@ -376,6 +376,10 @@ export const radioGroup: ComponentDef = {
   },
 
   notes: {
+    // #2411 (owner Q167 call 3): how a consumer-facing fact is projected into the design file — maintainer-only.
+    projection: [
+      '`disabled` is not projected as a Figma state. (Moved from props.disabled.description, #2411.)',
+    ],
     contested: [
       'THE `size` AXIS IS A GENERALIZATION OF PRISM 2, NOT A REPRODUCTION — Prism 2\'s group is single-size (a Large label). The family-universal `size` axis is carried so the group is not the one form def frozen at one size, scaling the label and rows together by `follow`. `[HELD]`: the owner may prefer a single-size group; if so, drop the axis and pin the nested label/rows to one rung. Inherited from `checkbox-group` verbatim — the two groups match by sharing this fork\'s resolution, not by each deciding it.',
       'THE GROUP PAINTS NOTHING and so declares no `paintKeys` — like `checkbox-group`, its whole color surface is its nested children\'s. The alternative (inventing a group fill or border) is exactly the surface Prism 2\'s transparent container does not have; a stack is structure, and its ink lives one level down in `field-label` and `radio-row` (whose control ink is `radio-control`\'s).',

@@ -83,7 +83,11 @@
       "a11y": {
         "worstOnWhite": 4.56,
         "worstOnBlack": 2.73,
-        "note": "text-on-gradient: white text clears 4.56:1 at the lightest stop, black text 2.73:1 at the darkest — a text overlay must meet its ratio at the worst-case point (constrain the lightness range or add a scrim); NEITHER plain overlay clears 4.5:1 body text — use a scrim or a solid container"
+        "floor": 4.5,
+        "clears": {
+          "white": true,
+          "black": false
+        }
       },
       "angle": 135
     },
@@ -169,7 +173,11 @@
       "a11y": {
         "worstOnWhite": 3.35,
         "worstOnBlack": 2.09,
-        "note": "text-on-gradient: white text clears 3.35:1 at the lightest stop, black text 2.09:1 at the darkest — a text overlay must meet its ratio at the worst-case point (constrain the lightness range or add a scrim); NEITHER plain overlay clears 4.5:1 body text — use a scrim or a solid container"
+        "floor": 4.5,
+        "clears": {
+          "white": false,
+          "black": false
+        }
       },
       "center": [
         0.5,

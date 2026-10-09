@@ -85,7 +85,7 @@ export const checkboxGroup: ComponentDef = {
     { name: 'required', type: 'boolean', default: false, required: false, description: 'Whether at least one option must be chosen. Off by default. Drives the nested FieldLabel\'s required marker and aria-required on the group. Group-level: an individual row never owns its own required. A form that marks the optional minority instead sets this false.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the group — the label\'s type and every row (control square, label ramp, gap) together, passed into the nested FieldLabel and rows by `follow`, so the group scales with the rest of the form.' },
     { name: 'name', type: 'string', required: false, description: 'A shared control name so the set submits as one field and works uncontrolled in a native form.' },
-    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Disables the whole set — every row and the label dim, driven by the group\'s context (the field\'s native disabled is the source of truth). Not projected as a Figma state; the group has no disabled treatment of its own.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Disables the whole set — every row and the label dim, driven by the group\'s context (the field\'s native disabled is the source of truth). The group has no disabled treatment of its own.' },
   ],
 
   // No interactive state of the group's OWN — Prism 2's group is a single configuration. The rows and the
@@ -358,6 +358,10 @@ export const checkboxGroup: ComponentDef = {
   },
 
   notes: {
+    // #2411 (owner Q167 call 3): how a consumer-facing fact is projected into the design file — maintainer-only.
+    projection: [
+      '`disabled` is not projected as a Figma state. (Moved from props.disabled.description, #2411.)',
+    ],
     contested: [
       'THE `size` AXIS IS A GENERALIZATION OF PRISM 2, NOT A REPRODUCTION — Prism 2\'s group is single-size (a Large label). The family-universal `size` axis is carried so the group is not the one form def frozen at one size, scaling the label and rows together by `follow`. `[HELD]`: the owner may prefer a single-size group; if so, drop the axis and pin the nested label/rows to one rung. Recorded as a fork rather than presented as settled.',
       'THE GROUP PAINTS NOTHING and so declares no `paintKeys` — the first projecting def whose whole color surface is its nested children\'s. The alternative (inventing a group fill or border) is exactly the surface Prism 2\'s transparent container does not have; a stack is structure, and its ink lives one level down in `field-label` and `checkbox-row`.',

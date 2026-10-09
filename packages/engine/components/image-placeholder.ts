@@ -69,7 +69,7 @@ export const imagePlaceholder: ComponentDef = {
   status: 'draft',
   summary: 'Empty media frame locked to 1:1, 4:3 or 16:9. Drop an image fill onto it.',
   description:
-    'An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick a ratio (1:1, 4:3 or 16:9) and the frame keeps that proportion while its size flexes to its container; a designer drops an image fill onto it (a native Figma action, not a modeled slot). Before an image arrives it shows a neutral fill and a centered "no image" marker, and it clips its content so a mismatched photo cannot overflow the frame.',
+    'An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick a ratio (1:1, 4:3 or 16:9) and the frame keeps that proportion while its size flexes to its container; a designer drops an image fill onto it (not a modeled slot). Before an image arrives it shows a neutral fill and a centered "no image" marker, and it clips its content so a mismatched photo cannot overflow the frame.',
 
   props: [
     { name: 'ratio', type: "enum: '1:1' | '4:3' | '16:9'", values: ['1:1', '4:3', '16:9'], default: '4:3', required: false, description: 'The width-to-height PROPORTION the frame holds while its actual size flexes — a square (1:1), the classic photo ratio (4:3), or widescreen (16:9). It is an aspect-ratio LOCK, not a pair of fixed dimensions: the frame derives its height from its width (or the reverse) so the shape survives being resized. Pick it from the media the frame will hold.' },
@@ -201,7 +201,7 @@ export const imagePlaceholder: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use an image placeholder wherever a layout reserves space for a photograph before one is chosen — a card\'s media slot, a hero, a gallery cell. Pick the ratio from the media it will hold (1:1 for square thumbnails, 4:3 for standard photography, 16:9 for video stills and wide banners); the frame keeps that proportion while it flexes to its container, so a row of cards stays aligned even as their widths change. Drop a photograph onto the frame as an image fill — a native Figma action. The frame clips its content, so a mismatched image stays inside the ratio rather than overflowing.',
+    usage: 'Use an image placeholder wherever a layout reserves space for a photograph before one is chosen — a card\'s media slot, a hero, a gallery cell. Pick the ratio from the media it will hold (1:1 for square thumbnails, 4:3 for standard photography, 16:9 for video stills and wide banners); the frame keeps that proportion while it flexes to its container, so a row of cards stays aligned even as their widths change. Drop a photograph onto the frame as an image fill. The frame clips its content, so a mismatched image stays inside the ratio rather than overflowing.',
     do: [
       'Pick the ratio from the media the frame will hold, and let the lock keep it while the size flexes',
       'Drop the photograph on as an image fill — the frame is the container, not a swappable slot',
@@ -240,6 +240,10 @@ export const imagePlaceholder: ComponentDef = {
   },
 
   notes: {
+    // #2411 (owner Q167 call 3): how a consumer-facing fact is projected into the design file — maintainer-only.
+    projection: [
+      'Dropping an image fill onto the frame is a native Figma action, not a modeled slot. (Moved from description and docs.usage, #2411.)',
+    ],
     contested: [
       'THE FILL SLOT IS `fill`, bound to `color.background.secondary`, and that role is a call rather than the only option. An empty media frame could read as the page (no fill), as a recessed well (`background.tertiary`), or as a distinct filled surface (`background.secondary`). The middle reads as a deliberate placeholder distinct from the page while staying quiet, which is what an empty state wants; a designer who wants a more recessed well rebinds to `background.tertiary`. Named here so the choice is weighable rather than assumed.',
       'THE SINGLE NOMINAL DIMENSION IS `width`, not `height`, and that is the natural axis for a media frame that is usually as wide as its column and derives its height from the ratio. A portrait-first layout would bind `height` instead; the aspect-lock capability accepts either (the validator refuses only binding BOTH). `width` is the common case, so it is the default here.',

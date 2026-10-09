@@ -31,7 +31,8 @@
         "evolution": [
           "Delivery has swung between network and rendering optimization. Under HTTP/1.1, connection limits favored CSS sprites and legacy icon fonts to cut requests. HTTP/2 multiplexing removed that bottleneck, and the field moved to tree-shaken inline SVG to fix the accessibility and flash-of-unstyled-content failures of font hacks. Now inline-SVG DOM weight is the bottleneck in dense interfaces, and parametric design (optical sizing, responsive weight, smooth micro-motion) pulls toward a hybrid: variable WOFF2 fonts for flexibility and a small DOM, beside ever-better tree-shaking for SVG.",
           "Multi-tone and variable fill became a state pair (outlined and filled) rather than two unrelated glyphs, and the set-as-versioned-API discipline hardened into alias maps, deprecation entry points and rename codemods. The consensus the practice adopts: the delivery mechanism is secondary to a strict, declarative, correctly labeled accessible API."
-        ]
+        ],
+        "projection": []
       }
     },
     "focus-ring": {
@@ -50,7 +51,8 @@
           "Where the ring is drawn — on the host's own border versus as an offset sibling outside it. Decided as the offset sibling, by measurement rather than preference: a ring on the border must win the single stroke a Figma node has away from an `outline` appearance's border, and in CSS it collapses the background sliver 1.4.11 depends on (button.md:34; docs/32, \"The focus ring is an ABSOLUTE sibling\").",
           "Whether the ring is one shared component or a per-component treatment. Decided as shared, and the token tier said so first — `focus.ring.*` and `color.border.focus` are top-level families, and `focus.ring.offset-field` emits separately (docs/32, \"The focus ring wants to be a shared nested component\").",
           "Offset values — the field ships 2px broadly and 0 for inputs. Both emit, and this def exposes the choice as the `offset` axis rather than picking one."
-        ]
+        ],
+        "projection": []
       }
     },
     "button": {
@@ -87,7 +89,8 @@
           "Field shift 2 (brief §13) — behavior moves into headless press primitives (Atlassian `Pressable`, React Aria `usePress`). Carried as a codeOnly rule.",
           "Field shift 3 (brief §13) — framework-agnostic delivery (Web Components + CSS variables). The brief holds its headline example, the Polaris Web Components move, as unverified; nothing here depends on it.",
           "1.4.13 Content on Hover or Focus is left out of `accessibility.wcag` (#1697): the brief lists it \"only if a tooltip is attached\", and this def attaches none — tooltip is planned, and the criterion belongs to its def."
-        ]
+        ],
+        "projection": []
       }
     },
     "button-destructive": {
@@ -124,7 +127,8 @@
           "Field shift 2 (brief §13) — behavior moves into headless press primitives (Atlassian `Pressable`, React Aria `usePress`). Carried as a codeOnly rule.",
           "Field shift 3 (brief §13) — framework-agnostic delivery (Web Components + CSS variables). The brief holds its headline example, the Polaris Web Components move, as unverified; nothing here depends on it.",
           "1.4.13 Content on Hover or Focus is left out of `accessibility.wcag` (#1697): the brief lists it \"only if a tooltip is attached\", and this def attaches none — tooltip is planned, and the criterion belongs to its def."
-        ]
+        ],
+        "projection": []
       }
     },
     "button-neutral": {
@@ -161,7 +165,8 @@
           "Field shift 2 (brief §13) — behavior moves into headless press primitives (Atlassian `Pressable`, React Aria `usePress`). Carried as a codeOnly rule.",
           "Field shift 3 (brief §13) — framework-agnostic delivery (Web Components + CSS variables). The brief holds its headline example, the Polaris Web Components move, as unverified; nothing here depends on it.",
           "1.4.13 Content on Hover or Focus is left out of `accessibility.wcag` (#1697): the brief lists it \"only if a tooltip is attached\", and this def attaches none — tooltip is planned, and the criterion belongs to its def."
-        ]
+        ],
+        "projection": []
       }
     },
     "icon-button": {
@@ -189,7 +194,8 @@
           "RESOLVED (#1427): a `surface` axis (default | inverse), following Button, and the glyph ink walks state on outline/ghost as Button's label does.",
           "RESOLVED (#1350, owner-decided 2026-09-08): icon-button keeps the 1:1 glyph rung (medium → icon.size.md, 24px), matching a standalone icon, where the text-bearing Button moved one rung smaller.",
           "RESOLVED (#1697): the disabled edge binds the disabled icon ink (as #1349 did for Button) instead of `color.disabled.border`, which measured 1.48–1.80:1 against the page; the pending member swaps in the real spinner."
-        ]
+        ],
+        "projection": []
       }
     },
     "icon-button-destructive": {
@@ -217,7 +223,8 @@
           "RESOLVED (#1427): a `surface` axis (default | inverse), following Button, and the glyph ink walks state on outline/ghost as Button's label does.",
           "RESOLVED (#1350, owner-decided 2026-09-08): icon-button keeps the 1:1 glyph rung (medium → icon.size.md, 24px), matching a standalone icon, where the text-bearing Button moved one rung smaller.",
           "RESOLVED (#1697): the disabled edge binds the disabled icon ink (as #1349 did for Button) instead of `color.disabled.border`, which measured 1.48–1.80:1 against the page; the pending member swaps in the real spinner."
-        ]
+        ],
+        "projection": []
       }
     },
     "icon-button-neutral": {
@@ -245,7 +252,8 @@
           "RESOLVED (#1427): a `surface` axis (default | inverse), following Button, and the glyph ink walks state on outline/ghost as Button's label does.",
           "RESOLVED (#1350, owner-decided 2026-09-08): icon-button keeps the 1:1 glyph rung (medium → icon.size.md, 24px), matching a standalone icon, where the text-bearing Button moved one rung smaller.",
           "RESOLVED (#1697): the disabled edge binds the disabled icon ink (as #1349 did for Button) instead of `color.disabled.border`, which measured 1.48–1.80:1 against the page; the pending member swaps in the real spinner."
-        ]
+        ],
+        "projection": []
       }
     },
     "field-label": {
@@ -267,6 +275,9 @@
         "evolution": [
           "FLOATING LABELS OUT OF FAVOR: the static top-aligned label is now the assumed default for accessibility, i18n and density; Material 3 keeps floating as an option (KB text-field brief §13).",
           "PLACEHOLDER-AS-LABEL is universally an anti-pattern — settled, though legacy code persists. This part is the visible label that replaces it."
+        ],
+        "projection": [
+          "In Figma the name wraps at a fixed max width — the default field width, 320, less the 4px gap before the marker — so the marker sits right after a one-line name. Three limits follow: a field stretched wider in Figma still wraps its name at that width; on a name long enough to wrap, the marker sits beside the wrapped name, not after its last word; and that required name runs past the field by the marker's width. (Moved from docs.usage, #2411.)"
         ]
       }
     },
@@ -286,7 +297,8 @@
           "The 16px glyph beside an 11px caption, optically. `icon.size.xs` is the only 16px rung and is 16 in every brand (it aliases `dimension.16` on the fixed grid), while `type.caption.md` resolves `font.size.11` — so the ARTBOARD is 45% larger than the caption's type size. That is expected rather than wrong (an icon artboard is ink plus its surrounding air, and this set's ink fills roughly 58-71% of it), and the reference asks for a glyph \"at the same optical weight as the text\", which is a judgment no gate here makes. Check it in Figma against a real caption before treating the size as settled.",
           "The WRAPPING case, which is where this def meets #1009 and is deliberately not fixed here. The row is `align: 'start'`, so the glyph aligns to the top of the caption box; #1009's reference for the sibling control shows the mark aligning to the FIRST LINE of a wrapping label, which is neither top nor block-center and is not the same rule as `start` once the caption's line-height exceeds the glyph. A single-line message cannot tell the two apart, and every member this def projects is single-line. Measure a two-line message before assuming `start` is the rule #1009 lands on."
         ],
-        "evolution": []
+        "evolution": [],
+        "projection": []
       }
     },
     "text-field": {
@@ -325,6 +337,9 @@
           "THE TYPED FAMILY IS SPLITTING into discrete components (a number field) for tree-shaking and localized behavior; the practice holds email / url / tel as `type` + attributes on this field (brief §3).",
           "ACCESSIBILITY WIRING MOVED INTO CONTEXT. Generated ids and the aria-describedby chain are stitched by the component, removing the most frequent manual-ARIA error from the consumer.",
           "VALIDATION TIMING CONVERGED on validate-on-blur, re-validate after the first error, focus-first-invalid and an error summary for long forms; autocomplete hardened into an SC 1.3.5 obligation, and WCAG 2.2 raised the bar on login and checkout fields (3.3.7, 3.3.8)."
+        ],
+        "projection": [
+          "The trailingIcon slot: Figma carries the glyph, not the action's behavior. (Moved from props.trailingIcon.description, #2411.)"
         ]
       }
     },
@@ -369,6 +384,10 @@
           "THE CHARACTER COUNTER MATURED from an afterthought into an audited sub-component: an aria-hidden visual counter plus a threshold-based polite live region.",
           "AI CO-AUTHORING IS THE EMERGING FRONTIER: content streamed into the field makes `pending` (aria-busy) newly relevant. A signal to watch, not a practice default.",
           "THE VARIANT-PROP vs DISTINCT-COMPONENT SPLIT PERSISTS; the practice ships a distinct Textarea (see `notes.contested`)."
+        ],
+        "projection": [
+          "The value and placeholder props restate TextField's because the Figma text property is keyed by them. (Moved from props.value and props.placeholder, #2411.)",
+          "The 16px grip drawn in Figma is decorative, not the resize handle's target. (Moved from accessibility.wcag, #2411.)"
         ]
       }
     },
@@ -393,7 +412,8 @@
           "RADIO AND SWITCH SPLIT AFTER THIS ONE. This entry used to say they were not split here: this was checkbox step 2 only, with the radio atom filed next and switch out of scope over its moving thumb. Both followed — `radio-control` (#1348, one `dot` box, no dash) and `switch-control` (#1354).",
           "Styling the native input won (brief §13): `appearance: none` plus a pseudo-element or SVG replaced both the `role=checkbox` div and the hidden-input-plus-fake-box hacks, keeping native semantics. That is the input this atom paints.",
           "The `indeterminate` ref callback superseded `useLayoutEffect` for performance in large lists (brief §13) — the mixed state is a DOM property the host sets, which is why this atom only draws the dash."
-        ]
+        ],
+        "projection": []
       }
     },
     "checkbox-row": {
@@ -428,7 +448,8 @@
           "`Checkbox.Control` IS A SEPARATE COMPONENT (`checkbox-control`, #1226 step 2) — the atom this Row nests. `checkbox-group` IS BUILT (#1347) — it nests this Row and owns the contract the brief specifies (§2): the value array, group-level required/validation, `orientation` — none of which is expressible from this Row, which is why the group is its own def rather than folded in. It is a three-def family decision: `radio-row` refines this decomposition with the group made mandatory, and `switch-row` with no group at all.",
           "THE CHECK-GLYPH MOTION HAS A HOME. It was recorded here as having no expression because the schema had no motion field. The schema has `motion`; the draw is stated on `checkbox-control`, where the glyph is, and this Row's `motion` names the rest (#1698).",
           "Field POV (brief §13): styling the native input won over the `role=checkbox` div and the hidden-input hacks; the group became a first-class component owning the value array and validation; `role=\"group\"` + `aria-labelledby` replaced `fieldset`/`legend`; the decomposition converged on a labeled row, a distinct group and an exposed atomic primitive — the shape this family is; and the `indeterminate` ref callback superseded `useLayoutEffect` for large lists."
-        ]
+        ],
+        "projection": []
       }
     },
     "checkbox-group": {
@@ -460,6 +481,9 @@
           "THE INTER-ROW GAP IS RESOLVED (#1623 sign-off). Each `checkbox-row` carries 12px of block padding and so spaces itself, so the group binds a 0px gap (`space.0`) and adds no stack gap on top. The provisional size-keyed gap this entry used to hold is gone; the group's `size` axis still scales its label and rows through `follow`.",
           "THE WIDTH/FILL MODEL IS RESOLVED (#1503, owner Option B: follow Prism 2). Prism 2's group is a fixed-320 root with rows set to FILL; this def now realizes that with the container floored at `minWidth: 320` and each row `crossAxisFill` (→ `layoutAlign: STRETCH`), the projection capability #1503 added. A `minWidth` floor rather than a fixed width keeps the group responsive (reads at 320, flexes above), the `select` #1345 precedent. `radio-group` mirrors this exactly, so the two groups match by SHARING one resolution (#1475). The inter-row gap was settled separately (0px, #1623 sign-off, the entry above).",
           "Field POV (brief §13): the group became a first-class component owning the value array and group validation, replacing ad-hoc hand-wired fieldsets; and `role=\"group\"` + `aria-labelledby` replaced `fieldset`/`legend`, driven by fieldset's CSS-layout quirks."
+        ],
+        "projection": [
+          "`disabled` is not projected as a Figma state. (Moved from props.disabled.description, #2411.)"
         ]
       }
     },
@@ -488,7 +512,8 @@
           "THE GROUP IS BUILT. This entry used to say RadioGroup was a separate component with no def (#901). `radio-group` (#1469) now owns the shared `name`, the single scalar value, the roving-tabindex single tab stop and all validation — none of which is expressible from this atom or from the Row. This def is the OPTION's painted control only.",
           "PER-OPTION ERROR DROPPED (#1698, decision 1). The atom carried an `error` state that drew a danger ring on each option (#1433a locked that ring and the unchanged inner dot). The brief says radio error is never per-option, and this def's own `errorPattern` agreed, so the state, its two `*.border.error` keys and the error column (36 → 30 members) are gone. The error shows at the group.",
           "Styled native inputs sharing a `name`, for free roving tabindex and exclusivity, won over hand-rolled `role=radio` div groups (brief §13). That is the input this atom paints."
-        ]
+        ],
+        "projection": []
       }
     },
     "radio-row": {
@@ -520,7 +545,8 @@
           "THE COMPANIONS ARE BUILT. This def used to record Radio.Control and RadioGroup as the two companions, with the group deferred (#901). `radio-control` (#1348) is the atom this Row nests, and `radio-group` (#1469) is the mandatory group that owns the shared `name`, the single scalar value, the roving-tabindex single tab stop, `orientation` and all validation.",
           "THE SELECT MICRO-MOTION HAS A HOME. It was recorded here as having no expression in the def schema. The schema has a `motion` field; the dot's transition is stated on `radio-control`, where the dot is, and this Row's `motion` names the rest.",
           "Field POV (brief §13): the group became the mandatory first-class component and the bare radio an incomplete unit; composition (a group wrapping option children) replaced the options array; styled native inputs sharing a `name` replaced hand-rolled `role=radio` groups, with `role=\"radiogroup\"` + `aria-labelledby` over `fieldset`; the segmented control split out as a compact presentation of the same semantics; and selection-follows-focus was affirmed as the default, with the cheap-`onChange` caveat."
-        ]
+        ],
+        "projection": []
       }
     },
     "radio-group": {
@@ -554,6 +580,9 @@
           "THE WIDTH/FILL MODEL IS `checkbox-group`'S RESOLVED ONE, COPIED DELIBERATELY (#1503, #1475, owner Option B). The audit found every column-stacking form group hugged its width with rows that did NOT fill it, where Prism 2 gives a fixed 320px root with rows set to FILL — because the projection could not emit cross-axis child FILL. #1503 added that capability (`crossAxisFill` → `layoutAlign: STRETCH`) plus a `minWidth` width floor, and landed it on `checkbox-group` FIRST; this def mirrors it verbatim (container `minWidth: 320`, rows `crossAxisFill`), so the two match by sharing ONE resolution rather than each guessing — building `radio-group` to a different width model is the one outcome that guarantees they never match. `test:roundtrip` asserts each row reads back `layoutAlign: STRETCH` on the offline host (a real-host confirmation is the standing nesting caveat in `unverified`).",
           "THE INTER-ROW GAP IS RESOLVED (#1623 sign-off), shared with `checkbox-group`. Each `radio-row` carries 12px of block padding and so spaces itself, so the group binds a 0px gap (`space.0`) and adds no stack gap on top. The provisional size-keyed gap this entry used to hold is gone; the group's `size` axis still scales its label and rows through `follow`.",
           "Field POV (brief §13): the group became the mandatory first-class component, owning `name`, the single value and validation; composition replaced the options array (Fluent v9 deprecating `ChoiceGroup` is the marker); and `role=\"radiogroup\"` + `aria-labelledby` replaced `fieldset`/`legend`."
+        ],
+        "projection": [
+          "`disabled` is not projected as a Figma state. (Moved from props.disabled.description, #2411.)"
         ]
       }
     },
@@ -583,6 +612,9 @@
         "evolution": [
           "THE ON/OFF AFFORDANCE SIMPLIFIED across the field (KB switch brief §13): Material dropped its in-thumb icon emphasis, and thumb position plus track color now carry the state, with hardcoded On/Off text rejected. This atom keeps the glyph ON by default (the `State icon` boolean; `showStateLabel` in code), matching Prism 2, and treats it as a legibility aid — never the state signal.",
           "`role=\"switch\"` MATURED from a newer role backed by checkbox fallbacks into the standard that distinguishes a switch from a checkbox in assistive tech (KB switch brief §13). The atom is presentational; the host row carries the role."
+        ],
+        "projection": [
+          "The Figma set carries `showStateLabel` as the `State icon` boolean, default on, so both surfaces start from the same default. (Moved from props.showStateLabel.description, #2411.)"
         ]
       }
     },
@@ -620,6 +652,9 @@
           "ASYNC MOVED INTO THE COMPONENT CONTRACT. Components moved from presenting a boolean toward handling optimistic updates and pending state themselves (Primer's `loading`, Fluent's async triggers) — the reason `isPending` is first-class here.",
           "THE ON/OFF AFFORDANCE SIMPLIFIED. Material dropped its in-thumb icon emphasis; position and color carry the state, and hardcoded On/Off text is rejected. The thumb glyph (`showStateLabel`, the `State icon` boolean in Figma) stays on by default as a legibility aid, never the state signal.",
           "SWITCH SEPARATED FROM TOGGLE BUTTON (`role=\"switch\"` + aria-checked against `aria-pressed`), where older systems conflated them."
+        ],
+        "projection": [
+          "`showStateLabel`'s default matches the `State icon` boolean in the Figma set. (Moved from props.showStateLabel.description, #2411.)"
         ]
       }
     },
@@ -651,7 +686,8 @@
           "STYLING ERA (~2015–2020): custom <div> listboxes to escape the unstyleable native element, at the cost of industry-wide accessibility regressions (KB select brief §13).",
           "ACCESSIBILITY ERA (~2020–2024): headless libraries (React Aria, Radix) codify the ARIA 1.2 listbox and combobox patterns correctly, with JavaScript positioning and focus management dominating the payload.",
           "PLATFORM ERA (2025–present): the Popover API, CSS Anchor Positioning and `appearance: base-select` let a native <select> carry custom styling and rich option content, collapsing the native-versus-custom trade. Directional and unverified in the brief — the reason this def stays native-first and models only the closed control."
-        ]
+        ],
+        "projection": []
       }
     },
     "veil": {
@@ -670,7 +706,8 @@
           "THE NOMINAL SIZE IS A PLACEHOLDER, NOT A MEASUREMENT (#1280's idiom). `container.narrow` (720px) is what makes the standalone build a wash-shaped rectangle; a veil has no intrinsic size, so nobody has decided 720px is RIGHT — it is a legible placeholder a designer resizes. In real use the box is full-bleed, sized to its media container, which no standalone Figma component can express. If a nested or laid-out veil is ever found stuck at 720px, the fix is the consumer sizing it to its container, not a change here.",
           "THE CONTRAST IS PER-IMAGE AND UNVERIFIABLE HERE — the whole reason #1317 renamed the rungs from WCAG floors to intensities. The engine derives each alpha as the least step clearing a floor against the WORST pixel of an UNKNOWN image, so the wash's effect on a REAL photo's combined contrast depends on that photo. This component cannot gate it; the accessibility and docs prose says to verify against the actual image, and there is no engine check that can stand in for that."
         ],
-        "evolution": []
+        "evolution": [],
+        "projection": []
       }
     },
     "image-placeholder": {
@@ -691,7 +728,10 @@
           "THE NOMINAL WIDTH IS A PLACEHOLDER, NOT A MEASUREMENT (the veil/focus-ring idiom). `container.narrow` (720px) makes the standalone build a media-shaped rectangle; the frame has no intrinsic size, so nobody has decided 720px is RIGHT — it is a legible placeholder a designer resizes over their layout, and the ratio, not the width, is the fixed fact.",
           "THE MARKER SIZE IS A FIXED FLOOR (180px), NOT A SIZE THAT TRACKS THE FRAME ON RESIZE (#1340). The owner asked to make the marker larger and, ideally, to scale it with the frame. A larger FIXED size grounded in Prism 2 (180px, its centered-glyph proportion, `glyphPx` on `marker`) is what shipped. TRUE proportional scaling — the marker tracking the frame's actual flexing extent as a designer resizes it — would need a Figma scale-constraint / percentage-size projection the engine does not have: the fluid `100%` container is skipped for exactly this reason (Figma has no percentage FLOAT primitive), and a per-ratio glyph would still be three fixed sizes, not resize-tracking. Filed as a follow-up mechanism question; the fixed floor is the deliverable, and 180px already reads as a proportion of the frame at every ratio (25% / 33% / 44% of the shorter side at 1:1 / 4:3 / 16:9), so the marker is no longer the stray 32px icon #1340 named."
         ],
-        "evolution": []
+        "evolution": [],
+        "projection": [
+          "Dropping an image fill onto the frame is a native Figma action, not a modeled slot. (Moved from description and docs.usage, #2411.)"
+        ]
       }
     },
     "spinner": {
@@ -738,7 +778,8 @@
           "FIELD (brief §13.3): never unlabeled. A bare animated SVG is silent to assistive tech; `role=\"status\"` with a \"Loading\" name, or `aria-busy` on the region, is now the baseline. The default \"Loading\" above is this def's answer.",
           "FIELD (brief §13.4): `aria-disabled` over `disabled` in loading buttons (USWDS), keeping focus and the workflow rather than sending focus to the page body. Button's `isPending` carries it.",
           "FIELD (brief §13.5): the anti-flash discipline, the reduced-motion substitute and `currentColor` theming, carried over from the perceived-performance and motion-accessibility work."
-        ]
+        ],
+        "projection": []
       }
     },
     "badge": {
@@ -770,7 +811,8 @@
           "The status label's corner is the small radius, `radius.sm` (owner decision, 2026-09-28): 2px in nb and prism3, 4px in aurora, so it scales per brand. The count and the dot stay `radius.round`. Before it every type was a pill, and a subtle status label with its 1px edge read close to Tag's outlined pill.",
           "A leading icon on the status label, as the brief allows, painted from the tone's icon role.",
           "A size axis (small, medium, large) for the count and status label, once a host needs more than one."
-        ]
+        ],
+        "projection": []
       }
     },
     "tag": {
@@ -825,7 +867,8 @@
           "The label wraps rather than truncating (#1758): the earlier guidance, an ellipsis paired with a title or tooltip, left the full text unreachable by keyboard, touch and screen reader.",
           "The brief's `Token` alias is not carried as a bare alias: in this repo \"token\" means a design token, and an agent asked for one would land here. \"recipient token\" is kept as a trigger phrase.",
           "A leading icon rung one smaller than the control rung (Button's #1350 offset) would suit a text-bearing tag; it is an owner exception in `lint-rung-names.ts`, so the 1:1 rung ships and the offset is held."
-        ]
+        ],
+        "projection": []
       }
     }
   }

@@ -889,6 +889,16 @@ jobs:
       - name: Every Figma description is in the plugin register (#1623)
         run: npx --yes tsx@4 packages/engine/lint-figma-descriptions.ts
 
+      # #2411 (owner Q167) — CONSUMER PROSE NAMES NO TOOL. Reads the committed out/ files: every DTCG
+      # $description (token, group, per mode), the decision record, the .ai.json guidance fields and the
+      # component docs and pages, against a word list TYPED in the gate (never imported from an emitter).
+      # Exempt by PATH, never by word: figma.*, out/figma/**, css, responsive.web, generator.*, and the
+      # surface-keyed modifiers.*. Also: no `note` key under any $extensions, and each gradient's
+      # a11y.clears.<ink> matches the worst case recomputed from its stops (#2422). Every promised field
+      # is represented in every brand and file, with floors.
+      - name: Consumer prose names no tool (#2411)
+        run: npx --yes tsx@4 packages/engine/lint-tool-neutral-prose.ts
+
       # THE SECOND DIRECTION (#865). Every write the component executor makes is verified by a read-back
       # — set the value, read it, report a miss if the host did not keep it. Nothing verified what it did
       # NOT write, and a Figma node is never silent: a property no def mentioned kept Figma's own default

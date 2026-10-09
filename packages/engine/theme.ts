@@ -82,7 +82,9 @@ export type OKLCH = { l: number; c: number; h: number };
 /** A generated primitive palette. */
 /** `generated` names the hue of a status ramp the engine generated because the brand supplies none (e.g.
  *  `'red'`), so a surface can say so from a field rather than by reading `description` (#1623 FG/F-14). */
-export type PaletteBuild = { palette: string; role: Role; steps: Step[]; description: string; generated?: string };
+/** `hueSource` (#2411, owner Q167) records, for a STATUS palette, whether its hue came from the brand or is the
+ *  engine's default. It is emitted as data on each step of the palette so `$description` carries purpose only. */
+export type PaletteBuild = { palette: string; role: Role; steps: Step[]; description: string; generated?: string; hueSource?: 'brand' | 'default' };
 
 /** Per-mode LEVER overrides for the non-colour axes (Phase D). A customizable mode may override
  *  an input lever the engine RE-DERIVES for that mode — the radius scale, motion tempo, component
@@ -2639,7 +2641,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     notes.push(supplied
       ? `${k}: the brand's hue ${n2(s.h)} — the ramp is built from its hue and chroma, not pinned at its lightness, so the exact swatch may not appear.`
       : `${k}: default hue ${n2(s.h)} — status.${k} is not set.`);
-    return { palette: k, role: k as Role, description: `${k} status`, steps: statusRamp(s.h, s.chroma) };
+    return { palette: k, role: k as Role, description: `${k} status`, hueSource: supplied ? 'brand' as const : 'default' as const, steps: statusRamp(s.h, s.chroma) };
   };
   palettes.push(status('success'), status('warning'), status('info'));
 
@@ -2660,7 +2662,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     // Explicit rebasing (docs/21) wins over the carve heuristic — the general roleColors
     // pass below sets roleToPalette.danger; skip the carve/synth so no orphan danger ramp is minted.
   } else if (input.status?.danger) {
-    palettes.push({ palette: 'danger', role: 'danger', description: 'danger status (brand-supplied)', steps: statusRamp(input.status.danger.h, input.status.danger.chroma) });
+    palettes.push({ palette: 'danger', role: 'danger', description: 'danger status (brand-supplied)', hueSource: 'brand', steps: statusRamp(input.status.danger.h, input.status.danger.chroma) });
     notes.push(`danger: the brand's hue ${n2(input.status.danger.h)}.`);
   } else if (inRedTerritory(input.primary.h, input.primary.c)) {
     // The brand's own colour IS a saturated red — seed danger FROM the primary ramp rather than
@@ -2671,12 +2673,12 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     // redundancy (danger ≈ primary while shared) is the deliberate price for that stable contract,
     // and it makes the red case consistent with the carve case (which already mints `danger`).
     const primarySteps = palettes.find((p) => p.palette === 'primary')!.steps;
-    palettes.push({ palette: 'danger', role: 'danger', description: 'danger status (seeded from the red brand primary — its own ramp so danger stays re-pointable)', steps: primarySteps.map((s) => ({ ...s, oklch: { ...s.oklch }, rgb: { ...s.rgb } })) });
+    palettes.push({ palette: 'danger', role: 'danger', description: 'danger status (seeded from the red brand primary — its own ramp so danger stays re-pointable)', hueSource: 'brand', steps: primarySteps.map((s) => ({ ...s, oklch: { ...s.oklch }, rgb: { ...s.rgb } })) });
     notes.push(`danger: the primary (hue ${n2(input.primary.h)}, chroma ${n4(input.primary.c)}) is a saturated red, so danger reuses its ramp as a separate palette — danger can still be repointed on its own.`);
   } else {
     // Primary is not a saturated red, so carve a dedicated danger red the brand never gave us.
     const d = STATUS_DEFAULTS.danger;
-    palettes.push({ palette: 'danger', role: 'danger', description: 'danger status, engine-generated red ramp (the brand supplies no danger hue)', generated: 'red', steps: statusRamp(d.h, d.chroma) });
+    palettes.push({ palette: 'danger', role: 'danger', description: 'danger status', generated: 'red', hueSource: 'default', steps: statusRamp(d.h, d.chroma) });
     // Distinguish the two carve reasons (M-05): a red-ish-but-greige primary must NOT be reused
     // for danger (a near-grey can't signal destruction), even though its hue is in the window.
     const hueIsRed = hueDist(input.primary.h, STATUS_DEFAULTS.danger.h) <= 20;
@@ -2895,7 +2897,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const gradient = buildGradient(input.gradients, palettes, root);
   if (gradient.gradients.length) {
     // Kind, angle and interpolation sit in $extensions because DTCG has no field for them (#101).
-    notes.push(`gradient: ${gradient.gradients.length} brand gradient(s) — ${gradient.gradients.map((g) => `${g.name} (${g.kind}${g.kind === 'linear' ? ` ${g.angle}°` : ''}, ${g.stops.length} stops)`).join(', ')}. Stops alias the color ramps and blend in ${gradient.gradients[0].interpolation}; Figma gets a ${gradient.gradients[0].sampled.length}-stop sRGB version. Contrast for text on a gradient is computed at its worst-contrast stop.`);
+    notes.push(`gradient: ${gradient.gradients.length} brand gradient(s) — ${gradient.gradients.map((g) => `${g.name} (${g.kind}${g.kind === 'linear' ? ` ${g.angle}°` : ''}, ${g.stops.length} stops)`).join(', ')}. Stops alias the color ramps and blend in ${gradient.gradients[0].interpolation}; a tool that blends only in sRGB gets a ${gradient.gradients[0].sampled.length}-stop sRGB version. Contrast for text on a gradient is computed at its worst-contrast stop.`);
   } else {
     notes.push('gradient: none — the brand declares no gradients, and none are added by default.');
   }
@@ -3066,7 +3068,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // The mobile shrink follows the fluid-display curve researched for the type ladder (docs record the
   // source); the line-height ratio and its Figma px materialization are format facts, not decisions,
   // so the note leaves them out.
-  notes.push(`typography: ${typography.sizesPx.length}-step size ladder (${n2(typography.sizesPx[0])}–${n2(typography.sizesPx[typography.sizesPx.length - 1])}px), a fixed set rather than a ratio; weights ${typography.weightRoles.map((w) => w.role).join('/')} → ${typography.weightRoles.map((w) => w.value).join('/')}; families ${typography.families.map((f) => `${f.group} ${f.stack[0]}`).join(', ')}${varFams.length ? ` (variable: ${varFams.join('/')})` : ''}; '${typography.typeScale}' type scale. ${typography.composites.length} text styles: title and display sizes follow the type scale, display tops out at '${reqCeiling}' (${n2(effCap)}px), title.2xs is ${(input.typography?.titleFloor ?? 18) === 16 ? 'included' : 'left out'}${(input.typography?.captionFloor ?? 11) === 10 || (input.typography?.sizeFloor ?? 10) === 8 ? `, caption adds ${[(input.typography?.sizeFloor ?? 10) === 8 ? 'caption.xs (8px)' : '', (input.typography?.captionFloor ?? 11) === 10 ? 'caption.sm (10px)' : ''].filter(Boolean).join(' and ')}` : ''}${capNote}. ${typography.fluid ? `${typography.composites.filter((c) => c.sizeMinPx !== c.sizePx).length} styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from ${n2(typography.minViewport)} to ${n2(typography.maxViewport)}px and desktop and mobile Figma modes.` : 'Sizes are fixed at every viewport.'}`);
+  notes.push(`typography: ${typography.sizesPx.length}-step size ladder (${n2(typography.sizesPx[0])}–${n2(typography.sizesPx[typography.sizesPx.length - 1])}px), a fixed set rather than a ratio; weights ${typography.weightRoles.map((w) => w.role).join('/')} → ${typography.weightRoles.map((w) => w.value).join('/')}; families ${typography.families.map((f) => `${f.group} ${f.stack[0]}`).join(', ')}${varFams.length ? ` (variable: ${varFams.join('/')})` : ''}; '${typography.typeScale}' type scale. ${typography.composites.length} text styles: title and display sizes follow the type scale, display tops out at '${reqCeiling}' (${n2(effCap)}px), title.2xs is ${(input.typography?.titleFloor ?? 18) === 16 ? 'included' : 'left out'}${(input.typography?.captionFloor ?? 11) === 10 || (input.typography?.sizeFloor ?? 10) === 8 ? `, caption adds ${[(input.typography?.sizeFloor ?? 10) === 8 ? 'caption.xs (8px)' : '', (input.typography?.captionFloor ?? 11) === 10 ? 'caption.sm (10px)' : ''].filter(Boolean).join(' and ')}` : ''}${capNote}. ${typography.fluid ? `${typography.composites.filter((c) => c.sizeMinPx !== c.sizePx).length} styles shrink on mobile — body stays fixed, titles drop about one step, display settles near 40–48px — through clamp() from ${n2(typography.minViewport)} to ${n2(typography.maxViewport)}px and in desktop and mobile modes.` : 'Sizes are fixed at every viewport.'}`);
   // Sub-10px flag (#1363). 8px is below every practical legibility floor and below the size range
   // this system's contrast ratios were reasoned about, so an opted-in sub-10px rung is flagged here the
   // way `actionPalette` flags a decoupled action colour — a deliberate, recorded exception rather than a
@@ -3265,9 +3267,10 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
   const specs = nbSpecsFrom(s);
   const palettes: PaletteBuild[] = specs.map((spec) => ({
     palette: spec.palette, role: spec.role, description: spec.name, steps: buildRamp(spec),
+    ...(spec.role === 'success' || spec.role === 'warning' ? { hueSource: 'brand' as const } : {}),
   }));
   // NB ships no blue; synthesise an info palette so the semantic layer is complete.
-  palettes.push({ palette: 'info', role: 'info', description: 'info status, engine-generated blue ramp (the brand supplies no info hue)', generated: 'blue', steps: statusRamp(STATUS_DEFAULTS.info.h, STATUS_DEFAULTS.info.chroma) });
+  palettes.push({ palette: 'info', role: 'info', description: 'info status', generated: 'blue', hueSource: 'default', steps: statusRamp(STATUS_DEFAULTS.info.h, STATUS_DEFAULTS.info.chroma) });
   const baseUnit = s.density?.baseUnit ?? 4;
   const baseMd = s.radius?.baseMd ?? 4;
   // Engine taxonomy (not NB's): 8px space rhythm reproducing Prism2's numbered

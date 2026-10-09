@@ -2,7 +2,7 @@
   "$schema": "prism3-component-docs/1.0",
   "generated": true,
   "engineVersion": "0.235.0",
-  "note": "Documentation for every registered component, projected from its definition — the same source the Figma component and a coded component are built from. Brand-independent: a definition binds token names, and each brand's `<brand>.ai.json` resolves them. Field names mirror the definition schema. `ai` is the decision surface for choosing a component; the other fields are usage guidance and the code API.",
+  "note": "Documentation for every registered component, projected from its definition — the same source the design-file component and a coded component are built from. Brand-independent: a definition binds token names, and each brand's `<brand>.ai.json` resolves them. Field names mirror the definition schema. `ai` is the decision surface for choosing a component; the other fields are usage guidance and the code API.",
   "components": {
     "icon": {
       "id": "icon",
@@ -2017,7 +2017,7 @@
         "labelPattern": "Noun or noun phrase, sentence case, concise, ≤3 words, no trailing colon. Not an instruction — that belongs in helper text."
       },
       "docs": {
-        "usage": "Place above every field as its accessible name. Wire htmlFor to the field id. Set the `required` boolean per field (on shows the marker, off hides it), consistently across a form. Reuse the same component above every field control so the label-is-always-present contract holds family-wide. In code the marker flows inline after the name, and the name wraps at the field's width. In Figma the name wraps at a fixed max width — the default field width, 320, less the 4px gap before the marker — so the marker sits right after a one-line name. Three limits follow: a field stretched wider in Figma still wraps its name at that width; on a name long enough to wrap, the marker sits beside the wrapped name, not after its last word; and that required name runs past the field by the marker's width.",
+        "usage": "Place above every field as its accessible name. Wire htmlFor to the field id. Set the `required` boolean per field (on shows the marker, off hides it), consistently across a form. Reuse the same component above every field control so the label-is-always-present contract holds family-wide. In code the marker flows inline after the name, and the name wraps at the field's width.",
         "do": [
           "Always render a label, even for search (visually-hidden, still in the DOM)",
           "Keep it a short noun phrase in sentence case, no trailing colon",
@@ -2353,7 +2353,7 @@
           "name": "trailingIcon",
           "type": "slot",
           "required": false,
-          "description": "An optional trailing glyph at the field's trailing edge — a decorative mark (aria-hidden), or the glyph of a clear / reveal action, which in code is a focusable button with its own accessible name. The decorative-vs-interactive split is load-bearing. Hidden by default; the file nominates the swap target. Figma carries the glyph, not the action's behavior."
+          "description": "An optional trailing glyph at the field's trailing edge — a decorative mark (aria-hidden), or the glyph of a clear / reveal action, which in code is a focusable button with its own accessible name. The decorative-vs-interactive split is load-bearing. Hidden by default; the file nominates the swap target."
         },
         {
           "name": "clearable",
@@ -2542,13 +2542,13 @@
           "name": "value",
           "type": "string",
           "required": false,
-          "description": "Controlled value; pair with onChange. The same prop as TextField's, restated here because the Figma text property is keyed by it."
+          "description": "Controlled value; pair with onChange. The same prop as TextField's."
         },
         {
           "name": "placeholder",
           "type": "string",
           "required": false,
-          "description": "An example only; vanishes on input; nothing load-bearing lives here. The same prop as TextField's, restated here because the Figma text property is keyed by it."
+          "description": "An example only; vanishes on input; nothing load-bearing lives here. The same prop as TextField's."
         },
         {
           "name": "showMessage",
@@ -2690,7 +2690,7 @@
           "1.3.5 Identify Input Purpose / 1.3.1 Info and Relationships (inherited substrate wiring)",
           "3.3.1 Error Identification / 3.3.3 Error Suggestion (over-limit states the overage and how to fix it)",
           "1.4.3 Contrast / 1.4.11 Non-text Contrast (field boundary ≥3:1 — the rest, hover and read-only borders are gated on `background.secondary`, the darkest permissible ground) / 2.4.13 Focus Appearance / 4.1.2 Name Role Value",
-          "2.5.8 Target Size — intent: the resize handle is the browser's own control, sized by the browser, so this def does not set its target. The 16px grip drawn in Figma is decorative, not the target"
+          "2.5.8 Target Size — intent: the resize handle is the browser's own control, sized by the browser, so this def does not set its target"
         ],
         "keyboard": "Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract aria-multiline advertises and the default. submitOnEnter inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.",
         "focus": ":focus-visible with the field ring (`focus.ring.offset-field`, 0 offset). An inset indicator for large surfaces is not built. forwardRef must reach the <textarea> itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on PROGRAMMATIC value changes (a reset, or AI-inserted text), which is the common auto-grow bug.",
@@ -3177,7 +3177,7 @@
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Disables the whole set — every row and the label dim, driven by the group's context (the field's native disabled is the source of truth). Not projected as a Figma state; the group has no disabled treatment of its own."
+          "description": "Disables the whole set — every row and the label dim, driven by the group's context (the field's native disabled is the source of truth). The group has no disabled treatment of its own."
         }
       ],
       "states": [
@@ -3643,7 +3643,7 @@
           "type": "boolean",
           "default": false,
           "required": false,
-          "description": "Disables the whole set — every row and the label dim, driven by the group's context (the native disabled is the source of truth). Not projected as a Figma state; the group has no disabled treatment of its own."
+          "description": "Disables the whole set — every row and the label dim, driven by the group's context (the native disabled is the source of truth). The group has no disabled treatment of its own."
         }
       ],
       "states": [
@@ -3775,7 +3775,7 @@
           "type": "boolean",
           "default": true,
           "required": false,
-          "description": "The X/checkmark-in-the-thumb affordance — a check when on, an X when off, a cue beyond track color and thumb position. On by default; turn it off where the thumb position and track color are enough. The Figma set carries it as the `State icon` boolean, default on, so both surfaces start from the same default. Never the sole state signal — thumb position carries the state. Not hardcoded \"On\"/\"Off\" text, which is rejected outright."
+          "description": "The X/checkmark-in-the-thumb affordance — a check when on, an X when off, a cue beyond track color and thumb position. On by default; turn it off where the thumb position and track color are enough. Never the sole state signal — thumb position carries the state. Not hardcoded \"On\"/\"Off\" text, which is rejected outright."
         },
         {
           "name": "size",
@@ -3959,7 +3959,7 @@
           "type": "boolean",
           "default": true,
           "required": false,
-          "description": "The on/off affordance — a checkmark in the thumb when on, an X when off. On by default, matching the `State icon` boolean in the Figma set; turn it off where thumb position plus track color are enough. Never the sole state signal. Exposed from the nested Switch.Control, which carries the glyph. This is NOT hardcoded \"On\"/\"Off\" text adjacent to the label, which is rejected outright: it competes with the track, duplicates the screen-reader output, and does not localize."
+          "description": "The on/off affordance — a checkmark in the thumb when on, an X when off. On by default; turn it off where thumb position plus track color are enough. Never the sole state signal. Exposed from the nested Switch.Control, which carries the glyph. This is NOT hardcoded \"On\"/\"Off\" text adjacent to the label, which is rejected outright: it competes with the track, duplicates the screen-reader output, and does not localize."
         },
         {
           "name": "size",
@@ -4493,7 +4493,7 @@
       "category": "foundations",
       "status": "draft",
       "summary": "Empty media frame locked to 1:1, 4:3 or 16:9. Drop an image fill onto it.",
-      "description": "An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick a ratio (1:1, 4:3 or 16:9) and the frame keeps that proportion while its size flexes to its container; a designer drops an image fill onto it (a native Figma action, not a modeled slot). Before an image arrives it shows a neutral fill and a centered \"no image\" marker, and it clips its content so a mismatched photo cannot overflow the frame.",
+      "description": "An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick a ratio (1:1, 4:3 or 16:9) and the frame keeps that proportion while its size flexes to its container; a designer drops an image fill onto it (not a modeled slot). Before an image arrives it shows a neutral fill and a centered \"no image\" marker, and it clips its content so a mismatched photo cannot overflow the frame.",
       "props": [
         {
           "name": "ratio",
@@ -4533,7 +4533,7 @@
         "labelPattern": "An image placeholder carries no text of its own. Where its ratio variants surface in a UI, name the proportion plainly — \"16:9\", \"Square\" — rather than a pixel dimension, because the frame holds a ratio and not a fixed size."
       },
       "docs": {
-        "usage": "Use an image placeholder wherever a layout reserves space for a photograph before one is chosen — a card's media slot, a hero, a gallery cell. Pick the ratio from the media it will hold (1:1 for square thumbnails, 4:3 for standard photography, 16:9 for video stills and wide banners); the frame keeps that proportion while it flexes to its container, so a row of cards stays aligned even as their widths change. Drop a photograph onto the frame as an image fill — a native Figma action. The frame clips its content, so a mismatched image stays inside the ratio rather than overflowing.",
+        "usage": "Use an image placeholder wherever a layout reserves space for a photograph before one is chosen — a card's media slot, a hero, a gallery cell. Pick the ratio from the media it will hold (1:1 for square thumbnails, 4:3 for standard photography, 16:9 for video stills and wide banners); the frame keeps that proportion while it flexes to its container, so a row of cards stays aligned even as their widths change. Drop a photograph onto the frame as an image fill. The frame clips its content, so a mismatched image stays inside the ratio rather than overflowing.",
         "do": [
           "Pick the ratio from the media the frame will hold, and let the lock keep it while the size flexes",
           "Drop the photograph on as an image fill — the frame is the container, not a swappable slot",

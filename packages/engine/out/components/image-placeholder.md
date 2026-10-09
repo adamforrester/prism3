@@ -2,7 +2,7 @@
 
 > Empty media frame locked to 1:1, 4:3 or 16:9. Drop an image fill onto it.
 
-An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick a ratio (1:1, 4:3 or 16:9) and the frame keeps that proportion while its size flexes to its container; a designer drops an image fill onto it (a native Figma action, not a modeled slot). Before an image arrives it shows a neutral fill and a centered "no image" marker, and it clips its content so a mismatched photo cannot overflow the frame.
+An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick a ratio (1:1, 4:3 or 16:9) and the frame keeps that proportion while its size flexes to its container; a designer drops an image fill onto it (not a modeled slot). Before an image arrives it shows a neutral fill and a centered "no image" marker, and it clips its content so a mismatched photo cannot overflow the frame.
 
 - **ID:** `image-placeholder`
 - **Category:** foundations
@@ -11,7 +11,7 @@ An empty-state media frame that holds a photograph at a fixed aspect ratio. Pick
 
 ## Usage
 
-Use an image placeholder wherever a layout reserves space for a photograph before one is chosen — a card's media slot, a hero, a gallery cell. Pick the ratio from the media it will hold (1:1 for square thumbnails, 4:3 for standard photography, 16:9 for video stills and wide banners); the frame keeps that proportion while it flexes to its container, so a row of cards stays aligned even as their widths change. Drop a photograph onto the frame as an image fill — a native Figma action. The frame clips its content, so a mismatched image stays inside the ratio rather than overflowing.
+Use an image placeholder wherever a layout reserves space for a photograph before one is chosen — a card's media slot, a hero, a gallery cell. Pick the ratio from the media it will hold (1:1 for square thumbnails, 4:3 for standard photography, 16:9 for video stills and wide banners); the frame keeps that proportion while it flexes to its container, so a row of cards stays aligned even as their widths change. Drop a photograph onto the frame as an image fill. The frame clips its content, so a mismatched image stays inside the ratio rather than overflowing.
 
 ### Do
 
