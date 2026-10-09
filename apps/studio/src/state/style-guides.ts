@@ -144,10 +144,12 @@ export type PageOptions = {
   dimensionDisplay: 'filled' | 'line';
   fontSample: 'auto' | 'generic' | 'family' | 'size' | 'weight' | 'letterSpacing' | 'lineHeight';
   paragraphSpacing: boolean; textDecoration: boolean;
+  /** The Token column (#2372): the full variable path, or the short name below the table's prefix. */
+  tokenNames: 'full' | 'short';
 };
 export const DEFAULT_OPTIONS: Readonly<PageOptions> = {
   header: 'dark', aliases: true, description: true, nameCell: false, rem: false, valueFormat: 'hex', colorSample: 'auto',
-  dimensionDisplay: 'filled', fontSample: 'auto', paragraphSpacing: false, textDecoration: false,
+  dimensionDisplay: 'filled', fontSample: 'auto', paragraphSpacing: false, textDecoration: false, tokenNames: 'full',
 };
 
 /** What a click on Draw posts. Every option goes, so the run draws what the page shows. The selection goes as table
@@ -158,7 +160,7 @@ export const drawOptions = (cat: StyleGuideCatalog, sel: ReadonlySet<number>, o:
   return {
     header: o.header, aliases: o.aliases, description: o.description, titleCell: o.nameCell, rem: o.rem,
     valueFormat: o.valueFormat, display: o.colorSample, dimensionDisplay: o.dimensionDisplay, fontDisplay: o.fontSample,
-    paragraphSpacing: o.paragraphSpacing, textDecoration: o.textDecoration,
+    paragraphSpacing: o.paragraphSpacing, textDecoration: o.textDecoration, tokenNames: o.tokenNames,
     ...(all ? {} : { tables: [...sel].sort((a, b) => a - b).map((i) => cat.tables[i].key) }),
   };
 };

@@ -103,13 +103,15 @@ ok(same(byTitles(CAT, 'text\n  Interactive \nNope\n', [0, 1, 2, 3, 4, 5]), { tab
 ok(same(byTitles(CAT, 'Primary', [3, 4]), { tables: [], unknown: [] }), 'titles: only tables in view are selected');
 
 console.log('\nwhat Draw sends');
-ok(same(DEFAULT_OPTIONS, { header: 'dark', aliases: true, description: true, nameCell: false, rem: false, valueFormat: 'hex', colorSample: 'auto', dimensionDisplay: 'filled', fontSample: 'auto', paragraphSpacing: false, textDecoration: false }),
-  'draw: the defaults (H4–H9): Hex, from each token\'s role, REM off, Name cell off');
-ok(same(drawOptions(CAT, every, DEFAULT_OPTIONS), { header: 'dark', aliases: true, description: true, titleCell: false, rem: false, valueFormat: 'hex', display: 'auto', dimensionDisplay: 'filled', fontDisplay: 'auto', paragraphSpacing: false, textDecoration: false }),
+ok(same(DEFAULT_OPTIONS, { header: 'dark', aliases: true, description: true, nameCell: false, rem: false, valueFormat: 'hex', colorSample: 'auto', dimensionDisplay: 'filled', fontSample: 'auto', paragraphSpacing: false, textDecoration: false, tokenNames: 'full' }),
+  'draw: the defaults (H4–H9): Hex, from each token\'s role, REM off, Name cell off, full token paths (#2372)');
+ok(same(drawOptions(CAT, every, DEFAULT_OPTIONS), { header: 'dark', aliases: true, description: true, titleCell: false, rem: false, valueFormat: 'hex', display: 'auto', dimensionDisplay: 'filled', fontDisplay: 'auto', paragraphSpacing: false, textDecoration: false, tokenNames: 'full' }),
   'draw: every table selected sends no tables filter, so the run judges superseded tables');
 ok(same(drawOptions(CAT, new Set([5, 3]), { ...DEFAULT_OPTIONS, rem: true, nameCell: true }).tables, ['color|C:color|pds3/color/text', 'typography|text-styles|body'])
   && drawOptions(CAT, new Set([3]), { ...DEFAULT_OPTIONS, nameCell: true }).titleCell === true,
   'draw: a part selection sends its tables by key, in draw order; the Name cell is the run\'s titleCell');
+ok(drawOptions(CAT, every, { ...DEFAULT_OPTIONS, tokenNames: 'short' }).tokenNames === 'short',
+  'draw: Token names set to Short sends tokenNames short (#2372)');
 const newer: StyleGuideCatalog = { ...CAT, tables: [CAT.tables[3], { ...CAT.tables[0], key: 'color|C:core|gone' }, CAT.tables[5]] };
 ok(same([...keepSelection(CAT, new Set([0, 3]), newer)], [0]), 'selection: a newer catalog keeps the selected tables still in the file, by key');
 
