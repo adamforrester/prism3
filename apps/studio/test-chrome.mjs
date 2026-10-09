@@ -12244,6 +12244,8 @@ for (const host of ['web', 'figma']) {
 //   · at 1280, ArrowRight moves the selection along the tab row and the sub-row, and the tree follows (the tab pattern's
 //     automatic activation, unchanged here);
 //   · on Build style guides no tab is reported selected and no sub-tab is exposed.
+// Each place is read with nothing focused: Chrome reports a focused tab with no `aria-selected` as selected, so the click
+// that reached the place would otherwise stand in for the state under test.
 // INDEPENDENCE (docs/34). Page names, domain names, the sub-page names, the chosen mode and its label are literals typed
 // here, never read from `pages.ts`, `frame.ts` or `preview.ts`. Every case is counted, so a skipped one fails.
 // Mutations, each in a `wip:` commit, each failing here by name (the PR records the lines): (a) the tab row's selection
@@ -12306,6 +12308,9 @@ for (const host of ['web', 'figma']) {
         step = `read ${place}`;
         await goPlace(page, place);
         const at = `${where} / ${place}`;
+        // Read with nothing focused: the tree reports a focused tab that carries no state as selected, so a click's
+        // focus would otherwise hide a selection left out.
+        await page.evaluate(() => document.activeElement?.blur?.());
         const row = await csAx(page, CS_TAB_ROW);
         const tabs = row.filter((n) => n.role === 'tab');
         if (!narrow) ok(JSON.stringify(tabs.map((n) => n.name)) === JSON.stringify(CS_TABS), `${at}: the tab row exposes every domain's tab, in order (read ${JSON.stringify(tabs.map((n) => `${n.role} ${n.name}`))})`);
