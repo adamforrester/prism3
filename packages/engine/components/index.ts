@@ -66,6 +66,8 @@ import { imagePlaceholder } from './image-placeholder';
 import { spinner } from './spinner';
 import { badge } from './badge';
 import { tag } from './tag';
+import { accordionItem } from './accordion-item';
+import { accordion } from './accordion';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
  *  assertions are about one def's specific fields (`button.variants.appearance`,
@@ -73,7 +75,7 @@ import { tag } from './tag';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkboxRow, checkboxGroup, radioControl, radioRow, radioGroup, switchControl, switchRow, select, veil, imagePlaceholder, spinner, badge, tag, accordionItem, accordion };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -167,4 +169,6 @@ export const componentDefs: readonly ComponentDef[] = [
   // `tag` — the interactive counterpart to `badge`. It nests `icon-button-neutral` (its remove button) and
   // `focus-ring`, both above it; nothing reads this array's order (see the header).
   tag,
+  accordionItem,
+  accordion,
 ];

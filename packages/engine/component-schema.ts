@@ -2983,6 +2983,7 @@ export const VARIANT_AXES = [
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
   'status', 'emphasis', 'shape', 'type', 'direction', 'inset',
+  'expansion', // DRAFT (#2417): the accordion item's open/closed axis, held for the owner
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
