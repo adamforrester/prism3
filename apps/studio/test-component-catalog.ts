@@ -14,14 +14,14 @@
  * definitions directly. None of it goes through the generated module or the generator. The staleness arm is the
  * `regen --check` shape: the committed copy against a fresh computation, so a definition whose member count moves
  * makes the copy stale until it is rewritten. The literal arms are typed from the definitions' documented shape
- * (Button is 432 variants since the #1223 split and nests Icon, FocusRing and Spinner; Icon and Spinner build as
+ * (Button is 576 variants since #2350's flush text members, 432 after the #1223 split, and nests Icon, FocusRing and Spinner; Icon and Spinner build as
  * separate components, #1623), so a generator that agreed with itself while reading the wrong field still fails by
  * name. The two reasons a set is not offered have no subject in the corpus today (all build), so they are held on
  * planted definitions.
  *
- * Mutations this fails by name: the committed copy edited (Button's `members` 432 → 648) → `the committed catalog
+ * Mutations this fails by name: the committed copy edited (Button's `members` 576 → 648) → `the committed catalog
  * matches the component definitions — stale: button.members`; the member count hard-coded in `catalogOf` →
- * `button: the catalog says 648 members, the projector builds 432`; `padding-x-visual` added to `SPACING_SHOWN` →
+ * `button: the catalog says 648 members, the projector builds 576`; `padding-x-visual` added to `SPACING_SHOWN` →
  * `C2: button at comfortable shows the engine's padding and gap px`; the spacing read at comfortable whatever the
  * density → `C2: button at compact shows the engine's padding and gap px`.
  */
@@ -89,7 +89,7 @@ ok(committed.find((e) => e.id === 'button')?.members === legacyButton, `Button's
 
 console.log('\n3. Literal arms, from the definitions\' documented shape');
 const by = (id: string): CatalogEntry | undefined => committed.find((e) => e.id === id);
-ok(by('button')?.members === 432 && by('button')?.unit === 'variants', `button: 432 variants since the #1223 split (${by('button')?.members} ${by('button')?.unit})`);
+ok(by('button')?.members === 576 && by('button')?.unit === 'variants', `button: 576 variants since #2350's flush text members (${by('button')?.members} ${by('button')?.unit})`);
 ok(JSON.stringify(by('button')?.nests) === '["icon","focus-ring","spinner"]', `button nests Icon, FocusRing and Spinner (${JSON.stringify(by('button')?.nests)})`);
 ok(by('icon')?.unit === 'components' && by('spinner')?.unit === 'components', 'Icon and Spinner build as separate components (#1623)');
 ok(JSON.stringify(by('focus-ring')?.nests) === '[]', 'FocusRing nests nothing');
@@ -108,7 +108,7 @@ ok(planted[0].buildable === false && planted[0].reason === 'planted-declared: it
   `a definition declaring notStandalone is not offered, with its own string as the reason (${JSON.stringify(planted[0].reason)})`);
 ok(!calls.includes('planted-declared'), 'a definition declaring notStandalone is withheld BEFORE projecting (the projection would succeed)');
 ok(planted[1].buildable === false && planted[1].reason === null && planted[1].nests.length === 0, 'a definition the projector cannot build is not offered, with a null reason');
-ok(planted[2].buildable && planted[2].members === 432, 'the rest of the list is unaffected');
+ok(planted[2].buildable && planted[2].members === 576, 'the rest of the list is unaffected');
 ok(JSON.stringify(unbuildableSets(planted).map((e) => e.id)) === '["planted-declared","planted-thrower"]', 'unbuildableSets lists both, in definition order');
 
 console.log('\n5. The spacing each set states (UI redesign S8.2): its density-following keys and their comfortable steps');
@@ -129,8 +129,8 @@ const spacePx = sizeRefPx(componentSizes('comfortable', 8));
 const last = new Map<string, SetBuild>([['button', 'ok'], ['tag', 'issues'], ['badge', 'failed']]);
 const view = setsView(committed, { density: 'comfortable', spacePx, plugin: true, lastOf: (id) => last.get(id) });
 const v = (id: string) => view.find((x) => x.id === id);
-ok(v('button')?.parts === '432 parts' && v('icon')?.parts === '44 components' && v('spinner')?.parts === '4 components',
-  `parts: Button "${v('button')?.parts}", Icon "${v('icon')?.parts}", Spinner "${v('spinner')?.parts}" (want 432 parts, 44 components, 4 components)`);
+ok(v('button')?.parts === '576 parts' && v('icon')?.parts === '44 components' && v('spinner')?.parts === '4 components',
+  `parts: Button "${v('button')?.parts}", Icon "${v('icon')?.parts}", Spinner "${v('spinner')?.parts}" (want 576 parts, 44 components, 4 components)`);
 ok(v('button')?.contains === 'Contains Icon, FocusRing, Spinner' && v('focus-ring')?.contains === 'Contains no other set',
   `contains: by the nested sets' names ("${v('button')?.contains}", "${v('focus-ring')?.contains}")`);
 ok(JSON.stringify(v('button')?.spacing) === JSON.stringify(['Small: padding-x 16 · padding-y 6 · gap 8', 'Medium: padding-x 16 · padding-y 8 · gap 8', 'Large: padding-x 24 · padding-y 8 · gap 12']),

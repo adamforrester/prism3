@@ -752,7 +752,23 @@ export const makeShim = (opts: ShimOpts = {}) => {
         node._exposed = v;
       },
       componentPropertyReferences: null as Record<string, string> | null,
-      constraints: null as unknown,
+      // CONSTRAINTS ARE LIVE (#2266, `layoutModel` only). The host keeps an ABSOLUTE child pinned `MAX` at its
+      // distance from the parent's far edge when the parent later resizes, which is what the executor sets
+      // `MAX`/`MAX` on the textarea grip for. Until the 120 control floor (#2266) no pinned parent resized after
+      // its pin was placed (the control sat at its 320 floor), so a raw `x` measured the same thing. Recorded
+      // when the constraint is set, against the parent's size at that moment; read back in `x`/`y` below.
+      _constraints: null as unknown,
+      get constraints(): unknown { return node._constraints; },
+      set constraints(v: unknown) {
+        node._constraints = v;
+        const p = node.parent as Node | null;
+        const c = v as { horizontal?: string; vertical?: string } | null;
+        if (!opts.layoutModel || !p) return;
+        node._fromRight = c?.horizontal === 'MAX' ? ((p.width as number) || 0) - (node._x as number) - ((node.width as number) || 0) : undefined;
+        node._fromBottom = c?.vertical === 'MAX' ? ((p.height as number) || 0) - (node._y as number) - ((node.height as number) || 0) : undefined;
+      },
+      _fromRight: undefined as number | undefined,
+      _fromBottom: undefined as number | undefined,
       parent: null as Node | null,
       _absolute: false,
       // THE FIFTH TIME A SHIM HERE HAS HAD TO STOP MEASURING A CONSTANT (#848) — see the `width`, `height`
@@ -770,6 +786,7 @@ export const makeShim = (opts: ShimOpts = {}) => {
       _x: 0, _y: 0,
       get x() {
         const p = node.parent as Node | null;
+        if (node._absolute && p && typeof node._fromRight === 'number') return ((p.width as number) || 0) - ((node.width as number) || 0) - node._fromRight;
         if (node._absolute || !p || !p.layoutMode) return node._x as number;
         const bv = p.boundVariables as Record<string, { value?: number }>;
         const gap = bv.itemSpacing?.value ?? 0;
@@ -790,17 +807,18 @@ export const makeShim = (opts: ShimOpts = {}) => {
         }
         return at;
       },
-      set x(v: number) { node._x = v; },
+      set x(v: number) { node._x = v; node._fromRight = undefined; },
       // The cross axis, same shape. `counterAxisAlignItems` is CENTER on every row this projects, so a
       // flow child is vertically centered rather than top-stacked — asserting a spinner's `y` against a
       // top-aligned model would demand the wrong number and make the gate wrong the other way.
       get y() {
         const p = node.parent as Node | null;
+        if (node._absolute && p && typeof node._fromBottom === 'number') return ((p.height as number) || 0) - ((node.height as number) || 0) - node._fromBottom;
         if (node._absolute || !p || !p.layoutMode) return node._y as number;
         if (p.counterAxisAlignItems !== 'CENTER') return (p.boundVariables as Record<string, { value?: number }>).paddingTop?.value ?? 0;
         return (((p.height as number) || 0) - ((node.height as number) || 0)) / 2;
       },
-      set y(v: number) { node._y = v; },
+      set y(v: number) { node._y = v; node._fromBottom = undefined; },
       // FIXED-OR-HUG. A bound axis is FIXED at its variable's value; everything else hugs its FLOW
       // children plus its own padding, with the border term on the hug axis only (a fixed axis absorbs
       // a stroke silently — the #503 finding restated as a model). ABSOLUTE children are excluded from

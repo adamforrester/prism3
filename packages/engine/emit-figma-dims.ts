@@ -24,6 +24,7 @@ import { buildTree, at } from './tree';
 import {
   figmaDimensionDescription, figmaSpaceDescription, figmaRadiusDescription, figmaSizeDescription, figmaIconSizeDescription,
   figmaControlDescription, figmaBorderWidthDescription, figmaFocusDescription, figmaOpacityDescription,
+  figmaDurationPrimitiveDescription, figmaDurationDescription, figmaStaggerDescription,
   figmaBreakpointDescription, figmaContainerDescription, figmaGridVarDescription,
 } from './figma-description';
 import { figName, nsName, coreName, CORE_COLLECTION } from './emit-figma-color';
@@ -370,6 +371,90 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     focus: c('focus', focusVars),
     opacity: c('opacity', opacityVars),
   };
+};
+
+// ---------------------------------------------------------------------------
+// MOTION (#2394, docs/10 §5) — ONE `motion` collection of FLOAT milliseconds.
+//   motion/duration-ms/<n>        → the literal primitives (hidden from publishing, like `core`).
+//   motion/duration/<role>        → aliases into duration-ms, as the DTCG aliases them.
+//   motion/duration-reduced/<role>→ the reduce-motion companion, same shape.
+//   motion/stagger                → aliases into duration-ms.
+// Names keep the DTCG path (`motion` is a top-level DTCG family, so the collection mirrors it 1:1 and
+// the export lands on the same paths with no renaming).
+//
+// NO SCOPE, deliberately: Figma's `VariableScope` has no time member (plugin-typings 1.131.0 and the
+// live API reference, both checked 2026-10-09), and no Figma property binds a duration. `scopes: []`
+// hides the variables from every property picker, which is the truth; `ALL_SCOPES` would offer 200 as a
+// width. The number is milliseconds; TokenPress types `motion/…` FLOATs back to DTCG `duration`.
+//
+// MODES follow the radius precedent: a brand whose mode levers run a different tempo carries a
+// `$extensions.prism3.modes.<mode>` re-point on the semantic leaf (tree.ts), and each such mode becomes a
+// mode here, the semantic aliasing the mode's primitive. No per-mode tempo ⇒ one `Default` mode.
+//
+// easing / easing-role / spring / transition have no Figma variable type and are NOT emitted here: they
+// stay in the DTCG, which the style guide's motion table reads (#2353).
+// ---------------------------------------------------------------------------
+
+const MOTION_SCOPES: string[] = [];
+
+/** Milliseconds from a DTCG duration `$value` — a `"200ms"` literal or a `{…}` alias to one. */
+const msFromValue = (tree: any, v: unknown): number => {
+  if (typeof v === 'string') {
+    const m = /^\{(.+)\}$/.exec(v);
+    if (m) return msFromValue(tree, at(tree, m[1])?.$value);
+    const ms = /^(-?\d+(?:\.\d+)?)ms$/.exec(v);
+    if (ms) return Number(ms[1]);
+  }
+  throw new Error(`emit-figma motion: not a millisecond duration: ${JSON.stringify(v)}`);
+};
+
+export const buildFigmaMotion = (theme: Theme): FigmaCollectionFile[] => {
+  const { tree } = buildTree(theme);
+  const root = Object.keys(tree)[0];
+  const ns = (name: string): string => nsName(root, name);
+  const motion = tree[root].motion;
+  const modes = ['Default', ...Object.keys(theme.motion.motionByMode ?? {})];
+
+  // The semantic leaves, in DTCG order: every `duration` role, every `duration-reduced` role, then stagger.
+  const semantics: Array<{ name: string; leaf: any; describe: (ms: number, byMode: Array<[string, number]>) => string }> = [
+    ...Object.keys(motion.duration).map((role) => ({
+      name: `motion/duration/${role}`, leaf: motion.duration[role],
+      describe: (ms: number, byMode: Array<[string, number]>) => figmaDurationDescription(role, ms, byMode, false),
+    })),
+    ...Object.keys(motion['duration-reduced']).map((role) => ({
+      name: `motion/duration-reduced/${role}`, leaf: motion['duration-reduced'][role],
+      describe: (ms: number, byMode: Array<[string, number]>) => figmaDurationDescription(role, ms, byMode, true),
+    })),
+    { name: 'motion/stagger', leaf: motion.stagger, describe: figmaStaggerDescription },
+  ];
+
+  const varsFor = (mode: string): FigmaVar[] => {
+    const prims: FigmaVar[] = byNumericKey(Object.keys(motion['duration-ms'])).map((key) => ({
+      name: ns(`motion/duration-ms/${key}`),
+      resolvedType: 'FLOAT' as const,
+      scopes: MOTION_SCOPES,
+      description: figmaDurationPrimitiveDescription(msFromValue(tree, motion['duration-ms'][key].$value)),
+      value: msFromValue(tree, motion['duration-ms'][key].$value),
+      alias: null,
+      hiddenFromPublishing: true,
+    }));
+    const sems: FigmaVar[] = semantics.map(({ name, leaf, describe }) => {
+      const overrides: Record<string, any> = leaf.$extensions?.prism3?.modes ?? {};
+      const source: any = mode === 'Default' ? leaf : overrides[mode] ?? leaf;
+      const isAlias = typeof source.$value === 'string' && /^\{.+\}$/.test(source.$value);
+      const byMode: Array<[string, number]> = modes.slice(1).filter((m) => overrides[m]).map((m) => [m, msFromValue(tree, overrides[m].$value)]);
+      return {
+        name: ns(name),
+        resolvedType: 'FLOAT' as const,
+        scopes: MOTION_SCOPES,
+        description: describe(msFromValue(tree, leaf.$value), byMode),
+        value: msFromValue(tree, source.$value),
+        alias: isAlias ? { type: 'VARIABLE_ALIAS' as const, name: aliasFigName(source.$value) } : null,
+      };
+    });
+    return [...prims, ...sems];
+  };
+  return modes.map((mode) => ({ $collection: 'motion', $mode: mode, variables: varsFor(mode) }));
 };
 
 // ---------------------------------------------------------------------------

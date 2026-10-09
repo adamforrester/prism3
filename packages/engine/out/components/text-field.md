@@ -11,7 +11,7 @@ A single-line control for free-form, non-enumerable text — names, emails, SKUs
 
 ## Usage
 
-Use for free-form, non-enumerable single-line input — names, titles, SKUs, identifiers, short queries. Always render a visible label; show the format in helper text before failure; keep validation timing with the form library. The field nests FieldLabel above and FieldMessage below; the host wires the ids and aria-describedby chain.
+Use for free-form, non-enumerable single-line input — names, titles, SKUs, identifiers, short queries. Always render a visible label; show the format in helper text before failure; keep validation timing with the form library. The field nests FieldLabel above and FieldMessage below; the host wires the ids and aria-describedby chain. Pick the size with the form: medium is the default, large for a roomy form, small for a dense one on fine pointers only — on a touch screen the small input renders at 16px, because a smaller input makes iOS zoom the page on focus.
 
 ### Do
 
@@ -70,7 +70,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
 | `trailingIcon` | slot | — | no | An optional trailing glyph at the field's trailing edge — a decorative mark (aria-hidden), or the glyph of a clear / reveal action, which in code is a focusable button with its own accessible name. The decorative-vs-interactive split is load-bearing. Hidden by default; the file nominates the swap target. Figma carries the glyph, not the action's behavior. |
 | `clearable` | boolean | `false` | no | Adds a labeled Clear button that announces the cleared state and RETURNS FOCUS to the input (the recurring trap is stranding focus). |
 | `isPending` | boolean | `false` | no | Async validation/value — a spinner replaces an adornment without reflow; sets aria-busy; does not block typing unless intended. |
-| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Three tiers (height + padding). A single bordered (outline) style; filled/underline are theming, not API. |
+| `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Three tiers that scale the input type with the field (small 14px, medium 16px, large 18px, `type.body.{sm,md,lg}`), the nested label one step below it (12 / 14 / 16), and the padding. Every size keeps the 44px target: small is smaller type and padding, not a smaller target; large is taller. `small` is for fine pointers only: on a coarse pointer (`@media (pointer: coarse)`) the code sets the small input to 16px, because iOS Safari zooms the page when it focuses an input under 16px. A single bordered (outline) style; filled/underline are theming, not API. |
 | `id` | string | — | no | Wiring + form submission; auto-generated with useId if omitted, tying label→input and the aria-describedby chain. |
 | `name` | string | — | no | A real \<input name> so the field works uncontrolled, in a native \<form>, with useFormStatus / Server Actions, and the Constraint Validation API. |
 
@@ -82,6 +82,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = example onl
 
 | Axis | Values | Changes |
 | --- | --- | --- |
+| `size` | `medium`, `small`, `large` | once, when authored |
 | `style` | `outline` | once, when authored |
 | `status` | `default`, `error`, `warning`, `success` | at runtime |
 

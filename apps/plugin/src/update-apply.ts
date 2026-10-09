@@ -474,12 +474,19 @@ export const applyUpdate = async (
     if (!p || !live) continue;
     const why = await preflight(api, t, p, live, present);
     if (why) { res.outcomes.push({ def: t.def, set: p.set, refused: why, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: [], misses: [] }); continue; }
-    // Nothing for the build's pass to do. A member from an earlier plugin (`revisionUnknown`) is not work for it
-    // (#2379): it takes only the current stamp, so a set of nothing else is stamped and never built over.
-    const nothing = p.counts.update + p.counts.handEdited + p.counts.add + p.counts.drop + p.counts.rename === 0
+    // Nothing for the build's pass to do. `noBaseline` counts (#2364): a set whose members all lack a record reads no
+    // `update`, and was called already up to date. A member from an earlier plugin (`revisionUnknown`) does not (#2379):
+    // it takes only the current stamp, so a set of nothing else is stamped and never built over.
+    const nothing = p.counts.update + p.counts.handEdited + p.counts.noBaseline + p.counts.add + p.counts.drop + p.counts.rename === 0
       && Object.values(p.properties).every((l) => l.length === 0);
     if (nothing && p.counts.revisionUnknown) { ready.push({ t, p, live, stampOnly: true }); continue; }
-    if (nothing) { res.outcomes.push({ def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: [], misses: [] }); continue; }
+    if (nothing) {
+      // A set left alone must not leave a difference the dry run named: each is a failure of this set, by name,
+      // the way verify's content check names a field an applied member still holds. Never "already up to date".
+      const left = p.changes.filter((c) => c.field !== 'stamp').map((c) => `${c.sample[0] ?? p.set}/${c.part}.${c.field}: ${c.from} (the plan says ${c.to})`);
+      res.outcomes.push({ def: t.def, set: p.set, updated: [], added: 0, renamed: 0, deprecated: [], skipped: [], kept: [], unrecorded: [], handEdits: choiceFor(opts.choices, p.set), identity: [], content: left, misses: [] });
+      continue;
+    }
     ready.push({ t, p, live });
   }
   if (!ready.length) return res;
@@ -522,7 +529,11 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   }
   const stopped = r.outcomes.find((o) => o.stopped);
   const failed = r.outcomes.filter((o) => o.identity.length || o.content.length);
-  const refused = r.outcomes.filter((o) => o.refused).length + r.refused.length;
+  // A set the apply entered and wrote nothing to, every member it would have written left as it is (`noBaseline:
+  // 'skip'`, a layer added by hand, a member that would need replacing), still holds what its dry run listed. It is
+  // NOT UPDATED, never "already up to date" (#2364 review; the owner's choice, 2026-10-08: the approved headline).
+  const idle = r.outcomes.filter((o) => !o.refused && !o.stopped && o.skipped.length && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length).length;
+  const refused = r.outcomes.filter((o) => o.refused).length + r.refused.length + idle;
   const updated = r.outcomes.reduce((k, o) => k + o.updated.length, 0);
   const added = r.outcomes.reduce((k, o) => k + o.added, 0);
   const deprecated = r.outcomes.reduce((k, o) => k + o.deprecated.length, 0);
