@@ -12152,8 +12152,9 @@ for (const host of ['web', 'figma']) {
   }
 }
 // =============================================================================================
-// 39. #1855: forced colors (Windows High Contrast). Every state the chrome draws by a fill, an edge or an ink alone
-//     survives, in the system's colors; the brand's color specimens keep their real colors; no control opts out
+// 40. #1855: forced colors (Windows High Contrast). Every state the chrome draws by a fill, an edge or an ink alone
+//     survives, in the system's colors; the brand's color specimens keep their real colors; only a selected control
+//     opts out, and only in system colors (owner decision HC1 B, 2026-10-09)
 // =============================================================================================
 // Both hosts, both chrome themes, at 1280, under Chromium's forced-colors emulation (CDP `Emulation.setEmulatedMedia`,
 // `forced-colors: active`), held for the whole case. For each state, its control is read against its unselected
@@ -12162,6 +12163,11 @@ for (const host of ['web', 'figma']) {
 //     check box, the switch, the step picker's step, the value picker's value, the weights matrix's check): the fill is
 //     `Highlight` and the ink `HighlightText`, its neighbor's fill is not `Highlight`; the switch's knob is drawn in both
 //     states, apart from its track;
+//   · A SELECTED LABEL AS DRAWN (HC1 B): the chip's, the segment's, the mode radio's, the step's and the value's label is
+//     read off a screenshot of its text box, never off computed style. Chromium paints a `Canvas` backplate behind
+//     forced text, so a `HighlightText` label on a `Highlight` fill computes right and draws as a white box (option A, the
+//     owner's review of 2026-10-09). The box must show the fill, `Highlight` over `Canvas`, on at least FC_FILL_MIN of its
+//     pixels and the ink, `HighlightText`, on at least FC_INK_MIN;
 //   · the selected tab's underline in `CanvasText`, its neighbors' hidden in `Canvas`;
 //   · disabled (the held mode control on Palettes, Layout's first breakpoint field, a switch a derived mode holds):
 //     the ink and the edge in `GrayText`, and the held mode that is selected keeps its edge while the others hide theirs;
@@ -12173,14 +12179,17 @@ for (const host of ['web', 'figma']) {
 //   · the brand's color specimens (every brand-content node and every specimen root that paints an inline background,
 //     on Palettes and on Surfaces & fills): the same fill and image as outside forced colors, with literal floors on
 //     how many there are and how many are colored;
-//   · no control opts out: every control the frame draws outside a specimen root computes `forced-color-adjust: auto`.
+//   · only a selected control opts out (HC1 B): every control the frame draws outside a specimen root computes
+//     `forced-color-adjust: auto` unless it is selected (`aria-pressed`, `aria-selected` or `aria-checked` true), and one
+//     that opts out draws every color, its own and its children's outside brand content, in a system color.
 //
 // INDEPENDENCE (docs/34). The expected colors are the system-color keywords' own resolved values in this emulation,
 // read off a probe node that sets each keyword inline and nothing else; never `chrome.css`, whose rules are the subject.
 // A specimen's expected color is its own color read before the emulation starts. The controls, states and floors are
 // literals typed here; every case is counted, so a skipped one fails.
 // Mutations, each in a `wip:` commit, each failing by name (the PR records the lines): (a) the selected-chip rule
-// dropped; (b) `forced-color-adjust: none` on a control; (c) the specimen exemption dropped, so the swatches go gray.
+// dropped; (b) the opt-out on a control that is not selected; (c) the specimen exemption dropped, so the swatches go
+// white; (d) the opt-out taken off the selected chip, so the backplate hides its label (only the drawn check sees it).
 const FC_KEYS = ['Canvas', 'CanvasText', 'Highlight', 'HighlightText', 'GrayText'];
 /** Each case, by name; every one must run on every host and theme (Agent and Activity on the plugin only). */
 const FC_CASES = ['oracle', 'segment', 'tab', 'held modes', 'palettes specimens', 'controls opt in', 'chip', 'mode check', 'focus rings',
@@ -12192,6 +12201,47 @@ const FC_PLUGIN_CASES = ['agent dot', 'activity dots'];
 const FC_SPEC_FLOOR = { 'color-palettes': [175, 150], 'color-fills': [120, 20] };
 /** A floor on the controls the opt-out sweep reads on each page. */
 const FC_CONTROL_FLOOR = 15;
+/** A selected label's text box, as drawn: the share of its pixels in the fill, and in the ink, each within FC_TOL of a
+ *  channel. Only a glyph's solid core reads as the ink (its antialiased edge is a blend), 2.5 to 4% of a 12 or 14px
+ *  label's box as measured on prism3; under a backplate the fill reads 0%. Literals. */
+const FC_FILL_MIN = 0.4;
+const FC_INK_MIN = 0.015;
+const FC_TOL = 24;
+/** A selected control's text box, the union of its drawn text runs, in page pixels. Runs in the page. */
+const FC_TEXT_BOX = (sel) => {
+  const n = document.querySelector(sel);
+  if (!n) return null;
+  const rs = [];
+  const tw = document.createTreeWalker(n, NodeFilter.SHOW_TEXT);
+  for (let t = tw.nextNode(); t; t = tw.nextNode()) {
+    if (!t.textContent.trim()) continue;
+    const r = document.createRange();
+    r.selectNodeContents(t);
+    for (const b of r.getClientRects()) if (b.width > 0 && b.height > 0) rs.push(b);
+  }
+  if (!rs.length) return null;
+  const x = Math.ceil(Math.min(...rs.map((b) => b.left))), y = Math.ceil(Math.min(...rs.map((b) => b.top)));
+  return { x, y, width: Math.floor(Math.max(...rs.map((b) => b.right))) - x, height: Math.floor(Math.max(...rs.map((b) => b.bottom))) - y };
+};
+/** Count a PNG's pixels near each of two colors (`[r, g, b]`), decoded by the page's own canvas. Runs in the page. */
+const FC_PIXELS = ([png, fill, ink, tol]) => new Promise((done) => {
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = img.width; c.height = img.height;
+    const g = c.getContext('2d');
+    g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, c.width, c.height).data;
+    const near = (i, k) => Math.abs(d[i] - k[0]) <= tol && Math.abs(d[i + 1] - k[1]) <= tol && Math.abs(d[i + 2] - k[2]) <= tol;
+    let nFill = 0, nInk = 0;
+    for (let i = 0; i < d.length; i += 4) { if (near(i, fill)) nFill++; else if (near(i, ink)) nInk++; }
+    done({ n: d.length / 4, fill: nFill, ink: nInk });
+  };
+  img.onerror = () => done(null);
+  img.src = `data:image/png;base64,${png}`;
+});
+/** `rgb()`/`rgba()` to numbers. */
+const fcRgba = (s) => { const p = /^rgba?\(([^)]+)\)$/.exec(s ?? '')?.[1].split(/[,\s/]+/).filter(Boolean).map(Number) ?? []; return p.length >= 3 ? [p[0], p[1], p[2], p.length > 3 ? p[3] : 1] : null; };
 /** The resolved system colors, from a probe node that sets each keyword inline. Runs in the page. */
 const FC_SYS = (keys) => {
   const t = document.createElement('div');
@@ -12219,11 +12269,30 @@ const FC_LOOK = (sel) => {
 const FC_SPECIMENS = () => [...document.querySelectorAll('[data-p3="frame"] :is([data-content], [data-p3="specimen"], [data-p3="specimen"] *)')]
   .filter((n) => /background/.test(n.getAttribute('style') ?? '') && n.getClientRects().length > 0)
   .map((n) => { const c = getComputedStyle(n); return `${c.backgroundColor} ${c.backgroundImage}`; });
-/** Every control the frame draws outside a specimen root, with its forced-color-adjust. A color input is left out: Chromium's
- *  own stylesheet sets it to `none`, so its swatch shows the color it holds, and it is not ours to set. */
+/** Every control the frame draws outside a specimen root: its forced-color-adjust, whether it is selected, and, when it
+ *  opts out, every color it and its children outside brand content draw (an ink under text or a glyph, an opaque fill, a
+ *  drawn edge or outline). A color input is left out: Chromium's own stylesheet sets it to `none`, so its swatch shows the
+ *  color it holds, and it is not ours to set. Runs in the page. */
 const FC_CONTROLS = () => [...document.querySelectorAll('[data-p3="frame"] :is(button, input, select, textarea, [role="switch"], [role="tab"], [role="radio"], [role="checkbox"], [role="menuitem"], [role="menuitemradio"], [role="option"])')]
   .filter((n) => !n.closest('[data-p3="specimen"]') && !(n.tagName === 'INPUT' && n.type === 'color') && n.getClientRects().length > 0)
-  .map((n) => [`${n.tagName.toLowerCase()}[${n.getAttribute('data-p3') ?? (n.getAttribute('class') ?? '').split(' ')[0]}]`, getComputedStyle(n).forcedColorAdjust]);
+  .map((n) => {
+    const fca = getComputedStyle(n).forcedColorAdjust;
+    const colors = new Set();
+    if (fca !== 'auto') {
+      const clear = (v) => /^rgba\(.*,\s*0\)$/.test(v) || v === 'transparent';
+      for (const m of [n, ...n.querySelectorAll('*')]) {
+        if (m.closest('[data-content]') || m.getClientRects().length === 0) continue;
+        const c = getComputedStyle(m);
+        if (c.display === 'none' || c.visibility === 'hidden') continue;
+        if (m instanceof SVGElement || [...m.childNodes].some((t) => t.nodeType === 3 && t.textContent.trim())) colors.add(c.color);
+        if (!clear(c.backgroundColor)) colors.add(c.backgroundColor);
+        for (const sd of ['Top', 'Right', 'Bottom', 'Left']) if (c[`border${sd}Style`] !== 'none' && parseFloat(c[`border${sd}Width`]) > 0 && !clear(c[`border${sd}Color`])) colors.add(c[`border${sd}Color`]);
+        if (c.outlineStyle !== 'none' && !clear(c.outlineColor)) colors.add(c.outlineColor);
+      }
+    }
+    return { el: `${n.tagName.toLowerCase()}[${n.getAttribute('data-p3') ?? (n.getAttribute('class') ?? '').split(' ')[0]}]`, fca,
+      selected: ['aria-pressed', 'aria-selected', 'aria-checked'].some((a) => n.getAttribute(a) === 'true'), colors: [...colors] };
+  });
 /** Focus `sel` from the keyboard: focus it, step back and forward again, so the ring is the keyboard's. */
 const fcKeyFocus = async (page, sel) => {
   await page.locator(sel).first().focus();
@@ -12261,12 +12330,31 @@ for (const host of ['web', 'figma']) {
         ok(!!on && !!off && on.bg === H && on.ink === HT && off.bg !== H && on.bg !== off.bg,
           `${where}: ${what}: the selected one fills with Highlight ${H} and inks with HighlightText ${HT}, its neighbor does not fill with Highlight (selected ${JSON.stringify(on && [on.bg, on.ink])}, neighbor ${JSON.stringify(off && [off.bg, off.ink])})`);
       };
+      const SYSTEM = new Set(FC_KEYS.map((k) => sys[k]));
       const controlsOptIn = async (place) => {
         const cs = await page.evaluate(FC_CONTROLS);
-        const out = cs.filter(([, f]) => f !== 'auto');
-        ok(cs.length >= FC_CONTROL_FLOOR && out.length === 0,
-          `${where}: no control opts out of forced colors on ${place}: every control outside a specimen root computes forced-color-adjust: auto (${cs.length} read, at least ${FC_CONTROL_FLOOR}; opted out: ${JSON.stringify(out.slice(0, 6))})`);
+        const outs = cs.filter((c) => c.fca !== 'auto');
+        const unselected = outs.filter((c) => !c.selected).map((c) => `${c.el} ${c.fca}`);
+        const nonSystem = outs.flatMap((c) => c.colors.filter((x) => !SYSTEM.has(x)).map((x) => `${c.el} ${x}`));
+        ok(cs.length >= FC_CONTROL_FLOOR && unselected.length === 0,
+          `${where}: HC1 B on ${place}: only a selected control opts out of forced colors; every other control outside a specimen root computes forced-color-adjust: auto (${cs.length} read, at least ${FC_CONTROL_FLOOR}; ${outs.length} opt out; not selected: ${JSON.stringify(unselected.slice(0, 6))})`);
+        ok(nonSystem.length === 0,
+          `${where}: HC1 B on ${place}: a control that opts out draws only system colors, its own and its children's (${outs.length} opt out; not a system color: ${JSON.stringify(nonSystem.slice(0, 6))})`);
         ran.add('controls opt in');
+      };
+      /** A selected control's label as drawn: its text box shows the Highlight fill and the HighlightText ink. */
+      const hlRgb = (() => { const h = fcRgba(H), cv = fcRgba(CV); return h && cv ? [0, 1, 2].map((i) => Math.round(h[i] * h[3] + cv[i] * (1 - h[3]))) : null; })();
+      const drawn = async (sel, what) => {
+        await page.locator(sel).first().scrollIntoViewIfNeeded();
+        const box = await page.evaluate(FC_TEXT_BOX, sel);
+        let px = null;
+        if (box && box.width > 0 && box.height > 0) {
+          const png = (await page.screenshot({ clip: box })).toString('base64');
+          px = await page.evaluate(FC_PIXELS, [png, hlRgb, fcRgba(HT).slice(0, 3), FC_TOL]);
+        }
+        const fill = px ? px.fill / px.n : 0, ink = px ? px.ink / px.n : 0;
+        ok(!!px && fill >= FC_FILL_MIN && ink >= FC_INK_MIN,
+          `${where}: ${what}, as drawn: the selected label's text box shows the Highlight fill (rgb ${JSON.stringify(hlRgb)}) on at least ${FC_FILL_MIN * 100}% of its pixels and the HighlightText ink on at least ${FC_INK_MIN * 100}%, never a Canvas backplate (fill ${(fill * 100).toFixed(1)}%, ink ${(ink * 100).toFixed(1)}% of ${px?.n ?? 0} px in ${JSON.stringify(box)})`);
       };
       const specimens = async (place) => {
         const after = await page.evaluate(FC_SPECIMENS);
@@ -12281,6 +12369,7 @@ for (const host of ['web', 'figma']) {
       // ── Color › Palettes: the segment, the tab, the held mode control, the specimens, the controls ──────────────
       step = 'Palettes';
       selected(await page.evaluate(FC_LOOK, '[data-p3="color-sub-palettes"]'), await page.evaluate(FC_LOOK, '[data-p3="color-sub-fills"]'), 'the Color sub-page segment');
+      await drawn('[data-p3="color-sub-palettes"]', 'the Color sub-page segment');
       ran.add('segment');
       const tOn = await page.evaluate(FC_LOOK, '[data-p3="tab-color"]'), tOff = await page.evaluate(FC_LOOK, '[data-p3="tab-brand"]');
       ok(tOn?.under === CT && tOff?.under === CV, `${where}: the selected tab's underline draws in CanvasText ${CT}, a tab not selected hides its own in Canvas ${CV} (selected ${tOn?.under}, other ${tOff?.under})`);
@@ -12307,6 +12396,7 @@ for (const host of ['web', 'figma']) {
       }
       const cOn = await page.evaluate(FC_LOOK, chipOn), cOff = await page.evaluate(FC_LOOK, chipOff);
       selected(cOn, cOff, 'a Personality chip');
+      await drawn(chipOn, 'a Personality chip');
       ok(cOn?.glyph === HT, `${where}: a pressed chip's check draws in HighlightText ${HT} (read ${cOn?.glyph})`);
       ran.add('chip');
       const modeHooks = ['mode-on-dark', 'mode-on-hc-light', 'mode-on-hc-dark', 'mode-on-wireframe'];
@@ -12333,6 +12423,7 @@ for (const host of ['web', 'figma']) {
       ran.add('focus rings');
       await page.evaluate(() => document.activeElement?.blur?.());
       selected(await page.evaluate(FC_LOOK, '[data-p3="mode-option"][aria-checked="true"]'), await page.evaluate(FC_LOOK, '[data-p3="mode-option"][aria-checked="false"]'), 'a live mode radio');
+      await drawn('[data-p3="mode-option"][aria-checked="true"]', 'a live mode radio');
       ran.add('live modes');
       await specimens('color-fills');
       ran.add('fills specimens');
@@ -12357,6 +12448,7 @@ for (const host of ['web', 'figma']) {
       await hooks.need(page, '[data-p3="step-picker"]');
       selected(await page.evaluate(FC_LOOK, '[data-p3="step-picker"] [data-p3="step-picker-step"][aria-pressed="true"]'),
         await page.evaluate(FC_LOOK, '[data-p3="step-picker"] [data-p3="step-picker-step"][aria-pressed="false"]'), 'the step picker\'s step');
+      await drawn('[data-p3="step-picker"] [data-p3="step-picker-step"][aria-pressed="true"]', 'the step picker\'s step');
       ran.add('step picker');
       await shot('fills-step-picker');
       await hooks.click(page.locator('[data-p3="step-picker-close"]'));
@@ -12387,6 +12479,7 @@ for (const host of ['web', 'figma']) {
       await hooks.need(page, '[data-p3="value-picker"]');
       selected(await page.evaluate(FC_LOOK, '[data-p3="value-picker"] [data-p3="value-picker-value"][aria-pressed="true"]'),
         await page.evaluate(FC_LOOK, '[data-p3="value-picker"] [data-p3="value-picker-value"][aria-pressed="false"]'), 'the value picker\'s value');
+      await drawn('[data-p3="value-picker"] [data-p3="value-picker-value"][aria-pressed="true"]', 'the value picker\'s value');
       ran.add('value picker');
       await hooks.click(page.locator('[data-p3="value-picker-close"]'));
 

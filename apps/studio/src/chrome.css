@@ -1437,13 +1437,19 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
    chrome's own: a selected, pressed or checked control fills with `Highlight` and inks with `HighlightText`; a
    disabled one inks and edges with `GrayText`; an edge that carries the state is drawn, and one that does not is
    hidden in `Canvas`. A focus ring takes `CanvasText`, so it shows next to a `Highlight` fill too. The brand's color
-   specimens keep their real colors (`forced-color-adjust: none`), and only they do: a control never opts out.
-   `test:chrome` section 39 measures each state under Chromium's forced-colors emulation. */
+   specimens keep their real colors (`forced-color-adjust: none`).
+   ONE CONTROL OPTS OUT, AND ONLY WHILE SELECTED (owner decision HC1 B, 2026-10-09): under forced colors Chromium draws a
+   `Canvas` backplate behind every run of text, whatever the fill under it, so a `HighlightText` label on a `Highlight`
+   fill vanishes into a white box. A selected chip, segment, step, value or type-ahead option therefore takes
+   `forced-color-adjust: none`, and every color it and what it holds draw is a system color, set here. No other control
+   opts out. `test:chrome` section 40 measures each state under Chromium's forced-colors emulation, the selected labels
+   as drawn. */
 @media (forced-colors: active) {
   /* A glyph takes the forced ink, not the chrome color it names: `HighlightText` on a selected control and `GrayText` on a
      disabled one, below. */
   .p3-ico { forced-color-adjust: auto; }
-  /* Selected, pressed and checked: the system's selection. */
+  /* Selected, pressed and checked: the system's selection. The weights matrix's check draws a glyph and no text, so it
+     needs no opt-out. */
   .p3-btn.p3-chip[aria-pressed="true"],
   .p3-seg-tab:is([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"]),
   .p3-btn.p3-mcheck[aria-checked="true"],
@@ -1451,8 +1457,13 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
   .p3-combo-opt[aria-selected="true"] {
     background-color: Highlight; border-color: Highlight; color: HighlightText;
   }
+  /* HC1 B: the selected controls with a label opt out of the backplate; what they hold inks and edges in HighlightText. */
+  .p3-btn.p3-chip[aria-pressed="true"],
+  .p3-seg-tab:is([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"]),
+  :is(.p3-step, .p3-vpick)[aria-pressed="true"],
+  .p3-combo-opt[aria-selected="true"] { forced-color-adjust: none; }
   :is(.p3-btn.p3-chip[aria-pressed="true"], .p3-seg-tab:is([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"]), .p3-btn.p3-mcheck[aria-checked="true"],
-    :is(.p3-step, .p3-vpick)[aria-pressed="true"], .p3-combo-opt[aria-selected="true"]) .p3-ico { color: HighlightText; }
+    :is(.p3-step, .p3-vpick)[aria-pressed="true"], .p3-combo-opt[aria-selected="true"]) :not([data-content], [data-content] *) { color: HighlightText; border-color: HighlightText; }
   .p3-check:is([aria-checked="true"], [aria-checked="mixed"]) .p3-check-box { background-color: Highlight; border-color: Highlight; }
   .p3-check:is([aria-checked="true"], [aria-checked="mixed"]) .p3-check-box > .p3-ico { color: HighlightText; }
   .p3-switch-knob { background-color: CanvasText; }
@@ -1474,7 +1485,7 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
   :is(.p3-btn, .p3-vpick, .p3-seg-tab, .p3-step, .p3-menu-item, .p3-text-input, .p3-select):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) {
     background-color: Canvas; border-color: GrayText; color: GrayText;
   }
-  :is(.p3-btn, .p3-vpick, .p3-seg-tab, .p3-step, .p3-menu-item):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-ico { color: GrayText; }
+  :is(.p3-btn, .p3-vpick, .p3-seg-tab, .p3-step, .p3-menu-item):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) :not([data-content], [data-content] *) { color: GrayText; border-color: GrayText; }
   .p3-seg-tab:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]):not([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"]) { border-color: Canvas; }
   .p3-seg-tab:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-dot { background-color: GrayText; }
   :is(.p3-check:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]), .p3-check-fixed) .p3-check-box { background-color: Canvas; border-color: GrayText; }
