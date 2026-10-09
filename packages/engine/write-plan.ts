@@ -26,7 +26,7 @@
 import type { FigmaCollectionFile, FigmaColor, FigmaVar } from './emit-figma-color';
 import { CORE_COLLECTION } from './emit-figma-color';
 import type { Theme } from './theme';
-import { buildFigmaDims, buildFigmaLayout } from './emit-figma-dims';
+import { buildFigmaDims, buildFigmaLayout, buildFigmaMotion } from './emit-figma-dims';
 import { buildFigmaShadow, buildFigmaGradient, buildFigmaGridStyles } from './emit-figma-styles';
 import type { FigmaEffect, FigmaEffectStylesFile, FigmaPaintStylesFile, FigmaColumnGrid } from './emit-figma-styles';
 import { buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles } from './emit-figma-font';
@@ -227,6 +227,7 @@ export const buildFloatWritePlan = (theme: Theme): FloatCollectionPlan[] => {
     named([dims.focus]),
     named([dims.opacity]),
     named(layout),
+    named(buildFigmaMotion(theme)), // #2394 — FLOAT ms, no scope; 1 mode, or 1 per per-mode tempo
   ];
 };
 
