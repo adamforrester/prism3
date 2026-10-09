@@ -1681,6 +1681,27 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       ok(members.length > 0 && off.length === 0,
         `#2292 ${id} fills its column: on every member an unplaced field reads 320 (root and box), an instance set to FILL a ${COLUMN}px column has its input box, label and ${id === 'textarea' ? 'message row' : 'message'} at ${COLUMN}, in a ${NARROW}px column the box shrinks to ${NARROW} (#2266, Q99 B), and in a ${NARROWER}px column it holds its 120 floor (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
     }
+    // Q152.3 (Q99 B reaches the rows): checkbox-row and radio-row are built at 320 and shrink with their column to
+    // the same 120 floor. The row IS the root, so the instance's own width is the row's, and the label, which fills
+    // the row, is the row less its control box and one gap. Literals: 320, 505, 280, and 120 in a 100px column.
+    for (const id of ['checkbox-row', 'radio-row']) {
+      const members = await setOf(id);
+      const off: string[] = [];
+      for (const m of members) {
+        const wide = placedAt(String(m.name), id, COLUMN);
+        const narrow = placedAt(String(m.name), id, NARROW);
+        const narrower = placedAt(String(m.name), id, NARROWER);
+        if (!wide || !narrow || !narrower) { off.push(`${m.name}: no instance`); continue; }
+        // A row's width is its MAIN axis, so FILL sets the instance's primary mode where a field's sets its counter.
+        for (const inst of [wide, narrow, narrower]) inst.primaryAxisSizingMode = 'FIXED';
+        const label = inside(wide, 'label');
+        const widths = [W(m), W(wide), W(narrow), W(narrower)];
+        if (!(widths[0] === 320 && widths[1] === COLUMN && widths[2] === NARROW && widths[3] === 120 && label > 320 && label < COLUMN))
+          off.push(`${m.name}: unplaced ${widths[0]}; in ${COLUMN}/${NARROW}/${NARROWER} columns ${widths.slice(1).join('/')}; label in ${COLUMN} ${label}`);
+      }
+      ok(members.length > 0 && off.length === 0,
+        `Q152.3 ${id} fills its column: on every member an unplaced row reads 320, an instance set to FILL a ${COLUMN}px column is ${COLUMN} wide with its label filling the rest, in a ${NARROW}px column it shrinks to ${NARROW}, and in a ${NARROWER}px column it holds its 120 floor (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
+    }
   }
 }
 

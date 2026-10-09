@@ -583,8 +583,11 @@ export const makeShim = (opts: ShimOpts = {}) => {
   };
   const innerX = (p: Node): number => (p.width as number) - padX(p) - strokeX(p);
   const gapOf = (p: Node): number => (p.boundVariables as Record<string, { value?: number }>).itemSpacing?.value ?? 0;
-  /** A node's own width FLOOR — a literal `minWidth`, or one bound to a variable. */
+  /** A node's own width FLOOR — a literal `minWidth`, or one bound to a variable. An INSTANCE that sets none keeps
+   *  its main's, as on the host, where an instance inherits every property it does not override (Q152.3: a row's
+   *  floor is on its ROOT, so a placed row is floored by its main, where a field's floor sits inside it). */
   const floorOf = (n: Node): number => {
+    if (n.type === 'INSTANCE' && n.minWidth === undefined && n._main) return floorOf(n._main as Node);
     const bvW = (n.boundVariables as Record<string, { value?: number }>).minWidth?.value;
     return Math.max(typeof n.minWidth === 'number' ? n.minWidth : 0, typeof bvW === 'number' ? bvW : 0);
   };
