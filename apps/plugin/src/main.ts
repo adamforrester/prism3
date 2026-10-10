@@ -350,7 +350,7 @@ const applyTheme = async (input: BrandInput, sink: ActionSink): Promise<void> =>
  * variables and collections the current config no longer emits.
  *
  * #1570 widened the scope because a config that SHRINKS leaves drift the original three arms could not
- * see: reducing `layout.breakpoints` from 6 to 2 strands four `layout` modes and four `Grid / *` styles,
+ * see: reducing `layout.breakpoints` from 6 to 2 strands four `layout` modes and four grid styles (`xs`, `lg`, …),
  * and neither had any cleanup path. The modes arm is also the only way the collection's DEFAULT mode
  * becomes the plan's first again — Figma has no reorder API, so the stale leading modes have to go.
  *

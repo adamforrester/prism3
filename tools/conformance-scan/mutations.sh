@@ -181,7 +181,7 @@ mute "(i) style-definition: the absent-style push" \
   "findings.push(
         f('style-definition', 'high', showStyleKey(key),
           'the engine emits this style" \
-  "style-definition: grid style 'Grid / xs'"
+  "style-definition: grid style 'xs'"
 
 mute "(i) style-definition: the wrong-variable push" \
   "findings.push(

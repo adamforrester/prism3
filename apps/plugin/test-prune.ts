@@ -152,7 +152,29 @@ const synthInput: PruneInput = {
     // Stranded but empty → provenance unreadable, so MUST survive.
     { name: 'legacy-empty', variableNames: [], modes: modes('Mode 1') },
   ],
-  styles: styleNames({
+  styles: fileStyles({
+    // The grid styles carry descriptions (#2467): their names are bare sizes with no group, so a stale one
+    // is recognized by the engine's description signature or not at all. The descriptions are typed here,
+    // in the emitter's template, rather than produced by it (the arm below checks the template against the
+    // real emitter).
+    grid: [
+      { name: 'sm', description: '4-column grid for sm — 16px gutter, 16px margin. A static copy of the layout variables.' },   // planned — survives
+      { name: 'md', description: '8-column grid for md — 16px gutter, 24px margin. A static copy of the layout variables.' },   // planned — survives
+      // The shrink's leftover, under the current bare name → prune, admitted by its description.
+      { name: 'xs', description: '4-column grid for xs — 16px gutter, 16px margin. A static copy of the layout variables.' },
+      // #2467: an OLD-named style whose size the plan still emits is waiting for its in-place rename, not
+      // stale — deleting it would unlink every layer using it. MUST survive, description and all.
+      { name: 'Grid / sm', description: '4-column grid for sm — 16px gutter, 16px margin. A static copy of the layout variables.' },
+      // An old-named style whose size the plan DROPPED is stale under either name → prune.
+      { name: 'Grid / lg', description: '12-column grid for lg — 24px gutter, 24px margin. A static copy of the layout variables.' },
+      { name: 'My Grid / wide', description: '' },   // hand-added → MUST survive
+      // Hand-added and spelled WITHOUT the old emitter's spaces. `styleGroup` used to `.trim()`, which
+      // pooled `Grid` with the old `Grid ` group and put this style on the delete list.
+      { name: 'Grid/wide', description: '' },
+      // #2467: hand-added under a planned SIZE as its group. A bare planned name adds no group, so this
+      // is not in the engine's namespace; read as its own group, `md` would put it on the delete list.
+      { name: 'md/wide', description: 'my own wide grid' },
+    ],
     text: [
       'display/xl',      // planned — survives
       'body/md',         // planned — survives
@@ -172,16 +194,6 @@ const synthInput: PruneInput = {
       // per-kind namespace leaves this alone; one namespace pooled across kinds would delete it.
       'shadow/hand-made',
     ],
-    grid: [
-      'Grid / sm',       // planned — survives
-      'Grid / md',       // planned — survives
-      'Grid / xs',       // the shrink's leftover; group `Grid ` is planned → prune
-      'My Grid / wide',  // hand-added → MUST survive
-      // Hand-added and spelled WITHOUT the emitter's spaces, so its group is `Grid` and the emitter's is
-      // `Grid ` — two namespaces, and that is the conservative reading. `styleGroup` used to `.trim()`,
-      // which pooled them and put this style on the delete list.
-      'Grid/wide',
-    ],
   }),
   plannedVariables: [`${ROOT}/color/text/primary`, `${ROOT}/core/palette/blue/500`, `${ROOT}/space/md`, `${ROOT}/grid/columns`, `${ROOT}/radius/md`],
   plannedCollections: ['color', 'core', 'space', 'layout', 'radius'],
@@ -189,7 +201,7 @@ const synthInput: PruneInput = {
     text: ['display/xl', 'body/md'],
     effect: ['shadow/md'],
     paint: ['gradient/brand'],
-    grid: ['Grid / sm', 'Grid / md'],
+    grid: ['sm', 'md'],
   }),
   plannedModes: [
     { collection: 'color', modes: ['light', 'dark'] },
@@ -307,14 +319,18 @@ ok(prunedStyles('effect').join(',') === 'shadow/2xl',
   `effect style: the in-group orphan IS pruned and the hand-added \`My FX/glow\` is NOT (got ${prunedStyles('effect').join(',') || 'none'})`);
 ok(prunedStyles('paint').join(',') === 'gradient/legacy',
   `paint style: the in-group orphan IS pruned — and \`shadow/hand-made\` is NOT, because \`shadow\` is a planned group for EFFECT styles only (got ${prunedStyles('paint').join(',') || 'none'}) — the per-kind namespace pin`);
-ok(prunedStyles('grid').join(',') === 'Grid / xs',
-  `grid style: a breakpoint the config dropped IS pruned and the hand-added \`My Grid / wide\` is NOT (got ${prunedStyles('grid').join(',') || 'none'})`);
+ok(prunedStyles('grid').join(',') === 'Grid / lg,xs',
+  `grid style: a breakpoint the config dropped IS pruned under either name, and the hand-added \`My Grid / wide\`, \`Grid/wide\` and \`md/wide\` are NOT (got ${prunedStyles('grid').join(',') || 'none'})`);
+ok(!prunedStyles('grid').includes('Grid / sm'),
+  'grid style (#2467): an old-named `Grid / sm` whose size the plan still emits is NOT pruned — it is waiting for its in-place rename, and deleting it unlinks every layer using it — the by-name pin');
 ok(!prunedStyles('grid').includes('Grid/wide'),
-  'grid style: a hand-added `Grid/wide` — the emitter\'s group name without the emitter\'s spaces — is NOT pruned; a `.trim()` in `styleGroup` pools the two spellings and offers it — the by-name pin');
+  'grid style: a hand-added `Grid/wide` — the old emitter\'s group name without its spaces — is NOT pruned; a `.trim()` in `styleGroup` pools the two spellings and offers it — the by-name pin');
+ok(!prunedStyles('grid').includes('md/wide'),
+  'grid style (#2467): a hand-added `md/wide` is NOT pruned — a bare planned name like `md` is not a group, so it puts nothing else in the engine\'s namespace — the by-name pin');
 
 // --- count + prose ---
-ok(prunePlanCount(plan) === 8,
-  `prunePlanCount sums every kind (1 var + 1 collection + 2 modes + 4 styles = 8; got ${prunePlanCount(plan)})`);
+ok(prunePlanCount(plan) === 9,
+  `prunePlanCount sums every kind (1 var + 1 collection + 2 modes + 5 styles = 9; got ${prunePlanCount(plan)})`);
 const preview = prunePreviewSummary(plan);
 ok(/style/.test(preview) && /mode/.test(preview) && /variable/.test(preview) && /collection/.test(preview) && /namespace/.test(preview),
   'prunePreviewSummary names each kind and the namespace scope');
@@ -350,7 +366,7 @@ ok(capPreview.includes(`${ROOT}/color/ghost-00`) && /… \+5 more/.test(capPrevi
 const cleanPlan = computePrunePlan({
   ...synthInput,
   collections: [{ name: 'color', variableNames: [`${ROOT}/color/text/primary`], modes: modes('light', 'dark') }],
-  styles: styleNames({ text: ['display/xl'], grid: ['Grid / sm', 'Grid / md'] }),
+  styles: styleNames({ text: ['display/xl'], grid: ['sm', 'md'] }),
 });
 ok(prunePlanCount(cleanPlan) === 0 && /No stale items/.test(prunePreviewSummary(cleanPlan)),
   'a file matching the plan prunes nothing, and the preview says so');
@@ -405,7 +421,7 @@ ok(noRoot.modes.length > 0 && noRoot.styles.length > 0,
     text: [new RStyle('display/2xl'), new RStyle('display/xl'), new RStyle('body/old'), new RStyle('body/md')],
     effect: [new RStyle('shadow/old'), new RStyle('shadow/md')],
     paint: [new RStyle('gradient/old')],
-    grid: [new RStyle('Grid / xs'), new RStyle('Grid / md')],
+    grid: [new RStyle('xs'), new RStyle('md')],
   });
   let rafRes: Awaited<ReturnType<typeof applyPrunePlan>> | undefined;
   const thrown = await applyPrunePlan(
@@ -417,7 +433,7 @@ ok(noRoot.modes.length > 0 && noRoot.styles.length > 0,
         { kind: 'text', names: ['display/2xl', 'body/old'], byProvenance: [] },
         { kind: 'effect', names: ['shadow/old'], byProvenance: [] },
         { kind: 'paint', names: ['gradient/old'], byProvenance: [] },
-        { kind: 'grid', names: ['Grid / xs'], byProvenance: [] },
+        { kind: 'grid', names: ['xs'], byProvenance: [] },
       ],
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies PruneApi
@@ -434,7 +450,7 @@ ok(noRoot.modes.length > 0 && noRoot.styles.length > 0,
   ok([...rafShim.liveStyleNames('text')].join(',') === 'display/xl,body/md'
     && [...rafShim.liveStyleNames('effect')].join(',') === 'shadow/md'
     && rafShim.liveStyleNames('paint').size === 0
-    && [...rafShim.liveStyleNames('grid')].join(',') === 'Grid / md',
+    && [...rafShim.liveStyleNames('grid')].join(',') === 'md',
     'read-after-remove: every planned style is gone in every kind, and every other style is live');
 
   // --- duplicate groups: an object two plan groups both name is removed ONCE, the second naming a miss ---
@@ -477,13 +493,13 @@ ok(noRoot.modes.length > 0 && noRoot.styles.length > 0,
 const shim = new PruneShim(
   synthInput.collections.map((c, i) => new RColl(`c${i}`, c.name, c.modes.map((m) => ({ ...m })))),
   synthInput.collections.flatMap((c, i) => c.variableNames.map((n, j) => new RVar(`v${i}-${j}`, n, `c${i}`))),
-  { text: synthInput.styles.text.map((n) => new RStyle(n)), effect: synthInput.styles.effect.map((n) => new RStyle(n)), paint: synthInput.styles.paint.map((n) => new RStyle(n)), grid: synthInput.styles.grid.map((n) => new RStyle(n)) },
+  { text: synthInput.styles.text.map((n) => new RStyle(n)), effect: synthInput.styles.effect.map((n) => new RStyle(n)), paint: synthInput.styles.paint.map((n) => new RStyle(n)), grid: synthInput.styles.grid.map((n) => new RStyle(typeof n === 'string' ? n : n.name)) },
 );
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies PruneApi
 const res = await applyPrunePlan(plan, shim as any as PruneApi);
 
-ok(res.variables === 1 && res.collections === 1 && res.modes === 2 && res.styles === 4 && res.misses.length === 0,
-  `executor removed exactly the plan (1 var, 1 collection, 2 modes, 4 styles, 0 misses; got ${res.variables}/${res.collections}/${res.modes}/${res.styles}, misses ${res.misses.length})`);
+ok(res.variables === 1 && res.collections === 1 && res.modes === 2 && res.styles === 5 && res.misses.length === 0,
+  `executor removed exactly the plan (1 var, 1 collection, 2 modes, 5 styles, 0 misses; got ${res.variables}/${res.collections}/${res.modes}/${res.styles}, misses ${res.misses.length})`);
 
 const liveVars = shim.liveVarNames();
 ok(!liveVars.has(`${ROOT}/color/text/legacy`), 'executor: the in-namespace orphan variable is gone');
@@ -510,17 +526,18 @@ for (const kind of STYLE_KINDS) {
   ok(gone.every((n) => !live.has(n)) && (synthInput.plannedStyles[kind] ?? []).every((n) => live.has(n)),
     `executor: every pruned ${kind} style is gone and every planned one is untouched (${gone.length} removed)`);
 }
-ok(shim.liveStyleNames('text').has('Marketing/Hero') && shim.liveStyleNames('paint').has('shadow/hand-made') && shim.liveStyleNames('grid').has('My Grid / wide'),
+ok(shim.liveStyleNames('text').has('Marketing/Hero') && shim.liveStyleNames('paint').has('shadow/hand-made') && shim.liveStyleNames('grid').has('My Grid / wide')
+  && shim.liveStyleNames('grid').has('md/wide') && shim.liveStyleNames('grid').has('Grid / sm'),
   'executor: every hand-added style, in every kind, is untouched — the by-name pin');
 
 const applied = pruneAppliedSummary(res);
-ok(/Removed 8 stale items/.test(applied), `pruneAppliedSummary states what was removed ("${applied}")`);
+ok(/Removed 9 stale items/.test(applied), `pruneAppliedSummary states what was removed ("${applied}")`);
 
 // A miss is recorded, never thrown: a plan naming an item the file no longer holds reports it.
 const emptyShim = new PruneShim([], [], { text: [], effect: [], paint: [], grid: [] });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies PruneApi
 const missRes = await applyPrunePlan(plan, emptyShim as any as PruneApi);
-ok(missRes.variables === 0 && missRes.collections === 0 && missRes.modes === 0 && missRes.styles === 0 && missRes.misses.length === 8,
+ok(missRes.variables === 0 && missRes.collections === 0 && missRes.modes === 0 && missRes.styles === 0 && missRes.misses.length === 9,
   `executor records a miss for every named item absent from the file (${missRes.misses.length} misses), never throws`);
 ok(missRes.misses.some((m) => m.startsWith('mode:layout/')) && missRes.misses.some((m) => m.startsWith('grid-style:')),
   `misses name the KIND as well as the item, so a mode miss and a grid-style miss are distinguishable (${missRes.misses.filter((m) => !m.startsWith('var:')).slice(0, 3).join(', ')})`);
@@ -689,10 +706,10 @@ for (const c of handTyped) {
 // plans: the stale description matches NO planned one, and is recognized anyway.
 const sixGridPlan = buildGridStylePlan(brandTheme(withBps([0, 480, 768, 1024, 1280, 1536])));
 const twoGridPlan = buildGridStylePlan(brandTheme(withBps([0, 768])));
-const staleXs = sixGridPlan.find((r) => r.name === 'Grid / xs')!;
+const staleXs = sixGridPlan.find((r) => r.name === 'xs')!;
 const twoGridDescriptions = new Set(twoGridPlan.map((r) => r.description));
 ok(!twoGridDescriptions.has(staleXs.description),
-  `style provenance TRAP: after a 6→2 shrink, the stranded \`Grid / xs\` description equals NO description the 2-breakpoint plan writes ("${staleXs.description.slice(0, 56)}…") — an exact-match recognizer spares it`);
+  `style provenance TRAP: after a 6→2 shrink, the stranded \`xs\` description equals NO description the 2-breakpoint plan writes ("${staleXs.description.slice(0, 56)}…") — an exact-match recognizer spares it`);
 ok(isEngineDescription('grid', staleXs.description, twoGridPlan.map((r) => r.name)),
   'style provenance TRAP: …and the TEMPLATE signature recognizes it anyway, against the current plan — which is the difference between catching a shrink\'s stale styles and sparing exactly them');
 
@@ -792,7 +809,8 @@ for (const c of shrinkShim.collections) varNamesByColl.set(c.id, []);
 for (const v of shrinkShim.vars) varNamesByColl.get(v.variableCollectionId)?.push(v.name);
 const shrinkSnapshot: PruneInput = {
   collections: shrinkShim.collections.map((c) => ({ name: c.name, variableNames: varNamesByColl.get(c.id) ?? [], modes: c.modes.map((m) => ({ ...m })) })),
-  styles: styleNames({ grid: shrinkShim.gridStyles.map((s) => s.name) }),
+  // With descriptions: a bare grid name has no group (#2467), so the description is the only way in.
+  styles: fileStyles({ grid: shrinkShim.gridStyles.map((s) => ({ name: s.name, description: s.description })) }),
   plannedVariables: twoFloat.flatMap((p) => p.create.map((r) => r.name)),
   plannedCollections: twoFloat.map((p) => p.name),
   plannedStyles: styleNames({ grid: twoGrid.map((r) => r.name) }),
@@ -802,14 +820,15 @@ const shrinkSnapshot: PruneInput = {
 const shrinkPlan = computePrunePlan(shrinkSnapshot);
 ok((shrinkPlan.modes.find((g) => g.collection === 'layout')?.modes ?? []).map((m) => m.name).join(',') === 'xs,lg,xl,2xl',
   `shrink: the prune offers exactly the four modes the shrink stranded (${(shrinkPlan.modes.find((g) => g.collection === 'layout')?.modes ?? []).map((m) => m.name).join(',') || 'none'})`);
-ok((shrinkPlan.styles.find((g) => g.kind === 'grid')?.names ?? []).join(',') === 'Grid / 2xl,Grid / lg,Grid / xl,Grid / xs',
+ok((shrinkPlan.styles.find((g) => g.kind === 'grid')?.names ?? []).join(',') === '2xl,lg,xl,xs',
   `shrink: and exactly the four grid styles it stranded (${(shrinkPlan.styles.find((g) => g.kind === 'grid')?.names ?? []).join(',') || 'none'})`);
 ok(shrinkPlan.modes.length === 1,
   `shrink: no OTHER collection has a mode offered — the nine single-mode float axes are unchanged by a breakpoint change (${shrinkPlan.modes.map((g) => g.collection).join(',')})`);
 
 // --- the RENAMED stranded style (#1577), on the file the engine just wrote --------------------
-// The live test file's `Grid/xs` is this shape: an emitted `Grid / xs` a designer renamed, which drops it
-// out of the emitter's `Grid ` group and out of reach of the #1521 namespace. The descriptions below are
+// The live test file's `Grid/xs` is this shape: an emitted `Grid / xs` a designer renamed, which dropped it
+// out of the old emitter's `Grid ` group and out of reach of the #1521 namespace. Since #2467 the names
+// are bare and there is no group to drop out of: every stale grid style is admitted by its description. The descriptions below are
 // the ones the REAL `applyGridStylePlan` wrote onto the shim above, not strings composed here.
 const renamedTo = 'Layout grid — lg (renamed by hand)';
 const withRenamed = (keepDescriptions: boolean): PruneInput => ({
@@ -817,7 +836,7 @@ const withRenamed = (keepDescriptions: boolean): PruneInput => ({
   styles: fileStyles({
     grid: [
       ...shrinkShim.gridStyles.map((s) => ({
-        name: s.name === 'Grid / lg' ? renamedTo : s.name,
+        name: s.name === 'lg' ? renamedTo : s.name,
         description: keepDescriptions ? s.description : '',
       })),
       // A hand-made style in the same file, with a hand-typed description, so this arm cannot pass by
@@ -830,8 +849,8 @@ const renamedPlan = computePrunePlan(withRenamed(true));
 const renamedGrid = renamedPlan.styles.find((g) => g.kind === 'grid');
 ok((renamedGrid?.names ?? []).includes(renamedTo),
   `#1577 renamed: a stranded grid style the designer RENAMED out of the plan's group is offered anyway (offered ${(renamedGrid?.names ?? []).join(', ') || 'none'})`);
-ok((renamedGrid?.byProvenance ?? []).join(',') === renamedTo,
-  `#1577 renamed: …and it is the ONLY one admitted by its description — the other three are still in the \`Grid \` group (byProvenance: ${(renamedGrid?.byProvenance ?? []).join(', ') || 'none'})`);
+ok((renamedGrid?.byProvenance ?? []).join(',') === `2xl,${renamedTo},xl,xs`,
+  `#1577/#2467 renamed: …and all four are admitted by their descriptions — a bare grid name has no group to admit it (byProvenance: ${(renamedGrid?.byProvenance ?? []).join(', ') || 'none'})`);
 ok(!(renamedGrid?.names ?? []).includes('Grid/wide'),
   '#1577 renamed: the hand-made `Grid/wide` in the same file is NOT offered — its description is not one the engine writes, and its group is not one the plan emits');
 ok(/renamed by hand/.test(prunePreviewSummary(renamedPlan)) && /description is one the engine wrote/.test(prunePreviewSummary(renamedPlan)),
@@ -839,8 +858,8 @@ ok(/renamed by hand/.test(prunePreviewSummary(renamedPlan)) && /description is o
 // The paired negative, which is what proves the DESCRIPTION did the work above rather than something else
 // in the snapshot: strip the descriptions and the same renamed style is spared.
 const strippedGrid = computePrunePlan(withRenamed(false)).styles.find((g) => g.kind === 'grid');
-ok(!(strippedGrid?.names ?? []).includes(renamedTo) && (strippedGrid?.names ?? []).length === 3,
-  `#1577 renamed: with the descriptions stripped the same file spares it and offers only the three still in the group (${(strippedGrid?.names ?? []).join(', ') || 'none'}) — the provenance is doing the work`);
+ok(!(strippedGrid?.names ?? []).includes(renamedTo) && (strippedGrid?.names ?? []).length === 0,
+  `#1577/#2467 renamed: with the descriptions stripped the same file spares it, and the three bare-named ones with it (${(strippedGrid?.names ?? []).join(', ') || 'none'}) — the provenance is doing the work`);
 // A breakpoint ladder is BOTH modes and variables: `ads/breakpoint/<name>` is one variable per rung, so
 // four of them are stranded too. They come out through the arm that has existed since #1521 — stated here
 // because it is what makes the file "clean", and because it is the one part of the shrink the pre-#1570
@@ -864,7 +883,7 @@ for (const v of shrinkShim.vars.filter((v) => !v.removed)) afterVarNames.get(v.v
 const rescan = computePrunePlan({
   ...shrinkSnapshot,
   collections: shrinkShim.collections.filter((c) => !c.removed).map((c) => ({ name: c.name, variableNames: afterVarNames.get(c.id) ?? [], modes: c.modes.map((m) => ({ ...m })) })),
-  styles: styleNames({ grid: shrinkShim.gridStyles.filter((s) => !s.removed).map((s) => s.name) }),
+  styles: fileStyles({ grid: shrinkShim.gridStyles.filter((s) => !s.removed).map((s) => ({ name: s.name, description: s.description })) }),
 });
 ok(prunePlanCount(rescan) === 0,
   `shrink: a second scan of the pruned file finds nothing stale at all — "removing them leaves a clean current-config file" (${prunePlanCount(rescan)} items)`);

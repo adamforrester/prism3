@@ -365,5 +365,37 @@ const snapshot = (f: FileShim): string => JSON.stringify({
     `edited description: a marked style whose description a designer rewrote is still Prism3's${g.ok ? '' : ` — ${conflictSummary(g.conflicts, 3)}`}`);
 }
 
+// ── #2467 OLD GRID NAMES: a file applied before the rename re-applies clean, renaming in place ──────────
+// The whole apply, through the pre-flight: the grid styles are put back under their old `Grid / <bp>` names
+// (literal, the pre-#2467 spelling), and the objects are kept so the check is identity, not a name count.
+const GRID_SIZES = ['sm', 'md', 'lg', 'xl', '2xl'];   // prism3's five breakpoints, typed here
+for (const era of ['marked', 'pre-mark'] as const) {
+  const f = new FileShim();
+  await apply(f);
+  const objs = GRID_SIZES.map((bp) => f.styles.grid.find((x) => x.name === bp));
+  for (const x of objs) if (x) x.name = `Grid / ${x.name}`;
+  if (era === 'pre-mark') stripMarks(f);
+  const g = await apply(f);
+  ok(g.ok && createdOf(g) === 0 && g.result.gs.renamed === 5,
+    `#2467 old names (${era}): re-applies with 0 conflicts, creates 0 and renames 5 grid styles${g.ok ? ` (created ${createdOf(g)}, renamed ${g.result.gs.renamed})` : ` — ${'threw' in g ? `threw: ${g.threw}` : conflictSummary(g.conflicts, 3)}`}`);
+  ok(objs.every((x, i) => !!x && x.name === GRID_SIZES[i]) && f.styles.grid.length === 5,
+    `#2467 old names (${era}): the same five style objects now carry the bare names [${f.styles.grid.map((x) => x.name).join(', ')}]`);
+}
+
+// ── #2467 CLIENT `sm`: a client's own grid style under a bare planned name refuses the apply, untouched ──
+// No mark, the client's own description. Refused even under the legacy presumption (a persisted brand and
+// no stamps), because a bare size is a name anyone might use and Prism3 never wrote one unmarked.
+for (const legacy of [false, true]) {
+  const f = new FileShim();
+  f.addStyle('grid', 'sm', 'Our 4-column mobile grid');
+  if (legacy) f.root.setSharedPluginData('prism3', 'brandInput', '{"stand-in":"persistInput"}');
+  f.writes = [];
+  const before = snapshot(f);
+  const g = await apply(f);
+  const kinds = g.ok ? [] : g.conflicts.map((c) => `${c.kind} ${c.name}`);
+  ok(!g.ok && kinds.includes('grid style sm') && snapshot(f) === before && f.writes.length === 0,
+    `#2467 client 'sm'${legacy ? ' (legacy presumption)' : ''}: refused, the conflict names "grid style sm", and nothing is written (${f.writes.length} writes; ${kinds.join(' | ') || 'no conflicts'})`);
+}
+
 console.log(failed ? `\n✗ ${failed} check(s) failed` : '\n✓ apply pre-flight: all checks passed');
 process.exit(failed ? 1 : 0);

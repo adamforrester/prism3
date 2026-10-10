@@ -361,13 +361,13 @@ const RAR_REMOVED = [
   'effect style shadow/sm',
   'effect style shadow/md',
   'paint style gradient/brand',
-  'grid style Grid / md',
+  'grid style md',
 ];
 const RAR_KEPT = [
   'collection designer tokens: no Prism3 stamp',
   "collection acme mixed: 1 variables outside 'acme/' (e.g. other/y)",
   "text style body/md: description is not the engine's",
-  "grid style Grid / lg: description is not the engine's",
+  "grid style lg: description is not the engine's",
 ];
 for (const mode of ['live', 'ledger'] as const) { await section(`cleanup read-after-remove/${mode}`, async () => {
   const tag = `cleanup read-after-remove/${mode}`;
@@ -395,8 +395,8 @@ for (const mode of ['live', 'ledger'] as const) { await section(`cleanup read-af
   style(() => B.createEffectStyle(), 'shadow/custom', 'Elevation 2 of 3 — light mode');
   style(() => B.createEffectStyle(), 'shadow/md', 'Elevation 2 of 3 — light mode');
   style(() => B.createPaintStyle(), 'gradient/brand', 'gradient brand — linear 90°, 2 stops, oklch interpolation');
-  style(() => B.createGridStyle(), 'Grid / md', '12-column grid for md — 24px gutter, 32px margin. A static copy of the layout variables.');
-  style(() => B.createGridStyle(), 'Grid / lg', 'a designer\'s own grid');
+  style(() => B.createGridStyle(), 'md', '12-column grid for md — 24px gutter, 32px margin. A static copy of the layout variables.');
+  style(() => B.createGridStyle(), 'lg', 'a designer\'s own grid');
   if (mode === 'live') B.root.setSharedPluginData('prism3', 'brandInput', '{"stale":true}');
   else ledger.root['prism3/brandInput'] = '{"stale":true}';
 
@@ -404,7 +404,7 @@ for (const mode of ['live', 'ledger'] as const) { await section(`cleanup read-af
   // swapped for this file's literal plan (the same `pack` transport the generator uses).
   const data = {
     step: 0, of: 0, label: 'clean up theme', root: 'acme', ...(mode === 'ledger' ? { ledger } : {}),
-    styles: { text: ['display/lg', 'body/md', 'body/sm'], effect: ['shadow/sm', 'shadow/md'], paint: ['gradient/brand'], grid: ['Grid / md', 'Grid / lg'] },
+    styles: { text: ['display/lg', 'body/md', 'body/sm'], effect: ['shadow/sm', 'shadow/md'], paint: ['gradient/brand'], grid: ['md', 'lg'] },
   };
   const emitted = themeCleanupScript(PARITY[1][1]).js;
   const js = emitted.replace(/^const __D=[^\n]*\n/, () => `const __D=${J(pack(data))};\n`);
@@ -418,7 +418,7 @@ for (const mode of ['live', 'ledger'] as const) { await section(`cleanup read-af
   ok(J(r?.kept) === J(RAR_KEPT), `${tag}: it reports exactly the 2 collections and 2 styles it kept, with the reason (got ${J(r?.kept)})`);
   ok(J(B.collections.map((c) => c.name)) === J(['designer tokens', 'acme mixed']), `${tag}: the surviving collections are the unstamped one and the mixed one (${B.collections.map((c) => c.name).join(', ')})`);
   ok(J(B.vars.map((v) => v.name)) === J(['mine/one', 'acme/x', 'other/y']), `${tag}: the surviving variables are the kept collections' 3, the removed collections' 5 went with them (${B.vars.map((v) => v.name).join(', ')})`);
-  ok(J((['text', 'effect', 'paint', 'grid'] as const).map((k) => B.styles[k].map((s) => s.name))) === J([['display/xl', 'body/md'], ['shadow/custom'], [], ['Grid / lg']]),
+  ok(J((['text', 'effect', 'paint', 'grid'] as const).map((k) => B.styles[k].map((s) => s.name))) === J([['display/xl', 'body/md'], ['shadow/custom'], [], ['lg']]),
     `${tag}: the surviving styles are the unplanned and designer-described ones, in every kind`);
   if (mode === 'live') ok(B.root.getSharedPluginData('prism3', 'brandInput') === '', `${tag}: the persisted brand is cleared`);
   else {
