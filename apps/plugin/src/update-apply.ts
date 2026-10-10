@@ -130,6 +130,8 @@ export type SetOutcome = {
   /** Members the dry run read as built by an earlier plugin and otherwise unchanged (`revisionUnknown`): given the
    *  current stamp and nothing else (#2379). */
   restamped?: string[];
+  /** #2188 Q173 — members the build's pass moved to their place in the grid, measured off the host. Absent when none. */
+  moved?: number;
 };
 
 export type ApplyResult = {
@@ -368,6 +370,9 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
     before.set(at, { id: idOf(c), key: keyOf(c), ref: c, kids });
   }
   const replaced = new Set(p.replacements.map((r) => `${moved.get(r.member) ?? r.member}\u0000${r.path}`));
+  // Where each member sat, so the moves the build's pass makes are counted off the host, not taken from the dry run.
+  const posOf = (c: unknown): string => { const q = c as { x?: unknown; y?: unknown }; return `${Number(q.x)},${Number(q.y)}`; };
+  const wasAt = new Map([...before].map(([name, b]) => [name, posOf(b.ref)] as const));
 
   // ── RENAMES, ONE SYNCHRONOUS BLOCK (#1780): no `await` between the first and the last ─────────────────────
   const byName = new Map(kidsOf(live).map((c) => [coordOf(String(c.name ?? '')), c] as const));
@@ -438,6 +443,10 @@ const applySet = async (host: ApplyHost, api: ComponentsApi, t: UpdateTarget, p:
     : (host.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as LiveSet[]).find((s) => idOf(s) === setId || (setKey && keyOf(s) === setKey)) ?? live;
   if (keyOf(now) !== setKey || idOf(now) !== setId) out.identity.push(`the set: key ${setKey} → ${keyOf(now)}, id ${setId} → ${idOf(now)}`);
   const after = new Map(kidsOf(now).map((c) => [coordOf(String(c.name ?? '')), c] as const));
+  if (p.counts.move) {
+    const n = [...wasAt].filter(([name, at]) => after.has(name) && posOf(after.get(name)) !== at).length;
+    if (n) out.moved = n;
+  }
   for (const [name, b] of before) {
     const a = after.get(name);
     if (!a) { out.identity.push(`${name}: no longer in the set`); continue; }
@@ -521,7 +530,8 @@ export const applyUpdate = async (
     // Nothing for the build's pass to do. `noBaseline` counts (#2364): a set whose members all lack a record reads no
     // `update`, and was called already up to date. A member from an earlier plugin (`revisionUnknown`) does not (#2379):
     // it takes only the current stamp, so a set of nothing else is stamped and never built over.
-    const nothing = p.counts.update + p.counts.handEdited + p.counts.noBaseline + p.counts.add + p.counts.drop + p.counts.rename === 0
+    // Members to move into the grid (#2188 Q173) are work: the build's pass re-lays the grid and rewrites no member.
+    const nothing = p.counts.update + p.counts.handEdited + p.counts.noBaseline + p.counts.add + p.counts.drop + p.counts.rename + (p.counts.move ?? 0) === 0
       && Object.values(p.properties).every((l) => l.length === 0);
     if (nothing && p.counts.revisionUnknown) { ready.push({ t, p, live, stampOnly: true }); continue; }
     if (nothing) {
@@ -576,12 +586,13 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
   // A set the apply entered and wrote nothing to, every member it would have written left as it is (`noBaseline:
   // 'skip'`, a layer added by hand, a member that would need replacing), still holds what its dry run listed. It is
   // NOT UPDATED, never "already up to date" (#2364 review; the owner's choice, 2026-10-08: the approved headline).
-  const idle = r.outcomes.filter((o) => !o.refused && !o.stopped && o.skipped.length && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length).length;
+  const idle = r.outcomes.filter((o) => !o.refused && !o.stopped && o.skipped.length && !o.updated.length && !o.added && !o.renamed && !o.deprecated.length && !o.moved).length;
   const refused = r.outcomes.filter((o) => o.refused).length + r.refused.length + idle;
   const updated = r.outcomes.reduce((k, o) => k + o.updated.length, 0);
   const added = r.outcomes.reduce((k, o) => k + o.added, 0);
   const deprecated = r.outcomes.reduce((k, o) => k + o.deprecated.length, 0);
   const renamed = r.outcomes.reduce((k, o) => k + o.renamed, 0);
+  const moved = r.outcomes.reduce((k, o) => k + (o.moved ?? 0), 0);
   const lines: string[] = [];
   for (const o of r.outcomes) {
     if (o.refused) { lines.push(`${o.set}: not updated. ${o.refused}.`); continue; }
@@ -594,6 +605,8 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
       o.added ? `${o.added} added` : '',
       o.renamed ? `${o.renamed} renamed` : '',
       o.deprecated.length ? `${o.deprecated.length} marked deprecated` : '',
+      // DRAFT wording for the owner (#2188 Q173), the dry run's "to move" as done.
+      o.moved ? `${o.moved} moved` : '',
       o.kept.length ? `${n(o.kept.length, 'hand edit')} ${o.handEdits === 'overwrite' ? 'overwritten' : o.handEdits === 'accept' ? 'accepted as built' : 'kept'}` : '',
       o.unrecorded.length - (o.earlierRecord?.length ?? 0) ? `${o.unrecorded.length - (o.earlierRecord?.length ?? 0)} of them without an as-built record` : '',
       // The owner's wording (2026-10-09).
@@ -613,6 +626,7 @@ export const applyVerdict = (r: ApplyResult): { ok: boolean; headline: string; s
         : updated ? `✓ updated ${updated} in place`
           : added ? `✓ added ${added}`
             : deprecated ? `✓ ${deprecated} marked deprecated`
-              : renamed ? `✓ renamed ${renamed}` : '✓ already up to date';
+              : renamed ? `✓ renamed ${renamed}`
+                : moved ? `✓ moved ${moved}` : '✓ already up to date';
   return { ok: !stopped && !failed.length && !refused, headline, summary: lines.join('\n'), lines };
 };
