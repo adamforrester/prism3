@@ -135,5 +135,38 @@ for (let i = 0; i < 2; i++) L.addBreakpoint();
 ok(J(lay()?.breakpoints) === J([0, 768, 1024, 1440, 1920, 2176, 2432]) && brandTheme(structuredClone(store.brandState)).layout.breakpoints.at(-1)?.name === '3xl',
   `seven breakpoints run xs to 3xl in the engine — ${J(lay()?.breakpoints)}`);
 
+console.log('\n4. #2146: the first breakpoint is 0 (after #2139). The state refuses to write a list that starts above 0, and one that arrives that way is explained, not thrown');
+// The engine's approved sentence (#2139), restated as a literal so a change to it fails here by name.
+const FIRST_MUST_BE_0 = (n: number): string => `The first breakpoint must be 0px. This brand starts at ${n}px.`;
+reset({ breakpoints: [0, 768, 1024] });
+let before = J(store.brandState);
+r = L.removeBreakpoint(0);
+ok(r.refused === true && r.dropped.length === 0 && J(store.brandState) === before,
+  `removeBreakpoint(0) would leave [768, 1024], so it is refused and the brand is byte-identical — ${J(r)}, ${J(lay())}`);
+r = L.editBreakpoint(0, 320);
+ok(r.refused === true && J(store.brandState) === before,
+  `editBreakpoint(0, 320) moves the first off 0, so it is refused and nothing is written — ${J(r)}, ${J(lay())}`);
+r = L.editBreakpoint(1, 900);
+ok(!r.refused && J(lay()?.breakpoints) === J([0, 900, 1024]), `an edit that keeps the first at 0 still writes — ${J(lay()?.breakpoints)}`);
+// Loading a brand that starts above 0 refuses, in the engine's words (the import and restore paths catch this).
+let loadErr = '';
+try { reset({ breakpoints: [320, 768] }); } catch (e) { loadErr = (e as Error).message; }
+ok(loadErr === FIRST_MUST_BE_0(320), `loading [320, 768] refuses with the approved sentence: "${loadErr}"`);
+// An agent's live write mid-session: the store keeps the last good theme and the error line carries the sentence.
+reset({ breakpoints: [0, 768] });
+store.brandState.layout = { ...(store.brandState.layout ?? {}), breakpoints: [320, 768] };
+store.rebuild();
+ok(store.lastError === FIRST_MUST_BE_0(320) && J(store.theme.layout.breakpoints.map((b) => b.px)) === J([0, 768]),
+  `a live write of [320, 768] keeps the last good theme ([0, 768]) and sets lastError to the approved sentence: "${store.lastError}"`);
+let names: readonly string[] = [];
+let threw = '';
+try { names = L.namesFor(L.breakpointsOf()); } catch (e) { threw = (e as Error).message; }
+ok(threw === '' && J(names) === J(['sm', 'md']), `namesFor([320, 768]) names it by its count (sm, md) instead of throwing while the page draws it — ${threw || J(names)}`);
+before = J(store.brandState);
+threw = '';
+try { r = L.addBreakpoint(); } catch (e) { threw = (e as Error).message; }
+ok(threw === '' && r.refused === true && J(store.brandState) === before,
+  `on that state, Add would keep the first above 0, so it is refused without throwing — ${threw || J(r)}`);
+
 console.log(`\n${executed - failed}/${executed} layout-input assertions passed.`);
 if (failed) process.exit(1);

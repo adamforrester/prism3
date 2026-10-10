@@ -24,8 +24,16 @@
  * width now, and left in place it would attach to whichever breakpoint takes that name next, which is exactly the
  * silent move D13 rules out. The engine's naming is unchanged; the names come from the engine itself (`namesFor`).
  *
- * WHAT IS NOT HERE. The page's limits (the first breakpoint fixed at 0, two to seven breakpoints) are the page's:
- * it offers no control that breaks them. This module writes what it is asked to, as the legacy page did.
+ * THE FIRST BREAKPOINT IS 0 (#2146, after #2139). The engine refuses a list that starts above 0 ("The first breakpoint
+ * must be 0px. …"), so this module refuses to write one: a change whose result would not start at 0 (removing the
+ * 0px breakpoint, or moving it) returns `refused` and writes nothing. A brand that ARRIVES starting above 0 is
+ * explained where the studio already explains a refusal: loading it refuses (`initSession` throws the engine's
+ * sentence, which the import and restore paths catch), and an agent's live write keeps the last good theme and sets
+ * `lastError` to that sentence for the error line (`rebuild`). While such a state is drawn, `namesFor` names it by
+ * its count instead of throwing.
+ *
+ * WHAT IS NOT HERE. The page's other limit (two to seven breakpoints) is the page's: it offers no control that
+ * breaks it, apart from the merge `editBreakpoint` refuses below.
  */
 import { brandTheme, type BrandInput } from '@prism3/engine/theme';
 import { BOOT_BRAND, BRANDS, brandState, setPath, theme } from './store';
@@ -56,13 +64,17 @@ const nameCache = new Map<string, readonly string[]>();
  *  exported, and a second copy would drift). Resolved on the boot example with only the breakpoints swapped, so the
  *  working brand's own state (which may not resolve mid-edit) never decides a name. */
 export const namesFor = (floors: readonly number[]): readonly string[] => {
-  const key = floors.join(',');
+  // Names follow the COUNT alone, so a list the engine refuses for its first width (#2146) is named as the same
+  // count starting at 0 would be, rather than throwing while the page draws it.
+  const named = floors.length && floors[0] !== 0 ? [0, ...floors.slice(1)] : floors;
+  const key = named.join(',');
   const hit = nameCache.get(key);
   if (hit) return hit;
-  const names = brandTheme({ ...structuredClone(BRANDS[BOOT_BRAND]), layout: { breakpoints: [...floors] } }).layout.breakpoints.map((b) => b.name);
+  const names = brandTheme({ ...structuredClone(BRANDS[BOOT_BRAND]), layout: { breakpoints: [...named] } }).layout.breakpoints.map((b) => b.name);
   nameCache.set(key, names);
   return names;
 };
+
 
 /** One breakpoint in a change: its width, and its index in the list before the change (none for a new one). */
 type Entry = { px: number; from?: number };
@@ -80,6 +92,8 @@ const commitBreakpoints = (next: readonly Entry[]): BreakpointResult => {
   const clean = next.filter((e) => Number.isFinite(e.px) && e.px >= 0 && !seen.has(e.px) && (seen.add(e.px), true))
     .sort((a, b) => a.px - b.px);
   const floors = clean.map((e) => e.px);
+  // #2146: a list that would not start at 0 is the engine's refusal (#2139), so it is not written at all.
+  if (floors[0] !== 0) return { dropped: [], refused: true };
   setPath(brandState, 'layout.breakpoints', floors);
   const newNames = namesFor(floors);
   /** Old name → new name, for every breakpoint that survived. */
