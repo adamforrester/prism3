@@ -185,8 +185,12 @@ const grid = (r) => PLATFORMS.map((p) => TYPES.map((t) => worst(r.sum[p].byType[
 const differing = readers.filter((r) => grid(r) !== grid(latest)).map((r) => r.label);
 const badCells = (r, p) => TYPES.filter((t) => ['broken', 'lost'].includes(worst(r.sum[p].byType[t])));
 const legacy = results.find((r) => r.legacy);
+/** Cells whose counts differ from the latest version's while the verdict is the same, per version. */
+const countMoves = readers.filter((r) => r !== latest).map((r) => [r.label, PLATFORMS.flatMap((p) => TYPES
+  .filter((t) => worst(r.sum[p].byType[t]) === worst(latest.sum[p].byType[t]) && cell(r.sum[p].byType[t]) !== cell(latest.sum[p].byType[t]))
+  .map((t) => `${p} / ${t}`))]).filter(([, cells]) => cells.length);
 md += `- **Minimum version that needs no preset: ${readers[0]?.label ?? 'none'}.** Every version measured from ${readers[0]?.label} to ${latest.label} carries all ${total} base tokens to all ${PLATFORMS.length} platforms with this config. ${nonReaders.map((r) => r.label).join(', ') || 'No version'} reads none of them (0 of ${total}): 3.x has no \`usesDtcg\` and reads only \`value\`, so the few variables it does write come from \`value\` keys inside \`$extensions\`.
-- **${differing.length ? `The verdicts differ on ${differing.join(', ')}` : `The verdict in every cell is the same on every version from ${readers[0]?.label} to ${latest.label}`}.** Counts can move inside a cell; the tables below carry them.
+- **${differing.length ? `The verdicts differ on ${differing.join(', ')}` : `The verdict in every cell is the same on every version from ${readers[0]?.label} to ${latest.label}`}.** ${countMoves.length ? `Counts move inside a cell, not the verdict: against ${latest.label}, ${countMoves.map(([v, cells]) => `${v} differs in ${cells.join(', ')}`).join('; ')}.` : `Where the verdict matches, the counts match too.`}
 ${PLATFORMS.map((p) => `- **${p}** on ${latest.label}: ${badCells(latest, p).length ? `broken or lost: ${badCells(latest, p).join(', ')}` : 'every type usable'}.`).join('\n')}
 - **The not-stock 3.x experiment** (keys renamed, \`$extensions\` dropped): ${PLATFORMS.map((p) => `${p} ${legacy.sum[p].found}/${total}`).join(', ')}. ${failures(legacy) ? `It threw on ${[...new Set(legacy.builds.failed.map((f) => f.split(':')[0]))].join(' and ')} (${failures(legacy)}).` : ''} Broken or lost after the rename: ${PLATFORMS.map((p) => `${p} ${badCells(legacy, p).length}`).join(', ')} of ${TYPES.length} types.
 
