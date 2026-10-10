@@ -62,6 +62,22 @@ The brand's density moves every one of those steps one position along the space 
 compact, up at spacious), so read the spec's step and apply the brand's density rather than
 copying a comfortable px value.
 
+**A medium or large flush text button keeps a 44×44 hit area in code.** `inset=flush` drops a text button's
+inline padding and its minimum width, so its box is only as wide as its label and the label
+lines up with the content edge. At medium and large sizes, the hit area doesn't shrink with
+the box: extend it to at least 44×44px with a transparent `::before` inset outward and
+centered on the label. Extend it the same way to at least 24×24px at small. Figma has no
+hit areas, so the design file shows only the label-width box.
+
+```css
+.flush-button { position: relative; }
+.flush-button::before {
+  content: "";
+  position: absolute;
+  inset: min(0px, (100% - 44px) / 2); /* negative only on an axis under 44px; 24px at small */
+}
+```
+
 **3. Let modes resolve — don't hardcode a mode's value.**
 A color role resolves differently per mode (`light` / `dark` / `hc-light` / `hc-dark`),
 carried in the role's `mode_overrides`. Bind the **role**; the mode drives the value. Never
