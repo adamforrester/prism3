@@ -393,6 +393,83 @@ console.log('\n5b. a late file read loads nothing once its window has closed (A1
     ok(held && /harbor/i.test(b), `A14 control: a held brand-menu upload released while the box is open loads it — held ${held}, brand "${b}"`);
     await page.close();
   }
+
+  // ── #2503: a choice made while a read is held outranks the late read ──────────────────────────────
+  // With an unsaved edit, a pasted Load (or an example) stages a "Replace the current brand?" confirm and leaves the
+  // import box open, so neither A14 guard (the box closed, another file chosen) fires: until #2503 the held harbor read,
+  // released, swapped the waiting confirm to harbor with nothing to say so. EXPECTED is the brand the person chose,
+  // named here: “aurora” for the paste, "the aurora example" for the example. ACTUAL is the confirm's own text, read
+  // before the release and again after it and every task it queued, and then the brand Replace loads. The failed-paste
+  // arm holds `stageImport`'s bump on its own: a paste that does not validate never reaches `stageLoad`.
+  //
+  // MUTATIONS, each against the built bundle and failing here by name:
+  //   · both `importGen++` lines in `main.ts` removed → `#2503 a pasted Load while a file read is held …` and
+  //     `#2503 an example chosen while a file read is held …` and `#2503 a failed paste while a file read is held …`.
+  //   · `stageLoad`'s bump alone removed → `#2503 an example chosen while a file read is held …`.
+  //   · `stageImport`'s bump alone removed → `#2503 a failed paste while a file read is held …`.
+  const AURORA_MD = readFileSync(resolve(REPO, 'packages/engine/examples/aurora.design.md'), 'utf8');
+  const confirmText = (page) => page.evaluate(() => document.querySelector('[data-p3="overwrite-confirm"]')?.textContent ?? null);
+  // An unsaved edit, so a staged load asks first: the brand's name, committed by leaving the field.
+  const edit = async (page) => {
+    await hooks.click(page.locator('[data-p3="tab-brand"]'));
+    await hooks.need(page, '[data-p3="brand-levers"] [data-p3="brand-name"]');
+    await page.fill('[data-p3="brand-name"]', 'edited-brand');
+    await page.press('[data-p3="brand-name"]', 'Tab');
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 50)));
+  };
+  // A pasted Load.
+  {
+    const { page, errors } = await booted();
+    await edit(page);
+    await openImport(page);
+    await page.setInputFiles('[data-p3="import-file"]', MD);
+    const held = await heldOne(page);
+    await page.fill('[data-p3="import-text"]', AURORA_MD);
+    await hooks.click(page.locator('[data-p3="import-load"]'));
+    await hooks.need(page, '[data-p3="overwrite-confirm"]');
+    const before = await confirmText(page);
+    await release(page);
+    const after = await confirmText(page);
+    ok(held && /“aurora”/.test(before ?? '') && after === before,
+      `#2503 a pasted Load while a file read is held keeps its confirm naming aurora after the read finishes — held ${held}, before "${before}", after "${after}"`);
+    if (after) await hooks.click(page.locator('[data-p3="overwrite-replace"]'));
+    const b = await brandNow(page);
+    ok(/aurora/i.test(b) && !/harbor/i.test(b), `#2503 Replace then loads the pasted brand, not the late read — brand "${b}"`);
+    ok(errors.length === 0, `#2503 pasted Load: no console errors (${errors.slice(0, 1).join('') || 'none'})`);
+    await page.close();
+  }
+  // An example chosen.
+  {
+    const { page } = await booted();
+    await edit(page);
+    await openImport(page);
+    await page.setInputFiles('[data-p3="import-file"]', MD);
+    const held = await heldOne(page);
+    await hooks.click(page.locator('[data-p3="brand-menu-example"]').filter({ hasText: 'aurora' }));
+    await hooks.need(page, '[data-p3="overwrite-confirm"]');
+    const before = await confirmText(page);
+    await release(page);
+    const after = await confirmText(page);
+    ok(held && /the aurora example/.test(before ?? '') && after === before,
+      `#2503 an example chosen while a file read is held keeps its confirm naming the aurora example after the read finishes — held ${held}, before "${before}", after "${after}"`);
+    await page.close();
+  }
+  // A paste that fails to validate: its error stays, and the late read loads nothing (no edits, so it would load straight).
+  {
+    const { page } = await booted();
+    await openImport(page);
+    await page.setInputFiles('[data-p3="import-file"]', MD);
+    const held = await heldOne(page);
+    await page.fill('[data-p3="import-text"]', 'not a design.md');
+    await hooks.click(page.locator('[data-p3="import-load"]'));
+    await hooks.need(page, '[data-p3="import-error"]');
+    await release(page);
+    const b = await brandNow(page);
+    const err = await page.evaluate(() => document.querySelector('[data-p3="import-error"]')?.textContent ?? null);
+    ok(held && !!err && b.includes('restored-brand') && !/harbor/i.test(b),
+      `#2503 a failed paste while a file read is held keeps its error, and the late read loads nothing — held ${held}, error ${JSON.stringify(err)}, brand "${b}"`);
+    await page.close();
+  }
 }
 
 // ── §6 — the screen holds at plugin dimensions ─────────────────────────────────────────────────
