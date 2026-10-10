@@ -12307,6 +12307,95 @@ for (const host of ['web', 'figma']) {
     } finally { await page.close(); }
   }
 }
+// =============================================================================================
+// 38. #1975 and #2105: the two panes at the widths between the tiers, and the narrow plugin's bar over its error line
+// =============================================================================================
+// #1975. At 800 and 640 the levers column is 42% of the window (335 and 268px), narrower than the 380 its pages were laid
+// out for. Every Color sub-tab must be reachable by a POINTER: the element at its center is the tab itself (a hit test in
+// the page, the check the keyboard walk could not make), and a click on it there shows its page. And on every moved page,
+// every Show advanced open, the levers' `scrollWidth` must not exceed the pane's `clientWidth`. Both hosts at 640 and 380,
+// the web at 800 too. Expected values are literals here: the sub-tabs by hook, the places, and the geometry rule.
+// Mutations, each failing here by name (the PR records the lines): the sub-nav's `min-width: 0` and wrap removed →
+// `#1975 web light 640: interactive (color-sub-interactive) takes a pointer at its center — is under another element at
+// its center, …`; the segmented choices' wrap removed → `#1975 web light 640: the levers fit their pane on every moved
+// page (9 read) — color-palettes scrollWidth 405 > clientWidth 268 | …`.
+const SUB_TABS_1975 = [['color-palettes', 'color-sub-palettes'], ['color-fills', 'color-sub-fills'], ['color-interactive', 'color-sub-interactive']];
+const MOVED_1975 = ['brand', 'color-palettes', 'color-fills', 'color-interactive', 'type', 'shape', 'depth', 'layout', 'components'];
+console.log(`\nThe two panes between the tiers (#1975) and the narrow plugin's error line (#2105)\n${'='.repeat(78)}`);
+for (const [host, w] of [['web', 800], ['web', 640], ['web', 380], ['figma', 640], ['figma', 380]]) {
+  const where = `#1975 ${host} light ${w}`;
+  const { ctx, page, errors } = await open({ host, theme: 'light', w, h: 900 });
+  try {
+    await goPlace(page, 'color-palettes');
+    for (const [place, hk] of SUB_TABS_1975) {
+      const hit = await page.evaluate((k) => {
+        const b = document.querySelector(`[data-p3="${k}"]`);
+        if (!b) return { found: false };
+        b.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        const r = b.getBoundingClientRect();
+        const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return { found: true, own: !!at && b.contains(at), at: at ? `${at.tagName.toLowerCase()}.${[...at.classList].join('.')}` : null, w: Math.round(r.width), left: Math.round(r.left), right: Math.round(r.right) };
+      }, hk);
+      ok(hit.found && hit.own, `${where}: ${place.slice(6)} (${hk}) takes a pointer at its center${hit.own ? '' : ` — is under another element at its center, ${hit.at} (${JSON.stringify(hit)})`}`);
+      if (!hit.own) continue;
+      await hooks.click(page.locator(`[data-p3="${hk}"]`), { timeout: 4000 }).catch(() => {});
+      const now = await page.evaluate(() => document.querySelector('[data-p3="frame"]')?.dataset.place);
+      ok(now === place, `${where}: a pointer click on ${hk} shows ${place} (shows ${now})`);
+    }
+    const over = [];
+    for (const place of MOVED_1975) {
+      await goPlace(page, place);
+      if (place === 'type') await openTypeAdvanced(page).catch(() => {});
+      for (const fold of await page.locator('[data-p3="levers-pane"] [aria-expanded="false"][aria-controls^="p3-advb-"]').all()) await hooks.click(fold);
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+      const m = await page.evaluate(() => { const L = document.querySelector('[data-p3="levers-pane"]'); return L ? { sw: L.scrollWidth, cw: L.clientWidth } : null; });
+      if (!m || m.cw <= 0 || m.sw > m.cw) over.push(`${place} scrollWidth ${m?.sw} > clientWidth ${m?.cw}`);
+    }
+    ok(over.length === 0, `${where}: the levers fit their pane on every moved page (${MOVED_1975.length} read)${over.length ? ` — ${over.join(' | ')}` : ''}`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
+// #2105. The plugin at its narrow size, 380 × 420, both Figma themes: a brand the engine refuses (the `#1989` brand of
+// `apps/plugin/test-build-verdict.mjs`, typed here) opens the error line under the top bar. The bar, on its rows, must
+// end at or above the line's top (no row drawn over its words), the line must scroll to show the rest of its words, and
+// the levers pane must keep at least LEVERS_MIN_2105 of height. Literals.
+// Mutations, each failing here by name: the bar's grid row back to `auto` → `#2105 figma light 380 × 300: the bar ends at
+// or above the error line …`; the narrow line's cap removed → `#2105 … 380 × 420: the error line scrolls …` and `… the
+// levers pane keeps 40px or more …`.
+const LEVERS_MIN_2105 = 40;
+const REFUSED_2105 = { root: 'rf', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true }, id: 'refused-brand',
+  overrides: { light: { 'background.secondary': { palette: 'neutral', step: '200' } } } };
+// A shorter window still, 380 × 300 (the plugin can be resized down), has no room for the levers at all, and holds the bar's
+// half alone: with every row asking for more than the window, the bar's row must still not give way to the line under it.
+for (const [theme, H] of [['light', 420], ['dark', 420], ['light', 300]]) {
+  const where = `#2105 figma ${theme} 380 × ${H}`;
+  const { ctx, page, errors } = await open({ host: 'figma', theme, w: 380, h: H });
+  try {
+    await page.evaluate((input) => window.postMessage({ pluginMessage: { type: 'restore-input', input } }, '*'), REFUSED_2105);
+    await page.waitForFunction(() => /didn't resolve/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+    const g = await page.evaluate(() => {
+      const r = (s) => { const n = document.querySelector(s); if (!n || !n.getClientRects().length) return null; const b = n.getBoundingClientRect(); return { top: b.top, bottom: b.bottom, h: b.height }; };
+      const err = document.querySelector('[data-p3="error-bar"]');
+      const rows = new Set([...document.querySelectorAll('[data-p3="frame"] .p3-bar button')].filter((b) => b.getClientRects().length).map((b) => Math.round(b.getBoundingClientRect().top)));
+      // The bar's box is its grid row's, so a row that gave way still reads as "above"; what the bar DRAWS is its controls,
+      // so its bottom is the lowest drawn control in it.
+      const drawn = [...document.querySelectorAll('[data-p3="frame"] .p3-bar :is(button, select, [role="radio"])')].filter((b) => b.getClientRects().length);
+      const barBottom = drawn.length ? Math.max(...drawn.map((b) => b.getBoundingClientRect().bottom)) : null;
+      return { bar: { bottom: barBottom }, err: r('[data-p3="error-bar"]'), levers: r('[data-p3="levers-pane"]'),
+        text: err?.textContent ?? '', scrolls: !!err && err.scrollHeight > err.clientHeight && getComputedStyle(err).overflowY === 'auto', rows: rows.size };
+    });
+    ok(!!g.err && g.text.includes("This file's saved brand didn't resolve"), `${where}: the refused brand opens the error line (${JSON.stringify(g.text.slice(0, 60))})`);
+    ok(g.rows >= 2, `${where}: the bar is on more than one row here, so the case is the one #2105 found (${g.rows} rows of buttons)`);
+    ok(!!g.bar && !!g.err && g.bar.bottom <= g.err.top + 0.5, `${where}: the bar ends at or above the error line, drawing no row over its words (the bar's lowest control ends at ${g.bar?.bottom}, line top ${g.err?.top})`);
+    ok(!!g.err && g.scrolls, `${where}: the error line scrolls to show the rest of its words (${g.err?.h}px tall, scrolls ${g.scrolls})`);
+    if (H === 420) ok(!!g.levers && g.levers.h >= LEVERS_MIN_2105, `${where}: the levers pane keeps ${LEVERS_MIN_2105}px or more under the error line (${g.levers?.h})`);
+    if (SHOTS) await page.screenshot({ path: join(SHOTS, `2105-plugin-${theme}-380x${H}.png`) });
+  } catch (e) {
+    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+  } finally { await ctx.close(); }
+}
 // #2238: the check box is measured on both hosts, in both chrome themes, somewhere in the sweep.
 for (const [k, n] of Object.entries(BOXES_BY)) ok(n > 0, `#2238 ${k}: the contrast audit measured check boxes in the sweep (${n})`);
 hooks.report(ok);
