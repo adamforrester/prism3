@@ -50,9 +50,27 @@ takes my own nit from #2500's review: `onCommitted` commits the value captured a
     one write each.
   - A second keyboard step re-measures the bar zero times.
   - A breakpoint committed at `change`, then written over in the same task, stores the value it held at `change`.
-  - 20 picker `input`s and a release store once and draw the last color.
+  - 20 picker `input`s in one frame re-resolve the brand once (a MutationObserver counts the OKLCH readout's
+    changes), store once, and draw the last color.
+- **§45 figma light 1280, A10:** a host message (the agent link turning on) while the Export dialog is open leaves
+  it as it was: the same node (a marker the test sets), the import text, and its caret at 4.
 
-The mutation table is in the PR.
+Mutations, each from a `wip:` commit, restored with `git checkout --`, each failing only its own arm, by name:
+- **Shape's in-place sync removed (K3):**
+  `✗ §45 web light 1280 Shape: a mouse drag moves the softness more than one step (1 → 1.5, step 0.5)`.
+- **Layout's in-place path removed:**
+  `✗ §45 … Layout: a mouse drag moves the Maximum width more than one step, and stores where it ends (1440 → 1480, step 40, …)`.
+- **The persist hold removed** (per-tick persist):
+  - `✗ §45 … Shape: a drag stores at most one write (2 written …)`;
+  - `✗ §45 … Layout: … at most one write (9 written)`;
+  - `test-store`'s three `#2487 B1` arms.
+- **The bar's same-value guard removed:** `✗ §45 … A9: a brand repaint that changes nothing in the bar re-measures it zero times (1 measureFit call(s))`.
+- **`onCommitted` reading the field when its task runs:**
+  `✗ §45 … onCommitted: a committed field commits the value it held at change, not one written after it (stored [0,768,1200,1440,1920])`.
+- **`perFrame` running every input at once:** `✗ §45 … picker: 20 color inputs in one frame re-resolve the brand once … (20 readout change(s) …)`.
+- **The export dialog rebuilt on every paint:** the A10 arm (see the PR for the line).
+- **`loadInput` back to its old order:**
+  `✗ #2487 A13 loadInput tells origin, brand, mode and page once each, in that order … (heard ["origin:old:…","page:old:…","brand:new:…","mode:new:…"])`.
 
 ### Traps for whoever re-verifies this
 

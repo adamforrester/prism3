@@ -13895,7 +13895,7 @@ console.log(`\nDrag and rebuild speed (#2487 PR 2)\n${'='.repeat(78)}`);
   } finally { await ctx.close(); }
 // A10 (figma 1280): a host message while the Export dialog is open repaints the bar but leaves the dialog as it is: the
 // same node, the import text and its caret where they were. A marker set on the node by the TEST says whether it is the
-// same one; the message is the agent link turning on, which changes nothing the dialog shows.
+// same one; the message is an Apply verdict, which changes nothing the dialog shows.
 {
   const where = '§45 figma light 1280';
   const { ctx, page, errors } = await open({ host: 'figma', theme: 'light', w: 1280, h: 900 });
@@ -13910,8 +13910,12 @@ console.log(`\nDrag and rebuild speed (#2487 PR 2)\n${'='.repeat(78)}`);
     await ta.fill('---\nname: caret test\n---');
     await ta.evaluate((n) => { n.focus(); n.setSelectionRange(4, 4); n.closest('[data-p3="export-dialog"]').__p3Mark = 'kept'; });
     step = 'a host message';
-    await postMsg(page, { type: 'agent-link-state', state: AGENT_ON });
+    // A verdict is a `host` notification, which the bar repaints on; the premise below reads that it reached the bar.
+    await page.evaluate(() => { window.__p3Bar = 0; new MutationObserver((rs) => { window.__p3Bar += rs.length; }).observe(document.querySelector('[data-p3="bar-main"]'), { subtree: true, childList: true, attributes: true, characterData: true }); });
+    await postMsg(page, { type: 'apply-result', ok: true, headline: '✓ Applied 412 variables', summary: '412 variables written.' });
     await settle(page);
+    const barMoved = await page.evaluate(() => window.__p3Bar);
+    ok(barMoved > 0, `${where} A10 premise: the host message reached the bar (${barMoved} mutation record(s))`);
     const st = await page.evaluate(() => {
       const d = document.querySelector('[data-p3="export-dialog"]');
       const t = document.querySelector('[data-p3="import-text"]');
@@ -13919,9 +13923,7 @@ console.log(`\nDrag and rebuild speed (#2487 PR 2)\n${'='.repeat(78)}`);
     });
     ok(st.mark === 'kept' && st.value === '---\nname: caret test\n---' && st.caret === 4 && st.focused,
       `${where} A10: a host message leaves the open Export dialog as it is, the import text and its caret in place (${JSON.stringify(st)})`);
-    // The agent link turning on starts its bridge, whose WebSocket has no server here (the S1.4 menu arms filter it too).
-    const bad = errors.filter((e) => !/WebSocket/.test(e));
-    ok(bad.length === 0, `${where}: 0 console errors other than the bridge's WebSocket${bad.length ? ` — ${bad.slice(0, 2).join(' | ')}` : ''}`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
   } finally { await ctx.close(); }
