@@ -439,7 +439,7 @@ export const fieldLabel: ComponentDef = {
   },
 
   docs: {
-    usage: 'Place above every field as its accessible name. Wire htmlFor to the field id. Set the `required` boolean per field (on shows the marker, off hides it), consistently across a form. Reuse the same component above every field control so the label-is-always-present contract holds family-wide. In code the marker flows inline after the name, and the name wraps at the field\'s width. In Figma the name wraps at a fixed max width — the default field width, 320, less the 4px gap before the marker — so the marker sits right after a one-line name. Three limits follow: a field stretched wider in Figma still wraps its name at that width; on a name long enough to wrap, the marker sits beside the wrapped name, not after its last word; and that required name runs past the field by the marker\'s width.',
+    usage: 'Place above every field as its accessible name. Wire htmlFor to the field id. Set the `required` boolean per field (on shows the marker, off hides it), consistently across a form. Reuse the same component above every field control so the label-is-always-present contract holds family-wide. In code the marker flows inline after the name, and the name wraps at the field\'s width.',
     do: [
       'Always render a label, even for search (visually-hidden, still in the DOM)',
       'Keep it a short noun phrase in sentence case, no trailing colon',
@@ -480,6 +480,10 @@ export const fieldLabel: ComponentDef = {
   },
 
   notes: {
+    // #2411 (owner Q167 call 3): how a consumer-facing fact is projected into the design file — maintainer-only.
+    projection: [
+      'In Figma the name wraps at a fixed max width — the default field width, 320, less the 4px gap before the marker — so the marker sits right after a one-line name. Three limits follow: a field stretched wider in Figma still wraps its name at that width; on a name long enough to wrap, the marker sits beside the wrapped name, not after its last word; and that required name runs past the field by the marker\'s width. (Moved from docs.usage, #2411.)',
+    ],
     contested: [
       'Whether to mark required or optional — the field settled on Prism 2\'s `Required` boolean, reconciling away the old none/required/optional axis (#1338); a brand marking the optional minority instead leaves `required` off. The DEFAULT is off since #1699 (owner-delegated), where Prism 2 defaults it on: every host\'s own `required` prop defaults off, and a marker shown by default claims a requirement the field has not declared.',
       'Floating vs static label; static top-aligned is the default here (brief §2, §13).',

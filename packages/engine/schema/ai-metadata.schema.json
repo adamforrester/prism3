@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "prism3-ai-metadata/0.4",
+  "$id": "prism3-ai-metadata/0.5",
   "title": "Prism3 agent metadata sidecar (<brand>.ai.json)",
   "description": "Agent-readable metadata for one generated brand, companion to its DTCG token tree (<brand>.tokens.json). Every token in the tree has exactly one entry, keyed by its path below the brand root. Every field is generated from the token data on each build. The sidecar's own `$schema` value equals this schema's `$id`; both change together when a field is added, renamed or removed.",
   "type": "object",
   "additionalProperties": false,
   "required": ["$schema", "brand", "generated", "note", "color_fields", "typography_fields", "layout_fields", "motion_fields", "primitive_fields", "color", "typography", "layout", "motion", "primitives"],
   "properties": {
-    "$schema": { "const": "prism3-ai-metadata/0.4", "description": "The schema version this file follows. Equal to this schema's `$id`." },
+    "$schema": { "const": "prism3-ai-metadata/0.5", "description": "The schema version this file follows. Equal to this schema's `$id`." },
     "brand": { "$ref": "#/$defs/path", "description": "The brand id, as in the token tree's file name." },
     "generated": { "const": true, "description": "Always true: no field is hand-authored." },
     "note": { "type": "string", "minLength": 1, "description": "A one-paragraph guide to the tiers and fields, for a reader without this schema." },
@@ -178,7 +178,24 @@
           ],
           "description": "A font role's alias, or a type style's composite value: each property an alias or a literal."
         },
-        "used_by": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/path" }, "description": "The type styles that carry this weight role." }
+        "used_by": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/path" }, "description": "The type styles that carry this weight role." },
+        "modifiers": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Modifiers applied on top of this style rather than minted as styles of their own. Each one says how to apply it per surface.",
+          "properties": {
+            "strikethrough": {
+              "type": "object",
+              "description": "A line-through on this style, for struck text such as a was-price.",
+              "additionalProperties": false,
+              "required": ["code", "figma"],
+              "properties": {
+                "code": { "$ref": "#/$defs/prose", "description": "How to apply the modifier in code." },
+                "figma": { "$ref": "#/$defs/prose", "description": "How to apply the modifier in a design file." }
+              }
+            }
+          }
+        }
       }
     },
     "thinEntry": {

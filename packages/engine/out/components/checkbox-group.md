@@ -56,7 +56,7 @@ The group label names the decision; the rows carry the short options. Group erro
 | `required` | boolean | `false` | no | Whether at least one option must be chosen. Off by default. Drives the nested FieldLabel's required marker and aria-required on the group. Group-level: an individual row never owns its own required. A form that marks the optional minority instead sets this false. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Scales the group — the label's type and every row (control square, label ramp, gap) together, passed into the nested FieldLabel and rows by `follow`, so the group scales with the rest of the form. |
 | `name` | string | — | no | A shared control name so the set submits as one field and works uncontrolled in a native form. |
-| `disabled` | boolean | `false` | no | Disables the whole set — every row and the label dim, driven by the group's context (the field's native disabled is the source of truth). Not projected as a Figma state; the group has no disabled treatment of its own. |
+| `disabled` | boolean | `false` | no | Disables the whole set — every row and the label dim, driven by the group's context (the field's native disabled is the source of truth). The group has no disabled treatment of its own. |
 
 ## States
 

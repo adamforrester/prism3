@@ -1,5 +1,5 @@
 {
-  "$schema": "prism3-ai-metadata/0.4",
+  "$schema": "prism3-ai-metadata/0.5",
   "brand": "nb",
   "generated": true,
   "note": "Agent-readable metadata, companion to nb.tokens.json. Every token in that tree has one entry here, keyed by its path below the brand root; color roles drop the leading `color.` segment. Tiers: `color` (semantic color roles), `typography` (type styles and font roles), `layout` (space, size, radius, border-width, focus-ring, icon, control and grid roles), `motion` (motion roles), `gradient` when the brand has one, and `primitives` (the raw values the roles resolve to). A primitive carries `aliased_by`, every token that resolves to it directly or through another alias, recomputed on every build. On a color role, `sits_on` names the grounds an ink or edge is placed on and `carries` the inks placed on a ground; both are measured in every mode. `tracks` names companion roles and implies no contrast. `contrast_with` is the role's contrast contract: `requirement` states it as a check that resolves both roles in every mode, and `ratio` is the light-mode measurement. `usage_limit` marks an ink that is for large text, icons and non-essential text only. Field definitions: the JSON Schema whose `$id` is this file's `$schema`.",
@@ -21,7 +21,8 @@
     "when_to_use",
     "avoid_when",
     "resolves_to",
-    "used_by"
+    "used_by",
+    "modifiers"
   ],
   "layout_fields": [
     "$description",
@@ -6726,14 +6727,20 @@
     "type.body.xs.default": {
       "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
       "meaning": "Type style — body xs default (12px, body face)",
-      "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
-      "avoid_when": "Do not use for running text (use `type.body.sm` or larger). For small print that stands on its own (an image caption, helper text, a footnote), use `type.caption.lg`. Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
+      "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for running text (use `type.body.sm` or larger). For small print that stands on its own (an image caption, helper text, a footnote), use `type.caption.lg`. Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{nbds.core.font.family.body}",
         "fontSize": "{nbds.core.font.size.12}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
         "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+      },
+      "modifiers": {
+        "strikethrough": {
+          "code": "`<del>` or `<s>`, with `text-decoration-line: line-through`.",
+          "figma": "A strikethrough override on the applied style."
+        }
       }
     },
     "type.body.xs.default-link": {
@@ -6753,14 +6760,20 @@
     "type.body.xs.strong": {
       "$description": "Smallest body text, 12px. Secondary text and metadata only, never running text.",
       "meaning": "Type style — body xs strong (12px, body face)",
-      "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
-      "avoid_when": "Do not use for running text (use `type.body.sm` or larger). For small print that stands on its own (an image caption, helper text, a footnote), use `type.caption.lg`. Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
+      "when_to_use": "Secondary text and metadata set among body text: a timestamp, a count, a file size, a meta line under an item. It keeps body's line height, so it sits on the body rhythm. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for running text (use `type.body.sm` or larger). For small print that stands on its own (an image caption, helper text, a footnote), use `type.caption.lg`. Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{nbds.core.font.family.body}",
         "fontSize": "{nbds.core.font.size.12}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
         "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+      },
+      "modifiers": {
+        "strikethrough": {
+          "code": "`<del>` or `<s>`, with `text-decoration-line: line-through`.",
+          "figma": "A strikethrough override on the applied style."
+        }
       }
     },
     "type.body.xs.strong-link": {
@@ -6780,14 +6793,20 @@
     "type.body.sm.default": {
       "$description": "Running text / default UI copy.",
       "meaning": "Type style — body sm default (14px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{nbds.core.font.family.body}",
         "fontSize": "{nbds.core.font.size.14}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
         "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+      },
+      "modifiers": {
+        "strikethrough": {
+          "code": "`<del>` or `<s>`, with `text-decoration-line: line-through`.",
+          "figma": "A strikethrough override on the applied style."
+        }
       }
     },
     "type.body.sm.default-link": {
@@ -6807,14 +6826,20 @@
     "type.body.sm.strong": {
       "$description": "Running text / default UI copy.",
       "meaning": "Type style — body sm strong (14px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{nbds.core.font.family.body}",
         "fontSize": "{nbds.core.font.size.14}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
         "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+      },
+      "modifiers": {
+        "strikethrough": {
+          "code": "`<del>` or `<s>`, with `text-decoration-line: line-through`.",
+          "figma": "A strikethrough override on the applied style."
+        }
       }
     },
     "type.body.sm.strong-link": {
@@ -6834,14 +6859,20 @@
     "type.body.md.default": {
       "$description": "Running text / default UI copy.",
       "meaning": "Type style — body md default (16px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{nbds.core.font.family.body}",
         "fontSize": "{nbds.core.font.size.16}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
         "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+      },
+      "modifiers": {
+        "strikethrough": {
+          "code": "`<del>` or `<s>`, with `text-decoration-line: line-through`.",
+          "figma": "A strikethrough override on the applied style."
+        }
       }
     },
     "type.body.md.default-link": {
@@ -6861,14 +6892,20 @@
     "type.body.md.strong": {
       "$description": "Running text / default UI copy.",
       "meaning": "Type style — body md strong (16px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{nbds.core.font.family.body}",
         "fontSize": "{nbds.core.font.size.16}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
         "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+      },
+      "modifiers": {
+        "strikethrough": {
+          "code": "`<del>` or `<s>`, with `text-decoration-line: line-through`.",
+          "figma": "A strikethrough override on the applied style."
+        }
       }
     },
     "type.body.md.strong-link": {
@@ -6888,14 +6925,20 @@
     "type.body.lg.default": {
       "$description": "Running text / default UI copy.",
       "meaning": "Type style — body lg default (18px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{nbds.core.font.family.body}",
         "fontSize": "{nbds.core.font.size.18}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
         "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+      },
+      "modifiers": {
+        "strikethrough": {
+          "code": "`<del>` or `<s>`, with `text-decoration-line: line-through`.",
+          "figma": "A strikethrough override on the applied style."
+        }
       }
     },
     "type.body.lg.default-link": {
@@ -6915,14 +6958,20 @@
     "type.body.lg.strong": {
       "$description": "Running text / default UI copy.",
       "meaning": "Type style — body lg strong (18px, body face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
-      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{nbds.core.font.family.body}",
         "fontSize": "{nbds.core.font.size.18}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.normal}",
         "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+      },
+      "modifiers": {
+        "strikethrough": {
+          "code": "`<del>` or `<s>`, with `text-decoration-line: line-through`.",
+          "figma": "A strikethrough override on the applied style."
+        }
       }
     },
     "type.body.lg.strong-link": {
@@ -7023,14 +7072,20 @@
     "type.caption.md.default": {
       "$description": "Caption / secondary small text.",
       "meaning": "Type style — caption md default (11px, caption face)",
-      "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
-      "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
+      "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{nbds.core.font.family.caption}",
         "fontSize": "{nbds.core.font.size.11}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.cozy}",
         "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+      },
+      "modifiers": {
+        "strikethrough": {
+          "code": "`<del>` or `<s>`, with `text-decoration-line: line-through`.",
+          "figma": "A strikethrough override on the applied style."
+        }
       }
     },
     "type.caption.md.default-link": {
@@ -7050,14 +7105,20 @@
     "type.caption.md.strong": {
       "$description": "Caption / secondary small text.",
       "meaning": "Type style — caption md strong (11px, caption face)",
-      "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
-      "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
+      "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{nbds.core.font.family.caption}",
         "fontSize": "{nbds.core.font.size.11}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.cozy}",
         "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+      },
+      "modifiers": {
+        "strikethrough": {
+          "code": "`<del>` or `<s>`, with `text-decoration-line: line-through`.",
+          "figma": "A strikethrough override on the applied style."
+        }
       }
     },
     "type.caption.md.strong-link": {
@@ -7077,14 +7138,20 @@
     "type.caption.lg.default": {
       "$description": "Caption / secondary small text.",
       "meaning": "Type style — caption lg default (12px, caption face)",
-      "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
-      "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
+      "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{nbds.core.font.family.caption}",
         "fontSize": "{nbds.core.font.size.12}",
         "fontWeight": "{nbds.core.font.weight-role.default}",
         "lineHeight": "{nbds.core.font.line-height-role.cozy}",
         "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+      },
+      "modifiers": {
+        "strikethrough": {
+          "code": "`<del>` or `<s>`, with `text-decoration-line: line-through`.",
+          "figma": "A strikethrough override on the applied style."
+        }
       }
     },
     "type.caption.lg.default-link": {
@@ -7104,14 +7171,20 @@
     "type.caption.lg.strong": {
       "$description": "Caption / secondary small text.",
       "meaning": "Type style — caption lg strong (12px, caption face)",
-      "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier: `<del>` or `<s>` with `text-decoration-line: line-through` in code, a strikethrough override on the style in Figma. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
-      "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: Prism3 has none, and strikethrough stays a modifier on this one.",
+      "when_to_use": "Image captions, helper text, metadata, footnotes. Struck text, such as a was-price beside a sale price, is this style plus a line-through modifier; its strikethrough modifier field says how to apply it on each surface. The line says nothing to a screen reader, so add visually hidden text (\"Original price:\", \"Sale price:\").",
+      "avoid_when": "Do not use for primary reading text (use body). Do not look for or mint a strikethrough style: none exists, and strikethrough stays a modifier on this one.",
       "resolves_to": {
         "fontFamily": "{nbds.core.font.family.caption}",
         "fontSize": "{nbds.core.font.size.12}",
         "fontWeight": "{nbds.core.font.weight-role.strong}",
         "lineHeight": "{nbds.core.font.line-height-role.cozy}",
         "letterSpacing": "{nbds.core.font.letter-spacing-role.normal}"
+      },
+      "modifiers": {
+        "strikethrough": {
+          "code": "`<del>` or `<s>`, with `text-decoration-line: line-through`.",
+          "figma": "A strikethrough override on the applied style."
+        }
       }
     },
     "type.caption.lg.strong-link": {
@@ -7464,7 +7537,7 @@
       "resolves_to": "{nbds.core.dimension.40}"
     },
     "grid.sm.columns": {
-      "$description": "grid sm — 4 columns (design grid / Figma layout-grid; build with CSS Grid)",
+      "$description": "grid sm — 4 columns",
       "meaning": "Layout grid columns at the sm breakpoint",
       "when_to_use": "The columns of the page layout grid from the sm breakpoint up.",
       "resolves_to": 4
@@ -7482,7 +7555,7 @@
       "resolves_to": "{nbds.space.200}"
     },
     "grid.md.columns": {
-      "$description": "grid md — 8 columns (design grid / Figma layout-grid; build with CSS Grid)",
+      "$description": "grid md — 8 columns",
       "meaning": "Layout grid columns at the md breakpoint",
       "when_to_use": "The columns of the page layout grid from the md breakpoint up.",
       "resolves_to": 8
@@ -7500,7 +7573,7 @@
       "resolves_to": "{nbds.space.300}"
     },
     "grid.lg.columns": {
-      "$description": "grid lg — 12 columns (design grid / Figma layout-grid; build with CSS Grid)",
+      "$description": "grid lg — 12 columns",
       "meaning": "Layout grid columns at the lg breakpoint",
       "when_to_use": "The columns of the page layout grid from the lg breakpoint up.",
       "resolves_to": 12
@@ -7518,7 +7591,7 @@
       "resolves_to": "{nbds.space.300}"
     },
     "grid.xl.columns": {
-      "$description": "grid xl — 12 columns (design grid / Figma layout-grid; build with CSS Grid)",
+      "$description": "grid xl — 12 columns",
       "meaning": "Layout grid columns at the xl breakpoint",
       "when_to_use": "The columns of the page layout grid from the xl breakpoint up.",
       "resolves_to": 12
@@ -7536,7 +7609,7 @@
       "resolves_to": "{nbds.space.400}"
     },
     "grid.2xl.columns": {
-      "$description": "grid 2xl — 12 columns (design grid / Figma layout-grid; build with CSS Grid)",
+      "$description": "grid 2xl — 12 columns",
       "meaning": "Layout grid columns at the 2xl breakpoint",
       "when_to_use": "The columns of the page layout grid from the 2xl breakpoint up.",
       "resolves_to": 12
@@ -9554,7 +9627,7 @@
       ]
     },
     "core.palette.info.100": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 100 — Quarter-Tone band (light tints, steps 100–350)",
+      "$description": "info status 100 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "info ramp — raw step 100",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -9565,28 +9638,28 @@
       ]
     },
     "core.palette.info.150": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 150 — Quarter-Tone band (light tints, steps 100–350)",
+      "$description": "info status 150 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "info ramp — raw step 150",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.info.200": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 200 — Quarter-Tone band (light tints, steps 100–350)",
+      "$description": "info status 200 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "info ramp — raw step 200",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.info.250": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 250 — Quarter-Tone band (light tints, steps 100–350)",
+      "$description": "info status 250 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "info ramp — raw step 250",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.info.300": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 300 — Quarter-Tone band (light tints, steps 100–350)",
+      "$description": "info status 300 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "info ramp — raw step 300",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -9600,7 +9673,7 @@
       ]
     },
     "core.palette.info.350": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 350 — Quarter-Tone band (light tints, steps 100–350)",
+      "$description": "info status 350 — Quarter-Tone band (light tints, steps 100–350)",
       "meaning": "info ramp — raw step 350",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -9612,14 +9685,14 @@
       ]
     },
     "core.palette.info.400": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 400 — Mid-Tone band (mid tones, steps 400–600)",
+      "$description": "info status 400 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "info ramp — raw step 400",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.info.450": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 450 — Mid-Tone band (mid tones, steps 400–600)",
+      "$description": "info status 450 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "info ramp — raw step 450",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -9634,7 +9707,7 @@
       ]
     },
     "core.palette.info.500": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 500 — Mid-Tone band (mid tones, steps 400–600) — mid-tone AA pivot (≥4.5:1 on white & black)",
+      "$description": "info status 500 — Mid-Tone band (mid tones, steps 400–600) — mid-tone AA pivot (≥4.5:1 on white & black)",
       "meaning": "info ramp — raw step 500",
       "intent": "Solid fills & UI-element backgrounds — the one mid step that reads as text or icons over both light and dark fills",
       "tier": "primitive",
@@ -9651,7 +9724,7 @@
       ]
     },
     "core.palette.info.550": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 550 — Mid-Tone band (mid tones, steps 400–600)",
+      "$description": "info status 550 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "info ramp — raw step 550",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -9662,7 +9735,7 @@
       ]
     },
     "core.palette.info.600": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 600 — Mid-Tone band (mid tones, steps 400–600)",
+      "$description": "info status 600 — Mid-Tone band (mid tones, steps 400–600)",
       "meaning": "info ramp — raw step 600",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -9675,7 +9748,7 @@
       ]
     },
     "core.palette.info.650": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
+      "$description": "info status 650 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "info ramp — raw step 650",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -9687,7 +9760,7 @@
       ]
     },
     "core.palette.info.700": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
+      "$description": "info status 700 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "info ramp — raw step 700",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -9701,28 +9774,28 @@
       ]
     },
     "core.palette.info.750": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
+      "$description": "info status 750 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "info ramp — raw step 750",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.info.800": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
+      "$description": "info status 800 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "info ramp — raw step 800",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.info.850": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
+      "$description": "info status 850 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "info ramp — raw step 850",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.info.900": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
+      "$description": "info status 900 — Three-Quarter-Tone band (dark shades, steps 650–900)",
       "meaning": "info ramp — raw step 900",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -9733,21 +9806,21 @@
       ]
     },
     "core.palette.info.950": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 950 — Shadow band (near-black shade, step 950)",
+      "$description": "info status 950 — Shadow band (near-black shade, step 950)",
       "meaning": "info ramp — raw step 950",
       "intent": "Highest-contrast text and strong foreground",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.info.025": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 025 — Highlight band (near-white tints, steps 025–050)",
+      "$description": "info status 025 — Highlight band (near-white tints, steps 025–050)",
       "meaning": "info ramp — raw step 025",
       "intent": "Lightest tints — app / subtle backgrounds, hover & selected fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "core.palette.info.050": {
-      "$description": "info status, engine-generated blue ramp (the brand supplies no info hue) 050 — Highlight band (near-white tints, steps 025–050)",
+      "$description": "info status 050 — Highlight band (near-white tints, steps 025–050)",
       "meaning": "info ramp — raw step 050",
       "intent": "Lightest tints — app / subtle backgrounds, hover & selected fills",
       "tier": "primitive",

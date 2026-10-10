@@ -16,8 +16,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.950",
               "contrast": 1,
@@ -39,8 +38,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.900",
               "contrast": 1,
@@ -62,8 +60,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.850",
               "contrast": 1,
@@ -87,8 +84,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.900",
               "contrast": 1,
@@ -110,8 +106,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.850",
               "contrast": 1,
@@ -133,8 +128,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.800",
               "contrast": 1,
@@ -156,8 +150,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.primary.550",
               "contrast": 3.03,
@@ -180,8 +173,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.primary.900",
               "contrast": 1,
@@ -203,8 +195,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.success.900",
               "contrast": 1,
@@ -226,8 +217,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.warning.900",
               "contrast": 1,
@@ -249,8 +239,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.danger.900",
               "contrast": 1,
@@ -272,8 +261,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.info.900",
               "contrast": 1,
@@ -297,8 +285,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.025",
               "contrast": 18.13,
@@ -321,8 +308,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.450",
               "contrast": 4.64,
@@ -345,8 +331,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.550",
               "contrast": 3.25,
@@ -369,8 +354,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.primary.450",
               "contrast": 4.65,
@@ -393,8 +377,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.success.450",
               "contrast": 4.64,
@@ -417,8 +400,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.warning.450",
               "contrast": 4.62,
@@ -441,8 +423,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.danger.450",
               "contrast": 4.58,
@@ -465,8 +446,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.info.450",
               "contrast": 4.67,
@@ -489,8 +469,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.primary.350",
               "contrast": 7.01,
@@ -513,8 +492,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.success.350",
               "contrast": 7.04,
@@ -537,8 +515,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.warning.350",
               "contrast": 6.86,
@@ -561,8 +538,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.danger.350",
               "contrast": 6.87,
@@ -585,8 +561,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.info.350",
               "contrast": 6.98,
@@ -609,8 +584,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.025",
               "contrast": 5.53,
@@ -633,8 +607,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.black",
               "contrast": 4.62,
@@ -657,8 +630,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.black",
               "contrast": 4.62,
@@ -682,8 +654,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.primary.450",
                 "contrast": 4.65,
@@ -706,8 +677,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.primary.350",
                 "contrast": 6.46,
@@ -730,8 +700,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.primary.150",
                 "contrast": 11.48,
@@ -754,8 +723,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.primary.450",
                 "contrast": 4.65,
@@ -778,8 +746,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.primary.250",
                 "contrast": 8.72,
@@ -805,8 +772,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.025",
               "contrast": 18.13,
@@ -829,8 +795,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.450",
               "contrast": 4.64,
@@ -853,8 +818,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.550",
               "contrast": 3.25,
@@ -877,8 +841,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.primary.450",
               "contrast": 4.65,
@@ -901,8 +864,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.success.450",
               "contrast": 4.64,
@@ -925,8 +887,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.warning.450",
               "contrast": 4.62,
@@ -949,8 +910,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.danger.450",
               "contrast": 4.58,
@@ -973,8 +933,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.info.450",
               "contrast": 4.67,
@@ -997,8 +956,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.primary.350",
               "contrast": 7.01,
@@ -1021,8 +979,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.success.350",
               "contrast": 7.04,
@@ -1045,8 +1002,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.warning.350",
               "contrast": 6.86,
@@ -1069,8 +1025,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.danger.350",
               "contrast": 6.87,
@@ -1093,8 +1048,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.info.350",
               "contrast": 6.98,
@@ -1117,8 +1071,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.025",
               "contrast": 5.53,
@@ -1141,8 +1094,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.black",
               "contrast": 4.62,
@@ -1165,8 +1117,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.black",
               "contrast": 4.62,
@@ -1190,8 +1141,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.primary.450",
                 "contrast": 4.65,
@@ -1214,8 +1164,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.primary.350",
                 "contrast": 6.46,
@@ -1238,8 +1187,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.primary.150",
                 "contrast": 11.48,
@@ -1262,8 +1210,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.primary.450",
                 "contrast": 4.65,
@@ -1286,8 +1233,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.primary.250",
                 "contrast": 8.72,
@@ -1315,8 +1261,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.500",
                   "contrast": 3.91,
@@ -1339,8 +1284,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.400",
                   "contrast": 5.51,
@@ -1363,8 +1307,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.300",
                   "contrast": 7.58,
@@ -1387,8 +1330,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.500",
                   "contrast": 3.91,
@@ -1411,8 +1353,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.500",
                   "contrast": 3.91,
@@ -1437,8 +1378,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.450",
                   "contrast": 5.04,
@@ -1461,8 +1401,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.350",
                   "contrast": 7.01,
@@ -1485,8 +1424,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.250",
                   "contrast": 9.46,
@@ -1511,8 +1449,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.450",
                   "contrast": 5.04,
@@ -1535,8 +1472,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.350",
                   "contrast": 7.01,
@@ -1559,8 +1495,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.250",
                   "contrast": 9.46,
@@ -1585,8 +1520,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.450",
                   "contrast": 5.04,
@@ -1609,8 +1543,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.350",
                   "contrast": 7.01,
@@ -1633,8 +1566,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.250",
                   "contrast": 9.46,
@@ -1659,8 +1591,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.white-alpha.10",
                   "contrast": 14.26,
@@ -1685,8 +1616,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.white-alpha.20",
                   "contrast": 10.07,
@@ -1711,8 +1641,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.white-alpha.20",
                   "contrast": 10.07,
@@ -1743,8 +1672,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable: in each mode it aliases the fill variable in `tint.color` at the opacity variable in `tint.opacity`"
+                    ]
                   },
                   "contrast": 6.87,
                   "against": "background.primary",
@@ -1771,8 +1699,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.danger.400",
                   "contrast": 5.41,
@@ -1795,8 +1722,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.danger.300",
                   "contrast": 7.46,
@@ -1821,8 +1747,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.danger.400",
                   "contrast": 4.85,
@@ -1845,8 +1770,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.danger.300",
                   "contrast": 6.7,
@@ -1869,8 +1793,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.danger.200",
                   "contrast": 8.93,
@@ -1895,8 +1818,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.danger.400",
                   "contrast": 4.85,
@@ -1919,8 +1841,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.danger.300",
                   "contrast": 6.7,
@@ -1943,8 +1864,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.danger.200",
                   "contrast": 8.93,
@@ -1969,8 +1889,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.danger.400",
                   "contrast": 4.85,
@@ -1993,8 +1912,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.danger.300",
                   "contrast": 6.7,
@@ -2017,8 +1935,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.danger.200",
                   "contrast": 8.93,
@@ -2043,8 +1960,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.white-alpha.10",
                   "contrast": 14.26,
@@ -2069,8 +1985,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.white-alpha.20",
                   "contrast": 10.07,
@@ -2095,8 +2010,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.white-alpha.20",
                   "contrast": 10.07,
@@ -2125,8 +2039,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.neutral.850",
                   "contrast": 1.11,
@@ -2148,8 +2061,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.neutral.750",
                   "contrast": 1.53,
@@ -2171,8 +2083,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.neutral.650",
                   "contrast": 2.21,
@@ -2194,8 +2105,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.neutral.850",
                   "contrast": 1.11,
@@ -2217,8 +2127,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.neutral.850",
                   "contrast": 1.11,
@@ -2241,8 +2150,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.025",
                 "contrast": 15,
@@ -2266,8 +2174,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.neutral.025",
                   "contrast": 18.13,
@@ -2290,8 +2197,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.neutral.100",
                   "contrast": 14.04,
@@ -2314,8 +2220,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.neutral.200",
                   "contrast": 10.78,
@@ -2340,8 +2245,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.neutral.025",
                   "contrast": 18.13,
@@ -2364,8 +2268,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.neutral.100",
                   "contrast": 14.04,
@@ -2388,8 +2291,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.neutral.200",
                   "contrast": 10.78,
@@ -2414,8 +2316,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.neutral.025",
                   "contrast": 18.13,
@@ -2438,8 +2339,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.neutral.100",
                   "contrast": 14.04,
@@ -2462,8 +2362,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.neutral.200",
                   "contrast": 10.78,
@@ -2488,8 +2387,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.white-alpha.10",
                   "contrast": 14.26,
@@ -2514,8 +2412,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.white-alpha.20",
                   "contrast": 10.07,
@@ -2540,8 +2437,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.white-alpha.20",
                   "contrast": 10.07,
@@ -2570,8 +2466,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.750",
               "contrast": 1,
@@ -2593,8 +2488,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.450",
               "contrast": 3.04,
@@ -2617,8 +2511,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.550",
               "contrast": 3.25,
@@ -2641,8 +2534,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.550",
               "contrast": 3.25,
@@ -2665,8 +2557,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.750",
               "contrast": 1.66,
@@ -2690,8 +2581,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.750",
               "contrast": 1.66,
@@ -2713,8 +2603,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.500",
               "contrast": 4.26,
@@ -2737,8 +2626,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.250",
               "contrast": 9.35,
@@ -2760,8 +2648,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.success.450",
               "contrast": 5.03,
@@ -2784,8 +2671,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.warning.450",
               "contrast": 5.01,
@@ -2808,8 +2694,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.danger.450",
               "contrast": 4.97,
@@ -2832,8 +2717,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.primary.450",
               "contrast": 5.04,
@@ -2858,8 +2742,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.black-alpha.60",
               "contrast": 1,
@@ -2884,8 +2767,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.550",
                 "contrast": 3.25,
@@ -2908,8 +2790,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.450",
                 "contrast": 4.64,
@@ -2933,8 +2814,7 @@
                   "dark",
                   "hc-light",
                   "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                ]
               },
               "aliasOf": "pds3.core.palette.neutral.450",
               "contrast": 4.64,
@@ -2960,8 +2840,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.025",
                 "contrast": 1,
@@ -2983,8 +2862,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.050",
                 "contrast": 1,
@@ -3006,8 +2884,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.100",
                 "contrast": 1,
@@ -3031,8 +2908,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.050",
                 "contrast": 1,
@@ -3054,8 +2930,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.100",
                 "contrast": 1,
@@ -3077,8 +2952,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.150",
                 "contrast": 12.35,
@@ -3101,8 +2975,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.primary.600",
                 "contrast": 6.44,
@@ -3125,8 +2998,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.primary.100",
                 "contrast": 1,
@@ -3148,8 +3020,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.success.100",
                 "contrast": 1,
@@ -3171,8 +3042,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.warning.100",
                 "contrast": 1,
@@ -3194,8 +3064,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.danger.100",
                 "contrast": 1,
@@ -3217,8 +3086,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.info.100",
                 "contrast": 1,
@@ -3244,8 +3112,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.primary.600",
                     "contrast": 7.3,
@@ -3268,8 +3135,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.primary.700",
                     "contrast": 10.43,
@@ -3292,8 +3158,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.primary.800",
                     "contrast": 14.07,
@@ -3318,8 +3183,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.primary.600",
                     "contrast": 7.3,
@@ -3342,8 +3206,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.primary.700",
                     "contrast": 10.43,
@@ -3366,8 +3229,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.primary.800",
                     "contrast": 14.07,
@@ -3392,8 +3254,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.black",
                     "contrast": 19.6,
@@ -3416,8 +3277,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.900",
                     "contrast": 16.72,
@@ -3440,8 +3300,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.800",
                     "contrast": 13.01,
@@ -3464,8 +3323,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.900",
                     "contrast": 16.72,
@@ -3488,8 +3346,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.800",
                     "contrast": 13.01,
@@ -3513,8 +3370,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.350",
                   "contrast": 7.58,
@@ -3538,8 +3394,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.primary.600",
                     "contrast": 7.3,
@@ -3562,8 +3417,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.primary.700",
                     "contrast": 10.43,
@@ -3586,8 +3440,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.primary.800",
                     "contrast": 14.07,
@@ -3612,8 +3465,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.black-alpha.10",
                     "contrast": 14.48,
@@ -3638,8 +3490,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.black-alpha.20",
                     "contrast": 11.33,
@@ -3664,8 +3515,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.black-alpha.20",
                     "contrast": 11.33,
@@ -3694,8 +3544,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.danger.600",
                     "contrast": 4.9,
@@ -3718,8 +3567,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.danger.700",
                     "contrast": 7.23,
@@ -3742,8 +3590,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.danger.800",
                     "contrast": 10.24,
@@ -3768,8 +3615,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.danger.600",
                     "contrast": 4.9,
@@ -3792,8 +3638,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.danger.700",
                     "contrast": 7.23,
@@ -3816,8 +3661,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.danger.800",
                     "contrast": 10.24,
@@ -3842,8 +3686,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.black",
                     "contrast": 19.6,
@@ -3866,8 +3709,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.900",
                     "contrast": 16.72,
@@ -3890,8 +3732,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.800",
                     "contrast": 13.01,
@@ -3914,8 +3755,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.900",
                     "contrast": 16.72,
@@ -3938,8 +3778,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.800",
                     "contrast": 13.01,
@@ -3963,8 +3802,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.danger.350",
                   "contrast": 7.42,
@@ -3988,8 +3826,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.danger.600",
                     "contrast": 4.9,
@@ -4012,8 +3849,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.danger.700",
                     "contrast": 7.23,
@@ -4036,8 +3872,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.danger.800",
                     "contrast": 10.24,
@@ -4062,8 +3897,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.black-alpha.10",
                     "contrast": 14.48,
@@ -4088,8 +3922,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.black-alpha.20",
                     "contrast": 11.33,
@@ -4114,8 +3947,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.black-alpha.20",
                     "contrast": 11.33,
@@ -4144,8 +3976,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.950",
                     "contrast": 18.13,
@@ -4168,8 +3999,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.850",
                     "contrast": 15,
@@ -4192,8 +4022,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.750",
                     "contrast": 10.96,
@@ -4218,8 +4047,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.950",
                     "contrast": 18.13,
@@ -4242,8 +4070,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.850",
                     "contrast": 15,
@@ -4266,8 +4093,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.750",
                     "contrast": 10.96,
@@ -4292,8 +4118,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.black",
                     "contrast": 19.6,
@@ -4316,8 +4141,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.900",
                     "contrast": 16.72,
@@ -4340,8 +4164,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.800",
                     "contrast": 13.01,
@@ -4364,8 +4187,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.900",
                     "contrast": 16.72,
@@ -4388,8 +4210,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.800",
                     "contrast": 13.01,
@@ -4413,8 +4234,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.neutral.025",
                   "contrast": 19.6,
@@ -4438,8 +4258,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.950",
                     "contrast": 18.13,
@@ -4462,8 +4281,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.850",
                     "contrast": 15,
@@ -4486,8 +4304,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.neutral.750",
                     "contrast": 10.96,
@@ -4512,8 +4329,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.black-alpha.10",
                     "contrast": 14.48,
@@ -4538,8 +4354,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.black-alpha.20",
                     "contrast": 11.33,
@@ -4564,8 +4379,7 @@
                         "dark",
                         "hc-light",
                         "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      ]
                     },
                     "aliasOf": "pds3.core.palette.black-alpha.20",
                     "contrast": 11.33,
@@ -4594,8 +4408,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.250",
                 "contrast": 1,
@@ -4617,8 +4430,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.600",
                 "contrast": 3.22,
@@ -4641,8 +4453,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.450",
                 "contrast": 3.18,
@@ -4665,8 +4476,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.450",
                 "contrast": 3.18,
@@ -4689,8 +4499,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.250",
                 "contrast": 1.94,
@@ -4715,8 +4524,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.neutral.450",
                   "contrast": 3.18,
@@ -4739,8 +4547,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.neutral.550",
                   "contrast": 4.54,
@@ -4764,8 +4571,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.550",
                 "contrast": 4.54,
@@ -4790,8 +4596,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.950",
                 "contrast": 18.13,
@@ -4814,8 +4619,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.550",
                 "contrast": 4.54,
@@ -4838,8 +4642,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.450",
                 "contrast": 3.18,
@@ -4862,8 +4665,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.primary.600",
                 "contrast": 6.44,
@@ -4886,8 +4688,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.success.600",
                 "contrast": 5.52,
@@ -4910,8 +4711,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.warning.600",
                 "contrast": 5.53,
@@ -4934,8 +4734,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.danger.600",
                 "contrast": 5.59,
@@ -4958,8 +4757,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.info.600",
                 "contrast": 5.47,
@@ -4982,8 +4780,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.primary.650",
                 "contrast": 8.75,
@@ -5006,8 +4803,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.success.650",
                 "contrast": 7.55,
@@ -5030,8 +4826,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.warning.650",
                 "contrast": 7.6,
@@ -5054,8 +4849,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.danger.650",
                 "contrast": 7.72,
@@ -5078,8 +4872,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.info.650",
                 "contrast": 7.59,
@@ -5103,8 +4896,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.600",
                   "contrast": 6.44,
@@ -5127,8 +4919,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.700",
                   "contrast": 9.2,
@@ -5151,8 +4942,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.900",
                   "contrast": 15.26,
@@ -5175,8 +4965,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.600",
                   "contrast": 6.44,
@@ -5199,8 +4988,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.800",
                   "contrast": 12.42,
@@ -5226,8 +5014,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.950",
                 "contrast": 18.13,
@@ -5250,8 +5037,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.550",
                 "contrast": 4.54,
@@ -5274,8 +5060,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.450",
                 "contrast": 3.18,
@@ -5298,8 +5083,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.primary.600",
                 "contrast": 6.44,
@@ -5322,8 +5106,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.success.600",
                 "contrast": 5.52,
@@ -5346,8 +5129,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.warning.600",
                 "contrast": 5.53,
@@ -5370,8 +5152,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.danger.600",
                 "contrast": 5.59,
@@ -5394,8 +5175,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.info.600",
                 "contrast": 5.47,
@@ -5418,8 +5198,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.primary.650",
                 "contrast": 8.75,
@@ -5442,8 +5221,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.success.650",
                 "contrast": 7.55,
@@ -5466,8 +5244,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.warning.650",
                 "contrast": 7.6,
@@ -5490,8 +5267,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.danger.650",
                 "contrast": 7.72,
@@ -5514,8 +5290,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.info.650",
                 "contrast": 7.59,
@@ -5539,8 +5314,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.600",
                   "contrast": 6.44,
@@ -5563,8 +5337,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.700",
                   "contrast": 9.2,
@@ -5587,8 +5360,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.900",
                   "contrast": 15.26,
@@ -5611,8 +5383,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.600",
                   "contrast": 6.44,
@@ -5635,8 +5406,7 @@
                       "dark",
                       "hc-light",
                       "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    ]
                   },
                   "aliasOf": "pds3.core.palette.primary.800",
                   "contrast": 12.42,
@@ -5662,8 +5432,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.200",
                 "contrast": 1.68,
@@ -5685,8 +5454,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.500",
                 "contrast": 4.26,
@@ -5708,8 +5476,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.neutral.700",
                 "contrast": 9.23,
@@ -5731,8 +5498,7 @@
                     "dark",
                     "hc-light",
                     "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  ]
                 },
                 "aliasOf": "pds3.core.palette.primary.600",
                 "contrast": 7.3,
@@ -5778,8 +5544,7 @@
                 "spread",
                 "offsetX",
                 "offsetY"
-              ],
-              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              ]
             }
           }
         }
@@ -5817,8 +5582,7 @@
                 "spread",
                 "offsetX",
                 "offsetY"
-              ],
-              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              ]
             }
           }
         }
@@ -5856,8 +5620,7 @@
                 "spread",
                 "offsetX",
                 "offsetY"
-              ],
-              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              ]
             }
           }
         }
@@ -5895,8 +5658,7 @@
                 "spread",
                 "offsetX",
                 "offsetY"
-              ],
-              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              ]
             }
           }
         }
@@ -5934,8 +5696,7 @@
                 "spread",
                 "offsetX",
                 "offsetY"
-              ],
-              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              ]
             }
           }
         }
@@ -5973,8 +5734,7 @@
                 "spread",
                 "offsetX",
                 "offsetY"
-              ],
-              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              ]
             }
           }
         }
@@ -6005,8 +5765,7 @@
                 "spread",
                 "offsetX",
                 "offsetY"
-              ],
-              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              ]
             }
           }
         }

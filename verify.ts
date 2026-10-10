@@ -779,6 +779,12 @@ export const GATES: Gate[] = [
     cmd: engine('lint-figma-descriptions.ts'),
   },
   {
+    // #2411 — reads the COMMITTED out/ files, so it needs no `after`.
+    id: 'lint-tool-neutral-prose',
+    ciStep: 'Consumer prose names no tool (#2411)',
+    cmd: engine('lint-tool-neutral-prose.ts'),
+  },
+  {
     // The FIRST gate outside `packages/engine/`, which is why `gateFilePattern` below now admits
     // `apps/*/lint-*.ts` as well as `.mjs`. It lives in `apps/plugin/` because it imports the plugin's
     // own executor; an engine-side copy would make the engine depend on a surface.
