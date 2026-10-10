@@ -45,3 +45,10 @@ configuration's value is entirely conditional on staying naive.
 **Filed, not fixed here:** the code layer has no gated decision record beyond the single row this PR
 adds, and four live decisions (#252, #253, #254, and the tranche-4 behaviour wall in `41` §7) sit in
 prose with no index entry. One row does not close that.
+
+**A correction made in review.** The first draft of the new heading said the engine emits "flattened,
+mode-resolved trees that are valid standalone DTCG". That is the alternative #639 turned down. What
+shipped is a base tree plus one overlay per mode, holding only the tokens that differ. On main,
+`nb.dark.overlay.tokens.json` carries 244 of the base's 704 leaves, and 236 of the 244 are aliases that
+resolve through the base. The heading now says so, with #639's reason (overlays compose per axis, where
+full trees multiply) and its scope (the theme axis only).

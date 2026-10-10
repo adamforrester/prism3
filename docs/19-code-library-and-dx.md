@@ -269,13 +269,19 @@ decision superseded by a later decision**, and the code-layer docs carry no inde
 so this section had no gate and no index row to go stale against. This heading is the first of
 either.
 
-**What was decided.** #609 closed *completed* on 2026-08-07 — option C of four. The canonical
-`$extensions.prism3.modes` tree stays the source of truth, because it is the only shape that holds
-three orthogonal axes (theme × breakpoint × viewport) and the alias graph. **Beside it the engine
-emits flattened, mode-resolved trees that are valid standalone DTCG.** Two merged PRs did it: #639
-(*"Emit a conforming DTCG projection beside the canonical tree"*) and #631, which added
-`packages/tokens` — a stock Style Dictionary over the emitted DTCG, proving the output is consumable
-with no custom code.
+**What was decided.** #609 closed *completed* on 2026-08-07: option C of four, refined to overlays.
+The canonical `$extensions.prism3.modes` tree stays the source of truth, because it holds the modes
+and the alias graph in one tree. **Beside it the engine emits a projection a stock tool can read: a
+base tree, `{brand}.base.tokens.json`, with every token at its default-mode value and no modes
+extension, plus one overlay per mode, `{brand}.{mode}.overlay.tokens.json`, holding only the tokens
+whose value differs from the base.** A consumer sources the base and an overlay, and its own merge
+does the rest. An overlay is not a standalone tree: most of its values are aliases that resolve
+through the base. Full per-mode trees were the alternative, and #639 turned them down for
+orthogonality (an overlay per axis composes, where full trees multiply), not only for size. Its
+scope is the theme axis only: breakpoint and viewport live elsewhere in the tree, not in the
+`modes` extension. Two merged PRs did it: #639 (*"Emit a conforming DTCG projection beside the
+canonical tree"*) and #631, which added `packages/tokens`, a stock Style Dictionary over the
+emitted DTCG that proves the output is consumable with no custom code.
 
 **So the answer to "do we ship with Style Dictionary" is neither yes nor no, and the distinction
 matters to anyone building on this.** Style Dictionary is a **gate**, not a dependency: `packages/tokens`
