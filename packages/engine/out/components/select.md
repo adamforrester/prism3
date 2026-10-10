@@ -67,13 +67,13 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain n
 
 ## States
 
-`rest`, `hover`, `filled`, `focus-visible`, `focus-visible-filled`, `disabled`, `read-only`, `pending`, `empty`
+`rest`, `hover`, `pending`, `filled`, `focus-visible`, `focus-visible-filled`, `disabled`, `read-only`, `empty`
 
 ## Variants
 
 | Axis | Values | Changes |
 | --- | --- | --- |
-| `size` | `medium`, `small`, `large` | once, when authored |
+| `size` | `small`, `medium`, `large` | once, when authored |
 | `status` | `default`, `error`, `warning`, `success` | at runtime |
 
 ## Accessibility

@@ -511,11 +511,11 @@
       "states": [
         "rest",
         "hover",
-        "focus-visible",
         "pressed",
         "pending",
-        "inactive",
-        "disabled"
+        "focus-visible",
+        "disabled",
+        "inactive"
       ],
       "variants": {
         "appearance": {
@@ -793,11 +793,11 @@
       "states": [
         "rest",
         "hover",
-        "focus-visible",
         "pressed",
         "pending",
-        "inactive",
-        "disabled"
+        "focus-visible",
+        "disabled",
+        "inactive"
       ],
       "variants": {
         "appearance": {
@@ -1077,11 +1077,11 @@
       "states": [
         "rest",
         "hover",
-        "focus-visible",
         "pressed",
         "pending",
-        "inactive",
-        "disabled"
+        "focus-visible",
+        "disabled",
+        "inactive"
       ],
       "variants": {
         "appearance": {
@@ -1332,11 +1332,11 @@
       "states": [
         "rest",
         "hover",
-        "focus-visible",
         "pressed",
         "pending",
-        "inactive",
-        "disabled"
+        "focus-visible",
+        "disabled",
+        "inactive"
       ],
       "variants": {
         "appearance": {
@@ -1562,11 +1562,11 @@
       "states": [
         "rest",
         "hover",
-        "focus-visible",
         "pressed",
         "pending",
-        "inactive",
-        "disabled"
+        "focus-visible",
+        "disabled",
+        "inactive"
       ],
       "variants": {
         "appearance": {
@@ -1793,11 +1793,11 @@
       "states": [
         "rest",
         "hover",
-        "focus-visible",
         "pressed",
         "pending",
-        "inactive",
-        "disabled"
+        "focus-visible",
+        "disabled",
+        "inactive"
       ],
       "variants": {
         "appearance": {
@@ -2397,19 +2397,19 @@
       "states": [
         "rest",
         "hover",
+        "pending",
         "filled",
         "focus-visible",
         "focus-visible-filled",
         "disabled",
         "read-only",
-        "pending",
         "empty"
       ],
       "variants": {
         "size": {
           "values": [
-            "medium",
             "small",
+            "medium",
             "large"
           ],
           "kind": "authoring"
@@ -2650,19 +2650,19 @@
       "states": [
         "rest",
         "hover",
+        "pending",
         "filled",
         "focus-visible",
         "focus-visible-filled",
         "disabled",
         "read-only",
-        "pending",
         "empty"
       ],
       "variants": {
         "size": {
           "values": [
-            "medium",
             "small",
+            "medium",
             "large"
           ],
           "kind": "authoring"
@@ -3979,10 +3979,10 @@
         "rest",
         "hover",
         "pressed",
+        "pending",
         "focus-visible",
         "disabled",
         "read-only",
-        "pending",
         "error"
       ],
       "variants": {
@@ -4224,19 +4224,19 @@
       "states": [
         "rest",
         "hover",
+        "pending",
         "filled",
         "focus-visible",
         "focus-visible-filled",
         "disabled",
         "read-only",
-        "pending",
         "empty"
       ],
       "variants": {
         "size": {
           "values": [
-            "medium",
             "small",
+            "medium",
             "large"
           ],
           "kind": "authoring"

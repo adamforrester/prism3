@@ -186,19 +186,18 @@ export const select: ComponentDef = {
   // added so the field family carries one state set. `read-only` PROJECTS (the value at full contrast behind
   // the editable field's `field.border.rest` boundary, #1710); `pending` does not (a spinner swap with no static skin,
   // admitted in `codeOnly` exactly as text-field admits it).
-  states: ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only', 'pending', 'empty'],
+  states: ['rest', 'hover', 'pending', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only', 'empty'],
 
   // `status` IS `field-message`'s status axis by name and value — the alignment that lets the nested message
   // follow it (see the header).
   //
   // `size` (#2266, owner decisions Q84 A and Q101 A, lifting #1699 decision 2's deferral): the field sizing
   // system text-field and textarea share. Each size scales the value type (`body.sm/md/lg`), the nested
-  // label (one step below, by `follow`) and the padding; every size keeps the 44px floor. `medium` FIRST,
-  // and load-bearing: the first member is Figma's default variant AND the value an in-place update (#2265)
-  // gives every member of a set that gains this axis, so each select built before #2266 (the medium field)
-  // keeps its key and its look. text-field's `variants` comment has the full argument.
+  // label (one step below, by `follow`) and the padding; every size keeps the 44px floor. Smallest to largest,
+  // like every def (#2501, owner decision Q213), so Figma's default select is the small one and a select built
+  // before #2266 lands on `small` on its next Update. text-field's `variants` comment has the full argument.
   variants: {
-    size: ['medium', 'small', 'large'],
+    size: ['small', 'medium', 'large'],
     status: ['default', 'error', 'warning', 'success'],
   },
   // WHEN each axis changes (#1611): runtime axes are held to one footprint, authoring axes are not.

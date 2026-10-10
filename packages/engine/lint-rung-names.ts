@@ -309,9 +309,8 @@ const SPACING_ONLY_LADDER: Record<string, string> = {};
  * Both directions: an admitted def whose two orders already agree is a stale admission.
  */
 const DEFAULT_FIRST: Record<string, string> = {
-  'text-field': 'the Figma default and the in-place-update landing value are `medium`, the field before #2266',
-  select: 'the Figma default and the in-place-update landing value are `medium`, the select before #2266',
-  textarea: 'the Figma default and the in-place-update landing value are `medium`, the textarea before #2266',
+  // Empty since #2501 (owner decision Q213): text-field, select and textarea led with `medium` here, and now list
+  // their sizes smallest to largest like every def. A def that must lead with its default is admitted here again.
 };
 
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {

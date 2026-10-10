@@ -1,0 +1,16 @@
+## (2026-10-10) — One axis value order in every component def: sizes small to large; states Rest, Hover, Pressed, then Focus, then Disabled (#2501)
+
+**Status:** engine defs plus their pins. ENGINE minor (change note): the component docs and `components.ai.json` list the new orders, and the projected sets' member order moves. CONTRACT unchanged. Owner decision Q213, from the canvas furniture render (#2471).
+
+**What moved:**
+- `text-field`, `textarea`, `select`: `variants.size` → small, medium, large. Medium led on purpose (#2266): the first member is Figma's default variant, and an in-place update gives an axis a set gains the first plan's value. Asked before building; the owner chose to reorder and accept both consequences (the default field is the small one; a field set built before #2266 lands on small).
+- `button`, `icon-button` (and, through their factories, the destructive and neutral siblings): `figmaProperties.stateAxis` → rest, hover, pressed, pending, focus-visible, disabled; `states` puts `inactive` after `disabled`.
+- The three fields and `switch-row`: `states` puts `pending` after the press group (code-only; their projected columns don't change).
+
+**The trap worth knowing:** the projected state order is `figmaProperties.stateAxis`, a SECOND list. Reordering `states` alone left button's projected columns as they were (`rest, hover, focus-visible, pressed, …`), which is why the new `#2501` test reads the projected set's first-seen order as well as the def's three lists.
+
+**The test** (`packages/engine/test.ts`, `#2501 <def>`): both ladders are typed from Q213 in the test, never read from a def or `STATES`; a value neither ladder knows fails as "unplaced", so a new state or size has to be placed on purpose. A represented arm names the eight defs the decision was raised on.
+
+**Pins moved with the order, each with its reason:** `#656`'s button column literal; icon-button's paste chunk count 16 → 15 (no byte moved; the reordered members pack one chunk tighter); `#2266`'s "led by size=medium" → small; `apps/plugin/test-update-components.ts`'s `size/lands` (now lands on small) and its `size/order` counterpart (medium first would land on medium); `lint-axis-values.ts` folds the fields into the canonical ladder and drops their `reordered` entry; `lint-rung-names.ts`'s `DEFAULT_FIRST` is empty (its own rule: a stale admission is removed in the same PR).
+
+**Lands after #2471:** existing files see the reordered members as moves on their next Update, through #2471's regroup path.

@@ -376,26 +376,14 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium', 'large'],
-    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label', 'tag', 'tab', 'tabs'],
+    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'checkbox-control', 'checkbox-row', 'checkbox-group', 'radio-control', 'radio-row', 'radio-group', 'field-label', 'tag', 'tab', 'tabs', 'text-field', 'select', 'textarea'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, and canonical on weight of use — every def with a size axis except the two switch defs below, the '
-      + 'button and icon-button siblings among them by way of their shared factories (#1223, #1225). '
+      + 'button and icon-button siblings among them by way of their shared factories (#1223, #1225), and the three '
+      + 'fields since #2501 (owner decision Q213), which led with `medium` until then. '
       + 'Rungs are named rather than numbered so a brand can re-derive the dimensions behind them without '
       + 'the names going stale.',
-  },
-  {
-    axis: 'size',
-    values: ['medium', 'small', 'large'],
-    defs: ['text-field', 'select', 'textarea'],
-    relation: 'reordered',
-    reason:
-      'The canonical ladder, led by `medium` (#2266, the field sizing system). The first value is the set\'s '
-      + 'first member, which is Figma\'s default variant AND the value an in-place update (#2265) gives every '
-      + 'existing member of a set that gains this axis. Every field built before #2266 is the medium field, so '
-      + 'medium first keeps those members\' look as well as their keys; `small` first would rewrite them as '
-      + 'the small field in place. The code enum (`props.size`) keeps the ladder\'s own order; '
-      + '`lint-rung-names.ts` DEFAULT_FIRST admits the split. Held for the owner on #2266.',
   },
   {
     axis: 'size',

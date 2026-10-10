@@ -512,27 +512,28 @@ section('axis — an added axis and a removed one');
 }
 
 /* ── a field gains `size` (#2266) ────────────────────────────────────────────────────────────────────── */
-section('size — a field set built before #2266 gains the size axis, and every member lands on medium');
+section('size — a field set built before #2266 gains the size axis, and every member lands on small (#2501)');
 {
   // The pre-#2266 file: text-field's medium members, named without `size` (status × state: 24 then, 28 since #2318's
-  // `focus-visible-filled` column, which this fixture is built from). They were the medium
-  // field, so medium is where they must land. Simulated as the `axis` case above does: the built set's medium
-  // members with the segment stripped.
+  // `focus-visible-filled` column, which this fixture is built from). An added axis takes the value the first plan
+  // carries, and since #2501 (owner decision Q213: sizes smallest to largest in every def) that is `small`: these
+  // members land on small, a consequence the owner accepted with the order. Medium led until then so they would
+  // land on medium. Simulated as the `axis` case above does: the built set's medium members with the segment stripped.
   const b = await build('text-field');
   const view = await readSetView(b.set as any);
   const strip = (name: string) => name.split(', ').filter((s) => !s.startsWith('size=')).join(', ');
   const pre = withMembers(view, (ms) => ms.filter((m) => m.name.split(', ').includes('size=medium')).map((m) => ({ ...m, name: strip(m.name) })));
   const p = dryRunSet('text-field', b.plans, pre, b.ports);
-  ok(pre.members.length === 28 && p.renames.length === 28 && p.renames.every((r) => r.to.split(', ').includes('size=medium'))
+  ok(pre.members.length === 28 && p.renames.length === 28 && p.renames.every((r) => r.to.split(', ').includes('size=small'))
     && p.adds.length === 56 && p.drops.length === 0 && p.blockers.length === 0,
-    `size/lands: the 28 old members are renamed onto size=medium in place, 56 small and large members are added, none dropped (${p.renames.length} renames, ${p.adds.length} adds, ${p.drops.length} drops, ${p.blockers.length} blockers; first ${p.renames[0]?.to})`);
-  // THE ORDER DECIDES IT (docs/34: the arm above can fail). The same set laid against the plans in the
-  // ladder's own order (small first) lands every old member on small: the rewrite #2266's medium-first order avoids.
-  const ladder = ['small', 'medium', 'large'];
-  const smallFirst = [...b.plans].sort((x, y) => ladder.indexOf(String(x.size)) - ladder.indexOf(String(y.size)));
-  const q = dryRunSet('text-field', smallFirst, pre, b.ports);
-  ok(q.renames.length === 28 && q.renames.every((r) => r.to.split(', ').includes('size=small')),
-    `size/order: with small first the same members would land on size=small (${q.renames[0]?.to})`);
+    `size/lands: the 28 old members are renamed onto size=small in place, 56 medium and large members are added, none dropped (${p.renames.length} renames, ${p.adds.length} adds, ${p.drops.length} drops, ${p.blockers.length} blockers; first ${p.renames[0]?.to})`);
+  // THE ORDER DECIDES IT (docs/34: the arm above can fail). The same set laid against the plans with medium first,
+  // #2266's old order, lands every old member on medium instead.
+  const order = ['medium', 'small', 'large'];
+  const mediumFirst = [...b.plans].sort((x, y) => order.indexOf(String(x.size)) - order.indexOf(String(y.size)));
+  const q = dryRunSet('text-field', mediumFirst, pre, b.ports);
+  ok(q.renames.length === 28 && q.renames.every((r) => r.to.split(', ').includes('size=medium')),
+    `size/order: with medium first the same members would land on size=medium (${q.renames[0]?.to})`);
 }
 
 /* ── blocked ─────────────────────────────────────────────────────────────────────────────────────────── */
