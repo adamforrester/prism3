@@ -70,7 +70,7 @@ import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -3590,6 +3590,7 @@ for (const b of brands) {
       'radio-row': { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       'switch-row': { keys: ['gap'], sizes: ['small', 'medium'] },
       tag: { keys: ['padding-x', 'select.gap', 'dismissible.visible-gap', 'check-gap', 'select.padding-end', 'dismissible.padding-end'], sizes: ['small', 'medium', 'large'] },
+      tab: { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
@@ -3603,6 +3604,8 @@ for (const b of brands) {
       // Tag: padding-x / select icon→label / dismissible VISIBLE icon→label (owner, 2026-09-29: 6/8/8) /
       // label→check / select trailing inset / dismissible trailing inset. Compact small's visible 6 steps to 4.
       tag: { compact: 'small 6/4/4/4/6/0 · medium 8/6/6/4/8/0 · large 12/8/6/6/12/0', comfortable: 'small 8/6/6/4/8/0 · medium 12/8/8/6/12/0 · large 16/12/8/8/16/0', spacious: 'small 12/8/8/6/12/0 · medium 16/12/12/8/16/0 · large 20/16/12/12/20/0' },
+      // Tab (#2416): padding-x / icon→label→count gap. Comfortable is the proposal's 12/6 · 16/8 · 20/8.
+      tab: { compact: 'small 8/4 · medium 12/6 · large 16/6', comfortable: 'small 12/6 · medium 16/8 · large 20/8', spacious: 'small 16/8 · medium 20/12 · large 24/12' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -3638,6 +3641,7 @@ for (const b of brands) {
       'text-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       select: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'checkbox-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      tab: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'radio-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'switch-row': ['size.small.gap', 'size.medium.gap'],
       tag: ['small', 'medium', 'large'].flatMap((v) => [
@@ -3674,6 +3678,7 @@ for (const b of brands) {
       // Tag's icon→label is VISIBLE, the content gap plus the label row's leading inset (owner, 2026-09-29), per
       // type: the sum is what must stay under the padding. A `+` key is summed.
       tag: { prefix: 'sized', lt: [['select.gap+select.label-inset', 'padding-x'], ['dismissible.gap+dismissible.label-inset', 'padding-x'], ['check-gap', 'padding-x']] },
+      tab: { prefix: 'sized', lt: [['gap', 'padding-x']] },
     };
     const GAP_TAILS = ['gap', 'check-gap'];
     const PAD_TAILS = ['padding-x', 'pad-x'];
@@ -15010,6 +15015,121 @@ arm: {
         '#2344 without figmaOnly, a boolean naming no declared prop is still refused BY NAME');
     }
 
+    // ---- #2416 (owner decisions Q177, Q178, Q179): Tab and Tabs ----
+    // Every expected value below is a literal typed here from the owner's decisions on #2416, never read off the
+    // defs: the defs and their projected plans are the SUBJECT (docs/34 shape 1). Each arm names its decision so a
+    // mutation of the def fails the arm it breaks, by name.
+    {
+      const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
+      const walk = (n: AnatomyPlan['root'], f: (x: AnatomyPlan['root']) => void): void => { f(n); n.children.forEach((k) => walk(k, f)); };
+      const tabDef = componentDefs.find((d) => d.id === 'tab')!;
+      const tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
+      const tabMembers = figmaAnatomySet(tabDef, { swapTarget: 'FPO-default-icon' });
+      const SIZES = ['small', 'medium', 'large'];
+      const STATES5 = ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'];
+      const memberOf = (selection: string, size: string, state: string) =>
+        tabMembers.find((m) => m.coord.selection === selection && (m.size ?? m.coord.size) === size && m.coord.state === state);
+
+      // (1) THE BAR — geometry and color per selection and state (Q178.1 A, Q178.2 B). One 2px box, `indicator`,
+      // at every member; its fill is the selected primary bar, the unselected neutral hover bar, or nothing.
+      const BAR: Record<string, Record<string, string | undefined>> = {
+        selected: { rest: 'color/interactive/primary/border/rest', hover: 'color/interactive/primary/border/hover', pressed: 'color/interactive/primary/border/pressed', 'focus-visible': 'color/interactive/primary/border/rest', disabled: 'color/disabled/border' },
+        unselected: { rest: undefined, hover: 'color/border/secondary', pressed: 'color/border/secondary', 'focus-visible': undefined, disabled: undefined },
+      };
+      const LABEL: Record<string, Record<string, string>> = {
+        selected: { rest: 'color/interactive/primary/text/rest', hover: 'color/interactive/primary/text/hover', pressed: 'color/interactive/primary/text/pressed', 'focus-visible': 'color/interactive/primary/text/rest', disabled: 'color/disabled/text' },
+        unselected: { rest: 'color/interactive/neutral/text/rest', hover: 'color/interactive/neutral/text/hover', pressed: 'color/interactive/neutral/text/pressed', 'focus-visible': 'color/interactive/neutral/text/rest', disabled: 'color/disabled/text' },
+      };
+      const barOff: string[] = [], labelOff: string[] = [];
+      for (const selection of ['unselected', 'selected']) for (const size of SIZES) for (const state of STATES5) {
+        const m = memberOf(selection, size, state);
+        const bar = m && findIn(m.root, 'indicator');
+        const fill = bar?.paints?.fills;
+        if (!bar || bar.bound?.height !== 'border-width/thick' || fill !== BAR[selection][state])
+          barOff.push(`${selection}/${size}/${state}: ${bar ? `height ${String(bar.bound?.height)}, fill ${String(fill)}` : 'no indicator'} (want border-width/thick, ${String(BAR[selection][state])})`);
+        const ink = m && findIn(m.root, 'label')?.paints?.fills;
+        if (ink !== LABEL[selection][state]) labelOff.push(`${selection}/${size}/${state}: ${String(ink)} (want ${LABEL[selection][state]})`);
+      }
+      ok(tabMembers.length === 30 && barOff.length === 0,
+        `#2416 Q178 tab bar: 30 members, each with one 2px bar (border-width/thick) — primary border at selected, color/border/secondary at unselected hover and pressed only, none at unselected rest, focus-visible and disabled (${tabMembers.length} members, ${barOff.length} off — ${barOff.slice(0, 3).join('; ') || 'none'})`);
+      ok(labelOff.length === 0,
+        `#2416 Q178.1 tab label: primary text ink when selected, neutral when unselected, stepping with hover and pressed, disabled text when disabled (${labelOff.length} off — ${labelOff.slice(0, 3).join('; ') || 'none'})`);
+
+      // (2) NO WASH AT HOVER (Q178.2 B). No node of any member paints an overlay role, and the tab body paints nothing.
+      const washes: string[] = [];
+      for (const m of tabMembers) walk(m.root, (n) => {
+        for (const v of Object.values(n.paints ?? {})) if (/overlay/.test(String(v))) washes.push(`${planComponentName(m)} ${n.name}: ${String(v)}`);
+      });
+      const bodyPaints = tabMembers.filter((m) => Object.keys(m.root.paints ?? {}).length > 0).map((m) => `${planComponentName(m)}: ${JSON.stringify(m.root.paints)}`);
+      ok(washes.length === 0 && bodyPaints.length === 0,
+        `#2416 Q178.2 no hover wash: no tab member paints an overlay and the tab body paints nothing (${washes.length} overlay paint(s), ${bodyPaints.length} painted bod(ies) — ${[...washes, ...bodyPaints].slice(0, 3).join('; ') || 'none'})`);
+
+      // (3) THE NEUTRAL HOVER BAR CLEARS 3:1 AGAINST THE PAGE in every brand and mode with a committed Figma export.
+      // The variable is read off the PLAN (the subject); the values come from the committed exports; the floor and
+      // the represented cells are literals. Four brands × four modes, stated, so a missing export fails here.
+      const BAR_BRANDS = ['aurora', 'nb', 'prism3', 'wendys'];
+      const BAR_MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
+      const hoverBar = findIn(memberOf('unselected', 'medium', 'hover')!.root, 'indicator')?.paints?.fills;
+      const toRgb = (c: { r: number; g: number; b: number }): RGB => ({ r: c.r * 255, g: c.g * 255, b: c.b * 255 });
+      const cells: { cell: string; ratio: number }[] = [];
+      const barMissing: string[] = [];
+      for (const brand of BAR_BRANDS) for (const mode of BAR_MODES) {
+        const f = resolve(HERE, `./out/figma/${brand}/color.${mode}.json`);
+        if (!existsSync(f)) { barMissing.push(`${brand}/${mode}: no export`); continue; }
+        const vars = new Map((JSON.parse(readFileSync(f, 'utf8')).variables as { name: string; value: { r: number; g: number; b: number; a?: number } }[]).map((v) => [v.name.replace(/^[^/]+\//, ''), v.value]));
+        const fg = hoverBar ? vars.get(hoverBar) : undefined, bg = vars.get('color/background/primary');
+        if (!fg || !bg || (fg.a ?? 1) !== 1) { barMissing.push(`${brand}/${mode}: ${String(hoverBar)} ${fg ? `alpha ${fg.a}` : 'missing'}`); continue; }
+        cells.push({ cell: `${brand}/${mode}`, ratio: contrast(toRgb(fg), toRgb(bg)) });
+      }
+      const lowest = cells.reduce((a, c) => (c.ratio < a.ratio ? c : a), { cell: 'none', ratio: Infinity });
+      ok(cells.length === 16 && barMissing.length === 0 && lowest.ratio >= 3,
+        `#2416 Q178.2 the neutral hover bar (${String(hoverBar)}) clears 3:1 against color/background/primary in all 16 brand × mode cells (${cells.length} measured, lowest ${lowest.ratio.toFixed(2)}:1 at ${lowest.cell}${barMissing.length ? `; ${barMissing.join('; ')}` : ''})`);
+
+      // (4) NO LABEL WIDTH CHANGE BETWEEN SELECTIONS (Q178.1: the weight is the same in both states). At every size
+      // and state, the selected and unselected members carry the same structure — every node's name, text style and
+      // bound geometry — so only paint differs, and selecting a tab never moves its neighbors.
+      const shape = (n: AnatomyPlan['root']): string => JSON.stringify([n.name, n.textStyle ?? null, n.bound ?? {}, n.children.map(shape)]);
+      const moved: string[] = [];
+      for (const size of SIZES) for (const state of STATES5) {
+        const a = memberOf('unselected', size, state), b = memberOf('selected', size, state);
+        if (!a || !b) { moved.push(`${size}/${state}: missing`); continue; }
+        if (shape(a.root) !== shape(b.root)) moved.push(`${size}/${state}: label ${String(findIn(a.root, 'label')?.textStyle)} vs ${String(findIn(b.root, 'label')?.textStyle)}`);
+      }
+      const LABEL_STYLE: Record<string, string> = { small: 'label/sm/emphasis', medium: 'label/md/emphasis', large: 'label/lg/emphasis' };
+      const styleOff = tabMembers.filter((m) => findIn(m.root, 'label')?.textStyle !== LABEL_STYLE[(m.size ?? m.coord.size) as string]).map((m) => `${planComponentName(m)}: ${String(findIn(m.root, 'label')?.textStyle)}`);
+      ok(moved.length === 0 && styleOff.length === 0,
+        `#2416 Q178.1 same weight in both states: selected and unselected tabs share every text style and bound dimension at each size and state, the label on label/{sm,md,lg}/emphasis (${moved.length + styleOff.length} off — ${[...moved, ...styleOff].slice(0, 3).join('; ') || 'none'})`);
+
+      // (5) THE LIST: six nested tabs, tab 1 selected, tabs 4–6 behind Figma-only toggles, off by default (Q177.2, Q179 A).
+      const listMembers = figmaAnatomySet(tabsDef, {});
+      const TABS = ['tab1', 'tab2', 'tab3', 'tab4', 'tab5', 'tab6'];
+      const listOff = listMembers.flatMap((m) => {
+        const size = (m.size ?? m.coord.size) as string;
+        const bad: string[] = [];
+        const kids = findIn(m.root, 'list')?.children.map((k) => k.name) ?? [];
+        if (JSON.stringify(kids) !== JSON.stringify(TABS)) bad.push(`list ${kids.join(',')}`);
+        TABS.forEach((t, i) => {
+          const n = findIn(m.root, t);
+          const wantProp = i < 3 ? undefined : `Tab ${i + 1}`;
+          const wantHidden = i >= 3;
+          const v = n?.nestVariant ?? {};
+          if (n?.nestTarget !== 'tab' || v.selection !== (i === 0 ? 'selected' : 'unselected') || v.size !== size || v.state !== 'rest')
+            bad.push(`${t} nests ${String(n?.nestTarget)} ${JSON.stringify(v)}`);
+          if (n?.visibleProp !== wantProp || (n?.visible === false) !== wantHidden) bad.push(`${t} visibleProp ${String(n?.visibleProp)}, visible ${String(n?.visible)}`);
+        });
+        const base = findIn(m.root, 'baseline');
+        if (base?.paints?.fills !== 'color/border/primary' || base?.bound?.height !== 'border-width/hairline') bad.push(`baseline ${JSON.stringify(base?.paints)} ${JSON.stringify(base?.bound)}`);
+        return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
+      });
+      ok(listMembers.length === 3 && listOff.length === 0,
+        `#2416 Q177.2 tabs: 3 members (size), each nesting six tabs following its size, tab 1 selected, tabs 1-3 shown, tabs 4-6 hidden behind "Tab 4"-"Tab 6", over a 1px color/border/primary baseline (${listMembers.length} members, ${listOff.length} off — ${listOff[0] ?? 'none'})`);
+      const listProps = planSetProperties(listMembers).filter((p) => p.type === 'BOOLEAN').map((p) => `${p.name}=${String(p.default)}`);
+      ok(JSON.stringify(listProps) === JSON.stringify(['Tab 4=false', 'Tab 5=false', 'Tab 6=false']),
+        `#2416 Q179 tabs: the set declares exactly three Figma-only toggles, Tab 4-6, all off by default (${listProps.join(', ')})`);
+      ok(!(tabsDef.props ?? []).some((p) => /^tab\d$/i.test(p.name) || /^showTab/i.test(p.name)),
+        '#2416 Q179 tabs: no code prop drives a tab toggle (Figma-only; in code the count is children)');
+    }
+
     // ---- #1424: the labelled ROW wraps a long label instead of overflowing ----
     // Prism 2's radio-button-row / checkbox-row let a long label WRAP to a second line with the control
     // top-anchored (the description text is `layoutSizingHorizontal: FILL`). The engine expresses that as
@@ -16443,7 +16563,7 @@ arm: {
     const KB_BRIEF_CATEGORY: Record<string, string> = {
       'badge.md': 'foundations', 'button.md': 'form', 'checkbox.md': 'form', 'icon.md': 'foundations', 'image.md': 'foundations',
       'inline-message.md': 'feedback', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations',
-      'switch.md': 'form', 'tag.md': 'foundations', 'text-field.md': 'form', 'textarea.md': 'form',
+      'switch.md': 'form', 'tabs.md': 'navigation', 'tag.md': 'foundations', 'text-field.md': 'form', 'textarea.md': 'form',
     };
     const defDir = resolve(HERE, './components');
     const defFiles = readdirSync(defDir).filter((f) => f.endsWith('.ts') && f !== 'index.ts').sort();
@@ -17047,6 +17167,8 @@ arm: {
       { def: switchRow, part: 'label', axes: { size: 2 } },
       // `tag` (2026-09-27) binds Button's three label rungs, so three sizes discriminate into three styles.
       { def: tag, part: 'label', axes: { size: 3 } },
+      // `tab` (#2416) binds the same three label rungs, at ONE weight across `selection` (owner Q178.1 A).
+      { def: tab, part: 'label', axes: { size: 3 } },
       // The two text nodes of `field-label`, the only bindings in the corpus that cross two axes.
       { def: fieldLabel, part: 'text', axes: { size: 3, weight: 2 } },
       { def: fieldLabel, part: 'indicator', axes: { size: 3, weight: 2 } },
@@ -26582,6 +26704,11 @@ arm: {
     // Since the spacing model (2026-09-29) the label and check sit in their own row (`labelCheck`) so their gap
     // can differ from the icon's; the leading icon now centers against that row, in `content`, which holds no
     // text directly. The reason is the same one.
+    // `tab` (#2416): the label row pairs the optional leading icon and count badge with the label. A tab's label
+    // is one line by contract — a horizontal tab list scrolls rather than wrapping (tab.ts codeOnly, text
+    // expansion) — and the tab's height is fixed, so the first line IS the block.
+    'tab.content':
+      "a tab's label is one line by contract (a horizontal tab list scrolls rather than wrapping) and the tab's height is fixed, so the leading icon and the count center against the only line.",
     'tag.labelCheck':
       "the tag's height is fixed at one line in Figma and its label is one line there, so the check mark (and, one row out, the leading icon) center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };

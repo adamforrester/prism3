@@ -317,6 +317,7 @@ const DEFAULT_FIRST: Record<string, string> = {
 const SIZE_BY_FOLLOW_ONLY: Record<string, string> = {
   'checkbox-group': 'its inter-row gap is 0px (`space.0`, the rows self-space — #1623 sign-off), so the size axis binds nothing of its own and reaches the nested field-label and checkbox rows by `follow`',
   'radio-group': 'mirrors checkbox-group — a 0px inter-row gap (`space.0`, #1623 sign-off), so the size axis reaches the nested field-label and radio rows by `follow` only',
+  'tabs': 'the tab list binds no size.* key of its own — its gap is 0px (`space.0`, each tab carries its own padding) and the baseline is a fixed 1px hairline — so the size axis reaches the six nested tabs by `follow` only (#2416)',
 };
 
 /**
@@ -335,6 +336,7 @@ const MUST_COVER = [
   'button', 'button-destructive', 'button-neutral',
   'icon-button', 'icon-button-destructive', 'icon-button-neutral',
   'field-label', 'text-field', 'textarea', 'select', 'tag',
+  'tab', 'tabs',
   'checkbox-control', 'checkbox-row', 'checkbox-group',
   'radio-control', 'radio-row', 'radio-group',
   'switch-control', 'switch-row',

@@ -40,7 +40,7 @@ Name the state, not the color: "Failed", not "Red". Use the same word for the sa
 - **Purpose:** Mark a status, count or presence with a small static badge that nobody clicks.
 - **Use when:** A short inline state or attribute (status), an actionable number over an icon button or tab (count), or presence or unread state over an avatar or nav item (dot).
 - **Avoid when:** The user can click, toggle or remove it (use a tag), the message is feedback about an action (use a toast or banner), or the color would be the only signal.
-- **Often used with:** `icon-button`, `button`
+- **Often used with:** `icon-button`, `button`, `tab`
 
 ## Props
 
@@ -89,7 +89,7 @@ None — not interactive.
 ## Composition
 
 - **Alternative to:** `tag`
-- **Planned:** `avatar`, `tabs`, `toast`, `banner`
+- **Planned:** `avatar`, `toast`, `banner`
 - **Replaces:**
   - a hand-drawn colored pill
   - a red circle with a number drawn over an icon
