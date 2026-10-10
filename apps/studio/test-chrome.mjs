@@ -12226,6 +12226,87 @@ for (const host of ['web', 'figma']) {
     } finally { await ctx.close(); }
   }
 }
+// #2437: THE CONSUME SKILL'S FLUSH HIT AREA, MEASURED IN A BROWSER (WCAG 2.5.8; owner Q154 A, Q174 B; the spacing
+// sentence is DRAFT for the owner). The engine emits no code layout, so this is the one place the rule can be measured:
+// the skill's own CSS sketch and its own stated spacing, both read out of `skills/prism3-consume/SKILL.md`, applied to
+// buttons on a blank page and hit-tested point by point. The floors (44 at medium and large, 24 at small) are typed here
+// from the owner's decision, never read from the skill. At each size and for labels from 1px to just under the floor:
+//   · two flush buttons at the skill's "always enough" gap (twice its per-side bound) and at the exact gap it states (the
+//     two reaches added), then a non-flush neighbor at one reach: every point of each flush button's floor-wide hit area
+//     hits that button, the neighbor's own box hits only the neighbor, and the hit area really reaches the floor;
+//   · CONTROL: the same pair two pixels closer than the two reaches must show the overlap, or the probe sees nothing.
+// The sketch is hit-tested exactly as shipped: the small arms use the classes of its own 24px rule, never a rewrite of it.
+// Mutations, each failing by name: the sketch back to a fixed 44px (no small rule) → `#2437 flush hit area small: two …
+// flush buttons at the skill's 12px bound … overlap`; the skill's 22px bound lowered to 16px → `… two 1px flush buttons at the skill's 16px
+// bound … keep their 44px hit areas apart — overlap …` (and the 6px pair: 16px is enough from a 12px label on); the
+// sketch's 44px raised to 48px → the same arm at the bound AND at the exact gap, the neighbor's own box included.
+{
+  const where = '#2437 flush hit area';
+  const skill = readFileSync(join(REPO, 'skills/prism3-consume/SKILL.md'), 'utf8');
+  const css = /```css\n(\.flush-button[\s\S]*?)```/.exec(skill)?.[1];
+  const para = (/\*\*Keep a flush button's hit area clear of its neighbors\.\*\*([\s\S]*?)\n\n/.exec(skill)?.[1] ?? '').replace(/\s+/g, ' ');
+  const bound = /(\d+)px is always enough at medium and large, and (\d+)px at small/.exec(para);
+  ok(!!css && !!bound, `${where}: the skill carries the CSS sketch and a per-side spacing bound for both sizes (${css ? 'css' : 'no css'}; ${bound ? `${bound[1]}px / ${bound[2]}px` : 'no bound'})`);
+  if (css && bound) {
+    const FLOOR = { medium: 44, small: 24 };
+    const STATED = { medium: Number(bound[1]), small: Number(bound[2]) };
+    const page = await browser.newPage({ viewport: { width: 900, height: 240 } });
+    try {
+      for (const size of ['medium', 'small']) {
+        const F = FLOOR[size];
+        // THE SKETCH AS SHIPPED (Lane D's review of #2453): no text substitution. A small button takes the classes of the
+        // sketch's own rule that sets the 24px hit size, as a consumer applies it; a sketch with no such rule leaves the
+        // small button on the medium extension, and the small arms below fail by name.
+        const smallRule = /^(\.flush-button[^{\n]*?)\s*\{[^}]*--flush-hit:\s*24px/m.exec(css)?.[1]?.trim();
+        const sizeClass = size === 'small' && smallRule ? smallRule.split('.').filter(Boolean).join(' ') : 'flush-button';
+        const sheet = css;
+        const reach = (w) => Math.max(0, (F - w) / 2);
+        const run = async (w1, w2, g1, g2) => {
+          await page.setContent(`<!doctype html><style>body{margin:0}.row{position:absolute;top:100px;left:120px;display:flex;align-items:center}
+            .flush-button{display:block;flex:none;height:${Math.min(16, F - 2)}px;padding:0;margin:0;border:0;background:none}
+            .other{display:block;flex:none;width:${F}px;height:${F}px;padding:0;margin:0;border:0;background:none}
+            .gap{flex:none}${sheet}</style>
+            <div class="row"><button class="${sizeClass}" id="a" style="width:${w1}px"></button><span class="gap" style="width:${g1}px"></span>
+            <button class="${sizeClass}" id="b" style="width:${w2}px"></button><span class="gap" style="width:${g2}px"></span><button class="other" id="c"></button></div>`);
+          return page.evaluate((F) => {
+            // WHOLE PIXELS FULLY INSIDE each area: the browser's hit test rounds a fractional point, so the half pixel two
+            // abutting areas share is no one's, and probing it would read touching areas as overlapping.
+            const hit = (x, y) => document.elementFromPoint(x, y)?.closest('button')?.id ?? null;
+            const bad = [];
+            let reached = true;
+            for (const id of ['a', 'b']) {
+              const r = document.getElementById(id).getBoundingClientRect();
+              const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+              const py = Math.floor(cy), px = Math.floor(cx);
+              for (let x = Math.ceil(cx - F / 2); x + 1 <= cx + F / 2; x++) { const h = hit(x, py); if (h !== id) bad.push(`${id}@x${Math.round(x - cx)} hit ${h}`); }
+              for (let y = Math.ceil(cy - F / 2); y + 1 <= cy + F / 2; y++) { const h = hit(px, y); if (h !== id) { reached = false; bad.push(`${id}@y${Math.round(y - cy)} hit ${h}`); } }
+            }
+            const c = document.getElementById('c').getBoundingClientRect();
+            for (let x = Math.ceil(c.left); x + 1 <= c.right; x++) { const h = hit(x, Math.floor(c.top + c.height / 2)); if (h !== 'c') bad.push(`c@x${Math.round(x - c.left)} hit ${h}`); }
+            return { bad, reached };
+          }, F);
+        };
+        const labels = [1, 6, 12, Math.round(F / 2), F - 2];
+        for (const w of labels) {
+          const atBound = await run(w, w, 2 * STATED[size], STATED[size]);
+          ok(atBound.bad.length === 0,
+            `${where} ${size}: two ${w}px flush buttons at the skill's ${STATED[size]}px bound (${2 * STATED[size]}px apart, a neighbor ${STATED[size]}px on) keep their ${F}px hit areas apart${atBound.bad.length ? ` — overlap: ${atBound.bad.slice(0, 3).join(', ')}` : ''}`);
+          const exact = Math.ceil(2 * reach(w));
+          const atExact = await run(w, w, exact, Math.ceil(reach(w)));
+          ok(atExact.bad.length === 0 && atExact.reached,
+            `${where} ${size}: two ${w}px flush buttons at the exact gap the skill states (the two reaches, ${exact}px) keep their hit areas apart, and each reaches ${F}px${atExact.bad.length ? ` — ${atExact.bad.slice(0, 3).join(', ')}` : ''}`);
+        }
+        // CONTROL: two pixels closer than the two reaches, the areas overlap, so the probe must see it.
+        const w = 10, tooClose = Math.max(0, Math.ceil(2 * reach(w)) - 2);
+        const ctl = await run(w, w, tooClose, F);
+        ok(ctl.bad.some((b) => /^a@x\d+ hit b$|^b@x-\d+ hit a$/.test(b)),
+          `${where} ${size}: control: two ${w}px flush buttons ${tooClose}px apart, closer than their reaches, DO overlap, so the probe sees an overlap (${ctl.bad.slice(0, 2).join(', ') || 'none seen'})`);
+      }
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await page.close(); }
+  }
+}
 // =============================================================================================
 // 38. #1975 and #2105: the two panes at the widths between the tiers, and the narrow plugin's bar over its error line
 // =============================================================================================

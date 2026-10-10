@@ -70,13 +70,21 @@ centered on the label. Extend it the same way to at least 24×24px at small. Fig
 hit areas, so the design file shows only the label-width box.
 
 ```css
-.flush-button { position: relative; }
+.flush-button { position: relative; --flush-hit: 44px; }
+.flush-button.small { --flush-hit: 24px; }
 .flush-button::before {
   content: "";
   position: absolute;
-  inset: min(0px, (100% - 44px) / 2); /* negative only on an axis under 44px; 24px at small */
+  inset: min(0px, (100% - var(--flush-hit)) / 2); /* negative only on an axis under the hit size */
 }
 ```
+
+**Keep a flush button's hit area clear of its neighbors.** The extension reaches past the label by
+half of what the label lacks, on each side: (44px − label width) / 2 at medium and large, and
+(24px − label width) / 2 at small. Leave at least that much between the label and the next
+control, and between two flush buttons the two reaches added together, so a tap never lands on
+the wrong control (WCAG 2.5.8). Beside the label, 22px is always enough at medium and large, and
+12px at small.
 
 **3. Let modes resolve — don't hardcode a mode's value.**
 A color role resolves differently per mode (`light` / `dark` / `hc-light` / `hc-dark`),
