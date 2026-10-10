@@ -113,7 +113,7 @@ const syncErrorBar = (): void => {
   if (restoreFailure) globalErr.show(RESTORE_BAR[restoreFailure.kind](restoreFailure.reason));
   // Owner Q189 A (#2146): a brand that arrives starting above 0px gets a one-click fix beside the line.
   else if (lastError) globalErr.show(`That change didn't apply: ${lastError} — you are seeing the last theme that resolved.`,
-    firstBreakpointFix());
+    firstBreakpointFix(lastError));
   else globalErr.show(null);
   syncChromeHeight();   // the bar lives in the chrome; showing it moves everything sticky below
 };

@@ -3267,6 +3267,46 @@ for (const brand of BRANDS) {
   const { layout: lb, ...restBefore } = bpBefore ?? {};
   ok(fixed && JSON.stringify(la?.breakpoints) === '[0,320,768]' && JSON.stringify(restAfter) === JSON.stringify(restBefore),
     `${brand}: Q189 A: one click clears the bar and stores [0, 320, 768], the rest of the brand unchanged — bar ${fixed ? 'cleared' : 'still shown'}, breakpoints ${JSON.stringify(la?.breakpoints)}, rest ${JSON.stringify(restAfter) === JSON.stringify(restBefore) ? 'identical' : 'changed'}`);
+  // OWNER Q207 A (#2482 review): the click lands focus on the Layout page, which it opened (it was made on Type), on the
+  // first field that can take it: the row after the new 0px row (its own field is disabled, for its contrast exemption),
+  // which is the brand's old first breakpoint, 320.
+  const landed = await page.evaluate(() => ({ place: document.querySelector('[data-p3="frame"]')?.dataset.place ?? null,
+    focus: document.activeElement?.id ?? null, value: document.activeElement?.value ?? null, zero: document.getElementById('p3-bp-0')?.value ?? null }));
+  ok(landed.place === 'layout' && landed.focus === 'p3-bp-1' && landed.value === '320' && landed.zero === '0',
+    `${brand}: Q207 A: after the click, focus is on the field after the new 0px row (320), on the Layout page the click opened — ${JSON.stringify(landed)}`);
+  const barShown = () => page.waitForFunction(() => { const e = document.querySelector('[data-p3="error-bar"]'); return !!e && getComputedStyle(e).display !== 'none'; }, null, { timeout: 5000 }).catch(() => {});
+  const barSays = (re) => page.waitForFunction((src) => new RegExp(src).test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), re.source, { timeout: 5000 }).catch(() => {});
+  // #2482 review: the action sits beside the first-breakpoint error only (#2139), never beside another error, even
+  // with the list starting above 0. A columns count the engine refuses is the error the engine reports first.
+  await page.evaluate(() => window.__prism3TestEdit('layout.breakpoints', [320, 768]));
+  await barShown();
+  await page.evaluate(() => window.__prism3TestEdit('layout.columns', 99));
+  await barSays(/layout\.columns/);
+  const colsErr = await errState();
+  hooks.absent(ok, { seen: colsErr.shown && /layout\.columns/.test(colsErr.text), state: 'the error bar shown for the columns refusal, the list starting at 320px' },
+    !(await fixState()).shown, `${brand}: #2482: beside another error (layout.columns), with the list starting above 0, no action is offered`);
+  await page.evaluate(() => window.__prism3TestEdit('layout.columns', undefined));
+  // OWNER Q206 A: seven breakpoints, the most a brand can have, starting above 0: no action, the error line stays,
+  // and Remove on the Layout page is the way out. After it, at six, the action is offered and fixes the brand.
+  await page.evaluate(() => window.__prism3TestEdit('layout.breakpoints', [320, 480, 768, 1024, 1440, 1920, 2560]));
+  await barSays(/starts at 320px/);
+  const seven = await errState();
+  const rowsAt = () => page.evaluate(() => [...document.querySelectorAll('[data-p3="bp-input"]')].map((e) => e.value));
+  hooks.absent(ok, { seen: seven.shown && /The first breakpoint must be 0px\. This brand starts at 320px\./.test(seven.text), state: 'the error bar shown for seven breakpoints starting at 320px' },
+    !(await fixState()).shown, `${brand}: Q206 A: seven breakpoints starting above 0 offer no action, and the error line stays`);
+  const rows7 = await rowsAt();
+  ok(JSON.stringify(rows7) === JSON.stringify(['320', '480', '768', '1024', '1440', '1920', '2560']), `${brand}: Q206 A: the Layout page draws the seven as they are — ${JSON.stringify(rows7)}`);
+  await hooks.click(page.locator('[data-p3="bp-remove"]').nth(1));
+  await page.waitForFunction(() => document.querySelectorAll('[data-p3="bp-input"]').length === 6, null, { timeout: 5000 }).catch(() => {});
+  const rows6 = await rowsAt();
+  const offered6 = await fixState();
+  ok(JSON.stringify(rows6) === JSON.stringify(['320', '480', '1024', '1440', '1920', '2560']) && offered6.shown,
+    `${brand}: Q206 A: Remove still works at seven (768 removed), and at six the action is offered — ${JSON.stringify(rows6)}, action ${offered6.shown ? 'shown' : 'not shown'}`);
+  if (offered6.shown) await hooks.click(page.locator('[data-p3="error-bar"] [data-p3="error-fix"]'));
+  const fixed7 = await page.waitForFunction(() => { const e = document.querySelector('[data-p3="error-bar"]'); return !!e && getComputedStyle(e).display === 'none'; }, null, { timeout: 5000 }).then(() => true, () => false);
+  const rowsFixed = await rowsAt();
+  ok(fixed7 && JSON.stringify(rowsFixed) === JSON.stringify(['0', '320', '480', '1024', '1440', '1920', '2560']),
+    `${brand}: Q206 A: then one click makes it seven starting at 0, and the bar clears — bar ${fixed7 ? 'cleared' : 'still shown'}, ${JSON.stringify(rowsFixed)}`);
   // Put this context's own brand back, so the sections below run on it.
   await page.evaluate((raw) => localStorage.setItem('prism3:brandInput', raw), stored0);
   await page.goto(plainUrl);

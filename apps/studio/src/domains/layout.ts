@@ -28,11 +28,11 @@
  * redrawn whole, keeping focus on the element that had it. It never names a legacy repaint tier and never imports
  * `main.ts` (`test-shell-imports.ts`).
  */
-import { brandState, currentMode, lastError, rebuild, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
+import { brandState, currentMode, lastError, page, rebuild, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import { isDerived } from '../state/verdict';
 import {
   COLUMN_CHOICES, MAX_BREAKPOINTS, MIN_BREAKPOINTS, addBreakpoint, addZeroBreakpoint, autoGrid, breakpointsOf, editBreakpoint, overrideOf,
-  namesFor, needsZeroBreakpoint, removeBreakpoint, setColumnOverride, setColumns, setContainer, setGapOverride, type BreakpointResult, type ContainerKey, type GapField,
+  breakpointRefusal, namesFor, needsZeroBreakpoint, removeBreakpoint, setColumnOverride, setColumns, setContainer, setGapOverride, type BreakpointResult, type ContainerKey, type GapField,
 } from '../state/layout-input';
 import { DOMAINS, LAYOUT_LABELS, pageOfTab, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
@@ -73,11 +73,22 @@ export const LAYOUT_DRAFT = {
   addZero: 'Add a 0px breakpoint',
 } as const;
 
-/** The error line's one-click fix (owner Q189 A, #2146), for `main.ts` to hand the error strip: offered only while the
- *  brand's breakpoint list starts above 0, which only an outside write can make. One click inserts 0px first. */
-export const firstBreakpointFix = (): StripAction | null => (needsZeroBreakpoint()
-  ? { label: LAYOUT_DRAFT.addZero, run: () => { addZeroBreakpoint(); rebuild(); } }
-  : null);
+/** The error line's one-click fix (owner Q189 A, #2146), for `main.ts` to hand the error strip with the line's error:
+ *  offered only while the brand's breakpoint list starts above 0, which only an outside write can make, and only
+ *  beside that error, the engine's own refusal of the list (#2139), never beside another (#2482 review). One click
+ *  inserts 0px first. Focus then lands on the Layout page, which the click opens when another page is in view, on the
+ *  first field that can take it: the row after the new 0px row, which is the brand's old first breakpoint (owner Q207
+ *  A, as settled on #2482: the 0px row's field is disabled, and stays so for its contrast exemption). */
+export const firstBreakpointFix = (error: string | null): StripAction | null =>
+  (error !== null && needsZeroBreakpoint() && error === breakpointRefusal()
+    ? { label: LAYOUT_DRAFT.addZero, run: () => {
+      if (addZeroBreakpoint().refused) return;
+      rebuild();
+      const layout = pageOfTab('layout');
+      if (page !== layout) setPage(layout);
+      document.getElementById('p3-bp-1')?.focus();
+    } }
+    : null);
 
 /** Something drawn that search can hide and a refusal can mark. */
 type Item = { el: HTMLElement; said: string; key: string; block?: LeverBlock };
