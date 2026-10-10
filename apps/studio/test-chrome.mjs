@@ -2258,8 +2258,22 @@ const rowOf = (page, op) => page.evaluate((k) => {
   const ico = n?.querySelector('.p3-ico');
   return n ? { expanded: n.getAttribute('aria-expanded'), chev: ico ? getComputedStyle(ico).transform : null } : null;
 }, op);
-/** Why a case stopped: the error's first line, and the locator it was waiting for. */
-const stopped = (e) => { const lines = String(e?.message ?? e).replace(/\u001b\[[0-9;]*m/g, '').split('\n'); return [lines[0], lines.find((l) => /waiting for/.test(l))?.trim()].filter(Boolean).join(' · '); };
+/** Why a case stopped: the error's first line, the locator it was waiting for, and the reason Playwright's call log
+ *  gives for not acting on it (covered, moving, hidden, disabled, detached, #2460): the log's last such line, else
+ *  the last step it reached. A timeout's first line alone ("locator.click: Timeout 10000ms exceeded.") says none of
+ *  that, and a flake read from it cannot be told apart from a stuck control. Each part is capped, since an
+ *  intercepting element's line carries its markup. */
+const ACTIONABILITY = /intercepts pointer events|element is not (visible|stable|enabled|editable|attached)|not attached to the DOM|detached from the DOM|receive pointer|outside of the viewport/;
+const stopped = (e) => {
+  const lines = String(e?.message ?? e).replace(/\u001b\[[0-9;]*m/g, '').split('\n').map((l) => l.trim()).filter(Boolean);
+  const at = lines.findIndex((l) => /^Call log:?$/.test(l));
+  const log = at < 0 ? [] : lines.slice(at + 1).map((l) => l.replace(/^[-\s]+/, ''));
+  const waiting = lines.slice(1).find((l) => /waiting for/.test(l))?.replace(/^[-\s]+/, '');
+  const reason = [...log].reverse().find((l) => ACTIONABILITY.test(l))
+    ?? [...log].reverse().find((l) => !/^(\d+ × )?(retrying|waiting \d+ms|waiting for locator)/.test(l));
+  const cap = (s) => (s.length > 200 ? `${s.slice(0, 199)}…` : s);
+  return [lines[0], waiting, reason === waiting ? null : reason].filter(Boolean).map(cap).join(' · ');
+};
 const settle = (page) => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
 const drawerState = (page) => page.evaluate(() => {
   const vis = (n) => { if (!n) return false; const r = n.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false; for (let x = n; x && x.nodeType === 1; x = x.parentElement) if (getComputedStyle(x).display === 'none') return false; return true; };
@@ -3480,7 +3494,7 @@ for (const host of ['web', 'figma']) {
   ok(true, 'Brand: Continue to Color › Palettes opens Color › Palettes');
   ok(errors.length === 0, `Brand: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S3 Brand: the case stopped at a step that threw, and the rest of it was skipped — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S3 Brand: the case stopped at a step that threw, and the rest of it was skipped — ${stopped(e)}`);
   } finally {
     await ctx.close();
   }
@@ -3534,7 +3548,7 @@ for (const { w, h } of WIDTHS) {
     }
     ok(errors.length === 0, `mode control ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S3 mode control ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S3 mode control ${w}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -4086,7 +4100,7 @@ for (const host of ['web', 'figma']) {
         return { ok: false, why: prev === null ? 'it is not in the page' : `it was still moving after ${frames} frames (last box ${prev})` };
       }, [PAIR_SEL, PAIR_SETTLE_MS]),
       new Promise((r) => setTimeout(() => r({ ok: false, dead: true }), PAIR_SETTLE_MS + 1000)),
-    ]).catch((e) => ({ ok: false, why: String(e?.message ?? e).split('\n')[0] }));
+    ]).catch((e) => ({ ok: false, why: stopped(e) }));
     // A page that rendered no frame within the bound is DEAD (#2231 review): any later evaluate on it waits
     // with no timeout. Close its context, bounded, and end the arm. Its own ctx.close() below then returns at once.
     if (settled.dead) {
@@ -4104,7 +4118,7 @@ for (const host of ['web', 'figma']) {
         await Promise.race([ctx.close().catch(() => {}), new Promise((r) => setTimeout(r, 10000))]);
         return false;
       }
-      ok(false, `#2167 askPair: the click on Pair icons did not land — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `#2167 askPair: the click on Pair icons did not land — ${stopped(e)}`);
       return false;
     }
     await page.waitForFunction(() => !!document.querySelector('[data-p3="icons-pair-confirm"]'), null, { timeout: 5000 }).catch(() => {});
@@ -4566,7 +4580,7 @@ for (const theme of ['light', 'dark']) {
     }
     ok(errors.length === 0, `#2227: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `#2227: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `#2227: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // #2250 (owner decisions Q67 B, Q69 A, Q70 A): the studio's floor sentences, on the real page. THE ORACLE is literal.
@@ -4624,7 +4638,7 @@ for (const theme of ['light', 'dark']) {
     ok(!(await engineOnScreen()), '#2250: the engine\'s floor sentence is nowhere on the page after the refused paste');
     ok(errors.length === 0, `#2250: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `#2250: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `#2250: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // The step picker, mounted (V9): it opens under its row on the current step, a pick writes the step and keeps
@@ -4801,7 +4815,7 @@ for (const host of ['web', 'figma']) {
         ok(unlisted.length === 0, `specimen ground: interactive ${where}: every section ground drawn is a listed specimen${unlisted.length ? ` — unlisted ${unlisted.join(', ')}` : ''}`);
       }
     } catch (e) {
-      ok(false, `S5.2 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `S5.2 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -4852,7 +4866,7 @@ for (const host of ['web', 'figma']) {
     ok((await previewView(page)).view === view0, `V1: ${host} following a jump link never moves the preview's home (${view0})`);
     ok(errors.length === 0, `${host} Interactive levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S5.2 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S5.2 represented ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // The Text row (Q32), on Interactive and on Brand's Style guide, against the emission: per column and state the
@@ -4898,7 +4912,7 @@ for (const host of ['web', 'figma']) {
     }
     ok(errors.length === 0, `${host} text buttons: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S5.2 text buttons ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S5.2 text buttons ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Edits: a row edits the previewed mode (Q34): Light writes the column's own field, Dark writes modeAnchors and
@@ -4979,7 +4993,7 @@ for (const host of ['web', 'figma']) {
     ok((await previewView(page)).view === view0, `V1 edit: Interactive's edits never move the preview's home (${view0})`);
     ok(errors.length === 0, `interactive edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S5.2 Interactive edits: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S5.2 Interactive edits: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Owner copy (Q51, Q53, Q58, Q57, APPROVED, literal): the lever sections are the preview's, in its order; the
@@ -5112,7 +5126,7 @@ const chooseAnyMode = async (page, mode) => {
     ok(!back.line && back.sel === false, `Q59: back in Light, the derived line is gone and the levers are editable (${JSON.stringify(back)})`);
     ok(errors.length === 0, `interactive owner copy: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S5.2 owner copy: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S5.2 owner copy: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // =============================================================================================
@@ -5291,7 +5305,7 @@ const ratioHex = (a, b) => { const [x, y] = [lumHex(a), lumHex(b)].sort((p, q) =
     }
     ok(errors.length === 0, `S5.3 levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S5.3 levers: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S5.3 levers: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // QA-I2 on every page lightness: Page swept down prism3's neutral ladder in Light, through the mid-grays where neither
@@ -5341,7 +5355,7 @@ const ratioHex = (a, b) => { const [x, y] = [lumHex(a), lumHex(b)].sort((p, q) =
     console.log(`  QA-I2 sweep: ${points} Page steps, ${grounds.size} grounds, lowest mark ${lowest.toFixed(2)}:1 (${lowestAt}), ${fallbacks} step(s) with a mark on the badge-ink fallback`);
     ok(errors.length === 0, `QA-I2 sweep: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `QA-I2 sweep: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `QA-I2 sweep: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // QA-I1 and QA-I9, as drawn: both hosts, both chrome themes, at 1280 and 800. No treatment label's foot line (its
@@ -5399,7 +5413,7 @@ for (const w of [1280, 800]) {
         }
         ok(errors.length === 0, `S5.3 ${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `S5.3 drawn ${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `S5.3 drawn ${where}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -5440,7 +5454,7 @@ for (const { w, h } of WIDTHS) {
         }
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `S5.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `S5.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -5512,7 +5526,7 @@ for (const host of ['web', 'figma']) {
           `Q24 section containers: type ${where}: every section container is the levers panel's gray ${LEVERS_GRAY} (${g.sections.length} read)${offGray.length ? ` — ${offGray.join(', ')}` : ''}`);
       }
     } catch (e) {
-      ok(false, `S6.2 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `S6.2 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -5612,7 +5626,7 @@ for (const host of ['web', 'figma']) {
     ok(plainWords.length === 0, `Q70 plain words: ${host}: no "rung", "leading", "tracking", "cut", "baseline", "weight role", "category", "column", "band" or "muted" in the Type page's visible copy, levers and preview${plainWords.length ? ` — found ${plainWords.slice(0, 4).map((x) => `"${x}"`).join(', ')}` : ''}`);
     ok(errors.length === 0, `${host} Type levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S6.2 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S6.2 represented ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Edits (Q22, Q62 option A): Light writes the brand value; previewing Dark, the same select writes
@@ -5666,7 +5680,7 @@ for (const host of ['web', 'figma']) {
     ok((await previewView(page)).view === view0, `V1 edit: Type's edits never move the preview's home (${view0})`);
     ok(errors.length === 0, `type edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S6.2 Type edits: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S6.2 Type edits: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Q59, Q74: in each derived mode every control on Type is disabled, the lent region included, under the derived
@@ -5723,7 +5737,7 @@ for (const host of ['web', 'figma']) {
     ok(!back.line && back.sel === false && back.scale === false && back.weight === false, `Q59: back in Light, Type's derived line is gone and its controls, the advanced ones included, are editable (${JSON.stringify(back)})`);
     ok(errors.length === 0, `type derived: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S6.2 derived modes: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S6.2 derived modes: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // The chrome on Type: both hosts, both themes, 1280, 640 and 380 (the Settings pane, then the Preview pane when
@@ -5746,7 +5760,7 @@ for (const { w, h } of WIDTHS) {
         }
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `S6.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `S6.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -5835,7 +5849,7 @@ for (const host of ['web', 'figma']) {
     ok(r.names.size?.[0]?.[0] === 'p3-fill-label' && /^type\.title\./.test(r.names.size?.[1]?.[1] ?? ''), `QA-B2: ${host}: a heading size reads its label first and its type.title.* token under it (${JSON.stringify(r.names.size)})`);
     ok(errors.length === 0, `${host} Type S6.3 levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S6.3 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S6.3 represented ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // The previewed mode (Q22, Q62): previewing Dark, a weight, a heading's desktop size and a line height swap write
@@ -6088,7 +6102,7 @@ for (const host of ['web', 'figma']) {
     ok(JSON.stringify(pEnd) === JSON.stringify(pZero), `type: every edit after the nudge undone, the persisted brand is the one it was${JSON.stringify(pEnd) === JSON.stringify(pZero) ? '' : ` — typography ${JSON.stringify(pEnd?.typography)}, modeLevers ${JSON.stringify(pEnd?.modeLevers)}; was ${JSON.stringify(pZero?.typography)}`}`);
     ok(errors.length === 0, `type S6.3 edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S6.3 Type edits: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S6.3 Type edits: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // #2194 (owner, N3 A, 2026-10-06): the clash message and Release pinned sizes show only when a pinned size is what
@@ -6125,7 +6139,7 @@ for (const host of ['web', 'figma']) {
         ok(!s.clash && !s.release, `#2194: ${host}: Aurora at Compact, nothing pinned, shows no clash message and no Release pinned sizes (clash ${s.clash}, release ${s.release})`);
         ok(errors.length === 0, `#2194: ${host}: Aurora's Type scale: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `#2194 Aurora ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `#2194 Aurora ${host}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
     {
@@ -6202,7 +6216,7 @@ for (const host of ['web', 'figma']) {
     });
     ok(onType === 1 && onLayout.length === 0, `typography.responsive is drawn on Type only${onType !== 1 ? ` — drawn ${onType} time(s) on Type` : ''}${onLayout.length ? ` — also on Layout (${onLayout.join(', ')})` : ''} (${host})`);
   } catch (e) {
-    ok(false, `S6.3 responsive home ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S6.3 responsive home ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -6367,7 +6381,7 @@ const figmaStatusSeen = new Map();   // `${brand} / ${mode} / ${text}` -> { draw
       }
       ok(errors.length === 0, `#2103 (figma) ${brand}: no page errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `#2103 (figma) ${brand}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `#2103 (figma) ${brand}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
   for (const lab of FIGMA_FONT_STATUS) {
@@ -6608,7 +6622,7 @@ console.log(`\nQA-B9, B17, I11 — the eased reveal, the jump links, the remembe
     ok(tf.tops.every((t) => t === 0), `QA-B9: opening a value picker on Type does not move the preview (scrollTops ${JSON.stringify([...new Set(tf.tops)])})`);
     ok(errors.length === 0, `QA-B9/B17/I11: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `QA-B9/B17/I11: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `QA-B9/B17/I11: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -6807,7 +6821,7 @@ for (const [host, theme] of [['web', 'light'], ['web', 'dark'], ['figma', 'light
       `QA-R1: ${where}: Add custom mode is a dashed add row, the list's full width, unfilled — read ${JSON.stringify(add)}`);
     ok(errors.length === 0, `shared styling: ${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `shared styling ${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `shared styling ${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // QA-R1's behavior, on the studio: the add row still adds a mode and moves focus to its name.
@@ -6823,7 +6837,7 @@ for (const [host, theme] of [['web', 'light'], ['web', 'dark'], ['figma', 'light
 
     ok(errors.length === 0, `QA-R1: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `QA-R1: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `QA-R1: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -6912,7 +6926,7 @@ for (const host of ['web', 'figma']) {
           `Q24 section containers: depth ${where}: every section container is the levers panel's gray ${LEVERS_GRAY} (${g.sections.length} read)${offGray.length ? ` — ${offGray.join(', ')}` : ''}`);
       }
     } catch (e) {
-      ok(false, `S9.2 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `S9.2 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -6988,7 +7002,7 @@ for (const host of ['web', 'figma']) {
     ok(place === 'layout', `${host}: Continue to Layout opens the Layout tab (on ${place})`);
     ok(errors.length === 0, `${host} Depth & motion: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S9.2 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S9.2 represented ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -7059,7 +7073,7 @@ for (const host of ['web', 'figma']) {
       `Q59: previewing HC light, every control on Depth & motion is disabled under the derived line, and the preview is drawn — ${d.n} controls, enabled ${JSON.stringify(d.enabled)}, line ${d.line}, ${d.preview} preview sections`);
     ok(errors.length === 0, `Q22/Q59 Depth & motion: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S9.2 Q22/Q59: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S9.2 Q22/Q59: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -7097,7 +7111,7 @@ for (const reduced of [false, true]) {
     ok(JSON.stringify(await persisted(page)) === brand0, `#574: ${tag}, Play and Slow motion write nothing to the brand`);
     ok(errors.length === 0, `D9 ${tag}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S9.2 D9 reduced=${reduced}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S9.2 D9 reduced=${reduced}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // The chrome probe on Depth & motion: both hosts, both themes, 1280, 640 and 380, Shadow tint and a picker open.
@@ -7115,7 +7129,7 @@ for (const host of ['web', 'figma']) {
         check(m, where, columnOf(host, w), PLACE_FLOOR);
         if (SHOTS) await page.screenshot({ path: join(SHOTS, `s92-${host}-${theme}-${w}-depth.png`) });
       } catch (e) {
-        ok(false, `S9.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `S9.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -7204,7 +7218,7 @@ for (const host of ['web', 'figma']) {
         ok(inks.length >= 5 && low.length === 0, `D14: layout ${where}: each range's name clears ${TEXT_MIN}:1 on its tint (${inks.map((x) => `${x.bp} ${x.r}`).join(', ')})${low.length ? ` — below: ${low.map((x) => x.bp).join(', ')}` : ''}`);
       }
     } catch (e) {
-      ok(false, `S10 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `S10 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -7241,7 +7255,7 @@ for (const host of ['web', 'figma']) {
       `T8: ${host}: Continue to Components lands on the Components tab's levers — landed ${JSON.stringify(landed)}`);
     ok(errors.length === 0, `Layout ${host}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S10 Layout ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S10 Layout ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // F1 A (owner, 2026-10-05), replacing #2120's dashed edge: the fixed first breakpoint field draws Prism3's own disabled
@@ -7272,7 +7286,7 @@ for (const host of ['web', 'figma']) {
       if (SHOTS) await page.locator('[data-p3="levers-pane"] [data-p3="bp-list"]').screenshot({ path: join(SHOTS, `f1-${host === 'web' ? 'web' : 'plugin'}-${theme}.png`) });
       ok(errors.length === 0, `F1 A Layout ${host} ${theme}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `F1 A Layout ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `F1 A Layout ${host} ${theme}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -7315,7 +7329,7 @@ for (const host of ['web', 'figma']) {
       }
       ok(errors.length === 0, `disabled field: ${host} ${theme}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `disabled field ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `disabled field ${host} ${theme}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -7399,7 +7413,7 @@ for (const host of ['web', 'figma']) {
     ok(!!L && !('gutterOverrides' in L), `Layout: Return to Auto on the last gutter deletes gutterOverrides, never {} — ${JSON.stringify(L)}`);
     ok(errors.length === 0, `Layout edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S10 Layout edits: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S10 Layout edits: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // #2047: a column count off the offered list (any whole number 4–24 is legal) is shown as it is, base and per breakpoint.
@@ -7425,7 +7439,7 @@ for (const host of ['web', 'figma']) {
       `#2047: a brand's ${want} grid columns (off the offered list) read ${want} on the base and ${wantMd} on md, as the input says, and the picker lists ${want} as current — ${JSON.stringify(cols)}, ${JSON.stringify(listed)}`);
     ok(errors.length === 0, `#2047: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `#2047: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `#2047: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Q59: previewing a derived mode, every control on Layout is disabled under the derived line; the preview still draws.
@@ -7456,7 +7470,7 @@ for (const host of ['web', 'figma']) {
     ok(!back.line && back.add === false && back.pick === false, `Q59: back in Light, Layout's derived line is gone and its controls are editable (${JSON.stringify(back)})`);
     ok(errors.length === 0, `Layout derived: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S10 derived modes: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S10 derived modes: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -7567,7 +7581,7 @@ for (const host of ['web', 'figma']) {
         ok(sw.length >= 14 && off.length === 0, `D2: shape ${where}: every radius sample is filled with the brand's foreground.secondary (${fill}) and edged with border.primary (${edge}) for the mode (${sw.length} read)${off.length ? ` — ${JSON.stringify(off.slice(0, 2))}` : ''}`);
       }
     } catch (e) {
-      ok(false, `S7 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `S7 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -7648,7 +7662,7 @@ for (const host of ['web', 'figma']) {
     ok(!r.lsec.concat(r.psec).some(([t]) => /corner/i.test(t ?? '')), `E2: ${host}: no Shape heading says "corner" (${JSON.stringify(r.lsec.concat(r.psec).map(([t]) => t))})`);
     ok(errors.length === 0, `${host} Shape levers: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S7 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S7 represented ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Edits (Q22): Light writes the brand value, the default included; previewing Dark, Density and Radius softness write
@@ -7737,7 +7751,7 @@ for (const host of ['web', 'figma']) {
     ok((await previewView(page)).view === view0, `V1 edit: Shape's edits never move the preview's home (${view0})`);
     ok(errors.length === 0, `shape edits: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S7 Shape edits: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S7 Shape edits: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Q59: in each derived mode every control on Shape is disabled, the advanced one included, under the derived line, and
@@ -7774,7 +7788,7 @@ for (const host of ['web', 'figma']) {
     }
     ok(errors.length === 0, `shape derived: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S7 derived modes: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S7 derived modes: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // The routes by tab, on both hosts: Continue lands on Depth & motion's page; See Components lands on the Components tab,
@@ -7801,7 +7815,7 @@ for (const host of ['web', 'figma']) {
     ok(s.place === 'components' && s.buttons, `${host}: See Components opens the Components tab, where the Button options are (${JSON.stringify(s)})`);
     ok(errors.length === 0, `${host} Shape routes: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S7 routes ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S7 routes ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // QA-B9: an edit on Shape eases the preview to the section its lever section pairs with (Q23): Density to Density,
@@ -7830,7 +7844,7 @@ for (const host of ['web', 'figma']) {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     ok(errors.length === 0, `shape reveal: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S7 reveal: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S7 reveal: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // The chrome on Shape: both hosts, both themes, 1280, 640 and 380 (the Settings pane, then the Preview pane when
@@ -7857,7 +7871,7 @@ for (const { w, h } of WIDTHS) {
         }
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `S7 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `S7 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -7925,7 +7939,7 @@ for (const host of ['web', 'figma']) {
         ok(b.length === 9 && off.length === 0, `G7: components ${where}: every button is filled with the brand's interactive.primary.fill.rest (${fill}) and labeled in interactive.primary.on-fill (${ink}) for the mode (${b.length} read)${off.length ? ` — ${JSON.stringify(off.slice(0, 2))}` : ''}`);
       }
     } catch (e) {
-      ok(false, `S8.2 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `S8.2 specimen grounds ${host} ${theme}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -8014,7 +8028,7 @@ for (const host of ['web', 'figma']) {
     ok(words.length === 0, `D16: ${host}: no "face", "band", "rung", "muted" or "column" in Components' visible copy${words.length ? ` — found ${words.slice(0, 4).map((x) => `"${x}"`).join(', ')}` : ''}`);
     ok(errors.length === 0, `${host} Components: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S8.2 represented ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S8.2 represented ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // Q59: in each derived mode every control on Components is disabled but the info toggletips and the way to Shape (it only
@@ -8061,7 +8075,7 @@ for (const host of ['web', 'figma']) {
     }
     ok(errors.length === 0, `components derived: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S8.2 derived modes: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S8.2 derived modes: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // QA-B9: an edit on Components eases the preview to the Button section, from the preview's far end. Brand-wide (Q54):
@@ -8090,7 +8104,7 @@ for (const host of ['web', 'figma']) {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     ok(errors.length === 0, `components reveal: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S8.2 reveal: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S8.2 reveal: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // C3 A (#2086): the build stamp moved from the foot of the Pages menu to the foot of the Inspect menu, in small text, on
@@ -8127,7 +8141,7 @@ for (const host of ['web', 'figma']) {
     await page.keyboard.press('Escape');
     ok(errors.length === 0, `C3 ${host}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S8.2 C3 ${host}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S8.2 C3 ${host}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // C4 A: in the plugin, the build bar ("Build ‹Name›" and its two hints) stays in view at the foot of the preview at any
@@ -8184,7 +8198,7 @@ for (const { w, h } of [{ w: 1280, h: 700 }, { w: 380, h: 700 }]) {
     ok(d.open === 'true' && d.onTop, `C4: figma ${w}: the Activity drawer opens over the build bar, not under it (${JSON.stringify(d)})`);
     ok(errors.length === 0, `C4 figma ${w}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `S8.2 C4 figma ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `S8.2 C4 figma ${w}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // #2180 (owner QA, 2026-10-05): the build bar stands clear of the Activity drawer by the chrome's stacked-card gap,
@@ -8264,7 +8278,7 @@ for (const { w, h } of WIDTHS) {
         }
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `S8.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `S8.2 chrome ${host} ${theme} ${w}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -8649,7 +8663,7 @@ for (const { w, h } of WIDTHS) {
 
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -8782,7 +8796,7 @@ for (const host of ['web', 'figma']) {
           await page.evaluate((st) => window.postMessage({ pluginMessage: { type: 'agent-link-state', state: st } }, '*'), { ...AGENT_ON, on: false, since: null });
         }
       } catch (e) {
-        ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -8840,7 +8854,7 @@ for (const host of ['web', 'figma']) {
       ok(st.startTracks === 1, `${where}: dialog scope: the start window's body lays its cards out in one column with the export dialog open (${st.startTracks} tracks; ${JSON.stringify(st)})`);
     }
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -8942,7 +8956,7 @@ for (const host of ['web', 'figma']) {
       for (const want of FOCUS_SWEEP_NEEDS[host]) ok(reached.has(hooks.role(want)), `${where}: the sweep reaches ${want} and reads its ring`);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
   console.log(`  #2144 ${host}: ${hostTotal} rings read, light and dark`);
@@ -9259,7 +9273,7 @@ for (const { w, h } of START_SIZES) {
         }
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -9327,7 +9341,7 @@ for (const host of ['web', 'figma']) {
       }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -9445,7 +9459,7 @@ for (const host of ['web', 'figma']) {
         `${where}: every appearance the chrome uses was read disabled: outline, filled (twice, Discard among them) and text — read ${JSON.stringify(seen)}`);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -9524,7 +9538,7 @@ for (const host of ['web', 'figma']) {
       ok(missing.length === 0, `${where}: every control kind was hovered off and on (${done.size} of ${HOVER_KINDS.length})${missing.length ? ` — not found: ${missing.join(', ')}` : ''}`);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -9600,7 +9614,7 @@ for (const host of ['web', 'figma']) {
       }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -9719,7 +9733,7 @@ console.log(`\n#2175 — Pinned, the third neutral source\n${'='.repeat(78)}`);
           if (host === 'web') ok(!('auto' in (s5.stored ?? {})) && !('anchor' in (s5.stored ?? {})) && typeof s5.stored?.hue === 'number', `${where}: the saved neutral is a custom tint with no anchor (${JSON.stringify(s5.stored)})`);
           ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
         } catch (e) {
-          ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+          ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
         } finally { await ctx.close(); }
       }
     }
@@ -9745,7 +9759,7 @@ for (const host of ['web', 'figma']) {
       });
       ok(r.source && r.anchorBlocks === 0, `${where}: unpinned, searching "${q}" reaches the Neutral source group, where Pinned is chosen (${JSON.stringify(r)})`);
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -9890,7 +9904,7 @@ console.log('\n29d. #2214: the bar gives way in order, by a measured fit');
         }
         ok(errors.length === 0, `29d ${host} ${theme}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `29d ${host} ${theme}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `29d ${host} ${theme}: the case stopped at a step that threw — ${stopped(e)}`);
       } finally { await cdp.detach().catch(() => {}); await ctx.close(); }
     }
     const idx = (x) => ORDER.indexOf(x);
@@ -10480,7 +10494,7 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
       }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -10545,7 +10559,7 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
     ok(near(t.gaps.clash, HT['space-150']) && near(t.gaps.unresolved, HT['space-150']), `${where}: each warning group sits space-150 ${HT['space-150']} after the line or group before it — read ${JSON.stringify(t.gaps)}`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -10995,6 +11009,17 @@ for (const theme of ['light', 'dark']) {
 //   · Enter ignored (`chipChoice` prevents Enter's default) → `#2192 web light 1280: KB1 A, Enter on "label"'s both chip
 //     presses it and keeps focus on it — pressed ["upright"], focus on ["label","both"]` and `… saves italics
 //     ["body","label"] and no italicDefault — saved italics ["body"]` (16).
+// #2460 (a CI flake: one chip click timed out, and the label kept only "locator.click: Timeout 10000ms exceeded."). Each
+// press now waits, by name, for its redraw (`drawnPressed`), and a case that throws says why through `stopped`. Run on
+// scratch bundles whose chip handler is edited after the build (never committed):
+//   · the step's wait removed, the pick deferred 400 ms → `#2192 web light 1280: step 1, "caption" both (key) saves italics
+//     ["body","caption"] … — saved italics ["body"], …` (180 in 8 cases). On the real bundle the same mutation passes 120
+//     of 120 cases at 1× and 6× CPU: the race doesn't lose here without help.
+//   · the pick deferred 6 s, past the wait's bound → `#2192 web light 1280: step 1, "caption" both (key), the redraw lands
+//     before the next step: "caption"'s both chip is drawn pressed — aria-pressed false`.
+//   · a pick that leaves a full-page layer over the chips → `#2192 web light 1280: the case stopped at a step that threw —
+//     locator.click: Timeout 10000ms exceeded. · waiting for locator(…"italic-choice-only"…) · <div class="p3-veil"></div>
+//     intercepts pointer events`. Before #2460 that label ended at "exceeded.".
 console.log(`\nItalic styles chips (#2192)\n${'='.repeat(78)}`);
 /** The text types, in order, and the three words (Q6's, unchanged by #2192). Literal. */
 const ITALIC_GROUPS = ['display', 'title', 'body', 'label', 'caption', 'eyebrow', 'code'];
@@ -11068,6 +11093,15 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
     ok(canon(s0) === canon(BOOT_INPUT), `${where}: before any click, the saved brand is prism3 as loaded — ${wireDiff({ input: s0 }, { input: BOOT_INPUT })}`);
     const chipSel = (g, v) => `[data-p3="levers-pane"] [data-p3="italic-row"][data-group="${g}"] ${ITALIC_CHIP[v]}`;
     const chip = (g, v) => page.locator(chipSel(g, v));
+    /** #2460: a press redraws the whole levers pane (the rows are new nodes), and only the redraw draws the pressed
+     *  chip, so `g`'s `v` chip reading pressed is the redraw having landed. Waited for, by name, before anything
+     *  reads the saved brand or presses the next chip: a click that lands mid-redraw is the flake #2460 records.
+     *  Its 5 s bound is the one it always had; a redraw that never lands fails here, as itself. */
+    const drawnPressed = async (g, v, after) => {
+      const drawn = await page.waitForFunction((sel) => document.querySelector(sel)?.getAttribute('aria-pressed') === 'true', chipSel(g, v), { timeout: 5000 }).then(() => true, () => false);
+      const read = drawn ? 'true' : await page.evaluate((sel) => document.querySelector(sel)?.getAttribute('aria-pressed') ?? 'no chip', chipSel(g, v));
+      ok(drawn, `${where}: ${after}, the redraw lands before the next step: "${g}"'s ${v} chip is drawn pressed — aria-pressed ${read}`);
+    };
     let i = 0;
     for (const [g, v, how, italics, italicDefault] of ITALIC_STEPS) {
       i += 1;
@@ -11079,7 +11113,7 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
         ok(JSON.stringify(at) === JSON.stringify([g, v]), `${where}: Tab moves from "${g}"'s first chip to its next chip, ${v} — focus on ${JSON.stringify(at)}`);
         await page.keyboard.press('Space');
       } else await hooks.click(chip(g, v), WAIT);
-      await page.waitForFunction((sel) => document.querySelector(sel)?.getAttribute('aria-pressed') === 'true', chipSel(g, v), { timeout: 5000 }).catch(() => {});
+      await drawnPressed(g, v, `step ${i}, "${g}" ${v} (${how})`);
       if (how === 'key') {
         const kept = await page.evaluate(() => [document.activeElement?.closest('[data-p3="italic-row"]')?.dataset.group ?? null, document.activeElement?.dataset.value ?? null]);
         ok(JSON.stringify(kept) === JSON.stringify([g, v]), `${where}: after Space, focus stays on "${g}"'s ${v} chip through the redraw — focus on ${JSON.stringify(kept)}`);
@@ -11110,7 +11144,7 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
     // KB1 A: Enter presses the focused chip, keeps focus on it, and saves the literal: label joins italics, in text-type order.
     await chip('label', 'both').focus();
     await page.keyboard.press('Enter');
-    await page.waitForFunction((sel) => document.querySelector(sel)?.getAttribute('aria-pressed') === 'true', chipSel('label', 'both'), { timeout: 5000 }).catch(() => {});
+    await drawnPressed('label', 'both', 'KB1 A, Enter on "label"\'s both chip');
     const atEnter = await focusAt();
     const pEnter = await pressedNow();
     const wantEnter = italicBrand(['body', 'label'], undefined);
@@ -11120,7 +11154,7 @@ for (const { w, h } of [{ w: 1280, h: 900 }, { w: 380, h: 420 }]) for (const hos
     ok(canon(sEnter) === canon(wantEnter), `${where}: KB1 A, Enter on "label"'s both chip saves italics ["body","label"] and no italicDefault — saved italics ${JSON.stringify(sEnter?.typography?.italics)}, italicDefault ${JSON.stringify(sEnter?.typography?.italicDefault)}; ${wireDiff({ input: sEnter }, { input: wantEnter })}`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -11162,7 +11196,7 @@ for (const host of ['web', 'figma']) {
     ok(t2.inWindow && !t2.onWindow, `${where}: after a click on blank space, Shift+Tab moves focus to a control in the start window (focus is on ${t2.tag})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -11209,7 +11243,7 @@ for (const { name, patch, keep, why } of NO_HUE_CASES) {
       `${where}: the hue slider is disabled, reads None (not ~90°), says why ("${why}"), and Amount stays enabled (${JSON.stringify(st)})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -11384,7 +11418,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
     ok(near(r1.drawer.h, want, 1) && near(r1.now, want, 1), `${where}: after a reload the kept height comes back when the drawer opens (height ${fx(r1.drawer.h)}, want ${want}; now ${r1.now})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // AD2: at 380 the open drawer is the full-pane sheet, with no handle, a kept height or not.
@@ -11404,7 +11438,7 @@ for (const host of ['web', 'figma']) for (const theme of ['light', 'dark']) {
     ok(near(s.drawer.bottom, s.vh, 1) && Math.abs(s.drawer.h - 200) > 1, `${where}: a kept height does not size the sheet: it runs to the window's bottom (height ${fx(s.drawer.h)}, bottom ${fx(s.drawer.bottom)} of ${s.vh})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -11436,7 +11470,7 @@ for (const [form, pin] of [['stored hue 0', { l: 0.3211, c: 1.2e-8, h: 0 }], ['l
       `${where}: the hue readout, the slider's value text and the OKLCH line read None, not a hue (${JSON.stringify(st)})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -11471,7 +11505,7 @@ for (const [form, pin] of [['stored hue 0', { l: 0.3211, c: 1.2e-8, h: 0 }], ['l
       `${where}: the preview's neutral line reads "Gray, following primary. Text, borders and surfaces draw from it." (got ${JSON.stringify(board)})`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 
@@ -11536,7 +11570,7 @@ console.log('\n34. #2272: trim and its tooltip follow the name\'s own cut');
         `${where} ${W}: measured ${INFLATE}px too wide, the bar keeps two rows with the name whole and no tooltip, because nothing is cut (#2272) (drew ${after.seen.step}, cut ${after.seen.cut}, rows ${JSON.stringify(after.seen.rows)}, title ${JSON.stringify(after.tip)})`);
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -11792,7 +11826,7 @@ for (const host of ['web', 'figma']) {
           `${where}: every page was read in every mode (${visited} of ${RO_PLACES.length * (RO_DERIVED.length + RO_EDITABLE.length)})`);
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `${where}: the case stopped at a step that threw (${step}) — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `${where}: the case stopped at a step that threw (${step}) — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -11886,7 +11920,7 @@ for (const host of ['web', 'figma']) {
     }
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // #2183 + #2237: ONE SWITCH (SG5 A), AND A DISABLED SWITCH IN PRISM3'S OWN DISABLED SWITCH ROLES (owner Q52 B / DS2 A,
@@ -12007,7 +12041,7 @@ for (const host of ['web', 'figma']) {
       }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -12146,7 +12180,7 @@ for (const host of ['web', 'figma']) {
         ok(cases === PM_FROM.length + PM_LIVE_PLACES.length, `${where}: every case ran (${cases} of ${PM_FROM.length + PM_LIVE_PLACES.length})`);
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `${where}: the case stopped at a step that threw (${step}) — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `${where}: the case stopped at a step that threw (${step}) — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
@@ -12222,7 +12256,7 @@ for (const host of ['web', 'figma']) {
       }
       ok(errors.length === 0, `#2212 ${where0}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `#2212 ${where0}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `#2212 ${where0}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
 }
@@ -12361,7 +12395,7 @@ for (const host of ['web', 'figma']) {
       }
       ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw (${step}) — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw (${step}) — ${stopped(e)}`);
     } finally { await ctx.close(); }
   }
   ok(selects > 0, `#1821 ${host}: the mode control's select was read at least once (${selects} place(s))`);
@@ -12443,7 +12477,7 @@ for (const host of ['web', 'figma']) {
           `${where} ${size}: control: two ${w}px flush buttons ${tooClose}px apart, closer than their reaches, DO overlap, so the probe sees an overlap (${ctl.bad.slice(0, 2).join(', ') || 'none seen'})`);
       }
     } catch (e) {
-      ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+      ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
     } finally { await page.close(); }
   }
 }
@@ -12494,7 +12528,7 @@ for (const [host, w] of [['web', 800], ['web', 640], ['web', 380], ['figma', 640
     ok(over.length === 0, `${where}: the levers fit their pane on every moved page (${MOVED_1975.length} read)${over.length ? ` — ${over.join(' | ')}` : ''}`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // #2105. The plugin at its narrow size, 380 × 420, both Figma themes: a brand the engine refuses (the `#1989` brand of
@@ -12533,7 +12567,7 @@ for (const [theme, H] of [['light', 420], ['dark', 420], ['light', 300]]) {
     if (H === 420) ok(!!g.levers && g.levers.h >= LEVERS_MIN_2105, `${where}: the levers pane keeps ${LEVERS_MIN_2105}px or more under the error line (${g.levers?.h})`);
     if (SHOTS) await page.screenshot({ path: join(SHOTS, `2105-plugin-${theme}-380x${H}.png`) });
   } catch (e) {
-    ok(false, `${where}: the case stopped at a step that threw — ${String(e?.message ?? e).split('\n')[0]}`);
+    ok(false, `${where}: the case stopped at a step that threw — ${stopped(e)}`);
   } finally { await ctx.close(); }
 }
 // =============================================================================================
@@ -12657,7 +12691,7 @@ for (const host of ['web', 'figma']) {
         ok(loop.length === 0, `${where}: no ResizeObserver loop error from the header (${loop.length}${loop.length ? ` — ${loop[0]}` : ''})`);
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
-        ok(false, `${where}: the case stopped at a step that threw (${step}) — ${String(e?.message ?? e).split('\n')[0]}`);
+        ok(false, `${where}: the case stopped at a step that threw (${step}) — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
