@@ -4977,4 +4977,51 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
   ok(blindUnmoved.length === 0, `#1812 each tree-blind (lever, value) pair moves the materialized defs${blindUnmoved.length ? ` — UNMOVED: ${blindUnmoved.join(', ')}` : ''}`);
 }
 
+// =============================================================================================
+// #2518 — CENTERED TABS (owner decision Q222 A), read off the built set
+// =============================================================================================
+// At `alignment=center` the tab list sits centered in a bar that spans its placement: the member is BUILT 480 wide
+// (DRAFT, typed here from the decision, never read from the def), its baseline spans those 480, and the row of tabs
+// keeps its hugging width and sits at half the slack. At `alignment=start` the approved list is unchanged: the row at
+// x 0 and the bar exactly as wide as it. Read on a layout-model shim, which places a column's children across by
+// the frame's `counterAxisAlignItems`. Mutation: the root's `center` field dropped from tabs.ts → `centered tabs (#2518)`.
+{
+  const SWAP_T = SWAP;
+  const project = (d: ComponentDef) => figmaAnatomySet(materializeForBrand(d, null), { swapTarget: SWAP_T });
+  const tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
+  const all = componentDefs.flatMap((d) => { try { return project(d); } catch { return []; } });
+  const f = fullFor(all);
+  const page: Page = { children: [] };
+  const shim = makeShim({ vars: f.vars, styles: f.styles, effects: f.effects, comps: [], liveRoot: true, page, layoutModel: true });
+  const build = (d: ComponentDef) => applyComponentPlan(project(d), shim as any, { emitAsComponents: d.figmaProperties?.emitAsComponents });
+  await prebuildDependencies(tabsDef, { defs: componentDefs, project, host: shim as any, build });
+  await build(tabsDef);
+  const set = page.children.find((c) => c.name === 'tabs' && c.type === 'COMPONENT_SET') as Node | undefined;
+  const members = (set?.children ?? []) as Node[];
+  const child = (m: Node, name: string) => ((m.children as Node[]) ?? []).find((c) => c.name === name);
+  const BAR = 480;
+  const wrongCenter: string[] = [];
+  const wrongStart: string[] = [];
+  let centered = 0, started = 0;
+  for (const m of members) {
+    const list = child(m, 'list'); const base = child(m, 'baseline');
+    const at = String(m.name);
+    if (!list || !base) { (at.includes('alignment=center') ? wrongCenter : wrongStart).push(`${at}: no list or baseline`); continue; }
+    const W = Number(m.width), lw = Number(list.width), lx = Number(list.x), bw = Number(base.width);
+    if (at.includes('alignment=center')) {
+      centered++;
+      const want = (BAR - lw) / 2;
+      if (W !== BAR || bw !== BAR || !(lw < BAR) || Math.abs(lx - want) > 0.5)
+        wrongCenter.push(`${at}: bar ${W}, baseline ${bw}, list ${lw} at x ${lx} (want a ${BAR} bar and baseline, the list at ${want})`);
+    } else if (at.includes('alignment=start')) {
+      started++;
+      if (lx !== 0 || W !== lw || bw !== lw) wrongStart.push(`${at}: bar ${W}, baseline ${bw}, list ${lw} at x ${lx} (want the list at 0, bar and baseline its width)`);
+    }
+  }
+  ok(centered === 3 && wrongCenter.length === 0,
+    `centered tabs (#2518): at alignment=center every size builds a ${BAR}px bar with a full-width baseline and the tabs centered in it (${centered} of 3 centered members${wrongCenter.length ? ` — WRONG: ${wrongCenter.join(' | ')}` : ''})`);
+  ok(started === 3 && wrongStart.length === 0,
+    `start tabs (#2518): at alignment=start the approved list is unchanged, the tabs at the start and the bar as wide as they are (${started} of 3${wrongStart.length ? ` — WRONG: ${wrongStart.join(' | ')}` : ''})`);
+}
+
 if (failed) process.exit(1);

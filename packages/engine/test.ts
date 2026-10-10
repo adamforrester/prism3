@@ -15124,8 +15124,9 @@ arm: {
         if (base?.paints?.fills !== 'color/border/primary' || base?.bound?.height !== 'border-width/hairline') bad.push(`baseline ${JSON.stringify(base?.paints)} ${JSON.stringify(base?.bound)}`);
         return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
       });
-      ok(listMembers.length === 3 && listOff.length === 0,
-        `#2416 Q177.2 tabs: 3 members (size), each nesting six tabs following its size, tab 1 selected, tabs 1-3 shown, tabs 4-6 hidden behind "Tab 4"-"Tab 6", over a 1px color/border/primary baseline (${listMembers.length} members, ${listOff.length} off — ${listOff[0] ?? 'none'})`);
+      // 6 since #2518 (owner decision Q222 A): size 3 × alignment 2 (start, center); what each member nests is unchanged.
+      ok(listMembers.length === 6 && listOff.length === 0,
+        `#2416 Q177.2 tabs: 6 members (size × alignment), each nesting six tabs following its size, tab 1 selected, tabs 1-3 shown, tabs 4-6 hidden behind "Tab 4"-"Tab 6", over a 1px color/border/primary baseline (${listMembers.length} members, ${listOff.length} off — ${listOff[0] ?? 'none'})`);
       const listProps = planSetProperties(listMembers).filter((p) => p.type === 'BOOLEAN').map((p) => `${p.name}=${String(p.default)}`);
       ok(JSON.stringify(listProps) === JSON.stringify(['Tab 4=false', 'Tab 5=false', 'Tab 6=false']),
         `#2416 Q179 tabs: the set declares exactly three Figma-only toggles, Tab 4-6, all off by default (${listProps.join(', ')})`);
@@ -29386,6 +29387,40 @@ arm: {
   const para = skill.split(/\n\s*\n/).find((b) => /inset=flush/.test(b) && /44×44/.test(b));
   ok(!!para && missing(para).length === 0,
     `#2408 prism3-consume: the skill tells the agent a medium or large flush text button keeps a 44×44 hit area in code and a small one 24×24, with the ::before technique (missing: ${para ? missing(para).join(', ') || 'none' : 'no paragraph names inset=flush and 44×44'})`);
+}
+
+// ---- centered Tabs (#2518, owner decision Q222 A) ----
+// At `alignment=center` the root projects as a bar built 480 wide (DRAFT, typed here from the decision), centering
+// its children across; the row of tabs keeps hugging and the baseline stretches across the bar. At `alignment=start`
+// every member is BYTE-IDENTICAL to the approved Tabs (#2416), read against the same def with the axis taken out, so
+// "everything else matches" is held rather than assumed. Mutation: the root's `center` field dropped → `#2518 tabs`.
+{
+  const tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
+  const { center: _c, ...rootNoCenter } = tabsDef.anatomy!.parts[tabsDef.anatomy!.root] as Record<string, unknown>;
+  const approved: ComponentDef = {
+    ...tabsDef,
+    props: tabsDef.props.filter((p) => p.name !== 'alignment'),
+    variants: { size: tabsDef.variants.size },
+    axisKinds: { size: 'authoring' },
+    anatomy: { ...tabsDef.anatomy!, parts: { ...tabsDef.anatomy!.parts, [tabsDef.anatomy!.root]: rootNoCenter as never } },
+    figmaProperties: { ...tabsDef.figmaProperties!, variantAxes: ['size'] },
+  };
+  const strip = (x: unknown): string => JSON.stringify((x as { root: unknown }).root);
+  const bad: string[] = [];
+  let centered = 0, started = 0;
+  for (const size of ['small', 'medium', 'large']) {
+    const c = figmaAnatomyPlan(tabsDef, size, { alignment: 'center' }) as unknown as { root: { counterAxisAlignItems?: string; counterAxisSizingMode?: string; placementWidth?: number; children: { name: string; primaryAxisSizingMode?: string; counterAxisSizingMode?: string; layoutAlign?: string }[] } };
+    const list = c.root.children.find((k) => k.name === 'list');
+    const base = c.root.children.find((k) => k.name === 'baseline');
+    if (c.root.counterAxisAlignItems === 'CENTER' && c.root.counterAxisSizingMode === 'FIXED' && c.root.placementWidth === 480
+      && list?.primaryAxisSizingMode === 'AUTO' && list?.counterAxisSizingMode === 'AUTO' && base?.layoutAlign === 'STRETCH') centered++;
+    else bad.push(`${size}/center: root ${c.root.counterAxisAlignItems} ${c.root.counterAxisSizingMode} ${c.root.placementWidth}, list ${list?.primaryAxisSizingMode}/${list?.counterAxisSizingMode}, baseline ${base?.layoutAlign}`);
+    const st = figmaAnatomyPlan(tabsDef, size, { alignment: 'start' });
+    if (strip(st) === strip(figmaAnatomyPlan(approved, size, {}))) started++;
+    else bad.push(`${size}/start: differs from the approved Tabs`);
+  }
+  ok(centered === 3 && started === 3 && bad.length === 0,
+    `#2518 tabs: alignment=center builds a 480px bar centering its hugging tabs over a full-width baseline, and alignment=start is the approved Tabs byte for byte (${centered} centered, ${started} unchanged${bad.length ? ` — WRONG: ${bad.join(' | ')}` : ''})`);
 }
 
 // ------------------------------------------------------------------- report

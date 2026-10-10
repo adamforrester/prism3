@@ -510,13 +510,17 @@
   },
   "tabs": {
     "axes": {
+      "alignment": [
+        "center",
+        "start"
+      ],
       "size": [
         "large",
         "medium",
         "small"
       ]
     },
-    "members": 3
+    "members": 6
   },
   "tag": {
     "axes": {

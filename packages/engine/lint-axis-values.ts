@@ -604,6 +604,16 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'and 4:5 and the landscape 3:2 a measured commerce file needed (#2345), ordered tallest to widest.',
   },
   {
+    axis: 'alignment',
+    values: ['start', 'center'],
+    defs: ['tabs'],
+    relation: 'sole',
+    reason:
+      'Where a tab list sits in its bar (#2518, owner Q222 A): at the start edge, as Tabs was approved (#2416), or '
+      + 'centered in a bar that spans its placement, the baseline full width either way. `start` LEADS because it '
+      + 'is the code default and every member before #2518.',
+  },
+  {
     axis: 'inset',
     values: ['default', 'flush'],
     defs: ['button', 'button-destructive', 'button-neutral'],

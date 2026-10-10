@@ -52,6 +52,7 @@ One or two words per tab, nouns, sentence case.
 | `activation` | enum: 'automatic' \| 'manual' | `automatic` | no | automatic: moving focus with the arrow keys selects the tab. manual: arrows move focus only, and Enter or Space selects. Use manual when showing a panel is slow. |
 | `label` | string | — | no | The accessible name of the tab list, when nothing on the page already names it. |
 | `size` | enum: 'small' \| 'medium' \| 'large' | `medium` | no | Passed to every tab. |
+| `alignment` | enum: 'start' \| 'center' | `start` | no | start: the tabs sit at the start of the bar. center: the tabs sit centered in the bar, which spans its container; the baseline spans the full width either way. |
 
 ## States
 
@@ -62,6 +63,7 @@ One or two words per tab, nouns, sentence case.
 | Axis | Values | Changes |
 | --- | --- | --- |
 | `size` | `small`, `medium`, `large` | once, when authored |
+| `alignment` | `start`, `center` | once, when authored |
 
 ## Accessibility
 
