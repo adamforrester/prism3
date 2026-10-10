@@ -80,12 +80,25 @@ export const modeControl = (cleanups: (() => void)[]): ModeControl => {
   selWrap.append(select, glyph('chev'));
   wrap.append(group, selWrap);
   wrap.dataset.fit = 'radios';
-  /** Radios when every one fits, the select otherwise. */
+  /** Radios when every one fits, the select otherwise. #2383: the select is never narrower than its longest option,
+   *  so where the title, the select and Inspect do not fit one row, the select takes its own row under the title
+   *  (`data-row="own"`). Measured on one row each time, from widths that do not depend on the row the select is on
+   *  (the title, Inspect and the select are each their own width), so the answer is the same on either row. */
   const fit = (): void => {
     if (!wrap.isConnected) return;
     if (wrap.dataset.fit !== 'radios') wrap.dataset.fit = 'radios';
+    delete wrap.dataset.row;
     const over = group.scrollWidth > group.clientWidth + 1;
-    if (over) wrap.dataset.fit = 'select';
+    if (!over) return;
+    wrap.dataset.fit = 'select';
+    const head = wrap.parentElement;
+    if (!head) return;
+    const cs = getComputedStyle(head);
+    const room = head.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const items = [...head.children].filter((n) => n.getClientRects().length > 0);
+    const need = items.reduce((a, n) => a + (n === wrap ? selWrap : n).getBoundingClientRect().width, 0)
+      + (parseFloat(cs.columnGap) || 0) * Math.max(0, items.length - 1);
+    if (need > room + 1) wrap.dataset.row = 'own';
   };
   group.setAttribute('role', 'radiogroup');
   group.setAttribute('aria-label', 'Preview mode');
@@ -144,6 +157,8 @@ export const modeControl = (cleanups: (() => void)[]): ModeControl => {
     if (select.dataset.sig !== sig) {
       select.dataset.sig = sig;
       select.replaceChildren(...opts.map(([m, l]) => { const o = h('option', undefined, l); o.value = m; return o; }));
+      // #2383: new words change the select's width, which the header's own size does not show.
+      queueMicrotask(fit);
     }
     if (select.value !== currentMode) select.value = currentMode;
   };
@@ -157,10 +172,20 @@ export const modeControl = (cleanups: (() => void)[]): ModeControl => {
   cleanups.push(subscribe('mode', paint), subscribe('brand', paint));
   paint();
   // The header's width decides the fit; it is observed once the control is placed in it. Toggling between the
-  // radios and the select never changes the header's own size, so this cannot loop.
-  const ro = new ResizeObserver(fit);
-  queueMicrotask(() => { if (wrap.parentElement) ro.observe(wrap.parentElement); fit(); });
-  cleanups.push(() => ro.disconnect());
+  // radios and the select never changes the header's width. Moving the select to its own row changes the header's
+  // height, which calls `fit` once more, and that measures the same widths and gives the same answer, so this
+  // cannot loop. The fit runs in the next frame, not in the observer's callback: a size changed inside the callback
+  // is a "ResizeObserver loop" error (#2383).
+  let frame = 0;
+  const ro = new ResizeObserver(() => { cancelAnimationFrame(frame); frame = requestAnimationFrame(fit); });
+  // #2383: the title and Inspect are watched too, since a new page's title changes what is left for the select without
+  // resizing the header. Never the control itself, whose own size the fit changes.
+  queueMicrotask(() => {
+    const head = wrap.parentElement;
+    if (head) for (const n of [head, ...head.children]) if (n !== wrap) ro.observe(n);
+    fit();
+  });
+  cleanups.push(() => { ro.disconnect(); cancelAnimationFrame(frame); });
   return { el: wrap, hold: (w) => { why = w; applyHold(); } };
 };
 
