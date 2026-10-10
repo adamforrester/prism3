@@ -49,7 +49,7 @@
     "excluded style-definition: text style 'label/sm/default'",
     "excluded style-definition: text style 'designer/scratch'",
     "excluded style-definition: effect style 'shadow/sm'",
-    "excluded style-definition: grid style 'Grid / xs'",
+    "excluded style-definition: grid style 'xs'",
     "excluded style-definition: paint style 'gradient/brand'"
   ],
   "values": {

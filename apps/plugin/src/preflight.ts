@@ -28,6 +28,8 @@
  *     before the mark existed. Engine-shaped → Prism3's, and the write stamps it. Anything else,
  *     including empty → someone else's. The mark comes first because the description is the
  *     designer's to edit: judged by it alone, one rewritten description refused every later apply.
+ *     A GRID style takes no legacy presumption (#2467): its names are bare sizes, so it is judged by
+ *     the mark and the signature alone, the same test the executor applies (`isPrism3GridStyle`).
  *   · VARIABLE — no marker of its own: it is judged by its collection, plus a `resolvedType` check against
  *     the type the plan writes, which is the conflict that throws. `provenance.ts` says why.
  *
@@ -57,6 +59,7 @@ import { CORE_COLLECTION } from '@prism3/engine/emit-figma-color';
 import { ownedModeIds, type VarCollection } from './write-figma';
 import { isEngineDescription, type StyleKind } from './prune-figma';
 import { isMarkedOwned, type Markable } from './provenance';
+import { isPrism3GridStyle } from './write-grid-styles';
 
 export type VarType = 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN';
 
@@ -180,7 +183,21 @@ export const preflightApply = async (
   for (const kind of Object.keys(STYLE_GETTERS) as StyleKind[]) {
     const planned = plan.styles[kind];
     if (!planned.length) continue;
-    const existing = new Map((await STYLE_GETTERS[kind](api)).map((s) => [s.name, s] as const));
+    const all = await STYLE_GETTERS[kind](api);
+    // GRID is judged by provenance alone, with no legacy presumption (#2467). Its names are bare sizes
+    // (`sm`), a name a client's own grid style may well carry, and Prism3 wrote no grid style under a bare
+    // name before the mark existed, so an unmarked `sm` that is not engine-described is someone else's in
+    // every era. The executor applies the same test (`isPrism3GridStyle`), so a name the pre-flight clears
+    // is one the executor reuses, renames into, or leaves alone — never one it adopts.
+    if (kind === 'grid') {
+      for (const name of planned) {
+        const same = all.filter((s) => s.name === name);
+        if (!same.length || same.some(isPrism3GridStyle)) continue;
+        conflicts.push({ kind: 'grid style', name, detail: 'already in this file, not created by Prism3' });
+      }
+      continue;
+    }
+    const existing = new Map(all.map((s) => [s.name, s] as const));
     for (const name of planned) {
       const s = existing.get(name);
       // The mark first (#1884), then the two kinds of evidence a style written before the mark carries.

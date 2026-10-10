@@ -156,7 +156,7 @@ export type StyleProp =
  */
 export type StyleDef = {
   kind: StyleKind;
-  /** The style's name as it lands in the file (`body/md/default`, `shadow/xs`, `Grid / xs`). NOT
+  /** The style's name as it lands in the file (`body/md/default`, `shadow/xs`, `xs` for a grid style). NOT
    *  root-prefixed and NOT materialization-renamed — `materialization-renames.ts` rewrites variable
    *  names only, so a style name is already what Figma carries. */
   name: string;

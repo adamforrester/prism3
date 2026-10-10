@@ -12312,7 +12312,7 @@ arm: {
 // (19d) #1480 — GRID STYLES. Layout emits as FLOAT variables, but a number cannot BECOME a live Figma
 // column grid (Figma has no variable→layout-grid binding), so this emits the missing artifact: one
 // reusable Grid Style per breakpoint, sourced from the SAME layout data (columns/gutter/margin), named
-// `Grid / <bp>` following the auto breakpoint names. Grid styles are STATIC (no mode-switch off a
+// by the bare breakpoint name (`md`; `Grid / <bp>` until #2467, owner decision Q185 A). Grid styles are STATIC (no mode-switch off a
 // variable), so N breakpoints = N separate styles, coexisting with the numeric `layout` collection.
 //
 // INDEPENDENCE (docs/34 shape 1). The expected columns/gutter/margin are HAND-AUTHORED here from the
@@ -12320,7 +12320,7 @@ arm: {
 // `cols` ladder 4/8/…/base at base 12; the `GUTTER_PX`/`MARGIN_PX` ramps), NEVER read back from
 // `theme.layout` or `buildFigmaLayout` — a gate whose expected value is derived from the emitter it
 // checks cannot see the emitter break. It also asserts REPRESENTATION, not a count: every breakpoint
-// name must appear as its own `Grid / <bp>` style carrying a COLUMNS/STRETCH grid, so a style silently
+// name must appear as its own `<bp>` style carrying a COLUMNS/STRETCH grid, so a style silently
 // dropped or misnamed fails by name.
 //
 // MUTATION REGISTER (docs/34: a gate that cannot see its subject cannot fail). Each applied to the
@@ -12331,6 +12331,7 @@ arm: {
 //       (all of sm/md/lg/xl/2xl here). Verified.
 //   M2  the name template `Grid / ${g.bp}` → `Grid/${g.bp}` (drops the spaced separator). The
 //       representation arm fails BY NAME — `Grid / md` absent — for all five breakpoints. Verified.
+//       (#2467 renamed the template to the bare `g.bp`; the expected names below are the literal sizes.)
 {
   const theme = nbTheme();
   const grid = buildFigmaGridStyles(theme);
@@ -12348,18 +12349,18 @@ arm: {
     { bp: '2xl', count: 12, gutter: 32, margin: 48 },
   ];
 
-  // REPRESENTATION: one `Grid / <bp>` style per breakpoint, in order, and nothing else.
+  // REPRESENTATION: one `<bp>` style per breakpoint, in order, and nothing else — bare, no group (#2467).
   const names = grid.styles.map((s) => s.name);
-  const wantNames = EXPECT.map((r) => `Grid / ${r.bp}`);
+  const wantNames = EXPECT.map((r) => r.bp);
   ok(names.join(' | ') === wantNames.join(' | '),
-    `#1480 grid: one 'Grid / <bp>' style per breakpoint in order [${wantNames.join(', ')}] — got [${names.join(', ')}]`);
+    `#1480/#2467 grid: one bare '<bp>' style per breakpoint in order [${wantNames.join(', ')}] — got [${names.join(', ')}]`);
 
   // Each style holds exactly one COLUMNS/STRETCH grid whose count/gutterSize/offset match the layout
   // contract for its breakpoint — BY NAME, so a wrong-field or mis-sourced value names the breakpoint.
   const bad: string[] = [];
   for (const row of EXPECT) {
-    const style = grid.styles.find((s) => s.name === `Grid / ${row.bp}`);
-    if (!style) { bad.push(`${row.bp}: no 'Grid / ${row.bp}' style`); continue; }
+    const style = grid.styles.find((s) => s.name === row.bp);
+    if (!style) { bad.push(`${row.bp}: no '${row.bp}' style`); continue; }
     if (style.layoutGrids.length !== 1) { bad.push(`${row.bp}: ${style.layoutGrids.length} layoutGrids (want 1)`); continue; }
     const lg = style.layoutGrids[0];
     if (lg.pattern !== 'COLUMNS') bad.push(`${row.bp}: pattern ${lg.pattern} (want COLUMNS)`);
@@ -12375,8 +12376,8 @@ arm: {
   // A 2-breakpoint brand yields exactly two grid styles following the auto names (the #1479 interlink) —
   // proves the emit is count-derived, not hardcoded to 5. Names authored, not read back.
   const two = buildFigmaGridStyles(brandTheme({ id: 'grid2', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 }, layout: { breakpoints: [0, 768] } } as BrandInput));
-  ok(two.styles.map((s) => s.name).join(' | ') === 'Grid / sm | Grid / md',
-    `#1480 grid: a 2-breakpoint brand yields exactly [Grid / sm, Grid / md] (got [${two.styles.map((s) => s.name).join(', ')}])`);
+  ok(two.styles.map((s) => s.name).join(' | ') === 'sm | md',
+    `#1480/#2467 grid: a 2-breakpoint brand yields exactly [sm, md] (got [${two.styles.map((s) => s.name).join(', ')}])`);
 }
 
 // (19e) #1532 — PER-BREAKPOINT COLUMN OVERRIDES. `layout.columnOverrides` (keyed by breakpoint name)
@@ -12407,7 +12408,7 @@ arm: {
   const emittedCols = (overrides?: Record<string, number>): Record<string, number> => {
     const g = buildFigmaGridStyles(brandTheme({ ...BASE, layout: overrides ? { columnOverrides: overrides } : {} } as BrandInput));
     const out: Record<string, number> = {};
-    for (const s of g.styles) out[s.name.replace('Grid / ', '')] = s.layoutGrids[0].count;
+    for (const s of g.styles) out[s.name] = s.layoutGrids[0].count;
     return out;
   };
 
@@ -12470,7 +12471,7 @@ arm: {
   const emittedGaps = (layout?: BrandInput['layout']): Record<string, { gutter: number; margin: number }> => {
     const g = buildFigmaGridStyles(brandTheme({ ...BASE, layout: layout ?? {} } as BrandInput));
     const out: Record<string, { gutter: number; margin: number }> = {};
-    for (const s of g.styles) out[s.name.replace('Grid / ', '')] = { gutter: s.layoutGrids[0].gutterSize, margin: s.layoutGrids[0].offset };
+    for (const s of g.styles) out[s.name] = { gutter: s.layoutGrids[0].gutterSize, margin: s.layoutGrids[0].offset };
     return out;
   };
   // ACTUAL alias: the DTCG grid node's gutter $value for a bp (the space token grid/gutter aliases).

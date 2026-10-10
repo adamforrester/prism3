@@ -16,7 +16,7 @@
     "  (f) `fix/color/text/secondary` is gone from `variables` — the missing-variable path, which is the",
     "      highest-consequence finding in the report and the one an omission-shaped defect would leave",
     "      unproven",
-    "  (i) the `Grid / xs` grid style is gone from `styles` — the same omission shape one level in, and the",
+    "  (i) the `xs` grid style is gone from `styles` — the same omission shape one level in, and the",
     "      one that proves a whole style going missing is not mistaken for a library-consumed one",
     "",
     "`libraryConsumed` is carried here UNCHANGED from the clean mirror, and that is load-bearing rather than",

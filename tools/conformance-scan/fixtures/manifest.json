@@ -38,7 +38,7 @@
     "style-definition: text style 'caption/md/default'",
     "style-definition: text style 'label/sm/default'",
     "style-definition: effect style 'shadow/sm'",
-    "style-definition: grid style 'Grid / xs'",
+    "style-definition: grid style 'xs'",
     "style-definition: paint style 'gradient/brand'",
     "style-definition: text style 'designer/scratch'",
     "contrast: light · text.primary on background.primary",

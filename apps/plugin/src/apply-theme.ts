@@ -95,7 +95,7 @@ export const runApplyTheme = async (input: BrandInput, host: ThemeHost) => {
       // STYLE axes (shadow/gradient lane): Effect Styles (shadow/* + shadow-dark/*) + Paint Styles
       // (gradients, baked stops). The global `figma` structurally satisfies the StylesApi port.
       const s = await applyStylesPlan(stylesPlan, host);
-      // GRID STYLES (#1480): one reusable Figma Grid Style per breakpoint (`Grid / sm`, …), sourced from
+      // GRID STYLES (#1480): one reusable Figma Grid Style per breakpoint (`sm`, …; renamed in place from `Grid / sm`, #2467), sourced from
       // the same layout data as the numeric `layout` collection. STATIC — a grid style cannot mode-switch
       // off a variable — so N breakpoints = N styles, coexisting with the variables (the responsive source
       // of truth). The global `figma` structurally satisfies the GridStylesApi port (createGridStyle +
