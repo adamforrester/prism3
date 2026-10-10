@@ -224,7 +224,7 @@ const ZERO_OK: Record<string, string> = {
  * covered — including by being deleted — this file fails rather than reporting clean over a smaller
  * set. A count would read that as a pass.
  */
-const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing'];
+const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'tab.focusRing'];
 
 /**
  * The floor for the COMPENSATION specifically — every part above whose gap must be computed against a
@@ -234,7 +234,7 @@ const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-contr
  * — the arithmetic degrades to `gap = offset`, every other check here still passes, and the ring goes
  * flush again.
  */
-const MUST_CLEAR_STROKE = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing'];
+const MUST_CLEAR_STROKE = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'tab.focusRing'];
 
 /** The naming convention, restated rather than imported from the projector — shortcut 1 above. */
 const nameOf = (ref: string): string => ref.replace(/\./g, '/');
