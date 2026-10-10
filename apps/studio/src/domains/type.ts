@@ -64,7 +64,7 @@ import { noteSectionEdit } from '../preview/follow-edit';
 import { DOMAINS, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { chipChoice, choice, leverBlock, leverOf, promoteLever, selectField, stateLine, subLine, switchButton, textField, tokenLabel, type LeverBlock } from '../ui/lever-kit';
+import { chipChoice, choice, leverBlock, leverOf, promoteLever, refuseOption, selectField, stateLine, subLine, switchButton, textField, tokenLabel, type LeverBlock } from '../ui/lever-kit';
 import type { PageLends } from '../preview/brand';
 
 const PAGE = DOMAINS.find((d) => d.id === 'type') as PageData;
@@ -227,6 +227,8 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
   let pickFocus: (() => void) | null = null;
   /** The key the last edit wrote, so an engine refusal marks the lever that caused it. */
   let lastEdited: string | null = null;
+  /** Set by Release pinned sizes, which goes once it has worked: the repaint then puts focus on the scale (#2233). */
+  let afterRelease = false;
   /** The Add face field's text and refusal, kept across a repaint. */
   let addError: string | null = null;
   let items: Item[] = [];
@@ -551,13 +553,14 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     // shows its own reason, the title floor's in its approved words (Q55 B) and the rest in the engine's own (Q56 A).
     let blocked = 0;
     const other = new Set<string>();
+    // #2233: each reason is also a line under the chips, and that line describes the group (a disabled chip takes no
+    // focus). The ids name the lines drawn below: the clash line, and each other reason's line in drawing order.
     for (const o of opts) {
       const r = shapeBlocked(o.v, cur);
       if (!r) continue;
       const why = r.kind === 'pinned' ? S63.scaleClash : r.kind === 'titleFloor' ? S63.scaleTitleFloor : r.reason;
       if (r.kind === 'pinned') blocked++; else other.add(why);
-      const chip = c.el.querySelector<HTMLButtonElement>(`[data-value="${o.v}"]`);
-      if (chip) { chip.disabled = true; chip.title = why; }
+      refuseOption(c.el, o.v, why, r.kind === 'pinned' ? 'p3-tscale-clash' : `p3-tscale-why-${[...other].indexOf(why)}`);
     }
     b.ctl.append(c.el);
     // TS1 A (#2216, owner approval 2026-10-06): the control, then the pinned count as a plain line under it, then each
@@ -570,18 +573,22 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     }
     // #2194: a refusal that is not a pinned-size clash is a warning, so a group of its own (TS1 A), first among the
     // warnings: it is about a chip, as the clash is, and it stood before the clash before TS1 A.
-    for (const why of other) {
+    for (const [i, why] of [...other].entries()) {
       const box = hook(h('div', 'p3-tscale-group'), 'type-scale-refused');
-      box.append(stateLine(why, 'warn'));
+      const line = stateLine(why, 'warn');
+      line.id = `p3-tscale-why-${i}`;
+      box.append(line);
       b.ctl.append(box);
     }
     if (blocked) {
       const rel = hook(h('button', 'p3-btn p3-btn-page'), 'type-scale-release');
       rel.type = 'button';
       rel.append(h('span', 'p3-btn-label', S63.release));
-      rel.onclick = () => edit('typography.typeScale', () => releasePinnedSizes());
+      rel.onclick = () => { afterRelease = true; edit('typography.typeScale', () => releasePinnedSizes()); };
       const box = hook(h('div', 'p3-tscale-group p3-tscale-clash'), 'type-scale-clash');
-      box.append(stateLine(S63.scaleClash, 'warn'), rel);
+      const line = stateLine(S63.scaleClash, 'warn');
+      line.id = 'p3-tscale-clash';
+      box.append(line, rel);
       b.ctl.append(box);
     }
     // #1802 (owner decision Q72): a text style the preview binds by name that this brand does not make. Inside the
@@ -1167,10 +1174,16 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     if (add && typed && addError) add.value = typed;
     for (const it of items) it.block?.setRefused(!!lastError && !!lastEdited && it.key === lastEdited);
     filter();
+    const released = afterRelease;
+    afterRelease = false;
     if (focusPick && pickFocus) { focusPick = false; (pickFocus as () => void)(); }
     else if (focusKey) {
       const same = [...root.querySelectorAll<HTMLElement>(`[data-p3="${focusKey}"]`)];
-      (same[Math.max(0, focusIndex)] ?? same[0])?.focus({ preventScroll: true });
+      const to = same[Math.max(0, focusIndex)] ?? same[0];
+      // #2233: Release pinned sizes is gone once it has worked, so focus stays in Type scale, on its selected chip,
+      // the group's one Tab stop, from which the arrows now reach the chips the release enabled.
+      if (to) to.focus({ preventScroll: true });
+      else if (released) root.querySelector<HTMLElement>('[data-p3="type-scale"] [aria-checked="true"]')?.focus({ preventScroll: true });
     }
     if (host.scrollTop !== scrollTop) host.scrollTop = scrollTop;
   };
