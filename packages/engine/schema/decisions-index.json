@@ -285,6 +285,13 @@
       "title": "never detach a Prism3 component to match a design; place it attached and file the differences",
       "doc": "docs/46-never-detach.md",
       "section": null
+    },
+    {
+      "date": "2026-08-07",
+      "issue": 609,
+      "title": "emit a conforming DTCG projection beside the canonical tree",
+      "doc": "docs/19-code-library-and-dx.md",
+      "section": null
     }
   ]
 }
