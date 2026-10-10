@@ -336,6 +336,8 @@ section('group / panel / backdrop — Button, built by the real executor');
   // member it didn't build (#2325, #2464), so the regroup never moves one, adoptable or not. The dry run lists no
   // move for it, the apply leaves it exactly where it is, and no verdict line counts it as moved and as left.
   // Mutation: `gridMoves` reporting unstamped members → `unbuilt/no move`, `unbuilt/left in place`, `unbuilt/verdict`.
+  // This is the case where that member is the only thing off the grid; with stamped members moving too, the
+  // executor's re-lay moves it as well (#2494).
   {
     const own = (set.children as FNode[])[10] as FNode & { setSharedPluginData(ns: string, k: string, v: string): void; getSharedPluginData(ns: string, k: string): string };
     const stampWas = own.getSharedPluginData(NS, STAMP_KEY);
@@ -352,6 +354,43 @@ section('group / panel / backdrop — Button, built by the real executor');
       `unbuilt/left in place: the apply leaves its x and y exactly as they were, and its stamp empty (${at} → ${JSON.stringify([own.x, own.y])})`);
     ok(!r2.outcomes[0]?.moved && !v2.lines.some((l) => /moved/.test(l) && /left as they are/.test(l)),
       `unbuilt/verdict: no line counts the member as moved and as left (${v2.headline}; ${v2.lines[0]})`);
+    own.setSharedPluginData(NS, STAMP_KEY, stampWas);
+    own.y = yWas;
+  }
+  // ITS HEIGHT STILL COUNTS (#2471 review, UI lane): a member Prism3 didn't build is never moved, but the executor's
+  // layout sizes its row by every member in it, so a taller one pushes every row below it down, and the dry run's row
+  // tops must count it too. Only the dry run is read here: an apply over these moves re-lays the grid, which moves the
+  // unbuilt member too (the executor's flaw, #2494). Mutation: `gridMoves`' row heights skipping unstamped members →
+  // `unbuilt/row height` (0 to move).
+  {
+    const own = (set.children as FNode[])[10] as FNode & { setSharedPluginData(ns: string, k: string, v: string): void; getSharedPluginData(ns: string, k: string): string };
+    const [stampWas, hWas] = [own.getSharedPluginData(NS, STAMP_KEY), Number(own.height)];
+    // The shim's height is worked out from the node's bindings and content, so the test overrides the accessor itself.
+    const hDesc = Object.getOwnPropertyDescriptor(own, 'height')!;
+    own.setSharedPluginData(NS, STAMP_KEY, '');
+    Object.defineProperty(own, 'height', { configurable: true, enumerable: hDesc.enumerable, get: () => hWas + 40 });
+    const grew = Number(own.height);
+    const p3 = (await previewUpdate(host, [{ def: 'button', plans }])).sets[0];
+    ok(grew === hWas + 40 && previewLine(p3) === 'button: 576 members. 558 to move, 1 not built by Prism3.' && !p3.positions?.includes(String(own.name)),
+      `unbuilt/row height: a member Prism3 didn't build, taller than its row, moves every row below it, and is not itself a move (${hWas} → ${grew}px; ${previewLine(p3)})`);
+    own.setSharedPluginData(NS, STAMP_KEY, stampWas);
+    Object.defineProperty(own, 'height', hDesc);
+  }
+  // A STAMP THAT ISN'T PRISM3'S (#2471 review, UI lane): a member whose stamp is malformed is read as not built by
+  // Prism3 (`ownedView`), so it is never a move either, however far off the grid it sits. Mutation: `gridMoves` handed
+  // the members as read rather than as `ownedView` reads them → `unbuilt/stamp not ours`, `unbuilt/stamp not ours left`.
+  {
+    const own = (set.children as FNode[])[12] as FNode & { setSharedPluginData(ns: string, k: string, v: string): void; getSharedPluginData(ns: string, k: string): string };
+    const [stampWas, yWas] = [own.getSharedPluginData(NS, STAMP_KEY), Number(own.y)];
+    own.setSharedPluginData(NS, STAMP_KEY, 'not a prism3 stamp');
+    own.y = yWas + 500;
+    const at = JSON.stringify([own.x, own.y]);
+    const p4 = (await previewUpdate(host, [{ def: 'button', plans }])).sets[0];
+    ok(p4.counts.move === undefined && !p4.positions?.includes(String(own.name)) && p4.counts.unstamped === 1,
+      `unbuilt/stamp not ours: a member with a malformed stamp, off the grid, is not listed as a move (${JSON.stringify({ move: p4.counts.move, unstamped: p4.counts.unstamped })}; ${previewLine(p4)})`);
+    await applyUpdate(host as never, bApi as never, [{ def: 'button', plans }], previewHashOf(await previewUpdate(host, [{ def: 'button', plans }])));
+    ok(JSON.stringify([own.x, own.y]) === at && own.getSharedPluginData(NS, STAMP_KEY) === 'not a prism3 stamp',
+      `unbuilt/stamp not ours left: the apply leaves it exactly where it is, its stamp as it was (${at} → ${JSON.stringify([own.x, own.y])})`);
     own.setSharedPluginData(NS, STAMP_KEY, stampWas);
     own.y = yWas;
   }
