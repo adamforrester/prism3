@@ -1467,3 +1467,78 @@ legend.p3-sg-field-name { padding-block-end: var(--p3-space-050); }
 .p3-switch:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) { cursor: not-allowed; }
 .p3-switch:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-switch-track { background: var(--p3-disabled-fill); border-color: var(--p3-disabled-edge); }
 .p3-switch:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-switch-knob { background: var(--p3-disabled-ink); }
+
+/* ── forced colors (#1855): Windows High Contrast keeps every state ─────────────────────────────── */
+/* Under forced colors the browser repaints every fill, edge and ink in the person's system colors, so a state the
+   chrome draws by a fill or an ink alone disappears: a selected chip turned white on black like the rest, a switch
+   lost its knob and the status dots drew nothing. These rules put each state back in system colors, never in the
+   chrome's own: a selected, pressed or checked control fills with `Highlight` and inks with `HighlightText`; a
+   disabled one inks and edges with `GrayText`; an edge that carries the state is drawn, and one that does not is
+   hidden in `Canvas`. A focus ring takes `CanvasText`, so it shows next to a `Highlight` fill too. The brand's color
+   specimens keep their real colors (`forced-color-adjust: none`).
+   ONE CONTROL OPTS OUT, AND ONLY WHILE SELECTED (owner decision HC1 B, 2026-10-09): under forced colors Chromium draws a
+   `Canvas` backplate behind every run of text, whatever the fill under it, so a `HighlightText` label on a `Highlight`
+   fill vanishes into a white box. A selected chip, segment, step, value or type-ahead option therefore takes
+   `forced-color-adjust: none`, and every color it and what it holds draw is a system color, set here. No other control
+   opts out. `test:chrome` section 39 measures each state under Chromium's forced-colors emulation, the selected labels
+   as drawn. */
+@media (forced-colors: active) {
+  /* A glyph takes the forced ink, not the chrome color it names: `HighlightText` on a selected control and `GrayText` on a
+     disabled one, below. */
+  .p3-ico { forced-color-adjust: auto; }
+  /* Selected, pressed and checked: the system's selection. The weights matrix's check draws a glyph and no text, so it
+     needs no opt-out. */
+  .p3-btn.p3-chip[aria-pressed="true"],
+  .p3-seg-tab:is([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"]),
+  .p3-btn.p3-mcheck[aria-checked="true"],
+  :is(.p3-step, .p3-vpick)[aria-pressed="true"],
+  .p3-combo-opt[aria-selected="true"] {
+    background-color: Highlight; border-color: Highlight; color: HighlightText;
+  }
+  /* HC1 B: the selected controls with a label opt out of the backplate; what they hold inks and edges in HighlightText. */
+  .p3-btn.p3-chip[aria-pressed="true"],
+  .p3-seg-tab:is([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"]),
+  :is(.p3-step, .p3-vpick)[aria-pressed="true"],
+  .p3-combo-opt[aria-selected="true"] { forced-color-adjust: none; }
+  :is(.p3-btn.p3-chip[aria-pressed="true"], .p3-seg-tab:is([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"]), .p3-btn.p3-mcheck[aria-checked="true"],
+    :is(.p3-step, .p3-vpick)[aria-pressed="true"], .p3-combo-opt[aria-selected="true"]) :not([data-content], [data-content] *) { color: HighlightText; border-color: HighlightText; }
+  /* A value's sample is brand content for its face, size or radius, never for its ink: on a selected value it inks and edges
+     in HighlightText too, or the chrome's own ink would sit on the Highlight fill. */
+  :is(.p3-step, .p3-vpick)[aria-pressed="true"] :is(.p3-vpick-sample, .p3-radius-sample) { color: HighlightText; border-color: HighlightText; }
+  .p3-check:is([aria-checked="true"], [aria-checked="mixed"]) .p3-check-box { background-color: Highlight; border-color: Highlight; }
+  .p3-check:is([aria-checked="true"], [aria-checked="mixed"]) .p3-check-box > .p3-ico { color: HighlightText; }
+  .p3-switch-knob { background-color: CanvasText; }
+  .p3-switch[aria-checked="true"] .p3-switch-track { background-color: Highlight; border-color: Highlight; }
+  .p3-switch[aria-checked="true"] .p3-switch-knob { background-color: HighlightText; }
+  /* The selected tab's underline is its edge; the others' is hidden, as it is outside forced colors. */
+  .p3-tab { border-bottom-color: Canvas; }
+  .p3-tab[aria-selected="true"] { border-bottom-color: CanvasText; }
+  /* A status dot (Activity, the Agent tile, a mode's verdict, Health) draws in the text color; its words already say
+     which state it is. Activity's running dot in the drawer stays a ring. */
+  .p3-dot, .p3-status-dot[data-state], .p3-tile-mark > .p3-status-dot[data-state] { background-color: CanvasText; }
+  .p3-status-dot[data-state="run"] { background-color: Canvas; }
+  .p3-seg-tab:is([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"]) .p3-dot { background-color: HighlightText; }
+  /* Focus rings. */
+  .p3-frame :focus-visible { outline-color: CanvasText; }
+  .p3-frame .p3-tab:focus-visible::before { border-color: CanvasText; }
+  /* Disabled, last, so it wins over a selected state: no fill, `GrayText`. A held segment that is selected keeps its
+     edge and the others hide theirs, as the disabled skin draws them outside forced colors. */
+  :is(.p3-btn, .p3-vpick, .p3-seg-tab, .p3-step, .p3-menu-item, .p3-text-input, .p3-select):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) {
+    background-color: Canvas; border-color: GrayText; color: GrayText;
+  }
+  :is(.p3-btn, .p3-vpick, .p3-seg-tab, .p3-step, .p3-menu-item):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) :not([data-content], [data-content] *) { color: GrayText; border-color: GrayText; }
+  :is(.p3-step, .p3-vpick):is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) :is(.p3-vpick-sample, .p3-radius-sample) { color: GrayText; border-color: GrayText; }
+  .p3-seg-tab:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]):not([aria-selected="true"], [aria-pressed="true"], [aria-checked="true"]) { border-color: Canvas; }
+  .p3-seg-tab:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-dot { background-color: GrayText; }
+  :is(.p3-check:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]), .p3-check-fixed) .p3-check-box { background-color: Canvas; border-color: GrayText; }
+  :is(.p3-check:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]), .p3-check-fixed) .p3-check-box > .p3-ico { color: GrayText; }
+  .p3-switch:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-switch-track { background-color: Canvas; border-color: GrayText; }
+  .p3-switch:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) .p3-switch-knob { background-color: GrayText; }
+  /* The brand's color specimens keep their colors: the brand switcher's swatch, Palettes' squares, heroes and role
+     dots, each fill row's swatch (the scrim's checkerboard with it), the step picker's chips, the start window's
+     example dots, Build style guides' swatches, Layout's samples, and the previews' specimen grounds. */
+  .p3-swatch > span, .p3-sg-swatch > span, .p3-hero, .p3-rolechip-dot, .p3-sqs, .p3-fill-sw, .p3-step-chip, .p3-start-dot,
+  .p3-lsamp-bar, .p3-lsamp-gap, .p3-legacy-card .sg-ground {
+    forced-color-adjust: none;
+  }
+}

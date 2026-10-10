@@ -7,7 +7,8 @@
  * reads which variable a paint binds and the fields a plan declares.
  *
  *   paints  every bound SOLID paint stores the color and alpha (as its opacity) its variable resolves to, for that
- *           node. In an INSTANCE only its vectors are read: an icon instance's ink is an override the executor writes
+ *           node; and every bound GRADIENT stop stores the color its variable resolves to, alpha in the stop's
+ *           own color (#2391). In an INSTANCE only its vectors are read: an icon instance's ink is an override the executor writes
  *           there (`descendantFills`, #2389), and an update rewrites it; the rest of an instance is its main's.
  *   glyphs  every frame that holds only vectors holds them inside its own bounds; and so does an icon COMPONENT,
  *           whose root is the glyph (#2389: every icon-set glyph is now an instance of one, so its geometry lives there).
@@ -52,6 +53,24 @@ export const drawnFaults = (root: unknown, vars: ReadonlyMap<string, DrawVar>, s
         const gotA = p.opacity ?? 1;
         const same = (['r', 'g', 'b'] as const).every((k) => Math.abs(got[k] - want[k]) < 1.5 / 255) && Math.abs(gotA - wantA) < 0.01;
         if (!same) out.push({ part, field, file: `stored ${hex(got)} at ${pct(gotA)}`, want: `${tail(v.name)}, which resolves to ${hex(want)} at ${pct(wantA)}` });
+      }
+      // A GRADIENT'S STOPS (#2391): each bound stop stores the color its variable resolves to, its alpha in the stop's
+      // own color. The host draws the stored stop as it draws a solid's, and on the NB master an in-place update left
+      // every directional veil's stops storing black under their bindings.
+      for (const p of ps as { type?: string; gradientStops?: unknown }[]) {
+        if (!/^GRADIENT_/.test(String(p?.type)) || !Array.isArray(p.gradientStops)) continue;
+        for (const s of p.gradientStops as { color?: unknown; boundVariables?: { color?: { id?: string } } }[]) {
+          const v = s?.boundVariables?.color?.id ? vars.get(s.boundVariables.color.id) : undefined;
+          const got = s?.color;
+          if (!v || !isRGB(got)) continue;
+          let want: unknown;
+          try { want = v.resolveForConsumer(n).value; } catch { continue; }
+          if (!isRGB(want)) continue;
+          const wantA = typeof want.a === 'number' ? want.a : 1;
+          const gotA = typeof got.a === 'number' ? got.a : 1;
+          const same = (['r', 'g', 'b'] as const).every((k) => Math.abs(got[k] - want[k]) < 1.5 / 255) && Math.abs(gotA - wantA) < 0.01;
+          if (!same) out.push({ part, field, file: `stored ${hex(got)} at ${pct(gotA)}`, want: `${tail(v.name)}, which resolves to ${hex(want)} at ${pct(wantA)}` });
+        }
       }
     }
   };

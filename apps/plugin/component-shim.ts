@@ -569,8 +569,12 @@ export const makeShim = (opts: ShimOpts = {}) => {
     const set = Object.values(varValues.get(name) ?? {}).find((x) => x && typeof x === 'object' && typeof (x as { r?: unknown }).r === 'number') as { r: number; g: number; b: number; a?: number } | undefined;
     if (set) return { r: set.r, g: set.g, b: set.b, a: set.a ?? 1 };
     const h = [...name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
-    // A wash resolves with its alpha, as the emitted `…/overlay/{hover,pressed}` variables do.
-    return { r: ((h & 0xff) + 16) / 300, g: (((h >> 8) & 0xff) + 16) / 300, b: (((h >> 16) & 0xff) + 16) / 300, a: /\/overlay\//.test(name) ? 0.1 : 1 };
+    // A wash resolves with its alpha, as the emitted `…/overlay/{hover,pressed}` variables do; and a veil with the
+    // emitted veil's (#2391): `…/veil/{dark,light}/{subtle,medium,strong}` at 50/60/70% and 40/50/60%, `…/clear` at 0.
+    const veil = /\/veil\/(dark|light)\/(subtle|medium|strong|clear)$/.exec(name);
+    const VEIL: Record<string, number> = { 'dark/subtle': 0.5, 'dark/medium': 0.6, 'dark/strong': 0.7, 'light/subtle': 0.4, 'light/medium': 0.5, 'light/strong': 0.6 };
+    const a = veil ? VEIL[`${veil[1]}/${veil[2]}`] ?? 0 : /\/overlay\//.test(name) ? 0.1 : 1;
+    return { r: ((h & 0xff) + 16) / 300, g: (((h >> 8) & 0xff) + 16) / 300, b: (((h >> 16) & 0xff) + 16) / 300, a };
   };
   /** #2379 — `scaleConstrained`: after `n` changed size from `w0`×`h0`, scale its SCALE children by the same ratio. */
   const scaleKids = (n: Node, w0: number, h0: number): void => {
@@ -1854,6 +1858,8 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // #2379 — A COMBINE RE-RESOLVES THE SET'S BOUND PAINTS, as the host did live (scratch file, 2026-10-08): a fresh
       // build ended storing each paint's variable color and a wash's alpha as its opacity, though the executor bound
       // them on another base. An update in place never combines, which is why it kept the base on the host.
+      // A GRADIENT'S STOPS ARE NOT RE-RESOLVED here (#2391): what the host does to them on a combine is unmeasured, so
+      // the shim keeps each stop's stored color as written, and that stored color is what draws.
       walk(set, (n) => {
         for (const key of ['fills', 'strokes'] as const) {
           const arr = n[key];
