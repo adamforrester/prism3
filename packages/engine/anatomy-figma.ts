@@ -4340,6 +4340,16 @@ for(const [name,key] of bare)if(!referenced.has(key))propMiss.push('property '+n
  * actually checking is everything downstream of here: node building, combine ordering, position
  * writing, read-backs. Do not "simplify" it into a shared-helper comparison.
  */
+/**
+ * THE CANVAS-FURNITURE PILOT (#2406 Q171, #2188 Q172/Q173) — the defs whose component pages carry the canvas
+ * furniture: `_Label` instances around the set, an `_inverse-backdrop` behind its inverse rows, and the inverse
+ * rows grouped into one block. ONE SWITCH, PER DEF: `planSetLayout` reads it for the grouping, so both executors
+ * (the plugin's and the paste payload's) lay a piloted set out the same way, and the plugin reads it for the
+ * labels and the backdrop. Owner-scoped to three defs until the owner has checked them in Figma; the rollout to
+ * every page adds ids here and nothing else.
+ */
+export const CANVAS_FURNITURE_PILOT: ReadonlySet<string> = new Set(['button', 'tag', 'text-field']);
+
 export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   if (!plans.length) throw new Error(`${fn}: no plans`);
   // ONE COMPONENT PER SET, and the two guards below cannot cover it. Both reason about
@@ -4394,10 +4404,21 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
     plans[0].gridAxis,
     varying.map((k) => ({ name: k, values: new Set(vals.map((v) => v[k])).size })),
   );
-  const rowKeys = varying.filter((k) => k !== colKey);
+  // INVERSE AS ONE BLOCK (#2188, owner decision Q173 A), for the defs in the canvas-furniture pilot only. `surface`
+  // moves to the front of the row keys and the rows are regrouped by its value, so every `surface=inverse` row sits
+  // in one contiguous band under one backdrop instead of one band per appearance. LAYOUT ONLY: a member's name,
+  // coordinate and key are untouched, and so is the plan order the members are built and combined in, which is the
+  // order a variant property's values read in the properties panel (#2386). The regroup is a STABLE partition: inside
+  // each surface block the rows keep the order they had, so the rest of the grid reads as before.
+  const surfaceFirst = CANVAS_FURNITURE_PILOT.has(plans[0].component) && varying.includes('surface') && colKey !== 'surface';
+  const rowKeys = varying.filter((k) => k !== colKey && !(surfaceFirst && k === 'surface'));
+  if (surfaceFirst) rowKeys.unshift('surface');
   const order = (list: string[]) => { const seen: string[] = []; for (const x of list) if (!seen.includes(x)) seen.push(x); return seen; };
   const cols = colKey ? order(vals.map((v) => v[colKey])) : [''];
-  const rows = order(vals.map((v) => rowKeys.map((k) => v[k]).join(' ')));
+  const rowOf = (v: Record<string, string>): string => rowKeys.map((k) => v[k]).join(' ');
+  const rows = surfaceFirst
+    ? order(vals.map((v) => v.surface)).flatMap((s) => order(vals.filter((v) => v.surface === s).map(rowOf)))
+    : order(vals.map(rowOf));
   const cells = plans.map((p, i) => ({
     name: names[i],
     root: p.root,

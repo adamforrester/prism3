@@ -24,8 +24,16 @@
  * width now, and left in place it would attach to whichever breakpoint takes that name next, which is exactly the
  * silent move D13 rules out. The engine's naming is unchanged; the names come from the engine itself (`namesFor`).
  *
- * WHAT IS NOT HERE. The page's limits (the first breakpoint fixed at 0, two to seven breakpoints) are the page's:
- * it offers no control that breaks them. This module writes what it is asked to, as the legacy page did.
+ * THE FIRST BREAKPOINT IS 0 (#2146, after #2139). The engine refuses a list that starts above 0 ("The first breakpoint
+ * must be 0px. …"), so this module refuses to write one: a change whose result would not start at 0 (removing the
+ * 0px breakpoint, or moving it) returns `refused` and writes nothing. A brand that ARRIVES starting above 0 is
+ * explained where the studio already explains a refusal: loading it refuses (`initSession` throws the engine's
+ * sentence, which the import and restore paths catch), and an agent's live write keeps the last good theme and sets
+ * `lastError` to that sentence for the error line (`rebuild`). While such a state is drawn, `namesFor` names it by
+ * its count instead of throwing.
+ *
+ * WHAT IS NOT HERE. The page's other limit (two to seven breakpoints) is the page's: it offers no control that
+ * breaks it, apart from the merge `editBreakpoint` refuses below.
  */
 import { brandTheme, type BrandInput } from '@prism3/engine/theme';
 import { BOOT_BRAND, BRANDS, brandState, setPath, theme } from './store';
@@ -56,10 +64,13 @@ const nameCache = new Map<string, readonly string[]>();
  *  exported, and a second copy would drift). Resolved on the boot example with only the breakpoints swapped, so the
  *  working brand's own state (which may not resolve mid-edit) never decides a name. */
 export const namesFor = (floors: readonly number[]): readonly string[] => {
-  const key = floors.join(',');
+  // Names follow the COUNT alone, so a list the engine refuses for its first width (#2146) is named as the same
+  // count starting at 0 would be, rather than throwing while the page draws it.
+  const named = floors.length && floors[0] !== 0 ? [0, ...floors.slice(1)] : floors;
+  const key = named.join(',');
   const hit = nameCache.get(key);
   if (hit) return hit;
-  const names = brandTheme({ ...structuredClone(BRANDS[BOOT_BRAND]), layout: { breakpoints: [...floors] } }).layout.breakpoints.map((b) => b.name);
+  const names = brandTheme({ ...structuredClone(BRANDS[BOOT_BRAND]), layout: { breakpoints: [...named] } }).layout.breakpoints.map((b) => b.name);
   nameCache.set(key, names);
   return names;
 };
@@ -73,15 +84,22 @@ export type BreakpointResult = { readonly dropped: readonly string[]; readonly r
 /** Write the breakpoint list `next` and re-key the three override maps (D13). The legacy clean-up first: an entry
  *  that is not a finite number at least 0 goes, a width already taken keeps its first entry, and the rest are
  *  sorted. */
-const commitBreakpoints = (next: readonly Entry[]): BreakpointResult => {
+const commitBreakpoints = (next: readonly Entry[], o: { keepFirst?: boolean } = {}): BreakpointResult => {
   const before = breakpointsOf();
-  const oldNames = namesFor(before);
   const seen = new Set<number>();
   const clean = next.filter((e) => Number.isFinite(e.px) && e.px >= 0 && !seen.has(e.px) && (seen.add(e.px), true))
     .sort((a, b) => a.px - b.px);
   const floors = clean.map((e) => e.px);
+  // #2146: a list that would not start at 0 is the engine's refusal (#2139), so it is not written at all. Except a
+  // Remove on a list that ALREADY starts above 0 and keeps that first width (`keepFirst`): it makes nothing worse, and
+  // at seven it is the way out (owner Q206 A), since the fix beside the error line is offered from six.
+  if (floors[0] !== 0 && !(o.keepFirst && floors[0] === before[0])) return { dropped: [], refused: true };
+  // Both lists' names are worked out BEFORE the write (#2482 review): a list the engine can't name (eight breakpoints,
+  // or a brand that arrived unnameable) is refused and writes nothing, so an invalid list is never stored and the D13
+  // re-key below always runs with the write.
+  let oldNames: readonly string[], newNames: readonly string[];
+  try { oldNames = namesFor(before); newNames = namesFor(floors); } catch { return { dropped: [], refused: true }; }
   setPath(brandState, 'layout.breakpoints', floors);
-  const newNames = namesFor(floors);
   /** Old name → new name, for every breakpoint that survived. */
   const rename = new Map<string, string>();
   clean.forEach((e, j) => { if (e.from !== undefined && oldNames[e.from] !== undefined) rename.set(oldNames[e.from], newNames[j]); });
@@ -103,14 +121,41 @@ const commitBreakpoints = (next: readonly Entry[]): BreakpointResult => {
   return { dropped: oldNames.filter((n) => dropped.has(n)) };
 };
 
+/** Whether the brand's own breakpoint list starts above 0: the state #2146 refuses to write, which only arrives
+ *  from outside the page (an agent's live write). Owner Q189 A offers the fix beside the error line. Not at seven,
+ *  the most a brand can have (owner Q206 A): one more would be eight, which the engine refuses, so the error line
+ *  stays and the brand removes a breakpoint first. */
+export const needsZeroBreakpoint = (): boolean => {
+  const bps = layoutOf().breakpoints;
+  return !!bps && bps.length > 0 && bps.length < MAX_BREAKPOINTS && bps[0] > 0;
+};
+/** The engine's own refusal of the brand's breakpoint list, read on the boot example with only the breakpoints
+ *  swapped (as `namesFor` reads names), or null when it takes the list. The error line's fix is offered only when
+ *  its error is this one (#2482 review), so the studio never restates the engine's sentence. */
+export const breakpointRefusal = (): string | null => {
+  const bps = layoutOf().breakpoints;
+  if (!bps?.length) return null;
+  try { brandTheme({ ...structuredClone(BRANDS[BOOT_BRAND]), layout: { breakpoints: [...bps] } }); return null; }
+  catch (err) { return (err as Error)?.message ?? String(err); }
+};
+/** Insert a 0px first breakpoint in front of the list (owner Q189 A). Nothing else changes: every other width
+ *  stays, and each per-breakpoint setting follows its breakpoint to its new name (D13). Refused, writing nothing,
+ *  when the list already starts at 0. */
+export const addZeroBreakpoint = (): BreakpointResult => {
+  if (!needsZeroBreakpoint()) return { dropped: [], refused: true };
+  return commitBreakpoints([{ px: 0 }, ...breakpointsOf().map((px, i) => ({ px, from: i }))]);
+};
+
 /** Add a breakpoint past the widest (the legacy `+ Add`: the widest plus 256). */
 export const addBreakpoint = (): BreakpointResult => {
   const bps = breakpointsOf();
   return commitBreakpoints([...bps.map((px, i) => ({ px, from: i })), { px: Math.max(0, ...bps) + ADD_STEP }]);
 };
 /** Remove breakpoint `i`. Its settings go with it, and the result names it. */
-export const removeBreakpoint = (i: number): BreakpointResult =>
-  commitBreakpoints(breakpointsOf().flatMap((px, j) => (j === i ? [] : [{ px, from: j }])));
+export const removeBreakpoint = (i: number): BreakpointResult => {
+  const bps = breakpointsOf();
+  return commitBreakpoints(bps.flatMap((px, j) => (j === i ? [] : [{ px, from: j }])), { keepFirst: bps[0] > 0 && i > 0 });
+};
 /** Move breakpoint `i` to `px`. It keeps its settings under whatever name it now has; an edit onto another
  *  breakpoint's width merges the two, the first in the old order surviving (the legacy de-duplication). */
 export const editBreakpoint = (i: number, px: number): BreakpointResult => {

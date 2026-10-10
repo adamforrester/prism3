@@ -35,6 +35,8 @@ import type { ActivityReading, OpReading } from './shell/activity';
 import type { FigmaAction } from './shell/figma';
 import type { BarActions, BarView, ExportBlock, ExportView } from './shell/bar';
 import { errorStrip, type ErrorStrip } from './shell/notices';
+// The error line's one Layout fix (owner Q189 A, #2146). The write stays in the Layout domain: `main.ts` makes none.
+import { firstBreakpointFix } from './domains/layout';
 // The start window (UI redesign S12) and what it shares with the brand menu's import: one check for every paste and
 // every file, with the error naming its line (owner decision S7).
 import { openStart, type StartChoice, type StartWindow } from './shell/start';
@@ -109,7 +111,9 @@ const syncErrorBar = (): void => {
   // A refused RESTORE is not a change that didn't apply, and what is on screen is not the designer's last
   // theme but the boot demo (#1989). So it says whose brand failed, and why the two writes are off.
   if (restoreFailure) globalErr.show(RESTORE_BAR[restoreFailure.kind](restoreFailure.reason));
-  else if (lastError) globalErr.show(`That change didn't apply: ${lastError} — you are seeing the last theme that resolved.`);
+  // Owner Q189 A (#2146): a brand that arrives starting above 0px gets a one-click fix beside the line.
+  else if (lastError) globalErr.show(`That change didn't apply: ${lastError} — you are seeing the last theme that resolved.`,
+    firstBreakpointFix(lastError));
   else globalErr.show(null);
   syncChromeHeight();   // the bar lives in the chrome; showing it moves everything sticky below
 };
@@ -1239,7 +1243,9 @@ let importOpen = false;
 let importErr: string | null = null;
 let importText = '';            // M-17: survives re-renders so a failed paste isn't wiped
 /** A14 (#2487): which read of the import box's file picker is current. A read finishing after its box closed, reopened
- *  or took another file loads nothing. Bumped by each read, and by the two controls that can reopen the box. */
+ *  or took another file loads nothing. Bumped by each read, by the two controls that can reopen the box, and by every
+ *  staged load (#2503): a pasted Load or an example chosen while a read is held is the newer choice, so the late read
+ *  must not replace the brand a waiting confirm names, or the paste's error. */
 let importGen = 0;
 /** A load waiting on confirm-overwrite (#160 for import; #1033 extends it to the other two writers).
  *
@@ -1363,6 +1369,7 @@ const exportTokens = (): void => {
  *  it is true, and #160's guarantee is strengthened rather than weakened: it still cannot overwrite
  *  real edits silently. */
 const stageImport = (text: string, from: 'paste' | 'file'): void => {
+  importGen++;                    // #2503: a held file read is now older than this choice, failed paste included
   importText = text;              // M-17: keep the paste so an error re-render doesn't wipe it
   const res = from === 'paste' ? validatePaste(text) : validateDesignMd(text);
   if ('error' in res) { importErr = importErrorText(res.error); pendingLoad = null; barChanged(); return; }
@@ -1385,6 +1392,7 @@ const stageImport = (text: string, from: 'paste' | 'file'): void => {
  * still an edit the user would be upset to lose.
  */
 const stageLoad = (input: BrandInput, origin: Origin): void => {
+  importGen++;                    // #2503: an example chosen while a file read is held outranks the read
   if (!needsOverwriteConfirm(brandState, provenance)) { loadBrand(input, origin); return; }
   pendingLoad = { input, origin }; barChanged();
 };
