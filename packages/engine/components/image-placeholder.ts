@@ -235,7 +235,7 @@ export const imagePlaceholder: ComponentDef = {
 
   ai: {
     primaryPurpose: 'Reserve space for a photograph at a fixed aspect ratio, holding the proportion while the frame flexes to its container, and show a neutral empty state until an image is dropped in.',
-    whenToUse: 'A layout needs a media slot at a known proportion before the image is chosen — a card\'s photo area, a hero, a gallery cell. Pick a ratio from the media it will hold (2:3, 3:4 or 4:5 portrait, 1:1, 4:3, 3:2 or 16:9 landscape); the frame keeps that ratio as it resizes and clips whatever image is dropped onto it. Once an image is supplied, set showMarker to false (the Marker property) so the "no image" marker does not draw over it.',
+    whenToUse: 'A layout needs a media slot at a known proportion before the image is chosen — a card\'s photo area, a hero, a gallery cell. Pick a ratio from the media it will hold (2:3, 3:4 or 4:5 portrait, 1:1, 4:3, 3:2 or 16:9 landscape); the frame keeps that ratio as it resizes and clips whatever image is dropped onto it. Once an image is supplied, turn the Marker property off so the "no image" marker does not draw over it.',
     avoidWhen: 'The surface is a decorative wash over an existing photo (that is the `veil` component), the image is already present and fixed (place it directly), or the space needs a play button or a legibility scrim over the media (not built yet — this is the core empty-state frame only).',
     // `veil` sits over an image this frame holds; it is not nested, so it is a partner, not a part (#1700).
     commonPartners: ['icon', 'veil'],
