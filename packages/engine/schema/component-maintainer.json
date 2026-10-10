@@ -935,7 +935,8 @@
           "A HOST STRETCHING A BOUND LENGTH. The standalone member binds its length to a variable; a host that nests it with `crossAxisFill` projects the instance as STRETCH on that axis. That stretch overriding the inherited width binding on the real Figma host is expected but not yet measured — the first nesting host (Accordion) is where it gets measured.",
           "THE NOMINAL LENGTHS ARE PLACEHOLDERS. `container.narrow` (720px) and `size.md.height` make the standalone members rule-shaped; nobody has decided they are right, and in use the rule fills its container."
         ],
-        "evolution": []
+        "evolution": [],
+        "projection": []
       }
     }
   }
