@@ -13751,6 +13751,136 @@ console.log(`\nInput commit and focus retention (#2487 PR 1)\n${'='.repeat(78)}`
     } finally { await ctx.close(); }
   }
 }
+// =============================================================================================
+// §45 — DRAG AND REBUILD SPEED (#2487 PR 2: B1, A9, A10, A13; the merged review, comment 6098371348 §4)
+// =============================================================================================
+// A slider's `input` ran the page's whole edit, a full re-resolve and a `localStorage` write on every tick, and Layout
+// re-rendered its container sliders under the pointer, so a drag stopped after one step. Measured here as a user drags:
+//   · a mouse drag on Shape's softness slider and on Layout's Maximum width moves the value MORE THAN ONE STEP, and the
+//     drawn and stored values agree (K3, Shape's in-place sync, and Layout's new one);
+//   · a drag stores at most ONE `localStorage` write (per-tick persist);
+//   · a burst of 20 color-picker `input`s, then its release, stores once and draws the last color;
+//   · an identical brand repaint (a second slider step that changes nothing in the bar) re-measures the bar ZERO times:
+//     `measureFit` is the one caller of `getComputedStyle` on `[data-p3="bar-main"]`, counted by a wrapper (A9);
+//   · a committed field commits the value it held at `change`: a write to it inside that task does not leak in.
+//
+// INDEPENDENCE (docs/34). EXPECTED is typed here: one write, zero re-measures, the breakpoints worked out by hand from the
+// defaults [0, 768, 1024, 1440, 1920], and "more than one step" against the slider's own `step` attribute. ACTUAL is the
+// browser's: the slider's drawn value, the persisted brand, a wrapper on `Storage.prototype.setItem`, and one on
+// `window.getComputedStyle`. Nothing is read from `lever-kit.ts`, `store.ts` or the pages.
+//
+// Mutations (#2487 PR 2), each failing here by name: Shape's `sliding && dragging.sync()` path removed → `§45 … Shape:
+// a mouse drag moves the softness more than one step`; Layout's in-place path removed → the Maximum width arm; the
+// persist hold removed → both `stores at most one write` arms and the picker arm; the bar's same-value guard removed →
+// the re-measure arm; `onCommitted` reading the field when its task runs → the capture arm.
+// =============================================================================================
+console.log(`\nDrag and rebuild speed (#2487 PR 2)\n${'='.repeat(78)}`);
+{
+  const BOUND = { timeout: 10000 };
+  const COUNT = () => {
+    window.__p3Writes = 0;
+    const set = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (k, v) { if (k === 'prism3:brandInput') window.__p3Writes++; return set.call(this, k, v); };
+    window.__p3Fits = 0;
+    const gcs = window.getComputedStyle;
+    window.getComputedStyle = function (el, ...rest) { if (el instanceof Element && el.matches('[data-p3="bar-main"]')) window.__p3Fits++; return gcs.call(this, el, ...rest); };
+  };
+  const settle = (page) => page.evaluate(() => new Promise((r) => setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(r)), 0)));
+  const writes = (page) => page.evaluate(() => window.__p3Writes);
+  const fits = (page) => page.evaluate(() => window.__p3Fits);
+  const zero = (page) => page.evaluate(() => { window.__p3Writes = 0; window.__p3Fits = 0; });
+  /** A mouse drag from the slider's thumb, rightward in small moves, as a user drags. Returns the value before and after. */
+  const drag = async (page, sel) => {
+    const el = page.locator(sel);
+    await el.scrollIntoViewIfNeeded();
+    const g = await el.evaluate((n) => { const r = n.getBoundingClientRect(); return { x: r.left, y: r.top + r.height / 2, w: r.width, v: Number(n.value), min: Number(n.min), max: Number(n.max), step: Number(n.step) || 1 }; });
+    // Start on the thumb (a press there moves nothing), and end three quarters of the way across the remaining track.
+    const at = g.x + ((g.v - g.min) / (g.max - g.min)) * g.w;
+    const to = at + (g.x + g.w - at) * 0.75;
+    await page.mouse.move(at, g.y);
+    await page.mouse.down();
+    for (let i = 1; i <= 12; i++) { await page.mouse.move(at + ((to - at) * i) / 12, g.y); await page.evaluate(() => new Promise((r) => requestAnimationFrame(r))); }
+    await page.mouse.up();
+    await settle(page);
+    const after = await page.locator(sel).evaluate((n) => Number(n.value));
+    return { before: g.v, after, step: g.step };
+  };
+
+  const where = '§45 web light 1280';
+  const { ctx, page, errors } = await open({ host: 'web', theme: 'light', w: 1280, h: 900 });
+  let step = 'install the counters';
+  try {
+    await page.evaluate(COUNT);
+    // Shape's softness (K3).
+    step = 'drag Shape\'s softness';
+    await goPlace(page, 'shape');
+    await hooks.need(page, '[data-p3="radius-scale-slider"]', BOUND);
+    await zero(page);
+    const sh = await drag(page, '[data-p3="radius-scale-slider"]');
+    const shWrites = await writes(page);
+    const shStored = (await persisted(page))?.radiusScale;
+    ok(sh.after - sh.before > sh.step * 1.5, `${where} Shape: a mouse drag moves the softness more than one step (${sh.before} → ${sh.after}, step ${sh.step})`);
+    ok(shWrites <= 1, `${where} Shape: a drag stores at most one write (${shWrites} written; stored ${JSON.stringify(shStored)})`);
+
+    // A9: an identical brand repaint re-measures the bar zero times. The first step may change the bar (its dirty state);
+    // the second changes nothing there.
+    step = 'step the softness twice by keyboard';
+    await page.locator('[data-p3="radius-scale-slider"]').focus();
+    await page.keyboard.press('ArrowLeft');
+    await settle(page);
+    await zero(page);
+    await page.keyboard.press('ArrowLeft');
+    await settle(page);
+    const f = await fits(page);
+    ok(f === 0, `${where} A9: a brand repaint that changes nothing in the bar re-measures it zero times (${f} measureFit call(s))`);
+
+    // Layout's Maximum width.
+    step = 'drag Layout\'s Maximum width';
+    await goPlace(page, 'layout');
+    await hooks.need(page, '[data-p3="container-max-range"]', BOUND);
+    await zero(page);
+    const mx = await drag(page, '[data-p3="container-max-range"]');
+    const mxWrites = await writes(page);
+    const mxStored = (await persisted(page))?.layout?.containerMax ?? null;
+    ok(mx.after - mx.before > mx.step * 1.5 && mxStored === mx.after, `${where} Layout: a mouse drag moves the Maximum width more than one step, and stores where it ends (${mx.before} → ${mx.after}, step ${mx.step}, stored ${mxStored})`);
+    ok(mxWrites <= 1, `${where} Layout: a drag on the Maximum width stores at most one write (${mxWrites} written)`);
+
+    // The onCommitted capture: a breakpoint commits the value it held at `change`.
+    step = 'commit a breakpoint, then write over the field in the same task';
+    await hooks.need(page, '[data-p3="bp-input"]', BOUND);
+    await page.evaluate(() => {
+      const fld = document.querySelectorAll('[data-p3="bp-input"]')[2];
+      fld.focus();
+      fld.value = '1100';
+      fld.dispatchEvent(new Event('change', { bubbles: true }));
+      fld.value = '1200';   // a repaint inside the task `change` fired in
+    });
+    await settle(page);
+    await page.waitForTimeout(200);
+    const bps = (await persisted(page))?.layout?.breakpoints ?? null;
+    ok(JSON.stringify(bps) === JSON.stringify([0, 768, 1100, 1440, 1920]), `${where} onCommitted: a committed field commits the value it held at change, not one written after it (stored ${JSON.stringify(bps)})`);
+
+    // A burst of color-picker inputs.
+    step = 'a burst of 20 primary-color inputs';
+    await goPlace(page, 'color-palettes');
+    await hooks.need(page, '[data-p3="primary-color"]', BOUND);
+    await zero(page);
+    const last = await page.evaluate(() => {
+      const p = document.querySelector('[data-p3="primary-color"]');
+      let hx = '';
+      for (let i = 0; i < 20; i++) { hx = `#${(0x204080 + i * 0x010203).toString(16).padStart(6, '0')}`; p.value = hx; p.dispatchEvent(new Event('input', { bubbles: true })); }
+      p.dispatchEvent(new Event('change', { bubbles: true }));
+      return hx;
+    });
+    await settle(page);
+    const pw = await writes(page);
+    const shown = await page.locator('[data-p3="primary-hex"]').inputValue();
+    ok(pw === 1 && shown === last, `${where} picker: 20 color inputs and a release store once and draw the last color (${pw} written; field ${shown}, last ${last})`);
+    ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+  } catch (e) {
+    ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
+  } finally { await ctx.close(); }
+}
 // #2238: the check box is measured on both hosts, in both chrome themes, somewhere in the sweep.
 for (const [k, n] of Object.entries(BOXES_BY)) ok(n > 0, `#2238 ${k}: the contrast audit measured check boxes in the sweep (${n})`);
 hooks.report(ok);

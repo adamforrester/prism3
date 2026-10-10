@@ -1293,8 +1293,8 @@ subscribe('brand', () => {
 const loadBrand = (input: BrandInput, origin: Origin): void => {
   // The store replaces the input, sets the provenance from that same value, and resets the view to
   // the first page and mode (`loadInput`); what is left here is this file's own menus and the render.
-  // `loadInput` sets the page before it resolves the new brand, so the `page` subscriber must not
-  // render mid-load: the `build()` below is the one render, against the resolved brand.
+  // `loadInput` tells its subscribers once each, after the new brand is resolved (#2487 A13); the `page`
+  // subscriber still waits for `loading` to clear, because the `build()` below is this file's one render.
   loading = true;
   // #1994: a brand loading is what ends a `rejected` or `unreadable` restore failure (see `restoreFailure`).
   if (restoreFailure && restoreFailure.kind !== 'unresolved') restoreFailure = null;

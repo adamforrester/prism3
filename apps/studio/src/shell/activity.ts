@@ -337,10 +337,11 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     const bad = running ? false : res ? !res.ok : false;
     el.tag.hidden = !(running ? o.agent : res?.agent);
     el.pill.className = bad ? 'p3-pill p3-pill-bad' : 'p3-pill';
-    el.pill.textContent = running ? 'Running' : res?.verdict ?? '';
+    const pill = running ? 'Running' : res?.verdict ?? '';
+    if (el.pill.textContent !== pill) el.pill.textContent = pill;
     el.pill.hidden = !running && !res;
     el.root.dataset.state = running ? 'running' : res ? (res.ok ? 'ok' : 'bad') : 'idle';
-    el.when.textContent = rec.t;
+    if (el.when.textContent !== rec.t) el.when.textContent = rec.t;
     const isOpen = expanded.has(k);
     el.head.setAttribute('aria-expanded', String(isOpen));
     el.body.hidden = !isOpen;
@@ -462,13 +463,14 @@ export const mountActivity = (opts: { readonly host: Host; readonly lend: Activi
     drawer.dataset.state = kind;
     const name = ['Activity', agentLinkOn && 'agent link on', statusWords(running, failed, unread)].filter(Boolean).join(', ');
     button.setAttribute('aria-label', name);
-    tip.textContent = name;
+    // Only when it differs (#2487 A9): a same-value write replaces the text node, and the bar re-measures.
+    if (tip.textContent !== name) tip.textContent = name;
     paintBar();
     for (const [k, rec] of recs) paintRow(k, rec, last.ops[k]);
     const order = [...recs.keys()].map((k) => rowEls.get(k)!.root);
     if (order.length !== rows.children.length || order.some((n, i) => rows.children[i] !== n)) rows.replaceChildren(...order);
     note.hidden = recs.size > 0;
-    linkDetail.textContent = agentLinkStatus.full ?? '';
+    if (linkDetail.textContent !== (agentLinkStatus.full ?? '')) linkDetail.textContent = agentLinkStatus.full ?? '';
     linkDetail.hidden = !agentLinkStatus.full;
   };
 

@@ -17,6 +17,7 @@ import { leverManifest } from '@prism3/engine/levers';
 import type { Lever } from '@prism3/engine/levers';
 import { leverHook } from '../levers/controls';
 import { glyph, h, hook, switchEl } from '../shell/dom';
+import { holdPersist, releasePersist } from '../state/store';
 
 export const leverOf = (key: string): Lever | undefined => leverManifest.find((l) => l.key === key);
 const slug = (k: string): string => leverHook(k).slice('lever-'.length);
@@ -263,8 +264,42 @@ const focused = (n: Element): boolean => document.activeElement === n;
  *  (focus lands on BODY). A microtask runs too early for that; a task runs after focus has moved, so the redraw keeps
  *  focus where Tab sent it. `textField` uses it, and so does a page's own field that commits on `change` and redraws.
  *  (`colorField` keeps its Enter: its page repaints it in place, and its `cur` guard drops the second commit.) */
-export const onCommitted = (el: HTMLInputElement, commit: () => void): void => {
-  el.addEventListener('change', () => setTimeout(commit));
+export const onCommitted = (el: HTMLInputElement, commit: (value: string) => void): void => {
+  // The value is the one `change` fired with, captured then: a repaint inside that one task must not change what is
+  // committed (#2487 PR 1's review).
+  el.addEventListener('change', () => { const v = el.value; setTimeout(() => commit(v)); });
+};
+
+/**
+ * A drag's writes, once per frame (#2487 B1). An `input` that fires on every pointer move ran the page's whole edit, a
+ * full re-resolve and a `localStorage` write, per tick. `perFrame` hands `run` the latest value once per animation
+ * frame, and holds the store's persist from the first `input` until the control is released, so a drag stores once.
+ * The release (`change`, `pointerup`, `pointercancel`, `blur`, or `QUIET_MS` with no `input`) runs a value still waiting first. The control's own
+ * readout (`aria-valuetext`) stays the caller's to write at once.
+ */
+/** How long a held control may sit with no `input` before its value is stored anyway. */
+const QUIET_MS = 400;
+export const perFrame = <T>(el: HTMLElement, run: (v: T) => void): ((v: T) => void) => {
+  let raf = 0;
+  let next: T;
+  let held = false;
+  let quiet = 0;
+  const flush = (): void => { if (raf) { cancelAnimationFrame(raf); raf = 0; run(next); } };
+  const release = (): void => { clearTimeout(quiet); flush(); if (held) { held = false; releasePersist(); } };
+  for (const t of ['change', 'pointerup', 'pointercancel', 'blur']) el.addEventListener(t, release);
+  return (v) => {
+    next = v;
+    if (!held) {
+      held = true;
+      holdPersist();
+      // A control a repaint replaced mid-drag gets no release of its own; the pointer's, anywhere, is the drag's end.
+      for (const t of ['pointerup', 'pointercancel']) window.addEventListener(t, release, { once: true, capture: true });
+    }
+    if (!raf) raf = requestAnimationFrame(() => { raf = 0; run(next); if (!el.isConnected) release(); });
+    // And a value set with no release at all (an `input` and nothing after it) is stored once things go quiet.
+    clearTimeout(quiet);
+    quiet = window.setTimeout(release, QUIET_MS);
+  };
 };
 /** Write text only when it changed: a same-value write still replaces the text node and costs a layout. */
 export const setText = (n: Node, t: string): void => { if (n.textContent !== t) n.textContent = t; };
@@ -287,7 +322,8 @@ export const colorField = (id: string, label: string, role: string, onPick: (hex
   const meta = h('span', 'p3-colorfield-meta');
   el.append(picker, text, meta);
   let cur = '';
-  picker.addEventListener('input', () => { text.value = picker.value; onPick(picker.value); });
+  const pick = perFrame(picker, onPick);
+  picker.addEventListener('input', () => { text.value = picker.value; pick(picker.value); });
   const commit = (): void => {
     const m = /^#?([0-9a-f]{6})$/i.exec(text.value.trim());
     if (!m) { text.value = cur; return; }
@@ -328,7 +364,8 @@ export const slider = (key: string, role: string, label: string, onInput: (v: nu
   el.id = part ? `p3-${slug(key)}-${part.id}` : `p3-${slug(key)}`;
   el.min = String(L.min ?? 0); el.max = String(L.max ?? 1); el.step = String(L.step ?? 1);
   el.setAttribute('aria-label', label);
-  el.addEventListener('input', () => { el.setAttribute('aria-valuetext', sliderReadout(L, Number(el.value))); onInput(Number(el.value)); });
+  const drag = perFrame(el, onInput);
+  el.addEventListener('input', () => { el.setAttribute('aria-valuetext', sliderReadout(L, Number(el.value))); drag(Number(el.value)); });
   return {
     el,
     set: (v) => {
@@ -448,7 +485,7 @@ export const textField = (id: string, role: string, opts: { label?: string; mono
   if (opts.label) el.setAttribute('aria-label', opts.label);
   if (opts.describedBy) el.setAttribute('aria-describedby', opts.describedBy);
   if (opts.onInput) { const f = opts.onInput; el.addEventListener('input', () => f(el.value)); }
-  if (opts.onCommit) { const f = opts.onCommit; onCommitted(el, () => f(el.value, el)); }
+  if (opts.onCommit) { const f = opts.onCommit; onCommitted(el, (v) => f(v, el)); }
   return { el, set: (v) => { if (!focused(el) && el.value !== v) el.value = v; } };
 };
 

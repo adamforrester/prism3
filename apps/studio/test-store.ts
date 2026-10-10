@@ -150,9 +150,37 @@ ok(store.brandState !== aurora && same(store.brandState, aurora), 'loadInput wor
 ok(store.page === 'palettes' && store.currentMode === store.rp.modes[0], 'loadInput resets the view to the first page and mode');
 ok(store.provenance !== store.bootProvenance && store.provenance.origin.kind === 'example', 'loadInput assigns a new provenance from its origin');
 ok(heard.origin === 1 && heard.brand === 1 && heard.page === 1 && heard.mode === 1, `loadInput invalidates origin, brand, page and mode once each (heard ${JSON.stringify(heard)})`);
+// #2487 A13: the load is one batch, told in the order resolve, mode, page, and nobody is told before the new brand is
+// resolved. A subscriber on each topic records what it saw; the expected order and theme are typed here.
+{
+  reset();
+  const seen: string[] = [];
+  const auroraTheme = brandTheme(aurora);
+  const offs2 = (['origin', 'brand', 'mode', 'page'] as const).map((t) => store.subscribe(t, () => seen.push(`${t}:${same(store.theme, auroraTheme) ? 'new' : 'old'}:${store.page}:${store.currentMode}`)));
+  store.loadInput(aurora, { kind: 'example', id: 'aurora' });
+  const mode0 = store.rp.modes[0];
+  const want = ['origin', 'brand', 'mode', 'page'].map((t) => `${t}:new:palettes:${mode0}`);
+  ok(JSON.stringify(seen) === JSON.stringify(want), `#2487 A13 loadInput tells origin, brand, mode and page once each, in that order, each against the new brand already resolved, its first mode and the first page (heard ${JSON.stringify(seen)})`);
+  for (const off of offs2) off();
+}
 store.clearOrigin();
 ok(store.firstRun() && same(store.brandState, aurora), 'clearOrigin returns to the start moment and leaves the working brand in place');
 for (const off of offs) off();
+
+// ---- #2487 B1: a held persist (a drag) writes once, on release ------------------------------------------
+{
+  const writes: BrandInput[] = [];
+  store.setPersist((input) => { writes.push(structuredClone(input)); });
+  store.holdPersist();
+  for (const m of [['light'], ['light', 'dark'], ['light', 'dark', 'hc-light']] as const) { store.brandState.modes = [...m]; store.rebuild(); }
+  ok(writes.length === 0, `#2487 B1 a held persist writes nothing during the drag's rebuilds (${writes.length} written)`);
+  store.releasePersist();
+  ok(writes.length === 1 && JSON.stringify(writes[0].modes) === JSON.stringify(['light', 'dark', 'hc-light']), `#2487 B1 the release writes the last-good brand once (${writes.length} written, modes ${JSON.stringify(writes[0]?.modes)})`);
+  store.releasePersist();
+  store.rebuild();
+  ok(writes.length === 2, `#2487 B1 after the release, a rebuild writes at once again, and a second release is a no-op (${writes.length} written)`);
+  store.setPersist(null);
+}
 
 // ---- per-mode lever I/O --------------------------------------------------------------------------------
 // The prune-to-byte-identical invariant: an all-cleared mode is indistinguishable from never set.

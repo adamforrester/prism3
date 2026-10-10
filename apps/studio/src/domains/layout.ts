@@ -297,11 +297,20 @@ export const mountLayoutLevers = (host: HTMLElement, cleanups: (() => void)[]): 
       const cur = Number(brandState.layout?.[key as ContainerKey] ?? theme.layout[key as ContainerKey]);
       const sl = slider(k, `container-${key === 'containerMax' ? 'max' : 'narrow'}-range`, label, (v) => {
         b.setReadout(sliderReadout(L, v));
-        edit(k, () => setContainer(key, v));
+        sliding = true;
+        try { edit(k, () => setContainer(key, v)); } finally { sliding = false; }
       });
       sl.el.id = `p3-${k.replace(/\./g, '-').replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`;
       sl.set(cur);
       b.setReadout(sliderReadout(L, cur));
+      // The in-place repaint a drag's own edit takes (#2487 B1), as Shape's and Components' sliders do: a full render
+      // replaced the slider under the pointer, so a drag stopped after one step. Only the containers read these values.
+      syncs.push(() => {
+        const now = Number(brandState.layout?.[key as ContainerKey] ?? theme.layout[key as ContainerKey]);
+        sl.set(now);
+        b.setReadout(sliderReadout(L, now));
+        b.setRefused(!!lastError && lastEdited === k);
+      });
       b.ctl.append(sl.el);
       el.append(b.el);
       out.push({ el: b.el, said: b.said, key: k, block: b });
@@ -313,7 +322,11 @@ export const mountLayoutLevers = (host: HTMLElement, cleanups: (() => void)[]): 
     Breakpoints: breakpoints, Grid: grid, Containers: containers,
   };
 
+  /** Set while a container slider's own edit runs, so the repaint it causes is the in-place one (`syncs`). */
+  let sliding = false;
+  let syncs: (() => void)[] = [];
   const render = (): void => {
+    syncs = [];
     const had = document.activeElement as HTMLElement | null;
     const focusKey = had && root.contains(had) ? had.getAttribute('data-p3') : null;
     const focusIndex = focusKey ? [...root.querySelectorAll(`[data-p3="${focusKey}"]`)].indexOf(had!) : -1;
@@ -351,7 +364,7 @@ export const mountLayoutLevers = (host: HTMLElement, cleanups: (() => void)[]): 
     setSearchHits(q ? items.filter((it) => !it.el.hidden).length : null);
   };
 
-  cleanups.push(subscribe('brand', render), subscribe('mode', () => { openPick = null; render(); }), subscribe('search', filter));
+  cleanups.push(subscribe('brand', () => { if (sliding && syncs.length) for (const f of syncs) f(); else render(); }), subscribe('mode', () => { openPick = null; render(); }), subscribe('search', filter));
   cleanups.push(() => { if (searchQuery.trim()) setSearchHits(null); });
   render();
 };
