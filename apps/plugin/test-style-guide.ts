@@ -89,8 +89,9 @@
  *      table's outer frame (section 32); a family with no Regular set in its role's face, or the host's first style
  *      for it, and bound.
  *  34. THE TOKEN COLUMN (#2372): the full variable path by default, the short name on request.
- *  35. BATCH 1 (#2353): the border widths and the focus ring's width and offsets in ONE Border width table, each outline's
- *      stroke weight bound and pinned to its own collection's mode; icon size in a dimension table; opacity as a
+ *  35. BATCH 1 (#2353): the border widths and the focus ring's width and offsets in ONE Border width table, each drawn on
+ *      the type=radius member's radius-example layer (#2506), its stroke weight bound, its corners not, and pinned to its
+ *      own collection's mode, a 0 width with no stroke; icon size in a dimension table; opacity as a
  *      percentage with its swatch, the transparency member filling its cell, its layer opacity bound; font style as the
  *      Text styles table's Style column; the later-phase note and the page's catalog without those groups. Phase 2's
  *      file plus the emission's border-width, focus, icon and layout collections; every expected value typed here.
@@ -226,6 +227,13 @@
  *     to or titled for the focus collection" fail; the opacity drawn without its swatch → "35: opacity 40's swatch is the
  *     transparency member filling its cell…" fails; the font style dropped from the Text styles column → "35: the Text
  *     styles table has a Style column after Weight" fails.
+ *
+ *   - (#2506, each on a committed head, restored from it) the border width drawn on the type=border member again → "35:
+ *     every Border width row's specimen is a type=radius instance…", "35: every Border width row's radius-example has its
+ *     strokeWeight bound…", "35: no Border width row binds the radius-example's corners…" and "35: a 0 width … draws no
+ *     stroke" fail; the corners bound to the width as well → "35: no Border width row binds the radius-example's corners
+ *     to its width…" fails alone; a row from another collection left unpinned → "35: the focus ring rows' radius examples
+ *     are pinned to the focus collection's mode" and "35: a 0 width … draws no stroke" fail.
  *
  * THE SHIM IGNORES A RESIZE THE HOST IGNORES: a FIXED text inside an instance keeps its main component's width under
  * `resize` (live, 2026-09-28). Before the shim modeled it, every width assertion passed over one-word-a-line text.
@@ -3240,14 +3248,48 @@ const main = async (): Promise<void> => {
     const r35 = await draw(b1.api, contract);
     ok(r35.unbound === 0 && !r35.tables.some((t) => t.status !== 'created'), `35: an open run draws every table, every specimen bound (unbound ${r35.unbound}; ${r35.misses.slice(0, 2).join(' / ')})`);
     const bwG = gridOf(tableFrame(b1.sem, 'Border width'));
-    const strokeOf = (token: string): N | undefined => cellAt(bwG, rowOf(bwG, token), 1)?.findOne((k) => k.name === 'Specimen') ?? undefined;
+    // THE SPECIMEN IS THE RADIUS EXAMPLE (#2506, owner direction on #2490): each row draws the swatches set's type=radius
+    // member, its radius-example layer's stroke weight bound to the row's variable and its corners left unbound, at the
+    // member's own 8px. The seven rows, their collections and the two 0 widths are typed here, not read off the planner.
     const instOf = (token: string): N | undefined => cellAt(bwG, rowOf(bwG, token), 1)?.findOne((k) => k.type === 'INSTANCE') ?? undefined;
-    ok(strokeOf('pds3/border-width/heavy')?.boundVariables.strokeWeight?.id === idOf('pds3/border-width/heavy') && instOf('pds3/border-width/heavy')?.explicitVariableModes['VariableCollectionId:border-width'] === 'border-width:0'
+    const strokeOf = (token: string): N | undefined => instOf(token)?.findOne((k) => k.name === 'radius-example') ?? undefined;
+    const BW_ROWS = ['pds3/border-width/none', 'pds3/border-width/hairline', 'pds3/border-width/thick', 'pds3/border-width/heavy',
+      'pds3/focus/ring/width', 'pds3/focus/ring/offset', 'pds3/focus/ring/offset-field'];
+    const CORNER_FIELDS = ['cornerRadius', 'topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'];
+    const notRadius = BW_ROWS.filter((t) => instOf(t)?.mainComponent?.name !== 'type=radius' || !strokeOf(t));
+    ok(notRadius.length === 0,
+      `35: every Border width row's specimen is a type=radius instance holding its radius-example layer (not: ${notRadius.map((t) => `${t}→${instOf(t)?.mainComponent?.name}`).join(', ') || 'none'})`);
+    const unboundWeight = BW_ROWS.filter((t) => strokeOf(t)?.boundVariables.strokeWeight?.id !== idOf(t));
+    ok(unboundWeight.length === 0,
+      `35: every Border width row's radius-example has its strokeWeight bound to that row's variable (not: ${unboundWeight.join(', ') || 'none'})`);
+    const cornersBound = BW_ROWS.filter((t) => CORNER_FIELDS.some((k) => strokeOf(t)?.boundVariables[k] !== undefined) || strokeOf(t)?.cornerRadius !== 8);
+    ok(cornersBound.length === 0,
+      `35: no Border width row binds the radius-example's corners to its width; they stay at the member's own 8px (bound or moved: ${cornersBound.map((t) => `${t} ${JSON.stringify(strokeOf(t)?.boundVariables)} r${strokeOf(t)?.cornerRadius}`).join(', ') || 'none'})`);
+    ok(instOf('pds3/border-width/heavy')?.explicitVariableModes['VariableCollectionId:border-width'] === 'border-width:0'
       && textIn(cellAt(bwG, rowOf(bwG, 'pds3/border-width/heavy'), 2)).startsWith('4px') && textIn(cellAt(bwG, rowOf(bwG, 'pds3/border-width/heavy'), 3)) === '0.25rem',
-      `35: border-width/heavy draws the type=border outline, its stroke weight bound, pinned, "4px" and "0.25rem" (${JSON.stringify(strokeOf('pds3/border-width/heavy')?.boundVariables)})`);
-    ok(strokeOf('pds3/focus/ring/width')?.boundVariables.strokeWeight?.id === idOf('pds3/focus/ring/width')
-      && instOf('pds3/focus/ring/width')?.explicitVariableModes['VariableCollectionId:focus'] === 'focus:0',
-      `35: the focus ring width's outline is bound to it and pinned to the focus collection's mode (${JSON.stringify(instOf('pds3/focus/ring/width')?.explicitVariableModes)})`);
+      `35: border-width/heavy's radius example is pinned to the border-width mode, "4px" and "0.25rem" (${JSON.stringify(instOf('pds3/border-width/heavy')?.explicitVariableModes)})`);
+    const focusUnpinned = ['pds3/focus/ring/width', 'pds3/focus/ring/offset', 'pds3/focus/ring/offset-field']
+      .filter((t) => instOf(t)?.explicitVariableModes['VariableCollectionId:focus'] !== 'focus:0');
+    ok(focusUnpinned.length === 0,
+      `35: the focus ring rows' radius examples are pinned to the focus collection's mode (not: ${focusUnpinned.map((t) => `${t} ${JSON.stringify(instOf(t)?.explicitVariableModes)}`).join(', ') || 'none'})`);
+    // A 0 WIDTH DRAWS NO STROKE: the only stroked layer in its specimen is the radius example, and its weight is bound to
+    // a variable worth 0 in the pinned mode. The shim does not render a bound weight, so the 0 is the variable's own.
+    const zeroStroked = (t: string, col: string): string[] => {
+      const inst = instOf(t);
+      const mode = inst?.explicitVariableModes[`VariableCollectionId:${col}`] ?? '';
+      // The emission aliases each width to a core dimension: followed to its number, each hop in its collection's default.
+      let bound = b1.vars.find((v) => v.id === strokeOf(t)?.boundVariables.strokeWeight?.id);
+      let value: unknown = bound?.valuesByMode[mode];
+      for (let hop = 0; hop < 8 && (value as { type?: string } | undefined)?.type === 'VARIABLE_ALIAS'; hop++) {
+        bound = b1.vars.find((v) => v.id === (value as { id: string }).id);
+        value = bound?.valuesByMode[b1.cols.find((c) => c.id === bound?.variableCollectionId)?.defaultModeId ?? ''];
+      }
+      const otherStrokes = (inst?.findAll((k) => Array.isArray(k.strokes) && k.strokes.length > 0) ?? []).filter((k) => k.name !== 'radius-example');
+      return [...(value === 0 ? [] : [`${t}: bound weight ${JSON.stringify(value)}`]), ...otherStrokes.map((k) => `${t}: ${k.name} stroked`)];
+    };
+    const zeroFaults = [...zeroStroked('pds3/border-width/none', 'border-width'), ...zeroStroked('pds3/focus/ring/offset-field', 'focus')];
+    ok(zeroFaults.length === 0 && textIn(cellAt(bwG, rowOf(bwG, 'pds3/border-width/none'), 2)).startsWith('0px'),
+      `35: a 0 width (border-width/none, focus/ring/offset-field) draws no stroke: its radius example's weight is bound to 0 and nothing else in it is stroked (${zeroFaults.join(' / ') || 'none'})`);
     ok(!tablesOn(b1.sem).concat(tablesOn(b1.prim)).some((w) => w.pluginData['prism3-style-guide'].split('|')[1] === 'VariableCollectionId:focus'),
       '35: no drawn table is keyed to the focus collection');
     const opG = gridOf(tableFrame(b1.prim, 'Opacity'));
