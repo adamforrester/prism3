@@ -19,8 +19,8 @@
  *
  * BEHAVIOR-NEUTRAL (the S2 rule). Every write goes through `state/depth-motion-input.ts`, which writes what the legacy
  * Elevation and Motion pages wrote, byte for byte, its traps included: Light's tint is written one key at a time, a
- * mode's shadow slider landing exactly on the brand value clears the override, and Light's easing always writes the
- * curve (#2051 changes that separately). In a mode, picking Light's own curve for a role is Auto: the legacy table never
+ * mode's shadow slider landing exactly on the brand value clears the override, and Light's easing at a role's default
+ * curve is unset rather than written (#2051). In a mode, picking Light's own curve for a role is Auto: the legacy table never
  * offered that self-map, and Auto stands for it.
  *
  * HOW IT REPAINTS: by store subscription only (plan §5): `brand`, `mode` and `search`. A control writes, notes the edit
