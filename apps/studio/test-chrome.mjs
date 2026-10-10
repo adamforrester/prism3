@@ -13870,8 +13870,13 @@ console.log(`\nDrag and rebuild speed (#2487 PR 2)\n${'='.repeat(78)}`);
     await goPlace(page, 'color-palettes');
     await hooks.need(page, '[data-p3="primary-color"]', BOUND);
     await zero(page);
+    // How many times the brand was re-resolved is read off the field's OKLCH readout, which every rebuild rewrites
+    // with the new color: a MutationObserver counts its text changes. 20 inputs in one task are one frame.
     const last = await page.evaluate(() => {
       const p = document.querySelector('[data-p3="primary-color"]');
+      const meta = p.closest('.p3-colorfield')?.querySelector('.p3-colorfield-meta');
+      window.__p3Meta = 0;
+      new MutationObserver((rs) => { window.__p3Meta += rs.length; }).observe(meta, { childList: true, characterData: true, subtree: true });
       let hx = '';
       for (let i = 0; i < 20; i++) { hx = `#${(0x204080 + i * 0x010203).toString(16).padStart(6, '0')}`; p.value = hx; p.dispatchEvent(new Event('input', { bubbles: true })); }
       p.dispatchEvent(new Event('change', { bubbles: true }));
@@ -13879,8 +13884,10 @@ console.log(`\nDrag and rebuild speed (#2487 PR 2)\n${'='.repeat(78)}`);
     });
     await settle(page);
     const pw = await writes(page);
+    const runs = await page.evaluate(() => window.__p3Meta);
     const shown = await page.locator('[data-p3="primary-hex"]').inputValue();
-    ok(pw === 1 && shown === last, `${where} picker: 20 color inputs and a release store once and draw the last color (${pw} written; field ${shown}, last ${last})`);
+    ok(runs === 1 && shown === last, `${where} picker: 20 color inputs in one frame re-resolve the brand once, and draw the last color (${runs} readout change(s); field ${shown}, last ${last})`);
+    ok(pw === 1, `${where} picker: 20 color inputs and a release store once (${pw} written)`);
     ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
   } catch (e) {
     ok(false, `${where}: the case stopped at "${step}" — ${stopped(e)}`);
