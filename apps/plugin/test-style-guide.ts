@@ -127,7 +127,7 @@
  *   - (retired 2026-09-29 with #1749's FIXED columns: "5: every swatch column is the swatch plus its padding: 80" and
  *     "5: a long description wraps at 360px rather than clipping". Their successors are "5: a swatch column is the
  *     wider of the specimen and its mode header…" and "5: the description column is its longest line…");
- *   - a palette row shows its full path → "5: a palette table leads with the step alone…" fails;
+ *   - a palette row shows its full path in short mode → "34: short: a palette table leads with the step alone…" fails;
  *   - steps sorted without named-first → "9: named values lead, in file order, then steps ascending" fails;
  *   - a role keeps its family in its name → "2: the adopted type=Text swatch is used for a text role" fails;
  *   - no header rewrite / rewrite over an edit → "9: an earlier run's title is rewritten…" / "9: a title the
@@ -835,13 +835,16 @@ const prism3Variables = (): { cols: ShimCol[]; vars: ShimVar[] } => {
 const input = parseDesignMd(readFileSync(join(here, '../../packages/engine/examples/prism3.design.md'), 'utf8')).input;
 const contract = resolveAllModes(brandTheme(input));
 
-/** The owner-cell Text table's width (section 2): its fourteen HUG tracks, 2,828px by the shim's own metric, with no
- *  gap between them since #2336 (the row lines are drawn; they were 2px gaps). */
-const TEXT_OWNER_W = 2828;
+/** The owner-cell Text table's width (section 2): its fourteen HUG tracks, 2,940px by the shim's own metric, with no
+ *  gap between them since #2336 (the row lines are drawn; they were 2px gaps). 2,828 before the Token column printed
+ *  the full path (#2372): `pds3/color/text/` is 16 characters, 16 × 7 = 112px more. */
+const TEXT_OWNER_W = 2940;
 /** The first three semantic tables' x in a row (decision 16): Background at the row's start, then each 160px after the
- *  one before it, whose widths the shim measures as 2,335 (Background) and 3,147 (Foreground): fourteen tracks each,
- *  with no gap between them since #2336 (2,361 and 3,173 with the thirteen 2px gaps). */
-const XS_THREE = ['Background 0', `Foreground ${2335 + 160}`, `Text ${2335 + 160 + 3147 + 160}`];
+ *  one before it, whose widths the shim measures as 2,489 (Background) and 3,301 (Foreground): fourteen tracks each,
+ *  with no gap between them since #2336 (2,361 and 3,173 with the thirteen 2px gaps, short names). The full path in the
+ *  Token column (#2372) adds `pds3/color/background/` and `pds3/color/foreground/`, 22 characters each: 22 × 7 = 154px
+ *  on 2,335 and 3,147. */
+const XS_THREE = ['Background 0', `Foreground ${2489 + 160}`, `Text ${2489 + 160 + 3301 + 160}`];
 /** A 120-character description widens the Text table's description column from 662 (its longest, 90 characters:
  *  630 + 16 + 16) to 872 (840 + 16 + 16): 210px. */
 const WIDEN_TEXT = 210;
@@ -988,7 +991,15 @@ const gridOf = (wrap: N | undefined): N => {
 };
 const cellAt = (grid: N, r: number, c: number): N | undefined => grid.children.find((k) => k.gridRow === r && k.gridCol === c);
 const textIn = (n: N | undefined): string => (n?.findAll((k) => k.type === 'TEXT') ?? []).map((t) => t.characters).join(' | ');
-const rowOf = (grid: N, token: string): number => grid.children.find((k) => k.gridCol === 0 && textIn(k) === token)?.gridRow ?? -1;
+/** A row, found by its Token cell: the text exactly, or else the ONE full path (#2372) that ends in it — a step or a role
+ *  named the way it reads in short mode. More than one such path is no row, so a locator never picks a row silently. */
+const rowOf = (grid: N, token: string, col = 0): number => {
+  const tokens = grid.children.filter((k) => k.gridCol === col && k.gridRow! > 0);
+  const exact = tokens.find((k) => textIn(k) === token);
+  if (exact) return exact.gridRow!;
+  const tail = tokens.filter((k) => textIn(k).endsWith(`/${token}`));
+  return tail.length === 1 ? tail[0].gridRow! : -1;
+};
 /** The variable a node's paints are bound to: the bound paint among them, wherever it sits. A fill swatch paints its color
  *  over the cell's white since #2336, so its bound paint is the second, on top. */
 const boundId = (paints: unknown): string | undefined => (paints as { boundVariables?: { color?: { id: string } } }[] | undefined)?.find((p) => p?.boundVariables?.color)?.boundVariables?.color?.id;
@@ -1296,7 +1307,8 @@ const main = async (): Promise<void> => {
     ok(descs.length === 23 && descs.every((k) => k.width === 662), '5: every description cell FILLs to the column, 662, the short ones included');
     const off = [...tablesOn(f.sem), ...tablesOn(f.prim)].flatMap((w) => clipped(gridOf(w)).map((x) => `${w.name} ${x}`));
     ok(off.length === 0, `5: no cell in any table is wider than its column (${off.slice(0, 3).join('; ')})`);
-    ok(JSON.stringify(neutral.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn).slice(0, 4)) === JSON.stringify(['025', '050', '100', '150']), '5: a palette table leads with the step alone: 025, 050, 100, 150 …');
+    ok(JSON.stringify(neutral.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn).slice(0, 4)) === JSON.stringify(['pds3/core/palette/neutral/025', 'pds3/core/palette/neutral/050', 'pds3/core/palette/neutral/100', 'pds3/core/palette/neutral/150']),
+      '5: a palette table leads with each step\'s full path, in ramp order: pds3/core/palette/neutral/025, 050, 100, 150 … (#2372)');
     const sum = styleGuideSummary(first);
     ok(sum.ok && sum.headline === '✓ style guide: 22 tables' && sum.headline.length <= 24, '5: headline "✓ style guide: 22 tables"');
   }
@@ -1428,7 +1440,7 @@ const main = async (): Promise<void> => {
     const legacyCell = (sh: Shim & { prim: N }): string => textIn(cellAt(gridOf(tableFrame(sh.prim, 'Legacy')!), 1, 0));
     mix([{ fontName: { family: 'Inter', style: 'Regular' } }, { fontName: { family: 'Inter', style: 'Bold' } }]);
     const mr = await draw(m.api, contract, { collections: ['legacy'] });
-    ok(legacyCell(m) === '5' && mr.misses.length === 0, '8: a mixed-font cell loads every segment\'s font and is written');
+    ok(legacyCell(m) === 'legacy/ramp/5' && mr.misses.length === 0, '8: a mixed-font cell loads every segment\'s font and is written');
     m.fontFails.add('Inter Bold');
     const mb = await draw(m.api, contract, { collections: ['legacy'] });
     ok(mb.misses.includes('Inter Bold unavailable'), '8: a mixed-font cell with an unloadable segment names the font');
@@ -1981,12 +1993,12 @@ const main = async (): Promise<void> => {
     ok(textIn(cellAt(sg, r050, 2)) === '4px | ↗ | pds3/core/dimension/4' && textIn(cellAt(sg, r050, 3)) === '0.25rem',
       `16: its value cell reads px with its alias, and the REM column beside it REM at a 16px base: "${textIn(cellAt(sg, r050, 2))}" ‖ "${textIn(cellAt(sg, r050, 3))}"`);
     ok(textIn(cellAt(sg, rowOf(sg, '1200'), 2)) === '96px | ↗ | pds3/core/dimension/96' && textIn(cellAt(sg, rowOf(sg, '1200'), 3)) === '6rem', `16: space/1200 reads "96px", and "6rem" in its REM column (${textIn(cellAt(sg, rowOf(sg, '1200'), 2))} ‖ ${textIn(cellAt(sg, rowOf(sg, '1200'), 3))})`);
-    ok(JSON.stringify(sg.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn)) === JSON.stringify(['0', '025', '050', '075', '100', '150', '200', '250', '300', '400', '500', '600', '700', '800', '900', '1000', '1100', '1200']),
+    ok(JSON.stringify(sg.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn)) === JSON.stringify(['0', '025', '050', '075', '100', '150', '200', '250', '300', '400', '500', '600', '700', '800', '900', '1000', '1100', '1200'].map((st) => `pds3/space/${st}`)),
       '16: the space scale in ramp order, 1000 after 900');
     // NUMERIC SORT: the metrics ramp is stored 16, 4, 100, 2.
     const step = gridOf(tableFrame(p2.prim, 'Step')!);
     const stepRows = step.children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn);
-    ok(JSON.stringify(stepRows) === JSON.stringify(['2', '4', '16', '100']), `16: a ramp stored 16, 4, 100, 2 draws 2, 4, 16, 100 (${stepRows.join(', ')})`);
+    ok(JSON.stringify(stepRows) === JSON.stringify(['metrics/step/2', 'metrics/step/4', 'metrics/step/16', 'metrics/step/100']), `16: a ramp stored 16, 4, 100, 2 draws 2, 4, 16, 100 (${stepRows.join(', ')})`);
     ok(cellAt(step, 1, 1)?.mainComponent?.name === 'display=filled' && barIn(cellAt(step, 4, 1))?.width === 100, '16: a size draws the run\'s one spacing style, the filled bar by default, 100px wide for 100');
     // ONE SPACING STYLE FOR THE WHOLE RUN (owner decision 18, 2026-09-29: "a stylistic choice, never chosen by role"). A
     // table with a gap, a height and a width row draws every one in the chosen style: the filled bar by default, the
@@ -2194,7 +2206,7 @@ const main = async (): Promise<void> => {
       && humanizeName(['050'], 'space') === 'Space 050' && humanizeName(['xs', 'padding-x']) === 'XS Padding X' && humanizeName(['display', '2xl', 'strong']) === 'Display 2XL Strong',
       `20: humanized: "Text Primary", "Display XL Emphasis", "Space 050", "XS Padding X", "Display 2XL Strong" (${humanizeName(['display', 'xl', 'emphasis'])})`);
     /** The row whose Token cell (column 1, after Name) reads `token`. */
-    const rowBy = (g: N, token: string): number => g.children.find((k) => k.gridCol === 1 && textIn(k) === token)?.gridRow ?? -1;
+    const rowBy = (g: N, token: string): number => rowOf(g, token, 1);
     const nameOf = (w: N, token: string): string => { const g = gridOf(w); return textIn(cellAt(g, rowBy(g, token), 0)); };
     const c20 = await fullFile();
     await draw(c20.api, contract, { titleCell: true, collections: ['color'] });
@@ -2434,7 +2446,7 @@ const main = async (): Promise<void> => {
     const g0 = gridOf(dimO), z0 = cellAt(g0, rowOf(g0, '0'), 1);
     const zText = cellAt(g0, rowOf(g0, '0'), 2)?.findOne((k) => k.type === 'TEXT')?.characters;
     const zName = cellAt(g0, rowOf(g0, '0'), 0)?.findOne((k) => k.type === 'TEXT')?.characters;
-    ok(z0?.type === 'INSTANCE' && z0.visible === false && !z0.findOne((k) => k.name === 'spacing-line-example')?.boundVariables.paddingLeft && rroL.unbound === 0 && zName === '0' && zText === '0px',
+    ok(z0?.type === 'INSTANCE' && z0.visible === false && !z0.findOne((k) => k.name === 'spacing-line-example')?.boundVariables.paddingLeft && rroL.unbound === 0 && zName === 'nbds/dimension/0' && zText === '0px',
       `22: dimension/0 draws nothing: its specimen hidden, not bound and not counted, its row still "0 | 0px" (${z0?.type} visible ${z0?.visible}; ${rroL.unbound} unbound; ${zName} | ${zText})`);
 
     // THE CELLS SET UP FILE BUILDS, by the real builder: sized by their left padding at the value, the bracket's
@@ -2482,9 +2494,11 @@ const main = async (): Promise<void> => {
     const at = (title: string): string => { const w = tableFrame(rw.prim, title); return w ? `${w.x},${w.y}` : `no ${title} table`; };
     // The Primitive page holds two categories: dimension (Dimension 602 wide, its REM column included and 1,888 tall, Density, Step) and font
     // variables (Font family 968 wide, …). The font row starts 160px below the dimension row's tallest table. No gap
-    // between tracks since #2336: with the 2px gaps these were 610, 1,970 and 974.
-    ok(JSON.stringify(['Dimension', 'Density', 'Font family', 'Font size'].map(at)) === JSON.stringify(['0,0', '762,0', '0,2048', '1128,2048']),
-      `23: two categories, two tables each, at literal positions: Dimension 0,0 and Density 762,0; Font family 0,2048 and Font size 1128,2048 (${['Dimension', 'Density', 'Font family', 'Font size'].map(at).join(' | ')})`);
+    // between tracks since #2336: with the 2px gaps these were 610, 1,970 and 974. The full path in the Token column
+    // (#2372) widens Dimension from 602 to 728 (its column was the 5-character "Token" header; now the 23 of
+    // `pds3/core/dimension/124`: 18 × 7 = 126) and Font family from 968 to 1,122 (`pds3/core/font/family/`, 22 × 7 = 154).
+    ok(JSON.stringify(['Dimension', 'Density', 'Font family', 'Font size'].map(at)) === JSON.stringify(['0,0', '888,0', '0,2048', '1282,2048']),
+      `23: two categories, two tables each, at literal positions: Dimension 0,0 and Density 888,0; Font family 0,2048 and Font size 1282,2048 (${['Dimension', 'Density', 'Font family', 'Font size'].map(at).join(' | ')})`);
     const rowOfCat = (cat: RegExp): N[] => tablesOn(rw.prim).filter((w) => cat.test(w.pluginData['prism3-style-guide'])).sort((a, b) => a.x - b.x);
     const dimRow = rowOfCat(/^dimension\|/), fontRow = rowOfCat(/^(fontFamily|fontSize|fontWeight|lineHeight|letterSpacing)\|/);
     const rowGaps = (ns: N[]): number[] => ns.slice(1).map((n, i) => n.x - (ns[i].x + ns[i].width));
@@ -3028,8 +3042,8 @@ const main = async (): Promise<void> => {
     // weight roles on Semantic tokens. Which is which is read off the emission: a literal is a raw weight, an alias a role.
     const fontEm = (JSON.parse(readFileSync(join(OUT, 'core.font.json'), 'utf8')) as { variables: { name: string; resolvedType: string; alias: unknown; scopes?: string[] }[] }).variables
       .filter((v) => v.scopes?.includes('FONT_WEIGHT'));
-    const rawW = fontEm.filter((v) => !v.alias).map((v) => v.name.split('/').pop()!);
-    const roleW = fontEm.filter((v) => v.alias).map((v) => v.name.split('/').pop()!);
+    const rawW = fontEm.filter((v) => !v.alias).map((v) => v.name);
+    const roleW = fontEm.filter((v) => v.alias).map((v) => v.name);
     const tokensOf = (w: N | undefined): string[] => (w ? gridOf(w).children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn) : []);
     const w3 = await phase2File();
     await draw(w3.api, contract, { types: ['fontWeight'] });
@@ -3072,6 +3086,62 @@ const main = async (): Promise<void> => {
     const t5b = cellAt(g5b, 1, 1)?.findOne((k) => k.type === 'TEXT') ?? null;
     ok(fontId(t5b?.fontName) === 'Proof Condensed Light Condensed' && t5b?.boundVariables.fontFamily?.id === 'VariableID:metrics:fam' && r5b.unbound === 0 && !r5b.misses.some((m) => /unavailable/.test(m)),
       `33: a family with no text style and only a Light Condensed face is set in it and bound (${say5(t5b)}; ${r5b.misses.join(' / ') || 'no misses'})`);
+  }
+
+  console.log('34. the Token column (#2372, owner decision Q135 B): the full variable path by default, the short name on request');
+  {
+    // Every expected value is typed out here, from the engine's emitted names; none is read back off the plan.
+    const tokenCol = (w: N | undefined): string[] => (w ? gridOf(w).children.filter((k) => k.gridCol === 0 && k.gridRow! > 0).sort((a, b) => a.gridRow! - b.gridRow!).map(textIn) : []);
+    // THE PLAN: a row's Token cell is its whole name by default, and below the table's prefix in short mode.
+    const tp = (o: StyleGuideOptions): string | undefined => planStyleGuide(catalog, contract, o).tables.find((t) => t.title === 'Inverse')?.rows.find((r) => r.name === 'pds3/color/inverse/text/primary')?.tokenCell;
+    ok(tp({}) === 'pds3/color/inverse/text/primary' && tp({ tokenNames: 'full' }) === 'pds3/color/inverse/text/primary',
+      `34: plan: absent or full, the Inverse table's text/primary row prints pds3/color/inverse/text/primary (${tp({})})`);
+    ok(tp({ tokenNames: 'short' }) === 'text/primary', `34: plan: short, it prints text/primary (${tp({ tokenNames: 'short' })})`);
+
+    // DRAWN, DEFAULT: a long-path table (Inverse) and a palette table.
+    const full = await fullFile();
+    await draw(full.api, contract, { collections: ['color'] });
+    await draw(full.api, contract, { collections: ['core'] });
+    const invFull = tokenCol(tableFrame(full.sem, 'Inverse'));
+    ok(invFull.length > 0 && invFull.every((t) => t.startsWith('pds3/color/inverse/')) && invFull.includes('pds3/color/inverse/text/primary') && invFull.includes('pds3/color/inverse/background/primary'),
+      `34: default: every Inverse row prints its full path, as pds3/color/inverse/text/primary (${invFull.slice(0, 2).join(', ')})`);
+    ok(JSON.stringify(tokenCol(tableFrame(full.prim, 'Neutral')).slice(0, 3)) === JSON.stringify(['pds3/core/palette/neutral/025', 'pds3/core/palette/neutral/050', 'pds3/core/palette/neutral/100']),
+      `34: default: the Neutral palette prints pds3/core/palette/neutral/025, 050, 100 … (${tokenCol(tableFrame(full.prim, 'Neutral')).slice(0, 3).join(', ')})`);
+    // NEVER CLIPPED: the Token track takes its longest path, by the shim's own metric (7px a character).
+    const invG = gridOf(tableFrame(full.sem, 'Inverse'));
+    const longest = Math.max(...invFull.map((t) => t.length));
+    ok(clipped(invG).length === 0 && trackW(invG, 0) >= longest * CHAR_W,
+      `34: default: no Inverse cell is wider than its column, and the Token track holds its longest path, ${longest} × ${CHAR_W}px (track ${trackW(invG, 0)}; ${clipped(invG).slice(0, 2).join('; ')})`);
+
+    // SWITCHING IS NOT A RENAME: the rerun report keys on variable ID and compares names and raw values, never the
+    // printed Token cell, so a rerun in short mode updates every table with no change, and back again.
+    const toShort = await draw(full.api, contract, { collections: ['color'], tokenNames: 'short' });
+    const quiet = (r: StyleGuideResult): string[] => r.tables.flatMap((t) => (t.status !== 'updated' ? [`${t.title}: ${t.status}`]
+      : [...t.diff.added, ...t.diff.removed, ...t.diff.changed, ...t.diff.renamed].map((x) => `${t.title}: ${x}`)));
+    ok(toShort.tables.length === 11 && quiet(toShort).length === 0, `34: switching to short names updates every table and reports no row added, removed, changed or renamed (${quiet(toShort).slice(0, 3).join('; ')})`);
+
+    // DRAWN, SHORT: the names below each table's prefix, as before #2372.
+    const short = await fullFile();
+    await draw(short.api, contract, { collections: ['color'], tokenNames: 'short' });
+    await draw(short.api, contract, { collections: ['core'], tokenNames: 'short' });
+    const invShort = tokenCol(tableFrame(short.sem, 'Inverse'));
+    ok(invShort.includes('text/primary') && invShort.includes('background/primary') && !invShort.some((t) => t.startsWith('pds3/')),
+      `34: short: the Inverse table prints text/primary and background/primary, no root (${invShort.slice(0, 2).join(', ')})`);
+    ok(JSON.stringify(tokenCol(tableFrame(short.prim, 'Neutral')).slice(0, 4)) === JSON.stringify(['025', '050', '100', '150']),
+      `34: short: a palette table leads with the step alone: 025, 050, 100, 150 … (${tokenCol(tableFrame(short.prim, 'Neutral')).slice(0, 4).join(', ')})`);
+    ok(tokenCol(tableFrame(short.sem, 'Text'))[0] === 'primary', `34: short: text/primary is named "primary" in the Text table (${tokenCol(tableFrame(short.sem, 'Text'))[0]})`);
+    const toFull = await draw(short.api, contract, { collections: ['color'] });
+    ok(toFull.tables.length === 11 && quiet(toFull).length === 0 && tokenCol(tableFrame(short.sem, 'Text'))[0] === 'pds3/color/text/primary',
+      `34: back to full paths: no row reported, and text/primary reads its full path again (${quiet(toFull).slice(0, 3).join('; ')})`);
+
+    // PHASE 2 FOLLOWS THE SAME OPTION: a dimension and a text style.
+    const p34 = await phase2File();
+    await draw(p34.api, contract, { types: ['dimension', 'typography'] });
+    ok(tokenCol(tableFrame(p34.sem, 'Space'))[1] === 'pds3/space/025' && tokenCol(tableFrame(p34.sem, 'Text styles')).includes('body/lg/default'),
+      `34: default: a space step prints pds3/space/025, a text style its whole name, body/lg/default (${tokenCol(tableFrame(p34.sem, 'Space'))[1]})`);
+    const p34s = await phase2File();
+    await draw(p34s.api, contract, { types: ['dimension'], tokenNames: 'short' });
+    ok(tokenCol(tableFrame(p34s.sem, 'Space'))[1] === '025', `34: short: the space step prints 025 (${tokenCol(tableFrame(p34s.sem, 'Space'))[1]})`);
   }
 
   if (failures) { console.error(`\n${failures} style-guide check(s) failed`); process.exit(1); }
