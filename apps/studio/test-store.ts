@@ -154,8 +154,11 @@ ok(heard.origin === 1 && heard.brand === 1 && heard.page === 1 && heard.mode ===
 // resolved. A subscriber on each topic records what it saw; the expected order and theme are typed here.
 {
   reset();
+  // Start from a different brand, so a subscriber told before the new brand resolves reads the OLD theme.
+  store.loadInput(harbor, { kind: 'example', id: 'harbor' });
   const seen: string[] = [];
   const auroraTheme = brandTheme(aurora);
+  ok(!same(store.theme, auroraTheme), 'premise: the store holds another brand\'s theme before the load');
   const offs2 = (['origin', 'brand', 'mode', 'page'] as const).map((t) => store.subscribe(t, () => seen.push(`${t}:${same(store.theme, auroraTheme) ? 'new' : 'old'}:${store.page}:${store.currentMode}`)));
   store.loadInput(aurora, { kind: 'example', id: 'aurora' });
   const mode0 = store.rp.modes[0];
