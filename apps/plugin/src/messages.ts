@@ -169,6 +169,10 @@ export interface StyleGuideOptions {
   /** Add a leading "Name" column on every table: a readable name per row ("Text Primary") a designer can edit, kept
    *  on rerun (owner decision 15). Default off (proposed). */
   titleCell?: boolean;
+  /** What the Token column prints (#2372, owner decision Q135 B): `full` (default), the whole Figma variable or style
+   *  name, `nbds/color/text/primary`, the form the alias chips print; or `short`, the name below the table's shared
+   *  prefix, `primary` under Text. Absent means `full`. */
+  tokenNames?: 'full' | 'short';
 }
 
 /** The four kinds of table the Build style guides page groups by (owner decision H8): color; spacing and size (every
