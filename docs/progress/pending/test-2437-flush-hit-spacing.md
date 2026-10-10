@@ -18,11 +18,23 @@ the floor, at the "always enough" gap and at the exact gap the skill states. Eve
 floor-wide hit area must hit that button, horizontally and vertically, and the neighbor's box must hit only the
 neighbor. A control arm puts the pair two pixels closer than their reaches and must see the overlap.
 
+**The sketch is size-aware, and hit-tested exactly as shipped (Lane D's review, option 1).** #2421's sketch drew one
+`inset: min(0px, (100% - 44px) / 2)` with a comment saying "24px at small", and the first fixture made its small arms
+pass by rewriting 44px to 24px in the text, so it tested a sketch no consumer was given. The sketch now sets the hit size
+as a custom property, `--flush-hit: 44px` on `.flush-button` and `24px` on `.flush-button.small`, and the `::before`
+insets by `(100% - var(--flush-hit)) / 2`. The fixture applies the classes of the sketch's own 24px rule to its small
+buttons, with no rewrite, so a sketch without that rule leaves the small buttons on the medium extension and the small
+arms fail. The owner's spacing sentence is unchanged.
+
 **A trap the first run hit:** probing at half pixels read EXACTLY touching areas as overlapping. Chrome's hit test rounds a
 fractional point, so 152.5 landed on the area that starts at 153. The fixture probes whole pixels fully inside each area,
 so the half pixel two abutting areas share is no one's. The controls still see a real two-pixel overlap.
 
 **Mutations,** through the #2272 harness against the section, each failing by name:
+- the sketch back to a fixed 44px, with no small rule: `✗ #2437 flush hit area small: two 1px flush buttons at the
+  skill's 12px bound (24px apart, a neighbor 12px on) keep their 24px hit areas apart — overlap …`, 9 small arms and no
+  medium one;
 - the skill's 22px bound lowered to 16px: `✗ #2437 flush hit area medium: two 1px flush buttons at the skill's 16px bound
   … — overlap …` (and the 6px pair; from a 12px label on, 16px is enough, which is what the formula says);
-- the sketch's 44px raised to 48px: the bound and the exact-gap arms, the neighbor's own box included (16 failures).
+- the sketch's medium hit size raised to 48px (`--flush-hit: 48px`): the medium bound and exact-gap arms, the neighbor's
+  own box included (6 failures).
