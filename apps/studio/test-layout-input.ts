@@ -168,5 +168,23 @@ try { r = L.addBreakpoint(); } catch (e) { threw = (e as Error).message; }
 ok(threw === '' && r.refused === true && J(store.brandState) === before,
   `on that state, Add would keep the first above 0, so it is refused without throwing — ${threw || J(r)}`);
 
+console.log('\n5. Owner Q189 A (#2146): the error line offers "Add a 0px breakpoint" for a brand that arrives starting above 0. One click inserts 0px first; nothing else changes');
+reset({ breakpoints: [0, 768] });
+ok(L.needsZeroBreakpoint() === false, 'a brand that starts at 0 is not offered the action');
+store.brandState.layout = { ...(store.brandState.layout ?? {}), breakpoints: [320, 768], columnOverrides: { sm: 6, md: 10 } };
+store.rebuild();
+ok(L.needsZeroBreakpoint() === true, `a live write of [320, 768] is offered the action — lastError: "${store.lastError}"`);
+r = L.addZeroBreakpoint();
+ok(!r.refused && r.dropped.length === 0 && J(lay()?.breakpoints) === J([0, 320, 768]),
+  `addZeroBreakpoint inserts 0 in front and keeps 320 and 768 exactly — ${J(r)}, ${J(lay()?.breakpoints)}`);
+ok(J(lay()?.columnOverrides) === J({ md: 6, lg: 10 }),
+  `each column setting follows its breakpoint to its new name (320: sm → md, 768: md → lg) — ${J(lay()?.columnOverrides)}`);
+store.rebuild();
+ok(store.lastError === null && J(store.theme.layout.breakpoints.map((b) => b.px)) === J([0, 320, 768]) && L.needsZeroBreakpoint() === false,
+  `after the click the brand resolves at [0, 320, 768], the error line clears and the action goes — "${store.lastError}"`);
+before = J(store.brandState);
+r = L.addZeroBreakpoint();
+ok(r.refused === true && J(store.brandState) === before, `on a list that already starts at 0 the action is refused and writes nothing — ${J(r)}`);
+
 console.log(`\n${executed - failed}/${executed} layout-input assertions passed.`);
 if (failed) process.exit(1);

@@ -3238,6 +3238,35 @@ for (const brand of BRANDS) {
     return !!e && getComputedStyle(e).display === 'none';
   }, null, { timeout: 5000 }).then(() => true, () => false);
   ok(cleared, `${brand}: undoing the refused edit clears the bar`);
+
+  // OWNER Q189 A (#2146): a brand that arrives starting above 0px (an agent's live write; the page itself cannot make
+  // one) is offered "Add a 0px breakpoint" beside the line, and only then. The label is restated as a literal so a
+  // change to the DRAFT copy fails here by name. One click inserts 0px first; nothing else in the brand moves.
+  const fixState = () => page.evaluate(() => {
+    const f = document.querySelector('[data-p3="error-bar"] [data-p3="error-fix"]');
+    return { shown: !!f && getComputedStyle(f).display !== 'none', label: f?.textContent?.trim() ?? '' };
+  });
+  await page.evaluate(() => window.__prism3TestEdit('typography.titleFloor', undefined));
+  await page.waitForFunction(() => { const e = document.querySelector('[data-p3="error-bar"]'); return !!e && getComputedStyle(e).display !== 'none'; }, null, { timeout: 5000 }).catch(() => {});
+  const otherErr = await errState();
+  hooks.absent(ok, { seen: otherErr.shown && /typography\.sizes\.title\.2xs/.test(otherErr.text), state: 'the error bar shown for the title-floor refusal' },
+    !(await fixState()).shown, `${brand}: Q189 A: an error that is not about the first breakpoint offers no action beside the line`);
+  await hooks.click(page.locator('[data-p3="title-floor-16"]'));
+  await page.waitForFunction(() => { const e = document.querySelector('[data-p3="error-bar"]'); return !!e && getComputedStyle(e).display === 'none'; }, null, { timeout: 5000 }).catch(() => {});
+  const bpBefore = await inputAt(page);
+  await page.evaluate(() => window.__prism3TestEdit('layout.breakpoints', [320, 768]));
+  await page.waitForFunction(() => { const e = document.querySelector('[data-p3="error-bar"]'); return !!e && getComputedStyle(e).display !== 'none'; }, null, { timeout: 5000 }).catch(() => {});
+  const offered = await fixState();
+  ok(offered.shown && offered.label === 'Add a 0px breakpoint',
+    `${brand}: Q189 A: a live write of [320, 768] shows "Add a 0px breakpoint" beside the error line — ${offered.shown ? `"${offered.label}"` : 'no action shown'}`);
+  if (offered.shown) await hooks.click(page.locator('[data-p3="error-bar"] [data-p3="error-fix"]'));
+  const fixed = await page.waitForFunction(() => { const e = document.querySelector('[data-p3="error-bar"]'); return !!e && getComputedStyle(e).display === 'none'; }, null, { timeout: 5000 }).then(() => true, () => false);
+  await page.waitForFunction(() => { try { return JSON.stringify(JSON.parse(localStorage.getItem('prism3:brandInput'))?.input?.layout?.breakpoints) === '[0,320,768]'; } catch { return false; } }, null, { timeout: 5000 }).catch(() => {});
+  const bpAfter = await inputAt(page);
+  const { layout: la, ...restAfter } = bpAfter ?? {};
+  const { layout: lb, ...restBefore } = bpBefore ?? {};
+  ok(fixed && JSON.stringify(la?.breakpoints) === '[0,320,768]' && JSON.stringify(restAfter) === JSON.stringify(restBefore),
+    `${brand}: Q189 A: one click clears the bar and stores [0, 320, 768], the rest of the brand unchanged — bar ${fixed ? 'cleared' : 'still shown'}, breakpoints ${JSON.stringify(la?.breakpoints)}, rest ${JSON.stringify(restAfter) === JSON.stringify(restBefore) ? 'identical' : 'changed'}`);
   // Put this context's own brand back, so the sections below run on it.
   await page.evaluate((raw) => localStorage.setItem('prism3:brandInput', raw), stored0);
   await page.goto(plainUrl);

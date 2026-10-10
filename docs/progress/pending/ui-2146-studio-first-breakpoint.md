@@ -1,6 +1,6 @@
 ## (2026-10-10) — Layout: the studio refuses a breakpoint list that doesn't start at 0, and draws one that arrives that way (#2146 item 3)
 
-**STATUS: branch `ui/2146-studio-first-breakpoint`.** Studio state only. No engine change, no committed artifact moves, no ENGINE bump owed. `CONTRACT_VERSION` unchanged. **No new user-facing copy.** **Closes #2146**: items 1 and 2 landed in #2158 (2026-10-05).
+**STATUS: branch `ui/2146-studio-first-breakpoint`.** Studio state only. No engine change, no committed artifact moves, no ENGINE bump owed. `CONTRACT_VERSION` unchanged. **One new DRAFT label** (owner Q189 A, below). **Closes #2146**: items 1 and 2 landed in #2158 (2026-10-05).
 
 ### Where the three surfaces stand
 
@@ -27,6 +27,28 @@
 - Drop the commit-time refusal: 4 assertions fail by name, showing `[768,1024]` and `[320,1024]` written.
 - Drop the `namesFor` guard: 2 fail by name, with the engine sentence thrown during the draw.
 
-### Open for the owner (a design question, not decided here)
+### The way out: "Add a 0px breakpoint" (owner Q189 A)
 
-A brand that arrives mid-session starting above 0 (only an agent's write can do this) can't be fixed from the Layout page: row 0 is disabled and every write is refused, so the error line explains but offers no way out. Should row 0 accept 0 in that case, or should there be a one-step "set to 0px" fix? That's new UI and copy, so it isn't built here.
+The first round left one state with no way out: a brand that arrives mid-session starting above 0 (only an agent's live write can make one). Row 0 is disabled and every write is refused, so the error line explained the problem but offered no fix. The owner chose A: a one-click action beside the error line.
+
+- **State:** `needsZeroBreakpoint()` checks whether the brand's own list starts above 0. `addZeroBreakpoint()` puts `{ px: 0 }` in front of the existing entries and commits through `commitBreakpoints`. Every other width stays, and each per-breakpoint override follows its breakpoint to its new name under D13 (`320: sm → md`, `768: md → lg`). It's refused, writing nothing, on a list that already starts at 0.
+- **Strip:** `errorStrip().show(text, action?)` (`shell/notices.ts`) mounts a `p3-btn` with the hook `error-fix` beside the line, and only while there's an action. The first draft kept a hidden `p3-btn-page` in every strip. `.p3-btn`'s `display` beat `hidden`, so `test:chrome` §29 measured an empty control at 2.7:1 and failed it by name. The plain `p3-btn` edge, measured shown on the strip's own ground, is 3.18:1 light and 3.93:1 dark, and the label is 19.4:1 and 18.1:1.
+- **Wiring:** `firstBreakpointFix()` in `domains/layout.ts` builds the action, or returns null unless `needsZeroBreakpoint()`. `syncErrorBar` (`main.ts`) passes it on the `lastError` branch only, so any other error gets no button. The write stays in the Layout domain: `test-shell-imports.ts` holds that `main.ts` imports nothing from `state/layout-input`. The first draft wired the action in `main.ts` and that gate failed it by name, so it was moved.
+- **Copy (DRAFT):** the label "Add a 0px breakpoint" (`LAYOUT_DRAFT.addZero`). No other new sentence; the error line is still the approved #2139 sentence.
+
+**Edges, kept as they are on purpose:**
+- **Seven breakpoints become eight.** A brand that arrives with seven breakpoints and starts above 0 becomes eight after the click. The engine refuses that ("The brand can have at most seven breakpoints. This brand has 8."), so the error line changes to that sentence and the action goes. The list then starts at 0, so the page's Remove works on every row but the first, and that's the way out. Dropping a breakpoint automatically would break "nothing else changes".
+- **Mid-session only.** Importing or restoring such a brand still refuses at load (`initSession` throws the sentence). The action is for a brand that's already open.
+
+**Tests:**
+- `test-layout-input.ts` section 5 (32 → 38): not offered at 0; offered after a live `[320, 768]`; the click gives exactly `[0, 320, 768]`; column overrides re-keyed `{ md: 6, lg: 10 }`; after rebuild `lastError` is null and the action goes; refused and byte-identical on a list starting at 0.
+- `test-smoke.mjs` §2d, per brand:
+  - the title-floor refusal shows no action (through `absent()`, with the shown bar as its proof);
+  - a live `[320, 768]` shows the button with the literal label;
+  - one click clears the bar and stores `[0, 320, 768]`, with everything outside `layout` byte-identical.
+
+**Mutations, each failing by name:**
+- **The action missing:**
+  - `main.ts` passes no action: the hook guard (`"error-fix" … never appeared in the rendered DOM`) and smoke "…shows "Add a 0px breakpoint" beside the error line — no action shown" and "one click clears the bar…" fail for prism3, aurora and harbor.
+  - `needsZeroBreakpoint` is always false: 4 unit assertions fail.
+- **The action altering other breakpoints** (replacing the first with 0 instead of inserting): unit "inserts 0 in front and keeps 320 and 768 exactly — [0,768]" fails, plus 2 more. Smoke "…stores [0, 320, 768]… — breakpoints [0,768]" fails for all three brands.

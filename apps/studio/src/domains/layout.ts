@@ -31,12 +31,13 @@
 import { brandState, currentMode, lastError, rebuild, searchQuery, setPage, setSearchHits, subscribe, theme } from '../state/store';
 import { isDerived } from '../state/verdict';
 import {
-  COLUMN_CHOICES, MAX_BREAKPOINTS, MIN_BREAKPOINTS, addBreakpoint, autoGrid, breakpointsOf, editBreakpoint, overrideOf,
-  namesFor, removeBreakpoint, setColumnOverride, setColumns, setContainer, setGapOverride, type BreakpointResult, type ContainerKey, type GapField,
+  COLUMN_CHOICES, MAX_BREAKPOINTS, MIN_BREAKPOINTS, addBreakpoint, addZeroBreakpoint, autoGrid, breakpointsOf, editBreakpoint, overrideOf,
+  namesFor, needsZeroBreakpoint, removeBreakpoint, setColumnOverride, setColumns, setContainer, setGapOverride, type BreakpointResult, type ContainerKey, type GapField,
 } from '../state/layout-input';
 import { DOMAINS, LAYOUT_LABELS, pageOfTab, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
+import type { StripAction } from '../shell/notices';
 import { addRowButton, leverBlock, leverOf, promoteLever, slider, sliderReadout, stateLine, textField, tokenLabel, type LeverBlock } from '../ui/lever-kit';
 import { noteSectionEdit } from '../preview/follow-edit';
 import { valuePicker, type PickerValue, type ValuePickerOpts } from '../ui/value-picker';
@@ -68,7 +69,15 @@ export const LAYOUT_DRAFT = {
   columnsHint: 'Column counts the grid can use. Any whole number from 4 to 24 works; these are the common ones.',
   gapHint: 'Gutter and margin use the spacing steps, so each stays a spacing token.',
   limit: 'Seven breakpoints at most, xs to 3xl.',
+  // Owner Q189 A (#2146): the error line's one-click fix for a brand that arrives starting above 0px. DRAFT.
+  addZero: 'Add a 0px breakpoint',
 } as const;
+
+/** The error line's one-click fix (owner Q189 A, #2146), for `main.ts` to hand the error strip: offered only while the
+ *  brand's breakpoint list starts above 0, which only an outside write can make. One click inserts 0px first. */
+export const firstBreakpointFix = (): StripAction | null => (needsZeroBreakpoint()
+  ? { label: LAYOUT_DRAFT.addZero, run: () => { addZeroBreakpoint(); rebuild(); } }
+  : null);
 
 /** Something drawn that search can hide and a refusal can mark. */
 type Item = { el: HTMLElement; said: string; key: string; block?: LeverBlock };

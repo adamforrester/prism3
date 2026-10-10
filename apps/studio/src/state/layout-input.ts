@@ -117,6 +117,20 @@ const commitBreakpoints = (next: readonly Entry[]): BreakpointResult => {
   return { dropped: oldNames.filter((n) => dropped.has(n)) };
 };
 
+/** Whether the brand's own breakpoint list starts above 0: the state #2146 refuses to write, which only arrives
+ *  from outside the page (an agent's live write). Owner Q189 A offers the fix beside the error line. */
+export const needsZeroBreakpoint = (): boolean => {
+  const bps = layoutOf().breakpoints;
+  return !!bps && bps.length > 0 && bps[0] > 0;
+};
+/** Insert a 0px first breakpoint in front of the list (owner Q189 A). Nothing else changes: every other width
+ *  stays, and each per-breakpoint setting follows its breakpoint to its new name (D13). Refused, writing nothing,
+ *  when the list already starts at 0. */
+export const addZeroBreakpoint = (): BreakpointResult => {
+  if (!needsZeroBreakpoint()) return { dropped: [], refused: true };
+  return commitBreakpoints([{ px: 0 }, ...breakpointsOf().map((px, i) => ({ px, from: i }))]);
+};
+
 /** Add a breakpoint past the widest (the legacy `+ Add`: the widest plus 256). */
 export const addBreakpoint = (): BreakpointResult => {
   const bps = breakpointsOf();
