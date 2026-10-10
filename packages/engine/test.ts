@@ -70,7 +70,7 @@ import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab, divider } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -25377,14 +25377,16 @@ arm: {
     d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.width && !p.aspectRatio));
   // #1354 moved the non-square track to `switch-control`, so the def binding `width` is the atom now.
   // The field family's focus caret (owner decision, 2026-09-26) binds `width` too: a hairline-wide bar one
-  // value line tall, two different variables, so it joins on the rule's own terms.
-  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control'];
+  // value line tall, two different variables, so it joins on the rule's own terms. The divider (#2455) binds
+  // both axes per orientation: a hairline thickness and a nominal length, two different variables.
+  const WIDTH_EXPECTED = ['text-field', 'textarea', 'switch-control', 'divider'];
   ok(WIDTH_EXPECTED.every((n) => widthDefs.some((d) => d.id === n)) && widthDefs.length === WIDTH_EXPECTED.length,
     `#990 the width projection rule below covers exactly [${WIDTH_EXPECTED.join(', ')}] — a def gaining a deliberately non-square box must be represented here, and a def losing one is a stale claim (found: ${widthDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of widthDefs) {
     const sizes = def.variants?.size ?? [];
     const size = sizes[Math.min(1, sizes.length - 1)];
-    const coord: Record<string, string> = { state: 'rest' };
+    // A stateless def (the divider) is read with no state coordinate: 'rest' is not one of its states.
+    const coord: Record<string, string> = def.states.length ? { state: 'rest' } : {};
     for (const [a, vs] of Object.entries(def.variants ?? {})) if (a !== 'size') coord[a] = vs[0];
     const find = (part: string, at: Record<string, string>): any => {
       const plan = figmaAnatomyPlan(def, size, at as never);
@@ -25396,7 +25398,7 @@ arm: {
       // A STATE-GATED part (the caret, at focus-visible) is read at its own first state, not at rest.
       const gate = part.presentWhen?.state;
       const node = find(name, gate ? { ...coord, state: gate[0] } : coord);
-      const key = part.width.replace('{size}', String(size));
+      const key = part.width.replace('{size}', String(size)).replace(/\{(\w+)\}/g, (m, a) => coord[a] ?? m);
       const ref = (def.tokens ?? {})[key];
       ok(!!ref, `#990 ${def.id}.${name} binds width '${part.width}' and the def's own tokens map resolves it at '${key}' — a template that resolves to nothing would make the arms below vacuous`);
       if (!ref) continue;
@@ -29378,6 +29380,31 @@ arm: {
   const para = skill.split(/\n\s*\n/).find((b) => /inset=flush/.test(b) && /44×44/.test(b));
   ok(!!para && missing(para).length === 0,
     `#2408 prism3-consume: the skill tells the agent a medium or large flush text button keeps a 44×44 hit area in code and a small one 24×24, with the ::before technique (missing: ${para ? missing(para).join(', ') || 'none' : 'no paragraph names inset=flush and 44×44'})`);
+}
+
+// ------------------------------------------------------------------- #2455: the divider, a 1px rule
+// Each issue recommendation held against a literal (all DRAFT, owner items in the PR). EXPECTED is the issue's
+// text, typed here; ACTUAL is the projected plan, so a rebind in the def (another color role, another thickness)
+// fails the arm by name rather than agreeing with itself.
+{
+  const EXPECT: Record<string, { fills: string; height: string; width: string }> = {
+    horizontal: { fills: 'color/border/secondary', height: 'border-width/hairline', width: 'container/narrow' },
+    vertical: { fills: 'color/border/secondary', height: 'size/md/height', width: 'border-width/hairline' },
+  };
+  ok(JSON.stringify(divider.variants) === JSON.stringify({ orientation: ['horizontal', 'vertical'] }),
+    `#2455 divider: one axis, orientation = [horizontal, vertical], horizontal first so it is the code default and Figma's default member (got ${JSON.stringify(divider.variants)})`);
+  ok(divider.states.length === 0, `#2455 divider: no states, because it is not interactive (got [${divider.states.join(', ')}])`);
+  for (const [o, want] of Object.entries(EXPECT)) {
+    const root = figmaAnatomyPlan(divider, undefined, { orientation: o } as never).root as any;
+    ok(root.paints?.fills === want.fills,
+      `#2455 divider ${o}: the rule's color is ${want.fills} (got ${root.paints?.fills})`);
+    ok(root.bound?.height === want.height && root.bound?.width === want.width,
+      `#2455 divider ${o}: the rule binds height ${want.height} and width ${want.width} — the hairline is its thickness, the other axis its nominal length (got h ${root.bound?.height} / w ${root.bound?.width})`);
+    ok(root.layoutMode !== undefined && (root.children ?? []).length === 0,
+      `#2455 divider ${o}: one box with a layout (so a host can stretch the nested instance) and no children (got layoutMode ${root.layoutMode}, ${(root.children ?? []).length} children)`);
+  }
+  ok(/^separator\b/.test(divider.accessibility.role) && /aria-hidden="true"/.test(divider.accessibility.role),
+    `#2455 divider: the code role is separator, aria-hidden when decorative (got '${divider.accessibility.role}')`);
 }
 
 // ------------------------------------------------------------------- report

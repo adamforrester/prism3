@@ -3000,12 +3000,24 @@ export type State = (typeof STATES)[number];
  * which names the axis and its flush value, so a def using another value set stays expressible. An AUTHORING
  * axis: a button is flush where it is placed and never changes on screen. `lint-axis-values.ts` carries the two
  * values as a `sole` set.
+ *
+ * ── `orientation`: THE TWENTY-SECOND NAME, FOR THE DIVIDER (owner's issue #2455, 2026-10-10, DRAFT) ──
+ *
+ * `orientation` (`horizontal | vertical`) is WHICH WAY a divider's rule runs across its container: spanning
+ * its width between content stacked above and below, or its height between items side by side. The owner's
+ * issue names it, and it is also the ARIA attribute the value drives (`aria-orientation`), so the code prop,
+ * the Figma axis and the accessibility attribute share one word. It clears this list's bar the way `direction`
+ * did: a distinct kind of distinction no existing name expresses, with the nearest defeated. `direction` is
+ * where a veil's wash sits across an image, a spatial DISTRIBUTION of paint, not which axis a part runs along;
+ * naming the divider's axis `direction` would put two unrelated value sets under one name, the #756 failure.
+ * `width` is how much of its container a control takes, and `shape` a corner silhouette. An AUTHORING axis: a
+ * rule runs one way where it is placed. `lint-axis-values.ts` carries the two values as a `sole` set.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
-  'status', 'emphasis', 'shape', 'type', 'direction', 'inset',
+  'status', 'emphasis', 'shape', 'type', 'direction', 'inset', 'orientation',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */

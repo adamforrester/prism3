@@ -589,6 +589,18 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'wash sits across the surface, argued in `VARIANT_AXES`.',
   },
   {
+    axis: 'orientation',
+    values: ['horizontal', 'vertical'],
+    defs: ['divider'],
+    relation: 'sole',
+    reason:
+      'The divider\'s RUN (#2455, the owner\'s issue, DRAFT) — which way the rule runs across its container: '
+      + 'spanning its width between content stacked above and below (`horizontal`, the default and the code '
+      + 'default, first so it is Figma\'s default member), or its height between items side by side (`vertical`). '
+      + 'The same word and values as ARIA\'s `aria-orientation`. Distinct from `direction` (where a veil\'s wash '
+      + 'sits across an image) and `width` (how much of its container a control takes), argued in `VARIANT_AXES`.',
+  },
+  {
     axis: 'ratio',
     values: ['2:3', '3:4', '4:5', '1:1', '4:3', '3:2', '16:9'],
     defs: ['image-placeholder'],

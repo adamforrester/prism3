@@ -783,5 +783,17 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "nests": [
       "tab"
     ]
+  },
+  {
+    "id": "divider",
+    "name": "Divider",
+    "category": "layout",
+    "summary": "A thin rule between groups of content. Horizontal or vertical, and it fills its container.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 2,
+    "nests": []
   }
 ];
