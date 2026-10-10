@@ -70,11 +70,12 @@ centered on the label. Extend it the same way to at least 24×24px at small. Fig
 hit areas, so the design file shows only the label-width box.
 
 ```css
-.flush-button { position: relative; }
+.flush-button { position: relative; --flush-hit: 44px; }
+.flush-button.small { --flush-hit: 24px; }
 .flush-button::before {
   content: "";
   position: absolute;
-  inset: min(0px, (100% - 44px) / 2); /* negative only on an axis under 44px; 24px at small */
+  inset: min(0px, (100% - var(--flush-hit)) / 2); /* negative only on an axis under the hit size */
 }
 ```
 

@@ -12235,7 +12235,9 @@ for (const host of ['web', 'figma']) {
 //     two reaches added), then a non-flush neighbor at one reach: every point of each flush button's floor-wide hit area
 //     hits that button, the neighbor's own box hits only the neighbor, and the hit area really reaches the floor;
 //   · CONTROL: the same pair two pixels closer than the two reaches must show the overlap, or the probe sees nothing.
-// Mutations, each failing by name: the skill's 22px bound lowered to 16px → `… two 1px flush buttons at the skill's 16px
+// The sketch is hit-tested exactly as shipped: the small arms use the classes of its own 24px rule, never a rewrite of it.
+// Mutations, each failing by name: the sketch back to a fixed 44px (no small rule) → `#2437 flush hit area small: two …
+// flush buttons at the skill's 12px bound … overlap`; the skill's 22px bound lowered to 16px → `… two 1px flush buttons at the skill's 16px
 // bound … keep their 44px hit areas apart — overlap …` (and the 6px pair: 16px is enough from a 12px label on); the
 // sketch's 44px raised to 48px → the same arm at the bound AND at the exact gap, the neighbor's own box included.
 {
@@ -12252,16 +12254,20 @@ for (const host of ['web', 'figma']) {
     try {
       for (const size of ['medium', 'small']) {
         const F = FLOOR[size];
-        // The sketch's comment says its 44px is 24px at small, so the small fixture substitutes it, as a consumer would.
-        const sheet = size === 'small' ? css.replace(/44px/g, '24px') : css;
+        // THE SKETCH AS SHIPPED (Lane D's review of #2453): no text substitution. A small button takes the classes of the
+        // sketch's own rule that sets the 24px hit size, as a consumer applies it; a sketch with no such rule leaves the
+        // small button on the medium extension, and the small arms below fail by name.
+        const smallRule = /^(\.flush-button[^{\n]*?)\s*\{[^}]*--flush-hit:\s*24px/m.exec(css)?.[1]?.trim();
+        const sizeClass = size === 'small' && smallRule ? smallRule.split('.').filter(Boolean).join(' ') : 'flush-button';
+        const sheet = css;
         const reach = (w) => Math.max(0, (F - w) / 2);
         const run = async (w1, w2, g1, g2) => {
           await page.setContent(`<!doctype html><style>body{margin:0}.row{position:absolute;top:100px;left:120px;display:flex;align-items:center}
             .flush-button{display:block;flex:none;height:${Math.min(16, F - 2)}px;padding:0;margin:0;border:0;background:none}
             .other{display:block;flex:none;width:${F}px;height:${F}px;padding:0;margin:0;border:0;background:none}
             .gap{flex:none}${sheet}</style>
-            <div class="row"><button class="flush-button" id="a" style="width:${w1}px"></button><span class="gap" style="width:${g1}px"></span>
-            <button class="flush-button" id="b" style="width:${w2}px"></button><span class="gap" style="width:${g2}px"></span><button class="other" id="c"></button></div>`);
+            <div class="row"><button class="${sizeClass}" id="a" style="width:${w1}px"></button><span class="gap" style="width:${g1}px"></span>
+            <button class="${sizeClass}" id="b" style="width:${w2}px"></button><span class="gap" style="width:${g2}px"></span><button class="other" id="c"></button></div>`);
           return page.evaluate((F) => {
             // WHOLE PIXELS FULLY INSIDE each area: the browser's hit test rounds a fractional point, so the half pixel two
             // abutting areas share is no one's, and probing it would read touching areas as overlapping.
