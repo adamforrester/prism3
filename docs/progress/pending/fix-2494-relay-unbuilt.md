@@ -6,8 +6,8 @@ The LAY OUT pass in `write-components.ts` measures and repositions the whole uni
 - **`EXECUTOR_REVISION` 9 → 10**, for `lint-executor-revision`.
 - **Test:** `relay/…` in `test-update-apply.ts`. A `tag` set's gap moves on every member, so the build's pass re-lays the grid. One member has its stamp cleared and is moved 300px off the grid. It stays at `[498,360]`, is named as "not built by Prism3", and the other 44 are updated with the new gap.
 - **Mutation, the guard removed:** `✗ relay/unbuilt left: … ([498,360] → [198,60]; 44 updated, 44 with the new gap)`.
+- **And with #2471's regroup** (merged in from `main`): on #2471's `unbuilt/…` Button, the unbuilt member is made 40px taller than its row and 500px off the grid. The dry run reads `558 to move, 1 not built by Prism3` (93 rows × 6 states below its row), and the apply reads `✓ moved 558`, `button: 558 moved, 1 left as they are.`, with that member byte-identical. Before this fix the same set read `✓ moved 559`. Test: `unbuilt/relay left` in `test-canvas-furniture.ts`, which also corrects #2471's fragment note on #2494.
 
 ### Not here
 
 - **A malformed or copied stamp:** `ownedView` reads both as not built by Prism3, but the re-lay still moves them: #2510. The executor can't import `ownedView` (`update-plan.ts` imports `write-components.ts`), and the brief scoped this to unstamped members.
-- **The case where #2471's regroup moves stamped members alongside an unstamped one** (`✓ moved 559`, `1 left`): its test goes in once #2471 is on `main`, since its `moved` count and `gridMoves` come with it.
