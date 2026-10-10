@@ -793,7 +793,7 @@ export type MotionAxis = {
 
 // The engine's opinion about which curve each intent starts from. A brand overrides any of them via
 // `motionPersonality.easingRoles`; a mode deviates further via `modeLevers.<mode>.easings`.
-const EASING_ROLE_DEFAULTS = [
+export const EASING_ROLE_DEFAULTS = [
   { role: 'default', curve: 'standard' },
   { role: 'enter', curve: 'decelerate' },
   { role: 'exit', curve: 'accelerate' },
