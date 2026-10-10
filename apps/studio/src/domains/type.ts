@@ -805,12 +805,20 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       el.append(b.el);
       out.push({ el: b.el, said: b.said, key: 'typography.displayCeiling', block: b });
     }
-    const chips = (key: string, label: string, tip: string, role: string, opts: readonly { v: string; l: string }[], cur: string, write: (v: string) => void, after?: HTMLElement | null): void => {
+    /** `refused`: the chip the engine would refuse, its reason drawn as a hint line under the chips that describes the
+     *  group (RS1 A, #2451), as Type scale's reasons do. A hint, so it is never announced (Q184 B). */
+    const chips = (key: string, label: string, tip: string, role: string, opts: readonly { v: string; l: string }[], cur: string, write: (v: string) => void, after?: HTMLElement | null,
+      refused?: { v: string; why: string; id: string; hk: string } | null): void => {
       const b = leverBlock(key, { label, desc: tip, group: true });
       const c = choice(label, role, opts, (v) => edit(key, () => write(v)));
       c.set(cur);
       b.ctl.append(c.el);
-      if (after) b.setState(after);
+      if (refused) {
+        refuseOption(c.el, refused.v, refused.why, refused.id);
+        const line = hook(stateLine(refused.why), refused.hk);
+        line.id = refused.id;
+        b.setState(line);
+      } else if (after) b.setState(after);
       el.append(b.el);
       out.push({ el: b.el, said: b.said, key, block: b });
     };
@@ -820,17 +828,12 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
     // title 2xs is set individually is the engine's refusal too (only 16px makes title 2xs), so the 18px chip is
     // disabled there with that reason (#2054). A brand that arrives on 18px with title 2xs set keeps its 18px
     // chip live by the same rule; 16px is its way out.
+    // RS1 A (#2451): each reason is also a hint line under the chips, drawn only while its chip is refused.
     const floor16 = (getPath(brandState, 'typography.titleFloor') ?? 18) === 16;
+    const floorRefused = getPath(brandState, 'typography.typeScale') === 'compact' && !floor16 ? { v: '16', why: S63.titleFloorCompact }
+      : floor16 && titleFloorBlocked() ? { v: '18', why: S63.titleFloorPinned } : null;
     chips('typography.titleFloor', S63.titleFloorLabel, S63.titleFloorTip, 'title-floor', [{ v: '18', l: '18px' }, { v: '16', l: '16px' }],
-      floor16 ? '16' : '18', (v) => setTitleFloor(v === '16'));
-    if (getPath(brandState, 'typography.typeScale') === 'compact' && !floor16) {
-      const chip = el.querySelector<HTMLButtonElement>('[data-p3="title-floor-16"]');
-      if (chip) { chip.disabled = true; chip.title = S63.titleFloorCompact; }
-    }
-    if (floor16 && titleFloorBlocked()) {
-      const chip = el.querySelector<HTMLButtonElement>('[data-p3="title-floor-18"]');
-      if (chip) { chip.disabled = true; chip.title = S63.titleFloorPinned; }
-    }
+      floor16 ? '16' : '18', (v) => setTitleFloor(v === '16'), null, floorRefused && { ...floorRefused, id: 'p3-tfloor-why', hk: 'title-floor-refused' });
     chips('typography.captionFloor', S63.captionFloorLabel, S63.captionFloorTip, 'caption-floor', [{ v: '11', l: '11px' }, { v: '10', l: '10px' }],
       (getPath(brandState, 'typography.captionFloor') ?? 11) === 10 ? '10' : '11', (v) => setCaptionFloor(v === '10' ? 10 : 11));
     const eight = (getPath(brandState, 'typography.sizeFloor') ?? 10) === 8;
@@ -946,11 +949,15 @@ export const mountTypeLevers = (host: HTMLElement, cleanups: (() => void)[], len
       const now = italicStyleOf(g, italicG, italicDefG);
       c.set(now);
       const pinned = Object.keys((getPath(brandState, `typography.faces.${g}`) as Record<string, unknown> | undefined) ?? {}).length > 0;
-      if (pinned && now !== 'only') {
-        const only = c.el.querySelector<HTMLButtonElement>('[data-value="only"]');
-        if (only) { only.disabled = true; only.title = S63.italicPinned; }
-      }
       row.append(tokenLabel(`type.${g}`, S63.groupName(g), undefined, { onLine: true }), c.el);
+      // RS1 A (#2451): the reason is also a hint line under this text type's chips, describing its group.
+      if (pinned && now !== 'only') {
+        const id = `p3-italic-why-${g}`;
+        refuseOption(c.el, 'only', S63.italicPinned, id);
+        const line = hook(stateLine(S63.italicPinned), 'italic-refused');
+        line.id = id;
+        row.append(line);
+      }
       rows.append(row);
     }
     b.ctl.append(rows);
