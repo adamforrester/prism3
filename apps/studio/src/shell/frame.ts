@@ -47,7 +47,8 @@
  *
  * THE BAR'S FIT (#2214, the owner's BL1 A+B, BL2 A, BL3 A). Above the narrow tier, when the full bar would not fit on
  * one row, the tile labels, then the product name, then the plugin's file row, then the brand name (cut short, Q83 A)
- * give way, each by a measured check that sets `data-bar-fit`, reusing the narrow tier's rules where it has them. See
+ * give way, each by a measured check that sets `data-bar-fit`, reusing the narrow tier's rules where it has them. At the
+ * narrow tier (#2262, the owner's A), whose rows are its own, only the last step applies: the brand name is cut. See
  * `fitBar`.
  */
 import { currentMode, page, rp, searchHits, searchQuery, setCurrentMode, setPage, setSearch, subscribe } from '../state/store';
@@ -127,6 +128,9 @@ const PRODUCT_NAME = 'Prism3 Studio';
 
 /** The frame width at or below which it lays out as one narrow column (concept v6's `appNarrow`). */
 export const NARROW_MAX = 560;
+/** #1975: the levers pane width below which it is `data-fit="snug"`: narrower than the 380 its pages are laid out for,
+ *  which the two panes reach at 640 and 800 (the 42% column). A width class for the same reason as narrow mode. */
+export const LEVERS_SNUG_MAX = 360;
 
 export type Frame = {
   /** The sticky region: the bar, the notices and the tab row. */
@@ -288,7 +292,12 @@ export const mountFrame = (app: HTMLElement, opts: {
   // ── notices, the panes ──────────────────────────────────────────────────────────────────────────
   // The notices row sits under the top bar, full width (S13.1): the error strip, in the chrome's theme.
   const notices = hook(h('div', 'p3-notices'), 'notices');
-  head.append(bar, notices, nav, subRow);
+  // #2212: the page's one h1, for a reader who moves by headings: the page's name, as its tab (or Color's sub-page tab)
+  // shows it, so no new words. Visually hidden (the preview's title is the visible one), and ahead of the tab row and both panes, so the
+  // levers' h2 sections and the preview's h2 follow it at every width, whichever narrow pane shows. The Build style
+  // guides page draws its own h1, so this one is out of the document there.
+  const pageHeading = hook(h('h1', 'p3-sr'), 'page-heading');
+  head.append(bar, notices, pageHeading, nav, subRow);
 
   const panes = hook(h('div', 'p3-panes'), 'panes');
   const levers = hook(h('section', 'p3-levers'), 'levers-pane');
@@ -659,6 +668,11 @@ export const mountFrame = (app: HTMLElement, opts: {
     // V1: the preview names the page's one home view. Nothing but a place change moves it.
     const home = place ? homeOf(place) : null;
     previewTitle.textContent = home ? viewLabel(home) : '';
+    const tabOf = place ? TABS.find((t) => t.id === place!.tab) : undefined;
+    const pageName = (place?.sub ? tabOf?.subs?.find((x) => x.id === place!.sub)?.label : tabOf?.label) ?? '';
+    pageHeading.textContent = pageName;
+    if (onMenu || !pageName) pageHeading.remove();
+    else if (!pageHeading.isConnected) head.insertBefore(pageHeading, nav);
     if (home) previewBody.dataset.view = home; else delete previewBody.dataset.view;
 
     root.dataset.inspect = inspecting ?? '';
@@ -694,6 +708,7 @@ export const mountFrame = (app: HTMLElement, opts: {
   // the full bar, everything shown, so it never depends on the step that happens to be drawn and the state cannot
   // flap; it is taken once per content change (a mutation in the bar's controls, a font load, a change of tier) and
   // reused while only the width moves. A breakpoint would not hold: a longer brand name needs the steps sooner.
+  // At the narrow tier only the cut name applies (#2262); see `fitBar`.
   type FitWidths = { readonly full: number; readonly glyphs: number; readonly logo: number; readonly rows: number | null };
   let fitWidths: FitWidths | null = null;
   const measureFit = (): FitWidths => {
@@ -726,20 +741,17 @@ export const mountFrame = (app: HTMLElement, opts: {
     return { full, glyphs: full - labels, logo: full - labels - name, rows: rowBreak ? first - labels - name : null };
   };
   const fitBar = (): void => {
-    // The switcher's tooltip shows its full name only while `trim` cuts it (Q83 A). The narrow tier draws no step, so
-    // it clears the tooltip too, or one set at `trim` would linger there, depending on the path to that width (#2262).
-    if (root.dataset.w === 'narrow') {
-      fitWidths = null;
-      delete root.dataset.barFit;
-      barMain.querySelector<HTMLElement>('[data-p3="brand-switcher"]')?.removeAttribute('title');
-      return;
-    }
     const room = barMain.getBoundingClientRect().width;
     if (!room) return;   // not laid out yet: the observer calls again once it is
     fitWidths ??= measureFit();
     const fits = (x: number): boolean => x <= room + 0.01;
     const f = fitWidths;
-    const step = fits(f.full) ? null : fits(f.glyphs) ? 'glyphs' : fits(f.logo) ? 'logo' : f.rows !== null && fits(f.rows) ? 'rows' : 'trim';
+    // The narrow tier (#2262, the owner's A, 2026-10-09) already draws its own rows: the labels and the product name
+    // dropped, and on the plugin the file row below. Its one step is Q83 A's: when its first row would not fit, the
+    // brand switcher's name is cut, by the same measured check, so a long name never wraps that row anywhere else. The
+    // measurement is taken under the narrow rules (a change of tier clears it), so the labels and name add nothing.
+    const step = root.dataset.w === 'narrow' ? (fits(f.rows ?? f.full) ? null : 'trim')
+      : fits(f.full) ? null : fits(f.glyphs) ? 'glyphs' : fits(f.logo) ? 'logo' : f.rows !== null && fits(f.rows) ? 'rows' : 'trim';
     if (step) root.dataset.barFit = step; else delete root.dataset.barFit;
     const sw = barMain.querySelector<HTMLElement>('[data-p3="brand-switcher"]');
     const nameEl = sw?.querySelector<HTMLElement>('.p3-brand-name');
@@ -772,6 +784,12 @@ export const mountFrame = (app: HTMLElement, opts: {
   ro.observe(head);
   ro.observe(bar);
   cleanups.push(() => ro.disconnect());
+  const leversFit = new ResizeObserver(() => {
+    const fit = levers.clientWidth > 0 && levers.clientWidth < LEVERS_SNUG_MAX ? 'snug' : 'full';
+    if (levers.dataset.fit !== fit) levers.dataset.fit = fit;
+  });
+  leversFit.observe(levers);
+  cleanups.push(() => leversFit.disconnect());
   root.dataset.w = app.getBoundingClientRect().width <= NARROW_MAX ? 'narrow' : 'wide';
 
   render();

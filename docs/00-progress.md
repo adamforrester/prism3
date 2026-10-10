@@ -7,6 +7,824 @@
 
 ---
 
+## (2026-10-10) — image-placeholder: seven ratios, a marker that scales with the frame, and a Marker boolean (#2345)
+
+**What.** `ratio` is now `2:3, 3:4, 4:5, 1:1, 4:3, 3:2, 16:9`, the ratios a measured commerce file needed, tallest
+to widest. The marker scales with the frame. A Figma-only `Marker` boolean, on by default, hides it once an image is in. Plan:
+#2345. Owner decisions, recorded on #2398:
+- **Q163 1–5:** the flat axis, the value order, the boolean rather than an image-bearing variant, the name `Marker`,
+  and the drafted prose.
+- **Q163.4b A:** no `showMarker` code prop. `Marker` is a Figma-only boolean (#2419's form), because in code the
+  marker follows whether an image is supplied (a `codeOnly` entry says so).
+- **The screenshots** are approved.
+
+**The diagnosis that made the scaling small.** #1340 had filed true resize-tracking as needing "a Figma
+scale-constraint / percentage-size projection the engine does not have". It doesn't need either. The frame is
+aspect-locked, so every resize a designer makes is uniform, and a plain `SCALE`/`SCALE` constraint on an absolutely
+positioned child then keeps the square glyph square and centered at the same fraction. The engine already lifted and
+centered a child (the pending spinner's `absoluteCenter`), so the new plan field is one flag, `absoluteScale`, that
+swaps that path's `CENTER` constraints for `SCALE`. `PartDef.scaleWithParent` refuses an unlocked parent for exactly
+this reason: under no lock, SCALE stretches the glyph.
+
+**The NB master.** The in-place update reaches the new shape without a change to `update-apply.ts`. The three existing
+members keep their names, keys, ids and marker node, and read as update with `marker · absoluteCenter / absoluteScale
+/ visibleProp` as the named differences. The other four ratios are added, and `Marker` is declared and wired.
+`test-update-apply.ts` proves it on a set built from the pre-#2345 def.
+
+**Marker is Figma-only (Q163.4b A).** The boolean was first built with a code twin, `showMarker`. That prop is
+gone. `Marker` is now a `figmaOnly` boolean (key `marker`, `figmaName: 'Marker'`, on by default), the form #2419
+added, and a `codeOnly` entry records that in code the marker follows whether an image is supplied. The Figma set
+is unchanged: the same property name, default and wiring.
+
+`test.ts` asserts the boolean is `figmaOnly` and that no `showMarker` or `marker` prop exists. Two mutations, each
+from a `wip:` commit:
+- **`figmaOnly` dropped:** `❌ component: ImagePlaceholder def is structurally valid — figmaProperties.booleans:
+  'marker' is not a declared prop`, and `❌ #2345/Q163.4b the Marker boolean is Figma-only and no code prop drives
+  it (figmaOnly undefined; props ratio)`.
+- **A `showMarker` prop re-added:** `❌ #2345/Q163.4b … (figmaOnly true; props ratio, showMarker)`.
+
+**Traps for whoever re-verifies this.**
+- **One live-host fact, not provable offline:** that Figma applies the marker's SCALE constraints when a designer
+  resizes an instance. It's recorded in the def's `notes.unverified`. To check, place a 4:3 instance in a scratch
+  file and drag it to 64px wide.
+- **Option order after an in-place update.** The variant options read `1:1, 4:3, 16:9, 2:3, 3:4, 4:5, 3:2`,
+  because added members are appended. A fresh build reads tallest to widest. This is the update path's ordering,
+  outside this change; filed as #2386.
+- **The marker is an icon-set glyph** (`image`), not component geometry, so #2380 will turn it into an `icon/image`
+  instance. `absoluteScale` is node-type independent, so it carries over.
+- **`EXECUTOR_REVISION` 6 → 7, the next after #2389's.** Every built member reads as needing a re-apply in the next dry run, which is
+  correct.
+
+Engine 0.236.0.
+
+---
+
+## (2026-10-10) — Studio QA: the levers fit between the tiers (#1975), and the narrow plugin's bar no longer draws over the error line (#2105)
+
+The UI redesign's last QA batch, part 1 of 2: the layout and bar items. #2262 (a long brand name at the narrow tier)
+was held for the owner, who has since chosen #2262 A; it is recorded on the issue for whichever lane builds it.
+
+**#2321 is not in this PR (owner DUP1 A, 2026-10-09).** This branch first carried its own build of #2321 (Palettes drawn
+in Light, its mode control held). The UI lane's #2387 built the same thing with the owner-approved copy, the approved
+held-segment look and the previous mode restored on leaving, and landed first. So this PR dropped its #2321 part when it
+merged `main`: its `preview/palettes.ts` and `modeControl().lock` changes, `frame.ts`'s `LIGHT_PINNED` lock and DRAFT
+reason line, its `test:chrome` arms (sections 9, 11, the Q4 trial, X4 A, HP3, #1984 and `showMode`) and its `test:smoke`
+arms. Each of those files takes #2387's version. What remains is #1975 and #2105, whose screenshots the owner approved
+(2026-10-09).
+
+**Section number.** This PR's `test:chrome` section was 37 until #2395 landed its own 37 (#2212, the heading outline),
+so it is 38 here. The open #2441 (#2383) also uses 38; whichever of the two lands second renumbers.
+
+### #1975: the levers between the tiers
+
+**The defect, measured.** At 800 and 640 the levers column is 42% of the window (335 and 268px), narrower than the 380 the
+pages were laid out for. The Color sub-nav ran under the preview (Interactive was hit-tested under the preview at both
+widths). The levers' `scrollWidth` exceeded the pane on six pages (fills 454 against 268). At 380, Surfaces & fills
+overflowed too (454 against 379, the issue's second comment).
+
+**Causes and fixes** (`chrome.css`):
+- The levers body, a card, a lever and the panel's inner grids had no columns of their own. An implicit grid column
+  sizes to its widest child's content, so one long token name widened the whole panel. Each now has one
+  `minmax(0, 1fr)` column, and a step picker may shrink and cut its words, since its label already ellipsizes.
+- The sub-nav took no `min-width: 0` in its grid cell and its segments couldn't wrap. Now it keeps to its column and a
+  segment that doesn't fit wraps.
+- Segmented choices wrap rows (Interactive's and Components' did already; those two rules are folded into one). Each
+  option is `min-width: fit-content`, so the rows wrap where they did, and one label longer than the row ("Strong (bold
+  near-black/white)") wraps inside its option.
+- `.p3-fieldgrid`'s minimum is capped at 100%, and the "way to" links wrap.
+- A width class on the pane: `data-fit="snug"` below `LEVERS_SNUG_MAX` (360), set by a ResizeObserver in `frame.ts`,
+  because the stylesheet may hold no raw length and a container query needs one. In a snug pane a row's picker moves
+  under its name, a breakpoint's Remove under its field, and a long readout wraps. The panel and its cards take
+  space-200 at the sides instead of space-300.
+
+**The trap the last bullet fixes.** With everything fitting, `test:chrome`'s v5 answer 4 failed at 640: Brand name and
+Token namespace, side by side, came out 77px each against its 80px floor. On `main` they measured 88 and 105, but only
+because the card overflowed into the pane's padding (namespace's right edge at 258 of 268). `scrollWidth` doesn't count
+that, so the overflow was invisible to the issue's own measure. The snug insets give them back their room.
+
+**Test:** `test:chrome` section 38, both hosts at 640 and 380 and the web at 800. Each Color sub-tab is hit-tested at its
+center (the element there is the tab) and then clicked by pointer, and each moved page, every Show advanced open, holds
+`scrollWidth ≤ clientWidth`.
+
+### #2105: the plugin at 380 × 420
+
+**Cause.** In the panes grid the bar's row was `auto`. When the window is too short for every row, an `auto` row gives way
+to its item's own `min-height`, which for the bar is one row (36px). So a bar on three rows overflowed its row and drew
+over the notices under it. Separately, a refused restore's line ran 270px and took every remaining pixel from the levers
+pane (0px).
+
+**Fix.** The bar's row is `max-content` (both tiers), and at the narrow tier the error line stops at two bar heights and
+scrolls inside itself. Whether a long line clamps or scrolls was left to the UI lane. It scrolls, so every word stays
+reachable.
+
+**Test:** `test:chrome` section 38, the plugin at 380 × 420 in both Figma themes with the refused `#1989` brand. The bar
+must end at or above the line's top, the line must scroll, and the levers pane must keep at least 40px.
+
+### Mutations
+
+Each one was run after a `wip:` commit, on rebuilt bundles, and failed by name:
+- the sub-nav's `min-width: 0` and wrap removed → `#1975 web light 640: interactive (color-sub-interactive) takes a pointer
+  at its center — is under another element at its center, …` (800 and 640, both hosts).
+- the segmented choices' wrap removed → `#1975 web light 640: the levers fit their pane on every moved page (9 read) —
+  color-palettes scrollWidth 405 > clientWidth 268 | …` (5).
+- the bar's row back to `auto` → `#2105 figma light 380 × 300: the bar ends at or above the error line … (the bar's lowest
+  control ends at 114, line top 63)`.
+- the narrow error line's cap removed → `#2105 figma light 380 × 420: the error line scrolls …` and `… the levers pane keeps
+  40px or more under the error line (0)` (4).
+
+**Two first tries that proved nothing, kept as traps.** The bar's row reverted to `auto` passed at 380 × 420: once the line
+is capped there is room for the bar's three rows, so `max-content` only matters on a shorter window, hence the 380 × 300
+case. The bar's own box also passed there, because a grid item is sized to its row, so a row that gave way still reads as
+"above" the line. The check reads the bar's lowest drawn control instead. Removing the levers body's own `minmax(0, 1fr)`
+column passed too: the inner grids carry the fit now, so that rule is a backstop, not the fix. The snug pane's fill-row
+layout (picker under its name) also isn't held by `scrollWidth`, since a squeezed picker fits as well. It is a legibility
+call, shown in the screenshots, not a fit.
+
+### Also filed
+
+#2383: at 640 the preview header's mode select draws no mode name. Present on `main` and outside this PR's columns.
+
+---
+
+## (2026-10-09) — A flush text button's hit area is 44×44 in code, stated and gated (#2408)
+
+Owner decision Q154 A (2026-10-09), a follow-up to #2350's flush text buttons: a flush button has no visual minimum
+width, since its box stays label-width so alignment holds, but its hit area is at least 44×44 in code, through an
+invisible extension. Figma is unchanged, because it has no hit areas.
+
+**What changed:**
+- `components/button.ts`: the shared `makeButton` body, so Button, Destructive and Neutral all carry it. The
+  `touch-target-expansion` `codeOnly` entry and the `inset=flush` line in `docs.do` state the 44×44 hit area and the
+  technique (a transparent `::before` inset outward and centered on the label). The old line said "at least its
+  default sibling's size", which was wider than the owner's rule and named no number.
+- Regenerated: `out/components/button*.md`, `components.ai.json` (the `docs.do` line; `codeOnly` does not reach the
+  `.ai.json`, so `docs.do` is what carries the rule to agents) and `schema/component-maintainer.json`.
+- `schema/component-surface.json`, by `lint-component-surface --accept`: the projected plan carries `codeOnly`, so
+  all 30 button plan digests move with no member, geometry or binding change.
+- `skills/prism3-consume`: a paragraph after "Size is for size", with a CSS sketch whose inset is
+  `min(0px, (100% - 44px) / 2)`, so it extends only on an axis under 44px.
+- `test.ts`, arm `#2408`: per def, the `codeOnly` entry, the `docs.do` line and the emitted `components.ai.json` line
+  each carry `at least 44×44`, `::before inset outward` and `centered on the label`; the skill has a paragraph that does
+  too. Literals throughout.
+
+**`lint-hit-target` was passing flush members on their height alone.** The walk reads each control's height token,
+and a flush member keeps its height, so it cleared the floor while its width, now label-width, was read by nothing.
+No emitted token can carry a code-side hit area, so the gate cannot measure it; the new FLUSH MEMBERS arm requires
+the def to state it instead. `FLUSH_MEMBERS` is authored in the gate and compared both ways with the defs' `flush`
+fields, so a new flush def cannot arrive with only its height read. The phrases (`flush`, `44×44`, `::before`) must sit
+in one `codeOnly` entry; a self-check drives the predicate, including phrases split across two entries.
+
+**The first draft of both witnesses passed the mutation it was written for.** It matched bare `44×44` and `::before`,
+and the same `codeOnly` entry already says "Apple HIG 44×44" and "(::before / absolute overlay)" in its opening clause.
+With the flush sentence deleted, `test.ts` still failed (on `inset outward`), but `lint-hit-target` stayed green. Both
+now match phrases of the rule itself (`at least 44×44`, `::before inset outward`). Mutations, each run on a committed
+tree: the flush sentence deleted from `codeOnly` fails `lint-hit-target`'s `<def>/inset=flush: no codeOnly entry
+states the code-side hit area` (3) and `test.ts`'s `#2408 <def>: codeOnly states …` (3); the old `docs.do` line
+restored and regenerated, with the skill paragraph removed, fails `#2408 <def>: docs.do …` (3), `#2408 <def>:
+components.ai.json carries …` (3) and `#2408 prism3-consume: …` (1).
+
+**Owner decision Q170 (2026-10-09): the wording is approved, and the rule covers medium and large only (B).** The
+first draft applied the 44×44 hit area "at every size". The owner scoped it to medium and large flush buttons; a small
+button stays the permanent below-floor exception it already is (`SMALL_SIZE`), with no code-side extension owed. The
+qualifier is the only new wording: the `codeOnly` sentence says "at least 44×44 at medium and large sizes", the
+`docs.do` line says "and, at medium and large sizes, extend its hit area", and the skill paragraph's lead and its
+second sentence name medium and large. `lint-hit-target`'s FLUSH arm and `test.ts`'s `#2408` arm both require the
+literal scope ("at medium and large sizes") and refuse an entry that names small, every size or all sizes. The gate
+also checks each flush def's `size` axis against its literal `FLUSH_SIZES` (medium, large) plus `FLUSH_EXEMPT_SIZES`
+(small), so a new size fails until someone decides its hit area. Mutations, each on a committed tree: the qualifier
+back to "at every size", small re-added ("at small, medium and large sizes"), and medium dropped ("at large sizes")
+each fail `lint-hit-target`'s `<def>/inset=flush: no codeOnly entry states the code-side hit area at medium and large
+only` and `test.ts`'s `#2408 <def>: codeOnly states a medium or large flush button's hit area …`.
+
+**Owner decision Q174 B (2026-10-09): a small flush button's hit area is at least 24×24 in code**, the WCAG 2.2 AA
+2.5.8 floor; medium and large keep 44×44. This replaces Q170 B's "not small": a small flush button keeps its height,
+but its width is the label's, so a short label could fall under 24px wide with nothing owed. One clause per surface,
+every approved word kept: `codeOnly` adds "and at least 24×24 at small", `docs.do` adds "; extend it the same way to
+at least 24×24px at small", the skill adds "Extend it the same way to at least 24×24px at small." (and its CSS
+comment notes 24px). `lint-hit-target`'s FLUSH arm and `test.ts`'s `#2408` arm now require the literal "at least
+24×24 at small" and refuse 44×44 at small; `FLUSH_EXEMPT_SIZES` became `FLUSH_SMALL_SIZES`. **#2443 closed here:**
+`FLUSH_SIZES` fed only the size-axis check, which reads the union, so widening it to small passed. Both constants
+are now held to literals, in the gate's self-check and in `test.ts` (`#2443 lint-hit-target: …`, read from the gate's
+source). Mutations, each on a committed tree: the small clause removed, small at 44×44, medium dropped, and
+`FLUSH_SIZES` widened each fail by name (lines in the PR's Ready comment).
+
+**Trap for whoever re-verifies:** the per-size scope is held only as prose plus these two witnesses. Nothing in Figma or in
+the tokens distinguishes a flush button's hit area by size, so the scopes cannot be measured, only stated.
+
+---
+
+## (2026-10-09) — Every icon-set glyph inside a component is an instance of its icon component (#2380)
+
+**STATUS: branch `claude/icon-instances-2380`.** Owner decision Q137 A: a glyph drawn from the icon set is placed as a real instance of `icon/<name>`, with no swap property, so an icon change scales and a designer can still swap one by hand. ENGINE `minor` (change note); `CONTRACT_VERSION` unchanged, since no token name moves. `EXECUTOR_REVISION` 2 → 3.
+
+### What moved
+
+Twelve parts in seven defs now project as a `NESTED_INSTANCE` of `icon/<glyph>` instead of an inline SVG import:
+- field-message: `iconError`, `iconWarning`, `iconSuccess`;
+- checkbox-control: `mark`, `dash`;
+- switch-control: `onGlyph`, `offGlyph`;
+- tag: `check`, `dismissGlyph`;
+- select: `chevron`;
+- textarea: `grip`;
+- image-placeholder: `marker`.
+
+Each instance keeps the binding its glyph frame had (or `glyphPx`), with ink as `descendantFills` and no `propertyRef`. Two glyphs stay inline:
+- the spinner, which is component-owned (`COMPONENT_GLYPHS`, #1670);
+- `icon`'s own glyph, which is the component being instanced.
+
+The diagnosis that made this small: both executors already built a `NESTED_INSTANCE` of a plain component, and `prebuildDependencies` already mapped `icon/<name>` to the `icon` def. So the build path needed only the projection change and two executor additions: `glyphPx` on an instance, and the inset.
+
+### The checkbox inset (#1346), and the approach discarded
+
+The 0.8 inset was a padded glyph artboard. An instance can't carry one. Binding a smaller size needs a `control.size.*.mark` token, which is a CONTRACT bump. Sizing the instance at 0.8 × the resolved box at paste would freeze it, so a brand or mode change would leave it behind.
+
+What shipped: the `mark`/`dash` part is a FRAME bound to the box, holding one instance named `glyph` at `glyphInset: 0.8`. The executor places it after the flow pass, centered, with SCALE/SCALE constraints, so a resized box scales it. The padded-artboard path is deleted. Whether Figma applies SCALE constraints when a variable binding resizes the frame is a real-host fact. It is recorded in checkbox-control's `notes.unverified` for the scratch-file check.
+
+### In-place update
+
+- **A part whose node changes type** (field-message's glyphs): the glyph FRAME can't become an INSTANCE, so it is replaced and its child ID changes. Overrides on the old inline glyph do not carry over. The dry run names it per part through the read-back's `nestTarget` predicate (`FRAME — not an instance` → `an instance of icon/…`).
+- **Checkbox's `mark`/`dash`**: the frame still fits, so its ID is kept and only its VECTOR is swapped for the instance.
+- **Absent dependencies**: the dry run now refuses a set whose nested components are not in the file. It names them (`Not in this file: icon/check, … Build icon first`) and nothing is written. The check covers every `nestTarget`, not only icons. `update-apply.ts` is untouched; Lane A's #2379 work is in that file.
+
+### Gates and tests
+
+- `lint-glyph-geometry` gains the instance arm. The expected target is `icon/` (typed in the gate) plus the glyph `FIXED_GLYPH` records, and `SCALED_GLYPH` now pins `glyphInset`.
+- `lint-nesting` gains glyph edges to `icon`, a resolves arm against the icon def's `name` members, and a floor.
+- The read-back classifies `glyphInset` against the live parent box. The update snapshot now carries `parent.height` for it.
+- Tests:
+  - one row per part in `test-write-components.ts`, with the expected icon and binding typed;
+  - a paste-vs-plugin inset check in `test.ts`;
+  - the inline → instance transition and the absent-icon refusal in `test-update-apply.ts`.
+- Mutations, each failing by name: projection reverted to inline (all 12 rows and the gate), the plugin inset dropped (2 rows and the round-trip), the paste inset dropped (2 `test.ts` arms), and the absent-icon blocker dropped.
+- The lint-paint census for checkbox-control moved (the ink is one node down, on `mark/glyph`) and was accepted. The studio component catalog was regenerated (new `icon` nest edges).
+
+### A trap for whoever re-verifies this
+
+The plugin shim gives every variable-bound frame one placeholder size, so it does not show the inset at the real per-size box. A render that mixes shim px with a brand's real values puts the small and large checks off-center. Read the placement as a fraction of the parent, as the executor computes it.
+
+### Merged with the update path's draw check (#2379, #2396) — Lane A, 2026-10-09
+
+`EXECUTOR_REVISION` 5 → 6 (#2396 took 3, #2377 4, #2363 5). Since this PR, a set member's icon-set glyph is an instance of an icon component, so its geometry lives in the icon component and its ink in an override on the instance's vector. #2396's draw check (`drawn.ts`), which tells a member that draws wrong from one that matches its record, had to follow it there:
+- **An icon component is a glyph.** A `COMPONENT` whose children are all vectors is checked like a frame glyph: its vectors must sit inside it. Before, only a `FRAME` was, so an icon's own geometry, which every instance of it draws, was never read.
+- **A glyph's vectors' paints are read.** The glyph branch returned after the geometry check, so a vector's ink, inside a frame glyph or an icon component, was never compared with its variable. This was a hole before this PR too, which nothing had exercised.
+- **An instance's vectors are read for paints only.** The icon instance's ink is the executor's `descendantFills` override, and an update rewrites it. The rest of an instance is its main's, and isn't read.
+- **The shim:** a rewritten variable re-resolves instance vectors as well, as Apply Theme does on the host. A combine does the same, through the shared walk.
+- **Tests (`test-update-apply.ts`):**
+  - `single/glyph damage`: an icon's vectors left past its frame, under a current record, read "to update" and are re-laid.
+  - `instance/ink`: a member's icon-instance ink override storing black reads "to update" and is repaired.
+  - `verify/drawn glyphs` and `drawn/glyphs` now read the spinner and icon components, since the sets no longer hold vector glyphs. The spinner's sizes are glyphs at other than their import size.
+  - `damage/dry run` plants a second paint, not a glyph.
+- **Mutations, each failing by name:**
+
+  | Mutation | Fails |
+  |---|---|
+  | FRAME glyphs only | `single/glyph damage` |
+  | the early return after a glyph | `single/damage`, `single/damage repaired` |
+  | instances skipped whole | `instance/ink` |
+  | verify's draw check dropped | `verify/drawn paints`, `verify/drawn glyphs` |
+  | the fresh import not scaled to its frame | `drawn/glyphs` (`spinner/x-small/ring 23.0×12.0 in 8×8`) |
+- **The component-surface baseline** re-accepted for the 13 defs whose projection this PR moves (member counts unchanged).
+
+---
+
+## (2026-10-09) — Text field: the end caret's position is measured on the shim, not only its order (#2439)
+
+Found in Lane D's review of #2414 (#2318, owner Q166 C). The end caret (`caretEnd`, the `caret-end` slot) on text-field's
+`focus-visible-filled` members was held by its ORDER (the node right after `value`), its ink, width and one-line height.
+Nothing read WHERE it is drawn, so a layout change could leave it after the value in node order but visibly apart from
+the text.
+
+**The new arm,** `field end caret position` in `apps/plugin/test-write-components.ts`, reads on the shim's layout model,
+on every text-field member at the new state (12):
+- the bar's `x` is the value's right edge (`value.x + value.width`), with no gap;
+- the value hugs its text, at the shim's own text metric (6px a character, no style advance in this build, typed in the
+  test as the shim's figure, not read from the def);
+- the bar's right edge is inside `content`'s clip.
+It is a separate arm from the order/ink/size one, so each fails by its own name.
+
+**Mutations,** through the #2272 harness against `npm run -w @prism3/plugin test`, each failing only this arm:
+- M1, a gap on the entry row: `end caret x 88, want the value's right edge …`.
+- M2, a default value too long for the field: `end caret's right edge 854 is past content's clip …`.
+- M3, the entry row set to fill and the value to wrap, so the value stretches: `the value is 256px wide around 72px of
+  text …`. The first M3 tried (the value wrapping alone) changed nothing: a wrapping text inside a hugging row does not
+  stretch, so that mutation was a no-op, not a blind spot, and the arm needed the row to fill before the value could
+  move.
+
+No engine or projection change, so no change note.
+
+---
+
+## (2026-10-09) — Checkbox and radio rows and groups shrink with their column, like the fields (owner Q152.3, Q155 A)
+
+**Status:** engine (four defs), plugin tests and the component shim. ENGINE minor (change note): the projected
+component surface moves for both rows and both groups. No token name or value moves, so CONTRACT is unchanged. Owner decisions,
+recorded on #2266: **Q152.3** (Q99 B reaches checkbox-row and radio-row; their root `minWidth: 320` goes, as a
+follow-up PR to #2388) and **Q152.2** (the minimum width is 120px); and, on #2409, **Q155 A** (the groups follow
+their rows: checkbox-group and radio-group drop their own 320 minimum the same way).
+
+### What changed
+
+Both rows now size the way #2292 and #2266 size the fields:
+- **Before:** the root hugged above a `minWidth: 320` floor. The 320 was there so the wrapping label had room
+  to fill (#1424), and it held a row in a narrower column at 320, so the row overflowed the column.
+- **Now:** the root is built at Prism 2's root width 320 (`placementWidth`, `sizing.x: 'fill'`). An unplaced row
+  still reads at 320, and a row set to fill its column stretches with it, down to a 120 floor (`minWidth: 120`).
+- **The label** still fills the row and wraps. `placementWidth` alone bounds it, so the floor is only the
+  smallest width the row will take.
+
+**The groups (Q155 A).** Checkbox-group's and radio-group's container floored at `minWidth: 320` (#1503's
+resolution of Prism 2's fixed-320 root). It is now built at 320 (`placementWidth`; its root was already
+`sizing.x: 'fill'`) with `minWidth: 120`. The rows still stretch to whatever width the group has. Without this,
+a group in a narrow column held at 320 even though its rows could shrink.
+
+### Tests and mutations
+
+- **`test.ts` #1424 (c)** now holds every member of both rows to placementWidth 320, its horizontal axis FIXED,
+  and minWidth 120, all typed as literals. Its old 320-floor expectation is gone.
+- **#1424's floorless-row refusal** now strips the build width as well as the floor (back to a hugging root),
+  because since Q152.3 the root's `placementWidth` alone bounds the wrapping label.
+- **`test-roundtrip.ts`, a new Q152.3 arm (host truth, in the shim):** each member is placed as a FILL instance
+  in a 505px, a 280px and a 100px column, and must read 320 unplaced, then 505 (its label filling what the control
+  box and gap leave), 280, and 120.
+- **`test.ts`, a new Q155 pin:** every member of both groups is built at 320 (its counter axis FIXED, since a
+  group's root is a column) with minWidth 120.
+- **`test-roundtrip.ts`:**
+  - #1503's host-truth floor check now reads width 320 and minWidth 120 (it read minWidth 320).
+  - A new `Q155 <group> fills its column` arm places each member as a FILL instance in 505, 280 and 100px columns.
+    It expects 505 with every row spanning it, then 280, then 120. "Spanning" is the column less the group's
+    inline `space/0` padding: 0px in every brand, but the shim's synthetic `varValue` here, so the test reads it
+    from the shim's own input.
+- **The shim:** an instance with no `minWidth` of its own now takes its main's, as an instance does on the host. A
+  field's floor sits inside it, measured on the main, so nothing measured a floor on an instance's own root until
+  now. Without this the 100px column read 100.
+
+Each mutation ran from a `wip:` commit and was restored with `git checkout --`:
+
+| Arm | Fails by name |
+|---|---|
+| checkbox-row's floor back to 320 | `❌ #1424/Q152.3 checkbox-row: on every member the row is built at 320 and floors at 120 … (3 off — size=small: row placementWidth 320, primary FIXED, minWidth 320)` and `✗ Q152.3 checkbox-row fills its column …` |
+| checkbox-group's floor back to 320 | `❌ Q155 checkbox-group: on every member the group is built at 320 and floors at 120 … (3 off — size=small: container placementWidth 320, counter FIXED, minWidth 320)`, `✗ #1503/Q155 host-truth: every checkbox-group member reads back width 320 and minWidth=120 …` and `✗ Q155 checkbox-group fills its column …` |
+| radio-row reverted whole to `main` | `❌ #1424/Q152.3 radio-row: … (3 off — size=small: row placementWidth undefined, primary AUTO, minWidth 320)` and `✗ Q152.3 radio-row fills its column …` |
+
+### Screenshots
+
+These are plan renders, before and after, for NB and prism3 at medium in light mode: unplaced, and in 505, 280,
+180 and 100px columns. Variables come from the committed Figma export, set in a system font rather than the brand
+font. They are local and not uploaded: `~/Downloads/rebuild/q152-rows/q152-rows-nb.png` and `q152-rows-prism3.png`,
+with the throwaway renderer beside them. Figma Desktop was not connected, so there is no live-host render.
+
+### A trap for whoever re-verifies this
+
+A FILL instance of a row sets the instance's PRIMARY sizing mode. A field's root is a column, so its FILL sets
+the COUNTER mode, and the #2292 block's `placedAt` writes that one. Copied as-is, the row arm reads every column
+as 320.
+
+---
+
+## (2026-10-09) — Studio QA: one heading outline per page (#2212), and an agent's style guide run no longer shows beside the panel's tables (#2313)
+
+The UI redesign's last QA batch, part 2 of 2: two technical fixes that change nothing a sighted user sees.
+
+### #2212: the levers pages' heading outline
+
+**The defect.** A screen-reader user moving by headings met no h1 on any page. The levers pane opened with h3 sections
+ahead of the preview's h2, so it skipped from nothing to 3. Color › Surfaces & fills' row sub-headings and Interactive's
+group titles were h4 under those h3s, and the preview's sub-heads were h3s beside the h3 sections they sit inside.
+Nothing tested the outline: section 30's sweep held the levers' visual levels and skips within the levers pane, but never
+the page's whole outline.
+
+**The change, tags only.** Every heading here has its own class with its size, weight and margins set, so no UA heading
+style shows through, and the pages draw exactly as before:
+- **One h1 per page**, in the frame head ahead of the tab row and both panes (`data-p3="page-heading"`, `.p3-sr`). Its
+  text is the page's name **as its tab shows it** (Brand, Palettes, Surfaces & fills, Interactive, Type, Shape, Depth &
+  motion, Layout, Components), so it adds no wording. It sits outside both panes so that both narrow panes, Settings and
+  Preview, open on it. The Build style guides page draws its own h1, so the frame's h1 leaves the document there.
+- **Levers:** section titles (`.p3-lsec-title`, L1) h3 → h2. Row sub-headings (`.p3-rows-sub`) and Interactive's group
+  titles (`.p3-icol-title`, both L2) h4 → h3. Lever names stay `label`, `span` or `legend`, as the issue allowed: each
+  one labels its control, so it isn't in the outline.
+- **Preview:** the title stays h2 and its sections stay h3. A section's sub-head (`.sub-t`, `subHead()`), drawn smaller
+  inside its section, goes from h3 to h4.
+
+**Tried and dropped:** the h1 first took the preview's title (`viewLabel`), which on Brand reads "Style guide". That isn't
+the page's name, so the tab's label is used instead. With no `font` of its own, the h1 also took the browser's bold at
+2em, which the embedded Inter doesn't carry, and `test:chrome`'s font audit refused it as a device face. `h1.p3-sr` now
+sets `margin: 0; font: inherit`.
+
+**The test.** `test:chrome` section 37 reads the outline from the browser's accessibility tree (CDP
+`Accessibility.getFullAXTree`, walked in tree order, ignored nodes dropped), never the DOM. It runs on both hosts at 1280
+and at 380, on every place, on the Settings pane and on the Preview pane at 380, and on the plugin's Build style guides
+page. Each outline must open on exactly one h1, named as the page's tab (typed in the test), and never skip a level.
+Mutations, each after a `wip:` commit, on rebuilt bundles, each failing by name:
+- the frame's h1 made a `div` → `#2212 web light 1280 / brand: the outline opens on one h1, "Brand", and holds no other —
+  read h2 Identity | …` (every place, both hosts, both widths).
+- Surfaces & fills' section title back at h3 → `#2212 web light 1280 / color-fills: no heading skips a level after the
+  one before it — h1 "Surfaces & fills" then h3 "Background fills"` (4).
+- its first row sub-heading back at h4 → `… — h2 "Background fills" then h4 "Default"` (4).
+
+### #2313: an agent's style guide run after a panel run (reproduced)
+
+**Reproduced first**, in a new arm of `apps/plugin/test-style-guides-page.mjs`, the built panel. A panel run draws two
+tables ("✓ style guide: 2 tables"). Then an agent's `style-guide` run is posted the way the plugin posts it: bracketed by
+`agent-started` / `agent-finished`, its verdict forwarded to the panel, and no per-table messages, because the main
+thread sends those to the panel's own sink only. On `main` the page then showed **"✓ style guide: 5 tables" beside the
+panel's two tables**, so it read as if the agent's run had drawn them. Confirmed, so the issue is fixed rather than closed.
+
+**The fix** (`state/host-session.ts`, `reduce`): when `style-guide-result` arrives while an agent's style guide run is
+open and the panel's own is not pending, the panel's earlier run (`styleGuideRun`) is dropped. The page then shows its
+selection summary again, and the agent's verdict stays where it already was, in Activity. That matches what the page did
+with no earlier panel run.
+
+**Not decided here:** whether the Build style guides page should show an agent's verdict at all. On `main` it showed one
+only by mixing it with the panel's old run, never on its own. Showing it would be a visible change, so that is left to
+the owner.
+
+Mutation: the reducer keeping `styleGuideRun` on an agent's verdict → `#2313: after an agent's run, the page shows no
+verdict beside the panel's earlier tables (verdict "✓ style guide: 5 tables", tables ["Core — base:Done","Primary:Done"])`
+and `#2313: the page drops the panel's earlier run …`.
+
+---
+
+## (2026-10-09) — Update: the icons and the spinner, read and updated in place as single components (#2296)
+
+Owner decision Q109 A: a same-named hand-made icon is kept, Adopt is never offered for icons, and the whole file is searched. Before this, `capture-baseline` and the dry run reported "Not in this file: icon, spinner" on the NB master: both defs build single top-level components (`emitAsComponents`), and the update read only component sets.
+
+- **One reader for a single-component def** (`readSingleView`). It gives the same view a set gives, so the dry run, the capture and the apply run unchanged on it. Every top-level `<component>/<value>` component anywhere in the file is the member `<axis>=<value>`, so an icon moved into another frame or page is updated in place, not rebuilt (Q109 C). A name with a further `/` is listed and never read.
+- **Ownership is the stamp, never the name.** A hand-made icon, even one under a Prism3 glyph's exact name, is unstamped. It holds its coordinate, so that glyph is never built beside it (Q109 A), and it is never written, captured or deprecated. A duplicate is no Prism3 icon (#2300). Adopt lists the single defs as not offered (Q109 B), without failing.
+- **The apply** maps each coordinate to the node's own name (`name=check` ↔ `icon/check`) for its renames, deprecations and verify, and builds in the executor's emit mode. There is no set node, so identity is checked per member, and a deprecated icon gets its description prefix but no `retained` list.
+- **The executor's emit branch** now finishes an updated component as a set member is finished: record, then stamp, then marker off, through one shared `finishUpdated`. Before this it returned first, so an updated icon would never have taken its stamp and would have kept its in-progress marker. In an update, a component the plan gained goes in the first grid slot no existing one holds.
+- **`EXECUTOR_REVISION` 4 → 5:** the emit branch's code changed (#2396 took 3 and #2377 took 4 on `main`). Every member built before this reads as out of date, with no field difference visible, until an update re-applies it.
+- **Every member read as not built by Prism3 is named in the apply's outcome,** off-plan ones included. Before this, only those on a planned coordinate were named, on the set path too.
+
+- **With #2396's stamp-only path:** an icon or spinner from an earlier plugin (`revisionUnknown`) takes only its stamp, found by its node's own name (`icon/check` for `name=check`). `single/stamped` holds it: 44 icons stamped, 0 other writes. Mutation: the restamp looked up by coordinate → `single/stamped` (0 stamped).
+
+- **The draw check reads single components too** (#2363 review): an icon drawn black under its binding, its record matching and its stamp an earlier plugin's, reads "to update" and is repaired, while the other 43 take their stamps. `single/damage` (+ `repaired`) holds it. Mutation: `readSingleView` read without the file's variables → both fail (`✓ already up to date; 0 updated, 44 stamped; 1 faults`).
+
+### Traps for whoever re-verifies
+
+- **The shim gains `liveComponents`** (opt-in, under `liveRoot`): a COMPONENT search returns the page's top-level component nodes themselves, as Figma does, not name-only references. Without it, the executor had no node to configure an icon in place. It is opt-in because an existing case may use a reference's own `id` as an INSTANCE_SWAP default.
+- **An icon build seeds no component.** The usual `comps: [SWAP_TARGET]` is `icon/FPO-default-icon`, one of the icons' own glyphs, so the build reads it as already there and STALE.
+- **Not verified live:** the NB master's 44 icons and 4 spinners read by the dry run, captured, and an update re-applying them with every key kept.
+
+---
+
+## (2026-10-09) — Fields: a "focused with a value" member, `state=focus-visible-filled`, on text-field, select and textarea (#2318)
+
+Owner decision Q157 (2026-10-09): 1, a new state (not `focus-visible` showing the value); 2, named
+`focus-visible-filled`. Found in a design-rebuild test: an active password field (focus border, masked value) had no
+member and was placed as `filled`, which lost the focus border.
+
+**What the member shows.** The `focus-visible` member's focus ring and focus border around the `filled` member's value in
+`text.primary`, and no placeholder. Each status keeps its own border (`error` danger, and so on), as at `focus-visible`.
+It sits right after `focus-visible` on the state axis, so the grid's new column falls between `focus-visible` and
+`disabled`. Select draws the chosen value and its chevron, with no caret.
+
+**Member counts:** each field goes from size 3 × status 4 × state 6 = 72 to × state 7 = 84, so 12 new per field and
+36 in all. A `has value` boolean crossing the axis would have doubled each set to 144 instead.
+
+**The NB update adds the 12 and touches nothing else, checked two ways offline:**
+- `dryRunSet` over each set with the new members stripped: 72 old members, 12 adds (all `focus-visible-filled`), and 0
+  renames, moves, drops, blockers, replacements or not-current members, on all three fields.
+- Every one of the 216 existing coordinates projects a plan byte-identical to `main`'s, apart from `codeOnly` prose (the
+  `empty` note's member count), which no update module reads and the plugin bundle does not carry.
+The update path itself is unchanged (it's Lane A's).
+
+**The caret: at the end of the value, on text-field only (owner decision Q166 C, 2026-10-09).** The first build kept it
+behind a switch while Q157.3 was re-asked, at the START of the value, because one caret node can't reach the end: two
+parts can't share the `caret` paint slot (the anatomy gate refuses it, "the projector resolves a slot once"). The owner
+then chose C, so text-field gains a second caret part, `caretEnd`, after the value in the entry row, present only at
+`focus-visible-filled`, on a new `caret-end` paint slot bound to the same `text.primary`. `caret-end` joins `PAINT_SLOTS`
+and `BOX_PAINT_SLOTS` with its reason, and the "a caret is a childless bar" rule covers both slots. Textarea and select
+draw no caret at the new state: textarea's value fills the box and wraps, so nothing can follow its last character, and
+select has no insertion point. The switch (`field-focus.ts`) is gone with the question.
+
+**Schema: an absolute part's `when` may be a list.** The focus ring is an `absolute` part, and its `when` named one state,
+so it couldn't show at both focus states. `when?: string | readonly string[]`, read through `whenStates`; the validator
+holds every entry to the def's states and refuses an empty list, and an `overlay`'s `when` still names one state (it
+replaces a part on exactly one). `lint-absolute-inset` reads the list with its own normalizer, not the schema's helper.
+`focus-visible-filled` joins the closed `STATES` vocabulary with its reason, the bar being a distinct interaction.
+
+**Tests:** a new `#2318` arm per field reads the projected plan at every size and status of the new member, with the
+expectations typed from the decision: the value in `color/text/primary`, no placeholder, the ring, the focus or status
+border, and on text-field only a caret immediately after the value (no caret before it, none on textarea or select),
+plus 12 built members. On the built host, `test-write-components.ts`'s `field end caret` arm reads the end caret's
+position, ink, width and one-line height on every text-field member at the new state, and its absence everywhere else. New
+validator arms: a `when` list naming an undeclared state, an empty list, and an overlay given a list each fail by name.
+The member-count literals of #2266, #1344, #1331, #1426, #1699, #1814 and #1428 move from 72 to 84 (with their
+mutation counterparts, 84 → 96 and 144 → 168).
+
+**Mutations,** through the #2272 harness against the engine suite, each failing by name:
+- M3, the end caret moved before the value: `❌ #2318 text-field: … WRONG: small/default: no caret immediately after the
+  value …`, and on the built host `✗ field end caret (text-field): … end caret is not immediately after the value …`.
+- M1, text-field's new member drawn with the placeholder: `❌ #2318 text-field: … WRONG: small/default: value ink
+  undefined | small/default: the placeholder is drawn …`.
+- M2, select's ring back to `focus-visible` alone: `❌ #2318 select: … WRONG: small/default: no focus ring | …`.
+
+**Screenshots** are plan renders (#2388's method): each projected plan drawn as HTML, with variables resolved from the
+prism3 brand's committed Figma export, light and dark, medium size. They approximate: a system font, the focus ring
+drawn as an outline, the select chevron and textarea's three reserved rows not drawn.
+
+---
+
+## (2026-10-09) — Narrow bar: a long brand name is cut with an ellipsis instead of wrapping the bar (#2262)
+
+At the narrow tier (560px and below), a long brand name wrapped the top bar wherever its row happened to break. With `northwind-outdoor-supply-co`, the plugin drew three rows at 460 and below (Export, then Activity and Agent, on a row of their own), and the web drew two at about 420 and below where its narrow bar is one. #2257 deliberately left the narrow tier alone, and #2287 fixed only the tooltip half. **Owner decision A (2026-10-09):** the narrow tier takes Q83 A's step too. The brand switcher takes what's left of its row and cuts the name with an ellipsis, keeping the full name in its tooltip and accessible name. The narrow bar keeps its designed rows: plugin `mark brand verdict theme agent activity export` / `figma apply`, web one row.
+
+### The diagnosis that made it small
+
+`fitBar` returned early at narrow. Everything else was already in place:
+- **`measureFit` measures what is drawn.** At narrow, the tile labels and the product name are hidden by the narrow rules, so they measure 0. Its `rows` (the plugin's first row) and `full` (the web's one row) are already the narrow tier's designed first row.
+- **The `trim` CSS works under narrow's `flex-wrap: wrap`.** `.p3-brandwrap` at `flex: 1 1 0` with `min-width: 0` has a hypothetical size of 0, so it never forces a break, then grows into what the row leaves.
+
+So the change is one line: at narrow, the step is `fits(rows ?? full) ? null : 'trim'`, and the tooltip code below runs unchanged. A tier change already clears the cached measurement. #2287's rule holds: the `title` is set only while the name is measured cut and is cleared otherwise.
+
+### Tests (§29d, `test:chrome`)
+
+- **The narrow tier no longer skips.** The long name's existing 10px sweep already covered 560 to 380 on both hosts and both themes. It used to `continue` there; it is now held to the same checks as every other width: the oracle's step, the drawn rows (plugin 2, web 1), the CDP accessible name and the tooltip while cut.
+- **`FIT_ORACLE` at narrow** has one candidate: the designed first row, laid out for real under the test's own forcing stylesheet (`rows` with a file row, `logo` without). Past it, the step is `trim`. It never reads `data-bar-fit`.
+- **New floor:** each host must reach the cut name at the narrow tier. Measured: 9 widths per theme on the plugin (460–380), 5 on the web (420–380). Without this floor, the narrow half of the sweep could pass by never cutting.
+
+**Mutations** (scratch runner of §29d alone, against both rebuilt bundles; a `wip:` commit before each):
+- **(a) The narrow early return put back.** It fails `29d {web,figma} {light,dark} northwind-outdoor-supply-co: across 91 widths the bar draws the measured step, in no more rows than it allows`, e.g. `460: want trim (… first of two rows 440, in 436), drew other in 3 row(s)`. It also fails `29d {figma,web}: the long name reaches the cut-name step at the narrow tier (0 state(s))`.
+- **(b) No `title` at narrow while the name is cut.** It fails `29d … 420 northwind-outdoor-supply-co (narrow): the cut brand name keeps the full name as the switcher's accessible name and tooltip (… title "null")` at every cut width, and the down-and-up tooltip check on all four host × theme cases.
+
+### Not done, on purpose
+
+- **No CSS rule changes.** The existing `trim` rules already serve narrow; only comments moved.
+- **The short name "prism3" is unchanged at narrow:** it never reaches `trim` there.
+- **The narrow tier's own rows were not revisited.** For example, whether Export belongs on the second row at narrow is the narrow layout's design, not this decision's.
+
+---
+
+## (2026-10-09) — Checkbox-group and radio-group carry up to eight rows, seven behind Figma-only toggles (#2344)
+
+**Status:** engine (the schema and two defs) and the plugin round-trip. ENGINE minor (change note): the projected
+component surface moves for both groups. CONTRACT unchanged. Owner decision **Q156 A**, recorded on #2344:
+- 8 nested rows: row 1 always shown, rows 2–8 behind booleans, 3 shown by default;
+- panel names "Option 2" … "Option 8";
+- an engine change allowing Figma-only booleans, so there are no `showOptionN` code props.
+
+### What changed
+
+- **The groups.** Each nests `row1` to `row8`. Rows 2–8 are `optional` and each sits behind a node-visibility
+  boolean (#1331's mechanism, the same one select's `showMessage` uses on a nested instance). Rows 2 and 3 are on by
+  default, so a group reads as the three rows it always did.
+  - **Member count is unchanged:** booleans don't multiply the set, so each group stays at 3 members (`size`).
+  - **Rows still fill the group:** each row keeps `follow: ['size']` and `crossAxisFill`.
+  - **Labels stay reachable:** each row is still a `nest-fixed` instance, so its label and selection are edited
+    in place on the nested row, without detaching.
+- **The Figma-only boolean** (`figmaProperties.booleans.<key>.figmaOnly: true`). Until now every boolean drove a
+  declared prop. A group's row count is `children` in code, so a Figma-only entry names no prop, and two refusals
+  come with it:
+  - its key must not be a declared prop (it would then be both);
+  - it must carry a `figmaName`, since there is no code name for the panel to fall back to.
+- **The `[HELD]` row count is resolved** in both defs' `codeOnly` and maintainer notes. The old claim that a
+  boolean-toggled nest would be the corpus's first is gone (select's `showMessage` already was one).
+
+### Tests and mutations
+
+- **`test.ts`, a new #2344 block.** For each group, every member must nest exactly `label, row1 … row8`, with:
+  - row 1 unwired and shown;
+  - row N on "Option N", hidden from row 4;
+  - exactly seven BOOLEAN set properties, Option 2 and 3 on;
+  - no code prop for a toggle.
+
+  Plus the two new refusals by name, and the old "not a declared prop" refusal, which still fires without
+  `figmaOnly`.
+- **`test-roundtrip.ts`, host truth in the layout-model shim.** The built set's seven toggles and their defaults
+  are read back, along with each member's eight rows and their wiring and built visibility. Then every toggle is
+  turned on: all eight rows must span the group less its inline padding, and the group must grow taller.
+
+Each mutation ran from a `wip:` commit and was restored with `git checkout --`:
+
+| Arm | Fails by name |
+|---|---|
+| checkbox-group's `option5` boolean dropped | `❌ #2344 checkbox-group: every member nests eight rows … (children label,row1,row2,row3,row4,row6,row7,row8 …)`, `❌ #2344 checkbox-group: the set declares exactly the seven row toggles …`, and both round-trip arms (`✗ … (rows row5 missing)`) |
+| the Figma-only bypass removed from `checkMap` | `❌ component: Checkbox.Group def is structurally valid — figmaProperties.booleans: 'option2' is not a declared prop …`, and Radio.Group's |
+| the declared-prop refusal disabled | `❌ #2344 a figmaOnly boolean whose key is a declared prop is refused BY NAME …` |
+| the figmaName refusal disabled | `❌ #2344 a figmaOnly boolean with no figmaName is refused BY NAME …` |
+
+### A trap for whoever re-verifies this
+
+**An `optional` part with no boolean is not built at all.** The first mutation shows it: dropping `option5` leaves
+`row5` out of the tree, rather than built and stuck visible. So a missing toggle reads as a missing row, and the
+row count, not the visibility check, is where it shows up.
+
+---
+
+## (2026-10-09) — Studio: Palettes always shows Light, and its mode control is held (#2321; Q111, PM1 B)
+
+**What changed.** On Color › Palettes the preview's mode control is disabled, in the standard disabled skin. Palettes always draws Light: its specimen grounds and its opacity scale's ink read Light's `background.primary` and `text.primary`, whatever mode was chosen elsewhere. Leaving Palettes puts back the mode the person had. One DRAFT line opens the Palettes preview and describes the held control: "Palettes always show Light. Ramps are the same in every mode."
+
+**The check came first, and it said no.** The issue asked to confirm that nothing on Palettes varies by mode before disabling the control. Measured from the engine and the DOM (prism3, aurora, harbor; both hosts; every offered mode, Wireframe switched on): the ramps never vary. No mode overlay emits a `palette.*` leaf, and every square, hex, label, hero and role dot is the same in every mode. But two things on the page did follow the mode, on purpose (`preview/palettes.ts` said so): the opacity scale (its 12 squares are `text.primary` at 0–100% on `background.primary`, and its short second strip shows the bare ground; about 78,000 pixels change in Dark and HC dark) and a fringe of ground at every ramp strip's rounded corners. Wireframe changed nothing. A disabled selector alone would have frozen the opacity scale in whatever mode you arrived in. That went back to the owner, who chose PM1 B: pin Palettes to Light.
+
+**How the pin works, and why it writes the store.** `frame.ts`'s `syncModePin` runs as the place changes, before the next page mounts. On the way into a page whose `NEW_PAGES` row has `pinsLight`, it keeps the current mode and writes Light with `setCurrentMode`. On the way out, it writes the kept mode back if the brand still ships it. Writing the store's own mode, rather than drawing Light under a control that says Dark, keeps everything that reads `currentMode` in agreement with what the held control shows: the page, Inspect, the verdict. A mode written by anything else while pinned (a brand load resets to the brand's first mode) drops the kept mode, so a load is never undone by leaving Palettes. `currentMode` is not persisted, so a reload has nothing to restore.
+
+**The disabled look is the existing rule, extended, not a second style.** The mode control's radios and select take their own `disabled` (#2284's native pattern: out of the tab order, disabled to assistive technology). There was no disabled skin for a segmented radio at all: #2284's held lever choices draw exactly like live ones (filed as #2366). So the X4 A button rule now names `.p3-mode`, mapped by what each segment draws at rest: the selected one has an edge, so it takes the outline skin; the others have none, so they take the text skin, as X4 A maps outline and ghost buttons. The F1 A select rule names `.p3-modes-select`. `test:chrome`'s `DISABLED_APPEARANCE` classifies the segments the same way, with the expected colors still read from the emission.
+
+**Tests.** `test:chrome` section 36 (both hosts, both chrome themes, 1280 and 380): entered from Dark, HC light and HC dark, the control is disabled (property or `aria-disabled`), takes no focus, is skipped by Shift+Tab from Inspect, reads disabled in the CDP accessibility tree, and reads Light. The reason line is drawn once. Leaving for Surfaces & fills restores the mode and a live control, and every other page has a live control and no line. Section 11's Palettes arm now enters from each mode and holds every strip, `opacity-1` and `opacity-2` included, to Light's `background.primary`, and the opacity ink to Light's `text.primary`, both from the emission. Every place the suites drove the mode control on Palettes now chooses the mode elsewhere: section 11, the preview-header section, the Q4 trial, the HP3 read, the X4 A derived sweep, #1984's brand-change case, and `test:smoke`'s sweep and Palettes section.
+
+**Two things the tests found.** (1) A scripted `click` event still reaches a disabled button's `onclick` in Chromium, and the Q4 trial's dispatched click on the held Dark radio switched the mode. The mode control's handlers now check their own `disabled` before writing, as the levers' writes keep their own guards (#2096). (2) `test:chrome`'s exemption probe (`holdsOff`) blurred whatever had focus before poking each exempted control, and never put it back. Measuring Palettes with the Figma menu open now exempts the held radios, so the probe left the menu with no focus, and Escape no longer closed it (8 failures in "Figma menu … Escape closes it back to its button"). The probe now restores the focus it found. That is a harness fix: reading a control must not move the page under test.
+
+**Trap for whoever re-verifies this.** The opening page is Palettes, so any new test that boots and clicks a mode radio straight away now waits on a disabled control. Choose the mode on another page first.
+
+---
+
+## (2026-10-09) — Update apply: a member root the plan gives no fill is cleared in place, and verify checks it (#2369)
+
+Found by Lane B while fixing #2335. On an in-place update, a member root whose plan has no fill kept the fill it was built with. NB's Button, built under "Text button hover: Fill" and updated to the default "Text & icon only", listed all 48 text hover and pressed members as updated, and all 48 kept the wash. Together with #2335 (the dry run names the dropped fill) and #2364 (the apply executes what the dry run lists), approving the fill's removal now removes it.
+
+- **The cause.** The executor's neutral claims (`claimDefaults`, #865) are what clear a fill nobody asked for, and they return at once on a `COMPONENT`. That holds for a fresh build, where a member's root is neutralized as a frame and becomes a component afterwards. In place, the root was already a component, so it was never neutralized. Inner frames were, which is why only the member root, where a button's wash sits, was affected.
+- **The fix (`write-components.ts`).** `build` tells `claimDefaults` when it is configuring an existing member's root (`ex` given, path `.`). That root takes the claims a fresh member's frame takes, so it ends where a fresh build would. The paste twin (`PAYLOAD_BUILD`) builds fresh only, so it has no such case and stays as it is.
+- **The verify (`update-apply.ts`).** `diffAnatomy` reads only the paints a plan declares, so a node the plan leaves unpainted was never checked. Verify (b) now also walks each updated member against its plan, by name, and reports a frame the plan gives no fill (and no gradient) or no stroke that carries a visible one, as a content difference. Hand-edited paths kept under Q1 are skipped, as in the rest of verify.
+- **`EXECUTOR_REVISION` 3 → 4.** #2396 (#2379) took 3; #2363 (#2296) and #2389 take 5 and 6 after this.
+
+### Tests (`test-update-apply.ts`, `root/…`)
+
+Button built under `buttonTextHover: 'fill'`, then updated to the default plan:
+- **premise:** 48 members the default plan leaves unfilled carry a wash on the root.
+- **`root/cleared`:** after the update, none does.
+- **`root/verified`:** the verdict fails exactly when one still does.
+
+**Reproduced first:** `✗ root/cleared (48 still washed)` and `✗ root/verified (✓ updated 48 in place; 48 washed)`, Lane B's measurement.
+
+**Mutations:**
+- **The executor's fix reverted:** `root/cleared` fails. The verdict now reads `⚠ 1 set not verified`, so `root/verified` holds, which shows the verify check working on its own.
+- **The verify check reverted too:** both fail, with the original `✓ updated 48 in place`.
+
+The corpus arm re-applies all 24 defs in place and still reads clean, so neither the root's claims nor the new check move any other def.
+
+### Traps for whoever re-verifies
+
+- **Strokes and the other neutral claims on the member root** (effects, opacity, rotation, and so on) are covered by the same fix, since the root now takes every claim. Only fills were measured.
+- **Not verified live:** on the NB master, Button under Fill updated to Text & icon only should show its text hover and pressed members without the wash.
+
+---
+
+## (2026-10-09) — Update apply: a "no changes" member takes only its stamp; an in-place paint draws its own color; a re-laid glyph fits its frame (#2379)
+
+The first live apply on the NB master (#2328, engine 0.233.0) reported `✓ updated 658 in place`. The 16 sets its dry run called "no changes" came out visibly broken: icon buttons and badges solid black, checkbox marks and field-message glyphs oversized. Verify passed them, and the shim's corpus test passes. The owner restored the version saved before the update.
+
+### Reproduced live first, on a scratch file
+
+The scratch file ran the same plugin build as the NB master, driven over the agent link with `use_figma`. Steps: Apply Theme (the default example brand), then build icon-button, badge, checkbox-control and field-message. Strip the executor-revision field from every stamp, the NB master's state. The dry run reads `✓ No changes found`, and the confirmed apply reads `✓ updated 294 in place`.
+
+**Then a snapshot of every node, before and after:** geometry, each paint's stored color, opacity and bound variable, and what that variable resolves to for the node (`resolveForConsumer`). It found:
+- **No binding lost.** Every paint kept its variable, which resolved as before.
+- **Every rewritten paint's stored color turned `#000000`.** That's 272 paints. The host draws the stored color, so the badge set exported as solid black blocks: the owner's report. The executor binds every paint onto a black base. A fresh build ends with the resolved color stored, but in place the host kept the black.
+- **Every glyph re-laid in place came out 1.5× (24/16):** 27 glyphs. Field-message's error glyph went 14×12.3 → 21.1×18.5, and checkbox marks 11.3×8 → 17×12. These are the NB master's restored numbers exactly, so its glyph damage most likely came from an earlier in-place apply on this path.
+
+### Why
+
+- **The no-change members were rebuilt.** A member read as built by an earlier plugin (`revisionUnknown`) matches its plan and its record, but the apply sent it through the build's whole pass: 7,575 writes on one 45-member set in the shim, and on the host the two defects below.
+- **The paint base.** In place, nothing makes the host re-resolve a paint's stored color, so the black base stays and is drawn. A wash variable's alpha, which a fresh build stores as the paint's opacity, stayed at 1 the same way, so a 10% overlay drew solid black.
+- **The glyph.** In place, the frame keeps its host's size (16) and its vectors were scaled there. A fresh import arrives at the 24px artboard. The match test compared sizes, so it never matched, and it moved the 24px vectors into the 16px frame with no resize to scale them.
+- **Why nothing caught either.** The shim kept vectors at their import size, so old and new always matched, and it had no color for a color variable. Verify (b) read which variable a paint binds, never what the host draws. That's the docs/34 permissive-stub shape.
+
+### The fix
+
+- **A "no changes" member takes its stamp and nothing else.** It's checked against its record before and after; any other write fails by name. A set of nothing but such members is never built over. The verdict reuses the approved `✓ already up to date`. Whether it should also say the members were re-stamped is held for the owner.
+- **The paint binder** bases every paint on its variable's own color for that node, alpha as opacity, as the host itself does on a fresh build and on Apply Theme. It falls back to black only where nothing resolves.
+- **The in-place glyph** scales the fresh import to the frame's size, by its SCALE constraints, before comparing and before moving. An unchanged glyph keeps its vectors and their ids, and a changed one lands at the size its frame draws it.
+- **Verify (b)** also reads what the host draws. A bound paint whose stored color or opacity differs from what its variable resolves to, or a glyph vector outside its frame, is a content failure by name.
+- **The shim models the host.** A color variable resolves to a color (an `/overlay/` one with alpha). Under `scaleConstrained` (opt-in, on for the update suites), a frame's SCALE children scale when its size changes, by resize or binding.
+- **`EXECUTOR_REVISION` 2 → 3.** #2363 and #2377 also raise it, so theirs move to 4.
+
+### Proved live, on the scratch file, with this build
+
+1. **Repair.** One confirmed update with the fixed build re-applied the damaged sets. Every paint's stored color and alpha matched its variable again, and every glyph went back to the fresh build's geometry. Diffed node by node against the snapshot taken right after the fresh build: **0 differences** on all four sets, 657 nodes.
+2. **The NB case.** Every stamp's revision was stripped again: `✓ No changes found`. The confirmed apply reads `✓ already up to date`. **0 differences** against the fresh build, and every stamp now at revision 3.
+
+### Tests (`test-update-apply.ts`)
+
+- `nochange/writes` and `nochange/current`.
+- `drawn/paints`: 287 paints, 12 washes. `drawn/glyphs`: 69 glyphs. Both read by the test off the shim's nodes, across tag, field-message, checkbox-control and badge.
+
+**Mutations:**
+| Mutation | Fails |
+|---|---|
+| no-change members rebuilt | `nochange/writes` (7,575 other writes) |
+| paint base black, with verify's paint check also removed | `drawn/paints` (287 of 287) |
+| alpha dropped | verify names `stored #715b32 at 100%, but …/overlay/hover resolves to #715b32 at 10%` |
+| glyph not scaled | `drawn/glyphs` (`17.0×12.0 in 16×16`) |
+| binding dropped in place | `PAINT NOT BOUND`, 10 arms |
+
+### Traps for whoever re-verifies
+
+- **Bound paints in an MCP screenshot or export draw their stored color.** Read the stored color and `resolveForConsumer` before calling a paint broken or fine.
+- **The dry run still can't see this damage.** On the damaged sets it read only "to update" (the revision moved), naming no field. Filed separately.
+- **The NB master's glyphs, after the restore, are still the 1.5× ones.** A confirmed update with this build re-lays them at the right size, as step 1 showed live. Run it on a duplicate first.
+
+### Review round (Lane D, on cefb6b74)
+
+- **A record captured over damage certified it.** The stamp-only path checked a member only against its own record. A member storing black under an intact binding, or holding a 1.5× glyph, whose record was captured that way, read current and was stamped current. That's most likely the NB master's real state. Now one draw check (`drawn.ts`) runs on the live node in the dry run itself: a member drawn other than its variables and frames say is **"to update"**, with each fault named, however current its stamp and record. It never reaches the stamp-only path, and the update re-applies it. The same faults are differences to `capture-baseline`, so a damaged member is never recorded. The apply's verify (b) uses the same function.
+- **Verify's two checks are held.** `verify/drawn paints` and `verify/drawn glyphs` plant the damage in the host, behind the executor: a host that ignores the paint base, and one that doesn't scale an imported glyph. They assert verify's named lines.
+- **The restamp in a mixed set is held.** In `mixed/…`, 23 members are to update and 22 are from an earlier plugin: the 22 take only stamps and records, and all 45 read current. This arm found that the grid re-wrote every member's position on every pass, putting back the same numbers. The grid now writes a position only where it moves.
+- **The shim, closer to the host again:**
+  - A combine re-resolves the set's bound paints, color and wash alpha, as the live fresh build showed.
+  - Rewriting a color variable moves its paints' stored color to the new value, alpha as opacity. An opaque value resets opacity to 1, as #1646 measured.
+  - `test-update-components` runs with `scaleConstrained`. Its theme test now moves bound colors through their variables, and leaves glyph vectors alone, rather than writing paint colors and vector positions by hand. Its own mutation (the signature hashing a bound paint's color) still fails it, with 120 edits.
+- **Mutations, each failing by name:**
+
+  | Mutation | Fails |
+  |---|---|
+  | the dry run's draw check dropped | `damage/dry run`, `damage/repaired` (Lane D's case exactly: `✓ already up to date; 45 stamped; 2 faults left`) |
+  | faults left out of `differencesOf` | `damage/capture` |
+  | verify's draw check dropped | `verify/drawn paints`, `verify/drawn glyphs` |
+  | the mixed set's restamp dropped | `mixed/stamped` |
+  | the grid writing unmoved positions | `mixed/only stamps` (44 writes) |
+
+### Review round 2: hand-edit false positives in a duplicated file (Lane D, on a copy of the NB master)
+
+A read-only dry run on a **duplicate** of the NB master, with this PR's build, read almost every set as edited by hand (icon-button 216/216, tag 45/45, text-field 24/24, and so on), though the owner had made no edits.
+
+- **The cause, measured read-only on the duplicate.** Each node's record hash was recomputed live and compared with the stored one. Every frame matched, bound variables included. Only **instances**, hashed by their main component's key, and **styled text**, hashed by `textStyleId` (which embeds the style's key), mismatched. Figma gives a duplicated file's local components and styles new keys, so a v2 record can't be read in a copy of its file. Nothing in this PR changed the record's format; `member-baseline.ts` was untouched since #2328.
+- **Record format v3** (`BASELINE_V` 2 → 3). An instance's main is hashed by set and name, and a text or effect style by its name (`figma.getStyleByIdAsync`, cached per run), never by a key. Variable ids survive duplication, so bindings keep them.
+- **A record of an earlier format is never read** (`readBaseline` refuses another `v`). The member has no record, never a hand edit. With #2367 (#2364) on `main`, the update brings it to the plan and records it again. The verdict names it, in the owner's words (2026-10-09):
+  - dry run: `N recorded by an earlier plugin version, read as having no as-built record`;
+  - apply: `N of them recorded by an earlier plugin version`.
+- **Damage outranks a hand edit.** A member with a draw fault is "to update" first, and its damaged parts are dropped from its hand edits, so they're overwritten. Any other hand edit on it is kept and reported. A member with a layer added or removed by hand is still skipped, because its paths can't be trusted.
+- **The shim:** `keyPrefix` and `styleIdPrefix` make a second file with the same names and new keys. A seeded component's main carries a key under `identities`, as on the host.
+- **Tests:**
+  - `format/duplicate`: the original's records in the copy, every member current, 0 hand edits.
+  - `format/earlier` (+ `words`, `recorded`).
+  - `damage/over edit`.
+- **Mutations, each failing by name:**
+
+  | Mutation | Fails |
+  |---|---|
+  | main hashed by key | `format/duplicate` (`handEdited: 45`, the duplicate's shape) |
+  | style hashed by id | `format/duplicate` |
+  | `readBaseline` reading another `v` | `format/earlier` |
+  | the hand edit classified first | `damage/over edit` |
+- `format/pinned`'s fixture has no instance or styled text, so it hashes the same under v3, and is pinned for 3.
+
+---
+
+## (2026-10-09) — Strikethrough is a modifier on the existing styles, not a style: the guidance for agents (#2340)
+
+Owner decision Q150 D (2026-10-09): option B now. Prism3 mints no strikethrough text style. A struck run (a was-price,
+a zeroed-out line) is the existing style plus a line-through modifier. Option C, a price component that owns the
+decoration and its accessible text, is filed as its own issue. The research is on #2340: strikethrough deliberately
+does not follow the `-link` precedent, because underline is everywhere and an accessibility requirement, while
+strikethrough is one pattern whose meaning no text style can carry.
+
+**The handoff check was done by the owner in Figma:** a strikethrough applied over a styled run (`body/sm/default`)
+shows in the dev specs as "Text decoration: Strikethrough", next to the bound family and size variables. So the
+modifier survives handoff without a style.
+
+**What changed, docs only:**
+- `ai-metadata.ts`: every body and caption composite's entry (body/xs included; the `-link` variants left alone,
+  since a struck link is not this pattern) appends one sentence pair. `when_to_use` gives the modifier in code and in
+  Figma and the visually hidden text; `avoid_when` says not to look for or mint a strikethrough style. Regenerated
+  into the five brands' `.ai.json`; no token, style or value moves, so CONTRACT is unchanged. A change note declares
+  the minor bump, because the committed `.ai.json` moves.
+- `skills/prism3-consume`: a paragraph after the body/xs one, with the accessible price pattern from the research:
+  `<del>` and `<ins>` holding visually hidden "Original price:" and "Sale price:", the hidden words translated, and
+  the struck text still held to 4.5:1.
+
+**Why visually hidden text and not `<del>` alone:** most screen readers don't announce `<del>` or `<s>`, so without
+the hidden words both prices read as two numbers with nothing saying which is current (MDN; WebAxe's tests, cited on
+#2340).
+
+---
+
+## (2026-10-09) — Update apply: a set whose members all lack an as-built record is updated, not called up to date (#2364)
+
+Found on the NB master's first live apply. The dry run read "Would change 6 of 22": Button's and Destructive's minimum width and label text style, field-label's maximum width, and three fields' sizing modes. The confirmed apply, with that `previewHash`, reported those six sets "already up to date", updated the other 16 (`✓ updated 658 in place`), and a fresh dry run read the same six differences. No harm to the file: no id changed, and the named version was saved.
+
+- **The cause.** Before writing, the apply skips a set with nothing to do, from the dry run's counts: `update`, `handEdited`, `add`, `drop`, `rename` and `revisionUnknown`. **It left out `noBaseline`.** A member with no as-built record reads `noBaseline` whatever else is true of it. Capture had left these six sets unrecorded ("built from an earlier plan"), so none of their members read `update`. The apply took each as already up to date, while the dry run, whose "would change" counts every member that isn't current, listed their differences.
+- **The fix.** `noBaseline` is counted, so a set whose members all lack a record goes to the build's update pass like any other. Each member is updated and named as updated without a record, as Q113 A already decided for one such member.
+- **And a set left alone can't hide a difference.** If the apply finds nothing to do for a set whose dry run named differences, each one is reported, by member, part and field, as still differing from the plan, and the verdict fails. It never says "already up to date".
+- **And `choices.noBaseline: 'skip'` can't read as done either** (Lane D's review). Under it, an all-unrecorded set reaches the apply, every member is left by the choice, and the headline used to fall through to "✓ already up to date". A set the apply entered and wrote nothing to, with members left as they are, now counts as **not updated**: `✗ 1 set not updated`, the approved headline (the owner's choice, 2026-10-08), with its line `tag: 45 left as they are.`
+- **The 16 other sets were updated as designed.** Their members read `revisionUnknown` (built by an earlier plugin), which the dry run reports as "N built by an earlier plugin. Update them to bring them current". That's a re-apply, not a defect.
+
+### Why verify (b) didn't catch it
+
+Verify's content check, `diffAnatomy` on every updated member, runs inside a set's apply. **The six sets returned before their apply began**, at the "nothing to do" check, so nothing was compared. The headline then counted the 16 sets that were applied. The new guard is the check on that path.
+
+### Why the existing arm didn't catch it
+
+`unrecorded/updated` clears one member's record among 45 whose plan moved. The other 44 read `update`, so the set was never empty. The NB case is every member of a set unrecorded.
+
+### Tests (`test-update-apply.ts`)
+
+- **`unrecorded/all`:** `tag` with every record cleared and its gap moved. The premise is that the dry run reads 45 with no record, none to update, and "Would change 1 of 1". Then 45 are updated and written, and the next dry run reads every member current (`converges`). `unrecorded/honest`: no ✓ verdict while a previewed difference is left.
+- **`unrecorded/levers`:** Button on the NB master's own fields. Built from the default theme, every record cleared, then the plan from `buttonLabelWeight: 'default'` and `buttonMinWidthMultiplier: 1`. The dry run names `minWidth` and `textStyle`; all 432 members are updated, and the next dry run reads up to date.
+
+- **`unrecorded/skip`** (+ `left`): the same set under `noBaseline: 'skip'`. The verdict is `✗ 1 set not updated`, the 45 are named as left, and the next dry run lists the same 6 differences.
+
+**Mutations:**
+- **`noBaseline` left out of the count, guard kept:** `unrecorded/all`, `written`, `converges`, `levers` and `levers converge` fail. The verdict reads `⚠ 1 set not verified`, not a ✓, so `honest` holds.
+- **The whole fix reverted:** the same five, plus `unrecorded/honest` (`✓ already up to date; 6 left`). That's the NB master's result.
+- **The all-skipped set not counted as not updated:** `unrecorded/skip` (`✓ already up to date; 45 left`).
+
+### Traps for whoever re-verifies
+
+- **Live, after this merges, on the duplicate first:** a dry run reads "Would change 6 of 22"; the apply names each of the six sets' members as updated without a record; and a dry run after reads `✓ No changes found` or `✓ All sets up to date`.
+- **`updated` there will include members whose only difference is the plugin revision,** as it did for the 16. That's expected, and the dry run's "built by an earlier plugin" line names them.
+
+---
+
 ## (2026-10-09) — Flush text buttons: `inset: default | flush` on the text appearance (#2350 part 1)
 
 **Status:** engine `0.235.0` (minor, change note); CONTRACT unchanged (no token name moves: flush binds

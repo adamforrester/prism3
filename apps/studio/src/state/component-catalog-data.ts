@@ -298,7 +298,9 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "buildable": true,
     "reason": null,
     "members": 4,
-    "nests": []
+    "nests": [
+      "icon"
+    ]
   },
   {
     "id": "text-field",
@@ -346,7 +348,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ],
     "buildable": true,
     "reason": null,
-    "members": 72,
+    "members": 84,
     "nests": [
       "field-label",
       "icon",
@@ -388,9 +390,10 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ],
     "buildable": true,
     "reason": null,
-    "members": 72,
+    "members": 84,
     "nests": [
       "field-label",
+      "icon",
       "field-message",
       "focus-ring"
     ]
@@ -406,7 +409,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "reason": null,
     "members": 54,
     "nests": [
-      "focus-ring"
+      "focus-ring",
+      "icon"
     ]
   },
   {
@@ -518,6 +522,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "reason": null,
     "members": 24,
     "nests": [
+      "icon",
       "focus-ring"
     ]
   },
@@ -590,7 +595,7 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     ],
     "buildable": true,
     "reason": null,
-    "members": 72,
+    "members": 84,
     "nests": [
       "field-label",
       "icon",
@@ -614,13 +619,15 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "id": "image-placeholder",
     "name": "ImagePlaceholder",
     "category": "foundations",
-    "summary": "Empty media frame locked to 1:1, 4:3 or 16:9. Drop an image fill onto it.",
+    "summary": "Empty media frame locked to a ratio, from 2:3 portrait to 16:9. Drop an image fill onto it.",
     "unit": "variants",
     "spacing": [],
     "buildable": true,
     "reason": null,
-    "members": 3,
-    "nests": []
+    "members": 7,
+    "nests": [
+      "icon"
+    ]
   },
   {
     "id": "spinner",
@@ -720,6 +727,61 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "nests": [
       "icon",
       "focus-ring"
+    ]
+  },
+  {
+    "id": "tab",
+    "name": "Tab",
+    "category": "navigation",
+    "summary": "One trigger in a tab list. Selected, it shows an underline and switches the panel below.",
+    "unit": "variants",
+    "spacing": [
+      {
+        "key": "size.small.padding-x",
+        "ref": "space.150"
+      },
+      {
+        "key": "size.medium.padding-x",
+        "ref": "space.200"
+      },
+      {
+        "key": "size.large.padding-x",
+        "ref": "space.250"
+      },
+      {
+        "key": "size.small.gap",
+        "ref": "space.075"
+      },
+      {
+        "key": "size.medium.gap",
+        "ref": "space.100"
+      },
+      {
+        "key": "size.large.gap",
+        "ref": "space.100"
+      }
+    ],
+    "buildable": true,
+    "reason": null,
+    "members": 30,
+    "nests": [
+      "icon",
+      "badge",
+      "focus-ring"
+    ]
+  },
+  {
+    "id": "tabs",
+    "name": "Tabs",
+    "category": "navigation",
+    "summary": "A row of tabs that switches between panels of related content in place.",
+    "unit": "variants",
+    "spacing": [],
+    "buildable": true,
+    "reason": null,
+    "members": 3,
+    "nests": [
+      "tab"
     ]
   }
 ];

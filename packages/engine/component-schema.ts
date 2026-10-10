@@ -630,14 +630,14 @@ export type PartDef = {
   flush?: { axis: string; value: string; key: string };
   /** For `box` parts: the name of a VARIANT axis whose values are `W:H` ratio strings, from which the
    *  box's aspect-ratio LOCK is derived per member (#1316). image-placeholder declares `aspectRatio:
-   *  'ratio'` and a `ratio` axis of `['1:1', '4:3', '16:9']`; the projector parses the member's own
+   *  'ratio'` and a `ratio` axis of `['2:3', …, '16:9']` (seven ratios, #2345); the projector parses the member's own
    *  `ratio` value into a number and carries it onto the plan, and both executors resize the frame to
    *  that proportion and call `lockAspectRatio()` so Figma DERIVES the second dimension from the first.
    *
    *  AN AXIS NAME, NOT A LITERAL PAIR, and that is forced by the requirement rather than a style choice.
    *  It is modeled on `glyphViewBox`'s literal `[w, h]` in that a ratio is a proportion the def states
    *  structurally — but a single literal cannot VARY per member, and the three ratios are three members
-   *  of one set. Naming the axis lets one field express all three: the values `1:1`/`4:3`/`16:9` ARE the
+   *  of one set. Naming the axis lets one field express all of them: the values `1:1`/`4:3`/`16:9` ARE the
    *  ratios, so `parseRatio` reads them rather than a def carrying a second per-variant map that could
    *  drift from the axis it mirrors.
    *
@@ -671,23 +671,23 @@ export type PartDef = {
    *  naming a glyph that survives the swap is untouched, and every def naming one that does not fails at
    *  projection instead of building an empty square. */
   glyph?: string;
-  /** THE FRACTION OF ITS ARTBOARD A `vector`'s DRAWN GRID OCCUPIES (#1346). A glyph's 24-unit source grid
-   *  fills its artboard by default (`glyphScale` absent ≡ `1`): the frame is bound to its host size and the
-   *  ink renders at whatever proportion the artwork itself draws (`check` draws ~71% of the grid). A control
-   *  whose reference sits its glyph SMALLER than the box needs a second, optical inset ON TOP of that
-   *  artwork inset — and expressing it by SHRINKING THE FRAME would mint a per-rung control token (a
-   *  guaranteed name, a CONTRACT bump), because the plan is brand-agnostic and a frame binds a VARIABLE.
-   *  So the inset is baked into the emitted glyph DOCUMENT instead: the projector pads the artboard to
-   *  `grid / glyphScale` (centered, so the path `d` and the shared vocabulary are untouched), and the
-   *  same host binding renders the grid at `glyphScale` of the frame. A def-local literal, not a token —
-   *  `token-contract.ts --check` stays put. Prism 2's checkbox is the motivating case: its `checkFill`
-   *  (16) sits at 0.80 of its control box (20 = focus frame 28 − 2×4), so `mark`/`dash` carry
-   *  `glyphScale: 0.8`. `0 < glyphScale ≤ 1`; `1` is the no-op default and is not authored. `lint-glyph-
-   *  geometry.ts` re-derives the padded artboard from a scale it declares independently, so a value moving
-   *  in either file fails by name; the Figma import of a padded (negative-origin) artboard is a real-host
-   *  fact this offline model cannot verify, recorded in the def's `notes.unverified`. */
+  /** THE FRACTION OF ITS BOX A `vector`'s ICON OCCUPIES (#1346). An icon fills its part's box by default
+   *  (`glyphScale` absent ≡ `1`): the box is bound to its host size and the ink renders at whatever
+   *  proportion the artwork itself draws (`check` draws ~71% of the grid). A control whose reference sits its
+   *  glyph SMALLER than the box needs a second, optical inset ON TOP of that artwork inset — and binding a
+   *  smaller size would mint a per-rung control token (a guaranteed name, a CONTRACT bump), because the plan
+   *  is brand-agnostic and a frame binds a VARIABLE. So the part projects as a FRAME bound to the box, holding
+   *  the icon INSTANCE (#2380) placed at `glyphScale` of it, centered, with SCALE constraints
+   *  (`FigmaNodePlan.glyphInset`). Before #2380 the glyph document's artboard was padded to `grid / glyphScale`
+   *  instead; the ink lands in the same place. A def-local literal, not a token — `token-contract.ts --check`
+   *  stays put. Prism 2's checkbox is the motivating case: its `checkFill` (16) sits at 0.80 of its control box
+   *  (20 = focus frame 28 − 2×4), so `mark`/`dash` carry `glyphScale: 0.8`. `0 < glyphScale ≤ 1`; `1` is the
+   *  no-op default and is not authored. Only an icon-set glyph can carry it (the projector throws otherwise).
+   *  `lint-glyph-geometry.ts` declares the scale independently (`SCALED_GLYPH`), so a value moving in either
+   *  file fails by name; whether Figma applies the SCALE constraints when a binding resizes the frame is a
+   *  real-host fact recorded in the def's `notes.unverified`. */
   glyphScale?: number;
-  /** For a NON-ROOT `vector`: a LITERAL square px the glyph frame is BUILT at, instead of binding a token
+  /** For a NON-ROOT `vector`: a LITERAL square px the glyph (since #2380, the icon instance) is BUILT at, instead of binding a token
    *  via `size` (#1340). A def-local literal (the `minWidth`/`glyphScale` precedent), so it mints no
    *  emitted token name and `token-contract.ts --check` stays put — the point over a token binding here.
    *
@@ -836,8 +836,12 @@ export type PartDef = {
    *  declared AND validated, and the projection still could not use any of it, because *when* was the
    *  one fact nobody had written down. **A declaration that omits its trigger is not projectable,
    *  however complete it looks** — and it looks complete precisely because every field that exists
-   *  is filled in. */
-  when?: string;
+   *  is filled in.
+   *
+   *  An `overlay` names ONE state. An `absolute` part may name a LIST (#2318): the focus ring rings the field at
+   *  `focus-visible` AND at `focus-visible-filled`, one part at both states rather than two rings. Read it through
+   *  `whenStates`, never as a string. */
+  when?: string | readonly string[];
   /** For `absolute`: the NAME of a component that must already exist in the file, which this part
    *  materializes as an INSTANCE of rather than authoring from nothing.
    *
@@ -949,6 +953,29 @@ export type PartDef = {
    *  it `MAX`/`MAX`, so it stays in the corner when a designer resizes the instance. `lint-absolute-inset.ts`
    *  holds the inset to the parent's stroke weight in every brand, so the artboard never overlaps the edge. */
   corner?: 'bottom-right';
+  /** For a `vector` sized by `glyphPx`: take the glyph OUT of the auto-layout flow, CENTER it in its parent,
+   *  and constrain it `SCALE`/`SCALE`, so it keeps its fraction of the parent when a designer resizes an
+   *  instance (#2345). image-placeholder's marker is the case: a fixed 180px marker inside a 64px thumbnail
+   *  was cropped and oversized, and with this it renders at 64 × 180/720 = 16px.
+   *
+   *  WHY THE PARENT MUST BE ASPECT-LOCKED. SCALE on both axes stretches the child by the parent's two resize
+   *  factors independently. Under an `aspectRatio` lock every resize is uniform, so the two factors are equal
+   *  and the square glyph stays square; under an unlocked parent a designer widening the frame would draw a
+   *  wide glyph. So the lock is the precondition, not a coincidence of the one def that uses it.
+   *
+   *  WHY `glyphPx` AND NOT `size`. The constraint resizes the node, and a node whose width/height are BOUND
+   *  to a variable holds the binding's value instead; a literal-sized glyph has no binding to fight.
+   *
+   *  PROJECTED as `absoluteCenter` (the lift and the centering the spinner already uses) plus
+   *  `absoluteScale`, which swaps the centered child's `CENTER`/`CENTER` constraints for `SCALE`/`SCALE`.
+   *  A FOURTH placement beside `absolute`'s inset, the overlay's center and the `corner` pin, because the
+   *  resize behavior is a fourth shape: the ring grows with its target, the spinner keeps its size, the grip
+   *  keeps its corner, and this keeps its PROPORTION. Node-type independent in both executors, so it holds
+   *  whether the glyph is built inline or as an icon instance (#2380).
+   *
+   *  Refused off a non-root `vector`, without `glyphPx`, beside `corner`, and under a parent that is not an
+   *  auto-layout `box` carrying `aspectRatio`. */
+  scaleWithParent?: boolean;
   note?: string;
 };
 
@@ -1630,6 +1657,9 @@ export type ComponentDef = {
 export const SUMMARY_MAX = 100;
 
 export const statesOf = (def: ComponentDef): readonly string[] => def.states ?? [];
+/** The states a part's `when` names, one or a list (#2318): empty when it names none. */
+export const whenStates = (p: { when?: string | readonly string[] } | undefined): readonly string[] =>
+  p?.when === undefined ? [] : typeof p.when === 'string' ? [p.when] : p.when;
 export const variantsOf = (def: ComponentDef): Record<string, string[] | undefined> => def.variants ?? {};
 
 /**
@@ -2433,12 +2463,18 @@ export const fillKey = (
  * any of the three repaints a sibling. Its dispatch is the box branch, which calls `paintOf` on every
  * slot a box declares, so it sits in `BOX_PAINT_SLOTS` too: the caret is a bar that draws itself, the
  * radio dot's case.
+ *
+ * `caret-end` (#2318, owner decision Q166 C, 2026-10-09) is the same role on a SECOND node: text-field's focused field
+ * that holds a value draws its insertion point AFTER the value, where it is, while `caret` stays before the
+ * placeholder on the empty focused field. Node order is fixed per set, so the two positions are two parts, and the
+ * projector resolves a slot once per def (two parts claiming `caret` would bind one variable for both, which
+ * `anatomyErrors` refuses). So the second caret takes its own slot, bound to the same value ink.
  */
 /** The reserved `presentWhen` key that gates a part on the projected STATE rather than on a variant axis
  *  (owner decision, 2026-09-26). See `PartDef.presentWhen`. */
 export const STATE_GATE = 'state';
 
-export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon', 'indicator', 'caret'] as const;
+export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon', 'indicator', 'caret', 'caret-end'] as const;
 
 /**
  * The paint slots a SLOT-FREE template is allowed to answer (#758).
@@ -2496,7 +2532,7 @@ export const PRIMARY_PAINT_SLOTS = new Set(['fill', 'label', 'icon', 'indicator'
  * than by a list the projector also keeps: `border` is the only edge slot, so it is the only one that
  * reaches `strokes`, and everything else competes for the single `fills` array in declaration order.
  */
-export const BOX_PAINT_SLOTS = ['overlay', 'fill', 'border', 'indicator', 'caret'] as const;
+export const BOX_PAINT_SLOTS = ['overlay', 'fill', 'border', 'indicator', 'caret', 'caret-end'] as const;
 
 /**
  * The RUNTIME INTERACTION STATES a def may declare (#821, argued in `docs/39` §7(a)).
@@ -2571,10 +2607,18 @@ export const BOX_PAINT_SLOTS = ['overlay', 'fill', 'border', 'indicator', 'caret
  * of `empty`, not a synonym for any entry: `rest`/`hover`/`focus-visible` now show the placeholder (the
  * empty field at each interaction), and `filled` is the one coordinate whose text is a value in value ink.
  * `empty` stays for code, where emptiness is a content condition that co-occurs with every interaction.
+ *
+ * ── `focus-visible-filled`, THE TWELFTH (#2318, owner decision Q157, 2026-10-09) ──────────────────────
+ *
+ * The same three fields project the FOCUSED field that HOLDS A VALUE: the focus ring and focus border of
+ * `focus-visible` around the value of `filled`. Neither of those two expresses it (`focus-visible` is the empty
+ * focused field; `filled` is the value at rest), and in code focus and value are independent, so a field being
+ * typed in is both. The design-rebuild test had to place an active password field as `filled`, losing its focus
+ * border. A distinct interaction, so it clears the bar above.
  */
 export const STATES = [
   'rest', 'hover', 'pressed', 'focus-visible', 'disabled',
-  'pending', 'inactive', 'read-only', 'error', 'empty', 'filled',
+  'pending', 'inactive', 'read-only', 'error', 'empty', 'filled', 'focus-visible-filled',
 ] as const;
 
 /** One member of the closed state vocabulary. `ComponentDef.states` is `State[]`, so an unknown state
@@ -2822,7 +2866,7 @@ export type State = (typeof STATES)[number];
  *
  * ── `ratio`: THE FIFTEENTH NAME, FOR THE IMAGE PLACEHOLDER (#1316) ────────────────────────────────
  *
- * `ratio` (`1:1 | 4:3 | 16:9`) is the PROPORTION an aspect-locked media frame holds while its container
+ * `ratio` (`2:3 | 3:4 | 4:5 | 1:1 | 4:3 | 3:2 | 16:9`, #2345) is the PROPORTION an aspect-locked media frame holds while its container
  * flexes — the owner-decided axis for `image-placeholder`, held to this list's bar the same way `weight`
  * and the veil's two were. A distinct kind of distinction no existing name expresses, and the two nearest
  * are defeated: `size` is a scale RUNG (how big, on a named ladder a brand re-derives), and `width` is a
@@ -2835,7 +2879,7 @@ export type State = (typeof STATES)[number];
  * for beyond `lint-axis-values.ts`'s register: `anatomyErrors` refuses a `ratio` axis whose value is not
  * a positive `W:H`, because the lock is DERIVED from the value (`16:9` → 16/9) rather than mapped by a
  * second per-variant table. That is the elegance the owner approved (Option A): the axis value IS the
- * ratio. `lint-axis-values.ts` carries `['1:1', '4:3', '16:9']` as a `sole` set with this reason.
+ * ratio. `lint-axis-values.ts` carries the seven ratios as a `sole` set with this reason.
  *
  * ── `status` AND `emphasis`: THE SIXTEENTH AND SEVENTEENTH NAMES, SPLITTING THE OVERLOADED `tone` (#1334) ──
  *
@@ -3587,9 +3631,10 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // a caret that is secretly a container.
   for (const n of names) {
     const p = parts[n];
-    if (p.kind !== 'box' || !(p.paintSlots ?? []).includes('caret')) continue;
+    const caretSlot = (p.paintSlots ?? []).find((s) => s === 'caret' || s === 'caret-end');
+    if (p.kind !== 'box' || !caretSlot) continue;
     if ((p.children ?? []).length)
-      e.push(`anatomy part '${n}' declares paintSlots 'caret' and has children [${p.children!.join(', ')}] — the caret is a bar that draws itself, so a child is content its fill would paint behind (#864). Keep the caret a childless box beside the text it precedes`);
+      e.push(`anatomy part '${n}' declares paintSlots '${caretSlot}' and has children [${p.children!.join(', ')}] — the caret is a bar that draws itself, so a child is content its fill would paint behind (#864). Keep the caret a childless box beside the text it precedes`);
   }
 
   // Every binding key anatomy names must be a slot the component actually binds, AT EVERY COORDINATE
@@ -3677,6 +3722,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       // validates clean, reads complete, and no projection can place it — which is exactly how the
       // spinner sat in this def while `state=pending` emitted a plan byte-identical to `rest`.
       if (!p.when) e.push(`anatomy part '${n}': an overlay must declare the state it appears in ('when') — without it nothing can project it`);
+      else if (typeof p.when !== 'string') e.push(`anatomy part '${n}': an overlay's when names ONE state, not a list (${p.when.join(', ')}) — it replaces a part on exactly one state`);
       else if (!statesOf(def).includes(p.when)) e.push(`anatomy part '${n}': when '${p.when}' is not one of states [${statesOf(def).join(', ')}]`);
       // The fallback target must exist and must NOT be optional. An optional one reintroduces the
       // defect one level down: if the part the overlay falls back to overlaying can itself be absent,
@@ -3702,8 +3748,8 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       // Same requirement, same reason as an overlay's: a part that never says WHEN it appears is
       // decorative declaration. The ring appears on exactly one state and a projection cannot guess
       // which — #536 item 2's lesson applied before the kind has a chance to repeat it.
-      if (!p.when) e.push(`anatomy part '${n}': an absolute part must declare the state it appears in ('when') — without it nothing can project it`);
-      else if (!statesOf(def).includes(p.when)) e.push(`anatomy part '${n}': when '${p.when}' is not one of states [${statesOf(def).join(', ')}]`);
+      if (!whenStates(p).length) e.push(`anatomy part '${n}': an absolute part must declare the state it appears in ('when', one state or a list) — without it nothing can project it`);
+      else for (const w of whenStates(p)) if (!statesOf(def).includes(w)) e.push(`anatomy part '${n}': when '${w}' is not one of states [${statesOf(def).join(', ')}]`);
       // `nests` is REQUIRED rather than optional, and this is the decision from `PartDef.nests` made
       // enforceable: an `absolute` with nothing nominated would have to be authored from scratch, which
       // is the N-way duplication the shared ring exists to avoid. Half-supporting both shapes would
@@ -4502,6 +4548,32 @@ const anatomyErrors = (def: ComponentDef): string[] => {
         e.push(`anatomy part '${n}' declares BOTH 'size' and 'glyphPx' — that states the glyph's square twice, once as a token binding and once as a literal, and the projection would keep whichever it read last; a glyph frame states its size ONE way`);
       else if (!(p.glyphPx > 0))
         e.push(`anatomy part '${n}' declares glyphPx ${p.glyphPx} — the glyph frame is resized to this square, so it must be > 0; a zero or negative literal builds a collapsed or inverted frame`);
+    }
+    // `scaleWithParent` (#2345): the glyph leaves the flow, centered, constrained SCALE/SCALE. Each arm is a
+    // way to author it so it validates and then projects nothing, or projects a glyph that distorts: on a
+    // kind the projector does not read it on; on the ROOT, which has no parent to scale with; without
+    // `glyphPx`, so a bound size holds against the constraint; beside `corner`, a second placement for the
+    // same node; and under a parent that is not an auto-layout box (Figma ignores `layoutPositioning` there,
+    // silently) or not aspect-locked (a non-uniform resize stretches the square glyph).
+    if (p.scaleWithParent !== undefined) {
+      if (p.kind !== 'vector')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'scaleWithParent' — only a 'vector' is a glyph the projector lifts, centers and scales with its parent`);
+      else if (n === a.root)
+        e.push(`anatomy part '${n}' is the anatomy ROOT and declares 'scaleWithParent' — the root has no parent to scale with`);
+      else {
+        if (p.scaleWithParent !== true)
+          e.push(`anatomy part '${n}' declares scaleWithParent ${String(p.scaleWithParent)} — the field is a switch that is on or absent; 'false' is the default and is not authored`);
+        if (p.glyphPx === undefined)
+          e.push(`anatomy part '${n}' declares 'scaleWithParent' but no 'glyphPx' — the SCALE constraint resizes the glyph, and a glyph sized by a bound 'size' holds the binding's value against it; state its size as a literal`);
+        if (p.corner !== undefined)
+          e.push(`anatomy part '${n}' declares BOTH 'scaleWithParent' and 'corner' — two out-of-flow placements for one node, and the executor would keep whichever it wrote last`);
+        const parent = Object.keys(parts).find((k) => (parts[k].children ?? []).includes(n));
+        const pp = parent ? parts[parent] : undefined;
+        if (!pp || pp.kind !== 'box' || !pp.layout)
+          e.push(`anatomy part '${n}' declares 'scaleWithParent' under '${parent ?? '(none)'}', which is not an auto-layout 'box' — Figma ignores 'layoutPositioning' on a child of a frame with no auto-layout, silently, so the glyph would stay in the flow at its fixed size`);
+        else if (!pp.aspectRatio)
+          e.push(`anatomy part '${n}' declares 'scaleWithParent' under '${parent}', which carries no 'aspectRatio' lock — SCALE on both axes follows each axis of a resize separately, so an unlocked parent resized wider than tall stretches the square glyph`);
+      }
     }
   }
 

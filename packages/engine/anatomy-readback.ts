@@ -392,6 +392,26 @@ export const FIELDS: Record<string, FieldCheck> = {
     show: (p) => `glyphPx ${String(p)}`,
     check: (p, n) => (n.width === p ? null : str(n.width)),
   },
+  // THE INSET ICON (#2380, #1346): the instance checkbox's `mark`/`dash` wrap, at `glyphInset` of its parent
+  // frame's box on both axes, centered, constrained SCALE/SCALE so a resized box scales it along. Measured
+  // against the LIVE parent, like `pin`: an instance left at its component's own 24px, or placed before the
+  // parent took its bound size, reads back as a wrong fraction rather than agreeing.
+  glyphInset: {
+    show: (p) => `${String(p)} of the parent's box, centered, constraints SCALE/SCALE`,
+    check: (p, n) => {
+      const s = p as number;
+      const c = n.constraints as { horizontal?: unknown; vertical?: unknown } | null | undefined;
+      if (c?.horizontal !== 'SCALE' || c?.vertical !== 'SCALE') return `constraints ${str(c)}`;
+      const par = n.parent as { width?: unknown; height?: unknown } | null | undefined;
+      const [pw, ph, x, y, w, h] = [par?.width, par?.height, n.x, n.y, n.width, n.height];
+      if (![pw, ph, x, y, w, h].every((v) => typeof v === 'number')) return 'no parent box / x / y / size to measure the inset on';
+      const [PW, PH, X, Y, W, H] = [pw, ph, x, y, w, h] as number[];
+      const ok = (a: number, b: number): boolean => Math.abs(a - b) < 0.01;
+      return ok(W, PW * s) && ok(H, PH * s) && ok(X, (PW - W) / 2) && ok(Y, (PH - H) / 2)
+        ? null
+        : `${W}x${H} at ${X},${Y} in a ${PW}x${PH} box`;
+    },
+  },
 
   // ── positioning ──────────────────────────────────────────────────────────────────────────────
   absoluteInset: {
@@ -401,6 +421,18 @@ export const FIELDS: Record<string, FieldCheck> = {
   absoluteCenter: {
     show: () => 'ABSOLUTE',
     check: (_p, n) => (n.layoutPositioning === 'ABSOLUTE' ? null : str(n.layoutPositioning)),
+  },
+  // A GLYPH THAT SCALES WITH ITS PARENT (#2345): out of flow (its `absoluteCenter` reads that) AND constrained
+  // SCALE/SCALE. One left at CENTER/CENTER keeps its size when the instance shrinks — the cropped 180px marker
+  // in a 64px thumbnail the issue measured — so the constraints are what this checks.
+  absoluteScale: {
+    show: () => 'ABSOLUTE, constraints SCALE/SCALE',
+    check: (_p, n) => {
+      const c = n.constraints as { horizontal?: unknown; vertical?: unknown } | null | undefined;
+      return n.layoutPositioning === 'ABSOLUTE' && c?.horizontal === 'SCALE' && c?.vertical === 'SCALE'
+        ? null
+        : `${str(n.layoutPositioning)}, constraints ${str(c)}`;
+    },
   },
   // A PINNED icon (#1667): out of flow, constrained to its edge, and `inset` px from it. The edge distance is
   // read off the live parent, so an end pin placed before the parent settled (or measured off the wrong

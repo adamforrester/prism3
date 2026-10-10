@@ -70,7 +70,7 @@ import type { AnatomyPlan, ButtonLayout } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkboxRow, checkboxGroup, radioGroup, textarea, radioControl, radioRow, switchControl, switchRow, select, spinner, tag, tab } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -82,6 +82,14 @@ import { isDeepStrictEqual } from 'node:util';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve, dirname, join, relative } from 'node:path';
 const HERE = dirname(fileURLToPath(import.meta.url));
+
+/** The `icon/<glyph>` components a plan nests (#2380) — FIXTURE SETUP for the stub file, so a paste that is
+ *  expected to run clean has the icon components a real file would have had built first. Never an expected
+ *  value: the instance assertions below type their expected `icon/<glyph>` names out. */
+const planIconComps = (n: { nestTarget?: string; children?: readonly unknown[] }): string[] => [
+  ...(n.nestTarget?.startsWith('icon/') ? [n.nestTarget] : []),
+  ...((n.children ?? []) as { nestTarget?: string; children?: readonly unknown[] }[]).flatMap(planIconComps),
+];
 
 import { Session as InspectorSession } from 'node:inspector/promises';
 
@@ -3582,6 +3590,7 @@ for (const b of brands) {
       'radio-row': { keys: ['gap'], sizes: ['small', 'medium', 'large'] },
       'switch-row': { keys: ['gap'], sizes: ['small', 'medium'] },
       tag: { keys: ['padding-x', 'select.gap', 'dismissible.visible-gap', 'check-gap', 'select.padding-end', 'dismissible.padding-end'], sizes: ['small', 'medium', 'large'] },
+      tab: { keys: ['padding-x', 'gap'], sizes: ['small', 'medium', 'large'] },
     };
     const BTN = { compact: 'small 12/8/4/6 · medium 12/8/6/6 · large 20/12/6/8', comfortable: 'small 16/12/6/8 · medium 16/12/8/8 · large 24/16/8/12', spacious: 'small 20/16/8/12 · medium 20/16/12/12 · large 32/20/12/16' };
     const ROWS = { compact: 'small 6 · medium 6 · large 8', comfortable: 'small 8 · medium 8 · large 12', spacious: 'small 12 · medium 12 · large 16' };
@@ -3595,6 +3604,8 @@ for (const b of brands) {
       // Tag: padding-x / select icon→label / dismissible VISIBLE icon→label (owner, 2026-09-29: 6/8/8) /
       // label→check / select trailing inset / dismissible trailing inset. Compact small's visible 6 steps to 4.
       tag: { compact: 'small 6/4/4/4/6/0 · medium 8/6/6/4/8/0 · large 12/8/6/6/12/0', comfortable: 'small 8/6/6/4/8/0 · medium 12/8/8/6/12/0 · large 16/12/8/8/16/0', spacious: 'small 12/8/8/6/12/0 · medium 16/12/12/8/16/0 · large 20/16/12/12/20/0' },
+      // Tab (#2416): padding-x / icon→label→count gap. Comfortable is the proposal's 12/6 · 16/8 · 20/8.
+      tab: { compact: 'small 8/4 · medium 12/6 · large 16/6', comfortable: 'small 12/6 · medium 16/8 · large 20/8', spacious: 'small 16/8 · medium 20/12 · large 24/12' },
     };
     const wrong: string[] = [];
     for (const [id, spec] of Object.entries(SPECS)) {
@@ -3630,6 +3641,7 @@ for (const b of brands) {
       'text-field': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       select: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'checkbox-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
+      tab: ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'radio-row': ['size.small.gap', 'size.medium.gap', 'size.large.gap'],
       'switch-row': ['size.small.gap', 'size.medium.gap'],
       tag: ['small', 'medium', 'large'].flatMap((v) => [
@@ -3666,6 +3678,7 @@ for (const b of brands) {
       // Tag's icon→label is VISIBLE, the content gap plus the label row's leading inset (owner, 2026-09-29), per
       // type: the sum is what must stay under the padding. A `+` key is summed.
       tag: { prefix: 'sized', lt: [['select.gap+select.label-inset', 'padding-x'], ['dismissible.gap+dismissible.label-inset', 'padding-x'], ['check-gap', 'padding-x']] },
+      tab: { prefix: 'sized', lt: [['gap', 'padding-x']] },
     };
     const GAP_TAILS = ['gap', 'check-gap'];
     const PAD_TAILS = ['padding-x', 'pad-x'];
@@ -14660,11 +14673,50 @@ arm: {
           ok(bad.length === 0,
             `#2266 ${def.id} size=${size}: label ${LABEL_STYLE[size]} over input ${INPUT_STYLE[size]}, height ${def === textarea ? 'from rows' : HEIGHT[size]}, padding ${PAD[size]}, a 120 floor${bad.length ? ` — WRONG: ${bad.join('; ')}` : ''}`);
         }
-        // 72 members, led by medium: the default variant, and where an in-place update (#2265) lands every member
-        // of a set built before #2266 (they were all the medium field).
+        // 84 members, led by medium: the default variant, and where an in-place update (#2265) lands every member
+        // of a set built before #2266 (they were all the medium field). 72 until #2318's `focus-visible-filled`
+        // column (size 3 × status 4 × state 7; 28 per size).
         const set = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
-        ok(set.length === 72 && set[0].size === 'medium' && SIZES.every((sz) => set.filter((p) => p.size === sz).length === 24),
-          `#2266 ${def.id}: the set is 72 members, 24 per size, led by size=medium (got ${set.length}, first ${String(set[0]?.size)})`);
+        ok(set.length === 84 && set[0].size === 'medium' && SIZES.every((sz) => set.filter((p) => p.size === sz).length === 28),
+          `#2266 ${def.id}: the set is 84 members, 28 per size, led by size=medium (got ${set.length}, first ${String(set[0]?.size)})`);
+      }
+
+      // (2b) #2318 (owner decision Q157, 2026-10-09): THE FOCUSED FIELD THAT HOLDS A VALUE, `state=focus-visible-filled`,
+      // on all three fields at every size and status. What it shows is typed here from the decision, never read off the
+      // def: the value in the value ink and no placeholder, the focus ring, the focus border at default status and the
+      // status's own border otherwise, and (owner Q166 C) on text-field ONLY a caret immediately AFTER the value, in its own
+      // `caretEnd` part, with no caret before it; textarea and select draw no caret at all. ACTUAL is the emitted plan. And
+      // the set carries the 12 new members per field, 4 per size.
+      {
+        const BORDER: Record<string, string> = { default: 'color/border/focus', error: 'color/border/danger', warning: 'color/border/warning', success: 'color/border/success' };
+        const order = (n: AnatomyPlan['root'], acc: string[] = []): string[] => { acc.push(n.name); for (const k of n.children) order(k, acc); return acc; };
+        for (const def of [textField, select, textarea]) {
+          const bad: string[] = [];
+          let seen = 0;
+          for (const size of SIZES) for (const status of Object.keys(BORDER)) {
+            const root = figmaAnatomyPlan(def, size, { status, state: 'focus-visible-filled' } as never).root;
+            const at = `${size}/${status}`;
+            seen++;
+            const value = findIn(root, 'value');
+            if (value?.paints?.fills !== 'color/text/primary') bad.push(`${at}: value ink ${String(value?.paints?.fills)}`);
+            if (findIn(root, 'placeholder')) bad.push(`${at}: the placeholder is drawn`);
+            if (!findIn(root, 'focusRing')) bad.push(`${at}: no focus ring`);
+            const ctl = findIn(root, 'control');
+            if (ctl?.paints?.strokes !== BORDER[status]) bad.push(`${at}: border ${String(ctl?.paints?.strokes)}, want ${BORDER[status]}`);
+            const names = order(root);
+            if (names.includes('caret')) bad.push(`${at}: a caret is drawn before the value`);
+            if (def === textField) {
+              const endAt = names.indexOf('caretEnd');
+              const end = findIn(root, 'caretEnd');
+              if (endAt < 0 || names[endAt - 1] !== 'value') bad.push(`${at}: no caret immediately after the value (${names.join(' ')})`);
+              else if (end?.paints?.fills !== 'color/text/primary') bad.push(`${at}: end caret ink ${String(end?.paints?.fills)}`);
+            } else if (names.includes('caretEnd')) bad.push(`${at}: an end caret is drawn`);
+          }
+          const set = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+          const added = set.filter((p) => planComponentName(p).includes('state=focus-visible-filled'));
+          ok(bad.length === 0 && seen === 12 && added.length === 12,
+            `#2318 ${def.id}: the focused field that holds a value shows the value in text.primary, no placeholder, the focus ring and the focus (or status) border, ${def === textField ? 'with the caret immediately after the value' : 'with no caret'}, in all 12 new members (${added.length} built${bad.length ? `; WRONG: ${bad.slice(0, 4).join(' | ')}` : ''})`);
+        }
       }
 
       // (3) the pairs in px, in every committed brand emission: the label exactly one body step (2px) under the input.
@@ -14753,8 +14805,9 @@ arm: {
     const imgPlaceholder = componentDefs.find((d) => d.id === 'image-placeholder')!;
     const markerOf = (d: ComponentDef): FigmaNodePlan => {
       const root = figmaAnatomyPlan(d, undefined, { ratio: '4:3' } as never).root;
-      const m = (root.children ?? []).find((c) => c.type === 'GLYPH');
-      if (!m) throw new Error(`image-placeholder projection has no GLYPH marker (got [${(root.children ?? []).map((c) => `${c.name}:${c.type}`).join(', ')}])`);
+      // By NAME since #2380: the marker is an instance of `icon/image` now, not a GLYPH.
+      const m = (root.children ?? []).find((c) => c.name === 'marker');
+      if (!m) throw new Error(`image-placeholder projection has no marker (got [${(root.children ?? []).map((c) => `${c.name}:${c.type}`).join(', ')}])`);
       return m;
     };
     // (a) the plan carries the literal, and it is a REAL enlargement past every icon rung (xl = 40) — a
@@ -14851,7 +14904,8 @@ arm: {
       // (`write-components.ts`, exercised by `test-roundtrip.ts`) only ever compares members that share a
       // group and the two QA misses cannot recur. The same assertion shape field-message's #1010 block makes.
       const ipGroups = planSetLayout(figmaAnatomySet(imgPlaceholder, {}), 'test').cells.map((c) => c.group).join(' | ');
-      ok(ipGroups === 'ratio=1:1 | ratio=4:3 | ratio=16:9',
+      // #2345: seven ratios, tallest to widest — typed here, not read from the def.
+      ok(ipGroups === 'ratio=2:3 | ratio=3:4 | ratio=4:5 | ratio=1:1 | ratio=4:3 | ratio=3:2 | ratio=16:9',
         `#1515 image-placeholder: the declared exemption reaches the engine's cohort key — every ratio is its own cohort, so the footprint read-back no longer compares 720×540 against 720×720 (got '${ipGroups}')`);
       // (c) MUTATION — DROP THE ASPECT LOCK. `ratio` still projects and still carries `footprintVaries`, but
       // with no `aspectRatio` deriving from it and no `presentWhen` gating it, nothing about the box varies,
@@ -14861,6 +14915,68 @@ arm: {
       const noLock = { ...imgPlaceholder, anatomy: { ...imgPlaceholder.anatomy, parts: { ...imgPlaceholder.anatomy.parts, frame: { ...imgPlaceholder.anatomy.parts.frame, aspectRatio: undefined } } } } as ComponentDef;
       ok(figmaPropertyErrors(noLock).some((e) => /footprintVaries: 'ratio' neither gates a part/.test(e) && /aspect-ratio lock/.test(e)),
         `#1515 MUTATION: with the frame's aspectRatio lock removed, 'ratio' moves the box for no reason and footprintVaries: ['ratio'] is refused BY NAME (got [${figmaPropertyErrors(noLock).filter((e) => /footprintVaries/.test(e)).join('; ') || 'NOTHING — the aspect-lock acceptance became a blanket'}])`);
+    }
+
+    // ---- #2345: seven ratios, a marker that scales with the frame, and a Marker boolean ----
+    // EXPECTED is typed here from the issue (owner direction 2026-10-07) — the ratio list, each ratio's
+    // number, the boolean's name and default — never read from the def or the projector. ACTUAL is the
+    // projected plan set, so a ratio dropped, a number mis-parsed, the placement or the boolean reverted
+    // each fails a line below by name.
+    {
+      const RATIOS: [string, number][] = [['2:3', 2 / 3], ['3:4', 3 / 4], ['4:5', 4 / 5], ['1:1', 1], ['4:3', 4 / 3], ['3:2', 3 / 2], ['16:9', 16 / 9]];
+      const ipSet = figmaAnatomySet(imgPlaceholder, {});
+      ok(ipSet.length === RATIOS.length, `#2345 image-placeholder projects ${RATIOS.length} members, one per ratio (got ${ipSet.length})`);
+      for (const [ratio, want] of RATIOS) {
+        const plan = ipSet.find((p) => p.coord.ratio === ratio);
+        const got = plan?.root.aspectRatio;
+        ok(got !== undefined && Math.abs(got - want) < 1e-9, `#2345 ratio=${ratio}: the frame locks to ${want.toFixed(4)} (got ${String(got)})`);
+      }
+      // THE MARKER — on every member, lifted, centered, constrained SCALE (the plan's `absoluteScale`).
+      const markers = ipSet.map((p) => [p.coord.ratio, (p.root.children ?? []).find((c) => c.name === 'marker')] as const);
+      const unscaled = markers.filter(([, m]) => !(m?.absoluteCenter === true && m?.absoluteScale === true)).map(([r]) => r);
+      ok(unscaled.length === 0, `#2345 the marker scales with the frame on every member: absoluteCenter + absoluteScale (missing on ${JSON.stringify(unscaled)})`);
+      // …and still sizes off its 180px literal at the nominal width, with no dimension bound (a bound size
+      // would hold against the SCALE constraint).
+      ok(markers.every(([, m]) => m?.glyphPx === 180 && Object.keys(m.bound).length === 0),
+        `#2345 the scaling marker keeps the 180px literal and binds no dimension (got ${JSON.stringify(markers.map(([r, m]) => [r, m?.glyphPx, m && Object.keys(m.bound)]))})`);
+      // THE MARKER BOOLEAN — declared on the set, default on, and wired to the marker on every member.
+      const props = planSetProperties(ipSet);
+      ok(JSON.stringify(props) === JSON.stringify([{ name: 'Marker', type: 'BOOLEAN', default: true }]),
+        `#2345 the set declares one property, the BOOLEAN 'Marker', default on (got ${JSON.stringify(props)})`);
+      const unwired = markers.filter(([, m]) => m?.visibleProp !== 'Marker' || m?.visible === false).map(([r]) => r);
+      ok(unwired.length === 0, `#2345 every member's marker is driven by 'Marker' and built visible (unwired or hidden on ${JSON.stringify(unwired)})`);
+      // FIGMA-ONLY (owner decision Q163.4b A): no code prop drives it, because in code the marker follows whether an
+      // image is supplied. The boolean is declared figmaOnly, and no prop by either name exists.
+      const mb = Object.values(imgPlaceholder.figmaProperties?.booleans ?? {}).find((v) => typeof v !== 'string' && v.figmaName === 'Marker');
+      ok(typeof mb === 'object' && mb.figmaOnly === true && !imgPlaceholder.props.some((p) => /^(showMarker|marker)$/i.test(p.name)),
+        `#2345/Q163.4b the Marker boolean is Figma-only and no code prop drives it (figmaOnly ${String(typeof mb === 'object' && mb.figmaOnly)}; props ${imgPlaceholder.props.map((p) => p.name).join(', ')})`);
+
+      // THE REFUSAL ARMS `PartDef.scaleWithParent` adds, each pinned BY NAME (docs/34).
+      const frame = imgPlaceholder.anatomy.parts.frame;
+      const mk = (parts: Record<string, unknown>): ComponentDef => ({ ...imgPlaceholder, anatomy: { ...imgPlaceholder.anatomy, parts: { ...imgPlaceholder.anatomy.parts, ...parts } } }) as ComponentDef;
+      const errs = (d: ComponentDef): string[] => validateComponentDef(d).errors.filter((e) => /scaleWithParent/.test(e));
+      ok(errs(imgPlaceholder).length === 0, `#2345 premise: the shipped def validates clean on scaleWithParent (got ${JSON.stringify(errs(imgPlaceholder))})`);
+      // (a) the parent carries no aspect lock — SCALE on an unlocked frame stretches the square glyph.
+      const unlocked = errs(mk({ frame: { ...frame, aspectRatio: undefined, height: 'nominal-side' } }));
+      ok(unlocked.some((e) => /carries no 'aspectRatio' lock/.test(e)), `#2345 scaleWithParent under a parent with no aspect lock is refused BY NAME (got ${JSON.stringify(unlocked)})`);
+      // (b) no glyphPx — a bound size holds against the constraint.
+      const sized = errs(mk({ marker: { ...marker, glyphPx: undefined, size: 'nominal-side' } }));
+      ok(sized.some((e) => /declares 'scaleWithParent' but no 'glyphPx'/.test(e)), `#2345 scaleWithParent without glyphPx is refused BY NAME (got ${JSON.stringify(sized)})`);
+      // (c) beside a corner pin — two placements for one node.
+      const cornered = errs(mk({ marker: { ...marker, corner: 'bottom-right', inset: 'nominal-side' } }));
+      ok(cornered.some((e) => /BOTH 'scaleWithParent' and 'corner'/.test(e)), `#2345 scaleWithParent beside corner is refused BY NAME (got ${JSON.stringify(cornered)})`);
+      // (d) on a non-vector — the projector reads it only on a vector.
+      const onBox = errs(mk({ frame: { ...frame, scaleWithParent: true } }));
+      ok(onBox.some((e) => /kind 'box' but declares 'scaleWithParent'/.test(e)), `#2345 scaleWithParent on a box is refused BY NAME (got ${JSON.stringify(onBox)})`);
+      // (e) under a parent with no auto-layout — Figma ignores layoutPositioning there, silently.
+      const noLayout = errs(mk({ frame: { ...frame, layout: undefined } }));
+      ok(noLayout.some((e) => /which is not an auto-layout 'box'/.test(e)), `#2345 scaleWithParent under a parent with no auto-layout is refused BY NAME (got ${JSON.stringify(noLayout)})`);
+      // (f) `false` authored — a switch that is on or absent.
+      const off = errs(mk({ marker: { ...marker, scaleWithParent: false } }));
+      ok(off.some((e) => /declares scaleWithParent false/.test(e)), `#2345 scaleWithParent: false is refused BY NAME (got ${JSON.stringify(off)})`);
+      // (g) on the ROOT — no parent to scale with.
+      const rootGlyph = { ...(rootGlyphDef as unknown as ComponentDef), anatomy: { root: 'g', parts: { g: { kind: 'vector' as const, role: 'target' as const, glyph: 'image', glyphPx: 180, scaleWithParent: true } } } } as unknown as ComponentDef;
+      ok(errs(rootGlyph).some((e) => /is the anatomy ROOT and declares 'scaleWithParent'/.test(e)), `#2345 scaleWithParent on the ROOT is refused BY NAME (got ${JSON.stringify(errs(rootGlyph))})`);
     }
 
     // ---- #2344 (owner decision Q156 A): the groups carry up to EIGHT rows, seven behind Figma-only booleans ----
@@ -14902,6 +15018,121 @@ arm: {
         '#2344 without figmaOnly, a boolean naming no declared prop is still refused BY NAME');
     }
 
+    // ---- #2416 (owner decisions Q177, Q178, Q179): Tab and Tabs ----
+    // Every expected value below is a literal typed here from the owner's decisions on #2416, never read off the
+    // defs: the defs and their projected plans are the SUBJECT (docs/34 shape 1). Each arm names its decision so a
+    // mutation of the def fails the arm it breaks, by name.
+    {
+      const findIn = (n: AnatomyPlan['root'], name: string): AnatomyPlan['root'] | undefined => n.name === name ? n : n.children.map((k) => findIn(k, name)).find(Boolean);
+      const walk = (n: AnatomyPlan['root'], f: (x: AnatomyPlan['root']) => void): void => { f(n); n.children.forEach((k) => walk(k, f)); };
+      const tabDef = componentDefs.find((d) => d.id === 'tab')!;
+      const tabsDef = componentDefs.find((d) => d.id === 'tabs')!;
+      const tabMembers = figmaAnatomySet(tabDef, { swapTarget: 'FPO-default-icon' });
+      const SIZES = ['small', 'medium', 'large'];
+      const STATES5 = ['rest', 'hover', 'pressed', 'focus-visible', 'disabled'];
+      const memberOf = (selection: string, size: string, state: string) =>
+        tabMembers.find((m) => m.coord.selection === selection && (m.size ?? m.coord.size) === size && m.coord.state === state);
+
+      // (1) THE BAR — geometry and color per selection and state (Q178.1 A, Q178.2 B). One 2px box, `indicator`,
+      // at every member; its fill is the selected primary bar, the unselected neutral hover bar, or nothing.
+      const BAR: Record<string, Record<string, string | undefined>> = {
+        selected: { rest: 'color/interactive/primary/border/rest', hover: 'color/interactive/primary/border/hover', pressed: 'color/interactive/primary/border/pressed', 'focus-visible': 'color/interactive/primary/border/rest', disabled: 'color/disabled/border' },
+        unselected: { rest: undefined, hover: 'color/border/secondary', pressed: 'color/border/secondary', 'focus-visible': undefined, disabled: undefined },
+      };
+      const LABEL: Record<string, Record<string, string>> = {
+        selected: { rest: 'color/interactive/primary/text/rest', hover: 'color/interactive/primary/text/hover', pressed: 'color/interactive/primary/text/pressed', 'focus-visible': 'color/interactive/primary/text/rest', disabled: 'color/disabled/text' },
+        unselected: { rest: 'color/interactive/neutral/text/rest', hover: 'color/interactive/neutral/text/hover', pressed: 'color/interactive/neutral/text/pressed', 'focus-visible': 'color/interactive/neutral/text/rest', disabled: 'color/disabled/text' },
+      };
+      const barOff: string[] = [], labelOff: string[] = [];
+      for (const selection of ['unselected', 'selected']) for (const size of SIZES) for (const state of STATES5) {
+        const m = memberOf(selection, size, state);
+        const bar = m && findIn(m.root, 'indicator');
+        const fill = bar?.paints?.fills;
+        if (!bar || bar.bound?.height !== 'border-width/thick' || fill !== BAR[selection][state])
+          barOff.push(`${selection}/${size}/${state}: ${bar ? `height ${String(bar.bound?.height)}, fill ${String(fill)}` : 'no indicator'} (want border-width/thick, ${String(BAR[selection][state])})`);
+        const ink = m && findIn(m.root, 'label')?.paints?.fills;
+        if (ink !== LABEL[selection][state]) labelOff.push(`${selection}/${size}/${state}: ${String(ink)} (want ${LABEL[selection][state]})`);
+      }
+      ok(tabMembers.length === 30 && barOff.length === 0,
+        `#2416 Q178 tab bar: 30 members, each with one 2px bar (border-width/thick) — primary border at selected, color/border/secondary at unselected hover and pressed only, none at unselected rest, focus-visible and disabled (${tabMembers.length} members, ${barOff.length} off — ${barOff.slice(0, 3).join('; ') || 'none'})`);
+      ok(labelOff.length === 0,
+        `#2416 Q178.1 tab label: primary text ink when selected, neutral when unselected, stepping with hover and pressed, disabled text when disabled (${labelOff.length} off — ${labelOff.slice(0, 3).join('; ') || 'none'})`);
+
+      // (2) NO WASH AT HOVER (Q178.2 B). No node of any member paints an overlay role, and the tab body paints nothing.
+      const washes: string[] = [];
+      for (const m of tabMembers) walk(m.root, (n) => {
+        for (const v of Object.values(n.paints ?? {})) if (/overlay/.test(String(v))) washes.push(`${planComponentName(m)} ${n.name}: ${String(v)}`);
+      });
+      const bodyPaints = tabMembers.filter((m) => Object.keys(m.root.paints ?? {}).length > 0).map((m) => `${planComponentName(m)}: ${JSON.stringify(m.root.paints)}`);
+      ok(washes.length === 0 && bodyPaints.length === 0,
+        `#2416 Q178.2 no hover wash: no tab member paints an overlay and the tab body paints nothing (${washes.length} overlay paint(s), ${bodyPaints.length} painted bod(ies) — ${[...washes, ...bodyPaints].slice(0, 3).join('; ') || 'none'})`);
+
+      // (3) THE NEUTRAL HOVER BAR CLEARS 3:1 AGAINST THE PAGE in every brand and mode with a committed Figma export.
+      // The variable is read off the PLAN (the subject); the values come from the committed exports; the floor and
+      // the represented cells are literals. Four brands × four modes, stated, so a missing export fails here.
+      const BAR_BRANDS = ['aurora', 'nb', 'prism3', 'wendys'];
+      const BAR_MODES = ['light', 'dark', 'hc-light', 'hc-dark'];
+      const hoverBar = findIn(memberOf('unselected', 'medium', 'hover')!.root, 'indicator')?.paints?.fills;
+      const toRgb = (c: { r: number; g: number; b: number }): RGB => ({ r: c.r * 255, g: c.g * 255, b: c.b * 255 });
+      const cells: { cell: string; ratio: number }[] = [];
+      const barMissing: string[] = [];
+      for (const brand of BAR_BRANDS) for (const mode of BAR_MODES) {
+        const f = resolve(HERE, `./out/figma/${brand}/color.${mode}.json`);
+        if (!existsSync(f)) { barMissing.push(`${brand}/${mode}: no export`); continue; }
+        const vars = new Map((JSON.parse(readFileSync(f, 'utf8')).variables as { name: string; value: { r: number; g: number; b: number; a?: number } }[]).map((v) => [v.name.replace(/^[^/]+\//, ''), v.value]));
+        const fg = hoverBar ? vars.get(hoverBar) : undefined, bg = vars.get('color/background/primary');
+        if (!fg || !bg || (fg.a ?? 1) !== 1) { barMissing.push(`${brand}/${mode}: ${String(hoverBar)} ${fg ? `alpha ${fg.a}` : 'missing'}`); continue; }
+        cells.push({ cell: `${brand}/${mode}`, ratio: contrast(toRgb(fg), toRgb(bg)) });
+      }
+      const lowest = cells.reduce((a, c) => (c.ratio < a.ratio ? c : a), { cell: 'none', ratio: Infinity });
+      ok(cells.length === 16 && barMissing.length === 0 && lowest.ratio >= 3,
+        `#2416 Q178.2 the neutral hover bar (${String(hoverBar)}) clears 3:1 against color/background/primary in all 16 brand × mode cells (${cells.length} measured, lowest ${lowest.ratio.toFixed(2)}:1 at ${lowest.cell}${barMissing.length ? `; ${barMissing.join('; ')}` : ''})`);
+
+      // (4) NO LABEL WIDTH CHANGE BETWEEN SELECTIONS (Q178.1: the weight is the same in both states). At every size
+      // and state, the selected and unselected members carry the same structure — every node's name, text style and
+      // bound geometry — so only paint differs, and selecting a tab never moves its neighbors.
+      const shape = (n: AnatomyPlan['root']): string => JSON.stringify([n.name, n.textStyle ?? null, n.bound ?? {}, n.children.map(shape)]);
+      const moved: string[] = [];
+      for (const size of SIZES) for (const state of STATES5) {
+        const a = memberOf('unselected', size, state), b = memberOf('selected', size, state);
+        if (!a || !b) { moved.push(`${size}/${state}: missing`); continue; }
+        if (shape(a.root) !== shape(b.root)) moved.push(`${size}/${state}: label ${String(findIn(a.root, 'label')?.textStyle)} vs ${String(findIn(b.root, 'label')?.textStyle)}`);
+      }
+      const LABEL_STYLE: Record<string, string> = { small: 'label/sm/emphasis', medium: 'label/md/emphasis', large: 'label/lg/emphasis' };
+      const styleOff = tabMembers.filter((m) => findIn(m.root, 'label')?.textStyle !== LABEL_STYLE[(m.size ?? m.coord.size) as string]).map((m) => `${planComponentName(m)}: ${String(findIn(m.root, 'label')?.textStyle)}`);
+      ok(moved.length === 0 && styleOff.length === 0,
+        `#2416 Q178.1 same weight in both states: selected and unselected tabs share every text style and bound dimension at each size and state, the label on label/{sm,md,lg}/emphasis (${moved.length + styleOff.length} off — ${[...moved, ...styleOff].slice(0, 3).join('; ') || 'none'})`);
+
+      // (5) THE LIST: six nested tabs, tab 1 selected, tabs 4–6 behind Figma-only toggles, off by default (Q177.2, Q179 A).
+      const listMembers = figmaAnatomySet(tabsDef, {});
+      const TABS = ['tab1', 'tab2', 'tab3', 'tab4', 'tab5', 'tab6'];
+      const listOff = listMembers.flatMap((m) => {
+        const size = (m.size ?? m.coord.size) as string;
+        const bad: string[] = [];
+        const kids = findIn(m.root, 'list')?.children.map((k) => k.name) ?? [];
+        if (JSON.stringify(kids) !== JSON.stringify(TABS)) bad.push(`list ${kids.join(',')}`);
+        TABS.forEach((t, i) => {
+          const n = findIn(m.root, t);
+          const wantProp = i < 3 ? undefined : `Tab ${i + 1}`;
+          const wantHidden = i >= 3;
+          const v = n?.nestVariant ?? {};
+          if (n?.nestTarget !== 'tab' || v.selection !== (i === 0 ? 'selected' : 'unselected') || v.size !== size || v.state !== 'rest')
+            bad.push(`${t} nests ${String(n?.nestTarget)} ${JSON.stringify(v)}`);
+          if (n?.visibleProp !== wantProp || (n?.visible === false) !== wantHidden) bad.push(`${t} visibleProp ${String(n?.visibleProp)}, visible ${String(n?.visible)}`);
+        });
+        const base = findIn(m.root, 'baseline');
+        if (base?.paints?.fills !== 'color/border/primary' || base?.bound?.height !== 'border-width/hairline') bad.push(`baseline ${JSON.stringify(base?.paints)} ${JSON.stringify(base?.bound)}`);
+        return bad.length ? [`${planComponentName(m)}: ${bad.join('; ')}`] : [];
+      });
+      ok(listMembers.length === 3 && listOff.length === 0,
+        `#2416 Q177.2 tabs: 3 members (size), each nesting six tabs following its size, tab 1 selected, tabs 1-3 shown, tabs 4-6 hidden behind "Tab 4"-"Tab 6", over a 1px color/border/primary baseline (${listMembers.length} members, ${listOff.length} off — ${listOff[0] ?? 'none'})`);
+      const listProps = planSetProperties(listMembers).filter((p) => p.type === 'BOOLEAN').map((p) => `${p.name}=${String(p.default)}`);
+      ok(JSON.stringify(listProps) === JSON.stringify(['Tab 4=false', 'Tab 5=false', 'Tab 6=false']),
+        `#2416 Q179 tabs: the set declares exactly three Figma-only toggles, Tab 4-6, all off by default (${listProps.join(', ')})`);
+      ok(!(tabsDef.props ?? []).some((p) => /^tab\d$/i.test(p.name) || /^showTab/i.test(p.name)),
+        '#2416 Q179 tabs: no code prop drives a tab toggle (Figma-only; in code the count is children)');
+    }
+
     // ---- #1424: the labelled ROW wraps a long label instead of overflowing ----
     // Prism 2's radio-button-row / checkbox-row let a long label WRAP to a second line with the control
     // top-anchored (the description text is `layoutSizingHorizontal: FILL`). The engine expresses that as
@@ -14926,9 +15157,17 @@ arm: {
         //     axis, so a wrapping label never shrinks or stretches the control.
         ok(controlBox?.layoutGrow === undefined && controlBox?.counterAxisSizingMode === 'FIXED',
           `#1424 ${def.id}: the controlBox stays fixed/hug — it does not grow (layoutGrow ${String(controlBox?.layoutGrow)}) and its cross axis is FIXED (${String(controlBox?.counterAxisSizingMode)})`);
-        // (c) THE WIDTH FLOOR that makes the fill resolve (Prism 2's root width 320).
-        ok(row?.minWidth === 320,
-          `#1424 ${def.id}: the row carries the 320 min-width floor so the fill has space to resolve against (got ${String(row?.minWidth)})`);
+        // (c) THE WIDTH THAT MAKES THE FILL RESOLVE, on every member (owner decision Q152.3: Q99 B reaches the
+        //     rows). The row is BUILT at Prism 2's root width 320 (`placementWidth`, FIXED along its horizontal
+        //     main axis) and floors at the fields' 120 (Q152.2), so it shrinks with a narrower column instead of
+        //     holding at 320 and overflowing it. Expected values are literals typed here, never read off a def.
+        const rowOff = figmaAnatomySet(def, {}).flatMap((m) => {
+          const r = m.root;
+          return r.name === 'row' && r.placementWidth === 320 && r.primaryAxisSizingMode === 'FIXED' && r.minWidth === 120 ? []
+            : [`${planComponentName(m)}: ${r.name} placementWidth ${String(r.placementWidth)}, primary ${String(r.primaryAxisSizingMode)}, minWidth ${String(r.minWidth)}`];
+        });
+        ok(row?.minWidth === 120 && rowOff.length === 0,
+          `#1424/Q152.3 ${def.id}: on every member the row is built at 320 and floors at 120, so it shrinks with its column (${rowOff.length} off — ${rowOff[0] ?? 'none'})`);
         //   MUTATION #1424 — revert the label to fixed/hug-no-wrap. Dropping `wrap` returns the label to a
         //   hugging text node that overflows: the plan drops layoutGrow AND textAutoResize, flipping (a) BY NAME.
         const noWrapLabel = { ...def.anatomy.parts.label, wrap: undefined };
@@ -14946,13 +15185,27 @@ arm: {
       ok(validateComponentDef(wrapOnBox as ComponentDef).errors.some((e) => /declares 'wrap'/.test(e) && /only a 'text' part/.test(e)),
         "#1424 'wrap' on a NON-text part is refused BY NAME — only a text part fills its row and reflows; on any other kind it would validate clean and reach the wrong branch");
       // (b) wrap under a FLOORLESS parent — the #989 silent no-op: `layoutGrow` fills REMAINING space and a
-      //     hugging row has none, so the label hugs its glyphs and overflows though it validated. Stripping the
-      //     row's real `minWidth: 320` (keeping the label's `wrap`) fires this on exactly the row that carries
-      //     the floor — which is what makes the row's minWidth LOAD-BEARING rather than decorative.
-      const floorlessRow = { ...radioRow.anatomy.parts.row, minWidth: undefined };
+      //     hugging row has none, so the label hugs its glyphs and overflows though it validated. Returning the
+      //     row to a HUGGING root with neither its build width nor its floor (keeping the label's `wrap`) fires
+      //     this on exactly the row that carries them, which is what makes them LOAD-BEARING rather than
+      //     decorative. Both go: since Q152.3 the root's `placementWidth` alone already bounds the label.
+      const rp = radioRow.anatomy.parts.row;
+      const floorlessRow = { ...rp, minWidth: undefined, placementWidth: undefined, layout: { ...rp.layout!, sizing: { ...rp.layout!.sizing, x: 'hug' as const } } };
       const floorless = { ...radioRow, anatomy: { ...radioRow.anatomy, parts: { ...radioRow.anatomy.parts, row: floorlessRow } } };
       ok(validateComponentDef(floorless as ComponentDef).errors.some((e) => /declares 'wrap'/.test(e) && /does not bound its main-axis width/.test(e)),
-        "#1424 a 'wrap' label under a floorless row is refused BY NAME — layoutGrow fills remaining space and a hugging parent has none, the #989 silent no-op; removing the row's minWidth fires this, so the floor is load-bearing");
+        "#1424 a 'wrap' label under a floorless row is refused BY NAME — layoutGrow fills remaining space and a hugging parent has none, the #989 silent no-op; a hugging row with no build width and no floor fires this, so they are load-bearing");
+    }
+
+    // ---- Q155 A: the GROUPS follow their rows — built at 320, filling their column down to the 120 floor ----
+    // A group's root is a column, so its width is the COUNTER axis (FIXED), where a row's is its primary. Literals
+    // typed here; the column geometry is measured in `apps/plugin/test-roundtrip.ts` (Q155 block).
+    for (const def of [checkboxGroup, radioGroup] as ComponentDef[]) {
+      const off = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' }).flatMap((m) => {
+        const r = m.root;
+        return r.placementWidth === 320 && r.counterAxisSizingMode === 'FIXED' && r.minWidth === 120 ? []
+          : [`${planComponentName(m)}: ${r.name} placementWidth ${String(r.placementWidth)}, counter ${String(r.counterAxisSizingMode)}, minWidth ${String(r.minWidth)}`];
+      });
+      ok(off.length === 0, `Q155 ${def.id}: on every member the group is built at 320 and floors at 120, so it shrinks with its column (${off.length} off — ${off[0] ?? 'none'})`);
     }
 
     // ---- #1757: a ROOT's build width (`placementWidth`), and the wrap bounds it and a filled parent supply ----
@@ -15110,14 +15363,14 @@ arm: {
     // block below for the halving.
     const projStates = select.figmaProperties!.stateAxis!.values;
     const V = select.variants!.status!.length;                 // status: 4
-    const St = projStates.length;                               // rest/hover/filled/focus-visible/disabled/read-only: 6
+    const St = projStates.length;                               // rest/hover/filled/focus-visible/focus-visible-filled/disabled/read-only: 7
     const Sz = select.variants!.size!.length;                   // size: 3 (#2266)
     const set = figmaAnatomySet(select);
     // (a) empty is absent from the PROJECTED axis, and the enumeration matches the product WITHOUT it.
     ok(!projStates.includes('empty'),
       `#1344 'empty' is NOT a projected Figma state (stateAxis = [${projStates.join(', ')}])`);
-    ok(set.length === Sz * V * St && set.length === 72,
-      `#1344 select projects size(${Sz})×status(${V})×state(${St}) = ${Sz * V * St} members (the size axis since #2266, the filled column since 2026-09-25, the read-only column since #1699; 84 with the empty column; leading is a boolean since #1331, not a ×2 axis)`);
+    ok(set.length === Sz * V * St && set.length === 84,
+      `#1344 select projects size(${Sz})×status(${V})×state(${St}) = ${Sz * V * St} members (the size axis since #2266, the filled column since 2026-09-25, the read-only column since #1699, the focus-visible-filled column since #2318; 96 with the empty column; leading is a boolean since #1331, not a ×2 axis)`);
     ok(!set.some((p) => planComponentName(p).includes('empty')),
       '#1344 no projected member names the empty state');
     // (b) empty IS still a real state — the placeholder-vs-value ink distinction is carried internally, and
@@ -15135,7 +15388,7 @@ arm: {
     //   names the empty state' BY NAME.
     const projMutant = { ...select, figmaProperties: { ...select.figmaProperties!, stateAxis: { name: 'state', values: [...projStates, 'empty'] } } };
     const mutSet = figmaAnatomySet(projMutant as ComponentDef);
-    ok(mutSet.length === 84 && mutSet.some((p) => planComponentName(p).includes('empty')),
+    ok(mutSet.length === 96 && mutSet.some((p) => planComponentName(p).includes('empty')),
       `#1344 MUTATION A: restoring 'empty' to the projected stateAxis rebuilds the empty column (set ${set.length} → ${mutSet.length}), flipping '#1344 select projects … 24 members' to failing`);
     //   MUTATION B — drop `empty` from `states`. `label.empty` / `error.border.empty` then name a state the
     //   def no longer declares, so `validateComponentDef` reports them as unreachable paint keys — the
@@ -15173,8 +15426,8 @@ arm: {
       '#1331 the leading glyph node carries the content swap AND the visibility boolean on ONE node (mainComponent + visible)');
 
     // (3) the set HALVES: status(4) × state(6) = 24 (with the 2026-09-25 filled column and #1699's read-only), from 48 as a ×2 axis.
-    ok(sset.length === 72,
-      `#1331 select projects 72 members (144 with the leading ×2 axis; the boolean halves it) — got ${sset.length}`);
+    ok(sset.length === 84,
+      `#1331 select projects 84 members (168 with the leading ×2 axis; the boolean halves it) — got ${sset.length}`);
 
     // (4) planSetProperties declares `leading icon` as a BOOLEAN defaulting to the built (hidden) visibility,
     //     ordered ABOVE the swap it gates (the #1380 `leading icon` → `↳ swap leading icon` panel nesting).
@@ -15199,8 +15452,8 @@ arm: {
     //     boolean replaced. Flips "#1331 select projects 24 members" BY NAME.
     const asAxis = { ...select, figmaProperties: { ...fp, booleans: {}, slotAxes: [{ name: 'leading', part: 'leadingVisual', figmaName: 'leading icon' }] } };
     const asAxisSet = figmaAnatomySet(asAxis as never, { swapTarget: 'FPO-default-icon' });
-    ok(asAxisSet.length === 144 && asAxisSet.some((p) => !findLV(p.root)) && asAxisSet.some((p) => !!findLV(p.root)),
-      `#1331 MUTATION: reverting leading to a variant axis re-doubles the set to 144 and drops the node in the false members (${asAxisSet.length} members) — the multiplication the boolean replaced`);
+    ok(asAxisSet.length === 168 && asAxisSet.some((p) => !findLV(p.root)) && asAxisSet.some((p) => !!findLV(p.root)),
+      `#1331 MUTATION: reverting leading to a variant axis re-doubles the set to 168 and drops the node in the false members (${asAxisSet.length} members) — the multiplication the boolean replaced`);
 
     // (7) VALIDATOR ARMS (new refusals, by-name).
     //   (a) the LOOSENING is real: select's leadingVisual carries a swap AND a boolean and validates clean
@@ -15283,8 +15536,8 @@ arm: {
       '#1426 the built visibility TRACKS the boolean default — flipping showMessage default→false builds every message node `visible:false`, so the shown-by-default assertion is not measuring a constant');
 
     // (3) the boolean does NOT multiply the set — still status(4) × state(5) = 20 members.
-    ok(sset.length === 72,
-      `#1426 the showMessage boolean toggles a part in place and does not multiply the set — still 72 members, size(3) × status(4) × state(6) (got ${sset.length})`);
+    ok(sset.length === 84,
+      `#1426 the showMessage boolean toggles a part in place and does not multiply the set — still 84 members, size(3) × status(4) × state(7) (got ${sset.length})`);
 
     // (4) planSetProperties declares `message` as a BOOLEAN defaulting to the built (shown) visibility.
     const props = planSetProperties(sset);
@@ -16214,7 +16467,7 @@ arm: {
 
     // (B) DECISION 2 — select gains read-only and pending, text-field's state set (the literal below is the
     //     decision, not text-field's array read back). read-only PROJECTS; pending does not.
-    const FIELD_STATES = ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only', 'pending', 'empty'];
+    const FIELD_STATES = ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only', 'pending', 'empty'];
     ok(FIELD_STATES.every((st) => (select.states as string[]).includes(st)) && select.states.length === FIELD_STATES.length,
       `#1699 select carries the field family's state set, read-only and pending included (got [${select.states.join(', ')}])`);
     const selProj = select.figmaProperties!.stateAxis!.values;
@@ -16313,7 +16566,7 @@ arm: {
     const KB_BRIEF_CATEGORY: Record<string, string> = {
       'badge.md': 'foundations', 'button.md': 'form', 'checkbox.md': 'form', 'icon.md': 'foundations', 'image.md': 'foundations',
       'inline-message.md': 'feedback', 'radio.md': 'form', 'select.md': 'form', 'spinner.md': 'foundations',
-      'switch.md': 'form', 'tag.md': 'foundations', 'text-field.md': 'form', 'textarea.md': 'form',
+      'switch.md': 'form', 'tabs.md': 'navigation', 'tag.md': 'foundations', 'text-field.md': 'form', 'textarea.md': 'form',
     };
     const defDir = resolve(HERE, './components');
     const defFiles = readdirSync(defDir).filter((f) => f.endsWith('.ts') && f !== 'index.ts').sort();
@@ -16917,6 +17170,8 @@ arm: {
       { def: switchRow, part: 'label', axes: { size: 2 } },
       // `tag` (2026-09-27) binds Button's three label rungs, so three sizes discriminate into three styles.
       { def: tag, part: 'label', axes: { size: 3 } },
+      // `tab` (#2416) binds the same three label rungs, at ONE weight across `selection` (owner Q178.1 A).
+      { def: tab, part: 'label', axes: { size: 3 } },
       // The two text nodes of `field-label`, the only bindings in the corpus that cross two axes.
       { def: fieldLabel, part: 'text', axes: { size: 3, weight: 2 } },
       { def: fieldLabel, part: 'indicator', axes: { size: 3, weight: 2 } },
@@ -17485,6 +17740,10 @@ arm: {
       ({ ...x, parts: { ...x.parts, focusRing: { ...x.parts.focusRing, ...patch } as AnatomyDef['parts'][string] } });
     broke('an absolute part with no `when` fails — nothing could project it', /must declare the state it appears in/, ring({ when: undefined }));
     broke('an absolute part whose `when` is not a state fails', /is not one of states/, ring({ when: 'nope' }));
+    // #2318: an absolute part's `when` may be a LIST (the field ring at both focus states); each entry is held to the
+    // def's states, and an empty list is no trigger at all.
+    broke('an absolute part whose `when` LIST names a state the def lacks fails, by that state', /when 'nope' is not one of states/, ring({ when: ['focus-visible', 'nope'] }));
+    broke('an absolute part whose `when` is an EMPTY list fails — nothing could project it', /must declare the state it appears in/, ring({ when: [] }));
     broke('an absolute part nominating no component to nest fails — the alternative is N-way duplication', /nominates no component to nest/, ring({ nests: undefined }));
     broke('an absolute part with no `inset` fails — a ring flush against the border is WCAG 1.4.11', /binds no 'inset'/, ring({ inset: undefined }));
     // Not caught by the single-target check above, which counts targets: one absolute target is still
@@ -18443,6 +18702,46 @@ arm: {
         `anatomy/textarea paste: at 16px × 165% (79.2px, stored single-precision) the reserved-rows floor reads back as KEPT (${JSON.stringify(taRun.misses.filter((m) => /minHeight|minLines/.test(m)))})`);
     }
 
+    // ---- #2345: the image-placeholder marker is built OUT OF FLOW, CENTERED and SCALE/SCALE, on BOTH legs ----
+    // The plan-level arm proves the plan says so; this proves each EXECUTOR writes it. The expected
+    // constraints are the literal 'SCALE' typed here, and the centering is measured against the PARENT'S
+    // OWN live box as the stub reports it — not against a number either executor computed.
+    {
+      const ipDef = componentDefs.find((d) => d.id === 'image-placeholder')!;
+      const ip = figmaAnatomySet(ipDef, {}).find((q) => q.coord.ratio === '4:3')!;
+      // Since #2389 the marker is an instance of `icon/image`, so the file holds that icon component, as a real one
+      // would (the plugin builds icons first).
+      const nested = (n: AnatomyPlan['root']): string[] => [...(n.nestTarget ? [n.nestTarget] : []), ...(n.children ?? []).flatMap(nested)];
+      const ipOpts: StubOpts = { vars: [...planBoundVars(ip.root), ...planPaintVars(ip.root)], styles: planTextStyles(ip.root), comps: nested(ip.root) };
+      const markerFacts = (page: StubPage): string => {
+        // The paste payload puts the member on the page; the plugin executor puts it inside its set.
+        const all = page.children.flatMap((c) => [c, ...(((c as Record<string, unknown>).children as Record<string, unknown>[] | undefined) ?? [])]);
+        const root = all.find((c) => c.name === planComponentName(ip)) as Record<string, unknown> | undefined;
+        const kid = ((root?.children as Record<string, unknown>[] | undefined) ?? []).find((c) => c.name === 'marker');
+        if (!root || !kid) return `no ${root ? 'marker' : 'member'} on the page`;
+        const c = kid.constraints as { horizontal?: string; vertical?: string } | null;
+        const cx = ((root.width as number) - (kid.width as number)) / 2, cy = ((root.height as number) - (kid.height as number)) / 2;
+        const centered = Math.abs((kid.x as number) - cx) < 0.01 && Math.abs((kid.y as number) - cy) < 0.01;
+        return `${String(kid.layoutPositioning)} ${c?.horizontal}/${c?.vertical} ${centered ? 'centered' : `off-center (${String(kid.x)},${String(kid.y)} want ${cx},${cy})`}`;
+      };
+      const WANT_MARKER = 'ABSOLUTE SCALE/SCALE centered';
+      const pastePage: StubPage = { children: [] };
+      const pasted = await runPayload(planToPluginJs(ip), { ...ipOpts, page: pastePage });
+      ok(markerFacts(pastePage) === WANT_MARKER && pasted.misses.length === 0,
+        `#2345 paste leg: the image-placeholder marker is ${WANT_MARKER} (got '${markerFacts(pastePage)}'; misses ${JSON.stringify(pasted.misses)})`);
+      const plugPage: StubPage = { children: [] };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the stub satisfies ComponentsApi
+      const plugged = await applyComponentPlan([ip], makeFigmaStub({ ...ipOpts, page: plugPage }) as any);
+      ok(markerFacts(plugPage) === WANT_MARKER && plugged.misses.length === 0,
+        `#2345 plugin leg: the image-placeholder marker is ${WANT_MARKER} (got '${markerFacts(plugPage)}'; misses ${JSON.stringify(plugged.misses)})`);
+      // POSITIVE CONTROL on the constraint's other branch: an overlay centered WITHOUT `absoluteScale` (the
+      // spinner's shape) still takes CENTER/CENTER, so the switch is the field and not an unconditional SCALE.
+      const centerOnly: AnatomyPlan = { ...ip, root: { ...ip.root, children: ip.root.children.map((c) => (c.name === 'marker' ? { ...c, absoluteScale: undefined } : c)) } };
+      const ctlPage: StubPage = { children: [] };
+      await runPayload(planToPluginJs(centerOnly), { ...ipOpts, page: ctlPage });
+      ok(markerFacts(ctlPage) === 'ABSOLUTE CENTER/CENTER centered', `#2345 control: without absoluteScale the centered child keeps CENTER/CENTER (got '${markerFacts(ctlPage)}')`);
+    }
+
     // ---- #1302: the stub's `textAlignVertical` refusal is LIVE ------------------------------------------
     // The accessor used to sit in `mkNode`'s object spread, which reads the getter once and drops the setter,
     // so a FRAME took the write silently and every gate leaning on "the wrong node type throws" was testing
@@ -19099,7 +19398,7 @@ arm: {
         const p = unstroked[0] ?? set[0];
         const at = planComponentName(p);
         const page: StubPage = { children: [] };
-        const r = await runPayload(planToPluginJs(p), { vars: [...planBoundVars(p.root), ...planPaintVars(p.root)], styles: planTextStyles(p.root), comps: ['FPO-default-icon'], page });
+        const r = await runPayload(planToPluginJs(p), { vars: [...planBoundVars(p.root), ...planPaintVars(p.root)], styles: planTextStyles(p.root), comps: ['FPO-default-icon', ...planIconComps(p.root)], page });
         const box = page.children[0] && partOf(page.children[0]);
         ok(r.misses.length === 0 && !!box,
           `anatomy/${def.id} #1228 reachable: the payload pastes clean at ${at} and its \`${part}\` was found (${JSON.stringify(r.misses)})`);
@@ -19949,7 +20248,7 @@ arm: {
           for (const c of cs) if (c.variants.length > 1 && c.js.length > b) over.push(`${b}: chunk ${c.index + 1} of ${cs.length}, ${c.variants.length} variants, ${c.js.length} B`);
           if (JSON.stringify(cs.flatMap((c) => c.variants)) !== taNames) lost.push(b);
         }
-        ok(budgets === 124 && taPlans.length === 24 && over.length === 0,
+        ok(budgets === 124 && taPlans.length === 28 && over.length === 0,
           `#1814 at every one of 124 budgets, no shipped chunk of more than one variant is over the budget (${taPlans.length} variants; ${over.length} over${over.length ? `: ${over.slice(0, 3).join('; ')}` : ''})`);
         ok(lost.length === 0,
           `#1814 ...and every budget ships all 24 variants once, in plan order (${lost.length ? `not at ${lost.slice(0, 5).join(', ')}` : 'all 124'})`);
@@ -20316,7 +20615,7 @@ arm: {
           return undefined;
         };
         const collided = members.filter((m) => descend(m, 'text'));
-        ok(members.length === 72 && collided.length === members.length,
+        ok(members.length === 84 && collided.length === members.length,
           `#1428 reachability (paste): every built select member carries a colliding nested-instance \`text\` (${collided.length}/${members.length})`);
         const textMisses = run.misses.filter((m) => /\btext\.characters\b/.test(m));
         ok(textMisses.length === 0,
@@ -20738,7 +21037,7 @@ arm: {
         const fmOpts = {
           vars: fmSet.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
           styles: fmSet.flatMap((p) => planTextStyles(p.root)),
-          comps: [] as string[],
+          comps: [...new Set(fmSet.flatMap((p) => planIconComps(p.root)))],
         };
         const fmPastePage: StubPage = { children: [] };
         const fmPlugPage: StubPage = { children: [] };
@@ -20750,11 +21049,51 @@ arm: {
         // #1393 — THE GLYPH'S IMPORTED SUBTREE, in lockstep. `createNodeFromSvg` bypasses `createFrame()`, so both
         // executors claim the nodes inside a GLYPH in 'imported' mode; the button grid above builds no glyph, so
         // this is where that branch is compared. FLOOR: the page really holds an imported VECTOR to compare.
+        // On the SPINNER since #2380: field-message's status glyphs are instances of `icon/*` now and import
+        // nothing, and the spinner's composed glyph (`COMPONENT_GLYPHS`) is one that is still drawn inline.
         {
-          const plugFm = claims(fmPlugPage);
-          const fmDiff = claimDiff(plugFm, claims(fmPastePage));
+          const spSet = figmaAnatomySet(spinner, { swapTarget: 'FPO-default-icon' });
+          const spOpts = { vars: spSet.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), styles: spSet.flatMap((p) => planTextStyles(p.root)) };
+          const spPastePage: StubPage = { children: [] };
+          const spPlugPage: StubPage = { children: [] };
+          await runPayload(planSetToPluginJs(spSet), { ...spOpts, page: spPastePage });
+          await plugRun(spSet, { ...spOpts, page: spPlugPage });
+          const plugFm = claims(spPlugPage);
+          const fmDiff = claimDiff(plugFm, claims(spPastePage));
           ok(plugFm.some((r) => / VECTOR \[/.test(r)) && fmDiff.length === 0,
             `#1393 lockstep (GLYPH): both executors claim a glyph's imported subtree identically — plugin vs paste differ on ${fmDiff.length}: ${fmDiff.slice(0, 2).join(' | ').slice(0, 600)}`);
+        }
+
+        // #2380 — THE INSET ICON, THROUGH THE PASTE EXECUTOR AND IN LOCKSTEP WITH THE PLUGIN. checkbox's check is an
+        // instance of `icon/check` inside the box-bound `mark` frame, placed at 0.8 of it (#1346) by the PARENT
+        // after the flow pass. The plugin's placement is read back by `apps/plugin/test-roundtrip.ts`; this is the
+        // paste executor's (`PAYLOAD_INSET`), which no other reader sees. EXPECTED is Prism 2's 0.8, typed here.
+        {
+          const cbChecked = figmaAnatomySet(checkboxControl, {}).filter((p) => p.coord.selection === 'checked');
+          const cbOpts = { vars: cbChecked.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]), styles: cbChecked.flatMap((p) => planTextStyles(p.root)), comps: ['focus-ring', ...new Set(cbChecked.flatMap((p) => planIconComps(p.root)))] };
+          const cbPastePage: StubPage = { children: [] };
+          const cbPlugPage: StubPage = { children: [] };
+          const cbPasted = await runPayload(planSetToPluginJs(cbChecked), { ...cbOpts, page: cbPastePage });
+          await plugRun(cbChecked, { ...cbOpts, page: cbPlugPage });
+          const insets = (page: StubPage): string[] => {
+            const out: string[] = [];
+            const walk = (n: Record<string, unknown>): void => {
+              if (n.name === 'mark') {
+                const g = ((n.children as Record<string, unknown>[] | undefined) ?? []).find((c) => c.name === 'glyph');
+                const W = n.width as number, H = n.height as number;
+                out.push(!g ? 'no glyph' : `${g.type} ${Number(((g.width as number) / W).toFixed(4))}x${Number(((g.height as number) / H).toFixed(4))} at ${Number(((g.x as number) / W).toFixed(4))},${Number(((g.y as number) / H).toFixed(4))} ${JSON.stringify(g.constraints)}`);
+              }
+              for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) walk(c);
+            };
+            for (const c of page.children as Record<string, unknown>[]) walk(c);
+            return out;
+          };
+          const WANT = `INSTANCE 0.8x0.8 at 0.1,0.1 ${JSON.stringify({ horizontal: 'SCALE', vertical: 'SCALE' })}`;
+          const pasteI = insets(cbPastePage);
+          ok(cbPasted.misses.length === 0 && pasteI.length === cbChecked.length && pasteI.every((x) => x === WANT),
+            `#2380 paste: every checked checkbox's icon is an instance at 0.8 of its mark frame, centered, SCALE/SCALE (${pasteI.length}/${cbChecked.length}: ${[...new Set(pasteI)].join(' | ')}${cbPasted.misses.length ? `; misses: ${cbPasted.misses.slice(0, 2).join(' | ')}` : ''})`);
+          ok(JSON.stringify(insets(cbPlugPage)) === JSON.stringify(pasteI),
+            `#2380 lockstep: both executors place the inset icon identically (plugin ${[...new Set(insets(cbPlugPage))].join(' | ')} vs paste ${[...new Set(pasteI)].join(' | ')})`);
         }
 
         // #1670 — THE SPINNER'S LAYER OPACITY, THROUGH THE PASTE EXECUTOR AND IN LOCKSTEP WITH THE PLUGIN. The
@@ -21679,7 +22018,7 @@ arm: {
       ibBroke('a state gate naming an UNDECLARED state fails', /gates presence on state='typing', which is not one of states/, tfPart('caret', { presentWhen: { state: ['typing'] } }));
       ibBroke('a state gate reaching NO projected state fails — the part is absent from every member', /gates presence on state=\[empty, pending\], none of which figmaProperties\.stateAxis projects/, tfPart('caret', { presentWhen: { state: ['empty', 'pending'] } }));
       ibBroke('a state gate with no values fails', /gates presence on 'state' with no values/, tfPart('caret', { presentWhen: { state: [] } }));
-      ibBroke('a state gate naming EVERY projected state fails as a no-op', /gates presence on all 6 projected states/, tfPart('caret', { presentWhen: { state: ['rest', 'hover', 'filled', 'focus-visible', 'disabled', 'read-only'] } }));
+      ibBroke('a state gate naming EVERY projected state fails as a no-op', /gates presence on all 7 projected states/, tfPart('caret', { presentWhen: { state: ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only'] } }));
       ibBroke('a state gate on a def with no stateAxis fails', /gates presence on 'state', but figmaProperties declares no stateAxis/,
         { ...tfPart('caret', { presentWhen: { state: ['focus-visible'] } }), figmaProperties: { ...tf.figmaProperties!, stateAxis: undefined } } as ComponentDef);
       // The reserved key is unambiguous only while no VARIANT axis can be named `state`; the closed vocabulary
@@ -23856,6 +24195,11 @@ arm: {
     spinner: { ...button.anatomy!.parts.spinner, when: 'nope' } } } } as ComponentDef;
   ok(validateComponentDef(badWhen).errors.some((x) => /is not one of states/.test(x)),
     '#536 gate: an overlay whose `when` is not a declared state fails validation');
+  // #2318 widened `when` to a list for ABSOLUTE parts only: an overlay replaces a part on exactly one state.
+  const listWhen = { ...button, anatomy: { ...button.anatomy!, parts: { ...button.anatomy!.parts,
+    spinner: { ...button.anatomy!.parts.spinner, when: ['pending', 'rest'] } } } } as ComponentDef;
+  ok(validateComponentDef(listWhen).errors.some((x) => /an overlay's when names ONE state, not a list/.test(x)),
+    '#2318 gate: an overlay whose `when` is a LIST fails validation — only an absolute part may name several states');
 }
 
 // ---- #536 item 6: the slot x size grid, gated offline after the live probe ----------------------
@@ -24859,30 +25203,29 @@ arm: {
   ok(cbGlyphs({}) === 'neither',
     `checkbox-control: and with neither axis supplied — the structure-only plan a consumer asking "what parts does this def have" gets (got '${cbGlyphs({})}')`);
 
-  // #1346 — THE INNER GLYPH IS INSET TO PRISM 2's 0.80 MARK-TO-BOX RATIO, pinned on the PROJECTED
-  // artboard rather than on the def's `glyphScale` field, so a revert to the old full-bleed mark fails
-  // HERE by name, not only in the projector that produced it. EXPECTED is authored from the Prism 2
-  // MEASUREMENT — `checkFill` 16 inside a 20px control box (the focus frame is 28 at offset −4, so the
-  // box is 28 − 2×4 = 20), giving 16/20 = 0.80, `reference/Prism2/component-specs/checkboxes.json` —
-  // independent of the engine. ACTUAL is the drawn grid's fraction of its artboard, read back from the
-  // plan: the mark FRAME binds the control box (asserted first), and the emitter pads the artboard to
-  // `grid / scale`, so the rendered mark is `grid / artboard` of the box. A mutation setting `glyphScale`
-  // back to 1 pads to the bare 24 grid, makes the ratio 1.0, and fails these by name. Not "it resolves"
-  // (docs/34 shape 5) — the VALUE 0.80 is asserted, transcribed from Prism 2, not read off the def.
+  // #1346 — THE INNER GLYPH IS INSET TO PRISM 2's 0.80 MARK-TO-BOX RATIO, pinned on the PROJECTED plan
+  // rather than on the def's `glyphScale` field, so a revert to the old full-bleed mark fails HERE by name,
+  // not only in the projector that produced it. EXPECTED is authored from the Prism 2 MEASUREMENT —
+  // `checkFill` 16 inside a 20px control box (the focus frame is 28 at offset −4, so the box is 28 − 2×4 =
+  // 20), giving 16/20 = 0.80, `reference/Prism2/component-specs/checkboxes.json` — independent of the engine.
+  // Since #2380 the mark is an INSTANCE of `icon/check` inside a `mark` frame bound to the control box, and
+  // ACTUAL is the fraction of that frame the instance is placed at (`glyphInset`), read off the plan. Before
+  // #2380 it was the padded artboard's grid fraction; the ink lands in the same place either way, 0.8 × box ×
+  // the grid. A mutation setting `glyphScale` back to 1 projects the instance full-bleed (no `glyphInset`,
+  // no wrapper) and fails these by name. Not "it resolves" (docs/34 shape 5) — the VALUE 0.80 is asserted,
+  // transcribed from Prism 2, not read off the def.
   const PRISM2_MARK_TO_BOX = 0.8;                                   // checkFill 16 / control box 20
-  const grid = Number(ICON_VIEWBOX.split(/\s+/)[2]);                // the 24-unit source grid, parsed
   const glyphNode = (part: string, selection: string) => {
     const f = (n: any): any => (n.name === part ? n : (n.children ?? []).map(f).find(Boolean));
     return f(figmaAnatomyPlan(checkboxControl, 'medium', { selection, state: 'rest' } as never).root);
   };
-  ok((checkboxControl.anatomy!.parts.mark as any).size === 'size.{size}.control',
-    `checkbox-control: the mark FRAME binds the control box ('size.{size}.control'), so the padded artboard is what insets the ink and the ratio below is box-relative (got size='${(checkboxControl.anatomy!.parts.mark as any).size}')`);
-  const markRatio = grid / (glyphNode('mark', 'checked').glyphViewBox as [number, number])[0];
-  ok(Math.abs(markRatio - PRISM2_MARK_TO_BOX) < 1e-9,
-    `checkbox-control: the check renders at Prism 2's ${PRISM2_MARK_TO_BOX} of the box — the 24-grid fills ${markRatio.toFixed(4)} of its ${(glyphNode('mark', 'checked').glyphViewBox as [number, number])[0]}px artboard, and the frame is box-bound, so a revert to a full-bleed 24px artboard (ratio 1.0) restores the oversized mark #1346 shrank (got ${markRatio.toFixed(4)})`);
-  const dashRatio = grid / (glyphNode('dash', 'indeterminate').glyphViewBox as [number, number])[0];
-  ok(Math.abs(dashRatio - PRISM2_MARK_TO_BOX) < 1e-9,
-    `checkbox-control: the dash renders at the same ${PRISM2_MARK_TO_BOX} of the box as the check (Prism 2 sizes subtractFill identically to checkFill), pinned separately so a change to one part cannot pass on the other's ratio (got ${dashRatio.toFixed(4)})`);
+  ok((checkboxControl.anatomy!.parts.mark as any).size === 'size.{size}.control' && glyphNode('mark', 'checked')?.bound?.width === 'control/size/md/height',
+    `checkbox-control: the mark FRAME binds the control box ('size.{size}.control'), so the inset below is box-relative (got size='${(checkboxControl.anatomy!.parts.mark as any).size}', bound width '${glyphNode('mark', 'checked')?.bound?.width}')`);
+  const insetOf = (part: string, selection: string): unknown => (glyphNode(part, selection)?.children ?? []).find((c: any) => c.type === 'NESTED_INSTANCE')?.glyphInset;
+  ok(insetOf('mark', 'checked') === PRISM2_MARK_TO_BOX,
+    `checkbox-control: the check renders at Prism 2's ${PRISM2_MARK_TO_BOX} of the box — its icon instance sits at that fraction of the box-bound mark frame, so a revert to a full-bleed instance restores the oversized mark #1346 shrank (got ${String(insetOf('mark', 'checked'))})`);
+  ok(insetOf('dash', 'indeterminate') === PRISM2_MARK_TO_BOX,
+    `checkbox-control: the dash renders at the same ${PRISM2_MARK_TO_BOX} of the box as the check (Prism 2 sizes subtractFill identically to checkFill), pinned separately so a change to one part cannot pass on the other's ratio (got ${String(insetOf('dash', 'indeterminate'))})`);
 
   // ---- the same three directions as a RULE over every gated part, because the block above is
   // ---- CHECKBOX-SHAPED and the second def to use the mechanism does not fit it (#910) -------------
@@ -26364,6 +26707,11 @@ arm: {
     // Since the spacing model (2026-09-29) the label and check sit in their own row (`labelCheck`) so their gap
     // can differ from the icon's; the leading icon now centers against that row, in `content`, which holds no
     // text directly. The reason is the same one.
+    // `tab` (#2416): the label row pairs the optional leading icon and count badge with the label. A tab's label
+    // is one line by contract — a horizontal tab list scrolls rather than wrapping (tab.ts codeOnly, text
+    // expansion) — and the tab's height is fixed, so the first line IS the block.
+    'tab.content':
+      "a tab's label is one line by contract (a horizontal tab list scrolls rather than wrapping) and the tab's height is fixed, so the leading icon and the count center against the only line.",
     'tag.labelCheck':
       "the tag's height is fixed at one line in Figma and its label is one line there, so the check mark (and, one row out, the leading icon) center against the only line; in code a wrapped label centers them on the label block, which is held for the owner (tag.ts notes.contested).",
   };
@@ -28989,6 +29337,50 @@ arm: {
   const iconFlush = componentDefs.filter((d) => d.id.startsWith('icon-button') && 'inset' in (d.variants ?? {})).map((d) => d.id);
   ok(componentDefs.some((d) => d.id === 'icon-button') && iconFlush.length === 0,
     `#2350 icon buttons have no flush inset (${iconFlush.join(', ') || 'none'})`);
+}
+
+// ------------------------------------------------------------------- #2408: a flush button's hit area is 44×44 in code
+// Owner Q154 A: a flush text button has no visual minimum width, so its box is label-width and can be narrower
+// than 44px, and its hit area is at least 44×44 in code through an invisible extension. Figma has no hit areas,
+// so the rule lives in prose only, and nothing but this arm (and lint-hit-target's FLUSH arm) holds it there.
+// Each surface the rule ships on is read directly, and every expected phrase is a literal here, never read off the
+// def (docs/34): the def's `codeOnly` and `docs.do`, the generated components.ai.json, and the consume skill.
+{
+  // Phrases of the rule, not bare `44×44` / `::before`: the codeOnly entry says "Apple HIG 44×44" and "(::before /
+  // absolute overlay)" already, and bare words passed with the flush sentence deleted (measured).
+  // Owner Q170 B: 44×44 covers medium and large flush buttons; owner Q174 B: a small one is at least 24×24, the
+  // WCAG 2.5.8 floor. Each surface names both scopes, and none puts small, or every size, at 44×44.
+  const RULE = [/at least\s+44×44/, /::before`? inset outward/, /centered on the label/, /[Aa]t medium and large sizes/, /at least 24×24(px)? at small\b/];
+  const OVERSCOPE = /44×44(px)? at small\b|\bsmall, medium\b|every size|all sizes/;
+  const missing = (text: string | undefined) => [
+    ...RULE.filter((re) => !re.test(text ?? '')).map((re) => re.source),
+    ...(OVERSCOPE.test(text ?? '') ? [`over-scoped: ${OVERSCOPE.source}`] : []),
+  ];
+  const aiDoc = JSON.parse(readFileSync(resolve(HERE, './out/components/components.ai.json'), 'utf8')) as { components: unknown };
+  const aiComponents = (Array.isArray(aiDoc.components) ? aiDoc.components : Object.values(aiDoc.components as object)) as Array<{ id: string; docs?: { do?: string[] } }>;
+  for (const def of [button, buttonDestructive, buttonNeutral]) {
+    const code = def.anatomy!.codeOnly.find((c) => /flush/.test(c));
+    ok(!!code && missing(code).length === 0,
+      `#2408 ${def.id}: codeOnly states a medium or large flush button's hit area is at least 44×44 in code and a small one's at least 24×24, through a transparent ::before inset outward and centered on the label (missing: ${code ? missing(code).join(', ') || 'none' : 'no flush entry'})`);
+    const line = def.docs?.do?.find((d) => /^Set inset=flush/.test(d));
+    ok(!!line && missing(line).length === 0,
+      `#2408 ${def.id}: docs.do tells the developer to extend a medium or large flush button's hit area to 44×44 and a small one's to 24×24, with the ::before technique (missing: ${line ? missing(line).join(', ') || 'none' : 'no inset=flush line'})`);
+    const aiLine = aiComponents.find((c) => c.id === def.id)?.docs?.do?.find((d) => /^Set inset=flush/.test(d));
+    ok(!!aiLine && missing(aiLine).length === 0,
+      `#2408 ${def.id}: components.ai.json carries the flush hit-area rule, 44×44 at medium and large and 24×24 at small, in docs.do (missing: ${aiLine ? missing(aiLine).join(', ') || 'none' : 'no inset=flush line'})`);
+  }
+  // #2443: lint-hit-target's size scopes, read from its source and held to literals here, so widening or narrowing
+  // either constant fails by name (the gate's size-axis check reads only their union).
+  const gateSrc = readFileSync(resolve(HERE, './lint-hit-target.ts'), 'utf8');
+  const constOf = (name: string) => gateSrc.match(new RegExp(`^const ${name} = (\\[[^\\]]*\\]);`, 'm'))?.[1];
+  ok(constOf('FLUSH_SIZES') === "['medium', 'large']",
+    `#2443 lint-hit-target: FLUSH_SIZES is exactly ['medium', 'large'], the 44×44 flush scope (owner Q170 B) (got: ${constOf('FLUSH_SIZES') ?? 'not found'})`);
+  ok(constOf('FLUSH_SMALL_SIZES') === "['small']",
+    `#2443 lint-hit-target: FLUSH_SMALL_SIZES is exactly ['small'], the 24×24 flush scope (owner Q174 B) (got: ${constOf('FLUSH_SMALL_SIZES') ?? 'not found'})`);
+  const skill = readFileSync(resolve(HERE, '../../skills/prism3-consume/SKILL.md'), 'utf8');
+  const para = skill.split(/\n\s*\n/).find((b) => /inset=flush/.test(b) && /44×44/.test(b));
+  ok(!!para && missing(para).length === 0,
+    `#2408 prism3-consume: the skill tells the agent a medium or large flush text button keeps a 44×44 hit area in code and a small one 24×24, with the ::before technique (missing: ${para ? missing(para).join(', ') || 'none' : 'no paragraph names inset=flush and 44×44'})`);
 }
 
 // ------------------------------------------------------------------- report

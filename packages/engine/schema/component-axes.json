@@ -371,10 +371,14 @@
       "ratio": [
         "16:9",
         "1:1",
-        "4:3"
+        "2:3",
+        "3:2",
+        "3:4",
+        "4:3",
+        "4:5"
       ]
     },
-    "members": 3
+    "members": 7
   },
   "radio-control": {
     "axes": {
@@ -428,6 +432,7 @@
         "disabled",
         "filled",
         "focus-visible",
+        "focus-visible-filled",
         "hover",
         "read-only",
         "rest"
@@ -439,7 +444,7 @@
         "warning"
       ]
     },
-    "members": 72
+    "members": 84
   },
   "spinner": {
     "axes": {
@@ -482,6 +487,37 @@
     },
     "members": 2
   },
+  "tab": {
+    "axes": {
+      "selection": [
+        "selected",
+        "unselected"
+      ],
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ],
+      "state": [
+        "disabled",
+        "focus-visible",
+        "hover",
+        "pressed",
+        "rest"
+      ]
+    },
+    "members": 30
+  },
+  "tabs": {
+    "axes": {
+      "size": [
+        "large",
+        "medium",
+        "small"
+      ]
+    },
+    "members": 3
+  },
   "tag": {
     "axes": {
       "selection": [
@@ -518,6 +554,7 @@
         "disabled",
         "filled",
         "focus-visible",
+        "focus-visible-filled",
         "hover",
         "read-only",
         "rest"
@@ -529,7 +566,7 @@
         "warning"
       ]
     },
-    "members": 72
+    "members": 84
   },
   "textarea": {
     "axes": {
@@ -542,6 +579,7 @@
         "disabled",
         "filled",
         "focus-visible",
+        "focus-visible-filled",
         "hover",
         "read-only",
         "rest"
@@ -553,7 +591,7 @@
         "warning"
       ]
     },
-    "members": 72
+    "members": 84
   },
   "veil": {
     "axes": {

@@ -302,7 +302,8 @@ export const badge: ComponentDef = {
     primaryPurpose: 'Mark a status, count or presence with a small static badge that nobody clicks.',
     whenToUse: 'A short inline state or attribute (status), an actionable number over an icon button or tab (count), or presence or unread state over an avatar or nav item (dot).',
     avoidWhen: 'The user can click, toggle or remove it (use a tag), the message is feedback about an action (use a toast or banner), or the color would be the only signal.',
-    commonPartners: ['icon-button', 'button'],
+    // `tab` moved here from `planned` when it was built (#2416): a tab nests a count badge.
+    commonPartners: ['icon-button', 'button', 'tab'],
     triggerKeywords: ['badge', 'status badge', 'status label', 'counter badge', 'count badge', 'notification badge', 'notification dot', 'unread count', 'presence dot', 'label', 'pill label'],
     generationPriority: 3,
   },
@@ -311,7 +312,7 @@ export const badge: ComponentDef = {
     composesWith: [],
     // `tag` moved here from `planned` when it was built (2026-09-27): the interactive alternative.
     alternativeTo: ['tag'],
-    planned: ['avatar', 'tabs', 'toast', 'banner'],
+    planned: ['avatar', 'toast', 'banner'],
     replacesPatterns: ['a hand-drawn colored pill', 'a red circle with a number drawn over an icon'],
   },
 

@@ -279,6 +279,8 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the empty coordinate, the common "required field left unchosen" error',
   'select|error.border.filled':
     'status `error` maps to the `danger` border role — the filled coordinate (owner decision, 2026-09-25), bound so a field holding an invalid value keeps the danger boundary',
+  'select|error.border.focus-visible-filled':
+    'status `error` maps to the `danger` border role — the focused coordinate that holds a value (#2318, owner Q157), bound so an invalid value keeps the danger boundary while the field is focused (the ring carries the focus signal on top)',
   'select|error.border.read-only':
     "status `error` maps to the `danger` border role — the read-only coordinate (#1699, text-field's state set), bound so an errored read-only select keeps the danger boundary",
   // `text-field`'s validation axis is spelled `status` for the same reason select's is (its values are the
@@ -303,6 +305,8 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the empty coordinate, the common "required field left blank" error',
   'text-field|error.border.filled':
     'status `error` maps to the `danger` border role — the filled coordinate (owner decision, 2026-09-25), bound so a field holding an invalid value keeps the danger boundary',
+  'text-field|error.border.focus-visible-filled':
+    'status `error` maps to the `danger` border role — the focused coordinate that holds a value (#2318, owner Q157), bound so an invalid value keeps the danger boundary while the field is focused (the ring carries the focus signal on top)',
   // `textarea` took text-field's status axis and its border keys verbatim (#1623 sign-off, C1/TA-4), so it
   // carries the same `error` → `danger` mapping at the same five coordinates, and for the same reason.
   'textarea|error.border.rest':
@@ -317,6 +321,8 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'status `error` maps to the `danger` border role — the empty coordinate, the common "required field left blank" error',
   'textarea|error.border.filled':
     'status `error` maps to the `danger` border role — the filled coordinate (owner decision, 2026-09-25), bound so a field holding an invalid value keeps the danger boundary',
+  'textarea|error.border.focus-visible-filled':
+    'status `error` maps to the `danger` border role — the focused coordinate that holds a value (#2318, owner Q157), bound so an invalid value keeps the danger boundary while the field is focused (the ring carries the focus signal on top)',
   // `badge` keys its paint `{tone}.{type}.{emphasis}.{slot}`, so the TONE leads and arm 1 reads it. Three
   // shapes need an exception, and every other badge key satisfies the rule on its own: the bold fills
   // (`foreground.<tone>`), the subtle labels (`text.<tone>`) and the subtle edges (`border.<tone>`) carry the
@@ -729,6 +735,8 @@ const UNREACHED_EXPLAINED: Record<string, string> = {
     'the fifth instance, and since #1354 it is on the ATOMIC control rather than the row — the switch split, and the ring moved with the painted track into `switch-control`, which nests it inside its own `track` box (exactly as #1226 moved checkbox\'s ring into `checkbox-control`). Still a nomination: it names the colour the nested `focus-ring` draws, and no node of this def can carry a ring stroke (#740). The shape is now confirmed rather than suspected — five defs, one reason, one open issue (#740). The reason this stays a per-def entry rather than becoming a rule keyed off `nests`: the rule would then be derived from the same field the projection reads, so a def that nested a ring and legitimately DID paint one would be exempted by the mechanism instead of caught by it.',
   'tag|focus-ring':
     'the sixth ring nomination, and the same shape as `button|focus-ring`: it names the colour the nested `focus-ring` draws around the tag at focus-visible, and no node of this def can carry a ring stroke (#740). A nomination, not a paint.',
+  'tab|focus-ring':
+    'the seventh ring nomination, the same shape as `tag|focus-ring`: it names the colour the nested `focus-ring` draws around the tab at focus-visible, and no node of this def can carry a ring stroke (#740). A nomination, not a paint.',
   'field-message|default.icon':
     'CATEGORY (b), and the first entry here that is not a ring nomination — see the header for why the two are kept apart. This key paints the status glyph on the DEFAULT status, and that status deliberately projects no glyph: the Prism2 reference row its grey ink matches is `standard` (no icon), so the three validation statuses carry gated `vector` parts and the default member is caption-only (#1010). Unreachable for a reason the five above do not share: nothing is missing from the projector. Every node the default member has IS asked for its paint, and the node this colour is for does not exist there — `props.icon` may supply one in code, per instance, which is a distinction Figma has no member for (see the def\'s `anatomy.codeOnly`). So there is no engine field to add and no issue to close, and the fix if this entry ever goes red is to DELETE it, not to widen anything: it goes red exactly when the default status gains a glyph, which is a def decision. The three validation-status glyph inks are reached normally and are not listed.',
 };

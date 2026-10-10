@@ -67,7 +67,7 @@ Label = noun phrase, sentence case, no trailing colon. Placeholder = the plain n
 
 ## States
 
-`rest`, `hover`, `filled`, `focus-visible`, `disabled`, `read-only`, `pending`, `empty`
+`rest`, `hover`, `filled`, `focus-visible`, `focus-visible-filled`, `disabled`, `read-only`, `pending`, `empty`
 
 ## Variants
 

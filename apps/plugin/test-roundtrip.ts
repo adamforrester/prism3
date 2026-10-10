@@ -244,7 +244,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
 // This is the "aspect-lock read-back" the verify checklist places in test:roundtrip. It builds the def
 // through the shared shim exactly as the corpus loop does, then reads each member's frame back.
 {
-  const CONTRACT: Record<string, number> = { '1:1': 1, '4:3': 4 / 3, '16:9': 16 / 9 };
+  // #2345 added the portrait 2:3, 3:4, 4:5 and the landscape 3:2 (owner direction 2026-10-07).
+  const CONTRACT: Record<string, number> = { '2:3': 2 / 3, '3:4': 3 / 4, '4:5': 4 / 5, '1:1': 1, '4:3': 4 / 3, '3:2': 3 / 2, '16:9': 16 / 9 };
   const def = componentDefs.find((d) => d.id === 'image-placeholder');
   ok(!!def, 'aspect-lock: the image-placeholder def is registered and projects');
   if (def) {
@@ -313,7 +314,8 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   // THE OWNER-DECIDED CONTRACT — a LITERAL table keyed by coordinate, never `figmaTextStyleName(def.type)`.
   // A field's text layer depends on the STATE since Option C (owner decision, 2026-09-26): the value layer at
   // filled / read-only, the placeholder layer everywhere else. Typed from that rule, not read off a def.
-  const fieldLayer = (c: Record<string, string | undefined>): string[] => [c.state === 'filled' || c.state === 'read-only' ? 'value' : 'placeholder'];
+  // The field family shows the value at filled, read-only and, since #2318, the focused field that holds one.
+  const fieldLayer = (c: Record<string, string | undefined>): string[] => [c.state === 'filled' || c.state === 'focus-visible-filled' || c.state === 'read-only' ? 'value' : 'placeholder'];
   const STYLE_CONTRACT: Record<string, { parts: string[] | ((c: Record<string, string | undefined>) => string[]); style: (c: Record<string, string | undefined>) => string }> = {
     // #2324: a text button's label is its underlined twin, at every state.
     button:          { parts: ['label'], style: (c) => `${({ small: 'label/sm/emphasis', medium: 'label/md/emphasis', large: 'label/lg/emphasis' } as Record<string, string>)[c.size!]}${c.appearance === 'text' ? '-link' : ''}` },
@@ -492,7 +494,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   ok(!!liKey && defs[liKey!].type === 'BOOLEAN',
     `#1331 host-truth: the built set carries a 'leading icon' BOOLEAN property (host holds ${liKey})`);
   const lvs = members.map((m) => findByName(m, 'leadingVisual'));
-  ok(members.length === 72 && lvs.every(Boolean),
+  ok(members.length === 84 && lvs.every(Boolean),
     `#1331 host-truth: the leading glyph node is built into EVERY member (${lvs.filter(Boolean).length}/${members.length})`);
   ok(lvs.length > 0 && lvs.every((lv) => lv.visible === false),
     '#1331 host-truth: every built leading glyph reads back `visible=false` — built hidden by default, not dropped');
@@ -541,7 +543,7 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
   // this, the miss-count assertion below could pass because the fixture never built the colliding node.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural read-back off the shim
   const naive = members[0]?.findOne?.((x: any) => x.name === 'placeholder');
-  ok(members.length === 72 && !!naive && (naive as { _inNestedInstance?: boolean })._inNestedInstance === true,
+  ok(members.length === 84 && !!naive && (naive as { _inNestedInstance?: boolean })._inNestedInstance === true,
     `#1428 reachability: a naive descending findOne on a built select member returns a nested-instance \`placeholder\` (the wrong node the fix defends against) — collision materialised (${members.length} members)`);
   const textRefMisses = res.misses.filter((m) => /\b(placeholder|value)\.characters\b/.test(m));
   ok(res.wiredMembers === plans.length && textRefMisses.length === 0,
@@ -1043,8 +1045,10 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
     await applyComponentPlan(plans, shim as any, {});
     const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
-    ok(members.length > 0 && members.every((m) => (m as { minWidth?: unknown }).minWidth === 320),
-      `#1503 host-truth: every ${id} member reads back minWidth=320 — the width floor the rows fill (e.g. minWidth=${String((members[0] as { minWidth?: unknown })?.minWidth)})`);
+    // Q155 A: the group is BUILT at 320 and floors at the fields' 120, so it shrinks with its column (measured in the
+    // Q152.3/Q155 block below).
+    ok(members.length > 0 && members.every((m) => (m as { minWidth?: unknown }).minWidth === 120 && (m as { width?: unknown }).width === 320),
+      `#1503/Q155 host-truth: every ${id} member reads back width 320 and minWidth=120 — built at Prism 2's width, the floor the fields take (e.g. width=${String((members[0] as { width?: unknown })?.width)}, minWidth=${String((members[0] as { minWidth?: unknown })?.minWidth)})`);
   }
 }
 
@@ -1680,6 +1684,48 @@ ok(dirty.length === 0, `every def round-trips: what the plan declares is what th
       }
       ok(members.length > 0 && off.length === 0,
         `#2292 ${id} fills its column: on every member an unplaced field reads 320 (root and box), an instance set to FILL a ${COLUMN}px column has its input box, label and ${id === 'textarea' ? 'message row' : 'message'} at ${COLUMN}, in a ${NARROW}px column the box shrinks to ${NARROW} (#2266, Q99 B), and in a ${NARROWER}px column it holds its 120 floor (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
+    }
+    // Q152.3 (Q99 B reaches the rows): checkbox-row and radio-row are built at 320 and shrink with their column to
+    // the same 120 floor. The row IS the root, so the instance's own width is the row's, and the label, which fills
+    // the row, is the row less its control box and one gap. Literals: 320, 505, 280, and 120 in a 100px column.
+    for (const id of ['checkbox-row', 'radio-row']) {
+      const members = await setOf(id);
+      const off: string[] = [];
+      for (const m of members) {
+        const wide = placedAt(String(m.name), id, COLUMN);
+        const narrow = placedAt(String(m.name), id, NARROW);
+        const narrower = placedAt(String(m.name), id, NARROWER);
+        if (!wide || !narrow || !narrower) { off.push(`${m.name}: no instance`); continue; }
+        // A row's width is its MAIN axis, so FILL sets the instance's primary mode where a field's sets its counter.
+        for (const inst of [wide, narrow, narrower]) inst.primaryAxisSizingMode = 'FIXED';
+        const label = inside(wide, 'label');
+        const widths = [W(m), W(wide), W(narrow), W(narrower)];
+        if (!(widths[0] === 320 && widths[1] === COLUMN && widths[2] === NARROW && widths[3] === 120 && label > 320 && label < COLUMN))
+          off.push(`${m.name}: unplaced ${widths[0]}; in ${COLUMN}/${NARROW}/${NARROWER} columns ${widths.slice(1).join('/')}; label in ${COLUMN} ${label}`);
+      }
+      ok(members.length > 0 && off.length === 0,
+        `Q152.3 ${id} fills its column: on every member an unplaced row reads 320, an instance set to FILL a ${COLUMN}px column is ${COLUMN} wide with its label filling the rest, in a ${NARROW}px column it shrinks to ${NARROW}, and in a ${NARROWER}px column it holds its 120 floor (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
+    }
+    // Q155 A: checkbox-group and radio-group follow their rows. A group's root is a COLUMN, so FILL sets the instance's
+    // counter mode (the fields' case), and every row inside spans what the group is given. Literals as above.
+    for (const id of ['checkbox-group', 'radio-group']) {
+      const members = await setOf(id);
+      const off: string[] = [];
+      for (const m of members) {
+        const wide = placedAt(String(m.name), id, COLUMN);
+        const narrow = placedAt(String(m.name), id, NARROW);
+        const narrower = placedAt(String(m.name), id, NARROWER);
+        if (!wide || !narrow || !narrower) { off.push(`${m.name}: no instance`); continue; }
+        const widths = [W(m), W(wide), W(narrow), W(narrower)];
+        // The rows span the group less its inline padding, `space/0` on both sides: 0px in every brand, but the
+        // shim's own synthetic value here (its `varValue`, the harness's input), so it is taken from there.
+        const span = COLUMN - 2 * varValue('space/0');
+        const rows = ['row1', 'row2', 'row3'].map((r) => inside(wide, r));
+        if (!(widths[0] === 320 && widths[1] === COLUMN && widths[2] === NARROW && widths[3] === 120 && rows.every((w) => w === span)))
+          off.push(`${m.name}: unplaced ${widths[0]}; in ${COLUMN}/${NARROW}/${NARROWER} columns ${widths.slice(1).join('/')}; rows in ${COLUMN} ${rows.join('/')}`);
+      }
+      ok(members.length > 0 && off.length === 0,
+        `Q155 ${id} fills its column: on every member an unplaced group reads 320, an instance set to FILL a ${COLUMN}px column is ${COLUMN} wide with every row spanning it (less its inline padding), in a ${NARROW}px column it shrinks to ${NARROW}, and in a ${NARROWER}px column it holds its 120 floor (${members.length} members, ${off.length} off — ${off[0] ?? 'none'})`);
     }
   }
 

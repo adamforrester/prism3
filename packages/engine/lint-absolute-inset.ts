@@ -224,7 +224,7 @@ const ZERO_OK: Record<string, string> = {
  * covered — including by being deleted — this file fails rather than reporting clean over a smaller
  * set. A count would read that as a pass.
  */
-const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing'];
+const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'tab.focusRing'];
 
 /**
  * The floor for the COMPENSATION specifically — every part above whose gap must be computed against a
@@ -234,7 +234,7 @@ const MUST_COVER = ['button.focusRing', 'icon-button.focusRing', 'checkbox-contr
  * — the arithmetic degrades to `gap = offset`, every other check here still passes, and the ring goes
  * flush again.
  */
-const MUST_CLEAR_STROKE = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing'];
+const MUST_CLEAR_STROKE = ['button.focusRing', 'icon-button.focusRing', 'checkbox-control.focusRing', 'tab.focusRing'];
 
 /** The naming convention, restated rather than imported from the projector — shortcut 1 above. */
 const nameOf = (ref: string): string => ref.replace(/\./g, '/');
@@ -321,12 +321,16 @@ const sited = (n: FigmaNodePlan, parent: FigmaNodePlan | null = null): Sited[] =
  *  projector emitted anything at all. `when` is carried because it is the state the inset is
  *  supposed to appear at, and at no other. `strokeKey` is OPTIONAL on the def and its absence is a
  *  claim ("this part's nested component draws nothing inward"), which C tests rather than trusts. */
-type Declared = { part: string; insetKey: string; strokeKey?: string; when?: string };
+type Declared = { part: string; insetKey: string; strokeKey?: string; when?: readonly string[] };
+/** The def's `when`, one state or a list (#2318: the field ring names two), read HERE as a list rather than through
+ *  the schema's helper, so this gate keeps its own reading of the declaration. */
+const whenList = (w: unknown): readonly string[] | undefined =>
+  typeof w === 'string' ? [w] : Array.isArray(w) ? w.map(String) : undefined;
 const declaredInsets = (def: ComponentDef): Declared[] =>
   Object.entries(def.anatomy?.parts ?? {})
-    .map(([part, p]) => ({ part, ...(p as { kind?: string; inset?: string; strokeInset?: string; when?: string }) }))
+    .map(([part, p]) => ({ part, ...(p as { kind?: string; inset?: string; strokeInset?: string; when?: unknown }) }))
     .filter((p): p is typeof p & { kind: string; inset: string } => p.kind === 'absolute' && typeof p.inset === 'string')
-    .map(({ part, inset, strokeInset, when }) => ({ part, insetKey: inset, strokeKey: strokeInset, when }));
+    .map(({ part, inset, strokeInset, when }) => ({ part, insetKey: inset, strokeKey: strokeInset, when: whenList(when) }));
 
 /** THE GEOMETRY A GAP IMPLIES, restated so a failure prints coordinates a reader can check against a
  *  Figma inspector. `gap` is the background a designer sees; `stroke` is what the nested component
@@ -388,16 +392,16 @@ for (const def of componentDefs) {
 
         // ---- D, second direction: an inset appears only where the def says it should ------------
         if (!node.absoluteInset) {
-          if (d && d.when !== undefined && d.when === state)
-            failures.push(`${at}: the def declares '${node.name}' inset and gates it on state '${d.when}', which THIS coordinate is — and the plan gives it no absoluteInset, so the part projects flush`);
+          if (d && d.when !== undefined && state !== undefined && d.when.includes(state))
+            failures.push(`${at}: the def declares '${node.name}' inset and gates it on state '${state}', which THIS coordinate is — and the plan gives it no absoluteInset, so the part projects flush`);
           continue;
         }
         if (!d) {
           failures.push(`${at}: the plan gives '${node.name}' an absoluteInset ('${node.absoluteInset}') and the DEF declares no absolute inset for that part — the two disagree about whether this part is inset at all`);
           continue;
         }
-        if (d.when !== undefined && d.when !== state) {
-          failures.push(`${at}: '${node.name}' carries an absoluteInset at a coordinate its own \`when: '${d.when}'\` excludes — an inset projected at every state grows every member of the set by 2× the offset, silently`);
+        if (d.when !== undefined && (state === undefined || !d.when.includes(state))) {
+          failures.push(`${at}: '${node.name}' carries an absoluteInset at a coordinate its own \`when: '${d.when.join("', '")}'\` excludes — an inset projected at every state grows every member of the set by 2× the offset, silently`);
           continue;
         }
         reached.add(node.name);
@@ -512,8 +516,8 @@ for (const def of componentDefs) {
   // ---- D, first direction: the vacuous-pass guard ------------------------------------------------
   for (const { part, when } of declared)
     if (!reached.has(part))
-      failures.push(`${def.id}: the def declares '${part}' as an absolute part with an inset${when ? ` gated on state '${when}'` : ''}, and NO projected coordinate carried one. Either the projector stopped emitting absoluteInset — in which case every check above passed over an empty set — or '${when}' is not in def.states.`);
-  notes.push(`${def.id}: ${declared.length} declared inset part(s) — ${declared.map((d) => `${d.part} (${d.insetKey}${d.strokeKey ? ` + ${d.strokeKey}` : ''}${d.when ? ` @ ${d.when}` : ''})`).join(', ')}`);
+      failures.push(`${def.id}: the def declares '${part}' as an absolute part with an inset${when ? ` gated on state '${when.join("', '")}'` : ''}, and NO projected coordinate carried one. Either the projector stopped emitting absoluteInset — in which case every check above passed over an empty set — or '${when?.join("', '")}' is not in def.states.`);
+  notes.push(`${def.id}: ${declared.length} declared inset part(s) — ${declared.map((d) => `${d.part} (${d.insetKey}${d.strokeKey ? ` + ${d.strokeKey}` : ''}${d.when ? ` @ ${d.when.join('/')}` : ''})`).join(', ')}`);
 }
 
 // ---- E: THE CORNER PIN (textarea's resize grip) ------------------------------------------------------
