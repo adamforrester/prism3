@@ -295,6 +295,106 @@ console.log('\n5. each path lands in the editor');
   await page.close();
 }
 
+// ── §5b — a file read that finishes after its window closed loads nothing (A14, #2487) ──────────
+// Both upload pickers read the file asynchronously, so a designer can close the window the file was chosen in before the
+// read finishes. That late read must load nothing. `FileReader.readAsText` is held here until the test releases it, so
+// "late" is a fact of this harness rather than of the machine's speed. EXPECTED is the brand the file already held
+// (`restored-brand`), named here. ACTUAL is the brand switcher, read from the DOM after the held read has finished and
+// every task it queued has run. The controls release a held read with the window still open: it must load harbor, so a
+// hold that broke the read could not pass the closed-window arms as "loads nothing".
+//
+// MUTATIONS, each run against the built bundle and failing here by name:
+//   · the generation check in `shell/start.ts`'s upload removed → `A14 a start-window upload read after Close loads nothing …`.
+//   · the generation check in `main.ts`'s `importFile` removed → `A14 a brand-menu upload read after the menu closed loads nothing …`.
+console.log('\n5b. a late file read loads nothing once its window has closed (A14)');
+{
+  const MD = resolve(REPO, 'packages/engine/examples/harbor.design.md');
+  const hold = (page) => page.evaluate(() => {
+    window.__held = []; window.__readsDone = 0;
+    const orig = FileReader.prototype.readAsText;
+    FileReader.prototype.readAsText = function (blob) {
+      this.addEventListener('loadend', () => { window.__readsDone++; });
+      window.__held.push(() => orig.call(this, blob));
+    };
+  });
+  const heldOne = (page) => page.waitForFunction(() => window.__held.length === 1, null, { timeout: 4000 }).then(() => true, () => false);
+  // Release the held read, wait for it to finish, then for one more task, so every `then` it queued has run.
+  const release = async (page) => {
+    await page.evaluate(() => { window.__held.splice(0).forEach((f) => f()); });
+    await page.waitForFunction(() => window.__readsDone === 1, null, { timeout: 4000 }).catch(() => {});
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 50)));
+  };
+  const brandNow = async (page) => ((await readStart(page)).brandSel ?? '');
+  const reopenStart = async (page) => {
+    await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
+    await hooks.click(page.locator('[data-p3="brand-menu-new"]'));
+    await waitStart(page, true);
+  };
+  const openImport = async (page) => {
+    await hooks.click(page.locator('[data-p3="brand-switcher"]').first());
+    await hooks.click(page.locator('[data-p3="brand-menu-import"]'));
+    await hooks.need(page, '[data-p3="import-file"]', { state: 'attached' });
+  };
+  const booted = async () => {
+    const { page, errors } = await openPanel();
+    await post(page, { type: 'restore-input', input: NB_BRAND });
+    await waitStart(page, false);
+    await hold(page);
+    return { page, errors };
+  };
+
+  // The start window, closed while its upload is read.
+  {
+    const { page, errors } = await booted();
+    await reopenStart(page);
+    await page.setInputFiles('[data-p3="start-file"]', MD);
+    const held = await heldOne(page);
+    await hooks.click(page.locator('[data-p3="start-close"]'));
+    await release(page);
+    const b = await brandNow(page);
+    ok(held && !(await readStart(page)).start && b.includes('restored-brand') && !/harbor/i.test(b),
+      `A14 a start-window upload read after Close loads nothing: the file's brand stays — held ${held}, brand "${b}"`);
+    ok(errors.length === 0, `A14 start window: no console errors (${errors.slice(0, 1).join('') || 'none'})`);
+    await page.close();
+  }
+  // Control: the same held read, released with the start window still open, loads harbor.
+  {
+    const { page } = await booted();
+    await reopenStart(page);
+    await page.setInputFiles('[data-p3="start-file"]', MD);
+    const held = await heldOne(page);
+    await release(page);
+    const b = await brandNow(page);
+    ok(held && /harbor/i.test(b), `A14 control: a held start-window upload released while the window is open loads it — held ${held}, brand "${b}"`);
+    await page.close();
+  }
+  // The brand menu's import, the menu closed while its upload is read.
+  {
+    const { page, errors } = await booted();
+    await openImport(page);
+    await page.setInputFiles('[data-p3="import-file"]', MD);
+    const held = await heldOne(page);
+    await hooks.click(page.locator('[data-p3="brand-switcher"]').first());   // closes the menu
+    await release(page);
+    const b = await brandNow(page);
+    ok(held && b.includes('restored-brand') && !/harbor/i.test(b),
+      `A14 a brand-menu upload read after the menu closed loads nothing — held ${held}, brand "${b}"`);
+    ok(errors.length === 0, `A14 brand menu: no console errors (${errors.slice(0, 1).join('') || 'none'})`);
+    await page.close();
+  }
+  // Control: released with the import box still open, it loads harbor.
+  {
+    const { page } = await booted();
+    await openImport(page);
+    await page.setInputFiles('[data-p3="import-file"]', MD);
+    const held = await heldOne(page);
+    await release(page);
+    const b = await brandNow(page);
+    ok(held && /harbor/i.test(b), `A14 control: a held brand-menu upload released while the box is open loads it — held ${held}, brand "${b}"`);
+    await page.close();
+  }
+}
+
 // ── §6 — the screen holds at plugin dimensions ─────────────────────────────────────────────────
 // The web start screen was laid out for a browser viewport; the plugin iframe is smaller and its floor
 // is 380×420 (`MIN_SIZE` in apps/plugin/src/main.ts). Asserted rather than eyeballed, at the floor and
