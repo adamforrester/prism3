@@ -86,10 +86,10 @@ export type SgContract = readonly {
 export type { SwatchType, ValueFormat, StyleGuideOptions, DimensionDisplay, FontDisplay } from './messages';
 import type { SwatchType, StyleGuideOptions, ValueFormat, StyleGuideCatalog, StyleGuideCatalogCollection, StyleGuideKind } from './messages';
 
-/** The types phases 1 and 2 document: `color`; `dimension` (spacing, size and radius variables); the five font-variable
- *  kinds, one table each; and `typography`, the file's text styles. Everything else is named in the result as a
- *  later phase. Matched in any case. */
-export const PHASE_TYPES = ['color', 'dimension', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'typography'] as const;
+/** The types phases 1 and 2 document: `color`; `dimension` (spacing, size, radius and icon-size variables); `borderWidth`
+ *  and `opacity` (#2353 batch 1); the five font-variable kinds, one table each; and `typography`, the file's text styles.
+ *  Everything else is named in the result as a later phase. Matched in any case. */
+export const PHASE_TYPES = ['color', 'dimension', 'borderWidth', 'opacity', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'typography'] as const;
 /** The font-variable kinds, each its own table (proposed, owner to confirm: one table per kind). */
 export const FONT_KINDS = ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing'] as const;
 export type FontKind = (typeof FONT_KINDS)[number];
@@ -149,6 +149,11 @@ export type SgSpecimen =
   | { kind: 'spacing'; member: 'filled' | 'line' }
   /** The swatches set's `type=radius` member, its four corners bound to the variable. */
   | { kind: 'radius' }
+  /** The swatches set's `type=border` member, its outline's stroke weight bound to the variable (#2353). */
+  | { kind: 'stroke' }
+  /** A fill swatch drawn as a translucent color is (#2353, Q159 A): the swatches set's `type=transparency` member filling
+   *  its cell, painted `OPACITY_INK`, its layer opacity bound to the variable. */
+  | { kind: 'opacity' }
   /** "Abc 123" in a text cell, with one property bound to the variable, or none (`generic`). */
   | { kind: 'font'; bind: FontKind | null }
   /** "Abc 123" in a text cell with the text style applied. */
@@ -170,6 +175,9 @@ export interface SgRow {
   specimen?: SgSpecimen;
   /** Phase 2: values printed once per row, after the mode columns (a text style's family, weight, letter spacing). */
   extra?: { value: string; alias: string | null }[];
+  /** The row's own collection, when it is not the table's (#2353: the focus ring's widths in the Border width table).
+   *  Its cells' mode IDs are that collection's, and its specimens pin that collection. */
+  collectionId?: string;
 }
 
 export interface SgTable {
@@ -529,10 +537,11 @@ const PROPERTY_SCOPE: Record<string, VarKind> = {
 };
 /** The scopes a length on a frame takes: a variable scoped to these alone is a dimension. */
 const DIMENSION_SCOPES = new Set(['WIDTH_HEIGHT', 'GAP', 'CORNER_RADIUS', 'STROKE_FLOAT']);
-/** The kinds a later phase draws, as the note names them. */
+/** The kinds a later phase draws, as the note names them. A font style a text style binds is not one: the Text styles
+ *  table prints it in its Style column (#2353, Q161 A). One no text style binds is drawn nowhere, so it is named here. */
 const LATER_KIND: Partial<Record<VarKind, string>> = {
   fontStyle: 'font style', paragraphSpacing: 'paragraph spacing', paragraphIndent: 'paragraph indent', effect: 'shadow and effect', gradient: 'gradient',
-  duration: 'duration', motion: 'motion', opacity: 'opacity', borderWidth: 'border width', iconSize: 'icon size', breakpoint: 'breakpoint', grid: 'grid',
+  duration: 'duration', motion: 'motion', breakpoint: 'breakpoint', grid: 'grid',
   other: 'other number or string',
 };
 
@@ -585,11 +594,19 @@ export const varKind = (v: SgVariable): VarKind | null => {
   if ((scopes.length && scopes.every((s) => DIMENSION_SCOPES.has(s))) || has('dimension', 'dimensions', 'scale')) return 'scale';
   return 'other';
 };
-const DIMENSION_KINDS: readonly VarKind[] = ['spacing', 'size', 'radius', 'scale'];
-/** The table type a kind draws in: `dimension`, a font kind, or null for a later phase. */
+/** The kinds drawn in a collection's `dimension` table. An icon size is one (#2353, owner direction: "in the existing size
+ *  and dimension tables, not a type of its own"), drawn as a size is. */
+const DIMENSION_KINDS: readonly VarKind[] = ['spacing', 'size', 'radius', 'scale', 'iconSize'];
+/** The table type a kind draws in: `dimension`, `borderWidth`, `opacity`, a font kind, or null for a later phase. */
 const typeOfKind = (k: VarKind): string | null =>
-  DIMENSION_KINDS.includes(k) ? 'dimension' : (FONT_KINDS as readonly string[]).includes(k) ? k : null;
+  DIMENSION_KINDS.includes(k) ? 'dimension' : k === 'borderWidth' || k === 'opacity' || (FONT_KINDS as readonly string[]).includes(k) ? k : null;
 const FONT_LABEL: Record<FontKind, string> = { fontFamily: 'Font family', fontSize: 'Font size', fontWeight: 'Font weight', lineHeight: 'Line height', letterSpacing: 'Letter spacing' };
+/** A non-dimension table's title and the noun its description counts (#2353 adds border width and opacity). */
+const TYPE_LABEL: Record<string, string> = { ...FONT_LABEL, borderWidth: 'Border width', opacity: 'Opacity' };
+/** The color an opacity swatch is drawn in (#2353, Q159 A): the style guide's own chrome, fixed, as the cell white is. */
+const OPACITY_INK = { type: 'SOLID', visible: true, opacity: 1, blendMode: 'NORMAL', color: { r: 0, g: 0, b: 0 } };
+/** An opacity as the table prints it: Figma stores a layer opacity variable in percent (0–100), and so does the engine. */
+export const formatOpacity = (n: number): string => `${trimNum(n, 2)}%`;
 
 /** A number as the table prints it: up to `d` places, trailing zeros dropped. */
 const trimNum = (n: number, d: number): string => String(Math.round(n * 10 ** d) / 10 ** d);
@@ -656,25 +673,45 @@ const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
   wantCollections: readonly string[] | undefined, referenced: ReadonlySet<string>, notes: string[]): SgTable[] => {
   const out: SgTable[] = [];
   const later = new Map<string, number>();
+  const wanted = (c: SgCollection | undefined): boolean => !!c && (!wantCollections || wantCollections.includes(c.name.toLowerCase()));
+  // THE FONT STYLES THE TEXT STYLES BIND (#2353, Q161 A): printed in the Text styles table's Style column, so they are
+  // drawn, and are no later phase.
+  const styleBound = new Set((catalog.textStyles ?? []).map((s) => s.boundVariables?.fontStyle?.id).filter((id): id is string => !!id));
+  // ONE BORDER WIDTH TABLE (#2353, owner direction: the focus ring's width and offset "go in with the border widths, not a
+  // table of their own"): every border-width variable in the run's collections, in the file's order, drawn in the table
+  // of the first collection that holds one (`border-width`), which keys it.
+  const border = catalog.variables.filter((v) => varKind(v) === 'borderWidth' && wanted(ix.collections.get(v.variableCollectionId)));
+  const borderHome = catalog.collections.find((c) => border.some((v) => v.variableCollectionId === c.id));
   for (const col of catalog.collections) {
-    if (wantCollections && !wantCollections.includes(col.name.toLowerCase())) continue;
+    if (!wanted(col)) continue;
     const buckets = new Map<string, { v: SgVariable; kind: VarKind }[]>();
     for (const v of catalog.variables) {
       if (v.variableCollectionId !== col.id) continue;
       const kind = varKind(v);
       if (!kind) continue;
       const type = typeOfKind(kind);
-      if (!type) { const l = LATER_KIND[kind] ?? kind; later.set(l, (later.get(l) ?? 0) + 1); continue; }
+      if (!type) {
+        if (kind === 'fontStyle' && styleBound.has(v.id)) continue;
+        const l = LATER_KIND[kind] ?? kind; later.set(l, (later.get(l) ?? 0) + 1); continue;
+      }
       if (!wantTypes.includes(type.toLowerCase())) continue;
+      if (type === 'borderWidth') continue;
       if (!buckets.has(type)) buckets.set(type, []);
       buckets.get(type)!.push({ v, kind });
     }
+    if (col === borderHome && wantTypes.includes('borderwidth')) buckets.set('borderWidth', border.map((v) => ({ v, kind: 'borderWidth' as VarKind })));
+    // A row from another collection reads the column's mode by its name there, else that collection's default mode.
+    const modeIn = (v: SgVariable, m: SgMode): string => {
+      if (v.variableCollectionId === col.id) return m.modeId;
+      const own = ix.collections.get(v.variableCollectionId);
+      return own?.modes.find((x) => x.name === m.name)?.modeId ?? defaultMode(own) ?? m.modeId;
+    };
     for (const [type, members] of buckets) {
       // ROOTS, as for color: the same tree under two first segments (`nbds/space/…`, `pds3/space/…`) is one table each.
       const firsts = [...new Set(members.map((m) => m.v.name.split('/')[0]))];
       const whole = commonPrefix(members.map((m) => m.v.name.split('/').slice(0, -1)));
       const multiRoot = whole.length === 0 && firsts.length > 1 && commonPrefix(members.map((m) => m.v.name.split('/').slice(1, -1))).length > 0;
-      const literal = (m: { v: SgVariable }): boolean => col.modes.every((md) => aliasId(m.v.valuesByMode[md.modeId]) === null);
+      const literal = (m: { v: SgVariable }): boolean => col.modes.every((md) => aliasId(m.v.valuesByMode[modeIn(m.v, md)]) === null);
       for (const root of multiRoot ? firsts : [null]) {
         const inRoot = members.filter((m) => root === null || m.v.name.split('/')[0] === root);
         // FONT WEIGHT SPLITS (owner decision, #2371 Q133 A): the raw weights are primitives, drawn on Primitive tokens
@@ -687,29 +724,34 @@ const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
           // DRAFT for the owner (#2371): the roles' title when the weights are split, so the two tables' titles differ.
           const unrooted = type === 'dimension'
             ? (primitive && prefix.length ? sentence(prefix[prefix.length - 1]) : sentence(col.name))
-            : split && !primitive ? 'Font weight roles' : FONT_LABEL[type as FontKind];
+            : split && !primitive ? 'Font weight roles' : TYPE_LABEL[type];
           const title = root ? `${unrooted} — ${root}` : unrooted;
-          // A REM COLUMN after each Value column, in a table of lengths (dimension, font size, line height, letter
-          // spacing), when REM is on (owner decision, 2026-09-29). A family or a weight is not a length.
-          const lengths = remOn(options) && (type === 'dimension' || type === 'fontSize' || type === 'lineHeight' || type === 'letterSpacing');
+          // A REM COLUMN after each Value column, in a table of lengths (dimension, border width, font size, line height,
+          // letter spacing), when REM is on (owner decision, 2026-09-29). A family, a weight or an opacity is not a length.
+          const lengths = remOn(options) && (type === 'dimension' || type === 'borderWidth' || type === 'fontSize' || type === 'lineHeight' || type === 'letterSpacing');
           const rows: SgRow[] = rampSort(mine.map(({ v, kind }) => {
             const cells: SgCell[] = col.modes.map((m) => {
-              const lit = resolveLiteral(ix, v, m.modeId);
-              const first = aliasId(v.valuesByMode[m.modeId]);
+              const modeId = modeIn(v, m);
+              const lit = resolveLiteral(ix, v, modeId);
+              const first = aliasId(v.valuesByMode[modeId]);
               const aliasVar = first ? ix.byId.get(first) : undefined;
               const num = typeof lit === 'number' ? lit : null;
               const str = typeof lit === 'string' ? lit : null;
               const value = num === null ? (str ?? '—')
-                : type === 'fontWeight' ? formatWeight(num) : formatPx(num);
+                : type === 'fontWeight' ? formatWeight(num) : type === 'opacity' ? formatOpacity(num) : formatPx(num);
               const rem = lengths ? (num === null ? '—' : formatRem(num)) : undefined;
-              return { modeId: m.modeId, modeName: m.name, value, rem, alias: aliasVar ? aliasVar.name : null, raw: `${first ?? ''}|${lit ?? ''}`, groundId: null, contrast: null, num, str };
+              return { modeId, modeName: m.name, value, rem, alias: aliasVar ? aliasVar.name : null, raw: `${first ?? ''}|${lit ?? ''}`, groundId: null, contrast: null, num, str };
             });
             const token = v.name.split('/').slice(prefix.length).join('/');
-            return { variableId: v.id, name: v.name, token, tokenCell: tokenCellOf(options, v.name, token), label: humanizeName(v.name.split('/').slice(prefix.length), prefix[prefix.length - 1]), description: v.description ?? '', display: 'default' as SwatchType, cells, specimen: specimenOf(type, kind, options) };
+            return { variableId: v.id, name: v.name, token, tokenCell: tokenCellOf(options, v.name, token), label: humanizeName(v.name.split('/').slice(prefix.length), prefix[prefix.length - 1]), description: v.description ?? '', display: 'default' as SwatchType, cells, specimen: specimenOf(type, kind, options),
+              ...(v.variableCollectionId !== col.id ? { collectionId: v.variableCollectionId } : {}) };
           }));
           const n = rows.length;
           const k = mine.filter((m) => referenced.has(m.v.id)).length;
-          const noun = type === 'dimension' ? `dimension${n === 1 ? '' : 's'}` : `${FONT_LABEL[type as FontKind].toLowerCase()} variable${n === 1 ? '' : 's'}`;
+          const noun = type === 'dimension' ? `dimension${n === 1 ? '' : 's'}` : `${TYPE_LABEL[type].toLowerCase()} variable${n === 1 ? '' : 's'}`;
+          // The collections the rows come from: the table's own, then any other (the focus ring's, in Border width).
+          const from = [...new Set(mine.map((m) => ix.collections.get(m.v.variableCollectionId)?.name ?? col.name))];
+          const where = from.length > 1 ? `${from.slice(0, -1).join(', ')} and ${from[from.length - 1]}` : from[0];
           const perMode = col.modes.length > 1 ? `, per mode (${col.modes.map((m) => m.name).join(', ')})` : '';
           const refs = primitive && k ? (k === n ? ', each referenced by another variable' : `, ${k} referenced by another variable`) : '';
           out.push({
@@ -719,7 +761,7 @@ const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
             page: primitive ? PRIMITIVE_PAGE : SEMANTIC_PAGE,
             collectionId: col.id,
             title,
-            description: `${n} ${noun} in ${col.name}${perMode}${refs}`,
+            description: `${n} ${noun} in ${where}${perMode}${refs}`,
             modes: col.modes,
             columns: ['Token', ...col.modes.flatMap((m) => [m.name, 'Value', ...(lengths ? ['REM'] : [])]), ...(options.description === false ? [] : ['Description'])],
             rows,
@@ -739,6 +781,10 @@ const planVariableTables = (catalog: SgCatalog, ix: Index, options: StyleGuideOp
  *  spacing style: it draws the radius swatch, a corner, whatever the option. A font variable binds the property it is
  *  for, or the Customize override. */
 const specimenOf = (type: string, kind: VarKind, options: StyleGuideOptions): SgSpecimen => {
+  // A border width draws its outline at the width, and an opacity its swatch at the opacity (#2353): like a radius, a
+  // specimen of the property itself, never a spacing bar.
+  if (type === 'borderWidth') return { kind: 'stroke' };
+  if (type === 'opacity') return { kind: 'opacity' };
   if (type === 'dimension') {
     if (kind === 'radius') return { kind: 'radius' };
     return { kind: 'spacing', member: options.dimensionDisplay === 'line' ? 'line' : 'filled' };
@@ -771,8 +817,8 @@ export const TEXT_STYLES_ID = 'text-styles';
  * The specimen is "Abc 123" with the style applied. A style whose size is bound to a variable in a collection with
  * more than one mode (prism3's `type-sets`: desktop, mobile) is a responsive size, so the table takes that
  * collection's modes, side by side as every table does, each specimen pinned to its mode and each size printed in
- * it (proposed, owner to confirm: a fluid size shows as its modes, not as a min–max range). Family, weight and letter
- * spacing print once; paragraph spacing and text decoration only when toggled on.
+ * it (proposed, owner to confirm: a fluid size shows as its modes, not as a min–max range). Family, weight, style (#2353)
+ * and letter spacing print once; paragraph spacing and text decoration only when toggled on.
  */
 const planTextStyles = (catalog: SgCatalog, ix: Index, options: StyleGuideOptions): SgTable[] => {
   const styles = catalog.textStyles ?? [];
@@ -826,7 +872,10 @@ const planTextStyles = (catalog: SgCatalog, ix: Index, options: StyleGuideOption
     }));
     const extra: { value: string; alias: string | null }[] = [
       { value: once(per.map((p) => p.family)), alias: boundVar(s, 'fontFamily')?.name ?? null },
-      { value: once(per.map((p) => (p.weight !== undefined ? `${trimNum(p.weight, 0)} · ${p.style}` : p.style))), alias: (boundVar(s, 'fontWeight') ?? boundVar(s, 'fontStyle'))?.name ?? null },
+      // WEIGHT AND STYLE APART (#2353, Q161 A): the font style is a column of its own, with the variable it is bound to
+      // (`core/font/style/*`); the weight prints the number and its name, as the Font weight table does.
+      { value: once(per.map((p) => (p.weight !== undefined ? formatWeight(p.weight) : '—'))), alias: boundVar(s, 'fontWeight')?.name ?? null },
+      { value: once(per.map((p) => p.style)), alias: boundVar(s, 'fontStyle')?.name ?? null },
       { value: once(per.map((p) => formatSpacing(p.ls))), alias: boundVar(s, 'letterSpacing')?.name ?? null },
       // Letter spacing and paragraph spacing get their REM too, each in a REM column beside it (owner decision 20, the
       // pattern of decision 19). Only a length in px converts.
@@ -848,7 +897,7 @@ const planTextStyles = (catalog: SgCatalog, ix: Index, options: StyleGuideOption
     title: 'Text styles',
     description: `${n} text style${n === 1 ? '' : 's'} in this file${modeCol ? `, sizes per ${modeCol.name} mode (${modeCol.modes.map((m) => m.name).join(', ')})` : ''}`,
     modes,
-    columns: ['Token', ...modes.flatMap((m) => [m.name, 'Size / line height', ...(remOn(options) ? ['REM'] : [])]), 'Family', 'Weight', 'Letter spacing',
+    columns: ['Token', ...modes.flatMap((m) => [m.name, 'Size / line height', ...(remOn(options) ? ['REM'] : [])]), 'Family', 'Weight', 'Style', 'Letter spacing',
       ...(remOn(options) ? ['REM'] : []), ...(options.paragraphSpacing ? ['Paragraph spacing', ...(remOn(options) ? ['REM'] : [])] : []), ...(options.textDecoration ? ['Decoration'] : []),
       ...(options.description === false ? [] : ['Description'])],
     rows,
@@ -1208,10 +1257,11 @@ export const radiusLayer = (inst: SgNode): SgNode | null => {
   return byLayerName(inst, 'radius-example') ?? byLayerName(inst, 'specimen') ?? ((inst.findOne?.(rounded) as SgNode | null | undefined) ?? null) ?? bindTarget(inst, 'default');
 };
 /** A TABLE'S CATEGORY, the row it sits in (owner decision 16; proposed, owner to confirm, the owner may want a finer
- *  cut such as per root): the token type the generator draws, with the five font-variable kinds as one category. */
+ *  cut such as per root): the token type the generator draws, with the five font-variable kinds as one category and the
+ *  border widths in the dimension row (#2353). */
 export const categoryOfKey = (key: string): string => {
   const type = key.split('|')[0];
-  return (FONT_KINDS as readonly string[]).includes(type) ? 'font' : type;
+  return (FONT_KINDS as readonly string[]).includes(type) ? 'font' : type === 'borderWidth' ? 'dimension' : type;
 };
 /** Rows in this order down a page; a later phase's category after them, by name. */
 const CATEGORY_ORDER = ['color', 'dimension', 'font', 'typography'];
@@ -1813,26 +1863,52 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
         place(inst, r, c);
         return;
       }
-      if (spec.kind === 'radius') {
-        const v = variantOf(swatches, { type: 'radius' }, 'type=radius');
-        if (!v?.createInstance) { missAt(noLayer, 'type=radius', where); return; }
-        const inst = v.createInstance() as SgNode;
-        pin(inst);
-        // Every corner bound, so the specimen shows the value whichever corner the member rounds (review of `4faeb98a`).
-        // The owner's member clips a 256 × 96 `radius-example` to a 48 × 48 window, so only its top-left shows.
-        const target = radiusLayer(inst);
-        if (!target) missAt(noLayer, 'type=radius', where);
-        else if (!RADIUS_CORNERS.map((k) => bindTo(target, k, variable)).every(Boolean)) missAt(unboundSpec, 'type=radius', where);
-        // The member keeps its fixed size, so it sits in a cell of its own that FILLs the track, white and ruled (#2336):
-        // drawn bare, the cell around it was transparent and the row line broke at this column.
+      // A cell of its own around a specimen: it FILLs the track, white and ruled (#2336). Drawn bare, the cell around a
+      // fixed-size member was transparent and the row line broke at this column. Padded for a member at its own size.
+      const cellBox = (padded: boolean): SgNode => {
         const box = api.createFrame();
         box.name = 'Cell';
         box.layoutMode = 'HORIZONTAL';
         box.primaryAxisSizingMode = 'AUTO';
         box.counterAxisSizingMode = 'AUTO';
-        box.paddingTop = 12; box.paddingBottom = 12; box.paddingLeft = 16; box.paddingRight = 16;
+        const [y, x] = padded ? [12, 16] : [0, 0];
+        box.paddingTop = y; box.paddingBottom = y; box.paddingLeft = x; box.paddingRight = x;
+        return box;
+      };
+      if (spec.kind === 'radius' || spec.kind === 'stroke') {
+        const type = spec.kind === 'radius' ? 'radius' : 'border';
+        const v = variantOf(swatches, { type }, `type=${type}`);
+        if (!v?.createInstance) { missAt(noLayer, `type=${type}`, where); return; }
+        const inst = v.createInstance() as SgNode;
+        pin(inst);
+        // Every corner bound, so the specimen shows the value whichever corner the member rounds (review of `4faeb98a`).
+        // The owner's member clips a 256 × 96 `radius-example` to a 48 × 48 window, so only its top-left shows. A BORDER
+        // WIDTH (#2353) binds the outline's stroke weight: the outline is drawn at the width, a 0 as no outline.
+        const target = spec.kind === 'radius' ? radiusLayer(inst) : bindTarget(inst, 'border');
+        const fields = spec.kind === 'radius' ? RADIUS_CORNERS : (['strokeWeight'] as const);
+        if (!target) missAt(noLayer, `type=${type}`, where);
+        else if (!fields.map((k) => bindTo(target, k, variable)).every(Boolean)) missAt(unboundSpec, `type=${type}`, where);
+        // The member keeps its fixed size, in a cell of its own.
+        const box = cellBox(true);
         box.appendChild?.(inst);
         keepSize({ inst, w: num(v.width), h: num(v.height) });
+        place(box, r, c);
+        return;
+      }
+      if (spec.kind === 'opacity') {
+        // AN OPACITY IS DRAWN AS A TRANSLUCENT COLOR IS (#2353, Q159 A): the transparency member fills its cell edge to
+        // edge, its own layers hidden (`fillSwatch`), painted `OPACITY_INK`, its layer opacity bound to the variable. It
+        // sits in a white, ruled cell of its own, so the opacity fades the sample over white and never the row line.
+        const v = variantOf(swatches, { type: 'transparency' }, 'type=transparency');
+        if (!v?.createInstance) { missAt(noLayer, 'type=transparency', where); return; }
+        const inst = v.createInstance() as SgNode;
+        for (const k of (inst.children ?? []) as SgNode[]) k.visible = false;
+        inst.fills = [OPACITY_INK];
+        pin(inst);
+        if (!bindTo(inst, 'opacity', variable)) missAt(unboundSpec, 'opacity', where);
+        const box = cellBox(false);
+        box.appendChild?.(inst);
+        fillCell(inst);
         place(box, r, c);
         return;
       }
@@ -1902,7 +1978,7 @@ export const runStyleGuide = async (api: StyleGuideApi, contract: SgContract | n
       // printed once (a text style's family, weight, letter spacing and its toggled columns). No contrast column.
       if (row.specimen) {
         for (const cell of row.cells) {
-          await drawSpecimen(row, row.specimen, cell, collection, r + 1, c++);
+          await drawSpecimen(row, row.specimen, cell, row.collectionId ? collectionById.get(row.collectionId) : collection, r + 1, c++);
           const chip = options.aliases !== false && cell.alias;
           place(await textCell(chip ? 'value alias' : 'default', 'white', cell.value, cell.alias), r + 1, c++);
           if (cell.rem !== undefined) place(await textCell('default', 'white', cell.rem), r + 1, c++);
@@ -2255,8 +2331,9 @@ export const isSetUp = (root: StyleGuideApi['root']): boolean => {
   return !!sets[SWATCH_SET] && !!sets[TEXT_CELL_SET] && pages.has(PRIMITIVE_PAGE) && pages.has(SEMANTIC_PAGE);
 };
 
+/** Border width and opacity (#2353) are grouped with spacing and size: the page's four kinds stay four. */
 const KIND_OF_TYPE = (type: string): StyleGuideKind =>
-  type === 'color' ? 'color' : type === 'dimension' ? 'dimension' : type === 'typography' ? 'text' : 'font';
+  type === 'color' ? 'color' : type === 'dimension' || type === 'borderWidth' || type === 'opacity' ? 'dimension' : type === 'typography' ? 'text' : 'font';
 /** The variable kinds whose number is a length, printed in px in the tree. */
 const LENGTH_KINDS: ReadonlySet<VarKind> = new Set<VarKind>(['spacing', 'size', 'radius', 'scale', 'fontSize', 'lineHeight', 'letterSpacing',
   'paragraphSpacing', 'paragraphIndent', 'borderWidth', 'iconSize', 'breakpoint', 'grid']);
@@ -2271,11 +2348,11 @@ export const catalogFor = (catalog: SgCatalog, contract: SgContract | null, setU
   const plan = planStyleGuide(catalog, contract, {});
   const tableOf = new Map<string, number>();
   plan.tables.forEach((t, i) => { for (const r of t.rows) if (!tableOf.has(r.variableId)) tableOf.set(r.variableId, i); });
-  // A text style's bound font size with no table of its own (the responsive collection's, #2371) is drawn in the Text
-  // styles table, so the page lists it there, not as a later phase.
+  // A text style's bound font size with no table of its own (the responsive collection's, #2371), and its bound font
+  // style (#2353, Q161 A), are drawn in the Text styles table, so the page lists them there, not as a later phase.
   const textTable = plan.tables.findIndex((t) => t.type === 'typography');
-  if (textTable >= 0) for (const st of catalog.textStyles ?? []) {
-    const id = st.boundVariables?.fontSize?.id;
+  if (textTable >= 0) for (const st of catalog.textStyles ?? []) for (const field of ['fontSize', 'fontStyle']) {
+    const id = st.boundVariables?.[field]?.id;
     if (id && !tableOf.has(id)) tableOf.set(id, textTable);
   }
   const ix: Index = { byId: new Map(catalog.variables.map((v) => [v.id, v])), collections: new Map(catalog.collections.map((c) => [c.id, c])) };
@@ -2288,7 +2365,7 @@ export const catalogFor = (catalog: SgCatalog, contract: SgContract | null, setU
     if (typeof lit === 'boolean') return String(lit);
     if (typeof lit !== 'number') return '';
     const kind = varKind(v);
-    return kind === 'fontWeight' ? trimNum(lit, 0) : kind && LENGTH_KINDS.has(kind) ? formatPx(lit) : trimNum(lit, 2);
+    return kind === 'fontWeight' ? trimNum(lit, 0) : kind === 'opacity' ? formatOpacity(lit) : kind && LENGTH_KINDS.has(kind) ? formatPx(lit) : trimNum(lit, 2);
   };
   const collections: StyleGuideCatalogCollection[] = catalog.collections.map((col) => ({
     id: col.id,
