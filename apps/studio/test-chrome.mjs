@@ -12260,6 +12260,146 @@ for (const host of ['web', 'figma']) {
     } finally { await ctx.close(); }
   }
 }
+// =============================================================================================
+// 40. #1821: the current page, the current Color page and the previewed mode, as assistive technology reads them
+// =============================================================================================
+// Both hosts, light chrome, at 1280 and at 380 on every place, at 640 on three (below), and the plugin's Build style guides page. Every state is
+// read from CDP `Accessibility.getPartialAXTree`, one node per control (never an attribute or a class): a tab's
+// `selected`, a radio's `checked`, a select's value. The controls are found by hook, never by role, so a control that
+// lost its role is still read (and then carries no state, and fails).
+//   · the tab row: the tab the tree reports selected (or, at 380, the select's value) is the place's domain, and only it;
+//     at 1280 the row exposes every domain's tab, in order;
+//   · Color's sub-row: on a Color page, the one sub-tab reported selected is the page; off Color, no sub-tab is exposed;
+//   · the preview's mode control: the one radio reported checked (or, where the radios give way, the select's value) is
+//     the mode the test chose, Dark, chosen on Surfaces & fills; on Palettes it is Light (#2321, PM1 B). 640 is here for
+//     the select: the four radios give way to it there, and each host must have read the select at least once. Only
+//     Surfaces & fills, Palettes and Brand are read at 640, places reached by a control the levers column draws whole at
+//     that width (the Color sub-row runs under the preview there, #1975);
+//   · at 1280, ArrowRight moves the selection along the tab row and the sub-row, and the tree follows (the tab pattern's
+//     automatic activation, unchanged here);
+//   · on Build style guides no tab is reported selected and no sub-tab is exposed.
+// Each place is read with nothing focused: Chrome reports a focused tab with no `aria-selected` as selected, so the click
+// that reached the place would otherwise stand in for the state under test.
+// INDEPENDENCE (docs/34). Page names, domain names, the sub-page names, the chosen mode and its label are literals typed
+// here, never read from `pages.ts`, `frame.ts` or `preview.ts`. Every case is counted, so a skipped one fails.
+// Mutations, each in a `wip:` commit, each failing here by name (the PR records the lines): (a) the tab row's selection
+// left out; (b) the sub-row's selection left out; (c) two tabs marked selected.
+const CS_TABS = ['Brand', 'Color', 'Type', 'Shape', 'Depth & motion', 'Layout', 'Components'];
+const CS_SUBS = ['Palettes', 'Surfaces & fills', 'Interactive'];
+/** Each place: the domain the tab row must report, and the Color page the sub-row must report (null: no sub-row). */
+const CS_PLACES = {
+  brand: ['Brand', null], 'color-palettes': ['Color', 'Palettes'], 'color-fills': ['Color', 'Surfaces & fills'],
+  'color-interactive': ['Color', 'Interactive'], type: ['Type', null], shape: ['Shape', null], depth: ['Depth & motion', null],
+  layout: ['Layout', null], components: ['Components', null],
+};
+/** At 640: the places read there (the select's width), each reached by a control drawn whole at that width. */
+const CS_AT_640 = ['color-fills', 'color-palettes', 'brand'];
+const CS_MODE = 'dark';
+const CS_MODE_LABEL = 'Dark';
+/** Palettes always previews Light (#2321, PM1 B), whatever was chosen elsewhere. */
+const CS_PALETTES_LABEL = 'Light';
+/** Every node `selector` matches, as the accessibility tree reports it (ignored ones dropped). */
+const csAx = async (page, selector) => {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send('DOM.enable');
+    await cdp.send('Accessibility.enable');
+    const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+    const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector });
+    const out = [];
+    for (const nodeId of nodeIds) {
+      const n = (await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false })).nodes[0];
+      if (!n || n.ignored) continue;
+      const prop = (k) => n.properties?.find((p) => p.name === k)?.value?.value;
+      out.push({ role: n.role?.value ?? '', name: (n.name?.value ?? '').trim(), value: String(n.value?.value ?? '').trim(),
+        selected: prop('selected') === true, checked: String(prop('checked')) === 'true' });
+    }
+    return out;
+  } finally { await cdp.detach(); }
+};
+/** What a group reports current: every tab selected, every radio checked, every select's value. */
+const csCurrent = (nodes) => [...nodes.filter((n) => n.selected || n.checked).map((n) => n.name),
+  ...nodes.filter((n) => n.role === 'combobox' && n.value).map((n) => n.value)];
+/** A mode's label, from a radio's name ("Dark, all pairs at or above floor") or the select's ("Dark · all pass"). */
+const csModeLabel = (s) => s.split(/,| · | \(/)[0].trim();
+const CS_TAB_ROW = '[data-p3="tab-row"] [data-p3^="tab-"]';
+const CS_SUB_ROW = '[data-p3="sub-nav"] button';
+const CS_MODES = '[data-p3="mode-option"], [data-p3="mode-select"]';
+console.log(`\nCurrent page and previewed mode, as assistive technology reads them (#1821)\n${'='.repeat(78)}`);
+for (const host of ['web', 'figma']) {
+  let selects = 0;
+  for (const w of [1280, 640, 380]) {
+    const where = `#1821 ${host} ${w}`;
+    const narrow = w <= 560;
+    const { ctx, page, errors } = await open({ host, theme: 'light', w, h: 900 });
+    let cases = 0, step = 'open';
+    try {
+      step = `choose ${CS_MODE} on color-fills`;
+      await goPlace(page, 'color-fills');
+      await roShowMode(page, CS_MODE);
+      const places = Object.entries(CS_PLACES).filter(([p]) => w !== 640 || CS_AT_640.includes(p));
+      for (const [place, [tab, sub]] of places) {
+        step = `read ${place}`;
+        await goPlace(page, place);
+        const at = `${where} / ${place}`;
+        // Read with nothing focused: the tree reports a focused tab that carries no state as selected, so a click's
+        // focus would otherwise hide a selection left out.
+        await page.evaluate(() => document.activeElement?.blur?.());
+        const row = await csAx(page, CS_TAB_ROW);
+        const tabs = row.filter((n) => n.role === 'tab');
+        if (!narrow) ok(JSON.stringify(tabs.map((n) => n.name)) === JSON.stringify(CS_TABS), `${at}: the tab row exposes every domain's tab, in order (read ${JSON.stringify(tabs.map((n) => `${n.role} ${n.name}`))})`);
+        else ok(row.some((n) => n.role === 'combobox'), `${at}: the tab row exposes its select (read ${JSON.stringify(row.map((n) => n.role))})`);
+        const rowCur = csCurrent(row);
+        ok(JSON.stringify(rowCur) === JSON.stringify([tab]), `${at}: the tab row reports ${tab} current, and only it (read ${JSON.stringify(rowCur)})`);
+        const subs = await csAx(page, CS_SUB_ROW);
+        const subCur = csCurrent(subs);
+        if (sub) {
+          ok(JSON.stringify(subs.map((n) => `${n.role} ${n.name}`)) === JSON.stringify(CS_SUBS.map((s) => `tab ${s}`)), `${at}: Color's sub-row exposes every Color page as a tab, in order (read ${JSON.stringify(subs.map((n) => `${n.role} ${n.name}`))})`);
+          ok(JSON.stringify(subCur) === JSON.stringify([sub]), `${at}: Color's sub-row reports ${sub} current, and only it (read ${JSON.stringify(subCur)})`);
+        } else ok(subs.length === 0, `${at}: off Color, no sub-row is exposed (read ${JSON.stringify(subs.map((n) => n.name))})`);
+        if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-preview"]'));
+        await settle(page);
+        const want = place === 'color-palettes' ? CS_PALETTES_LABEL : CS_MODE_LABEL;
+        const modes = await csAx(page, CS_MODES);
+        const modeCur = csCurrent(modes).map(csModeLabel);
+        if (modes.some((n) => n.role === 'combobox')) selects++;
+        ok(modes.length > 0, `${at}: the preview's mode control is exposed (read ${JSON.stringify(modes.map((n) => n.role))})`);
+        ok(JSON.stringify(modeCur) === JSON.stringify([want]), `${at}: the mode control reports ${want} checked, and only it (read ${JSON.stringify(csCurrent(modes))})`);
+        if (narrow) await hooks.click(page.locator('[data-p3="pane-toggle-settings"]'));
+        cases++;
+      }
+      const due = w === 640 ? CS_AT_640.length : Object.keys(CS_PLACES).length;
+      ok(cases === due && due > 0, `${where}: every place was read (${cases} of ${due})`);
+      if (w === 1280) {
+        step = 'ArrowRight along the tab row';
+        await goPlace(page, 'brand');
+        await page.locator('[data-p3="tab-brand"]').focus();
+        await page.keyboard.press('ArrowRight');
+        await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place?.startsWith('color'));
+        const k1 = csCurrent(await csAx(page, CS_TAB_ROW));
+        ok(JSON.stringify(k1) === '["Color"]', `${where}: ArrowRight from Brand on the tab row moves the selection to Color, as the tree reports it (read ${JSON.stringify(k1)})`);
+        step = 'ArrowRight along the sub-row';
+        await goPlace(page, 'color-palettes');
+        await page.locator('[data-p3="color-sub-palettes"]').focus();
+        await page.keyboard.press('ArrowRight');
+        await page.waitForFunction(() => document.querySelector('[data-p3="frame"]')?.dataset.place === 'color-fills');
+        const k2 = csCurrent(await csAx(page, CS_SUB_ROW));
+        ok(JSON.stringify(k2) === '["Surfaces & fills"]', `${where}: ArrowRight from Palettes on Color's sub-row moves the selection to Surfaces & fills, as the tree reports it (read ${JSON.stringify(k2)})`);
+      }
+      if (host === 'figma') {
+        step = 'Build style guides';
+        await openStyleGuides(page);
+        const sgCur = csCurrent(await csAx(page, CS_TAB_ROW));
+        const sgSubs = await csAx(page, CS_SUB_ROW);
+        ok(sgCur.length === 0 && sgSubs.length === 0, `${where} / Build style guides: no tab is reported current and no sub-row is exposed (read ${JSON.stringify(sgCur)}, ${sgSubs.length} sub-tab(s))`);
+      }
+      ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+    } catch (e) {
+      ok(false, `${where}: the case stopped at a step that threw (${step}) — ${String(e?.message ?? e).split('\n')[0]}`);
+    } finally { await ctx.close(); }
+  }
+  ok(selects > 0, `#1821 ${host}: the mode control's select was read at least once (${selects} place(s))`);
+}
 // #2437: THE CONSUME SKILL'S FLUSH HIT AREA, MEASURED IN A BROWSER (WCAG 2.5.8; owner Q154 A, Q174 B; the spacing
 // sentence is DRAFT for the owner). The engine emits no code layout, so this is the one place the rule can be measured:
 // the skill's own CSS sketch and its own stated spacing, both read out of `skills/prism3-consume/SKILL.md`, applied to
@@ -12552,6 +12692,216 @@ for (const host of ['web', 'figma']) {
         ok(errors.length === 0, `${where}: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
       } catch (e) {
         ok(false, `${where}: the case stopped at a step that threw (${step}) — ${stopped(e)}`);
+      } finally { await ctx.close(); }
+    }
+  }
+}
+// =============================================================================================
+// 42. #2233: the choice rows' accessibility, on Type › Type scale (the rows `choice()` draws and `stateLine` annotates).
+//     Both hosts, light, 1280. Four arms, one per defect:
+//   · (1) THE REASON REACHES THE KEYBOARD. A disabled chip takes no focus, so its reason, drawn as a line under the chips,
+//     describes the GROUP: Aurora's refused Compact (the title floor's sentence) and prism3's pinned clash (the clash
+//     sentence on Expressive). Read from CDP `Accessibility.getPartialAXTree`, the radiogroup's own `description`, never the
+//     attribute; and the line it comes from is drawn (it has a box), so no new words are said.
+//   · (2) THE WARNING LINES ARE ANNOUNCED, IN PLACE (owner decision Q184 B: warnings only). The row's one polite region
+//     (hook `choice-live`, `data-key` the lever's key) is observed by a MutationObserver installed before display md is
+//     set to 56px: it takes the clash sentence as added text, stays the node it was, and is the one region carrying the
+//     clash, while the pinned count, a hint, is drawn under the chips and carried by no live region. An unrelated edit
+//     (the caption floor) while the clash shows makes no record at all: a line that stays is not said again. Release
+//     removes the clash from that same node and adds nothing. The browser reads it as a polite status (CDP `live`). On
+//     leaving for Shape, Type's rows are dropped with their regions: the rows held (`data-rows` on the holder) are the
+//     regions in the document.
+//   · (3) THE ARROWS PASS OVER A DISABLED CHIP. Real key presses on Aurora (Compact, Default, Expressive; Compact refused):
+//     ArrowRight from Expressive wraps past Compact to Default, and ArrowLeft from Default wraps past Compact to Expressive,
+//     focus and the checked chip moving together. (The chip rows, `chipChoice`, keep KB1 A: no arrows; section 30b.)
+//   · (4) FOCUS AFTER RELEASE PINNED SIZES. The button goes once it has worked; focus lands on Type scale's checked chip
+//     (prism3's Default), the group's Tab stop, never on the page.
+//
+// INDEPENDENCE (docs/34). EXPECTED is typed here: the two approved sentences (S63.scaleTitleFloor and S63.scaleClash),
+// the pinned count's words for one size, the chip order and which chip each press reaches, and the chip focus lands on,
+// each worked out by hand from the issue and the manifest's option order. ACTUAL is the browser's: the accessibility tree,
+// a MutationObserver's records, `document.activeElement` after real key presses and a real click. Nothing is read from
+// `type.ts` or `lever-kit.ts`.
+//
+// Mutations (#2233), each after a `wip:` commit, on both rebuilt bundles, each failing here by name (web shown; figma
+// fails the same lines), none outside this section:
+//   · (a) `aria-describedby` dropped from `refuseOption` → `§42 web light 1280 Aurora: (1) the refused Compact chip's reason
+//     describes the Type scale group, … (read {"role":"radiogroup","description":"",…}, lines [])`, and the pinned clash's (4);
+//   · (b) a new region made on every redraw → `§42 web light 1280 prism3 pinned clash: (2) the row's live region is the node
+//     it was before the edit, updated in place, never replaced (same node false, connected false, 1 for the row)`, the
+//     words arm and the release arm (6);
+//   · (c) the arrows back to the next chip, disabled or not → `§42 web light 1280 Aurora: (3) ArrowRight from Expressive
+//     passes over the disabled Compact to Default, … read {"focus":"type-scale-expressive",…}` and the ArrowLeft arm (4);
+//   · (d) no focus after Release → `§42 web light 1280 prism3: (4) after Release pinned sizes, focus is on Type scale's
+//     checked chip, Default (read {"focus":"BODY","checked":null,"release":false})` (2).
+//   Review of #2458 and Q184 B:
+//   · (M2) `sayLines` never keeps a paragraph → `§42 web light 1280 prism3 pinned clash: (2) a line that stays is not
+//     announced again: an unrelated edit (caption floor 10px) leaves the region untouched (… 2 record(s) …)` (2);
+//   · (e) a hint sent to the region (`.p3-state` for `.p3-state-warn`) → `§42 web light 1280 prism3 pinned clash: (2) a hint
+//     doesn't announce: "1 size is set individually. …" is drawn under the chips and no live region carries it (drawn true,
+//     1 live region(s) carrying it, …)`, the warning arm and the persisting arm (6);
+//   · (f) a row that left the page kept (`LIVE.delete` dropped) → `§42 web light 1280 prism3 on Shape: (2) the rows Type
+//     drew are dropped with their regions, and every row held is a region in the document (read {…"rows":"8","regions":2…})` (2).
+// =============================================================================================
+console.log(`\nChoice rows: reasons, announced state lines, arrows, focus after Release (#2233)\n${'='.repeat(78)}`);
+{
+  const CLASH = 'Some sizes you set would clash at this scale. Release them to switch.';
+  const FLOOR = "Compact can't be used while the title floor is 16px. Raise the title floor to use it.";
+  const PINNED_ONE = '1 size is set individually. They keep their size when the scale moves.';
+  const GROUP = '[data-p3="type-scale"]';
+  const LIVE = '[data-p3="choice-live"][data-key="typography.typeScale"]';
+  const BOUND = { timeout: 10000 };
+  /** The browser's reading of one node: role, description, and live politeness. */
+  const axOf = async (page, sel) => {
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      await cdp.send('DOM.enable');
+      await cdp.send('Accessibility.enable');
+      const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
+      const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel });
+      const node = nodeId ? (await cdp.send('Accessibility.getPartialAXTree', { nodeId, fetchRelatives: false })).nodes[0] : null;
+      const prop = (k) => node?.properties?.find((p) => p.name === k)?.value?.value ?? null;
+      return node ? { role: node.role?.value ?? null, description: node.description?.value ?? '', live: prop('live'), ignored: !!node.ignored } : null;
+    } finally { await cdp.detach(); }
+  };
+  /** The drawn lines the group's description points at: each id's text and whether it has a box. */
+  const describedLines = (page) => page.evaluate((g) => (document.querySelector(g)?.getAttribute('aria-describedby') ?? '').split(' ').filter(Boolean)
+    .map((id) => { const n = document.getElementById(id); const b = n?.getBoundingClientRect(); return { text: n?.textContent?.trim() ?? null, drawn: !!b && b.width > 0 && b.height > 0 }; }), GROUP);
+  for (const host of ['web', 'figma']) {
+    const where0 = `§42 ${host} light 1280`;
+    // ── Aurora: Compact refused for the title floor. Arms 1 and 3. ──
+    {
+      const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900, brand: 'aurora' });
+      let step = 'open Type';
+      try {
+        await goPlace(page, 'type');
+        await hooks.need(page, '[data-p3="type-scale-compact"]');
+        step = 'read the group';
+        const ax = await axOf(page, GROUP);
+        const lines = await describedLines(page);
+        ok(!!ax && ax.role === 'radiogroup' && ax.description === FLOOR && lines.length === 1 && lines[0].text === FLOOR && lines[0].drawn,
+          `${where0} Aurora: (1) the refused Compact chip's reason describes the Type scale group, from the drawn line under the chips (read ${JSON.stringify(ax)}, lines ${JSON.stringify(lines)})`);
+        step = 'arrow keys';
+        const at = () => page.evaluate((g) => ({ focus: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName ?? null,
+          checked: document.querySelector(`${g} [aria-checked="true"]`)?.getAttribute('data-p3') ?? null,
+          compactOff: document.querySelector('[data-p3="type-scale-compact"]')?.disabled ?? null }), GROUP);
+        await page.locator('[data-p3="type-scale-expressive"]').focus();
+        const s0 = await at();
+        await page.keyboard.press('ArrowRight');
+        await page.waitForFunction((g) => document.querySelector(`${g} [aria-checked="true"]`)?.getAttribute('data-p3') === 'type-scale-default', GROUP, BOUND).catch(() => {});
+        await settle(page);
+        const s1 = await at();
+        ok(s0.focus === 'type-scale-expressive' && s0.compactOff === true && s1.focus === 'type-scale-default' && s1.checked === 'type-scale-default',
+          `${where0} Aurora: (3) ArrowRight from Expressive passes over the disabled Compact to Default, focus and the checked chip together (from ${JSON.stringify(s0)}, read ${JSON.stringify(s1)})`);
+        await page.keyboard.press('ArrowLeft');
+        await page.waitForFunction((g) => document.querySelector(`${g} [aria-checked="true"]`)?.getAttribute('data-p3') === 'type-scale-expressive', GROUP, BOUND).catch(() => {});
+        await settle(page);
+        const s2 = await at();
+        ok(s1.focus === 'type-scale-default' && s1.compactOff === true && s2.focus === 'type-scale-expressive' && s2.checked === 'type-scale-expressive',
+          `${where0} Aurora: (3) ArrowLeft from Default passes over the disabled Compact to Expressive, focus and the checked chip together (from ${JSON.stringify(s1)}, read ${JSON.stringify(s2)})`);
+        ok(errors.length === 0, `${where0} Aurora: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where0} Aurora: the case stopped at "${step}" — ${stopped(e)}`);
+      } finally { await ctx.close(); }
+    }
+    // ── prism3: a pinned clash, then Release. Arms 1, 2 and 4. ──
+    {
+      const { ctx, page, errors } = await open({ host, theme: 'light', w: 1280, h: 900 });
+      const BTN = '[data-p3="type-size-desktop"][data-group="display"][data-variant="md"]';
+      const PICK = '[data-p3="value-picker"] [data-p3="value-picker-value"][data-value="56"]';
+      const CLOSE = '[data-p3="value-picker-close"]';
+      const RELEASE = '[data-p3="type-scale-release"]';
+      let step = 'open Type';
+      try {
+        await goPlace(page, 'type');
+        step = 'open Show advanced'; await openTypeAdvanced(page);
+        await settle(page);
+        step = 'watch the live region';
+        const before = await page.evaluate((sel) => {
+          const node = document.querySelector(sel);
+          window.__p3live = { node, recs: [] };
+          if (node) new MutationObserver((rs) => { for (const r of rs) window.__p3live.recs.push({ type: r.type, added: [...r.addedNodes].map((n) => n.textContent), removed: [...r.removedNodes].map((n) => n.textContent) }); })
+            .observe(node, { childList: true, characterData: true, subtree: true });
+          return node ? { text: node.textContent, count: document.querySelectorAll(sel).length } : null;
+        }, LIVE);
+        ok(!!before && before.text === '' && before.count === 1, `${where0} prism3: (2) Type scale has its one live region before any edit, saying nothing (read ${JSON.stringify(before)})`);
+        step = 'open the value picker for display md'; await hooks.click(page.locator(BTN), BOUND);
+        step = 'pick 56px'; await hooks.click(page.locator(PICK), BOUND);
+        await page.waitForFunction((q) => !!document.querySelector(q), RELEASE, BOUND).catch(() => {});
+        step = 'close the value picker';
+        if (await page.locator(CLOSE).count()) await hooks.click(page.locator(CLOSE), BOUND);
+        await page.waitForFunction(() => !document.querySelector('[data-p3="value-picker"]'), null, BOUND).catch(() => {});
+        await settle(page);
+        step = 'read the clash';
+        const ax = await axOf(page, GROUP);
+        const lines = await describedLines(page);
+        ok(!!ax && ax.description === CLASH && lines.length === 1 && lines[0].text === CLASH && lines[0].drawn,
+          `${where0} prism3 pinned clash: (1) the refused Expressive chip's reason describes the Type scale group, from the drawn clash line (read ${JSON.stringify(ax)}, lines ${JSON.stringify(lines)})`);
+        const live = () => page.evaluate((sel) => ({ recs: window.__p3live.recs, paras: [...(window.__p3live.node?.children ?? [])].map((c) => c.textContent),
+          same: document.querySelector(sel) === window.__p3live.node, connected: !!window.__p3live.node?.isConnected, count: document.querySelectorAll(sel).length,
+          carrying: [...document.querySelectorAll('[aria-live], [role="status"], [role="alert"], [role="log"], output')].filter((e) => (e.getAttribute('aria-live') ?? '') !== 'off' && e.textContent.includes('would clash')).length }), LIVE);
+        const l1 = await live();
+        const added1 = l1.recs.flatMap((x) => x.added).filter((t) => (t ?? '').trim());
+        ok(l1.same && l1.connected && l1.count === 1, `${where0} prism3 pinned clash: (2) the row's live region is the node it was before the edit, updated in place, never replaced (same node ${l1.same}, connected ${l1.connected}, ${l1.count} for the row)`);
+        ok(JSON.stringify(l1.paras) === JSON.stringify([CLASH]) && added1.includes(CLASH) && l1.carrying === 1,
+          `${where0} prism3 pinned clash: (2) a warning announces: the live region says the clash, as added text, and is the one live region carrying it (says ${JSON.stringify(l1.paras)}, added ${JSON.stringify(added1)}, ${l1.carrying} carrying it)`);
+        // Q184 B: a hint is drawn and never sent to a live region. The pinned count is on screen, in the row.
+        const hint = await page.evaluate((words) => ({
+          drawn: [...document.querySelectorAll('[data-p3="lever-typography-type-scale"] [data-p3="type-sizes-count"]')].some((n) => n.textContent.trim() === words && n.getBoundingClientRect().height > 0),
+          live: [...document.querySelectorAll('[aria-live], [role="status"], [role="alert"], [role="log"], output')].filter((e) => (e.getAttribute('aria-live') ?? '') !== 'off' && e.textContent.includes(words)).length,
+        }), PINNED_ONE);
+        ok(hint.drawn && hint.live === 0 && !added1.includes(PINNED_ONE),
+          `${where0} prism3 pinned clash: (2) a hint doesn't announce: "${PINNED_ONE}" is drawn under the chips and no live region carries it (drawn ${hint.drawn}, ${hint.live} live region(s) carrying it, added ${JSON.stringify(added1)})`);
+        // A line that stays is not said again: an unrelated edit that redraws the page (the caption floor's unchecked
+        // chip) while the clash shows leaves the region untouched.
+        step = 'an unrelated edit while the clash shows';
+        await page.evaluate(() => { window.__p3live.recs = []; });
+        await hooks.click(page.locator('[data-p3="caption-floor-10"]'), BOUND);
+        await page.waitForFunction(() => document.querySelector('[data-p3="caption-floor-10"]')?.getAttribute('aria-checked') === 'true', null, BOUND).catch(() => {});
+        await settle(page);
+        const lp = await live();
+        const redrew = await page.evaluate(() => document.querySelector('[data-p3="caption-floor-10"]')?.getAttribute('aria-checked') === 'true' && !!document.querySelector('[data-p3="type-scale-release"]'));
+        ok(redrew && lp.same && lp.recs.length === 0 && JSON.stringify(lp.paras) === JSON.stringify([CLASH]),
+          `${where0} prism3 pinned clash: (2) a line that stays is not announced again: an unrelated edit (caption floor 10px) leaves the region untouched (edit landed with the clash still shown ${redrew}, ${lp.recs.length} record(s) ${JSON.stringify(lp.recs)}, says ${JSON.stringify(lp.paras)}, same node ${lp.same})`);
+        const lax = await axOf(page, LIVE);
+        ok(!!lax && lax.live === 'polite' && lax.role === 'status' && !lax.ignored, `${where0}: (2) the accessibility tree reads the row's region as a polite live region, a status (read ${JSON.stringify(lax)})`);
+        step = 'Release pinned sizes holding still';
+        await page.evaluate(() => { window.__p3live.recs = []; });
+        await page.waitForFunction((q) => {
+          const n = document.querySelector(q);
+          const box = n ? JSON.stringify(n.getBoundingClientRect()) : null;
+          const w = (window.__p3Hold ??= { box: null, still: 0 });
+          w.still = box !== null && box === w.box ? w.still + 1 : 0;
+          w.box = box;
+          return w.still >= 2;
+        }, RELEASE, { ...BOUND, polling: 'raf' }).catch(() => {});
+        step = 'click Release pinned sizes'; await hooks.click(page.locator(RELEASE), BOUND);
+        await page.waitForFunction((q) => !document.querySelector(q), RELEASE, BOUND).catch(() => {});
+        await settle(page);
+        const f = await page.evaluate(() => ({ focus: document.activeElement?.getAttribute('data-p3') ?? document.activeElement?.tagName ?? null,
+          checked: document.activeElement?.getAttribute('aria-checked') ?? null, release: !!document.querySelector('[data-p3="type-scale-release"]') }));
+        ok(!f.release && f.focus === 'type-scale-default' && f.checked === 'true',
+          `${where0} prism3: (4) after Release pinned sizes, focus is on Type scale's checked chip, Default (read ${JSON.stringify(f)})`);
+        const l2 = await live();
+        const added2 = l2.recs.flatMap((x) => x.added).filter((t) => (t ?? '').trim());
+        const removed2 = l2.recs.flatMap((x) => x.removed);
+        ok(l2.same && l2.connected && l2.count === 1 && l2.paras.length === 0 && removed2.includes(CLASH) && added2.length === 0,
+          `${where0} prism3 released: (2) the live region is emptied in place, adding nothing (says ${JSON.stringify(l2.paras)}, removed ${JSON.stringify(removed2)}, added ${JSON.stringify(added2)}, same node ${l2.same})`);
+        // A row that leaves the page is dropped with its region: on Shape, Type scale has no region, and every row
+        // held is a region in the document.
+        step = 'leave for Shape';
+        await goPlace(page, 'shape');
+        await settle(page);
+        const gone = await page.evaluate((sel) => {
+          const holder = document.querySelector('[data-p3="choice-live-holder"]');
+          return { typeScale: document.querySelectorAll(sel).length, rows: holder?.dataset.rows ?? null, regions: holder?.querySelectorAll('[data-p3="choice-live"]').length ?? null,
+            stale: [...(holder?.querySelectorAll('[data-p3="choice-live"]') ?? [])].map((r) => r.dataset.key).filter((k) => k.startsWith('typography.')) };
+        }, LIVE);
+        ok(gone.typeScale === 0 && gone.stale.length === 0 && gone.regions > 0 && gone.rows === String(gone.regions),
+          `${where0} prism3 on Shape: (2) the rows Type drew are dropped with their regions, and every row held is a region in the document (read ${JSON.stringify(gone)})`);
+        ok(errors.length === 0, `${where0} prism3: 0 console errors${errors.length ? ` — ${errors.slice(0, 2).join(' | ')}` : ''}`);
+      } catch (e) {
+        ok(false, `${where0} prism3: the case stopped at "${step}" — ${stopped(e)}`);
       } finally { await ctx.close(); }
     }
   }
