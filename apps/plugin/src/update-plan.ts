@@ -829,8 +829,10 @@ const propChanges = (p: SetPreview): number => Object.values(p.properties).reduc
  *  (the owner's own icons, #2325), so a set whose only other members are those reads as having no changes, and the
  *  set's line still counts them. Counted as a change, a file holding them could never read up to date. */
 const noChanges = (p: SetPreview): boolean => p.counts.current + p.counts.revisionUnknown + p.counts.unstamped === p.counts.members && !p.counts.add && !propChanges(p);
-/** No changes, and every member current. */
-const upToDate = (p: SetPreview): boolean => noChanges(p) && !p.counts.revisionUnknown;
+/** No changes, and every member current. A member not built by Prism3 that sits on a PLANNED coordinate is one Adopt
+ *  could claim (`adoptable`, #2283), so a set holding one reads "no changes", never up to date (owner decision Q191
+ *  2B). Off the plan (the owner's own icons, #2464), it doesn't stop a set reading up to date. */
+const upToDate = (p: SetPreview): boolean => noChanges(p) && !p.counts.revisionUnknown && !p.adoptable.length;
 
 /** How many named differences each set's lines carry, so a set that differs everywhere stays a few lines long. */
 export const DIFFERENCE_LINES = 8;
@@ -862,8 +864,11 @@ export const previewLine = (p: SetPreview): string => {
   if (propChanges(p)) parts.push(n(propChanges(p), 'property change'));
   // DRAFT (#2464): the members not built by Prism3 stay counted on a set that reads up to date, as on any other.
   const own = c.unstamped ? ` ${c.unstamped} not built by Prism3, left as they are.` : '';
+  // DRAFT (#2476, owner decision Q191 2B): on a set with no changes, the members Adopt could claim are named as such.
+  const k = p.adoptable.length;
+  const adopt = k ? ` Adopt can claim ${k === c.unstamped ? (k === 1 ? 'it' : 'them') : `${k} of them`}.` : '';
   if (upToDate(p)) return `${p.set}: up to date (${n(c.members, 'member')}).${own}`;
-  if (noChanges(p)) return `${p.set}: no changes (${n(c.members, 'member')}).${own}`;
+  if (noChanges(p)) return `${p.set}: no changes (${n(c.members, 'member')}).${own}${adopt}`;
   return `${p.set}: ${n(c.members, 'member')}. ${parts.join(', ')}.`;
 };
 
@@ -872,10 +877,13 @@ export const previewLine = (p: SetPreview): string => {
 export const previewVerdict = (r: UpdatePreview): { ok: boolean; headline: string; summary: string; lines: string[] } => {
   const changing = r.sets.filter((p) => !p.blockers.length && !noChanges(p)).length;
   const earlier = r.sets.filter((p) => !p.blockers.length).reduce((k, p) => k + p.counts.revisionUnknown, 0);
+  // A set with members Adopt could claim has no changes but is not up to date (Q191 2B), so the headline is the
+  // "no changes" one, the existing words.
+  const claimable = r.sets.some((p) => !p.blockers.length && p.adoptable.length);
   const blocked = r.sets.filter((p) => p.blockers.length).length + r.refused.length;
   const headline = r.sets.length + r.refused.length === 0 ? 'No sets to check'
     : blocked ? `✗ ${n(blocked, 'set')} can't be checked`
-      : changing ? `Would change ${changing} of ${r.sets.length}` : earlier ? '✓ No changes found' : '✓ All sets up to date';
+      : changing ? `Would change ${changing} of ${r.sets.length}` : earlier || claimable ? '✓ No changes found' : '✓ All sets up to date';
   const lines = [
     // Each set's line, then each field it differs from its plan in, NAMED (#2295): where, what, the plan's value and
     // the file's. `changes` is grouped by part, field and both values, so one engine change over 432 members is one

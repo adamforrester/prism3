@@ -56,8 +56,9 @@
  *                  the stamped member not preferred → `unstamped/stamped wins`.
  *   converged/…    a set whose only non-current members are not built by Prism3 has no changes (#2464): the
  *                  headline reads up to date and the set line still counts them; with a real change beside them
- *                  it still counts. Mutation: unstamped left out of `noChanges` → `converged/headline`,
- *                  `converged/set line`.
+ *                  it still counts. But members Adopt could claim (on planned coordinates) read "no changes", never
+ *                  up to date (owner Q191 2B). Mutations: unstamped left out of `noChanges` → `converged/headline`,
+ *                  `converged/set line`; the adoptable check dropped from `upToDate` → `converged/adoptable`.
  *   adopt/…        the one-time Adopt records and stamps only an unstamped member on a planned coordinate no
  *                  stamped member holds; it then reads update, never current, and its node is the same node.
  *                  Mutations: Adopt stamps with the plan's own stamp → `adopt/reads update`; the stamp written
@@ -690,6 +691,16 @@ section('converged — a set whose only non-current members are not built by Pri
   const w = previewVerdict({ sets: [q], missing: [], refused: [] });
   ok(q.counts.update === 45 && q.counts.unstamped === 2 && w.headline === 'Would change 1 of 1' && /2 not built by Prism3/.test(w.lines[0]),
     `converged/real change: with a real change beside the 2 not built by Prism3, the set still counts (${w.headline}; ${w.lines[0]})`);
+  // ADOPTABLE (owner decision Q191 2B): members not built by Prism3 that sit on PLANNED coordinates are ones Adopt
+  // could claim, so the set reads "no changes" and says so, never up to date. Here two of TAG's own members lose
+  // their stamp and record, so each holds its planned coordinate with no Prism3 member beside it.
+  const claim = withMembers(view, (ms) => ms.map((m, i) => (i === 3 || i === 7 ? { ...m, stamp: '', baseline: null } : m)));
+  const a = dryRunSet(TAG, b.plans, claim, b.ports);
+  ok(a.counts.current === 43 && a.counts.unstamped === 2 && a.adoptable.length === 2 && a.counts.add === 0 && a.changes.length === 0,
+    `premise: 43 current and 2 not built by Prism3 on planned coordinates, both adoptable, nothing to add (${JSON.stringify(a.counts)}, ${a.adoptable.length} adoptable)`);
+  const av = previewVerdict({ sets: [a], missing: [], refused: [] });
+  ok(av.headline === '✓ No changes found' && av.lines[0] === 'tag: no changes (45 members). 2 not built by Prism3, left as they are. Adopt can claim them.',
+    `converged/adoptable: a set whose only other members Adopt could claim reads "no changes" and names them, never up to date (${av.headline}; ${av.lines[0]})`);
 }
 
 /* ── adopt ───────────────────────────────────────────────────────────────────────────────────────────── */
