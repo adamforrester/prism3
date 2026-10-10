@@ -21,7 +21,7 @@ position is untouched, as before.
 than imported from `page-header.ts`: a value import would pull `page-header.ts` (and `file-taxonomy.ts`,
 `file-components.ts`) into the executor's import walk, and every later edit to those would then need an
 `EXECUTOR_REVISION` bump. `test-page-header.ts` 2c holds the two copies equal. The executor itself changed,
-so `EXECUTOR_REVISION` goes 4 → 5: the in-place update's dry run will report members as needing a re-apply
+so `EXECUTOR_REVISION` goes 7 → 8 (5 and 6 landed on main while this was open, and #2398 took 7): the in-place update's dry run will report members as needing a re-apply
 once, with no field difference.
 
 **Verified.** `test-write-components.ts` (f)–(i), every expected position a literal. (f): a page holding only
