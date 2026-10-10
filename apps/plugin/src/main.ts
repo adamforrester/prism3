@@ -46,6 +46,11 @@ import { resolveAllModes } from '@prism3/engine/modes';
 import { TAXONOMY } from './file-taxonomy';
 import { ensurePageHeader, pageHeaderCopy, pageHeaderItems } from './page-header';
 import type { PageHeaderOutcome, HeaderPage } from './page-header';
+import { hasFurniture, clearFurniture, drawFurniture, furnitureLayout, furnitureItems, readTag, staleFurniture, pruneFurniture, furniturePruneText, FURNITURE_NS, FURNITURE_KEY } from './canvas-furniture';
+import type { FurnitureApi, FurnitureOutcome, FurnitureParent, FurnitureTag, XNode } from './canvas-furniture';
+import { ensureFurnitureTemplates } from './furniture-templates';
+import type { TemplatesApi } from './furniture-templates';
+import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './build-telemetry';
 import { readFigmaVariables } from './read-figma';
 import { listFamilyStyleCounts } from './list-fonts';
@@ -442,10 +447,29 @@ const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Pro
       root,
     };
     const plan = computePrunePlan(snapshot);
+    // THE CANVAS FURNITURE (#2406, #2188): labels and backdrops whose set is gone, or whose def the pilot no longer
+    // covers. Found by their tag, file-wide; a live set's furniture is the build's to redraw, never prune's.
+    await figma.loadAllPagesAsync();
+    const tagged = (figma.root.findAllWithCriteria({ types: ['INSTANCE'], sharedPluginData: { namespace: FURNITURE_NS, keys: [FURNITURE_KEY] } }) as readonly InstanceNode[])
+      .map((node) => ({ node, tag: readTag(node as unknown as XNode) }))
+      .filter((x): x is { node: InstanceNode; tag: FurnitureTag } => x.tag !== null);
+    const liveSets = new Set<string>();
+    for (const t of tagged) {
+      if (liveSets.has(t.tag.set)) continue;
+      const n = t.tag.set ? await figma.getNodeByIdAsync(t.tag.set) : null;
+      if (n && n.type === 'COMPONENT_SET' && !n.removed) liveSets.add(t.tag.set);
+    }
+    const staleFurn = staleFurniture(tagged, (id) => liveSets.has(id));
+    const furnText = (applied: boolean, n: number): string => {
+      const t = furniturePruneText(n, applied);
+      return t ? ` ${t}` : '';
+    };
 
-    sink.data({ prunePlan: plan });
+    sink.data({ prunePlan: plan, staleFurniture: staleFurn.map((f) => ({ id: f.node.id, ...f.tag })) });
     if (!confirm) {
-      sink.post({ type: 'prune-result', ok: true, applied: false, count: prunePlanCount(plan), summary: prunePreviewSummary(plan) });
+      const n = prunePlanCount(plan);
+      const summary = n === 0 && staleFurn.length ? furniturePruneText(staleFurn.length, false) : prunePreviewSummary(plan) + furnText(false, staleFurn.length);
+      sink.post({ type: 'prune-result', ok: true, applied: false, count: n + staleFurn.length, summary });
       return;
     }
 
@@ -458,9 +482,11 @@ const prune = async (input: BrandInput, confirm: boolean, sink: ActionSink): Pro
       getLocalGridStylesAsync: () => figma.getLocalGridStylesAsync(),
     };
     const res = await applyPrunePlan(plan, pruneApi);
+    const furnRemoved = pruneFurniture(tagged.map((t) => t.node as unknown as XNode), (id) => liveSets.has(id));
     const removed = res.variables + res.collections + res.modes + res.styles;
-    sink.data({ pruneApplied: res });
-    sink.post({ type: 'prune-result', ok: res.misses.length === 0, applied: true, count: removed, summary: pruneAppliedSummary(res) });
+    sink.data({ pruneApplied: { ...res, furniture: furnRemoved } });
+    const summary = removed === 0 && furnRemoved ? furniturePruneText(furnRemoved, true) : pruneAppliedSummary(res) + furnText(true, furnRemoved);
+    sink.post({ type: 'prune-result', ok: res.misses.length === 0, applied: true, count: removed + furnRemoved, summary });
   } catch (e) {
     // A thrown prune reports rather than crashing the UI — same posture as `applyTheme`'s catch.
     sink.post({ type: 'prune-result', ok: false, applied: confirm, count: 0, summary: `prune failed: ${(e as Error).message}` });
@@ -611,6 +637,8 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
     // set lands so it can be measured against the content (`page-header.ts`). One entry per page this run
     // built onto, dependencies included, so a skip (no `_Section-header` in the file) reaches the verdict.
     const headers: PageHeaderOutcome[] = [];
+    // THE CANVAS FURNITURE (#2406, #2188), one entry per piloted set this run built, dependencies included.
+    const furniture: FurnitureOutcome[] = [];
     const placeHeader = async (page: HeaderPage, defId: string): Promise<void> => {
       const copy = pageHeaderCopy(defId, componentDefs);
       if (!copy) return;
@@ -634,6 +662,9 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
         // lands on the set they just built rather than watching an empty current page.
         await figma.setCurrentPageAsync(page as unknown as PageNode);
         targetPage = page as unknown as CompPageTarget;
+        // This def's earlier labels and backdrop come off FIRST, so the build's placement of a new set never measures
+        // furniture left behind by a set someone deleted. Redrawn below once the set has landed.
+        if (hasFurniture(target.id)) clearFurniture(page as unknown as FurnitureParent, target.id);
       }
       const built = await applyComponentPlan(project(target), figma, {
         // #1554: the resolved section page, or undefined → `currentPage` (unmapped def / pre-#1554 default).
@@ -664,6 +695,9 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
           sink.post({ type: 'component-progress', phase: p.phase, done: p.done, total: p.total, chunkMs: p.chunkMs });
         },
       });
+      // AFTER the set lands and BEFORE the run's headers, so a first build's header measures the labels too.
+      const drawn = await furnishSet(target.id, built.id, project(target));
+      if (drawn) furniture.push(drawn);
       // The real `PageNode` (same #1561 reasoning as `targetPage` above), which satisfies `HeaderPage`.
       if (page) landed(page.name, { page: page as unknown as PageNode, defId: target.id });
       return built;
@@ -736,6 +770,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
         ...fromClauses([
           ...head.map((x) => [', ', x] as const), [', ', missNote], ['. ', staleItem],
           ['. ', alsoBuiltItem(alsoBuilt)], ...pageHeaderItems(headers).map((x) => ['. ', x] as const),
+          ...furnitureItems(furniture).map((x) => ['. ', x] as const),
         ]),
       }, sink);
       verdictPosted = true;
@@ -795,7 +830,7 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
     for (const line of telemetry) console.log(line);
     // The report behind the verdict, whole (the agent link; `uiSink` drops it): the miss list uncapped,
     // the #701 / #866 / #1279 / #1574 counters the console lines above print, and the telemetry block.
-    sink.data({ build: { def: def.id, alsoBuilt, pageHeaders: headers, settleMs, telemetry, report: r, progress: reports } });
+    sink.data({ build: { def: def.id, alsoBuilt, pageHeaders: headers, furniture, settleMs, telemetry, report: r, progress: reports } });
   } catch (e) {
     // `planSetLayout` throws on a set that could not be assembled coherently — before anything reaches
     // the file. That is a def-tier or scope-tier error, and its message names the cause.
@@ -833,6 +868,22 @@ const buildComponents = async (defId: string | undefined, sink: ActionSink): Pro
  * `update-components` writes nothing (`update-plan.ts`); `capture-baseline` writes only the as-built
  * record, and only on members that read back as exactly the current plan.
  */
+/**
+ * THE CANVAS FURNITURE FOR ONE SET (#2406, #2188) — labels and the inverse backdrop, drawn on the set's own parent
+ * after a build or an update lands it (`canvas-furniture.ts`). Only for a def the pilot switches on. CAUGHT HERE,
+ * never rethrown: the set is already written, and furniture is labeling, not the build.
+ */
+const furnishSet = async (defId: string, setId: string, plans: AnatomyPlan[]): Promise<FurnitureOutcome | null> => {
+  if (!hasFurniture(defId) || !setId) return null;
+  try {
+    const set = await figma.getNodeByIdAsync(setId);
+    if (!set || set.type !== 'COMPONENT_SET') return null;
+    return await drawFurniture(figma as unknown as FurnitureApi, set as unknown as XNode, furnitureLayout(plans), defId);
+  } catch (e) {
+    return { def: defId, parent: '', columns: 0, rows: 0, backdrops: 0, cleared: 0, skipped: [`No canvas labels for ${defId}: Figma refused the write (${(e as Error)?.message ?? String(e)})`], fontMisses: [] };
+  }
+};
+
 const updateTargets = (defId: string | undefined): { targets: UpdateTarget[]; unknown: string | null; refused: { def: string; reason: string }[] } => {
   let brandInput: BrandInput | null = null;
   try { brandInput = restoreInput(figma.root); } catch { /* untrusted/absent → defaults, as `buildComponents` */ }
@@ -871,8 +922,21 @@ const updateComponents = async (defId: string | undefined, previewHash: string |
     const descriptionOf = (def: string): string | undefined => componentDefs.find((d) => d.id === def)?.summary;
     const r = await applyUpdate(figma as unknown as ApplyHost, figma as unknown as ComponentsApi, targets, previewHash, { descriptionOf, breathe, ...(choices ? { choices } : {}) });
     r.refused.push(...refused);
-    sink.data({ update: { mode: 'apply', ...r } });
-    postVerdict({ type: 'component-update-result', ...applyVerdict(r) }, sink);
+    // THE CANVAS FURNITURE (#2406, #2188), redrawn for every piloted set the apply acted on — from the members as they
+    // now sit, so the labels follow the update. Reported in the data, and in the verdict only where a part was skipped.
+    const furniture: FurnitureOutcome[] = [];
+    for (const o of r.outcomes) {
+      const t = targets.find((x) => x.def === o.def);
+      if (!t || !hasFurniture(o.def)) continue;
+      const sets = (figma.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly ComponentSetNode[]).filter((n) => n.name === (t.plans[0]?.component ?? t.def));
+      if (sets.length !== 1) continue;
+      const drawn = await furnishSet(o.def, sets[0].id, t.plans);
+      if (drawn) furniture.push(drawn);
+    }
+    sink.data({ update: { mode: 'apply', ...r, furniture } });
+    const verdict = applyVerdict(r);
+    const extra = furnitureItems(furniture);
+    postVerdict({ type: 'component-update-result', ...verdict, ...(extra.length ? { lines: [...verdict.lines, ...extra] } : {}) }, sink);
   } catch (e) {
     const why = (e as Error)?.message ?? String(e);
     postVerdict({ type: 'component-update-result', ok: false, headline: previewHash === null ? '✗ check failed' : '✗ update failed', summary: why, lines: [why] }, sink);
@@ -931,7 +995,7 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
     const scaffold = await scaffoldSkeleton(figma, TAXONOMY);
     const page = scaffold.fileComponentsPage;
     let assetNote = '';
-    let assets: { built?: string[]; fontMisses?: string[]; skipped?: boolean; styleGuideCells?: unknown } = {};
+    let assets: { built?: string[]; fontMisses?: string[]; skipped?: boolean; styleGuideCells?: unknown; furnitureTemplates?: unknown } = {};
     if (page) {
       // IDEMPOTENT ASSET BUILD: skipped when the page already holds either set, in any case (`ensureFileComponents`).
       const res = await ensureFileComponents(figma, page);
@@ -943,6 +1007,12 @@ const fileSetup = async (sink: ActionSink): Promise<void> => {
         assetNote = `, built ${res.built.join(' + ')}` +
           (res.fontMisses.length ? ` (⚠ ${res.fontMisses.length} font miss: ${res.fontMisses.slice(0, 2).join('; ')})` : '');
       }
+      // THE CANVAS-FURNITURE TEMPLATES (#2406, #2188), each found on its own so a file set up before them gets them.
+      const tpl = await ensureFurnitureTemplates(figma as unknown as TemplatesApi, page);
+      assets = { ...assets, furnitureTemplates: tpl };
+      if (tpl.built.length) assetNote += `, built ${tpl.built.join(' + ')}` +
+        (tpl.backdropBinding === 'no-variable' ? ' (the backdrop binds to the inverse background once the theme is applied)' : '') +
+        (tpl.fontMisses.length ? ` (⚠ ${tpl.fontMisses.slice(0, 2).join('; ')})` : '');
       // The style-guide cell sets (#259) beside them — adopted wherever the file already has them, in any case.
       const cells = await ensureStyleGuideCells(figma, page);
       assets = { ...assets, styleGuideCells: cells };

@@ -135,5 +135,92 @@ for (let i = 0; i < 2; i++) L.addBreakpoint();
 ok(J(lay()?.breakpoints) === J([0, 768, 1024, 1440, 1920, 2176, 2432]) && brandTheme(structuredClone(store.brandState)).layout.breakpoints.at(-1)?.name === '3xl',
   `seven breakpoints run xs to 3xl in the engine — ${J(lay()?.breakpoints)}`);
 
+console.log('\n4. #2146: the first breakpoint is 0 (after #2139). The state refuses to write a list that starts above 0, and one that arrives that way is explained, not thrown');
+// The engine's approved sentence (#2139), restated as a literal so a change to it fails here by name.
+const FIRST_MUST_BE_0 = (n: number): string => `The first breakpoint must be 0px. This brand starts at ${n}px.`;
+reset({ breakpoints: [0, 768, 1024] });
+let before = J(store.brandState);
+r = L.removeBreakpoint(0);
+ok(r.refused === true && r.dropped.length === 0 && J(store.brandState) === before,
+  `removeBreakpoint(0) would leave [768, 1024], so it is refused and the brand is byte-identical — ${J(r)}, ${J(lay())}`);
+r = L.editBreakpoint(0, 320);
+ok(r.refused === true && J(store.brandState) === before,
+  `editBreakpoint(0, 320) moves the first off 0, so it is refused and nothing is written — ${J(r)}, ${J(lay())}`);
+r = L.editBreakpoint(1, 900);
+ok(!r.refused && J(lay()?.breakpoints) === J([0, 900, 1024]), `an edit that keeps the first at 0 still writes — ${J(lay()?.breakpoints)}`);
+// Loading a brand that starts above 0 refuses, in the engine's words (the import and restore paths catch this).
+let loadErr = '';
+try { reset({ breakpoints: [320, 768] }); } catch (e) { loadErr = (e as Error).message; }
+ok(loadErr === FIRST_MUST_BE_0(320), `loading [320, 768] refuses with the approved sentence: "${loadErr}"`);
+// An agent's live write mid-session: the store keeps the last good theme and the error line carries the sentence.
+reset({ breakpoints: [0, 768] });
+store.brandState.layout = { ...(store.brandState.layout ?? {}), breakpoints: [320, 768] };
+store.rebuild();
+ok(store.lastError === FIRST_MUST_BE_0(320) && J(store.theme.layout.breakpoints.map((b) => b.px)) === J([0, 768]),
+  `a live write of [320, 768] keeps the last good theme ([0, 768]) and sets lastError to the approved sentence: "${store.lastError}"`);
+let names: readonly string[] = [];
+let threw = '';
+try { names = L.namesFor(L.breakpointsOf()); } catch (e) { threw = (e as Error).message; }
+ok(threw === '' && J(names) === J(['sm', 'md']), `namesFor([320, 768]) names it by its count (sm, md) instead of throwing while the page draws it — ${threw || J(names)}`);
+before = J(store.brandState);
+threw = '';
+try { r = L.addBreakpoint(); } catch (e) { threw = (e as Error).message; }
+ok(threw === '' && r.refused === true && J(store.brandState) === before,
+  `on that state, Add would keep the first above 0, so it is refused without throwing — ${threw || J(r)}`);
+
+console.log('\n5. Owner Q189 A (#2146): the error line offers "Add a 0px breakpoint" for a brand that arrives starting above 0. One click inserts 0px first; nothing else changes');
+reset({ breakpoints: [0, 768] });
+ok(L.needsZeroBreakpoint() === false, 'a brand that starts at 0 is not offered the action');
+store.brandState.layout = { ...(store.brandState.layout ?? {}), breakpoints: [320, 768], columnOverrides: { sm: 6, md: 10 } };
+store.rebuild();
+ok(L.needsZeroBreakpoint() === true, `a live write of [320, 768] is offered the action — lastError: "${store.lastError}"`);
+r = L.addZeroBreakpoint();
+ok(!r.refused && r.dropped.length === 0 && J(lay()?.breakpoints) === J([0, 320, 768]),
+  `addZeroBreakpoint inserts 0 in front and keeps 320 and 768 exactly — ${J(r)}, ${J(lay()?.breakpoints)}`);
+ok(J(lay()?.columnOverrides) === J({ md: 6, lg: 10 }),
+  `each column setting follows its breakpoint to its new name (320: sm → md, 768: md → lg) — ${J(lay()?.columnOverrides)}`);
+store.rebuild();
+ok(store.lastError === null && J(store.theme.layout.breakpoints.map((b) => b.px)) === J([0, 320, 768]) && L.needsZeroBreakpoint() === false,
+  `after the click the brand resolves at [0, 320, 768], the error line clears and the action goes — "${store.lastError}"`);
+before = J(store.brandState);
+r = L.addZeroBreakpoint();
+ok(r.refused === true && J(store.brandState) === before, `on a list that already starts at 0 the action is refused and writes nothing — ${J(r)}`);
+
+console.log('\n6. #2482 review: a refusal writes nothing, the names come before the write, and seven breakpoints starting above 0 (owner Q206 A)');
+// The names are worked out BEFORE the write: a list the engine can't name (eight) is refused, writing nothing, never
+// stored half-done with its settings left under the old names.
+reset({ breakpoints: [0, 480, 768, 1024, 1440, 1920, 2560], columnOverrides: { xs: 4, '3xl': 16 } });
+before = J(store.brandState);
+threw = '';
+try { r = L.addBreakpoint(); } catch (e) { threw = (e as Error).message; }
+ok(threw === '' && r.refused === true && J(store.brandState) === before,
+  `an eighth breakpoint is refused before anything is written, the seven and their settings byte-identical — ${threw || J(r)}, ${J(lay())}`);
+// Seven starting above 0 (an agent's live write): no action (Q206 A), the error stays, and Remove is the way out.
+reset({ breakpoints: [0, 768] });
+store.brandState.layout = { ...(store.brandState.layout ?? {}), breakpoints: [320, 480, 768, 1024, 1440, 1920, 2560], columnOverrides: { xs: 4, lg: 10, '3xl': 16 } };
+store.rebuild();
+ok(store.lastError === FIRST_MUST_BE_0(320) && L.needsZeroBreakpoint() === false && L.breakpointRefusal() === store.lastError,
+  `Q206 A: seven breakpoints starting at 320px are not offered the action, and the error is the first-breakpoint one — needs ${L.needsZeroBreakpoint()}, "${store.lastError}"`);
+before = J(store.brandState);
+threw = '';
+try { r = L.addZeroBreakpoint(); } catch (e) { threw = (e as Error).message; }
+ok(threw === '' && r.refused === true && J(store.brandState) === before,
+  `Q206 A: at seven, addZeroBreakpoint is refused without throwing and writes nothing — ${threw || J(r)}`);
+r = L.removeBreakpoint(2);
+// Seven run xs…3xl: 320 xs, 480 sm, 768 md, 1024 lg, 1440 xl, 1920 2xl, 2560 3xl. Six run xs…2xl.
+ok(!r.refused && J(lay()?.breakpoints) === J([320, 480, 1024, 1440, 1920, 2560]) && r.dropped.length === 0 && J(lay()?.columnOverrides) === J({ xs: 4, md: 10, '2xl': 16 }),
+  `Q206 A: Remove still works at seven (768 removed), and each setting follows its breakpoint (320 stays xs, 1024 lg → md, 2560 3xl → 2xl) — ${J(r)}, ${J(lay())}`);
+ok(L.needsZeroBreakpoint() === true, 'Q206 A: at six, the action is offered');
+r = L.addZeroBreakpoint();
+store.rebuild();
+ok(!r.refused && J(lay()?.breakpoints) === J([0, 320, 480, 1024, 1440, 1920, 2560]) && store.lastError === null && J(lay()?.columnOverrides) === J({ sm: 4, lg: 10, '3xl': 16 }),
+  `then the action makes seven starting at 0, the brand resolves, and each setting is still on its width (320 xs → sm, 1024 md → lg, 2560 2xl → 3xl) — ${J(lay())}, "${store.lastError}"`);
+// The action sits beside the first-breakpoint error only: with the list above 0 and another error reported first.
+reset({ breakpoints: [0, 768] });
+store.brandState.layout = { ...(store.brandState.layout ?? {}), breakpoints: [320, 768], columns: 99 };
+store.rebuild();
+ok(store.lastError !== null && store.lastError !== FIRST_MUST_BE_0(320) && L.breakpointRefusal() === FIRST_MUST_BE_0(320) && L.breakpointRefusal() !== store.lastError,
+  `beside another error (the columns), the list's own refusal is not the line's, so no action is offered — line "${store.lastError}", list "${L.breakpointRefusal()}"`);
+
 console.log(`\n${executed - failed}/${executed} layout-input assertions passed.`);
 if (failed) process.exit(1);
