@@ -65,7 +65,7 @@ None — not interactive.
 - **Role:** none with aria-hidden="true" by default, because a divider is decorative unless set otherwise; with decorative=false, separator (native \<hr> for a horizontal rule, role="separator" with aria-orientation="vertical" for a vertical one)
 - **WCAG:**
   - 1.3.1 Info and Relationships — a rule that marks a real break in content is a separator, so assistive technology hears the break a sighted reader sees
-  - 1.4.11 Non-text Contrast — a decorative divider carries no information and needs no contrast minimum; a divider that genuinely communicates a boundary should clear 3:1
+  - 1.4.11 Non-text Contrast — a decorative divider carries no information and needs no contrast minimum; a divider that genuinely communicates a boundary should clear 3:1. On a tinted surface, such as background.secondary or background.tertiary in light mode, the default rule does not reach 3:1, so a divider that marks a real boundary (decorative=false) needs more than the default rule there.
 - **Focus:** None. A divider is not focusable and takes no place in the tab order.
 - **ARIA:** By default the rule sets aria-hidden="true", so a screen reader does not announce a break that means nothing. With decorative=false, an \<hr> needs no attributes, and a vertical rule sets role="separator" and aria-orientation="vertical".
 

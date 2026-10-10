@@ -926,7 +926,7 @@
       ],
       "notes": {
         "contested": [
-          "Approved defaults (owner Q190.3 A): the `orientation` axis and its two values; `border-width.hairline` as the thickness; `color.border.secondary` as the color (the role the token tier names as a divider, 3.26:1 at its lowest across brands and modes per the issue); filling the container; no states; its own Figma page. Held back: a `thick` thickness and a `color.border.primary` variant, each one more axis value when a consumer needs it.",
+          "Approved defaults (owner Q190.3 A): the `orientation` axis and its two values; `border-width.hairline` as the thickness; `color.border.secondary` as the color (the role the token tier names as a divider, 3.20:1 at its lowest against `background.primary`, measured in harbor light); filling the container; no states; its own Figma page. Held back: a `thick` thickness and a `color.border.primary` variant, each one more axis value when a consumer needs it.",
           "DECORATIVE BY DEFAULT (owner Q190.1 A, after the brief): `decorative` defaults to true and hides the rule from assistive technology. The inverse default, a separator everywhere, is the more common real-world bug: a screen reader announces a separator between every toolbar button.",
           "THE INSET STEPS ARE DRAFT (owner Q190.2 A): `space.200` for the start and both-ends insets, `space.100` for a vertical middle inset, the closest existing steps; the brief names no token. A vertical rule takes no start-only inset, so the Figma set is five members.",
           "THE LABELLED DIVIDER is deferred to its own issue: the brief's `label` and `labelPosition` (the \"OR\" between two ways to sign in)."

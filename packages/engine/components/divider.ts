@@ -184,7 +184,9 @@ export const divider: ComponentDef = {
     role: 'none with aria-hidden="true" by default, because a divider is decorative unless set otherwise; with decorative=false, separator (native <hr> for a horizontal rule, role="separator" with aria-orientation="vertical" for a vertical one)',
     wcag: [
       '1.3.1 Info and Relationships — a rule that marks a real break in content is a separator, so assistive technology hears the break a sighted reader sees',
-      '1.4.11 Non-text Contrast — a decorative divider carries no information and needs no contrast minimum; a divider that genuinely communicates a boundary should clear 3:1',
+      // The tinted-surface limit (owner Q208 A): `color.border.secondary` measures 2.36–2.81:1 on
+      // `background.secondary` / `tertiary` in light mode. A stronger border role is filed as #2498.
+      '1.4.11 Non-text Contrast — a decorative divider carries no information and needs no contrast minimum; a divider that genuinely communicates a boundary should clear 3:1. On a tinted surface, such as background.secondary or background.tertiary in light mode, the default rule does not reach 3:1, so a divider that marks a real boundary (decorative=false) needs more than the default rule there.',
     ],
     focus: 'None. A divider is not focusable and takes no place in the tab order.',
     aria: 'By default the rule sets aria-hidden="true", so a screen reader does not announce a break that means nothing. With decorative=false, an <hr> needs no attributes, and a vertical rule sets role="separator" and aria-orientation="vertical".',
@@ -235,7 +237,7 @@ export const divider: ComponentDef = {
 
   notes: {
     contested: [
-      'Approved defaults (owner Q190.3 A): the `orientation` axis and its two values; `border-width.hairline` as the thickness; `color.border.secondary` as the color (the role the token tier names as a divider, 3.26:1 at its lowest across brands and modes per the issue); filling the container; no states; its own Figma page. Held back: a `thick` thickness and a `color.border.primary` variant, each one more axis value when a consumer needs it.',
+      'Approved defaults (owner Q190.3 A): the `orientation` axis and its two values; `border-width.hairline` as the thickness; `color.border.secondary` as the color (the role the token tier names as a divider, 3.20:1 at its lowest against `background.primary`, measured in harbor light); filling the container; no states; its own Figma page. Held back: a `thick` thickness and a `color.border.primary` variant, each one more axis value when a consumer needs it.',
       'DECORATIVE BY DEFAULT (owner Q190.1 A, after the brief): `decorative` defaults to true and hides the rule from assistive technology. The inverse default, a separator everywhere, is the more common real-world bug: a screen reader announces a separator between every toolbar button.',
       'THE INSET STEPS ARE DRAFT (owner Q190.2 A): `space.200` for the start and both-ends insets, `space.100` for a vertical middle inset, the closest existing steps; the brief names no token. A vertical rule takes no start-only inset, so the Figma set is five members.',
       'THE LABELLED DIVIDER is deferred to its own issue: the brief\'s `label` and `labelPosition` (the "OR" between two ways to sign in).',
