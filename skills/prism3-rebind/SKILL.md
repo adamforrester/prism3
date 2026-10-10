@@ -108,7 +108,7 @@ decision for the owner (section 6), and most become component work.
 | Already-bound paints slip past a value table | A pass that classifies raw paints by color skips paints that already carry a binding, including ones bound to the **legacy** library | Treat "bound to a remote variable" exactly like raw |
 | An uninstalled font hangs the load | `loadFontAsync` on an unlisted font can take most of the call budget to fail | Never load an unlisted font. A text node that uses one can still take a Prism3 text style: load only the style's font and call `setTextStyleIdAsync`. Only character edits need the missing font |
 | A FILL instance of a hugging component doesn't stretch its parts | Placed to fill a column, the field's label stretches but its input box keeps its minimum width | Override the nested part to FILL on the instance (legal, still attached), and file it |
-| `createAutoLayout` may not exist | Not every bridge runtime has it | `createFrame()`, then set the layout mode and auto sizing |
+| `createAutoLayout` isn't part of the plugin API | It isn't in the plugin typings, so a script written against it fails at its first call | `createFrame()`, then set the layout mode and auto sizing |
 | Mixed values are Symbols | A mixed `cornerRadius` or `strokeWeight` throws inside a template string | Guard for a Symbol before formatting |
 | Stale references after a placement | Reading a node after its parent was replaced, or looping into the nested parts of a component you have placed | Collect labels before placing; skip nodes inside instances; check `.removed` before each use |
 
