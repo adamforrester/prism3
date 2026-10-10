@@ -21287,8 +21287,13 @@ arm: {
         // which is only correct while the column axis is the last element — the exact assumption that
         // stops holding the moment the axis is chosen. A `state` still present in `rowKeys` would put
         // every member of a row in one cell.
-        ok(JSON.stringify(fullLayout.rowKeys) === JSON.stringify(['appearance', 'surface', 'inset', 'size', 'leading icon', 'trailing icon']),
-          `#656: the rows combine every varying axis EXCEPT the column one — the two slot axes carry their Figma names (#1380) — got ${JSON.stringify(fullLayout.rowKeys)}`);
+        // Button is in the canvas-furniture pilot (#2188 Q173 A), so `surface` leads: the inverse rows form one block.
+        ok(JSON.stringify(fullLayout.rowKeys) === JSON.stringify(['surface', 'appearance', 'inset', 'size', 'leading icon', 'trailing icon']),
+          `#656: the rows combine every varying axis EXCEPT the column one, surface first — the two slot axes carry their Figma names (#1380) — got ${JSON.stringify(fullLayout.rowKeys)}`);
+        // #2188 Q173 A: rows 0–47 are surface=default and 48–95 surface=inverse, each a contiguous band. Literals: 96
+        // rows halve into 48 per surface, and the first inverse row is the first row of the default block's shape.
+        ok(fullLayout.rowLabels.slice(0, 48).every((r) => r.startsWith('default ')) && fullLayout.rowLabels.slice(48).every((r) => r.startsWith('inverse ')) && fullLayout.rowLabels[48] === 'inverse filled default small true true',
+          `#2188: Button's inverse rows are one contiguous block, rows 48–95, opening on 'inverse filled default small true true' — got rows ${fullLayout.rowLabels.map((r, i) => (r.startsWith('inverse ') ? i : -1)).filter((i) => i >= 0).slice(0, 3).join(',')}… opening on '${fullLayout.rowLabels[48]}'`);
 
         // ON CANVAS, because a cell index is not a coordinate. Run table 1's set through the real
         // payload and read the geometry off the page: members the hand table puts in one row must share
