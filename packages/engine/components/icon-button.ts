@@ -154,7 +154,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled, reserved for controls irrelevant to the view; removes it from the tab order and the a11y tree.' },
   ],
 
-  states: ['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'inactive', 'disabled'],
+  states: ['rest', 'hover', 'pressed', 'pending', 'focus-visible', 'disabled', 'inactive'],
   variants: {
     // #1225 — `intent` is gone as an axis; it is the component identity now. `appearance` carries emphasis,
     // `size` the rung. #1432 — the tertiary value is `ghost`, not `text` (an icon-only control has no text);
@@ -484,7 +484,7 @@ const makeIconButton = (id: string, name: string, summary: string, description: 
     // Six of the seven states, exactly as Button — `inactive` is admitted in `codeOnly` above rather
     // than dropped. Seven remains right for `states` (the def's truth); six is right for the
     // projection (what a variant can carry).
-    stateAxis: { name: 'state', values: ['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'disabled'] },
+    stateAxis: { name: 'state', values: ['rest', 'hover', 'pressed', 'pending', 'focus-visible', 'disabled'] },
     // NO `slotAxes` — see the note above. The icon is required, so presence is not a question, and the
     // validator would reject an axis over a non-optional part.
     //

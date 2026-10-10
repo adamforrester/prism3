@@ -3597,11 +3597,13 @@ console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : fai
     `#1633 reachable: button alone into an empty file misses its focus ring (${ringMisses(bareRun.misses).length} focusRing misses)`);
 
   // (a) FRESH FILE — icon, focus-ring and (since #1670) the pending state's spinner are built first, then
-  // button with no ring or slot miss.
+  // button with no ring or slot miss. In the order the plans first reach them: since #2501 (owner decision Q213)
+  // Pending comes before Focus visible, so the spinner is reached before the ring. The three nest nothing of each
+  // other, so their order among themselves is not load-bearing; that all three precede button is, and is read below.
   const fresh = fileWith();
   const built = await prebuildDependencies(button, fresh.ctx);
-  ok(JSON.stringify(built.map((b) => b.id)) === JSON.stringify(['icon', 'focus-ring', 'spinner']),
-    `#1633 fresh file: button's missing nests are built first — icon, focus-ring, spinner (${built.map((b) => b.id).join(', ') || 'none'})`);
+  ok(JSON.stringify(built.map((b) => b.id)) === JSON.stringify(['icon', 'spinner', 'focus-ring']),
+    `#1633 fresh file: button's missing nests are built first — icon, spinner, focus-ring (${built.map((b) => b.id).join(', ') || 'none'})`);
   const freshRun = await fresh.build(button);
   const freshRing = ringMisses(freshRun.misses);
   ok(freshRing.length === 0,

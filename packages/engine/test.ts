@@ -14673,9 +14673,10 @@ arm: {
           ok(bad.length === 0,
             `#2266 ${def.id} size=${size}: label ${LABEL_STYLE[size]} over input ${INPUT_STYLE[size]}, height ${def === textarea ? 'from rows' : HEIGHT[size]}, padding ${PAD[size]}, a 120 floor${bad.length ? ` — WRONG: ${bad.join('; ')}` : ''}`);
         }
-        // 84 members, led by medium: the default variant, and where an in-place update (#2265) lands every member
-        // of a set built before #2266 (they were all the medium field). 72 until #2318's `focus-visible-filled`
-        // column (size 3 × status 4 × state 7; 28 per size).
+        // 84 members, led by medium: the default variant (Figma takes it from the top-left member), and where an
+        // in-place update (#2265) lands every member of a set built before #2266 (they were all the medium field).
+        // Kept by owner decision Q221 B as the named exception to #2501's smallest-to-largest. 72 until #2318's
+        // `focus-visible-filled` column (size 3 × status 4 × state 7; 28 per size).
         const set = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
         ok(set.length === 84 && set[0].size === 'medium' && SIZES.every((sz) => set.filter((p) => p.size === sz).length === 28),
           `#2266 ${def.id}: the set is 84 members, 28 per size, led by size=medium (got ${set.length}, first ${String(set[0]?.size)})`);
@@ -21406,7 +21407,8 @@ arm: {
         const fullLayout = planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), '#656 full');
         ok(fullLayout.colKey === 'state' && fullLayout.rows === 96 && fullLayout.cols === 6,
           `#656: the full Button set lays out 96 rows × 6 columns with 'state' across — got ${fullLayout.rows}×${fullLayout.cols} on '${fullLayout.colKey}' (the inherited axis gave 216×2)`);
-        ok(JSON.stringify(fullLayout.colVals) === JSON.stringify(['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'disabled']),
+        // #2501 (owner decision Q213): Pressed, with Pending after it, before Focus visible.
+        ok(JSON.stringify(fullLayout.colVals) === JSON.stringify(['rest', 'hover', 'pressed', 'pending', 'focus-visible', 'disabled']),
           `#656: the columns run in the def's own state order, so the table reads left to right the way the states are declared — got ${JSON.stringify(fullLayout.colVals)}`);
         // And the row keys are every OTHER varying axis. `rowKeys` used to be `varying.slice(0, -1)`,
         // which is only correct while the column axis is the last element — the exact assumption that
@@ -21733,8 +21735,12 @@ arm: {
       // NOW 16, AS OF #1809 — a shell-byte move: the paste script gained the plugin's #1780 axes-changed refusal
       // and #1750 placement, 1,176 bytes of compacted code in every chunk's shell. Re-pinned per the same
       // standing instruction; every chunk stays under budget.
+      //
+      // NOW 15, AS OF #2501 — no byte moved: the state columns were reordered (owner decision Q213, Pressed and
+      // Pending before Focus visible), and members in the new order pack one chunk tighter. Re-pinned per the same
+      // standing instruction; every chunk stays under budget.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 16, `anatomy/icon-button: the set packs into 16 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 15, `anatomy/icon-button: the set packs into 15 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a
@@ -29386,6 +29392,60 @@ arm: {
   const para = skill.split(/\n\s*\n/).find((b) => /inset=flush/.test(b) && /44×44/.test(b));
   ok(!!para && missing(para).length === 0,
     `#2408 prism3-consume: the skill tells the agent a medium or large flush text button keeps a 44×44 hit area in code and a small one 24×24, with the ::before technique (missing: ${para ? missing(para).join(', ') || 'none' : 'no paragraph names inset=flush and 44×44'})`);
+}
+
+// ---- one axis value order in every def (#2501, owner decision Q213) ----
+// Sizes smallest to largest, except the named Q221 B exception below; states Rest, Hover, Pressed together, then Focus
+// (focus-visible and its variants), then Disabled. The states the owner did not name are placed by Q220 A: Pending
+// right after Pressed, Filled after the press group, Inactive and Read only after Disabled, Error and Empty last. Both ladders are TYPED HERE from the decision, never read from a def or the schema's `STATES`, so a def
+// reordered against them fails under its own name; a value neither ladder knows fails too, so a new state or size
+// is placed on purpose. Read at both layers the order lives in: the def's own lists (`states`, `variants.size`,
+// `figmaProperties.stateAxis`) and the projected set, the members' first-seen order, which is what the canvas and
+// the Figma panel show. The two can disagree: `stateAxis` is a second list, and reordering `states` alone left
+// button's projected columns as they were.
+{
+  const STATE_LADDER = ['rest', 'hover', 'pressed', 'pending', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'inactive', 'read-only', 'error', 'empty'];
+  const SIZE_LADDER = ['x-small', 'small', 'medium', 'large'];
+  // THE NAMED EXCEPTION (owner decision Q221 B, 2026-10-10): these three keep Medium first, because Figma takes a set's
+  // default variant from its top-left member, and Medium is the field a designer must get on insert. An EXACT list:
+  // a def not named here breaking small to large fails, and so does one named here leaving this order.
+  const SIZE_EXCEPTIONS: Record<string, string[]> = {
+    'text-field': ['medium', 'small', 'large'],
+    textarea: ['medium', 'small', 'large'],
+    select: ['medium', 'small', 'large'],
+  };
+  const outOfOrder = (vals: readonly unknown[], ladder: readonly string[]): string | null => {
+    const unknown = vals.filter((v) => !ladder.includes(String(v)));
+    if (unknown.length) return `unplaced ${unknown.join(', ')}`;
+    const ranks = vals.map((v) => ladder.indexOf(String(v)));
+    return ranks.every((r, i) => i === 0 || r > ranks[i - 1]) ? null : `[${vals.join(', ')}]`;
+  };
+  const firstSeen = (xs: readonly unknown[]) => [...new Set(xs.filter((x) => x !== undefined && x !== null))];
+  const checked = new Map<string, number>();
+  for (const def of componentDefs) {
+    const sizes = (def.variants as Record<string, string[] | undefined>).size ?? [];
+    const set = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' }) as unknown as { size?: string; coord?: { state?: string } }[];
+    const lists: [string, readonly unknown[], readonly string[]][] = [
+      ['states', def.states, STATE_LADDER],
+      ['figmaProperties.stateAxis', def.figmaProperties?.stateAxis?.values ?? [], STATE_LADDER],
+      ['variants.size', sizes, SIZE_LADDER],
+      ['projected states', firstSeen(set.map((p) => p.coord?.state)), STATE_LADDER],
+      ['projected sizes', firstSeen(set.map((p) => p.size)), SIZE_LADDER],
+    ];
+    const exception = SIZE_EXCEPTIONS[def.id];
+    const bad = lists.map(([where, vals, ladder]) => {
+      if (exception && ladder === SIZE_LADDER)
+        return JSON.stringify(vals) === JSON.stringify(exception) ? null : `${where} [${vals.join(', ')}], not the named exception's [${exception.join(', ')}] (Q221 B)`;
+      const o = outOfOrder(vals, ladder); return o ? `${where} ${o}` : null;
+    }).filter(Boolean);
+    checked.set(def.id, lists.reduce((n, [, vals]) => n + vals.length, 0));
+    ok(bad.length === 0, `#2501 ${def.id}: sizes smallest to largest (or the named Q221 B order), states Rest, Hover, Pressed, then Focus, then Disabled (Q213), in the def and in the projected set${bad.length ? ` — WRONG: ${bad.join(' | ')}` : ''}`);
+  }
+  // REPRESENTED, never a count of files (docs/34): the defs Q213 was raised on, and each one that moved here, must
+  // be among those read, each with values to order.
+  const MUST = ['button', 'icon-button', 'text-field', 'textarea', 'select', 'switch-row', 'tag', 'checkbox-control'];
+  const missing = MUST.filter((id) => !(checked.get(id) ?? 0));
+  ok(missing.length === 0, `#2501: the axis order rule read every def it was raised on, each with values to order${missing.length ? ` — not read: ${missing.join(', ')}` : ''}`);
 }
 
 // ------------------------------------------------------------------- report

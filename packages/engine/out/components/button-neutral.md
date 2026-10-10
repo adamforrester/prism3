@@ -77,7 +77,7 @@ Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to boun
 
 ## States
 
-`rest`, `hover`, `focus-visible`, `pressed`, `pending`, `inactive`, `disabled`
+`rest`, `hover`, `pressed`, `pending`, `focus-visible`, `disabled`, `inactive`
 
 ## Variants
 

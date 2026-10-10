@@ -142,12 +142,12 @@ export const textarea: ComponentDef = {
   // would have been the exact shape #868 filed the vocabulary to stop.
   // `filled` (owner decision, 2026-09-25, Prism 2's `Filled` on `reference/Prism2/component-specs/text-area.json`)
   // is the PROJECTED member that holds a value. rest / hover / focus-visible show the placeholder.
-  states: ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only', 'pending', 'empty'],
+  states: ['rest', 'hover', 'pending', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only', 'empty'],
 
   // `style`, plus text-field's `status` axis with text-field's exact values (#1623 sign-off, C1/TA-4) —
   // the validation outcome, driven by the `validation` prop. `size` is text-field's projected axis since
   // #2266, `medium` FIRST for text-field's reason (the default variant, and where an in-place update lands
-  // every member built before the axis existed). The
+  // every member built before the axis existed): the named exception to smallest-to-largest (#2501, Q221 B). The
   // brief's §15 also lists `resize` and `modifiers` as variant axes; neither is declared here and
   // `notes.contested` carries both arguments with their named alternatives.
   variants: {

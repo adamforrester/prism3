@@ -395,7 +395,8 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'existing member of a set that gains this axis. Every field built before #2266 is the medium field, so '
       + 'medium first keeps those members\' look as well as their keys; `small` first would rewrite them as '
       + 'the small field in place. The code enum (`props.size`) keeps the ladder\'s own order; '
-      + '`lint-rung-names.ts` DEFAULT_FIRST admits the split. Held for the owner on #2266.',
+      + '`lint-rung-names.ts` DEFAULT_FIRST admits the split. Decided by the owner: Q221 B (2026-10-10), the named '
+      + 'exception to #2501\'s smallest-to-largest, because Figma takes the default from the top-left member.',
   },
   {
     axis: 'size',

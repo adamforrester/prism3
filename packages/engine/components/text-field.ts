@@ -126,7 +126,7 @@ export const textField: ComponentDef = {
   //
   // `filled` (owner decision, 2026-09-25, Prism 2's `Filled` on `reference/Prism2/component-specs/text-field.json`)
   // is the PROJECTED member that holds a value. rest / hover / focus-visible show the placeholder.
-  states: ['rest', 'hover', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only', 'pending', 'empty'],
+  states: ['rest', 'hover', 'pending', 'filled', 'focus-visible', 'focus-visible-filled', 'disabled', 'read-only', 'empty'],
   // `status` is field-message's status axis by name and value — the alignment that lets the nested message
   // follow it (see the header). `style` stays as a code-API axis (one value, not projected — admitted in
   // `anatomy.codeOnly`).
@@ -135,13 +135,15 @@ export const textField: ComponentDef = {
   // Figma carried the single `md` rung and `size` was a code-only prop. Now each size scales the input type
   // (`body.sm/md/lg`), the nested label (one step below, by `follow`), the padding and the height.
   //
-  // `medium` FIRST, deliberately, and the order is load-bearing rather than cosmetic. The set's first member
-  // is Figma's default variant, and it is also where an in-place update (#2265) lands every member of a set
-  // that GAINS this axis: `dryRunSet` gives an added axis the value the first plan carries. Every text-field
-  // built before #2266 IS the medium field (a 14 label over a 16 input, 44 tall), so medium first keeps those
-  // members' keys AND their look; `small` first would rewrite every existing field as the small one in place.
-  // It also makes the Figma default match the code default (`size: medium`). Owner-visible: the panel and
-  // the grid read medium, small, large (held on #2266).
+  // `medium` FIRST, deliberately, and the order is load-bearing rather than cosmetic: the named exception to
+  // smallest-to-largest (#2501; owner decision Q221 B, 2026-10-10, after Q213). Figma takes a set's default variant
+  // from the member at the TOP-LEFT of the canvas (checked on a scratch file: layer order does not move it), and
+  // the projector's first member is the top-left one, so medium first keeps Medium the field a designer inserts.
+  // It is also where an in-place update (#2265) lands every member of a set that GAINS this axis: `dryRunSet`
+  // gives an added axis the value the first plan carries, and every text-field built before #2266 IS the medium
+  // field (a 14 label over a 16 input, 44 tall), so medium first keeps those members' keys AND their look. It
+  // makes the Figma default match the code default (`size: medium`). The panel and the grid read medium, small,
+  // large; the variant picker lists the values in the order they were first combined.
   variants: {
     size: ['medium', 'small', 'large'],
     style: ['outline'], // default; filled/underline are theming, not an API axis (not projected)
