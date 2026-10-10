@@ -1525,6 +1525,60 @@ for (const how of ['pointer', 'focus']) {
   await page.close();
 }
 
+// ── A4 (#2487): an EDIT that fixes a refused restore clears the strip and turns Apply back on, in the same tick ──
+//
+// #1989's control fixes the restore by loading another brand, which goes through `loadBrand` and `build()`. An edit goes
+// through `rebuild()` and the `brand` topic alone, and there the order of the subscribers decides what the strip paints:
+// the restore failure has to be cleared BEFORE `syncChrome()` reads it, and the bar, whose Apply Theme reads it but
+// repaints only on `bar`, has to be told. The refused override here sits in a custom mode, so removing that mode on the
+// Brand page is an ordinary edit that makes the brand resolve. EXPECTED is written here: the strip hidden and Apply
+// enabled. ACTUAL is read from the built panel's DOM inside the same `evaluate` as the click, so nothing that repaints
+// later can stand in for the subscriber that should have.
+//
+// MUTATIONS, each run against the built bundle and failing here by name:
+//   · the clear moved back after `syncChrome()` (`main.ts`, the `brand` subscriber) → `A4 an edit that fixes a refused
+//     restore clears the error strip and turns Apply Theme back on in the same tick …`.
+//   · the `barChanged()` after the clear removed → the same arm, by its Apply half.
+{
+  const REFUSED = {
+    root: 'rf', id: 'refused-custom', modes: ['light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true },
+    customModes: [{ name: 'custom-1', base: 'light' }],
+    overrides: { 'custom-1': { 'background.secondary': { palette: 'neutral', step: '200' } } },
+  };
+  const { page, errors } = await openPanel();
+  await post(page, { type: 'restore-input', input: REFUSED });
+  await page.waitForFunction(() => /didn't resolve/.test(document.querySelector('[data-p3="error-bar"]')?.textContent ?? ''), null, { timeout: 5000 }).catch(() => {});
+  await hooks.click(page.locator('[data-p3="tab-brand"]'), { timeout: 4000 }).catch(() => {});
+  const before = await page.evaluate(() => ({
+    bar: !(document.querySelector('[data-p3="error-bar"]')?.hidden ?? true),
+    applyDisabled: document.querySelector('[data-p3="apply-to-figma"]')?.disabled ?? null,
+  }));
+  ok(before.bar && before.applyDisabled === true,
+    `A4 precondition: the refused restore shows the strip and turns Apply Theme off — strip ${before.bar}, disabled ${before.applyDisabled}`);
+  // Remove custom-1: it carries an override, so the page asks first, and its Remove is the edit.
+  await hooks.click(page.locator('[data-p3="custom-mode-remove"]'), { timeout: 4000 }).catch(() => {});
+  await page.waitForSelector('[data-p3="custom-mode-confirm-go"]', { timeout: 4000 }).catch(() => {});
+  const same = await page.evaluate(() => {
+    const go = document.querySelector('[data-p3="custom-mode-confirm-go"]');
+    if (!go) return { clicked: false };
+    // Dispatched in the page, not through Playwright, so the read below runs in the same task as the edit.
+    go.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const bar = document.querySelector('[data-p3="error-bar"]');
+    return {
+      clicked: true,
+      bar: bar && !bar.hidden ? bar.textContent : null,
+      applyDisabled: document.querySelector('[data-p3="apply-to-figma"]')?.disabled ?? null,
+      rows: document.querySelectorAll('[data-p3="custom-mode-row"]').length,
+    };
+  });
+  ok(same.clicked && same.rows === 0,
+    `A4 the edit ran: the Brand page's Remove custom-1 was confirmed and the mode is gone — clicked ${same.clicked}, custom mode rows ${same.rows}`);
+  ok(same.clicked && same.bar === null && same.applyDisabled === false,
+    `A4 an edit that fixes a refused restore clears the error strip and turns Apply Theme back on in the same tick — strip ${JSON.stringify((same.bar ?? '').slice(0, 120) || null)}, Apply disabled ${same.applyDisabled}`);
+  ok(errors.length === 0, `A4 edit fixes a refused restore: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
 // ── #1994: every failed restore keeps the writes off, and Export rescues the file's brand ───────────────
 //
 // #1989 turned Apply Theme, Prune stale and the prune dialog's Delete off for a restore the engine refuses

@@ -5,8 +5,8 @@
  *
  * `main.ts` calls `figma.showUI` at module scope, so, as `test-agent-link.ts` does, this installs a host model as the
  * global `figma` and imports it: what runs is the plugin's own message switch, its own run guard and its own
- * `styleGuide` handler. The file is small and typed here: three color collections, one opacity variable (a later
- * phase) and one text style, and the cell sets and token pages each switched on or off per arm.
+ * `styleGuide` handler. The file is small and typed here: three color collections, one opacity variable (drawn
+ * since #2353), one breakpoint (a later phase) and one text style, and the cell sets and token pages each switched on or off per arm.
  *
  * INDEPENDENCE (docs/34). Every expected value is a literal written here: the titles, the pages, the table each
  * variable is drawn in, the order of the messages. Nothing is computed with `catalogFor`, `planStyleGuide` or
@@ -61,6 +61,7 @@ const vars = [
   { id: 'V:2', name: 'alt/text/primary', variableCollectionId: 'C:alt', resolvedType: 'COLOR', description: '', valuesByMode: { 'a:0': { type: 'VARIABLE_ALIAS', id: 'V:1' }, 'a:1': { r: 0, g: 0, b: 1, a: 1 } } },
   { id: 'V:3', name: 'more/fade/50', variableCollectionId: 'C:more', resolvedType: 'COLOR', description: '', valuesByMode: { 'm:0': { r: 0, g: 0, b: 0, a: 0.5 } } },
   { id: 'V:4', name: 'more/opacity/50', variableCollectionId: 'C:more', resolvedType: 'FLOAT', description: '', valuesByMode: { 'm:0': 50 }, scopes: ['OPACITY'] },
+  { id: 'V:5', name: 'more/breakpoint/md', variableCollectionId: 'C:more', resolvedType: 'FLOAT', description: '', valuesByMode: { 'm:0': 768 }, scopes: ['WIDTH_HEIGHT'] },
 ];
 const styles = [{ id: 'S:1', name: 'body/md', description: '', fontName: { family: 'Inter', style: 'Regular' }, fontSize: 16, lineHeight: { unit: 'PIXELS', value: 24 }, letterSpacing: { unit: 'PIXELS', value: 0 }, paragraphSpacing: 0, textDecoration: 'NONE', boundVariables: {} }];
 
@@ -117,21 +118,22 @@ section('catalog — what the page is told before a run');
   const c = got[0]?.catalog;
   ok(got.length === 1 && posted.length === 1 && !('error' in got[0]), `catalog/request: one style-guide-catalog answers the request, and nothing else is posted (${posted.map((m) => m.type).join(', ')})`);
   // Literals: each collection's one color is the only group in it, so its table is titled by the collection: ramp's
-  // step and more's translucent step primitive, alt's aliased role semantic. The opacity variable no phase draws; the
-  // text style.
+  // step and more's translucent step primitive, alt's aliased role semantic. The opacity in a table of its own, on
+  // Primitive tokens, grouped with spacing and size on the page (#2353); the breakpoint no phase draws; the text style.
   ok(JSON.stringify(c?.tables) === JSON.stringify([
     { key: 'color|C:ramp|ramp', title: 'Ramp', kind: 'color', page: 'Primitive tokens', rows: 1 },
     { key: 'color|C:alt|alt/text', title: 'Alt', kind: 'color', page: 'Semantic tokens', rows: 1 },
     { key: 'color|C:more|more/fade', title: 'More', kind: 'color', page: 'Primitive tokens', rows: 1 },
+    { key: 'opacity|C:more|more/opacity', title: 'Opacity', kind: 'dimension', page: 'Primitive tokens', rows: 1 },
     { key: 'typography|text-styles|body', title: 'Text styles', kind: 'text', page: 'Semantic tokens', rows: 1 },
   ]), `catalog/request: the tables, in draw order, with their kinds and pages (${JSON.stringify(c?.tables?.map((t: any) => t.title))})`);
   ok(JSON.stringify(c?.collections) === JSON.stringify([
     { id: 'C:ramp', name: 'ramp', modes: ['Value'], items: [{ name: 'ramp/100', table: 0, value: '#FF0000' }] },
     { id: 'C:alt', name: 'alt', modes: ['Light', 'Dark'], items: [{ name: 'alt/text/primary', table: 1, value: '#FF0000' }] },
-    { id: 'C:more', name: 'more', modes: ['Value'], items: [{ name: 'more/fade/50', table: 2, value: '#000000 · 50%' }, { name: 'more/opacity/50', table: -1, value: '50' }] },
-    { id: 'text-styles', name: 'Text styles', modes: [], textStyles: true, items: [{ name: 'body/md', table: 3, value: '' }] },
-  ]), `catalog/request: each collection's variables with their table (-1 for the later-phase opacity) and default-mode value, then the text styles (${JSON.stringify(c?.collections?.map((x: any) => x.items))})`);
-  ok(c?.setUp === true && JSON.stringify(c?.notes) === JSON.stringify(['No saved brand in this file, so the contrast column reads "—" — Apply theme saves one', 'Not drawn until a later phase: 1 opacity variable']),
+    { id: 'C:more', name: 'more', modes: ['Value'], items: [{ name: 'more/fade/50', table: 2, value: '#000000 · 50%' }, { name: 'more/opacity/50', table: 3, value: '50%' }, { name: 'more/breakpoint/md', table: -1, value: '768px' }] },
+    { id: 'text-styles', name: 'Text styles', modes: [], textStyles: true, items: [{ name: 'body/md', table: 4, value: '' }] },
+  ]), `catalog/request: each collection's variables with their table (-1 for the later-phase breakpoint) and default-mode value, then the text styles (${JSON.stringify(c?.collections?.map((x: any) => x.items))})`);
+  ok(c?.setUp === true && JSON.stringify(c?.notes) === JSON.stringify(['No saved brand in this file, so the contrast column reads "—" — Apply theme saves one', 'Not drawn until a later phase: 1 breakpoint variable']),
     `catalog/request: set up, and the planner's notes for an unfiltered run (${JSON.stringify(c?.notes)})`);
 
   const setUpWith = async (sets: boolean | 'swatch' | 'text', pages: string[]): Promise<unknown> => {
@@ -177,8 +179,8 @@ section('events — a panel run says which table it is on, and how each went');
   const noPrim = 'this file has no Primitive tokens page, and Set up file adds it';
   const noSem = 'this file has no Semantic tokens page, and Set up file adds it';
   ok(JSON.stringify(seq) === JSON.stringify([
-    'tables:Ramp@Primitive tokens|Alt@Semantic tokens|More@Primitive tokens|Text styles@Semantic tokens',
-    '0:drawing', `0:failed(${noPrim})`, '1:drawing', `1:failed(${noSem})`, '2:drawing', `2:failed(${noPrim})`, '3:drawing', `3:failed(${noSem})`,
+    'tables:Ramp@Primitive tokens|Alt@Semantic tokens|More@Primitive tokens|Opacity@Primitive tokens|Text styles@Semantic tokens',
+    '0:drawing', `0:failed(${noPrim})`, '1:drawing', `1:failed(${noSem})`, '2:drawing', `2:failed(${noPrim})`, '3:drawing', `3:failed(${noPrim})`, '4:drawing', `4:failed(${noSem})`,
     'result',
   ]), `events/panel: the table list, then each table drawing and then failed with its reason, all before the one verdict (${JSON.stringify(seq)})`);
 
@@ -205,8 +207,8 @@ section('cancel — stop after the table being drawn (owner decision P7)');
   const after = ofType('style-guide-table').map((m) => `${m.index}:${m.status}`);
   const res = ofType('style-guide-result');
   ok(JSON.stringify(after) === JSON.stringify(['0:drawing', '0:failed', '1:drawing', '1:failed']) && res.length === 1
-    && JSON.stringify(res[0].stopped) === JSON.stringify({ done: 2, total: 4 }) && /Stopped after table 2 of 4\. The tables already drawn stay/.test(res[0].summary),
-    `cancel: sent while the run is between tables 2 and 3, it stops there: two tables reached, the verdict says "Stopped after table 2 of 4" (before ${JSON.stringify(before)}; after ${JSON.stringify(after)}; ${JSON.stringify(res[0]?.stopped)})`);
+    && JSON.stringify(res[0].stopped) === JSON.stringify({ done: 2, total: 5 }) && /Stopped after table 2 of 5\. The tables already drawn stay/.test(res[0].summary),
+    `cancel: sent while the run is between tables 2 and 3, it stops there: two tables reached, the verdict says "Stopped after table 2 of 5" (before ${JSON.stringify(before)}; after ${JSON.stringify(after)}; ${JSON.stringify(res[0]?.stopped)})`);
 
   // Nothing running: the cancel is dropped, and the next run draws every table.
   posted.length = 0;
@@ -215,7 +217,7 @@ section('cancel — stop after the table being drawn (owner decision P7)');
   await release();
   const all = ofType('style-guide-table').filter((m) => m.status !== 'drawing').length;
   const r2 = ofType('style-guide-result')[0];
-  ok(all === 4 && r2 && !('stopped' in r2), `cancel/idle: a cancel with nothing running does not stop the next run (${all} of 4 tables reached; stopped ${JSON.stringify(r2?.stopped)})`);
+  ok(all === 5 && r2 && !('stopped' in r2), `cancel/idle: a cancel with nothing running does not stop the next run (${all} of 5 tables reached; stopped ${JSON.stringify(r2?.stopped)})`);
 }
 
 g.setTimeout = realSetTimeout;

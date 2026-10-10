@@ -1246,6 +1246,9 @@ const exportSource: ExportSource = 'generated';
 let importOpen = false;
 let importErr: string | null = null;
 let importText = '';            // M-17: survives re-renders so a failed paste isn't wiped
+/** A14 (#2487): which read of the import box's file picker is current. A read finishing after its box closed, reopened
+ *  or took another file loads nothing. Bumped by each read, and by the two controls that can reopen the box. */
+let importGen = 0;
 /** A load waiting on confirm-overwrite (#160 for import; #1033 extends it to the other two writers).
  *
  *  IT CARRIES ITS ORIGIN, and that is the whole reason this is not still `importPending: BrandInput`.
@@ -1269,7 +1272,16 @@ subscribe('page', () => { if (frame && !loading && !firstRun()) build(); });
 // controls call `rebuild()` and nothing else; the `brand` topic repaints its levers, its preview and the
 // shell, and this repaints the legacy chrome around them (the engine-error bar, the bar's brand switcher
 // and dirty state), which `apply()` used to do by name. Only while a tab's page is in view, as before H12 (#2289).
-subscribe('brand', () => { if (frame && !loading && !firstRun() && isNewPage(page)) syncChrome(); });
+// A4 (#2487): an edit that fixes an `unresolved` restore ends it HERE, before `syncChrome()` paints the error strip, and
+// then tells the bar, whose Apply Theme reads `restoreFailure` but repaints only on `bar`. As a second `brand` subscriber
+// registered further down this file, the clear ran after the strip had painted the failure, and nothing repainted Apply,
+// so both stayed stale until some later event.
+subscribe('brand', () => {
+  const fixed = restoreFailure?.kind === 'unresolved' && !lastError;
+  if (fixed) restoreFailure = null;
+  if (frame && !loading && !firstRun() && isNewPage(page)) syncChrome();
+  if (fixed) barChanged();
+});
 
 // A NAME TYPED ON THE BRAND PAGE REACHES THE BAR THROUGH THE STORE (UI redesign S3). Brand › Identity writes
 // the name per keystroke without a rebuild (#1196), and `syncIdentity` tells the `identity` topic; the brand
@@ -1497,7 +1509,7 @@ const exportView = (): ExportView => {
 const barActions: BarActions = {
   // Closing the menu discards a staged load with it (#1033): an unanswered "Replace the current brand?" must not be
   // waiting behind a reopened menu.
-  toggleMenu: () => { brandMenuOpen = !brandMenuOpen; exportMenuOpen = false; if (!brandMenuOpen) { importOpen = false; pendingLoad = null; } barChanged(); },
+  toggleMenu: () => { importGen++; brandMenuOpen = !brandMenuOpen; exportMenuOpen = false; if (!brandMenuOpen) { importOpen = false; pendingLoad = null; } barChanged(); },
   closeMenu: () => { brandMenuOpen = false; importOpen = false; pendingLoad = null; barChanged(); },
   // #1033: through the guard, not straight to `loadBrand`. The confirm fires only when there are edits to lose.
   example: (name) => stageLoad(BRANDS[name], { kind: 'example', id: name }),
@@ -1507,11 +1519,13 @@ const barActions: BarActions = {
   // brand unchanged with nothing to put back. Until S12 this cleared the origin, which made `needsOverwriteConfirm`
   // false and let every start path drop unsaved edits without asking (the S12 scoping report, headline 8).
   newBrand: () => { brandMenuOpen = false; startReopened = true; barChanged(); syncStart(); },
-  toggleImport: () => { importOpen = !importOpen; importErr = null; pendingLoad = null; barChanged(); },
+  toggleImport: () => { importGen++; importOpen = !importOpen; importErr = null; pendingLoad = null; barChanged(); },
   importText: (text) => { importText = text; },           // a mode-toggle mid-paste won't lose it (M-17)
   importLoad: (text) => stageImport(text, 'paste'),
   importFile: (file) => {
+    const mine = ++importGen;
     void readDesignMdFile(file).then((read) => {
+      if (mine !== importGen || !brandMenuOpen || !importOpen) return;   // A14: the box moved on while the file was read
       if ('error' in read) { importErr = read.error; pendingLoad = null; barChanged(); return; }
       stageImport(read.text, 'file');
     });
@@ -1716,7 +1730,6 @@ const componentBusy = (): boolean => host.componentState === 'pending' || agentR
  */
 type RestoreFailure = { kind: 'unresolved' | 'rejected' | 'unreadable'; reason: string; brand: BrandInput | null };
 let restoreFailure: RestoreFailure | null = null;
-subscribe('brand', () => { if (restoreFailure?.kind === 'unresolved' && !lastError) restoreFailure = null; });
 /** The file's failed brand as a design.md, or null when it cannot be written as one. */
 const failedBrandOf = (input: unknown): BrandInput | null => {
   try { toDesignMd(input as BrandInput); return input as BrandInput; } catch { return null; }

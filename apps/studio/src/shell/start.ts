@@ -109,6 +109,8 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
   body.append(h('p', 'p3-start-lede', 'One brand color is enough — the engine grows a full, contrast-checked system you can steer. Pick a starting point.'));
 
   let guard: { scrim: HTMLElement; from: HTMLElement | null } | null = null;
+  /** Which upload read is current (A14, #2487): bumped by each read and by `dismiss`, so a late one loads nothing. */
+  let readGen = 0;
   const closeGuard = (refocus: boolean): void => {
     if (!guard) return;
     const { from } = guard;
@@ -237,8 +239,10 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
     showImportError('');
     const f = file.files?.[0];
     if (!f) return;
+    const mine = ++readGen;
     const read = await readDesignMdFile(f);
     file.value = '';   // the same file can be chosen again after a fix
+    if (mine !== readGen) return;   // A14 (#2487): the window closed, or another file was chosen, while this one was read
     if ('error' in read) { showImportError(read.error); return; }
     const res = validateDesignMd(read.text);
     if ('error' in res) { showImportError(importErrorText(res.error)); return; }
@@ -261,6 +265,7 @@ export const openStart = (layer: HTMLElement, lend: StartLend): StartWindow => {
   return {
     first: lend.first,
     dismiss: (to) => {
+      readGen++;   // a read still in flight loads nothing into a closed window
       closeGuard(false);
       scrim.remove();
       behind.forEach((c, i) => { c.inert = wasInert[i]; });

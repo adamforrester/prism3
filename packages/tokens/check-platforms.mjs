@@ -12,8 +12,8 @@
  *
  *   [RULE]    the config (`sd.platforms.mjs`) declares no custom code — read from its source, the
  *             same way `check-consumability.mjs` holds `sd.consumer.mjs` — and the config object it
- *             builds survives a JSON round trip unchanged, so no option is a function (a `filter`, an
- *             `action`, a format) whatever it is named.
+ *             builds survives a JSON round trip unchanged, so no option is code or a non-JSON value (a
+ *             `filter`, an `action`, a format, a RegExp, an `undefined`) whatever it is named.
  *   [READS]   every build writes every platform file, every source token reaches every platform,
  *             and the `.d.ts` declares every export of the module.
  *   [VERDICT] per platform × DTCG `$type`, the worst outcome any token had (emitted, transformed,
@@ -56,7 +56,7 @@ for (const banned of ['preprocessors', 'hooks', 'transforms:', 'registerTransfor
 // JSON drops a function and `undefined` and turns a RegExp into `{}`, so plain data is exactly what
 // survives the round trip.
 const live = platformsConfig(['a.tokens.json'], 'build');
-ok(isDeepStrictEqual(JSON.parse(JSON.stringify(live)), live), '[RULE] the platform config is plain data — it survives a JSON round trip unchanged, so no option is a function');
+ok(isDeepStrictEqual(JSON.parse(JSON.stringify(live)), live), '[RULE] the platform config is plain data — it survives a JSON round trip unchanged, so no option is code or a non-JSON value');
 
 /**
  * The literals. One row per brand: its token root, a brand color (path under `core.palette`, hex, and

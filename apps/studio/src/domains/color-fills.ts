@@ -50,7 +50,7 @@ import { floorNoneText } from '../state/floor-refusal';
 import { DOMAINS, ICONS_DESC, type PageData, type Section } from '../shell/pages';
 import { modeLabel } from '../shell/preview';
 import { glyph, h, hook } from '../shell/dom';
-import { infoTip, inlineConfirm, jumpLabel, leverBlock, promoteLever, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock } from '../ui/lever-kit';
+import { infoTip, inlineConfirm, jumpLabel, leverBlock, onCommitted, promoteLever, selectField, stateLine, subLine, switchButton, tokenLabel, type LeverBlock } from '../ui/lever-kit';
 import { noteSectionEdit, scrollToStart } from '../preview/follow-edit';
 import { fmtRatio, stepPicker, type StepPickerOpts } from '../ui/step-picker';
 
@@ -532,7 +532,8 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
         name.spellcheck = false;
         name.value = g.name;
         name.setAttribute('aria-label', 'Gradient name');
-        name.addEventListener('change', () => {
+        // Committed through the kit (#2487 A2), so Tab out of it keeps focus.
+        onCommitted(name, () => {
           lastEdited = 'gradients';
           if (!renameGradient(gi, name.value)) { name.value = g.name; return; }
           noteSectionEdit();   // QA-B9, as `edit` does
@@ -586,7 +587,11 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
             const num = hook(h('input', 'p3-hex-input p3-num-input'), `gradient-center-${idx ? 'y' : 'x'}`);
             num.type = 'number'; num.id = id; num.min = '0'; num.max = '100'; num.step = '5';
             num.value = String(Math.round(center[idx] * 100));
-            num.addEventListener('change', () => edit('gradients', () => setCenter(gi, idx, Number(num.value))));
+            // An empty field puts its value back rather than writing 0% (#2487 A6).
+            onCommitted(num, () => {
+              if (!num.value.trim()) { num.value = String(Math.round(center[idx] * 100)); return; }
+              edit('gradients', () => setCenter(gi, idx, Number(num.value)));
+            });
             cf.append(num);
             set.append(field(label, id, cf));
           });
@@ -610,7 +615,11 @@ export const mountFillsLevers = (host: HTMLElement, cleanups: (() => void)[]): v
           pos.type = 'number'; pos.min = '0'; pos.max = '100'; pos.step = '5';
           pos.value = String(Math.round(st.position * 100));
           pos.setAttribute('aria-label', `Stop ${si + 1} position, percent`);
-          pos.addEventListener('change', () => edit('gradients', () => setStopPosition(gi, si, Number(pos.value))));
+          // An empty field puts its value back rather than writing 0% (#2487 A6).
+          onCommitted(pos, () => {
+            if (!pos.value.trim()) { pos.value = String(Math.round(st.position * 100)); return; }
+            edit('gradients', () => setStopPosition(gi, si, Number(pos.value)));
+          });
           pf.append(pos);
           sr.append(ssw, pal.el, stp.el, pf);
           // A gradient needs two stops, so a stop is removable only while there are more than two (as before).
