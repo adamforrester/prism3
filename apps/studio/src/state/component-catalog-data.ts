@@ -94,8 +94,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 576,
     "nests": [
       "icon",
-      "focus-ring",
-      "spinner"
+      "spinner",
+      "focus-ring"
     ]
   },
   {
@@ -159,8 +159,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 576,
     "nests": [
       "icon",
-      "focus-ring",
-      "spinner"
+      "spinner",
+      "focus-ring"
     ]
   },
   {
@@ -224,8 +224,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 576,
     "nests": [
       "icon",
-      "focus-ring",
-      "spinner"
+      "spinner",
+      "focus-ring"
     ]
   },
   {
@@ -240,8 +240,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 216,
     "nests": [
       "icon",
-      "focus-ring",
-      "spinner"
+      "spinner",
+      "focus-ring"
     ]
   },
   {
@@ -256,8 +256,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 216,
     "nests": [
       "icon",
-      "focus-ring",
-      "spinner"
+      "spinner",
+      "focus-ring"
     ]
   },
   {
@@ -272,8 +272,8 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "members": 216,
     "nests": [
       "icon",
-      "focus-ring",
-      "spinner"
+      "spinner",
+      "focus-ring"
     ]
   },
   {
@@ -310,11 +310,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.medium.gap",
+        "key": "size.small.gap",
         "ref": "space.100"
       },
       {
-        "key": "size.small.gap",
+        "key": "size.medium.gap",
         "ref": "space.100"
       },
       {
@@ -322,11 +322,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.100"
       },
       {
-        "key": "size.medium.pad-x",
+        "key": "size.small.pad-x",
         "ref": "space.200"
       },
       {
-        "key": "size.small.pad-x",
+        "key": "size.medium.pad-x",
         "ref": "space.200"
       },
       {
@@ -334,12 +334,12 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.300"
       },
       {
-        "key": "size.medium.pad-y",
-        "ref": "space.100"
-      },
-      {
         "key": "size.small.pad-y",
         "ref": "space.075"
+      },
+      {
+        "key": "size.medium.pad-y",
+        "ref": "space.100"
       },
       {
         "key": "size.large.pad-y",
@@ -364,11 +364,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.medium.pad-x",
+        "key": "size.small.pad-x",
         "ref": "space.200"
       },
       {
-        "key": "size.small.pad-x",
+        "key": "size.medium.pad-x",
         "ref": "space.200"
       },
       {
@@ -376,12 +376,12 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.300"
       },
       {
-        "key": "size.medium.pad-y",
-        "ref": "space.100"
-      },
-      {
         "key": "size.small.pad-y",
         "ref": "space.075"
+      },
+      {
+        "key": "size.medium.pad-y",
+        "ref": "space.100"
       },
       {
         "key": "size.large.pad-y",
@@ -557,11 +557,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
     "unit": "variants",
     "spacing": [
       {
-        "key": "size.medium.gap",
+        "key": "size.small.gap",
         "ref": "space.100"
       },
       {
-        "key": "size.small.gap",
+        "key": "size.medium.gap",
         "ref": "space.100"
       },
       {
@@ -569,11 +569,11 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.100"
       },
       {
-        "key": "size.medium.pad-x",
+        "key": "size.small.pad-x",
         "ref": "space.200"
       },
       {
-        "key": "size.small.pad-x",
+        "key": "size.medium.pad-x",
         "ref": "space.200"
       },
       {
@@ -581,12 +581,12 @@ export const COMPONENT_CATALOG_DATA: Catalog = [
         "ref": "space.300"
       },
       {
-        "key": "size.medium.pad-y",
-        "ref": "space.100"
-      },
-      {
         "key": "size.small.pad-y",
         "ref": "space.075"
+      },
+      {
+        "key": "size.medium.pad-y",
+        "ref": "space.100"
       },
       {
         "key": "size.large.pad-y",

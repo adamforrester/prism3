@@ -14,7 +14,7 @@
  * definitions directly. None of it goes through the generated module or the generator. The staleness arm is the
  * `regen --check` shape: the committed copy against a fresh computation, so a definition whose member count moves
  * makes the copy stale until it is rewritten. The literal arms are typed from the definitions' documented shape
- * (Button is 576 variants since #2350's flush text members, 432 after the #1223 split, and nests Icon, FocusRing and Spinner; Icon and Spinner build as
+ * (Button is 576 variants since #2350's flush text members, 432 after the #1223 split, and nests Icon, Spinner and FocusRing; Icon and Spinner build as
  * separate components, #1623), so a generator that agreed with itself while reading the wrong field still fails by
  * name. The two reasons a set is not offered have no subject in the corpus today (all build), so they are held on
  * planted definitions.
@@ -90,7 +90,8 @@ ok(committed.find((e) => e.id === 'button')?.members === legacyButton, `Button's
 console.log('\n3. Literal arms, from the definitions\' documented shape');
 const by = (id: string): CatalogEntry | undefined => committed.find((e) => e.id === id);
 ok(by('button')?.members === 576 && by('button')?.unit === 'variants', `button: 576 variants since #2350's flush text members (${by('button')?.members} ${by('button')?.unit})`);
-ok(JSON.stringify(by('button')?.nests) === '["icon","focus-ring","spinner"]', `button nests Icon, FocusRing and Spinner (${JSON.stringify(by('button')?.nests)})`);
+// In the order the plans first reach them: since #2501 (owner decision Q213) Pending comes before Focus visible.
+ok(JSON.stringify(by('button')?.nests) === '["icon","spinner","focus-ring"]', `button nests Icon, Spinner and FocusRing (${JSON.stringify(by('button')?.nests)})`);
 ok(by('icon')?.unit === 'components' && by('spinner')?.unit === 'components', 'Icon and Spinner build as separate components (#1623)');
 ok(JSON.stringify(by('focus-ring')?.nests) === '[]', 'FocusRing nests nothing');
 ok((by('checkbox-group')?.nests ?? []).includes('checkbox-row') && !(by('checkbox-group')?.nests ?? []).includes('checkbox-control'),
@@ -131,7 +132,7 @@ const view = setsView(committed, { density: 'comfortable', spacePx, plugin: true
 const v = (id: string) => view.find((x) => x.id === id);
 ok(v('button')?.parts === '576 parts' && v('icon')?.parts === '44 components' && v('spinner')?.parts === '4 components',
   `parts: Button "${v('button')?.parts}", Icon "${v('icon')?.parts}", Spinner "${v('spinner')?.parts}" (want 576 parts, 44 components, 4 components)`);
-ok(v('button')?.contains === 'Contains Icon, FocusRing, Spinner' && v('focus-ring')?.contains === 'Contains no other set',
+ok(v('button')?.contains === 'Contains Icon, Spinner, FocusRing' && v('focus-ring')?.contains === 'Contains no other set',
   `contains: by the nested sets' names ("${v('button')?.contains}", "${v('focus-ring')?.contains}")`);
 ok(JSON.stringify(v('button')?.spacing) === JSON.stringify(['Small: padding-x 16 · padding-y 6 · gap 8', 'Medium: padding-x 16 · padding-y 8 · gap 8', 'Large: padding-x 24 · padding-y 8 · gap 12']),
   `spacing at comfortable: Button's three sizes in px (${JSON.stringify(v('button')?.spacing)})`);
